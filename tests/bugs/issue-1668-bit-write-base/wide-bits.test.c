@@ -21,19 +21,33 @@ Wide w = {0};
 int main(void) {
     gbig = 0ULL;
     gbig = (gbig & ~((uint64_t)1U << 40)) | ((uint64_t)1U << 40);
-    if (gbig != 0x10000000000) return 1U;
+    if (gbig != 0x10000000000) {
+        return 1U;
+    }
     gbig = (gbig & ~((uint64_t)0xFU << 40)) | ((3U & (uint64_t)0xFU) << 40);
-    if (gbig != 0x30000000000) return 2U;
+    if (gbig != 0x30000000000) {
+        return 2U;
+    }
     gws.big = (gws.big & ~((uint64_t)1U << 40)) | ((uint64_t)1U << 40);
-    if (gws.big != 0x10000000000) return 3U;
+    if (gws.big != 0x10000000000) {
+        return 3U;
+    }
     w.big = (w.big & ~((uint64_t)1U << 40)) | ((uint64_t)1U << 40);
-    if (w.big != 0x10000000000) return 4U;
+    if (w.big != 0x10000000000) {
+        return 4U;
+    }
     w.bigs[1] = (w.bigs[1] & ~((uint64_t)1U << 63)) | ((uint64_t)1U << 63);
-    if (w.bigs[1U] != 0x8000000000000000) return 5U;
+    if (w.bigs[1U] != 0x8000000000000000) {
+        return 5U;
+    }
     w.big = (w.big & ~((uint64_t)0xFU << 44)) | ((5U & (uint64_t)0xFU) << 44);
-    if (w.big != 0x510000000000) return 6U;
+    if (w.big != 0x510000000000) {
+        return 6U;
+    }
     uint32_t narrow = 0U;
     narrow = (narrow & ~((uint32_t)1U << 31)) | ((uint32_t)1U << 31);
-    if (narrow != 0x80000000) return 7U;
+    if (narrow != 0x80000000) {
+        return 7U;
+    }
     return 0U;
 }

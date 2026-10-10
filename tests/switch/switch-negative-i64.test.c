@@ -122,47 +122,85 @@ int main(void) {
     int64_t maxSafe = 9007199254740991;
     int64_t other = 123456789;
     testI64Values(minSafe);
-    if (result != 1) return 1U;
+    if (result != 1) {
+        return 1U;
+    }
     testI64Values(negQuad);
-    if (result != 2) return 2U;
+    if (result != 2) {
+        return 2U;
+    }
     testI64Values(negTrillion);
-    if (result != 3) return 3U;
+    if (result != 3) {
+        return 3U;
+    }
     testI64Values(negBeyondI32);
-    if (result != 4) return 4U;
+    if (result != 4) {
+        return 4U;
+    }
     testI64Values(negI32Min);
-    if (result != 5) return 5U;
+    if (result != 5) {
+        return 5U;
+    }
     testI64Values(negOne);
-    if (result != 6) return 6U;
+    if (result != 6) {
+        return 6U;
+    }
     testI64Values(zero);
-    if (result != 7) return 7U;
+    if (result != 7) {
+        return 7U;
+    }
     testI64Values(posI32Max);
-    if (result != 8) return 8U;
+    if (result != 8) {
+        return 8U;
+    }
     testI64Values(posBeyondI32);
-    if (result != 9) return 9U;
+    if (result != 9) {
+        return 9U;
+    }
     testI64Values(posTrillion);
-    if (result != 10) return 10U;
+    if (result != 10) {
+        return 10U;
+    }
     testI64Values(posQuad);
-    if (result != 11) return 11U;
+    if (result != 11) {
+        return 11U;
+    }
     testI64Values(maxSafe);
-    if (result != 12) return 12U;
+    if (result != 12) {
+        return 12U;
+    }
     testI64Values(other);
-    if (result != 99) return 13U;
+    if (result != 99) {
+        return 13U;
+    }
     int64_t negBeyondU32 = -4294967296;
     testI64Hex(negBeyondU32);
-    if (result != 20) return 14U;
+    if (result != 20) {
+        return 14U;
+    }
     int64_t negI32Max = -2147483647;
     testI64Hex(negI32Max);
-    if (result != 21) return 15U;
+    if (result != 21) {
+        return 15U;
+    }
     int64_t neg16M = -16777216;
     testI64Hex(neg16M);
-    if (result != 22) return 16U;
+    if (result != 22) {
+        return 16U;
+    }
     int64_t neg255 = -255;
     testI64Hex(neg255);
-    if (result != 23) return 17U;
+    if (result != 23) {
+        return 17U;
+    }
     testI64Hex(zero);
-    if (result != 24) return 18U;
+    if (result != 24) {
+        return 18U;
+    }
     int64_t posBeyondU32 = 4294967296;
     testI64Hex(posBeyondU32);
-    if (result != 25) return 19U;
+    if (result != 25) {
+        return 19U;
+    }
     return 0U;
 }

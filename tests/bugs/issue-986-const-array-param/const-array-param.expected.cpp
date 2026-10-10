@@ -25,7 +25,11 @@ int main(void) {
     buffer[0] = 0U;
     buffer[1] = 0U;
     Handler__process(buffer);
-    if (buffer[0U] != 0xAA) return 1U;
-    if (buffer[1U] != 0xBB) return 2U;
+    if (buffer[0U] != 0xAA) {
+        return 1U;
+    }
+    if (buffer[1U] != 0xBB) {
+        return 2U;
+    }
     return 0U;
 }

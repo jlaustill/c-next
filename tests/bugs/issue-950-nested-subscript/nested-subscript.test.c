@@ -25,9 +25,13 @@ void Test__setInputExtracted(const uint8_t data[8]) {
 int main(void) {
     uint8_t testData[8] = {0U, 99U, 3U, 0U, 0U, 0U, 0U, 0U};
     Test__setInputExtracted(testData);
-    if (inputs[2U].assignedValue != 99) return 1;
+    if (inputs[2U].assignedValue != 99) {
+        return 1;
+    }
     inputs[2].assignedValue = 0U;
     Test__setInput(testData);
-    if (inputs[2U].assignedValue != 99) return 2;
+    if (inputs[2U].assignedValue != 99) {
+        return 2;
+    }
     return 0;
 }

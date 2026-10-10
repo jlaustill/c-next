@@ -43,10 +43,14 @@ u32 main() {
     data[5] <- 200;
 
     setElement(data, 0, 999);
-    if (data[0] != 999) return 1;
+    if (data[0] != 999) {
+        return 1;
+    }
 
     setElement(data, 5, 888);
-    if (data[5] != 888) return 2;
+    if (data[5] != 888) {
+        return 2;
+    }
 
     // Test sumArray
     u32[5] nums;
@@ -57,11 +61,15 @@ u32 main() {
     nums[4] <- 50;
 
     u32 total <- sumArray(nums, 5);
-    if (total != 150) return 3;
+    if (total != 150) {
+        return 3;
+    }
 
     // Sum partial array
     total <- sumArray(nums, 3);
-    if (total != 60) return 4;
+    if (total != 60) {
+        return 4;
+    }
 
     // Test zeroArray
     u32[8] toZero;
@@ -71,10 +79,18 @@ u32 main() {
     toZero[3] <- 4;
 
     zeroArray(toZero, 4);
-    if (toZero[0] != 0) return 5;
-    if (toZero[1] != 0) return 6;
-    if (toZero[2] != 0) return 7;
-    if (toZero[3] != 0) return 8;
+    if (toZero[0] != 0) {
+        return 5;
+    }
+    if (toZero[1] != 0) {
+        return 6;
+    }
+    if (toZero[2] != 0) {
+        return 7;
+    }
+    if (toZero[3] != 0) {
+        return 8;
+    }
 
     // Test copyArray
     u32[4] source;
@@ -89,10 +105,18 @@ u32 main() {
     dest[3] <- 0;
 
     copyArray(source, dest, 4);
-    if (dest[0] != 11) return 9;
-    if (dest[1] != 22) return 10;
-    if (dest[2] != 33) return 11;
-    if (dest[3] != 44) return 12;
+    if (dest[0] != 11) {
+        return 9;
+    }
+    if (dest[1] != 22) {
+        return 10;
+    }
+    if (dest[2] != 33) {
+        return 11;
+    }
+    if (dest[3] != 44) {
+        return 12;
+    }
 
     return 0;
 }

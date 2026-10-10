@@ -41,20 +41,50 @@ int main(void) {
     buffer[12] = (uint8_t)(cnx_tmp2 >> 40U);
     buffer[13] = (uint8_t)(cnx_tmp2 >> 48U);
     buffer[14] = (uint8_t)(cnx_tmp2 >> 56U);
-    if (buffer[0U] != 0x58) return 1U;
-    if (buffer[1U] != 0x4E) return 2U;
-    if (buffer[2U] != 0x53) return 3U;
-    if (buffer[3U] != 0x43) return 4U;
-    if (buffer[4U] != 0x01) return 5U;
-    if (buffer[5U] != 0x01) return 6U;
-    if (buffer[6U] != 0x0F) return 7U;
-    if (buffer[7U] != 0xF0) return 8U;
-    if (buffer[8U] != 0xDE) return 9U;
-    if (buffer[9U] != 0xBC) return 10U;
-    if (buffer[10U] != 0x9A) return 11U;
-    if (buffer[11U] != 0x78) return 12U;
-    if (buffer[12U] != 0x56) return 13U;
-    if (buffer[13U] != 0x34) return 14U;
-    if (buffer[14U] != 0x12) return 15U;
+    if (buffer[0U] != 0x58) {
+        return 1U;
+    }
+    if (buffer[1U] != 0x4E) {
+        return 2U;
+    }
+    if (buffer[2U] != 0x53) {
+        return 3U;
+    }
+    if (buffer[3U] != 0x43) {
+        return 4U;
+    }
+    if (buffer[4U] != 0x01) {
+        return 5U;
+    }
+    if (buffer[5U] != 0x01) {
+        return 6U;
+    }
+    if (buffer[6U] != 0x0F) {
+        return 7U;
+    }
+    if (buffer[7U] != 0xF0) {
+        return 8U;
+    }
+    if (buffer[8U] != 0xDE) {
+        return 9U;
+    }
+    if (buffer[9U] != 0xBC) {
+        return 10U;
+    }
+    if (buffer[10U] != 0x9A) {
+        return 11U;
+    }
+    if (buffer[11U] != 0x78) {
+        return 12U;
+    }
+    if (buffer[12U] != 0x56) {
+        return 13U;
+    }
+    if (buffer[13U] != 0x34) {
+        return 14U;
+    }
+    if (buffer[14U] != 0x12) {
+        return 15U;
+    }
     return 0U;
 }

@@ -41,10 +41,20 @@ int main(void) {
     buffer[1] = (uint8_t)(cnx_tmp0 >> 8U);
     buffer[2] = (uint8_t)(cnx_tmp0 >> 16U);
     buffer[3] = (uint8_t)(cnx_tmp0 >> 24U);
-    if (buffer[0U] != 0x44) return 1U;
-    if (buffer[1U] != 0x33) return 2U;
-    if (buffer[2U] != 0x22) return 3U;
-    if (buffer[3U] != 0x11) return 4U;
-    if (sliceSourceCallCount != 1) return 5U;
+    if (buffer[0U] != 0x44) {
+        return 1U;
+    }
+    if (buffer[1U] != 0x33) {
+        return 2U;
+    }
+    if (buffer[2U] != 0x22) {
+        return 3U;
+    }
+    if (buffer[3U] != 0x11) {
+        return 4U;
+    }
+    if (sliceSourceCallCount != 1) {
+        return 5U;
+    }
     return 0U;
 }

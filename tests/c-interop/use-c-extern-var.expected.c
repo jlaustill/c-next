@@ -13,22 +13,40 @@
 
 int main(void) {
     uint32_t initial = extern_counter;
-    if (initial != 0) return 1U;
+    if (initial != 0) {
+        return 1U;
+    }
     extern_counter = 42U;
-    if (extern_counter != 42) return 2U;
+    if (extern_counter != 42) {
+        return 2U;
+    }
     extern_counter += 8U;
-    if (extern_counter != 50) return 3U;
+    if (extern_counter != 50) {
+        return 3U;
+    }
     uint32_t magic = EXTERN_MAGIC_NUMBER;
-    if (magic != 0xCAFEBABE) return 4U;
+    if (magic != 0xCAFEBABE) {
+        return 4U;
+    }
     uint8_t first = extern_lookup_table[0U];
     uint8_t last = extern_lookup_table[15U];
-    if (first != 0x00) return 5U;
-    if (last != 0xFF) return 6U;
+    if (first != 0x00) {
+        return 5U;
+    }
+    if (last != 0xFF) {
+        return 6U;
+    }
     uint32_t sum = extern_lookup_table[1U] + extern_lookup_table[2U];
-    if (sum != 0x33) return 7U;
+    if (sum != 0x33) {
+        return 7U;
+    }
     uint32_t status = extern_status_register;
-    if (status != 0) return 8U;
+    if (status != 0) {
+        return 8U;
+    }
     extern_status_register = 0xABCDU;
-    if (extern_status_register != 0xABCD) return 9U;
+    if (extern_status_register != 0xABCD) {
+        return 9U;
+    }
     return 0U;
 }

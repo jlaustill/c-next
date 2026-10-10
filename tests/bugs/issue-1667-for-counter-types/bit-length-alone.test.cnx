@@ -12,6 +12,8 @@ u32 probe() {
 
 u32 main() {
     u32 width <- probe();
-    if (width != 8) return 1;
+    if (width != 8) {
+        return 1;
+    }
     return 0;
 }

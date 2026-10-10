@@ -43,123 +43,203 @@ static inline int16_t cnx_clamp_sub_i16(int16_t a, int32_t b) {
 int main(void) {
     int16_t val = 10000;
     val = cnx_clamp_add_i16(val, 5000);
-    if (val != 15000) return 1U;
+    if (val != 15000) {
+        return 1U;
+    }
     val = -10000;
     val = cnx_clamp_add_i16(val, 5000);
-    if (val != -5000) return 2U;
+    if (val != -5000) {
+        return 2U;
+    }
     val = -10000;
     val = cnx_clamp_add_i16(val, -5000);
-    if (val != -15000) return 3U;
+    if (val != -15000) {
+        return 3U;
+    }
     val = 1000;
     val = cnx_clamp_add_i16(val, 0);
-    if (val != 1000) return 4U;
+    if (val != 1000) {
+        return 4U;
+    }
     val = -1000;
     val = cnx_clamp_add_i16(val, 1000);
-    if (val != 0) return 5U;
+    if (val != 0) {
+        return 5U;
+    }
     val = 32766;
     val = cnx_clamp_add_i16(val, 1);
-    if (val != 32767) return 6U;
+    if (val != 32767) {
+        return 6U;
+    }
     int16_t sub = 15000;
     sub = cnx_clamp_sub_i16(sub, 5000);
-    if (sub != 10000) return 10U;
+    if (sub != 10000) {
+        return 10U;
+    }
     sub = 5000;
     sub = cnx_clamp_sub_i16(sub, 10000);
-    if (sub != -5000) return 11U;
+    if (sub != -5000) {
+        return 11U;
+    }
     sub = -10000;
     sub = cnx_clamp_sub_i16(sub, 5000);
-    if (sub != -15000) return 12U;
+    if (sub != -15000) {
+        return 12U;
+    }
     sub = -10000;
     sub = cnx_clamp_sub_i16(sub, -5000);
-    if (sub != -5000) return 13U;
+    if (sub != -5000) {
+        return 13U;
+    }
     sub = 1000;
     sub = cnx_clamp_sub_i16(sub, 0);
-    if (sub != 1000) return 14U;
+    if (sub != 1000) {
+        return 14U;
+    }
     sub = -32767;
     sub = cnx_clamp_sub_i16(sub, 1);
-    if (sub != -32768) return 15U;
+    if (sub != -32768) {
+        return 15U;
+    }
     int16_t mul = 100;
     mul = cnx_clamp_mul_i16(mul, 100);
-    if (mul != 10000) return 20U;
+    if (mul != 10000) {
+        return 20U;
+    }
     mul = -100;
     mul = cnx_clamp_mul_i16(mul, 100);
-    if (mul != -10000) return 21U;
+    if (mul != -10000) {
+        return 21U;
+    }
     mul = -100;
     mul = cnx_clamp_mul_i16(mul, -100);
-    if (mul != 10000) return 22U;
+    if (mul != 10000) {
+        return 22U;
+    }
     mul = 1000;
     mul = cnx_clamp_mul_i16(mul, 1);
-    if (mul != 1000) return 23U;
+    if (mul != 1000) {
+        return 23U;
+    }
     mul = 1000;
     mul = cnx_clamp_mul_i16(mul, -1);
-    if (mul != -1000) return 24U;
+    if (mul != -1000) {
+        return 24U;
+    }
     mul = 123;
     mul = cnx_clamp_mul_i16(mul, 0);
-    if (mul != 0) return 25U;
+    if (mul != 0) {
+        return 25U;
+    }
     int16_t div = 10000;
     div = (int16_t)(div / 100);
-    if (div != 100) return 30U;
+    if (div != 100) {
+        return 30U;
+    }
     div = -10000;
     div = (int16_t)(div / 100);
-    if (div != -100) return 31U;
+    if (div != -100) {
+        return 31U;
+    }
     div = -10000;
     div = (int16_t)(div / -100);
-    if (div != 100) return 32U;
+    if (div != 100) {
+        return 32U;
+    }
     div = 1000;
     div = (int16_t)(div / 1);
-    if (div != 1000) return 33U;
+    if (div != 1000) {
+        return 33U;
+    }
     div = -1000;
     div = (int16_t)(div / -1);
-    if (div != 1000) return 34U;
+    if (div != 1000) {
+        return 34U;
+    }
     div = 32767;
     div = (int16_t)(div / 32767);
-    if (div != 1) return 35U;
+    if (div != 1) {
+        return 35U;
+    }
     int16_t mod = 10007;
     mod = (int16_t)(mod % 1000);
-    if (mod != 7) return 40U;
+    if (mod != 7) {
+        return 40U;
+    }
     mod = -10007;
     mod = (int16_t)(mod % 1000);
-    if (mod != -7) return 41U;
+    if (mod != -7) {
+        return 41U;
+    }
     mod = 12345;
     mod = (int16_t)(mod % 7);
-    if (mod != 4) return 42U;
+    if (mod != 4) {
+        return 42U;
+    }
     mod = -12345;
     mod = (int16_t)(mod % 7);
-    if (mod != -4) return 43U;
+    if (mod != -4) {
+        return 43U;
+    }
     mod = 1000;
     mod = (int16_t)(mod % 1000);
-    if (mod != 0) return 44U;
+    if (mod != 0) {
+        return 44U;
+    }
     int16_t andVal = 0x7FFF;
     andVal = (int16_t)(andVal & 0x00FF);
-    if (andVal != 0x00FF) return 50U;
+    if (andVal != 0x00FF) {
+        return 50U;
+    }
     andVal = -1;
     andVal = (int16_t)(andVal & 0x00FF);
-    if (andVal != 0x00FF) return 51U;
+    if (andVal != 0x00FF) {
+        return 51U;
+    }
     andVal = 0x5555;
     andVal = (int16_t)(andVal & 0xAAAA);
-    if (andVal != 0) return 52U;
+    if (andVal != 0) {
+        return 52U;
+    }
     andVal = 0x0F0F;
     andVal = (int16_t)(andVal & 0xF0F0);
-    if (andVal != 0) return 53U;
+    if (andVal != 0) {
+        return 53U;
+    }
     int16_t orVal = 0x00FF;
     orVal = (int16_t)(orVal | 0x7F00);
-    if (orVal != 0x7FFF) return 60U;
+    if (orVal != 0x7FFF) {
+        return 60U;
+    }
     orVal = 0x1200;
     orVal = (int16_t)(orVal | 0x0034);
-    if (orVal != 0x1234) return 61U;
+    if (orVal != 0x1234) {
+        return 61U;
+    }
     orVal = 0x1234;
     orVal = (int16_t)(orVal | 0x0000);
-    if (orVal != 0x1234) return 62U;
+    if (orVal != 0x1234) {
+        return 62U;
+    }
     int16_t xorVal = 0x5555;
     xorVal = (int16_t)(xorVal ^ 0x5555);
-    if (xorVal != 0) return 70U;
+    if (xorVal != 0) {
+        return 70U;
+    }
     xorVal = 0x0F0F;
     xorVal = (int16_t)(xorVal ^ 0x7070);
-    if (xorVal != 0x7F7F) return 71U;
+    if (xorVal != 0x7F7F) {
+        return 71U;
+    }
     xorVal = -1;
     xorVal = (int16_t)(xorVal ^ -1);
-    if (xorVal != 0) return 72U;
+    if (xorVal != 0) {
+        return 72U;
+    }
     xorVal = 0x5555;
     xorVal = (int16_t)(xorVal ^ 0x2AAA);
-    if (xorVal != 0x7FFF) return 73U;
+    if (xorVal != 0x7FFF) {
+        return 73U;
+    }
     return 0U;
 }

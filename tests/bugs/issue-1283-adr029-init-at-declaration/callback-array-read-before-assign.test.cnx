@@ -1,0 +1,17 @@
+// test-error
+// #1283 review: a local array of a function-as-type holds its ADR-029 default
+// in every element (`{ tickDefault, tickDefault }`, never `{0}`), but a local
+// read before it is assigned is still E0381 (ADR-015, #1980).
+u32 tickDefault() {
+    return 10;
+}
+
+u32 main() {
+    tickDefault[2] loc;
+    tickDefault two <- loc[1];
+    u32 v <- two();
+    if (v != 10) {
+        return 1;
+    }
+    return 0;
+}

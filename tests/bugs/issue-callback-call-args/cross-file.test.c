@@ -19,24 +19,30 @@
 #include <stdint.h>
 
 Readers Readers_init(void) {
-    Readers value = {0};
-    value.onRead = readSample;
-    value.onBump = bumpSample;
+    Readers value = { .onRead = readSample, .onBump = bumpSample };
     return value;
 }
 
 int main(void) {
-    Readers r = {0};
+    Readers r = { .onRead = readSample, .onBump = bumpSample };
     r.onRead = readSample;
     r.onBump = bumpSample;
     Sample s = { .value = 4U };
     uint32_t viaField = r.onRead(&s);
-    if (viaField != 4) return 1;
+    if (viaField != 4) {
+        return 1;
+    }
     r.onBump(&s);
-    if (s.value != 7) return 2;
+    if (s.value != 7) {
+        return 2;
+    }
     uint32_t direct = readSample(&s);
-    if (direct != 7) return 3;
+    if (direct != 7) {
+        return 3;
+    }
     bumpSample(&s);
-    if (s.value != 10) return 4;
+    if (s.value != 10) {
+        return 4;
+    }
     return 0;
 }

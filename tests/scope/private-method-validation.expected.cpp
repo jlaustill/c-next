@@ -165,51 +165,91 @@ void PrivateMethods__copyPrivateToPublic(void) {
 
 int main(void) {
     uint32_t resultState = PrivateMethods__exposePrivateState();
-    if (resultState != 0) return 1U;
+    if (resultState != 0) {
+        return 1U;
+    }
     PrivateMethods__setPrivateState(42U);
     resultState = PrivateMethods__exposePrivateState();
-    if (resultState != 42) return 2U;
+    if (resultState != 42) {
+        return 2U;
+    }
     bool resultFlag = PrivateMethods__exposePrivateFlag();
-    if (resultFlag != false) return 3U;
+    if (resultFlag != false) {
+        return 3U;
+    }
     PrivateMethods__setPrivateFlag(true);
     resultFlag = PrivateMethods__exposePrivateFlag();
-    if (resultFlag != true) return 4U;
+    if (resultFlag != true) {
+        return 4U;
+    }
     int32_t resultAccum = PrivateMethods__exposePrivateAccumulator();
-    if (resultAccum != 0) return 5U;
+    if (resultAccum != 0) {
+        return 5U;
+    }
     PrivateMethods__addToAccumulator(100);
     resultAccum = PrivateMethods__exposePrivateAccumulator();
-    if (resultAccum != 100) return 6U;
+    if (resultAccum != 100) {
+        return 6U;
+    }
     PrivateMethods__addToAccumulator(-30);
     resultAccum = PrivateMethods__exposePrivateAccumulator();
-    if (resultAccum != 70) return 7U;
+    if (resultAccum != 70) {
+        return 7U;
+    }
     uint32_t resultCounter = PrivateMethods__exposeGlobalCounter();
-    if (resultCounter != 100) return 8U;
+    if (resultCounter != 100) {
+        return 8U;
+    }
     uint32_t resultCombined = PrivateMethods__exposeCombinedStateAndGlobal();
-    if (resultCombined != 142) return 9U;
+    if (resultCombined != 142) {
+        return 9U;
+    }
     bool resultBothFlags = PrivateMethods__exposeBothFlagsCheck();
-    if (resultBothFlags != true) return 10U;
+    if (resultBothFlags != true) {
+        return 10U;
+    }
     PrivateMethods__setPrivateFlag(false);
     resultBothFlags = PrivateMethods__exposeBothFlagsCheck();
-    if (resultBothFlags != false) return 11U;
+    if (resultBothFlags != false) {
+        return 11U;
+    }
     uint32_t resultHelper = PrivateMethods__exposeStateViaHelper();
-    if (resultHelper != 42) return 12U;
+    if (resultHelper != 42) {
+        return 12U;
+    }
     PrivateMethods__setPrivateState(990U);
     resultState = PrivateMethods__exposePrivateState();
-    if (resultState != 990) return 13U;
+    if (resultState != 990) {
+        return 13U;
+    }
     uint8_t resultCallCount = PrivateMethods__exposeCallCount();
-    if (resultCallCount != 2) return 14U;
+    if (resultCallCount != 2) {
+        return 14U;
+    }
     PrivateMethods__triggerPrivateChain();
     resultState = PrivateMethods__exposePrivateState();
-    if (resultState != 1000) return 15U;
+    if (resultState != 1000) {
+        return 15U;
+    }
     resultFlag = PrivateMethods__exposePrivateFlag();
-    if (resultFlag != true) return 16U;
+    if (resultFlag != true) {
+        return 16U;
+    }
     resultCallCount = PrivateMethods__exposeCallCount();
-    if (resultCallCount != 3) return 17U;
+    if (resultCallCount != 3) {
+        return 17U;
+    }
     PrivateMethods__setPrivateState(777U);
     PrivateMethods__setPrivateFlag(true);
     PrivateMethods__copyPrivateToPublic();
-    if (PrivateMethods__publicResult != 777) return 18U;
-    if (PrivateMethods__publicFlag != true) return 19U;
-    if (PrivateMethods__publicAccumulator != 70) return 20U;
+    if (PrivateMethods__publicResult != 777) {
+        return 18U;
+    }
+    if (PrivateMethods__publicFlag != true) {
+        return 19U;
+    }
+    if (PrivateMethods__publicAccumulator != 70) {
+        return 20U;
+    }
     return 0U;
 }

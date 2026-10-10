@@ -41,12 +41,20 @@ int main(void) {
     Dev* d = dev_create();
     Dev* other = dev_create();
     int32_t initialized = viaInitializer(d);
-    if (initialized != 1) return 1;
+    if (initialized != 1) {
+        return 1;
+    }
     int32_t assigned = viaAssignment(d);
-    if (assigned != 2) return 2;
+    if (assigned != 2) {
+        return 2;
+    }
     bool same = sameHandle(d, d);
-    if (same != true) return 3;
+    if (same != true) {
+        return 3;
+    }
     bool different = sameHandle(d, other);
-    if (different != false) return 4;
+    if (different != false) {
+        return 4;
+    }
     return 0;
 }

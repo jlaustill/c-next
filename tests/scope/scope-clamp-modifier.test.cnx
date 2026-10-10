@@ -91,60 +91,88 @@ u32 main() {
 
     // Test 1-6: Validate initial values
     u8 resultBrightness <- ClampTest.getBrightness();
-    if (resultBrightness != 200) return 1;
+    if (resultBrightness != 200) {
+        return 1;
+    }
     u16 resultSensor <- ClampTest.getSensorValue();
-    if (resultSensor != 60000) return 2;
+    if (resultSensor != 60000) {
+        return 2;
+    }
     u32 resultCounter <- ClampTest.getCounter();
-    if (resultCounter != 4000000000) return 3;
+    if (resultCounter != 4000000000) {
+        return 3;
+    }
     i8 resultTemp <- ClampTest.getTemperature();
-    if (resultTemp != -100) return 4;
+    if (resultTemp != -100) {
+        return 4;
+    }
     i16 resultAlt <- ClampTest.getAltitude();
-    if (resultAlt != 30000) return 5;
+    if (resultAlt != 30000) {
+        return 5;
+    }
     i32 resultPos <- ClampTest.getPosition();
-    if (resultPos != 2000000000) return 6;
+    if (resultPos != 2000000000) {
+        return 6;
+    }
 
     // Test 7: u8 overflow clamps to 255 (200 + 100 = 300 -> 255)
     ClampTest.increaseBrightness();
     resultBrightness <- ClampTest.getBrightness();
-    if (resultBrightness != 255) return 7;
+    if (resultBrightness != 255) {
+        return 7;
+    }
 
     // Test 8: u16 overflow clamps to 65535 (60000 + 10000 = 70000 -> 65535)
     ClampTest.increaseSensorValue();
     resultSensor <- ClampTest.getSensorValue();
-    if (resultSensor != 65535) return 8;
+    if (resultSensor != 65535) {
+        return 8;
+    }
 
     // Test 9: u32 overflow clamps to UINT32_MAX
     ClampTest.increaseCounter();
     resultCounter <- ClampTest.getCounter();
-    if (resultCounter != 4294967295) return 9;
+    if (resultCounter != 4294967295) {
+        return 9;
+    }
 
     // Test 10: i8 underflow clamps to -128 (-100 - 50 = -150 -> -128)
     ClampTest.decreaseTemperature();
     resultTemp <- ClampTest.getTemperature();
-    if (resultTemp != -128) return 10;
+    if (resultTemp != -128) {
+        return 10;
+    }
 
     // Test 11: i16 normal decrease (30000 - 5000 = 25000)
     ClampTest.decreaseAltitude();
     resultAlt <- ClampTest.getAltitude();
-    if (resultAlt != 25000) return 11;
+    if (resultAlt != 25000) {
+        return 11;
+    }
 
     // Test 12: i32 normal decrease (2000000000 - 100000000 = 1900000000)
     ClampTest.decreasePosition();
     resultPos <- ClampTest.getPosition();
-    if (resultPos != 1900000000) return 12;
+    if (resultPos != 1900000000) {
+        return 12;
+    }
 
     // Test 13: u8 underflow clamps to 0 (255 - 250 = 5, then need fresh test)
     // Reset brightness to test underflow
     ClampTest.setBrightness(100);
     ClampTest.dimBrightness(); // 100 - 250 = -150 -> clamps to 0
     resultBrightness <- ClampTest.getBrightness();
-    if (resultBrightness != 0) return 13;
+    if (resultBrightness != 0) {
+        return 13;
+    }
 
     // Test 14: u16 underflow clamps to 0
     ClampTest.setSensorValue(1000);
     ClampTest.resetSensor(); // 1000 - 65000 = -64000 -> clamps to 0
     resultSensor <- ClampTest.getSensorValue();
-    if (resultSensor != 0) return 14;
+    if (resultSensor != 0) {
+        return 14;
+    }
 
     // All 14 validations passed
     return 0;

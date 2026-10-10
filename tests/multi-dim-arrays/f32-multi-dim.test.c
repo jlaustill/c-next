@@ -33,36 +33,76 @@ int main(void) {
     matrix2d[0][7] = -2.75;
     matrix2d[1][3] = 100.5;
     matrix2d[3][7] = 0.0;
-    if (matrix2d[0U][0U] != 3.125) return 1U;
-    if (matrix2d[0U][7U] != -2.75) return 2U;
-    if (matrix2d[1U][3U] != 100.5) return 3U;
-    if (matrix2d[3U][7U] != 0.0) return 4U;
+    if (matrix2d[0U][0U] != 3.125) {
+        return 1U;
+    }
+    if (matrix2d[0U][7U] != -2.75) {
+        return 2U;
+    }
+    if (matrix2d[1U][3U] != 100.5) {
+        return 3U;
+    }
+    if (matrix2d[3U][7U] != 0.0) {
+        return 4U;
+    }
     cube3d[0][0][0] = 1.5;
     cube3d[0][0][3] = -10.25;
     cube3d[0][2][3] = 0.0;
     cube3d[1][0][0] = 99.5;
     cube3d[1][2][3] = -0.0625;
-    if (cube3d[0U][0U][0U] != 1.5) return 5U;
-    if (cube3d[0U][0U][3U] != -10.25) return 6U;
-    if (cube3d[0U][2U][3U] != 0.0) return 7U;
-    if (cube3d[1U][0U][0U] != 99.5) return 8U;
-    if (cube3d[1U][2U][3U] != -0.0625) return 9U;
-    if (4 != 4) return 10U;
-    if (8 != 8) return 11U;
-    if (32 != 32) return 12U;
-    if (2 != 2) return 13U;
-    if (3 != 3) return 14U;
-    if (4 != 4) return 15U;
-    if (32 != 32) return 16U;
+    if (cube3d[0U][0U][0U] != 1.5) {
+        return 5U;
+    }
+    if (cube3d[0U][0U][3U] != -10.25) {
+        return 6U;
+    }
+    if (cube3d[0U][2U][3U] != 0.0) {
+        return 7U;
+    }
+    if (cube3d[1U][0U][0U] != 99.5) {
+        return 8U;
+    }
+    if (cube3d[1U][2U][3U] != -0.0625) {
+        return 9U;
+    }
+    if (4 != 4) {
+        return 10U;
+    }
+    if (8 != 8) {
+        return 11U;
+    }
+    if (32 != 32) {
+        return 12U;
+    }
+    if (2 != 2) {
+        return 13U;
+    }
+    if (3 != 3) {
+        return 14U;
+    }
+    if (4 != 4) {
+        return 15U;
+    }
+    if (32 != 32) {
+        return 16U;
+    }
     for (uint32_t i = 0U; i < 4; i = cnx_clamp_add_u32(i, 1U)) {
         for (uint32_t j = 0U; j < 8; j = cnx_clamp_add_u32(j, 1U)) {
             matrix2d[i][j] = (float)i * 2.5 + (float)j * 0.5;
         }
     }
-    if (matrix2d[0U][0U] != 0.0) return 17U;
-    if (matrix2d[0U][7U] != 3.5) return 18U;
-    if (matrix2d[1U][3U] != 4.0) return 19U;
-    if (matrix2d[3U][7U] != 11.0) return 20U;
+    if (matrix2d[0U][0U] != 0.0) {
+        return 17U;
+    }
+    if (matrix2d[0U][7U] != 3.5) {
+        return 18U;
+    }
+    if (matrix2d[1U][3U] != 4.0) {
+        return 19U;
+    }
+    if (matrix2d[3U][7U] != 11.0) {
+        return 20U;
+    }
     float sum = 0.0;
     for (uint32_t i = 0U; i < 2; i = cnx_clamp_add_u32(i, 1U)) {
         for (uint32_t j = 0U; j < 3; j = cnx_clamp_add_u32(j, 1U)) {
@@ -72,11 +112,17 @@ int main(void) {
             }
         }
     }
-    if (sum != 198.0) return 21U;
+    if (sum != 198.0) {
+        return 21U;
+    }
     matrix2d[2][4] = -1000.0;
-    if (matrix2d[2U][4U] != -1000.0) return 22U;
+    if (matrix2d[2U][4U] != -1000.0) {
+        return 22U;
+    }
     matrix2d[3][7] = 42.5;
-    if (matrix2d[3U][7U] != 42.5) return 23U;
+    if (matrix2d[3U][7U] != 42.5) {
+        return 23U;
+    }
     float testArray[4][2] = {0};
     for (uint32_t ti = 0U; ti < 4; ti = cnx_clamp_add_u32(ti, 1U)) {
         for (uint32_t tj = 0U; tj < 2; tj = cnx_clamp_add_u32(tj, 1U)) {
@@ -89,12 +135,24 @@ int main(void) {
     testArray[1][1] = -1.0;
     testArray[2][0] = 0.125;
     testArray[3][1] = -0.125;
-    if (testArray[0U][0U] != 0.0) return 24U;
-    if (testArray[0U][1U] != -0.0) return 25U;
-    if (testArray[1U][0U] != 1.0) return 26U;
-    if (testArray[1U][1U] != -1.0) return 27U;
-    if (testArray[2U][0U] != 0.125) return 28U;
-    if (testArray[3U][1U] != -0.125) return 29U;
+    if (testArray[0U][0U] != 0.0) {
+        return 24U;
+    }
+    if (testArray[0U][1U] != -0.0) {
+        return 25U;
+    }
+    if (testArray[1U][0U] != 1.0) {
+        return 26U;
+    }
+    if (testArray[1U][1U] != -1.0) {
+        return 27U;
+    }
+    if (testArray[2U][0U] != 0.125) {
+        return 28U;
+    }
+    if (testArray[3U][1U] != -0.125) {
+        return 29U;
+    }
     float temps[3][3] = {0};
     for (uint32_t tei = 0U; tei < 3; tei = cnx_clamp_add_u32(tei, 1U)) {
         for (uint32_t tej = 0U; tej < 3; tej = cnx_clamp_add_u32(tej, 1U)) {
@@ -108,11 +166,21 @@ int main(void) {
     temps[1][1] = 20.5;
     temps[2][0] = -40.0;
     temps[2][1] = 1000.0;
-    if (temps[0U][0U] != -273.0) return 30U;
-    if (temps[0U][1U] != 0.0) return 31U;
-    if (temps[0U][2U] != 100.0) return 32U;
-    if (temps[1U][0U] != 37.0) return 33U;
-    if (temps[2U][0U] != -40.0) return 34U;
+    if (temps[0U][0U] != -273.0) {
+        return 30U;
+    }
+    if (temps[0U][1U] != 0.0) {
+        return 31U;
+    }
+    if (temps[0U][2U] != 100.0) {
+        return 32U;
+    }
+    if (temps[1U][0U] != 37.0) {
+        return 33U;
+    }
+    if (temps[2U][0U] != -40.0) {
+        return 34U;
+    }
     float precise[2][2] = {0};
     for (uint32_t pi = 0U; pi < 2; pi = cnx_clamp_add_u32(pi, 1U)) {
         for (uint32_t pj = 0U; pj < 2; pj = cnx_clamp_add_u32(pj, 1U)) {
@@ -123,10 +191,18 @@ int main(void) {
     precise[0][1] = 0.0625;
     precise[1][0] = 1000.0;
     precise[1][1] = -123.5;
-    if (precise[0U][0U] != 0.125) return 35U;
-    if (precise[0U][1U] != 0.0625) return 36U;
-    if (precise[1U][0U] != 1000.0) return 37U;
-    if (precise[1U][1U] != -123.5) return 38U;
+    if (precise[0U][0U] != 0.125) {
+        return 35U;
+    }
+    if (precise[0U][1U] != 0.0625) {
+        return 36U;
+    }
+    if (precise[1U][0U] != 1000.0) {
+        return 37U;
+    }
+    if (precise[1U][1U] != -123.5) {
+        return 38U;
+    }
     float calc[2][2] = {0};
     for (uint32_t ci = 0U; ci < 2; ci = cnx_clamp_add_u32(ci, 1U)) {
         for (uint32_t cj = 0U; cj < 2; cj = cnx_clamp_add_u32(cj, 1U)) {
@@ -136,7 +212,9 @@ int main(void) {
     calc[0][0] = 10.5;
     calc[0][1] = 5.25;
     float calcSum = calc[0U][0U] + calc[0U][1U];
-    if (calcSum != 15.75) return 39U;
+    if (calcSum != 15.75) {
+        return 39U;
+    }
     float coords[2][4] = {0};
     for (uint32_t coi = 0U; coi < 2; coi = cnx_clamp_add_u32(coi, 1U)) {
         for (uint32_t coj = 0U; coj < 4; coj = cnx_clamp_add_u32(coj, 1U)) {
@@ -151,8 +229,14 @@ int main(void) {
     coords[1][1] = 0.375;
     coords[1][2] = 0.625;
     coords[1][3] = 0.875;
-    if (coords[0U][0U] != 0.0) return 40U;
-    if (coords[0U][3U] != 0.75) return 41U;
-    if (coords[1U][0U] != 1.0) return 42U;
+    if (coords[0U][0U] != 0.0) {
+        return 40U;
+    }
+    if (coords[0U][3U] != 0.75) {
+        return 41U;
+    }
+    if (coords[1U][0U] != 1.0) {
+        return 42U;
+    }
     return 0U;
 }

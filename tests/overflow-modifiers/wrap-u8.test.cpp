@@ -12,68 +12,114 @@
 int main(void) {
     uint8_t val = 255U;
     val = static_cast<uint8_t>((val + 1U));
-    if (val != 0) return 1U;
+    if (val != 0) {
+        return 1U;
+    }
     val = 250U;
     val = static_cast<uint8_t>((val + 10U));
-    if (val != 4) return 2U;
+    if (val != 4) {
+        return 2U;
+    }
     val = 200U;
     val = static_cast<uint8_t>((val + 100U));
-    if (val != 44) return 3U;
+    if (val != 44) {
+        return 3U;
+    }
     val = 128U;
     val = static_cast<uint8_t>((val + 200U));
-    if (val != 72) return 4U;
+    if (val != 72) {
+        return 4U;
+    }
     val = 250U;
     val = static_cast<uint8_t>((val + 10U));
-    if (val != 4) return 5U;
+    if (val != 4) {
+        return 5U;
+    }
     val = static_cast<uint8_t>((val + 255U));
-    if (val != 3) return 6U;
+    if (val != 3) {
+        return 6U;
+    }
     val = 0U;
     val = static_cast<uint8_t>((val - 1U));
-    if (val != 255) return 7U;
+    if (val != 255) {
+        return 7U;
+    }
     val = 5U;
     val = static_cast<uint8_t>((val - 10U));
-    if (val != 251) return 8U;
+    if (val != 251) {
+        return 8U;
+    }
     val = 10U;
     val = static_cast<uint8_t>((val - 100U));
-    if (val != 166) return 9U;
+    if (val != 166) {
+        return 9U;
+    }
     val = 5U;
     val = static_cast<uint8_t>((val - 10U));
-    if (val != 251) return 10U;
+    if (val != 251) {
+        return 10U;
+    }
     val = static_cast<uint8_t>((val - 255U));
-    if (val != 252) return 11U;
+    if (val != 252) {
+        return 11U;
+    }
     val = 100U;
     val = static_cast<uint8_t>((val + 50U));
-    if (val != 150) return 12U;
+    if (val != 150) {
+        return 12U;
+    }
     val = 200U;
     val = static_cast<uint8_t>((val - 50U));
-    if (val != 150) return 13U;
+    if (val != 150) {
+        return 13U;
+    }
     val = 0U;
     val = static_cast<uint8_t>((val + 100U));
-    if (val != 100) return 14U;
+    if (val != 100) {
+        return 14U;
+    }
     val = 100U;
     val = static_cast<uint8_t>((val - 100U));
-    if (val != 0) return 15U;
+    if (val != 0) {
+        return 15U;
+    }
     val = 254U;
     val = static_cast<uint8_t>((val + 1U));
-    if (val != 255) return 16U;
+    if (val != 255) {
+        return 16U;
+    }
     val = 1U;
     val = static_cast<uint8_t>((val - 1U));
-    if (val != 0) return 17U;
+    if (val != 0) {
+        return 17U;
+    }
     val = 128U;
     val = static_cast<uint8_t>((val + 0U));
-    if (val != 128) return 18U;
+    if (val != 128) {
+        return 18U;
+    }
     val = 128U;
     val = static_cast<uint8_t>((val - 0U));
-    if (val != 128) return 19U;
+    if (val != 128) {
+        return 19U;
+    }
     val = 1U;
     val = static_cast<uint8_t>((val - 1U));
-    if (val != 0) return 20U;
+    if (val != 0) {
+        return 20U;
+    }
     val = static_cast<uint8_t>((val - 1U));
-    if (val != 255) return 21U;
+    if (val != 255) {
+        return 21U;
+    }
     val = static_cast<uint8_t>((val + 1U));
-    if (val != 0) return 22U;
+    if (val != 0) {
+        return 22U;
+    }
     val = 100U;
     val = static_cast<uint8_t>((val + 256U));
-    if (val != 100) return 23U;
+    if (val != 100) {
+        return 23U;
+    }
     return 0U;
 }

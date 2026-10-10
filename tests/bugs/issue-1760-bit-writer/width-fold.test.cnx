@@ -8,10 +8,14 @@ const u8 W <- 32;
 u32 main() {
     f32 fx <- 1.0;
     fx[0, W] <- 0x40400000;
-    if (fx != 3.0) return 1;
+    if (fx != 3.0) {
+        return 1;
+    }
 
     u32 y <- 0;
     y[0, W] <- 7;
-    if (y != 7) return 2;
+    if (y != 7) {
+        return 2;
+    }
     return 0;
 }

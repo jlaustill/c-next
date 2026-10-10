@@ -38,8 +38,12 @@ uint32_t Consumer__read(void) {
 
 int main(void) {
     gReading.value = readSensor();
-    if (gReading.value != 42) return 1U;
+    if (gReading.value != 42) {
+        return 1U;
+    }
     uint32_t viaScope = Consumer__read();
-    if (viaScope != 42) return 2U;
+    if (viaScope != 42) {
+        return 2U;
+    }
     return 0U;
 }

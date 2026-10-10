@@ -13,6 +13,8 @@ import TypeResolver from "../../../../utils/TypeResolver";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 import type TType from "../../../../types/TType";
 import type TranspileState from "../../../TranspileState";
+import invariant from "../../../../utils/invariant";
+import UNRESOLVED_DIMENSION from "../../../../types/UNRESOLVED_DIMENSION";
 
 /**
  * Adapter to convert TSymbol to IHeaderSymbol
@@ -99,11 +101,17 @@ class HeaderSymbolAdapter {
     const isGlobal = ScopeUtils.isGlobalScopePath(variable.scopePath);
 
     // ADR-057: the symbol layer already qualified scope-local type names.
-    const typeStr = TypeResolver.getTypeName(variable.type);
+    // ADR-029 (#1562): a function-as-type is spelled by its `_fp` typedef, the
+    // name the .c declares the same variable with
+    const declared = TypeResolver.getTypeName(variable.type);
+    const typeStr = state.callbackTypes.get(declared)?.typedefName ?? declared;
 
     // #1175: 1.4 settled each dimension to its value, or, for one only C can
     // evaluate (a header macro), to its C -- there is nothing left to resolve
-    const arrayDimensions = variable.arrayDimensions?.map(String);
+    const arrayDimensions = HeaderSymbolAdapter.settled(
+      variable.arrayDimensions,
+      cName,
+    );
 
     return {
       name: cName,
@@ -142,7 +150,10 @@ class HeaderSymbolAdapter {
   }): string[] | undefined {
     // #1664 box 7: 1.4 folded each dimension it could, with the const values
     // visible at the function; what is left (a C macro) is the C compiler's
-    const dimensions = parameter.arrayDimensions?.map(String);
+    const dimensions = HeaderSymbolAdapter.settled(
+      parameter.arrayDimensions,
+      "a parameter",
+    );
     if (!dimensions) {
       return undefined;
     }
@@ -244,6 +255,24 @@ class HeaderSymbolAdapter {
       sourceFile: scope.sourceFile,
       sourceLine: scope.span.line,
     };
+  }
+
+  /**
+   * #1874: each dimension as 1.4 settled it, as the header writes it. A real
+   * zero is E0913 now, so the sentinel 0 here would be a size 1.4 never
+   * settled, written into the header as `[0]`.
+   */
+  private static settled(
+    dimensions: ReadonlyArray<number | string> | undefined,
+    owner: string,
+  ): string[] | undefined {
+    return dimensions?.map((dimension) => {
+      invariant(
+        dimension !== UNRESOLVED_DIMENSION,
+        `1.4 settles every dimension of ${owner} before a header is written`,
+      );
+      return String(dimension);
+    });
   }
 }
 

@@ -21,8 +21,12 @@ u32 main() {
     u8 small <- AlphaModule.one();
     u64 large <- BetaModule.big();
 
-    if (small != 1) return 1;
-    if (large != 4294967296) return 2;
+    if (small != 1) {
+        return 1;
+    }
+    if (large != 4294967296) {
+        return 2;
+    }
 
     return 0;
 }

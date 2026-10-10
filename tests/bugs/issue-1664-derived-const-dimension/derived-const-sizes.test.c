@@ -36,16 +36,26 @@ uint8_t literal[3] = {0};
 
 int main(void) {
     uint32_t t = 4;
-    if (t != 4) return 1U;
+    if (t != 4) {
+        return 1U;
+    }
     uint32_t p = 4;
-    if (p != 4) return 2U;
+    if (p != 4) {
+        return 2U;
+    }
     uint32_t c = 4;
-    if (c != 4) return 3U;
+    if (c != 4) {
+        return 3U;
+    }
     uint8_t local[4] = {0};
     local[3] = 1U;
     uint32_t last = local[3U];
-    if (last != 1) return 4U;
+    if (last != 1) {
+        return 4U;
+    }
     uint32_t l = 3;
-    if (l != 3) return 5U;
+    if (l != 3) {
+        return 5U;
+    }
     return 0U;
 }

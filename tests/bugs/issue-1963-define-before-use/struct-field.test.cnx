@@ -1,0 +1,17 @@
+// test-error
+// #1963 / #1570: a struct field naming a struct declared later in the file
+// emitted a header gcc rejected ("unknown type name 'Inner'"), exit 0. ADR-030
+// and ADR-032: a type is defined before it is used, so this is E0426.
+struct Outer {
+    Inner inner;
+}
+
+struct Inner {
+    u8 v;
+}
+
+u32 main() {
+    Outer o;
+    o.inner.v <- 3;
+    return o.inner.v;
+}

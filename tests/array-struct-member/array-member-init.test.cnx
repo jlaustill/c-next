@@ -24,11 +24,21 @@ u32 main() {
     cfg.flags[2] <- 0x04;
     cfg.flags[3] <- 0x08;
 
-    if (cfg.version != 1) return 1;
-    if (cfg.flags[0] != 0x01) return 2;
-    if (cfg.flags[1] != 0x02) return 3;
-    if (cfg.flags[2] != 0x04) return 4;
-    if (cfg.flags[3] != 0x08) return 5;
+    if (cfg.version != 1) {
+        return 1;
+    }
+    if (cfg.flags[0] != 0x01) {
+        return 2;
+    }
+    if (cfg.flags[1] != 0x02) {
+        return 3;
+    }
+    if (cfg.flags[2] != 0x04) {
+        return 4;
+    }
+    if (cfg.flags[3] != 0x08) {
+        return 5;
+    }
 
     // Test struct with multiple arrays
     ArrayMemberInit.Packet pkt;
@@ -67,16 +77,26 @@ u32 main() {
     pkt.checksum +<- pkt.payload[7];
 
     // Verify header
-    if (pkt.header[0] != 0xAA) return 6;
-    if (pkt.header[3] != 0xDD) return 7;
+    if (pkt.header[0] != 0xAA) {
+        return 6;
+    }
+    if (pkt.header[3] != 0xDD) {
+        return 7;
+    }
 
     // Verify payload
-    if (pkt.payload[0] != 1) return 8;
-    if (pkt.payload[7] != 8) return 9;
+    if (pkt.payload[0] != 1) {
+        return 8;
+    }
+    if (pkt.payload[7] != 8) {
+        return 9;
+    }
 
     // Verify checksum: 0xAA+0xBB+0xCC+0xDD + 1+2+3+4+5+6+7+8
     // = 170+187+204+221 + 36 = 818
-    if (pkt.checksum != 818) return 10;
+    if (pkt.checksum != 818) {
+        return 10;
+    }
 
     return 0;
 }

@@ -52,12 +52,26 @@ i32 main() {
     b.addConst[7] <- 6;
     b.sizeofDim[3] <- 7;
 
-    if (b.plain[7] != 1) return 1;
-    if (b.hex[15] != 2) return 2;
-    if (b.binary[3] != 3) return 3;
-    if (b.constRef[5] != 4) return 4;
-    if (b.addLiteral[8] != 5) return 5;
-    if (b.addConst[7] != 6) return 6;
-    if (b.sizeofDim[3] != 7) return 7;
+    if (b.plain[7] != 1) {
+        return 1;
+    }
+    if (b.hex[15] != 2) {
+        return 2;
+    }
+    if (b.binary[3] != 3) {
+        return 3;
+    }
+    if (b.constRef[5] != 4) {
+        return 4;
+    }
+    if (b.addLiteral[8] != 5) {
+        return 5;
+    }
+    if (b.addConst[7] != 6) {
+        return 6;
+    }
+    if (b.sizeofDim[3] != 7) {
+        return 7;
+    }
     return 0;
 }

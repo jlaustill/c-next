@@ -39,15 +39,21 @@ u8 initPasses() {
 u8 main() {
     // ASSERTION: the update saturates, so the loop runs exactly once.
     u8 updates <- updatePasses();
-    if (updates != 1) return 1;
+    if (updates != 1) {
+        return 1;
+    }
 
     // ASSERTION: the init saturates, so the loop never runs.
     u8 inits <- initPasses();
-    if (inits != 0) return 2;
+    if (inits != 0) {
+        return 2;
+    }
 
     // CONTROL: the same compound assignment as a statement, clamped all along.
     u8 j <- 250;
     j +<- 10;
-    if (j != 255) return 3;
+    if (j != 255) {
+        return 3;
+    }
     return 0;
 }

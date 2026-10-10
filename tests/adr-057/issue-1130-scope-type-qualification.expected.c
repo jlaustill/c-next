@@ -50,21 +50,37 @@ uint8_t A__configValue(void) {
 int main(void) {
     A__S s = { .x = 42U, .kind = A__B__d };
     uint8_t structX = A__readStruct(&s);
-    if (structX != 42) return 1U;
+    if (structX != 42) {
+        return 1U;
+    }
     A__B picked = A__pick();
-    if (picked != A__B__d) return 2U;
+    if (picked != A__B__d) {
+        return 2U;
+    }
     uint8_t isBusyResult = A__isBusy(A__B__d);
-    if (isBusyResult != 1) return 3U;
+    if (isBusyResult != 1) {
+        return 3U;
+    }
     uint8_t isNotBusyResult = A__isBusy(A__B__c);
-    if (isNotBusyResult != 0) return 4U;
+    if (isNotBusyResult != 0) {
+        return 4U;
+    }
     A__Wrapper w = { .mode = Mode__busy, .v = 9U };
     uint8_t wrapped = A__wrapperValue(&w);
-    if (wrapped != 9) return 5U;
+    if (wrapped != 9) {
+        return 5U;
+    }
     Config globalConfig = { .x = 5U };
     uint8_t configX = A__useGlobalConfig(&globalConfig);
-    if (configX != 5) return 6U;
+    if (configX != 5) {
+        return 6U;
+    }
     uint8_t scopeConfig = A__configValue();
-    if (scopeConfig != 7) return 7U;
-    if (A__current != A__B__c) return 8U;
+    if (scopeConfig != 7) {
+        return 7U;
+    }
+    if (A__current != A__B__c) {
+        return 8U;
+    }
     return 0U;
 }

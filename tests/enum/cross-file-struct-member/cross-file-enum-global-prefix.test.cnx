@@ -10,7 +10,9 @@ u32 main() {
 
     // Does using global. prefix work for assignment to local?
     MyEnum val <- global.config.items[0].assigned;
-    if (val != MyEnum.A) return 1;
+    if (val != MyEnum.A) {
+        return 1;
+    }
 
     return 0;
 }

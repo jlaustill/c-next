@@ -14,6 +14,8 @@ scope S {
 
 u32 main() {
     u32 r <- S.f();
-    if (r != 4294967295) return 1;
+    if (r != 4294967295) {
+        return 1;
+    }
     return 0;
 }

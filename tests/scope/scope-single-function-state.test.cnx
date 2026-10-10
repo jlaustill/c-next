@@ -17,15 +17,21 @@ scope SingleFunctionState {
 u32 main() {
     // First call: callCount 0 -> 1
     u32 first <- SingleFunctionState.countCalls();
-    if (first != 1) return 1;
+    if (first != 1) {
+        return 1;
+    }
 
     // Second call: callCount 1 -> 2 (must persist!)
     u32 second <- SingleFunctionState.countCalls();
-    if (second != 2) return 2;
+    if (second != 2) {
+        return 2;
+    }
 
     // Third call: callCount 2 -> 3
     u32 third <- SingleFunctionState.countCalls();
-    if (third != 3) return 3;
+    if (third != 3) {
+        return 3;
+    }
 
     return 0;
 }

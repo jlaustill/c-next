@@ -12,6 +12,16 @@
 // Tests: Type-aware enum member resolution with overlapping names
 // When multiple enums have the same member name, the assignment target's type
 // determines which enum to use.
+ColorConfig ColorConfig_init(void) {
+    ColorConfig value = { .color = Color__RED };
+    return value;
+}
+
+StatusConfig StatusConfig_init(void) {
+    StatusConfig value = { .status = Status__RED };
+    return value;
+}
+
 void setColorRed(ColorConfig* cfg) {
     cfg->color = Color__RED;
 }
@@ -23,17 +33,29 @@ void setStatusRed(StatusConfig* cfg) {
 int main(void) {
     ColorConfig colorCfg = { .color = Color__BLUE };
     setColorRed(&colorCfg);
-    if ((uint32_t)colorCfg.color != 0) return 1U;
+    if ((uint32_t)colorCfg.color != 0) {
+        return 1U;
+    }
     StatusConfig statusCfg = { .status = Status__YELLOW };
     setStatusRed(&statusCfg);
-    if ((uint32_t)statusCfg.status != 10) return 2U;
+    if ((uint32_t)statusCfg.status != 10) {
+        return 2U;
+    }
     colorCfg.color = Color__GREEN;
-    if ((uint32_t)colorCfg.color != 1) return 3U;
+    if ((uint32_t)colorCfg.color != 1) {
+        return 3U;
+    }
     statusCfg.status = Status__GREEN;
-    if ((uint32_t)statusCfg.status != 30) return 4U;
+    if ((uint32_t)statusCfg.status != 30) {
+        return 4U;
+    }
     colorCfg.color = Color__BLUE;
-    if ((uint32_t)colorCfg.color != 2) return 5U;
+    if ((uint32_t)colorCfg.color != 2) {
+        return 5U;
+    }
     statusCfg.status = Status__YELLOW;
-    if ((uint32_t)statusCfg.status != 20) return 6U;
+    if ((uint32_t)statusCfg.status != 20) {
+        return 6U;
+    }
     return 0U;
 }

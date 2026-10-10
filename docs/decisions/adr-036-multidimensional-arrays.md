@@ -25,6 +25,15 @@ Multi-dimensional arrays are used for:
 
 **Support multi-dimensional arrays** with compile-time safety guarantees exceeding standard C.
 
+### Dimension Range
+
+Every dimension's value is at least 1 (#1874). C (C99 6.7.5.2p1) gives an array
+of zero or fewer elements no meaning, and ISO C and MISRA have no `[0]`. A
+dimension below 1 is E0913 at the dimension, whatever produced the value: a
+literal (`u8[0]`), folded arithmetic (`u8[1 - 2]`), a negative const, or a
+header macro's value C-Next reads (`onSample[N_HANDLERS - 5]`). This holds at
+file scope, for a local, a struct field and a parameter.
+
 ## Syntax
 
 ### 2D Arrays

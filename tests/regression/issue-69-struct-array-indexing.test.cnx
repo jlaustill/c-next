@@ -66,52 +66,86 @@ u32 main() {
 
     // Test 1: Function parameter access (original issue #69 pattern)
     u16 spn0 <- getSpn(cfg, idx0);
-    if (spn0 != 100) return 1;
+    if (spn0 != 100) {
+        return 1;
+    }
     u16 spn1 <- getSpn(cfg, idx1);
-    if (spn1 != 200) return 2;
+    if (spn1 != 200) {
+        return 2;
+    }
     u16 spn2 <- getSpn(cfg, idx2);
-    if (spn2 != 300) return 3;
+    if (spn2 != 300) {
+        return 3;
+    }
     u16 spn5 <- getSpn(cfg, idx5);
-    if (spn5 != 999) return 4;
+    if (spn5 != 999) {
+        return 4;
+    }
 
     // Test 2: Float member access
     f32 coeff0 <- getCoeff(cfg, idx0);
-    if (coeff0 != 1.5) return 5;
+    if (coeff0 != 1.5) {
+        return 5;
+    }
     f32 coeff1 <- getCoeff(cfg, idx1);
-    if (coeff1 != 2.5) return 6;
+    if (coeff1 != 2.5) {
+        return 6;
+    }
     f32 coeff2 <- getCoeff(cfg, idx2);
-    if (coeff2 != 3.5) return 7;
+    if (coeff2 != 3.5) {
+        return 7;
+    }
 
     // Test 3: Direct access patterns
-    if (cfg.tempInputs[0].assignedSpn != 100) return 8;
-    if (cfg.tempInputs[1].assignedSpn != 200) return 9;
-    if (cfg.tempInputs[2].assignedSpn != 300) return 10;
+    if (cfg.tempInputs[0].assignedSpn != 100) {
+        return 8;
+    }
+    if (cfg.tempInputs[1].assignedSpn != 200) {
+        return 9;
+    }
+    if (cfg.tempInputs[2].assignedSpn != 300) {
+        return 10;
+    }
 
     // Test 4: Array access in expressions
     u16 sum <- cfg.tempInputs[0].assignedSpn + cfg.tempInputs[1].assignedSpn;
-    if (sum != 300) return 11;
+    if (sum != 300) {
+        return 11;
+    }
 
     // Test 5: Array access as function argument
     u16 val <- getSpn(cfg, idx2);
-    if (val != 300) return 12;
+    if (val != 300) {
+        return 12;
+    }
 
     // Test 6: Nested expressions
-    if ((cfg.tempInputs[0].assignedSpn + cfg.tempInputs[2].assignedSpn) != 400) return 13;
+    if ((cfg.tempInputs[0].assignedSpn + cfg.tempInputs[2].assignedSpn) != 400) {
+        return 13;
+    }
 
     // Test 7: Writing to struct parameter array members (setSpn/setCoeff)
     setSpn(cfg, idx0, 500);
-    if (cfg.tempInputs[0].assignedSpn != 500) return 14;
+    if (cfg.tempInputs[0].assignedSpn != 500) {
+        return 14;
+    }
 
     setCoeff(cfg, idx1, 7.5);
-    if (cfg.tempInputs[1].coeffA != 7.5) return 15;
+    if (cfg.tempInputs[1].coeffA != 7.5) {
+        return 15;
+    }
 
     // Test 8: Writing in a for-loop (the OSSM bug pattern)
     // Note: Use 4.5 instead of 3.14 because 4.5 can be exactly represented in both float and double
     initializeAll(cfg, 42, 4.5);
     // Verify all 8 elements were set correctly
     for (u32 j <- 0; j < 8; j +<- 1) {
-        if (cfg.tempInputs[j].assignedSpn != 42) return 16;
-        if (cfg.tempInputs[j].coeffA != 4.5) return 17;
+        if (cfg.tempInputs[j].assignedSpn != 42) {
+            return 16;
+        }
+        if (cfg.tempInputs[j].coeffA != 4.5) {
+            return 17;
+        }
     }
 
     return 0;

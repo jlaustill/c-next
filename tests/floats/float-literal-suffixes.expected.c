@@ -10,34 +10,74 @@
 // Validates that suffixed float literals work correctly
 int main(void) {
     float a = 3.14f;
-    if (a < 3.13) return 1U;
-    if (a > 3.15) return 2U;
+    if (a < 3.13) {
+        return 1U;
+    }
+    if (a > 3.15) {
+        return 2U;
+    }
     double b = 2.718281828;
-    if (b < 2.718) return 3U;
-    if (b > 2.719) return 4U;
+    if (b < 2.718) {
+        return 3U;
+    }
+    if (b > 2.719) {
+        return 4U;
+    }
     float c = 1.5e10f;
-    if (c < 1.4e10) return 5U;
-    if (c > 1.6e10) return 6U;
+    if (c < 1.4e10) {
+        return 5U;
+    }
+    if (c > 1.6e10) {
+        return 6U;
+    }
     double d = 6.022e23;
-    if (d < 6.0e23) return 7U;
-    if (d > 6.1e23) return 8U;
+    if (d < 6.0e23) {
+        return 7U;
+    }
+    if (d > 6.1e23) {
+        return 8U;
+    }
     float e = 100.5f;
-    if (e < 100.0) return 9U;
-    if (e > 101.0) return 10U;
+    if (e < 100.0) {
+        return 9U;
+    }
+    if (e > 101.0) {
+        return 10U;
+    }
     double f = 999.999;
-    if (f < 999.0) return 11U;
-    if (f > 1000.0) return 12U;
+    if (f < 999.0) {
+        return 11U;
+    }
+    if (f > 1000.0) {
+        return 12U;
+    }
     float g = -42.5f;
-    if (g > -42.0) return 13U;
-    if (g < -43.0) return 14U;
+    if (g > -42.0) {
+        return 13U;
+    }
+    if (g < -43.0) {
+        return 14U;
+    }
     double h = -123.456;
-    if (h > -123.0) return 15U;
-    if (h < -124.0) return 16U;
+    if (h > -123.0) {
+        return 15U;
+    }
+    if (h < -124.0) {
+        return 16U;
+    }
     float i = 0.001f;
-    if (i < 0.0009) return 17U;
-    if (i > 0.0011) return 18U;
+    if (i < 0.0009) {
+        return 17U;
+    }
+    if (i > 0.0011) {
+        return 18U;
+    }
     double j = 0.000000001;
-    if (j < 0.0000000009) return 19U;
-    if (j > 0.0000000011) return 20U;
+    if (j < 0.0000000009) {
+        return 19U;
+    }
+    if (j > 0.0000000011) {
+        return 20U;
+    }
     return 0U;
 }

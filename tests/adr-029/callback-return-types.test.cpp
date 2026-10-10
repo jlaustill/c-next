@@ -60,55 +60,69 @@ int32_t getSignedValue(int32_t input) {
 
 // Structs to hold callbacks
 U32Returner U32Returner_init(void) {
-    U32Returner value = {};
-    value.handler = getU32Value;
+    U32Returner value = { getU32Value };
     return value;
 }
 
 U8Returner U8Returner_init(void) {
-    U8Returner value = {};
-    value.handler = getU8Value;
+    U8Returner value = { getU8Value };
     return value;
 }
 
 BoolReturner BoolReturner_init(void) {
-    BoolReturner value = {};
-    value.handler = checkThreshold;
+    BoolReturner value = { checkThreshold };
     return value;
 }
 
 I32Returner I32Returner_init(void) {
-    I32Returner value = {};
-    value.handler = getSignedValue;
+    I32Returner value = { getSignedValue };
     return value;
 }
 
 int main(void) {
-    U32Returner u32r = {};
+    U32Returner u32r = { getU32Value };
     u32r.handler = getU32Value;
     uint32_t result = u32r.handler(500U);
-    if (result != 1500) return 1U;
+    if (result != 1500) {
+        return 1U;
+    }
     result = u32r.handler(0U);
-    if (result != 1000) return 2U;
-    U8Returner u8r = {};
+    if (result != 1000) {
+        return 2U;
+    }
+    U8Returner u8r = { getU8Value };
     u8r.handler = getU8Value;
     uint8_t smallResult = u8r.handler(0U);
-    if (smallResult != 100) return 3U;
-    BoolReturner br = {};
+    if (smallResult != 100) {
+        return 3U;
+    }
+    BoolReturner br = { checkThreshold };
     br.handler = checkThreshold;
     bool boolResult = br.handler(100U);
-    if (boolResult != true) return 4U;
+    if (boolResult != true) {
+        return 4U;
+    }
     boolResult = br.handler(25U);
-    if (boolResult != false) return 5U;
+    if (boolResult != false) {
+        return 5U;
+    }
     boolResult = br.handler(50U);
-    if (boolResult != false) return 6U;
+    if (boolResult != false) {
+        return 6U;
+    }
     boolResult = br.handler(51U);
-    if (boolResult != true) return 7U;
-    I32Returner i32r = {};
+    if (boolResult != true) {
+        return 7U;
+    }
+    I32Returner i32r = { getSignedValue };
     i32r.handler = getSignedValue;
     int32_t signedResult = i32r.handler(10);
-    if (signedResult != -10) return 8U;
+    if (signedResult != -10) {
+        return 8U;
+    }
     signedResult = i32r.handler(1000);
-    if (signedResult != -1000) return 9U;
+    if (signedResult != -1000) {
+        return 9U;
+    }
     return 0U;
 }

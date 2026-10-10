@@ -12,31 +12,59 @@ int main(void) {
     char small[33] = "Test";
     char big[65] = "";
     (void) strncpy(big, small, 64); big[64] = '\0';
-    if (strlen(big) != 4) return 1;
-    if (strcmp(big, "Test") != 0) return 2;
-    if (64 != 64) return 3;
+    if (strlen(big) != 4) {
+        return 1;
+    }
+    if (strcmp(big, "Test") != 0) {
+        return 2;
+    }
+    if (64 != 64) {
+        return 3;
+    }
     char source[17] = "Hello World";
     char dest[33] = "";
     (void) strncpy(dest, source, 32); dest[32] = '\0';
-    if (strlen(dest) != 11) return 4;
-    if (strcmp(dest, "Hello World") != 0) return 5;
+    if (strlen(dest) != 11) {
+        return 4;
+    }
+    if (strcmp(dest, "Hello World") != 0) {
+        return 5;
+    }
     char emptySource[33] = "";
     char emptyDest[65] = "";
     (void) strncpy(emptyDest, emptySource, 64); emptyDest[64] = '\0';
-    if (strlen(emptyDest) != 0) return 6;
-    if (strcmp(emptyDest, "") != 0) return 7;
+    if (strlen(emptyDest) != 0) {
+        return 6;
+    }
+    if (strcmp(emptyDest, "") != 0) {
+        return 7;
+    }
     char local[33] = "First";
-    if (strcmp(local, "First") != 0) return 8;
+    if (strcmp(local, "First") != 0) {
+        return 8;
+    }
     (void) strncpy(local, "Second", 32); local[32] = '\0';
-    if (strcmp(local, "Second") != 0) return 9;
-    if (strlen(local) != 6) return 10;
+    if (strcmp(local, "Second") != 0) {
+        return 9;
+    }
+    if (strlen(local) != 6) {
+        return 10;
+    }
     char multi[65] = "One";
     (void) strncpy(multi, "Two", 64); multi[64] = '\0';
     (void) strncpy(multi, "Three", 64); multi[64] = '\0';
-    if (strcmp(multi, "Three") != 0) return 11;
-    if (strlen(multi) != 5) return 12;
+    if (strcmp(multi, "Three") != 0) {
+        return 11;
+    }
+    if (strlen(multi) != 5) {
+        return 12;
+    }
     char fromLit[33] = "Direct Literal";
-    if (strlen(fromLit) != 14) return 13;
-    if (strcmp(fromLit, "Direct Literal") != 0) return 14;
+    if (strlen(fromLit) != 14) {
+        return 13;
+    }
+    if (strcmp(fromLit, "Direct Literal") != 0) {
+        return 14;
+    }
     return 0;
 }

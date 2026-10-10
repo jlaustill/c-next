@@ -29,6 +29,8 @@ u32 main() {
     // MISRA C:2012 Rule 13.5 forbids a call in an `if` condition, so the
     // result is bound first and then compared.
     u32 result <- useCaller(callIt);
-    if (result != 4) return 1;
+    if (result != 4) {
+        return 1;
+    }
     return 0;
 }

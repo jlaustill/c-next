@@ -14,17 +14,27 @@
 /* Scope: Processor */
 
 int32_t Processor__process(EPriority priority) {
-    if (static_cast<int32_t>(priority) == 0) return 10;
-    if (static_cast<int32_t>(priority) == 1) return 20;
+    if (static_cast<int32_t>(priority) == 0) {
+        return 10;
+    }
+    if (static_cast<int32_t>(priority) == 1) {
+        return 20;
+    }
     return 30;
 }
 
 int main(void) {
     int32_t result = Processor__process(EPriority__LOW);
-    if (result != 10) return 1U;
+    if (result != 10) {
+        return 1U;
+    }
     result = Processor__process(EPriority__MEDIUM);
-    if (result != 20) return 2U;
+    if (result != 20) {
+        return 2U;
+    }
     result = Processor__process(EPriority__HIGH);
-    if (result != 30) return 3U;
+    if (result != 30) {
+        return 3U;
+    }
     return 0U;
 }

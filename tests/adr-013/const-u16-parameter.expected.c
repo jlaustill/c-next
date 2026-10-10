@@ -33,13 +33,21 @@ uint16_t doubleConstU16(const uint16_t value) {
 
 int main(void) {
     uint16_t result = readConstU16(1000U);
-    if (result != 1000) return 1U;
+    if (result != 1000) {
+        return 1U;
+    }
     uint16_t maxResult = readConstU16(65535U);
-    if (maxResult != 65535) return 2U;
+    if (maxResult != 65535) {
+        return 2U;
+    }
     uint16_t doubled = doubleConstU16(100U);
-    if (doubled != 200) return 3U;
+    if (doubled != 200) {
+        return 3U;
+    }
     uint16_t myValue = 5000U;
     uint16_t readBack = readConstU16(myValue);
-    if (readBack != 5000) return 4U;
+    if (readBack != 5000) {
+        return 4U;
+    }
     return 0U;
 }

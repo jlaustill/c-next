@@ -14,18 +14,32 @@ u32 main() {
     rect.width <- 100;
     rect.height <- 50;
 
-    if (rect.origin.x != 10) return 1;
-    if (rect.origin.y != 20) return 2;
-    if (rect.width != 100) return 3;
-    if (rect.height != 50) return 4;
+    if (rect.origin.x != 10) {
+        return 1;
+    }
+    if (rect.origin.y != 20) {
+        return 2;
+    }
+    if (rect.width != 100) {
+        return 3;
+    }
+    if (rect.height != 50) {
+        return 4;
+    }
 
     // Test 2: Access nested struct field sizes
-    if (rect.origin.x.bit_length != 32) return 5;
-    if (rect.width.bit_length != 32) return 6;
+    if (rect.origin.x.bit_length != 32) {
+        return 5;
+    }
+    if (rect.width.bit_length != 32) {
+        return 6;
+    }
 
     // Test 3: Calculate area
     u32 area <- rect.width * rect.height;
-    if (area != 5000) return 7;
+    if (area != 5000) {
+        return 7;
+    }
 
     // Test 4: Copy nested struct values
     Rectangle rect2;
@@ -34,8 +48,12 @@ u32 main() {
     rect2.width <- rect.width;
     rect2.height <- rect.height;
 
-    if (rect2.origin.x != 10) return 8;
-    if (rect2.height != 50) return 9;
+    if (rect2.origin.x != 10) {
+        return 8;
+    }
+    if (rect2.height != 50) {
+        return 9;
+    }
 
     return 0; // All tests passed
 }

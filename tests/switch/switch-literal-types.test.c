@@ -184,19 +184,33 @@ int main(void) {
     uint8_t hFF = 0xFFU;
     uint8_t hOther = 0x50U;
     testHexCases(h00);
-    if (result != 1) return 1U;
+    if (result != 1) {
+        return 1U;
+    }
     testHexCases(h0F);
-    if (result != 2) return 2U;
+    if (result != 2) {
+        return 2U;
+    }
     testHexCases(h10);
-    if (result != 3) return 3U;
+    if (result != 3) {
+        return 3U;
+    }
     testHexCases(h7F);
-    if (result != 4) return 4U;
+    if (result != 4) {
+        return 4U;
+    }
     testHexCases(h80);
-    if (result != 5) return 5U;
+    if (result != 5) {
+        return 5U;
+    }
     testHexCases(hFF);
-    if (result != 6) return 6U;
+    if (result != 6) {
+        return 6U;
+    }
     testHexCases(hOther);
-    if (result != 99) return 7U;
+    if (result != 99) {
+        return 7U;
+    }
     uint8_t b00 = 0b00000000U;
     uint8_t b01 = 0b00000001U;
     uint8_t b0F = 0b00001111U;
@@ -205,19 +219,33 @@ int main(void) {
     uint8_t bFF = 0b11111111U;
     uint8_t bOther = 0b00100000U;
     testBinaryCases(b00);
-    if (result != 10) return 8U;
+    if (result != 10) {
+        return 8U;
+    }
     testBinaryCases(b01);
-    if (result != 11) return 9U;
+    if (result != 11) {
+        return 9U;
+    }
     testBinaryCases(b0F);
-    if (result != 12) return 10U;
+    if (result != 12) {
+        return 10U;
+    }
     testBinaryCases(b7F);
-    if (result != 13) return 11U;
+    if (result != 13) {
+        return 11U;
+    }
     testBinaryCases(b80);
-    if (result != 14) return 12U;
+    if (result != 14) {
+        return 12U;
+    }
     testBinaryCases(bFF);
-    if (result != 15) return 13U;
+    if (result != 15) {
+        return 13U;
+    }
     testBinaryCases(bOther);
-    if (result != 99) return 14U;
+    if (result != 99) {
+        return 14U;
+    }
     uint8_t cA = (uint8_t)'A';
     uint8_t cZ = (uint8_t)'Z';
     uint8_t ca = (uint8_t)'a';
@@ -226,34 +254,58 @@ int main(void) {
     uint8_t c9 = (uint8_t)'9';
     uint8_t cOther = (uint8_t)'X';
     testCharCases(cA);
-    if (result != 20) return 15U;
+    if (result != 20) {
+        return 15U;
+    }
     testCharCases(cZ);
-    if (result != 21) return 16U;
+    if (result != 21) {
+        return 16U;
+    }
     testCharCases(ca);
-    if (result != 22) return 17U;
+    if (result != 22) {
+        return 17U;
+    }
     testCharCases(cz);
-    if (result != 23) return 18U;
+    if (result != 23) {
+        return 18U;
+    }
     testCharCases(c0);
-    if (result != 24) return 19U;
+    if (result != 24) {
+        return 19U;
+    }
     testCharCases(c9);
-    if (result != 25) return 20U;
+    if (result != 25) {
+        return 20U;
+    }
     testCharCases(cOther);
-    if (result != 99) return 21U;
+    if (result != 99) {
+        return 21U;
+    }
     uint8_t m0 = 0U;
     uint8_t m10 = 10U;
     uint8_t m20 = 20U;
     uint8_t mX = (uint8_t)'X';
     uint8_t mOther = 100U;
     testMixedLiterals(m0);
-    if (result != 30) return 22U;
+    if (result != 30) {
+        return 22U;
+    }
     testMixedLiterals(m10);
-    if (result != 31) return 23U;
+    if (result != 31) {
+        return 23U;
+    }
     testMixedLiterals(m20);
-    if (result != 32) return 24U;
+    if (result != 32) {
+        return 24U;
+    }
     testMixedLiterals(mX);
-    if (result != 33) return 25U;
+    if (result != 33) {
+        return 25U;
+    }
     testMixedLiterals(mOther);
-    if (result != 99) return 26U;
+    if (result != 99) {
+        return 26U;
+    }
     uint16_t l0000 = 0x0000U;
     uint16_t l00FF = 0x00FFU;
     uint16_t l0100 = 0x0100U;
@@ -262,18 +314,32 @@ int main(void) {
     uint16_t lFFFF = 0xFFFFU;
     uint16_t lOther = 0x1234U;
     testLargeHex(l0000);
-    if (result != 40) return 27U;
+    if (result != 40) {
+        return 27U;
+    }
     testLargeHex(l00FF);
-    if (result != 41) return 28U;
+    if (result != 41) {
+        return 28U;
+    }
     testLargeHex(l0100);
-    if (result != 42) return 29U;
+    if (result != 42) {
+        return 29U;
+    }
     testLargeHex(l7FFF);
-    if (result != 43) return 30U;
+    if (result != 43) {
+        return 30U;
+    }
     testLargeHex(l8000);
-    if (result != 44) return 31U;
+    if (result != 44) {
+        return 31U;
+    }
     testLargeHex(lFFFF);
-    if (result != 45) return 32U;
+    if (result != 45) {
+        return 32U;
+    }
     testLargeHex(lOther);
-    if (result != 99) return 33U;
+    if (result != 99) {
+        return 33U;
+    }
     return 0U;
 }

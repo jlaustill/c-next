@@ -14,13 +14,17 @@ i32 main() {
     dev_create_into(shared);
     dev_poke(shared);
     i32 viaGlobal <- dev_pokes(shared);
-    if (viaGlobal != 1) return 1;
+    if (viaGlobal != 1) {
+        return 1;
+    }
 
     dev_create_into(Rack.unit);
     dev_poke(Rack.unit);
     dev_poke(Rack.unit);
     i32 viaScope <- dev_pokes(Rack.unit);
-    if (viaScope != 2) return 2;
+    if (viaScope != 2) {
+        return 2;
+    }
 
     return 0;
 }

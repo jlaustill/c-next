@@ -158,67 +158,93 @@ u32 main() {
     // Test 1: Nested if
     cfg.value <- 0;
     handleNestedIf(cfg);
-    if (cfg.value != 10) return 1;
+    if (cfg.value != 10) {
+        return 1;
+    }
 
     // Test 2: Switch
     cfg.value <- 0;
     handleSwitch(cfg);
-    if (cfg.value != 20) return 2;
+    if (cfg.value != 20) {
+        return 2;
+    }
 
     // Test 3: do-while
     cfg.value <- 0;
     handleDoWhile(cfg);
-    if (cfg.value != 30) return 3;
+    if (cfg.value != 30) {
+        return 3;
+    }
 
     // Test 4: Critical
     cfg.value <- 0;
     handleCritical(cfg);
-    if (cfg.value != 40) return 4;
+    if (cfg.value != 40) {
+        return 4;
+    }
 
     // Test 5: this.method
     cfg.value <- 0;
     global.Processor.process(cfg);
-    if (cfg.value != 50) return 5;
+    if (cfg.value != 50) {
+        return 5;
+    }
 
     // Test 6: Second param modified
     cfg.value <- 0;
     handleSecondParam(cfg);
-    if (cfg.value != 999) return 6;
+    if (cfg.value != 999) {
+        return 6;
+    }
 
     // Test 7: Nested call (read-only) - cfg should NOT be modified
     cfg.value <- 123;
     handleNestedCall(cfg);
-    if (cfg.value != 123) return 7; // Should stay unchanged
+    if (cfg.value != 123) {
+        return 7; // Should stay unchanged
+    }
 
     // Test 8: Transitive modification
     cfg.value <- 0;
     handleTransitive(cfg);
-    if (cfg.value != 60) return 8;
+    if (cfg.value != 60) {
+        return 8;
+    }
 
     // Test 9: Multiple reassignments
     cfg.value <- 0;
     handleMultipleReassign(cfg);
-    if (cfg.value != 70) return 9;
+    if (cfg.value != 70) {
+        return 9;
+    }
 
     // Test 10: Compound assign (read-only)
     cfg.value <- 100;
     handleCompoundAssign(cfg);
-    if (cfg.value != 100) return 10; // Should stay unchanged
+    if (cfg.value != 100) {
+        return 10; // Should stay unchanged
+    }
 
     // Test 11: Compound modify
     cfg.value <- 0;
     handleCompoundModify(cfg);
-    if (cfg.value != 80) return 11;
+    if (cfg.value != 80) {
+        return 11;
+    }
 
     // Test 12: Bare function call (modifying)
     cfg.value <- 0;
     handleBareCall(cfg);
-    if (cfg.value != 90) return 12;
+    if (cfg.value != 90) {
+        return 12;
+    }
 
     // Test 13: Bare function call (read-only) - cfg should NOT be modified
     cfg.value <- 123;
     handleBareReadOnly(cfg);
-    if (cfg.value != 123) return 13; // Should stay unchanged
+    if (cfg.value != 123) {
+        return 13; // Should stay unchanged
+    }
 
     return 0;
 }

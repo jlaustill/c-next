@@ -28,13 +28,19 @@ scope A {
 
 u32 main() {
     u8 fromA_B <- A_B.readIt();
-    if (fromA_B != 11) return 1;
+    if (fromA_B != 11) {
+        return 1;
+    }
 
     u8 fromA <- A.readIt();
-    if (fromA != 22) return 2;
+    if (fromA != 22) {
+        return 2;
+    }
 
     // Each scope must read its own storage, not the other's
-    if (fromA_B = fromA) return 3;
+    if (fromA_B = fromA) {
+        return 3;
+    }
 
     return 0;
 }

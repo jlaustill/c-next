@@ -50,8 +50,12 @@ uint8_t stepped(void) {
 
 int main(void) {
     uint8_t wraps = wrapPasses();
-    if (wraps != 1) return 1U;
+    if (wraps != 1) {
+        return 1U;
+    }
     uint8_t w = stepped();
-    if (w != 4) return 2U;
+    if (w != 4) {
+        return 2U;
+    }
     return 0U;
 }

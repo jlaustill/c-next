@@ -72,17 +72,29 @@ uint8_t wrapped(uint8_t b) {
 
 int main(void) {
     uint8_t s = add(200U, 100U);
-    if (s != 255) return 1U;
+    if (s != 255) {
+        return 1U;
+    }
     uint8_t d = sub(100U, 200U);
-    if (d != 0) return 2U;
+    if (d != 0) {
+        return 2U;
+    }
     uint8_t m = mul(20U, 20U);
-    if (m != 255) return 3U;
+    if (m != 255) {
+        return 3U;
+    }
     uint8_t p = 200U;
     uint8_t c = addInto(&p, 100U);
-    if (c != 255) return 4U;
+    if (c != 255) {
+        return 4U;
+    }
     uint8_t l = addToLocal(100U);
-    if (l != 255) return 5U;
+    if (l != 255) {
+        return 5U;
+    }
     uint8_t w = wrapped(100U);
-    if (w != 44) return 6U;
+    if (w != 44) {
+        return 6U;
+    }
     return 0U;
 }

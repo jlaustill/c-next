@@ -61,14 +61,24 @@ int main(void) {
     ds[1] = dev_create();
     forward(ds);
     int32_t zero = dev_pokes(ds[0U]);
-    if (zero != 1) return 1;
+    if (zero != 1) {
+        return 1;
+    }
     int32_t one = dev_pokes(ds[1U]);
-    if (one != 1) return 2;
+    if (one != 1) {
+        return 2;
+    }
     int32_t viaElement = firstPokes(ds);
-    if (viaElement != 1) return 3;
+    if (viaElement != 1) {
+        return 3;
+    }
     Full fulls[2] = {};
     bumpFirst(fulls);
-    if (fulls[0U].pokes != 1) return 4;
-    if (fulls[1U].pokes != 0) return 5;
+    if (fulls[0U].pokes != 1) {
+        return 4;
+    }
+    if (fulls[1U].pokes != 0) {
+        return 5;
+    }
     return 0;
 }

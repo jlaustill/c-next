@@ -22,13 +22,17 @@ u32 main() {
     TransMutation.Data d <- { value: 0 };
 
     // Verify initial value
-    if (d.value != 0) return 1;
+    if (d.value != 0) {
+        return 1;
+    }
 
     // Call loadData which delegates to fillData
     global.Test.loadData(d);
 
     // Verify value was mutated through delegation
-    if (d.value != 42) return 2;
+    if (d.value != 42) {
+        return 2;
+    }
 
     return 0;
 }

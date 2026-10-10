@@ -24,8 +24,12 @@ scope S {
 
 u32 main() {
     S.f();
-    if (gp.bits != 0x38) return 1;
+    if (gp.bits != 0x38) {
+        return 1;
+    }
     u8 own <- S.gp.bits;
-    if (own != 2) return 2;
+    if (own != 2) {
+        return 2;
+    }
     return 0;
 }

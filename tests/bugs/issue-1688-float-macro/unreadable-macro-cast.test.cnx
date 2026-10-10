@@ -8,10 +8,14 @@ u32 main() {
     u32 i <- 3;
 
     u32 a <- i * (u32)SCALED_CALL;
-    if (a != 18) return 1;
+    if (a != 18) {
+        return 1;
+    }
 
     u32 b <- (u32)CAST_LIMIT + i;
-    if (b != 10) return 2;
+    if (b != 10) {
+        return 2;
+    }
 
     return 0;
 }

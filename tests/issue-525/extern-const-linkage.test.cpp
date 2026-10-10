@@ -20,9 +20,15 @@ extern const uint16_t BUFFER_SIZE = 256U;
 uint8_t mutableGlobal = 0U;
 
 int main(void) {
-    if (MAX_COUNT != 8) return 1U;
-    if (BUFFER_SIZE != 256) return 2U;
+    if (MAX_COUNT != 8) {
+        return 1U;
+    }
+    if (BUFFER_SIZE != 256) {
+        return 2U;
+    }
     mutableGlobal = 42U;
-    if (mutableGlobal != 42) return 3U;
+    if (mutableGlobal != 42) {
+        return 3U;
+    }
     return 0U;
 }

@@ -29,10 +29,16 @@ float plain(uint32_t x) {
 
 int main(void) {
     float d = doubled(3U);
-    if (d != 6.0) return 1U;
+    if (d != 6.0) {
+        return 1U;
+    }
     float h = halved(9U);
-    if (h != 4.0) return 2U;
+    if (h != 4.0) {
+        return 2U;
+    }
     float p = plain(5U);
-    if (p != 5.0) return 3U;
+    if (p != 5.0) {
+        return 3U;
+    }
     return 0U;
 }

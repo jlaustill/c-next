@@ -41,12 +41,16 @@ u32 main() {
     // Test handleForUpdate
     cfg.value <- 0;
     handleForUpdate(cfg);
-    if (cfg.value != 1) return 1;
+    if (cfg.value != 1) {
+        return 1;
+    }
 
     // Test handleForInit
     cfg.value <- 0;
     handleForInit(cfg);
-    if (cfg.value != 10) return 2;
+    if (cfg.value != 10) {
+        return 2;
+    }
 
     return 0;
 }

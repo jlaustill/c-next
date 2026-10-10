@@ -31,6 +31,8 @@ int main(void) {
     Dev* d = dev_create();
     configure(d);
     int32_t pokes = dev_pokes(d);
-    if (pokes != 2) return 1;
+    if (pokes != 2) {
+        return 1;
+    }
     return 0;
 }

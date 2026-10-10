@@ -1,0 +1,18 @@
+// test-error
+// #1090: MISRA C:2012 Rule 15.6 -- an `if`, `else`, `while` or `for` body must
+// be a braced block (ADR-027). Each unbraced body below is E0716.
+u32 run(bool c) {
+    u32 x <- 0;
+    if (c = true) x <- 1;
+    if (c = true) {
+        x <- 2;
+    } else x <- 3;
+    while (x < 3) x +<- 1;
+    for (u32 i <- 0; i < 3; i +<- 1) x +<- 1;
+    return x;
+}
+
+u32 main() {
+    bool flag <- true;
+    return run(flag);
+}

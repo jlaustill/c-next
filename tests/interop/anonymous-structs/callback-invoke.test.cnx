@@ -22,7 +22,9 @@ i32 main() {
     my_config_handler(cfg);
 
     // Verify the function was called with correct values (100 + 1 = 101)
-    if (g_callback_value != 101) return 1;
+    if (g_callback_value != 101) {
+        return 1;
+    }
 
     return 0;
 }

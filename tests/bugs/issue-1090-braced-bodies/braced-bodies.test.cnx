@@ -1,0 +1,28 @@
+// test-execution
+// #1090 negative control: braced bodies, and an `else if` chain (the one
+// unbraced `else` body allowed), are not E0716.
+u32 classify(u32 v) {
+    u32 r <- 0;
+    if (v = 0) {
+        r <- 1;
+    } else if (v = 1) {
+        r <- 2;
+    } else {
+        r <- 3;
+    }
+    return r;
+}
+
+u32 main() {
+    u32 total <- 0;
+    for (u32 i <- 0; i < 3; i +<- 1) {
+        total +<- classify(i);
+    }
+    while (total < 7) {
+        total +<- 1;
+    }
+    if (total != 7) {
+        return 1;
+    }
+    return 0;
+}

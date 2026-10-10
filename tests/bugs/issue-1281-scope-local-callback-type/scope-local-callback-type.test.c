@@ -47,7 +47,7 @@ uint32_t Timing__tickSource(void) {
 }
 
 uint32_t Timing__run(void) {
-    Timing__Config cfg = {0};
+    Timing__Config cfg = { .tick = Timing__tickSource };
     cfg.tick = Timing__tickSource;
     cfg.divisor = 4U;
     return cfg.tick() + cfg.divisor;
@@ -60,7 +60,7 @@ uint32_t Later__producer(void) {
 }
 
 uint32_t Later__run(void) {
-    Later__Holder h = {0};
+    Later__Holder h = { .make = Later__producer };
     h.make = Later__producer;
     return h.make();
 }
@@ -86,7 +86,7 @@ uint32_t Shadow__Config(void) {
 }
 
 uint32_t Shadow__run(void) {
-    Shadow__Wrapper w = {0};
+    Shadow__Wrapper w = { .c = Shadow__Config };
     w.c = Shadow__Config;
     return w.c();
 }
@@ -106,12 +106,20 @@ uint32_t NoCapture__run(void) {
 
 int main(void) {
     uint32_t timing = Timing__run();
-    if (timing != 44) return 1U;
+    if (timing != 44) {
+        return 1U;
+    }
     uint32_t later = Later__run();
-    if (later != 2) return 2U;
+    if (later != 2) {
+        return 2U;
+    }
     uint32_t shadowed = Shadow__run();
-    if (shadowed != 9) return 3U;
+    if (shadowed != 9) {
+        return 3U;
+    }
     uint32_t uncaptured = NoCapture__run();
-    if (uncaptured != 7) return 4U;
+    if (uncaptured != 7) {
+        return 4U;
+    }
     return 0U;
 }

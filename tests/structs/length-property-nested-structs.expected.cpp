@@ -17,21 +17,39 @@ int main(void) {
     config.inner.value = 0x12345678U;
     config.inner.status = 100U;
     config.flags = 0xFFU;
-    if (32 != 32) return 1U;
-    if (16 != 16) return 2U;
-    if (8 != 8) return 3U;
+    if (32 != 32) {
+        return 1U;
+    }
+    if (16 != 16) {
+        return 2U;
+    }
+    if (8 != 8) {
+        return 3U;
+    }
     DeepNest deep = {};
     deep.outer.inner.value = 0xABCDEFU;
     deep.outer.inner.status = 200U;
     deep.outer.flags = 0x42U;
     deep.timestamp = 999999ULL;
-    if (32 != 32) return 4U;
-    if (16 != 16) return 5U;
-    if (8 != 8) return 6U;
-    if (64 != 64) return 7U;
+    if (32 != 32) {
+        return 4U;
+    }
+    if (16 != 16) {
+        return 5U;
+    }
+    if (8 != 8) {
+        return 6U;
+    }
+    if (64 != 64) {
+        return 7U;
+    }
     uint32_t bytes = 32 / 8U;
-    if (bytes != 4) return 8U;
+    if (bytes != 4) {
+        return 8U;
+    }
     uint32_t total = 40;
-    if (total != 40) return 9U;
+    if (total != 40) {
+        return 9U;
+    }
     return 0U;
 }

@@ -33,36 +33,76 @@ int main(void) {
     matrix2d[0][7] = -2.71828182846;
     matrix2d[1][3] = 1000.123456789;
     matrix2d[3][7] = 0.0;
-    if (matrix2d[0U][0U] != 3.14159265359) return 1U;
-    if (matrix2d[0U][7U] != -2.71828182846) return 2U;
-    if (matrix2d[1U][3U] != 1000.123456789) return 3U;
-    if (matrix2d[3U][7U] != 0.0) return 4U;
+    if (matrix2d[0U][0U] != 3.14159265359) {
+        return 1U;
+    }
+    if (matrix2d[0U][7U] != -2.71828182846) {
+        return 2U;
+    }
+    if (matrix2d[1U][3U] != 1000.123456789) {
+        return 3U;
+    }
+    if (matrix2d[3U][7U] != 0.0) {
+        return 4U;
+    }
     cube3d[0][0][0] = 1.123456789012345;
     cube3d[0][0][3] = -10.987654321098765;
     cube3d[0][2][3] = 0.0;
     cube3d[1][0][0] = 999.999999999999;
     cube3d[1][2][3] = -0.000000000001;
-    if (cube3d[0U][0U][0U] != 1.123456789012345) return 5U;
-    if (cube3d[0U][0U][3U] != -10.987654321098765) return 6U;
-    if (cube3d[0U][2U][3U] != 0.0) return 7U;
-    if (cube3d[1U][0U][0U] != 999.999999999999) return 8U;
-    if (cube3d[1U][2U][3U] != -0.000000000001) return 9U;
-    if (4 != 4) return 10U;
-    if (8 != 8) return 11U;
-    if (64 != 64) return 12U;
-    if (2 != 2) return 13U;
-    if (3 != 3) return 14U;
-    if (4 != 4) return 15U;
-    if (64 != 64) return 16U;
+    if (cube3d[0U][0U][0U] != 1.123456789012345) {
+        return 5U;
+    }
+    if (cube3d[0U][0U][3U] != -10.987654321098765) {
+        return 6U;
+    }
+    if (cube3d[0U][2U][3U] != 0.0) {
+        return 7U;
+    }
+    if (cube3d[1U][0U][0U] != 999.999999999999) {
+        return 8U;
+    }
+    if (cube3d[1U][2U][3U] != -0.000000000001) {
+        return 9U;
+    }
+    if (4 != 4) {
+        return 10U;
+    }
+    if (8 != 8) {
+        return 11U;
+    }
+    if (64 != 64) {
+        return 12U;
+    }
+    if (2 != 2) {
+        return 13U;
+    }
+    if (3 != 3) {
+        return 14U;
+    }
+    if (4 != 4) {
+        return 15U;
+    }
+    if (64 != 64) {
+        return 16U;
+    }
     for (uint32_t i = 0U; i < 4; i = cnx_clamp_add_u32(i, 1U)) {
         for (uint32_t j = 0U; j < 8; j = cnx_clamp_add_u32(j, 1U)) {
             matrix2d[i][j] = (double)i * 2.5 + (double)j * 0.5;
         }
     }
-    if (matrix2d[0U][0U] != 0.0) return 17U;
-    if (matrix2d[0U][7U] != 3.5) return 18U;
-    if (matrix2d[1U][3U] != 4.0) return 19U;
-    if (matrix2d[3U][7U] != 11.0) return 20U;
+    if (matrix2d[0U][0U] != 0.0) {
+        return 17U;
+    }
+    if (matrix2d[0U][7U] != 3.5) {
+        return 18U;
+    }
+    if (matrix2d[1U][3U] != 4.0) {
+        return 19U;
+    }
+    if (matrix2d[3U][7U] != 11.0) {
+        return 20U;
+    }
     double sum = 0.0;
     for (uint32_t i = 0U; i < 2; i = cnx_clamp_add_u32(i, 1U)) {
         for (uint32_t j = 0U; j < 3; j = cnx_clamp_add_u32(j, 1U)) {
@@ -72,11 +112,17 @@ int main(void) {
             }
         }
     }
-    if (sum != 198.0) return 21U;
+    if (sum != 198.0) {
+        return 21U;
+    }
     matrix2d[2][4] = -999999.999999;
-    if (matrix2d[2U][4U] != -999999.999999) return 22U;
+    if (matrix2d[2U][4U] != -999999.999999) {
+        return 22U;
+    }
     matrix2d[3][7] = 42.123456789;
-    if (matrix2d[3U][7U] != 42.123456789) return 23U;
+    if (matrix2d[3U][7U] != 42.123456789) {
+        return 23U;
+    }
     double testArray[4][2] = {0};
     for (uint32_t ti = 0U; ti < 4; ti = cnx_clamp_add_u32(ti, 1U)) {
         for (uint32_t tj = 0U; tj < 2; tj = cnx_clamp_add_u32(tj, 1U)) {
@@ -89,12 +135,24 @@ int main(void) {
     testArray[1][1] = -1.0;
     testArray[2][0] = 0.123456789012345;
     testArray[3][1] = -0.123456789012345;
-    if (testArray[0U][0U] != 0.0) return 24U;
-    if (testArray[0U][1U] != -0.0) return 25U;
-    if (testArray[1U][0U] != 1.0) return 26U;
-    if (testArray[1U][1U] != -1.0) return 27U;
-    if (testArray[2U][0U] != 0.123456789012345) return 28U;
-    if (testArray[3U][1U] != -0.123456789012345) return 29U;
+    if (testArray[0U][0U] != 0.0) {
+        return 24U;
+    }
+    if (testArray[0U][1U] != -0.0) {
+        return 25U;
+    }
+    if (testArray[1U][0U] != 1.0) {
+        return 26U;
+    }
+    if (testArray[1U][1U] != -1.0) {
+        return 27U;
+    }
+    if (testArray[2U][0U] != 0.123456789012345) {
+        return 28U;
+    }
+    if (testArray[3U][1U] != -0.123456789012345) {
+        return 29U;
+    }
     double constants[3][3] = {0};
     for (uint32_t coi = 0U; coi < 3; coi = cnx_clamp_add_u32(coi, 1U)) {
         for (uint32_t coj = 0U; coj < 3; coj = cnx_clamp_add_u32(coj, 1U)) {
@@ -108,13 +166,27 @@ int main(void) {
     constants[1][1] = 299792458.0;
     constants[2][0] = 6.67430e-11;
     constants[2][1] = 9.80665;
-    if (constants[0U][0U] != 3.14159265358979) return 30U;
-    if (constants[0U][1U] != 2.71828182845905) return 31U;
-    if (constants[0U][2U] != 1.61803398874989) return 32U;
-    if (constants[1U][0U] != 6.62607015e-34) return 33U;
-    if (constants[1U][1U] != 299792458.0) return 34U;
-    if (constants[2U][0U] != 6.67430e-11) return 35U;
-    if (constants[2U][1U] != 9.80665) return 36U;
+    if (constants[0U][0U] != 3.14159265358979) {
+        return 30U;
+    }
+    if (constants[0U][1U] != 2.71828182845905) {
+        return 31U;
+    }
+    if (constants[0U][2U] != 1.61803398874989) {
+        return 32U;
+    }
+    if (constants[1U][0U] != 6.62607015e-34) {
+        return 33U;
+    }
+    if (constants[1U][1U] != 299792458.0) {
+        return 34U;
+    }
+    if (constants[2U][0U] != 6.67430e-11) {
+        return 35U;
+    }
+    if (constants[2U][1U] != 9.80665) {
+        return 36U;
+    }
     double precise[2][2] = {0};
     for (uint32_t pi = 0U; pi < 2; pi = cnx_clamp_add_u32(pi, 1U)) {
         for (uint32_t pj = 0U; pj < 2; pj = cnx_clamp_add_u32(pj, 1U)) {
@@ -125,10 +197,18 @@ int main(void) {
     precise[0][1] = 0.000000000000001;
     precise[1][0] = 999999.999999999;
     precise[1][1] = -123456.789012345;
-    if (precise[0U][0U] != 0.123456789012345) return 37U;
-    if (precise[0U][1U] != 0.000000000000001) return 38U;
-    if (precise[1U][0U] != 999999.999999999) return 39U;
-    if (precise[1U][1U] != -123456.789012345) return 40U;
+    if (precise[0U][0U] != 0.123456789012345) {
+        return 37U;
+    }
+    if (precise[0U][1U] != 0.000000000000001) {
+        return 38U;
+    }
+    if (precise[1U][0U] != 999999.999999999) {
+        return 39U;
+    }
+    if (precise[1U][1U] != -123456.789012345) {
+        return 40U;
+    }
     double calc[2][2] = {0};
     for (uint32_t ci = 0U; ci < 2; ci = cnx_clamp_add_u32(ci, 1U)) {
         for (uint32_t cj = 0U; cj < 2; cj = cnx_clamp_add_u32(cj, 1U)) {
@@ -138,7 +218,9 @@ int main(void) {
     calc[0][0] = 10.123456789;
     calc[0][1] = 5.987654321;
     double calcSum = calc[0U][0U] + calc[0U][1U];
-    if (calcSum != 16.11111111) return 41U;
+    if (calcSum != 16.11111111) {
+        return 41U;
+    }
     double distances[2][3] = {0};
     for (uint32_t di = 0U; di < 2; di = cnx_clamp_add_u32(di, 1U)) {
         for (uint32_t dj = 0U; dj < 3; dj = cnx_clamp_add_u32(dj, 1U)) {
@@ -151,9 +233,15 @@ int main(void) {
     distances[1][0] = 4.0e26;
     distances[1][1] = 2.5e22;
     distances[1][2] = 1.0e21;
-    if (distances[0U][0U] != 9.461e15) return 42U;
-    if (distances[0U][1U] != 1.496e11) return 43U;
-    if (distances[1U][0U] != 4.0e26) return 44U;
+    if (distances[0U][0U] != 9.461e15) {
+        return 42U;
+    }
+    if (distances[0U][1U] != 1.496e11) {
+        return 43U;
+    }
+    if (distances[1U][0U] != 4.0e26) {
+        return 44U;
+    }
     double quantum[2][2] = {0};
     for (uint32_t qi = 0U; qi < 2; qi = cnx_clamp_add_u32(qi, 1U)) {
         for (uint32_t qj = 0U; qj < 2; qj = cnx_clamp_add_u32(qj, 1U)) {
@@ -164,8 +252,14 @@ int main(void) {
     quantum[0][1] = 5.39e-44;
     quantum[1][0] = 1.616e-35;
     quantum[1][1] = 0.0;
-    if (quantum[0U][0U] != 1.0e-35) return 45U;
-    if (quantum[0U][1U] != 5.39e-44) return 46U;
-    if (quantum[1U][0U] != 1.616e-35) return 47U;
+    if (quantum[0U][0U] != 1.0e-35) {
+        return 45U;
+    }
+    if (quantum[0U][1U] != 5.39e-44) {
+        return 46U;
+    }
+    if (quantum[1U][0U] != 1.616e-35) {
+        return 47U;
+    }
     return 0U;
 }

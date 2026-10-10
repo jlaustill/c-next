@@ -43,26 +43,46 @@ uint32_t getStatusPriority(Status s) {
 
 int main(void) {
     uint32_t code = getStatusCode(Status__OK);
-    if (code != 0) return 1U;
+    if (code != 0) {
+        return 1U;
+    }
     code = getStatusCode(Status__WARNING);
-    if (code != 1) return 2U;
+    if (code != 1) {
+        return 2U;
+    }
     code = getStatusCode(Status__ERROR);
-    if (code != 2) return 3U;
+    if (code != 2) {
+        return 3U;
+    }
     code = getStatusCode(Status__CRITICAL);
-    if (code != 3) return 4U;
+    if (code != 3) {
+        return 4U;
+    }
     Status current = Status__ERROR;
     code = getStatusCode(current);
-    if (code != 2) return 5U;
+    if (code != 2) {
+        return 5U;
+    }
     uint32_t priority = getStatusPriority(Status__OK);
-    if (priority != 0) return 6U;
+    if (priority != 0) {
+        return 6U;
+    }
     priority = getStatusPriority(Status__WARNING);
-    if (priority != 10) return 7U;
+    if (priority != 10) {
+        return 7U;
+    }
     priority = getStatusPriority(Status__ERROR);
-    if (priority != 50) return 8U;
+    if (priority != 50) {
+        return 8U;
+    }
     priority = getStatusPriority(Status__CRITICAL);
-    if (priority != 100) return 9U;
+    if (priority != 100) {
+        return 9U;
+    }
     current = Status__CRITICAL;
     priority = getStatusPriority(current);
-    if (priority != 100) return 10U;
+    if (priority != 100) {
+        return 10U;
+    }
     return 0U;
 }

@@ -23,9 +23,13 @@ int main(void) {
     if (flag == 1) {
         char main__label[9] = "ab";
         size_t cnx_len_label = strlen(main__label);
-        if (cnx_len_label != 2 || cnx_len_label < 1) return 1U;
+        if (cnx_len_label != 2 || cnx_len_label < 1) {
+            return 1U;
+        }
     }
     size_t cnx_len_label = strlen(label);
-    if (cnx_len_label != 3 || cnx_len_label < 1) return 2U;
+    if (cnx_len_label != 3 || cnx_len_label < 1) {
+        return 2U;
+    }
     return 0U;
 }

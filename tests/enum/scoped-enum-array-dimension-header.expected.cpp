@@ -36,10 +36,18 @@ int main(void) {
     Motor__fromScope[0] = 11U;
     Motor__fromGlobal[0] = 22U;
     Motor__viaThis[0] = 33U;
-    if (Motor__fromScope[0U] != 11) return 1U;
-    if (Motor__fromGlobal[0U] != 22) return 2U;
-    if (Motor__viaThis[0U] != 33) return 3U;
+    if (Motor__fromScope[0U] != 11) {
+        return 1U;
+    }
+    if (Motor__fromGlobal[0U] != 22) {
+        return 2U;
+    }
+    if (Motor__viaThis[0U] != 33) {
+        return 3U;
+    }
     Motor__fromScope[1] = 44U;
-    if (Motor__fromScope[1U] != 44) return 4U;
+    if (Motor__fromScope[1U] != 44) {
+        return 4U;
+    }
     return 0U;
 }

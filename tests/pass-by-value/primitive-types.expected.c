@@ -113,51 +113,95 @@ void toggleBool(bool* val) {
 int main(void) {
     uint8_t u8Val = 10U;
     uint8_t u8Result = doubleU8(u8Val);
-    if (u8Val != 10) return 1U;
-    if (u8Result != 20) return 2U;
+    if (u8Val != 10) {
+        return 1U;
+    }
+    if (u8Result != 20) {
+        return 2U;
+    }
     uint16_t u16Val = 1000U;
     uint16_t u16Result = doubleU16(u16Val);
-    if (u16Val != 1000) return 3U;
-    if (u16Result != 2000) return 4U;
+    if (u16Val != 1000) {
+        return 3U;
+    }
+    if (u16Result != 2000) {
+        return 4U;
+    }
     uint32_t u32Val = 100000U;
     uint32_t u32Result = doubleU32(u32Val);
-    if (u32Val != 100000) return 5U;
-    if (u32Result != 200000) return 6U;
+    if (u32Val != 100000) {
+        return 5U;
+    }
+    if (u32Result != 200000) {
+        return 6U;
+    }
     uint64_t u64Val = 1000000000ULL;
     uint64_t u64Result = doubleU64(u64Val);
-    if (u64Val != 1000000000) return 7U;
-    if (u64Result != 2000000000) return 8U;
+    if (u64Val != 1000000000) {
+        return 7U;
+    }
+    if (u64Result != 2000000000) {
+        return 8U;
+    }
     int8_t i8Val = 50;
     int8_t i8Result = negateI8(i8Val);
-    if (i8Val != 50) return 9U;
-    if (i8Result != -50) return 10U;
+    if (i8Val != 50) {
+        return 9U;
+    }
+    if (i8Result != -50) {
+        return 10U;
+    }
     int16_t i16Val = 1000;
     int16_t i16Result = negateI16(i16Val);
-    if (i16Val != 1000) return 11U;
-    if (i16Result != -1000) return 12U;
+    if (i16Val != 1000) {
+        return 11U;
+    }
+    if (i16Result != -1000) {
+        return 12U;
+    }
     int32_t i32Val = 100000;
     int32_t i32Result = negateI32(i32Val);
-    if (i32Val != 100000) return 13U;
-    if (i32Result != -100000) return 14U;
+    if (i32Val != 100000) {
+        return 13U;
+    }
+    if (i32Result != -100000) {
+        return 14U;
+    }
     int64_t i64Val = 1000000000;
     int64_t i64Result = negateI64(i64Val);
-    if (i64Val != 1000000000) return 15U;
-    if (i64Result != -1000000000) return 16U;
+    if (i64Val != 1000000000) {
+        return 15U;
+    }
+    if (i64Result != -1000000000) {
+        return 16U;
+    }
     bool boolVal = true;
     bool boolResult = flipBool(boolVal);
-    if (boolVal != true) return 17U;
-    if (boolResult != false) return 18U;
+    if (boolVal != true) {
+        return 17U;
+    }
+    if (boolResult != false) {
+        return 18U;
+    }
     uint8_t modU8 = 100U;
     incrementU8(&modU8);
-    if (modU8 != 101) return 19U;
+    if (modU8 != 101) {
+        return 19U;
+    }
     uint32_t modU32 = 1000U;
     incrementU32(&modU32);
-    if (modU32 != 1001) return 20U;
+    if (modU32 != 1001) {
+        return 20U;
+    }
     int32_t modI32 = -50;
     incrementI32(&modI32);
-    if (modI32 != -49) return 21U;
+    if (modI32 != -49) {
+        return 21U;
+    }
     bool modBool = false;
     toggleBool(&modBool);
-    if (modBool != true) return 22U;
+    if (modBool != true) {
+        return 22U;
+    }
     return 0U;
 }

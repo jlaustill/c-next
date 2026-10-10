@@ -13,18 +13,28 @@
 int main(void) {
     int8_t a = -1;
     a = (int8_t)((a & ~(0xFU << 0)) | ((0U & 0xFU) << 0));
-    if (a != -16) return 1U;
+    if (a != -16) {
+        return 1U;
+    }
     int16_t b = -1;
     b = (int16_t)((b & ~(0xFU << 0)) | ((0U & 0xFU) << 0));
-    if (b != -16) return 2U;
+    if (b != -16) {
+        return 2U;
+    }
     int32_t c = -1;
     c = (int32_t)((c & ~((uint32_t)0xFU << 0)) | ((0U & (uint32_t)0xFU) << 0));
-    if (c != -16) return 3U;
+    if (c != -16) {
+        return 3U;
+    }
     int64_t d = -1;
     d = (int64_t)((d & ~((uint64_t)0xFU << 0)) | ((0U & (uint64_t)0xFU) << 0));
-    if (d != -16) return 4U;
+    if (d != -16) {
+        return 4U;
+    }
     int32_t e = 0;
     e = (int32_t)((e & ~((uint32_t)1U << 3)) | ((uint32_t)1U << 3));
-    if (e != 8) return 5U;
+    if (e != 8) {
+        return 5U;
+    }
     return 0U;
 }

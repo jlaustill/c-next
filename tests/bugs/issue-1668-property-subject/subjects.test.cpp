@@ -27,19 +27,33 @@ char names[3][9] = {0};
 
 int main(void) {
     uint32_t lb = 64;
-    if (lb != 64) return 1U;
+    if (lb != 64) {
+        return 1U;
+    }
     uint32_t bc = 4;
-    if (bc != 4) return 2U;
+    if (bc != 4) {
+        return 2U;
+    }
     uint32_t ec = 3;
-    if (ec != 3) return 3U;
+    if (ec != 3) {
+        return 3U;
+    }
     uint32_t by = 6;
-    if (by != 6) return 4U;
+    if (by != 6) {
+        return 4U;
+    }
     uint32_t nb = 216;
-    if (nb != 216) return 5U;
+    if (nb != 216) {
+        return 5U;
+    }
     uint32_t x = 0U;
     uint32_t xb = 32;
-    if (xb != 32) return 6U;
+    if (xb != 32) {
+        return 6U;
+    }
     uint32_t fb = 24;
-    if (fb != 24) return 7U;
+    if (fb != 24) {
+        return 7U;
+    }
     return 0U;
 }

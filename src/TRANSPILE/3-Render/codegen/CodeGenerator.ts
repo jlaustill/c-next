@@ -75,6 +75,10 @@ import PassByValueAnalyzer from "../../2-Plan/PassByValueAnalyzer";
 import type IRecordedRequirement from "../../../types/IRecordedRequirement";
 import ToolchainRequirements from "../../../instrumentation/ToolchainRequirements";
 import TranspileState from "../../TranspileState";
+import StructDefaultInitializer from "./helpers/StructDefaultInitializer";
+import StructDefault from "../../../utils/StructDefault";
+import ElementCount from "../../../utils/ElementCount";
+import type IProgram from "../../../types/IProgram";
 
 /**
  * Code Generator - Transpiles C-Next to C
@@ -318,6 +322,49 @@ export default class CodeGenerator implements IOrchestrator {
    */
   isCppMode(): boolean {
     return this.state.cppMode;
+  }
+
+  /**
+   * Part of IOrchestrator interface. See `StructDefault` for the decision and
+   * `StructDefaultInitializer` for its spelling.
+   */
+  renderStructDefault(
+    structName: string,
+    counts: readonly (number | null)[],
+  ): string | null {
+    const symbols = this.state.symbols;
+    const program = this.state.program;
+    invariant(
+      symbols && program,
+      "an ADR-029 default is rendered from the resolved program and its symbols, which generate() sets before any declaration (#1283)",
+    );
+    return StructDefaultInitializer.render(structName, counts, {
+      ...StructDefault.factsOf(symbols),
+      fieldElementCounts: (owner, fieldName) =>
+        CodeGenerator.fieldElementCounts(program, owner, fieldName),
+      cppMode: this.state.cppMode,
+    });
+  }
+
+  /** #1283 review: a struct field's element counts, from its symbol */
+  private static fieldElementCounts(
+    program: IProgram,
+    structName: string,
+    fieldName: string,
+  ): readonly (number | null)[] {
+    const struct = program.symbolByCName(structName);
+    const field =
+      struct?.kind === "struct" ? struct.fields.get(fieldName) : undefined;
+    if (!field?.dimensions) {
+      return [];
+    }
+    return field.dimensions.map((dimension, i) => {
+      if (typeof dimension === "number") return dimension;
+      const expr = field.dimensionExprs?.[i] ?? null;
+      return expr === null
+        ? null
+        : ElementCount.of(expr, program, field.sourceFile);
+    });
   }
 
   /**

@@ -43,6 +43,8 @@ int main(void) {
     buffer[2] = (uint8_t)(cnx_tmp0 >> 16U);
     buffer[3] = (uint8_t)(cnx_tmp0 >> 24U);
     buffer[0] = cnx_clamp_add_u8(buffer[0U], _tmp0);
-    if (buffer[0U] != 7) return 1U;
+    if (buffer[0U] != 7) {
+        return 1U;
+    }
     return 0U;
 }

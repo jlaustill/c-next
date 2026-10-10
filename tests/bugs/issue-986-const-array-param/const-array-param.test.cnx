@@ -27,8 +27,12 @@ u32 main() {
     Handler.process(buffer);
 
     // Verify the C API modified the buffer
-    if (buffer[0] != 0xAA) return 1;
-    if (buffer[1] != 0xBB) return 2;
+    if (buffer[0] != 0xAA) {
+        return 1;
+    }
+    if (buffer[1] != 0xBB) {
+        return 2;
+    }
 
     return 0;
 }

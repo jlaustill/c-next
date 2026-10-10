@@ -48,56 +48,112 @@ int main(void) {
     (void) strncpy(globalNames[2], "Charlie", 32);
     (void) strncpy(globalNames[3], "Diana", 32);
     (void) strncpy(globalNames[4], "Eve", 32);
-    if (5 != 5) return 1;
-    if (strlen(globalNames[0U]) != 5) return 2;
-    if (strlen(globalNames[1U]) != 3) return 3;
-    if (strlen(globalNames[2U]) != 7) return 4;
-    if (strlen(globalNames[3U]) != 5) return 5;
-    if (strlen(globalNames[4U]) != 3) return 6;
-    if (32 != 32) return 7;
-    if (33 != 33) return 8;
-    if (strcmp(globalNames[0U], "Alice") != 0) return 9;
-    if (strcmp(globalNames[2U], "Charlie") != 0) return 10;
+    if (5 != 5) {
+        return 1;
+    }
+    if (strlen(globalNames[0U]) != 5) {
+        return 2;
+    }
+    if (strlen(globalNames[1U]) != 3) {
+        return 3;
+    }
+    if (strlen(globalNames[2U]) != 7) {
+        return 4;
+    }
+    if (strlen(globalNames[3U]) != 5) {
+        return 5;
+    }
+    if (strlen(globalNames[4U]) != 3) {
+        return 6;
+    }
+    if (32 != 32) {
+        return 7;
+    }
+    if (33 != 33) {
+        return 8;
+    }
+    if (strcmp(globalNames[0U], "Alice") != 0) {
+        return 9;
+    }
+    if (strcmp(globalNames[2U], "Charlie") != 0) {
+        return 10;
+    }
     char dupes[3][33] = {0};
     (void) strncpy(dupes[0], "Alice", 32);
     (void) strncpy(dupes[1], "Alice", 32);
     (void) strncpy(dupes[2], "Bob", 32);
-    if (strcmp(dupes[0U], dupes[1U]) != 0) return 11;
-    if (strcmp(dupes[0U], dupes[2U]) == 0) return 12;
+    if (strcmp(dupes[0U], dupes[1U]) != 0) {
+        return 11;
+    }
+    if (strcmp(dupes[0U], dupes[2U]) == 0) {
+        return 12;
+    }
     char colors[3][65] = {0};
     (void) strncpy(colors[0], "Red", 64);
     (void) strncpy(colors[1], "Green", 64);
     (void) strncpy(colors[2], "Blue", 64);
-    if (3 != 3) return 13;
-    if (strlen(colors[0U]) != 3) return 14;
-    if (strlen(colors[1U]) != 5) return 15;
-    if (strlen(colors[2U]) != 4) return 16;
+    if (3 != 3) {
+        return 13;
+    }
+    if (strlen(colors[0U]) != 3) {
+        return 14;
+    }
+    if (strlen(colors[1U]) != 5) {
+        return 15;
+    }
+    if (strlen(colors[2U]) != 4) {
+        return 16;
+    }
     uint32_t arrLen = getArrayLength(globalNames);
-    if (arrLen != 5) return 17;
+    if (arrLen != 5) {
+        return 17;
+    }
     uint32_t elemLen0 = getElementLength(globalNames, 0U);
-    if (elemLen0 != 5) return 18;
+    if (elemLen0 != 5) {
+        return 18;
+    }
     uint32_t elemLen1 = getElementLength(globalNames, 1U);
-    if (elemLen1 != 3) return 19;
+    if (elemLen1 != 3) {
+        return 19;
+    }
     uint32_t elemLen2 = getElementLength(globalNames, 2U);
-    if (elemLen2 != 7) return 20;
+    if (elemLen2 != 7) {
+        return 20;
+    }
     uint32_t elemLen3 = getElementLength(globalNames, 3U);
-    if (elemLen3 != 5) return 21;
+    if (elemLen3 != 5) {
+        return 21;
+    }
     uint32_t elemLen4 = getElementLength(globalNames, 4U);
-    if (elemLen4 != 3) return 22;
+    if (elemLen4 != 3) {
+        return 22;
+    }
     uint32_t totalLength = 0U;
     uint32_t i = 0U;
     while (i < 5) {
         totalLength = cnx_clamp_add_u32(totalLength, strlen(globalNames[i]));
         i = cnx_clamp_add_u32(i, 1U);
     }
-    if (totalLength != 23) return 23;
+    if (totalLength != 23) {
+        return 23;
+    }
     (void) strncpy(globalNames[1], "Benjamin", 32);
-    if (strlen(globalNames[1U]) != 8) return 24;
-    if (strcmp(globalNames[1U], "Benjamin") != 0) return 25;
+    if (strlen(globalNames[1U]) != 8) {
+        return 24;
+    }
+    if (strcmp(globalNames[1U], "Benjamin") != 0) {
+        return 25;
+    }
     char sparse[3][33] = {0};
     (void) strncpy(sparse[1], "Middle", 32);
-    if (strlen(sparse[0U]) != 0) return 26;
-    if (strlen(sparse[1U]) != 6) return 27;
-    if (strlen(sparse[2U]) != 0) return 28;
+    if (strlen(sparse[0U]) != 0) {
+        return 26;
+    }
+    if (strlen(sparse[1U]) != 6) {
+        return 27;
+    }
+    if (strlen(sparse[2U]) != 0) {
+        return 28;
+    }
     return 0;
 }

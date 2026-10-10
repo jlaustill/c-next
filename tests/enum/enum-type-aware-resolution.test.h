@@ -33,6 +33,9 @@ typedef struct StatusConfig {
 /* Function prototypes */
 void setColorRed(ColorConfig* cfg);
 void setStatusRed(StatusConfig* cfg);
+/* MISRA C:2012 Rule 8.4: declaration for the ADR-029 generated init function (the definition has external linkage and would otherwise be undeclared). */
+ColorConfig ColorConfig_init(void);
+StatusConfig StatusConfig_init(void);
 
 #ifdef __cplusplus
 }

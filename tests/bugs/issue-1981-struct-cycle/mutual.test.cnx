@@ -1,0 +1,16 @@
+// test-error
+// #1981: a cycle through another struct needs one of the two to be named
+// before its definition, so it is E0426 at that use (ADR-030, ADR-032).
+struct A {
+    u32 x;
+    B b;
+}
+
+struct B {
+    u32 y;
+    A a;
+}
+
+u32 main() {
+    return 0;
+}

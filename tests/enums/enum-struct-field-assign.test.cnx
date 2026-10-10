@@ -23,12 +23,16 @@ u32 main() {
     EValueId val <- global.input.assignedValue;
 
     // Validate: the value should match
-    if (val != global.EValueId.VALUE_B) return 1;
+    if (val != global.EValueId.VALUE_B) {
+        return 1;
+    }
 
     // Test with another value
     input.assignedValue <- global.EValueId.VALUE_A;
     EValueId val2 <- global.input.assignedValue;
-    if (val2 != global.EValueId.VALUE_A) return 2;
+    if (val2 != global.EValueId.VALUE_A) {
+        return 2;
+    }
 
     return 0;
 }

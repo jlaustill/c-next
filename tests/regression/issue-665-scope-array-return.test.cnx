@@ -96,9 +96,15 @@ i32 main() {
     f32 v1 <- Test.get(EIndex.FIRST);
     f32 v2 <- Test.get(EIndex.SECOND);
     f32 v3 <- Test.get(EIndex.THIRD);
-    if (v1 != 1.0) return 1;
-    if (v2 != 2.0) return 2;
-    if (v3 != 3.0) return 3;
+    if (v1 != 1.0) {
+        return 1;
+    }
+    if (v2 != 2.0) {
+        return 2;
+    }
+    if (v3 != 3.0) {
+        return 3;
+    }
 
     // Test 2: Enum-sized array with integer index
     TestIntIndex.set(0, 100);
@@ -107,9 +113,15 @@ i32 main() {
     i32 d1 <- TestIntIndex.get(0);
     i32 d2 <- TestIntIndex.get(1);
     i32 d3 <- TestIntIndex.get(2);
-    if (d1 != 100) return 4;
-    if (d2 != 200) return 5;
-    if (d3 != 300) return 6;
+    if (d1 != 100) {
+        return 4;
+    }
+    if (d2 != 200) {
+        return 5;
+    }
+    if (d3 != 300) {
+        return 6;
+    }
 
     // Test 3: Literal-sized array (regression check)
     TestLiteral.set(0, 1000);
@@ -120,10 +132,18 @@ i32 main() {
     u16 l2 <- TestLiteral.get(1);
     u16 l3 <- TestLiteral.get(2);
     u16 l4 <- TestLiteral.get(3);
-    if (l1 != 1000) return 7;
-    if (l2 != 2000) return 8;
-    if (l3 != 3000) return 9;
-    if (l4 != 4000) return 10;
+    if (l1 != 1000) {
+        return 7;
+    }
+    if (l2 != 2000) {
+        return 8;
+    }
+    if (l3 != 3000) {
+        return 9;
+    }
+    if (l4 != 4000) {
+        return 10;
+    }
 
     // Test 4: Multiple arrays in same scope
     TestMultiple.setFirst(EIndex.FIRST, 10);
@@ -134,10 +154,18 @@ i32 main() {
     u8 m2 <- TestMultiple.getFirst(EIndex.SECOND);
     u8 m3 <- TestMultiple.getSecond(EIndex.FIRST);
     u8 m4 <- TestMultiple.getSecond(EIndex.SECOND);
-    if (m1 != 10) return 11;
-    if (m2 != 20) return 12;
-    if (m3 != 30) return 13;
-    if (m4 != 40) return 14;
+    if (m1 != 10) {
+        return 11;
+    }
+    if (m2 != 20) {
+        return 12;
+    }
+    if (m3 != 30) {
+        return 13;
+    }
+    if (m4 != 40) {
+        return 14;
+    }
 
     // Test 5: Return with index arithmetic
     TestArithmetic.set(0, 111);
@@ -147,10 +175,18 @@ i32 main() {
     i32 a2 <- TestArithmetic.getNext(1);
     i32 a3 <- TestArithmetic.getPrev(1);
     i32 a4 <- TestArithmetic.getPrev(2);
-    if (a1 != 222) return 15;
-    if (a2 != 333) return 16;
-    if (a3 != 111) return 17;
-    if (a4 != 222) return 18;
+    if (a1 != 222) {
+        return 15;
+    }
+    if (a2 != 333) {
+        return 16;
+    }
+    if (a3 != 111) {
+        return 17;
+    }
+    if (a4 != 222) {
+        return 18;
+    }
 
     return 0;
 }

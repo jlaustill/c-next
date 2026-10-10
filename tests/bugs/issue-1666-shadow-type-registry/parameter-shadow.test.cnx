@@ -15,8 +15,12 @@ u32 second() {
 
 u32 main() {
     u32 local <- first(7);
-    if (local != 7) return 1;
+    if (local != 7) {
+        return 1;
+    }
     u32 width <- second();
-    if (width != 32) return 2;
+    if (width != 32) {
+        return 2;
+    }
     return 0;
 }

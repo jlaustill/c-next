@@ -47,16 +47,24 @@ u32 detached() {
 u32 main() {
     Sensor.refresh();
     u32 sensorValue <- Sensor.value();
-    if (sensorValue != 10) return 1;
+    if (sensorValue != 10) {
+        return 1;
+    }
 
     Gauge.accumulate();
     Gauge.accumulate();
     u32 gaugeTotal <- Gauge.readTotal();
-    if (gaugeTotal != 4) return 2;
+    if (gaugeTotal != 4) {
+        return 2;
+    }
 
     u32 detachedValue <- detached();
-    if (detachedValue != 6) return 3;
-    if (spare != 40) return 4;
+    if (detachedValue != 6) {
+        return 3;
+    }
+    if (spare != 40) {
+        return 4;
+    }
 
     return 0;
 }

@@ -15,12 +15,20 @@ int main(void) {
     Outer::Inner::Widget w = {};
     w.x = 10;
     w.y = 20;
-    if (w.x != 10) return 1;
-    if (w.y != 20) return 2;
+    if (w.x != 10) {
+        return 1;
+    }
+    if (w.y != 20) {
+        return 2;
+    }
     Outer::Inner::Widget w2 = {};
     w2.x = 100;
     w2.y = 200;
-    if (w2.x != 100) return 3;
-    if (w2.y != 200) return 4;
+    if (w2.x != 100) {
+        return 3;
+    }
+    if (w2.y != 200) {
+        return 4;
+    }
     return 0;
 }

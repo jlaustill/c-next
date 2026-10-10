@@ -17,13 +17,23 @@ u32 main() {
     buffer[0, 4] <- nextSliceValue();
 
     // All four little-endian bytes must come from a single evaluation.
-    if (buffer[0] != 0x44) return 1;
-    if (buffer[1] != 0x33) return 2;
-    if (buffer[2] != 0x22) return 3;
-    if (buffer[3] != 0x11) return 4;
+    if (buffer[0] != 0x44) {
+        return 1;
+    }
+    if (buffer[1] != 0x33) {
+        return 2;
+    }
+    if (buffer[2] != 0x22) {
+        return 3;
+    }
+    if (buffer[3] != 0x11) {
+        return 4;
+    }
 
     // The source function must have run exactly once, not once per element.
-    if (sliceSourceCallCount != 1) return 5;
+    if (sliceSourceCallCount != 1) {
+        return 5;
+    }
 
     return 0;
 }

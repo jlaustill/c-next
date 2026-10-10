@@ -18,7 +18,11 @@ bool enabled[4] = {false, false, false, false};
 
 int main(void) {
     enabled[0] = true;
-    if (enabled[0U] != true) return 1U;
-    if (enabled[1U] != false) return 2U;
+    if (enabled[0U] != true) {
+        return 1U;
+    }
+    if (enabled[1U] != false) {
+        return 2U;
+    }
     return 0U;
 }

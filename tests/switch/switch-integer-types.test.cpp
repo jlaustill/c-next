@@ -183,90 +183,150 @@ int main(void) {
     uint8_t u8_max = 255U;
     uint8_t u8_other = 50U;
     testSwitchU8(u8_zero);
-    if (result != 100) return 1U;
+    if (result != 100) {
+        return 1U;
+    }
     testSwitchU8(u8_ten);
-    if (result != 110) return 2U;
+    if (result != 110) {
+        return 2U;
+    }
     testSwitchU8(u8_max);
-    if (result != 355) return 3U;
+    if (result != 355) {
+        return 3U;
+    }
     testSwitchU8(u8_other);
-    if (result != 999) return 4U;
+    if (result != 999) {
+        return 4U;
+    }
     uint16_t u16_zero = 0U;
     uint16_t u16_mid = 1000U;
     uint16_t u16_max = 65535U;
     uint16_t u16_other = 5000U;
     testSwitchU16(u16_zero);
-    if (result != 200) return 5U;
+    if (result != 200) {
+        return 5U;
+    }
     testSwitchU16(u16_mid);
-    if (result != 1200) return 6U;
+    if (result != 1200) {
+        return 6U;
+    }
     testSwitchU16(u16_max);
-    if (result != 65735) return 7U;
+    if (result != 65735) {
+        return 7U;
+    }
     testSwitchU16(u16_other);
-    if (result != 999) return 8U;
+    if (result != 999) {
+        return 8U;
+    }
     uint32_t u32_zero = 0U;
     uint32_t u32_mid = 1000000U;
     uint32_t u32_other = 12345U;
     testSwitchU32(u32_zero);
-    if (result != 300) return 9U;
+    if (result != 300) {
+        return 9U;
+    }
     testSwitchU32(u32_mid);
-    if (result != 1000300) return 10U;
+    if (result != 1000300) {
+        return 10U;
+    }
     testSwitchU32(u32_other);
-    if (result != 999) return 11U;
+    if (result != 999) {
+        return 11U;
+    }
     uint64_t u64_zero = 0ULL;
     uint64_t u64_large = 1000000000000ULL;
     uint64_t u64_other = 9999ULL;
     testSwitchU64(u64_zero);
-    if (result != 400) return 12U;
+    if (result != 400) {
+        return 12U;
+    }
     testSwitchU64(u64_large);
-    if (result != 401) return 13U;
+    if (result != 401) {
+        return 13U;
+    }
     testSwitchU64(u64_other);
-    if (result != 999) return 14U;
+    if (result != 999) {
+        return 14U;
+    }
     int8_t i8_zero = 0;
     int8_t i8_mid = 50;
     int8_t i8_max = 127;
     int8_t i8_neg = -50;
     testSwitchI8(i8_zero);
-    if (result != 500) return 15U;
+    if (result != 500) {
+        return 15U;
+    }
     testSwitchI8(i8_mid);
-    if (result != 501) return 16U;
+    if (result != 501) {
+        return 16U;
+    }
     testSwitchI8(i8_max);
-    if (result != 502) return 17U;
+    if (result != 502) {
+        return 17U;
+    }
     testSwitchI8(i8_neg);
-    if (result != 999) return 18U;
+    if (result != 999) {
+        return 18U;
+    }
     int16_t i16_zero = 0;
     int16_t i16_mid = 5000;
     int16_t i16_max = 32767;
     int16_t i16_neg = -5000;
     testSwitchI16(i16_zero);
-    if (result != 600) return 19U;
+    if (result != 600) {
+        return 19U;
+    }
     testSwitchI16(i16_mid);
-    if (result != 601) return 20U;
+    if (result != 601) {
+        return 20U;
+    }
     testSwitchI16(i16_max);
-    if (result != 602) return 21U;
+    if (result != 602) {
+        return 21U;
+    }
     testSwitchI16(i16_neg);
-    if (result != 999) return 22U;
+    if (result != 999) {
+        return 22U;
+    }
     int32_t i32_zero = 0;
     int32_t i32_mid = 1000000;
     int32_t i32_high = 2000000;
     int32_t i32_neg = -1000000;
     testSwitchI32(i32_zero);
-    if (result != 700) return 23U;
+    if (result != 700) {
+        return 23U;
+    }
     testSwitchI32(i32_mid);
-    if (result != 701) return 24U;
+    if (result != 701) {
+        return 24U;
+    }
     testSwitchI32(i32_high);
-    if (result != 702) return 25U;
+    if (result != 702) {
+        return 25U;
+    }
     testSwitchI32(i32_neg);
-    if (result != 999) return 26U;
+    if (result != 999) {
+        return 26U;
+    }
     int64_t i64_zero = 0;
     int64_t i64_mid = 5000000000;
     int64_t i64_high = 9000000000;
     int64_t i64_neg = -5000000000;
     testSwitchI64(i64_zero);
-    if (result != 800) return 27U;
+    if (result != 800) {
+        return 27U;
+    }
     testSwitchI64(i64_mid);
-    if (result != 801) return 28U;
+    if (result != 801) {
+        return 28U;
+    }
     testSwitchI64(i64_high);
-    if (result != 802) return 29U;
+    if (result != 802) {
+        return 29U;
+    }
     testSwitchI64(i64_neg);
-    if (result != 999) return 30U;
+    if (result != 999) {
+        return 30U;
+    }
     return 0U;
 }

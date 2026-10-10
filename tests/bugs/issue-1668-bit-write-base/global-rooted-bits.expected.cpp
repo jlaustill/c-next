@@ -27,8 +27,12 @@ void S__f(void) {
 
 int main(void) {
     S__f();
-    if (gp.bits != 0x38) return 1U;
+    if (gp.bits != 0x38) {
+        return 1U;
+    }
     uint8_t own = S__gp.bits;
-    if (own != 2) return 2U;
+    if (own != 2) {
+        return 2U;
+    }
     return 0U;
 }

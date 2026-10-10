@@ -60,77 +60,121 @@ scope ArrayTest {
 u32 main() {
     // Test 1-4: Basic private const array access
     u16 val0 <- ArrayTest.getValueAt(0);
-    if (val0 != 10) return 1;
+    if (val0 != 10) {
+        return 1;
+    }
 
     u16 val1 <- ArrayTest.getValueAt(1);
-    if (val1 != 20) return 2;
+    if (val1 != 20) {
+        return 2;
+    }
 
     u16 val2 <- ArrayTest.getValueAt(2);
-    if (val2 != 30) return 3;
+    if (val2 != 30) {
+        return 3;
+    }
 
     u16 val3 <- ArrayTest.getValueAt(3);
-    if (val3 != 40) return 4;
+    if (val3 != 40) {
+        return 4;
+    }
 
     // Test 5: State-based index access
     ArrayTest.setIndex(2);
     u16 stateful <- ArrayTest.getCurrentValue();
-    if (stateful != 30) return 5;
+    if (stateful != 30) {
+        return 5;
+    }
 
     // Test 6-8: Different type array (u8)
     u8 byte0 <- ArrayTest.getByteAt(0);
-    if (byte0 != 1) return 6;
+    if (byte0 != 1) {
+        return 6;
+    }
 
     u8 byte1 <- ArrayTest.getByteAt(1);
-    if (byte1 != 2) return 7;
+    if (byte1 != 2) {
+        return 7;
+    }
 
     u8 byte2 <- ArrayTest.getByteAt(2);
-    if (byte2 != 3) return 8;
+    if (byte2 != 3) {
+        return 8;
+    }
 
     // Test 9-10: Signed type array (i32)
     i32 off0 <- ArrayTest.getOffsetAt(0);
-    if (off0 != -10) return 9;
+    if (off0 != -10) {
+        return 9;
+    }
 
     i32 off1 <- ArrayTest.getOffsetAt(1);
-    if (off1 != 10) return 10;
+    if (off1 != 10) {
+        return 10;
+    }
 
     // Test 11-14: Public const array access
     u8 pub0 <- ArrayTest.getPublicAt(0);
-    if (pub0 != 100) return 11;
+    if (pub0 != 100) {
+        return 11;
+    }
 
     u8 pub1 <- ArrayTest.getPublicAt(1);
-    if (pub1 != 101) return 12;
+    if (pub1 != 101) {
+        return 12;
+    }
 
     u8 pub2 <- ArrayTest.getPublicAt(2);
-    if (pub2 != 102) return 13;
+    if (pub2 != 102) {
+        return 13;
+    }
 
     u8 pub3 <- ArrayTest.getPublicAt(3);
-    if (pub3 != 103) return 14;
+    if (pub3 != 103) {
+        return 14;
+    }
 
     // Test 15: Direct public const array access (external)
-    if (ArrayTest.PUBLIC_LOOKUP[0] != 100) return 15;
+    if (ArrayTest.PUBLIC_LOOKUP[0] != 100) {
+        return 15;
+    }
 
     // Test 16-21: Multi-dimensional array
     u8 m00 <- ArrayTest.getMatrixAt(0, 0);
-    if (m00 != 1) return 16;
+    if (m00 != 1) {
+        return 16;
+    }
 
     u8 m01 <- ArrayTest.getMatrixAt(0, 1);
-    if (m01 != 2) return 17;
+    if (m01 != 2) {
+        return 17;
+    }
 
     u8 m02 <- ArrayTest.getMatrixAt(0, 2);
-    if (m02 != 3) return 18;
+    if (m02 != 3) {
+        return 18;
+    }
 
     u8 m10 <- ArrayTest.getMatrixAt(1, 0);
-    if (m10 != 4) return 19;
+    if (m10 != 4) {
+        return 19;
+    }
 
     u8 m11 <- ArrayTest.getMatrixAt(1, 1);
-    if (m11 != 5) return 20;
+    if (m11 != 5) {
+        return 20;
+    }
 
     u8 m12 <- ArrayTest.getMatrixAt(1, 2);
-    if (m12 != 6) return 21;
+    if (m12 != 6) {
+        return 21;
+    }
 
     // Test 22: Multiple array accesses in expression
     u16 sum <- ArrayTest.sumFirstTwo();
-    if (sum != 30) return 22;
+    if (sum != 30) {
+        return 22;
+    }
 
     return 0;
 }

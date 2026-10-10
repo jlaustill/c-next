@@ -14,37 +14,69 @@ int main(void) {
     uint32_t b = 20U;
     uint32_t c = 10U;
     bool equal = (a == c);
-    if (equal != true) return 1U;
+    if (equal != true) {
+        return 1U;
+    }
     equal = (a == b);
-    if (equal != false) return 2U;
+    if (equal != false) {
+        return 2U;
+    }
     bool notEqual = (a != b);
-    if (notEqual != true) return 3U;
+    if (notEqual != true) {
+        return 3U;
+    }
     bool less = (a < b);
-    if (less != true) return 4U;
+    if (less != true) {
+        return 4U;
+    }
     less = (b < a);
-    if (less != false) return 5U;
+    if (less != false) {
+        return 5U;
+    }
     bool greater = (b > a);
-    if (greater != true) return 6U;
+    if (greater != true) {
+        return 6U;
+    }
     bool lessEq = (a <= c);
-    if (lessEq != true) return 7U;
+    if (lessEq != true) {
+        return 7U;
+    }
     lessEq = (a <= b);
-    if (lessEq != true) return 8U;
+    if (lessEq != true) {
+        return 8U;
+    }
     bool greaterEq = (a >= c);
-    if (greaterEq != true) return 9U;
+    if (greaterEq != true) {
+        return 9U;
+    }
     bool both = (a < b && b > 0);
-    if (both != true) return 10U;
+    if (both != true) {
+        return 10U;
+    }
     both = (a < b && b < 0);
-    if (both != false) return 11U;
+    if (both != false) {
+        return 11U;
+    }
     bool either = (a > b || b > 0);
-    if (either != true) return 12U;
+    if (either != true) {
+        return 12U;
+    }
     either = (a > b || b < 0);
-    if (either != false) return 13U;
+    if (either != false) {
+        return 13U;
+    }
     bool flag = true;
     bool notFlag = !flag;
-    if (notFlag != false) return 14U;
+    if (notFlag != false) {
+        return 14U;
+    }
     notFlag = !false;
-    if (notFlag != true) return 15U;
+    if (notFlag != true) {
+        return 15U;
+    }
     bool complex = ((a == c) && (b > a)) || false;
-    if (complex != true) return 16U;
+    if (complex != true) {
+        return 16U;
+    }
     return 0U;
 }

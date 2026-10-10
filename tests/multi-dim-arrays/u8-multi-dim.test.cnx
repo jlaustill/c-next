@@ -14,10 +14,18 @@ u32 main() {
     matrix2d[3][7] <- 255;
 
     // 2D array: Read and verify
-    if (matrix2d[0][0] != 10) return 1;
-    if (matrix2d[0][7] != 200) return 2;
-    if (matrix2d[1][3] != 123) return 3;
-    if (matrix2d[3][7] != 255) return 4;
+    if (matrix2d[0][0] != 10) {
+        return 1;
+    }
+    if (matrix2d[0][7] != 200) {
+        return 2;
+    }
+    if (matrix2d[1][3] != 123) {
+        return 3;
+    }
+    if (matrix2d[3][7] != 255) {
+        return 4;
+    }
 
     // 3D array: Write operations
     cube3d[0][0][0] <- 5;
@@ -27,15 +35,29 @@ u32 main() {
     cube3d[1][2][3] <- 250;
 
     // 3D array: Read and verify
-    if (cube3d[0][0][0] != 5) return 5;
-    if (cube3d[0][0][3] != 50) return 6;
-    if (cube3d[0][2][3] != 100) return 7;
-    if (cube3d[1][0][0] != 150) return 8;
-    if (cube3d[1][2][3] != 250) return 9;
+    if (cube3d[0][0][0] != 5) {
+        return 5;
+    }
+    if (cube3d[0][0][3] != 50) {
+        return 6;
+    }
+    if (cube3d[0][2][3] != 100) {
+        return 7;
+    }
+    if (cube3d[1][0][0] != 150) {
+        return 8;
+    }
+    if (cube3d[1][2][3] != 250) {
+        return 9;
+    }
 
     // Test .length property on first dimension
-    if (matrix2d.element_count != 4) return 10; // 2D first dimension
-    if (cube3d.element_count != 2) return 11; // 3D first dimension
+    if (matrix2d.element_count != 4) {
+        return 10; // 2D first dimension
+    }
+    if (cube3d.element_count != 2) {
+        return 11; // 3D first dimension
+    }
 
     // Nested loop iteration - populate 2D array
     for (u32 i <- 0; i < 4; i +<- 1) {
@@ -45,10 +67,18 @@ u32 main() {
     }
 
     // Verify populated values
-    if (matrix2d[0][0] != 0) return 12;
-    if (matrix2d[0][7] != 7) return 13;
-    if (matrix2d[1][3] != 13) return 14;
-    if (matrix2d[3][7] != 37) return 15;
+    if (matrix2d[0][0] != 0) {
+        return 12;
+    }
+    if (matrix2d[0][7] != 7) {
+        return 13;
+    }
+    if (matrix2d[1][3] != 13) {
+        return 14;
+    }
+    if (matrix2d[3][7] != 37) {
+        return 15;
+    }
 
     // Nested loop iteration - populate and sum 3D array
     u16 sum <- 0; // Use u16 to avoid overflow (sum will be 276)
@@ -62,15 +92,21 @@ u32 main() {
     }
 
     // Verify sum: 6+26+46+46+66+86 = 276
-    if (sum != 276) return 21;
+    if (sum != 276) {
+        return 21;
+    }
 
     // Test modification after initialization
     matrix2d[2][4] <- 255;
-    if (matrix2d[2][4] != 255) return 22;
+    if (matrix2d[2][4] != 255) {
+        return 22;
+    }
 
     // Test boundary access
     matrix2d[matrix2d.element_count - 1][matrix2d[0].element_count - 1] <- 111;
-    if (matrix2d[3][7] != 111) return 23;
+    if (matrix2d[3][7] != 111) {
+        return 23;
+    }
 
     // Test u8 specific edge cases
     u8[3][2] testArray;
@@ -86,10 +122,18 @@ u32 main() {
     testArray[1][0] <- 128; // Mid value
     testArray[2][1] <- 1; // Small value
 
-    if (testArray[0][0] != 0) return 24;
-    if (testArray[0][1] != 255) return 25;
-    if (testArray[1][0] != 128) return 26;
-    if (testArray[2][1] != 1) return 27;
+    if (testArray[0][0] != 0) {
+        return 24;
+    }
+    if (testArray[0][1] != 255) {
+        return 25;
+    }
+    if (testArray[1][0] != 128) {
+        return 26;
+    }
+    if (testArray[2][1] != 1) {
+        return 27;
+    }
 
     // Test 2D array with byte buffer pattern
     u8[4][4] buffer;
@@ -106,11 +150,21 @@ u32 main() {
     buffer[2][2] <- 0x55;
     buffer[3][3] <- 0xFF;
 
-    if (buffer[0][0] != 15) return 28; // 0x0F = 15
-    if (buffer[0][1] != 240) return 29; // 0xF0 = 240
-    if (buffer[1][1] != 170) return 30; // 0xAA = 170
-    if (buffer[2][2] != 85) return 31; // 0x55 = 85
-    if (buffer[3][3] != 255) return 32; // 0xFF = 255
+    if (buffer[0][0] != 15) {
+        return 28; // 0x0F = 15
+    }
+    if (buffer[0][1] != 240) {
+        return 29; // 0xF0 = 240
+    }
+    if (buffer[1][1] != 170) {
+        return 30; // 0xAA = 170
+    }
+    if (buffer[2][2] != 85) {
+        return 31; // 0x55 = 85
+    }
+    if (buffer[3][3] != 255) {
+        return 32; // 0xFF = 255
+    }
 
     return 0;
 }

@@ -25,9 +25,17 @@ const Point ORIGIN = { .x = 0, .y = 0 };
 const Point UNIT = { .x = 1, .y = 1 };
 
 int main(void) {
-    if (ORIGIN.x != 0) return 1U;
-    if (ORIGIN.y != 0) return 2U;
-    if (UNIT.x != 1) return 3U;
-    if (UNIT.y != 1) return 4U;
+    if (ORIGIN.x != 0) {
+        return 1U;
+    }
+    if (ORIGIN.y != 0) {
+        return 2U;
+    }
+    if (UNIT.x != 1) {
+        return 3U;
+    }
+    if (UNIT.y != 1) {
+        return 4U;
+    }
     return 0U;
 }

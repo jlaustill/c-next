@@ -18,12 +18,26 @@ u32 main() {
     u32 rowBits <- grid[0].bit_length;
     u32 count <- buf.element_count;
     u32 fixedBits <- fixed.bit_length;
-    if (bits != 48) return 1;
-    if (bytes != 6) return 2;
-    if (gridBits != 192) return 3;
-    if (gridBytes != 24) return 4;
-    if (rowBits != 96) return 5;
-    if (count != 6) return 6;
-    if (fixedBits != 32) return 7;
+    if (bits != 48) {
+        return 1;
+    }
+    if (bytes != 6) {
+        return 2;
+    }
+    if (gridBits != 192) {
+        return 3;
+    }
+    if (gridBytes != 24) {
+        return 4;
+    }
+    if (rowBits != 96) {
+        return 5;
+    }
+    if (count != 6) {
+        return 6;
+    }
+    if (fixedBits != 32) {
+        return 7;
+    }
     return 0;
 }

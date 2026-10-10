@@ -41,8 +41,12 @@ uint32_t second(void) {
 
 int main(void) {
     uint32_t local = first();
-    if (local != 2) return 1U;
+    if (local != 2) {
+        return 1U;
+    }
     uint32_t n = second();
-    if (n != 15) return 2U;
+    if (n != 15) {
+        return 2U;
+    }
     return 0U;
 }

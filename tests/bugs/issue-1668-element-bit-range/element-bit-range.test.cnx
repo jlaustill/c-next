@@ -11,22 +11,32 @@ u32 main() {
     row[2] <- 0xF0;
     row[2][0, 4] <- 6;
     u8 r <- row[2];
-    if (r != 0xF6) return 1;
+    if (r != 0xF6) {
+        return 1;
+    }
 
     // ASSERTION: the high nibble of a 2-D array's element
     matrix[1][2][4, 4] <- 5;
     u8 m <- matrix[1][2];
-    if (m != 0x50) return 2;
+    if (m != 0x50) {
+        return 2;
+    }
 
     // CONTROL: a scalar's bit range
     u8 v <- 0;
     v[0, 4] <- 9;
-    if (v != 9) return 3;
+    if (v != 9) {
+        return 3;
+    }
 
     // NEGATIVE CONTROL: the neighbouring elements are untouched
     u8 n <- row[1];
-    if (n != 0) return 4;
+    if (n != 0) {
+        return 4;
+    }
     u8 p <- matrix[1][1];
-    if (p != 0) return 5;
+    if (p != 0) {
+        return 5;
+    }
     return 0;
 }

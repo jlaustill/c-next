@@ -77,25 +77,43 @@ uint32_t onlyReads(uint32_t a, uint32_t b) {
 int main(void) {
     uint32_t x = 100U;
     addToValue(x, 50U);
-    if (x != 150) return 1U;
+    if (x != 150) {
+        return 1U;
+    }
     int32_t y = 100;
     subtractFromValue(y, 30);
-    if (y != 70) return 2U;
+    if (y != 70) {
+        return 2U;
+    }
     uint32_t z = 10U;
     multiplyValue(z, 5U);
-    if (z != 50) return 3U;
+    if (z != 50) {
+        return 3U;
+    }
     uint32_t w = 25U;
     uint32_t original = readAndAdd(w, 10U);
-    if (original != 25) return 4U;
-    if (w != 35) return 5U;
+    if (original != 25) {
+        return 4U;
+    }
+    if (w != 35) {
+        return 5U;
+    }
     uint32_t m = 10U;
     multipleCompound(m);
-    if (m != 35) return 6U;
+    if (m != 35) {
+        return 6U;
+    }
     uint32_t a = 5U;
     uint32_t b = 3U;
     uint32_t result = onlyReads(a, b);
-    if (result != 11) return 7U;
-    if (a != 5) return 8U;
-    if (b != 3) return 9U;
+    if (result != 11) {
+        return 7U;
+    }
+    if (a != 5) {
+        return 8U;
+    }
+    if (b != 3) {
+        return 9U;
+    }
     return 0U;
 }

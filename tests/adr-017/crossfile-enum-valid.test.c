@@ -43,14 +43,24 @@ uint32_t categoryToValue(ESpnCategory cat) {
 
 int main(void) {
     ESpnCategory cat = getCategory(100U);
-    if (cat != ESpnCategory__SPN_CAT_PRESSURE) return 1U;
+    if (cat != ESpnCategory__SPN_CAT_PRESSURE) {
+        return 1U;
+    }
     cat = getCategory(0U);
-    if (cat != ESpnCategory__SPN_CAT_UNKNOWN) return 2U;
+    if (cat != ESpnCategory__SPN_CAT_UNKNOWN) {
+        return 2U;
+    }
     uint32_t val1 = categoryToValue(ESpnCategory__SPN_CAT_TEMPERATURE);
-    if (val1 != 0) return 3U;
+    if (val1 != 0) {
+        return 3U;
+    }
     uint32_t val2 = categoryToValue(ESpnCategory__SPN_CAT_PRESSURE);
-    if (val2 != 1) return 4U;
+    if (val2 != 1) {
+        return 4U;
+    }
     uint32_t val3 = categoryToValue(ESpnCategory__SPN_CAT_UNKNOWN);
-    if (val3 != 2) return 5U;
+    if (val3 != 2) {
+        return 5U;
+    }
     return 0U;
 }

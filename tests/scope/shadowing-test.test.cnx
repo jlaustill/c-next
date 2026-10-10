@@ -20,15 +20,21 @@ scope Control {
 u32 main() {
     // Initially 0xFF
     u8 val <- Control.getFlags();
-    if (val != 0b11111111) return 1;
+    if (val != 0b11111111) {
+        return 1;
+    }
 
     // setFlag changes scope member
     Control.setFlag();
     val <- Control.getFlags();
-    if (val != 0b10101010) return 2;
+    if (val != 0b10101010) {
+        return 2;
+    }
 
     // Global should be unchanged (it's const so would error anyway)
-    if (globalFlags != 0) return 3;
+    if (globalFlags != 0) {
+        return 3;
+    }
 
     return 0;
 }

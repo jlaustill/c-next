@@ -29,6 +29,8 @@
 
 int main(void) {
     uint32_t v = midOnly();
-    if (v != 7) return 1U;
+    if (v != 7) {
+        return 1U;
+    }
     return 0U;
 }

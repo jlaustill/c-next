@@ -30,21 +30,31 @@ scope TaskManager {
 i32 main() {
     // Test: global.EnumType variable declaration with literal (cross-file)
     global.EPriority priority <- global.EPriority.HIGH;
-    if ((i32)priority != 2) return 1;
+    if ((i32)priority != 2) {
+        return 1;
+    }
 
     // Test parameter type with enum
     i32 pval <- TaskManager.priorityToInt(global.EPriority.MEDIUM);
-    if (pval != 1) return 2;
+    if (pval != 1) {
+        return 2;
+    }
 
     // Test return type with struct (no enum validation issue)
     global.Vec2 pos <- TaskManager.getPosition();
-    if (pos.x != 100) return 3;
-    if (pos.y != 200) return 4;
+    if (pos.x != 100) {
+        return 3;
+    }
+    if (pos.y != 200) {
+        return 4;
+    }
 
     // Test parameter type with struct
     global.Vec2 v <- { x: 15, y: 25 };
     i32 total <- TaskManager.sumVec(v);
-    if (total != 40) return 5;
+    if (total != 40) {
+        return 5;
+    }
 
     return 0;
 }

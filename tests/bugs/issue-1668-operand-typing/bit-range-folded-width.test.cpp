@@ -27,8 +27,12 @@ int main(void) {
     uint8_t a = 200U;
     uint32_t flags = 0xFFU;
     uint8_t r = cnx_clamp_add_u8(a, static_cast<uint8_t>(((flags) & 0xFFU)));
-    if (r != 255) return 1U;
+    if (r != 255) {
+        return 1U;
+    }
     uint8_t r2 = cnx_clamp_add_u8(a, static_cast<uint8_t>(((flags) & 0xFFU)));
-    if (r2 != 255) return 2U;
+    if (r2 != 255) {
+        return 2U;
+    }
     return 0U;
 }

@@ -18,8 +18,12 @@ u32 second() {
 
 u32 main() {
     u32 zero <- first();
-    if (zero != 0) return 1;
+    if (zero != 0) {
+        return 1;
+    }
     u32 q <- second();
-    if (q != 2) return 2;
+    if (q != 2) {
+        return 2;
+    }
     return 0;
 }

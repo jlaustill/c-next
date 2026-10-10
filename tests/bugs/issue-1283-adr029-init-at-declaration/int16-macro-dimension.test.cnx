@@ -1,0 +1,21 @@
+// test-error
+// #1283 review: a header macro's value is read under the target's `int`. On
+// atmega328p `int` is 16 bits, so `256 * 256` overflows before the division,
+// and C-Next cannot spell the callback array's elements (E0359). Read as a
+// 32-bit `int`, it was 4, while avr-gcc counted 0 and warned of excess elements.
+#pragma target atmega328p
+#include "int16/sizes.h"
+
+u32 onSample(u32 input) {
+    return input + 1;
+}
+
+struct Bank {
+    onSample[N_WIDE_HANDLERS] handlers;
+}
+
+Bank bank;
+
+u32 main() {
+    return 0;
+}

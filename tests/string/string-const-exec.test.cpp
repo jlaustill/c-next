@@ -19,21 +19,51 @@ extern const char EMPTY_CONST[1] = "";
 extern const char LONG_CONST[45] = "This is a longer constant string for testing";
 
 int main(void) {
-    if (strlen(VERSION) != 5) return 1;
-    if (strcmp(VERSION, "1.0.0") != 0) return 2;
-    if (5 != 5) return 3;
-    if (strlen(APP_NAME) != 7) return 4;
-    if (strcmp(APP_NAME, "TestApp") != 0) return 5;
-    if (7 != 7) return 6;
-    if (strlen(EMPTY_CONST) != 0) return 7;
-    if (strcmp(EMPTY_CONST, "") != 0) return 8;
-    if (0 != 0) return 9;
-    if (strlen(LONG_CONST) != 44) return 10;
-    if (44 != 44) return 11;
-    if (45 != 45) return 12;
+    if (strlen(VERSION) != 5) {
+        return 1;
+    }
+    if (strcmp(VERSION, "1.0.0") != 0) {
+        return 2;
+    }
+    if (5 != 5) {
+        return 3;
+    }
+    if (strlen(APP_NAME) != 7) {
+        return 4;
+    }
+    if (strcmp(APP_NAME, "TestApp") != 0) {
+        return 5;
+    }
+    if (7 != 7) {
+        return 6;
+    }
+    if (strlen(EMPTY_CONST) != 0) {
+        return 7;
+    }
+    if (strcmp(EMPTY_CONST, "") != 0) {
+        return 8;
+    }
+    if (0 != 0) {
+        return 9;
+    }
+    if (strlen(LONG_CONST) != 44) {
+        return 10;
+    }
+    if (44 != 44) {
+        return 11;
+    }
+    if (45 != 45) {
+        return 12;
+    }
     char local[33] = "1.0.0";
-    if (strcmp(VERSION, local) != 0) return 13;
-    if (strcmp(local, VERSION) != 0) return 14;
-    if (strcmp(VERSION, APP_NAME) == 0) return 15;
+    if (strcmp(VERSION, local) != 0) {
+        return 13;
+    }
+    if (strcmp(local, VERSION) != 0) {
+        return 14;
+    }
+    if (strcmp(VERSION, APP_NAME) == 0) {
+        return 15;
+    }
     return 0;
 }

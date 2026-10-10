@@ -75,6 +75,16 @@ class ProgramGeneration {
       },
     });
 
+    // #831/#1285: register the file's symbols, as Transpiler.ts does. A test
+    // that passes only `symbolInfo` would otherwise leave the table empty, a
+    // state the real pipeline never reaches (#1283 review: every
+    // function-as-type `symbolInfo` names must resolve in the table).
+    if (state.symbolTable.getTSymbolsByFile(sourcePath).length === 0) {
+      state.symbolTable.addTSymbols([
+        ...state.program.symbolsInFile(sourcePath),
+      ]);
+    }
+
     return generator.generate(program, {
       ...options,
       targetDescription,

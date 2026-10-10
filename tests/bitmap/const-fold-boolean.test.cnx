@@ -16,16 +16,22 @@ u32 main() {
 
     // Literal true - should generate: | (1 << 0)
     f.bit0 <- true;
-    if (f.bit0 != true) return 1;
+    if (f.bit0 != true) {
+        return 1;
+    }
 
     // Literal false - should generate: | (0 << 1)
     f.bit1 <- false;
-    if (f.bit1 != false) return 2;
+    if (f.bit1 != false) {
+        return 2;
+    }
 
     // Variable (should keep ternary)
     bool val <- true;
     f.bit2 <- val;
-    if (f.bit2 != true) return 3;
+    if (f.bit2 != true) {
+        return 3;
+    }
 
     return 0;
 }

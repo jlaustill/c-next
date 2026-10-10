@@ -25,7 +25,9 @@ u32 main() {
 
     // Verify set_font received a pointer to big_font (not a copy)
     i32 ok <- global.was_font_set_correctly();
-    if (ok != 1) return 1;
+    if (ok != 1) {
+        return 1;
+    }
 
     return 0;
 }

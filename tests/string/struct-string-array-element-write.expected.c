@@ -19,12 +19,26 @@ int main(void) {
     (void) strncpy(cfg.items[0], "hi", 8);
     (void) strncpy(cfg.items[1], "seven c", 8);
     (void) strncpy(cfg.items[2], "", 8);
-    if (strcmp(cfg.items[0U], "hi") != 0) return 1;
-    if (strcmp(cfg.items[1U], "seven c") != 0) return 2;
-    if (strlen(cfg.items[2U]) != 0) return 3;
-    if (strlen(cfg.items[0U]) != 2) return 4;
-    if (strlen(cfg.items[1U]) != 7) return 5;
-    if (cfg.count != 3) return 6;
-    if (3 != 3) return 7;
+    if (strcmp(cfg.items[0U], "hi") != 0) {
+        return 1;
+    }
+    if (strcmp(cfg.items[1U], "seven c") != 0) {
+        return 2;
+    }
+    if (strlen(cfg.items[2U]) != 0) {
+        return 3;
+    }
+    if (strlen(cfg.items[0U]) != 2) {
+        return 4;
+    }
+    if (strlen(cfg.items[1U]) != 7) {
+        return 5;
+    }
+    if (cfg.count != 3) {
+        return 6;
+    }
+    if (3 != 3) {
+        return 7;
+    }
     return 0;
 }

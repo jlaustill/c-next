@@ -70,35 +70,69 @@ int main(void) {
     uint32_t idx2 = 2U;
     uint32_t idx5 = 5U;
     uint16_t spn0 = getSpn(&cfg, idx0);
-    if (spn0 != 100) return 1U;
+    if (spn0 != 100) {
+        return 1U;
+    }
     uint16_t spn1 = getSpn(&cfg, idx1);
-    if (spn1 != 200) return 2U;
+    if (spn1 != 200) {
+        return 2U;
+    }
     uint16_t spn2 = getSpn(&cfg, idx2);
-    if (spn2 != 300) return 3U;
+    if (spn2 != 300) {
+        return 3U;
+    }
     uint16_t spn5 = getSpn(&cfg, idx5);
-    if (spn5 != 999) return 4U;
+    if (spn5 != 999) {
+        return 4U;
+    }
     float coeff0 = getCoeff(&cfg, idx0);
-    if (coeff0 != 1.5) return 5U;
+    if (coeff0 != 1.5) {
+        return 5U;
+    }
     float coeff1 = getCoeff(&cfg, idx1);
-    if (coeff1 != 2.5) return 6U;
+    if (coeff1 != 2.5) {
+        return 6U;
+    }
     float coeff2 = getCoeff(&cfg, idx2);
-    if (coeff2 != 3.5) return 7U;
-    if (cfg.tempInputs[0U].assignedSpn != 100) return 8U;
-    if (cfg.tempInputs[1U].assignedSpn != 200) return 9U;
-    if (cfg.tempInputs[2U].assignedSpn != 300) return 10U;
+    if (coeff2 != 3.5) {
+        return 7U;
+    }
+    if (cfg.tempInputs[0U].assignedSpn != 100) {
+        return 8U;
+    }
+    if (cfg.tempInputs[1U].assignedSpn != 200) {
+        return 9U;
+    }
+    if (cfg.tempInputs[2U].assignedSpn != 300) {
+        return 10U;
+    }
     uint16_t sum = cfg.tempInputs[0U].assignedSpn + cfg.tempInputs[1U].assignedSpn;
-    if (sum != 300) return 11U;
+    if (sum != 300) {
+        return 11U;
+    }
     uint16_t val = getSpn(&cfg, idx2);
-    if (val != 300) return 12U;
-    if ((cfg.tempInputs[0U].assignedSpn + cfg.tempInputs[2U].assignedSpn) != 400) return 13U;
+    if (val != 300) {
+        return 12U;
+    }
+    if ((cfg.tempInputs[0U].assignedSpn + cfg.tempInputs[2U].assignedSpn) != 400) {
+        return 13U;
+    }
     setSpn(&cfg, idx0, 500U);
-    if (cfg.tempInputs[0U].assignedSpn != 500) return 14U;
+    if (cfg.tempInputs[0U].assignedSpn != 500) {
+        return 14U;
+    }
     setCoeff(&cfg, idx1, 7.5);
-    if (cfg.tempInputs[1U].coeffA != 7.5) return 15U;
+    if (cfg.tempInputs[1U].coeffA != 7.5) {
+        return 15U;
+    }
     initializeAll(&cfg, 42U, 4.5);
     for (uint32_t j = 0U; j < 8; j = cnx_clamp_add_u32(j, 1U)) {
-        if (cfg.tempInputs[j].assignedSpn != 42) return 16U;
-        if (cfg.tempInputs[j].coeffA != 4.5) return 17U;
+        if (cfg.tempInputs[j].assignedSpn != 42) {
+            return 16U;
+        }
+        if (cfg.tempInputs[j].coeffA != 4.5) {
+            return 17U;
+        }
     }
     return 0U;
 }

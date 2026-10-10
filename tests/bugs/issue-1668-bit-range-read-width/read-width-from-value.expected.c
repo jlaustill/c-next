@@ -44,13 +44,29 @@ int main(void) {
     uint8_t f = (uint8_t)((h) & 0xFFU);
     uint32_t word = 0U;
     word = (word & ~((uint32_t)0xFFFFFFFFU << 0)) | ((0xFFFFFFFFU & (uint32_t)0xFFFFFFFFU) << 0);
-    if (a != 0x123456789A) return 1U;
-    if (b != 0x123456789A) return 2U;
-    if (c != 0x123456789A) return 3U;
-    if (d != 0x123456789A) return 4U;
-    if (s != 0x123456789A) return 5U;
-    if (e != 0x78) return 6U;
-    if (f != 0x34) return 7U;
-    if (word != 0xFFFFFFFF) return 8U;
+    if (a != 0x123456789A) {
+        return 1U;
+    }
+    if (b != 0x123456789A) {
+        return 2U;
+    }
+    if (c != 0x123456789A) {
+        return 3U;
+    }
+    if (d != 0x123456789A) {
+        return 4U;
+    }
+    if (s != 0x123456789A) {
+        return 5U;
+    }
+    if (e != 0x78) {
+        return 6U;
+    }
+    if (f != 0x34) {
+        return 7U;
+    }
+    if (word != 0xFFFFFFFF) {
+        return 8U;
+    }
     return 0U;
 }

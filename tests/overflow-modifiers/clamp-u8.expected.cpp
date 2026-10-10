@@ -30,77 +30,131 @@ static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
 int main(void) {
     uint8_t val = 200U;
     val = cnx_clamp_add_u8(val, 100U);
-    if (val != 255) return 1U;
+    if (val != 255) {
+        return 1U;
+    }
     val = 255U;
     val = cnx_clamp_add_u8(val, 1U);
-    if (val != 255) return 2U;
+    if (val != 255) {
+        return 2U;
+    }
     val = 100U;
     val = cnx_clamp_add_u8(val, 200U);
-    if (val != 255) return 3U;
+    if (val != 255) {
+        return 3U;
+    }
     val = 1U;
     val = cnx_clamp_add_u8(val, 255U);
-    if (val != 255) return 4U;
+    if (val != 255) {
+        return 4U;
+    }
     val = 250U;
     val = cnx_clamp_add_u8(val, 10U);
-    if (val != 255) return 5U;
+    if (val != 255) {
+        return 5U;
+    }
     val = cnx_clamp_add_u8(val, 10U);
-    if (val != 255) return 6U;
+    if (val != 255) {
+        return 6U;
+    }
     val = 50U;
     val = cnx_clamp_sub_u8(val, 100U);
-    if (val != 0) return 7U;
+    if (val != 0) {
+        return 7U;
+    }
     val = 0U;
     val = cnx_clamp_sub_u8(val, 1U);
-    if (val != 0) return 8U;
+    if (val != 0) {
+        return 8U;
+    }
     val = 10U;
     val = cnx_clamp_sub_u8(val, 255U);
-    if (val != 0) return 9U;
+    if (val != 0) {
+        return 9U;
+    }
     val = 5U;
     val = cnx_clamp_sub_u8(val, 10U);
-    if (val != 0) return 10U;
+    if (val != 0) {
+        return 10U;
+    }
     val = cnx_clamp_sub_u8(val, 10U);
-    if (val != 0) return 11U;
+    if (val != 0) {
+        return 11U;
+    }
     val = 100U;
     val = cnx_clamp_add_u8(val, 50U);
-    if (val != 150) return 12U;
+    if (val != 150) {
+        return 12U;
+    }
     val = 200U;
     val = cnx_clamp_sub_u8(val, 50U);
-    if (val != 150) return 13U;
+    if (val != 150) {
+        return 13U;
+    }
     val = 0U;
     val = cnx_clamp_add_u8(val, 100U);
-    if (val != 100) return 14U;
+    if (val != 100) {
+        return 14U;
+    }
     val = 100U;
     val = cnx_clamp_sub_u8(val, 100U);
-    if (val != 0) return 15U;
+    if (val != 0) {
+        return 15U;
+    }
     val = 254U;
     val = cnx_clamp_add_u8(val, 1U);
-    if (val != 255) return 16U;
+    if (val != 255) {
+        return 16U;
+    }
     val = 1U;
     val = cnx_clamp_sub_u8(val, 1U);
-    if (val != 0) return 17U;
+    if (val != 0) {
+        return 17U;
+    }
     val = 128U;
     val = cnx_clamp_add_u8(val, 0U);
-    if (val != 128) return 18U;
+    if (val != 128) {
+        return 18U;
+    }
     val = 128U;
     val = cnx_clamp_sub_u8(val, 0U);
-    if (val != 128) return 19U;
+    if (val != 128) {
+        return 19U;
+    }
     val = 200U;
     val = cnx_clamp_add_u8(val, 100U);
-    if (val != 255) return 20U;
+    if (val != 255) {
+        return 20U;
+    }
     val = cnx_clamp_sub_u8(val, 255U);
-    if (val != 0) return 21U;
+    if (val != 0) {
+        return 21U;
+    }
     val = 250U;
     val = cnx_clamp_add_u8(val, 2U);
-    if (val != 252) return 22U;
+    if (val != 252) {
+        return 22U;
+    }
     val = cnx_clamp_add_u8(val, 2U);
-    if (val != 254) return 23U;
+    if (val != 254) {
+        return 23U;
+    }
     val = cnx_clamp_add_u8(val, 2U);
-    if (val != 255) return 24U;
+    if (val != 255) {
+        return 24U;
+    }
     val = 5U;
     val = cnx_clamp_sub_u8(val, 2U);
-    if (val != 3) return 25U;
+    if (val != 3) {
+        return 25U;
+    }
     val = cnx_clamp_sub_u8(val, 2U);
-    if (val != 1) return 26U;
+    if (val != 1) {
+        return 26U;
+    }
     val = cnx_clamp_sub_u8(val, 2U);
-    if (val != 0) return 27U;
+    if (val != 0) {
+        return 27U;
+    }
     return 0U;
 }

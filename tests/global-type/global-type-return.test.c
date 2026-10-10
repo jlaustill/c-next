@@ -19,6 +19,8 @@ ETestCategory TestScope__getCategory(void) {
 
 int main(void) {
     int32_t catValue = (int32_t)TestScope__getCategory();
-    if (catValue != 1) return 1U;
+    if (catValue != 1) {
+        return 1U;
+    }
     return 0U;
 }

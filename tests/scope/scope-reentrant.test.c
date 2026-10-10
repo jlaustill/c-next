@@ -46,6 +46,8 @@ uint32_t Reentrant__outer(uint32_t x) {
 
 int main(void) {
     uint32_t result = Reentrant__outer(10U);
-    if (result != 10) return 1U;
+    if (result != 10) {
+        return 1U;
+    }
     return 0U;
 }

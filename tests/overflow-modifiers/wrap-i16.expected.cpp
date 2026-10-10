@@ -12,75 +12,125 @@
 int main(void) {
     int16_t val = 32767;
     val = static_cast<int16_t>((val + 1));
-    if (val != -32768) return 1U;
+    if (val != -32768) {
+        return 1U;
+    }
     int16_t val2 = 32760;
     val2 = static_cast<int16_t>((val2 + 10));
-    if (val2 != -32766) return 2U;
+    if (val2 != -32766) {
+        return 2U;
+    }
     val = 30000;
     val = static_cast<int16_t>((val + 10000));
-    if (val != -25536) return 3U;
+    if (val != -25536) {
+        return 3U;
+    }
     val = 0;
     val = static_cast<int16_t>((val + 40000));
-    if (val != -25536) return 4U;
+    if (val != -25536) {
+        return 4U;
+    }
     val = 32767;
     val = static_cast<int16_t>((val + 1));
-    if (val != -32768) return 5U;
+    if (val != -32768) {
+        return 5U;
+    }
     val = static_cast<int16_t>((val + 65535));
-    if (val != 32767) return 6U;
+    if (val != 32767) {
+        return 6U;
+    }
     val = -32768;
     val = static_cast<int16_t>((val - 1));
-    if (val != 32767) return 7U;
+    if (val != 32767) {
+        return 7U;
+    }
     val = -32760;
     val = static_cast<int16_t>((val - 10));
-    if (val != 32766) return 8U;
+    if (val != 32766) {
+        return 8U;
+    }
     val = -30000;
     val = static_cast<int16_t>((val - 10000));
-    if (val != 25536) return 9U;
+    if (val != 25536) {
+        return 9U;
+    }
     val = -32768;
     val = static_cast<int16_t>((val - 1));
-    if (val != 32767) return 10U;
+    if (val != 32767) {
+        return 10U;
+    }
     val = static_cast<int16_t>((val - 65535));
-    if (val != -32768) return 11U;
+    if (val != -32768) {
+        return 11U;
+    }
     val = 10000;
     val = static_cast<int16_t>((val - 20000));
-    if (val != -10000) return 12U;
+    if (val != -10000) {
+        return 12U;
+    }
     val = -10000;
     val = static_cast<int16_t>((val + 20000));
-    if (val != 10000) return 13U;
+    if (val != 10000) {
+        return 13U;
+    }
     val = 1000;
     val = static_cast<int16_t>((val - 1000));
-    if (val != 0) return 14U;
+    if (val != 0) {
+        return 14U;
+    }
     val = -1000;
     val = static_cast<int16_t>((val + 1000));
-    if (val != 0) return 15U;
+    if (val != 0) {
+        return 15U;
+    }
     val = 15000;
     val = static_cast<int16_t>((val + 10000));
-    if (val != 25000) return 16U;
+    if (val != 25000) {
+        return 16U;
+    }
     val = -15000;
     val = static_cast<int16_t>((val - 10000));
-    if (val != -25000) return 17U;
+    if (val != -25000) {
+        return 17U;
+    }
     val = 10000;
     val = static_cast<int16_t>((val + -5000));
-    if (val != 5000) return 18U;
+    if (val != 5000) {
+        return 18U;
+    }
     val = -10000;
     val = static_cast<int16_t>((val - -5000));
-    if (val != -5000) return 19U;
+    if (val != -5000) {
+        return 19U;
+    }
     val = 32766;
     val = static_cast<int16_t>((val + 1));
-    if (val != 32767) return 20U;
+    if (val != 32767) {
+        return 20U;
+    }
     val = -32767;
     val = static_cast<int16_t>((val - 1));
-    if (val != -32768) return 21U;
+    if (val != -32768) {
+        return 21U;
+    }
     val = 16384;
     val = static_cast<int16_t>((val + 0));
-    if (val != 16384) return 22U;
+    if (val != 16384) {
+        return 22U;
+    }
     val = -16384;
     val = static_cast<int16_t>((val - 0));
-    if (val != -16384) return 23U;
+    if (val != -16384) {
+        return 23U;
+    }
     val = 32767;
     val = static_cast<int16_t>((val + 1));
-    if (val != -32768) return 24U;
+    if (val != -32768) {
+        return 24U;
+    }
     val = static_cast<int16_t>((val - 1));
-    if (val != 32767) return 25U;
+    if (val != 32767) {
+        return 25U;
+    }
     return 0U;
 }

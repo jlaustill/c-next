@@ -27,14 +27,20 @@ u32 passes() {
 u32 main() {
     // ASSERTION: the counter saturates at 4294967295, ending the loop.
     u32 count <- passes();
-    if (count != 1) return 1;
+    if (count != 1) {
+        return 1;
+    }
 
     u32 three <- steps();
-    if (three != 3) return 3;
+    if (three != 3) {
+        return 3;
+    }
 
     // CONTROL: a plain local of the same type, clamped all along.
     u32 j <- 4294967290;
     j <- j + 10;
-    if (j != 4294967295) return 2;
+    if (j != 4294967295) {
+        return 2;
+    }
     return 0;
 }

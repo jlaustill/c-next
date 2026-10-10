@@ -1123,7 +1123,7 @@ y -<- 1;
 ```cnx
 // WRONG — break/continue don't exist
 while (true) {
-    if (done) break;
+    if (done) { break; }
 }
 
 // RIGHT — structured conditions

@@ -10,10 +10,14 @@ u32 main() {
     Point point <- { value: 7 };
 
     u8 fromStruct <- readStructField(point);
-    if (fromStruct != 7) return 1;
+    if (fromStruct != 7) {
+        return 1;
+    }
 
     u8 fromPrimitive <- addOne(41);
-    if (fromPrimitive != 42) return 2;
+    if (fromPrimitive != 42) {
+        return 2;
+    }
 
     return 0;
 }

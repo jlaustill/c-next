@@ -42,10 +42,18 @@ u32 main() {
     ip.Octet3 <- 1;
     ip.Octet4 <- 100;
 
-    if (ip.Octet1 != 192) return 1;
-    if (ip.Octet2 != 168) return 2;
-    if (ip.Octet3 != 1) return 3;
-    if (ip.Octet4 != 100) return 4;
+    if (ip.Octet1 != 192) {
+        return 1;
+    }
+    if (ip.Octet2 != 168) {
+        return 2;
+    }
+    if (ip.Octet3 != 1) {
+        return 3;
+    }
+    if (ip.Octet4 != 100) {
+        return 4;
+    }
 
     // Test device status single-bit fields
     status.Power <- true;
@@ -53,48 +61,84 @@ u32 main() {
     status.Error <- false;
     status.Warning <- true;
 
-    if (status.Power != true) return 5;
-    if (status.Ready != true) return 6;
-    if (status.Error != false) return 7;
-    if (status.Warning != true) return 8;
+    if (status.Power != true) {
+        return 5;
+    }
+    if (status.Ready != true) {
+        return 6;
+    }
+    if (status.Error != false) {
+        return 7;
+    }
+    if (status.Warning != true) {
+        return 8;
+    }
 
     // Test device status multi-bit fields
     status.Mode <- 7;
     status.ErrorCode <- 0x5A;
     status.Version <- 12;
 
-    if (status.Mode != 7) return 9;
-    if (status.ErrorCode != 0x5A) return 10;
-    if (status.Version != 12) return 11;
+    if (status.Mode != 7) {
+        return 9;
+    }
+    if (status.ErrorCode != 0x5A) {
+        return 10;
+    }
+    if (status.Version != 12) {
+        return 11;
+    }
 
     // Test 16-bit field in Configuration
     config.Flags <- 0xFF;
     config.Address <- 0x1234;
     config.Checksum <- 0xAB;
 
-    if (config.Flags != 0xFF) return 12;
-    if (config.Address != 0x1234) return 13;
-    if (config.Checksum != 0xAB) return 14;
+    if (config.Flags != 0xFF) {
+        return 12;
+    }
+    if (config.Address != 0x1234) {
+        return 13;
+    }
+    if (config.Checksum != 0xAB) {
+        return 14;
+    }
 
     // Test reading into variables
     u8 oct1 <- ip.Octet1;
-    if (oct1 != 192) return 15;
+    if (oct1 != 192) {
+        return 15;
+    }
 
     u16 addr <- config.Address;
-    if (addr != 0x1234) return 16;
+    if (addr != 0x1234) {
+        return 16;
+    }
 
     // Test modifying preserves other fields
     ip.Octet3 <- 0;
-    if (ip.Octet1 != 192) return 17;
-    if (ip.Octet2 != 168) return 18;
-    if (ip.Octet3 != 0) return 19;
-    if (ip.Octet4 != 100) return 20;
+    if (ip.Octet1 != 192) {
+        return 17;
+    }
+    if (ip.Octet2 != 168) {
+        return 18;
+    }
+    if (ip.Octet3 != 0) {
+        return 19;
+    }
+    if (ip.Octet4 != 100) {
+        return 20;
+    }
 
     // Test max values
     status.Mode <- 15; // 4-bit max
     status.ErrorCode <- 255; // 8-bit max
-    if (status.Mode != 15) return 21;
-    if (status.ErrorCode != 255) return 22;
+    if (status.Mode != 15) {
+        return 21;
+    }
+    if (status.ErrorCode != 255) {
+        return 22;
+    }
 
     return 0;
 }

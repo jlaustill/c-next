@@ -22,9 +22,7 @@
 #include <stdint.h>
 
 CrossFileHandlers CrossFileHandlers_init(void) {
-    CrossFileHandlers value = {};
-    value.onRecord = record;
-    value.onMutate = mutate;
+    CrossFileHandlers value = { record, mutate, {} };
     return value;
 }
 

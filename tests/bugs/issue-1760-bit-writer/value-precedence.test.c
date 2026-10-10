@@ -20,18 +20,28 @@ int main(void) {
     bool cond = true;
     uint32_t x = 0U;
     x = (x & ~((uint32_t)0xFFU << 0)) | (((a | b) & (uint32_t)0xFFU) << 0);
-    if (x != 0x01) return 1U;
+    if (x != 0x01) {
+        return 1U;
+    }
     uint32_t y = 0U;
     y = (y & ~((uint32_t)0xFU << 4)) | (((c ^ b) & (uint32_t)0xFU) << 4);
-    if (y != 0x20) return 2U;
+    if (y != 0x20) {
+        return 2U;
+    }
     uint32_t z = 0U;
     z = (z & ~((uint32_t)0xFU << 0)) | ((((cond == true) ? a : b) & (uint32_t)0xFU) << 0);
-    if (z != 0) return 3U;
+    if (z != 0) {
+        return 3U;
+    }
     uint8_t low8 = 0x10U;
     uint8_t one = 0x1U;
     Flags f = 0;
     f = (uint8_t)((f & ~(0x7U << 1)) | (((low8 | one) & 0x7U) << 1));
-    if (((f >> 1) & 0x7) != 1) return 4U;
-    if (((f >> 4) & 0xF) != 0) return 5U;
+    if (((f >> 1) & 0x7) != 1) {
+        return 4U;
+    }
+    if (((f >> 4) & 0xF) != 0) {
+        return 5U;
+    }
     return 0U;
 }

@@ -10,13 +10,19 @@
 u32 main() {
     // NEGATIVE CONTROLS: the type's own operator[], and a field's array.
     u8 a <- sbuf[2];
-    if (a != 7) return 1;
+    if (a != 7) {
+        return 1;
+    }
     u8 c <- sbuf.data[3];
-    if (c != 8) return 2;
+    if (c != 8) {
+        return 2;
+    }
 
     // ASSERTION: a header integer is bits in C++ too.
     bool d <- cWord[4];
-    if (d != true) return 3;
+    if (d != true) {
+        return 3;
+    }
 
     return 0;
 }

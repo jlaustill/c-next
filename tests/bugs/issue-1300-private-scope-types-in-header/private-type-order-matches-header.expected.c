@@ -7,7 +7,9 @@
 
 #include <stdint.h>
 
-// Issue #1300 review: a private struct naming a private enum declared BELOW it.
+// Issue #1300 review: a private struct naming a private enum. It was declared
+// BELOW the struct; since #1963 that is E0426 (ADR-030: define before use), so
+// the enum now comes first and this asserts the .c keeps that order.
 //
 // The .c used to emit scope types in scopeMember() source order while the
 // header grouped them by kind, so this forward-referenced and gcc rejected

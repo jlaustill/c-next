@@ -146,49 +146,83 @@ int main(void) {
     uint32_t val100 = 100U;
     uint32_t val50 = 50U;
     testMultiCase(val0);
-    if (result != 100) return 1U;
+    if (result != 100) {
+        return 1U;
+    }
     testMultiCase(val1);
-    if (result != 100) return 2U;
+    if (result != 100) {
+        return 2U;
+    }
     testMultiCase(val2);
-    if (result != 100) return 3U;
+    if (result != 100) {
+        return 3U;
+    }
     testMultiCase(val10);
-    if (result != 200) return 4U;
+    if (result != 200) {
+        return 4U;
+    }
     testMultiCase(val20);
-    if (result != 200) return 5U;
+    if (result != 200) {
+        return 5U;
+    }
     testMultiCase(val100);
-    if (result != 300) return 6U;
+    if (result != 300) {
+        return 6U;
+    }
     testMultiCase(val50);
-    if (result != 999) return 7U;
+    if (result != 999) {
+        return 7U;
+    }
     uint8_t hex0 = 0x00U;
     uint8_t hex1 = 0x01U;
     uint8_t hexA = 0x0AU;
     uint8_t hexFF = 0xFFU;
     uint8_t hexOther = 0x50U;
     testMultiCaseHex(hex0);
-    if (result != 10) return 8U;
+    if (result != 10) {
+        return 8U;
+    }
     testMultiCaseHex(hex1);
-    if (result != 10) return 9U;
+    if (result != 10) {
+        return 9U;
+    }
     testMultiCaseHex(hexA);
-    if (result != 20) return 10U;
+    if (result != 20) {
+        return 10U;
+    }
     testMultiCaseHex(hexFF);
-    if (result != 30) return 11U;
+    if (result != 30) {
+        return 11U;
+    }
     testMultiCaseHex(hexOther);
-    if (result != 99) return 12U;
+    if (result != 99) {
+        return 12U;
+    }
     uint8_t bin0 = 0b00000000U;
     uint8_t bin1 = 0b00000001U;
     uint8_t binA = 0b00001010U;
     uint8_t binFF = 0b11111111U;
     uint8_t binOther = 0b00100000U;
     testMultiCaseBinary(bin0);
-    if (result != 40) return 13U;
+    if (result != 40) {
+        return 13U;
+    }
     testMultiCaseBinary(bin1);
-    if (result != 40) return 14U;
+    if (result != 40) {
+        return 14U;
+    }
     testMultiCaseBinary(binA);
-    if (result != 50) return 15U;
+    if (result != 50) {
+        return 15U;
+    }
     testMultiCaseBinary(binFF);
-    if (result != 60) return 16U;
+    if (result != 60) {
+        return 16U;
+    }
     testMultiCaseBinary(binOther);
-    if (result != 99) return 17U;
+    if (result != 99) {
+        return 17U;
+    }
     int8_t sZero = 0;
     int8_t sOne = 1;
     int8_t sTwo = 2;
@@ -198,21 +232,37 @@ int main(void) {
     int8_t sMax = 127;
     int8_t sNeg = -50;
     testMultiCaseSigned(sZero);
-    if (result != 1) return 18U;
+    if (result != 1) {
+        return 18U;
+    }
     testMultiCaseSigned(sOne);
-    if (result != 1) return 19U;
+    if (result != 1) {
+        return 19U;
+    }
     testMultiCaseSigned(sTwo);
-    if (result != 1) return 20U;
+    if (result != 1) {
+        return 20U;
+    }
     testMultiCaseSigned(sFifty);
-    if (result != 2) return 21U;
+    if (result != 2) {
+        return 21U;
+    }
     testMultiCaseSigned(sFiftyOne);
-    if (result != 2) return 22U;
+    if (result != 2) {
+        return 22U;
+    }
     testMultiCaseSigned(sMax1);
-    if (result != 3) return 23U;
+    if (result != 3) {
+        return 23U;
+    }
     testMultiCaseSigned(sMax);
-    if (result != 3) return 24U;
+    if (result != 3) {
+        return 24U;
+    }
     testMultiCaseSigned(sNeg);
-    if (result != 9) return 25U;
+    if (result != 9) {
+        return 25U;
+    }
     uint16_t m1 = 1U;
     uint16_t m3 = 3U;
     uint16_t m5 = 5U;
@@ -221,18 +271,32 @@ int main(void) {
     uint16_t m300 = 300U;
     uint16_t mOther = 999U;
     testManyMultiCases(m1);
-    if (result != 500) return 26U;
+    if (result != 500) {
+        return 26U;
+    }
     testManyMultiCases(m3);
-    if (result != 500) return 27U;
+    if (result != 500) {
+        return 27U;
+    }
     testManyMultiCases(m5);
-    if (result != 500) return 28U;
+    if (result != 500) {
+        return 28U;
+    }
     testManyMultiCases(m100);
-    if (result != 600) return 29U;
+    if (result != 600) {
+        return 29U;
+    }
     testManyMultiCases(m200);
-    if (result != 600) return 30U;
+    if (result != 600) {
+        return 30U;
+    }
     testManyMultiCases(m300);
-    if (result != 600) return 31U;
+    if (result != 600) {
+        return 31U;
+    }
     testManyMultiCases(mOther);
-    if (result != 999) return 32U;
+    if (result != 999) {
+        return 32U;
+    }
     return 0U;
 }

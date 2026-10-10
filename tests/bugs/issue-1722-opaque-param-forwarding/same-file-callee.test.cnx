@@ -43,14 +43,20 @@ i32 main() {
 
     configure(d);
     i32 afterForward <- dev_pokes(d);
-    if (afterForward != 1) return 1;
+    if (afterForward != 1) {
+        return 1;
+    }
 
     cForward(d);
     i32 afterC <- dev_pokes(d);
-    if (afterC != 2) return 2;
+    if (afterC != 2) {
+        return 2;
+    }
 
     i32 viaLocal <- localForward();
-    if (viaLocal != 2) return 3;
+    if (viaLocal != 2) {
+        return 3;
+    }
 
     return 0;
 }

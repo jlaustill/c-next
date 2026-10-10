@@ -40,71 +40,125 @@ int main(void) {
     uint32_t c = 30U;
     uint32_t d = 40U;
     uint32_t result = cnx_clamp_add_u32(cnx_clamp_add_u32(cnx_clamp_add_u32(a, b), c), d);
-    if (result != 100) return 1U;
+    if (result != 100) {
+        return 1U;
+    }
     result = 100U - 30U - 20U - 10U;
-    if (result != 40) return 2U;
+    if (result != 40) {
+        return 2U;
+    }
     result = 100U - 60U - 30U;
-    if (result != 10) return 3U;
+    if (result != 10) {
+        return 3U;
+    }
     result = 2U * 3U * 4U * 5U;
-    if (result != 120) return 4U;
+    if (result != 120) {
+        return 4U;
+    }
     result = 120U / 2U / 3U / 4U;
-    if (result != 5) return 5U;
+    if (result != 5) {
+        return 5U;
+    }
     result = 100U / 10U / 2U;
-    if (result != 5) return 6U;
+    if (result != 5) {
+        return 6U;
+    }
     result = 100U % 30U % 7U;
-    if (result != 3) return 7U;
+    if (result != 3) {
+        return 7U;
+    }
     uint32_t x = 0xFFU;
     uint32_t y = 0x0FU;
     uint32_t z = 0x07U;
     result = x & y & z;
-    if (result != 0x07) return 8U;
+    if (result != 0x07) {
+        return 8U;
+    }
     result = 0x01U | 0x02U | 0x04U | 0x08U;
-    if (result != 0x0F) return 9U;
+    if (result != 0x0F) {
+        return 9U;
+    }
     result = 0xFFU ^ 0x0FU ^ 0x03U;
-    if (result != 0xF3) return 10U;
+    if (result != 0xF3) {
+        return 10U;
+    }
     result = 1U << 2U << 3U;
-    if (result != 32) return 11U;
+    if (result != 32) {
+        return 11U;
+    }
     result = 256U >> 2U >> 3U;
-    if (result != 8) return 12U;
+    if (result != 8) {
+        return 12U;
+    }
     bool cmp1 = 5 < 10;
     bool cmp2 = 10 < 15;
     bool both = cmp1 && cmp2;
-    if (both != true) return 13U;
+    if (both != true) {
+        return 13U;
+    }
     bool eq1 = 10 == 10;
     bool eq2 = 20 == 20;
     bool eq3 = 30 == 30;
-    if (eq1 != true) return 14U;
-    if (eq2 != true) return 15U;
-    if (eq3 != true) return 16U;
+    if (eq1 != true) {
+        return 14U;
+    }
+    if (eq2 != true) {
+        return 15U;
+    }
+    if (eq3 != true) {
+        return 16U;
+    }
     bool t1 = getTrue(1U);
     bool t2 = getTrue(2U);
     bool t3 = getTrue(3U);
     bool t4 = getTrue(4U);
     bool andResult = t1 && t2 && t3 && t4;
-    if (andResult != true) return 17U;
+    if (andResult != true) {
+        return 17U;
+    }
     bool f1 = getFalse(0U);
     andResult = t1 && t2 && f1 && t4;
-    if (andResult != false) return 18U;
+    if (andResult != false) {
+        return 18U;
+    }
     bool f2 = getFalse(0U);
     bool f3 = getFalse(0U);
     bool f4 = getFalse(0U);
     bool orResult = f1 || f2 || f3 || t1;
-    if (orResult != true) return 19U;
+    if (orResult != true) {
+        return 19U;
+    }
     orResult = f1 || f2 || f3 || f4;
-    if (orResult != false) return 20U;
+    if (orResult != false) {
+        return 20U;
+    }
     result = (10U + 20U) * 3U;
-    if (result != 90) return 21U;
+    if (result != 90) {
+        return 21U;
+    }
     result = ((100U - 50U) * 2U);
-    if (result != 100) return 22U;
+    if (result != 100) {
+        return 22U;
+    }
     result = 10U - 5U + 3U;
-    if (result != 8) return 23U;
+    if (result != 8) {
+        return 23U;
+    }
     result = 20U - 10U - 3U;
-    if (result != 7) return 24U;
+    if (result != 7) {
+        return 24U;
+    }
     result = 50U + 20U - 10U + 5U;
-    if (result != 65) return 25U;
+    if (result != 65) {
+        return 25U;
+    }
     result = 100U * 2U / 4U;
-    if (result != 50) return 26U;
+    if (result != 50) {
+        return 26U;
+    }
     result = 240U / 4U / 3U / 2U;
-    if (result != 10) return 27U;
+    if (result != 10) {
+        return 27U;
+    }
     return 0U;
 }

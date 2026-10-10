@@ -6,7 +6,12 @@
 #include "repro.test.h"
 
 // Minimal reproduction: assign struct enum field to local enum variable
-TInput input = {0};
+TInput TInput_init(void) {
+    TInput value = { .assignedValue = EValueId__VALUE_A };
+    return value;
+}
+
+TInput input = { .assignedValue = EValueId__VALUE_A };
 
 int main(void) {
     EValueId val = input.assignedValue;

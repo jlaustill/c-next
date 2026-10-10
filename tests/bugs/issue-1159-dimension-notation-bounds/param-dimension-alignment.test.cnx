@@ -16,7 +16,11 @@ void fill(u8[SIZE][4] grid) {
 i32 main() {
     u8[SIZE][4] grid;
     fill(grid);
-    if (grid[5][0] != 42) return 1;
-    if (grid[0][3] != 7) return 2;
+    if (grid[5][0] != 42) {
+        return 1;
+    }
+    if (grid[0][3] != 7) {
+        return 2;
+    }
     return 0;
 }

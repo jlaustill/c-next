@@ -14,6 +14,11 @@
 
 #include <stdint.h>
 
+DeviceState DeviceState_init(void) {
+    DeviceState value = { EPressureType__PRESSURE_TYPE_PSIA, EStatus__STATUS_IDLE };
+    return value;
+}
+
 void configure(DeviceState& state) {
     state.pressure = EPressureType__PRESSURE_TYPE_PSIG;
     state.status = EStatus__STATUS_ACTIVE;
@@ -21,14 +26,26 @@ void configure(DeviceState& state) {
 
 int main(void) {
     DeviceState dev = { .pressure = EPressureType__PRESSURE_TYPE_PSIA, .status = EStatus__STATUS_IDLE };
-    if (dev.pressure != EPressureType__PRESSURE_TYPE_PSIA) return 1U;
-    if (dev.status != EStatus__STATUS_IDLE) return 2U;
+    if (dev.pressure != EPressureType__PRESSURE_TYPE_PSIA) {
+        return 1U;
+    }
+    if (dev.status != EStatus__STATUS_IDLE) {
+        return 2U;
+    }
     configure(dev);
-    if (dev.pressure != EPressureType__PRESSURE_TYPE_PSIG) return 3U;
-    if (dev.status != EStatus__STATUS_ACTIVE) return 4U;
+    if (dev.pressure != EPressureType__PRESSURE_TYPE_PSIG) {
+        return 3U;
+    }
+    if (dev.status != EStatus__STATUS_ACTIVE) {
+        return 4U;
+    }
     dev.pressure = EPressureType__PRESSURE_TYPE_PSIA;
     dev.status = EStatus__STATUS_ERROR;
-    if (dev.pressure != EPressureType__PRESSURE_TYPE_PSIA) return 5U;
-    if (dev.status != EStatus__STATUS_ERROR) return 6U;
+    if (dev.pressure != EPressureType__PRESSURE_TYPE_PSIA) {
+        return 5U;
+    }
+    if (dev.status != EStatus__STATUS_ERROR) {
+        return 6U;
+    }
     return 0U;
 }

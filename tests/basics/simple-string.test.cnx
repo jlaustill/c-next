@@ -7,34 +7,52 @@ u32 main() {
     string<10> greeting <- "Hello";
 
     // String char_count property (ADR-058)
-    if (greeting.char_count != 5) return 1;
+    if (greeting.char_count != 5) {
+        return 1;
+    }
 
     // String size (capacity) property
-    if (greeting.size != 11) return 2; // 10 + null terminator
+    if (greeting.size != 11) {
+        return 2; // 10 + null terminator
+    }
 
     // Empty string
     string<20> empty <- "";
-    if (empty.char_count != 0) return 3;
+    if (empty.char_count != 0) {
+        return 3;
+    }
 
     // String with spaces
     string<20> message <- "Hi there";
-    if (message.char_count != 8) return 4;
+    if (message.char_count != 8) {
+        return 4;
+    }
 
     // Longer string
     string<50> longer <- "The quick brown fox";
-    if (longer.char_count != 19) return 5;
+    if (longer.char_count != 19) {
+        return 5;
+    }
 
     // String comparison
     string<10> hello1 <- "Hello";
     string<10> hello2 <- "Hello";
-    if (hello1 != hello2) return 6;
+    if (hello1 != hello2) {
+        return 6;
+    }
 
     string<10> world <- "World";
-    if (hello1 = world) return 7;
+    if (hello1 = world) {
+        return 7;
+    }
 
     // Capacity property
-    if (greeting.capacity != 10) return 8;
-    if (longer.capacity != 50) return 9;
+    if (greeting.capacity != 10) {
+        return 8;
+    }
+    if (longer.capacity != 50) {
+        return 9;
+    }
 
     return 0;
 }

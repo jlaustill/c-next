@@ -175,10 +175,10 @@ do {
 
 ## MISRA Compliance
 
-| Rule | Requirement                    | C-Next Status       |
-| ---- | ------------------------------ | ------------------- |
-| 14.4 | Boolean controlling expression | Enforced (E0701)    |
-| 15.6 | Braces required on loop body   | Enforced by grammar |
+| Rule | Requirement                    | C-Next Status                                                    |
+| ---- | ------------------------------ | ---------------------------------------------------------------- |
+| 14.4 | Boolean controlling expression | Enforced (E0701)                                                 |
+| 15.6 | Braces required on loop body   | Enforced (grammar for `do`; E0716 for `if`/`else`/`while`/`for`) |
 
 ## References
 

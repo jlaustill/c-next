@@ -19,15 +19,21 @@ u32 main() {
 
     // Test 1: Write via scope function with literal index
     Test.writeToArray(buffer, 42);
-    if (buffer[0] != 42) return 1;
+    if (buffer[0] != 42) {
+        return 1;
+    }
 
     // Test 2: Write via scope function with variable index
     Test.writeAtIndex(buffer, 1, 99);
-    if (buffer[1] != 99) return 2;
+    if (buffer[1] != 99) {
+        return 2;
+    }
 
     // Test 3: Verify buffer[0] still holds value (not overwritten)
     // and buffer[2] remains unchanged
-    if (buffer[2] != 0) return 3;
+    if (buffer[2] != 0) {
+        return 3;
+    }
 
     return 0;
 }

@@ -11,6 +11,8 @@ u32 main() {
     u32 u <- 3;
     f32 y <- 2.5;
     f32 r <- u * choose(y);
-    if (r != 7.5) return 1;
+    if (r != 7.5) {
+        return 1;
+    }
     return 0;
 }

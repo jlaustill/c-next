@@ -15,8 +15,7 @@ void onSample(const Reading* r) {
 
 // Sampler has a callback field, so it gets a generated Sampler_init().
 Sampler Sampler_init(void) {
-    Sampler value = {0};
-    value.handler = onSample;
+    Sampler value = { .handler = onSample };
     return value;
 }
 

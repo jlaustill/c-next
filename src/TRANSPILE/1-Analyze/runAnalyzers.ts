@@ -15,8 +15,7 @@
  * gated.
  */
 
-import { ProgramContext } from "../../PARSE/2-Parse/grammar/CNextParser";
-import IComment from "../../types/IComment";
+import type IParsedFile from "../../types/IParsedFile";
 import CodedErrorText from "../../utils/CodedErrorText";
 import CppClassInitializerAnalyzer from "./CppClassInitializerAnalyzer";
 import DefineDirectiveAnalyzer from "./DefineDirectiveAnalyzer";
@@ -44,6 +43,7 @@ import CriticalSectionAnalyzer from "./CriticalSectionAnalyzer";
 import EnumTypeSafetyAnalyzer from "./EnumTypeSafetyAnalyzer";
 import ScopeAccessAnalyzer from "./ScopeAccessAnalyzer";
 import RegisterAccessAnalyzer from "./RegisterAccessAnalyzer";
+import BracedBodyAnalyzer from "./BracedBodyAnalyzer";
 import BareEnumMemberAnalyzer from "./BareEnumMemberAnalyzer";
 import ArrayDeclarationAnalyzer from "./ArrayDeclarationAnalyzer";
 import ConstantDimensionAnalyzer from "./ConstantDimensionAnalyzer";
@@ -158,16 +158,15 @@ type TAnalyzerStep = ICodedAnalyzerStep | IFormattedAnalyzerStep;
 /**
  * Run all semantic analyzers on a parsed program.
  *
- * @param tree - The parsed program AST
- * @param comments - 1.2 Parse's comments, for MISRA 3.1/3.2 validation
+ * @param parsed - 1.2 Parse's tree, its comments (MISRA 3.1/3.2) and its syntax
  * @param options - Optional configuration including external struct info
  * @returns Array of errors (empty if all pass)
  */
 function runAnalyzers(
-  tree: ProgramContext,
-  comments: readonly IComment[],
+  parsed: Pick<IParsedFile, "tree" | "comments" | "program">,
   options: IAnalyzerOptions,
 ): ITranspileError[] {
+  const { tree, comments } = parsed;
   const errors: ITranspileError[] = [];
   const formatWithCode = (e: TCodedAnalyzerError) =>
     CodedErrorText.of(e.code, e.message, e.severity);
@@ -209,6 +208,13 @@ function runAnalyzers(
       // analysis -- a dimension or an enum value would report a consequence
       label: "integer literal form (ADR-044: no octal literal, E0912)",
       run: () => new LiteralFormAnalyzer().analyze(tree),
+    },
+    {
+      // #1090: a body's braces decide its scope. An unbraced declaration kept
+      // its name in scope after the `if` (#1795), so every later step would
+      // answer about scoping the author did not write.
+      label: "braced bodies (MISRA C:2012 Rule 15.6, E0716)",
+      run: () => new BracedBodyAnalyzer().analyze(parsed.program),
     },
     {
       label: "parameter naming (Issue #227: reserved naming patterns)",

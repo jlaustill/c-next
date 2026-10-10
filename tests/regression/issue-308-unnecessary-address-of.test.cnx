@@ -63,7 +63,9 @@ u32 main() {
     u32 sum <- sumFourBytes(data[0], data[1], data[2], data[3]);
 
     // Expected: 0x12 + 0x34 + 0x56 + 0x78 = 18 + 52 + 86 + 120 = 276
-    if (sum != 276) return 1;
+    if (sum != 276) {
+        return 1;
+    }
 
     // ============================================================
     // Test Scenario 2: Struct member array
@@ -84,7 +86,9 @@ u32 main() {
     u8 total <- sumArray(result.data, result.dataLen);
 
     // Expected: 10 + 20 + 30 + 40 + 50 + 60 = 210
-    if (total != 210) return 2;
+    if (total != 210) {
+        return 2;
+    }
 
     return 0;
 }

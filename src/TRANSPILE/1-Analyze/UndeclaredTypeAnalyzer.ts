@@ -47,6 +47,7 @@ import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import ParserUtils from "../../utils/ParserUtils";
 import ScopeUtils from "../../utils/ScopeUtils";
 import type IAnalysisContext from "./types/IAnalysisContext";
+import type ISourceSpan from "../../types/ISourceSpan";
 
 class UndeclaredTypeListener extends CNextListener {
   private readonly analyzer: UndeclaredTypeAnalyzer;
@@ -100,11 +101,33 @@ class UndeclaredTypeListener extends CNextListener {
     }
 
     const scope = this.enclosing.current();
-    if (this.analyzer.isVisibleType(typeName, scope)) {
+    const { line, column } = ParserUtils.getPosition(ctx);
+
+    // ADR-030 "Define-Before-Use: Zero Exceptions" (#1963, #1981): this
+    // file's own type, named before its definition closes, denotes nothing
+    // yet -- whatever headers the file reaches.
+    const definition = this.analyzer.definitionAfter(
+      typeName,
+      scope,
+      line,
+      column,
+    );
+    if (definition !== null) {
+      this.analyzer.addUsedBeforeDefinitionError(
+        typeName,
+        line,
+        column,
+        definition,
+      );
       return;
     }
 
-    const { line, column } = ParserUtils.getPosition(ctx);
+    if (
+      !this.analyzer.knowsEveryName ||
+      this.analyzer.isVisibleType(typeName, scope)
+    ) {
+      return;
+    }
 
     // A register IS declared -- just not as a type. Reporting "not defined" of
     // a name declared a few lines up reads as a transpiler fault rather than a
@@ -129,6 +152,11 @@ class UndeclaredTypeAnalyzer {
    */
   constructor(private readonly context: IAnalysisContext) {}
 
+  /** Whether this file can see every name it may use (no foreign header) */
+  knowsEveryName = false;
+
+  private typesHere: ReadonlyMap<string, ISourceSpan> | null = null;
+
   analyze(tree: Parser.ProgramContext): IUndeclaredTypeError[] {
     this.errors.length = 0;
 
@@ -148,12 +176,45 @@ class UndeclaredTypeAnalyzer {
     // spelling of "is this a C-Next include?" (it missed `.cnext`) and stopped
     // at one hop -- so a macro reached through a `.cnx` include was REJECTED,
     // code that main compiles.
-    if (this.context.reachesForeignHeader) {
-      return this.errors;
-    }
+    this.knowsEveryName = !this.context.reachesForeignHeader;
 
     ParseTreeWalker.DEFAULT.walk(new UndeclaredTypeListener(this), tree);
     return this.errors;
+  }
+
+  /**
+   * The definition of the type this file declares under the name a use at
+   * `line:column` spells, when that definition has not closed by then -- it
+   * comes later in the file, or the use sits inside it (a struct holding
+   * itself). Null when the name is not this file's type, or is defined above.
+   * The scope-qualified spelling is tried first, as `isVisibleType` does.
+   */
+  definitionAfter(
+    typeName: string,
+    scope: string,
+    line: number,
+    column: number,
+  ): ISourceSpan | null {
+    this.typesHere ??= new Map(
+      this.context.program
+        .symbolsInFile(this.context.sourceFile)
+        .flatMap((symbol) =>
+          symbol.kind === "struct" ||
+          symbol.kind === "enum" ||
+          symbol.kind === "bitmap"
+            ? [[symbol.cnxScopedName, symbol.span] as const]
+            : [],
+        ),
+    );
+    const spellings = scope ? [`${scope}.${typeName}`, typeName] : [typeName];
+    const name = spellings.find((spelling) => this.typesHere!.has(spelling));
+    const span = name === undefined ? undefined : this.typesHere.get(name);
+    if (span === undefined) {
+      return null;
+    }
+    const closesAfter =
+      line < span.endLine || (line === span.endLine && column < span.endColumn);
+    return closesAfter ? span : null;
   }
 
   /**
@@ -243,6 +304,26 @@ class UndeclaredTypeAnalyzer {
       line,
       column,
       `type '${typeName}' is not defined`,
+    );
+  }
+
+  /** E0426 for a use of this file's type before its definition closes */
+  addUsedBeforeDefinitionError(
+    typeName: string,
+    line: number,
+    column: number,
+    definition: ISourceSpan,
+  ): void {
+    const where =
+      line >= definition.line
+        ? `inside its own definition (line ${definition.line}): a type cannot hold itself`
+        : `before its definition at line ${definition.line}`;
+    this._push(
+      "E0426",
+      typeName,
+      line,
+      column,
+      `type '${typeName}' is not defined here: it is used ${where} (ADR-030: define before use)`,
     );
   }
 

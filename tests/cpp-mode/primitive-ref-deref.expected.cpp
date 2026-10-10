@@ -38,6 +38,8 @@ uint32_t Test__process(uint32_t& val) {
 int main(void) {
     uint32_t input = 5U;
     uint32_t result = Test__process(input);
-    if (result != 6) return 1U;
+    if (result != 6) {
+        return 1U;
+    }
     return 0U;
 }

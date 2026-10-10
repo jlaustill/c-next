@@ -40,16 +40,28 @@ float edge(void) {
 
 int main(void) {
     uint32_t a = ((edgeU32) >= ((float)UINT32_MAX) ? (uint32_t)UINT32_MAX : (edgeU32) < 0.0f ? (uint32_t)0 : (uint32_t)(edgeU32));
-    if (a != 0xFFFFFFFF) return 1U;
+    if (a != 0xFFFFFFFF) {
+        return 1U;
+    }
     int32_t b = ((edgeI32) >= ((float)INT32_MAX) ? (int32_t)INT32_MAX : (edgeI32) < ((float)INT32_MIN) ? (int32_t)INT32_MIN : (int32_t)(edgeI32));
-    if (b != 2147483647) return 2U;
+    if (b != 2147483647) {
+        return 2U;
+    }
     uint32_t c = ((belowU32) >= ((float)UINT32_MAX) ? (uint32_t)UINT32_MAX : (belowU32) < 0.0f ? (uint32_t)0 : (uint32_t)(belowU32));
-    if (c != 4294967040) return 3U;
+    if (c != 4294967040) {
+        return 3U;
+    }
     int32_t d = ((belowI32) >= ((float)INT32_MAX) ? (int32_t)INT32_MAX : (belowI32) < ((float)INT32_MIN) ? (int32_t)INT32_MIN : (int32_t)(belowI32));
-    if (d != 2147483520) return 4U;
+    if (d != 2147483520) {
+        return 4U;
+    }
     uint8_t e = ((f255) >= ((float)UINT8_MAX) ? (uint8_t)UINT8_MAX : (f255) < 0.0f ? (uint8_t)0 : (uint8_t)(f255));
-    if (e != 255) return 5U;
+    if (e != 255) {
+        return 5U;
+    }
     uint32_t h = cnx_cast_sat_f32_u32(edge());
-    if (h != 0xFFFFFFFF) return 6U;
+    if (h != 0xFFFFFFFF) {
+        return 6U;
+    }
     return 0U;
 }

@@ -62,58 +62,70 @@ uint32_t processPoint(const CallbackParamType__Point& p) {
 
 // Structs to hold callbacks
 U8Handler U8Handler_init(void) {
-    U8Handler value = {};
-    value.handler = processU8;
+    U8Handler value = { processU8 };
     return value;
 }
 
 U32Handler U32Handler_init(void) {
-    U32Handler value = {};
-    value.handler = processU32;
+    U32Handler value = { processU32 };
     return value;
 }
 
 BoolHandler BoolHandler_init(void) {
-    BoolHandler value = {};
-    value.handler = processBool;
+    BoolHandler value = { processBool };
     return value;
 }
 
 PointHandler PointHandler_init(void) {
-    PointHandler value = {};
-    value.handler = processPoint;
+    PointHandler value = { processPoint };
     return value;
 }
 
 int main(void) {
-    U8Handler u8h = {};
+    U8Handler u8h = { processU8 };
     u8h.handler = processU8;
     uint32_t result = u8h.handler(50U);
-    if (result != 150) return 1U;
+    if (result != 150) {
+        return 1U;
+    }
     result = u8h.handler(255U);
-    if (result != 355) return 2U;
-    U32Handler u32h = {};
+    if (result != 355) {
+        return 2U;
+    }
+    U32Handler u32h = { processU32 };
     u32h.handler = processU32;
     result = u32h.handler(5000U);
-    if (result != 6000) return 3U;
+    if (result != 6000) {
+        return 3U;
+    }
     result = u32h.handler(1000000U);
-    if (result != 1001000) return 4U;
-    BoolHandler bh = {};
+    if (result != 1001000) {
+        return 4U;
+    }
+    BoolHandler bh = { processBool };
     bh.handler = processBool;
     result = bh.handler(true);
-    if (result != 1) return 5U;
+    if (result != 1) {
+        return 5U;
+    }
     result = bh.handler(false);
-    if (result != 0) return 6U;
-    PointHandler ph = {};
+    if (result != 0) {
+        return 6U;
+    }
+    PointHandler ph = { processPoint };
     ph.handler = processPoint;
     CallbackParamType__Point pt = {};
     pt.x = 10U;
     pt.y = 20U;
     result = ph.handler(pt);
-    if (result != 30) return 7U;
+    if (result != 30) {
+        return 7U;
+    }
     pt.x = 100U;
     pt.y = 200U;
     result = ph.handler(pt);
-    if (result != 300) return 8U;
+    if (result != 300) {
+        return 8U;
+    }
     return 0U;
 }

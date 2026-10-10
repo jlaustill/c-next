@@ -54,6 +54,16 @@ C-Next uses a **hybrid approach** that combines the best of Go-style and Rust-st
 | **Scope/namespace variables** | Zero-initialized                       | Same as globals                                            |
 | **Local variables**           | **Error on use before initialization** | Catches bugs at compile time                               |
 
+The local rule covers every part of a local: a field, a nested field and an
+array element read before it is assigned are each an error (E0381), as the
+local itself is. A type's default value does not count as initialization: an
+enum's zero enumerator (ADR-017) is the value an unassigned enum local, field or
+element holds, not an assignment of it (owner ruling on #1980, 2026-10-10). A
+callback's ADR-029 default is the same: a local struct's callback field, or an
+element of a local callback array, read before it is assigned is E0381
+(`Ticker t; t.handler();`). Globals and scope variables are never E0381, so
+that is where a default is observed.
+
 This decision aligns with ADR-008 (Language-Level Bug Prevention), Section 6: Uninitialized Variables.
 
 ### Why This Hybrid?

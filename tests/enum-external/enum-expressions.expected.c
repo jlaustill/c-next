@@ -27,17 +27,29 @@ bool isPsig(EPressureType ptype) {
 
 int main(void) {
     EPressureType p1 = selectPressure(true);
-    if (p1 != EPressureType__PRESSURE_TYPE_PSIG) return 1U;
+    if (p1 != EPressureType__PRESSURE_TYPE_PSIG) {
+        return 1U;
+    }
     EPressureType p2 = selectPressure(false);
-    if (p2 != EPressureType__PRESSURE_TYPE_PSIA) return 2U;
+    if (p2 != EPressureType__PRESSURE_TYPE_PSIA) {
+        return 2U;
+    }
     bool result1 = isPsia(EPressureType__PRESSURE_TYPE_PSIA);
-    if (result1 != true) return 3U;
+    if (result1 != true) {
+        return 3U;
+    }
     bool result2 = isPsia(EPressureType__PRESSURE_TYPE_PSIG);
-    if (result2 != false) return 4U;
+    if (result2 != false) {
+        return 4U;
+    }
     EPressureType ptype = EPressureType__PRESSURE_TYPE_PSIG;
     bool result3 = isPsig(ptype);
-    if (result3 != true) return 5U;
+    if (result3 != true) {
+        return 5U;
+    }
     EPressureType p3 = (true == true) ? EPressureType__PRESSURE_TYPE_PSIA : EPressureType__PRESSURE_TYPE_PSIG;
-    if (p3 != EPressureType__PRESSURE_TYPE_PSIA) return 6U;
+    if (p3 != EPressureType__PRESSURE_TYPE_PSIA) {
+        return 6U;
+    }
     return 0U;
 }

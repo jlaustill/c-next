@@ -37,17 +37,27 @@ int main(void) {
     b.x = 7U;
     b.y = 9U;
     copyPair(&a, &b);
-    if (a.x != 7) return 1U;
-    if (a.y != 9) return 2U;
+    if (a.x != 7) {
+        return 1U;
+    }
+    if (a.y != 9) {
+        return 2U;
+    }
     Sm f = 0;
     Sm g = 0;
     g = (uint8_t)((g & ~(0xFU << 4)) | ((6U & 0xFU) << 4));
     copyFlags(&f, &g);
-    if (((f >> 4) & 0xF) != 6) return 3U;
+    if (((f >> 4) & 0xF) != 6) {
+        return 3U;
+    }
     Sm h = 0;
     forwardFlags(&h, &g);
-    if (((h >> 4) & 0xF) != 6) return 4U;
+    if (((h >> 4) & 0xF) != 6) {
+        return 4U;
+    }
     uint8_t read = fieldOf(&g);
-    if (read != 6) return 5U;
+    if (read != 6) {
+        return 5U;
+    }
     return 0U;
 }

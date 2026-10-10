@@ -13,8 +13,12 @@ i32 main() {
     // Aggregate (no constructor) - can use designated initializers
     AggregateType agg <- { value: 99, label: "agg" };
 
-    if (nonAgg.value != 42) return 1;
-    if (agg.value != 99) return 2;
+    if (nonAgg.value != 42) {
+        return 1;
+    }
+    if (agg.value != 99) {
+        return 2;
+    }
 
     return 0;
 }

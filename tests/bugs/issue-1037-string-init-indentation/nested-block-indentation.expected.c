@@ -25,9 +25,15 @@ int main(void) {
         char part[9] = "";
         (void) strncpy(part, base + 0, 3);
         part[3] = '\0';
-        if (strcmp(copied, "Hello") != 0) return 1;
-        if (strcmp(joined, "HelloHello") != 0) return 2;
-        if (strcmp(part, "Hel") != 0) return 3;
+        if (strcmp(copied, "Hello") != 0) {
+            return 1;
+        }
+        if (strcmp(joined, "HelloHello") != 0) {
+            return 2;
+        }
+        if (strcmp(part, "Hel") != 0) {
+            return 3;
+        }
     }
     return 0;
 }

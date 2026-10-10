@@ -58,18 +58,30 @@ uint32_t addThenDouble(uint32_t a, uint32_t b) {
 
 int main(void) {
     uint32_t result = getFortyTwo();
-    if (result != 42) return 1U;
+    if (result != 42) {
+        return 1U;
+    }
     result = add(10U, 20U);
-    if (result != 30) return 2U;
+    if (result != 30) {
+        return 2U;
+    }
     result = multiply(6U, 7U);
-    if (result != 42) return 3U;
+    if (result != 42) {
+        return 3U;
+    }
     counter = 0U;
     incrementCounter();
-    if (counter != 1) return 4U;
+    if (counter != 1) {
+        return 4U;
+    }
     incrementCounter();
     incrementCounter();
-    if (counter != 3) return 5U;
+    if (counter != 3) {
+        return 5U;
+    }
     result = addThenDouble(5U, 10U);
-    if (result != 30) return 6U;
+    if (result != 30) {
+        return 6U;
+    }
     return 0U;
 }

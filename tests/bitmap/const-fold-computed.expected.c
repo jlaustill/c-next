@@ -54,13 +54,25 @@ int main(int argc, char *argv[]) {
             count = cnx_clamp_add_u8(count, 1U);
         }
     }
-    if (((f >> 0) & 1) != false) return 1U;
-    if (((f >> 1) & 1) != true) return 2U;
-    if (((f >> 2) & 1) != true) return 3U;
-    if (count != (iterations / 2)) return 4U;
+    if (((f >> 0) & 1) != false) {
+        return 1U;
+    }
+    if (((f >> 1) & 1) != true) {
+        return 2U;
+    }
+    if (((f >> 2) & 1) != true) {
+        return 3U;
+    }
+    if (count != (iterations / 2)) {
+        return 4U;
+    }
     f = (uint8_t)((f & ~(1U << 5)) | (1U << 5));
     f = (uint8_t)((f & ~(1U << 6)) | (0U << 6));
-    if (((f >> 5) & 1) != true) return 5U;
-    if (((f >> 6) & 1) != false) return 6U;
+    if (((f >> 5) & 1) != true) {
+        return 5U;
+    }
+    if (((f >> 6) & 1) != false) {
+        return 6U;
+    }
     return 0U;
 }

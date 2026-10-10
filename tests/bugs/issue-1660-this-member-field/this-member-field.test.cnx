@@ -30,8 +30,12 @@ scope S {
 u32 main() {
     S.run();
     bool f <- S.flag();
-    if (f != true) return 1;
+    if (f != true) {
+        return 1;
+    }
     u8 e <- S.element();
-    if (e != 3) return 2;
+    if (e != 3) {
+        return 2;
+    }
     return 0;
 }

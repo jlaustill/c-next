@@ -14,10 +14,18 @@ u32 main() {
     matrix2d[3][7] <- 1000000;
 
     // 2D array: Read and verify
-    if (matrix2d[0][0] != -2147483648) return 1;
-    if (matrix2d[0][7] != 2147483647) return 2;
-    if (matrix2d[1][3] != -1000000) return 3;
-    if (matrix2d[3][7] != 1000000) return 4;
+    if (matrix2d[0][0] != -2147483648) {
+        return 1;
+    }
+    if (matrix2d[0][7] != 2147483647) {
+        return 2;
+    }
+    if (matrix2d[1][3] != -1000000) {
+        return 3;
+    }
+    if (matrix2d[3][7] != 1000000) {
+        return 4;
+    }
 
     // 3D array: Write operations
     cube3d[0][0][0] <- -500000;
@@ -27,23 +35,47 @@ u32 main() {
     cube3d[1][2][3] <- 2000000;
 
     // 3D array: Read and verify
-    if (cube3d[0][0][0] != -500000) return 5;
-    if (cube3d[0][0][3] != -100000) return 6;
-    if (cube3d[0][2][3] != 0) return 7;
-    if (cube3d[1][0][0] != 500000) return 8;
-    if (cube3d[1][2][3] != 2000000) return 9;
+    if (cube3d[0][0][0] != -500000) {
+        return 5;
+    }
+    if (cube3d[0][0][3] != -100000) {
+        return 6;
+    }
+    if (cube3d[0][2][3] != 0) {
+        return 7;
+    }
+    if (cube3d[1][0][0] != 500000) {
+        return 8;
+    }
+    if (cube3d[1][2][3] != 2000000) {
+        return 9;
+    }
 
     // Test .length property at each dimension
     // 2D array dimensions
-    if (matrix2d.element_count != 4) return 10; // First dimension
-    if (matrix2d[0].element_count != 8) return 11; // Second dimension
-    if (matrix2d[0][0].bit_length != 32) return 12; // Element bit width
+    if (matrix2d.element_count != 4) {
+        return 10; // First dimension
+    }
+    if (matrix2d[0].element_count != 8) {
+        return 11; // Second dimension
+    }
+    if (matrix2d[0][0].bit_length != 32) {
+        return 12; // Element bit width
+    }
 
     // 3D array dimensions
-    if (cube3d.element_count != 2) return 13; // First dimension
-    if (cube3d[0].element_count != 3) return 14; // Second dimension
-    if (cube3d[0][0].element_count != 4) return 15; // Third dimension
-    if (cube3d[0][0][0].bit_length != 32) return 16; // Element bit width
+    if (cube3d.element_count != 2) {
+        return 13; // First dimension
+    }
+    if (cube3d[0].element_count != 3) {
+        return 14; // Second dimension
+    }
+    if (cube3d[0][0].element_count != 4) {
+        return 15; // Third dimension
+    }
+    if (cube3d[0][0][0].bit_length != 32) {
+        return 16; // Element bit width
+    }
 
     // Nested loop iteration - populate 2D array
     for (u32 i <- 0; i < 4; i +<- 1) {
@@ -53,10 +85,18 @@ u32 main() {
     }
 
     // Verify populated values
-    if (matrix2d[0][0] != 0) return 17;
-    if (matrix2d[0][7] != 7) return 18;
-    if (matrix2d[1][3] != 1003) return 19;
-    if (matrix2d[3][7] != 3007) return 20;
+    if (matrix2d[0][0] != 0) {
+        return 17;
+    }
+    if (matrix2d[0][7] != 7) {
+        return 18;
+    }
+    if (matrix2d[1][3] != 1003) {
+        return 19;
+    }
+    if (matrix2d[3][7] != 3007) {
+        return 20;
+    }
 
     // Nested loop iteration - populate and sum 3D array
     i64 sum <- 0;
@@ -70,15 +110,21 @@ u32 main() {
     }
 
     // Verify sum: 6+406+806+4006+4406+4806 = 14436
-    if (sum != 14436) return 21;
+    if (sum != 14436) {
+        return 21;
+    }
 
     // Test modification after initialization
     matrix2d[2][4] <- -2147483648;
-    if (matrix2d[2][4] != -2147483648) return 22;
+    if (matrix2d[2][4] != -2147483648) {
+        return 22;
+    }
 
     // Test boundary access
     matrix2d[matrix2d.element_count - 1][matrix2d[0].element_count - 1] <- -100000;
-    if (matrix2d[3][7] != -100000) return 23;
+    if (matrix2d[3][7] != -100000) {
+        return 23;
+    }
 
     // Test i32 specific edge cases
     i32[4][2] testArray;
@@ -96,12 +142,24 @@ u32 main() {
     testArray[2][0] <- 1; // Positive
     testArray[3][1] <- -1000000; // Large negative
 
-    if (testArray[0][0] != -2147483648) return 24;
-    if (testArray[0][1] != 2147483647) return 25;
-    if (testArray[1][0] != 0) return 26;
-    if (testArray[1][1] != -1) return 27;
-    if (testArray[2][0] != 1) return 28;
-    if (testArray[3][1] != -1000000) return 29;
+    if (testArray[0][0] != -2147483648) {
+        return 24;
+    }
+    if (testArray[0][1] != 2147483647) {
+        return 25;
+    }
+    if (testArray[1][0] != 0) {
+        return 26;
+    }
+    if (testArray[1][1] != -1) {
+        return 27;
+    }
+    if (testArray[2][0] != 1) {
+        return 28;
+    }
+    if (testArray[3][1] != -1000000) {
+        return 29;
+    }
 
     // Test 2D array with financial data pattern (cents)
     i32[3][3] balances;
@@ -119,12 +177,24 @@ u32 main() {
     balances[2][0] <- -250000; // -$2500.00
     balances[2][1] <- 500000000; // $5000000.00
 
-    if (balances[0][0] != -50000) return 30;
-    if (balances[0][1] != 100000) return 31;
-    if (balances[1][0] != 0) return 32;
-    if (balances[1][1] != 1000000) return 33;
-    if (balances[2][0] != -250000) return 34;
-    if (balances[2][1] != 500000000) return 35;
+    if (balances[0][0] != -50000) {
+        return 30;
+    }
+    if (balances[0][1] != 100000) {
+        return 31;
+    }
+    if (balances[1][0] != 0) {
+        return 32;
+    }
+    if (balances[1][1] != 1000000) {
+        return 33;
+    }
+    if (balances[2][0] != -250000) {
+        return 34;
+    }
+    if (balances[2][1] != 500000000) {
+        return 35;
+    }
 
     // Test negative value calculations
     i32[2][2] deltas;
@@ -138,7 +208,9 @@ u32 main() {
     deltas[0][0] <- -1000000;
     deltas[0][1] <- 750000;
     i64 deltaSum <- deltas[0][0] + deltas[0][1];
-    if (deltaSum != -250000) return 36;
+    if (deltaSum != -250000) {
+        return 36;
+    }
 
     // Test with timestamp offsets (seconds from epoch)
     i32[2][3] offsets;
@@ -156,10 +228,18 @@ u32 main() {
     offsets[1][1] <- 3600; // +1 hour
     offsets[1][2] <- 31536000; // +1 year
 
-    if (offsets[0][0] != -86400) return 37;
-    if (offsets[0][2] != 86400) return 38;
-    if (offsets[1][0] != -2592000) return 39;
-    if (offsets[1][2] != 31536000) return 40;
+    if (offsets[0][0] != -86400) {
+        return 37;
+    }
+    if (offsets[0][2] != 86400) {
+        return 38;
+    }
+    if (offsets[1][0] != -2592000) {
+        return 39;
+    }
+    if (offsets[1][2] != 31536000) {
+        return 40;
+    }
 
     return 0;
 }

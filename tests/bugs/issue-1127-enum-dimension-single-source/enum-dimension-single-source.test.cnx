@@ -39,8 +39,14 @@ i32 main() {
     p.slots[2] <- 40;
     globalSlots[2] <- 40;
 
-    if (p.slots[0] != 10) return 1;
-    if (p.slots[2] != 40) return 2;
-    if (globalSlots[2] != 40) return 3;
+    if (p.slots[0] != 10) {
+        return 1;
+    }
+    if (p.slots[2] != 40) {
+        return 2;
+    }
+    if (globalSlots[2] != 40) {
+        return 3;
+    }
     return 0;
 }

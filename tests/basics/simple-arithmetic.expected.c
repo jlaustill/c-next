@@ -49,30 +49,52 @@ int main(void) {
     uint32_t a = 10U;
     uint32_t b = 20U;
     uint32_t sum = cnx_clamp_add_u32(a, b);
-    if (sum != 30) return 1U;
+    if (sum != 30) {
+        return 1U;
+    }
     uint32_t diff = cnx_clamp_sub_u32(b, a);
-    if (diff != 10) return 2U;
+    if (diff != 10) {
+        return 2U;
+    }
     uint32_t product = cnx_clamp_mul_u32(a, b);
-    if (product != 200) return 3U;
+    if (product != 200) {
+        return 3U;
+    }
     uint32_t quotient = b / a;
-    if (quotient != 2) return 4U;
+    if (quotient != 2) {
+        return 4U;
+    }
     uint32_t remainder = 17U % 5U;
-    if (remainder != 2) return 5U;
+    if (remainder != 2) {
+        return 5U;
+    }
     uint32_t result = cnx_clamp_mul_u32((cnx_clamp_add_u32(a, b)), 2U);
-    if (result != 60) return 6U;
+    if (result != 60) {
+        return 6U;
+    }
     result = cnx_clamp_add_u32(a, cnx_clamp_mul_u32(b, 2U));
-    if (result != 50) return 7U;
+    if (result != 50) {
+        return 7U;
+    }
     int32_t x = -10;
     int32_t y = 3;
     int32_t signedSum = cnx_clamp_add_i32(x, y);
-    if (signedSum != -7) return 8U;
+    if (signedSum != -7) {
+        return 8U;
+    }
     int32_t signedProduct = cnx_clamp_mul_i32(x, y);
-    if (signedProduct != -30) return 9U;
+    if (signedProduct != -30) {
+        return 9U;
+    }
     float f1 = 10.5;
     float f2 = 3.0;
     float fsum = f1 + f2;
-    if (fsum < 13.4 || fsum > 13.6) return 10U;
+    if (fsum < 13.4 || fsum > 13.6) {
+        return 10U;
+    }
     float fdiv = f1 / f2;
-    if (fdiv < 3.4 || fdiv > 3.6) return 11U;
+    if (fdiv < 3.4 || fdiv > 3.6) {
+        return 11U;
+    }
     return 0U;
 }

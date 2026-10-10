@@ -37,6 +37,10 @@ import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
+import ElementCount from "../../utils/ElementCount";
+import UNRESOLVED_DIMENSION from "../../types/UNRESOLVED_DIMENSION";
+import type IChainTyping from "../../types/IChainTyping";
+import type TConstExpr from "../../types/TConstExpr";
 import IArrayIndexBoundsError from "./types/IArrayIndexBoundsError";
 import ConstantExpression from "./helpers/ConstantExpression";
 import type IAnalysisContext from "./types/IAnalysisContext";
@@ -90,25 +94,85 @@ class ArrayIndexBoundsListener extends CNextListener {
     );
     for (const subscript of subscripts) {
       const step = typing.steps.at(-1 - subscript.opsAfter);
+      const indexed = step?.before ?? null;
       this.check(
         subscript,
-        step?.before ?? null,
+        indexed === null
+          ? null
+          : this.boundOf(indexed, subscript, typing, ctx, ops),
         ArrayIndexBoundsListener.spelling(ctx, ops, subscript.opsAfter),
       );
     }
   }
 
+  /**
+   * The leading dimension of what the subscript indexes: the number 1.4
+   * settled, else -- a header macro 1.4 leaves unresolved -- the count
+   * ElementCount reads from the dimension as declared, the one count render
+   * spells defaults by (#1283 review). Null when there is none to check.
+   */
+  private boundOf(
+    indexed: IOperandType,
+    subscript: ISubscript,
+    typing: IChainTyping,
+    ctx: Parser.PostfixExpressionContext | Parser.AssignmentTargetContext,
+    ops: readonly (Parser.PostfixOpContext | Parser.PostfixTargetOpContext)[],
+  ): number | null {
+    const settled = indexed.dimensions[0];
+    if (typeof settled === "number" && settled !== UNRESOLVED_DIMENSION) {
+      return settled;
+    }
+    if (settled === "") return null; // an unsized `[]`
+    const declared = this.declaredDimensions(subscript, typing, ctx, ops);
+    const expr = declared?.[subscript.dimension - 1] ?? null;
+    return expr === null
+      ? null
+      : ElementCount.of(expr, this.context.program, this.context.sourceFile);
+  }
+
+  /** The dimensions, as declared, of the array the subscript's run indexes */
+  private declaredDimensions(
+    subscript: ISubscript,
+    typing: IChainTyping,
+    ctx: Parser.PostfixExpressionContext | Parser.AssignmentTargetContext,
+    ops: readonly (Parser.PostfixOpContext | Parser.PostfixTargetOpContext)[],
+  ): ReadonlyArray<TConstExpr | null> | undefined {
+    const at = ops.length - 1 - subscript.opsAfter;
+    // A `this.`/`global.` root's first `.name` is the root itself
+    const rootText =
+      ctx instanceof Parser.PostfixExpressionContext
+        ? ctx.primaryExpression().getText()
+        : "";
+    const first = rootText === "this" || rootText === "global" ? 1 : 0;
+    let member = -1;
+    for (let i = at - 1; i >= first; i -= 1) {
+      if (ops[i].LBRACKET() === null) {
+        member = i;
+        break;
+      }
+    }
+    if (member === -1) {
+      const root = typing.root;
+      if (root?.kind === "local") return root.declaration.arrayDimensionExprs;
+      if (root?.kind === "variable") return root.symbol.arrayDimensionExprs;
+      return undefined;
+    }
+    const owner = typing.steps.at(-1 - (ops.length - 1 - member))?.before;
+    const struct = owner?.typeName
+      ? this.context.program.symbolByCName(owner.typeName)
+      : undefined;
+    if (struct?.kind !== "struct") return undefined;
+    return struct.fields.get(ops[member].IDENTIFIER()?.getText() ?? "")
+      ?.dimensionExprs;
+  }
+
   /** E0854 against the leading dimension of what the subscript indexes. */
   private check(
     subscript: ISubscript,
-    indexed: IOperandType | null,
+    bound: number | null,
     name: string,
   ): void {
-    if (indexed === null || subscript.expressions.length !== 1) return;
-    // A dimension 1.4 could fold is a number; one it could not (a C macro)
-    // is left to the C compiler, as codegen's UNRESOLVED_DIMENSION was
-    const bound = indexed.dimensions[0];
-    if (typeof bound !== "number") return;
+    if (bound === null || subscript.expressions.length !== 1) return;
     const index = ConstantExpression.valueAt(
       subscript.expressions[0],
       this.context,

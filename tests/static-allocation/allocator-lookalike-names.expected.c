@@ -79,11 +79,23 @@ int main(void) {
     uint32_t d = mallocation(1U);
     uint32_t e = pool_free(1U);
     bool f = slot_is_free(1U);
-    if (a != 2) return 1U;
-    if (b != 3) return 2U;
-    if (c != 4) return 3U;
-    if (d != 5) return 4U;
-    if (e != 6) return 5U;
-    if (f != true) return 6U;
+    if (a != 2) {
+        return 1U;
+    }
+    if (b != 3) {
+        return 2U;
+    }
+    if (c != 4) {
+        return 3U;
+    }
+    if (d != 5) {
+        return 4U;
+    }
+    if (e != 6) {
+        return 5U;
+    }
+    if (f != true) {
+        return 6U;
+    }
     return 0U;
 }

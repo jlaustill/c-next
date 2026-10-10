@@ -17,7 +17,7 @@
 
 /* Scope: DeviceManager */
 static DeviceConfig DeviceManager__config = {0};
-static DeviceStatus DeviceManager__status = {0};
+static DeviceStatus DeviceManager__status = { .state = EDeviceState__STATE_OFF };
 
 void DeviceManager__configure(const DeviceConfig* newConfig) {
     DeviceManager__config = (*newConfig);
@@ -43,15 +43,27 @@ int main(void) {
     DeviceConfig cfg = { .baudRate = 115200U, .address = 0x42U };
     DeviceManager__configure(&cfg);
     DeviceConfig retrievedCfg = DeviceManager__getConfig();
-    if (retrievedCfg.baudRate != 115200) return 1U;
-    if (retrievedCfg.address != 0x42) return 2U;
+    if (retrievedCfg.baudRate != 115200) {
+        return 1U;
+    }
+    if (retrievedCfg.address != 0x42) {
+        return 2U;
+    }
     DeviceStatus stat = { .state = EDeviceState__STATE_ACTIVE, .errorCount = 0U, .connected = true };
     DeviceManager__setStatus(&stat);
     DeviceStatus retrievedStat = DeviceManager__getStatus();
-    if (retrievedStat.state != EDeviceState__STATE_ACTIVE) return 3U;
-    if (retrievedStat.errorCount != 0) return 4U;
-    if (retrievedStat.connected != true) return 5U;
+    if (retrievedStat.state != EDeviceState__STATE_ACTIVE) {
+        return 3U;
+    }
+    if (retrievedStat.errorCount != 0) {
+        return 4U;
+    }
+    if (retrievedStat.connected != true) {
+        return 5U;
+    }
     EDeviceState state = DeviceManager__getState();
-    if (state != EDeviceState__STATE_ACTIVE) return 6U;
+    if (state != EDeviceState__STATE_ACTIVE) {
+        return 6U;
+    }
     return 0U;
 }

@@ -15,36 +15,96 @@ int main(void) {
     uint16_t c = 30000U;
     uint16_t zero = 0U;
     uint16_t max_val = 65535U;
-    if ((a == c) != true) return 1U;
-    if ((a == b) != false) return 2U;
-    if ((zero == 0) != true) return 3U;
-    if ((a != b) != true) return 4U;
-    if ((a != c) != false) return 5U;
-    if ((zero != 1) != true) return 6U;
-    if ((b < a) != true) return 7U;
-    if ((a < b) != false) return 8U;
-    if ((a < a) != false) return 9U;
-    if ((zero < 1) != true) return 10U;
-    if ((zero < max_val) != true) return 11U;
-    if ((a > b) != true) return 12U;
-    if ((b > a) != false) return 13U;
-    if ((a > a) != false) return 14U;
-    if ((max_val > zero) != true) return 15U;
-    if ((1 > zero) != true) return 16U;
-    if ((b <= a) != true) return 17U;
-    if ((a <= c) != true) return 18U;
-    if ((a <= b) != false) return 19U;
-    if ((zero <= zero) != true) return 20U;
-    if ((zero <= max_val) != true) return 21U;
-    if ((a >= b) != true) return 22U;
-    if ((a >= c) != true) return 23U;
-    if ((b >= a) != false) return 24U;
-    if ((max_val >= zero) != true) return 25U;
-    if ((max_val >= max_val) != true) return 26U;
+    if ((a == c) != true) {
+        return 1U;
+    }
+    if ((a == b) != false) {
+        return 2U;
+    }
+    if ((zero == 0) != true) {
+        return 3U;
+    }
+    if ((a != b) != true) {
+        return 4U;
+    }
+    if ((a != c) != false) {
+        return 5U;
+    }
+    if ((zero != 1) != true) {
+        return 6U;
+    }
+    if ((b < a) != true) {
+        return 7U;
+    }
+    if ((a < b) != false) {
+        return 8U;
+    }
+    if ((a < a) != false) {
+        return 9U;
+    }
+    if ((zero < 1) != true) {
+        return 10U;
+    }
+    if ((zero < max_val) != true) {
+        return 11U;
+    }
+    if ((a > b) != true) {
+        return 12U;
+    }
+    if ((b > a) != false) {
+        return 13U;
+    }
+    if ((a > a) != false) {
+        return 14U;
+    }
+    if ((max_val > zero) != true) {
+        return 15U;
+    }
+    if ((1 > zero) != true) {
+        return 16U;
+    }
+    if ((b <= a) != true) {
+        return 17U;
+    }
+    if ((a <= c) != true) {
+        return 18U;
+    }
+    if ((a <= b) != false) {
+        return 19U;
+    }
+    if ((zero <= zero) != true) {
+        return 20U;
+    }
+    if ((zero <= max_val) != true) {
+        return 21U;
+    }
+    if ((a >= b) != true) {
+        return 22U;
+    }
+    if ((a >= c) != true) {
+        return 23U;
+    }
+    if ((b >= a) != false) {
+        return 24U;
+    }
+    if ((max_val >= zero) != true) {
+        return 25U;
+    }
+    if ((max_val >= max_val) != true) {
+        return 26U;
+    }
     uint16_t almost_max = 65534U;
-    if ((max_val > almost_max) != true) return 27U;
-    if ((almost_max < max_val) != true) return 28U;
-    if ((15000 < a) != true) return 29U;
-    if ((30000 > b) != true) return 30U;
+    if ((max_val > almost_max) != true) {
+        return 27U;
+    }
+    if ((almost_max < max_val) != true) {
+        return 28U;
+    }
+    if ((15000 < a) != true) {
+        return 29U;
+    }
+    if ((30000 > b) != true) {
+        return 30U;
+    }
     return 0U;
 }

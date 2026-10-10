@@ -33,21 +33,31 @@ int main(void) {
     if (32 != 32) {
         return 1U;
     }
-    if (32 != 32) return 2U;
-    if (8 != 8) return 3U;
+    if (32 != 32) {
+        return 2U;
+    }
+    if (8 != 8) {
+        return 3U;
+    }
     uint32_t counter = 0U;
     uint32_t maxBits = 32;
     while ((counter < maxBits) != false) {
         counter = cnx_clamp_add_u32(counter, 8U);
     }
-    if (counter != 32) return 4U;
+    if (counter != 32) {
+        return 4U;
+    }
     uint32_t totalBits = 0U;
     for (uint32_t i = 0U; (i < 4) != false; i = cnx_clamp_add_u32(i, 1U)) {
         totalBits = cnx_clamp_add_u32(totalBits, 8);
     }
-    if (totalBits != 32) return 5U;
+    if (totalBits != 32) {
+        return 5U;
+    }
     uint32_t fieldSize = ((32 > 16) != false) ? 4U : 2U;
-    if (fieldSize != 4) return 6U;
+    if (fieldSize != 4) {
+        return 6U;
+    }
     uint32_t headerBytes = 32 / 8U;
     if (headerBytes != 4) {
         return 7U;

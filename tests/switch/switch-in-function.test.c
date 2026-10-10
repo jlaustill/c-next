@@ -206,82 +206,144 @@ int16_t categorize(int16_t value) {
 
 int main(void) {
     uint32_t v0 = getValue(0U);
-    if (v0 != 100) return 1U;
+    if (v0 != 100) {
+        return 1U;
+    }
     uint32_t v1 = getValue(1U);
-    if (v1 != 200) return 2U;
+    if (v1 != 200) {
+        return 2U;
+    }
     uint32_t v2 = getValue(2U);
-    if (v2 != 300) return 3U;
+    if (v2 != 300) {
+        return 3U;
+    }
     uint32_t v99 = getValue(99U);
-    if (v99 != 999) return 4U;
+    if (v99 != 999) {
+        return 4U;
+    }
     uint32_t c0 = computeWithSwitch(100U, 0U);
-    if (c0 != 110) return 5U;
+    if (c0 != 110) {
+        return 5U;
+    }
     uint32_t c1 = computeWithSwitch(100U, 1U);
-    if (c1 != 200) return 6U;
+    if (c1 != 200) {
+        return 6U;
+    }
     uint32_t c2 = computeWithSwitch(100U, 2U);
-    if (c2 != 95) return 7U;
+    if (c2 != 95) {
+        return 7U;
+    }
     uint32_t cDef = computeWithSwitch(100U, 99U);
-    if (cDef != 0) return 8U;
+    if (cDef != 0) {
+        return 8U;
+    }
     int8_t sel_zero = 0;
     int8_t sel_one = 1;
     int8_t sel_fifty = 50;
     int8_t sel_neg = -1;
     int8_t s0 = getSignedValue(sel_zero);
-    if (s0 != 0) return 9U;
+    if (s0 != 0) {
+        return 9U;
+    }
     int8_t s1 = getSignedValue(sel_one);
-    if (s1 != 127) return 10U;
+    if (s1 != 127) {
+        return 10U;
+    }
     int8_t s50 = getSignedValue(sel_fifty);
-    if (s50 != -128) return 11U;
+    if (s50 != -128) {
+        return 11U;
+    }
     int8_t sNeg = getSignedValue(sel_neg);
-    if (sNeg != -1) return 12U;
+    if (sNeg != -1) {
+        return 12U;
+    }
     uint16_t bval0 = 0U;
     uint16_t bval100 = 100U;
     uint16_t bvalMax = 65535U;
     uint16_t bvalOther = 5000U;
     bool sp0 = isSpecialValue(bval0);
-    if (sp0 == false) return 13U;
+    if (sp0 == false) {
+        return 13U;
+    }
     bool sp100 = isSpecialValue(bval100);
-    if (sp100 == false) return 14U;
+    if (sp100 == false) {
+        return 14U;
+    }
     bool spMax = isSpecialValue(bvalMax);
-    if (spMax == false) return 15U;
+    if (spMax == false) {
+        return 15U;
+    }
     bool spOther = isSpecialValue(bvalOther);
-    if (spOther == true) return 16U;
+    if (spOther == true) {
+        return 16U;
+    }
     uint8_t idx0 = 0U;
     uint8_t idx1 = 1U;
     uint8_t idx2 = 2U;
     uint8_t idxOther = 99U;
     uint64_t lv0 = getLargeValue(idx0);
-    if (lv0 != 1000000000000) return 17U;
+    if (lv0 != 1000000000000) {
+        return 17U;
+    }
     uint64_t lv1 = getLargeValue(idx1);
-    if (lv1 != 2000000000000) return 18U;
+    if (lv1 != 2000000000000) {
+        return 18U;
+    }
     uint64_t lv2 = getLargeValue(idx2);
-    if (lv2 != 9000000000000000000) return 19U;
+    if (lv2 != 9000000000000000000) {
+        return 19U;
+    }
     uint64_t lvOther = getLargeValue(idxOther);
-    if (lvOther != 0) return 20U;
+    if (lvOther != 0) {
+        return 20U;
+    }
     uint32_t loop0 = sumWithSwitchInLoop(5U, 0U);
-    if (loop0 != 5) return 21U;
+    if (loop0 != 5) {
+        return 21U;
+    }
     uint32_t loop1 = sumWithSwitchInLoop(5U, 1U);
-    if (loop1 != 10) return 22U;
+    if (loop1 != 10) {
+        return 22U;
+    }
     uint32_t loopDef = sumWithSwitchInLoop(3U, 99U);
-    if (loopDef != 30) return 23U;
+    if (loopDef != 30) {
+        return 23U;
+    }
     uint32_t f0 = factorial(0U);
-    if (f0 != 1) return 24U;
+    if (f0 != 1) {
+        return 24U;
+    }
     uint32_t f1 = factorial(1U);
-    if (f1 != 1) return 25U;
+    if (f1 != 1) {
+        return 25U;
+    }
     uint32_t f5 = factorial(5U);
-    if (f5 != 120) return 26U;
+    if (f5 != 120) {
+        return 26U;
+    }
     uint32_t f6 = factorial(6U);
-    if (f6 != 720) return 27U;
+    if (f6 != 720) {
+        return 27U;
+    }
     int16_t cat_zero = 0;
     int16_t cat_100 = 100;
     int16_t cat_200 = 200;
     int16_t cat_neg = -100;
     int16_t catR0 = categorize(cat_zero);
-    if (catR0 != 0) return 28U;
+    if (catR0 != 0) {
+        return 28U;
+    }
     int16_t catR100 = categorize(cat_100);
-    if (catR100 != 1) return 29U;
+    if (catR100 != 1) {
+        return 29U;
+    }
     int16_t catR200 = categorize(cat_200);
-    if (catR200 != 2) return 30U;
+    if (catR200 != 2) {
+        return 30U;
+    }
     int16_t catRNeg = categorize(cat_neg);
-    if (catRNeg != 99) return 31U;
+    if (catRNeg != 99) {
+        return 31U;
+    }
     return 0U;
 }

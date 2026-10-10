@@ -17,16 +17,28 @@ extern const volatile uint32_t hardware_status = 0x0000FFFFU;
 
 int main(void) {
     uint32_t status = hardware_status;
-    if (status != 0x0000FFFF) return 1U;
+    if (status != 0x0000FFFF) {
+        return 1U;
+    }
     uint32_t read1 = hardware_status;
     uint32_t read2 = hardware_status;
     uint32_t read3 = hardware_status;
-    if (read1 != 0x0000FFFF) return 2U;
-    if (read2 != 0x0000FFFF) return 3U;
-    if (read3 != 0x0000FFFF) return 4U;
+    if (read1 != 0x0000FFFF) {
+        return 2U;
+    }
+    if (read2 != 0x0000FFFF) {
+        return 3U;
+    }
+    if (read3 != 0x0000FFFF) {
+        return 4U;
+    }
     uint32_t masked = hardware_status & 0x00FFU;
-    if (masked != 0x00FF) return 5U;
+    if (masked != 0x00FF) {
+        return 5U;
+    }
     const volatile uint32_t local_status = 42U;
-    if (local_status != 42) return 6U;
+    if (local_status != 42) {
+        return 6U;
+    }
     return 0U;
 }

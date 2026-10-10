@@ -121,44 +121,82 @@ int main(void) {
     int32_t maxVal = 2147483647;
     int32_t other = 12345;
     testI32Values(minVal);
-    if (result != 1) return 1U;
+    if (result != 1) {
+        return 1U;
+    }
     testI32Values(minPlus1);
-    if (result != 2) return 2U;
+    if (result != 2) {
+        return 2U;
+    }
     testI32Values(negMillion);
-    if (result != 3) return 3U;
+    if (result != 3) {
+        return 3U;
+    }
     testI32Values(neg32769);
-    if (result != 4) return 4U;
+    if (result != 4) {
+        return 4U;
+    }
     testI32Values(neg32768);
-    if (result != 5) return 5U;
+    if (result != 5) {
+        return 5U;
+    }
     testI32Values(negOne);
-    if (result != 6) return 6U;
+    if (result != 6) {
+        return 6U;
+    }
     testI32Values(zero);
-    if (result != 7) return 7U;
+    if (result != 7) {
+        return 7U;
+    }
     testI32Values(pos32767);
-    if (result != 8) return 8U;
+    if (result != 8) {
+        return 8U;
+    }
     testI32Values(pos32768);
-    if (result != 9) return 9U;
+    if (result != 9) {
+        return 9U;
+    }
     testI32Values(posMillion);
-    if (result != 10) return 10U;
+    if (result != 10) {
+        return 10U;
+    }
     testI32Values(maxMinus1);
-    if (result != 11) return 11U;
+    if (result != 11) {
+        return 11U;
+    }
     testI32Values(maxVal);
-    if (result != 12) return 12U;
+    if (result != 12) {
+        return 12U;
+    }
     testI32Values(other);
-    if (result != 99) return 13U;
+    if (result != 99) {
+        return 13U;
+    }
     testI32Hex(minVal);
-    if (result != 20) return 14U;
+    if (result != 20) {
+        return 14U;
+    }
     int32_t neg65536 = -65536;
     testI32Hex(neg65536);
-    if (result != 21) return 15U;
+    if (result != 21) {
+        return 15U;
+    }
     testI32Hex(neg32768);
-    if (result != 22) return 16U;
+    if (result != 22) {
+        return 16U;
+    }
     int32_t neg255 = -255;
     testI32Hex(neg255);
-    if (result != 23) return 17U;
+    if (result != 23) {
+        return 17U;
+    }
     testI32Hex(zero);
-    if (result != 24) return 18U;
+    if (result != 24) {
+        return 18U;
+    }
     testI32Hex(maxVal);
-    if (result != 25) return 19U;
+    if (result != 25) {
+        return 19U;
+    }
     return 0U;
 }

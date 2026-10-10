@@ -12,18 +12,26 @@
 
 u32 main() {
     u32 hex32 <- 0xFF32;
-    if (hex32 != 65330) return 1;
+    if (hex32 != 65330) {
+        return 1;
+    }
 
     u64 three <- 3;
     u64 hex64 <- three * 0xABCDEF64;
-    if (hex64 != 8647200300) return 2;
+    if (hex64 != 8647200300) {
+        return 2;
+    }
 
     u8 hundred <- 100;
     u8 sum <- hundred + '.';
-    if (sum != 146) return 3;
+    if (sum != 146) {
+        return 3;
+    }
 
     f32 suffixed <- 2.5f32;
-    if (suffixed != 2.5) return 4;
+    if (suffixed != 2.5) {
+        return 4;
+    }
 
     return 0;
 }

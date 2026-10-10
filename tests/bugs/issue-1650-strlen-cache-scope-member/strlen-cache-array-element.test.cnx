@@ -14,9 +14,15 @@
 
 u32 main() {
     string<8>[4] names <- ["ab"*];
-    if (names[0].char_count != 2 || names[0].char_count < 1) return 1;
-    if (names[1].char_count != 2) return 2;
+    if (names[0].char_count != 2 || names[0].char_count < 1) {
+        return 1;
+    }
+    if (names[1].char_count != 2) {
+        return 2;
+    }
     string<8> word <- "abc";
-    if (word.char_count != 3 || word.char_count < 1) return 3;
+    if (word.char_count != 3 || word.char_count < 1) {
+        return 3;
+    }
     return 0;
 }

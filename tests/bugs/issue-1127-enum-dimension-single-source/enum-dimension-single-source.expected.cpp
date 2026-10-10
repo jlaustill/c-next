@@ -36,8 +36,14 @@ int main(void) {
     p.slots[0] = 10U;
     p.slots[2] = 40U;
     globalSlots[2] = 40U;
-    if (p.slots[0U] != 10) return 1;
-    if (p.slots[2U] != 40) return 2;
-    if (globalSlots[2U] != 40) return 3;
+    if (p.slots[0U] != 10) {
+        return 1;
+    }
+    if (p.slots[2U] != 40) {
+        return 2;
+    }
+    if (globalSlots[2U] != 40) {
+        return 3;
+    }
     return 0;
 }

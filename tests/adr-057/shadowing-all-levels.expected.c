@@ -40,6 +40,8 @@ uint32_t Counter__testAllLevels(void) {
 
 int main(void) {
     uint32_t result = Counter__testAllLevels();
-    if (result != 1110) return 1U;
+    if (result != 1110) {
+        return 1U;
+    }
     return 0U;
 }

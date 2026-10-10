@@ -28,8 +28,12 @@ scope Cfg {
         for (i <- 0; i < 1; i +<- 1) {
             seen <- seen + 1;
         }
-        if (seen = 3) return 8;
-        if (seen != 2) return 9;
+        if (seen = 3) {
+            return 8;
+        }
+        if (seen != 2) {
+            return 9;
+        }
         return 0;
     }
 }
@@ -40,13 +44,23 @@ u32 main() {
     count <- count + 1;
     count +<- 1;
 
-    if (gEqual != true) return 1;
-    if (Cfg.mEqual != true) return 2;
+    if (gEqual != true) {
+        return 1;
+    }
+    if (Cfg.mEqual != true) {
+        return 2;
+    }
 
-    if (count = 3) return 3;
-    if (count != 2) return 4;
+    if (count = 3) {
+        return 3;
+    }
+    if (count != 2) {
+        return 4;
+    }
 
     u32 checked <- Cfg.check();
-    if (checked != 0) return 5;
+    if (checked != 0) {
+        return 5;
+    }
     return 0;
 }

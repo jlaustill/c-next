@@ -13,8 +13,12 @@ int main(void) {
     float k = 2.5;
     uint32_t c = 1U;
     float r = (c > 0) ? static_cast<float>(a) : k;
-    if (r != 3.0) return 1U;
+    if (r != 3.0) {
+        return 1U;
+    }
     float q = (c == 0) ? static_cast<float>(a) : k;
-    if (q != 2.5) return 2U;
+    if (q != 2.5) {
+        return 2U;
+    }
     return 0U;
 }

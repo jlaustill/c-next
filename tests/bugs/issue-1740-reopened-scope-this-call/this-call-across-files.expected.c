@@ -21,6 +21,8 @@ uint32_t Lib__run(void) {
 
 int main(void) {
     uint32_t result = Lib__run();
-    if (result != 300) return 1U;
+    if (result != 300) {
+        return 1U;
+    }
     return 0U;
 }

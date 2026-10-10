@@ -11,6 +11,8 @@ u32 main() {
     u32[8] arr;
     arr[0, 4] <- getVal();
 
-    if (arr[0] != 0xAABBCCDD) return 1;
+    if (arr[0] != 0xAABBCCDD) {
+        return 1;
+    }
     return 0;
 }

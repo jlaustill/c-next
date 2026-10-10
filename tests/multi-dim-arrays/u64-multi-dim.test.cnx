@@ -14,10 +14,18 @@ u32 main() {
     matrix2d[3][7] <- 4000000000000;
 
     // 2D array: Read and verify
-    if (matrix2d[0][0] != 1000000000000) return 1;
-    if (matrix2d[0][7] != 2000000000000) return 2;
-    if (matrix2d[1][3] != 3000000000000) return 3;
-    if (matrix2d[3][7] != 4000000000000) return 4;
+    if (matrix2d[0][0] != 1000000000000) {
+        return 1;
+    }
+    if (matrix2d[0][7] != 2000000000000) {
+        return 2;
+    }
+    if (matrix2d[1][3] != 3000000000000) {
+        return 3;
+    }
+    if (matrix2d[3][7] != 4000000000000) {
+        return 4;
+    }
 
     // 3D array: Write operations
     cube3d[0][0][0] <- 100;
@@ -27,23 +35,47 @@ u32 main() {
     cube3d[1][2][3] <- 888888888888;
 
     // 3D array: Read and verify
-    if (cube3d[0][0][0] != 100) return 5;
-    if (cube3d[0][0][3] != 200) return 6;
-    if (cube3d[0][2][3] != 300) return 7;
-    if (cube3d[1][0][0] != 999999999999) return 8;
-    if (cube3d[1][2][3] != 888888888888) return 9;
+    if (cube3d[0][0][0] != 100) {
+        return 5;
+    }
+    if (cube3d[0][0][3] != 200) {
+        return 6;
+    }
+    if (cube3d[0][2][3] != 300) {
+        return 7;
+    }
+    if (cube3d[1][0][0] != 999999999999) {
+        return 8;
+    }
+    if (cube3d[1][2][3] != 888888888888) {
+        return 9;
+    }
 
     // Test .length property at each dimension
     // 2D array dimensions
-    if (matrix2d.element_count != 4) return 10; // First dimension
-    if (matrix2d[0].element_count != 8) return 11; // Second dimension
-    if (matrix2d[0][0].bit_length != 64) return 12; // Element bit width
+    if (matrix2d.element_count != 4) {
+        return 10; // First dimension
+    }
+    if (matrix2d[0].element_count != 8) {
+        return 11; // Second dimension
+    }
+    if (matrix2d[0][0].bit_length != 64) {
+        return 12; // Element bit width
+    }
 
     // 3D array dimensions
-    if (cube3d.element_count != 2) return 13; // First dimension
-    if (cube3d[0].element_count != 3) return 14; // Second dimension
-    if (cube3d[0][0].element_count != 4) return 15; // Third dimension
-    if (cube3d[0][0][0].bit_length != 64) return 16; // Element bit width
+    if (cube3d.element_count != 2) {
+        return 13; // First dimension
+    }
+    if (cube3d[0].element_count != 3) {
+        return 14; // Second dimension
+    }
+    if (cube3d[0][0].element_count != 4) {
+        return 15; // Third dimension
+    }
+    if (cube3d[0][0][0].bit_length != 64) {
+        return 16; // Element bit width
+    }
 
     // Nested loop iteration - populate 2D array
     for (u32 i <- 0; i < 4; i +<- 1) {
@@ -53,10 +85,18 @@ u32 main() {
     }
 
     // Verify populated values
-    if (matrix2d[0][0] != 0) return 17;
-    if (matrix2d[0][7] != 7) return 18;
-    if (matrix2d[1][3] != 103) return 19;
-    if (matrix2d[3][7] != 307) return 20;
+    if (matrix2d[0][0] != 0) {
+        return 17;
+    }
+    if (matrix2d[0][7] != 7) {
+        return 18;
+    }
+    if (matrix2d[1][3] != 103) {
+        return 19;
+    }
+    if (matrix2d[3][7] != 307) {
+        return 20;
+    }
 
     // Nested loop iteration - populate and sum 3D array
     u64 sum <- 0;
@@ -78,15 +118,21 @@ u32 main() {
     //      j=1,k=0..3: 110,111,112,113 = 446
     //      j=2,k=0..3: 120,121,122,123 = 486
     // Total: 6+46+86+406+446+486 = 1476
-    if (sum != 1476) return 21;
+    if (sum != 1476) {
+        return 21;
+    }
 
     // Test modification after initialization
     matrix2d[2][4] <- 9000000000000000000;
-    if (matrix2d[2][4] != 9000000000000000000) return 22;
+    if (matrix2d[2][4] != 9000000000000000000) {
+        return 22;
+    }
 
     // Test boundary access
     matrix2d[matrix2d.element_count - 1][matrix2d[0].element_count - 1] <- 555;
-    if (matrix2d[3][7] != 555) return 23;
+    if (matrix2d[3][7] != 555) {
+        return 23;
+    }
 
     // Test 2D array with large timestamp values
     u64[3][2] timestamps;
@@ -97,12 +143,18 @@ u32 main() {
     timestamps[2][0] <- 1619827200000; // May 1, 2021
     timestamps[2][1] <- 1622505600000; // Jun 1, 2021
 
-    if (timestamps[0][0] != 1609459200000) return 24;
-    if (timestamps[2][1] != 1622505600000) return 25;
+    if (timestamps[0][0] != 1609459200000) {
+        return 24;
+    }
+    if (timestamps[2][1] != 1622505600000) {
+        return 25;
+    }
 
     // Compute time differences
     u64 diff <- timestamps[0][1] - timestamps[0][0];
-    if (diff != 2678400000) return 26; // ~31 days in milliseconds
+    if (diff != 2678400000) {
+        return 26; // ~31 days in milliseconds
+    }
 
     return 0;
 }

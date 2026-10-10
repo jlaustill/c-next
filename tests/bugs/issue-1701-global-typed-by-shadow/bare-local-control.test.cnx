@@ -12,7 +12,11 @@ u32 f() {
 
 u32 main() {
     u32 local <- f();
-    if (local != 255) return 1;
-    if (global.x != 0) return 2;
+    if (local != 255) {
+        return 1;
+    }
+    if (global.x != 0) {
+        return 2;
+    }
     return 0;
 }

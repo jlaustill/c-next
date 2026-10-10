@@ -24,7 +24,11 @@ uint32_t S__count(void) {
 
 int main(void) {
     uint32_t n = S__count();
-    if (n != 4) return 1U;
-    if (K != 10) return 2U;
+    if (n != 4) {
+        return 1U;
+    }
+    if (K != 10) {
+        return 2U;
+    }
     return 0U;
 }

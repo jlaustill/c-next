@@ -63,12 +63,20 @@ uint32_t combined(void) {
 
 int main(void) {
     uint32_t a = useA();
-    if (a != 3) return 1U;
+    if (a != 3) {
+        return 1U;
+    }
     uint32_t b = useB();
-    if (b != 3) return 2U;
-    if (a != b) return 3U;
+    if (b != 3) {
+        return 2U;
+    }
+    if (a != b) {
+        return 3U;
+    }
     sharedWork_fp viaMain = sharedWork;
     uint32_t m = viaMain();
-    if (m != 3) return 4U;
+    if (m != 3) {
+        return 4U;
+    }
     return 0U;
 }

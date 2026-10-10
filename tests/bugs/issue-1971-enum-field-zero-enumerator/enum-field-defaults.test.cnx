@@ -1,0 +1,70 @@
+// test-execution
+// test-adr: 017
+// #1971 (owner ruling): an enum field or array element with no initializer
+// holds its zero enumerator -- the member whose value is 0, else the first --
+// at any depth and in any struct, with or without a callback field.
+u32 tickDefault() {
+    return 10;
+}
+
+enum Mode {
+    IDLE <- 5,
+    RUNNING
+}
+
+struct Inner {
+    Mode m;
+}
+
+struct Holder {
+    tickDefault handler;
+    Mode direct;
+    Inner inner;
+}
+
+struct Modes {
+    Mode[3] ms;
+    Inner[2] inners;
+}
+
+Inner standalone;
+Mode bare;
+Mode[3] globalModes;
+// Globals, not locals: a local's default is not readable before it is
+// assigned (ADR-015, #1980); the local forms are asserted by the snapshots
+// of the issue-1980 fixtures.
+Holder h;
+Modes modes;
+Mode[2] localModes;
+
+u32 main() {
+    u32 r <- h.handler();
+    if (r != 10) {
+        return 1;
+    }
+    if (bare != Mode.IDLE) {
+        return 2;
+    }
+    if (standalone.m != Mode.IDLE) {
+        return 3;
+    }
+    if (h.direct != Mode.IDLE) {
+        return 4;
+    }
+    if (h.inner.m != Mode.IDLE) {
+        return 5;
+    }
+    if (modes.ms[2] != Mode.IDLE) {
+        return 6;
+    }
+    if (modes.inners[1].m != Mode.IDLE) {
+        return 7;
+    }
+    if (globalModes[2] != Mode.IDLE) {
+        return 8;
+    }
+    if (localModes[1] != Mode.IDLE) {
+        return 9;
+    }
+    return 0;
+}

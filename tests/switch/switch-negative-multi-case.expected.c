@@ -117,33 +117,61 @@ int main(void) {
     int8_t pos127 = 127;
     int8_t other = 50;
     testNegativeGroup(neg1);
-    if (result != 1) return 1U;
+    if (result != 1) {
+        return 1U;
+    }
     testNegativeGroup(neg2);
-    if (result != 1) return 2U;
+    if (result != 1) {
+        return 2U;
+    }
     testNegativeGroup(neg3);
-    if (result != 1) return 3U;
+    if (result != 1) {
+        return 3U;
+    }
     testNegativeGroup(neg128);
-    if (result != 2) return 4U;
+    if (result != 2) {
+        return 4U;
+    }
     testNegativeGroup(neg127);
-    if (result != 2) return 5U;
+    if (result != 2) {
+        return 5U;
+    }
     testNegativeGroup(neg126);
-    if (result != 2) return 6U;
+    if (result != 2) {
+        return 6U;
+    }
     testNegativeGroup(zero);
-    if (result != 3) return 7U;
+    if (result != 3) {
+        return 7U;
+    }
     testNegativeGroup(pos1);
-    if (result != 4) return 8U;
+    if (result != 4) {
+        return 8U;
+    }
     testNegativeGroup(pos2);
-    if (result != 4) return 9U;
+    if (result != 4) {
+        return 9U;
+    }
     testNegativeGroup(pos3);
-    if (result != 4) return 10U;
+    if (result != 4) {
+        return 10U;
+    }
     testNegativeGroup(pos125);
-    if (result != 5) return 11U;
+    if (result != 5) {
+        return 11U;
+    }
     testNegativeGroup(pos126);
-    if (result != 5) return 12U;
+    if (result != 5) {
+        return 12U;
+    }
     testNegativeGroup(pos127);
-    if (result != 5) return 13U;
+    if (result != 5) {
+        return 13U;
+    }
     testNegativeGroup(other);
-    if (result != 99) return 14U;
+    if (result != 99) {
+        return 14U;
+    }
     int16_t neg100 = -100;
     int16_t pos100 = 100;
     int16_t negOneI16 = -1;
@@ -153,21 +181,37 @@ int main(void) {
     int16_t maxI16 = 32767;
     int16_t otherI16 = 500;
     testMixedGroup(neg100);
-    if (result != 10) return 15U;
+    if (result != 10) {
+        return 15U;
+    }
     testMixedGroup(pos100);
-    if (result != 10) return 16U;
+    if (result != 10) {
+        return 16U;
+    }
     testMixedGroup(negOneI16);
-    if (result != 11) return 17U;
+    if (result != 11) {
+        return 17U;
+    }
     testMixedGroup(zeroI16);
-    if (result != 11) return 18U;
+    if (result != 11) {
+        return 18U;
+    }
     testMixedGroup(posOneI16);
-    if (result != 11) return 19U;
+    if (result != 11) {
+        return 19U;
+    }
     testMixedGroup(minI16);
-    if (result != 12) return 20U;
+    if (result != 12) {
+        return 20U;
+    }
     testMixedGroup(maxI16);
-    if (result != 12) return 21U;
+    if (result != 12) {
+        return 21U;
+    }
     testMixedGroup(otherI16);
-    if (result != 99) return 22U;
+    if (result != 99) {
+        return 22U;
+    }
     int32_t neg16 = -16;
     int32_t neg32 = -32;
     int32_t neg48 = -48;
@@ -176,18 +220,32 @@ int main(void) {
     int32_t zeroI32 = 0;
     int32_t otherI32 = 1000;
     testNegativeHexGroup(neg16);
-    if (result != 20) return 23U;
+    if (result != 20) {
+        return 23U;
+    }
     testNegativeHexGroup(neg32);
-    if (result != 20) return 24U;
+    if (result != 20) {
+        return 24U;
+    }
     testNegativeHexGroup(neg48);
-    if (result != 20) return 25U;
+    if (result != 20) {
+        return 25U;
+    }
     testNegativeHexGroup(neg255);
-    if (result != 21) return 26U;
+    if (result != 21) {
+        return 26U;
+    }
     testNegativeHexGroup(neg256);
-    if (result != 21) return 27U;
+    if (result != 21) {
+        return 27U;
+    }
     testNegativeHexGroup(zeroI32);
-    if (result != 22) return 28U;
+    if (result != 22) {
+        return 28U;
+    }
     testNegativeHexGroup(otherI32);
-    if (result != 99) return 29U;
+    if (result != 99) {
+        return 29U;
+    }
     return 0U;
 }

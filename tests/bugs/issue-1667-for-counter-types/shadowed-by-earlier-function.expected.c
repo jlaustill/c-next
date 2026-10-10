@@ -59,8 +59,12 @@ uint32_t passes(void) {
 int main(void) {
     first();
     uint32_t width = probe();
-    if (width != 8) return 1U;
+    if (width != 8) {
+        return 1U;
+    }
     uint32_t count = passes();
-    if (count != 1) return 2U;
+    if (count != 1) {
+        return 2U;
+    }
     return 0U;
 }

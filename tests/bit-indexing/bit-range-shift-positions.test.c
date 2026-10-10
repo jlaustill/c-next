@@ -13,175 +13,289 @@ int main(void) {
     uint32_t value = 0U;
     value = 0U;
     value = (value & ~((uint32_t)1U << 0)) | ((uint32_t)1U << 0);
-    if (value != 0x00000001) return 1U;
+    if (value != 0x00000001) {
+        return 1U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)1U << 1)) | ((uint32_t)1U << 1);
-    if (value != 0x00000002) return 2U;
+    if (value != 0x00000002) {
+        return 2U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)1U << 2)) | ((uint32_t)1U << 2);
-    if (value != 0x00000004) return 3U;
+    if (value != 0x00000004) {
+        return 3U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)1U << 3)) | ((uint32_t)1U << 3);
-    if (value != 0x00000008) return 4U;
+    if (value != 0x00000008) {
+        return 4U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)1U << 4)) | ((uint32_t)1U << 4);
-    if (value != 0x00000010) return 5U;
+    if (value != 0x00000010) {
+        return 5U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)1U << 5)) | ((uint32_t)1U << 5);
-    if (value != 0x00000020) return 6U;
+    if (value != 0x00000020) {
+        return 6U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)1U << 6)) | ((uint32_t)1U << 6);
-    if (value != 0x00000040) return 7U;
+    if (value != 0x00000040) {
+        return 7U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)1U << 7)) | ((uint32_t)1U << 7);
-    if (value != 0x00000080) return 8U;
+    if (value != 0x00000080) {
+        return 8U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)1U << 8)) | ((uint32_t)1U << 8);
-    if (value != 0x00000100) return 9U;
+    if (value != 0x00000100) {
+        return 9U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)1U << 9)) | ((uint32_t)1U << 9);
-    if (value != 0x00000200) return 10U;
+    if (value != 0x00000200) {
+        return 10U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)1U << 10)) | ((uint32_t)1U << 10);
-    if (value != 0x00000400) return 11U;
+    if (value != 0x00000400) {
+        return 11U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)1U << 11)) | ((uint32_t)1U << 11);
-    if (value != 0x00000800) return 12U;
+    if (value != 0x00000800) {
+        return 12U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)1U << 12)) | ((uint32_t)1U << 12);
-    if (value != 0x00001000) return 13U;
+    if (value != 0x00001000) {
+        return 13U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)1U << 13)) | ((uint32_t)1U << 13);
-    if (value != 0x00002000) return 14U;
+    if (value != 0x00002000) {
+        return 14U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)1U << 14)) | ((uint32_t)1U << 14);
-    if (value != 0x00004000) return 15U;
+    if (value != 0x00004000) {
+        return 15U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)1U << 15)) | ((uint32_t)1U << 15);
-    if (value != 0x00008000) return 16U;
+    if (value != 0x00008000) {
+        return 16U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)1U << 16)) | ((uint32_t)1U << 16);
-    if (value != 0x00010000) return 17U;
+    if (value != 0x00010000) {
+        return 17U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)1U << 17)) | ((uint32_t)1U << 17);
-    if (value != 0x00020000) return 18U;
+    if (value != 0x00020000) {
+        return 18U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)1U << 18)) | ((uint32_t)1U << 18);
-    if (value != 0x00040000) return 19U;
+    if (value != 0x00040000) {
+        return 19U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)1U << 19)) | ((uint32_t)1U << 19);
-    if (value != 0x00080000) return 20U;
+    if (value != 0x00080000) {
+        return 20U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)1U << 20)) | ((uint32_t)1U << 20);
-    if (value != 0x00100000) return 21U;
+    if (value != 0x00100000) {
+        return 21U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)1U << 21)) | ((uint32_t)1U << 21);
-    if (value != 0x00200000) return 22U;
+    if (value != 0x00200000) {
+        return 22U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)1U << 22)) | ((uint32_t)1U << 22);
-    if (value != 0x00400000) return 23U;
+    if (value != 0x00400000) {
+        return 23U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)1U << 23)) | ((uint32_t)1U << 23);
-    if (value != 0x00800000) return 24U;
+    if (value != 0x00800000) {
+        return 24U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)1U << 24)) | ((uint32_t)1U << 24);
-    if (value != 0x01000000) return 25U;
+    if (value != 0x01000000) {
+        return 25U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)1U << 25)) | ((uint32_t)1U << 25);
-    if (value != 0x02000000) return 26U;
+    if (value != 0x02000000) {
+        return 26U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)1U << 26)) | ((uint32_t)1U << 26);
-    if (value != 0x04000000) return 27U;
+    if (value != 0x04000000) {
+        return 27U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)1U << 27)) | ((uint32_t)1U << 27);
-    if (value != 0x08000000) return 28U;
+    if (value != 0x08000000) {
+        return 28U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)1U << 28)) | ((uint32_t)1U << 28);
-    if (value != 0x10000000) return 29U;
+    if (value != 0x10000000) {
+        return 29U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)1U << 29)) | ((uint32_t)1U << 29);
-    if (value != 0x20000000) return 30U;
+    if (value != 0x20000000) {
+        return 30U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)1U << 30)) | ((uint32_t)1U << 30);
-    if (value != 0x40000000) return 31U;
+    if (value != 0x40000000) {
+        return 31U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)1U << 31)) | ((uint32_t)1U << 31);
-    if (value != 0x80000000) return 32U;
+    if (value != 0x80000000) {
+        return 32U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)0xFU << 0)) | ((0xFU & (uint32_t)0xFU) << 0);
-    if (value != 0x0000000F) return 33U;
+    if (value != 0x0000000F) {
+        return 33U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)0xFU << 4)) | ((0xFU & (uint32_t)0xFU) << 4);
-    if (value != 0x000000F0) return 34U;
+    if (value != 0x000000F0) {
+        return 34U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)0xFU << 8)) | ((0xFU & (uint32_t)0xFU) << 8);
-    if (value != 0x00000F00) return 35U;
+    if (value != 0x00000F00) {
+        return 35U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)0xFU << 12)) | ((0xFU & (uint32_t)0xFU) << 12);
-    if (value != 0x0000F000) return 36U;
+    if (value != 0x0000F000) {
+        return 36U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)0xFU << 16)) | ((0xFU & (uint32_t)0xFU) << 16);
-    if (value != 0x000F0000) return 37U;
+    if (value != 0x000F0000) {
+        return 37U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)0xFU << 20)) | ((0xFU & (uint32_t)0xFU) << 20);
-    if (value != 0x00F00000) return 38U;
+    if (value != 0x00F00000) {
+        return 38U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)0xFU << 24)) | ((0xFU & (uint32_t)0xFU) << 24);
-    if (value != 0x0F000000) return 39U;
+    if (value != 0x0F000000) {
+        return 39U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)0xFU << 28)) | ((0xFU & (uint32_t)0xFU) << 28);
-    if (value != 0xF0000000) return 40U;
+    if (value != 0xF0000000) {
+        return 40U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)0xFFU << 0)) | ((0xFFU & (uint32_t)0xFFU) << 0);
-    if (value != 0x000000FF) return 41U;
+    if (value != 0x000000FF) {
+        return 41U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)0xFFU << 8)) | ((0xFFU & (uint32_t)0xFFU) << 8);
-    if (value != 0x0000FF00) return 42U;
+    if (value != 0x0000FF00) {
+        return 42U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)0xFFU << 16)) | ((0xFFU & (uint32_t)0xFFU) << 16);
-    if (value != 0x00FF0000) return 43U;
+    if (value != 0x00FF0000) {
+        return 43U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)0xFFU << 24)) | ((0xFFU & (uint32_t)0xFFU) << 24);
-    if (value != 0xFF000000) return 44U;
+    if (value != 0xFF000000) {
+        return 44U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)0xFFFFU << 0)) | ((0xFFFFU & (uint32_t)0xFFFFU) << 0);
-    if (value != 0x0000FFFF) return 45U;
+    if (value != 0x0000FFFF) {
+        return 45U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)0xFFFFU << 16)) | ((0xFFFFU & (uint32_t)0xFFFFU) << 16);
-    if (value != 0xFFFF0000) return 46U;
+    if (value != 0xFFFF0000) {
+        return 46U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)0xFFU << 3)) | ((0xABU & (uint32_t)0xFFU) << 3);
-    if (value != 0x00000558) return 47U;
+    if (value != 0x00000558) {
+        return 47U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)0xFFU << 11)) | ((0x5AU & (uint32_t)0xFFU) << 11);
-    if (value != 0x0002D000) return 48U;
+    if (value != 0x0002D000) {
+        return 48U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)0x7U << 17)) | ((0x7U & (uint32_t)0x7U) << 17);
-    if (value != 0x000E0000) return 49U;
+    if (value != 0x000E0000) {
+        return 49U;
+    }
     uint64_t val64 = 0ULL;
     val64 = 0ULL;
     val64 = (val64 & ~((uint64_t)1U << 32)) | ((uint64_t)1U << 32);
-    if (val64 != 0x0000000100000000) return 52U;
+    if (val64 != 0x0000000100000000) {
+        return 52U;
+    }
     val64 = 0ULL;
     val64 = (val64 & ~((uint64_t)1U << 48)) | ((uint64_t)1U << 48);
-    if (val64 != 0x0001000000000000) return 53U;
+    if (val64 != 0x0001000000000000) {
+        return 53U;
+    }
     val64 = 0ULL;
     val64 = (val64 & ~((uint64_t)1U << 63)) | ((uint64_t)1U << 63);
-    if (val64 != 0x8000000000000000) return 54U;
+    if (val64 != 0x8000000000000000) {
+        return 54U;
+    }
     val64 = 0ULL;
     val64 = (val64 & ~((uint64_t)0xFFU << 32)) | ((0xFFU & (uint64_t)0xFFU) << 32);
-    if (val64 != 0x000000FF00000000) return 55U;
+    if (val64 != 0x000000FF00000000) {
+        return 55U;
+    }
     val64 = 0ULL;
     val64 = (val64 & ~((uint64_t)0xFFFFU << 40)) | ((0xABCDU & (uint64_t)0xFFFFU) << 40);
-    if (val64 != 0x00ABCD0000000000) return 56U;
+    if (val64 != 0x00ABCD0000000000) {
+        return 56U;
+    }
     val64 = 0ULL;
     val64 = (val64 & ~((uint64_t)0xFFU << 56)) | ((0x12U & (uint64_t)0xFFU) << 56);
-    if (val64 != 0x1200000000000000) return 57U;
+    if (val64 != 0x1200000000000000) {
+        return 57U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)0x1FU << 6)) | ((0x1FU & (uint32_t)0x1FU) << 6);
-    if (value != 0x000007C0) return 58U;
+    if (value != 0x000007C0) {
+        return 58U;
+    }
     value = 0U;
     value = (value & ~((uint32_t)0xFFU << 12)) | ((0xAAU & (uint32_t)0xFFU) << 12);
-    if (value != 0x000AA000) return 59U;
+    if (value != 0x000AA000) {
+        return 59U;
+    }
     return 0U;
 }

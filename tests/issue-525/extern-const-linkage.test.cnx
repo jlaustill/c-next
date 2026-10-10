@@ -12,12 +12,18 @@ u8 mutableGlobal <- 0;
 
 u32 main() {
     // Test const values
-    if (MAX_COUNT != 8) return 1;
-    if (BUFFER_SIZE != 256) return 2;
+    if (MAX_COUNT != 8) {
+        return 1;
+    }
+    if (BUFFER_SIZE != 256) {
+        return 2;
+    }
 
     // Test mutable global
     mutableGlobal <- 42;
-    if (mutableGlobal != 42) return 3;
+    if (mutableGlobal != 42) {
+        return 3;
+    }
 
     return 0;
 }

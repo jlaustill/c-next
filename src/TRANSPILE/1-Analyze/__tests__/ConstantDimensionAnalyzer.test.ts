@@ -78,3 +78,94 @@ describe("ConstantDimensionAnalyzer (#1175: E0909, E0910)", () => {
     ).toEqual([]);
   });
 });
+
+describe("ConstantDimensionAnalyzer (#1283: E0359)", () => {
+  const macros = {
+    N_HANDLERS: {
+      kind: "integer",
+      valueByIntBits: new Map([
+        [16, 3],
+        [32, 3],
+      ]),
+    },
+    N_UNREADABLE: {
+      kind: "integer",
+      valueByIntBits: new Map([
+        [16, null],
+        [32, null],
+      ]),
+    },
+  } as const;
+  const errorsWith = (source: string) => {
+    const { tree, context } = testAnalysisContextFor(source, {
+      cppMode: false,
+      macros,
+    });
+    return new ConstantDimensionAnalyzer(context).analyze(tree);
+  };
+  const callback = "u32 onSample(u32 input) {\n    return input + 1;\n}\n";
+  const withDefault = `${callback}struct Inner {\n    onSample handler;\n}\n`;
+
+  it.each([
+    [
+      "a callback field",
+      `${callback}struct S {\n    onSample[N_UNREADABLE] hs;\n}`,
+    ],
+    ["a callback global", `${callback}onSample[N_UNREADABLE] hs;`],
+    ["a struct with a default", `${withDefault}Inner[N_UNREADABLE] g;`],
+    ["a global-qualified one", `${withDefault}global.Inner[N_UNREADABLE] g;`],
+    [
+      "a scope's own, by this.",
+      `${callback}scope M {\n    struct T {\n        onSample h;\n    }\n    this.T[N_UNREADABLE] ts;\n}`,
+    ],
+    [
+      "a scope's, qualified",
+      `${callback}scope M {\n    public struct T {\n        onSample h;\n    }\n}\nM.T[N_UNREADABLE] ts;`,
+    ],
+    [
+      "a scope's own, bare",
+      `${callback}scope M {\n    struct T {\n        onSample h;\n    }\n    T[N_UNREADABLE] ts;\n}`,
+    ],
+    [
+      "a callback field, C-style",
+      `${callback}struct S {\n    onSample hs[N_UNREADABLE];\n}`,
+    ],
+    ["a struct global, C-style", `${withDefault}Inner g[N_UNREADABLE];`],
+    [
+      "a local",
+      `${withDefault}u32 run() {\n    Inner[N_UNREADABLE] ls;\n    return 0;\n}`,
+    ],
+    [
+      "a scope method's local, bare",
+      `${callback}scope M {\n    struct T {\n        onSample h;\n    }\n    public u32 run() {\n        T[N_UNREADABLE] ls;\n        return 0;\n    }\n}`,
+    ],
+    [
+      "an enum in a struct with no callback (#1971)",
+      "enum Mode { IDLE, RUN }\nstruct S {\n    Mode[N_UNREADABLE] modes;\n}",
+    ],
+    [
+      "an enum outside a struct (#1971)",
+      "enum Mode { IDLE, RUN }\nMode[N_UNREADABLE] modes;",
+    ],
+    [
+      "an enum in a struct with a default",
+      `${callback}enum Mode { IDLE, RUN }\nstruct S {\n    onSample h;\n    Mode[N_UNREADABLE] modes;\n}`,
+    ],
+  ])("rejects %s sized by a macro C-Next cannot read", (_label, source) => {
+    const found = errorsWith(source);
+    expect(found.map((error) => error.code)).toEqual(["E0359"]);
+    expect(found[0].message).toContain("'N_UNREADABLE'");
+  });
+
+  it.each([
+    ["a readable macro", `${callback}onSample[N_HANDLERS] hs;`],
+    ["readable arithmetic", `${callback}onSample[N_HANDLERS * 2 - 1] hs;`],
+    ["a primitive array", "u8[N_UNREADABLE] bytes;"],
+    [
+      "a struct with no default",
+      "struct P {\n    u8 x;\n}\nP[N_UNREADABLE] ps;",
+    ],
+  ])("accepts %s", (_label, source) => {
+    expect(errorsWith(source)).toEqual([]);
+  });
+});

@@ -1,0 +1,52 @@
+// test-error
+// #1283 / #1980 owner ruling (ADR-015): a local struct's callback field holds
+// its ADR-029 default from the declaration, but that default is the value it
+// holds, not an initialization -- reading it before any assignment is E0381,
+// for a plain local, an element of a local array (its element type named bare,
+// `this.`, or a scope-nested struct), and a callback inside a nested struct
+// field.
+u32 tickDefault() {
+    return 10;
+}
+
+u32 tickOther() {
+    return 20;
+}
+
+struct Ticker {
+    tickDefault handler;
+    u32 count;
+}
+
+struct Holder {
+    Ticker inner;
+    u32 total;
+}
+
+scope Pump {
+    public struct Stage {
+        tickDefault handler;
+        u32 count;
+    }
+
+    public u32 viaScopeArrays() {
+        this.Stage[2] qualified;
+        Stage[2] bare;
+        return qualified[1].handler() + bare[1].handler();
+    }
+}
+
+u32 viaLocalArray() {
+    Ticker[3] tickers;
+    return tickers[2].handler();
+}
+
+u32 main() {
+    Ticker t;
+    u32 r <- t.handler();
+    Holder h;
+    r +<- h.inner.handler();
+    r +<- viaLocalArray();
+    r +<- Pump.viaScopeArrays();
+    return r;
+}

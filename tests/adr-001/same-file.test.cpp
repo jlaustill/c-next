@@ -54,8 +54,12 @@ uint32_t Cfg__check(void) {
     for (i = 0U; i < 1; i = cnx_clamp_add_u32(i, 1U)) {
         seen = cnx_clamp_add_u8(seen, 1U);
     }
-    if (seen == 3) return 8U;
-    if (seen != 2) return 9U;
+    if (seen == 3) {
+        return 8U;
+    }
+    if (seen != 2) {
+        return 9U;
+    }
     return 0U;
 }
 
@@ -64,11 +68,21 @@ int main(void) {
     uint8_t count = 0U;
     count = cnx_clamp_add_u8(count, 1U);
     count = cnx_clamp_add_u8(count, 1U);
-    if (gEqual != true) return 1U;
-    if (Cfg__mEqual != true) return 2U;
-    if (count == 3) return 3U;
-    if (count != 2) return 4U;
+    if (gEqual != true) {
+        return 1U;
+    }
+    if (Cfg__mEqual != true) {
+        return 2U;
+    }
+    if (count == 3) {
+        return 3U;
+    }
+    if (count != 2) {
+        return 4U;
+    }
     uint32_t checked = Cfg__check();
-    if (checked != 0) return 5U;
+    if (checked != 0) {
+        return 5U;
+    }
     return 0U;
 }

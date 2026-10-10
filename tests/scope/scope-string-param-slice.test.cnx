@@ -25,16 +25,24 @@ scope StringSliceTest {
         // Verify bytes (little-endian) using u8 cast
         u8 byte0 <- buffer[0];
         u8 byte1 <- buffer[1];
-        if (byte0 != 0x34) return 1;
-        if (byte1 != 0x12) return 2;
+        if (byte0 != 0x34) {
+            return 1;
+        }
+        if (byte1 != 0x12) {
+            return 2;
+        }
 
         // Copy 0x5678 into buffer at offset 2
         this.copyToBufferAt2(buffer, 0x5678);
 
         u8 byte2 <- buffer[2];
         u8 byte3 <- buffer[3];
-        if (byte2 != 0x78) return 3;
-        if (byte3 != 0x56) return 4;
+        if (byte2 != 0x78) {
+            return 3;
+        }
+        if (byte3 != 0x56) {
+            return 4;
+        }
 
         return 0;
     }

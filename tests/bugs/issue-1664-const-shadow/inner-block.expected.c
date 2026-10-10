@@ -41,6 +41,8 @@ uint32_t probe(void) {
 
 int main(void) {
     uint32_t n = probe();
-    if (n != 17) return 1U;
+    if (n != 17) {
+        return 1U;
+    }
     return 0U;
 }

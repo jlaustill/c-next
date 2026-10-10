@@ -17,12 +17,11 @@ void myHandler(const Message* msg) {
 }
 
 Controller Controller_init(void) {
-    Controller value = {0};
-    value._handler = onReceive;
+    Controller value = { ._handler = onReceive };
     return value;
 }
 
 void test(void) {
-    Controller c = {0};
+    Controller c = { ._handler = onReceive };
     c._handler = myHandler;
 }

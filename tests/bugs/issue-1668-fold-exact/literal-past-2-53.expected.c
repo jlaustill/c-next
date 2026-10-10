@@ -47,9 +47,17 @@ int main(void) {
     int64_t small = 1;
     uint64_t q = divide(7ULL);
     uint64_t qs = divideSmall(9ULL);
-    if (q != 7) return 1;
-    if (s != 1) return 2;
-    if (small != 1) return 3;
-    if (qs != 9) return 4;
+    if (q != 7) {
+        return 1;
+    }
+    if (s != 1) {
+        return 2;
+    }
+    if (small != 1) {
+        return 3;
+    }
+    if (qs != 9) {
+        return 4;
+    }
     return 0;
 }

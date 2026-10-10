@@ -39,12 +39,16 @@ i32 main() {
 
     UI.outer(d);
     i32 afterOuter <- dev_pokes(d);
-    if (afterOuter != 1) return 1;
+    if (afterOuter != 1) {
+        return 1;
+    }
 
     UI.hold(d);
     UI.pokeHeld();
     i32 afterHeld <- dev_pokes(d);
-    if (afterHeld != 2) return 2;
+    if (afterHeld != 2) {
+        return 2;
+    }
 
     return 0;
 }

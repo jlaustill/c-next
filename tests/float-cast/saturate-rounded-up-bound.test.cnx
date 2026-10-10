@@ -18,16 +18,28 @@ f32 edge() {
 
 u32 main() {
     u32 a <- (u32)edgeU32;
-    if (a != 0xFFFFFFFF) return 1;
+    if (a != 0xFFFFFFFF) {
+        return 1;
+    }
     i32 b <- (i32)edgeI32;
-    if (b != 2147483647) return 2;
+    if (b != 2147483647) {
+        return 2;
+    }
     u32 c <- (u32)belowU32;
-    if (c != 4294967040) return 3;
+    if (c != 4294967040) {
+        return 3;
+    }
     i32 d <- (i32)belowI32;
-    if (d != 2147483520) return 4;
+    if (d != 2147483520) {
+        return 4;
+    }
     u8 e <- (u8)f255;
-    if (e != 255) return 5;
+    if (e != 255) {
+        return 5;
+    }
     u32 h <- (u32)edge();
-    if (h != 0xFFFFFFFF) return 6;
+    if (h != 0xFFFFFFFF) {
+        return 6;
+    }
     return 0;
 }

@@ -23,6 +23,8 @@ int main(void) {
     __bits_dd.f = dd;
     __bits_dd.u = (__bits_dd.u & ~((uint64_t)1U << 63)) | ((uint64_t)1U << 63);
     dd = __bits_dd.f;
-    if (dd != -2.0) return 1U;
+    if (dd != -2.0) {
+        return 1U;
+    }
     return 0U;
 }

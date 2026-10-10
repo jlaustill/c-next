@@ -117,19 +117,27 @@ scope NoCapture {
 
 u32 main() {
     u32 timing <- Timing.run();
-    if (timing != 44) return 1;
+    if (timing != 44) {
+        return 1;
+    }
 
     u32 later <- Later.run();
-    if (later != 2) return 2;
+    if (later != 2) {
+        return 2;
+    }
 
     // Scope function shadowing a global struct name: the FUNCTION captures.
     u32 shadowed <- Shadow.run();
-    if (shadowed != 9) return 3;
+    if (shadowed != 9) {
+        return 3;
+    }
 
     // Scope variable sharing a global type's name: the global TYPE survives.
     // BETA (2) + the scope variable Mode (5) = 7.
     u32 uncaptured <- NoCapture.run();
-    if (uncaptured != 7) return 4;
+    if (uncaptured != 7) {
+        return 4;
+    }
 
     return 0;
 }

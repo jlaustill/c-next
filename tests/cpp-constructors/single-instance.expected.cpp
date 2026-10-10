@@ -15,6 +15,8 @@ int main(void) {
     DefaultConstructible obj = {};
     obj.value = 42;
     obj.name = "test";
-    if (obj.value != 42) return 1;
+    if (obj.value != 42) {
+        return 1;
+    }
     return 0;
 }

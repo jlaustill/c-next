@@ -55,12 +55,16 @@ u32 main() {
     // Test 1: Array struct member passing
     // Expected: 0 ^ 1 ^ 1 ^ 1 ^ 42 = 43
     u32 result1 <- testArrayStructMembers();
-    if (result1 != 43) return 1;
+    if (result1 != 43) {
+        return 1;
+    }
 
     // Test 2: Multiple indices
     // Expected: 0 ^ 0 ^ 2 ^ 2 ^ 100 = 100
     u32 result2 <- testMultipleIndices();
-    if (result2 != 100) return 2;
+    if (result2 != 100) {
+        return 2;
+    }
 
     return 0;
 }

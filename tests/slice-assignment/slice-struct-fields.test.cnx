@@ -30,27 +30,57 @@ u32 main() {
     buffer[7, 8] <- config.timestamp;
 
     // Validate magic (bytes 0-3)
-    if (buffer[0] != 0x58) return 1;
-    if (buffer[1] != 0x4E) return 2;
-    if (buffer[2] != 0x53) return 3;
-    if (buffer[3] != 0x43) return 4;
+    if (buffer[0] != 0x58) {
+        return 1;
+    }
+    if (buffer[1] != 0x4E) {
+        return 2;
+    }
+    if (buffer[2] != 0x53) {
+        return 3;
+    }
+    if (buffer[3] != 0x43) {
+        return 4;
+    }
 
     // Validate version (bytes 4-5)
-    if (buffer[4] != 0x01) return 5;
-    if (buffer[5] != 0x01) return 6;
+    if (buffer[4] != 0x01) {
+        return 5;
+    }
+    if (buffer[5] != 0x01) {
+        return 6;
+    }
 
     // Validate flags (byte 6)
-    if (buffer[6] != 0x0F) return 7;
+    if (buffer[6] != 0x0F) {
+        return 7;
+    }
 
     // Validate timestamp (bytes 7-14)
-    if (buffer[7] != 0xF0) return 8;
-    if (buffer[8] != 0xDE) return 9;
-    if (buffer[9] != 0xBC) return 10;
-    if (buffer[10] != 0x9A) return 11;
-    if (buffer[11] != 0x78) return 12;
-    if (buffer[12] != 0x56) return 13;
-    if (buffer[13] != 0x34) return 14;
-    if (buffer[14] != 0x12) return 15;
+    if (buffer[7] != 0xF0) {
+        return 8;
+    }
+    if (buffer[8] != 0xDE) {
+        return 9;
+    }
+    if (buffer[9] != 0xBC) {
+        return 10;
+    }
+    if (buffer[10] != 0x9A) {
+        return 11;
+    }
+    if (buffer[11] != 0x78) {
+        return 12;
+    }
+    if (buffer[12] != 0x56) {
+        return 13;
+    }
+    if (buffer[13] != 0x34) {
+        return 14;
+    }
+    if (buffer[14] != 0x12) {
+        return 15;
+    }
 
     return 0;
 }

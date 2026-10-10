@@ -1,0 +1,33 @@
+// test-error
+// #1874: C (C99 6.7.5.2p1) has no array of zero or fewer elements, so a
+// dimension below 1 is E0913 at the dimension -- a literal, an arithmetic
+// zero, a negative expression, a negative const and a header macro's value
+// alike, at file scope, as a local, a struct field and a parameter. It was
+// written into the C (`uint8_t a[-1]`) at exit 0, and a callback array's
+// default crashed the transpiler ("Invalid array length").
+#include "sizes/negative.h"
+
+const i32 M <- -2;
+
+u8[0] z;
+u8[1 - 1] zz;
+u8[1 - 2] a;
+u8[M] b;
+u8[1] one;
+
+u32 onSample(u32 input) {
+    return input + 1;
+}
+
+struct Bank {
+    onSample[3 - 5] handlers;
+    onSample[N_HANDLERS - 5] fromMacro;
+}
+
+u32 first(u8[0] values) {
+    return 0;
+}
+
+void main() {
+    u8[0] c;
+}

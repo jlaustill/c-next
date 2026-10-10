@@ -22,9 +22,13 @@
 int main(void) {
     xwitness = 0U;
     register_log_handler(xOnLog);
-    if (xwitness != 104) return 1U;
+    if (xwitness != 104) {
+        return 1U;
+    }
     xwitness = 0U;
     xPlainRead("hi");
-    if (xwitness != 104) return 2U;
+    if (xwitness != 104) {
+        return 2U;
+    }
     return 0U;
 }

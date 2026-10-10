@@ -43,24 +43,34 @@ int main(void) {
     if (value > 0) {
         value = 1U;
     }
-    if (value != 1) return 1U;
+    if (value != 1) {
+        return 1U;
+    }
     uint32_t count = 3U;
     while (count > 0) {
         count = cnx_clamp_sub_u32(count, 1U);
     }
-    if (count != 0) return 2U;
+    if (count != 0) {
+        return 2U;
+    }
     uint32_t sum = 0U;
     uint32_t limit = 5U;
     for (uint32_t i = 0U; i < limit; i = cnx_clamp_add_u32(i, 1U)) {
         sum = cnx_clamp_add_u32(sum, 1U);
     }
-    if (sum != 5) return 3U;
+    if (sum != 5) {
+        return 3U;
+    }
     uint32_t x = 2U;
     do {
         x = cnx_clamp_sub_u32(x, 1U);
     } while (x > 0);
-    if (x != 0) return 4U;
+    if (x != 0) {
+        return 4U;
+    }
     uint32_t result = (valid == true) ? 100U : 0U;
-    if (result != 100) return 5U;
+    if (result != 100) {
+        return 5U;
+    }
     return 0U;
 }

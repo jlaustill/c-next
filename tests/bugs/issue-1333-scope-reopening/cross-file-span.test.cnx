@@ -75,6 +75,8 @@ scope Lib {
 u32 main() {
     u32 result <- Lib.runAll();
     // useBoth 9 + sumThrough 3 + origin.x 10 + l.start.x 100 + flags 0 = 122
-    if (result != 122) return 1;
+    if (result != 122) {
+        return 1;
+    }
     return 0;
 }

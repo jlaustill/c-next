@@ -26,20 +26,28 @@ u32 main() {
     // Test 1: Non-const array param - fill and verify
     u8[8] buffer;
     fillBuffer(buffer);
-    if (buffer[0] != 0xAA) return 1;
-    if (buffer[1] != 0xBB) return 2;
+    if (buffer[0] != 0xAA) {
+        return 1;
+    }
+    if (buffer[1] != 0xBB) {
+        return 2;
+    }
 
     // Test 2: Const array param - read from const array
     u8[8] data;
     data[0] <- 42;
     u8 val <- readFirst(data);
-    if (val != 42) return 3;
+    if (val != 42) {
+        return 3;
+    }
 
     // Test 3: Different array size const param
     u8[4] small;
     small[1] <- 99;
     u8 val2 <- readSecond(small);
-    if (val2 != 99) return 4;
+    if (val2 != 99) {
+        return 4;
+    }
 
     // Test 4: Mixed const and non-const array params
     u8[4] ref;
@@ -47,7 +55,9 @@ u32 main() {
     ref[1] <- 20;
     u8[8] dest;
     u8 sum <- sumFirstTwo(dest, ref);
-    if (sum != 30) return 5;
+    if (sum != 30) {
+        return 5;
+    }
 
     return 0;
 }

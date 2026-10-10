@@ -31,11 +31,21 @@ u32 main() {
     bytes.data[2] <- 0x30;
     bytes.data[3] <- 0x40;
 
-    if (bytes.len != 4) return 1;
-    if (bytes.data[0] != 0x10) return 2;
-    if (bytes.data[1] != 0x20) return 3;
-    if (bytes.data[2] != 0x30) return 4;
-    if (bytes.data[3] != 0x40) return 5;
+    if (bytes.len != 4) {
+        return 1;
+    }
+    if (bytes.data[0] != 0x10) {
+        return 2;
+    }
+    if (bytes.data[1] != 0x20) {
+        return 3;
+    }
+    if (bytes.data[2] != 0x30) {
+        return 4;
+    }
+    if (bytes.data[3] != 0x40) {
+        return 5;
+    }
 
     // Test u16 array member
     WordBuffer words;
@@ -44,10 +54,18 @@ u32 main() {
     words.values[1] <- 2000;
     words.values[2] <- 3000;
 
-    if (words.count != 3) return 6;
-    if (words.values[0] != 1000) return 7;
-    if (words.values[1] != 2000) return 8;
-    if (words.values[2] != 3000) return 9;
+    if (words.count != 3) {
+        return 6;
+    }
+    if (words.values[0] != 1000) {
+        return 7;
+    }
+    if (words.values[1] != 2000) {
+        return 8;
+    }
+    if (words.values[2] != 3000) {
+        return 9;
+    }
 
     // Test u32 array member
     LongBuffer longs;
@@ -55,9 +73,15 @@ u32 main() {
     longs.items[0] <- 100000;
     longs.items[1] <- 200000;
 
-    if (longs.cap != 2) return 10;
-    if (longs.items[0] != 100000) return 11;
-    if (longs.items[1] != 200000) return 12;
+    if (longs.cap != 2) {
+        return 10;
+    }
+    if (longs.items[0] != 100000) {
+        return 11;
+    }
+    if (longs.items[1] != 200000) {
+        return 12;
+    }
 
     // Test u64 array member
     WideBuffer wides;
@@ -65,16 +89,26 @@ u32 main() {
     wides.entries[0] <- 1000000000;
     wides.entries[1] <- 2000000000;
 
-    if (wides.used != 2) return 13;
-    if (wides.entries[0] != 1000000000) return 14;
-    if (wides.entries[1] != 2000000000) return 15;
+    if (wides.used != 2) {
+        return 13;
+    }
+    if (wides.entries[0] != 1000000000) {
+        return 14;
+    }
+    if (wides.entries[1] != 2000000000) {
+        return 15;
+    }
 
     // Test compound assignment on array member
     bytes.data[0] +<- 5;
-    if (bytes.data[0] != 0x15) return 16;
+    if (bytes.data[0] != 0x15) {
+        return 16;
+    }
 
     words.values[0] -<- 100;
-    if (words.values[0] != 900) return 17;
+    if (words.values[0] != 900) {
+        return 17;
+    }
 
     return 0;
 }

@@ -24,14 +24,20 @@ int main(void) {
     shared = dev_create();
     dev_poke(shared);
     int32_t single = dev_pokes(shared);
-    if (single != 1) return 1;
+    if (single != 1) {
+        return 1;
+    }
     sharedPair[0] = dev_create();
     dev_poke(sharedPair[0U]);
     int32_t element = dev_pokes(sharedPair[0U]);
-    if (element != 1) return 2;
+    if (element != 1) {
+        return 2;
+    }
     Rack__attach();
     dev_poke(Rack__unit);
     int32_t unit = dev_pokes(Rack__unit);
-    if (unit != 1) return 3;
+    if (unit != 1) {
+        return 3;
+    }
     return 0;
 }

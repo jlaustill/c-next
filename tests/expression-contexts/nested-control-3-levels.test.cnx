@@ -22,7 +22,9 @@ u32 main() {
             }
         }
     }
-    if (result != 1) return 1;
+    if (result != 1) {
+        return 1;
+    }
 
     // Test 2: 3-level if with middle false
     b <- false;
@@ -34,7 +36,9 @@ u32 main() {
             }
         }
     }
-    if (result != 0) return 2;
+    if (result != 0) {
+        return 2;
+    }
 
     // Test 3: 3-level if with else branches
     a <- true;
@@ -51,7 +55,9 @@ u32 main() {
             }
         }
     }
-    if (result != 11) return 3;
+    if (result != 11) {
+        return 3;
+    }
 
     // === IF-IF-WHILE NESTING ===
 
@@ -69,7 +75,9 @@ u32 main() {
             }
         }
     }
-    if (result != 30) return 4;
+    if (result != 30) {
+        return 4;
+    }
 
     // === IF-WHILE-IF NESTING ===
 
@@ -86,7 +94,9 @@ u32 main() {
             counter +<- 1;
         }
     }
-    if (result != 100) return 5;
+    if (result != 100) {
+        return 5;
+    }
 
     // === WHILE-IF-IF NESTING ===
 
@@ -104,7 +114,9 @@ u32 main() {
     }
 
     // counter 1 and 2 match, so result = 2
-    if (result != 2) return 6;
+    if (result != 2) {
+        return 6;
+    }
 
     // === WHILE-WHILE-WHILE NESTING ===
 
@@ -128,7 +140,9 @@ u32 main() {
     }
 
     // 2 * 2 * 2 = 8 iterations
-    if (counter != 8) return 7;
+    if (counter != 8) {
+        return 7;
+    }
 
     // === FOR-IF-IF NESTING ===
 
@@ -143,7 +157,9 @@ u32 main() {
     }
 
     // x=2, x=3 match: 2+3=5
-    if (result != 5) return 8;
+    if (result != 5) {
+        return 8;
+    }
 
     // === FOR-FOR-FOR NESTING ===
 
@@ -156,7 +172,9 @@ u32 main() {
             }
         }
     }
-    if (counter != 8) return 9;
+    if (counter != 8) {
+        return 9;
+    }
 
     // === FOR-WHILE-IF NESTING ===
 
@@ -173,7 +191,9 @@ u32 main() {
     }
 
     // m=1 executes twice (n=0,1), so result = 10
-    if (result != 10) return 10;
+    if (result != 10) {
+        return 10;
+    }
 
     // === IF-FOR-WHILE NESTING ===
 
@@ -192,7 +212,9 @@ u32 main() {
     }
 
     // 2 * 3 = 6
-    if (result != 6) return 11;
+    if (result != 6) {
+        return 11;
+    }
 
     // === WHILE-FOR-IF NESTING ===
 
@@ -210,7 +232,9 @@ u32 main() {
     }
 
     // h=1 hits twice (counter 0 and 1), so result = 14
-    if (result != 14) return 12;
+    if (result != 14) {
+        return 12;
+    }
 
     // === IF-IF-SWITCH NESTING ===
 
@@ -238,7 +262,9 @@ u32 main() {
             }
         }
     }
-    if (result != 102) return 13;
+    if (result != 102) {
+        return 13;
+    }
 
     // === FOR-IF-SWITCH NESTING ===
 
@@ -261,7 +287,9 @@ u32 main() {
     }
 
     // s=1 adds 10, s=2 adds 20, total=30
-    if (result != 30) return 14;
+    if (result != 30) {
+        return 14;
+    }
 
     // === SWITCH-IF-IF (switch containing nested ifs) ===
 
@@ -289,7 +317,9 @@ u32 main() {
             result <- 299;
         }
     }
-    if (result != 201) return 15;
+    if (result != 201) {
+        return 15;
+    }
 
     // === MIXED COMPLEX: if-while-switch ===
 
@@ -316,7 +346,9 @@ u32 main() {
     }
 
     // counter 0 adds 5, counter 1 adds 15, total=20
-    if (result != 20) return 16;
+    if (result != 20) {
+        return 16;
+    }
 
     // === 3-LEVEL WITH STRUCTURED EARLY EXIT ===
 
@@ -332,7 +364,9 @@ u32 main() {
 
     // Each inner loop runs 2 times (cc=0,1)
     // 3 * 3 * 2 = 18
-    if (counter != 18) return 17;
+    if (counter != 18) {
+        return 17;
+    }
 
     // === 3-LEVEL WITH STRUCTURED CONDITION ===
 
@@ -350,7 +384,9 @@ u32 main() {
 
     // Each innermost loop: ff=0 counts, ff=1 skipped, ff=2 counts = 2 per
     // 2 * 2 * 2 = 8
-    if (result != 8) return 18;
+    if (result != 8) {
+        return 18;
+    }
 
     return 0;
 }

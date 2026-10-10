@@ -7,49 +7,77 @@ u32 main() {
 
     // Test basic char literal to u8
     u8 letter <- 'A';
-    if (letter != 65) return 1;
+    if (letter != 65) {
+        return 1;
+    }
 
     // Test lowercase
     u8 lower <- 'z';
-    if (lower != 122) return 2;
+    if (lower != 122) {
+        return 2;
+    }
 
     // Test digit character
     u8 digit <- '0';
-    if (digit != 48) return 3;
+    if (digit != 48) {
+        return 3;
+    }
 
     // Test space character
     u8 space <- ' ';
-    if (space != 32) return 4;
+    if (space != 32) {
+        return 4;
+    }
 
     // ===== Comparison operations =====
 
     // Test equality comparison
     u8 c <- 'X';
-    if (c != (u8)'X') return 5;
+    if (c != (u8)'X') {
+        return 5;
+    }
 
     // Test not-equal comparison
-    if (c = (u8)'Y') return 6;
+    if (c = (u8)'Y') {
+        return 6;
+    }
 
     // Test less-than comparison (ASCII ordering)
-    if ('A' >= 'B') return 7;
+    if ('A' >= 'B') {
+        return 7;
+    }
 
     // Test greater-than comparison
-    if ('Z' <= 'A') return 8;
+    if ('Z' <= 'A') {
+        return 8;
+    }
 
     // Test comparison with variable
     u8 first <- 'a';
     u8 second <- 'b';
-    if (first >= second) return 9;
+    if (first >= second) {
+        return 9;
+    }
 
     // ===== Array element context =====
 
     // Test char literals in array initializer
     u8[5] vowels <- ['a', 'e', 'i', 'o', 'u'];
-    if (vowels[0] != (u8)'a') return 10;
-    if (vowels[1] != (u8)'e') return 11;
-    if (vowels[2] != (u8)'i') return 12;
-    if (vowels[3] != (u8)'o') return 13;
-    if (vowels[4] != (u8)'u') return 14;
+    if (vowels[0] != (u8)'a') {
+        return 10;
+    }
+    if (vowels[1] != (u8)'e') {
+        return 11;
+    }
+    if (vowels[2] != (u8)'i') {
+        return 12;
+    }
+    if (vowels[3] != (u8)'o') {
+        return 13;
+    }
+    if (vowels[4] != (u8)'u') {
+        return 14;
+    }
 
     // Test array element assignment with char literal
     u8[4] buffer;
@@ -57,9 +85,15 @@ u32 main() {
     buffer[1] <- 'i';
     buffer[2] <- '!';
     buffer[3] <- 0;
-    if (buffer[0] != 72) return 15; // 'H' = 72
-    if (buffer[1] != 105) return 16; // 'i' = 105
-    if (buffer[2] != 33) return 17; // '!' = 33
+    if (buffer[0] != 72) {
+        return 15; // 'H' = 72
+    }
+    if (buffer[1] != 105) {
+        return 16; // 'i' = 105
+    }
+    if (buffer[2] != 33) {
+        return 17; // '!' = 33
+    }
 
     // ===== Switch case context =====
 
@@ -81,7 +115,9 @@ u32 main() {
             points <- 0;
         }
     }
-    if (points != 3) return 18;
+    if (points != 3) {
+        return 18;
+    }
 
     // Test another switch case
     u8 dir <- 'N';
@@ -104,7 +140,9 @@ u32 main() {
             heading <- 999;
         }
     }
-    if (heading != 0) return 19;
+    if (heading != 0) {
+        return 19;
+    }
 
     // Test switch with 'S' direction
     dir <- 'S';
@@ -125,19 +163,25 @@ u32 main() {
             heading <- 999;
         }
     }
-    if (heading != 180) return 20;
+    if (heading != 180) {
+        return 20;
+    }
 
     // ===== Arithmetic with char literals =====
 
     // Test addition (useful for case conversion)
     u8 upperA <- 'A';
     u8 lowerA <- upperA + 32; // Convert to lowercase
-    if (lowerA != (u8)'a') return 21;
+    if (lowerA != (u8)'a') {
+        return 21;
+    }
 
     // Test subtraction
     u8 lowerZ <- 'z';
     u8 upperZ <- lowerZ - 32; // Convert to uppercase
-    if (upperZ != (u8)'Z') return 22;
+    if (upperZ != (u8)'Z') {
+        return 22;
+    }
 
     return 0; // All tests passed
 }

@@ -28,11 +28,15 @@ scope Test {
 u32 main() {
     // Test scope method returning global enum
     EGlobal fromScope <- Test.getGlobalEnum();
-    if (fromScope != EGlobal.A) return 1;
+    if (fromScope != EGlobal.A) {
+        return 1;
+    }
 
     // Test using global function from scope
     bool testResult <- Test.testGlobalFunction();
-    if (testResult = false) return 2;
+    if (testResult = false) {
+        return 2;
+    }
 
     return 0;
 }

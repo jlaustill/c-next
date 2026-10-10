@@ -48,24 +48,32 @@ u32 main() {
         onIf handler <- onIf;
         handler(5);
     }
-    if (total != 5) return 1;
+    if (total != 5) {
+        return 1;
+    }
     u32 i <- 0;
     while (i < 1) {
         onWhile beat <- onWhile;
         beat(2);
         i <- i + 1;
     }
-    if (total != 7) return 2;
+    if (total != 7) {
+        return 2;
+    }
     do {
         onDo step <- onDo;
         step(1);
     } while (total < 8);
-    if (total != 8) return 3;
+    if (total != 8) {
+        return 3;
+    }
     for (u32 j <- 0; j < 1; j <- j + 1) {
         onFor tick <- onFor;
         tick(2);
     }
-    if (total != 10) return 4;
+    if (total != 10) {
+        return 4;
+    }
     switch (total) {
         case 10 {
             onCase matched <- onCase;
@@ -76,7 +84,9 @@ u32 main() {
             unmatched(100);
         }
     }
-    if (total != 11) return 5;
+    if (total != 11) {
+        return 5;
+    }
     switch (total) {
         case 0 {
             onCase never <- onCase;
@@ -87,8 +97,12 @@ u32 main() {
             fallback(1);
         }
     }
-    if (total != 12) return 6;
+    if (total != 12) {
+        return 6;
+    }
     spinOnce();
-    if (total != 13) return 7;
+    if (total != 13) {
+        return 7;
+    }
     return 0;
 }

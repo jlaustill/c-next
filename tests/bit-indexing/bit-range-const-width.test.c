@@ -15,15 +15,23 @@ int main(void) {
     const uint8_t PART12 = 12U;
     uint32_t b = 0x12345678U;
     uint32_t full = ((b) & 0xFFFFFFFFU);
-    if (full != 0x12345678) return 1U;
+    if (full != 0x12345678) {
+        return 1U;
+    }
     uint32_t part = ((b) & 0xFFFU);
-    if (part != 0x678) return 2U;
+    if (part != 0x678) {
+        return 2U;
+    }
     const uint8_t FULL64 = 64U;
     uint64_t big = 0x123456789ABCDEF0ULL;
     uint64_t full64 = ((big) & 0xFFFFFFFFFFFFFFFFU);
-    if (full64 != 0x123456789ABCDEF0) return 3U;
+    if (full64 != 0x123456789ABCDEF0) {
+        return 3U;
+    }
     const uint8_t W40 = 40U;
     uint64_t w40 = ((big) & 0xFFFFFFFFFFU);
-    if (w40 != 0x789ABCDEF0) return 4U;
+    if (w40 != 0x789ABCDEF0) {
+        return 4U;
+    }
     return 0U;
 }

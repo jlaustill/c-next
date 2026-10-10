@@ -80,22 +80,34 @@ int main(void) {
     uint8_t conPlain[4] = {7U, 7U, 7U, 7U};
     uint8_t decPlain[4] = {7U, 7U, 7U, 7U};
     for (uint32_t i = 0U; i < 4; i = cnx_clamp_add_u32(i, 1U)) {
-        if (strcmp(hex[i], "ab") != 0) return 1U;
+        if (strcmp(hex[i], "ab") != 0) {
+            return 1U;
+        }
     }
     for (uint32_t j = 0U; j < 4; j = cnx_clamp_add_u32(j, 1U)) {
-        if (strcmp(bin[j], "ab") != 0) return 2U;
+        if (strcmp(bin[j], "ab") != 0) {
+            return 2U;
+        }
     }
     for (uint32_t k = 0U; k < 4; k = cnx_clamp_add_u32(k, 1U)) {
-        if (strcmp(con[k], "ab") != 0) return 3U;
+        if (strcmp(con[k], "ab") != 0) {
+            return 3U;
+        }
     }
     for (uint32_t m = 0U; m < 4; m = cnx_clamp_add_u32(m, 1U)) {
-        if (strcmp(dec[m], "ab") != 0) return 4U;
+        if (strcmp(dec[m], "ab") != 0) {
+            return 4U;
+        }
     }
     for (uint32_t n = 0U; n < 4; n = cnx_clamp_add_u32(n, 1U)) {
-        if (conPlain[n] != 7) return 5U;
+        if (conPlain[n] != 7) {
+            return 5U;
+        }
     }
     for (uint32_t p = 0U; p < 4; p = cnx_clamp_add_u32(p, 1U)) {
-        if (decPlain[p] != 7) return 6U;
+        if (decPlain[p] != 7) {
+            return 6U;
+        }
     }
     return 0U;
 }

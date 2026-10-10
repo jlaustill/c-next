@@ -23,10 +23,16 @@ int main(void) {
     // cppcheck-suppress misra-c2012-9.3
     // cppcheck-suppress misra-c2012-9.4
     char names[4][9] = {"ab", "ab", "ab", "ab"};
-    if (strlen(names[0U]) != 2 || strlen(names[0U]) < 1) return 1U;
-    if (strlen(names[1U]) != 2) return 2U;
+    if (strlen(names[0U]) != 2 || strlen(names[0U]) < 1) {
+        return 1U;
+    }
+    if (strlen(names[1U]) != 2) {
+        return 2U;
+    }
     char word[9] = "abc";
     size_t cnx_len_word = strlen(word);
-    if (cnx_len_word != 3 || cnx_len_word < 1) return 3U;
+    if (cnx_len_word != 3 || cnx_len_word < 1) {
+        return 3U;
+    }
     return 0U;
 }

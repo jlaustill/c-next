@@ -8,12 +8,18 @@
 u32 main() {
     gbuf[1] <- 0;
     gbuf[1][3] <- true;
-    if (gbuf[1] != 8) return 1;
+    if (gbuf[1] != 8) {
+        return 1;
+    }
     gbuf[2] <- 0;
     gbuf[2][0, 4] <- 5;
-    if (gbuf[2] != 5) return 2;
+    if (gbuf[2] != 5) {
+        return 2;
+    }
     // NEGATIVE CONTROL: an element write is not a bit write
     gbuf[3] <- 7;
-    if (gbuf[3] != 7) return 3;
+    if (gbuf[3] != 7) {
+        return 3;
+    }
     return 0;
 }

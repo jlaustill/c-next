@@ -23,16 +23,28 @@ float neg = -5.0;
 
 int main(void) {
     uint8_t a = (((k * k)) >= ((float)UINT8_MAX) ? (uint8_t)UINT8_MAX : ((k * k)) < 0.0f ? (uint8_t)0 : (uint8_t)((k * k)));
-    if (a != 255) return 1U;
+    if (a != 255) {
+        return 1U;
+    }
     uint8_t c = (((k * 2.0f)) >= ((float)UINT8_MAX) ? (uint8_t)UINT8_MAX : ((k * 2.0f)) < 0.0f ? (uint8_t)0 : (uint8_t)((k * 2.0f)));
-    if (c != 255) return 2U;
+    if (c != 255) {
+        return 2U;
+    }
     uint8_t b = (((k * 2.0)) >= ((double)UINT8_MAX) ? (uint8_t)UINT8_MAX : ((k * 2.0)) < 0.0 ? (uint8_t)0 : (uint8_t)((k * 2.0)));
-    if (b != 255) return 3U;
+    if (b != 255) {
+        return 3U;
+    }
     uint8_t e = (((k + d)) >= ((double)UINT8_MAX) ? (uint8_t)UINT8_MAX : ((k + d)) < 0.0 ? (uint8_t)0 : (uint8_t)((k + d)));
-    if (e != 255) return 4U;
+    if (e != 255) {
+        return 4U;
+    }
     uint16_t f = (((neg * 2U)) >= ((float)UINT16_MAX) ? (uint16_t)UINT16_MAX : ((neg * 2U)) < 0.0f ? (uint16_t)0 : (uint16_t)((neg * 2U)));
-    if (f != 0) return 5U;
+    if (f != 0) {
+        return 5U;
+    }
     uint8_t g = ((((k > 1.0) ? k : 2.0)) >= ((double)UINT8_MAX) ? (uint8_t)UINT8_MAX : (((k > 1.0) ? k : 2.0)) < 0.0 ? (uint8_t)0 : (uint8_t)(((k > 1.0) ? k : 2.0)));
-    if (g != 200) return 6U;
+    if (g != 200) {
+        return 6U;
+    }
     return 0U;
 }

@@ -41,13 +41,21 @@ u32 main() {
     Motor.fromGlobal[0] <- 22;
     Motor.viaThis[0] <- 33;
 
-    if (Motor.fromScope[0] != 11) return 1;
-    if (Motor.fromGlobal[0] != 22) return 2;
-    if (Motor.viaThis[0] != 33) return 3;
+    if (Motor.fromScope[0] != 11) {
+        return 1;
+    }
+    if (Motor.fromGlobal[0] != 22) {
+        return 2;
+    }
+    if (Motor.viaThis[0] != 33) {
+        return 3;
+    }
 
     // State.COUNT is 2 (IDLE=0, RUN=1, COUNT=2), so index 1 is the last valid slot
     Motor.fromScope[1] <- 44;
-    if (Motor.fromScope[1] != 44) return 4;
+    if (Motor.fromScope[1] != 44) {
+        return 4;
+    }
 
     return 0;
 }

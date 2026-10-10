@@ -19,6 +19,8 @@ u32 probe() {
 
 u32 main() {
     u32 n <- probe();
-    if (n != 17) return 1;
+    if (n != 17) {
+        return 1;
+    }
     return 0;
 }

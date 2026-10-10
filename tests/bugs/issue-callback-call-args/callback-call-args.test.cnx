@@ -68,42 +68,62 @@ i32 main() {
 
     // The defect: a struct argument through a struct field.
     u32 viaField <- h.onPeek(p);
-    if (viaField != 7) return 1;
+    if (viaField != 7) {
+        return 1;
+    }
 
     // Through a field whose function writes its parameter: the write must
     // reach the caller's value, so the argument is its address.
     h.onPoke(p);
-    if (p.x != 12) return 2;
+    if (p.x != 12) {
+        return 2;
+    }
 
     // Through a local of the callback type.
     peek local <- peek;
     u32 viaLocal <- local(p);
-    if (viaLocal != 12) return 3;
+    if (viaLocal != 12) {
+        return 3;
+    }
 
     // Through a parameter of the callback type.
     u32 viaParam <- peekVia(peek, p);
-    if (viaParam != 12) return 4;
+    if (viaParam != 12) {
+        return 4;
+    }
 
     // Through a field, with a member of the result read after the call: the
     // value called is `h.onShift`, not the whole expression.
     u32 shiftedX <- h.onShift(p).x;
-    if (shiftedX != 13) return 5;
+    if (shiftedX != 13) {
+        return 5;
+    }
 
     // Control: a primitive goes by value, through the field and directly.
     u32 n <- 21;
     u32 viaTwice <- h.onTwice(n);
-    if (viaTwice != 42) return 6;
+    if (viaTwice != 42) {
+        return 6;
+    }
     u32 direct <- twice(n);
-    if (direct != 42) return 7;
+    if (direct != 42) {
+        return 7;
+    }
 
     // Control: the direct call to the struct function is unchanged.
     u32 directPeek <- peek(p);
-    if (directPeek != 12) return 8;
+    if (directPeek != 12) {
+        return 8;
+    }
 
     u32 viaParamLocal <- peekLocalVia(peek);
-    if (viaParamLocal != 30) return 9;
+    if (viaParamLocal != 30) {
+        return 9;
+    }
     u32 viaParamScalar <- twiceVia(twice, n);
-    if (viaParamScalar != 42) return 10;
+    if (viaParamScalar != 42) {
+        return 10;
+    }
 
     return 0;
 }

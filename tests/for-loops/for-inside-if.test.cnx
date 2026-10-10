@@ -14,7 +14,9 @@ u32 main() {
     }
 
     // 0+1+2+3+4 = 10
-    if (sum != 10) return 1;
+    if (sum != 10) {
+        return 1;
+    }
 
     // Test 2: for inside else branch
     sum <- 0;
@@ -26,7 +28,9 @@ u32 main() {
             sum +<- 10;
         }
     }
-    if (sum != 30) return 2;
+    if (sum != 30) {
+        return 2;
+    }
 
     // Test 3: for in both branches
     u32 resultA <- 0;
@@ -42,8 +46,12 @@ u32 main() {
             resultB +<- 1;
         }
     }
-    if (resultA != 4) return 3;
-    if (resultB != 0) return 4;
+    if (resultA != 4) {
+        return 3;
+    }
+    if (resultB != 0) {
+        return 4;
+    }
 
     // Test 4: for inside nested if
     sum <- 0;
@@ -56,7 +64,9 @@ u32 main() {
             }
         }
     }
-    if (sum != 10) return 5;
+    if (sum != 10) {
+        return 5;
+    }
 
     return 0;
 }

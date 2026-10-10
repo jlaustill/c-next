@@ -27,16 +27,28 @@ void clear(void) {
 
 int main(void) {
     reset();
-    if (strlen(messageBuffer) != 6) return 1U;
+    if (strlen(messageBuffer) != 6) {
+        return 1U;
+    }
     setToHello();
-    if (strlen(messageBuffer) != 13) return 2U;
+    if (strlen(messageBuffer) != 13) {
+        return 2U;
+    }
     clear();
-    if (strlen(messageBuffer) != 0) return 3U;
+    if (strlen(messageBuffer) != 0) {
+        return 3U;
+    }
     (void) strncpy(messageBuffer, "First", 64); messageBuffer[64] = '\0';
-    if (strlen(messageBuffer) != 5) return 4U;
+    if (strlen(messageBuffer) != 5) {
+        return 4U;
+    }
     (void) strncpy(messageBuffer, "Second", 64); messageBuffer[64] = '\0';
-    if (strlen(messageBuffer) != 6) return 5U;
+    if (strlen(messageBuffer) != 6) {
+        return 5U;
+    }
     (void) strncpy(messageBuffer, "Third", 64); messageBuffer[64] = '\0';
-    if (strlen(messageBuffer) != 5) return 6U;
+    if (strlen(messageBuffer) != 5) {
+        return 6U;
+    }
     return 0U;
 }

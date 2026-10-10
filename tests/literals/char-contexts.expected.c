@@ -29,35 +29,69 @@ static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
 // Character literals work with u8 type (which maps to uint8_t in C)
 int main(void) {
     uint8_t letter = (uint8_t)'A';
-    if (letter != 65) return 1U;
+    if (letter != 65) {
+        return 1U;
+    }
     uint8_t lower = (uint8_t)'z';
-    if (lower != 122) return 2U;
+    if (lower != 122) {
+        return 2U;
+    }
     uint8_t digit = (uint8_t)'0';
-    if (digit != 48) return 3U;
+    if (digit != 48) {
+        return 3U;
+    }
     uint8_t space = (uint8_t)' ';
-    if (space != 32) return 4U;
+    if (space != 32) {
+        return 4U;
+    }
     uint8_t c = (uint8_t)'X';
-    if (c != (uint8_t)'X') return 5U;
-    if (c == (uint8_t)'Y') return 6U;
-    if ('A' >= 'B') return 7U;
-    if ('Z' <= 'A') return 8U;
+    if (c != (uint8_t)'X') {
+        return 5U;
+    }
+    if (c == (uint8_t)'Y') {
+        return 6U;
+    }
+    if ('A' >= 'B') {
+        return 7U;
+    }
+    if ('Z' <= 'A') {
+        return 8U;
+    }
     uint8_t first = (uint8_t)'a';
     uint8_t second = (uint8_t)'b';
-    if (first >= second) return 9U;
+    if (first >= second) {
+        return 9U;
+    }
     uint8_t vowels[5] = {(uint8_t)'a', (uint8_t)'e', (uint8_t)'i', (uint8_t)'o', (uint8_t)'u'};
-    if (vowels[0U] != (uint8_t)'a') return 10U;
-    if (vowels[1U] != (uint8_t)'e') return 11U;
-    if (vowels[2U] != (uint8_t)'i') return 12U;
-    if (vowels[3U] != (uint8_t)'o') return 13U;
-    if (vowels[4U] != (uint8_t)'u') return 14U;
+    if (vowels[0U] != (uint8_t)'a') {
+        return 10U;
+    }
+    if (vowels[1U] != (uint8_t)'e') {
+        return 11U;
+    }
+    if (vowels[2U] != (uint8_t)'i') {
+        return 12U;
+    }
+    if (vowels[3U] != (uint8_t)'o') {
+        return 13U;
+    }
+    if (vowels[4U] != (uint8_t)'u') {
+        return 14U;
+    }
     uint8_t buffer[4] = {0};
     buffer[0] = (uint8_t)'H';
     buffer[1] = (uint8_t)'i';
     buffer[2] = (uint8_t)'!';
     buffer[3] = 0U;
-    if (buffer[0U] != 72) return 15U;
-    if (buffer[1U] != 105) return 16U;
-    if (buffer[2U] != 33) return 17U;
+    if (buffer[0U] != 72) {
+        return 15U;
+    }
+    if (buffer[1U] != 105) {
+        return 16U;
+    }
+    if (buffer[2U] != 33) {
+        return 17U;
+    }
     uint8_t grade = (uint8_t)'B';
     uint32_t points = 0U;
     switch (grade) {
@@ -78,7 +112,9 @@ int main(void) {
             break;
         }
     }
-    if (points != 3) return 18U;
+    if (points != 3) {
+        return 18U;
+    }
     uint8_t dir = (uint8_t)'N';
     uint32_t heading = 0U;
     switch (dir) {
@@ -103,7 +139,9 @@ int main(void) {
             break;
         }
     }
-    if (heading != 0) return 19U;
+    if (heading != 0) {
+        return 19U;
+    }
     dir = (uint8_t)'S';
     switch (dir) {
         case 'N': {
@@ -127,12 +165,18 @@ int main(void) {
             break;
         }
     }
-    if (heading != 180) return 20U;
+    if (heading != 180) {
+        return 20U;
+    }
     uint8_t upperA = (uint8_t)'A';
     uint8_t lowerA = cnx_clamp_add_u8(upperA, 32U);
-    if (lowerA != (uint8_t)'a') return 21U;
+    if (lowerA != (uint8_t)'a') {
+        return 21U;
+    }
     uint8_t lowerZ = (uint8_t)'z';
     uint8_t upperZ = cnx_clamp_sub_u8(lowerZ, 32U);
-    if (upperZ != (uint8_t)'Z') return 22U;
+    if (upperZ != (uint8_t)'Z') {
+        return 22U;
+    }
     return 0U;
 }

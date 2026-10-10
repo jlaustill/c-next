@@ -43,10 +43,14 @@ int main(void) {
     Dev* d = dev_create();
     UI__outer(d);
     int32_t afterOuter = dev_pokes(d);
-    if (afterOuter != 1) return 1;
+    if (afterOuter != 1) {
+        return 1;
+    }
     UI__hold(d);
     UI__pokeHeld();
     int32_t afterHeld = dev_pokes(d);
-    if (afterHeld != 2) return 2;
+    if (afterHeld != 2) {
+        return 2;
+    }
     return 0;
 }

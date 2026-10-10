@@ -29,6 +29,8 @@ scope Reentrant {
 
 u32 main() {
     u32 result <- Reentrant.outer(10);
-    if (result != 10) return 1; // Now passes because outer_temp is local!
+    if (result != 10) {
+        return 1; // Now passes because outer_temp is local!
+    }
     return 0;
 }

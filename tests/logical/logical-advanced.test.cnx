@@ -9,13 +9,19 @@ u32 main() {
 
     // Store && result in variable (standalone expression)
     bool and_result1 <- t && t;
-    if (and_result1 != true) return 1;
+    if (and_result1 != true) {
+        return 1;
+    }
 
     bool and_result2 <- t && f;
-    if (and_result2 != false) return 2;
+    if (and_result2 != false) {
+        return 2;
+    }
 
     bool and_result3 <- f && f;
-    if (and_result3 != false) return 3;
+    if (and_result3 != false) {
+        return 3;
+    }
 
     // === Chained AND (a && b && c) ===
     bool a <- true;
@@ -24,75 +30,115 @@ u32 main() {
     bool d <- false;
 
     bool chain1 <- a && b && c;
-    if (chain1 != true) return 4;
+    if (chain1 != true) {
+        return 4;
+    }
 
     bool chain2 <- a && b && d;
-    if (chain2 != false) return 5;
+    if (chain2 != false) {
+        return 5;
+    }
 
     bool chain3 <- d && b && c;
-    if (chain3 != false) return 6;
+    if (chain3 != false) {
+        return 6;
+    }
 
     // === OR (||) as standalone expression ===
     bool or_result1 <- t || t;
-    if (or_result1 != true) return 7;
+    if (or_result1 != true) {
+        return 7;
+    }
 
     bool or_result2 <- t || f;
-    if (or_result2 != true) return 8;
+    if (or_result2 != true) {
+        return 8;
+    }
 
     bool or_result3 <- f || f;
-    if (or_result3 != false) return 9;
+    if (or_result3 != false) {
+        return 9;
+    }
 
     // === Chained OR (a || b || c) ===
     bool or_chain2 <- d || a || b;
-    if (or_chain2 != true) return 10;
+    if (or_chain2 != true) {
+        return 10;
+    }
 
     // === NOT (!) in ternary condition ===
     // C-Next requires explicit comparison in ternary conditions
     u32 val1 <- (f = false) ? 100 : 200;
-    if (val1 != 100) return 11;
+    if (val1 != 100) {
+        return 11;
+    }
 
     u32 val2 <- (t = false) ? 100 : 200;
-    if (val2 != 200) return 12;
+    if (val2 != 200) {
+        return 12;
+    }
 
     // ! with comparison in ternary
     u32 x <- 5;
     u32 val3 <- (x != 10) ? 100 : 200;
-    if (val3 != 100) return 13;
+    if (val3 != 100) {
+        return 13;
+    }
 
     u32 val4 <- (x != 5) ? 100 : 200;
-    if (val4 != 200) return 14;
+    if (val4 != 200) {
+        return 14;
+    }
 
     // === Double negation (!!) ===
     bool double_neg1 <- !!t;
-    if (double_neg1 != true) return 15;
+    if (double_neg1 != true) {
+        return 15;
+    }
 
     bool double_neg2 <- !!f;
-    if (double_neg2 != false) return 16;
+    if (double_neg2 != false) {
+        return 16;
+    }
 
     // Double negation with comparison
     bool double_neg3 <- !!(x = 5);
-    if (double_neg3 != true) return 17;
+    if (double_neg3 != true) {
+        return 17;
+    }
 
     bool double_neg4 <- !!(x = 10);
-    if (double_neg4 != false) return 18;
+    if (double_neg4 != false) {
+        return 18;
+    }
 
     // === Mixed expressions ===
     // Combining && and ||
     bool mixed1 <- (a && b) || d;
-    if (mixed1 != true) return 19;
+    if (mixed1 != true) {
+        return 19;
+    }
 
     bool mixed2 <- (d && b) || a;
-    if (mixed2 != true) return 20;
+    if (mixed2 != true) {
+        return 20;
+    }
 
     bool mixed3 <- (d && b) || d;
-    if (mixed3 != false) return 21;
+    if (mixed3 != false) {
+        return 21;
+    }
 
     // ! with && and ||
     bool mixed4 <- !d && a;
-    if (mixed4 != true) return 22;
+    if (mixed4 != true) {
+        return 22;
+    }
 
     bool mixed5 <- !a || d;
-    if (mixed5 != false) return 23;
+    if (mixed5 != false) {
+        return 23;
+    }
 
     return 0;
 }

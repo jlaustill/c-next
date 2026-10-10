@@ -16,25 +16,49 @@ int main(void) {
     int32_t err = STATUS_ERROR;
     int32_t pending = STATUS_PENDING;
     int32_t complete = STATUS_COMPLETE;
-    if (ok != 0) return 1U;
-    if (err != -1) return 2U;
-    if (pending != 100) return 3U;
-    if (complete != 200) return 4U;
+    if (ok != 0) {
+        return 1U;
+    }
+    if (err != -1) {
+        return 2U;
+    }
+    if (pending != 100) {
+        return 3U;
+    }
+    if (complete != 200) {
+        return 4U;
+    }
     int32_t baud1 = BAUD_9600;
     int32_t baud2 = BAUD_115200;
-    if (baud1 != 9600) return 5U;
-    if (baud2 != 115200) return 6U;
+    if (baud1 != 9600) {
+        return 5U;
+    }
+    if (baud2 != 115200) {
+        return 6U;
+    }
     int32_t none = FLAG_NONE;
     int32_t read = FLAG_READ;
     int32_t write = FLAG_WRITE;
     int32_t exec = FLAG_EXECUTE;
     int32_t all = FLAG_ALL;
-    if (none != 0) return 7U;
-    if (read != 1) return 8U;
-    if (write != 2) return 9U;
-    if (exec != 4) return 10U;
-    if (all != 7) return 11U;
+    if (none != 0) {
+        return 7U;
+    }
+    if (read != 1) {
+        return 8U;
+    }
+    if (write != 2) {
+        return 9U;
+    }
+    if (exec != 4) {
+        return 10U;
+    }
+    if (all != 7) {
+        return 11U;
+    }
     int32_t readWrite = read | write;
-    if (readWrite != 3) return 12U;
+    if (readWrite != 3) {
+        return 12U;
+    }
     return 0U;
 }

@@ -17,7 +17,9 @@ u32 main() {
         }
         i +<- 1;
     }
-    if (count != 9) return 1;
+    if (count != 9) {
+        return 1;
+    }
 
     // Test 2: Deeply nested (3 levels)
     u32 k <- 0;
@@ -35,7 +37,9 @@ u32 main() {
         }
         i +<- 1;
     }
-    if (count != 8) return 2;
+    if (count != 8) {
+        return 2;
+    }
 
     // Test 3: Inner loop with different exit condition
     count <- 0;
@@ -50,7 +54,9 @@ u32 main() {
     }
 
     // 0 + 1 + 2 + 3 + 4 = 10
-    if (count != 10) return 3;
+    if (count != 10) {
+        return 3;
+    }
 
     return 0;
 }

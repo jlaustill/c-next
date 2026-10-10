@@ -13,15 +13,25 @@ u32 f() {
     global.x +<- 1000;
     u32 n <- global.x.bit_length;
     u32 local <- x;
-    if (r != 1000) return 2;
-    if (n != 32) return 3;
-    if (local != 1) return 4;
+    if (r != 1000) {
+        return 2;
+    }
+    if (n != 32) {
+        return 3;
+    }
+    if (local != 1) {
+        return 4;
+    }
     return 0;
 }
 
 u32 main() {
     u32 checks <- f();
-    if (global.x != 1000) return 1;
-    if (checks != 0) return checks;
+    if (global.x != 1000) {
+        return 1;
+    }
+    if (checks != 0) {
+        return checks;
+    }
     return 0;
 }

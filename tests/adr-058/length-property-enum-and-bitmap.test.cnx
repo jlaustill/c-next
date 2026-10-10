@@ -18,13 +18,21 @@ bitmap16 Flags {
 
 u32 main() {
     Color c <- Color.RED;
-    if (c.bit_length != 32) return 1;
-    if (c.byte_length != 4) return 2;
+    if (c.bit_length != 32) {
+        return 1;
+    }
+    if (c.byte_length != 4) {
+        return 2;
+    }
 
     Flags f;
     f.Mode <- 1;
-    if (f.bit_length != 16) return 3;
-    if (f.byte_length != 2) return 4;
+    if (f.bit_length != 16) {
+        return 3;
+    }
+    if (f.byte_length != 2) {
+        return 4;
+    }
 
     return 0;
 }

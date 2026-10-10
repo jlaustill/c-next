@@ -48,16 +48,22 @@ u32 main() {
     // Top-level: the reported case.
     onTick handler <- onTick;
     handler(5);
-    if (total != 5) return 1;
+    if (total != 5) {
+        return 1;
+    }
 
     // Calling through the variable a second time must accumulate, proving the
     // pointer is real and not a no-op.
     handler(3);
-    if (total != 8) return 2;
+    if (total != 8) {
+        return 2;
+    }
 
     // Scope-declared function-as-type, reached from a local inside its scope.
     Motor.runLocal();
-    if (Motor.ticks != 7) return 3;
+    if (Motor.ticks != 7) {
+        return 3;
+    }
 
     // A `for` init is a FOURTH declaration site: `forVarDecl` is its own
     // grammar rule, so it is not a `variableDeclaration` and was missed by the
@@ -68,7 +74,9 @@ u32 main() {
     for (onTick f <- onTick; total < 20; total <- total + 1) {
         f(2);
     }
-    if (total != 20) return 4;
+    if (total != 20) {
+        return 4;
+    }
 
     return 0;
 }

@@ -21,10 +21,16 @@ f32 plain(u32 x) {
 
 u32 main() {
     f32 d <- doubled(3);
-    if (d != 6.0) return 1;
+    if (d != 6.0) {
+        return 1;
+    }
     f32 h <- halved(9);
-    if (h != 4.0) return 2;
+    if (h != 4.0) {
+        return 2;
+    }
     f32 p <- plain(5);
-    if (p != 5.0) return 3;
+    if (p != 5.0) {
+        return 3;
+    }
     return 0;
 }

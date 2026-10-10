@@ -53,21 +53,39 @@ u8 localArray() {
 
 u32 main() {
     u32 s <- Sc.shadowed();
-    if (s != 6) return 1;
+    if (s != 6) {
+        return 1;
+    }
     u32 l <- local();
-    if (l != 8) return 2;
-    if (x != 100) return 3;
+    if (l != 8) {
+        return 2;
+    }
+    if (x != 100) {
+        return 3;
+    }
     u32 c <- Sc.control();
-    if (c != 501) return 4;
+    if (c != 501) {
+        return 4;
+    }
     bump(x);
-    if (x != 101) return 5;
+    if (x != 101) {
+        return 5;
+    }
     u8 a <- localArray();
-    if (a != 7) return 6;
+    if (a != 7) {
+        return 6;
+    }
     u8 sa <- Sc.shadowedArray();
-    if (sa != 9) return 7;
+    if (sa != 9) {
+        return 7;
+    }
     u8 ca <- Sc.controlArray();
-    if (ca != 5) return 8;
+    if (ca != 5) {
+        return 8;
+    }
     u8 g <- first(buf);
-    if (g != 1) return 9;
+    if (g != 1) {
+        return 9;
+    }
     return 0;
 }

@@ -9,10 +9,14 @@ u32 main() {
     u8 b <- 1;
 
     u8 r <- b + LETTER_A;
-    if (r != 66) return 1;
+    if (r != 66) {
+        return 1;
+    }
 
     u8 s <- b + CR;
-    if (s != 14) return 2;
+    if (s != 14) {
+        return 2;
+    }
 
     return 0;
 }
