@@ -127,7 +127,7 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
-14 linked fixtures with no derivable context:
+15 linked fixtures with no derivable context:
 
 - `bugs/issue-1531-declaration-rejections/cross-file-enum.test.cnx`
 - `bugs/issue-1669-enum-member-values/binary-values.test.cnx`
@@ -142,6 +142,7 @@ cell is declared by the ADR that owns it.
 - `bugs/issue-1669-enum-member-values/value-overflow.test.cnx`
 - `bugs/issue-1669-enum-member-values/value-self-later.test.cnx`
 - `bugs/issue-1669-enum-member-values/value-variable.test.cnx`
+- `bugs/issue-1971-enum-field-zero-enumerator/enum-field-defaults.test.cnx`
 - `enum/enum-error-negative.test.cnx`
 
 ## ADR-022
