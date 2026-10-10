@@ -10,56 +10,91 @@
  *
  * `else if` is the one unbraced `else` body allowed: the `if` is the chain,
  * and each of its own bodies is checked here.
+ *
+ * 1.2's syntax already says whether a body is a block, so this reads it and
+ * holds no parse tree.
  */
 
-import { ParseTreeWalker } from "antlr4ng";
-
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import ParserUtils from "../../utils/ParserUtils";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
+import type TStatement from "../../types/syntax/TStatement";
 import IBracedBodyError from "./types/IBracedBodyError";
 
-class BracedBodyListener extends CNextListener {
+type TBodyKeyword = "if" | "else" | "while" | "for";
+
+class BracedBodyAnalyzer {
   private readonly found: IBracedBodyError[] = [];
 
-  public errors(): IBracedBodyError[] {
+  public analyze(program: IProgramSyntax): IBracedBodyError[] {
+    for (const { declaration } of program.declarations) {
+      this.declaration(declaration);
+    }
     return this.found;
   }
 
-  override enterIfStatement = (ctx: Parser.IfStatementContext): void => {
-    this.check("if", ctx.statement(0));
-    const otherwise = ctx.statement(1);
-    if (otherwise?.ifStatement() === null) {
-      this.check("else", otherwise);
+  private declaration(declaration: TDeclarationSyntax): void {
+    if (declaration.kind === "scope") {
+      for (const member of declaration.members) {
+        this.declaration(member.declaration);
+      }
+    } else if (declaration.kind === "function") {
+      this.statements(declaration.body.statements);
     }
-  };
-
-  override enterWhileStatement = (ctx: Parser.WhileStatementContext): void => {
-    this.check("while", ctx.statement());
-  };
-
-  override enterForStatement = (ctx: Parser.ForStatementContext): void => {
-    this.check("for", ctx.statement());
-  };
-
-  private check(keyword: string, body: Parser.StatementContext | null): void {
-    if (body === null || body.block() !== null) return;
-    const { line, column } = ParserUtils.getPosition(body);
-    this.found.push({
-      code: "E0716",
-      line,
-      column,
-      message: `'${keyword}' body must be a braced block`,
-      helpText: `Wrap the body in braces: \`${keyword === "else" ? "else" : `${keyword} (...)`} { ... }\` (MISRA C:2012 Rule 15.6)`,
-    });
   }
-}
 
-class BracedBodyAnalyzer {
-  public analyze(tree: Parser.ProgramContext): IBracedBodyError[] {
-    const listener = new BracedBodyListener();
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
-    return listener.errors();
+  private statements(statements: readonly TStatement[]): void {
+    for (const statement of statements) this.statement(statement);
+  }
+
+  private statement(statement: TStatement): void {
+    switch (statement.kind) {
+      case "if":
+        this.body("if", statement.whenTrue);
+        if (statement.whenFalse?.kind === "if") {
+          this.statement(statement.whenFalse);
+        } else if (statement.whenFalse !== null) {
+          this.body("else", statement.whenFalse);
+        }
+        return;
+      case "while":
+        this.body("while", statement.body);
+        return;
+      case "for":
+        this.body("for", statement.body);
+        return;
+      case "doWhile":
+      case "forever":
+      case "critical":
+        this.statements(statement.body.statements);
+        return;
+      case "switch":
+        for (const switchCase of statement.cases) {
+          this.statements(switchCase.body.statements);
+        }
+        if (statement.defaultCase !== null) {
+          this.statements(statement.defaultCase.body.statements);
+        }
+        return;
+      case "block":
+        this.statements(statement.statements);
+        return;
+      default:
+        return;
+    }
+  }
+
+  private body(keyword: TBodyKeyword, body: TStatement): void {
+    if (body.kind !== "block" && body.kind !== "missing") {
+      const { line, column } = body.span;
+      this.found.push({
+        code: "E0716",
+        line,
+        column,
+        message: `'${keyword}' body must be a braced block`,
+        helpText: `Wrap the body in braces: \`${keyword === "else" ? "else" : `${keyword} (...)`} { ... }\` (MISRA C:2012 Rule 15.6)`,
+      });
+    }
+    this.statement(body);
   }
 }
 

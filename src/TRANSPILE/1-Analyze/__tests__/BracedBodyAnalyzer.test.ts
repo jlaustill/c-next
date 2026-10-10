@@ -1,14 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import BracedBodyAnalyzer from "../BracedBodyAnalyzer";
-import testAnalysisContextFor from "./testAnalysisContextFor";
+import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 
 const errorsOf = (body: string) => {
-  const { tree } = testAnalysisContextFor(
-    `u32 run(bool c) {\n    u32 x <- 0;\n${body}\n    return x;\n}`,
-    { cppMode: false },
+  const { program } = CNextSourceParser.parse(
+    `scope S {\n    u32 run(bool c) {\n    u32 x <- 0;\n${body}\n    return x;\n    }\n}`,
   );
-  return new BracedBodyAnalyzer().analyze(tree);
+  return new BracedBodyAnalyzer().analyze(program);
 };
 
 describe("BracedBodyAnalyzer (#1090: E0716)", () => {

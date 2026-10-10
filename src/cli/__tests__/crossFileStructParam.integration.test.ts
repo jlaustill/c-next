@@ -40,9 +40,9 @@ const CONSUMER_CNX = `#include "sensors.cnx"
 u32 main() {
     Sample sample <- {value: 42};
     u8 v <- Sensors.readValue(sample);
-    if (v != 42) return 1;
+    if (v != 42) { return 1; }
     Sensors.bump(sample);
-    if (sample.value != 43) return 2;
+    if (sample.value != 43) { return 2; }
     return 0;
 }
 `;
