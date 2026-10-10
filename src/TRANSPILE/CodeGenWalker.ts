@@ -178,7 +178,7 @@ import SizeofResolver from "./3-Render/codegen/resolution/SizeofResolver";
 import type TSizeofOperand from "./3-Render/codegen/types/TSizeofOperand";
 import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
 import MisraSuppressionUtils from "./3-Render/MisraSuppressionUtils";
-import EnumZeroValue from "./3-Render/codegen/helpers/EnumZeroValue";
+import EnumZeroValue from "../utils/EnumZeroValue";
 import QualifiedCName from "../utils/QualifiedCName";
 import ToolchainRequirementUtils from "../utils/ToolchainRequirementUtils";
 import MainSignature from "../utils/MainSignature";

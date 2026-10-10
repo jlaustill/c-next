@@ -34,6 +34,14 @@ class StructDefaultInitializer {
     counts: readonly (number | null)[],
     ctx: IStructDefaultRenderContext,
   ): string | null {
+    // #1971: an enum array lists its zero enumerator in every element; a
+    // scalar enum's zero is the declaration's own (ADR-017).
+    const enumerator = ctx.enumZeroOf(structName);
+    if (enumerator !== null) {
+      return counts.length === 0
+        ? null
+        : StructDefaultInitializer.repeat(enumerator, counts, structName);
+    }
     if (!StructDefault.hasDefault(structName, ctx)) {
       return null;
     }
@@ -78,21 +86,19 @@ class StructDefaultInitializer {
     counts: readonly (number | null)[],
     ctx: IStructDefaultRenderContext,
   ): string | null {
-    if (fieldDefault !== undefined) {
-      const element =
-        fieldDefault.value.kind === "callback"
-          ? fieldDefault.value.functionName
-          : StructDefaultInitializer.renderStruct(
-              fieldDefault.value.structName,
-              ctx,
-            );
-      return StructDefaultInitializer.repeat(element, counts, typeName);
+    if (fieldDefault === undefined) {
+      return null;
     }
-    // #1566: an enum's zero is its zero enumerator, which need not be 0.
-    const enumZero = ctx.enumZeroOf(typeName);
-    return enumZero === null
-      ? null
-      : StructDefaultInitializer.repeat(enumZero, counts, typeName);
+    const { value } = fieldDefault;
+    let element: string;
+    if (value.kind === "callback") {
+      element = value.functionName;
+    } else if (value.kind === "enum") {
+      element = value.enumerator;
+    } else {
+      element = StructDefaultInitializer.renderStruct(value.structName, ctx);
+    }
+    return StructDefaultInitializer.repeat(element, counts, typeName);
   }
 
   private static repeat(

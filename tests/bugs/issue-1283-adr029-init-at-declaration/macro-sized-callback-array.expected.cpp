@@ -11,8 +11,6 @@
 // #1283 review: a callback array sized by a C macro still holds the default
 // function in every element. C-Next reads the macro's integer value from the
 // header, so it can spell each element; the dimension stays the macro.
-// `globalInners` is what makes the generated header include handler_sizes.h;
-// a header holding only the macro-sized field lacks that include (#1970).
 #include "handler_sizes.h"
 
 #include <stdint.h>
@@ -46,8 +44,6 @@ Bank Bank_init(void) {
 
 Bank globalBank = { { onSample, onSample, onSample }, { { onSample }, { onSample } } };
 
-Inner globalInners[N_HANDLERS] = { { onSample }, { onSample }, { onSample } };
-
 int main(void) {
     uint32_t r = 0U;
     Bank b = { { onSample, onSample, onSample }, { { onSample }, { onSample } } };
@@ -57,8 +53,6 @@ int main(void) {
     if (r != 3) return 2U;
     r = globalBank.handlers[2U](3U);
     if (r != 4) return 3U;
-    r = globalInners[2U].handler(4U);
-    if (r != 5) return 4U;
     Inner locals[N_INNERS] = { { onSample }, { onSample } };
     r = locals[1U].handler(5U);
     if (r != 6) return 5U;

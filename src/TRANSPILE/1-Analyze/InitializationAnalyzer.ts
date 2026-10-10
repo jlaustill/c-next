@@ -140,7 +140,7 @@ class InitializationListener extends CNextListener {
     const isArray =
       typeCtx.arrayType() !== null || ctx.arrayDimension().length > 0;
     const arrayElementTypeName = isArray
-      ? this.analyzer.arrayElementStructOf(name, {
+      ? this.analyzer.arrayElementTypeOf(name, {
           line: end.line,
           column: end.column,
         })
@@ -830,7 +830,7 @@ class InitializationAnalyzer {
     const facts = StructDefault.factsOf(this.context.symbols);
     const elementHasDefault =
       arrayElementTypeName !== null &&
-      StructDefault.hasDefault(arrayElementTypeName, facts);
+      StructDefault.defaultOf(arrayElementTypeName, facts) !== null;
     const isInitialized = hasInitializer || isCppClassType || elementHasDefault;
     const defaultFields =
       typeName === null ? [] : StructDefault.initializedPaths(typeName, facts);
@@ -852,11 +852,11 @@ class InitializationAnalyzer {
   }
 
   /**
-   * The struct C name a local array's elements are, as 1.4 resolved its
-   * declaration -- `Ticker`, `Nested` and `this.Nested` alike -- or null when
-   * `name` is not an array of structs (#1283 review).
+   * The struct or enum C name a local array's elements are, as 1.4 resolved
+   * its declaration -- `Ticker`, `Nested` and `this.Nested` alike -- or null
+   * when `name` is not an array of either (#1283 review).
    */
-  public arrayElementStructOf(
+  public arrayElementTypeOf(
     name: string,
     at: { line: number; column: number },
   ): string | null {
@@ -872,7 +872,9 @@ class InitializationAnalyzer {
       declared.type.kind === "array"
         ? declared.type.elementType
         : declared.type;
-    return element.kind === "struct" ? element.name : null;
+    return element.kind === "struct" || element.kind === "enum"
+      ? element.name
+      : null;
   }
 
   /**

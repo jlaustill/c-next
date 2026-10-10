@@ -12,6 +12,16 @@
 // Tests: Type-aware enum member resolution with overlapping names
 // When multiple enums have the same member name, the assignment target's type
 // determines which enum to use.
+ColorConfig ColorConfig_init(void) {
+    ColorConfig value = { .color = Color__RED };
+    return value;
+}
+
+StatusConfig StatusConfig_init(void) {
+    StatusConfig value = { .status = Status__RED };
+    return value;
+}
+
 void setColorRed(ColorConfig* cfg) {
     cfg->color = Color__RED;
 }

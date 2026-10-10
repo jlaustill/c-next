@@ -18,6 +18,7 @@ function facts(
       ]),
     ),
     isCallbackType: (typeName) => callbacks.includes(typeName),
+    enumZeroOf: (typeName) => (typeName === "Mode" ? "Mode__IDLE" : null),
   };
 }
 
@@ -77,11 +78,15 @@ describe("StructDefault", () => {
       const f = StructDefault.factsOf({
         structFields,
         functionReturnTypes: new Map([["onTick", "u32"]]),
+        knownEnums: new Set(["Mode"]),
+        enumMembers: new Map([["Mode", new Map([["IDLE", 0]])]]),
       });
 
       expect(f.structFields).toBe(structFields);
       expect(f.isCallbackType("onTick")).toBe(true);
       expect(f.isCallbackType("Ticker")).toBe(false);
+      expect(f.enumZeroOf("Mode")).toBe("Mode__IDLE");
+      expect(f.enumZeroOf("Ticker")).toBeNull();
     });
   });
 
@@ -121,30 +126,38 @@ describe("StructDefault", () => {
     const f = facts({
       Ticker: { handler: "onTick" },
       Plain: { v: "u8" },
+      EnumHolder: { m: "Mode" },
     });
-    const enums = new Set(["Mode"]);
 
     it.each([
-      [{ kind: "struct", name: "onTick" }, null, "onTick"],
-      [{ kind: "struct", name: "Ticker" }, null, "Ticker"],
+      [{ kind: "struct", name: "onTick" }, "onTick"],
+      [{ kind: "struct", name: "Ticker" }, "Ticker"],
       [
         {
           kind: "array",
           elementType: { kind: "struct", name: "Ticker" },
           dimensions: [2],
         },
-        null,
         "Ticker",
       ],
-      [{ kind: "enum", name: "Mode" }, "Ticker", "Mode"],
-      [{ kind: "enum", name: "Mode" }, "Plain", null],
-      [{ kind: "enum", name: "Mode" }, null, null],
-      [{ kind: "struct", name: "Plain" }, null, null],
-      [{ kind: "primitive", primitive: "u8" }, null, null],
-    ] as const)("%j in %s spells %s", (type, owner, expected) => {
-      expect(StructDefault.spelledElement(type, owner, f, enums)).toBe(
-        expected,
-      );
+      [{ kind: "enum", name: "Mode" }, "Mode"],
+      [{ kind: "struct", name: "EnumHolder" }, "EnumHolder"],
+      [{ kind: "struct", name: "Plain" }, null],
+      [{ kind: "primitive", primitive: "u8" }, null],
+    ] as const)("%j spells %s", (type, expected) => {
+      expect(StructDefault.spelledElement(type, f)).toBe(expected);
     });
+  });
+
+  it("gives an enum field its zero enumerator, at any depth (#1971)", () => {
+    const f = facts({
+      Inner: { m: "Mode", v: "u8" },
+      Holder: { inner: "Inner" },
+    });
+
+    expect(StructDefault.fieldsOf("Inner", f)).toEqual([
+      { fieldName: "m", value: { kind: "enum", enumerator: "Mode__IDLE" } },
+    ]);
+    expect(StructDefault.initializedPaths("Holder", f)).toEqual(["inner.m"]);
   });
 });

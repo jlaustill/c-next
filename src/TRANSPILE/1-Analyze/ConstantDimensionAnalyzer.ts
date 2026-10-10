@@ -13,9 +13,10 @@
  * passes. One that has no value is rejected here, so render never sees it.
  *
  * E0359 (#1283 review): except where C-Next spells every element. ADR-029
- * gives each element of a callback array its default function, and each
- * element of an array of a struct with a default that struct's default, so
- * the count must be one C-Next reads (`ElementCount`). A header macro of plain
+ * gives each element of a callback array its default function, ADR-017 each
+ * enum element its zero enumerator (#1971), and each element of an array of a
+ * struct with a default that struct's default, so the count must be one
+ * C-Next reads (`ElementCount`). A header macro of plain
  * integer arithmetic is; a `sizeof`, a cast or a macro it cannot see is not.
  */
 import { ParseTreeWalker } from "antlr4ng";
@@ -116,15 +117,9 @@ class ConstantDimensionAnalyzer {
     const checkArray = (
       type: TType,
       dimensions: ReadonlyArray<TConstExpr | null> | undefined,
-      owner: string | null,
       declaredAt: ISourcePosition,
     ): void => {
-      const element = StructDefault.spelledElement(
-        type,
-        owner,
-        facts,
-        symbols.knownEnums,
-      );
+      const element = StructDefault.spelledElement(type, facts);
       if (element === null) return;
       for (const dimension of dimensions ?? []) {
         const error =
@@ -138,22 +133,17 @@ class ConstantDimensionAnalyzer {
     for (const symbol of program.symbolsInFile(sourceFile)) {
       if (symbol.kind === "struct") {
         for (const field of symbol.fields.values()) {
-          checkArray(
-            field.type,
-            field.dimensionExprs,
-            symbol.fullyQualifiedCName,
-            symbol.span,
-          );
+          checkArray(field.type, field.dimensionExprs, symbol.span);
         }
       } else if (symbol.kind === "variable") {
-        checkArray(symbol.type, symbol.arrayDimensionExprs, null, symbol.span);
+        checkArray(symbol.type, symbol.arrayDimensionExprs, symbol.span);
       }
     }
 
     const walk = (frame: ILexicalFrame): void => {
       for (const local of frame.declarations) {
         if (local.kind === "local") {
-          checkArray(local.type, local.arrayDimensionExprs, null, local.span);
+          checkArray(local.type, local.arrayDimensionExprs, local.span);
         }
       }
       frame.children.forEach(walk);

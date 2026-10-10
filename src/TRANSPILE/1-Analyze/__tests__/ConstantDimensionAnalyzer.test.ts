@@ -128,6 +128,14 @@ describe("ConstantDimensionAnalyzer (#1283: E0359)", () => {
       `${callback}scope M {\n    struct T {\n        onSample h;\n    }\n    public u32 run() {\n        T[N_UNREADABLE] ls;\n        return 0;\n    }\n}`,
     ],
     [
+      "an enum in a struct with no callback (#1971)",
+      "enum Mode { IDLE, RUN }\nstruct S {\n    Mode[N_UNREADABLE] modes;\n}",
+    ],
+    [
+      "an enum outside a struct (#1971)",
+      "enum Mode { IDLE, RUN }\nMode[N_UNREADABLE] modes;",
+    ],
+    [
       "an enum in a struct with a default",
       `${callback}enum Mode { IDLE, RUN }\nstruct S {\n    onSample h;\n    Mode[N_UNREADABLE] modes;\n}`,
     ],
@@ -144,14 +152,6 @@ describe("ConstantDimensionAnalyzer (#1283: E0359)", () => {
     [
       "a struct with no default",
       "struct P {\n    u8 x;\n}\nP[N_UNREADABLE] ps;",
-    ],
-    [
-      "an enum in a struct with no default",
-      "enum Mode { IDLE, RUN }\nstruct S {\n    Mode[N_UNREADABLE] modes;\n}",
-    ],
-    [
-      "an enum outside a struct",
-      "enum Mode { IDLE, RUN }\nMode[N_UNREADABLE] modes;",
     ],
   ])("accepts %s", (_label, source) => {
     expect(errorsWith(source)).toEqual([]);

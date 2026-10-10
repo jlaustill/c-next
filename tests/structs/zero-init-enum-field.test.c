@@ -11,11 +11,16 @@
 // Issue #1004: C++ struct zero-init must use {} not {0} when the first field is an enum.
 // In C++ a brace-with-zero (= {0}) is an invalid int->enum narrowing conversion;
 // value-initialization (= {}) zero-initializes every field including the enum.
+TInput TInput_init(void) {
+    TInput value = { .assignedValue = EValueId__VALUE_A };
+    return value;
+}
+
 // No initializer -> generator emits the zero initializer for the struct.
-TInput input = {0};
+TInput input = { .assignedValue = EValueId__VALUE_A };
 
 // Array of enum-first structs: same zero-init path, same C++ {0} bug.
-TInput inputs[2] = {0};
+TInput inputs[2] = { { .assignedValue = EValueId__VALUE_A }, { .assignedValue = EValueId__VALUE_A } };
 
 int main(void) {
     if (input.assignedValue != EValueId__VALUE_A) {

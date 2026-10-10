@@ -79,7 +79,6 @@ import StructDefaultInitializer from "./helpers/StructDefaultInitializer";
 import StructDefault from "../../../utils/StructDefault";
 import ElementCount from "../../../utils/ElementCount";
 import type IProgram from "../../../types/IProgram";
-import EnumZeroValue from "./helpers/EnumZeroValue";
 
 /**
  * Code Generator - Transpiles C-Next to C
@@ -344,10 +343,6 @@ export default class CodeGenerator implements IOrchestrator {
       fieldElementCounts: (owner, fieldName) =>
         CodeGenerator.fieldElementCounts(program, owner, fieldName),
       cppMode: this.state.cppMode,
-      enumZeroOf: (typeName) =>
-        symbols.knownEnums.has(typeName)
-          ? EnumZeroValue.of(symbols.enumMembers, typeName)
-          : null,
     });
   }
 

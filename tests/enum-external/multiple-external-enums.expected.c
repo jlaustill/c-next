@@ -12,6 +12,11 @@
 
 #include <stdint.h>
 
+DeviceState DeviceState_init(void) {
+    DeviceState value = { .pressure = EPressureType__PRESSURE_TYPE_PSIA, .status = EStatus__STATUS_IDLE };
+    return value;
+}
+
 void configure(DeviceState* state) {
     state->pressure = EPressureType__PRESSURE_TYPE_PSIG;
     state->status = EStatus__STATUS_ACTIVE;

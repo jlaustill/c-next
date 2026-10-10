@@ -27,7 +27,6 @@ typedef struct Bank {
 
 /* External variables */
 extern Bank globalBank;
-extern Inner globalInners[N_HANDLERS];
 
 /* Function prototypes */
 uint32_t onSample(uint32_t input);

@@ -11,7 +11,12 @@
 // test-execution
 // Tests: assign struct enum field to local enum variable (bug fix)
 // Validates that enum-typed fields in structs can be read via global prefix
-TInput input = {0};
+TInput TInput_init(void) {
+    TInput value = { .assignedValue = EValueId__VALUE_A };
+    return value;
+}
+
+TInput input = { .assignedValue = EValueId__VALUE_A };
 
 int main(void) {
     input.assignedValue = EValueId__VALUE_B;

@@ -1,9 +1,10 @@
-import QualifiedCName from "../../../../utils/QualifiedCName";
+import QualifiedCName from "./QualifiedCName";
 
 /**
  * ADR-017: the value an enum zero-initializes to -- the member whose value is
- * 0, else the first member. Shared by declaration-site zero-init and the
- * ADR-029 struct default (#1283), which both spell an enum field's zero.
+ * 0, else the first member. Shared by declaration-site zero-init and
+ * `StructDefault` (#1283, #1971), which gives every enum field and array
+ * element this value.
  */
 class EnumZeroValue {
   static of(

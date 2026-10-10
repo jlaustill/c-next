@@ -27,7 +27,7 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 
 const uint8_t COUNT = 4U;
 
-SingleFileEnum__Config config = {0};
+SingleFileEnum__Config config = { .items = { { .assigned = MyEnum__A }, { .assigned = MyEnum__A }, { .assigned = MyEnum__A }, { .assigned = MyEnum__A } } };
 
 int main(void) {
     config.items[0].assigned = MyEnum__A;

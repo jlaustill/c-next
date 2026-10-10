@@ -12,4 +12,4 @@
 
 const uint8_t COUNT = 4U;
 
-CrossFileEnum__Config config = {0};
+CrossFileEnum__Config config = { .items = { { .assigned = MyEnum__A }, { .assigned = MyEnum__A }, { .assigned = MyEnum__A }, { .assigned = MyEnum__A } } };

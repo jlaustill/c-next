@@ -17,7 +17,7 @@
 
 /* Scope: DeviceManager */
 static DeviceConfig DeviceManager__config = {0};
-static DeviceStatus DeviceManager__status = {0};
+static DeviceStatus DeviceManager__status = { .state = EDeviceState__STATE_OFF };
 
 void DeviceManager__configure(const DeviceConfig* newConfig) {
     DeviceManager__config = (*newConfig);

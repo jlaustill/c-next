@@ -2,9 +2,11 @@
  * ADR-029 section 3 "Never Null": which fields of a struct hold something
  * other than zero when a value of it is declared without an initializer.
  *
- * A callback field holds the function its type was defined from, and a field
- * whose type is itself such a struct holds that struct's default. Every other
- * field is zero (ADR-015), which is what the aggregate brace already gives.
+ * A callback field holds the function its type was defined from, an enum
+ * field its zero enumerator (ADR-017, #1971: the member whose value is 0, else
+ * the first), and a field whose type is itself such a struct holds that
+ * struct's default -- at any depth, and for every element of an array field.
+ * Every other field is zero (ADR-015), which the aggregate brace already gives.
  *
  * #1283 / #1570 / #1565: this is one decision with three readers -- the
  * declaration-site initializer, the generated `<Struct>_init()` and the E0381
@@ -18,6 +20,7 @@ import type IStructDefaultFacts from "../types/IStructDefaultFacts";
 import type IStructFieldDefault from "../types/IStructFieldDefault";
 import type ICodeGenSymbols from "../types/ICodeGenSymbols";
 import type TType from "../types/TType";
+import EnumZeroValue from "./EnumZeroValue";
 
 class StructDefault {
   /**
@@ -35,7 +38,7 @@ class StructDefault {
     }
     const result: IStructFieldDefault[] = [];
     for (const [fieldName, typeName] of fields) {
-      const value = StructDefault.valueOf(typeName, facts);
+      const value = StructDefault.defaultOf(typeName, facts);
       if (value !== null) {
         result.push({ fieldName, value });
       }
@@ -50,11 +53,18 @@ class StructDefault {
    * only -- the set codegen's `callbackTypes` is registered from).
    */
   static factsOf(
-    symbols: Pick<ICodeGenSymbols, "structFields" | "functionReturnTypes">,
+    symbols: Pick<
+      ICodeGenSymbols,
+      "structFields" | "functionReturnTypes" | "knownEnums" | "enumMembers"
+    >,
   ): IStructDefaultFacts {
     return {
       structFields: symbols.structFields,
       isCallbackType: (typeName) => symbols.functionReturnTypes.has(typeName),
+      enumZeroOf: (typeName) =>
+        symbols.knownEnums.has(typeName)
+          ? EnumZeroValue.of(symbols.enumMembers, typeName)
+          : null,
     };
   }
 
@@ -73,7 +83,7 @@ class StructDefault {
       structName,
       facts,
     )) {
-      if (value.kind === "callback") {
+      if (value.kind !== "struct") {
         result.push(fieldName);
         continue;
       }
@@ -92,30 +102,21 @@ class StructDefault {
   }
 
   /**
-   * The C name of an array's element type when ADR-029 spells every element
-   * -- a callback, a struct with a default, or, as a field of a struct with a
-   * default (`owner`), an enum whose zero enumerator is spelled (#1566). Null
-   * for every other array, whose aggregate zero needs no element count.
+   * The C name of an array's element type when every element is spelled --
+   * one whose default is not zero (`defaultOf`) -- or null for an array whose
+   * aggregate zero needs no element count.
    */
   static spelledElement(
     type: TType,
-    owner: string | null,
     facts: IStructDefaultFacts,
-    knownEnums: ReadonlySet<string>,
   ): string | null {
     const element = type.kind === "array" ? type.elementType : type;
     if (!("name" in element)) {
       return null;
     }
-    const name = element.name;
-    if (facts.isCallbackType(name) || StructDefault.hasDefault(name, facts)) {
-      return name;
-    }
-    return owner !== null &&
-      knownEnums.has(name) &&
-      StructDefault.hasDefault(owner, facts)
-      ? name
-      : null;
+    return StructDefault.defaultOf(element.name, facts) === null
+      ? null
+      : element.name;
   }
 
   /** Does a value of `structName` hold anything other than zero by default? */
@@ -123,12 +124,17 @@ class StructDefault {
     return StructDefault.fieldsOf(structName, facts).length > 0;
   }
 
-  private static valueOf(
+  /** A value of `typeName`'s non-zero default, or null when it is zero. */
+  static defaultOf(
     typeName: string,
     facts: IStructDefaultFacts,
   ): IStructFieldDefault["value"] | null {
     if (facts.isCallbackType(typeName)) {
       return { kind: "callback", functionName: typeName };
+    }
+    const enumerator = facts.enumZeroOf(typeName);
+    if (enumerator !== null) {
+      return { kind: "enum", enumerator };
     }
     // C has no by-value self-containing struct, so this recursion is bounded
     // by the nesting depth the program actually declares.

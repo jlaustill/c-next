@@ -85,6 +85,24 @@ enum Flags {
 }
 ```
 
+### Default Value
+
+An enum-typed variable, struct field or array element declared without an
+initializer holds the enum's **zero enumerator**: the member whose value is 0,
+else the first member (owner ruling on #1971, 2026-10-10). This holds at any
+nesting depth and in any struct, with or without a callback field:
+
+```cnx
+enum Mode { IDLE <- 5, RUNNING }
+struct Inner { Mode m; }
+struct Holder { Inner inner; Mode[2] modes; }
+Holder h;   // h.inner.m, h.modes[0] and h.modes[1] are Mode.IDLE
+```
+
+So a struct with an enum field has a non-zero default (and a
+`<Struct>_init()`), and an enum array lists every element, which is why its
+size must be one C-Next can read (E0359).
+
 ### Member Values
 
 A member's value is computed while the program compiles, as in C (owner ruling, 2026-10-03,
