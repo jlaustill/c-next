@@ -107,6 +107,7 @@ export default class CodeGenerator implements IOrchestrator {
       callbackTypes: this.state.callbackTypes,
       callbackFieldTypes: this.state.callbackFieldTypes,
       debugMode: this.state.debugMode,
+      program: this.state.program,
     };
   }
 

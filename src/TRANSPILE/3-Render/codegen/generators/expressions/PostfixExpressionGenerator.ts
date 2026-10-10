@@ -35,6 +35,7 @@ import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
 import SubscriptDepthValidator from "../../../../2-Plan/SubscriptDepthValidator";
 import C_TYPE_WIDTH from "../../types/C_TYPE_WIDTH";
 import LengthProperty from "../../../../../utils/LengthProperty";
+import type IStructSymbol from "../../../../../types/symbols/IStructSymbol";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
 import OperandTyper from "../../../../../utils/OperandTyper";
 import invariant from "../../../../../utils/invariant";
@@ -454,7 +455,7 @@ const tryPropertyAccess = (
       result = generateByteLengthProperty(ctx, input, state, effects);
       break;
     case "element_count":
-      result = generateElementCountProperty(ctx, state);
+      result = generateElementCountProperty(ctx, input, state);
       break;
     case "char_count":
       result = generateCharCountProperty(ctx, state, effects);
@@ -509,6 +510,18 @@ const getNumericBitWidth = (typeName: string, input: IGeneratorInput): number =>
   C_TYPE_WIDTH[typeName] ??
   0;
 
+/** A C-Next struct the measured value's element is; undefined for any other */
+const measuredStruct = (
+  measured: IOperandType | null,
+  input: IGeneratorInput,
+): IStructSymbol | undefined => {
+  const program = input.program;
+  if (measured?.typeName == null || program === null) return undefined;
+  return LengthProperty.struct(measured.typeName, (cName) =>
+    program.symbolByCName(cName),
+  );
+};
+
 /** The bits one element of the measured value holds; 0 if not known */
 const elementBitWidth = (
   measured: IOperandType,
@@ -523,6 +536,16 @@ const elementBitWidth = (
     return LengthProperty.stringElementBits(measured.stringCapacity);
   }
   if (measured.bitWidth !== null) return measured.bitWidth;
+  // #1535: its fields' sizes together, without C padding (ADR-058 q7)
+  const struct = measuredStruct(measured, input);
+  if (struct !== undefined && input.program !== null) {
+    const program = input.program;
+    return (
+      LengthProperty.structBits(struct, (cName) =>
+        program.symbolByCName(cName),
+      ) ?? 0
+    );
+  }
   return measured.typeName === null
     ? 0
     : getNumericBitWidth(measured.typeName, input);
@@ -612,13 +635,17 @@ const generateByteLengthProperty = (
  */
 const generateElementCountProperty = (
   ctx: IPropertyContext,
+  input: IGeneratorInput,
   state: IGeneratorState,
 ): string => {
   // Special case: main function's args.element_count -> argc
   if (state.mainArgsName && ctx.rootIdentifier === state.mainArgsName) {
     return "argc";
   }
-  const first = ctx.measured?.dimensions[0];
+  const first =
+    ctx.measured?.dimensions[0] ??
+    // #1535: a struct's element count is its field count
+    measuredStruct(ctx.measured, input)?.fields.size;
   invariant(
     first !== undefined,
     `E0867 rejects this in pass 2.1 -- .element_count is only available on arrays, not on '${ctx.result}'.`,

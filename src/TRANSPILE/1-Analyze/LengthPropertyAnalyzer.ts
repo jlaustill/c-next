@@ -26,16 +26,12 @@
  * one operand typer's chain step before the property (#1668), not a second
  * walk of this analyzer's own.
  *
- * ## A divergence this does NOT fix
+ * ## Structs (#1535)
  *
- * ADR-058 is `Implemented` and its property table gives structs `.bit_length`,
- * `.byte_length` and `.element_count`, with a worked `SensorReading` example.
- * The transpiler rejects all three. That is a real spec/implementation
- * divergence, and it is deliberately preserved here rather than closed: closing
- * it means deciding what `.byte_length` on a struct MEANS, and the ADR says
- * "with padding" without saying whose padding -- an ABI question the ADR does
- * not answer. Relocating faithfully keeps the behavior identical and leaves the
- * decision where it belongs.
+ * A struct answers `.element_count` with its field count, and `.bit_length` /
+ * `.byte_length` with its fields' sizes together, without C padding -- the
+ * owner's ruling, ADR-058 resolved question 7. `LengthProperty` decides the
+ * number, for this pass, render and 1.4's constants alike.
  */
 
 import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
@@ -46,9 +42,11 @@ import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import TYPE_WIDTH from "../../types/TYPE_WIDTH";
 import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
+import LengthProperty from "../../utils/LengthProperty";
 import PROPERTY_NAMES from "../../utils/constants/PROPERTY_NAMES";
 import ILengthPropertyError from "./types/ILengthPropertyError";
 import type IAnalysisContext from "./types/IAnalysisContext";
+import type TExpression from "../../types/syntax/TExpression";
 import type IOperandType from "../../types/IOperandType";
 
 /** The CLI argument vector, which answers only `.element_count`. */
@@ -72,13 +70,28 @@ class LengthPropertyListener extends CNextListener {
     const last = ops.at(-1);
     if (last === undefined || last.DOT() === null) return;
     // Only a property's name can read one; the rest need no typing
-    if (!PROPERTY_NAMES.has(last.IDENTIFIER()?.getText() ?? "")) return;
+    const name = last.IDENTIFIER()?.getText() ?? "";
+    if (!PROPERTY_NAMES.has(name)) return;
+    // #1976: a literal has no fields, so the name reads the property, and a
+    // length property measures a declared value -- owner ruling: never a
+    // literal. The typer leaves a string literal untyped, so without this the
+    // chain had no subject and its C was `"Hello".char_count`.
+    const chain = SyntaxLowering.expressionNode(ctx);
+    if (LengthPropertyListener.rootsAtLiteral(chain)) {
+      if (name === "length") {
+        this.reportDeprecatedLength(last);
+      } else {
+        this.report(
+          last,
+          `.${name} is not available on a literal`,
+          "A length property measures a declared value; declare one and ask it (ADR-058).",
+        );
+      }
+      return;
+    }
     // #1760 review: whether the name reads the property or a field named
     // like it is the typer's, on the step (ADR-058: a field is a field)
-    const step = OperandTyper.chainOf(
-      SyntaxLowering.expressionNode(ctx),
-      this.context,
-    ).steps.at(-1);
+    const step = OperandTyper.chainOf(chain, this.context).steps.at(-1);
     const property = step?.property ?? null;
     if (property === null) return;
 
@@ -120,12 +133,7 @@ class LengthPropertyListener extends CNextListener {
     // say which was meant. Rejected wherever it appears, so there is no
     // subject to judge.
     if (property === "length") {
-      this.report(
-        at,
-        `'.length' is deprecated`,
-        "Use .char_count for a string's length, .element_count for an array's, or .bit_length / .byte_length for a width (ADR-058).",
-        "E0886",
-      );
+      this.reportDeprecatedLength(at);
       return;
     }
 
@@ -144,8 +152,13 @@ class LengthPropertyListener extends CNextListener {
       return;
     }
 
+    // #1535: a struct answers all three -- its field count, and its fields'
+    // sizes together, without C padding (ADR-058 resolved question 7)
+    const lookup = (cName: string) => this.context.program.symbolByCName(cName);
+    const struct = LengthProperty.struct(element, lookup);
+
     if (property === "element_count") {
-      if (dimensions === 0) {
+      if (dimensions === 0 && struct === undefined) {
         this.report(
           at,
           `.element_count is only available on arrays, not on '${subject}'`,
@@ -166,10 +179,19 @@ class LengthPropertyListener extends CNextListener {
       return;
     }
 
-    // `.bit_length` and `.byte_length` need a width. A string and an array of
-    // sized elements both have one; a struct does not -- see the divergence
-    // noted at the top of this file.
+    // `.bit_length` and `.byte_length` need a width. A string, a struct whose
+    // fields all have one, and an array of either have one.
     if (isString) return;
+    if (struct !== undefined) {
+      if (LengthProperty.structBits(struct, lookup) === null) {
+        this.report(
+          at,
+          `Cannot determine .${property} for type '${subject}'`,
+          "A struct's length is its fields' sizes together; a field from a C header has no size C-Next fixes.",
+        );
+      }
+      return;
+    }
     // An enum and a bitmap both have a fixed width; only a type nothing sizes
     // -- a struct, or a name this pass cannot see -- has none.
     if (
@@ -183,6 +205,22 @@ class LengthPropertyListener extends CNextListener {
         "A length in bits is only defined for a primitive, a string, or an array of them.",
       );
     }
+  }
+
+  private reportDeprecatedLength(at: Parser.PostfixOpContext): void {
+    this.report(
+      at,
+      `'.length' is deprecated`,
+      "Use .char_count for a string's length, .element_count for an array's, or .bit_length / .byte_length for a width (ADR-058).",
+      "E0886",
+    );
+  }
+
+  /** `"Hello"`, `(true)`, `"Hello"[0]`: a chain whose root is a literal */
+  private static rootsAtLiteral(chain: TExpression): boolean {
+    let root = chain.kind === "postfix" ? chain.primary : chain;
+    while (root.kind === "parenthesized") root = root.expression;
+    return root.kind === "literal";
   }
 
   /** `args` is a parameter, not a declaration this pass records. */

@@ -212,10 +212,19 @@ class ConstantNames {
     if (current === null || !LengthProperty.isLength(property)) {
       return ConstantNames.without("member", walk);
     }
+    const lookup = (cName: string) => walk.facts.visibleSymbol(cName);
+    const struct =
+      current.type.kind === "struct"
+        ? LengthProperty.struct(
+            QualifiedCName.fromParts(current.type.name.split(".")),
+            lookup,
+          )
+        : undefined;
     const value = LengthProperty.of(
       property,
       current.dimensions,
-      LengthProperty.elementBitsOfType(current.type),
+      LengthProperty.elementBitsOfType(current.type, lookup),
+      struct?.fields.size ?? null,
     );
     return value === null
       ? ConstantNames.without("unfolded", walk)
@@ -283,7 +292,15 @@ class ConstantNames {
     );
     const info =
       struct?.kind === "struct" ? struct.fields.get(field) : undefined;
-    return info ? { type: info.type, dimensions: info.dimensions ?? [] } : null;
+    return info
+      ? {
+          type: info.type,
+          dimensions: LengthProperty.fieldDimensions(
+            info.type,
+            info.dimensions ?? [],
+          ),
+        }
+      : null;
   }
 
   /** `Scope.member`, and `Scope.EMode.MEMBER` */

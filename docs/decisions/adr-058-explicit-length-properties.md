@@ -324,13 +324,8 @@ u8[256] bufArray;
 u32 magic <- 0x12345678;
 
 // magic.byte_length is 4, so 4 bytes are serialized as per-element little-endian writes:
-bufArray[0, 4] <- magic;
+bufArray[0, magic.byte_length] <- magic;
 ```
-
-> **Note:** Using `magic.byte_length` _directly_ as the slice length
-> (`bufArray[0, magic.byte_length] <- magic;`) is not yet supported — the slice
-> length must currently be a literal or a `const`. Folding `.byte_length` in the
-> slice-length position is tracked in [#1093](https://github.com/jlaustill/c-next/issues/1093).
 
 ---
 
@@ -462,6 +457,8 @@ error: `.length` is not a built-in property. Use explicit properties instead.
 
 7. **Struct padding** (owner ruling, #1535): a struct's `bit_length`/`byte_length` are the sum of its fields' sizes, without C struct padding. For `struct P { u32 x; u8 y; }`, `byte_length` is 5, while C's `sizeof(P)` is 8 on x86-64. Both are compile-time constants, independent of the C compiler's layout.
 
+8. **Literals** (owner ruling, #1976): a length property is not available on a literal. `"Hello".char_count`, `(true).bit_length` and `"Hello"[0].bit_length` are E0867; a length property measures a declared value.
+
 ## Open Questions
 
 1. **Nested struct arrays**: For `struct Outer { Inner[10] items; }`, should `outer.items.element_count` return 10? This follows naturally from the array rules, but the implementation needs to handle struct field type resolution.
@@ -470,10 +467,10 @@ error: `.length` is not a built-in property. Use explicit properties instead.
 
 ## Diagnostics
 
-| Code  | Reported when                                                | Asserted by                                |
-| ----- | ------------------------------------------------------------ | ------------------------------------------ |
-| E0867 | A shape property is asked of a subject that cannot answer it | `tests/explicit-length/`, `tests/adr-058/` |
-| E0886 | `.length` is used at all                                     | `tests/adr-058/`                           |
+| Code  | Reported when                                                                 | Asserted by                                |
+| ----- | ----------------------------------------------------------------------------- | ------------------------------------------ |
+| E0867 | A shape property is asked of a subject that cannot answer it, or of a literal | `tests/explicit-length/`, `tests/adr-058/` |
+| E0886 | `.length` is used at all                                                      | `tests/adr-058/`                           |
 
 `.length` is rejected by NAME and needs no subject: naming a different thing on
 a string, an array and a scalar is what these four properties replaced.
@@ -518,11 +515,9 @@ would go quiet across an include rather than fail. A struct declared inside a
 scope is a type like any other: a scope member and a scope method can hold one,
 declared in this file or across an include, so every cell is `error`.
 
-**A divergence this matrix does not cover.** The property table above gives
-structs `.bit_length`, `.byte_length` and `.element_count`, and the transpiler
-rejects all three. That is a spec/implementation divergence. Resolved
-question 7 settles what `.byte_length` on a struct means (no padding); the
-implementation is tracked in #1535.
+**Structs.** A struct answers `.bit_length`, `.byte_length` and
+`.element_count` as resolved question 7 rules (#1535):
+`tests/adr-058/length-property-struct.test.cnx`.
 
 ## References
 

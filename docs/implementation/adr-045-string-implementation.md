@@ -12,7 +12,7 @@ Implement `string<N>` bounded string type with compile-time safety guarantees:
 
 - `string<64>` → `char[65]` (capacity + null terminator)
 - No heap allocation, no buffer overflows
-- Properties: `.length` (strlen), `.capacity` (compile-time N)
+- Properties: `.char_count` (strlen), `.capacity` (compile-time N); length properties: ADR-058
 
 ---
 
@@ -139,14 +139,14 @@ private validateStringLiteral(literal: string, capacity: number): void {
 
 ## Phase 2: Properties
 
-**Goal:** `.length` and `.capacity` property access
+**Goal:** `.char_count` and `.capacity` property access (length properties: [ADR-058](../decisions/adr-058-explicit-length-properties.md))
 
 ### CodeGenerator Changes
 
 1. **Update generatePostfixExpr** (~line 3147):
 
 ```typescript
-if (memberName === "length") {
+if (memberName === "char_count") {
   const typeInfo = this.context.typeRegistry.get(primaryId);
   if (typeInfo?.isString) {
     result = `strlen(${primaryId})`;
@@ -166,13 +166,13 @@ if (memberName === "capacity") {
 
 ### Tests
 
-| File                    | Description                     |
-| ----------------------- | ------------------------------- |
-| `string-properties.cnx` | `.length` and `.capacity` usage |
+| File                    | Description                         |
+| ----------------------- | ----------------------------------- |
+| `string-properties.cnx` | `.char_count` and `.capacity` usage |
 
 ### Success Criteria
 
-- [ ] `msg.length` → `strlen(msg)`
+- [ ] `msg.char_count` → `strlen(msg)`
 - [ ] `msg.capacity` → compile-time constant N
 
 ---
@@ -329,7 +329,7 @@ char buffer[65] = "";
 ### Properties
 
 ```cnx
-u32 len <- message.length;
+u32 len <- message.char_count;
 u32 cap <- message.capacity;
 ```
 

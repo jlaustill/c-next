@@ -26,6 +26,7 @@ import ForeignTypeFacts from "./ForeignTypeFacts";
 import LiteralUtils from "./LiteralUtils";
 import CompositeType from "./CompositeType";
 import QualifiedCName from "./QualifiedCName";
+import LengthProperty from "./LengthProperty";
 import PROPERTY_NAMES from "./constants/PROPERTY_NAMES";
 import ScopeUtils from "./ScopeUtils";
 import SubscriptClassifier from "./SubscriptClassifier";
@@ -1217,7 +1218,7 @@ class OperandTyper {
         t: {
           ...OperandTyper.fromType(
             field.type,
-            OperandTyper.fieldDimensions(field.type, field.dimensions ?? []),
+            LengthProperty.fieldDimensions(field.type, field.dimensions ?? []),
             ctx,
           ),
           hasSideEffect: t.hasSideEffect,
@@ -1310,22 +1311,6 @@ class OperandTyper {
       OperandTyper.target(ctx),
     );
     return t ? { k: "value", register: false, t } : { k: "foreignPath", parts };
-  }
-
-  /**
-   * A field's dimensions as the program subscripts them. A string field's
-   * symbol carries its C buffer, capacity + 1, as its LAST dimension
-   * (`char name[33]`), which a `string<32>` variable's type does not; the
-   * buffer is the string's own, typed by its capacity, so it is left off.
-   */
-  private static fieldDimensions(
-    type: TType,
-    dimensions: ReadonlyArray<number | string>,
-  ): ReadonlyArray<number | string> {
-    if (type.kind !== "string" || dimensions.length === 0) return dimensions;
-    return dimensions.at(-1) === type.capacity + 1
-      ? dimensions.slice(0, -1)
-      : dimensions;
   }
 
   /**

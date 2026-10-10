@@ -1,0 +1,68 @@
+// test-execution
+// test-adr: 058
+// #1535: a struct's .element_count is its field count, and its .bit_length /
+// .byte_length are its fields' sizes together, without C padding (ADR-058
+// resolved question 7). C stores P in 8 bytes on x86-64; its .byte_length is 5.
+
+struct P {
+    u32 x;
+    u8 y;
+}
+
+struct Nested {
+    P p;
+    u16[3] arr;
+    string<7> s;
+    bool b;
+}
+
+P p;
+P[3] ps;
+Nested n;
+// #1175: a dimension sized by a property is the number the property reads as
+u8[p.byte_length] sized;
+// A string field's symbol carries its C buffer as a last dimension; read
+// as the typer reads it, its .byte_length is 8 here too, not 8 x 8
+u8[n.s.byte_length] sizedByString;
+
+i32 main() {
+    if (p.bit_length != 40) {
+        return 1;
+    }
+    if (p.byte_length != 5) {
+        return 2;
+    }
+    if (p.element_count != 2) {
+        return 3;
+    }
+    // 40 + 3 * 16 + 8 * 8 + 8
+    if (n.bit_length != 160) {
+        return 4;
+    }
+    if (n.byte_length != 20) {
+        return 5;
+    }
+    if (n.element_count != 4) {
+        return 6;
+    }
+    if (n.p.byte_length != 5) {
+        return 7;
+    }
+    // An array of structs follows the array rule
+    if (ps.byte_length != 15) {
+        return 8;
+    }
+    if (ps.element_count != 3) {
+        return 9;
+    }
+    if (ps[0].byte_length != 5) {
+        return 10;
+    }
+    if (sized.element_count != 5) {
+        return 11;
+    }
+    if (sizedByString.element_count != 8) {
+        return 12;
+    }
+    return 0;
+}

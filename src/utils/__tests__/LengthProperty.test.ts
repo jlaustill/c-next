@@ -40,13 +40,19 @@ describe("LengthProperty (ADR-058, #1175)", () => {
     ["a primitive", TTypeUtils.createPrimitive("u16"), 16],
     ["an enum: ADR-017's 32 bits", TTypeUtils.createEnum("EColor"), 32],
     ["a string, its buffer", TTypeUtils.createString(7), 64],
-    [
-      "a struct, whose width C-Next does not fix",
-      TTypeUtils.createStruct("P"),
-      null,
-    ],
+    ["a struct no lookup finds", TTypeUtils.createStruct("P"), null],
   ])("a declared %s is %s bits wide", (_label, type, expected) => {
-    expect(LengthProperty.elementBitsOfType(type)).toBe(expected);
+    expect(LengthProperty.elementBitsOfType(type, () => undefined)).toBe(
+      expected,
+    );
+  });
+
+  it("strips a string field's C buffer, its last dimension", () => {
+    const s = TTypeUtils.createString(7);
+    expect(LengthProperty.fieldDimensions(s, [8])).toEqual([]);
+    expect(LengthProperty.fieldDimensions(s, [3, 8])).toEqual([3]);
+    const u = TTypeUtils.createPrimitive("u8");
+    expect(LengthProperty.fieldDimensions(u, [8])).toEqual([8]);
   });
 
   it("asks the facts for an enum's and a bitmap's width, after the primitives", () => {

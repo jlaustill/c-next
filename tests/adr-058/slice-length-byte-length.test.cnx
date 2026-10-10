@@ -1,0 +1,22 @@
+// test-execution
+// test-adr: 058
+// #1093: ADR-058's slice example -- `.byte_length` as the slice length. It
+// writes magic's 4 bytes, little-endian, and no more.
+
+u8[8] bufArray;
+u32 magic <- 0x12345678;
+
+i32 main() {
+    bufArray[0, magic.byte_length] <- magic;
+    if (bufArray[0] != 0x78) {
+        return 1;
+    }
+    if (bufArray[3] != 0x12) {
+        return 2;
+    }
+    // The fifth byte is past the slice
+    if (bufArray[4] != 0) {
+        return 3;
+    }
+    return 0;
+}

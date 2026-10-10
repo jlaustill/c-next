@@ -75,6 +75,7 @@ function createMockInput(overrides?: {
     callbackTypes: new Map(),
     callbackFieldTypes: new Map(),
     debugMode: false,
+    program: null,
   } as IGeneratorInput;
 }
 
