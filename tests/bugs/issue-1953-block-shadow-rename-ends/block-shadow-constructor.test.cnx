@@ -12,8 +12,12 @@ u32 main() {
     const u8 seed <- 3;
     if (flag = 1) {
         Tally shared(seed);
-        if (shared.start != 3) return 1;
+        if (shared.start != 3) {
+            return 1;
+        }
     }
-    if (shared != 4) return 2;
+    if (shared != 4) {
+        return 2;
+    }
     return 0;
 }

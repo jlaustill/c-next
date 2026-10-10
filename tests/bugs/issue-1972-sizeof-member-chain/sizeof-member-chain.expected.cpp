@@ -24,19 +24,33 @@ Outer shared = {};
 
 int main(void) {
     uint32_t nested = sizeof(shared.inner.x);
-    if (nested != sizeof(uint8_t)) return 1U;
+    if (nested != sizeof(uint8_t)) {
+        return 1U;
+    }
     uint8_t nestedValue = shared.inner.x;
-    if (nestedValue != 0) return 2U;
+    if (nestedValue != 0) {
+        return 2U;
+    }
     widget_t* w = widget_get();
     uint32_t pointed = sizeof(w->v);
-    if (pointed != sizeof(uint32_t)) return 3U;
+    if (pointed != sizeof(uint32_t)) {
+        return 3U;
+    }
     uint32_t pointedValue = w->v;
-    if (pointedValue != 5) return 4U;
+    if (pointedValue != 5) {
+        return 4U;
+    }
     uint32_t scoped = sizeof(S__cfg.b);
-    if (scoped != sizeof(uint32_t)) return 5U;
+    if (scoped != sizeof(uint32_t)) {
+        return 5U;
+    }
     uint32_t scopedValue = S__cfg.b;
-    if (scopedValue != 0) return 6U;
+    if (scopedValue != 0) {
+        return 6U;
+    }
     uint32_t registerSize = sizeof(GPIO__DR);
-    if (registerSize != sizeof(uint32_t)) return 7U;
+    if (registerSize != sizeof(uint32_t)) {
+        return 7U;
+    }
     return 0U;
 }

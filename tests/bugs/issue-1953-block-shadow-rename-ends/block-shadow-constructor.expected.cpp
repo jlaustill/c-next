@@ -20,8 +20,12 @@ int main(void) {
     const uint8_t seed = 3U;
     if (flag == 1) {
         Tally main__shared(seed);
-        if (main__shared.start != 3) return 1U;
+        if (main__shared.start != 3) {
+            return 1U;
+        }
     }
-    if (shared != 4) return 2U;
+    if (shared != 4) {
+        return 2U;
+    }
     return 0U;
 }

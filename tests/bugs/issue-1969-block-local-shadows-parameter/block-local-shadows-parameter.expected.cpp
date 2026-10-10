@@ -34,7 +34,9 @@ uint32_t shadowPrimitive(uint32_t& x) {
     if (flag == 1) {
         uint32_t x = 5U;
         uint32_t y = cnx_clamp_add_u32(x, 1U);
-        if (y != 6) return 9U;
+        if (y != 6) {
+            return 9U;
+        }
     }
     return x;
 }
@@ -44,7 +46,9 @@ uint32_t shadowStruct(const Pair& cfg) {
     if (flag == 1) {
         Pair cfg = { .a = 7U, .b = 9U };
         uint8_t inner = cfg.a;
-        if (inner != 7) return 8U;
+        if (inner != 7) {
+            return 8U;
+        }
     }
     return cfg.b;
 }
@@ -52,11 +56,19 @@ uint32_t shadowStruct(const Pair& cfg) {
 int main(void) {
     uint32_t v = 3U;
     uint32_t primitive = shadowPrimitive(v);
-    if (primitive == 9) return 1U;
-    if (primitive != 4) return 2U;
+    if (primitive == 9) {
+        return 1U;
+    }
+    if (primitive != 4) {
+        return 2U;
+    }
     Pair p = { .a = 1U, .b = 4U };
     uint32_t member = shadowStruct(p);
-    if (member == 8) return 3U;
-    if (member != 4) return 4U;
+    if (member == 8) {
+        return 3U;
+    }
+    if (member != 4) {
+        return 4U;
+    }
     return 0U;
 }

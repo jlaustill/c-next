@@ -14,7 +14,9 @@ u32 measure(Pair cfg) {
     u32 flag <- 1;
     if (flag = 1) {
         u8[16] cfg <- [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-        if (sizeof(cfg) != 16) return 3;
+        if (sizeof(cfg) != 16) {
+            return 3;
+        }
     }
     return sizeof(cfg.b);
 }
@@ -27,7 +29,9 @@ u32 measureLocalMember(Pair cfg) {
     u32 flag <- 1;
     if (flag = 1) {
         Pair cfg;
-        if (sizeof(cfg.a) != 1) return 5;
+        if (sizeof(cfg.a) != 1) {
+            return 5;
+        }
     }
     return sizeof(cfg.a);
 }
@@ -35,12 +39,22 @@ u32 measureLocalMember(Pair cfg) {
 u32 main() {
     Pair p;
     u32 afterBlock <- measure(p);
-    if (afterBlock = 3) return 3;
-    if (afterBlock != 4) return 1;
+    if (afterBlock = 3) {
+        return 3;
+    }
+    if (afterBlock != 4) {
+        return 1;
+    }
     u32 direct <- measureDirect(p);
-    if (direct != 4) return 2;
+    if (direct != 4) {
+        return 2;
+    }
     u32 localMember <- measureLocalMember(p);
-    if (localMember = 5) return 5;
-    if (localMember != 1) return 4;
+    if (localMember = 5) {
+        return 5;
+    }
+    if (localMember != 1) {
+        return 4;
+    }
     return 0;
 }

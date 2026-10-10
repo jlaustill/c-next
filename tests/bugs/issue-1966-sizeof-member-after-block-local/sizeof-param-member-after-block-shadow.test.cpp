@@ -17,7 +17,9 @@ uint32_t measure(const Pair& cfg) {
     uint32_t flag = 1U;
     if (flag == 1) {
         uint8_t cfg[16] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
-        if (sizeof(cfg) != 16) return 3U;
+        if (sizeof(cfg) != 16) {
+            return 3U;
+        }
     }
     return sizeof(cfg.b);
 }
@@ -30,7 +32,9 @@ uint32_t measureLocalMember(const Pair& cfg) {
     uint32_t flag = 1U;
     if (flag == 1) {
         Pair cfg = {};
-        if (sizeof(cfg.a) != 1) return 5U;
+        if (sizeof(cfg.a) != 1) {
+            return 5U;
+        }
     }
     return sizeof(cfg.a);
 }
@@ -38,12 +42,22 @@ uint32_t measureLocalMember(const Pair& cfg) {
 int main(void) {
     Pair p = {};
     uint32_t afterBlock = measure(p);
-    if (afterBlock == 3) return 3U;
-    if (afterBlock != 4) return 1U;
+    if (afterBlock == 3) {
+        return 3U;
+    }
+    if (afterBlock != 4) {
+        return 1U;
+    }
     uint32_t direct = measureDirect(p);
-    if (direct != 4) return 2U;
+    if (direct != 4) {
+        return 2U;
+    }
     uint32_t localMember = measureLocalMember(p);
-    if (localMember == 5) return 5U;
-    if (localMember != 1) return 4U;
+    if (localMember == 5) {
+        return 5U;
+    }
+    if (localMember != 1) {
+        return 4U;
+    }
     return 0U;
 }

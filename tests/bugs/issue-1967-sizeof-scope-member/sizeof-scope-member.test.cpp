@@ -35,12 +35,20 @@ uint32_t S__measureShadow(void) {
 
 int main(void) {
     uint32_t whole = S__measureBuf();
-    if (whole != 16) return 1U;
+    if (whole != 16) {
+        return 1U;
+    }
     uint32_t field = S__measureField();
-    if (field != 4) return 2U;
+    if (field != 4) {
+        return 2U;
+    }
     uint32_t viaThis = S__measureThis();
-    if (viaThis != 16) return 3U;
+    if (viaThis != 16) {
+        return 3U;
+    }
     uint32_t shadowed = S__measureShadow();
-    if (shadowed != 4) return 4U;
+    if (shadowed != 4) {
+        return 4U;
+    }
     return 0U;
 }

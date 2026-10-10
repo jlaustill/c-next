@@ -9,10 +9,18 @@ u32 main() {
     u32 flag <- 1;
     if (flag = 1) {
         u8[8] shared <- [0, 0, 0, 0, 0, 0, 0, 0];
-        if (sizeof(shared) != 8) return 1;
-        if (global.shared[0] != 1) return 2;
+        if (sizeof(shared) != 8) {
+            return 1;
+        }
+        if (global.shared[0] != 1) {
+            return 2;
+        }
     }
-    if (sizeof(shared) != 4) return 3;
-    if (shared[3] != 4) return 4;
+    if (sizeof(shared) != 4) {
+        return 3;
+    }
+    if (shared[3] != 4) {
+        return 4;
+    }
     return 0;
 }

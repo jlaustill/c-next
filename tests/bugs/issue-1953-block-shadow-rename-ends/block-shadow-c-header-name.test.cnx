@@ -9,9 +9,13 @@ u32 main() {
     u32 flag <- 1;
     if (flag = 1) {
         u32 ticks_total <- 3;
-        if (ticks_total != 3) return 1;
+        if (ticks_total != 3) {
+            return 1;
+        }
     }
     u32 fresh <- 2;
-    if (fresh != 2) return 2;
+    if (fresh != 2) {
+        return 2;
+    }
     return 0;
 }

@@ -61,13 +61,21 @@ scope S {
 u32 main() {
     u32 cfg <- S.cfgSize();
     u32 cfgValue <- S.cfgValueSize();
-    if (cfg != cfgValue) return 1;
+    if (cfg != cfgValue) {
+        return 1;
+    }
     u32 mode <- S.modeSize();
     u32 modeValue <- S.modeValueSize();
-    if (mode != modeValue) return 2;
+    if (mode != modeValue) {
+        return 2;
+    }
     u32 flags <- S.flagsSize();
-    if (flags != 1) return 3;
+    if (flags != 1) {
+        return 3;
+    }
     u32 pair <- S.pairSize();
-    if (pair != sizeof(Pair)) return 4;
+    if (pair != sizeof(Pair)) {
+        return 4;
+    }
     return 0;
 }

@@ -63,13 +63,21 @@ uint32_t S__pairSize(void) {
 int main(void) {
     uint32_t cfg = S__cfgSize();
     uint32_t cfgValue = S__cfgValueSize();
-    if (cfg != cfgValue) return 1U;
+    if (cfg != cfgValue) {
+        return 1U;
+    }
     uint32_t mode = S__modeSize();
     uint32_t modeValue = S__modeValueSize();
-    if (mode != modeValue) return 2U;
+    if (mode != modeValue) {
+        return 2U;
+    }
     uint32_t flags = S__flagsSize();
-    if (flags != 1) return 3U;
+    if (flags != 1) {
+        return 3U;
+    }
     uint32_t pair = S__pairSize();
-    if (pair != sizeof(Pair)) return 4U;
+    if (pair != sizeof(Pair)) {
+        return 4U;
+    }
     return 0U;
 }

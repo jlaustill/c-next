@@ -11,15 +11,23 @@ const u8[3] table <- [1, 2, 3];
 i32 main() {
     // NEGATIVE CONTROL -- an array decays by itself, no address taken
     u32 all <- sum_u8(table, table.element_count);
-    if (all != 6) return 1;
+    if (all != 6) {
+        return 1;
+    }
     // THE ASSERTIONS
     u32 fromGlobal <- sum_u8(one, 1);
-    if (fromGlobal != 7) return 2;
+    if (fromGlobal != 7) {
+        return 2;
+    }
     const u8 local <- 9;
     u32 own <- sum_u8(local, 1);
-    if (own != 9) return 3;
+    if (own != 9) {
+        return 3;
+    }
     u8 plain <- 5;
     u32 fromPlain <- sum_u8(plain, 1);
-    if (fromPlain != 5) return 4;
+    if (fromPlain != 5) {
+        return 4;
+    }
     return 0;
 }

@@ -19,14 +19,22 @@ extern const uint8_t table[3] = {1U, 2U, 3U};
 
 int main(void) {
     uint32_t all = sum_u8(table, 3);
-    if (all != 6) return 1;
+    if (all != 6) {
+        return 1;
+    }
     uint32_t fromGlobal = sum_u8(&one, 1U);
-    if (fromGlobal != 7) return 2;
+    if (fromGlobal != 7) {
+        return 2;
+    }
     const uint8_t local = 9U;
     uint32_t own = sum_u8(&local, 1U);
-    if (own != 9) return 3;
+    if (own != 9) {
+        return 3;
+    }
     uint8_t plain = 5U;
     uint32_t fromPlain = sum_u8(&plain, 1U);
-    if (fromPlain != 5) return 4;
+    if (fromPlain != 5) {
+        return 4;
+    }
     return 0;
 }

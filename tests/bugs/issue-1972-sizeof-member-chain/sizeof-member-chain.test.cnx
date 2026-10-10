@@ -35,22 +35,36 @@ Outer shared;
 
 u32 main() {
     u32 nested <- sizeof(shared.inner.x);
-    if (nested != sizeof(u8)) return 1;
+    if (nested != sizeof(u8)) {
+        return 1;
+    }
     u8 nestedValue <- shared.inner.x;
-    if (nestedValue != 0) return 2;
+    if (nestedValue != 0) {
+        return 2;
+    }
 
     widget_t w <- widget_get();
     u32 pointed <- sizeof(w.v);
-    if (pointed != sizeof(u32)) return 3;
+    if (pointed != sizeof(u32)) {
+        return 3;
+    }
     u32 pointedValue <- w.v;
-    if (pointedValue != 5) return 4;
+    if (pointedValue != 5) {
+        return 4;
+    }
 
     u32 scoped <- sizeof(S.cfg.b);
-    if (scoped != sizeof(u32)) return 5;
+    if (scoped != sizeof(u32)) {
+        return 5;
+    }
     u32 scopedValue <- S.cfg.b;
-    if (scopedValue != 0) return 6;
+    if (scopedValue != 0) {
+        return 6;
+    }
 
     u32 registerSize <- sizeof(GPIO.DR);
-    if (registerSize != sizeof(u32)) return 7;
+    if (registerSize != sizeof(u32)) {
+        return 7;
+    }
     return 0;
 }

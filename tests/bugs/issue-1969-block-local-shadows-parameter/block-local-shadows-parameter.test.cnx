@@ -16,7 +16,9 @@ u32 shadowPrimitive(u32 x) {
     if (flag = 1) {
         u32 x <- 5;
         u32 y <- x + 1;
-        if (y != 6) return 9;
+        if (y != 6) {
+            return 9;
+        }
     }
     return x;
 }
@@ -26,7 +28,9 @@ u32 shadowStruct(const Pair cfg) {
     if (flag = 1) {
         Pair cfg <- { a: 7, b: 9 };
         u8 inner <- cfg.a;
-        if (inner != 7) return 8;
+        if (inner != 7) {
+            return 8;
+        }
     }
     return cfg.b;
 }
@@ -34,11 +38,19 @@ u32 shadowStruct(const Pair cfg) {
 u32 main() {
     u32 v <- 3;
     u32 primitive <- shadowPrimitive(v);
-    if (primitive = 9) return 1;
-    if (primitive != 4) return 2;
+    if (primitive = 9) {
+        return 1;
+    }
+    if (primitive != 4) {
+        return 2;
+    }
     Pair p <- { a: 1, b: 4 };
     u32 member <- shadowStruct(p);
-    if (member = 8) return 3;
-    if (member != 4) return 4;
+    if (member = 8) {
+        return 3;
+    }
+    if (member != 4) {
+        return 4;
+    }
     return 0;
 }

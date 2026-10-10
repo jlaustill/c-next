@@ -33,12 +33,20 @@ scope S {
 
 u32 main() {
     u32 whole <- S.measureBuf();
-    if (whole != 16) return 1;
+    if (whole != 16) {
+        return 1;
+    }
     u32 field <- S.measureField();
-    if (field != 4) return 2;
+    if (field != 4) {
+        return 2;
+    }
     u32 viaThis <- S.measureThis();
-    if (viaThis != 16) return 3;
+    if (viaThis != 16) {
+        return 3;
+    }
     u32 shadowed <- S.measureShadow();
-    if (shadowed != 4) return 4;
+    if (shadowed != 4) {
+        return 4;
+    }
     return 0;
 }

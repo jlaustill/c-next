@@ -38,13 +38,23 @@ int main(void) {
     for (uint8_t main__i = 0U; main__i < 3; main__i = cnx_clamp_add_u8(main__i, 1U)) {
         sum = cnx_clamp_add_u32(sum, main__i);
     }
-    if (sum != 3) return 1U;
-    if (i != 9) return 2U;
+    if (sum != 3) {
+        return 1U;
+    }
+    if (i != 9) {
+        return 2U;
+    }
     if (flag == 1) {
         uint8_t main__cfg[16] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
-        if (sizeof(main__cfg) != 16) return 3U;
+        if (sizeof(main__cfg) != 16) {
+            return 3U;
+        }
     }
-    if (sizeof(cfg.b) != 4) return 4U;
-    if (sizeof(cfg) != sizeof(Pair)) return 5U;
+    if (sizeof(cfg.b) != 4) {
+        return 4U;
+    }
+    if (sizeof(cfg) != sizeof(Pair)) {
+        return 5U;
+    }
     return 0U;
 }
