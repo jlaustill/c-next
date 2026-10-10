@@ -813,6 +813,12 @@ class InitializationAnalyzer {
       arrayElementTypeName !== null &&
       StructDefault.hasDefault(arrayElementTypeName, this.structDefaultFacts());
     const isInitialized = hasInitializer || isCppClassType || elementHasDefault;
+    const defaultFields =
+      typeName === null
+        ? []
+        : StructDefault.fieldsOf(typeName, this.structDefaultFacts()).map(
+            (field) => field.fieldName,
+          );
 
     const state: IVariableState = {
       declaration: { name, line, column },
@@ -823,15 +829,7 @@ class InitializationAnalyzer {
       // If initialized with full struct initializer or C++ class, all fields
       // are initialized. Otherwise #1283: the fields ADR-029 gives a default
       // (callbacks, and structs holding one) are initialized at declaration.
-      initializedFields: isInitialized
-        ? new Set(fields)
-        : new Set(
-            typeName === null
-              ? []
-              : StructDefault.fieldsOf(typeName, this.structDefaultFacts()).map(
-                  (field) => field.fieldName,
-                ),
-          ),
+      initializedFields: new Set(isInitialized ? fields : defaultFields),
     };
 
     this.scopeStack.declare(name, state);
