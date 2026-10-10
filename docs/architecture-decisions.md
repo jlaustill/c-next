@@ -18,7 +18,7 @@ v2 (so "Research (v2 Roadmap)" holds `1xx` ADRs).
 | [ADR-003](decisions/adr-003-static-allocation.md)          | Static Allocation          | No dynamic memory after init                                 |
 | [ADR-004](decisions/adr-004-register-bindings.md)          | Register Bindings          | Type-safe hardware access (ADR-111 supersedes on acceptance) |
 | [ADR-006](decisions/adr-006-simplified-references.md)      | Simplified References      | Pass by reference, no pointer syntax                         |
-| [ADR-007](decisions/adr-007-type-aware-bit-indexing.md)    | Type-Aware Bit Indexing    | Integers as bit arrays, `.length` property                   |
+| [ADR-007](decisions/adr-007-type-aware-bit-indexing.md)    | Type-Aware Bit Indexing    | Integers as bit arrays (`.length` superseded by ADR-058)     |
 | [ADR-010](decisions/adr-010-c-interoperability.md)         | C Interoperability         | Unified ANTLR parser architecture                            |
 | [ADR-013](decisions/adr-013-const-qualifier.md)            | Const Qualifier            | Compile-time const enforcement                               |
 | [ADR-014](decisions/adr-014-structs.md)                    | Structs                    | Data containers without methods                              |

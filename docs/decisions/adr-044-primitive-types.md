@@ -11,7 +11,7 @@ C-Next needs well-defined primitive types that:
 1. **Guarantee fixed widths** - Unlike C's `int` which varies by platform (16-bit on AVR, 32-bit on ARM)
 2. **Map cleanly to C99 stdint.h types** - For interoperability and portability
 3. **Support embedded systems** - Where knowing exact memory layouts is critical
-4. **Enable type-aware features** - Like `.length` for bit width (ADR-007)
+4. **Enable type-aware features** - Like bit indexing (ADR-007) and length properties (ADR-058)
 
 ### The Problem with C's Built-in Types
 
@@ -119,27 +119,9 @@ bool isReady = true;
 bool hasData = false;
 ```
 
-### The .length Property
+### Length Properties
 
-As defined in ADR-007, all primitive types expose their bit width via `.length`:
-
-```cnx
-u8 flags <- 0;
-u32 data <- 0;
-
-u32 flagBits <- flags.length;   // 8
-u32 dataBits <- data.length;    // 32
-```
-
-**Generated C:**
-
-```c
-uint8_t flags = 0;
-uint32_t data = 0;
-
-uint32_t flagBits = 8;   // Compile-time constant
-uint32_t dataBits = 32;  // Compile-time constant
-```
+A type's width is read through the length properties in [ADR-058](adr-058-explicit-length-properties.md). This ADR defines none.
 
 ---
 
@@ -617,23 +599,22 @@ The transpiler must emit:
 
 ### Type Width Tracking
 
-Bit widths come from the type table above; `.length` exposes them, and ADR-007
-defines what it means on each type. Nothing here restates either -- three copies
-of a width table is three chances for them to disagree.
+Bit widths come from the type table above; ADR-058's length properties expose
+them. Nothing here restates them -- three copies of a width table is three
+chances for them to disagree.
 
 ---
 
 ## Success Criteria
 
 1. All primitive types transpile to correct C99 types
-2. `.length` returns correct bit width for all types
-3. No implicit narrowing conversions allowed
-4. `<stdint.h>` and `<stdbool.h>` are automatically included when needed
-5. Type errors caught at compile time, not runtime
-6. `clamp` keyword generates saturating arithmetic
-7. `wrap` keyword generates natural two's complement wrap
-8. Default (no keyword) behaves as `clamp`
-9. `--debug` flag causes panic on any overflow
+2. No implicit narrowing conversions allowed
+3. `<stdint.h>` and `<stdbool.h>` are automatically included when needed
+4. Type errors caught at compile time, not runtime
+5. `clamp` keyword generates saturating arithmetic
+6. `wrap` keyword generates natural two's complement wrap
+7. Default (no keyword) behaves as `clamp`
+8. `--debug` flag causes panic on any overflow
 
 ---
 

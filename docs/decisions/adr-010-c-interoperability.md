@@ -337,7 +337,7 @@ For embedded projects (Arduino, Teensy), option 1 or 2 works well since the buil
   - **Behavior:** a struct declared in a C header is indistinguishable from a C-Next
     one at the point of use -- field types and array dimensions come from the same
     lookup either way
-  - **Impact:** `.length` works on a C header struct member ([Issue #45](https://github.com/jlaustill/c-next/issues/45))
+  - **Impact:** ADR-058's length properties work on a C header struct member ([Issue #45](https://github.com/jlaustill/c-next/issues/45))
 - ✅ Phase 4: `.h` files are emitted with include guards
 - ✅ Phase 5: C++ grammar imported and working (with known limitations)
 - ✅ `Preprocessor` with toolchain detection (gcc/clang/arm-gcc)

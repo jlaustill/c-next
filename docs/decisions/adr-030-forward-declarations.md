@@ -154,8 +154,8 @@ C-Next requires named parameters in all function definitions (per MISRA C:2012 R
 
 ```cnx
 // C-Next: parameters must be named
-void process(u8 data[]) {
-    // Use data.length for size
+void process(u8[16] data) {
+    // data's length properties: ADR-058
 }
 
 // NOT allowed: unnamed parameters
