@@ -27,13 +27,17 @@ int main(void) {
     if (x > 5) {
         result = 1U;
     }
-    if (result != 1) return 1U;
+    if (result != 1) {
+        return 1U;
+    }
     if (x < 5) {
         result = 100U;
     } else {
         result = 200U;
     }
-    if (result != 200) return 2U;
+    if (result != 200) {
+        return 2U;
+    }
     uint32_t score = 85U;
     uint32_t grade = 0;
     if (score >= 90) {
@@ -45,35 +49,47 @@ int main(void) {
     } else {
         grade = 1U;
     }
-    if (grade != 3) return 3U;
+    if (grade != 3) {
+        return 3U;
+    }
     uint32_t counter = 0U;
     uint32_t sum = 0U;
     while (counter < 5) {
         sum = cnx_clamp_add_u32(sum, counter);
         counter = cnx_clamp_add_u32(counter, 1U);
     }
-    if (sum != 10) return 4U;
+    if (sum != 10) {
+        return 4U;
+    }
     sum = 0U;
     for (uint32_t i = 1U; i <= 5; i = cnx_clamp_add_u32(i, 1U)) {
         sum = cnx_clamp_add_u32(sum, i);
     }
-    if (sum != 15) return 5U;
+    if (sum != 15) {
+        return 5U;
+    }
     counter = 0U;
     do {
         counter = cnx_clamp_add_u32(counter, 1U);
     } while (counter < 3);
-    if (counter != 3) return 6U;
+    if (counter != 3) {
+        return 6U;
+    }
     sum = 0U;
     for (uint32_t i = 0U; i < 5; i = cnx_clamp_add_u32(i, 1U)) {
         sum = cnx_clamp_add_u32(sum, 1U);
     }
-    if (sum != 5) return 7U;
+    if (sum != 5) {
+        return 7U;
+    }
     sum = 0U;
     for (uint32_t i = 0U; i < 5; i = cnx_clamp_add_u32(i, 1U)) {
         if (i != 2) {
             sum = cnx_clamp_add_u32(sum, 1U);
         }
     }
-    if (sum != 4) return 8U;
+    if (sum != 4) {
+        return 8U;
+    }
     return 0U;
 }

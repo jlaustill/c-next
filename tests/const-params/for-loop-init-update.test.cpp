@@ -52,9 +52,13 @@ int main(void) {
     Config cfg = {};
     cfg.value = 0U;
     handleForUpdate(cfg);
-    if (cfg.value != 1) return 1U;
+    if (cfg.value != 1) {
+        return 1U;
+    }
     cfg.value = 0U;
     handleForInit(cfg);
-    if (cfg.value != 10) return 2U;
+    if (cfg.value != 10) {
+        return 2U;
+    }
     return 0U;
 }

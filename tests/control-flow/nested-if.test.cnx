@@ -14,7 +14,9 @@ u32 main() {
             result <- 1;
         }
     }
-    if (result != 1) return 1;
+    if (result != 1) {
+        return 1;
+    }
 
     // Test 2: Nested if-else
     result <- 0;
@@ -25,7 +27,9 @@ u32 main() {
             result <- 3;
         }
     }
-    if (result != 3) return 2;
+    if (result != 3) {
+        return 2;
+    }
 
     // Test 3: Deeply nested (3 levels)
     result <- 0;
@@ -36,7 +40,9 @@ u32 main() {
             }
         }
     }
-    if (result != 4) return 3;
+    if (result != 4) {
+        return 3;
+    }
 
     // Test 4: Nested if in else branch
     result <- 0;
@@ -47,7 +53,9 @@ u32 main() {
             result <- 6;
         }
     }
-    if (result != 6) return 4;
+    if (result != 6) {
+        return 4;
+    }
 
     // Test 5: Multiple nested branches
     result <- 0;
@@ -64,7 +72,9 @@ u32 main() {
             result <- 10;
         }
     }
-    if (result != 7) return 5;
+    if (result != 7) {
+        return 5;
+    }
 
     // Test 6: Nested if with compound conditions
     result <- 0;
@@ -73,7 +83,9 @@ u32 main() {
             result <- 11;
         }
     }
-    if (result != 11) return 6;
+    if (result != 11) {
+        return 6;
+    }
 
     return 0;
 }

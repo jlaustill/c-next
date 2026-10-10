@@ -15,10 +15,16 @@ scope Large {
 
 u32 main() {
     u8 small <- Small.table[1];
-    if (small != 2) return 1;
+    if (small != 2) {
+        return 1;
+    }
     u8 large <- Large.table[7];
-    if (large != 8) return 2;
+    if (large != 8) {
+        return 2;
+    }
     u32 count <- Small.table.element_count;
-    if (count != 2) return 3;
+    if (count != 2) {
+        return 3;
+    }
     return 0;
 }

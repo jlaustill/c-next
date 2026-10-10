@@ -34,13 +34,21 @@ scope Cfg {
         for (i <- 0; i < 1; i +<- 1) {
             seen <- seen + FIVE;
         }
-        if (seen = SIX) return 8;
-        if (seen != 10) return 9;
+        if (seen = SIX) {
+            return 8;
+        }
+        if (seen != 10) {
+            return 9;
+        }
 
         // `=` on an imported string: strcmp, decided from a type that
         // crossed the include boundary.
-        if (GREETING = "world") return 10;
-        if (GREETING != "hello") return 11;
+        if (GREETING = "world") {
+            return 10;
+        }
+        if (GREETING != "hello") {
+            return 11;
+        }
         return 0;
     }
 }
@@ -51,16 +59,30 @@ u32 main() {
     count <- ALSO_FIVE;
     count +<- ALSO_FIVE;
 
-    if (gEqual != true) return 1;
-    if (Cfg.mEqual != true) return 2;
+    if (gEqual != true) {
+        return 1;
+    }
+    if (Cfg.mEqual != true) {
+        return 2;
+    }
 
-    if (count = SIX) return 3;
-    if (count != 10) return 4;
+    if (count = SIX) {
+        return 3;
+    }
+    if (count != 10) {
+        return 4;
+    }
 
-    if (GREETING = "world") return 6;
-    if (GREETING != "hello") return 7;
+    if (GREETING = "world") {
+        return 6;
+    }
+    if (GREETING != "hello") {
+        return 7;
+    }
 
     u32 checked <- Cfg.check();
-    if (checked != 0) return 5;
+    if (checked != 0) {
+        return 5;
+    }
     return 0;
 }

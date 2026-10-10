@@ -21,6 +21,8 @@ void okAssign(EnumBareCompare.Config cfg) {
 
 u32 main() {
     EnumBareCompare.Config cfg <- { pType: EPressureType.PSIA };
-    if (cfg.pType != PSIA) return 1;
+    if (cfg.pType != PSIA) {
+        return 1;
+    }
     return 0;
 }

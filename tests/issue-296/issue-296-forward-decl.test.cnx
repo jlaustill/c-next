@@ -25,8 +25,12 @@ u32 main() {
     AppData output <- DataHandler.getData();
 
     // Simple validation
-    if (output.humidity != 65.5) return 1;
-    if (output.temperature != 22.3) return 2;
+    if (output.humidity != 65.5) {
+        return 1;
+    }
+    if (output.temperature != 22.3) {
+        return 2;
+    }
 
     return 0;
 }

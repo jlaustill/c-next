@@ -34,8 +34,12 @@ uint8_t S__element(void) {
 int main(void) {
     S__run();
     bool f = S__flag();
-    if (f != true) return 1U;
+    if (f != true) {
+        return 1U;
+    }
     uint8_t e = S__element();
-    if (e != 3) return 2U;
+    if (e != 3) {
+        return 2U;
+    }
     return 0U;
 }

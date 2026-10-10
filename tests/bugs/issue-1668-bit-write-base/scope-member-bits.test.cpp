@@ -44,18 +44,30 @@ void viaParameter(P& p) {
 int main(void) {
     Sc__viaThis();
     uint16_t w1 = Sc__ws(1U);
-    if (w1 != 4) return 1U;
+    if (w1 != 4) {
+        return 1U;
+    }
     uint16_t w0 = Sc__ws(0U);
-    if (w0 != 9) return 2U;
+    if (w0 != 9) {
+        return 2U;
+    }
     Sc__viaBareMember();
     uint8_t a1 = Sc__arr(1U);
-    if (a1 != 4) return 3U;
+    if (a1 != 4) {
+        return 3U;
+    }
     Cfg__cfg.bits = (uint8_t)((Cfg__cfg.bits & ~(1U << 3)) | (1U << 3));
-    if (Cfg__cfg.bits != 8) return 4U;
+    if (Cfg__cfg.bits != 8) {
+        return 4U;
+    }
     Cfg__cfg.arr[1] = (uint8_t)((Cfg__cfg.arr[1] & ~(1U << 0)) | (1U << 0));
-    if (Cfg__cfg.arr[1U] != 1) return 5U;
+    if (Cfg__cfg.arr[1U] != 1) {
+        return 5U;
+    }
     P local = {};
     viaParameter(local);
-    if (local.arr[0U] != 2) return 6U;
+    if (local.arr[0U] != 2) {
+        return 6U;
+    }
     return 0U;
 }

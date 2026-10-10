@@ -11,8 +11,14 @@
 
 int main(void) {
     outer_t val = { .pos = { .x = 10, .y = 20 }, .z = 30 };
-    if (val.pos.x != 10) return 1;
-    if (val.pos.y != 20) return 2;
-    if (val.z != 30) return 3;
+    if (val.pos.x != 10) {
+        return 1;
+    }
+    if (val.pos.y != 20) {
+        return 2;
+    }
+    if (val.z != 30) {
+        return 3;
+    }
     return 0;
 }

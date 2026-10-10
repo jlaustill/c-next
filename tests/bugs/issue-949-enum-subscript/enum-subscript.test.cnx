@@ -28,17 +28,23 @@ scope Test {
 i32 main() {
     Test.setValue(EColor.GREEN, 42);
     u32 result <- Test.getValue(EColor.GREEN);
-    if (result != 42) return 1;
+    if (result != 42) {
+        return 1;
+    }
 
     // Test with RED (index 0)
     Test.setValue(EColor.RED, 10);
     u32 redVal <- Test.getValue(EColor.RED);
-    if (redVal != 10) return 2;
+    if (redVal != 10) {
+        return 2;
+    }
 
     // Test with BLUE (index 2)
     Test.setValue(EColor.BLUE, 99);
     u32 blueVal <- Test.getValue(EColor.BLUE);
-    if (blueVal != 99) return 3;
+    if (blueVal != 99) {
+        return 3;
+    }
 
     return 0;
 }

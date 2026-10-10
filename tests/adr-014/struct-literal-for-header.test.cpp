@@ -45,6 +45,8 @@ int main(void) {
     for (Point p = (Point){ .x = 0U, .y = 3U }; p.x < 4; p.x += 1U) {
         total = cnx_clamp_add_u32(total, p.y);
     }
-    if (total != 12) return 1U;
+    if (total != 12) {
+        return 1U;
+    }
     return 0U;
 }

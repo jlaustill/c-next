@@ -27,10 +27,14 @@ scope DeepConsumer {
 
 u32 main() {
     gDeep.value <- viaDeep();
-    if (gDeep.value != 9) return 1;
+    if (gDeep.value != 9) {
+        return 1;
+    }
 
     u32 direct <- DeepConsumer.read();
-    if (direct != 9) return 2;
+    if (direct != 9) {
+        return 2;
+    }
 
     return 0;
 }

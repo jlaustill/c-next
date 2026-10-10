@@ -21,11 +21,15 @@ scope Foo {
 u32 main() {
     // Test bare reference works
     u32 val <- Foo.getConstant();
-    if (val != 42) return 1;
+    if (val != 42) {
+        return 1;
+    }
 
     // Test const used in expression
     u8 expr <- Foo.useInExpression();
-    if (expr != 15) return 2;
+    if (expr != 15) {
+        return 2;
+    }
 
     return 0;
 }

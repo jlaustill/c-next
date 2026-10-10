@@ -7,7 +7,9 @@ u32 main() {
     u32 result <- a % b;
 
     // 10 % 3 = 1
-    if (result != 1) return 1;
+    if (result != 1) {
+        return 1;
+    }
 
     // Test with different integer types
     i32 c <- 17;
@@ -15,7 +17,9 @@ u32 main() {
     i32 result2 <- c % d;
 
     // 17 % 5 = 2
-    if (result2 != 2) return 2;
+    if (result2 != 2) {
+        return 2;
+    }
 
     return 0;
 }

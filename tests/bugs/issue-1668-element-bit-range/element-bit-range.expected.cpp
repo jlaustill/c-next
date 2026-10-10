@@ -20,16 +20,26 @@ int main(void) {
     row[2] = 0xF0U;
     row[2] = (uint8_t)((row[2] & ~(0xFU << 0)) | ((6U & 0xFU) << 0));
     uint8_t r = row[2U];
-    if (r != 0xF6) return 1U;
+    if (r != 0xF6) {
+        return 1U;
+    }
     matrix[1][2] = (uint8_t)((matrix[1][2] & ~(0xFU << 4)) | ((5U & 0xFU) << 4));
     uint8_t m = matrix[1U][2U];
-    if (m != 0x50) return 2U;
+    if (m != 0x50) {
+        return 2U;
+    }
     uint8_t v = 0U;
     v = (uint8_t)((v & ~(0xFU << 0)) | ((9U & 0xFU) << 0));
-    if (v != 9) return 3U;
+    if (v != 9) {
+        return 3U;
+    }
     uint8_t n = row[1U];
-    if (n != 0) return 4U;
+    if (n != 0) {
+        return 4U;
+    }
     uint8_t p = matrix[1U][1U];
-    if (p != 0) return 5U;
+    if (p != 0) {
+        return 5U;
+    }
     return 0U;
 }

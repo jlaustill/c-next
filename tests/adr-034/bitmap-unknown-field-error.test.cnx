@@ -26,9 +26,15 @@ u8 main() {
     u8 lvl <- f.Level;
     u8 bits <- f.bit_length;
     u8 bytes <- f.byte_length;
-    if (lvl != 5) return 1;
-    if (bits != 8) return 2;
-    if (bytes != 1) return 3;
+    if (lvl != 5) {
+        return 1;
+    }
+    if (bits != 8) {
+        return 2;
+    }
+    if (bytes != 1) {
+        return 3;
+    }
 
     // ASSERTIONS -- a read and a write of a field the bitmap does not declare.
     u8 nope <- f.Missing;

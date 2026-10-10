@@ -81,6 +81,8 @@ int main(void) {
         guarded(1U);
         __cnx_set_PRIMASK(__primask);
     }
-    if (total != 1) return 1U;
+    if (total != 1) {
+        return 1U;
+    }
     return 0U;
 }

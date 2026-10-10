@@ -281,12 +281,32 @@ struct Controller {
 };
 
 // Initialization always sets to default
-struct Controller Controller_init(void) {
-    return (struct Controller){
-        ._handler = defaultHandler
-    };
+Controller Controller_init(void) {
+    Controller value = { ._handler = defaultHandler };
+    return value;
 }
+
+// Every declaration without an initializer holds the same default (#1283),
+// at file scope, in a scope, as a local, and in every array element:
+Controller ctrl = { ._handler = defaultHandler };
+Controller controllers[2] = { { ._handler = defaultHandler }, { ._handler = defaultHandler } };
 ```
+
+The default is a constant brace rather than a call to `Controller_init()`
+because C forbids a function call in a file-scope or `static` initializer.
+C++14 has no designated initializers, so there every field is listed in
+declaration order and a zero field is `{}`: `Controller ctrl = { defaultHandler };`.
+The default is recursive (#1570): a field whose type is a struct with
+callbacks holds that struct's default, and a callback array field holds the
+default in every element (#1565). Spelling every element needs the count, so
+a dimension written as a macro from an included C header is read for its
+value (C-Next reads a macro whose C replacement is plain integer arithmetic,
+evaluated from the preprocessor's own macro dump) while the declaration keeps
+the macro as its size. A dimension whose value C-Next cannot read (a `sizeof`,
+a cast, a macro it cannot see) is E0359 on an array whose elements have a
+default; every other array is still sized by C as written. A struct gets `<Struct>_init()` when its
+default is not all zero; a scope-nested struct is initialized the same way at
+its declarations.
 
 ### Type Checking
 

@@ -114,40 +114,76 @@ int main(void) {
     int16_t maxVal = 32767;
     int16_t other = 1000;
     testI16Boundaries(minVal);
-    if (result != 1) return 1U;
+    if (result != 1) {
+        return 1U;
+    }
     testI16Boundaries(minPlus1);
-    if (result != 2) return 2U;
+    if (result != 2) {
+        return 2U;
+    }
     testI16Boundaries(neg256);
-    if (result != 3) return 3U;
+    if (result != 3) {
+        return 3U;
+    }
     testI16Boundaries(neg129);
-    if (result != 4) return 4U;
+    if (result != 4) {
+        return 4U;
+    }
     testI16Boundaries(neg128);
-    if (result != 5) return 5U;
+    if (result != 5) {
+        return 5U;
+    }
     testI16Boundaries(negOne);
-    if (result != 6) return 6U;
+    if (result != 6) {
+        return 6U;
+    }
     testI16Boundaries(zero);
-    if (result != 7) return 7U;
+    if (result != 7) {
+        return 7U;
+    }
     testI16Boundaries(pos127);
-    if (result != 8) return 8U;
+    if (result != 8) {
+        return 8U;
+    }
     testI16Boundaries(pos128);
-    if (result != 9) return 9U;
+    if (result != 9) {
+        return 9U;
+    }
     testI16Boundaries(maxMinus1);
-    if (result != 10) return 10U;
+    if (result != 10) {
+        return 10U;
+    }
     testI16Boundaries(maxVal);
-    if (result != 11) return 11U;
+    if (result != 11) {
+        return 11U;
+    }
     testI16Boundaries(other);
-    if (result != 99) return 12U;
+    if (result != 99) {
+        return 12U;
+    }
     testI16Hex(minVal);
-    if (result != 20) return 13U;
+    if (result != 20) {
+        return 13U;
+    }
     testI16Hex(neg256);
-    if (result != 21) return 14U;
+    if (result != 21) {
+        return 14U;
+    }
     testI16Hex(neg128);
-    if (result != 22) return 15U;
+    if (result != 22) {
+        return 15U;
+    }
     testI16Hex(negOne);
-    if (result != 23) return 16U;
+    if (result != 23) {
+        return 16U;
+    }
     testI16Hex(zero);
-    if (result != 24) return 17U;
+    if (result != 24) {
+        return 17U;
+    }
     testI16Hex(maxVal);
-    if (result != 25) return 18U;
+    if (result != 25) {
+        return 18U;
+    }
     return 0U;
 }

@@ -14,8 +14,14 @@
 const uint8_t DATA[3] = {10U, 20U, 30U};
 
 int main(void) {
-    if (DATA[0U] != 10) return 1U;
-    if (DATA[1U] != 20) return 2U;
-    if (DATA[2U] != 30) return 3U;
+    if (DATA[0U] != 10) {
+        return 1U;
+    }
+    if (DATA[1U] != 20) {
+        return 2U;
+    }
+    if (DATA[2U] != 30) {
+        return 3U;
+    }
     return 0U;
 }

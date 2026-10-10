@@ -51,36 +51,66 @@ bool isCounterAtMax(const Counter& c) {
 int main(void) {
     Point pt = { .x = 10, .y = 20 };
     movePoint(pt, 5, -3);
-    if (pt.x != 15) return 1U;
-    if (pt.y != 17) return 2U;
+    if (pt.x != 15) {
+        return 1U;
+    }
+    if (pt.y != 17) {
+        return 2U;
+    }
     resetPoint(pt);
-    if (pt.x != 0) return 3U;
-    if (pt.y != 0) return 4U;
+    if (pt.x != 0) {
+        return 3U;
+    }
+    if (pt.y != 0) {
+        return 4U;
+    }
     Counter cnt = { .value = 0U, .maxValue = 5U };
     incrementCounter(cnt);
-    if (cnt.value != 1) return 5U;
+    if (cnt.value != 1) {
+        return 5U;
+    }
     incrementCounter(cnt);
     incrementCounter(cnt);
-    if (cnt.value != 3) return 6U;
+    if (cnt.value != 3) {
+        return 6U;
+    }
     cnt.value = 5U;
     incrementCounter(cnt);
-    if (cnt.value != 5) return 7U;
+    if (cnt.value != 5) {
+        return 7U;
+    }
     setCounterMax(cnt, 10U);
-    if (cnt.maxValue != 10) return 8U;
+    if (cnt.maxValue != 10) {
+        return 8U;
+    }
     incrementCounter(cnt);
-    if (cnt.value != 6) return 9U;
+    if (cnt.value != 6) {
+        return 9U;
+    }
     Point readPt = { .x = 100, .y = 200 };
     int32_t sum = getPointSum(readPt);
-    if (sum != 300) return 10U;
-    if (readPt.x != 100) return 11U;
-    if (readPt.y != 200) return 12U;
+    if (sum != 300) {
+        return 10U;
+    }
+    if (readPt.x != 100) {
+        return 11U;
+    }
+    if (readPt.y != 200) {
+        return 12U;
+    }
     Counter readCnt = { .value = 42U, .maxValue = 100U };
     uint32_t val = getCounterValue(readCnt);
-    if (val != 42) return 13U;
+    if (val != 42) {
+        return 13U;
+    }
     bool atMax = isCounterAtMax(readCnt);
-    if (atMax != false) return 14U;
+    if (atMax != false) {
+        return 14U;
+    }
     readCnt.value = 100U;
     atMax = isCounterAtMax(readCnt);
-    if (atMax != true) return 15U;
+    if (atMax != true) {
+        return 15U;
+    }
     return 0U;
 }

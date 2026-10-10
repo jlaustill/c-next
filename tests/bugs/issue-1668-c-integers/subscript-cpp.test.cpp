@@ -17,10 +17,16 @@
 
 int main(void) {
     uint8_t a = sbuf[2U];
-    if (a != 7) return 1U;
+    if (a != 7) {
+        return 1U;
+    }
     uint8_t c = sbuf.data[3U];
-    if (c != 8) return 2U;
+    if (c != 8) {
+        return 2U;
+    }
     bool d = ((((cWord >> 4U) & 1)) != 0U);
-    if (d != true) return 3U;
+    if (d != true) {
+        return 3U;
+    }
     return 0U;
 }

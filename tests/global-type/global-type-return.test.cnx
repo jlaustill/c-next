@@ -21,7 +21,9 @@ u32 main() {
     i32 catValue <- (i32)TestScope.getCategory();
 
     // Validate the returned value (TEST_CAT_B = 1)
-    if (catValue != 1) return 1;
+    if (catValue != 1) {
+        return 1;
+    }
 
     return 0;
 }

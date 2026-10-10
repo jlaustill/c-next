@@ -8,170 +8,250 @@ u32 main() {
     // ===== ADDITION (+<-) =====
     i16 val <- 10000;
     val +<- 5000; // pos + pos
-    if (val != 15000) return 1;
+    if (val != 15000) {
+        return 1;
+    }
 
     val <- -10000;
     val +<- 5000; // neg + pos
-    if (val != -5000) return 2;
+    if (val != -5000) {
+        return 2;
+    }
 
     val <- -10000;
     val +<- -5000; // neg + neg
-    if (val != -15000) return 3;
+    if (val != -15000) {
+        return 3;
+    }
 
     val <- 1000;
     val +<- 0; // Identity: add zero
-    if (val != 1000) return 4;
+    if (val != 1000) {
+        return 4;
+    }
 
     val <- -1000;
     val +<- 1000; // Cross zero
-    if (val != 0) return 5;
+    if (val != 0) {
+        return 5;
+    }
 
     val <- 32766;
     val +<- 1; // Near max
-    if (val != 32767) return 6;
+    if (val != 32767) {
+        return 6;
+    }
 
     // ===== SUBTRACTION (-<-) =====
     i16 sub <- 15000;
     sub -<- 5000; // pos - pos = pos
-    if (sub != 10000) return 10;
+    if (sub != 10000) {
+        return 10;
+    }
 
     sub <- 5000;
     sub -<- 10000; // pos - pos = neg
-    if (sub != -5000) return 11;
+    if (sub != -5000) {
+        return 11;
+    }
 
     sub <- -10000;
     sub -<- 5000; // neg - pos
-    if (sub != -15000) return 12;
+    if (sub != -15000) {
+        return 12;
+    }
 
     sub <- -10000;
     sub -<- -5000; // neg - neg
-    if (sub != -5000) return 13;
+    if (sub != -5000) {
+        return 13;
+    }
 
     sub <- 1000;
     sub -<- 0; // Identity: subtract zero
-    if (sub != 1000) return 14;
+    if (sub != 1000) {
+        return 14;
+    }
 
     sub <- -32767;
     sub -<- 1; // Near min
-    if (sub != -32768) return 15;
+    if (sub != -32768) {
+        return 15;
+    }
 
     // ===== MULTIPLICATION (*<-) =====
     i16 mul <- 100;
     mul *<- 100; // pos * pos = 10000
-    if (mul != 10000) return 20;
+    if (mul != 10000) {
+        return 20;
+    }
 
     mul <- -100;
     mul *<- 100; // neg * pos
-    if (mul != -10000) return 21;
+    if (mul != -10000) {
+        return 21;
+    }
 
     mul <- -100;
     mul *<- -100; // neg * neg = pos
-    if (mul != 10000) return 22;
+    if (mul != 10000) {
+        return 22;
+    }
 
     mul <- 1000;
     mul *<- 1; // Identity: multiply by one
-    if (mul != 1000) return 23;
+    if (mul != 1000) {
+        return 23;
+    }
 
     mul <- 1000;
     mul *<- -1; // Negate
-    if (mul != -1000) return 24;
+    if (mul != -1000) {
+        return 24;
+    }
 
     mul <- 123;
     mul *<- 0; // Multiply by zero
-    if (mul != 0) return 25;
+    if (mul != 0) {
+        return 25;
+    }
 
     // ===== DIVISION (/<-) =====
     i16 div <- 10000;
     div /<- 100; // pos / pos
-    if (div != 100) return 30;
+    if (div != 100) {
+        return 30;
+    }
 
     div <- -10000;
     div /<- 100; // neg / pos
-    if (div != -100) return 31;
+    if (div != -100) {
+        return 31;
+    }
 
     div <- -10000;
     div /<- -100; // neg / neg
-    if (div != 100) return 32;
+    if (div != 100) {
+        return 32;
+    }
 
     div <- 1000;
     div /<- 1; // Identity: divide by one
-    if (div != 1000) return 33;
+    if (div != 1000) {
+        return 33;
+    }
 
     div <- -1000;
     div /<- -1; // neg / neg = pos
-    if (div != 1000) return 34;
+    if (div != 1000) {
+        return 34;
+    }
 
     div <- 32767;
     div /<- 32767; // Max / max = 1
-    if (div != 1) return 35;
+    if (div != 1) {
+        return 35;
+    }
 
     // ===== MODULO (%<-) =====
     i16 mod <- 10007;
     mod %<- 1000; // pos % pos
-    if (mod != 7) return 40;
+    if (mod != 7) {
+        return 40;
+    }
 
     mod <- -10007;
     mod %<- 1000; // neg % pos (C semantics)
-    if (mod != -7) return 41;
+    if (mod != -7) {
+        return 41;
+    }
 
     mod <- 12345;
     mod %<- 7; // 12345 % 7 = 4
-    if (mod != 4) return 42;
+    if (mod != 4) {
+        return 42;
+    }
 
     mod <- -12345;
     mod %<- 7; // -12345 % 7 = -4
-    if (mod != -4) return 43;
+    if (mod != -4) {
+        return 43;
+    }
 
     mod <- 1000;
     mod %<- 1000; // Result zero
-    if (mod != 0) return 44;
+    if (mod != 0) {
+        return 44;
+    }
 
     // ===== BITWISE AND (&<-) =====
     i16 andVal <- 0x7FFF; // Max positive
     andVal &<- 0x00FF; // Keep low byte
-    if (andVal != 0x00FF) return 50;
+    if (andVal != 0x00FF) {
+        return 50;
+    }
 
     andVal <- -1; // All bits set
     andVal &<- 0x00FF;
-    if (andVal != 0x00FF) return 51;
+    if (andVal != 0x00FF) {
+        return 51;
+    }
 
     andVal <- 0x5555;
     andVal &<- 0xAAAA; // Non-overlapping = 0
-    if (andVal != 0) return 52;
+    if (andVal != 0) {
+        return 52;
+    }
 
     andVal <- 0x0F0F;
     andVal &<- 0xF0F0; // Non-overlapping
-    if (andVal != 0) return 53;
+    if (andVal != 0) {
+        return 53;
+    }
 
     // ===== BITWISE OR (|<-) =====
     i16 orVal <- 0x00FF;
     orVal |<- 0x7F00; // Combine (keep sign clear)
-    if (orVal != 0x7FFF) return 60;
+    if (orVal != 0x7FFF) {
+        return 60;
+    }
 
     orVal <- 0x1200;
     orVal |<- 0x0034; // OR non-overlapping
-    if (orVal != 0x1234) return 61;
+    if (orVal != 0x1234) {
+        return 61;
+    }
 
     orVal <- 0x1234;
     orVal |<- 0x0000; // OR with zero = identity
-    if (orVal != 0x1234) return 62;
+    if (orVal != 0x1234) {
+        return 62;
+    }
 
     // ===== BITWISE XOR (^<-) =====
     i16 xorVal <- 0x5555;
     xorVal ^<- 0x5555; // XOR with self = 0
-    if (xorVal != 0) return 70;
+    if (xorVal != 0) {
+        return 70;
+    }
 
     xorVal <- 0x0F0F;
     xorVal ^<- 0x7070; // Partial overlap
-    if (xorVal != 0x7F7F) return 71;
+    if (xorVal != 0x7F7F) {
+        return 71;
+    }
 
     xorVal <- -1;
     xorVal ^<- -1; // -1 XOR -1 = 0
-    if (xorVal != 0) return 72;
+    if (xorVal != 0) {
+        return 72;
+    }
 
     xorVal <- 0x5555;
     xorVal ^<- 0x2AAA; // 0x5555 ^ 0x2AAA = 0x7FFF
-    if (xorVal != 0x7FFF) return 73;
+    if (xorVal != 0x7FFF) {
+        return 73;
+    }
 
     // Note: Shift compound-assignment (<<<-, >><-) on signed types (i16) is rejected
     // per MISRA C:2012 Rule 10.1 (E0805). See tests/bitwise/i16-compound-shift-assign.test.cnx

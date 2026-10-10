@@ -51,33 +51,53 @@ int main(void) {
     invokeCallCount = 0U;
     invokeLastHandler = 0U;
     globalHandler();
-    if (invokeCallCount != 1) return 1U;
-    if (invokeLastHandler != 1) return 2U;
+    if (invokeCallCount != 1) {
+        return 1U;
+    }
+    if (invokeLastHandler != 1) {
+        return 2U;
+    }
     invokeCallCount = 0U;
     invokeLastHandler = 0U;
     globalHandler = invokeHandler2;
     globalHandler();
-    if (invokeCallCount != 1) return 3U;
-    if (invokeLastHandler != 2) return 4U;
+    if (invokeCallCount != 1) {
+        return 3U;
+    }
+    if (invokeLastHandler != 2) {
+        return 4U;
+    }
     invokeCallCount = 0U;
     invokeLastHandler = 0U;
     ISR localHandler = invokeHandler3;
     localHandler();
-    if (invokeCallCount != 1) return 5U;
-    if (invokeLastHandler != 3) return 6U;
+    if (invokeCallCount != 1) {
+        return 5U;
+    }
+    if (invokeLastHandler != 3) {
+        return 6U;
+    }
     invokeCallCount = 0U;
     invokeLastHandler = 0U;
     localHandler = invokeHandler1;
     localHandler();
-    if (invokeCallCount != 1) return 7U;
-    if (invokeLastHandler != 1) return 8U;
+    if (invokeCallCount != 1) {
+        return 7U;
+    }
+    if (invokeLastHandler != 1) {
+        return 8U;
+    }
     invokeCallCount = 0U;
     localHandler = invokeHandler2;
     localHandler();
     localHandler();
     localHandler();
-    if (invokeCallCount != 3) return 9U;
-    if (invokeLastHandler != 2) return 10U;
+    if (invokeCallCount != 3) {
+        return 9U;
+    }
+    if (invokeLastHandler != 2) {
+        return 10U;
+    }
     invokeCallCount = 0U;
     localHandler = invokeHandler1;
     localHandler();
@@ -85,7 +105,11 @@ int main(void) {
     localHandler();
     localHandler = invokeHandler3;
     localHandler();
-    if (invokeCallCount != 3) return 11U;
-    if (invokeLastHandler != 3) return 12U;
+    if (invokeCallCount != 3) {
+        return 11U;
+    }
+    if (invokeLastHandler != 3) {
+        return 12U;
+    }
     return 0U;
 }

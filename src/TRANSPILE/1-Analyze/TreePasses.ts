@@ -183,7 +183,7 @@ class TreePasses {
     inputs: () => IAnalyzerOptions,
   ): readonly ITranspileError[] {
     try {
-      return runAnalyzers(parsed.tree, parsed.comments, inputs());
+      return runAnalyzers(parsed, inputs());
     } catch (err) {
       return [CaughtError.asTranspileError(err)];
     }

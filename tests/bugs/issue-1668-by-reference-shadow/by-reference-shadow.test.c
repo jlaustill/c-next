@@ -75,21 +75,39 @@ uint8_t localArray(void) {
 
 int main(void) {
     uint32_t s = Sc__shadowed();
-    if (s != 6) return 1U;
+    if (s != 6) {
+        return 1U;
+    }
     uint32_t l = local();
-    if (l != 8) return 2U;
-    if (x != 100) return 3U;
+    if (l != 8) {
+        return 2U;
+    }
+    if (x != 100) {
+        return 3U;
+    }
     uint32_t c = Sc__control();
-    if (c != 501) return 4U;
+    if (c != 501) {
+        return 4U;
+    }
     bump(&x);
-    if (x != 101) return 5U;
+    if (x != 101) {
+        return 5U;
+    }
     uint8_t a = localArray();
-    if (a != 7) return 6U;
+    if (a != 7) {
+        return 6U;
+    }
     uint8_t sa = Sc__shadowedArray();
-    if (sa != 9) return 7U;
+    if (sa != 9) {
+        return 7U;
+    }
     uint8_t ca = Sc__controlArray();
-    if (ca != 5) return 8U;
+    if (ca != 5) {
+        return 8U;
+    }
     uint8_t g = first(buf);
-    if (g != 1) return 9U;
+    if (g != 1) {
+        return 9U;
+    }
     return 0U;
 }

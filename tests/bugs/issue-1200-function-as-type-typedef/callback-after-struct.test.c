@@ -14,12 +14,11 @@ void onReceive(const Message* msg) {
 }
 
 Controller Controller_init(void) {
-    Controller value = {0};
-    value.handler = onReceive;
+    Controller value = { .handler = onReceive };
     return value;
 }
 
 void demo(void) {
-    Controller controller = {0};
+    Controller controller = { .handler = onReceive };
     controller.handler = onReceive;
 }

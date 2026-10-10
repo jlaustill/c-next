@@ -11,43 +11,81 @@
 // Validates: exact capacity, minimum sizes, edge cases
 int main(void) {
     char exact[6] = "Hello";
-    if (strlen(exact) != 5) return 1;
-    if (5 != 5) return 2;
-    if (strcmp(exact, "Hello") != 0) return 3;
+    if (strlen(exact) != 5) {
+        return 1;
+    }
+    if (5 != 5) {
+        return 2;
+    }
+    if (strcmp(exact, "Hello") != 0) {
+        return 3;
+    }
     char single[2] = "X";
-    if (strlen(single) != 1) return 4;
-    if (1 != 1) return 5;
-    if (strcmp(single, "X") != 0) return 6;
+    if (strlen(single) != 1) {
+        return 4;
+    }
+    if (1 != 1) {
+        return 5;
+    }
+    if (strcmp(single, "X") != 0) {
+        return 6;
+    }
     char emptyWithCap[11] = "";
-    if (strlen(emptyWithCap) != 0) return 7;
-    if (10 != 10) return 8;
-    if (strcmp(emptyWithCap, "") != 0) return 9;
+    if (strlen(emptyWithCap) != 0) {
+        return 7;
+    }
+    if (10 != 10) {
+        return 8;
+    }
+    if (strcmp(emptyWithCap, "") != 0) {
+        return 9;
+    }
     char largeBuffer[1025] = "Tiny";
-    if (strlen(largeBuffer) != 4) return 10;
-    if (1024 != 1024) return 11;
-    if (strcmp(largeBuffer, "Tiny") != 0) return 12;
+    if (strlen(largeBuffer) != 4) {
+        return 10;
+    }
+    if (1024 != 1024) {
+        return 11;
+    }
+    if (strcmp(largeBuffer, "Tiny") != 0) {
+        return 12;
+    }
     char source[11] = "0123456789";
     char firstHalf[6] = "";
     (void) strncpy(firstHalf, source + 0, 5);
     firstHalf[5] = '\0';
-    if (strcmp(firstHalf, "01234") != 0) return 13;
+    if (strcmp(firstHalf, "01234") != 0) {
+        return 13;
+    }
     char lastHalf[6] = "";
     (void) strncpy(lastHalf, source + 5, 5);
     lastHalf[5] = '\0';
-    if (strcmp(lastHalf, "56789") != 0) return 14;
+    if (strcmp(lastHalf, "56789") != 0) {
+        return 14;
+    }
     char part1[4] = "ABC";
     char part2[4] = "DEF";
     char combined[7] = "";
     (void) strncpy(combined, part1, 6);
     (void) strncat(combined, part2, 6 - strlen(combined));
     combined[6] = '\0';
-    if (strlen(combined) != 6) return 15;
-    if (strcmp(combined, "ABCDEF") != 0) return 16;
+    if (strlen(combined) != 6) {
+        return 15;
+    }
+    if (strcmp(combined, "ABCDEF") != 0) {
+        return 16;
+    }
     char a[3] = "AB";
     char b[3] = "CD";
     char c[3] = "EF";
-    if (strlen(a) != 2) return 17;
-    if (strlen(b) != 2) return 18;
-    if (strlen(c) != 2) return 19;
+    if (strlen(a) != 2) {
+        return 17;
+    }
+    if (strlen(b) != 2) {
+        return 18;
+    }
+    if (strlen(c) != 2) {
+        return 19;
+    }
     return 0;
 }

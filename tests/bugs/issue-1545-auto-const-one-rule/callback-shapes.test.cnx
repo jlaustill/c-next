@@ -54,11 +54,15 @@ void onKnob(knob_t k) {
 
 u32 main() {
     register_buf(onBuf);
-    if (shapeWitness != 7) return 1;
+    if (shapeWitness != 7) {
+        return 1;
+    }
 
     u8[4] local <- [9, 0, 0, 0];
     plainArray(local);
-    if (shapeWitness != 9) return 2;
+    if (shapeWitness != 9) {
+        return 2;
+    }
 
     register_knob(onKnob);
     return 0;

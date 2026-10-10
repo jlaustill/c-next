@@ -11,20 +11,38 @@
 // Demonstrates: string<N> declaration, assignment, properties
 int main(void) {
     char greeting[11] = "Hello";
-    if (strlen(greeting) != 5) return 1U;
-    if (11 != 11) return 2U;
+    if (strlen(greeting) != 5) {
+        return 1U;
+    }
+    if (11 != 11) {
+        return 2U;
+    }
     char empty[21] = "";
-    if (strlen(empty) != 0) return 3U;
+    if (strlen(empty) != 0) {
+        return 3U;
+    }
     char message[21] = "Hi there";
-    if (strlen(message) != 8) return 4U;
+    if (strlen(message) != 8) {
+        return 4U;
+    }
     char longer[51] = "The quick brown fox";
-    if (strlen(longer) != 19) return 5U;
+    if (strlen(longer) != 19) {
+        return 5U;
+    }
     char hello1[11] = "Hello";
     char hello2[11] = "Hello";
-    if (strcmp(hello1, hello2) != 0) return 6U;
+    if (strcmp(hello1, hello2) != 0) {
+        return 6U;
+    }
     char world[11] = "World";
-    if (strcmp(hello1, world) == 0) return 7U;
-    if (10 != 10) return 8U;
-    if (50 != 50) return 9U;
+    if (strcmp(hello1, world) == 0) {
+        return 7U;
+    }
+    if (10 != 10) {
+        return 8U;
+    }
+    if (50 != 50) {
+        return 9U;
+    }
     return 0U;
 }

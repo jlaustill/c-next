@@ -15,16 +15,22 @@ u32 main() {
     // CONTROL: a scalar field's bit write was right before
     s.flags[3] <- true;
     u8 f <- s.flags;
-    if (f != 8) return 1;
+    if (f != 8) {
+        return 1;
+    }
 
     // ASSERTION: bit 3 of an array field's element
     s.arr[1][3] <- true;
     u8 e <- s.arr[1];
-    if (e != 8) return 2;
+    if (e != 8) {
+        return 2;
+    }
 
     // NEGATIVE CONTROL: an element write stays an element write
     s.arr[2] <- 5;
     u8 g <- s.arr[2];
-    if (g != 5) return 3;
+    if (g != 5) {
+        return 3;
+    }
     return 0;
 }

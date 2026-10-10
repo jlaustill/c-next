@@ -61,13 +61,21 @@ uint32_t detached(void) {
 int main(void) {
     Sensor__refresh();
     uint32_t sensorValue = Sensor__value();
-    if (sensorValue != 10) return 1U;
+    if (sensorValue != 10) {
+        return 1U;
+    }
     Gauge__accumulate();
     Gauge__accumulate();
     uint32_t gaugeTotal = Gauge__readTotal();
-    if (gaugeTotal != 4) return 2U;
+    if (gaugeTotal != 4) {
+        return 2U;
+    }
     uint32_t detachedValue = detached();
-    if (detachedValue != 6) return 3U;
-    if (spare != 40) return 4U;
+    if (detachedValue != 6) {
+        return 3U;
+    }
+    if (spare != 40) {
+        return 4U;
+    }
     return 0U;
 }

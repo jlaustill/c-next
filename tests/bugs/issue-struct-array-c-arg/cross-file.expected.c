@@ -20,13 +20,25 @@
 
 int main(void) {
     pts_bump2(sharedPts);
-    if (sharedPts[0U].x != 1) return 1;
-    if (sharedPts[1U].x != 2) return 2;
+    if (sharedPts[0U].x != 1) {
+        return 1;
+    }
+    if (sharedPts[1U].x != 2) {
+        return 2;
+    }
     pts_bump2(Rack__slots);
-    if (Rack__slots[0U].x != 1) return 3;
-    if (Rack__slots[1U].x != 2) return 4;
+    if (Rack__slots[0U].x != 1) {
+        return 3;
+    }
+    if (Rack__slots[1U].x != 2) {
+        return 4;
+    }
     pts_bump1(&sharedPts[1U]);
-    if (sharedPts[0U].x != 1) return 5;
-    if (sharedPts[1U].x != 3) return 6;
+    if (sharedPts[0U].x != 1) {
+        return 5;
+    }
+    if (sharedPts[1U].x != 3) {
+        return 6;
+    }
     return 0;
 }

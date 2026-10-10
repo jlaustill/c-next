@@ -26,20 +26,34 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 
 int main(void) {
     byte_t b = 255U;
-    if (b != 255) return 1U;
+    if (b != 255) {
+        return 1U;
+    }
     word_t w = 65535U;
-    if (w != 65535) return 2U;
+    if (w != 65535) {
+        return 2U;
+    }
     dword_t dw = 0xFFFFFFFFU;
-    if (dw != 0xFFFFFFFF) return 3U;
+    if (dw != 0xFFFFFFFF) {
+        return 3U;
+    }
     qword_t qw = 0xFFFFFFFFFFFFFFFFULL;
-    if (qw != 0xFFFFFFFFFFFFFFFF) return 4U;
+    if (qw != 0xFFFFFFFFFFFFFFFF) {
+        return 4U;
+    }
     offset_t off = -1000;
-    if (off != -1000) return 5U;
+    if (off != -1000) {
+        return 5U;
+    }
     byte_t a = 100U;
     byte_t c = cnx_clamp_add_u8(a, 50U);
-    if (c != 150) return 6U;
+    if (c != 150) {
+        return 6U;
+    }
     dword_t x = 12345U;
     dword_t y = x;
-    if (y != 12345) return 7U;
+    if (y != 12345) {
+        return 7U;
+    }
     return 0U;
 }

@@ -20,27 +20,39 @@ bool isPsig(EPressureType ptype) {
 u32 main() {
     // Test 1: Ternary returning external enum (true case)
     EPressureType p1 <- selectPressure(true);
-    if (p1 != EPressureType.PRESSURE_TYPE_PSIG) return 1;
+    if (p1 != EPressureType.PRESSURE_TYPE_PSIG) {
+        return 1;
+    }
 
     // Test 2: Ternary returning external enum (false case)
     EPressureType p2 <- selectPressure(false);
-    if (p2 != EPressureType.PRESSURE_TYPE_PSIA) return 2;
+    if (p2 != EPressureType.PRESSURE_TYPE_PSIA) {
+        return 2;
+    }
 
     // Test 3: External enum as function argument (qualified access)
     bool result1 <- isPsia(EPressureType.PRESSURE_TYPE_PSIA);
-    if (result1 != true) return 3;
+    if (result1 != true) {
+        return 3;
+    }
 
     bool result2 <- isPsia(EPressureType.PRESSURE_TYPE_PSIG);
-    if (result2 != false) return 4;
+    if (result2 != false) {
+        return 4;
+    }
 
     // Test 4: Variable with external enum as function argument
     EPressureType ptype <- PRESSURE_TYPE_PSIG;
     bool result3 <- isPsig(ptype);
-    if (result3 != true) return 5;
+    if (result3 != true) {
+        return 5;
+    }
 
     // Test 5: Inline ternary assignment (expectedType set from declaration)
     EPressureType p3 <- (true = true) ? PRESSURE_TYPE_PSIA : PRESSURE_TYPE_PSIG;
-    if (p3 != EPressureType.PRESSURE_TYPE_PSIA) return 6;
+    if (p3 != EPressureType.PRESSURE_TYPE_PSIA) {
+        return 6;
+    }
 
     return 0;
 }

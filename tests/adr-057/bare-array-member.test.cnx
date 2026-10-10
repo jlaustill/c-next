@@ -27,8 +27,12 @@ u32 main() {
     // Verify both were set correctly
     u8 data0 <- ArrayBug.getData0();
     bool flag <- ArrayBug.getFlag();
-    if (data0 != 42) return 1;
-    if (flag != true) return 2;
+    if (data0 != 42) {
+        return 1;
+    }
+    if (flag != true) {
+        return 2;
+    }
 
     return 0;
 }

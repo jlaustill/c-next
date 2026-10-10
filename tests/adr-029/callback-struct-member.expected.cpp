@@ -36,26 +36,35 @@ uint32_t tripleValue(uint32_t input) {
 
 // Struct with callback member
 Processor Processor_init(void) {
-    Processor value = {};
-    value.handler = computeValue;
+    Processor value = { computeValue, {} };
     return value;
 }
 
 int main(void) {
-    Processor p = {};
+    Processor p = { computeValue, {} };
     p.baseValue = 10U;
     p.handler = computeValue;
     uint32_t result = p.handler(5U);
-    if (result != 10) return 1U;
+    if (result != 10) {
+        return 1U;
+    }
     result = p.handler(p.baseValue);
-    if (result != 20) return 2U;
+    if (result != 20) {
+        return 2U;
+    }
     p.handler = tripleValue;
     result = p.handler(5U);
-    if (result != 15) return 3U;
+    if (result != 15) {
+        return 3U;
+    }
     result = p.handler(p.baseValue);
-    if (result != 30) return 4U;
+    if (result != 30) {
+        return 4U;
+    }
     p.handler = computeValue;
     result = p.handler(7U);
-    if (result != 14) return 5U;
+    if (result != 14) {
+        return 5U;
+    }
     return 0U;
 }

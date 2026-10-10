@@ -28,33 +28,71 @@ int main(void) {
     uint8_t red = static_cast<uint8_t>(((pixel >> 11U) & 0x1FU));
     uint8_t green = static_cast<uint8_t>(((pixel >> 5U) & 0x3FU));
     uint8_t blue = static_cast<uint8_t>(((pixel) & 0x1FU));
-    if (red != 15) return 1U;
-    if (green != 31) return 2U;
-    if (blue != 15) return 3U;
+    if (red != 15) {
+        return 1U;
+    }
+    if (green != 31) {
+        return 2U;
+    }
+    if (blue != 15) {
+        return 3U;
+    }
     uint16_t pureRed = 0xF800U;
-    if (((pureRed >> 11U) & 0x1FU) != 31) return 4U;
-    if (((pureRed >> 5U) & 0x3FU) != 0) return 5U;
-    if (((pureRed) & 0x1FU) != 0) return 6U;
+    if (((pureRed >> 11U) & 0x1FU) != 31) {
+        return 4U;
+    }
+    if (((pureRed >> 5U) & 0x3FU) != 0) {
+        return 5U;
+    }
+    if (((pureRed) & 0x1FU) != 0) {
+        return 6U;
+    }
     uint16_t pureGreen = 0x07E0U;
-    if (((pureGreen >> 11U) & 0x1FU) != 0) return 7U;
-    if (((pureGreen >> 5U) & 0x3FU) != 63) return 8U;
-    if (((pureGreen) & 0x1FU) != 0) return 9U;
+    if (((pureGreen >> 11U) & 0x1FU) != 0) {
+        return 7U;
+    }
+    if (((pureGreen >> 5U) & 0x3FU) != 63) {
+        return 8U;
+    }
+    if (((pureGreen) & 0x1FU) != 0) {
+        return 9U;
+    }
     uint16_t pureBlue = 0x001FU;
-    if (((pureBlue >> 11U) & 0x1FU) != 0) return 10U;
-    if (((pureBlue >> 5U) & 0x3FU) != 0) return 11U;
-    if (((pureBlue) & 0x1FU) != 31) return 12U;
+    if (((pureBlue >> 11U) & 0x1FU) != 0) {
+        return 10U;
+    }
+    if (((pureBlue >> 5U) & 0x3FU) != 0) {
+        return 11U;
+    }
+    if (((pureBlue) & 0x1FU) != 31) {
+        return 12U;
+    }
     uint16_t modified = 0x7BEFU;
     modified = (uint16_t)((modified & ~(0x3FU << 5)) | ((63U & 0x3FU) << 5));
-    if (((modified >> 11U) & 0x1FU) != 15) return 13U;
-    if (((modified >> 5U) & 0x3FU) != 63) return 14U;
-    if (((modified) & 0x1FU) != 15) return 15U;
+    if (((modified >> 11U) & 0x1FU) != 15) {
+        return 13U;
+    }
+    if (((modified >> 5U) & 0x3FU) != 63) {
+        return 14U;
+    }
+    if (((modified) & 0x1FU) != 15) {
+        return 15U;
+    }
     uint16_t custom = 0U;
     custom = (uint16_t)((custom & ~(0x1FU << 11)) | ((31U & 0x1FU) << 11));
     custom = (uint16_t)((custom & ~(0x3FU << 5)) | ((32U & 0x3FU) << 5));
     custom = (uint16_t)((custom & ~(0x1FU << 0)) | ((16U & 0x1FU) << 0));
-    if (((custom >> 11U) & 0x1FU) != 31) return 16U;
-    if (((custom >> 5U) & 0x3FU) != 32) return 17U;
-    if (((custom) & 0x1FU) != 16) return 18U;
-    if (custom != 0xFC10) return 19U;
+    if (((custom >> 11U) & 0x1FU) != 31) {
+        return 16U;
+    }
+    if (((custom >> 5U) & 0x3FU) != 32) {
+        return 17U;
+    }
+    if (((custom) & 0x1FU) != 16) {
+        return 18U;
+    }
+    if (custom != 0xFC10) {
+        return 19U;
+    }
     return 0U;
 }

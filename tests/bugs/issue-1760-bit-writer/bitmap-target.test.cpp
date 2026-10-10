@@ -37,19 +37,31 @@ int main(void) {
     Sm main__fl = 0;
     main__fl = (uint8_t)((main__fl & ~(0xFU << 4)) | ((5U & 0xFU) << 4));
     uint8_t local = static_cast<uint8_t>(((main__fl >> 4) & 0xF));
-    if (local != 5) return 1U;
+    if (local != 5) {
+        return 1U;
+    }
     uint8_t outer = static_cast<uint8_t>(((fl >> 4) & 0xF));
-    if (outer != 0) return 2U;
+    if (outer != 0) {
+        return 2U;
+    }
     Sm fa[2] = {0};
     fa[1] = (uint8_t)((fa[1] & ~(1U << 0)) | (1U << 0));
-    if (((fa[1U] >> 0) & 1) != true) return 3U;
+    if (((fa[1U] >> 0) & 1) != true) {
+        return 3U;
+    }
     uint8_t inScope = Sc__method();
-    if (inScope != 5) return 4U;
+    if (inScope != 5) {
+        return 4U;
+    }
     Sm byRef = 0;
     wf(byRef);
-    if (((byRef >> 0) & 1) != true) return 5U;
+    if (((byRef >> 0) & 1) != true) {
+        return 5U;
+    }
     Holder h = { .s = 0 };
     wp(h);
-    if (((h.s >> 4) & 0xF) != 0xF) return 6U;
+    if (((h.s >> 4) & 0xF) != 0xF) {
+        return 6U;
+    }
     return 0U;
 }

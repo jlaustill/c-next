@@ -16,47 +16,77 @@ int main(void) {
     (void) strncpy(concat, a, 64);
     (void) strncat(concat, b, 64 - strlen(concat));
     concat[64] = '\0';
-    if (strlen(concat) != 11) return 1;
-    if (64 != 64) return 2;
-    if (65 != 65) return 3;
+    if (strlen(concat) != 11) {
+        return 1;
+    }
+    if (64 != 64) {
+        return 2;
+    }
+    if (65 != 65) {
+        return 3;
+    }
     char source[65] = "Hello, World!";
     char sub[6] = "";
     (void) strncpy(sub, source + 0, 5);
     sub[5] = '\0';
-    if (strlen(sub) != 5) return 4;
-    if (5 != 5) return 5;
-    if (strcmp(sub, "Hello") != 0) return 6;
+    if (strlen(sub) != 5) {
+        return 4;
+    }
+    if (5 != 5) {
+        return 5;
+    }
+    if (strcmp(sub, "Hello") != 0) {
+        return 6;
+    }
     char first[33] = "AB";
     char second[33] = "CD";
     char combined[65] = "";
     (void) strncpy(combined, first, 64);
     (void) strncat(combined, second, 64 - strlen(combined));
     combined[64] = '\0';
-    if (strcmp(combined, "ABCD") != 0) return 7;
-    if (strlen(combined) != 4) return 8;
+    if (strcmp(combined, "ABCD") != 0) {
+        return 7;
+    }
+    if (strlen(combined) != 4) {
+        return 8;
+    }
     char text[21] = "Testing123";
     char letters[8] = "";
     (void) strncpy(letters, text + 0, 7);
     letters[7] = '\0';
-    if (strcmp(letters, "Testing") != 0) return 9;
+    if (strcmp(letters, "Testing") != 0) {
+        return 9;
+    }
     char numbers[4] = "";
     (void) strncpy(numbers, text + 7, 3);
     numbers[3] = '\0';
-    if (strcmp(numbers, "123") != 0) return 10;
+    if (strcmp(numbers, "123") != 0) {
+        return 10;
+    }
     char msg[65] = "Example";
     uint32_t len = strlen(msg);
     uint32_t cap = 64;
     uint32_t sz = 65;
-    if (len != 7) return 11;
-    if (cap != 64) return 12;
-    if (sz != 65) return 13;
+    if (len != 7) {
+        return 11;
+    }
+    if (cap != 64) {
+        return 12;
+    }
+    if (sz != 65) {
+        return 13;
+    }
     char prefix[17] = "pre";
     char suffix[17] = "fix";
     char word[33] = "";
     (void) strncpy(word, prefix, 32);
     (void) strncat(word, suffix, 32 - strlen(word));
     word[32] = '\0';
-    if (strcmp(word, "prefix") != 0) return 14;
-    if (strlen(word) != 6) return 15;
+    if (strcmp(word, "prefix") != 0) {
+        return 14;
+    }
+    if (strlen(word) != 6) {
+        return 15;
+    }
     return 0;
 }

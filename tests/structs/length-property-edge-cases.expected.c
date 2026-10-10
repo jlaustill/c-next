@@ -12,23 +12,47 @@
 // Tests const parameters, all primitive types, and nested expressions
 // Test with const parameter
 uint32_t testConst(const AllTypes* data) {
-    if (32 != 32) return 1U;
-    if (16 != 16) return 2U;
+    if (32 != 32) {
+        return 1U;
+    }
+    if (16 != 16) {
+        return 2U;
+    }
     return 0U;
 }
 
 // Test with regular parameter
 uint32_t testParam(const AllTypes* data) {
-    if (8 != 8) return 10U;
-    if (16 != 16) return 11U;
-    if (32 != 32) return 12U;
-    if (64 != 64) return 13U;
-    if (8 != 8) return 20U;
-    if (16 != 16) return 21U;
-    if (32 != 32) return 22U;
-    if (64 != 64) return 23U;
-    if (32 != 32) return 30U;
-    if (64 != 64) return 31U;
+    if (8 != 8) {
+        return 10U;
+    }
+    if (16 != 16) {
+        return 11U;
+    }
+    if (32 != 32) {
+        return 12U;
+    }
+    if (64 != 64) {
+        return 13U;
+    }
+    if (8 != 8) {
+        return 20U;
+    }
+    if (16 != 16) {
+        return 21U;
+    }
+    if (32 != 32) {
+        return 22U;
+    }
+    if (64 != 64) {
+        return 23U;
+    }
+    if (32 != 32) {
+        return 30U;
+    }
+    if (64 != 64) {
+        return 31U;
+    }
     return 0U;
 }
 
@@ -45,18 +69,32 @@ int main(void) {
     data.field_f32 = 1.5;
     data.field_f64 = 2.5;
     uint32_t result = testConst(&data);
-    if (result != 0) return result;
+    if (result != 0) {
+        return result;
+    }
     result = testParam(&data);
-    if (result != 0) return result;
+    if (result != 0) {
+        return result;
+    }
     uint32_t totalBits = 56;
-    if (totalBits != 56) return 100U;
+    if (totalBits != 56) {
+        return 100U;
+    }
     uint32_t totalBytes = (48) / 8U;
-    if (totalBytes != 6) return 101U;
+    if (totalBytes != 6) {
+        return 101U;
+    }
     uint32_t len1 = 32;
     uint32_t len2 = 16;
     uint32_t len3 = 8;
-    if (len1 != 32) return 110U;
-    if (len2 != 16) return 111U;
-    if (len3 != 8) return 112U;
+    if (len1 != 32) {
+        return 110U;
+    }
+    if (len2 != 16) {
+        return 111U;
+    }
+    if (len3 != 8) {
+        return 112U;
+    }
     return 0U;
 }

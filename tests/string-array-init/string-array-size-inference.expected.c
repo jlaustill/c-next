@@ -22,18 +22,34 @@ uint32_t test(void) {
     // cppcheck-suppress misra-c2012-9.4
     char items[4][9] = {"A", "B", "C", "D"};
     uint8_t count = 4;
-    if (count != 4) return 1U;
-    if (strlen(items[0U]) != 1) return 2U;
-    if (strlen(items[3U]) != 1) return 3U;
+    if (count != 4) {
+        return 1U;
+    }
+    if (strlen(items[0U]) != 1) {
+        return 2U;
+    }
+    if (strlen(items[3U]) != 1) {
+        return 3U;
+    }
     return 0U;
 }
 
 int main(void) {
-    if (3 != 3) return 1U;
-    if (strlen(DAYS[0U]) != 6) return 2U;
-    if (strlen(DAYS[1U]) != 7) return 3U;
-    if (strlen(DAYS[2U]) != 9) return 4U;
+    if (3 != 3) {
+        return 1U;
+    }
+    if (strlen(DAYS[0U]) != 6) {
+        return 2U;
+    }
+    if (strlen(DAYS[1U]) != 7) {
+        return 3U;
+    }
+    if (strlen(DAYS[2U]) != 9) {
+        return 4U;
+    }
     uint32_t localResult = test();
-    if (localResult != 0) return 5U;
+    if (localResult != 0) {
+        return 5U;
+    }
     return 0U;
 }

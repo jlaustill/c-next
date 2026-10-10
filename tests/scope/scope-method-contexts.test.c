@@ -269,92 +269,174 @@ bool Contexts__getAllFlags(void) {
 
 int main(void) {
     uint8_t res1 = Contexts__getPrivateValueExternal();
-    if (res1 != 10) return 1U;
+    if (res1 != 10) {
+        return 1U;
+    }
     uint8_t res2 = Contexts__getPrivateSumViaInternal();
-    if (res2 != 60) return 2U;
+    if (res2 != 60) {
+        return 2U;
+    }
     uint8_t res3 = Contexts__getGlobalCounterViaInternal();
-    if (res3 != 50) return 3U;
+    if (res3 != 50) {
+        return 3U;
+    }
     uint8_t res4 = Contexts__getPrivateClampViaInternal();
-    if (res4 != 200) return 4U;
+    if (res4 != 200) {
+        return 4U;
+    }
     uint8_t res5 = Contexts__getPublicValue();
-    if (res5 != 20) return 5U;
+    if (res5 != 20) {
+        return 5U;
+    }
     uint16_t res6 = Contexts__getPublicClampValue();
-    if (res6 != 60000) return 6U;
+    if (res6 != 60000) {
+        return 6U;
+    }
     uint16_t res7 = Contexts__getPublicWrapValue();
-    if (res7 != 65530) return 7U;
+    if (res7 != 65530) {
+        return 7U;
+    }
     bool res8 = Contexts__getPublicFlag();
-    if (res8 != true) return 8U;
+    if (res8 != true) {
+        return 8U;
+    }
     int32_t res9 = Contexts__getPublicOffset();
-    if (res9 != -1000) return 9U;
+    if (res9 != -1000) {
+        return 9U;
+    }
     uint8_t res10 = Contexts__getGlobalMax();
-    if (res10 != 100) return 10U;
+    if (res10 != 100) {
+        return 10U;
+    }
     uint16_t res11 = Contexts__getGlobalThreshold();
-    if (res11 != 1000) return 11U;
+    if (res11 != 1000) {
+        return 11U;
+    }
     uint8_t res12 = Contexts__getGlobalCounter();
-    if (res12 != 50) return 12U;
+    if (res12 != 50) {
+        return 12U;
+    }
     bool res13 = Contexts__getGlobalEnabled();
-    if (res13 != true) return 13U;
+    if (res13 != true) {
+        return 13U;
+    }
     int16_t res14 = Contexts__getGlobalOffset();
-    if (res14 != -25) return 14U;
+    if (res14 != -25) {
+        return 14U;
+    }
     float expectedScale = 2.5;
     float res15 = Contexts__getGlobalScale();
-    if (res15 != expectedScale) return 15U;
+    if (res15 != expectedScale) {
+        return 15U;
+    }
     uint8_t res16 = Contexts__computePublicSum();
-    if (res16 != 70) return 16U;
+    if (res16 != 70) {
+        return 16U;
+    }
     bool res17 = Contexts__publicValueBelowMax();
-    if (res17 != true) return 17U;
+    if (res17 != true) {
+        return 17U;
+    }
     int32_t res18 = Contexts__computePublicWithOffset();
-    if (res18 != -1025) return 18U;
+    if (res18 != -1025) {
+        return 18U;
+    }
     Contexts__setPrivateValue(42U);
     uint8_t res19 = Contexts__getPrivateValueExternal();
-    if (res19 != 42) return 19U;
+    if (res19 != 42) {
+        return 19U;
+    }
     uint8_t res20 = Contexts__getPrivateSumViaInternal();
-    if (res20 != 92) return 20U;
+    if (res20 != 92) {
+        return 20U;
+    }
     Contexts__setPublicValue(84U);
     uint8_t res21 = Contexts__getPublicValue();
-    if (res21 != 84) return 21U;
+    if (res21 != 84) {
+        return 21U;
+    }
     uint8_t res22 = Contexts__computePublicSum();
-    if (res22 != 134) return 22U;
+    if (res22 != 134) {
+        return 22U;
+    }
     Contexts__setPrivateFlag(true);
     Contexts__setPublicFlag(false);
     bool res24 = Contexts__getPublicFlag();
-    if (res24 != false) return 24U;
+    if (res24 != false) {
+        return 24U;
+    }
     Contexts__incrementPublicClamp();
     uint16_t res25 = Contexts__getPublicClampValue();
-    if (res25 != 65535) return 25U;
+    if (res25 != 65535) {
+        return 25U;
+    }
     Contexts__incrementPublicWrap();
     uint16_t res26 = Contexts__getPublicWrapValue();
-    if (res26 != 4) return 26U;
+    if (res26 != 4) {
+        return 26U;
+    }
     Contexts__modifyAllPrivate();
     uint8_t res27 = Contexts__getPrivateValueExternal();
-    if (res27 != 43) return 27U;
+    if (res27 != 43) {
+        return 27U;
+    }
     uint8_t res28 = Contexts__getPrivateClampViaInternal();
-    if (res28 != 210) return 28U;
+    if (res28 != 210) {
+        return 28U;
+    }
     Contexts__modifyAllPublic();
     uint8_t res30 = Contexts__getPublicValue();
-    if (res30 != 85) return 30U;
+    if (res30 != 85) {
+        return 30U;
+    }
     uint16_t res31 = Contexts__getPublicClampValue();
-    if (res31 != 65535) return 31U;
+    if (res31 != 65535) {
+        return 31U;
+    }
     uint16_t res32 = Contexts__getPublicWrapValue();
-    if (res32 != 9) return 32U;
+    if (res32 != 9) {
+        return 32U;
+    }
     bool res33 = Contexts__getPublicFlag();
-    if (res33 != true) return 33U;
+    if (res33 != true) {
+        return 33U;
+    }
     int32_t res34 = Contexts__getPublicOffset();
-    if (res34 != -1100) return 34U;
+    if (res34 != -1100) {
+        return 34U;
+    }
     bool res35 = Contexts__checkThresholds();
-    if (res35 != false) return 35U;
+    if (res35 != false) {
+        return 35U;
+    }
     bool res36 = Contexts__getAllFlags();
-    if (res36 != false) return 36U;
-    if (Contexts__publicValue != 85) return 37U;
-    if (Contexts__publicClampValue != 65535) return 38U;
-    if (Contexts__publicWrapValue != 9) return 39U;
-    if (Contexts__publicFlag != true) return 40U;
-    if (Contexts__publicOffset != -1100) return 41U;
+    if (res36 != false) {
+        return 36U;
+    }
+    if (Contexts__publicValue != 85) {
+        return 37U;
+    }
+    if (Contexts__publicClampValue != 65535) {
+        return 38U;
+    }
+    if (Contexts__publicWrapValue != 9) {
+        return 39U;
+    }
+    if (Contexts__publicFlag != true) {
+        return 40U;
+    }
+    if (Contexts__publicOffset != -1100) {
+        return 41U;
+    }
     Contexts__publicValue = 99U;
     uint8_t res42 = Contexts__getPublicValue();
-    if (res42 != 99) return 42U;
+    if (res42 != 99) {
+        return 42U;
+    }
     Contexts__publicFlag = false;
     bool res43 = Contexts__getPublicFlag();
-    if (res43 != false) return 43U;
+    if (res43 != false) {
+        return 43U;
+    }
     return 0U;
 }

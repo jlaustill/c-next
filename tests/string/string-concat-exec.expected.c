@@ -15,49 +15,77 @@ int main(void) {
     (void) strncpy(result, first, 64);
     (void) strncat(result, second, 64 - strlen(result));
     result[64] = '\0';
-    if (strlen(result) != 11) return 1;
-    if (strcmp(result, "Hello World") != 0) return 2;
-    if (64 != 64) return 3;
+    if (strlen(result) != 11) {
+        return 1;
+    }
+    if (strcmp(result, "Hello World") != 0) {
+        return 2;
+    }
+    if (64 != 64) {
+        return 3;
+    }
     char withLit[65] = "";
     (void) strncpy(withLit, first, 64);
     (void) strncat(withLit, "!", 64 - strlen(withLit));
     withLit[64] = '\0';
-    if (strlen(withLit) != 6) return 4;
-    if (strcmp(withLit, "Hello!") != 0) return 5;
+    if (strlen(withLit) != 6) {
+        return 4;
+    }
+    if (strcmp(withLit, "Hello!") != 0) {
+        return 5;
+    }
     char a[9] = "AB";
     char b[9] = "CD";
     char ab[17] = "";
     (void) strncpy(ab, a, 16);
     (void) strncat(ab, b, 16 - strlen(ab));
     ab[16] = '\0';
-    if (strlen(ab) != 4) return 6;
-    if (strcmp(ab, "ABCD") != 0) return 7;
+    if (strlen(ab) != 4) {
+        return 6;
+    }
+    if (strcmp(ab, "ABCD") != 0) {
+        return 7;
+    }
     char part1[33] = "The quick ";
     char part2[33] = "brown fox";
     char sentence[65] = "";
     (void) strncpy(sentence, part1, 64);
     (void) strncat(sentence, part2, 64 - strlen(sentence));
     sentence[64] = '\0';
-    if (strlen(sentence) != 19) return 8;
-    if (strcmp(sentence, "The quick brown fox") != 0) return 9;
+    if (strlen(sentence) != 19) {
+        return 8;
+    }
+    if (strcmp(sentence, "The quick brown fox") != 0) {
+        return 9;
+    }
     char nonEmpty[33] = "Text";
     char empty[33] = "";
     char withEmpty[65] = "";
     (void) strncpy(withEmpty, nonEmpty, 64);
     (void) strncat(withEmpty, empty, 64 - strlen(withEmpty));
     withEmpty[64] = '\0';
-    if (strlen(withEmpty) != 4) return 10;
-    if (strcmp(withEmpty, "Text") != 0) return 11;
+    if (strlen(withEmpty) != 4) {
+        return 10;
+    }
+    if (strcmp(withEmpty, "Text") != 0) {
+        return 11;
+    }
     char emptyFirst[65] = "";
     (void) strncpy(emptyFirst, empty, 64);
     (void) strncat(emptyFirst, nonEmpty, 64 - strlen(emptyFirst));
     emptyFirst[64] = '\0';
-    if (strcmp(emptyFirst, "Text") != 0) return 12;
+    if (strcmp(emptyFirst, "Text") != 0) {
+        return 12;
+    }
     char litConcat[12] = "";
     (void) strncpy(litConcat, "Hello", 11);
     (void) strncat(litConcat, " World", 11 - strlen(litConcat));
     litConcat[11] = '\0';
-    if (strlen(litConcat) != 11) return 13;
-    if (strcmp(litConcat, "Hello World") != 0) return 14;
+    if (strlen(litConcat) != 11) {
+        return 13;
+    }
+    if (strcmp(litConcat, "Hello World") != 0) {
+        return 14;
+    }
     return 0;
 }

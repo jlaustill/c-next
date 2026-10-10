@@ -7,192 +7,282 @@ u32 main() {
     // ===== ADDITION (+<-) =====
     u16 val <- 30000;
     val +<- 20000; // Basic addition
-    if (val != 50000) return 1;
+    if (val != 50000) {
+        return 1;
+    }
 
     val <- 60000;
     val +<- 0; // Identity: add zero
-    if (val != 60000) return 2;
+    if (val != 60000) {
+        return 2;
+    }
 
     val <- 0;
     val +<- 65535; // 0 + max
-    if (val != 65535) return 3;
+    if (val != 65535) {
+        return 3;
+    }
 
     val <- 65534;
     val +<- 1; // Near max
-    if (val != 65535) return 4;
+    if (val != 65535) {
+        return 4;
+    }
 
     // ===== SUBTRACTION (-<-) =====
     u16 sub <- 50000;
     sub -<- 20000; // Basic subtraction
-    if (sub != 30000) return 10;
+    if (sub != 30000) {
+        return 10;
+    }
 
     sub <- 30000;
     sub -<- 0; // Identity: subtract zero
-    if (sub != 30000) return 11;
+    if (sub != 30000) {
+        return 11;
+    }
 
     sub <- 65535;
     sub -<- 65534; // Max - (max-1) = 1
-    if (sub != 1) return 12;
+    if (sub != 1) {
+        return 12;
+    }
 
     sub <- 30000;
     sub -<- 30000; // Result zero
-    if (sub != 0) return 13;
+    if (sub != 0) {
+        return 13;
+    }
 
     sub <- 1;
     sub -<- 1; // Near min
-    if (sub != 0) return 14;
+    if (sub != 0) {
+        return 14;
+    }
 
     // ===== MULTIPLICATION (*<-) =====
     u16 mul <- 200;
     mul *<- 200; // 200 * 200 = 40000
-    if (mul != 40000) return 20;
+    if (mul != 40000) {
+        return 20;
+    }
 
     mul <- 1000;
     mul *<- 1; // Identity: multiply by one
-    if (mul != 1000) return 21;
+    if (mul != 1000) {
+        return 21;
+    }
 
     mul <- 255;
     mul *<- 257; // 255 * 257 = 65535
-    if (mul != 65535) return 22;
+    if (mul != 65535) {
+        return 22;
+    }
 
     mul <- 256;
     mul *<- 256; // 256 * 256 = 65536, clamped to 65535
-    if (mul != 65535) return 23;
+    if (mul != 65535) {
+        return 23;
+    }
 
     mul <- 1000;
     mul *<- 0; // Multiply by zero
-    if (mul != 0) return 24;
+    if (mul != 0) {
+        return 24;
+    }
 
     // ===== DIVISION (/<-) =====
     u16 div <- 50000;
     div /<- 100; // 50000 / 100 = 500
-    if (div != 500) return 30;
+    if (div != 500) {
+        return 30;
+    }
 
     div <- 1000;
     div /<- 1; // Identity: divide by one
-    if (div != 1000) return 31;
+    if (div != 1000) {
+        return 31;
+    }
 
     div <- 65535;
     div /<- 65535; // Max / max = 1
-    if (div != 1) return 32;
+    if (div != 1) {
+        return 32;
+    }
 
     div <- 10000;
     div /<- 3; // 10000 / 3 = 3333 (integer division)
-    if (div != 3333) return 33;
+    if (div != 3333) {
+        return 33;
+    }
 
     div <- 0;
     div /<- 100; // 0 / x = 0
-    if (div != 0) return 34;
+    if (div != 0) {
+        return 34;
+    }
 
     // ===== MODULO (%<-) =====
     u16 mod <- 10007;
     mod %<- 1000; // 10007 % 1000 = 7
-    if (mod != 7) return 40;
+    if (mod != 7) {
+        return 40;
+    }
 
     mod <- 50000;
     mod %<- 10000; // 50000 % 10000 = 0
-    if (mod != 0) return 41;
+    if (mod != 0) {
+        return 41;
+    }
 
     mod <- 12345;
     mod %<- 7; // 12345 % 7 = 4
-    if (mod != 4) return 42;
+    if (mod != 4) {
+        return 42;
+    }
 
     mod <- 65535;
     mod %<- 256; // 65535 % 256 = 255
-    if (mod != 255) return 43;
+    if (mod != 255) {
+        return 43;
+    }
 
     mod <- 1;
     mod %<- 2; // 1 % 2 = 1
-    if (mod != 1) return 44;
+    if (mod != 1) {
+        return 44;
+    }
 
     // ===== BITWISE AND (&<-) =====
     u16 andVal <- 0xFFFF;
     andVal &<- 0x00FF; // Keep low byte
-    if (andVal != 0x00FF) return 50;
+    if (andVal != 0x00FF) {
+        return 50;
+    }
 
     andVal <- 0xAAAA;
     andVal &<- 0x5555; // Non-overlapping = 0
-    if (andVal != 0) return 51;
+    if (andVal != 0) {
+        return 51;
+    }
 
     andVal <- 0x5555;
     andVal &<- 0xFFFF; // AND with all 1s = identity
-    if (andVal != 0x5555) return 52;
+    if (andVal != 0x5555) {
+        return 52;
+    }
 
     andVal <- 0xFF00;
     andVal &<- 0x00FF; // High/low byte AND = 0
-    if (andVal != 0) return 53;
+    if (andVal != 0) {
+        return 53;
+    }
 
     // ===== BITWISE OR (|<-) =====
     u16 orVal <- 0x00FF;
     orVal |<- 0xFF00; // Combine bytes
-    if (orVal != 0xFFFF) return 60;
+    if (orVal != 0xFFFF) {
+        return 60;
+    }
 
     orVal <- 0x5555;
     orVal |<- 0x0000; // OR with zero = identity
-    if (orVal != 0x5555) return 61;
+    if (orVal != 0x5555) {
+        return 61;
+    }
 
     orVal <- 0xAAAA;
     orVal |<- 0x5555; // Alternating OR = all 1s
-    if (orVal != 0xFFFF) return 62;
+    if (orVal != 0xFFFF) {
+        return 62;
+    }
 
     // ===== BITWISE XOR (^<-) =====
     u16 xorVal <- 0xAAAA;
     xorVal ^<- 0x5555; // Alternating XOR = all 1s
-    if (xorVal != 0xFFFF) return 70;
+    if (xorVal != 0xFFFF) {
+        return 70;
+    }
 
     xorVal <- 0xFFFF;
     xorVal ^<- 0xFFFF; // XOR with self = 0
-    if (xorVal != 0) return 71;
+    if (xorVal != 0) {
+        return 71;
+    }
 
     xorVal <- 0x5555;
     xorVal ^<- 0x5555; // XOR with self = 0
-    if (xorVal != 0) return 72;
+    if (xorVal != 0) {
+        return 72;
+    }
 
     xorVal <- 0x00FF;
     xorVal ^<- 0xFF00; // Non-overlapping XOR = all 1s
-    if (xorVal != 0xFFFF) return 73;
+    if (xorVal != 0xFFFF) {
+        return 73;
+    }
 
     // ===== LEFT SHIFT (<<<-) =====
     u16 shl <- 1;
     shl <<<- 0; // Shift by 0 = identity
-    if (shl != 1) return 80;
+    if (shl != 1) {
+        return 80;
+    }
 
     shl <- 1;
     shl <<<- 1; // 1 << 1 = 2
-    if (shl != 2) return 81;
+    if (shl != 2) {
+        return 81;
+    }
 
     shl <- 1;
     shl <<<- 8; // 1 << 8 = 256
-    if (shl != 256) return 82;
+    if (shl != 256) {
+        return 82;
+    }
 
     shl <- 1;
     shl <<<- 15; // 1 << 15 = 32768
-    if (shl != 32768) return 83;
+    if (shl != 32768) {
+        return 83;
+    }
 
     shl <- 0x00FF;
     shl <<<- 8; // 0x00FF << 8 = 0xFF00
-    if (shl != 0xFF00) return 84;
+    if (shl != 0xFF00) {
+        return 84;
+    }
 
     // ===== RIGHT SHIFT (>><-) =====
     u16 shr <- 32768;
     shr >><- 0; // Shift by 0 = identity
-    if (shr != 32768) return 90;
+    if (shr != 32768) {
+        return 90;
+    }
 
     shr <- 32768;
     shr >><- 1; // 32768 >> 1 = 16384
-    if (shr != 16384) return 91;
+    if (shr != 16384) {
+        return 91;
+    }
 
     shr <- 32768;
     shr >><- 15; // 32768 >> 15 = 1
-    if (shr != 1) return 92;
+    if (shr != 1) {
+        return 92;
+    }
 
     shr <- 0xFF00;
     shr >><- 8; // 0xFF00 >> 8 = 0x00FF
-    if (shr != 0x00FF) return 93;
+    if (shr != 0x00FF) {
+        return 93;
+    }
 
     shr <- 65535;
     shr >><- 8; // 65535 >> 8 = 255
-    if (shr != 255) return 94;
+    if (shr != 255) {
+        return 94;
+    }
 
     return 0;
 }

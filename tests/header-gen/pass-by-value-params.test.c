@@ -50,15 +50,25 @@ uint32_t Api__readValue(uint32_t value) {
 int main(void) {
     float sum = Api__addFloats(1.5, 2.5);
     int32_t sumInt = ((sum) >= ((float)INT32_MAX) ? (int32_t)INT32_MAX : (sum) < ((float)INT32_MIN) ? (int32_t)INT32_MIN : (int32_t)(sum));
-    if (sumInt != 4) return 1U;
+    if (sumInt != 4) {
+        return 1U;
+    }
     bool okResult = Api__isOk(Status__Ok);
-    if (okResult == false) return 2U;
+    if (okResult == false) {
+        return 2U;
+    }
     bool errResult = Api__isOk(Status__Error);
-    if (errResult == true) return 3U;
+    if (errResult == true) {
+        return 3U;
+    }
     uint32_t val = 10U;
     Api__updateValue(&val);
-    if (val != 11) return 4U;
+    if (val != 11) {
+        return 4U;
+    }
     uint32_t doubled = Api__readValue(5U);
-    if (doubled != 10) return 5U;
+    if (doubled != 10) {
+        return 5U;
+    }
     return 0U;
 }

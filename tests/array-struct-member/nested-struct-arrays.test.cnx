@@ -28,13 +28,27 @@ u32 main() {
     path.points[2].x <- 30;
     path.points[2].y <- 40;
 
-    if (path.count != 3) return 1;
-    if (path.points[0].x != 0) return 2;
-    if (path.points[0].y != 0) return 3;
-    if (path.points[1].x != 10) return 4;
-    if (path.points[1].y != 20) return 5;
-    if (path.points[2].x != 30) return 6;
-    if (path.points[2].y != 40) return 7;
+    if (path.count != 3) {
+        return 1;
+    }
+    if (path.points[0].x != 0) {
+        return 2;
+    }
+    if (path.points[0].y != 0) {
+        return 3;
+    }
+    if (path.points[1].x != 10) {
+        return 4;
+    }
+    if (path.points[1].y != 20) {
+        return 5;
+    }
+    if (path.points[2].x != 30) {
+        return 6;
+    }
+    if (path.points[2].y != 40) {
+        return 7;
+    }
 
     // Test double-level nesting: struct with array of structs with array of structs
     Route route;
@@ -52,21 +66,37 @@ u32 main() {
     route.segments[1].points[1].x <- 250;
     route.segments[1].points[1].y <- 250;
 
-    if (route.totalSegments != 2) return 8;
-    if (route.segments[0].count != 2) return 9;
-    if (route.segments[0].points[0].x != 100) return 10;
-    if (route.segments[0].points[1].y != 150) return 11;
-    if (route.segments[1].points[0].x != 200) return 12;
-    if (route.segments[1].points[1].y != 250) return 13;
+    if (route.totalSegments != 2) {
+        return 8;
+    }
+    if (route.segments[0].count != 2) {
+        return 9;
+    }
+    if (route.segments[0].points[0].x != 100) {
+        return 10;
+    }
+    if (route.segments[0].points[1].y != 150) {
+        return 11;
+    }
+    if (route.segments[1].points[0].x != 200) {
+        return 12;
+    }
+    if (route.segments[1].points[1].y != 250) {
+        return 13;
+    }
 
     // Test variable index access
     u32 segIdx <- 1;
     u32 ptIdx <- 0;
-    if (route.segments[segIdx].points[ptIdx].x != 200) return 14;
+    if (route.segments[segIdx].points[ptIdx].x != 200) {
+        return 14;
+    }
 
     // Test compound assignment on deeply nested member
     route.segments[0].points[0].x +<- 50;
-    if (route.segments[0].points[0].x != 150) return 15;
+    if (route.segments[0].points[0].x != 150) {
+        return 15;
+    }
 
     return 0;
 }

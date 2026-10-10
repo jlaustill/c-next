@@ -21,7 +21,11 @@ u32 main() {
     TypedefTypes.Sensor s <- { id: 42, value: 100 };
     Reader.update(s);
     TypedefTypes.Sensor result <- Reader.read();
-    if (result.id != 42) return 1;
-    if (result.value != 100) return 2;
+    if (result.id != 42) {
+        return 1;
+    }
+    if (result.value != 100) {
+        return 2;
+    }
     return 0;
 }

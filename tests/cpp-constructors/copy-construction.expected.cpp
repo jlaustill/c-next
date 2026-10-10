@@ -16,9 +16,15 @@ int main(void) {
     src.id = 100;
     src.data = 200;
     CopyConstructible copy = src;
-    if (copy.id != 100) return 1;
-    if (copy.data != 200) return 2;
+    if (copy.id != 100) {
+        return 1;
+    }
+    if (copy.data != 200) {
+        return 2;
+    }
     copy.id = 999;
-    if (src.id != 100) return 3;
+    if (src.id != 100) {
+        return 3;
+    }
     return 0;
 }

@@ -59,11 +59,23 @@ u32 main() {
     u32 e <- pool_free(1);
     bool f <- slot_is_free(1);
 
-    if (a != 2) return 1;
-    if (b != 3) return 2;
-    if (c != 4) return 3;
-    if (d != 5) return 4;
-    if (e != 6) return 5;
-    if (f != true) return 6;
+    if (a != 2) {
+        return 1;
+    }
+    if (b != 3) {
+        return 2;
+    }
+    if (c != 4) {
+        return 3;
+    }
+    if (d != 5) {
+        return 4;
+    }
+    if (e != 6) {
+        return 5;
+    }
+    if (f != true) {
+        return 6;
+    }
     return 0;
 }

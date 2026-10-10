@@ -36,14 +36,22 @@ static inline uint64_t cnx_clamp_mul_u64(uint64_t a, uint64_t b) {
 //   is allowed there and a floating one is not.
 int main(void) {
     uint32_t hex32 = 0xFF32U;
-    if (hex32 != 65330) return 1U;
+    if (hex32 != 65330) {
+        return 1U;
+    }
     uint64_t three = 3ULL;
     uint64_t hex64 = cnx_clamp_mul_u64(three, 0xABCDEF64ULL);
-    if (hex64 != 8647200300) return 2U;
+    if (hex64 != 8647200300) {
+        return 2U;
+    }
     uint8_t hundred = 100U;
     uint8_t sum = cnx_clamp_add_u8(hundred, (uint8_t)'.');
-    if (sum != 146) return 3U;
+    if (sum != 146) {
+        return 3U;
+    }
     float suffixed = 2.5f;
-    if (suffixed != 2.5) return 4U;
+    if (suffixed != 2.5) {
+        return 4U;
+    }
     return 0U;
 }

@@ -42,13 +42,21 @@ uint8_t Counter__getCount(void) {
 
 int main(void) {
     uint8_t val = Counter__getCount();
-    if (val != 0) return 1U;
+    if (val != 0) {
+        return 1U;
+    }
     Counter__increment();
     val = Counter__getCount();
-    if (val != 1) return 2U;
+    if (val != 1) {
+        return 2U;
+    }
     Counter__increment();
     val = Counter__getCount();
-    if (val != 2) return 3U;
-    if (globalCount != 0) return 4U;
+    if (val != 2) {
+        return 3U;
+    }
+    if (globalCount != 0) {
+        return 4U;
+    }
     return 0U;
 }

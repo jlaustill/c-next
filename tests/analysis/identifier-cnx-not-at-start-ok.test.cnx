@@ -9,7 +9,11 @@ u8 my_cnx_buffer <- 1;
 u8 buffer_cnx <- 2;
 
 u32 main() {
-    if (my_cnx_buffer != 1) return 1;
-    if (buffer_cnx != 2) return 2;
+    if (my_cnx_buffer != 1) {
+        return 1;
+    }
+    if (buffer_cnx != 2) {
+        return 2;
+    }
     return 0;
 }

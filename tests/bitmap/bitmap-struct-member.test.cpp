@@ -23,36 +23,72 @@ int main(void) {
     device.flags = (uint8_t)((device.flags & ~(1U << 0)) | (1U << 0));
     device.flags = (uint8_t)((device.flags & ~(1U << 1)) | (1U << 1));
     device.flags = (uint8_t)((device.flags & ~(1U << 2)) | (0U << 2));
-    if (((device.flags >> 0) & 1) != true) return 1U;
-    if (((device.flags >> 1) & 1) != true) return 2U;
-    if (((device.flags >> 2) & 1) != false) return 3U;
+    if (((device.flags >> 0) & 1) != true) {
+        return 1U;
+    }
+    if (((device.flags >> 1) & 1) != true) {
+        return 2U;
+    }
+    if (((device.flags >> 2) & 1) != false) {
+        return 3U;
+    }
     device.flags = (uint8_t)((device.flags & ~(0x1FU << 3)) | ((15U & 0x1FU) << 3));
-    if (((device.flags >> 3) & 0x1F) != 15) return 4U;
+    if (((device.flags >> 3) & 0x1F) != 15) {
+        return 4U;
+    }
     device.status = (uint16_t)((device.status & ~(1U << 0)) | (1U << 0));
     device.status = (uint16_t)((device.status & ~(1U << 1)) | (0U << 1));
     device.status = (uint16_t)((device.status & ~(1U << 2)) | (0U << 2));
     device.status = (uint16_t)((device.status & ~(0xFFU << 8)) | ((50U & 0xFFU) << 8));
-    if (((device.status >> 0) & 1) != true) return 5U;
-    if (((device.status >> 1) & 1) != false) return 6U;
-    if (((device.status >> 8) & 0xFF) != 50) return 7U;
-    if (device.id != 12345) return 8U;
-    if (device.value != 100) return 9U;
+    if (((device.status >> 0) & 1) != true) {
+        return 5U;
+    }
+    if (((device.status >> 1) & 1) != false) {
+        return 6U;
+    }
+    if (((device.status >> 8) & 0xFF) != 50) {
+        return 7U;
+    }
+    if (device.id != 12345) {
+        return 8U;
+    }
+    if (device.value != 100) {
+        return 9U;
+    }
     ctrl.counter = 999U;
     ctrl.controlFlags = (uint8_t)((ctrl.controlFlags & ~(1U << 0)) | (1U << 0));
     ctrl.controlFlags = (uint8_t)((ctrl.controlFlags & ~(0x1FU << 3)) | ((7U & 0x1FU) << 3));
-    if (((ctrl.controlFlags >> 0) & 1) != true) return 10U;
-    if (((ctrl.controlFlags >> 3) & 0x1F) != 7) return 11U;
-    if (ctrl.counter != 999) return 12U;
+    if (((ctrl.controlFlags >> 0) & 1) != true) {
+        return 10U;
+    }
+    if (((ctrl.controlFlags >> 3) & 0x1F) != 7) {
+        return 11U;
+    }
+    if (ctrl.counter != 999) {
+        return 12U;
+    }
     device.status = (uint16_t)((device.status & ~(0xFFU << 8)) | ((100U & 0xFFU) << 8));
     device.status = (uint16_t)((device.status & ~(1U << 2)) | (1U << 2));
-    if (((device.status >> 8) & 0xFF) != 100) return 13U;
-    if (((device.status >> 2) & 1) != true) return 14U;
-    if (((device.status >> 0) & 1) != true) return 15U;
+    if (((device.status >> 8) & 0xFF) != 100) {
+        return 13U;
+    }
+    if (((device.status >> 2) & 1) != true) {
+        return 14U;
+    }
+    if (((device.status >> 0) & 1) != true) {
+        return 15U;
+    }
     bool isActive = ((((device.flags >> 0) & 1)) != 0U);
-    if (isActive != true) return 16U;
+    if (isActive != true) {
+        return 16U;
+    }
     uint8_t progress = static_cast<uint8_t>(((device.status >> 8) & 0xFF));
-    if (progress != 100) return 17U;
+    if (progress != 100) {
+        return 17U;
+    }
     uint8_t mode = static_cast<uint8_t>(((device.flags >> 3) & 0x1F));
-    if (mode != 15) return 18U;
+    if (mode != 15) {
+        return 18U;
+    }
     return 0U;
 }

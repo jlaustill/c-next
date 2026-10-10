@@ -1,0 +1,34 @@
+// test-error
+// #1283 negative control: ADR-029 initializes only the callback fields. A
+// non-callback field read before assignment is still E0381 -- directly, and
+// through a nested struct field whose default sets only its callback (#1570
+// review: `o.inner.handler` holds its default, `o.inner.count` does not), and
+// through an element of a local array (#1283 review: `arr[0].count`).
+u32 tickDefault() {
+    return 10;
+}
+
+struct Ticker {
+    tickDefault handler;
+    u32 count;
+}
+
+struct Holder {
+    Ticker inner;
+    u32 total;
+}
+
+u32 nestedCount() {
+    Holder h;
+    return h.inner.count;
+}
+
+u32 arrayCount() {
+    Ticker[2] arr;
+    return arr[0].count;
+}
+
+u32 main() {
+    Ticker t;
+    return t.count;
+}

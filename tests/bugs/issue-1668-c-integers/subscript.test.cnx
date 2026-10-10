@@ -9,17 +9,27 @@
 u32 main() {
     // NEGATIVE CONTROLS: element access.
     u8 a <- buf[3];
-    if (a != 13) return 1;
+    if (a != 13) {
+        return 1;
+    }
     u8 f <- fixed[2];
-    if (f != 22) return 2;
+    if (f != 22) {
+        return 2;
+    }
     u8 p <- ptr[1];
-    if (p != 21) return 3;
+    if (p != 21) {
+        return 3;
+    }
 
     // ASSERTIONS: a bit read, set and clear.
     bool d <- word[4];
-    if (d != true) return 4;
+    if (d != true) {
+        return 4;
+    }
     bool z <- word[3];
-    if (z != false) return 5;
+    if (z != false) {
+        return 5;
+    }
 
     return 0;
 }

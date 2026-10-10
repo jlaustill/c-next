@@ -15,12 +15,24 @@ u32 f() {
     gs.flags[2] <- true;
     gs.arr[1][3] <- true;
     gs.arr[2][0, 4] <- 5;
-    if (global.gs.flags != 0) return 1;
-    if (global.gs.arr[1] != 0) return 2;
-    if (global.gs.arr[2] != 0) return 3;
-    if (gs.flags != 4) return 4;
-    if (gs.arr[1] != 8) return 5;
-    if (gs.arr[2] != 5) return 6;
+    if (global.gs.flags != 0) {
+        return 1;
+    }
+    if (global.gs.arr[1] != 0) {
+        return 2;
+    }
+    if (global.gs.arr[2] != 0) {
+        return 3;
+    }
+    if (gs.flags != 4) {
+        return 4;
+    }
+    if (gs.arr[1] != 8) {
+        return 5;
+    }
+    if (gs.arr[2] != 5) {
+        return 6;
+    }
     return 0;
 }
 
@@ -32,6 +44,8 @@ void g() {
 u32 main() {
     u32 result <- f();
     g();
-    if (gs.flags != 2) return 10;
+    if (gs.flags != 2) {
+        return 10;
+    }
     return result;
 }

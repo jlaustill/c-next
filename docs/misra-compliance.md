@@ -342,15 +342,15 @@ struct tags that are 94 characters and byte-identical for 63 — transpiling exi
 
 ## Rule 15 - Control Flow
 
-| Rule | Description                               | Status        | Reference                |
-| ---- | ----------------------------------------- | ------------- | ------------------------ |
-| 15.1 | goto shall not be used                    | **By Design** | ADR-028: No goto         |
-| 15.2 | goto only forward to same/enclosing block | **By Design** | No goto                  |
-| 15.3 | goto in same function                     | **By Design** | No goto                  |
-| 15.4 | One break/goto per loop                   | Partial       | break allowed, no goto   |
-| 15.5 | Single exit point                         | Not Enforced  | Multiple returns allowed |
-| 15.6 | Compound statement for control            | Partial       | Braces often required    |
-| 15.7 | else required for if-else-if              | Not Enforced  |                          |
+| Rule | Description                               | Status        | Reference                                                                                                                   |
+| ---- | ----------------------------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| 15.1 | goto shall not be used                    | **By Design** | ADR-028: No goto                                                                                                            |
+| 15.2 | goto only forward to same/enclosing block | **By Design** | No goto                                                                                                                     |
+| 15.3 | goto in same function                     | **By Design** | No goto                                                                                                                     |
+| 15.4 | One break/goto per loop                   | Partial       | break allowed, no goto                                                                                                      |
+| 15.5 | Single exit point                         | Not Enforced  | Multiple returns allowed                                                                                                    |
+| 15.6 | Compound statement for control            | Partial       | Program code: every body braced (grammar for `do`/`forever`, E0716 for `if`/`else`/`while`/`for`); generated helpers: #1774 |
+| 15.7 | else required for if-else-if              | Not Enforced  |                                                                                                                             |
 
 ---
 

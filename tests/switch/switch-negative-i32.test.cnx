@@ -94,64 +94,102 @@ u32 main() {
     i32 other <- 12345;
 
     testI32Values(minVal);
-    if (result != 1) return 1;
+    if (result != 1) {
+        return 1;
+    }
 
     testI32Values(minPlus1);
-    if (result != 2) return 2;
+    if (result != 2) {
+        return 2;
+    }
 
     testI32Values(negMillion);
-    if (result != 3) return 3;
+    if (result != 3) {
+        return 3;
+    }
 
     testI32Values(neg32769);
-    if (result != 4) return 4;
+    if (result != 4) {
+        return 4;
+    }
 
     testI32Values(neg32768);
-    if (result != 5) return 5;
+    if (result != 5) {
+        return 5;
+    }
 
     testI32Values(negOne);
-    if (result != 6) return 6;
+    if (result != 6) {
+        return 6;
+    }
 
     testI32Values(zero);
-    if (result != 7) return 7;
+    if (result != 7) {
+        return 7;
+    }
 
     testI32Values(pos32767);
-    if (result != 8) return 8;
+    if (result != 8) {
+        return 8;
+    }
 
     testI32Values(pos32768);
-    if (result != 9) return 9;
+    if (result != 9) {
+        return 9;
+    }
 
     testI32Values(posMillion);
-    if (result != 10) return 10;
+    if (result != 10) {
+        return 10;
+    }
 
     testI32Values(maxMinus1);
-    if (result != 11) return 11;
+    if (result != 11) {
+        return 11;
+    }
 
     testI32Values(maxVal);
-    if (result != 12) return 12;
+    if (result != 12) {
+        return 12;
+    }
 
     testI32Values(other);
-    if (result != 99) return 13;
+    if (result != 99) {
+        return 13;
+    }
 
     // Test hex literals
     testI32Hex(minVal);
-    if (result != 20) return 14;
+    if (result != 20) {
+        return 14;
+    }
 
     i32 neg65536 <- -65536;
     testI32Hex(neg65536);
-    if (result != 21) return 15;
+    if (result != 21) {
+        return 15;
+    }
 
     testI32Hex(neg32768);
-    if (result != 22) return 16;
+    if (result != 22) {
+        return 16;
+    }
 
     i32 neg255 <- -255;
     testI32Hex(neg255);
-    if (result != 23) return 17;
+    if (result != 23) {
+        return 17;
+    }
 
     testI32Hex(zero);
-    if (result != 24) return 18;
+    if (result != 24) {
+        return 18;
+    }
 
     testI32Hex(maxVal);
-    if (result != 25) return 19;
+    if (result != 25) {
+        return 19;
+    }
 
     return 0;
 }

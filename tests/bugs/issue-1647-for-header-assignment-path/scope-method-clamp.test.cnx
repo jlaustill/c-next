@@ -27,8 +27,12 @@ scope Ramp {
 u8 main() {
     // ASSERTION: the member saturates at 255, so the loop runs exactly once.
     u8 count <- Ramp.passes();
-    if (count != 1) return 1;
+    if (count != 1) {
+        return 1;
+    }
     u8 level <- Ramp.getLevel();
-    if (level != 255) return 2;
+    if (level != 255) {
+        return 2;
+    }
     return 0;
 }

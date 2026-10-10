@@ -16,13 +16,27 @@ i32 main() {
     cfg.items[1] <- "seven c";
     cfg.items[2] <- "";
 
-    if (cfg.items[0] != "hi") return 1;
-    if (cfg.items[1] != "seven c") return 2;
-    if (cfg.items[2].char_count != 0) return 3;
-    if (cfg.items[0].char_count != 2) return 4;
-    if (cfg.items[1].char_count != 7) return 5;
-    if (cfg.count != 3) return 6;
-    if (cfg.items.element_count != 3) return 7;
+    if (cfg.items[0] != "hi") {
+        return 1;
+    }
+    if (cfg.items[1] != "seven c") {
+        return 2;
+    }
+    if (cfg.items[2].char_count != 0) {
+        return 3;
+    }
+    if (cfg.items[0].char_count != 2) {
+        return 4;
+    }
+    if (cfg.items[1].char_count != 7) {
+        return 5;
+    }
+    if (cfg.count != 3) {
+        return 6;
+    }
+    if (cfg.items.element_count != 3) {
+        return 7;
+    }
 
     return 0;
 }

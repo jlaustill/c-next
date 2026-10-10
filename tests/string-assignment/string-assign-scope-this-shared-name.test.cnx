@@ -49,14 +49,22 @@ scope Unique {
 
 u32 main() {
     Wide.set();
-    if (Wide.message.char_count != 4) return 1;
+    if (Wide.message.char_count != 4) {
+        return 1;
+    }
 
     Narrow.set();
-    if (Narrow.message.char_count != 6) return 2;
-    if (Wide.message.char_count != 4) return 3;
+    if (Narrow.message.char_count != 6) {
+        return 2;
+    }
+    if (Wide.message.char_count != 4) {
+        return 3;
+    }
 
     Unique.set();
-    if (Unique.banner.char_count != 6) return 4;
+    if (Unique.banner.char_count != 6) {
+        return 4;
+    }
 
     return 0;
 }

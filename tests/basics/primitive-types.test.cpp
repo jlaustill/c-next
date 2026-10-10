@@ -13,28 +13,52 @@
 // Demonstrates: u8, u16, u32, u64, i8, i16, i32, i64, f32, f64, bool
 int main(void) {
     uint8_t byte = 255U;
-    if (byte != 255) return 1U;
+    if (byte != 255) {
+        return 1U;
+    }
     uint16_t word = 65535U;
-    if (word != 65535) return 2U;
+    if (word != 65535) {
+        return 2U;
+    }
     uint32_t dword = 4294967295U;
-    if (dword != 4294967295) return 3U;
+    if (dword != 4294967295) {
+        return 3U;
+    }
     uint64_t qword = 18446744073709551615ULL;
-    if (qword != 18446744073709551615) return 4U;
+    if (qword != 18446744073709551615) {
+        return 4U;
+    }
     int8_t sbyte = -128;
-    if (sbyte != -128) return 5U;
+    if (sbyte != -128) {
+        return 5U;
+    }
     int16_t sword = -32768;
-    if (sword != -32768) return 6U;
+    if (sword != -32768) {
+        return 6U;
+    }
     int32_t sdword = (int32_t)INT32_MIN;
-    if (sdword != (int32_t)INT32_MIN) return 7U;
+    if (sdword != (int32_t)INT32_MIN) {
+        return 7U;
+    }
     int64_t sqword = (int64_t)INT64_MIN;
-    if (sqword != (int64_t)INT64_MIN) return 8U;
+    if (sqword != (int64_t)INT64_MIN) {
+        return 8U;
+    }
     float single = 3.14;
-    if (single < 3.13 || single > 3.15) return 9U;
+    if (single < 3.13 || single > 3.15) {
+        return 9U;
+    }
     double precise = 3.141592653589793;
-    if (precise < 3.141592653589792 || precise > 3.141592653589794) return 10U;
+    if (precise < 3.141592653589792 || precise > 3.141592653589794) {
+        return 10U;
+    }
     bool flag = true;
-    if (flag != true) return 11U;
+    if (flag != true) {
+        return 11U;
+    }
     flag = false;
-    if (flag != false) return 12U;
+    if (flag != false) {
+        return 12U;
+    }
     return 0U;
 }

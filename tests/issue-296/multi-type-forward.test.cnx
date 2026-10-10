@@ -35,8 +35,12 @@ u32 main() {
     DeviceManager.configure(cfg);
 
     DeviceConfig retrievedCfg <- DeviceManager.getConfig();
-    if (retrievedCfg.baudRate != 115200) return 1;
-    if (retrievedCfg.address != 0x42) return 2;
+    if (retrievedCfg.baudRate != 115200) {
+        return 1;
+    }
+    if (retrievedCfg.address != 0x42) {
+        return 2;
+    }
 
     DeviceStatus stat <- {
         state: EDeviceState.STATE_ACTIVE,
@@ -46,12 +50,20 @@ u32 main() {
     DeviceManager.setStatus(stat);
 
     DeviceStatus retrievedStat <- DeviceManager.getStatus();
-    if (retrievedStat.state != EDeviceState.STATE_ACTIVE) return 3;
-    if (retrievedStat.errorCount != 0) return 4;
-    if (retrievedStat.connected != true) return 5;
+    if (retrievedStat.state != EDeviceState.STATE_ACTIVE) {
+        return 3;
+    }
+    if (retrievedStat.errorCount != 0) {
+        return 4;
+    }
+    if (retrievedStat.connected != true) {
+        return 5;
+    }
 
     EDeviceState state <- DeviceManager.getState();
-    if (state != EDeviceState.STATE_ACTIVE) return 6;
+    if (state != EDeviceState.STATE_ACTIVE) {
+        return 6;
+    }
 
     return 0;
 }

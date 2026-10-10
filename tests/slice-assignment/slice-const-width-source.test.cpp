@@ -37,8 +37,14 @@ int main(void) {
     buf[0] = (uint8_t)(cnx_tmp0);
     buf[1] = (uint8_t)(cnx_tmp0 >> 8U);
     buf[2] = (uint8_t)(cnx_tmp0 >> 16U);
-    if (buf[0U] != 0x78) return 1U;
-    if (buf[1U] != 0x56) return 2U;
-    if (buf[2U] != 0x34) return 3U;
+    if (buf[0U] != 0x78) {
+        return 1U;
+    }
+    if (buf[1U] != 0x56) {
+        return 2U;
+    }
+    if (buf[2U] != 0x34) {
+        return 3U;
+    }
     return 0U;
 }

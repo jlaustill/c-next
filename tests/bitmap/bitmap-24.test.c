@@ -21,35 +21,71 @@ int main(void) {
     color = (color & ~((uint32_t)0xFFU << 0)) | ((255U & (uint32_t)0xFFU) << 0);
     color = (color & ~((uint32_t)0xFFU << 8)) | ((128U & (uint32_t)0xFFU) << 8);
     color = (color & ~((uint32_t)0xFFU << 16)) | ((64U & (uint32_t)0xFFU) << 16);
-    if (((color >> 0) & 0xFF) != 255) return 1U;
-    if (((color >> 8) & 0xFF) != 128) return 2U;
-    if (((color >> 16) & 0xFF) != 64) return 3U;
+    if (((color >> 0) & 0xFF) != 255) {
+        return 1U;
+    }
+    if (((color >> 8) & 0xFF) != 128) {
+        return 2U;
+    }
+    if (((color >> 16) & 0xFF) != 64) {
+        return 3U;
+    }
     color = (color & ~((uint32_t)0xFFU << 0)) | ((0U & (uint32_t)0xFFU) << 0);
-    if (((color >> 0) & 0xFF) != 0) return 4U;
-    if (((color >> 8) & 0xFF) != 128) return 5U;
-    if (((color >> 16) & 0xFF) != 64) return 6U;
+    if (((color >> 0) & 0xFF) != 0) {
+        return 4U;
+    }
+    if (((color >> 8) & 0xFF) != 128) {
+        return 5U;
+    }
+    if (((color >> 16) & 0xFF) != 64) {
+        return 6U;
+    }
     sensor = (sensor & ~((uint32_t)1U << 0)) | ((uint32_t)1U << 0);
     sensor = (sensor & ~((uint32_t)1U << 1)) | ((uint32_t)0U << 1);
     sensor = (sensor & ~((uint32_t)1U << 2)) | ((uint32_t)1U << 2);
-    if (((sensor >> 0) & 1) != true) return 7U;
-    if (((sensor >> 1) & 1) != false) return 8U;
-    if (((sensor >> 2) & 1) != true) return 9U;
+    if (((sensor >> 0) & 1) != true) {
+        return 7U;
+    }
+    if (((sensor >> 1) & 1) != false) {
+        return 8U;
+    }
+    if (((sensor >> 2) & 1) != true) {
+        return 9U;
+    }
     sensor = (sensor & ~((uint32_t)0xFFU << 8)) | ((100U & (uint32_t)0xFFU) << 8);
     sensor = (sensor & ~((uint32_t)0xFFU << 16)) | ((50U & (uint32_t)0xFFU) << 16);
-    if (((sensor >> 8) & 0xFF) != 100) return 10U;
-    if (((sensor >> 16) & 0xFF) != 50) return 11U;
+    if (((sensor >> 8) & 0xFF) != 100) {
+        return 10U;
+    }
+    if (((sensor >> 16) & 0xFF) != 50) {
+        return 11U;
+    }
     uint8_t rate = (uint8_t)((sensor >> 8) & 0xFF);
-    if (rate != 100) return 12U;
+    if (rate != 100) {
+        return 12U;
+    }
     uint8_t thresh = (uint8_t)((sensor >> 16) & 0xFF);
-    if (thresh != 50) return 13U;
+    if (thresh != 50) {
+        return 13U;
+    }
     sensor = (sensor & ~((uint32_t)0xFFU << 8)) | ((200U & (uint32_t)0xFFU) << 8);
-    if (((sensor >> 8) & 0xFF) != 200) return 14U;
-    if (((sensor >> 16) & 0xFF) != 50) return 15U;
+    if (((sensor >> 8) & 0xFF) != 200) {
+        return 14U;
+    }
+    if (((sensor >> 16) & 0xFF) != 50) {
+        return 15U;
+    }
     color = (color & ~((uint32_t)0xFFU << 0)) | ((255U & (uint32_t)0xFFU) << 0);
     color = (color & ~((uint32_t)0xFFU << 8)) | ((255U & (uint32_t)0xFFU) << 8);
     color = (color & ~((uint32_t)0xFFU << 16)) | ((255U & (uint32_t)0xFFU) << 16);
-    if (((color >> 0) & 0xFF) != 255) return 16U;
-    if (((color >> 8) & 0xFF) != 255) return 17U;
-    if (((color >> 16) & 0xFF) != 255) return 18U;
+    if (((color >> 0) & 0xFF) != 255) {
+        return 16U;
+    }
+    if (((color >> 8) & 0xFF) != 255) {
+        return 17U;
+    }
+    if (((color >> 16) & 0xFF) != 255) {
+        return 18U;
+    }
     return 0U;
 }

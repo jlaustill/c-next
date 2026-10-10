@@ -24,6 +24,8 @@ bool Motor__test(void) {
 
 int main(void) {
     bool result = Motor__test();
-    if (result == false) return 1U;
+    if (result == false) {
+        return 1U;
+    }
     return 0U;
 }

@@ -127,7 +127,7 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
-14 linked fixtures with no derivable context:
+15 linked fixtures with no derivable context:
 
 - `bugs/issue-1531-declaration-rejections/cross-file-enum.test.cnx`
 - `bugs/issue-1669-enum-member-values/binary-values.test.cnx`
@@ -142,6 +142,7 @@ cell is declared by the ADR that owns it.
 - `bugs/issue-1669-enum-member-values/value-overflow.test.cnx`
 - `bugs/issue-1669-enum-member-values/value-self-later.test.cnx`
 - `bugs/issue-1669-enum-member-values/value-variable.test.cnx`
+- `bugs/issue-1971-enum-field-zero-enumerator/enum-field-defaults.test.cnx`
 - `enum/enum-error-negative.test.cnx`
 
 ## ADR-022
@@ -210,7 +211,7 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
-13 linked fixtures with no derivable context:
+19 linked fixtures with no derivable context:
 
 - `adr-029/callback-assign.test.cnx`
 - `adr-029/callback-basic.test.cnx`
@@ -218,11 +219,17 @@ cell is declared by the ADR that owns it.
 - `adr-029/callback-param-types.test.cnx`
 - `adr-029/callback-return-types.test.cnx`
 - `adr-029/callback-struct-member.test.cnx`
+- `bugs/issue-1283-adr029-init-at-declaration/callback-array-field.test.cnx`
+- `bugs/issue-1283-adr029-init-at-declaration/every-position.test.cnx`
+- `bugs/issue-1283-adr029-init-at-declaration/macro-sized-callback-array.test.cnx`
+- `bugs/issue-1283-adr029-init-at-declaration/nested-struct-field.test.cnx`
 - `bugs/issue-1491-cross-file-function-as-type/cross-file-callback.test.cnx`
 - `bugs/issue-1491-cross-file-function-as-type/cross-file-string-param.test.cnx`
 - `bugs/issue-1491-duplicate-typedef/two-consumers.test.cnx`
 - `bugs/issue-1544-cross-file-callback/cross-file-callback.test.cnx`
 - `bugs/issue-1552-cross-file-typedef-const/cross-file-typedef-const.test.cnx`
+- `bugs/issue-1562-fn-type-variable-header/cross-file-fn-type-variable.test.cnx`
+- `bugs/issue-1562-fn-type-variable-header/fn-type-variable.test.cnx`
 - `bugs/issue-1566-struct-init-all-fields/struct-init-all-fields.test.cnx`
 - `bugs/issue-1568-init-designated-position/init-designated-position.test.cnx`
 

@@ -29,29 +29,53 @@ u32 main() {
     u8 blue <- pixel[0, 5]; // 5 bits at position 0
 
     // Verify extraction
-    if (red != 15) return 1;
-    if (green != 31) return 2;
-    if (blue != 15) return 3;
+    if (red != 15) {
+        return 1;
+    }
+    if (green != 31) {
+        return 2;
+    }
+    if (blue != 15) {
+        return 3;
+    }
 
     // === Common color constants ===
 
     // Pure red: all red bits set, others zero
     u16 pureRed <- 0xF800;
-    if (pureRed[11, 5] != 31) return 4;
-    if (pureRed[5, 6] != 0) return 5;
-    if (pureRed[0, 5] != 0) return 6;
+    if (pureRed[11, 5] != 31) {
+        return 4;
+    }
+    if (pureRed[5, 6] != 0) {
+        return 5;
+    }
+    if (pureRed[0, 5] != 0) {
+        return 6;
+    }
 
     // Pure green: all green bits set
     u16 pureGreen <- 0x07E0;
-    if (pureGreen[11, 5] != 0) return 7;
-    if (pureGreen[5, 6] != 63) return 8;
-    if (pureGreen[0, 5] != 0) return 9;
+    if (pureGreen[11, 5] != 0) {
+        return 7;
+    }
+    if (pureGreen[5, 6] != 63) {
+        return 8;
+    }
+    if (pureGreen[0, 5] != 0) {
+        return 9;
+    }
 
     // Pure blue: all blue bits set
     u16 pureBlue <- 0x001F;
-    if (pureBlue[11, 5] != 0) return 10;
-    if (pureBlue[5, 6] != 0) return 11;
-    if (pureBlue[0, 5] != 31) return 12;
+    if (pureBlue[11, 5] != 0) {
+        return 10;
+    }
+    if (pureBlue[5, 6] != 0) {
+        return 11;
+    }
+    if (pureBlue[0, 5] != 31) {
+        return 12;
+    }
 
     // === Modifying a single channel ===
 
@@ -60,9 +84,15 @@ u32 main() {
     modified[5, 6] <- 63;
 
     // Red and blue should be unchanged
-    if (modified[11, 5] != 15) return 13;
-    if (modified[5, 6] != 63) return 14;
-    if (modified[0, 5] != 15) return 15;
+    if (modified[11, 5] != 15) {
+        return 13;
+    }
+    if (modified[5, 6] != 63) {
+        return 14;
+    }
+    if (modified[0, 5] != 15) {
+        return 15;
+    }
 
     // === Building a color from scratch ===
 
@@ -72,13 +102,21 @@ u32 main() {
     custom[0, 5] <- 16; // Blue = half (16 of 31)
 
     // Verify each channel
-    if (custom[11, 5] != 31) return 16;
-    if (custom[5, 6] != 32) return 17;
-    if (custom[0, 5] != 16) return 18;
+    if (custom[11, 5] != 31) {
+        return 16;
+    }
+    if (custom[5, 6] != 32) {
+        return 17;
+    }
+    if (custom[0, 5] != 16) {
+        return 18;
+    }
 
     // Verify the final packed value
     // Binary: 11111 100000 10000 = 0xFC10
-    if (custom != 0xFC10) return 19;
+    if (custom != 0xFC10) {
+        return 19;
+    }
 
     return 0;
 }

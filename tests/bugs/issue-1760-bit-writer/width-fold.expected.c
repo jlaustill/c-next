@@ -25,9 +25,13 @@ int main(void) {
     __bits_fx.f = fx;
     __bits_fx.u = (__bits_fx.u & ~((uint32_t)0xFFFFFFFFU << 0)) | ((0x40400000U & (uint32_t)0xFFFFFFFFU) << 0);
     fx = __bits_fx.f;
-    if (fx != 3.0) return 1U;
+    if (fx != 3.0) {
+        return 1U;
+    }
     uint32_t y = 0U;
     y = (y & ~((uint32_t)0xFFFFFFFFU << 0)) | ((7U & (uint32_t)0xFFFFFFFFU) << 0);
-    if (y != 7) return 2U;
+    if (y != 7) {
+        return 2U;
+    }
     return 0U;
 }

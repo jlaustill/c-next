@@ -44,13 +44,21 @@ u32 main() {
     device.flags.Ready <- true;
     device.flags.Error <- false;
 
-    if (device.flags.Active != true) return 1;
-    if (device.flags.Ready != true) return 2;
-    if (device.flags.Error != false) return 3;
+    if (device.flags.Active != true) {
+        return 1;
+    }
+    if (device.flags.Ready != true) {
+        return 2;
+    }
+    if (device.flags.Error != false) {
+        return 3;
+    }
 
     // Test bitmap member write - multi-bit field
     device.flags.Mode <- 15;
-    if (device.flags.Mode != 15) return 4;
+    if (device.flags.Mode != 15) {
+        return 4;
+    }
 
     // Test 16-bit bitmap member
     device.status.Running <- true;
@@ -58,40 +66,68 @@ u32 main() {
     device.status.Complete <- false;
     device.status.Progress <- 50;
 
-    if (device.status.Running != true) return 5;
-    if (device.status.Paused != false) return 6;
-    if (device.status.Progress != 50) return 7;
+    if (device.status.Running != true) {
+        return 5;
+    }
+    if (device.status.Paused != false) {
+        return 6;
+    }
+    if (device.status.Progress != 50) {
+        return 7;
+    }
 
     // Verify other struct members unchanged
-    if (device.id != 12345) return 8;
-    if (device.value != 100) return 9;
+    if (device.id != 12345) {
+        return 8;
+    }
+    if (device.value != 100) {
+        return 9;
+    }
 
     // Test second struct with bitmap
     ctrl.counter <- 999;
     ctrl.controlFlags.Active <- true;
     ctrl.controlFlags.Mode <- 7;
 
-    if (ctrl.controlFlags.Active != true) return 10;
-    if (ctrl.controlFlags.Mode != 7) return 11;
-    if (ctrl.counter != 999) return 12;
+    if (ctrl.controlFlags.Active != true) {
+        return 10;
+    }
+    if (ctrl.controlFlags.Mode != 7) {
+        return 11;
+    }
+    if (ctrl.counter != 999) {
+        return 12;
+    }
 
     // Update progress
     device.status.Progress <- 100;
     device.status.Complete <- true;
 
-    if (device.status.Progress != 100) return 13;
-    if (device.status.Complete != true) return 14;
-    if (device.status.Running != true) return 15; // Unchanged
+    if (device.status.Progress != 100) {
+        return 13;
+    }
+    if (device.status.Complete != true) {
+        return 14;
+    }
+    if (device.status.Running != true) {
+        return 15; // Unchanged
+    }
 
     // Read bitmap fields into variables
     bool isActive <- device.flags.Active;
-    if (isActive != true) return 16;
+    if (isActive != true) {
+        return 16;
+    }
 
     u8 progress <- device.status.Progress;
-    if (progress != 100) return 17;
+    if (progress != 100) {
+        return 17;
+    }
 
     u8 mode <- device.flags.Mode;
-    if (mode != 15) return 18;
+    if (mode != 15) {
+        return 18;
+    }
 
     return 0;
 }

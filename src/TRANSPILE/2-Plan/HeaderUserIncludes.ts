@@ -100,16 +100,30 @@ class HeaderUserIncludes {
 
   /**
    * Issue #424: an array dimension that is still an identifier is a macro the
-   * header names and does not define.
+   * header names and does not define -- wherever the header spells one: a
+   * variable, a struct field (#1970) or a parameter.
    */
   private static namesMacroDimension(symbol: TSymbol): boolean {
-    return (
-      symbol.kind === "variable" &&
-      (symbol.arrayDimensions?.some(
-        (dimension) => typeof dimension === "string",
-      ) ??
-        false)
+    return HeaderUserIncludes.dimensionsOf(symbol).some(
+      (dimension) => typeof dimension === "string",
     );
+  }
+
+  private static dimensionsOf(symbol: TSymbol): ReadonlyArray<number | string> {
+    switch (symbol.kind) {
+      case "variable":
+        return symbol.arrayDimensions ?? [];
+      case "struct":
+        return [...symbol.fields.values()].flatMap(
+          (field) => field.dimensions ?? [],
+        );
+      case "function":
+        return symbol.parameters.flatMap(
+          (parameter) => parameter.arrayDimensions ?? [],
+        );
+      default:
+        return [];
+    }
   }
 }
 

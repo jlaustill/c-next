@@ -21,8 +21,14 @@ void fill(u8[6] buf) {
 
 i32 main() {
     fill(o.inner.data);
-    if (o.inner.data[0] != 1) return 1;
-    if (o.inner.data[5] != 6) return 2;
-    if (o.data != 0) return 3;
+    if (o.inner.data[0] != 1) {
+        return 1;
+    }
+    if (o.inner.data[5] != 6) {
+        return 2;
+    }
+    if (o.data != 0) {
+        return 3;
+    }
     return 0;
 }

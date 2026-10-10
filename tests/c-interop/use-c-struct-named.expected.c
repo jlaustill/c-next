@@ -17,25 +17,49 @@ int main(void) {
     struct NamedPoint pt = {0};
     pt.x = 100;
     pt.y = 200;
-    if (pt.x != 100) return 1U;
-    if (pt.y != 200) return 2U;
+    if (pt.x != 100) {
+        return 1U;
+    }
+    if (pt.y != 200) {
+        return 2U;
+    }
     struct NamedConfig cfg = {0};
     cfg.magic = 0xCAFEBABEU;
     cfg.version = 0x0102U;
     cfg.flags = 0xFFU;
     cfg.checksum = 0xAAU;
-    if (cfg.magic != 0xCAFEBABE) return 3U;
-    if (cfg.version != 0x0102) return 4U;
-    if (cfg.flags != 0xFF) return 5U;
-    if (cfg.checksum != 0xAA) return 6U;
-    if (32 != 32) return 7U;
-    if (32 != 32) return 8U;
-    if (16 != 16) return 9U;
-    if (8 != 8) return 10U;
+    if (cfg.magic != 0xCAFEBABE) {
+        return 3U;
+    }
+    if (cfg.version != 0x0102) {
+        return 4U;
+    }
+    if (cfg.flags != 0xFF) {
+        return 5U;
+    }
+    if (cfg.checksum != 0xAA) {
+        return 6U;
+    }
+    if (32 != 32) {
+        return 7U;
+    }
+    if (32 != 32) {
+        return 8U;
+    }
+    if (16 != 16) {
+        return 9U;
+    }
+    if (8 != 8) {
+        return 10U;
+    }
     struct NamedPoint pt2 = {0};
     pt2.x = pt.x;
     pt2.y = pt.y;
-    if (pt2.x != 100) return 11U;
-    if (pt2.y != 200) return 12U;
+    if (pt2.x != 100) {
+        return 11U;
+    }
+    if (pt2.y != 200) {
+        return 12U;
+    }
     return 0U;
 }

@@ -31,32 +31,48 @@ u32 main() {
     invokeCallCount <- 0;
     invokeLastHandler <- 0;
     globalHandler();
-    if (invokeCallCount != 1) return 1;
-    if (invokeLastHandler != 1) return 2;
+    if (invokeCallCount != 1) {
+        return 1;
+    }
+    if (invokeLastHandler != 1) {
+        return 2;
+    }
 
     // Test 2: Reassign global and invoke
     invokeCallCount <- 0;
     invokeLastHandler <- 0;
     globalHandler <- invokeHandler2;
     globalHandler();
-    if (invokeCallCount != 1) return 3;
-    if (invokeLastHandler != 2) return 4;
+    if (invokeCallCount != 1) {
+        return 3;
+    }
+    if (invokeLastHandler != 2) {
+        return 4;
+    }
 
     // Test 3: Local ISR variable
     invokeCallCount <- 0;
     invokeLastHandler <- 0;
     ISR localHandler <- invokeHandler3;
     localHandler();
-    if (invokeCallCount != 1) return 5;
-    if (invokeLastHandler != 3) return 6;
+    if (invokeCallCount != 1) {
+        return 5;
+    }
+    if (invokeLastHandler != 3) {
+        return 6;
+    }
 
     // Test 4: Reassign local and invoke
     invokeCallCount <- 0;
     invokeLastHandler <- 0;
     localHandler <- invokeHandler1;
     localHandler();
-    if (invokeCallCount != 1) return 7;
-    if (invokeLastHandler != 1) return 8;
+    if (invokeCallCount != 1) {
+        return 7;
+    }
+    if (invokeLastHandler != 1) {
+        return 8;
+    }
 
     // Test 5: Multiple invocations through same variable
     invokeCallCount <- 0;
@@ -64,8 +80,12 @@ u32 main() {
     localHandler();
     localHandler();
     localHandler();
-    if (invokeCallCount != 3) return 9;
-    if (invokeLastHandler != 2) return 10;
+    if (invokeCallCount != 3) {
+        return 9;
+    }
+    if (invokeLastHandler != 2) {
+        return 10;
+    }
 
     // Test 6: Chain of reassignments
     invokeCallCount <- 0;
@@ -75,8 +95,12 @@ u32 main() {
     localHandler(); // count = 2
     localHandler <- invokeHandler3;
     localHandler(); // count = 3
-    if (invokeCallCount != 3) return 11;
-    if (invokeLastHandler != 3) return 12;
+    if (invokeCallCount != 3) {
+        return 11;
+    }
+    if (invokeLastHandler != 3) {
+        return 12;
+    }
 
     return 0;
 }

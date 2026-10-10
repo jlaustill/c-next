@@ -18,6 +18,8 @@ int main(void) {
     uint32_t u = 3U;
     float y = 2.5;
     float r = u * choose(y);
-    if (r != 7.5) return 1U;
+    if (r != 7.5) {
+        return 1U;
+    }
     return 0U;
 }

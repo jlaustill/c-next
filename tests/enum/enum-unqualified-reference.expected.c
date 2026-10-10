@@ -21,11 +21,19 @@ void setDefault(EnumUnqualRef__Config* config) {
 
 int main(void) {
     EnumUnqualRef__Config cfg = { .pType = EPressureType__PRESSURE_TYPE_PSIA };
-    if (cfg.pType != EPressureType__PRESSURE_TYPE_PSIA) return 1U;
+    if (cfg.pType != EPressureType__PRESSURE_TYPE_PSIA) {
+        return 1U;
+    }
     setDefault(&cfg);
-    if (cfg.pType != EPressureType__PRESSURE_TYPE_PSIG) return 2U;
+    if (cfg.pType != EPressureType__PRESSURE_TYPE_PSIG) {
+        return 2U;
+    }
     cfg.pType = EPressureType__PRESSURE_TYPE_PSIA;
-    if (cfg.pType != EPressureType__PRESSURE_TYPE_PSIA) return 3U;
-    if (cfg.pType != EPressureType__PRESSURE_TYPE_PSIA) return 4U;
+    if (cfg.pType != EPressureType__PRESSURE_TYPE_PSIA) {
+        return 3U;
+    }
+    if (cfg.pType != EPressureType__PRESSURE_TYPE_PSIA) {
+        return 4U;
+    }
     return 0U;
 }

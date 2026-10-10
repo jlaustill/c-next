@@ -38,6 +38,8 @@ int main(void) {
     Counter__increment();
     Counter__increment();
     uint32_t result = Counter__getValue();
-    if (result != 2) return 1U;
+    if (result != 2) {
+        return 1U;
+    }
     return 0U;
 }

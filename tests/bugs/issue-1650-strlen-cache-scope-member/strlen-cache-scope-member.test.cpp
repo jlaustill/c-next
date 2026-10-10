@@ -39,8 +39,12 @@ uint32_t Cfg__check(void) {
 
 int main(void) {
     uint32_t result = Cfg__check();
-    if (result != 0) return result;
+    if (result != 0) {
+        return result;
+    }
     size_t cnx_len_title = strlen(title);
-    if (cnx_len_title != 3 || cnx_len_title < 1) return 3U;
+    if (cnx_len_title != 3 || cnx_len_title < 1) {
+        return 3U;
+    }
     return 0U;
 }

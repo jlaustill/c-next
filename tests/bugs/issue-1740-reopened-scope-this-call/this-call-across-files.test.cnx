@@ -12,6 +12,8 @@ scope Lib {
 
 u32 main() {
     u32 result <- Lib.run();
-    if (result != 300) return 1;
+    if (result != 300) {
+        return 1;
+    }
     return 0;
 }

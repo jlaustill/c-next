@@ -31,42 +31,62 @@ u32 main() {
     buffer[3] <- 0;
 
     writeI32(buffer, 0, 12345);
-    if (buffer[0] != 12345) return 1;
+    if (buffer[0] != 12345) {
+        return 1;
+    }
 
     // Test negative values
     writeI32(buffer, 1, -9999);
-    if (buffer[1] != -9999) return 2;
+    if (buffer[1] != -9999) {
+        return 2;
+    }
 
     // Test with negative value
     writeI32(buffer, 2, -2147483648);
-    if (buffer[2] != -2147483648) return 3;
+    if (buffer[2] != -2147483648) {
+        return 3;
+    }
 
     // Test max positive value
     writeI32(buffer, 3, 2147483647);
-    if (buffer[3] != 2147483647) return 4;
+    if (buffer[3] != 2147483647) {
+        return 4;
+    }
 
     // Test read through parameter
     i32 result <- readI32(buffer, 1);
-    if (result != -9999) return 5;
+    if (result != -9999) {
+        return 5;
+    }
 
     result <- readI32(buffer, 3);
-    if (result != 2147483647) return 6;
+    if (result != 2147483647) {
+        return 6;
+    }
 
     // Test negate operation
     buffer[0] <- 100;
     negateI32(buffer, 0);
-    if (buffer[0] != -100) return 7;
+    if (buffer[0] != -100) {
+        return 7;
+    }
 
     negateI32(buffer, 0);
-    if (buffer[0] != 100) return 8;
+    if (buffer[0] != 100) {
+        return 8;
+    }
 
     // Test compound add with negative delta
     buffer[1] <- 50;
     addToI32(buffer, 1, -30);
-    if (buffer[1] != 20) return 9;
+    if (buffer[1] != 20) {
+        return 9;
+    }
 
     addToI32(buffer, 1, -25);
-    if (buffer[1] != -5) return 10;
+    if (buffer[1] != -5) {
+        return 10;
+    }
 
     return 0;
 }

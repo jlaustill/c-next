@@ -25,6 +25,8 @@ u32 main() {
     Motor.adjustLED();
     // MISRA: store function result in variable first
     u8 brightness <- LED.getBrightness();
-    if (brightness != 50) return 1;
+    if (brightness != 50) {
+        return 1;
+    }
     return 0;
 }

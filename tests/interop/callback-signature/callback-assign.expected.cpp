@@ -25,14 +25,20 @@ int main(void) {
     PointCallback cb = my_point_handler;
     Point p1 = { .x = 3, .y = 7 };
     cb(p1);
-    if (handler_sum != 10) return 1;
+    if (handler_sum != 10) {
+        return 1;
+    }
     handler_sum = 0;
     PointHandler handler = { .on_point = my_point_handler };
     Point p2 = { .x = 5, .y = 15 };
     handler.on_point(p2);
-    if (handler_sum != 20) return 2;
+    if (handler_sum != 20) {
+        return 2;
+    }
     handler_sum = 0;
     register_callback(my_point_handler);
-    if (handler_sum != 30) return 3;
+    if (handler_sum != 30) {
+        return 3;
+    }
     return 0;
 }

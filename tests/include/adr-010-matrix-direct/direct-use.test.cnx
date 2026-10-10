@@ -30,10 +30,14 @@ scope Consumer {
 
 u32 main() {
     gReading.value <- readSensor();
-    if (gReading.value != 42) return 1;
+    if (gReading.value != 42) {
+        return 1;
+    }
 
     u32 viaScope <- Consumer.read();
-    if (viaScope != 42) return 2;
+    if (viaScope != 42) {
+        return 2;
+    }
 
     return 0;
 }

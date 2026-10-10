@@ -18,7 +18,9 @@ u32 main() {
     buffer[0, 4] <- magic;
     buffer[0] <- buffer[0] + _tmp0;
 
-    if (buffer[0] != 7) return 1;
+    if (buffer[0] != 7) {
+        return 1;
+    }
 
     return 0;
 }

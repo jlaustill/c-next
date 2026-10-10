@@ -13,29 +13,63 @@
 int main(void) {
     uint32_t ua = 100U;
     uint32_t ub = 200U;
-    if (ua > ub) return 1U;
-    if (ua >= ub) return 2U;
-    if (ua >= ub) return 3U;
-    if (ua > ub) return 4U;
-    if (ua == ub) return 5U;
-    if (ua == ub) return 6U;
+    if (ua > ub) {
+        return 1U;
+    }
+    if (ua >= ub) {
+        return 2U;
+    }
+    if (ua >= ub) {
+        return 3U;
+    }
+    if (ua > ub) {
+        return 4U;
+    }
+    if (ua == ub) {
+        return 5U;
+    }
+    if (ua == ub) {
+        return 6U;
+    }
     int32_t sa = -50;
     int32_t sb = 50;
-    if (sa > sb) return 7U;
-    if (sa >= sb) return 8U;
-    if (sa >= sb) return 9U;
-    if (sa > sb) return 10U;
+    if (sa > sb) {
+        return 7U;
+    }
+    if (sa >= sb) {
+        return 8U;
+    }
+    if (sa >= sb) {
+        return 9U;
+    }
+    if (sa > sb) {
+        return 10U;
+    }
     uint8_t ba = 0U;
     uint8_t bb = 255U;
-    if (ba > bb) return 11U;
-    if (ba >= bb) return 12U;
-    if (ba == bb) return 13U;
+    if (ba > bb) {
+        return 11U;
+    }
+    if (ba >= bb) {
+        return 12U;
+    }
+    if (ba == bb) {
+        return 13U;
+    }
     uint32_t zero = 0U;
-    if (zero != 0) return 14U;
-    if (zero != 0) return 15U;
+    if (zero != 0) {
+        return 14U;
+    }
+    if (zero != 0) {
+        return 15U;
+    }
     int8_t neg = -1;
     int8_t pos = 1;
-    if (neg > pos) return 16U;
-    if (neg >= pos) return 17U;
+    if (neg > pos) {
+        return 16U;
+    }
+    if (neg >= pos) {
+        return 17U;
+    }
     return 0U;
 }

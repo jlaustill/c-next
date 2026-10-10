@@ -12,7 +12,9 @@ u32 main() {
     ib.value <- 0x12345678;
 
     // Verify value was set
-    if (ib.value != 0x12345678) return 1;
+    if (ib.value != 0x12345678) {
+        return 1;
+    }
 
    
 // Test 2: Access bytes array (type punning)
@@ -22,8 +24,12 @@ u32 main() {
     u8 last_byte <- ib.bytes[3];
 
     // On little-endian systems
-    if (first_byte != 0x78) return 2;
-    if (last_byte != 0x12) return 3;
+    if (first_byte != 0x78) {
+        return 2;
+    }
+    if (last_byte != 0x12) {
+        return 3;
+    }
 
    
 // Test 3: Set via bytes, read via value
@@ -33,7 +39,9 @@ u32 main() {
     ib.bytes[3] <- 0xDD;
 
     // On little-endian: value = 0xDDCCBBAA
-    if (ib.value != 0xDDCCBBAA) return 4;
+    if (ib.value != 0xDDCCBBAA) {
+        return 4;
+    }
 
    
 // Test 4: MultiSize union
@@ -41,9 +49,15 @@ u32 main() {
     ms.qword_val <- 0xFFFFFFFFFFFFFFFF;
 
     // Smaller members should see lower bits
-    if (ms.dword_val != 0xFFFFFFFF) return 5;
-    if (ms.word_val != 0xFFFF) return 6;
-    if (ms.byte_val != 0xFF) return 7;
+    if (ms.dword_val != 0xFFFFFFFF) {
+        return 5;
+    }
+    if (ms.word_val != 0xFFFF) {
+        return 6;
+    }
+    if (ms.byte_val != 0xFF) {
+        return 7;
+    }
 
     return 0;  // All tests passed
 }

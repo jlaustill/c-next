@@ -31,30 +31,54 @@ bool identity(bool value) {
 
 // 5. Main with validations (unique error codes)
 int main(void) {
-    if (globalTrue != true) return 1U;
-    if (globalFalse != false) return 2U;
+    if (globalTrue != true) {
+        return 1U;
+    }
+    if (globalFalse != false) {
+        return 2U;
+    }
     bool localTrue = true;
     bool localFalse = false;
     bool negResult1 = negate(localTrue);
-    if (negResult1 != false) return 3U;
+    if (negResult1 != false) {
+        return 3U;
+    }
     bool negResult2 = negate(localFalse);
-    if (negResult2 != true) return 4U;
+    if (negResult2 != true) {
+        return 4U;
+    }
     bool idResult = identity(localTrue);
-    if (idResult != true) return 5U;
+    if (idResult != true) {
+        return 5U;
+    }
     bool localBool = true;
-    if (localBool != true) return 6U;
+    if (localBool != true) {
+        return 6U;
+    }
     Flags flags = {0};
     flags.enabled = true;
     flags.active = false;
-    if (flags.enabled != true) return 7U;
-    if (flags.active != false) return 8U;
+    if (flags.enabled != true) {
+        return 7U;
+    }
+    if (flags.active != false) {
+        return 8U;
+    }
     flagArray[0] = true;
     flagArray[1] = false;
-    if (flagArray[0U] != true) return 9U;
-    if (flagArray[1U] != false) return 10U;
+    if (flagArray[0U] != true) {
+        return 9U;
+    }
+    if (flagArray[1U] != false) {
+        return 10U;
+    }
     bool combined = globalTrue && localBool;
-    if (combined != true) return 11U;
+    if (combined != true) {
+        return 11U;
+    }
     bool orResult = globalFalse || localBool;
-    if (orResult != true) return 12U;
+    if (orResult != true) {
+        return 12U;
+    }
     return 0U;
 }

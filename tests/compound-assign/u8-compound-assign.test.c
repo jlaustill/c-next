@@ -36,138 +36,228 @@ static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
 int main(void) {
     uint8_t val = 100U;
     val = cnx_clamp_add_u8(val, 50U);
-    if (val != 150) return 1U;
+    if (val != 150) {
+        return 1U;
+    }
     val = 200U;
     val = cnx_clamp_add_u8(val, 0U);
-    if (val != 200) return 2U;
+    if (val != 200) {
+        return 2U;
+    }
     val = 0U;
     val = cnx_clamp_add_u8(val, 255U);
-    if (val != 255) return 3U;
+    if (val != 255) {
+        return 3U;
+    }
     val = 254U;
     val = cnx_clamp_add_u8(val, 1U);
-    if (val != 255) return 4U;
+    if (val != 255) {
+        return 4U;
+    }
     uint8_t sub = 200U;
     sub = cnx_clamp_sub_u8(sub, 50U);
-    if (sub != 150) return 10U;
+    if (sub != 150) {
+        return 10U;
+    }
     sub = 100U;
     sub = cnx_clamp_sub_u8(sub, 0U);
-    if (sub != 100) return 11U;
+    if (sub != 100) {
+        return 11U;
+    }
     sub = 255U;
     sub = cnx_clamp_sub_u8(sub, 254U);
-    if (sub != 1) return 12U;
+    if (sub != 1) {
+        return 12U;
+    }
     sub = 100U;
     sub = cnx_clamp_sub_u8(sub, 100U);
-    if (sub != 0) return 13U;
+    if (sub != 0) {
+        return 13U;
+    }
     sub = 1U;
     sub = cnx_clamp_sub_u8(sub, 1U);
-    if (sub != 0) return 14U;
+    if (sub != 0) {
+        return 14U;
+    }
     uint8_t mul = 10U;
     mul = cnx_clamp_mul_u8(mul, 10U);
-    if (mul != 100) return 20U;
+    if (mul != 100) {
+        return 20U;
+    }
     mul = 50U;
     mul = cnx_clamp_mul_u8(mul, 1U);
-    if (mul != 50) return 21U;
+    if (mul != 50) {
+        return 21U;
+    }
     mul = 17U;
     mul = cnx_clamp_mul_u8(mul, 15U);
-    if (mul != 255) return 22U;
+    if (mul != 255) {
+        return 22U;
+    }
     mul = 128U;
     mul = cnx_clamp_mul_u8(mul, 2U);
-    if (mul != 255) return 23U;
+    if (mul != 255) {
+        return 23U;
+    }
     mul = 100U;
     mul = cnx_clamp_mul_u8(mul, 0U);
-    if (mul != 0) return 24U;
+    if (mul != 0) {
+        return 24U;
+    }
     uint8_t div = 200U;
     div = (uint8_t)(div / 10U);
-    if (div != 20) return 30U;
+    if (div != 20) {
+        return 30U;
+    }
     div = 50U;
     div = (uint8_t)(div / 1U);
-    if (div != 50) return 31U;
+    if (div != 50) {
+        return 31U;
+    }
     div = 255U;
     div = (uint8_t)(div / 255U);
-    if (div != 1) return 32U;
+    if (div != 1) {
+        return 32U;
+    }
     div = 100U;
     div = (uint8_t)(div / 3U);
-    if (div != 33) return 33U;
+    if (div != 33) {
+        return 33U;
+    }
     div = 0U;
     div = (uint8_t)(div / 10U);
-    if (div != 0) return 34U;
+    if (div != 0) {
+        return 34U;
+    }
     uint8_t mod = 107U;
     mod = (uint8_t)(mod % 10U);
-    if (mod != 7) return 40U;
+    if (mod != 7) {
+        return 40U;
+    }
     mod = 200U;
     mod = (uint8_t)(mod % 100U);
-    if (mod != 0) return 41U;
+    if (mod != 0) {
+        return 41U;
+    }
     mod = 17U;
     mod = (uint8_t)(mod % 5U);
-    if (mod != 2) return 42U;
+    if (mod != 2) {
+        return 42U;
+    }
     mod = 255U;
     mod = (uint8_t)(mod % 16U);
-    if (mod != 15) return 43U;
+    if (mod != 15) {
+        return 43U;
+    }
     mod = 1U;
     mod = (uint8_t)(mod % 2U);
-    if (mod != 1) return 44U;
+    if (mod != 1) {
+        return 44U;
+    }
     uint8_t andVal = 0xFFU;
     andVal = (uint8_t)(andVal & 0x0FU);
-    if (andVal != 0x0F) return 50U;
+    if (andVal != 0x0F) {
+        return 50U;
+    }
     andVal = 0xAAU;
     andVal = (uint8_t)(andVal & 0x55U);
-    if (andVal != 0) return 51U;
+    if (andVal != 0) {
+        return 51U;
+    }
     andVal = 0x55U;
     andVal = (uint8_t)(andVal & 0xFFU);
-    if (andVal != 0x55) return 52U;
+    if (andVal != 0x55) {
+        return 52U;
+    }
     andVal = 0xF0U;
     andVal = (uint8_t)(andVal & 0x0FU);
-    if (andVal != 0) return 53U;
+    if (andVal != 0) {
+        return 53U;
+    }
     uint8_t orVal = 0x0FU;
     orVal = (uint8_t)(orVal | 0xF0U);
-    if (orVal != 0xFF) return 60U;
+    if (orVal != 0xFF) {
+        return 60U;
+    }
     orVal = 0x55U;
     orVal = (uint8_t)(orVal | 0x00U);
-    if (orVal != 0x55) return 61U;
+    if (orVal != 0x55) {
+        return 61U;
+    }
     orVal = 0xAAU;
     orVal = (uint8_t)(orVal | 0x55U);
-    if (orVal != 0xFF) return 62U;
+    if (orVal != 0xFF) {
+        return 62U;
+    }
     uint8_t xorVal = 0xAAU;
     xorVal = (uint8_t)(xorVal ^ 0x55U);
-    if (xorVal != 0xFF) return 70U;
+    if (xorVal != 0xFF) {
+        return 70U;
+    }
     xorVal = 0xFFU;
     xorVal = (uint8_t)(xorVal ^ 0xFFU);
-    if (xorVal != 0) return 71U;
+    if (xorVal != 0) {
+        return 71U;
+    }
     xorVal = 0x55U;
     xorVal = (uint8_t)(xorVal ^ 0x55U);
-    if (xorVal != 0) return 72U;
+    if (xorVal != 0) {
+        return 72U;
+    }
     xorVal = 0x0FU;
     xorVal = (uint8_t)(xorVal ^ 0xF0U);
-    if (xorVal != 0xFF) return 73U;
+    if (xorVal != 0xFF) {
+        return 73U;
+    }
     uint8_t shl = 1U;
     shl = (uint8_t)(shl << 0U);
-    if (shl != 1) return 80U;
+    if (shl != 1) {
+        return 80U;
+    }
     shl = 1U;
     shl = (uint8_t)(shl << 1U);
-    if (shl != 2) return 81U;
+    if (shl != 2) {
+        return 81U;
+    }
     shl = 1U;
     shl = (uint8_t)(shl << 4U);
-    if (shl != 16) return 82U;
+    if (shl != 16) {
+        return 82U;
+    }
     shl = 1U;
     shl = (uint8_t)(shl << 7U);
-    if (shl != 128) return 83U;
+    if (shl != 128) {
+        return 83U;
+    }
     shl = 0x0FU;
     shl = (uint8_t)(shl << 4U);
-    if (shl != 0xF0) return 84U;
+    if (shl != 0xF0) {
+        return 84U;
+    }
     uint8_t shr = 128U;
     shr = (uint8_t)(shr >> 0U);
-    if (shr != 128) return 90U;
+    if (shr != 128) {
+        return 90U;
+    }
     shr = 128U;
     shr = (uint8_t)(shr >> 1U);
-    if (shr != 64) return 91U;
+    if (shr != 64) {
+        return 91U;
+    }
     shr = 128U;
     shr = (uint8_t)(shr >> 7U);
-    if (shr != 1) return 92U;
+    if (shr != 1) {
+        return 92U;
+    }
     shr = 0xF0U;
     shr = (uint8_t)(shr >> 4U);
-    if (shr != 0x0F) return 93U;
+    if (shr != 0x0F) {
+        return 93U;
+    }
     shr = 255U;
     shr = (uint8_t)(shr >> 4U);
-    if (shr != 15) return 94U;
+    if (shr != 15) {
+        return 94U;
+    }
     return 0U;
 }

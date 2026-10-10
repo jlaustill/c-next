@@ -18,16 +18,32 @@ extern const double ZERO = 0.0;
 
 int main(void) {
     double pi = PI_PRECISE;
-    if (pi < 3.141592) return 1U;
-    if (pi > 3.141593) return 2U;
+    if (pi < 3.141592) {
+        return 1U;
+    }
+    if (pi > 3.141593) {
+        return 2U;
+    }
     double e = E;
-    if (e < 2.718281) return 3U;
-    if (e > 2.718282) return 4U;
+    if (e < 2.718281) {
+        return 3U;
+    }
+    if (e > 2.718282) {
+        return 4U;
+    }
     double zero = ZERO;
-    if (zero != 0.0) return 5U;
+    if (zero != 0.0) {
+        return 5U;
+    }
     double area = PI_PRECISE * 5.0 * 5.0;
-    if (area < 78.5) return 6U;
-    if (area > 78.6) return 7U;
-    if (E >= PI_PRECISE) return 8U;
+    if (area < 78.5) {
+        return 6U;
+    }
+    if (area > 78.6) {
+        return 7U;
+    }
+    if (E >= PI_PRECISE) {
+        return 8U;
+    }
     return 0U;
 }

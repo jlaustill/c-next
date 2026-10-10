@@ -20,8 +20,12 @@ uint8_t Small__t[2] = {};
 
 int main(void) {
     uint32_t small = 2;
-    if (small != 2) return 1U;
+    if (small != 2) {
+        return 1U;
+    }
     uint32_t big = 10;
-    if (big != 10) return 2U;
+    if (big != 10) {
+        return 2U;
+    }
     return 0U;
 }

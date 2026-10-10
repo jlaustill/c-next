@@ -35,15 +35,25 @@ uint32_t f(void) {
     x = cnx_clamp_add_u32(x, 1000U);
     uint32_t n = 32;
     uint32_t local = f__x;
-    if (r != 1000) return 2U;
-    if (n != 32) return 3U;
-    if (local != 1) return 4U;
+    if (r != 1000) {
+        return 2U;
+    }
+    if (n != 32) {
+        return 3U;
+    }
+    if (local != 1) {
+        return 4U;
+    }
     return 0U;
 }
 
 int main(void) {
     uint32_t checks = f();
-    if (x != 1000) return 1U;
-    if (checks != 0) return checks;
+    if (x != 1000) {
+        return 1U;
+    }
+    if (checks != 0) {
+        return checks;
+    }
     return 0U;
 }

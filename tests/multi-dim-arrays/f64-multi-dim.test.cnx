@@ -14,10 +14,18 @@ u32 main() {
     matrix2d[3][7] <- 0.0;
 
     // 2D array: Read and verify
-    if (matrix2d[0][0] != 3.14159265359) return 1;
-    if (matrix2d[0][7] != -2.71828182846) return 2;
-    if (matrix2d[1][3] != 1000.123456789) return 3;
-    if (matrix2d[3][7] != 0.0) return 4;
+    if (matrix2d[0][0] != 3.14159265359) {
+        return 1;
+    }
+    if (matrix2d[0][7] != -2.71828182846) {
+        return 2;
+    }
+    if (matrix2d[1][3] != 1000.123456789) {
+        return 3;
+    }
+    if (matrix2d[3][7] != 0.0) {
+        return 4;
+    }
 
     // 3D array: Write operations
     cube3d[0][0][0] <- 1.123456789012345;
@@ -27,23 +35,47 @@ u32 main() {
     cube3d[1][2][3] <- -0.000000000001;
 
     // 3D array: Read and verify
-    if (cube3d[0][0][0] != 1.123456789012345) return 5;
-    if (cube3d[0][0][3] != -10.987654321098765) return 6;
-    if (cube3d[0][2][3] != 0.0) return 7;
-    if (cube3d[1][0][0] != 999.999999999999) return 8;
-    if (cube3d[1][2][3] != -0.000000000001) return 9;
+    if (cube3d[0][0][0] != 1.123456789012345) {
+        return 5;
+    }
+    if (cube3d[0][0][3] != -10.987654321098765) {
+        return 6;
+    }
+    if (cube3d[0][2][3] != 0.0) {
+        return 7;
+    }
+    if (cube3d[1][0][0] != 999.999999999999) {
+        return 8;
+    }
+    if (cube3d[1][2][3] != -0.000000000001) {
+        return 9;
+    }
 
     // Test .length property at each dimension
     // 2D array dimensions
-    if (matrix2d.element_count != 4) return 10; // First dimension
-    if (matrix2d[0].element_count != 8) return 11; // Second dimension
-    if (matrix2d[0][0].bit_length != 64) return 12; // Element bit width
+    if (matrix2d.element_count != 4) {
+        return 10; // First dimension
+    }
+    if (matrix2d[0].element_count != 8) {
+        return 11; // Second dimension
+    }
+    if (matrix2d[0][0].bit_length != 64) {
+        return 12; // Element bit width
+    }
 
     // 3D array dimensions
-    if (cube3d.element_count != 2) return 13; // First dimension
-    if (cube3d[0].element_count != 3) return 14; // Second dimension
-    if (cube3d[0][0].element_count != 4) return 15; // Third dimension
-    if (cube3d[0][0][0].bit_length != 64) return 16; // Element bit width
+    if (cube3d.element_count != 2) {
+        return 13; // First dimension
+    }
+    if (cube3d[0].element_count != 3) {
+        return 14; // Second dimension
+    }
+    if (cube3d[0][0].element_count != 4) {
+        return 15; // Third dimension
+    }
+    if (cube3d[0][0][0].bit_length != 64) {
+        return 16; // Element bit width
+    }
 
     // Nested loop iteration - populate 2D array with decimal pattern
     for (u32 i <- 0; i < 4; i +<- 1) {
@@ -53,10 +85,18 @@ u32 main() {
     }
 
     // Verify populated values
-    if (matrix2d[0][0] != 0.0) return 17;
-    if (matrix2d[0][7] != 3.5) return 18;
-    if (matrix2d[1][3] != 4.0) return 19;
-    if (matrix2d[3][7] != 11.0) return 20;
+    if (matrix2d[0][0] != 0.0) {
+        return 17;
+    }
+    if (matrix2d[0][7] != 3.5) {
+        return 18;
+    }
+    if (matrix2d[1][3] != 4.0) {
+        return 19;
+    }
+    if (matrix2d[3][7] != 11.0) {
+        return 20;
+    }
 
     // Nested loop iteration - populate and sum 3D array
     f64 sum <- 0.0;
@@ -70,15 +110,21 @@ u32 main() {
     }
 
     // Verify sum: 3.0+12.0+21.0+45.0+54.0+63.0 = 198.0
-    if (sum != 198.0) return 21;
+    if (sum != 198.0) {
+        return 21;
+    }
 
     // Test modification after initialization
     matrix2d[2][4] <- -999999.999999;
-    if (matrix2d[2][4] != -999999.999999) return 22;
+    if (matrix2d[2][4] != -999999.999999) {
+        return 22;
+    }
 
     // Test boundary access
     matrix2d[matrix2d.element_count - 1][matrix2d[0].element_count - 1] <- 42.123456789;
-    if (matrix2d[3][7] != 42.123456789) return 23;
+    if (matrix2d[3][7] != 42.123456789) {
+        return 23;
+    }
 
     // Test f64 specific edge cases
     f64[4][2] testArray;
@@ -96,12 +142,24 @@ u32 main() {
     testArray[2][0] <- 0.123456789012345; // High precision positive
     testArray[3][1] <- -0.123456789012345; // High precision negative
 
-    if (testArray[0][0] != 0.0) return 24;
-    if (testArray[0][1] != -0.0) return 25;
-    if (testArray[1][0] != 1.0) return 26;
-    if (testArray[1][1] != -1.0) return 27;
-    if (testArray[2][0] != 0.123456789012345) return 28;
-    if (testArray[3][1] != -0.123456789012345) return 29;
+    if (testArray[0][0] != 0.0) {
+        return 24;
+    }
+    if (testArray[0][1] != -0.0) {
+        return 25;
+    }
+    if (testArray[1][0] != 1.0) {
+        return 26;
+    }
+    if (testArray[1][1] != -1.0) {
+        return 27;
+    }
+    if (testArray[2][0] != 0.123456789012345) {
+        return 28;
+    }
+    if (testArray[3][1] != -0.123456789012345) {
+        return 29;
+    }
 
     // Test 2D array with scientific constants
     f64[3][3] constants;
@@ -120,13 +178,27 @@ u32 main() {
     constants[2][0] <- 6.67430e-11; // Gravitational constant
     constants[2][1] <- 9.80665; // Standard gravity (m/s²)
 
-    if (constants[0][0] != 3.14159265358979) return 30;
-    if (constants[0][1] != 2.71828182845905) return 31;
-    if (constants[0][2] != 1.61803398874989) return 32;
-    if (constants[1][0] != 6.62607015e-34) return 33;
-    if (constants[1][1] != 299792458.0) return 34;
-    if (constants[2][0] != 6.67430e-11) return 35;
-    if (constants[2][1] != 9.80665) return 36;
+    if (constants[0][0] != 3.14159265358979) {
+        return 30;
+    }
+    if (constants[0][1] != 2.71828182845905) {
+        return 31;
+    }
+    if (constants[0][2] != 1.61803398874989) {
+        return 32;
+    }
+    if (constants[1][0] != 6.62607015e-34) {
+        return 33;
+    }
+    if (constants[1][1] != 299792458.0) {
+        return 34;
+    }
+    if (constants[2][0] != 6.67430e-11) {
+        return 35;
+    }
+    if (constants[2][1] != 9.80665) {
+        return 36;
+    }
 
     // Test high precision decimal calculations
     f64[2][2] precise;
@@ -142,10 +214,18 @@ u32 main() {
     precise[1][0] <- 999999.999999999;
     precise[1][1] <- -123456.789012345;
 
-    if (precise[0][0] != 0.123456789012345) return 37;
-    if (precise[0][1] != 0.000000000000001) return 38;
-    if (precise[1][0] != 999999.999999999) return 39;
-    if (precise[1][1] != -123456.789012345) return 40;
+    if (precise[0][0] != 0.123456789012345) {
+        return 37;
+    }
+    if (precise[0][1] != 0.000000000000001) {
+        return 38;
+    }
+    if (precise[1][0] != 999999.999999999) {
+        return 39;
+    }
+    if (precise[1][1] != -123456.789012345) {
+        return 40;
+    }
 
     // Test floating point arithmetic with high precision
     f64[2][2] calc;
@@ -159,7 +239,9 @@ u32 main() {
     calc[0][0] <- 10.123456789;
     calc[0][1] <- 5.987654321;
     f64 calcSum <- calc[0][0] + calc[0][1];
-    if (calcSum != 16.11111111) return 41;
+    if (calcSum != 16.11111111) {
+        return 41;
+    }
 
     // Test astronomical distances (light-years to meters)
     f64[2][3] distances;
@@ -177,9 +259,15 @@ u32 main() {
     distances[1][1] <- 2.5e22; // Distance to Andromeda
     distances[1][2] <- 1.0e21; // Diameter of Milky Way
 
-    if (distances[0][0] != 9.461e15) return 42;
-    if (distances[0][1] != 1.496e11) return 43;
-    if (distances[1][0] != 4.0e26) return 44;
+    if (distances[0][0] != 9.461e15) {
+        return 42;
+    }
+    if (distances[0][1] != 1.496e11) {
+        return 43;
+    }
+    if (distances[1][0] != 4.0e26) {
+        return 44;
+    }
 
     // Test very small numbers (quantum scale)
     f64[2][2] quantum;
@@ -195,9 +283,15 @@ u32 main() {
     quantum[1][0] <- 1.616e-35; // More precise Planck length
     quantum[1][1] <- 0.0; // Zero
 
-    if (quantum[0][0] != 1.0e-35) return 45;
-    if (quantum[0][1] != 5.39e-44) return 46;
-    if (quantum[1][0] != 1.616e-35) return 47;
+    if (quantum[0][0] != 1.0e-35) {
+        return 45;
+    }
+    if (quantum[0][1] != 5.39e-44) {
+        return 46;
+    }
+    if (quantum[1][0] != 1.616e-35) {
+        return 47;
+    }
 
     return 0;
 }

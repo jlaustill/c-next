@@ -23,7 +23,7 @@ int main(void) {
     if (4 != 4) {
         return 2;
     }
-    EnumByteLen__TestStruct ts = {0};
+    EnumByteLen__TestStruct ts = { .state = State__IDLE };
     ts.state = State__RUNNING;
     if (4 != 4) {
         return 3;

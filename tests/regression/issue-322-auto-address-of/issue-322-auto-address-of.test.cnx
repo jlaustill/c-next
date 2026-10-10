@@ -32,14 +32,18 @@ u32 main() {
 
     // Verify initial timeout
     u32 timeout <- ConfigManager.getTimeout();
-    if (timeout != 1000) return 1;
+    if (timeout != 1000) {
+        return 1;
+    }
 
     // Load from storage - external function doubles the timeout via pointer
     ConfigManager.loadFromStorage();
 
     // Verify external function modified the struct through pointer
     timeout <- ConfigManager.getTimeout();
-    if (timeout != 2000) return 2;
+    if (timeout != 2000) {
+        return 2;
+    }
 
     return 0;
 }

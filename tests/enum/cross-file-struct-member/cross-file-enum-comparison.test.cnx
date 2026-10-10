@@ -10,8 +10,12 @@ u32 main() {
     config.items[1].assigned <- MyEnum.NONE;
 
     // Direct comparison - does this work without assigning to local var?
-    if (config.items[0].assigned != MyEnum.A) return 1;
-    if (config.items[1].assigned != MyEnum.NONE) return 2;
+    if (config.items[0].assigned != MyEnum.A) {
+        return 1;
+    }
+    if (config.items[1].assigned != MyEnum.NONE) {
+        return 2;
+    }
 
     // Comparison in loop
     u8 noneCount <- 0;
@@ -20,7 +24,9 @@ u32 main() {
             noneCount +<- 1;
         }
     }
-    if (noneCount != 1) return 3;
+    if (noneCount != 1) {
+        return 3;
+    }
 
     return 0;
 }

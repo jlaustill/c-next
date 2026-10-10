@@ -15,9 +15,13 @@ scope Motor {
 
 u32 main() {
     speed +<- 300;
-    if (speed != 1300) return 1;
+    if (speed != 1300) {
+        return 1;
+    }
     // Control: the scope's own member is still its u8
     u8 m <- Motor.get();
-    if (m != 1) return 2;
+    if (m != 1) {
+        return 2;
+    }
     return 0;
 }

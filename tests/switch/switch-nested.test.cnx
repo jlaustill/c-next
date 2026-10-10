@@ -198,27 +198,45 @@ u32 main() {
 
     // outer=0, inner=0,1,default
     testNestedBasic(o0, i0);
-    if (result != 100) return 1;
+    if (result != 100) {
+        return 1;
+    }
     testNestedBasic(o0, i1);
-    if (result != 101) return 2;
+    if (result != 101) {
+        return 2;
+    }
     testNestedBasic(o0, i99);
-    if (result != 199) return 3;
+    if (result != 199) {
+        return 3;
+    }
 
     // outer=1, inner=0,1,default
     testNestedBasic(o1, i0);
-    if (result != 200) return 4;
+    if (result != 200) {
+        return 4;
+    }
     testNestedBasic(o1, i1);
-    if (result != 201) return 5;
+    if (result != 201) {
+        return 5;
+    }
     testNestedBasic(o1, i99);
-    if (result != 299) return 6;
+    if (result != 299) {
+        return 6;
+    }
 
     // outer=default, inner=0,1,default
     testNestedBasic(o99, i0);
-    if (result != 900) return 7;
+    if (result != 900) {
+        return 7;
+    }
     testNestedBasic(o99, i1);
-    if (result != 901) return 8;
+    if (result != 901) {
+        return 8;
+    }
     testNestedBasic(o99, i99);
-    if (result != 999) return 9;
+    if (result != 999) {
+        return 9;
+    }
 
     // === MIXED TYPE TESTS (6 validations: codes 10-15) ===
     u8 m0 <- 0;
@@ -230,17 +248,29 @@ u32 main() {
     u16 nOther <- 5000;
 
     testNestedMixedTypes(m0, n0);
-    if (result != 1000) return 10;
+    if (result != 1000) {
+        return 10;
+    }
     testNestedMixedTypes(m0, n1000);
-    if (result != 1001) return 11;
+    if (result != 1001) {
+        return 11;
+    }
     testNestedMixedTypes(m0, nOther);
-    if (result != 1099) return 12;
+    if (result != 1099) {
+        return 12;
+    }
     testNestedMixedTypes(m255, nMax);
-    if (result != 2000) return 13;
+    if (result != 2000) {
+        return 13;
+    }
     testNestedMixedTypes(m255, nOther);
-    if (result != 2099) return 14;
+    if (result != 2099) {
+        return 14;
+    }
     testNestedMixedTypes(mOther, n0);
-    if (result != 9999) return 15;
+    if (result != 9999) {
+        return 15;
+    }
 
     // === TRIPLE NESTED TESTS (9 validations: codes 16-24) ===
     u8 t0 <- 0;
@@ -249,31 +279,49 @@ u32 main() {
 
     // a=0, b=0, c=0,1,default
     testTripleNested(t0, t0, t0);
-    if (result != 111) return 16;
+    if (result != 111) {
+        return 16;
+    }
     testTripleNested(t0, t0, t1);
-    if (result != 112) return 17;
+    if (result != 112) {
+        return 17;
+    }
     testTripleNested(t0, t0, t99);
-    if (result != 119) return 18;
+    if (result != 119) {
+        return 18;
+    }
 
     // a=0, b=1, c=0,default
     testTripleNested(t0, t1, t0);
-    if (result != 121) return 19;
+    if (result != 121) {
+        return 19;
+    }
     testTripleNested(t0, t1, t99);
-    if (result != 129) return 20;
+    if (result != 129) {
+        return 20;
+    }
 
     // a=0, b=default
     testTripleNested(t0, t99, t0);
-    if (result != 190) return 21;
+    if (result != 190) {
+        return 21;
+    }
 
     // a=1, b=0,default
     testTripleNested(t1, t0, t0);
-    if (result != 210) return 22;
+    if (result != 210) {
+        return 22;
+    }
     testTripleNested(t1, t99, t0);
-    if (result != 290) return 23;
+    if (result != 290) {
+        return 23;
+    }
 
     // a=default
     testTripleNested(t99, t0, t0);
-    if (result != 900) return 24;
+    if (result != 900) {
+        return 24;
+    }
 
     // === SIGNED NESTED TESTS (12 validations: codes 25-36) ===
     // Note: Using positive case labels; negative values fall to default
@@ -284,37 +332,61 @@ u32 main() {
 
     // outer=0
     testNestedSigned(sZero, sZero);
-    if (result != 11) return 25;
+    if (result != 11) {
+        return 25;
+    }
     testNestedSigned(sZero, sOne);
-    if (result != 12) return 26;
+    if (result != 12) {
+        return 26;
+    }
     testNestedSigned(sZero, sFifty);
-    if (result != 13) return 27;
+    if (result != 13) {
+        return 27;
+    }
 
     // outer=1
     testNestedSigned(sOne, sZero);
-    if (result != 21) return 28;
+    if (result != 21) {
+        return 28;
+    }
     testNestedSigned(sOne, sOne);
-    if (result != 22) return 29;
+    if (result != 22) {
+        return 29;
+    }
     testNestedSigned(sOne, sFifty);
-    if (result != 23) return 30;
+    if (result != 23) {
+        return 30;
+    }
 
     // outer=50
     testNestedSigned(sFifty, sZero);
-    if (result != 31) return 31;
+    if (result != 31) {
+        return 31;
+    }
     testNestedSigned(sFifty, sOne);
-    if (result != 32) return 32;
+    if (result != 32) {
+        return 32;
+    }
     testNestedSigned(sFifty, sFifty);
-    if (result != 33) return 33;
+    if (result != 33) {
+        return 33;
+    }
 
     // outer=default (negative)
     testNestedSigned(sNeg, sZero);
-    if (result != 99) return 34;
+    if (result != 99) {
+        return 34;
+    }
 
     // inner=default cases
     testNestedSigned(sZero, sNeg);
-    if (result != 19) return 35;
+    if (result != 19) {
+        return 35;
+    }
     testNestedSigned(sOne, sNeg);
-    if (result != 29) return 36;
+    if (result != 29) {
+        return 36;
+    }
 
     return 0;
 }

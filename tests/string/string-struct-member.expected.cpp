@@ -27,44 +27,90 @@ int main(void) {
     (void) strncpy(alice.name, "Alice", 64); alice.name[64] = '\0';
     (void) strncpy(alice.bio, "Software engineer", 128); alice.bio[128] = '\0';
     alice.age = 30U;
-    if (strlen(alice.name) != 5) return 1;
-    if (strlen(alice.bio) != 17) return 2;
-    if (64 != 64) return 3;
-    if (128 != 128) return 4;
-    if (65 != 65) return 5;
-    if (129 != 129) return 6;
-    if (strcmp(alice.name, "Alice") != 0) return 7;
-    if (strcmp(alice.bio, "Software engineer") != 0) return 8;
+    if (strlen(alice.name) != 5) {
+        return 1;
+    }
+    if (strlen(alice.bio) != 17) {
+        return 2;
+    }
+    if (64 != 64) {
+        return 3;
+    }
+    if (128 != 128) {
+        return 4;
+    }
+    if (65 != 65) {
+        return 5;
+    }
+    if (129 != 129) {
+        return 6;
+    }
+    if (strcmp(alice.name, "Alice") != 0) {
+        return 7;
+    }
+    if (strcmp(alice.bio, "Software engineer") != 0) {
+        return 8;
+    }
     Person bob = {};
     (void) strncpy(bob.name, "Bob", 64); bob.name[64] = '\0';
     (void) strncpy(bob.bio, "Data scientist", 128); bob.bio[128] = '\0';
     bob.age = 25U;
-    if (strlen(bob.name) != 3) return 9;
-    if (strcmp(bob.name, "Bob") != 0) return 10;
-    if (strcmp(alice.name, bob.name) == 0) return 11;
+    if (strlen(bob.name) != 3) {
+        return 9;
+    }
+    if (strcmp(bob.name, "Bob") != 0) {
+        return 10;
+    }
+    if (strcmp(alice.name, bob.name) == 0) {
+        return 11;
+    }
     Person charlie = {};
     (void) strncpy(charlie.name, "Alice", 64); charlie.name[64] = '\0';
-    if (strcmp(alice.name, charlie.name) != 0) return 12;
+    if (strcmp(alice.name, charlie.name) != 0) {
+        return 12;
+    }
     uint32_t aliceLen = getNameLength(alice);
-    if (aliceLen != 5) return 13;
+    if (aliceLen != 5) {
+        return 13;
+    }
     uint32_t bobLen = getNameLength(bob);
-    if (bobLen != 3) return 14;
+    if (bobLen != 3) {
+        return 14;
+    }
     bool aliceMatch = compareName(alice, "Alice");
-    if (aliceMatch == false) return 15;
+    if (aliceMatch == false) {
+        return 15;
+    }
     bool bobMatch = compareName(alice, "Bob");
-    if (bobMatch == true) return 16;
+    if (bobMatch == true) {
+        return 16;
+    }
     StrMember__Config cfg = {};
     (void) strncpy(cfg.key, "api_url", 32); cfg.key[32] = '\0';
     (void) strncpy(cfg.value, "https://example.com/api/v1", 256); cfg.value[256] = '\0';
-    if (strlen(cfg.key) != 7) return 17;
-    if (strlen(cfg.value) != 26) return 18;
-    if (32 != 32) return 19;
-    if (256 != 256) return 20;
+    if (strlen(cfg.key) != 7) {
+        return 17;
+    }
+    if (strlen(cfg.value) != 26) {
+        return 18;
+    }
+    if (32 != 32) {
+        return 19;
+    }
+    if (256 != 256) {
+        return 20;
+    }
     Person emptyPerson = {};
     (void) strncpy(emptyPerson.name, "", 64); emptyPerson.name[64] = '\0';
-    if (strlen(emptyPerson.name) != 0) return 21;
+    if (strlen(emptyPerson.name) != 0) {
+        return 21;
+    }
     (void) strncpy(alice.name, "Alicia", 64); alice.name[64] = '\0';
-    if (strlen(alice.name) != 6) return 22;
-    if (strcmp(alice.name, "Alicia") != 0) return 23;
+    if (strlen(alice.name) != 6) {
+        return 22;
+    }
+    if (strcmp(alice.name, "Alicia") != 0) {
+        return 23;
+    }
     return 0;
 }

@@ -42,18 +42,30 @@ void viaParameter(P p) {
 u32 main() {
     Sc.viaThis();
     u16 w1 <- Sc.ws(1);
-    if (w1 != 4) return 1;
+    if (w1 != 4) {
+        return 1;
+    }
     u16 w0 <- Sc.ws(0);
-    if (w0 != 9) return 2;
+    if (w0 != 9) {
+        return 2;
+    }
     Sc.viaBareMember();
     u8 a1 <- Sc.arr(1);
-    if (a1 != 4) return 3;
+    if (a1 != 4) {
+        return 3;
+    }
     Cfg.cfg.bits[3] <- true;
-    if (Cfg.cfg.bits != 8) return 4;
+    if (Cfg.cfg.bits != 8) {
+        return 4;
+    }
     Cfg.cfg.arr[1][0] <- true;
-    if (Cfg.cfg.arr[1] != 1) return 5;
+    if (Cfg.cfg.arr[1] != 1) {
+        return 5;
+    }
     P local;
     viaParameter(local);
-    if (local.arr[0] != 2) return 6;
+    if (local.arr[0] != 2) {
+        return 6;
+    }
     return 0;
 }

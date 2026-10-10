@@ -29,13 +29,21 @@ void Controller__run(void) {
 }
 
 int main(void) {
-    if (Motor__speed != 0) return 1U;
+    if (Motor__speed != 0) {
+        return 1U;
+    }
     Motor__start();
-    if (Motor__speed != 100) return 2U;
+    if (Motor__speed != 100) {
+        return 2U;
+    }
     Motor__stop();
-    if (Motor__speed != 0) return 3U;
+    if (Motor__speed != 0) {
+        return 3U;
+    }
     Motor__start();
     Controller__run();
-    if (Motor__speed != 0) return 4U;
+    if (Motor__speed != 0) {
+        return 4U;
+    }
     return 0U;
 }

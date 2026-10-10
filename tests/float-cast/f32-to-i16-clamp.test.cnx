@@ -7,13 +7,19 @@ u32 main() {
     f32 in_range <- 10000.0;
 
     i16 result <- (i16)over;
-    if (result != 32767) return 1;
+    if (result != 32767) {
+        return 1;
+    }
 
     result <- (i16)under;
-    if (result != -32768) return 2;
+    if (result != -32768) {
+        return 2;
+    }
 
     result <- (i16)in_range;
-    if (result != 10000) return 3;
+    if (result != 10000) {
+        return 3;
+    }
 
     return 0;
 }

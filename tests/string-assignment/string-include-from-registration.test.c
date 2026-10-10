@@ -40,6 +40,8 @@ void setIt(char* s) {
 int main(void) {
     char local[9] = "ab";
     setIt(local);
-    if (strlen(local) != 2) return 1U;
+    if (strlen(local) != 2) {
+        return 1U;
+    }
     return 0U;
 }

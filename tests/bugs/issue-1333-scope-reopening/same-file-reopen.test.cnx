@@ -35,6 +35,8 @@ scope Lib {
 
 u32 main() {
     u32 result <- Lib.useBoth();
-    if (result != 9) return 1;
+    if (result != 9) {
+        return 1;
+    }
     return 0;
 }

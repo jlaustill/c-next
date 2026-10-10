@@ -1,0 +1,16 @@
+12:3 error[E0913]: Array dimension must be at least 1: it is 0
+       help: An array holds one element or more (C99 6.7.5.2, ADR-036)
+13:3 error[E0913]: Array dimension must be at least 1: it is 0
+       help: An array holds one element or more (C99 6.7.5.2, ADR-036)
+14:3 error[E0913]: Array dimension must be at least 1: it is -1
+       help: An array holds one element or more (C99 6.7.5.2, ADR-036)
+15:3 error[E0913]: Array dimension must be at least 1: it is -2
+       help: An array holds one element or more (C99 6.7.5.2, ADR-036)
+23:13 error[E0913]: Array dimension must be at least 1: it is -2
+       help: An array holds one element or more (C99 6.7.5.2, ADR-036)
+24:13 error[E0913]: Array dimension must be at least 1: it is -2
+       help: An array holds one element or more (C99 6.7.5.2, ADR-036)
+27:13 error[E0913]: Array dimension must be at least 1: it is 0
+       help: An array holds one element or more (C99 6.7.5.2, ADR-036)
+32:7 error[E0913]: Array dimension must be at least 1: it is 0
+       help: An array holds one element or more (C99 6.7.5.2, ADR-036)

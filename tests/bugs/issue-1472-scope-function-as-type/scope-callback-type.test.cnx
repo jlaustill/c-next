@@ -32,10 +32,14 @@ void runQualified(Motor.onTick handler) {
 
 u32 main() {
     Motor.runBare(Motor.onTick);
-    if (Motor.ticks != 3) return 1;
+    if (Motor.ticks != 3) {
+        return 1;
+    }
 
     runQualified(Motor.onTick);
-    if (Motor.ticks != 8) return 2;
+    if (Motor.ticks != 8) {
+        return 2;
+    }
 
     return 0;
 }

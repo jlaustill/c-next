@@ -26,6 +26,8 @@ uint8_t S__pick(void) {
 
 int main(void) {
     uint8_t picked = S__pick();
-    if (picked != 8) return 1U;
+    if (picked != 8) {
+        return 1U;
+    }
     return 0U;
 }

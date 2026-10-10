@@ -14,10 +14,18 @@ u32 main() {
     matrix2d[3][7] <- 0.0;
 
     // 2D array: Read and verify
-    if (matrix2d[0][0] != 3.125) return 1;
-    if (matrix2d[0][7] != -2.75) return 2;
-    if (matrix2d[1][3] != 100.5) return 3;
-    if (matrix2d[3][7] != 0.0) return 4;
+    if (matrix2d[0][0] != 3.125) {
+        return 1;
+    }
+    if (matrix2d[0][7] != -2.75) {
+        return 2;
+    }
+    if (matrix2d[1][3] != 100.5) {
+        return 3;
+    }
+    if (matrix2d[3][7] != 0.0) {
+        return 4;
+    }
 
     // 3D array: Write operations
     cube3d[0][0][0] <- 1.5;
@@ -27,23 +35,47 @@ u32 main() {
     cube3d[1][2][3] <- -0.0625; // Changed from -0.001 (1/16)
 
     // 3D array: Read and verify
-    if (cube3d[0][0][0] != 1.5) return 5;
-    if (cube3d[0][0][3] != -10.25) return 6;
-    if (cube3d[0][2][3] != 0.0) return 7;
-    if (cube3d[1][0][0] != 99.5) return 8;
-    if (cube3d[1][2][3] != -0.0625) return 9;
+    if (cube3d[0][0][0] != 1.5) {
+        return 5;
+    }
+    if (cube3d[0][0][3] != -10.25) {
+        return 6;
+    }
+    if (cube3d[0][2][3] != 0.0) {
+        return 7;
+    }
+    if (cube3d[1][0][0] != 99.5) {
+        return 8;
+    }
+    if (cube3d[1][2][3] != -0.0625) {
+        return 9;
+    }
 
     // Test .length property at each dimension
     // 2D array dimensions
-    if (matrix2d.element_count != 4) return 10; // First dimension
-    if (matrix2d[0].element_count != 8) return 11; // Second dimension
-    if (matrix2d[0][0].bit_length != 32) return 12; // Element bit width
+    if (matrix2d.element_count != 4) {
+        return 10; // First dimension
+    }
+    if (matrix2d[0].element_count != 8) {
+        return 11; // Second dimension
+    }
+    if (matrix2d[0][0].bit_length != 32) {
+        return 12; // Element bit width
+    }
 
     // 3D array dimensions
-    if (cube3d.element_count != 2) return 13; // First dimension
-    if (cube3d[0].element_count != 3) return 14; // Second dimension
-    if (cube3d[0][0].element_count != 4) return 15; // Third dimension
-    if (cube3d[0][0][0].bit_length != 32) return 16; // Element bit width
+    if (cube3d.element_count != 2) {
+        return 13; // First dimension
+    }
+    if (cube3d[0].element_count != 3) {
+        return 14; // Second dimension
+    }
+    if (cube3d[0][0].element_count != 4) {
+        return 15; // Third dimension
+    }
+    if (cube3d[0][0][0].bit_length != 32) {
+        return 16; // Element bit width
+    }
 
     // Nested loop iteration - populate 2D array with decimal pattern
     for (u32 i <- 0; i < 4; i +<- 1) {
@@ -53,10 +85,18 @@ u32 main() {
     }
 
     // Verify populated values
-    if (matrix2d[0][0] != 0.0) return 17;
-    if (matrix2d[0][7] != 3.5) return 18;
-    if (matrix2d[1][3] != 4.0) return 19;
-    if (matrix2d[3][7] != 11.0) return 20;
+    if (matrix2d[0][0] != 0.0) {
+        return 17;
+    }
+    if (matrix2d[0][7] != 3.5) {
+        return 18;
+    }
+    if (matrix2d[1][3] != 4.0) {
+        return 19;
+    }
+    if (matrix2d[3][7] != 11.0) {
+        return 20;
+    }
 
     // Nested loop iteration - populate and sum 3D array
     f32 sum <- 0.0;
@@ -70,15 +110,21 @@ u32 main() {
     }
 
     // Verify sum: 3.0+12.0+21.0+45.0+54.0+63.0 = 198.0
-    if (sum != 198.0) return 21;
+    if (sum != 198.0) {
+        return 21;
+    }
 
     // Test modification after initialization
     matrix2d[2][4] <- -1000.0; // Changed from -999.999
-    if (matrix2d[2][4] != -1000.0) return 22;
+    if (matrix2d[2][4] != -1000.0) {
+        return 22;
+    }
 
     // Test boundary access
     matrix2d[matrix2d.element_count - 1][matrix2d[0].element_count - 1] <- 42.5; // Changed from 42.42
-    if (matrix2d[3][7] != 42.5) return 23;
+    if (matrix2d[3][7] != 42.5) {
+        return 23;
+    }
 
     // Test f32 specific edge cases
     f32[4][2] testArray;
@@ -96,12 +142,24 @@ u32 main() {
     testArray[2][0] <- 0.125; // Small positive (1/8)
     testArray[3][1] <- -0.125; // Small negative (-1/8)
 
-    if (testArray[0][0] != 0.0) return 24;
-    if (testArray[0][1] != -0.0) return 25;
-    if (testArray[1][0] != 1.0) return 26;
-    if (testArray[1][1] != -1.0) return 27;
-    if (testArray[2][0] != 0.125) return 28;
-    if (testArray[3][1] != -0.125) return 29;
+    if (testArray[0][0] != 0.0) {
+        return 24;
+    }
+    if (testArray[0][1] != -0.0) {
+        return 25;
+    }
+    if (testArray[1][0] != 1.0) {
+        return 26;
+    }
+    if (testArray[1][1] != -1.0) {
+        return 27;
+    }
+    if (testArray[2][0] != 0.125) {
+        return 28;
+    }
+    if (testArray[3][1] != -0.125) {
+        return 29;
+    }
 
     // Test 2D array with temperature pattern (Celsius)
     f32[3][3] temps;
@@ -120,11 +178,21 @@ u32 main() {
     temps[2][0] <- -40.0; // Very cold
     temps[2][1] <- 1000.0; // Very hot
 
-    if (temps[0][0] != -273.0) return 30;
-    if (temps[0][1] != 0.0) return 31;
-    if (temps[0][2] != 100.0) return 32;
-    if (temps[1][0] != 37.0) return 33;
-    if (temps[2][0] != -40.0) return 34;
+    if (temps[0][0] != -273.0) {
+        return 30;
+    }
+    if (temps[0][1] != 0.0) {
+        return 31;
+    }
+    if (temps[0][2] != 100.0) {
+        return 32;
+    }
+    if (temps[1][0] != 37.0) {
+        return 33;
+    }
+    if (temps[2][0] != -40.0) {
+        return 34;
+    }
 
     // Test decimal precision
     f32[2][2] precise;
@@ -140,10 +208,18 @@ u32 main() {
     precise[1][0] <- 1000.0; // exact integer
     precise[1][1] <- -123.5; // exact
 
-    if (precise[0][0] != 0.125) return 35;
-    if (precise[0][1] != 0.0625) return 36;
-    if (precise[1][0] != 1000.0) return 37;
-    if (precise[1][1] != -123.5) return 38;
+    if (precise[0][0] != 0.125) {
+        return 35;
+    }
+    if (precise[0][1] != 0.0625) {
+        return 36;
+    }
+    if (precise[1][0] != 1000.0) {
+        return 37;
+    }
+    if (precise[1][1] != -123.5) {
+        return 38;
+    }
 
     // Test floating point arithmetic
     f32[2][2] calc;
@@ -157,7 +233,9 @@ u32 main() {
     calc[0][0] <- 10.5;
     calc[0][1] <- 5.25;
     f32 calcSum <- calc[0][0] + calc[0][1];
-    if (calcSum != 15.75) return 39;
+    if (calcSum != 15.75) {
+        return 39;
+    }
 
     // Test with graphics coordinates (normalized 0.0-1.0)
     f32[2][4] coords;
@@ -177,9 +255,15 @@ u32 main() {
     coords[1][2] <- 0.625; // 5/8 (exact)
     coords[1][3] <- 0.875; // 7/8 (exact)
 
-    if (coords[0][0] != 0.0) return 40;
-    if (coords[0][3] != 0.75) return 41;
-    if (coords[1][0] != 1.0) return 42;
+    if (coords[0][0] != 0.0) {
+        return 40;
+    }
+    if (coords[0][3] != 0.75) {
+        return 41;
+    }
+    if (coords[1][0] != 1.0) {
+        return 42;
+    }
 
     return 0;
 }

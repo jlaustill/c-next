@@ -36,24 +36,44 @@ int main(void) {
         uint32_t value = cnx_clamp_mul_u32(i, 10U);
         buf.data[i] = static_cast<uint8_t>(((value) & 0xFFU));
     }
-    if (buf.data[0U] != 0) return 1U;
-    if (buf.data[1U] != 10) return 2U;
-    if (buf.data[2U] != 20) return 3U;
-    if (buf.data[3U] != 30) return 4U;
+    if (buf.data[0U] != 0) {
+        return 1U;
+    }
+    if (buf.data[1U] != 10) {
+        return 2U;
+    }
+    if (buf.data[2U] != 20) {
+        return 3U;
+    }
+    if (buf.data[3U] != 30) {
+        return 4U;
+    }
     ValueArray va = {};
     va.count = 8U;
     for (uint32_t i = 0U; i < va.count; i = cnx_clamp_add_u32(i, 1U)) {
         va.values[i] = cnx_clamp_mul_u32(i, 100U);
     }
-    if (va.values[0U] != 0) return 5U;
-    if (va.values[1U] != 100) return 6U;
-    if (va.values[7U] != 700) return 7U;
+    if (va.values[0U] != 0) {
+        return 5U;
+    }
+    if (va.values[1U] != 100) {
+        return 6U;
+    }
+    if (va.values[7U] != 700) {
+        return 7U;
+    }
     uint32_t sum = 0U;
     for (uint32_t i = 0U; i < va.count; i = cnx_clamp_add_u32(i, 1U)) {
         sum = cnx_clamp_add_u32(sum, va.values[i]);
     }
-    if (sum != 2800) return 8U;
-    if (8 != 8) return 9U;
-    if (32 != 32) return 10U;
+    if (sum != 2800) {
+        return 8U;
+    }
+    if (8 != 8) {
+        return 9U;
+    }
+    if (32 != 32) {
+        return 10U;
+    }
     return 0U;
 }

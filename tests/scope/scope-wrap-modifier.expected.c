@@ -109,51 +109,85 @@ void WrapTest__setPosition(uint32_t val) {
 
 int main(void) {
     uint8_t byteResult = WrapTest__getByteCounter();
-    if (byteResult != 250) return 1U;
+    if (byteResult != 250) {
+        return 1U;
+    }
     uint16_t tickResult = WrapTest__getTickCount();
-    if (tickResult != 65530) return 2U;
+    if (tickResult != 65530) {
+        return 2U;
+    }
     uint32_t cycleResult = WrapTest__getCycleCounter();
-    if (cycleResult != 4294967290) return 3U;
+    if (cycleResult != 4294967290) {
+        return 3U;
+    }
     uint8_t brightResult = WrapTest__getBrightness();
-    if (brightResult != 10) return 4U;
+    if (brightResult != 10) {
+        return 4U;
+    }
     uint16_t sensorResult = WrapTest__getSensorValue();
-    if (sensorResult != 100) return 5U;
+    if (sensorResult != 100) {
+        return 5U;
+    }
     uint32_t posResult = WrapTest__getPosition();
-    if (posResult != 50) return 6U;
+    if (posResult != 50) {
+        return 6U;
+    }
     WrapTest__incrementByteCounter();
     byteResult = WrapTest__getByteCounter();
-    if (byteResult != 4) return 7U;
+    if (byteResult != 4) {
+        return 7U;
+    }
     WrapTest__incrementTickCount();
     tickResult = WrapTest__getTickCount();
-    if (tickResult != 4) return 8U;
+    if (tickResult != 4) {
+        return 8U;
+    }
     WrapTest__incrementCycleCounter();
     cycleResult = WrapTest__getCycleCounter();
-    if (cycleResult != 4) return 9U;
+    if (cycleResult != 4) {
+        return 9U;
+    }
     brightResult = WrapTest__getBrightness();
-    if (brightResult != 10) return 100U;
+    if (brightResult != 10) {
+        return 100U;
+    }
     WrapTest__incrementBrightness();
     brightResult = WrapTest__getBrightness();
-    if (brightResult != 15) return 10U;
+    if (brightResult != 15) {
+        return 10U;
+    }
     WrapTest__incrementSensorValue();
     sensorResult = WrapTest__getSensorValue();
-    if (sensorResult != 200) return 11U;
+    if (sensorResult != 200) {
+        return 11U;
+    }
     WrapTest__incrementPosition();
     posResult = WrapTest__getPosition();
-    if (posResult != 1050) return 12U;
+    if (posResult != 1050) {
+        return 12U;
+    }
     WrapTest__setBrightness(10U);
     WrapTest__decrementBrightness();
     brightResult = WrapTest__getBrightness();
-    if (brightResult != 246) return 13U;
+    if (brightResult != 246) {
+        return 13U;
+    }
     WrapTest__setSensorValue(100U);
     WrapTest__decrementSensorValue();
     sensorResult = WrapTest__getSensorValue();
-    if (sensorResult != 65486) return 14U;
+    if (sensorResult != 65486) {
+        return 14U;
+    }
     WrapTest__setPosition(50U);
     WrapTest__decrementPosition();
     posResult = WrapTest__getPosition();
-    if (posResult != 4294967246) return 15U;
+    if (posResult != 4294967246) {
+        return 15U;
+    }
     WrapTest__decrementByteCounter();
     byteResult = WrapTest__getByteCounter();
-    if (byteResult != 3) return 16U;
+    if (byteResult != 3) {
+        return 16U;
+    }
     return 0U;
 }

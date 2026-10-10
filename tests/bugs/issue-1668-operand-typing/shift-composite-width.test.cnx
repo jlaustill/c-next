@@ -8,9 +8,13 @@ u32 main() {
     u8 a <- 1;
     u32 b <- 2;
     u32 r <- a + b << 9;
-    if (r != 1536) return 1;
+    if (r != 1536) {
+        return 1;
+    }
     // NEGATIVE CONTROL: the same composite the other way round, as before
     u32 s <- b + a << 9;
-    if (s != 1536) return 2;
+    if (s != 1536) {
+        return 2;
+    }
     return 0;
 }

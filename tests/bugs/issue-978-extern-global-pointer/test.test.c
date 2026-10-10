@@ -29,6 +29,8 @@ void App__copy(void) {
 int main(void) {
     App__init();
     int32_t ok = was_font_set_correctly();
-    if (ok != 1) return 1U;
+    if (ok != 1) {
+        return 1U;
+    }
     return 0U;
 }

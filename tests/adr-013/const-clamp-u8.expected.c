@@ -29,10 +29,16 @@ const uint8_t MID_VALUE = 128U;
 
 int main(void) {
     uint8_t maxVal = MAX_VALUE;
-    if (maxVal != 255) return 1U;
+    if (maxVal != 255) {
+        return 1U;
+    }
     uint8_t midVal = MID_VALUE;
-    if (midVal != 128) return 2U;
+    if (midVal != 128) {
+        return 2U;
+    }
     uint8_t diff = cnx_clamp_sub_u8(MAX_VALUE, MID_VALUE);
-    if (diff != 127) return 3U;
+    if (diff != 127) {
+        return 3U;
+    }
     return 0U;
 }

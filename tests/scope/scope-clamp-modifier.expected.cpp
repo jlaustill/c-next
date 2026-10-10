@@ -140,42 +140,70 @@ void ClampTest__setSensorValue(uint16_t val) {
 
 int main(void) {
     uint8_t resultBrightness = ClampTest__getBrightness();
-    if (resultBrightness != 200) return 1U;
+    if (resultBrightness != 200) {
+        return 1U;
+    }
     uint16_t resultSensor = ClampTest__getSensorValue();
-    if (resultSensor != 60000) return 2U;
+    if (resultSensor != 60000) {
+        return 2U;
+    }
     uint32_t resultCounter = ClampTest__getCounter();
-    if (resultCounter != 4000000000) return 3U;
+    if (resultCounter != 4000000000) {
+        return 3U;
+    }
     int8_t resultTemp = ClampTest__getTemperature();
-    if (resultTemp != -100) return 4U;
+    if (resultTemp != -100) {
+        return 4U;
+    }
     int16_t resultAlt = ClampTest__getAltitude();
-    if (resultAlt != 30000) return 5U;
+    if (resultAlt != 30000) {
+        return 5U;
+    }
     int32_t resultPos = ClampTest__getPosition();
-    if (resultPos != 2000000000) return 6U;
+    if (resultPos != 2000000000) {
+        return 6U;
+    }
     ClampTest__increaseBrightness();
     resultBrightness = ClampTest__getBrightness();
-    if (resultBrightness != 255) return 7U;
+    if (resultBrightness != 255) {
+        return 7U;
+    }
     ClampTest__increaseSensorValue();
     resultSensor = ClampTest__getSensorValue();
-    if (resultSensor != 65535) return 8U;
+    if (resultSensor != 65535) {
+        return 8U;
+    }
     ClampTest__increaseCounter();
     resultCounter = ClampTest__getCounter();
-    if (resultCounter != 4294967295) return 9U;
+    if (resultCounter != 4294967295) {
+        return 9U;
+    }
     ClampTest__decreaseTemperature();
     resultTemp = ClampTest__getTemperature();
-    if (resultTemp != -128) return 10U;
+    if (resultTemp != -128) {
+        return 10U;
+    }
     ClampTest__decreaseAltitude();
     resultAlt = ClampTest__getAltitude();
-    if (resultAlt != 25000) return 11U;
+    if (resultAlt != 25000) {
+        return 11U;
+    }
     ClampTest__decreasePosition();
     resultPos = ClampTest__getPosition();
-    if (resultPos != 1900000000) return 12U;
+    if (resultPos != 1900000000) {
+        return 12U;
+    }
     ClampTest__setBrightness(100U);
     ClampTest__dimBrightness();
     resultBrightness = ClampTest__getBrightness();
-    if (resultBrightness != 0) return 13U;
+    if (resultBrightness != 0) {
+        return 13U;
+    }
     ClampTest__setSensorValue(1000U);
     ClampTest__resetSensor();
     resultSensor = ClampTest__getSensorValue();
-    if (resultSensor != 0) return 14U;
+    if (resultSensor != 0) {
+        return 14U;
+    }
     return 0U;
 }

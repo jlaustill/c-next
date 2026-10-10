@@ -23,7 +23,9 @@ i32 main() {
 
     configure(d);
     i32 pokes <- dev_pokes(d);
-    if (pokes != 2) return 1;
+    if (pokes != 2) {
+        return 1;
+    }
 
     return 0;
 }

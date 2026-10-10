@@ -48,11 +48,17 @@ uint32_t passes(void) {
 
 int main(void) {
     uint32_t count = passes();
-    if (count != 1) return 1U;
+    if (count != 1) {
+        return 1U;
+    }
     uint32_t three = steps();
-    if (three != 3) return 3U;
+    if (three != 3) {
+        return 3U;
+    }
     uint32_t j = 4294967290U;
     j = cnx_clamp_add_u32(j, 10U);
-    if (j != 4294967295) return 2U;
+    if (j != 4294967295) {
+        return 2U;
+    }
     return 0U;
 }

@@ -35,23 +35,35 @@ u32 main() {
     Sm fl <- 0;
     fl.C <- 5;
     u8 local <- fl.C;
-    if (local != 5) return 1;
+    if (local != 5) {
+        return 1;
+    }
     u8 outer <- global.fl.C;
-    if (outer != 0) return 2;
+    if (outer != 0) {
+        return 2;
+    }
 
     Sm[2] fa <- [0*];
     fa[1].A <- true;
-    if (fa[1].A != true) return 3;
+    if (fa[1].A != true) {
+        return 3;
+    }
 
     u8 inScope <- Sc.method();
-    if (inScope != 5) return 4;
+    if (inScope != 5) {
+        return 4;
+    }
 
     Sm byRef <- 0;
     wf(byRef);
-    if (byRef.A != true) return 5;
+    if (byRef.A != true) {
+        return 5;
+    }
 
     Holder h <- { s: 0 };
     wp(h);
-    if (h.s.C != 0xF) return 6;
+    if (h.s.C != 0xF) {
+        return 6;
+    }
     return 0;
 }

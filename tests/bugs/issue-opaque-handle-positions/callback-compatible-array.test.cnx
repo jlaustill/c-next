@@ -24,9 +24,13 @@ i32 main() {
     global.dev_pair_invoke(pair);
 
     i32 first <- dev_pokes(pair[0]);
-    if (first != 1) return 1;
+    if (first != 1) {
+        return 1;
+    }
     i32 second <- dev_pokes(pair[1]);
-    if (second != 1) return 2;
+    if (second != 1) {
+        return 2;
+    }
 
     return 0;
 }

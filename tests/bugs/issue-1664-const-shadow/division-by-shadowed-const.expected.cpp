@@ -27,8 +27,12 @@ uint32_t second(void) {
 
 int main(void) {
     uint32_t zero = first();
-    if (zero != 0) return 1U;
+    if (zero != 0) {
+        return 1U;
+    }
     uint32_t q = second();
-    if (q != 2) return 2U;
+    if (q != 2) {
+        return 2U;
+    }
     return 0U;
 }

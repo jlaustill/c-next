@@ -34,6 +34,8 @@ uint32_t probe(void) {
 
 int main(void) {
     uint32_t width = probe();
-    if (width != 8) return 1U;
+    if (width != 8) {
+        return 1U;
+    }
     return 0U;
 }

@@ -31,8 +31,12 @@ int main(void) {
     dev_pair_register(onPair);
     dev_pair_invoke(pair);
     int32_t first = dev_pokes(pair[0U]);
-    if (first != 1) return 1;
+    if (first != 1) {
+        return 1;
+    }
     int32_t second = dev_pokes(pair[1U]);
-    if (second != 1) return 2;
+    if (second != 1) {
+        return 2;
+    }
     return 0;
 }

@@ -1,0 +1,5 @@
+// Helper for cross-file-fn-type-variable.test.cnx (#1562): the function whose
+// type the including file's file-scope variable is declared with.
+u32 libTick() {
+    return 7;
+}

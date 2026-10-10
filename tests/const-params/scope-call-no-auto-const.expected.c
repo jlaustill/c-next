@@ -46,15 +46,25 @@ int main(void) {
     cfg.value = 0U;
     cfg.enabled = false;
     loadConfig(&cfg);
-    if (cfg.value != 42) return 1U;
-    if (cfg.enabled != true) return 2U;
+    if (cfg.value != 42) {
+        return 1U;
+    }
+    if (cfg.enabled != true) {
+        return 2U;
+    }
     cfg.value = 100U;
     cfg.enabled = false;
     directLoad(&cfg);
-    if (cfg.value != 42) return 3U;
-    if (cfg.enabled != true) return 4U;
+    if (cfg.value != 42) {
+        return 3U;
+    }
+    if (cfg.enabled != true) {
+        return 4U;
+    }
     cfg.value = 999U;
     saveConfig(&cfg);
-    if (cfg.value != 999) return 5U;
+    if (cfg.value != 999) {
+        return 5U;
+    }
     return 0U;
 }

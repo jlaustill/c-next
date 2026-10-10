@@ -30,10 +30,14 @@ u8 stepped() {
 u8 main() {
     // ASSERTION: 250 + 10 wraps to 4, ending the loop after one pass.
     u8 wraps <- wrapPasses();
-    if (wraps != 1) return 1;
+    if (wraps != 1) {
+        return 1;
+    }
 
     // CONTROL: the same compound assignment as a statement wraps as well.
     u8 w <- stepped();
-    if (w != 4) return 2;
+    if (w != 4) {
+        return 2;
+    }
     return 0;
 }

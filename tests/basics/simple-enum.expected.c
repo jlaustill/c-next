@@ -13,18 +13,32 @@
 // Demonstrates: enum declaration, values, assignment, comparison
 int main(void) {
     Status s = Status__IDLE;
-    if (s != Status__IDLE) return 1U;
+    if (s != Status__IDLE) {
+        return 1U;
+    }
     s = Status__RUNNING;
-    if (s != Status__RUNNING) return 2U;
+    if (s != Status__RUNNING) {
+        return 2U;
+    }
     Priority p = Priority__HIGH;
-    if (p != Priority__HIGH) return 3U;
-    if (Status__IDLE == Status__RUNNING) return 4U;
-    if (Priority__LOW == Priority__HIGH) return 5U;
+    if (p != Priority__HIGH) {
+        return 3U;
+    }
+    if (Status__IDLE == Status__RUNNING) {
+        return 4U;
+    }
+    if (Priority__LOW == Priority__HIGH) {
+        return 5U;
+    }
     s = Status__PAUSED;
     bool isPaused = (s == Status__PAUSED);
-    if (isPaused != true) return 6U;
+    if (isPaused != true) {
+        return 6U;
+    }
     Status s1 = Status__IDLE;
     Status s2 = Status__STOPPED;
-    if (s1 == s2) return 7U;
+    if (s1 == s2) {
+        return 7U;
+    }
     return 0U;
 }

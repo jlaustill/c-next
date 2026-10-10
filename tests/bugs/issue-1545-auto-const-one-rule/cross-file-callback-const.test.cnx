@@ -15,11 +15,15 @@
 u32 main() {
     xwitness <- 0;
     register_log_handler(xOnLog);
-    if (xwitness != 104) return 1;
+    if (xwitness != 104) {
+        return 1;
+    }
 
     xwitness <- 0;
     xPlainRead("hi");
-    if (xwitness != 104) return 2;
+    if (xwitness != 104) {
+        return 2;
+    }
 
     return 0;
 }

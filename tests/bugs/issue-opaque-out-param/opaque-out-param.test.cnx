@@ -55,35 +55,47 @@ i32 main() {
     Board.make();
     Board.poke();
     i32 held <- Board.pokes();
-    if (held != 1) return 1;
+    if (held != 1) {
+        return 1;
+    }
 
     // A local.
     i32 local <- makeLocal();
-    if (local != 2) return 2;
+    if (local != 2) {
+        return 2;
+    }
 
     // A file-scope variable.
     dev_create_into(gdev);
     dev_poke(gdev);
     i32 fileScope <- dev_pokes(gdev);
-    if (fileScope != 1) return 3;
+    if (fileScope != 1) {
+        return 3;
+    }
 
     // One element of an array of handles.
     dev_create_into(gdevs[1]);
     dev_poke(gdevs[1]);
     i32 element <- dev_pokes(gdevs[1]);
-    if (element != 1) return 4;
+    if (element != 1) {
+        return 4;
+    }
 
     // A handle a C variable holds.
     dev_create_into(dev_spare);
     dev_poke(dev_spare);
     i32 spare <- dev_pokes(dev_spare);
-    if (spare != 1) return 5;
+    if (spare != 1) {
+        return 5;
+    }
 
     // A C variable two pointers deep, into a parameter three deep, then two.
     dev_slots_open(dev_slots);
     dev_slots_fill(dev_slots);
     i32 ready <- dev_slots_ready(dev_slots);
-    if (ready != 1) return 6;
+    if (ready != 1) {
+        return 6;
+    }
 
     return 0;
 }

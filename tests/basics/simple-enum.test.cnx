@@ -21,29 +21,43 @@ u32 main() {
     Status s <- Status.IDLE;
 
     // Enum comparison
-    if (s != Status.IDLE) return 1;
+    if (s != Status.IDLE) {
+        return 1;
+    }
 
     // Enum assignment
     s <- Status.RUNNING;
-    if (s != Status.RUNNING) return 2;
+    if (s != Status.RUNNING) {
+        return 2;
+    }
 
     // Enum with explicit values
     Priority p <- Priority.HIGH;
-    if (p != Priority.HIGH) return 3;
+    if (p != Priority.HIGH) {
+        return 3;
+    }
 
     // Compare different enum values
-    if (Status.IDLE = Status.RUNNING) return 4;
-    if (Priority.LOW = Priority.HIGH) return 5;
+    if (Status.IDLE = Status.RUNNING) {
+        return 4;
+    }
+    if (Priority.LOW = Priority.HIGH) {
+        return 5;
+    }
 
     // Enum in conditional
     s <- Status.PAUSED;
     bool isPaused <- (s = Status.PAUSED);
-    if (isPaused != true) return 6;
+    if (isPaused != true) {
+        return 6;
+    }
 
     // Multiple enum variables
     Status s1 <- Status.IDLE;
     Status s2 <- Status.STOPPED;
-    if (s1 = s2) return 7;
+    if (s1 = s2) {
+        return 7;
+    }
 
     return 0;
 }

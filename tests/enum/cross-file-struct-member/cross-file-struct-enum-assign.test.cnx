@@ -13,7 +13,9 @@ u32 main() {
 
     // This should work: assign struct member (typed as enum) to local enum variable
     MyEnum val <- config.items[0].assigned;
-    if (val != MyEnum.A) return 1;
+    if (val != MyEnum.A) {
+        return 1;
+    }
 
     // Test in a loop (original reproducer pattern)
     u8 countAssigned <- 0;
@@ -25,7 +27,9 @@ u32 main() {
     }
 
     // Should have found 3 assigned (A, B, A - not NONE)
-    if (countAssigned != 3) return 2;
+    if (countAssigned != 3) {
+        return 2;
+    }
 
     return 0;
 }

@@ -31,6 +31,8 @@ uint8_t Internal__callHelper(void) {
 
 int main(void) {
     uint8_t result = Internal__callHelper();
-    if (result != 7) return 1U;
+    if (result != 7) {
+        return 1U;
+    }
     return 0U;
 }

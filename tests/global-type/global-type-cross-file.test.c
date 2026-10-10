@@ -33,14 +33,24 @@ int32_t TaskManager__sumVec(const Vec2* v) {
 
 int main(void) {
     EPriority priority = EPriority__HIGH;
-    if ((int32_t)priority != 2) return 1;
+    if ((int32_t)priority != 2) {
+        return 1;
+    }
     int32_t pval = TaskManager__priorityToInt(EPriority__MEDIUM);
-    if (pval != 1) return 2;
+    if (pval != 1) {
+        return 2;
+    }
     Vec2 pos = TaskManager__getPosition();
-    if (pos.x != 100) return 3;
-    if (pos.y != 200) return 4;
+    if (pos.x != 100) {
+        return 3;
+    }
+    if (pos.y != 200) {
+        return 4;
+    }
     Vec2 v = { .x = 15, .y = 25 };
     int32_t total = TaskManager__sumVec(&v);
-    if (total != 40) return 5;
+    if (total != 40) {
+        return 5;
+    }
     return 0;
 }

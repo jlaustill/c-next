@@ -23,8 +23,12 @@ int32_t b = 2;
 
 int main(void) {
     uint32_t relational = sizeof((a < -b) ? a : b);
-    if (relational == 0) return 1U;
+    if (relational == 0) {
+        return 1U;
+    }
     uint32_t greater = sizeof((a > -b) ? a : b);
-    if (greater == 0) return 2U;
+    if (greater == 0) {
+        return 2U;
+    }
     return 0U;
 }

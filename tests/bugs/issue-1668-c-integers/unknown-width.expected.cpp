@@ -29,8 +29,12 @@ static inline uint16_t cnx_clamp_add_u16(uint16_t a, uint32_t b) {
 int main(void) {
     uint8_t b = 200U;
     uint32_t r = b + cFast;
-    if (r != 1200) return 1U;
+    if (r != 1200) {
+        return 1U;
+    }
     uint32_t r16 = cnx_clamp_add_u16(b, cU16);
-    if (r16 != 1200) return 2U;
+    if (r16 != 1200) {
+        return 2U;
+    }
     return 0U;
 }

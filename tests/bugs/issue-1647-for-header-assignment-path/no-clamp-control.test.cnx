@@ -41,10 +41,14 @@ u8 floatPasses() {
 u8 main() {
     // ASSERTION: 4294967290 + 10 wraps to 4, ending the loop after one pass.
     u8 wraps <- wrapPasses();
-    if (wraps != 1) return 1;
+    if (wraps != 1) {
+        return 1;
+    }
 
     // ASSERTION: 0.5, 1.5, 2.5 -- three passes.
     u8 floats <- floatPasses();
-    if (floats != 3) return 2;
+    if (floats != 3) {
+        return 2;
+    }
     return 0;
 }

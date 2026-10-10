@@ -35,13 +35,21 @@ uint32_t StringSliceTest__testSliceAssignment(void) {
     StringSliceTest__copyToBuffer(buffer, 0x1234U);
     uint8_t byte0 = buffer[0U];
     uint8_t byte1 = buffer[1U];
-    if (byte0 != 0x34) return 1U;
-    if (byte1 != 0x12) return 2U;
+    if (byte0 != 0x34) {
+        return 1U;
+    }
+    if (byte1 != 0x12) {
+        return 2U;
+    }
     StringSliceTest__copyToBufferAt2(buffer, 0x5678U);
     uint8_t byte2 = buffer[2U];
     uint8_t byte3 = buffer[3U];
-    if (byte2 != 0x78) return 3U;
-    if (byte3 != 0x56) return 4U;
+    if (byte2 != 0x78) {
+        return 3U;
+    }
+    if (byte3 != 0x56) {
+        return 4U;
+    }
     return 0U;
 }
 

@@ -1,0 +1,5 @@
+35:15 error[E0381]: use of uninitialized variable 'qualified'
+35:40 error[E0381]: use of uninitialized variable 'bare'
+41:11 error[E0381]: use of uninitialized variable 'tickers'
+46:13 error[E0381]: use of uninitialized variable 't.handler'
+48:10 error[E0381]: use of uninitialized variable 'h.inner'

@@ -8,20 +8,26 @@ u32 main() {
     f32 testVal <- 1.0;
     u8 byte3 <- testVal[24, 8];
     // For IEEE-754 float, 1.0 = 0x3F800000, byte3 should be 0x3F
-    if (byte3 != 0x3F) return 1;
+    if (byte3 != 0x3F) {
+        return 1;
+    }
 
     // Test f32 bit write - should use union, not memcpy(&float, &uint32)
     f32 result <- 0.0;
     result[24, 8] <- 0x3F;
     result[16, 8] <- 0x80;
     // After writing bytes 3 and 2, should be 0x3F800000 = 1.0
-    if (result != 1.0) return 2;
+    if (result != 1.0) {
+        return 2;
+    }
 
     // Test f64 bit read - should use union { double d; uint64_t u; }
     f64 testDouble <- 1.0;
     u8 highByte <- testDouble[56, 8];
     // For IEEE-754 double, 1.0 = 0x3FF0000000000000, high byte should be 0x3F
-    if (highByte != 0x3F) return 3;
+    if (highByte != 0x3F) {
+        return 3;
+    }
 
     return 0;
 }

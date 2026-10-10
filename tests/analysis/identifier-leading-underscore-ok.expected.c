@@ -15,9 +15,15 @@
 // idiom taught in ADR-029 and docs/language-guide.md against a future tightening.
 int main(void) {
     Controller c = { ._handler = 42U, .count = 7U };
-    if (c._handler != 42) return 1U;
-    if (c.count != 7) return 2U;
+    if (c._handler != 42) {
+        return 1U;
+    }
+    if (c.count != 7) {
+        return 2U;
+    }
     uint8_t _local = 9U;
-    if (_local != 9) return 3U;
+    if (_local != 9) {
+        return 3U;
+    }
     return 0U;
 }

@@ -16,13 +16,19 @@ scope Handler {
 
 u32 main() {
     Handler.updateGlobal();
-    if (globalBuffer.char_count != 9) return 1;
+    if (globalBuffer.char_count != 9) {
+        return 1;
+    }
 
     Handler.clearGlobal();
-    if (globalBuffer.char_count != 0) return 2;
+    if (globalBuffer.char_count != 0) {
+        return 2;
+    }
 
     Handler.setLongMessage();
-    if (globalBuffer.char_count != 35) return 3;
+    if (globalBuffer.char_count != 35) {
+        return 3;
+    }
 
     return 0;
 }

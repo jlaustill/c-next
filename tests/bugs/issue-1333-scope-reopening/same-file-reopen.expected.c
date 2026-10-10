@@ -33,6 +33,8 @@ uint32_t Lib__useBoth(void) {
 
 int main(void) {
     uint32_t result = Lib__useBoth();
-    if (result != 9) return 1U;
+    if (result != 9) {
+        return 1U;
+    }
     return 0U;
 }

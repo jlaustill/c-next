@@ -25,18 +25,32 @@ u32 main() {
     b.bit_length <- 8;
     pair[1].size <- 9;
     u32 total <- b.length + b.size + b.capacity + b.bit_length;
-    if (total != 22) return 1;
-    if (pair[1].size != 9) return 2;
+    if (total != 22) {
+        return 1;
+    }
+    if (pair[1].size != 9) {
+        return 2;
+    }
     u32 hs <- cbuf.size;
     u32 hl <- cbuf.length;
-    if (hs != 5) return 3;
-    if (hl != 6) return 4;
+    if (hs != 5) {
+        return 3;
+    }
+    if (hl != 6) {
+        return 4;
+    }
     string<8> name <- "abc";
     u32 chars <- name.char_count;
     u32 room <- name.capacity;
     u32 slots <- pair.element_count;
-    if (chars != 3) return 5;
-    if (room != 8) return 6;
-    if (slots != 2) return 7;
+    if (chars != 3) {
+        return 5;
+    }
+    if (room != 8) {
+        return 6;
+    }
+    if (slots != 2) {
+        return 7;
+    }
     return 0;
 }

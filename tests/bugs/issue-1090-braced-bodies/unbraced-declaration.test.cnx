@@ -1,0 +1,12 @@
+// test-error
+// #1795: a declaration as an unbraced `if` body emitted C that gcc rejects,
+// and its name stayed in scope after the `if`. A body must be braced (#1090).
+u32 f(bool c) {
+    if (c = true) const u32 N <- 2;
+    return N;
+}
+
+u32 main() {
+    bool flag <- true;
+    return f(flag);
+}

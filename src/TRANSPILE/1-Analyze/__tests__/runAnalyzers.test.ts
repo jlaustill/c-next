@@ -38,10 +38,9 @@ const NO_INCLUDES: IIncludeContext = {
  * artifact because that is what `runAnalyzers` asks for.
  */
 function parseWithComments(source: string) {
-  const { tree, comments } = CNextSourceParser.parse(source);
+  const parsed = CNextSourceParser.parse(source);
   return {
-    tree,
-    comments,
+    parsed,
     /**
      * #1668: 2.1's context over this source declared and resolved, never an
      * empty stand-in program -- an analyzer asking Program about a file it
@@ -63,13 +62,13 @@ describe("runAnalyzers", () => {
 
   describe("valid code", () => {
     it("should return no errors for valid code", () => {
-      const { tree, comments, contextWith } = parseWithComments(`
+      const { parsed, contextWith } = parseWithComments(`
         void main() {
           u32 x <- 5;
           u32 y <- x + 3;
         }
       `);
-      const errors = runAnalyzers(tree, comments, {
+      const errors = runAnalyzers(parsed, {
         context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });
@@ -77,8 +76,8 @@ describe("runAnalyzers", () => {
     });
 
     it("should return no errors for empty program", () => {
-      const { tree, comments, contextWith } = parseWithComments(``);
-      const errors = runAnalyzers(tree, comments, {
+      const { parsed, contextWith } = parseWithComments(``);
+      const errors = runAnalyzers(parsed, {
         context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });
@@ -92,9 +91,8 @@ describe("runAnalyzers", () => {
 
   describe("phase 1 - identifier syntax", () => {
     it("should return early on a trailing-underscore identifier", () => {
-      const { tree, comments, contextWith } =
-        parseWithComments(`u8 value_ <- 1;`);
-      const errors = runAnalyzers(tree, comments, {
+      const { parsed, contextWith } = parseWithComments(`u8 value_ <- 1;`);
+      const errors = runAnalyzers(parsed, {
         context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });
@@ -107,9 +105,8 @@ describe("runAnalyzers", () => {
     });
 
     it("should return early on consecutive underscores", () => {
-      const { tree, comments, contextWith } =
-        parseWithComments(`u8 my__value <- 1;`);
-      const errors = runAnalyzers(tree, comments, {
+      const { parsed, contextWith } = parseWithComments(`u8 my__value <- 1;`);
+      const errors = runAnalyzers(parsed, {
         context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });
@@ -119,13 +116,13 @@ describe("runAnalyzers", () => {
     });
 
     it("should accept a leading underscore (ADR-063)", () => {
-      const { tree, comments, contextWith } = parseWithComments(`
+      const { parsed, contextWith } = parseWithComments(`
         void fn() {
           u8 _local <- 1;
           u8 x <- _local;
         }
       `);
-      const errors = runAnalyzers(tree, comments, {
+      const errors = runAnalyzers(parsed, {
         context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });
@@ -140,12 +137,12 @@ describe("runAnalyzers", () => {
 
   describe("phase 2 - parameter naming", () => {
     it("should return early on parameter naming error", () => {
-      const { tree, comments, contextWith } = parseWithComments(`
+      const { parsed, contextWith } = parseWithComments(`
         void process(u32 process_data) {
           u32 x <- process_data;
         }
       `);
-      const errors = runAnalyzers(tree, comments, {
+      const errors = runAnalyzers(parsed, {
         context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });
@@ -171,13 +168,13 @@ describe("runAnalyzers", () => {
 
   describe("phase 3 - initialization", () => {
     it("should return early on use-before-init error", () => {
-      const { tree, comments, contextWith } = parseWithComments(`
+      const { parsed, contextWith } = parseWithComments(`
         void main() {
           u32 x;
           u32 y <- x;
         }
       `);
-      const errors = runAnalyzers(tree, comments, {
+      const errors = runAnalyzers(parsed, {
         context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });
@@ -195,7 +192,7 @@ describe("runAnalyzers", () => {
 
   describe("phase 4 - function call", () => {
     it("should return early on call-before-define error", () => {
-      const { tree, comments, contextWith } = parseWithComments(`
+      const { parsed, contextWith } = parseWithComments(`
         void main() {
           helper();
         }
@@ -203,7 +200,7 @@ describe("runAnalyzers", () => {
           u32 x <- 5;
         }
       `);
-      const errors = runAnalyzers(tree, comments, {
+      const errors = runAnalyzers(parsed, {
         context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });
@@ -220,14 +217,14 @@ describe("runAnalyzers", () => {
 
   describe("phase 5 - null check", () => {
     it("should return early on missing null check", () => {
-      const { tree, comments, contextWith } = parseWithComments(`
+      const { parsed, contextWith } = parseWithComments(`
         #include <string.h>
         void main() {
           cstring str <- "hello";
           strchr(str, 'x');
         }
       `);
-      const errors = runAnalyzers(tree, comments, {
+      const errors = runAnalyzers(parsed, {
         context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });
@@ -244,12 +241,12 @@ describe("runAnalyzers", () => {
 
   describe("phase 6 - division by zero", () => {
     it("should return early on division by zero", () => {
-      const { tree, comments, contextWith } = parseWithComments(`
+      const { parsed, contextWith } = parseWithComments(`
         void main() {
           u32 x <- 10 / 0;
         }
       `);
-      const errors = runAnalyzers(tree, comments, {
+      const errors = runAnalyzers(parsed, {
         context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });
@@ -273,11 +270,11 @@ describe("runAnalyzers", () => {
           f32 result <- x % 3;
         }
       `;
-      const { comments } = parseWithComments(source);
-      const { tree, context } = testAnalysisContextFor(source, {
+      const { parsed } = parseWithComments(source);
+      const { context } = testAnalysisContextFor(source, {
         cppMode: false,
       });
-      const errors = runAnalyzers(tree, comments, {
+      const errors = runAnalyzers(parsed, {
         context,
         includes: NO_INCLUDES,
       });
@@ -296,8 +293,8 @@ describe("runAnalyzers", () => {
     it("should return comment errors for nested comment markers", () => {
       // MISRA 3.1: no nested comment start markers inside comments
       const code = "/* outer /* nested */ \nvoid main() { u32 x <- 1; }";
-      const { tree, comments, contextWith } = parseWithComments(code);
-      const errors = runAnalyzers(tree, comments, {
+      const { parsed, contextWith } = parseWithComments(code);
+      const errors = runAnalyzers(parsed, {
         context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });
@@ -318,7 +315,7 @@ describe("runAnalyzers", () => {
     it("should read externalStructFields from the program artifact", () => {
       // Code that uses a field from an external struct - externalStructFields
       // are now read from TranspileState
-      const { tree, comments, contextWith } = parseWithComments(`
+      const { parsed, contextWith } = parseWithComments(`
         void main() {
           u32 x <- 5;
         }
@@ -330,7 +327,7 @@ describe("runAnalyzers", () => {
       headers.addStructField("ExternalStruct", "field1", "u32");
       headers.addStructField("ExternalStruct", "field2", "u32");
 
-      const errors = runAnalyzers(tree, comments, {
+      const errors = runAnalyzers(parsed, {
         context: contextWith(headers),
         includes: NO_INCLUDES,
       });
@@ -338,7 +335,7 @@ describe("runAnalyzers", () => {
     });
 
     it("should pass symbolTable to analyzers", () => {
-      const { tree, comments, contextWith } = parseWithComments(`
+      const { parsed, contextWith } = parseWithComments(`
         void main() {
           u32 x <- 5;
         }
@@ -355,7 +352,7 @@ describe("runAnalyzers", () => {
         type: "void",
       });
 
-      const errors = runAnalyzers(tree, comments, {
+      const errors = runAnalyzers(parsed, {
         context: contextWith(symbolTable),
         includes: NO_INCLUDES,
       });
@@ -376,7 +373,7 @@ describe("runAnalyzers", () => {
       // shape. Making it prove the route needs a fact the caller's table
       // carries and the mock `symbols` view does not -- see #1663, which holds
       // the measurement rather than leaving this comment as the only record.
-      const { tree, comments, contextWith } = parseWithComments(`
+      const { parsed, contextWith } = parseWithComments(`
         void main() {
           u32 x <- 5;
         }
@@ -393,7 +390,7 @@ describe("runAnalyzers", () => {
       });
       caller.addStructField("CppMessage", "pgn", "u16");
 
-      const errors = runAnalyzers(tree, comments, {
+      const errors = runAnalyzers(parsed, {
         context: contextWith(caller),
         includes: NO_INCLUDES,
       });
@@ -407,12 +404,12 @@ describe("runAnalyzers", () => {
 
   describe("error format", () => {
     it("should include line, column, message, and severity on all errors", () => {
-      const { tree, comments, contextWith } = parseWithComments(`
+      const { parsed, contextWith } = parseWithComments(`
         void main() {
           u32 x <- 10 / 0;
         }
       `);
-      const errors = runAnalyzers(tree, comments, {
+      const errors = runAnalyzers(parsed, {
         context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });

@@ -29,7 +29,7 @@ Eliminates the `if (x = 5)` bug by design:
 
 ```cnx
 x <- 5;         // assignment: value flows INTO x
-if (x = 5)      // comparison: single equals, just like math
+if (x = 5) { }  // comparison: single equals, just like math
 ```
 
 ### Fixed-Width Types

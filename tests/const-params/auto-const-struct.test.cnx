@@ -50,34 +50,56 @@ u32 main() {
     // Test read-only struct access
     Point pt <- { x: 10, y: 20 };
     i32 sum <- getPointSum(pt);
-    if (sum != 30) return 1;
-    if (pt.x != 10) return 2; // Should be unchanged
-    if (pt.y != 20) return 3;
+    if (sum != 30) {
+        return 1;
+    }
+    if (pt.x != 10) {
+        return 2; // Should be unchanged
+    }
+    if (pt.y != 20) {
+        return 3;
+    }
 
     // Test modified struct
     movePoint(pt, 5, -3);
-    if (pt.x != 15) return 4;
-    if (pt.y != 17) return 5;
+    if (pt.x != 15) {
+        return 4;
+    }
+    if (pt.y != 17) {
+        return 5;
+    }
 
     // Test config read
     AutoConst.Config cfg <- { value: 42, enabled: true };
     u32 val <- getConfigValue(cfg);
-    if (val != 42) return 6;
+    if (val != 42) {
+        return 6;
+    }
 
     // Test mixed modification
     toggleAndRead(cfg);
-    if (cfg.enabled != false) return 7;
+    if (cfg.enabled != false) {
+        return 7;
+    }
 
     // Test wrapped read-only
     Point pt2 <- { x: 100, y: 200 };
     sum <- wrapGetSum(pt2);
-    if (sum != 300) return 8;
-    if (pt2.x != 100) return 9;
+    if (sum != 300) {
+        return 8;
+    }
+    if (pt2.x != 100) {
+        return 9;
+    }
 
     // Test wrapped modifier
     wrapMovePoint(pt2);
-    if (pt2.x != 101) return 10;
-    if (pt2.y != 201) return 11;
+    if (pt2.x != 101) {
+        return 10;
+    }
+    if (pt2.y != 201) {
+        return 11;
+    }
 
     return 0;
 }

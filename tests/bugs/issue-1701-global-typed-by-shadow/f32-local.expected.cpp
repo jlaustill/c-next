@@ -33,7 +33,11 @@ float f(void) {
 
 int main(void) {
     float local = f();
-    if (local != 1.0) return 2U;
-    if (x != 4294967295) return 1U;
+    if (local != 1.0) {
+        return 2U;
+    }
+    if (x != 4294967295) {
+        return 1U;
+    }
     return 0U;
 }

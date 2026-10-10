@@ -48,6 +48,8 @@ uint8_t count(void) {
 
 int main(void) {
     uint8_t total = count();
-    if (total != 47) return 1U;
+    if (total != 47) {
+        return 1U;
+    }
     return 0U;
 }

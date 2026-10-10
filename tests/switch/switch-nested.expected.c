@@ -253,23 +253,41 @@ int main(void) {
     uint32_t i1 = 1U;
     uint32_t i99 = 99U;
     testNestedBasic(o0, i0);
-    if (result != 100) return 1U;
+    if (result != 100) {
+        return 1U;
+    }
     testNestedBasic(o0, i1);
-    if (result != 101) return 2U;
+    if (result != 101) {
+        return 2U;
+    }
     testNestedBasic(o0, i99);
-    if (result != 199) return 3U;
+    if (result != 199) {
+        return 3U;
+    }
     testNestedBasic(o1, i0);
-    if (result != 200) return 4U;
+    if (result != 200) {
+        return 4U;
+    }
     testNestedBasic(o1, i1);
-    if (result != 201) return 5U;
+    if (result != 201) {
+        return 5U;
+    }
     testNestedBasic(o1, i99);
-    if (result != 299) return 6U;
+    if (result != 299) {
+        return 6U;
+    }
     testNestedBasic(o99, i0);
-    if (result != 900) return 7U;
+    if (result != 900) {
+        return 7U;
+    }
     testNestedBasic(o99, i1);
-    if (result != 901) return 8U;
+    if (result != 901) {
+        return 8U;
+    }
     testNestedBasic(o99, i99);
-    if (result != 999) return 9U;
+    if (result != 999) {
+        return 9U;
+    }
     uint8_t m0 = 0U;
     uint8_t m255 = 255U;
     uint8_t mOther = 100U;
@@ -278,65 +296,119 @@ int main(void) {
     uint16_t nMax = 65535U;
     uint16_t nOther = 5000U;
     testNestedMixedTypes(m0, n0);
-    if (result != 1000) return 10U;
+    if (result != 1000) {
+        return 10U;
+    }
     testNestedMixedTypes(m0, n1000);
-    if (result != 1001) return 11U;
+    if (result != 1001) {
+        return 11U;
+    }
     testNestedMixedTypes(m0, nOther);
-    if (result != 1099) return 12U;
+    if (result != 1099) {
+        return 12U;
+    }
     testNestedMixedTypes(m255, nMax);
-    if (result != 2000) return 13U;
+    if (result != 2000) {
+        return 13U;
+    }
     testNestedMixedTypes(m255, nOther);
-    if (result != 2099) return 14U;
+    if (result != 2099) {
+        return 14U;
+    }
     testNestedMixedTypes(mOther, n0);
-    if (result != 9999) return 15U;
+    if (result != 9999) {
+        return 15U;
+    }
     uint8_t t0 = 0U;
     uint8_t t1 = 1U;
     uint8_t t99 = 99U;
     testTripleNested(t0, t0, t0);
-    if (result != 111) return 16U;
+    if (result != 111) {
+        return 16U;
+    }
     testTripleNested(t0, t0, t1);
-    if (result != 112) return 17U;
+    if (result != 112) {
+        return 17U;
+    }
     testTripleNested(t0, t0, t99);
-    if (result != 119) return 18U;
+    if (result != 119) {
+        return 18U;
+    }
     testTripleNested(t0, t1, t0);
-    if (result != 121) return 19U;
+    if (result != 121) {
+        return 19U;
+    }
     testTripleNested(t0, t1, t99);
-    if (result != 129) return 20U;
+    if (result != 129) {
+        return 20U;
+    }
     testTripleNested(t0, t99, t0);
-    if (result != 190) return 21U;
+    if (result != 190) {
+        return 21U;
+    }
     testTripleNested(t1, t0, t0);
-    if (result != 210) return 22U;
+    if (result != 210) {
+        return 22U;
+    }
     testTripleNested(t1, t99, t0);
-    if (result != 290) return 23U;
+    if (result != 290) {
+        return 23U;
+    }
     testTripleNested(t99, t0, t0);
-    if (result != 900) return 24U;
+    if (result != 900) {
+        return 24U;
+    }
     int8_t sZero = 0;
     int8_t sOne = 1;
     int8_t sFifty = 50;
     int8_t sNeg = -50;
     testNestedSigned(sZero, sZero);
-    if (result != 11) return 25U;
+    if (result != 11) {
+        return 25U;
+    }
     testNestedSigned(sZero, sOne);
-    if (result != 12) return 26U;
+    if (result != 12) {
+        return 26U;
+    }
     testNestedSigned(sZero, sFifty);
-    if (result != 13) return 27U;
+    if (result != 13) {
+        return 27U;
+    }
     testNestedSigned(sOne, sZero);
-    if (result != 21) return 28U;
+    if (result != 21) {
+        return 28U;
+    }
     testNestedSigned(sOne, sOne);
-    if (result != 22) return 29U;
+    if (result != 22) {
+        return 29U;
+    }
     testNestedSigned(sOne, sFifty);
-    if (result != 23) return 30U;
+    if (result != 23) {
+        return 30U;
+    }
     testNestedSigned(sFifty, sZero);
-    if (result != 31) return 31U;
+    if (result != 31) {
+        return 31U;
+    }
     testNestedSigned(sFifty, sOne);
-    if (result != 32) return 32U;
+    if (result != 32) {
+        return 32U;
+    }
     testNestedSigned(sFifty, sFifty);
-    if (result != 33) return 33U;
+    if (result != 33) {
+        return 33U;
+    }
     testNestedSigned(sNeg, sZero);
-    if (result != 99) return 34U;
+    if (result != 99) {
+        return 34U;
+    }
     testNestedSigned(sZero, sNeg);
-    if (result != 19) return 35U;
+    if (result != 19) {
+        return 35U;
+    }
     testNestedSigned(sOne, sNeg);
-    if (result != 29) return 36U;
+    if (result != 29) {
+        return 36U;
+    }
     return 0U;
 }

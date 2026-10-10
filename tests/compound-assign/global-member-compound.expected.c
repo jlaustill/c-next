@@ -44,136 +44,206 @@ uint32_t gBits = 0U;
 int32_t Worker__testSubtraction(void) {
     gValue = 100;
     gValue = cnx_clamp_sub_i32(gValue, 30);
-    if (gValue != 70) return 1;
+    if (gValue != 70) {
+        return 1;
+    }
     gValue = 50;
     gValue = cnx_clamp_sub_i32(gValue, 50);
-    if (gValue != 0) return 2;
+    if (gValue != 0) {
+        return 2;
+    }
     return 0;
 }
 
 int32_t Worker__testMultiplication(void) {
     gValue = 7;
     gValue = cnx_clamp_mul_i32(gValue, 6);
-    if (gValue != 42) return 10;
+    if (gValue != 42) {
+        return 10;
+    }
     gValue = 100;
     gValue = cnx_clamp_mul_i32(gValue, 1);
-    if (gValue != 100) return 11;
+    if (gValue != 100) {
+        return 11;
+    }
     gValue = 25;
     gValue = cnx_clamp_mul_i32(gValue, 0);
-    if (gValue != 0) return 12;
+    if (gValue != 0) {
+        return 12;
+    }
     return 0;
 }
 
 int32_t Worker__testDivision(void) {
     gValue = 100;
     gValue /= 5;
-    if (gValue != 20) return 20;
+    if (gValue != 20) {
+        return 20;
+    }
     gValue = 81;
     gValue /= 9;
-    if (gValue != 9) return 21;
+    if (gValue != 9) {
+        return 21;
+    }
     gValue = 50;
     gValue /= 1;
-    if (gValue != 50) return 22;
+    if (gValue != 50) {
+        return 22;
+    }
     return 0;
 }
 
 int32_t Worker__testModulo(void) {
     gValue = 17;
     gValue %= 5;
-    if (gValue != 2) return 30;
+    if (gValue != 2) {
+        return 30;
+    }
     gValue = 100;
     gValue %= 7;
-    if (gValue != 2) return 31;
+    if (gValue != 2) {
+        return 31;
+    }
     gValue = 25;
     gValue %= 25;
-    if (gValue != 0) return 32;
+    if (gValue != 0) {
+        return 32;
+    }
     return 0;
 }
 
 int32_t Worker__testBitwiseAnd(void) {
     gBits = 0xFFU;
     gBits &= 0x0FU;
-    if (gBits != 0x0F) return 40;
+    if (gBits != 0x0F) {
+        return 40;
+    }
     gBits = 0xAAU;
     gBits &= 0x55U;
-    if (gBits != 0) return 41;
+    if (gBits != 0) {
+        return 41;
+    }
     gBits = 0x12345678U;
     gBits &= 0xFFFFFFFFU;
-    if (gBits != 0x12345678) return 42;
+    if (gBits != 0x12345678) {
+        return 42;
+    }
     return 0;
 }
 
 int32_t Worker__testBitwiseOr(void) {
     gBits = 0xF0U;
     gBits |= 0x0FU;
-    if (gBits != 0xFF) return 50;
+    if (gBits != 0xFF) {
+        return 50;
+    }
     gBits = 0x00U;
     gBits |= 0xABU;
-    if (gBits != 0xAB) return 51;
+    if (gBits != 0xAB) {
+        return 51;
+    }
     gBits = 0x12340000U;
     gBits |= 0x00005678U;
-    if (gBits != 0x12345678) return 52;
+    if (gBits != 0x12345678) {
+        return 52;
+    }
     return 0;
 }
 
 int32_t Worker__testBitwiseXor(void) {
     gBits = 0xFFU;
     gBits ^= 0xFFU;
-    if (gBits != 0) return 60;
+    if (gBits != 0) {
+        return 60;
+    }
     gBits = 0xAAU;
     gBits ^= 0x55U;
-    if (gBits != 0xFF) return 61;
+    if (gBits != 0xFF) {
+        return 61;
+    }
     gBits = 0x12345678U;
     gBits ^= 0x00000000U;
-    if (gBits != 0x12345678) return 62;
+    if (gBits != 0x12345678) {
+        return 62;
+    }
     return 0;
 }
 
 int32_t Worker__testLeftShift(void) {
     gBits = 1U;
     gBits <<= 4U;
-    if (gBits != 16) return 70;
+    if (gBits != 16) {
+        return 70;
+    }
     gBits = 0xFFU;
     gBits <<= 8U;
-    if (gBits != 0xFF00) return 71;
+    if (gBits != 0xFF00) {
+        return 71;
+    }
     gBits = 1U;
     gBits <<= 0U;
-    if (gBits != 1) return 72;
+    if (gBits != 1) {
+        return 72;
+    }
     return 0;
 }
 
 int32_t Worker__testRightShift(void) {
     gBits = 256U;
     gBits >>= 4U;
-    if (gBits != 16) return 80;
+    if (gBits != 16) {
+        return 80;
+    }
     gBits = 0xFF00U;
     gBits >>= 8U;
-    if (gBits != 0xFF) return 81;
+    if (gBits != 0xFF) {
+        return 81;
+    }
     gBits = 128U;
     gBits >>= 0U;
-    if (gBits != 128) return 82;
+    if (gBits != 128) {
+        return 82;
+    }
     return 0;
 }
 
 int main(void) {
     int32_t result = 0;
     result = Worker__testSubtraction();
-    if (result != 0) return result;
+    if (result != 0) {
+        return result;
+    }
     result = Worker__testMultiplication();
-    if (result != 0) return result;
+    if (result != 0) {
+        return result;
+    }
     result = Worker__testDivision();
-    if (result != 0) return result;
+    if (result != 0) {
+        return result;
+    }
     result = Worker__testModulo();
-    if (result != 0) return result;
+    if (result != 0) {
+        return result;
+    }
     result = Worker__testBitwiseAnd();
-    if (result != 0) return result;
+    if (result != 0) {
+        return result;
+    }
     result = Worker__testBitwiseOr();
-    if (result != 0) return result;
+    if (result != 0) {
+        return result;
+    }
     result = Worker__testBitwiseXor();
-    if (result != 0) return result;
+    if (result != 0) {
+        return result;
+    }
     result = Worker__testLeftShift();
-    if (result != 0) return result;
+    if (result != 0) {
+        return result;
+    }
     result = Worker__testRightShift();
-    if (result != 0) return result;
+    if (result != 0) {
+        return result;
+    }
     return 0U;
 }

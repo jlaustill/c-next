@@ -48,27 +48,43 @@ u32 switchPriority(Priority p) {
 
 u32 main() {
     // Test global assignment worked
-    if (globalPriority != Priority.LOW) return 1;
+    if (globalPriority != Priority.LOW) {
+        return 1;
+    }
 
     // Test return from enum function
     Priority p <- getPriority();
-    if (p != Priority.HIGH) return 2;
+    if (p != Priority.HIGH) {
+        return 2;
+    }
 
     // Test comparison with enum parameter (qualified)
     u32 lowVal <- priorityToValue(Priority.LOW);
-    if (lowVal != 1) return 3;
+    if (lowVal != 1) {
+        return 3;
+    }
     u32 medVal <- priorityToValue(Priority.MEDIUM);
-    if (medVal != 2) return 4;
+    if (medVal != 2) {
+        return 4;
+    }
     u32 highVal <- priorityToValue(Priority.HIGH);
-    if (highVal != 3) return 5;
+    if (highVal != 3) {
+        return 5;
+    }
 
     // Test switch on enum
     u32 switchLow <- switchPriority(Priority.LOW);
-    if (switchLow != 10) return 6;
+    if (switchLow != 10) {
+        return 6;
+    }
     u32 switchMed <- switchPriority(Priority.MEDIUM);
-    if (switchMed != 20) return 7;
+    if (switchMed != 20) {
+        return 7;
+    }
     u32 switchHigh <- switchPriority(Priority.HIGH);
-    if (switchHigh != 30) return 8;
+    if (switchHigh != 30) {
+        return 8;
+    }
 
     return 0;
 }

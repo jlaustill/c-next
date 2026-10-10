@@ -16,9 +16,15 @@ extern const uint16_t THRESHOLD = 2048U;
 
 int main(void) {
     uint16_t maxAdc = MAX_ADC;
-    if (maxAdc != 4095) return 1U;
+    if (maxAdc != 4095) {
+        return 1U;
+    }
     uint16_t thresh = THRESHOLD;
-    if (thresh != 2048) return 2U;
-    if (THRESHOLD >= MAX_ADC) return 3U;
+    if (thresh != 2048) {
+        return 2U;
+    }
+    if (THRESHOLD >= MAX_ADC) {
+        return 3U;
+    }
     return 0U;
 }

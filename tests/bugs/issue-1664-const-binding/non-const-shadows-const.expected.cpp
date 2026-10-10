@@ -70,17 +70,29 @@ float viaFloatConst(void) {
 
 int main(void) {
     uint8_t p = viaParameter(2U);
-    if (p != 7) return 1U;
+    if (p != 7) {
+        return 1U;
+    }
     uint8_t l = viaLocal();
-    if (l != 6) return 2U;
+    if (l != 6) {
+        return 2U;
+    }
     uint8_t f = viaFor();
-    if (f != 8) return 3U;
+    if (f != 8) {
+        return 3U;
+    }
     uint32_t r = viaRuntimeConst(4U);
-    if (r != 20) return 4U;
+    if (r != 20) {
+        return 4U;
+    }
     float fl = viaFloatConst();
-    if (fl != 4.0) return 5U;
+    if (fl != 4.0) {
+        return 5U;
+    }
     uint8_t arr[4] = {5U, 6U, 7U, 8U};
     uint32_t q = cnx_clamp_sub_u32(N, i);
-    if (arr[q] != 8) return 6U;
+    if (arr[q] != 8) {
+        return 6U;
+    }
     return 0U;
 }

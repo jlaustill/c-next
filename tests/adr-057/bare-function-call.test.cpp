@@ -47,6 +47,8 @@ uint32_t Calculator__getResult(void) {
 int main(void) {
     Calculator__compute();
     uint32_t result = Calculator__getResult();
-    if (result != 20) return 1U;
+    if (result != 20) {
+        return 1U;
+    }
     return 0U;
 }

@@ -66,26 +66,44 @@ int main(void) {
     int8_t maxI8 = 127;
     int8_t other = 50;
     handleValue(minI8);
-    if (result != 1) return 1U;
+    if (result != 1) {
+        return 1U;
+    }
     handleValue(negOne);
-    if (result != 2) return 2U;
+    if (result != 2) {
+        return 2U;
+    }
     handleValue(zero);
-    if (result != 3) return 3U;
+    if (result != 3) {
+        return 3U;
+    }
     handleValue(maxI8);
-    if (result != 4) return 4U;
+    if (result != 4) {
+        return 4U;
+    }
     handleValue(other);
-    if (result != 9) return 5U;
+    if (result != 9) {
+        return 5U;
+    }
     int16_t negHex80 = -128;
     int16_t negHex01 = -1;
     int16_t zeroHex = 0;
     int16_t otherHex = 100;
     handleHex(negHex80);
-    if (result != 10) return 6U;
+    if (result != 10) {
+        return 6U;
+    }
     handleHex(negHex01);
-    if (result != 20) return 7U;
+    if (result != 20) {
+        return 7U;
+    }
     handleHex(zeroHex);
-    if (result != 30) return 8U;
+    if (result != 30) {
+        return 8U;
+    }
     handleHex(otherHex);
-    if (result != 99) return 9U;
+    if (result != 99) {
+        return 9U;
+    }
     return 0U;
 }

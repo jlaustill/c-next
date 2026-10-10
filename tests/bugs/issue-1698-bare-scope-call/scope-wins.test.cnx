@@ -18,8 +18,12 @@ scope Gauge {
 
 u32 main() {
     u8 v <- Gauge.narrow();
-    if (v != 3) return 1;
+    if (v != 3) {
+        return 1;
+    }
     u32 g <- get();
-    if (g != 300) return 2;
+    if (g != 300) {
+        return 2;
+    }
     return 0;
 }

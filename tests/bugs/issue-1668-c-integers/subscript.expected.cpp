@@ -16,14 +16,24 @@
 
 int main(void) {
     uint8_t a = buf[3U];
-    if (a != 13) return 1U;
+    if (a != 13) {
+        return 1U;
+    }
     uint8_t f = fixed[2U];
-    if (f != 22) return 2U;
+    if (f != 22) {
+        return 2U;
+    }
     uint8_t p = ptr[1U];
-    if (p != 21) return 3U;
+    if (p != 21) {
+        return 3U;
+    }
     bool d = ((((word >> 4U) & 1)) != 0U);
-    if (d != true) return 4U;
+    if (d != true) {
+        return 4U;
+    }
     bool z = ((((word >> 3U) & 1)) != 0U);
-    if (z != false) return 5U;
+    if (z != false) {
+        return 5U;
+    }
     return 0U;
 }

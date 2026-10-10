@@ -1,0 +1,32 @@
+// test-error
+// #1980 owner ruling (ADR-015): a local read before it is assigned is E0381,
+// in every part of it. ADR-017's zero enumerator is the value an enum holds,
+// not an initialization -- an enum local, an enum field and an enum array
+// element alike.
+enum Mode {
+    IDLE,
+    RUNNING
+}
+
+struct Holder {
+    Mode m;
+}
+
+Mode readLocal() {
+    Mode m;
+    return m;
+}
+
+Mode readField() {
+    Holder h;
+    return h.m;
+}
+
+Mode readElement() {
+    Mode[2] ms;
+    return ms[0];
+}
+
+u32 main() {
+    return 0;
+}

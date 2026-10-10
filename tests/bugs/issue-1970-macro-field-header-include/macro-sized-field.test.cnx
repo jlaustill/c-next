@@ -1,0 +1,20 @@
+// test-execution
+// test-no-warnings
+// #1970: a struct field sized by a header macro is spelled in the generated
+// header, so the header includes the macro's header -- here no variable is
+// sized by the same macro, which used to be the only thing that added it.
+#include "buf_size.h"
+
+struct Packet {
+    u8[BUF_SIZE] data;
+}
+
+Packet packet;
+
+u32 main() {
+    packet.data[0] <- 1;
+    if (packet.data[0] != 1) {
+        return 1;
+    }
+    return 0;
+}

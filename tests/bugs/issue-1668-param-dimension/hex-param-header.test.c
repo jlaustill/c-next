@@ -18,6 +18,8 @@ void put(uint8_t p[16]) {
 int main(void) {
     uint8_t a[16] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
     put(a);
-    if (a[5U] != 1) return 1;
+    if (a[5U] != 1) {
+        return 1;
+    }
     return 0;
 }

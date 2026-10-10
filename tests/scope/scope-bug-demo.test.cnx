@@ -20,19 +20,27 @@ scope Counter {
 u32 main() {
     // Initially 0
     u8 val <- Counter.getCount();
-    if (val != 0) return 1;
+    if (val != 0) {
+        return 1;
+    }
 
     // Increment should modify Counter.count, not globalCount
     Counter.increment();
     val <- Counter.getCount();
-    if (val != 1) return 2;
+    if (val != 1) {
+        return 2;
+    }
 
     Counter.increment();
     val <- Counter.getCount();
-    if (val != 2) return 3;
+    if (val != 2) {
+        return 3;
+    }
 
     // Global should be unchanged
-    if (globalCount != 0) return 4;
+    if (globalCount != 0) {
+        return 4;
+    }
 
     return 0;
 }

@@ -41,6 +41,8 @@ uint32_t testFuncReturnMember(void) {
 
 int main(void) {
     uint32_t result = testFuncReturnMember();
-    if (result != 41) return 1U;
+    if (result != 41) {
+        return 1U;
+    }
     return 0U;
 }

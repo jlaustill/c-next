@@ -11,41 +11,83 @@
 // Validates that 0x... literals work correctly when type is inferred from context
 int main(void) {
     uint8_t byte = 0xFFU;
-    if (byte != 255) return 1U;
+    if (byte != 255) {
+        return 1U;
+    }
     uint16_t word = 0xABCDU;
-    if (word != 43981) return 2U;
+    if (word != 43981) {
+        return 2U;
+    }
     uint32_t dword = 0xDEADBEEFU;
-    if (dword != 3735928559) return 3U;
+    if (dword != 3735928559) {
+        return 3U;
+    }
     uint8_t lower = 0xffU;
-    if (lower != 255) return 4U;
+    if (lower != 255) {
+        return 4U;
+    }
     uint8_t upper = 0XFFU;
-    if (upper != 255) return 5U;
+    if (upper != 255) {
+        return 5U;
+    }
     uint32_t mixed = 0xAbCdEfU;
-    if (mixed != 11259375) return 6U;
+    if (mixed != 11259375) {
+        return 6U;
+    }
     uint8_t zero = 0x0U;
-    if (zero != 0) return 7U;
+    if (zero != 0) {
+        return 7U;
+    }
     uint8_t single = 0xAU;
-    if (single != 10) return 8U;
+    if (single != 10) {
+        return 8U;
+    }
     uint8_t two = 0x1FU;
-    if (two != 31) return 9U;
+    if (two != 31) {
+        return 9U;
+    }
     uint16_t sum = 0x10U + 0x20U;
-    if (sum != 48) return 10U;
+    if (sum != 48) {
+        return 10U;
+    }
     uint16_t diff = 0xFFU - 0x0FU;
-    if (diff != 240) return 11U;
+    if (diff != 240) {
+        return 11U;
+    }
     uint32_t product = 0x10U * 0x10U;
-    if (product != 256) return 12U;
+    if (product != 256) {
+        return 12U;
+    }
     uint8_t andResult = 0xFFU & 0x0FU;
-    if (andResult != 15) return 13U;
+    if (andResult != 15) {
+        return 13U;
+    }
     uint8_t orResult = 0xF0U | 0x0FU;
-    if (orResult != 255) return 14U;
+    if (orResult != 255) {
+        return 14U;
+    }
     uint8_t bytes[4] = {0x48U, 0x65U, 0x6CU, 0x6CU};
-    if (bytes[0U] != 72) return 15U;
-    if (bytes[1U] != 101) return 16U;
-    if (bytes[2U] != 108) return 17U;
-    if (bytes[3U] != 108) return 18U;
+    if (bytes[0U] != 72) {
+        return 15U;
+    }
+    if (bytes[1U] != 101) {
+        return 16U;
+    }
+    if (bytes[2U] != 108) {
+        return 17U;
+    }
+    if (bytes[3U] != 108) {
+        return 18U;
+    }
     uint8_t val = 0x42U;
-    if (val != 0x42) return 19U;
-    if (0x10 >= 0x20) return 20U;
-    if (0xFF <= 0xFE) return 21U;
+    if (val != 0x42) {
+        return 19U;
+    }
+    if (0x10 >= 0x20) {
+        return 20U;
+    }
+    if (0xFF <= 0xFE) {
+        return 21U;
+    }
     return 0U;
 }

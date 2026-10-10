@@ -23,7 +23,7 @@ int main(void) {
     if (32 != 32) {
         return 2;
     }
-    EnumBitLen__TestStruct ts = {0};
+    EnumBitLen__TestStruct ts = { .state = State__IDLE };
     ts.state = State__RUNNING;
     if (32 != 32) {
         return 3;

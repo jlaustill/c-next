@@ -38,8 +38,12 @@ uint32_t fullSnapshot(const Full& f) {
 int main(void) {
     Full f = { .pokes = 0U };
     fullForward(f);
-    if (f.pokes != 1) return 1;
+    if (f.pokes != 1) {
+        return 1;
+    }
     uint32_t snapshot = fullSnapshot(f);
-    if (snapshot != 1) return 2;
+    if (snapshot != 1) {
+        return 2;
+    }
     return 0;
 }

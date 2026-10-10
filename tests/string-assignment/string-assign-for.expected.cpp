@@ -30,7 +30,9 @@ int main(void) {
     for (i = 0U; i < 3; i = cnx_clamp_add_u32(i, 1U)) {
         (void) strncpy(result, "ForLoop", 16); result[16] = '\0';
     }
-    if (strlen(result) != 7) return 1U;
+    if (strlen(result) != 7) {
+        return 1U;
+    }
     for (i = 0U; i < 3; i = cnx_clamp_add_u32(i, 1U)) {
         if (i == 0) {
             (void) strncpy(result, "Zero", 16); result[16] = '\0';
@@ -40,6 +42,8 @@ int main(void) {
             (void) strncpy(result, "Two", 16); result[16] = '\0';
         }
     }
-    if (strlen(result) != 3) return 2U;
+    if (strlen(result) != 3) {
+        return 2U;
+    }
     return 0U;
 }

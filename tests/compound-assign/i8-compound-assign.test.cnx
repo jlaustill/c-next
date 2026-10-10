@@ -8,170 +8,250 @@ u32 main() {
     // ===== ADDITION (+<-) =====
     i8 val <- 50;
     val +<- 25; // pos + pos
-    if (val != 75) return 1;
+    if (val != 75) {
+        return 1;
+    }
 
     val <- -50;
     val +<- 25; // neg + pos
-    if (val != -25) return 2;
+    if (val != -25) {
+        return 2;
+    }
 
     val <- -50;
     val +<- -25; // neg + neg
-    if (val != -75) return 3;
+    if (val != -75) {
+        return 3;
+    }
 
     val <- 100;
     val +<- 0; // Identity: add zero
-    if (val != 100) return 4;
+    if (val != 100) {
+        return 4;
+    }
 
     val <- -100;
     val +<- 100; // Cross zero
-    if (val != 0) return 5;
+    if (val != 0) {
+        return 5;
+    }
 
     val <- 126;
     val +<- 1; // Near max
-    if (val != 127) return 6;
+    if (val != 127) {
+        return 6;
+    }
 
     // ===== SUBTRACTION (-<-) =====
     i8 sub <- 75;
     sub -<- 25; // pos - pos = pos
-    if (sub != 50) return 10;
+    if (sub != 50) {
+        return 10;
+    }
 
     sub <- 25;
     sub -<- 75; // pos - pos = neg
-    if (sub != -50) return 11;
+    if (sub != -50) {
+        return 11;
+    }
 
     sub <- -50;
     sub -<- 25; // neg - pos
-    if (sub != -75) return 12;
+    if (sub != -75) {
+        return 12;
+    }
 
     sub <- -50;
     sub -<- -25; // neg - neg
-    if (sub != -25) return 13;
+    if (sub != -25) {
+        return 13;
+    }
 
     sub <- 100;
     sub -<- 0; // Identity: subtract zero
-    if (sub != 100) return 14;
+    if (sub != 100) {
+        return 14;
+    }
 
     sub <- -127;
     sub -<- 1; // Near min
-    if (sub != -128) return 15;
+    if (sub != -128) {
+        return 15;
+    }
 
     // ===== MULTIPLICATION (*<-) =====
     i8 mul <- 10;
     mul *<- 10; // pos * pos = 100
-    if (mul != 100) return 20;
+    if (mul != 100) {
+        return 20;
+    }
 
     mul <- -10;
     mul *<- 10; // neg * pos
-    if (mul != -100) return 21;
+    if (mul != -100) {
+        return 21;
+    }
 
     mul <- -10;
     mul *<- -10; // neg * neg = pos
-    if (mul != 100) return 22;
+    if (mul != 100) {
+        return 22;
+    }
 
     mul <- 50;
     mul *<- 1; // Identity: multiply by one
-    if (mul != 50) return 23;
+    if (mul != 50) {
+        return 23;
+    }
 
     mul <- 50;
     mul *<- -1; // Negate
-    if (mul != -50) return 24;
+    if (mul != -50) {
+        return 24;
+    }
 
     mul <- 100;
     mul *<- 0; // Multiply by zero
-    if (mul != 0) return 25;
+    if (mul != 0) {
+        return 25;
+    }
 
     // ===== DIVISION (/<-) =====
     i8 div <- 100;
     div /<- 10; // pos / pos
-    if (div != 10) return 30;
+    if (div != 10) {
+        return 30;
+    }
 
     div <- -100;
     div /<- 10; // neg / pos
-    if (div != -10) return 31;
+    if (div != -10) {
+        return 31;
+    }
 
     div <- -100;
     div /<- -10; // neg / neg
-    if (div != 10) return 32;
+    if (div != 10) {
+        return 32;
+    }
 
     div <- 50;
     div /<- 1; // Identity: divide by one
-    if (div != 50) return 33;
+    if (div != 50) {
+        return 33;
+    }
 
     div <- -50;
     div /<- -1; // neg / neg = pos
-    if (div != 50) return 34;
+    if (div != 50) {
+        return 34;
+    }
 
     div <- 127;
     div /<- 127; // Max / max = 1
-    if (div != 1) return 35;
+    if (div != 1) {
+        return 35;
+    }
 
     // ===== MODULO (%<-) =====
     i8 mod <- 107;
     mod %<- 10; // pos % pos
-    if (mod != 7) return 40;
+    if (mod != 7) {
+        return 40;
+    }
 
     mod <- -107;
     mod %<- 10; // neg % pos (C semantics: sign of dividend)
-    if (mod != -7) return 41;
+    if (mod != -7) {
+        return 41;
+    }
 
     mod <- 17;
     mod %<- 5; // 17 % 5 = 2
-    if (mod != 2) return 42;
+    if (mod != 2) {
+        return 42;
+    }
 
     mod <- 100;
     mod %<- 100; // Result zero
-    if (mod != 0) return 43;
+    if (mod != 0) {
+        return 43;
+    }
 
     mod <- -128;
     mod %<- 127; // Min % (max) = -1
-    if (mod != -1) return 44;
+    if (mod != -1) {
+        return 44;
+    }
 
     // ===== BITWISE AND (&<-) =====
     i8 andVal <- 0x7F; // Max positive (127)
     andVal &<- 0x0F; // Keep low nibble
-    if (andVal != 0x0F) return 50;
+    if (andVal != 0x0F) {
+        return 50;
+    }
 
     andVal <- -1; // 0xFF in two's complement
     andVal &<- 0x0F; // Keep low nibble
-    if (andVal != 0x0F) return 51;
+    if (andVal != 0x0F) {
+        return 51;
+    }
 
     andVal <- 0x55;
     andVal &<- 0xAA; // Non-overlapping
-    if (andVal != 0) return 52;
+    if (andVal != 0) {
+        return 52;
+    }
 
     andVal <- 0x7F;
     andVal &<- 0x7F; // Self AND
-    if (andVal != 0x7F) return 53;
+    if (andVal != 0x7F) {
+        return 53;
+    }
 
     // ===== BITWISE OR (|<-) =====
     i8 orVal <- 0x0F;
     orVal |<- 0x70; // Combine nibbles (keeping sign clear)
-    if (orVal != 0x7F) return 60;
+    if (orVal != 0x7F) {
+        return 60;
+    }
 
     orVal <- 0x12;
     orVal |<- 0x00; // OR with zero = identity
-    if (orVal != 0x12) return 61;
+    if (orVal != 0x12) {
+        return 61;
+    }
 
     orVal <- 0x55;
     orVal |<- 0x2A; // 0x55 | 0x2A = 0x7F
-    if (orVal != 0x7F) return 62;
+    if (orVal != 0x7F) {
+        return 62;
+    }
 
     // ===== BITWISE XOR (^<-) =====
     i8 xorVal <- 0x55;
     xorVal ^<- 0x55; // XOR with self = 0
-    if (xorVal != 0) return 70;
+    if (xorVal != 0) {
+        return 70;
+    }
 
     xorVal <- 0x0F;
     xorVal ^<- 0x70; // 0x0F ^ 0x70 = 0x7F
-    if (xorVal != 0x7F) return 71;
+    if (xorVal != 0x7F) {
+        return 71;
+    }
 
     xorVal <- -1;
     xorVal ^<- -1; // -1 XOR -1 = 0
-    if (xorVal != 0) return 72;
+    if (xorVal != 0) {
+        return 72;
+    }
 
     xorVal <- 0x55;
     xorVal ^<- 0x2A; // 0x55 ^ 0x2A = 0x7F
-    if (xorVal != 0x7F) return 73;
+    if (xorVal != 0x7F) {
+        return 73;
+    }
 
     // Note: Shift compound-assignment (<<<-, >><-) on signed types (i8) is rejected
     // per MISRA C:2012 Rule 10.1 (E0805). See tests/bitwise/i8-compound-shift-assign.test.cnx

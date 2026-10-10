@@ -34,7 +34,11 @@ uint32_t f(void) {
 
 int main(void) {
     uint32_t local = f();
-    if (local != 255) return 1U;
-    if (x != 0) return 2U;
+    if (local != 255) {
+        return 1U;
+    }
+    if (x != 0) {
+        return 2U;
+    }
     return 0U;
 }

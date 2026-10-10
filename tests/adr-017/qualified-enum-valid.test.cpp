@@ -55,20 +55,36 @@ uint32_t switchPriority(Priority p) {
 }
 
 int main(void) {
-    if (globalPriority != Priority__LOW) return 1U;
+    if (globalPriority != Priority__LOW) {
+        return 1U;
+    }
     Priority p = getPriority();
-    if (p != Priority__HIGH) return 2U;
+    if (p != Priority__HIGH) {
+        return 2U;
+    }
     uint32_t lowVal = priorityToValue(Priority__LOW);
-    if (lowVal != 1) return 3U;
+    if (lowVal != 1) {
+        return 3U;
+    }
     uint32_t medVal = priorityToValue(Priority__MEDIUM);
-    if (medVal != 2) return 4U;
+    if (medVal != 2) {
+        return 4U;
+    }
     uint32_t highVal = priorityToValue(Priority__HIGH);
-    if (highVal != 3) return 5U;
+    if (highVal != 3) {
+        return 5U;
+    }
     uint32_t switchLow = switchPriority(Priority__LOW);
-    if (switchLow != 10) return 6U;
+    if (switchLow != 10) {
+        return 6U;
+    }
     uint32_t switchMed = switchPriority(Priority__MEDIUM);
-    if (switchMed != 20) return 7U;
+    if (switchMed != 20) {
+        return 7U;
+    }
     uint32_t switchHigh = switchPriority(Priority__HIGH);
-    if (switchHigh != 30) return 8U;
+    if (switchHigh != 30) {
+        return 8U;
+    }
     return 0U;
 }

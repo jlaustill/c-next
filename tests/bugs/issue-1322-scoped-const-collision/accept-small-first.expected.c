@@ -20,10 +20,16 @@ uint8_t Large__table[8] = {1U, 2U, 3U, 4U, 5U, 6U, 7U, 8U};
 
 int main(void) {
     uint8_t small = Small__table[1U];
-    if (small != 2) return 1U;
+    if (small != 2) {
+        return 1U;
+    }
     uint8_t large = Large__table[7U];
-    if (large != 8) return 2U;
+    if (large != 8) {
+        return 2U;
+    }
     uint32_t count = 2;
-    if (count != 2) return 3U;
+    if (count != 2) {
+        return 3U;
+    }
     return 0U;
 }

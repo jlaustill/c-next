@@ -43,10 +43,20 @@ int main(void) {
     uint32_t main__limit = 2U;
     main__counter = cnx_clamp_add_u32(main__counter, main__limit);
     uint32_t viaCall = doubled(main__counter);
-    if (main__counter != 3) return 1U;
-    if (main__limit != 2) return 2U;
-    if (viaCall != 6) return 3U;
-    if (counter != 100) return 4U;
-    if (limit != 7) return 5U;
+    if (main__counter != 3) {
+        return 1U;
+    }
+    if (main__limit != 2) {
+        return 2U;
+    }
+    if (viaCall != 6) {
+        return 3U;
+    }
+    if (counter != 100) {
+        return 4U;
+    }
+    if (limit != 7) {
+        return 5U;
+    }
     return 0U;
 }

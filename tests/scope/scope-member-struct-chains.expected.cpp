@@ -45,31 +45,53 @@ void S__init(void) {
 
 uint32_t S__inside(void) {
     uint8_t a = S__cfg.arr[1U];
-    if (a != 7) return 1U;
+    if (a != 7) {
+        return 1U;
+    }
     bool b = ((((S__cfg.word >> 3U) & 1)) != 0U);
-    if (b != true) return 2U;
+    if (b != true) {
+        return 2U;
+    }
     uint32_t n = strlen(S__cfg.name);
-    if (n != 3) return 3U;
+    if (n != 3) {
+        return 3U;
+    }
     bool fa = ((((S__cfg.f >> 0) & 1)) != 0U);
-    if (fa != true) return 4U;
+    if (fa != true) {
+        return 4U;
+    }
     bool z = ((((S__cfg.word >> 2U) & 1)) != 0U);
-    if (z != false) return 5U;
+    if (z != false) {
+        return 5U;
+    }
     return 0U;
 }
 
 int main(void) {
     S__init();
     uint32_t inside = S__inside();
-    if (inside != 0) return cnx_clamp_add_u32(10U, inside);
+    if (inside != 0) {
+        return cnx_clamp_add_u32(10U, inside);
+    }
     uint8_t a = S__cfg.arr[1U];
-    if (a != 7) return 2U;
+    if (a != 7) {
+        return 2U;
+    }
     bool b = ((((S__cfg.word >> 3U) & 1)) != 0U);
-    if (b != true) return 3U;
+    if (b != true) {
+        return 3U;
+    }
     uint32_t n = strlen(S__cfg.name);
-    if (n != 3) return 4U;
+    if (n != 3) {
+        return 4U;
+    }
     bool fa = ((((S__cfg.f >> 0) & 1)) != 0U);
-    if (fa != true) return 5U;
+    if (fa != true) {
+        return 5U;
+    }
     bool fb = ((((S__cfg.f >> 1) & 1)) != 0U);
-    if (fb != false) return 6U;
+    if (fb != false) {
+        return 6U;
+    }
     return 0U;
 }

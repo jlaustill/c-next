@@ -197,11 +197,15 @@ u32 main() {
     u64 result <- 1000 + 500;
 
     // ALWAYS validate result
-    if (result != 1500) return 1;  // Return error code on failure
+    if (result != 1500) { // Return error code on failure
+        return 1;
+    }
 
     // Test another operation
     result <- 1000 - 200;
-    if (result != 800) return 2;   // Different error code
+    if (result != 800) { // Different error code
+        return 2;
+    }
 
     // ... more tests with incrementing error codes ...
 
@@ -242,7 +246,9 @@ u32 main() {
 // test-execution
 u32 main() {
     u64 result <- 1000 + 500;
-    if (result != 1500) return 1;  // Validation required!
+    if (result != 1500) { // Validation required!
+        return 1;
+    }
     return 0;
 }
 ```

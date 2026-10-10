@@ -57,18 +57,24 @@ u32 main() {
     // result is bound first and then compared.
     localHelper ownRef <- localHelper;
     u32 ownResult <- ownRef();
-    if (ownResult != 5) return 1;
+    if (ownResult != 5) {
+        return 1;
+    }
 
     // The assertion: cross-file function-as-type. The declaration was accepted
     // before the fix; the call was not.
     sharedHelper viaInclude <- sharedHelper;
     u32 includedResult <- viaInclude();
-    if (includedResult != 7) return 2;
+    if (includedResult != 7) {
+        return 2;
+    }
 
     // Both reached through their variables, pinning that the two paths produce
     // the same shape rather than merely both compiling.
     u32 combined <- ownResult + includedResult;
-    if (combined != 12) return 3;
+    if (combined != 12) {
+        return 3;
+    }
 
     // A void function is a type too, and is callable through a variable.
     sharedNotify viaVoid <- sharedNotify;
@@ -78,14 +84,18 @@ u32 main() {
     string<8> text <- "abcd";
     localWithText ownText <- localWithText;
     u32 ownLength <- ownText(text);
-    if (ownLength != 4) return 4;
+    if (ownLength != 4) {
+        return 4;
+    }
 
     // The parameter axis across the include boundary. `u32` is a type both
     // renderers agree on, so this pins that parameters SURVIVE the symbol path
     // at all -- which they did not have to, since nothing exercised them.
     sharedWithCount viaCount <- sharedWithCount;
     u32 counted <- viaCount(41);
-    if (counted != 42) return 5;
+    if (counted != 42) {
+        return 5;
+    }
 
     return 0;
 }

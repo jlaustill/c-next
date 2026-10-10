@@ -1,0 +1,29 @@
+// test-error
+// #1963 owner ruling: no type position may name a type declared later in the
+// file (ADR-030) -- a global, a local in a function above it, a parameter and
+// an enum alike are E0426.
+Later g;
+
+u32 readLater() {
+    Later l <- { y: 1 };
+    return l.y;
+}
+
+u32 takeLater(Later p) {
+    return p.y;
+}
+
+Mode early;
+
+struct Later {
+    u32 y;
+}
+
+enum Mode {
+    IDLE,
+    RUNNING
+}
+
+u32 main() {
+    return 0;
+}

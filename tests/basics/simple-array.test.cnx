@@ -11,40 +11,68 @@ u32 main() {
     numbers[3] <- 40;
     numbers[4] <- 50;
 
-    if (numbers[0] != 10) return 1;
-    if (numbers[2] != 30) return 2;
-    if (numbers[4] != 50) return 3;
+    if (numbers[0] != 10) {
+        return 1;
+    }
+    if (numbers[2] != 30) {
+        return 2;
+    }
+    if (numbers[4] != 50) {
+        return 3;
+    }
 
     // Array initialization with literal
     u8[4] bytes <- [1, 2, 3, 4];
-    if (bytes[0] != 1) return 4;
-    if (bytes[3] != 4) return 5;
+    if (bytes[0] != 1) {
+        return 4;
+    }
+    if (bytes[3] != 4) {
+        return 5;
+    }
 
     // Array length property
-    if (bytes.element_count != 4) return 6;
-    if (numbers.element_count != 5) return 7;
+    if (bytes.element_count != 4) {
+        return 6;
+    }
+    if (numbers.element_count != 5) {
+        return 7;
+    }
 
     // Iterate over array
     u32 sum <- 0;
     for (u32 i <- 0; i < numbers.element_count; i <- i + 1) {
         sum <- sum + numbers[i];
     }
-    if (sum != 150) return 8; // 10+20+30+40+50
+    if (sum != 150) {
+        return 8; // 10+20+30+40+50
+    }
 
     // Modify array element
     numbers[2] <- 100;
-    if (numbers[2] != 100) return 9;
+    if (numbers[2] != 100) {
+        return 9;
+    }
 
     // Signed integer array
     i32[3] temps <- [-10, 0, 25];
-    if (temps[0] != -10) return 10;
-    if (temps[1] != 0) return 11;
-    if (temps[2] != 25) return 12;
+    if (temps[0] != -10) {
+        return 10;
+    }
+    if (temps[1] != 0) {
+        return 11;
+    }
+    if (temps[2] != 25) {
+        return 12;
+    }
 
     // Boolean array
     bool[3] flags <- [true, false, true];
-    if (flags[0] != true) return 13;
-    if (flags[1] != false) return 14;
+    if (flags[0] != true) {
+        return 13;
+    }
+    if (flags[1] != false) {
+        return 14;
+    }
 
     return 0;
 }

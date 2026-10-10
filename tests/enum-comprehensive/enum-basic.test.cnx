@@ -34,21 +34,29 @@ scope Motor {
 u32 main() {
     // Test 1: Global enum
     EGlobalState state <- EGlobalState.IDLE;
-    if (state != EGlobalState.IDLE) return 1;
+    if (state != EGlobalState.IDLE) {
+        return 1;
+    }
 
     state <- EGlobalState.RUNNING;
-    if (state != EGlobalState.RUNNING) return 2;
+    if (state != EGlobalState.RUNNING) {
+        return 2;
+    }
 
     // Test 2: Scope enum via setter
     Motor.setMode(Motor.EMode.LOW);
 
     // Test 3: Scope enum via getter
     Motor.EMode motorMode <- Motor.getMode();
-    if (motorMode != Motor.EMode.LOW) return 3;
+    if (motorMode != Motor.EMode.LOW) {
+        return 3;
+    }
 
     // Test 4: Scope enum comparison
     bool isOff <- Motor.isOff();
-    if (isOff = true) return 4; // Should NOT be off
+    if (isOff = true) {
+        return 4; // Should NOT be off
+    }
 
     return 0;
 }

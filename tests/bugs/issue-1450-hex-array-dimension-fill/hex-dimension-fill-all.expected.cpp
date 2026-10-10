@@ -50,13 +50,19 @@ int main(void) {
     uint8_t binFill[8] = {7U, 7U, 7U, 7U, 7U, 7U, 7U, 7U};
     uint8_t decFill[8] = {7U, 7U, 7U, 7U, 7U, 7U, 7U, 7U};
     for (uint32_t i = 0U; i < 8; i = cnx_clamp_add_u32(i, 1U)) {
-        if (hexFill[i] != 7) return 1U;
+        if (hexFill[i] != 7) {
+            return 1U;
+        }
     }
     for (uint32_t j = 0U; j < 8; j = cnx_clamp_add_u32(j, 1U)) {
-        if (binFill[j] != 7) return 2U;
+        if (binFill[j] != 7) {
+            return 2U;
+        }
     }
     for (uint32_t k = 0U; k < 8; k = cnx_clamp_add_u32(k, 1U)) {
-        if (decFill[k] != 7) return 3U;
+        if (decFill[k] != 7) {
+            return 3U;
+        }
     }
     return 0U;
 }

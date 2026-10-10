@@ -36,8 +36,12 @@ int main(void) {
     Full f = { .pokes = 1U };
     full_register(onFull);
     full_invoke(&f);
-    if (f.pokes != 11) return 1;
+    if (f.pokes != 11) {
+        return 1;
+    }
     uint32_t snapshot = plainSnapshot(&f);
-    if (snapshot != 11) return 2;
+    if (snapshot != 11) {
+        return 2;
+    }
     return 0;
 }

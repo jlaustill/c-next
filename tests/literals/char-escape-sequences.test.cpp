@@ -11,33 +11,67 @@
 // Validates that escape sequences in char literals work correctly
 int main(void) {
     uint8_t newline = static_cast<uint8_t>('\n');
-    if (newline != 10) return 1U;
+    if (newline != 10) {
+        return 1U;
+    }
     uint8_t tab = static_cast<uint8_t>('\t');
-    if (tab != 9) return 2U;
+    if (tab != 9) {
+        return 2U;
+    }
     uint8_t cr = static_cast<uint8_t>('\r');
-    if (cr != 13) return 3U;
+    if (cr != 13) {
+        return 3U;
+    }
     uint8_t nul = static_cast<uint8_t>('\0');
-    if (nul != 0) return 4U;
+    if (nul != 0) {
+        return 4U;
+    }
     uint8_t backslash = static_cast<uint8_t>('\\');
-    if (backslash != 92) return 5U;
+    if (backslash != 92) {
+        return 5U;
+    }
     uint8_t quote = static_cast<uint8_t>('\'');
-    if (quote != 39) return 6U;
+    if (quote != 39) {
+        return 6U;
+    }
     uint8_t dquote = static_cast<uint8_t>('\"');
-    if (dquote != 34) return 7U;
+    if (dquote != 34) {
+        return 7U;
+    }
     uint8_t escapes[7] = {static_cast<uint8_t>('\n'), static_cast<uint8_t>('\t'), static_cast<uint8_t>('\r'), static_cast<uint8_t>('\0'), static_cast<uint8_t>('\\'), static_cast<uint8_t>('\''), static_cast<uint8_t>('\"')};
-    if (escapes[0U] != 10) return 8U;
-    if (escapes[1U] != 9) return 9U;
-    if (escapes[2U] != 13) return 10U;
-    if (escapes[3U] != 0) return 11U;
-    if (escapes[4U] != 92) return 12U;
-    if (escapes[5U] != 39) return 13U;
-    if (escapes[6U] != 34) return 14U;
+    if (escapes[0U] != 10) {
+        return 8U;
+    }
+    if (escapes[1U] != 9) {
+        return 9U;
+    }
+    if (escapes[2U] != 13) {
+        return 10U;
+    }
+    if (escapes[3U] != 0) {
+        return 11U;
+    }
+    if (escapes[4U] != 92) {
+        return 12U;
+    }
+    if (escapes[5U] != 39) {
+        return 13U;
+    }
+    if (escapes[6U] != 34) {
+        return 14U;
+    }
     uint8_t c = static_cast<uint8_t>('\n');
-    if (c != static_cast<uint8_t>('\n')) return 15U;
+    if (c != static_cast<uint8_t>('\n')) {
+        return 15U;
+    }
     c = static_cast<uint8_t>('\t');
-    if (c != static_cast<uint8_t>('\t')) return 16U;
+    if (c != static_cast<uint8_t>('\t')) {
+        return 16U;
+    }
     c = static_cast<uint8_t>('\0');
-    if (c != static_cast<uint8_t>('\0')) return 17U;
+    if (c != static_cast<uint8_t>('\0')) {
+        return 17U;
+    }
     uint8_t whitespace = static_cast<uint8_t>('\t');
     uint32_t wsType = 0U;
     switch (whitespace) {
@@ -62,7 +96,9 @@ int main(void) {
             break;
         }
     }
-    if (wsType != 2) return 18U;
+    if (wsType != 2) {
+        return 18U;
+    }
     whitespace = static_cast<uint8_t>('\n');
     switch (whitespace) {
         case ' ': {
@@ -86,6 +122,8 @@ int main(void) {
             break;
         }
     }
-    if (wsType != 3) return 19U;
+    if (wsType != 3) {
+        return 19U;
+    }
     return 0U;
 }

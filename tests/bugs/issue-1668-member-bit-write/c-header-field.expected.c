@@ -20,9 +20,13 @@ cf_t cs = {0};
 int main(void) {
     cs.flags = (uint8_t)((cs.flags & ~(1U << 3)) | (1U << 3));
     uint8_t f = cs.flags;
-    if (f != 8) return 1U;
+    if (f != 8) {
+        return 1U;
+    }
     cs.bytes[1] = 7U;
     uint8_t b = cs.bytes[1U];
-    if (b != 7) return 2U;
+    if (b != 7) {
+        return 2U;
+    }
     return 0U;
 }

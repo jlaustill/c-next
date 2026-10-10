@@ -24,8 +24,12 @@ uint32_t second(void) {
 
 int main(void) {
     uint32_t local = first(7U);
-    if (local != 7) return 1U;
+    if (local != 7) {
+        return 1U;
+    }
     uint32_t width = second();
-    if (width != 32) return 2U;
+    if (width != 32) {
+        return 2U;
+    }
     return 0U;
 }

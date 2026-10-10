@@ -30,7 +30,11 @@ scope Cfg {
 
 u32 main() {
     u32 result <- Cfg.check();
-    if (result != 0) return result;
-    if (title.char_count != 3 || title.char_count < 1) return 3;
+    if (result != 0) {
+        return result;
+    }
+    if (title.char_count != 3 || title.char_count < 1) {
+        return 3;
+    }
     return 0;
 }

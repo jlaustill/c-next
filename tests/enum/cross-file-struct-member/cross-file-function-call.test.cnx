@@ -7,15 +7,21 @@
 u32 main() {
     // Call cross-file function with const params
     u32 sum <- MathUtils.add(10, 20);
-    if (sum != 30) return 1;
+    if (sum != 30) {
+        return 1;
+    }
 
     // Call cross-file function with non-const params
     u32 product <- MathUtils.multiply(5, 6);
-    if (product != 30) return 2;
+    if (product != 30) {
+        return 2;
+    }
 
     // Use results in expressions
     u32 combined <- MathUtils.add(sum, product);
-    if (combined != 60) return 3;
+    if (combined != 60) {
+        return 3;
+    }
 
     return 0;
 }

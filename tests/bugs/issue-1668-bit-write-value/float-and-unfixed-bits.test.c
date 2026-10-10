@@ -38,7 +38,9 @@ int main(void) {
         __bits.u = (__bits.u & ~((uint32_t)1U << 31)) | ((uint32_t)1U << 31);
         fa[1] = __bits.f;
     }
-    if (fa[1U] != -2.0) return 1U;
+    if (fa[1U] != -2.0) {
+        return 1U;
+    }
     {
         /* MISRA C:2012 Rule 21.15: float bits accessed through a union (memcpy would pass incompatible pointer types: float* vs uint32_t*). */
         union { float f; uint32_t u; } __bits;
@@ -46,7 +48,9 @@ int main(void) {
         __bits.u = (__bits.u & ~((uint32_t)0x7FFFFFU << 0)) | ((0U & (uint32_t)0x7FFFFFU) << 0);
         fa[0] = __bits.f;
     }
-    if (fa[0U] != 1.0) return 2U;
+    if (fa[0U] != 1.0) {
+        return 2U;
+    }
     gs.level = 3.0;
     {
         /* MISRA C:2012 Rule 21.15: float bits accessed through a union (memcpy would pass incompatible pointer types: float* vs uint32_t*). */
@@ -55,7 +59,9 @@ int main(void) {
         __bits.u = (__bits.u & ~((uint32_t)1U << 31)) | ((uint32_t)1U << 31);
         gs.level = __bits.f;
     }
-    if (gs.level != -3.0) return 3U;
+    if (gs.level != -3.0) {
+        return 3U;
+    }
     {
         /* MISRA C:2012 Rule 21.15: float bits accessed through a union (memcpy would pass incompatible pointer types: float* vs uint32_t*). */
         union { float f; uint32_t u; } __bits;
@@ -63,18 +69,28 @@ int main(void) {
         __bits.u = (__bits.u & ~((uint32_t)1U << 31)) | ((uint32_t)1U << 31);
         hfa[1] = __bits.f;
     }
-    if (hfa[1U] != -5.0) return 4U;
+    if (hfa[1U] != -5.0) {
+        return 4U;
+    }
     hf = (int_fast16_t)((hf & ~((uintmax_t)1U << 3)) | ((uintmax_t)1U << 3));
-    if (hf != -8) return 5U;
+    if (hf != -8) {
+        return 5U;
+    }
     hf = (int_fast16_t)((hf & ~((uintmax_t)0xFU << 0)) | ((0U & (uintmax_t)0xFU) << 0));
-    if (hf != -16) return 6U;
+    if (hf != -16) {
+        return 6U;
+    }
     gs.flags = (gs.flags & ~((uint32_t)1U << 31)) | ((uint32_t)1U << 31);
-    if (gs.flags != 0x80000000) return 7U;
+    if (gs.flags != 0x80000000) {
+        return 7U;
+    }
     /* MISRA C:2012 Rule 21.15: float bits accessed through a union (memcpy would pass incompatible pointer types: float* vs uint32_t*). */
     union { float f; uint32_t u; } __bits_lone;
     __bits_lone.f = lone;
     __bits_lone.u = (__bits_lone.u & ~((uint32_t)1U << 31)) | ((uint32_t)1U << 31);
     lone = __bits_lone.f;
-    if (lone != -4.0) return 8U;
+    if (lone != -4.0) {
+        return 8U;
+    }
     return 0U;
 }

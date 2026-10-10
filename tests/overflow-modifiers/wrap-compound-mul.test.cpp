@@ -13,110 +13,186 @@
 int main(void) {
     uint8_t val8 = 20U;
     val8 = static_cast<uint8_t>((val8 * 20U));
-    if (val8 != 144) return 1U;
+    if (val8 != 144) {
+        return 1U;
+    }
     val8 = 200U;
     val8 = static_cast<uint8_t>((val8 * 2U));
-    if (val8 != 144) return 2U;
+    if (val8 != 144) {
+        return 2U;
+    }
     val8 = 10U;
     val8 = static_cast<uint8_t>((val8 * 100U));
-    if (val8 != 232) return 3U;
+    if (val8 != 232) {
+        return 3U;
+    }
     val8 = 10U;
     val8 = static_cast<uint8_t>((val8 * 10U));
-    if (val8 != 100) return 4U;
+    if (val8 != 100) {
+        return 4U;
+    }
     val8 = 200U;
     val8 = static_cast<uint8_t>((val8 * 1U));
-    if (val8 != 200) return 5U;
+    if (val8 != 200) {
+        return 5U;
+    }
     val8 = 200U;
     val8 = static_cast<uint8_t>((val8 * 0U));
-    if (val8 != 0) return 6U;
+    if (val8 != 0) {
+        return 6U;
+    }
     val8 = 255U;
     val8 = static_cast<uint8_t>((val8 * 1U));
-    if (val8 != 255) return 7U;
+    if (val8 != 255) {
+        return 7U;
+    }
     val8 = 128U;
     val8 = static_cast<uint8_t>((val8 * 2U));
-    if (val8 != 0) return 8U;
+    if (val8 != 0) {
+        return 8U;
+    }
     val8 = 64U;
     val8 = static_cast<uint8_t>((val8 * 8U));
-    if (val8 != 0) return 9U;
+    if (val8 != 0) {
+        return 9U;
+    }
     uint16_t val16 = 300U;
     val16 = static_cast<uint16_t>((val16 * 300U));
-    if (val16 != 24464) return 10U;
+    if (val16 != 24464) {
+        return 10U;
+    }
     val16 = 100U;
     val16 = static_cast<uint16_t>((val16 * 100U));
-    if (val16 != 10000) return 11U;
+    if (val16 != 10000) {
+        return 11U;
+    }
     val16 = 256U;
     val16 = static_cast<uint16_t>((val16 * 256U));
-    if (val16 != 0) return 12U;
+    if (val16 != 0) {
+        return 12U;
+    }
     val16 = 512U;
     val16 = static_cast<uint16_t>((val16 * 128U));
-    if (val16 != 0) return 13U;
+    if (val16 != 0) {
+        return 13U;
+    }
     uint32_t val32 = 1000U;
     val32 *= 1000U;
-    if (val32 != 1000000) return 14U;
+    if (val32 != 1000000) {
+        return 14U;
+    }
     val32 = 65536U;
     val32 *= 65536U;
-    if (val32 != 0) return 15U;
+    if (val32 != 0) {
+        return 15U;
+    }
     val32 = 100000U;
     val32 *= 100000U;
-    if (val32 != 1410065408) return 16U;
+    if (val32 != 1410065408) {
+        return 16U;
+    }
     uint64_t val64 = 1000000000ULL;
     val64 *= 1000ULL;
-    if (val64 != 1000000000000) return 17U;
+    if (val64 != 1000000000000) {
+        return 17U;
+    }
     val64 = 9223372036854775807ULL;
     val64 *= 1ULL;
-    if (val64 != 9223372036854775807) return 18U;
+    if (val64 != 9223372036854775807) {
+        return 18U;
+    }
     int8_t vali8 = 16;
     vali8 = static_cast<int8_t>((vali8 * 16));
-    if (vali8 != 0) return 19U;
+    if (vali8 != 0) {
+        return 19U;
+    }
     vali8 = 10;
     vali8 = static_cast<int8_t>((vali8 * 20));
-    if (vali8 != -56) return 20U;
+    if (vali8 != -56) {
+        return 20U;
+    }
     vali8 = -10;
     vali8 = static_cast<int8_t>((vali8 * 5));
-    if (vali8 != -50) return 21U;
+    if (vali8 != -50) {
+        return 21U;
+    }
     vali8 = -16;
     vali8 = static_cast<int8_t>((vali8 * -16));
-    if (vali8 != 0) return 22U;
+    if (vali8 != 0) {
+        return 22U;
+    }
     vali8 = 5;
     vali8 = static_cast<int8_t>((vali8 * 5));
-    if (vali8 != 25) return 23U;
+    if (vali8 != 25) {
+        return 23U;
+    }
     int16_t vali16 = 200;
     vali16 = static_cast<int16_t>((vali16 * 200));
-    if (vali16 != -25536) return 24U;
+    if (vali16 != -25536) {
+        return 24U;
+    }
     vali16 = 256;
     vali16 = static_cast<int16_t>((vali16 * 256));
-    if (vali16 != 0) return 25U;
+    if (vali16 != 0) {
+        return 25U;
+    }
     vali16 = 100;
     vali16 = static_cast<int16_t>((vali16 * 100));
-    if (vali16 != 10000) return 26U;
+    if (vali16 != 10000) {
+        return 26U;
+    }
     int32_t vali32 = 1000;
     vali32 *= 1000;
-    if (vali32 != 1000000) return 27U;
+    if (vali32 != 1000000) {
+        return 27U;
+    }
     vali32 = 65536;
     vali32 *= 65536;
-    if (vali32 != 0) return 28U;
+    if (vali32 != 0) {
+        return 28U;
+    }
     int64_t vali64 = 1000000;
     vali64 *= 1000000;
-    if (vali64 != 1000000000000) return 29U;
+    if (vali64 != 1000000000000) {
+        return 29U;
+    }
     vali64 = 100;
     vali64 *= -1;
-    if (vali64 != -100) return 30U;
+    if (vali64 != -100) {
+        return 30U;
+    }
     val8 = 2U;
     val8 = static_cast<uint8_t>((val8 * 2U));
-    if (val8 != 4) return 31U;
+    if (val8 != 4) {
+        return 31U;
+    }
     val8 = static_cast<uint8_t>((val8 * 2U));
-    if (val8 != 8) return 32U;
+    if (val8 != 8) {
+        return 32U;
+    }
     val8 = static_cast<uint8_t>((val8 * 2U));
-    if (val8 != 16) return 33U;
+    if (val8 != 16) {
+        return 33U;
+    }
     val8 = static_cast<uint8_t>((val8 * 2U));
-    if (val8 != 32) return 34U;
+    if (val8 != 32) {
+        return 34U;
+    }
     val8 = static_cast<uint8_t>((val8 * 2U));
-    if (val8 != 64) return 35U;
+    if (val8 != 64) {
+        return 35U;
+    }
     val8 = static_cast<uint8_t>((val8 * 2U));
-    if (val8 != 128) return 36U;
+    if (val8 != 128) {
+        return 36U;
+    }
     val8 = static_cast<uint8_t>((val8 * 2U));
-    if (val8 != 0) return 37U;
+    if (val8 != 0) {
+        return 37U;
+    }
     val8 = static_cast<uint8_t>((val8 * 2U));
-    if (val8 != 0) return 38U;
+    if (val8 != 0) {
+        return 38U;
+    }
     return 0U;
 }

@@ -1,0 +1,8 @@
+6:18 error[E0716]: 'if' body must be a braced block
+       help: Wrap the body in braces: `if (...) { ... }` (MISRA C:2012 Rule 15.6)
+9:11 error[E0716]: 'else' body must be a braced block
+       help: Wrap the body in braces: `else { ... }` (MISRA C:2012 Rule 15.6)
+10:18 error[E0716]: 'while' body must be a braced block
+       help: Wrap the body in braces: `while (...) { ... }` (MISRA C:2012 Rule 15.6)
+11:37 error[E0716]: 'for' body must be a braced block
+       help: Wrap the body in braces: `for (...) { ... }` (MISRA C:2012 Rule 15.6)

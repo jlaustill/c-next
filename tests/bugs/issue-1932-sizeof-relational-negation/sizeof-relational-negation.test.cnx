@@ -13,8 +13,12 @@ i32 b <- 2;
 
 u32 main() {
     u32 relational <- sizeof((a < -b) ? a : b);
-    if (relational = 0) return 1;
+    if (relational = 0) {
+        return 1;
+    }
     u32 greater <- sizeof((a > -b) ? a : b);
-    if (greater = 0) return 2;
+    if (greater = 0) {
+        return 2;
+    }
     return 0;
 }

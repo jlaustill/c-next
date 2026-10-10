@@ -16,8 +16,12 @@ scope Meter {
 u32 main() {
     u8 small <- 200;
     u32 r <- small + Meter.reading();
-    if (r != 300) return 1;
+    if (r != 300) {
+        return 1;
+    }
     u32 d <- Meter.doubled(small);
-    if (d != 300) return 2;
+    if (d != 300) {
+        return 2;
+    }
     return 0;
 }

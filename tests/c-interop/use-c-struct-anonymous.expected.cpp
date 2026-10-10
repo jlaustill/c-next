@@ -16,8 +16,12 @@ int main(void) {
     SimpleRecord sr = {};
     sr.id = 99999U;
     sr.flags = 0x1234U;
-    if (sr.id != 99999) return 1U;
-    if (sr.flags != 0x1234) return 2U;
+    if (sr.id != 99999) {
+        return 1U;
+    }
+    if (sr.flags != 0x1234) {
+        return 2U;
+    }
     DataBuffer buf = {};
     buf.len = 5U;
     buf.data[0] = 0x11U;
@@ -25,23 +29,47 @@ int main(void) {
     buf.data[2] = 0x33U;
     buf.data[3] = 0x44U;
     buf.data[4] = 0x55U;
-    if (buf.len != 5) return 3U;
-    if (buf.data[0U] != 0x11) return 4U;
-    if (buf.data[4U] != 0x55) return 5U;
+    if (buf.len != 5) {
+        return 3U;
+    }
+    if (buf.data[0U] != 0x11) {
+        return 4U;
+    }
+    if (buf.data[4U] != 0x55) {
+        return 5U;
+    }
     MixedTypes mt = {};
     mt.active = true;
     mt.byte_val = 255U;
     mt.word_val = 1000U;
     mt.dword_val = 100000U;
     mt.signed_val = -50000;
-    if (mt.active != true) return 6U;
-    if (mt.byte_val != 255) return 7U;
-    if (mt.word_val != 1000) return 8U;
-    if (mt.dword_val != 100000) return 9U;
-    if (mt.signed_val != -50000) return 10U;
-    if (8 != 8) return 11U;
-    if (16 != 16) return 12U;
-    if (32 != 32) return 13U;
-    if (32 != 32) return 14U;
+    if (mt.active != true) {
+        return 6U;
+    }
+    if (mt.byte_val != 255) {
+        return 7U;
+    }
+    if (mt.word_val != 1000) {
+        return 8U;
+    }
+    if (mt.dword_val != 100000) {
+        return 9U;
+    }
+    if (mt.signed_val != -50000) {
+        return 10U;
+    }
+    if (8 != 8) {
+        return 11U;
+    }
+    if (16 != 16) {
+        return 12U;
+    }
+    if (32 != 32) {
+        return 13U;
+    }
+    if (32 != 32) {
+        return 14U;
+    }
     return 0U;
 }

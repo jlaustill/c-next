@@ -39,6 +39,8 @@ u32 main() {
     describe viaInclude <- describe;
     string<8> text <- "abcd";
     u32 length <- viaInclude(text);
-    if (length != 4) return 1;
+    if (length != 4) {
+        return 1;
+    }
     return 0;
 }

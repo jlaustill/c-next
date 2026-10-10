@@ -66,23 +66,41 @@ uint32_t complexChain(uint32_t a, uint32_t& b, uint32_t c) {
 int main(void) {
     uint32_t x = 100U;
     level1DeepModify(x);
-    if (x != 999) return 1U;
+    if (x != 999) {
+        return 1U;
+    }
     uint32_t y = 50U;
     uint32_t result = level1DeepRead(y);
-    if (result != 51) return 2U;
-    if (y != 50) return 3U;
+    if (result != 51) {
+        return 2U;
+    }
+    if (y != 50) {
+        return 3U;
+    }
     uint32_t r = 10U;
     uint32_t m = 20U;
     level2Mixed(r, m);
-    if (r != 10) return 4U;
-    if (m != 999) return 5U;
+    if (r != 10) {
+        return 4U;
+    }
+    if (m != 999) {
+        return 5U;
+    }
     uint32_t a = 5U;
     uint32_t b = 100U;
     uint32_t c = 7U;
     result = complexChain(a, b, c);
-    if (result != 14) return 6U;
-    if (a != 5) return 7U;
-    if (b != 999) return 8U;
-    if (c != 7) return 9U;
+    if (result != 14) {
+        return 6U;
+    }
+    if (a != 5) {
+        return 7U;
+    }
+    if (b != 999) {
+        return 8U;
+    }
+    if (c != 7) {
+        return 9U;
+    }
     return 0U;
 }

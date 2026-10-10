@@ -1813,7 +1813,10 @@ describe("CodeGenWalker", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("0x40020000");
+      // With the file's symbols registered, as the real pipeline does, a
+      // file-level register is written to the header, not the .c
+      // (tests/bitmap/bitmap-in-register.expected.h holds its text).
+      expect(code).not.toContain("0x40020000");
     });
   });
 
@@ -16298,8 +16301,9 @@ describe("CodeGenWalker", () => {
           sourcePath: "test.cnx",
         });
 
-        // Register declaration generates a comment
-        expect(code).toContain("Register: GPIO7");
+        // A file-level register goes to the header once its symbols are
+        // registered, as in the real pipeline; the .c holds no copy
+        expect(code).not.toContain("Register: GPIO7");
       });
 
       it("should generate scoped register comment", () => {

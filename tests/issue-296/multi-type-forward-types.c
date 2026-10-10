@@ -10,3 +10,7 @@
 
 // Issue #404: Multiple type definitions for forward declaration tests
 // Tests multiple structs and an enum used across files
+DeviceStatus DeviceStatus_init(void) {
+    DeviceStatus value = { .state = EDeviceState__STATE_OFF };
+    return value;
+}

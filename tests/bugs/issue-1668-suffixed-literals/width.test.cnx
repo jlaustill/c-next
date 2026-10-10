@@ -7,14 +7,20 @@ u32 main() {
     u8 b <- 200;
 
     u32 r1 <- b + 100u32;
-    if (r1 != 300) return 1;
+    if (r1 != 300) {
+        return 1;
+    }
     u32 r2 <- 100u32 + b;
-    if (r2 != 300) return 2;
+    if (r2 != 300) {
+        return 2;
+    }
 
     // NEGATIVE CONTROL: an unsuffixed literal has no width of its own, and
     // the helper is `b`'s.
     u8 r3 <- b + 100;
-    if (r3 != 255) return 3;
+    if (r3 != 255) {
+        return 3;
+    }
 
     return 0;
 }

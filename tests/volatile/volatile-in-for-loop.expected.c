@@ -32,24 +32,32 @@ int main(void) {
     for (volatile uint32_t i = 0U; i < 5; i = cnx_clamp_add_u32(i, 1U)) {
         sum = cnx_clamp_add_u32(sum, i);
     }
-    if (sum != 10) return 1U;
+    if (sum != 10) {
+        return 1U;
+    }
     volatile uint32_t iterations = 0U;
     for (volatile uint32_t j = 10U; j > 0; j = cnx_clamp_sub_u32(j, 1U)) {
         iterations = cnx_clamp_add_u32(iterations, 1U);
     }
-    if (iterations != 10) return 2U;
+    if (iterations != 10) {
+        return 2U;
+    }
     uint32_t total = 0U;
     for (volatile uint32_t outer = 0U; outer < 3; outer = cnx_clamp_add_u32(outer, 1U)) {
         for (volatile uint32_t inner = 0U; inner < 4; inner = cnx_clamp_add_u32(inner, 1U)) {
             total = cnx_clamp_add_u32(total, 1U);
         }
     }
-    if (total != 12) return 3U;
+    if (total != 12) {
+        return 3U;
+    }
     volatile uint32_t step = 2U;
     uint32_t count = 0U;
     for (volatile uint32_t k = 0U; k < 10; k = cnx_clamp_add_u32(k, step)) {
         count = cnx_clamp_add_u32(count, 1U);
     }
-    if (count != 5) return 4U;
+    if (count != 5) {
+        return 4U;
+    }
     return 0U;
 }

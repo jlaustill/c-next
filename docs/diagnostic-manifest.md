@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-504 fixture(s) assert a diagnostic; 494 carry a code.
+519 fixture(s) assert a diagnostic; 509 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -272,6 +272,9 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1042-bare-bool-condition/bare-bool-member.test.cnx                              | E0701               |
 | tests/bugs/issue-1042-bare-bool-condition/bare-bool-negation.test.cnx                            | E0701               |
 | tests/bugs/issue-1042-bare-bool-condition/bare-bool-param.test.cnx                               | E0701               |
+| tests/bugs/issue-1090-braced-bodies/nested-bodies.test.cnx                                       | E0716               |
+| tests/bugs/issue-1090-braced-bodies/unbraced-bodies.test.cnx                                     | E0716               |
+| tests/bugs/issue-1090-braced-bodies/unbraced-declaration.test.cnx                                | E0716               |
 | tests/bugs/issue-1133-guard-collision-diagnostic/guard-collision.test.cnx                        | E0203               |
 | tests/bugs/issue-1145-atomic-bool-clamp-helper/atomic-bool-compound.test.cnx                     | E0806               |
 | tests/bugs/issue-1159-dimension-notation-bounds/binary-dimension-bounds.test.cnx                 | E0854               |
@@ -316,6 +319,12 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1220-analyzer-cross-file-symbols/signed-shift-imported-direct.test.cnx          | E0805               |
 | tests/bugs/issue-1220-analyzer-cross-file-symbols/signed-shift-imported-transitive.test.cnx      | E0805               |
 | tests/bugs/issue-1220-analyzer-cross-file-symbols/signed-shift-same-file.test.cnx                | E0805               |
+| tests/bugs/issue-1283-adr029-init-at-declaration/callback-array-read-before-assign.test.cnx      | E0381               |
+| tests/bugs/issue-1283-adr029-init-at-declaration/callback-read-before-assign.test.cnx            | E0381               |
+| tests/bugs/issue-1283-adr029-init-at-declaration/int16-macro-dimension.test.cnx                  | E0359               |
+| tests/bugs/issue-1283-adr029-init-at-declaration/macro-index-bounds.test.cnx                     | E0854               |
+| tests/bugs/issue-1283-adr029-init-at-declaration/non-callback-field-read.test.cnx                | E0381               |
+| tests/bugs/issue-1283-adr029-init-at-declaration/unreadable-macro-size.test.cnx                  | E0359               |
 | tests/bugs/issue-1306-nested-scope-diagnostic/cross-file-nested.test.cnx                         | E0430               |
 | tests/bugs/issue-1307-external-identifier-significance/colliding-scope-members.test.cnx          | E0204               |
 | tests/bugs/issue-1307-external-identifier-significance/cross-file-collision.test.cnx             | E0204               |
@@ -441,6 +450,12 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1866-scope-member-is-not-external/included-member-from-file-scope.test.cnx      | E0422               |
 | tests/bugs/issue-1866-scope-member-is-not-external/included-member-from-other-scope.test.cnx     | E0422               |
 | tests/bugs/issue-1866-scope-member-is-not-external/later-member-bare-call.test.cnx               | E0422               |
+| tests/bugs/issue-1874-dimension-range/dimension-range.test.cnx                                   | E0913               |
+| tests/bugs/issue-1963-define-before-use/global-and-local.test.cnx                                | E0426               |
+| tests/bugs/issue-1963-define-before-use/struct-field.test.cnx                                    | E0426               |
+| tests/bugs/issue-1980-enum-read-before-assign/enum-read-before-assign.test.cnx                   | E0381               |
+| tests/bugs/issue-1981-struct-cycle/direct.test.cnx                                               | E0426               |
+| tests/bugs/issue-1981-struct-cycle/mutual.test.cnx                                               | E0426               |
 | tests/bugs/issue-847-misra-17-7-lowering/bare-intra-scope-discard.test.cnx                       | E0708               |
 | tests/bugs/issue-847-misra-17-7-lowering/cross-file-scope-discard.test.cnx                       | E0708               |
 | tests/bugs/issue-847-misra-17-7-lowering/external-c-discard.test.cnx                             | E0708               |

@@ -6,7 +6,12 @@
 #include "repro.test.hpp"
 
 // Minimal reproduction: assign struct enum field to local enum variable
-TInput input = {};
+TInput TInput_init(void) {
+    TInput value = { EValueId__VALUE_A };
+    return value;
+}
+
+TInput input = { EValueId__VALUE_A };
 
 int main(void) {
     EValueId val = input.assignedValue;

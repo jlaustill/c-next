@@ -1,0 +1,22 @@
+// test-error
+// #1283 review: once C-Next reads a header macro's value to spell every
+// element's default, E0854 checks an index against that same count -- as it
+// does `u32[3] lit; lit[5]` -- for a global, a struct field and a local. The
+// in-range read of the global stays silent.
+#include "handler_sizes.h"
+
+struct Bank {
+    u32[N_HANDLERS] counts;
+}
+
+u32[N_HANDLERS] arr;
+Bank bank;
+
+u32 main() {
+    u32 a <- arr[5];
+    u32 b <- bank.counts[3];
+    u32 ok <- arr[2];
+    u32[N_HANDLERS] loc <- [0*];
+    loc[4] <- 1;
+    return a + b + ok;
+}

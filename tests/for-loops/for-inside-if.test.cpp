@@ -31,7 +31,9 @@ int main(void) {
             sum = cnx_clamp_add_u32(sum, i);
         }
     }
-    if (sum != 10) return 1U;
+    if (sum != 10) {
+        return 1U;
+    }
     sum = 0U;
     condition = false;
     if (condition == true) {
@@ -41,7 +43,9 @@ int main(void) {
             sum = cnx_clamp_add_u32(sum, 10U);
         }
     }
-    if (sum != 30) return 2U;
+    if (sum != 30) {
+        return 2U;
+    }
     uint32_t resultA = 0U;
     uint32_t resultB = 0U;
     bool flag = true;
@@ -54,8 +58,12 @@ int main(void) {
             resultB = cnx_clamp_add_u32(resultB, 1U);
         }
     }
-    if (resultA != 4) return 3U;
-    if (resultB != 0) return 4U;
+    if (resultA != 4) {
+        return 3U;
+    }
+    if (resultB != 0) {
+        return 4U;
+    }
     sum = 0U;
     condition = true;
     flag = true;
@@ -66,6 +74,8 @@ int main(void) {
             }
         }
     }
-    if (sum != 10) return 5U;
+    if (sum != 10) {
+        return 5U;
+    }
     return 0U;
 }

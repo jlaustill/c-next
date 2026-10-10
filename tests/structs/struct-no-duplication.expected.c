@@ -21,6 +21,8 @@ int main(void) {
     data.value = 42U;
     data.count = 1U;
     uint8_t result = Handler__process(&data);
-    if (result != 42) return 1U;
+    if (result != 42) {
+        return 1U;
+    }
     return 0U;
 }

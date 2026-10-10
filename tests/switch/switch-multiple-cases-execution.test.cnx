@@ -102,25 +102,39 @@ u32 main() {
     u32 val50 <- 50;
 
     testMultiCase(val0);
-    if (result != 100) return 1;
+    if (result != 100) {
+        return 1;
+    }
 
     testMultiCase(val1);
-    if (result != 100) return 2;
+    if (result != 100) {
+        return 2;
+    }
 
     testMultiCase(val2);
-    if (result != 100) return 3;
+    if (result != 100) {
+        return 3;
+    }
 
     testMultiCase(val10);
-    if (result != 200) return 4;
+    if (result != 200) {
+        return 4;
+    }
 
     testMultiCase(val20);
-    if (result != 200) return 5;
+    if (result != 200) {
+        return 5;
+    }
 
     testMultiCase(val100);
-    if (result != 300) return 6;
+    if (result != 300) {
+        return 6;
+    }
 
     testMultiCase(val50);
-    if (result != 999) return 7;
+    if (result != 999) {
+        return 7;
+    }
 
     // === HEX LITERAL TESTS (5 validations: codes 8-12) ===
     u8 hex0 <- 0x00;
@@ -130,19 +144,29 @@ u32 main() {
     u8 hexOther <- 0x50;
 
     testMultiCaseHex(hex0);
-    if (result != 10) return 8;
+    if (result != 10) {
+        return 8;
+    }
 
     testMultiCaseHex(hex1);
-    if (result != 10) return 9;
+    if (result != 10) {
+        return 9;
+    }
 
     testMultiCaseHex(hexA);
-    if (result != 20) return 10;
+    if (result != 20) {
+        return 10;
+    }
 
     testMultiCaseHex(hexFF);
-    if (result != 30) return 11;
+    if (result != 30) {
+        return 11;
+    }
 
     testMultiCaseHex(hexOther);
-    if (result != 99) return 12;
+    if (result != 99) {
+        return 12;
+    }
 
     // === BINARY LITERAL TESTS (5 validations: codes 13-17) ===
     u8 bin0 <- 0b00000000;
@@ -152,19 +176,29 @@ u32 main() {
     u8 binOther <- 0b00100000;
 
     testMultiCaseBinary(bin0);
-    if (result != 40) return 13;
+    if (result != 40) {
+        return 13;
+    }
 
     testMultiCaseBinary(bin1);
-    if (result != 40) return 14;
+    if (result != 40) {
+        return 14;
+    }
 
     testMultiCaseBinary(binA);
-    if (result != 50) return 15;
+    if (result != 50) {
+        return 15;
+    }
 
     testMultiCaseBinary(binFF);
-    if (result != 60) return 16;
+    if (result != 60) {
+        return 16;
+    }
 
     testMultiCaseBinary(binOther);
-    if (result != 99) return 17;
+    if (result != 99) {
+        return 17;
+    }
 
     // === SIGNED MULTI-CASE TESTS (8 validations: codes 18-25) ===
     // Note: Using positive case labels; negative values fall to default
@@ -178,28 +212,44 @@ u32 main() {
     i8 sNeg <- -50;
 
     testMultiCaseSigned(sZero);
-    if (result != 1) return 18;
+    if (result != 1) {
+        return 18;
+    }
 
     testMultiCaseSigned(sOne);
-    if (result != 1) return 19;
+    if (result != 1) {
+        return 19;
+    }
 
     testMultiCaseSigned(sTwo);
-    if (result != 1) return 20;
+    if (result != 1) {
+        return 20;
+    }
 
     testMultiCaseSigned(sFifty);
-    if (result != 2) return 21;
+    if (result != 2) {
+        return 21;
+    }
 
     testMultiCaseSigned(sFiftyOne);
-    if (result != 2) return 22;
+    if (result != 2) {
+        return 22;
+    }
 
     testMultiCaseSigned(sMax1);
-    if (result != 3) return 23;
+    if (result != 3) {
+        return 23;
+    }
 
     testMultiCaseSigned(sMax);
-    if (result != 3) return 24;
+    if (result != 3) {
+        return 24;
+    }
 
     testMultiCaseSigned(sNeg);
-    if (result != 9) return 25;
+    if (result != 9) {
+        return 25;
+    }
 
     // === MANY CASES TESTS (7 validations: codes 26-32) ===
     u16 m1 <- 1;
@@ -211,25 +261,39 @@ u32 main() {
     u16 mOther <- 999;
 
     testManyMultiCases(m1);
-    if (result != 500) return 26;
+    if (result != 500) {
+        return 26;
+    }
 
     testManyMultiCases(m3);
-    if (result != 500) return 27;
+    if (result != 500) {
+        return 27;
+    }
 
     testManyMultiCases(m5);
-    if (result != 500) return 28;
+    if (result != 500) {
+        return 28;
+    }
 
     testManyMultiCases(m100);
-    if (result != 600) return 29;
+    if (result != 600) {
+        return 29;
+    }
 
     testManyMultiCases(m200);
-    if (result != 600) return 30;
+    if (result != 600) {
+        return 30;
+    }
 
     testManyMultiCases(m300);
-    if (result != 600) return 31;
+    if (result != 600) {
+        return 31;
+    }
 
     testManyMultiCases(mOther);
-    if (result != 999) return 32;
+    if (result != 999) {
+        return 32;
+    }
 
     return 0;
 }

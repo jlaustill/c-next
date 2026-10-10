@@ -33,16 +33,30 @@ extern const int8_t ZERO_POINT = 0;
 
 int main(void) {
     int8_t minT = MIN_TEMP;
-    if (minT != -40) return 1U;
+    if (minT != -40) {
+        return 1U;
+    }
     int8_t maxT = MAX_TEMP;
-    if (maxT != 85) return 2U;
+    if (maxT != 85) {
+        return 2U;
+    }
     int8_t zero = ZERO_POINT;
-    if (zero != 0) return 3U;
+    if (zero != 0) {
+        return 3U;
+    }
     int8_t range = cnx_clamp_sub_i8(MAX_TEMP, MIN_TEMP);
-    if (range != 125) return 4U;
-    if (MIN_TEMP >= ZERO_POINT) return 5U;
+    if (range != 125) {
+        return 4U;
+    }
+    if (MIN_TEMP >= ZERO_POINT) {
+        return 5U;
+    }
     int8_t temp = -20;
-    if (temp < MIN_TEMP) return 6U;
-    if (temp > MAX_TEMP) return 7U;
+    if (temp < MIN_TEMP) {
+        return 6U;
+    }
+    if (temp > MAX_TEMP) {
+        return 7U;
+    }
     return 0U;
 }

@@ -29,16 +29,24 @@ u32 main() {
     u8 idx3 <- 3;
 
     handleByArray(arr, idx0);
-    if (result != 10) return 1;
+    if (result != 10) {
+        return 1;
+    }
 
     handleByArray(arr, idx1);
-    if (result != 20) return 2;
+    if (result != 20) {
+        return 2;
+    }
 
     handleByArray(arr, idx2);
-    if (result != 30) return 3;
+    if (result != 30) {
+        return 3;
+    }
 
     handleByArray(arr, idx3);
-    if (result != 99) return 4;
+    if (result != 99) {
+        return 4;
+    }
 
     return 0;
 }

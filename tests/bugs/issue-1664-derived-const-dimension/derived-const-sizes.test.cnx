@@ -29,16 +29,26 @@ u8[L] literal;
 
 u32 main() {
     u32 t <- table.element_count;
-    if (t != 4) return 1;
+    if (t != 4) {
+        return 1;
+    }
     u32 p <- packet.data.element_count;
-    if (p != 4) return 2;
+    if (p != 4) {
+        return 2;
+    }
     u32 c <- Buffer.bytes.element_count;
-    if (c != 4) return 3;
+    if (c != 4) {
+        return 3;
+    }
     u8[B] local;
     local[3] <- 1;
     u32 last <- local[3];
-    if (last != 1) return 4;
+    if (last != 1) {
+        return 4;
+    }
     u32 l <- literal.element_count;
-    if (l != 3) return 5;
+    if (l != 3) {
+        return 5;
+    }
     return 0;
 }

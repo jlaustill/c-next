@@ -1,0 +1,42 @@
+// test-execution
+// test-no-warnings
+// test-adr: 029
+// #1562: a file-scope variable of a function-as-type is spelled by its `_fp`
+// typedef in the .c AND the .h, and the header emits that typedef. The header
+// said `extern tick sink;`, the function's name where a type belongs, so the
+// .c that includes it did not compile.
+// `local` is the negative control: a local of the same type already worked.
+u32 tick() {
+    return 3;
+}
+
+u32 tock() {
+    return 4;
+}
+
+tick sink;
+tick[2] sinks;
+
+u32 main() {
+    u32 got1 <- sink();
+    if (got1 != 3) {
+        return 1;
+    }
+    sink <- tock;
+    u32 got2 <- sink();
+    if (got2 != 4) {
+        return 2;
+    }
+    sinks[1] <- tock;
+    tick chosen <- sinks[1];
+    u32 got3 <- chosen();
+    if (got3 != 4) {
+        return 3;
+    }
+    tick local <- tock;
+    u32 got4 <- local();
+    if (got4 != 4) {
+        return 4;
+    }
+    return 0;
+}

@@ -30,6 +30,8 @@ void setIt(string<8> s) {
 u32 main() {
     string<8> local <- "ab";
     setIt(local);
-    if (local.char_count != 2) return 1;
+    if (local.char_count != 2) {
+        return 1;
+    }
     return 0;
 }

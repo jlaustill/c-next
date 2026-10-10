@@ -13,62 +13,104 @@
 int main(void) {
     uint64_t val = 18446744073709551615ULL;
     val += 1ULL;
-    if (val != 0) return 1U;
+    if (val != 0) {
+        return 1U;
+    }
     uint64_t val2 = 18446744073709551610ULL;
     val2 += 10ULL;
-    if (val2 != 4) return 2U;
+    if (val2 != 4) {
+        return 2U;
+    }
     val = 10000000000000000000ULL;
     val += 10000000000000000000ULL;
-    if (val != 1553255926290448384) return 3U;
+    if (val != 1553255926290448384) {
+        return 3U;
+    }
     val = 18446744073709551615ULL;
     val += 1ULL;
-    if (val != 0) return 4U;
+    if (val != 0) {
+        return 4U;
+    }
     val += 18446744073709551615ULL;
-    if (val != 18446744073709551615) return 5U;
+    if (val != 18446744073709551615) {
+        return 5U;
+    }
     val = 0ULL;
     val -= 1ULL;
-    if (val != 18446744073709551615) return 6U;
+    if (val != 18446744073709551615) {
+        return 6U;
+    }
     val = 5ULL;
     val -= 10ULL;
-    if (val != 18446744073709551611) return 7U;
+    if (val != 18446744073709551611) {
+        return 7U;
+    }
     val = 100ULL;
     val -= 1000ULL;
-    if (val != 18446744073709550716) return 8U;
+    if (val != 18446744073709550716) {
+        return 8U;
+    }
     val = 5ULL;
     val -= 10ULL;
-    if (val != 18446744073709551611) return 9U;
+    if (val != 18446744073709551611) {
+        return 9U;
+    }
     val -= 18446744073709551611ULL;
-    if (val != 0) return 10U;
+    if (val != 0) {
+        return 10U;
+    }
     val = 1000000000000ULL;
     val += 2000000000000ULL;
-    if (val != 3000000000000) return 11U;
+    if (val != 3000000000000) {
+        return 11U;
+    }
     val = 5000000000000ULL;
     val -= 2000000000000ULL;
-    if (val != 3000000000000) return 12U;
+    if (val != 3000000000000) {
+        return 12U;
+    }
     val = 0ULL;
     val += 9999999999999999999ULL;
-    if (val != 9999999999999999999) return 13U;
+    if (val != 9999999999999999999) {
+        return 13U;
+    }
     val = 1000000000000ULL;
     val -= 1000000000000ULL;
-    if (val != 0) return 14U;
+    if (val != 0) {
+        return 14U;
+    }
     val = 18446744073709551614ULL;
     val += 1ULL;
-    if (val != 18446744073709551615) return 15U;
+    if (val != 18446744073709551615) {
+        return 15U;
+    }
     val = 1ULL;
     val -= 1ULL;
-    if (val != 0) return 16U;
+    if (val != 0) {
+        return 16U;
+    }
     val = 9223372036854775808ULL;
     val += 0ULL;
-    if (val != 9223372036854775808) return 17U;
+    if (val != 9223372036854775808) {
+        return 17U;
+    }
     val = 9223372036854775808ULL;
     val -= 0ULL;
-    if (val != 9223372036854775808) return 18U;
+    if (val != 9223372036854775808) {
+        return 18U;
+    }
     val = 1ULL;
     val -= 1ULL;
-    if (val != 0) return 19U;
+    if (val != 0) {
+        return 19U;
+    }
     val -= 1ULL;
-    if (val != 18446744073709551615) return 20U;
+    if (val != 18446744073709551615) {
+        return 20U;
+    }
     val += 1ULL;
-    if (val != 0) return 21U;
+    if (val != 0) {
+        return 21U;
+    }
     return 0U;
 }

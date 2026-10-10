@@ -15,7 +15,9 @@ u32 main() {
             i +<- 1;
         }
     }
-    if (count != 5) return 1;
+    if (count != 5) {
+        return 1;
+    }
 
     // Test 2: while inside else branch
     count <- 0;
@@ -29,7 +31,9 @@ u32 main() {
             i +<- 1;
         }
     }
-    if (count != 30) return 2;
+    if (count != 30) {
+        return 2;
+    }
 
     // Test 3: while in both if and else
     u32 resultA <- 0;
@@ -49,8 +53,12 @@ u32 main() {
             i +<- 1;
         }
     }
-    if (resultA != 4) return 3;
-    if (resultB != 0) return 4;
+    if (resultA != 4) {
+        return 3;
+    }
+    if (resultB != 0) {
+        return 4;
+    }
 
     // Test 4: while inside nested if (outer condition is true)
     count <- 0;
@@ -65,7 +73,9 @@ u32 main() {
             }
         }
     }
-    if (count != 10) return 5;
+    if (count != 10) {
+        return 5;
+    }
 
     return 0;
 }

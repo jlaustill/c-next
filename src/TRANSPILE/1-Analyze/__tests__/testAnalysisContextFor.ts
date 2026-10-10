@@ -9,6 +9,7 @@ import invariant from "../../../utils/invariant";
 import type IAnalysisContext from "../types/IAnalysisContext";
 import type ILexicalFrame from "../../../types/ILexicalFrame";
 import NodeFileSystem from "../../../PARSE/1-Discover/NodeFileSystem";
+import type THeaderMacro from "../../../types/THeaderMacro";
 
 /** Where a test's source is taken to live */
 const TEST_SOURCE = "test.cnx";
@@ -48,6 +49,8 @@ function testAnalysisContextFor(
     /** C/C++ symbols the test registered, as Stage 2 would have */
     symbolTable?: SymbolTable;
     overrides?: Partial<IAnalysisContext>;
+    /** The test file's header macros, as its C includes' `-dM` dump gives them */
+    macros?: Record<string, THeaderMacro>;
     /**
      * #1428: the run's mode, as 1.1 would have settled it. Required: a test
      * has no 1.1, so it states its mode, and the program carries it as in a run.
@@ -88,10 +91,13 @@ function testAnalysisContextFor(
         cpp: symbolTable.getAllCppSymbols(),
         opaqueTypedefs: new Set(symbolTable.getAllOpaqueTypes()),
         typedefToTag: new Map(symbolTable.getAllTypedefToTag()),
-        macros: new Map(),
+        macros: new Map([
+          [TEST_SOURCE, new Map(Object.entries(options.macros ?? {}))],
+        ]),
         macrosUnread: new Set<string>(),
         structTagsWithBodies: new Set(symbolTable.getAllStructTagsWithBodies()),
       },
+      filesReachingForeignHeaders: new Set(options.macros ? [TEST_SOURCE] : []),
       headerStructFields: symbolTable.getAllStructFields(),
       target: {
         option: "host",

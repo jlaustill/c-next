@@ -130,47 +130,77 @@ scope Counter {
 
 u32 main() {
     u32 a <- Counter.allThreeLevels();
-    if (a != 1110) return 1;
+    if (a != 1110) {
+        return 1;
+    }
 
     u32 b <- Counter.arrayShadow();
-    if (b != 8) return 2;
+    if (b != 8) {
+        return 2;
+    }
 
     u32 c <- Counter.loopShadow();
-    if (c != 198) return 3;
+    if (c != 198) {
+        return 3;
+    }
 
     u32 d <- Counter.plain();
-    if (d != 5) return 4;
+    if (d != 5) {
+        return 4;
+    }
 
     u32 e <- Counter.writeSubscript();
-    if (e != 5) return 5;
+    if (e != 5) {
+        return 5;
+    }
     u32 e2 <- Counter.globalSubscript();
-    if (e2 != 70) return 6;
+    if (e2 != 70) {
+        return 6;
+    }
 
     u32 f <- Counter.writeStructField();
-    if (f != 7) return 7;
+    if (f != 7) {
+        return 7;
+    }
     u32 f2 <- Counter.globalStructField();
-    if (f2 != 90) return 8;
+    if (f2 != 90) {
+        return 8;
+    }
 
     u32 g <- Counter.writeBitRange();
-    if (g != 3) return 9;
+    if (g != 3) {
+        return 9;
+    }
     u32 g2 <- Counter.globalBits();
-    if (g2 != 0) return 10;
+    if (g2 != 0) {
+        return 10;
+    }
 
     u32 h <- Counter.shadowingString();
-    if (h != 2) return 11;
+    if (h != 2) {
+        return 11;
+    }
     u32 h2 <- Counter.globalStringLength();
-    if (h2 != 6) return 12;
+    if (h2 != 6) {
+        return 12;
+    }
 
     // sizeof the LOCAL u32[2] is 8; the shadowed global u32[4] would be 16
     u32 i <- Counter.sizeofArray();
-    if (i != 8) return 13;
+    if (i != 8) {
+        return 13;
+    }
 
     // sizeof the LOCAL Narrow.x is 1; the shadowed global Wide.x would be 4
     u32 j <- Counter.sizeofMember();
-    if (j != 1) return 14;
+    if (j != 1) {
+        return 14;
+    }
 
     u32 k <- Counter.elementCount();
-    if (k != 2) return 15;
+    if (k != 2) {
+        return 15;
+    }
 
     return 0;
 }

@@ -36,138 +36,228 @@ static inline uint64_t cnx_clamp_sub_u64(uint64_t a, uint64_t b) {
 int main(void) {
     uint64_t val = 1000000000000ULL;
     val = cnx_clamp_add_u64(val, 500000000000ULL);
-    if (val != 1500000000000) return 1U;
+    if (val != 1500000000000) {
+        return 1U;
+    }
     val = 9000000000000000000ULL;
     val = cnx_clamp_add_u64(val, 1000000000000000000ULL);
-    if (val != 10000000000000000000) return 2U;
+    if (val != 10000000000000000000) {
+        return 2U;
+    }
     val = 5000000000000ULL;
     val = cnx_clamp_add_u64(val, 0ULL);
-    if (val != 5000000000000) return 3U;
+    if (val != 5000000000000) {
+        return 3U;
+    }
     val = 0ULL;
     val = cnx_clamp_add_u64(val, 18446744073709551614ULL);
-    if (val != 18446744073709551614) return 4U;
+    if (val != 18446744073709551614) {
+        return 4U;
+    }
     val = 1500000000000ULL;
     val = cnx_clamp_sub_u64(val, 500000000000ULL);
-    if (val != 1000000000000) return 10U;
+    if (val != 1000000000000) {
+        return 10U;
+    }
     val = 10000000000000000000ULL;
     val = cnx_clamp_sub_u64(val, 9000000000000000000ULL);
-    if (val != 1000000000000000000) return 11U;
+    if (val != 1000000000000000000) {
+        return 11U;
+    }
     val = 5000000000000ULL;
     val = cnx_clamp_sub_u64(val, 0ULL);
-    if (val != 5000000000000) return 12U;
+    if (val != 5000000000000) {
+        return 12U;
+    }
     val = 18446744073709551615ULL;
     val = cnx_clamp_sub_u64(val, 18446744073709551614ULL);
-    if (val != 1) return 13U;
+    if (val != 1) {
+        return 13U;
+    }
     val = 1000ULL;
     val = cnx_clamp_sub_u64(val, 1000ULL);
-    if (val != 0) return 14U;
+    if (val != 0) {
+        return 14U;
+    }
     val = 1000000ULL;
     val = cnx_clamp_mul_u64(val, 1000000ULL);
-    if (val != 1000000000000) return 20U;
+    if (val != 1000000000000) {
+        return 20U;
+    }
     val = 5000000000000ULL;
     val = cnx_clamp_mul_u64(val, 1ULL);
-    if (val != 5000000000000) return 21U;
+    if (val != 5000000000000) {
+        return 21U;
+    }
     val = 100000000ULL;
     val = cnx_clamp_mul_u64(val, 10000ULL);
-    if (val != 1000000000000) return 22U;
+    if (val != 1000000000000) {
+        return 22U;
+    }
     val = 123456789ULL;
     val = cnx_clamp_mul_u64(val, 2ULL);
-    if (val != 246913578) return 23U;
+    if (val != 246913578) {
+        return 23U;
+    }
     val = 4294967296ULL;
     val = cnx_clamp_mul_u64(val, 4294967296ULL);
-    if (val != 18446744073709551615) return 24U;
+    if (val != 18446744073709551615) {
+        return 24U;
+    }
     val = 1000000000000ULL;
     val /= 1000ULL;
-    if (val != 1000000000) return 30U;
+    if (val != 1000000000) {
+        return 30U;
+    }
     val = 5000000000000ULL;
     val /= 1ULL;
-    if (val != 5000000000000) return 31U;
+    if (val != 5000000000000) {
+        return 31U;
+    }
     val = 1000000000000ULL;
     val /= 2ULL;
-    if (val != 500000000000) return 32U;
+    if (val != 500000000000) {
+        return 32U;
+    }
     val = 9000000000000000000ULL;
     val /= 1000000ULL;
-    if (val != 9000000000000) return 33U;
+    if (val != 9000000000000) {
+        return 33U;
+    }
     val = 100ULL;
     val /= 100ULL;
-    if (val != 1) return 34U;
+    if (val != 1) {
+        return 34U;
+    }
     val = 1000000000007ULL;
     val %= 1000000ULL;
-    if (val != 7) return 40U;
+    if (val != 7) {
+        return 40U;
+    }
     val = 1609459200000ULL;
     val %= 1000ULL;
-    if (val != 0) return 41U;
+    if (val != 0) {
+        return 41U;
+    }
     val = 12345ULL;
     val %= 7ULL;
-    if (val != 4) return 42U;
+    if (val != 4) {
+        return 42U;
+    }
     val = 100ULL;
     val %= 100ULL;
-    if (val != 0) return 43U;
+    if (val != 0) {
+        return 43U;
+    }
     val = 9999999999999999999ULL;
     val %= 10ULL;
-    if (val != 9) return 44U;
+    if (val != 9) {
+        return 44U;
+    }
     val = 0xFFFFFFFFFFFFFFFFULL;
     val &= 0x00000000FFFFFFFFULL;
-    if (val != 0x00000000FFFFFFFF) return 50U;
+    if (val != 0x00000000FFFFFFFF) {
+        return 50U;
+    }
     val = 0xAAAAAAAAAAAAAAAAULL;
     val &= 0x5555555555555555ULL;
-    if (val != 0) return 51U;
+    if (val != 0) {
+        return 51U;
+    }
     val = 0x123456789ABCDEF0ULL;
     val &= 0xFFFFFFFFFFFFFFFFULL;
-    if (val != 0x123456789ABCDEF0) return 52U;
+    if (val != 0x123456789ABCDEF0) {
+        return 52U;
+    }
     val = 0xFFFF0000FFFF0000ULL;
     val &= 0x0000FFFF0000FFFFULL;
-    if (val != 0) return 53U;
+    if (val != 0) {
+        return 53U;
+    }
     val = 0x00000000FFFFFFFFULL;
     val |= 0xFFFFFFFF00000000ULL;
-    if (val != 0xFFFFFFFFFFFFFFFF) return 60U;
+    if (val != 0xFFFFFFFFFFFFFFFF) {
+        return 60U;
+    }
     val = 0x1234000000000000ULL;
     val |= 0x0000000056789ABCULL;
-    if (val != 0x1234000056789ABC) return 61U;
+    if (val != 0x1234000056789ABC) {
+        return 61U;
+    }
     val = 0x123456789ABCDEF0ULL;
     val |= 0x0000000000000000ULL;
-    if (val != 0x123456789ABCDEF0) return 62U;
+    if (val != 0x123456789ABCDEF0) {
+        return 62U;
+    }
     val = 0xAAAAAAAAAAAAAAAAULL;
     val ^= 0x5555555555555555ULL;
-    if (val != 0xFFFFFFFFFFFFFFFF) return 70U;
+    if (val != 0xFFFFFFFFFFFFFFFF) {
+        return 70U;
+    }
     val = 0xFFFFFFFFFFFFFFFFULL;
     val ^= 0xFFFFFFFFFFFFFFFFULL;
-    if (val != 0) return 71U;
+    if (val != 0) {
+        return 71U;
+    }
     val = 0x123456789ABCDEF0ULL;
     val ^= 0x123456789ABCDEF0ULL;
-    if (val != 0) return 72U;
+    if (val != 0) {
+        return 72U;
+    }
     val = 0x0F0F0F0F0F0F0F0FULL;
     val ^= 0xF0F0F0F0F0F0F0F0ULL;
-    if (val != 0xFFFFFFFFFFFFFFFF) return 73U;
+    if (val != 0xFFFFFFFFFFFFFFFF) {
+        return 73U;
+    }
     val = 1ULL;
     val <<= 0ULL;
-    if (val != 1) return 80U;
+    if (val != 1) {
+        return 80U;
+    }
     val = 1ULL;
     val <<= 1ULL;
-    if (val != 2) return 81U;
+    if (val != 2) {
+        return 81U;
+    }
     val = 1ULL;
     val <<= 32ULL;
-    if (val != 4294967296) return 82U;
+    if (val != 4294967296) {
+        return 82U;
+    }
     val = 1ULL;
     val <<= 63ULL;
-    if (val != 9223372036854775808) return 83U;
+    if (val != 9223372036854775808) {
+        return 83U;
+    }
     val = 0xFFULL;
     val <<= 8ULL;
-    if (val != 65280) return 84U;
+    if (val != 65280) {
+        return 84U;
+    }
     val = 256ULL;
     val >>= 0ULL;
-    if (val != 256) return 90U;
+    if (val != 256) {
+        return 90U;
+    }
     val = 256ULL;
     val >>= 1ULL;
-    if (val != 128) return 91U;
+    if (val != 128) {
+        return 91U;
+    }
     val = 4294967296ULL;
     val >>= 32ULL;
-    if (val != 1) return 92U;
+    if (val != 1) {
+        return 92U;
+    }
     val = 9223372036854775808ULL;
     val >>= 63ULL;
-    if (val != 1) return 93U;
+    if (val != 1) {
+        return 93U;
+    }
     val = 0xFF00ULL;
     val >>= 8ULL;
-    if (val != 255) return 94U;
+    if (val != 255) {
+        return 94U;
+    }
     return 0U;
 }
