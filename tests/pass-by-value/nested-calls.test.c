@@ -80,35 +80,65 @@ void incrementBoth(uint32_t* x, uint32_t* y) {
 int main(void) {
     uint32_t val = 10U;
     uint32_t result = addOne(val);
-    if (val != 10) return 1U;
-    if (result != 11) return 2U;
+    if (val != 10) {
+        return 1U;
+    }
+    if (result != 11) {
+        return 2U;
+    }
     result = addTwo(val);
-    if (val != 10) return 3U;
-    if (result != 12) return 4U;
+    if (val != 10) {
+        return 3U;
+    }
+    if (result != 12) {
+        return 4U;
+    }
     result = addFour(val);
-    if (val != 10) return 5U;
-    if (result != 14) return 6U;
+    if (val != 10) {
+        return 5U;
+    }
+    if (result != 14) {
+        return 6U;
+    }
     uint32_t modVal = 100U;
     modifyAddOne(&modVal);
-    if (modVal != 101) return 7U;
+    if (modVal != 101) {
+        return 7U;
+    }
     modVal = 100U;
     modifyAddTwo(&modVal);
-    if (modVal != 102) return 8U;
+    if (modVal != 102) {
+        return 8U;
+    }
     modVal = 100U;
     modifyAddFour(&modVal);
-    if (modVal != 104) return 9U;
+    if (modVal != 104) {
+        return 9U;
+    }
     uint32_t mixedVal = 50U;
     result = mixedChain(&mixedVal);
-    if (mixedVal != 51) return 10U;
-    if (result != 102) return 11U;
+    if (mixedVal != 51) {
+        return 10U;
+    }
+    if (result != 102) {
+        return 11U;
+    }
     result = sumThree(1U, 2U, 3U);
-    if (result != 6) return 12U;
+    if (result != 6) {
+        return 12U;
+    }
     result = sumSix(1U, 2U, 3U, 4U, 5U, 6U);
-    if (result != 21) return 13U;
+    if (result != 21) {
+        return 13U;
+    }
     uint32_t x = 10U;
     uint32_t y = 20U;
     incrementBoth(&x, &y);
-    if (x != 11) return 14U;
-    if (y != 21) return 15U;
+    if (x != 11) {
+        return 14U;
+    }
+    if (y != 21) {
+        return 15U;
+    }
     return 0U;
 }

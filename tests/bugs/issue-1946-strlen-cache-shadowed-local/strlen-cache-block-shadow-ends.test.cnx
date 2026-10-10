@@ -13,8 +13,12 @@ u32 main() {
     u32 flag <- 1;
     if (flag = 1) {
         string<8> label <- "ab";
-        if (label.char_count != 2 || label.char_count < 1) return 1;
+        if (label.char_count != 2 || label.char_count < 1) {
+            return 1;
+        }
     }
-    if (label.char_count != 3 || label.char_count < 1) return 2;
+    if (label.char_count != 3 || label.char_count < 1) {
+        return 2;
+    }
     return 0;
 }

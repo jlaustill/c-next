@@ -83,35 +83,51 @@ u32 main() {
     // Bare struct parameter (pointer promotion) and scope-local field type
     A.S s <- { x: 42, kind: A.B.d };
     u8 structX <- A.readStruct(s);
-    if (structX != 42) return 1;
+    if (structX != 42) {
+        return 1;
+    }
 
     // Bare enum return type
     A.B picked <- A.pick();
-    if (picked != A.B.d) return 2;
+    if (picked != A.B.d) {
+        return 2;
+    }
 
     // Bare enum parameter + local declaration
     u8 isBusyResult <- A.isBusy(A.B.d);
-    if (isBusyResult != 1) return 3;
+    if (isBusyResult != 1) {
+        return 3;
+    }
 
     u8 isNotBusyResult <- A.isBusy(A.B.c);
-    if (isNotBusyResult != 0) return 4;
+    if (isNotBusyResult != 0) {
+        return 4;
+    }
 
     // global.Mode field is the GLOBAL enum, not A.Mode
     A.Wrapper w <- { mode: busy, v: 9 };
     u8 wrapped <- A.wrapperValue(w);
-    if (wrapped != 9) return 5;
+    if (wrapped != 9) {
+        return 5;
+    }
 
     // global.Config parameter resolves to the global struct, not A's variable
     Config globalConfig <- { x: 5 };
     u8 configX <- A.useGlobalConfig(globalConfig);
-    if (configX != 5) return 6;
+    if (configX != 5) {
+        return 6;
+    }
 
     // The scope variable named Config is still reachable as a value
     u8 scopeConfig <- A.configValue();
-    if (scopeConfig != 7) return 7;
+    if (scopeConfig != 7) {
+        return 7;
+    }
 
     // Scope variable of a scope-local type
-    if (A.current != A.B.c) return 8;
+    if (A.current != A.B.c) {
+        return 8;
+    }
 
     // All 8 validations passed
     return 0;

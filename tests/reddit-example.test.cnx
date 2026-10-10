@@ -12,16 +12,24 @@ u32 main() {
 
     // Validate writes
     u8 msgType <- header[0, 4];
-    if (msgType != 5) return 1;
+    if (msgType != 5) {
+        return 1;
+    }
 
     u8 priority <- header[4, 2];
-    if (priority != 2) return 2;
+    if (priority != 2) {
+        return 2;
+    }
 
     bool encrypted <- header[6];
-    if (encrypted != true) return 3;
+    if (encrypted != true) {
+        return 3;
+    }
 
     bool compressed <- header[7];
-    if (compressed != false) return 4;
+    if (compressed != false) {
+        return 4;
+    }
 
     return 0;
 }

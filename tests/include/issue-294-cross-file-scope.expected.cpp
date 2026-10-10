@@ -37,16 +37,28 @@ int main(void) {
     testData[6] = 0x00U;
     testData[7] = 0x00U;
     uint16_t spn = decoder__getSpn(testData);
-    if (spn != 4660) return 1U;
+    if (spn != 4660) {
+        return 1U;
+    }
     uint8_t byte0 = decoder__getByte(testData, 0U);
-    if (byte0 != 0x34) return 2U;
+    if (byte0 != 0x34) {
+        return 2U;
+    }
     uint8_t byte1 = decoder__getByte(testData, 1U);
-    if (byte1 != 0x12) return 3U;
+    if (byte1 != 0x12) {
+        return 3U;
+    }
     uint8_t byte2 = decoder__getByte(testData, 2U);
-    if (byte2 != 0xAB) return 4U;
+    if (byte2 != 0xAB) {
+        return 4U;
+    }
     uint16_t spn2 = handler__processData(testData);
-    if (spn2 != 4660) return 5U;
+    if (spn2 != 4660) {
+        return 5U;
+    }
     uint8_t extracted = handler__extractByte(testData, 3U);
-    if (extracted != 0xCD) return 6U;
+    if (extracted != 0xCD) {
+        return 6U;
+    }
     return 0U;
 }

@@ -63,15 +63,23 @@ uint32_t S__countBeta(S__Mode modes[3]) {
 uint32_t S__runAll(void) {
     S__Point pair[2] = {{ .x = 10U, .y = 20U }, { .x = 30U, .y = 40U }};
     uint32_t sum = S__sumThroughArrayParam(pair);
-    if (sum != 50) return 1U;
+    if (sum != 50) {
+        return 1U;
+    }
     uint32_t written = S__writeThroughArrayParam(pair);
-    if (written != 42) return 2U;
+    if (written != 42) {
+        return 2U;
+    }
     S__Point single = { .x = 3U, .y = 4U };
     uint32_t scalarSum = S__sumThroughScalarParam(&single);
-    if (scalarSum != 7) return 3U;
+    if (scalarSum != 7) {
+        return 3U;
+    }
     S__Mode modes[3] = {S__Mode__ALPHA, S__Mode__BETA, S__Mode__BETA};
     uint32_t betaCount = S__countBeta(modes);
-    if (betaCount != 2) return 4U;
+    if (betaCount != 2) {
+        return 4U;
+    }
     return 0U;
 }
 

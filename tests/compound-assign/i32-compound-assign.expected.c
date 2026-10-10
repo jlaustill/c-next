@@ -44,123 +44,203 @@ static inline int32_t cnx_clamp_sub_i32(int32_t a, int64_t b) {
 int main(void) {
     int32_t val = 1000000000;
     val = cnx_clamp_add_i32(val, 500000000);
-    if (val != 1500000000) return 1U;
+    if (val != 1500000000) {
+        return 1U;
+    }
     val = -1000000000;
     val = cnx_clamp_add_i32(val, 500000000);
-    if (val != -500000000) return 2U;
+    if (val != -500000000) {
+        return 2U;
+    }
     val = -1000000000;
     val = cnx_clamp_add_i32(val, -500000000);
-    if (val != -1500000000) return 3U;
+    if (val != -1500000000) {
+        return 3U;
+    }
     val = 1000000;
     val = cnx_clamp_add_i32(val, 0);
-    if (val != 1000000) return 4U;
+    if (val != 1000000) {
+        return 4U;
+    }
     val = -1000000;
     val = cnx_clamp_add_i32(val, 1000000);
-    if (val != 0) return 5U;
+    if (val != 0) {
+        return 5U;
+    }
     val = 2147483646;
     val = cnx_clamp_add_i32(val, 1);
-    if (val != 2147483647) return 6U;
+    if (val != 2147483647) {
+        return 6U;
+    }
     int32_t sub = 1500000000;
     sub = cnx_clamp_sub_i32(sub, 500000000);
-    if (sub != 1000000000) return 10U;
+    if (sub != 1000000000) {
+        return 10U;
+    }
     sub = 500000000;
     sub = cnx_clamp_sub_i32(sub, 1000000000);
-    if (sub != -500000000) return 11U;
+    if (sub != -500000000) {
+        return 11U;
+    }
     sub = -1000000000;
     sub = cnx_clamp_sub_i32(sub, 500000000);
-    if (sub != -1500000000) return 12U;
+    if (sub != -1500000000) {
+        return 12U;
+    }
     sub = -1000000000;
     sub = cnx_clamp_sub_i32(sub, -500000000);
-    if (sub != -500000000) return 13U;
+    if (sub != -500000000) {
+        return 13U;
+    }
     sub = 1000000;
     sub = cnx_clamp_sub_i32(sub, 0);
-    if (sub != 1000000) return 14U;
+    if (sub != 1000000) {
+        return 14U;
+    }
     sub = -2147483647;
     sub = cnx_clamp_sub_i32(sub, 1);
-    if (sub != (int32_t)INT32_MIN) return 15U;
+    if (sub != (int32_t)INT32_MIN) {
+        return 15U;
+    }
     int32_t mul = 10000;
     mul = cnx_clamp_mul_i32(mul, 10000);
-    if (mul != 100000000) return 20U;
+    if (mul != 100000000) {
+        return 20U;
+    }
     mul = -10000;
     mul = cnx_clamp_mul_i32(mul, 10000);
-    if (mul != -100000000) return 21U;
+    if (mul != -100000000) {
+        return 21U;
+    }
     mul = -10000;
     mul = cnx_clamp_mul_i32(mul, -10000);
-    if (mul != 100000000) return 22U;
+    if (mul != 100000000) {
+        return 22U;
+    }
     mul = 1000000;
     mul = cnx_clamp_mul_i32(mul, 1);
-    if (mul != 1000000) return 23U;
+    if (mul != 1000000) {
+        return 23U;
+    }
     mul = 1000000;
     mul = cnx_clamp_mul_i32(mul, -1);
-    if (mul != -1000000) return 24U;
+    if (mul != -1000000) {
+        return 24U;
+    }
     mul = 123456;
     mul = cnx_clamp_mul_i32(mul, 0);
-    if (mul != 0) return 25U;
+    if (mul != 0) {
+        return 25U;
+    }
     int32_t div = 1000000000;
     div /= 1000;
-    if (div != 1000000) return 30U;
+    if (div != 1000000) {
+        return 30U;
+    }
     div = -1000000000;
     div /= 1000;
-    if (div != -1000000) return 31U;
+    if (div != -1000000) {
+        return 31U;
+    }
     div = -1000000000;
     div /= -1000;
-    if (div != 1000000) return 32U;
+    if (div != 1000000) {
+        return 32U;
+    }
     div = 1000000;
     div /= 1;
-    if (div != 1000000) return 33U;
+    if (div != 1000000) {
+        return 33U;
+    }
     div = -1000000;
     div /= -1;
-    if (div != 1000000) return 34U;
+    if (div != 1000000) {
+        return 34U;
+    }
     div = 2147483647;
     div /= 2147483647;
-    if (div != 1) return 35U;
+    if (div != 1) {
+        return 35U;
+    }
     int32_t mod = 1000000007;
     mod %= 1000000;
-    if (mod != 7) return 40U;
+    if (mod != 7) {
+        return 40U;
+    }
     mod = -1000000007;
     mod %= 1000000;
-    if (mod != -7) return 41U;
+    if (mod != -7) {
+        return 41U;
+    }
     mod = 12345;
     mod %= 7;
-    if (mod != 4) return 42U;
+    if (mod != 4) {
+        return 42U;
+    }
     mod = -12345;
     mod %= 7;
-    if (mod != -4) return 43U;
+    if (mod != -4) {
+        return 43U;
+    }
     mod = 1000000;
     mod %= 1000000;
-    if (mod != 0) return 44U;
+    if (mod != 0) {
+        return 44U;
+    }
     int32_t andVal = 0x7FFFFFFF;
     andVal &= 0x0000FFFF;
-    if (andVal != 0x0000FFFF) return 50U;
+    if (andVal != 0x0000FFFF) {
+        return 50U;
+    }
     andVal = -1;
     andVal &= 0x0000FFFF;
-    if (andVal != 0x0000FFFF) return 51U;
+    if (andVal != 0x0000FFFF) {
+        return 51U;
+    }
     andVal = 0x55555555;
     andVal &= 0xAAAAAAAA;
-    if (andVal != 0) return 52U;
+    if (andVal != 0) {
+        return 52U;
+    }
     andVal = 0x0F0F0F0F;
     andVal &= 0xF0F0F0F0;
-    if (andVal != 0) return 53U;
+    if (andVal != 0) {
+        return 53U;
+    }
     int32_t orVal = 0x0000FFFF;
     orVal |= 0x7FFF0000;
-    if (orVal != 0x7FFFFFFF) return 60U;
+    if (orVal != 0x7FFFFFFF) {
+        return 60U;
+    }
     orVal = 0x12340000;
     orVal |= 0x00005678;
-    if (orVal != 0x12345678) return 61U;
+    if (orVal != 0x12345678) {
+        return 61U;
+    }
     orVal = 0x12345678;
     orVal |= 0x00000000;
-    if (orVal != 0x12345678) return 62U;
+    if (orVal != 0x12345678) {
+        return 62U;
+    }
     int32_t xorVal = 0x55555555;
     xorVal ^= 0x55555555;
-    if (xorVal != 0) return 70U;
+    if (xorVal != 0) {
+        return 70U;
+    }
     xorVal = 0x0F0F0F0F;
     xorVal ^= 0x70707070;
-    if (xorVal != 0x7F7F7F7F) return 71U;
+    if (xorVal != 0x7F7F7F7F) {
+        return 71U;
+    }
     xorVal = -1;
     xorVal ^= -1;
-    if (xorVal != 0) return 72U;
+    if (xorVal != 0) {
+        return 72U;
+    }
     xorVal = 0x55555555;
     xorVal ^= 0x2AAAAAAA;
-    if (xorVal != 0x7FFFFFFF) return 73U;
+    if (xorVal != 0x7FFFFFFF) {
+        return 73U;
+    }
     return 0U;
 }

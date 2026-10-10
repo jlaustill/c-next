@@ -104,15 +104,21 @@ u32 testArrayMemberInCondition() {
 u32 main() {
     // Test 1: Basic array member passing
     u32 result1 <- testBasicArrayMemberPassing();
-    if (result1 != 100) return 1;
+    if (result1 != 100) {
+        return 1;
+    }
 
     // Test 2: Multiple array members from same struct
     u32 result2 <- testMultipleArrayMembers();
-    if (result2 != 110) return 2;
+    if (result2 != 110) {
+        return 2;
+    }
 
     // Test 3: Array member passing inside conditional (original bug scenario)
     u32 result3 <- testArrayMemberInCondition();
-    if (result3 != 50) return 3;
+    if (result3 != 50) {
+        return 3;
+    }
 
     return 0;
 }

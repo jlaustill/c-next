@@ -38,16 +38,26 @@ scope S {
 
     public u32 inside() {
         u8 a <- this.cfg.arr[1];
-        if (a != 7) return 1;
+        if (a != 7) {
+            return 1;
+        }
         bool b <- this.cfg.word[3];
-        if (b != true) return 2;
+        if (b != true) {
+            return 2;
+        }
         u32 n <- this.cfg.name.char_count;
-        if (n != 3) return 3;
+        if (n != 3) {
+            return 3;
+        }
         bool fa <- this.cfg.f.A;
-        if (fa != true) return 4;
+        if (fa != true) {
+            return 4;
+        }
         // NEGATIVE CONTROL: a clear bit and a clear flag read as false
         bool z <- this.cfg.word[2];
-        if (z != false) return 5;
+        if (z != false) {
+            return 5;
+        }
         return 0;
     }
 }
@@ -56,19 +66,31 @@ u32 main() {
     S.init();
     // 10 + the failing check, so the exit code says which one
     u32 inside <- S.inside();
-    if (inside != 0) return 10 + inside;
+    if (inside != 0) {
+        return 10 + inside;
+    }
 
     u8 a <- S.cfg.arr[1];
-    if (a != 7) return 2;
+    if (a != 7) {
+        return 2;
+    }
     bool b <- S.cfg.word[3];
-    if (b != true) return 3;
+    if (b != true) {
+        return 3;
+    }
     u32 n <- S.cfg.name.char_count;
-    if (n != 3) return 4;
+    if (n != 3) {
+        return 4;
+    }
     bool fa <- S.cfg.f.A;
-    if (fa != true) return 5;
+    if (fa != true) {
+        return 5;
+    }
     // NEGATIVE CONTROL
     bool fb <- S.cfg.f.B;
-    if (fb != false) return 6;
+    if (fb != false) {
+        return 6;
+    }
 
     return 0;
 }

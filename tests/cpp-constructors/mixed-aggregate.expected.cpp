@@ -19,7 +19,11 @@ int main(void) {
     nonAgg.value = 42;
     nonAgg.name = "test";
     AggregateType agg = { .value = 99, .label = "agg" };
-    if (nonAgg.value != 42) return 1;
-    if (agg.value != 99) return 2;
+    if (nonAgg.value != 42) {
+        return 1;
+    }
+    if (agg.value != 99) {
+        return 2;
+    }
     return 0;
 }

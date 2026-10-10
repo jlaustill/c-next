@@ -7,13 +7,19 @@ u32 main() {
     f64 in_range <- 1000000000.0;
 
     i32 result <- (i32)over;
-    if (result != 2147483647) return 1;
+    if (result != 2147483647) {
+        return 1;
+    }
 
     result <- (i32)under;
-    if (result != -2147483648) return 2;
+    if (result != -2147483648) {
+        return 2;
+    }
 
     result <- (i32)in_range;
-    if (result != 1000000000) return 3;
+    if (result != 1000000000) {
+        return 3;
+    }
 
     return 0;
 }

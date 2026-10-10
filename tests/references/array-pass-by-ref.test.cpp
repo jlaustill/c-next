@@ -62,9 +62,13 @@ int main(void) {
     data[0] = 100U;
     data[5] = 200U;
     setElement(data, 0U, 999U);
-    if (data[0U] != 999) return 1U;
+    if (data[0U] != 999) {
+        return 1U;
+    }
     setElement(data, 5U, 888U);
-    if (data[5U] != 888) return 2U;
+    if (data[5U] != 888) {
+        return 2U;
+    }
     uint32_t nums[5] = {};
     nums[0] = 10U;
     nums[1] = 20U;
@@ -72,19 +76,31 @@ int main(void) {
     nums[3] = 40U;
     nums[4] = 50U;
     uint32_t total = sumArray(nums, 5U);
-    if (total != 150) return 3U;
+    if (total != 150) {
+        return 3U;
+    }
     total = sumArray(nums, 3U);
-    if (total != 60) return 4U;
+    if (total != 60) {
+        return 4U;
+    }
     uint32_t toZero[8] = {};
     toZero[0] = 1U;
     toZero[1] = 2U;
     toZero[2] = 3U;
     toZero[3] = 4U;
     zeroArray(toZero, 4U);
-    if (toZero[0U] != 0) return 5U;
-    if (toZero[1U] != 0) return 6U;
-    if (toZero[2U] != 0) return 7U;
-    if (toZero[3U] != 0) return 8U;
+    if (toZero[0U] != 0) {
+        return 5U;
+    }
+    if (toZero[1U] != 0) {
+        return 6U;
+    }
+    if (toZero[2U] != 0) {
+        return 7U;
+    }
+    if (toZero[3U] != 0) {
+        return 8U;
+    }
     uint32_t source[4] = {};
     uint32_t dest[4] = {};
     source[0] = 11U;
@@ -96,9 +112,17 @@ int main(void) {
     dest[2] = 0U;
     dest[3] = 0U;
     copyArray(source, dest, 4U);
-    if (dest[0U] != 11) return 9U;
-    if (dest[1U] != 22) return 10U;
-    if (dest[2U] != 33) return 11U;
-    if (dest[3U] != 44) return 12U;
+    if (dest[0U] != 11) {
+        return 9U;
+    }
+    if (dest[1U] != 22) {
+        return 10U;
+    }
+    if (dest[2U] != 33) {
+        return 11U;
+    }
+    if (dest[3U] != 44) {
+        return 12U;
+    }
     return 0U;
 }

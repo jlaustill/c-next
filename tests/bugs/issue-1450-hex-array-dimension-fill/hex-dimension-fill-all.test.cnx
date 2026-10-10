@@ -31,15 +31,21 @@ u32 main() {
     u8[8] decFill <- [7*];
 
     for (u32 i <- 0; i < 8; i +<- 1) {
-        if (hexFill[i] != 7) return 1;
+        if (hexFill[i] != 7) {
+            return 1;
+        }
     }
 
     for (u32 j <- 0; j < 8; j +<- 1) {
-        if (binFill[j] != 7) return 2;
+        if (binFill[j] != 7) {
+            return 2;
+        }
     }
 
     for (u32 k <- 0; k < 8; k +<- 1) {
-        if (decFill[k] != 7) return 3;
+        if (decFill[k] != 7) {
+            return 3;
+        }
     }
 
     return 0;

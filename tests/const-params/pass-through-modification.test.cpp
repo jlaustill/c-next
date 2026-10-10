@@ -57,20 +57,34 @@ void mixedPassThrough(uint32_t& value) {
 int main(void) {
     uint32_t x = 10U;
     modifiesParam(x);
-    if (x != 42) return 1U;
+    if (x != 42) {
+        return 1U;
+    }
     x = 100U;
     passesThroughToModifier(x);
-    if (x != 42) return 2U;
+    if (x != 42) {
+        return 2U;
+    }
     x = 5U;
     uint32_t result = readOnly(x);
-    if (result != 6) return 3U;
-    if (x != 5) return 4U;
+    if (result != 6) {
+        return 3U;
+    }
+    if (x != 5) {
+        return 4U;
+    }
     x = 7U;
     result = passesThroughToReader(x);
-    if (result != 8) return 5U;
-    if (x != 7) return 6U;
+    if (result != 8) {
+        return 5U;
+    }
+    if (x != 7) {
+        return 6U;
+    }
     x = 200U;
     mixedPassThrough(x);
-    if (x != 42) return 7U;
+    if (x != 42) {
+        return 7U;
+    }
     return 0U;
 }

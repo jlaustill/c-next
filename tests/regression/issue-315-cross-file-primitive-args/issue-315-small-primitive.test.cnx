@@ -35,7 +35,9 @@ u32 main() {
     u8 result <- ByteCaller.test();
 
     // 10 + 25 = 35
-    if (result != 35) return 1;
+    if (result != 35) {
+        return 1;
+    }
 
     return 0;
 }

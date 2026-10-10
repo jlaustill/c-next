@@ -18,10 +18,10 @@ codes that already have a fixture.
 | E04xx     | Symbol Resolution                              | 16      |
 | E05xx     | Include/Preprocessor                           | 17      |
 | E06xx     | Sizeof Expressions                             | 2       |
-| E07xx     | Control Flow                                   | 13      |
+| E07xx     | Control Flow                                   | 14      |
 | E08xx     | Arithmetic/Array Safety                        | 56      |
 | E09xx     | NULL Safety, Compile-Time Values, Literal Form | 12      |
-| **Total** |                                                | **128** |
+| **Total** |                                                | **129** |
 
 ---
 
@@ -209,6 +209,7 @@ include-visibility is not derivable for a C or C++ name.
 | E0713 | Duplicate case value in a switch                                                      | Remove one of them; the second is unreachable                                 | `TRANSPILE/1-Analyze/SwitchStatementAnalyzer.ts`                         |
 | E0714 | Switch clauses do not account for the enum's variants exactly                         | Add the missing cases, or a `default(N)` stating how many variants it absorbs | `TRANSPILE/1-Analyze/SwitchStatementAnalyzer.ts`                         |
 | E0715 | `for` header assignment is more than one statement (string, slice, atomic, float bit) | Assign before the loop, or at the end of its body as a `while` loop           | `TRANSPILE/1-Analyze/LoopAnalyzer.ts`                                    |
+| E0716 | An `if`, `else`, `while` or `for` body is not a braced block (MISRA C:2012 Rule 15.6) | Wrap the body in `{ }`; `else if` is the one unbraced `else` allowed          | `TRANSPILE/1-Analyze/BracedBodyAnalyzer.ts`                              |
 
 **Related:** MISRA C:2012 Rule 14.4 (E0701), Rule 13.5 / Issue #254 (E0702), ADR-026 / Issue #1011 (E0703), ADR-067 / Issue #1040 (E0704), ADR-068 / Issue #1074 (E0705), ADR-068 / Issue #1075 (E0707; E0706 reserved for ADR-069 unreachable code; ADR-070 / Issue #847 (E0708); E0709 reserved for ADR-069 unused variable / Issue #1107; ADR-022 / Issue #1322 (E0710); ADR-068 / Issue #1647 (E0715))
 

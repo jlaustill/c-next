@@ -27,7 +27,9 @@ u32 main() {
             }
         }
     }
-    if (result != 101) return 1;
+    if (result != 101) {
+        return 1;
+    }
 
     // Test 2: Switch in if (false condition - should not execute)
     result <- 0;
@@ -45,7 +47,9 @@ u32 main() {
             }
         }
     }
-    if (result != 0) return 2;
+    if (result != 0) {
+        return 2;
+    }
 
     // === SWITCH IN ELSE BRANCH ===
 
@@ -70,7 +74,9 @@ u32 main() {
             }
         }
     }
-    if (result != 402) return 3;
+    if (result != 402) {
+        return 3;
+    }
 
     // Test 4: Switch in if, different code in else
     cond <- true;
@@ -90,7 +96,9 @@ u32 main() {
     } else {
         result <- 999;
     }
-    if (result != 500) return 4;
+    if (result != 500) {
+        return 4;
+    }
 
     // === SWITCH IN BOTH BRANCHES ===
 
@@ -127,7 +135,9 @@ u32 main() {
             }
         }
     }
-    if (result != 601) return 5;
+    if (result != 601) {
+        return 5;
+    }
 
     // Test 6: Switch in else branch executes
     cond <- false;
@@ -159,7 +169,9 @@ u32 main() {
             }
         }
     }
-    if (result != 702) return 6;
+    if (result != 702) {
+        return 6;
+    }
 
     // === SWITCH IN NESTED IF ===
 
@@ -183,7 +195,9 @@ u32 main() {
             }
         }
     }
-    if (result != 801) return 7;
+    if (result != 801) {
+        return 7;
+    }
 
     // Test 8: Switch in inner if, outer else
     outer <- false;
@@ -207,7 +221,9 @@ u32 main() {
             }
         }
     }
-    if (result != 901) return 8;
+    if (result != 901) {
+        return 8;
+    }
 
     // === SWITCH WITH ENUM IN IF ===
 
@@ -228,7 +244,9 @@ u32 main() {
             }
         }
     }
-    if (result != 1099) return 9;
+    if (result != 1099) {
+        return 9;
+    }
 
     // === MULTIPLE SWITCHES IN SEQUENCE INSIDE IF ===
 
@@ -263,8 +281,12 @@ u32 main() {
             }
         }
     }
-    if (resultA != 10) return 10;
-    if (resultB != 21) return 11;
+    if (resultA != 10) {
+        return 10;
+    }
+    if (resultB != 21) {
+        return 11;
+    }
 
     // === SWITCH WITH SIGNED TYPES IN IF ===
 
@@ -288,7 +310,9 @@ u32 main() {
             }
         }
     }
-    if (result != 1201) return 12;
+    if (result != 1201) {
+        return 12;
+    }
 
     return 0;
 }

@@ -21,8 +21,12 @@ u32 second() {
 
 u32 main() {
     u32 local <- first();
-    if (local != 2) return 1;
+    if (local != 2) {
+        return 1;
+    }
     u32 n <- second();
-    if (n != 15) return 2;
+    if (n != 15) {
+        return 2;
+    }
     return 0;
 }

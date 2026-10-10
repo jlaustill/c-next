@@ -10,11 +10,15 @@ scope Calculator {
     i32 testSubtraction() {
         this.value <- 100;
         this.value -<- 30;
-        if (this.value != 70) return 1;
+        if (this.value != 70) {
+            return 1;
+        }
 
         this.value <- 50;
         this.value -<- 50;
-        if (this.value != 0) return 2;
+        if (this.value != 0) {
+            return 2;
+        }
 
         return 0;
     }
@@ -22,15 +26,21 @@ scope Calculator {
     i32 testMultiplication() {
         this.value <- 7;
         this.value *<- 6;
-        if (this.value != 42) return 10;
+        if (this.value != 42) {
+            return 10;
+        }
 
         this.value <- 100;
         this.value *<- 1;
-        if (this.value != 100) return 11;
+        if (this.value != 100) {
+            return 11;
+        }
 
         this.value <- 25;
         this.value *<- 0;
-        if (this.value != 0) return 12;
+        if (this.value != 0) {
+            return 12;
+        }
 
         return 0;
     }
@@ -38,15 +48,21 @@ scope Calculator {
     i32 testDivision() {
         this.value <- 100;
         this.value /<- 5;
-        if (this.value != 20) return 20;
+        if (this.value != 20) {
+            return 20;
+        }
 
         this.value <- 81;
         this.value /<- 9;
-        if (this.value != 9) return 21;
+        if (this.value != 9) {
+            return 21;
+        }
 
         this.value <- 50;
         this.value /<- 1;
-        if (this.value != 50) return 22;
+        if (this.value != 50) {
+            return 22;
+        }
 
         return 0;
     }
@@ -54,15 +70,21 @@ scope Calculator {
     i32 testModulo() {
         this.value <- 17;
         this.value %<- 5;
-        if (this.value != 2) return 30;
+        if (this.value != 2) {
+            return 30;
+        }
 
         this.value <- 100;
         this.value %<- 7;
-        if (this.value != 2) return 31;
+        if (this.value != 2) {
+            return 31;
+        }
 
         this.value <- 25;
         this.value %<- 25;
-        if (this.value != 0) return 32;
+        if (this.value != 0) {
+            return 32;
+        }
 
         return 0;
     }
@@ -70,15 +92,21 @@ scope Calculator {
     i32 testBitwiseAnd() {
         this.bits <- 0xFF;
         this.bits &<- 0x0F;
-        if (this.bits != 0x0F) return 40;
+        if (this.bits != 0x0F) {
+            return 40;
+        }
 
         this.bits <- 0xAA;
         this.bits &<- 0x55;
-        if (this.bits != 0) return 41;
+        if (this.bits != 0) {
+            return 41;
+        }
 
         this.bits <- 0x12345678;
         this.bits &<- 0xFFFFFFFF;
-        if (this.bits != 0x12345678) return 42;
+        if (this.bits != 0x12345678) {
+            return 42;
+        }
 
         return 0;
     }
@@ -86,15 +114,21 @@ scope Calculator {
     i32 testBitwiseOr() {
         this.bits <- 0xF0;
         this.bits |<- 0x0F;
-        if (this.bits != 0xFF) return 50;
+        if (this.bits != 0xFF) {
+            return 50;
+        }
 
         this.bits <- 0x00;
         this.bits |<- 0xAB;
-        if (this.bits != 0xAB) return 51;
+        if (this.bits != 0xAB) {
+            return 51;
+        }
 
         this.bits <- 0x12340000;
         this.bits |<- 0x00005678;
-        if (this.bits != 0x12345678) return 52;
+        if (this.bits != 0x12345678) {
+            return 52;
+        }
 
         return 0;
     }
@@ -102,15 +136,21 @@ scope Calculator {
     i32 testBitwiseXor() {
         this.bits <- 0xFF;
         this.bits ^<- 0xFF;
-        if (this.bits != 0) return 60;
+        if (this.bits != 0) {
+            return 60;
+        }
 
         this.bits <- 0xAA;
         this.bits ^<- 0x55;
-        if (this.bits != 0xFF) return 61;
+        if (this.bits != 0xFF) {
+            return 61;
+        }
 
         this.bits <- 0x12345678;
         this.bits ^<- 0x00000000;
-        if (this.bits != 0x12345678) return 62;
+        if (this.bits != 0x12345678) {
+            return 62;
+        }
 
         return 0;
     }
@@ -118,15 +158,21 @@ scope Calculator {
     i32 testLeftShift() {
         this.bits <- 1;
         this.bits <<<- 4;
-        if (this.bits != 16) return 70;
+        if (this.bits != 16) {
+            return 70;
+        }
 
         this.bits <- 0xFF;
         this.bits <<<- 8;
-        if (this.bits != 0xFF00) return 71;
+        if (this.bits != 0xFF00) {
+            return 71;
+        }
 
         this.bits <- 1;
         this.bits <<<- 0;
-        if (this.bits != 1) return 72;
+        if (this.bits != 1) {
+            return 72;
+        }
 
         return 0;
     }
@@ -134,15 +180,21 @@ scope Calculator {
     i32 testRightShift() {
         this.bits <- 256;
         this.bits >><- 4;
-        if (this.bits != 16) return 80;
+        if (this.bits != 16) {
+            return 80;
+        }
 
         this.bits <- 0xFF00;
         this.bits >><- 8;
-        if (this.bits != 0xFF) return 81;
+        if (this.bits != 0xFF) {
+            return 81;
+        }
 
         this.bits <- 128;
         this.bits >><- 0;
-        if (this.bits != 128) return 82;
+        if (this.bits != 128) {
+            return 82;
+        }
 
         return 0;
     }
@@ -151,31 +203,49 @@ scope Calculator {
         i32 result <- 0;
 
         result <- this.testSubtraction();
-        if (result != 0) return result;
+        if (result != 0) {
+            return result;
+        }
 
         result <- this.testMultiplication();
-        if (result != 0) return result;
+        if (result != 0) {
+            return result;
+        }
 
         result <- this.testDivision();
-        if (result != 0) return result;
+        if (result != 0) {
+            return result;
+        }
 
         result <- this.testModulo();
-        if (result != 0) return result;
+        if (result != 0) {
+            return result;
+        }
 
         result <- this.testBitwiseAnd();
-        if (result != 0) return result;
+        if (result != 0) {
+            return result;
+        }
 
         result <- this.testBitwiseOr();
-        if (result != 0) return result;
+        if (result != 0) {
+            return result;
+        }
 
         result <- this.testBitwiseXor();
-        if (result != 0) return result;
+        if (result != 0) {
+            return result;
+        }
 
         result <- this.testLeftShift();
-        if (result != 0) return result;
+        if (result != 0) {
+            return result;
+        }
 
         result <- this.testRightShift();
-        if (result != 0) return result;
+        if (result != 0) {
+            return result;
+        }
 
         return 0;
     }

@@ -58,22 +58,34 @@ u32 main(string args[]) {
     // Validate with defaults (iterations=8, threshold=3):
     // After loop: i=7 (last iteration)
     // i % 2 = 1, so bit0 should be false (7 is odd)
-    if (f.bit0 != false) return 1;
+    if (f.bit0 != false) {
+        return 1;
+    }
 
     // i > threshold (7 > 3) is true for i=7
-    if (f.bit1 != true) return 2;
+    if (f.bit1 != true) {
+        return 2;
+    }
 
     // bit2 should be true (since bit0 was false on last iteration)
-    if (f.bit2 != true) return 3;
+    if (f.bit2 != true) {
+        return 3;
+    }
 
     // count should be iterations/2 = 4 (i=0,2,4,6 are even)
-    if (count != (iterations / 2)) return 4;
+    if (count != (iterations / 2)) {
+        return 4;
+    }
 
     // Final check: literals still fold correctly
     f.bit5 <- true; // Should fold to 1
     f.bit6 <- false; // Should fold to 0
-    if (f.bit5 != true) return 5;
-    if (f.bit6 != false) return 6;
+    if (f.bit5 != true) {
+        return 5;
+    }
+    if (f.bit6 != false) {
+        return 6;
+    }
 
     return 0;
 }

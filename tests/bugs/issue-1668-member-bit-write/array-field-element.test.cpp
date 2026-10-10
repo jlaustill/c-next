@@ -19,12 +19,18 @@ S s = {};
 int main(void) {
     s.flags = (uint8_t)((s.flags & ~(1U << 3)) | (1U << 3));
     uint8_t f = s.flags;
-    if (f != 8) return 1U;
+    if (f != 8) {
+        return 1U;
+    }
     s.arr[1] = (uint8_t)((s.arr[1] & ~(1U << 3)) | (1U << 3));
     uint8_t e = s.arr[1U];
-    if (e != 8) return 2U;
+    if (e != 8) {
+        return 2U;
+    }
     s.arr[2] = 5U;
     uint8_t g = s.arr[2U];
-    if (g != 5) return 3U;
+    if (g != 5) {
+        return 3U;
+    }
     return 0U;
 }

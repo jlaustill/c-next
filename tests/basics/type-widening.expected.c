@@ -24,29 +24,49 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 int main(void) {
     uint8_t byte = 255U;
     uint16_t word = byte;
-    if (word != 255) return 1U;
+    if (word != 255) {
+        return 1U;
+    }
     uint32_t dword = word;
-    if (dword != 255) return 2U;
+    if (dword != 255) {
+        return 2U;
+    }
     uint64_t qword = dword;
-    if (qword != 255) return 3U;
+    if (qword != 255) {
+        return 3U;
+    }
     int8_t sbyte = -128;
     int16_t sword = sbyte;
-    if (sword != -128) return 4U;
+    if (sword != -128) {
+        return 4U;
+    }
     int32_t sdword = sword;
-    if (sdword != -128) return 5U;
+    if (sdword != -128) {
+        return 5U;
+    }
     int64_t sqword = sdword;
-    if (sqword != -128) return 6U;
+    if (sqword != -128) {
+        return 6U;
+    }
     int8_t posByte = 127;
     int32_t posWord = posByte;
-    if (posWord != 127) return 7U;
+    if (posWord != 127) {
+        return 7U;
+    }
     float single = 3.14;
     double precise = single;
-    if (precise < 3.13 || precise > 3.15) return 8U;
+    if (precise < 3.13 || precise > 3.15) {
+        return 8U;
+    }
     uint8_t a = 200U;
     uint8_t b = 200U;
     uint16_t clamped = cnx_clamp_add_u8(a, b);
-    if (clamped != 255) return 9U;
+    if (clamped != 255) {
+        return 9U;
+    }
     uint16_t sum = (uint16_t)a + (uint16_t)b;
-    if (sum != 400) return 10U;
+    if (sum != 400) {
+        return 10U;
+    }
     return 0U;
 }

@@ -31,29 +31,43 @@ u32 main() {
     buffer[3] <- 0;
 
     writeU32(buffer, 0, 100000);
-    if (buffer[0] != 100000) return 1;
+    if (buffer[0] != 100000) {
+        return 1;
+    }
 
     writeU32(buffer, 3, 999999);
-    if (buffer[3] != 999999) return 2;
+    if (buffer[3] != 999999) {
+        return 2;
+    }
 
     writeU32(buffer, 1, 500000);
-    if (buffer[1] != 500000) return 3;
+    if (buffer[1] != 500000) {
+        return 3;
+    }
 
     // Test read from array parameter
     u32 result <- readU32(buffer, 0);
-    if (result != 100000) return 4;
+    if (result != 100000) {
+        return 4;
+    }
 
     result <- readU32(buffer, 3);
-    if (result != 999999) return 5;
+    if (result != 999999) {
+        return 5;
+    }
 
     // Test compound assignment through parameter
     buffer[2] <- 50;
     incrementU32(buffer, 2);
-    if (buffer[2] != 51) return 6;
+    if (buffer[2] != 51) {
+        return 6;
+    }
 
     incrementU32(buffer, 2);
     incrementU32(buffer, 2);
-    if (buffer[2] != 53) return 7;
+    if (buffer[2] != 53) {
+        return 7;
+    }
 
     // Test copy between arrays
     u32[4] source;
@@ -64,10 +78,14 @@ u32 main() {
     dest[1] <- 0;
 
     copyU32(source, dest, 0);
-    if (dest[0] != 12345) return 8;
+    if (dest[0] != 12345) {
+        return 8;
+    }
 
     copyU32(source, dest, 1);
-    if (dest[1] != 67890) return 9;
+    if (dest[1] != 67890) {
+        return 9;
+    }
 
     return 0;
 }

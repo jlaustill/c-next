@@ -17,20 +17,38 @@ int main(void) {
     rect.origin.y = 20;
     rect.width = 100U;
     rect.height = 50U;
-    if (rect.origin.x != 10) return 1U;
-    if (rect.origin.y != 20) return 2U;
-    if (rect.width != 100) return 3U;
-    if (rect.height != 50) return 4U;
-    if (32 != 32) return 5U;
-    if (32 != 32) return 6U;
+    if (rect.origin.x != 10) {
+        return 1U;
+    }
+    if (rect.origin.y != 20) {
+        return 2U;
+    }
+    if (rect.width != 100) {
+        return 3U;
+    }
+    if (rect.height != 50) {
+        return 4U;
+    }
+    if (32 != 32) {
+        return 5U;
+    }
+    if (32 != 32) {
+        return 6U;
+    }
     uint32_t area = rect.width * rect.height;
-    if (area != 5000) return 7U;
+    if (area != 5000) {
+        return 7U;
+    }
     Rectangle rect2 = {};
     rect2.origin.x = rect.origin.x;
     rect2.origin.y = rect.origin.y;
     rect2.width = rect.width;
     rect2.height = rect.height;
-    if (rect2.origin.x != 10) return 8U;
-    if (rect2.height != 50) return 9U;
+    if (rect2.origin.x != 10) {
+        return 8U;
+    }
+    if (rect2.height != 50) {
+        return 9U;
+    }
     return 0U;
 }

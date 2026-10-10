@@ -79,39 +79,67 @@ void parallelIncrement(uint32_t& a, uint32_t& b, uint32_t times) {
 int main(void) {
     uint32_t val = 10U;
     incrementN(val, 5U);
-    if (val != 15) return 1U;
+    if (val != 15) {
+        return 1U;
+    }
     val = 0U;
     incrementN(val, 100U);
-    if (val != 100) return 2U;
+    if (val != 100) {
+        return 2U;
+    }
     val = 1U;
     doubleN(val, 4U);
-    if (val != 16) return 3U;
+    if (val != 16) {
+        return 3U;
+    }
     val = 3U;
     doubleN(val, 3U);
-    if (val != 24) return 4U;
+    if (val != 24) {
+        return 4U;
+    }
     uint32_t sum = 999U;
     accumulate(1U, 5U, sum);
-    if (sum != 15) return 5U;
+    if (sum != 15) {
+        return 5U;
+    }
     accumulate(1U, 10U, sum);
-    if (sum != 55) return 6U;
+    if (sum != 55) {
+        return 6U;
+    }
     accumulate(5U, 5U, sum);
-    if (sum != 5) return 7U;
+    if (sum != 5) {
+        return 7U;
+    }
     uint32_t fact = 0U;
     factorial(5U, fact);
-    if (fact != 120) return 8U;
+    if (fact != 120) {
+        return 8U;
+    }
     factorial(1U, fact);
-    if (fact != 1) return 9U;
+    if (fact != 1) {
+        return 9U;
+    }
     factorial(6U, fact);
-    if (fact != 720) return 10U;
+    if (fact != 720) {
+        return 10U;
+    }
     uint32_t x = 0U;
     uint32_t y = 0U;
     parallelIncrement(x, y, 5U);
-    if (x != 5) return 11U;
-    if (y != 10) return 12U;
+    if (x != 5) {
+        return 11U;
+    }
+    if (y != 10) {
+        return 12U;
+    }
     x = 10U;
     y = 20U;
     parallelIncrement(x, y, 3U);
-    if (x != 13) return 13U;
-    if (y != 26) return 14U;
+    if (x != 13) {
+        return 13U;
+    }
+    if (y != 26) {
+        return 14U;
+    }
     return 0U;
 }

@@ -13,6 +13,8 @@
 
 int main(void) {
     Motor__EMode motorMode = Motor__EMode__OFF;
-    if (motorMode != Motor__EMode__OFF) return 1U;
+    if (motorMode != Motor__EMode__OFF) {
+        return 1U;
+    }
     return 0U;
 }

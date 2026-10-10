@@ -108,10 +108,16 @@ uint32_t testArrayMemberInCondition(void) {
 
 int main(void) {
     uint32_t result1 = testBasicArrayMemberPassing();
-    if (result1 != 100) return 1U;
+    if (result1 != 100) {
+        return 1U;
+    }
     uint32_t result2 = testMultipleArrayMembers();
-    if (result2 != 110) return 2U;
+    if (result2 != 110) {
+        return 2U;
+    }
     uint32_t result3 = testArrayMemberInCondition();
-    if (result3 != 50) return 3U;
+    if (result3 != 50) {
+        return 3U;
+    }
     return 0U;
 }

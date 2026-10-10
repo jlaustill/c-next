@@ -12,75 +12,125 @@
 int main(void) {
     int8_t val = 127;
     val = (int8_t)(val + 1);
-    if (val != -128) return 1U;
+    if (val != -128) {
+        return 1U;
+    }
     int8_t val2 = 120;
     val2 = (int8_t)(val2 + 10);
-    if (val2 != -126) return 2U;
+    if (val2 != -126) {
+        return 2U;
+    }
     val = 100;
     val = (int8_t)(val + 100);
-    if (val != -56) return 3U;
+    if (val != -56) {
+        return 3U;
+    }
     val = 0;
     val = (int8_t)(val + 200);
-    if (val != -56) return 4U;
+    if (val != -56) {
+        return 4U;
+    }
     val = 127;
     val = (int8_t)(val + 1);
-    if (val != -128) return 5U;
+    if (val != -128) {
+        return 5U;
+    }
     val = (int8_t)(val + 255);
-    if (val != 127) return 6U;
+    if (val != 127) {
+        return 6U;
+    }
     val = -128;
     val = (int8_t)(val - 1);
-    if (val != 127) return 7U;
+    if (val != 127) {
+        return 7U;
+    }
     val = -120;
     val = (int8_t)(val - 10);
-    if (val != 126) return 8U;
+    if (val != 126) {
+        return 8U;
+    }
     val = -100;
     val = (int8_t)(val - 100);
-    if (val != 56) return 9U;
+    if (val != 56) {
+        return 9U;
+    }
     val = -128;
     val = (int8_t)(val - 1);
-    if (val != 127) return 10U;
+    if (val != 127) {
+        return 10U;
+    }
     val = (int8_t)(val - 255);
-    if (val != -128) return 11U;
+    if (val != -128) {
+        return 11U;
+    }
     val = 50;
     val = (int8_t)(val - 100);
-    if (val != -50) return 12U;
+    if (val != -50) {
+        return 12U;
+    }
     val = -50;
     val = (int8_t)(val + 100);
-    if (val != 50) return 13U;
+    if (val != 50) {
+        return 13U;
+    }
     val = 10;
     val = (int8_t)(val - 10);
-    if (val != 0) return 14U;
+    if (val != 0) {
+        return 14U;
+    }
     val = -10;
     val = (int8_t)(val + 10);
-    if (val != 0) return 15U;
+    if (val != 0) {
+        return 15U;
+    }
     val = 50;
     val = (int8_t)(val + 25);
-    if (val != 75) return 16U;
+    if (val != 75) {
+        return 16U;
+    }
     val = -50;
     val = (int8_t)(val - 25);
-    if (val != -75) return 17U;
+    if (val != -75) {
+        return 17U;
+    }
     val = 50;
     val = (int8_t)(val + -25);
-    if (val != 25) return 18U;
+    if (val != 25) {
+        return 18U;
+    }
     val = -50;
     val = (int8_t)(val - -25);
-    if (val != -25) return 19U;
+    if (val != -25) {
+        return 19U;
+    }
     val = 126;
     val = (int8_t)(val + 1);
-    if (val != 127) return 20U;
+    if (val != 127) {
+        return 20U;
+    }
     val = -127;
     val = (int8_t)(val - 1);
-    if (val != -128) return 21U;
+    if (val != -128) {
+        return 21U;
+    }
     val = 64;
     val = (int8_t)(val + 0);
-    if (val != 64) return 22U;
+    if (val != 64) {
+        return 22U;
+    }
     val = -64;
     val = (int8_t)(val - 0);
-    if (val != -64) return 23U;
+    if (val != -64) {
+        return 23U;
+    }
     val = 127;
     val = (int8_t)(val + 1);
-    if (val != -128) return 24U;
+    if (val != -128) {
+        return 24U;
+    }
     val = (int8_t)(val - 1);
-    if (val != 127) return 25U;
+    if (val != 127) {
+        return 25U;
+    }
     return 0U;
 }

@@ -28,10 +28,14 @@ i32 main() {
     Full f <- { pokes: 0 };
 
     fullForward(f);
-    if (f.pokes != 1) return 1;
+    if (f.pokes != 1) {
+        return 1;
+    }
 
     u32 snapshot <- fullSnapshot(f);
-    if (snapshot != 1) return 2;
+    if (snapshot != 1) {
+        return 2;
+    }
 
     return 0;
 }

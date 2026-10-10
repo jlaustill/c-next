@@ -9,8 +9,12 @@
 
 u32 main() {
     u32 fromGlobal <- S.sized();
-    if (fromGlobal != 7) return 1;
+    if (fromGlobal != 7) {
+        return 1;
+    }
     u32 fromMember <- S.count();
-    if (fromMember != 2) return 2;
+    if (fromMember != 2) {
+        return 2;
+    }
     return 0;
 }

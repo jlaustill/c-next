@@ -44,12 +44,20 @@ uint32_t calculatePower(Mode mode) {
 
 int main(void) {
     uint32_t offPower = calculatePower(Mode__OFF);
-    if (offPower != 0) return 1U;
+    if (offPower != 0) {
+        return 1U;
+    }
     uint32_t lowPower = calculatePower(Mode__LOW);
-    if (lowPower != 10) return 2U;
+    if (lowPower != 10) {
+        return 2U;
+    }
     uint32_t medPower = calculatePower(Mode__MEDIUM);
-    if (medPower != 50) return 3U;
+    if (medPower != 50) {
+        return 3U;
+    }
     uint32_t highPower = calculatePower(Mode__HIGH);
-    if (highPower != 100) return 4U;
+    if (highPower != 100) {
+        return 4U;
+    }
     return 0U;
 }

@@ -34,7 +34,9 @@ int main(void) {
             i = cnx_clamp_add_u32(i, 1U);
         }
     }
-    if (count != 5) return 1U;
+    if (count != 5) {
+        return 1U;
+    }
     count = 0U;
     condition = false;
     if (condition == true) {
@@ -46,7 +48,9 @@ int main(void) {
             i = cnx_clamp_add_u32(i, 1U);
         }
     }
-    if (count != 30) return 2U;
+    if (count != 30) {
+        return 2U;
+    }
     uint32_t resultA = 0U;
     uint32_t resultB = 0U;
     bool flag = true;
@@ -63,8 +67,12 @@ int main(void) {
             i = cnx_clamp_add_u32(i, 1U);
         }
     }
-    if (resultA != 4) return 3U;
-    if (resultB != 0) return 4U;
+    if (resultA != 4) {
+        return 3U;
+    }
+    if (resultB != 0) {
+        return 4U;
+    }
     count = 0U;
     condition = true;
     flag = true;
@@ -77,6 +85,8 @@ int main(void) {
             }
         }
     }
-    if (count != 10) return 5U;
+    if (count != 10) {
+        return 5U;
+    }
     return 0U;
 }

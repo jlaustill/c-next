@@ -53,17 +53,27 @@ i32 main() {
 
     forward(ds);
     i32 zero <- dev_pokes(ds[0]);
-    if (zero != 1) return 1;
+    if (zero != 1) {
+        return 1;
+    }
     i32 one <- dev_pokes(ds[1]);
-    if (one != 1) return 2;
+    if (one != 1) {
+        return 2;
+    }
 
     i32 viaElement <- firstPokes(ds);
-    if (viaElement != 1) return 3;
+    if (viaElement != 1) {
+        return 3;
+    }
 
     Full[2] fulls;
     bumpFirst(fulls);
-    if (fulls[0].pokes != 1) return 4;
-    if (fulls[1].pokes != 0) return 5;
+    if (fulls[0].pokes != 1) {
+        return 4;
+    }
+    if (fulls[1].pokes != 0) {
+        return 5;
+    }
 
     return 0;
 }

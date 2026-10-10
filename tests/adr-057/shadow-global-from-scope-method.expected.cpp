@@ -139,34 +139,64 @@ uint32_t Counter__globalStringLength(void) {
 
 int main(void) {
     uint32_t a = Counter__allThreeLevels();
-    if (a != 1110) return 1U;
+    if (a != 1110) {
+        return 1U;
+    }
     uint32_t b = Counter__arrayShadow();
-    if (b != 8) return 2U;
+    if (b != 8) {
+        return 2U;
+    }
     uint32_t c = Counter__loopShadow();
-    if (c != 198) return 3U;
+    if (c != 198) {
+        return 3U;
+    }
     uint32_t d = Counter__plain();
-    if (d != 5) return 4U;
+    if (d != 5) {
+        return 4U;
+    }
     uint32_t e = Counter__writeSubscript();
-    if (e != 5) return 5U;
+    if (e != 5) {
+        return 5U;
+    }
     uint32_t e2 = Counter__globalSubscript();
-    if (e2 != 70) return 6U;
+    if (e2 != 70) {
+        return 6U;
+    }
     uint32_t f = Counter__writeStructField();
-    if (f != 7) return 7U;
+    if (f != 7) {
+        return 7U;
+    }
     uint32_t f2 = Counter__globalStructField();
-    if (f2 != 90) return 8U;
+    if (f2 != 90) {
+        return 8U;
+    }
     uint32_t g = Counter__writeBitRange();
-    if (g != 3) return 9U;
+    if (g != 3) {
+        return 9U;
+    }
     uint32_t g2 = Counter__globalBits();
-    if (g2 != 0) return 10U;
+    if (g2 != 0) {
+        return 10U;
+    }
     uint32_t h = Counter__shadowingString();
-    if (h != 2) return 11U;
+    if (h != 2) {
+        return 11U;
+    }
     uint32_t h2 = Counter__globalStringLength();
-    if (h2 != 6) return 12U;
+    if (h2 != 6) {
+        return 12U;
+    }
     uint32_t i = Counter__sizeofArray();
-    if (i != 8) return 13U;
+    if (i != 8) {
+        return 13U;
+    }
     uint32_t j = Counter__sizeofMember();
-    if (j != 1) return 14U;
+    if (j != 1) {
+        return 14U;
+    }
     uint32_t k = Counter__elementCount();
-    if (k != 2) return 15U;
+    if (k != 2) {
+        return 15U;
+    }
     return 0U;
 }

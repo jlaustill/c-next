@@ -10,7 +10,9 @@ u32 main() {
     while (counter < 10) {
         counter +<- 1;
     }
-    if (counter != 10) return 1;
+    if (counter != 10) {
+        return 1;
+    }
 
     // Test accumulator pattern
     u32 sum <- 0;
@@ -19,7 +21,9 @@ u32 main() {
         sum +<- i;
         i +<- 1;
     }
-    if (sum != 15) return 2;
+    if (sum != 15) {
+        return 2;
+    }
 
     // Test decrementing counter
     u32 countdown <- 5;
@@ -28,7 +32,9 @@ u32 main() {
         countdown -<- 1;
         iterations +<- 1;
     }
-    if (iterations != 5) return 3;
+    if (iterations != 5) {
+        return 3;
+    }
 
     // Test nested loop counters
     u32 outer <- 0;
@@ -41,7 +47,9 @@ u32 main() {
         }
         outer +<- 1;
     }
-    if (total != 9) return 4;
+    if (total != 9) {
+        return 4;
+    }
 
     return 0;
 }

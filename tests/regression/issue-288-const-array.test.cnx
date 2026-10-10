@@ -19,21 +19,35 @@ scope ConstArrayTest {
 
 u32 main() {
     // Test 1: Direct array access
-    if (ConstArrayTest.LOOKUP_TABLE[0] != 10) return 1;
-    if (ConstArrayTest.LOOKUP_TABLE[1] != 20) return 2;
-    if (ConstArrayTest.LOOKUP_TABLE[2] != 30) return 3;
-    if (ConstArrayTest.LOOKUP_TABLE[3] != 40) return 4;
+    if (ConstArrayTest.LOOKUP_TABLE[0] != 10) {
+        return 1;
+    }
+    if (ConstArrayTest.LOOKUP_TABLE[1] != 20) {
+        return 2;
+    }
+    if (ConstArrayTest.LOOKUP_TABLE[2] != 30) {
+        return 3;
+    }
+    if (ConstArrayTest.LOOKUP_TABLE[3] != 40) {
+        return 4;
+    }
 
     // Test 2: Via function (store result first per MISRA Rule 13.5)
     u8 val0 <- ConstArrayTest.lookup(0);
-    if (val0 != 10) return 5;
+    if (val0 != 10) {
+        return 5;
+    }
 
     u8 val2 <- ConstArrayTest.lookup(2);
-    if (val2 != 30) return 6;
+    if (val2 != 30) {
+        return 6;
+    }
 
     // Test 3: Out of bounds returns 0
     u8 outOfBounds <- ConstArrayTest.lookup(10);
-    if (outOfBounds != 0) return 7;
+    if (outOfBounds != 0) {
+        return 7;
+    }
 
     return 0;
 }

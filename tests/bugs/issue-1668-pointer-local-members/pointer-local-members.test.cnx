@@ -14,9 +14,17 @@ u32 main() {
     u32 got <- w.v;
     widget_t plain;
     plain.v <- 3;
-    if (got != 16) return 1;
-    if (the_widget.v != 16) return 2;
-    if (the_widget.flags != 8) return 3;
-    if (plain.v != 3) return 4;
+    if (got != 16) {
+        return 1;
+    }
+    if (the_widget.v != 16) {
+        return 2;
+    }
+    if (the_widget.flags != 8) {
+        return 3;
+    }
+    if (plain.v != 3) {
+        return 4;
+    }
     return 0;
 }

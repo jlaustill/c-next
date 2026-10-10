@@ -24,14 +24,26 @@ void configure(DeviceState* state) {
 
 int main(void) {
     DeviceState dev = { .pressure = EPressureType__PRESSURE_TYPE_PSIA, .status = EStatus__STATUS_IDLE };
-    if (dev.pressure != EPressureType__PRESSURE_TYPE_PSIA) return 1U;
-    if (dev.status != EStatus__STATUS_IDLE) return 2U;
+    if (dev.pressure != EPressureType__PRESSURE_TYPE_PSIA) {
+        return 1U;
+    }
+    if (dev.status != EStatus__STATUS_IDLE) {
+        return 2U;
+    }
     configure(&dev);
-    if (dev.pressure != EPressureType__PRESSURE_TYPE_PSIG) return 3U;
-    if (dev.status != EStatus__STATUS_ACTIVE) return 4U;
+    if (dev.pressure != EPressureType__PRESSURE_TYPE_PSIG) {
+        return 3U;
+    }
+    if (dev.status != EStatus__STATUS_ACTIVE) {
+        return 4U;
+    }
     dev.pressure = EPressureType__PRESSURE_TYPE_PSIA;
     dev.status = EStatus__STATUS_ERROR;
-    if (dev.pressure != EPressureType__PRESSURE_TYPE_PSIA) return 5U;
-    if (dev.status != EStatus__STATUS_ERROR) return 6U;
+    if (dev.pressure != EPressureType__PRESSURE_TYPE_PSIA) {
+        return 5U;
+    }
+    if (dev.status != EStatus__STATUS_ERROR) {
+        return 6U;
+    }
     return 0U;
 }

@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-506 fixture(s) assert a diagnostic; 496 carry a code.
+508 fixture(s) assert a diagnostic; 498 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -272,6 +272,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1042-bare-bool-condition/bare-bool-member.test.cnx                              | E0701               |
 | tests/bugs/issue-1042-bare-bool-condition/bare-bool-negation.test.cnx                            | E0701               |
 | tests/bugs/issue-1042-bare-bool-condition/bare-bool-param.test.cnx                               | E0701               |
+| tests/bugs/issue-1090-braced-bodies/unbraced-bodies.test.cnx                                     | E0716               |
+| tests/bugs/issue-1090-braced-bodies/unbraced-declaration.test.cnx                                | E0716               |
 | tests/bugs/issue-1133-guard-collision-diagnostic/guard-collision.test.cnx                        | E0203               |
 | tests/bugs/issue-1145-atomic-bool-clamp-helper/atomic-bool-compound.test.cnx                     | E0806               |
 | tests/bugs/issue-1159-dimension-notation-bounds/binary-dimension-bounds.test.cnx                 | E0854               |

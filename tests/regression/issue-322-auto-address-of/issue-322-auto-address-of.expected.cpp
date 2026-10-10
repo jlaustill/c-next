@@ -33,9 +33,13 @@ uint32_t ConfigManager__getTimeout(void) {
 int main(void) {
     ConfigManager__initConfig();
     uint32_t timeout = ConfigManager__getTimeout();
-    if (timeout != 1000) return 1U;
+    if (timeout != 1000) {
+        return 1U;
+    }
     ConfigManager__loadFromStorage();
     timeout = ConfigManager__getTimeout();
-    if (timeout != 2000) return 2U;
+    if (timeout != 2000) {
+        return 2U;
+    }
     return 0U;
 }

@@ -32,34 +32,56 @@ static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
 
 // Test function that takes struct with anonymous member
 int32_t check_simple(const SimpleConfig& cfg) {
-    if (cfg.value != 99) return 1;
-    if (cfg.flags.flag_b != 1) return 2;
+    if (cfg.value != 99) {
+        return 1;
+    }
+    if (cfg.flags.flag_b != 1) {
+        return 2;
+    }
     return 0;
 }
 
 int32_t check_display(const DisplayConfig& disp) {
-    if (disp.resolution.width != 1024) return 1;
-    if (disp.resolution.height != 768) return 2;
-    if (disp.settings.brightness != 100) return 3;
+    if (disp.resolution.width != 1024) {
+        return 1;
+    }
+    if (disp.resolution.height != 768) {
+        return 2;
+    }
+    if (disp.settings.brightness != 100) {
+        return 3;
+    }
     return 0;
 }
 
 int32_t check_panel(const PanelConfig& panel) {
-    if (panel.clk_src != 1) return 1;
-    if (panel.timings.h_res != 800) return 2;
-    if (panel.flags.fb_in_psram != 1) return 3;
+    if (panel.clk_src != 1) {
+        return 1;
+    }
+    if (panel.timings.h_res != 800) {
+        return 2;
+    }
+    if (panel.flags.fb_in_psram != 1) {
+        return 3;
+    }
     return 0;
 }
 
 int main(void) {
     SimpleConfig cfg = { .value = 99, .flags = { .flag_b = 1 } };
     int32_t result = check_simple(cfg);
-    if (result != 0) return result;
+    if (result != 0) {
+        return result;
+    }
     DisplayConfig disp = { .resolution = { .width = 1024, .height = 768 }, .settings = { .brightness = 100, .contrast = 75 } };
     result = check_display(disp);
-    if (result != 0) return cnx_clamp_add_i32(10, result);
+    if (result != 0) {
+        return cnx_clamp_add_i32(10, result);
+    }
     PanelConfig panel = { .clk_src = 1, .timings = { .pclk_hz = 16000000, .h_res = 800, .v_res = 480 }, .flags = { .fb_in_psram = 1, .double_fb = 0 } };
     result = check_panel(panel);
-    if (result != 0) return cnx_clamp_add_i32(20, result);
+    if (result != 0) {
+        return cnx_clamp_add_i32(20, result);
+    }
     return 0;
 }

@@ -18,7 +18,9 @@ int main(void) {
     union { float f; uint32_t u; } __bits_testVal;
     __bits_testVal.f = testVal;
     uint8_t byte3 = ((__bits_testVal.u >> 24U) & 0xFFU);
-    if (byte3 != 0x3F) return 1U;
+    if (byte3 != 0x3F) {
+        return 1U;
+    }
     float result = 0.0;
     /* MISRA C:2012 Rule 21.15: float bits accessed through a union (memcpy would pass incompatible pointer types: float* vs uint32_t*). */
     union { float f; uint32_t u; } __bits_result;
@@ -27,12 +29,16 @@ int main(void) {
     result = __bits_result.f;
     __bits_result.u = (__bits_result.u & ~((uint32_t)0xFFU << 16)) | ((0x80U & (uint32_t)0xFFU) << 16);
     result = __bits_result.f;
-    if (result != 1.0) return 2U;
+    if (result != 1.0) {
+        return 2U;
+    }
     double testDouble = 1.0;
     /* MISRA C:2012 Rule 21.15: float bits accessed through a union (memcpy would pass incompatible pointer types: double* vs uint64_t*). */
     union { double f; uint64_t u; } __bits_testDouble;
     __bits_testDouble.f = testDouble;
     uint8_t highByte = ((__bits_testDouble.u >> 56U) & 0xFFU);
-    if (highByte != 0x3F) return 3U;
+    if (highByte != 0x3F) {
+        return 3U;
+    }
     return 0U;
 }

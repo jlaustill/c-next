@@ -25,15 +25,21 @@ u32 main() {
     buffer[1] <- 0;
 
     writeAt(buffer, 0, 42);
-    if (buffer[0] != 42) return 1;
+    if (buffer[0] != 42) {
+        return 1;
+    }
 
     // Test 2: Write to different index
     writeAt(buffer, 1, 99);
-    if (buffer[1] != 99) return 2;
+    if (buffer[1] != 99) {
+        return 2;
+    }
 
     // Test 3: writeFirst function with literal index
     writeFirst(buffer, 123);
-    if (buffer[0] != 123) return 3;
+    if (buffer[0] != 123) {
+        return 3;
+    }
 
     // Test 4: Copy element between arrays
     u8[4] source;
@@ -49,7 +55,9 @@ u32 main() {
 
     source[2] <- 200;
     copyElement(source, dest, 2);
-    if (dest[2] != 200) return 4;
+    if (dest[2] != 200) {
+        return 4;
+    }
 
     return 0;
 }

@@ -59,13 +59,23 @@ Sensor Sensor_init(void) {
 int main(void) {
     Sensor s = { .read = measure };
     uint8_t a = cnx_cast_sat_f32_u8(s.read());
-    if (a != 100) return 1U;
-    if (calls != 1) return 2U;
+    if (a != 100) {
+        return 1U;
+    }
+    if (calls != 1) {
+        return 2U;
+    }
     uint8_t b = cnx_cast_sat_f32_u8(readings[nextIndex()]);
-    if (b != 100) return 3U;
-    if (calls != 2) return 4U;
+    if (b != 100) {
+        return 3U;
+    }
+    if (calls != 2) {
+        return 4U;
+    }
     float k = 300.0;
     uint8_t c = ((k) >= ((float)UINT8_MAX) ? static_cast<uint8_t>(UINT8_MAX) : (k) < 0.0f ? static_cast<uint8_t>(0) : static_cast<uint8_t>((k)));
-    if (c != 255) return 5U;
+    if (c != 255) {
+        return 5U;
+    }
     return 0U;
 }

@@ -63,10 +63,14 @@ void onKnob(knob_t* k) {
 
 int main(void) {
     register_buf(onBuf);
-    if (shapeWitness != 7) return 1U;
+    if (shapeWitness != 7) {
+        return 1U;
+    }
     uint8_t local[4] = {9U, 0U, 0U, 0U};
     plainArray(local);
-    if (shapeWitness != 9) return 2U;
+    if (shapeWitness != 9) {
+        return 2U;
+    }
     register_knob(onKnob);
     return 0U;
 }

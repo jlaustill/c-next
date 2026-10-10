@@ -21,9 +21,13 @@ TInput input = { .assignedValue = EValueId__VALUE_A };
 int main(void) {
     input.assignedValue = EValueId__VALUE_B;
     EValueId val = input.assignedValue;
-    if (val != EValueId__VALUE_B) return 1U;
+    if (val != EValueId__VALUE_B) {
+        return 1U;
+    }
     input.assignedValue = EValueId__VALUE_A;
     EValueId val2 = input.assignedValue;
-    if (val2 != EValueId__VALUE_A) return 2U;
+    if (val2 != EValueId__VALUE_A) {
+        return 2U;
+    }
     return 0U;
 }

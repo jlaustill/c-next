@@ -17,17 +17,23 @@ i32 main() {
     shared <- dev_create();
     dev_poke(shared);
     i32 single <- dev_pokes(shared);
-    if (single != 1) return 1;
+    if (single != 1) {
+        return 1;
+    }
 
     sharedPair[0] <- dev_create();
     dev_poke(sharedPair[0]);
     i32 element <- dev_pokes(sharedPair[0]);
-    if (element != 1) return 2;
+    if (element != 1) {
+        return 2;
+    }
 
     Rack.attach();
     dev_poke(Rack.unit);
     i32 unit <- dev_pokes(Rack.unit);
-    if (unit != 1) return 3;
+    if (unit != 1) {
+        return 3;
+    }
 
     return 0;
 }

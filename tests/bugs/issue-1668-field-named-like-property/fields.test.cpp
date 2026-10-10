@@ -29,18 +29,32 @@ int main(void) {
     b.bit_length = 8U;
     pair[1].size = 9U;
     uint32_t total = b.length + b.size + b.capacity + b.bit_length;
-    if (total != 22) return 1U;
-    if (pair[1U].size != 9) return 2U;
+    if (total != 22) {
+        return 1U;
+    }
+    if (pair[1U].size != 9) {
+        return 2U;
+    }
     uint32_t hs = cbuf.size;
     uint32_t hl = cbuf.length;
-    if (hs != 5) return 3U;
-    if (hl != 6) return 4U;
+    if (hs != 5) {
+        return 3U;
+    }
+    if (hl != 6) {
+        return 4U;
+    }
     char name[9] = "abc";
     uint32_t chars = strlen(name);
     uint32_t room = 8;
     uint32_t slots = 2;
-    if (chars != 3) return 5U;
-    if (room != 8) return 6U;
-    if (slots != 2) return 7U;
+    if (chars != 3) {
+        return 5U;
+    }
+    if (room != 8) {
+        return 6U;
+    }
+    if (slots != 2) {
+        return 7U;
+    }
     return 0U;
 }

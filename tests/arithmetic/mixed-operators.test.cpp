@@ -12,52 +12,100 @@
 // Previously, all operators would become - if any - was present in the expression
 int main(void) {
     uint32_t result = 50U + 30U - 20U + 10U;
-    if (result != 70) return 1U;
+    if (result != 70) {
+        return 1U;
+    }
     result = 10U + 20U + 30U + 40U;
-    if (result != 100) return 2U;
+    if (result != 100) {
+        return 2U;
+    }
     result = 100U - 10U - 20U - 30U;
-    if (result != 40) return 3U;
+    if (result != 40) {
+        return 3U;
+    }
     result = 100U + 50U - 30U + 20U - 10U;
-    if (result != 130) return 4U;
+    if (result != 130) {
+        return 4U;
+    }
     result = 200U - 50U + 30U - 10U + 5U;
-    if (result != 175) return 5U;
+    if (result != 175) {
+        return 5U;
+    }
     result = 100U * 2U / 4U * 3U;
-    if (result != 150) return 6U;
+    if (result != 150) {
+        return 6U;
+    }
     result = 2U * 3U * 4U * 5U;
-    if (result != 120) return 7U;
+    if (result != 120) {
+        return 7U;
+    }
     result = 1000U / 2U / 5U / 10U;
-    if (result != 10) return 8U;
+    if (result != 10) {
+        return 8U;
+    }
     result = 24U * 2U / 3U * 5U / 4U;
-    if (result != 20) return 9U;
+    if (result != 20) {
+        return 9U;
+    }
     result = 100U / 5U * 3U / 2U * 4U;
-    if (result != 120) return 10U;
+    if (result != 120) {
+        return 10U;
+    }
     result = 100U * 3U % 17U * 2U;
-    if (result != 22) return 11U;
+    if (result != 22) {
+        return 11U;
+    }
     result = 100U / 3U % 10U * 2U;
-    if (result != 6) return 12U;
+    if (result != 6) {
+        return 12U;
+    }
     result = 50U * 4U / 10U % 7U;
-    if (result != 6) return 13U;
+    if (result != 6) {
+        return 13U;
+    }
     result = 1U << 4U >> 2U << 1U;
-    if (result != 8) return 14U;
+    if (result != 8) {
+        return 14U;
+    }
     result = 1U << 1U << 1U << 1U;
-    if (result != 8) return 15U;
+    if (result != 8) {
+        return 15U;
+    }
     result = 64U >> 1U >> 1U >> 1U;
-    if (result != 8) return 16U;
+    if (result != 8) {
+        return 16U;
+    }
     result = 2U << 3U >> 1U << 2U >> 2U;
-    if (result != 8) return 17U;
+    if (result != 8) {
+        return 17U;
+    }
     result = 10U + 5U * 4U - 8U / 2U;
-    if (result != 26) return 18U;
+    if (result != 26) {
+        return 18U;
+    }
     result = 100U - 20U + 5U * 3U - 10U / 2U;
-    if (result != 90) return 19U;
+    if (result != 90) {
+        return 19U;
+    }
     result = (50U + 30U) * 2U - (40U - 10U);
-    if (result != 130) return 20U;
+    if (result != 130) {
+        return 20U;
+    }
     result = 10U + 0U - 5U + 0U;
-    if (result != 5) return 21U;
+    if (result != 5) {
+        return 21U;
+    }
     result = 10U * 0U / 1U + 5U;
-    if (result != 5) return 22U;
+    if (result != 5) {
+        return 22U;
+    }
     uint64_t big = 1000000000000ULL + 500000000000ULL - 200000000000ULL + 100000000000ULL;
-    if (big != 1400000000000) return 23U;
+    if (big != 1400000000000) {
+        return 23U;
+    }
     big = 1000000000000ULL * 2ULL / 4ULL * 3ULL;
-    if (big != 1500000000000) return 24U;
+    if (big != 1500000000000) {
+        return 24U;
+    }
     return 0U;
 }

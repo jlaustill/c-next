@@ -80,24 +80,32 @@ int main(void) {
         onIf_fp handler = onIf;
         handler(5U);
     }
-    if (total != 5) return 1U;
+    if (total != 5) {
+        return 1U;
+    }
     uint32_t i = 0U;
     while (i < 1) {
         onWhile_fp beat = onWhile;
         beat(2U);
         i = cnx_clamp_add_u32(i, 1U);
     }
-    if (total != 7) return 2U;
+    if (total != 7) {
+        return 2U;
+    }
     do {
         onDo_fp step = onDo;
         step(1U);
     } while (total < 8);
-    if (total != 8) return 3U;
+    if (total != 8) {
+        return 3U;
+    }
     for (uint32_t j = 0U; j < 1; j = cnx_clamp_add_u32(j, 1U)) {
         onFor_fp tick = onFor;
         tick(2U);
     }
-    if (total != 10) return 4U;
+    if (total != 10) {
+        return 4U;
+    }
     switch (total) {
         case 10: {
             onCase_fp matched = onCase;
@@ -110,7 +118,9 @@ int main(void) {
             break;
         }
     }
-    if (total != 11) return 5U;
+    if (total != 11) {
+        return 5U;
+    }
     switch (total) {
         case 0: {
             onCase_fp never = onCase;
@@ -123,8 +133,12 @@ int main(void) {
             break;
         }
     }
-    if (total != 12) return 6U;
+    if (total != 12) {
+        return 6U;
+    }
     spinOnce();
-    if (total != 13) return 7U;
+    if (total != 13) {
+        return 7U;
+    }
     return 0U;
 }

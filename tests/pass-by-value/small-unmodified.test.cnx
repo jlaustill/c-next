@@ -79,58 +79,86 @@ u32 main() {
     u16 testVal <- 0x1234;
 
     u8 low <- getLowByte(testVal);
-    if (low != 0x34) return 1;
+    if (low != 0x34) {
+        return 1;
+    }
 
     u8 high <- getHighByte(testVal);
-    if (high != 0x12) return 2;
+    if (high != 0x12) {
+        return 2;
+    }
 
     u32 sum <- addTwo(100, 200);
-    if (sum != 300) return 3;
+    if (sum != 300) {
+        return 3;
+    }
 
     bool result <- invert(true);
-    if (result != false) return 4;
+    if (result != false) {
+        return 4;
+    }
 
     result <- invert(false);
-    if (result != true) return 5;
+    if (result != true) {
+        return 5;
+    }
 
     // Test modified by-pointer functions
     u32 counter <- 10;
     increment(counter);
-    if (counter != 11) return 6;
+    if (counter != 11) {
+        return 6;
+    }
 
     u16 doubled <- 50;
     doubleValue(doubled);
-    if (doubled != 100) return 7;
+    if (doubled != 100) {
+        return 7;
+    }
 
     // Test transitively modified
     u32 wrapped <- 20;
     incrementWrapper(wrapped);
-    if (wrapped != 21) return 8;
+    if (wrapped != 21) {
+        return 8;
+    }
 
     // Test mixed
     u32 mixedA <- 5;
     u32 mixedB <- 10;
     u32 mixedResult <- addAndIncrement(mixedA, mixedB);
-    if (mixedResult != 16) return 9; // (5+1) + 10 = 16
-    if (mixedA != 6) return 10; // a was modified
+    if (mixedResult != 16) {
+        return 9; // (5+1) + 10 = 16
+    }
+    if (mixedA != 6) {
+        return 10; // a was modified
+    }
 
     // Test modification in switch (Issue #269 bug fix)
     u32 switchVal <- 100;
     modifyInSwitch(switchVal, 1);
-    if (switchVal != 110) return 11; // case 1: +10
+    if (switchVal != 110) {
+        return 11; // case 1: +10
+    }
 
     switchVal <- 100;
     modifyInSwitch(switchVal, 2);
-    if (switchVal != 120) return 12; // case 2: +20
+    if (switchVal != 120) {
+        return 12; // case 2: +20
+    }
 
     switchVal <- 100;
     modifyInSwitch(switchVal, 99); // hits default
-    if (switchVal != 101) return 13; // default: +1
+    if (switchVal != 101) {
+        return 13; // default: +1
+    }
 
     // Test modification in critical section (ADR-050)
     u32 criticalVal <- 50;
     modifyInCritical(criticalVal);
-    if (criticalVal != 100) return 14; // *2
+    if (criticalVal != 100) {
+        return 14; // *2
+    }
 
     return 0;
 }

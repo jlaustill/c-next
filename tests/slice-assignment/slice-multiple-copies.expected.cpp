@@ -45,26 +45,66 @@ int main(void) {
     buffer[17] = (uint8_t)(cnx_tmp3 >> 40U);
     buffer[18] = (uint8_t)(cnx_tmp3 >> 48U);
     buffer[19] = (uint8_t)(cnx_tmp3 >> 56U);
-    if (buffer[0U] != 0x55) return 1U;
-    if (buffer[1U] != 0x52) return 2U;
-    if (buffer[2U] != 0x41) return 3U;
-    if (buffer[3U] != 0x50) return 4U;
-    if (buffer[4U] != 0x00) return 5U;
-    if (buffer[5U] != 0x01) return 6U;
-    if (buffer[6U] != 20) return 7U;
-    if (buffer[7U] != 0) return 8U;
-    if (buffer[8U] != 0x0F) return 9U;
-    if (buffer[9U] != 0) return 10U;
-    if (buffer[10U] != 0) return 11U;
-    if (buffer[11U] != 0) return 12U;
-    if (buffer[12U] != 0x08) return 13U;
-    if (buffer[13U] != 0x07) return 14U;
-    if (buffer[14U] != 0x06) return 15U;
-    if (buffer[15U] != 0x05) return 16U;
-    if (buffer[16U] != 0x04) return 17U;
-    if (buffer[17U] != 0x03) return 18U;
-    if (buffer[18U] != 0x02) return 19U;
-    if (buffer[19U] != 0x01) return 20U;
+    if (buffer[0U] != 0x55) {
+        return 1U;
+    }
+    if (buffer[1U] != 0x52) {
+        return 2U;
+    }
+    if (buffer[2U] != 0x41) {
+        return 3U;
+    }
+    if (buffer[3U] != 0x50) {
+        return 4U;
+    }
+    if (buffer[4U] != 0x00) {
+        return 5U;
+    }
+    if (buffer[5U] != 0x01) {
+        return 6U;
+    }
+    if (buffer[6U] != 20) {
+        return 7U;
+    }
+    if (buffer[7U] != 0) {
+        return 8U;
+    }
+    if (buffer[8U] != 0x0F) {
+        return 9U;
+    }
+    if (buffer[9U] != 0) {
+        return 10U;
+    }
+    if (buffer[10U] != 0) {
+        return 11U;
+    }
+    if (buffer[11U] != 0) {
+        return 12U;
+    }
+    if (buffer[12U] != 0x08) {
+        return 13U;
+    }
+    if (buffer[13U] != 0x07) {
+        return 14U;
+    }
+    if (buffer[14U] != 0x06) {
+        return 15U;
+    }
+    if (buffer[15U] != 0x05) {
+        return 16U;
+    }
+    if (buffer[16U] != 0x04) {
+        return 17U;
+    }
+    if (buffer[17U] != 0x03) {
+        return 18U;
+    }
+    if (buffer[18U] != 0x02) {
+        return 19U;
+    }
+    if (buffer[19U] != 0x01) {
+        return 20U;
+    }
     uint32_t newMagic = 0x44434241U;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
     const uint32_t cnx_tmp4 = (uint32_t)(newMagic);
@@ -72,11 +112,23 @@ int main(void) {
     buffer[1] = (uint8_t)(cnx_tmp4 >> 8U);
     buffer[2] = (uint8_t)(cnx_tmp4 >> 16U);
     buffer[3] = (uint8_t)(cnx_tmp4 >> 24U);
-    if (buffer[0U] != 0x41) return 21U;
-    if (buffer[1U] != 0x42) return 22U;
-    if (buffer[2U] != 0x43) return 23U;
-    if (buffer[3U] != 0x44) return 24U;
-    if (buffer[4U] != 0x00) return 25U;
-    if (buffer[8U] != 0x0F) return 26U;
+    if (buffer[0U] != 0x41) {
+        return 21U;
+    }
+    if (buffer[1U] != 0x42) {
+        return 22U;
+    }
+    if (buffer[2U] != 0x43) {
+        return 23U;
+    }
+    if (buffer[3U] != 0x44) {
+        return 24U;
+    }
+    if (buffer[4U] != 0x00) {
+        return 25U;
+    }
+    if (buffer[8U] != 0x0F) {
+        return 26U;
+    }
     return 0U;
 }

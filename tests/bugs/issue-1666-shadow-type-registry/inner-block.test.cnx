@@ -14,6 +14,8 @@ u32 probe(bool c) {
 
 u32 main() {
     u32 widths <- probe(true);
-    if (widths != 40) return 1;
+    if (widths != 40) {
+        return 1;
+    }
     return 0;
 }

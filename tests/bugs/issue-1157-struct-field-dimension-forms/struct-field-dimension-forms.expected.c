@@ -50,12 +50,26 @@ int main(void) {
     b.addLiteral[8] = 5U;
     b.addConst[7] = 6U;
     b.sizeofDim[3] = 7U;
-    if (b.plain[7U] != 1) return 1;
-    if (b.hex[15U] != 2) return 2;
-    if (b.binary[3U] != 3) return 3;
-    if (b.constRef[5U] != 4) return 4;
-    if (b.addLiteral[8U] != 5) return 5;
-    if (b.addConst[7U] != 6) return 6;
-    if (b.sizeofDim[3U] != 7) return 7;
+    if (b.plain[7U] != 1) {
+        return 1;
+    }
+    if (b.hex[15U] != 2) {
+        return 2;
+    }
+    if (b.binary[3U] != 3) {
+        return 3;
+    }
+    if (b.constRef[5U] != 4) {
+        return 4;
+    }
+    if (b.addLiteral[8U] != 5) {
+        return 5;
+    }
+    if (b.addConst[7U] != 6) {
+        return 6;
+    }
+    if (b.sizeofDim[3U] != 7) {
+        return 7;
+    }
     return 0;
 }

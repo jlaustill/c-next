@@ -59,32 +59,60 @@ void bumpNums(uint32_t n[2]) {
 int main(void) {
     CPoint l[2] = {0};
     pts_bump2(l);
-    if (l[0U].x != 1) return 1;
-    if (l[1U].x != 2) return 2;
+    if (l[0U].x != 1) {
+        return 1;
+    }
+    if (l[1U].x != 2) {
+        return 2;
+    }
     bumpParam(l);
-    if (l[0U].x != 2) return 3;
-    if (l[1U].x != 4) return 4;
+    if (l[0U].x != 2) {
+        return 3;
+    }
+    if (l[1U].x != 4) {
+        return 4;
+    }
     pts_bump2(gpts);
-    if (gpts[0U].x != 1) return 5;
-    if (gpts[1U].x != 2) return 6;
+    if (gpts[0U].x != 1) {
+        return 5;
+    }
+    if (gpts[1U].x != 2) {
+        return 6;
+    }
     Keeper__bump();
     uint32_t kept = Keeper__total();
-    if (kept != 3) return 7;
+    if (kept != 3) {
+        return 7;
+    }
     Bag bag = {0};
     bag.inner[0].x = 10U;
     bag.inner[1].x = 20U;
     pts_bump2(bag.inner);
-    if (bag.inner[0U].x != 11) return 8;
-    if (bag.inner[1U].x != 22) return 9;
+    if (bag.inner[0U].x != 11) {
+        return 8;
+    }
+    if (bag.inner[1U].x != 22) {
+        return 9;
+    }
     bumpSecond(l);
-    if (l[0U].x != 2) return 10;
-    if (l[1U].x != 5) return 11;
+    if (l[0U].x != 2) {
+        return 10;
+    }
+    if (l[1U].x != 5) {
+        return 11;
+    }
     CPoint single = { .x = 7U };
     bumpOne(&single);
-    if (single.x != 8) return 12;
+    if (single.x != 8) {
+        return 12;
+    }
     uint32_t nums[2] = {0};
     bumpNums(nums);
-    if (nums[0U] != 1) return 13;
-    if (nums[1U] != 2) return 14;
+    if (nums[0U] != 1) {
+        return 13;
+    }
+    if (nums[1U] != 2) {
+        return 14;
+    }
     return 0;
 }

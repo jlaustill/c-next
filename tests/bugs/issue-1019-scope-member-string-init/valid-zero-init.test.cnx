@@ -17,6 +17,8 @@ scope S {
 u32 main() {
     S.init();
     u8 length <- S.len();
-    if (length != 0) return 1;
+    if (length != 0) {
+        return 1;
+    }
     return 0;
 }

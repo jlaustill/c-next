@@ -18,16 +18,32 @@ const float ZERO = 0.0;
 
 int main(void) {
     float pi = PI;
-    if (pi < 3.14) return 1U;
-    if (pi > 3.15) return 2U;
+    if (pi < 3.14) {
+        return 1U;
+    }
+    if (pi > 3.15) {
+        return 2U;
+    }
     float g = GRAVITY;
-    if (g < 9.8) return 3U;
-    if (g > 9.82) return 4U;
+    if (g < 9.8) {
+        return 3U;
+    }
+    if (g > 9.82) {
+        return 4U;
+    }
     float zero = ZERO;
-    if (zero != 0.0) return 5U;
+    if (zero != 0.0) {
+        return 5U;
+    }
     float circumference = 2.0 * PI * 10.0;
-    if (circumference < 62.0) return 6U;
-    if (circumference > 63.0) return 7U;
-    if (ZERO >= GRAVITY) return 8U;
+    if (circumference < 62.0) {
+        return 6U;
+    }
+    if (circumference > 63.0) {
+        return 7U;
+    }
+    if (ZERO >= GRAVITY) {
+        return 8U;
+    }
     return 0U;
 }

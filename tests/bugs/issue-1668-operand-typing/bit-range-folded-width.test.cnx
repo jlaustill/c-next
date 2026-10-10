@@ -7,9 +7,13 @@ u32 main() {
     u8 a <- 200;
     u32 flags <- 0xFF;
     u8 r <- a + flags[0, sizeof(u8) * 8];
-    if (r != 255) return 1;
+    if (r != 255) {
+        return 1;
+    }
     // NEGATIVE CONTROL: a literal width clamped before this change too
     u8 r2 <- a + flags[0, 8];
-    if (r2 != 255) return 2;
+    if (r2 != 255) {
+        return 2;
+    }
     return 0;
 }

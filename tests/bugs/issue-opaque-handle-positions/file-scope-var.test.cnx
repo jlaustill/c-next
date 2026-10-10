@@ -41,20 +41,28 @@ i32 main() {
     gdev <- dev_create();
     dev_poke(gdev);
     i32 single <- dev_pokes(gdev);
-    if (single != 1) return 1;
+    if (single != 1) {
+        return 1;
+    }
 
     gdevs[0] <- dev_create();
     gdevs[1] <- dev_create();
     dev_poke(gdevs[1]);
     i32 element <- dev_pokes(gdevs[1]);
-    if (element != 1) return 2;
+    if (element != 1) {
+        return 2;
+    }
 
     Board.attach();
     Board.pokeAll();
     i32 primary <- dev_pokes(Board.primary);
-    if (primary != 1) return 3;
+    if (primary != 1) {
+        return 3;
+    }
     i32 spare <- dev_pokes(Board.spares[1]);
-    if (spare != 1) return 4;
+    if (spare != 1) {
+        return 4;
+    }
 
     return 0;
 }

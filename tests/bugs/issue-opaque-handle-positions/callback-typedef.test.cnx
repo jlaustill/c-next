@@ -47,16 +47,22 @@ i32 main() {
     Dev d <- dev_create();
     h.onDev(d);
     i32 viaHandle <- dev_pokes(d);
-    if (viaHandle != 1) return 1;
+    if (viaHandle != 1) {
+        return 1;
+    }
 
     Dev[2] pair;
     pair[0] <- dev_create();
     pair[1] <- dev_create();
     h.onBoth(pair);
     i32 first <- dev_pokes(pair[0]);
-    if (first != 1) return 2;
+    if (first != 1) {
+        return 2;
+    }
     i32 second <- dev_pokes(pair[1]);
-    if (second != 1) return 3;
+    if (second != 1) {
+        return 3;
+    }
 
     return 0;
 }

@@ -27,9 +27,15 @@ uint32_t Lab__lengthOf(uint32_t i) {
 int main(void) {
     uint32_t first = Lab__lengthOf(0U);
     uint32_t second = Lab__lengthOf(1U);
-    if (first != 5) return 1;
-    if (second != 7) return 2;
+    if (first != 5) {
+        return 1;
+    }
+    if (second != 7) {
+        return 2;
+    }
     uint32_t code = Lab__codeLength(1U);
-    if (code != 3) return 3;
+    if (code != 3) {
+        return 3;
+    }
     return 0;
 }

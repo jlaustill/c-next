@@ -29,51 +29,87 @@ u32 main() {
     color.Green <- 128;
     color.Blue <- 64;
 
-    if (color.Red != 255) return 1;
-    if (color.Green != 128) return 2;
-    if (color.Blue != 64) return 3;
+    if (color.Red != 255) {
+        return 1;
+    }
+    if (color.Green != 128) {
+        return 2;
+    }
+    if (color.Blue != 64) {
+        return 3;
+    }
 
     // Modify single channel
     color.Red <- 0;
-    if (color.Red != 0) return 4;
-    if (color.Green != 128) return 5; // Unchanged
-    if (color.Blue != 64) return 6; // Unchanged
+    if (color.Red != 0) {
+        return 4;
+    }
+    if (color.Green != 128) {
+        return 5; // Unchanged
+    }
+    if (color.Blue != 64) {
+        return 6; // Unchanged
+    }
 
     // Test sensor config single-bit fields
     sensor.Enabled <- true;
     sensor.AutoCalibrate <- false;
     sensor.HighPrecision <- true;
 
-    if (sensor.Enabled != true) return 7;
-    if (sensor.AutoCalibrate != false) return 8;
-    if (sensor.HighPrecision != true) return 9;
+    if (sensor.Enabled != true) {
+        return 7;
+    }
+    if (sensor.AutoCalibrate != false) {
+        return 8;
+    }
+    if (sensor.HighPrecision != true) {
+        return 9;
+    }
 
     // Test sensor config multi-bit fields
     sensor.SampleRate <- 100;
     sensor.Threshold <- 50;
 
-    if (sensor.SampleRate != 100) return 10;
-    if (sensor.Threshold != 50) return 11;
+    if (sensor.SampleRate != 100) {
+        return 10;
+    }
+    if (sensor.Threshold != 50) {
+        return 11;
+    }
 
     // Test reading into variables
     u8 rate <- sensor.SampleRate;
-    if (rate != 100) return 12;
+    if (rate != 100) {
+        return 12;
+    }
 
     u8 thresh <- sensor.Threshold;
-    if (thresh != 50) return 13;
+    if (thresh != 50) {
+        return 13;
+    }
 
     // Test modifying multi-bit fields
     sensor.SampleRate <- 200;
-    if (sensor.SampleRate != 200) return 14;
-    if (sensor.Threshold != 50) return 15; // Unchanged
+    if (sensor.SampleRate != 200) {
+        return 14;
+    }
+    if (sensor.Threshold != 50) {
+        return 15; // Unchanged
+    }
 
     // Test max value for 8-bit field
     color.Red <- 255;
     color.Green <- 255;
     color.Blue <- 255;
-    if (color.Red != 255) return 16;
-    if (color.Green != 255) return 17;
-    if (color.Blue != 255) return 18;
+    if (color.Red != 255) {
+        return 16;
+    }
+    if (color.Green != 255) {
+        return 17;
+    }
+    if (color.Blue != 255) {
+        return 18;
+    }
 
     return 0;
 }

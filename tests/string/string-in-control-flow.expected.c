@@ -28,24 +28,34 @@ int main(void) {
     if (strcmp(name, "Alice") == 0) {
         result = 1U;
     }
-    if (result != 1) return 1;
+    if (result != 1) {
+        return 1;
+    }
     if (strcmp(name, "Bob") == 0) {
         result = 2U;
     }
-    if (result != 1) return 2;
+    if (result != 1) {
+        return 2;
+    }
     if (strcmp(name, "Bob") != 0) {
         result = 3U;
     }
-    if (result != 3) return 3;
+    if (result != 3) {
+        return 3;
+    }
     char text[65] = "Hello";
     if (strlen(text) == 5) {
         result = 4U;
     }
-    if (result != 4) return 4;
+    if (result != 4) {
+        return 4;
+    }
     if (strlen(text) > 3) {
         result = 5U;
     }
-    if (result != 5) return 5;
+    if (result != 5) {
+        return 5;
+    }
     char items[4][33] = {0};
     (void) strncpy(items[0], "One", 32);
     (void) strncpy(items[1], "Two", 32);
@@ -57,23 +67,31 @@ int main(void) {
         totalLen = cnx_clamp_add_u32(totalLen, strlen(items[i]));
         i = cnx_clamp_add_u32(i, 1U);
     }
-    if (totalLen != 15) return 6;
+    if (totalLen != 15) {
+        return 6;
+    }
     char maybeEmpty[33] = "";
     if (strlen(maybeEmpty) == 0) {
         result = 6U;
     }
-    if (result != 6) return 7;
+    if (result != 6) {
+        return 7;
+    }
     (void) strncpy(maybeEmpty, "NotEmpty", 32); maybeEmpty[32] = '\0';
     if (strlen(maybeEmpty) != 0) {
         result = 7U;
     }
-    if (result != 7) return 8;
+    if (result != 7) {
+        return 8;
+    }
     char status[33] = "active";
     if (strcmp(status, "active") == 0) {
         if (strlen(status) == 6) {
             result = 8U;
         }
     }
-    if (result != 8) return 9;
+    if (result != 8) {
+        return 9;
+    }
     return 0;
 }

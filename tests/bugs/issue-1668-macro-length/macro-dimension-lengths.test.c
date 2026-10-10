@@ -29,12 +29,26 @@ int main(void) {
     uint32_t rowBits = ((uint32_t)(BUF_SIZE) * 16U);
     uint32_t count = BUF_SIZE;
     uint32_t fixedBits = 32;
-    if (bits != 48) return 1U;
-    if (bytes != 6) return 2U;
-    if (gridBits != 192) return 3U;
-    if (gridBytes != 24) return 4U;
-    if (rowBits != 96) return 5U;
-    if (count != 6) return 6U;
-    if (fixedBits != 32) return 7U;
+    if (bits != 48) {
+        return 1U;
+    }
+    if (bytes != 6) {
+        return 2U;
+    }
+    if (gridBits != 192) {
+        return 3U;
+    }
+    if (gridBytes != 24) {
+        return 4U;
+    }
+    if (rowBits != 96) {
+        return 5U;
+    }
+    if (count != 6) {
+        return 6U;
+    }
+    if (fixedBits != 32) {
+        return 7U;
+    }
     return 0U;
 }

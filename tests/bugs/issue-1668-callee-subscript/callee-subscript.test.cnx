@@ -7,9 +7,13 @@
 
 u32 main() {
     u8 x <- get_buf()[2];
-    if (x != 30) return 1;
+    if (x != 30) {
+        return 1;
+    }
     u8 y <- global.get_buf()[3];
-    if (y != 40) return 2;
+    if (y != 40) {
+        return 2;
+    }
     // Control: a whole call still declares the pointer it returns
     u8 whole <- get_buf();
     return 0;

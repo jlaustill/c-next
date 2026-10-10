@@ -6,8 +6,12 @@ u32 main() {
     f32 k <- 2.5;
     u32 c <- 1;
     f32 r <- (c > 0) ? (f32)a : k;
-    if (r != 3.0) return 1;
+    if (r != 3.0) {
+        return 1;
+    }
     f32 q <- (c = 0) ? (f32)a : k;
-    if (q != 2.5) return 2;
+    if (q != 2.5) {
+        return 2;
+    }
     return 0;
 }

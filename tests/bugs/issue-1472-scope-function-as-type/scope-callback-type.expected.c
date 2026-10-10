@@ -52,8 +52,12 @@ void runQualified(Motor__onTick_fp handler) {
 
 int main(void) {
     Motor__runBare(Motor__onTick);
-    if (Motor__ticks != 3) return 1U;
+    if (Motor__ticks != 3) {
+        return 1U;
+    }
     runQualified(Motor__onTick);
-    if (Motor__ticks != 8) return 2U;
+    if (Motor__ticks != 8) {
+        return 2U;
+    }
     return 0U;
 }

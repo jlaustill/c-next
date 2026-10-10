@@ -13,6 +13,8 @@ scope Lib {
 
 u32 main() {
     u32 k <- Lib.bump();
-    if (k != 301) return 1;
+    if (k != 301) {
+        return 1;
+    }
     return 0;
 }

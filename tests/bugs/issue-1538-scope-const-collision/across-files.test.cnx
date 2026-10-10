@@ -11,6 +11,8 @@ scope Big {
 
 u32 main() {
     u32 small <- Small.t.element_count;
-    if (small != 2) return 1;
+    if (small != 2) {
+        return 1;
+    }
     return 0;
 }

@@ -19,7 +19,9 @@ u32 main() {
     data.count <- 1;
 
     u8 result <- Handler.process(data);
-    if (result != 42) return 1;
+    if (result != 42) {
+        return 1;
+    }
 
     return 0;
 }

@@ -43,6 +43,8 @@ uint32_t invokeLocally(void) {
 
 int main(void) {
     uint32_t result = invokeLocally();
-    if (result != 1) return 1U;
+    if (result != 1) {
+        return 1U;
+    }
     return 0U;
 }

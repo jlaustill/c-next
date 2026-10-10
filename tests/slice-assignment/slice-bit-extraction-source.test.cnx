@@ -9,9 +9,17 @@ u32 main() {
     u32 b <- 0x12345678;
     buf[0, 4] <- b[0, 32];
 
-    if (buf[0] != 0x78) return 1;
-    if (buf[1] != 0x56) return 2;
-    if (buf[2] != 0x34) return 3;
-    if (buf[3] != 0x12) return 4;
+    if (buf[0] != 0x78) {
+        return 1;
+    }
+    if (buf[1] != 0x56) {
+        return 2;
+    }
+    if (buf[2] != 0x34) {
+        return 3;
+    }
+    if (buf[3] != 0x12) {
+        return 4;
+    }
     return 0;
 }

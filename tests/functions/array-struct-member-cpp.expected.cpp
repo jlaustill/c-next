@@ -51,8 +51,12 @@ uint32_t testMultipleIndices(void) {
 
 int main(void) {
     uint32_t result1 = testArrayStructMembers();
-    if (result1 != 43) return 1U;
+    if (result1 != 43) {
+        return 1U;
+    }
     uint32_t result2 = testMultipleIndices();
-    if (result2 != 100) return 2U;
+    if (result2 != 100) {
+        return 2U;
+    }
     return 0U;
 }

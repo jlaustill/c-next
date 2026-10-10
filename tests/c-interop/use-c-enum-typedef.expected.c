@@ -17,13 +17,25 @@ int main(void) {
     Priority med = PRIORITY_MEDIUM;
     Priority high = PRIORITY_HIGH;
     Priority crit = PRIORITY_CRITICAL;
-    if (low != 0) return 1U;
-    if (med != 50) return 2U;
-    if (high != 100) return 3U;
-    if (crit != 255) return 4U;
+    if (low != 0) {
+        return 1U;
+    }
+    if (med != 50) {
+        return 2U;
+    }
+    if (high != 100) {
+        return 3U;
+    }
+    if (crit != 255) {
+        return 4U;
+    }
     Priority p = PRIORITY_HIGH;
-    if (p != PRIORITY_HIGH) return 5U;
-    if (p < PRIORITY_MEDIUM) return 6U;
+    if (p != PRIORITY_HIGH) {
+        return 5U;
+    }
+    if (p < PRIORITY_MEDIUM) {
+        return 6U;
+    }
     Priority threshold = PRIORITY_MEDIUM;
     if (high > threshold) {
     } else {
@@ -31,6 +43,8 @@ int main(void) {
     }
     Permissions perm = FLAG_READ;
     perm = perm | FLAG_WRITE;
-    if (perm != 3) return 8U;
+    if (perm != 3) {
+        return 8U;
+    }
     return 0U;
 }

@@ -27,14 +27,18 @@ i32 main() {
 
     // Test with extracted variable approach (already works)
     Test.setInputExtracted(testData);
-    if (inputs[2].assignedValue != 99) return 1;
+    if (inputs[2].assignedValue != 99) {
+        return 1;
+    }
 
     // Reset
     inputs[2].assignedValue <- 0;
 
     // Test with nested expression (bug fix)
     Test.setInput(testData);
-    if (inputs[2].assignedValue != 99) return 2;
+    if (inputs[2].assignedValue != 99) {
+        return 2;
+    }
 
     return 0;
 }

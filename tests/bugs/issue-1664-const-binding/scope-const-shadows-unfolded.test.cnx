@@ -18,6 +18,8 @@ scope S {
 
 u32 main() {
     u8 picked <- S.pick();
-    if (picked != 8) return 1;
+    if (picked != 8) {
+        return 1;
+    }
     return 0;
 }

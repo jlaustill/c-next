@@ -38,15 +38,25 @@ int16_t absConstI16(const int16_t value) {
 
 int main(void) {
     int16_t result = readConstI16(10000);
-    if (result != 10000) return 1U;
+    if (result != 10000) {
+        return 1U;
+    }
     int16_t negResult = readConstI16(-5000);
-    if (negResult != -5000) return 2U;
+    if (negResult != -5000) {
+        return 2U;
+    }
     int16_t absPos = absConstI16(1234);
-    if (absPos != 1234) return 3U;
+    if (absPos != 1234) {
+        return 3U;
+    }
     int16_t absNeg = absConstI16(-5678);
-    if (absNeg != 5678) return 4U;
+    if (absNeg != 5678) {
+        return 4U;
+    }
     int16_t myValue = -20000;
     int16_t readBack = readConstI16(myValue);
-    if (readBack != -20000) return 5U;
+    if (readBack != -20000) {
+        return 5U;
+    }
     return 0U;
 }

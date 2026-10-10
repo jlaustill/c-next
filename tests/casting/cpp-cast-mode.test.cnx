@@ -12,10 +12,14 @@ enum Priority {
 u32 main() {
     // Test enum to integer cast - should generate static_cast in C++ mode
     u32 val <- (u32)Priority.LOW;
-    if (val != 1) return 1;
+    if (val != 1) {
+        return 1;
+    }
 
     u32 highVal <- (u32)Priority.HIGH;
-    if (highVal != 10) return 2;
+    if (highVal != 10) {
+        return 2;
+    }
 
     return 0;
 }

@@ -35,6 +35,8 @@ uint32_t S__f(void) {
 
 int main(void) {
     uint32_t r = S__f();
-    if (r != 4294967295) return 1U;
+    if (r != 4294967295) {
+        return 1U;
+    }
     return 0U;
 }

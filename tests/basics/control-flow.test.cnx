@@ -10,7 +10,9 @@ u32 main() {
     if (x > 5) {
         result <- 1;
     }
-    if (result != 1) return 1;
+    if (result != 1) {
+        return 1;
+    }
 
     // If-else
     if (x < 5) {
@@ -18,7 +20,9 @@ u32 main() {
     } else {
         result <- 200;
     }
-    if (result != 200) return 2;
+    if (result != 200) {
+        return 2;
+    }
 
     // If-else-if chain
     u32 score <- 85;
@@ -32,7 +36,9 @@ u32 main() {
     } else {
         grade <- 1;
     }
-    if (grade != 3) return 3;
+    if (grade != 3) {
+        return 3;
+    }
 
     // While loop
     u32 counter <- 0;
@@ -41,28 +47,36 @@ u32 main() {
         sum <- sum + counter;
         counter <- counter + 1;
     }
-    if (sum != 10) return 4; // 0+1+2+3+4 = 10
+    if (sum != 10) {
+        return 4; // 0+1+2+3+4 = 10
+    }
 
     // For loop
     sum <- 0;
     for (u32 i <- 1; i <= 5; i <- i + 1) {
         sum <- sum + i;
     }
-    if (sum != 15) return 5; // 1+2+3+4+5 = 15
+    if (sum != 15) {
+        return 5; // 1+2+3+4+5 = 15
+    }
 
     // Do-while (executes at least once)
     counter <- 0;
     do {
         counter <- counter + 1;
     } while (counter < 3);
-    if (counter != 3) return 6;
+    if (counter != 3) {
+        return 6;
+    }
 
     // Structured loop (instead of break, use condition in loop)
     sum <- 0;
     for (u32 i <- 0; i < 5; i <- i + 1) {
         sum <- sum + 1;
     }
-    if (sum != 5) return 7;
+    if (sum != 5) {
+        return 7;
+    }
 
     // Structured condition (instead of continue, use if to filter)
     sum <- 0;
@@ -71,7 +85,9 @@ u32 main() {
             sum <- sum + 1;
         }
     }
-    if (sum != 4) return 8; // Skipped i=2, so 4 iterations counted
+    if (sum != 4) {
+        return 8; // Skipped i=2, so 4 iterations counted
+    }
 
     return 0;
 }

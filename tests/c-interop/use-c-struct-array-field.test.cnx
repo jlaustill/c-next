@@ -20,10 +20,18 @@ u32 main() {
     }
 
     // Verify array contents
-    if (buf.data[0] != 0) return 1;
-    if (buf.data[1] != 10) return 2;
-    if (buf.data[2] != 20) return 3;
-    if (buf.data[3] != 30) return 4;
+    if (buf.data[0] != 0) {
+        return 1;
+    }
+    if (buf.data[1] != 10) {
+        return 2;
+    }
+    if (buf.data[2] != 20) {
+        return 3;
+    }
+    if (buf.data[3] != 30) {
+        return 4;
+    }
 
     // Test 2: ValueArray with uint32_t array
     ValueArray va;
@@ -35,9 +43,15 @@ u32 main() {
     }
 
     // Verify
-    if (va.values[0] != 0) return 5;
-    if (va.values[1] != 100) return 6;
-    if (va.values[7] != 700) return 7;
+    if (va.values[0] != 0) {
+        return 5;
+    }
+    if (va.values[1] != 100) {
+        return 6;
+    }
+    if (va.values[7] != 700) {
+        return 7;
+    }
 
     // Test 3: Sum array elements
     u32 sum <- 0;
@@ -45,11 +59,17 @@ u32 main() {
         sum +<- va.values[i];
     }
     // 0 + 100 + 200 + 300 + 400 + 500 + 600 + 700 = 2800
-    if (sum != 2800) return 8;
+    if (sum != 2800) {
+        return 8;
+    }
 
     // Test 4: Array element .bit_length property
-    if (buf.data[0].bit_length != 8) return 9;
-    if (va.values[0].bit_length != 32) return 10;
+    if (buf.data[0].bit_length != 8) {
+        return 9;
+    }
+    if (va.values[0].bit_length != 32) {
+        return 10;
+    }
 
     return 0; // All tests passed
 }

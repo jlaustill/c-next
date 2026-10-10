@@ -39,6 +39,8 @@ uint32_t useCaller(callIt_fp c) {
 
 int main(void) {
     uint32_t result = useCaller(callIt);
-    if (result != 4) return 1U;
+    if (result != 4) {
+        return 1U;
+    }
     return 0U;
 }

@@ -72,12 +72,18 @@ void onLogConst(const char* msg) {
 int main(void) {
     witness = 0U;
     register_log_handler(onLog);
-    if (witness != 1) return 1U;
+    if (witness != 1) {
+        return 1U;
+    }
     witness = 0U;
     plainRead("hi");
-    if (witness != 2) return 2U;
+    if (witness != 2) {
+        return 2U;
+    }
     witness = 0U;
     register_const_log_handler(onLogConst);
-    if (witness != 3) return 3U;
+    if (witness != 3) {
+        return 3U;
+    }
     return 0U;
 }

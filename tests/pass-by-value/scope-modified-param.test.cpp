@@ -75,32 +75,56 @@ uint32_t TestScope__mixedParams(uint32_t& counter, uint32_t multiplier) {
 int main(void) {
     uint32_t counter = 10U;
     TestScope__increment(counter);
-    if (counter != 11) return 1U;
+    if (counter != 11) {
+        return 1U;
+    }
     uint32_t total = 100U;
     uint32_t result = TestScope__accumulate(total, 50U);
-    if (total != 150) return 2U;
-    if (result != 150) return 3U;
+    if (total != 150) {
+        return 2U;
+    }
+    if (result != 150) {
+        return 3U;
+    }
     uint32_t doubled = 5U;
     TestScope__doubleIncrement(doubled);
-    if (doubled != 7) return 4U;
+    if (doubled != 7) {
+        return 4U;
+    }
     uint32_t switchVal = 100U;
     TestScope__switchIncrement(switchVal, 1U);
-    if (switchVal != 110) return 5U;
+    if (switchVal != 110) {
+        return 5U;
+    }
     switchVal = 100U;
     TestScope__switchIncrement(switchVal, 2U);
-    if (switchVal != 120) return 6U;
+    if (switchVal != 120) {
+        return 6U;
+    }
     switchVal = 100U;
     TestScope__switchIncrement(switchVal, 99U);
-    if (switchVal != 101) return 7U;
+    if (switchVal != 101) {
+        return 7U;
+    }
     uint32_t readVal = 25U;
     uint32_t readResult = TestScope__readOnly(readVal);
-    if (readVal != 25) return 8U;
-    if (readResult != 50) return 9U;
+    if (readVal != 25) {
+        return 8U;
+    }
+    if (readResult != 50) {
+        return 9U;
+    }
     uint32_t mixedCounter = 10U;
     uint32_t mixedMult = 3U;
     uint32_t mixedResult = TestScope__mixedParams(mixedCounter, mixedMult);
-    if (mixedCounter != 11) return 10U;
-    if (mixedMult != 3) return 11U;
-    if (mixedResult != 33) return 12U;
+    if (mixedCounter != 11) {
+        return 10U;
+    }
+    if (mixedMult != 3) {
+        return 11U;
+    }
+    if (mixedResult != 33) {
+        return 12U;
+    }
     return 0U;
 }

@@ -20,14 +20,18 @@ u32 main() {
     // In C mode: &(uint8_t){value & 0xFF} works
     // In C++ mode: compound literals are rvalues, & is illegal
     crc <- process(crc, value & 0xFF);
-    if (crc != 0x78) return 1;
+    if (crc != 0x78) {
+        return 1;
+    }
 
     // Test: arithmetic expression
     u8 a <- 10;
     u8 b <- 5;
     crc <- 0;
     crc <- process(crc, a + b);
-    if (crc != 15) return 2;
+    if (crc != 15) {
+        return 2;
+    }
 
     return 0;
 }

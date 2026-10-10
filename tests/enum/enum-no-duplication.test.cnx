@@ -26,10 +26,14 @@ scope Motor {
 
 u32 main() {
     (void)Motor.start();
-    if (Motor.current != Motor.State.RUNNING) return 1;
+    if (Motor.current != Motor.State.RUNNING) {
+        return 1;
+    }
 
     bool running <- Motor.isRunning();
-    if (running != true) return 2;
+    if (running != true) {
+        return 2;
+    }
 
     return 0;
 }

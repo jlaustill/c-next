@@ -35,8 +35,12 @@ uint32_t DeepConsumer__read(void) {
 
 int main(void) {
     gDeep.value = viaDeep();
-    if (gDeep.value != 9) return 1U;
+    if (gDeep.value != 9) {
+        return 1U;
+    }
     uint32_t direct = DeepConsumer__read();
-    if (direct != 9) return 2U;
+    if (direct != 9) {
+        return 2U;
+    }
     return 0U;
 }

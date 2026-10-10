@@ -44,6 +44,7 @@ import CriticalSectionAnalyzer from "./CriticalSectionAnalyzer";
 import EnumTypeSafetyAnalyzer from "./EnumTypeSafetyAnalyzer";
 import ScopeAccessAnalyzer from "./ScopeAccessAnalyzer";
 import RegisterAccessAnalyzer from "./RegisterAccessAnalyzer";
+import BracedBodyAnalyzer from "./BracedBodyAnalyzer";
 import BareEnumMemberAnalyzer from "./BareEnumMemberAnalyzer";
 import ArrayDeclarationAnalyzer from "./ArrayDeclarationAnalyzer";
 import ConstantDimensionAnalyzer from "./ConstantDimensionAnalyzer";
@@ -206,6 +207,13 @@ function runAnalyzers(
       // analysis -- a dimension or an enum value would report a consequence
       label: "integer literal form (ADR-044: no octal literal, E0912)",
       run: () => new LiteralFormAnalyzer().analyze(tree),
+    },
+    {
+      // #1090: a body's braces decide its scope. An unbraced declaration kept
+      // its name in scope after the `if` (#1795), so every later step would
+      // answer about scoping the author did not write.
+      label: "braced bodies (MISRA C:2012 Rule 15.6, E0716)",
+      run: () => new BracedBodyAnalyzer().analyze(tree),
     },
     {
       label: "parameter naming (Issue #227: reserved naming patterns)",

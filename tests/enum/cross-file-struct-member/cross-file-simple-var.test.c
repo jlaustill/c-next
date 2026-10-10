@@ -11,8 +11,12 @@
 #include <stdint.h>
 
 int main(void) {
-    if (COUNT != 4) return 1U;
+    if (COUNT != 4) {
+        return 1U;
+    }
     config.items[0].padding = 42U;
-    if (config.items[0U].padding != 42) return 2U;
+    if (config.items[0U].padding != 42) {
+        return 2U;
+    }
     return 0U;
 }

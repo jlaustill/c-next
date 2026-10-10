@@ -21,8 +21,12 @@ u32 main() {
     }
 
     // Test .length in multiple sequential conditions
-    if (pkt.header.bit_length != 32) return 2;
-    if (pkt.type.bit_length != 8) return 3;
+    if (pkt.header.bit_length != 32) {
+        return 2;
+    }
+    if (pkt.type.bit_length != 8) {
+        return 3;
+    }
 
     // Test .length in while loop condition
     u32 counter <- 0;
@@ -30,18 +34,24 @@ u32 main() {
     while ((counter < maxBits) != false) {
         counter +<- 8;
     }
-    if (counter != 32) return 4;
+    if (counter != 32) {
+        return 4;
+    }
 
     // Test .length in for loop
     u32 totalBits <- 0;
     for (u32 i <- 0; (i < 4) != false; i +<- 1) {
         totalBits +<- pkt.type.bit_length;
     }
-    if (totalBits != 32) return 5; // 4 * 8 = 32
+    if (totalBits != 32) {
+        return 5; // 4 * 8 = 32
+    }
 
     // Test .length in ternary expression
     u32 fieldSize <- ((pkt.header.bit_length > 16) != false) ? 4 : 2;
-    if (fieldSize != 4) return 6;
+    if (fieldSize != 4) {
+        return 6;
+    }
 
     // Test .length computed in expression assigned to variable used in if
     u32 headerBytes <- pkt.header.bit_length / 8;

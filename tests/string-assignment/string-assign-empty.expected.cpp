@@ -17,16 +17,26 @@ void clearMessage(void) {
 }
 
 int main(void) {
-    if (strlen(msg) != 7) return 1U;
+    if (strlen(msg) != 7) {
+        return 1U;
+    }
     clearMessage();
-    if (strlen(msg) != 0) return 2U;
+    if (strlen(msg) != 0) {
+        return 2U;
+    }
     (void) strncpy(msg, "", 32); msg[32] = '\0';
-    if (strlen(msg) != 0) return 3U;
+    if (strlen(msg) != 0) {
+        return 3U;
+    }
     (void) strncpy(msg, "Back", 32); msg[32] = '\0';
-    if (strlen(msg) != 4) return 4U;
+    if (strlen(msg) != 4) {
+        return 4U;
+    }
     (void) strncpy(msg, "", 32); msg[32] = '\0';
     (void) strncpy(msg, "", 32); msg[32] = '\0';
     (void) strncpy(msg, "", 32); msg[32] = '\0';
-    if (strlen(msg) != 0) return 5U;
+    if (strlen(msg) != 0) {
+        return 5U;
+    }
     return 0U;
 }

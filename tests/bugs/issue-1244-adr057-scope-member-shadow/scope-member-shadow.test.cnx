@@ -36,10 +36,14 @@ u32 main() {
     u8 shadowed <- Reg.useShadowed();
 
     // 3 bits of value 5 at offset 4 -> 0b01010000
-    if (shadowed != 80) return 1;
+    if (shadowed != 80) {
+        return 1;
+    }
 
     // Scope `Other`'s array must be untouched by the shadowed write.
-    if (Other.member[0] != 1) return 2;
+    if (Other.member[0] != 1) {
+        return 2;
+    }
 
     return 0;
 }

@@ -30,6 +30,8 @@ int main(void) {
     cfg.value = 0x42U;
     cfg.flags = 0xFFU;
     uint32_t result = testConstStruct(cfg);
-    if (result != 0x42) return 1U;
+    if (result != 0x42) {
+        return 1U;
+    }
     return 0U;
 }

@@ -28,8 +28,14 @@ int main(void) {
     p.age = 7U;
     uint32_t length = lengthOf(p.name);
     bool bob = isBob(p.name);
-    if (length != 3) return 1;
-    if (bob == false) return 2;
-    if (p.age != 7) return 3;
+    if (length != 3) {
+        return 1;
+    }
+    if (bob == false) {
+        return 2;
+    }
+    if (p.age != 7) {
+        return 3;
+    }
     return 0;
 }

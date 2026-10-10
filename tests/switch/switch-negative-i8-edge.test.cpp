@@ -100,39 +100,69 @@ int main(void) {
     int8_t maxVal = 127;
     int8_t other = 50;
     testI8Boundaries(minVal);
-    if (result != 1) return 1U;
+    if (result != 1) {
+        return 1U;
+    }
     testI8Boundaries(minPlus1);
-    if (result != 2) return 2U;
+    if (result != 2) {
+        return 2U;
+    }
     testI8Boundaries(midNeg);
-    if (result != 3) return 3U;
+    if (result != 3) {
+        return 3U;
+    }
     testI8Boundaries(negOne);
-    if (result != 4) return 4U;
+    if (result != 4) {
+        return 4U;
+    }
     testI8Boundaries(zero);
-    if (result != 5) return 5U;
+    if (result != 5) {
+        return 5U;
+    }
     testI8Boundaries(one);
-    if (result != 6) return 6U;
+    if (result != 6) {
+        return 6U;
+    }
     testI8Boundaries(midPos);
-    if (result != 7) return 7U;
+    if (result != 7) {
+        return 7U;
+    }
     testI8Boundaries(maxMinus1);
-    if (result != 8) return 8U;
+    if (result != 8) {
+        return 8U;
+    }
     testI8Boundaries(maxVal);
-    if (result != 9) return 9U;
+    if (result != 9) {
+        return 9U;
+    }
     testI8Boundaries(other);
-    if (result != 99) return 10U;
+    if (result != 99) {
+        return 10U;
+    }
     int8_t neg5 = -5;
     int8_t neg4 = -4;
     int8_t neg3 = -3;
     int8_t neg2 = -2;
     int8_t neg1 = -1;
     testConsecutiveNegatives(neg5);
-    if (result != 10) return 11U;
+    if (result != 10) {
+        return 11U;
+    }
     testConsecutiveNegatives(neg4);
-    if (result != 11) return 12U;
+    if (result != 11) {
+        return 12U;
+    }
     testConsecutiveNegatives(neg3);
-    if (result != 12) return 13U;
+    if (result != 12) {
+        return 13U;
+    }
     testConsecutiveNegatives(neg2);
-    if (result != 13) return 14U;
+    if (result != 13) {
+        return 14U;
+    }
     testConsecutiveNegatives(neg1);
-    if (result != 14) return 15U;
+    if (result != 14) {
+        return 15U;
+    }
     return 0U;
 }

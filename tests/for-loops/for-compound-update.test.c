@@ -38,24 +38,34 @@ int main(void) {
     for (i = 0U; i < 10; i = cnx_clamp_add_u32(i, 1U)) {
         sum = cnx_clamp_add_u32(sum, i);
     }
-    if (sum != 45) return 1U;
+    if (sum != 45) {
+        return 1U;
+    }
     sum = 0U;
     for (i = 0U; i < 10; i = cnx_clamp_add_u32(i, 2U)) {
         sum = cnx_clamp_add_u32(sum, i);
     }
-    if (sum != 20) return 2U;
+    if (sum != 20) {
+        return 2U;
+    }
     sum = 0U;
     uint32_t count = 0U;
     for (i = 1U; i < 100; i = cnx_clamp_mul_u32(i, 2U)) {
         sum = cnx_clamp_add_u32(sum, i);
         count = cnx_clamp_add_u32(count, 1U);
     }
-    if (sum != 127) return 3U;
-    if (count != 7) return 4U;
+    if (sum != 127) {
+        return 3U;
+    }
+    if (count != 7) {
+        return 4U;
+    }
     sum = 0U;
     for (i = 10U; i > 0; i = cnx_clamp_sub_u32(i, 1U)) {
         sum = cnx_clamp_add_u32(sum, i);
     }
-    if (sum != 55) return 5U;
+    if (sum != 55) {
+        return 5U;
+    }
     return 0U;
 }

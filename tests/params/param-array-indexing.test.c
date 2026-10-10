@@ -78,33 +78,59 @@ int main(void) {
     uint8_t source[4] = {10U, 20U, 30U, 40U};
     uint8_t dest[4] = {0U, 0U, 0U, 0U};
     writeToParam(buffer, 3U);
-    if (buffer[3U] != 42) return 1U;
+    if (buffer[3U] != 42) {
+        return 1U;
+    }
     uint8_t val = readFromParam(source, 2U);
-    if (val != 30) return 2U;
+    if (val != 30) {
+        return 2U;
+    }
     copyElement(source, dest, 1U);
-    if (dest[1U] != 20) return 3U;
+    if (dest[1U] != 20) {
+        return 3U;
+    }
     val = readFirst(source);
-    if (val != 10) return 4U;
+    if (val != 10) {
+        return 4U;
+    }
     buffer[0] = 5U;
     buffer[1] = 7U;
     swapElements(buffer, 0U, 1U);
-    if (buffer[0U] != 7) return 5U;
-    if (buffer[1U] != 5) return 6U;
+    if (buffer[0U] != 7) {
+        return 5U;
+    }
+    if (buffer[1U] != 5) {
+        return 6U;
+    }
     writeExplicit(buffer, 4U);
-    if (buffer[4U] != 99) return 7U;
+    if (buffer[4U] != 99) {
+        return 7U;
+    }
     uint16_t testWord = 0x1234U;
     uint8_t low = getLowByte(testWord);
-    if (low != 0x34) return 8U;
+    if (low != 0x34) {
+        return 8U;
+    }
     uint8_t high = getHighByte(testWord);
-    if (high != 0x12) return 9U;
+    if (high != 0x12) {
+        return 9U;
+    }
     uint8_t matrix[2][2] = {{0xFFU, 0x00U}, {0xAAU, 0x55U}};
     uint8_t bit0 = getArrayBit(matrix, 0U, 0U, 0U);
-    if (bit0 != 1) return 10U;
+    if (bit0 != 1) {
+        return 10U;
+    }
     uint8_t bit1 = getArrayBit(matrix, 0U, 1U, 0U);
-    if (bit1 != 0) return 11U;
+    if (bit1 != 0) {
+        return 11U;
+    }
     setArrayBit(matrix, 0U, 1U, 0U, true);
-    if (matrix[0U][1U] != 0x01) return 12U;
+    if (matrix[0U][1U] != 0x01) {
+        return 12U;
+    }
     setArrayBit(matrix, 0U, 0U, 7U, false);
-    if (matrix[0U][0U] != 0x7F) return 13U;
+    if (matrix[0U][0U] != 0x7F) {
+        return 13U;
+    }
     return 0U;
 }

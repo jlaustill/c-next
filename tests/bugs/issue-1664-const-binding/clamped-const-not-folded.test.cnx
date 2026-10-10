@@ -11,23 +11,35 @@ u32 main() {
     const u8 B <- A - 3;
     const u8 C <- B + 1;
     u32 q <- 12 / C;
-    if (q != 12) return 1;
+    if (q != 12) {
+        return 1;
+    }
     u32 s <- 1 << B;
-    if (s != 1) return 2;
+    if (s != 1) {
+        return 2;
+    }
     u8[4] arr <- [5, 6, 7, 8];
     u8 first <- arr[B];
-    if (first != 5) return 3;
+    if (first != 5) {
+        return 3;
+    }
     const u8 E <- 200;
     const u8 F <- E + E;
     u8 last <- arr[F - 252];
-    if (last != 8) return 4;
+    if (last != 8) {
+        return 4;
+    }
     // No declaration in between: a subscript that is arithmetic on a typed
     // const is clamped too, `arr[cnx_clamp_sub_u8(A, 3U)]`, element 0
     u8 direct <- arr[A - 3];
-    if (direct != 5) return 6;
+    if (direct != 5) {
+        return 6;
+    }
     // NEGATIVE CONTROL: a fold every operand's type holds still folds
     const u8 G <- A + 3;
     u8[G] five;
-    if (five.element_count != 5) return 5;
+    if (five.element_count != 5) {
+        return 5;
+    }
     return 0;
 }

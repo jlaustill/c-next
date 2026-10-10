@@ -20,10 +20,16 @@ int main(void) {
     {
         uint8_t main__x = 1U;
         main__x = 2U;
-        if (main__x != 2) return 1U;
+        if (main__x != 2) {
+            return 1U;
+        }
     }
     x = 3U;
-    if (x != 3) return 2U;
-    if (x != 3) return 3U;
+    if (x != 3) {
+        return 2U;
+    }
+    if (x != 3) {
+        return 3U;
+    }
     return 0U;
 }

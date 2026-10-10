@@ -17,13 +17,27 @@ int main(void) {
     data.samples[0].timestamp = 1000U;
     data.samples[0].value = 42U;
     data.samples[0].quality = 100U;
-    if (32 != 32) return 1U;
-    if (8 != 8) return 2U;
-    if (10 != 10) return 3U;
-    if (32 != 32) return 4U;
-    if (16 != 16) return 5U;
-    if (8 != 8) return 6U;
+    if (32 != 32) {
+        return 1U;
+    }
+    if (8 != 8) {
+        return 2U;
+    }
+    if (10 != 10) {
+        return 3U;
+    }
+    if (32 != 32) {
+        return 4U;
+    }
+    if (16 != 16) {
+        return 5U;
+    }
+    if (8 != 8) {
+        return 6U;
+    }
     uint32_t bytes = 32 / 8U;
-    if (bytes != 4) return 7U;
+    if (bytes != 4) {
+        return 7U;
+    }
     return 0U;
 }

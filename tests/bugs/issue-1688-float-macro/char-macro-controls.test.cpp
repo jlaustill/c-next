@@ -28,8 +28,12 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 int main(void) {
     uint8_t b = 1U;
     uint8_t r = cnx_clamp_add_u8(b, LETTER_A);
-    if (r != 66) return 1U;
+    if (r != 66) {
+        return 1U;
+    }
     uint8_t s = cnx_clamp_add_u8(b, CR);
-    if (s != 14) return 2U;
+    if (s != 14) {
+        return 2U;
+    }
     return 0U;
 }

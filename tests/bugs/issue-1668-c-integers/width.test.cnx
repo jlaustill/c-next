@@ -9,14 +9,20 @@ u32 main() {
     u8 b <- 200;
 
     u32 r <- b + cU32;
-    if (r != 70200) return 1;
+    if (r != 70200) {
+        return 1;
+    }
     u32 r16 <- b + cU16;
-    if (r16 != 1200) return 2;
+    if (r16 != 1200) {
+        return 2;
+    }
 
     // NEGATIVE CONTROL: a C-Next leaf of the same width was always counted.
     u32 w <- 70000;
     u32 rv <- b + w;
-    if (rv != 70200) return 3;
+    if (rv != 70200) {
+        return 3;
+    }
 
     return 0;
 }

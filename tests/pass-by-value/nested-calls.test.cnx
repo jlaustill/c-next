@@ -60,49 +60,79 @@ u32 main() {
     // Test unmodified nested calls
     u32 val <- 10;
     u32 result <- addOne(val);
-    if (val != 10) return 1;
-    if (result != 11) return 2;
+    if (val != 10) {
+        return 1;
+    }
+    if (result != 11) {
+        return 2;
+    }
 
     result <- addTwo(val);
-    if (val != 10) return 3;
-    if (result != 12) return 4;
+    if (val != 10) {
+        return 3;
+    }
+    if (result != 12) {
+        return 4;
+    }
 
     result <- addFour(val);
-    if (val != 10) return 5;
-    if (result != 14) return 6;
+    if (val != 10) {
+        return 5;
+    }
+    if (result != 14) {
+        return 6;
+    }
 
     // Test modified nested calls
     u32 modVal <- 100;
     modifyAddOne(modVal);
-    if (modVal != 101) return 7;
+    if (modVal != 101) {
+        return 7;
+    }
 
     modVal <- 100;
     modifyAddTwo(modVal);
-    if (modVal != 102) return 8;
+    if (modVal != 102) {
+        return 8;
+    }
 
     modVal <- 100;
     modifyAddFour(modVal);
-    if (modVal != 104) return 9;
+    if (modVal != 104) {
+        return 9;
+    }
 
     // Test mixed chain (both modified and unmodified)
     u32 mixedVal <- 50;
     result <- mixedChain(mixedVal);
-    if (mixedVal != 51) return 10;
-    if (result != 102) return 11;
+    if (mixedVal != 51) {
+        return 10;
+    }
+    if (result != 102) {
+        return 11;
+    }
 
     // Test multiple parameters through chain
     result <- sumThree(1, 2, 3);
-    if (result != 6) return 12;
+    if (result != 6) {
+        return 12;
+    }
 
     result <- sumSix(1, 2, 3, 4, 5, 6);
-    if (result != 21) return 13;
+    if (result != 21) {
+        return 13;
+    }
 
     // Test both parameters modified
     u32 x <- 10;
     u32 y <- 20;
     incrementBoth(x, y);
-    if (x != 11) return 14;
-    if (y != 21) return 15;
+    if (x != 11) {
+        return 14;
+    }
+    if (y != 21) {
+        return 15;
+    }
 
     return 0;
 }

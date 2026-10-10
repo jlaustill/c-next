@@ -146,40 +146,68 @@ void modifyInCritical(uint32_t* x) {
 int main(void) {
     uint16_t testVal = 0x1234U;
     uint8_t low = getLowByte(testVal);
-    if (low != 0x34) return 1U;
+    if (low != 0x34) {
+        return 1U;
+    }
     uint8_t high = getHighByte(testVal);
-    if (high != 0x12) return 2U;
+    if (high != 0x12) {
+        return 2U;
+    }
     uint32_t sum = addTwo(100U, 200U);
-    if (sum != 300) return 3U;
+    if (sum != 300) {
+        return 3U;
+    }
     bool result = invert(true);
-    if (result != false) return 4U;
+    if (result != false) {
+        return 4U;
+    }
     result = invert(false);
-    if (result != true) return 5U;
+    if (result != true) {
+        return 5U;
+    }
     uint32_t counter = 10U;
     increment(&counter);
-    if (counter != 11) return 6U;
+    if (counter != 11) {
+        return 6U;
+    }
     uint16_t doubled = 50U;
     doubleValue(&doubled);
-    if (doubled != 100) return 7U;
+    if (doubled != 100) {
+        return 7U;
+    }
     uint32_t wrapped = 20U;
     incrementWrapper(&wrapped);
-    if (wrapped != 21) return 8U;
+    if (wrapped != 21) {
+        return 8U;
+    }
     uint32_t mixedA = 5U;
     uint32_t mixedB = 10U;
     uint32_t mixedResult = addAndIncrement(&mixedA, mixedB);
-    if (mixedResult != 16) return 9U;
-    if (mixedA != 6) return 10U;
+    if (mixedResult != 16) {
+        return 9U;
+    }
+    if (mixedA != 6) {
+        return 10U;
+    }
     uint32_t switchVal = 100U;
     modifyInSwitch(&switchVal, 1U);
-    if (switchVal != 110) return 11U;
+    if (switchVal != 110) {
+        return 11U;
+    }
     switchVal = 100U;
     modifyInSwitch(&switchVal, 2U);
-    if (switchVal != 120) return 12U;
+    if (switchVal != 120) {
+        return 12U;
+    }
     switchVal = 100U;
     modifyInSwitch(&switchVal, 99U);
-    if (switchVal != 101) return 13U;
+    if (switchVal != 101) {
+        return 13U;
+    }
     uint32_t criticalVal = 50U;
     modifyInCritical(&criticalVal);
-    if (criticalVal != 100) return 14U;
+    if (criticalVal != 100) {
+        return 14U;
+    }
     return 0U;
 }

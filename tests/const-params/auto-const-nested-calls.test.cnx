@@ -46,20 +46,30 @@ u32 main() {
     // Test deep modification chain
     u32 x <- 100;
     level1DeepModify(x);
-    if (x != 999) return 1;
+    if (x != 999) {
+        return 1;
+    }
 
     // Test deep read chain
     u32 y <- 50;
     u32 result <- level1DeepRead(y);
-    if (result != 51) return 2;
-    if (y != 50) return 3; // y should be unchanged
+    if (result != 51) {
+        return 2;
+    }
+    if (y != 50) {
+        return 3; // y should be unchanged
+    }
 
     // Test level2 mixed
     u32 r <- 10;
     u32 m <- 20;
     level2Mixed(r, m);
-    if (r != 10) return 4; // r unchanged (passed to reader)
-    if (m != 999) return 5; // m modified (passed to modifier)
+    if (r != 10) {
+        return 4; // r unchanged (passed to reader)
+    }
+    if (m != 999) {
+        return 5; // m modified (passed to modifier)
+    }
 
     // Test complex chain
     u32 a <- 5;
@@ -67,10 +77,18 @@ u32 main() {
     u32 c <- 7;
     result <- complexChain(a, b, c);
     // result = (5+1) + (7+1) = 6 + 8 = 14
-    if (result != 14) return 6;
-    if (a != 5) return 7; // a unchanged
-    if (b != 999) return 8; // b modified through chain
-    if (c != 7) return 9; // c unchanged
+    if (result != 14) {
+        return 6;
+    }
+    if (a != 5) {
+        return 7; // a unchanged
+    }
+    if (b != 999) {
+        return 8; // b modified through chain
+    }
+    if (c != 7) {
+        return 9; // c unchanged
+    }
 
     return 0;
 }

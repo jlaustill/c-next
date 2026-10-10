@@ -22,9 +22,17 @@ int main(void) {
     uint32_t got = w->v;
     widget_t plain = {0};
     plain.v = 3U;
-    if (got != 16) return 1U;
-    if (the_widget.v != 16) return 2U;
-    if (the_widget.flags != 8) return 3U;
-    if (plain.v != 3) return 4U;
+    if (got != 16) {
+        return 1U;
+    }
+    if (the_widget.v != 16) {
+        return 2U;
+    }
+    if (the_widget.flags != 8) {
+        return 3U;
+    }
+    if (plain.v != 3) {
+        return 4U;
+    }
     return 0U;
 }

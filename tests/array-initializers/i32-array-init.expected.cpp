@@ -31,34 +31,64 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Coverage: Section 1.2 i32 array element type
 int main(void) {
     int32_t values[5] = {(int32_t)INT32_MIN, -100000, 0, 100000, 2147483647};
-    if (values[0U] != (int32_t)INT32_MIN) return 1U;
-    if (values[1U] != -100000) return 2U;
-    if (values[2U] != 0) return 3U;
-    if (values[3U] != 100000) return 4U;
-    if (values[4U] != 2147483647) return 5U;
+    if (values[0U] != (int32_t)INT32_MIN) {
+        return 1U;
+    }
+    if (values[1U] != -100000) {
+        return 2U;
+    }
+    if (values[2U] != 0) {
+        return 3U;
+    }
+    if (values[3U] != 100000) {
+        return 4U;
+    }
+    if (values[4U] != 2147483647) {
+        return 5U;
+    }
     int32_t data[4] = {};
     data[0] = -500000;
     data[1] = 500000;
     data[2] = -1000000;
     data[3] = 1000000;
-    if (data[0U] != -500000) return 6U;
-    if (data[1U] != 500000) return 7U;
-    if (data[2U] != -1000000) return 8U;
-    if (data[3U] != 1000000) return 9U;
+    if (data[0U] != -500000) {
+        return 6U;
+    }
+    if (data[1U] != 500000) {
+        return 7U;
+    }
+    if (data[2U] != -1000000) {
+        return 8U;
+    }
+    if (data[3U] != 1000000) {
+        return 9U;
+    }
     int32_t inferred[3] = {10000, 20000, 30000};
-    if (inferred[0U] != 10000) return 10U;
-    if (inferred[1U] != 20000) return 11U;
-    if (inferred[2U] != 30000) return 12U;
+    if (inferred[0U] != 10000) {
+        return 10U;
+    }
+    if (inferred[1U] != 20000) {
+        return 11U;
+    }
+    if (inferred[2U] != 30000) {
+        return 12U;
+    }
     int32_t loop_arr[3] = {1000, 2000, 3000};
     int32_t sum = 0;
     for (uint32_t i = 0U; i < 3; i = cnx_clamp_add_u32(i, 1U)) {
         sum = cnx_clamp_add_i32(sum, loop_arr[i]);
     }
-    if (sum != 6000) return 13U;
+    if (sum != 6000) {
+        return 13U;
+    }
     int32_t modify[2] = {10000, 20000};
     modify[0] = -10000;
     modify[1] = -20000;
-    if (modify[0U] != -10000) return 14U;
-    if (modify[1U] != -20000) return 15U;
+    if (modify[0U] != -10000) {
+        return 14U;
+    }
+    if (modify[1U] != -20000) {
+        return 15U;
+    }
     return 0U;
 }

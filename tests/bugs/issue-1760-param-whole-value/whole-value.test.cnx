@@ -39,20 +39,30 @@ u32 main() {
     b.x <- 7;
     b.y <- 9;
     copyPair(a, b);
-    if (a.x != 7) return 1;
-    if (a.y != 9) return 2;
+    if (a.x != 7) {
+        return 1;
+    }
+    if (a.y != 9) {
+        return 2;
+    }
 
     Sm f <- 0;
     Sm g <- 0;
     g.C <- 6;
     copyFlags(f, g);
-    if (f.C != 6) return 3;
+    if (f.C != 6) {
+        return 3;
+    }
 
     Sm h <- 0;
     forwardFlags(h, g);
-    if (h.C != 6) return 4;
+    if (h.C != 6) {
+        return 4;
+    }
 
     u8 read <- fieldOf(g);
-    if (read != 6) return 5;
+    if (read != 6) {
+        return 5;
+    }
     return 0;
 }

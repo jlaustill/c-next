@@ -38,6 +38,8 @@ scope Span {
 u32 main() {
     u32 result <- Span.runAll();
     // fromC(3,4) = 7, plus Mode.BETA = 2
-    if (result != 9) return 1;
+    if (result != 9) {
+        return 1;
+    }
     return 0;
 }

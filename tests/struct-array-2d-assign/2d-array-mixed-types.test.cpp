@@ -22,13 +22,27 @@ int main(void) {
     matrix[0][0].signedShort = -32768;
     matrix[0][0].signedInt = (int32_t)INT32_MIN;
     matrix[0][0].flag = true;
-    if (matrix[0U][0U].byteVal != 255) return 1U;
-    if (matrix[0U][0U].shortVal != 65535) return 2U;
-    if (matrix[0U][0U].intVal != 4294967295) return 3U;
-    if (matrix[0U][0U].signedByte != -128) return 4U;
-    if (matrix[0U][0U].signedShort != -32768) return 5U;
-    if (matrix[0U][0U].signedInt != (int32_t)INT32_MIN) return 6U;
-    if (matrix[0U][0U].flag != true) return 7U;
+    if (matrix[0U][0U].byteVal != 255) {
+        return 1U;
+    }
+    if (matrix[0U][0U].shortVal != 65535) {
+        return 2U;
+    }
+    if (matrix[0U][0U].intVal != 4294967295) {
+        return 3U;
+    }
+    if (matrix[0U][0U].signedByte != -128) {
+        return 4U;
+    }
+    if (matrix[0U][0U].signedShort != -32768) {
+        return 5U;
+    }
+    if (matrix[0U][0U].signedInt != (int32_t)INT32_MIN) {
+        return 6U;
+    }
+    if (matrix[0U][0U].flag != true) {
+        return 7U;
+    }
     matrix[1][1].byteVal = 0U;
     matrix[1][1].shortVal = 1000U;
     matrix[1][1].intVal = 100000U;
@@ -36,18 +50,36 @@ int main(void) {
     matrix[1][1].signedShort = 32767;
     matrix[1][1].signedInt = 2147483647;
     matrix[1][1].flag = false;
-    if (matrix[1U][1U].byteVal != 0) return 8U;
-    if (matrix[1U][1U].shortVal != 1000) return 9U;
-    if (matrix[1U][1U].intVal != 100000) return 10U;
-    if (matrix[1U][1U].signedByte != 127) return 11U;
-    if (matrix[1U][1U].signedShort != 32767) return 12U;
-    if (matrix[1U][1U].signedInt != 2147483647) return 13U;
-    if (matrix[1U][1U].flag != false) return 14U;
+    if (matrix[1U][1U].byteVal != 0) {
+        return 8U;
+    }
+    if (matrix[1U][1U].shortVal != 1000) {
+        return 9U;
+    }
+    if (matrix[1U][1U].intVal != 100000) {
+        return 10U;
+    }
+    if (matrix[1U][1U].signedByte != 127) {
+        return 11U;
+    }
+    if (matrix[1U][1U].signedShort != 32767) {
+        return 12U;
+    }
+    if (matrix[1U][1U].signedInt != 2147483647) {
+        return 13U;
+    }
+    if (matrix[1U][1U].flag != false) {
+        return 14U;
+    }
     matrix[0][1].byteVal = 100U;
     matrix[0][1].byteVal += 50U;
-    if (matrix[0U][1U].byteVal != 150) return 15U;
+    if (matrix[0U][1U].byteVal != 150) {
+        return 15U;
+    }
     matrix[0][1].signedInt = -100;
     matrix[0][1].signedInt += 50;
-    if (matrix[0U][1U].signedInt != -50) return 16U;
+    if (matrix[0U][1U].signedInt != -50) {
+        return 16U;
+    }
     return 0U;
 }

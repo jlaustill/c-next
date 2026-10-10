@@ -38,26 +38,48 @@ bool Motor__isEnabled(void) {
 }
 
 int main(void) {
-    if (Motor__current.speed != 0) return 1U;
-    if (Motor__current.direction != 0) return 2U;
-    if (Motor__current.enabled != false) return 3U;
+    if (Motor__current.speed != 0) {
+        return 1U;
+    }
+    if (Motor__current.direction != 0) {
+        return 2U;
+    }
+    if (Motor__current.enabled != false) {
+        return 3U;
+    }
     Motor__setSpeed(100U);
-    if (Motor__current.speed != 100) return 4U;
+    if (Motor__current.speed != 100) {
+        return 4U;
+    }
     uint8_t speed = Motor__getSpeed();
-    if (speed != 100) return 5U;
+    if (speed != 100) {
+        return 5U;
+    }
     Motor__setDirection(1U);
-    if (Motor__current.direction != 1) return 6U;
+    if (Motor__current.direction != 1) {
+        return 6U;
+    }
     Motor__enable();
     bool enabled = Motor__isEnabled();
-    if (enabled != true) return 7U;
+    if (enabled != true) {
+        return 7U;
+    }
     Motor__disable();
     enabled = Motor__isEnabled();
-    if (enabled != false) return 8U;
+    if (enabled != false) {
+        return 8U;
+    }
     Motor__current.speed = 50U;
-    if (Motor__current.speed != 50) return 9U;
+    if (Motor__current.speed != 50) {
+        return 9U;
+    }
     Motor__current.direction = 2U;
-    if (Motor__current.direction != 2) return 10U;
+    if (Motor__current.direction != 2) {
+        return 10U;
+    }
     Motor__current.enabled = true;
-    if (Motor__current.enabled != true) return 11U;
+    if (Motor__current.enabled != true) {
+        return 11U;
+    }
     return 0U;
 }

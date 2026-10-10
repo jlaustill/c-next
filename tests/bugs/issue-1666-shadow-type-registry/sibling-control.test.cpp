@@ -25,8 +25,12 @@ uint32_t probe(bool c) {
 
 int main(void) {
     uint32_t a = probe(true);
-    if (a != 8) return 1U;
+    if (a != 8) {
+        return 1U;
+    }
     uint32_t b = probe(false);
-    if (b != 32) return 2U;
+    if (b != 32) {
+        return 2U;
+    }
     return 0U;
 }

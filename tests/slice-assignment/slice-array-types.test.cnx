@@ -9,10 +9,18 @@ u32 main() {
     u32 value1 <- 0x11223344;
     arr8[0, 4] <- value1;
 
-    if (arr8[0] != 0x44) return 1;
-    if (arr8[1] != 0x33) return 2;
-    if (arr8[2] != 0x22) return 3;
-    if (arr8[3] != 0x11) return 4;
+    if (arr8[0] != 0x44) {
+        return 1;
+    }
+    if (arr8[1] != 0x33) {
+        return 2;
+    }
+    if (arr8[2] != 0x22) {
+        return 3;
+    }
+    if (arr8[3] != 0x11) {
+        return 4;
+    }
 
     // Test 2: u16 array
     u16[16] arr16;
@@ -22,10 +30,18 @@ u32 main() {
     // u16 array: each element receives a 16-bit little-endian chunk of the value
     // Little-endian: bytes 08 07 06 05 04 03 02 01
     // arr16[0] = bytes 08,07 = 0x0708, arr16[1] = bytes 06,05 = 0x0506
-    if (arr16[0] != 0x0708) return 5;
-    if (arr16[1] != 0x0506) return 6;
-    if (arr16[2] != 0x0304) return 7;
-    if (arr16[3] != 0x0102) return 8;
+    if (arr16[0] != 0x0708) {
+        return 5;
+    }
+    if (arr16[1] != 0x0506) {
+        return 6;
+    }
+    if (arr16[2] != 0x0304) {
+        return 7;
+    }
+    if (arr16[3] != 0x0102) {
+        return 8;
+    }
 
     // Test 3: u32 array
     u32[16] arr32;
@@ -33,7 +49,9 @@ u32 main() {
     arr32[0, 4] <- value3;
 
     // Verify by reading back the u32 value
-    if (arr32[0] != 0xAABBCCDD) return 9;
+    if (arr32[0] != 0xAABBCCDD) {
+        return 9;
+    }
 
     // Test 4: u64 array
     u64[8] arr64;
@@ -41,17 +59,27 @@ u32 main() {
     arr64[0, 8] <- value4;
 
     // Verify by reading back the u64 value
-    if (arr64[0] != 0x123456789ABCDEF0) return 10;
+    if (arr64[0] != 0x123456789ABCDEF0) {
+        return 10;
+    }
 
     // Test 5: u8 buffer (basic byte array)
     u8[64] buffer;
     u32 value5 <- 0x55667788;
     buffer[0, 4] <- value5;
 
-    if (buffer[0] != 0x88) return 11;
-    if (buffer[1] != 0x77) return 12;
-    if (buffer[2] != 0x66) return 13;
-    if (buffer[3] != 0x55) return 14;
+    if (buffer[0] != 0x88) {
+        return 11;
+    }
+    if (buffer[1] != 0x77) {
+        return 12;
+    }
+    if (buffer[2] != 0x66) {
+        return 13;
+    }
+    if (buffer[3] != 0x55) {
+        return 14;
+    }
 
     // Test 6: Multiple copies to same array at different offsets
     u8[32] multiArr;
@@ -63,9 +91,15 @@ u32 main() {
     multiArr[4, 4] <- val2;
     multiArr[8, 4] <- val3;
 
-    if (multiArr[0] != 0x11) return 15;
-    if (multiArr[4] != 0x22) return 16;
-    if (multiArr[8] != 0x33) return 17;
+    if (multiArr[0] != 0x11) {
+        return 15;
+    }
+    if (multiArr[4] != 0x22) {
+        return 16;
+    }
+    if (multiArr[8] != 0x33) {
+        return 17;
+    }
 
     return 0; // All tests passed
 }

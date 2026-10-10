@@ -18,7 +18,11 @@ uint8_t my_cnx_buffer = 1U;
 uint8_t buffer_cnx = 2U;
 
 int main(void) {
-    if (my_cnx_buffer != 1) return 1U;
-    if (buffer_cnx != 2) return 2U;
+    if (my_cnx_buffer != 1) {
+        return 1U;
+    }
+    if (buffer_cnx != 2) {
+        return 2U;
+    }
     return 0U;
 }

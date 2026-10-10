@@ -59,11 +59,17 @@ uint8_t initPasses(void) {
 
 int main(void) {
     uint8_t updates = updatePasses();
-    if (updates != 1) return 1U;
+    if (updates != 1) {
+        return 1U;
+    }
     uint8_t inits = initPasses();
-    if (inits != 0) return 2U;
+    if (inits != 0) {
+        return 2U;
+    }
     uint8_t j = 250U;
     j = cnx_clamp_add_u8(j, 10U);
-    if (j != 255) return 3U;
+    if (j != 255) {
+        return 3U;
+    }
     return 0U;
 }

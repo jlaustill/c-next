@@ -18,7 +18,11 @@ scope S {
 
 u32 main() {
     u32 n <- S.count();
-    if (n != 4) return 1;
-    if (K != 10) return 2;
+    if (n != 4) {
+        return 1;
+    }
+    if (K != 10) {
+        return 2;
+    }
     return 0;
 }

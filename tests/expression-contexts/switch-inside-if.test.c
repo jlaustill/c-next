@@ -37,7 +37,9 @@ int main(void) {
                 }
         }
     }
-    if (result != 101) return 1U;
+    if (result != 101) {
+        return 1U;
+    }
     result = 0U;
     cond = false;
     if (cond == true) {
@@ -56,7 +58,9 @@ int main(void) {
                 }
         }
     }
-    if (result != 0) return 2U;
+    if (result != 0) {
+        return 2U;
+    }
     cond = false;
     selector = 2U;
     if (cond == true) {
@@ -81,7 +85,9 @@ int main(void) {
                 }
         }
     }
-    if (result != 402) return 3U;
+    if (result != 402) {
+        return 3U;
+    }
     cond = true;
     selector = 0U;
     if (cond == true) {
@@ -102,7 +108,9 @@ int main(void) {
     } else {
         result = 999U;
     }
-    if (result != 500) return 4U;
+    if (result != 500) {
+        return 4U;
+    }
     cond = true;
     uint32_t selA = 1U;
     uint32_t selB = 2U;
@@ -141,7 +149,9 @@ int main(void) {
                 }
         }
     }
-    if (result != 601) return 5U;
+    if (result != 601) {
+        return 5U;
+    }
     cond = false;
     if (cond == true) {
         switch (selA) {
@@ -178,7 +188,9 @@ int main(void) {
                 }
         }
     }
-    if (result != 702) return 6U;
+    if (result != 702) {
+        return 6U;
+    }
     bool outer = true;
     bool inner = true;
     selector = 1U;
@@ -200,7 +212,9 @@ int main(void) {
             }
         }
     }
-    if (result != 801) return 7U;
+    if (result != 801) {
+        return 7U;
+    }
     outer = false;
     inner = true;
     selector = 0U;
@@ -224,7 +238,9 @@ int main(void) {
             }
         }
     }
-    if (result != 901) return 8U;
+    if (result != 901) {
+        return 8U;
+    }
     outer = true;
     selector = 99U;
     if (outer == true) {
@@ -243,7 +259,9 @@ int main(void) {
                 }
         }
     }
-    if (result != 1099) return 9U;
+    if (result != 1099) {
+        return 9U;
+    }
     cond = true;
     uint32_t first = 0U;
     uint32_t second = 1U;
@@ -279,8 +297,12 @@ int main(void) {
                 }
         }
     }
-    if (resultA != 10) return 10U;
-    if (resultB != 21) return 11U;
+    if (resultA != 10) {
+        return 10U;
+    }
+    if (resultB != 21) {
+        return 11U;
+    }
     int8_t signedSel = 1;
     cond = true;
     if (cond == true) {
@@ -303,6 +325,8 @@ int main(void) {
                 }
         }
     }
-    if (result != 1201) return 12U;
+    if (result != 1201) {
+        return 12U;
+    }
     return 0U;
 }

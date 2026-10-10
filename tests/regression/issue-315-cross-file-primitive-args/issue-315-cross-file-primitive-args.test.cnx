@@ -35,7 +35,9 @@ u32 main() {
     f32 result <- TestCaller.test();
 
     // 1.5 + 2.5 = 4.0
-    if (result != 4.0) return 1;
+    if (result != 4.0) {
+        return 1;
+    }
 
     return 0;
 }

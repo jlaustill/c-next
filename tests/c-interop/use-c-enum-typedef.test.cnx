@@ -14,15 +14,27 @@ u32 main() {
     Priority high <- PRIORITY_HIGH;
     Priority crit <- PRIORITY_CRITICAL;
 
-    if (low != 0) return 1;
-    if (med != 50) return 2;
-    if (high != 100) return 3;
-    if (crit != 255) return 4;
+    if (low != 0) {
+        return 1;
+    }
+    if (med != 50) {
+        return 2;
+    }
+    if (high != 100) {
+        return 3;
+    }
+    if (crit != 255) {
+        return 4;
+    }
 
     // Test 2: Comparison with Priority values
     Priority p <- PRIORITY_HIGH;
-    if (p != PRIORITY_HIGH) return 5;
-    if (p < PRIORITY_MEDIUM) return 6; // high > medium
+    if (p != PRIORITY_HIGH) {
+        return 5;
+    }
+    if (p < PRIORITY_MEDIUM) {
+        return 6; // high > medium
+    }
 
     // Test 3: Arithmetic with enum values
     Priority threshold <- PRIORITY_MEDIUM;
@@ -35,7 +47,9 @@ u32 main() {
     // Test 4: Permissions typedef enum with flags
     Permissions perm <- FLAG_READ;
     perm <- perm | FLAG_WRITE;
-    if (perm != 3) return 8;
+    if (perm != 3) {
+        return 8;
+    }
 
     return 0; // All tests passed
 }

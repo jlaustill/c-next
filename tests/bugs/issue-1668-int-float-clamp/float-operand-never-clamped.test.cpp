@@ -47,28 +47,50 @@ int main(void) {
     float arr[2] = {2.5, 1.0};
     Scaler scaler = { .fn = scaleFn };
     float literal = static_cast<float>(i) * 2.5;
-    if (literal != 7.5) return 1U;
+    if (literal != 7.5) {
+        return 1U;
+    }
     float field = static_cast<float>(i) * s.v;
-    if (field != 7.5) return 2U;
+    if (field != 7.5) {
+        return 2U;
+    }
     float element = static_cast<float>(i) * arr[0U];
-    if (element != 7.5) return 3U;
+    if (element != 7.5) {
+        return 3U;
+    }
     float call = static_cast<float>(i) * half();
-    if (call != 7.5) return 4U;
+    if (call != 7.5) {
+        return 4U;
+    }
     float member = Counter__scaled();
-    if (member != 7.5) return 5U;
+    if (member != 7.5) {
+        return 5U;
+    }
     float callback = static_cast<float>(i) * scaler.fn();
-    if (callback != 7.5) return 6U;
+    if (callback != 7.5) {
+        return 6U;
+    }
     float compound = 2.5;
     compound *= static_cast<float>(i);
-    if (compound != 7.5) return 7U;
+    if (compound != 7.5) {
+        return 7U;
+    }
     float macro = static_cast<float>(i) * SCALE_F;
-    if (macro != 7.5) return 8U;
+    if (macro != 7.5) {
+        return 8U;
+    }
     float macroFirst = SCALE_F * static_cast<float>(i);
-    if (macroFirst != 7.5) return 9U;
+    if (macroFirst != 7.5) {
+        return 9U;
+    }
     double macroExpr = static_cast<double>(i) * SCALE_D;
-    if (macroExpr != 7.5) return 10U;
+    if (macroExpr != 7.5) {
+        return 10U;
+    }
     uint32_t macroCompound = 2U;
     macroCompound = (((static_cast<float>(macroCompound) * SCALE_F)) >= ((float)UINT32_MAX) ? static_cast<uint32_t>(UINT32_MAX) : ((static_cast<float>(macroCompound) * SCALE_F)) < 0.0f ? static_cast<uint32_t>(0) : static_cast<uint32_t>(((static_cast<float>(macroCompound) * SCALE_F))));
-    if (macroCompound != 5) return 11U;
+    if (macroCompound != 5) {
+        return 11U;
+    }
     return 0U;
 }

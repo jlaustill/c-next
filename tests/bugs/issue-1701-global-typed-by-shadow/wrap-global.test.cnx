@@ -11,7 +11,11 @@ u8 f() {
 
 u32 main() {
     u8 local <- f();
-    if (local != 1) return 2;
-    if (global.x != 0) return 1;
+    if (local != 1) {
+        return 2;
+    }
+    if (global.x != 0) {
+        return 1;
+    }
     return 0;
 }

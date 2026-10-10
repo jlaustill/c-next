@@ -31,19 +31,33 @@ i32 main() {
 
     // Invoke the callback via helper - the callback should forward params correctly
     i32 invoked <- global.invoke_registered_cb(&dummy_widget, &r, buffer);
-    if (invoked = 0) return 1;
+    if (invoked = 0) {
+        return 1;
+    }
 
     // Verify the forwarded values
-    if (last_x1 != 10) return 2;
-    if (last_y1 != 20) return 3;
-    if (last_x2 != 101) return 4; // x2 + 1
-    if (last_y2 != 201) return 5; // y2 + 1
+    if (last_x1 != 10) {
+        return 2;
+    }
+    if (last_y1 != 20) {
+        return 3;
+    }
+    if (last_x2 != 101) {
+        return 4; // x2 + 1
+    }
+    if (last_y2 != 201) {
+        return 5; // y2 + 1
+    }
 
     // Verify buf was forwarded as pointer (last_data should point to buffer)
-    if (last_data != buffer) return 6;
+    if (last_data != buffer) {
+        return 6;
+    }
 
     // Verify w was forwarded correctly
-    if (last_widget != &dummy_widget) return 7;
+    if (last_widget != &dummy_widget) {
+        return 7;
+    }
 
     return 0;
 }

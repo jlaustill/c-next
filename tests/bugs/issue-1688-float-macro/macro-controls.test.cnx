@@ -11,11 +11,15 @@ u32 main() {
 
     // A float macro times a float: no clamp helper
     f32 a <- k * SCALE_F;
-    if (a != 2.5) return 1;
+    if (a != 2.5) {
+        return 1;
+    }
 
     // An integer macro with an integer: the clamp helper, unchanged
     u32 b <- i + LIMIT;
-    if (b != 13) return 2;
+    if (b != 13) {
+        return 2;
+    }
 
     return 0;
 }

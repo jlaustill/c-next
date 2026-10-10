@@ -41,15 +41,21 @@ u32 main() {
     };
 
     // Test 1: Verify initial nested status
-    if ((u32)cfg.nested.status != 20) return 1; // Status_GREEN = 20
+    if ((u32)cfg.nested.status != 20) {
+        return 1; // Status_GREEN = 20
+    }
 
     // Test 2: Set via nested access, should use Status_RED
     setNestedStatus(cfg);
-    if ((u32)cfg.nested.status != 10) return 2; // Status_RED = 10
+    if ((u32)cfg.nested.status != 10) {
+        return 2; // Status_RED = 10
+    }
 
     // Test 3: Set color via nested access, should use Color_GREEN
     setNestedColor(cfg);
-    if ((u32)cfg.nested.color != 1) return 3; // Color_GREEN = 1
+    if ((u32)cfg.nested.color != 1) {
+        return 3; // Color_GREEN = 1
+    }
 
     return 0;
 }

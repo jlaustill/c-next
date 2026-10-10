@@ -25,20 +25,28 @@ u32 main() {
     EnumUnqualRef.Config cfg <- { pType: EPressureType.PRESSURE_TYPE_PSIA };
 
     // Test 1: Verify initial value
-    if (cfg.pType != EPressureType.PRESSURE_TYPE_PSIA) return 1;
+    if (cfg.pType != EPressureType.PRESSURE_TYPE_PSIA) {
+        return 1;
+    }
 
     // Test 2: Call function that uses unqualified enum reference
     setDefault(cfg);
 
     // Test 3: Verify the value was changed correctly
-    if (cfg.pType != EPressureType.PRESSURE_TYPE_PSIG) return 2;
+    if (cfg.pType != EPressureType.PRESSURE_TYPE_PSIG) {
+        return 2;
+    }
 
     // Test 4: Direct unqualified assignment
     cfg.pType <- PRESSURE_TYPE_PSIA;
-    if (cfg.pType != EPressureType.PRESSURE_TYPE_PSIA) return 3;
+    if (cfg.pType != EPressureType.PRESSURE_TYPE_PSIA) {
+        return 3;
+    }
 
     // Test 5: Qualified in comparison
-    if (cfg.pType != EPressureType.PRESSURE_TYPE_PSIA) return 4;
+    if (cfg.pType != EPressureType.PRESSURE_TYPE_PSIA) {
+        return 4;
+    }
 
     return 0; // All tests passed
 }

@@ -36,6 +36,8 @@ int main(void) {
     cfg.thermocoupleType = TC_TYPE_J;
     cfg.value = 4U;
     uint32_t result = testEnumBoolMembers(cfg);
-    if (result != 6) return 1U;
+    if (result != 6) {
+        return 1U;
+    }
     return 0U;
 }

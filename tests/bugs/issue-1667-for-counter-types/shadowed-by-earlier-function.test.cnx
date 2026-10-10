@@ -32,8 +32,12 @@ u32 passes() {
 u32 main() {
     first();
     u32 width <- probe();
-    if (width != 8) return 1;
+    if (width != 8) {
+        return 1;
+    }
     u32 count <- passes();
-    if (count != 1) return 2;
+    if (count != 1) {
+        return 2;
+    }
     return 0;
 }

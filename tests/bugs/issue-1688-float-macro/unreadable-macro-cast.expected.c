@@ -32,8 +32,12 @@ static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
 int main(void) {
     uint32_t i = 3U;
     uint32_t a = cnx_clamp_mul_u32(i, (uint32_t)SCALED_CALL);
-    if (a != 18) return 1U;
+    if (a != 18) {
+        return 1U;
+    }
     uint32_t b = cnx_clamp_add_u32((uint32_t)CAST_LIMIT, i);
-    if (b != 10) return 2U;
+    if (b != 10) {
+        return 2U;
+    }
     return 0U;
 }

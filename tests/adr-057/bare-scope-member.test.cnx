@@ -18,6 +18,8 @@ u32 main() {
     Counter.increment();
     Counter.increment();
     u32 result <- Counter.getValue();
-    if (result != 2) return 1;
+    if (result != 2) {
+        return 1;
+    }
     return 0;
 }

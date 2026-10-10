@@ -32,16 +32,22 @@ scope Calculator {
 u32 main() {
     // Test 1: Public function calling private helper
     u32 result1 <- Calculator.computeSquare(5);
-    if (result1 != 25) return 1;
+    if (result1 != 25) {
+        return 1;
+    }
 
     // Test 2: Public function calling nested private helpers
     u32 result2 <- Calculator.computeCube(3);
-    if (result2 != 27) return 2;
+    if (result2 != 27) {
+        return 2;
+    }
 
     // Test 3: Public function combining private helper results
     // square(2) = 4, cube(2) = 8, sum = 12
     u32 result3 <- Calculator.sumOfSquareAndCube(2);
-    if (result3 != 12) return 3;
+    if (result3 != 12) {
+        return 3;
+    }
 
     // All tests passed
     return 0;

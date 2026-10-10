@@ -11,7 +11,9 @@ i32 main() {
     // NOT: DefaultConstructible obj = (DefaultConstructible){ .value = 42 };
     DefaultConstructible obj <- { value: 42, name: "test" };
 
-    if (obj.value != 42) return 1;
+    if (obj.value != 42) {
+        return 1;
+    }
 
     return 0;
 }

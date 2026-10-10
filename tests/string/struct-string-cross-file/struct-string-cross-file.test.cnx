@@ -14,11 +14,19 @@ i32 main() {
     cfg.name <- "remote";
     cfg.tags[1] <- "ab";
 
-    if (cfg.name != "remote") return 1;
+    if (cfg.name != "remote") {
+        return 1;
+    }
     u32 length <- lengthOf(cfg.name);
-    if (length != 6) return 2;
-    if (cfg.tags[1] != "ab") return 3;
-    if (cfg.tags[1].char_count != 2) return 4;
+    if (length != 6) {
+        return 2;
+    }
+    if (cfg.tags[1] != "ab") {
+        return 3;
+    }
+    if (cfg.tags[1].char_count != 2) {
+        return 4;
+    }
 
     return 0;
 }

@@ -36,25 +36,43 @@ extern const float PI = 3.14159;
 extern const bool ENABLED = true;
 
 int main(void) {
-    if (MAX_VALUE != 100) return 1U;
-    if (VERSION_MAJOR != 1) return 2U;
-    if (VERSION_MINOR != 2) return 3U;
-    if (ENABLED != true) return 4U;
+    if (MAX_VALUE != 100) {
+        return 1U;
+    }
+    if (VERSION_MAJOR != 1) {
+        return 2U;
+    }
+    if (VERSION_MINOR != 2) {
+        return 3U;
+    }
+    if (ENABLED != true) {
+        return 4U;
+    }
     const uint32_t LOCAL_LIMIT = 50U;
-    if (LOCAL_LIMIT != 50) return 5U;
+    if (LOCAL_LIMIT != 50) {
+        return 5U;
+    }
     uint32_t result = cnx_clamp_add_u32(MAX_VALUE, LOCAL_LIMIT);
-    if (result != 150) return 6U;
+    if (result != 150) {
+        return 6U;
+    }
     uint32_t data[3] = {1U, 2U, 3U};
     const uint32_t EXPECTED_LENGTH = 3U;
-    if (3 != EXPECTED_LENGTH) return 7U;
+    if (3 != EXPECTED_LENGTH) {
+        return 7U;
+    }
     uint32_t sum = 0U;
     const uint32_t ITERATIONS = 5U;
     for (uint32_t i = 0U; i < ITERATIONS; i = cnx_clamp_add_u32(i, 1U)) {
         sum = cnx_clamp_add_u32(sum, 1U);
     }
-    if (sum != 5) return 8U;
+    if (sum != 5) {
+        return 8U;
+    }
     float radius = 2.0;
     float circumference = 2.0 * PI * radius;
-    if (circumference < 12.5 || circumference > 12.6) return 9U;
+    if (circumference < 12.5 || circumference > 12.6) {
+        return 9U;
+    }
     return 0U;
 }

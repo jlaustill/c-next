@@ -11,27 +11,49 @@
 int main(void) {
     uint32_t value = 0xDEADBEEFU;
     uint8_t lowByte = static_cast<uint8_t>(((value) & 0xFFU));
-    if (lowByte != 0xEF) return 1U;
+    if (lowByte != 0xEF) {
+        return 1U;
+    }
     uint8_t byte1 = static_cast<uint8_t>(((value >> 8U) & 0xFFU));
-    if (byte1 != 0xBE) return 2U;
+    if (byte1 != 0xBE) {
+        return 2U;
+    }
     uint8_t byte2 = static_cast<uint8_t>(((value >> 16U) & 0xFFU));
-    if (byte2 != 0xAD) return 3U;
+    if (byte2 != 0xAD) {
+        return 3U;
+    }
     uint8_t highByte = static_cast<uint8_t>(((value >> 24U) & 0xFFU));
-    if (highByte != 0xDE) return 4U;
+    if (highByte != 0xDE) {
+        return 4U;
+    }
     uint8_t lowNibble = static_cast<uint8_t>(((value) & 0xFU));
-    if (lowNibble != 0x0F) return 5U;
+    if (lowNibble != 0x0F) {
+        return 5U;
+    }
     uint8_t highNibble = static_cast<uint8_t>(((value >> 4U) & 0xFU));
-    if (highNibble != 0x0E) return 6U;
+    if (highNibble != 0x0E) {
+        return 6U;
+    }
     uint16_t lowWord = static_cast<uint16_t>(((value) & 0xFFFFU));
-    if (lowWord != 0xBEEF) return 7U;
+    if (lowWord != 0xBEEF) {
+        return 7U;
+    }
     uint16_t highWord = static_cast<uint16_t>(((value >> 16U) & 0xFFFFU));
-    if (highWord != 0xDEAD) return 8U;
+    if (highWord != 0xDEAD) {
+        return 8U;
+    }
     uint8_t testVal = 0b10101010U;
     uint8_t bit0 = static_cast<uint8_t>(((testVal) & 0x1U));
-    if (bit0 != 0) return 9U;
+    if (bit0 != 0) {
+        return 9U;
+    }
     uint8_t bit1 = static_cast<uint8_t>(((testVal >> 1U) & 0x1U));
-    if (bit1 != 1) return 10U;
+    if (bit1 != 1) {
+        return 10U;
+    }
     uint8_t bit7 = static_cast<uint8_t>(((testVal >> 7U) & 0x1U));
-    if (bit7 != 1) return 11U;
+    if (bit7 != 1) {
+        return 11U;
+    }
     return 0U;
 }

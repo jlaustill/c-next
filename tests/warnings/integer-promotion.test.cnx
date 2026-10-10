@@ -9,7 +9,9 @@ u32 main() {
     u8 a <- 100;
     u8 b <- 50;
     u32 sum <- a + b;
-    if (sum != 150) return 1;
+    if (sum != 150) {
+        return 1;
+    }
 
     // Test u8 multiplication (#1152, ADR-024 correction).
     // `c * d` is a u8 operation and saturates at u8; storing into a u32 does
@@ -17,37 +19,51 @@ u32 main() {
     u8 c <- 200;
     u8 d <- 2;
     u32 clampedProduct <- c * d;
-    if (clampedProduct != 255) return 2;
+    if (clampedProduct != 255) {
+        return 2;
+    }
 
     u32 product <- (u32)c * (u32)d;
-    if (product != 400) return 3;
+    if (product != 400) {
+        return 3;
+    }
 
     // Test u16 arithmetic
     u16 e <- 30000;
     u16 f <- 20000;
     u32 large_sum <- e + f;
-    if (large_sum != 50000) return 3;
+    if (large_sum != 50000) {
+        return 3;
+    }
 
     // Test mixed u8 and u16 operations
     u8 small <- 255;
     u16 medium <- 1000;
     u32 mixed <- small + medium;
-    if (mixed != 1255) return 4;
+    if (mixed != 1255) {
+        return 4;
+    }
 
     // Test bit shifts (must not exceed type width - 1)
     u32 shift_val <- 1;
     u32 shifted <- shift_val << 8;
-    if (shifted != 256) return 5;
+    if (shifted != 256) {
+        return 5;
+    }
 
     // Test division (integer division)
     u32 dividend <- 100;
     u32 divisor <- 3;
     u32 quotient <- dividend / divisor;
-    if (quotient != 33) return 6;
+    if (quotient != 33) {
+        return 6;
+    }
 
     // Test modulo
     u32 remainder <- dividend % divisor;
-    if (remainder != 1) return 7;
+    if (remainder != 1) {
+        return 7;
+    }
 
     return 0;
 }

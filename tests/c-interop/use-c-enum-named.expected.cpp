@@ -15,12 +15,22 @@ int main(void) {
     int32_t red = COLOR_RED;
     int32_t green = COLOR_GREEN;
     int32_t blue = COLOR_BLUE;
-    if (red != 0) return 1U;
-    if (green != 1) return 2U;
-    if (blue != 2) return 3U;
+    if (red != 0) {
+        return 1U;
+    }
+    if (green != 1) {
+        return 2U;
+    }
+    if (blue != 2) {
+        return 3U;
+    }
     int32_t color = COLOR_GREEN;
-    if (color != COLOR_GREEN) return 4U;
-    if (color == COLOR_RED) return 5U;
+    if (color != COLOR_GREEN) {
+        return 4U;
+    }
+    if (color == COLOR_RED) {
+        return 5U;
+    }
     color = COLOR_BLUE;
     if (color == COLOR_RED) {
         return 6U;

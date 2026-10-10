@@ -54,35 +54,55 @@ u32 main() {
 
     // Test getColorByIndex
     Color c <- getColorByIndex(0);
-    if (c != Color.RED) return 1;
+    if (c != Color.RED) {
+        return 1;
+    }
 
     c <- getColorByIndex(1);
-    if (c != Color.GREEN) return 2;
+    if (c != Color.GREEN) {
+        return 2;
+    }
 
     c <- getColorByIndex(2);
-    if (c != Color.BLUE) return 3;
+    if (c != Color.BLUE) {
+        return 3;
+    }
 
     c <- getColorByIndex(99);
-    if (c != Color.YELLOW) return 4;
+    if (c != Color.YELLOW) {
+        return 4;
+    }
 
     // Test getNextLight cycle
     TrafficLight light <- TrafficLight.STOP;
     light <- getNextLight(light);
-    if (light != TrafficLight.GO) return 5;
+    if (light != TrafficLight.GO) {
+        return 5;
+    }
 
     light <- getNextLight(light);
-    if (light != TrafficLight.CAUTION) return 6;
+    if (light != TrafficLight.CAUTION) {
+        return 6;
+    }
 
     light <- getNextLight(light);
-    if (light != TrafficLight.STOP) return 7;
+    if (light != TrafficLight.STOP) {
+        return 7;
+    }
 
     // Test colorToLight mapping
     TrafficLight mapped <- colorToLight(Color.RED);
-    if (mapped != TrafficLight.STOP) return 8;
+    if (mapped != TrafficLight.STOP) {
+        return 8;
+    }
     mapped <- colorToLight(Color.GREEN);
-    if (mapped != TrafficLight.GO) return 9;
+    if (mapped != TrafficLight.GO) {
+        return 9;
+    }
     mapped <- colorToLight(Color.BLUE);
-    if (mapped != TrafficLight.CAUTION) return 10;
+    if (mapped != TrafficLight.CAUTION) {
+        return 10;
+    }
 
     return 0;
 }

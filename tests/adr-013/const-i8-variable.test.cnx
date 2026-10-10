@@ -11,27 +11,41 @@ u32 main() {
 
     // Test 1: Read negative const into local variable
     i8 minT <- MIN_TEMP;
-    if (minT != -40) return 1;
+    if (minT != -40) {
+        return 1;
+    }
 
     // Test 2: Read positive const
     i8 maxT <- MAX_TEMP;
-    if (maxT != 85) return 2;
+    if (maxT != 85) {
+        return 2;
+    }
 
     // Test 3: Read zero const
     i8 zero <- ZERO_POINT;
-    if (zero != 0) return 3;
+    if (zero != 0) {
+        return 3;
+    }
 
     // Test 4: Use const in arithmetic (range calculation)
     i8 range <- MAX_TEMP - MIN_TEMP;
-    if (range != 125) return 4;
+    if (range != 125) {
+        return 4;
+    }
 
     // Test 5: Use negative const in comparison
-    if (MIN_TEMP >= ZERO_POINT) return 5;
+    if (MIN_TEMP >= ZERO_POINT) {
+        return 5;
+    }
 
     // Test 6: Use const in conditional
     i8 temp <- -20;
-    if (temp < MIN_TEMP) return 6;
-    if (temp > MAX_TEMP) return 7;
+    if (temp < MIN_TEMP) {
+        return 6;
+    }
+    if (temp > MAX_TEMP) {
+        return 7;
+    }
 
     return 0;
 }

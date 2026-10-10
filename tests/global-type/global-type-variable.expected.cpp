@@ -25,9 +25,13 @@ EState StateMachine__getState(void) {
 int main(void) {
     StateMachine__setState(EState__RUNNING);
     int32_t result = static_cast<int32_t>(StateMachine__getState());
-    if (result != 1) return 1U;
+    if (result != 1) {
+        return 1U;
+    }
     StateMachine__setState(EState__STOPPED);
     result = static_cast<int32_t>(StateMachine__getState());
-    if (result != 2) return 2U;
+    if (result != 2) {
+        return 2U;
+    }
     return 0U;
 }

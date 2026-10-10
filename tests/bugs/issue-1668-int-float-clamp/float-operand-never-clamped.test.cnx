@@ -41,39 +41,61 @@ u32 main() {
     Scaler scaler <- { fn: scaleFn };
 
     f32 literal <- (f32)i * 2.5;
-    if (literal != 7.5) return 1;
+    if (literal != 7.5) {
+        return 1;
+    }
 
     f32 field <- (f32)i * s.v;
-    if (field != 7.5) return 2;
+    if (field != 7.5) {
+        return 2;
+    }
 
     f32 element <- (f32)i * arr[0];
-    if (element != 7.5) return 3;
+    if (element != 7.5) {
+        return 3;
+    }
 
     f32 call <- (f32)i * half();
-    if (call != 7.5) return 4;
+    if (call != 7.5) {
+        return 4;
+    }
 
     f32 member <- Counter.scaled();
-    if (member != 7.5) return 5;
+    if (member != 7.5) {
+        return 5;
+    }
 
     f32 callback <- (f32)i * scaler.fn();
-    if (callback != 7.5) return 6;
+    if (callback != 7.5) {
+        return 6;
+    }
 
     f32 compound <- 2.5;
     compound *<- (f32)i;
-    if (compound != 7.5) return 7;
+    if (compound != 7.5) {
+        return 7;
+    }
 
     f32 macro <- (f32)i * SCALE_F;
-    if (macro != 7.5) return 8;
+    if (macro != 7.5) {
+        return 8;
+    }
 
     f32 macroFirst <- SCALE_F * (f32)i;
-    if (macroFirst != 7.5) return 9;
+    if (macroFirst != 7.5) {
+        return 9;
+    }
 
     f64 macroExpr <- (f64)i * SCALE_D;
-    if (macroExpr != 7.5) return 10;
+    if (macroExpr != 7.5) {
+        return 10;
+    }
 
     u32 macroCompound <- 2;
     macroCompound <- (u32)((f32)macroCompound * SCALE_F);
-    if (macroCompound != 5) return 11;
+    if (macroCompound != 5) {
+        return 11;
+    }
 
     return 0;
 }

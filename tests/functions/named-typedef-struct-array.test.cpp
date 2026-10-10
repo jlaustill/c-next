@@ -111,10 +111,16 @@ uint32_t testNonConstArrayMember(void) {
 
 int main(void) {
     uint32_t result1 = testNamedTypedefConstArrayMember();
-    if (result1 != 100) return 1U;
+    if (result1 != 100) {
+        return 1U;
+    }
     uint32_t result2 = testMultipleArrayMembers();
-    if (result2 != 40) return 2U;
+    if (result2 != 40) {
+        return 2U;
+    }
     uint32_t result3 = testNonConstArrayMember();
-    if (result3 != 150) return 3U;
+    if (result3 != 150) {
+        return 3U;
+    }
     return 0U;
 }

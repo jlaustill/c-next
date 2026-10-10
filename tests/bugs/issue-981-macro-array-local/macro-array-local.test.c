@@ -20,6 +20,8 @@ uint8_t Test__from_local(uint8_t idx) {
 
 int main(void) {
     uint8_t result = Test__from_local(5U);
-    if (result != 6) return 1;
+    if (result != 6) {
+        return 1;
+    }
     return 0;
 }

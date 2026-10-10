@@ -42,12 +42,20 @@ cs_float_t cS = { .v = -40.0 };
 
 int main(void) {
     uint8_t a = cnx_cast_sat_f32_u8(half());
-    if (a != 255) return 1U;
+    if (a != 255) {
+        return 1U;
+    }
     uint8_t b = cnx_cast_sat_f32_u8(Gauge__fn());
-    if (b != 2) return 2U;
+    if (b != 2) {
+        return 2U;
+    }
     uint8_t c = ((cS.v) >= ((float)UINT8_MAX) ? (uint8_t)UINT8_MAX : (cS.v) < 0.0f ? (uint8_t)0 : (uint8_t)(cS.v));
-    if (c != 0) return 3U;
+    if (c != 0) {
+        return 3U;
+    }
     uint8_t e = ((grid[0U]) >= ((float)UINT8_MAX) ? (uint8_t)UINT8_MAX : (grid[0U]) < 0.0f ? (uint8_t)0 : (uint8_t)(grid[0U]));
-    if (e != 255) return 4U;
+    if (e != 255) {
+        return 4U;
+    }
     return 0U;
 }

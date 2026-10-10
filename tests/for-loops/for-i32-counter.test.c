@@ -40,43 +40,59 @@ int main(void) {
     for (int32_t i = 0; i < 10; i = cnx_clamp_add_i32(i, 1)) {
         sum = cnx_clamp_add_u32(sum, 1U);
     }
-    if (sum != 10) return 1U;
+    if (sum != 10) {
+        return 1U;
+    }
     sum = 0U;
     for (int32_t j = 100; j < 110; j = cnx_clamp_add_i32(j, 1)) {
         sum = cnx_clamp_add_u32(sum, 1U);
     }
-    if (sum != 10) return 2U;
+    if (sum != 10) {
+        return 2U;
+    }
     sum = 0U;
     for (int32_t k = 10; k > 0; k = cnx_clamp_sub_i32(k, 1)) {
         sum = cnx_clamp_add_u32(sum, 1U);
     }
-    if (sum != 10) return 3U;
+    if (sum != 10) {
+        return 3U;
+    }
     sum = 0U;
     for (int32_t m = -5; m < 5; m = cnx_clamp_add_i32(m, 1)) {
         sum = cnx_clamp_add_u32(sum, 1U);
     }
-    if (sum != 10) return 4U;
+    if (sum != 10) {
+        return 4U;
+    }
     int32_t cross_count = 0;
     for (int32_t n = -3; n <= 3; n = cnx_clamp_add_i32(n, 1)) {
         cross_count = cnx_clamp_add_i32(cross_count, 1);
     }
-    if (cross_count != 7) return 5U;
+    if (cross_count != 7) {
+        return 5U;
+    }
     sum = 0U;
     for (int32_t p = 0; p < 20; p = cnx_clamp_add_i32(p, 2)) {
         sum = cnx_clamp_add_u32(sum, 1U);
     }
-    if (sum != 10) return 6U;
+    if (sum != 10) {
+        return 6U;
+    }
     sum = 0U;
     for (int32_t outer = 0; outer < 3; outer = cnx_clamp_add_i32(outer, 1)) {
         for (int32_t inner = 0; inner < 4; inner = cnx_clamp_add_i32(inner, 1)) {
             sum = cnx_clamp_add_u32(sum, 1U);
         }
     }
-    if (sum != 12) return 7U;
+    if (sum != 12) {
+        return 7U;
+    }
     int32_t calc_sum = 0;
     for (int32_t q = 1; q <= 5; q = cnx_clamp_add_i32(q, 1)) {
         calc_sum = cnx_clamp_add_i32(calc_sum, q);
     }
-    if (calc_sum != 15) return 8U;
+    if (calc_sum != 15) {
+        return 8U;
+    }
     return 0U;
 }

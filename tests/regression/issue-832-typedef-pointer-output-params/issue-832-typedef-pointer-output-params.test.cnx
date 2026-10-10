@@ -22,14 +22,18 @@ u32 main() {
     // use_handle expects handle_t directly - no & needed
     // Should generate: use_handle(my_handle)
     i32 val <- global.use_handle(my_handle);
-    if (val != 42) return 1;
+    if (val != 42) {
+        return 1;
+    }
 
     // replace_handle expects handle_t* (out param), my_handle is handle_t
     // Should generate: replace_handle(&my_handle)
     global.replace_handle(my_handle);
 
     val <- global.use_handle(my_handle);
-    if (val != 100) return 2;
+    if (val != 100) {
+        return 2;
+    }
 
     return 0;
 }

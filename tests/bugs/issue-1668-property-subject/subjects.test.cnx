@@ -25,20 +25,34 @@ string<8>[3] names;
 
 u32 main() {
     u32 lb <- gl.bit_length;
-    if (lb != 64) return 1;
+    if (lb != 64) {
+        return 1;
+    }
     u32 bc <- gbuf.element_count;
-    if (bc != 4) return 2;
+    if (bc != 4) {
+        return 2;
+    }
     u32 ec <- sarr[1].arr.element_count;
-    if (ec != 3) return 3;
+    if (ec != 3) {
+        return 3;
+    }
     u32 by <- sarr[0].inners[1].arr.byte_length;
-    if (by != 6) return 4;
+    if (by != 6) {
+        return 4;
+    }
     u32 nb <- names.bit_length;
-    if (nb != 216) return 5;
+    if (nb != 216) {
+        return 5;
+    }
     // NEGATIVE CONTROL: a plain variable and a plain field
     u32 x <- 0;
     u32 xb <- x.bit_length;
-    if (xb != 32) return 6;
+    if (xb != 32) {
+        return 6;
+    }
     u32 fb <- sarr[0].arr.bit_length;
-    if (fb != 24) return 7;
+    if (fb != 24) {
+        return 7;
+    }
     return 0;
 }

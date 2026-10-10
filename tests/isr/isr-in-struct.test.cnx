@@ -52,40 +52,60 @@ u32 main() {
     structLastHandler <- 0;
     holder.primary <- structHandler1;
     holder.primary();
-    if (structCallCount != 1) return 1;
-    if (structLastHandler != 1) return 2;
+    if (structCallCount != 1) {
+        return 1;
+    }
+    if (structLastHandler != 1) {
+        return 2;
+    }
 
     // Test 2: Assign and invoke secondary handler
     structCallCount <- 0;
     structLastHandler <- 0;
     holder.secondary <- structHandler2;
     holder.secondary();
-    if (structCallCount != 1) return 3;
-    if (structLastHandler != 2) return 4;
+    if (structCallCount != 1) {
+        return 3;
+    }
+    if (structLastHandler != 2) {
+        return 4;
+    }
 
     // Test 3: Initialize via function and invoke both
     structCallCount <- 0;
     structLastHandler <- 0;
     initStructHolder(holder, structHandler1, structHandler3);
     invokeStructHolder(holder);
-    if (structCallCount != 2) return 5;
-    if (structLastHandler != 3) return 6; // secondary (structHandler3) called last
+    if (structCallCount != 2) {
+        return 5;
+    }
+    if (structLastHandler != 3) {
+        return 6; // secondary (structHandler3) called last
+    }
 
     // Test 4: Swap handlers and verify
     structCallCount <- 0;
     holder.primary <- structHandler2;
     holder.secondary <- structHandler1;
     invokeStructHolder(holder);
-    if (structCallCount != 2) return 7;
-    if (structLastHandler != 1) return 8; // secondary (structHandler1) called last
+    if (structCallCount != 2) {
+        return 7;
+    }
+    if (structLastHandler != 1) {
+        return 8; // secondary (structHandler1) called last
+    }
 
     // Test 5: Direct struct field invocation
     structCallCount <- 0;
     structLastHandler <- 0;
     holder.primary <- structHandler3;
     holder.primary();
-    if (structCallCount != 1) return 9;
-    if (structLastHandler != 3) return 10;
+    if (structCallCount != 1) {
+        return 9;
+    }
+    if (structLastHandler != 3) {
+        return 10;
+    }
 
     return 0;
 }

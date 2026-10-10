@@ -13,11 +13,15 @@ scope Worker {
     public i32 testSubtraction() {
         global.gValue <- 100;
         global.gValue -<- 30;
-        if (global.gValue != 70) return 1;
+        if (global.gValue != 70) {
+            return 1;
+        }
 
         global.gValue <- 50;
         global.gValue -<- 50;
-        if (global.gValue != 0) return 2;
+        if (global.gValue != 0) {
+            return 2;
+        }
 
         return 0;
     }
@@ -25,15 +29,21 @@ scope Worker {
     public i32 testMultiplication() {
         global.gValue <- 7;
         global.gValue *<- 6;
-        if (global.gValue != 42) return 10;
+        if (global.gValue != 42) {
+            return 10;
+        }
 
         global.gValue <- 100;
         global.gValue *<- 1;
-        if (global.gValue != 100) return 11;
+        if (global.gValue != 100) {
+            return 11;
+        }
 
         global.gValue <- 25;
         global.gValue *<- 0;
-        if (global.gValue != 0) return 12;
+        if (global.gValue != 0) {
+            return 12;
+        }
 
         return 0;
     }
@@ -41,15 +51,21 @@ scope Worker {
     public i32 testDivision() {
         global.gValue <- 100;
         global.gValue /<- 5;
-        if (global.gValue != 20) return 20;
+        if (global.gValue != 20) {
+            return 20;
+        }
 
         global.gValue <- 81;
         global.gValue /<- 9;
-        if (global.gValue != 9) return 21;
+        if (global.gValue != 9) {
+            return 21;
+        }
 
         global.gValue <- 50;
         global.gValue /<- 1;
-        if (global.gValue != 50) return 22;
+        if (global.gValue != 50) {
+            return 22;
+        }
 
         return 0;
     }
@@ -57,15 +73,21 @@ scope Worker {
     public i32 testModulo() {
         global.gValue <- 17;
         global.gValue %<- 5;
-        if (global.gValue != 2) return 30;
+        if (global.gValue != 2) {
+            return 30;
+        }
 
         global.gValue <- 100;
         global.gValue %<- 7;
-        if (global.gValue != 2) return 31;
+        if (global.gValue != 2) {
+            return 31;
+        }
 
         global.gValue <- 25;
         global.gValue %<- 25;
-        if (global.gValue != 0) return 32;
+        if (global.gValue != 0) {
+            return 32;
+        }
 
         return 0;
     }
@@ -73,15 +95,21 @@ scope Worker {
     public i32 testBitwiseAnd() {
         global.gBits <- 0xFF;
         global.gBits &<- 0x0F;
-        if (global.gBits != 0x0F) return 40;
+        if (global.gBits != 0x0F) {
+            return 40;
+        }
 
         global.gBits <- 0xAA;
         global.gBits &<- 0x55;
-        if (global.gBits != 0) return 41;
+        if (global.gBits != 0) {
+            return 41;
+        }
 
         global.gBits <- 0x12345678;
         global.gBits &<- 0xFFFFFFFF;
-        if (global.gBits != 0x12345678) return 42;
+        if (global.gBits != 0x12345678) {
+            return 42;
+        }
 
         return 0;
     }
@@ -89,15 +117,21 @@ scope Worker {
     public i32 testBitwiseOr() {
         global.gBits <- 0xF0;
         global.gBits |<- 0x0F;
-        if (global.gBits != 0xFF) return 50;
+        if (global.gBits != 0xFF) {
+            return 50;
+        }
 
         global.gBits <- 0x00;
         global.gBits |<- 0xAB;
-        if (global.gBits != 0xAB) return 51;
+        if (global.gBits != 0xAB) {
+            return 51;
+        }
 
         global.gBits <- 0x12340000;
         global.gBits |<- 0x00005678;
-        if (global.gBits != 0x12345678) return 52;
+        if (global.gBits != 0x12345678) {
+            return 52;
+        }
 
         return 0;
     }
@@ -105,15 +139,21 @@ scope Worker {
     public i32 testBitwiseXor() {
         global.gBits <- 0xFF;
         global.gBits ^<- 0xFF;
-        if (global.gBits != 0) return 60;
+        if (global.gBits != 0) {
+            return 60;
+        }
 
         global.gBits <- 0xAA;
         global.gBits ^<- 0x55;
-        if (global.gBits != 0xFF) return 61;
+        if (global.gBits != 0xFF) {
+            return 61;
+        }
 
         global.gBits <- 0x12345678;
         global.gBits ^<- 0x00000000;
-        if (global.gBits != 0x12345678) return 62;
+        if (global.gBits != 0x12345678) {
+            return 62;
+        }
 
         return 0;
     }
@@ -121,15 +161,21 @@ scope Worker {
     public i32 testLeftShift() {
         global.gBits <- 1;
         global.gBits <<<- 4;
-        if (global.gBits != 16) return 70;
+        if (global.gBits != 16) {
+            return 70;
+        }
 
         global.gBits <- 0xFF;
         global.gBits <<<- 8;
-        if (global.gBits != 0xFF00) return 71;
+        if (global.gBits != 0xFF00) {
+            return 71;
+        }
 
         global.gBits <- 1;
         global.gBits <<<- 0;
-        if (global.gBits != 1) return 72;
+        if (global.gBits != 1) {
+            return 72;
+        }
 
         return 0;
     }
@@ -137,15 +183,21 @@ scope Worker {
     public i32 testRightShift() {
         global.gBits <- 256;
         global.gBits >><- 4;
-        if (global.gBits != 16) return 80;
+        if (global.gBits != 16) {
+            return 80;
+        }
 
         global.gBits <- 0xFF00;
         global.gBits >><- 8;
-        if (global.gBits != 0xFF) return 81;
+        if (global.gBits != 0xFF) {
+            return 81;
+        }
 
         global.gBits <- 128;
         global.gBits >><- 0;
-        if (global.gBits != 128) return 82;
+        if (global.gBits != 128) {
+            return 82;
+        }
 
         return 0;
     }
@@ -155,31 +207,49 @@ u32 main() {
     i32 result <- 0;
 
     result <- Worker.testSubtraction();
-    if (result != 0) return result;
+    if (result != 0) {
+        return result;
+    }
 
     result <- Worker.testMultiplication();
-    if (result != 0) return result;
+    if (result != 0) {
+        return result;
+    }
 
     result <- Worker.testDivision();
-    if (result != 0) return result;
+    if (result != 0) {
+        return result;
+    }
 
     result <- Worker.testModulo();
-    if (result != 0) return result;
+    if (result != 0) {
+        return result;
+    }
 
     result <- Worker.testBitwiseAnd();
-    if (result != 0) return result;
+    if (result != 0) {
+        return result;
+    }
 
     result <- Worker.testBitwiseOr();
-    if (result != 0) return result;
+    if (result != 0) {
+        return result;
+    }
 
     result <- Worker.testBitwiseXor();
-    if (result != 0) return result;
+    if (result != 0) {
+        return result;
+    }
 
     result <- Worker.testLeftShift();
-    if (result != 0) return result;
+    if (result != 0) {
+        return result;
+    }
 
     result <- Worker.testRightShift();
-    if (result != 0) return result;
+    if (result != 0) {
+        return result;
+    }
 
     return 0;
 }

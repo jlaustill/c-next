@@ -38,26 +38,46 @@ int main(void) {
     buffer[2] = 0;
     buffer[3] = 0;
     writeI32(buffer, 0U, 12345);
-    if (buffer[0U] != 12345) return 1U;
+    if (buffer[0U] != 12345) {
+        return 1U;
+    }
     writeI32(buffer, 1U, -9999);
-    if (buffer[1U] != -9999) return 2U;
+    if (buffer[1U] != -9999) {
+        return 2U;
+    }
     writeI32(buffer, 2U, (int32_t)INT32_MIN);
-    if (buffer[2U] != (int32_t)INT32_MIN) return 3U;
+    if (buffer[2U] != (int32_t)INT32_MIN) {
+        return 3U;
+    }
     writeI32(buffer, 3U, 2147483647);
-    if (buffer[3U] != 2147483647) return 4U;
+    if (buffer[3U] != 2147483647) {
+        return 4U;
+    }
     int32_t result = readI32(buffer, 1U);
-    if (result != -9999) return 5U;
+    if (result != -9999) {
+        return 5U;
+    }
     result = readI32(buffer, 3U);
-    if (result != 2147483647) return 6U;
+    if (result != 2147483647) {
+        return 6U;
+    }
     buffer[0] = 100;
     negateI32(buffer, 0U);
-    if (buffer[0U] != -100) return 7U;
+    if (buffer[0U] != -100) {
+        return 7U;
+    }
     negateI32(buffer, 0U);
-    if (buffer[0U] != 100) return 8U;
+    if (buffer[0U] != 100) {
+        return 8U;
+    }
     buffer[1] = 50;
     addToI32(buffer, 1U, -30);
-    if (buffer[1U] != 20) return 9U;
+    if (buffer[1U] != 20) {
+        return 9U;
+    }
     addToI32(buffer, 1U, -25);
-    if (buffer[1U] != -5) return 10U;
+    if (buffer[1U] != -5) {
+        return 10U;
+    }
     return 0U;
 }

@@ -10,30 +10,40 @@ i32 main() {
     if (name = "Alice") {
         result <- 1;
     }
-    if (result != 1) return 1;
+    if (result != 1) {
+        return 1;
+    }
 
     if (name = "Bob") {
         result <- 2;
     }
-    if (result != 1) return 2; // Should still be 1
+    if (result != 1) {
+        return 2; // Should still be 1
+    }
 
     // Test 4-5: String inequality in if
     if (name != "Bob") {
         result <- 3;
     }
-    if (result != 3) return 3;
+    if (result != 3) {
+        return 3;
+    }
 
     // Test 6-8: String length in condition
     string<64> text <- "Hello";
     if (text.char_count = 5) {
         result <- 4;
     }
-    if (result != 4) return 4;
+    if (result != 4) {
+        return 4;
+    }
 
     if (text.char_count > 3) {
         result <- 5;
     }
-    if (result != 5) return 5;
+    if (result != 5) {
+        return 5;
+    }
 
     // Test 9-11: While loop with string length
     string<32>[4] items;
@@ -50,20 +60,26 @@ i32 main() {
     }
 
     // 3 + 3 + 5 + 4 = 15
-    if (totalLen != 15) return 6;
+    if (totalLen != 15) {
+        return 6;
+    }
 
     // Test 12-14: Conditional based on empty string
     string<32> maybeEmpty;
     if (maybeEmpty.char_count = 0) {
         result <- 6;
     }
-    if (result != 6) return 7;
+    if (result != 6) {
+        return 7;
+    }
 
     maybeEmpty <- "NotEmpty";
     if (maybeEmpty.char_count != 0) {
         result <- 7;
     }
-    if (result != 7) return 8;
+    if (result != 7) {
+        return 8;
+    }
 
     // Test 15: Nested conditions with strings
     string<32> status <- "active";
@@ -72,7 +88,9 @@ i32 main() {
             result <- 8;
         }
     }
-    if (result != 8) return 9;
+    if (result != 8) {
+        return 9;
+    }
 
     return 0;
 }

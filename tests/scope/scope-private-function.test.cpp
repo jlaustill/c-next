@@ -47,10 +47,16 @@ uint32_t Calculator__sumOfSquareAndCube(uint32_t n) {
 
 int main(void) {
     uint32_t result1 = Calculator__computeSquare(5U);
-    if (result1 != 25) return 1U;
+    if (result1 != 25) {
+        return 1U;
+    }
     uint32_t result2 = Calculator__computeCube(3U);
-    if (result2 != 27) return 2U;
+    if (result2 != 27) {
+        return 2U;
+    }
     uint32_t result3 = Calculator__sumOfSquareAndCube(2U);
-    if (result3 != 12) return 3U;
+    if (result3 != 12) {
+        return 3U;
+    }
     return 0U;
 }

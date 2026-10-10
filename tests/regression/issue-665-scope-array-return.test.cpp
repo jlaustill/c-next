@@ -109,18 +109,30 @@ int main(void) {
     float v1 = Test__get(EIndex__FIRST);
     float v2 = Test__get(EIndex__SECOND);
     float v3 = Test__get(EIndex__THIRD);
-    if (v1 != 1.0) return 1;
-    if (v2 != 2.0) return 2;
-    if (v3 != 3.0) return 3;
+    if (v1 != 1.0) {
+        return 1;
+    }
+    if (v2 != 2.0) {
+        return 2;
+    }
+    if (v3 != 3.0) {
+        return 3;
+    }
     TestIntIndex__set(0U, 100);
     TestIntIndex__set(1U, 200);
     TestIntIndex__set(2U, 300);
     int32_t d1 = TestIntIndex__get(0U);
     int32_t d2 = TestIntIndex__get(1U);
     int32_t d3 = TestIntIndex__get(2U);
-    if (d1 != 100) return 4;
-    if (d2 != 200) return 5;
-    if (d3 != 300) return 6;
+    if (d1 != 100) {
+        return 4;
+    }
+    if (d2 != 200) {
+        return 5;
+    }
+    if (d3 != 300) {
+        return 6;
+    }
     TestLiteral__set(0U, 1000U);
     TestLiteral__set(1U, 2000U);
     TestLiteral__set(2U, 3000U);
@@ -129,10 +141,18 @@ int main(void) {
     uint16_t l2 = TestLiteral__get(1U);
     uint16_t l3 = TestLiteral__get(2U);
     uint16_t l4 = TestLiteral__get(3U);
-    if (l1 != 1000) return 7;
-    if (l2 != 2000) return 8;
-    if (l3 != 3000) return 9;
-    if (l4 != 4000) return 10;
+    if (l1 != 1000) {
+        return 7;
+    }
+    if (l2 != 2000) {
+        return 8;
+    }
+    if (l3 != 3000) {
+        return 9;
+    }
+    if (l4 != 4000) {
+        return 10;
+    }
     TestMultiple__setFirst(EIndex__FIRST, 10U);
     TestMultiple__setFirst(EIndex__SECOND, 20U);
     TestMultiple__setSecond(EIndex__FIRST, 30U);
@@ -141,10 +161,18 @@ int main(void) {
     uint8_t m2 = TestMultiple__getFirst(EIndex__SECOND);
     uint8_t m3 = TestMultiple__getSecond(EIndex__FIRST);
     uint8_t m4 = TestMultiple__getSecond(EIndex__SECOND);
-    if (m1 != 10) return 11;
-    if (m2 != 20) return 12;
-    if (m3 != 30) return 13;
-    if (m4 != 40) return 14;
+    if (m1 != 10) {
+        return 11;
+    }
+    if (m2 != 20) {
+        return 12;
+    }
+    if (m3 != 30) {
+        return 13;
+    }
+    if (m4 != 40) {
+        return 14;
+    }
     TestArithmetic__set(0U, 111);
     TestArithmetic__set(1U, 222);
     TestArithmetic__set(2U, 333);
@@ -152,9 +180,17 @@ int main(void) {
     int32_t a2 = TestArithmetic__getNext(1U);
     int32_t a3 = TestArithmetic__getPrev(1U);
     int32_t a4 = TestArithmetic__getPrev(2U);
-    if (a1 != 222) return 15;
-    if (a2 != 333) return 16;
-    if (a3 != 111) return 17;
-    if (a4 != 222) return 18;
+    if (a1 != 222) {
+        return 15;
+    }
+    if (a2 != 333) {
+        return 16;
+    }
+    if (a3 != 111) {
+        return 17;
+    }
+    if (a4 != 222) {
+        return 18;
+    }
     return 0;
 }

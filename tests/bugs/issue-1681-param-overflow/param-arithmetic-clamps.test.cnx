@@ -40,17 +40,29 @@ u8 wrapped(u8 b) {
 
 u32 main() {
     u8 s <- add(200, 100);
-    if (s != 255) return 1;
+    if (s != 255) {
+        return 1;
+    }
     u8 d <- sub(100, 200);
-    if (d != 0) return 2;
+    if (d != 0) {
+        return 2;
+    }
     u8 m <- mul(20, 20);
-    if (m != 255) return 3;
+    if (m != 255) {
+        return 3;
+    }
     u8 p <- 200;
     u8 c <- addInto(p, 100);
-    if (c != 255) return 4;
+    if (c != 255) {
+        return 4;
+    }
     u8 l <- addToLocal(100);
-    if (l != 255) return 5;
+    if (l != 255) {
+        return 5;
+    }
     u8 w <- wrapped(100);
-    if (w != 44) return 6;
+    if (w != 44) {
+        return 6;
+    }
     return 0;
 }

@@ -20,7 +20,11 @@ uint8_t f(void) {
 
 int main(void) {
     uint8_t local = f();
-    if (local != 1) return 2U;
-    if (x != 0) return 1U;
+    if (local != 1) {
+        return 2U;
+    }
+    if (x != 0) {
+        return 1U;
+    }
     return 0U;
 }

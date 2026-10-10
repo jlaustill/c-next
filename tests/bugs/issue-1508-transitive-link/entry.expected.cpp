@@ -27,6 +27,8 @@
 
 int main(void) {
     uint32_t v = viaMid();
-    if (v != 5) return 1U;
+    if (v != 5) {
+        return 1U;
+    }
     return 0U;
 }

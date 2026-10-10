@@ -42,23 +42,43 @@ Point atFileScope = { .x = 1U, .y = 2U };
 
 int main(void) {
     Point declared = { .x = 3U, .y = 4U };
-    if (declared.x != 3) return 1U;
-    if (declared.y != 4) return 2U;
+    if (declared.x != 3) {
+        return 1U;
+    }
+    if (declared.y != 4) {
+        return 2U;
+    }
     declared = (Point){ .x = 5U, .y = 6U };
-    if (declared.x != 5) return 3U;
+    if (declared.x != 5) {
+        return 3U;
+    }
     Box box = { .corner = { .x = 7U, .y = 8U } };
-    if (box.corner.y != 8) return 4U;
-    if (atFileScope.y != 2) return 6U;
+    if (box.corner.y != 8) {
+        return 4U;
+    }
+    if (atFileScope.y != 2) {
+        return 6U;
+    }
     Point r = fromReturn();
-    if (r.x != 10) return 7U;
-    if (r.y != 20) return 8U;
+    if (r.x != 10) {
+        return 7U;
+    }
+    if (r.y != 20) {
+        return 8U;
+    }
     Point s = Shapes__fromScopeMethod();
-    if (s.x != 30) return 9U;
-    if (s.y != 40) return 10U;
+    if (s.x != 30) {
+        return 9U;
+    }
+    if (s.y != 40) {
+        return 10U;
+    }
     uint32_t total = 0U;
     for (Point p = (Point){ .x = 2U, .y = 3U }; p.x < 4; p.x += 1U) {
         total = cnx_clamp_add_u32(total, p.y);
     }
-    if (total != 6) return 11U;
+    if (total != 6) {
+        return 11U;
+    }
     return 0U;
 }

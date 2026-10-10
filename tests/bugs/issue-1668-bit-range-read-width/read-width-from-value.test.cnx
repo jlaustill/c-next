@@ -39,13 +39,29 @@ u32 main() {
     u8 f <- global.h[0, 8];
     u32 word <- 0;
     word[0, WIDTH] <- 0xFFFFFFFF;
-    if (a != 0x123456789A) return 1;
-    if (b != 0x123456789A) return 2;
-    if (c != 0x123456789A) return 3;
-    if (d != 0x123456789A) return 4;
-    if (s != 0x123456789A) return 5;
-    if (e != 0x78) return 6;
-    if (f != 0x34) return 7;
-    if (word != 0xFFFFFFFF) return 8;
+    if (a != 0x123456789A) {
+        return 1;
+    }
+    if (b != 0x123456789A) {
+        return 2;
+    }
+    if (c != 0x123456789A) {
+        return 3;
+    }
+    if (d != 0x123456789A) {
+        return 4;
+    }
+    if (s != 0x123456789A) {
+        return 5;
+    }
+    if (e != 0x78) {
+        return 6;
+    }
+    if (f != 0x34) {
+        return 7;
+    }
+    if (word != 0xFFFFFFFF) {
+        return 8;
+    }
     return 0;
 }

@@ -71,14 +71,22 @@ void Motor__runLocal(void) {
 int main(void) {
     onTick_fp handler = onTick;
     handler(5U);
-    if (total != 5) return 1U;
+    if (total != 5) {
+        return 1U;
+    }
     handler(3U);
-    if (total != 8) return 2U;
+    if (total != 8) {
+        return 2U;
+    }
     Motor__runLocal();
-    if (Motor__ticks != 7) return 3U;
+    if (Motor__ticks != 7) {
+        return 3U;
+    }
     for (onTick_fp f = onTick; total < 20; total = cnx_clamp_add_u32(total, 1U)) {
         f(2U);
     }
-    if (total != 20) return 4U;
+    if (total != 20) {
+        return 4U;
+    }
     return 0U;
 }

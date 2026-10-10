@@ -12,30 +12,56 @@
 // Tests: Explicit enum to integer cast
 int main(void) {
     uint32_t lowVal = static_cast<uint32_t>(Priority__LOW);
-    if (lowVal != 1) return 1U;
+    if (lowVal != 1) {
+        return 1U;
+    }
     uint32_t medVal = static_cast<uint32_t>(Priority__MEDIUM);
-    if (medVal != 5) return 2U;
+    if (medVal != 5) {
+        return 2U;
+    }
     uint32_t highVal = static_cast<uint32_t>(Priority__HIGH);
-    if (highVal != 10) return 3U;
+    if (highVal != 10) {
+        return 3U;
+    }
     uint32_t critVal = static_cast<uint32_t>(Priority__CRITICAL);
-    if (critVal != 100) return 4U;
+    if (critVal != 100) {
+        return 4U;
+    }
     Priority p = Priority__HIGH;
     uint32_t pVal = static_cast<uint32_t>(p);
-    if (pVal != 10) return 5U;
+    if (pVal != 10) {
+        return 5U;
+    }
     uint32_t sum = static_cast<uint32_t>(Priority__LOW) + static_cast<uint32_t>(Priority__MEDIUM);
-    if (sum != 6) return 6U;
+    if (sum != 6) {
+        return 6U;
+    }
     uint32_t readFlag = static_cast<uint32_t>(Flags__READ);
-    if (readFlag != 1) return 7U;
+    if (readFlag != 1) {
+        return 7U;
+    }
     uint32_t writeFlag = static_cast<uint32_t>(Flags__WRITE);
-    if (writeFlag != 2) return 8U;
+    if (writeFlag != 2) {
+        return 8U;
+    }
     uint32_t combined = static_cast<uint32_t>(Flags__READ) + static_cast<uint32_t>(Flags__WRITE);
-    if (combined != 3) return 9U;
-    if (static_cast<uint32_t>(Priority__CRITICAL) != 100) return 10U;
+    if (combined != 3) {
+        return 9U;
+    }
+    if (static_cast<uint32_t>(Priority__CRITICAL) != 100) {
+        return 10U;
+    }
     uint8_t smallVal = static_cast<uint8_t>(Priority__LOW);
-    if (smallVal != 1) return 11U;
+    if (smallVal != 1) {
+        return 11U;
+    }
     uint16_t mediumVal = static_cast<uint16_t>(Priority__MEDIUM);
-    if (mediumVal != 5) return 12U;
+    if (mediumVal != 5) {
+        return 12U;
+    }
     uint64_t largeVal = static_cast<uint64_t>(Priority__CRITICAL);
-    if (largeVal != 100) return 13U;
+    if (largeVal != 100) {
+        return 13U;
+    }
     return 0U;
 }

@@ -21,13 +21,17 @@ int main(void) {
     union { float f; uint32_t u; } __bits_x;
     __bits_x.f = x;
     uint32_t xbits = (__bits_x.u & 0xFFFFFFFFU);
-    if (xbits != 0x3FC00000) return 1U;
+    if (xbits != 0x3FC00000) {
+        return 1U;
+    }
     const uint8_t W64 = 64U;
     double y = 1.5;
     /* MISRA C:2012 Rule 21.15: float bits accessed through a union (memcpy would pass incompatible pointer types: double* vs uint64_t*). */
     union { double f; uint64_t u; } __bits_y;
     __bits_y.f = y;
     uint64_t ybits = (__bits_y.u & 0xFFFFFFFFFFFFFFFFU);
-    if (ybits != 0x3FF8000000000000) return 2U;
+    if (ybits != 0x3FF8000000000000) {
+        return 2U;
+    }
     return 0U;
 }

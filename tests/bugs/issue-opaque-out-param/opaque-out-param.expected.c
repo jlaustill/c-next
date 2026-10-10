@@ -63,24 +63,36 @@ int main(void) {
     Board__make();
     Board__poke();
     int32_t held = Board__pokes();
-    if (held != 1) return 1;
+    if (held != 1) {
+        return 1;
+    }
     int32_t local = makeLocal();
-    if (local != 2) return 2;
+    if (local != 2) {
+        return 2;
+    }
     dev_create_into(&gdev);
     dev_poke(gdev);
     int32_t fileScope = dev_pokes(gdev);
-    if (fileScope != 1) return 3;
+    if (fileScope != 1) {
+        return 3;
+    }
     dev_create_into(&gdevs[1U]);
     dev_poke(gdevs[1U]);
     int32_t element = dev_pokes(gdevs[1U]);
-    if (element != 1) return 4;
+    if (element != 1) {
+        return 4;
+    }
     dev_create_into(&dev_spare);
     dev_poke(dev_spare);
     int32_t spare = dev_pokes(dev_spare);
-    if (spare != 1) return 5;
+    if (spare != 1) {
+        return 5;
+    }
     dev_slots_open(&dev_slots);
     dev_slots_fill(dev_slots);
     int32_t ready = dev_slots_ready(dev_slots);
-    if (ready != 1) return 6;
+    if (ready != 1) {
+        return 6;
+    }
     return 0;
 }

@@ -18,6 +18,8 @@ Motor__EMode Motor__getMode(void) {
 
 int main(void) {
     Motor__EMode motorMode = Motor__getMode();
-    if (motorMode != Motor__EMode__OFF) return 1U;
+    if (motorMode != Motor__EMode__OFF) {
+        return 1U;
+    }
     return 0U;
 }

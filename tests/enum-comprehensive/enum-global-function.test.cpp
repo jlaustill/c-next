@@ -17,6 +17,8 @@ EState getState(void) {
 
 int main(void) {
     EState current = getState();
-    if (current != EState__OFF) return 1U;
+    if (current != EState__OFF) {
+        return 1U;
+    }
     return 0U;
 }

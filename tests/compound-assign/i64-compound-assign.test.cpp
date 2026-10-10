@@ -42,117 +42,193 @@ static inline int64_t cnx_clamp_sub_i64(int64_t a, int64_t b) {
 int main(void) {
     int64_t val = 1000000000000;
     val = cnx_clamp_add_i64(val, 500000000000);
-    if (val != 1500000000000) return 1U;
+    if (val != 1500000000000) {
+        return 1U;
+    }
     val = -1000000000000;
     val = cnx_clamp_add_i64(val, 500000000000);
-    if (val != -500000000000) return 2U;
+    if (val != -500000000000) {
+        return 2U;
+    }
     val = -1000000000000;
     val = cnx_clamp_add_i64(val, -500000000000);
-    if (val != -1500000000000) return 3U;
+    if (val != -1500000000000) {
+        return 3U;
+    }
     val = 5000000000000;
     val = cnx_clamp_add_i64(val, 0);
-    if (val != 5000000000000) return 4U;
+    if (val != 5000000000000) {
+        return 4U;
+    }
     val = -5000000000000;
     val = cnx_clamp_add_i64(val, 5000000000000);
-    if (val != 0) return 5U;
+    if (val != 0) {
+        return 5U;
+    }
     val = 1500000000000;
     val = cnx_clamp_sub_i64(val, 500000000000);
-    if (val != 1000000000000) return 10U;
+    if (val != 1000000000000) {
+        return 10U;
+    }
     val = 500000000000;
     val = cnx_clamp_sub_i64(val, 1000000000000);
-    if (val != -500000000000) return 11U;
+    if (val != -500000000000) {
+        return 11U;
+    }
     val = -1000000000000;
     val = cnx_clamp_sub_i64(val, 500000000000);
-    if (val != -1500000000000) return 12U;
+    if (val != -1500000000000) {
+        return 12U;
+    }
     val = -1000000000000;
     val = cnx_clamp_sub_i64(val, -500000000000);
-    if (val != -500000000000) return 13U;
+    if (val != -500000000000) {
+        return 13U;
+    }
     val = 5000000000000;
     val = cnx_clamp_sub_i64(val, 0);
-    if (val != 5000000000000) return 14U;
+    if (val != 5000000000000) {
+        return 14U;
+    }
     val = 0;
     val = cnx_clamp_sub_i64(val, 1000);
-    if (val != -1000) return 15U;
+    if (val != -1000) {
+        return 15U;
+    }
     val = 1000000;
     val = cnx_clamp_mul_i64(val, 1000000);
-    if (val != 1000000000000) return 20U;
+    if (val != 1000000000000) {
+        return 20U;
+    }
     val = -1000000;
     val = cnx_clamp_mul_i64(val, 1000000);
-    if (val != -1000000000000) return 21U;
+    if (val != -1000000000000) {
+        return 21U;
+    }
     val = -1000000;
     val = cnx_clamp_mul_i64(val, -1000000);
-    if (val != 1000000000000) return 22U;
+    if (val != 1000000000000) {
+        return 22U;
+    }
     val = 5000000000000;
     val = cnx_clamp_mul_i64(val, 1);
-    if (val != 5000000000000) return 23U;
+    if (val != 5000000000000) {
+        return 23U;
+    }
     val = 5000000000000;
     val = cnx_clamp_mul_i64(val, -1);
-    if (val != -5000000000000) return 24U;
+    if (val != -5000000000000) {
+        return 24U;
+    }
     val = 123456789;
     val = cnx_clamp_mul_i64(val, 0);
-    if (val != 0) return 25U;
+    if (val != 0) {
+        return 25U;
+    }
     val = 1000000000000;
     val /= 1000;
-    if (val != 1000000000) return 30U;
+    if (val != 1000000000) {
+        return 30U;
+    }
     val = -1000000000000;
     val /= 1000;
-    if (val != -1000000000) return 31U;
+    if (val != -1000000000) {
+        return 31U;
+    }
     val = -1000000000000;
     val /= -1000;
-    if (val != 1000000000) return 32U;
+    if (val != 1000000000) {
+        return 32U;
+    }
     val = 5000000000000;
     val /= 1;
-    if (val != 5000000000000) return 33U;
+    if (val != 5000000000000) {
+        return 33U;
+    }
     val = -5000000000000;
     val /= -1;
-    if (val != 5000000000000) return 34U;
+    if (val != 5000000000000) {
+        return 34U;
+    }
     val = 1000000007;
     val %= 1000000;
-    if (val != 7) return 40U;
+    if (val != 7) {
+        return 40U;
+    }
     val = -1000000007;
     val %= 1000000;
-    if (val != -7) return 41U;
+    if (val != -7) {
+        return 41U;
+    }
     val = 12345;
     val %= 7;
-    if (val != 4) return 42U;
+    if (val != 4) {
+        return 42U;
+    }
     val = -12345;
     val %= 7;
-    if (val != -4) return 43U;
+    if (val != -4) {
+        return 43U;
+    }
     val = 100;
     val %= 100;
-    if (val != 0) return 44U;
+    if (val != 0) {
+        return 44U;
+    }
     val = 0x7FFFFFFFFFFFFFFF;
     val &= 0x00000000FFFFFFFF;
-    if (val != 0x00000000FFFFFFFF) return 50U;
+    if (val != 0x00000000FFFFFFFF) {
+        return 50U;
+    }
     val = -1;
     val &= 0x00000000FFFFFFFF;
-    if (val != 0x00000000FFFFFFFF) return 51U;
+    if (val != 0x00000000FFFFFFFF) {
+        return 51U;
+    }
     val = 0x123456789ABCDEF0;
     val &= 0x7FFFFFFFFFFFFFFF;
-    if (val != 0x123456789ABCDEF0) return 52U;
+    if (val != 0x123456789ABCDEF0) {
+        return 52U;
+    }
     val = 0x0F0F0F0F0F0F0F0F;
     val &= 0xF0F0F0F0F0F0F0F0;
-    if (val != 0) return 53U;
+    if (val != 0) {
+        return 53U;
+    }
     val = 0x00000000FFFFFFFF;
     val |= 0x7FFFFFFF00000000;
-    if (val != 0x7FFFFFFFFFFFFFFF) return 60U;
+    if (val != 0x7FFFFFFFFFFFFFFF) {
+        return 60U;
+    }
     val = 0x1234000000000000;
     val |= 0x0000000056789ABC;
-    if (val != 0x1234000056789ABC) return 61U;
+    if (val != 0x1234000056789ABC) {
+        return 61U;
+    }
     val = 0x123456789ABCDEF0;
     val |= 0x0000000000000000;
-    if (val != 0x123456789ABCDEF0) return 62U;
+    if (val != 0x123456789ABCDEF0) {
+        return 62U;
+    }
     val = 0x5555555555555555;
     val ^= 0x5555555555555555;
-    if (val != 0) return 70U;
+    if (val != 0) {
+        return 70U;
+    }
     val = 0x0F0F0F0F0F0F0F0F;
     val ^= 0xF0F0F0F0F0F0F0F0;
-    if (val != -1) return 71U;
+    if (val != -1) {
+        return 71U;
+    }
     val = -1;
     val ^= -1;
-    if (val != 0) return 72U;
+    if (val != 0) {
+        return 72U;
+    }
     val = 0x7FFFFFFFFFFFFFFF;
     val ^= 0x7FFFFFFFFFFFFFFF;
-    if (val != 0) return 73U;
+    if (val != 0) {
+        return 73U;
+    }
     return 0U;
 }

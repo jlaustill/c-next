@@ -67,15 +67,21 @@ void onLogConst(string<32> msg) {
 u32 main() {
     witness <- 0;
     register_log_handler(onLog);
-    if (witness != 1) return 1;
+    if (witness != 1) {
+        return 1;
+    }
 
     witness <- 0;
     plainRead("hi");
-    if (witness != 2) return 2;
+    if (witness != 2) {
+        return 2;
+    }
 
     witness <- 0;
     register_const_log_handler(onLogConst);
-    if (witness != 3) return 3;
+    if (witness != 3) {
+        return 3;
+    }
 
     return 0;
 }

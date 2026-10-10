@@ -44,36 +44,52 @@ u32 main() {
     // Use Counter scope
     Counter.reset();
     u32 val <- Counter.get();
-    if (val != 0) return 1;
+    if (val != 0) {
+        return 1;
+    }
 
     Counter.increment();
     val <- Counter.get();
-    if (val != 1) return 2;
+    if (val != 1) {
+        return 2;
+    }
 
     Counter.increment();
     Counter.increment();
     val <- Counter.get();
-    if (val != 3) return 3;
+    if (val != 3) {
+        return 3;
+    }
 
     Counter.add(10);
     val <- Counter.get();
-    if (val != 13) return 4;
+    if (val != 13) {
+        return 4;
+    }
 
     Counter.reset();
     val <- Counter.get();
-    if (val != 0) return 5;
+    if (val != 0) {
+        return 5;
+    }
 
     // Use Temperature scope
     Temperature.set(25);
     i32 celsius <- Temperature.getCelsius();
-    if (celsius != 25) return 6;
+    if (celsius != 25) {
+        return 6;
+    }
 
     i32 fahrenheit <- Temperature.getFahrenheit();
-    if (fahrenheit != 77) return 7;
+    if (fahrenheit != 77) {
+        return 7;
+    }
 
     Temperature.set(0);
     fahrenheit <- Temperature.getFahrenheit();
-    if (fahrenheit != 32) return 8;
+    if (fahrenheit != 32) {
+        return 8;
+    }
 
     return 0;
 }

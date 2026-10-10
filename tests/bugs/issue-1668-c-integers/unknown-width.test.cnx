@@ -10,11 +10,15 @@ u32 main() {
     u8 b <- 200;
 
     u32 r <- b + cFast;
-    if (r != 1200) return 1;
+    if (r != 1200) {
+        return 1;
+    }
 
     // NEGATIVE CONTROL: a C integer of known width still gets its helper.
     u32 r16 <- b + cU16;
-    if (r16 != 1200) return 2;
+    if (r16 != 1200) {
+        return 2;
+    }
 
     return 0;
 }

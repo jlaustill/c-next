@@ -209,42 +209,68 @@ int main(void) {
     ConstEdge__Config cfg = {0};
     cfg.value = 0U;
     handleNestedIf(&cfg);
-    if (cfg.value != 10) return 1U;
+    if (cfg.value != 10) {
+        return 1U;
+    }
     cfg.value = 0U;
     handleSwitch(&cfg);
-    if (cfg.value != 20) return 2U;
+    if (cfg.value != 20) {
+        return 2U;
+    }
     cfg.value = 0U;
     handleDoWhile(&cfg);
-    if (cfg.value != 30) return 3U;
+    if (cfg.value != 30) {
+        return 3U;
+    }
     cfg.value = 0U;
     handleCritical(&cfg);
-    if (cfg.value != 40) return 4U;
+    if (cfg.value != 40) {
+        return 4U;
+    }
     cfg.value = 0U;
     Processor__process(&cfg);
-    if (cfg.value != 50) return 5U;
+    if (cfg.value != 50) {
+        return 5U;
+    }
     cfg.value = 0U;
     handleSecondParam(&cfg);
-    if (cfg.value != 999) return 6U;
+    if (cfg.value != 999) {
+        return 6U;
+    }
     cfg.value = 123U;
     handleNestedCall(&cfg);
-    if (cfg.value != 123) return 7U;
+    if (cfg.value != 123) {
+        return 7U;
+    }
     cfg.value = 0U;
     handleTransitive(&cfg);
-    if (cfg.value != 60) return 8U;
+    if (cfg.value != 60) {
+        return 8U;
+    }
     cfg.value = 0U;
     handleMultipleReassign(&cfg);
-    if (cfg.value != 70) return 9U;
+    if (cfg.value != 70) {
+        return 9U;
+    }
     cfg.value = 100U;
     handleCompoundAssign(&cfg);
-    if (cfg.value != 100) return 10U;
+    if (cfg.value != 100) {
+        return 10U;
+    }
     cfg.value = 0U;
     handleCompoundModify(&cfg);
-    if (cfg.value != 80) return 11U;
+    if (cfg.value != 80) {
+        return 11U;
+    }
     cfg.value = 0U;
     handleBareCall(&cfg);
-    if (cfg.value != 90) return 12U;
+    if (cfg.value != 90) {
+        return 12U;
+    }
     cfg.value = 123U;
     handleBareReadOnly(&cfg);
-    if (cfg.value != 123) return 13U;
+    if (cfg.value != 123) {
+        return 13U;
+    }
     return 0U;
 }

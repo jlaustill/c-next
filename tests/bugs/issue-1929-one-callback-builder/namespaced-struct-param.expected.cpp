@@ -29,6 +29,8 @@ int32_t useIt(onDev_fp cb) {
 
 int main(void) {
     int32_t result = useIt(onDev);
-    if (result != 7) return 1U;
+    if (result != 7) {
+        return 1U;
+    }
     return 0U;
 }

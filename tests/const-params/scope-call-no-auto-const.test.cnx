@@ -46,8 +46,12 @@ u32 main() {
 
     // Test loadConfig - should modify cfg via Storage.load
     loadConfig(cfg);
-    if (cfg.value != 42) return 1;
-    if (cfg.enabled != true) return 2;
+    if (cfg.value != 42) {
+        return 1;
+    }
+    if (cfg.enabled != true) {
+        return 2;
+    }
 
     // Reset
     cfg.value <- 100;
@@ -55,13 +59,19 @@ u32 main() {
 
     // Test directLoad - same behavior
     directLoad(cfg);
-    if (cfg.value != 42) return 3;
-    if (cfg.enabled != true) return 4;
+    if (cfg.value != 42) {
+        return 3;
+    }
+    if (cfg.enabled != true) {
+        return 4;
+    }
 
     // Test saveConfig - should not modify cfg
     cfg.value <- 999;
     saveConfig(cfg);
-    if (cfg.value != 999) return 5; // unchanged
+    if (cfg.value != 999) {
+        return 5; // unchanged
+    }
 
     return 0;
 }

@@ -16,8 +16,12 @@
 
 int main(void) {
     uint32_t fromGlobal = S__sized();
-    if (fromGlobal != 7) return 1U;
+    if (fromGlobal != 7) {
+        return 1U;
+    }
     uint32_t fromMember = S__count();
-    if (fromMember != 2) return 2U;
+    if (fromMember != 2) {
+        return 2U;
+    }
     return 0U;
 }

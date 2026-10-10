@@ -52,19 +52,27 @@ u32 combined() {
 
 u32 main() {
     u32 a <- useA();
-    if (a != 3) return 1;
+    if (a != 3) {
+        return 1;
+    }
 
     u32 b <- useB();
-    if (b != 3) return 2;
+    if (b != 3) {
+        return 2;
+    }
 
     // Both consumers reach the same included function, so they must agree.
-    if (a != b) return 3;
+    if (a != b) {
+        return 3;
+    }
 
     // Names the type here too -- this is what puts the typedef in this file's
     // own compared output and makes the regression visible.
     sharedWork viaMain <- sharedWork;
     u32 m <- viaMain();
-    if (m != 3) return 4;
+    if (m != 3) {
+        return 4;
+    }
 
     return 0;
 }

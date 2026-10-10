@@ -35,6 +35,8 @@ uint32_t Lib__bump(void) {
 
 int main(void) {
     uint32_t k = Lib__bump();
-    if (k != 301) return 1U;
+    if (k != 301) {
+        return 1U;
+    }
     return 0U;
 }

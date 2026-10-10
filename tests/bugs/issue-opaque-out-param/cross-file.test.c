@@ -21,11 +21,15 @@ int main(void) {
     dev_create_into(&shared);
     dev_poke(shared);
     int32_t viaGlobal = dev_pokes(shared);
-    if (viaGlobal != 1) return 1;
+    if (viaGlobal != 1) {
+        return 1;
+    }
     dev_create_into(&Rack__unit);
     dev_poke(Rack__unit);
     dev_poke(Rack__unit);
     int32_t viaScope = dev_pokes(Rack__unit);
-    if (viaScope != 2) return 2;
+    if (viaScope != 2) {
+        return 2;
+    }
     return 0;
 }

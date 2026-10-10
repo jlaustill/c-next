@@ -16,8 +16,14 @@ int main(void) {
     arr[0].value = 10;
     arr[1].value = 20;
     arr[2].value = 30;
-    if (arr[0U].value != 10) return 1;
-    if (arr[1U].value != 20) return 2;
-    if (arr[2U].value != 30) return 3;
+    if (arr[0U].value != 10) {
+        return 1;
+    }
+    if (arr[1U].value != 20) {
+        return 2;
+    }
+    if (arr[2U].value != 30) {
+        return 3;
+    }
     return 0;
 }

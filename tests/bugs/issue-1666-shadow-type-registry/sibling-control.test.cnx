@@ -15,8 +15,12 @@ u32 probe(bool c) {
 
 u32 main() {
     u32 a <- probe(true);
-    if (a != 8) return 1;
+    if (a != 8) {
+        return 1;
+    }
     u32 b <- probe(false);
-    if (b != 32) return 2;
+    if (b != 32) {
+        return 2;
+    }
     return 0;
 }

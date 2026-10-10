@@ -124,19 +124,29 @@ u32 main() {
     // Bare path: reference behavior
     globalBuffer[3] <- 0;
     globalBuffer[3][1] <- true;
-    if (globalBuffer[3] != 2) return 1;
+    if (globalBuffer[3] != 2) {
+        return 1;
+    }
 
     // this. path must agree with it
     // MISRA C:2012 Rule 13.5 - no function calls in if conditions
     u8 viaThis <- Reg.elementBit();
-    if (viaThis != 2) return 2;
-    if (viaThis != globalBuffer[3]) return 3;
+    if (viaThis != 2) {
+        return 2;
+    }
+    if (viaThis != globalBuffer[3]) {
+        return 3;
+    }
 
     // Bare slice: little-endian byte order
     u32 magic <- 0x04030201;
     globalSlice[0, 4] <- magic;
-    if (globalSlice[0] != 1) return 4;
-    if (globalSlice[3] != 4) return 5;
+    if (globalSlice[0] != 1) {
+        return 4;
+    }
+    if (globalSlice[3] != 4) {
+        return 5;
+    }
 
     // this. slice must produce the same bytes
     // MISRA C:2012 Rule 13.5 - no function calls in if conditions
@@ -144,71 +154,121 @@ u32 main() {
     u8 byte1 <- Reg.sliceByte(1);
     u8 byte2 <- Reg.sliceByte(2);
     u8 byte3 <- Reg.sliceByte(3);
-    if (byte0 != 1) return 6;
-    if (byte1 != 2) return 7;
-    if (byte2 != 3) return 8;
-    if (byte3 != 4) return 9;
+    if (byte0 != 1) {
+        return 6;
+    }
+    if (byte1 != 2) {
+        return 7;
+    }
+    if (byte2 != 3) {
+        return 8;
+    }
+    if (byte3 != 4) {
+        return 9;
+    }
 
     // Bit range through this.: 3 bits of value 5 at offset 4 -> 0b01010000
     u8 ranged <- Reg.bitRange();
-    if (ranged != 80) return 10;
+    if (ranged != 80) {
+        return 10;
+    }
 
     // global. must agree with the bare path for every operation too.
     // Before #1115 these emitted raw subscript chains: an array-element bit
     // wrote `globalBuffer[3][1] = true` (indexing a uint8_t) and a bit range
     // wrote `globalFlags[4, 3] = 5` (the C comma operator, i.e. index 4).
     u8 globalViaPrefix <- Reg.viaGlobalPrefix();
-    if (globalViaPrefix != 2) return 11;
-    if (globalViaPrefix != globalBuffer[3]) return 12;
+    if (globalViaPrefix != 2) {
+        return 11;
+    }
+    if (globalViaPrefix != globalBuffer[3]) {
+        return 12;
+    }
 
     // Bit range through global.: same 0b01010000 the bare path produces
     globalFlags <- 0;
     globalFlags[4, 3] <- 5;
-    if (globalFlags != 80) return 13;
+    if (globalFlags != 80) {
+        return 13;
+    }
     u8 globalRanged <- Reg.globalBitRange();
-    if (globalRanged != 80) return 14;
+    if (globalRanged != 80) {
+        return 14;
+    }
 
     // Slice through global. must unroll to the same little-endian bytes
     u8 globalByte0 <- Reg.globalSliceByte(0);
     u8 globalByte3 <- Reg.globalSliceByte(3);
-    if (globalByte0 != 1) return 15;
-    if (globalByte3 != 4) return 16;
+    if (globalByte0 != 1) {
+        return 15;
+    }
+    if (globalByte3 != 4) {
+        return 16;
+    }
 
     // global.Scope.member: the offset spelling must agree with all the others
     u8 scopedBit <- Reg.scopedElementBit();
-    if (scopedBit != 2) return 17;
-    if (scopedBit != globalBuffer[3]) return 18;
+    if (scopedBit != 2) {
+        return 17;
+    }
+    if (scopedBit != globalBuffer[3]) {
+        return 18;
+    }
 
     u8 scopedByte0 <- Reg.scopedSliceByte(0);
     u8 scopedByte1 <- Reg.scopedSliceByte(1);
     u8 scopedByte2 <- Reg.scopedSliceByte(2);
     u8 scopedByte3 <- Reg.scopedSliceByte(3);
-    if (scopedByte0 != 1) return 19;
-    if (scopedByte1 != 2) return 20;
-    if (scopedByte2 != 3) return 21;
-    if (scopedByte3 != 4) return 22;
+    if (scopedByte0 != 1) {
+        return 19;
+    }
+    if (scopedByte1 != 2) {
+        return 20;
+    }
+    if (scopedByte2 != 3) {
+        return 21;
+    }
+    if (scopedByte3 != 4) {
+        return 22;
+    }
 
     u8 scopedRanged <- Reg.scopedBitRange();
-    if (scopedRanged != 80) return 23;
+    if (scopedRanged != 80) {
+        return 23;
+    }
 
     // Bare `Scope.member` (#1116): the fourth spelling must produce the same
     // values as the other three. Before the fix, the array-element bit indexed
     // a uint8_t and the bit range invented `Other_flags.flags` on a scalar.
     u8 bareScopedBit <- Reg.bareScopedElementBit();
-    if (bareScopedBit != 2) return 24;
-    if (bareScopedBit != globalBuffer[3]) return 25;
+    if (bareScopedBit != 2) {
+        return 24;
+    }
+    if (bareScopedBit != globalBuffer[3]) {
+        return 25;
+    }
 
     u8 bareByte0 <- Reg.bareScopedSliceByte(0);
     u8 bareByte1 <- Reg.bareScopedSliceByte(1);
     u8 bareByte2 <- Reg.bareScopedSliceByte(2);
     u8 bareByte3 <- Reg.bareScopedSliceByte(3);
-    if (bareByte0 != 1) return 26;
-    if (bareByte1 != 2) return 27;
-    if (bareByte2 != 3) return 28;
-    if (bareByte3 != 4) return 29;
+    if (bareByte0 != 1) {
+        return 26;
+    }
+    if (bareByte1 != 2) {
+        return 27;
+    }
+    if (bareByte2 != 3) {
+        return 28;
+    }
+    if (bareByte3 != 4) {
+        return 29;
+    }
 
     u8 bareRanged <- Reg.bareScopedBitRange();
-    if (bareRanged != 80) return 30;
+    if (bareRanged != 80) {
+        return 30;
+    }
 
     return 0;
 }

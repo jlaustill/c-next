@@ -40,13 +40,21 @@ u32 calculatePower(Mode mode) {
 
 u32 main() {
     u32 offPower <- calculatePower(Mode.OFF);
-    if (offPower != 0) return 1;
+    if (offPower != 0) {
+        return 1;
+    }
     u32 lowPower <- calculatePower(Mode.LOW);
-    if (lowPower != 10) return 2;
+    if (lowPower != 10) {
+        return 2;
+    }
     u32 medPower <- calculatePower(Mode.MEDIUM);
-    if (medPower != 50) return 3;
+    if (medPower != 50) {
+        return 3;
+    }
     u32 highPower <- calculatePower(Mode.HIGH);
-    if (highPower != 100) return 4;
+    if (highPower != 100) {
+        return 4;
+    }
 
     return 0;
 }

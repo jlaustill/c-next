@@ -34,79 +34,133 @@ static inline int16_t cnx_clamp_sub_i16(int16_t a, int32_t b) {
 int main(void) {
     int16_t val = 30000;
     val = cnx_clamp_add_i16(val, 5000);
-    if (val != 32767) return 1U;
+    if (val != 32767) {
+        return 1U;
+    }
     val = 32767;
     val = cnx_clamp_add_i16(val, 1);
-    if (val != 32767) return 2U;
+    if (val != 32767) {
+        return 2U;
+    }
     val = 20000;
     val = cnx_clamp_add_i16(val, 20000);
-    if (val != 32767) return 3U;
+    if (val != 32767) {
+        return 3U;
+    }
     val = 1;
     val = cnx_clamp_add_i16(val, 32767);
-    if (val != 32767) return 4U;
+    if (val != 32767) {
+        return 4U;
+    }
     val = 32000;
     val = cnx_clamp_add_i16(val, 1000);
-    if (val != 32767) return 5U;
+    if (val != 32767) {
+        return 5U;
+    }
     val = cnx_clamp_add_i16(val, 1000);
-    if (val != 32767) return 6U;
+    if (val != 32767) {
+        return 6U;
+    }
     val = -30000;
     val = cnx_clamp_sub_i16(val, 5000);
-    if (val != -32768) return 7U;
+    if (val != -32768) {
+        return 7U;
+    }
     val = -32768;
     val = cnx_clamp_sub_i16(val, 1);
-    if (val != -32768) return 8U;
+    if (val != -32768) {
+        return 8U;
+    }
     val = -20000;
     val = cnx_clamp_sub_i16(val, 20000);
-    if (val != -32768) return 9U;
+    if (val != -32768) {
+        return 9U;
+    }
     val = -32000;
     val = cnx_clamp_sub_i16(val, 1000);
-    if (val != -32768) return 10U;
+    if (val != -32768) {
+        return 10U;
+    }
     val = cnx_clamp_sub_i16(val, 1000);
-    if (val != -32768) return 11U;
+    if (val != -32768) {
+        return 11U;
+    }
     val = 1000;
     val = cnx_clamp_sub_i16(val, 5000);
-    if (val != -4000) return 12U;
+    if (val != -4000) {
+        return 12U;
+    }
     val = -1000;
     val = cnx_clamp_add_i16(val, 5000);
-    if (val != 4000) return 13U;
+    if (val != 4000) {
+        return 13U;
+    }
     val = 20000;
     val = cnx_clamp_add_i16(val, 20000);
-    if (val != 32767) return 14U;
+    if (val != 32767) {
+        return 14U;
+    }
     val = -20000;
     val = cnx_clamp_sub_i16(val, 20000);
-    if (val != -32768) return 15U;
+    if (val != -32768) {
+        return 15U;
+    }
     val = 10000;
     val = cnx_clamp_add_i16(val, 10000);
-    if (val != 20000) return 16U;
+    if (val != 20000) {
+        return 16U;
+    }
     val = -10000;
     val = cnx_clamp_sub_i16(val, 10000);
-    if (val != -20000) return 17U;
+    if (val != -20000) {
+        return 17U;
+    }
     val = 0;
     val = cnx_clamp_add_i16(val, 16384);
-    if (val != 16384) return 18U;
+    if (val != 16384) {
+        return 18U;
+    }
     val = 5000;
     val = cnx_clamp_sub_i16(val, 5000);
-    if (val != 0) return 19U;
+    if (val != 0) {
+        return 19U;
+    }
     val = 32766;
     val = cnx_clamp_add_i16(val, 1);
-    if (val != 32767) return 20U;
+    if (val != 32767) {
+        return 20U;
+    }
     val = -32767;
     val = cnx_clamp_sub_i16(val, 1);
-    if (val != -32768) return 21U;
+    if (val != -32768) {
+        return 21U;
+    }
     val = 16384;
     val = cnx_clamp_add_i16(val, 0);
-    if (val != 16384) return 22U;
+    if (val != 16384) {
+        return 22U;
+    }
     val = -16384;
     val = cnx_clamp_sub_i16(val, 0);
-    if (val != -16384) return 23U;
+    if (val != -16384) {
+        return 23U;
+    }
     val = 30000;
     val = cnx_clamp_add_i16(val, 5000);
-    if (val != 32767) return 24U;
+    if (val != 32767) {
+        return 24U;
+    }
     val = cnx_clamp_sub_i16(val, 32767);
-    if (val != 0) return 25U;
+    if (val != 0) {
+        return 25U;
+    }
     val = cnx_clamp_sub_i16(val, 32767);
-    if (val != -32767) return 26U;
+    if (val != -32767) {
+        return 26U;
+    }
     val = cnx_clamp_sub_i16(val, 32767);
-    if (val != -32768) return 27U;
+    if (val != -32768) {
+        return 27U;
+    }
     return 0U;
 }

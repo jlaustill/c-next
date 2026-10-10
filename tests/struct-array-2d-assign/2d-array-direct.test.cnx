@@ -25,26 +25,46 @@ u32 main() {
     }
 
     // Verify corners
-    if (grid[0][0].data != 0) return 1;
-    if (grid[0][3].data != 3) return 2;
-    if (grid[2][0].data != 8) return 3;
-    if (grid[2][3].data != 11) return 4;
+    if (grid[0][0].data != 0) {
+        return 1;
+    }
+    if (grid[0][3].data != 3) {
+        return 2;
+    }
+    if (grid[2][0].data != 8) {
+        return 3;
+    }
+    if (grid[2][3].data != 11) {
+        return 4;
+    }
 
     // Verify row/col tracking
-    if (grid[1][2].row != 1) return 5;
-    if (grid[1][2].col != 2) return 6;
+    if (grid[1][2].row != 1) {
+        return 5;
+    }
+    if (grid[1][2].col != 2) {
+        return 6;
+    }
 
     // Verify center
-    if (grid[1][1].data != 5) return 7;
-    if (grid[1][2].data != 6) return 8;
+    if (grid[1][1].data != 5) {
+        return 7;
+    }
+    if (grid[1][2].data != 6) {
+        return 8;
+    }
 
     // Modify single cell
     grid[1][1].data <- 999;
-    if (grid[1][1].data != 999) return 9;
+    if (grid[1][1].data != 999) {
+        return 9;
+    }
 
     // Compound assignment
     grid[0][0].data +<- 100;
-    if (grid[0][0].data != 100) return 10;
+    if (grid[0][0].data != 100) {
+        return 10;
+    }
 
     return 0;
 }

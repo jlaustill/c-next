@@ -28,8 +28,12 @@ uint8_t Gauge__narrow(void) {
 
 int main(void) {
     uint8_t v = Gauge__narrow();
-    if (v != 3) return 1U;
+    if (v != 3) {
+        return 1U;
+    }
     uint32_t g = get();
-    if (g != 300) return 2U;
+    if (g != 300) {
+        return 2U;
+    }
     return 0U;
 }

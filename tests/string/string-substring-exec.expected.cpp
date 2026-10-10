@@ -14,41 +14,71 @@ int main(void) {
     char hello[6] = "";
     (void) strncpy(hello, source + 0, 5);
     hello[5] = '\0';
-    if (strlen(hello) != 5) return 1;
-    if (strcmp(hello, "Hello") != 0) return 2;
-    if (5 != 5) return 3;
+    if (strlen(hello) != 5) {
+        return 1;
+    }
+    if (strcmp(hello, "Hello") != 0) {
+        return 2;
+    }
+    if (5 != 5) {
+        return 3;
+    }
     char world[7] = "";
     (void) strncpy(world, source + 7, 6);
     world[6] = '\0';
-    if (strlen(world) != 6) return 4;
-    if (strcmp(world, "World!") != 0) return 5;
+    if (strlen(world) != 6) {
+        return 4;
+    }
+    if (strcmp(world, "World!") != 0) {
+        return 5;
+    }
     char h[2] = "";
     (void) strncpy(h, source + 0, 1);
     h[1] = '\0';
-    if (strlen(h) != 1) return 6;
-    if (strcmp(h, "H") != 0) return 7;
+    if (strlen(h) != 1) {
+        return 6;
+    }
+    if (strcmp(h, "H") != 0) {
+        return 7;
+    }
     char comma[2] = "";
     (void) strncpy(comma, source + 5, 1);
     comma[1] = '\0';
-    if (strcmp(comma, ",") != 0) return 8;
+    if (strcmp(comma, ",") != 0) {
+        return 8;
+    }
     char middle[6] = "";
     (void) strncpy(middle, source + 3, 5);
     middle[5] = '\0';
-    if (strlen(middle) != 5) return 9;
-    if (strcmp(middle, "lo, W") != 0) return 10;
+    if (strlen(middle) != 5) {
+        return 9;
+    }
+    if (strcmp(middle, "lo, W") != 0) {
+        return 10;
+    }
     char full[14] = "";
     (void) strncpy(full, source + 0, 13);
     full[13] = '\0';
-    if (strlen(full) != 13) return 11;
-    if (strcmp(full, "Hello, World!") != 0) return 12;
+    if (strlen(full) != 13) {
+        return 11;
+    }
+    if (strcmp(full, "Hello, World!") != 0) {
+        return 12;
+    }
     char two[3] = "";
     (void) strncpy(two, source + 0, 2);
     two[2] = '\0';
-    if (strlen(two) != 2) return 13;
-    if (strcmp(two, "He") != 0) return 14;
+    if (strlen(two) != 2) {
+        return 13;
+    }
+    if (strcmp(two, "He") != 0) {
+        return 14;
+    }
     char last[2] = "";
     (void) strncpy(last, source + 12, 1);
     last[1] = '\0';
-    if (strcmp(last, "!") != 0) return 15;
+    if (strcmp(last, "!") != 0) {
+        return 15;
+    }
     return 0;
 }

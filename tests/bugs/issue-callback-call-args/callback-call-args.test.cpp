@@ -82,26 +82,46 @@ int main(void) {
     h.onShift = shifted;
     Point p = { .x = 7U };
     uint32_t viaField = h.onPeek(p);
-    if (viaField != 7) return 1;
+    if (viaField != 7) {
+        return 1;
+    }
     h.onPoke(p);
-    if (p.x != 12) return 2;
+    if (p.x != 12) {
+        return 2;
+    }
     peek_fp local = peek;
     uint32_t viaLocal = local(p);
-    if (viaLocal != 12) return 3;
+    if (viaLocal != 12) {
+        return 3;
+    }
     uint32_t viaParam = peekVia(peek, p);
-    if (viaParam != 12) return 4;
+    if (viaParam != 12) {
+        return 4;
+    }
     uint32_t shiftedX = h.onShift(p).x;
-    if (shiftedX != 13) return 5;
+    if (shiftedX != 13) {
+        return 5;
+    }
     uint32_t n = 21U;
     uint32_t viaTwice = h.onTwice(n);
-    if (viaTwice != 42) return 6;
+    if (viaTwice != 42) {
+        return 6;
+    }
     uint32_t direct = twice(n);
-    if (direct != 42) return 7;
+    if (direct != 42) {
+        return 7;
+    }
     uint32_t directPeek = peek(p);
-    if (directPeek != 12) return 8;
+    if (directPeek != 12) {
+        return 8;
+    }
     uint32_t viaParamLocal = peekLocalVia(peek);
-    if (viaParamLocal != 30) return 9;
+    if (viaParamLocal != 30) {
+        return 9;
+    }
     uint32_t viaParamScalar = twiceVia(twice, n);
-    if (viaParamScalar != 42) return 10;
+    if (viaParamScalar != 42) {
+        return 10;
+    }
     return 0;
 }

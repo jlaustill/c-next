@@ -12,14 +12,24 @@ u32 main() {
     i32 green <- COLOR_GREEN;
     i32 blue <- COLOR_BLUE;
 
-    if (red != 0) return 1;
-    if (green != 1) return 2;
-    if (blue != 2) return 3;
+    if (red != 0) {
+        return 1;
+    }
+    if (green != 1) {
+        return 2;
+    }
+    if (blue != 2) {
+        return 3;
+    }
 
     // Test 2: Compare with enum values
     i32 color <- COLOR_GREEN;
-    if (color != COLOR_GREEN) return 4;
-    if (color = COLOR_RED) return 5; // Should be false
+    if (color != COLOR_GREEN) {
+        return 4;
+    }
+    if (color = COLOR_RED) {
+        return 5; // Should be false
+    }
 
     // Test 3: Enum in switch-like logic
     color <- COLOR_BLUE;

@@ -60,6 +60,8 @@ uint32_t Span__runAll(void) {
 
 int main(void) {
     uint32_t result = Span__runAll();
-    if (result != 9) return 1U;
+    if (result != 9) {
+        return 1U;
+    }
     return 0U;
 }

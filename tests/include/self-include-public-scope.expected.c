@@ -46,8 +46,12 @@ uint32_t Calculator__multiply(uint32_t a, uint32_t b) {
 
 int main(void) {
     uint32_t result = Calculator__add(5U, 3U);
-    if (result != 8) return 1U;
+    if (result != 8) {
+        return 1U;
+    }
     result = Calculator__multiply(3U, 4U);
-    if (result != 25) return 2U;
+    if (result != 25) {
+        return 2U;
+    }
     return 0U;
 }

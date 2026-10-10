@@ -11,13 +11,19 @@ u32 main() {
     {
         u8 x <- 1;
         x <- 2;
-        if (x != 2) return 1;
+        if (x != 2) {
+            return 1;
+        }
     }
 
     // ASSERTIONS: the global, written and read after the block
     x <- 3;
-    if (x != 3) return 2;
-    if (global.x != 3) return 3;
+    if (x != 3) {
+        return 2;
+    }
+    if (global.x != 3) {
+        return 3;
+    }
 
     return 0;
 }

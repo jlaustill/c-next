@@ -27,13 +27,19 @@ scope Reg {
 
 u32 main() {
     u8 fromGlobal <- Reg.readBare();
-    if (fromGlobal != 99) return 1;
+    if (fromGlobal != 99) {
+        return 1;
+    }
 
     u8 fromMember <- Reg.readMember();
-    if (fromMember != 7) return 2;
+    if (fromMember != 7) {
+        return 2;
+    }
 
     // The two are genuinely distinct storage
-    if (fromGlobal = fromMember) return 3;
+    if (fromGlobal = fromMember) {
+        return 3;
+    }
 
     return 0;
 }

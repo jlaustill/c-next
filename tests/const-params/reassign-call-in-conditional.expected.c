@@ -100,23 +100,35 @@ int main(void) {
     cfg.value = 0U;
     cfg.enabled = false;
     handleEnableSpn(&cfg);
-    if (cfg.value != 42) return 1U;
+    if (cfg.value != 42) {
+        return 1U;
+    }
     cfg.value = 0U;
     cfg.enabled = false;
     handleElseBranch(&cfg);
-    if (cfg.enabled != true) return 2U;
+    if (cfg.enabled != true) {
+        return 2U;
+    }
     cfg.value = 0U;
     cfg.enabled = false;
     handleWhileLoop(&cfg);
-    if (cfg.value != 100) return 3U;
+    if (cfg.value != 100) {
+        return 3U;
+    }
     cfg.value = 0U;
     handleForLoop(&cfg);
-    if (cfg.value != 200) return 4U;
+    if (cfg.value != 200) {
+        return 4U;
+    }
     cfg.value = 0U;
     handleDeclaration(&cfg);
-    if (cfg.value != 42) return 5U;
+    if (cfg.value != 42) {
+        return 5U;
+    }
     cfg.value = 0U;
     handleTopLevel(&cfg);
-    if (cfg.value != 300) return 6U;
+    if (cfg.value != 300) {
+        return 6U;
+    }
     return 0U;
 }

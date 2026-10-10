@@ -9,62 +9,94 @@ u32 main() {
 
     // Equality (note: = is equality in C-Next, not ==)
     bool equal <- (a = c);
-    if (equal != true) return 1;
+    if (equal != true) {
+        return 1;
+    }
 
     equal <- (a = b);
-    if (equal != false) return 2;
+    if (equal != false) {
+        return 2;
+    }
 
     // Inequality
     bool notEqual <- (a != b);
-    if (notEqual != true) return 3;
+    if (notEqual != true) {
+        return 3;
+    }
 
     // Less than
     bool less <- (a < b);
-    if (less != true) return 4;
+    if (less != true) {
+        return 4;
+    }
 
     less <- (b < a);
-    if (less != false) return 5;
+    if (less != false) {
+        return 5;
+    }
 
     // Greater than
     bool greater <- (b > a);
-    if (greater != true) return 6;
+    if (greater != true) {
+        return 6;
+    }
 
     // Less than or equal
     bool lessEq <- (a <= c);
-    if (lessEq != true) return 7;
+    if (lessEq != true) {
+        return 7;
+    }
 
     lessEq <- (a <= b);
-    if (lessEq != true) return 8;
+    if (lessEq != true) {
+        return 8;
+    }
 
     // Greater than or equal
     bool greaterEq <- (a >= c);
-    if (greaterEq != true) return 9;
+    if (greaterEq != true) {
+        return 9;
+    }
 
     // Logical AND
     bool both <- (a < b && b > 0);
-    if (both != true) return 10;
+    if (both != true) {
+        return 10;
+    }
 
     both <- (a < b && b < 0);
-    if (both != false) return 11;
+    if (both != false) {
+        return 11;
+    }
 
     // Logical OR
     bool either <- (a > b || b > 0);
-    if (either != true) return 12;
+    if (either != true) {
+        return 12;
+    }
 
     either <- (a > b || b < 0);
-    if (either != false) return 13;
+    if (either != false) {
+        return 13;
+    }
 
     // Logical NOT
     bool flag <- true;
     bool notFlag <- !flag;
-    if (notFlag != false) return 14;
+    if (notFlag != false) {
+        return 14;
+    }
 
     notFlag <- !false;
-    if (notFlag != true) return 15;
+    if (notFlag != true) {
+        return 15;
+    }
 
     // Combined logical expressions
     bool complex <- ((a = c) && (b > a)) || false;
-    if (complex != true) return 16;
+    if (complex != true) {
+        return 16;
+    }
 
     return 0;
 }

@@ -29,8 +29,12 @@ int main(void) {
     uint32_t i = 3U;
     float k = 1.0;
     float a = k * SCALE_F;
-    if (a != 2.5) return 1U;
+    if (a != 2.5) {
+        return 1U;
+    }
     uint32_t b = cnx_clamp_add_u32(i, LIMIT);
-    if (b != 13) return 2U;
+    if (b != 13) {
+        return 2U;
+    }
     return 0U;
 }

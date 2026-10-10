@@ -28,7 +28,9 @@ int32_t UI__run(void) {
     widget_t* w = widget_create();
     UI__reposition(w, 42);
     int32_t x = widget_get_x(w);
-    if (x != 42) return 1;
+    if (x != 42) {
+        return 1;
+    }
     return 0;
 }
 

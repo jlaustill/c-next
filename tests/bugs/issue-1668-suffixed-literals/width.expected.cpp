@@ -31,10 +31,16 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 int main(void) {
     uint8_t b = 200U;
     uint32_t r1 = cnx_clamp_add_u32(b, 100U);
-    if (r1 != 300) return 1U;
+    if (r1 != 300) {
+        return 1U;
+    }
     uint32_t r2 = cnx_clamp_add_u32(100U, b);
-    if (r2 != 300) return 2U;
+    if (r2 != 300) {
+        return 2U;
+    }
     uint8_t r3 = cnx_clamp_add_u8(b, 100U);
-    if (r3 != 255) return 3U;
+    if (r3 != 255) {
+        return 3U;
+    }
     return 0U;
 }

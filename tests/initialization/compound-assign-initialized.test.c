@@ -36,36 +36,58 @@ static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint64_t b) {
 int main(void) {
     uint32_t sum = 0U;
     sum = cnx_clamp_add_u32(sum, 5U);
-    if (sum != 5) return 1U;
+    if (sum != 5) {
+        return 1U;
+    }
     uint32_t v = 10U;
     v = cnx_clamp_sub_u32(v, 3U);
-    if (v != 7) return 2U;
+    if (v != 7) {
+        return 2U;
+    }
     v = 5U;
     v = cnx_clamp_mul_u32(v, 2U);
-    if (v != 10) return 3U;
+    if (v != 10) {
+        return 3U;
+    }
     v = 20U;
     v /= 4U;
-    if (v != 5) return 4U;
+    if (v != 5) {
+        return 4U;
+    }
     v = 17U;
     v %= 5U;
-    if (v != 2) return 5U;
+    if (v != 2) {
+        return 5U;
+    }
     v = 0xFF00U;
     v &= 0x00FFU;
-    if (v != 0) return 6U;
+    if (v != 0) {
+        return 6U;
+    }
     v = 0xF0U;
     v |= 0x0FU;
-    if (v != 0xFF) return 7U;
+    if (v != 0xFF) {
+        return 7U;
+    }
     v = 0xFFU;
     v ^= 0xF0U;
-    if (v != 0x0F) return 8U;
+    if (v != 0x0F) {
+        return 8U;
+    }
     v = 1U;
     v <<= 4U;
-    if (v != 16) return 9U;
+    if (v != 16) {
+        return 9U;
+    }
     v = 32U;
     v >>= 3U;
-    if (v != 4) return 10U;
+    if (v != 4) {
+        return 10U;
+    }
     Point p = { .x = 10U, .y = 20U };
     p.x += 5U;
-    if (p.x != 15) return 11U;
+    if (p.x != 15) {
+        return 11U;
+    }
     return 0U;
 }

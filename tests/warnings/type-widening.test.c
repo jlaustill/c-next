@@ -26,17 +26,29 @@ static inline uint16_t cnx_clamp_add_u16(uint16_t a, uint32_t b) {
 int main(void) {
     uint8_t byte = 255U;
     uint16_t word = byte;
-    if (word != 255) return 1U;
+    if (word != 255) {
+        return 1U;
+    }
     uint32_t dword = word;
-    if (dword != 255) return 2U;
+    if (dword != 255) {
+        return 2U;
+    }
     uint64_t qword = dword;
-    if (qword != 255) return 3U;
+    if (qword != 255) {
+        return 3U;
+    }
     uint64_t direct = byte;
-    if (direct != 255) return 4U;
+    if (direct != 255) {
+        return 4U;
+    }
     uint32_t result = cnx_clamp_add_u16(byte, word);
-    if (result != 510) return 5U;
+    if (result != 510) {
+        return 5U;
+    }
     uint16_t large_word = 65535U;
     uint32_t large_dword = large_word;
-    if (large_dword != 65535) return 6U;
+    if (large_dword != 65535) {
+        return 6U;
+    }
     return 0U;
 }

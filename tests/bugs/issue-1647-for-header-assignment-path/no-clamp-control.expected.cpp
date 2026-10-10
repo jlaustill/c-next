@@ -61,8 +61,12 @@ uint8_t floatPasses(void) {
 
 int main(void) {
     uint8_t wraps = wrapPasses();
-    if (wraps != 1) return 1U;
+    if (wraps != 1) {
+        return 1U;
+    }
     uint8_t floats = floatPasses();
-    if (floats != 3) return 2U;
+    if (floats != 3) {
+        return 2U;
+    }
     return 0U;
 }

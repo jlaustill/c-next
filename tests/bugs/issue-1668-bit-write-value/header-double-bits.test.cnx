@@ -8,6 +8,8 @@
 
 u32 main() {
     dd[63] <- true;
-    if (dd != -2.0) return 1;
+    if (dd != -2.0) {
+        return 1;
+    }
     return 0;
 }

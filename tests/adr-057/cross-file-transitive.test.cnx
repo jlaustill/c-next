@@ -50,15 +50,23 @@ u32 main() {
     // not by a call. Calling through it would need the harness to link a
     // transitive translation unit, which is a separate concern from ADR-057.
     u32 smoothed <- Filter.smooth(1);
-    if (smoothed != 3) return 1;
+    if (smoothed != 3) {
+        return 1;
+    }
 
     Report.add(2);
     u32 tally <- Report.readTally();
-    if (tally != 7) return 2;
+    if (tally != 7) {
+        return 2;
+    }
 
     u32 detachedValue <- detached();
-    if (detachedValue != 6) return 3;
-    if (spare != 40) return 4;
+    if (detachedValue != 6) {
+        return 3;
+    }
+    if (spare != 40) {
+        return 4;
+    }
 
     return 0;
 }

@@ -17,6 +17,8 @@ EGlobal Test__getGlobalEnum(void) {
 
 int main(void) {
     EGlobal fromScope = Test__getGlobalEnum();
-    if (fromScope != EGlobal__A) return 1U;
+    if (fromScope != EGlobal__A) {
+        return 1U;
+    }
     return 0U;
 }

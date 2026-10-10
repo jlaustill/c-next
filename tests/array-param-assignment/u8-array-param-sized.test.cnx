@@ -11,7 +11,9 @@ u32 main() {
     buffer[0] <- 0;
 
     writeToSized(buffer, 0, 42);
-    if (buffer[0] != 42) return 1;
+    if (buffer[0] != 42) {
+        return 1;
+    }
 
     return 0;
 }

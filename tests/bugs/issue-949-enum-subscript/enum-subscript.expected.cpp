@@ -24,12 +24,18 @@ void Test__setValue(EColor color, uint32_t val) {
 int main(void) {
     Test__setValue(EColor__GREEN, 42U);
     uint32_t result = Test__getValue(EColor__GREEN);
-    if (result != 42) return 1;
+    if (result != 42) {
+        return 1;
+    }
     Test__setValue(EColor__RED, 10U);
     uint32_t redVal = Test__getValue(EColor__RED);
-    if (redVal != 10) return 2;
+    if (redVal != 10) {
+        return 2;
+    }
     Test__setValue(EColor__BLUE, 99U);
     uint32_t blueVal = Test__getValue(EColor__BLUE);
-    if (blueVal != 99) return 3;
+    if (blueVal != 99) {
+        return 3;
+    }
     return 0;
 }

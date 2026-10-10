@@ -28,8 +28,12 @@ int main(void) {
     uint8_t a = 1U;
     uint32_t b = 2U;
     uint32_t r = cnx_clamp_add_u32(a, b) << 9U;
-    if (r != 1536) return 1U;
+    if (r != 1536) {
+        return 1U;
+    }
     uint32_t s = cnx_clamp_add_u32(b, a) << 9U;
-    if (s != 1536) return 2U;
+    if (s != 1536) {
+        return 2U;
+    }
     return 0U;
 }

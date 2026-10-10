@@ -61,10 +61,18 @@ uint32_t Cfg__check(void) {
     for (i = 0U; i < 1; i = cnx_clamp_add_u32(i, 1U)) {
         seen = cnx_clamp_add_u8(seen, FIVE);
     }
-    if (seen == 6) return 8U;
-    if (seen != 10) return 9U;
-    if (strcmp(GREETING, "world") == 0) return 10U;
-    if (strcmp(GREETING, "hello") != 0) return 11U;
+    if (seen == 6) {
+        return 8U;
+    }
+    if (seen != 10) {
+        return 9U;
+    }
+    if (strcmp(GREETING, "world") == 0) {
+        return 10U;
+    }
+    if (strcmp(GREETING, "hello") != 0) {
+        return 11U;
+    }
     return 0U;
 }
 
@@ -73,13 +81,27 @@ int main(void) {
     uint8_t count = 0U;
     count = ALSO_FIVE;
     count = cnx_clamp_add_u8(count, ALSO_FIVE);
-    if (gEqual != true) return 1U;
-    if (Cfg__mEqual != true) return 2U;
-    if (count == 6) return 3U;
-    if (count != 10) return 4U;
-    if (strcmp(GREETING, "world") == 0) return 6U;
-    if (strcmp(GREETING, "hello") != 0) return 7U;
+    if (gEqual != true) {
+        return 1U;
+    }
+    if (Cfg__mEqual != true) {
+        return 2U;
+    }
+    if (count == 6) {
+        return 3U;
+    }
+    if (count != 10) {
+        return 4U;
+    }
+    if (strcmp(GREETING, "world") == 0) {
+        return 6U;
+    }
+    if (strcmp(GREETING, "hello") != 0) {
+        return 7U;
+    }
     uint32_t checked = Cfg__check();
-    if (checked != 0) return 5U;
+    if (checked != 0) {
+        return 5U;
+    }
     return 0U;
 }

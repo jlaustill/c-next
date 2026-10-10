@@ -25,7 +25,11 @@ void fill(uint8_t grid[6][4]) {
 int main(void) {
     uint8_t grid[6][4] = {0};
     fill(grid);
-    if (grid[5U][0U] != 42) return 1;
-    if (grid[0U][3U] != 7) return 2;
+    if (grid[5U][0U] != 42) {
+        return 1;
+    }
+    if (grid[0U][3U] != 7) {
+        return 2;
+    }
     return 0;
 }

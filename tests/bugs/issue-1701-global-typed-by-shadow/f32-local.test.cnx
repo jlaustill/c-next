@@ -11,7 +11,11 @@ f32 f() {
 
 u32 main() {
     f32 local <- f();
-    if (local != 1.0) return 2;
-    if (global.x != 4294967295) return 1;
+    if (local != 1.0) {
+        return 2;
+    }
+    if (global.x != 4294967295) {
+        return 1;
+    }
     return 0;
 }

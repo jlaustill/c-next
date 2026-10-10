@@ -39,25 +39,37 @@ u32 main() {
     // This should generate: decoder_getSpn(testData)
     u16 spn <- decoder.getSpn(testData);
     // 0x34 + (0x12 * 256) = 52 + 4608 = 4660 = 0x1234
-    if (spn != 4660) return 1;
+    if (spn != 4660) {
+        return 1;
+    }
 
     // Test 2: Call decoder.getByte directly from main
     u8 byte0 <- decoder.getByte(testData, 0);
-    if (byte0 != 0x34) return 2;
+    if (byte0 != 0x34) {
+        return 2;
+    }
 
     u8 byte1 <- decoder.getByte(testData, 1);
-    if (byte1 != 0x12) return 3;
+    if (byte1 != 0x12) {
+        return 3;
+    }
 
     u8 byte2 <- decoder.getByte(testData, 2);
-    if (byte2 != 0xAB) return 4;
+    if (byte2 != 0xAB) {
+        return 4;
+    }
 
     // Test 3: Call through handler scope (cross-scope calling cross-file scope)
     u16 spn2 <- handler.processData(testData);
-    if (spn2 != 4660) return 5;
+    if (spn2 != 4660) {
+        return 5;
+    }
 
     // Test 4: Another cross-scope through handler
     u8 extracted <- handler.extractByte(testData, 3);
-    if (extracted != 0xCD) return 6;
+    if (extracted != 0xCD) {
+        return 6;
+    }
 
     // All tests passed
     return 0;

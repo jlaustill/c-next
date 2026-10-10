@@ -14,9 +14,13 @@
 
 int main(void) {
     uint8_t x = get_buf()[2U];
-    if (x != 30) return 1U;
+    if (x != 30) {
+        return 1U;
+    }
     uint8_t y = get_buf()[3U];
-    if (y != 40) return 2U;
+    if (y != 40) {
+        return 2U;
+    }
     uint8_t* whole = get_buf();
     return 0U;
 }

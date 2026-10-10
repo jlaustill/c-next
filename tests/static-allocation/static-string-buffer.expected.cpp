@@ -36,27 +36,59 @@ void setDefaultMessage(void) {
 }
 
 int main(void) {
-    if (strlen(messageBuffer) != 7) return 1U;
-    if (strlen(logBuffer) != 13) return 2U;
-    if (strcmp(messageBuffer, "Initial") != 0) return 3U;
-    if (strcmp(logBuffer, "Log entry one") != 0) return 4U;
-    if (64 != 64) return 5U;
-    if (128 != 128) return 6U;
-    if (65 != 65) return 7U;
-    if (129 != 129) return 8U;
+    if (strlen(messageBuffer) != 7) {
+        return 1U;
+    }
+    if (strlen(logBuffer) != 13) {
+        return 2U;
+    }
+    if (strcmp(messageBuffer, "Initial") != 0) {
+        return 3U;
+    }
+    if (strcmp(logBuffer, "Log entry one") != 0) {
+        return 4U;
+    }
+    if (64 != 64) {
+        return 5U;
+    }
+    if (128 != 128) {
+        return 6U;
+    }
+    if (65 != 65) {
+        return 7U;
+    }
+    if (129 != 129) {
+        return 8U;
+    }
     uint32_t msgLen = getMessageLength();
-    if (msgLen != 7) return 9U;
+    if (msgLen != 7) {
+        return 9U;
+    }
     uint32_t logLen = getLogLength();
-    if (logLen != 13) return 10U;
+    if (logLen != 13) {
+        return 10U;
+    }
     (void) strncpy(messageBuffer, "Modified", 64); messageBuffer[64] = '\0';
-    if (strlen(messageBuffer) != 8) return 11U;
-    if (strcmp(messageBuffer, "Modified") != 0) return 12U;
+    if (strlen(messageBuffer) != 8) {
+        return 11U;
+    }
+    if (strcmp(messageBuffer, "Modified") != 0) {
+        return 12U;
+    }
     char source[65] = "FromParam";
     copyMessage(source);
-    if (strlen(messageBuffer) != 9) return 13U;
-    if (strcmp(messageBuffer, "FromParam") != 0) return 14U;
+    if (strlen(messageBuffer) != 9) {
+        return 13U;
+    }
+    if (strcmp(messageBuffer, "FromParam") != 0) {
+        return 14U;
+    }
     setDefaultMessage();
-    if (strlen(messageBuffer) != 12) return 15U;
-    if (strcmp(messageBuffer, "DefaultValue") != 0) return 16U;
+    if (strlen(messageBuffer) != 12) {
+        return 15U;
+    }
+    if (strcmp(messageBuffer, "DefaultValue") != 0) {
+        return 16U;
+    }
     return 0U;
 }

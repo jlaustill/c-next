@@ -19,6 +19,8 @@ uint32_t getVal(void) {
 int main(void) {
     uint32_t arr[8] = {0};
     arr[0] = (uint32_t)(getVal());
-    if (arr[0U] != 0xAABBCCDD) return 1U;
+    if (arr[0U] != 0xAABBCCDD) {
+        return 1U;
+    }
     return 0U;
 }

@@ -33,12 +33,26 @@ int main(void) {
     uint8_t buffer[4] = {0xAAU, 0xBBU, 0xCCU, 0xDDU};
     widget_t dummy_widget = { .dummy = 42 };
     int32_t invoked = invoke_registered_cb(&dummy_widget, &r, buffer);
-    if (invoked == 0) return 1;
-    if (last_x1 != 10) return 2;
-    if (last_y1 != 20) return 3;
-    if (last_x2 != 101) return 4;
-    if (last_y2 != 201) return 5;
-    if (last_data != buffer) return 6;
-    if (last_widget != &dummy_widget) return 7;
+    if (invoked == 0) {
+        return 1;
+    }
+    if (last_x1 != 10) {
+        return 2;
+    }
+    if (last_y1 != 20) {
+        return 3;
+    }
+    if (last_x2 != 101) {
+        return 4;
+    }
+    if (last_y2 != 201) {
+        return 5;
+    }
+    if (last_data != buffer) {
+        return 6;
+    }
+    if (last_widget != &dummy_widget) {
+        return 7;
+    }
     return 0;
 }

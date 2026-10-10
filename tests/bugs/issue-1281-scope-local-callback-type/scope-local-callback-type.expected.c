@@ -106,12 +106,20 @@ uint32_t NoCapture__run(void) {
 
 int main(void) {
     uint32_t timing = Timing__run();
-    if (timing != 44) return 1U;
+    if (timing != 44) {
+        return 1U;
+    }
     uint32_t later = Later__run();
-    if (later != 2) return 2U;
+    if (later != 2) {
+        return 2U;
+    }
     uint32_t shadowed = Shadow__run();
-    if (shadowed != 9) return 3U;
+    if (shadowed != 9) {
+        return 3U;
+    }
     uint32_t uncaptured = NoCapture__run();
-    if (uncaptured != 7) return 4U;
+    if (uncaptured != 7) {
+        return 4U;
+    }
     return 0U;
 }
