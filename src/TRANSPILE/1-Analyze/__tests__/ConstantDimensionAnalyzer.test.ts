@@ -111,13 +111,30 @@ describe("ConstantDimensionAnalyzer (#1283: E0359)", () => {
       `${callback}scope M {\n    public struct T {\n        onSample h;\n    }\n}\nM.T[N_UNREADABLE] ts;`,
     ],
     [
+      "a scope's own, bare",
+      `${callback}scope M {\n    struct T {\n        onSample h;\n    }\n    T[N_UNREADABLE] ts;\n}`,
+    ],
+    [
+      "a callback field, C-style",
+      `${callback}struct S {\n    onSample hs[N_UNREADABLE];\n}`,
+    ],
+    ["a struct global, C-style", `${withDefault}Inner g[N_UNREADABLE];`],
+    [
+      "a local",
+      `${withDefault}u32 run() {\n    Inner[N_UNREADABLE] ls;\n    return 0;\n}`,
+    ],
+    [
+      "a scope method's local, bare",
+      `${callback}scope M {\n    struct T {\n        onSample h;\n    }\n    public u32 run() {\n        T[N_UNREADABLE] ls;\n        return 0;\n    }\n}`,
+    ],
+    [
       "an enum in a struct with a default",
       `${callback}enum Mode { IDLE, RUN }\nstruct S {\n    onSample h;\n    Mode[N_UNREADABLE] modes;\n}`,
     ],
   ])("rejects %s sized by a macro C-Next cannot read", (_label, source) => {
-    const [found] = errorsWith(source);
-    expect(found?.code).toBe("E0359");
-    expect(found?.message).toContain("'N_UNREADABLE'");
+    const found = errorsWith(source);
+    expect(found.map((error) => error.code)).toEqual(["E0359"]);
+    expect(found[0].message).toContain("'N_UNREADABLE'");
   });
 
   it.each([

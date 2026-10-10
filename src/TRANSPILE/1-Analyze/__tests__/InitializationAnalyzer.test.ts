@@ -14,6 +14,7 @@ import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
 import Program from "../../../PARSE/4-Resolve/Program";
 import testAnalysisContext from "./testAnalysisContext";
+import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /**
  * Parse C-Next source code into an AST
@@ -526,8 +527,10 @@ describe("InitializationAnalyzer", () => {
           arr[0] <- 10;
         }
       `;
-      const tree = parse(code);
-      const analyzer = new InitializationAnalyzer(testAnalysisContext(state));
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
+      const analyzer = new InitializationAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -719,8 +722,10 @@ describe("InitializationAnalyzer", () => {
           u32 len <- arr.length;
         }
       `;
-      const tree = parse(code);
-      const analyzer = new InitializationAnalyzer(testAnalysisContext(state));
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
+      const analyzer = new InitializationAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -954,8 +959,10 @@ describe("InitializationAnalyzer", () => {
           arr[0] +<- 5;
         }
       `;
-      const tree = parse(code);
-      const analyzer = new InitializationAnalyzer(testAnalysisContext(state));
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
+      const analyzer = new InitializationAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
       // Array is uninitialized, reading arr[0] for compound assignment is an error
@@ -971,8 +978,10 @@ describe("InitializationAnalyzer", () => {
           arr[0] +<- 5;
         }
       `;
-      const tree = parse(code);
-      const analyzer = new InitializationAnalyzer(testAnalysisContext(state));
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
+      const analyzer = new InitializationAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -1245,6 +1254,92 @@ describe("InitializationAnalyzer", () => {
 
       // result is assigned in default case
       expect(errors).toHaveLength(0);
+    });
+  });
+  // ========================================================================
+  // #1283 review: ADR-029 defaults, read from the resolved program
+  // ========================================================================
+
+  describe("ADR-029 defaults (#1283)", () => {
+    const errorsOf = (code: string) => {
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
+      return new InitializationAnalyzer(context).analyze(tree);
+    };
+
+    const STAGE = `
+      u32 tickDefault() { return 10; }
+      scope Pump {
+        public struct Stage {
+          tickDefault handler;
+          u32 count;
+        }
+        public u32 run() {
+          ARRAY
+          return 0;
+        }
+      }
+    `;
+
+    it.each([
+      ["this.Stage[2] stages;", "this. element type"],
+      ["Stage[2] stages;", "bare scope-nested element type"],
+      ["Stage stages[2];", "C-style dimension"],
+    ])(
+      "counts an array of a scope-nested struct with a default as initialized (%s, %s)",
+      (array) => {
+        const code = STAGE.replace(
+          "ARRAY",
+          `${array}\n          u32 r <- stages[1].handler();`,
+        );
+        expect(errorsOf(code)).toHaveLength(0);
+      },
+    );
+
+    const HOLDER = `
+      u32 tickDefault() { return 10; }
+      struct Ticker {
+        tickDefault handler;
+        u32 count;
+      }
+      struct Holder {
+        Ticker inner;
+        u32 total;
+      }
+      u32 main() {
+        Holder h;
+        READ
+        return 0;
+      }
+    `;
+
+    it("allows a callback inside a nested struct field before assignment", () => {
+      const code = HOLDER.replace("READ", "u32 r <- h.inner.handler();");
+      expect(errorsOf(code)).toHaveLength(0);
+    });
+
+    it("flags a non-callback field inside a nested struct field (E0381)", () => {
+      const errors = errorsOf(
+        HOLDER.replace("READ", "u32 c <- h.inner.count;"),
+      );
+      expect(errors.map((e) => [e.code, e.variable])).toEqual([
+        ["E0381", "h.inner"],
+      ]);
+    });
+
+    it("counts a nested struct whose default covers all its fields as initialized", () => {
+      const code = `
+        u32 tickDefault() { return 10; }
+        struct Inner { tickDefault handler; }
+        struct Outer { Inner inner; u32 total; }
+        u32 main() {
+          Outer o;
+          Inner copy <- o.inner;
+          return 0;
+        }
+      `;
+      expect(errorsOf(code)).toHaveLength(0);
     });
   });
 });

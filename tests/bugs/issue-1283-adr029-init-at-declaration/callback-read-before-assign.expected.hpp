@@ -16,17 +16,27 @@ extern "C" {
 typedef uint32_t (*tickDefault_fp)(void);
 
 /* Struct definitions */
+typedef struct Pump__Stage {
+    tickDefault_fp handler;
+    uint32_t count;
+} Pump__Stage;
 typedef struct Ticker {
     tickDefault_fp handler;
     uint32_t count;
 } Ticker;
+typedef struct Holder {
+    Ticker inner;
+    uint32_t total;
+} Holder;
 
 /* Function prototypes */
 uint32_t tickDefault(void);
 uint32_t tickOther(void);
+uint32_t Pump__viaScopeArrays(void);
 uint32_t viaLocalArray(void);
 /* MISRA C:2012 Rule 8.4: declaration for the ADR-029 generated init function (the definition has external linkage and would otherwise be undeclared). */
 Ticker Ticker_init(void);
+Holder Holder_init(void);
 
 #ifdef __cplusplus
 }

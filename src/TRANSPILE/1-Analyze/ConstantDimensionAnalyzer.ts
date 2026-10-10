@@ -29,7 +29,10 @@ import ConstantFold from "../../utils/ConstantFold";
 import ParserUtils from "../../utils/ParserUtils";
 import ElementCount from "../../utils/ElementCount";
 import StructDefault from "../../utils/StructDefault";
-import type IStructDefaultFacts from "../../types/IStructDefaultFacts";
+import type TType from "../../types/TType";
+import type TConstExpr from "../../types/TConstExpr";
+import type ILexicalFrame from "../../types/ILexicalFrame";
+import type ISourcePosition from "../../utils/types/ISourcePosition";
 import ConstantDiagnostics from "./helpers/ConstantDiagnostics";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import type TConstResult from "../../types/TConstResult";
@@ -37,8 +40,6 @@ import type IConstantDimensionError from "./types/IConstantDimensionError";
 
 class ConstantDimensionListener extends CNextListener {
   private readonly found: IConstantDimensionError[] = [];
-
-  private readonly scopes: string[] = [];
 
   // eslint-disable-next-line @typescript-eslint/lines-between-class-members
   constructor(private readonly context: IAnalysisContext) {
@@ -49,95 +50,15 @@ class ConstantDimensionListener extends CNextListener {
     return this.found;
   }
 
-  override enterScopeDeclaration = (
-    ctx: Parser.ScopeDeclarationContext,
-  ): void => {
-    this.scopes.push(ctx.IDENTIFIER().getText());
-  };
-
-  override exitScopeDeclaration = (): void => {
-    this.scopes.pop();
-  };
-
   override enterArrayTypeDimension = (
     ctx: Parser.ArrayTypeDimensionContext,
   ): void => {
-    const expression = ctx.expression();
-    if (this.check(expression) !== "foreign" || !expression) return;
-    const element = this.everyElementSpelled(ctx);
-    if (element === null) return;
-    const count = ElementCount.of(
-      ConstExprLowering.lower(SyntaxLowering.expression(expression)),
-      this.context.program,
-      this.context.sourceFile,
-    );
-    if (count !== null) return;
-    this.found.push({
-      code: "E0359",
-      ...ParserUtils.getPosition(expression),
-      message: `Array of '${element}' must have a size C-Next can read: ADR-029 gives every element its default, so C-Next spells each one, and it cannot read the value of '${expression.getText()}'`,
-      helpText:
-        "Size it with a C-Next const, or a header macro of plain integer arithmetic (`#define N 3`, `#define M (N - 1)`)",
-    });
+    this.check(ctx.expression());
   };
 
   override enterArrayDimension = (ctx: Parser.ArrayDimensionContext): void => {
     this.check(ctx.expression());
   };
-
-  /**
-   * The element type of the array `dimension` sizes, when ADR-029 gives each
-   * element a non-zero default: a callback, a struct with a default, or -- in
-   * a struct with a default -- an enum, whose zero enumerator is spelled
-   * (#1566). Null for every other array, whose aggregate zero needs no count.
-   */
-  private everyElementSpelled(
-    dimension: Parser.ArrayTypeDimensionContext,
-  ): string | null {
-    const arrayType = dimension.parent as Parser.ArrayTypeContext;
-    const element = this.typeName(arrayType);
-    if (element === null) return null;
-    const facts = this.structDefaultFacts();
-    if (facts.isCallbackType(element)) return element;
-    if (StructDefault.hasDefault(element, facts)) return element;
-    if (!this.context.symbols.knownEnums.has(element)) return null;
-    const struct = arrayType.parent?.parent;
-    if (!(struct?.parent instanceof Parser.StructDeclarationContext)) {
-      return null;
-    }
-    const owner = this.scopedName(struct.parent.IDENTIFIER().getText());
-    return StructDefault.hasDefault(owner, facts) ? element : null;
-  }
-
-  /** An array's element type by its C name (ADR-016 `Scope__Type`) */
-  private typeName(arrayType: Parser.ArrayTypeContext): string | null {
-    const user = arrayType.userType();
-    if (user) return user.IDENTIFIER().getText();
-    const scoped = arrayType.scopedType();
-    if (scoped) return this.scopedName(scoped.IDENTIFIER().getText());
-    const global = arrayType.globalType();
-    if (global) return global.IDENTIFIER().getText();
-    const qualified = arrayType.qualifiedType();
-    return qualified
-      ? qualified
-          .IDENTIFIER()
-          .map((part) => part.getText())
-          .join("__")
-      : null;
-  }
-
-  private scopedName(name: string): string {
-    return [...this.scopes, name].join("__");
-  }
-
-  /** The facts `StructDefault` reads, as `InitializationAnalyzer` asks them */
-  private structDefaultFacts(): IStructDefaultFacts {
-    const symbols = this.context.symbols;
-    return {
-      structFields: symbols.structFields,
-      isCallbackType: (typeName) => symbols.functionReturnTypes.has(typeName),
-    };
-  }
 
   /** The dimension's fold, after reporting any E0909 / E0910 it earns */
   private check(
@@ -178,7 +99,118 @@ class ConstantDimensionAnalyzer {
   public analyze(tree: Parser.ProgramContext): IConstantDimensionError[] {
     const listener = new ConstantDimensionListener(this.context);
     ParseTreeWalker.DEFAULT.walk(listener, tree);
-    return listener.errors();
+    return [...listener.errors(), ...this.unreadableCounts()];
+  }
+
+  /**
+   * E0359, asked of every array this file declares as 1.3 resolved it (#1283
+   * review): the element type is the one rendering spells, whatever syntax
+   * named it -- `Nested`, `this.Nested`, `Outer.Nested` -- and whichever side
+   * of the name the dimensions are written on, so 2.1 rejects exactly the
+   * arrays whose defaults 3 could not spell.
+   */
+  private unreadableCounts(): IConstantDimensionError[] {
+    const { program, sourceFile, symbols } = this.context;
+    const facts = StructDefault.factsOf(symbols);
+    const found: IConstantDimensionError[] = [];
+    const checkArray = (
+      type: TType,
+      dimensions: ReadonlyArray<TConstExpr | null> | undefined,
+      owner: string | null,
+      declaredAt: ISourcePosition,
+    ): void => {
+      const element = StructDefault.spelledElement(
+        type,
+        owner,
+        facts,
+        symbols.knownEnums,
+      );
+      if (element === null) return;
+      for (const dimension of dimensions ?? []) {
+        const error =
+          dimension === null
+            ? null
+            : this.unreadable(dimension, element, declaredAt);
+        if (error) found.push(error);
+      }
+    };
+
+    for (const symbol of program.symbolsInFile(sourceFile)) {
+      if (symbol.kind === "struct") {
+        for (const field of symbol.fields.values()) {
+          checkArray(
+            field.type,
+            field.dimensionExprs,
+            symbol.fullyQualifiedCName,
+            symbol.span,
+          );
+        }
+      } else if (symbol.kind === "variable") {
+        checkArray(symbol.type, symbol.arrayDimensionExprs, null, symbol.span);
+      }
+    }
+
+    const walk = (frame: ILexicalFrame): void => {
+      for (const local of frame.declarations) {
+        if (local.kind === "local") {
+          checkArray(local.type, local.arrayDimensionExprs, null, local.span);
+        }
+      }
+      frame.children.forEach(walk);
+    };
+    walk(program.lexicalFrameAt(sourceFile, { line: 0, column: 0 }));
+
+    return found;
+  }
+
+  /** E0359 for a dimension naming a value C-Next cannot read, else null */
+  private unreadable(
+    dimension: TConstExpr,
+    element: string,
+    declaredAt: ISourcePosition,
+  ): IConstantDimensionError | null {
+    const { program, sourceFile } = this.context;
+    const folded = ConstantEvaluator.evaluate(
+      dimension,
+      ConstantFold.environment(program, sourceFile),
+    );
+    if (folded.kind !== "foreign") return null; // E0909 / E0910 are the walk's
+    if (ElementCount.of(dimension, program, sourceFile) !== null) return null;
+
+    const culprit = ConstantDimensionAnalyzer.namesIn(dimension).find(
+      (name) => ElementCount.of(name, program, sourceFile) === null,
+    );
+    const at = culprit?.at ?? declaredAt;
+    return {
+      code: "E0359",
+      line: at.line,
+      column: at.column,
+      message: `Array of '${element}' must have a size C-Next can read: ADR-029 gives every element its default, so C-Next spells each one, and it cannot read the value of '${culprit ? culprit.path.join(".") : "its size"}'`,
+      helpText:
+        "Size it with a C-Next const, or a header macro of plain integer arithmetic (`#define N 3`, `#define M (N - 1)`)",
+    };
+  }
+
+  private static namesIn(
+    expr: TConstExpr,
+  ): Extract<TConstExpr, { kind: "name" }>[] {
+    switch (expr.kind) {
+      case "name":
+        return [expr];
+      case "cast":
+      case "unary":
+        return ConstantDimensionAnalyzer.namesIn(expr.operand);
+      case "binary":
+        return [expr.left, expr.right].flatMap(
+          ConstantDimensionAnalyzer.namesIn,
+        );
+      case "ternary":
+        return [expr.condition, expr.whenTrue, expr.whenFalse].flatMap(
+          ConstantDimensionAnalyzer.namesIn,
+        );
+      default:
+        return [];
+    }
   }
 }
 

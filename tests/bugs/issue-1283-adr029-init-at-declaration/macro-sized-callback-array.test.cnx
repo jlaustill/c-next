@@ -4,6 +4,8 @@
 // #1283 review: a callback array sized by a C macro still holds the default
 // function in every element. C-Next reads the macro's integer value from the
 // header, so it can spell each element; the dimension stays the macro.
+// `globalInners` is what makes the generated header include handler_sizes.h;
+// a header holding only the macro-sized field lacks that include (#1970).
 #include "handler_sizes.h"
 
 u32 onSample(u32 input) {

@@ -16,6 +16,8 @@
  */
 import type IStructDefaultFacts from "../types/IStructDefaultFacts";
 import type IStructFieldDefault from "../types/IStructFieldDefault";
+import type ICodeGenSymbols from "../types/ICodeGenSymbols";
+import type TType from "../types/TType";
 
 class StructDefault {
   /**
@@ -39,6 +41,81 @@ class StructDefault {
       }
     }
     return result;
+  }
+
+  /**
+   * The facts every reader asks this with (#1283 review), so 2.1 and 3 cannot
+   * disagree on what a callback is: the 1.3 struct table, and the C-Next
+   * functions (`functionReturnTypes`, which 1.3 fills from C-Next functions
+   * only -- the set codegen's `callbackTypes` is registered from).
+   */
+  static factsOf(
+    symbols: Pick<ICodeGenSymbols, "structFields" | "functionReturnTypes">,
+  ): IStructDefaultFacts {
+    return {
+      structFields: symbols.structFields,
+      isCallbackType: (typeName) => symbols.functionReturnTypes.has(typeName),
+    };
+  }
+
+  /**
+   * The fields of `structName`, as dotted paths, that its default leaves
+   * initialized: each callback field, and each nested struct field -- whole
+   * when its default covers every one of its fields, otherwise only the paths
+   * inside it that it does (`inner.handler`, never `inner.count`).
+   */
+  static initializedPaths(
+    structName: string,
+    facts: IStructDefaultFacts,
+  ): readonly string[] {
+    const result: string[] = [];
+    for (const { fieldName, value } of StructDefault.fieldsOf(
+      structName,
+      facts,
+    )) {
+      if (value.kind === "callback") {
+        result.push(fieldName);
+        continue;
+      }
+      const inner = StructDefault.initializedPaths(value.structName, facts);
+      const innerFields = facts.structFields.get(value.structName);
+      const whole = [...(innerFields?.keys() ?? [])].every((name) =>
+        inner.includes(name),
+      );
+      if (whole) {
+        result.push(fieldName);
+      } else {
+        result.push(...inner.map((path) => `${fieldName}.${path}`));
+      }
+    }
+    return result;
+  }
+
+  /**
+   * The C name of an array's element type when ADR-029 spells every element
+   * -- a callback, a struct with a default, or, as a field of a struct with a
+   * default (`owner`), an enum whose zero enumerator is spelled (#1566). Null
+   * for every other array, whose aggregate zero needs no element count.
+   */
+  static spelledElement(
+    type: TType,
+    owner: string | null,
+    facts: IStructDefaultFacts,
+    knownEnums: ReadonlySet<string>,
+  ): string | null {
+    const element = type.kind === "array" ? type.elementType : type;
+    if (!("name" in element)) {
+      return null;
+    }
+    const name = element.name;
+    if (facts.isCallbackType(name) || StructDefault.hasDefault(name, facts)) {
+      return name;
+    }
+    return owner !== null &&
+      knownEnums.has(name) &&
+      StructDefault.hasDefault(owner, facts)
+      ? name
+      : null;
   }
 
   /** Does a value of `structName` hold anything other than zero by default? */

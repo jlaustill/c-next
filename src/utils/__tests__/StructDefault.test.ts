@@ -69,4 +69,82 @@ describe("StructDefault", () => {
     expect(StructDefault.hasDefault("Plain", f)).toBe(false);
     expect(StructDefault.hasDefault("u32", f)).toBe(false);
   });
+  describe("factsOf (#1283 review: one builder for every reader)", () => {
+    it("reads the struct table and the C-Next functions", () => {
+      const structFields = new Map([
+        ["Ticker", new Map([["handler", "onTick"]])],
+      ]);
+      const f = StructDefault.factsOf({
+        structFields,
+        functionReturnTypes: new Map([["onTick", "u32"]]),
+      });
+
+      expect(f.structFields).toBe(structFields);
+      expect(f.isCallbackType("onTick")).toBe(true);
+      expect(f.isCallbackType("Ticker")).toBe(false);
+    });
+  });
+
+  describe("initializedPaths", () => {
+    const f = facts({
+      Ticker: { handler: "onTick", count: "u32" },
+      Inner: { handler: "onTick" },
+      Holder: { ticker: "Ticker", inner: "Inner", total: "u32" },
+      Deep: { holder: "Holder" },
+    });
+
+    it("names each callback field", () => {
+      expect(StructDefault.initializedPaths("Ticker", f)).toEqual(["handler"]);
+    });
+
+    it("names a nested struct whole when its default covers every field", () => {
+      expect(StructDefault.initializedPaths("Holder", f)).toContain("inner");
+    });
+
+    it("names only the defaulted paths inside a partly-defaulted struct", () => {
+      expect(StructDefault.initializedPaths("Holder", f)).toEqual([
+        "ticker.handler",
+        "inner",
+      ]);
+      expect(StructDefault.initializedPaths("Deep", f)).toEqual([
+        "holder.ticker.handler",
+        "holder.inner",
+      ]);
+    });
+
+    it("is empty for a struct with no default, or no struct", () => {
+      expect(StructDefault.initializedPaths("Missing", f)).toEqual([]);
+    });
+  });
+
+  describe("spelledElement", () => {
+    const f = facts({
+      Ticker: { handler: "onTick" },
+      Plain: { v: "u8" },
+    });
+    const enums = new Set(["Mode"]);
+
+    it.each([
+      [{ kind: "struct", name: "onTick" }, null, "onTick"],
+      [{ kind: "struct", name: "Ticker" }, null, "Ticker"],
+      [
+        {
+          kind: "array",
+          elementType: { kind: "struct", name: "Ticker" },
+          dimensions: [2],
+        },
+        null,
+        "Ticker",
+      ],
+      [{ kind: "enum", name: "Mode" }, "Ticker", "Mode"],
+      [{ kind: "enum", name: "Mode" }, "Plain", null],
+      [{ kind: "enum", name: "Mode" }, null, null],
+      [{ kind: "struct", name: "Plain" }, null, null],
+      [{ kind: "primitive", primitive: "u8" }, null, null],
+    ] as const)("%j in %s spells %s", (type, owner, expected) => {
+      expect(StructDefault.spelledElement(type, owner, f, enums)).toBe(
+        expected,
+      );
+    });
+  });
 });

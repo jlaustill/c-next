@@ -76,6 +76,7 @@ import type IRecordedRequirement from "../../../types/IRecordedRequirement";
 import ToolchainRequirements from "../../../instrumentation/ToolchainRequirements";
 import TranspileState from "../../TranspileState";
 import StructDefaultInitializer from "./helpers/StructDefaultInitializer";
+import StructDefault from "../../../utils/StructDefault";
 import ElementCount from "../../../utils/ElementCount";
 import type IProgram from "../../../types/IProgram";
 import EnumZeroValue from "./helpers/EnumZeroValue";
@@ -334,14 +335,14 @@ export default class CodeGenerator implements IOrchestrator {
   ): string | null {
     const symbols = this.state.symbols;
     const program = this.state.program;
-    if (!symbols || !program) {
-      return null;
-    }
+    invariant(
+      symbols && program,
+      "an ADR-029 default is rendered from the resolved program and its symbols, which generate() sets before any declaration (#1283)",
+    );
     return StructDefaultInitializer.render(structName, counts, {
-      structFields: symbols.structFields,
+      ...StructDefault.factsOf(symbols),
       fieldElementCounts: (owner, fieldName) =>
         CodeGenerator.fieldElementCounts(program, owner, fieldName),
-      isCallbackType: (typeName) => this.state.callbackTypes.has(typeName),
       cppMode: this.state.cppMode,
       enumZeroOf: (typeName) =>
         symbols.knownEnums.has(typeName)

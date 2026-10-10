@@ -12,7 +12,9 @@
 // #1283: a local struct's callback field holds its default from the
 // declaration (ADR-029: no null state), so reading it before any assignment
 // is defined behaviour, not E0381 -- for a plain local and for an element
-// of a local array. Before the fix this was rejected with
+// of a local array (its element type named bare, `this.`, or a scope-nested
+// struct), and for a callback inside a nested struct field whose other fields
+// stay unset. Before the fix this was rejected with
 // E0381 -- the only thing standing between it and a NULL call, since the
 // declaration emitted `Ticker t = {0};` and never called Ticker_init().
 uint32_t tickDefault(void) {
@@ -26,6 +28,19 @@ uint32_t tickOther(void) {
 Ticker Ticker_init(void) {
     Ticker value = { .handler = tickDefault };
     return value;
+}
+
+Holder Holder_init(void) {
+    Holder value = { .inner = { .handler = tickDefault } };
+    return value;
+}
+
+/* Scope: Pump */
+
+uint32_t Pump__viaScopeArrays(void) {
+    Pump__Stage qualified[2] = { { .handler = tickDefault }, { .handler = tickDefault } };
+    Pump__Stage bare[2] = { { .handler = tickDefault }, { .handler = tickDefault } };
+    return qualified[1U].handler() + bare[1U].handler();
 }
 
 uint32_t viaLocalArray(void) {
@@ -43,5 +58,10 @@ int main(void) {
     if (r != 20) return 2U;
     r = viaLocalArray();
     if (r != 10) return 3U;
+    r = Pump__viaScopeArrays();
+    if (r != 20) return 4U;
+    Holder h = { .inner = { .handler = tickDefault } };
+    r = h.inner.handler();
+    if (r != 10) return 5U;
     return 0U;
 }
