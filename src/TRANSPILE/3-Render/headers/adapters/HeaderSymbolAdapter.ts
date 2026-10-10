@@ -101,7 +101,10 @@ class HeaderSymbolAdapter {
     const isGlobal = ScopeUtils.isGlobalScopePath(variable.scopePath);
 
     // ADR-057: the symbol layer already qualified scope-local type names.
-    const typeStr = TypeResolver.getTypeName(variable.type);
+    // ADR-029 (#1562): a function-as-type is spelled by its `_fp` typedef, the
+    // name the .c declares the same variable with
+    const declared = TypeResolver.getTypeName(variable.type);
+    const typeStr = state.callbackTypes.get(declared)?.typedefName ?? declared;
 
     // #1175: 1.4 settled each dimension to its value, or, for one only C can
     // evaluate (a header macro), to its C -- there is nothing left to resolve

@@ -211,7 +211,7 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
-17 linked fixtures with no derivable context:
+19 linked fixtures with no derivable context:
 
 - `adr-029/callback-assign.test.cnx`
 - `adr-029/callback-basic.test.cnx`
@@ -228,6 +228,8 @@ cell is declared by the ADR that owns it.
 - `bugs/issue-1491-duplicate-typedef/two-consumers.test.cnx`
 - `bugs/issue-1544-cross-file-callback/cross-file-callback.test.cnx`
 - `bugs/issue-1552-cross-file-typedef-const/cross-file-typedef-const.test.cnx`
+- `bugs/issue-1562-fn-type-variable-header/cross-file-fn-type-variable.test.cnx`
+- `bugs/issue-1562-fn-type-variable-header/fn-type-variable.test.cnx`
 - `bugs/issue-1566-struct-init-all-fields/struct-init-all-fields.test.cnx`
 - `bugs/issue-1568-init-designated-position/init-designated-position.test.cnx`
 

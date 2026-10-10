@@ -12,8 +12,8 @@
 // function-as-type, and every element of an array of one, holds the function
 // its type was defined from -- at file scope, as a scope member and as a local.
 // It was the aggregate zero (`tickDefault_fp loc[2] = {0};`), a NULL call.
-// Transpile-only: calling a file-scope one is blocked by #1562 (header type),
-// and reading the scope member inside its scope by #1286 (E0381).
+// Transpile-only: reading the scope member inside its scope is blocked by
+// #1286 (E0381). Calling a file-scope one is issue-1562's fixture.
 uint32_t tickDefault(void) {
     return 10U;
 }

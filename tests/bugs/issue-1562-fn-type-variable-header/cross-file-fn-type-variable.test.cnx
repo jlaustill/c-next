@@ -1,0 +1,25 @@
+// test-execution
+// test-no-warnings
+// test-adr: 029
+// #1562, across files: the file-scope variable's type is a function another
+// file declares, so its `_fp` typedef comes from that file's symbol.
+#include "fn-type-lib.cnx"
+
+u32 localTick() {
+    return 9;
+}
+
+libTick sink;
+
+u32 main() {
+    u32 got1 <- sink();
+    if (got1 != 7) {
+        return 1;
+    }
+    sink <- localTick;
+    u32 got2 <- sink();
+    if (got2 != 9) {
+        return 2;
+    }
+    return 0;
+}

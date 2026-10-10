@@ -1959,6 +1959,15 @@ class CodeGenWalker {
         this._collectStructCallbackFields(declaration);
       } else if (declaration.kind === "function") {
         this._collectTopLevelFunction(declaration);
+      } else if (
+        declaration.kind === "variableDeclaration" ||
+        declaration.kind === "constructorDeclaration"
+      ) {
+        // #1562: a file-scope variable is declared `extern` in the header,
+        // so the header owns the typedef its type names
+        this.host.state.notePublicCallbackTypeReference(
+          this.typeNameOf(declaration.type),
+        );
       }
     }
   }
