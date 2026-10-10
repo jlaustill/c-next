@@ -846,7 +846,6 @@ class InitializationAnalyzer {
     const symbols = this.context.symbols;
     return {
       structFields: symbols.structFields,
-      structFieldDimensions: symbols.structFieldDimensions,
       isCallbackType: (typeName) => symbols.functionReturnTypes.has(typeName),
     };
   }

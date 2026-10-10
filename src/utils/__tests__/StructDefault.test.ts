@@ -8,18 +8,11 @@ import type IStructDefaultFacts from "../../types/IStructDefaultFacts";
 
 function facts(
   structs: Record<string, Record<string, string>>,
-  dimensions: Record<string, Record<string, (number | string)[]>> = {},
   callbacks: string[] = ["onTick"],
 ): IStructDefaultFacts {
   return {
     structFields: new Map(
       Object.entries(structs).map(([name, fields]) => [
-        name,
-        new Map(Object.entries(fields)),
-      ]),
-    ),
-    structFieldDimensions: new Map(
-      Object.entries(dimensions).map(([name, fields]) => [
         name,
         new Map(Object.entries(fields)),
       ]),
@@ -36,18 +29,8 @@ describe("StructDefault", () => {
       {
         fieldName: "handler",
         value: { kind: "callback", functionName: "onTick" },
-        dimensions: [],
       },
     ]);
-  });
-
-  it("carries a callback array field's dimensions (#1565)", () => {
-    const f = facts(
-      { Bank: { handlers: "onTick" } },
-      { Bank: { handlers: [3] } },
-    );
-
-    expect(StructDefault.fieldsOf("Bank", f)[0].dimensions).toEqual([3]);
   });
 
   it("gives a nested struct field its struct's default (#1570)", () => {
@@ -61,7 +44,6 @@ describe("StructDefault", () => {
       {
         fieldName: "inner",
         value: { kind: "struct", structName: "Inner" },
-        dimensions: [],
       },
     ]);
   });

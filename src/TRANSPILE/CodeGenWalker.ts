@@ -133,6 +133,7 @@ import CppModeHelper from "./3-Render/codegen/helpers/CppModeHelper";
 import generateCast from "./3-Render/codegen/generators/expressions/CastExprGenerator";
 import type IPlannedCast from "./3-Render/codegen/types/IPlannedCast";
 import ConstExprLowering from "../utils/ConstExprLowering";
+import ElementCount from "../utils/ElementCount";
 import ConstantEvaluator from "../utils/ConstantEvaluator";
 import ConstantFold from "../utils/ConstantFold";
 import UNRESOLVED_DIMENSION from "../types/UNRESOLVED_DIMENSION";
@@ -1150,12 +1151,18 @@ class CodeGenWalker {
       ...(type.kind === "array" ? type.dimensions : []),
       ...nameDimensions,
     ];
+    const typing = this.transpileState.typingContext();
     return this.host.renderStructDefault(
       resolved.name,
       written.map((size) =>
         size
-          ? (this.constantOf(size) ?? this.renderLoweredDimension(size))
-          : "",
+          ? (this.constantOf(size) ??
+            ElementCount.of(
+              ConstExprLowering.lower(size),
+              typing.program,
+              typing.sourceFile,
+            ))
+          : null,
       ),
     );
   }

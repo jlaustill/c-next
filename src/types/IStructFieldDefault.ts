@@ -6,8 +6,6 @@ type TFieldDefault =
 interface IStructFieldDefault {
   readonly fieldName: string;
   readonly value: TFieldDefault;
-  /** The field's array dimensions; empty for a scalar field. */
-  readonly dimensions: readonly (number | string)[];
 }
 
 export default IStructFieldDefault;

@@ -1,0 +1,2 @@
+12:13 error[E0359]: Array of 'onSample' must have a size C-Next can read: ADR-029 gives every element its default, so C-Next spells each one, and it cannot read the value of 'N_UNREADABLE'
+       help: Size it with a C-Next const, or a header macro of plain integer arithmetic (`#define N 3`, `#define M (N - 1)`)

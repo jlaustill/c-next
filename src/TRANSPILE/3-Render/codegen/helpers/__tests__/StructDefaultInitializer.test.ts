@@ -27,13 +27,11 @@ function ctx(cppMode: boolean): IStructDefaultRenderContext {
       ["Plain", new Map([["v", "u8"]])],
       ["Sized", new Map([["handlers", "onTick"]])],
     ]),
-    structFieldDimensions: new Map<
-      string,
-      Map<string, readonly (number | string)[]>
-    >([
-      ["Outer", new Map([["handlers", [2]]])],
-      ["Sized", new Map([["handlers", ["N"]]])],
-    ]),
+    fieldElementCounts: (structName, fieldName) => {
+      if (structName === "Outer" && fieldName === "handlers") return [2];
+      if (structName === "Sized") return [null];
+      return [];
+    },
     isCallbackType: (typeName) => typeName === "onTick",
     cppMode,
     enumZeroOf: (typeName) => (typeName === "Mode" ? "Mode__IDLE" : null),
@@ -70,9 +68,9 @@ describe("StructDefaultInitializer", () => {
     );
   });
 
-  it("refuses an array size it cannot count", () => {
+  it("asserts 2.1 rejected an array size it cannot count (E0359)", () => {
     expect(() =>
       StructDefaultInitializer.render("Sized", [], ctx(false)),
-    ).toThrow("'N' is not a size C-Next can evaluate");
+    ).toThrow("E0359");
   });
 });

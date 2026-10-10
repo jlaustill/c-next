@@ -76,6 +76,8 @@ import type IRecordedRequirement from "../../../types/IRecordedRequirement";
 import ToolchainRequirements from "../../../instrumentation/ToolchainRequirements";
 import TranspileState from "../../TranspileState";
 import StructDefaultInitializer from "./helpers/StructDefaultInitializer";
+import ElementCount from "../../../utils/ElementCount";
+import type IProgram from "../../../types/IProgram";
 import EnumZeroValue from "./helpers/EnumZeroValue";
 
 /**
@@ -328,21 +330,44 @@ export default class CodeGenerator implements IOrchestrator {
    */
   renderStructDefault(
     structName: string,
-    dimensions: readonly (number | string)[],
+    counts: readonly (number | null)[],
   ): string | null {
     const symbols = this.state.symbols;
-    if (!symbols) {
+    const program = this.state.program;
+    if (!symbols || !program) {
       return null;
     }
-    return StructDefaultInitializer.render(structName, dimensions, {
+    return StructDefaultInitializer.render(structName, counts, {
       structFields: symbols.structFields,
-      structFieldDimensions: symbols.structFieldDimensions,
+      fieldElementCounts: (owner, fieldName) =>
+        CodeGenerator.fieldElementCounts(program, owner, fieldName),
       isCallbackType: (typeName) => this.state.callbackTypes.has(typeName),
       cppMode: this.state.cppMode,
       enumZeroOf: (typeName) =>
         symbols.knownEnums.has(typeName)
           ? EnumZeroValue.of(symbols.enumMembers, typeName)
           : null,
+    });
+  }
+
+  /** #1283 review: a struct field's element counts, from its symbol */
+  private static fieldElementCounts(
+    program: IProgram,
+    structName: string,
+    fieldName: string,
+  ): readonly (number | null)[] {
+    const struct = program.symbolByCName(structName);
+    const field =
+      struct?.kind === "struct" ? struct.fields.get(fieldName) : undefined;
+    if (!field?.dimensions) {
+      return [];
+    }
+    return field.dimensions.map((dimension, i) => {
+      if (typeof dimension === "number") return dimension;
+      const expr = field.dimensionExprs?.[i] ?? null;
+      return expr === null
+        ? null
+        : ElementCount.of(expr, program, field.sourceFile);
     });
   }
 

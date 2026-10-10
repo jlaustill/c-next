@@ -18,19 +18,20 @@
  * MISRA C:2012 Rule 9.3 (no partially initialized array): an array whose
  * elements have a default lists every element.
  */
+import invariant from "../../../../utils/invariant";
 import StructDefault from "../../../../utils/StructDefault";
 import type IStructFieldDefault from "../../../../types/IStructFieldDefault";
 import type IStructDefaultRenderContext from "../types/IStructDefaultRenderContext";
 
 class StructDefaultInitializer {
   /**
-   * The brace for a value of `structName` -- repeated over `dimensions` when
-   * the declaration is an array -- or null when its default is all zero and
+   * The brace for a value of `structName` -- repeated over `counts`, the
+   * element count of each dimension, when the declaration is an array -- or null when its default is all zero and
    * the caller's aggregate zero is already correct.
    */
   static render(
     structName: string,
-    dimensions: readonly (number | string)[],
+    counts: readonly (number | null)[],
     ctx: IStructDefaultRenderContext,
   ): string | null {
     if (!StructDefault.hasDefault(structName, ctx)) {
@@ -38,7 +39,7 @@ class StructDefaultInitializer {
     }
     return StructDefaultInitializer.repeat(
       StructDefaultInitializer.renderStruct(structName, ctx),
-      dimensions,
+      counts,
       structName,
     );
   }
@@ -53,13 +54,12 @@ class StructDefaultInitializer {
         field,
       ]),
     );
-    const dimensions = ctx.structFieldDimensions.get(structName);
     const parts: string[] = [];
     for (const [fieldName, typeName] of ctx.structFields.get(structName)!) {
       const value = StructDefaultInitializer.fieldValue(
         defaults.get(fieldName),
         typeName,
-        dimensions?.get(fieldName) ?? [],
+        ctx.fieldElementCounts(structName, fieldName),
         ctx,
       );
       if (ctx.cppMode) {
@@ -75,7 +75,7 @@ class StructDefaultInitializer {
   private static fieldValue(
     fieldDefault: IStructFieldDefault | undefined,
     typeName: string,
-    dimensions: readonly (number | string)[],
+    counts: readonly (number | null)[],
     ctx: IStructDefaultRenderContext,
   ): string | null {
     if (fieldDefault !== undefined) {
@@ -86,29 +86,28 @@ class StructDefaultInitializer {
               fieldDefault.value.structName,
               ctx,
             );
-      return StructDefaultInitializer.repeat(element, dimensions, typeName);
+      return StructDefaultInitializer.repeat(element, counts, typeName);
     }
     // #1566: an enum's zero is its zero enumerator, which need not be 0.
     const enumZero = ctx.enumZeroOf(typeName);
     return enumZero === null
       ? null
-      : StructDefaultInitializer.repeat(enumZero, dimensions, typeName);
+      : StructDefaultInitializer.repeat(enumZero, counts, typeName);
   }
 
   private static repeat(
     element: string,
-    dimensions: readonly (number | string)[],
+    counts: readonly (number | null)[],
     typeName: string,
   ): string {
-    if (dimensions.length === 0) {
+    if (counts.length === 0) {
       return element;
     }
-    const [size, ...rest] = dimensions;
-    if (typeof size !== "number") {
-      throw new Error(
-        `Error: an array of '${typeName}' sized '${size}' needs every element initialized to its ADR-029 default, and '${size}' is not a size C-Next can evaluate`,
-      );
-    }
+    const [size, ...rest] = counts;
+    invariant(
+      size !== null,
+      `2.1 rejects an array of '${typeName}' whose element count C-Next cannot read (E0359)`,
+    );
     const inner = StructDefaultInitializer.repeat(element, rest, typeName);
     return `{ ${new Array<string>(size).fill(inner).join(", ")} }`;
   }

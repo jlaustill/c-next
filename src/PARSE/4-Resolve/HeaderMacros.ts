@@ -16,11 +16,11 @@ type TFloatingTypeName = "f32" | "f64" | null;
 
 type TMacroToken =
   | { readonly kind: "floating"; readonly typeName: TFloatingTypeName }
-  | { readonly kind: "integer" }
+  | { readonly kind: "integer"; readonly text: string }
   | { readonly kind: "character" }
   | { readonly kind: "name"; readonly name: string }
-  | { readonly kind: "paren" }
-  | { readonly kind: "operator" }
+  | { readonly kind: "paren"; readonly text: string }
+  | { readonly kind: "operator"; readonly text: string }
   | { readonly kind: "other" };
 
 /** `#define NAME body`; a function-like macro's `(` follows its name directly */
@@ -40,8 +40,27 @@ const MACRO_TOKEN = new RegExp(
   "g",
 );
 
+/** C's binary operators an integer expansion may hold, loosest first */
+const BINARY_PRECEDENCE: readonly (readonly string[])[] = [
+  ["|"],
+  ["^"],
+  ["&"],
+  ["<<", ">>"],
+  ["+", "-"],
+  ["*", "/", "%"],
+];
+/** The range every C integer type C-Next reads a value in agrees over */
+const INT_MAX = 2147483647;
+
 const UNREADABLE: THeaderMacro = { kind: "unreadable" };
 const CHARACTER: THeaderMacro = { kind: "character" };
+
+/** A read through one expansion's tokens */
+interface IValueReader {
+  readonly tokens: readonly TMacroToken[];
+  next: number;
+  readonly macroValue: (name: string) => number | null;
+}
 
 class HeaderMacros {
   /** Every object-like macro a `-dM` dump defines, by name */
@@ -85,7 +104,8 @@ class HeaderMacros {
     typed: Map<string, THeaderMacro>,
     expanding: Set<string>,
   ): THeaderMacro {
-    const kinds = HeaderMacros.tokens(body)
+    const tokens = HeaderMacros.tokens(body);
+    const kinds = tokens
       .filter((token) => token.kind !== "paren")
       .map((token) =>
         token.kind === "name"
@@ -112,7 +132,118 @@ class HeaderMacros {
         typeName: HeaderMacros.usualFloating(floating),
       };
     }
-    return { kind: "integer" };
+    return {
+      kind: "integer",
+      value: HeaderMacros.valueOf(tokens, (name) => {
+        const macro = typed.get(name);
+        return macro?.kind === "integer" ? macro.value : null;
+      }),
+    };
+  }
+
+  /**
+   * #1283 review: an integer expansion's value, read the way C reads it, or
+   * null. Every operand and every step must stay in `0..INT_MAX`: there `int`,
+   * `unsigned` and `long` arithmetic all give the exact result, so the value
+   * does not depend on which of them C picks. The names it holds are macros
+   * already typed (`typeOf` follows them first).
+   */
+  private static valueOf(
+    tokens: readonly TMacroToken[],
+    macroValue: (name: string) => number | null,
+  ): number | null {
+    const reader = { tokens, next: 0, macroValue };
+    const value = HeaderMacros.binary(reader, 0);
+    return reader.next === tokens.length ? value : null;
+  }
+
+  private static binary(reader: IValueReader, level: number): number | null {
+    if (level === BINARY_PRECEDENCE.length) {
+      return HeaderMacros.unary(reader);
+    }
+    let left = HeaderMacros.binary(reader, level + 1);
+    for (;;) {
+      const token = reader.tokens[reader.next];
+      if (
+        token?.kind !== "operator" ||
+        !BINARY_PRECEDENCE[level].includes(token.text)
+      ) {
+        return left;
+      }
+      reader.next++;
+      const right = HeaderMacros.binary(reader, level + 1);
+      left =
+        left === null || right === null
+          ? null
+          : HeaderMacros.inRange(HeaderMacros.apply(token.text, left, right));
+    }
+  }
+
+  private static unary(reader: IValueReader): number | null {
+    const token = reader.tokens[reader.next++];
+    switch (token?.kind) {
+      case "integer":
+        return HeaderMacros.inRange(HeaderMacros.literalValue(token.text));
+      case "name":
+        return reader.macroValue(token.name);
+      case "operator": {
+        const operand = HeaderMacros.unary(reader);
+        if (operand === null) return null;
+        if (token.text === "+") return operand;
+        // `-x` and `~x` leave the range for every x but `-0`
+        return token.text === "-" ? HeaderMacros.inRange(-operand) : null;
+      }
+      case "paren": {
+        if (token.text !== "(") return null;
+        const inner = HeaderMacros.binary(reader, 0);
+        const close = reader.tokens[reader.next++];
+        return close?.kind === "paren" && close.text === ")" ? inner : null;
+      }
+      default:
+        return null;
+    }
+  }
+
+  private static apply(operator: string, left: number, right: number): number {
+    switch (operator) {
+      case "|":
+        return left | right;
+      case "^":
+        return left ^ right;
+      case "&":
+        return left & right;
+      case "<<":
+        return right < 31 ? left * 2 ** right : Number.NaN;
+      case ">>":
+        return right < 31 ? Math.floor(left / 2 ** right) : Number.NaN;
+      case "+":
+        return left + right;
+      case "-":
+        return left - right;
+      case "*":
+        return left * right;
+      case "/":
+        return right === 0 ? Number.NaN : Math.trunc(left / right);
+      default:
+        return right === 0 ? Number.NaN : left % right;
+    }
+  }
+
+  private static inRange(value: number): number | null {
+    return Number.isInteger(value) && value >= 0 && value <= INT_MAX
+      ? value
+      : null;
+  }
+
+  /** An integer literal's value: hex, binary, octal (a leading 0) or decimal */
+  private static literalValue(literal: string): number {
+    const digits = literal.replace(/[uUlL]+$/, "");
+    if (/^0[xX]/.test(digits)) return Number.parseInt(digits.slice(2), 16);
+    if (/^0[bB]/.test(digits)) return Number.parseInt(digits.slice(2), 2);
+    if (/^0\d/.test(digits)) {
+      return /^0[0-7]+$/.test(digits) ? Number.parseInt(digits, 8) : Number.NaN;
+    }
+    return Number(digits);
   }
 
   private static tokens(body: string): TMacroToken[] {
@@ -124,13 +255,13 @@ class HeaderMacros {
           typeName: HeaderMacros.literalType(match[1]),
         });
       } else if (match[2] !== undefined) {
-        tokens.push({ kind: "integer" });
+        tokens.push({ kind: "integer", text: match[2] });
       } else if (match[3] !== undefined) {
         tokens.push({ kind: "name", name: match[3] });
       } else if (match[4] !== undefined) {
-        tokens.push({ kind: "operator" });
+        tokens.push({ kind: "operator", text: match[4] });
       } else if (match[5] !== undefined) {
-        tokens.push({ kind: "paren" });
+        tokens.push({ kind: "paren", text: match[5] });
       } else if (match[6] !== undefined) {
         tokens.push({ kind: "character" });
       } else if (match[7] !== undefined) {

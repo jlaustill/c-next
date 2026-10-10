@@ -58,8 +58,54 @@ describe("HeaderMacros.collect", () => {
         "#define HEXF 0x1F",
       ].join("\n"),
     );
-    for (const name of ["LIMIT", "MASK", "BITS", "DERIVED", "HEXF"]) {
-      expect(macros.get(name)).toEqual({ kind: "integer" });
+    expect(macros.get("LIMIT")).toEqual({ kind: "integer", value: 10 });
+    expect(macros.get("MASK")).toEqual({ kind: "integer", value: 0xff0 });
+    expect(macros.get("BITS")).toEqual({ kind: "integer", value: 10 });
+    expect(macros.get("DERIVED")).toEqual({ kind: "integer", value: 0xff4 });
+    expect(macros.get("HEXF")).toEqual({ kind: "integer", value: 31 });
+  });
+
+  it("reads an integer macro's value the way C does (#1283 review)", () => {
+    const macros = HeaderMacros.collect(
+      [
+        "#define N 3",
+        "#define M (N - 1)",
+        "#define ORDER (1 + 2 * 3 << 1)",
+        "#define OCT 010",
+        "#define DIV (7 / 2 % 3)",
+        "#define UNARY (+N - -0)",
+      ].join("\n"),
+    );
+    expect(macros.get("N")).toEqual({ kind: "integer", value: 3 });
+    expect(macros.get("M")).toEqual({ kind: "integer", value: 2 });
+    expect(macros.get("ORDER")).toEqual({ kind: "integer", value: 14 });
+    expect(macros.get("OCT")).toEqual({ kind: "integer", value: 8 });
+    expect(macros.get("DIV")).toEqual({ kind: "integer", value: 0 });
+    expect(macros.get("UNARY")).toEqual({ kind: "integer", value: 3 });
+  });
+
+  it("reads no value where int, unsigned and long could disagree", () => {
+    const macros = HeaderMacros.collect(
+      [
+        "#define NEG (0 - 1)",
+        "#define NOT (~0)",
+        "#define WIDE 4294967295u",
+        "#define SHIFT (1 << 31)",
+        "#define BY_ZERO (1 / 0)",
+        "#define BAD_OCT 09",
+        "#define UNBALANCED (1 + 2",
+      ].join("\n"),
+    );
+    for (const name of [
+      "NEG",
+      "NOT",
+      "WIDE",
+      "SHIFT",
+      "BY_ZERO",
+      "BAD_OCT",
+      "UNBALANCED",
+    ]) {
+      expect(macros.get(name)).toEqual({ kind: "integer", value: null });
     }
   });
 
@@ -146,6 +192,6 @@ describe("HeaderMacros.collect", () => {
     });
     expect(macros.get("M_PI")).toEqual({ kind: "floating", typeName: "f64" });
     expect(macros.get("NAN")).toEqual({ kind: "unreadable" });
-    expect(macros.get("__GNUC__")).toEqual({ kind: "integer" });
+    expect(macros.get("__GNUC__")).toMatchObject({ kind: "integer" });
   });
 });

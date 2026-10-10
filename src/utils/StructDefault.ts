@@ -31,16 +31,11 @@ class StructDefault {
     if (!fields) {
       return [];
     }
-    const dimensions = facts.structFieldDimensions.get(structName);
     const result: IStructFieldDefault[] = [];
     for (const [fieldName, typeName] of fields) {
       const value = StructDefault.valueOf(typeName, facts);
       if (value !== null) {
-        result.push({
-          fieldName,
-          value,
-          dimensions: dimensions?.get(fieldName) ?? [],
-        });
+        result.push({ fieldName, value });
       }
     }
     return result;

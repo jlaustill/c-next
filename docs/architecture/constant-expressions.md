@@ -225,3 +225,8 @@ itself be sized by a const.
   dimension is E0909 until #1877 decides what that spelling means.
 - A header macro as an enum member's value is rejected for now (owner ruling,
   ADR-017): C-Next needs the value itself.
+- An array whose every element C-Next spells (ADR-029: a callback array, an
+  array of a struct with a default) needs its count. `ElementCount` folds the
+  dimension as above, except that a header macro of plain integer arithmetic
+  answers the value `HeaderMacros` read from the macro dump. The dimension
+  itself stays the macro. A count it cannot read is E0359 (#1283).

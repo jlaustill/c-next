@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-505 fixture(s) assert a diagnostic; 495 carry a code.
+506 fixture(s) assert a diagnostic; 496 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -317,6 +317,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1220-analyzer-cross-file-symbols/signed-shift-imported-transitive.test.cnx      | E0805               |
 | tests/bugs/issue-1220-analyzer-cross-file-symbols/signed-shift-same-file.test.cnx                | E0805               |
 | tests/bugs/issue-1283-adr029-init-at-declaration/non-callback-field-read.test.cnx                | E0381               |
+| tests/bugs/issue-1283-adr029-init-at-declaration/unreadable-macro-size.test.cnx                  | E0359               |
 | tests/bugs/issue-1306-nested-scope-diagnostic/cross-file-nested.test.cnx                         | E0430               |
 | tests/bugs/issue-1307-external-identifier-significance/colliding-scope-members.test.cnx          | E0204               |
 | tests/bugs/issue-1307-external-identifier-significance/cross-file-collision.test.cnx             | E0204               |
