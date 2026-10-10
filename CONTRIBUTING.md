@@ -580,6 +580,8 @@ The GitHub Actions workflow (`.github/workflows/pr-checks.yml`) automatically ru
 
 The two ruleset-required status checks gating merge are **"All Checks Passed"** (aggregates the jobs above) and **"SonarCloud Code Analysis"**.
 
+Runs are queued: one at a time across every pull request and every push to `main`, first in, first out. When a run reaches the front of the queue and a newer run of the same pull request is already waiting, the older run cancels itself, so pushing again while your run waits costs no extra turn. A run already in progress finishes before the newer one starts.
+
 ### What This Means
 
 - **Merge button disabled** until all checks pass

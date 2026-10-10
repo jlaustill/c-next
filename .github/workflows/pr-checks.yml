@@ -30,18 +30,39 @@ on:
     # report the PR red rather than leaving it untouched.
     types: [opened, synchronize, reopened, edited]
 
-# A newer run of the same pull request cancels the one still in progress. A
-# push fires `synchronize` and a body edit fires `edited`, and each used to
-# start a full run of its own on the shared self-hosted runners. That overlap
-# is what pushed full-transpile tests past vitest's 5s default (#1564, #1752).
-# Pushes to main are grouped per commit, so none of them is ever cancelled.
+# One run at a time, across every pull request and every push to main, queued
+# first in, first out. Overlapping runs share the self-hosted runners, and that
+# overlap is what pushed full-transpile tests past vitest's 5s default (#1564,
+# #1752). A run on its own has all of them.
+#
+# A fork's pull request queues in a group of its own, keyed by its number. Its
+# runs never touch the self-hosted runners (see `runs-on:` below), so the shared
+# queue has nothing to protect from them -- and in the shared queue, anyone able
+# to open a pull request could fill all 100 places by editing its body, holding
+# every trusted run behind theirs and getting the next push to main cancelled.
+# The predicate is the one `runs-on:` uses, so the queue and the runners agree
+# on which runs are trusted.
+#
+# `queue: max` holds up to 100 waiting runs; GitHub cancels a run that arrives
+# at a full queue. It orders the queue by when each run started waiting, and
+# documents that order as not guaranteed.
+#
+# `queue: max` cannot be combined with `cancel-in-progress: true`, so a newer
+# run of a pull request no longer cancels the older one from here. The
+# `supersede` job does it instead, when the older run reaches the front of the
+# queue: if a newer run of the same pull request is waiting, the older run
+# cancels itself before any other job starts. A push or a body edit therefore
+# costs no extra turn while its predecessor is still waiting. A predecessor
+# already running finishes first -- nothing can cancel it, because the newer
+# run is itself waiting. Pushes to main are never superseded.
 #
 # all-checks-passed keeps `if: always()`, so a cancelled run still reports a
 # red "All Checks Passed" rather than a skip -- a cancellation must never read
 # as a pass. The newer run's check of the same name supersedes it.
 concurrency:
-  group: pr-checks-${{ github.event.pull_request.number || github.sha }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'pr-checks' || format('pr-checks-fork-{0}', github.event.pull_request.number) }}
+  cancel-in-progress: false
+  queue: max
 
 # Self-hosted runner for trusted code (your branches, pushes to main)
 # GitHub runners for untrusted code (fork PRs)
@@ -55,7 +76,7 @@ concurrency:
 # takes 5-9s with no remote cache at all. Restoring anyway cost 138-324s per
 # job to save ~4s of install time.
 #
-# It scaled badly rather than merely wastefully. The step runs in 11 of the 15
+# It scaled badly rather than merely wastefully. The step runs in 11 of the 16
 # jobs (7 single jobs + the 4-way c-validation matrix), so each run pulled
 # ~9.2 GB. At 1-3 concurrent runs that hid inside an 80s step; at 9-15
 # concurrent runs it saturated the uplink and stretched to ~500s per job,
@@ -64,11 +85,85 @@ concurrency:
 
 jobs:
   # ============================================================================
+  # STAGE 0: Cancel this run if a newer run of the same pull request is waiting
+  # ============================================================================
+  # Runs once this run reaches the front of the queue (see `concurrency:`).
+  # lint and build need it, so nothing else starts on a superseded run.
+  #
+  # A newer run counts only when it unambiguously belongs to this pull request:
+  # its `pull_requests` names this one and no other. That field lists every open
+  # pull request whose head matches the run, not the one that triggered it, so
+  # two open pull requests from one head branch list each other and neither is
+  # superseded. A fork's runs list none, so a fork's run is never superseded.
+  # Both fall back to running in full, which wastes a turn and blocks nothing.
+  #
+  # A newer run that was itself cancelled does not count: a run never stands
+  # down in favor of one that will not report.
+  #
+  # Reading the runs fails OPEN. On an API error the checks run, because this
+  # job only saves queue time and must never be the reason a pull request is
+  # red.
+  #
+  # The script reads the pull request from `context.payload`, never from a
+  # `${{ }}` expression, so a branch name cannot inject code into it.
+  supersede:
+    name: Superseded Run Check
+    runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
+    permissions:
+      actions: write # to cancel this run
+
+    steps:
+      - name: Cancel if a newer run of this pull request is waiting
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pullNumber = context.payload.pull_request.number;
+            let runs;
+            try {
+              const current = await github.rest.actions.getWorkflowRun({
+                ...context.repo,
+                run_id: context.runId,
+              });
+              runs = await github.paginate(github.rest.actions.listWorkflowRuns, {
+                ...context.repo,
+                workflow_id: current.data.workflow_id,
+                event: "pull_request",
+                branch: context.payload.pull_request.head.ref,
+                per_page: 100,
+              });
+            } catch (error) {
+              core.warning(`Could not list runs, so this run proceeds: ${error.message}`);
+              return;
+            }
+
+            const newer = runs.filter(
+              (run) =>
+                run.run_number > context.runNumber &&
+                run.conclusion !== "cancelled" &&
+                run.pull_requests.length === 1 &&
+                run.pull_requests[0].number === pullNumber,
+            );
+            if (newer.length === 0) return;
+
+            const numbers = newer.map((run) => `#${run.run_number}`).join(", ");
+            core.notice(`Superseded by run ${numbers} of pull request #${pullNumber}; cancelling.`);
+            await github.rest.actions.cancelWorkflowRun({
+              ...context.repo,
+              run_id: context.runId,
+            });
+            // The runner stops this step when the cancellation lands. Until
+            // then, holding it keeps lint and build from starting.
+            await new Promise((resolve) => setTimeout(resolve, 5 * 60 * 1000));
+            core.setFailed("Cancellation was requested five minutes ago and has not landed.");
+
+  # ============================================================================
   # STAGE 1 (parallel): Build + Lint
   # ============================================================================
   lint:
     name: Static Analysis
     runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
+    needs: [supersede]
 
     steps:
       - name: Checkout code
@@ -328,6 +423,7 @@ jobs:
   build:
     name: Build
     runs-on: ${{ (github.event_name == 'push' || !github.event.pull_request.head.repo.fork) && 'self-hosted' || 'ubuntu-latest' }}
+    needs: [supersede]
 
     steps:
       - name: Checkout code
