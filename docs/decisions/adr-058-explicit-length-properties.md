@@ -273,21 +273,15 @@ struct SensorReading {
 }
 
 SensorReading reading;
-u32 bits <- reading.bit_length;        // struct size in bits
-u32 bytes <- reading.byte_length;      // struct size in bytes (with padding)
+u32 bits <- reading.bit_length;        // 88 (32 + 32 + 16 + 8)
+u32 bytes <- reading.byte_length;      // 11 (sum of field sizes, no padding)
 u32 fields <- reading.element_count;   // 4 (number of fields)
 ```
 
-Struct size properties are invaluable for memory safety in v2 scenarios:
-
-```cnx
-// Dynamic memory (ADR-101, v2)
-SensorReading[100] readings;
-u32 total_bytes <- readings.byte_length;   // Total buffer size for DMA transfer
-
-// Thread-safe shared memory (ADR-100, v2)
-u32 struct_size <- reading.byte_length;    // Size for memcpy in IPC
-```
+A struct's `.byte_length` is the sum of its fields' sizes, not its C storage
+size: C's `sizeof(SensorReading)` is 12 on x86-64, because one padding byte
+follows `u8 status`. An array of structs follows the array rule, so
+`SensorReading[100]` is 1100 bytes, while C stores it in 1200.
 
 ### User-Defined `.length` Now Works
 
@@ -456,9 +450,9 @@ error: `.length` is not a built-in property. Use explicit properties instead.
 
 1. **`args` in `main()`**: `args` is an array, so `args.element_count` maps to `argc`. Consistent with all other arrays.
 
-2. **String `bit_length`/`byte_length` semantics**: Uses `.size` semantics (actual buffer storage including null terminator). For `string<64>`: `bit_length` = 520 (65 × 8), `byte_length` = 65. This matches the principle that `bit_length`/`byte_length` always report actual storage, which is what you need for `memcpy`, DMA transfers, etc.
+2. **String `bit_length`/`byte_length` semantics**: Uses `.size` semantics (actual buffer storage including null terminator). For `string<64>`: `bit_length` = 520 (65 × 8), `byte_length` = 65. For a string, `bit_length`/`byte_length` report its actual buffer storage. (A struct's do not; see question 7.)
 
-3. **Structs get all applicable properties**: `bit_length`, `byte_length` (total struct size including padding), and `element_count` (number of fields). These will be invaluable for v2 dynamic memory (ADR-101) and multi-core synchronization (ADR-100) where knowing exact struct sizes at compile time is critical for safe memory operations.
+3. **Structs get all applicable properties**: `bit_length`, `byte_length` (the sum of the fields' sizes, without C padding; see question 7), and `element_count` (number of fields).
 
 4. **Naming convention**: `snake_case` (`bit_length`, `byte_length`, `element_count`, `char_count`) so that users can still use `camelCase` (e.g., `bitLength`, `byteLength`) in their own struct fields and scope members without collision.
 
@@ -466,11 +460,11 @@ error: `.length` is not a built-in property. Use explicit properties instead.
 
 6. **Enums**: Yes, enums get `bit_length` (32) and `byte_length` (4).
 
+7. **Struct padding** (owner ruling, #1535): a struct's `bit_length`/`byte_length` are the sum of its fields' sizes, without C struct padding. For `struct P { u32 x; u8 y; }`, `byte_length` is 5, while C's `sizeof(P)` is 8 on x86-64. Both are compile-time constants, independent of the C compiler's layout.
+
 ## Open Questions
 
-1. **Struct padding**: Should `bit_length`/`byte_length` on structs report the size with or without C struct padding? With padding matches `sizeof()` (what you'd use for `memcpy`), but without padding matches the sum of field sizes. The `sizeof` interpretation is more useful and matches what C does.
-
-2. **Nested struct arrays**: For `struct Outer { Inner[10] items; }`, should `outer.items.element_count` return 10? This follows naturally from the array rules, but the implementation needs to handle struct field type resolution.
+1. **Nested struct arrays**: For `struct Outer { Inner[10] items; }`, should `outer.items.element_count` return 10? This follows naturally from the array rules, but the implementation needs to handle struct field type resolution.
 
 ---
 
@@ -526,10 +520,9 @@ declared in this file or across an include, so every cell is `error`.
 
 **A divergence this matrix does not cover.** The property table above gives
 structs `.bit_length`, `.byte_length` and `.element_count`, and the transpiler
-rejects all three. That is a spec/implementation divergence, and it is left
-open on purpose: closing it requires deciding what `.byte_length` on a struct
-means, and "with padding" does not say whose padding. It needs a decision, not
-a fixture.
+rejects all three. That is a spec/implementation divergence. Resolved
+question 7 settles what `.byte_length` on a struct means (no padding); the
+implementation is tracked in #1535.
 
 ## References
 
