@@ -137,17 +137,6 @@ interface IOrchestrator {
   /** Clear length cache */
   clearLengthCache(): void;
 
-  /** Register a local variable */
-  /**
-   * Register a local and get back the C identifier it must be emitted under.
-   *
-   * ADR-057: a local that shadows a file-scope name is emitted under a distinct
-   * name so `global.x` still reaches past it. Returning it keeps generators out
-   * of CodeGenState -- the caller cannot forget to ask, because the name it
-   * needs is the return value.
-   */
-  registerLocalVariable(name: string): string;
-
   // === Declaration Generation ===
 
   /** Get the length of a string literal (excluding quotes and null terminator) */
@@ -236,11 +225,6 @@ interface IOrchestrator {
    * Returns false if unmodified or unknown (callee not yet processed).
    */
   isCalleeParameterModified(funcName: string, paramIndex: number): boolean;
-
-  /**
-   * Issue #268: Check if a name is a parameter of the current function.
-   */
-  isCurrentParameter(name: string): boolean;
 
   // === Postfix Expression Helpers (Issue #644) ===
 

@@ -47,7 +47,14 @@ describe("SizeofResolver", () => {
       declareParameter("arr", { isArray: true });
 
       expect(() =>
-        SizeofResolver.generate({ kind: "user-type", text: "arr" }, state),
+        SizeofResolver.generate(
+          {
+            kind: "user-type",
+            text: "arr",
+            textBinding: { kind: "parameter" },
+          },
+          state,
+        ),
       ).toThrow("E0601 rejects this in pass 2.1");
     });
 
@@ -55,7 +62,14 @@ describe("SizeofResolver", () => {
       declareParameter("value");
 
       expect(
-        SizeofResolver.generate({ kind: "user-type", text: "value" }, state),
+        SizeofResolver.generate(
+          {
+            kind: "user-type",
+            text: "value",
+            textBinding: { kind: "parameter" },
+          },
+          state,
+        ),
       ).toBe("sizeof(*value)");
     });
 
@@ -66,23 +80,61 @@ describe("SizeofResolver", () => {
       declareParameter("p", overrides);
 
       expect(
-        SizeofResolver.generate({ kind: "user-type", text: "p" }, state),
+        SizeofResolver.generate(
+          { kind: "user-type", text: "p", textBinding: { kind: "parameter" } },
+          state,
+        ),
       ).toBe("sizeof(p)");
     });
 
     /**
-     * The emitted name is written out literally, not read back from
-     * `emittedLocalName`: asserting against the same call the resolver makes
-     * compares the function to itself and passes however the resolver spells
-     * the name. Measured -- with the lookup bypassed that shape stayed green.
+     * The emitted name is 1.4's (#1934) and arrives on the operand; the
+     * resolver must write it, not the source spelling.
      */
     it("uses the emitted name of a shadowing local (ADR-057)", () => {
-      state.localVariables.add("arr");
-      state.registerLocalRename("arr", "main__arr");
+      expect(
+        SizeofResolver.generate(
+          {
+            kind: "user-type",
+            text: "arr",
+            textBinding: { kind: "value", cName: "main__arr" },
+          },
+          state,
+        ),
+      ).toBe("sizeof(main__arr)");
+    });
+
+    /**
+     * #1966: a name that binds to a value is that value, even where a
+     * parameter of the same name is in the render-time table -- the block-local
+     * that shadows it.
+     */
+    it("measures the value a name binds to, not a same-named parameter", () => {
+      declareParameter("cfg", { isStruct: true });
 
       expect(
-        SizeofResolver.generate({ kind: "user-type", text: "arr" }, state),
-      ).toBe("sizeof(main__arr)");
+        SizeofResolver.generate(
+          {
+            kind: "user-type",
+            text: "cfg",
+            textBinding: { kind: "value", cName: "cfg" },
+          },
+          state,
+        ),
+      ).toBe("sizeof(cfg)");
+    });
+
+    it("holds that a parameter binding is one of the current function's", () => {
+      expect(() =>
+        SizeofResolver.generate(
+          {
+            kind: "user-type",
+            text: "ghost",
+            textBinding: { kind: "parameter" },
+          },
+          state,
+        ),
+      ).toThrow("is one of the current function's");
     });
   });
 
@@ -96,89 +148,25 @@ describe("SizeofResolver", () => {
       return { renderTypeName: spy, calls: () => spy.mock.calls.length };
     }
 
-    it("handles struct.member access for local variable", () => {
-      state.localVariables.add("myStruct");
+    /**
+     * #1973: a struct type's field. A value chain never reaches this arm --
+     * the walker renders it as an expression (#1972) -- and ADR-023 has not
+     * decided this form, so it is written as it is.
+     */
+    it("writes a struct type's field as written (#1973)", () => {
       const spy = renderSpy();
 
       const result = SizeofResolver.generate(
         {
           kind: "qualified-type",
-          firstName: "myStruct",
-          memberName: "field",
+          firstName: "Point",
+          memberName: "y",
           renderTypeName: spy.renderTypeName,
         },
         state,
       );
 
-      expect(result).toBe("sizeof(myStruct.field)");
-      // A member access names no type, so rendering one would register an
-      // include for a type the program never mentions.
-      expect(spy.calls()).toBe(0);
-    });
-
-    it("uses the emitted name when the local shadows a file-scope name", () => {
-      state.localVariables.add("cfg");
-      state.registerLocalRename("cfg", "main__cfg");
-
-      expect(
-        SizeofResolver.generate(
-          {
-            kind: "qualified-type",
-            firstName: "cfg",
-            memberName: "x",
-            renderTypeName: renderSpy().renderTypeName,
-          },
-          state,
-        ),
-      ).toBe("sizeof(main__cfg.x)");
-    });
-
-    it("handles struct parameter with arrow notation", () => {
-      declareParameter("param", { baseType: "MyStruct", isStruct: true });
-
-      expect(
-        SizeofResolver.generate(
-          {
-            kind: "qualified-type",
-            firstName: "param",
-            memberName: "field",
-            renderTypeName: renderSpy().renderTypeName,
-          },
-          state,
-        ),
-      ).toBe("sizeof(param->field)");
-    });
-
-    it("handles non-struct parameter with dot notation", () => {
-      declareParameter("param", { baseType: "MyStruct" });
-
-      expect(
-        SizeofResolver.generate(
-          {
-            kind: "qualified-type",
-            firstName: "param",
-            memberName: "field",
-            renderTypeName: renderSpy().renderTypeName,
-          },
-          state,
-        ),
-      ).toBe("sizeof(param.field)");
-    });
-
-    it("treats an unknown first identifier as a global struct variable", () => {
-      const spy = renderSpy();
-
-      const result = SizeofResolver.generate(
-        {
-          kind: "qualified-type",
-          firstName: "config",
-          memberName: "field",
-          renderTypeName: spy.renderTypeName,
-        },
-        state,
-      );
-
-      expect(result).toBe("sizeof(config.field)");
+      expect(result).toBe("sizeof(Point.y)");
       expect(spy.calls()).toBe(0);
     });
 
@@ -221,6 +209,7 @@ describe("SizeofResolver", () => {
           {
             kind: "expression",
             simpleIdentifier: null,
+            parameter: undefined,
             hasSideEffects: false,
             code: "a + b",
           },
@@ -237,6 +226,7 @@ describe("SizeofResolver", () => {
           {
             kind: "expression",
             simpleIdentifier: "arr",
+            parameter: state.currentParameters.get("arr"),
             hasSideEffects: false,
             code: "arr",
           },
@@ -251,6 +241,7 @@ describe("SizeofResolver", () => {
           {
             kind: "expression",
             simpleIdentifier: null,
+            parameter: undefined,
             hasSideEffects: true,
             code: "f()",
           },

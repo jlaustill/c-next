@@ -27,7 +27,6 @@ interface SetupStateOptions {
   currentScopePath?: string | null;
   scopeMembers?: Map<string, Set<string>>;
   currentParameters?: Map<string, TParameterInfo>;
-  localVariables?: Set<string>;
 }
 
 function setupState(options: SetupStateOptions = {}): void {
@@ -55,9 +54,6 @@ function setupState(options: SetupStateOptions = {}): void {
   }
   if (options.currentParameters) {
     state.currentParameters = options.currentParameters;
-  }
-  if (options.localVariables) {
-    state.localVariables = options.localVariables;
   }
 }
 

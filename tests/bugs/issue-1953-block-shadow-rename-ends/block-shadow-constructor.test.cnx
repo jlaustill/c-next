@@ -1,0 +1,23 @@
+// test-cpp-only
+// test-execution
+// Issue #1953: a constructor-declared block-local that shadows a global is renamed
+// only inside its block, and the global stays reachable after it
+
+#include "Tally.hpp"
+
+u32 shared <- 4;
+
+u32 main() {
+    u32 flag <- 1;
+    const u8 seed <- 3;
+    if (flag = 1) {
+        Tally shared(seed);
+        if (shared.start != 3) {
+            return 1;
+        }
+    }
+    if (shared != 4) {
+        return 2;
+    }
+    return 0;
+}

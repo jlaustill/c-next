@@ -1,0 +1,12 @@
+21:18 error[E0867]: .char_count is not available on a literal
+       help: A length property measures a declared value; declare one and ask it (ADR-058).
+25:17 error[E0867]: .byte_length is not available on a literal
+       help: A length property measures a declared value; declare one and ask it (ADR-058).
+29:18 error[E0867]: .capacity is not available on a literal
+       help: A length property measures a declared value; declare one and ask it (ADR-058).
+33:17 error[E0867]: .bit_length is not available on a literal
+       help: A length property measures a declared value; declare one and ask it (ADR-058).
+37:21 error[E0867]: .bit_length is not available on a literal
+       help: A length property measures a declared value; declare one and ask it (ADR-058).
+41:18 error[E0886]: '.length' is deprecated
+       help: Use .char_count for a string's length, .element_count for an array's, or .bit_length / .byte_length for a width (ADR-058).

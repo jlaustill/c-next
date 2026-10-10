@@ -10,11 +10,12 @@
  *
  * ## It takes an operand, not a node (#1445)
  *
- * Every question here is about a NAME and `CodeGenState`: is `arr` a
- * parameter, is `cfg` a local that shadows a file-scope name, is `Scope` a
- * known scope. The tree was consulted only to find out WHICH grammar
- * alternative matched, which is the caller's question -- so `TSizeofOperand`
- * arrives already discriminated and this module names no parse type.
+ * Every question here is about a NAME: what `arr` binds to where the `sizeof`
+ * is (#1966), and whether `Scope` is a known scope. The tree was consulted
+ * only to find out WHICH grammar alternative matched, which is the caller's
+ * question -- so `TSizeofOperand` arrives already discriminated and this
+ * module names no parse type. A member chain (#1972) and a type name (#1974)
+ * arrive already rendered, by the decisions every other position uses.
  *
  * The one thing it must not do is render a type name for `a.b` before
  * deciding `a.b` is a type, which is why that arm carries a thunk. See
@@ -22,6 +23,8 @@
  */
 
 import TSizeofOperand from "../types/TSizeofOperand";
+import type TSizeofName from "../types/TSizeofName";
+import type TParameterInfo from "../../../../types/TParameterInfo";
 import invariant from "../../../../utils/invariant";
 import type TranspileState from "../../../TranspileState";
 
@@ -37,8 +40,7 @@ export default class SizeofResolver {
   static generate(operand: TSizeofOperand, state: TranspileState): string {
     switch (operand.kind) {
       case "qualified-type":
-        // `a.b` matched the qualified-TYPE alternative, and may still be a
-        // member access -- only `CodeGenState` knows which.
+        // `a.b` that is not a member access (#1972): a type, or #1973's form
         return (
           this.sizeofQualifiedType(
             operand.firstName,
@@ -47,70 +49,62 @@ export default class SizeofResolver {
           ) ?? `sizeof(${operand.renderTypeName()})`
         );
       case "user-type":
-        return this.sizeofUserType(operand.text, state);
+        return this.sizeofUserType(operand.text, operand.textBinding, state);
       case "plain-type":
         return `sizeof(${operand.cTypeName})`;
       case "expression":
-        return this.sizeofExpression(operand, state);
+        return this.sizeofExpression(operand);
     }
   }
 
   /**
-   * Handle sizeof(qualified.type) - may be struct.member access
-   * Returns null if this is actually a type reference (Scope.Type)
+   * `a.b` that does not type as a member chain (#1972 renders those as
+   * expressions): a scope's or enum's type (`Scope.Type`) renders as a type.
+   * Returns null for that case.
    */
   private static sizeofQualifiedType(
     firstName: string,
     memberName: string,
     state: TranspileState,
   ): string | null {
-    // Check if first identifier is a local variable (struct instance)
-    if (state.localVariables.has(firstName)) {
-      // ADR-057: a local that shadows a file-scope name is emitted under a
-      // distinct C identifier. Without this, `sizeof(cfg.x)` measured the
-      // GLOBAL `cfg` -- a wrong number, compiling clean.
-      return `sizeof(${state.emittedLocalName(firstName)}.${memberName})`;
+    if (state.isKnownScope(firstName) || state.isKnownEnum(firstName)) {
+      return null;
     }
-
-    // Check if first identifier is a parameter (struct parameter)
-    const paramInfo = state.currentParameters.get(firstName);
-    if (paramInfo) {
-      const sep = paramInfo.isStruct ? "->" : ".";
-      return `sizeof(${firstName}${sep}${memberName})`;
-    }
-
-    // Check if first identifier is a global variable
-    // If not a scope or enum, it's likely a global struct variable
-    if (!state.isKnownScope(firstName) && !state.isKnownEnum(firstName)) {
-      return `sizeof(${firstName}.${memberName})`;
-    }
-
-    // It's an actual type reference (Scope.Type), return null to fall through
-    return null;
+    // #1973: a struct type's field (`Point.y`). ADR-023 has not decided
+    // whether that form is valid, so it is written as it is until it does.
+    return `sizeof(${firstName}.${memberName})`;
   }
 
   /**
-   * Handle sizeof(identifier) - could be variable or type name
+   * Handle sizeof(identifier) where the identifier binds to a value
    */
   private static sizeofUserType(
     varName: string,
+    binding: Exclude<TSizeofName, { readonly kind: "none" }>,
     state: TranspileState,
   ): string {
-    // Check if it's a known parameter
-    const paramInfo = state.currentParameters.get(varName);
-    if (paramInfo) {
-      return this.sizeofParameter(varName, paramInfo);
+    switch (binding.kind) {
+      case "parameter":
+        return this.sizeofParameter(varName, this.parameterOf(varName, state));
+      case "value":
+        // ADR-057: without the emitted name `sizeof(arr)` measured the GLOBAL
+        // array -- 16 bytes where 8 was correct, compiling clean -- and a scope
+        // member's bare name did not compile (#1967)
+        return `sizeof(${binding.cName})`;
     }
+  }
 
-    // Check if it's a known local variable, struct type, or enum type
-    // For all these cases, generate sizeof(name) directly
-    // Unknown identifiers are also treated as variables for safety
-    //
-    // ADR-057: emittedLocalName is a no-op for type names and for locals that
-    // shadow nothing -- a rename exists only for a local of this exact name in
-    // this function. Without it `sizeof(arr)` measured the GLOBAL array: 16
-    // bytes where 8 was correct, with no diagnostic and a clean compile.
-    return `sizeof(${state.emittedLocalName(varName)})`;
+  /** The current function's parameter a `sizeof` operand binds to */
+  private static parameterOf(
+    name: string,
+    state: TranspileState,
+  ): TParameterInfo {
+    const paramInfo = state.currentParameters.get(name);
+    invariant(
+      paramInfo !== undefined,
+      `a name that binds to a parameter ('${name}') is one of the current function's`,
+    );
+    return paramInfo;
   }
 
   /**
@@ -150,12 +144,10 @@ export default class SizeofResolver {
    */
   private static sizeofExpression(
     operand: Extract<TSizeofOperand, { kind: "expression" }>,
-    state: TranspileState,
   ): string {
     // E0601: Check if expression is an array parameter
     if (operand.simpleIdentifier !== null) {
-      const paramInfo = state.currentParameters.get(operand.simpleIdentifier);
-      if (paramInfo?.isArray) {
+      if (operand.parameter?.isArray) {
         this.throwArrayParamSizeofError(operand.simpleIdentifier);
       }
     }

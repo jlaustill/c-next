@@ -51,6 +51,7 @@ import ArrayIndexBoundsAnalyzer from "./ArrayIndexBoundsAnalyzer";
 import CallbackAssignmentAnalyzer from "./CallbackAssignmentAnalyzer";
 import BitmapAccessAnalyzer from "./BitmapAccessAnalyzer";
 import SafeDivisionAnalyzer from "./SafeDivisionAnalyzer";
+import CPointerArgumentAnalyzer from "./CPointerArgumentAnalyzer";
 import BitAccessAnalyzer from "./BitAccessAnalyzer";
 import DeclarationModifierAnalyzer from "./DeclarationModifierAnalyzer";
 import SizeofAnalyzer from "./SizeofAnalyzer";
@@ -86,11 +87,13 @@ interface IAnalyzerError {
   code?: string;
   rule?: string;
   helpText?: string;
+  severity?: "error" | "warning";
 }
 
 /**
  * Convert analyzer errors to ITranspileError format and add to accumulator.
- * Returns true if any errors were added (for early return logic).
+ * Returns true if any errors were added (for early return logic); a warning
+ * is reported and stops nothing.
  */
 function collectErrors<E extends IAnalyzerError>(
   analyzerErrors: E[],
@@ -107,11 +110,11 @@ function collectErrors<E extends IAnalyzerError>(
       line: err.line,
       column: err.column,
       message: formatMessage(err),
-      severity: "error",
+      severity: err.severity ?? "error",
       helpText: err.helpText,
     });
   }
-  return analyzerErrors.length > 0;
+  return analyzerErrors.some((err) => err.severity !== "warning");
 }
 
 /**
@@ -166,7 +169,7 @@ function runAnalyzers(
   const { tree, comments } = parsed;
   const errors: ITranspileError[] = [];
   const formatWithCode = (e: TCodedAnalyzerError) =>
-    CodedErrorText.of(e.code, e.message);
+    CodedErrorText.of(e.code, e.message, e.severity);
 
   // #1456: the caller's, always. No fallback to shared state -- see the field.
   const context = options.context;
@@ -418,6 +421,10 @@ function runAnalyzers(
     {
       label: "safe_div/safe_mod call shape (ADR-051, E0884/E0885)",
       run: () => new SafeDivisionAnalyzer(context).analyze(tree),
+    },
+    {
+      label: "C pointer parameter arguments (#1977, E0895)",
+      run: () => new CPointerArgumentAnalyzer(context).analyze(tree),
     },
     {
       label: "sizeof operands (ADR-023, E0601/E0602)",

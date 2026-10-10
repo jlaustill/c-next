@@ -35,14 +35,12 @@ describe("LengthPropertyAnalyzer", () => {
     expect(errors(inMain("u32[4] a;", "a.char_count"))).toHaveLength(1);
   });
 
-  it("rejects .bit_length on a struct -- the ADR-058 divergence, preserved", () => {
-    // ADR-058's table gives structs a .bit_length and the transpiler rejects
-    // it. The relocation keeps that behavior identical rather than closing the
-    // divergence, because closing it means choosing a padding model the ADR
-    // does not name. See the analyzer's header.
-    expect(
-      errors(inMain("struct S { u32 a; }\nS s;", "s.bit_length")),
-    ).toHaveLength(1);
+  it("accepts a struct's three lengths (#1535, ADR-058 q7)", () => {
+    const decls = "struct S { u32 a; u8 b; }\nS s;";
+    for (const p of ["bit_length", "byte_length", "element_count"]) {
+      expect(errors(inMain(decls, `s.${p}`))).toEqual([]);
+    }
+    expect(errors(inMain(decls, "s.char_count"))).toHaveLength(1);
   });
 
   it("accepts every property on a type that answers it", () => {

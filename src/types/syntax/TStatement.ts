@@ -24,6 +24,7 @@ type TStatement = ISyntaxNode &
         readonly kind: "constructorDeclaration";
         readonly type: TTypeSyntax;
         readonly name: string;
+        readonly nameSpan: ISyntaxNode["span"];
         readonly arguments: readonly (ISyntaxNode & {
           readonly name: string;
         })[];

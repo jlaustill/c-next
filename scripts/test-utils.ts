@@ -267,7 +267,9 @@ function transpileViaCli(
       if (!line.trim() || line === "Compilation failed") continue;
 
       // Match: "Error: /path/file.cnx:line:column message"
-      const fullMatch = line.match(/^Error:\s*([^:]+):(\d+):(\d+)\s+(.+)$/);
+      const fullMatch = line.match(
+        /^(?:Error|Warning):\s*([^:]+):(\d+):(\d+)\s+(.+)$/,
+      );
       if (fullMatch) {
         // Save previous error if any
         if (currentError) {

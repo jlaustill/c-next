@@ -1,4 +1,5 @@
 import type TTypeInfo from "../../../../types/TTypeInfo";
+import type TParameterInfo from "../../../../types/TParameterInfo";
 /**
  * One argument of a function call, reduced to what the call generator asks of
  * it (#1445 box 3).
@@ -37,6 +38,13 @@ interface IPlannedCallArgument {
    * renders.
    */
   readonly simpleIdentifier: string | null;
+
+  /**
+   * #1969: the current function's parameter `simpleIdentifier` binds to where
+   * the argument is written; undefined for any other argument. Eager for the
+   * same reason.
+   */
+  readonly parameter: TParameterInfo | undefined;
 
   /** The argument's inferred type, asked where the generator asks it. */
   readonly expressionType: () => string | null;

@@ -367,7 +367,7 @@ type TValueBinding =
 
 **Emission shares the decision** (graft from incremental; needed for #1700 box 3). `TypeValidator.resolveBareIdentifier` (`3-Render/codegen/TypeValidator.ts:77-127`) takes the `TValueBinding` instead of `isLocalVariable` plus `_resolveScopeMember`:
 
-- `local` gives `state.emittedLocalName(name)`, which keeps the ADR-057 rename.
+- `local` gives the declaration's `emittedName`, which keeps the ADR-057 rename. #1934 settles it in 1.4, on the declaration, so it is bound at the use's position and a block's rename ends with the block (#1953); before, 2.3 kept it in a per-function map.
 - `variable` gives `symbol.fullyQualifiedCName`.
 - `foreign` gives null.
 

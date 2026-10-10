@@ -261,6 +261,77 @@ void f() {
     ).toMatchObject({ kind: "variable", symbol: { name: "x" } });
   });
 
+  describe("a local's emitted name, settled by 1.4 (#1934, ADR-057)", () => {
+    const emittedAt = (
+      program: IProgram,
+      source: string,
+      name: string,
+      text: string,
+      occurrence: number,
+    ): string | null => {
+      const binding = program.bindValue(
+        "a.cnx",
+        null,
+        name,
+        at(source, text, occurrence),
+      );
+      return binding?.kind === "local" ? binding.declaration.emittedName : null;
+    };
+
+    it("moves a local that shadows a file-scope name to <function>__<name>", () => {
+      const source = `u32 count <- 1;
+void f() {
+    u8 count <- 2;
+    u8 m <- count;
+}`;
+      const program = build({ "a.cnx": source });
+      expect(emittedAt(program, source, "count", "count;", 1)).toBe("f__count");
+    });
+
+    it("qualifies by the scope function's C name", () => {
+      const source = `u32 count <- 1;
+scope S {
+    public void f() {
+        u8 count <- 2;
+        u8 m <- count;
+    }
+}`;
+      const program = build({ "a.cnx": source });
+      expect(emittedAt(program, source, "count", "count;", 1)).toBe(
+        "S__f__count",
+      );
+    });
+
+    it("keeps the name of a local that shadows nothing, and of a parameter", () => {
+      const source = `u32 count <- 1;
+void f(u8 count, u8 other) {
+    u8 fresh <- other;
+    u8 m <- fresh + count;
+}`;
+      const program = build({ "a.cnx": source });
+      expect(emittedAt(program, source, "fresh", "fresh + count", 1)).toBe(
+        "fresh",
+      );
+      expect(emittedAt(program, source, "count", "count;", 1)).toBe("count");
+    });
+
+    it("ends a block's rename with the block (#1953)", () => {
+      const source = `u32 count <- 1;
+void f() {
+    {
+        u8 count <- 2;
+        u8 m <- count;
+    }
+    u32 n <- count;
+}`;
+      const program = build({ "a.cnx": source });
+      expect(emittedAt(program, source, "count", "count;", 1)).toBe("f__count");
+      expect(
+        program.bindValue("a.cnx", null, "count", at(source, "count;", 2)),
+      ).toMatchObject({ kind: "variable", symbol: { name: "count" } });
+    });
+  });
+
   it("binds this.x in a scope reopened in another file (#1699)", () => {
     const other = `scope S {
     u32 x <- 300;

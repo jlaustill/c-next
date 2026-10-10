@@ -1,0 +1,42 @@
+// test-error
+// test-adr: 058
+// #1976: a length property is not available on a literal (owner ruling). The
+// typer leaves a string literal untyped, so these had no subject, no rule
+// fired, and the C was `"Hello".char_count` -- exit 0, and gcc rejects it.
+
+string<8> text <- "hi";
+bool flag <- true;
+
+// NEGATIVE CONTROLS -- the same properties on declared values.
+u32 okCharCount() {
+    return text.char_count;
+}
+
+u32 okBitLength() {
+    return flag.bit_length;
+}
+
+// THE ASSERTIONS.
+u32 badCharCount() {
+    return "Hello".char_count;
+}
+
+u32 badByteLength() {
+    return ("Hi").byte_length;
+}
+
+u32 badCapacity() {
+    return "Hello".capacity;
+}
+
+u32 badBool() {
+    return (true).bit_length;
+}
+
+u32 badElement() {
+    return "Hello"[0].bit_length;
+}
+
+u32 badDeprecated() {
+    return "Hello".length;
+}

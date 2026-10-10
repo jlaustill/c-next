@@ -75,6 +75,7 @@ function createMockInput(overrides?: {
     callbackTypes: new Map(),
     callbackFieldTypes: new Map(),
     debugMode: false,
+    program: null,
   } as IGeneratorInput;
 }
 
@@ -85,7 +86,6 @@ function createMockInput(overrides?: {
 function createMockState(overrides?: {
   currentScopePath?: string;
   currentParameters?: Map<string, TParameterInfo>;
-  localVariables?: Set<string>;
   scopeMembers?: Map<string, Set<string>>;
   mainArgsName?: string | null;
   lengthCache?: Map<string, string> | null;
@@ -98,7 +98,6 @@ function createMockState(overrides?: {
     currentScopePath: overrides?.currentScopePath ?? "",
     inFunctionBody: overrides?.inFunctionBody ?? true,
     currentParameters: overrides?.currentParameters ?? new Map(),
-    localVariables: overrides?.localVariables ?? new Set(),
     scopeMembers: overrides?.scopeMembers ?? new Map(),
     mainArgsName: overrides?.mainArgsName ?? null,
     lengthCache: overrides?.lengthCache ?? null,
@@ -186,7 +185,6 @@ function createMockOrchestrator(overrides?: {
     countBlockLengthAccesses: vi.fn(),
     setupLengthCache: vi.fn(),
     clearLengthCache: vi.fn(),
-    registerLocalVariable: vi.fn((name: string) => name),
     generateParameterList: vi.fn(),
     getStringLiteralLength: vi.fn(),
     getStringConcatOperands: vi.fn(),
@@ -204,7 +202,6 @@ function createMockOrchestrator(overrides?: {
     updateFunctionParamsAutoConst: vi.fn(),
     markParameterModified: vi.fn(),
     isCalleeParameterModified: vi.fn(),
-    isCurrentParameter: vi.fn(),
     generatePrimaryExpr:
       overrides?.generatePrimaryExpr ?? vi.fn((ctx) => ctx.getText()),
     isKnownScope: overrides?.isKnownScope ?? vi.fn(() => false),
@@ -313,6 +310,7 @@ function createMockPostfixOp(options?: {
     planArguments: () =>
       options?.argumentList?.expression().map((expression) => ({
         simpleIdentifier: expression.getText(),
+        parameter: undefined,
         declared: undefined,
         expressionType: () => null,
         isArray: () => false,
@@ -324,7 +322,10 @@ function createMockPostfixOp(options?: {
 }
 
 /** A plan, plus the primary text `runPostfix` renders through the orchestrator. */
-interface IMockPostfixPlan extends Omit<IPlannedPostfix, "base"> {
+interface IMockPostfixPlan extends Omit<
+  IPlannedPostfix,
+  "base" | "rootParameter"
+> {
   readonly primaryText: string;
   /** #1668: the bound base, when a case's chain is not a named primary's */
   readonly base?: IChainBase;
@@ -463,6 +464,9 @@ function runPostfix(
   return generatePostfixExpression(
     {
       ...plan,
+      rootParameter: plan.rootIdentifier
+        ? state.currentParameters.get(plan.rootIdentifier)
+        : undefined,
       base: plan.base ?? {
         root: null,
         rootTypeInfo: declared,
@@ -651,7 +655,7 @@ describe("PostfixExpressionGenerator", () => {
         createMockPostfixOp({ identifier: "counter" }),
       ]);
       const input = createMockInput();
-      const state = createMockState({ localVariables: new Set(["counter"]) });
+      const state = createMockState();
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "__GLOBAL_PREFIX__",
       });

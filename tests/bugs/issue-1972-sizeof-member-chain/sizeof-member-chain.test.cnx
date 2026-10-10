@@ -1,0 +1,70 @@
+// test-execution
+// Issue #1972: a dotted `sizeof` operand that is a member access is spelled the
+// way the same expression is everywhere else. Before, `SizeofResolver` rebuilt
+// it from its first two names: `sizeof(shared.inner)` (all names past the
+// second dropped, measuring 8 instead of 1), `sizeof(w.v)` for a pointer local
+// (`w->v`), `sizeof(S__cfg__b)` for `S.cfg.b` (`S__cfg.b`), and
+// `sizeof(GPIO.DR)` for a register member (`GPIO__DR`). Each result is checked
+// against the size of the type the ordinary expression reads.
+#include "widget.h"
+
+struct Inner {
+    u8 x;
+    u32 y;
+}
+
+struct Outer {
+    u8 tag;
+    Inner inner;
+}
+
+struct Pair {
+    u8 a;
+    u32 b;
+}
+
+register GPIO @ 0x40000000 {
+    DR: u32 rw @ 0x00,
+}
+
+scope S {
+    public Pair cfg;
+}
+
+Outer shared;
+
+u32 main() {
+    u32 nested <- sizeof(shared.inner.x);
+    if (nested != sizeof(u8)) {
+        return 1;
+    }
+    u8 nestedValue <- shared.inner.x;
+    if (nestedValue != 0) {
+        return 2;
+    }
+
+    widget_t w <- widget_get();
+    u32 pointed <- sizeof(w.v);
+    if (pointed != sizeof(u32)) {
+        return 3;
+    }
+    u32 pointedValue <- w.v;
+    if (pointedValue != 5) {
+        return 4;
+    }
+
+    u32 scoped <- sizeof(S.cfg.b);
+    if (scoped != sizeof(u32)) {
+        return 5;
+    }
+    u32 scopedValue <- S.cfg.b;
+    if (scopedValue != 0) {
+        return 6;
+    }
+
+    u32 registerSize <- sizeof(GPIO.DR);
+    if (registerSize != sizeof(u32)) {
+        return 7;
+    }
+    return 0;
+}

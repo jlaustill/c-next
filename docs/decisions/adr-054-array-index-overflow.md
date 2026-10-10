@@ -449,12 +449,12 @@ Vulkan's `robustBufferAccess` feature provides bounds-safe GPU memory access:
 
 ### When Can Bounds Be Proven at Compile Time?
 
-| Scenario                                          | Can Prove at Compile Time?       |
-| ------------------------------------------------- | -------------------------------- |
-| Constant index: `arr[5]`                          | ✅ Yes                           |
-| Loop with known bounds: `for i in 0..<arr.length` | ✅ Yes (with analysis)           |
-| User input index                                  | ❌ No                            |
-| Computed index                                    | ⚠️ Sometimes (range propagation) |
+| Scenario                                     | Can Prove at Compile Time?       |
+| -------------------------------------------- | -------------------------------- |
+| Constant index: `arr[5]`                     | ✅ Yes                           |
+| Loop bounded by the array's length (ADR-058) | ✅ Yes (with analysis)           |
+| User input index                             | ❌ No                            |
+| Computed index                               | ⚠️ Sometimes (range propagation) |
 
 **SPARK's approach:** Use preconditions and loop invariants to prove bounds:
 

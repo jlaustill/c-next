@@ -111,6 +111,7 @@ export default class CodeGenerator implements IOrchestrator {
       callbackTypes: this.state.callbackTypes,
       callbackFieldTypes: this.state.callbackFieldTypes,
       debugMode: this.state.debugMode,
+      program: this.state.program,
     };
   }
 
@@ -124,7 +125,6 @@ export default class CodeGenerator implements IOrchestrator {
       indentLevel: this.state.indentLevel,
       inFunctionBody: this.state.inFunctionBody,
       currentParameters: this.state.currentParameters,
-      localVariables: this.state.localVariables,
       expectedType: this.state.expectedType,
       headerOwnsTypeDefinitions:
         this.state.declarationPlan().headerOwnsTypeDefinitions, // #369/#1450
@@ -436,15 +436,6 @@ export default class CodeGenerator implements IOrchestrator {
     this.state.lengthCache = null;
   }
 
-  /**
-   * Register a local variable.
-   * Part of IOrchestrator interface.
-   */
-  registerLocalVariable(name: string): string {
-    this.state.registerLocalVariable(name);
-    return this.state.emittedLocalName(name);
-  }
-
   // === Declaration Generation ===
 
   // #1322: the `Validation (IOrchestrator A4)` section that stood here held
@@ -671,13 +662,6 @@ export default class CodeGenerator implements IOrchestrator {
     const paramName = sig.parameters[paramIndex].name;
     // Check directly if the parameter is in the modified set
     return this.state.isParameterModified(funcName, paramName);
-  }
-
-  /**
-   * Issue #268: Check if a name is a parameter of the current function.
-   */
-  isCurrentParameter(name: string): boolean {
-    return this.state.currentParameters.has(name);
   }
 
   // === Postfix Expression Helpers (Issue #644) ===

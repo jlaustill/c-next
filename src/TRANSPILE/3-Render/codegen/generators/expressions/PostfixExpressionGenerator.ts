@@ -12,6 +12,7 @@
  * to reduce the size and complexity of CodeGenerator.ts.
  */
 import type IChainBase from "../../../../../types/IChainBase";
+import type TParameterInfo from "../../../../../types/TParameterInfo";
 import type IChainStep from "../../../../../types/IChainStep";
 import type IOperandType from "../../../../../types/IOperandType";
 import IGeneratorOutput from "../IGeneratorOutput";
@@ -34,6 +35,7 @@ import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
 import SubscriptDepthValidator from "../../../../2-Plan/SubscriptDepthValidator";
 import C_TYPE_WIDTH from "../../types/C_TYPE_WIDTH";
 import LengthProperty from "../../../../../utils/LengthProperty";
+import type IStructSymbol from "../../../../../types/symbols/IStructSymbol";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
 import OperandTyper from "../../../../../utils/OperandTyper";
 import invariant from "../../../../../utils/invariant";
@@ -131,6 +133,8 @@ const initializeTrackingState = (
  */
 interface IPostfixContext {
   rootIdentifier: string | undefined;
+  /** #1969: the parameter the root binds to where it is written */
+  rootParameter: TParameterInfo | undefined;
   /** How the root is held (`memberAccessChain.rootHolding`) */
   holding: IRootHolding;
   input: IGeneratorInput;
@@ -169,11 +173,8 @@ const generatePostfixExpression = (
   // pointer -- and so whether its members take `->` (the one answer the
   // write path reads too)
   const rootIdentifier = plan.rootIdentifier;
-  const paramInfo = rootIdentifier
-    ? state.currentParameters.get(rootIdentifier)
-    : null;
   const holding = memberAccessChain.rootHolding(
-    paramInfo ?? undefined,
+    plan.rootParameter,
     rootIdentifier ? plan.base.rootTypeInfo : undefined,
     orchestrator,
   );
@@ -214,6 +215,7 @@ const generatePostfixExpression = (
 
   const postfixCtx: IPostfixContext = {
     rootIdentifier,
+    rootParameter: plan.rootParameter,
     holding,
     input,
     state,
@@ -281,7 +283,7 @@ const generatePostfixExpression = (
     return {
       code: memberAccessChain.wholeParamValue(
         result,
-        paramInfo ?? undefined,
+        plan.rootParameter,
         orchestrator.isCppMode(),
       ),
       effects,
@@ -337,6 +339,7 @@ const handleMemberOp = (
       result: tracking.result,
       memberName,
       rootIdentifier: ctx.rootIdentifier,
+      rootParameter: ctx.rootParameter,
       holding: ctx.holding,
       isGlobalAccess: tracking.isGlobalAccess,
       isCppAccessChain: tracking.isCppAccessChain,
@@ -452,7 +455,7 @@ const tryPropertyAccess = (
       result = generateByteLengthProperty(ctx, input, state, effects);
       break;
     case "element_count":
-      result = generateElementCountProperty(ctx, state);
+      result = generateElementCountProperty(ctx, input, state);
       break;
     case "char_count":
       result = generateCharCountProperty(ctx, state, effects);
@@ -507,6 +510,18 @@ const getNumericBitWidth = (typeName: string, input: IGeneratorInput): number =>
   C_TYPE_WIDTH[typeName] ??
   0;
 
+/** A C-Next struct the measured value's element is; undefined for any other */
+const measuredStruct = (
+  measured: IOperandType | null,
+  input: IGeneratorInput,
+): IStructSymbol | undefined => {
+  const program = input.program;
+  if (measured?.typeName == null || program === null) return undefined;
+  return LengthProperty.struct(measured.typeName, (cName) =>
+    program.symbolByCName(cName),
+  );
+};
+
 /** The bits one element of the measured value holds; 0 if not known */
 const elementBitWidth = (
   measured: IOperandType,
@@ -521,6 +536,16 @@ const elementBitWidth = (
     return LengthProperty.stringElementBits(measured.stringCapacity);
   }
   if (measured.bitWidth !== null) return measured.bitWidth;
+  // #1535: its fields' sizes together, without C padding (ADR-058 q7)
+  const struct = measuredStruct(measured, input);
+  if (struct !== undefined && input.program !== null) {
+    const program = input.program;
+    return (
+      LengthProperty.structBits(struct, (cName) =>
+        program.symbolByCName(cName),
+      ) ?? 0
+    );
+  }
   return measured.typeName === null
     ? 0
     : getNumericBitWidth(measured.typeName, input);
@@ -610,13 +635,17 @@ const generateByteLengthProperty = (
  */
 const generateElementCountProperty = (
   ctx: IPropertyContext,
+  input: IGeneratorInput,
   state: IGeneratorState,
 ): string => {
   // Special case: main function's args.element_count -> argc
   if (state.mainArgsName && ctx.rootIdentifier === state.mainArgsName) {
     return "argc";
   }
-  const first = ctx.measured?.dimensions[0];
+  const first =
+    ctx.measured?.dimensions[0] ??
+    // #1535: a struct's element count is its field count
+    measuredStruct(ctx.measured, input)?.fields.size;
   invariant(
     first !== undefined,
     `E0867 rejects this in pass 2.1 -- .element_count is only available on arrays, not on '${ctx.result}'.`,
@@ -679,6 +708,8 @@ interface IMemberAccessContext {
   result: string;
   memberName: string;
   rootIdentifier: string | undefined;
+  /** #1969: the parameter the root binds to where it is written */
+  rootParameter: TParameterInfo | undefined;
   /** How the root is held (`memberAccessChain.rootHolding`) */
   holding: IRootHolding;
   isGlobalAccess: boolean;
@@ -791,7 +822,7 @@ const tryBitmapFieldAccess = (
     ctx.result === ctx.rootIdentifier
       ? memberAccessChain.wholeParamValue(
           ctx.result,
-          orchestrator.state.currentParameters.get(ctx.rootIdentifier),
+          ctx.rootParameter,
           orchestrator.isCppMode(),
         )
       : ctx.result;

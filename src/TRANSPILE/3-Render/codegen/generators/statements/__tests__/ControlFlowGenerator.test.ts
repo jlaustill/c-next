@@ -74,7 +74,6 @@ function createMockOrchestrator(options?: {
     getCurrentFunctionReturnType: vi.fn(() => options?.returnType ?? null),
     // ADR-057: registration hands back the emitted name; identity here means
     // "nothing shadowed, keep the source name".
-    registerLocalVariable: vi.fn((name: string) => name),
     flushPendingTempDeclarations: vi.fn(() => options?.tempDeclarations ?? ""),
     setupLengthCache: vi.fn(() => options?.lengthCacheDecls ?? ""),
     clearLengthCache: vi.fn(),
@@ -107,7 +106,7 @@ function varDecl(
     atomic: "",
     volatile: "",
     typeName: "int32_t",
-    declaredName: "i",
+    emittedName: "i",
     renderArrayDimensions: null,
     renderInitializer: null,
     ...overrides,
@@ -476,7 +475,6 @@ describe("ControlFlowGenerator", () => {
         orchestrator,
       );
 
-      expect(orchestrator.registerLocalVariable).toHaveBeenCalledWith("i");
       expect(result.code).toContain(" i");
       expect(order).toEqual(["initializer"]);
     });

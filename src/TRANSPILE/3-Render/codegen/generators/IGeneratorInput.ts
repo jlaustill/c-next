@@ -7,6 +7,7 @@ import IFunctionSignature from "../../../../types/IFunctionSignature";
 import ICallbackTypeInfo from "../../../../types/ICallbackTypeInfo";
 import SymbolTable from "../../../../PARSE/3-Declare/SymbolTable";
 import ICodeGenSymbols from "../../../../types/ICodeGenSymbols";
+import type IProgram from "../../../../types/IProgram";
 
 interface IGeneratorInput {
   /** Symbol table from parsed C/C++ headers (may be null for single-file transpilation) */
@@ -34,6 +35,9 @@ interface IGeneratorInput {
 
   /** Debug mode - affects overflow helper generation */
   readonly debugMode: boolean;
+
+  /** The program's declarations, by C name -- a struct's fields (#1535) */
+  readonly program: IProgram | null;
 }
 
 export default IGeneratorInput;

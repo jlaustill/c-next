@@ -508,14 +508,6 @@ describe("FunctionContextManager", () => {
       expect(state.inFunctionBody).toBe(true);
     });
 
-    it("clears local variables", () => {
-      state.localVariables.add("var");
-
-      FunctionContextManager.enterFunctionBody(state);
-
-      expect(state.localVariables.size).toBe(0);
-    });
-
     it("clears float bit shadows", () => {
       state.floatBitShadows.add("shadow");
 

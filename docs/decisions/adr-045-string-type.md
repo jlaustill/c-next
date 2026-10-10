@@ -92,15 +92,16 @@ string<32> greeting <- "Hi!";  // Holds up to 32 chars
 
 ### Properties
 
-| Property    | Returns               | Description                             |
-| ----------- | --------------------- | --------------------------------------- |
-| `.length`   | Runtime `u32`         | Current string length (character count) |
-| `.capacity` | Compile-time constant | Maximum capacity (N)                    |
+| Property    | Returns               | Description          |
+| ----------- | --------------------- | -------------------- |
+| `.capacity` | Compile-time constant | Maximum capacity (N) |
+
+A string's character count and storage size are length properties, defined in
+[ADR-058](adr-058-explicit-length-properties.md).
 
 ```cnx
 string<64> name <- "Hello";
 
-u32 len <- name.length;       // 5 (runtime value)
 u32 cap <- name.capacity;     // 64 (compile-time constant)
 ```
 
@@ -119,14 +120,12 @@ char name[6] = "Hello";  // 5 + 1 for null terminator
 Property access:
 
 ```cnx
-u32 len <- name.length;
 u32 cap <- name.capacity;
 ```
 
 Transpiles to:
 
 ```c
-uint32_t len = strlen(name);  // Runtime length calculation
 uint32_t cap = 5;             // Compile-time constant (character capacity)
 ```
 
@@ -140,11 +139,11 @@ All string operations are checked at **compile time** against capacity:
 
 | Operation             | Rule                                          | Example                     |
 | --------------------- | --------------------------------------------- | --------------------------- |
-| Literal assignment    | literal.length ≤ dest.capacity                | `string<5> s <- "Hello"` ✓  |
+| Literal assignment    | literal's character count ≤ dest.capacity     | `string<5> s <- "Hello"` ✓  |
 | Variable assignment   | src.capacity ≤ dest.capacity                  | `string<64> big <- small` ✓ |
 | Concatenation         | src1.capacity + src2.capacity ≤ dest.capacity | `string<64> r <- a + b`     |
 | Substring             | start + length ≤ src.capacity                 | `string<10> s <- src[0,10]` |
-| Literal in expression | Tight capacity (literal.length)               | `"Hello"` is `string<5>`    |
+| Literal in expression | Tight capacity (its character count)          | `"Hello"` is `string<5>`    |
 
 ### Declaration and Initialization
 
@@ -474,7 +473,7 @@ char names[10][33];  // 32 + 1 for null terminator each
 3. **Null terminator handled** - Developer specifies chars, not bytes
 4. **Familiar syntax** - Generic-style `string<N>` is intuitive
 5. **C compatible** - Just a `char[]` underneath
-6. **Ergonomic** - `.length` and `.capacity` properties
+6. **Ergonomic** - `.capacity`, and ADR-058's length properties
 7. **Const inference** - No need to count chars for constants
 8. **Optional** - Can still use `u8[]` if preferred
 
@@ -482,7 +481,7 @@ char names[10][33];  // 32 + 1 for null terminator each
 
 1. **Memory overhead** - Always allocates max capacity + 1
 2. **Fixed size** - Cannot grow beyond capacity
-3. **Runtime length** - `.length` requires `strlen()` call
+3. **Runtime length** - the character count requires a `strlen()` call
 4. **Strict errors** - May require explicit substring for truncation
 
 ### Why Not Track Length at Runtime?
@@ -503,7 +502,7 @@ We chose not to for:
 3. **Memory** - Saves a `size_t` per string
 4. **Predictability** - Matches what embedded developers expect
 
-The trade-off is that `.length` requires calling `strlen()`.
+The trade-off is that the character count requires calling `strlen()`.
 
 ---
 
@@ -528,7 +527,7 @@ type
 2. Generate `char name[N+1]` for declarations (add 1 for null)
 3. For `const string` with literal, infer N from literal length
 4. Generate `strncpy()` + null termination for assignments
-5. Generate `strlen()` for `.length` access
+5. Generate `strlen()` for the character count (ADR-058)
 6. Generate compile-time constant N for `.capacity`
 7. Validate concatenation: dest.capacity >= src1.capacity + src2.capacity
 8. Validate assignment: dest.capacity >= src.capacity
@@ -545,16 +544,15 @@ type
 ## Success Criteria
 
 1. `string<5> s <- "Hello"` transpiles to `char s[6] = "Hello"`
-2. `.length` returns current string length via `strlen()`
-3. `.capacity` returns compile-time constant N (character count)
-4. Literal overflow is a **compile error**
-5. Truncation on assignment is a **compile error**
-6. Concatenation capacity mismatch is a **compile error**
-7. `const string X <- "lit"` auto-sizes to literal length
-8. Substring `s[start, len]` extracts substring safely
-9. Strings work with C standard library functions
-10. No heap allocation ever
-11. `u8[]` remains available as alternative
+2. `.capacity` returns compile-time constant N (character count)
+3. Literal overflow is a **compile error**
+4. Truncation on assignment is a **compile error**
+5. Concatenation capacity mismatch is a **compile error**
+6. `const string X <- "lit"` auto-sizes to literal length
+7. Substring `s[start, len]` extracts substring safely
+8. Strings work with C standard library functions
+9. No heap allocation ever
+10. `u8[]` remains available as alternative
 
 ---
 

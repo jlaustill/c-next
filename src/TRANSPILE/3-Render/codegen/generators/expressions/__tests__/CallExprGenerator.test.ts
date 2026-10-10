@@ -1,3 +1,4 @@
+import type TParameterInfo from "../../../../../../types/TParameterInfo";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import generateFunctionCall from "../CallExprGenerator";
 import IGeneratorInput from "../../IGeneratorInput";
@@ -43,6 +44,7 @@ function planArguments(
 ): readonly IPlannedCallArgument[] {
   return expressions.map((expression) => ({
     simpleIdentifier: orchestrator.getSimpleIdentifier(expression),
+    parameter: orchestrator.getParameter(expression),
     declared: declaredTypes.get(expression.getText()),
     expressionType: () => orchestrator.getExpressionType(expression),
     isArray: () => orchestrator.isArrayExpression(expression),
@@ -86,6 +88,7 @@ function createMockInput(
     callbackTypes: new Map(),
     callbackFieldTypes: new Map(),
     debugMode: false,
+    program: null,
     ...input,
   } as unknown as IGeneratorInput;
 }
@@ -105,6 +108,8 @@ function createMockState(): IGeneratorState {
  */
 interface IArgumentPlannerStub {
   getSimpleIdentifier(ctx: Parser.ExpressionContext): string | null;
+  /** #1969: the parameter the argument's name binds to where it is passed */
+  getParameter(ctx: Parser.ExpressionContext): TParameterInfo | undefined;
   getExpressionType(ctx: Parser.ExpressionContext): string | null;
   isArrayExpression(ctx: Parser.ExpressionContext): boolean;
   generateExpression(ctx: Parser.ExpressionContext): string;
@@ -119,6 +124,17 @@ interface IArgumentPlannerStub {
  * and the assertions share ONE instance.
  */
 let sharedState = new TranspileState();
+
+/** A by-reference `u32` parameter of the calling function */
+const PASS_THROUGH_PARAM: TParameterInfo = {
+  name: "p",
+  baseType: "u32",
+  isArray: false,
+  isStruct: false,
+  isConst: false,
+  isCallback: false,
+  isString: false,
+};
 
 function createMockOrchestrator(
   overrides: Partial<IOrchestrator & IArgumentPlannerStub> = {},
@@ -144,7 +160,9 @@ function createMockOrchestrator(
     isArrayExpression: vi.fn(() => false),
     getKnownEnums: vi.fn(() => new Set<string>()),
     isParameterPassByValue: vi.fn(() => false),
-    isCurrentParameter: vi.fn(() => false),
+    getParameter: vi.fn((ctx: Parser.ExpressionContext) =>
+      sharedState.currentParameters.get(ctx.getText()),
+    ),
     isCalleeParameterModified: vi.fn(() => false),
     markParameterModified: vi.fn(),
     ...overrides,
@@ -1249,7 +1267,7 @@ describe("CallExprGenerator", () => {
       const markParameterModified = vi.fn();
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn(() => true),
-        isCurrentParameter: vi.fn(() => true),
+        getParameter: vi.fn(() => PASS_THROUGH_PARAM),
         isCalleeParameterModified: vi.fn(() => true),
         markParameterModified,
         isFloatType: vi.fn(() => false),
@@ -1285,7 +1303,7 @@ describe("CallExprGenerator", () => {
       const markParameterModified = vi.fn();
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn(() => true),
-        isCurrentParameter: vi.fn(() => false),
+        getParameter: vi.fn(() => undefined),
         markParameterModified,
         isFloatType: vi.fn(() => false),
         isParameterPassByValue: vi.fn(() => false),
@@ -1320,7 +1338,7 @@ describe("CallExprGenerator", () => {
       const markParameterModified = vi.fn();
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn(() => true),
-        isCurrentParameter: vi.fn(() => true),
+        getParameter: vi.fn(() => PASS_THROUGH_PARAM),
         isCalleeParameterModified: vi.fn(() => false),
         markParameterModified,
         isFloatType: vi.fn(() => false),
@@ -1357,7 +1375,7 @@ describe("CallExprGenerator", () => {
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn(() => true),
         getSimpleIdentifier: vi.fn(() => null),
-        isCurrentParameter: vi.fn(() => false),
+        getParameter: vi.fn(() => undefined),
         markParameterModified,
         isFloatType: vi.fn(() => false),
         isParameterPassByValue: vi.fn(() => false),

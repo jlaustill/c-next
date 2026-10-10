@@ -1,6 +1,6 @@
 # ADR-007: Type-Aware Bit Indexing
 
-**Status:** Implemented
+**Status:** Implemented; section 3 (`.length`) superseded by [ADR-058](adr-058-explicit-length-properties.md)
 **Date:** 2025-12-26
 **Decision Makers:** C-Next Language Design Team
 
@@ -80,37 +80,9 @@ flags = (flags & ~(((1 << 3) - 1) << 0)) | ((5 & ((1 << 3) - 1)) << 0);
 uint8_t field = ((flags >> 4) & ((1 << 4) - 1));
 ```
 
-### 3. The .length Property
+### 3. Length Properties
 
-Every type exposes its size via `.length`:
-
-| Type              | `.length` Value   |
-| ----------------- | ----------------- |
-| `u8`              | 8 (bit width)     |
-| `u16`             | 16 (bit width)    |
-| `u32`             | 32 (bit width)    |
-| `u64`             | 64 (bit width)    |
-| `i8`, `i16`, etc. | Same as unsigned  |
-| `bool`            | 1 (bit width)     |
-| `T[N]`            | N (element count) |
-
-```cnx
-u8[16] buffer;
-u32 counter <- 0;
-
-u32 arrLen <- buffer.length;     // 16 (array element count)
-u32 bits <- counter.length;      // 32 (u32 bit width)
-```
-
-**Generated C:**
-
-```c
-uint8_t buffer[16];
-uint32_t counter = 0;
-
-uint32_t arrLen = 16;    // Compile-time constant
-uint32_t bits = 32;      // Compile-time constant
-```
+Superseded by [ADR-058](adr-058-explicit-length-properties.md), which defines every length property. This ADR defines none.
 
 ---
 
@@ -152,7 +124,7 @@ Variable indices are supported but not compile-time validated. Future work may a
 ### Type Tracking
 
 A bit index is resolved against the operand's **declared type**, never against its
-value or its current contents. The widths are the ones in the `.length` table above;
+value or its current contents. The widths are the ones in ADR-044's type table;
 `u8[16] buffer` carries both an element count and, per element, a bit width.
 
 This is what makes the feature type-_aware_ rather than a bit-twiddling shorthand: the
@@ -220,16 +192,6 @@ config[0, 2] <- 3;    // Mode: bits 0-1
 config[2, 3] <- 5;    // Priority: bits 2-4
 config[5] <- true;    // Enable: bit 5
 config[6] <- false;   // Interrupt: bit 6
-```
-
-### Array Length for Loops
-
-```cnx
-u8[64] buffer;
-
-for (u32 i <- 0; i < buffer.length; i <- i + 1) {
-    buffer[i] <- 0;   // Array access (element)
-}
 ```
 
 ### Float Bit Indexing (IEEE-754 Byte Access)
@@ -347,7 +309,6 @@ bool, and the read chained bit-indexes into always-zero code.
 2. **Type safety** — Compiler knows bit widths
 3. **No runtime cost** — All operations are compile-time transforms
 4. **Eliminates patterns** — No more manual mask/shift code
-5. **IDE support** — `.length` enables autocomplete
 
 ### Disadvantages
 
@@ -519,13 +480,11 @@ packetArray[OFFSET_FIELD3, 1] <- data.field3;
 
 1. `flags[3] <- true` compiles to correct bit-set C code
 2. `flags[0, 3] <- 5` compiles to correct bit-range C code
-3. `buffer.length` returns array size as compile-time constant
-4. `flags.length` returns bit width as compile-time constant
-5. Bit access works with register members
-6. blink.cnx works on Teensy MicroMod with new syntax
-7. `packetArray[0, 4] <- value` generates per-element little-endian unrolled writes — one shifted byte/element write per destination element, no memcpy (Issue #234, #1081)
-8. Runtime offsets in slice assignment produce compile-time errors (Issue #234)
-9. Multi-dimensional array outer-dimension slicing produces compile-time errors (Issue #234)
+3. Bit access works with register members
+4. blink.cnx works on Teensy MicroMod with new syntax
+5. `packetArray[0, 4] <- value` generates per-element little-endian unrolled writes — one shifted byte/element write per destination element, no memcpy (Issue #234, #1081)
+6. Runtime offsets in slice assignment produce compile-time errors (Issue #234)
+7. Multi-dimensional array outer-dimension slicing produces compile-time errors (Issue #234)
 
 ---
 

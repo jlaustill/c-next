@@ -24,7 +24,8 @@ class Diagnostics {
     // Snapshotted at build time rather than recomputed per call: the artifact
     // is immutable, so the answer is constant.
     const rejected = [...byFile.values()].some(
-      (errors: readonly ITranspileError[]): boolean => errors.length > 0,
+      (errors: readonly ITranspileError[]): boolean =>
+        errors.some((e) => e.severity === "error"),
     );
 
     return Object.freeze({

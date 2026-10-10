@@ -19,9 +19,9 @@ codes that already have a fixture.
 | E05xx     | Include/Preprocessor                           | 17      |
 | E06xx     | Sizeof Expressions                             | 2       |
 | E07xx     | Control Flow                                   | 14      |
-| E08xx     | Arithmetic/Array Safety                        | 56      |
+| E08xx     | Arithmetic/Array Safety                        | 58      |
 | E09xx     | NULL Safety, Compile-Time Values, Literal Form | 13      |
-| **Total** |                                                | **130** |
+| **Total** |                                                | **132** |
 
 ---
 
@@ -274,7 +274,7 @@ include-visibility is not derivable for a C or C++ name.
 | E0864 | Value does not fit the declared string capacity                                                            | Widen the declaration, or shorten the value                                                                      | `TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts`                                                |
 | E0865 | Substring bounds exceed the source string                                                                  | Keep `start + length` within the source's capacity                                                               | `TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts`                                                |
 | E0866 | Array initializer does not match the declaration, or a whole array is given a struct initializer (ADR-035) | Give a bracketed list with one element per slot at every level, or the fill-all form                             | `TRANSPILE/1-Analyze/ArrayDeclarationAnalyzer.ts`, `TRANSPILE/1-Analyze/StructLiteralAnalyzer.ts` |
-| E0867 | Length property not available on this type (ADR-058)                                                       | `.element_count` needs an array, `.char_count` a string, `.bit_length`/`.byte_length` a sized type               | `TRANSPILE/1-Analyze/LengthPropertyAnalyzer.ts`                                                   |
+| E0867 | Length property not available on this type (ADR-058)                                                       | `.element_count` needs an array or struct, `.char_count` a string, the lengths a sized type; never a literal     | `TRANSPILE/1-Analyze/LengthPropertyAnalyzer.ts`                                                   |
 | E0868 | Integer literal does not fit the target type's range (ADR-024)                                             | Widen the target type, or narrow the value; an unsigned type holds no negative                                   | `TRANSPILE/1-Analyze/IntegerConversionAnalyzer.ts`                                                |
 | E0869 | Implicit narrowing or sign-changing integer conversion (ADR-024)                                           | Use bit indexing to say which bits you mean, e.g. `value[0, 8]`                                                  | `TRANSPILE/1-Analyze/IntegerConversionAnalyzer.ts`                                                |
 
@@ -360,10 +360,12 @@ base: bare, `this.` and `global.`.
 
 ### Declared Type Shape (ADR-034 / ADR-017)
 
-| Code  | Message                                           | Help                                                                     | Source                                           |
-| ----- | ------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------ |
-| E0893 | A bitmap's field widths do not add up to its size | Resize a field, or declare the bitmap with the size its fields add up to | `TRANSPILE/1-Analyze/TypeDeclarationAnalyzer.ts` |
-| E0894 | An enum member's value is negative                | Use a non-negative value                                                 | `TRANSPILE/1-Analyze/TypeDeclarationAnalyzer.ts` |
+| Code  | Message                                                                                             | Help                                                                                            | Source                                            |
+| ----- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| E0893 | A bitmap's field widths do not add up to its size                                                   | Resize a field, or declare the bitmap with the size its fields add up to                        | `TRANSPILE/1-Analyze/TypeDeclarationAnalyzer.ts`  |
+| E0894 | An enum member's value is negative                                                                  | Use a non-negative value                                                                        | `TRANSPILE/1-Analyze/TypeDeclarationAnalyzer.ts`  |
+| E0895 | An argument is not what a C pointer parameter points to, or is const and the parameter is not       | Pass an object of the pointed-to type, or an array of them; a const one needs a const parameter | `TRANSPILE/1-Analyze/CPointerArgumentAnalyzer.ts` |
+| E0896 | Warning: C-Next cannot see how a C function uses a pointer argument, so the call is not memory safe | Consider converting the C function to C-Next                                                    | `TRANSPILE/1-Analyze/CPointerArgumentAnalyzer.ts` |
 
 ## E09xx — NULL Safety (ADR-046)
 

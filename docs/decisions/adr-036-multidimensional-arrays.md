@@ -128,23 +128,10 @@ u8[8] column <- matrix[0][0];   // Copy first row of first plane
 u8 value <- matrix[0][0][0];    // Single element
 ```
 
-### `.length` Property (Compile-Time)
+### Length Properties
 
-The `.length` property returns the outermost dimension and is resolved at compile time:
-
-```cnx
-u8[4][8] matrix;
-const usize rows <- matrix.length;      // 4 (compile-time const)
-const usize cols <- matrix[0].length;   // 8 (compile-time const)
-```
-
-Generated C:
-
-```c
-uint8_t matrix[4][8];
-const size_t rows = 4;   // Compile-time constant
-const size_t cols = 8;   // Compile-time constant
-```
+Each dimension's length is a compile-time constant, read through the length
+properties in [ADR-058](adr-058-explicit-length-properties.md). This ADR defines none.
 
 ### Function Parameters: Strict Enforcement
 
@@ -152,7 +139,7 @@ Unlike C (where array sizes in parameters are advisory), C-Next enforces dimensi
 
 ```cnx
 void process4x4(f32[4][4] matrix) {
-    // Implementation uses matrix.length = 4, matrix[0].length = 4
+    // Both dimensions are 4, known at compile time
 }
 
 f32[3][3] small;
@@ -243,7 +230,7 @@ MISRA requires pointer arithmetic to stay within the originating array. C-Next a
 
 - Compile-time bounds checking for constant indices
 - Runtime bounds checking for variable indices (optional, enabled by default)
-- `.length` property eliminates need for manual size tracking
+- Length properties (ADR-058) eliminate manual size tracking
 
 ## Security Research: CWE Vulnerabilities
 
@@ -309,7 +296,7 @@ void process(int matrix[4][4]) {
 
 **C-Next Solution:**
 
-- `.length` is resolved at compile time, never at runtime
+- Array lengths (ADR-058) are resolved at compile time, never at runtime
 - Array parameters retain their full type including all dimensions
 - Transpiler generates size constants, not runtime calculations
 
@@ -333,16 +320,8 @@ for (size_t i = 0; i < COLS; i++) {     // Should be ROWS
 
 **C-Next Solution:**
 
-```cnx
-u8[10][5] matrix;
-
-// Use .length to ensure correct bounds
-for (usize i <- 0; i < matrix.length; i +<- 1) {        // 10
-    for (usize j <- 0; j < matrix[0].length; j +<- 1) { // 5
-        matrix[i][j] <- 0;
-    }
-}
-```
+Bound each loop by its own dimension's length property (ADR-058). Each bound is
+read from the array, so the two cannot be swapped.
 
 ### Bug 3: Negative Index (SEI CERT ARR30-C)
 
@@ -378,7 +357,7 @@ void clear(int a[100]) {
 Even when you specify the size in the parameter declaration, C ignores it and treats the parameter as a pointer.
 
 **C-Next Solution:**
-ADR-023 already forbids `sizeof` on array parameters, requiring `.length` instead. This pattern extends to multi-dimensional arrays.
+An array parameter keeps every dimension, so its length properties (ADR-058) are compile-time constants rather than a measurement of a decayed pointer. This extends to multi-dimensional arrays.
 
 ### Bug 5: Blaster Worm Pattern (Unbounded Loop)
 
@@ -401,7 +380,7 @@ while (*pwszTemp != L'\\')
 
 - Constant indices checked at compile time
 - Dimension mismatches in function calls are compile errors
-- `.length` resolved to constants
+- Length properties (ADR-058) resolved to constants
 
 ### Runtime Checking (Default, Optional)
 
@@ -532,6 +511,7 @@ positions — tracked as #1168.
 
 ### Related ADRs
 
-- ADR-007: `.length` property and bit indexing
+- ADR-007: bit indexing
+- ADR-058: length properties
 - ADR-035: Array initializers (syntax applies to multi-dimensional)
 - ADR-023: sizeof safety (forbids sizeof on array parameters)

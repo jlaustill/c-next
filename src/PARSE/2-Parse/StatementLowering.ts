@@ -1,8 +1,9 @@
-import type { ParserRuleContext } from "antlr4ng";
+import type { ParserRuleContext, TerminalNode } from "antlr4ng";
 import * as Parser from "./grammar/CNextParser";
 import SyntaxLowering from "./SyntaxLowering";
 import ParserUtils from "../../utils/ParserUtils";
 import invariant from "../../utils/invariant";
+import type ISourceSpan from "../../types/ISourceSpan";
 import ASSIGNMENT_OPERATORS from "../../types/syntax/ASSIGNMENT_OPERATORS";
 import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
 import type IVariableDeclarationSyntax from "../../types/syntax/IVariableDeclarationSyntax";
@@ -117,6 +118,14 @@ class StatementLowering {
       : StatementLowering.missing(parent);
   }
 
+  /** Where a declaration's name is written; a use binds to it from inside */
+  private static nameSpan(identifier: TerminalNode): ISourceSpan {
+    return ParserUtils.getSpan({
+      start: identifier.symbol,
+      stop: identifier.symbol,
+    });
+  }
+
   static variableDeclaration(
     ctx: Parser.VariableDeclarationContext | Parser.ForVarDeclContext,
   ): IVariableDeclarationSyntax {
@@ -133,10 +142,7 @@ class StatementLowering {
       },
       type: SyntaxLowering.type(ctx.type()),
       name: identifier.getText(),
-      nameSpan: ParserUtils.getSpan({
-        start: identifier.symbol,
-        stop: identifier.symbol,
-      }),
+      nameSpan: StatementLowering.nameSpan(identifier),
       dimensions: ctx.arrayDimension().map((dimension) => {
         const size = dimension.expression();
         return size ? SyntaxLowering.expression(size) : null;
@@ -163,6 +169,7 @@ class StatementLowering {
       kind: "constructorDeclaration",
       type: SyntaxLowering.type(ctx.type()),
       name: ctx.IDENTIFIER().getText(),
+      nameSpan: StatementLowering.nameSpan(ctx.IDENTIFIER()),
       arguments: constructorArguments.IDENTIFIER().map((argument) => ({
         name: argument.getText(),
         span: ParserUtils.getSpan({

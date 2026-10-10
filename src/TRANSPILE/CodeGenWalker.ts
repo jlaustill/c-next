@@ -160,6 +160,7 @@ import type TExpressionOf from "../types/syntax/TExpressionOf";
 import type TPostfixOpSyntax from "../types/syntax/TPostfixOpSyntax";
 import type TTypeSyntax from "../types/syntax/TTypeSyntax";
 import type ISourcePosition from "../utils/types/ISourcePosition";
+import type ISourceSpan from "../types/ISourceSpan";
 import IMemberSeparatorDeps from "./3-Render/codegen/types/IMemberSeparatorDeps";
 import IParameterDereferenceDeps from "./3-Render/codegen/types/IParameterDereferenceDeps";
 import ISeparatorContext from "./3-Render/codegen/types/ISeparatorContext";
@@ -176,6 +177,7 @@ import ParameterInputAdapter from "./3-Render/codegen/helpers/ParameterInputAdap
 import ParameterSignatureBuilder from "./3-Render/codegen/helpers/ParameterSignatureBuilder";
 import SizeofResolver from "./3-Render/codegen/resolution/SizeofResolver";
 import type TSizeofOperand from "./3-Render/codegen/types/TSizeofOperand";
+import type TSizeofName from "./3-Render/codegen/types/TSizeofName";
 import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
 import MisraSuppressionUtils from "./3-Render/MisraSuppressionUtils";
 import EnumZeroValue from "../utils/EnumZeroValue";
@@ -521,6 +523,13 @@ class CodeGenWalker {
 
     return {
       rootIdentifier,
+      rootParameter:
+        rootIdentifier && head.identifier
+          ? this.host.state.parameterAt(rootIdentifier, {
+              line: head.identifier.span.line,
+              column: head.identifier.span.column,
+            })
+          : undefined,
       renderPrimary: () => this.renderPrimary(primary),
       subscriptBase: subscriptBase
         ? { name: subscriptBase.name, displayName: subscriptBase.displayName }
@@ -776,6 +785,17 @@ class CodeGenWalker {
   }
 
   /**
+   * Where a declaration's name binds to the declaration itself: just inside
+   * the name, since LexicalFrames binds a declaration that starts before the
+   * position asked about. Before the name, it is the one being shadowed.
+   */
+  private static declaredAt(decl: {
+    readonly nameSpan: ISourceSpan;
+  }): ISourcePosition {
+    return { line: decl.nameSpan.line, column: decl.nameSpan.column + 1 };
+  }
+
+  /**
    * Generate function argument with pass-by-reference handling.
    * Part of IOrchestrator interface - delegates to ArgumentGenerator.
    */
@@ -810,15 +830,29 @@ class CodeGenWalker {
    * (#1760 review): the same answer a read and an assignment target take,
    * through `TypeValidator.resolveBareIdentifier`.
    */
-  private boundArgumentName(
-    expr: TExpression,
-  ): { readonly id: string; readonly emitted: string } | null {
+  private boundArgumentName(expr: TExpression): {
+    readonly id: string;
+    readonly emitted: string;
+    readonly parameter: TParameterInfo | undefined;
+  } | null {
     const id = ExpressionShape.simpleIdentifier(expr);
     if (id === null) return null;
     return {
       id,
       emitted: this.boundName(id, CodeGenWalker.positionOf(expr)),
+      parameter: this.host.state.parameterAt(
+        id,
+        CodeGenWalker.positionOf(expr),
+      ),
     };
+  }
+
+  /** #1969: the parameter a bare-name expression binds to, where it is */
+  private parameterNamed(expr: TExpression): TParameterInfo | undefined {
+    const id = ExpressionShape.simpleIdentifier(expr);
+    return id === null
+      ? undefined
+      : this.host.state.parameterAt(id, CodeGenWalker.positionOf(expr));
   }
 
   /** The C name a bare identifier at `at` is emitted under (ADR-057) */
@@ -1027,7 +1061,7 @@ class CodeGenWalker {
     // to enable proper register validation (requiring global. when shadowed).
     let resolvedIdentifier = identifier ?? "";
     if (!hasGlobal && !hasThis && identifier) {
-      const isParameter = this.host.state.currentParameters.has(identifier);
+      const paramInfo = this.host.state.parameterAt(identifier, parts.position);
       const isKnownRegister =
         this.host.state.symbols?.knownRegisters.has(identifier);
       // Issue #1100: Parameters with postfix ops (array/bit subscript, member
@@ -1040,8 +1074,7 @@ class CodeGenWalker {
       // access (`v[4] <- true`) now correctly dereferences to `(*v)[4]`
       // (which AssignmentContextBuilder reduces to base identifier `(*v)`)
       // instead of assigning through the raw pointer.
-      if (isParameter) {
-        const paramInfo = this.host.state.currentParameters.get(identifier)!;
+      if (paramInfo) {
         resolvedIdentifier = ParameterDereferenceResolver.resolve(
           identifier,
           paramInfo,
@@ -1087,6 +1120,7 @@ class CodeGenWalker {
       hasGlobal,
       hasThis,
       this.targetDeclaration(ctx).rootTypeInfo,
+      parts.position,
     );
 
     return PostfixChainBuilder.build(
@@ -2576,7 +2610,10 @@ class CodeGenWalker {
     const ops = view.ops;
 
     // Case 1: Direct parameter member access (cfg.value)
-    const paramInfo = this.host.state.currentParameters.get(baseId);
+    const paramInfo = this.host.state.parameterAt(
+      baseId,
+      CodeGenWalker.positionOf(expr),
+    );
     if (paramInfo) {
       return CppMemberHelper.needsParamMemberConversion(
         paramInfo,
@@ -2648,7 +2685,10 @@ class CodeGenWalker {
       baseId,
       CodeGenWalker.positionOf(expr),
     );
-    const paramInfo = this.host.state.currentParameters.get(baseId);
+    const paramInfo = this.host.state.parameterAt(
+      baseId,
+      CodeGenWalker.positionOf(expr),
+    );
 
     return CppMemberHelper.isStringSubscriptPattern(
       hasPostfixOps,
@@ -2697,7 +2737,9 @@ class CodeGenWalker {
         null,
         baseId,
         CodeGenWalker.positionOf(at),
-      ) !== undefined || this.host.state.currentParameters.has(baseId)
+      ) !== undefined ||
+      this.host.state.parameterAt(baseId, CodeGenWalker.positionOf(at)) !==
+        undefined
     );
   }
 
@@ -3108,6 +3150,7 @@ class CodeGenWalker {
 
     return args.map((expression) => ({
       simpleIdentifier: ExpressionShape.simpleIdentifier(expression),
+      parameter: this.parameterNamed(expression),
       declared: this.nameTypeOf(expression),
       expressionType: () => this.directTypeOf(expression),
       isArray: () =>
@@ -3610,13 +3653,15 @@ class CodeGenWalker {
     );
     const name = decl.name;
     const type = this._inferVariableType(decl);
-    this._trackLocalVariable(name);
     // ADR-057: the identifier this declaration is EMITTED under. Computed once,
     // here, because the string and array forms below return before the plain
     // declaration is assembled -- a second call would be a second place
     // deciding the same thing. Registries keep the source name; only the
     // generated text moves.
-    const emittedName = this.host.state.emittedLocalName(name);
+    const emittedName = this.host.state.emittedLocalNameAt(
+      name,
+      CodeGenWalker.declaredAt(decl),
+    );
     const stringPlan = this.planStringDecl(decl);
     if (stringPlan) {
       return {
@@ -3666,13 +3711,13 @@ class CodeGenWalker {
         column: argument.span.column,
       }),
     );
-    if (this.host.state.inFunctionBody) {
-      this.host.state.registerLocalVariable(decl.name);
-    }
     return {
       kind: "constructor",
       type,
-      emittedName: this.host.state.emittedLocalName(decl.name),
+      emittedName: this.host.state.emittedLocalNameAt(
+        decl.name,
+        CodeGenWalker.declaredAt(decl),
+      ),
       args,
     };
   }
@@ -3774,17 +3819,17 @@ class CodeGenWalker {
 
   /**
    * #1664 box 3: what this declaration says, as 1.3 recorded it and 1.4
-   * settled it -- the facts the `.h` is written from. The name binds to its
-   * own declaration from the end of the name on (LexicalFrames), so asking
-   * there reads this declaration, never one it shadows.
+   * settled it -- the facts the `.h` is written from. Asked at `declaredAt`,
+   * so it reads this declaration, never one it shadows.
    */
   private declaredHere(
     decl: IVariableDeclarationSyntax,
   ): TTypeInfo | undefined {
-    return this.host.state.declarationTypeInfo(null, decl.name, {
-      line: decl.nameSpan.line,
-      column: decl.nameSpan.column + decl.name.length,
-    });
+    return this.host.state.declarationTypeInfo(
+      null,
+      decl.name,
+      CodeGenWalker.declaredAt(decl),
+    );
   }
 
   /**
@@ -3962,23 +4007,12 @@ class CodeGenWalker {
    */
   private _inferVariableType(decl: IVariableDeclarationSyntax): string {
     const type = this.renderDeclaredType(decl.type);
-    const info = this.host.state.declarationTypeInfo(null, decl.name, {
-      line: decl.nameSpan.line,
-      column: decl.nameSpan.column + 1,
-    });
+    const info = this.host.state.declarationTypeInfo(
+      null,
+      decl.name,
+      CodeGenWalker.declaredAt(decl),
+    );
     return DeclaredPointer.spell(type, info?.isPointer ?? false);
-  }
-
-  /**
-   * Issue #696: Track a local variable's name. Its const value, if any, is
-   * 1.4's, read where a dimension is folded (#1664 box 7).
-   */
-  private _trackLocalVariable(name: string): void {
-    if (!this.host.state.inFunctionBody) {
-      return;
-    }
-
-    this.host.state.registerLocalVariable(name);
   }
 
   /**
@@ -4187,8 +4221,8 @@ class CodeGenWalker {
    */
   private _buildSimpleIdentifierDeps(): ISimpleIdentifierDeps {
     return {
-      getParameterInfo: (name: string) =>
-        this.host.state.currentParameters.get(name),
+      getParameterInfo: (name: string, at: ISourcePosition) =>
+        this.host.state.parameterAt(name, at),
       // A target with no postfix op is the parameter's whole value, written
       // as the read side reads it (#1760 second review: `p = (*q);`)
       resolveParameter: (name: string, paramInfo: TParameterInfo) =>
@@ -4238,11 +4272,12 @@ class CodeGenWalker {
     hasGlobal: boolean,
     hasThis: boolean,
     rootTypeInfo: TTypeInfo | undefined,
+    at: ISourcePosition,
   ): IPostfixChainDeps {
     // How the root is held: the one answer the read path reads too (#1760
     // review: a local #895 made a pointer took `.`)
     const holding = memberAccessChain.rootHolding(
-      this.host.state.currentParameters.get(firstId),
+      this.host.state.parameterAt(firstId, at),
       rootTypeInfo,
       this.host,
     );
@@ -4366,12 +4401,9 @@ class CodeGenWalker {
   /**
    * A variable declared in a `for` header.
    *
-   * `typeName` is eager, and that is the one ordering claim worth checking:
-   * today it renders before `registerLocalVariable`, and planning is also
-   * before it, so the relative order holds. The dimensions and the initializer
-   * are thunks because registration sits between them and the type -- it is
-   * what yields the EMITTED name (ADR-057), and an initializer rendered ahead
-   * of it would resolve the loop variable's own name against the outer scope.
+   * `typeName` is eager; the dimensions and the initializer are thunks, so
+   * they render where the generator writes them, after the type. The emitted
+   * name is 1.4's (#1934, ADR-057), bound at the declaration itself.
    */
   private planForVarDecl(decl: IVariableDeclarationSyntax): IPlannedForVarDecl {
     // Issue #696: Use shared modifier builder
@@ -4384,7 +4416,10 @@ class CodeGenWalker {
       atomic: modifiers.atomic,
       volatile: modifiers.volatile,
       typeName,
-      declaredName: decl.name,
+      emittedName: this.host.state.emittedLocalNameAt(
+        decl.name,
+        CodeGenWalker.declaredAt(decl),
+      ),
       renderArrayDimensions:
         decl.dimensions.length > 0
           ? () => this.renderLoweredDimensions(decl.dimensions)
@@ -4542,7 +4577,7 @@ class CodeGenWalker {
     }
 
     // ADR-006: Check if it's a function parameter
-    const paramInfo = this.host.state.currentParameters.get(id);
+    const paramInfo = this.host.state.parameterAt(id, at);
     if (paramInfo) {
       return ParameterDereferenceResolver.resolve(
         id,
@@ -4719,6 +4754,19 @@ class CodeGenWalker {
     const type = expr.type;
     if (type) {
       if (type.kind === "qualified") {
+        const chain = expr.memberChain;
+        invariant(chain !== null, "a qualified operand is also a member chain");
+        // #1972: a chain that types is a member access, spelled as every
+        // member access is
+        if (OperandTyper.typeOf(chain, this.host.state.typingContext())) {
+          return {
+            kind: "expression",
+            simpleIdentifier: null,
+            parameter: undefined,
+            hasSideEffects: false,
+            code: this.renderExpression(chain),
+          };
+        }
         return {
           kind: "qualified-type",
           firstName: type.path[0],
@@ -4727,7 +4775,15 @@ class CodeGenWalker {
         };
       }
       if (type.kind === "user") {
-        return { kind: "user-type", text: type.text };
+        const textBinding = this.sizeofName(
+          type.text,
+          CodeGenWalker.positionOf(expr),
+        );
+        // #1974: a name that binds to no value is a type, named as every
+        // type position names it
+        if (textBinding.kind !== "none") {
+          return { kind: "user-type", text: type.text, textBinding };
+        }
       }
       return { kind: "plain-type", cTypeName: this.renderType(type) };
     }
@@ -4737,9 +4793,34 @@ class CodeGenWalker {
     return {
       kind: "expression",
       simpleIdentifier: ExpressionShape.simpleIdentifier(expression),
+      parameter: this.parameterNamed(expression),
       hasSideEffects: ExpressionCalls.containsCall(expression),
       code: this.renderExpression(expression),
     };
+  }
+
+  /**
+   * What a `sizeof` operand's name means at `at`. A value's C name is the one
+   * every bare identifier emits under (`TypeValidator.resolveBoundIdentifier`,
+   * #1967), and the binding is the one at the `sizeof`, so a block's local
+   * ends with its block (#1966).
+   */
+  private sizeofName(name: string, at: ISourcePosition): TSizeofName {
+    const binding = this.host.state.bindingAt(null, name, at);
+    if (binding === null || binding.kind === "scope") {
+      return { kind: "none" };
+    }
+    if (binding.kind === "local" && binding.declaration.kind === "parameter") {
+      return { kind: "parameter" };
+    }
+    const cName = TypeValidator.resolveBoundIdentifier(
+      name,
+      binding,
+      at,
+      (candidate: string) => this.host.isKnownStruct(candidate),
+      this.host.state,
+    );
+    return { kind: "value", cName: cName ?? name };
   }
 
   /**

@@ -2,17 +2,8 @@
  * A variable declared in a `for` header: `for (u32 i <- 0; ...)`.
  *
  * `typeName` is eager because it is unconditional -- every `for` variable has
- * a declared type and it is rendered before anything else here, including
- * before the name is registered. Keeping it eager preserves that: the plan is
- * built where the generator used to start, so "before registration" still
- * holds.
- *
- * The other two are thunks because the generator registers the local variable
- * between them and the type. Registration is what gives back the EMITTED name
- * (ADR-057) -- a `for` variable shadowing a file-scope name moves, so
- * `global.x` in the body still reaches past it -- and an initializer rendered
- * ahead of that registration would resolve the loop variable's own name
- * against the outer scope.
+ * a declared type and it is rendered before anything else here. The other two
+ * are thunks, so they render where the generator writes them, after the type.
  */
 interface IPlannedForVarDecl {
   /** Rendered `atomic`/`volatile` prefixes, each with its trailing space or "". */
@@ -20,8 +11,8 @@ interface IPlannedForVarDecl {
   readonly volatile: string;
   /** The declared C type, already rendered. */
   readonly typeName: string;
-  /** The identifier AS WRITTEN. The generator registers it to get the emitted one. */
-  readonly declaredName: string;
+  /** #1934: the C identifier it is emitted under, as 1.4 settled it (ADR-057) */
+  readonly emittedName: string;
   /** ADR-036 dimensions, or null when the declaration is not an array. */
   readonly renderArrayDimensions: (() => string) | null;
   /**
