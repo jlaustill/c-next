@@ -22,6 +22,7 @@ import type ITypingContext from "../types/ITypingContext";
 import type IDeclarationPlan from "../types/IDeclarationPlan";
 import type IFunctionSignature from "../types/IFunctionSignature";
 import invariant from "../utils/invariant";
+import emittedLocalName from "../utils/emittedLocalName";
 import ToolchainRequirements from "../instrumentation/ToolchainRequirements";
 import type TIncludeHeader from "../types/TIncludeHeader";
 
@@ -257,9 +258,7 @@ class TranspileState {
     if (binding?.kind !== "local") {
       return name;
     }
-    const { emittedName } = binding.declaration;
-    invariant(emittedName !== null, "1.4 settled every local it binds");
-    return emittedName;
+    return emittedLocalName(binding.declaration);
   }
 
   /**
@@ -636,9 +635,6 @@ class TranspileState {
   /** ADR-006: Current function parameters for pointer semantics */
   currentParameters: Map<string, TParameterInfo> = new Map();
 
-  /** ADR-016: Local variables in current function (allowed as bare identifiers) */
-  localVariables: Set<string> = new Set();
-
   /** Scope member names: scope -> Set of member names */
   private scopeMembers: Map<string, Set<string>> = new Map();
 
@@ -775,7 +771,6 @@ class TranspileState {
    * survives it, so it is stated without the name.)
    */
   private clearFunctionLocals(): void {
-    this.localVariables.clear();
     this.floatBitShadows.clear();
     this.floatShadowCurrent.clear();
   }
@@ -1138,11 +1133,6 @@ class TranspileState {
     this.currentScopePath = ScopeUtils.pathOf(scope);
   }
 
-  /** Register a local variable by its source name. */
-  registerLocalVariable(name: string): void {
-    this.localVariables.add(name);
-  }
-
   // ===========================================================================
   // OPAQUE SCOPE VARIABLE HELPERS (Issue #948)
   // ===========================================================================
@@ -1185,7 +1175,6 @@ class TranspileState {
     this.currentScopePath = "";
     this.currentFunctionName = null;
     this.currentParameters = new Map();
-    this.localVariables = new Set();
     this.scopeMembers = new Map();
     this.floatBitShadows = new Set();
     this.floatShadowCurrent = new Set();

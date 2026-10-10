@@ -120,7 +120,6 @@ export default class CodeGenerator implements IOrchestrator {
       indentLevel: this.state.indentLevel,
       inFunctionBody: this.state.inFunctionBody,
       currentParameters: this.state.currentParameters,
-      localVariables: this.state.localVariables,
       expectedType: this.state.expectedType,
       headerOwnsTypeDefinitions:
         this.state.declarationPlan().headerOwnsTypeDefinitions, // #369/#1450
@@ -387,14 +386,6 @@ export default class CodeGenerator implements IOrchestrator {
    */
   clearLengthCache(): void {
     this.state.lengthCache = null;
-  }
-
-  /**
-   * Register a local variable.
-   * Part of IOrchestrator interface.
-   */
-  registerLocalVariable(name: string): void {
-    this.state.registerLocalVariable(name);
   }
 
   // === Declaration Generation ===

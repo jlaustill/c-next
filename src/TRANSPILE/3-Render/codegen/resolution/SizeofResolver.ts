@@ -10,9 +10,8 @@
  *
  * ## It takes an operand, not a node (#1445)
  *
- * Every question here is about a NAME and `CodeGenState`: is `arr` a
- * parameter, is `cfg` a local that shadows a file-scope name, is `Scope` a
- * known scope. The tree was consulted only to find out WHICH grammar
+ * Every question here is about a NAME: what `arr` or `cfg` binds to where the
+ * `sizeof` is (#1966), and whether `Scope` is a known scope. The tree was consulted only to find out WHICH grammar
  * alternative matched, which is the caller's question -- so `TSizeofOperand`
  * arrives already discriminated and this module names no parse type.
  *
@@ -22,7 +21,10 @@
  */
 
 import TSizeofOperand from "../types/TSizeofOperand";
+import type TSizeofName from "../types/TSizeofName";
+import type TParameterInfo from "../../../../types/TParameterInfo";
 import invariant from "../../../../utils/invariant";
+import memberAccessChain from "../memberAccessChain";
 import type TranspileState from "../../../TranspileState";
 
 /**
@@ -38,17 +40,17 @@ export default class SizeofResolver {
     switch (operand.kind) {
       case "qualified-type":
         // `a.b` matched the qualified-TYPE alternative, and may still be a
-        // member access -- only `CodeGenState` knows which.
+        // member access -- the binding at the `sizeof` says which.
         return (
           this.sizeofQualifiedType(
             operand.firstName,
-            operand.emittedFirstName,
+            operand.firstBinding,
             operand.memberName,
             state,
           ) ?? `sizeof(${operand.renderTypeName()})`
         );
       case "user-type":
-        return this.sizeofUserType(operand.text, operand.emittedText, state);
+        return this.sizeofUserType(operand.text, operand.textBinding, state);
       case "plain-type":
         return `sizeof(${operand.cTypeName})`;
       case "expression":
@@ -62,32 +64,31 @@ export default class SizeofResolver {
    */
   private static sizeofQualifiedType(
     firstName: string,
-    emittedFirstName: string,
+    first: TSizeofName,
     memberName: string,
     state: TranspileState,
   ): string | null {
-    // Check if first identifier is a local variable (struct instance)
-    if (state.localVariables.has(firstName)) {
-      // ADR-057: a local that shadows a file-scope name is emitted under a
-      // distinct C identifier. Without this, `sizeof(cfg.x)` measured the
-      // GLOBAL `cfg` -- a wrong number, compiling clean.
-      return `sizeof(${emittedFirstName}.${memberName})`;
+    switch (first.kind) {
+      case "parameter": {
+        const sep = this.parameterMemberSeparator(
+          this.parameterOf(firstName, state),
+          state,
+        );
+        return `sizeof(${firstName}${sep}${memberName})`;
+      }
+      case "value":
+        // ADR-057: the name a local, scope member or global is emitted under
+        // (#1953, #1967)
+        return `sizeof(${first.cName}.${memberName})`;
+      case "none":
+        break;
     }
 
-    // Check if first identifier is a parameter (struct parameter)
-    const paramInfo = state.currentParameters.get(firstName);
-    if (paramInfo) {
-      const sep = paramInfo.isStruct ? "->" : ".";
-      return `sizeof(${firstName}${sep}${memberName})`;
-    }
-
-    // Check if first identifier is a global variable
-    // If not a scope or enum, it's likely a global struct variable
+    // Not a value C-Next binds: a scope or enum is a type reference
+    // (Scope.Type); anything else is taken as a struct variable
     if (!state.isKnownScope(firstName) && !state.isKnownEnum(firstName)) {
       return `sizeof(${firstName}.${memberName})`;
     }
-
-    // It's an actual type reference (Scope.Type), return null to fall through
     return null;
   }
 
@@ -96,24 +97,51 @@ export default class SizeofResolver {
    */
   private static sizeofUserType(
     varName: string,
-    emittedName: string,
+    binding: TSizeofName,
     state: TranspileState,
   ): string {
-    // Check if it's a known parameter
-    const paramInfo = state.currentParameters.get(varName);
-    if (paramInfo) {
-      return this.sizeofParameter(varName, paramInfo);
+    switch (binding.kind) {
+      case "parameter":
+        return this.sizeofParameter(varName, this.parameterOf(varName, state));
+      case "value":
+        // ADR-057: without the emitted name `sizeof(arr)` measured the GLOBAL
+        // array -- 16 bytes where 8 was correct, compiling clean -- and a scope
+        // member's bare name did not compile (#1967)
+        return `sizeof(${binding.cName})`;
+      case "none":
+        // A type name, written as it is
+        return `sizeof(${varName})`;
     }
+  }
 
-    // Check if it's a known local variable, struct type, or enum type
-    // For all these cases, generate sizeof(name) directly
-    // Unknown identifiers are also treated as variables for safety
-    //
-    // ADR-057: the emitted name is the name itself for a type name and for a
-    // local that shadows nothing; it is a rename only where a shadowing local
-    // binds, here. Without it `sizeof(arr)` measured the GLOBAL array: 16
-    // bytes where 8 was correct, with no diagnostic and a clean compile.
-    return `sizeof(${emittedName})`;
+  /**
+   * A struct parameter's member separator: the one decision every member
+   * access reads (ADR-006) -- `->` for a pointer, `.` for a C++ reference
+   */
+  private static parameterMemberSeparator(
+    paramInfo: TParameterInfo,
+    state: TranspileState,
+  ): string {
+    if (!paramInfo.isStruct) {
+      return ".";
+    }
+    return memberAccessChain.getStructParamSeparator({
+      cppMode: state.cppMode,
+      forcePointerSemantics: paramInfo.forcePointerSemantics ?? false,
+    });
+  }
+
+  /** The current function's parameter a `sizeof` operand binds to */
+  private static parameterOf(
+    name: string,
+    state: TranspileState,
+  ): TParameterInfo {
+    const paramInfo = state.currentParameters.get(name);
+    invariant(
+      paramInfo !== undefined,
+      `a name that binds to a parameter ('${name}') is one of the current function's`,
+    );
+    return paramInfo;
   }
 
   /**

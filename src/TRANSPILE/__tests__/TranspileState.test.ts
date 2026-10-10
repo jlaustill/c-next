@@ -133,11 +133,6 @@ describe("TranspileState", () => {
   });
 
   describe("Type Registration Helpers", () => {
-    it("registerLocalVariable adds to localVariables", () => {
-      state.registerLocalVariable("localVar");
-      expect(state.localVariables.has("localVar")).toBe(true);
-    });
-
     it("setCurrentScopeByPath resolves a DOTTED PATH to the registered scope", () => {
       // The contract is a path, not a leaf. This proves the API is chain-capable,
       // so the fix for #1304 is on the caller side: codegen can only supply a
@@ -183,11 +178,11 @@ describe("TranspileState", () => {
     });
 
     it("exitFunctionBody drops the function's locals", () => {
-      state.registerLocalVariable("count");
+      state.floatBitShadows.add("count");
 
       state.exitFunctionBody();
 
-      expect(state.localVariables.size).toBe(0);
+      expect(state.floatBitShadows.size).toBe(0);
     });
   });
 

@@ -3,7 +3,9 @@
  * Static class using CodeGenState for all state access.
  * Issue #63: Validation logic separated for independent testing
  */
+import type TValueBinding from "../../../types/TValueBinding";
 import type ISourcePosition from "../../../utils/types/ISourcePosition";
+import emittedLocalName from "../../../utils/emittedLocalName";
 import AdrProvenance from "../../../instrumentation/AdrProvenance";
 // SonarCloud S3776: Extracted literal parsing to reduce complexity
 import QualifiedCName from "../../../utils/QualifiedCName";
@@ -90,12 +92,32 @@ class TypeValidator {
     isKnownStruct: (name: string) => boolean,
     state: TranspileState,
   ): string | null {
-    const binding = state.bindingAt(null, identifier, at);
+    return TypeValidator.resolveBoundIdentifier(
+      identifier,
+      state.bindingAt(null, identifier, at),
+      at,
+      isKnownStruct,
+      state,
+    );
+  }
+
+  /**
+   * `resolveBareIdentifier`'s decision for a caller that already holds the
+   * binding at `at` and asks it something else too (`sizeof`, #1967): the
+   * same C name, from the same binding, without binding the name twice.
+   */
+  static resolveBoundIdentifier(
+    identifier: string,
+    binding: TValueBinding | null,
+    at: ISourcePosition,
+    isKnownStruct: (name: string) => boolean,
+    state: TranspileState,
+  ): string | null {
     if (binding?.kind === "local") {
       // ADR-057: a local normally emits under its own name (null = "leave it
       // alone"). One that shadows a file-scope symbol was given a distinct C
       // identifier at its declaration, and every reference must follow it.
-      const emitted = state.emittedLocalNameAt(identifier, at);
+      const emitted = emittedLocalName(binding.declaration);
       if (emitted === identifier) {
         return null;
       }

@@ -238,11 +238,10 @@ class Program {
                 files: fileFacts,
               }),
             ),
-          // ADR-057: the program's own file-scope C names, and the run's
-          // (which carries the headers' too)
+          // ADR-057: the program's own file-scope C names, and the headers'
+          // (the same set the binder's foreign tier reads)
           (cName) =>
-            dimensioned.symbolsByCName.has(cName) ||
-            symbolTable.getOverloadsByCName(cName).length > 0,
+            dimensioned.symbolsByCName.has(cName) || foreignNames.has(cName),
           settledLocals,
         ),
       ]),

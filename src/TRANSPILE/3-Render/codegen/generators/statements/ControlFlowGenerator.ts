@@ -209,16 +209,13 @@ const generateForVarDecl = (
   plan: IPlannedForVarDecl,
   _input: IGeneratorInput,
   _state: IGeneratorState,
-  orchestrator: IOrchestrator,
+  _orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
 
-  // ADR-016: Track local variables (allowed as bare identifiers inside scopes).
-  // ADR-057: registration hands back the emitted name -- a `for` variable that
-  // shadows a file-scope name moves, so `global.x` inside the loop body still
-  // reaches the global rather than the counter. It happens before the
-  // dimensions and the initializer render, which is why those two are thunks.
-  orchestrator.registerLocalVariable(plan.declaredName);
+  // ADR-057: a `for` variable that shadows a file-scope name is emitted under
+  // 1.4's distinct name (#1934), so `global.x` inside the loop body still
+  // reaches the global rather than the counter.
   const name = plan.emittedName;
 
   let result = `${plan.atomic}${plan.volatile}${plan.typeName} ${name}`;

@@ -48,7 +48,11 @@ describe("SizeofResolver", () => {
 
       expect(() =>
         SizeofResolver.generate(
-          { kind: "user-type", text: "arr", emittedText: "arr" },
+          {
+            kind: "user-type",
+            text: "arr",
+            textBinding: { kind: "parameter" },
+          },
           state,
         ),
       ).toThrow("E0601 rejects this in pass 2.1");
@@ -59,7 +63,11 @@ describe("SizeofResolver", () => {
 
       expect(
         SizeofResolver.generate(
-          { kind: "user-type", text: "value", emittedText: "value" },
+          {
+            kind: "user-type",
+            text: "value",
+            textBinding: { kind: "parameter" },
+          },
           state,
         ),
       ).toBe("sizeof(*value)");
@@ -73,7 +81,7 @@ describe("SizeofResolver", () => {
 
       expect(
         SizeofResolver.generate(
-          { kind: "user-type", text: "p", emittedText: "p" },
+          { kind: "user-type", text: "p", textBinding: { kind: "parameter" } },
           state,
         ),
       ).toBe("sizeof(p)");
@@ -84,14 +92,58 @@ describe("SizeofResolver", () => {
      * resolver must write it, not the source spelling.
      */
     it("uses the emitted name of a shadowing local (ADR-057)", () => {
-      state.localVariables.add("arr");
-
       expect(
         SizeofResolver.generate(
-          { kind: "user-type", text: "arr", emittedText: "main__arr" },
+          {
+            kind: "user-type",
+            text: "arr",
+            textBinding: { kind: "value", cName: "main__arr" },
+          },
           state,
         ),
       ).toBe("sizeof(main__arr)");
+    });
+
+    /**
+     * #1966: a name that binds to a value is that value, even where a
+     * parameter of the same name is in the render-time table -- the block-local
+     * that shadows it.
+     */
+    it("measures the value a name binds to, not a same-named parameter", () => {
+      declareParameter("cfg", { isStruct: true });
+
+      expect(
+        SizeofResolver.generate(
+          {
+            kind: "user-type",
+            text: "cfg",
+            textBinding: { kind: "value", cName: "cfg" },
+          },
+          state,
+        ),
+      ).toBe("sizeof(cfg)");
+    });
+
+    it("writes a name that binds to no value as written (a type name)", () => {
+      expect(
+        SizeofResolver.generate(
+          { kind: "user-type", text: "Pair", textBinding: { kind: "none" } },
+          state,
+        ),
+      ).toBe("sizeof(Pair)");
+    });
+
+    it("holds that a parameter binding is one of the current function's", () => {
+      expect(() =>
+        SizeofResolver.generate(
+          {
+            kind: "user-type",
+            text: "ghost",
+            textBinding: { kind: "parameter" },
+          },
+          state,
+        ),
+      ).toThrow("is one of the current function's");
     });
   });
 
@@ -106,14 +158,13 @@ describe("SizeofResolver", () => {
     }
 
     it("handles struct.member access for local variable", () => {
-      state.localVariables.add("myStruct");
       const spy = renderSpy();
 
       const result = SizeofResolver.generate(
         {
           kind: "qualified-type",
           firstName: "myStruct",
-          emittedFirstName: "myStruct",
+          firstBinding: { kind: "value", cName: "myStruct" },
           memberName: "field",
           renderTypeName: spy.renderTypeName,
         },
@@ -127,14 +178,12 @@ describe("SizeofResolver", () => {
     });
 
     it("uses the emitted name when the local shadows a file-scope name", () => {
-      state.localVariables.add("cfg");
-
       expect(
         SizeofResolver.generate(
           {
             kind: "qualified-type",
             firstName: "cfg",
-            emittedFirstName: "main__cfg",
+            firstBinding: { kind: "value", cName: "main__cfg" },
             memberName: "x",
             renderTypeName: renderSpy().renderTypeName,
           },
@@ -151,7 +200,7 @@ describe("SizeofResolver", () => {
           {
             kind: "qualified-type",
             firstName: "param",
-            emittedFirstName: "param",
+            firstBinding: { kind: "parameter" },
             memberName: "field",
             renderTypeName: renderSpy().renderTypeName,
           },
@@ -168,7 +217,7 @@ describe("SizeofResolver", () => {
           {
             kind: "qualified-type",
             firstName: "param",
-            emittedFirstName: "param",
+            firstBinding: { kind: "parameter" },
             memberName: "field",
             renderTypeName: renderSpy().renderTypeName,
           },
@@ -184,7 +233,7 @@ describe("SizeofResolver", () => {
         {
           kind: "qualified-type",
           firstName: "config",
-          emittedFirstName: "config",
+          firstBinding: { kind: "none" },
           memberName: "field",
           renderTypeName: spy.renderTypeName,
         },
@@ -205,7 +254,7 @@ describe("SizeofResolver", () => {
         {
           kind: "qualified-type",
           firstName: "Motor",
-          emittedFirstName: "Motor",
+          firstBinding: { kind: "none" },
           memberName: "State",
           renderTypeName: spy.renderTypeName,
         },

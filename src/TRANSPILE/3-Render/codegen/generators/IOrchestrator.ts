@@ -126,12 +126,6 @@ interface IOrchestrator {
   /** Clear length cache */
   clearLengthCache(): void;
 
-  /**
-   * Register a local by its source name. The C identifier it is emitted under
-   * is 1.4's (#1934, ADR-057) and arrives on the plan, not from here.
-   */
-  registerLocalVariable(name: string): void;
-
   // === Declaration Generation ===
 
   /** Get the length of a string literal (excluding quotes and null terminator) */

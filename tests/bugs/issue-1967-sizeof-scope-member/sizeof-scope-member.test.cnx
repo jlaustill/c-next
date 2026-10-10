@@ -1,0 +1,44 @@
+// test-execution
+// Issue #1967: a scope member named bare in `sizeof` is emitted under its
+// scope-qualified C name, whole and through a member, as every other bare
+// identifier is. Controls: the `this.` form, and a local that shadows the
+// member, which measures the local.
+
+struct Pair {
+    u8 a;
+    u32 b;
+}
+
+scope S {
+    u8[16] buf;
+    Pair cfg;
+
+    public u32 measureBuf() {
+        return sizeof(buf);
+    }
+
+    public u32 measureField() {
+        return sizeof(cfg.b);
+    }
+
+    public u32 measureThis() {
+        return sizeof(this.buf);
+    }
+
+    public u32 measureShadow() {
+        u8[4] buf <- [0, 0, 0, 0];
+        return sizeof(buf);
+    }
+}
+
+u32 main() {
+    u32 whole <- S.measureBuf();
+    if (whole != 16) return 1;
+    u32 field <- S.measureField();
+    if (field != 4) return 2;
+    u32 viaThis <- S.measureThis();
+    if (viaThis != 16) return 3;
+    u32 shadowed <- S.measureShadow();
+    if (shadowed != 4) return 4;
+    return 0;
+}

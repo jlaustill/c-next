@@ -317,7 +317,6 @@ describe("CodeGenWalker", () => {
         expect(typeof state.indentLevel).toBe("number");
         expect(typeof state.inFunctionBody).toBe("boolean");
         expect(state.currentParameters).toBeInstanceOf(Map);
-        expect(state.localVariables).toBeInstanceOf(Set);
         expect(state.scopeMembers).toBeInstanceOf(Map);
       });
     });
@@ -353,19 +352,9 @@ describe("CodeGenWalker", () => {
       it("should process enter-function-body effects", () => {
         const { host } = createMinimalGenerator(`void foo() { }`, false);
 
-        // Set the local directly. This used to go through a `register-local`
-        // EFFECT, which no generator ever emitted -- so the setup for this test
-        // was the only thing keeping that arm of `applyEffects` alive (#1452
-        // box 2). What is under test here is `enter-function-body`, which is
-        // emitted.
-        host.state.registerLocalVariable("myVar");
-        expect(host.getState().localVariables.has("myVar")).toBe(true);
-
-        // Then enter function body (clears locals)
         host.applyEffects([{ type: "enter-function-body" }]);
 
         expect(host.getState().inFunctionBody).toBe(true);
-        expect(host.getState().localVariables.size).toBe(0);
       });
 
       it("should process exit-function-body effects", () => {
@@ -679,16 +668,6 @@ describe("CodeGenWalker", () => {
       });
     });
 
-    describe("registerLocalVariable()", () => {
-      it("should add variable to local variables", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`, false);
-
-        host.registerLocalVariable("localVar");
-
-        expect(host.getState().localVariables.has("localVar")).toBe(true);
-      });
-    });
-
     describe("setCurrentScope() / setCurrentFunctionName()", () => {
       it("should set and track current scope", () => {
         const { host } = createMinimalGenerator(`void foo() { }`, false);
@@ -738,17 +717,6 @@ describe("CodeGenWalker", () => {
 
         host.exitFunctionBody();
         expect(host.getState().inFunctionBody).toBe(false);
-      });
-
-      it("should clear local state on exit", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`, false);
-
-        host.enterFunctionBody();
-        host.registerLocalVariable("tempVar");
-        expect(host.getState().localVariables.has("tempVar")).toBe(true);
-
-        host.exitFunctionBody();
-        expect(host.getState().localVariables.has("tempVar")).toBe(false);
       });
     });
 

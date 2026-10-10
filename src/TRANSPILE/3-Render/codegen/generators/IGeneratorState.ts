@@ -18,9 +18,6 @@ interface IGeneratorState {
   /** Parameters of the current function */
   readonly currentParameters: ReadonlyMap<string, TParameterInfo>;
 
-  /** Local variables in the current function */
-  readonly localVariables: ReadonlySet<string>;
-
   /** Local arrays in the current function (no & needed for pass-by-ref) */
 
   /** Expected type for inferred struct initializers */

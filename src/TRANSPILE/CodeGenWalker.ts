@@ -176,6 +176,7 @@ import ParameterInputAdapter from "./3-Render/codegen/helpers/ParameterInputAdap
 import ParameterSignatureBuilder from "./3-Render/codegen/helpers/ParameterSignatureBuilder";
 import SizeofResolver from "./3-Render/codegen/resolution/SizeofResolver";
 import type TSizeofOperand from "./3-Render/codegen/types/TSizeofOperand";
+import type TSizeofName from "./3-Render/codegen/types/TSizeofName";
 import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
 import MisraSuppressionUtils from "./3-Render/MisraSuppressionUtils";
 import QualifiedCName from "../utils/QualifiedCName";
@@ -3562,7 +3563,6 @@ class CodeGenWalker {
     );
     const name = decl.name;
     const type = this._inferVariableType(decl);
-    this._trackLocalVariable(name);
     // ADR-057: the identifier this declaration is EMITTED under. Computed once,
     // here, because the string and array forms below return before the plain
     // declaration is assembled -- a second call would be a second place
@@ -3621,9 +3621,6 @@ class CodeGenWalker {
         column: argument.span.column,
       }),
     );
-    if (this.host.state.inFunctionBody) {
-      this.host.state.registerLocalVariable(decl.name);
-    }
     return {
       kind: "constructor",
       type,
@@ -3925,18 +3922,6 @@ class CodeGenWalker {
       CodeGenWalker.declaredAt(decl),
     );
     return DeclaredPointer.spell(type, info?.isPointer ?? false);
-  }
-
-  /**
-   * Issue #696: Track a local variable's name. Its const value, if any, is
-   * 1.4's, read where a dimension is folded (#1664 box 7).
-   */
-  private _trackLocalVariable(name: string): void {
-    if (!this.host.state.inFunctionBody) {
-      return;
-    }
-
-    this.host.state.registerLocalVariable(name);
   }
 
   /**
@@ -4338,12 +4323,9 @@ class CodeGenWalker {
   /**
    * A variable declared in a `for` header.
    *
-   * `typeName` is eager, and that is the one ordering claim worth checking:
-   * today it renders before `registerLocalVariable`, and planning is also
-   * before it, so the relative order holds. The dimensions and the initializer
-   * are thunks because registration sits between them and the type -- it is
-   * what yields the EMITTED name (ADR-057), and an initializer rendered ahead
-   * of it would resolve the loop variable's own name against the outer scope.
+   * `typeName` is eager; the dimensions and the initializer are thunks, so
+   * they render where the generator writes them, after the type. The emitted
+   * name is 1.4's (#1934, ADR-057), bound at the declaration itself.
    */
   private planForVarDecl(decl: IVariableDeclarationSyntax): IPlannedForVarDecl {
     // Issue #696: Use shared modifier builder
@@ -4356,7 +4338,6 @@ class CodeGenWalker {
       atomic: modifiers.atomic,
       volatile: modifiers.volatile,
       typeName,
-      declaredName: decl.name,
       emittedName: this.host.state.emittedLocalNameAt(
         decl.name,
         CodeGenWalker.declaredAt(decl),
@@ -4698,7 +4679,7 @@ class CodeGenWalker {
         return {
           kind: "qualified-type",
           firstName: type.path[0],
-          emittedFirstName: this.host.state.emittedLocalNameAt(
+          firstBinding: this.sizeofName(
             type.path[0],
             CodeGenWalker.positionOf(expr),
           ),
@@ -4710,7 +4691,7 @@ class CodeGenWalker {
         return {
           kind: "user-type",
           text: type.text,
-          emittedText: this.host.state.emittedLocalNameAt(
+          textBinding: this.sizeofName(
             type.text,
             CodeGenWalker.positionOf(expr),
           ),
@@ -4727,6 +4708,30 @@ class CodeGenWalker {
       hasSideEffects: ExpressionCalls.containsCall(expression),
       code: this.renderExpression(expression),
     };
+  }
+
+  /**
+   * What a `sizeof` operand's name means at `at`. A value's C name is the one
+   * every bare identifier emits under (`TypeValidator.resolveBoundIdentifier`,
+   * #1967), and the binding is the one at the `sizeof`, so a block's local
+   * ends with its block (#1966).
+   */
+  private sizeofName(name: string, at: ISourcePosition): TSizeofName {
+    const binding = this.host.state.bindingAt(null, name, at);
+    if (binding === null || binding.kind === "scope") {
+      return { kind: "none" };
+    }
+    if (binding.kind === "local" && binding.declaration.kind === "parameter") {
+      return { kind: "parameter" };
+    }
+    const cName = TypeValidator.resolveBoundIdentifier(
+      name,
+      binding,
+      at,
+      (candidate: string) => this.host.isKnownStruct(candidate),
+      this.host.state,
+    );
+    return { kind: "value", cName: cName ?? name };
   }
 
   /**

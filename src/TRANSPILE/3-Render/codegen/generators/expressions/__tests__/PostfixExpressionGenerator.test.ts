@@ -85,7 +85,6 @@ function createMockInput(overrides?: {
 function createMockState(overrides?: {
   currentScopePath?: string;
   currentParameters?: Map<string, TParameterInfo>;
-  localVariables?: Set<string>;
   scopeMembers?: Map<string, Set<string>>;
   mainArgsName?: string | null;
   lengthCache?: Map<string, string> | null;
@@ -98,7 +97,6 @@ function createMockState(overrides?: {
     currentScopePath: overrides?.currentScopePath ?? "",
     inFunctionBody: overrides?.inFunctionBody ?? true,
     currentParameters: overrides?.currentParameters ?? new Map(),
-    localVariables: overrides?.localVariables ?? new Set(),
     scopeMembers: overrides?.scopeMembers ?? new Map(),
     mainArgsName: overrides?.mainArgsName ?? null,
     lengthCache: overrides?.lengthCache ?? null,
@@ -186,7 +184,6 @@ function createMockOrchestrator(overrides?: {
     countBlockLengthAccesses: vi.fn(),
     setupLengthCache: vi.fn(),
     clearLengthCache: vi.fn(),
-    registerLocalVariable: vi.fn((name: string) => name),
     generateParameterList: vi.fn(),
     getStringLiteralLength: vi.fn(),
     getStringConcatOperands: vi.fn(),
@@ -651,7 +648,7 @@ describe("PostfixExpressionGenerator", () => {
         createMockPostfixOp({ identifier: "counter" }),
       ]);
       const input = createMockInput();
-      const state = createMockState({ localVariables: new Set(["counter"]) });
+      const state = createMockState();
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "__GLOBAL_PREFIX__",
       });
