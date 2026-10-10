@@ -39,14 +39,27 @@ Bank globalBank = { { onSample, onSample, onSample } };
 
 int main(void) {
     uint32_t r = 0U;
+    uint32_t input = 0U;
     Bank b = { { onSample, onSample, onSample } };
-    r = b.handlers[0U](1U);
-    if (r != 2) return 1U;
-    r = b.handlers[1U](2U);
-    if (r != 3) return 2U;
-    r = b.handlers[2U](3U);
-    if (r != 4) return 3U;
-    r = globalBank.handlers[2U](4U);
-    if (r != 5) return 4U;
+    input = 1U;
+    r = b.handlers[0U](input);
+    if (r != 2) {
+        return 1U;
+    }
+    input = 2U;
+    r = b.handlers[1U](input);
+    if (r != 3) {
+        return 2U;
+    }
+    input = 3U;
+    r = b.handlers[2U](input);
+    if (r != 4) {
+        return 3U;
+    }
+    input = 4U;
+    r = globalBank.handlers[2U](input);
+    if (r != 5) {
+        return 4U;
+    }
     return 0U;
 }

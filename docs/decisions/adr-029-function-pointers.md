@@ -299,8 +299,8 @@ declaration order and a zero field is `{}`: `Controller ctrl = { defaultHandler 
 The default is recursive (#1570): a field whose type is a struct with
 callbacks holds that struct's default, and a callback array field holds the
 default in every element (#1565). Spelling every element needs the count, so
-a dimension written as a header macro is read for its value
-(`#define N_HANDLERS 3`, `#define N (M - 1)`: plain integer arithmetic,
+a dimension written as a macro from an included C header is read for its
+value (C-Next reads a macro whose C replacement is plain integer arithmetic,
 evaluated from the preprocessor's own macro dump) while the declaration keeps
 the macro as its size. A dimension whose value C-Next cannot read (a `sizeof`,
 a cast, a macro it cannot see) is E0359 on an array whose elements have a

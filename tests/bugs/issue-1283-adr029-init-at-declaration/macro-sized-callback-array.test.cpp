@@ -46,15 +46,28 @@ Bank globalBank = { { onSample, onSample, onSample }, { { onSample }, { onSample
 
 int main(void) {
     uint32_t r = 0U;
+    uint32_t input = 0U;
     Bank b = { { onSample, onSample, onSample }, { { onSample }, { onSample } } };
-    r = b.handlers[2U](1U);
-    if (r != 2) return 1U;
-    r = b.inners[1U].handler(2U);
-    if (r != 3) return 2U;
-    r = globalBank.handlers[2U](3U);
-    if (r != 4) return 3U;
+    input = 1U;
+    r = b.handlers[2U](input);
+    if (r != 2) {
+        return 1U;
+    }
+    input = 2U;
+    r = b.inners[1U].handler(input);
+    if (r != 3) {
+        return 2U;
+    }
+    input = 3U;
+    r = globalBank.handlers[2U](input);
+    if (r != 4) {
+        return 3U;
+    }
     Inner locals[N_INNERS] = { { onSample }, { onSample } };
-    r = locals[1U].handler(5U);
-    if (r != 6) return 5U;
+    input = 5U;
+    r = locals[1U].handler(input);
+    if (r != 6) {
+        return 5U;
+    }
     return 0U;
 }

@@ -18,6 +18,8 @@ Packet packet = {};
 
 int main(void) {
     packet.data[0] = 1U;
-    if (packet.data[0U] != 1) return 1U;
+    if (packet.data[0U] != 1) {
+        return 1U;
+    }
     return 0U;
 }

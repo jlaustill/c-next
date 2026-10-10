@@ -52,16 +52,26 @@ int main(void) {
     uint32_t r = 0U;
     Ticker t = { .handler = tickDefault };
     r = t.handler();
-    if (r != 10) return 1U;
+    if (r != 10) {
+        return 1U;
+    }
     t.handler = tickOther;
     r = t.handler();
-    if (r != 20) return 2U;
+    if (r != 20) {
+        return 2U;
+    }
     r = viaLocalArray();
-    if (r != 10) return 3U;
+    if (r != 10) {
+        return 3U;
+    }
     r = Pump__viaScopeArrays();
-    if (r != 20) return 4U;
+    if (r != 20) {
+        return 4U;
+    }
     Holder h = { .inner = { .handler = tickDefault } };
     r = h.inner.handler();
-    if (r != 10) return 5U;
+    if (r != 10) {
+        return 5U;
+    }
     return 0U;
 }

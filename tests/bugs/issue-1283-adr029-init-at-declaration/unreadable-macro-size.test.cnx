@@ -23,11 +23,13 @@ scope Pump {
     Stage[N_UNREADABLE] stages;
 
     public u32 first() {
-        return this.stages[0].handler(1);
+        u32 input <- 1;
+        return this.stages[0].handler(input);
     }
 }
 
 u32 main() {
     Bank b;
-    return b.handlers[0](1);
+    u32 input <- 1;
+    return b.handlers[0](input);
 }

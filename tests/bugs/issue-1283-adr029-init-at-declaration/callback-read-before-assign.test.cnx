@@ -48,24 +48,34 @@ u32 main() {
     u32 r <- 0;
     Ticker t;
     r <- t.handler();
-    if (r != 10) return 1;
+    if (r != 10) {
+        return 1;
+    }
 
     // Reassignment still works after the default.
     t.handler <- tickOther;
     r <- t.handler();
-    if (r != 20) return 2;
+    if (r != 20) {
+        return 2;
+    }
 
     // Every element of a local array holds the default too.
     r <- viaLocalArray();
-    if (r != 10) return 3;
+    if (r != 10) {
+        return 3;
+    }
 
     // Scope-nested element types, named bare and with `this.`.
     r <- Pump.viaScopeArrays();
-    if (r != 20) return 4;
+    if (r != 20) {
+        return 4;
+    }
 
     // The callback inside a nested struct field holds its default.
     Holder h;
     r <- h.inner.handler();
-    if (r != 10) return 5;
+    if (r != 10) {
+        return 5;
+    }
     return 0;
 }

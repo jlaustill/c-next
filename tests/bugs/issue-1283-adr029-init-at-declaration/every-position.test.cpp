@@ -48,14 +48,24 @@ uint32_t Outer__viaNestedLocal(void) {
 int main(void) {
     uint32_t r = 0U;
     r = globalTicker.handler();
-    if (r != 10) return 1U;
+    if (r != 10) {
+        return 1U;
+    }
     r = globalTickers[1U].handler();
-    if (r != 10) return 2U;
+    if (r != 10) {
+        return 2U;
+    }
     r = globalRemote.handler();
-    if (r != 50) return 3U;
+    if (r != 50) {
+        return 3U;
+    }
     r = Outer__viaMember();
-    if (r != 10) return 4U;
+    if (r != 10) {
+        return 4U;
+    }
     r = Outer__viaNestedLocal();
-    if (r != 10) return 5U;
+    if (r != 10) {
+        return 5U;
+    }
     return 0U;
 }

@@ -40,16 +40,34 @@ Mode globalModes[3] = { Mode__IDLE, Mode__IDLE, Mode__IDLE };
 int main(void) {
     Holder h = { tickDefault, Mode__IDLE, { Mode__IDLE } };
     uint32_t r = h.handler();
-    if (r != 10) return 1U;
-    if (bare != Mode__IDLE) return 2U;
-    if (standalone.m != Mode__IDLE) return 3U;
-    if (h.direct != Mode__IDLE) return 4U;
-    if (h.inner.m != Mode__IDLE) return 5U;
+    if (r != 10) {
+        return 1U;
+    }
+    if (bare != Mode__IDLE) {
+        return 2U;
+    }
+    if (standalone.m != Mode__IDLE) {
+        return 3U;
+    }
+    if (h.direct != Mode__IDLE) {
+        return 4U;
+    }
+    if (h.inner.m != Mode__IDLE) {
+        return 5U;
+    }
     Modes modes = { { Mode__IDLE, Mode__IDLE, Mode__IDLE }, { { Mode__IDLE }, { Mode__IDLE } } };
-    if (modes.ms[2U] != Mode__IDLE) return 6U;
-    if (modes.inners[1U].m != Mode__IDLE) return 7U;
-    if (globalModes[2U] != Mode__IDLE) return 8U;
+    if (modes.ms[2U] != Mode__IDLE) {
+        return 6U;
+    }
+    if (modes.inners[1U].m != Mode__IDLE) {
+        return 7U;
+    }
+    if (globalModes[2U] != Mode__IDLE) {
+        return 8U;
+    }
     Mode localModes[2] = { Mode__IDLE, Mode__IDLE };
-    if (localModes[1U] != Mode__IDLE) return 9U;
+    if (localModes[1U] != Mode__IDLE) {
+        return 9U;
+    }
     return 0U;
 }

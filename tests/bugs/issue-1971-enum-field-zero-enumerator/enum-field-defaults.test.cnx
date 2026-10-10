@@ -34,16 +34,34 @@ Mode[3] globalModes;
 u32 main() {
     Holder h;
     u32 r <- h.handler();
-    if (r != 10) return 1;
-    if (bare != Mode.IDLE) return 2;
-    if (standalone.m != Mode.IDLE) return 3;
-    if (h.direct != Mode.IDLE) return 4;
-    if (h.inner.m != Mode.IDLE) return 5;
+    if (r != 10) {
+        return 1;
+    }
+    if (bare != Mode.IDLE) {
+        return 2;
+    }
+    if (standalone.m != Mode.IDLE) {
+        return 3;
+    }
+    if (h.direct != Mode.IDLE) {
+        return 4;
+    }
+    if (h.inner.m != Mode.IDLE) {
+        return 5;
+    }
     Modes modes;
-    if (modes.ms[2] != Mode.IDLE) return 6;
-    if (modes.inners[1].m != Mode.IDLE) return 7;
-    if (globalModes[2] != Mode.IDLE) return 8;
+    if (modes.ms[2] != Mode.IDLE) {
+        return 6;
+    }
+    if (modes.inners[1].m != Mode.IDLE) {
+        return 7;
+    }
+    if (globalModes[2] != Mode.IDLE) {
+        return 8;
+    }
     Mode[2] localModes;
-    if (localModes[1] != Mode.IDLE) return 9;
+    if (localModes[1] != Mode.IDLE) {
+        return 9;
+    }
     return 0;
 }

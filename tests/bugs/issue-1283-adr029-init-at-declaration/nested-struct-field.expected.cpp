@@ -42,14 +42,27 @@ Outer globalOuter = { { onSample, {} }, { { onSample, {} }, { onSample, {} } } }
 
 int main(void) {
     uint32_t r = 0U;
+    uint32_t input = 0U;
     Outer o = { { onSample, {} }, { { onSample, {} }, { onSample, {} } } };
-    r = o.inner.handler(1U);
-    if (r != 2) return 1U;
-    r = o.inners[1U].handler(2U);
-    if (r != 3) return 2U;
-    r = globalOuter.inner.handler(3U);
-    if (r != 4) return 3U;
-    r = globalOuter.inners[1U].handler(4U);
-    if (r != 5) return 4U;
+    input = 1U;
+    r = o.inner.handler(input);
+    if (r != 2) {
+        return 1U;
+    }
+    input = 2U;
+    r = o.inners[1U].handler(input);
+    if (r != 3) {
+        return 2U;
+    }
+    input = 3U;
+    r = globalOuter.inner.handler(input);
+    if (r != 4) {
+        return 3U;
+    }
+    input = 4U;
+    r = globalOuter.inners[1U].handler(input);
+    if (r != 5) {
+        return 4U;
+    }
     return 0U;
 }
