@@ -32,11 +32,11 @@ lexer-only include scan. Nothing from 2.2 Plan on.
 
 | Layer            | Modules |
 | ---------------- | ------: |
-| `src/TRANSPILE/` |      61 |
+| `src/TRANSPILE/` |      62 |
 | `src/PARSE/`     |      23 |
 | `src/utils/`     |       9 |
 | `src/types/`     |       2 |
-| **total**        |  **95** |
+| **total**        |  **96** |
 
 `src/TRANSPILE/3-Render/` is the render layer, and its share is the number
 the issue singles out: the render layer holding parse nodes is how a
@@ -84,6 +84,7 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/TRANSPILE/1-Analyze/ConstAssignmentAnalyzer.ts`            | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/ConstructorArgumentAnalyzer.ts`        | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/ControllingExpressionAnalyzer.ts`      | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/CPointerArgumentAnalyzer.ts`           | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/CppClassInitializerAnalyzer.ts`        | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/CriticalSectionAnalyzer.ts`            | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/DeclarationModifierAnalyzer.ts`        | antlr4ng, grammar |
@@ -142,4 +143,4 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/utils/ParserUtils.ts`                                      | antlr4ng, grammar |
 | `src/utils/PostfixAnalysisUtils.ts`                             | grammar           |
 
-95 module(s).
+96 module(s).
