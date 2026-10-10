@@ -28,7 +28,7 @@ const program = (marker: string, result: number): string =>
     marker,
     "u32 main() {",
     "    u64 q <- 1;",
-    "    if (q = 18446744073709551615) return 1;",
+    "    if (q = 18446744073709551615) { return 1; }",
     `    return ${result};`,
     "}",
     "",
