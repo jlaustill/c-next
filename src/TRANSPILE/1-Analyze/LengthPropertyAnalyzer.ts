@@ -181,7 +181,18 @@ class LengthPropertyListener extends CNextListener {
 
     // `.bit_length` and `.byte_length` need a width. A string, a struct whose
     // fields all have one, and an array of either have one.
-    if (isString) return;
+    if (!isString) this.checkWidth(at, property, typed, struct, lookup);
+  }
+
+  private checkWidth(
+    at: Parser.PostfixOpContext,
+    property: string,
+    typed: IOperandType,
+    struct: ReturnType<typeof LengthProperty.struct>,
+    lookup: Parameters<typeof LengthProperty.struct>[1],
+  ): void {
+    const subject = LengthPropertyListener.spelling(typed);
+    const element = typed.typeName ?? "";
     if (struct !== undefined) {
       if (LengthProperty.structBits(struct, lookup) === null) {
         this.report(
