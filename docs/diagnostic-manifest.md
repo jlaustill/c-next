@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-505 fixture(s) assert a diagnostic; 495 carry a code.
+506 fixture(s) assert a diagnostic; 496 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -442,6 +442,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1866-scope-member-is-not-external/included-member-from-file-scope.test.cnx      | E0422               |
 | tests/bugs/issue-1866-scope-member-is-not-external/included-member-from-other-scope.test.cnx     | E0422               |
 | tests/bugs/issue-1866-scope-member-is-not-external/later-member-bare-call.test.cnx               | E0422               |
+| tests/bugs/issue-1977-struct-to-c-byte-pointer/struct-to-c-byte-pointer-error.test.cnx           | E0895               |
 | tests/bugs/issue-847-misra-17-7-lowering/bare-intra-scope-discard.test.cnx                       | E0708               |
 | tests/bugs/issue-847-misra-17-7-lowering/cross-file-scope-discard.test.cnx                       | E0708               |
 | tests/bugs/issue-847-misra-17-7-lowering/external-c-discard.test.cnx                             | E0708               |

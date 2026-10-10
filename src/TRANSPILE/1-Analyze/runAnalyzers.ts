@@ -51,6 +51,7 @@ import ArrayIndexBoundsAnalyzer from "./ArrayIndexBoundsAnalyzer";
 import CallbackAssignmentAnalyzer from "./CallbackAssignmentAnalyzer";
 import BitmapAccessAnalyzer from "./BitmapAccessAnalyzer";
 import SafeDivisionAnalyzer from "./SafeDivisionAnalyzer";
+import CPointerArgumentAnalyzer from "./CPointerArgumentAnalyzer";
 import BitAccessAnalyzer from "./BitAccessAnalyzer";
 import DeclarationModifierAnalyzer from "./DeclarationModifierAnalyzer";
 import SizeofAnalyzer from "./SizeofAnalyzer";
@@ -412,6 +413,10 @@ function runAnalyzers(
     {
       label: "safe_div/safe_mod call shape (ADR-051, E0884/E0885)",
       run: () => new SafeDivisionAnalyzer(context).analyze(tree),
+    },
+    {
+      label: "C pointer parameter arguments (#1977, E0895)",
+      run: () => new CPointerArgumentAnalyzer(context).analyze(tree),
     },
     {
       label: "sizeof operands (ADR-023, E0601/E0602)",

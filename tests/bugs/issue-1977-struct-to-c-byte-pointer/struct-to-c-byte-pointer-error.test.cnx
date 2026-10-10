@@ -1,0 +1,27 @@
+// test-error
+// #1977: a C function's pointer parameter takes an object of the type it
+// points to (owner ruling: a struct to `const uint8_t*` is a compile error).
+// The C was `send_u8(&r, 12U)` and `send_u8(w, 4U)`, exit 0.
+
+#include "byte-sink.h"
+
+struct R {
+    u32 t;
+    u8 s;
+}
+
+R r;
+R[2] rs;
+u8[16] buf;
+u32 w;
+
+void f() {
+    // NEGATIVE CONTROLS -- bytes to a byte pointer, anything to a void pointer.
+    send_u8(buf, buf.element_count);
+    send_any(r, 5);
+    // THE ASSERTIONS.
+    send_u8(r, 12);
+    send_u8(rs[0], 5);
+    send_u8(rs, 10);
+    send_u8(w, 4);
+}
