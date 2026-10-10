@@ -15,6 +15,8 @@ interface IBaseAnalysisError {
   message: string;
   /** Optional help text with suggested fix */
   helpText?: string;
+  /** A warning is reported and the file still compiles (E0896) */
+  severity?: "error" | "warning";
 }
 
 export default IBaseAnalysisError;

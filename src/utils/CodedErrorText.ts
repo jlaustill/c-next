@@ -8,8 +8,12 @@
  * `utils/`.
  */
 class CodedErrorText {
-  static of(code: string, message: string): string {
-    return `error[${code}]: ${message}`;
+  static of(
+    code: string,
+    message: string,
+    severity: "error" | "warning" = "error",
+  ): string {
+    return `${severity}[${code}]: ${message}`;
   }
 }
 

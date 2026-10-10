@@ -1,7 +1,9 @@
 // test-error
-// #1977: a C function's pointer parameter takes an object of the type it
-// points to (owner ruling: a struct to `const uint8_t*` is a compile error).
-// The C was `send_u8(&r, 12U)` and `send_u8(w, 4U)`, exit 0.
+// #1977, owner rulings. A C function's pointer parameter takes an object of
+// the type it points to: E0895. The C was `send_u8(&r, 12U)` and
+// `send_u8(w, 4U)`, exit 0. C-Next cannot see how the C function uses the
+// pointer -- one byte or n of them -- so a `u8` and a `u8[]` are both accepted,
+// with warning E0896 that the call is not memory safe.
 
 #include "byte-sink.h"
 
@@ -13,15 +15,24 @@ struct R {
 R r;
 R[2] rs;
 u8[16] buf;
+const u8[4] table <- [1, 2, 3, 4];
+u8 b;
 u32 w;
 
 void f() {
-    // NEGATIVE CONTROLS -- bytes to a byte pointer, anything to a void pointer.
+    // NEGATIVE CONTROL -- no pointer parameter: no warning, no error
+    send_count(4);
+    // ACCEPTED, each with E0896
     send_u8(buf, buf.element_count);
+    send_u8(b, 1);
+    send_u8(table, table.element_count);
+    fill_u8(buf, buf.element_count);
     send_any(r, 5);
-    // THE ASSERTIONS.
+    // THE ASSERTIONS -- E0895
     send_u8(r, 12);
     send_u8(rs[0], 5);
     send_u8(rs, 10);
     send_u8(w, 4);
+    fill_u8(w, 4);
+    fill_u8(table, 4);
 }

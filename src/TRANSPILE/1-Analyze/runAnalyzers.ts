@@ -87,11 +87,13 @@ interface IAnalyzerError {
   code?: string;
   rule?: string;
   helpText?: string;
+  severity?: "error" | "warning";
 }
 
 /**
  * Convert analyzer errors to ITranspileError format and add to accumulator.
- * Returns true if any errors were added (for early return logic).
+ * Returns true if any errors were added (for early return logic); a warning
+ * is reported and stops nothing.
  */
 function collectErrors<E extends IAnalyzerError>(
   analyzerErrors: E[],
@@ -108,11 +110,11 @@ function collectErrors<E extends IAnalyzerError>(
       line: err.line,
       column: err.column,
       message: formatMessage(err),
-      severity: "error",
+      severity: err.severity ?? "error",
       helpText: err.helpText,
     });
   }
-  return analyzerErrors.length > 0;
+  return analyzerErrors.some((err) => err.severity !== "warning");
 }
 
 /**
@@ -168,7 +170,7 @@ function runAnalyzers(
 ): ITranspileError[] {
   const errors: ITranspileError[] = [];
   const formatWithCode = (e: TCodedAnalyzerError) =>
-    CodedErrorText.of(e.code, e.message);
+    CodedErrorText.of(e.code, e.message, e.severity);
 
   // #1456: the caller's, always. No fallback to shared state -- see the field.
   const context = options.context;

@@ -20,6 +20,8 @@ import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
 import CallExprUtils from "./CallExprUtils";
 import C_TYPE_WIDTH from "../../types/C_TYPE_WIDTH";
+import CPointerParameter from "../../../../../utils/CPointerParameter";
+import CNEXT_TO_C_TYPE_MAP from "../../../../../utils/constants/TypeMappings";
 import type IPlannedCallArgument from "../../types/IPlannedCallArgument";
 
 /**
@@ -80,17 +82,22 @@ interface IResolvedParam {
 const _parameterExpectsAddressOf = (
   paramType: string,
   argType: string,
+  declaredScalar: boolean,
   orchestrator: IOrchestrator,
 ): boolean => {
-  // Don't add & for primitive types - arrays decay to pointers naturally
-  // e.g., uint8_t[] passed to uint8_t* should NOT get &
-  // Check C-Next primitives (u8, i8, etc.)
+  // An array of primitives decays to a pointer by itself (uint8_t[] to
+  // uint8_t*); a declared scalar of the pointee's type is passed by its
+  // address (#1978: `const u8 b` to `const uint8_t*` was `b`, a pointer made
+  // from an integer).
   if (
     orchestrator.isIntegerType(argType) ||
     orchestrator.isFloatType(argType) ||
     CallExprUtils.isKnownPrimitiveType(argType)
   ) {
-    return false;
+    return (
+      declaredScalar &&
+      CNEXT_TO_C_TYPE_MAP[argType] === CPointerParameter.pointee(paramType)
+    );
   }
 
   // Check C standard types (uint8_t, int32_t, etc.)
@@ -238,6 +245,7 @@ const _generateCFunctionArg = (
         _parameterExpectsAddressOf(
           targetParam.baseType,
           argType,
+          typeInfo !== undefined && !typeInfo.isArray,
           orchestrator,
         ));
 

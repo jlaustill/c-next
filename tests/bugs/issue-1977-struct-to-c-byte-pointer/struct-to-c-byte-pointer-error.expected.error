@@ -1,8 +1,22 @@
-23:12 error[E0895]: 'r' is R, and parameter 1 of 'send_u8' points to uint8_t
+26:12 warning[E0896]: C-Next cannot see how 'send_u8' uses parameter 1, so passing 'buf' to it is not memory safe
+       help: Consider converting 'send_u8' to C-Next.
+27:12 warning[E0896]: C-Next cannot see how 'send_u8' uses parameter 1, so passing 'b' to it is not memory safe
+       help: Consider converting 'send_u8' to C-Next.
+28:12 warning[E0896]: C-Next cannot see how 'send_u8' uses parameter 1, so passing 'table' to it is not memory safe
+       help: Consider converting 'send_u8' to C-Next.
+29:12 warning[E0896]: C-Next cannot see how 'fill_u8' uses parameter 1, so passing 'buf' to it is not memory safe
+       help: Consider converting 'fill_u8' to C-Next.
+30:13 warning[E0896]: C-Next cannot see how 'send_any' uses parameter 1, so passing 'r' to it is not memory safe
+       help: Consider converting 'send_any' to C-Next.
+32:12 error[E0895]: 'r' is R, and parameter 1 of 'send_u8' points to uint8_t
        help: A C pointer parameter takes an object of the type it points to; pass a uint8_t, or an array of them.
-24:12 error[E0895]: 'rs[0]' is R, and parameter 1 of 'send_u8' points to uint8_t
+33:12 error[E0895]: 'rs[0]' is R, and parameter 1 of 'send_u8' points to uint8_t
        help: A C pointer parameter takes an object of the type it points to; pass a uint8_t, or an array of them.
-25:12 error[E0895]: 'rs' is R, and parameter 1 of 'send_u8' points to uint8_t
+34:12 error[E0895]: 'rs' is R, and parameter 1 of 'send_u8' points to uint8_t
        help: A C pointer parameter takes an object of the type it points to; pass a uint8_t, or an array of them.
-26:12 error[E0895]: 'w' is uint32_t, and parameter 1 of 'send_u8' points to uint8_t
+35:12 error[E0895]: 'w' is uint32_t, and parameter 1 of 'send_u8' points to uint8_t
        help: A C pointer parameter takes an object of the type it points to; pass a uint8_t, or an array of them.
+36:12 error[E0895]: 'w' is uint32_t, and parameter 1 of 'fill_u8' points to uint8_t
+       help: A C pointer parameter takes an object of the type it points to; pass a uint8_t, or an array of them.
+37:12 error[E0895]: 'table' is const uint8_t, and parameter 1 of 'fill_u8' is a pointer 'fill_u8' may write through
+       help: Pass a non-const uint8_t, or declare the C parameter const uint8_t*.

@@ -51,6 +51,7 @@ import Discover from "../PARSE/1-Discover/Discover";
 import RunAnchor from "../PARSE/1-Discover/RunAnchor";
 import TTranspileInput from "../types/TTranspileInput";
 import ITranspileError from "../types/ITranspileError";
+import DeclarationSite from "../utils/DeclarationSite";
 import TreePasses from "../TRANSPILE/1-Analyze/TreePasses";
 import type IDeclaredSource from "../TRANSPILE/1-Analyze/types/IDeclaredSource";
 import type IAnalyzerOptions from "../TRANSPILE/1-Analyze/types/IAnalyzerOptions";
@@ -436,6 +437,7 @@ class Transpiler {
     // unchanged either way -- both `pendingWrites` and Stage 6 are already
     // gated on `result.success`.
     const rejected = diagnostics.hasErrors();
+    Transpiler._reportWarnings(input.cnextFiles, diagnostics, result);
     const pendingWrites: { path: string; content: string }[] = [];
     for (const file of input.cnextFiles) {
       if (!Transpiler._producesOutput(file)) {
@@ -827,13 +829,35 @@ class Transpiler {
     diagnostics: IDiagnostics,
   ): IFileResult {
     const sourcePath = file.path;
-    const errors = diagnostics.forFile(sourcePath);
+    const errors = diagnostics
+      .forFile(sourcePath)
+      .filter((e) => e.severity === "error");
     const declarationCount =
       this.analyzedFiles.get(sourcePath)?.declarationCount ?? 0;
 
     return errors.length > 0
       ? this.buildErrorResult(sourcePath, [...errors], declarationCount)
       : this.buildParseOnlyResult(sourcePath, declarationCount);
+  }
+
+  /**
+   * 2.1's warnings (E0896), printed as `Warning: file:line:col warning[CODE]:`
+   * whether or not the run compiles, with the advice under each.
+   */
+  private static _reportWarnings(
+    files: readonly IPipelineFile[],
+    diagnostics: IDiagnostics,
+    result: ITranspilerResult,
+  ): void {
+    for (const file of files) {
+      for (const e of diagnostics.forFile(file.path)) {
+        if (e.severity !== "warning") continue;
+        const help = e.helpText ? `\n       help: ${e.helpText}` : "";
+        result.warnings.push(
+          `${DeclarationSite.displayPath(file.path)}:${e.line}:${e.column} ${e.message}${help}`,
+        );
+      }
+    }
   }
 
   /** Stage 5's input for this file, from `TreePasses` (#1932) */

@@ -3,4 +3,6 @@
 #include <stdint.h>
 void send_u8(const uint8_t* p, uint32_t n);
 void send_any(const void* p, uint32_t n);
+void fill_u8(uint8_t* p, uint32_t n);
+void send_count(uint32_t n);
 #endif
