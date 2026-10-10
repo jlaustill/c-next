@@ -175,9 +175,9 @@ class ConstantDimensionAnalyzer {
       code: "E0359",
       line: at.line,
       column: at.column,
-      message: `Array of '${element}' must have a size C-Next can read: ADR-029 gives every element its default, so C-Next spells each one, and it cannot read the value of '${culprit ? culprit.path.join(".") : "its size"}'`,
+      message: `Array of '${element}' must have a size C-Next can read: every element has a default (ADR-029, ADR-017), so C-Next spells each one, and it cannot read the value of '${culprit ? culprit.path.join(".") : "its size"}'`,
       helpText:
-        "Size it with a C-Next const, or a header macro of plain integer arithmetic (`#define N 3`, `#define M (N - 1)`)",
+        "Size it with a C-Next const, e.g. `const u32 N_HANDLERS <- 3;`",
     };
   }
 
