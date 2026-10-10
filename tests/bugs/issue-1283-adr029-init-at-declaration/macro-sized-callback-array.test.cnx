@@ -21,10 +21,13 @@ struct Bank {
 
 Bank globalBank;
 
+// Read through a global: a local's default cannot be read before it is
+// assigned (ADR-015, #1980); the local forms are asserted by the snapshots.
+Bank b;
+
 u32 main() {
     u32 r <- 0;
     u32 input <- 0;
-    Bank b;
     input <- 1;
     r <- b.handlers[2](input);
     if (r != 2) {
@@ -39,12 +42,6 @@ u32 main() {
     r <- globalBank.handlers[2](input);
     if (r != 4) {
         return 3;
-    }
-    Inner[N_INNERS] locals;
-    input <- 5;
-    r <- locals[1].handler(input);
-    if (r != 6) {
-        return 5;
     }
     return 0;
 }

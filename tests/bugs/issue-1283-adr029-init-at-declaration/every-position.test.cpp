@@ -35,14 +35,14 @@ Remote globalRemote = { remoteDefault };
 
 /* Scope: Outer */
 static Ticker Outer__member = { tickDefault, {} };
+static Outer__Nested Outer__nestedMember = { tickDefault };
 
 uint32_t Outer__viaMember(void) {
     return Outer__member.handler();
 }
 
-uint32_t Outer__viaNestedLocal(void) {
-    Outer__Nested n = { tickDefault };
-    return n.handler();
+uint32_t Outer__viaNestedMember(void) {
+    return Outer__nestedMember.handler();
 }
 
 int main(void) {
@@ -63,7 +63,7 @@ int main(void) {
     if (r != 10) {
         return 4U;
     }
-    r = Outer__viaNestedLocal();
+    r = Outer__viaNestedMember();
     if (r != 10) {
         return 5U;
     }

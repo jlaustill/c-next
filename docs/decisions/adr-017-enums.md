@@ -103,6 +103,10 @@ So a struct with an enum field has a non-zero default (and a
 `<Struct>_init()`), and an enum array lists every element, which is why its
 size must be one C-Next can read (E0359).
 
+The zero enumerator is the value, not an initialization: a local enum, an enum
+field of a local, or an element of a local enum array read before it is
+assigned is still E0381 (ADR-015, #1980).
+
 ### Member Values
 
 A member's value is computed while the program compiles, as in C (owner ruling, 2026-10-03,

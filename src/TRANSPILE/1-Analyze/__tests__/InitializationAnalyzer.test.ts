@@ -1260,7 +1260,7 @@ describe("InitializationAnalyzer", () => {
   // #1283 review: ADR-029 defaults, read from the resolved program
   // ========================================================================
 
-  describe("ADR-029 defaults (#1283)", () => {
+  describe("ADR-029 defaults are not initialization (#1283, #1980)", () => {
     const errorsOf = (code: string) => {
       const { tree, context } = testAnalysisContextFor(code, {
         cppMode: false,
@@ -1287,13 +1287,15 @@ describe("InitializationAnalyzer", () => {
       ["Stage[2] stages;", "bare scope-nested element type"],
       ["Stage stages[2];", "C-style dimension"],
     ])(
-      "counts an array of a scope-nested struct with a default as initialized (%s, %s)",
+      "flags a callback read from an array of a scope-nested struct before assignment (%s, %s)",
       (array) => {
         const code = STAGE.replace(
           "ARRAY",
           `${array}\n          u32 r <- stages[1].handler();`,
         );
-        expect(errorsOf(code)).toHaveLength(0);
+        expect(errorsOf(code).map((e) => [e.code, e.variable])).toEqual([
+          ["E0381", "stages"],
+        ]);
       },
     );
 
@@ -1314,9 +1316,11 @@ describe("InitializationAnalyzer", () => {
       }
     `;
 
-    it("allows a callback inside a nested struct field before assignment", () => {
+    it("flags a callback inside a nested struct field before assignment (E0381)", () => {
       const code = HOLDER.replace("READ", "u32 r <- h.inner.handler();");
-      expect(errorsOf(code)).toHaveLength(0);
+      expect(errorsOf(code).map((e) => [e.code, e.variable])).toEqual([
+        ["E0381", "h.inner"],
+      ]);
     });
 
     it("flags a non-callback field inside a nested struct field (E0381)", () => {
@@ -1328,7 +1332,7 @@ describe("InitializationAnalyzer", () => {
       ]);
     });
 
-    it("counts a nested struct whose default covers all its fields as initialized", () => {
+    it("flags a nested struct read whole before assignment, though its default covers every field (E0381)", () => {
       const code = `
         u32 tickDefault() { return 10; }
         struct Inner { tickDefault handler; }
@@ -1339,7 +1343,9 @@ describe("InitializationAnalyzer", () => {
           return 0;
         }
       `;
-      expect(errorsOf(code)).toHaveLength(0);
+      expect(errorsOf(code).map((e) => [e.code, e.variable])).toEqual([
+        ["E0381", "o.inner"],
+      ]);
     });
   });
 });

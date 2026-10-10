@@ -11,7 +11,6 @@
  * 7. Per-field struct tracking
  */
 
-import StructDefault from "../../utils/StructDefault";
 import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
@@ -133,19 +132,6 @@ class InitializationListener extends CNextListener {
     // Check if this is a string type (string<N> or string)
     const isStringType = typeCtx.stringType() !== null;
 
-    // #1283: an array of structs is tracked as a whole, so its element type is
-    // what says whether ADR-029 already initialized it.
-    // Asked at the declaration's end: a name binds after it is declared.
-    const end = ctx.stop ?? ctx.IDENTIFIER().symbol;
-    const isArray =
-      typeCtx.arrayType() !== null || ctx.arrayDimension().length > 0;
-    const arrayElementTypeName = isArray
-      ? this.analyzer.arrayElementTypeOf(name, {
-          line: end.line,
-          column: end.column,
-        })
-      : null;
-
     this.analyzer.declareVariable(
       name,
       line,
@@ -153,7 +139,6 @@ class InitializationListener extends CNextListener {
       hasInitializer,
       typeName,
       isStringType,
-      arrayElementTypeName,
     );
   };
 
@@ -294,22 +279,11 @@ class InitializationListener extends CNextListener {
       return true;
     }
 
-    // If the first postfixOp is a member access, check the field -- with the
-    // member accesses after it, which a struct's ADR-029 default can leave
-    // initialized inside an otherwise unset field (#1283 review).
+    // If the first postfixOp is a member access, check the field
     const firstOpText = ops[0].getText();
     if (firstOpText.startsWith(".")) {
       const fieldName = firstOpText.slice(1);
-      // A subscript selects an element, whose default is the same for each.
-      const following = ops
-        .slice(1)
-        .map((op) => op.getText())
-        .filter((text) => !text.startsWith("["));
-      const end = following.findIndex((text) => !text.startsWith("."));
-      const subPath = (end === -1 ? following : following.slice(0, end)).map(
-        (text) => text.slice(1),
-      );
-      this.analyzer.checkRead(name, line, column, fieldName, subPath);
+      this.analyzer.checkRead(name, line, column, fieldName);
       return true;
     }
 
@@ -810,7 +784,6 @@ class InitializationAnalyzer {
     hasInitializer: boolean,
     typeName: string | null,
     isStringType: boolean = false,
-    arrayElementTypeName: string | null = null,
   ): void {
     if (!this.scopeStack.hasActiveScope()) {
       // Global scope - create implicit scope
@@ -824,16 +797,7 @@ class InitializationAnalyzer {
 
     // Issue #503: C++ classes with default constructors are automatically initialized
     const isCppClassType = typeName !== null && this.isCppClass(typeName);
-    // #1283: ADR-029 "Never Null" -- every element of an array of a struct
-    // with a default already holds it, which is all the whole-array tracking
-    // here can say.
-    const facts = StructDefault.factsOf(this.context.symbols);
-    const elementHasDefault =
-      arrayElementTypeName !== null &&
-      StructDefault.defaultOf(arrayElementTypeName, facts) !== null;
-    const isInitialized = hasInitializer || isCppClassType || elementHasDefault;
-    const defaultFields =
-      typeName === null ? [] : StructDefault.initializedPaths(typeName, facts);
+    const isInitialized = hasInitializer || isCppClassType;
 
     const state: IVariableState = {
       declaration: { name, line, column },
@@ -841,40 +805,11 @@ class InitializationAnalyzer {
       typeName,
       isStruct,
       isStringType,
-      // If initialized with full struct initializer or C++ class, all fields
-      // are initialized. Otherwise #1283: the fields ADR-029 gives a default
-      // are initialized at declaration -- callbacks, and the callback paths
-      // inside a nested struct (`inner.handler`, not `inner.count`).
-      initializedFields: new Set(isInitialized ? fields : defaultFields),
+      // If initialized with full struct initializer or C++ class, all fields are initialized
+      initializedFields: isInitialized ? new Set(fields) : new Set(),
     };
 
     this.scopeStack.declare(name, state);
-  }
-
-  /**
-   * The struct or enum C name a local array's elements are, as 1.4 resolved
-   * its declaration -- `Ticker`, `Nested` and `this.Nested` alike -- or null
-   * when `name` is not an array of either (#1283 review).
-   */
-  public arrayElementTypeOf(
-    name: string,
-    at: { line: number; column: number },
-  ): string | null {
-    const declared = this.context.program.lexicalDeclarationAt(
-      this.context.sourceFile,
-      name,
-      at,
-    );
-    if (!declared || declared.arrayDimensions.length === 0) {
-      return null;
-    }
-    const element =
-      declared.type.kind === "array"
-        ? declared.type.elementType
-        : declared.type;
-    return element.kind === "struct" || element.kind === "enum"
-      ? element.name
-      : null;
   }
 
   /**
@@ -934,7 +869,6 @@ class InitializationAnalyzer {
     line: number,
     column: number,
     field?: string,
-    subPath: readonly string[] = [],
   ): void {
     const state = this.scopeStack.lookup(name);
 
@@ -944,7 +878,7 @@ class InitializationAnalyzer {
     }
 
     if (field) {
-      this.checkFieldRead(name, line, column, [field, ...subPath], state);
+      this.checkFieldRead(name, line, column, field, state);
     } else if (!state.initialized) {
       this.addError(name, line, column, state.declaration, false);
     }
@@ -958,16 +892,16 @@ class InitializationAnalyzer {
     name: string,
     line: number,
     column: number,
-    path: readonly string[],
+    field: string,
     state: IVariableState,
   ): void {
     if (state.isStruct && state.typeName) {
-      this.checkStructFieldRead(name, line, column, path, state);
+      this.checkStructFieldRead(name, line, column, field, state);
       return;
     }
 
     if (state.isStringType) {
-      this.checkStringPropertyRead(name, line, column, path[0], state);
+      this.checkStringPropertyRead(name, line, column, field, state);
     }
     // Other types: .field is a compile-time property, no check needed
   }
@@ -979,19 +913,13 @@ class InitializationAnalyzer {
     name: string,
     line: number,
     column: number,
-    path: readonly string[],
+    field: string,
     state: IVariableState,
   ): void {
-    const field = path[0];
     const structFieldSet = this.getStructFields(state.typeName!);
     if (!structFieldSet?.has(field)) return;
 
-    // Initialized when the field is, or a path into it that the read stays
-    // inside (`o.inner.handler` under a default-set `inner.handler`).
-    const initialized = path.some((_, i) =>
-      state.initializedFields.has(path.slice(0, i + 1).join(".")),
-    );
-    if (!initialized) {
+    if (!state.initializedFields.has(field)) {
       this.addError(`${name}.${field}`, line, column, state.declaration, false);
     }
   }

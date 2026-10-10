@@ -37,10 +37,13 @@ Bank Bank_init(void) {
 
 Bank globalBank = { .handlers = { onSample, onSample, onSample } };
 
+// Read through a global: a local's default cannot be read before it is
+// assigned (ADR-015, #1980); the local forms are asserted by the snapshots.
+Bank b = { .handlers = { onSample, onSample, onSample } };
+
 int main(void) {
     uint32_t r = 0U;
     uint32_t input = 0U;
-    Bank b = { .handlers = { onSample, onSample, onSample } };
     input = 1U;
     r = b.handlers[0U](input);
     if (r != 2) {

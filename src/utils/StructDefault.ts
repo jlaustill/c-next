@@ -69,39 +69,6 @@ class StructDefault {
   }
 
   /**
-   * The fields of `structName`, as dotted paths, that its default leaves
-   * initialized: each callback field, and each nested struct field -- whole
-   * when its default covers every one of its fields, otherwise only the paths
-   * inside it that it does (`inner.handler`, never `inner.count`).
-   */
-  static initializedPaths(
-    structName: string,
-    facts: IStructDefaultFacts,
-  ): readonly string[] {
-    const result: string[] = [];
-    for (const { fieldName, value } of StructDefault.fieldsOf(
-      structName,
-      facts,
-    )) {
-      if (value.kind !== "struct") {
-        result.push(fieldName);
-        continue;
-      }
-      const inner = StructDefault.initializedPaths(value.structName, facts);
-      const innerFields = facts.structFields.get(value.structName);
-      const whole = [...(innerFields?.keys() ?? [])].every((name) =>
-        inner.includes(name),
-      );
-      if (whole) {
-        result.push(fieldName);
-      } else {
-        result.push(...inner.map((path) => `${fieldName}.${path}`));
-      }
-    }
-    return result;
-  }
-
-  /**
    * The C name of an array's element type when every element is spelled --
    * one whose default is not zero (`defaultOf`) -- or null for an array whose
    * aggregate zero needs no element count.
@@ -136,8 +103,9 @@ class StructDefault {
     if (enumerator !== null) {
       return { kind: "enum", enumerator };
     }
-    // C has no by-value self-containing struct, so this recursion is bounded
-    // by the nesting depth the program actually declares.
+    // E0426 rejects a type named before its definition (ADR-030, #1981), so a
+    // struct cannot hold itself by value and this recursion is bounded by the
+    // nesting depth the program declares.
     if (StructDefault.hasDefault(typeName, facts)) {
       return { kind: "struct", structName: typeName };
     }

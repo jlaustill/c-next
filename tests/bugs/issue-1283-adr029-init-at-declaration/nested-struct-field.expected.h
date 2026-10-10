@@ -27,6 +27,7 @@ typedef struct Outer {
 
 /* External variables */
 extern Outer globalOuter;
+extern Outer o;
 
 /* Function prototypes */
 uint32_t onSample(uint32_t input);

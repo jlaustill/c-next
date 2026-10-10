@@ -33,7 +33,7 @@ extern Remote globalRemote;
 /* Function prototypes */
 uint32_t tickDefault(void);
 uint32_t Outer__viaMember(void);
-uint32_t Outer__viaNestedLocal(void);
+uint32_t Outer__viaNestedMember(void);
 /* MISRA C:2012 Rule 8.4: declaration for the ADR-029 generated init function (the definition has external linkage and would otherwise be undeclared). */
 Ticker Ticker_init(void);
 

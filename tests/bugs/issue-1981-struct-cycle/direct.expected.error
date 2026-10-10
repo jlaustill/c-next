@@ -1,0 +1,2 @@
+8:4 error[E0426]: type 'Node' is not defined here: it is used inside its own definition (line 6): a type cannot hold itself (ADR-030: define before use)
+13:4 error[E0426]: type 'Tree' is not defined here: it is used inside its own definition (line 11): a type cannot hold itself (ADR-030: define before use)

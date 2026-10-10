@@ -1,2 +1,3 @@
-22:11 error[E0381]: use of uninitialized variable 'h.inner'
-27:11 error[E0381]: use of uninitialized variable 't.count'
+23:11 error[E0381]: use of uninitialized variable 'h.inner'
+28:11 error[E0381]: use of uninitialized variable 'arr'
+33:11 error[E0381]: use of uninitialized variable 't.count'

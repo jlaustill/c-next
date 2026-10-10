@@ -36,20 +36,36 @@ class StructDefaultInitializer {
   ): string | null {
     // #1971: an enum array lists its zero enumerator in every element; a
     // scalar enum's zero is the declaration's own (ADR-017).
-    const enumerator = ctx.enumZeroOf(structName);
-    if (enumerator !== null) {
-      return counts.length === 0
-        ? null
-        : StructDefaultInitializer.repeat(enumerator, counts, structName);
+    // The declaration's own default: the decision E0381 and E0359 read too
+    const value = StructDefault.defaultOf(structName, ctx);
+    switch (value?.kind) {
+      // ADR-029: a callback variable, or every element of an array of one,
+      // holds the function its type was defined from (never null)
+      case "callback":
+        return counts.length === 0
+          ? value.functionName
+          : StructDefaultInitializer.repeat(
+              value.functionName,
+              counts,
+              structName,
+            );
+      case "enum":
+        return counts.length === 0
+          ? null
+          : StructDefaultInitializer.repeat(
+              value.enumerator,
+              counts,
+              structName,
+            );
+      case "struct":
+        return StructDefaultInitializer.repeat(
+          StructDefaultInitializer.renderStruct(structName, ctx),
+          counts,
+          structName,
+        );
+      default:
+        return null;
     }
-    if (!StructDefault.hasDefault(structName, ctx)) {
-      return null;
-    }
-    return StructDefaultInitializer.repeat(
-      StructDefaultInitializer.renderStruct(structName, ctx),
-      counts,
-      structName,
-    );
   }
 
   private static renderStruct(
@@ -113,6 +129,10 @@ class StructDefaultInitializer {
     invariant(
       size !== null,
       `2.1 rejects an array of '${typeName}' whose element count C-Next cannot read (E0359)`,
+    );
+    invariant(
+      size > 0,
+      `2.1 rejects an array of '${typeName}' of ${size} elements (E0913)`,
     );
     const inner = StructDefaultInitializer.repeat(element, rest, typeName);
     return `{ ${new Array<string>(size).fill(inner).join(", ")} }`;

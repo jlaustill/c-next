@@ -1,0 +1,59 @@
+// test-error
+// #1090 review: E0716 finds an unbraced body however deep it sits -- in an
+// else-if arm, a switch case, a switch default, a critical block, a forever
+// loop, a do-while body and a braced body.
+u32 elseIfArm(bool c, u32 x) {
+    u32 r <- x;
+    if (c = true) {
+        r <- 1;
+    } else if (r = 0) r <- 2;
+    return r;
+}
+
+u32 switchArms(u32 x) {
+    u32 r <- 0;
+    switch (x) {
+        case 1 {
+            if (r = 0) r <- 1;
+        }
+        default {
+            while (r < 3) r +<- 1;
+        }
+    }
+    return r;
+}
+
+u32 criticalBody(bool c) {
+    u32 r <- 0;
+    critical {
+        if (c = true) r <- 1;
+    }
+    return r;
+}
+
+void foreverBody(bool c) {
+    u32 r <- 0;
+    forever {
+        if (c = true) r <- 1;
+    }
+}
+
+u32 doBody(bool c) {
+    u32 r <- 0;
+    do {
+        if (c = true) r <- 1;
+    } while (r < 3);
+    return r;
+}
+
+u32 nestedBody(bool c) {
+    u32 r <- 0;
+    if (c = true) {
+        for (u32 i <- 0; i < 3; i +<- 1) r +<- 1;
+    }
+    return r;
+}
+
+u32 main() {
+    return 0;
+}

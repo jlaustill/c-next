@@ -1,0 +1,18 @@
+// test-error
+// #1981: a struct holding itself by value names its own type before that
+// type's definition closes, which ADR-030 forbids (define before use, zero
+// exceptions): E0426. It overflowed the transpiler's stack computing the
+// ADR-029 default. A plain field and an array field alike.
+struct Node {
+    u32 value;
+    Node next;
+}
+
+struct Tree {
+    u32 value;
+    Tree[2] children;
+}
+
+u32 main() {
+    return 0;
+}

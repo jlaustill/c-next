@@ -36,7 +36,6 @@ import type ILexicalFrame from "../../types/ILexicalFrame";
 import type ISourcePosition from "../../utils/types/ISourcePosition";
 import ConstantDiagnostics from "./helpers/ConstantDiagnostics";
 import type IAnalysisContext from "./types/IAnalysisContext";
-import type TConstResult from "../../types/TConstResult";
 import type IConstantDimensionError from "./types/IConstantDimensionError";
 
 class ConstantDimensionListener extends CNextListener {
@@ -61,14 +60,16 @@ class ConstantDimensionListener extends CNextListener {
     this.check(ctx.expression());
   };
 
-  /** The dimension's fold, after reporting any E0909 / E0910 it earns */
-  private check(
-    expression: Parser.ExpressionContext | null,
-  ): TConstResult["kind"] | null {
-    if (!expression) return null; // an unsized `[]` is E0892's
+  /** Report any E0909 / E0910 / E0913 the dimension earns */
+  private check(expression: Parser.ExpressionContext | null): void {
+    if (!expression) return; // an unsized `[]` is E0892's
+    const { program, sourceFile } = this.context;
+    const lowered = ConstExprLowering.lower(
+      SyntaxLowering.expression(expression),
+    );
     const result = ConstantEvaluator.evaluate(
-      ConstExprLowering.lower(SyntaxLowering.expression(expression)),
-      ConstantFold.environment(this.context.program, this.context.sourceFile),
+      lowered,
+      ConstantFold.environment(program, sourceFile),
     );
     const at = ParserUtils.getPosition(expression);
     if (result.kind === "overflow") {
@@ -78,11 +79,24 @@ class ConstantDimensionListener extends CNextListener {
         message: `Array dimension overflows ${result.typeName} at compile time: the arithmetic would clamp or wrap (ADR-044)`,
         helpText: ConstantDiagnostics.OVERFLOW_HELP,
       });
-      return result.kind;
+      return;
     }
-    if (result.kind !== "notConstant") return result.kind;
+    if (result.kind !== "notConstant") {
+      // #1874: C (C99 6.7.5.2p1) has no array of zero or fewer elements --
+      // a literal, a folded const or a header macro's value alike
+      const count = ElementCount.read(lowered, program, sourceFile);
+      if (count.kind === "notPositive") {
+        this.found.push({
+          code: "E0913",
+          ...at,
+          message: `Array dimension must be at least 1: it is ${count.value}`,
+          helpText: "An array holds one element or more (C99 6.7.5.2, ADR-036)",
+        });
+      }
+      return;
+    }
     const why = ConstantDiagnostics.why(result);
-    if (why === null) return result.kind;
+    if (why === null) return;
     this.found.push({
       code: "E0909",
       ...at,
@@ -90,7 +104,6 @@ class ConstantDimensionListener extends CNextListener {
       helpText:
         "An array's size is built from literals, consts, sizeof and casts (ADR-023). C-Next has no variable-length arrays",
     });
-    return result.kind;
   }
 }
 
@@ -133,7 +146,7 @@ class ConstantDimensionAnalyzer {
     for (const symbol of program.symbolsInFile(sourceFile)) {
       if (symbol.kind === "struct") {
         for (const field of symbol.fields.values()) {
-          checkArray(field.type, field.dimensionExprs, symbol.span);
+          checkArray(field.type, field.dimensionExprs, field.span);
         }
       } else if (symbol.kind === "variable") {
         checkArray(symbol.type, symbol.arrayDimensionExprs, symbol.span);
@@ -165,10 +178,16 @@ class ConstantDimensionAnalyzer {
       ConstantFold.environment(program, sourceFile),
     );
     if (folded.kind !== "foreign") return null; // E0909 / E0910 are the walk's
-    if (ElementCount.of(dimension, program, sourceFile) !== null) return null;
+    // A count, or a value that is not one (E0913, the walk's)
+    if (
+      ElementCount.read(dimension, program, sourceFile).kind !== "unreadable"
+    ) {
+      return null;
+    }
 
     const culprit = ConstantDimensionAnalyzer.namesIn(dimension).find(
-      (name) => ElementCount.of(name, program, sourceFile) === null,
+      (name) =>
+        ElementCount.read(name, program, sourceFile).kind === "unreadable",
     );
     const at = culprit?.at ?? declaredAt;
     return {

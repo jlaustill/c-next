@@ -1,0 +1,4 @@
+5:0 error[E0426]: type 'Later' is not defined here: it is used before its definition at line 18 (ADR-030: define before use)
+8:4 error[E0426]: type 'Later' is not defined here: it is used before its definition at line 18 (ADR-030: define before use)
+12:14 error[E0426]: type 'Later' is not defined here: it is used before its definition at line 18 (ADR-030: define before use)
+16:0 error[E0426]: type 'Mode' is not defined here: it is used before its definition at line 22 (ADR-030: define before use)

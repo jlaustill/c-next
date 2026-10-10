@@ -1,0 +1,1 @@
+6:4 error[E0426]: type 'B' is not defined here: it is used before its definition at line 9 (ADR-030: define before use)

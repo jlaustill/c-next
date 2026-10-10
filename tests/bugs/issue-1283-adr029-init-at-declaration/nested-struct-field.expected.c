@@ -40,10 +40,13 @@ Outer Outer_init(void) {
 
 Outer globalOuter = { .inner = { .handler = onSample }, .inners = { { .handler = onSample }, { .handler = onSample } } };
 
+// Read through a global: a local's default cannot be read before it is
+// assigned (ADR-015, #1980); the local forms are asserted by the snapshots.
+Outer o = { .inner = { .handler = onSample }, .inners = { { .handler = onSample }, { .handler = onSample } } };
+
 int main(void) {
     uint32_t r = 0U;
     uint32_t input = 0U;
-    Outer o = { .inner = { .handler = onSample }, .inners = { { .handler = onSample }, { .handler = onSample } } };
     input = 1U;
     r = o.inner.handler(input);
     if (r != 2) {

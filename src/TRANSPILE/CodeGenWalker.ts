@@ -2335,9 +2335,14 @@ class CodeGenWalker {
             SymbolGuards.isFunction(candidate as TSymbol),
         ) as IFunctionSymbol | undefined;
 
-      if (symbol) {
-        functions.set(cName, symbol);
-      }
+      // #1283 review: StructDefault reads `functionReturnTypes` as the set of
+      // function-as-types; it must be exactly the set registered here, or a
+      // field's C shape and its default disagree (#1984 types them properly)
+      invariant(
+        symbol !== undefined,
+        `functionReturnTypes holds C-Next functions only, but '${cName}' is not one`,
+      );
+      functions.set(cName, symbol);
     }
 
     // Registered dependencies-first: every reader that walks `callbackTypes`

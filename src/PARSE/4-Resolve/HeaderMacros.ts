@@ -10,6 +10,7 @@
  * headers and the compiler's builtins: one definition per name, the one C
  * sees.
  */
+import TARGET_DESCRIPTION_FIELDS from "./TARGET_DESCRIPTION_FIELDS";
 import type THeaderMacro from "../../types/THeaderMacro";
 
 type TFloatingTypeName = "f32" | "f64" | null;
@@ -49,8 +50,11 @@ const BINARY_PRECEDENCE: readonly (readonly string[])[] = [
   ["+", "-"],
   ["*", "/", "%"],
 ];
-/** The range every C integer type C-Next reads a value in agrees over */
-const INT_MAX = 2147483647;
+/**
+ * Each `int` width a target may have (#1283 review): a value is read once per
+ * width, since a step past the target's `INT_MAX` is what its C gets wrong.
+ */
+const INT_BITS: readonly number[] = TARGET_DESCRIPTION_FIELDS.int_bits.allowed!;
 
 const UNREADABLE: THeaderMacro = { kind: "unreadable" };
 const CHARACTER: THeaderMacro = { kind: "character" };
@@ -59,6 +63,8 @@ const CHARACTER: THeaderMacro = { kind: "character" };
 interface IValueReader {
   readonly tokens: readonly TMacroToken[];
   next: number;
+  /** The target `int`'s largest value: `int`, `unsigned` and `long` agree up to it */
+  readonly intMax: number;
   readonly macroValue: (name: string) => number | null;
 }
 
@@ -134,25 +140,34 @@ class HeaderMacros {
     }
     return {
       kind: "integer",
-      value: HeaderMacros.valueOf(tokens, (name) => {
-        const macro = typed.get(name);
-        return macro?.kind === "integer" ? macro.value : null;
-      }),
+      valueByIntBits: new Map(
+        INT_BITS.map((bits) => [
+          bits,
+          HeaderMacros.valueOf(tokens, 2 ** (bits - 1) - 1, (name) => {
+            const macro = typed.get(name);
+            return macro?.kind === "integer"
+              ? (macro.valueByIntBits.get(bits) ?? null)
+              : null;
+          }),
+        ]),
+      ),
     };
   }
 
   /**
    * #1283 review: an integer expansion's value, read the way C reads it, or
-   * null. Every operand and every step must stay in `0..INT_MAX`: there `int`,
-   * `unsigned` and `long` arithmetic all give the exact result, so the value
-   * does not depend on which of them C picks. The names it holds are macros
+   * null. Every operand and every step must stay in `0..intMax`, the target
+   * `int`'s largest value: there `int`, `unsigned` and `long` arithmetic all
+   * give the exact result, so the value does not depend on which of them C
+   * picks. The names it holds are macros
    * already typed (`typeOf` follows them first).
    */
   private static valueOf(
     tokens: readonly TMacroToken[],
+    intMax: number,
     macroValue: (name: string) => number | null,
   ): number | null {
-    const reader = { tokens, next: 0, macroValue };
+    const reader = { tokens, next: 0, intMax, macroValue };
     const value = HeaderMacros.binary(reader, 0);
     return reader.next === tokens.length ? value : null;
   }
@@ -175,7 +190,10 @@ class HeaderMacros {
       left =
         left === null || right === null
           ? null
-          : HeaderMacros.inRange(HeaderMacros.apply(token.text, left, right));
+          : HeaderMacros.inRange(
+              HeaderMacros.apply(token.text, left, right),
+              reader.intMax,
+            );
     }
   }
 
@@ -183,7 +201,10 @@ class HeaderMacros {
     const token = reader.tokens[reader.next++];
     switch (token?.kind) {
       case "integer":
-        return HeaderMacros.inRange(HeaderMacros.literalValue(token.text));
+        return HeaderMacros.inRange(
+          HeaderMacros.literalValue(token.text),
+          reader.intMax,
+        );
       case "name":
         return reader.macroValue(token.name);
       case "operator": {
@@ -191,7 +212,9 @@ class HeaderMacros {
         if (operand === null) return null;
         if (token.text === "+") return operand;
         // `-x` and `~x` leave the range for every x but `-0`
-        return token.text === "-" ? HeaderMacros.inRange(-operand) : null;
+        return token.text === "-"
+          ? HeaderMacros.inRange(-operand, reader.intMax)
+          : null;
       }
       case "paren": {
         if (token.text !== "(") return null;
@@ -229,8 +252,8 @@ class HeaderMacros {
     }
   }
 
-  private static inRange(value: number): number | null {
-    return Number.isInteger(value) && value >= 0 && value <= INT_MAX
+  private static inRange(value: number, intMax: number): number | null {
+    return Number.isInteger(value) && value >= 0 && value <= intMax
       ? value
       : null;
   }

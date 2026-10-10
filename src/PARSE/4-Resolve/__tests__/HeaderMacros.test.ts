@@ -58,11 +58,41 @@ describe("HeaderMacros.collect", () => {
         "#define HEXF 0x1F",
       ].join("\n"),
     );
-    expect(macros.get("LIMIT")).toEqual({ kind: "integer", value: 10 });
-    expect(macros.get("MASK")).toEqual({ kind: "integer", value: 0xff0 });
-    expect(macros.get("BITS")).toEqual({ kind: "integer", value: 10 });
-    expect(macros.get("DERIVED")).toEqual({ kind: "integer", value: 0xff4 });
-    expect(macros.get("HEXF")).toEqual({ kind: "integer", value: 31 });
+    expect(macros.get("LIMIT")).toEqual({
+      kind: "integer",
+      valueByIntBits: new Map([
+        [16, 10],
+        [32, 10],
+      ]),
+    });
+    expect(macros.get("MASK")).toEqual({
+      kind: "integer",
+      valueByIntBits: new Map([
+        [16, 0xff0],
+        [32, 0xff0],
+      ]),
+    });
+    expect(macros.get("BITS")).toEqual({
+      kind: "integer",
+      valueByIntBits: new Map([
+        [16, 10],
+        [32, 10],
+      ]),
+    });
+    expect(macros.get("DERIVED")).toEqual({
+      kind: "integer",
+      valueByIntBits: new Map([
+        [16, 0xff4],
+        [32, 0xff4],
+      ]),
+    });
+    expect(macros.get("HEXF")).toEqual({
+      kind: "integer",
+      valueByIntBits: new Map([
+        [16, 31],
+        [32, 31],
+      ]),
+    });
   });
 
   it("reads an integer macro's value the way C does (#1283 review)", () => {
@@ -76,12 +106,48 @@ describe("HeaderMacros.collect", () => {
         "#define UNARY (+N - -0)",
       ].join("\n"),
     );
-    expect(macros.get("N")).toEqual({ kind: "integer", value: 3 });
-    expect(macros.get("M")).toEqual({ kind: "integer", value: 2 });
-    expect(macros.get("ORDER")).toEqual({ kind: "integer", value: 14 });
-    expect(macros.get("OCT")).toEqual({ kind: "integer", value: 8 });
-    expect(macros.get("DIV")).toEqual({ kind: "integer", value: 0 });
-    expect(macros.get("UNARY")).toEqual({ kind: "integer", value: 3 });
+    expect(macros.get("N")).toEqual({
+      kind: "integer",
+      valueByIntBits: new Map([
+        [16, 3],
+        [32, 3],
+      ]),
+    });
+    expect(macros.get("M")).toEqual({
+      kind: "integer",
+      valueByIntBits: new Map([
+        [16, 2],
+        [32, 2],
+      ]),
+    });
+    expect(macros.get("ORDER")).toEqual({
+      kind: "integer",
+      valueByIntBits: new Map([
+        [16, 14],
+        [32, 14],
+      ]),
+    });
+    expect(macros.get("OCT")).toEqual({
+      kind: "integer",
+      valueByIntBits: new Map([
+        [16, 8],
+        [32, 8],
+      ]),
+    });
+    expect(macros.get("DIV")).toEqual({
+      kind: "integer",
+      valueByIntBits: new Map([
+        [16, 0],
+        [32, 0],
+      ]),
+    });
+    expect(macros.get("UNARY")).toEqual({
+      kind: "integer",
+      valueByIntBits: new Map([
+        [16, 3],
+        [32, 3],
+      ]),
+    });
   });
 
   it("reads no value where int, unsigned and long could disagree", () => {
@@ -105,8 +171,37 @@ describe("HeaderMacros.collect", () => {
       "BAD_OCT",
       "UNBALANCED",
     ]) {
-      expect(macros.get(name)).toEqual({ kind: "integer", value: null });
+      expect(macros.get(name)).toEqual({
+        kind: "integer",
+        valueByIntBits: new Map([
+          [16, null],
+          [32, null],
+        ]),
+      });
     }
+  });
+
+  it("reads a value under each target int width (#1283 review)", () => {
+    const macros = HeaderMacros.collect(
+      [
+        "#define WIDE16 (256 * 256 / 16384)",
+        "#define FITS16 (127 * 256 + 255)",
+      ].join("\n"),
+    );
+    expect(macros.get("WIDE16")).toEqual({
+      kind: "integer",
+      valueByIntBits: new Map([
+        [16, null],
+        [32, 4],
+      ]),
+    });
+    expect(macros.get("FITS16")).toEqual({
+      kind: "integer",
+      valueByIntBits: new Map([
+        [16, 32767],
+        [32, 32767],
+      ]),
+    });
   });
 
   it("leaves a call, cast, dereference, string or unknown name unreadable, whatever a cast or call holds", () => {

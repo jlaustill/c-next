@@ -25,8 +25,20 @@ describe("ElementCount (#1283)", () => {
   const { context } = testAnalysisContextFor("const u8 SIX <- 6;", {
     cppMode: false,
     macros: {
-      N: { kind: "integer", value: 3 },
-      UNREAD: { kind: "integer", value: null },
+      N: {
+        kind: "integer",
+        valueByIntBits: new Map([
+          [16, 3],
+          [32, 3],
+        ]),
+      },
+      UNREAD: {
+        kind: "integer",
+        valueByIntBits: new Map([
+          [16, null],
+          [32, null],
+        ]),
+      },
       RATIO: { kind: "floating", typeName: "f32" },
     },
   });
@@ -54,5 +66,41 @@ describe("ElementCount (#1283)", () => {
     ["a qualified name", name("M", "N")],
   ])("cannot count %s", (_label, expr) => {
     expect(count(expr)).toBeNull();
+  });
+});
+
+describe("ElementCount.read (#1874, #1283 review)", () => {
+  const { context } = testAnalysisContextFor("const i32 M <- -2;", {
+    cppMode: false,
+    macros: {
+      N: {
+        kind: "integer",
+        valueByIntBits: new Map([
+          [16, 3],
+          [32, 3],
+        ]),
+      },
+    },
+  });
+  const read = (expr: TConstExpr) =>
+    ElementCount.read(expr, context.program, context.sourceFile);
+
+  it("reads a count", () => {
+    expect(read(name("N"))).toEqual({ kind: "count", value: 3 });
+  });
+
+  it.each([
+    ["a literal zero", lit("0"), 0n],
+    ["a negative const", name("M"), -2n],
+    ["a macro's value made negative", bin("-", name("N"), lit("5")), -2n],
+  ])("tells %s from an unreadable size", (_label, expr, value) => {
+    expect(read(expr)).toEqual({ kind: "notPositive", value });
+    expect(
+      ElementCount.of(expr, context.program, context.sourceFile),
+    ).toBeNull();
+  });
+
+  it("reports a name it cannot see the value of as unreadable", () => {
+    expect(read(name("NOT_DEFINED"))).toEqual({ kind: "unreadable" });
   });
 });

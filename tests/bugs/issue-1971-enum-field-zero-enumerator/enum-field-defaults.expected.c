@@ -37,8 +37,16 @@ Mode bare = Mode__IDLE;
 
 Mode globalModes[3] = { Mode__IDLE, Mode__IDLE, Mode__IDLE };
 
+// Globals, not locals: a local's default is not readable before it is
+// assigned (ADR-015, #1980); the local forms are asserted by the snapshots
+// of the issue-1980 fixtures.
+Holder h = { .handler = tickDefault, .direct = Mode__IDLE, .inner = { .m = Mode__IDLE } };
+
+Modes modes = { .ms = { Mode__IDLE, Mode__IDLE, Mode__IDLE }, .inners = { { .m = Mode__IDLE }, { .m = Mode__IDLE } } };
+
+Mode localModes[2] = { Mode__IDLE, Mode__IDLE };
+
 int main(void) {
-    Holder h = { .handler = tickDefault, .direct = Mode__IDLE, .inner = { .m = Mode__IDLE } };
     uint32_t r = h.handler();
     if (r != 10) {
         return 1U;
@@ -55,7 +63,6 @@ int main(void) {
     if (h.inner.m != Mode__IDLE) {
         return 5U;
     }
-    Modes modes = { .ms = { Mode__IDLE, Mode__IDLE, Mode__IDLE }, .inners = { { .m = Mode__IDLE }, { .m = Mode__IDLE } } };
     if (modes.ms[2U] != Mode__IDLE) {
         return 6U;
     }
@@ -65,7 +72,6 @@ int main(void) {
     if (globalModes[2U] != Mode__IDLE) {
         return 8U;
     }
-    Mode localModes[2] = { Mode__IDLE, Mode__IDLE };
     if (localModes[1U] != Mode__IDLE) {
         return 9U;
     }

@@ -315,9 +315,7 @@ The compiler:
 1. Sees a function definition -> creates matching typedef with `_fp` suffix
 2. Tracks which functions match which callback types
 3. Only allows assignment of functions explicitly marked as compatible
-4. Initializes all callback fields to the default function, so a callback
-   field read before any assignment is not E0381 (#1283); a non-callback
-   field read before assignment still is
+4. Initializes all callback fields to the default function
 
 ### No Conversions (MISRA 11.1)
 

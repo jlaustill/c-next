@@ -144,7 +144,8 @@ void other() { }
 // 4. CONTROL FLOW
 // =============================================================================
 
-// If/else (braces required)
+// If/else (braces required: every if, else, while and for body is a braced
+// block, E0716 -- MISRA C:2012 Rule 15.6)
 if (x > 0) {
     doSomething();
 } else if (x < 0) {

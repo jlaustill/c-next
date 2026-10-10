@@ -81,8 +81,20 @@ describe("ConstantDimensionAnalyzer (#1175: E0909, E0910)", () => {
 
 describe("ConstantDimensionAnalyzer (#1283: E0359)", () => {
   const macros = {
-    N_HANDLERS: { kind: "integer", value: 3 },
-    N_UNREADABLE: { kind: "integer", value: null },
+    N_HANDLERS: {
+      kind: "integer",
+      valueByIntBits: new Map([
+        [16, 3],
+        [32, 3],
+      ]),
+    },
+    N_UNREADABLE: {
+      kind: "integer",
+      valueByIntBits: new Map([
+        [16, null],
+        [32, null],
+      ]),
+    },
   } as const;
   const errorsWith = (source: string) => {
     const { tree, context } = testAnalysisContextFor(source, {

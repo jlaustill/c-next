@@ -90,38 +90,6 @@ describe("StructDefault", () => {
     });
   });
 
-  describe("initializedPaths", () => {
-    const f = facts({
-      Ticker: { handler: "onTick", count: "u32" },
-      Inner: { handler: "onTick" },
-      Holder: { ticker: "Ticker", inner: "Inner", total: "u32" },
-      Deep: { holder: "Holder" },
-    });
-
-    it("names each callback field", () => {
-      expect(StructDefault.initializedPaths("Ticker", f)).toEqual(["handler"]);
-    });
-
-    it("names a nested struct whole when its default covers every field", () => {
-      expect(StructDefault.initializedPaths("Holder", f)).toContain("inner");
-    });
-
-    it("names only the defaulted paths inside a partly-defaulted struct", () => {
-      expect(StructDefault.initializedPaths("Holder", f)).toEqual([
-        "ticker.handler",
-        "inner",
-      ]);
-      expect(StructDefault.initializedPaths("Deep", f)).toEqual([
-        "holder.ticker.handler",
-        "holder.inner",
-      ]);
-    });
-
-    it("is empty for a struct with no default, or no struct", () => {
-      expect(StructDefault.initializedPaths("Missing", f)).toEqual([]);
-    });
-  });
-
   describe("spelledElement", () => {
     const f = facts({
       Ticker: { handler: "onTick" },
@@ -158,6 +126,5 @@ describe("StructDefault", () => {
     expect(StructDefault.fieldsOf("Inner", f)).toEqual([
       { fieldName: "m", value: { kind: "enum", enumerator: "Mode__IDLE" } },
     ]);
-    expect(StructDefault.initializedPaths("Holder", f)).toEqual(["inner.m"]);
   });
 });

@@ -19,7 +19,8 @@ type THeaderMacro =
        * `unsigned` and `long` arithmetic all agree. Null for any other integer
        * expansion (a `sizeof`, a cast, a negative step), which C still reads.
        */
-      readonly value: number | null;
+      /** The value under each target `int` width, or null where C-Next cannot read it */
+      readonly valueByIntBits: ReadonlyMap<number, number | null>;
     }
   | { readonly kind: "character" }
   | { readonly kind: "unreadable" };

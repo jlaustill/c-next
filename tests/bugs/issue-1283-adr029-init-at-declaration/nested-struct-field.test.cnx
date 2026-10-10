@@ -18,10 +18,13 @@ struct Outer {
 
 Outer globalOuter;
 
+// Read through a global: a local's default cannot be read before it is
+// assigned (ADR-015, #1980); the local forms are asserted by the snapshots.
+Outer o;
+
 u32 main() {
     u32 r <- 0;
     u32 input <- 0;
-    Outer o;
     input <- 1;
     r <- o.inner.handler(input);
     if (r != 2) {

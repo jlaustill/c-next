@@ -32,13 +32,15 @@ scope Outer {
         tickDefault handler;
     }
 
+    // Scope member of a scope-nested struct type.
+    this.Nested nestedMember;
+
     public u32 viaMember() {
         return this.member.handler();
     }
 
-    public u32 viaNestedLocal() {
-        this.Nested n;
-        return n.handler();
+    public u32 viaNestedMember() {
+        return this.nestedMember.handler();
     }
 }
 
@@ -60,7 +62,7 @@ u32 main() {
     if (r != 10) {
         return 4;
     }
-    r <- Outer.viaNestedLocal();
+    r <- Outer.viaNestedMember();
     if (r != 10) {
         return 5;
     }
