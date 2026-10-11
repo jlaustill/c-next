@@ -54,4 +54,28 @@ describe("CallbackUseCollector", () => {
       `),
     ).toEqual(["Bus__tick", "Bus__tick"]);
   });
+
+  it("records a use inside every statement that holds statements (#2003)", () => {
+    expect(
+      namesIn(`
+        void main() {
+          if (true) { widget_set(onIf); }
+          while (false) { widget_set(onWhile); }
+          for (u8 i <- 0; i < 1; i +<- 1) { widget_set(onFor); }
+          do { widget_set(onDo); } while (false);
+          critical { widget_set(onCritical); }
+          { widget_set(onBlock); }
+          forever { widget_set(onForever); }
+        }
+      `),
+    ).toEqual([
+      "onIf",
+      "onWhile",
+      "onFor",
+      "onDo",
+      "onCritical",
+      "onBlock",
+      "onForever",
+    ]);
+  });
 });

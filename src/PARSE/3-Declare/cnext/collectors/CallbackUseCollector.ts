@@ -17,6 +17,7 @@
 import type TCallbackUse from "../../../../types/TCallbackUse";
 import * as Parser from "../../../2-Parse/grammar/CNextParser";
 import ExpressionUnwrapper from "../../../../utils/ExpressionUnwrapper";
+import ChildStatementCollector from "../../../../utils/ast/ChildStatementCollector";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 
 class CallbackUseCollector {
@@ -80,8 +81,7 @@ class CallbackUseCollector {
   }
 
   /**
-   * Scan a single statement, recursing into nested blocks
-   * (if/while/for/do-while/switch/critical).
+   * Scan a single statement, recursing into every statement it holds.
    */
   private static scanStatement(
     uses: TCallbackUse[],
@@ -106,59 +106,13 @@ class CallbackUseCollector {
       return;
     }
 
-    // Recurse into nested blocks/statements
-    const ifStmt = stmt.ifStatement();
-    if (ifStmt) {
-      for (const child of ifStmt.statement()) {
-        CallbackUseCollector.scanStatement(uses, child, scopePath);
-      }
-      return;
+    // #2003: every statement that holds statements, `forever` included
+    const children = ChildStatementCollector.collectAll(stmt);
+    for (const child of children.statements) {
+      CallbackUseCollector.scanStatement(uses, child, scopePath);
     }
-
-    const whileStmt = stmt.whileStatement();
-    if (whileStmt) {
-      CallbackUseCollector.scanStatement(
-        uses,
-        whileStmt.statement(),
-        scopePath,
-      );
-      return;
-    }
-
-    const forStmt = stmt.forStatement();
-    if (forStmt) {
-      CallbackUseCollector.scanStatement(uses, forStmt.statement(), scopePath);
-      return;
-    }
-
-    const doWhileStmt = stmt.doWhileStatement();
-    if (doWhileStmt) {
-      CallbackUseCollector.scanBlock(uses, doWhileStmt.block(), scopePath);
-      return;
-    }
-
-    const switchStmt = stmt.switchStatement();
-    if (switchStmt) {
-      for (const caseCtx of switchStmt.switchCase()) {
-        CallbackUseCollector.scanBlock(uses, caseCtx.block(), scopePath);
-      }
-      const defaultCtx = switchStmt.defaultCase();
-      if (defaultCtx) {
-        CallbackUseCollector.scanBlock(uses, defaultCtx.block(), scopePath);
-      }
-      return;
-    }
-
-    const criticalStmt = stmt.criticalStatement();
-    if (criticalStmt) {
-      CallbackUseCollector.scanBlock(uses, criticalStmt.block(), scopePath);
-      return;
-    }
-
-    // A statement can itself be a block
-    const nestedBlock = stmt.block();
-    if (nestedBlock) {
-      CallbackUseCollector.scanBlock(uses, nestedBlock, scopePath);
+    for (const child of children.blocks) {
+      CallbackUseCollector.scanBlock(uses, child, scopePath);
     }
   }
 

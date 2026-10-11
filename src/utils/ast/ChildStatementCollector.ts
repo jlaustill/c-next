@@ -20,7 +20,8 @@ interface IChildStatementResult {
 class ChildStatementCollector {
   /**
    * Collect all child statements and blocks from a control flow statement.
-   * Handles if, while, for, do-while, switch, critical, and nested blocks.
+   * Handles if, while, for, do-while, switch, critical, forever, and nested
+   * blocks -- every statement alternative that holds statements (#2003).
    */
   static collectAll(stmt: Parser.StatementContext): IChildStatementResult {
     const statements: Parser.StatementContext[] = [];
@@ -71,6 +72,11 @@ class ChildStatementCollector {
     // critical statement: has block() directly (ADR-050)
     if (stmt.criticalStatement()) {
       blocks.push(stmt.criticalStatement()!.block());
+    }
+
+    // forever statement: has block() directly (ADR-068)
+    if (stmt.foreverStatement()) {
+      blocks.push(stmt.foreverStatement()!.block());
     }
 
     // Nested block statement

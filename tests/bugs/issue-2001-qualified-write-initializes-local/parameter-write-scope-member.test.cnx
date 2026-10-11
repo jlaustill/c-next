@@ -1,0 +1,15 @@
+// test-error
+// test-adr: 057
+// #2001: `count <- 2` writes the parameter `count`, so it does not initialize
+// the scope member that parameter shadows
+scope S {
+    u32 count;
+
+    public void f(u32 count) {
+        count <- 2;
+    }
+
+    public u32 g() {
+        return count;
+    }
+}

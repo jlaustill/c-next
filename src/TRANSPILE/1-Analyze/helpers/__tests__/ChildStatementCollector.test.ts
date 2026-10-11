@@ -144,6 +144,16 @@ describe("ChildStatementCollector", () => {
       });
     });
 
+    describe("forever statement", () => {
+      it("collects block from forever (#2003)", () => {
+        const stmt = getStatement("forever { }");
+        expect(stmt).not.toBeNull();
+        const result = ChildStatementCollector.collectAll(stmt!);
+        expect(result.blocks).toHaveLength(1);
+        expect(result.statements).toHaveLength(0);
+      });
+    });
+
     describe("nested block statement", () => {
       it("collects nested block", () => {
         const stmt = getStatement("{ }");
