@@ -36,6 +36,7 @@ const repoRoot = join(
   "..",
   "..",
   "..",
+  "..",
 );
 
 /**
@@ -43,7 +44,7 @@ const repoRoot = join(
  *
  * A path, not a basename: the point is that exactly this file owns the rule.
  */
-const OWNER = join("src", "TRANSPILE", "2-Plan", "HeaderOwnership.ts");
+const OWNER = join("src", "cnx", "TRANSPILE", "2-Plan", "HeaderOwnership.ts");
 
 /**
  * `selfIncludeAdded` used as a CONDITION rather than carried as a value.

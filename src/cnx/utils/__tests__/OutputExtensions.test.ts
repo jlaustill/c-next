@@ -21,10 +21,10 @@ import { describe, it, expect } from "vitest";
 
 import OutputExtensions from "../OutputExtensions";
 
-const SRC_ROOT = join(__dirname, "..", "..");
+const SRC_ROOT = join(__dirname, "..", "..", "..");
 
 /** The file that is allowed to map a mode to an extension. */
-const OWNER = join("utils", "OutputExtensions.ts");
+const OWNER = join("cnx", "utils", "OutputExtensions.ts");
 
 /**
  * A ternary selecting a C++ file extension against its C counterpart, in either
@@ -46,7 +46,7 @@ const codeOf = (source: string): string =>
     .join("\n");
 
 /** This file: its self-test spells every shape below as a string. */
-const PIN = join("utils", "__tests__", "OutputExtensions.test.ts");
+const PIN = join("cnx", "utils", "__tests__", "OutputExtensions.test.ts");
 
 /**
  * #1428: every way a site has answered "C" (or "C++") for a run without being
@@ -74,7 +74,7 @@ const SILENT_MODE_DEFAULTS: readonly RegExp[] = [
  * overwrites with the program's mode before anything reads it. Its `reset()`
  * is a member write, which the forms above do not match.
  */
-const STATE_INITIAL_VALUE = `${join("TRANSPILE", "TranspileState.ts")}: cppMode: boolean = false`;
+const STATE_INITIAL_VALUE = `${join("cnx", "TRANSPILE", "TranspileState.ts")}: cppMode: boolean = false`;
 
 /**
  * #1428: a mode a caller, a mock or a facts object may leave out. A truthy
@@ -178,13 +178,21 @@ describe("OutputExtensions (#1319)", () => {
     // copy of 1.1's answer. Codegen and headers read the mode from Program.
     const optionTypes = [
       join(
+        "cnx",
         "TRANSPILE",
         "3-Render",
         "codegen",
         "types",
         "ICodeGeneratorOptions.ts",
       ),
-      join("TRANSPILE", "3-Render", "codegen", "types", "IHeaderOptions.ts"),
+      join(
+        "cnx",
+        "TRANSPILE",
+        "3-Render",
+        "codegen",
+        "types",
+        "IHeaderOptions.ts",
+      ),
     ];
     const carryingMode = optionTypes.filter((file) =>
       /cppMode/i.test(codeOf(readFileSync(join(SRC_ROOT, file), "utf-8"))),

@@ -3,8 +3,8 @@
 import * as antlr from "antlr4ng";
 import { Token } from "antlr4ng";
 
-import { CNextListener } from "./CNextListener";
-import { CNextVisitor } from "./CNextVisitor";
+import { CNextListener } from "./CNextListener.js";
+import { CNextVisitor } from "./CNextVisitor.js";
 
 // for running tests with parameters, TODO: discuss strategy for typed parameters in CI
 // eslint-disable-next-line no-unused-vars

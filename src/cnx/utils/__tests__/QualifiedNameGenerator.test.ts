@@ -21,6 +21,7 @@ const repoRoot = join(
   "..",
   "..",
   "..",
+  "..",
 );
 
 let registry = new SymbolRegistry();
@@ -245,7 +246,7 @@ describe("QualifiedNameGenerator", () => {
     // the population this scans. The exclusion is kept anyway rather than
     // deleted -- it costs nothing and the scan is over a directory the module
     // could be moved back into.
-    const OWNER = join("src", "utils", "QualifiedNameGenerator.ts");
+    const OWNER = join("src", "cnx", "utils", "QualifiedNameGenerator.ts");
 
     /** `qualifyInScope` CALLED -- not merely named in prose. */
     const CALLS = /ScopeUtils\s*\.\s*qualifyInScope\s*\(/;
@@ -270,7 +271,9 @@ describe("QualifiedNameGenerator", () => {
     });
 
     it("has no other caller inside the render pass", () => {
-      const offenders = walk(join(repoRoot, "src", "TRANSPILE", "3-Render"))
+      const offenders = walk(
+        join(repoRoot, "src", "cnx", "TRANSPILE", "3-Render"),
+      )
         .map((file) => relative(repoRoot, file))
         .filter((file) => file !== OWNER && !file.includes("__tests__"))
         .filter((file) =>

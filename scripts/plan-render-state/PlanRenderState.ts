@@ -268,7 +268,7 @@ class PlanRenderState {
     const pass = /^src\/cnx\/TRANSPILE\/(\d-[^/]+)\//.exec(file);
     if (pass) return pass[1];
     if (file === "src/cnx/TRANSPILE/CodeGenWalker.ts") return "CodeGenWalker";
-    return /^src\/([^/]+)\//.exec(file)?.[1] ?? file;
+    return /^src\/(?:cnx\/)?([^/]+)\//.exec(file)?.[1] ?? file;
   }
 
   private static nameOf(m: Node): string | undefined {

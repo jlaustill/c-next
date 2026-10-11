@@ -442,7 +442,7 @@ describe("artifact lifetime (#1445 box 2)", () => {
       // 2.1's `TreePasses` holds every tree as a local of one call, the host has
       // none to hold, and a field that brings one back fails here.
       const holders = storedParseNodes(
-        /src\/(?!PARSE\/2-Parse|TRANSPILE\/1-Analyze)/,
+        /src\/(?!cnx\/(PARSE\/2-Parse|TRANSPILE\/1-Analyze))/,
       );
 
       expect(holders).toEqual([]);
@@ -458,7 +458,7 @@ describe("artifact lifetime (#1445 box 2)", () => {
       // local built per traversal (`new ShiftListener(...)`) with no static
       // holder in the pass, so nothing survives the walk that created it.
       const holders = storedParseNodes(
-        /src\/(PARSE\/4-Resolve|TRANSPILE\/2-Plan|TRANSPILE\/3-Render)\//,
+        /src\/cnx\/(PARSE\/4-Resolve|TRANSPILE\/2-Plan|TRANSPILE\/3-Render)\//,
       );
 
       expect(holders).toEqual([]);

@@ -27,6 +27,7 @@ const repoRootForGuard = join(
   "..",
   "..",
   "..",
+  "..",
 );
 
 let registry = new SymbolRegistry();
@@ -598,7 +599,7 @@ describe("TranspileState", () => {
       // exclusion covered no file -- it passed only because the owner spells
       // the call `this.isScopeType(` and the pattern looked for the class name.
       // Pointed at the real file so the exclusion means what it says.
-      const owner = join("src", "TRANSPILE", "TranspileState.ts");
+      const owner = join("src", "cnx", "TRANSPILE", "TranspileState.ts");
 
       // Matches the RECEIVER, not the class. The pattern was
       // `/TranspileState\s*\.\s*isScopeType\s*\(/` -- the static-call spelling,

@@ -3,8 +3,8 @@
 import * as antlr from "antlr4ng";
 import { Token } from "antlr4ng";
 
-import { CListener } from "./CListener";
-import { CVisitor } from "./CVisitor";
+import { CListener } from "./CListener.js";
+import { CVisitor } from "./CVisitor.js";
 
 // for running tests with parameters, TODO: discuss strategy for typed parameters in CI
 // eslint-disable-next-line no-unused-vars
