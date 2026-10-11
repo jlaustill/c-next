@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-523 fixture(s) assert a diagnostic; 513 carry a code.
+524 fixture(s) assert a diagnostic; 514 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -284,6 +284,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1175-constant-dimensions/cross-file-variable-direct.test.cnx                    | E0909               |
 | tests/bugs/issue-1175-constant-dimensions/cross-file-variable-transitive.test.cnx                | E0909               |
 | tests/bugs/issue-1175-constant-dimensions/dimension-missing-member.test.cnx                      | E0909               |
+| tests/bugs/issue-1175-constant-dimensions/dimension-zero-divisor.test.cnx                        | E0800               |
 | tests/bugs/issue-1175-constant-dimensions/enum-missing-member.test.cnx                           | E0909               |
 | tests/bugs/issue-1175-constant-dimensions/foreign-condition.test.cnx                             | E0909               |
 | tests/bugs/issue-1175-constant-dimensions/overflow-dimension.test.cnx                            | E0910               |
