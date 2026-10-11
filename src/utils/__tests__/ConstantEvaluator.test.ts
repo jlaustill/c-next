@@ -398,7 +398,7 @@ describe("ConstantEvaluator", () => {
         0,
       ],
       [
-        "f32 arithmetic underflows at f32",
+        "f32 arithmetic flushes to zero at f32",
         bin("*", float("1e-30f32"), float("1e-30f32")),
         0,
       ],
