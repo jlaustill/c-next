@@ -107,7 +107,6 @@ const PARSE_TREE_TYPES = [
  * fails exactly as if it had imported the grammar.
  */
 const PARSE_TREE_HELPERS = [
-  "^src/utils/ast/(AssignmentTargetExtractor|ChildStatementCollector|StatementExpressionCollector)\\.ts$",
   "^src/utils/(ChainRoot|ExpressionUnwrapper|ExpressionUtils|OverflowBehaviorUtils|ParserUtils|PostfixAnalysisUtils)\\.ts$",
   "^src/types/TAssignmentSite\\.ts$",
 ];

@@ -121,25 +121,6 @@ class ExpressionUtils {
     const identifier = primary.IDENTIFIER();
     return identifier?.getText() ?? null;
   }
-
-  /**
-   * Collect additive expressions from an array of orExpression contexts.
-   *
-   * Internal helper that performs the actual flatMap traversal.
-   */
-  private static collectAdditiveFromOrExprs(
-    orExprs: Parser.OrExpressionContext[],
-  ): Parser.AdditiveExpressionContext[] {
-    return orExprs
-      .flatMap((or) => or.andExpression())
-      .flatMap((and) => and.equalityExpression())
-      .flatMap((eq) => eq.relationalExpression())
-      .flatMap((rel) => rel.bitwiseOrExpression())
-      .flatMap((bor) => bor.bitwiseXorExpression())
-      .flatMap((bxor) => bxor.bitwiseAndExpression())
-      .flatMap((band) => band.shiftExpression())
-      .flatMap((shift) => shift.additiveExpression());
-  }
 }
 
 export default ExpressionUtils;
