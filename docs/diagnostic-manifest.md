@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-533 fixture(s) assert a diagnostic; 523 carry a code.
+535 fixture(s) assert a diagnostic; 525 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -326,6 +326,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1268-qualified-zero-const/float-cast-shift.test.cnx                             | E0873               |
 | tests/bugs/issue-1268-qualified-zero-const/float-to-integer-cast.test.cnx                        | E0800, E0802        |
 | tests/bugs/issue-1268-qualified-zero-const/float-zero-forms.test.cnx                             | E0800               |
+| tests/bugs/issue-1268-qualified-zero-const/length-property-divisor-imported.test.cnx             | E0800               |
+| tests/bugs/issue-1268-qualified-zero-const/length-property-divisor.test.cnx                      | E0800               |
 | tests/bugs/issue-1268-qualified-zero-const/qualified-zero-const-imported.test.cnx                | E0800, E0802        |
 | tests/bugs/issue-1268-qualified-zero-const/qualified-zero-const.test.cnx                         | E0800, E0802        |
 | tests/bugs/issue-1268-qualified-zero-const/typed-cast-divisor.test.cnx                           | E0800               |
