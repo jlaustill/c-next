@@ -13,12 +13,14 @@
  * folded from an expression (`const u32 V <- 5 - 5`) is zero here too.
  */
 
-import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
+import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import IDivisionByZeroError from "./types/IDivisionByZeroError";
 import LiteralUtils from "../../utils/LiteralUtils";
 import ParserUtils from "../../utils/ParserUtils";
+import OperandTyper from "../../utils/OperandTyper";
+import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import BoundDeclaration from "./helpers/BoundDeclaration";
 
@@ -70,60 +72,29 @@ class DivisionByZeroListener extends CNextListener {
   };
 
   /**
-   * Check if a unary expression evaluates to zero
+   * Whether a divisor is zero: a zero literal of any kind (`0`, `0u32`,
+   * `0.0f32`), an integer the one evaluator folds to 0 (`ZERO`, `5 - 5`), or
+   * a const whose zero initializer it does not fold -- a float's. A name
+   * written `this.ZERO`, `global.ZERO` or `Scope.ZERO` is bound by the same
+   * walk as the bare one, so it means the declaration ADR-057 names (#1268).
    */
   private isZero(ctx: Parser.UnaryExpressionContext): boolean {
-    // Get the postfix expression
-    const postfixExpr = ctx.postfixExpression();
-    if (!postfixExpr) {
-      return false;
-    }
-
-    // Get the primary expression
-    const primaryExpr = postfixExpr.primaryExpression();
-    if (!primaryExpr) {
-      return false;
-    }
-
-    // Check if it's a literal
-    const literal = primaryExpr.literal();
+    const literal = ctx.postfixExpression()?.primaryExpression()?.literal();
     if (literal) {
       return LiteralUtils.isZeroText(literal.getText());
     }
-
-    // A const that is zero where it is used
-    const identifier = primaryExpr.IDENTIFIER();
-    if (identifier) {
-      return this.isConstZero(identifier.getText(), ctx);
-    }
-
-    return false;
-  }
-
-  /**
-   * Whether `name` binds, where it is used, to a const that is zero: a zero
-   * literal of any kind (`0`, `0u32`, `0.0`), or an integer that folds to 0
-   * (`5 - 5`). Through the one binder, so a local shadows as it does
-   * everywhere else and a const from an included file is found (#1220).
-   */
-  private isConstZero(name: string, at: ParserRuleContext): boolean {
-    const binding = this.context.program.bindValue(
-      this.context.sourceFile,
-      null,
-      name,
-      ParserUtils.getPosition(at),
-    );
-    const declared = BoundDeclaration.of(binding);
-    if (binding === null || !declared?.isConst) {
-      return false;
-    }
-    if (
-      declared.initialValue !== null &&
-      LiteralUtils.isZeroText(declared.initialValue)
-    ) {
+    const divisor = SyntaxLowering.expressionNode(ctx);
+    if (OperandTyper.constantOf(divisor, this.context) === 0) {
       return true;
     }
-    return this.context.program.constantOf(binding)?.value === 0;
+    const declared = BoundDeclaration.of(
+      OperandTyper.bindingOf(divisor, this.context),
+    );
+    return (
+      declared?.isConst === true &&
+      declared.initialValue !== null &&
+      LiteralUtils.isZeroText(declared.initialValue)
+    );
   }
 }
 

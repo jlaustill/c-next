@@ -41,6 +41,7 @@ import type ITypingContext from "../types/ITypingContext";
 import type TEssentialCategory from "../types/TEssentialCategory";
 import type TType from "../types/TType";
 import type TValueBinding from "../types/TValueBinding";
+import type TSymbol from "../types/symbols/TSymbol";
 import type TSubscriptKind from "../types/TSubscriptKind";
 import type TExpression from "../types/syntax/TExpression";
 import type TExpressionOf from "../types/syntax/TExpressionOf";
@@ -208,6 +209,36 @@ class OperandTyper {
    */
   static chainOf(chain: TExpression, ctx: ITypingContext): IChainTyping {
     return OperandTyper.walkChain(chain, ctx).typing;
+  }
+
+  /**
+   * The declaration a name chain means -- `N`, `this.N`, `global.N`,
+   * `Scope.N`, `global.Scope.N` -- by the walk that types it, so every
+   * spelling of a name binds where the bare one does (#1268). Null for any
+   * other chain: a field, an element, a call.
+   */
+  static bindingOf(
+    chain: TExpression,
+    ctx: ITypingContext,
+  ): TValueBinding | null {
+    const start = OperandTyper.chainStart(chain, ctx);
+    if (start.ops.length === 0) {
+      return start.binding?.kind === "scope" ? null : start.binding;
+    }
+    const member = start.ops[0];
+    if (
+      start.ops.length > 1 ||
+      member.kind !== "member" ||
+      start.value.k !== "scope"
+    ) {
+      return null;
+    }
+    const { symbol } = OperandTyper.scopeMember(
+      start.value.scopePath,
+      member.name,
+      ctx,
+    );
+    return symbol?.kind === "variable" ? { kind: "variable", symbol } : null;
   }
 
   /**
@@ -1056,11 +1087,7 @@ class OperandTyper {
     name: string,
     ctx: ITypingContext,
   ): TChainValue {
-    const cName =
-      scopePath === ""
-        ? name
-        : ScopeUtils.getTranspiledCName({ name, scopePath });
-    const symbol = ctx.program.symbolByCName(cName);
+    const { cName, symbol } = OperandTyper.scopeMember(scopePath, name, ctx);
     switch (symbol?.kind) {
       case "variable": {
         const t = OperandTyper.boundValue({ kind: "variable", symbol }, ctx);
@@ -1076,6 +1103,19 @@ class OperandTyper {
         break;
     }
     return UNKNOWN;
+  }
+
+  /** What `name` declares in the scope at `scopePath` ("" is file scope) */
+  private static scopeMember(
+    scopePath: string,
+    name: string,
+    ctx: ITypingContext,
+  ): { cName: string; symbol: TSymbol | undefined } {
+    const cName =
+      scopePath === ""
+        ? name
+        : ScopeUtils.getTranspiledCName({ name, scopePath });
+    return { cName, symbol: ctx.program.symbolByCName(cName) };
   }
 
   private static applyOp(

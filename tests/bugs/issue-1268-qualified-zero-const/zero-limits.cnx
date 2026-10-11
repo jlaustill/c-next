@@ -1,0 +1,8 @@
+// Helper for qualified-zero-const-imported.test.cnx
+
+const u32 FILE_ZERO <- 0;
+
+scope Limits {
+    public const u32 ZERO <- 0;
+    public const u32 ONE <- 1;
+}

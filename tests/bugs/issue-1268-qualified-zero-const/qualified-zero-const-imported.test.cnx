@@ -1,0 +1,20 @@
+// test-adr: 051
+// test-error
+// E0800/E0802: the qualified spellings of a const zero declared in an
+// included file. Limits.ONE is the nonzero control.
+#include "zero-limits.cnx"
+
+scope Reader {
+    public u32 viaGlobal(u32 n) {
+        u32 divided <- n / global.FILE_ZERO;
+        u32 remainder <- n % global.Limits.ZERO;
+        return divided + remainder;
+    }
+}
+
+u32 viaScopeName(u32 n) {
+    u32 divided <- n / Limits.ZERO;
+    u32 remainder <- n % Limits.ZERO;
+    u32 control <- n / Limits.ONE;
+    return divided + remainder + control;
+}
