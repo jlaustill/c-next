@@ -20,6 +20,12 @@ interface IConstantEnvironment {
    * review: `sizeof(P)` inside scope S reached C as `P`, not `S__P`)
    */
   cTypeName(typeName: string, at: ISourcePosition): string;
+  /**
+   * Whether a type name that is not a primitive denotes a type where it is
+   * written: a cast to one nothing declares has no value (#1268 review:
+   * `(Nope)0` is the undefined type's error, E0426, not a zero)
+   */
+  isTypeName(typeName: string, at: ISourcePosition): boolean;
 }
 
 export default IConstantEnvironment;

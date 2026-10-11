@@ -36,6 +36,8 @@ class ConstantFold {
       valueOf: (name) => program.constantValueOf(sourceFile, name),
       cTypeName: (typeName, at) =>
         program.cTypeNameAt(sourceFile, typeName, at),
+      isTypeName: (typeName, at) =>
+        program.isTypeNameAt(sourceFile, typeName, at),
     };
   }
 

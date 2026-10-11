@@ -238,6 +238,15 @@ class Program {
                 files: fileFacts,
               }),
             ),
+          (typeName, at) =>
+            ConstantNames.isTypeName(
+              typeName,
+              at,
+              Program.nameFacts(dimensioned, file.sourceFile, constants, {
+                settledLocal: SETTLED,
+                files: fileFacts,
+              }),
+            ),
           // ADR-057: the program's own file-scope C names, and the headers'
           // (the same set the binder's foreign tier reads)
           (cName) =>
@@ -374,6 +383,19 @@ class Program {
         at: ISourcePosition,
       ): string =>
         ConstantNames.cTypeName(
+          typeName,
+          at,
+          Program.nameFacts(bound, sourceFile, constants, {
+            settledLocal: SETTLED,
+            files: fileFacts,
+          }),
+        ),
+      isTypeNameAt: (
+        sourceFile: string,
+        typeName: string,
+        at: ISourcePosition,
+      ): boolean =>
+        ConstantNames.isTypeName(
           typeName,
           at,
           Program.nameFacts(bound, sourceFile, constants, {
@@ -772,10 +794,7 @@ class Program {
         );
         // A const waiting on another settles when that one does; one with no
         // value for any other reason has settled, and keeps why
-        const waits =
-          settledConst?.kind !== "value" &&
-          settledConst?.kind !== "float" &&
-          pending.length > 0;
+        const waits = !Program.hasValue(settledConst) && pending.length > 0;
         if (settledConst !== null && !waits) consts.set(cName, settledConst);
       } else if (symbol.kind === "enum" && !enums.has(cName)) {
         const values = Program.enumValues(symbol, facts);
@@ -977,10 +996,20 @@ class Program {
     return without("unfolded");
   }
 
+  /**
+   * Whether a settled const has a value, integer or float: one answer for
+   * whether it waits and whether another round may give it one (#1268 review)
+   */
+  private static hasValue(settled: TSettledConst | null | undefined): boolean {
+    return settled?.kind === "value" || settled?.kind === "float";
+  }
+
   private static environment(facts: IConstantNameFacts): IConstantEnvironment {
     return {
       valueOf: (name) => ConstantNames.valueOf(name, facts),
       cTypeName: (typeName, at) => ConstantNames.cTypeName(typeName, at, facts),
+      isTypeName: (typeName, at) =>
+        ConstantNames.isTypeName(typeName, at, facts),
     };
   }
 
@@ -1028,7 +1057,7 @@ class Program {
         files,
       );
       const constLacksValue = [...constants.consts.values()].some(
-        (settled) => settled.kind !== "value",
+        (settled) => !Program.hasValue(settled),
       );
       if (!constLacksValue || Program.sameDimensions(symbols, next)) {
         return { constants, symbolsByFile: next };

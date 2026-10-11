@@ -23,6 +23,8 @@ import IFloatLiteralParts from "../types/IFloatLiteralParts";
 import type TConstExpr from "../types/TConstExpr";
 import type TConstResult from "../types/TConstResult";
 import type IConstantEnvironment from "./types/IConstantEnvironment";
+import SaturationRule from "./SaturationRule";
+import CNEXT_TO_C_TYPE_MAP from "./constants/TypeMappings";
 
 type TBinary = Extract<TConstExpr, { kind: "binary" }>;
 type TValue = Extract<TConstResult, { kind: "value" }>;
@@ -94,6 +96,17 @@ class ConstantEvaluator {
       case "sizeof":
         return ConstantEvaluator.sizeOf(expr.typeName);
       case "cast":
+        if (
+          CNEXT_TO_C_TYPE_MAP[expr.typeName] === undefined &&
+          !env.isTypeName(expr.typeName, expr.at)
+        ) {
+          return {
+            kind: "notConstant",
+            reason: "unknown",
+            spelling: expr.typeName,
+            at: expr.at,
+          };
+        }
         // A cast is the context of what it encloses
         return ConstantEvaluator.cast(
           expr.typeName,
@@ -303,9 +316,9 @@ class ConstantEvaluator {
   /**
    * A float cast: to a float type it is held there; to `bool` it is whether
    * it is nonzero; to an integer type it saturates as the generated cast
-   * does (ADR-024, `SaturatingCast`): at or past the maximum as the float's
-   * type holds it is the maximum, below the minimum is the minimum, and
-   * anything else truncates toward zero
+   * does: past a bound it is that bound, by `SaturationRule`, which
+   * `SaturatingCast` spells in C (ADR-024), and anything else truncates
+   * toward zero
    */
   private static castFloat(typeName: string, operand: TFloat): TConstResult {
     if (typeName === BOOL) {
@@ -327,9 +340,9 @@ class ConstantEvaluator {
     const bound = (limit: bigint): number =>
       ConstantEvaluator.integerAsFloat(limit, operand.typeName);
     let value: bigint;
-    if (operand.value >= bound(max)) {
+    if (SaturationRule.saturatesAbove(operand.value, bound(max))) {
       value = max;
-    } else if (operand.value < (min === 0n ? 0 : bound(min))) {
+    } else if (SaturationRule.saturatesBelow(operand.value, bound(min))) {
       value = min;
     } else {
       value = BigInt(Math.trunc(operand.value));

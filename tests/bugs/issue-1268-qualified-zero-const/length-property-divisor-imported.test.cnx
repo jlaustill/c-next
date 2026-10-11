@@ -1,0 +1,14 @@
+// test-error
+// test-adr: 051
+// test-adr: 058
+// Tests: #1268 review - a length property of an array another file declares
+// is known at compile time too. The last divisor is 1 and must stay error-free.
+
+#include "length-limits.cnx"
+
+u32 divide(u32 n) {
+    u32 a <- n / (SHARED.element_count - 4);
+    u32 b <- n / (Lim.buf.byte_length - 4);
+    u32 c <- n / (SHARED.element_count - 3);
+    return a + b + c;
+}

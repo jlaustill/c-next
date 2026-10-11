@@ -57,6 +57,8 @@ class LexicalFrames {
     valueOf: TValueOf,
     /** A type name as C spells it where it is written (ADR-057) */
     cTypeName: IConstantEnvironment["cTypeName"],
+    /** Whether a type name denotes a type where it is written */
+    isTypeName: IConstantEnvironment["isTypeName"],
     /** Whether a C identifier is a file-scope symbol's, in any file or header */
     isFileScopeName: (cName: string) => boolean,
     /**
@@ -70,6 +72,7 @@ class LexicalFrames {
       valueOf: (name) =>
         valueOf(name, (declaration) => settledOf.get(declaration)),
       cTypeName,
+      isTypeName,
     };
     return LexicalFrames.settleFrame(frame, null, {
       isScopeType,

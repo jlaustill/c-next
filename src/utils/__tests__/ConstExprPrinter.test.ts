@@ -31,6 +31,7 @@ const ENV: IConstantEnvironment = {
       : { kind: "foreign", spelling: n.path[0], why: "header" },
   // The printer writes what the environment names; ConstantNames.cTypeName
   // is the rule (ConstantNames.test.ts)
+  isTypeName: () => true,
   cTypeName: (t) =>
     CNEXT_TO_C_TYPE_MAP[t] ?? QualifiedCName.fromParts(t.split(".")),
 };

@@ -47,6 +47,15 @@ interface IWalk {
   readonly facts: IConstantNameFacts;
 }
 
+/** What declares a type; a function too, as its callback type (ADR-029) */
+const TYPE_KINDS: ReadonlySet<string> = new Set([
+  "struct",
+  "enum",
+  "bitmap",
+  "scope",
+  "function",
+]);
+
 class ConstantNames {
   static valueOf(name: TConstName, facts: IConstantNameFacts): TConstResult {
     const walk: IWalk = {
@@ -124,6 +133,23 @@ class ConstantNames {
           )
         : typeName;
     return QualifiedCName.fromParts(qualified.split("."));
+  }
+
+  /**
+   * Whether a type name that is not a primitive denotes a type where it is
+   * written: a C-Next type this file can see, or -- in a file that reaches a
+   * C or C++ header, which is not parsed for every name -- any name at all.
+   * The same answer E0426 gives (`UndeclaredTypeAnalyzer.knowsEveryName`).
+   */
+  static isTypeName(
+    typeName: string,
+    at: ISourcePosition,
+    facts: IConstantNameFacts,
+  ): boolean {
+    const cName = ConstantNames.cTypeName(typeName, at, facts);
+    const symbol = facts.visibleSymbol(cName);
+    if (symbol === undefined) return facts.reachesForeignHeader;
+    return TYPE_KINDS.has(symbol.kind);
   }
 
   /** `this.N`, `global.N`, `Scope.N`, `m[].element_count` */

@@ -39,6 +39,7 @@ function env(table: Record<string, TConstResult>): IConstantEnvironment {
         spelling: n.path.join("."),
         at: n.at,
       },
+    isTypeName: () => true,
     cTypeName: (t) => t,
   };
 }
@@ -514,6 +515,11 @@ describe("ConstantEvaluator", () => {
       ["(u32)-0.5 is below the minimum", cast("u32", un("-", float("0.5"))), 0],
       ["(u8)300.0 is past the maximum", cast("u8", float("300.0")), 255],
       [
+        "(u32)4294967296.0f32 is UINT32_MAX as f32 holds it, so the maximum",
+        cast("u32", float("4294967296.0f32")),
+        4294967295,
+      ],
+      [
         "(i8)-200.0 is below the minimum",
         cast("i8", un("-", float("200.0"))),
         -128,
@@ -577,5 +583,21 @@ describe("ConstantEvaluator", () => {
       expect(valueOf(bin("+", lit("1"), float("0.5")))).toBe("notConstant");
       expect(valueOf(cast("u32", float("1.5")))).toBe(1n);
     });
+  });
+});
+
+// #1268 review: a cast to a type nothing declares is the undefined type's
+// error (E0426), so it has no value; a primitive is always declared
+describe("a cast to an undeclared type", () => {
+  const undeclared: IConstantEnvironment = { ...NONE, isTypeName: () => false };
+  it("has no value", () => {
+    expect(
+      ConstantEvaluator.numberValue(cast("Nope", lit("0")), undeclared),
+    ).toBeNull();
+  });
+  it("is not asked of a primitive", () => {
+    expect(
+      ConstantEvaluator.numberValue(cast("u32", lit("0")), undeclared),
+    ).toBe(0);
   });
 });

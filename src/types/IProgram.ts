@@ -244,6 +244,13 @@ interface IProgram {
     at: ISourcePosition,
   ): string;
 
+  /** `IConstantEnvironment.isTypeName`, at `at` in `sourceFile` */
+  isTypeNameAt(
+    sourceFile: string,
+    typeName: string,
+    at: ISourcePosition,
+  ): boolean;
+
   /**
    * What each member of the enum with C name `enumCName` settled to, in
    * declaration order (#1669, ADR-017 "Member Values") -- for 2.1 to report
