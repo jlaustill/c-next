@@ -1,12 +1,21 @@
 /**
  * Issue #1143: what the generated output for one file costs the reader's
- * toolchain, recorded by each emitter at the moment it produces the text.
+ * toolchain, recorded by each 2.3 Render emitter at the moment it produces the
+ * text.
  *
- * Consumers read this; nothing re-derives it. PR #1141 failed by re-deriving --
- * its `#error` guard keyed on `usedClampOps.size > 0` while the emission it
- * described keyed on the template family, so 96 snapshots shipped a guard for a
- * builtin they did not contain. Recording at the emission site is what makes a
- * consumer unable to disagree with what was emitted.
+ * This holds Render's records only. The requirements 2.2's planned blocks
+ * carry (float asserts, IRQ wrappers) are read off the emission plan, never
+ * recorded here (#1928). The file's one list is
+ * `CodeGenerator.getToolchainRequirements()`, which unions the two; consumers
+ * read that, and nothing re-derives it. That Render still authors these keys
+ * at all, where §1's Ownership table gives toolchain requirements to 2.2, is
+ * tracked by #1997, not settled as the design.
+ *
+ * PR #1141 failed by re-deriving -- its `#error` guard keyed on
+ * `usedClampOps.size > 0` while the emission it described keyed on the template
+ * family, so 96 snapshots shipped a guard for a builtin they did not contain.
+ * Recording at the emission site is what makes a consumer unable to disagree
+ * with what was emitted.
  *
  * ## Why this is instrumentation (#1452)
  *
@@ -24,14 +33,14 @@
  * genuinely cross-pass, written at 17 `record` sites spanning 2.1 Analyze and
  * 2.3 Render and read once at the end of the run. This module claims no such
  * exemption, because it is not cross-pass state at all. Measured on
- * `e16b5f03`, every write is inside 2.3 Render:
+ * `a1b3e92b`, every write is inside 2.3 Render:
  *
  * | Write site                            | Pass          |
  * | ------------------------------------- | ------------- |
- * | `CodeGenWalker` (4 sites)             | 2.3 Render    |
+ * | `CodeGenWalker` (3 sites)             | 2.3 Render    |
  * | `CodeGenerator.applyEffects`          | 2.3 Render    |
  * | `HelperGenerator`                     | 2.3 Render    |
- * | `CodeGenState.requireInclude`         | 2.3 Render    |
+ * | `TranspileState.requireInclude`       | 2.3 Render    |
  *
  * and every read -- `takeDeferredSites` at plan-build, `collect` for the banner
  * and for the result -- happens inside the same `generate()` call for the same
@@ -56,13 +65,15 @@ class ToolchainRequirements {
   private static recorded: Map<TRequirementKey, IRequirementSite[]> = new Map();
 
   /**
-   * Source sites for emissions DEFERRED to assembleGeneratedOutput -- clamp
-   * helpers, IRQ wrappers, float asserts. Keyed by the request that triggered
+   * Source sites for emissions DEFERRED to assembleGeneratedOutput -- IRQ
+   * wrappers and float asserts. Keyed by the request that triggered
    * the deferral ("irq_wrappers", "float_static_assert").
    *
    * Kept separate from `recorded` because at request time the code has not been
-   * emitted yet, so there is nothing to record a requirement for. The emitter
-   * claims these sites when it actually produces the block.
+   * emitted yet, so there is nothing to record a requirement for.
+   * `captureEmissionFacts` takes these sites into `IEmissionFacts`, and the
+   * plan block that decides the emission carries them from there (#1928); they
+   * never come back to `recorded`.
    */
   private static deferred: Map<string, IRequirementSite[]> = new Map();
 
@@ -78,14 +89,7 @@ class ToolchainRequirements {
     key: TRequirementKey,
     sites: readonly IRequirementSite[] = [],
   ): void {
-    const existing = this.recorded.get(key);
-    if (existing === undefined) {
-      this.recorded.set(key, [...sites]);
-      return;
-    }
-    for (const site of sites) {
-      RequirementSites.addUnique(existing, site);
-    }
+    RequirementSites.accumulate(this.recorded, key, sites);
   }
 
   /**
@@ -97,13 +101,9 @@ class ToolchainRequirements {
     sourcePath: string,
     line: number | null,
   ): void {
-    const site: IRequirementSite = { sourcePath, line };
-    const existing = this.deferred.get(requestKey);
-    if (existing === undefined) {
-      this.deferred.set(requestKey, [site]);
-      return;
-    }
-    RequirementSites.addUnique(existing, site);
+    RequirementSites.accumulate(this.deferred, requestKey, [
+      { sourcePath, line },
+    ]);
   }
 
   /** Sites recorded for a deferred emission. */
@@ -112,7 +112,11 @@ class ToolchainRequirements {
   }
 
   /**
-   * Snapshot what this file's generated output requires.
+   * Snapshot what Render recorded for this file.
+   *
+   * Not the file's whole list: the planned blocks' requirements live on the
+   * emission plan. `CodeGenerator.getToolchainRequirements()` is the one list,
+   * and its only reader of this (#1928).
    *
    * Must be read before the next file's reset, which clears the recording map.
    */

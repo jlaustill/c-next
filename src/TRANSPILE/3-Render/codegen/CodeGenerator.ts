@@ -74,6 +74,8 @@ import PassByValueAnalyzer from "../../2-Plan/PassByValueAnalyzer";
 // Issue #797: Centralized C-style name generation
 import type IRecordedRequirement from "../../../types/IRecordedRequirement";
 import ToolchainRequirements from "../../../instrumentation/ToolchainRequirements";
+import RequirementAggregator from "../../../utils/RequirementAggregator";
+import EmissionPlan from "../../2-Plan/EmissionPlan";
 import TranspileState from "../../TranspileState";
 import StructDefaultInitializer from "./helpers/StructDefaultInitializer";
 import StructDefault from "../../../utils/StructDefault";
@@ -232,14 +234,19 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Issue #1143: Snapshot the toolchain requirements recorded during the last
-   * generate() call.
+   * Issue #1143: what the last generate() call's output requires.
    *
-   * Must be read before the next file's this.state.reset(), which clears the
-   * recording map.
+   * Two sources, each the owner of its facts: what Render recorded at the
+   * sites that emitted text, and what 2.2's planned blocks carry, read off the
+   * plan (#1928). The banner and the file result both read this one list.
+   *
+   * Must be read before the next file's this.state.reset(), which clears both.
    */
   getToolchainRequirements(): readonly IRecordedRequirement[] {
-    return ToolchainRequirements.collect();
+    return RequirementAggregator.union([
+      ToolchainRequirements.collect(),
+      EmissionPlan.requirements(this.state.emissionPlan()),
+    ]);
   }
 
   /**

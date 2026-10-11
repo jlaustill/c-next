@@ -1650,11 +1650,9 @@ class CodeGenWalker {
       this.captureEmissionFacts(sourceIncludeTargets),
     );
 
-    // The plan decided WHICH toolchain capabilities these helpers need and at
-    // which sites; registering them is part of that decision, not part of
-    // formatting. `addGeneratedHelpers` used to do it while pushing the text,
-    // which made the renderer a writer of state something downstream reads.
-    CodeGenWalker.registerPlannedToolchain(plan);
+    // #1928: the banner and the file result read the planned blocks'
+    // requirements off the plan itself, so nothing copies them anywhere.
+    this.host.state.emissionPlanOrNull = plan;
 
     // 2.3 Render: format the plan. These two decide nothing.
     this.addAutoIncludes(output, plan);
@@ -1888,9 +1886,6 @@ class CodeGenWalker {
   }
 
   /**
-   * Add generated helpers (static asserts, IRQ wrappers, typedefs, etc.).
-   */
-  /**
    * Print the deferred blocks and helpers the plan decided on.
    *
    * Every `if` below tests a decision the plan already made, never a question.
@@ -1898,31 +1893,7 @@ class CodeGenWalker {
    * the two cannot disagree -- #1143 kept them in step by computing both from
    * one ternary at this site; the plan keeps them in step by making them two
    * fields of one record, and the ternary is gone from here.
-   *
-   * Requirements are still recorded into `CodeGenState` rather than read off
-   * the plan by the banner, because the banner also carries requirements this
-   * plan does not yet own (the mode baseline, C++ initializer forms, atomics).
-   * Recording a decision someone else made is transcription, not derivation.
    */
-  /**
-   * Register the toolchain capabilities the plan's helper blocks need.
-   *
-   * Separated from `addGeneratedHelpers` so that rendering a block and
-   * declaring what the block requires are not the same act: the plan already
-   * holds both the keys and the sites, and a renderer that writes them is a
-   * renderer making state visible downstream. Order is unchanged -- this runs
-   * immediately after the plan is built, and nothing between reads a toolchain
-   * requirement.
-   */
-  private static registerPlannedToolchain(plan: IEmissionPlan): void {
-    for (const block of [plan.floatStaticAssert, plan.irqWrappers]) {
-      if (block === null) continue;
-      for (const key of block.requirements) {
-        ToolchainRequirements.record(key, block.sites);
-      }
-    }
-  }
-
   private addGeneratedHelpers(output: string[], plan: IEmissionPlan): void {
     const floatAssert = plan.floatStaticAssert;
     if (floatAssert !== null) {

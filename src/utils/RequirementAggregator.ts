@@ -14,24 +14,33 @@ import RequirementSites from "./RequirementSites";
 class RequirementAggregator {
   /** Union file requirements by key, concatenating their source sites. */
   static merge(files: readonly IFileResult[]): readonly IRecordedRequirement[] {
+    return RequirementAggregator.union(
+      files.map((file) => file.requirements ?? []),
+    ).map((entry) => ({
+      key: entry.key,
+      sites: RequirementAggregator.sortSites(entry.sites),
+    }));
+  }
+
+  /**
+   * Union requirement lists by key, keeping every distinct site in the order
+   * first seen. One file's list is built this way too (#1928): what Render
+   * recorded, plus what the emission plan's blocks carry.
+   */
+  static union(
+    lists: readonly (readonly IRecordedRequirement[])[],
+  ): readonly IRecordedRequirement[] {
     const merged = new Map<TRequirementKey, IRequirementSite[]>();
 
-    for (const file of files) {
-      for (const entry of file.requirements ?? []) {
-        const sites = merged.get(entry.key);
-        if (sites === undefined) {
-          merged.set(entry.key, [...entry.sites]);
-          continue;
-        }
-        for (const site of entry.sites) {
-          RequirementSites.addUnique(sites, site);
-        }
+    for (const list of lists) {
+      for (const entry of list) {
+        RequirementSites.accumulate(merged, entry.key, entry.sites);
       }
     }
 
     return Array.from(merged.entries()).map(([key, sites]) => ({
       key,
-      sites: RequirementAggregator.sortSites(sites),
+      sites,
     }));
   }
 

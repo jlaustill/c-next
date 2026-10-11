@@ -155,6 +155,58 @@ describe("EmissionPlan (2.2 Plan)", () => {
     });
   });
 
+  describe("requirements -- read off the blocks, never copied (#1928)", () => {
+    it("lists every planned block's keys with that block's sites", () => {
+      const site = { sourcePath: "a.cnx", line: 3 };
+      const plan = EmissionPlan.build(
+        facts({
+          needsFloatStaticAssert: true,
+          needsIrqWrappers: true,
+          floatAssertSites: [site],
+        }),
+      );
+
+      expect(EmissionPlan.requirements(plan)).toEqual([
+        { key: "float-assert-c11", sites: [site] },
+        { key: "critical-arm-gnu", sites: [] },
+        { key: "critical-arduino", sites: [] },
+        { key: "critical-avr-libc", sites: [] },
+        { key: "critical-cmsis-fallback", sites: [] },
+      ]);
+    });
+
+    // `takeDeferredSites` hands the facts `ToolchainRequirements.deferred`'s
+    // own arrays without copying them, so they can still grow after
+    // `build()`; a site noted after the decision must not join a block it did
+    // not cause.
+    it("keeps the sites as decided when the facts' lists grow later", () => {
+      const early = { sourcePath: "a.cnx", line: 3 };
+      const irqWrapperSites = [early];
+      const floatAssertSites = [early];
+      const plan = EmissionPlan.build(
+        facts({
+          needsIrqWrappers: true,
+          irqWrapperSites,
+          needsFloatStaticAssert: true,
+          floatAssertSites,
+        }),
+      );
+
+      irqWrapperSites.push({ sourcePath: "a.cnx", line: 9 });
+      floatAssertSites.push({ sourcePath: "a.cnx", line: 9 });
+
+      for (const entry of EmissionPlan.requirements(plan)) {
+        expect(entry.sites).toEqual([early]);
+      }
+    });
+
+    it("is empty when the plan has no block that costs anything", () => {
+      expect(EmissionPlan.requirements(EmissionPlan.build(NOTHING))).toEqual(
+        [],
+      );
+    });
+  });
+
   describe("ISR typedef", () => {
     it.each([
       [false, true],

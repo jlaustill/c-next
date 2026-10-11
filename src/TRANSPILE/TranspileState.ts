@@ -20,6 +20,7 @@ import type ITypeBindingDeps from "../types/ITypeBindingDeps";
 import type IProgram from "../types/IProgram";
 import type ITypingContext from "../types/ITypingContext";
 import type IDeclarationPlan from "../types/IDeclarationPlan";
+import type IEmissionPlan from "../types/IEmissionPlan";
 import type IFunctionSignature from "../types/IFunctionSignature";
 import invariant from "../utils/invariant";
 import emittedLocalName from "../utils/emittedLocalName";
@@ -140,12 +141,12 @@ class TranspileState {
    */
   requireInclude(header: TIncludeHeader, line: number | null = null): void {
     // Issue #1143: three of these "headers" are really deferred code-emission
-    // requests. Record where they were asked for, so the emitter that finally
-    // produces the block can attribute its requirement to a .cnx line. No
+    // requests. Record where they were asked for, so the 2.2 plan block that
+    // decides the emission carries them as its requirements' sites (#1928). No
     // requirement is recorded here -- the code does not exist yet, and
     // recording a requirement for text that may never be emitted is exactly
     // the mistake that made #1141's guard fire on files without the construct.
-    // Only the two headers that have a claiming emitter. "isr" was noted here
+    // Only the two headers whose sites a plan block carries. "isr" was noted here
     // and never read: ToolchainRequirements.takeDeferredSites is called for
     // float_static_assert and irq_wrappers alone, and the ISR typedef carries
     // no requirement. Keeping
@@ -309,6 +310,14 @@ class TranspileState {
    * silently-wrong default.
    */
   declarationPlanOrNull: IDeclarationPlan | null = null;
+  /**
+   * 2.2 Plan's emission decisions for the file being generated.
+   *
+   * Held for the rest of the file's turn so the requirements its planned
+   * blocks carry are read off the plan, never copied into
+   * `ToolchainRequirements` (#1928). Null until the declarations have rendered.
+   */
+  emissionPlanOrNull: IEmissionPlan | null = null;
   /** ADR-013: Track function parameter const-ness for call-site validation */
   functionSignatures: Map<string, IFunctionSignature> = new Map();
   /** Callback field types: "Struct.field" -> callbackTypeName */
@@ -360,6 +369,21 @@ class TranspileState {
     invariant(
       plan !== null,
       "2.2 Plan decides declarations before 2.3 Render reads them",
+    );
+    return plan;
+  }
+  /**
+   * 2.2 Plan's emission decisions, asserted present.
+   *
+   * Same reason as `declarationPlan()`: answering "no planned block costs
+   * anything" before the plan exists would drop the interrupt-masking and C11
+   * lines from the banner without failing.
+   */
+  emissionPlan(): IEmissionPlan {
+    const plan = this.emissionPlanOrNull;
+    invariant(
+      plan !== null,
+      "2.2 Plan builds the emission plan before its requirements are read",
     );
     return plan;
   }
@@ -1219,6 +1243,7 @@ class TranspileState {
     this.callbackTypeReferences = new Set();
     this.publicCallbackTypeReferences = new Set();
     this.declarationPlanOrNull = null;
+    this.emissionPlanOrNull = null;
     this.usedClampOps = new Set();
     this.usedSafeDivOps = new Set();
     this.usedCastHelpers = new Set();

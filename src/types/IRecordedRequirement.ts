@@ -5,8 +5,9 @@ import type TRequirementKey from "./TRequirementKey";
  * Issue #1143: A requirement that generated output actually carries, together
  * with every source location that incurred it.
  *
- * Recorded by the emitter at the moment the text is produced, so a consumer can
- * never disagree with what was emitted.
+ * Recorded by the emitter at the moment the text is produced, or carried by the
+ * 2.2 plan block that decided the text (#1928), so a consumer can never
+ * disagree with what was emitted.
  */
 interface IRecordedRequirement {
   /** Registry key; look up the details in TOOLCHAIN_REQUIREMENTS. */

@@ -5,8 +5,9 @@ import type TRequirementKey from "../../types/TRequirementKey";
  * Issue #1143: The single source of truth for what generated output costs.
  *
  * Every construct the code generator emits whose acceptance depends on the
- * toolchain has an entry here, and the emitting code records that entry's key
- * at the moment it produces the text. The transpile-time report, the per-file
+ * toolchain has an entry here. Its key is recorded by the Render emitter at
+ * the moment it produces the text, or carried by the 2.2 plan block that
+ * decided the text (#1928). The transpile-time report, the per-file
  * banner, docs/compatibility.md, the MISRA guideline rows and any compile-time
  * guard are all projections of this table -- none of them re-derives the
  * answer, so none of them can contradict what was emitted.

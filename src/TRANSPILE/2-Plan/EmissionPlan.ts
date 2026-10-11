@@ -47,6 +47,7 @@
 import type IEmissionFacts from "../../types/IEmissionFacts";
 import type IEmissionPlan from "../../types/IEmissionPlan";
 import type IPlannedBlock from "../../types/IPlannedBlock";
+import type IRecordedRequirement from "../../types/IRecordedRequirement";
 import type TRequirementKey from "../../types/TRequirementKey";
 import SYSTEM_INCLUDE_TARGETS from "./SYSTEM_INCLUDE_TARGETS";
 import CTypeIncludes from "./CTypeIncludes";
@@ -107,6 +108,39 @@ class EmissionPlan {
   }
 
   /**
+   * Every `IEmissionPlan` field that holds a planned block, nullable or
+   * optional. A block added to the plan and not listed here fails to compile,
+   * instead of rendering with its cost missing from the banner -- #1143's
+   * failure.
+   */
+  private static readonly PLANNED_BLOCKS: {
+    readonly [K in keyof IEmissionPlan as NonNullable<
+      IEmissionPlan[K]
+    > extends IPlannedBlock
+      ? K
+      : never]-?: true;
+  } = {
+    floatStaticAssert: true,
+    irqWrappers: true,
+  };
+
+  /**
+   * The requirements the plan's blocks carry, each with the sites that asked
+   * for its block. A view of decisions already in the plan, not a new one.
+   */
+  static requirements(plan: IEmissionPlan): readonly IRecordedRequirement[] {
+    const fields = Object.keys(
+      EmissionPlan.PLANNED_BLOCKS,
+    ) as (keyof typeof EmissionPlan.PLANNED_BLOCKS)[];
+    return fields.flatMap((field) => {
+      const block = plan[field] ?? null;
+      return block === null
+        ? []
+        : block.requirements.map((key) => ({ key, sites: block.sites }));
+    });
+  }
+
+  /**
    * Which system headers the implementation file emits, already deduplicated
    * against what its own source includes.
    *
@@ -151,7 +185,7 @@ class EmissionPlan {
     return {
       keyword: facts.cppMode ? "static_assert" : "_Static_assert",
       requirements: [facts.cppMode ? "float-assert-cpp11" : "float-assert-c11"],
-      sites: facts.floatAssertSites,
+      sites: [...facts.floatAssertSites],
     };
   }
 
@@ -163,7 +197,7 @@ class EmissionPlan {
     return {
       keyword: null,
       requirements: IRQ_WRAPPER_REQUIREMENTS,
-      sites: facts.irqWrapperSites,
+      sites: [...facts.irqWrapperSites],
     };
   }
 }
