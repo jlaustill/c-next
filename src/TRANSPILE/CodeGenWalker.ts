@@ -1076,7 +1076,7 @@ class CodeGenWalker {
       // instead of assigning through the raw pointer.
       if (paramInfo) {
         resolvedIdentifier = ParameterDereferenceResolver.resolve(
-          identifier,
+          this.host.state.emittedLocalNameAt(identifier, parts.position),
           paramInfo,
           this._buildParameterDereferenceDeps(),
         );
@@ -3389,7 +3389,7 @@ class CodeGenWalker {
 
   private generateParameter(
     param: IParameterSyntax,
-    paramIndex?: number,
+    paramIndex: number,
   ): string {
     const typeName = this.typeNameOf(param.type);
     const name = param.name;
@@ -3438,34 +3438,43 @@ class CodeGenWalker {
       `a parameter is registered in its function's context before the signature renders ('${name}')`,
     );
 
-    const input = ParameterInputAdapter.fromAST(this.planParameter(param), {
-      callbackTypes: this.host.state.callbackTypes,
-      isKnownStruct: (t) => {
-        if (this.host.isKnownStruct(t)) return true;
-        // ADR-057: check qualified name for scope-local struct types only
-        const qualified = this.host.state.currentScopePath
-          ? QualifiedNameGenerator.forMember(
-              this.host.state.currentScopePath,
-              t,
-            )
-          : t;
-        return this.host.state.symbols?.knownStructs.has(qualified) ?? false;
+    // #1290: the C name 1.4 settled on the parameter, which the `.h`
+    // prototype and every use in the body read too (ADR-057)
+    const emittedName = FunctionContextManager.parameterEmittedName(
+      paramIndex,
+      this.host.state,
+    );
+    const input = ParameterInputAdapter.fromAST(
+      this.planParameter(param, emittedName),
+      {
+        callbackTypes: this.host.state.callbackTypes,
+        isKnownStruct: (t) => {
+          if (this.host.isKnownStruct(t)) return true;
+          // ADR-057: check qualified name for scope-local struct types only
+          const qualified = this.host.state.currentScopePath
+            ? QualifiedNameGenerator.forMember(
+                this.host.state.currentScopePath,
+                t,
+              )
+            : t;
+          return this.host.state.symbols?.knownStructs.has(qualified) ?? false;
+        },
+        typeMap: TYPE_MAP,
+        isModified,
+        isPassByValue,
+        isCallbackCompatible,
+        forcePassByReference,
+        forceConst,
+        // #1545: the one named accessor, which is also what _isPassByValueType
+        // asks, so the auto-const rule and the pass-by-value decision cannot
+        // disagree about what an enum is. `t` arrives from getTypeName, which
+        // resolves through the ADR-057 isScopeType predicate, so this is already
+        // the qualified lookup the scope rule calls for.
+        isKnownEnum: (t) => this.host.state.isKnownEnum(t),
+        // Issue #995: Opaque handles should not get auto-const
+        isOpaqueHandle: registered.isOpaqueHandle ?? false,
       },
-      typeMap: TYPE_MAP,
-      isModified,
-      isPassByValue,
-      isCallbackCompatible,
-      forcePassByReference,
-      forceConst,
-      // #1545: the one named accessor, which is also what _isPassByValueType
-      // asks, so the auto-const rule and the pass-by-value decision cannot
-      // disagree about what an enum is. `t` arrives from getTypeName, which
-      // resolves through the ADR-057 isScopeType predicate, so this is already
-      // the qualified lookup the scope rule calls for.
-      isKnownEnum: (t) => this.host.state.isKnownEnum(t),
-      // Issue #995: Opaque handles should not get auto-const
-      isOpaqueHandle: registered.isOpaqueHandle ?? false,
-    });
+    );
 
     // Use shared builder with C/C++ mode
     return ParameterSignatureBuilder.build(
@@ -3488,12 +3497,15 @@ class CodeGenWalker {
    * which can queue a pending temp declaration -- so rendering one that is
    * then discarded leaks it.
    */
-  private planParameter(param: IParameterSyntax): IPlannedParameter {
+  private planParameter(
+    param: IParameterSyntax,
+    emittedName: string,
+  ): IPlannedParameter {
     const arrayType = param.type.kind === "array" ? param.type : null;
     const element = arrayType ? arrayType.element : param.type;
     const stringType = element.kind === "string" ? element : null;
     return {
-      name: param.name,
+      name: emittedName,
       isConst: param.const,
       typeName: this.typeNameOf(param.type),
       mappedType: this.renderType(param.type),
@@ -4225,10 +4237,14 @@ class CodeGenWalker {
         this.host.state.parameterAt(name, at),
       // A target with no postfix op is the parameter's whole value, written
       // as the read side reads it (#1760 second review: `p = (*q);`)
-      resolveParameter: (name: string, paramInfo: TParameterInfo) =>
+      resolveParameter: (
+        name: string,
+        paramInfo: TParameterInfo,
+        at: ISourcePosition,
+      ) =>
         memberAccessChain.wholeParamValue(
           ParameterDereferenceResolver.resolve(
-            name,
+            this.host.state.emittedLocalNameAt(name, at),
             paramInfo,
             this._buildParameterDereferenceDeps(),
           ),
@@ -4580,7 +4596,7 @@ class CodeGenWalker {
     const paramInfo = this.host.state.parameterAt(id, at);
     if (paramInfo) {
       return ParameterDereferenceResolver.resolve(
-        id,
+        this.host.state.emittedLocalNameAt(id, at),
         paramInfo,
         this._buildParameterDereferenceDeps(),
       );

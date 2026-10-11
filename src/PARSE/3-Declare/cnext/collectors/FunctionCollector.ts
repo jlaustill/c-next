@@ -160,6 +160,7 @@ class FunctionCollector {
 
       return {
         name,
+        emittedName: null,
         type,
         isConst,
         isArray,

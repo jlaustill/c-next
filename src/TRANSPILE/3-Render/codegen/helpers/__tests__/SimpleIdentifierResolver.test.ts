@@ -45,7 +45,11 @@ describe("SimpleIdentifierResolver", () => {
       const result = SimpleIdentifierResolver.resolve("count", deps, AT);
 
       expect(result).toBe("(*count)");
-      expect(deps.resolveParameter).toHaveBeenCalledWith("count", paramInfo);
+      expect(deps.resolveParameter).toHaveBeenCalledWith(
+        "count",
+        paramInfo,
+        AT,
+      );
       // Should not call bare identifier resolution for parameters
       expect(deps.resolveBareIdentifier).not.toHaveBeenCalled();
     });

@@ -302,7 +302,7 @@ scope S {
       );
     });
 
-    it("keeps the name of a local that shadows nothing, and of a parameter", () => {
+    it("keeps the name of a local or a parameter that shadows nothing", () => {
       const source = `u32 count <- 1;
 void f(u8 count, u8 other) {
     u8 fresh <- other;
@@ -312,7 +312,16 @@ void f(u8 count, u8 other) {
       expect(emittedAt(program, source, "fresh", "fresh + count", 1)).toBe(
         "fresh",
       );
-      expect(emittedAt(program, source, "count", "count;", 1)).toBe("count");
+      expect(emittedAt(program, source, "other", "other;", 1)).toBe("other");
+    });
+
+    it("moves a parameter that shadows a file-scope name, as a local (#1290)", () => {
+      const source = `u32 count <- 1;
+void f(u8 count, u8 other) {
+    u8 m <- other + count;
+}`;
+      const program = build({ "a.cnx": source });
+      expect(emittedAt(program, source, "count", "count;", 1)).toBe("f__count");
     });
 
     it("ends a block's rename with the block (#1953)", () => {

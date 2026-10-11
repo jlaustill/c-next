@@ -12,8 +12,15 @@ interface ISimpleIdentifierDeps {
     at: ISourcePosition,
   ): TParameterInfo | undefined;
 
-  /** Resolve parameter to its output form */
-  resolveParameter(name: string, paramInfo: TParameterInfo): string;
+  /**
+   * Resolve parameter to its output form, under the C name it binds to at
+   * `at` (#1290)
+   */
+  resolveParameter(
+    name: string,
+    paramInfo: TParameterInfo,
+    at: ISourcePosition,
+  ): string;
 
   /**
    * Resolve bare identifier (local -> scope -> global priority), bound at the

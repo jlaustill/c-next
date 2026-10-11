@@ -16,6 +16,7 @@ describe("IFunctionSymbol", () => {
         parameters: [
           {
             name: "d",
+            emittedName: null,
             type: TTypeUtils.createPrimitive("u32"),
             isConst: false,
             isArray: false,
@@ -62,18 +63,21 @@ describe("IFunctionSymbol", () => {
         parameters: [
           {
             name: "a",
+            emittedName: null,
             type: TTypeUtils.createPrimitive("i32"),
             isConst: true,
             isArray: false,
           },
           {
             name: "b",
+            emittedName: null,
             type: TTypeUtils.createPrimitive("i32"),
             isConst: true,
             isArray: false,
           },
           {
             name: "result",
+            emittedName: null,
             type: TTypeUtils.createPrimitive("i32"),
             isConst: false,
             isArray: false,
@@ -98,12 +102,14 @@ describe("IFunctionSymbol", () => {
         parameters: [
           {
             name: "x",
+            emittedName: null,
             type: TTypeUtils.createPrimitive("i32"),
             isConst: false,
             isArray: false,
           },
           {
             name: "y",
+            emittedName: null,
             type: TTypeUtils.createPrimitive("i32"),
             isConst: false,
             isArray: false,

@@ -49,7 +49,13 @@ describe("HeaderGenerator", () => {
       sourceFile: "test.cnx",
       sourceLine: 1,
       parameters: [
-        { name: "value", type: "u32", isConst: false, isArray: false },
+        {
+          name: "value",
+          emittedName: "value",
+          type: "u32",
+          isConst: false,
+          isArray: false,
+        },
       ],
     };
 
@@ -299,7 +305,13 @@ describe("HeaderGenerator", () => {
           sourceFile: "test.cnx",
           sourceLine: 1,
           parameters: [
-            { name: "param", type: paramType, isConst: false, isArray: false },
+            {
+              name: "param",
+              emittedName: "param",
+              type: paramType,
+              isConst: false,
+              isArray: false,
+            },
           ],
         };
       }

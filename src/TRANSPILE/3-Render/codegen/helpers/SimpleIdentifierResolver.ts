@@ -40,7 +40,7 @@ class SimpleIdentifierResolver {
     // ADR-006: Check if it's a function parameter
     const paramInfo = deps.getParameterInfo(id, at);
     if (paramInfo) {
-      return deps.resolveParameter(id, paramInfo);
+      return deps.resolveParameter(id, paramInfo, at);
     }
 
     // ADR-016: Resolve bare identifier using local -> scope -> global priority

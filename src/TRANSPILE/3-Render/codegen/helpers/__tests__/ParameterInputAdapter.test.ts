@@ -107,6 +107,7 @@ describe("ParameterInputAdapter", () => {
     it("converts basic primitive parameter", () => {
       const param: IParameterSymbol = {
         name: "value",
+        emittedName: "value",
         type: "u32",
         isConst: false,
         isArray: false,
@@ -126,6 +127,7 @@ describe("ParameterInputAdapter", () => {
     it("converts array parameter", () => {
       const param: IParameterSymbol = {
         name: "arr",
+        emittedName: "arr",
         type: "u32",
         isConst: false,
         isArray: true,
@@ -142,6 +144,7 @@ describe("ParameterInputAdapter", () => {
     it("converts multi-dimensional array parameter", () => {
       const param: IParameterSymbol = {
         name: "matrix",
+        emittedName: "matrix",
         type: "u8",
         isConst: false,
         isArray: true,
@@ -157,6 +160,7 @@ describe("ParameterInputAdapter", () => {
     it("converts unbounded string array with isUnboundedString flag", () => {
       const param: IParameterSymbol = {
         name: "strings",
+        emittedName: "strings",
         type: "string",
         isConst: false,
         isArray: true,
@@ -175,6 +179,7 @@ describe("ParameterInputAdapter", () => {
     it("converts bounded string array without isUnboundedString flag", () => {
       const param: IParameterSymbol = {
         name: "names",
+        emittedName: "names",
         type: "string<32>",
         isConst: false,
         isArray: true,
@@ -193,6 +198,7 @@ describe("ParameterInputAdapter", () => {
     it("converts non-array string parameter", () => {
       const param: IParameterSymbol = {
         name: "name",
+        emittedName: "name",
         type: "string<32>",
         isConst: false,
         isArray: false,
@@ -212,6 +218,7 @@ describe("ParameterInputAdapter", () => {
     ])("%s", (_label, source, source2) => {
       const param: IParameterSymbol = {
         name: source,
+        emittedName: source,
         type: source2,
         isConst: false,
         isArray: false,
@@ -227,6 +234,7 @@ describe("ParameterInputAdapter", () => {
     it("sets isPassByReference when not pass-by-value", () => {
       const param: IParameterSymbol = {
         name: "count",
+        emittedName: "count",
         type: "u32",
         isConst: false,
         isArray: false,
@@ -241,6 +249,7 @@ describe("ParameterInputAdapter", () => {
     it("preserves const modifier", () => {
       const param: IParameterSymbol = {
         name: "value",
+        emittedName: "value",
         type: "u32",
         isConst: true,
         isArray: false,
@@ -254,6 +263,7 @@ describe("ParameterInputAdapter", () => {
     it("preserves auto-const", () => {
       const param: IParameterSymbol = {
         name: "point",
+        emittedName: "point",
         type: "Point",
         isConst: false,
         isArray: false,
@@ -268,6 +278,7 @@ describe("ParameterInputAdapter", () => {
     it("defaults auto-const to false when not specified", () => {
       const param: IParameterSymbol = {
         name: "point",
+        emittedName: "point",
         type: "Point",
         isConst: false,
         isArray: false,
@@ -282,6 +293,7 @@ describe("ParameterInputAdapter", () => {
     it("forces pointer when isCallbackPointer is set (Issue #914)", () => {
       const param: IParameterSymbol = {
         name: "buf",
+        emittedName: "buf",
         type: "u8",
         isConst: false,
         isArray: false,
@@ -300,6 +312,7 @@ describe("ParameterInputAdapter", () => {
     it("forces const when isCallbackConst is set (Issue #914)", () => {
       const param: IParameterSymbol = {
         name: "area",
+        emittedName: "area",
         type: "rect_t",
         isConst: false,
         isArray: false,
@@ -316,6 +329,7 @@ describe("ParameterInputAdapter", () => {
     it("does not force pointer when isCallbackPointer is not set", () => {
       const param: IParameterSymbol = {
         name: "value",
+        emittedName: "value",
         type: "u32",
         isConst: false,
         isArray: false,
@@ -333,6 +347,7 @@ describe("ParameterInputAdapter", () => {
       // applies the rule (suppress auto-const, force pointer syntax)
       const param: IParameterSymbol = {
         name: "widget",
+        emittedName: "widget",
         type: "widget_t",
         isConst: false,
         isArray: false,
@@ -349,6 +364,7 @@ describe("ParameterInputAdapter", () => {
       // for opaque handles — this is NOT the adapter's responsibility
       const param: IParameterSymbol = {
         name: "widget",
+        emittedName: "widget",
         type: "widget_t",
         isConst: false,
         isArray: false,
@@ -366,6 +382,7 @@ describe("ParameterInputAdapter", () => {
     it("does not force pointer when isOpaqueHandle is not set", () => {
       const param: IParameterSymbol = {
         name: "point",
+        emittedName: "point",
         type: "Point",
         isConst: false,
         isArray: false,
@@ -707,6 +724,7 @@ describe("ParameterInputAdapter", () => {
       const result = ParameterInputAdapter.fromSymbol(
         {
           name: "arr",
+          emittedName: "arr",
           type: "Dev",
           isConst: false,
           isArray: true,

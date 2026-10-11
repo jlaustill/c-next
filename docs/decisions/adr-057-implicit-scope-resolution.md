@@ -140,8 +140,9 @@ uint32_t Counter__test(void) {
 ```
 
 This applies to any local that would shadow a **file-scope** name — plain
-variables, arrays, `string<N>` values and `for` init variables alike — and to
-**writes** as well as reads. A write is the case that matters: `buf[0] <- 5` on a
+variables, arrays, `string<N>` values, `for` init variables and **parameters**
+alike — and to **writes** as well as reads. A parameter's moved name is the one
+its `.c` signature, its `.h` prototype and every use in the body write (#1290). A write is the case that matters: `buf[0] <- 5` on a
 shadowing local that kept its bare name lands on the global, compiles under
 `-Wall -Wextra`, and is invisible until runtime. A local that shadows nothing,
 or that shadows only an enclosing _local_, keeps its own name: C block scoping
@@ -149,11 +150,10 @@ already gives the right answer there, and neither `this.` nor `global.` can name
 an enclosing local. The generated file is a certification artifact, so names stay
 plain wherever the language does not require otherwise.
 
-Two gaps are tracked rather than hidden: a **parameter** that shadows a
-file-scope name is not yet covered (#1290), and the "is this name taken at file
+One gap is tracked rather than hidden: the "is this name taken at file
 scope" test is currently answered run-wide rather than per translation unit, so
 an unrelated file in the same build can qualify a local that did not need it
-(#1291). The second errs toward renaming on purpose — a missed rename is silently
+(#1291). It errs toward renaming on purpose — a missed rename is silently
 wrong code, an unnecessary one is only a longer name.
 
 ## Scope-Context Matrix (#1219)
@@ -265,5 +265,6 @@ None.
   the execution test pinning all three levels at once),
   `tests/bugs/issue-1210-bare-intra-scope-call/`,
   `tests/bugs/issue-1244-adr057-scope-member-shadow/`,
-  `tests/bugs/issue-1724-sibling-scope-type-not-included/`
-- Issue #1290 — a parameter shadowing a file-scope name is not yet covered
+  `tests/bugs/issue-1724-sibling-scope-type-not-included/`,
+  `tests/bugs/issue-1290-parameter-shadows-global/`
+- Issue #1290 — a parameter shadowing a file-scope name moves like a local

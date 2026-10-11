@@ -38,9 +38,9 @@ const uint32_t i = 7U;
 
 const uint32_t D = 0U;
 
-uint8_t viaParameter(uint32_t N) {
+uint8_t viaParameter(uint32_t viaParameter__N) {
     uint8_t arr[4] = {5U, 6U, 7U, 8U};
-    return arr[N];
+    return arr[viaParameter__N];
 }
 
 uint8_t viaLocal(void) {

@@ -127,7 +127,7 @@
      no recording site occupies nothing, so declare `error` and add the
      recording site rather than declaring `warn` and calling it a tooling gap.
 
-     Two things the axes cannot see at all, worth knowing before you trust a
+     Three things the axes cannot see at all, worth knowing before you trust a
      green row:
 
      - SYNTACTIC FORM. A bare `read()` and a qualified `this.read()` inside the
@@ -136,9 +136,14 @@
      - EXTERNAL-HEADER PROVENANCE. The relationship axis counts `.cnx` hops
        only, so a symbol from a `.h` or a `.hpp` is indistinguishable from a
        same-file one — and those are two separate symbol indexes.
+     - DECLARATION KIND. A local, a parameter and a `for` variable doing the
+       same thing in the same function derive the same cell, and they reach
+       codegen by different paths. ADR-057's scope-method row was green from
+       a shadowing local while a shadowing parameter was wrong (#1290).
 
-     If your feature can be written more than one way, or resolves symbols from
-     C or C++ headers, write fixtures for those forms anyway. They will not
+     If your feature can be written more than one way, can be done by more than
+     one kind of declaration, or resolves symbols from C or C++ headers, write
+     fixtures for those forms anyway. They will not
      occupy distinct cells, but they will fail when someone breaks one spelling.
 
      Worked example: ADR-051 section 5, including how it staged warn -> error.
