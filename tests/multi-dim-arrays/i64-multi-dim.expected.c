@@ -31,6 +31,12 @@ static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
     return (uint32_t)(a * (uint32_t)b);
 }
 
+static inline int64_t cnx_clamp_sub_i64(int64_t a, int64_t b) {
+    if (b < 0 && a > INT64_MAX + b) return INT64_MAX;
+    if (b > 0 && a < INT64_MIN + b) return INT64_MIN;
+    return a - b;
+}
+
 // test-execution
 // Tests: multi-dimensional i64 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
@@ -194,11 +200,11 @@ int main(void) {
     if (timestamps[1U][2U] != 2524608000000) {
         return 35U;
     }
-    int64_t diff = timestamps[0U][2U] - timestamps[0U][1U];
+    int64_t diff = cnx_clamp_sub_i64(timestamps[0U][2U], timestamps[0U][1U]);
     if (diff != 1609459200000) {
         return 36U;
     }
-    int64_t negDiff = timestamps[0U][0U] - timestamps[0U][1U];
+    int64_t negDiff = cnx_clamp_sub_i64(timestamps[0U][0U], timestamps[0U][1U]);
     if (negDiff != -2208988800000) {
         return 37U;
     }
@@ -232,7 +238,7 @@ int main(void) {
     }
     balances[0][0] = 2100000000000000;
     balances[0][1] = -100000000;
-    int64_t netBalance = balances[0U][0U] + balances[0U][1U];
+    int64_t netBalance = cnx_clamp_add_i64(balances[0U][0U], balances[0U][1U]);
     if (netBalance != 2099999900000000) {
         return 42U;
     }

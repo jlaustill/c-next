@@ -7,6 +7,29 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    return (uint32_t)(a + (uint32_t)b);
+}
+
+static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
+    if (b != 0 && a > UINT32_MAX / b) return UINT32_MAX;
+    return (uint32_t)(a * (uint32_t)b);
+}
+
+static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)a) return 0;
+    return (uint32_t)(a - (uint32_t)b);
+}
+
 // Test: All compound assignment operators on nested struct members
 // Covers deeply nested member access with compound assignments
 /* Scope: NestedOps */
@@ -26,9 +49,9 @@ int main(void) {
     o.middle.inner.shr_val = 128U;
     o.middle.value = 200U;
     o.top_val = 50U;
-    o.middle.inner.add_val += 25U;
-    o.middle.inner.sub_val -= 15U;
-    o.middle.inner.mul_val *= 7U;
+    o.middle.inner.add_val = cnx_clamp_add_u32(o.middle.inner.add_val, 25U);
+    o.middle.inner.sub_val = cnx_clamp_sub_u32(o.middle.inner.sub_val, 15U);
+    o.middle.inner.mul_val = cnx_clamp_mul_u32(o.middle.inner.mul_val, 7U);
     o.middle.inner.div_val /= 4U;
     o.middle.inner.mod_val %= 5U;
     o.middle.inner.and_val &= 0b11001100U;
@@ -36,8 +59,8 @@ int main(void) {
     o.middle.inner.xor_val ^= 0b11111111U;
     o.middle.inner.shl_val <<= 2U;
     o.middle.inner.shr_val >>= 3U;
-    o.middle.value += 100U;
-    o.top_val *= 3U;
+    o.middle.value = cnx_clamp_add_u32(o.middle.value, 100U);
+    o.top_val = cnx_clamp_mul_u32(o.top_val, 3U);
     if (o.middle.inner.add_val != 125) {
         return 1;
     }

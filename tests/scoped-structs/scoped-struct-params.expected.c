@@ -16,6 +16,13 @@
    the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
    uint8_t parameter would return 0 -- the opposite of saturation. */
 
+static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
+    int64_t result = (int64_t)a + b;
+    if (result > INT32_MAX) return INT32_MAX;
+    if (result < INT32_MIN) return INT32_MIN;
+    return (int32_t)result;
+}
+
 static inline int32_t cnx_clamp_mul_i32(int32_t a, int64_t b) {
     int64_t result = (int64_t)a * b;
     if (result > INT32_MAX) return INT32_MAX;
@@ -28,8 +35,8 @@ static inline int32_t cnx_clamp_mul_i32(int32_t a, int64_t b) {
 /* Scope: Math */
 
 void Math__add(Math__Vec2* result, const Math__Vec2* a, const Math__Vec2* b) {
-    result->x = a->x + b->x;
-    result->y = a->y + b->y;
+    result->x = cnx_clamp_add_i32(a->x, b->x);
+    result->y = cnx_clamp_add_i32(a->y, b->y);
 }
 
 void Math__scale(Math__Vec2* v, int32_t factor) {
@@ -38,7 +45,7 @@ void Math__scale(Math__Vec2* v, int32_t factor) {
 }
 
 int32_t Math__dot(const Math__Vec2* a, const Math__Vec2* b) {
-    return a->x * b->x + a->y * b->y;
+    return cnx_clamp_add_i32(cnx_clamp_mul_i32(a->x, b->x), cnx_clamp_mul_i32(a->y, b->y));
 }
 
 bool Math__equals(const Math__Vec2* a, const Math__Vec2* b) {

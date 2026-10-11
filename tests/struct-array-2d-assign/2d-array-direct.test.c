@@ -70,7 +70,7 @@ int main(void) {
     if (grid[1U][1U].data != 999) {
         return 9U;
     }
-    grid[0][0].data += 100U;
+    grid[0][0].data = cnx_clamp_add_u32(grid[0][0].data, 100U);
     if (grid[0U][0U].data != 100) {
         return 10U;
     }

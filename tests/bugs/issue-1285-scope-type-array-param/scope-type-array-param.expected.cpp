@@ -39,17 +39,17 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 /* Scope: S */
 
 uint32_t S__sumThroughArrayParam(S__Point points[2]) {
-    return points[0U].x + points[1U].y;
+    return cnx_clamp_add_u32(points[0U].x, points[1U].y);
 }
 
 uint32_t S__writeThroughArrayParam(S__Point points[2]) {
     points[0].x = 40U;
     points[1].y = 2U;
-    return points[0U].x + points[1U].y;
+    return cnx_clamp_add_u32(points[0U].x, points[1U].y);
 }
 
 uint32_t S__sumThroughScalarParam(const S__Point& point) {
-    return point.x + point.y;
+    return cnx_clamp_add_u32(point.x, point.y);
 }
 
 uint32_t S__countBeta(S__Mode modes[3]) {

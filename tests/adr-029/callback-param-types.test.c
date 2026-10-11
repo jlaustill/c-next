@@ -57,7 +57,7 @@ uint32_t processBool(bool val) {
 
 // Callback with struct parameter
 uint32_t processPoint(const CallbackParamType__Point* p) {
-    return p->x + p->y;
+    return cnx_clamp_add_u32(p->x, p->y);
 }
 
 // Structs to hold callbacks

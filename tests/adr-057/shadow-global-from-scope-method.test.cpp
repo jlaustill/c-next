@@ -72,7 +72,7 @@ uint32_t Counter__allThreeLevels(void) {
 
 uint32_t Counter__arrayShadow(void) {
     uint32_t Counter__arrayShadow__buf[2] = {1U, 2U};
-    return Counter__arrayShadow__buf[0U] + buf[0U];
+    return cnx_clamp_add_u32(Counter__arrayShadow__buf[0U], buf[0U]);
 }
 
 uint32_t Counter__loopShadow(void) {

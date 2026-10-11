@@ -30,6 +30,11 @@ static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
     return (uint32_t)(a * (uint32_t)b);
 }
 
+static inline uint64_t cnx_clamp_sub_u64(uint64_t a, uint64_t b) {
+    if (b > (uint64_t)a) return 0;
+    return (uint64_t)(a - (uint64_t)b);
+}
+
 // test-execution
 // Tests: multi-dimensional u64 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
@@ -146,7 +151,7 @@ int main(void) {
     if (timestamps[2U][1U] != 1622505600000) {
         return 25U;
     }
-    uint64_t diff = timestamps[0U][1U] - timestamps[0U][0U];
+    uint64_t diff = cnx_clamp_sub_u64(timestamps[0U][1U], timestamps[0U][0U]);
     if (diff != 2678400000) {
         return 26U;
     }

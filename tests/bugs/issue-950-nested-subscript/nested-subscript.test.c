@@ -7,6 +7,19 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
+    if (b > (uint32_t)a) return 0;
+    return (uint8_t)(a - (uint8_t)b);
+}
+
 // test-execution
 // Bug #950: array[data[N] - 1] misparses subscript as u8[8] instead of u8
 TInput inputs[8] = {0};
@@ -14,11 +27,11 @@ TInput inputs[8] = {0};
 /* Scope: Test */
 
 void Test__setInput(const uint8_t data[8]) {
-    inputs[data[2U] - 1].assignedValue = data[1U];
+    inputs[cnx_clamp_sub_u8(data[2U], 1)].assignedValue = data[1U];
 }
 
 void Test__setInputExtracted(const uint8_t data[8]) {
-    uint8_t idx = data[2U] - 1U;
+    uint8_t idx = cnx_clamp_sub_u8(data[2U], 1U);
     inputs[idx].assignedValue = data[1U];
 }
 

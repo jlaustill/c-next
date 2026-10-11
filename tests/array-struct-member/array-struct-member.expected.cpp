@@ -23,6 +23,13 @@ static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
     return (int32_t)result;
 }
 
+static inline int32_t cnx_clamp_sub_i32(int32_t a, int64_t b) {
+    int64_t result = (int64_t)a - b;
+    if (result > INT32_MAX) return INT32_MAX;
+    if (result < INT32_MIN) return INT32_MIN;
+    return (int32_t)result;
+}
+
 // Regression test: Array-of-struct member assignment
 // Verifies arr[i].field generates correctly (was generating arr.field[i])
 /* Scope: ArrayStructMember */
@@ -92,15 +99,15 @@ int main(void) {
     if (sensors[2U].value != 3000) {
         errors = cnx_clamp_add_i32(errors, 1);
     }
-    points[0].x += 5;
-    points[1].y -= 10;
+    points[0].x = cnx_clamp_add_i32(points[0].x, 5);
+    points[1].y = cnx_clamp_sub_i32(points[1].y, 10);
     if (points[0U].x != 15) {
         errors = cnx_clamp_add_i32(errors, 1);
     }
     if (points[1U].y != 30) {
         errors = cnx_clamp_add_i32(errors, 1);
     }
-    points[2].x = points[0U].x + points[1U].x;
+    points[2].x = cnx_clamp_add_i32(points[0U].x, points[1U].x);
     if (points[2U].x != 45) {
         errors = cnx_clamp_add_i32(errors, 1);
     }

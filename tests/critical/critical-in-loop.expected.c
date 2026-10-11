@@ -90,7 +90,7 @@ void criticalInWhile(void) {
         {
             uint32_t __primask = __cnx_get_PRIMASK();
             __cnx_disable_irq();
-            sharedData[i] += 1U;
+            sharedData[i] = cnx_clamp_add_u32(sharedData[i], 1U);
             __cnx_set_PRIMASK(__primask);
         }
         i = cnx_clamp_add_u32(i, 1U);
@@ -116,7 +116,7 @@ void criticalInNestedLoop(void) {
             {
                 uint32_t __primask = __cnx_get_PRIMASK();
                 __cnx_disable_irq();
-                sharedData[i] += j;
+                sharedData[i] = cnx_clamp_add_u32(sharedData[i], j);
                 __cnx_set_PRIMASK(__primask);
             }
         }

@@ -72,7 +72,7 @@ int main(void) {
         return 10U;
     }
     uint32_t total = 0U;
-    for (Point p = (Point){ .x = 2U, .y = 3U }; p.x < 4; p.x += 1U) {
+    for (Point p = (Point){ .x = 2U, .y = 3U }; p.x < 4; p.x = cnx_clamp_add_u32(p.x, 1U)) {
         total = cnx_clamp_add_u32(total, p.y);
     }
     if (total != 6) {

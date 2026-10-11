@@ -154,7 +154,7 @@ int main(void) {
     uint64_t computed[3] = {0};
     computed[0] = 1000ULL * 1000ULL;
     computed[1] = 1000ULL * 1000000ULL;
-    computed[2] = computed[0U] + computed[1U];
+    computed[2] = cnx_clamp_add_u64(computed[0U], computed[1U]);
     if (computed[2U] != 1001000000) {
         return 31U;
     }

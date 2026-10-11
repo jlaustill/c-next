@@ -87,7 +87,7 @@ int main(void) {
         return 10U;
     }
     Point p = { .x = 10U, .y = 20U };
-    p.x += 5U;
+    p.x = cnx_clamp_add_u32(p.x, 5U);
     if (p.x != 15) {
         return 11U;
     }

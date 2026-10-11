@@ -15,8 +15,22 @@
    the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
    uint8_t parameter would return 0 -- the opposite of saturation. */
 
+static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
+    int64_t result = (int64_t)a + b;
+    if (result > INT32_MAX) return INT32_MAX;
+    if (result < INT32_MIN) return INT32_MIN;
+    return (int32_t)result;
+}
+
 static inline int32_t cnx_clamp_mul_i32(int32_t a, int64_t b) {
     int64_t result = (int64_t)a * b;
+    if (result > INT32_MAX) return INT32_MAX;
+    if (result < INT32_MIN) return INT32_MIN;
+    return (int32_t)result;
+}
+
+static inline int32_t cnx_clamp_sub_i32(int32_t a, int64_t b) {
+    int64_t result = (int64_t)a - b;
     if (result > INT32_MAX) return INT32_MAX;
     if (result < INT32_MIN) return INT32_MIN;
     return (int32_t)result;
@@ -26,26 +40,26 @@ static inline int32_t cnx_clamp_mul_i32(int32_t a, int64_t b) {
 // Tests: passing and accessing nested struct members via function params
 // Access nested members from struct parameter (ADR-006: pass by reference)
 int32_t getWidth(const Rectangle* rect) {
-    return rect->bottomRight.x - rect->topLeft.x;
+    return cnx_clamp_sub_i32(rect->bottomRight.x, rect->topLeft.x);
 }
 
 int32_t getHeight(const Rectangle* rect) {
-    return rect->bottomRight.y - rect->topLeft.y;
+    return cnx_clamp_sub_i32(rect->bottomRight.y, rect->topLeft.y);
 }
 
 // Calculate area using nested access
 int32_t getArea(const Rectangle* rect) {
-    int32_t w = rect->bottomRight.x - rect->topLeft.x;
-    int32_t h = rect->bottomRight.y - rect->topLeft.y;
+    int32_t w = cnx_clamp_sub_i32(rect->bottomRight.x, rect->topLeft.x);
+    int32_t h = cnx_clamp_sub_i32(rect->bottomRight.y, rect->topLeft.y);
     return cnx_clamp_mul_i32(w, h);
 }
 
 // Modify nested members through parameter
 void moveRect(Rectangle* rect, int32_t dx, int32_t dy) {
-    rect->topLeft.x += dx;
-    rect->topLeft.y += dy;
-    rect->bottomRight.x += dx;
-    rect->bottomRight.y += dy;
+    rect->topLeft.x = cnx_clamp_add_i32(rect->topLeft.x, dx);
+    rect->topLeft.y = cnx_clamp_add_i32(rect->topLeft.y, dy);
+    rect->bottomRight.x = cnx_clamp_add_i32(rect->bottomRight.x, dx);
+    rect->bottomRight.y = cnx_clamp_add_i32(rect->bottomRight.y, dy);
 }
 
 // Test instance

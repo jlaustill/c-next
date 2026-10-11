@@ -7,6 +7,29 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    return (uint32_t)(a + (uint32_t)b);
+}
+
+static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
+    if (b != 0 && a > UINT32_MAX / b) return UINT32_MAX;
+    return (uint32_t)(a * (uint32_t)b);
+}
+
+static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)a) return 0;
+    return (uint32_t)(a - (uint32_t)b);
+}
+
 // Test: Compound assignment on 1D arrays
 // Covers all compound operators: +<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><-
 uint32_t data[10] = {0};
@@ -22,9 +45,9 @@ int main(void) {
     data[7] = 0b10101010U;
     data[8] = 8U;
     data[9] = 128U;
-    data[0] += 25U;
-    data[1] -= 15U;
-    data[2] *= 7U;
+    data[0] = cnx_clamp_add_u32(data[0], 25U);
+    data[1] = cnx_clamp_sub_u32(data[1], 15U);
+    data[2] = cnx_clamp_mul_u32(data[2], 7U);
     data[3] /= 4U;
     data[4] %= 5U;
     data[5] &= 0b11001100U;

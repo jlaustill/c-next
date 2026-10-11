@@ -40,8 +40,8 @@ Geometry__Point Geometry__origin(void) {
 }
 
 Geometry__Point Geometry__midpoint(const Geometry__Point& a, const Geometry__Point& b) {
-    int32_t mx = (a.x + b.x) / 2;
-    int32_t my = (a.y + b.y) / 2;
+    int32_t mx = (cnx_clamp_add_i32(a.x, b.x)) / 2;
+    int32_t my = (cnx_clamp_add_i32(a.y, b.y)) / 2;
     Geometry__Point m = { .x = mx, .y = my };
     return m;
 }

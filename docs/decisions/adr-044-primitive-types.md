@@ -345,19 +345,19 @@ and an element exactly as for a variable:
 
 ```cnx
 struct Reading {
-    u8 level;          // clamp (default)
-    clamp u8 peak;     // clamp
-    wrap u8 checksum;  // wraps
+    u8 level; // clamp (default)
+    clamp u8 peak; // clamp
+    wrap u8 checksum; // wraps
 }
 
-Reading r <- {level: 250, peak: 250, checksum: 250};
-r.level <- r.level + 10;   // 255
-r.checksum +<- 10;         // 4
+Reading r <- { level: 250, peak: 250, checksum: 250 };
+r.level <- r.level + 10; // 255
+r.checksum +<- 10; // 4
 
 wrap u8[4] ring;
-ring[0] +<- 10;            // wraps, as `ring` does
+ring[0] +<- 10; // wraps, as `ring` does
 u8[4] levels <- [250, 250, 250, 250];
-levels[1] +<- 10;          // 255
+levels[1] +<- 10; // 255
 ```
 
 The field's modifier is its own: it does not come from the struct variable it

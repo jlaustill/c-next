@@ -37,7 +37,7 @@ void Worker__updateGlobal(void) {
 
 void Worker__updateGlobalArray(void) {
     values[0] = 200;
-    values[0] += 100;
+    values[0] = cnx_clamp_add_i32(values[0], 100);
 }
 
 int main(void) {

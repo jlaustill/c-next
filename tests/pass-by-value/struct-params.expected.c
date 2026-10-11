@@ -8,14 +8,34 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
+    int64_t result = (int64_t)a + b;
+    if (result > INT32_MAX) return INT32_MAX;
+    if (result < INT32_MIN) return INT32_MIN;
+    return (int32_t)result;
+}
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    return (uint32_t)(a + (uint32_t)b);
+}
+
 // test-execution
 // Tests: Struct parameters are always pass-by-reference (ADR-006)
 // Coverage: Struct modification visible to caller
 // Struct params are ALWAYS pass-by-reference in C-Next
 // Modifications are visible to caller
 void movePoint(Point* p, int32_t dx, int32_t dy) {
-    p->x += dx;
-    p->y += dy;
+    p->x = cnx_clamp_add_i32(p->x, dx);
+    p->y = cnx_clamp_add_i32(p->y, dy);
 }
 
 void resetPoint(Point* p) {
@@ -25,7 +45,7 @@ void resetPoint(Point* p) {
 
 void incrementCounter(Counter* c) {
     if (c->value < c->maxValue) {
-        c->value += 1U;
+        c->value = cnx_clamp_add_u32(c->value, 1U);
     }
 }
 
@@ -35,7 +55,7 @@ void setCounterMax(Counter* c, uint32_t newMax) {
 
 // Read-only struct access (still pass-by-reference, but const)
 int32_t getPointSum(const Point* p) {
-    return p->x + p->y;
+    return cnx_clamp_add_i32(p->x, p->y);
 }
 
 uint32_t getCounterValue(const Counter* c) {

@@ -54,12 +54,12 @@ uint8_t globalWrapped[2] = {250U, 250U};
 /* Scope: Tank */
 uint32_t Tank__calls = 0U;
 uint8_t Tank__levels[2] = {250U, 250U};
+uint8_t Tank__wrapped[2] = {250U, 250U};
 
 uint32_t Tank__nextIndex(void) {
     Tank__calls = cnx_clamp_add_u32(Tank__calls, 1U);
     return 0U;
 }
-uint8_t Tank__wrapped[2] = {250U, 250U};
 
 void Tank__bumpViaThis(void) {
     Tank__levels[0] = cnx_clamp_add_u8(Tank__levels[0], 10U);

@@ -7,6 +7,29 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    return (uint32_t)(a + (uint32_t)b);
+}
+
+static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
+    if (b != 0 && a > UINT32_MAX / b) return UINT32_MAX;
+    return (uint32_t)(a * (uint32_t)b);
+}
+
+static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)a) return 0;
+    return (uint32_t)(a - (uint32_t)b);
+}
+
 // Test: All compound assignment operators on struct members
 // Covers: +<-, -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><-
 /* Scope: CompoundOps */
@@ -24,9 +47,9 @@ int main(void) {
     d.xor_val = 0b10101010U;
     d.shl_val = 8U;
     d.shr_val = 128U;
-    d.add_val += 25U;
-    d.sub_val -= 15U;
-    d.mul_val *= 7U;
+    d.add_val = cnx_clamp_add_u32(d.add_val, 25U);
+    d.sub_val = cnx_clamp_sub_u32(d.sub_val, 15U);
+    d.mul_val = cnx_clamp_mul_u32(d.mul_val, 7U);
     d.div_val /= 4U;
     d.mod_val %= 5U;
     d.and_val &= 0b11001100U;

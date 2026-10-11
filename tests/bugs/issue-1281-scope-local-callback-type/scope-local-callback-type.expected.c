@@ -50,7 +50,7 @@ uint32_t Timing__run(void) {
     Timing__Config cfg = { .tick = Timing__tickSource };
     cfg.tick = Timing__tickSource;
     cfg.divisor = 4U;
-    return cfg.tick() + cfg.divisor;
+    return cnx_clamp_add_u32(cfg.tick(), cfg.divisor);
 }
 
 /* Scope: Later */

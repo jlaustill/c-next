@@ -3,6 +3,7 @@
  * Tests atomic RMW and overflow clamp handler functions.
  */
 
+import AssignmentClassifier from "../../../../../2-Plan/AssignmentClassifier";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import specialHandlers from "../SpecialHandlers";
 import AssignmentKind from "../../../../../../types/AssignmentKind";
@@ -316,7 +317,7 @@ describe("SpecialHandlers", () => {
       expect(result).toBe("result = cnx_clamp_mul_u32(result, 2);");
     });
 
-    it("uses native arithmetic for float types", () => {
+    it("is not a clamp for a float target", () => {
       HandlerTestUtils.declareTypes(state, [
         ["f", { baseType: "f32", overflowBehavior: "clamp" }],
       ]);
@@ -329,13 +330,10 @@ describe("SpecialHandlers", () => {
         generatedValue: "1000.0",
       });
 
-      const result = getHandler()!(ctx);
-
-      expect(state.usedClampOps.size).toBe(0);
-      expect(result).toBe("f += 1000.0;");
+      expect(AssignmentClassifier.compoundClamp(ctx)).toBeNull();
     });
 
-    it("uses native arithmetic for f64 type", () => {
+    it("is not a clamp for an f64 target", () => {
       HandlerTestUtils.declareTypes(state, [
         ["d", { baseType: "f64", overflowBehavior: "clamp" }],
       ]);
@@ -349,12 +347,10 @@ describe("SpecialHandlers", () => {
         generatedValue: "0.5",
       });
 
-      const result = getHandler()!(ctx);
-
-      expect(result).toBe("d -= 0.5;");
+      expect(AssignmentClassifier.compoundClamp(ctx)).toBeNull();
     });
 
-    it("falls back to native for unsupported operators", () => {
+    it("is not a clamp for an operator with no helper", () => {
       HandlerTestUtils.declareTypes(state, [
         ["value", { baseType: "u32", overflowBehavior: "clamp" }],
       ]);
@@ -369,10 +365,7 @@ describe("SpecialHandlers", () => {
         generatedValue: "2",
       });
 
-      const result = getHandler()!(ctx);
-
-      expect(state.usedClampOps.size).toBe(0);
-      expect(result).toBe("value /= 2;");
+      expect(AssignmentClassifier.compoundClamp(ctx)).toBeNull();
     });
 
     it("handles this.member with clamp", () => {
@@ -421,7 +414,7 @@ describe("SpecialHandlers", () => {
 
     // #1668: `y *<- s.v` is `y <- y * s.v`, and the integer helper truncated
     // the float operand before multiplying.
-    it("emits plain arithmetic when the value has a floating operand", () => {
+    it("is not a clamp when the value has a floating operand", () => {
       HandlerTestUtils.declareTypes(state, [
         ["scaled", { baseType: "u32", overflowBehavior: "clamp" }],
       ]);
@@ -437,10 +430,7 @@ describe("SpecialHandlers", () => {
         valueHasFloatingOperand: () => true,
       });
 
-      const result = getHandler()!(ctx);
-
-      expect(state.usedClampOps.size).toBe(0);
-      expect(result).toBe("scaled *= s.v;");
+      expect(AssignmentClassifier.compoundClamp(ctx)).toBeNull();
     });
   });
 
