@@ -2,27 +2,24 @@
  * Division By Zero Analyzer
  * Detects division and modulo by zero at compile time (ADR-051)
  *
- * A literal zero (10 / 0, 10 % 0), or a const whose value is zero where the
- * division is written (const u32 ZERO <- 0; x / ZERO).
- *
- * #1664 box 7: the const's value is the one visible at the division, as 1.4
- * settled it -- a local, the enclosing scope's, a file-scope one, or one from
- * an included file (#1220). This pass collected its own file-wide set of
- * const zeros by bare name, so a local `const D <- 0` in one function made
- * `x / D` in another an error when that `D` was a nonzero global. A const
- * folded from an expression (`const u32 V <- 5 - 5`) is zero here too.
+ * A divisor that is a compile-time constant zero, integer or float (§1, §4):
+ * a literal (`0`, `0.0f32`), a const (`ZERO`, `this.ZERO`, `Scope.ZERO`) or
+ * a constant expression (`2 - 2`, `-0.0`, `(f32)0`), by the one constant
+ * fold, so a name means the declaration ADR-057 names wherever the division
+ * is written -- a statement, a member or file initializer, an array dimension,
+ * an enum member's value (#1664 box 7, #1268).
  */
 
 import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import IDivisionByZeroError from "./types/IDivisionByZeroError";
-import LiteralUtils from "../../utils/LiteralUtils";
 import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
+import ConstantFold from "../../utils/ConstantFold";
+import ConstExprLowering from "../../utils/ConstExprLowering";
 import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import type IAnalysisContext from "./types/IAnalysisContext";
-import BoundDeclaration from "./helpers/BoundDeclaration";
 
 /**
  * Detect division by zero (including const identifiers)
@@ -66,35 +63,44 @@ class DivisionByZeroListener extends CNextListener {
 
       // Check if right operand is zero
       if (this.isZero(rightOperand)) {
-        this.analyzer.addError(operator, line, column);
+        this.analyzer.addError(
+          operator,
+          line,
+          column,
+          DivisionByZeroListener.inStatement(ctx),
+        );
       }
     }
   };
 
   /**
-   * Whether a divisor is zero: a zero literal of any kind (`0`, `0u32`,
-   * `0.0f32`), an integer the one evaluator folds to 0 (`ZERO`, `5 - 5`), or
-   * a const whose zero initializer it does not fold -- a float's. A name
-   * written `this.ZERO`, `global.ZERO` or `Scope.ZERO` is bound by the same
-   * walk as the bare one, so it means the declaration ADR-057 names (#1268).
+   * Whether a divisor is a compile-time zero, integer or float alike (ADR-051
+   * §4). An enum or Boolean operand is not a number at all -- E0810/E0811 say
+   * so -- so it is not this rule's (#1268 review).
    */
   private isZero(ctx: Parser.UnaryExpressionContext): boolean {
-    const literal = ctx.postfixExpression()?.primaryExpression()?.literal();
-    if (literal) {
-      return LiteralUtils.isZeroText(literal.getText());
-    }
     const divisor = SyntaxLowering.expressionNode(ctx);
-    if (OperandTyper.constantOf(divisor, this.context) === 0) {
-      return true;
-    }
-    const declared = BoundDeclaration.of(
-      OperandTyper.bindingOf(divisor, this.context),
+    const numeric = OperandTyper.valueLeaves(divisor, this.context).every(
+      (leaf) => leaf?.enumTypeName == null && leaf?.category !== "boolean",
     );
     return (
-      declared?.isConst === true &&
-      declared.initialValue !== null &&
-      LiteralUtils.isZeroText(declared.initialValue)
+      numeric &&
+      ConstantFold.numberValue(
+        this.context.program,
+        this.context.sourceFile,
+        ConstExprLowering.lower(divisor),
+      ) === 0
     );
+  }
+
+  /** Whether a division is in a statement, where `safe_div` can be called */
+  private static inStatement(
+    ctx: Parser.MultiplicativeExpressionContext,
+  ): boolean {
+    for (let node = ctx.parent; node !== null; node = node.parent) {
+      if (node instanceof Parser.StatementContext) return true;
+    }
+    return false;
   }
 }
 
@@ -108,7 +114,7 @@ class DivisionByZeroAnalyzer {
   private errors: IDivisionByZeroError[] = [];
 
   /**
-   * Analyze the parse tree for division/modulo by a literal or const zero
+   * Analyze the parse tree for division/modulo by a compile-time zero
    */
   public analyze(tree: Parser.ProgramContext): IDivisionByZeroError[] {
     this.errors = [];
@@ -121,10 +127,16 @@ class DivisionByZeroAnalyzer {
   /**
    * Add a division by zero error
    */
-  public addError(operator: string, line: number, column: number): void {
+  public addError(
+    operator: string,
+    line: number,
+    column: number,
+    inStatement: boolean,
+  ): void {
     const isDivision = operator === "/";
     const code = isDivision ? "E0800" : "E0802";
     const opName = isDivision ? "Division" : "Modulo";
+    const builtin = isDivision ? "safe_div" : "safe_mod";
 
     this.errors.push({
       code,
@@ -132,9 +144,9 @@ class DivisionByZeroAnalyzer {
       line,
       column,
       message: `${opName} by zero`,
-      helpText: isDivision
-        ? "Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety"
-        : "Consider using safe_mod(output, numerator, divisor, defaultValue) for runtime safety",
+      helpText: inStatement
+        ? `Consider using ${builtin}(output, numerator, divisor, defaultValue) for runtime safety`
+        : "A divisor known at compile time must not be zero",
     });
   }
 }

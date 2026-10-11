@@ -472,4 +472,70 @@ describe("DivisionByZeroAnalyzer", () => {
       expect(errors[0].code).toBe("E0800");
     });
   });
+
+  // #1268 review: an enum operand is E0810's (not a number), whatever its value
+  describe("enum operands", () => {
+    it.each(["RED", "GREEN"])("leaves n / EColor.%s to E0810", (member) => {
+      const code = `
+        enum EColor { RED, GREEN }
+        void main() {
+          u32 n <- 10;
+          u32 x <- n / EColor.${member};
+        }
+      `;
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
+      const errors = new DivisionByZeroAnalyzer(context).analyze(tree);
+
+      expect(errors).toHaveLength(0);
+    });
+  });
+
+  // #1268 review: safe_div is the help only where a statement can call it
+  describe("help outside a statement", () => {
+    it("says the divisor must not be zero in an array dimension", () => {
+      const code = `
+        u8[4 / (2 - 2)] g;
+        void main() {}
+      `;
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
+      const errors = new DivisionByZeroAnalyzer(context).analyze(tree);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].helpText).toBe(
+        "A divisor known at compile time must not be zero",
+      );
+    });
+  });
+
+  // A literal is zero by its value, whatever its spelling (#1664 box 7)
+  describe("literal spellings", () => {
+    it.each([
+      ["0x00", 1],
+      ["0x00u8", 1],
+      ["0b000i16", 1],
+      ["0.0", 1],
+      ["0.0f32", 1],
+      [".0", 1],
+      ["0e0", 1],
+      ["0x10", 0],
+      ["0.5f64", 0],
+    ])("k / %s reports %i error(s)", (literal, count) => {
+      const code = `
+        void main() {
+          f64 k <- 1.0;
+          f64 x <- k / ${literal};
+        }
+      `;
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
+      const errors = new DivisionByZeroAnalyzer(context).analyze(tree);
+
+      expect(errors).toHaveLength(count);
+    });
+  });
 });

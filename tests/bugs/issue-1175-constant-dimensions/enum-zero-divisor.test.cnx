@@ -1,0 +1,13 @@
+// test-adr: 051
+// test-error
+// #1268 review: a member value whose divisor is zero only once computed is
+// E0800, as in a statement or an array dimension (ADR-051 §1); it was E0909.
+//
+// NEGATIVE CONTROL: `B`, whose computed divisor is nonzero.
+
+enum E {
+    A <- 4 / (2 - 2),
+    B <- 4 / (3 - 2)
+}
+
+void main() {}

@@ -29,6 +29,8 @@ import type TChainRoot from "../../types/TChainRoot";
 import type TValueBinding from "../../types/TValueBinding";
 import type ISourcePosition from "../../utils/types/ISourcePosition";
 import type TSettledConst from "../../types/TSettledConst";
+import type TSymbol from "../../types/symbols/TSymbol";
+import type IConstInitializer from "../../types/IConstInitializer";
 
 type TConstName = Extract<TConstExpr, { kind: "name" }>;
 type TReason = Extract<TConstResult, { kind: "notConstant" }>["reason"];
@@ -73,6 +75,54 @@ class ConstantNames {
     facts: IConstantNameFacts,
   ): TConstResult {
     return ConstantNames.ofBound(binding, [], { spelling, at, facts });
+  }
+
+  /**
+   * The initializer of the const a name means, by the walk `valueOf` takes,
+   * so `this.N`, `global.N` and `Scope.N` mean the declaration they do there
+   * -- for a const whose value `valueOf` does not fold, a float's (ADR-051
+   * §4, #1268 review). Null for anything else: a variable, a parameter, an
+   * enum member, a member of a value, a header's name.
+   */
+  static initializerOf(
+    name: TConstName,
+    facts: IConstantNameFacts,
+  ): IConstInitializer | null {
+    const head = name.path[0];
+    if (head === undefined) return null;
+    const rest = name.path.slice(1);
+    const binding = facts.bind(name.root, head, name.at);
+    if (binding?.kind === "local") {
+      const declaration = binding.declaration;
+      return rest.length === 0 &&
+        declaration.isConst &&
+        declaration.initialValueExpr !== null
+        ? {
+            expr: declaration.initialValueExpr,
+            type: declaration.type,
+            sourceFile: null,
+          }
+        : null;
+    }
+    let symbol: TSymbol | undefined;
+    if (binding?.kind === "variable" && rest.length === 0) {
+      symbol = binding.symbol;
+    } else if (binding?.kind === "scope" && rest.length === 1) {
+      symbol = ConstantNames.scopeMember(
+        binding.scopePath,
+        rest[0],
+        facts,
+      ).symbol;
+    }
+    return symbol?.kind === "variable" &&
+      symbol.isConst &&
+      symbol.initialValueExpr !== undefined
+      ? {
+          expr: symbol.initialValueExpr,
+          type: symbol.type,
+          sourceFile: symbol.sourceFile,
+        }
+      : null;
   }
 
   private static ofBound(
@@ -312,8 +362,11 @@ class ConstantNames {
     const member = rest[0];
     const more = rest.slice(1);
     if (member === undefined) return ConstantNames.without("scope", walk);
-    const cName = ScopeUtils.getTranspiledCName({ name: member, scopePath });
-    const symbol = walk.facts.visibleSymbol(cName);
+    const { cName, symbol } = ConstantNames.scopeMember(
+      scopePath,
+      member,
+      walk.facts,
+    );
     if (symbol?.kind === "variable") {
       return ConstantNames.ofVariable(symbol, more, walk);
     }
@@ -328,6 +381,15 @@ class ConstantNames {
       symbol.kind === "function" ? "function" : "member",
       walk,
     );
+  }
+  /** What `member` declares in the scope at `scopePath`, by its C name */
+  private static scopeMember(
+    scopePath: string,
+    member: string,
+    facts: IConstantNameFacts,
+  ): { cName: string; symbol: TSymbol | undefined } {
+    const cName = ScopeUtils.getTranspiledCName({ name: member, scopePath });
+    return { cName, symbol: facts.visibleSymbol(cName) };
   }
 
   /**

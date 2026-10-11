@@ -219,13 +219,13 @@ include-visibility is not derivable for a C or C++ name.
 
 ### Division/Modulo (ADR-051)
 
-| Code  | Message                             | Help                                                     | Source                                                          |
-| ----- | ----------------------------------- | -------------------------------------------------------- | --------------------------------------------------------------- |
-| E0800 | Division by zero (literal)          | Use `safe_div(output, numerator, divisor, defaultValue)` | `TRANSPILE/1-Analyze/DivisionByZeroAnalyzer.ts`                 |
-| E0801 | Division by zero (const expression) | Use `safe_div()` for runtime safety                      | Reserved in `TRANSPILE/1-Analyze/types/IDivisionByZeroError.ts` |
-| E0802 | Modulo by zero (literal)            | Use `safe_mod(output, numerator, divisor, defaultValue)` | `TRANSPILE/1-Analyze/DivisionByZeroAnalyzer.ts`                 |
-| E0803 | Modulo by zero (const expression)   | Use `safe_mod()` for runtime safety                      | Reserved in `TRANSPILE/1-Analyze/types/IDivisionByZeroError.ts` |
-| E0804 | Modulo with floating-point type     | Use `fmod()` from `<math.h>`                             | `TRANSPILE/1-Analyze/FloatModuloAnalyzer.ts`                    |
+| Code  | Message                                                                                    | Help                                                                                                                                 | Source                                                          |
+| ----- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------- |
+| E0800 | Division by a compile-time zero: a literal, const or constant expression, integer or float | In a statement, use `safe_div(output, numerator, divisor, defaultValue)`; elsewhere a divisor known at compile time must not be zero | `TRANSPILE/1-Analyze/DivisionByZeroAnalyzer.ts`                 |
+| E0801 | Division by zero (const expression)                                                        | Use `safe_div()` for runtime safety                                                                                                  | Reserved in `TRANSPILE/1-Analyze/types/IDivisionByZeroError.ts` |
+| E0802 | Modulo by a compile-time zero: a literal, const or constant expression                     | In a statement, use `safe_mod(output, numerator, divisor, defaultValue)`; elsewhere a divisor known at compile time must not be zero | `TRANSPILE/1-Analyze/DivisionByZeroAnalyzer.ts`                 |
+| E0803 | Modulo by zero (const expression)                                                          | Use `safe_mod()` for runtime safety                                                                                                  | Reserved in `TRANSPILE/1-Analyze/types/IDivisionByZeroError.ts` |
+| E0804 | Modulo with floating-point type                                                            | Use `fmod()` from `<math.h>`                                                                                                         | `TRANSPILE/1-Analyze/FloatModuloAnalyzer.ts`                    |
 
 ### Essential Type Safety (MISRA C:2012)
 

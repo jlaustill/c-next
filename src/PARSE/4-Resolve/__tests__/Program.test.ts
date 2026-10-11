@@ -970,6 +970,7 @@ scope Gauge {
         "callbackCompatibleFunctions",
         "codeGenSymbolsFor",
         "conflicts",
+        "constantInitializerOf",
         "constantOf",
         "constantValueOf",
         "cppMode",

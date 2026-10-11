@@ -1,7 +1,8 @@
 // test-adr: 051
 // test-error
 // E0800/E0802: the qualified spellings of a const zero declared in an
-// included file. Limits.ONE is the nonzero control.
+// included file, integer and float. Limits.ONE and Limits.FLOAT_ONE are the
+// nonzero controls.
 #include "zero-limits.cnx"
 
 scope Reader {
@@ -10,6 +11,10 @@ scope Reader {
         u32 remainder <- n % global.Limits.ZERO;
         return divided + remainder;
     }
+
+    public f32 floatViaGlobal(f32 k) {
+        return k / global.FILE_FLOAT_ZERO;
+    }
 }
 
 u32 viaScopeName(u32 n) {
@@ -17,4 +22,10 @@ u32 viaScopeName(u32 n) {
     u32 remainder <- n % Limits.ZERO;
     u32 control <- n / Limits.ONE;
     return divided + remainder + control;
+}
+
+f32 floatViaScopeName(f32 k) {
+    f32 divided <- k / Limits.FLOAT_ZERO;
+    f32 control <- k / Limits.FLOAT_ONE;
+    return divided + control;
 }

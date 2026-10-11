@@ -18,44 +18,6 @@ const FLOAT_LITERAL = /^\d+(?:\.\d+)?(?:[eE][+-]?\d+)?(?:[fF](32|64))?$/;
  */
 class LiteralUtils {
   /**
-   * Whether a numeric literal's text is zero, by its VALUE rather than its
-   * spelling -- for a node's text, and for a const's initializer, which
-   * arrives as text from a declaration that may be in another file (#1664
-   * box 7). The spelling test this replaced missed `00`, `0x00`, `0x00u8`
-   * and every suffixed float (`0.0f32`). Anything that is not a numeric
-   * literal (a string, a char, `false`) is not zero.
-   */
-  static isZeroText(text: string): boolean {
-    const trimmed = text.trim();
-    const integer = LiteralUtils.parseIntegerLiteral(
-      trimmed.replace(/[uUiI](?:8|16|32|64)$/, ""),
-    );
-    if (integer !== undefined) return integer === 0;
-    return (
-      LiteralUtils.floatLiteralWidth(trimmed) !== null &&
-      LiteralUtils.isFloatZero(trimmed.replace(/[fF](?:32|64)$/, ""))
-    );
-  }
-
-  /**
-   * Check if a float literal string represents zero.
-   * Issue #1010: Detect float zero for division-by-zero checking.
-   *
-   * Handles: 0.0, .0, 0., 0.0f, 0.0F, 0.0e0, 0.0E0, etc.
-   *
-   * @param text - The float literal text
-   * @returns true if the float is zero
-   */
-  static isFloatZero(text: string): boolean {
-    // Remove optional float suffix (f, F)
-    const withoutSuffix = text.replace(/[fF]$/, "");
-
-    // Parse to number and check if zero
-    const value = Number.parseFloat(withoutSuffix);
-    return value === 0;
-  }
-
-  /**
    * The width of a floating literal's type, read from its text: 32 for
    * `2.5f32`, 64 for `2.5f64` and for an unsuffixed `2.5` (a C `double`).
    * Null when the text is not a floating literal.

@@ -1,0 +1,36 @@
+// test-adr: 051
+// test-error
+// #1268 review: a float divisor is zero by the rule an integer one is
+// (ADR-051 §4) -- parenthesized, negated, cast, through a const that names
+// another, or computed. Each was accepted and emitted a division by zero.
+//
+// NEGATIVE CONTROLS: ONE_F, (f32)1, and HALF_F2 (0.5 - 0.25), each nonzero.
+
+const f32 FZ <- 0.0;
+const f32 FZ2 <- FZ;
+const f32 FZ3 <- 1.0 - 1.0;
+const f32 FZ4 <- -0.0;
+const f32 ONE_F <- 1.0;
+const f32 HALF_F2 <- 0.5 - 0.25;
+
+scope Gauge {
+    const f32 FZ <- 0.0;
+
+    public f32 qualified(f32 k) {
+        return k / (this.FZ);
+    }
+}
+
+f32 forms(f32 k) {
+    f32 a <- k / (0.0);
+    f32 b <- k / -0.0;
+    f32 c <- k / (f32)0;
+    f32 d <- k / ((FZ));
+    f32 e <- k / FZ2;
+    f32 f <- k / FZ3;
+    f32 g <- k / FZ4;
+    f32 h <- k / ONE_F;
+    f32 i <- k / (f32)1;
+    f32 j <- k / HALF_F2;
+    return a + b + c + d + e + f + g + h + i + j;
+}

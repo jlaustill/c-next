@@ -15,6 +15,7 @@ import type TSymbol from "./symbols/TSymbol";
 import type IConflict from "./IConflict";
 import type ICodeGenSymbols from "./ICodeGenSymbols";
 import type THeaderMacro from "./THeaderMacro";
+import type IConstInitializer from "./IConstInitializer";
 
 /**
  * `Program` — the artifact 1.4 Resolve emits, and the only place a cross-file
@@ -232,6 +233,16 @@ interface IProgram {
     sourceFile: string,
     name: Extract<TConstExpr, { kind: "name" }>,
   ): TConstResult;
+
+  /**
+   * The initializer of the const a name in a constant expression means where
+   * it is written, by the walk `constantValueOf` takes -- for a const whose
+   * value that does not fold, a float's (ADR-051 §4, #1268 review)
+   */
+  constantInitializerOf(
+    sourceFile: string,
+    name: Extract<TConstExpr, { kind: "name" }>,
+  ): IConstInitializer | null;
 
   /**
    * A C-Next type name as C spells it at `at` in `sourceFile` (ADR-057), for a

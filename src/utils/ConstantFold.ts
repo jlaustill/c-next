@@ -40,6 +40,44 @@ class ConstantFold {
   }
 
   /**
+   * A constant expression's value as a number where it is written in
+   * `sourceFile` (`ConstantEvaluator.numberValue`): a float const is worth
+   * its initializer, folded where that is written and held at its declared
+   * type. `reached` is the initializers on the way, so a cycle has no value.
+   */
+  static numberValue(
+    program: IProgram,
+    sourceFile: string,
+    expr: TConstExpr,
+    reached: ReadonlySet<TConstExpr> = new Set(),
+  ): number | null {
+    return ConstantEvaluator.numberValue(
+      expr,
+      ConstantFold.environment(program, sourceFile),
+      (name) => {
+        const initializer = program.constantInitializerOf(sourceFile, name);
+        if (
+          initializer === null ||
+          reached.has(initializer.expr) ||
+          !TTypeUtils.isPrimitive(initializer.type) ||
+          !TypeCheckUtils.isFloat(initializer.type.primitive)
+        ) {
+          return null;
+        }
+        const value = ConstantFold.numberValue(
+          program,
+          initializer.sourceFile ?? sourceFile,
+          initializer.expr,
+          new Set([...reached, initializer.expr]),
+        );
+        return value === null
+          ? null
+          : ConstantEvaluator.heldFloat(value, initializer.type.primitive);
+      },
+    );
+  }
+
+  /**
    * #1175: a dimension as C writes it, decided once for the .c (render) and
    * the .h (1.4's settled symbol). Its value; the C for one only C can
    * evaluate (a header macro), written from its structure; null when it has
