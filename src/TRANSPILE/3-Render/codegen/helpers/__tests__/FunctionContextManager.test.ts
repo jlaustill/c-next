@@ -481,6 +481,45 @@ describe("FunctionContextManager", () => {
     });
   });
 
+  describe("parameterEmittedName (#1290)", () => {
+    // The body reads the C name 1.4 settled on the function's symbol; one it
+    // never settled is a pipeline bug, not a parameter to spell as written.
+    const settledAs = (emittedName: string | null): void => {
+      state.currentFunctionName = "use";
+      state.program = {
+        symbolByCName: (name: string) =>
+          name === "use"
+            ? {
+                kind: "function",
+                name: "use",
+                parameters: [{ name: "total", emittedName }],
+              }
+            : undefined,
+      } as unknown as IProgram;
+    };
+
+    it("reads the settled C name", () => {
+      settledAs("use__total");
+      expect(FunctionContextManager.parameterEmittedName(0, state)).toBe(
+        "use__total",
+      );
+    });
+
+    it("is an internal error for a parameter 1.4 did not settle", () => {
+      settledAs(null);
+      expect(() =>
+        FunctionContextManager.parameterEmittedName(0, state),
+      ).toThrow("1.4 settled the C name of parameter 0 of use");
+    });
+
+    it("is an internal error for a parameter the symbol does not have", () => {
+      settledAs("use__total");
+      expect(() =>
+        FunctionContextManager.parameterEmittedName(1, state),
+      ).toThrow("1.4 settled the C name of parameter 1 of use");
+    });
+  });
+
   describe("clearParameters", () => {
     it("clears currentParameters map", () => {
       state.currentParameters.set("x", {

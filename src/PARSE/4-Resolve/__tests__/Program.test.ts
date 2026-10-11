@@ -18,6 +18,8 @@ import UNRESOLVED_DIMENSION from "../../../types/UNRESOLVED_DIMENSION";
 import SymbolTable from "../../3-Declare/SymbolTable";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
+import type ILexicalFrame from "../../../types/ILexicalFrame";
+import type ILocalDeclaration from "../../../types/ILocalDeclaration";
 
 /**
  * #1175: a bare name's compile-time value where it is used -- what
@@ -747,6 +749,60 @@ describe("Program", () => {
         ["f", false],
         ["n", false],
       ]);
+    });
+  });
+
+  describe("a parameter's settled C name (#1290)", () => {
+    // 1.4 pairs each function's parameters with its frame's, by position. A
+    // frame that disagrees with its symbol would hand a parameter another's
+    // C name, so the pairing asserts both the count and the order.
+    const withFunctionFrame = (
+      file: IFileSymbols,
+      edit: (
+        parameters: ReadonlyArray<ILocalDeclaration>,
+      ) => ReadonlyArray<ILocalDeclaration>,
+    ): IFileSymbols => {
+      const rewrite = (frame: ILexicalFrame): ILexicalFrame => ({
+        ...frame,
+        declarations:
+          frame.kind === "function"
+            ? edit(frame.declarations)
+            : frame.declarations,
+        children: frame.children.map(rewrite),
+      });
+      return { ...file, lexicalScopes: rewrite(file.lexicalScopes) };
+    };
+    const source = "void use(u32 a, u32 b) {\n}\n";
+
+    it("control: a frame that agrees with its symbol settles", () => {
+      const program = Program.build(
+        [withFunctionFrame(declare(source, "a.cnx"), (ps) => ps)],
+        { cppMode: false },
+      );
+      const use = program.symbolByCName("use");
+      expect(
+        use && SymbolGuards.isFunction(use)
+          ? use.parameters.map((p) => p.emittedName)
+          : [],
+      ).toEqual(["a", "b"]);
+    });
+
+    it("is an internal error when the frame misses a parameter", () => {
+      const file = withFunctionFrame(declare(source, "a.cnx"), (ps) =>
+        ps.slice(0, 1),
+      );
+      expect(() => Program.build([file], { cppMode: false })).toThrow(
+        "a function's frame declares each of its parameters (use)",
+      );
+    });
+
+    it("is an internal error when the frame names another parameter", () => {
+      const file = withFunctionFrame(declare(source, "a.cnx"), (ps) =>
+        ps.map((p) => (p.name === "b" ? { ...p, name: "c" } : p)),
+      );
+      expect(() => Program.build([file], { cppMode: false })).toThrow(
+        "a function's frame declares its parameters in order (use)",
+      );
     });
   });
 

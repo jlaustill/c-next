@@ -923,7 +923,8 @@ class Program {
       bind: (root, name, at) =>
         Program.bindValue(facts, file(), root, name, at),
       scopePathAt: (at) =>
-        LexicalFrames.frameAt(Program.framesOf(facts, file()), at).scopePath,
+        LexicalFrames.frameAt(Program.framesOf(facts.framesByFile, file()), at)
+          .scopePath,
       visibleSymbol: (cName) => Program.visibleSymbolIn(facts, file(), cName),
       isScopeTypeVisible: (name) =>
         options.files.isScopeTypeVisibleFrom(file(), name),
@@ -1061,11 +1062,7 @@ class Program {
           files,
         }),
       );
-      const frames = framesByFile.get(sourceFile);
-      invariant(
-        frames !== undefined,
-        `1.4 settled the frames of ${sourceFile}`,
-      );
+      const frames = Program.framesOf(framesByFile, sourceFile);
       const parametersByFunction = new Map<
         string,
         ReadonlyArray<ILocalDeclaration>
@@ -1215,10 +1212,10 @@ class Program {
    * shadowing decision silently, where lexicalFrameAt already asserts
    */
   private static framesOf(
-    facts: IBindingFacts,
+    framesByFile: ReadonlyMap<string, ILexicalFrame>,
     sourceFile: string,
   ): ILexicalFrame {
-    const frames = facts.framesByFile.get(sourceFile);
+    const frames = framesByFile.get(sourceFile);
     invariant(frames, `${sourceFile} is a file of this program`);
     return frames;
   }
@@ -1258,7 +1255,7 @@ class Program {
     name: string,
     at: TPosition,
   ): TValueBinding | null {
-    const frames = Program.framesOf(facts, sourceFile);
+    const frames = Program.framesOf(facts.framesByFile, sourceFile);
     const scopePath = LexicalFrames.frameAt(frames, at).scopePath;
     const local =
       root === null ? LexicalFrames.declarationAt(frames, name, at) : null;
