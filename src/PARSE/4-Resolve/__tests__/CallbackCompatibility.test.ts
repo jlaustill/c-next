@@ -6,6 +6,7 @@
  * records and the rule `CallbackCompatibility` applies are tested together, as
  * production runs them.
  */
+import ProgramLowering from "../../2-Parse/ProgramLowering";
 import { describe, it, expect } from "vitest";
 import CNextSourceParser from "../../2-Parse/CNextSourceParser";
 import CNextResolver from "../../3-Declare/cnext/index";
@@ -24,6 +25,7 @@ function callbacksIn(
   const files = sources.map((source, index) =>
     CNextResolver.resolve(
       CNextSourceParser.parse(source).tree,
+      ProgramLowering.program(CNextSourceParser.parse(source).tree, null),
       `file${index}.cnx`,
       registry,
     ),

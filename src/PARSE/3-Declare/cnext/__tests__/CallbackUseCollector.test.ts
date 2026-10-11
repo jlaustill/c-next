@@ -7,11 +7,12 @@
 import { describe, expect, it } from "vitest";
 import parse from "./testHelpers";
 import CallbackUseCollector from "../collectors/CallbackUseCollector";
+import ProgramLowering from "../../../2-Parse/ProgramLowering";
 
 /** Each recorded use's function name, in source order. */
 function namesIn(code: string): string[] {
   return CallbackUseCollector.collect(
-    parse(code),
+    ProgramLowering.program(parse(code), null),
     (scopeName) => scopeName,
   ).map((use) => use.functionName);
 }

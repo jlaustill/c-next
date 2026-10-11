@@ -5,6 +5,7 @@
  * they exercise. `convert()` stayed in 1.3 Declare because "what does this file
  * declare?" is per-file; these cover "what may this file SEE?", which is not.
  */
+import ProgramLowering from "../../2-Parse/ProgramLowering";
 import { describe, expect, it } from "vitest";
 import VisibleSymbols from "../VisibleSymbols";
 import type IBitmapFieldLayout from "../../../types/IBitmapFieldLayout";
@@ -25,6 +26,7 @@ const declared = (source: string, path: string) =>
   TSymbolInfoAdapter.convert(
     CNextResolver.resolve(
       CNextSourceParser.parse(source).tree,
+      ProgramLowering.program(CNextSourceParser.parse(source).tree, null),
       path,
       new SymbolRegistry(),
     ).symbols,

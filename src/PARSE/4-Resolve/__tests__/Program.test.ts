@@ -1,3 +1,4 @@
+import ProgramLowering from "../../2-Parse/ProgramLowering";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import ConstantFold from "../../../utils/ConstantFold";
 import parse from "../../3-Declare/cnext/__tests__/testHelpers";
@@ -69,7 +70,12 @@ describe("Program", () => {
   // CLAUDE.md, "Test isolation": CNextResolver writes to the SymbolRegistry.
 
   const declare = (code: string, sourceFile: string): IFileSymbols =>
-    CNextResolver.resolve(parse(code), sourceFile, registry);
+    CNextResolver.resolve(
+      parse(code),
+      ProgramLowering.program(parse(code), null),
+      sourceFile,
+      registry,
+    );
 
   const find = (symbols: ReadonlyArray<TSymbol>, name: string): TSymbol => {
     const found = symbols.find((symbol) => symbol.name === name);

@@ -22,11 +22,15 @@ import analyzePostfixOps from "../../utils/PostfixAnalysisUtils";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
 import ScopeUtils from "../../utils/ScopeUtils";
 import ChainRoot from "../../utils/ChainRoot";
-import ChildStatementCollector from "../../utils/ast/ChildStatementCollector";
+import ExpressionShape from "../../utils/ExpressionShape";
+import StatementChildren from "../../utils/StatementChildren";
 import invariant from "../../utils/invariant";
 import type ISourcePosition from "../../utils/types/ISourcePosition";
 import type ILocalDeclaration from "../../types/ILocalDeclaration";
 import type TChainRoot from "../../types/TChainRoot";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
+import type TStatement from "../../types/syntax/TStatement";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
 /**
@@ -502,9 +506,13 @@ class InitializationAnalyzer {
   /**
    * Analyze a parsed program for initialization errors
    * @param tree The parsed program AST
+   * @param program The same program, lowered (1.2): its statements' children
    * @returns Array of initialization errors
    */
-  public analyze(tree: Parser.ProgramContext): IInitializationError[] {
+  public analyze(
+    tree: Parser.ProgramContext,
+    program: IProgramSyntax,
+  ): IInitializationError[] {
     this.errors = [];
     this.states = new Map();
     // Clear C-Next struct fields from previous analysis (external fields come from CodeGenState)
@@ -514,7 +522,7 @@ class InitializationAnalyzer {
     this.collectStructDefinitions(tree);
 
     // Create global scope with all global/namespace variable declarations
-    this.createGlobalScope(tree);
+    this.createGlobalScope(tree, program);
 
     // Second pass: analyze initialization
     const listener = new InitializationListener(this);
@@ -527,10 +535,13 @@ class InitializationAnalyzer {
    * Create the global scope with all top-level variable declarations
    * Global variables are considered "initialized" (zero-init by ADR-015)
    */
-  private createGlobalScope(tree: Parser.ProgramContext): void {
+  private createGlobalScope(
+    tree: Parser.ProgramContext,
+    program: IProgramSyntax,
+  ): void {
     for (const decl of tree.declaration()) {
       this._processGlobalVariable(decl);
-      this._processScopeMembers(decl);
+      this._processScopeMembers(decl, program);
     }
   }
 
@@ -558,9 +569,23 @@ class InitializationAnalyzer {
    * Process scope member variable declarations (ADR-016)
    * Issue #1019: Scope members require explicit initialization like locals
    */
-  private _processScopeMembers(decl: Parser.DeclarationContext): void {
+  private _processScopeMembers(
+    decl: Parser.DeclarationContext,
+    program: IProgramSyntax,
+  ): void {
     const scopeDecl = decl.scopeDeclaration();
     if (!scopeDecl) return;
+    const { line, column } = ParserUtils.getPosition(scopeDecl);
+    const lowered = program.declarations.find(
+      ({ declaration }) =>
+        declaration.kind === "scope" &&
+        declaration.span.line === line &&
+        declaration.span.column === column,
+    )?.declaration;
+    invariant(
+      lowered?.kind === "scope",
+      `1.2 lowers every scope ('${scopeDecl.IDENTIFIER().getText()}')`,
+    );
 
     // #1298: the whole scope PATH, not its leaf name, so a nested scope keeps
     // its outer components when its members are qualified.
@@ -572,7 +597,7 @@ class InitializationAnalyzer {
     );
 
     // Phase 1: Find all members assigned in any scope function
-    const assignedMembers = this._findAssignedScopeMembers(scopeDecl);
+    const assignedMembers = this._findAssignedScopeMembers(lowered);
 
     // Phase 2: Process each member with assignment info
     for (const member of scopeDecl.scopeMember()) {
@@ -586,53 +611,30 @@ class InitializationAnalyzer {
    * for reads in other functions within the same scope.
    */
   private _findAssignedScopeMembers(
-    scopeDecl: Parser.ScopeDeclarationContext,
+    scopeDecl: Extract<TDeclarationSyntax, { kind: "scope" }>,
   ): Set<TInitKey> {
     const assigned = new Set<TInitKey>();
 
-    for (const member of scopeDecl.scopeMember()) {
-      const funcDecl = member.functionDeclaration();
-      if (!funcDecl) continue;
-
-      const body = funcDecl.block();
-      if (!body) continue;
-
+    for (const member of scopeDecl.members) {
+      if (member.declaration.kind !== "function") continue;
       // Scan the function body for assignments to scope members
-      this._collectAssignmentsInBlock(body, assigned);
+      this._collectAssignments(member.declaration.body.statements, assigned);
     }
 
     return assigned;
   }
 
   /**
-   * Recursively collect variable names that are assigned in a block.
-   * Looks for assignment statements targeting bare identifiers or this.member.
+   * Recursively collect the members assigned in statements, and in every
+   * statement nested inside them (#2003: `critical` and `forever` included).
    */
-  private _collectAssignmentsInBlock(
-    block: Parser.BlockContext,
+  private _collectAssignments(
+    statements: readonly TStatement[],
     assigned: Set<TInitKey>,
   ): void {
-    for (const stmt of block.statement()) {
-      this._collectAssignmentsInStatement(stmt, assigned);
-    }
-  }
-
-  /**
-   * Collect assignments from a single statement, recursing into nested blocks.
-   */
-  private _collectAssignmentsInStatement(
-    stmt: Parser.StatementContext,
-    assigned: Set<TInitKey>,
-  ): void {
-    this._collectDirectAssignment(stmt, assigned);
-    // #2003: every statement that holds statements, `critical` and `forever`
-    // included
-    const children = ChildStatementCollector.collectAll(stmt);
-    for (const child of children.statements) {
-      this._collectAssignmentsInStatement(child, assigned);
-    }
-    for (const block of children.blocks) {
-      this._collectAssignmentsInBlock(block, assigned);
+    for (const statement of statements) {
+      this._collectDirectAssignment(statement, assigned);
+      this._collectAssignments(StatementChildren.of(statement), assigned);
     }
   }
 
@@ -640,19 +642,19 @@ class InitializationAnalyzer {
    * Collect assignment from the statement itself (if it's an assignment).
    */
   private _collectDirectAssignment(
-    stmt: Parser.StatementContext,
+    statement: TStatement,
     assigned: Set<TInitKey>,
   ): void {
-    const target = stmt.assignmentStatement()?.assignmentTarget();
-    const id = target?.IDENTIFIER()?.getText();
-    if (!target || !id) return;
+    if (statement.kind !== "assignment") return;
+    const head = ExpressionShape.headOf(statement.target);
+    if (!head.identifier) return;
 
     // #2004: what 1.4 binds the target to -- a local, parameter or `for`
     // variable of the name, or `global.x`, is not this scope's member
     const key = this.bindingKey(
-      ChainRoot.ofTarget(target),
-      id,
-      ParserUtils.getPosition(target),
+      head.root,
+      head.identifier.name,
+      statement.target.span,
     );
     if (key !== null) {
       assigned.add(key);

@@ -114,6 +114,7 @@ import scopeGenerator from "./3-Render/codegen/generators/declarationGenerators/
 import FormatUtils from "../utils/FormatUtils";
 import TypeCheckUtils from "../utils/TypeCheckUtils";
 import ExpressionShape from "../utils/ExpressionShape";
+import StatementChildren from "../utils/StatementChildren";
 import type IChainHead from "../types/IChainHead";
 import ExpressionCalls from "../utils/ExpressionCalls";
 import helperGenerators from "./3-Render/codegen/generators/support/HelperGenerator";
@@ -2212,8 +2213,6 @@ class CodeGenWalker {
   private collectCallbackTypeReferencesIn(statement: TStatement): void {
     const visit = (child: TStatement): void =>
       this.collectCallbackTypeReferencesIn(child);
-    const visitBody = (body: { statements: readonly TStatement[] }): void =>
-      body.statements.forEach(visit);
     switch (statement.kind) {
       case "variableDeclaration":
       case "constructorDeclaration":
@@ -2221,31 +2220,19 @@ class CodeGenWalker {
           this.typeNameOf(statement.type),
         );
         return;
-      case "if":
-        visit(statement.whenTrue);
-        if (statement.whenFalse) visit(statement.whenFalse);
+      case "for":
+        if (statement.init?.kind === "variableDeclaration")
+          visit(statement.init);
+        StatementChildren.of(statement).forEach(visit);
         return;
+      case "if":
       case "while":
       case "doWhile":
       case "forever":
       case "critical":
-        if ("kind" in statement.body) {
-          visit(statement.body);
-        } else {
-          visitBody(statement.body);
-        }
-        return;
-      case "for":
-        if (statement.init?.kind === "variableDeclaration")
-          visit(statement.init);
-        visit(statement.body);
-        return;
       case "switch":
-        statement.cases.forEach((switchCase) => visitBody(switchCase.body));
-        if (statement.defaultCase) visitBody(statement.defaultCase.body);
-        return;
       case "block":
-        visitBody(statement);
+        StatementChildren.of(statement).forEach(visit);
         return;
       case "assignment":
       case "expression":

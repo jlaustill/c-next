@@ -1,3 +1,4 @@
+import ParserUtils from "../../utils/ParserUtils";
 import type { ParserRuleContext, ParseTree, TerminalNode } from "antlr4ng";
 import * as Parser from "./grammar/CNextParser";
 import type CommentScanner from "./CommentScanner";
@@ -174,6 +175,10 @@ class ProgramLowering {
     return {
       returnType: SyntaxLowering.type(ctx.type()),
       name: ctx.IDENTIFIER().getText(),
+      nameSpan: ParserUtils.getSpan({
+        start: ctx.IDENTIFIER().symbol,
+        stop: ctx.IDENTIFIER().symbol,
+      }),
       parameters: ProgramLowering.parameters(ctx.parameterList()),
       body: StatementLowering.block(ctx.block()),
       ...SyntaxLowering.node(ctx),

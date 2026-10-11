@@ -234,7 +234,8 @@ function runAnalyzers(
     },
     {
       label: "initialization (Rust-style use-before-init)",
-      run: () => new InitializationAnalyzer(context).analyze(tree),
+      run: () =>
+        new InitializationAnalyzer(context).analyze(tree, parsed.program),
     },
     {
       // Before the call and essential-type analyses: a type that denotes
@@ -298,7 +299,7 @@ function runAnalyzers(
     },
     {
       label: "return paths (ADR-067: non-void must return on all paths)",
-      run: () => new ReturnPathAnalyzer().analyze(tree),
+      run: () => new ReturnPathAnalyzer().analyze(parsed.program),
     },
     {
       label:

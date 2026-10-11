@@ -1,3 +1,4 @@
+import ProgramLowering from "../../PARSE/2-Parse/ProgramLowering";
 import type * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import CNextResolver from "../../PARSE/3-Declare/cnext/index";
 import type SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
@@ -63,7 +64,12 @@ class ProgramGeneration {
     const sourcePath = options.sourcePath ?? "test.cnx";
     const state = generator.transpileState;
 
-    const declared = CNextResolver.resolve(tree, sourcePath, registry);
+    const declared = CNextResolver.resolve(
+      tree,
+      ProgramLowering.program(tree, null),
+      sourcePath,
+      registry,
+    );
     state.program = Program.build([declared], {
       symbolTable: state.symbolTable,
       registry,

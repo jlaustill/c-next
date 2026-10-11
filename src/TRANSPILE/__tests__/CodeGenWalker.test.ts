@@ -2,6 +2,7 @@
  * Unit tests for CodeGenWalker - the main transpiler component.
  * Tests the IOrchestrator interface and internal methods.
  */
+import ProgramLowering from "../../PARSE/2-Parse/ProgramLowering";
 import TargetResolver from "../../cli/TargetResolver";
 import ProgramGeneration from "./ProgramGeneration";
 import PublicInterface from "../2-Plan/PublicInterface";
@@ -47,7 +48,12 @@ function declareAndResolveAs(
   tree: Parser.ProgramContext,
   sourcePath: string,
 ): TSymbol[] {
-  const declared = CNextResolver.resolve(tree, sourcePath, registry);
+  const declared = CNextResolver.resolve(
+    tree,
+    ProgramLowering.program(tree, null),
+    sourcePath,
+    registry,
+  );
   return [
     ...Program.build([declared], { cppMode: false, registry }).symbolsInFile(
       sourcePath,

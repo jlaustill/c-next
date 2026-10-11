@@ -15,10 +15,13 @@
  */
 
 import type TCallbackUse from "../../../../types/TCallbackUse";
-import * as Parser from "../../../2-Parse/grammar/CNextParser";
-import ExpressionUnwrapper from "../../../../utils/ExpressionUnwrapper";
-import ChildStatementCollector from "../../../../utils/ast/ChildStatementCollector";
+import type IFunctionDeclarationSyntax from "../../../../types/syntax/IFunctionDeclarationSyntax";
+import type IProgramSyntax from "../../../../types/syntax/IProgramSyntax";
+import type TExpression from "../../../../types/syntax/TExpression";
+import type TStatement from "../../../../types/syntax/TStatement";
+import ExpressionShape from "../../../../utils/ExpressionShape";
 import ScopeUtils from "../../../../utils/ScopeUtils";
+import StatementChildren from "../../../../utils/StatementChildren";
 
 class CallbackUseCollector {
   /**
@@ -26,26 +29,26 @@ class CallbackUseCollector {
    * @returns every candidate use, in source order
    */
   static collect(
-    tree: Parser.ProgramContext,
+    program: IProgramSyntax,
     scopePathOf: (scopeName: string) => string,
   ): TCallbackUse[] {
     const uses: TCallbackUse[] = [];
-    for (const decl of tree.declaration()) {
-      const funcDecl = decl.functionDeclaration();
-      if (funcDecl) {
-        CallbackUseCollector.scanFunction(uses, funcDecl, "");
+    for (const { declaration } of program.declarations) {
+      if (declaration.kind === "function") {
+        CallbackUseCollector.scanFunction(uses, declaration, "");
         continue;
       }
-
       // Issue #895: every member function of a scope, which may name its
       // siblings as `this.member`.
-      const scopeDecl = decl.scopeDeclaration();
-      if (scopeDecl) {
-        const scopePath = scopePathOf(scopeDecl.IDENTIFIER().getText());
-        for (const member of scopeDecl.scopeMember()) {
-          const memberFunc = member.functionDeclaration();
-          if (memberFunc) {
-            CallbackUseCollector.scanFunction(uses, memberFunc, scopePath);
+      if (declaration.kind === "scope") {
+        const scopePath = scopePathOf(declaration.name);
+        for (const member of declaration.members) {
+          if (member.declaration.kind === "function") {
+            CallbackUseCollector.scanFunction(
+              uses,
+              member.declaration,
+              scopePath,
+            );
           }
         }
       }
@@ -59,60 +62,43 @@ class CallbackUseCollector {
    */
   private static scanFunction(
     uses: TCallbackUse[],
-    funcDecl: Parser.FunctionDeclarationContext,
+    funcDecl: IFunctionDeclarationSyntax,
     scopePath: string,
   ): void {
-    const block = funcDecl.block();
-    if (!block) return;
-    CallbackUseCollector.scanBlock(uses, block, scopePath);
+    CallbackUseCollector.scanStatements(
+      uses,
+      funcDecl.body.statements,
+      scopePath,
+    );
   }
 
   /**
-   * Recursively scan all statements in a block.
+   * Scan statements, recursing into every statement they hold (#2003).
    */
-  private static scanBlock(
+  private static scanStatements(
     uses: TCallbackUse[],
-    block: Parser.BlockContext,
+    statements: readonly TStatement[],
     scopePath: string,
   ): void {
-    for (const stmt of block.statement()) {
-      CallbackUseCollector.scanStatement(uses, stmt, scopePath);
-    }
-  }
-
-  /**
-   * Scan a single statement, recursing into every statement it holds.
-   */
-  private static scanStatement(
-    uses: TCallbackUse[],
-    stmt: Parser.StatementContext,
-    scopePath: string,
-  ): void {
-    // Check variable declarations for callback assignments
-    const varDecl = stmt.variableDeclaration();
-    if (varDecl) {
-      CallbackUseCollector.recordInitializer(uses, varDecl, scopePath);
-      return;
-    }
-
-    // Check expression statements for function calls with callback arguments
-    const exprStmt = stmt.expressionStatement();
-    if (exprStmt) {
-      CallbackUseCollector.recordArguments(
-        uses,
-        exprStmt.expression(),
-        scopePath,
-      );
-      return;
-    }
-
-    // #2003: every statement that holds statements, `forever` included
-    const children = ChildStatementCollector.collectAll(stmt);
-    for (const child of children.statements) {
-      CallbackUseCollector.scanStatement(uses, child, scopePath);
-    }
-    for (const child of children.blocks) {
-      CallbackUseCollector.scanBlock(uses, child, scopePath);
+    for (const statement of statements) {
+      if (statement.kind === "variableDeclaration") {
+        // Check variable declarations for callback assignments
+        CallbackUseCollector.recordInitializer(uses, statement, scopePath);
+      } else if (statement.kind === "expression") {
+        // Check expression statements for function calls with callback
+        // arguments
+        CallbackUseCollector.recordArguments(
+          uses,
+          statement.expression,
+          scopePath,
+        );
+      } else {
+        CallbackUseCollector.scanStatements(
+          uses,
+          StatementChildren.of(statement),
+          scopePath,
+        );
+      }
     }
   }
 
@@ -122,22 +108,19 @@ class CallbackUseCollector {
    */
   private static recordInitializer(
     uses: TCallbackUse[],
-    varDecl: Parser.VariableDeclarationContext,
+    varDecl: Extract<TStatement, { kind: "variableDeclaration" }>,
     scopePath: string,
   ): void {
-    const expr = varDecl.expression();
-    if (!expr) return;
-
+    if (!varDecl.initializer) return;
     const functionName = CallbackUseCollector.functionReference(
-      expr,
+      varDecl.initializer,
       scopePath,
     );
     if (!functionName) return;
-
     uses.push({
       kind: "initializer",
       functionName,
-      typeName: varDecl.type().getText(),
+      typeName: varDecl.type.text,
     });
   }
 
@@ -148,17 +131,11 @@ class CallbackUseCollector {
    */
   private static recordArguments(
     uses: TCallbackUse[],
-    expr: Parser.ExpressionContext,
+    expr: TExpression,
     scopePath: string,
   ): void {
-    // Uses ExpressionUnwrapper, which validates that the expression is
-    // "simple" (single term at each level), so a complex one yields nothing.
-    const postfix = ExpressionUnwrapper.getPostfixExpression(expr);
-    if (!postfix) return;
-
-    const callInfo = CallbackUseCollector.extractCallInfo(postfix);
+    const callInfo = CallbackUseCollector.extractCallInfo(expr);
     if (!callInfo) return;
-
     for (const [argIndex, arg] of callInfo.args.entries()) {
       const functionName = CallbackUseCollector.functionReference(
         arg,
@@ -183,85 +160,67 @@ class CallbackUseCollector {
    *   - Global scope reference: "global.ScopeName.handler"
    */
   private static functionReference(
-    expr: Parser.ExpressionContext,
+    expr: TExpression,
     scopePath: string,
   ): string | null {
-    const text = expr.getText();
-
-    // Pattern 1: this.member -> CurrentScope.member (Issue #895)
-    const thisMatch = /^this\.(\w+)$/.exec(text);
-    if (thisMatch) {
-      if (!scopePath) {
-        return null; // this.member outside scope context
-      }
-      return ScopeUtils.qualifyInScope(thisMatch[1], scopePath);
+    const view = ExpressionShape.postfixView(expr);
+    if (!view) return null;
+    const members: string[] = [];
+    for (const op of view.ops) {
+      if (op.kind !== "member") return null;
+      members.push(op.name);
     }
-
-    // Pattern 2: global.Scope.member -> Scope.member (Issue #895)
-    const globalMatch = /^global\.(\w+)\.(\w+)$/.exec(text);
-    if (globalMatch) {
-      return ScopeUtils.qualifyPathInScope(
-        [globalMatch[1], globalMatch[2]],
-        "",
-      );
+    const { primary } = view;
+    if (primary.kind === "identifier") {
+      if (members.length > 1) return null;
+      return members.length === 0
+        ? primary.name
+        : ScopeUtils.qualifyPathInScope([primary.name, ...members], "");
     }
-
-    // Pattern 3: Bare identifier or simple Scope.member. An identifier cannot
-    // start with a digit, and `\w` alone would read `5` as one.
-    const simpleMatch = /^([A-Za-z_]\w*)(?:\.(\w+))?$/.exec(text);
-    if (simpleMatch) {
-      return simpleMatch[2]
-        ? ScopeUtils.qualifyPathInScope([simpleMatch[1], simpleMatch[2]], "")
-        : simpleMatch[1];
+    if (primary.kind !== "root") return null;
+    // this.member -> CurrentScope.member (Issue #895), outside a scope nothing
+    if (primary.root === "this") {
+      return members.length === 1 && scopePath
+        ? ScopeUtils.qualifyInScope(members[0], scopePath)
+        : null;
     }
-
-    return null;
+    // global.Scope.member -> Scope.member (Issue #895)
+    return members.length === 2
+      ? ScopeUtils.qualifyPathInScope(members, "")
+      : null;
   }
 
   /**
-   * Extract function name and arguments from a postfix expression.
-   * Returns null if not a function call.
+   * The function name and arguments of a call statement's expression, or
+   * null if it is not a call on a name or a `global.` path.
    */
   private static extractCallInfo(
-    postfix: Parser.PostfixExpressionContext,
-  ): { funcName: string; args: Parser.ExpressionContext[] } | null {
-    const primary = postfix.primaryExpression();
-    const ops = postfix.postfixOp();
-
-    // Start with primary expression (identifier or 'global')
-    const ident = primary.IDENTIFIER();
-    const globalKw = primary.GLOBAL();
-
-    // Early return: neither identifier nor global keyword means not a function call
-    if (!ident && !globalKw) {
+    expr: TExpression,
+  ): { funcName: string; args: readonly TExpression[] } | null {
+    if (expr.kind !== "postfix") return null;
+    const { primary } = expr;
+    // For 'global', the path starts empty and gets built from member access
+    let path: string[];
+    if (primary.kind === "identifier") {
+      path = [primary.name];
+    } else if (primary.kind === "root" && primary.root === "global") {
+      path = [];
+    } else {
       return null;
     }
-
-    // Build function name from primary + member access ops
-    // For 'global' keyword, the path starts empty and gets built from member access
-    const path: string[] = ident ? [ident.getText()] : [];
-    let argListOp: Parser.PostfixOpContext | null = null;
-
-    // Walk postfix ops to find function name and call
-    for (const op of ops) {
-      if (op.IDENTIFIER()) {
+    for (const op of expr.ops) {
+      if (op.kind === "member") {
         // Member access: one more component of the qualified name
-        path.push(op.IDENTIFIER()!.getText());
-      } else if (op.argumentList() || op.getText().startsWith("(")) {
-        // Found the call - this op has the arguments
-        argListOp = op;
-        break;
+        path.push(op.name);
+      } else if (op.kind === "call") {
+        if (path.length === 0) return null;
+        return {
+          funcName: ScopeUtils.qualifyPathInScope(path, ""),
+          args: op.arguments,
+        };
       }
     }
-
-    if (!argListOp || path.length === 0) return null;
-    const funcName = ScopeUtils.qualifyPathInScope(path, "");
-
-    // Extract arguments
-    const argList = argListOp.argumentList();
-    const args = argList?.expression() ?? [];
-
-    return { funcName, args };
+    return null;
   }
 }
 

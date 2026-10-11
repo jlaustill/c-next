@@ -1,3 +1,4 @@
+import ProgramLowering from "../../../../PARSE/2-Parse/ProgramLowering";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import CNextResolver from "../../../../PARSE/3-Declare/cnext";
@@ -22,7 +23,14 @@ import testAnalysisContext from "../../__tests__/testAnalysisContext";
 const build = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
   state.program = Program.build(
-    [CNextResolver.resolve(tree, "a.cnx", registry)],
+    [
+      CNextResolver.resolve(
+        tree,
+        ProgramLowering.program(tree, null),
+        "a.cnx",
+        registry,
+      ),
+    ],
     { cppMode: false },
   );
 };

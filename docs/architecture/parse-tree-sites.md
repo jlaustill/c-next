@@ -32,11 +32,11 @@ lexer-only include scan. Nothing from 2.2 Plan on.
 
 | Layer            | Modules |
 | ---------------- | ------: |
-| `src/TRANSPILE/` |      62 |
-| `src/PARSE/`     |      23 |
-| `src/utils/`     |       9 |
+| `src/TRANSPILE/` |      61 |
+| `src/PARSE/`     |      21 |
+| `src/utils/`     |       6 |
 | `src/types/`     |       2 |
-| **total**        |  **96** |
+| **total**        |  **90** |
 
 `src/TRANSPILE/3-Render/` is the render layer, and its share is the number
 the issue singles out: the render layer holding parse nodes is how a
@@ -53,11 +53,9 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/PARSE/3-Declare/c/index.ts`                                | grammar           |
 | `src/PARSE/3-Declare/c/utils/DeclaratorUtils.ts`                | grammar           |
 | `src/PARSE/3-Declare/cnext/collectors/BitmapCollector.ts`       | grammar           |
-| `src/PARSE/3-Declare/cnext/collectors/CallbackUseCollector.ts`  | grammar           |
 | `src/PARSE/3-Declare/cnext/collectors/EnumCollector.ts`         | grammar           |
 | `src/PARSE/3-Declare/cnext/collectors/FunctionCollector.ts`     | grammar           |
 | `src/PARSE/3-Declare/cnext/collectors/LexicalScopeCollector.ts` | antlr4ng, grammar |
-| `src/PARSE/3-Declare/cnext/collectors/ModificationCollector.ts` | grammar           |
 | `src/PARSE/3-Declare/cnext/collectors/RegisterCollector.ts`     | grammar           |
 | `src/PARSE/3-Declare/cnext/collectors/ScopeCollector.ts`        | grammar           |
 | `src/PARSE/3-Declare/cnext/collectors/StructCollector.ts`       | grammar           |
@@ -115,7 +113,6 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/TRANSPILE/1-Analyze/NullCheckAnalyzer.ts`                  | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/ParameterNamingAnalyzer.ts`            | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/RegisterAccessAnalyzer.ts`             | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/ReturnPathAnalyzer.ts`                 | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/ReturnValueUseAnalyzer.ts`             | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/runAnalyzers.ts`                       | grammar           |
 | `src/TRANSPILE/1-Analyze/SafeDivisionAnalyzer.ts`               | antlr4ng, grammar |
@@ -133,9 +130,6 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/TRANSPILE/1-Analyze/UndeclaredValueAnalyzer.ts`            | antlr4ng, grammar |
 | `src/types/IParsedFile.ts`                                      | antlr4ng, grammar |
 | `src/types/TAssignmentSite.ts`                                  | grammar           |
-| `src/utils/ast/AssignmentTargetExtractor.ts`                    | grammar           |
-| `src/utils/ast/ChildStatementCollector.ts`                      | grammar           |
-| `src/utils/ast/StatementExpressionCollector.ts`                 | grammar           |
 | `src/utils/ChainRoot.ts`                                        | grammar           |
 | `src/utils/ExpressionUnwrapper.ts`                              | grammar           |
 | `src/utils/ExpressionUtils.ts`                                  | grammar           |
@@ -143,4 +137,4 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/utils/ParserUtils.ts`                                      | antlr4ng, grammar |
 | `src/utils/PostfixAnalysisUtils.ts`                             | grammar           |
 
-96 module(s).
+90 module(s).
