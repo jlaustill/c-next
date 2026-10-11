@@ -116,15 +116,11 @@ class InitializationListener extends CNextListener {
     // Check if this is a string type (string<N> or string)
     const isStringType = typeCtx.stringType() !== null;
 
-    // #2004: the declaration 1.4 framed, found as a use finds it. A use
-    // binds a declaration only after it starts, so from the end of its name.
-    const identifier = ctx.IDENTIFIER().symbol;
-    const key = this.analyzer.bindingKey(null, name, {
-      line: identifier.line,
-      column: identifier.column + name.length,
-    });
+    // #2004: state is kept for the declaration 1.4 framed, the one a use of
+    // this name binds to
+    const key = this.analyzer.framedDeclaration(ctx.IDENTIFIER().symbol);
     invariant(
-      key !== null && typeof key !== "string",
+      key !== null,
       `1.4 frames every declaration in a function body ('${name}')`,
     );
 
@@ -169,6 +165,7 @@ class InitializationListener extends CNextListener {
     );
 
     // Issue #1012: Compound assignment reads the LHS before writing.
+    // Check if the assignment operator is a compound operator (not simple `<-`).
     const isCompoundAssignment = ctx.assignmentOperator().ASSIGN() === null;
     if (isCompoundAssignment) {
       const { line, column } = ParserUtils.getPosition(ctx);
@@ -181,6 +178,7 @@ class InitializationListener extends CNextListener {
       );
     }
 
+    // Record the assignment to the resolved target
     this.analyzer.recordAssignment(key, target.fieldName);
   };
 
@@ -638,6 +636,9 @@ class InitializationAnalyzer {
     }
   }
 
+  /**
+   * Collect assignment from the statement itself (if it's an assignment).
+   */
   private _collectDirectAssignment(
     stmt: Parser.StatementContext,
     assigned: Set<TInitKey>,
@@ -658,6 +659,9 @@ class InitializationAnalyzer {
     }
   }
 
+  /**
+   * Process a single scope member variable
+   */
   private _processScopeMemberVariable(
     member: Parser.ScopeMemberContext,
     scopePath: string,
@@ -717,6 +721,24 @@ class InitializationAnalyzer {
   // Binding (#2004: 1.4's decision, not this analyzer's)
   // ========================================================================
 
+  /** The declaration 1.4 framed for a declaring identifier, by its span */
+  public framedDeclaration(identifier: {
+    line: number;
+    column: number;
+  }): ILocalDeclaration | null {
+    const frame = this.context.program.lexicalFrameAt(
+      this.context.sourceFile,
+      identifier,
+    );
+    return (
+      frame.declarations.find(
+        (d) =>
+          d.span.line === identifier.line &&
+          d.span.column === identifier.column,
+      ) ?? null
+    );
+  }
+
   /**
    * What `IProgram.bindValue` binds a spelling to at a position, as a state
    * key; null for a name with no state here (a function, a scope, a header's)
@@ -773,6 +795,9 @@ class InitializationAnalyzer {
     });
   }
 
+  /**
+   * Record that a variable (or field) has been assigned
+   */
   public recordAssignment(key: TInitKey, field?: string): void {
     const state = this.states.get(key);
     if (!state) return;
@@ -783,6 +808,9 @@ class InitializationAnalyzer {
     }
   }
 
+  /**
+   * Handle field-level assignment.
+   */
   private recordFieldAssignment(state: IVariableState, field: string): void {
     state.initializedFields.add(field);
     // Check if all fields are now initialized
@@ -906,6 +934,9 @@ class InitializationAnalyzer {
   // Control Flow
   // ========================================================================
 
+  /**
+   * Clone the current scope state for branch analysis
+   */
   public cloneScopeState(): Map<TInitKey, IVariableState> {
     return new Map(
       [...this.states].map(([key, state]) => [
@@ -915,6 +946,10 @@ class InitializationAnalyzer {
     );
   }
 
+  /**
+   * Restore initialization state from a saved snapshot
+   * Used for control flow analysis to "undo" branch changes
+   */
   public restoreFromState(savedState: Map<TInitKey, IVariableState>): void {
     for (const [key, saved] of savedState) {
       this.states.set(key, {
@@ -925,8 +960,9 @@ class InitializationAnalyzer {
   }
 
   /**
-   * For each variable, keep current init state but merge in any fields
-   * that were initialized before the loop
+   * Merge initialization state from a saved snapshot
+   * Used for deterministic loops where initialization inside the loop
+   * should be preserved (the loop WILL run at least once)
    */
   public mergeInitializationState(
     beforeState: Map<TInitKey, IVariableState>,

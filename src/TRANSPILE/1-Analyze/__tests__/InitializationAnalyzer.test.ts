@@ -391,7 +391,15 @@ describe("InitializationAnalyzer", () => {
       `;
       const real = contextFor(code);
       const program: IProgram = Object.create(real.program, {
-        bindValue: { value: () => null },
+        lexicalFrameAt: {
+          value: (
+            sourceFile: string,
+            at: { line: number; column: number },
+          ) => ({
+            ...real.program.lexicalFrameAt(sourceFile, at),
+            declarations: [],
+          }),
+        },
       });
       const context = { ...real, program };
       expect(() =>
