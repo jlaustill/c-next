@@ -49,8 +49,8 @@ describe("TranspileState", () => {
       expect(state.needsIrqWrappers).toBe(false);
     });
 
-    // #1143: only the two headers whose sites a plan block carries are recorded as
-    // deferred sites. "isr" is deliberately NOT one --
+    // #1143: only the two headers whose sites a plan block carries are
+    // recorded as deferred sites. "isr" is deliberately NOT one --
     // ToolchainRequirements.takeDeferredSites is called for
     // float_static_assert and irq_wrappers alone.
     //
