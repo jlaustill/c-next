@@ -13,8 +13,9 @@
  *
  * PR #1141 failed by re-deriving -- its `#error` guard keyed on
  * `usedClampOps.size > 0` while the emission it described keyed on the template
- * family, so 96 snapshots shipped a guard for a builtin they did not contain. Recording at the emission site is what makes a
- * consumer unable to disagree with what was emitted.
+ * family, so 96 snapshots shipped a guard for a builtin they did not contain.
+ * Recording at the emission site is what makes a consumer unable to disagree
+ * with what was emitted.
  *
  * ## Why this is instrumentation (#1452)
  *
