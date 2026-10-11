@@ -1,4 +1,4 @@
-import IFileSystem from "../../types/IFileSystem";
+import IFileSystem from "../../cnx/types/IFileSystem";
 
 /**
  * Generates and validates cache keys for files.

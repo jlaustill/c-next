@@ -3,12 +3,12 @@
  * Prints transpiler compilation results
  */
 
-import DeclarationSite from "../utils/DeclarationSite";
+import DeclarationSite from "../cnx/utils/DeclarationSite";
 import ITranspilerResult from "./types/ITranspilerResult";
-import ToolchainRequirementUtils from "../utils/ToolchainRequirementUtils";
-import type IRecordedRequirement from "../types/IRecordedRequirement";
-import type IToolchainRequirement from "../types/IToolchainRequirement";
-import type TOutputMode from "../types/TOutputMode";
+import ToolchainRequirementUtils from "../cnx/utils/ToolchainRequirementUtils";
+import type IRecordedRequirement from "../cnx/types/IRecordedRequirement";
+import type IToolchainRequirement from "../cnx/types/IToolchainRequirement";
+import type TOutputMode from "../cnx/types/TOutputMode";
 
 /** Column width for the requirement label in the toolchain report. */
 const LABEL_WIDTH = 21;

@@ -8,9 +8,8 @@ node_modules/
 dist/
 *.log
 
-# Test coverage (working dir ignored, docs/coverage/ published)
+# Test coverage (CI publishes it to Pages; nothing is committed)
 coverage/
-!docs/coverage/
 
 # C-Next local cache (Pipeline symbol cache - Issue #183)
 .cnx/

@@ -16,17 +16,17 @@ import { join } from "node:path";
 import CacheKeyGenerator from "./CacheKeyGenerator";
 import JsonCodec from "./JsonCodec";
 import CachedSymbolReader from "./CachedSymbolReader";
-import IStructFieldInfo from "../../types/symbols/IStructFieldInfo";
-import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
+import IStructFieldInfo from "../../cnx/types/symbols/IStructFieldInfo";
+import SymbolTable from "../../cnx/PARSE/3-Declare/SymbolTable";
 import ICacheConfig from "../types/ICacheConfig";
 import ICachedFileEntry from "../types/ICachedFileEntry";
-import IStructSymbolState from "../../types/symbols/IStructSymbolState";
-import TJsonSafe from "../../utils/types/TJsonSafe";
-import TJsonValue from "../../utils/types/TJsonValue";
-import IFileSystem from "../../types/IFileSystem";
+import IStructSymbolState from "../../cnx/types/symbols/IStructSymbolState";
+import TJsonSafe from "../../cnx/utils/types/TJsonSafe";
+import TJsonValue from "../../cnx/utils/types/TJsonValue";
+import IFileSystem from "../../cnx/types/IFileSystem";
 import packageJson from "../../../package.json" with { type: "json" };
-import ESourceLanguage from "../../utils/types/ESourceLanguage";
-import Write from "../../WRITE/1-Write/Write";
+import ESourceLanguage from "../../cnx/utils/types/ESourceLanguage";
+import Write from "../../cnx/WRITE/1-Write/Write";
 
 /** Current cache format version - increment when serialization format changes */
 // Bump when the ENTRY shape changes in a way no fingerprint can see -- the

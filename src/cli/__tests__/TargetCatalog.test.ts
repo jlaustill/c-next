@@ -10,7 +10,7 @@ import { join } from "node:path";
 
 import TargetCatalogFile from "../TargetCatalogFile";
 import Transpiler from "../Transpiler";
-import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
+import NodeFileSystem from "../../cnx/PARSE/1-Discover/NodeFileSystem";
 import MockFileSystem from "./MockFileSystem";
 
 const SHIPPED = readFileSync(

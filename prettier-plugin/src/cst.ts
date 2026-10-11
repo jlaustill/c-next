@@ -11,7 +11,7 @@
 
 import { TerminalNode, Token } from "antlr4ng";
 
-import { CNextParser } from "../../src/PARSE/2-Parse/grammar/CNextParser";
+import { CNextParser } from "../../src/cnx/PARSE/2-Parse/grammar/CNextParser";
 
 import ICommentAnchor from "./types/ICommentAnchor";
 import ICommentNode from "./types/ICommentNode";

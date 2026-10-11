@@ -27,7 +27,7 @@ import { join } from "node:path";
 import Transpiler from "../Transpiler";
 import CacheManager from "../cache/CacheManager";
 import CachedSymbolReader from "../cache/CachedSymbolReader";
-import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
+import NodeFileSystem from "../../cnx/PARSE/1-Discover/NodeFileSystem";
 
 const EXTERNAL_HPP = `#ifndef CNX_CACHE_PARITY_EXTERNAL_HPP
 #define CNX_CACHE_PARITY_EXTERNAL_HPP

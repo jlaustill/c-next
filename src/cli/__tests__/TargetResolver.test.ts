@@ -4,7 +4,7 @@
  */
 import { describe, it, expect } from "vitest";
 import TargetResolver from "../TargetResolver";
-import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
+import NodeFileSystem from "../../cnx/PARSE/1-Discover/NodeFileSystem";
 import TargetCatalogFile from "../TargetCatalogFile";
 
 describe("TargetResolver", () => {

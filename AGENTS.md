@@ -67,7 +67,7 @@ normalize(actualErrors) === normalize(expectedErrors);
 **Shared types in `/types` directories** - One interface per file with default export:
 
 ```
-src/types/IFileResult.ts
+src/cnx/types/IFileResult.ts
 scripts/types/ITools.ts
 ```
 
@@ -75,19 +75,19 @@ See `CONTRIBUTING.md` for complete TypeScript coding standards.
 
 ### Pass layout (`src/`)
 
-`src/` is the pass table: one directory per layer, one per pass inside it, numbered in
-the order they run. `docs/architecture/README.md` §1 draws the tree and
+`src/cnx/` is the pass table: one directory per layer, one per pass inside it, numbered in
+the order they run. `src/cli/` and `src/lib/` sit beside it and consume it (#1992). `docs/architecture/README.md` §1 draws the tree and
 `npm run layout:check` fails when `src/` differs from it or a module reaches a later pass
 (#1443). Do not restate the tree here; read it there.
 
-- `src/PARSE/1-Discover/` … `src/WRITE/1-Write/` — the eight passes
-- `src/TRANSPILE/CodeGenWalker.ts`, `TranspileState.ts`, `types/` — drive and hold 2.2 and 2.3's per-file work, so they sit beside those passes rather than in either
+- `src/cnx/PARSE/1-Discover/` … `src/cnx/WRITE/1-Write/` — the eight passes
+- `src/cnx/TRANSPILE/CodeGenWalker.ts`, `TranspileState.ts`, `types/` — drive and hold 2.2 and 2.3's per-file work, so they sit beside those passes rather than in either
 - `src/cli/` — the host: `Transpiler.ts` constructs the pipeline and owns the caches; `index.ts` is the CLI entry
-- `src/types/`, `src/utils/` — shared contracts; `src/instrumentation/` — run observations
+- `src/cnx/types/`, `src/cnx/utils/` — shared contracts; `src/cnx/instrumentation/` — run observations
 
 ### Symbol Resolution Architecture (ADR-055)
 
-**Use the composable collectors** in `src/PARSE/3-Declare/cnext/`:
+**Use the composable collectors** in `src/cnx/PARSE/3-Declare/cnext/`:
 
 - `CNextResolver.resolve(tree, file, registry)` → `IFileSymbols` (its `.symbols` is the `TSymbol[]`)
 - `TSymbolInfoAdapter.convert(tSymbols)` → `ICodeGenSymbols` (for codegen)
@@ -140,7 +140,7 @@ the order they run. `docs/architecture/README.md` §1 draws the tree and
 
 ### Unit Test File Location
 
-Place TypeScript unit tests in `__tests__/` directories adjacent to the module:
+Place TypeScript unit tests in `__tests__/` directories adjacent to the module. The one exception is a test of a `src/cnx/` module that reaches `src/cli/` or `src/lib/`; see "Unit Tests" in `CLAUDE.md` (#1992):
 
 - `src/cli/cache/CacheManager.ts` → `src/cli/cache/__tests__/CacheManager.test.ts`
 - `src/cli/cache/CacheKeyGenerator.ts` → `src/cli/cache/__tests__/CacheKeyGenerator.test.ts`

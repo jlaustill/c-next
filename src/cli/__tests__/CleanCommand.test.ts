@@ -4,11 +4,11 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import CleanCommand from "../CleanCommand";
-import InputExpansion from "../../PARSE/1-Discover/InputExpansion";
+import InputExpansion from "../../cnx/PARSE/1-Discover/InputExpansion";
 import * as fs from "node:fs";
 
 // Mock dependencies
-vi.mock("../../PARSE/1-Discover/InputExpansion");
+vi.mock("../../cnx/PARSE/1-Discover/InputExpansion");
 vi.mock("node:fs", async () => {
   const actual = await vi.importActual("node:fs");
   return {

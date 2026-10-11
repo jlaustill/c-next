@@ -261,7 +261,7 @@ cnext [test-file].cnx --target host
 
 ```bash
 # Edit code generator
-vim src/TRANSPILE/3-Render/codegen/CodeGenerator.ts
+vim src/cnx/TRANSPILE/3-Render/codegen/CodeGenerator.ts
 
 # Type-check changes
 npm run typecheck

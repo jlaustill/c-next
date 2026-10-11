@@ -10,7 +10,7 @@
  *   exactly its later places, no more and no fewer;
  * - backward: every place imports every earlier place -- the allowed direction,
  *   which must stay green (the control);
- * - through a util: 1.1 reaches 3.1 only via `src/utils/` -- `reachable` must
+ * - through a util: 1.1 reaches 3.1 only via `src/cnx/utils/` -- `reachable` must
  *   catch it;
  * - the one ruled edge: 1.1 may read 1.2's lexer (#1745) and still not its
  *   parser, which sits beside it.
@@ -156,8 +156,8 @@ describe("pass-order rules (#1443)", () => {
     const first = sample(places[0]);
     const last = sample(places.at(-1) ?? "");
     const imports = new Map<string, readonly string[]>([
-      [first, ["src/utils/Hop.ts"]],
-      ["src/utils/Hop.ts", [last]],
+      [first, ["src/cnx/utils/Hop.ts"]],
+      ["src/cnx/utils/Hop.ts", [last]],
       [last, []],
     ]);
     expect(cruise(imports)).toEqual([`${rules[0].name}: ${first} -> ${last}`]);
@@ -165,11 +165,11 @@ describe("pass-order rules (#1443)", () => {
 
   it("lets 1.1 read 1.2's lexer, and only the lexer (#1745)", () => {
     expect(rules[0].to.pathNot).toBe(
-      "^src/PARSE/2-Parse/grammar/CNextLexer\\.ts$",
+      "^src/cnx/PARSE/2-Parse/grammar/CNextLexer\\.ts$",
     );
     const first = sample(places[0]);
-    const lexer = "src/PARSE/2-Parse/grammar/CNextLexer.ts";
-    const parser = "src/PARSE/2-Parse/grammar/CNextParser.ts";
+    const lexer = "src/cnx/PARSE/2-Parse/grammar/CNextLexer.ts";
+    const parser = "src/cnx/PARSE/2-Parse/grammar/CNextParser.ts";
     const imports = new Map<string, readonly string[]>([
       [first, [lexer, parser]],
       [lexer, []],

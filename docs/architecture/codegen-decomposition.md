@@ -34,7 +34,7 @@ findings about how it was carried out.
 | Context Builder `buildAssignmentContext`    | `AssignmentContextBuilder`                                                                                                                |
 | Classifier `classifyAssignment`, "25 kinds" | `AssignmentClassifier`, 30 kinds                                                                                                          |
 | Handlers                                    | 30 registered across 9 modules                                                                                                            |
-| `BitUtils`, `StringUtils`                   | `src/utils/`, as specified                                                                                                                |
+| `BitUtils`, `StringUtils`                   | `src/cnx/utils/`, as specified                                                                                                            |
 | `MmioUtils.volatileWrite`                   | absorbed — `RegisterUtils.tryGenerateMMIO` emits the volatile store                                                                       |
 | `BitUtils.writeOnlyBitWrite`                | absorbed — `RegisterUtils.generateWriteOnlyBitRange`                                                                                      |
 | `TargetUtils.joinPath` / `.subscript`       | absorbed — `memberAccessChain.ts` builds chains incrementally, `generateSubscriptAccess` handles subscripts                               |

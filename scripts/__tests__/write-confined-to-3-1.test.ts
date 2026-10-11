@@ -4,7 +4,7 @@
  *
  * `node:fs` is confined to the port by depcruise, but the port's own mutating
  * methods are reachable from any module holding an `IFileSystem`, and no import
- * rule can see a method call. This holds the rest: outside `src/WRITE/1-Write/`
+ * rule can see a method call. This holds the rest: outside `src/cnx/WRITE/1-Write/`
  * and the port itself, nothing calls `writeFile`, `mkdir`, `unlink` or
  * `rename`. Reads stay free, since reading changes nothing.
  *
@@ -21,8 +21,8 @@ const METHODS = ["writeFile", "mkdir", "unlink", "rename"] as const;
 // mutates as surely as a call (#1826 review). `\b` still stops short of
 // `writeFileSync`/`mkdirSync`, whose names run on.
 const MUTATING = new RegExp(String.raw`\.(${METHODS.join("|")})\b`, "g");
-const WRITE_PASS = "src/WRITE/1-Write/";
-const PORT = "src/PARSE/1-Discover/NodeFileSystem.ts";
+const WRITE_PASS = "src/cnx/WRITE/1-Write/";
+const PORT = "src/cnx/PARSE/1-Discover/NodeFileSystem.ts";
 
 describe("3.1 Write owns every change to the filesystem", () => {
   const hits = SourceScan.scan(MUTATING);
