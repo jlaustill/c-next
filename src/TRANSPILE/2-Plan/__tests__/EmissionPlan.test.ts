@@ -155,6 +155,33 @@ describe("EmissionPlan (2.2 Plan)", () => {
     });
   });
 
+  describe("requirements -- read off the blocks, never copied (#1928)", () => {
+    it("lists every planned block's keys with that block's sites", () => {
+      const site = { sourcePath: "a.cnx", line: 3 };
+      const plan = EmissionPlan.build(
+        facts({
+          needsFloatStaticAssert: true,
+          needsIrqWrappers: true,
+          floatAssertSites: [site],
+        }),
+      );
+
+      expect(EmissionPlan.requirements(plan)).toEqual([
+        { key: "float-assert-c11", sites: [site] },
+        { key: "critical-arm-gnu", sites: [] },
+        { key: "critical-arduino", sites: [] },
+        { key: "critical-avr-libc", sites: [] },
+        { key: "critical-cmsis-fallback", sites: [] },
+      ]);
+    });
+
+    it("is empty when the plan has no block that costs anything", () => {
+      expect(EmissionPlan.requirements(EmissionPlan.build(NOTHING))).toEqual(
+        [],
+      );
+    });
+  });
+
   describe("ISR typedef", () => {
     it.each([
       [false, true],

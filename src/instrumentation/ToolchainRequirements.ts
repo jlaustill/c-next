@@ -28,7 +28,7 @@
  *
  * | Write site                            | Pass          |
  * | ------------------------------------- | ------------- |
- * | `CodeGenWalker` (4 sites)             | 2.3 Render    |
+ * | `CodeGenWalker` (3 sites)             | 2.3 Render    |
  * | `CodeGenerator.applyEffects`          | 2.3 Render    |
  * | `HelperGenerator`                     | 2.3 Render    |
  * | `CodeGenState.requireInclude`         | 2.3 Render    |

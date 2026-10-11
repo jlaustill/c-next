@@ -20,6 +20,7 @@ import type ITypeBindingDeps from "../types/ITypeBindingDeps";
 import type IProgram from "../types/IProgram";
 import type ITypingContext from "../types/ITypingContext";
 import type IDeclarationPlan from "../types/IDeclarationPlan";
+import type IEmissionPlan from "../types/IEmissionPlan";
 import type IFunctionSignature from "../types/IFunctionSignature";
 import invariant from "../utils/invariant";
 import emittedLocalName from "../utils/emittedLocalName";
@@ -309,6 +310,14 @@ class TranspileState {
    * silently-wrong default.
    */
   declarationPlanOrNull: IDeclarationPlan | null = null;
+  /**
+   * 2.2 Plan's emission decisions for the file being generated.
+   *
+   * Held for the rest of the file's turn so the requirements its planned
+   * blocks carry are read off the plan, never copied into
+   * `ToolchainRequirements` (#1928). Null until the declarations have rendered.
+   */
+  emissionPlanOrNull: IEmissionPlan | null = null;
   /** ADR-013: Track function parameter const-ness for call-site validation */
   functionSignatures: Map<string, IFunctionSignature> = new Map();
   /** Callback field types: "Struct.field" -> callbackTypeName */
@@ -1219,6 +1228,7 @@ class TranspileState {
     this.callbackTypeReferences = new Set();
     this.publicCallbackTypeReferences = new Set();
     this.declarationPlanOrNull = null;
+    this.emissionPlanOrNull = null;
     this.usedClampOps = new Set();
     this.usedSafeDivOps = new Set();
     this.usedCastHelpers = new Set();

@@ -47,6 +47,7 @@
 import type IEmissionFacts from "../../types/IEmissionFacts";
 import type IEmissionPlan from "../../types/IEmissionPlan";
 import type IPlannedBlock from "../../types/IPlannedBlock";
+import type IRecordedRequirement from "../../types/IRecordedRequirement";
 import type TRequirementKey from "../../types/TRequirementKey";
 import SYSTEM_INCLUDE_TARGETS from "./SYSTEM_INCLUDE_TARGETS";
 import CTypeIncludes from "./CTypeIncludes";
@@ -90,6 +91,19 @@ class EmissionPlan {
    *
    * @param facts one file's accumulated questions, frozen at the warm moment
    */
+  /**
+   * The requirements the plan's blocks carry, each with the sites that asked
+   * for its block. A view of decisions already in the plan, not a new one.
+   */
+  static requirements(plan: IEmissionPlan): readonly IRecordedRequirement[] {
+    const blocks = [plan.floatStaticAssert, plan.irqWrappers];
+    return blocks.flatMap((block) =>
+      block === null
+        ? []
+        : block.requirements.map((key) => ({ key, sites: block.sites })),
+    );
+  }
+
   static build(facts: IEmissionFacts): IEmissionPlan {
     const plan: IEmissionPlan = {
       systemIncludes: EmissionPlan.decideSystemIncludes(facts),
