@@ -127,9 +127,9 @@ There are no bare files at either level: an entry point lives inside the root it
   transpiler, so nothing in `cnx/`, its tests included, imports them. Each is entered through its own `index.ts`: the command-line
   tool and the library are separate concerns and do not share a starting point.
 - **Instrumentation** -- `instrumentation/`. Records facts about the RUN, never about the
-  program: where an ADR's rule fired, which toolchain features a run's Render emitters
-  required (a 2.2 planned block's features are 2.2's decision, read off the plan, #1928;
-  that Render still authors the rest, against the Ownership table, is tracked by #1997). Written
+  program: where an ADR's rule fired, and where each toolchain requirement was asked for
+  (2.2 decides every requirement key, read off the plan, #1928 and #1997; Render reports
+  only which forms it emitted, and the sites travel beside the plan's keys). Written
   from any layer, read once by the host, delivered on the run's result. It authors no fact
   the program has, so it is not a state container, and it decides nothing, so it is not a
   pass.
@@ -148,7 +148,7 @@ There are no bare files at either level: an entry point lives inside the root it
   **"Read once at the end" is not the test -- "nothing branches on it" is**, and the
   distinction matters because the ledger IS read back. `CodeGenWalker.buildBanner` puts
   ` * Requires: C++20.` into a generated `.cpp` that uses a designated initializer
-  (`cpp-designated-initializer`, recorded where `CodeGenWalker` emits it), and `captureEmissionFacts` carries
+  (`cpp-designated-initializer`, decided by 2.2 from the form Render reports, #1997), and `captureEmissionFacts` carries
   `takeDeferredSites(...)` into `IEmissionFacts`. Checked, because a rule stated loosely
   reads as violated: `EmissionPlan` branches on `facts.needsFloatStaticAssert` and
   `facts.needsIrqWrappers` -- both render state -- and the sites travel beside them as
@@ -156,7 +156,7 @@ There are no bare files at either level: an entry point lives inside the root it
   instrumentation; a comment and a diagnostic's file:line do.
 
   `scripts/__tests__/passes-hold-no-mutable-state.test.ts` scans this root **and** the
-  layers, with its four holders listed by name. It used not to scan here at all, which
+  layers, with its three holders listed by name. It used not to scan here at all, which
   made the exemption geographic: the four mutable statics #1452 relocated into this root
   left the guard unable to fail on the state that card was about. A list is a thing a
   reviewer can disagree with; a directory boundary is not.

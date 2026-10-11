@@ -77,6 +77,21 @@ interface IEmissionFacts {
 
   /** Sites that asked for the IRQ wrappers, for attribution. */
   readonly irqWrapperSites: readonly IRequirementSite[];
+
+  /** Whether clamp helpers panic (ADR-044 debug mode), which needs a hosted libc. */
+  readonly debugMode: boolean;
+
+  /** #1997: Render emitted a `.field = value` initializer, in either mode. */
+  readonly emittedDesignatedInitializer: boolean;
+
+  /** #1997: Render emitted a compound literal, in either mode. */
+  readonly emittedCompoundLiteral: boolean;
+
+  /**
+   * #1997: where Render emitted an LDREX/STREX loop. Every emission notes its
+   * site, so this is non-empty exactly when the file has one.
+   */
+  readonly ldrexStrexSites: readonly IRequirementSite[];
 }
 
 export default IEmissionFacts;

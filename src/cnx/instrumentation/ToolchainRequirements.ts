@@ -1,100 +1,56 @@
 /**
- * Issue #1143: what the generated output for one file costs the reader's
- * toolchain, recorded by each 2.3 Render emitter at the moment it produces the
- * text.
+ * Issue #1143: where each toolchain requirement of one file was asked for.
  *
- * This holds Render's records only. The requirements 2.2's planned blocks
- * carry (float asserts, IRQ wrappers) are read off the emission plan, never
- * recorded here (#1928). The file's one list is
- * `CodeGenerator.getToolchainRequirements()`, which unions the two; consumers
- * read that, and nothing re-derives it. That Render still authors these keys
- * at all, where §1's Ownership table gives toolchain requirements to 2.2, is
- * tracked by #1997, not settled as the design.
+ * Sites only, never keys. 2.2 Plan decides every requirement key -- the
+ * planned blocks' own (#1928) and what each form Render emits costs (#1997) --
+ * and carries these sites beside them as attribution. Render reports the forms
+ * it emitted; it records no requirement, which is §1's Ownership table:
+ * toolchain requirements are 2.2's. The file's one list is
+ * `CodeGenerator.getToolchainRequirements()`, read off the plan.
  *
  * PR #1141 failed by re-deriving -- its `#error` guard keyed on
  * `usedClampOps.size > 0` while the emission it described keyed on the template
  * family, so 96 snapshots shipped a guard for a builtin they did not contain.
- * Recording at the emission site is what makes a consumer unable to disagree
- * with what was emitted.
+ * Each requirement is now decided once, from the same facts its emission reads.
  *
  * ## Why this is instrumentation (#1452)
  *
- * A toolchain requirement is a fact ABOUT the run's output, not a fact the run
- * computes in order to decide anything. Both consumers are self-report: the
- * banner comment on the `.c`/`.cpp`, so someone handed a generated file can see
- * what it needs without the `.cnx` or this repository, and
- * `ITranspilerResult.requirements`. No branch anywhere reads a recorded
- * requirement to choose what to emit -- the `needs*` flags decide that, and the
- * sites travel alongside as attribution.
+ * A site is a fact ABOUT the run's output, not a fact the run computes in order
+ * to decide anything. Both consumers are self-report: the banner comment on the
+ * `.c`/`.cpp`, and `ITranspilerResult.requirements`. No branch anywhere reads a
+ * site to choose what to emit -- the `needs*` and `emitted*` facts decide that,
+ * and the sites travel alongside as attribution.
  *
  * ## What this does NOT need, and AdrProvenance does
  *
  * [[AdrProvenance]] sits here under a stated exemption from box 4: it is
  * genuinely cross-pass, written at 17 `record` sites spanning 2.1 Analyze and
  * 2.3 Render and read once at the end of the run. This module claims no such
- * exemption, because it is not cross-pass state at all. Measured on
- * `a1b3e92b`, every write is inside 2.3 Render:
+ * exemption, because it is not cross-pass state at all. Every write is inside
+ * 2.3 Render's walk -- `TranspileState.requireInclude` and
+ * `CodeGenerator.applyEffects` -- and every read is `takeDeferredSites` in
+ * `captureEmissionFacts`, inside the same `generate()` call for the same file.
  *
- * | Write site                            | Pass          |
- * | ------------------------------------- | ------------- |
- * | `CodeGenWalker` (3 sites)             | 2.3 Render    |
- * | `CodeGenerator.applyEffects`          | 2.3 Render    |
- * | `HelperGenerator`                     | 2.3 Render    |
- * | `TranspileState.requireInclude`       | 2.3 Render    |
- *
- * and every read -- `takeDeferredSites` at plan-build, `collect` for the banner
- * and for the result -- happens inside the same `generate()` call for the same
- * file. Every `requireInclude` caller is Render's walk; the one 2.2 caller
- * this once excepted (`TypeRegistrationEngine`, which passed `"string"`, not a
- * deferred key) was deleted with the per-file type registry (#1668, C8).
- *
- * That makes the move out of `CodeGenState` a correction rather than a
- * relocation: the accumulation was per-file and single-pass the whole time, and
- * only the container it sat in was cross-pass. Do not read its presence in this
- * root as a precedent for parking cross-pass state here to get out from under
- * `passes-hold-no-mutable-state.test.ts` -- the table above is the claim, and it
- * is the thing to re-measure if a write site is ever added from an earlier pass.
+ * Do not read its presence in this root as a precedent for parking cross-pass
+ * state here to get out from under `passes-hold-no-mutable-state.test.ts` --
+ * the paragraph above is the claim, and it is the thing to re-measure if a
+ * write site is ever added from an earlier pass.
  */
 import RequirementSites from "../utils/RequirementSites";
-import type IRecordedRequirement from "../types/IRecordedRequirement";
 import type IRequirementSite from "../types/IRequirementSite";
-import type TRequirementKey from "../types/TRequirementKey";
 
 class ToolchainRequirements {
-  /** Requirements the emitted text actually carries, with every site. */
-  private static recorded: Map<TRequirementKey, IRequirementSite[]> = new Map();
-
   /**
-   * Source sites for emissions DEFERRED to assembleGeneratedOutput -- IRQ
-   * wrappers and float asserts. Keyed by the request that triggered
-   * the deferral ("irq_wrappers", "float_static_assert").
-   *
-   * Kept separate from `recorded` because at request time the code has not been
-   * emitted yet, so there is nothing to record a requirement for.
-   * `captureEmissionFacts` takes these sites into `IEmissionFacts`, and the
-   * plan block that decides the emission carries them from there (#1928); they
-   * never come back to `recorded`.
+   * Sites that asked for a plan-decided emission, keyed by the request
+   * ("irq_wrappers", "float_static_assert", "ldrex_strex_loop").
+   * `captureEmissionFacts` takes these into `IEmissionFacts`, and the plan
+   * carries them as its requirements' sites (#1928, #1997).
    */
   private static deferred: Map<string, IRequirementSite[]> = new Map();
 
   /**
-   * THE recording sink for toolchain requirements.
-   *
-   * Every requirement, from every transport -- generator effects, the include
-   * funnel, and direct calls from static helpers -- lands here. Call it from
-   * the branch that emits the text, never from a caller that infers which
-   * branch ran.
-   */
-  static record(
-    key: TRequirementKey,
-    sites: readonly IRequirementSite[] = [],
-  ): void {
-    RequirementSites.accumulate(this.recorded, key, sites);
-  }
-
-  /**
-   * Note where a deferred emission was requested, so the emitter can attribute
-   * it once it actually produces the block.
+   * Note where a plan-decided emission was requested, so the plan can
+   * attribute its requirement.
    */
   static noteDeferredSite(
     requestKey: string,
@@ -112,27 +68,10 @@ class ToolchainRequirements {
   }
 
   /**
-   * Snapshot what Render recorded for this file.
-   *
-   * Not the file's whole list: the planned blocks' requirements live on the
-   * emission plan. `CodeGenerator.getToolchainRequirements()` is the one list,
-   * and its only reader of this (#1928).
-   *
-   * Must be read before the next file's reset, which clears the recording map.
-   */
-  static collect(): readonly IRecordedRequirement[] {
-    return Array.from(this.recorded.entries()).map(([key, sites]) => ({
-      key,
-      sites: [...sites],
-    }));
-  }
-
-  /**
-   * Both maps MUST be cleared per file: leaking them makes a project report
-   * attribute one file's CMSIS or C11 cost to every later file.
+   * MUST be cleared per file: leaking it makes a project report attribute one
+   * file's CMSIS or C11 cost to every later file.
    */
   static reset(): void {
-    this.recorded = new Map();
     this.deferred = new Map();
   }
 }

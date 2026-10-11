@@ -8,7 +8,6 @@
  */
 import TParameterInfo from "../../../../types/TParameterInfo";
 import TIncludeHeader from "../../../../types/TIncludeHeader";
-import type TRequirementKey from "../../../../types/TRequirementKey";
 
 type TGeneratorEffect =
   // === Include Effects ===
@@ -21,10 +20,11 @@ type TGeneratorEffect =
   // decides which header that costs (`CTypeIncludes`).
   | { type: "c-type"; cType: string }
 
-  // === Toolchain Requirement Effects (Issue #1143) ===
-  // Emitted by the branch that produced requirement-bearing text, so no
-  // consumer has to infer which branch ran.
-  | { type: "requires"; key: TRequirementKey; line: number | null }
+  // === Emitted-form Effects (Issue #1143, #1997) ===
+  // Emitted by the branch that produced the LDREX/STREX loop, so no consumer
+  // has to infer which branch ran. It names the form, not its cost: 2.2 Plan
+  // decides the requirement.
+  | { type: "ldrex-strex-loop" }
 
   // === Helper Function Effects ===
   | { type: "helper"; operation: string; cnxType: string } // Overflow clamp helper

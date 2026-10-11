@@ -108,6 +108,13 @@ class TranspileState {
   needsFloatStaticAssert: boolean = false;
   /** Issue #473: IRQ wrappers for critical sections */
   needsIrqWrappers: boolean = false;
+  /**
+   * #1997: Render emitted a `.field = value` initializer. A fact about the
+   * form, in both modes; 2.2 decides what it costs.
+   */
+  emittedDesignatedInitializer: boolean = false;
+  /** #1997: Render emitted a compound literal; 2.2 decides what it costs. */
+  emittedCompoundLiteral: boolean = false;
   /** Track which overflow helper types/operations are needed: "add_u8", etc. */
   usedClampOps: Set<string> = new Set();
   /** Track which safe division helpers are needed: "div_u32", "mod_i16" */
@@ -120,8 +127,8 @@ class TranspileState {
    *
    * Every transport lands here -- generator effects via
    * `CodeGenerator.applyEffects`, the `requireInclude` callbacks injected into
-   * the static helpers, and direct calls from assignment handlers. One sink for
-   * the same reason `ToolchainRequirements.record` is one: the question "does
+   * the static helpers, and direct calls from assignment handlers. One sink so
+   * that the question "does
    * this file need <string.h>?" gets exactly one recorded answer, so changing
    * how that answer is REPRESENTED is one edit rather than one per writer.
    *
@@ -1204,7 +1211,7 @@ class TranspileState {
     this.generatedStructInits = new Set();
     this.exportedRegisterBlocks = [];
 
-    // Issue #1143, #1452: the per-file requirement maps moved to
+    // Issue #1143, #1452: the per-file requirement sites live in
     // src/cnx/instrumentation/ToolchainRequirements, which owns its own clearing.
     ToolchainRequirements.reset();
 
@@ -1254,6 +1261,8 @@ class TranspileState {
     this.needsCMSIS = false;
     this.needsLimits = false;
     this.needsIrqWrappers = false;
+    this.emittedDesignatedInitializer = false;
+    this.emittedCompoundLiteral = false;
     this.emittedCallbackTypedefs = new Set();
     this.pendingCallbackTypedefs = [];
     this.currentFunctionReturnType = null;

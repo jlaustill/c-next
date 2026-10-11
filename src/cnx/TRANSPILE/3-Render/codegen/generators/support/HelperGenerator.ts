@@ -13,7 +13,6 @@ import OverflowHelperTemplates from "./OverflowHelperTemplates";
 import SaturatingCast from "../../helpers/SaturatingCast";
 import CppModeHelper from "../../helpers/CppModeHelper";
 import ReservedCnxName from "../../../../../utils/ReservedCnxName";
-import ToolchainRequirements from "../../../../../instrumentation/ToolchainRequirements";
 
 /**
  * Generate a safe arithmetic helper function (div or mod).
@@ -51,10 +50,6 @@ const generateOverflowHelpers = (
   const lines: string[] = [];
 
   if (debugMode) {
-    // Issue #1143: this branch, and only this branch, pulls in a hosted libc.
-    // Release-mode clamp helpers are freestanding-safe, so the requirement is
-    // recorded here rather than wherever a clamp op happens to be registered.
-    ToolchainRequirements.record("overflow-panic-hosted-libc");
     lines.push(
       "// ADR-044: Debug overflow helper functions (panic on overflow)",
       "#include <limits.h>",

@@ -104,13 +104,13 @@ function generateLdrexStrexLoop(
   const strex = STREX_MAP[typeInfo.baseType];
   const cType = TYPE_MAP[typeInfo.baseType];
 
-  // Mark that we need CMSIS headers, and record what this branch costs.
-  // Issue #1143: recorded here, in the branch that emits __LDREX*/__STREX*,
-  // so the requirement cannot be attributed to a file that took the other
-  // branch below.
+  // Mark that we need CMSIS headers, and report the form this branch emits.
+  // Issue #1143: reported here, in the branch that emits __LDREX*/__STREX*,
+  // so its cost cannot be attributed to a file that took the other branch.
+  // 2.2 decides that cost (#1997).
   effects.push(
     { type: "include", header: "cmsis" },
-    { type: "requires", key: "atomic-ldrex-cmsis", line: null },
+    { type: "ldrex-strex-loop" },
     { type: "c-type", cType },
   );
 

@@ -1,4 +1,5 @@
 import type IPlannedBlock from "./IPlannedBlock";
+import type IRecordedRequirement from "./IRecordedRequirement";
 
 /**
  * 2.2 Plan's artifact: what C should exist for ONE file.
@@ -70,6 +71,13 @@ interface IEmissionPlan {
 
   /** #1668: single-evaluation saturating cast keys (`"f32_u8"`), in emission order. */
   readonly castHelpers: readonly string[];
+
+  /**
+   * #1997: the requirements no planned block carries -- the mode baseline, the
+   * C++ initializer forms, the debug overflow helpers, LDREX/STREX atomics.
+   * Render reports which forms it emitted; what each costs is decided here.
+   */
+  readonly formRequirements: readonly IRecordedRequirement[];
 }
 
 export default IEmissionPlan;

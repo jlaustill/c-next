@@ -1018,8 +1018,8 @@ class Transpiler {
         this.headerEmissionFactsByPath.set(sourcePath, headerFacts);
       }
 
-      // Issue #1143: the file's one requirement list -- Render's records plus
-      // what the emission plan's blocks carry (#1928). Read after header-facts
+      // Issue #1143: the file's one requirement list, read off the emission
+      // plan, which decides every key (#1928, #1997). Read after header-facts
       // CAPTURE, and before the next file's TranspileState.reset() clears both.
       // This covers a requirement that capturing a header's facts triggers
       // (e.g. through HeaderEmissionCapture.convertToHeaderSymbols) -- it does
@@ -1133,9 +1133,9 @@ class Transpiler {
     //
     // The comment here used to claim it stopped a run that plans nothing from
     // reporting the previous run's cost. It cannot: every reader runs after
-    // `generate()`'s own `reset()` -- `collect()` from `buildBanner` inside
-    // `generate()` and from `_transpileFile` immediately after it,
-    // `takeDeferredSites()` from inside `generate()` -- so a run that plans no
+    // `generate()`'s own `reset()` -- `takeDeferredSites()` from inside
+    // `generate()`, whose sites the plan carries to `buildBanner` and to
+    // `_transpileFile` immediately after it -- so a run that plans no
     // file never reads the ledger at all. Verified by deleting this line: 7438
     // unit tests and 1263 fixtures stay green, which is why no regression test
     // could be written for it.

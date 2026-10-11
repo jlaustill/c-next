@@ -26,6 +26,10 @@ const NOTHING: IEmissionFacts = {
   safeDivOps: new Set<string>(),
   floatAssertSites: [],
   irqWrapperSites: [],
+  debugMode: false,
+  emittedDesignatedInitializer: false,
+  emittedCompoundLiteral: false,
+  ldrexStrexSites: [],
 };
 
 const facts = (over: Partial<IEmissionFacts>): IEmissionFacts => ({
@@ -167,6 +171,7 @@ describe("EmissionPlan (2.2 Plan)", () => {
       );
 
       expect(EmissionPlan.requirements(plan)).toEqual([
+        { key: "baseline-c", sites: [] },
         { key: "float-assert-c11", sites: [site] },
         { key: "critical-arm-gnu", sites: [] },
         { key: "critical-arduino", sites: [] },
@@ -196,14 +201,62 @@ describe("EmissionPlan (2.2 Plan)", () => {
       floatAssertSites.push({ sourcePath: "a.cnx", line: 9 });
 
       for (const entry of EmissionPlan.requirements(plan)) {
+        if (entry.key.startsWith("baseline-")) continue;
         expect(entry.sites).toEqual([early]);
       }
     });
 
-    it("is empty when the plan has no block that costs anything", () => {
-      expect(EmissionPlan.requirements(EmissionPlan.build(NOTHING))).toEqual(
-        [],
-      );
+    it("is the mode baseline alone when nothing else costs anything", () => {
+      expect(EmissionPlan.requirements(EmissionPlan.build(NOTHING))).toEqual([
+        { key: "baseline-c", sites: [] },
+      ]);
+    });
+  });
+
+  // #1997: Render reports the form it emitted; the plan decides its cost.
+  describe("form requirements -- decided here, not by Render (#1997)", () => {
+    const keys = (over: Partial<IEmissionFacts>): string[] =>
+      EmissionPlan.build(facts(over)).formRequirements.map((r) => r.key);
+
+    it.each([
+      [false, ["baseline-c"]],
+      [true, ["baseline-cpp"]],
+    ] as const)("cppMode=%s decides the baseline %j", (cppMode, expected) => {
+      expect(keys({ cppMode })).toEqual(expected);
+    });
+
+    it.each([
+      ["emittedDesignatedInitializer", "cpp-designated-initializer"],
+      ["emittedCompoundLiteral", "cpp-compound-literal"],
+    ] as const)("%s costs %s in C++ only", (fact, key) => {
+      expect(keys({ cppMode: true, [fact]: true })).toEqual([
+        "baseline-cpp",
+        key,
+      ]);
+      // Control: the same form is C99 in C, so the baseline already covers it.
+      expect(keys({ cppMode: false, [fact]: true })).toEqual(["baseline-c"]);
+    });
+
+    it("an LDREX/STREX loop costs CMSIS, attributed to its sites", () => {
+      const site = { sourcePath: "a.cnx", line: null };
+      const plan = EmissionPlan.build(facts({ ldrexStrexSites: [site] }));
+
+      expect(plan.formRequirements).toEqual([
+        { key: "baseline-c", sites: [] },
+        { key: "atomic-ldrex-cmsis", sites: [site] },
+      ]);
+    });
+
+    it("panicking clamp helpers cost a hosted libc; clamping ones do not", () => {
+      const clampOps = new Set(["add_u8"]);
+
+      expect(keys({ debugMode: true, clampOps })).toEqual([
+        "baseline-c",
+        "overflow-panic-hosted-libc",
+      ]);
+      expect(keys({ debugMode: false, clampOps })).toEqual(["baseline-c"]);
+      // Control: debug mode with no helper emitted costs nothing.
+      expect(keys({ debugMode: true })).toEqual(["baseline-c"]);
     });
   });
 

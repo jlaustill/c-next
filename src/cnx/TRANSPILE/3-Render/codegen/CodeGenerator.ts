@@ -74,7 +74,6 @@ import PassByValueAnalyzer from "../../2-Plan/PassByValueAnalyzer";
 // Issue #797: Centralized C-style name generation
 import type IRecordedRequirement from "../../../types/IRecordedRequirement";
 import ToolchainRequirements from "../../../instrumentation/ToolchainRequirements";
-import RequirementAggregator from "../../../utils/RequirementAggregator";
 import EmissionPlan from "../../2-Plan/EmissionPlan";
 import TranspileState from "../../TranspileState";
 import StructDefaultInitializer from "./helpers/StructDefaultInitializer";
@@ -157,11 +156,14 @@ export default class CodeGenerator implements IOrchestrator {
           this.state.emittedCTypes.add(effect.cType);
           break;
 
-        // Toolchain requirement effects (Issue #1143)
-        case "requires":
-          ToolchainRequirements.record(effect.key, [
-            { sourcePath: this.state.sourcePath ?? "", line: effect.line },
-          ]);
+        // Emitted-form effects (Issue #1143): the site travels to the plan,
+        // which decides what the form costs (#1997).
+        case "ldrex-strex-loop":
+          ToolchainRequirements.noteDeferredSite(
+            "ldrex_strex_loop",
+            this.state.sourcePath ?? "",
+            null,
+          );
           break;
 
         // Helper function effects
@@ -236,17 +238,15 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * Issue #1143: what the last generate() call's output requires.
    *
-   * Two sources, each the owner of its facts: what Render recorded at the
-   * sites that emitted text, and what 2.2's planned blocks carry, read off the
-   * plan (#1928). The banner and the file result both read this one list.
+   * Read off the emission plan, which decides every key (#1928, #1997);
+   * Render records none. The banner and the file result both read this one
+   * list.
    *
-   * Must be read before the next file's this.state.reset(), which clears both.
+   * Must be read before the next file's this.state.reset(), which clears the
+   * plan.
    */
   getToolchainRequirements(): readonly IRecordedRequirement[] {
-    return RequirementAggregator.union([
-      ToolchainRequirements.collect(),
-      EmissionPlan.requirements(this.state.emissionPlan()),
-    ]);
+    return EmissionPlan.requirements(this.state.emissionPlan());
   }
 
   /**
