@@ -19,6 +19,7 @@
 import TYPE_WIDTH from "../types/TYPE_WIDTH";
 import TypeCheckUtils from "./TypeCheckUtils";
 import LiteralUtils from "./LiteralUtils";
+import IFloatLiteralParts from "../types/IFloatLiteralParts";
 import type TConstExpr from "../types/TConstExpr";
 import type TConstResult from "../types/TConstResult";
 import type IConstantEnvironment from "./types/IConstantEnvironment";
@@ -141,9 +142,12 @@ class ConstantEvaluator {
   private static floatLiteral(
     expr: Extract<TConstExpr, { kind: "other" }>,
   ): TConstResult {
-    const width = LiteralUtils.floatLiteralWidth(expr.spelling);
-    const value = Number(expr.spelling.replace(/[fF](?:32|64)$/, ""));
-    if (width === null || !Number.isFinite(value)) {
+    const parts = LiteralUtils.floatLiteralParts(expr.spelling);
+    const value =
+      parts === null
+        ? Number.NaN
+        : Number(`${parts.whole}.${parts.fraction || "0"}e${parts.exponent}`);
+    if (parts === null || !Number.isFinite(value)) {
       return {
         kind: "notConstant",
         reason: "float",
@@ -151,15 +155,12 @@ class ConstantEvaluator {
         at: expr.at,
       };
     }
-    const typeName = width === 32 ? "f32" : "f64";
+    const typeName = parts.width === 32 ? "f32" : "f64";
     return {
       kind: "float",
       value:
         typeName === "f32"
-          ? ConstantEvaluator.decimalAsF32(
-              expr.spelling.replace(/[fF]32$/, ""),
-              value,
-            )
+          ? ConstantEvaluator.decimalAsF32(parts, value)
           : value,
       typeName,
       spelling: expr.spelling,
@@ -173,33 +174,34 @@ class ConstantEvaluator {
    * exactly on the midpoint between two floats; there the exact decimal says
    * which side of it the literal is on (#1268 review).
    */
-  private static decimalAsF32(digits: string, double: number): number {
+  private static decimalAsF32(
+    parts: IFloatLiteralParts,
+    double: number,
+  ): number {
     const held = Math.fround(double);
-    const other = 2 * double - held;
-    if (
-      held === double ||
-      !Number.isFinite(held) ||
-      Math.fround(other) !== other
-    ) {
-      return held;
-    }
-    const side = ConstantEvaluator.compareExactly(digits, double);
+    if (held === double) return held;
+    // Past FLT_MAX the next neighbor is 2^128, which f32 holds as infinity
+    const upper = Number.isFinite(held) ? held : Math.sign(held) * 2 ** 128;
+    const other = 2 * double - upper;
+    if (Math.fround(other) !== other) return held;
+    const side = ConstantEvaluator.compareExactly(parts, double);
     if (side === 0) return held;
     return side > 0 ? Math.max(held, other) : Math.min(held, other);
   }
 
-  /** The sign of `digits - double`, both exactly: `digits` is unsigned */
-  private static compareExactly(digits: string, double: number): number {
-    const match = /^(\d+)(?:\.(\d+))?(?:[eE]([+-]?\d+))?$/.exec(digits)!;
-    const fraction = match[2] ?? "";
-    const exponent = Number(match[3] ?? "0") - fraction.length;
+  /** The sign of `parts - double`, both exactly: a literal is unsigned */
+  private static compareExactly(
+    parts: IFloatLiteralParts,
+    double: number,
+  ): number {
+    const exponent = parts.exponent - parts.fraction.length;
     let scaled = double;
     let twos = 0;
     while (!Number.isInteger(scaled)) {
       scaled *= 2;
       twos += 1;
     }
-    let decimal = BigInt(match[1] + fraction) * 2n ** BigInt(twos);
+    let decimal = BigInt(parts.whole + parts.fraction) * 2n ** BigInt(twos);
     let binary = BigInt(scaled);
     if (exponent >= 0) {
       decimal *= 10n ** BigInt(exponent);

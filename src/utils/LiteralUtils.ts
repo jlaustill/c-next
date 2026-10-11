@@ -1,3 +1,5 @@
+import IFloatLiteralParts from "../types/IFloatLiteralParts";
+
 /**
  * Utility class for analyzing literal values from their written text.
  *
@@ -11,7 +13,7 @@
  * grammar also requires a fraction or an exponent, which `[.eE]` asserts
  * beside it -- in the pattern, that requirement doubled every arm.
  */
-const FLOAT_LITERAL = /^\d+(?:\.\d+)?(?:[eE][+-]?\d+)?(?:[fF](32|64))?$/;
+const FLOAT_LITERAL = /^(\d+)(?:\.(\d+))?(?:[eE]([+-]?\d+))?(?:[fF](32|64))?$/;
 
 /**
  * Static utility methods for literal analysis
@@ -30,9 +32,23 @@ class LiteralUtils {
    * must match the grammar's FLOAT_LITERAL / SUFFIXED_FLOAT shape as a whole.
    */
   static floatLiteralWidth(text: string): 32 | 64 | null {
+    return LiteralUtils.floatLiteralParts(text)?.width ?? null;
+  }
+
+  /**
+   * A floating literal's parts, read once from its text (#1268 review): the
+   * width above and the digits a value is computed from both come from here.
+   * Null when the text is not a floating literal.
+   */
+  static floatLiteralParts(text: string): IFloatLiteralParts | null {
     const match = FLOAT_LITERAL.exec(text);
     if (!match || !/[.eE]/.test(text)) return null;
-    return match[1] === "32" ? 32 : 64;
+    return {
+      whole: match[1],
+      fraction: match[2] ?? "",
+      exponent: Number(match[3] ?? "0"),
+      width: match[4] === "32" ? 32 : 64,
+    };
   }
 
   /**

@@ -13,6 +13,10 @@
 // `(f32)(2^60 + 2^36 + 1) - (f32)2^60` is 2^37, whether the integer reaches
 // f32 by a cast, beside an f32 operand, or as a const's value (BIG2_F).
 // Their partners 2^60 + 1, which C rounds to 2^60 each way, are zero.
+// A decimal f32 literal just below a midpoint rounds down even where that
+// midpoint ties up, to 1 + 2^-23 (row z) or to FLT_MAX below 2^128 (row y),
+// so each subtraction is zero. Their controls z2 and y2 sit on the midpoint
+// and tie up, to 1 + 2^-22 and to infinity, so neither is zero.
 
 const f32 FZ <- 0.0;
 const f32 FZ2 <- FZ;
@@ -55,5 +59,9 @@ f32 forms(f32 k) {
     f32 v <- k / (1152921573326323713u64 - 1152921504606846976.0f32);
     f32 w <- k / (BIG_F - 1152921504606846976.0f32);
     f32 x <- k / (BIG2_F - 1152921504606846976.0f32);
-    return a + b + c + d + e + f + g + h + i + j + l + m + o + q + r + s + t + u + v + w + x;
+    f32 y <- k / (340282356779733651637539395458142568448.0f32 - 340282346638528859811704183484516925440.0f32);
+    f32 y2 <- k / (340282356779733661637539395458142568448.0f32 - 340282346638528859811704183484516925440.0f32);
+    f32 z <- k / (1.00000017881393432617187499f32 - 1.00000011920928955078125f32);
+    f32 z2 <- k / (1.000000178813934326171875f32 - 1.00000011920928955078125f32);
+    return a + b + c + d + e + f + g + h + i + j + l + m + o + q + r + s + t + u + v + w + x + y + y2 + z + z2;
 }

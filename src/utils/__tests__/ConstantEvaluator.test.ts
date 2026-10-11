@@ -44,6 +44,7 @@ function env(table: Record<string, TConstResult>): IConstantEnvironment {
 }
 const NONE = env({});
 const U8_200: TConstResult = { kind: "value", value: 200n, typeName: "u8" };
+const FLT_MAX = 3.4028234663852886e38;
 
 function valueOf(expr: TConstExpr, e = NONE): bigint | string {
   const result = ConstantEvaluator.evaluate(expr, e);
@@ -450,6 +451,21 @@ describe("ConstantEvaluator", () => {
         "an f32 literal on a midpoint rounds to even",
         float("1.000000059604644775390625f32"),
         1,
+      ],
+      [
+        "an f32 literal just below a midpoint that ties up rounds down",
+        float("1.00000017881393432617187499f32"),
+        1 + 2 ** -23,
+      ],
+      [
+        "an f32 literal just below the midpoint past FLT_MAX is FLT_MAX",
+        float("340282356779733651637539395458142568448.0f32"),
+        FLT_MAX,
+      ],
+      [
+        "an f32 literal on the midpoint past FLT_MAX is infinity",
+        float("340282356779733661637539395458142568448.0f32"),
+        Infinity,
       ],
       [
         "an f32 literal just below a midpoint rounds down",

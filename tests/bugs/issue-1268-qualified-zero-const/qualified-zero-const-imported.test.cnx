@@ -1,8 +1,9 @@
 // test-adr: 051
 // test-error
 // E0800/E0802: the qualified spellings of a const zero declared in an
-// included file, integer and float. Limits.ONE and Limits.FLOAT_ONE are the
-// nonzero controls.
+// included file, integer and float, and of one initialized by a float cast
+// (ADR-024 truncates (u32)0.5 to 0). Limits.ONE, Limits.FLOAT_ONE and
+// Limits.ONE_FROM_FLOAT are the nonzero controls.
 #include "zero-limits.cnx"
 
 scope Reader {
@@ -28,4 +29,11 @@ f32 floatViaScopeName(f32 k) {
     f32 divided <- k / Limits.FLOAT_ZERO;
     f32 control <- k / Limits.FLOAT_ONE;
     return divided + control;
+}
+
+u32 floatCastViaInclude(u32 n) {
+    u32 bare <- n / ZERO_FROM_FLOAT;
+    u32 scoped <- n / Limits.Z_FROM_FLOAT;
+    u32 control <- n / Limits.ONE_FROM_FLOAT;
+    return bare + scoped + control;
 }
