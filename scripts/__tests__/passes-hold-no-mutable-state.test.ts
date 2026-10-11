@@ -100,7 +100,7 @@ const INSTRUMENTATION_ROOT = "src/cnx/instrumentation";
 const INSTRUMENTATION_HOLDERS = [
   "src/cnx/instrumentation/AdrProvenance.ts:58",
   "src/cnx/instrumentation/AdrProvenance.ts:59",
-  "src/cnx/instrumentation/ToolchainRequirements.ts:50",
+  "src/cnx/instrumentation/ToolchainRequirements.ts:49",
 ];
 
 /**
