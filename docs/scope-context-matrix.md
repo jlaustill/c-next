@@ -321,7 +321,7 @@ cell is declared by the ADR that owns it.
 | global variable    | ok        | warn   | warn       | n/a         | n/a        |
 | top-level function | ok        | ok     | warn       | n/a         | n/a        |
 | scope member       | warn      | warn   | warn       | n/a         | n/a        |
-| scope method       | ok        | warn   | warn       | n/a         | n/a        |
+| scope method       | ok        | ok     | warn       | n/a         | n/a        |
 
 1 linked fixture with no derivable context:
 
