@@ -26,6 +26,7 @@ class AssignmentTargetExtractor {
    * - Simple identifier: `x <- value`
    * - Member access: `x.field <- value` (returns 'x')
    * - Array access: `x[i] <- value` (returns 'x', flags subscript)
+   * - `global.x` / `this.x`: no base identifier (x is not a local)
    */
   static extract(
     target: Parser.AssignmentTargetContext | undefined,
@@ -34,8 +35,12 @@ class AssignmentTargetExtractor {
       return { baseIdentifier: null, hasSingleIndexSubscript: false };
     }
 
-    // All patterns have base IDENTIFIER
-    const baseIdentifier = target.IDENTIFIER()?.getText() ?? null;
+    // #1290: a `global.`/`this.` target names a file-scope or scope member,
+    // never a local or parameter -- even one spelled the same that shadows it
+    const qualified = target.GLOBAL() !== null || target.THIS() !== null;
+    const baseIdentifier = qualified
+      ? null
+      : (target.IDENTIFIER()?.getText() ?? null);
 
     // Check postfixTargetOp for subscripts
     const postfixOps = target.postfixTargetOp();

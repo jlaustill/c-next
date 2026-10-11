@@ -102,5 +102,18 @@ describe("AssignmentTargetExtractor", () => {
         expect(result.hasSingleIndexSubscript).toBe(false);
       });
     });
+
+    describe("qualified root (#1290)", () => {
+      it.each(["global.total <- 5", "this.total <- 5", "global.pt.y <- 9"])(
+        "names no local or parameter for %s",
+        (source) => {
+          const target = getAssignmentTarget(source);
+          expect(target).toBeDefined();
+
+          const result = AssignmentTargetExtractor.extract(target);
+          expect(result.baseIdentifier).toBeNull();
+        },
+      );
+    });
   });
 });
