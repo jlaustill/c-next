@@ -143,10 +143,7 @@ class ConstantEvaluator {
     expr: Extract<TConstExpr, { kind: "other" }>,
   ): TConstResult {
     const parts = LiteralUtils.floatLiteralParts(expr.spelling);
-    const value =
-      parts === null
-        ? Number.NaN
-        : Number(`${parts.whole}.${parts.fraction || "0"}e${parts.exponent}`);
+    const value = parts === null ? Number.NaN : Number(parts.unsuffixed);
     if (parts === null || !Number.isFinite(value)) {
       return {
         kind: "notConstant",

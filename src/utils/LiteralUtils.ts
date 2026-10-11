@@ -44,6 +44,7 @@ class LiteralUtils {
     const match = FLOAT_LITERAL.exec(text);
     if (!match || !/[.eE]/.test(text)) return null;
     return {
+      unsuffixed: match[4] === undefined ? text : text.slice(0, -3),
       whole: match[1],
       fraction: match[2] ?? "",
       exponent: Number(match[3] ?? "0"),

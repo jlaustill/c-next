@@ -39,9 +39,36 @@ describe("LiteralUtils", () => {
 
   describe("floatLiteralParts", () => {
     it.each([
-      ["2.5f32", { whole: "2", fraction: "5", exponent: 0, width: 32 }],
-      ["1.25e-3", { whole: "1", fraction: "25", exponent: -3, width: 64 }],
-      ["1e5F32", { whole: "1", fraction: "", exponent: 5, width: 32 }],
+      [
+        "2.5f32",
+        {
+          unsuffixed: "2.5",
+          whole: "2",
+          fraction: "5",
+          exponent: 0,
+          width: 32,
+        },
+      ],
+      [
+        "1.25e-3",
+        {
+          unsuffixed: "1.25e-3",
+          whole: "1",
+          fraction: "25",
+          exponent: -3,
+          width: 64,
+        },
+      ],
+      [
+        "1e5F32",
+        {
+          unsuffixed: "1e5",
+          whole: "1",
+          fraction: "",
+          exponent: 5,
+          width: 32,
+        },
+      ],
       ["0xFF32", null],
       ["42", null],
     ])("%s", (text, expected) => {

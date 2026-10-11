@@ -463,6 +463,27 @@ describe("ConstantEvaluator", () => {
         FLT_MAX,
       ],
       [
+        "an f32 literal on the midpoint below the smallest subnormal is zero",
+        float(
+          "7.00649232162408535461864791644958065640130970938257885878534141944895541342930300743319094181060791015625e-46f32",
+        ),
+        0,
+      ],
+      [
+        "an f32 literal just above that midpoint is the smallest subnormal",
+        float(
+          "7.006492321624085354618647916449580656401309709382578858785341419448955413429303007433190941810607910156251e-46f32",
+        ),
+        2 ** -149,
+      ],
+      [
+        "an f32 literal just below that midpoint is zero",
+        float(
+          "7.00649232162408535461864791644958065640130970938257885878534141944895541342930300743319094181060791015624e-46f32",
+        ),
+        0,
+      ],
+      [
         "an f32 literal on the midpoint past FLT_MAX is infinity",
         float("340282356779733661637539395458142568448.0f32"),
         Infinity,

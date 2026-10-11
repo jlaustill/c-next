@@ -17,7 +17,9 @@
 // midpoint ties up, to 1 + 2^-23 (row z) or to FLT_MAX below 2^128 (row y,
 // and row y3 through the consts BIG and TOP),
 // so each subtraction is zero. Their controls z2 and y2 sit on the midpoint
-// and tie up, to 1 + 2^-22 and to infinity, so neither is zero.
+// and tie up, to 1 + 2^-22 and to infinity, so neither is zero. At the
+// bottom, 2^-150 exactly (row n) ties to even, to zero; a literal just above
+// it (row p) rounds up to 2^-149, the smallest subnormal, which is not zero.
 
 const f32 FZ <- 0.0;
 const f32 FZ2 <- FZ;
@@ -67,5 +69,7 @@ f32 forms(f32 k) {
     f32 y3 <- k / (BIG - TOP);
     f32 z <- k / (1.00000017881393432617187499f32 - 1.00000011920928955078125f32);
     f32 z2 <- k / (1.000000178813934326171875f32 - 1.00000011920928955078125f32);
-    return a + b + c + d + e + f + g + h + i + j + l + m + o + q + r + s + t + u + v + w + x + y + y2 + y3 + z + z2;
+    f32 n <- k / 7.00649232162408535461864791644958065640130970938257885878534141944895541342930300743319094181060791015625e-46f32;
+    f32 p <- k / 7.006492321624085354618647916449580656401309709382578858785341419448955413429303007433190941810607910156251e-46f32;
+    return a + b + c + d + e + f + g + h + i + j + l + m + o + q + r + s + t + u + v + w + x + y + y2 + y3 + z + z2 + n + p;
 }

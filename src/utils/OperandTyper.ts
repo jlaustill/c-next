@@ -553,7 +553,6 @@ class OperandTyper {
       form: {
         kind: "literal",
         literal: "char",
-        suffixed: false,
         negated: false,
       },
     };
@@ -573,20 +572,18 @@ class OperandTyper {
         form: {
           kind: "literal",
           literal: "bool",
-          suffixed: false,
           negated: false,
         },
       };
     }
-    const floatWidth = LiteralUtils.floatLiteralWidth(text);
-    if (floatWidth !== null) {
+    const floatParts = LiteralUtils.floatLiteralParts(text);
+    if (floatParts !== null) {
       return {
         ...OperandTyper.plain(typeName),
         category: "floating",
         form: {
           kind: "literal",
           literal: "float",
-          suffixed: /[fF](?:32|64)$/.test(text),
           negated: false,
         },
       };
@@ -598,7 +595,7 @@ class OperandTyper {
       ...OperandTyper.plain(typeName),
       category: suffixed ? OperandTyper.categoryOf(typeName) : "none",
       bitWidth: suffixed ? OperandTyper.widthOf(typeName) : null,
-      form: { kind: "literal", literal: "integer", suffixed, negated: false },
+      form: { kind: "literal", literal: "integer", negated: false },
     };
   }
 
