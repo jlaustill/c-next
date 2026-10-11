@@ -141,12 +141,12 @@ class TranspileState {
    */
   requireInclude(header: TIncludeHeader, line: number | null = null): void {
     // Issue #1143: three of these "headers" are really deferred code-emission
-    // requests. Record where they were asked for, so the emitter that finally
-    // produces the block can attribute its requirement to a .cnx line. No
+    // requests. Record where they were asked for, so the 2.2 plan block that
+    // decides the emission carries them as its requirements' sites (#1928). No
     // requirement is recorded here -- the code does not exist yet, and
     // recording a requirement for text that may never be emitted is exactly
     // the mistake that made #1141's guard fire on files without the construct.
-    // Only the two headers that have a claiming emitter. "isr" was noted here
+    // Only the two headers whose sites a plan block carries. "isr" was noted here
     // and never read: ToolchainRequirements.takeDeferredSites is called for
     // float_static_assert and irq_wrappers alone, and the ISR typedef carries
     // no requirement. Keeping

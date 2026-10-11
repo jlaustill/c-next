@@ -5,7 +5,7 @@
  * `CodeGenState.test.ts` while the members were statics; the behavior they
  * pin is unchanged, and the negative controls came with them -- the include
  * funnel must raise ONE flag rather than blanket them, and only the two
- * headers with a claiming emitter record a deferred site.
+ * headers whose sites a plan block carries record a deferred site.
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import TranspileState from "../TranspileState";
@@ -49,7 +49,7 @@ describe("TranspileState", () => {
       expect(state.needsIrqWrappers).toBe(false);
     });
 
-    // #1143: only the two headers with a claiming emitter are recorded as
+    // #1143: only the two headers whose sites a plan block carries are recorded as
     // deferred sites. "isr" is deliberately NOT one --
     // ToolchainRequirements.takeDeferredSites is called for
     // float_static_assert and irq_wrappers alone.
