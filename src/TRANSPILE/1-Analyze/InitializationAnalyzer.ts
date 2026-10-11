@@ -25,6 +25,8 @@ import ChainRoot from "../../utils/ChainRoot";
 import ExpressionShape from "../../utils/ExpressionShape";
 import StatementChildren from "../../utils/StatementChildren";
 import StatementWrites from "../../utils/StatementWrites";
+import LoweredStatements from "../../utils/LoweredStatements";
+import type TExpression from "../../types/syntax/TExpression";
 import invariant from "../../utils/invariant";
 import type ISourcePosition from "../../utils/types/ISourcePosition";
 import type ILocalDeclaration from "../../types/ILocalDeclaration";
@@ -35,15 +37,15 @@ import type TStatement from "../../types/syntax/TStatement";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
 /**
- * Tracks the initialization state of a variable
- */
-/**
  * #2004: what initialization state is kept for -- the declaration 1.4 binds a
  * spelling to: a function-local declaration itself, or a file-scope variable
  * or scope member by its C name
  */
 type TInitKey = ILocalDeclaration | string;
 
+/**
+ * Tracks the initialization state of a variable
+ */
 interface IVariableState {
   /** Where the variable was declared */
   declaration: IDeclarationInfo;
@@ -350,8 +352,8 @@ class InitializationListener extends CNextListener {
     const stateBefore = this.savedStates.pop();
     if (!stateBefore) return;
 
-    // Check if there's an else clause
-    const hasElse = ctx.ELSE() !== null;
+    // Check if there's an else clause (#2003: the lowered `if` says)
+    const hasElse = this.analyzer.lowered("if", ctx).whenFalse !== null;
 
     if (hasElse) {
       // With else: the tree walker processes both branches in order.
@@ -395,44 +397,47 @@ class InitializationListener extends CNextListener {
   /**
    * Check if a for-loop is deterministic (will definitely run at least once)
    * A loop is deterministic if it has the form: for (var <- 0; var < CONSTANT; ...)
-   * where CONSTANT > 0
+   * where CONSTANT > 0. Its parts are the lowered `for`'s (#2003).
    */
-  private isDeterministicForLoop(ctx: Parser.ForStatementContext): boolean {
-    const init = ctx.forInit();
-    const cond = ctx.expression();
+  private isDeterministicForLoop(
+    loop: Extract<TStatement, { kind: "for" }>,
+  ): boolean {
+    const { init, condition } = loop;
+    if (!init || !condition) return false;
 
-    if (!init || !cond) return false;
+    // The init, a declaration or an assignment, starts at 0
+    const start = init.kind === "assignment" ? init.value : init.initializer;
+    if (!InitializationListener.isLiteral(start, /^0$/)) return false;
 
-    // Check if init is a variable declaration starting at 0
-    const forVarDecl = init.forVarDecl();
-    if (forVarDecl) {
-      const initExpr = forVarDecl.expression();
-      if (!initExpr) return false;
-      const initText = initExpr.getText();
-      if (initText !== "0") return false;
-    } else {
-      // forAssignment case: check if assigning 0
-      const forAssign = init.forAssignment();
-      if (!forAssign) return false;
-      const assignExpr = forAssign.expression();
-      if (!assignExpr) return false;
-      const assignText = assignExpr.getText();
-      if (assignText !== "0") return false;
+    // The condition is var < POSITIVE_CONSTANT
+    if (
+      condition.kind !== "binary" ||
+      condition.operators.length !== 1 ||
+      condition.operators[0] !== "<"
+    ) {
+      return false;
     }
+    const [left, bound] = condition.operands;
+    return (
+      left.kind === "identifier" &&
+      InitializationListener.isLiteral(bound, /^\d+$/) &&
+      Number.parseInt(bound.written, 10) > 0
+    );
+  }
 
-    // Check if condition is var < POSITIVE_CONSTANT
-    const condText = cond.getText();
-    // Match patterns like "i<4" or "ti<3" (no spaces in AST getText())
-    const match = /^\w+<(\d+)$/.exec(condText);
-    if (!match) return false;
-    const bound = Number.parseInt(match[1], 10);
-    return bound > 0;
+  private static isLiteral(
+    expression: TExpression | null,
+    text: RegExp,
+  ): boolean {
+    return expression?.kind === "literal" && text.test(expression.text);
   }
 
   override exitForStatement = (ctx: Parser.ForStatementContext): void => {
     const stateBeforeLoop = this.savedStates.pop();
     if (stateBeforeLoop) {
-      const isDeterministic = this.isDeterministicForLoop(ctx);
+      const isDeterministic = this.isDeterministicForLoop(
+        this.analyzer.lowered("for", ctx),
+      );
       if (isDeterministic) {
         // Deterministic loop - preserve initialization (loop WILL run)
         this.analyzer.mergeInitializationState(stateBeforeLoop);
@@ -454,6 +459,18 @@ class InitializationAnalyzer {
   private errors: IInitializationError[] = [];
 
   private states = new Map<TInitKey, IVariableState>();
+
+  /** The program's lowered statements, for the listener's roles (#2003) */
+  private statements: LoweredStatements | null = null;
+
+  /** The lowered `kind` statement a parse node starts (#2003) */
+  public lowered<K extends TStatement["kind"]>(
+    kind: K,
+    ctx: Parameters<typeof ParserUtils.getPosition>[0],
+  ): Extract<TStatement, { kind: K }> {
+    invariant(this.statements !== null, "lowered() read outside analyze()");
+    return this.statements.at(kind, ParserUtils.getPosition(ctx));
+  }
 
   /**
    * C-Next struct fields from current file (collected at analysis time).
@@ -516,6 +533,7 @@ class InitializationAnalyzer {
   ): IInitializationError[] {
     this.errors = [];
     this.states = new Map();
+    this.statements = new LoweredStatements(program);
     // Clear C-Next struct fields from previous analysis (external fields come from CodeGenState)
     this.cnextStructFields = new Map();
 

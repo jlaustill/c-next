@@ -264,7 +264,7 @@ function runAnalyzers(
     },
     {
       label: "NULL checks (ADR-047: C library interop)",
-      run: () => new NullCheckAnalyzer().analyze(tree),
+      run: () => new NullCheckAnalyzer().analyze(tree, parsed.program),
     },
     {
       label: "division by zero (ADR-051: compile-time detection)",

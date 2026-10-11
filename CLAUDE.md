@@ -1011,13 +1011,15 @@ This used to name a third, `buildStructParamMemberAccess()`, "for chains". It ha
 
 ### Const Inference
 
-`ModificationCollector.walkStatementForModifications()` (1.3 Declare, #1825) uses two
-collectors in `src/utils/ast/`:
+`ModificationCollector` (1.3 Declare, #1825) walks the lowered statements
+(`TStatement`, from `StatementLowering`) with three helpers:
 
-- `StatementExpressionCollector.collectAll()` — returns all expressions from any statement type
-- `ChildStatementCollector.collectAll()` — returns child statements/blocks for recursion
+- `StatementWrites.of()` (`src/utils/`) — the assignments a statement performs itself, a `for` header's init and update included (#2010)
+- `ModificationCollector.expressionsOf()` — the expressions a statement holds itself, walked for calls
+- `StatementChildren.of()` (`src/utils/`) — the statements nested directly inside, for recursion (#2003)
 
-Update both when adding new statement types.
+Each switches over every statement kind and ends in a `never` arm, so a new
+kind does not compile until each places it.
 
 ---
 

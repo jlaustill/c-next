@@ -64,11 +64,20 @@ function statementDefinitelyReturns(statement: TStatement): boolean {
       return statementsDefinitelyReturn(statement.statements);
     case "critical":
       return statementsDefinitelyReturn(statement.body.statements);
-    default:
-      // while / for (the body may not execute), variable declarations,
-      // assignments, and expression statements never guarantee a return on
-      // their own.
+    // The body of a `while` or `for` may not execute; the rest hold no
+    // statement and are not a return.
+    case "while":
+    case "for":
+    case "variableDeclaration":
+    case "constructorDeclaration":
+    case "assignment":
+    case "expression":
+    case "missing":
       return false;
+    default: {
+      const unplaced: never = statement;
+      return unplaced;
+    }
   }
 }
 

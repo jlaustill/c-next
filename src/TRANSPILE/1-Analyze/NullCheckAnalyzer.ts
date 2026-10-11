@@ -18,6 +18,10 @@ import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import INullCheckError from "./types/INullCheckError";
 import ParserUtils from "../../utils/ParserUtils";
 import BareIdentifier from "../../utils/BareIdentifier";
+import LoweredStatements from "../../utils/LoweredStatements";
+import invariant from "../../utils/invariant";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type TStatement from "../../types/syntax/TStatement";
 
 /**
  * Metadata for C library functions that can return NULL
@@ -215,8 +219,8 @@ class NullCheckListener extends CNextListener {
     isNullCheck: boolean;
     hasReturn: boolean;
   }> = [];
-  /** Track the current if-statement context for body detection */
-  private currentIfCtx: Parser.IfStatementContext | null = null;
+  /** The current lowered `if`, for body detection (#2003) */
+  private currentIf: Extract<TStatement, { kind: "if" }> | null = null;
 
   /** Stack of while-statement info for tracking nested while conditions */
   private readonly whileStack: Array<{
@@ -224,8 +228,8 @@ class NullCheckListener extends CNextListener {
     isNotNullCheck: boolean;
   }> = [];
 
-  /** Track the current while-statement context for body detection */
-  private currentWhileCtx: Parser.WhileStatementContext | null = null;
+  /** The current lowered `while`, for body detection (#2003) */
+  private currentWhile: Extract<TStatement, { kind: "while" }> | null = null;
 
   constructor(analyzer: NullCheckAnalyzer) {
     super();
@@ -353,7 +357,7 @@ class NullCheckListener extends CNextListener {
       // For != NULL check, mark the variable as checked in the if-body
       if (isNotNullCheck) {
         // We'll set state to CheckedNotNull when entering the if-body
-        this.currentIfCtx = ctx;
+        this.currentIf = this.analyzer.lowered("if", ctx);
       }
     } else {
       // Not a null check, just track for nesting
@@ -373,13 +377,13 @@ class NullCheckListener extends CNextListener {
     // After such a guard, the variable is known to be not null
     if (ifInfo.varName && ifInfo.isNullCheck && ifInfo.hasReturn) {
       // This was a guard clause - the variable is checked after the if
-      const hasElse = ctx.ELSE() !== null;
+      const hasElse = this.analyzer.lowered("if", ctx).whenFalse !== null;
       if (!hasElse) {
         this.updateVariableState(ifInfo.varName, NullCheckState.CheckedNotNull);
       }
     }
 
-    this.currentIfCtx = null;
+    this.currentIf = null;
   };
 
   /**
@@ -397,7 +401,7 @@ class NullCheckListener extends CNextListener {
    * SonarCloud S3776: Extracted from enterStatement().
    */
   private handleIfBranchNullCheck(ctx: Parser.StatementContext): void {
-    if (!this.currentIfCtx || this.ifStack.length === 0) {
+    if (!this.currentIf || this.ifStack.length === 0) {
       return;
     }
 
@@ -406,8 +410,8 @@ class NullCheckListener extends CNextListener {
       return;
     }
 
-    const statements = this.currentIfCtx.statement();
-    if (statements.length > 0 && ctx === statements[0]) {
+    const start = ParserUtils.getPosition(ctx);
+    if (LoweredStatements.startsAt(this.currentIf.whenTrue, start)) {
       this.updateVariableState(ifInfo.varName, NullCheckState.CheckedNotNull);
     }
   }
@@ -417,7 +421,7 @@ class NullCheckListener extends CNextListener {
    * SonarCloud S3776: Extracted from enterStatement().
    */
   private handleWhileBodyNullCheck(ctx: Parser.StatementContext): void {
-    if (!this.currentWhileCtx || this.whileStack.length === 0) {
+    if (!this.currentWhile || this.whileStack.length === 0) {
       return;
     }
 
@@ -426,8 +430,8 @@ class NullCheckListener extends CNextListener {
       return;
     }
 
-    const whileBody = this.currentWhileCtx.statement();
-    if (whileBody === ctx) {
+    const start = ParserUtils.getPosition(ctx);
+    if (LoweredStatements.startsAt(this.currentWhile.body, start)) {
       this.updateVariableState(
         whileInfo.varName,
         NullCheckState.CheckedNotNull,
@@ -466,7 +470,7 @@ class NullCheckListener extends CNextListener {
       });
 
       // For != NULL check, mark the variable as checked in the while-body
-      this.currentWhileCtx = ctx;
+      this.currentWhile = this.analyzer.lowered("while", ctx);
     } else {
       // Not a null check, just track for nesting
       this.whileStack.push({
@@ -478,7 +482,7 @@ class NullCheckListener extends CNextListener {
 
   override exitWhileStatement = (_ctx: Parser.WhileStatementContext): void => {
     this.whileStack.pop();
-    this.currentWhileCtx = null;
+    this.currentWhile = null;
   };
 
   // ========================================================================
@@ -780,10 +784,27 @@ class NullCheckAnalyzer {
   /**
    * Analyze a parsed program for NULL safety errors
    * @param tree The parsed program AST
+   * @param program The same program, lowered (1.2): its statements' parts
    * @returns Array of NULL check errors
    */
-  public analyze(tree: Parser.ProgramContext): INullCheckError[] {
+  /** The program's lowered statements, for the listener's roles (#2003) */
+  private statements: LoweredStatements | null = null;
+
+  /** The lowered `kind` statement a parse node starts (#2003) */
+  public lowered<K extends TStatement["kind"]>(
+    kind: K,
+    ctx: Parameters<typeof ParserUtils.getPosition>[0],
+  ): Extract<TStatement, { kind: K }> {
+    invariant(this.statements !== null, "lowered() read outside analyze()");
+    return this.statements.at(kind, ParserUtils.getPosition(ctx));
+  }
+
+  public analyze(
+    tree: Parser.ProgramContext,
+    program: IProgramSyntax,
+  ): INullCheckError[] {
     this.errors = [];
+    this.statements = new LoweredStatements(program);
 
     // Walk tree and check NULL usage
     const listener = new NullCheckListener(this);
