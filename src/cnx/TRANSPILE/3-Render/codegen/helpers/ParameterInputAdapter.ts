@@ -245,7 +245,7 @@ class ParameterInputAdapter {
     // Non-array string
     if (isString && !param.isArray) {
       return {
-        name: param.name,
+        name: param.emittedName,
         baseType: param.type,
         mappedType: "char",
         isConst: param.isConst,
@@ -270,7 +270,7 @@ class ParameterInputAdapter {
     // "onReceive_fp* handler" where the .c emits "onReceive_fp handler".
     if (param.isCallback && param.callbackTypedefName) {
       return {
-        name: param.name,
+        name: param.emittedName,
         baseType: param.type,
         mappedType,
         isConst: param.isConst,
@@ -295,7 +295,7 @@ class ParameterInputAdapter {
     const callbackWantsValue = callbackWantsPointer === false;
 
     return {
-      name: param.name,
+      name: param.emittedName,
       baseType: param.type,
       mappedType,
       isConst: param.isConst,
@@ -421,7 +421,7 @@ class ParameterInputAdapter {
     const actualMappedType = isString ? "char" : mappedType;
 
     return {
-      name: param.name,
+      name: param.emittedName,
       baseType: param.type,
       mappedType: actualMappedType,
       isConst: param.isConst,

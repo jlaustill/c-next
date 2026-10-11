@@ -16,7 +16,7 @@ extern "C" {
 extern uint32_t x;
 
 /* Function prototypes */
-uint32_t first(uint8_t x);
+uint32_t first(uint8_t first__x);
 uint32_t second(void);
 
 #ifdef __cplusplus

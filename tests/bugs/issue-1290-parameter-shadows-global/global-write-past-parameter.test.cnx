@@ -1,0 +1,82 @@
+// test-execution
+// test-adr: 057
+// #1290 review: `global.total <- ...` writes the file-scope `total`, never the
+// parameter that shadows it. So the parameter is not modified: it stays by
+// value (a struct one stays `const Point*`), and in C++ a literal argument
+// still binds. Each shadowing function has a control beside it whose
+// parameter shadows nothing; both must take the same parameter shape.
+
+struct Point {
+    u32 x;
+    u32 y;
+}
+
+u32 total <- 7;
+Point pt <- { x: 1, y: 2 };
+
+u32 shadowWritesGlobal(u32 total) {
+    global.total <- total;
+    return total;
+}
+
+u32 controlWritesGlobal(u32 other) {
+    global.total <- other;
+    return other;
+}
+
+u32 shadowWritesGlobalMember(Point pt) {
+    global.pt.y <- pt.x;
+    return pt.y;
+}
+
+u32 controlWritesGlobalMember(Point other) {
+    global.pt.y <- other.x;
+    return other.y;
+}
+
+scope S {
+    u32 count <- 1;
+
+    // The `this.` arm: `this.count` is the scope member, not the parameter
+    public u32 viaThis(u32 count) {
+        this.count <- count;
+        return this.count;
+    }
+}
+
+u32 main() {
+    u32 r1 <- shadowWritesGlobal(5);
+    if (r1 != 5) {
+        return 1;
+    }
+    if (global.total != 5) {
+        return 2;
+    }
+    u32 r2 <- controlWritesGlobal(6);
+    if (r2 != 6) {
+        return 3;
+    }
+    if (global.total != 6) {
+        return 4;
+    }
+    Point arg <- { x: 30, y: 40 };
+    u32 r3 <- shadowWritesGlobalMember(arg);
+    if (r3 != 40) {
+        return 5;
+    }
+    if (global.pt.y != 30) {
+        return 6;
+    }
+    if (arg.y != 40) {
+        return 7;
+    }
+    u32 r4 <- controlWritesGlobalMember(arg);
+    if (r4 != 40) {
+        return 8;
+    }
+    u32 r5 <- S.viaThis(9);
+    if (r5 != 9) {
+        return 9;
+    }
+    return 0;
+}

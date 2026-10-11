@@ -60,8 +60,14 @@ class HeaderSymbolAdapter {
     // layer (CNextResolver pre-pass), so no qualification is needed here.
     const parameters: IParameterSymbol[] = func.parameters.map((p) => {
       const type = TypeResolver.getTypeName(p.type);
+      // #1290: the C name 1.4 settled, which the `.c` signature reads too
+      invariant(
+        p.emittedName !== null,
+        `1.4 settled the C name of ${cName}'s parameter '${p.name}'`,
+      );
       return {
         name: p.name,
+        emittedName: p.emittedName,
         type,
         isConst: p.isConst,
         isArray: p.isArray,

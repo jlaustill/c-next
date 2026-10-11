@@ -1,0 +1,7 @@
+// test-error
+// #2011: two declarations of one name in the same block
+u32 dup() {
+    u32 a <- 1;
+    u32 a <- 2;
+    return a;
+}

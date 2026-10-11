@@ -2,6 +2,7 @@
  * Unit tests for ReturnValueUseAnalyzer
  * ADR-070 / Issue #847: a non-void return must be used or explicitly discarded.
  */
+import ProgramLowering from "../../../PARSE/2-Parse/ProgramLowering";
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { CharStream, CommonTokenStream } from "antlr4ng";
 import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
@@ -28,7 +29,12 @@ function parse(source: string) {
 function analyze(source: string) {
   const tree = parse(source);
   state.symbols = TSymbolInfoAdapter.convert(
-    CNextResolver.resolve(tree, "test.cnx", registry).symbols,
+    CNextResolver.resolve(
+      tree,
+      ProgramLowering.program(tree, null),
+      "test.cnx",
+      registry,
+    ).symbols,
   );
   return ReturnValueUseAnalyzer.analyze(tree, testAnalysisContext(state));
 }

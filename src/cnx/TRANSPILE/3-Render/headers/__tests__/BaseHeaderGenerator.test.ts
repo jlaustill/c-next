@@ -32,6 +32,7 @@ function createFunctionSymbol(
     sourceLine: 1,
     parameters: parameters.map((p) => ({
       name: p.name,
+      emittedName: p.name,
       type: p.type,
       isConst: p.isConst ?? false,
       isAutoConst: p.isAutoConst ?? false,

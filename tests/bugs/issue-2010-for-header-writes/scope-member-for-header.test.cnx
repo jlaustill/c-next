@@ -1,0 +1,24 @@
+// test-execution
+// #2010 / #1019: a scope member initialized only in a `for` header counts as
+// assigned in the scope, so another function reading it is not E0381.
+scope S {
+    u32 count;
+
+    public void set() {
+        u32 limit <- 3;
+        for (count <- 0; limit > 0; limit -<- 1) {}
+    }
+
+    public u32 get() {
+        return count;
+    }
+}
+
+u32 main() {
+    S.set();
+    u32 got <- S.get();
+    if (got != 0) {
+        return 1;
+    }
+    return 0;
+}

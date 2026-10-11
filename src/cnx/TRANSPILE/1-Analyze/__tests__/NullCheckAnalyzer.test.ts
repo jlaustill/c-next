@@ -7,6 +7,7 @@ import { CharStream, CommonTokenStream } from "antlr4ng";
 import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
 import { CNextParser } from "../../../PARSE/2-Parse/grammar/CNextParser";
 import NullCheckAnalyzer from "../NullCheckAnalyzer";
+import ProgramLowering from "../../../PARSE/2-Parse/ProgramLowering";
 
 /**
  * Helper to parse C-Next code and return the AST
@@ -17,6 +18,11 @@ function parse(source: string) {
   const tokenStream = new CommonTokenStream(lexer);
   const parser = new CNextParser(tokenStream);
   return parser.program();
+}
+
+/** The parse tree and the same program lowered, as runAnalyzers passes them */
+function bothOf(tree: ReturnType<typeof parse>) {
+  return [tree, ProgramLowering.program(tree, null)] as const;
 }
 
 describe("NullCheckAnalyzer", () => {
@@ -34,7 +40,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0901");
@@ -51,7 +57,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0901");
@@ -66,7 +72,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0901");
@@ -84,7 +90,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       expect(errors).toHaveLength(0);
     });
@@ -98,7 +104,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       expect(errors).toHaveLength(0);
     });
@@ -127,7 +133,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0903");
@@ -145,7 +151,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       expect(errors).toHaveLength(0);
     });
@@ -161,7 +167,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       expect(errors).toHaveLength(0);
     });
@@ -181,7 +187,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       // First declaration should get E0905 (missing c_ prefix)
       // Second assignment should get E0904
@@ -199,7 +205,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       expect(errors).toHaveLength(0);
     });
@@ -218,7 +224,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0905");
@@ -233,7 +239,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0905");
@@ -249,7 +255,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       expect(errors).toHaveLength(0);
     });
@@ -268,7 +274,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0906");
@@ -283,7 +289,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0906");
@@ -297,7 +303,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       expect(errors).toHaveLength(0);
     });
@@ -310,7 +316,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       expect(errors).toHaveLength(0);
     });
@@ -332,7 +338,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0907");
@@ -350,7 +356,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       expect(errors).toHaveLength(0);
     });
@@ -371,7 +377,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0908");
@@ -390,7 +396,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       expect(errors).toHaveLength(0);
     });
@@ -409,7 +415,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       expect(errors).toHaveLength(0);
     });
@@ -496,7 +502,7 @@ describe("NullCheckAnalyzer", () => {
         `;
         const tree = parse(code);
         const analyzer = new NullCheckAnalyzer();
-        const errors = analyzer.analyze(tree);
+        const errors = analyzer.analyze(...bothOf(tree));
 
         // fopen is properly stored with c_ prefix, so we should only get E0901 for unchecked func
         const e0901Errors = errors.filter((e) => e.code === "E0901");
@@ -517,7 +523,7 @@ describe("NullCheckAnalyzer", () => {
       const code = ``;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       expect(errors).toHaveLength(0);
     });
@@ -531,7 +537,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       expect(errors).toHaveLength(0);
     });
@@ -546,7 +552,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       expect(errors).toHaveLength(3);
       expect(errors.every((e) => e.code === "E0901")).toBe(true);
@@ -558,7 +564,7 @@ describe("NullCheckAnalyzer", () => {
 }`;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       expect(errors).toHaveLength(1);
       expect(errors[0].line).toBe(2);
@@ -585,7 +591,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       // Should not have E0908 for c_line inside while body
       const e0908Errors = errors.filter((e) => e.code === "E0908");
@@ -607,7 +613,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       // After while exits, c_line could be NULL (loop terminated), should flag
       const e0908Errors = errors.filter((e) => e.code === "E0908");
@@ -625,7 +631,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       expect(errors).toHaveLength(0);
     });
@@ -648,7 +654,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       // Both variables should be checked within their respective while bodies
       const e0908Errors = errors.filter((e) => e.code === "E0908");
@@ -677,7 +683,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       // With else branch, guard clause doesn't guarantee variable is checked after
       // However, the code after if-else is unreachable, so this is a bit of an edge case
@@ -700,7 +706,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       // Without return in guard clause, variable is NOT marked as checked
       const e0908Errors = errors.filter((e) => e.code === "E0908");
@@ -725,7 +731,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       // Both variables should be checked after their respective guard clauses
       const e0908Errors = errors.filter((e) => e.code === "E0908");
@@ -751,7 +757,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       expect(errors).toHaveLength(0);
     });
@@ -771,7 +777,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       // c_result is checked in the inner if, so no E0908
       const e0908Errors = errors.filter((e) => e.code === "E0908");
@@ -793,7 +799,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       // c_result is checked in nested if body, so no error there
       const e0908Errors = errors.filter((e) => e.code === "E0908");
@@ -820,7 +826,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       // After reassignment, c_result is unchecked again
       const e0908Errors = errors.filter((e) => e.code === "E0908");
@@ -848,7 +854,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       // Each reassignment is followed by a guard clause, so all are safe
       const e0908Errors = errors.filter((e) => e.code === "E0908");
@@ -879,7 +885,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       // func1's c_a is checked, func2's c_b is not
       const e0908Errors = errors.filter((e) => e.code === "E0908");
@@ -907,7 +913,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       // Both functions properly check their c_ptr
       const e0908Errors = errors.filter((e) => e.code === "E0908");
@@ -930,7 +936,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       // Both strchr and strstr results are not checked or stored
       const e0901Errors = errors.filter((e) => e.code === "E0901");
@@ -947,7 +953,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       // strstr called without storing/checking result
       const e0901Errors = errors.filter((e) => e.code === "E0901");
@@ -965,7 +971,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       // Both are in comparison context
       expect(errors).toHaveLength(0);
@@ -988,7 +994,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       // This should still work, though c_ptr+1 isn't a simple identifier
       expect(errors).toHaveLength(0);
@@ -1007,7 +1013,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       expect(errors).toHaveLength(0);
     });
@@ -1026,7 +1032,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       // cstring with c_ prefix storing nullable function result is valid
       expect(errors).toHaveLength(0);
@@ -1040,7 +1046,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0906");
@@ -1054,7 +1060,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0906");
@@ -1074,7 +1080,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       expect(errors[0].helpText).toContain("strchr");
     });
@@ -1087,7 +1093,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       expect(errors[0].helpText).toContain("c_result");
     });
@@ -1100,7 +1106,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       expect(errors[0].helpText).toContain("count");
     });
@@ -1115,7 +1121,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       expect(errors[0].helpText).toContain("!= NULL");
     });
@@ -1142,7 +1148,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       // c_ptr declared in outer scope, null-checked in deeply nested if
       // updateVariableState traverses scope.parent to find c_ptr
@@ -1160,7 +1166,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       // Regular string assignment, no nullable function
       expect(errors).toHaveLength(0);
@@ -1175,7 +1181,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       expect(errors).toHaveLength(0);
     });
@@ -1200,7 +1206,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       // c_ptr is reassigned to unchecked, then used without new check
       const e0908Errors = errors.filter((e) => e.code === "E0908");
@@ -1228,7 +1234,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       // c_result is checked in outer if, inner if is not a null check
       const e0908Errors = errors.filter((e) => e.code === "E0908");
@@ -1258,7 +1264,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       // process(c_ptr) inside outer null-checked while should not flag
       const e0908Errors = errors.filter((e) => e.code === "E0908");
@@ -1279,7 +1285,7 @@ describe("NullCheckAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(...bothOf(tree));
 
       // cstring is a nullable C type, so c_ prefix is valid even without nullable function
       expect(errors).toHaveLength(0);

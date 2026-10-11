@@ -1,0 +1,2 @@
+8:8 error[E0425]: 'total' is already declared in this scope
+       help: Rename one declaration; a function's parameters and its outermost block share one scope, as in C

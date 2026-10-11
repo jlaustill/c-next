@@ -81,6 +81,7 @@ function createParam(
 ): IParameterSymbol {
   return {
     name,
+    emittedName: name,
     type,
     isConst: false,
     isAutoConst: false,

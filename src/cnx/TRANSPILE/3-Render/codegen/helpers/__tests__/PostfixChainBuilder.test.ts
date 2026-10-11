@@ -9,14 +9,20 @@ describe("PostfixChainBuilder", () => {
    * thunk is `vi.fn()` so the cases can still assert that a member access
    * renders nothing -- which is the ordering property the thunk exists for.
    */
-  const memberOp = (memberName: string): IPostfixOperation => ({
+  /** `appliesToRoot` is the chain head's decision (#1994), given here */
+  const memberOp = (
+    memberName: string,
+    appliesToRoot = false,
+  ): IPostfixOperation => ({
     memberName,
+    appliesToRoot,
     indexCount: 0,
     renderIndexes: vi.fn(() => []),
   });
 
   const subscriptOp = (...indexes: string[]): IPostfixOperation => ({
     memberName: null,
+    appliesToRoot: false,
     indexCount: indexes.length,
     renderIndexes: vi.fn(() => indexes),
   });
@@ -37,7 +43,7 @@ describe("PostfixChainBuilder", () => {
 
     it("should handle single member access", () => {
       const deps = createMockDeps();
-      const ops: IPostfixOperation[] = [memberOp("bar")];
+      const ops: IPostfixOperation[] = [memberOp("bar", true)];
 
       const result = PostfixChainBuilder.build("foo", "foo", ops, deps);
 
@@ -45,9 +51,26 @@ describe("PostfixChainBuilder", () => {
       expect(deps.getSeparator).toHaveBeenCalledWith(true, ["foo", "bar"]);
     });
 
+    it("reads the root from the op, not from its position (#1994)", () => {
+      const deps = createMockDeps();
+      const ops: IPostfixOperation[] = [memberOp("bar"), memberOp("baz", true)];
+
+      PostfixChainBuilder.build("foo", "foo", ops, deps);
+
+      expect(deps.getSeparator).toHaveBeenNthCalledWith(1, false, [
+        "foo",
+        "bar",
+      ]);
+      expect(deps.getSeparator).toHaveBeenNthCalledWith(2, true, [
+        "foo",
+        "bar",
+        "baz",
+      ]);
+    });
+
     it("should handle multiple member accesses", () => {
       const deps = createMockDeps();
-      const ops: IPostfixOperation[] = [memberOp("bar"), memberOp("baz")];
+      const ops: IPostfixOperation[] = [memberOp("bar", true), memberOp("baz")];
 
       const result = PostfixChainBuilder.build("foo", "foo", ops, deps);
 
@@ -71,7 +94,7 @@ describe("PostfixChainBuilder", () => {
       // pending temp declaration, so a chain of pure member accesses must
       // queue none -- which an eager `string[]` field could not promise.
       const deps = createMockDeps();
-      const ops: IPostfixOperation[] = [memberOp("a"), memberOp("b")];
+      const ops: IPostfixOperation[] = [memberOp("a", true), memberOp("b")];
 
       PostfixChainBuilder.build("obj", "obj", ops, deps);
 
@@ -104,7 +127,7 @@ describe("PostfixChainBuilder", () => {
     it("should handle mixed member access and subscript", () => {
       const deps = createMockDeps();
       const ops: IPostfixOperation[] = [
-        memberOp("items"),
+        memberOp("items", true),
         subscriptOp("0"),
         memberOp("value"),
       ];
@@ -118,7 +141,7 @@ describe("PostfixChainBuilder", () => {
       const deps = createMockDeps({
         getSeparator: vi.fn((isFirst) => (isFirst ? "->" : ".")),
       });
-      const ops: IPostfixOperation[] = [memberOp("x"), memberOp("y")];
+      const ops: IPostfixOperation[] = [memberOp("x", true), memberOp("y")];
 
       const result = PostfixChainBuilder.build("point", "point", ops, deps);
 
@@ -129,7 +152,7 @@ describe("PostfixChainBuilder", () => {
       const deps = createMockDeps({
         getSeparator: vi.fn(() => "_"),
       });
-      const ops: IPostfixOperation[] = [memberOp("speed")];
+      const ops: IPostfixOperation[] = [memberOp("speed", true)];
 
       const result = PostfixChainBuilder.build("Motor", "Motor", ops, deps);
 

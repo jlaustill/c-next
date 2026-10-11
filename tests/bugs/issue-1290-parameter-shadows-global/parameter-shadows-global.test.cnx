@@ -1,0 +1,91 @@
+// test-execution
+// test-adr: 057
+// #1290: ADR-057 says `global.` sees PAST a shadow. C has no `::`, so a
+// PARAMETER that shadows a file-scope name must be emitted under a distinct C
+// name, as a shadowing local already is (#1289). Emitted as plain `total`, the
+// parameter hides the global for the whole body and `global.total` silently
+// reads the parameter: wrong value, gcc clean, exit 0.
+//
+// Every value is distinct, so a wrong binding cannot pass by coincidence.
+
+u32 total <- 7;
+u32[2] buf <- [70, 80];
+
+scope S {
+    // The reproduction: `global.total` must read the global, not the argument
+    public u32 paramCase(u32 total) {
+        return global.total;
+    }
+
+    // A bare reference still means the parameter
+    public u32 bareCase(u32 total) {
+        return total;
+    }
+
+    // Both, in one expression
+    public u32 bothCase(u32 total) {
+        return total + global.total;
+    }
+
+    // A write through the shadowing parameter lands on the argument, and the
+    // global stays as it was
+    public u32 writeCase(u32 total) {
+        total <- 5;
+        return global.total;
+    }
+
+    // An array parameter shadowing a file-scope array
+    public u32 arrayCase(u32[2] buf) {
+        return buf[0] + global.buf[0];
+    }
+
+    // Negative control: `fresh` shadows nothing, so it keeps its plain C name
+    public u32 plainCase(u32 fresh) {
+        return fresh;
+    }
+}
+
+// Outside any scope: the same rule for a free function
+u32 freeCase(u32 total) {
+    return total + global.total;
+}
+
+u32 main() {
+    u32 r1 <- S.paramCase(42);
+    if (r1 != 7) {
+        return 1;
+    }
+    u32 r2 <- S.bareCase(42);
+    if (r2 != 42) {
+        return 2;
+    }
+    u32 r3 <- S.bothCase(42);
+    if (r3 != 49) {
+        return 3;
+    }
+    u32 arg <- 42;
+    u32 r4 <- S.writeCase(arg);
+    if (r4 != 7) {
+        return 4;
+    }
+    if (arg != 5) {
+        return 5;
+    }
+    if (global.total != 7) {
+        return 6;
+    }
+    u32[2] local <- [1, 2];
+    u32 r5 <- S.arrayCase(local);
+    if (r5 != 71) {
+        return 7;
+    }
+    u32 r6 <- S.plainCase(9);
+    if (r6 != 9) {
+        return 8;
+    }
+    u32 r7 <- freeCase(42);
+    if (r7 != 49) {
+        return 9;
+    }
+    return 0;
+}

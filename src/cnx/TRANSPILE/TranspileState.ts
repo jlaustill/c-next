@@ -24,6 +24,9 @@ import type IEmissionPlan from "../types/IEmissionPlan";
 import type IFunctionSignature from "../types/IFunctionSignature";
 import invariant from "../utils/invariant";
 import emittedLocalName from "../utils/emittedLocalName";
+import AdrProvenance from "../instrumentation/AdrProvenance";
+import type ILocalDeclaration from "../types/ILocalDeclaration";
+import type IBoundParameter from "./types/IBoundParameter";
 import ToolchainRequirements from "../instrumentation/ToolchainRequirements";
 import type TIncludeHeader from "../types/TIncludeHeader";
 
@@ -259,7 +262,21 @@ class TranspileState {
     if (binding?.kind !== "local") {
       return name;
     }
-    return emittedLocalName(binding.declaration);
+    return this.localCName(binding.declaration, at);
+  }
+
+  /**
+   * The C name a local or parameter is emitted under at `at`: the one place
+   * a bound local's name is decided for the body. A moved name IS ADR-057's
+   * shadowing rule firing, so it is recorded; a local that shadows nothing is
+   * the rule declining to act, which is not evidence of it.
+   */
+  localCName(declaration: ILocalDeclaration, at: ISourcePosition): string {
+    const emitted = emittedLocalName(declaration);
+    if (emitted !== declaration.name) {
+      AdrProvenance.record("057", at.line);
+    }
+    return emitted;
   }
 
   /**
@@ -268,11 +285,36 @@ class TranspileState {
    * inside its block, and the parameter again after it.
    */
   parameterAt(name: string, at: ISourcePosition): TParameterInfo | undefined {
-    const binding = this.bindingAt(null, name, at);
-    if (binding?.kind !== "local" || binding.declaration.kind !== "parameter") {
+    return this.parameterDeclarationAt(name, at) === null
+      ? undefined
+      : this.currentParameters.get(name);
+  }
+
+  /**
+   * `parameterAt`'s parameter with the C name it is emitted under there, for
+   * a site that writes it (#1290 review)
+   */
+  parameterBindingAt(
+    name: string,
+    at: ISourcePosition,
+  ): IBoundParameter | undefined {
+    const declaration = this.parameterDeclarationAt(name, at);
+    const info =
+      declaration === null ? undefined : this.currentParameters.get(name);
+    if (declaration === null || info === undefined) {
       return undefined;
     }
-    return this.currentParameters.get(name);
+    return { info, emittedName: this.localCName(declaration, at) };
+  }
+
+  private parameterDeclarationAt(
+    name: string,
+    at: ISourcePosition,
+  ): ILocalDeclaration | null {
+    const binding = this.bindingAt(null, name, at);
+    return binding?.kind === "local" && binding.declaration.kind === "parameter"
+      ? binding.declaration
+      : null;
   }
 
   /**

@@ -1,0 +1,40 @@
+// test-execution
+// #2010: a struct parameter written only in a `for` header is modified, so it
+// is not auto-const: the header's write compiles and the caller sees it.
+struct Point {
+    u32 x;
+    u32 y;
+}
+
+u32 sink <- 0;
+
+void walkField(Point p) {
+    for (p.x <- 0; p.x < 3; p.x +<- 1) {
+        sink +<- 1;
+    }
+}
+
+// Control: the same writes as statements.
+void walkFieldStatement(Point p) {
+    p.x <- 0;
+    while (p.x < 3) {
+        p.x +<- 1;
+    }
+}
+
+u32 main() {
+    Point a <- { x: 9, y: 1 };
+    walkField(a);
+    if (a.x != 3) {
+        return 1;
+    }
+    Point b <- { x: 9, y: 1 };
+    walkFieldStatement(b);
+    if (b.x != 3) {
+        return 2;
+    }
+    if (sink != 3) {
+        return 3;
+    }
+    return 0;
+}

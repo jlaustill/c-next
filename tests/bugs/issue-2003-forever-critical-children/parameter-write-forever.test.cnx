@@ -1,0 +1,22 @@
+// #2003: a parameter written inside `forever` is a modified parameter, so it
+// is passed by pointer (by reference in C++) and not as const
+struct Point {
+    u32 x;
+    u32 y;
+}
+
+u32 sink <- 0;
+
+void spin(Point p) {
+    forever {
+        p.x <- 3;
+        sink <- p.x;
+    }
+}
+
+void spinScalar(u32 n) {
+    forever {
+        n <- n + 1;
+        sink <- n;
+    }
+}

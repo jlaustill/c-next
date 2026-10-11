@@ -1,0 +1,7 @@
+// test-error
+// #2011: a function's parameters and its outermost block are one C scope, so a
+// local there named like a parameter is a redeclaration
+u32 plain(u32 a) {
+    u32 a <- 2;
+    return a;
+}

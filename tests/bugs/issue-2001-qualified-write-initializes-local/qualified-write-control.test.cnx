@@ -1,0 +1,53 @@
+// test-execution
+// test-adr: 057
+// #2001 control: the same writes where nothing is left uninitialized still
+// compile and run, and a scope member written through `this.` or a bare
+// name with no local in the way is initialized
+struct Point {
+    u32 x;
+    u32 y;
+}
+
+Point pt <- { x: 1, y: 2 };
+u32 total <- 7;
+
+u32 shadowInit() {
+    Point pt <- { x: 3, y: 4 };
+    global.pt.x <- 5;
+    return pt.x;
+}
+
+scope S {
+    u32 count;
+    u32 other;
+
+    public void setViaThis() {
+        u32 count <- 9;
+        this.count <- count;
+    }
+
+    public void setBare() {
+        other <- 11;
+    }
+
+    public u32 sum() {
+        return count + other;
+    }
+}
+
+u32 main() {
+    u32 local <- shadowInit();
+    if (local != 3) {
+        return 1;
+    }
+    if (pt.x != 5) {
+        return 2;
+    }
+    S.setViaThis();
+    S.setBare();
+    u32 total2 <- S.sum();
+    if (total2 != 20) {
+        return 3;
+    }
+    return 0;
+}

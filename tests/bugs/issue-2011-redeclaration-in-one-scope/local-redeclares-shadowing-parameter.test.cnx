@@ -1,0 +1,10 @@
+// test-error
+// test-adr: 057
+// #2011: the parameter shadows the global `total` and moves (#1290); the local
+// is a redeclaration of the parameter, not a second shadow
+u32 total <- 7;
+
+u32 shadowing(u32 total) {
+    u32 total <- 3;
+    return total;
+}

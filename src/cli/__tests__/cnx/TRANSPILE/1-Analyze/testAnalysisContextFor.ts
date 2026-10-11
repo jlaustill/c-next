@@ -1,3 +1,5 @@
+import ProgramLowering from "../../../../../cnx/PARSE/2-Parse/ProgramLowering";
+import type IProgramSyntax from "../../../../../cnx/types/syntax/IProgramSyntax";
 import CNextSourceParser from "../../../../../cnx/PARSE/2-Parse/CNextSourceParser";
 import type * as Parser from "../../../../../cnx/PARSE/2-Parse/grammar/CNextParser";
 import CNextResolver from "../../../../../cnx/PARSE/3-Declare/cnext/index";
@@ -57,7 +59,11 @@ function testAnalysisContextFor(
      */
     cppMode: boolean;
   },
-): { tree: Parser.ProgramContext; context: IAnalysisContext } {
+): {
+  tree: Parser.ProgramContext;
+  syntax: IProgramSyntax;
+  context: IAnalysisContext;
+} {
   const registry = new SymbolRegistry();
   const files = [
     ...Object.entries(options.helpers ?? {}),
@@ -67,7 +73,12 @@ function testAnalysisContextFor(
     return {
       path,
       parsed,
-      declared: CNextResolver.resolve(parsed.tree, path, registry),
+      declared: CNextResolver.resolve(
+        parsed.tree,
+        ProgramLowering.program(parsed.tree, null),
+        path,
+        registry,
+      ),
     };
   });
   const main = files.at(-1)!;
@@ -139,6 +150,7 @@ function testAnalysisContextFor(
 
   return {
     tree: main.parsed.tree,
+    syntax: main.parsed.program,
     context: {
       symbols,
       program,

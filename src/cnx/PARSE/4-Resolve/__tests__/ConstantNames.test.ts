@@ -1,3 +1,4 @@
+import ProgramLowering from "../../2-Parse/ProgramLowering";
 import { beforeEach, describe, expect, it } from "vitest";
 import parse from "../../3-Declare/cnext/__tests__/testHelpers";
 import CNextResolver from "../../3-Declare/cnext/index";
@@ -31,21 +32,31 @@ function build(
   reachesHeader = false,
   header: ReadonlyArray<TCSymbol> = [],
 ): IProgram {
-  return Program.build([CNextResolver.resolve(parse(source), FILE, registry)], {
-    cppMode: false,
-    filesReachingForeignHeaders: new Set(reachesHeader ? [FILE] : []),
-    // Scope bindings are the registry's, as in a real run
-    registry,
-    foreign: {
-      c: header,
-      cpp: [],
-      opaqueTypedefs: new Set(),
-      typedefToTag: new Map(),
-      macros: new Map(),
-      macrosUnread: new Set<string>(),
-      structTagsWithBodies: new Set(),
+  return Program.build(
+    [
+      CNextResolver.resolve(
+        parse(source),
+        ProgramLowering.program(parse(source), null),
+        FILE,
+        registry,
+      ),
+    ],
+    {
+      cppMode: false,
+      filesReachingForeignHeaders: new Set(reachesHeader ? [FILE] : []),
+      // Scope bindings are the registry's, as in a real run
+      registry,
+      foreign: {
+        c: header,
+        cpp: [],
+        opaqueTypedefs: new Set(),
+        typedefToTag: new Map(),
+        macros: new Map(),
+        macrosUnread: new Set<string>(),
+        structTagsWithBodies: new Set(),
+      },
     },
-  });
+  );
 }
 
 /** A variable a C header declares: `extern <type> <name><dims>;` */
