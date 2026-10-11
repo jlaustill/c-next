@@ -341,7 +341,7 @@ describe("Program", () => {
           ],
           { cppMode: false },
         );
-        expect(attempts.mock.calls.length).toBe(2);
+        expect(attempts.mock.calls).toHaveLength(2);
       } finally {
         attempts.mockRestore();
       }
