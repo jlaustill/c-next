@@ -44,6 +44,7 @@ import EnumTypeSafetyAnalyzer from "./EnumTypeSafetyAnalyzer";
 import ScopeAccessAnalyzer from "./ScopeAccessAnalyzer";
 import RegisterAccessAnalyzer from "./RegisterAccessAnalyzer";
 import BracedBodyAnalyzer from "./BracedBodyAnalyzer";
+import RedeclarationAnalyzer from "./RedeclarationAnalyzer";
 import BareEnumMemberAnalyzer from "./BareEnumMemberAnalyzer";
 import ArrayDeclarationAnalyzer from "./ArrayDeclarationAnalyzer";
 import ConstantDimensionAnalyzer from "./ConstantDimensionAnalyzer";
@@ -215,6 +216,13 @@ function runAnalyzers(
       // answer about scoping the author did not write.
       label: "braced bodies (MISRA C:2012 Rule 15.6, E0716)",
       run: () => new BracedBodyAnalyzer().analyze(parsed.program),
+    },
+    {
+      // #2011: before anything binds a name. With two declarations of one
+      // name in one scope, every later step would answer about whichever one
+      // it happened to find.
+      label: "redeclaration in one scope (#2011, E0425)",
+      run: () => new RedeclarationAnalyzer(context).analyze(),
     },
     {
       label: "parameter naming (Issue #227: reserved naming patterns)",
