@@ -4,8 +4,9 @@ import type IRequirementSite from "../types/IRequirementSite";
  * Issue #1143: Identity and accumulation for requirement source sites.
  *
  * "Is this the same site?" was written out three times -- in
- * `CodeGenState.requireToolchain`, in `CodeGenState.noteDeferredSite`, and in
- * `RequirementAggregator.merge`. Adding a column to `IRequirementSite`, or
+ * `CodeGenState.requireToolchain`, in `CodeGenState.noteDeferredSite` (now
+ * `ToolchainRequirements.record` and `.noteDeferredSite`, #1452), and in
+ * `RequirementAggregator.merge` (now `.union`, #1928). Adding a column to `IRequirementSite`, or
  * deciding that an unlocated site should merge with a located one, would have
  * been three edits that must agree. jscpd cannot see it: each copy is four
  * lines.

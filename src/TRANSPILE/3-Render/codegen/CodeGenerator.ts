@@ -243,10 +243,9 @@ export default class CodeGenerator implements IOrchestrator {
    * Must be read before the next file's this.state.reset(), which clears both.
    */
   getToolchainRequirements(): readonly IRecordedRequirement[] {
-    const plan = this.state.emissionPlanOrNull;
     return RequirementAggregator.union([
       ToolchainRequirements.collect(),
-      plan === null ? [] : EmissionPlan.requirements(plan),
+      EmissionPlan.requirements(this.state.emissionPlan()),
     ]);
   }
 

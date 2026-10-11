@@ -17715,3 +17715,11 @@ describe("CodeGenWalker", () => {
     });
   });
 });
+
+describe("CodeGenerator.getToolchainRequirements (#1928)", () => {
+  it("refuses to answer before 2.2 has built the emission plan", () => {
+    expect(() => new CodeGenerator().getToolchainRequirements()).toThrow(
+      "2.2 Plan builds the emission plan before its requirements are read",
+    );
+  });
+});

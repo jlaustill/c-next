@@ -373,6 +373,21 @@ class TranspileState {
     return plan;
   }
   /**
+   * 2.2 Plan's emission decisions, asserted present.
+   *
+   * Same reason as `declarationPlan()`: answering "no planned block costs
+   * anything" before the plan exists would drop the interrupt-masking and C11
+   * lines from the banner without failing.
+   */
+  emissionPlan(): IEmissionPlan {
+    const plan = this.emissionPlanOrNull;
+    invariant(
+      plan !== null,
+      "2.2 Plan builds the emission plan before its requirements are read",
+    );
+    return plan;
+  }
+  /**
    * Compute unmodified parameters for all functions on-demand.
    * Returns a map of function name -> Set of parameter names NOT modified.
    * Computed from `functionSignatures` and the program's modification facts.

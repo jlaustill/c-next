@@ -1018,17 +1018,19 @@ class Transpiler {
         this.headerEmissionFactsByPath.set(sourcePath, headerFacts);
       }
 
-      // Issue #1143: read after header-facts CAPTURE, and before the next
-      // file's TranspileState.reset() clears the recording map. This covers a
-      // requirement that capturing a header's facts triggers (e.g. through
-      // HeaderEmissionCapture.convertToHeaderSymbols) -- it does NOT cover one the RENDER might
-      // trigger, since #1323 moved rendering to Stage 5.5, after every file's
-      // requirements have already been read here and reset() has run N times.
-      // Currently unreachable rather than wrong: TranspileState.requireToolchain
-      // has no caller under output/headers/, so no render path records one --
-      // but this read does not guarantee that stays true, and #1143 is
-      // precisely the bug class where an ordering assumption like that broke
-      // under a later refactor.
+      // Issue #1143: the file's one requirement list -- Render's records plus
+      // what the emission plan's blocks carry (#1928). Read after header-facts
+      // CAPTURE, and before the next file's TranspileState.reset() clears both.
+      // This covers a requirement that capturing a header's facts triggers
+      // (e.g. through HeaderEmissionCapture.convertToHeaderSymbols) -- it does
+      // NOT cover one the header RENDER might trigger, since #1323 moved
+      // rendering to Stage 5.5, after every file's requirements have already
+      // been read here and reset() has run N times. Currently unreachable
+      // rather than wrong: nothing under TRANSPILE/3-Render/headers/ calls
+      // ToolchainRequirements, so no header render records one -- but this
+      // read does not guarantee that stays true, and #1143 is precisely the
+      // bug class where an ordering assumption like that broke under a later
+      // refactor.
       const requirements = this.codeGenerator.getToolchainRequirements();
 
       return this.buildSuccessResult(
