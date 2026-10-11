@@ -14,7 +14,8 @@
 // f32 by a cast, beside an f32 operand, or as a const's value (BIG2_F).
 // Their partners 2^60 + 1, which C rounds to 2^60 each way, are zero.
 // A decimal f32 literal just below a midpoint rounds down even where that
-// midpoint ties up, to 1 + 2^-23 (row z) or to FLT_MAX below 2^128 (row y),
+// midpoint ties up, to 1 + 2^-23 (row z) or to FLT_MAX below 2^128 (row y,
+// and row y3 through the consts BIG and TOP),
 // so each subtraction is zero. Their controls z2 and y2 sit on the midpoint
 // and tie up, to 1 + 2^-22 and to infinity, so neither is zero.
 
@@ -28,6 +29,8 @@ const f32 SUM_F <- 0.1f32 + 0.2f32;
 const f32 ROUNDED_F <- SUM_F - 0.3f32;
 const f32 BIG_F <- 1152921504606846977u64;
 const f32 BIG2_F <- 1152921573326323713u64;
+const f32 BIG <- 340282356779733651637539395458142568448.0f32;
+const f32 TOP <- 340282346638528859811704183484516925440.0f32;
 
 scope Gauge {
     const f32 FZ <- 0.0;
@@ -61,7 +64,8 @@ f32 forms(f32 k) {
     f32 x <- k / (BIG2_F - 1152921504606846976.0f32);
     f32 y <- k / (340282356779733651637539395458142568448.0f32 - 340282346638528859811704183484516925440.0f32);
     f32 y2 <- k / (340282356779733661637539395458142568448.0f32 - 340282346638528859811704183484516925440.0f32);
+    f32 y3 <- k / (BIG - TOP);
     f32 z <- k / (1.00000017881393432617187499f32 - 1.00000011920928955078125f32);
     f32 z2 <- k / (1.000000178813934326171875f32 - 1.00000011920928955078125f32);
-    return a + b + c + d + e + f + g + h + i + j + l + m + o + q + r + s + t + u + v + w + x + y + y2 + z + z2;
+    return a + b + c + d + e + f + g + h + i + j + l + m + o + q + r + s + t + u + v + w + x + y + y2 + y3 + z + z2;
 }
