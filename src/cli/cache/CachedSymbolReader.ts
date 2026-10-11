@@ -1,11 +1,11 @@
 import JsonCodec from "./JsonCodec";
-import ESourceLanguage from "../../utils/types/ESourceLanguage";
-import TJsonValue from "../../utils/types/TJsonValue";
-import TCSymbol from "../../types/symbols/c/TCSymbol";
-import TCppSymbol from "../../types/symbols/cpp/TCppSymbol";
-import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
-import IStructSymbolState from "../../types/symbols/IStructSymbolState";
-import TJsonSafe from "../../utils/types/TJsonSafe";
+import ESourceLanguage from "../../cnx/utils/types/ESourceLanguage";
+import TJsonValue from "../../cnx/utils/types/TJsonValue";
+import TCSymbol from "../../cnx/types/symbols/c/TCSymbol";
+import TCppSymbol from "../../cnx/types/symbols/cpp/TCppSymbol";
+import SymbolTable from "../../cnx/PARSE/3-Declare/SymbolTable";
+import IStructSymbolState from "../../cnx/types/symbols/IStructSymbolState";
+import TJsonSafe from "../../cnx/utils/types/TJsonSafe";
 
 /** Kinds a cached C symbol may declare (mirrors TSymbolKindC). */
 const C_KINDS: ReadonlySet<string> = new Set([

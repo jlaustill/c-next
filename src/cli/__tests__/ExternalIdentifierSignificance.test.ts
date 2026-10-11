@@ -20,9 +20,9 @@ import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import Transpiler from "../Transpiler";
-import type CodeGenWalker from "../../TRANSPILE/CodeGenWalker";
+import type CodeGenWalker from "../../cnx/TRANSPILE/CodeGenWalker";
 import TargetResolver from "../TargetResolver";
-import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
+import NodeFileSystem from "../../cnx/PARSE/1-Discover/NodeFileSystem";
 
 /** Two members that are distinct at 31 characters but collide at 6. */
 const NARROW_COLLIDER = `scope Tiny {

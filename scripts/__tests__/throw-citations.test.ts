@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import ThrowCitations from "../diagnostics/ThrowCitations";
 
-const FILE = "src/TRANSPILE/3-Render/codegen/Sample.ts";
+const FILE = "src/cnx/TRANSPILE/3-Render/codegen/Sample.ts";
 
 /**
  * Two throws, at lines 2 and 5. The second spans three lines -- the shape 155
@@ -178,7 +178,7 @@ describe("ThrowCitations.throwArgument", () => {
 });
 
 describe("ThrowCitations.resolve", () => {
-  const files = [FILE, "src/TRANSPILE/3-Render/headers/Other.ts"];
+  const files = [FILE, "src/cnx/TRANSPILE/3-Render/headers/Other.ts"];
 
   it("matches on a path suffix", () => {
     expect(ThrowCitations.resolve("codegen/Sample.ts", files)).toBe(FILE);
@@ -195,14 +195,14 @@ describe("ThrowCitations.resolve", () => {
     // checked against.
     expect(
       ThrowCitations.resolve("codegen/Sample.ts", [
-        "src/TRANSPILE/3-Render/handlers/Sample.ts",
+        "src/cnx/TRANSPILE/3-Render/handlers/Sample.ts",
       ]),
-    ).toBe("src/TRANSPILE/3-Render/handlers/Sample.ts");
+    ).toBe("src/cnx/TRANSPILE/3-Render/handlers/Sample.ts");
   });
 
   it("refuses an ambiguous basename rather than guessing", () => {
     // Picking one would let the gate pass while checking the wrong file.
-    const ambiguous = [FILE, "src/TRANSPILE/3-Render/headers/Sample.ts"];
+    const ambiguous = [FILE, "src/cnx/TRANSPILE/3-Render/headers/Sample.ts"];
     expect(ThrowCitations.resolve("Sample.ts", ambiguous)).toBeNull();
   });
 });
@@ -218,7 +218,7 @@ describe("ThrowCitations.check", () => {
     [
       "| **1** | user-facing | **" + rows.length + "** |",
       "|  | **total** | **" + rows.length + "** |",
-      "| `src/TRANSPILE/` | " + rows.length + " |",
+      "| `src/cnx/TRANSPILE/` | " + rows.length + " |",
       "",
       "## Bucket 1 — user-facing (" + rows.length + ")",
       ...rows,
@@ -417,7 +417,7 @@ describe("ThrowCitations.check", () => {
       outcome.errors.filter((e) => e.includes("not classified")),
     ).toHaveLength(2);
     expect(outcome.errors).toContain(
-      "by-area row `src/TRANSPILE/` says 0, and src/TRANSPILE/ holds 2 throw site(s)",
+      "by-area row `src/cnx/TRANSPILE/` says 0, and src/cnx/TRANSPILE/ holds 2 throw site(s)",
     );
     expect(outcome.errors).toHaveLength(3);
   });
@@ -451,7 +451,7 @@ describe("ThrowCitations.checkProse", () => {
   // number is not decoration; it mis-sizes the work.
   const SOURCES = new Map([
     [
-      "src/TRANSPILE/3-Render/codegen/Thing.ts",
+      "src/cnx/TRANSPILE/3-Render/codegen/Thing.ts",
       'const a = 1;\nthrow new Error("boom");\n',
     ],
   ]);
@@ -500,8 +500,8 @@ describe("ThrowCitations.checkDeclaredCounts", () => {
     "| **1** | user-facing | **1** |",
     "| **2** | internal | **1** |",
     "|  | **total** | **2** |",
-    "| `src/TRANSPILE/` | 2 |",
-    "| `src/utils/` | 0 |",
+    "| `src/cnx/TRANSPILE/` | 2 |",
+    "| `src/cnx/utils/` | 0 |",
     "",
     "## Bucket 1 — user-facing (1)",
     "| `Sample.ts:2` | `first failure` | why |",
@@ -535,8 +535,8 @@ describe("ThrowCitations.checkDeclaredCounts", () => {
 
   it("fails a by-area table that no longer sums", () => {
     const stale = doc.replace(
-      "| `src/TRANSPILE/` | 2 |",
-      "| `src/TRANSPILE/` | 9 |",
+      "| `src/cnx/TRANSPILE/` | 2 |",
+      "| `src/cnx/TRANSPILE/` | 9 |",
     );
     expect(
       check(stale).some((e) => e.includes("by-area table sums to 9")),
@@ -568,10 +568,12 @@ describe("ThrowCitations.checkDeclaredCounts", () => {
 
   it("fails two areas that trade counts, though the sum holds", () => {
     const traded = doc
-      .replace("| `src/TRANSPILE/` | 2 |", "| `src/TRANSPILE/` | 0 |")
-      .replace("| `src/utils/` | 0 |", "| `src/utils/` | 2 |");
+      .replace("| `src/cnx/TRANSPILE/` | 2 |", "| `src/cnx/TRANSPILE/` | 0 |")
+      .replace("| `src/cnx/utils/` | 0 |", "| `src/cnx/utils/` | 2 |");
     const errors = check(traded);
-    expect(errors.some((e) => e.includes("`src/utils/` says 2"))).toBe(true);
+    expect(errors.some((e) => e.includes("`src/cnx/utils/` says 2"))).toBe(
+      true,
+    );
     expect(errors.some((e) => e.includes("sums to"))).toBe(false);
   });
 
@@ -606,15 +608,18 @@ describe("ThrowCitations.checkDeclaredCounts", () => {
 
   it("fails a document that cites throws and has no by-area table", () => {
     const withoutAreas = doc
-      .replace("| `src/TRANSPILE/` | 2 |\n", "")
-      .replace("| `src/utils/` | 0 |\n", "");
+      .replace("| `src/cnx/TRANSPILE/` | 2 |\n", "")
+      .replace("| `src/cnx/utils/` | 0 |\n", "");
     expect(check(withoutAreas)).toContain(
       "by-area table has no rows, and the document cites throws",
     );
   });
 
   it("fails an area that names no directory under src/", () => {
-    const loose = doc.replace("| `src/TRANSPILE/` | 2 |", "| `codegen/` | 2 |");
+    const loose = doc.replace(
+      "| `src/cnx/TRANSPILE/` | 2 |",
+      "| `codegen/` | 2 |",
+    );
     expect(
       check(loose).some((e) => e.includes("names no directory under src/")),
     ).toBe(true);
@@ -810,8 +815,8 @@ describe("ThrowCitations.remap (#1518)", () => {
     // files. Keyed by basename, one revision overwrote the other, and a cited
     // path resolved against the changed files alone fell back to the basename.
     const files = [
-      "src/utils/TypeResolver.ts",
-      "src/TRANSPILE/3-Render/codegen/TypeResolver.ts",
+      "src/cnx/utils/TypeResolver.ts",
+      "src/cnx/TRANSPILE/3-Render/codegen/TypeResolver.ts",
     ];
     const utils = ["a", 'throw new Error("utils boom");'];
     const codegen = ["x", 'throw new Error("codegen boom");'];

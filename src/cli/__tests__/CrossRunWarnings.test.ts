@@ -17,7 +17,7 @@
  */
 import { describe, it, expect } from "vitest";
 import Transpiler from "../Transpiler";
-import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
+import NodeFileSystem from "../../cnx/PARSE/1-Discover/NodeFileSystem";
 
 const SOURCE = `#include "definitely-missing-header.h"
 

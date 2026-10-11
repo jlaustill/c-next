@@ -23,7 +23,7 @@ export default class TranspileState {
 
 function project(files: Record<string, string>): Project {
   const p = new Project({ useInMemoryFileSystem: true });
-  p.createSourceFile(`${ROOT}/src/TRANSPILE/TranspileState.ts`, STATE);
+  p.createSourceFile(`${ROOT}/src/cnx/TRANSPILE/TranspileState.ts`, STATE);
   for (const [path, text] of Object.entries(files)) {
     p.createSourceFile(`${ROOT}/${path}`, text);
   }
@@ -44,9 +44,9 @@ export default function c(s: TranspileState): void { s.program = {}; }
 function measure(plan: string) {
   return PlanRenderState.measure(
     project({
-      "src/TRANSPILE/3-Render/R.ts": render,
+      "src/cnx/TRANSPILE/3-Render/R.ts": render,
       "src/cli/C.ts": cli,
-      "src/TRANSPILE/2-Plan/P.ts": `${imp}\n${plan}`,
+      "src/cnx/TRANSPILE/2-Plan/P.ts": `${imp}\n${plan}`,
     }),
     ROOT,
   );
@@ -58,7 +58,7 @@ describe("PlanRenderState.measure", () => {
       "export default (s: TranspileState) => s.renames.get('x');",
     );
     expect(m.flows.map((f) => f.field)).toEqual(["renames"]);
-    expect(m.flows[0].writes[0].file).toBe("src/TRANSPILE/3-Render/R.ts");
+    expect(m.flows[0].writes[0].file).toBe("src/cnx/TRANSPILE/3-Render/R.ts");
   });
 
   it("follows a read through a member that reads the field", () => {

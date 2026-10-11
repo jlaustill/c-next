@@ -8,9 +8,9 @@ import Transpiler from "./Transpiler";
 import ICliConfig from "./types/ICliConfig";
 import ResultPrinter from "./ResultPrinter";
 import ITranspilerResult from "./types/ITranspilerResult";
-import InputExpansion from "../PARSE/1-Discover/InputExpansion";
-import NodeFileSystem from "../PARSE/1-Discover/NodeFileSystem";
-import Write from "../WRITE/1-Write/Write";
+import InputExpansion from "../cnx/PARSE/1-Discover/InputExpansion";
+import NodeFileSystem from "../cnx/PARSE/1-Discover/NodeFileSystem";
+import Write from "../cnx/WRITE/1-Write/Write";
 
 /** Result of determining output path */
 interface IOutputPathResult {

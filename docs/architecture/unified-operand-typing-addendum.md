@@ -212,7 +212,7 @@ The name must come first because headers are preprocessed with a compiler chosen
 ### A5.1 Contracts and the table
 
 ```ts
-// src/types/ICDataModel.ts (widths in bits)
+// src/cnx/types/ICDataModel.ts (widths in bits)
 interface ICDataModel {
   readonly short: 16; readonly int: 16 | 32; readonly long: 32 | 64;
   readonly longLong: 64; readonly sizeT: 16 | 32 | 64; readonly pointer: 16 | 32 | 64;
@@ -255,7 +255,7 @@ This replaces the per-file codegen decision (`CodeGenWalker.resolveTargetCapabil
 **1.4.** `Program.build` takes `target: {option, platformio}`. `IProgram.target(): TRunTarget` is frozen with the program. The new contract is:
 
 ```ts
-// src/types/TRunTarget.ts
+// src/cnx/types/TRunTarget.ts
 type TRunTarget =
   | {
       kind: "resolved";
@@ -308,7 +308,7 @@ They become one: `IncludeDiscovery.findProjectRoot`, with the **union** of the m
 - The start-directory rule (a file gives its directory; a directory gives itself) stays in the caller.
 - The cases in `determineProjectRoot.test.ts` move to the one finder.
 
-**One `platformio.ini` reader.** `src/PARSE/1-Discover/PlatformIOIni.ts` (`src/transpiler/data/` until #1444).
+**One `platformio.ini` reader.** `src/cnx/PARSE/1-Discover/PlatformIOIni.ts` (in `transpiler/data/` until #1444, and in `PARSE/1-Discover/` since).
 
 - `_collectLibExtraDirsValues` and `parsePlatformIOLibExtraDirs` (`IncludeDiscovery.ts:202-311`) move onto it.
 - It returns each env's `{name, board, platform}` and `default_envs`.

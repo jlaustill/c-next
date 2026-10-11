@@ -143,23 +143,26 @@ function namedType(file: string, name: string): Type {
  * 2.1 Analyze is handed the tree and must be.
  */
 const ARTIFACTS: ReadonlyArray<readonly [string, string]> = [
-  ["src/types/IFileSymbols.ts", "IFileSymbols"],
+  ["src/cnx/types/IFileSymbols.ts", "IFileSymbols"],
   // #1668: named directly, so a later field of node type fails on the frame
   // itself rather than only through IFileSymbols.
-  ["src/types/ILexicalFrame.ts", "ILexicalFrame"],
-  ["src/types/ILocalDeclaration.ts", "ILocalDeclaration"],
-  ["src/types/ICodeGenSymbols.ts", "ICodeGenSymbols"],
-  ["src/TRANSPILE/types/ICodeGenApi.ts", "ICodeGenApi"],
-  ["src/types/symbols/TSymbol.ts", "TSymbol"],
-  ["src/PARSE/4-Resolve/Program.ts", "Program"],
-  ["src/PARSE/4-Resolve/VisibleSymbols.ts", "VisibleSymbols"],
-  ["src/PARSE/3-Declare/SymbolTable.ts", "SymbolTable"],
-  ["src/PARSE/3-Declare/SymbolRegistry.ts", "SymbolRegistry"],
+  ["src/cnx/types/ILexicalFrame.ts", "ILexicalFrame"],
+  ["src/cnx/types/ILocalDeclaration.ts", "ILocalDeclaration"],
+  ["src/cnx/types/ICodeGenSymbols.ts", "ICodeGenSymbols"],
+  ["src/cnx/TRANSPILE/types/ICodeGenApi.ts", "ICodeGenApi"],
+  ["src/cnx/types/symbols/TSymbol.ts", "TSymbol"],
+  ["src/cnx/PARSE/4-Resolve/Program.ts", "Program"],
+  ["src/cnx/PARSE/4-Resolve/VisibleSymbols.ts", "VisibleSymbols"],
+  ["src/cnx/PARSE/3-Declare/SymbolTable.ts", "SymbolTable"],
+  ["src/cnx/PARSE/3-Declare/SymbolRegistry.ts", "SymbolRegistry"],
   // The two artifacts built of closures -- included so the return-type check
   // above runs on real function-valued fields. Their closures capture plain
   // `TExpression`s since #1950; a parse node handed back would turn this red.
-  ["src/TRANSPILE/2-Plan/types/IAssignmentContext.ts", "IAssignmentContext"],
-  ["src/types/TPlannedTargetOp.ts", "TPlannedTargetOp"],
+  [
+    "src/cnx/TRANSPILE/2-Plan/types/IAssignmentContext.ts",
+    "IAssignmentContext",
+  ],
+  ["src/cnx/types/TPlannedTargetOp.ts", "TPlannedTargetOp"],
 ];
 
 /** Every class field under a directory whose type reaches a parse node. */
@@ -245,7 +248,7 @@ function storedParseNodes(pattern: RegExp): string[] {
  */
 function parseNodeAcceptors(pattern: RegExp): string[] {
   const grammar = project.getSourceFileOrThrow(
-    join(repoRoot, "src/PARSE/2-Parse/grammar/CNextParser.ts"),
+    join(repoRoot, "src/cnx/PARSE/2-Parse/grammar/CNextParser.ts"),
   );
   // Every generated context, not a sample: a stand-in copies the shape of the
   // ONE context its pass reads (`IModifierContext` was a variable
@@ -354,7 +357,7 @@ function heldParseValues(pattern: RegExp, stopAfter = Infinity): string[] {
 
 /** The modules after 2.1 Analyze: the walker, its state, and every later layer */
 const AFTER_ANALYZE =
-  /src\/TRANSPILE\/(2-Plan|3-Render|types)\/|src\/TRANSPILE\/(CodeGenWalker|TranspileState)\.ts$|src\/WRITE\//;
+  /src\/cnx\/TRANSPILE\/(2-Plan|3-Render|types)\/|src\/cnx\/TRANSPILE\/(CodeGenWalker|TranspileState)\.ts$|src\/cnx\/WRITE\//;
 
 /**
  * Each assertion walks types across the whole program, and `npm run unit` runs
@@ -376,7 +379,7 @@ describe("artifact lifetime (#1445 box 2)", () => {
       // the lowered tree. Each time the code got better, the control broke. So
       // the class is written here, in a file the scan reads like any other.
       const probe = project.createSourceFile(
-        join(repoRoot, "src/TRANSPILE/1-Analyze/ParseNodeHolderProbe.ts"),
+        join(repoRoot, "src/cnx/TRANSPILE/1-Analyze/ParseNodeHolderProbe.ts"),
         [
           'import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";',
           "class ParseNodeHolderProbe {",
@@ -389,7 +392,7 @@ describe("artifact lifetime (#1445 box 2)", () => {
         const control = storedParseNodes(/ParseNodeHolderProbe\.ts$/);
 
         expect(control).toEqual([
-          "src/TRANSPILE/1-Analyze/ParseNodeHolderProbe.ts:3 ParseNodeHolderProbe.held",
+          "src/cnx/TRANSPILE/1-Analyze/ParseNodeHolderProbe.ts:3 ParseNodeHolderProbe.held",
         ]);
       } finally {
         project.removeSourceFile(probe);
@@ -424,15 +427,15 @@ describe("artifact lifetime (#1445 box 2)", () => {
       // arms here and left this one green in 1ms. The same dead-path shape
       // `e0245d08c` fixed for two depcruise rules, one directory over.
       const shared =
-        /src\/TRANSPILE\/TranspileState\.ts$|src\/PARSE\/3-Declare\/Symbol(Table|Registry)\.ts$/;
+        /src\/cnx\/TRANSPILE\/TranspileState\.ts$|src\/cnx\/PARSE\/3-Declare\/Symbol(Table|Registry)\.ts$/;
 
       // POPULATION CONTROL. An emptiness claim over a pattern that matches
       // nothing is the defect this assertion just had, so prove the pattern
       // reaches the three files before trusting that none of them holds a tree.
       expect(matchingModules(shared).sort()).toEqual([
-        "src/PARSE/3-Declare/SymbolRegistry.ts",
-        "src/PARSE/3-Declare/SymbolTable.ts",
-        "src/TRANSPILE/TranspileState.ts",
+        "src/cnx/PARSE/3-Declare/SymbolRegistry.ts",
+        "src/cnx/PARSE/3-Declare/SymbolTable.ts",
+        "src/cnx/TRANSPILE/TranspileState.ts",
       ]);
 
       expect(storedParseNodes(shared)).toEqual([]);
@@ -445,9 +448,8 @@ describe("artifact lifetime (#1445 box 2)", () => {
     () => {
       // The pattern is ALL of `src/` minus the two directories that may hold a
       // tree, because a check scoped to where holders were already known cannot
-      // find one anywhere else. It used to read
-      // `src/transpiler/|src/TRANSPILE/CodeGenWalker.ts$` -- one directory plus
-      // one file -- so `src/cli/` was outside it, and `ServeCommand` sat unlisted.
+      // find one anywhere else. It used to name
+      // one directory, `src/transpiler/`, plus the walker's file -- so `src/cli/` was outside it, and `ServeCommand` sat unlisted.
       // Found by review. `parse-tree-sites.md` reports modules that NAME a parse
       // type, and `ServeCommand` names none -- transitive reach is precisely what
       // this file exists to catch.
@@ -457,7 +459,7 @@ describe("artifact lifetime (#1445 box 2)", () => {
       // 2.1's `TreePasses` holds every tree as a local of one call, the host has
       // none to hold, and a field that brings one back fails here.
       const holders = storedParseNodes(
-        /src\/(?!PARSE\/2-Parse|TRANSPILE\/1-Analyze)/,
+        /src\/(?!cnx\/(PARSE\/2-Parse|TRANSPILE\/1-Analyze))/,
       );
 
       expect(holders).toEqual([]);
@@ -473,7 +475,7 @@ describe("artifact lifetime (#1445 box 2)", () => {
       // local built per traversal (`new ShiftListener(...)`) with no static
       // holder in the pass, so nothing survives the walk that created it.
       const holders = storedParseNodes(
-        /src\/(PARSE\/4-Resolve|TRANSPILE\/2-Plan|TRANSPILE\/3-Render)\//,
+        /src\/cnx\/(PARSE\/4-Resolve|TRANSPILE\/2-Plan|TRANSPILE\/3-Render)\//,
       );
 
       expect(holders).toEqual([]);
@@ -495,7 +497,7 @@ describe("artifact lifetime (#1445 box 2)", () => {
         const path = sf.getFilePath();
         if (
           path.includes("__tests__") ||
-          !/src\/TRANSPILE\/1-Analyze\//.test(path)
+          !/src\/cnx\/TRANSPILE\/1-Analyze\//.test(path)
         )
           continue;
         for (const cls of sf.getClasses())
@@ -523,13 +525,13 @@ describe("artifact lifetime (#1445 box 2)", () => {
       // POPULATION CONTROL: the pattern reaches the walker, the state it
       // writes into, and every layer and type directory after 2.1.
       const modules = matchingModules(afterAnalyze);
-      expect(modules).toContain("src/TRANSPILE/CodeGenWalker.ts");
-      expect(modules).toContain("src/TRANSPILE/TranspileState.ts");
+      expect(modules).toContain("src/cnx/TRANSPILE/CodeGenWalker.ts");
+      expect(modules).toContain("src/cnx/TRANSPILE/TranspileState.ts");
       for (const layer of [
         "2-Plan/",
         "3-Render/",
         "TRANSPILE/types/",
-        "src/WRITE/",
+        "src/cnx/WRITE/",
       ])
         expect(modules.some((m) => m.includes(layer))).toBe(true);
 
@@ -537,7 +539,7 @@ describe("artifact lifetime (#1445 box 2)", () => {
       // over it has to find acceptors -- otherwise an empty result below could
       // mean a scan that cannot match.
       expect(
-        parseNodeAcceptors(/src\/TRANSPILE\/1-Analyze\//).length,
+        parseNodeAcceptors(/src\/cnx\/TRANSPILE\/1-Analyze\//).length,
       ).toBeGreaterThan(0);
 
       expect(parseNodeAcceptors(afterAnalyze)).toEqual([]);
@@ -550,7 +552,9 @@ describe("artifact lifetime (#1445 box 2)", () => {
       // DETECTOR CONTROL: 2.1 walks the tree, so the same sweep over it must
       // find parse-node values -- otherwise an empty result below could mean
       // a sweep that cannot match.
-      expect(heldParseValues(/src\/TRANSPILE\/1-Analyze\//, 1)).toHaveLength(1);
+      expect(
+        heldParseValues(/src\/cnx\/TRANSPILE\/1-Analyze\//, 1),
+      ).toHaveLength(1);
 
       expect(heldParseValues(AFTER_ANALYZE)).toEqual([]);
     },

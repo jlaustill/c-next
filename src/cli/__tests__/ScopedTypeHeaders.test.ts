@@ -16,7 +16,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 
 import Transpiler from "../Transpiler";
-import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
+import NodeFileSystem from "../../cnx/PARSE/1-Discover/NodeFileSystem";
 
 describe("a scoped type in a generated header", () => {
   let project: string;

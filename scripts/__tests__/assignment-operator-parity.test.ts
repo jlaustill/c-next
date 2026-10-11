@@ -3,7 +3,7 @@
  * fact, and nothing tied them together.
  *
  * Adding an assignment operator is a two-file edit: `grammar/CNext.g4` and
- * `src/utils/constants/OperatorMappings.ts`. Miss the second and codegen used to
+ * `src/cnx/utils/constants/OperatorMappings.ts`. Miss the second and codegen used to
  * emit a plain `=` for it -- `i +<- 1` becoming `i = 1`, an infinite loop in a
  * `for` update, at transpile exit 0.
  *
@@ -23,7 +23,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import ASSIGNMENT_OPERATOR_MAP from "../../src/utils/constants/OperatorMappings.js";
+import ASSIGNMENT_OPERATOR_MAP from "../../src/cnx/utils/constants/OperatorMappings.js";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 

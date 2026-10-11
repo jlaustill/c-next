@@ -54,7 +54,7 @@ function revisionAtHead(path: string): string | null {
 
 /**
  * #1531: the changed files are the corpus's, not a directory's. This walk used
- * to name `src/TRANSPILE/3-Render` itself, beside `ThrowSources` naming it too --
+ * to name `src/cnx/TRANSPILE/3-Render` itself, beside `ThrowSources` naming it too --
  * the two-definitions shape `ThrowSources` was extracted to end, and the reason
  * widening one would have left the remapper blind to every file the gate began
  * to check.

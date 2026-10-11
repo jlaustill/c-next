@@ -20,6 +20,26 @@ import IMove from "../types/IMove";
  * express the move being made is how the wrong row gets written and then
  * defended (#1449).
  */
+/** #1992 box 4: why a test that composes passes moves to the host. */
+const HOST_TEST =
+  "#1992 box 4: owner direction 2026-10-11: nothing in `src/cnx/`, tests " +
+  "included, imports `src/cli/` or `src/lib/`. This test reaches the host " +
+  "(`Transpiler`, `TargetCatalogFile`, `TargetResolver`, `MockFileSystem`, " +
+  "`parseCHeader` or `JsonCodec`), so it composes passes, which is the " +
+  "host's job (#1443), and it moves beside the host.";
+
+/** #1992 box 4: why a pure transpiler test helper moves into `cnx/`. */
+const TRANSPILER_TEST_HELPER =
+  "#1992 box 4: names only transpiler modules, and transpiler tests import " +
+  "it, so it moves into `cnx/` rather than taking those tests to the host.";
+
+/** #1992: why each transpiler root moves under `src/cnx/`. */
+const TRANSPILER_ROOT =
+  "#1992: owner direction 2026-10-11 (#1313): `cli/` and `lib/` consume the " +
+  "transpiler and are not part of it, so the transpiler gets its own root " +
+  "beside them. `src/cnx/` holds the three layers and the shared roots they " +
+  "name, and the filesystem shows the boundary.";
+
 const DISCOVERS =
   "#1444 box 3: 1.1 Discover authors which files exist, their kind, the " +
   "include graph and every resolved path (§1), and this module computes part " +
@@ -1523,6 +1543,406 @@ const MOVES: readonly IMove[] = [
       "#1443: a chain's root as 2.2, 2.3, the walker and the state all name " +
       "it, importing only `src/types/` -- a shared contract (README §1). In " +
       "`2-Plan/types/` it made the state read 2.2.",
+  },
+  {
+    from: "src/PARSE",
+    to: "src/cnx/PARSE",
+    because: TRANSPILER_ROOT,
+  },
+  {
+    from: "src/TRANSPILE",
+    to: "src/cnx/TRANSPILE",
+    because: TRANSPILER_ROOT,
+  },
+  {
+    from: "src/WRITE",
+    to: "src/cnx/WRITE",
+    because: TRANSPILER_ROOT,
+  },
+  {
+    from: "src/types",
+    to: "src/cnx/types",
+    because: TRANSPILER_ROOT,
+  },
+  {
+    from: "src/utils",
+    to: "src/cnx/utils",
+    because: TRANSPILER_ROOT,
+  },
+  {
+    from: "src/instrumentation",
+    to: "src/cnx/instrumentation",
+    because: TRANSPILER_ROOT,
+  },
+  {
+    from: "src/cli/__tests__/codeGenSymbolsHelpers.ts",
+    to: "src/cnx/types/__testUtils__/codeGenSymbolsHelpers.ts",
+    because: TRANSPILER_TEST_HELPER,
+  },
+  {
+    from: "src/cli/__tests__/enterScope.ts",
+    to: "src/cnx/TRANSPILE/__tests__/enterScope.ts",
+    because: TRANSPILER_TEST_HELPER,
+  },
+  {
+    from: "src/cli/__tests__/installMockSymbols.ts",
+    to: "src/cnx/TRANSPILE/__tests__/installMockSymbols.ts",
+    because: TRANSPILER_TEST_HELPER,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/__tests__/Discover.test.ts",
+    to: "src/cli/__tests__/cnx/PARSE/1-Discover/Discover.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/__tests__/PathResolver.test.ts",
+    to: "src/cli/__tests__/cnx/PARSE/1-Discover/PathResolver.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/__tests__/ReadOnceFileSystem.test.ts",
+    to: "src/cli/__tests__/cnx/PARSE/1-Discover/ReadOnceFileSystem.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/preprocessor/__tests__/Preprocessor.test.ts",
+    to: "src/cli/__tests__/cnx/PARSE/1-Discover/preprocessor/Preprocessor.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/PARSE/2-Parse/__tests__/HeaderParser.test.ts",
+    to: "src/cli/__tests__/cnx/PARSE/2-Parse/HeaderParser.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/PARSE/2-Parse/__tests__/TargetDirectives.test.ts",
+    to: "src/cli/__tests__/cnx/PARSE/2-Parse/TargetDirectives.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/PARSE/3-Declare/__tests__/DeclaredTypeInfo.test.ts",
+    to: "src/cli/__tests__/cnx/PARSE/3-Declare/DeclaredTypeInfo.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/PARSE/3-Declare/__tests__/SymbolTable.test.ts",
+    to: "src/cli/__tests__/cnx/PARSE/3-Declare/SymbolTable.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/PARSE/4-Resolve/__tests__/RunTarget.test.ts",
+    to: "src/cli/__tests__/cnx/PARSE/4-Resolve/RunTarget.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/PARSE/4-Resolve/__tests__/TargetDescriptions.test.ts",
+    to: "src/cli/__tests__/cnx/PARSE/4-Resolve/TargetDescriptions.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/__tests__/ArrayDeclarationAnalyzer.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/1-Analyze/ArrayDeclarationAnalyzer.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/__tests__/ArrayIndexBoundsAnalyzer.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/1-Analyze/ArrayIndexBoundsAnalyzer.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/__tests__/ArrayIndexTypeAnalyzer.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/1-Analyze/ArrayIndexTypeAnalyzer.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/__tests__/BareEnumMemberAnalyzer.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/1-Analyze/BareEnumMemberAnalyzer.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/__tests__/BitAccessAnalyzer.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/1-Analyze/BitAccessAnalyzer.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/__tests__/BitmapAccessAnalyzer.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/1-Analyze/BitmapAccessAnalyzer.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/__tests__/BooleanOperandAnalyzer.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/1-Analyze/BooleanOperandAnalyzer.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/__tests__/CallbackAssignmentAnalyzer.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/1-Analyze/CallbackAssignmentAnalyzer.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/__tests__/CompoundAssignmentAnalyzer.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/1-Analyze/CompoundAssignmentAnalyzer.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/__tests__/ConstAssignmentAnalyzer.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/1-Analyze/ConstAssignmentAnalyzer.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/__tests__/ConstantDimensionAnalyzer.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/1-Analyze/ConstantDimensionAnalyzer.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/__tests__/ConstructorArgumentAnalyzer.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/1-Analyze/ConstructorArgumentAnalyzer.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/__tests__/ControllingExpressionAnalyzer.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/1-Analyze/ControllingExpressionAnalyzer.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/__tests__/CppClassInitializerAnalyzer.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/1-Analyze/CppClassInitializerAnalyzer.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/__tests__/DivisionByZeroAnalyzer.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/1-Analyze/DivisionByZeroAnalyzer.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/__tests__/EnumTypeSafetyAnalyzer.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/1-Analyze/EnumTypeSafetyAnalyzer.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/__tests__/FloatModuloAnalyzer.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/1-Analyze/FloatModuloAnalyzer.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/__tests__/FunctionCallAnalyzer.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/1-Analyze/FunctionCallAnalyzer.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/__tests__/IncludeDirectiveAnalyzer.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/1-Analyze/IncludeDirectiveAnalyzer.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/__tests__/InitializationAnalyzer.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/1-Analyze/InitializationAnalyzer.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/__tests__/IntegerConversionAnalyzer.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/1-Analyze/IntegerConversionAnalyzer.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/__tests__/LengthPropertyAnalyzer.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/1-Analyze/LengthPropertyAnalyzer.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/__tests__/LoopAnalyzer.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/1-Analyze/LoopAnalyzer.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/__tests__/MixedTypeCategoryAnalyzer.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/1-Analyze/MixedTypeCategoryAnalyzer.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/__tests__/RegisterAccessAnalyzer.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/1-Analyze/RegisterAccessAnalyzer.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/__tests__/SafeDivisionAnalyzer.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/1-Analyze/SafeDivisionAnalyzer.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/__tests__/ScopeAccessAnalyzer.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/1-Analyze/ScopeAccessAnalyzer.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/__tests__/ShiftAnalyzer.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/1-Analyze/ShiftAnalyzer.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/__tests__/SliceAssignmentAnalyzer.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/1-Analyze/SliceAssignmentAnalyzer.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/__tests__/StringDeclarationAnalyzer.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/1-Analyze/StringDeclarationAnalyzer.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/__tests__/StructLiteralAnalyzer.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/1-Analyze/StructLiteralAnalyzer.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/__tests__/SwitchStatementAnalyzer.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/1-Analyze/SwitchStatementAnalyzer.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/__tests__/TypeDeclarationAnalyzer.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/1-Analyze/TypeDeclarationAnalyzer.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/__tests__/UndeclaredValueAnalyzer.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/1-Analyze/UndeclaredValueAnalyzer.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/__tests__/runAnalyzers.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/1-Analyze/runAnalyzers.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/__tests__/testAnalysisContextFor.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/1-Analyze/testAnalysisContextFor.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/2-Plan/__tests__/PlanTyping.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/2-Plan/PlanTyping.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/2-Plan/__tests__/StringLengthCounter.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/2-Plan/StringLengthCounter.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/2-Plan/__tests__/dimensionEvalOptions.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/2-Plan/dimensionEvalOptions.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/__tests__/ClampArithmetic.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/3-Render/codegen/ClampArithmetic.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/__tests__/CompositeExpressionTyping.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/3-Render/codegen/CompositeExpressionTyping.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/__tests__/ExpressionWalker.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/3-Render/codegen/ExpressionWalker.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/__tests__/RequireInclude.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/3-Render/codegen/RequireInclude.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/__tests__/RequirementProbeInvariant.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/3-Render/codegen/RequirementProbeInvariant.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/__tests__/SubscriptDepthValidation.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/3-Render/codegen/SubscriptDepthValidation.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/__tests__/TrackVariableTypeHelpers.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/3-Render/codegen/TrackVariableTypeHelpers.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/__tests__/TypeValidator.resolution.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/3-Render/codegen/TypeValidator.resolution.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/__tests__/TypeValidator.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/3-Render/codegen/TypeValidator.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/analysis/__tests__/MemberChainAnalyzer.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/3-Render/codegen/analysis/MemberChainAnalyzer.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/generators/statements/__tests__/AtomicGenerator.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/3-Render/codegen/generators/statements/AtomicGenerator.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/__tests__/CodeGenWalker.coverage.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/CodeGenWalker.coverage.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/__tests__/CodeGenWalker.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/CodeGenWalker.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/__tests__/ProgramGeneration.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/ProgramGeneration.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/__tests__/TranspileState.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/TranspileState.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/WRITE/1-Write/__tests__/Write.test.ts",
+    to: "src/cli/__tests__/cnx/WRITE/1-Write/Write.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/utils/__tests__/ElementCount.test.ts",
+    to: "src/cli/__tests__/cnx/utils/ElementCount.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/utils/__tests__/ForeignTypeFacts.operandType.test.ts",
+    to: "src/cli/__tests__/cnx/utils/ForeignTypeFacts.operandType.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/utils/__tests__/ForeignTypeFacts.test.ts",
+    to: "src/cli/__tests__/cnx/utils/ForeignTypeFacts.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/utils/__tests__/OperandTyper.test.ts",
+    to: "src/cli/__tests__/cnx/utils/OperandTyper.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/utils/__tests__/ScopeGraphSerializable.test.ts",
+    to: "src/cli/__tests__/cnx/utils/ScopeGraphSerializable.test.ts",
+    because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/utils/__tests__/TargetToolchain.test.ts",
+    to: "src/cli/__tests__/cnx/utils/TargetToolchain.test.ts",
+    because: HOST_TEST,
   },
 ];
 

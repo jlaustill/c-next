@@ -1,6 +1,6 @@
 # Classification of every `throw` in `src/`
 
-**#1531 widened this from `output/` (now `src/TRANSPILE/3-Render/`) to all of `src/`.** #1322 had
+**#1531 widened this from `output/` (now `src/cnx/TRANSPILE/3-Render/`) to all of `src/`.** #1322 had
 emptied `output/` of rejections, and the user-facing throws left were all outside it, where no
 gate could see them: 1.3 Declare's bitmap-width and negative-enum rules reached the user as `1:0`
 with no code. A throw can be written in any directory, so the corpus is every hand-written,
@@ -81,12 +81,12 @@ the corpus has there. The sum is held to the citations as well, so the rows cove
 #1322's audit split `3-Render/` five ways, and all five are now empty. That history is in the
 bucket sections below, not in this table (#1531):
 
-| area                                                      | sites |
-| --------------------------------------------------------- | ----- |
-| `src/PARSE/` (1.1 Discover, 1.4 Resolve)                  | 3     |
-| `src/TRANSPILE/` (2.1 to 2.3; #1322 emptied `3-Render/`)  | 0     |
-| `src/cli/` (the host; #1443 moved `TargetCatalogFile` in) | 1     |
-| `src/utils/`                                              | 3     |
+| area                                                         | sites |
+| ------------------------------------------------------------ | ----- |
+| `src/cnx/PARSE/` (1.1 Discover, 1.4 Resolve)                 | 3     |
+| `src/cnx/TRANSPILE/` (2.1 to 2.3; #1322 emptied `3-Render/`) | 0     |
+| `src/cli/` (the host; #1443 moved `TargetCatalogFile` in)    | 1     |
+| `src/cnx/utils/`                                             | 3     |
 
 ## Position availability — the finding that shapes #1322
 

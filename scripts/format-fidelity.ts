@@ -38,12 +38,12 @@ import { fileURLToPath } from "node:url";
 import chalk from "chalk";
 import * as prettier from "prettier";
 
-import CNextSourceParser from "../src/PARSE/2-Parse/CNextSourceParser";
+import CNextSourceParser from "../src/cnx/PARSE/2-Parse/CNextSourceParser";
 import Transpiler from "../src/cli/Transpiler";
 
 import FileScanner from "./utils/FileScanner";
 import TestUtils from "./test-utils";
-import NodeFileSystem from "../src/PARSE/1-Discover/NodeFileSystem";
+import NodeFileSystem from "../src/cnx/PARSE/1-Discover/NodeFileSystem";
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const pluginPath = join(rootDir, "prettier-plugin/dist/index.js");

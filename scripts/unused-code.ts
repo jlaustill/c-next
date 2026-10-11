@@ -21,7 +21,7 @@ import { fileURLToPath } from "node:url";
 
 import chalk from "chalk";
 
-import ExecFailure from "../src/utils/ExecFailure";
+import ExecFailure from "../src/cnx/utils/ExecFailure";
 import FileScanner from "./utils/FileScanner";
 import UnusedCode from "./unused-code/UnusedCode";
 

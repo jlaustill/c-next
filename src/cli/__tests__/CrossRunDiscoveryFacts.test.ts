@@ -4,10 +4,10 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 
 import Transpiler from "../Transpiler";
-import ITranspilerConfig from "../../types/ITranspilerConfig";
-import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
-import Discover from "../../PARSE/1-Discover/Discover";
-import type ISourceGraph from "../../PARSE/1-Discover/types/ISourceGraph";
+import ITranspilerConfig from "../../cnx/types/ITranspilerConfig";
+import NodeFileSystem from "../../cnx/PARSE/1-Discover/NodeFileSystem";
+import Discover from "../../cnx/PARSE/1-Discover/Discover";
+import type ISourceGraph from "../../cnx/PARSE/1-Discover/types/ISourceGraph";
 
 /**
  * #1452: 1.1 Discover's include facts must not outlive the run that found them.

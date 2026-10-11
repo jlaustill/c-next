@@ -33,7 +33,7 @@ const CONFIG_PATH = join(__dirname, "..", "..", ".dependency-cruiser.cjs");
 /**
  * The roots a layering claim can be made about.
  *
- * `^src/PARSE/` joined the list when #1472/#1447 moved 1.3 Declare and 1.4
+ * The `PARSE/` root joined the list when #1472/#1447 moved 1.3 Declare and 1.4
  * Resolve out of `src/transpiler/logic/symbols/`. Adding it is not cosmetic:
  * with only the transpiler root here, a rule about the pass tree is not
  * RECOGNIZED as a layering claim, so it could ship without `reachable: true`
@@ -41,8 +41,8 @@ const CONFIG_PATH = join(__dirname, "..", "..", ".dependency-cruiser.cjs");
  * That is #1297 one level up, and it is the failure the move itself would
  * otherwise have caused in silence.
  *
- * `^src/TRANSPILE/` joined it with #1449, and it did not join quietly: adding
- * `^src/TRANSPILE/` to an existing rule's `from` dropped that rule OUT of this
+ * The `TRANSPILE/` root joined it with #1449, and it did not join quietly: adding
+ * the `TRANSPILE/` root to an existing rule's `from` dropped that rule OUT of this
  * set, because a rule counts only when BOTH ends name a known root. The count
  * assertion below went 7 -> 6 and said so. That is the mechanism working -- an
  * unrecognized root does not weaken one rule, it removes the rule from every
@@ -52,14 +52,14 @@ const CONFIG_PATH = join(__dirname, "..", "..", ".dependency-cruiser.cjs");
  * Case matters: the filesystem is case-sensitive, `TRANSPILE` is a layer and
  * `transpiler` is the pre-move tree, and neither pattern matches the other.
  */
-// #1322 added `^src/TRANSPILE/`, and the omission was not cosmetic: with 2.1
+// #1322 added the `TRANSPILE/` root, and the omission was not cosmetic: with 2.1
 // Analyze standing up under it, `isLayerRule` stopped recognizing
 // `nothing-after-resolve-derives-cross-file-facts` the moment its `from` named
 // a TRANSPILE path, and the three new pass-ordering rules were never
 // recognized at all -- so all four could have shipped without `reachable: true`
 // while this file passed over them. That is the #1297 shape one level up, and
 // it is what these tests exist to catch.
-// #1452 added `^src/instrumentation/`, and the omission had the same shape the
+// #1452 added the `instrumentation/` root, and the omission had the same shape the
 // paragraph above describes: `instrumentation-cannot-import-a-layer` shipped
 // with a `from` no root recognized, so `isLayerRule` skipped it and neither the
 // transitivity assertion nor the roster below covered it. Verified by mutation
@@ -71,18 +71,18 @@ const CONFIG_PATH = join(__dirname, "..", "..", ".dependency-cruiser.cjs");
 // #1443 removed `^src/transpiler/`: the directory is gone, and a root that can
 // match nothing only widens what `isLayerRule` would accept.
 const LAYER_ROOTS = [
-  "^src/PARSE/",
-  "^src/TRANSPILE/",
-  "^src/instrumentation/",
+  "^src/cnx/PARSE/",
+  "^src/cnx/TRANSPILE/",
+  "^src/cnx/instrumentation/",
   // 3.1 Write. It had no modules until #1653 created `WRITE/1-Write/Write.ts`,
   // and was a forward reference until then (see `FORWARD_REFERENCES`).
-  "^src/WRITE/",
+  "^src/cnx/WRITE/",
   // §1's shared-contracts root. #1853 moved the shared types here out of
   // `src/transpiler/types/`, which `^src/transpiler/` had covered, and
   // re-keyed `shared-contracts-cannot-import-a-pass` to it. With no root here
   // that rule dropped out of every assertion in this file at once -- the
   // roster below said so, 14 -> 13, exactly as it did for #1449.
-  "^src/types/",
+  "^src/cnx/types/",
 ];
 
 interface IRuleEnd {
@@ -153,7 +153,7 @@ const splitTopLevelAlternation = (path: string): string[] => {
 /**
  * A path pattern's alternatives, each as a pattern of its own.
  *
- * `^src/(PARSE|TRANSPILE|WRITE)/` is one regex that matches `src/PARSE/...`, so
+ * `^src/cnx/(PARSE|TRANSPILE|WRITE)/` is one regex that matches `src/cnx/PARSE/...`, so
  * testing it whole reports it live while `WRITE` inside it matches nothing. That
  * is the dead-path defect one level down, and the assertion below could not see
  * it: a fourth root added and mis-spelled inside an alternation would silently
@@ -214,7 +214,7 @@ const isLayerRule = (rule: IRule): boolean => {
   if (from.length === 0 || to.length === 0) return false;
 
   // Through `expandAlternations`, because a rule end may be written as one
-  // pattern with alternatives -- `^src/(PARSE|TRANSPILE|WRITE)/` starts with no
+  // pattern with alternatives -- `^src/cnx/(PARSE|TRANSPILE|WRITE)/` starts with no
   // root, so a `startsWith` over the raw string failed to recognize
   // `instrumentation-cannot-import-a-layer` as a layering claim at all, and it
   // shipped exempt from every assertion in this file.
@@ -246,7 +246,7 @@ const allRules = (): IRule[] => {
  * Listed rather than tolerated by the gate being unable to see them -- an
  * exemption that is invisible is the shape this file exists to reject, and a
  * list is a thing a reviewer can disagree with. Empty since #1653 created
- * `src/WRITE/1-Write/`, the one it held; an entry that has come to exist
+ * `src/cnx/WRITE/1-Write/`, the one it held; an entry that has come to exist
  * fails `every forward reference is still ahead of the tree` below.
  */
 const FORWARD_REFERENCES: readonly string[] = [];
@@ -276,6 +276,21 @@ describe("dependency-cruiser layer rules (#1297)", () => {
       .map((rule) => rule.name ?? "(unnamed)");
 
     expect(directOnly).toEqual([]);
+  });
+
+  it("holds the host boundary transitively (#1992)", () => {
+    // Named rather than swept in through `LAYER_ROOTS`: adding `^src/cnx/`,
+    // `^src/cli/` and `^src/lib/` there would also catch
+    // `collectors-build-names-from-scopes`, which must stay direct (see the
+    // negative control below). README §1 says nothing in `cnx/`, its tests
+    // included, imports the host, and that is a claim about reachability: a
+    // `cnx/` test reaching `cli/` through a `scripts/` module passed the
+    // direct-only rule at 0 errors.
+    const rule = allRules().find(
+      (candidate) => candidate.name === "transpiler-imports-no-host",
+    );
+
+    expect(rule?.to?.reachable).toBe(true);
   });
 
   it("names every rule it is asserting over", () => {
@@ -358,7 +373,7 @@ describe("dependency-cruiser layer rules (#1297)", () => {
 
   it("does not demand reachability of a rule targeting one module", () => {
     // Negative control. `collectors-build-names-from-scopes` forbids importing
-    // `src/utils/QualifiedCName.ts`; under `reachable: true` it produces seven
+    // `src/cnx/utils/QualifiedCName.ts`; under `reachable: true` it produces seven
     // errors, because every listed directory reaches that module through
     // `utils/`. A test that swept it in would be asking for a config that
     // cannot pass, so the exclusion is asserted rather than left implicit.

@@ -3,14 +3,14 @@
  * ADR-055 Phase 7: Direct TCSymbol → ISymbolInfo conversion (no ISymbol intermediate)
  */
 
-import Discover from "../PARSE/1-Discover/Discover";
-import TreePasses from "../TRANSPILE/1-Analyze/TreePasses";
+import Discover from "../cnx/PARSE/1-Discover/Discover";
+import TreePasses from "../cnx/TRANSPILE/1-Analyze/TreePasses";
 import ISymbolInfo from "./types/ISymbolInfo";
 import IParseWithSymbolsResult from "./types/IParseWithSymbolsResult";
 import TSymbolKind from "./types/TSymbolKind";
-import TCSymbol from "../types/symbols/c/TCSymbol";
+import TCSymbol from "../cnx/types/symbols/c/TCSymbol";
 import SymbolPathUtils from "./utils/SymbolPathUtils";
-import CaughtError from "../utils/CaughtError";
+import CaughtError from "../cnx/utils/CaughtError";
 
 /**
  * Map TCSymbol kind to library TSymbolKind

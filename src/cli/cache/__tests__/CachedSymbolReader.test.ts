@@ -9,10 +9,10 @@
 import { describe, it, expect } from "vitest";
 import CachedSymbolReader from "../CachedSymbolReader";
 import JsonCodec from "../JsonCodec";
-import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
-import ESourceLanguage from "../../../utils/types/ESourceLanguage";
-import TJsonValue from "../../../utils/types/TJsonValue";
-import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
+import SymbolTable from "../../../cnx/PARSE/3-Declare/SymbolTable";
+import ESourceLanguage from "../../../cnx/utils/types/ESourceLanguage";
+import TJsonValue from "../../../cnx/utils/types/TJsonValue";
+import TestSourceSpan from "../../../cnx/types/__testUtils__/testSourceSpan";
 
 const C_FUNCTION = {
   name: "use_handle",
