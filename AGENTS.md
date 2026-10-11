@@ -75,8 +75,8 @@ See `CONTRIBUTING.md` for complete TypeScript coding standards.
 
 ### Pass layout (`src/`)
 
-`src/` is the pass table: one directory per layer, one per pass inside it, numbered in
-the order they run. `docs/architecture/README.md` §1 draws the tree and
+`src/cnx/` is the pass table: one directory per layer, one per pass inside it, numbered in
+the order they run. `src/cli/` and `src/lib/` sit beside it and consume it (#1992). `docs/architecture/README.md` §1 draws the tree and
 `npm run layout:check` fails when `src/` differs from it or a module reaches a later pass
 (#1443). Do not restate the tree here; read it there.
 
