@@ -369,13 +369,31 @@ describe("artifact lifetime (#1445 box 2)", () => {
     () => {
       // The control, and it is load-bearing. Every assertion below is an
       // emptiness claim, and an emptiness claim from a broken scan is
-      // indistinguishable from a true one. 2.1's listeners index parse nodes on
-      // instance fields while they walk -- that is what analysis is -- so the
-      // scan must see them. (The control used to be `Transpiler.retainedParses`,
-      // which #1932 deleted: the host no longer holds a tree.)
-      const control = storedParseNodes(/src\/TRANSPILE\/1-Analyze\//);
+      // indistinguishable from a true one, so the scan must see a class that
+      // holds a parse node on a field. The control used to be production code:
+      // `Transpiler.retainedParses` until #1932 deleted it, then
+      // `NullCheckAnalyzer.currentIfCtx` until #2003 moved 2.1's listeners onto
+      // the lowered tree. Each time the code got better, the control broke. So
+      // the class is written here, in a file the scan reads like any other.
+      const probe = project.createSourceFile(
+        join(repoRoot, "src/TRANSPILE/1-Analyze/ParseNodeHolderProbe.ts"),
+        [
+          'import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";',
+          "class ParseNodeHolderProbe {",
+          "  private held: Parser.IfStatementContext | null = null;",
+          "}",
+          "export default ParseNodeHolderProbe;",
+        ].join("\n"),
+      );
+      try {
+        const control = storedParseNodes(/ParseNodeHolderProbe\.ts$/);
 
-      expect(control.length).toBeGreaterThan(0);
+        expect(control).toEqual([
+          "src/TRANSPILE/1-Analyze/ParseNodeHolderProbe.ts:3 ParseNodeHolderProbe.held",
+        ]);
+      } finally {
+        project.removeSourceFile(probe);
+      }
     },
     WALK_TIMEOUT_MS,
   );
