@@ -266,5 +266,6 @@ None.
   `tests/bugs/issue-1210-bare-intra-scope-call/`,
   `tests/bugs/issue-1244-adr057-scope-member-shadow/`,
   `tests/bugs/issue-1724-sibling-scope-type-not-included/`,
-  `tests/bugs/issue-1290-parameter-shadows-global/`
+  `tests/bugs/issue-1290-parameter-shadows-global/`,
+  `tests/bugs/issue-1994-pointer-local-shadow/`
 - Issue #1290 — a parameter shadowing a file-scope name moves like a local

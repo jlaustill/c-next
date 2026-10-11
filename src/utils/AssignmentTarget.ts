@@ -16,6 +16,8 @@ interface IAssignmentTargetParts {
   readonly identifier: string | null;
   /** The `postfixTargetOp`s after `identifier` */
   readonly ops: readonly TPostfixOpSyntax[];
+  /** The op applied to the root (`IChainHead.rootOp`), or null */
+  readonly rootOp: TPostfixOpSyntax | null;
   readonly position: ISourcePosition;
 }
 
@@ -43,6 +45,7 @@ class AssignmentTarget {
       root: head.root,
       identifier: head.identifier?.name ?? null,
       ops: head.ops.slice(head.opsConsumed),
+      rootOp: head.rootOp,
       position,
     };
   }

@@ -19,6 +19,14 @@ interface IChainHead {
   readonly ops: readonly TPostfixOpSyntax[];
   /** 1 for a `this.`/`global.` root, whose first op is its name; else 0 */
   readonly opsConsumed: number;
+  /**
+   * #1994: the op applied to the chain's root -- the first after the ones the
+   * root consumed -- or null when there is none. Decided once, here: the read
+   * and write paths each carry it onto the ops they plan, so neither re-counts
+   * (a member on the root of a struct parameter or pointer-held local takes
+   * `->`, and a bitmap parameter's field is worked in its whole value).
+   */
+  readonly rootOp: TPostfixOpSyntax | null;
 }
 
 export default IChainHead;

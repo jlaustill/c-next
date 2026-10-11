@@ -32,7 +32,6 @@ class PostfixChainBuilder {
   ): string {
     let result = baseResult;
     const identifierChain: string[] = [firstId];
-    let isFirstOp = true;
 
     for (const op of operations) {
       if (op.memberName) {
@@ -40,14 +39,13 @@ class PostfixChainBuilder {
           result,
           op.memberName,
           identifierChain,
-          isFirstOp,
+          op.appliesToRoot,
           deps,
         );
         identifierChain.push(op.memberName);
       } else {
         result = PostfixChainBuilder.processSubscript(result, op);
       }
-      isFirstOp = false;
     }
 
     return result;

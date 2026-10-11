@@ -1062,13 +1062,15 @@ class Program {
         }),
       );
       const frames = framesByFile.get(sourceFile);
+      invariant(
+        frames !== undefined,
+        `1.4 settled the frames of ${sourceFile}`,
+      );
       const parametersByFunction = new Map<
         string,
         ReadonlyArray<ILocalDeclaration>
       >();
-      if (frames) {
-        Program.collectSettledParameters(frames, parametersByFunction);
-      }
+      Program.collectSettledParameters(frames, parametersByFunction);
       const rebuilt = new Map<TSymbol, TSymbol>();
       const settled = symbols.map((symbol) => {
         if (symbol.kind !== "function") return symbol;
@@ -1126,10 +1128,16 @@ class Program {
     );
     return {
       ...symbol,
-      parameters: symbol.parameters.map((parameter, index) => ({
-        ...parameter,
-        emittedName: emittedLocalName(settled[index]),
-      })),
+      parameters: symbol.parameters.map((parameter, index) => {
+        invariant(
+          settled[index].name === parameter.name,
+          `a function's frame declares its parameters in order (${symbol.fullyQualifiedCName})`,
+        );
+        return {
+          ...parameter,
+          emittedName: emittedLocalName(settled[index]),
+        };
+      }),
     };
   }
 

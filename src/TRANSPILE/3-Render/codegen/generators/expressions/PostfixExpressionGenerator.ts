@@ -223,9 +223,9 @@ const generatePostfixExpression = (
     effects,
   };
 
-  for (const [index, op] of ops.entries()) {
+  for (const op of ops) {
     if (op.kind === "member") {
-      handleMemberOp(op.name, op.step, index === 0, tracking, postfixCtx);
+      handleMemberOp(op.name, op.step, op.appliesToRoot, tracking, postfixCtx);
     } else if (op.kind === "subscript") {
       const subscriptResult = generateSubscriptAccess(
         {
@@ -711,9 +711,10 @@ interface IMemberAccessContext {
   memberName: string;
   rootIdentifier: string | undefined;
   /**
-   * The member is applied to the chain's root, decided by position as the
-   * write path's `isFirstOp` is (#1994): the rendered root is its C name,
-   * which differs from the name as written once ADR-057 moves it
+   * The member is applied to the chain's root: the op's `appliesToRoot`,
+   * decided once by the chain head as the write path's is (#1994), not by
+   * comparing text -- the rendered root is its C name, which differs from the
+   * name as written once ADR-057 moves it
    */
   isRootOp: boolean;
   /** #1969: the parameter the root binds to where it is written */

@@ -32,6 +32,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 }
 
 // test-execution
+// test-adr: 057
 // #1290 review: ADR-006 renders each parameter kind through its own path --
 // a struct by pointer (`->`), a `string<N>` as `char*`, a bitmap by pointer,
 // a by-reference scalar as `*p` / `T&` -- and each must use the parameter's

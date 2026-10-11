@@ -1,4 +1,5 @@
 // test-execution
+// test-adr: 057
 // #1994: a local held through a pointer (a C function's `T*` result stored
 // in a declared `T`, #895) that shadows a file-scope name moves to
 // `<function>__<name>` (ADR-057). Its member read took `.` on the pointer

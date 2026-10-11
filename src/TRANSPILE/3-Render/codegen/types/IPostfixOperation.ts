@@ -14,6 +14,9 @@ interface IPostfixOperation {
   /** Member name if this is a member access */
   memberName: string | null;
 
+  /** #1994: it is the chain head's `rootOp`, as the read path's is */
+  appliesToRoot: boolean;
+
   /** How many subscript expressions this operation carries: 0, 1 or 2. */
   indexCount: number;
 

@@ -88,8 +88,7 @@ class ParameterDereferenceResolver {
   /**
    * Resolve a parameter identifier, applying dereference if needed
    *
-   * @param id The parameter identifier
-   * @param paramInfo Parameter information
+   * @param parameter The bound parameter, with the C name it is emitted under
    * @param deps Dependencies for resolution
    * @returns The resolved identifier (possibly with dereference)
    */
@@ -97,21 +96,22 @@ class ParameterDereferenceResolver {
     parameter: IBoundParameter,
     deps: IParameterDereferenceDeps,
   ): string {
-    const { info: paramInfo, emittedName: id } = parameter;
+    const paramInfo = parameter.info;
+    const emittedName = parameter.emittedName;
     if (ParameterDereferenceResolver.isPassByValue(paramInfo, deps)) {
-      return id;
+      return emittedName;
     }
 
     // Issue #895: Callback-compatible primitives need dereferencing when
     // used as values (assignments, comparisons) because the C-Next type
     // (e.g., u8) became a pointer (uint8_t*) to match the callback typedef.
     if (paramInfo.forcePointerSemantics) {
-      return `(*${id})`;
+      return `(*${emittedName})`;
     }
 
     // Known primitive that is pass-by-reference needs dereference
     // Issue #558/#644: In C++ mode, primitives become references
-    return deps.maybeDereference(id);
+    return deps.maybeDereference(emittedName);
   }
 }
 

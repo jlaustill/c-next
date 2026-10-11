@@ -519,7 +519,7 @@ class CodeGenWalker {
     const steps = chain.steps;
     const offset = head.opsConsumed;
     const plannedOps = ops.map((op, i) =>
-      this.planPostfixOp(op, steps[i - offset] ?? null),
+      this.planPostfixOp(op, steps[i - offset] ?? null, head.rootOp),
     );
 
     return {
@@ -562,11 +562,17 @@ class CodeGenWalker {
   private planPostfixOp(
     op: TPostfixOpSyntax,
     step: IChainStep | null,
+    rootOp: TPostfixOpSyntax | null,
   ): TPlannedPostfixOp {
     const typedAs = step?.subscript ?? null;
     switch (op.kind) {
       case "member":
-        return { kind: "member", name: op.name, step };
+        return {
+          kind: "member",
+          name: op.name,
+          appliesToRoot: op === rootOp,
+          step,
+        };
       case "subscript": {
         const indexes = op.indexes;
         // Issue #1094: the final index is the WIDTH on the two-index arm, and
@@ -1117,7 +1123,7 @@ class CodeGenWalker {
     }
 
     // SonarCloud S3776: Use PostfixChainBuilder for postfix operations
-    const operations = this._extractPostfixOperations(postfixOps);
+    const operations = this._extractPostfixOperations(postfixOps, parts.rootOp);
     const postfixDeps = this._buildPostfixChainDeps(
       firstId,
       parameter?.info,
@@ -2440,8 +2446,13 @@ class CodeGenWalker {
           param.isArray,
           functionsAsTypes,
         );
+        // #1290 review: the typedef names a parameter as its prototype does
+        invariant(
+          param.emittedName !== null,
+          `1.4 settled the C name of ${cName}'s parameter ${param.name}`,
+        );
         return {
-          name: param.name,
+          name: param.emittedName,
           ...shape,
           isConst: CodeGenWalker.typedefParamIsConst(
             cName,
@@ -4264,11 +4275,13 @@ class CodeGenWalker {
    */
   private _extractPostfixOperations(
     postfixOps: readonly TPostfixOpSyntax[],
+    rootOp: TPostfixOpSyntax | null,
   ): IPostfixOperation[] {
     return postfixOps.map((op) => {
       const expressions = op.kind === "subscript" ? op.indexes : [];
       return {
         memberName: op.kind === "member" ? op.name : null,
+        appliesToRoot: op === rootOp,
         indexCount: expressions.length,
         // #1652: the nodes stay closed over HERE, in the walk. What crosses
         // into the render layer is a count and a function returning strings.
