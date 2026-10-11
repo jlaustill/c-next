@@ -698,6 +698,15 @@ all four contexts at one file relationship, so between them they occupy the
 whole grid. The condition this table recorded has been met, so the cells are
 promoted.
 
+The grid has no axis for how the division spells the const, and #1268 sat in
+that gap: the check read only a literal or a bare name, so `n / this.ZERO`,
+`n / global.ZERO` and `n / Scope.ZERO` emitted a literal `n / 0` while every
+cell was occupied. The divisor now goes through the one constant evaluator, and
+a float const through the declaration the chain typer binds, so each spelling
+means the declaration ADR-057 names. `tests/bugs/issue-1268-qualified-zero-const/`
+covers each spelling, same-file and imported, with nonzero same-named consts in
+the other scope as controls.
+
 The two provider-side relationships carry no declaration: `.expected.error`
 holds no file path, so occupancy for them is not derivable and the report
 renders them `n/a` rather than counting them empty.
