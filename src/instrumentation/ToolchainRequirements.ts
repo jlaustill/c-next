@@ -65,8 +65,8 @@ class ToolchainRequirements {
   private static recorded: Map<TRequirementKey, IRequirementSite[]> = new Map();
 
   /**
-   * Source sites for emissions DEFERRED to assembleGeneratedOutput -- clamp
-   * helpers, IRQ wrappers, float asserts. Keyed by the request that triggered
+   * Source sites for emissions DEFERRED to assembleGeneratedOutput -- IRQ
+   * wrappers and float asserts. Keyed by the request that triggered
    * the deferral ("irq_wrappers", "float_static_assert").
    *
    * Kept separate from `recorded` because at request time the code has not been
@@ -89,14 +89,7 @@ class ToolchainRequirements {
     key: TRequirementKey,
     sites: readonly IRequirementSite[] = [],
   ): void {
-    const existing = this.recorded.get(key);
-    if (existing === undefined) {
-      this.recorded.set(key, [...sites]);
-      return;
-    }
-    for (const site of sites) {
-      RequirementSites.addUnique(existing, site);
-    }
+    RequirementSites.accumulate(this.recorded, key, sites);
   }
 
   /**
@@ -108,13 +101,9 @@ class ToolchainRequirements {
     sourcePath: string,
     line: number | null,
   ): void {
-    const site: IRequirementSite = { sourcePath, line };
-    const existing = this.deferred.get(requestKey);
-    if (existing === undefined) {
-      this.deferred.set(requestKey, [site]);
-      return;
-    }
-    RequirementSites.addUnique(existing, site);
+    RequirementSites.accumulate(this.deferred, requestKey, [
+      { sourcePath, line },
+    ]);
   }
 
   /** Sites recorded for a deferred emission. */

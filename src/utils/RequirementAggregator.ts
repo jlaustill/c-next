@@ -34,14 +34,7 @@ class RequirementAggregator {
 
     for (const list of lists) {
       for (const entry of list) {
-        const sites = merged.get(entry.key);
-        if (sites === undefined) {
-          merged.set(entry.key, [...entry.sites]);
-          continue;
-        }
-        for (const site of entry.sites) {
-          RequirementSites.addUnique(sites, site);
-        }
+        RequirementSites.accumulate(merged, entry.key, entry.sites);
       }
     }
 

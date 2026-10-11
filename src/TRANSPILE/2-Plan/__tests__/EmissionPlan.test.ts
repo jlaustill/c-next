@@ -175,6 +175,29 @@ describe("EmissionPlan (2.2 Plan)", () => {
       ]);
     });
 
+    // The facts' site lists are 1.x-era accumulators that can still grow; a
+    // site noted after the decision must not join a block it did not cause.
+    it("keeps the sites as decided when the facts' lists grow later", () => {
+      const early = { sourcePath: "a.cnx", line: 3 };
+      const irqWrapperSites = [early];
+      const floatAssertSites = [early];
+      const plan = EmissionPlan.build(
+        facts({
+          needsIrqWrappers: true,
+          irqWrapperSites,
+          needsFloatStaticAssert: true,
+          floatAssertSites,
+        }),
+      );
+
+      irqWrapperSites.push({ sourcePath: "a.cnx", line: 9 });
+      floatAssertSites.push({ sourcePath: "a.cnx", line: 9 });
+
+      for (const entry of EmissionPlan.requirements(plan)) {
+        expect(entry.sites).toEqual([early]);
+      }
+    });
+
     it("is empty when the plan has no block that costs anything", () => {
       expect(EmissionPlan.requirements(EmissionPlan.build(NOTHING))).toEqual(
         [],

@@ -181,4 +181,17 @@ describe("RequirementAggregator.union (#1928: one file's list)", () => {
 
     expect(union[0]!.sites).toEqual([site]);
   });
+
+  // The first list seen for a key used to go in as given, repeats and all, so
+  // the answer depended on which list came first.
+  it("drops repeats in the first list for a key too, so list order cannot matter", () => {
+    const s = { sourcePath: "a.cnx", line: 4 };
+    const twice = { key: "baseline-c" as const, sites: [s, s] };
+    const empty = { key: "baseline-c" as const, sites: [] };
+
+    expect(RequirementAggregator.union([[twice]])[0]!.sites).toEqual([s]);
+    expect(RequirementAggregator.union([[empty], [twice]])[0]!.sites).toEqual([
+      s,
+    ]);
+  });
 });

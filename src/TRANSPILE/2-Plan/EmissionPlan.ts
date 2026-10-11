@@ -108,17 +108,20 @@ class EmissionPlan {
   }
 
   /**
-   * One accessor per planned block, keyed by its `IEmissionPlan` field. A
-   * block added to the plan and not listed here fails to compile, instead of
-   * rendering with its cost missing from the banner -- #1143's failure.
+   * Every `IEmissionPlan` field that holds a planned block, nullable or
+   * optional. A block added to the plan and not listed here fails to compile,
+   * instead of rendering with its cost missing from the banner -- #1143's
+   * failure.
    */
   private static readonly PLANNED_BLOCKS: {
-    readonly [K in keyof IEmissionPlan as IEmissionPlan[K] extends IPlannedBlock | null
+    readonly [K in keyof IEmissionPlan as NonNullable<
+      IEmissionPlan[K]
+    > extends IPlannedBlock
       ? K
-      : never]: (plan: IEmissionPlan) => IPlannedBlock | null;
+      : never]-?: true;
   } = {
-    floatStaticAssert: (plan) => plan.floatStaticAssert,
-    irqWrappers: (plan) => plan.irqWrappers,
+    floatStaticAssert: true,
+    irqWrappers: true,
   };
 
   /**
@@ -126,8 +129,11 @@ class EmissionPlan {
    * for its block. A view of decisions already in the plan, not a new one.
    */
   static requirements(plan: IEmissionPlan): readonly IRecordedRequirement[] {
-    return Object.values(EmissionPlan.PLANNED_BLOCKS).flatMap((blockOf) => {
-      const block = blockOf(plan);
+    const fields = Object.keys(
+      EmissionPlan.PLANNED_BLOCKS,
+    ) as (keyof typeof EmissionPlan.PLANNED_BLOCKS)[];
+    return fields.flatMap((field) => {
+      const block = plan[field] ?? null;
       return block === null
         ? []
         : block.requirements.map((key) => ({ key, sites: block.sites }));
@@ -179,7 +185,7 @@ class EmissionPlan {
     return {
       keyword: facts.cppMode ? "static_assert" : "_Static_assert",
       requirements: [facts.cppMode ? "float-assert-cpp11" : "float-assert-c11"],
-      sites: facts.floatAssertSites,
+      sites: [...facts.floatAssertSites],
     };
   }
 
@@ -191,7 +197,7 @@ class EmissionPlan {
     return {
       keyword: null,
       requirements: IRQ_WRAPPER_REQUIREMENTS,
-      sites: facts.irqWrapperSites,
+      sites: [...facts.irqWrapperSites],
     };
   }
 }
