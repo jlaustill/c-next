@@ -10,7 +10,7 @@
 import { describe, expect, it } from "vitest";
 import TransitiveEnumCollector from "../TransitiveEnumCollector";
 import ICodeGenSymbols from "../../../types/ICodeGenSymbols";
-import createMockSymbols from "../../../../cli/__tests__/codeGenSymbolsHelpers";
+import createMockSymbols from "../../../types/__testUtils__/codeGenSymbolsHelpers";
 
 describe("TransitiveEnumCollector", () => {
   /** `{ a: ["b"] }` → a includes b. */

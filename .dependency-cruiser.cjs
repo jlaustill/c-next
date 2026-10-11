@@ -311,8 +311,10 @@ module.exports = {
       comment:
         "#1992: `cnx/` is the transpiler, and `cli/` and `lib/` consume it " +
         "(owner direction 2026-10-11, #1313). A consumer imports what it " +
-        "consumes, never the reverse.",
-      from: { path: "^src/cnx/", pathNot: "(__tests__|__testUtils__)" },
+        "consumes, never the reverse. Tests are not exempt (owner ruling " +
+        "2026-10-11): a test that needs the host composes passes, so it " +
+        "lives beside the host.",
+      from: { path: "^src/cnx/" },
       to: { path: "^src/(cli|lib)/" },
     },
     {

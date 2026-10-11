@@ -124,7 +124,7 @@ There are no bare files at either level: an entry point lives inside the root it
   under another name, which the paragraph below forbids.
 - **Host** -- `cli/` and `lib/`, beside `cnx/` rather than inside it. Outside the three
   layers, and the only place allowed to construct the pipeline. They consume the
-  transpiler, so nothing in `cnx/` imports them. Each is entered through its own `index.ts`: the command-line
+  transpiler, so nothing in `cnx/`, its tests included, imports them. Each is entered through its own `index.ts`: the command-line
   tool and the library are separate concerns and do not share a starting point.
 - **Instrumentation** -- `instrumentation/`. Records facts about the RUN, never about the
   program: where an ADR's rule fired, which toolchain features a run's Render emitters
