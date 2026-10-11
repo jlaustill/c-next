@@ -1,6 +1,7 @@
 import type IBaseSymbol from "./IBaseSymbol";
 import type TType from "../TType";
 import type TConstExpr from "../TConstExpr";
+import type TOverflowBehavior from "../TOverflowBehavior";
 
 /**
  * Symbol representing one field of a struct.
@@ -26,6 +27,12 @@ interface IStructFieldSymbol extends IBaseSymbol {
 
   /** Whether this field is atomic (volatile in C) */
   readonly isAtomic: boolean;
+
+  /**
+   * ADR-044: the field's own `clamp`/`wrap`, `clamp` when it has none -- the
+   * same rule as a variable's (#1411).
+   */
+  readonly overflowBehavior: TOverflowBehavior;
 
   /** Whether this field is an array */
   readonly isArray: boolean;

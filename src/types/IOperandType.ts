@@ -82,8 +82,9 @@ interface IOperandType {
   /** The bitmap's C name, for a whole bitmap value */
   readonly bitmapTypeName: string | null;
   /**
-   * ADR-044 overflow behavior -- ONLY for a whole named variable, parameter
-   * or member. A field, element or call result carries none.
+   * ADR-044 overflow behavior: a named variable's, parameter's or member's,
+   * a struct field's own (#1411), or an element's array's (#1887). A call
+   * result carries none.
    */
   readonly overflow: TOverflowBehavior | null;
   /** Evaluating it calls a function, or reads a volatile or atomic declaration */

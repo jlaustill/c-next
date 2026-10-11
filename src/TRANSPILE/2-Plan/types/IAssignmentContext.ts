@@ -205,6 +205,9 @@ interface IAssignmentContext {
 
   /** True if this is global.member with no further postfix ops */
   readonly isSimpleGlobalAccess: boolean;
+
+  /** An index in the target calls a function or reads a volatile (#1887) */
+  readonly targetIndexHasSideEffect: boolean;
 }
 
 export default IAssignmentContext;

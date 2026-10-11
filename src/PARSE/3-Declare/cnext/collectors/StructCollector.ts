@@ -16,6 +16,7 @@ import ScopeUtils from "../../../../utils/ScopeUtils";
 import TVisibility from "../../../../types/TVisibility";
 import ParserUtils from "../../../../utils/ParserUtils";
 import MemberSymbolBase from "../utils/MemberSymbolBase";
+import OverflowBehaviorUtils from "../../../../utils/OverflowBehaviorUtils";
 import type ISourceSpan from "../../../../types/ISourceSpan";
 
 /**
@@ -258,6 +259,9 @@ class StructCollector {
       type: fieldType,
       isConst,
       isAtomic,
+      overflowBehavior: OverflowBehaviorUtils.fromModifier(
+        member.overflowModifier(),
+      ),
       isArray,
       dimensions:
         dimensions.length > 0 ? dimensions.map((dim) => dim.size) : undefined,

@@ -36,6 +36,10 @@ struct UARTConfig {
 }
 ```
 
+A field may carry an overflow modifier (`wrap u8 checksum;`). Its meaning and
+default are [ADR-044](adr-044-primitive-types.md#struct-fields-and-array-elements)'s,
+not restated here.
+
 ### Declaration and Initialization
 
 ```cnx
@@ -382,7 +386,7 @@ structDeclaration
     ;
 
 structMember
-    : type IDENTIFIER ';'
+    : overflowModifier? type IDENTIFIER arrayDimension* ';'   // modifier: ADR-044
     ;
 
 structInitializer

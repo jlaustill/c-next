@@ -172,7 +172,7 @@ function generatePrimaskWrapper(
  * @param value - The value expression
  * @param typeInfo - Type information for the target
  * @param clampOp - ADR-044 helper operation from
- *   `AssignmentClassifier.compoundClampOp`, or null for plain arithmetic
+ *   `AssignmentClassifier.compoundClamp`, or null for plain arithmetic
  * @param targetDescription - The target this file is generated for
  * @returns Generated code and effects
  */
