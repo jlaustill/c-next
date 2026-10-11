@@ -441,10 +441,15 @@ function printStructDeclaration(cursor: ChildCursor): Doc {
 }
 
 function printStructMember(cursor: ChildCursor): Doc {
+  const parts: Doc[] = [];
+  const modifiers = cursor.takeWhileAnyRule([
+    CNextParser.RULE_overflowModifier,
+  ]);
+  for (const modifier of modifiers) parts.push(modifier.doc, " ");
   const type = cursor.take();
   const name = cursor.take();
   const dimensions = printDimensions(cursor, CNextParser.RULE_arrayDimension);
-  return [type, " ", name, ...dimensions, cursor.take()];
+  return [...parts, type, " ", name, ...dimensions, cursor.take()];
 }
 
 function printEnumDeclaration(cursor: ChildCursor): Doc {

@@ -336,6 +336,34 @@ u8 normalVar <- 0;           // Default: clamp (safe)
 | `wrap`  | Two's complement wrap-around | Counters, checksums, timing, hashing             |
 | (none)  | Default to `clamp`           | Most variables                                   |
 
+#### Struct fields and array elements
+
+A struct field takes the same modifier, in the same place, with the same
+default (#1411, owner ruling 2026-10-11). An array element has its array's
+behavior (#1887). Every rule in this ADR about "the value" holds for a field
+and an element exactly as for a variable:
+
+```cnx
+struct Reading {
+    u8 level;          // clamp (default)
+    clamp u8 peak;     // clamp
+    wrap u8 checksum;  // wraps
+}
+
+Reading r <- {level: 250, peak: 250, checksum: 250};
+r.level <- r.level + 10;   // 255
+r.checksum +<- 10;         // 4
+
+wrap u8[4] ring;
+ring[0] +<- 10;            // wraps, as `ring` does
+u8[4] levels <- [250, 250, 250, 250];
+levels[1] +<- 10;          // 255
+```
+
+The field's modifier is its own: it does not come from the struct variable it
+is reached through. A clamping compound assignment evaluates its target once,
+so `levels[next()] +<- 10` calls `next()` once, as `+=` does in C.
+
 #### Scope: expressions, not just compound assignment
 
 The modifier governs **every arithmetic operation on the value**, not only

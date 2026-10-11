@@ -130,6 +130,17 @@ u32 x <- 5;`;
 `;
       expect(await format(input)).toBe(expected);
     });
+
+    it("keeps a field's overflow modifier (#1411)", async () => {
+      const input = "struct Reading{u8 level;clamp u8 peak;wrap u8[2] sums;}";
+      const expected = `struct Reading {
+    u8 level;
+    clamp u8 peak;
+    wrap u8[2] sums;
+}
+`;
+      expect(await format(input)).toBe(expected);
+    });
   });
 
   describe("Enums", () => {

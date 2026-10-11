@@ -1221,6 +1221,7 @@ class OperandTyper {
             LengthProperty.fieldDimensions(field.type, field.dimensions ?? []),
             ctx,
           ),
+          overflow: field.overflowBehavior,
           hasSideEffect: t.hasSideEffect,
         },
       };
@@ -1370,8 +1371,8 @@ class OperandTyper {
               register: false,
               t: {
                 ...t,
+                // ADR-044: an element is declared by its array (#1887)
                 dimensions: t.dimensions.slice(1),
-                overflow: null,
                 binding: null,
                 form: DECLARED,
                 ...keep,

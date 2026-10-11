@@ -554,7 +554,7 @@ describe("AssignmentClassifier - Special Compound", () => {
   });
 });
 
-describe("AssignmentClassifier.compoundClampOp (#1668)", () => {
+describe("AssignmentClassifier.compoundClamp (#1668)", () => {
   it.each([
     ["clamp u32 +=", "u32", "clamp", "+=", false, "add"],
     ["clamp i8 -=", "i8", "clamp", "-=", false, "sub"],
@@ -565,16 +565,24 @@ describe("AssignmentClassifier.compoundClampOp (#1668)", () => {
     ["division, which has no helper", "u32", "clamp", "/=", false, null],
     ["a bitwise operator", "u32", "clamp", "&=", false, null],
   ])("%s", (_label, baseType, overflowBehavior, cOp, floating, expected) => {
-    const ctx = createMockContext(new TranspileState(), {
-      cOp,
-      valueHasFloatingOperand: () => floating,
-    });
     const typeInfo = createTypeInfo({
       baseType,
       overflowBehavior: overflowBehavior as "clamp" | "wrap",
     });
+    const ctx = createMockContext(new TranspileState(), {
+      cOp,
+      valueHasFloatingOperand: () => floating,
+      target: {
+        root: null,
+        rootTypeInfo: typeInfo,
+        typeInfo,
+        last: undefined,
+      },
+    });
 
-    expect(AssignmentClassifier.compoundClampOp(ctx, typeInfo)).toBe(expected);
+    expect(AssignmentClassifier.compoundClamp(ctx)?.operation ?? null).toBe(
+      expected,
+    );
   });
 });
 

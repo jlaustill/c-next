@@ -315,6 +315,17 @@ counter +<- 1;                  // Wraps at UINT32_MAX
 u16 temperature <- 0;
 temperature -<- 100;            // Clamps to 0, not 65436!
 
+// Struct fields carry their own modifier; array elements follow their array
+struct Packet {
+    u8 level;                   // clamp (default)
+    wrap u8 checksum;           // wrap
+}
+Packet pkt <- { level: 250, checksum: 250 };
+pkt.level +<- 10;               // 255
+pkt.checksum +<- 10;            // 4
+u8[2] levels <- [250, 250];
+levels[0] +<- 10;               // 255
+
 // =============================================================================
 // 9. BIT MANIPULATION
 // =============================================================================

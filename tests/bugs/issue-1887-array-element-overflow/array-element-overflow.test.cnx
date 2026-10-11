@@ -1,0 +1,167 @@
+// test-execution
+// test-adr: 044
+// Issue #1887: ADR-044's clamp was dropped for array elements.
+// `levels[1] +<- 10` and `levels[0] <- levels[0] + 10` on a u8 element at 250
+// emitted plain C and wrapped to 4.
+//
+// An element takes its overflow modifier from the array's declaration:
+// `u8[2]` and `clamp u8[2]` elements clamp, and `wrap u8[2]` elements wrap.
+//
+// Execution test, not a snapshot: the defect IS the emitted code, so a snapshot
+// would have pinned the wrapping form as correct.
+//
+// The `wrap` arrays are negative controls. They guard the opposite failure: a
+// fix that clamped every element regardless of its declared modifier would
+// pass every clamp assertion and still be wrong.
+
+#include "declarations.cnx"
+
+u8[2] globalLevels <- [250, 250];
+wrap u8[2] globalWrapped <- [250, 250];
+
+struct Packet {
+    u8[2] bytes;
+}
+
+scope Tank {
+    public u32 calls <- 0;
+    public u8[2] levels <- [250, 250];
+    public wrap u8[2] wrapped <- [250, 250];
+
+    public u32 nextIndex() {
+        this.calls +<- 1;
+        return 0;
+    }
+
+    public void bumpViaThis() {
+        this.levels[0] +<- 10;
+        this.levels[1] <- this.levels[1] + 10;
+        this.wrapped[0] +<- 10;
+    }
+
+    public void bumpViaGlobal() {
+        global.globalLevels[0] +<- 10;
+        global.globalLevels[1] <- global.globalLevels[1] + 10;
+        global.globalWrapped[0] +<- 10;
+    }
+}
+
+i32 main() {
+    // --- Local array: compound and expression assignment. ---
+    u8[2] levels <- [250, 250];
+    levels[1] +<- 10;
+    if (levels[1] != 255) {
+        return 1;
+    }
+    levels[0] <- levels[0] + 10;
+    if (levels[0] != 255) {
+        return 2;
+    }
+
+    clamp u8[2] explicitLevels <- [250, 250];
+    explicitLevels[0] +<- 10;
+    if (explicitLevels[0] != 255) {
+        return 3;
+    }
+
+    // --- Negative control: a wrap array's elements still wrap. ---
+    wrap u8[2] wrapped <- [250, 250];
+    wrapped[1] +<- 10;
+    if (wrapped[1] != 4) {
+        return 4;
+    }
+    wrapped[0] <- wrapped[0] + 10;
+    if (wrapped[0] != 4) {
+        return 5;
+    }
+
+    // --- Subtraction saturates at the other end. ---
+    u8[2] low <- [5, 5];
+    low[0] -<- 10;
+    if (low[0] != 0) {
+        return 6;
+    }
+    low[1] <- low[1] - 10;
+    if (low[1] != 0) {
+        return 7;
+    }
+
+    // --- Multi-dimensional elements, with a runtime index. ---
+    u8[2][2] grid <- [[250, 250], [250, 250]];
+    u32 i <- 1;
+    u32 j <- 0;
+    grid[i][j] +<- 10;
+    if (grid[i][j] != 255) {
+        return 8;
+    }
+    grid[0][1] <- grid[0][1] + 10;
+    if (grid[0][1] != 255) {
+        return 9;
+    }
+    wrap u8[2][2] wrappedGrid <- [[250, 250], [250, 250]];
+    wrappedGrid[i][j] +<- 10;
+    if (wrappedGrid[i][j] != 4) {
+        return 10;
+    }
+
+    // --- this. targets. ---
+    Tank.bumpViaThis();
+    if (Tank.levels[0] != 255) {
+        return 11;
+    }
+    if (Tank.levels[1] != 255) {
+        return 12;
+    }
+    if (Tank.wrapped[0] != 4) {
+        return 13;
+    }
+
+    // --- global. targets. ---
+    Tank.bumpViaGlobal();
+    if (globalLevels[0] != 255) {
+        return 14;
+    }
+    if (globalLevels[1] != 255) {
+        return 15;
+    }
+    if (globalWrapped[0] != 4) {
+        return 16;
+    }
+
+    // --- An array field of a struct. ---
+    Packet p <- { bytes: [250, 250] };
+    p.bytes[0] +<- 10;
+    if (p.bytes[0] != 255) {
+        return 17;
+    }
+
+    // --- Cross-file: the same statements on arrays from an include. ---
+    importedLevels[1] +<- 10;
+    if (importedLevels[1] != 255) {
+        return 18;
+    }
+    importedLevels[0] <- importedLevels[0] + 10;
+    if (importedLevels[0] != 255) {
+        return 19;
+    }
+    importedWrapped[0] +<- 10;
+    if (importedWrapped[0] != 4) {
+        return 20;
+    }
+    importedGrid[i][j] +<- 10;
+    if (importedGrid[i][j] != 255) {
+        return 21;
+    }
+
+    // --- An index with a side effect runs once, as `+=` ran it. ---
+    u8[2] once <- [250, 250];
+    once[Tank.nextIndex()] +<- 10;
+    if (once[0] != 255) {
+        return 22;
+    }
+    if (Tank.calls != 1) {
+        return 23;
+    }
+
+    return 0;
+}

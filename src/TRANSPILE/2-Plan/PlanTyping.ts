@@ -41,11 +41,11 @@ class PlanTyping {
    * saturate (#231's bounds guards). Null when no leaf is counted, and the
    * expression is left alone.
    *
-   * A leaf counts only when it is a whole named variable -- an element, a
-   * field or a call result has no declared behavior of its own (#1411, #1703
-   * stay out). A parameter (#1681) and a `for` variable (#1667) count by
-   * their declarations like any local: a parameter has no modifier in the
-   * grammar, so it clamps.
+   * A leaf counts when it is a declared value: a named variable, a struct
+   * field (its own modifier, #1411) or an array element (its array's, #1887).
+   * A call result has no declared behavior (#1703 stays out). A parameter
+   * (#1681) and a `for` variable (#1667) count by their declarations like any
+   * local: a parameter has no modifier in the grammar, so it clamps.
    */
   static overflowOf(
     leaves: ReadonlyArray<IOperandType | null>,
@@ -64,7 +64,8 @@ class PlanTyping {
   private static countedBehavior(
     leaf: IOperandType | null,
   ): TOverflowBehavior | null | undefined {
-    if (!leaf?.binding) return undefined;
+    if (leaf === null) return undefined;
+    if (!leaf.binding && leaf.overflow === null) return undefined;
     if (leaf.category !== "signed" && leaf.category !== "unsigned") {
       return undefined;
     }

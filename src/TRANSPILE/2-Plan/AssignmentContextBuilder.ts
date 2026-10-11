@@ -301,6 +301,9 @@ function buildAssignmentContext(
     isSimpleIdentifier,
     isSimpleThisAccess,
     isSimpleGlobalAccess,
+    targetIndexHasSideEffect: subscripts.some((expr) =>
+      OperandTyper.hasSideEffect(expr, deps.state.typingContext()),
+    ),
   };
 }
 

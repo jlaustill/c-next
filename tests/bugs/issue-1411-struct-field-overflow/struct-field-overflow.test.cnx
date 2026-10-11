@@ -1,0 +1,97 @@
+// test-execution
+// test-adr: 044
+// Issue #1411: ADR-044's clamp was dropped for every struct field.
+// `p.x <- p.x + 10` on a u8 field at 250 emitted plain C and wrapped to 4.
+//
+// Owner ruling 2026-10-11: a field carries its own overflow modifier, the same
+// as a variable. `u8 x;` and `clamp u8 x;` clamp, and `wrap u8 x;` wraps.
+//
+// Execution test, not a snapshot: the defect IS the emitted code, so a snapshot
+// would have pinned the wrapping form as correct.
+//
+// The `wrap` fields are negative controls. They guard the opposite failure: a
+// fix that clamped every field regardless of its declared modifier would pass
+// every clamp assertion and still be wrong.
+
+#include "declarations.cnx"
+
+struct Reading {
+    u8 level;
+    clamp u8 explicitLevel;
+    wrap u8 checksum;
+}
+
+struct Station {
+    Reading inner;
+}
+
+i32 main() {
+    // --- Same-file struct: expression assignment. ---
+    Reading r <- { level: 250, explicitLevel: 250, checksum: 250 };
+    r.level <- r.level + 10;
+    if (r.level != 255) {
+        return 1;
+    }
+    r.explicitLevel <- r.explicitLevel + 10;
+    if (r.explicitLevel != 255) {
+        return 2;
+    }
+    r.checksum <- r.checksum + 10;
+    if (r.checksum != 4) {
+        return 3;
+    }
+
+    // --- Same-file struct: compound assignment. ---
+    Reading c <- { level: 250, explicitLevel: 250, checksum: 250 };
+    c.level +<- 10;
+    if (c.level != 255) {
+        return 4;
+    }
+    c.explicitLevel +<- 10;
+    if (c.explicitLevel != 255) {
+        return 5;
+    }
+    c.checksum +<- 10;
+    if (c.checksum != 4) {
+        return 6;
+    }
+
+    // --- Subtraction saturates at the other end. ---
+    Reading low <- { level: 5, explicitLevel: 5, checksum: 5 };
+    low.level <- low.level - 10;
+    if (low.level != 0) {
+        return 7;
+    }
+    low.checksum -<- 10;
+    if (low.checksum != 251) {
+        return 8;
+    }
+
+    // --- A field reached through a nested struct. ---
+    Station s <- { inner: { level: 250, explicitLevel: 250, checksum: 250 } };
+    s.inner.level <- s.inner.level + 10;
+    if (s.inner.level != 255) {
+        return 9;
+    }
+    s.inner.checksum +<- 10;
+    if (s.inner.checksum != 4) {
+        return 10;
+    }
+
+    // --- Cross-file: the same statements on a struct from an include. ---
+    ImportedReading i <- { level: 250, explicitLevel: 250, checksum: 250 };
+    i.level <- i.level + 10;
+    if (i.level != 255) {
+        return 11;
+    }
+    i.explicitLevel +<- 10;
+    if (i.explicitLevel != 255) {
+        return 12;
+    }
+    i.checksum <- i.checksum + 10;
+    if (i.checksum != 4) {
+        return 13;
+    }
+
+    return 0;
+}
