@@ -54,7 +54,6 @@ describe("ArgumentGenerator", () => {
 
         const result = ArgumentGenerator.handleIdentifierArg(
           "cfg",
-          "cfg",
           state.currentParameters.get("cfg"),
           declared.get("cfg"),
           state,
@@ -74,7 +73,6 @@ describe("ArgumentGenerator", () => {
 
         const result = ArgumentGenerator.handleIdentifierArg(
           "buffer",
-          "buffer",
           state.currentParameters.get("buffer"),
           declared.get("buffer"),
           state,
@@ -93,7 +91,6 @@ describe("ArgumentGenerator", () => {
         });
 
         const result = ArgumentGenerator.handleIdentifierArg(
-          "globalArr",
           "globalArr",
           state.currentParameters.get("globalArr"),
           declared.get("globalArr"),
@@ -120,7 +117,6 @@ describe("ArgumentGenerator", () => {
 
         const result = ArgumentGenerator.handleIdentifierArg(
           "name",
-          "name",
           state.currentParameters.get("name"),
           declared.get("name"),
           state,
@@ -136,7 +132,6 @@ describe("ArgumentGenerator", () => {
         state.cppMode = false;
 
         const result = ArgumentGenerator.handleIdentifierArg(
-          "brightness",
           "LED__brightness",
           state.currentParameters.get("brightness"),
           declared.get("brightness"),
@@ -149,7 +144,6 @@ describe("ArgumentGenerator", () => {
         state.cppMode = true;
 
         const result = ArgumentGenerator.handleIdentifierArg(
-          "brightness",
           "LED__brightness",
           state.currentParameters.get("brightness"),
           declared.get("brightness"),
@@ -164,7 +158,6 @@ describe("ArgumentGenerator", () => {
         state.cppMode = false;
 
         const result = ArgumentGenerator.handleIdentifierArg(
-          "x",
           "g__x",
           state.currentParameters.get("x"),
           declared.get("x"),
@@ -182,7 +175,6 @@ describe("ArgumentGenerator", () => {
         });
 
         const result = ArgumentGenerator.handleIdentifierArg(
-          "buf",
           "main__buf",
           state.currentParameters.get("buf"),
           declared.get("buf"),
@@ -198,7 +190,6 @@ describe("ArgumentGenerator", () => {
 
         const result = ArgumentGenerator.handleIdentifierArg(
           "value",
-          "value",
           state.currentParameters.get("value"),
           declared.get("value"),
           state,
@@ -210,7 +201,6 @@ describe("ArgumentGenerator", () => {
         state.cppMode = true;
 
         const result = ArgumentGenerator.handleIdentifierArg(
-          "value",
           "value",
           state.currentParameters.get("value"),
           declared.get("value"),
@@ -514,7 +504,6 @@ describe("ArgumentGenerator", () => {
 
       const result = ArgumentGenerator.generateArg(
         {
-          id: "value",
           emitted: "value",
           parameter: state.currentParameters.get("value"),
         },
@@ -542,7 +531,6 @@ describe("ArgumentGenerator", () => {
 
       const result = ArgumentGenerator.generateArg(
         {
-          id: "cfg",
           emitted: "cfg",
           parameter: state.currentParameters.get("cfg"),
         },

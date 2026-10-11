@@ -832,14 +832,12 @@ class CodeGenWalker {
    * through `TypeValidator.resolveBareIdentifier`.
    */
   private boundArgumentName(expr: TExpression): {
-    readonly id: string;
     readonly emitted: string;
     readonly parameter: TParameterInfo | undefined;
   } | null {
     const id = ExpressionShape.simpleIdentifier(expr);
     if (id === null) return null;
     return {
-      id,
       emitted: this.boundName(id, CodeGenWalker.positionOf(expr)),
       parameter: this.host.state.parameterAt(
         id,
