@@ -140,7 +140,7 @@ the order they run. `src/cli/` and `src/lib/` sit beside it and consume it (#199
 
 ### Unit Test File Location
 
-Place TypeScript unit tests in `__tests__/` directories adjacent to the module:
+Place TypeScript unit tests in `__tests__/` directories adjacent to the module. The one exception is a test of a `src/cnx/` module that reaches `src/cli/` or `src/lib/`; see "Unit Tests" in `CLAUDE.md` (#1992):
 
 - `src/cli/cache/CacheManager.ts` → `src/cli/cache/__tests__/CacheManager.test.ts`
 - `src/cli/cache/CacheKeyGenerator.ts` → `src/cli/cache/__tests__/CacheKeyGenerator.test.ts`

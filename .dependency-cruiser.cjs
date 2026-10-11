@@ -271,7 +271,7 @@ module.exports = {
     {
       name: "shared-contracts-cannot-import-a-pass",
       comment:
-        "`src/cnx/types/` (`transpiler/types/` until #1853) is what CLAUDE.md and " +
+        "The shared `types/` root (`transpiler/types/` until #1853) is what CLAUDE.md and " +
         "this file both call the " +
         "place EVERY layer may depend on, and until now that was prose with " +
         "nothing behind it. A contract that imports a pass root drags the pass " +
@@ -315,7 +315,7 @@ module.exports = {
         "2026-10-11): a test that needs the host composes passes, so it " +
         "lives beside the host.",
       from: { path: "^src/cnx/" },
-      to: { path: "^src/(cli|lib)/" },
+      to: { path: "^src/(cli|lib)/", reachable: true },
     },
     {
       name: "instrumentation-cannot-import-a-layer",
@@ -371,7 +371,7 @@ module.exports = {
         "pipeline reached it through seven modules that defaulted the port. " +
         "The host constructs the port, so it reaches node:fs through it by " +
         "design and is exempt here; `host-reads-through-the-port` forbids it " +
-        "the direct import. #1444 moved the port into src/cnx/PARSE/1-Discover/ " +
+        "the direct import. #1444 moved the port into PARSE/1-Discover/ " +
         "and re-keyed this exemption in the same commit; layer-rules.test.ts " +
         "checks that every pathNot still names a file, so a stale one cannot " +
         "linger.",

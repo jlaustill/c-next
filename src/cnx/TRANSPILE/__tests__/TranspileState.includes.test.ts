@@ -54,7 +54,7 @@ describe("TranspileState", () => {
     // ToolchainRequirements.takeDeferredSites is called for
     // float_static_assert and irq_wrappers alone.
     //
-    // #1452 moved the sink to src/cnx/instrumentation/, so the observation is made
+    // #1452 moved the sink to instrumentation/, so the observation is made
     // there. The subject is still this funnel: requireInclude decides which
     // headers defer, and that decision is what these four rows pin.
     it.each([

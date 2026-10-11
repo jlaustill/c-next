@@ -675,9 +675,11 @@ E0424 is a 2.1 Analyze diagnostic since #1322, and render asserts it never sees 
   struct fields are derived by 1.4 Resolve and read as
   `context.program.externalStructFields()`. Use
   `context.symbols.functionReturnTypes` for the ADR-029 function-as-type fact
-- **Analyzer test isolation**: build the context, not the state. Both helpers live in
-  `src/cnx/TRANSPILE/1-Analyze/__tests__/`, the one place allowed to read a
-  `TranspileState` into a context. `testAnalysisContextFor(source)` runs the real
+- **Analyzer test isolation**: build the context, not the state. `testAnalysisContext`
+  lives in `src/cnx/TRANSPILE/1-Analyze/__tests__/`, the one place allowed to read a
+  `TranspileState` into a context. `testAnalysisContextFor`, which needs the host's
+  target catalog, lives in `src/cli/__tests__/cnx/TRANSPILE/1-Analyze/` (#1992).
+  `testAnalysisContextFor(source)` runs the real
   1.3 and 1.4 on the source and returns a context with a settled `program`; use it
   for anything that types an operand or binds a name. `testAnalysisContext(state)`
   reads the facts a test set on a `TranspileState` and stands an
@@ -734,7 +736,10 @@ generator (#1489 deleted the one that duplicated this).
 
 ### Unit Tests
 
-- Location: `__tests__/` adjacent to module (e.g., `src/cli/cache/__tests__/CacheManager.test.ts`)
+- Location: `__tests__/` adjacent to module (e.g., `src/cli/cache/__tests__/CacheManager.test.ts`).
+  The exception is a test of a `src/cnx/` module that reaches `src/cli/` or `src/lib/`. It lives at
+  `src/cli/__tests__/cnx/<the module's path under cnx/>`, because nothing in `cnx/`, tests included,
+  imports the host (#1992; `transpiler-imports-no-host`)
 - Parser imports: `import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser.js"`
 - Direct parsing: `CNextSourceParser.parse(source)` when you just need AST
 - **Mock types**: `TTypeInfo` needs `baseType`, `bitWidth`, `isArray`, `isConst`; `TParameterInfo` needs `name`, `baseType`, `isArray`, `isStruct`, `isConst`, `isCallback`, `isString`

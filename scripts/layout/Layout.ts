@@ -11,7 +11,9 @@ const TREE_HEADING = "### The layout is the pass table";
 const ORDER_RULE = /-reads-no-later-pass$/;
 
 /**
- * Tests sit beside what they test (`lint:test-location`), so a layer may
+ * Tests sit beside what they test (`lint:test-location`), except a test of a
+ * `cnx/` module that reaches the host, which lives at
+ * `cli/__tests__/cnx/<its subject's path under cnx/>` (#1992). So a layer may
  * hold a `__tests__/` beside its passes. `src/` and `cnx/` may not: a test
  * there would be a test of a bare file, and there are none.
  */
@@ -213,8 +215,8 @@ class Layout {
   }
 
   /**
-   * The layers: directories the tree lists children for, none of them a
-   * directory. `cnx/` lists the layers, so it holds layers and is not one.
+   * The layers: directories the tree lists children for that hold no other
+   * such directory. `cnx/` lists the layers, so it holds layers and is not one.
    */
   private static layers(tree: readonly string[]): string[] {
     const parents = Layout.parents(tree);

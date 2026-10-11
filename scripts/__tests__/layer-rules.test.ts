@@ -33,7 +33,7 @@ const CONFIG_PATH = join(__dirname, "..", "..", ".dependency-cruiser.cjs");
 /**
  * The roots a layering claim can be made about.
  *
- * `^src/cnx/PARSE/` joined the list when #1472/#1447 moved 1.3 Declare and 1.4
+ * The `PARSE/` root joined the list when #1472/#1447 moved 1.3 Declare and 1.4
  * Resolve out of `src/transpiler/logic/symbols/`. Adding it is not cosmetic:
  * with only the transpiler root here, a rule about the pass tree is not
  * RECOGNIZED as a layering claim, so it could ship without `reachable: true`
@@ -41,8 +41,8 @@ const CONFIG_PATH = join(__dirname, "..", "..", ".dependency-cruiser.cjs");
  * That is #1297 one level up, and it is the failure the move itself would
  * otherwise have caused in silence.
  *
- * `^src/cnx/TRANSPILE/` joined it with #1449, and it did not join quietly: adding
- * `^src/cnx/TRANSPILE/` to an existing rule's `from` dropped that rule OUT of this
+ * The `TRANSPILE/` root joined it with #1449, and it did not join quietly: adding
+ * the `TRANSPILE/` root to an existing rule's `from` dropped that rule OUT of this
  * set, because a rule counts only when BOTH ends name a known root. The count
  * assertion below went 7 -> 6 and said so. That is the mechanism working -- an
  * unrecognized root does not weaken one rule, it removes the rule from every
@@ -52,14 +52,14 @@ const CONFIG_PATH = join(__dirname, "..", "..", ".dependency-cruiser.cjs");
  * Case matters: the filesystem is case-sensitive, `TRANSPILE` is a layer and
  * `transpiler` is the pre-move tree, and neither pattern matches the other.
  */
-// #1322 added `^src/cnx/TRANSPILE/`, and the omission was not cosmetic: with 2.1
+// #1322 added the `TRANSPILE/` root, and the omission was not cosmetic: with 2.1
 // Analyze standing up under it, `isLayerRule` stopped recognizing
 // `nothing-after-resolve-derives-cross-file-facts` the moment its `from` named
 // a TRANSPILE path, and the three new pass-ordering rules were never
 // recognized at all -- so all four could have shipped without `reachable: true`
 // while this file passed over them. That is the #1297 shape one level up, and
 // it is what these tests exist to catch.
-// #1452 added `^src/cnx/instrumentation/`, and the omission had the same shape the
+// #1452 added the `instrumentation/` root, and the omission had the same shape the
 // paragraph above describes: `instrumentation-cannot-import-a-layer` shipped
 // with a `from` no root recognized, so `isLayerRule` skipped it and neither the
 // transitivity assertion nor the roster below covered it. Verified by mutation
@@ -276,6 +276,21 @@ describe("dependency-cruiser layer rules (#1297)", () => {
       .map((rule) => rule.name ?? "(unnamed)");
 
     expect(directOnly).toEqual([]);
+  });
+
+  it("holds the host boundary transitively (#1992)", () => {
+    // Named rather than swept in through `LAYER_ROOTS`: adding `^src/cnx/`,
+    // `^src/cli/` and `^src/lib/` there would also catch
+    // `collectors-build-names-from-scopes`, which must stay direct (see the
+    // negative control below). README §1 says nothing in `cnx/`, its tests
+    // included, imports the host, and that is a claim about reachability: a
+    // `cnx/` test reaching `cli/` through a `scripts/` module passed the
+    // direct-only rule at 0 errors.
+    const rule = allRules().find(
+      (candidate) => candidate.name === "transpiler-imports-no-host",
+    );
+
+    expect(rule?.to?.reachable).toBe(true);
   });
 
   it("names every rule it is asserting over", () => {

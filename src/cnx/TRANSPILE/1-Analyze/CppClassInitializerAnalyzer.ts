@@ -38,7 +38,7 @@
  * `CodeGenWalker.generate()` -- measured `false` for a run's first file and the
  * PREVIOUS file's value afterwards. The symbol
  * table is filled in stage 2 and is correct here; `CppConstructorHelper` was
- * moved to `src/cnx/utils/` because asking it is a symbol-model question, and 2.1
+ * moved to the shared `utils/` root because asking it is a symbol-model question, and 2.1
  * may not import `output/`.
  */
 

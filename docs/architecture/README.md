@@ -114,7 +114,7 @@ fills. Each still has a place in the pass order: the state comes after 2.1 Analy
 may not reach it (#1456), and before 2.2; the walker comes after 2.3. A layer holds its
 passes and, beside them, only what the tree draws.
 
-**Every child of `src/` and of `src/cnx/` is a directory, and is one of four kinds.**
+**Every child of `src/` and of `src/cnx/` is a directory, and each except `cnx/` itself is one of four kinds.**
 `src/` holds the transpiler, `cnx/`, and its hosts; every other kind lives inside `cnx/`.
 There are no bare files at either level: an entry point lives inside the root it starts.
 

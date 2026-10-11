@@ -42,7 +42,7 @@
  * and not editable. The exclusion is narrow (generated grammar directories
  * only) and, per the #1556 lesson, its POPULATION IS ASSERTED: an `ignore` that
  * quietly stops matching invents a clean result rather than hiding a dirty one.
- * If the grammar moves again -- it moved to `src/cnx/PARSE/2-Parse/` in #1445 -- the
+ * If the grammar moves again -- it moved to `PARSE/2-Parse/` in #1445 -- the
  * control below fails and says so, instead of the exclusion covering nothing.
  *
  * Measured on `19bbc516`: 364 files scanned, 6 hits, all of them `__ATN`.
@@ -65,7 +65,7 @@ const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
  * about the PASSES -- and instrumentation is scanned below with its holders
  * named -- so sharing one list would be false sharing, not deduplication.
  *
- * `src/cnx/WRITE` joined with #1443: 3.1 Write had existed since #1653 and is a
+ * The `WRITE/` layer joined with #1443: 3.1 Write had existed since #1653 and is a
  * pass, but this list predated it, so a mutable static in `Write` was outside
  * every root this guard scans.
  */
@@ -74,7 +74,7 @@ const PASS_ROOTS = ["src/cnx/PARSE", "src/cnx/TRANSPILE", "src/cnx/WRITE"];
 /**
  * Scanned alongside the pass roots, with its four holders listed below.
  *
- * `src/cnx/instrumentation/` did not exist when this file was written, and #1452
+ * The `instrumentation/` root did not exist when this file was written, and #1452
  * created it -- so the four mutable statics this card RELOCATED there sat
  * outside every root this guard scans. The box-4 guard could not fail on the
  * state the box is about, which is the shape the header above spends its length

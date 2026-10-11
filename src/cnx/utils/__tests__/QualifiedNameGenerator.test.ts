@@ -242,7 +242,7 @@ describe("QualifiedNameGenerator", () => {
    * only inside `output/`, and only outside the one module that delegates to it.
    */
   describe("is the only scope-qualification door in the render pass", () => {
-    // #1445 box 3: the owner moved to `src/cnx/utils/`, so it is no longer INSIDE
+    // #1445 box 3: the owner moved to the shared `utils/` root, so it is no longer INSIDE
     // the population this scans. The exclusion is kept anyway rather than
     // deleted -- it costs nothing and the scan is over a directory the module
     // could be moved back into.

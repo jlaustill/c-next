@@ -430,9 +430,8 @@ describe("artifact lifetime (#1445 box 2)", () => {
     () => {
       // The pattern is ALL of `src/` minus the two directories that may hold a
       // tree, because a check scoped to where holders were already known cannot
-      // find one anywhere else. It used to read
-      // `src/transpiler/|src/cnx/TRANSPILE/CodeGenWalker.ts$` -- one directory plus
-      // one file -- so `src/cli/` was outside it, and `ServeCommand` sat unlisted.
+      // find one anywhere else. It used to name
+      // one directory, `src/transpiler/`, plus the walker's file -- so `src/cli/` was outside it, and `ServeCommand` sat unlisted.
       // Found by review. `parse-tree-sites.md` reports modules that NAME a parse
       // type, and `ServeCommand` names none -- transitive reach is precisely what
       // this file exists to catch.

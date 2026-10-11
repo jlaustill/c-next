@@ -125,7 +125,7 @@ class TranspileState {
    * this file need <string.h>?" gets exactly one recorded answer, so changing
    * how that answer is REPRESENTED is one edit rather than one per writer.
    *
-   * #1452 moved the requirement half to `src/cnx/instrumentation/`, so the two no
+   * #1452 moved the requirement half to `instrumentation/`, so the two no
    * longer sit beside each other. They are still one decision made once -- this
    * method is the only caller of `noteDeferredSite`, and the deferral keys below
    * are the only ones it can produce.
@@ -540,7 +540,7 @@ class TranspileState {
    * typed to the method subset they use (ICodeGenApi).
    *
    * #1297 moved `ICodeGenApi` out of `output/` into the shared types root, which
-   * both sides may depend on, and #1653 moved it on to `src/cnx/TRANSPILE/types/`,
+   * both sides may depend on, and #1653 moved it on to `TRANSPILE/types/`,
    * since only TRANSPILE names it. The previous note here argued the edge
    * was harmless because it was `import type` and CodeGenState already imported
    * siblings from `output/codegen/types` -- but that was the whole problem:
