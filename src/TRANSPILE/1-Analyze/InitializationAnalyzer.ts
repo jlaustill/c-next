@@ -150,6 +150,12 @@ class InitializationListener extends CNextListener {
     ctx: Parser.AssignmentStatementContext,
   ): void => {
     const targetCtx = ctx.assignmentTarget();
+    // #2001: `global.x` is a file-scope variable, always initialized, and
+    // `this.x` a scope member, settled up front by _findAssignedScopeMembers
+    // (#1019). Neither is a local, even one spelled the same that shadows it.
+    if (targetCtx.GLOBAL() !== null || targetCtx.THIS() !== null) {
+      return;
+    }
     const baseId = targetCtx.IDENTIFIER()?.getText();
     const postfixOps = targetCtx.postfixTargetOp();
 
@@ -621,9 +627,19 @@ class InitializationAnalyzer {
     const target = assignStmt.assignmentTarget();
     if (!target) return;
 
-    // Both bare identifier and this.member use the same IDENTIFIER token
+    // #2001: `global.x` is never the scope's member, and a bare `x` is not
+    // one where a local or parameter of that name binds it
+    if (target.GLOBAL() !== null) return;
     const id = target.IDENTIFIER()?.getText();
-    if (id) {
+    if (!id) return;
+    const bindsLocal =
+      target.THIS() === null &&
+      this.context.program.lexicalDeclarationAt(
+        this.context.sourceFile,
+        id,
+        ParserUtils.getPosition(target),
+      ) !== null;
+    if (!bindsLocal) {
       assigned.add(id);
     }
   }

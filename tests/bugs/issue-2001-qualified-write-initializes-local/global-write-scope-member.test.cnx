@@ -1,0 +1,17 @@
+// test-error
+// test-adr: 057
+// #2001: `global.count <- 2` writes the file-scope `count`, so it does not
+// initialize the scope member of the same name
+u32 count <- 1;
+
+scope S {
+    u32 count;
+
+    public void f() {
+        global.count <- 2;
+    }
+
+    public u32 g() {
+        return count;
+    }
+}

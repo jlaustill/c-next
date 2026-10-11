@@ -785,8 +785,10 @@ describe("InitializationAnalyzer", () => {
           LED.on();
         }
       `;
-      const tree = parse(code);
-      const analyzer = new InitializationAnalyzer(testAnalysisContext(state));
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
+      const analyzer = new InitializationAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -807,8 +809,10 @@ describe("InitializationAnalyzer", () => {
           System.init();
         }
       `;
-      const tree = parse(code);
-      const analyzer = new InitializationAnalyzer(testAnalysisContext(state));
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
+      const analyzer = new InitializationAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -1058,8 +1062,10 @@ describe("InitializationAnalyzer", () => {
           u32 v <- S.get();
         }
       `;
-      const tree = parse(code);
-      const analyzer = new InitializationAnalyzer(testAnalysisContext(state));
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
+      const analyzer = new InitializationAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
       // value is assigned in init(), so get() can read it
@@ -1104,8 +1110,10 @@ describe("InitializationAnalyzer", () => {
           u32 c <- S.get();
         }
       `;
-      const tree = parse(code);
-      const analyzer = new InitializationAnalyzer(testAnalysisContext(state));
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
+      const analyzer = new InitializationAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
       // count is assigned inside do-while in init()
@@ -1128,8 +1136,10 @@ describe("InitializationAnalyzer", () => {
           u32 v <- S.get();
         }
       `;
-      const tree = parse(code);
-      const analyzer = new InitializationAnalyzer(testAnalysisContext(state));
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
+      const analyzer = new InitializationAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
       // value is assigned in if branch
@@ -1152,8 +1162,10 @@ describe("InitializationAnalyzer", () => {
           u32 t <- S.get();
         }
       `;
-      const tree = parse(code);
-      const analyzer = new InitializationAnalyzer(testAnalysisContext(state));
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
+      const analyzer = new InitializationAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
       // total is assigned in for loop
@@ -1197,8 +1209,10 @@ describe("InitializationAnalyzer", () => {
           u32 r <- S.get();
         }
       `;
-      const tree = parse(code);
-      const analyzer = new InitializationAnalyzer(testAnalysisContext(state));
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
+      const analyzer = new InitializationAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
       // result is assigned in switch cases
@@ -1223,8 +1237,10 @@ describe("InitializationAnalyzer", () => {
           u32 c <- S.get();
         }
       `;
-      const tree = parse(code);
-      const analyzer = new InitializationAnalyzer(testAnalysisContext(state));
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
+      const analyzer = new InitializationAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
       // counter is assigned in while loop
@@ -1248,8 +1264,10 @@ describe("InitializationAnalyzer", () => {
           u32 r <- S.get();
         }
       `;
-      const tree = parse(code);
-      const analyzer = new InitializationAnalyzer(testAnalysisContext(state));
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
+      const analyzer = new InitializationAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
       // result is assigned in default case
