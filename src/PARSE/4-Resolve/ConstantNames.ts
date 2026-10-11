@@ -30,7 +30,6 @@ import type TChainRoot from "../../types/TChainRoot";
 import type TValueBinding from "../../types/TValueBinding";
 import type ISourcePosition from "../../utils/types/ISourcePosition";
 import type TSettledConst from "../../types/TSettledConst";
-import type TSymbol from "../../types/symbols/TSymbol";
 
 type TConstName = Extract<TConstExpr, { kind: "name" }>;
 type TReason = Extract<TConstResult, { kind: "notConstant" }>["reason"];
@@ -323,11 +322,8 @@ class ConstantNames {
     const member = rest[0];
     const more = rest.slice(1);
     if (member === undefined) return ConstantNames.without("scope", walk);
-    const { cName, symbol } = ConstantNames.scopeMember(
-      scopePath,
-      member,
-      walk.facts,
-    );
+    const cName = ScopeUtils.getTranspiledCName({ name: member, scopePath });
+    const symbol = walk.facts.visibleSymbol(cName);
     if (symbol?.kind === "variable") {
       return ConstantNames.ofVariable(symbol, more, walk);
     }
@@ -342,15 +338,6 @@ class ConstantNames {
       symbol.kind === "function" ? "function" : "member",
       walk,
     );
-  }
-  /** What `member` declares in the scope at `scopePath`, by its C name */
-  private static scopeMember(
-    scopePath: string,
-    member: string,
-    facts: IConstantNameFacts,
-  ): { cName: string; symbol: TSymbol | undefined } {
-    const cName = ScopeUtils.getTranspiledCName({ name: member, scopePath });
-    return { cName, symbol: facts.visibleSymbol(cName) };
   }
 
   /**

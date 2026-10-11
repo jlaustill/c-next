@@ -172,8 +172,12 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
-9 linked fixtures with no derivable context:
+13 linked fixtures with no derivable context:
 
+- `bugs/issue-1268-qualified-zero-const/float-cast-bit-width.test.cnx`
+- `bugs/issue-1268-qualified-zero-const/float-cast-const-dimension.test.cnx`
+- `bugs/issue-1268-qualified-zero-const/float-cast-dimension.test.cnx`
+- `bugs/issue-1268-qualified-zero-const/float-cast-enum.test.cnx`
 - `bugs/issue-1668-c-integers/subscript-cpp.test.cnx`
 - `bugs/issue-1668-c-integers/subscript.test.cnx`
 - `bugs/issue-1668-c-integers/unknown-width.test.cnx`

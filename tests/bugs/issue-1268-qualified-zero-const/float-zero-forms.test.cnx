@@ -7,7 +7,10 @@
 // 0.3f32` and `1e-30f32 * 1e-30f32` are each 0.0f, written inline or named.
 //
 // NEGATIVE CONTROLS: ONE_F, (f32)1, HALF_F2 (0.5 - 0.25), and
-// `1e-30f32 * 1e-30` (at f64, 1e-60), each nonzero.
+// `1e-30f32 * 1e-30` (at f64, 1e-60), each nonzero. So are two conversions
+// to f32 that C rounds once and a round through double would round twice
+// onto zero: `1.00000005960464477550f32 - 1.0f32` is 2^-23, and
+// `(f32)(2^60 + 2^36 + 1) - (f32)2^60` is 2^37.
 
 const f32 FZ <- 0.0;
 const f32 FZ2 <- FZ;
@@ -41,5 +44,7 @@ f32 forms(f32 k) {
     f64 m <- k / (1e-30f32 * 1e-30f32);
     f64 o <- k / ROUNDED_F;
     f64 q <- k / (1e-30f32 * 1e-30);
-    return a + b + c + d + e + f + g + h + i + j + l + m + o + q;
+    f32 r <- k / (1.00000005960464477550f32 - 1.0f32);
+    f32 s <- k / ((f32)1152921573326323713u64 - (f32)1152921504606846976u64);
+    return a + b + c + d + e + f + g + h + i + j + l + m + o + q + r + s;
 }

@@ -1,10 +1,4 @@
-25:19 error[E0800]: Division by zero
-       help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
-30:17 error[E0800]: Division by zero
-       help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
-31:17 error[E0800]: Division by zero
-       help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
-32:17 error[E0800]: Division by zero
+28:19 error[E0800]: Division by zero
        help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
 33:17 error[E0800]: Division by zero
        help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
@@ -14,9 +8,15 @@
        help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
 36:17 error[E0800]: Division by zero
        help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
-40:17 error[E0800]: Division by zero
+37:17 error[E0800]: Division by zero
        help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
-41:17 error[E0800]: Division by zero
+38:17 error[E0800]: Division by zero
        help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
-42:17 error[E0800]: Division by zero
+39:17 error[E0800]: Division by zero
+       help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
+43:17 error[E0800]: Division by zero
+       help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
+44:17 error[E0800]: Division by zero
+       help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
+45:17 error[E0800]: Division by zero
        help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety

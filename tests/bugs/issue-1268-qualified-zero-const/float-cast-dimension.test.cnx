@@ -1,0 +1,21 @@
+// test-execution
+// test-adr: 024
+// #1268 review: a float cast to an integer type truncates (ADR-024), so
+// `(u32)2.5` is 2 as an array dimension -- a value fixed at compile time uses
+// the arithmetic every other expression uses (ADR-044). Main rejected it with
+// E0909 "'2.5' is a floating-point value".
+//
+// CONTROL: `(u32)3.99` is 3 -- the cast truncates, it does not round.
+
+u8[(u32)2.5] two;
+u8[(u32)3.99] three;
+
+u32 main() {
+    if (two.element_count != 2) {
+        return 1;
+    }
+    if (three.element_count != 3) {
+        return 2;
+    }
+    return 0;
+}

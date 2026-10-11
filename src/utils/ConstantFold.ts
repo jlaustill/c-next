@@ -122,10 +122,10 @@ class ConstantFold {
   ): TSettledConst {
     const result = ConstantEvaluator.fold(expr, env, typeName);
     if (result.kind !== "value" && result.kind !== "float") return result;
-    const value = ConstantEvaluator.heldFloat(
-      result.kind === "value" ? Number(result.value) : result.value,
-      typeName,
-    );
+    const value =
+      result.kind === "value"
+        ? ConstantEvaluator.integerAsFloat(result.value, typeName)
+        : ConstantEvaluator.heldFloat(result.value, typeName);
     // `String(-0)` is "0"; the sign is the value's
     const digits = Object.is(value, -0) ? "-0" : String(value);
     return { kind: "float", digits, typeName };

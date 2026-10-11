@@ -76,12 +76,17 @@ class DivisionByZeroListener extends CNextListener {
   /**
    * Whether a divisor is a compile-time zero, integer or float alike (ADR-051
    * §4). An enum or Boolean operand is not a number at all -- E0810/E0811 say
-   * so -- so it is not this rule's (#1268 review).
+   * so -- so it is not this rule's, and neither is an operand whose type the
+   * analysis cannot name: `(Nope)0` is the undefined type's error, E0426
+   * (#1268 review).
    */
   private isZero(ctx: Parser.UnaryExpressionContext): boolean {
     const divisor = SyntaxLowering.expressionNode(ctx);
     const numeric = OperandTyper.valueLeaves(divisor, this.context).every(
-      (leaf) => leaf?.enumTypeName == null && leaf?.category !== "boolean",
+      (leaf) =>
+        leaf !== null &&
+        leaf.enumTypeName == null &&
+        leaf.category !== "boolean",
     );
     return (
       numeric &&

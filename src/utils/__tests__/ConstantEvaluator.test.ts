@@ -412,6 +412,56 @@ describe("ConstantEvaluator", () => {
         bin("+", lit("1"), float("0.1f32")),
         Math.fround(1 + Math.fround(0.1)),
       ],
+      // C converts to f32 once; through double it would round twice
+      [
+        "an integer past 2^53 converts to f32 once",
+        bin(
+          "-",
+          cast("f32", lit("1152921573326323713", "u64")),
+          cast("f32", lit("1152921504606846976", "u64")),
+        ),
+        2 ** 37,
+      ],
+      [
+        "a negative integer past 2^53 converts to f32 once",
+        cast("f32", un("-", lit("1152921573326323713", "i64"))),
+        -(2 ** 60 + 2 ** 37),
+      ],
+      [
+        "an integer past 2^53 an f32 holds exactly",
+        cast("f32", lit("1152921504606846976", "u64")),
+        2 ** 60,
+      ],
+      [
+        "an f32 literal just above a midpoint rounds up",
+        bin("-", float("1.00000005960464477550f32"), float("1.0f32")),
+        2 ** -23,
+      ],
+      [
+        "an f32 literal on a midpoint rounds to even",
+        float("1.000000059604644775390625f32"),
+        1,
+      ],
+      [
+        "an f32 literal just below a midpoint rounds down",
+        float("1.0000000596046447753906249999f32"),
+        1,
+      ],
+      [
+        "an f32 literal with an exponent, on a midpoint",
+        float("1000000059604644775390625e-24f32"),
+        1,
+      ],
+      [
+        "an f32 literal with an exponent, above a midpoint",
+        float("100000005960464477550e-20f32"),
+        1 + 2 ** -23,
+      ],
+      [
+        "an f32 literal just below a midpoint, under 1",
+        float("0.50000002980232238769531249f32"),
+        0.5,
+      ],
       // ADR-024: a float cast to an integer type saturates, else truncates
       ["(u32)0.5 truncates", cast("u32", float("0.5")), 0],
       ["(u32)1.5 truncates", cast("u32", float("1.5")), 1],

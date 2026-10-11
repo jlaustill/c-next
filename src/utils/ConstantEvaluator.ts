@@ -154,7 +154,13 @@ class ConstantEvaluator {
     const typeName = width === 32 ? "f32" : "f64";
     return {
       kind: "float",
-      value: ConstantEvaluator.heldFloat(value, typeName),
+      value:
+        typeName === "f32"
+          ? ConstantEvaluator.decimalAsF32(
+              expr.spelling.replace(/[fF]32$/, ""),
+              value,
+            )
+          : value,
       typeName,
       spelling: expr.spelling,
       at: expr.at,
@@ -162,9 +168,67 @@ class ConstantEvaluator {
   }
 
   /**
-   * `left op right` where an operand is a float. Computing in double and
-   * rounding once to `f32` is exactly the `f32` result for `+ - * /`: double
-   * has more than 2 * 24 + 2 bits of precision.
+   * A decimal literal as `f32` holds it: rounded once, as C rounds `1.5f`.
+   * Rounding through double differs from that only where the double lands
+   * exactly on the midpoint between two floats; there the exact decimal says
+   * which side of it the literal is on (#1268 review).
+   */
+  private static decimalAsF32(digits: string, double: number): number {
+    const held = Math.fround(double);
+    const other = 2 * double - held;
+    if (
+      held === double ||
+      !Number.isFinite(held) ||
+      Math.fround(other) !== other
+    ) {
+      return held;
+    }
+    const side = ConstantEvaluator.compareExactly(digits, double);
+    if (side === 0) return held;
+    return side > 0 ? Math.max(held, other) : Math.min(held, other);
+  }
+
+  /** The sign of `digits - double`, both exactly: `digits` is unsigned */
+  private static compareExactly(digits: string, double: number): number {
+    const match = /^(\d+)(?:\.(\d+))?(?:[eE]([+-]?\d+))?$/.exec(digits)!;
+    const fraction = match[2] ?? "";
+    const exponent = Number(match[3] ?? "0") - fraction.length;
+    let scaled = double;
+    let twos = 0;
+    while (!Number.isInteger(scaled)) {
+      scaled *= 2;
+      twos += 1;
+    }
+    let decimal = BigInt(match[1] + fraction) * 2n ** BigInt(twos);
+    let binary = BigInt(scaled);
+    if (exponent >= 0) {
+      decimal *= 10n ** BigInt(exponent);
+    } else {
+      binary *= 10n ** BigInt(-exponent);
+    }
+    if (decimal === binary) return 0;
+    return decimal > binary ? 1 : -1;
+  }
+
+  /**
+   * An integer converted to `typeName` as C converts it: rounded once. A
+   * `number` holds 53 bits, so a wider magnitude is first rounded to odd at
+   * 53 bits, which `fround` then rounds correctly to 24 (#1268 review).
+   */
+  static integerAsFloat(value: bigint, typeName: TFloat["typeName"]): number {
+    if (typeName === "f64") return Number(value);
+    const magnitude = value < 0n ? -value : value;
+    const shift = BigInt(Math.max(0, magnitude.toString(2).length - 53));
+    let top = magnitude >> shift;
+    if (top << shift !== magnitude) top |= 1n;
+    const held = Math.fround(Number(top) * 2 ** Number(shift));
+    return value < 0n ? -held : held;
+  }
+
+  /**
+   * `left op right` where an operand is a float. Computing two `f32` values
+   * in double and rounding once to `f32` is exactly the `f32` result for
+   * `+ - * /`: double has more than 2 * 24 + 2 bits of precision.
    */
   private static floatBinary(
     op: Exclude<TBinary["op"], "&&" | "||">,
@@ -233,7 +297,7 @@ class ConstantEvaluator {
   ): number | null {
     if (operand.kind === "float") return operand.value;
     return operand.kind === "value"
-      ? ConstantEvaluator.heldFloat(Number(operand.value), typeName)
+      ? ConstantEvaluator.integerAsFloat(operand.value, typeName)
       : null;
   }
 
@@ -262,7 +326,7 @@ class ConstantEvaluator {
     }
     const [min, max] = range;
     const bound = (limit: bigint): number =>
-      ConstantEvaluator.heldFloat(Number(limit), operand.typeName);
+      ConstantEvaluator.integerAsFloat(limit, operand.typeName);
     let value: bigint;
     if (operand.value >= bound(max)) {
       value = max;
@@ -321,7 +385,7 @@ class ConstantEvaluator {
       const held = typeName === "f32" ? "f32" : "f64";
       return {
         kind: "float",
-        value: ConstantEvaluator.heldFloat(Number(operand.value), held),
+        value: ConstantEvaluator.integerAsFloat(operand.value, held),
         typeName: held,
         spelling: `(${typeName})`,
         at: null,

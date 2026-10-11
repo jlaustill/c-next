@@ -1,0 +1,14 @@
+// test-adr: 051
+// test-error
+// #1268 review: a divisor cast to a type nothing declares is the undefined
+// type's error (E0426): the analysis cannot say it is a number, so it is not
+// E0800's to judge. Main reported E0426; the stage order this PR set reported
+// E0800 until the divisor rule required a known type for every operand.
+// typed-cast-divisor.test.cnx holds the casts to a known type, which E0800
+// rejects.
+
+u32 f(u32 n) {
+    return n / (Nope)0;
+}
+
+void main() {}

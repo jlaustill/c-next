@@ -1,0 +1,16 @@
+// test-error
+// test-adr: 024
+// #1268 review: a constant index may be a float cast to an integer type,
+// which truncates (ADR-024): `(u32)4.5` is 4, past `u8[4]` (E0854). Main
+// accepted it and read index 4.
+
+u8[4] values;
+u8 sink;
+
+void reads() {
+    // NEGATIVE CONTROL -- `(u32)3.5` is 3, the last valid index.
+    sink <- values[(u32)3.5];
+    sink <- values[(u32)4.5];
+}
+
+void main() {}
