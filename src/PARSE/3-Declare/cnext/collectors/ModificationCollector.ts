@@ -31,6 +31,7 @@ import type TStatement from "../../../../types/syntax/TStatement";
 import ExpressionShape from "../../../../utils/ExpressionShape";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 import StatementChildren from "../../../../utils/StatementChildren";
+import StatementWrites from "../../../../utils/StatementWrites";
 
 /** The function being walked: where its calls and modifications are recorded */
 interface IWalk {
@@ -128,12 +129,10 @@ class ModificationCollector {
     statements: readonly TStatement[],
   ): void {
     for (const statement of statements) {
-      // 1. Check for parameter modifications via assignment targets
-      if (statement.kind === "assignment") {
-        ModificationCollector.trackAssignmentModifications(
-          walk,
-          statement.target,
-        );
+      // 1. Check for parameter modifications via assignment targets, a `for`
+      // header's included (#2010)
+      for (const write of StatementWrites.of(statement)) {
+        ModificationCollector.trackAssignmentModifications(walk, write.target);
       }
 
       // 2. Walk all expressions in this statement for function calls
@@ -180,8 +179,16 @@ class ModificationCollector {
         if (statement.update) expressions.push(statement.update.value);
         return expressions;
       }
-      default:
+      case "constructorDeclaration":
+      case "forever":
+      case "critical":
+      case "block":
+      case "missing":
         return [];
+      default: {
+        const unplaced: never = statement;
+        return unplaced;
+      }
     }
   }
 

@@ -24,6 +24,7 @@ import ScopeUtils from "../../utils/ScopeUtils";
 import ChainRoot from "../../utils/ChainRoot";
 import ExpressionShape from "../../utils/ExpressionShape";
 import StatementChildren from "../../utils/StatementChildren";
+import StatementWrites from "../../utils/StatementWrites";
 import invariant from "../../utils/invariant";
 import type ISourcePosition from "../../utils/types/ISourcePosition";
 import type ILocalDeclaration from "../../types/ILocalDeclaration";
@@ -639,25 +640,23 @@ class InitializationAnalyzer {
   }
 
   /**
-   * Collect assignment from the statement itself (if it's an assignment).
+   * Collect the assignments the statement itself performs: an assignment
+   * statement, or a `for` header's init and update (#2010).
    */
   private _collectDirectAssignment(
     statement: TStatement,
     assigned: Set<TInitKey>,
   ): void {
-    if (statement.kind !== "assignment") return;
-    const head = ExpressionShape.headOf(statement.target);
-    if (!head.identifier) return;
+    for (const { target } of StatementWrites.of(statement)) {
+      const head = ExpressionShape.headOf(target);
+      if (!head.identifier) continue;
 
-    // #2004: what 1.4 binds the target to -- a local, parameter or `for`
-    // variable of the name, or `global.x`, is not this scope's member
-    const key = this.bindingKey(
-      head.root,
-      head.identifier.name,
-      statement.target.span,
-    );
-    if (key !== null) {
-      assigned.add(key);
+      // #2004: what 1.4 binds the target to -- a local, parameter or `for`
+      // variable of the name, or `global.x`, is not this scope's member
+      const key = this.bindingKey(head.root, head.identifier.name, target.span);
+      if (key !== null) {
+        assigned.add(key);
+      }
     }
   }
 
