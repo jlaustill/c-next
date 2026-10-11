@@ -372,7 +372,7 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
-11 linked fixtures with no derivable context:
+12 linked fixtures with no derivable context:
 
 - `adr-057/local-shadows-scope.test.cnx`
 - `adr-057/scope-variable-does-not-capture-type.test.cnx`
@@ -385,6 +385,7 @@ cell is declared by the ADR that owns it.
 - `bugs/issue-1724-sibling-scope-type-not-included/sibling-declared-second.test.cnx`
 - `bugs/issue-1724-sibling-scope-type-not-included/typer-sees-own-closure-error.test.cnx`
 - `bugs/issue-1740-reopened-scope-this-call/this-call-across-files.test.cnx`
+- `bugs/issue-2004-initialization-binds-through-1-4/for-variable-read.test.cnx`
 
 ## ADR-058
 

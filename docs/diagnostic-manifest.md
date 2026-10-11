@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-525 fixture(s) assert a diagnostic; 515 carry a code.
+528 fixture(s) assert a diagnostic; 518 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -461,7 +461,10 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-2001-qualified-write-initializes-local/global-write-local-shadow.test.cnx       | E0381               |
 | tests/bugs/issue-2001-qualified-write-initializes-local/global-write-scope-member.test.cnx       | E0381               |
 | tests/bugs/issue-2001-qualified-write-initializes-local/local-write-scope-member.test.cnx        | E0381               |
+| tests/bugs/issue-2001-qualified-write-initializes-local/parameter-write-scope-member.test.cnx    | E0381               |
 | tests/bugs/issue-2001-qualified-write-initializes-local/this-write-local-shadow.test.cnx         | E0381               |
+| tests/bugs/issue-2004-initialization-binds-through-1-4/for-variable-write-reader-after.test.cnx  | E0381               |
+| tests/bugs/issue-2004-initialization-binds-through-1-4/for-variable-write-reader-before.test.cnx | E0381               |
 | tests/bugs/issue-847-misra-17-7-lowering/bare-intra-scope-discard.test.cnx                       | E0708               |
 | tests/bugs/issue-847-misra-17-7-lowering/cross-file-scope-discard.test.cnx                       | E0708               |
 | tests/bugs/issue-847-misra-17-7-lowering/external-c-discard.test.cnx                             | E0708               |
