@@ -49,7 +49,7 @@ describe("AdrIndependence.scanDocument", () => {
   it.each([
     ["src/transpiler/Transpiler.ts"],
     ["scripts/adr-matrix.ts"],
-    ["src/utils/cache/CacheManager.js"],
+    ["src/cnx/utils/cache/CacheManager.js"],
   ])("flags the source path %s", (path) => {
     const [violation] = scan(`Resolved in \`${path}\` today.`);
     expect(violation).toMatchObject({ kind: "path", detail: path });

@@ -16,25 +16,25 @@ const violation = (from: string, to: string, rule = ParseTreeSites.RULE) => ({
   rule: { name: rule },
 });
 
-const GRAMMAR = "src/PARSE/2-Parse/grammar/CNextParser.ts";
+const GRAMMAR = "src/cnx/PARSE/2-Parse/grammar/CNextParser.ts";
 const RUNTIME = "node_modules/antlr4ng/dist/index.cjs";
 
 describe("ParseTreeSites.sites", () => {
   it("keeps only this rule's violations", () => {
     const sites = ParseTreeSites.sites([
-      violation("src/utils/A.ts", GRAMMAR),
-      violation("src/utils/B.ts", GRAMMAR, "no-circular"),
+      violation("src/cnx/utils/A.ts", GRAMMAR),
+      violation("src/cnx/utils/B.ts", GRAMMAR, "no-circular"),
     ]);
 
-    expect(sites.map((site) => site.module)).toEqual(["src/utils/A.ts"]);
+    expect(sites.map((site) => site.module)).toEqual(["src/cnx/utils/A.ts"]);
   });
 
   it("collapses a module's several edges into one row", () => {
     // The document counts MODULES. Splitting one import into two statements is
     // not the coupling changing, so it must not move the number.
     const sites = ParseTreeSites.sites([
-      violation("src/utils/A.ts", GRAMMAR),
-      violation("src/utils/A.ts", RUNTIME),
+      violation("src/cnx/utils/A.ts", GRAMMAR),
+      violation("src/cnx/utils/A.ts", RUNTIME),
     ]);
 
     expect(sites).toHaveLength(1);
@@ -45,38 +45,38 @@ describe("ParseTreeSites.sites", () => {
     // `includes("antlr4ng")` would classify any repo path containing that
     // string as the runtime; the rule's `to` names the exact shape.
     const decoy = ParseTreeSites.sites([
-      violation("src/utils/A.ts", "src/vendor/antlr4ng-shim/Thing.ts"),
+      violation("src/cnx/utils/A.ts", "src/vendor/antlr4ng-shim/Thing.ts"),
     ]);
 
     expect(decoy[0].holds).toEqual(["grammar"]);
     expect(
-      ParseTreeSites.sites([violation("src/utils/B.ts", RUNTIME)])[0].holds,
+      ParseTreeSites.sites([violation("src/cnx/utils/B.ts", RUNTIME)])[0].holds,
     ).toEqual(["antlr4ng"]);
   });
 
   it("sorts by module so the committed diff is stable", () => {
     const sites = ParseTreeSites.sites([
-      violation("src/utils/B.ts", GRAMMAR),
-      violation("src/utils/A.ts", GRAMMAR),
+      violation("src/cnx/utils/B.ts", GRAMMAR),
+      violation("src/cnx/utils/A.ts", GRAMMAR),
     ]);
 
     expect(sites.map((site) => site.module)).toEqual([
-      "src/utils/A.ts",
-      "src/utils/B.ts",
+      "src/cnx/utils/A.ts",
+      "src/cnx/utils/B.ts",
     ]);
   });
 });
 
 describe("ParseTreeSites.layerOf", () => {
   it("prefers the longest prefix", () => {
-    // The ordering IS the assertion: with `src/TRANSPILE/` tested first, every
+    // The ordering IS the assertion: with `src/cnx/TRANSPILE/` tested first, every
     // render module collapses into the layer's row and the render layer's
     // share -- the number #1317 singles out -- disappears from the document.
-    expect(ParseTreeSites.layerOf("src/TRANSPILE/3-Render/codegen/X.ts")).toBe(
-      "src/TRANSPILE/3-Render/",
-    );
-    expect(ParseTreeSites.layerOf("src/TRANSPILE/CodeGenWalker.ts")).toBe(
-      "src/TRANSPILE/",
+    expect(
+      ParseTreeSites.layerOf("src/cnx/TRANSPILE/3-Render/codegen/X.ts"),
+    ).toBe("src/cnx/TRANSPILE/3-Render/");
+    expect(ParseTreeSites.layerOf("src/cnx/TRANSPILE/CodeGenWalker.ts")).toBe(
+      "src/cnx/TRANSPILE/",
     );
   });
 
@@ -89,7 +89,7 @@ describe("ParseTreeSites.emptinessError", () => {
   it("is silent when the rule matched anything", () => {
     expect(
       ParseTreeSites.emptinessError(
-        ParseTreeSites.sites([violation("src/utils/A.ts", GRAMMAR)]),
+        ParseTreeSites.sites([violation("src/cnx/utils/A.ts", GRAMMAR)]),
       ),
     ).toBeNull();
   });
@@ -109,15 +109,15 @@ describe("ParseTreeSites.emptinessError", () => {
 
 describe("ParseTreeSites.render", () => {
   const sites = ParseTreeSites.sites([
-    violation("src/TRANSPILE/3-Render/A.ts", GRAMMAR),
-    violation("src/utils/B.ts", RUNTIME),
+    violation("src/cnx/TRANSPILE/3-Render/A.ts", GRAMMAR),
+    violation("src/cnx/utils/B.ts", RUNTIME),
   ]);
 
   it("states the total and the per-layer split", () => {
     const document = ParseTreeSites.render(sites);
 
     expect(document).toContain("| **total** | **2** |");
-    expect(document).toContain("| `src/TRANSPILE/3-Render/` | 1 |");
+    expect(document).toContain("| `src/cnx/TRANSPILE/3-Render/` | 1 |");
   });
 
   it("emits no timestamp", () => {
@@ -128,8 +128,8 @@ describe("ParseTreeSites.render", () => {
 
 describe("ParseTreeSites.checkOutcome", () => {
   const sites = ParseTreeSites.sites([
-    violation("src/TRANSPILE/3-Render/A.ts", GRAMMAR),
-    violation("src/utils/B.ts", RUNTIME),
+    violation("src/cnx/TRANSPILE/3-Render/A.ts", GRAMMAR),
+    violation("src/cnx/utils/B.ts", RUNTIME),
   ]);
   const committed = ParseTreeSites.render(sites);
 
@@ -144,8 +144,8 @@ describe("ParseTreeSites.checkOutcome", () => {
     // common width. A parser requiring single spaces fails against the very
     // file the generator wrote.
     const padded = committed.replace(
-      "| `src/utils/B.ts` | antlr4ng |",
-      "| `src/utils/B.ts`   |   antlr4ng   |",
+      "| `src/cnx/utils/B.ts` | antlr4ng |",
+      "| `src/cnx/utils/B.ts`   |   antlr4ng   |",
     );
 
     expect(ParseTreeSites.checkOutcome(padded, sites, padded).ok).toBe(true);
@@ -153,9 +153,9 @@ describe("ParseTreeSites.checkOutcome", () => {
 
   it("fires when a module joins the population", () => {
     const grown = ParseTreeSites.sites([
-      violation("src/TRANSPILE/3-Render/A.ts", GRAMMAR),
-      violation("src/utils/B.ts", RUNTIME),
-      violation("src/TRANSPILE/2-Plan/New.ts", GRAMMAR),
+      violation("src/cnx/TRANSPILE/3-Render/A.ts", GRAMMAR),
+      violation("src/cnx/utils/B.ts", RUNTIME),
+      violation("src/cnx/TRANSPILE/2-Plan/New.ts", GRAMMAR),
     ]);
     const outcome = ParseTreeSites.checkOutcome(
       committed,
@@ -164,7 +164,9 @@ describe("ParseTreeSites.checkOutcome", () => {
     );
 
     expect(outcome.ok).toBe(false);
-    expect(outcome.errors.join("\n")).toContain("src/TRANSPILE/2-Plan/New.ts");
+    expect(outcome.errors.join("\n")).toContain(
+      "src/cnx/TRANSPILE/2-Plan/New.ts",
+    );
   });
 
   it("fires when the baseline is stale because a module left", () => {
@@ -172,7 +174,7 @@ describe("ParseTreeSites.checkOutcome", () => {
     // for free, so the next rise is measured against a number nobody
     // re-derived.
     const shrunk = ParseTreeSites.sites([
-      violation("src/TRANSPILE/3-Render/A.ts", GRAMMAR),
+      violation("src/cnx/TRANSPILE/3-Render/A.ts", GRAMMAR),
     ]);
     const outcome = ParseTreeSites.checkOutcome(
       committed,
@@ -181,7 +183,7 @@ describe("ParseTreeSites.checkOutcome", () => {
     );
 
     expect(outcome.ok).toBe(false);
-    expect(outcome.errors.join("\n")).toContain("src/utils/B.ts");
+    expect(outcome.errors.join("\n")).toContain("src/cnx/utils/B.ts");
   });
 
   it("reports a missing document as a decision, not a CLI branch", () => {
@@ -213,9 +215,9 @@ describe("ParseTreeSites.checkOutcome", () => {
     // makes the document stale as a CONSEQUENCE, so naming a hand edit there
     // points the reader at the wrong cause.
     const grown = ParseTreeSites.sites([
-      violation("src/TRANSPILE/3-Render/A.ts", GRAMMAR),
-      violation("src/utils/B.ts", RUNTIME),
-      violation("src/TRANSPILE/2-Plan/New.ts", GRAMMAR),
+      violation("src/cnx/TRANSPILE/3-Render/A.ts", GRAMMAR),
+      violation("src/cnx/utils/B.ts", RUNTIME),
+      violation("src/cnx/TRANSPILE/2-Plan/New.ts", GRAMMAR),
     ]);
     const outcome = ParseTreeSites.checkOutcome(
       committed,

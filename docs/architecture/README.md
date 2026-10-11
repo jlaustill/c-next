@@ -67,29 +67,31 @@ WRITE       3.1 Write     --> disk
 
 ### The layout is the pass table
 
-The eight passes are eight directories. `src/` holds one directory per layer, each holding
-one per pass, numbered in the order they run -- and beside them, the roots that are not
-passes:
+The eight passes are eight directories. `src/cnx/` is the transpiler: one directory per
+layer, each holding one per pass, numbered in the order they run -- and beside them, the
+roots that are not passes. Beside `cnx/` in `src/` are `cli/` and `lib/`, which consume the
+transpiler and are not part of it (owner direction 2026-10-11, #1992):
 
 ```
 src/
-  PARSE/
-    1-Discover/
-    2-Parse/
-    3-Declare/
-    4-Resolve/
-  TRANSPILE/
-    1-Analyze/
-    2-Plan/
-    3-Render/
-    CodeGenWalker.ts
-    TranspileState.ts
+  cnx/
+    PARSE/
+      1-Discover/
+      2-Parse/
+      3-Declare/
+      4-Resolve/
+    TRANSPILE/
+      1-Analyze/
+      2-Plan/
+      3-Render/
+      CodeGenWalker.ts
+      TranspileState.ts
+      types/
+    WRITE/
+      1-Write/
     types/
-  WRITE/
-    1-Write/
-  types/
-  utils/
-  instrumentation/
+    utils/
+    instrumentation/
   cli/
   lib/
 ```
@@ -112,15 +114,17 @@ fills. Each still has a place in the pass order: the state comes after 2.1 Analy
 may not reach it (#1456), and before 2.2; the walker comes after 2.3. A layer holds its
 passes and, beside them, only what the tree draws.
 
-**Every child of `src/` is a directory, and is one of four kinds.** There are no bare
-files at the root: an entry point lives inside the root it starts.
+**Every child of `src/` and of `src/cnx/` is a directory, and each except `cnx/` itself is one of four kinds.**
+`src/` holds the transpiler, `cnx/`, and its hosts; every other kind lives inside `cnx/`.
+There are no bare files at either level: an entry point lives inside the root it starts.
 
 - **A layer** -- `PARSE/`, `TRANSPILE/` and `WRITE/`, each holding its passes, as above.
 - **Shared contracts** -- `types/` and `utils/`. Layer-neutral: every pass may depend on
   them, and **they author no facts.** A shared root that authors one is a state container
   under another name, which the paragraph below forbids.
-- **Host** -- `cli/` and `lib/`. Outside the three layers, and the only place allowed to
-  construct the pipeline. Each is entered through its own `index.ts`: the command-line
+- **Host** -- `cli/` and `lib/`, beside `cnx/` rather than inside it. Outside the three
+  layers, and the only place allowed to construct the pipeline. They consume the
+  transpiler, so nothing in `cnx/`, its tests included, imports them. Each is entered through its own `index.ts`: the command-line
   tool and the library are separate concerns and do not share a starting point.
 - **Instrumentation** -- `instrumentation/`. Records facts about the RUN, never about the
   program: where an ADR's rule fired, which toolchain features a run's Render emitters
@@ -172,8 +176,8 @@ forbid.
 A separation that holds in every respect except the filesystem is a separation nobody can
 check by looking, and one that a reviewer must take on the word of whoever performed it.
 The tree is the part of this document that cannot be satisfied by argument. Its gate is
-`npm run layout:check`: the first two levels of `src/` must be exactly the tree above, read
-from this file, and no module may reach a later pass -- the `*-reads-no-later-pass` rules
+`npm run layout:check`: every level of `src/` the tree draws must be exactly the tree above,
+read from this file, and no module may reach a later pass -- the `*-reads-no-later-pass` rules
 `.dependency-cruiser.cjs` generates from its `PASS_ORDER`. The gate also holds the two
 lists together: every entry the tree draws inside a layer is covered by exactly one
 `PASS_ORDER` place, and the passes appear there in the tree's order, so a pass drawn here
@@ -227,7 +231,7 @@ the tree is confined to a pass whose output is cheap to recompute.
 and 2.1 Analyze may read it; nothing from 2.2 Plan on may -- not Plan, not Render, not
 `CodeGenWalker`, not Write, and not a helper any of them calls. What a later pass needs of
 the syntax it reads as **plain data**, lowered from the tree by `SyntaxLowering`: an
-`expression` becomes a `TExpression` and a `type` a `TTypeSyntax` (`src/types/syntax/`).
+`expression` becomes a `TExpression` and a `type` a `TTypeSyntax` (`src/cnx/types/syntax/`).
 The shape is the grammar's minus its pass-through levels; every node carries its
 `SourceSpan` and, as `written`, its text from the source range -- not `getText()`, whose
 joined tokens re-lex as different ones (`1 - -1` reads back `1--1`). A type's `text` is
@@ -275,7 +279,7 @@ returns without naming its type (#1957).
 - `parse-tree-sites` (`info`) is the inventory: every module outside the parser that holds
   one. `npm run parse-tree:check` holds that population to the baseline in
   [`parse-tree-sites.md`](parse-tree-sites.md); what it forbids is the number RISING.
-- `parse-tree-confined-to-parser` (`error`) is the ruling. Only `src/PARSE/` (1.1's
+- `parse-tree-confined-to-parser` (`error`) is the ruling. Only `src/cnx/PARSE/` (1.1's
   lexer-only include scan (#1745), 1.2 and 1.3), 2.1, and the named shared helpers may
   import the grammar. The host is not exempt: 2.1's `TreePasses` runs 1.2 through 2.1 as
   one call, every tree a local of that call, and `src/cli/Transpiler.ts` hands it and

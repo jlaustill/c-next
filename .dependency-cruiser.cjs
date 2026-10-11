@@ -40,21 +40,21 @@
 const PASS_ORDER = [
   {
     rule: "1-1-discover",
-    path: "^src/PARSE/1-Discover/",
-    mayRead: "^src/PARSE/2-Parse/grammar/CNextLexer\\.ts$",
+    path: "^src/cnx/PARSE/1-Discover/",
+    mayRead: "^src/cnx/PARSE/2-Parse/grammar/CNextLexer\\.ts$",
   },
-  { rule: "1-2-parse", path: "^src/PARSE/2-Parse/" },
-  { rule: "1-3-declare", path: "^src/PARSE/3-Declare/" },
-  { rule: "1-4-resolve", path: "^src/PARSE/4-Resolve/" },
-  { rule: "2-1-analyze", path: "^src/TRANSPILE/1-Analyze/" },
+  { rule: "1-2-parse", path: "^src/cnx/PARSE/2-Parse/" },
+  { rule: "1-3-declare", path: "^src/cnx/PARSE/3-Declare/" },
+  { rule: "1-4-resolve", path: "^src/cnx/PARSE/4-Resolve/" },
+  { rule: "2-1-analyze", path: "^src/cnx/TRANSPILE/1-Analyze/" },
   {
     rule: "transpile-state",
-    path: "^src/TRANSPILE/(TranspileState\\.ts$|types/)",
+    path: "^src/cnx/TRANSPILE/(TranspileState\\.ts$|types/)",
   },
-  { rule: "2-2-plan", path: "^src/TRANSPILE/2-Plan/" },
-  { rule: "2-3-render", path: "^src/TRANSPILE/3-Render/" },
-  { rule: "codegen-walker", path: "^src/TRANSPILE/CodeGenWalker\\.ts$" },
-  { rule: "3-1-write", path: "^src/WRITE/1-Write/" },
+  { rule: "2-2-plan", path: "^src/cnx/TRANSPILE/2-Plan/" },
+  { rule: "2-3-render", path: "^src/cnx/TRANSPILE/3-Render/" },
+  { rule: "codegen-walker", path: "^src/cnx/TRANSPILE/CodeGenWalker\\.ts$" },
+  { rule: "3-1-write", path: "^src/cnx/WRITE/1-Write/" },
 ];
 
 const passOrderRules = PASS_ORDER.slice(0, -1).map((place, index) => ({
@@ -77,7 +77,7 @@ const passOrderRules = PASS_ORDER.slice(0, -1).map((place, index) => ({
  * ruling, #1932).
  */
 const PARSE_TREE_TYPES = [
-  "^src/PARSE/2-Parse/.*grammar/",
+  "^src/cnx/PARSE/2-Parse/.*grammar/",
   "node_modules/antlr4ng/",
   // The sanctioned carriers. `IParsedFile` is documented as the way a
   // pass takes the tree "instead of re-parsing", and `IParsedFile["tree"]`
@@ -93,11 +93,11 @@ const PARSE_TREE_TYPES = [
   // -- exactly what naming the carriers here was for. Its `symbols`
   // half had no reader, so it was a bundle whose only live content was
   // the re-export.
-  "^src/types/IParsedFile\\.ts$",
+  "^src/cnx/types/IParsedFile\\.ts$",
   // #1957: the 1.2 parsers that RETURN a tree. A module calling one holds the
   // tree as a value -- `CNextSourceParser.parse(src).tree` -- while naming no
   // grammar type, so without these it was counted by neither rule.
-  "^src/PARSE/2-Parse/(CNextSourceParser|HeaderParser)\\.ts$",
+  "^src/cnx/PARSE/2-Parse/(CNextSourceParser|HeaderParser)\\.ts$",
 ];
 
 /**
@@ -107,9 +107,9 @@ const PARSE_TREE_TYPES = [
  * fails exactly as if it had imported the grammar.
  */
 const PARSE_TREE_HELPERS = [
-  "^src/utils/ast/(AssignmentTargetExtractor|ChildStatementCollector|StatementExpressionCollector)\\.ts$",
-  "^src/utils/(ChainRoot|ExpressionUnwrapper|ExpressionUtils|OverflowBehaviorUtils|ParserUtils|PostfixAnalysisUtils)\\.ts$",
-  "^src/types/TAssignmentSite\\.ts$",
+  "^src/cnx/utils/ast/(AssignmentTargetExtractor|ChildStatementCollector|StatementExpressionCollector)\\.ts$",
+  "^src/cnx/utils/(ChainRoot|ExpressionUnwrapper|ExpressionUtils|OverflowBehaviorUtils|ParserUtils|PostfixAnalysisUtils)\\.ts$",
+  "^src/cnx/types/TAssignmentSite\\.ts$",
 ];
 
 /** @type {import('dependency-cruiser').IConfiguration} */
@@ -136,13 +136,13 @@ module.exports = {
       severity: "error",
       from: {
         path: [
-          "^src/PARSE/3-Declare/cnext/collectors/",
-          "^src/PARSE/2-Parse/",
-          "^src/PARSE/1-Discover/",
+          "^src/cnx/PARSE/3-Declare/cnext/collectors/",
+          "^src/cnx/PARSE/2-Parse/",
+          "^src/cnx/PARSE/1-Discover/",
         ],
       },
       to: {
-        path: "^src/utils/QualifiedCName\\.ts$",
+        path: "^src/cnx/utils/QualifiedCName\\.ts$",
       },
     },
 
@@ -164,12 +164,12 @@ module.exports = {
         "discovery's text and classification helpers.",
       severity: "error",
       from: {
-        path: "^src/(PARSE/[234]-|TRANSPILE/|WRITE/)",
+        path: "^src/cnx/(PARSE/[234]-|TRANSPILE/|WRITE/)",
         pathNot: "__tests__",
       },
       to: {
-        path: "^src/PARSE/1-Discover/",
-        pathNot: "^src/PARSE/1-Discover/types/",
+        path: "^src/cnx/PARSE/1-Discover/",
+        pathNot: "^src/cnx/PARSE/1-Discover/types/",
         reachable: true,
       },
     },
@@ -186,12 +186,12 @@ module.exports = {
       from: {
         pathNot: [
           "__tests__",
-          "^src/PARSE/1-Discover/HeaderSources\\.ts$",
-          "^src/PARSE/1-Discover/detect(Cpp|Assembly)Syntax\\.ts$",
+          "^src/cnx/PARSE/1-Discover/HeaderSources\\.ts$",
+          "^src/cnx/PARSE/1-Discover/detect(Cpp|Assembly)Syntax\\.ts$",
         ],
       },
       to: {
-        path: "^src/PARSE/1-Discover/detect(Cpp|Assembly)Syntax\\.ts$",
+        path: "^src/cnx/PARSE/1-Discover/detect(Cpp|Assembly)Syntax\\.ts$",
       },
     },
     {
@@ -207,11 +207,11 @@ module.exports = {
       from: {
         pathNot: [
           "__tests__",
-          "^src/PARSE/1-Discover/(Discover|HeaderSources)\\.ts$",
+          "^src/cnx/PARSE/1-Discover/(Discover|HeaderSources)\\.ts$",
         ],
       },
       to: {
-        path: "^src/PARSE/1-Discover/HeaderSources\\.ts$",
+        path: "^src/cnx/PARSE/1-Discover/HeaderSources\\.ts$",
       },
     },
     {
@@ -228,12 +228,15 @@ module.exports = {
         "`reachable` because a type reaches through another type.",
       severity: "error",
       from: {
-        path: "^src/PARSE/1-Discover/types/",
-        pathNot: ["__tests__", "^src/PARSE/1-Discover/types/IRunAnchor\\.ts$"],
+        path: "^src/cnx/PARSE/1-Discover/types/",
+        pathNot: [
+          "__tests__",
+          "^src/cnx/PARSE/1-Discover/types/IRunAnchor\\.ts$",
+        ],
       },
       to: {
-        path: "^src/PARSE/1-Discover/",
-        pathNot: "^src/PARSE/1-Discover/types/",
+        path: "^src/cnx/PARSE/1-Discover/",
+        pathNot: "^src/cnx/PARSE/1-Discover/types/",
         reachable: true,
       },
     },
@@ -244,7 +247,7 @@ module.exports = {
         "nothing may compute a cross-file fact. A pass that needs one reads it " +
         'from Program, which is complete before 2.1 begins." ' +
         "Stated as an import rule, that is: a pass after 1.4 may depend on the " +
-        "TYPE `IProgram` -- which lives in `src/types/`, reachable by " +
+        "TYPE `IProgram` -- which lives in `src/cnx/types/`, reachable by " +
         "every layer -- and never on `4-Resolve/` itself. Importing the builder " +
         "or a deriver is how a later pass recomputes what 1.4 authored, which " +
         "is the failure the ownership rule exists to prevent, and it is exactly " +
@@ -256,19 +259,19 @@ module.exports = {
         // `^src/transpiler/logic/analysis/` was a third alternative here on
         // main, and `^src/transpiler/output/` a second. Both are gone rather
         // than dropped: #1322 moved analysis whole to `1-Analyze/` and #1450
-        // box 5 moved output whole to `3-Render/`, so `^src/TRANSPILE/` covers
+        // box 5 moved output whole to `3-Render/`, so `^src/cnx/TRANSPILE/` covers
         // each. A path matching nothing is a rule arm that cannot fire -- which
         // this comment said while the arm above it did exactly that (#1589
         // review).
-        path: "^src/TRANSPILE/",
+        path: "^src/cnx/TRANSPILE/",
         pathNot: "__tests__",
       },
-      to: { path: "^src/PARSE/4-Resolve/", reachable: true },
+      to: { path: "^src/cnx/PARSE/4-Resolve/", reachable: true },
     },
     {
       name: "shared-contracts-cannot-import-a-pass",
       comment:
-        "`src/types/` (`transpiler/types/` until #1853) is what CLAUDE.md and " +
+        "The shared `types/` root (`transpiler/types/` until #1853) is what CLAUDE.md and " +
         "this file both call the " +
         "place EVERY layer may depend on, and until now that was prose with " +
         "nothing behind it. A contract that imports a pass root drags the pass " +
@@ -290,17 +293,29 @@ module.exports = {
         // The shared root only. The four host types #1853 left in
         // `src/transpiler/types/` moved to `src/cli/types/` with #1443, and
         // the host is the one root that may name a pass.
-        path: "^src/types/",
+        path: "^src/cnx/types/",
         pathNot: "(__tests__|__testUtils__)",
       },
       to: {
-        path: "^src/(PARSE|TRANSPILE|WRITE)/",
+        path: "^src/cnx/(PARSE|TRANSPILE|WRITE)/",
         pathNot: [
-          "^src/PARSE/2-Parse/.*grammar/",
-          "^src/PARSE/3-Declare/SymbolRegistry\\.ts$",
+          "^src/cnx/PARSE/2-Parse/.*grammar/",
+          "^src/cnx/PARSE/3-Declare/SymbolRegistry\\.ts$",
         ],
         reachable: true,
       },
+    },
+    {
+      name: "transpiler-imports-no-host",
+      severity: "error",
+      comment:
+        "#1992: `cnx/` is the transpiler, and `cli/` and `lib/` consume it " +
+        "(owner direction 2026-10-11, #1313). A consumer imports what it " +
+        "consumes, never the reverse. Tests are not exempt (owner ruling " +
+        "2026-10-11): a test that needs the host composes passes, so it " +
+        "lives beside the host.",
+      from: { path: "^src/cnx/" },
+      to: { path: "^src/(cli|lib)/", reachable: true },
     },
     {
       name: "instrumentation-cannot-import-a-layer",
@@ -322,9 +337,9 @@ module.exports = {
         "depcruise at exit 0 while the comment above claimed NONE of the " +
         "layers was reachable. `PARSE` names them now.",
       severity: "error",
-      from: { path: "^src/instrumentation/", pathNot: "__tests__" },
+      from: { path: "^src/cnx/instrumentation/", pathNot: "__tests__" },
       to: {
-        path: "^src/(PARSE|TRANSPILE|WRITE)/",
+        path: "^src/cnx/(PARSE|TRANSPILE|WRITE)/",
         reachable: true,
       },
     },
@@ -339,10 +354,10 @@ module.exports = {
         "than carried across at a new path.",
       severity: "error",
       from: {
-        path: "^src/TRANSPILE/3-Render/",
+        path: "^src/cnx/TRANSPILE/3-Render/",
         pathNot: "__tests__",
       },
-      to: { path: "^src/TRANSPILE/1-Analyze/", reachable: true },
+      to: { path: "^src/cnx/TRANSPILE/1-Analyze/", reachable: true },
     },
     {
       name: "node-fs-only-through-the-port",
@@ -356,7 +371,7 @@ module.exports = {
         "pipeline reached it through seven modules that defaulted the port. " +
         "The host constructs the port, so it reaches node:fs through it by " +
         "design and is exempt here; `host-reads-through-the-port` forbids it " +
-        "the direct import. #1444 moved the port into src/PARSE/1-Discover/ " +
+        "the direct import. #1444 moved the port into PARSE/1-Discover/ " +
         "and re-keyed this exemption in the same commit; layer-rules.test.ts " +
         "checks that every pathNot still names a file, so a stale one cannot " +
         "linger.",
@@ -364,7 +379,7 @@ module.exports = {
         path: "^src/",
         pathNot: [
           "(__tests__|__testUtils__)",
-          "^src/PARSE/1-Discover/NodeFileSystem\\.ts$",
+          "^src/cnx/PARSE/1-Discover/NodeFileSystem\\.ts$",
           "^src/cli/",
         ],
       },
@@ -424,7 +439,7 @@ module.exports = {
       from: {
         path: "^src/",
         pathNot: [
-          "^src/PARSE/2-Parse/",
+          "^src/cnx/PARSE/2-Parse/",
           // Tests and their helpers are excluded ON PURPOSE: a fixture builds a
           // parse tree because that is what it is testing, and counting them
           // would make the baseline move whenever the suite grows. It is a
@@ -454,8 +469,8 @@ module.exports = {
       from: {
         path: "^src/",
         pathNot: [
-          "^src/PARSE/2-Parse/",
-          "^src/TRANSPILE/1-Analyze/TreePasses\\.ts$",
+          "^src/cnx/PARSE/2-Parse/",
+          "^src/cnx/TRANSPILE/1-Analyze/TreePasses\\.ts$",
           "__tests__/",
           "__testUtils__/",
           "\\.test\\.ts$",
@@ -463,8 +478,8 @@ module.exports = {
       },
       to: {
         path: [
-          "^src/PARSE/2-Parse/CNextSourceParser\\.ts$",
-          "^src/PARSE/2-Parse/HeaderParser\\.ts$",
+          "^src/cnx/PARSE/2-Parse/CNextSourceParser\\.ts$",
+          "^src/cnx/PARSE/2-Parse/HeaderParser\\.ts$",
         ],
       },
     },
@@ -481,13 +496,13 @@ module.exports = {
         pathNot: [
           "^src/cli/Transpiler\\.ts$",
           "^src/lib/",
-          "^src/TRANSPILE/1-Analyze/TreePasses\\.ts$",
+          "^src/cnx/TRANSPILE/1-Analyze/TreePasses\\.ts$",
           "__tests__/",
           "__testUtils__/",
           "\\.test\\.ts$",
         ],
       },
-      to: { path: "^src/TRANSPILE/1-Analyze/TreePasses\\.ts$" },
+      to: { path: "^src/cnx/TRANSPILE/1-Analyze/TreePasses\\.ts$" },
     },
     {
       name: "parse-tree-confined-to-parser",
@@ -514,11 +529,11 @@ module.exports = {
       from: {
         path: "^src/",
         pathNot: [
-          "^src/PARSE/2-Parse/",
-          "^src/PARSE/3-Declare/",
-          "^src/TRANSPILE/1-Analyze/",
-          "^src/types/IParsedFile\\.ts$",
-          "^src/PARSE/1-Discover/IncludeDiscovery\\.ts$",
+          "^src/cnx/PARSE/2-Parse/",
+          "^src/cnx/PARSE/3-Declare/",
+          "^src/cnx/TRANSPILE/1-Analyze/",
+          "^src/cnx/types/IParsedFile\\.ts$",
+          "^src/cnx/PARSE/1-Discover/IncludeDiscovery\\.ts$",
           ...PARSE_TREE_HELPERS,
           "__tests__/",
           "__testUtils__/",
@@ -540,8 +555,8 @@ module.exports = {
         // and a type holds template arguments and dimension expressions.
         // Type-only cycles are erased at compile time.
         pathNot: [
-          "^src/types/symbols/I(Scope|Function|Base)Symbol\\.ts$",
-          "^src/types/syntax/(TExpression|TTypeSyntax|TPostfixOpSyntax|TTemplateArgumentSyntax|IFieldInitializerSyntax)\\.ts$",
+          "^src/cnx/types/symbols/I(Scope|Function|Base)Symbol\\.ts$",
+          "^src/cnx/types/syntax/(TExpression|TTypeSyntax|TPostfixOpSyntax|TTemplateArgumentSyntax|IFieldInitializerSyntax)\\.ts$",
         ],
       },
       to: { circular: true },
@@ -619,7 +634,7 @@ module.exports = {
         // Enumerated, a FOURTH grammar directory would be matched by the rule
         // and FOLLOWED by the cruise, re-admitting the generated-code noise this
         // entry exists to keep out, with nothing saying so.
-        "^src/PARSE/2-Parse/.*grammar/",
+        "^src/cnx/PARSE/2-Parse/.*grammar/",
       ],
     },
     tsPreCompilationDeps: true,

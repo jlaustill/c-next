@@ -34,7 +34,7 @@ const ROOT = join(__dirname, "..", "..", "..");
  */
 const FILES = [
   join("src", "cli", "Transpiler.ts"),
-  join("src", "PARSE", "3-Declare", "HeaderDeclarations.ts"),
+  join("src", "cnx", "PARSE", "3-Declare", "HeaderDeclarations.ts"),
 ];
 
 /** Calls that can now raise a C-Next diagnostic rather than a parse failure. */

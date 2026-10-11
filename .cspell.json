@@ -679,7 +679,6 @@
     "tests/**/*.S",
     "tests/**/*.ctu-info",
     "tests/fixtures/**",
-    "docs/coverage/**",
     "docs/plans/**",
     "docs/architecture/*.svg",
     "docs/LANGUAGE-FEATURE-TESTING-RESEARCH.md",

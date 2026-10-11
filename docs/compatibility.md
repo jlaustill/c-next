@@ -1,5 +1,5 @@
 <!-- GENERATED FILE - DO NOT EDIT.
-     Source: src/utils/constants/TOOLCHAIN_REQUIREMENTS.ts
+     Source: src/cnx/utils/constants/TOOLCHAIN_REQUIREMENTS.ts
      Regenerate: npm run docs:toolchain -->
 
 # Toolchain compatibility

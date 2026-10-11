@@ -56,7 +56,7 @@
 | Spine                                         | risk-first                                                                                            | 2 of 3 judges; the best measured baselines and the best per-card attribution.                                                                                                                                                  |
 | Key for the declaration artifact              | Source position (`line`, `column`) carried as `ISourceSpan`                                           | `docs/architecture/README.md` §2 names `SourceSpan` as _the_ long-lived position record. A token index would be a second shape for one fact.                                                                                   |
 | Where `TSubscriptKind` lives                  | Moved to `src/transpiler/types/` (fixes a fatal flaw in two designs)                                  | `IChainStep` is a shared contract. `shared-contracts-cannot-import-a-pass` (`.dependency-cruiser.cjs:278-308`) with `tsPreCompilationDeps: true` (`:540`) forbids naming `2-Plan/TSubscriptKind.ts:7`.                         |
-| `SubscriptClassifier`                         | Moved to `src/utils/`. The typer is its only caller once C12 lands.                                   | One element-or-bit decision for 2.1 and 2.2. It imports only `TSubscriptKind` and `TTypeInfo`, and both then sit in shared contracts.                                                                                          |
+| `SubscriptClassifier`                         | Moved to `src/cnx/utils/`. The typer is its only caller once C12 lands.                               | One element-or-bit decision for 2.1 and 2.2. It imports only `TSubscriptKind` and `TTypeInfo`, and both then sit in shared contracts.                                                                                          |
 | ETR name predicates                           | **Deleted** with ETR (from artifact-first). The spine kept them "until #1685".                        | They duplicate `TypeCheckUtils.isInteger/isFloat/isUnsigned` byte for byte (`TypeCheckUtils.ts:33-65` against `ETR:49-76`). CLAUDE.md: touching a duplicate means owning it.                                                   |
 | Bare-call binding                             | `program.resolveFunction`                                                                             | It is the rule emission already uses (`QualifiedNameGenerator.forFunctionInScope`, `:56-70`, called at `CodeGenWalker.ts:2276`/`:3260`). `qualifyScopeType` agrees with it only because scopes cannot nest (`CNext.g4:77-88`). |
 | Emission naming                               | Routed through the same `bindValue` (from incremental)                                                | #1700 box 3 requires "the same local → scope → global decision" for typing and the emitted name.                                                                                                                               |
@@ -68,18 +68,18 @@
 
 ### 0.4 Baselines at `da2f84918` (commands shown)
 
-| Fact                                             | Command                                                                                                                                                               | Value                |
-| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
-| `getVariableTypeInfo` production sites           | `grep -rn 'getVariableTypeInfo(' src --include=*.ts \| grep -v __tests__ \| grep -v src/TRANSPILE/TranspileState.ts \| grep -vE '^[^:]+:[0-9]+:\s*(\*\|//)' \| wc -l` | 59                   |
-| Files that construct `DeclarationScopeCollector` | `grep -rln "new DeclarationScopeCollector" src \| grep -v __tests__ \| wc -l`                                                                                         | 24                   |
-| `new OperandTypeResolver` sites                  | `grep -rn "new OperandTypeResolver" src \| grep -v __tests__ \| wc -l`                                                                                                | 13                   |
-| #1664 box 4a                                     | its grep                                                                                                                                                              | 8                    |
-| #1664 box 4b                                     | its grep                                                                                                                                                              | 21                   |
-| #1667 float-literal grep                         | its grep                                                                                                                                                              | 0                    |
-| #1671 greps                                      | `perFilePassByValueParams` / `symbolCollectors`                                                                                                                       | 4 / 4                |
-| `*.test.cnx` fixtures                            | `find tests -name '*.test.cnx' \| wc -l`                                                                                                                              | 1272                 |
-| Saturating float→int ternaries                   | `grep -rhoE '\) > \(\((float\|double)\)'` over `.expected.c/.cpp`                                                                                                     | 82 sites in 24 files |
-| `parse-tree-sites.md` total                      | read from the file                                                                                                                                                    | 102                  |
+| Fact                                             | Command                                                                                                                                                                   | Value                |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| `getVariableTypeInfo` production sites           | `grep -rn 'getVariableTypeInfo(' src --include=*.ts \| grep -v __tests__ \| grep -v src/cnx/TRANSPILE/TranspileState.ts \| grep -vE '^[^:]+:[0-9]+:\s*(\*\|//)' \| wc -l` | 59                   |
+| Files that construct `DeclarationScopeCollector` | `grep -rln "new DeclarationScopeCollector" src \| grep -v __tests__ \| wc -l`                                                                                             | 24                   |
+| `new OperandTypeResolver` sites                  | `grep -rn "new OperandTypeResolver" src \| grep -v __tests__ \| wc -l`                                                                                                    | 13                   |
+| #1664 box 4a                                     | its grep                                                                                                                                                                  | 8                    |
+| #1664 box 4b                                     | its grep                                                                                                                                                                  | 21                   |
+| #1667 float-literal grep                         | its grep                                                                                                                                                                  | 0                    |
+| #1671 greps                                      | `perFilePassByValueParams` / `symbolCollectors`                                                                                                                           | 4 / 4                |
+| `*.test.cnx` fixtures                            | `find tests -name '*.test.cnx' \| wc -l`                                                                                                                                  | 1272                 |
+| Saturating float→int ternaries                   | `grep -rhoE '\) > \(\((float\|double)\)'` over `.expected.c/.cpp`                                                                                                         | 82 sites in 24 files |
+| `parse-tree-sites.md` total                      | read from the file                                                                                                                                                        | 102                  |
 
 ---
 
@@ -87,7 +87,7 @@
 
 ### 1.1 Contracts
 
-Each contract is in its own file under `src/types/`, and each is pure data.
+Each contract is in its own file under `src/cnx/types/`, and each is pure data.
 
 **Moved in:**
 
@@ -185,7 +185,7 @@ interface ITypingContext {
 
 ### 1.2 The API
 
-The typer lives in `src/utils/OperandTyper.ts`. It is a static class with no fields and no module state (from the spine).
+The typer lives in `src/cnx/utils/OperandTyper.ts`. It is a static class with no fields and no module state (from the spine).
 
 ```ts
 class OperandTyper {
@@ -211,13 +211,13 @@ class OperandTyper {
 
 **Companion utils modules.** Each exists because two or more passes call it.
 
-| Module                             | What it holds                                                                                                              |
-| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `src/utils/CompositeType.ts`       | `integerOf(leaves)` and `anyFloating(leaves)`. It replaces `PrimitiveKindUtils.widestIntegerOf :76` and `anyFloating :98`. |
-| `src/utils/SubscriptClassifier.ts` | Moved. `isArrayAccess` takes `Pick<TTypeInfo, "isArray" \| "isString"> \| null`.                                           |
-| `src/utils/ChainRoot.ts`           | Moved from `1-Analyze/helpers`.                                                                                            |
-| `src/utils/DeclaredPointer.ts`     | `of(decl, foreign)` and `calleeOf(expr)` (§2.4).                                                                           |
-| `src/utils/ForeignTypeFacts.ts`    | Rewritten to `operandType(...)` (§3.5).                                                                                    |
+| Module                                 | What it holds                                                                                                              |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `src/cnx/utils/CompositeType.ts`       | `integerOf(leaves)` and `anyFloating(leaves)`. It replaces `PrimitiveKindUtils.widestIntegerOf :76` and `anyFloating :98`. |
+| `src/cnx/utils/SubscriptClassifier.ts` | Moved. `isArrayAccess` takes `Pick<TTypeInfo, "isArray" \| "isString"> \| null`.                                           |
+| `src/cnx/utils/ChainRoot.ts`           | Moved from `1-Analyze/helpers`.                                                                                            |
+| `src/cnx/utils/DeclaredPointer.ts`     | `of(decl, foreign)` and `calleeOf(expr)` (§2.4).                                                                           |
+| `src/cnx/utils/ForeignTypeFacts.ts`    | Rewritten to `operandType(...)` (§3.5).                                                                                    |
 
 **Placement.**
 
@@ -231,7 +231,7 @@ class OperandTyper {
 - **2.2 and 2.3:** `state.typingContext()`, a new method on `TranspileState`. It is modelled on `typeBindingDeps()` (`:945`). It builds a fresh object each call and stores nothing. It uses `invariant()` to assert `symbols` (`:510`), `program` (`:525`) and `sourcePath` (`:741`), the same way `Transpiler.ts:1004-1008` does.
 - **Positions** always come from the node (`ParserUtils.getPosition`, `:28-35`). The typer never reads `currentScopePath`, `resolveIdentifier`, `localVariables` or a registry.
 
-**Statelessness.** The answer is a pure function of `(node, ctx)`. `ctx.program` is frozen (`Program.ts:162`). A unit test asserts that the class declares no field. `passes-hold-no-mutable-state` does not scan `utils`: its `PASS_ROOTS` are `src/PARSE` and `src/TRANSPILE` (`:70`).
+**Statelessness.** The answer is a pure function of `(node, ctx)`. `ctx.program` is frozen (`Program.ts:162`). A unit test asserts that the class declares no field. `passes-hold-no-mutable-state` does not scan `utils`: its `PASS_ROOTS` are `src/cnx/PARSE` and `src/cnx/TRANSPILE` (`:70`).
 
 ---
 
@@ -240,7 +240,7 @@ class OperandTyper {
 ### 2.1 What it holds
 
 ```ts
-// src/types/ILexicalFrame.ts
+// src/cnx/types/ILexicalFrame.ts
 interface ILexicalFrame {
   readonly kind: "file" | "scope" | "function" | "block" | "for";
   readonly span: ISourceSpan; // the construct that opened it (ParserUtils.getSpan)
@@ -249,7 +249,7 @@ interface ILexicalFrame {
   readonly declarations: ReadonlyArray<ILocalDeclaration>; // source order
   readonly children: ReadonlyArray<ILexicalFrame>; // source order, non-overlapping
 }
-// src/types/ILocalDeclaration.ts
+// src/cnx/types/ILocalDeclaration.ts
 interface ILocalDeclaration {
   readonly name: string;
   readonly kind: "local" | "parameter" | "for" | "constructor";
@@ -283,12 +283,12 @@ interface ILocalDeclaration {
 
 ### 2.2 Who builds it, and when
 
-| Stage                                                                | Pass        | Work                                                                                                                                                                                                                                                                                                                                                                                                          |
-| -------------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Stage 3: `_declareFile` → `CNextResolver.resolve` (`cnext/index.ts`) | **1.3**     | `src/PARSE/3-Declare/cnext/collectors/LexicalScopeCollector.ts` walks the file once with a listener. Its shape is today's `DeclarationScopeCollector` (`:139-200`), moved and re-keyed. The listener holds only numbers and records. The result goes on a new field, `IFileSymbols.lexicalScopes: ILexicalFrame`. It builds no names (`collectors-build-names-from-scopes`, `.dependency-cruiser.cjs:62-90`). |
-| Stage 3: `Program.build` (`Transpiler.ts:772`, `Program.ts:103`)     | **1.4**     | `src/PARSE/4-Resolve/LexicalFrames.ts` runs `settle(files, isScopeType, consts, functionsByCName)`. Step (a) settles deferred types: `DeferredTypes.settleType` (`:173`) becomes public. Step (b) fills parameter declarations. Step (c) folds const locals in source order. Step (d) folds dimensions in the same environment. Step (e) freezes the result.                                                  |
-| Stage 4d (`Transpiler.ts:539-548`)                                   | **2.1**     | Reads the artifact through `context.program`.                                                                                                                                                                                                                                                                                                                                                                 |
-| Stage 5 (`:556-570`)                                                 | **2.2/2.3** | Reads the same object through `state.program`.                                                                                                                                                                                                                                                                                                                                                                |
+| Stage                                                                | Pass        | Work                                                                                                                                                                                                                                                                                                                                                                                                              |
+| -------------------------------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Stage 3: `_declareFile` → `CNextResolver.resolve` (`cnext/index.ts`) | **1.3**     | `src/cnx/PARSE/3-Declare/cnext/collectors/LexicalScopeCollector.ts` walks the file once with a listener. Its shape is today's `DeclarationScopeCollector` (`:139-200`), moved and re-keyed. The listener holds only numbers and records. The result goes on a new field, `IFileSymbols.lexicalScopes: ILexicalFrame`. It builds no names (`collectors-build-names-from-scopes`, `.dependency-cruiser.cjs:62-90`). |
+| Stage 3: `Program.build` (`Transpiler.ts:772`, `Program.ts:103`)     | **1.4**     | `src/cnx/PARSE/4-Resolve/LexicalFrames.ts` runs `settle(files, isScopeType, consts, functionsByCName)`. Step (a) settles deferred types: `DeferredTypes.settleType` (`:173`) becomes public. Step (b) fills parameter declarations. Step (c) folds const locals in source order. Step (d) folds dimensions in the same environment. Step (e) freezes the result.                                                  |
+| Stage 4d (`Transpiler.ts:539-548`)                                   | **2.1**     | Reads the artifact through `context.program`.                                                                                                                                                                                                                                                                                                                                                                     |
+| Stage 5 (`:556-570`)                                                 | **2.2/2.3** | Reads the same object through `state.program`.                                                                                                                                                                                                                                                                                                                                                                    |
 
 **Why this ordering works.**
 
@@ -298,7 +298,7 @@ interface ILocalDeclaration {
 
 ### 2.3 Query surface, key and lifetime gates
 
-`IProgram` (`src/types/IProgram.ts`) gains four methods. `P` is `Pick<ISourceSpan, "line" | "column">`, which `ParserUtils.getPosition` satisfies structurally. It is used so that no shared contract imports `utils/types`.
+`IProgram` (`src/cnx/types/IProgram.ts`) gains four methods. `P` is `Pick<ISourceSpan, "line" | "column">`, which `ParserUtils.getPosition` satisfies structurally. It is used so that no shared contract imports `utils/types`.
 
 ```ts
 lexicalFrameAt(sourceFile: string, at: P): ILexicalFrame;                        // innermost; file frame if none
@@ -698,7 +698,7 @@ None exist today for `OperandTypeResolver` or `ScopeFrameResolver` (G13).
 | --------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `PARSE/3-Declare/cnext/collectors/__tests__/LexicalScopeCollector.test.ts`                                | Frames, spans, kinds; constructor declarations; `forVarDecl` modifiers; `initializerCallee`. It iterates every `tests/**/*.test.cnx` and must never throw.                                                                                                                                |
 | `PARSE/4-Resolve/__tests__/LexicalFrames.test.ts`                                                         | Settled types; parameters filled from `IFunctionSymbol`; const-folding order and shadowing; dimensions; `bindValue` for every §3.1 row (position, siblings, split scope, G12); `constValuesAt`                                                                                            |
-| `src/utils/__tests__/OperandTyper.test.ts`                                                                | `it.each` over a shape table built through the real declare and resolve path, one row per §3 shape. It asserts `typeName`, `dimensions`, `category`, `form`, `overflow`, `subscript` and `hasSideEffect`. `it.each` avoids Sonar S5976. A shape test asserts the class declares no field. |
+| `src/cnx/utils/__tests__/OperandTyper.test.ts`                                                            | `it.each` over a shape table built through the real declare and resolve path, one row per §3 shape. It asserts `typeName`, `dimensions`, `category`, `form`, `overflow`, `subscript` and `hasSideEffect`. `it.each` avoids Sonar S5976. A shape test asserts the class declares no field. |
 | `CompositeType.test.ts`, `DeclaredPointer.test.ts` (all three arms), `ForeignTypeFacts.test.ts` additions | Arrays, typedef arrays, overloads, `::` members, `long double`                                                                                                                                                                                                                            |
 | One test per §5 row                                                                                       | The policy rules. `compoundClampOp`'s `it.each` becomes a `CompositeType.anyFloating` case.                                                                                                                                                                                               |
 
@@ -892,7 +892,7 @@ A box is ticked only with its SHA and command output, in the push that makes it 
    - #1667 box 4 ("#1668 has landed").
    - #1694 box 3 (names `DeclarationScopeCollector`/`ScopeFrameResolver`).
    - Separately, #1664 box 5 was released on 2026-09-26, but the card body still says it "stays as written".
-2. **Placement.** `module-destinations.md:169-171` (deleted by #1443) admitted a utils module only if it "decides nothing". Do you accept a whole operand typer, `SubscriptClassifier` and `CompositeType` in `src/utils/`? `1-Analyze` and `2-Plan` are each ruled out by a depcruise rule.
+2. **Placement.** `module-destinations.md:169-171` (deleted by #1443) admitted a utils module only if it "decides nothing". Do you accept a whole operand typer, `SubscriptClassifier` and `CompositeType` in `src/cnx/utils/`? `1-Analyze` and `2-Plan` are each ruled out by a depcruise rule.
 3. **Suffixed integer literals.** Is `5i32` or `300u16` a "bare integer literal" under ADR-052 and ADR-024, so that it is exempt from E0810 and skipped by the composite width in both passes? That is this design's default, and it ends C19's order dependence. Or is it typed by its suffix everywhere, which makes `a + 5i32` E0810?
 4. **C and C++ header integer operands (C09).** Should E0810 classify `uint32_t`/`int32_t` header operands? Today `u32 a + cSigned` yields 4294967295. ADR-024 names only floating header operands, and #978 keeps C integers untyped. The default is to leave them untyped and file C09.
 5. **Rule 10.4 between a ternary's two value arms** (a #1092 item). Should `c ? i : k` with `u32 i` and `f32 k` be E0810? The rulings do not cover it, so this design does not add it.

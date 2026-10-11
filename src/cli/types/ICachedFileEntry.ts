@@ -2,10 +2,10 @@
  * Cached entry for a single header file
  */
 
-import IStructFieldInfo from "../../types/symbols/IStructFieldInfo";
-import IStructSymbolState from "../../types/symbols/IStructSymbolState";
-import TJsonSafe from "../../utils/types/TJsonSafe";
-import TJsonValue from "../../utils/types/TJsonValue";
+import IStructFieldInfo from "../../cnx/types/symbols/IStructFieldInfo";
+import IStructSymbolState from "../../cnx/types/symbols/IStructSymbolState";
+import TJsonSafe from "../../cnx/utils/types/TJsonSafe";
+import TJsonValue from "../../cnx/utils/types/TJsonValue";
 
 interface ICachedFileEntry {
   /** Absolute path to the header file */

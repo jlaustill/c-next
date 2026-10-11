@@ -4,10 +4,10 @@
  */
 
 import { resolve } from "node:path";
-import NodeFileSystem from "../PARSE/1-Discover/NodeFileSystem";
-import Write from "../WRITE/1-Write/Write";
+import NodeFileSystem from "../cnx/PARSE/1-Discover/NodeFileSystem";
+import Write from "../cnx/WRITE/1-Write/Write";
 import IFileConfig from "./types/IFileConfig";
-import CaughtError from "../utils/CaughtError";
+import CaughtError from "../cnx/utils/CaughtError";
 
 /**
  * Resolved paths for PlatformIO project.

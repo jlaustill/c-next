@@ -20,7 +20,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import ExecFailure from "../src/utils/ExecFailure";
+import ExecFailure from "../src/cnx/utils/ExecFailure";
 import MisraBaseline from "./misra-baseline";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

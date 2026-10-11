@@ -53,7 +53,7 @@ const PER_FILE_STRUCTS = /knownStructs/;
 const RUN_WIDE_FALLBACK = /getStructFields/;
 
 /** The one module entitled to derive it. */
-const THE_IMPLEMENTATION = "src/utils/DeclaredTypeFacts.ts";
+const THE_IMPLEMENTATION = "src/cnx/utils/DeclaredTypeFacts.ts";
 
 function sourceFiles(dir: string): string[] {
   const found: string[] = [];

@@ -11,22 +11,24 @@ const TREE_HEADING = "### The layout is the pass table";
 const ORDER_RULE = /-reads-no-later-pass$/;
 
 /**
- * Tests sit beside what they test (`lint:test-location`), so a layer may
- * hold a `__tests__/` beside its passes. `src/` itself may not: a test at the
- * root would be a test of a bare file, and there are none.
+ * Tests sit beside what they test (`lint:test-location`), except a test of a
+ * `cnx/` module that reaches the host, which lives at
+ * `cli/__tests__/cnx/<its subject's path under cnx/>` (#1992). So a layer may
+ * hold a `__tests__/` beside its passes. `src/` and `cnx/` may not: a test
+ * there would be a test of a bare file, and there are none.
  */
 const TESTS = "__tests__/";
 
-/** A numbered pass inside a layer: `PARSE/1-Discover/`. */
-const PASS = /^[^/]+\/\d+-[^/]+\/$/;
+/** A numbered pass, relative to its layer: `1-Discover/`. */
+const PASS = /^\d+-[^/]+\/$/;
 
 /**
  * Issue #1443: `src/` IS the pass table, and this is the gate that says so.
  *
  * Two halves, one per question README §1 says the path answers:
  *
- * - "Which pass owns this module?" -- `shapeFailures`: the first two levels of
- *   `src/` are exactly the tree README §1 draws. The tree is read from the
+ * - "Which pass owns this module?" -- `shapeFailures`: every level of `src/`
+ *   the tree draws is exactly the tree README §1 draws. The tree is read from the
  *   README rather than copied here, so the document and the gate cannot
  *   disagree; editing the drawing is how the layout changes.
  * - "May it read that?" -- `orderFailures`: no module reaches a later pass.
@@ -41,8 +43,8 @@ const PASS = /^[^/]+\/\d+-[^/]+\/$/;
  */
 class Layout {
   /**
-   * README §1's tree, as `src/`-relative entries: `PARSE/`,
-   * `PARSE/1-Discover/`, `TRANSPILE/CodeGenWalker.ts`. A directory ends in
+   * README §1's tree, as `src/`-relative entries: `cnx/`, `cnx/PARSE/`,
+   * `cnx/PARSE/1-Discover/`, `cnx/TRANSPILE/CodeGenWalker.ts`. A directory ends in
    * `/`; indentation is two spaces a level.
    */
   static tree(readme: string): string[] {
@@ -101,7 +103,7 @@ class Layout {
     tree: readonly string[],
     present: readonly string[],
   ): ILayoutFailure[] {
-    const parents = Layout.parents(tree);
+    const layers = Layout.layers(tree);
     const failures: ILayoutFailure[] = [];
     for (const entry of tree) {
       if (!present.includes(entry))
@@ -109,7 +111,7 @@ class Layout {
     }
     for (const entry of present) {
       if (tree.includes(entry)) continue;
-      const inALayer = parents.some((parent) => entry === parent + TESTS);
+      const inALayer = layers.some((layer) => entry === layer + TESTS);
       if (!inALayer) failures.push({ kind: "unexpected", detail: entry });
     }
     return failures;
@@ -170,7 +172,7 @@ class Layout {
     tree: readonly string[],
     places: readonly string[],
   ): ILayoutFailure[] {
-    const layers = Layout.parents(tree);
+    const layers = Layout.layers(tree);
     const inLayers = tree.filter((entry) =>
       layers.some((layer) => entry !== layer && entry.startsWith(layer)),
     );
@@ -195,7 +197,12 @@ class Layout {
       }
     }
     const positions = inLayers
-      .filter((entry) => PASS.test(entry))
+      .filter((entry) =>
+        layers.some(
+          (layer) =>
+            entry.startsWith(layer) && PASS.test(entry.slice(layer.length)),
+        ),
+      )
       .map((entry) => places.findIndex((place) => covers(place, entry)))
       .filter((position) => position !== -1);
     if (positions.some((position, i) => i > 0 && position < positions[i - 1])) {
@@ -207,7 +214,19 @@ class Layout {
     return failures;
   }
 
-  /** Directories the tree lists children for: the layers. */
+  /**
+   * The layers: directories the tree lists children for that hold no other
+   * such directory. `cnx/` lists the layers, so it holds layers and is not one.
+   */
+  private static layers(tree: readonly string[]): string[] {
+    const parents = Layout.parents(tree);
+    return parents.filter(
+      (parent) =>
+        !parents.some((other) => other !== parent && other.startsWith(parent)),
+    );
+  }
+
+  /** Directories the tree lists children for. */
   private static parents(tree: readonly string[]): string[] {
     return tree.filter(
       (entry) =>

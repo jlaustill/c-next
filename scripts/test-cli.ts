@@ -27,7 +27,7 @@ import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import chalk from "chalk";
 
-import ExecFailure from "../src/utils/ExecFailure";
+import ExecFailure from "../src/cnx/utils/ExecFailure";
 
 /** One CLI run, as runCliInDir reports it. */
 interface ICliResult {

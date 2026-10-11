@@ -4,8 +4,8 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 
 import Transpiler from "../Transpiler";
-import ITranspilerConfig from "../../types/ITranspilerConfig";
-import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
+import ITranspilerConfig from "../../cnx/types/ITranspilerConfig";
+import NodeFileSystem from "../../cnx/PARSE/1-Discover/NodeFileSystem";
 
 /**
  * #1301 review: the run's per-file artifacts must be released when a run ENDS, not

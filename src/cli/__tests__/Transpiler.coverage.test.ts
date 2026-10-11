@@ -15,9 +15,9 @@ import { writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import Transpiler from "../Transpiler";
 import MockFileSystem from "./MockFileSystem";
-import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
-import Preprocessor from "../../PARSE/1-Discover/preprocessor/Preprocessor";
-import type IPreprocessOptions from "../../PARSE/1-Discover/preprocessor/types/IPreprocessOptions";
+import NodeFileSystem from "../../cnx/PARSE/1-Discover/NodeFileSystem";
+import Preprocessor from "../../cnx/PARSE/1-Discover/preprocessor/Preprocessor";
+import type IPreprocessOptions from "../../cnx/PARSE/1-Discover/preprocessor/types/IPreprocessOptions";
 
 describe("Transpiler coverage tests", () => {
   let mockFs: MockFileSystem;

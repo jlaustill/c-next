@@ -265,11 +265,11 @@ instruction could not be followed as written.
 module can sit, earliest first, and one generated rule per place (`*-reads-no-later-pass`, #1443)
 forbids it reaching any later one — **transitively**, not just as a direct edge. No pass after
 1.1 Discover reaches a 1.1 module other than its artifact's `types/` (`nothing-after-1-1-discovers`,
-#1444 box 4). `TranspileState` and `CodeGenWalker.ts` sit directly under `src/TRANSPILE/`, which
+#1444 box 4). `TranspileState` and `CodeGenWalker.ts` sit directly under `src/cnx/TRANSPILE/`, which
 README §1's tree draws, and each has its own place in the order: the state after 2.1 (an analyzer
 reaching it is the #1456 defect), the walker after 2.3 (its whole job is calling renderers).
 `npm run layout:check` reports the order rules together with the tree's shape. Check import dependencies before choosing extraction location; shared contracts
-go in `src/types/`, which every layer may depend on — and which may depend on no
+go in `src/cnx/types/`, which every layer may depend on — and which may depend on no
 pass in return, enforced by `shared-contracts-cannot-import-a-pass` (`error`, `reachable`).
 That claim was prose with nothing behind it until #1452 broke it twice: `IAssignmentContext`
 gained a `TranspileState` member, so an analyzer importing the CONTRACT reached a pass root
@@ -460,7 +460,7 @@ shortcut.
 
 **Before PRs**: Run `npm run unit:coverage` and check new/modified files.
 
-**Reducing complexity**: Extract nested logic to private helpers with early returns. Check `src/utils/ExpressionUtils.ts` for existing patterns first.
+**Reducing complexity**: Extract nested logic to private helpers with early returns. Check `src/cnx/utils/ExpressionUtils.ts` for existing patterns first.
 
 **Generated Markdown**: format the generator's output through Prettier before writing or diffing —
 the pre-commit hook formats staged `.md`, so unformatted output makes the committed file
@@ -568,22 +568,22 @@ and knip names that member.
 
 ### Pass layout (`src/`, README §1)
 
-| Layer        | Path                      | Purpose                                                                                                                                                                                                                                                             |
-| ------------ | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Discover     | `src/PARSE/1-Discover/`   | 1.1 Discover — `Discover.run` emits the frozen `SourceGraph`; FileDiscovery, IncludeResolver, DependencyGraph, preprocessor/, the port. Was `data/` and `logic/` until #1444                                                                                        |
-| Render       | `src/TRANSPILE/3-Render/` | 2.3 Render — codegen/, headers/. Moved out of `transpiler/output/` by #1450 box 5                                                                                                                                                                                   |
-| State        | _(gone)_                  | `src/transpiler/state/` was deleted by #1452. The per-file working state 2.2 and 2.3 share is `TranspileState` at the `src/TRANSPILE/` root; `SymbolRegistry` and `SymbolTable` are 1.3 Declare's                                                                   |
-| Constants    | _(gone)_                  | `src/transpiler/constants/` was dissolved by #1853: a constant one area reads sits in that area (a pass, or `src/utils/constants/`), and one that more than one area reads sits in `src/types/`. Areas are counted by where each reader is going, not where it sits |
-| Orchestrator | `src/cli/Transpiler.ts`   | Constructs the pipeline, orders the stages, owns the caches (#1443)                                                                                                                                                                                                 |
+| Layer        | Path                          | Purpose                                                                                                                                                                                                                                                                     |
+| ------------ | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Discover     | `src/cnx/PARSE/1-Discover/`   | 1.1 Discover — `Discover.run` emits the frozen `SourceGraph`; FileDiscovery, IncludeResolver, DependencyGraph, preprocessor/, the port. Was `data/` and `logic/` until #1444                                                                                                |
+| Render       | `src/cnx/TRANSPILE/3-Render/` | 2.3 Render — codegen/, headers/. Moved out of `transpiler/output/` by #1450 box 5                                                                                                                                                                                           |
+| State        | _(gone)_                      | `src/transpiler/state/` was deleted by #1452. The per-file working state 2.2 and 2.3 share is `TranspileState` at the `src/cnx/TRANSPILE/` root; `SymbolRegistry` and `SymbolTable` are 1.3 Declare's                                                                       |
+| Constants    | _(gone)_                      | `src/transpiler/constants/` was dissolved by #1853: a constant one area reads sits in that area (a pass, or `src/cnx/utils/constants/`), and one that more than one area reads sits in `src/cnx/types/`. Areas are counted by where each reader is going, not where it sits |
+| Orchestrator | `src/cli/Transpiler.ts`       | Constructs the pipeline, orders the stages, owns the caches (#1443)                                                                                                                                                                                                         |
 
 ### Utility Locations
 
-| Type                                                        | Location                                         |
-| ----------------------------------------------------------- | ------------------------------------------------ |
-| Type utilities (`ScopeUtils`, `TTypeUtils`, `TypeResolver`) | `src/utils/`                                     |
-| Type definitions (interfaces, enums)                        | `src/types/`                                     |
-| Stateful classes (`TranspileState`)                         | `src/TRANSPILE/`                                 |
-| Runtime lookups                                             | in the one area that reads them, or `src/types/` |
+| Type                                                        | Location                                             |
+| ----------------------------------------------------------- | ---------------------------------------------------- |
+| Type utilities (`ScopeUtils`, `TTypeUtils`, `TypeResolver`) | `src/cnx/utils/`                                     |
+| Type definitions (interfaces, enums)                        | `src/cnx/types/`                                     |
+| Stateful classes (`TranspileState`)                         | `src/cnx/TRANSPILE/`                                 |
+| Runtime lookups                                             | in the one area that reads them, or `src/cnx/types/` |
 
 ---
 
@@ -675,9 +675,11 @@ E0424 is a 2.1 Analyze diagnostic since #1322, and render asserts it never sees 
   struct fields are derived by 1.4 Resolve and read as
   `context.program.externalStructFields()`. Use
   `context.symbols.functionReturnTypes` for the ADR-029 function-as-type fact
-- **Analyzer test isolation**: build the context, not the state. Both helpers live in
-  `src/TRANSPILE/1-Analyze/__tests__/`, the one place allowed to read a
-  `TranspileState` into a context. `testAnalysisContextFor(source)` runs the real
+- **Analyzer test isolation**: build the context, not the state. `testAnalysisContext`
+  lives in `src/cnx/TRANSPILE/1-Analyze/__tests__/`, the one place allowed to read a
+  `TranspileState` into a context. `testAnalysisContextFor`, which needs the host's
+  target catalog, lives in `src/cli/__tests__/cnx/TRANSPILE/1-Analyze/` (#1992).
+  `testAnalysisContextFor(source)` runs the real
   1.3 and 1.4 on the source and returns a context with a settled `program`; use it
   for anything that types an operand or binds a name. `testAnalysisContext(state)`
   reads the facts a test set on a `TranspileState` and stands an
@@ -734,7 +736,10 @@ generator (#1489 deleted the one that duplicated this).
 
 ### Unit Tests
 
-- Location: `__tests__/` adjacent to module (e.g., `src/cli/cache/__tests__/CacheManager.test.ts`)
+- Location: `__tests__/` adjacent to module (e.g., `src/cli/cache/__tests__/CacheManager.test.ts`).
+  The exception is a test of a `src/cnx/` module that reaches `src/cli/` or `src/lib/`. It lives at
+  `src/cli/__tests__/cnx/<the module's path under cnx/>`, because nothing in `cnx/`, tests included,
+  imports the host (#1992; `transpiler-imports-no-host`)
 - Parser imports: `import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser.js"`
 - Direct parsing: `CNextSourceParser.parse(source)` when you just need AST
 - **Mock types**: `TTypeInfo` needs `baseType`, `bitWidth`, `isArray`, `isConst`; `TParameterInfo` needs `name`, `baseType`, `isArray`, `isStruct`, `isConst`, `isCallback`, `isString`
@@ -950,11 +955,11 @@ To add new patterns: (1) Add `AssignmentKind` enum, (2) Update `AssignmentClassi
 
 ### Adding CLI Flags
 
-Update: `src/cli/index.ts` (parse + pass), `src/types/ITranspilerConfig.ts` (interface).
+Update: `src/cli/index.ts` (parse + pass), `src/cnx/types/ITranspilerConfig.ts` (interface).
 
 ### Adding Generator Effects
 
-1. Add to the `TIncludeHeader` union in `src/types/` — it is a shared
+1. Add to the `TIncludeHeader` union in `src/cnx/types/` — it is a shared
    contract, not a codegen type: `TranspileState` names it too, and
    `transpile-state-reads-no-later-pass` forbids the state importing `3-Render/`
 2. Add the `needs<Effect>` field to **`TranspileState`** (reset in its `reset()`)
@@ -1012,7 +1017,7 @@ This used to name a third, `buildStructParamMemberAccess()`, "for chains". It ha
 ### Const Inference
 
 `ModificationCollector.walkStatementForModifications()` (1.3 Declare, #1825) uses two
-collectors in `src/utils/ast/`:
+collectors in `src/cnx/utils/ast/`:
 
 - `StatementExpressionCollector.collectAll()` — returns all expressions from any statement type
 - `ChildStatementCollector.collectAll()` — returns child statements/blocks for recursion
@@ -1032,7 +1037,7 @@ Update both when adding new statement types.
   - **Symbols layer** — `TypeUtils.resolveType()`, fed an `isScopeType` predicate threaded from `CNextResolver.resolve()`. (`dispatchTypeResolution` was named here and was removed by #1285.) It answers with a settled name OR a `TDeferredType` when 1.3 cannot settle a bare name, and 1.4 Resolve settles those against the scope types that file can see — its own and its include closure's (`IProgram.isScopeTypeVisibleFrom`, #1724). Everything downstream (`TSymbol`, `HeaderSymbolAdapter`, the `.h`) inherits the name from here and must NOT re-qualify.
   - **Codegen layer** — `CodeGenWalker.getTypeName()` and friends (the method is the walker's; `CodeGenerator` has none), via the deps `TranspileState.typeBindingDeps()` hands to `TypeBinding`. The decision is still made here; it is reached by resolving a whole `TypeContext` rather than by qualifying a bare name at the call site. Its predicate is the symbols layer's: `TranspileState.isScopeType` asks `IProgram.isScopeTypeVisibleFrom` about the file being generated, so the `.h` and the `.c` qualify from one answer (#1724).
 - **`CNextResolver` Pass 0b** collects the qualified names of scope-declared types (`TYPE_FORMING_KINDS`: enums, structs, bitmaps, and functions, which ADR-029 makes callback types) _before_ any type is resolved, so qualification does not depend on whether a type is declared above or below its use. Do not swap this for `scope.members`: that list is kind-agnostic (a scope variable named `B` would capture global type `B`) and is still being built while collectors read it.
-- **`ScopeUtils.qualifyScopeType()`**: Shared utility in `src/utils/ScopeUtils.ts`. Takes `typeName`, the enclosing `scopePath`, and an `isKnownType(qualifiedName)` predicate. Its production callers are the symbols layer — `3-Declare/TypeBinding.ts` and `4-Resolve/DeferredTypes.ts` — and `OperandTyper`, with `program.isScopeTypeVisibleFrom` for the file being typed, when an operand names an enum type. Codegen reaches the same decision through `TranspileState.typeBindingDeps()`; `TypeGenerationHelper` injects the predicate through `ITypeGenerationDeps` instead, to stay unit-testable.
+- **`ScopeUtils.qualifyScopeType()`**: Shared utility in `src/cnx/utils/ScopeUtils.ts`. Takes `typeName`, the enclosing `scopePath`, and an `isKnownType(qualifiedName)` predicate. Its production callers are the symbols layer — `3-Declare/TypeBinding.ts` and `4-Resolve/DeferredTypes.ts` — and `OperandTyper`, with `program.isScopeTypeVisibleFrom` for the file being typed, when an operand names an enum type. Codegen reaches the same decision through `TranspileState.typeBindingDeps()`; `TypeGenerationHelper` injects the predicate through `ITypeGenerationDeps` instead, to stay unit-testable.
 - **`ParameterInputAdapter.fromAST` struct detection**: `isKnownStruct` must check both the bare name AND the qualified name (`ScopeUtils.qualifyInScope(typeName, currentScopePath)` -- the whole PATH, not a scope's leaf name) for scope-local struct types. Without this, scope struct params get classified as pass-by-value while `mappedType` comes back qualified, causing `.c` body to use `->` on a non-pointer.
 
 ---

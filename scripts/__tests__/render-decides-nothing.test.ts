@@ -82,7 +82,7 @@ const CAPTURES = [
     // #1445 box 3: the capture is reached from `generate()`, which takes the
     // parse tree, so it moved to the walker with the rest of the walk. It is
     // still exactly one capture per artifact -- the file changed, not the rule.
-    file: join("src", "TRANSPILE", "CodeGenWalker.ts"),
+    file: join("src", "cnx", "TRANSPILE", "CodeGenWalker.ts"),
     needle: "private captureEmissionFacts(",
   },
   {
@@ -90,6 +90,7 @@ const CAPTURES = [
     // header adapter it reads. Still one capture for the `.h`.
     file: join(
       "src",
+      "cnx",
       "TRANSPILE",
       "3-Render",
       "headers",
@@ -136,12 +137,14 @@ const STD_HEADER_SPELLING = /<std(?:int|bool)\.h>/g;
 const STD_HEADER_TARGET = /SYSTEM_INCLUDE_TARGETS\.(?:stdint|stdbool)\b/g;
 const STD_HEADER_SPELLER = join(
   "src",
+  "cnx",
   "TRANSPILE",
   "2-Plan",
   "SYSTEM_INCLUDE_TARGETS.ts",
 );
 const STD_HEADER_DECIDER = join(
   "src",
+  "cnx",
   "TRANSPILE",
   "2-Plan",
   "CTypeIncludes.ts",
@@ -160,7 +163,7 @@ const ANNOTATION_FORM = /\/\*[^*\n]{0,80}\bRule\b/g;
  *
  * Anchored at the path segment (#1589 review): `[^"]*` absorbs a leading `I`,
  * so the unanchored form matched the TYPE `IDeclarationPlan` as well as the
- * DECISION `DeclarationPlan` -- and `src/types/IDeclarationPlan.ts`
+ * DECISION `DeclarationPlan` -- and `src/cnx/types/IDeclarationPlan.ts`
  * exists. The census is exact-equality, so that is a false positive waiting to
  * happen: a render module typing a parameter with `IDeclarationPlan` is
  * decision-free, and would have reddened the census under a message naming the
@@ -177,19 +180,26 @@ const importOf = (name: string): RegExp =>
  * warns about, and the reason the form check is scoped rather than the reason
  * it is name-keyed.
  */
-const DIAGNOSTIC_LAYER = join("src", "TRANSPILE", "1-Analyze") + sep;
+const DIAGNOSTIC_LAYER = join("src", "cnx", "TRANSPILE", "1-Analyze") + sep;
 
 const ANNOTATION_OWNER = join(
   "src",
+  "cnx",
   "TRANSPILE",
   "2-Plan",
   "ComplianceAnnotations.ts",
 );
-const ORDER_DECIDER = join("src", "TRANSPILE", "2-Plan", "DeclarationPlan.ts");
+const ORDER_DECIDER = join(
+  "src",
+  "cnx",
+  "TRANSPILE",
+  "2-Plan",
+  "DeclarationPlan.ts",
+);
 // #1445 box 3: `declarationKindOf` reasons about which grammar alternative a
 // declaration matched, so it moved to the walker with everything else that
 // asks the tree a question.
-const ORDER_CLASSIFIER = join("src", "TRANSPILE", "CodeGenWalker.ts");
+const ORDER_CLASSIFIER = join("src", "cnx", "TRANSPILE", "CodeGenWalker.ts");
 
 /**
  * A predicate that DECIDES, keyed on the verb in its name.
@@ -225,8 +235,8 @@ const ORDER_CLASSIFIER = join("src", "TRANSPILE", "CodeGenWalker.ts");
 const DECISION_FORM =
   /^[ \t]*(?:export )?(?:private |public |protected )?(?:static |function |const |readonly )*_?(?:needs|requires|shouldBe|mustBe|willNeed)[A-Za-z0-9_]*\s*(?:\(|=\s*(?:async\s*)?\()/gm;
 
-const RENDER_PASS = join("src", "TRANSPILE", "3-Render") + sep;
-const PLAN_PASS = join("src", "TRANSPILE", "2-Plan") + sep;
+const RENDER_PASS = join("src", "cnx", "TRANSPILE", "3-Render") + sep;
+const PLAN_PASS = join("src", "cnx", "TRANSPILE", "2-Plan") + sep;
 
 /**
  * Every decision 2.2 Plan owns, and the exact render-pass modules that consult

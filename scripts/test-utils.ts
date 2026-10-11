@@ -27,18 +27,18 @@ import IValidationResult from "./types/IValidationResult";
 import ITestResult from "./types/ITestResult";
 import type TTestMode from "./types/TTestMode";
 import type IModeResult from "./types/ITestMode";
-import detectCppSyntax from "../src/PARSE/1-Discover/detectCppSyntax";
+import detectCppSyntax from "../src/cnx/PARSE/1-Discover/detectCppSyntax";
 import TestMarkers from "./TestMarkers";
-import CNextSourceParser from "../src/PARSE/2-Parse/CNextSourceParser";
-import ExecFailure from "../src/utils/ExecFailure";
+import CNextSourceParser from "../src/cnx/PARSE/2-Parse/CNextSourceParser";
+import ExecFailure from "../src/cnx/utils/ExecFailure";
 import TargetResolver from "../src/cli/TargetResolver";
-import type IGccToolchain from "../src/utils/types/IGccToolchain";
+import type IGccToolchain from "../src/cnx/utils/types/IGccToolchain";
 import TargetMatrix from "./TargetMatrix";
-import RunTarget from "../src/PARSE/4-Resolve/RunTarget";
+import RunTarget from "../src/cnx/PARSE/4-Resolve/RunTarget";
 import type ITargetCell from "./types/ITargetCell";
 import type ITargetXfail from "./types/ITargetXfail";
 import type ITranspileCell from "./types/ITranspileCell";
-import NodeFileSystem from "../src/PARSE/1-Discover/NodeFileSystem";
+import NodeFileSystem from "../src/cnx/PARSE/1-Discover/NodeFileSystem";
 
 // Project root for CLI invocation (this file is in /workspace/scripts/)
 const PROJECT_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));

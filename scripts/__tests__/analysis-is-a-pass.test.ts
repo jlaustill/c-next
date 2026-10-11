@@ -14,7 +14,7 @@
  * suite, because there is no analyzer read of codegen-filled `CodeGenState`
  * left for the order to affect -- `typeRegistry`, `constValues`,
  * `knownFunctions` and `sourcePath` have zero live reads under
- * `src/TRANSPILE/1-Analyze/`, and the two surviving accessors bottom out in
+ * `src/cnx/TRANSPILE/1-Analyze/`, and the two surviving accessors bottom out in
  * `Program` and the run-wide `SymbolTable`, both complete before 2.1.
  *
  * So a fixture asserting "the hoist happened" would have to introduce the very

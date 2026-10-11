@@ -173,7 +173,7 @@ class ScopeJoinSites {
    */
   private static readonly ADJUDICATIONS: readonly IAdjudication[] = [
     {
-      file: "src/utils/ScopeUtils.ts",
+      file: "src/cnx/utils/ScopeUtils.ts",
       element: "symbol.scopePath",
       kind: "encoder",
       pairedWith: null,
@@ -181,7 +181,7 @@ class ScopeJoinSites {
       why: "`getTranspiledCName` -- the single encoder. The symbol carries its whole enclosing path (#1298), so this joins a complete path to a leaf rather than standing a leaf in for one",
     },
     {
-      file: "src/utils/ScopeUtils.ts",
+      file: "src/cnx/utils/ScopeUtils.ts",
       element: "scopePath",
       kind: "encoder",
       pairedWith: null,
@@ -189,7 +189,7 @@ class ScopeJoinSites {
       why: "`qualifyPathInScope` -- the one implementation the converted sites route to; its parameter IS the enclosing path",
     },
     {
-      file: "src/TRANSPILE/1-Analyze/helpers/CalleeNameResolver.ts",
+      file: "src/cnx/TRANSPILE/1-Analyze/helpers/CalleeNameResolver.ts",
       element: "resolvedName",
       kind: "path",
       pairedWith: null,
@@ -197,7 +197,7 @@ class ScopeJoinSites {
       why: "callee chain `Scope.method()`; `resolvedName` is source text, and the `isScope` guard only confirms the author named a scope",
     },
     {
-      file: "src/TRANSPILE/2-Plan/AssignmentClassifier.ts",
+      file: "src/cnx/TRANSPILE/2-Plan/AssignmentClassifier.ts",
       element: "scopeName",
       kind: "path",
       pairedWith: null,
@@ -205,7 +205,7 @@ class ScopeJoinSites {
       why: "`ids[0]` of `Scope.REG.MEMBER`, admitted by `isKnownScope(scopeName)`; under nesting the author writes more components and the INDEXING changes, not the join. The `Scope.member` key this also built is the target's binding since #1668",
     },
     {
-      file: "src/TRANSPILE/2-Plan/AssignmentClassifier.ts",
+      file: "src/cnx/TRANSPILE/2-Plan/AssignmentClassifier.ts",
       element: "firstId",
       kind: "path",
       pairedWith: null,
@@ -213,7 +213,7 @@ class ScopeJoinSites {
       why: "`ids[0]` of `Scope.REG.MEMBER[bit]`, guarded by `isKnownScope`",
     },
     {
-      file: "src/TRANSPILE/3-Render/codegen/assignment/handlers/AssignmentHandlerUtils.ts",
+      file: "src/cnx/TRANSPILE/3-Render/codegen/assignment/handlers/AssignmentHandlerUtils.ts",
       element: "leadingId",
       kind: "path",
       pairedWith: null,
@@ -221,7 +221,7 @@ class ScopeJoinSites {
       why: "`identifiers[0]` of `Scope.Register.Member`, guarded by the injected `isKnownScope`",
     },
     {
-      file: "src/TRANSPILE/3-Render/codegen/assignment/handlers/BitmapHandlers.ts",
+      file: "src/cnx/TRANSPILE/3-Render/codegen/assignment/handlers/BitmapHandlers.ts",
       element: "scopeName",
       kind: "path",
       pairedWith: null,

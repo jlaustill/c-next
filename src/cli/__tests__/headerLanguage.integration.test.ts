@@ -21,8 +21,8 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import Transpiler from "../Transpiler";
-import Preprocessor from "../../PARSE/1-Discover/preprocessor/Preprocessor";
-import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
+import Preprocessor from "../../cnx/PARSE/1-Discover/preprocessor/Preprocessor";
+import NodeFileSystem from "../../cnx/PARSE/1-Discover/NodeFileSystem";
 import type ITranspilerResult from "../types/ITranspilerResult";
 
 /** C++ that exists only in the raw text: the preprocessor removes it. */

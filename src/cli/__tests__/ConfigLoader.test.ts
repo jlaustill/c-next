@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import ConfigLoader from "../ConfigLoader";
 import MockFileSystem from "./MockFileSystem";
-import IFileSystem from "../../types/IFileSystem";
+import IFileSystem from "../../cnx/types/IFileSystem";
 
 describe("ConfigLoader", () => {
   let tempDir: string;
