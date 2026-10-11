@@ -67,7 +67,7 @@ class DivisionByZeroListener extends CNextListener {
           operator,
           line,
           column,
-          DivisionByZeroListener.inStatement(ctx),
+          DivisionByZeroListener.atRunTime(ctx),
         );
       }
     }
@@ -93,11 +93,24 @@ class DivisionByZeroListener extends CNextListener {
     );
   }
 
-  /** Whether a division is in a statement, where `safe_div` can be called */
-  private static inStatement(
+  /**
+   * Whether a `safe_div` call could replace a division: in a statement, and
+   * not in what must be known at compile time there -- an array dimension, an
+   * enum member's value, a const's initializer (#1268 review)
+   */
+  private static atRunTime(
     ctx: Parser.MultiplicativeExpressionContext,
   ): boolean {
     for (let node = ctx.parent; node !== null; node = node.parent) {
+      if (
+        node instanceof Parser.ArrayDimensionContext ||
+        node instanceof Parser.ArrayTypeDimensionContext ||
+        node instanceof Parser.EnumMemberContext ||
+        (node instanceof Parser.VariableDeclarationContext &&
+          node.constModifier() !== null)
+      ) {
+        return false;
+      }
       if (node instanceof Parser.StatementContext) return true;
     }
     return false;
@@ -131,7 +144,7 @@ class DivisionByZeroAnalyzer {
     operator: string,
     line: number,
     column: number,
-    inStatement: boolean,
+    atRunTime: boolean,
   ): void {
     const isDivision = operator === "/";
     const code = isDivision ? "E0800" : "E0802";
@@ -144,7 +157,7 @@ class DivisionByZeroAnalyzer {
       line,
       column,
       message: `${opName} by zero`,
-      helpText: inStatement
+      helpText: atRunTime
         ? `Consider using ${builtin}(output, numerator, divisor, defaultValue) for runtime safety`
         : "A divisor known at compile time must not be zero",
     });

@@ -68,7 +68,7 @@ class ConstantDiagnostics {
 
   /** Why a const's own initializer has no value, said at a use of the const */
   private static cause(
-    because: Exclude<TConstResult, { readonly kind: "value" }>,
+    because: Exclude<TConstResult, { readonly kind: "value" | "float" }>,
   ): string {
     if (because.kind === "overflow") {
       return `its initializer overflows ${because.typeName} (ADR-044)`;

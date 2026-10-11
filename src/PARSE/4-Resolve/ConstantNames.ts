@@ -3,7 +3,8 @@
  * its chain, from the binder's answer for its head.
  *
  * - a local, or a const declared at file or scope level, is worth its folded
- *   value, typed by its declaration (ADR-044's arithmetic needs the width);
+ *   value, typed by its declaration (ADR-044's arithmetic needs the width) --
+ *   an integer's or a float's, settled once by 1.4 (#1268 review);
  * - a scope's member (`Scope.N`) or an enum's (`EColor.COUNT`, `this.EMode.X`,
  *   `Motor.EMode.X`) is found by C name, as everything is (ADR-063);
  * - a name an included header defines is C's to evaluate;
@@ -30,7 +31,6 @@ import type TValueBinding from "../../types/TValueBinding";
 import type ISourcePosition from "../../utils/types/ISourcePosition";
 import type TSettledConst from "../../types/TSettledConst";
 import type TSymbol from "../../types/symbols/TSymbol";
-import type IConstInitializer from "../../types/IConstInitializer";
 
 type TConstName = Extract<TConstExpr, { kind: "name" }>;
 type TReason = Extract<TConstResult, { kind: "notConstant" }>["reason"];
@@ -75,54 +75,6 @@ class ConstantNames {
     facts: IConstantNameFacts,
   ): TConstResult {
     return ConstantNames.ofBound(binding, [], { spelling, at, facts });
-  }
-
-  /**
-   * The initializer of the const a name means, by the walk `valueOf` takes,
-   * so `this.N`, `global.N` and `Scope.N` mean the declaration they do there
-   * -- for a const whose value `valueOf` does not fold, a float's (ADR-051
-   * §4, #1268 review). Null for anything else: a variable, a parameter, an
-   * enum member, a member of a value, a header's name.
-   */
-  static initializerOf(
-    name: TConstName,
-    facts: IConstantNameFacts,
-  ): IConstInitializer | null {
-    const head = name.path[0];
-    if (head === undefined) return null;
-    const rest = name.path.slice(1);
-    const binding = facts.bind(name.root, head, name.at);
-    if (binding?.kind === "local") {
-      const declaration = binding.declaration;
-      return rest.length === 0 &&
-        declaration.isConst &&
-        declaration.initialValueExpr !== null
-        ? {
-            expr: declaration.initialValueExpr,
-            type: declaration.type,
-            sourceFile: null,
-          }
-        : null;
-    }
-    let symbol: TSymbol | undefined;
-    if (binding?.kind === "variable" && rest.length === 0) {
-      symbol = binding.symbol;
-    } else if (binding?.kind === "scope" && rest.length === 1) {
-      symbol = ConstantNames.scopeMember(
-        binding.scopePath,
-        rest[0],
-        facts,
-      ).symbol;
-    }
-    return symbol?.kind === "variable" &&
-      symbol.isConst &&
-      symbol.initialValueExpr !== undefined
-      ? {
-          expr: symbol.initialValueExpr,
-          type: symbol.type,
-          sourceFile: symbol.sourceFile,
-        }
-      : null;
   }
 
   private static ofBound(
@@ -234,6 +186,15 @@ class ConstantNames {
         kind: "value",
         value: BigInt(settled.digits),
         typeName: settled.typeName,
+      };
+    }
+    if (settled?.kind === "float") {
+      return {
+        kind: "float",
+        value: Number(settled.digits),
+        typeName: settled.typeName,
+        spelling: walk.spelling,
+        at: walk.at,
       };
     }
     return {

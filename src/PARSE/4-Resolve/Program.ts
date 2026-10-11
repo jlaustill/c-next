@@ -73,7 +73,6 @@ import type IEnumSymbol from "../../types/symbols/IEnumSymbol";
 import type ISourcePosition from "../../utils/types/ISourcePosition";
 import type TConstExpr from "../../types/TConstExpr";
 import type TConstResult from "../../types/TConstResult";
-import type IConstInitializer from "../../types/IConstInitializer";
 import type TEnumMemberValue from "../../types/TEnumMemberValue";
 import type TSettledConst from "../../types/TSettledConst";
 import type THeaderMacro from "../../types/THeaderMacro";
@@ -363,17 +362,6 @@ class Program {
         name: Extract<TConstExpr, { kind: "name" }>,
       ): TConstResult =>
         ConstantNames.valueOf(
-          name,
-          Program.nameFacts(bound, sourceFile, constants, {
-            settledLocal: SETTLED,
-            files: fileFacts,
-          }),
-        ),
-      constantInitializerOf: (
-        sourceFile: string,
-        name: Extract<TConstExpr, { kind: "name" }>,
-      ): IConstInitializer | null =>
-        ConstantNames.initializerOf(
           name,
           Program.nameFacts(bound, sourceFile, constants, {
             settledLocal: SETTLED,
@@ -784,7 +772,10 @@ class Program {
         );
         // A const waiting on another settles when that one does; one with no
         // value for any other reason has settled, and keeps why
-        const waits = settledConst?.kind !== "value" && pending.length > 0;
+        const waits =
+          settledConst?.kind !== "value" &&
+          settledConst?.kind !== "float" &&
+          pending.length > 0;
         if (settledConst !== null && !waits) consts.set(cName, settledConst);
       } else if (symbol.kind === "enum" && !enums.has(cName)) {
         const values = Program.enumValues(symbol, facts);

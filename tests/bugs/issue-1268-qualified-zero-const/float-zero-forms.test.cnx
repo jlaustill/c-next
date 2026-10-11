@@ -3,8 +3,11 @@
 // #1268 review: a float divisor is zero by the rule an integer one is
 // (ADR-051 §4) -- parenthesized, negated, cast, through a const that names
 // another, or computed. Each was accepted and emitted a division by zero.
+// C computes `f32 op f32` in float (FLT_EVAL_METHOD 0), so `0.1f32 + 0.2f32 -
+// 0.3f32` and `1e-30f32 * 1e-30f32` are each 0.0f, written inline or named.
 //
-// NEGATIVE CONTROLS: ONE_F, (f32)1, and HALF_F2 (0.5 - 0.25), each nonzero.
+// NEGATIVE CONTROLS: ONE_F, (f32)1, HALF_F2 (0.5 - 0.25), and
+// `1e-30f32 * 1e-30` (at f64, 1e-60), each nonzero.
 
 const f32 FZ <- 0.0;
 const f32 FZ2 <- FZ;
@@ -12,6 +15,8 @@ const f32 FZ3 <- 1.0 - 1.0;
 const f32 FZ4 <- -0.0;
 const f32 ONE_F <- 1.0;
 const f32 HALF_F2 <- 0.5 - 0.25;
+const f32 SUM_F <- 0.1f32 + 0.2f32;
+const f32 ROUNDED_F <- SUM_F - 0.3f32;
 
 scope Gauge {
     const f32 FZ <- 0.0;
@@ -32,5 +37,9 @@ f32 forms(f32 k) {
     f32 h <- k / ONE_F;
     f32 i <- k / (f32)1;
     f32 j <- k / HALF_F2;
-    return a + b + c + d + e + f + g + h + i + j;
+    f64 l <- k / (0.1f32 + 0.2f32 - 0.3f32);
+    f64 m <- k / (1e-30f32 * 1e-30f32);
+    f64 o <- k / ROUNDED_F;
+    f64 q <- k / (1e-30f32 * 1e-30);
+    return a + b + c + d + e + f + g + h + i + j + l + m + o + q;
 }

@@ -23,10 +23,10 @@ import type TConstExpr from "../types/TConstExpr";
 import type TConstResult from "../types/TConstResult";
 import type IConstantEnvironment from "./types/IConstantEnvironment";
 
-type TConstName = Extract<TConstExpr, { kind: "name" }>;
-
 type TBinary = Extract<TConstExpr, { kind: "binary" }>;
 type TValue = Extract<TConstResult, { kind: "value" }>;
+type TFloat = Extract<TConstResult, { kind: "float" }>;
+type TIntegerResult = Exclude<TConstResult, { kind: "float" }>;
 type TComparison = "<" | ">" | "<=" | ">=" | "=" | "!=";
 type TArithmetic = Exclude<TBinary["op"], TComparison | "&&" | "||">;
 
@@ -54,6 +54,36 @@ class ConstantEvaluator {
     expr: TConstExpr,
     env: IConstantEnvironment,
     context: string | null = null,
+  ): TIntegerResult {
+    return ConstantEvaluator.integral(
+      ConstantEvaluator.fold(expr, env, context),
+    );
+  }
+
+  /**
+   * A constant expression's value as a number, integer or float, for the one
+   * question ADR-051 asks of a divisor whatever its type: is it zero (§4,
+   * #1268 review). Null for anything with no value.
+   */
+  static numberValue(
+    expr: TConstExpr,
+    env: IConstantEnvironment,
+  ): number | null {
+    const result = ConstantEvaluator.fold(expr, env);
+    if (result.kind === "value") return Number(result.value);
+    return result.kind === "float" ? result.value : null;
+  }
+
+  /**
+   * `evaluate`, where a float is a value too (#1268 review): as C computes it
+   * with `FLT_EVAL_METHOD` 0 -- an operation between floats happens at the
+   * wider one's type, an integer operand converts to the float's, and a
+   * float cast to an integer type saturates as ADR-024's cast does
+   */
+  static fold(
+    expr: TConstExpr,
+    env: IConstantEnvironment,
+    context: string | null = null,
   ): TConstResult {
     switch (expr.kind) {
       case "literal":
@@ -66,12 +96,12 @@ class ConstantEvaluator {
         // A cast is the context of what it encloses
         return ConstantEvaluator.cast(
           expr.typeName,
-          ConstantEvaluator.evaluate(expr.operand, env, expr.typeName),
+          ConstantEvaluator.fold(expr.operand, env, expr.typeName),
         );
       case "unary":
         return ConstantEvaluator.unary(
           expr.op,
-          ConstantEvaluator.evaluate(expr.operand, env, context),
+          ConstantEvaluator.fold(expr.operand, env, context),
           context,
         );
       case "binary":
@@ -79,64 +109,27 @@ class ConstantEvaluator {
       case "ternary":
         return ConstantEvaluator.ternary(expr, env, context);
       case "other":
-        return {
-          kind: "notConstant",
-          reason: expr.what,
-          spelling: expr.spelling,
-          at: expr.at,
-        };
+        return expr.what === "float"
+          ? ConstantEvaluator.floatLiteral(expr)
+          : {
+              kind: "notConstant",
+              reason: expr.what,
+              spelling: expr.spelling,
+              at: expr.at,
+            };
     }
   }
 
-  /**
-   * A constant expression's value as a number, integer or float, for the one
-   * question ADR-051 asks of a divisor whatever its type: is it zero (§4,
-   * #1268 review). A subtree `evaluate` folds is worth what it folds to, so
-   * `(f32)(1 / 2)` is 0 as C computes it; above that, float arithmetic is
-   * IEEE double, held at `f32` where a cast or a suffix says so. `nameValue`
-   * answers a name `env` does not fold -- a float const. Null for anything
-   * with no value.
-   */
-  static numberValue(
-    expr: TConstExpr,
-    env: IConstantEnvironment,
-    nameValue: (name: TConstName) => number | null,
-  ): number | null {
-    const integer = ConstantEvaluator.evaluate(expr, env);
-    if (integer.kind === "value") return Number(integer.value);
-    const of = (operand: TConstExpr): number | null =>
-      ConstantEvaluator.numberValue(operand, env, nameValue);
-    switch (expr.kind) {
-      case "name":
-        return nameValue(expr);
-      case "cast": {
-        const operand = of(expr.operand);
-        return operand !== null && TypeCheckUtils.isFloat(expr.typeName)
-          ? ConstantEvaluator.heldFloat(operand, expr.typeName)
-          : null;
-      }
-      case "unary": {
-        const operand = of(expr.operand);
-        return expr.op === "-" && operand !== null ? -operand : null;
-      }
-      case "binary":
-        return ConstantEvaluator.floatBinary(
-          expr.op,
-          of(expr.left),
-          of(expr.right),
-        );
-      case "ternary": {
-        const condition = ConstantEvaluator.evaluate(expr.condition, env);
-        if (condition.kind !== "value") return null;
-        return of(condition.value === 0n ? expr.whenFalse : expr.whenTrue);
-      }
-      case "other":
-        return expr.what === "float"
-          ? ConstantEvaluator.floatLiteral(expr.spelling)
-          : null;
-      default:
-        return null;
-    }
+  /** An integer constant's view of a result: a float is not one */
+  private static integral(result: TConstResult): TIntegerResult {
+    return result.kind === "float"
+      ? {
+          kind: "notConstant",
+          reason: "float",
+          spelling: result.spelling,
+          at: result.at,
+        }
+      : result;
   }
 
   /** A float value as `typeName` holds it: `f32` rounds to single */
@@ -144,34 +137,148 @@ class ConstantEvaluator {
     return typeName === "f32" ? Math.fround(value) : value;
   }
 
-  /** `1.5`, `0.0f32`, `2e3f64`, held at the type its suffix names */
-  private static floatLiteral(spelling: string): number | null {
-    const width = LiteralUtils.floatLiteralWidth(spelling);
-    if (width === null) return null;
-    const value = Number(spelling.replace(/[fF](?:32|64)$/, ""));
-    return Number.isFinite(value)
-      ? ConstantEvaluator.heldFloat(value, `f${width}`)
+  /** `1.5`, `0.0f32`, `2e3f64`: the type its suffix names, `f64` without one */
+  private static floatLiteral(
+    expr: Extract<TConstExpr, { kind: "other" }>,
+  ): TConstResult {
+    const width = LiteralUtils.floatLiteralWidth(expr.spelling);
+    const value = Number(expr.spelling.replace(/[fF](?:32|64)$/, ""));
+    if (width === null || !Number.isFinite(value)) {
+      return {
+        kind: "notConstant",
+        reason: "float",
+        spelling: expr.spelling,
+        at: expr.at,
+      };
+    }
+    const typeName = width === 32 ? "f32" : "f64";
+    return {
+      kind: "float",
+      value: ConstantEvaluator.heldFloat(value, typeName),
+      typeName,
+      spelling: expr.spelling,
+      at: expr.at,
+    };
+  }
+
+  /**
+   * `left op right` where an operand is a float. Computing in double and
+   * rounding once to `f32` is exactly the `f32` result for `+ - * /`: double
+   * has more than 2 * 24 + 2 bits of precision.
+   */
+  private static floatBinary(
+    op: Exclude<TBinary["op"], "&&" | "||">,
+    left: TConstResult,
+    right: TConstResult,
+  ): TConstResult {
+    const origin = (left.kind === "float" ? left : right) as TFloat;
+    const typeName =
+      left.kind === "float" && right.kind === "float"
+        ? ConstantEvaluator.widerFloat(left.typeName, right.typeName)
+        : origin.typeName;
+    const l = ConstantEvaluator.asFloat(left, typeName);
+    const r = ConstantEvaluator.asFloat(right, typeName);
+    if (l === null || r === null) {
+      return ConstantEvaluator.firstWithoutValue(left, right);
+    }
+    if (ConstantEvaluator.isComparison(op)) {
+      const holds = {
+        "<": l < r,
+        ">": l > r,
+        "<=": l <= r,
+        ">=": l >= r,
+        "=": l === r,
+        "!=": l !== r,
+      }[op];
+      return { kind: "value", value: holds ? 1n : 0n, typeName: BOOL };
+    }
+    const float = (value: number): TConstResult => ({
+      ...origin,
+      value: ConstantEvaluator.heldFloat(value, typeName),
+      typeName,
+    });
+    switch (op) {
+      case "+":
+        return float(l + r);
+      case "-":
+        return float(l - r);
+      case "*":
+        return float(l * r);
+      case "/":
+        return r === 0
+          ? {
+              kind: "notConstant",
+              reason: "divisionByZero",
+              spelling: "",
+              at: null,
+            }
+          : float(l / r);
+      default:
+        // `%`, a shift or a bitwise operator has no float meaning (E0804)
+        return ConstantEvaluator.integral(origin);
+    }
+  }
+
+  private static widerFloat(
+    left: TFloat["typeName"],
+    right: TFloat["typeName"],
+  ): TFloat["typeName"] {
+    return left === "f64" || right === "f64" ? "f64" : "f32";
+  }
+
+  /** An operand with a value, converted to `typeName` as C converts it */
+  private static asFloat(
+    operand: TConstResult,
+    typeName: TFloat["typeName"],
+  ): number | null {
+    if (operand.kind === "float") return operand.value;
+    return operand.kind === "value"
+      ? ConstantEvaluator.heldFloat(Number(operand.value), typeName)
       : null;
   }
 
-  private static floatBinary(
-    op: string,
-    left: number | null,
-    right: number | null,
-  ): number | null {
-    if (left === null || right === null) return null;
-    switch (op) {
-      case "+":
-        return left + right;
-      case "-":
-        return left - right;
-      case "*":
-        return left * right;
-      case "/":
-        return right === 0 ? null : left / right;
-      default:
-        return null;
+  /**
+   * A float cast: to a float type it is held there; to `bool` it is whether
+   * it is nonzero; to an integer type it saturates as the generated cast
+   * does (ADR-024, `SaturatingCast`): at or past the maximum as the float's
+   * type holds it is the maximum, below the minimum is the minimum, and
+   * anything else truncates toward zero
+   */
+  private static castFloat(typeName: string, operand: TFloat): TConstResult {
+    if (typeName === BOOL) {
+      return { kind: "value", value: operand.value === 0 ? 0n : 1n, typeName };
     }
+    if (TypeCheckUtils.isFloat(typeName)) {
+      const held = typeName === "f32" ? "f32" : "f64";
+      return {
+        ...operand,
+        value: ConstantEvaluator.heldFloat(operand.value, held),
+        typeName: held,
+      };
+    }
+    const range = TypeCheckUtils.integerRange(typeName);
+    if (range === null || Number.isNaN(operand.value)) {
+      return ConstantEvaluator.integral(operand);
+    }
+    const [min, max] = range;
+    const bound = (limit: bigint): number =>
+      ConstantEvaluator.heldFloat(Number(limit), operand.typeName);
+    let value: bigint;
+    if (operand.value >= bound(max)) {
+      value = max;
+    } else if (operand.value < (min === 0n ? 0 : bound(min))) {
+      value = min;
+    } else {
+      value = BigInt(Math.trunc(operand.value));
+    }
+    return { kind: "value", value, typeName };
+  }
+
+  /** A condition as C tests it: a float is true when it is nonzero */
+  private static truth(result: TConstResult): TConstResult {
+    return result.kind === "float"
+      ? { kind: "value", value: result.value === 0 ? 0n : 1n, typeName: BOOL }
+      : result;
   }
 
   /** A value as a `number`, when a `number` holds it exactly */
@@ -203,14 +310,19 @@ class ConstantEvaluator {
   }
 
   private static cast(typeName: string, operand: TConstResult): TConstResult {
+    if (operand.kind === "float") {
+      return ConstantEvaluator.castFloat(typeName, operand);
+    }
     if (operand.kind !== "value") return operand;
     if (typeName === BOOL) {
       return { kind: "value", value: operand.value === 0n ? 0n : 1n, typeName };
     }
     if (TypeCheckUtils.isFloat(typeName)) {
+      const held = typeName === "f32" ? "f32" : "f64";
       return {
-        kind: "notConstant",
-        reason: "float",
+        kind: "float",
+        value: ConstantEvaluator.heldFloat(Number(operand.value), held),
+        typeName: held,
         spelling: `(${typeName})`,
         at: null,
       };
@@ -223,6 +335,17 @@ class ConstantEvaluator {
     operand: TConstResult,
     context: string | null,
   ): TConstResult {
+    if (operand.kind === "float") {
+      if (op === "-") return { ...operand, value: -operand.value };
+      if (op === "!") {
+        return {
+          kind: "value",
+          value: operand.value === 0 ? 1n : 0n,
+          typeName: BOOL,
+        };
+      }
+      return ConstantEvaluator.integral(operand);
+    }
     if (operand.kind !== "value") return operand;
     if (op === "!") {
       return {
@@ -251,17 +374,19 @@ class ConstantEvaluator {
     env: IConstantEnvironment,
     context: string | null,
   ): TConstResult {
-    const condition = ConstantEvaluator.evaluate(expr.condition, env);
+    const condition = ConstantEvaluator.truth(
+      ConstantEvaluator.fold(expr.condition, env),
+    );
     if (condition.kind === "foreign") {
       // C evaluates the condition, so either arm may be the size: both must
       // have one, or the whole is not a constant C can evaluate either
       return ConstantEvaluator.foreignUnless(condition, [
-        ConstantEvaluator.evaluate(expr.whenTrue, env, context),
-        ConstantEvaluator.evaluate(expr.whenFalse, env, context),
+        ConstantEvaluator.fold(expr.whenTrue, env, context),
+        ConstantEvaluator.fold(expr.whenFalse, env, context),
       ]);
     }
     if (condition.kind !== "value") return condition;
-    return ConstantEvaluator.evaluate(
+    return ConstantEvaluator.fold(
       condition.value === 0n ? expr.whenFalse : expr.whenTrue,
       env,
       context,
@@ -295,8 +420,11 @@ class ConstantEvaluator {
     // A comparison's operands are not written into its context (a `bool`)
     const comparison = ConstantEvaluator.isComparison(op);
     const operandContext = comparison ? null : context;
-    const left = ConstantEvaluator.evaluate(expr.left, env, operandContext);
-    const right = ConstantEvaluator.evaluate(expr.right, env, operandContext);
+    const left = ConstantEvaluator.fold(expr.left, env, operandContext);
+    const right = ConstantEvaluator.fold(expr.right, env, operandContext);
+    if (left.kind === "float" || right.kind === "float") {
+      return ConstantEvaluator.floatBinary(op, left, right);
+    }
     if (left.kind !== "value" || right.kind !== "value") {
       return ConstantEvaluator.firstWithoutValue(left, right);
     }
@@ -309,10 +437,12 @@ class ConstantEvaluator {
     expr: TBinary,
     env: IConstantEnvironment,
   ): TConstResult {
-    const left = ConstantEvaluator.evaluate(expr.left, env);
+    const left = ConstantEvaluator.truth(
+      ConstantEvaluator.fold(expr.left, env),
+    );
     if (left.kind === "foreign") {
       return ConstantEvaluator.foreignUnless(left, [
-        ConstantEvaluator.evaluate(expr.right, env),
+        ConstantEvaluator.fold(expr.right, env),
       ]);
     }
     if (left.kind !== "value") return left;
@@ -324,7 +454,9 @@ class ConstantEvaluator {
         typeName: BOOL,
       };
     }
-    const right = ConstantEvaluator.evaluate(expr.right, env);
+    const right = ConstantEvaluator.truth(
+      ConstantEvaluator.fold(expr.right, env),
+    );
     if (right.kind !== "value") return right;
     return {
       kind: "value",

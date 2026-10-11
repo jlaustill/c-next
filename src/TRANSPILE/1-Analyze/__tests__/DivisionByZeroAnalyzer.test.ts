@@ -494,6 +494,45 @@ describe("DivisionByZeroAnalyzer", () => {
 
   // #1268 review: safe_div is the help only where a statement can call it
   describe("help outside a statement", () => {
+    it.each([
+      ["an array dimension", "u8[4 / (2 - 2)] buf;\n          buf[0] <- 1;"],
+      ["a const's initializer", "const u32 X <- 10 / (2 - 2);"],
+      ["an array type's dimension", "u8[4 / (2 - 2)] buf <- [0*];"],
+    ])(
+      "says the divisor must not be zero in %s in a function",
+      (_label, line) => {
+        const code = `
+        void main() {
+          ${line}
+        }
+      `;
+        const { tree, context } = testAnalysisContextFor(code, {
+          cppMode: false,
+        });
+        const errors = new DivisionByZeroAnalyzer(context).analyze(tree);
+
+        expect(errors).toHaveLength(1);
+        expect(errors[0].helpText).toBe(
+          "A divisor known at compile time must not be zero",
+        );
+      },
+    );
+
+    it("suggests safe_div for a runtime division in a function", () => {
+      const code = `
+        void main() {
+          u32 x <- 10 / (2 - 2);
+        }
+      `;
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
+      const errors = new DivisionByZeroAnalyzer(context).analyze(tree);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].helpText).toContain("safe_div");
+    });
+
     it("says the divisor must not be zero in an array dimension", () => {
       const code = `
         u8[4 / (2 - 2)] g;
@@ -519,7 +558,7 @@ describe("DivisionByZeroAnalyzer", () => {
       ["0b000i16", 1],
       ["0.0", 1],
       ["0.0f32", 1],
-      [".0", 1],
+      ["0.0e5", 1],
       ["0e0", 1],
       ["0x10", 0],
       ["0.5f64", 0],

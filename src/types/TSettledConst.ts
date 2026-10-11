@@ -12,6 +12,12 @@ type TSettledConst =
       readonly digits: string;
       readonly typeName: string;
     }
-  | Exclude<TConstResult, { readonly kind: "value" }>;
+  | {
+      /** A float const's value, held at its declared type, as `String` spells it */
+      readonly kind: "float";
+      readonly digits: string;
+      readonly typeName: "f32" | "f64";
+    }
+  | Exclude<TConstResult, { readonly kind: "value" | "float" }>;
 
 export default TSettledConst;

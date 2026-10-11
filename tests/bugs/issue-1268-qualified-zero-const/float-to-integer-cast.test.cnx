@@ -1,0 +1,21 @@
+// test-adr: 051
+// test-error
+// #1268 review: a float cast to an integer type saturates (ADR-024), so
+// `(u32)0.5` is 0 -- inline or through a const -- and an integer division by
+// it is E0800 (ADR-051 §1). Each was accepted and emitted `n / 0`.
+//
+// NEGATIVE CONTROLS: `(u32)1.5` and ONE_FROM_FLOAT, each 1.
+
+const u32 ZERO_FROM_FLOAT <- (u32)0.5;
+const u32 ONE_FROM_FLOAT <- (u32)1.5;
+
+u32 casts(u32 n) {
+    u32 a <- n / (u32)0.5;
+    u32 b <- n % ZERO_FROM_FLOAT;
+    u32 c <- n / (u32)-0.5;
+    u32 d <- n / (u32)1.5;
+    u32 e <- n / ONE_FROM_FLOAT;
+    return a + b + c + d + e;
+}
+
+void main() {}

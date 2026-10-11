@@ -1,11 +1,10 @@
 /**
  * Error reported when division by zero is detected (ADR-051)
  *
- * Error codes:
- * - E0800: Division by literal zero
- * - E0801: Division by const that evaluates to zero
- * - E0802: Modulo by literal zero
- * - E0803: Modulo by const that evaluates to zero
+ * Error codes, for a divisor that is zero at compile time -- a literal, a const
+ * or a constant expression, integer or float (ADR-051 §1, §4):
+ * - E0800: Division by zero
+ * - E0802: Modulo by zero
  */
 import IBaseAnalysisError from "./IBaseAnalysisError";
 

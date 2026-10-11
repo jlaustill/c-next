@@ -368,11 +368,17 @@ describe("ConstantEvaluator", () => {
       spelling,
       at,
     });
-    const noNames = (): number | null => null;
-    const number = (
-      expr: TConstExpr,
-      nameValue: (n: TConstExpr) => number | null = noNames,
-    ): number | null => ConstantEvaluator.numberValue(expr, NONE, nameValue);
+    const F32_TINY = Math.fround(1e-30);
+    const F64_TINY = 1e-30;
+    const number = (expr: TConstExpr, e = NONE): number | null =>
+      ConstantEvaluator.numberValue(expr, e);
+    const f32 = (value: number): TConstResult => ({
+      kind: "float",
+      value: Math.fround(value),
+      typeName: "f32",
+      spelling: "F",
+      at,
+    });
 
     it.each([
       ["an integer the fold answers", bin("-", lit("2"), lit("2")), 0],
@@ -385,6 +391,57 @@ describe("ConstantEvaluator", () => {
       ["a difference", bin("-", float("1.0"), float("1.0")), 0],
       ["a product", bin("*", float("2.0"), float("0.5")), 1],
       ["a quotient", bin("/", float("1.0"), float("4.0")), 0.25],
+      // C computes f32 op f32 in float (FLT_EVAL_METHOD 0): each is 0.0f
+      [
+        "f32 arithmetic rounds at f32",
+        bin("-", bin("+", float("0.1f32"), float("0.2f32")), float("0.3f32")),
+        0,
+      ],
+      [
+        "f32 arithmetic underflows at f32",
+        bin("*", float("1e-30f32"), float("1e-30f32")),
+        0,
+      ],
+      [
+        "an f64 operand widens the operation",
+        bin("*", float("1e-30f32"), float("1e-30")),
+        F32_TINY * F64_TINY,
+      ],
+      [
+        "an integer operand converts to the float's type",
+        bin("+", lit("1"), float("0.1f32")),
+        Math.fround(1 + Math.fround(0.1)),
+      ],
+      // ADR-024: a float cast to an integer type saturates, else truncates
+      ["(u32)0.5 truncates", cast("u32", float("0.5")), 0],
+      ["(u32)1.5 truncates", cast("u32", float("1.5")), 1],
+      ["(u32)-0.5 is below the minimum", cast("u32", un("-", float("0.5"))), 0],
+      ["(u8)300.0 is past the maximum", cast("u8", float("300.0")), 255],
+      [
+        "(i8)-200.0 is below the minimum",
+        cast("i8", un("-", float("200.0"))),
+        -128,
+      ],
+      ["(i8)-1.5 truncates toward zero", cast("i8", un("-", float("1.5"))), -1],
+      ["(bool)0.5 is true", cast("bool", float("0.5")), 1],
+      ["!0.0 is true", un("!", float("0.0")), 1],
+      ["a float comparison", bin("<", float("0.5"), lit("1")), 1],
+      ["a float equality", bin("=", float("0.5"), float("0.25")), 0],
+      [
+        "a float condition",
+        {
+          kind: "ternary",
+          condition: float("0.0"),
+          whenTrue: lit("1"),
+          whenFalse: lit("0"),
+        } as TConstExpr,
+        0,
+      ],
+      [
+        "a float operand of a logical operator",
+        bin("&&", float("0.5"), lit("1")),
+        1,
+      ],
       [
         "the ternary branch its condition picks",
         {
@@ -401,7 +458,6 @@ describe("ConstantEvaluator", () => {
 
     it.each([
       ["a float quotient by zero", bin("/", float("1.0"), float("0.0"))],
-      ["an integer cast of a float", cast("u32", float("0.5"))],
       ["a complement of a float", un("~", float("0.0"))],
       [
         "a float operator with no float meaning",
@@ -416,8 +472,14 @@ describe("ConstantEvaluator", () => {
       expect(number(expr)).toBeNull();
     });
 
-    it("asks nameValue for a name the environment does not fold", () => {
-      expect(number(bin("+", name("F"), float("1.0")), () => -1)).toBe(0);
+    it("a float const is worth its settled value", () => {
+      const named = env({ F: f32(0.5) });
+      expect(number(bin("-", name("F"), float("0.5f32")), named)).toBe(0);
+    });
+
+    it("an integer constant has no float in it", () => {
+      expect(valueOf(bin("+", lit("1"), float("0.5")))).toBe("notConstant");
+      expect(valueOf(cast("u32", float("1.5")))).toBe(1n);
     });
   });
 });
