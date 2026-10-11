@@ -1178,11 +1178,14 @@ describe("CodeGenWalker Coverage Tests", () => {
         const symbolTable = new SymbolTable();
         // As a header's `typedef struct Dev Dev;` with no body registers it.
         symbolTable.markOpaqueType("Dev");
-        const tSymbols = CNextResolver.resolve(
-          tree,
-          "test.cnx",
-          registry,
-        ).symbols;
+        // #1290: the real 1.4, which settles each parameter's C name the
+        // typedef writes; 1.3 alone leaves every one unsettled
+        const tSymbols = [
+          ...Program.build(
+            [CNextResolver.resolve(tree, "test.cnx", registry)],
+            { cppMode, registry },
+          ).symbolsInFile("test.cnx"),
+        ];
         symbolTable.addTSymbols(tSymbols);
         const host = new CodeGenerator();
         const generator = new CodeGenWalker(host);
