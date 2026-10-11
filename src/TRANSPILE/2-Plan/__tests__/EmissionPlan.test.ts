@@ -175,8 +175,9 @@ describe("EmissionPlan (2.2 Plan)", () => {
       ]);
     });
 
-    // The facts' site lists are 1.x-era accumulators that can still grow; a
-    // site noted after the decision must not join a block it did not cause.
+    // `takeDeferredSites` hands the facts `ToolchainRequirements.deferred`'s
+    // own arrays, uncopied, so they can still grow after `build()`; a site
+    // noted after the decision must not join a block it did not cause.
     it("keeps the sites as decided when the facts' lists grow later", () => {
       const early = { sourcePath: "a.cnx", line: 3 };
       const irqWrapperSites = [early];
