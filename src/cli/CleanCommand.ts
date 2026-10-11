@@ -4,10 +4,10 @@
  */
 
 import { basename, dirname, join, resolve } from "node:path";
-import InputExpansion from "../PARSE/1-Discover/InputExpansion";
-import PathResolver from "../PARSE/1-Discover/PathResolver";
-import NodeFileSystem from "../PARSE/1-Discover/NodeFileSystem";
-import Write from "../WRITE/1-Write/Write";
+import InputExpansion from "../cnx/PARSE/1-Discover/InputExpansion";
+import PathResolver from "../cnx/PARSE/1-Discover/PathResolver";
+import NodeFileSystem from "../cnx/PARSE/1-Discover/NodeFileSystem";
+import Write from "../cnx/WRITE/1-Write/Write";
 
 /**
  * Command to clean generated output files

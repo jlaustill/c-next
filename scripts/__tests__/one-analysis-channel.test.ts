@@ -107,11 +107,11 @@ describe("one channel per fact (#1659)", () => {
   const under = (prefix: string) =>
     pipeline.filter((fn) => fn.where.startsWith(prefix));
   beforeAll(() => {
-    pipeline = functionsIn(sourceFiles("src/TRANSPILE/"));
+    pipeline = functionsIn(sourceFiles("src/cnx/TRANSPILE/"));
   }, 120_000);
 
   it("2.1: nothing that can reach an IAnalysisContext also takes a SymbolTable", () => {
-    const reachesContext = under("src/TRANSPILE/1-Analyze/").filter(
+    const reachesContext = under("src/cnx/TRANSPILE/1-Analyze/").filter(
       (fn) =>
         fn.params.includes("IAnalysisContext") ||
         fn.classMembers.includes("IAnalysisContext"),
@@ -139,7 +139,9 @@ describe("one channel per fact (#1659)", () => {
   });
 
   it("2.2: AssignmentClassifier reaches TranspileState only through ctx", () => {
-    const classifier = under("src/TRANSPILE/2-Plan/AssignmentClassifier.ts:");
+    const classifier = under(
+      "src/cnx/TRANSPILE/2-Plan/AssignmentClassifier.ts:",
+    );
     // Population control: 29 when this was written
     expect(classifier.length).toBeGreaterThan(20);
 

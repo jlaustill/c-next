@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 
-import ExecFailure from "../../src/utils/ExecFailure";
+import ExecFailure from "../../src/cnx/utils/ExecFailure";
 import type IDepcruiseViolation from "../types/IDepcruiseViolation";
 
 /**

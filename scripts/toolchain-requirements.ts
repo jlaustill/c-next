@@ -22,9 +22,9 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import chalk from "chalk";
 
-import TOOLCHAIN_REQUIREMENTS from "../src/utils/constants/TOOLCHAIN_REQUIREMENTS";
-import type IToolchainRequirement from "../src/types/IToolchainRequirement";
-import ToolchainRequirementUtils from "../src/utils/ToolchainRequirementUtils";
+import TOOLCHAIN_REQUIREMENTS from "../src/cnx/utils/constants/TOOLCHAIN_REQUIREMENTS";
+import type IToolchainRequirement from "../src/cnx/types/IToolchainRequirement";
+import ToolchainRequirementUtils from "../src/cnx/utils/ToolchainRequirementUtils";
 import GeneratedMarkdown from "./utils/GeneratedMarkdown";
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -65,7 +65,7 @@ const SUMMARY_COLUMNS = [
  * and it drifted. See #1150.
  */
 const GENERATED_BANNER = `<!-- GENERATED FILE - DO NOT EDIT.
-     Source: src/utils/constants/TOOLCHAIN_REQUIREMENTS.ts
+     Source: src/cnx/utils/constants/TOOLCHAIN_REQUIREMENTS.ts
      Regenerate: npm run docs:toolchain -->`;
 
 const requirements = Object.values(TOOLCHAIN_REQUIREMENTS);

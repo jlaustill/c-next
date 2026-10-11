@@ -42,7 +42,7 @@
  * and not editable. The exclusion is narrow (generated grammar directories
  * only) and, per the #1556 lesson, its POPULATION IS ASSERTED: an `ignore` that
  * quietly stops matching invents a clean result rather than hiding a dirty one.
- * If the grammar moves again -- it moved to `src/PARSE/2-Parse/` in #1445 -- the
+ * If the grammar moves again -- it moved to `src/cnx/PARSE/2-Parse/` in #1445 -- the
  * control below fails and says so, instead of the exclusion covering nothing.
  *
  * Measured on `19bbc516`: 364 files scanned, 6 hits, all of them `__ATN`.
@@ -60,21 +60,21 @@ const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 /**
  * The pass roots, and deliberately NOT `layer-rules.test.ts`'s `LAYER_ROOTS`.
  *
- * That list includes `^src/types/` and `^src/instrumentation/`, because a
+ * That list includes `^src/cnx/types/` and `^src/cnx/instrumentation/`, because a
  * depcruise layering claim can be made about a shared root. Box 4 is a claim
  * about the PASSES -- and instrumentation is scanned below with its holders
  * named -- so sharing one list would be false sharing, not deduplication.
  *
- * `src/WRITE` joined with #1443: 3.1 Write had existed since #1653 and is a
+ * `src/cnx/WRITE` joined with #1443: 3.1 Write had existed since #1653 and is a
  * pass, but this list predated it, so a mutable static in `Write` was outside
  * every root this guard scans.
  */
-const PASS_ROOTS = ["src/PARSE", "src/TRANSPILE", "src/WRITE"];
+const PASS_ROOTS = ["src/cnx/PARSE", "src/cnx/TRANSPILE", "src/cnx/WRITE"];
 
 /**
  * Scanned alongside the pass roots, with its four holders listed below.
  *
- * `src/instrumentation/` did not exist when this file was written, and #1452
+ * `src/cnx/instrumentation/` did not exist when this file was written, and #1452
  * created it -- so the four mutable statics this card RELOCATED there sat
  * outside every root this guard scans. The box-4 guard could not fail on the
  * state the box is about, which is the shape the header above spends its length
@@ -88,7 +88,7 @@ const PASS_ROOTS = ["src/PARSE", "src/TRANSPILE", "src/WRITE"];
  * here now fails this file instead of relying on the next reader having read
  * that sentence.
  */
-const INSTRUMENTATION_ROOT = "src/instrumentation";
+const INSTRUMENTATION_ROOT = "src/cnx/instrumentation";
 
 /**
  * The four, each named with what it accumulates.
@@ -98,10 +98,10 @@ const INSTRUMENTATION_ROOT = "src/instrumentation";
  * whatever directory it sits in, and the list is where that gets argued.
  */
 const INSTRUMENTATION_HOLDERS = [
-  "src/instrumentation/AdrProvenance.ts:58",
-  "src/instrumentation/AdrProvenance.ts:59",
-  "src/instrumentation/ToolchainRequirements.ts:65",
-  "src/instrumentation/ToolchainRequirements.ts:78",
+  "src/cnx/instrumentation/AdrProvenance.ts:58",
+  "src/cnx/instrumentation/AdrProvenance.ts:59",
+  "src/cnx/instrumentation/ToolchainRequirements.ts:65",
+  "src/cnx/instrumentation/ToolchainRequirements.ts:78",
 ];
 
 /**
@@ -147,7 +147,7 @@ const MUTABLE_READONLY_CONTAINER =
  * argued for here.
  */
 const CONTAINER_HOLDERS = [
-  "src/TRANSPILE/3-Render/codegen/assignment/handlers/index.ts",
+  "src/cnx/TRANSPILE/3-Render/codegen/assignment/handlers/index.ts",
 ];
 
 /** A module-scope `let` -- the same mutable slot without a class around it. */
@@ -163,7 +163,7 @@ const GENERATED_GRAMMAR = /\/grammar\//;
 const SCOPE_CREATION = /\.getOrCreateScope\s*\(/;
 
 /** The pass that authors the scope graph, and the only one that may grow it. */
-const DECLARE_PASS = "src/PARSE/3-Declare/";
+const DECLARE_PASS = "src/cnx/PARSE/3-Declare/";
 
 function sourceFiles(dir: string): string[] {
   const found: string[] = [];

@@ -16,9 +16,9 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import TOOLCHAIN_REQUIREMENTS from "../../src/utils/constants/TOOLCHAIN_REQUIREMENTS";
-import type TOutputMode from "../../src/types/TOutputMode";
-import type TRequirementKey from "../../src/types/TRequirementKey";
+import TOOLCHAIN_REQUIREMENTS from "../../src/cnx/utils/constants/TOOLCHAIN_REQUIREMENTS";
+import type TOutputMode from "../../src/cnx/types/TOutputMode";
+import type TRequirementKey from "../../src/cnx/types/TRequirementKey";
 import FileScanner from "../utils/FileScanner";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");

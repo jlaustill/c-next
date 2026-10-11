@@ -26,16 +26,16 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import TargetResolver from "../src/cli/TargetResolver";
-import TargetToolchain from "../src/utils/TargetToolchain";
+import TargetToolchain from "../src/cnx/utils/TargetToolchain";
 import TargetCatalogFile from "../src/cli/TargetCatalogFile";
-import RunTarget from "../src/PARSE/4-Resolve/RunTarget";
-import TargetDescriptions from "../src/PARSE/4-Resolve/TargetDescriptions";
-import CNextSourceParser from "../src/PARSE/2-Parse/CNextSourceParser";
-import type IGccToolchain from "../src/utils/types/IGccToolchain";
-import type ITargetDescription from "../src/types/ITargetDescription";
+import RunTarget from "../src/cnx/PARSE/4-Resolve/RunTarget";
+import TargetDescriptions from "../src/cnx/PARSE/4-Resolve/TargetDescriptions";
+import CNextSourceParser from "../src/cnx/PARSE/2-Parse/CNextSourceParser";
+import type IGccToolchain from "../src/cnx/utils/types/IGccToolchain";
+import type ITargetDescription from "../src/cnx/types/ITargetDescription";
 import type IValidationResult from "./types/IValidationResult";
 import type TTestMode from "./types/TTestMode";
-import NodeFileSystem from "../src/PARSE/1-Discover/NodeFileSystem";
+import NodeFileSystem from "../src/cnx/PARSE/1-Discover/NodeFileSystem";
 
 class TargetMatrix {
   /** The build machine: the one target a fixture is executed on */

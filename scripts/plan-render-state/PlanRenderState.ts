@@ -41,7 +41,7 @@ interface IMeasurement {
   readonly flows: readonly IFlow[];
 }
 
-const STATE_PATH = "src/TRANSPILE/TranspileState.ts";
+const STATE_PATH = "src/cnx/TRANSPILE/TranspileState.ts";
 const PLAN = "2-Plan";
 const RENDER = "3-Render";
 
@@ -73,7 +73,7 @@ const ASSIGN = new Set([
 ]);
 
 class PlanRenderState {
-  static readonly PROBE_PATH = "src/TRANSPILE/2-Plan/ProbeWrites.ts";
+  static readonly PROBE_PATH = "src/cnx/TRANSPILE/2-Plan/ProbeWrites.ts";
 
   /** The control: three writes the detector must report, one of each kind. */
   static readonly PROBE_SOURCE = [
@@ -265,9 +265,9 @@ class PlanRenderState {
     if (/__tests__\/|\.test\.ts$/.test(file) || file === STATE_PATH) {
       return null;
     }
-    const pass = /^src\/TRANSPILE\/(\d-[^/]+)\//.exec(file);
+    const pass = /^src\/cnx\/TRANSPILE\/(\d-[^/]+)\//.exec(file);
     if (pass) return pass[1];
-    if (file === "src/TRANSPILE/CodeGenWalker.ts") return "CodeGenWalker";
+    if (file === "src/cnx/TRANSPILE/CodeGenWalker.ts") return "CodeGenWalker";
     return /^src\/([^/]+)\//.exec(file)?.[1] ?? file;
   }
 

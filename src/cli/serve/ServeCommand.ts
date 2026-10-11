@@ -16,8 +16,8 @@ import ConfigLoader from "../ConfigLoader";
 import Transpiler from "../Transpiler";
 import parseWithSymbols from "../../lib/parseWithSymbols";
 import parseCHeader from "../../lib/parseCHeader";
-import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
-import CaughtError from "../../utils/CaughtError";
+import NodeFileSystem from "../../cnx/PARSE/1-Discover/NodeFileSystem";
+import CaughtError from "../../cnx/utils/CaughtError";
 
 /**
  * What a method handler returns. Only transpile awaits anything

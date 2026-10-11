@@ -67,7 +67,7 @@ normalize(actualErrors) === normalize(expectedErrors);
 **Shared types in `/types` directories** - One interface per file with default export:
 
 ```
-src/types/IFileResult.ts
+src/cnx/types/IFileResult.ts
 scripts/types/ITools.ts
 ```
 
@@ -80,14 +80,14 @@ the order they run. `docs/architecture/README.md` §1 draws the tree and
 `npm run layout:check` fails when `src/` differs from it or a module reaches a later pass
 (#1443). Do not restate the tree here; read it there.
 
-- `src/PARSE/1-Discover/` … `src/WRITE/1-Write/` — the eight passes
-- `src/TRANSPILE/CodeGenWalker.ts`, `TranspileState.ts`, `types/` — drive and hold 2.2 and 2.3's per-file work, so they sit beside those passes rather than in either
+- `src/cnx/PARSE/1-Discover/` … `src/cnx/WRITE/1-Write/` — the eight passes
+- `src/cnx/TRANSPILE/CodeGenWalker.ts`, `TranspileState.ts`, `types/` — drive and hold 2.2 and 2.3's per-file work, so they sit beside those passes rather than in either
 - `src/cli/` — the host: `Transpiler.ts` constructs the pipeline and owns the caches; `index.ts` is the CLI entry
-- `src/types/`, `src/utils/` — shared contracts; `src/instrumentation/` — run observations
+- `src/cnx/types/`, `src/cnx/utils/` — shared contracts; `src/cnx/instrumentation/` — run observations
 
 ### Symbol Resolution Architecture (ADR-055)
 
-**Use the composable collectors** in `src/PARSE/3-Declare/cnext/`:
+**Use the composable collectors** in `src/cnx/PARSE/3-Declare/cnext/`:
 
 - `CNextResolver.resolve(tree, file, registry)` → `IFileSymbols` (its `.symbols` is the `TSymbol[]`)
 - `TSymbolInfoAdapter.convert(tSymbols)` → `ICodeGenSymbols` (for codegen)

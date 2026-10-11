@@ -19,7 +19,7 @@ import { join } from "node:path";
 
 import Transpiler from "../../src/cli/Transpiler";
 import TestUtils from "../test-utils";
-import NodeFileSystem from "../../src/PARSE/1-Discover/NodeFileSystem";
+import NodeFileSystem from "../../src/cnx/PARSE/1-Discover/NodeFileSystem";
 
 /** Throwaway output directory; the matrix cares about provenance, not files. */
 function scratchDir(): string {

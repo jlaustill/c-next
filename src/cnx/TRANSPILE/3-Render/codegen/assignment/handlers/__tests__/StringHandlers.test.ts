@@ -1,0 +1,291 @@
+/**
+ * Unit tests for StringHandlers.
+ * Tests the string assignment handler functions.
+ */
+
+import { beforeEach, describe, expect, it } from "vitest";
+import stringHandlers from "../StringHandlers";
+import AssignmentKind from "../../../../../../types/AssignmentKind";
+import IAssignmentContext from "../../../../../2-Plan/types/IAssignmentContext";
+import TranspileState from "../../../../../TranspileState";
+import HandlerTestUtils from "./handlerTestUtils";
+import AssignmentClassifier from "../../../../../2-Plan/AssignmentClassifier";
+import enterScope from "../../../../../../../cli/__tests__/enterScope";
+
+/**
+ * Create mock context for testing
+ */
+function createMockContext(
+  overrides: Partial<IAssignmentContext> = {},
+): IAssignmentContext {
+  // Default resolved values based on first identifier
+  const identifiers = overrides.identifiers ?? ["testVar"];
+  const resolvedTarget = overrides.resolvedTarget ?? identifiers[0];
+  const resolvedBaseIdentifier =
+    overrides.resolvedBaseIdentifier ?? identifiers[0];
+
+  const ctx = {
+    identifiers,
+    ...HandlerTestUtils.subscriptsOf([]),
+    isCompound: false,
+    cnextOp: "<-",
+    cOp: "=",
+    generatedValue: '"hello"',
+    // #1445: renders, not nodes -- each delegates to the mocked generator the
+    // cases already configure, so a case that overrides
+    // `generateAssignmentTarget` or `analyzeMemberChainForBitAccess` still
+    // controls what this returns.
+    renderTarget: () =>
+      HandlerTestUtils.planner().generateAssignmentTarget(null as never),
+    analyzeTargetForBitAccess: () =>
+      HandlerTestUtils.planner().analyzeMemberChainForBitAccess(null as never),
+    targetLine: 1,
+    hasValue: true,
+    valueExpressionType: () => null,
+    valueIntegerType: () => null,
+    valueHasFloatingOperand: () => false,
+    foldValue: () =>
+      HandlerTestUtils.planner().tryEvaluateConstant(null as never),
+    postfixOps: [],
+    resolvedTarget,
+    resolvedBaseIdentifier,
+    // #1452 box 4: a handler reaches 2.3's per-file state through the context
+    // it is handed, so the mock context carries the same instance the test
+    // set its facts up on.
+    state,
+    ...overrides,
+  } as IAssignmentContext;
+  // #1668 (C7): what the target writes, as the binder would bind it
+  return {
+    ...ctx,
+    target: overrides.target ?? HandlerTestUtils.targetOf(state, ctx),
+  };
+}
+
+// #1450: five `expect(state.needsString).toBe(true)` assertions stood
+// here, one per handler. The handlers no longer raise it -- `needsString` is
+// over-determined, raised by the effect channel, by `generateType` and by type
+// registration, so six more raisers in the handlers changed nothing. What these
+// tests are FOR is the emitted `strncpy`, and that is untouched.
+let state = new TranspileState();
+
+describe("StringHandlers", () => {
+  beforeEach(() => {
+    state = new TranspileState();
+    HandlerTestUtils.setupMockGenerator(state);
+    HandlerTestUtils.setupMockSymbols(state);
+  });
+
+  describe("handler registration", () => {
+    it("registers all expected string assignment kinds", () => {
+      const kinds = stringHandlers.map(([kind]) => kind);
+
+      expect(kinds).toContain(AssignmentKind.STRING_SIMPLE);
+      expect(kinds).toContain(AssignmentKind.STRING_THIS_MEMBER);
+      expect(kinds).toContain(AssignmentKind.STRING_GLOBAL);
+      expect(kinds).toContain(AssignmentKind.STRING_STRUCT_FIELD);
+      expect(kinds).toContain(AssignmentKind.STRING_ARRAY_ELEMENT);
+      expect(kinds).toContain(AssignmentKind.STRING_STRUCT_ARRAY_ELEMENT);
+    });
+
+    it("uses same handler for STRING_SIMPLE and STRING_GLOBAL", () => {
+      const simpleHandler = stringHandlers.find(
+        ([kind]) => kind === AssignmentKind.STRING_SIMPLE,
+      )?.[1];
+      const globalHandler = stringHandlers.find(
+        ([kind]) => kind === AssignmentKind.STRING_GLOBAL,
+      )?.[1];
+
+      expect(simpleHandler).toBe(globalHandler);
+    });
+  });
+
+  describe("handleSimpleStringAssignment (STRING_SIMPLE)", () => {
+    it("generates strncpy with null terminator", () => {
+      HandlerTestUtils.declareTypes(state, [
+        ["testVar", { stringCapacity: 32, baseType: "string" }],
+      ]);
+      const ctx = createMockContext();
+
+      const handler = stringHandlers.find(
+        ([kind]) => kind === AssignmentKind.STRING_SIMPLE,
+      )?.[1];
+      const result = handler!(ctx);
+
+      expect(result).toContain("strncpy");
+      expect(result).toContain("target");
+      expect(result).toContain("32");
+    });
+
+    // #1322: compound assignment on a bit index, bit range, slice, bitmap field
+    // or string is E0857 in pass 2.1 -- one decision where `output/` had six
+    // throws with four messages, and `validateNotCompound` defined twice verbatim.
+    // The pipeline halts before these handlers run. Covered by
+    // `1-Analyze/__tests__/CompoundAssignmentAnalyzer.test.ts` plus
+    // `tests/compound-assign/` and `tests/string-assignment/`.
+  });
+
+  describe("handleStringThisMember (STRING_THIS_MEMBER)", () => {
+    it("generates strncpy for scoped member", () => {
+      enterScope(state, "TestScope");
+      HandlerTestUtils.declareTypes(state, [
+        ["TestScope__memberName", { stringCapacity: 64, baseType: "string" }],
+      ]);
+      const ctx = createMockContext({
+        identifiers: ["memberName"],
+        scopePath: "TestScope",
+      });
+
+      const handler = stringHandlers.find(
+        ([kind]) => kind === AssignmentKind.STRING_THIS_MEMBER,
+      )?.[1];
+      const result = handler!(ctx);
+
+      expect(result).toContain("strncpy");
+      expect(result).toContain("64");
+    });
+
+    it("classifier and handler key the same map at depth two", () => {
+      // #1357 review: the depth-2 guard in SpecialHandlers.test.ts covers 1 of
+      // the 11 converted sites. Restoring the leaf join at another one --
+      // AssignmentClassifier.ts:591 -- leaves all 6713 unit tests green, because
+      // the encoder-level test calls ScopeUtils directly and never imports the
+      // mutated file. So a site-level re-inline is invisible until a test drives
+      // the SITE.
+      //
+      // This one guards the PAIR rather than one site, which is what the comment
+      // deleted from StringHandlers.ts:105 used to record: the classifier decides
+      // to route here by hitting the type registry, and the handler then hits it
+      // again and dereferences with `!`. Key them differently and the classifier
+      // routes a member the handler cannot find, so the `!` throws at generation
+      // time. They agree at depth one whichever encoder each uses, so only depth
+      // two can tell a shared decision from a coincidence.
+      enterScope(state, "Outer.Inner");
+      HandlerTestUtils.declareTypes(state, [
+        [
+          "Outer__Inner__memberName",
+          { stringCapacity: 48, baseType: "string", isString: true },
+        ],
+      ]);
+      // The shared factory leaves these undefined -- every other test here calls
+      // a handler directly, which is reached only AFTER classification, so none
+      // of them needed the flags that classification reads.
+      const ctx = createMockContext({
+        identifiers: ["memberName"],
+        hasThis: true,
+        isSimpleThisAccess: true,
+        scopePath: "Outer.Inner",
+      });
+
+      // Half one: the classifier must recognize it through the whole chain.
+      expect(AssignmentClassifier.classify(ctx)).toBe(
+        AssignmentKind.STRING_THIS_MEMBER,
+      );
+
+      // Half two: the handler must find the same entry, not throw on `!`.
+      const handler = stringHandlers.find(
+        ([kind]) => kind === AssignmentKind.STRING_THIS_MEMBER,
+      )?.[1];
+
+      expect(handler!(ctx)).toContain("48");
+    });
+
+    // #1322a: the `'this' outside a scope` guard this asserted is deleted. It
+    // was unreachable -- `this.x <- 5` at file scope is a PARSE error, so the
+    // assignment never reaches codegen -- and this test reached it only by
+    // calling the handler directly with state production cannot produce. A test
+    // that is a dead branch's only caller is what keeps the branch alive.
+  });
+
+  describe("handleStringStructField (STRING_STRUCT_FIELD)", () => {
+    it("generates strncpy for struct field", () => {
+      HandlerTestUtils.declareTypes(state, [
+        ["person", { baseType: "Person" }],
+      ]);
+      const base = createMockContext({ identifiers: ["person", "name"] });
+      // #1737: the capacity is the typer's `.name` step
+      const name = {
+        ...HandlerTestUtils.operandOf("string<50>", false, false),
+        stringCapacity: 50,
+      };
+      const ctx: IAssignmentContext = {
+        ...base,
+        target: {
+          ...base.target,
+          last: { before: null, subscript: null, after: name, property: null },
+        },
+      };
+
+      const handler = stringHandlers.find(
+        ([kind]) => kind === AssignmentKind.STRING_STRUCT_FIELD,
+      )?.[1];
+      const result = handler!(ctx);
+
+      expect(result).toContain("strncpy");
+      expect(result).toContain("person");
+      expect(result).toContain("name");
+      expect(result).toContain("50");
+    });
+  });
+
+  describe("handleStringArrayElement (STRING_ARRAY_ELEMENT)", () => {
+    it("generates strncpy for array element", () => {
+      HandlerTestUtils.declareTypes(state, [
+        ["names", { stringCapacity: 20, baseType: "string" }],
+      ]);
+      const ctx = createMockContext({
+        identifiers: ["names"],
+        ...HandlerTestUtils.subscriptsOf([{} as never]),
+      });
+
+      const handler = stringHandlers.find(
+        ([kind]) => kind === AssignmentKind.STRING_ARRAY_ELEMENT,
+      )?.[1];
+      const result = handler!(ctx);
+
+      expect(result).toContain("strncpy");
+      expect(result).toContain("names");
+      expect(result).toContain("20");
+    });
+  });
+
+  describe("handleStringStructArrayElement (STRING_STRUCT_ARRAY_ELEMENT)", () => {
+    it("generates strncpy for struct field array element", () => {
+      HandlerTestUtils.declareTypes(state, [
+        ["config", { baseType: "Config" }],
+      ]);
+      const base = createMockContext({
+        identifiers: ["config", "items"],
+        ...HandlerTestUtils.subscriptsOf([{} as never]),
+      });
+      // #1737: the capacity is the typer's step for the element written
+      const element = {
+        ...HandlerTestUtils.operandOf("string<32>", false, false),
+        dimensions: [],
+        stringCapacity: 32,
+      };
+      const ctx: IAssignmentContext = {
+        ...base,
+        target: {
+          ...base.target,
+          last: {
+            before: { ...element, dimensions: [10] },
+            subscript: "array_element",
+            after: element,
+            property: null,
+          },
+        },
+      };
+
+      const handler = stringHandlers.find(
+        ([kind]) => kind === AssignmentKind.STRING_STRUCT_ARRAY_ELEMENT,
+      )?.[1];
+      const result = handler!(ctx);
+
+      expect(result).toContain("strncpy");
+      expect(result).toContain("config");
+      expect(result).toContain("items");
+      expect(result).toContain("32");
+    });
+  });
+});

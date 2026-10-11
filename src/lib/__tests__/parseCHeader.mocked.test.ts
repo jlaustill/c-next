@@ -9,7 +9,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockResolve = vi.fn();
 
 // Mock CResolver before importing parseCHeader
-vi.mock("../../PARSE/3-Declare/c", () => {
+vi.mock("../../cnx/PARSE/3-Declare/c", () => {
   return {
     default: {
       resolve: () => mockResolve(),
@@ -19,7 +19,7 @@ vi.mock("../../PARSE/3-Declare/c", () => {
 
 // Import after mock is set up
 import parseCHeader from "../parseCHeader";
-import TestSourceSpan from "../../types/__testUtils__/testSourceSpan";
+import TestSourceSpan from "../../cnx/types/__testUtils__/testSourceSpan";
 
 describe("parseCHeader mocked scenarios", () => {
   beforeEach(() => {

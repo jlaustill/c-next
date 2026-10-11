@@ -467,7 +467,7 @@ does not exist, and the reason it was skipped is usually the useful part.
 |-------|--------|--------|
 | #1323 | Blocked | #1301, #1319 — both open |
 | #1324 | Blocked | #1313 open; #1357 closed, no longer a blocker |
-| #1444 | Not startable | no blockers; #1313 places it in wave 5 — DoD needs `src/PARSE/1-Discover/`, which needs #1443's map |
+| #1444 | Not startable | no blockers; #1313 places it in wave 5 — DoD needs `src/cnx/PARSE/1-Discover/`, which needs #1443's map |
 | #1313 | Epic    | tracker; closes when its children do |
 | #1374 | Grooming | not triaged — scope still open |
 

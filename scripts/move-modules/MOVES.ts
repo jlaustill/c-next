@@ -20,6 +20,13 @@ import IMove from "../types/IMove";
  * express the move being made is how the wrong row gets written and then
  * defended (#1449).
  */
+/** #1992: why each transpiler root moves under `src/cnx/`. */
+const TRANSPILER_ROOT =
+  "#1992: owner direction 2026-10-11 (#1313): `cli/` and `lib/` consume the " +
+  "transpiler and are not part of it, so the transpiler gets its own root " +
+  "beside them. `src/cnx/` holds the three layers and the shared roots they " +
+  "name, and the filesystem shows the boundary.";
+
 const DISCOVERS =
   "#1444 box 3: 1.1 Discover authors which files exist, their kind, the " +
   "include graph and every resolved path (§1), and this module computes part " +
@@ -1523,6 +1530,36 @@ const MOVES: readonly IMove[] = [
       "#1443: a chain's root as 2.2, 2.3, the walker and the state all name " +
       "it, importing only `src/types/` -- a shared contract (README §1). In " +
       "`2-Plan/types/` it made the state read 2.2.",
+  },
+  {
+    from: "src/PARSE",
+    to: "src/cnx/PARSE",
+    because: TRANSPILER_ROOT,
+  },
+  {
+    from: "src/TRANSPILE",
+    to: "src/cnx/TRANSPILE",
+    because: TRANSPILER_ROOT,
+  },
+  {
+    from: "src/WRITE",
+    to: "src/cnx/WRITE",
+    because: TRANSPILER_ROOT,
+  },
+  {
+    from: "src/types",
+    to: "src/cnx/types",
+    because: TRANSPILER_ROOT,
+  },
+  {
+    from: "src/utils",
+    to: "src/cnx/utils",
+    because: TRANSPILER_ROOT,
+  },
+  {
+    from: "src/instrumentation",
+    to: "src/cnx/instrumentation",
+    because: TRANSPILER_ROOT,
   },
 ];
 

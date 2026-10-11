@@ -1,6 +1,6 @@
-import TranspileState from "../../TRANSPILE/TranspileState";
-import SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
-import Program from "../../PARSE/4-Resolve/Program";
+import TranspileState from "../../cnx/TRANSPILE/TranspileState";
+import SymbolRegistry from "../../cnx/PARSE/3-Declare/SymbolRegistry";
+import Program from "../../cnx/PARSE/4-Resolve/Program";
 
 /**
  * Enter a scope in a unit test, registering it with the symbol registry first.

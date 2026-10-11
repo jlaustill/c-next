@@ -22,8 +22,8 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 
 import Transpiler from "../Transpiler";
-import Preprocessor from "../../PARSE/1-Discover/preprocessor/Preprocessor";
-import NodeFileSystem from "../../PARSE/1-Discover/NodeFileSystem";
+import Preprocessor from "../../cnx/PARSE/1-Discover/preprocessor/Preprocessor";
+import NodeFileSystem from "../../cnx/PARSE/1-Discover/NodeFileSystem";
 
 const MAIN = `#include <A.h>
 

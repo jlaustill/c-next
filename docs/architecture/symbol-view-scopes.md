@@ -1,7 +1,7 @@
 # Symbol views and their scopes
 
 > **Renamed (#1452).** `CodeGenState` below is the class now called `TranspileState`,
-> at `src/TRANSPILE/TranspileState.ts` — merged with `TranspilerState`, made an
+> at `src/cnx/TRANSPILE/TranspileState.ts` — merged with `TranspilerState`, made an
 > instance owned by `CodeGenerator`, and moved out of the deleted
 > `src/transpiler/state/`. The measurements and the classification are unchanged;
 > only the name and the path are. Left as written rather than rewritten, because

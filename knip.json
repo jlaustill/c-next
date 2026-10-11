@@ -16,9 +16,9 @@
   ],
   "ignore": [
     "tests/**",
-    "src/PARSE/2-Parse/grammar/**",
-    "src/PARSE/2-Parse/c/grammar/**",
-    "src/PARSE/2-Parse/cpp/grammar/**"
+    "src/cnx/PARSE/2-Parse/grammar/**",
+    "src/cnx/PARSE/2-Parse/c/grammar/**",
+    "src/cnx/PARSE/2-Parse/cpp/grammar/**"
   ],
   "ignoreBinaries": ["jscpd", "jq", "dot"],
   "include": ["classMembers"],

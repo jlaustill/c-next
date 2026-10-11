@@ -14,7 +14,7 @@
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import Transpiler from "../../../src/cli/Transpiler";
-import NodeFileSystem from "../../../src/PARSE/1-Discover/NodeFileSystem";
+import NodeFileSystem from "../../../src/cnx/PARSE/1-Discover/NodeFileSystem";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

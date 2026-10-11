@@ -38,9 +38,9 @@ function renderSideFiles(): string[] {
     .filter(
       (path) =>
         !path.includes("__tests__") &&
-        (path === "src/TRANSPILE/TranspileState.ts" ||
-          path === "src/TRANSPILE/CodeGenWalker.ts" ||
-          path.startsWith("src/TRANSPILE/3-Render/")),
+        (path === "src/cnx/TRANSPILE/TranspileState.ts" ||
+          path === "src/cnx/TRANSPILE/CodeGenWalker.ts" ||
+          path.startsWith("src/cnx/TRANSPILE/3-Render/")),
     );
 }
 
@@ -140,10 +140,11 @@ describe("declared types are bound, not registered", () => {
   // move, each would compare [] to [] and stay green.
   it("finds the render side the arms search", () => {
     const files = renderSideFiles();
-    expect(files).toContain("src/TRANSPILE/TranspileState.ts");
-    expect(files).toContain("src/TRANSPILE/CodeGenWalker.ts");
+    expect(files).toContain("src/cnx/TRANSPILE/TranspileState.ts");
+    expect(files).toContain("src/cnx/TRANSPILE/CodeGenWalker.ts");
     expect(
-      files.filter((path) => path.startsWith("src/TRANSPILE/3-Render/")).length,
+      files.filter((path) => path.startsWith("src/cnx/TRANSPILE/3-Render/"))
+        .length,
     ).toBeGreaterThan(RENDER_FLOOR);
   });
 
@@ -155,7 +156,7 @@ describe("declared types are bound, not registered", () => {
     // A class planted in memory, so the control exercises the very walk the
     // arm runs rather than a hand-written copy of it
     const planted = project.createSourceFile(
-      join(repoRoot, "src/TRANSPILE/3-Render/__planted__.ts"),
+      join(repoRoot, "src/cnx/TRANSPILE/3-Render/__planted__.ts"),
       `import type TTypeInfo from "../../types/TTypeInfo";
        export default class Planted {
          private readonly registry: Map<string, TTypeInfo> = new Map();
@@ -175,11 +176,11 @@ describe("declared types are bound, not registered", () => {
       );
       // One per spelling, and not the map of something else
       expect(
-        typeInfoMapFields(["src/TRANSPILE/3-Render/__planted__.ts"]),
+        typeInfoMapFields(["src/cnx/TRANSPILE/3-Render/__planted__.ts"]),
       ).toEqual([
-        "src/TRANSPILE/3-Render/__planted__.ts:Planted.registry",
-        "src/TRANSPILE/3-Render/__planted__.ts:Planted.view",
-        "src/TRANSPILE/3-Render/__planted__.ts:Planted.record",
+        "src/cnx/TRANSPILE/3-Render/__planted__.ts:Planted.registry",
+        "src/cnx/TRANSPILE/3-Render/__planted__.ts:Planted.view",
+        "src/cnx/TRANSPILE/3-Render/__planted__.ts:Planted.record",
       ]);
     } finally {
       project.removeSourceFile(planted);
@@ -214,7 +215,7 @@ describe("declared types are bound, not registered", () => {
 
   it("arm C control: a call into the registry is found in code", () => {
     const planted = project.createSourceFile(
-      join(repoRoot, "src/TRANSPILE/__planted_c__.ts"),
+      join(repoRoot, "src/cnx/TRANSPILE/__planted_c__.ts"),
       `// setVariableTypeInfo in a comment is history, not a use
        export function f(state: { setVariableTypeInfo(n: string): void }) {
          state.setVariableTypeInfo("x");
@@ -223,10 +224,10 @@ describe("declared types are bound, not registered", () => {
     );
     try {
       expect(
-        referencesTo(["src/TRANSPILE/__planted_c__.ts"], REGISTRY),
+        referencesTo(["src/cnx/TRANSPILE/__planted_c__.ts"], REGISTRY),
       ).toEqual([
-        "src/TRANSPILE/__planted_c__.ts:2:setVariableTypeInfo",
-        "src/TRANSPILE/__planted_c__.ts:3:setVariableTypeInfo",
+        "src/cnx/TRANSPILE/__planted_c__.ts:2:setVariableTypeInfo",
+        "src/cnx/TRANSPILE/__planted_c__.ts:3:setVariableTypeInfo",
       ]);
     } finally {
       project.removeSourceFile(planted);
@@ -241,7 +242,7 @@ describe("declared types are bound, not registered", () => {
 
   it("arm D control: a write into the const map is found in code", () => {
     const planted = project.createSourceFile(
-      join(repoRoot, "src/TRANSPILE/3-Render/__planted_d__.ts"),
+      join(repoRoot, "src/cnx/TRANSPILE/3-Render/__planted_d__.ts"),
       `// constValues in a comment is history, not a use
        export function f(state: { constValues: Map<string, number> }) {
          state.constValues.set("N", 2);
@@ -250,10 +251,13 @@ describe("declared types are bound, not registered", () => {
     );
     try {
       expect(
-        referencesTo(["src/TRANSPILE/3-Render/__planted_d__.ts"], CONST_MAP),
+        referencesTo(
+          ["src/cnx/TRANSPILE/3-Render/__planted_d__.ts"],
+          CONST_MAP,
+        ),
       ).toEqual([
-        "src/TRANSPILE/3-Render/__planted_d__.ts:2:constValues",
-        "src/TRANSPILE/3-Render/__planted_d__.ts:3:constValues",
+        "src/cnx/TRANSPILE/3-Render/__planted_d__.ts:2:constValues",
+        "src/cnx/TRANSPILE/3-Render/__planted_d__.ts:3:constValues",
       ]);
     } finally {
       project.removeSourceFile(planted);

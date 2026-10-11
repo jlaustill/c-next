@@ -35,7 +35,7 @@ joining tokens with no separator. So `u8[1 - -1]` was `neg[2]` in the `.c`
 
 ### `TConstExpr`: the expression as plain data
 
-`src/types/TConstExpr.ts`. Literals, names (with their whole path and the
+`src/cnx/types/TConstExpr.ts`. Literals, names (with their whole path and the
 position they are written at), `sizeof`, casts, unary, binary and ternary
 nodes, and `other` for what no constant contains (a call, a subscript, a float),
 carrying its spelling for a message. A literal keeps its value as decimal
@@ -53,7 +53,7 @@ while a symbol must stay JSON-encodable (#1298).
 
 ### `ConstExprLowering`: tree to plain data
 
-`src/utils/ConstExprLowering.ts`. Every binary level from `||` to `*` is one
+`src/cnx/utils/ConstExprLowering.ts`. Every binary level from `||` to `*` is one
 left-associative chain, so `1 + 2 + 3` is `(1 + 2) + 3`. A leading-zero literal
 lowers to `other` (#1728's interim answer: no value until #1728 decides whether
 it is octal, so no reading disagrees with what C reads). `lowerNode` takes any
@@ -62,7 +62,7 @@ expression-level node, for a caller holding an operand rather than an
 
 ### `ConstantEvaluator`: the one rule
 
-`src/utils/ConstantEvaluator.ts`. A constant expression's value is the value
+`src/cnx/utils/ConstantEvaluator.ts`. A constant expression's value is the value
 the same expression has when the program runs (ADR-044):
 
 - arithmetic is exact (`bigint`);
@@ -86,7 +86,7 @@ value, not a variable-length array.
 
 ### `ConstantNames`: what a name is worth
 
-`src/PARSE/4-Resolve/ConstantNames.ts`. One walk from the binder's answer for a
+`src/cnx/PARSE/4-Resolve/ConstantNames.ts`. One walk from the binder's answer for a
 chain's head: a local or a const with a folded value (typed by its
 declaration); a scope's member or an enum's, found by C name; a header's bare
 name (`foreign`); in a file that includes a header, a bare name nothing binds
@@ -125,7 +125,7 @@ const may read a dimension through a length property
 no value and a dimension moved, so a program that converges in one round costs
 one.
 
-An enum's members are computed by `EnumMemberValues` (`src/utils`), shared
+An enum's members are computed by `EnumMemberValues` (`src/cnx/utils`), shared
 with nothing else: ADR-017's auto-increment, the `i32` range, and "a member may
 name members of its enum declared above it, with no cast". `ownMember` is how
 the environment answers a member of the enum being computed: the member itself
@@ -207,7 +207,7 @@ value they are taken of -- through struct fields, `cfg.data.element_count`;
 through elements, `m[0].element_count`, where the lowering records the
 subscript as a step (`ELEMENT_STEP`) because the property is the same for every
 element; and on a header's array, from the dimensions its header declares --
-and `LengthProperty` (`src/utils`) decides the number from its settled
+and `LengthProperty` (`src/cnx/utils`) decides the number from its settled
 dimensions and its element's width. Render's property generator asks the same
 `LengthProperty`, so a dimension sized by a property is the number the property
 reads as. 1.4 settles dimensions to a fixpoint, because a property's base may

@@ -30,14 +30,15 @@ describe("Layout.tree — README §1's drawing, as entries", () => {
     expect(
       Layout.tree(
         drawing(
-          "src/\n  PARSE/\n    1-Discover/\n  TRANSPILE/\n    CodeGenWalker.ts\n  lib/\n",
+          "src/\n  cnx/\n    PARSE/\n      1-Discover/\n    TRANSPILE/\n      CodeGenWalker.ts\n  lib/\n",
         ),
       ),
     ).toEqual([
-      "PARSE/",
-      "PARSE/1-Discover/",
-      "TRANSPILE/",
-      "TRANSPILE/CodeGenWalker.ts",
+      "cnx/",
+      "cnx/PARSE/",
+      "cnx/PARSE/1-Discover/",
+      "cnx/TRANSPILE/",
+      "cnx/TRANSPILE/CodeGenWalker.ts",
       "lib/",
     ]);
   });
@@ -63,20 +64,22 @@ describe("Layout.shapeFailures — src/ is exactly the drawing", () => {
   });
 
   it("lists the layer interiors, so a stray file beside the passes is seen", () => {
-    expect(present).toContain("PARSE/1-Discover/");
-    expect(present).toContain("TRANSPILE/CodeGenWalker.ts");
+    expect(present).toContain("cnx/PARSE/1-Discover/");
+    expect(present).toContain("cnx/TRANSPILE/CodeGenWalker.ts");
   });
 
   it.each([
     ["the old orchestrator root", "transpiler/"],
     ["a bare file at src/", "index.ts"],
     ["a test directory at src/", "__tests__/"],
-    ["a fifth PARSE pass", "PARSE/5-Extra/"],
+    ["a bare file in cnx/", "cnx/index.ts"],
+    ["a test directory in cnx/", "cnx/__tests__/"],
+    ["a fifth PARSE pass", "cnx/PARSE/5-Extra/"],
     [
       "a module beside TRANSPILE's passes that the tree does not draw",
-      "TRANSPILE/Planner.ts",
+      "cnx/TRANSPILE/Planner.ts",
     ],
-    ["a state directory", "TRANSPILE/state/"],
+    ["a state directory", "cnx/TRANSPILE/state/"],
   ])("fails on %s", (_label, entry) => {
     expect(present).not.toContain(entry);
     expect(Layout.shapeFailures(tree, [...present, entry])).toEqual([
@@ -85,19 +88,45 @@ describe("Layout.shapeFailures — src/ is exactly the drawing", () => {
   });
 
   it("fails when a pass the tree draws is gone", () => {
-    const without = present.filter((entry) => entry !== "WRITE/1-Write/");
+    const without = present.filter((entry) => entry !== "cnx/WRITE/1-Write/");
     expect(without).toHaveLength(present.length - 1);
     expect(Layout.shapeFailures(tree, without)).toEqual([
-      { kind: "missing", detail: "WRITE/1-Write/" },
+      { kind: "missing", detail: "cnx/WRITE/1-Write/" },
+    ]);
+  });
+
+  // #1992: `cnx/` is the transpiler and `cli/` and `lib/` sit beside it, so a
+  // transpiler root moved back out to `src/` is out of place.
+  it("fails on a shared root put back beside cnx/", () => {
+    const moved = present.map((entry) =>
+      entry === "cnx/types/" ? "types/" : entry,
+    );
+    expect(moved).not.toEqual(present);
+    expect(Layout.shapeFailures(tree, moved)).toEqual([
+      { kind: "missing", detail: "cnx/types/" },
+      { kind: "unexpected", detail: "types/" },
+    ]);
+  });
+
+  it("fails on a layer outside cnx/", () => {
+    const moved = [
+      ...present.filter((entry) => !entry.startsWith("cnx/WRITE/")),
+      "WRITE/",
+    ];
+    expect(moved).toHaveLength(present.length - 1);
+    expect(Layout.shapeFailures(tree, moved)).toEqual([
+      { kind: "missing", detail: "cnx/WRITE/" },
+      { kind: "missing", detail: "cnx/WRITE/1-Write/" },
+      { kind: "unexpected", detail: "WRITE/" },
     ]);
   });
 
   // Negative control for the one allowance: tests sit beside what they test,
   // inside a layer -- but not at src/, which the case above already fails.
   it("allows a layer's own __tests__/", () => {
-    expect(present).toContain("TRANSPILE/__tests__/");
+    expect(present).toContain("cnx/TRANSPILE/__tests__/");
     expect(
-      Layout.shapeFailures(tree, [...present, "PARSE/__tests__/"]),
+      Layout.shapeFailures(tree, [...present, "cnx/PARSE/__tests__/"]),
     ).toEqual([]);
   });
 });
@@ -111,10 +140,12 @@ describe("Layout.placeFailures — the tree and PASS_ORDER are one order", () =>
   // #1922 review: drawn here, a fifth pass was bound by no order rule, and
   // both other halves of the gate passed a module there that read 2.3 and 3.1.
   it("fails on a pass the tree draws and PASS_ORDER lacks", () => {
-    expect(Layout.placeFailures([...tree, "PARSE/5-Link/"], places)).toEqual([
+    expect(
+      Layout.placeFailures([...tree, "cnx/PARSE/5-Link/"], places),
+    ).toEqual([
       {
         kind: "place",
-        detail: "PARSE/5-Link/ is covered by 0 PASS_ORDER places, not 1",
+        detail: "cnx/PARSE/5-Link/ is covered by 0 PASS_ORDER places, not 1",
       },
     ]);
   });
@@ -123,23 +154,23 @@ describe("Layout.placeFailures — the tree and PASS_ORDER are one order", () =>
     const state = places.findIndex((place) => place.includes("TranspileState"));
     expect(state).not.toBe(-1);
     const narrowed = places.map((place, index) =>
-      index === state ? "^src/TRANSPILE/TranspileState\\.ts$" : place,
+      index === state ? "^src/cnx/TRANSPILE/TranspileState\\.ts$" : place,
     );
     expect(Layout.placeFailures(tree, narrowed)).toEqual([
       {
         kind: "place",
-        detail: "TRANSPILE/types/ is covered by 0 PASS_ORDER places, not 1",
+        detail: "cnx/TRANSPILE/types/ is covered by 0 PASS_ORDER places, not 1",
       },
     ]);
   });
 
   it("fails on a place that covers nothing drawn", () => {
     expect(
-      Layout.placeFailures(tree, [...places, "^src/WRITE/2-Flush/"]),
+      Layout.placeFailures(tree, [...places, "^src/cnx/WRITE/2-Flush/"]),
     ).toEqual([
       {
         kind: "place",
-        detail: "^src/WRITE/2-Flush/ covers nothing README §1 draws",
+        detail: "^src/cnx/WRITE/2-Flush/ covers nothing README §1 draws",
       },
     ]);
   });
@@ -162,8 +193,8 @@ describe("Layout.orderFailures — no module reaches a later pass", () => {
     expect(
       Layout.orderFailures(rules, [
         {
-          from: "src/TRANSPILE/2-Plan/X.ts",
-          to: "src/TRANSPILE/3-Render/Y.ts",
+          from: "src/cnx/TRANSPILE/2-Plan/X.ts",
+          to: "src/cnx/TRANSPILE/3-Render/Y.ts",
           rule: { name: "2-2-plan-reads-no-later-pass" },
         },
       ]),
@@ -171,7 +202,7 @@ describe("Layout.orderFailures — no module reaches a later pass", () => {
       {
         kind: "order",
         detail:
-          "src/TRANSPILE/2-Plan/X.ts -> src/TRANSPILE/3-Render/Y.ts (2-2-plan-reads-no-later-pass)",
+          "src/cnx/TRANSPILE/2-Plan/X.ts -> src/cnx/TRANSPILE/3-Render/Y.ts (2-2-plan-reads-no-later-pass)",
       },
     ]);
   });

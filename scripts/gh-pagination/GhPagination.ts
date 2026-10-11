@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import ExecFailure from "../../src/utils/ExecFailure";
+import ExecFailure from "../../src/cnx/utils/ExecFailure";
 import IGhCommand from "../types/IGhCommand";
 import IGhPaginationOutcome from "../types/IGhPaginationOutcome";
 import IGhPaginationViolation from "../types/IGhPaginationViolation";
