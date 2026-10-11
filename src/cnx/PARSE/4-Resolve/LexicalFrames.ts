@@ -240,7 +240,8 @@ class LexicalFrames {
    * ADR-057: a local that shadows a file-scope name moves to
    * `<function>__<name>`. C has no `::`, so emitted as plain `name` it would
    * make the outer one unreachable and `global.name` would bind the local.
-   * A parameter keeps its name: it is the signature the header declares.
+   * A parameter is no exception (#1290): its moved name is the one the `.c`
+   * signature, the `.h` prototype and every use in the body read.
    * `__` cannot be written in a C-Next identifier (E0201), so the moved name
    * collides with nothing the source declares.
    */
@@ -250,11 +251,7 @@ class LexicalFrames {
     isFileScopeName: (cName: string) => boolean,
   ): string {
     const { name } = declaration;
-    if (
-      declaration.kind === "parameter" ||
-      functionCName === null ||
-      !isFileScopeName(name)
-    ) {
+    if (functionCName === null || !isFileScopeName(name)) {
       return name;
     }
     return QualifiedCName.fromParts([functionCName, name]);

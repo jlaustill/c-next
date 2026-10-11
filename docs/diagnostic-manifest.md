@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-521 fixture(s) assert a diagnostic; 511 carry a code.
+531 fixture(s) assert a diagnostic; 521 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -458,6 +458,16 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1980-enum-read-before-assign/enum-read-before-assign.test.cnx                   | E0381               |
 | tests/bugs/issue-1981-struct-cycle/direct.test.cnx                                               | E0426               |
 | tests/bugs/issue-1981-struct-cycle/mutual.test.cnx                                               | E0426               |
+| tests/bugs/issue-2001-qualified-write-initializes-local/global-write-local-shadow.test.cnx       | E0381               |
+| tests/bugs/issue-2001-qualified-write-initializes-local/global-write-scope-member.test.cnx       | E0381               |
+| tests/bugs/issue-2001-qualified-write-initializes-local/local-write-scope-member.test.cnx        | E0381               |
+| tests/bugs/issue-2001-qualified-write-initializes-local/parameter-write-scope-member.test.cnx    | E0381               |
+| tests/bugs/issue-2001-qualified-write-initializes-local/this-write-local-shadow.test.cnx         | E0381               |
+| tests/bugs/issue-2004-initialization-binds-through-1-4/for-variable-write-reader-after.test.cnx  | E0381               |
+| tests/bugs/issue-2004-initialization-binds-through-1-4/for-variable-write-reader-before.test.cnx | E0381               |
+| tests/bugs/issue-2011-redeclaration-in-one-scope/local-redeclares-parameter.test.cnx             | E0425               |
+| tests/bugs/issue-2011-redeclaration-in-one-scope/local-redeclares-shadowing-parameter.test.cnx   | E0425               |
+| tests/bugs/issue-2011-redeclaration-in-one-scope/two-locals-one-block.test.cnx                   | E0425               |
 | tests/bugs/issue-847-misra-17-7-lowering/bare-intra-scope-discard.test.cnx                       | E0708               |
 | tests/bugs/issue-847-misra-17-7-lowering/cross-file-scope-discard.test.cnx                       | E0708               |
 | tests/bugs/issue-847-misra-17-7-lowering/external-c-discard.test.cnx                             | E0708               |

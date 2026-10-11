@@ -30,8 +30,10 @@ import type ISourceSpan from "../../types/ISourceSpan";
 import type TChainRoot from "../../types/TChainRoot";
 import type TValueBinding from "../../types/TValueBinding";
 import RunTarget from "./RunTarget";
+import ScopeFunctions from "./ScopeFunctions";
 import type TRunTarget from "../../types/TRunTarget";
 import invariant from "../../utils/invariant";
+import emittedLocalName from "../../utils/emittedLocalName";
 import type IFunctionSymbol from "../../types/symbols/IFunctionSymbol";
 import ScopeUtils from "../../utils/ScopeUtils";
 import type IScopeSymbol from "../../types/symbols/IScopeSymbol";
@@ -254,6 +256,7 @@ class Program {
       constants,
       fileFacts,
       (declaration) => settledLocals.get(declaration),
+      framesByFile,
     );
     const symbolsByCName = Program.indexByCName(symbolsByFile);
     const bound: IBindingFacts = {
@@ -920,7 +923,8 @@ class Program {
       bind: (root, name, at) =>
         Program.bindValue(facts, file(), root, name, at),
       scopePathAt: (at) =>
-        LexicalFrames.frameAt(Program.framesOf(facts, file()), at).scopePath,
+        LexicalFrames.frameAt(Program.framesOf(facts.framesByFile, file()), at)
+          .scopePath,
       visibleSymbol: (cName) => Program.visibleSymbolIn(facts, file(), cName),
       isScopeTypeVisible: (name) =>
         options.files.isScopeTypeVisibleFrom(file(), name),
@@ -1037,7 +1041,8 @@ class Program {
   /**
    * Each function's parameter dimensions, settled through the frames' own
    * settled declarations, so a parameter sized by an earlier one reads the
-   * value its frame settled -- one answer for the .c and the .h
+   * value its frame settled -- one answer for the .c and the .h. #1290: each
+   * parameter's C name is its frame's settled one, for the same reason.
    */
   private static withSettledParameters(
     symbolsByFile: ReadonlyMap<string, ReadonlyArray<TSymbol>>,
@@ -1047,6 +1052,7 @@ class Program {
     settledLocal: (
       declaration: ILocalDeclaration,
     ) => ILocalDeclaration | undefined,
+    framesByFile: ReadonlyMap<string, ILexicalFrame>,
   ): Map<string, ReadonlyArray<TSymbol>> {
     const result = new Map<string, ReadonlyArray<TSymbol>>();
     for (const [sourceFile, symbols] of symbolsByFile) {
@@ -1056,16 +1062,85 @@ class Program {
           files,
         }),
       );
-      result.set(
-        sourceFile,
-        symbols.map((symbol) =>
-          symbol.kind === "function"
-            ? Program.withResolvedDimensions(symbol, env)
-            : symbol,
+      const frames = Program.framesOf(framesByFile, sourceFile);
+      const parametersByFunction = new Map<
+        string,
+        ReadonlyArray<ILocalDeclaration>
+      >();
+      Program.collectSettledParameters(frames, parametersByFunction);
+      const rebuilt = new Map<TSymbol, TSymbol>();
+      const settled = symbols.map((symbol) => {
+        if (symbol.kind !== "function") return symbol;
+        const result = Program.withEmittedParameterNames(
+          Program.withResolvedDimensions(symbol, env),
+          parametersByFunction,
+        );
+        rebuilt.set(symbol, result);
+        return result;
+      });
+      ScopeFunctions.adopt(settled, rebuilt);
+      result.set(sourceFile, settled);
+    }
+    return result;
+  }
+
+  /**
+   * #1290: every function frame's settled parameters, by where the function
+   * is declared -- not by C name, which two declarations share until E0425
+   * rejects them
+   */
+  private static collectSettledParameters(
+    frame: ILexicalFrame,
+    into: Map<string, ReadonlyArray<ILocalDeclaration>>,
+  ): void {
+    if (frame.kind === "function") {
+      into.set(
+        Program.declarationKey(frame.span),
+        frame.declarations.filter(
+          (declaration) => declaration.kind === "parameter",
         ),
       );
     }
-    return result;
+    for (const child of frame.children) {
+      Program.collectSettledParameters(child, into);
+    }
+  }
+
+  /**
+   * #1290: a function's parameters, each carrying the C name its frame
+   * settled -- the one ADR-057 decision, which the `.h` prototype reads as
+   * the `.c` does
+   */
+  private static withEmittedParameterNames(
+    symbol: TSymbol,
+    parametersByFunction: ReadonlyMap<string, ReadonlyArray<ILocalDeclaration>>,
+  ): TSymbol {
+    if (symbol.kind !== "function") return symbol;
+    const settled = parametersByFunction.get(
+      Program.declarationKey(symbol.span),
+    );
+    invariant(
+      settled?.length === symbol.parameters.length,
+      `a function's frame declares each of its parameters (${symbol.fullyQualifiedCName})`,
+    );
+    return {
+      ...symbol,
+      parameters: symbol.parameters.map((parameter, index) => {
+        invariant(
+          settled[index].name === parameter.name,
+          `a function's frame declares its parameters in order (${symbol.fullyQualifiedCName})`,
+        );
+        return {
+          ...parameter,
+          emittedName: emittedLocalName(settled[index]),
+        };
+      }),
+    };
+  }
+
+  /** A function frame and its symbol share the declaration's span */
+  private static declarationKey(span: ISourceSpan): string {
+    return `${span.line}:${span.column}`;
   }
 
   /** Tier 2: resolved array dimensions, per file. */
@@ -1137,10 +1212,10 @@ class Program {
    * shadowing decision silently, where lexicalFrameAt already asserts
    */
   private static framesOf(
-    facts: IBindingFacts,
+    framesByFile: ReadonlyMap<string, ILexicalFrame>,
     sourceFile: string,
   ): ILexicalFrame {
-    const frames = facts.framesByFile.get(sourceFile);
+    const frames = framesByFile.get(sourceFile);
     invariant(frames, `${sourceFile} is a file of this program`);
     return frames;
   }
@@ -1180,7 +1255,7 @@ class Program {
     name: string,
     at: TPosition,
   ): TValueBinding | null {
-    const frames = Program.framesOf(facts, sourceFile);
+    const frames = Program.framesOf(facts.framesByFile, sourceFile);
     const scopePath = LexicalFrames.frameAt(frames, at).scopePath;
     const local =
       root === null ? LexicalFrames.declarationAt(frames, name, at) : null;

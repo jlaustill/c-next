@@ -5,7 +5,6 @@
  */
 import type TValueBinding from "../../../types/TValueBinding";
 import type ISourcePosition from "../../../utils/types/ISourcePosition";
-import emittedLocalName from "../../../utils/emittedLocalName";
 import AdrProvenance from "../../../instrumentation/AdrProvenance";
 // SonarCloud S3776: Extracted literal parsing to reduce complexity
 import QualifiedCName from "../../../utils/QualifiedCName";
@@ -117,14 +116,8 @@ class TypeValidator {
       // ADR-057: a local normally emits under its own name (null = "leave it
       // alone"). One that shadows a file-scope symbol was given a distinct C
       // identifier at its declaration, and every reference must follow it.
-      const emitted = emittedLocalName(binding.declaration);
-      if (emitted === identifier) {
-        return null;
-      }
-      // The rename IS ADR-057's shadowing rule firing; a local that shadows
-      // nothing is the rule declining to act, which is not evidence of it.
-      AdrProvenance.record("057", at.line);
-      return emitted;
+      const emitted = state.localCName(binding.declaration, at);
+      return emitted === identifier ? null : emitted;
     }
 
     // A scope member, by the binder's middle tier: a variable, or a function

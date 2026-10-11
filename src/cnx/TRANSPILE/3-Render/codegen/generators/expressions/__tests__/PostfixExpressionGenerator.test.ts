@@ -268,6 +268,8 @@ function createMockPostfixOp(options?: {
   identifier?: string;
   /** #1668 (C12): the typer's step for a member, as render now reads it */
   step?: IChainStep;
+  /** #1994: the chain head's `rootOp` -- the member on the root */
+  appliesToRoot?: boolean;
   /** #1668: the typer's kind for a subscript; the unknown-type default */
   typedAs?: TSubscriptKind;
   expressions?: { getText: () => string }[];
@@ -279,6 +281,7 @@ function createMockPostfixOp(options?: {
     return {
       kind: "member",
       name: options.identifier,
+      appliesToRoot: options.appliesToRoot ?? false,
       step: options.step ?? null,
     };
   }
@@ -1199,7 +1202,7 @@ describe("PostfixExpressionGenerator", () => {
         ],
       ]);
       const ctx = createMockPostfixExpressionContext("point", [
-        createMockPostfixOp({ identifier: "x" }),
+        createMockPostfixOp({ identifier: "x", appliesToRoot: true }),
       ]);
       const input = createMockInput();
       const state = createMockState({ currentParameters: params });

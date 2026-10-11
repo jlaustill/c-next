@@ -7,6 +7,8 @@ import type TTypeSyntax from "./TTypeSyntax";
 interface IFunctionDeclarationSyntax extends ISyntaxNode {
   readonly returnType: TTypeSyntax;
   readonly name: string;
+  /** Where the function's name is written */
+  readonly nameSpan: ISyntaxNode["span"];
   readonly parameters: readonly IParameterSyntax[] | null;
   readonly body: TBlockSyntax;
 }

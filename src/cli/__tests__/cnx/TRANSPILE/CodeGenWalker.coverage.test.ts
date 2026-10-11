@@ -12,6 +12,7 @@
  * wrong before the diff shifted `CodeGenWalker.ts`, and nothing could ever
  * have reported that.
  */
+import ProgramLowering from "../../../../cnx/PARSE/2-Parse/ProgramLowering";
 import ProgramGeneration from "./ProgramGeneration";
 import { describe, it, expect, beforeEach } from "vitest";
 import CodeGenWalker from "../../../../cnx/TRANSPILE/CodeGenWalker";
@@ -53,10 +54,20 @@ function setupGenerator(
   // #1669: the real 1.4, which settles enum member values; 1.3 alone leaves
   // every member without one
   const tSymbols = [
-    ...Program.build([CNextResolver.resolve(tree, "test.cnx", registry)], {
-      cppMode: false,
-      registry,
-    }).symbolsInFile("test.cnx"),
+    ...Program.build(
+      [
+        CNextResolver.resolve(
+          tree,
+          ProgramLowering.program(tree, null),
+          "test.cnx",
+          registry,
+        ),
+      ],
+      {
+        cppMode: false,
+        registry,
+      },
+    ).symbolsInFile("test.cnx"),
   ];
   // Issue #831: Register TSymbols in SymbolTable (single source of truth)
   symbolTable.addTSymbols(tSymbols);
@@ -682,10 +693,20 @@ describe("CodeGenWalker Coverage Tests", () => {
       symbolTable.markNeedsStructKeyword("NamedPoint");
 
       const tSymbols = [
-        ...Program.build([CNextResolver.resolve(tree, "test.cnx", registry)], {
-          cppMode: false,
-          registry,
-        }).symbolsInFile("test.cnx"),
+        ...Program.build(
+          [
+            CNextResolver.resolve(
+              tree,
+              ProgramLowering.program(tree, null),
+              "test.cnx",
+              registry,
+            ),
+          ],
+          {
+            cppMode: false,
+            registry,
+          },
+        ).symbolsInFile("test.cnx"),
       ];
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -730,10 +751,20 @@ describe("CodeGenWalker Coverage Tests", () => {
       // Do NOT mark as needing struct keyword (simulates typedef'd struct)
 
       const tSymbols = [
-        ...Program.build([CNextResolver.resolve(tree, "test.cnx", registry)], {
-          cppMode: false,
-          registry,
-        }).symbolsInFile("test.cnx"),
+        ...Program.build(
+          [
+            CNextResolver.resolve(
+              tree,
+              ProgramLowering.program(tree, null),
+              "test.cnx",
+              registry,
+            ),
+          ],
+          {
+            cppMode: false,
+            registry,
+          },
+        ).symbolsInFile("test.cnx"),
       ];
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -769,10 +800,20 @@ describe("CodeGenWalker Coverage Tests", () => {
       symbolTable.markNeedsStructKeyword("CppPoint");
 
       const tSymbols = [
-        ...Program.build([CNextResolver.resolve(tree, "test.cnx", registry)], {
-          cppMode: false,
-          registry,
-        }).symbolsInFile("test.cnx"),
+        ...Program.build(
+          [
+            CNextResolver.resolve(
+              tree,
+              ProgramLowering.program(tree, null),
+              "test.cnx",
+              registry,
+            ),
+          ],
+          {
+            cppMode: false,
+            registry,
+          },
+        ).symbolsInFile("test.cnx"),
       ];
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1178,11 +1219,21 @@ describe("CodeGenWalker Coverage Tests", () => {
         const symbolTable = new SymbolTable();
         // As a header's `typedef struct Dev Dev;` with no body registers it.
         symbolTable.markOpaqueType("Dev");
-        const tSymbols = CNextResolver.resolve(
-          tree,
-          "test.cnx",
-          registry,
-        ).symbols;
+        // #1290: the real 1.4, which settles each parameter's C name the
+        // typedef writes; 1.3 alone leaves every one unsettled
+        const tSymbols = [
+          ...Program.build(
+            [
+              CNextResolver.resolve(
+                tree,
+                ProgramLowering.program(tree, null),
+                "test.cnx",
+                registry,
+              ),
+            ],
+            { cppMode, registry },
+          ).symbolsInFile("test.cnx"),
+        ];
         symbolTable.addTSymbols(tSymbols);
         const host = new CodeGenerator();
         const generator = new CodeGenWalker(host);
@@ -1318,10 +1369,20 @@ describe("CodeGenWalker Coverage Tests", () => {
 
       const symbolTable = new SymbolTable();
       const tSymbols = [
-        ...Program.build([CNextResolver.resolve(tree, "test.cnx", registry)], {
-          cppMode: false,
-          registry,
-        }).symbolsInFile("test.cnx"),
+        ...Program.build(
+          [
+            CNextResolver.resolve(
+              tree,
+              ProgramLowering.program(tree, null),
+              "test.cnx",
+              registry,
+            ),
+          ],
+          {
+            cppMode: false,
+            registry,
+          },
+        ).symbolsInFile("test.cnx"),
       ];
       symbolTable.addTSymbols(tSymbols);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
@@ -1518,10 +1579,20 @@ describe("CodeGenWalker Coverage Tests", () => {
 
       const symbolTable = new SymbolTable();
       const tSymbols = [
-        ...Program.build([CNextResolver.resolve(tree, "test.cnx", registry)], {
-          cppMode: false,
-          registry,
-        }).symbolsInFile("test.cnx"),
+        ...Program.build(
+          [
+            CNextResolver.resolve(
+              tree,
+              ProgramLowering.program(tree, null),
+              "test.cnx",
+              registry,
+            ),
+          ],
+          {
+            cppMode: false,
+            registry,
+          },
+        ).symbolsInFile("test.cnx"),
       ];
       symbolTable.addTSymbols(tSymbols);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
@@ -1567,10 +1638,20 @@ describe("CodeGenWalker Coverage Tests", () => {
 
       const symbolTable = new SymbolTable();
       const tSymbols = [
-        ...Program.build([CNextResolver.resolve(tree, "test.cnx", registry)], {
-          cppMode: false,
-          registry,
-        }).symbolsInFile("test.cnx"),
+        ...Program.build(
+          [
+            CNextResolver.resolve(
+              tree,
+              ProgramLowering.program(tree, null),
+              "test.cnx",
+              registry,
+            ),
+          ],
+          {
+            cppMode: false,
+            registry,
+          },
+        ).symbolsInFile("test.cnx"),
       ];
       symbolTable.addTSymbols(tSymbols);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);

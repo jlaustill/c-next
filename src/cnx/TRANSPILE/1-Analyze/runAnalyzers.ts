@@ -44,6 +44,7 @@ import EnumTypeSafetyAnalyzer from "./EnumTypeSafetyAnalyzer";
 import ScopeAccessAnalyzer from "./ScopeAccessAnalyzer";
 import RegisterAccessAnalyzer from "./RegisterAccessAnalyzer";
 import BracedBodyAnalyzer from "./BracedBodyAnalyzer";
+import RedeclarationAnalyzer from "./RedeclarationAnalyzer";
 import BareEnumMemberAnalyzer from "./BareEnumMemberAnalyzer";
 import ArrayDeclarationAnalyzer from "./ArrayDeclarationAnalyzer";
 import ConstantDimensionAnalyzer from "./ConstantDimensionAnalyzer";
@@ -217,6 +218,13 @@ function runAnalyzers(
       run: () => new BracedBodyAnalyzer().analyze(parsed.program),
     },
     {
+      // #2011: before anything binds a name. With two declarations of one
+      // name in one scope, every later step would answer about whichever one
+      // it happened to find.
+      label: "redeclaration in one scope (#2011, E0425)",
+      run: () => new RedeclarationAnalyzer(context).analyze(),
+    },
+    {
       label: "parameter naming (Issue #227: reserved naming patterns)",
       run: () => new ParameterNamingAnalyzer().analyze(tree),
     },
@@ -234,7 +242,8 @@ function runAnalyzers(
     },
     {
       label: "initialization (Rust-style use-before-init)",
-      run: () => new InitializationAnalyzer(context).analyze(tree),
+      run: () =>
+        new InitializationAnalyzer(context).analyze(tree, parsed.program),
     },
     {
       // Before the call and essential-type analyses: a type that denotes
@@ -255,7 +264,7 @@ function runAnalyzers(
     },
     {
       label: "NULL checks (ADR-047: C library interop)",
-      run: () => new NullCheckAnalyzer().analyze(tree),
+      run: () => new NullCheckAnalyzer().analyze(tree, parsed.program),
     },
     {
       label: "division by zero (ADR-051: compile-time detection)",
@@ -298,7 +307,7 @@ function runAnalyzers(
     },
     {
       label: "return paths (ADR-067: non-void must return on all paths)",
-      run: () => new ReturnPathAnalyzer().analyze(tree),
+      run: () => new ReturnPathAnalyzer().analyze(parsed.program),
     },
     {
       label:

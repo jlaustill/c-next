@@ -1,0 +1,16 @@
+// test-error
+// test-adr: 057
+// #2001: `count <- 2` writes the local `count`, so it does not initialize
+// the scope member that local shadows
+scope S {
+    u32 count;
+
+    public void f() {
+        u32 count <- 1;
+        count <- 2;
+    }
+
+    public u32 g() {
+        return count;
+    }
+}

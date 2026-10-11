@@ -7,11 +7,12 @@
 import { describe, expect, it } from "vitest";
 import parse from "./testHelpers";
 import CallbackUseCollector from "../collectors/CallbackUseCollector";
+import ProgramLowering from "../../../2-Parse/ProgramLowering";
 
 /** Each recorded use's function name, in source order. */
 function namesIn(code: string): string[] {
   return CallbackUseCollector.collect(
-    parse(code),
+    ProgramLowering.program(parse(code), null),
     (scopeName) => scopeName,
   ).map((use) => use.functionName);
 }
@@ -53,5 +54,29 @@ describe("CallbackUseCollector", () => {
         }
       `),
     ).toEqual(["Bus__tick", "Bus__tick"]);
+  });
+
+  it("records a use inside every statement that holds statements (#2003)", () => {
+    expect(
+      namesIn(`
+        void main() {
+          if (true) { widget_set(onIf); }
+          while (false) { widget_set(onWhile); }
+          for (u8 i <- 0; i < 1; i +<- 1) { widget_set(onFor); }
+          do { widget_set(onDo); } while (false);
+          critical { widget_set(onCritical); }
+          { widget_set(onBlock); }
+          forever { widget_set(onForever); }
+        }
+      `),
+    ).toEqual([
+      "onIf",
+      "onWhile",
+      "onFor",
+      "onDo",
+      "onCritical",
+      "onBlock",
+      "onForever",
+    ]);
   });
 });

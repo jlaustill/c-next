@@ -1,0 +1,28 @@
+// test-execution
+// test-adr: 057
+// #1290 review: a function used as a type (ADR-029) emits a typedef naming
+// its parameters, and an array parameter's name is written there. A parameter
+// that shadows a file-scope name is written in the typedef under the C name
+// its prototype and definition use (`handler__buf`), not the global's.
+u32[2] buf <- [70, 80];
+u32 seen <- 0;
+
+void handler(u32 total, u32[2] buf) {
+    seen <- total + buf[1];
+}
+
+void run(handler cb) {
+    u32[2] local <- [1, 2];
+    cb(5, local);
+}
+
+u32 main() {
+    run(handler);
+    if (seen != 7) {
+        return 1;
+    }
+    if (global.buf[1] != 80) {
+        return 2;
+    }
+    return 0;
+}

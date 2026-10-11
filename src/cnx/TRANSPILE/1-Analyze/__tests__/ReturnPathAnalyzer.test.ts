@@ -6,6 +6,7 @@ import { describe, it, expect } from "vitest";
 import { CharStream, CommonTokenStream } from "antlr4ng";
 import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
 import { CNextParser } from "../../../PARSE/2-Parse/grammar/CNextParser";
+import ProgramLowering from "../../../PARSE/2-Parse/ProgramLowering";
 import ReturnPathAnalyzer from "../ReturnPathAnalyzer";
 
 function parse(source: string) {
@@ -17,7 +18,9 @@ function parse(source: string) {
 }
 
 function analyze(source: string) {
-  return new ReturnPathAnalyzer().analyze(parse(source));
+  return new ReturnPathAnalyzer().analyze(
+    ProgramLowering.program(parse(source), null),
+  );
 }
 
 describe("ReturnPathAnalyzer", () => {

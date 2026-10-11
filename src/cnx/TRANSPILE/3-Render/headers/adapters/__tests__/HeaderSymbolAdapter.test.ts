@@ -216,6 +216,7 @@ describe("HeaderSymbolAdapter", () => {
         parameters: [
           {
             name: "value",
+            emittedName: "value",
             type: TTypeUtils.createPrimitive("f32"),
             isConst: false,
             isArray: false,
@@ -250,6 +251,7 @@ describe("HeaderSymbolAdapter", () => {
         parameters: [
           {
             name: "data",
+            emittedName: "data",
             type: TTypeUtils.createPrimitive("u8"),
             isConst: true,
             isArray: true,
@@ -293,6 +295,7 @@ describe("HeaderSymbolAdapter", () => {
         parameters: [
           {
             name: "d",
+            emittedName: "d",
             type: TTypeUtils.createExternal("Dev"),
             isConst: false,
             isArray: false,
@@ -300,6 +303,7 @@ describe("HeaderSymbolAdapter", () => {
           },
           {
             name: "pair",
+            emittedName: "pair",
             type: TTypeUtils.createExternal("Dev"),
             isConst: false,
             isArray: true,
@@ -308,6 +312,7 @@ describe("HeaderSymbolAdapter", () => {
           },
           {
             name: "f",
+            emittedName: "f",
             type: TTypeUtils.createExternal("Full"),
             isConst: false,
             isArray: false,
@@ -698,6 +703,7 @@ describe("HeaderSymbolAdapter", () => {
         parameters: [
           {
             name: "data",
+            emittedName: "data",
             type: TTypeUtils.createPrimitive("u8"),
             isConst: false,
             isArray: true,

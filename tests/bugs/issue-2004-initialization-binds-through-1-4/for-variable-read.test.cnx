@@ -1,0 +1,23 @@
+// test-execution
+// test-adr: 057
+// #2004: a `for`-header variable that shadows a scope member is initialized
+// by its header, so reading and writing it is not E0381
+scope S {
+    u32 count;
+
+    public u32 f() {
+        u32 sum <- 0;
+        for (u32 count <- 0; count < 3; count +<- 1) {
+            sum +<- count;
+        }
+        return sum;
+    }
+}
+
+u32 main() {
+    u32 sum <- S.f();
+    if (sum != 3) {
+        return 1;
+    }
+    return 0;
+}

@@ -2,6 +2,7 @@
  * #1668 / #1664: lexical frames, built by 1.3 and settled by 1.4, and the
  * binding decision every later pass reads from Program.
  */
+import ProgramLowering from "../../2-Parse/ProgramLowering";
 import { describe, it, expect } from "vitest";
 import CNextSourceParser from "../../2-Parse/CNextSourceParser";
 import CNextResolver from "../../3-Declare/cnext/index";
@@ -39,7 +40,12 @@ function constantAt(
 function build(files: Record<string, string>) {
   const registry = new SymbolRegistry();
   const declared = Object.entries(files).map(([path, source]) =>
-    CNextResolver.resolve(CNextSourceParser.parse(source).tree, path, registry),
+    CNextResolver.resolve(
+      CNextSourceParser.parse(source).tree,
+      ProgramLowering.program(CNextSourceParser.parse(source).tree, null),
+      path,
+      registry,
+    ),
   );
   // #1724: a file sees the scope types of its include closure only, so the
   // graph is stated as discovery would resolve it -- a quoted `.cnx` include
@@ -302,7 +308,7 @@ scope S {
       );
     });
 
-    it("keeps the name of a local that shadows nothing, and of a parameter", () => {
+    it("keeps the name of a local or a parameter that shadows nothing", () => {
       const source = `u32 count <- 1;
 void f(u8 count, u8 other) {
     u8 fresh <- other;
@@ -312,7 +318,16 @@ void f(u8 count, u8 other) {
       expect(emittedAt(program, source, "fresh", "fresh + count", 1)).toBe(
         "fresh",
       );
-      expect(emittedAt(program, source, "count", "count;", 1)).toBe("count");
+      expect(emittedAt(program, source, "other", "other;", 1)).toBe("other");
+    });
+
+    it("moves a parameter that shadows a file-scope name, as a local (#1290)", () => {
+      const source = `u32 count <- 1;
+void f(u8 count, u8 other) {
+    u8 m <- other + count;
+}`;
+      const program = build({ "a.cnx": source });
+      expect(emittedAt(program, source, "count", "count;", 1)).toBe("f__count");
     });
 
     it("ends a block's rename with the block (#1953)", () => {

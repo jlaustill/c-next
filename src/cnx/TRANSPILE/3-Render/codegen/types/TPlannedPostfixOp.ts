@@ -18,6 +18,8 @@ type TPlannedPostfixOp =
   | {
       readonly kind: "member";
       readonly name: string;
+      /** #1994: it is the chain head's `rootOp`, as the write path's is */
+      readonly appliesToRoot: boolean;
       /** #1668 (C12): the typer's step, or null where its root consumed it */
       readonly step: IChainStep | null;
     }
