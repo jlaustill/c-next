@@ -1,0 +1,13 @@
+// test-adr: 051
+// test-error
+// #1879, its E0800 row: a divisor written as a constant expression is a
+// compile-time constant (ADR-051 section 1), so x / (1 - 1) divides by zero.
+// Main exited 0 and emitted x / (1U - 1U).
+//
+// NEGATIVE CONTROL: x / (y - 1) is not constant and stays silent.
+
+u32 divide(u32 x, u32 y) {
+    u32 a <- x / (1 - 1);
+    u32 b <- x / (y - 1);
+    return a + b;
+}

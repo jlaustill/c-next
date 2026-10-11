@@ -1,0 +1,27 @@
+// test-execution
+// test-adr: 024
+// #1268 review: an enum member's value may be a float cast to an integer
+// type, which truncates (ADR-024): LOW is 2 and the member after it is 3.
+// Main rejected it with E0909 "'2.5' is a floating-point value".
+//
+// CONTROL: HIGH, from `(u32)7.99`, is 7 -- the cast truncates, it does not
+// round.
+
+enum Level {
+    LOW <- (u32)2.5,
+    NEXT,
+    HIGH <- (u32)7.99
+}
+
+u32 main() {
+    if ((u32)Level.LOW != 2) {
+        return 1;
+    }
+    if ((u32)Level.NEXT != 3) {
+        return 2;
+    }
+    if ((u32)Level.HIGH != 7) {
+        return 3;
+    }
+    return 0;
+}

@@ -199,6 +199,52 @@ describe("DivisionByZeroAnalyzer", () => {
         "const u32 D <- 4;\nvoid main() {\n  const u32 D <- 0;\n  u32 x <- 10 / D;\n}",
         1,
       ],
+      // #1268: every spelling of a name binds where the bare one does
+      [
+        "a this.-qualified const zero",
+        "scope S {\n  const u32 Z <- 0;\n  public u32 go(u32 n) {\n    return n / this.Z;\n  }\n}",
+        1,
+      ],
+      [
+        "a global.-qualified const zero",
+        "const u32 Z <- 0;\nscope S {\n  public u32 go(u32 n) {\n    return n % global.Z;\n  }\n}",
+        1,
+      ],
+      [
+        "a Scope.-qualified const zero",
+        "scope S {\n  public const u32 Z <- 0;\n}\nu32 go(u32 n) {\n  return n / S.Z;\n}",
+        1,
+      ],
+      [
+        "a global.Scope.-qualified const zero",
+        "scope S {\n  public const u32 Z <- 0;\n}\nu32 go(u32 n) {\n  return n / global.S.Z;\n}",
+        1,
+      ],
+      [
+        "a this.-qualified float const zero",
+        "scope S {\n  const f32 Z <- 0.0;\n  public f32 go(f32 k) {\n    return k / this.Z;\n  }\n}",
+        1,
+      ],
+      [
+        "a Scope.-qualified float const zero",
+        "scope S {\n  public const f32 Z <- 0.0;\n}\nf32 go(f32 k) {\n  return k / S.Z;\n}",
+        1,
+      ],
+      [
+        "global. names the file's nonzero const, not the scope's zero",
+        "const u32 Z <- 7;\nscope S {\n  const u32 Z <- 0;\n  public u32 go(u32 n) {\n    return n / global.Z;\n  }\n}",
+        0,
+      ],
+      [
+        "this. names the scope's nonzero const, not the file's zero",
+        "const u32 Z <- 0;\nscope S {\n  const u32 Z <- 7;\n  public u32 go(u32 n) {\n    return n / this.Z;\n  }\n}",
+        0,
+      ],
+      [
+        "a qualified float const that is not zero",
+        "scope S {\n  public const f32 Z <- 0.5;\n}\nf32 go(f32 k) {\n  return k / S.Z;\n}",
+        0,
+      ],
     ])("%s", (_why, code, expected) => {
       const { tree, context } = testAnalysisContextFor(code, {
         cppMode: false,
@@ -409,7 +455,7 @@ describe("DivisionByZeroAnalyzer", () => {
       expect(errors).toHaveLength(0);
     });
 
-    it("should not detect zero in parenthesized expression divisor", () => {
+    it("should detect zero in parenthesized expression divisor", () => {
       const code = `
         void main() {
           u32 x <- 10 / (0);
@@ -421,8 +467,114 @@ describe("DivisionByZeroAnalyzer", () => {
       const analyzer = new DivisionByZeroAnalyzer(context);
       const errors = analyzer.analyze(tree);
 
-      // Parenthesized expression hits isZero fall-through (neither literal nor identifier)
+      // A compile-time constant divisor, by the one evaluator (ADR-051)
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0800");
+    });
+  });
+
+  // #1268 review: an enum operand is E0810's (not a number), whatever its value
+  describe("enum operands", () => {
+    it.each(["RED", "GREEN"])("leaves n / EColor.%s to E0810", (member) => {
+      const code = `
+        enum EColor { RED, GREEN }
+        void main() {
+          u32 n <- 10;
+          u32 x <- n / EColor.${member};
+        }
+      `;
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
+      const errors = new DivisionByZeroAnalyzer(context).analyze(tree);
+
       expect(errors).toHaveLength(0);
+    });
+  });
+
+  // #1268 review: safe_div is the help only where a statement can call it
+  describe("help outside a statement", () => {
+    it.each([
+      ["an array dimension", "u8[4 / (2 - 2)] buf;\n          buf[0] <- 1;"],
+      ["a const's initializer", "const u32 X <- 10 / (2 - 2);"],
+      ["an array type's dimension", "u8[4 / (2 - 2)] buf <- [0*];"],
+    ])(
+      "says the divisor must not be zero in %s in a function",
+      (_label, line) => {
+        const code = `
+        void main() {
+          ${line}
+        }
+      `;
+        const { tree, context } = testAnalysisContextFor(code, {
+          cppMode: false,
+        });
+        const errors = new DivisionByZeroAnalyzer(context).analyze(tree);
+
+        expect(errors).toHaveLength(1);
+        expect(errors[0].helpText).toBe(
+          "A divisor known at compile time must not be zero",
+        );
+      },
+    );
+
+    it("suggests safe_div for a runtime division in a function", () => {
+      const code = `
+        void main() {
+          u32 x <- 10 / (2 - 2);
+        }
+      `;
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
+      const errors = new DivisionByZeroAnalyzer(context).analyze(tree);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].helpText).toContain("safe_div");
+    });
+
+    it("says the divisor must not be zero in an array dimension", () => {
+      const code = `
+        u8[4 / (2 - 2)] g;
+        void main() {}
+      `;
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
+      const errors = new DivisionByZeroAnalyzer(context).analyze(tree);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].helpText).toBe(
+        "A divisor known at compile time must not be zero",
+      );
+    });
+  });
+
+  // A literal is zero by its value, whatever its spelling (#1664 box 7)
+  describe("literal spellings", () => {
+    it.each([
+      ["0x00", 1],
+      ["0x00u8", 1],
+      ["0b000i16", 1],
+      ["0.0", 1],
+      ["0.0f32", 1],
+      ["0.0e5", 1],
+      ["0e0", 1],
+      ["0x10", 0],
+      ["0.5f64", 0],
+    ])("k / %s reports %i error(s)", (literal, count) => {
+      const code = `
+        void main() {
+          f64 k <- 1.0;
+          f64 x <- k / ${literal};
+        }
+      `;
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
+      const errors = new DivisionByZeroAnalyzer(context).analyze(tree);
+
+      expect(errors).toHaveLength(count);
     });
   });
 });

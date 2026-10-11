@@ -1,0 +1,13 @@
+// test-error
+// test-adr: 051
+// #1863 review: a computed zero divisor in an array dimension reached
+// render's internal invariant, and was E0909 while E0800 saw only a literal
+// or a const name. Since #1268 the divisor goes through the one evaluator, so
+// it is ADR-051's E0800 at the divisor.
+//
+// NEGATIVE CONTROL: `ok`, whose divisor computes to a nonzero value.
+
+u8[4 / (2 - 2)] g;
+u8[4 / (3 - 2)] ok;
+
+void main() {}

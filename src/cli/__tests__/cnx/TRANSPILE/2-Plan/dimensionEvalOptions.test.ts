@@ -102,11 +102,13 @@ describe("dimensionEvalOptions", () => {
     // the difference was inert -- the latent divergence this helper exists to
     // prevent. It was removed rather than propagated. #1175: the evaluator
     // asks what a name is worth where it is written, and the printer how C
-    // spells a type there (#1863 review), both of the program.
+    // spells a type there (#1863 review), and whether a cast's type is one
+    // there (#1268 review), all of the program.
     const { state } = setUp(SHADOWED);
     expect(Object.keys(dimensionEvalOptions(state))).toEqual([
       "valueOf",
       "cTypeName",
+      "isTypeName",
     ]);
   });
 });

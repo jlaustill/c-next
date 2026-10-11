@@ -1,0 +1,15 @@
+// test-error
+// test-adr: 024
+// #1268 review: a shift amount may be a float cast to an integer type, which
+// truncates (ADR-024): `(u32)40.5` is 40, past u32's width (E0873). Main
+// accepted it and shifted a u32 by 40.
+
+u32 sink;
+
+void shifts(u32 n) {
+    // NEGATIVE CONTROL -- `(u32)31.5` is 31, the last legal amount.
+    sink <- n << (u32)31.5;
+    sink <- n << (u32)40.5;
+}
+
+void main() {}

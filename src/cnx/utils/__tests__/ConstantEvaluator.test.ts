@@ -39,11 +39,13 @@ function env(table: Record<string, TConstResult>): IConstantEnvironment {
         spelling: n.path.join("."),
         at: n.at,
       },
+    isTypeName: () => true,
     cTypeName: (t) => t,
   };
 }
 const NONE = env({});
 const U8_200: TConstResult = { kind: "value", value: 200n, typeName: "u8" };
+const FLT_MAX = 3.4028234663852886e38;
 
 function valueOf(expr: TConstExpr, e = NONE): bigint | string {
   const result = ConstantEvaluator.evaluate(expr, e);
@@ -357,5 +359,245 @@ describe("ConstantEvaluator", () => {
     ])("%s", (value, expected) => {
       expect(ConstantEvaluator.toNumber(value)).toBe(expected);
     });
+  });
+
+  // #1268 review: one zero test for an integer and a float divisor (ADR-051 §4)
+  describe("numberValue: an integer or float constant expression's value", () => {
+    const at = AT;
+    const float = (spelling: string): TConstExpr => ({
+      kind: "other",
+      what: "float",
+      spelling,
+      at,
+    });
+    const F32_TINY = Math.fround(1e-30);
+    const F64_TINY = 1e-30;
+    const number = (expr: TConstExpr, e = NONE): number | null =>
+      ConstantEvaluator.numberValue(expr, e);
+    const f32 = (value: number): TConstResult => ({
+      kind: "float",
+      value: Math.fround(value),
+      typeName: "f32",
+      spelling: "F",
+      at,
+    });
+
+    it.each([
+      ["an integer the fold answers", bin("-", lit("2"), lit("2")), 0],
+      ["a float literal", float("0.0"), 0],
+      ["a suffixed float literal", float("0.5f32"), 0.5],
+      ["a negated float", un("-", float("1.5")), -1.5],
+      ["a float cast of an integer", cast("f32", lit("0")), 0],
+      ["a cast to f32 rounds", cast("f32", float("0.1")), Math.fround(0.1)],
+      ["a sum", bin("+", float("0.5"), float("0.25")), 0.75],
+      ["a difference", bin("-", float("1.0"), float("1.0")), 0],
+      ["a product", bin("*", float("2.0"), float("0.5")), 1],
+      ["a quotient", bin("/", float("1.0"), float("4.0")), 0.25],
+      // C computes f32 op f32 in float (FLT_EVAL_METHOD 0): each is 0.0f
+      [
+        "f32 arithmetic rounds at f32",
+        bin("-", bin("+", float("0.1f32"), float("0.2f32")), float("0.3f32")),
+        0,
+      ],
+      [
+        "f32 arithmetic flushes to zero at f32",
+        bin("*", float("1e-30f32"), float("1e-30f32")),
+        0,
+      ],
+      [
+        "an f64 operand widens the operation",
+        bin("*", float("1e-30f32"), float("1e-30")),
+        F32_TINY * F64_TINY,
+      ],
+      [
+        "an integer operand converts to the float's type",
+        bin("+", lit("1"), float("0.1f32")),
+        Math.fround(1 + Math.fround(0.1)),
+      ],
+      // C converts to f32 once; through double it would round twice
+      [
+        "an integer past 2^53 converts to f32 once",
+        bin(
+          "-",
+          cast("f32", lit("1152921573326323713", "u64")),
+          cast("f32", lit("1152921504606846976", "u64")),
+        ),
+        2 ** 37,
+      ],
+      [
+        "an integer past 2^53 beside an f32 operand converts once",
+        bin(
+          "-",
+          lit("1152921573326323713", "u64"),
+          float("1152921504606846976.0f32"),
+        ),
+        2 ** 37,
+      ],
+      [
+        "a negative integer past 2^53 converts to f32 once",
+        cast("f32", un("-", lit("1152921573326323713", "i64"))),
+        -(2 ** 60 + 2 ** 37),
+      ],
+      [
+        "an integer past 2^53 an f32 holds exactly",
+        cast("f32", lit("1152921504606846976", "u64")),
+        2 ** 60,
+      ],
+      [
+        "an f32 literal just above a midpoint rounds up",
+        bin("-", float("1.00000005960464477550f32"), float("1.0f32")),
+        2 ** -23,
+      ],
+      [
+        "an f32 literal on a midpoint rounds to even",
+        float("1.000000059604644775390625f32"),
+        1,
+      ],
+      [
+        "an f32 literal just below a midpoint that ties up rounds down",
+        float("1.00000017881393432617187499f32"),
+        1 + 2 ** -23,
+      ],
+      [
+        "an f32 literal just below the midpoint past FLT_MAX is FLT_MAX",
+        float("340282356779733651637539395458142568448.0f32"),
+        FLT_MAX,
+      ],
+      [
+        "an f32 literal on the midpoint below the smallest subnormal is zero",
+        float(
+          "7.00649232162408535461864791644958065640130970938257885878534141944895541342930300743319094181060791015625e-46f32",
+        ),
+        0,
+      ],
+      [
+        "an f32 literal just above that midpoint is the smallest subnormal",
+        float(
+          "7.006492321624085354618647916449580656401309709382578858785341419448955413429303007433190941810607910156251e-46f32",
+        ),
+        2 ** -149,
+      ],
+      [
+        "an f32 literal just below that midpoint is zero",
+        float(
+          "7.00649232162408535461864791644958065640130970938257885878534141944895541342930300743319094181060791015624e-46f32",
+        ),
+        0,
+      ],
+      [
+        "an f32 literal on the midpoint past FLT_MAX is infinity",
+        float("340282356779733661637539395458142568448.0f32"),
+        Infinity,
+      ],
+      [
+        "an f32 literal just below a midpoint rounds down",
+        float("1.0000000596046447753906249999f32"),
+        1,
+      ],
+      [
+        "an f32 literal with an exponent, on a midpoint",
+        float("1000000059604644775390625e-24f32"),
+        1,
+      ],
+      [
+        "an f32 literal with an exponent, above a midpoint",
+        float("100000005960464477550e-20f32"),
+        1 + 2 ** -23,
+      ],
+      [
+        "an f32 literal just below a midpoint, under 1",
+        float("0.50000002980232238769531249f32"),
+        0.5,
+      ],
+      // ADR-024: a float cast to an integer type saturates, else truncates
+      ["(u32)0.5 truncates", cast("u32", float("0.5")), 0],
+      ["(u32)1.5 truncates", cast("u32", float("1.5")), 1],
+      ["(u32)-0.5 is below the minimum", cast("u32", un("-", float("0.5"))), 0],
+      ["(u8)300.0 is past the maximum", cast("u8", float("300.0")), 255],
+      [
+        "(u32)4294967296.0f32 is UINT32_MAX as f32 holds it, so the maximum",
+        cast("u32", float("4294967296.0f32")),
+        4294967295,
+      ],
+      [
+        "(i8)-200.0 is below the minimum",
+        cast("i8", un("-", float("200.0"))),
+        -128,
+      ],
+      ["(i8)-1.5 truncates toward zero", cast("i8", un("-", float("1.5"))), -1],
+      ["(bool)0.5 is true", cast("bool", float("0.5")), 1],
+      ["!0.0 is true", un("!", float("0.0")), 1],
+      ["a float comparison", bin("<", float("0.5"), lit("1")), 1],
+      ["a float equality", bin("=", float("0.5"), float("0.25")), 0],
+      [
+        "a float condition",
+        {
+          kind: "ternary",
+          condition: float("0.0"),
+          whenTrue: lit("1"),
+          whenFalse: lit("0"),
+        } as TConstExpr,
+        0,
+      ],
+      [
+        "a float operand of a logical operator",
+        bin("&&", float("0.5"), lit("1")),
+        1,
+      ],
+      [
+        "the ternary branch its condition picks",
+        {
+          kind: "ternary",
+          condition: bin("=", lit("1"), lit("1")),
+          whenTrue: float("0.0"),
+          whenFalse: float("1.0"),
+        } as TConstExpr,
+        0,
+      ],
+    ])("%s", (_label, expr, expected) => {
+      expect(number(expr)).toBe(expected);
+    });
+
+    it.each([
+      ["a float quotient by zero", bin("/", float("1.0"), float("0.0"))],
+      ["a complement of a float", un("~", float("0.0"))],
+      [
+        "a float operator with no float meaning",
+        bin("%", float("1.0"), float("2.0")),
+      ],
+      [
+        "a string",
+        { kind: "other", what: "string", spelling: '"0"', at } as TConstExpr,
+      ],
+      ["a name nothing answers", name("F")],
+    ])("%s has no value", (_label, expr) => {
+      expect(number(expr)).toBeNull();
+    });
+
+    it("a float const is worth its settled value", () => {
+      const named = env({ F: f32(0.5) });
+      expect(number(bin("-", name("F"), float("0.5f32")), named)).toBe(0);
+    });
+
+    it("an integer constant has no float in it", () => {
+      expect(valueOf(bin("+", lit("1"), float("0.5")))).toBe("notConstant");
+      expect(valueOf(cast("u32", float("1.5")))).toBe(1n);
+    });
+  });
+});
+
+// #1268 review: a cast to a type nothing declares is the undefined type's
+// error (E0426), so it has no value; a primitive is always declared
+describe("a cast to an undeclared type", () => {
+  const undeclared: IConstantEnvironment = { ...NONE, isTypeName: () => false };
+  it("has no value", () => {
+    expect(
+      ConstantEvaluator.numberValue(cast("Nope", lit("0")), undeclared),
+    ).toBeNull();
+  });
+  it("is not asked of a primitive", () => {
+    expect(
+      ConstantEvaluator.numberValue(cast("u32", lit("0")), undeclared),
+    ).toBe(0);
   });
 });

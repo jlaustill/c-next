@@ -172,8 +172,13 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
-9 linked fixtures with no derivable context:
+14 linked fixtures with no derivable context:
 
+- `bugs/issue-1268-qualified-zero-const/float-cast-bit-width.test.cnx`
+- `bugs/issue-1268-qualified-zero-const/float-cast-const-dimension.test.cnx`
+- `bugs/issue-1268-qualified-zero-const/float-cast-dimension.test.cnx`
+- `bugs/issue-1268-qualified-zero-const/float-cast-enum.test.cnx`
+- `bugs/issue-1268-qualified-zero-const/float-cast-imported.test.cnx`
 - `bugs/issue-1668-c-integers/subscript-cpp.test.cnx`
 - `bugs/issue-1668-c-integers/subscript.test.cnx`
 - `bugs/issue-1668-c-integers/unknown-width.test.cnx`
@@ -362,6 +367,10 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
+
+1 linked fixture with no derivable context:
+
+- `bugs/issue-1175-constant-dimensions/enum-zero-divisor.test.cnx`
 
 ## ADR-057
 

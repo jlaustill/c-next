@@ -233,6 +233,13 @@ function runAnalyzers(
       run: () => new StructFieldAnalyzer().analyze(tree),
     },
     {
+      // ADR-051: a compile-time zero divisor is E0800/E0802 wherever it is
+      // written, so before the enum values and the array dimensions that
+      // would each report it as a value with no size (E0909, #1268 review)
+      label: "division by zero (ADR-051: compile-time detection)",
+      run: () => new DivisionByZeroAnalyzer(context).analyze(tree),
+    },
+    {
       // #1531: before anything reads a bitmap's fields or an enum's values.
       // A declaration whose own shape is wrong is the cause; a later step
       // reading it would report a consequence.
@@ -267,15 +274,11 @@ function runAnalyzers(
       run: () => new NullCheckAnalyzer().analyze(tree, parsed.program),
     },
     {
-      label: "division by zero (ADR-051: compile-time detection)",
-      run: () => new DivisionByZeroAnalyzer(context).analyze(tree),
-    },
-    {
       // #1175: before anything that reads a dimension's size -- a slice's
       // bounds (E0858), a count against it, a value's width -- since one with
       // no size is the cause, and those would report a consequence (#1863
       // review). After E0427 and E0800, which own an undeclared bare name and
-      // a literal or const divisor of zero.
+      // a divisor that is a compile-time zero.
       label:
         "constant array dimensions (ADR-023 no VLAs, ADR-044, E0909/E0910)",
       run: () => new ConstantDimensionAnalyzer(context).analyze(tree),

@@ -1,0 +1,28 @@
+// test-adr: 051
+// test-error
+// #1268 review: a divisor cast to a type the analysis knows is a number, so a
+// cast that folds to zero is E0800 (ADR-051 §1) -- a C header's type, an enum
+// member, a comparison. Main accepted each and emitted `n / 0`.
+// unknown-type-cast-divisor.test.cnx holds the cast to an undeclared type.
+//
+// NEGATIVE CONTROLS: `(uint32_t)1`, `(u32)Mode.ON` and `(u32)(1 < 2)`, each 1.
+
+#include <stdint.h>
+
+enum Mode {
+    OFF,
+    ON
+}
+
+u32 sink;
+
+void divides(u32 n) {
+    sink <- n / (uint32_t)0;
+    sink <- n / (u32)Mode.OFF;
+    sink <- n / (u32)(1 < 0);
+    sink <- n / (uint32_t)1;
+    sink <- n / (u32)Mode.ON;
+    sink <- n / (u32)(1 < 2);
+}
+
+void main() {}

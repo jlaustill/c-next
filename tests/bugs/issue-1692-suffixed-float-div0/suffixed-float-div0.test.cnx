@@ -1,0 +1,28 @@
+// test-adr: 051
+// test-error
+// #1692: a type-suffixed float zero divisor is a compile-time zero, as an
+// unsuffixed one is (ADR-051 sections 1 and 4). At f8651d55d each row exited
+// 0 and emitted a float division by zero. So did the negated integer zero.
+//
+// NEGATIVE CONTROLS: k / 2.0f32 and k / 1e0f64 are nonzero and stay silent.
+
+const f32 ZF <- 0.0f32;
+
+f32 single(f32 k) {
+    f32 a <- k / 0.0f32;
+    f32 b <- k / ZF;
+    f32 c <- k / 2.0f32;
+    return a + b + c;
+}
+
+f64 wide(f64 k) {
+    f64 a <- k / 0.0f64;
+    f64 b <- k / 0e0f64;
+    f64 c <- k / 1e0f64;
+    return a + b + c;
+}
+
+i32 negated(i32 k) {
+    i32 x <- k / -0;
+    return x;
+}

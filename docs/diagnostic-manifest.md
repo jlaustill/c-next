@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-531 fixture(s) assert a diagnostic; 521 carry a code.
+545 fixture(s) assert a diagnostic; 535 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -284,7 +284,9 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1175-constant-dimensions/cross-file-variable-direct.test.cnx                    | E0909               |
 | tests/bugs/issue-1175-constant-dimensions/cross-file-variable-transitive.test.cnx                | E0909               |
 | tests/bugs/issue-1175-constant-dimensions/dimension-missing-member.test.cnx                      | E0909               |
+| tests/bugs/issue-1175-constant-dimensions/dimension-zero-divisor.test.cnx                        | E0800               |
 | tests/bugs/issue-1175-constant-dimensions/enum-missing-member.test.cnx                           | E0909               |
+| tests/bugs/issue-1175-constant-dimensions/enum-zero-divisor.test.cnx                             | E0800               |
 | tests/bugs/issue-1175-constant-dimensions/foreign-condition.test.cnx                             | E0909               |
 | tests/bugs/issue-1175-constant-dimensions/overflow-dimension.test.cnx                            | E0910               |
 | tests/bugs/issue-1175-constant-dimensions/property-bounds.test.cnx                               | E0854               |
@@ -320,6 +322,16 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1220-analyzer-cross-file-symbols/signed-shift-imported-direct.test.cnx          | E0805               |
 | tests/bugs/issue-1220-analyzer-cross-file-symbols/signed-shift-imported-transitive.test.cnx      | E0805               |
 | tests/bugs/issue-1220-analyzer-cross-file-symbols/signed-shift-same-file.test.cnx                | E0805               |
+| tests/bugs/issue-1268-qualified-zero-const/float-cast-index.test.cnx                             | E0854               |
+| tests/bugs/issue-1268-qualified-zero-const/float-cast-shift.test.cnx                             | E0873               |
+| tests/bugs/issue-1268-qualified-zero-const/float-to-integer-cast.test.cnx                        | E0800, E0802        |
+| tests/bugs/issue-1268-qualified-zero-const/float-zero-forms.test.cnx                             | E0800               |
+| tests/bugs/issue-1268-qualified-zero-const/length-property-divisor-imported.test.cnx             | E0800               |
+| tests/bugs/issue-1268-qualified-zero-const/length-property-divisor.test.cnx                      | E0800               |
+| tests/bugs/issue-1268-qualified-zero-const/qualified-zero-const-imported.test.cnx                | E0800, E0802        |
+| tests/bugs/issue-1268-qualified-zero-const/qualified-zero-const.test.cnx                         | E0800, E0802        |
+| tests/bugs/issue-1268-qualified-zero-const/typed-cast-divisor.test.cnx                           | E0800               |
+| tests/bugs/issue-1268-qualified-zero-const/unknown-type-cast-divisor.test.cnx                    | E0426               |
 | tests/bugs/issue-1283-adr029-init-at-declaration/callback-array-read-before-assign.test.cnx      | E0381               |
 | tests/bugs/issue-1283-adr029-init-at-declaration/callback-read-before-assign.test.cnx            | E0381               |
 | tests/bugs/issue-1283-adr029-init-at-declaration/int16-macro-dimension.test.cnx                  | E0359               |
@@ -421,6 +433,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1688-float-macro/float-macro-error.test.cnx                                     | E0810               |
 | tests/bugs/issue-1688-float-macro/system-macro-error.test.cnx                                    | E0810               |
 | tests/bugs/issue-1688-float-macro/unreadable-macro-error.test.cnx                                | E0810, E0811, E0812 |
+| tests/bugs/issue-1692-suffixed-float-div0/suffixed-float-div0.test.cnx                           | E0800               |
 | tests/bugs/issue-1694-e0850-scoped-name/signed-then-loop.test.cnx                                | E0850               |
 | tests/bugs/issue-1698-bare-scope-call/mix-error.test.cnx                                         | E0810               |
 | tests/bugs/issue-1698-bare-scope-call/narrow-error.test.cnx                                      | E0869               |
@@ -452,6 +465,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1866-scope-member-is-not-external/included-member-from-other-scope.test.cnx     | E0422               |
 | tests/bugs/issue-1866-scope-member-is-not-external/later-member-bare-call.test.cnx               | E0422               |
 | tests/bugs/issue-1874-dimension-range/dimension-range.test.cnx                                   | E0913               |
+| tests/bugs/issue-1879-constant-expression-div0/div-constant-expression.test.cnx                  | E0800               |
 | tests/bugs/issue-1963-define-before-use/global-and-local.test.cnx                                | E0426               |
 | tests/bugs/issue-1963-define-before-use/struct-field.test.cnx                                    | E0426               |
 | tests/bugs/issue-1977-struct-to-c-byte-pointer/struct-to-c-byte-pointer-error.test.cnx           | E0895, E0896        |

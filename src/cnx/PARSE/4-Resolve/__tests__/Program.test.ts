@@ -336,6 +336,25 @@ describe("Program", () => {
   });
 
   describe("constant values", () => {
+    // #1268 review: a float const has a value, so it costs no second round
+    it("settles a float const beside a const-sized dimension in one round", () => {
+      const attempts = vi.spyOn(ConstantFold, "constValue");
+      try {
+        Program.build(
+          [
+            declare(
+              "const u32 N <- 4;\nconst f32 F <- 1.5;\nu8[N] a;",
+              "lib.cnx",
+            ),
+          ],
+          { cppMode: false },
+        );
+        expect(attempts.mock.calls).toHaveLength(2);
+      } finally {
+        attempts.mockRestore();
+      }
+    });
+
     it("reads a const declared in another file", () => {
       // #1220: the case where a per-file answer was wrong. `SIZE` is declared
       // in one file and asked about from another.
@@ -1042,6 +1061,7 @@ scope Gauge {
         "headerMacrosUnread",
         "isOpaqueType",
         "isScopeTypeVisibleFrom",
+        "isTypeNameAt",
         "knownEnums",
         "lexicalDeclarationAt",
         "lexicalFrameAt",

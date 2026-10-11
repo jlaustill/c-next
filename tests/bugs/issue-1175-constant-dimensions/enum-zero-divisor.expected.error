@@ -1,0 +1,2 @@
+9:13 error[E0800]: Division by zero
+       help: A divisor known at compile time must not be zero

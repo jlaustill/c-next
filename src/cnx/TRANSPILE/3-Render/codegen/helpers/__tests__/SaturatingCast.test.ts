@@ -17,3 +17,19 @@ describe("SaturatingCast.floatCType", () => {
     );
   });
 });
+
+// #1268 review: which side of each bound saturates is SaturationRule's, the
+// rule the compile-time fold applies too
+describe("SaturatingCast.expression", () => {
+  it("saturates at or past the maximum and below the minimum", () => {
+    const c = SaturatingCast.expression(
+      "x",
+      "f32",
+      "u32",
+      "uint32_t",
+      (t, e) => `(${t})${e}`,
+    );
+    expect(c).toMatch(/^\(\(x\) >= \(\(float\)UINT32_MAX\) \? /);
+    expect(c).toContain(" : (x) < 0.0f ? ");
+  });
+});

@@ -54,9 +54,10 @@ class ConstantDiagnostics {
         targetSize: `'${result.spelling}' is decided by the target`,
       }[result.why];
     }
-    // A bare name nothing declares is E0427's. A member a scope or an enum does
-    // not have, and a divisor that is zero only once computed, are reported by
-    // nothing else (#1863 review), so E0909 says them
+    // A bare name nothing declares is E0427's, and a compile-time zero
+    // divisor E0800's, which run first (#1268 review). A member a scope or an
+    // enum does not have is reported by nothing else (#1863 review), so E0909
+    // says it
     if (result.reason === "unknown") return null;
     const subject = result.spelling === "" ? "it" : `'${result.spelling}'`;
     if (result.reason === "unfolded" && result.because) {
@@ -67,7 +68,7 @@ class ConstantDiagnostics {
 
   /** Why a const's own initializer has no value, said at a use of the const */
   private static cause(
-    because: Exclude<TConstResult, { readonly kind: "value" }>,
+    because: Exclude<TConstResult, { readonly kind: "value" | "float" }>,
   ): string {
     if (because.kind === "overflow") {
       return `its initializer overflows ${because.typeName} (ADR-044)`;

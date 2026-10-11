@@ -1,0 +1,47 @@
+// test-adr: 051
+// test-error
+// E0800/E0802: a const zero divisor written as this.NAME, global.NAME or
+// Scope.NAME is the same divisor as the bare name. Each qualified spelling
+// binds to the declaration ADR-057 names, so a nonzero const of the same name
+// in the other scope must stay silent.
+
+const u32 OUTER_ZERO <- 0;
+const u32 SHADOWED <- 7;
+
+scope Widget {
+    const u32 ZERO <- 0;
+    const u32 ONE <- 1;
+    const u32 SHADOWED <- 0;
+    const f32 FLOAT_ZERO <- 0.0;
+    public const u32 SHARED_ZERO <- 0;
+
+    u32 memberDivide <- 10 / this.ZERO;
+    u32 memberModulo <- 10 % this.ZERO;
+
+    public u32 viaThis(u32 n) {
+        u32 divided <- n / this.ZERO;
+        u32 remainder <- n % this.ZERO;
+        u32 control <- n / this.ONE;
+        return divided + remainder + control;
+    }
+
+    public u32 viaGlobal(u32 n) {
+        u32 divided <- n / global.OUTER_ZERO;
+        u32 remainder <- n % global.OUTER_ZERO;
+        u32 control <- n / global.SHADOWED;
+        u32 shadow <- n / this.SHADOWED;
+        return divided + remainder + control + shadow;
+    }
+
+    public f32 viaThisFloat(f32 k) {
+        f32 divided <- k / this.FLOAT_ZERO;
+        return divided;
+    }
+}
+
+u32 viaScopeName(u32 n) {
+    u32 divided <- n / global.Widget.SHARED_ZERO;
+    u32 remainder <- n % global.Widget.SHARED_ZERO;
+    u32 bare <- n / Widget.SHARED_ZERO;
+    return divided + remainder + bare;
+}

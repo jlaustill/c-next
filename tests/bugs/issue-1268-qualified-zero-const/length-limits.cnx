@@ -1,0 +1,6 @@
+// Arrays whose length properties another file divides by (#1268 review)
+u8[4] SHARED;
+
+scope Lim {
+    public u8[4] buf;
+}

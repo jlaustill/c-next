@@ -1,0 +1,19 @@
+// test-error
+// test-adr: 051
+// test-adr: 058
+// Tests: #1268 review - a length property is known at compile time, so a
+// divisor built from one that is zero is a division by zero, written inline
+// or through a const. The last divisor is 1 and must stay error-free.
+
+u8[4] arr;
+
+u32 divide(u32 n) {
+    u32 x <- 1;
+    u32 a <- n / (arr.element_count - 4);
+    u32 b <- n / (arr.byte_length - 4);
+    u32 c <- n / (x.byte_length - 4);
+    const u32 K <- x.byte_length;
+    u32 d <- n / (K - 4);
+    u32 e <- n / (arr.element_count - 3);
+    return a + b + c + d + e + x;
+}

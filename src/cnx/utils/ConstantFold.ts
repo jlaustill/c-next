@@ -36,7 +36,24 @@ class ConstantFold {
       valueOf: (name) => program.constantValueOf(sourceFile, name),
       cTypeName: (typeName, at) =>
         program.cTypeNameAt(sourceFile, typeName, at),
+      isTypeName: (typeName, at) =>
+        program.isTypeNameAt(sourceFile, typeName, at),
     };
+  }
+
+  /**
+   * A constant expression's value as a number, integer or float, where it is
+   * written in `sourceFile` (`ConstantEvaluator.numberValue`)
+   */
+  static numberValue(
+    program: IProgram,
+    sourceFile: string,
+    expr: TConstExpr,
+  ): number | null {
+    return ConstantEvaluator.numberValue(
+      expr,
+      ConstantFold.environment(program, sourceFile),
+    );
   }
 
   /**
@@ -73,7 +90,9 @@ class ConstantFold {
    * file-scope, scope and local const alike. Evaluated at the declared type,
    * which is the initializer's context (ADR-044 "Integer Literals"), and a
    * value only when that type holds it: `const u8 B <- 300` overflows u8.
-   * Null for a const that is not an integer, which has no value here.
+   * A float const is its initializer's value converted to the declared type,
+   * as C initializes it (#1268 review). Null for a const that is neither,
+   * which has no value here.
    */
   static constValue(
     expr: TConstExpr,
@@ -81,6 +100,13 @@ class ConstantFold {
     type: TType,
   ): TSettledConst | null {
     const typeName = ConstantFold.typeNameOf(type);
+    if (typeName !== null && TypeCheckUtils.isFloat(typeName)) {
+      return ConstantFold.floatConst(
+        expr,
+        env,
+        typeName === "f32" ? "f32" : "f64",
+      );
+    }
     if (typeName === null || !TypeCheckUtils.isInteger(typeName)) return null;
     const result = ConstantEvaluator.evaluate(expr, env, typeName);
     if (result.kind !== "value") return result;
@@ -89,6 +115,22 @@ class ConstantFold {
       return { kind: "overflow", typeName };
     }
     return { kind: "value", digits: result.value.toString(), typeName };
+  }
+
+  private static floatConst(
+    expr: TConstExpr,
+    env: IConstantEnvironment,
+    typeName: "f32" | "f64",
+  ): TSettledConst {
+    const result = ConstantEvaluator.fold(expr, env, typeName);
+    if (result.kind !== "value" && result.kind !== "float") return result;
+    const value =
+      result.kind === "value"
+        ? ConstantEvaluator.integerAsFloat(result.value, typeName)
+        : ConstantEvaluator.heldFloat(result.value, typeName);
+    // `String(-0)` is "0"; the sign is the value's
+    const digits = Object.is(value, -0) ? "-0" : String(value);
+    return { kind: "float", digits, typeName };
   }
 
   /** A declared type's C-Next name, for the range a folded value must fit */
