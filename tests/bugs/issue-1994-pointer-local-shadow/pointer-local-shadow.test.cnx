@@ -1,0 +1,29 @@
+// test-execution
+// #1994: a local held through a pointer (a C function's `T*` result stored
+// in a declared `T`, #895) that shadows a file-scope name moves to
+// `<function>__<name>` (ADR-057). Its member read took `.` on the pointer
+// while the write on the line above took `->`: the read decided "is this
+// the chain's root" by comparing the C name with the name as written.
+#include "full.h"
+
+Full held <- { x: 100, y: 200 };
+
+i32 readThrough() {
+    Full held <- full_get();
+    held.x <- 4;
+    return held.y;
+}
+
+u32 main() {
+    i32 r <- readThrough();
+    if (r != 2) {
+        return 1;
+    }
+    if (the_full.x != 4) {
+        return 2;
+    }
+    if (held.x != 100) {
+        return 3;
+    }
+    return 0;
+}

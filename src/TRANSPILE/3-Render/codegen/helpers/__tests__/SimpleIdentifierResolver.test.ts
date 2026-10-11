@@ -10,8 +10,8 @@ describe("SimpleIdentifierResolver", () => {
   const createMockDeps = (
     overrides: Partial<ISimpleIdentifierDeps> = {},
   ): ISimpleIdentifierDeps => ({
-    getParameterInfo: vi.fn(() => undefined),
-    resolveParameter: vi.fn((name) => name),
+    getParameter: vi.fn(() => undefined),
+    resolveParameter: vi.fn((parameter) => parameter.emittedName),
     resolveBareIdentifier: vi.fn(() => null),
     ...overrides,
   });
@@ -23,7 +23,7 @@ describe("SimpleIdentifierResolver", () => {
       const result = SimpleIdentifierResolver.resolve("myVar", deps, AT);
 
       expect(result).toBe("myVar");
-      expect(deps.getParameterInfo).toHaveBeenCalledWith("myVar", AT);
+      expect(deps.getParameter).toHaveBeenCalledWith("myVar", AT);
       expect(deps.resolveBareIdentifier).toHaveBeenCalledWith("myVar", AT);
     });
 
@@ -38,18 +38,20 @@ describe("SimpleIdentifierResolver", () => {
         isString: false,
       };
       const deps = createMockDeps({
-        getParameterInfo: vi.fn(() => paramInfo),
+        getParameter: vi.fn(() => ({
+          info: paramInfo,
+          emittedName: paramInfo.name,
+        })),
         resolveParameter: vi.fn(() => "(*count)"),
       });
 
       const result = SimpleIdentifierResolver.resolve("count", deps, AT);
 
       expect(result).toBe("(*count)");
-      expect(deps.resolveParameter).toHaveBeenCalledWith(
-        "count",
-        paramInfo,
-        AT,
-      );
+      expect(deps.resolveParameter).toHaveBeenCalledWith({
+        info: paramInfo,
+        emittedName: "count",
+      });
       // Should not call bare identifier resolution for parameters
       expect(deps.resolveBareIdentifier).not.toHaveBeenCalled();
     });
@@ -95,7 +97,10 @@ describe("SimpleIdentifierResolver", () => {
         isString: false,
       };
       const deps = createMockDeps({
-        getParameterInfo: vi.fn(() => paramInfo),
+        getParameter: vi.fn(() => ({
+          info: paramInfo,
+          emittedName: paramInfo.name,
+        })),
         resolveParameter: vi.fn(() => "(*x)"),
         resolveBareIdentifier: vi.fn(() => "Scope_x"),
       });

@@ -15,6 +15,7 @@
  */
 
 import TParameterInfo from "../../../../types/TParameterInfo";
+import type IBoundParameter from "../../../types/IBoundParameter";
 import IParameterDereferenceDeps from "../types/IParameterDereferenceDeps";
 
 /**
@@ -93,10 +94,10 @@ class ParameterDereferenceResolver {
    * @returns The resolved identifier (possibly with dereference)
    */
   static resolve(
-    id: string,
-    paramInfo: TParameterInfo,
+    parameter: IBoundParameter,
     deps: IParameterDereferenceDeps,
   ): string {
+    const { info: paramInfo, emittedName: id } = parameter;
     if (ParameterDereferenceResolver.isPassByValue(paramInfo, deps)) {
       return id;
     }

@@ -1,0 +1,130 @@
+// test-execution
+// #1290 review: ADR-006 renders each parameter kind through its own path --
+// a struct by pointer (`->`), a `string<N>` as `char*`, a bitmap by pointer,
+// a by-reference scalar as `*p` / `T&` -- and each must use the parameter's
+// moved name when it shadows a file-scope name. Passing the parameter on to
+// another function is one more path.
+struct Point {
+    i32 x;
+    i32 y;
+}
+
+bitmap8 Flags {
+    a,
+    b,
+    c,
+    d,
+    e,
+    f,
+    g,
+    h
+}
+
+Point pt <- { x: 1, y: 2 };
+Flags flags <- 0;
+string<16> label <- "global-label";
+u32 count <- 3;
+
+i32 sumPoint(Point p) {
+    return p.x + p.y;
+}
+
+u32 measure(string<16> s) {
+    return s.char_count;
+}
+
+void bump(u32 v) {
+    v <- v + 10;
+}
+
+scope S {
+    // Member write and read through the parameter; `global.pt` is the
+    // global, written and read past it
+    public i32 structCase(Point pt) {
+        pt.x <- 30;
+        global.pt.y <- 9;
+        return pt.y + global.pt.x;
+    }
+
+    // The parameter as a whole value
+    public i32 structCopy(Point pt) {
+        Point copy <- pt;
+        return copy.x;
+    }
+
+    // The parameter passed on
+    public i32 structPass(Point pt) {
+        return sumPoint(pt);
+    }
+}
+
+u32 stringPass(string<16> label) {
+    return measure(label);
+}
+
+bool readFlag(Flags flags) {
+    bool r <- flags.c;
+    return r;
+}
+
+void writeFlag(Flags flags) {
+    flags.d <- true;
+}
+
+void passOn(u32 count) {
+    bump(count);
+}
+
+u32 main() {
+    Point a <- { x: 10, y: 40 };
+    i32 r1 <- S.structCase(a);
+    if (r1 != 41) {
+        return 1;
+    }
+    if (a.x != 30) {
+        return 2;
+    }
+    if (pt.x != 1) {
+        return 3;
+    }
+    i32 r2 <- S.structCopy(a);
+    if (r2 != 30) {
+        return 4;
+    }
+    i32 r3 <- S.structPass(a);
+    if (r3 != 70) {
+        return 5;
+    }
+
+    u32 n <- stringPass("ab");
+    if (n != 2) {
+        return 6;
+    }
+
+    Flags fl <- 0;
+    fl.c <- true;
+    bool got <- readFlag(fl);
+    if (got != true) {
+        return 7;
+    }
+    writeFlag(fl);
+    if (fl.d != true) {
+        return 8;
+    }
+    if (flags.d != false) {
+        return 9;
+    }
+
+    u32 c <- 1;
+    passOn(c);
+    if (c != 11) {
+        return 10;
+    }
+    if (count != 3) {
+        return 11;
+    }
+    if (pt.y != 9) {
+        return 12;
+    }
+    return 0;
+}

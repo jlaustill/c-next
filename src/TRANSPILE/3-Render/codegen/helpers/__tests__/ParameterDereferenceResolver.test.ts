@@ -172,7 +172,10 @@ describe("ParameterDereferenceResolver", () => {
       const deps = createMockDeps();
       const param = createParamInfo({ isCallback: true });
 
-      const result = ParameterDereferenceResolver.resolve("cb", param, deps);
+      const result = ParameterDereferenceResolver.resolve(
+        { info: param, emittedName: "cb" },
+        deps,
+      );
 
       expect(result).toBe("cb");
     });
@@ -183,7 +186,10 @@ describe("ParameterDereferenceResolver", () => {
       });
       const param = createParamInfo({ baseType: "u32" });
 
-      const result = ParameterDereferenceResolver.resolve("val", param, deps);
+      const result = ParameterDereferenceResolver.resolve(
+        { info: param, emittedName: "val" },
+        deps,
+      );
 
       expect(result).toBe("(*val)");
       expect(deps.maybeDereference).toHaveBeenCalledWith("val");
@@ -196,7 +202,10 @@ describe("ParameterDereferenceResolver", () => {
       });
       const param = createParamInfo({ baseType: "u32" });
 
-      const result = ParameterDereferenceResolver.resolve("val", param, deps);
+      const result = ParameterDereferenceResolver.resolve(
+        { info: param, emittedName: "val" },
+        deps,
+      );
 
       expect(result).toBe("val");
     });
@@ -207,7 +216,10 @@ describe("ParameterDereferenceResolver", () => {
       });
       const param = createParamInfo({ baseType: "f32" });
 
-      const result = ParameterDereferenceResolver.resolve("x", param, deps);
+      const result = ParameterDereferenceResolver.resolve(
+        { info: param, emittedName: "x" },
+        deps,
+      );
 
       expect(result).toBe("x");
     });
@@ -218,7 +230,10 @@ describe("ParameterDereferenceResolver", () => {
       });
       const param = createParamInfo({ baseType: "State" });
 
-      const result = ParameterDereferenceResolver.resolve("s", param, deps);
+      const result = ParameterDereferenceResolver.resolve(
+        { info: param, emittedName: "s" },
+        deps,
+      );
 
       expect(result).toBe("s");
     });
@@ -227,7 +242,10 @@ describe("ParameterDereferenceResolver", () => {
       const deps = createMockDeps();
       const param = createParamInfo({ isStruct: true, baseType: "Point" });
 
-      const result = ParameterDereferenceResolver.resolve("p", param, deps);
+      const result = ParameterDereferenceResolver.resolve(
+        { info: param, emittedName: "p" },
+        deps,
+      );
 
       expect(result).toBe("p");
     });
@@ -236,7 +254,10 @@ describe("ParameterDereferenceResolver", () => {
       const deps = createMockDeps();
       const param = createParamInfo({ isArray: true });
 
-      const result = ParameterDereferenceResolver.resolve("arr", param, deps);
+      const result = ParameterDereferenceResolver.resolve(
+        { info: param, emittedName: "arr" },
+        deps,
+      );
 
       expect(result).toBe("arr");
     });

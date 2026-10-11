@@ -30,7 +30,9 @@ class ArgumentGenerator {
    * This is a pure function that only reads from state.
    *
    * @param id the name as written, which is how parameters are keyed
-   * @param emitted the C name the one binder gives it (#1760 review):
+   * @param emitted the C name the one binder gives it (#1760 review), a
+   *   parameter's too (#1290 review: a moved parameter passed as `id` was
+   *   the global it shadows):
    *   a shadowing local's ADR-057 name, or a scope member's qualified name.
    *   This used to be decided here from `getScopeMembers().has(id)` or the
    *   bare `id`, so a local shadowing a global or a member was passed as the
@@ -46,7 +48,7 @@ class ArgumentGenerator {
     // Parameters are already pointers (#1969: the parameter the name binds to
     // where it is passed, not a block-local that shadows it)
     if (parameter) {
-      return id;
+      return emitted;
     }
 
     // Arrays decay to pointers, local or not, strings included (#1668: the

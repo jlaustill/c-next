@@ -35,6 +35,7 @@ import CommentFormatter from "./3-Render/codegen/CommentFormatter";
 import IComment from "../types/IComment";
 import TYPE_MAP from "./3-Render/codegen/types/TYPE_MAP";
 import TParameterInfo from "../types/TParameterInfo";
+import type IBoundParameter from "./types/IBoundParameter";
 import ICodeGeneratorOptions from "./3-Render/codegen/types/ICodeGeneratorOptions";
 import TypeValidator from "./3-Render/codegen/TypeValidator";
 import IGeneratorOutput from "./3-Render/codegen/generators/IGeneratorOutput";
@@ -1060,8 +1061,13 @@ class CodeGenWalker {
     // Also skip known registers - they should be handled by the postfix chain builder
     // to enable proper register validation (requiring global. when shadowed).
     let resolvedIdentifier = identifier ?? "";
+    // The parameter a bare root binds to; a `global.`/`this.` root binds
+    // past it (ADR-057)
+    const parameter =
+      !hasGlobal && !hasThis && identifier
+        ? this.host.state.parameterBindingAt(identifier, parts.position)
+        : undefined;
     if (!hasGlobal && !hasThis && identifier) {
-      const paramInfo = this.host.state.parameterAt(identifier, parts.position);
       const isKnownRegister =
         this.host.state.symbols?.knownRegisters.has(identifier);
       // Issue #1100: Parameters with postfix ops (array/bit subscript, member
@@ -1074,10 +1080,9 @@ class CodeGenWalker {
       // access (`v[4] <- true`) now correctly dereferences to `(*v)[4]`
       // (which AssignmentContextBuilder reduces to base identifier `(*v)`)
       // instead of assigning through the raw pointer.
-      if (paramInfo) {
+      if (parameter) {
         resolvedIdentifier = ParameterDereferenceResolver.resolve(
-          this.host.state.emittedLocalNameAt(identifier, parts.position),
-          paramInfo,
+          parameter,
           this._buildParameterDereferenceDeps(),
         );
       } else if (!isKnownRegister) {
@@ -1117,10 +1122,10 @@ class CodeGenWalker {
     const operations = this._extractPostfixOperations(postfixOps);
     const postfixDeps = this._buildPostfixChainDeps(
       firstId,
+      parameter?.info,
       hasGlobal,
       hasThis,
       this.targetDeclaration(ctx).rootTypeInfo,
-      parts.position,
     );
 
     return PostfixChainBuilder.build(
@@ -4233,22 +4238,17 @@ class CodeGenWalker {
    */
   private _buildSimpleIdentifierDeps(): ISimpleIdentifierDeps {
     return {
-      getParameterInfo: (name: string, at: ISourcePosition) =>
-        this.host.state.parameterAt(name, at),
+      getParameter: (name: string, at: ISourcePosition) =>
+        this.host.state.parameterBindingAt(name, at),
       // A target with no postfix op is the parameter's whole value, written
       // as the read side reads it (#1760 second review: `p = (*q);`)
-      resolveParameter: (
-        name: string,
-        paramInfo: TParameterInfo,
-        at: ISourcePosition,
-      ) =>
+      resolveParameter: (parameter: IBoundParameter) =>
         memberAccessChain.wholeParamValue(
           ParameterDereferenceResolver.resolve(
-            this.host.state.emittedLocalNameAt(name, at),
-            paramInfo,
+            parameter,
             this._buildParameterDereferenceDeps(),
           ),
-          paramInfo,
+          parameter.info,
           this.host.state.cppMode,
         ),
       resolveBareIdentifier: (name: string, at: ISourcePosition) =>
@@ -4285,15 +4285,17 @@ class CodeGenWalker {
    */
   private _buildPostfixChainDeps(
     firstId: string,
+    rootParameter: TParameterInfo | undefined,
     hasGlobal: boolean,
     hasThis: boolean,
     rootTypeInfo: TTypeInfo | undefined,
-    at: ISourcePosition,
   ): IPostfixChainDeps {
     // How the root is held: the one answer the read path reads too (#1760
     // review: a local #895 made a pointer took `.`)
+    // #1290 review: the root's parameter is the caller's, bound by the name
+    // as written -- `firstId` is the C name, which ADR-057 may have moved
     const holding = memberAccessChain.rootHolding(
-      this.host.state.parameterAt(firstId, at),
+      rootParameter,
       rootTypeInfo,
       this.host,
     );
@@ -4593,11 +4595,10 @@ class CodeGenWalker {
     }
 
     // ADR-006: Check if it's a function parameter
-    const paramInfo = this.host.state.parameterAt(id, at);
-    if (paramInfo) {
+    const parameter = this.host.state.parameterBindingAt(id, at);
+    if (parameter) {
       return ParameterDereferenceResolver.resolve(
-        this.host.state.emittedLocalNameAt(id, at),
-        paramInfo,
+        parameter,
         this._buildParameterDereferenceDeps(),
       );
     }
