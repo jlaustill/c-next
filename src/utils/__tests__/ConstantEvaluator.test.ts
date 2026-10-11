@@ -423,6 +423,15 @@ describe("ConstantEvaluator", () => {
         2 ** 37,
       ],
       [
+        "an integer past 2^53 beside an f32 operand converts once",
+        bin(
+          "-",
+          lit("1152921573326323713", "u64"),
+          float("1152921504606846976.0f32"),
+        ),
+        2 ** 37,
+      ],
+      [
         "a negative integer past 2^53 converts to f32 once",
         cast("f32", un("-", lit("1152921573326323713", "i64"))),
         -(2 ** 60 + 2 ** 37),
