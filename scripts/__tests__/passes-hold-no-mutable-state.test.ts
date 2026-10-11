@@ -100,8 +100,8 @@ const INSTRUMENTATION_ROOT = "src/instrumentation";
 const INSTRUMENTATION_HOLDERS = [
   "src/instrumentation/AdrProvenance.ts:58",
   "src/instrumentation/AdrProvenance.ts:59",
-  "src/instrumentation/ToolchainRequirements.ts:56",
-  "src/instrumentation/ToolchainRequirements.ts:67",
+  "src/instrumentation/ToolchainRequirements.ts:61",
+  "src/instrumentation/ToolchainRequirements.ts:74",
 ];
 
 /**
