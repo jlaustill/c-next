@@ -7,10 +7,13 @@
  * carry (float asserts, IRQ wrappers) are read off the emission plan, never
  * recorded here (#1928). The file's one list is
  * `CodeGenerator.getToolchainRequirements()`, which unions the two; consumers
- * read that, and nothing re-derives it. PR #1141 failed by re-deriving --
- * its `#error` guard keyed on `usedClampOps.size > 0` while the emission it
- * described keyed on the template family, so 96 snapshots shipped a guard for a
- * builtin they did not contain. Recording at the emission site is what makes a
+ * read that, and nothing re-derives it. That Render still authors these keys
+ * at all, where §1's Ownership table gives toolchain requirements to 2.2, is
+ * tracked by #1997, not settled as the design.
+ *
+ * PR #1141 failed by re-deriving -- its `#error` guard keyed on
+ * `usedClampOps.size > 0` while the emission it described keyed on the template
+ * family, so 96 snapshots shipped a guard for a builtin they did not contain. Recording at the emission site is what makes a
  * consumer unable to disagree with what was emitted.
  *
  * ## Why this is instrumentation (#1452)

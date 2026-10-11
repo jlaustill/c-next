@@ -108,16 +108,30 @@ class EmissionPlan {
   }
 
   /**
+   * One accessor per planned block, keyed by its `IEmissionPlan` field. A
+   * block added to the plan and not listed here fails to compile, instead of
+   * rendering with its cost missing from the banner -- #1143's failure.
+   */
+  private static readonly PLANNED_BLOCKS: {
+    readonly [K in keyof IEmissionPlan as IEmissionPlan[K] extends IPlannedBlock | null
+      ? K
+      : never]: (plan: IEmissionPlan) => IPlannedBlock | null;
+  } = {
+    floatStaticAssert: (plan) => plan.floatStaticAssert,
+    irqWrappers: (plan) => plan.irqWrappers,
+  };
+
+  /**
    * The requirements the plan's blocks carry, each with the sites that asked
    * for its block. A view of decisions already in the plan, not a new one.
    */
   static requirements(plan: IEmissionPlan): readonly IRecordedRequirement[] {
-    const blocks = [plan.floatStaticAssert, plan.irqWrappers];
-    return blocks.flatMap((block) =>
-      block === null
+    return Object.values(EmissionPlan.PLANNED_BLOCKS).flatMap((blockOf) => {
+      const block = blockOf(plan);
+      return block === null
         ? []
-        : block.requirements.map((key) => ({ key, sites: block.sites })),
-    );
+        : block.requirements.map((key) => ({ key, sites: block.sites }));
+    });
   }
 
   /**

@@ -124,7 +124,8 @@ files at the root: an entry point lives inside the root it starts.
   tool and the library are separate concerns and do not share a starting point.
 - **Instrumentation** -- `instrumentation/`. Records facts about the RUN, never about the
   program: where an ADR's rule fired, which toolchain features a run's Render emitters
-  required (a 2.2 planned block's features are 2.2's decision, read off the plan, #1928). Written
+  required (a 2.2 planned block's features are 2.2's decision, read off the plan, #1928;
+  that Render still authors the rest, against the Ownership table, is tracked by #1997). Written
   from any layer, read once by the host, delivered on the run's result. It authors no fact
   the program has, so it is not a state container, and it decides nothing, so it is not a
   pass.
