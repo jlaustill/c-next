@@ -358,4 +358,66 @@ describe("ConstantEvaluator", () => {
       expect(ConstantEvaluator.toNumber(value)).toBe(expected);
     });
   });
+
+  // #1268 review: one zero test for an integer and a float divisor (ADR-051 §4)
+  describe("numberValue: an integer or float constant expression's value", () => {
+    const at = AT;
+    const float = (spelling: string): TConstExpr => ({
+      kind: "other",
+      what: "float",
+      spelling,
+      at,
+    });
+    const noNames = (): number | null => null;
+    const number = (
+      expr: TConstExpr,
+      nameValue: (n: TConstExpr) => number | null = noNames,
+    ): number | null => ConstantEvaluator.numberValue(expr, NONE, nameValue);
+
+    it.each([
+      ["an integer the fold answers", bin("-", lit("2"), lit("2")), 0],
+      ["a float literal", float("0.0"), 0],
+      ["a suffixed float literal", float("0.5f32"), 0.5],
+      ["a negated float", un("-", float("1.5")), -1.5],
+      ["a float cast of an integer", cast("f32", lit("0")), 0],
+      ["a cast to f32 rounds", cast("f32", float("0.1")), Math.fround(0.1)],
+      ["a sum", bin("+", float("0.5"), float("0.25")), 0.75],
+      ["a difference", bin("-", float("1.0"), float("1.0")), 0],
+      ["a product", bin("*", float("2.0"), float("0.5")), 1],
+      ["a quotient", bin("/", float("1.0"), float("4.0")), 0.25],
+      [
+        "the ternary branch its condition picks",
+        {
+          kind: "ternary",
+          condition: bin("=", lit("1"), lit("1")),
+          whenTrue: float("0.0"),
+          whenFalse: float("1.0"),
+        } as TConstExpr,
+        0,
+      ],
+    ])("%s", (_label, expr, expected) => {
+      expect(number(expr)).toBe(expected);
+    });
+
+    it.each([
+      ["a float quotient by zero", bin("/", float("1.0"), float("0.0"))],
+      ["an integer cast of a float", cast("u32", float("0.5"))],
+      ["a complement of a float", un("~", float("0.0"))],
+      [
+        "a float operator with no float meaning",
+        bin("%", float("1.0"), float("2.0")),
+      ],
+      [
+        "a string",
+        { kind: "other", what: "string", spelling: '"0"', at } as TConstExpr,
+      ],
+      ["a name nothing answers", name("F")],
+    ])("%s has no value", (_label, expr) => {
+      expect(number(expr)).toBeNull();
+    });
+
+    it("asks nameValue for a name the environment does not fold", () => {
+      expect(number(bin("+", name("F"), float("1.0")), () => -1)).toBe(0);
+    });
+  });
 });

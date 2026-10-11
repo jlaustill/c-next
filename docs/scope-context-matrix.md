@@ -363,6 +363,10 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
+1 linked fixture with no derivable context:
+
+- `bugs/issue-1175-constant-dimensions/enum-zero-divisor.test.cnx`
+
 ## ADR-057
 
 | Context            | same file | direct | transitive | from 1 away | thru chain |
