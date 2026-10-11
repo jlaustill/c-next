@@ -1,0 +1,12 @@
+// Helper (not a test): the struct the cross-file half of the #1411 fixture
+// resolves against. Same shape as the fixture's own struct, so the two halves
+// are the same statements on the same types, one file apart (the #1303 shape).
+//
+// Every field starts at 250, five short of UINT8_MAX: `+ 10` saturates to 255
+// under clamp and wraps to 4 under wrap, so the two can't be confused.
+
+struct ImportedReading {
+    u8 level;
+    clamp u8 explicitLevel;
+    wrap u8 checksum;
+}

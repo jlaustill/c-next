@@ -122,7 +122,7 @@ structDeclaration
     ;
 
 structMember
-    : type IDENTIFIER arrayDimension* ';'
+    : overflowModifier? type IDENTIFIER arrayDimension* ';'   // ADR-044: a field's own clamp/wrap
     ;
 
 // ----------------------------------------------------------------------------

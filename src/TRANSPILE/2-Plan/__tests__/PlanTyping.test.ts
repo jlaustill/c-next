@@ -114,7 +114,7 @@ describe("PlanTyping.overflowOf (ADR-044)", () => {
       "u32 x <- 1;\nu32 r <- x + 1;",
       "clamp",
     ],
-    ["an element is not counted", "u32 r <- arr[0] + 1;", null],
+    ["an element counts by its array (#1887)", "u32 r <- arr[0] + 1;", "clamp"],
     ["a literal is not counted", "u32 r <- 1 + 2;", null],
   ])("%s", (_why, body, expected) => {
     expect(overflowOf(`${globals}void main() {\n${body}\n}`)).toBe(expected);

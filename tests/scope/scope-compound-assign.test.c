@@ -35,7 +35,7 @@ void Counter__increment(void) {
 
 void Counter__incrementArray(void) {
     Counter__values[0] = 50;
-    Counter__values[0] += 25;
+    Counter__values[0] = cnx_clamp_add_i32(Counter__values[0], 25);
 }
 
 int32_t Counter__test(void) {

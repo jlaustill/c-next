@@ -12,6 +12,7 @@ import IAssignmentContext from "./types/IAssignmentContext";
 import invariant from "../../utils/invariant";
 import SubscriptDepthValidator from "./SubscriptDepthValidator";
 import TTypeInfo from "../../types/TTypeInfo";
+import type TOverflowBehavior from "../../types/TOverflowBehavior";
 import type IChainBase from "../../types/IChainBase";
 import OperandTyper from "../../utils/OperandTyper";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
@@ -85,6 +86,14 @@ class AssignmentClassifier {
    * Classify an assignment context into an AssignmentKind.
    */
   static classify(ctx: IAssignmentContext): AssignmentKind {
+    // === Priority 0: Atomic/overflow compound assignments ===
+    // #1411/#1887: asked before any shape, because a field or an element
+    // saturates like a variable does; the shape kinds below write `+=`.
+    const specialKind = AssignmentClassifier.classifySpecialCompound(ctx);
+    if (specialKind !== null) {
+      return specialKind;
+    }
+
     // === Priority 1: Bitmap field assignments ===
     const bitmapKind = AssignmentClassifier.classifyBitmapField(ctx);
     if (bitmapKind !== null) {
@@ -108,12 +117,6 @@ class AssignmentClassifier {
     const arrayBitKind = AssignmentClassifier.classifyArrayOrBitAccess(ctx);
     if (arrayBitKind !== null) {
       return arrayBitKind;
-    }
-
-    // === Priority 5: Atomic/overflow compound assignments ===
-    const specialKind = AssignmentClassifier.classifySpecialCompound(ctx);
-    if (specialKind !== null) {
-      return specialKind;
     }
 
     // === Priority 6: String assignments ===
@@ -789,8 +792,9 @@ class AssignmentClassifier {
   }
 
   /**
-   * Classify atomic and overflow-clamped compound assignments.
-   * Handles simple identifiers, this.member, and global.member patterns.
+   * Classify atomic and overflow-clamped compound assignments. Atomics are
+   * the simple identifier and global.member patterns; a clamp is any target
+   * that writes a `clamp` integer.
    */
   private static classifySpecialCompound(
     ctx: IAssignmentContext,
@@ -799,20 +803,17 @@ class AssignmentClassifier {
       return null;
     }
 
-    const typeInfo = AssignmentClassifier.targetTypeInfo(ctx);
-    if (!typeInfo) {
-      return null;
-    }
-
     // Atomic RMW - for global atomic variables (simple identifiers or global.member)
     // Scoped atomics (this.member) use overflow behavior, not LDREX/STREX
+    const typeInfo = AssignmentClassifier.targetTypeInfo(ctx);
     const isGlobalAtomic =
-      typeInfo.isAtomic && (ctx.isSimpleIdentifier || ctx.isSimpleGlobalAccess);
+      typeInfo?.isAtomic === true &&
+      (ctx.isSimpleIdentifier || ctx.isSimpleGlobalAccess);
     if (isGlobalAtomic) {
       return AssignmentKind.ATOMIC_RMW;
     }
 
-    if (AssignmentClassifier.compoundClampOp(ctx, typeInfo) !== null) {
+    if (AssignmentClassifier.compoundClamp(ctx) !== null) {
       return AssignmentKind.OVERFLOW_CLAMP;
     }
 
@@ -833,15 +834,42 @@ class AssignmentClassifier {
    * #1668: null when the value has a floating operand. `y *<- 2.5` is
    * `y <- y * 2.5`, and routing it into `cnx_clamp_mul_u32` truncated the 2.5
    * to 2 before multiplying.
+   *
+   * `cnxType` is the type the helper saturates at: the written value's.
    */
-  static compoundClampOp(
+  static compoundClamp(
     ctx: IAssignmentContext,
-    typeInfo: TTypeInfo,
-  ): string | null {
-    if (typeInfo.overflowBehavior !== "clamp") return null;
-    if (!TypeCheckUtils.isInteger(typeInfo.baseType)) return null;
+  ): { operation: string; cnxType: string } | null {
+    const written = AssignmentClassifier.writtenValue(ctx);
+    if (written?.overflowBehavior !== "clamp") return null;
+    if (!TypeCheckUtils.isInteger(written.baseType)) return null;
     if (ctx.valueHasFloatingOperand()) return null;
-    return CLAMP_HELPER_FOR_COMPOUND[ctx.cOp] ?? null;
+    const operation = CLAMP_HELPER_FOR_COMPOUND[ctx.cOp];
+    return operation ? { operation, cnxType: written.baseType } : null;
+  }
+
+  /**
+   * What the target writes, for ADR-044: its type and declared behavior.
+   * #1411/#1887: a field (`p.x`) or an element (`levels[1]`) is written as
+   * much as a variable is, so a chain's is the typer's last step -- the
+   * field's own modifier, the element's array's. A target with no step is
+   * the variable itself.
+   */
+  private static writtenValue(
+    ctx: IAssignmentContext,
+  ): { baseType: string; overflowBehavior: TOverflowBehavior | null } | null {
+    const last = ctx.target.last;
+    if (last === undefined) {
+      const typeInfo = AssignmentClassifier.targetTypeInfo(ctx);
+      if (!typeInfo) return null;
+      return {
+        baseType: typeInfo.baseType,
+        overflowBehavior: typeInfo.overflowBehavior ?? null,
+      };
+    }
+    const after = last.after;
+    if (after?.typeName == null || after.dimensions.length > 0) return null;
+    return { baseType: after.typeName, overflowBehavior: after.overflow };
   }
 
   /**

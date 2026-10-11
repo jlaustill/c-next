@@ -1,0 +1,9 @@
+// Helper (not a test): the arrays the cross-file half of the #1887 fixture
+// resolves against (the #1303 shape).
+//
+// Every element starts at 250, five short of UINT8_MAX: `+ 10` saturates to
+// 255 under clamp and wraps to 4 under wrap, so the two can't be confused.
+
+u8[2] importedLevels <- [250, 250];
+wrap u8[2] importedWrapped <- [250, 250];
+u8[2][2] importedGrid <- [[250, 250], [250, 250]];

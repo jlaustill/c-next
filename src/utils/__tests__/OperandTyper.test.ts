@@ -409,7 +409,7 @@ void main() {
     expect(t).toMatchObject({
       typeName: "i8",
       category: "signed",
-      overflow: null,
+      overflow: "clamp",
     });
   });
 

@@ -7,6 +7,19 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT8_MAX - a)) return UINT8_MAX;
+    return (uint8_t)(a + (uint8_t)b);
+}
+
 // Helper for issue #1139 — a scope function taking a struct parameter, in a
 // file the consumer #includes.
 //
@@ -21,5 +34,5 @@ uint8_t Sensors__readValue(const Sample& sample) {
 }
 
 void Sensors__bump(Sample& sample) {
-    sample.value = sample.value + 1U;
+    sample.value = cnx_clamp_add_u8(sample.value, 1U);
 }

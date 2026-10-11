@@ -7,6 +7,19 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    return (uint32_t)(a + (uint32_t)b);
+}
+
 // The functions for `cross-file`, one include hop away. The includer builds
 // their ADR-029 typedefs from their symbols rather than from a parse tree, so
 // the parameters a call through one of them takes come from those symbols too.
@@ -15,5 +28,5 @@ uint32_t readSample(const Sample& s) {
 }
 
 void bumpSample(Sample& s) {
-    s.value = s.value + 3U;
+    s.value = cnx_clamp_add_u32(s.value, 3U);
 }

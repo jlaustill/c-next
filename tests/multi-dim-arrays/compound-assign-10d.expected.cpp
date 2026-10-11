@@ -7,6 +7,29 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    return (uint32_t)(a + (uint32_t)b);
+}
+
+static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
+    if (b != 0 && a > UINT32_MAX / b) return UINT32_MAX;
+    return (uint32_t)(a * (uint32_t)b);
+}
+
+static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)a) return 0;
+    return (uint32_t)(a - (uint32_t)b);
+}
+
 // Test: Compound assignment on 10D arrays (extreme depth test)
 // Ensures transpiler correctly handles deeply nested array indexing
 uint32_t hyper[2][2][2][2][2][2][2][2][2][2] = {};
@@ -22,9 +45,9 @@ int main(void) {
     hyper[1][0][0][1][1][0][0][1][1][0] = 0b10101010U;
     hyper[0][0][0][0][1][1][1][1][0][0] = 8U;
     hyper[1][1][1][1][0][0][0][0][1][1] = 128U;
-    hyper[0][0][0][0][0][0][0][0][0][0] += 25U;
-    hyper[1][1][1][1][1][1][1][1][1][1] -= 15U;
-    hyper[0][1][0][1][0][1][0][1][0][1] *= 7U;
+    hyper[0][0][0][0][0][0][0][0][0][0] = cnx_clamp_add_u32(hyper[0][0][0][0][0][0][0][0][0][0], 25U);
+    hyper[1][1][1][1][1][1][1][1][1][1] = cnx_clamp_sub_u32(hyper[1][1][1][1][1][1][1][1][1][1], 15U);
+    hyper[0][1][0][1][0][1][0][1][0][1] = cnx_clamp_mul_u32(hyper[0][1][0][1][0][1][0][1][0][1], 7U);
     hyper[1][0][1][0][1][0][1][0][1][0] /= 4U;
     hyper[0][0][1][1][0][0][1][1][0][0] %= 5U;
     hyper[1][1][0][0][1][1][0][0][1][1] &= 0b11001100U;

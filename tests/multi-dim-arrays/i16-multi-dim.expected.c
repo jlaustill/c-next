@@ -15,6 +15,13 @@
    the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
    uint8_t parameter would return 0 -- the opposite of saturation. */
 
+static inline int16_t cnx_clamp_add_i16(int16_t a, int32_t b) {
+    int32_t result = (int32_t)a + b;
+    if (result > INT16_MAX) return INT16_MAX;
+    if (result < INT16_MIN) return INT16_MIN;
+    return (int16_t)result;
+}
+
 static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
     int64_t result = (int64_t)a + b;
     if (result > INT32_MAX) return INT32_MAX;
@@ -203,7 +210,7 @@ int main(void) {
     }
     deltas[0][0] = -5000;
     deltas[0][1] = 3000;
-    int32_t deltaSum = deltas[0U][0U] + deltas[0U][1U];
+    int32_t deltaSum = cnx_clamp_add_i16(deltas[0U][0U], deltas[0U][1U]);
     if (deltaSum != -2000) {
         return 36U;
     }

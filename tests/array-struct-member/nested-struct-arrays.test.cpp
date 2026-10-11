@@ -7,6 +7,21 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
+    int64_t result = (int64_t)a + b;
+    if (result > INT32_MAX) return INT32_MAX;
+    if (result < INT32_MIN) return INT32_MIN;
+    return (int32_t)result;
+}
+
 // test-execution
 // Tests: Nested structs containing array members
 // Coverage: Array access through nested struct paths
@@ -75,7 +90,7 @@ int main(void) {
     if (route.segments[segIdx].points[ptIdx].x != 200) {
         return 14U;
     }
-    route.segments[0].points[0].x += 50;
+    route.segments[0].points[0].x = cnx_clamp_add_i32(route.segments[0].points[0].x, 50);
     if (route.segments[0U].points[0U].x != 150) {
         return 15U;
     }

@@ -7,6 +7,28 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
+    int64_t result = (int64_t)a + b;
+    if (result > INT32_MAX) return INT32_MAX;
+    if (result < INT32_MIN) return INT32_MIN;
+    return (int32_t)result;
+}
+
+static inline int32_t cnx_clamp_sub_i32(int32_t a, int64_t b) {
+    int64_t result = (int64_t)a - b;
+    if (result > INT32_MAX) return INT32_MAX;
+    if (result < INT32_MIN) return INT32_MIN;
+    return (int32_t)result;
+}
+
 // Regression test: Compound assignment on array-of-struct member
 // Verifies arr[i].field +<- value generates += correctly (was losing the +=)
 /* Scope: CompoundBug */
@@ -16,8 +38,8 @@ CompoundBug__Counter counters[2] = {};
 int main(void) {
     counters[0].value = 100;
     counters[1].value = 200;
-    counters[0].value += 10;
-    counters[1].value -= 50;
+    counters[0].value = cnx_clamp_add_i32(counters[0].value, 10);
+    counters[1].value = cnx_clamp_sub_i32(counters[1].value, 50);
     if (counters[0U].value != 110) {
         return 1;
     }

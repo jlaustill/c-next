@@ -7,6 +7,19 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT8_MAX - a)) return UINT8_MAX;
+    return (uint8_t)(a + (uint8_t)b);
+}
+
 // test-cpp-only
 // test-execution
 // Tests: C-Next style array parameters in C++ mode
@@ -27,7 +40,7 @@ uint8_t readSecond(const uint8_t data[4]) {
 // Test non-const and const array params together
 uint8_t sumFirstTwo(uint8_t buf[8], const uint8_t ref[4]) {
     buf[0] = ref[0U];
-    return buf[0U] + ref[1U];
+    return cnx_clamp_add_u8(buf[0U], ref[1U]);
 }
 
 int main(void) {

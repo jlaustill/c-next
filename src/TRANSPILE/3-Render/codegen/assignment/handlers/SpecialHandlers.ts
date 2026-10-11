@@ -12,6 +12,8 @@ import TAssignmentHandler from "./TAssignmentHandler";
 import TTypeInfo from "../../../../../types/TTypeInfo";
 import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
 import OverflowHelperTemplates from "../../generators/support/OverflowHelperTemplates";
+import TYPE_MAP from "../../types/TYPE_MAP";
+import invariant from "../../../../../utils/invariant";
 
 /**
  * The target's type info. Both kinds are classified only when it resolved.
@@ -38,7 +40,7 @@ function handleAtomicRMW(ctx: IAssignmentContext): string {
       ctx.cOp,
       ctx.generatedValue,
       typeInfo,
-      AssignmentClassifier.compoundClampOp(ctx, typeInfo),
+      AssignmentClassifier.compoundClamp(ctx)?.operation ?? null,
     );
 }
 
@@ -46,28 +48,33 @@ function handleAtomicRMW(ctx: IAssignmentContext): string {
  * Handle overflow-clamped compound assignment: clamp u8 saturated +<- 200
  *
  * Generates calls to cnx_clamp_add_u8, cnx_clamp_sub_u8, etc. Classified only
- * when `AssignmentClassifier.compoundClampOp` names a helper.
+ * when `AssignmentClassifier.compoundClamp` names a helper.
  */
 function handleOverflowClamp(ctx: IAssignmentContext): string {
-  const typeInfo = targetTypeInfo(ctx);
+  const clamp = AssignmentClassifier.compoundClamp(ctx);
+  invariant(clamp !== null, "OVERFLOW_CLAMP is classified only with a helper");
   const target = ctx.renderTarget();
-  const helperOp = AssignmentClassifier.compoundClampOp(ctx, typeInfo);
 
-  if (helperOp) {
-    // #1241: ADR-044's rule firing on the COMPOUND form. The expression form
-    // (`a <- a + b`) records in BinaryExprGenerator; this is the `a +<- b` path,
-    // which reaches a different decision and would otherwise leave every
-    // compound-only fixture without a derivable context. Recorded past the
-    // helper decision, so only an actually-lowered clamp claims a cell.
-    AdrProvenance.record("044", ctx.targetLine);
-    ctx.state.markClampOpUsed(helperOp, typeInfo.baseType);
-    for (const cType of OverflowHelperTemplates.cTypesOf(typeInfo.baseType)) {
-      ctx.state.emittedCTypes.add(cType);
-    }
-    return `${target} = cnx_clamp_${helperOp}_${typeInfo.baseType}(${target}, ${ctx.generatedValue});`;
+  // #1241: ADR-044's rule firing on the COMPOUND form. The expression form
+  // (`a <- a + b`) records in BinaryExprGenerator; this is the `a +<- b` path,
+  // which reaches a different decision and would otherwise leave every
+  // compound-only fixture without a derivable context.
+  AdrProvenance.record("044", ctx.targetLine);
+  ctx.state.markClampOpUsed(clamp.operation, clamp.cnxType);
+  for (const cType of OverflowHelperTemplates.cTypesOf(clamp.cnxType)) {
+    ctx.state.emittedCTypes.add(cType);
+  }
+  const helper = `cnx_clamp_${clamp.operation}_${clamp.cnxType}`;
+  if (!ctx.targetIndexHasSideEffect) {
+    return `${target} = ${helper}(${target}, ${ctx.generatedValue});`;
   }
 
-  return `${target} ${ctx.cOp} ${ctx.generatedValue};`;
+  // #1887: `arr[next()] +<- 1` calls next() once, as `+=` did. The element is
+  // reached through its address; `volatile` because it may address a volatile
+  // element, and adding a qualifier to a pointer is always valid C.
+  const cType = TYPE_MAP[clamp.cnxType] ?? clamp.cnxType;
+  const element = ctx.state.getNextTempVarName();
+  return `{ volatile ${cType}* ${element} = &${target}; *${element} = ${helper}(*${element}, ${ctx.generatedValue}); }`;
 }
 
 /**

@@ -15,6 +15,11 @@
    the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
    uint8_t parameter would return 0 -- the opposite of saturation. */
 
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    return (uint32_t)(a + (uint32_t)b);
+}
+
 static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
     if (b != 0 && a > UINT32_MAX / b) return UINT32_MAX;
     return (uint32_t)(a * (uint32_t)b);
@@ -37,7 +42,7 @@ uint32_t peek(const Point* p) {
 }
 
 void poke(Point* p) {
-    p->x = p->x + 5U;
+    p->x = cnx_clamp_add_u32(p->x, 5U);
 }
 
 uint32_t twice(uint32_t v) {
@@ -45,7 +50,7 @@ uint32_t twice(uint32_t v) {
 }
 
 Point shifted(const Point* p) {
-    Point out = { .x = p->x + 1U };
+    Point out = { .x = cnx_clamp_add_u32(p->x, 1U) };
     return out;
 }
 

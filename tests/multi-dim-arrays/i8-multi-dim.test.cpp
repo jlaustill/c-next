@@ -22,6 +22,13 @@ static inline int16_t cnx_clamp_add_i16(int16_t a, int32_t b) {
     return (int16_t)result;
 }
 
+static inline int8_t cnx_clamp_add_i8(int8_t a, int32_t b) {
+    int32_t result = (int32_t)a + b;
+    if (result > INT8_MAX) return INT8_MAX;
+    if (result < INT8_MIN) return INT8_MIN;
+    return (int8_t)result;
+}
+
 static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
     return (uint32_t)(a + (uint32_t)b);
@@ -203,7 +210,7 @@ int main(void) {
     }
     deltas[0][0] = -10;
     deltas[0][1] = 5;
-    int16_t deltaSum = deltas[0U][0U] + deltas[0U][1U];
+    int16_t deltaSum = cnx_clamp_add_i8(deltas[0U][0U], deltas[0U][1U]);
     if (deltaSum != -5) {
         return 36U;
     }
