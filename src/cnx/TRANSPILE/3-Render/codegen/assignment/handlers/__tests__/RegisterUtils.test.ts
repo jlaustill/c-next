@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import RegisterUtils from "../RegisterUtils";
 import TranspileState from "../../../../../TranspileState";
 import HandlerTestUtils from "./handlerTestUtils";
+import TestExpression from "../../../../../../types/__testUtils__/testExpression";
 
 let state = new TranspileState();
 
@@ -45,8 +46,12 @@ describe("RegisterUtils", () => {
     beforeEach(() => {
       state = new TranspileState();
       HandlerTestUtils.setupMockSymbols(state, {
-        registerBaseAddresses: new Map([["GPIO7", "0x401B8000"]]),
-        registerMemberOffsets: new Map([["GPIO7_DR", "0x00"]]),
+        registerBaseAddresses: new Map([
+          ["GPIO7", TestExpression.hex("0x401B8000")],
+        ]),
+        registerMemberOffsets: new Map([
+          ["GPIO7_DR", TestExpression.hex("0x00")],
+        ]),
       });
     });
 
@@ -62,6 +67,7 @@ describe("RegisterUtils", () => {
         undefined,
         "0xFF",
         state,
+        (expr) => expr.written,
       );
 
       expect(result.success).toBe(false);
@@ -82,6 +88,7 @@ describe("RegisterUtils", () => {
         8,
         "0xFF",
         state,
+        (expr) => expr.written,
       );
 
       expect(result.success).toBe(false);
@@ -102,6 +109,7 @@ describe("RegisterUtils", () => {
         12,
         "0xFF",
         state,
+        (expr) => expr.written,
       );
 
       expect(result.success).toBe(false);
@@ -116,7 +124,9 @@ describe("RegisterUtils", () => {
       });
       HandlerTestUtils.setupMockSymbols(state, {
         registerBaseAddresses: new Map(), // No base address
-        registerMemberOffsets: new Map([["GPIO7_DR", "0x00"]]),
+        registerMemberOffsets: new Map([
+          ["GPIO7_DR", TestExpression.hex("0x00")],
+        ]),
       });
 
       const result = RegisterUtils.tryGenerateMMIO(
@@ -126,6 +136,7 @@ describe("RegisterUtils", () => {
         8,
         "0xFF",
         state,
+        (expr) => expr.written,
       );
 
       expect(result.success).toBe(false);
@@ -146,6 +157,7 @@ describe("RegisterUtils", () => {
         8,
         "0xFF",
         state,
+        (expr) => expr.written,
       );
 
       expect(result.success).toBe(true);
@@ -169,6 +181,7 @@ describe("RegisterUtils", () => {
         16,
         "0xABCD",
         state,
+        (expr) => expr.written,
       );
 
       expect(result.success).toBe(true);
@@ -192,6 +205,7 @@ describe("RegisterUtils", () => {
         32,
         "0xDEADBEEF",
         state,
+        (expr) => expr.written,
       );
 
       expect(result.success).toBe(true);

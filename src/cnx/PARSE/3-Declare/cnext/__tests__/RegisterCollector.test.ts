@@ -3,6 +3,7 @@ import parse from "./testHelpers";
 import TestScopeUtils from "./testUtils";
 import RegisterCollector from "../collectors/RegisterCollector";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
+import FirstDeclaration from "./FirstDeclaration";
 
 describe("RegisterCollector", () => {
   beforeEach(() => {
@@ -18,7 +19,7 @@ describe("RegisterCollector", () => {
         }
       `;
       const tree = parse(code);
-      const regCtx = tree.declaration(0)!.registerDeclaration()!;
+      const regCtx = FirstDeclaration.register(tree);
       const symbol = RegisterCollector.collect(
         regCtx,
         "test.cnx",
@@ -29,7 +30,10 @@ describe("RegisterCollector", () => {
 
       expect(symbol.kind).toBe("register");
       expect(symbol.name).toBe("GPIO");
-      expect(symbol.baseAddress).toBe("0x40000000");
+      expect(symbol.baseAddress).toMatchObject({
+        kind: "literal",
+        text: "0x40000000",
+      });
       expect(symbol.sourceFile).toBe("test.cnx");
       expect(symbol.sourceLanguage).toBe(ESourceLanguage.CNext);
       expect(symbol.visibility).toBe("public");
@@ -37,12 +41,12 @@ describe("RegisterCollector", () => {
 
       expect(symbol.members.size).toBe(2);
       expect(symbol.members.get("DATA")).toMatchObject({
-        offset: "0x00",
+        offset: { kind: "literal", text: "0x00" },
         cType: "uint32_t",
         access: "rw",
       });
       expect(symbol.members.get("DIR")).toMatchObject({
-        offset: "0x04",
+        offset: { kind: "literal", text: "0x04" },
         cType: "uint32_t",
         access: "rw",
       });
@@ -59,7 +63,7 @@ describe("RegisterCollector", () => {
         }
       `;
       const tree = parse(code);
-      const regCtx = tree.declaration(0)!.registerDeclaration()!;
+      const regCtx = FirstDeclaration.register(tree);
       const symbol = RegisterCollector.collect(
         regCtx,
         "test.cnx",
@@ -86,7 +90,7 @@ describe("RegisterCollector", () => {
         }
       `;
       const tree = parse(code);
-      const regCtx = tree.declaration(0)!.registerDeclaration()!;
+      const regCtx = FirstDeclaration.register(tree);
       const symbol = RegisterCollector.collect(
         regCtx,
         "test.cnx",
@@ -111,7 +115,7 @@ describe("RegisterCollector", () => {
         }
       `;
       const tree = parse(code);
-      const regCtx = tree.declaration(0)!.registerDeclaration()!;
+      const regCtx = FirstDeclaration.register(tree);
       const knownBitmaps = new Set(["StatusFlags"]);
       const symbol = RegisterCollector.collect(
         regCtx,
@@ -133,7 +137,7 @@ describe("RegisterCollector", () => {
         }
       `;
       const tree = parse(code);
-      const regCtx = tree.declaration(0)!.registerDeclaration()!;
+      const regCtx = FirstDeclaration.register(tree);
       const symbol = RegisterCollector.collect(
         regCtx,
         "test.cnx",
@@ -154,7 +158,7 @@ describe("RegisterCollector", () => {
         }
       `;
       const tree = parse(code);
-      const regCtx = tree.declaration(0)!.registerDeclaration()!;
+      const regCtx = FirstDeclaration.register(tree);
       const symbol = RegisterCollector.collect(
         regCtx,
         "motor.cnx",
@@ -175,7 +179,7 @@ describe("RegisterCollector", () => {
         }
       `;
       const tree = parse(code);
-      const regCtx = tree.declaration(0)!.registerDeclaration()!;
+      const regCtx = FirstDeclaration.register(tree);
       // Bitmap would be collected as Motor__MotorFlags in a scope
       const knownBitmaps = new Set(["Motor__MotorFlags"]);
       // Production ALWAYS supplies this predicate -- CNextResolver builds it
@@ -205,7 +209,7 @@ describe("RegisterCollector", () => {
         }
       `;
       const tree = parse(code);
-      const regCtx = tree.declaration(0)!.registerDeclaration()!;
+      const regCtx = FirstDeclaration.register(tree);
       // BOTH names exist -- a global bitmap and a same-named one in the scope.
       // That collision is the whole point: ADR-057 says `global.` opts out, so
       // the member must bind the global one even though the scoped name is a
@@ -234,7 +238,7 @@ describe("RegisterCollector", () => {
         }
       `;
       const tree = parse(code);
-      const regCtx = tree.declaration(0)!.registerDeclaration()!;
+      const regCtx = FirstDeclaration.register(tree);
       const symbol = RegisterCollector.collect(
         regCtx,
         "test.cnx",
@@ -243,7 +247,10 @@ describe("RegisterCollector", () => {
         "public",
       );
 
-      expect(symbol.baseAddress).toBe("BASE_ADDR");
+      expect(symbol.baseAddress).toMatchObject({
+        kind: "identifier",
+        name: "BASE_ADDR",
+      });
     });
   });
 
@@ -256,7 +263,7 @@ describe("RegisterCollector", () => {
         }
       `;
       const tree = parse(code);
-      const regCtx = tree.declaration(0)!.registerDeclaration()!;
+      const regCtx = FirstDeclaration.register(tree);
       const symbol = RegisterCollector.collect(
         regCtx,
         "test.cnx",
@@ -280,7 +287,7 @@ describe("RegisterCollector", () => {
         }
       `);
       const symbol = RegisterCollector.collect(
-        tree.declaration(0)!.registerDeclaration()!,
+        FirstDeclaration.register(tree),
         "test.cnx",
         new Set(),
         "",
@@ -294,7 +301,7 @@ describe("RegisterCollector", () => {
   describe("members carry their own position and identity (#1318)", () => {
     const collect = (code: string, scopePath = "", visibility = "public") =>
       RegisterCollector.collect(
-        parse(code).declaration(0)!.registerDeclaration()!,
+        FirstDeclaration.register(parse(code)),
         "test.cnx",
         new Set<string>(),
         scopePath,

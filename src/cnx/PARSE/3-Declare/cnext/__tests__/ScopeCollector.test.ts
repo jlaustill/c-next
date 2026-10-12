@@ -316,7 +316,10 @@ describe("ScopeCollector", () => {
       expect(regSymbol).toBeDefined();
       expect(SymbolGuards.isRegister(regSymbol!)).toBe(true);
       if (SymbolGuards.isRegister(regSymbol!)) {
-        expect(regSymbol.baseAddress).toBe("0x40001000");
+        expect(regSymbol.baseAddress).toMatchObject({
+          kind: "literal",
+          text: "0x40001000",
+        });
         expect(regSymbol.members.get("STATUS")?.access).toBe("rw");
         expect(regSymbol.members.get("COMMAND")?.access).toBe("wo");
         expect(regSymbol.scopePath).toBe("Motor");

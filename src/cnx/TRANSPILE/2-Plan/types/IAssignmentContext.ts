@@ -9,6 +9,7 @@ import type IBitAccessAnalysis from "../../../types/IBitAccessAnalysis";
 import type TPlannedTargetOp from "../../../types/TPlannedTargetOp";
 import type IChainBase from "../../../types/IChainBase";
 import type TranspileState from "../../TranspileState";
+import type TExpression from "../../../types/syntax/TExpression";
 
 /**
  * Context extracted from assignment statement for classification.
@@ -108,6 +109,8 @@ interface IAssignmentContext {
    * first, and one returning a number cannot answer the second.
    */
   readonly renderSubscript: (index: number) => string;
+  /** Any expression a handler reads off a symbol, by the same renderer (#1991) */
+  readonly renderExpression: (expr: TExpression) => string;
   readonly foldSubscript: (index: number) => number | undefined;
 
   /** The postfix operations, reduced to what is asked of them. */

@@ -10,12 +10,13 @@ import type IBaseSymbol from "./IBaseSymbol";
  * member is emitted as an offset from a base address.
  */
 import type TRegisterAccessMode from "../TRegisterAccessMode";
+import type TExpression from "../syntax/TExpression";
 interface IRegisterMemberSymbol extends IBaseSymbol {
   /** Discriminator narrowed to "register_member" */
   readonly kind: "register_member";
 
-  /** Offset from base address (as string to support expressions like "0x04") */
-  readonly offset: string;
+  /** The offset from the base address as 1.2 lowered it; 2.3 renders it (#1991) */
+  readonly offset: TExpression;
 
   /** C type for the register (e.g., "uint32_t") */
   readonly cType: string;

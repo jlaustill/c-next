@@ -7,6 +7,7 @@
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import RegisterAccessMode from "../../../../../utils/RegisterAccessMode";
 import type TranspileState from "../../../../TranspileState";
+import type TExpression from "../../../../../types/syntax/TExpression";
 
 /** Result from MMIO optimization attempt */
 interface IOptimizationResult {
@@ -29,6 +30,7 @@ class RegisterUtils {
     widthConst: number | undefined,
     value: string,
     state: TranspileState,
+    renderExpression: (expr: TExpression) => string,
   ): IOptimizationResult {
     if (
       startConst === undefined ||
@@ -39,12 +41,15 @@ class RegisterUtils {
       return { success: false };
     }
 
-    const baseAddr = state.symbols!.registerBaseAddresses.get(regName);
-    const memberOffset = state.symbols!.registerMemberOffsets.get(fullName);
+    const base = state.symbols!.registerBaseAddresses.get(regName);
+    const offset = state.symbols!.registerMemberOffsets.get(fullName);
 
-    if (baseAddr === undefined || memberOffset === undefined) {
+    if (base === undefined || offset === undefined) {
       return { success: false };
     }
+    // The same renderer the register macro spells them with (#1991)
+    const baseAddr = renderExpression(base);
+    const memberOffset = renderExpression(offset);
 
     const byteOffset = startConst / 8;
     const accessType = `uint${widthConst}_t`;

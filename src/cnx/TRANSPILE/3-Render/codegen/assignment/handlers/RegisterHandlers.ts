@@ -81,6 +81,7 @@ function writeRegisterBitRange(
       width.folded,
       ctx.generatedValue,
       ctx.state,
+      ctx.renderExpression,
     );
     if (mmio.success) {
       return mmio.statement!;

@@ -277,6 +277,7 @@ function buildAssignmentContext(
     identifiers,
     subscriptCount: subscripts.length,
     renderSubscript: (index) => deps.generateExpression(subscripts[index]),
+    renderExpression: (expr) => deps.generateExpression(expr),
     foldSubscript: (index) => deps.tryEvaluateConstant(subscripts[index]),
     postfixOps: ops,
     hasThis,

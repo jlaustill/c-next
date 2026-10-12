@@ -430,7 +430,7 @@ class CNextResolver {
     // Top-level registers
     if (decl.registerDeclaration()) {
       const symbol = RegisterCollector.collect(
-        decl.registerDeclaration()!,
+        DeclarationSyntax.of(syntax, "register"),
         sourceFile,
         knownBitmaps,
         globalScopePath,

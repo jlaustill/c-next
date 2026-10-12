@@ -226,8 +226,8 @@ class ScopeCollector {
 
       // Handle register declarations
       if (member.registerDeclaration()) {
-        const regDecl = member.registerDeclaration()!;
-        const regName = regDecl.IDENTIFIER().getText();
+        const regDecl = DeclarationSyntax.of(memberSyntax, "register");
+        const regName = regDecl.name;
         memberVisibility.set(regName, visibility);
         addMember(regName);
 

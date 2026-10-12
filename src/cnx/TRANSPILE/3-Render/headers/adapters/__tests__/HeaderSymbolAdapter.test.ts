@@ -19,6 +19,7 @@ import TestSourceSpan from "../../../../../types/__testUtils__/testSourceSpan";
 import TestEnumMembers from "../../../../../types/__testUtils__/testEnumMembers";
 import TestMembers from "../../../../../types/__testUtils__/testMembers";
 import type IProgram from "../../../../../types/IProgram";
+import TestExpression from "../../../../../types/__testUtils__/testExpression";
 
 let state = new TranspileState();
 
@@ -499,12 +500,26 @@ describe("HeaderSymbolAdapter", () => {
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
-        baseAddress: "0x40000000",
+        baseAddress: TestExpression.hex("0x40000000"),
         members: TestMembers.asRegisterMembers(
           "GPIO",
           new Map([
-            ["DATA", { cType: "u32", offset: "0x00", access: "rw" as const }],
-            ["DIR", { cType: "u32", offset: "0x04", access: "rw" as const }],
+            [
+              "DATA",
+              {
+                cType: "u32",
+                offset: TestExpression.hex("0x00"),
+                access: "rw" as const,
+              },
+            ],
+            [
+              "DIR",
+              {
+                cType: "u32",
+                offset: TestExpression.hex("0x04"),
+                access: "rw" as const,
+              },
+            ],
           ]),
         ),
       };
@@ -526,7 +541,7 @@ describe("HeaderSymbolAdapter", () => {
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
-        baseAddress: "0x50000000",
+        baseAddress: TestExpression.hex("0x50000000"),
         members: new Map(),
       };
 

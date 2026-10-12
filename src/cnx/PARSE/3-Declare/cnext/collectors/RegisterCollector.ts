@@ -5,23 +5,20 @@
  * Produces TType-based IRegisterSymbol with proper IScopeSymbol references.
  */
 
-import SyntaxLowering from "../../../2-Parse/SyntaxLowering";
-import * as Parser from "../../../2-Parse/grammar/CNextParser";
+import type IRegisterDeclarationSyntax from "../../../../types/syntax/IRegisterDeclarationSyntax";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import IRegisterSymbol from "../../../../types/symbols/IRegisterSymbol";
 import type IRegisterMemberSymbol from "../../../../types/symbols/IRegisterMemberSymbol";
 import TypeUtils from "../utils/TypeUtils";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 import TVisibility from "../../../../types/TVisibility";
-import ParserUtils from "../../../../utils/ParserUtils";
 import MemberSymbolBase from "../utils/MemberSymbolBase";
-import type TAccessMode from "../../../../types/TRegisterAccessMode";
 
 class RegisterCollector {
   /**
    * Collect a register declaration and return an IRegisterSymbol.
    *
-   * @param ctx The register declaration context
+   * @param syntax The register declaration, as 1.2 lowered it
    * @param sourceFile Source file path
    * @param knownBitmaps Set of known bitmap type names for reference resolution
    * @param scopePath The path of the scope this register belongs to (dotted path, "" at file scope)
@@ -29,19 +26,19 @@ class RegisterCollector {
    * @returns The register symbol with proper scope reference
    */
   static collect(
-    ctx: Parser.RegisterDeclarationContext,
+    syntax: IRegisterDeclarationSyntax,
     sourceFile: string,
     knownBitmaps: Set<string>,
     scopePath: string,
     visibility: TVisibility,
     isScopeType?: (qualifiedName: string) => boolean,
   ): IRegisterSymbol {
-    const name = ctx.IDENTIFIER().getText();
-    const span = ParserUtils.getSpan(ctx);
+    const name = syntax.name;
+    const span = syntax.span;
     // #1298: members carry the scope's PATH, not the scope object. The path
     // holds every outer component, so nothing downstream can flatten it to a
     // leaf -- which is what the reference threaded here used to protect against.
-    const baseAddress = ctx.expression().getText();
+    const baseAddress = syntax.address;
 
     // Collect register members
     const members = new Map<string, IRegisterMemberSymbol>();
@@ -49,14 +46,14 @@ class RegisterCollector {
     const identity = ScopeUtils.identityOf({ name, scopePath });
     const ownerScopedName = identity.cnxScopedName;
 
-    for (const member of ctx.registerMember()) {
-      const memberName = member.IDENTIFIER().getText();
-      const offset = member.expression().getText();
-      const accessMod = member.accessModifier().getText() as TAccessMode;
+    for (const member of syntax.members) {
+      const memberName = member.name;
+      const offset = member.offset;
+      const accessMod = member.access;
 
       // Get member type and convert to C type
       const typeName = TypeUtils.getTypeName(
-        SyntaxLowering.type(member.type()),
+        member.type,
         scopePath,
         isScopeType,
       );
@@ -86,7 +83,7 @@ class RegisterCollector {
           kind: "register_member" as const,
           name: memberName,
           parentScopedName: ownerScopedName,
-          memberSpan: ParserUtils.getSpanOr(member, span),
+          memberSpan: member.span,
           sourceFile,
           visibility,
         }),
