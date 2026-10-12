@@ -34,50 +34,46 @@
  * number, for this pass, render and 1.4's constants alike.
  */
 
-import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
-import { ParseTreeWalker } from "antlr4ng";
-
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import TYPE_WIDTH from "../../types/TYPE_WIDTH";
-import ParserUtils from "../../utils/ParserUtils";
+import DeclarationParts from "../../utils/DeclarationParts";
+import ExpressionNodes from "../../utils/ExpressionNodes";
+import StatementNodes from "../../utils/StatementNodes";
 import OperandTyper from "../../utils/OperandTyper";
 import LengthProperty from "../../utils/LengthProperty";
 import PROPERTY_NAMES from "../../utils/constants/PROPERTY_NAMES";
 import ILengthPropertyError from "./types/ILengthPropertyError";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import type TExpression from "../../types/syntax/TExpression";
+import type TPostfixOpSyntax from "../../types/syntax/TPostfixOpSyntax";
+import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
 import type IOperandType from "../../types/IOperandType";
 
 /** The CLI argument vector, which answers only `.element_count`. */
 const ARGS_PARAMETER = "args";
 
-class LengthPropertyListener extends CNextListener {
+class LengthPropertyCheck {
   private readonly found: ILengthPropertyError[] = [];
 
-  public constructor(private readonly context: IAnalysisContext) {
-    super();
-  }
+  public constructor(private readonly context: IAnalysisContext) {}
 
   public errors(): ILengthPropertyError[] {
     return this.found;
   }
 
-  override enterPostfixExpression = (
-    ctx: Parser.PostfixExpressionContext,
-  ): void => {
-    const ops = ctx.postfixOp();
+  public expression(chain: TExpression): void {
+    if (chain.kind !== "postfix") return;
+    const ops = chain.ops;
     const last = ops.at(-1);
-    if (last === undefined || last.DOT() === null) return;
+    if (last?.kind !== "member") return;
     // Only a property's name can read one; the rest need no typing
-    const name = last.IDENTIFIER()?.getText() ?? "";
+    const name = last.name;
     if (!PROPERTY_NAMES.has(name)) return;
     // #1976: a literal has no fields, so the name reads the property, and a
     // length property measures a declared value -- owner ruling: never a
     // literal. The typer leaves a string literal untyped, so without this the
     // chain had no subject and its C was `"Hello".char_count`.
-    const chain = SyntaxLowering.expressionNode(ctx);
-    if (LengthPropertyListener.rootsAtLiteral(chain)) {
+    if (LengthPropertyCheck.rootsAtLiteral(chain)) {
       if (name === "length") {
         this.reportDeprecatedLength(last);
       } else {
@@ -95,7 +91,7 @@ class LengthPropertyListener extends CNextListener {
     const property = step?.property ?? null;
     if (property === null) return;
 
-    if (LengthPropertyListener.subjectIsArgs(ctx, ops)) {
+    if (LengthPropertyCheck.subjectIsArgs(chain)) {
       if (property !== "element_count") {
         this.report(
           last,
@@ -115,14 +111,14 @@ class LengthPropertyListener extends CNextListener {
     if (subject === null) return; // unresolved -- another diagnostic's to report
 
     this.check(last, property, subject);
-  };
+  }
 
   private check(
-    at: Parser.PostfixOpContext,
+    at: TPostfixOpSyntax,
     property: string,
     typed: IOperandType,
   ): void {
-    const subject = LengthPropertyListener.spelling(typed);
+    const subject = LengthPropertyCheck.spelling(typed);
     const dimensions = typed.dimensions.length;
     const element = typed.typeName ?? "";
     // `string<N>` and the unsized `const string`, whose capacity is inferred.
@@ -185,13 +181,13 @@ class LengthPropertyListener extends CNextListener {
   }
 
   private checkWidth(
-    at: Parser.PostfixOpContext,
+    at: TPostfixOpSyntax,
     property: string,
     typed: IOperandType,
     struct: ReturnType<typeof LengthProperty.struct>,
     lookup: Parameters<typeof LengthProperty.struct>[1],
   ): void {
-    const subject = LengthPropertyListener.spelling(typed);
+    const subject = LengthPropertyCheck.spelling(typed);
     const element = typed.typeName ?? "";
     if (struct !== undefined) {
       if (LengthProperty.structBits(struct, lookup) === null) {
@@ -218,7 +214,7 @@ class LengthPropertyListener extends CNextListener {
     }
   }
 
-  private reportDeprecatedLength(at: Parser.PostfixOpContext): void {
+  private reportDeprecatedLength(at: TPostfixOpSyntax): void {
     this.report(
       at,
       `'.length' is deprecated`,
@@ -236,12 +232,38 @@ class LengthPropertyListener extends CNextListener {
 
   /** `args` is a parameter, not a declaration this pass records. */
   private static subjectIsArgs(
-    ctx: Parser.PostfixExpressionContext,
-    ops: readonly Parser.PostfixOpContext[],
+    chain: Extract<TExpression, { kind: "postfix" }>,
   ): boolean {
     return (
-      ops.length === 1 &&
-      ctx.primaryExpression()?.IDENTIFIER()?.getText() === ARGS_PARAMETER
+      chain.ops.length === 1 &&
+      chain.primary.kind === "identifier" &&
+      chain.primary.name === ARGS_PARAMETER
+    );
+  }
+
+  /**
+   * The chains a value is written to. The property rules ask about a value
+   * read, and a written chain was never one of their subjects.
+   */
+  public static targetsIn(
+    declaration: TDeclarationSyntax,
+  ): ReadonlySet<TExpression> {
+    if (declaration.kind === "scope") {
+      return new Set(
+        declaration.members.flatMap((member) => [
+          ...LengthPropertyCheck.targetsIn(member.declaration),
+        ]),
+      );
+    }
+    if (declaration.kind !== "function") return new Set();
+    return new Set(
+      StatementNodes.of(declaration.body.statements).flatMap((statement) => {
+        if (statement.kind === "assignment") return [statement.target];
+        if (statement.kind === "for" && statement.update !== null) {
+          return [statement.update.target];
+        }
+        return [];
+      }),
     );
   }
 
@@ -259,13 +281,18 @@ class LengthPropertyListener extends CNextListener {
    * E0867 call sites reading as they did.
    */
   private report(
-    at: Parser.PostfixOpContext,
+    at: TPostfixOpSyntax,
     message: string,
     helpText: string,
     code = "E0867",
   ): void {
-    const { line, column } = ParserUtils.getPosition(at);
-    this.found.push({ code, line, column, message, helpText });
+    this.found.push({
+      code,
+      line: at.span.line,
+      column: at.span.column,
+      message,
+      helpText,
+    });
   }
 }
 
@@ -273,10 +300,18 @@ class LengthPropertyAnalyzer {
   /** #1456: handed in rather than read off shared state. */
   constructor(private readonly context: IAnalysisContext) {}
 
-  public analyze(tree: Parser.ProgramContext): ILengthPropertyError[] {
-    const listener = new LengthPropertyListener(this.context);
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
-    return listener.errors();
+  /** Every chain 1.2 returned that is read, not written (#1991) */
+  public analyze(program: IProgramSyntax): ILengthPropertyError[] {
+    const check = new LengthPropertyCheck(this.context);
+    for (const member of program.declarations) {
+      const targets = LengthPropertyCheck.targetsIn(member.declaration);
+      for (const part of DeclarationParts.of(member.declaration)) {
+        for (const expr of ExpressionNodes.of(part)) {
+          if (!targets.has(expr)) check.expression(expr);
+        }
+      }
+    }
+    return check.errors();
   }
 }
 

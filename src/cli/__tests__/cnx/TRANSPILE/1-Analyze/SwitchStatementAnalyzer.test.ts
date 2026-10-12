@@ -14,8 +14,10 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  * as a MINUS token plus a HEX_LITERAL rather than as one negative literal.
  */
 const errors = (source: string) => {
-  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
-  return new SwitchStatementAnalyzer(context).analyze(tree);
+  const { syntax, context } = testAnalysisContextFor(source, {
+    cppMode: false,
+  });
+  return new SwitchStatementAnalyzer(context).analyze(syntax);
 };
 
 describe("SwitchStatementAnalyzer", () => {
@@ -201,6 +203,52 @@ describe("SwitchStatementAnalyzer", () => {
           ].join("\n"),
         ),
       ).toEqual([]);
+    });
+  });
+
+  describe("case values as 1.2 returned them (#1991)", () => {
+    const sw = (labels: string) =>
+      `void f(i32 v) {\n    switch (v) {\n${labels}\n        default {\n        }\n    }\n}`;
+
+    it("tells a negative label from a positive one", () => {
+      expect(
+        errors(sw("        case -1 {\n        }\n        case 1 {\n        }")),
+      ).toEqual([]);
+    });
+
+    it("compares a binary label by value, and a char label as written, at the label", () => {
+      const binary = errors(
+        sw("        case 0b11 {\n        }\n        case 3 {\n        }"),
+      );
+      expect(binary.map((e) => [e.code, e.line])).toEqual([["E0713", 5]]);
+      const chars = errors(
+        sw("        case 'a' {\n        }\n        case 'a' {\n        }"),
+      );
+      expect(chars.map((e) => [e.code, e.line])).toEqual([["E0713", 5]]);
+    });
+
+    it("tells two char labels apart", () => {
+      expect(
+        errors(
+          sw("        case 'a' {\n        }\n        case 'b' {\n        }"),
+        ),
+      ).toEqual([]);
+    });
+
+    it("reports a bare enum member label at the label", () => {
+      const found = errors(
+        `enum Color { RED, GREEN }\n${sw("        case 1 {\n        }\n        case RED {\n        }")}`,
+      );
+      expect(found.map((e) => [e.code, e.line, e.column])).toEqual([
+        ["E0424", 6, 13],
+      ]);
+    });
+
+    it("checks a switch in a scope's method", () => {
+      const found = errors(
+        "scope S {\n    public void f(bool b) {\n        switch (b) {\n            default {\n            }\n        }\n    }\n}",
+      );
+      expect(found.map((e) => e.code)).toEqual(["E0711"]);
     });
   });
 });

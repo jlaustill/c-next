@@ -23,27 +23,30 @@
  * differs; it does not.
  */
 
-import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
-import { ParseTreeWalker } from "antlr4ng";
-
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
+import StatementNodes from "../../utils/StatementNodes";
 import EnumValueResolver from "./EnumValueResolver";
 import ISwitchStatementError from "./types/ISwitchStatementError";
 import EnumMemberSuggestion from "./helpers/EnumMemberSuggestion";
 import type IAnalysisContext from "./types/IAnalysisContext";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type ISourceSpan from "../../types/ISourceSpan";
+import type TCaseLabelSyntax from "../../types/syntax/TCaseLabelSyntax";
+import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
+import type TStatement from "../../types/syntax/TStatement";
+
+type TSwitch = Extract<TStatement, { kind: "switch" }>;
+type TSwitchCase = TSwitch["cases"][number];
+type TDefaultCase = NonNullable<TSwitch["defaultCase"]>;
 
 /** MISRA C:2012 Rule 16.6: a switch needs at least two clauses. */
 const MINIMUM_CLAUSES = 2;
 
-class SwitchStatementListener extends CNextListener {
+class SwitchStatementCheck {
   private readonly found: ISwitchStatementError[] = [];
   private readonly values: EnumValueResolver;
 
   public constructor(private readonly context: IAnalysisContext) {
-    super();
     this.values = new EnumValueResolver(context);
   }
 
@@ -51,23 +54,28 @@ class SwitchStatementListener extends CNextListener {
     return this.found;
   }
 
-  override enterSwitchStatement = (
-    ctx: Parser.SwitchStatementContext,
-  ): void => {
-    const switchExpr = ctx.expression();
-    const cases = ctx.switchCase();
-    const defaultCase = ctx.defaultCase();
+  /** Every switch in a function, a scope's included (#1991) */
+  public declaration(declaration: TDeclarationSyntax): void {
+    if (declaration.kind === "scope") {
+      for (const member of declaration.members) {
+        this.declaration(member.declaration);
+      }
+      return;
+    }
+    if (declaration.kind !== "function") return;
+    for (const statement of StatementNodes.of(declaration.body.statements)) {
+      if (statement.kind === "switch") this.statement(statement);
+    }
+  }
 
-    if (
-      OperandTyper.isBoolean(
-        OperandTyper.typeOf(
-          SyntaxLowering.expressionNode(switchExpr),
-          this.context,
-        ),
-      )
-    ) {
+  private statement(statement: TSwitch): void {
+    const switchExpr = statement.subject;
+    const cases = statement.cases;
+    const defaultCase = statement.defaultCase;
+
+    if (OperandTyper.isBoolean(OperandTyper.typeOf(switchExpr, this.context))) {
       this.report(
-        switchExpr,
+        switchExpr.span,
         "E0711",
         "Cannot switch on a boolean",
         "MISRA C:2012 Rule 16.7: a bool has two states and a switch implies more. Use if/else.",
@@ -77,7 +85,7 @@ class SwitchStatementListener extends CNextListener {
 
     if (cases.length + (defaultCase ? 1 : 0) < MINIMUM_CLAUSES) {
       this.report(
-        switchExpr,
+        switchExpr.span,
         "E0712",
         "Switch requires at least 2 clauses",
         "MISRA C:2012 Rule 16.6: a one-clause switch is an if statement written the long way.",
@@ -87,15 +95,13 @@ class SwitchStatementListener extends CNextListener {
 
     if (this.reportDuplicateCase(cases)) return;
 
-    const verdict = this.values.classify(
-      SyntaxLowering.expressionNode(switchExpr),
-    );
+    const verdict = this.values.classify(switchExpr);
     const switchEnum = verdict.kind === "enum" ? verdict.typeName : null;
     if (this.reportBareMemberLabels(cases, switchEnum)) return;
     if (switchEnum !== null) {
-      this.checkExhaustiveness(switchExpr, switchEnum, cases, defaultCase);
+      this.checkExhaustiveness(switchExpr.span, switchEnum, cases, defaultCase);
     }
-  };
+  }
 
   /**
    * E0424 on a case label (ADR-017, #1322): a bare identifier label resolves
@@ -109,23 +115,22 @@ class SwitchStatementListener extends CNextListener {
    * this rule's to judge.
    */
   private reportBareMemberLabel(
-    label: Parser.CaseLabelContext,
+    label: TCaseLabelSyntax,
     switchEnum: string | null,
   ): boolean {
     const symbols = this.context.symbols;
-    const name = label.IDENTIFIER()?.getText();
-    if (name === undefined) return false;
+    if (label.kind !== "identifier") return false;
+    const name = label.name;
     if (switchEnum !== null && symbols.enumMembers.get(switchEnum)?.has(name)) {
       return false;
     }
     const declaring = EnumMemberSuggestion.enumsDeclaring(name, symbols);
     if (declaring.length === 0) return false; // a const label
 
-    const { line, column } = ParserUtils.getPosition(label);
     this.found.push({
       code: "E0424",
-      line,
-      column,
+      line: label.span.line,
+      column: label.span.column,
       message: EnumMemberSuggestion.message(name, declaring),
       helpText:
         switchEnum === null
@@ -136,12 +141,12 @@ class SwitchStatementListener extends CNextListener {
   }
 
   private reportBareMemberLabels(
-    cases: readonly Parser.SwitchCaseContext[],
+    cases: readonly TSwitchCase[],
     switchEnum: string | null,
   ): boolean {
     let reported = false;
     for (const caseCtx of cases) {
-      for (const label of caseCtx.caseLabel()) {
+      for (const label of caseCtx.labels) {
         if (this.reportBareMemberLabel(label, switchEnum)) reported = true;
       }
     }
@@ -149,19 +154,16 @@ class SwitchStatementListener extends CNextListener {
   }
 
   /** True when a duplicate was reported, so the later checks are skipped. */
-  private reportDuplicateCase(
-    cases: readonly Parser.SwitchCaseContext[],
-  ): boolean {
+  private reportDuplicateCase(cases: readonly TSwitchCase[]): boolean {
     const seen = new Set<string>();
     for (const caseCtx of cases) {
-      for (const label of caseCtx.caseLabel()) {
-        const value = SwitchStatementListener.caseLabelValue(label);
+      for (const label of caseCtx.labels) {
+        const value = SwitchStatementCheck.caseLabelValue(label);
         if (seen.has(value)) {
-          const { line, column } = ParserUtils.getPosition(label);
           this.found.push({
             code: "E0713",
-            line,
-            column,
+            line: label.span.line,
+            column: label.span.column,
             message: `Duplicate case value '${value}' in switch statement`,
             helpText:
               "Two clauses cannot claim the same value; one of them is unreachable.",
@@ -183,24 +185,24 @@ class SwitchStatementListener extends CNextListener {
    * how many it covers, so nothing can be checked.
    */
   private checkExhaustiveness(
-    at: Parser.ExpressionContext,
+    at: ISourceSpan,
     enumTypeName: string,
-    cases: readonly Parser.SwitchCaseContext[],
-    defaultCase: Parser.DefaultCaseContext | null,
+    cases: readonly TSwitchCase[],
+    defaultCase: TDefaultCase | null,
   ): void {
     const variants = this.context.symbols.enumMembers.get(enumTypeName);
     if (!variants) return;
 
     const total = variants.size;
     const explicit = cases.reduce(
-      (sum, caseCtx) => sum + caseCtx.caseLabel().length,
+      (sum, caseCtx) => sum + caseCtx.labels.length,
       0,
     );
 
     if (defaultCase) {
-      const declared = defaultCase.INTEGER_LITERAL();
+      const declared = defaultCase.count;
       if (declared === null) return;
-      const absorbed = Number.parseInt(declared.getText(), 10);
+      const absorbed = Number.parseInt(declared, 10);
       const covered = explicit + absorbed;
       if (covered !== total) {
         this.report(
@@ -230,37 +232,39 @@ class SwitchStatementListener extends CNextListener {
    * `-0x1` are the same case written two ways, and `tests/switch` has a fixture
    * for each. Moved wholesale from codegen, where it had no other caller.
    */
-  private static caseLabelValue(ctx: Parser.CaseLabelContext): string {
-    const qualified = ctx.qualifiedType();
-    if (qualified) {
-      return qualified
-        .IDENTIFIER()
-        .map((id) => id.getText())
-        .join(".");
+  private static caseLabelValue(label: TCaseLabelSyntax): string {
+    switch (label.kind) {
+      case "qualified":
+        return label.path.join(".");
+      case "identifier":
+        return label.name;
+      case "integer":
+      case "hex": {
+        const value = BigInt(label.text);
+        return String(label.negative ? -value : value);
+      }
+      case "binary":
+        return String(BigInt(label.text));
+      case "char":
+        return label.text;
+      default:
+        return "";
     }
-    const identifier = ctx.IDENTIFIER();
-    if (identifier) return identifier.getText();
-
-    const negated = ctx.children?.[0]?.getText() === "-";
-    const numeric =
-      ctx.INTEGER_LITERAL() ?? ctx.HEX_LITERAL() ?? ctx.BINARY_LITERAL();
-    if (numeric) {
-      const value = BigInt(numeric.getText());
-      return String(negated ? -value : value);
-    }
-
-    const character = ctx.CHAR_LITERAL();
-    return character ? character.getText() : "";
   }
 
   private report(
-    at: Parser.ExpressionContext,
+    at: ISourceSpan,
     code: string,
     message: string,
     helpText: string,
   ): void {
-    const { line, column } = ParserUtils.getPosition(at);
-    this.found.push({ code, line, column, message, helpText });
+    this.found.push({
+      code,
+      line: at.line,
+      column: at.column,
+      message,
+      helpText,
+    });
   }
 }
 
@@ -268,10 +272,12 @@ class SwitchStatementAnalyzer {
   /** #1456: handed in rather than read off shared state. */
   constructor(private readonly context: IAnalysisContext) {}
 
-  public analyze(tree: Parser.ProgramContext): ISwitchStatementError[] {
-    const listener = new SwitchStatementListener(this.context);
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
-    return listener.errors();
+  public analyze(program: IProgramSyntax): ISwitchStatementError[] {
+    const check = new SwitchStatementCheck(this.context);
+    for (const member of program.declarations) {
+      check.declaration(member.declaration);
+    }
+    return check.errors();
   }
 }
 

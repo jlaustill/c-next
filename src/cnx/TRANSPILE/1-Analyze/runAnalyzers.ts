@@ -367,7 +367,7 @@ function runAnalyzers(
     },
     {
       label: "switch statements (ADR-025, E0711-E0714)",
-      run: () => new SwitchStatementAnalyzer(context).analyze(tree),
+      run: () => new SwitchStatementAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "controlling expressions (ADR-022, MISRA 14.4/13.5, E0701/E0702)",
@@ -380,7 +380,7 @@ function runAnalyzers(
     },
     {
       label: "length properties (ADR-058, E0867)",
-      run: () => new LengthPropertyAnalyzer(context).analyze(tree),
+      run: () => new LengthPropertyAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "integer conversions (ADR-024, E0868/E0869)",
