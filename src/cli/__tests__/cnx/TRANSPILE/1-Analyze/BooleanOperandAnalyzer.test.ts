@@ -9,8 +9,10 @@ import BooleanOperandAnalyzer from "../../../../../cnx/TRANSPILE/1-Analyze/Boole
 import testAnalysisContextFor from "./testAnalysisContextFor";
 
 function analyze(source: string) {
-  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
-  return new BooleanOperandAnalyzer(context).analyze(tree);
+  const { syntax, context } = testAnalysisContextFor(source, {
+    cppMode: false,
+  });
+  return new BooleanOperandAnalyzer(context).analyze(syntax);
 }
 
 /** Wrap a statement in a function with two bool locals and an integer local. */
@@ -430,5 +432,26 @@ describe("BooleanOperandAnalyzer", () => {
     it("returns no errors for a program with no bool operands", () => {
       expect(analyze("void main() { u8 c <- 1 + 2; }")).toHaveLength(0);
     });
+  });
+});
+
+// #1991: read off 1.2's syntax, so which operand a report names is asserted
+// by where it lands.
+describe("BooleanOperandAnalyzer -- reports the bool operand", () => {
+  const where = (line: string) => {
+    const { syntax, context } = testAnalysisContextFor(
+      `void main() {\n    bool f <- true;\n    u8 n <- 1;\n${line}\n}`,
+      { cppMode: false },
+    );
+    return new BooleanOperandAnalyzer(context)
+      .analyze(syntax)
+      .map((e) => [e.code, e.line, e.column]);
+  };
+
+  it.each([
+    ["on the left", "    u8 r <- f + n;", 12],
+    ["on the right", "    u8 r <- n + f;", 16],
+  ])("names the bool %s", (_side, line, column) => {
+    expect(where(line)).toEqual([["E0807", 4, column]]);
   });
 });

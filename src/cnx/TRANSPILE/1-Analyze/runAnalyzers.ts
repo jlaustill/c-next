@@ -293,7 +293,7 @@ function runAnalyzers(
       // reported as "not a number" rather than as a category mismatch with
       // whatever it was combined with.
       label: "boolean operands (MISRA C:2012 Rule 10.1, Issue #1183)",
-      run: () => new BooleanOperandAnalyzer(context).analyze(tree),
+      run: () => new BooleanOperandAnalyzer(context).analyze(parsed.program),
     },
     {
       label:

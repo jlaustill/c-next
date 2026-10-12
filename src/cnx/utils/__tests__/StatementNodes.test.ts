@@ -8,6 +8,15 @@ const kinds = (source: string): string[] =>
   );
 
 describe("StatementNodes", () => {
+  it("lists every assignment site, a for loop's init and update included", () => {
+    const sites = CNextSourceParser.parse(
+      `void f() { u8 a <- 0; for (a <- 1; a < 3; a +<- 1) { a -<- 0; } }`,
+    ).program.declarations.flatMap((member) =>
+      StatementNodes.assignments(member.declaration).map((s) => s.operator),
+    );
+    expect(sites).toEqual(["<-", "+<-", "-<-"]);
+  });
+
   it("reaches nested statements in source order", () => {
     expect(
       kinds(

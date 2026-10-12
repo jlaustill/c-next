@@ -1,4 +1,5 @@
 import type TDeclarationSyntax from "../types/syntax/TDeclarationSyntax";
+import type IAssignmentSyntax from "../types/syntax/IAssignmentSyntax";
 import type TStatement from "../types/syntax/TStatement";
 import StatementChildren from "./StatementChildren";
 
@@ -18,6 +19,24 @@ class StatementNodes {
     return declaration.kind === "function"
       ? StatementNodes.of(declaration.body.statements)
       : [];
+  }
+
+  /** Every assignment site, in source order: statements, a `for`'s init and update */
+  static assignments(
+    declaration: TDeclarationSyntax,
+  ): readonly IAssignmentSyntax[] {
+    // A `for`'s update is listed with the loop, before its init; sort back
+    // into source order
+    return StatementNodes.in(declaration)
+      .flatMap((statement) => {
+        if (statement.kind === "assignment") return [statement];
+        return statement.kind === "for" && statement.update !== null
+          ? [statement.update]
+          : [];
+      })
+      .sort(
+        (a, b) => a.span.line - b.span.line || a.span.column - b.span.column,
+      );
   }
 
   static of(statements: readonly TStatement[]): readonly TStatement[] {

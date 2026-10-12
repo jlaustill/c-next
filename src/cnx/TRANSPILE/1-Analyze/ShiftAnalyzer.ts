@@ -184,11 +184,8 @@ class ShiftAnalyzer {
           if (expr.kind === "binary") check.checkLevel(expr);
         }
       }
-      for (const statement of StatementNodes.in(member.declaration)) {
-        if (statement.kind === "assignment") check.checkAssignment(statement);
-        if (statement.kind === "for" && statement.update !== null) {
-          check.checkAssignment(statement.update);
-        }
+      for (const site of StatementNodes.assignments(member.declaration)) {
+        check.checkAssignment(site);
       }
     }
 

@@ -28,29 +28,26 @@
  * operands they share; `admitsBoolean` is where E0810 defers to this rule.
  */
 
-import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
-import { ParseTreeWalker, ParserRuleContext } from "antlr4ng";
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import IBooleanOperandError from "./types/IBooleanOperandError";
-import BinaryOperatorLevelListener from "./BinaryOperatorLevelListener";
-import AssignmentSiteListener from "./AssignmentSiteListener";
-import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
+import DeclarationParts from "../../utils/DeclarationParts";
+import ExpressionNodes from "../../utils/ExpressionNodes";
+import StatementNodes from "../../utils/StatementNodes";
 import type IAnalysisContext from "./types/IAnalysisContext";
-import type TAssignmentSite from "../../types/TAssignmentSite";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
+import type TBinaryExpression from "../../types/syntax/TBinaryExpression";
+import type TExpression from "../../types/syntax/TExpression";
 import type TBinaryOperatorLevel from "./types/TBinaryOperatorLevel";
 
 /**
  * Reports essentially Boolean operands of guarded operators.
  */
-class BooleanOperandListener extends CNextListener {
+class BooleanOperandCheck {
   constructor(
     private readonly analyzer: BooleanOperandAnalyzer,
     private readonly context: IAnalysisContext,
-  ) {
-    super();
-  }
+  ) {}
 
   /**
    * Whether an operand is essentially Boolean.
@@ -65,10 +62,8 @@ class BooleanOperandListener extends CNextListener {
    * the opposite -- it is well-formed alone, so the parent operator is the only
    * place its misuse can be reported (Issue #1183 review).
    */
-  private isBooleanOperand(ctx: ParserRuleContext): boolean {
-    return OperandTyper.isBoolean(
-      OperandTyper.typeOf(SyntaxLowering.expressionNode(ctx), this.context),
-    );
+  private isBooleanOperand(expr: TExpression): boolean {
+    return OperandTyper.isBoolean(OperandTyper.typeOf(expr, this.context));
   }
 
   /**
@@ -80,69 +75,62 @@ class BooleanOperandListener extends CNextListener {
    * a bool TARGET (E0806) and a bool right-hand side (E0807). Before this,
    * `n +<- flag` was accepted while the identical `n <- n + flag` was rejected.
    */
-  public checkAssignment(site: TAssignmentSite): void {
-    const operator = site.assignmentOperator().getText();
-    if (operator === "<-") return;
+  public checkAssignment(site: IAssignmentSyntax): void {
+    if (site.operator === "<-") return;
 
-    const target = site.assignmentTarget();
     if (
       OperandTyper.isBoolean(
-        OperandTyper.typeOfTarget(
-          SyntaxLowering.assignmentTarget(target),
-          this.context,
-        ),
+        OperandTyper.typeOfTarget(site.target, this.context),
       )
     ) {
-      const { line, column } = ParserUtils.getPosition(target);
-      this.analyzer.addCompoundAssignmentError(line, column, target.getText());
+      this.analyzer.addCompoundAssignmentError(
+        site.target.span.line,
+        site.target.span.column,
+        site.target.written,
+      );
       return;
     }
 
-    const value = site.expression();
-    if (this.isBooleanOperand(value)) {
-      const { line, column } = ParserUtils.getPosition(value);
-      this.analyzer.addError(line, column, operator);
+    if (this.isBooleanOperand(site.value)) {
+      this.analyzer.addError(
+        site.value.span.line,
+        site.value.span.column,
+        site.operator,
+      );
     }
   }
 
   /**
    * Report one error per guarded operator whose left or right operand is
-   * essentially Boolean. The operator sits between adjacent operands, so the
-   * operator joining operand `i` to `i + 1` is child `i * 2 + 1`.
+   * essentially Boolean. `operators[i]` joins operand `i` to `i + 1`.
    *
    * Reported once per operator rather than once per operand: `flag / other` is
    * a single mistake, and naming both operands would double every diagnostic.
    */
-  public checkLevel(operands: ParserRuleContext[]): void {
-    const parent = operands[0].parent;
+  public checkLevel(level: TBinaryExpression): void {
+    level.operators.forEach((operator, i) => {
+      const left = level.operands[i];
+      const right = level.operands[i + 1];
+      const leftIsBoolean = this.isBooleanOperand(left);
+      if (!leftIsBoolean && !this.isBooleanOperand(right)) return;
 
-    for (let i = 0; i < operands.length - 1; i += 1) {
-      const leftIsBoolean = this.isBooleanOperand(operands[i]);
-      const rightIsBoolean = this.isBooleanOperand(operands[i + 1]);
-      if (!leftIsBoolean && !rightIsBoolean) continue;
-
-      const operator = parent?.getChild(i * 2 + 1)?.getText() ?? "";
-      const offending = leftIsBoolean ? operands[i] : operands[i + 1];
-      const { line, column } = ParserUtils.getPosition(offending);
-      this.analyzer.addError(line, column, operator);
-    }
+      const offending = leftIsBoolean ? left : right;
+      this.analyzer.addError(
+        offending.span.line,
+        offending.span.column,
+        operator,
+      );
+    });
   }
 
   // Prefix `-` and `~` are arithmetic/bitwise; `!` is the correct negation.
-  override enterUnaryExpression = (
-    ctx: Parser.UnaryExpressionContext,
-  ): void => {
-    const operator = ctx.getChild(0)?.getText();
-    if (operator !== "-" && operator !== "~") return;
-
-    const operand = ctx.unaryExpression();
-    if (!operand) return;
-
-    if (this.isBooleanOperand(operand)) {
-      const { line, column } = ParserUtils.getPosition(ctx);
-      this.analyzer.addError(line, column, operator);
+  public checkUnary(expr: TExpression): void {
+    if (expr.kind !== "unary") return;
+    if (expr.operator !== "-" && expr.operator !== "~") return;
+    if (this.isBooleanOperand(expr.operand)) {
+      this.analyzer.addError(expr.span.line, expr.span.column, expr.operator);
     }
-  };
+  }
 }
 
 /**
@@ -167,29 +155,25 @@ class BooleanOperandAnalyzer {
     return level === "equality";
   }
 
-  /**
-   * Analyze the parse tree for Boolean operands of inappropriate operators.
-   */
-  public analyze(tree: Parser.ProgramContext): IBooleanOperandError[] {
+  /** #1991: reads 1.2's syntax, not the parse tree */
+  public analyze(program: IProgramSyntax): IBooleanOperandError[] {
     this.errors = [];
+    const check = new BooleanOperandCheck(this, this.context);
 
-    const listener = new BooleanOperandListener(this, this.context);
-
-    ParseTreeWalker.DEFAULT.walk(
-      new BinaryOperatorLevelListener((operands, level) => {
-        if (BooleanOperandAnalyzer.admitsBoolean(level)) return;
-        listener.checkLevel(operands);
-      }),
-      tree,
-    );
-
-    ParseTreeWalker.DEFAULT.walk(
-      new AssignmentSiteListener((site) => listener.checkAssignment(site)),
-      tree,
-    );
-
-    // Prefix `-` / `~` are not a binary level, so the listener hooks them.
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
+    for (const member of program.declarations) {
+      for (const part of DeclarationParts.of(member.declaration)) {
+        for (const expr of ExpressionNodes.of(part)) {
+          check.checkUnary(expr);
+          if (expr.kind !== "binary") continue;
+          if (expr.level === "or" || expr.level === "and") continue;
+          if (BooleanOperandAnalyzer.admitsBoolean(expr.level)) continue;
+          check.checkLevel(expr);
+        }
+      }
+      for (const site of StatementNodes.assignments(member.declaration)) {
+        check.checkAssignment(site);
+      }
+    }
 
     return this.errors;
   }
