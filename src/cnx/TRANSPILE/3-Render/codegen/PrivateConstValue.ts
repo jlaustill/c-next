@@ -160,12 +160,11 @@ class PrivateConstValue {
     return `${spelled}${settled.typeName}`;
   }
 
+  /** Nine significant digits always reach a float, so the loop ends */
   private static shortestF32(value: number): string {
-    for (let digits = 1; digits < 9; digits++) {
-      const spelled = String(Number(value.toPrecision(digits)));
-      if (Math.fround(Number(spelled)) === value) return spelled;
-    }
-    return String(Number(value.toPrecision(9)));
+    let digits = 1;
+    while (Math.fround(Number(value.toPrecision(digits))) !== value) digits++;
+    return String(Number(value.toPrecision(digits)));
   }
 
   /** The member of the const's enum that has its value */

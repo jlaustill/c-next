@@ -156,6 +156,58 @@ describe("PrivateConstValue.inlined", () => {
     ).toBeNull();
   });
 
+  it("spells a char literal and a lone header macro as C does", () => {
+    const character: TConstExpr = {
+      kind: "other",
+      what: "character",
+      spelling: "'A'",
+      at: AT,
+    };
+    expect(
+      inline(
+        { initialValue: "'A'", initialValueExpr: character },
+        {
+          kind: "notConstant",
+          reason: "character",
+          spelling: "'A'",
+          at: AT,
+        },
+      ),
+    ).toBe("'A'");
+    const macro: TConstExpr = {
+      kind: "name",
+      root: null,
+      path: ["LIMIT"],
+      at: AT,
+    };
+    const foreign: TSettledConst = {
+      kind: "foreign",
+      spelling: "LIMIT",
+      why: "header",
+    };
+    expect(
+      inline({ initialValue: "LIMIT", initialValueExpr: macro }, foreign),
+    ).toBe("(LIMIT)");
+    expect(
+      inline({ initialValue: "LIMIT * 2", initialValueExpr: binary }, foreign),
+    ).toBeNull();
+  });
+
+  it("gives any const's value to a case label, not only a private one's", () => {
+    const state = stateWith(
+      {
+        initialValue: "4",
+        initialValueExpr: literal("4"),
+        visibility: "public",
+      },
+      value("4"),
+    );
+    expect(PrivateConstValue.inlined(GENERATOR, state, "S__K")).toBeNull();
+    expect(PrivateConstValue.constant(GENERATOR, state, "S__K")?.code).toBe(
+      "4U",
+    );
+  });
+
   it("emits a const with no settled value", () => {
     expect(
       inline({ initialValue: '"abc"', initialValueExpr: binary }, null),
