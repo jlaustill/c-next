@@ -272,7 +272,6 @@ class CNextResolver {
       if (decl.scopeDeclaration()) {
         CNextResolver.collectScopedBitmapsAndStructs(
           registry,
-          decl.scopeDeclaration()!,
           DeclarationSyntax.of(syntax, "scope"),
           sourceFile,
           symbols,
@@ -289,28 +288,28 @@ class CNextResolver {
    */
   private static collectScopedBitmapsAndStructs(
     registry: SymbolRegistry,
-    scopeDecl: Parser.ScopeDeclarationContext,
     scopeSyntax: Extract<TDeclarationSyntax, { kind: "scope" }>,
     sourceFile: string,
     symbols: TSymbol[],
     knownBitmaps: Set<string>,
     isScopeType: (qualifiedName: string) => boolean,
   ): void {
-    const scopeName = scopeDecl.IDENTIFIER().getText();
+    const scopeName = scopeSyntax.name;
     const scopePath = ScopeUtils.pathOf(registry.getOrCreateScope(scopeName));
 
-    for (const [index, member] of scopeDecl.scopeMember().entries()) {
+    for (const member of scopeSyntax.members) {
+      const declaration = member.declaration;
       // #1300: these are the scoped bitmap and struct symbols that SURVIVE --
       // `collectScopeDeclaration` drops ScopeCollector's copies of both kinds.
       // Ask the same helper that pass 2 asks, so one fact has one answer.
-      const visibility = ScopeUtils.getMemberVisibility(member);
+      const visibility = ScopeUtils.memberVisibility(
+        member.visibility,
+        declaration.kind === "function",
+      );
 
-      if (member.bitmapDeclaration()) {
+      if (declaration.kind === "bitmap") {
         const symbol = BitmapCollector.collect(
-          DeclarationSyntax.of(
-            scopeSyntax.members[index].declaration,
-            "bitmap",
-          ),
+          declaration,
           sourceFile,
           scopePath,
           visibility,
@@ -324,12 +323,9 @@ class CNextResolver {
       }
 
       // Collect structs early so they're available as types
-      if (member.structDeclaration()) {
+      if (declaration.kind === "struct") {
         const symbol = StructCollector.collect(
-          DeclarationSyntax.of(
-            scopeSyntax.members[index].declaration,
-            "struct",
-          ),
+          declaration,
           sourceFile,
           scopePath,
           visibility,
@@ -393,7 +389,6 @@ class CNextResolver {
     if (decl.scopeDeclaration()) {
       CNextResolver._collectScopeDeclaration(
         registry,
-        decl.scopeDeclaration()!,
         DeclarationSyntax.of(syntax, "scope"),
         sourceFile,
         symbols,
@@ -474,7 +469,6 @@ class CNextResolver {
    */
   private static _collectScopeDeclaration(
     registry: SymbolRegistry,
-    scopeCtx: Parser.ScopeDeclarationContext,
     scopeSyntax: Extract<TDeclarationSyntax, { kind: "scope" }>,
     sourceFile: string,
     symbols: TSymbol[],
@@ -483,7 +477,6 @@ class CNextResolver {
   ): void {
     const result = ScopeCollector.collect(
       registry,
-      scopeCtx,
       scopeSyntax,
       sourceFile,
       knownBitmaps,

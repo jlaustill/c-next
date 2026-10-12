@@ -174,32 +174,15 @@ class ScopeUtils {
   }
 
   /**
-   * ADR-016 visibility of one scope member, as the source declares it.
+   * ADR-016 visibility of one scope member: the written one, else its kind's
+   * default.
    *
    * THE single decision. Three places used to compute this independently --
    * the symbol collector, the early bitmap/struct pass whose symbols are the
    * ones that survive, and codegen -- so "is this member private" had three
    * answers that happened to agree. #1300 is what that costs: the collectors
    * for four kinds could not reach the answer at all and hardcoded `public`.
-   *
-   * Typed structurally rather than against `ScopeMemberContext` so the ANTLR
-   * parse tree stays out of the utility layer (#1317), while the real context
-   * satisfies it unchanged.
    */
-  static getMemberVisibility(member: {
-    visibilityModifier(): { getText(): string } | null;
-    functionDeclaration(): unknown;
-  }): TVisibility {
-    const written = member.visibilityModifier()?.getText() as
-      | TVisibility
-      | undefined;
-    return ScopeUtils.memberVisibility(
-      written ?? null,
-      member.functionDeclaration() !== null,
-    );
-  }
-
-  /** A member's visibility: the written one, else its kind's default */
   static memberVisibility(
     written: TVisibility | null,
     isFunction: boolean,

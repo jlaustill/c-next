@@ -32,10 +32,8 @@ describe("ScopeCollector", () => {
       sourceFile: string,
     ): ReturnType<typeof ScopeCollector.collect> => {
       const tree = parse(code);
-      const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
       return ScopeCollector.collect(
         registry,
-        scopeCtx,
         FirstDeclaration.scope(tree),
         sourceFile,
         new Set(),
@@ -85,10 +83,8 @@ describe("ScopeCollector", () => {
         }
       `;
       const tree = parse(code);
-      const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
       const result = ScopeCollector.collect(
         registry,
-        scopeCtx,
         FirstDeclaration.scope(tree),
         "test.cnx",
         new Set(),
@@ -115,10 +111,8 @@ describe("ScopeCollector", () => {
         }
       `;
       const tree = parse(code);
-      const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
       const result = ScopeCollector.collect(
         registry,
-        scopeCtx,
         FirstDeclaration.scope(tree),
         "test.cnx",
         new Set(),
@@ -158,10 +152,8 @@ describe("ScopeCollector", () => {
         }
       `;
       const tree = parse(code);
-      const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
       const result = ScopeCollector.collect(
         registry,
-        scopeCtx,
         FirstDeclaration.scope(tree),
         "test.cnx",
         new Set(),
@@ -199,10 +191,8 @@ describe("ScopeCollector", () => {
         }
       `;
       const tree = parse(code);
-      const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
       const result = ScopeCollector.collect(
         registry,
-        scopeCtx,
         FirstDeclaration.scope(tree),
         "test.cnx",
         new Set(),
@@ -232,10 +222,8 @@ describe("ScopeCollector", () => {
         }
       `;
       const tree = parse(code);
-      const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
       const result = ScopeCollector.collect(
         registry,
-        scopeCtx,
         FirstDeclaration.scope(tree),
         "test.cnx",
         new Set(),
@@ -267,10 +255,8 @@ describe("ScopeCollector", () => {
         }
       `;
       const tree = parse(code);
-      const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
       const result = ScopeCollector.collect(
         registry,
-        scopeCtx,
         FirstDeclaration.scope(tree),
         "test.cnx",
         new Set(),
@@ -302,10 +288,8 @@ describe("ScopeCollector", () => {
         }
       `;
       const tree = parse(code);
-      const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
       const result = ScopeCollector.collect(
         registry,
-        scopeCtx,
         FirstDeclaration.scope(tree),
         "test.cnx",
         new Set(),
@@ -343,10 +327,8 @@ describe("ScopeCollector", () => {
         }
       `;
       const tree = parse(code);
-      const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
       const result = ScopeCollector.collect(
         registry,
-        scopeCtx,
         FirstDeclaration.scope(tree),
         "test.cnx",
         new Set(),
@@ -380,7 +362,6 @@ describe("ScopeCollector", () => {
         }
       `;
       const tree = parse(code);
-      const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
       // Simulate bitmap being collected in pass 1
       const knownBitmaps = new Set(["Motor__MotorFlags"]);
       // Production always threads this predicate down from CNextResolver's
@@ -390,7 +371,6 @@ describe("ScopeCollector", () => {
         knownBitmaps.has(qualifiedName);
       const result = ScopeCollector.collect(
         registry,
-        scopeCtx,
         FirstDeclaration.scope(tree),
         "test.cnx",
         knownBitmaps,
@@ -415,7 +395,6 @@ describe("ScopeCollector", () => {
         }
       `;
       const tree = parse(code);
-      const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
       // Both names are known bitmaps, so only ADR-057's `global.` opt-out
       // distinguishes them. Re-qualifying the resolved name would bind the
       // scoped one and emit a register typed with the wrong bit layout.
@@ -424,7 +403,6 @@ describe("ScopeCollector", () => {
         knownBitmaps.has(qualifiedName);
       const result = ScopeCollector.collect(
         registry,
-        scopeCtx,
         FirstDeclaration.scope(tree),
         "test.cnx",
         knownBitmaps,
@@ -447,10 +425,8 @@ describe("ScopeCollector", () => {
         }
       `;
       const tree = parse(code);
-      const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
       const result = ScopeCollector.collect(
         registry,
-        scopeCtx,
         FirstDeclaration.scope(tree),
         "test.cnx",
         new Set(),
