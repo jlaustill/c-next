@@ -97,6 +97,25 @@ describe("CNextResolver Integration", () => {
       expect(symbols[0].name).toBe("counter");
     });
 
+    it("resolves a top-level constructor declaration as a variable", () => {
+      const code = `
+        const u8 pin <- 10;
+        Sensor probe(pin);
+      `;
+      const tree = parse(code);
+      const symbols = CNextResolver.resolve(
+        tree,
+        ProgramLowering.program(tree, null),
+        "test.cnx",
+        registry,
+      ).symbols;
+
+      expect(symbols.map((symbol) => [symbol.kind, symbol.name])).toEqual([
+        ["variable", "pin"],
+        ["variable", "probe"],
+      ]);
+    });
+
     it("resolves top-level bitmap", () => {
       const code = `
         bitmap8 Flags {
@@ -605,6 +624,22 @@ describe("CNextResolver Integration", () => {
     });
   });
   describe("IFileSymbols: the per-file artifact (#1472)", () => {
+    it("declaredScopeTypes holds a scope function, which forms a callback type (ADR-029)", () => {
+      const code = `
+        scope Local {
+          public void tick() { }
+        }
+      `;
+      const declared = CNextResolver.resolve(
+        parse(code),
+        ProgramLowering.program(parse(code), null),
+        "test.cnx",
+        registry,
+      );
+
+      expect([...declared.declaredScopeTypes]).toEqual(["Local__tick"]);
+    });
+
     it("declaredScopeTypes holds what THIS file declares, and only that", () => {
       // `Top` and `GPIO` are the artifact's own negative controls. Its contract
       // is types declared INSIDE A SCOPE, registers excluded -- a register
