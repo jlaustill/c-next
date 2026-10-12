@@ -33,10 +33,10 @@ lexer-only include scan. Nothing from 2.2 Plan on.
 | Layer                | Modules |
 | -------------------- | ------: |
 | `src/cnx/TRANSPILE/` |      61 |
-| `src/cnx/PARSE/`     |      21 |
-| `src/cnx/utils/`     |       6 |
+| `src/cnx/PARSE/`     |      16 |
+| `src/cnx/utils/`     |       5 |
 | `src/cnx/types/`     |       2 |
-| **total**            |  **90** |
+| **total**            |  **84** |
 
 `src/cnx/TRANSPILE/3-Render/` is the render layer, and its share is the number
 the issue singles out: the render layer holding parse nodes is how a
@@ -52,18 +52,13 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/cnx/PARSE/3-Declare/c/collectors/StructCollector.ts`           | grammar           |
 | `src/cnx/PARSE/3-Declare/c/index.ts`                                | grammar           |
 | `src/cnx/PARSE/3-Declare/c/utils/DeclaratorUtils.ts`                | grammar           |
-| `src/cnx/PARSE/3-Declare/cnext/collectors/BitmapCollector.ts`       | grammar           |
-| `src/cnx/PARSE/3-Declare/cnext/collectors/EnumCollector.ts`         | grammar           |
 | `src/cnx/PARSE/3-Declare/cnext/collectors/FunctionCollector.ts`     | grammar           |
 | `src/cnx/PARSE/3-Declare/cnext/collectors/LexicalScopeCollector.ts` | antlr4ng, grammar |
 | `src/cnx/PARSE/3-Declare/cnext/collectors/RegisterCollector.ts`     | grammar           |
 | `src/cnx/PARSE/3-Declare/cnext/collectors/ScopeCollector.ts`        | grammar           |
-| `src/cnx/PARSE/3-Declare/cnext/collectors/StructCollector.ts`       | grammar           |
 | `src/cnx/PARSE/3-Declare/cnext/collectors/VariableCollector.ts`     | grammar           |
 | `src/cnx/PARSE/3-Declare/cnext/index.ts`                            | grammar           |
 | `src/cnx/PARSE/3-Declare/cnext/utils/ArrayInitializerUtils.ts`      | grammar           |
-| `src/cnx/PARSE/3-Declare/cnext/utils/DimensionResolver.ts`          | grammar           |
-| `src/cnx/PARSE/3-Declare/cnext/utils/TypeUtils.ts`                  | grammar           |
 | `src/cnx/PARSE/3-Declare/cpp/index.ts`                              | grammar           |
 | `src/cnx/PARSE/3-Declare/cpp/utils/DeclaratorUtils.ts`              | grammar           |
 | `src/cnx/PARSE/3-Declare/HeaderDeclarations.ts`                     | grammar           |
@@ -133,8 +128,7 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/cnx/utils/ChainRoot.ts`                                        | grammar           |
 | `src/cnx/utils/ExpressionUnwrapper.ts`                              | grammar           |
 | `src/cnx/utils/ExpressionUtils.ts`                                  | grammar           |
-| `src/cnx/utils/OverflowBehaviorUtils.ts`                            | grammar           |
 | `src/cnx/utils/ParserUtils.ts`                                      | antlr4ng, grammar |
 | `src/cnx/utils/PostfixAnalysisUtils.ts`                             | grammar           |
 
-90 module(s).
+84 module(s).
