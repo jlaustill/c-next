@@ -188,7 +188,7 @@ function runAnalyzers(
     },
     {
       label: "#define shape (ADR-037: flag-only defines)",
-      run: () => new DefineDirectiveAnalyzer().analyze(tree),
+      run: () => new DefineDirectiveAnalyzer().analyze(parsed.program),
     },
     {
       // #1322: a C++ class initializer that has nowhere to put its
