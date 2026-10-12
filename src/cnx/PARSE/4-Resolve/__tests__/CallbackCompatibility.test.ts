@@ -24,7 +24,6 @@ function callbacksIn(
   const registry = new SymbolRegistry();
   const files = sources.map((source, index) =>
     CNextResolver.resolve(
-      CNextSourceParser.parse(source).tree,
       ProgramLowering.program(CNextSourceParser.parse(source).tree, null),
       `file${index}.cnx`,
       registry,

@@ -38,7 +38,6 @@ function analyze(source: string) {
   const tree = parse(source);
   state.symbols = TSymbolInfoAdapter.convert(
     CNextResolver.resolve(
-      tree,
       ProgramLowering.program(tree, null),
       "test.cnx",
       registry,
@@ -232,7 +231,6 @@ describe("UndeclaredTypeAnalyzer", () => {
       const tree = parse(`u32 main() { Nowhere c; return 0; }`);
       state.symbols = TSymbolInfoAdapter.convert(
         CNextResolver.resolve(
-          tree,
           ProgramLowering.program(tree, null),
           "test.cnx",
           registry,

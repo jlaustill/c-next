@@ -71,7 +71,6 @@ describe("Program", () => {
 
   const declare = (code: string, sourceFile: string): IFileSymbols =>
     CNextResolver.resolve(
-      parse(code),
       ProgramLowering.program(parse(code), null),
       sourceFile,
       registry,

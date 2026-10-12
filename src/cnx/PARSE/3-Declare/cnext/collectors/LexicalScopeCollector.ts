@@ -5,8 +5,8 @@
  * 2.1 and 2.2 each answered "what does this name mean HERE" from their own
  * walk: 2.1 from per-analyzer frame maps keyed on parse nodes, 2.2 from one
  * flat registry keyed by name, which a shadowing local overwrote. This is the
- * one answer, built once by 1.3 from one file's tree and holding no parse
- * node, so it rides on `IFileSymbols` and 1.4 settles it with the rest.
+ * one answer, built once by 1.3 from 1.2's syntax of one file, so it rides
+ * on `IFileSymbols` and 1.4 settles it with the rest.
  *
  * Globals and scope members are not recorded: they are `IVariableSymbol`s.
  * A local's facts come from `VariableCollector.declaredFacts` and a
@@ -14,21 +14,19 @@
  * already derive them for symbols, so a declaration means the same thing
  * wherever it is written.
  */
-import { ParserRuleContext, ParseTreeWalker, TerminalNode } from "antlr4ng";
-
-import { CNextListener } from "../../../2-Parse/grammar/CNextListener";
-import * as Parser from "../../../2-Parse/grammar/CNextParser";
 import FunctionCollector from "./FunctionCollector";
-import ProgramLowering from "../../../2-Parse/ProgramLowering";
-import StatementLowering from "../../../2-Parse/StatementLowering";
 import VariableCollector from "./VariableCollector";
 import type SymbolRegistry from "../../SymbolRegistry";
 import OverflowBehaviorUtils from "../../../../utils/OverflowBehaviorUtils";
-import ParserUtils from "../../../../utils/ParserUtils";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 import type ILexicalFrame from "../../../../types/ILexicalFrame";
 import type ILocalDeclaration from "../../../../types/ILocalDeclaration";
 import type ISourceSpan from "../../../../types/ISourceSpan";
+import type IFunctionDeclarationSyntax from "../../../../types/syntax/IFunctionDeclarationSyntax";
+import type IProgramSyntax from "../../../../types/syntax/IProgramSyntax";
+import type IVariableDeclarationSyntax from "../../../../types/syntax/IVariableDeclarationSyntax";
+import type TBlockSyntax from "../../../../types/syntax/TBlockSyntax";
+import type TStatement from "../../../../types/syntax/TStatement";
 
 /** A frame while it is being filled */
 interface IFrameBuilder {
@@ -40,90 +38,76 @@ interface IFrameBuilder {
   readonly children: IFrameBuilder[];
 }
 
-class FrameListener extends CNextListener {
-  private readonly stack: IFrameBuilder[];
-
+/** Walks 1.2's syntax in source order, opening a frame where the code does */
+class FrameWalker {
   constructor(
-    root: IFrameBuilder,
     private readonly registry: SymbolRegistry,
     private readonly isScopeType: (qualifiedName: string) => boolean,
-  ) {
-    super();
-    this.stack = [root];
-  }
+  ) {}
 
-  private top(): IFrameBuilder {
-    return this.stack.at(-1)!;
-  }
-
-  private push(
+  private static open(
+    parent: IFrameBuilder,
     kind: ILexicalFrame["kind"],
-    ctx: ParserRuleContext,
+    span: ISourceSpan,
     scopePath: string,
     functionCName: string | null = null,
-  ): void {
+  ): IFrameBuilder {
     const frame: IFrameBuilder = {
       kind,
-      span: ParserUtils.getSpan(ctx),
+      span,
       scopePath,
       functionCName,
       declarations: [],
       children: [],
     };
-    this.top().children.push(frame);
-    this.stack.push(frame);
+    parent.children.push(frame);
+    return frame;
   }
 
-  private readonly pop = (): void => {
-    this.stack.pop();
-  };
-
-  private static spanOf(node: TerminalNode): ISourceSpan {
-    return ParserUtils.getSpan({ start: node.symbol, stop: node.symbol });
+  /** Globals and scope members are symbols, so only functions hold locals */
+  program(root: IFrameBuilder, program: IProgramSyntax): void {
+    for (const { declaration } of program.declarations) {
+      if (declaration.kind === "function") {
+        this.function(root, declaration);
+      } else if (declaration.kind === "scope") {
+        const scope = FrameWalker.open(
+          root,
+          "scope",
+          declaration.span,
+          ScopeUtils.pathOf(this.registry.getOrCreateScope(declaration.name)),
+        );
+        for (const member of declaration.members) {
+          if (member.declaration.kind === "function") {
+            this.function(scope, member.declaration);
+          }
+        }
+      }
+    }
   }
 
-  override enterScopeDeclaration = (
-    ctx: Parser.ScopeDeclarationContext,
-  ): void => {
-    this.push(
-      "scope",
-      ctx,
-      ScopeUtils.pathOf(
-        this.registry.getOrCreateScope(ctx.IDENTIFIER().getText()),
-      ),
-    );
-  };
-
-  override exitScopeDeclaration = this.pop;
-
-  override enterFunctionDeclaration = (
-    ctx: Parser.FunctionDeclarationContext,
-  ): void => {
-    const scopePath = this.top().scopePath;
-    this.push(
+  private function(
+    parent: IFrameBuilder,
+    fn: IFunctionDeclarationSyntax,
+  ): void {
+    const scopePath = parent.scopePath;
+    const frame = FrameWalker.open(
+      parent,
       "function",
-      ctx,
+      fn.span,
       scopePath,
-      ScopeUtils.getTranspiledCName({
-        name: ctx.IDENTIFIER().getText(),
-        scopePath,
-      }),
+      ScopeUtils.getTranspiledCName({ name: fn.name, scopePath }),
     );
-
-    // Interim (#1991): lowered here until 1.3 walks 1.2's bodies, not the tree
-    const params = ProgramLowering.parameters(ctx.parameterList()) ?? [];
+    const parameters = fn.parameters ?? [];
     const infos = FunctionCollector.collectParameters(
-      params,
+      parameters,
       scopePath,
       this.isScopeType,
     );
     infos.forEach((info, index) => {
-      this.top().declarations.push({
+      frame.declarations.push({
         name: info.name,
         kind: "parameter",
-        span: FrameListener.spanOf(
-          ctx.parameterList()!.parameter(index)!.IDENTIFIER(),
-        ),
+        span: parameters[index].nameSpan,
         type: info.type,
         arrayDimensions: info.arrayDimensions ?? [],
         arrayDimensionExprs: info.arrayDimensionExprs ?? [],
@@ -139,55 +123,101 @@ class FrameListener extends CNextListener {
         emittedName: null,
       });
     });
-  };
+    this.block(frame, fn.body);
+  }
 
-  override exitFunctionDeclaration = this.pop;
-
-  override enterBlock = (ctx: Parser.BlockContext): void => {
-    this.push("block", ctx, this.top().scopePath);
-  };
-
-  override exitBlock = this.pop;
-
-  override enterForStatement = (ctx: Parser.ForStatementContext): void => {
-    this.push("for", ctx, this.top().scopePath);
-  };
-
-  override exitForStatement = this.pop;
-
-  override enterVariableDeclaration = (
-    ctx: Parser.VariableDeclarationContext,
-  ): void => {
-    const frame = this.top();
-    // At file or scope level this is a global or member: a symbol, not a local
-    if (frame.kind === "file" || frame.kind === "scope") {
-      return;
+  private block(parent: IFrameBuilder, body: TBlockSyntax): void {
+    const frame = FrameWalker.open(
+      parent,
+      "block",
+      body.span,
+      parent.scopePath,
+    );
+    for (const statement of body.statements) {
+      this.statement(frame, statement);
     }
-    this.record(ctx, ctx.constructorArgumentList() ? "constructor" : "local");
-  };
+  }
 
-  override enterForVarDecl = (ctx: Parser.ForVarDeclContext): void => {
-    this.record(ctx, "for");
-  };
+  private statement(frame: IFrameBuilder, statement: TStatement): void {
+    switch (statement.kind) {
+      case "variableDeclaration":
+        this.record(frame, VariableCollector.asVariable(statement), "local");
+        return;
+      case "constructorDeclaration":
+        this.record(
+          frame,
+          VariableCollector.asVariable(statement),
+          "constructor",
+        );
+        return;
+      case "block":
+        this.block(frame, statement);
+        return;
+      case "if":
+        this.statement(frame, statement.whenTrue);
+        if (statement.whenFalse) {
+          this.statement(frame, statement.whenFalse);
+        }
+        return;
+      case "while":
+        this.statement(frame, statement.body);
+        return;
+      case "doWhile":
+      case "forever":
+      case "critical":
+        this.block(frame, statement.body);
+        return;
+      case "for":
+        this.forStatement(frame, statement);
+        return;
+      case "switch":
+        for (const switchCase of statement.cases) {
+          this.block(frame, switchCase.body);
+        }
+        if (statement.defaultCase) {
+          this.block(frame, statement.defaultCase.body);
+        }
+        return;
+      case "assignment":
+      case "expression":
+      case "return":
+      case "missing":
+        return;
+    }
+  }
+
+  private forStatement(
+    parent: IFrameBuilder,
+    statement: Extract<TStatement, { kind: "for" }>,
+  ): void {
+    const frame = FrameWalker.open(
+      parent,
+      "for",
+      statement.span,
+      parent.scopePath,
+    );
+    if (statement.init?.kind === "variableDeclaration") {
+      this.record(frame, statement.init, "for");
+    }
+    this.statement(frame, statement.body);
+  }
 
   private record(
-    ctx: Parser.VariableDeclarationContext | Parser.ForVarDeclContext,
+    frame: IFrameBuilder,
+    declaration: IVariableDeclarationSyntax,
     kind: ILocalDeclaration["kind"],
   ): void {
-    const frame = this.top();
     // #1664 box 7: a local's `u8[N]` keeps `N` as written, so 1.4 folds it
     // where it is declared -- after a local `const N` that shadows a global one.
     const facts = VariableCollector.declaredFacts(
-      ctx instanceof Parser.VariableDeclarationContext
-        ? VariableCollector.asVariable(StatementLowering.declaration(ctx))
-        : StatementLowering.variableDeclaration(ctx),
+      declaration,
       frame.scopePath,
       this.isScopeType,
     );
     frame.declarations.push({
-      name: ctx.IDENTIFIER().getText(),
+      name: declaration.name,
       kind,
-      span: FrameListener.spanOf(ctx.IDENTIFIER()),
+      span: declaration.nameSpan,
       type: facts.type,
       arrayDimensions: facts.arrayDimensions,
       arrayDimensionExprs: facts.arrayDimensionExprs,
@@ -206,7 +236,7 @@ class FrameListener extends CNextListener {
 
 class LexicalScopeCollector {
   /**
-   * The file frame of `tree`, with every frame nested in it.
+   * The file frame of `program`, with every frame nested in it.
    *
    * Array dimensions are left for 1.4 to fold in each declaration's lexical
    * environment, except a literal or `sizeof`, which needs no const.
@@ -215,22 +245,19 @@ class LexicalScopeCollector {
    *   declares? A bare type it cannot settle is deferred, as for symbols
    */
   static collect(
-    tree: Parser.ProgramContext,
+    program: IProgramSyntax,
     registry: SymbolRegistry,
     isScopeType: (qualifiedName: string) => boolean,
   ): ILexicalFrame {
     const root: IFrameBuilder = {
       kind: "file",
-      span: ParserUtils.getSpan(tree),
+      span: program.span,
       scopePath: "",
       functionCName: null,
       declarations: [],
       children: [],
     };
-    ParseTreeWalker.DEFAULT.walk(
-      new FrameListener(root, registry, isScopeType),
-      tree,
-    );
+    new FrameWalker(registry, isScopeType).program(root, program);
     return root;
   }
 }

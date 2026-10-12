@@ -1,8 +1,6 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import parse from "./testHelpers";
 import FirstDeclaration from "./FirstDeclaration";
-import DeclarationSyntax from "../utils/DeclarationSyntax";
-import ProgramLowering from "../../../2-Parse/ProgramLowering";
 import TestScopeUtils from "./testUtils";
 import FunctionCollector from "../collectors/FunctionCollector";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
@@ -393,10 +391,7 @@ describe("FunctionCollector", () => {
       `;
       const tree = parse(code);
       const funcACtx = FirstDeclaration.function(tree);
-      const funcBCtx = DeclarationSyntax.of(
-        ProgramLowering.program(tree, null).declarations[1].declaration,
-        "function",
-      );
+      const funcBCtx = FirstDeclaration.at(tree, 1, "function");
 
       FunctionCollector.collectAndRegister(
         registry,

@@ -30,7 +30,6 @@ function analyze(source: string) {
   const tree = parse(source);
   state.symbols = TSymbolInfoAdapter.convert(
     CNextResolver.resolve(
-      tree,
       ProgramLowering.program(tree, null),
       "test.cnx",
       registry,

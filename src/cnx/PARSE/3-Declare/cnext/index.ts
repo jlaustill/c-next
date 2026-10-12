@@ -10,7 +10,6 @@ import type TDeclarationSyntax from "../../../types/syntax/TDeclarationSyntax";
 import LexicalScopeCollector from "./collectors/LexicalScopeCollector";
 import ModificationCollector from "./collectors/ModificationCollector";
 import CallbackUseCollector from "./collectors/CallbackUseCollector";
-import * as Parser from "../../2-Parse/grammar/CNextParser";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import TSymbol from "../../../types/symbols/TSymbol";
 import IFileSymbols from "../../../types/IFileSymbols";
@@ -47,17 +46,15 @@ const MEMBER_SYMBOL_KIND: Readonly<
 
 class CNextResolver {
   /**
-   * Resolve all symbols from a C-Next program parse tree.
+   * Resolve all symbols from a C-Next program, as 1.2 lowered it.
    *
-   * @param tree The program context from the parser
-   * @param program The same program, lowered (1.2): its statements' children
+   * @param program The file as 1.2 lowered it; 1.3 reads no parse tree
    * @param sourceFile Source file path
    * @returns `IFileSymbols` -- the symbols this file declares, plus the scope
    *   types it declares. The latter is a per-file fact and travels on the
    *   artifact; the seed it is merged with is cross-file and does not.
    */
   static resolve(
-    tree: Parser.ProgramContext,
     program: IProgramSyntax,
     sourceFile: string,
     registry: SymbolRegistry,
@@ -129,7 +126,7 @@ class CNextResolver {
     // #1668: the lexical frames, over the same ADR-057 predicate the symbols
     // were collected with.
     const lexicalScopes = LexicalScopeCollector.collect(
-      tree,
+      program,
       registry,
       isScopeType,
     );

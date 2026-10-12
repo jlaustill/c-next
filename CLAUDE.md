@@ -599,7 +599,7 @@ and knip names that member.
 | `ISymbol`        | Legacy flat interface          | Removed (Phase 7) |
 | `TSymbolAdapter` | Converts TSymbol[] → ISymbol[] | Removed (Phase 7) |
 
-**Use**: `CNextResolver.resolve(tree, file, registry)` → `IFileSymbols` (its `.symbols` is the `TSymbol[]`)
+**Use**: `CNextResolver.resolve(program, file, registry)` → `IFileSymbols` (its `.symbols` is the `TSymbol[]`)
 **Avoid**: Deleted `SymbolCollector`, `CNextSymbolCollector`
 
 ### C/C++ Resolvers (symbol-resolution Phase 6)
@@ -659,7 +659,7 @@ E0424 is a 2.1 Analyze diagnostic since #1322, and render asserts it never sees 
   (#1724). It reads the run-wide table no longer, and answers "missing" for every C/C++
   header type, since a scope type is a C-Next one. Ask the per-file sets about a C-Next name
   and the run-wide table about a foreign one
-- **Test isolation**: build a fresh `new SymbolRegistry()` per test and pass it to `CNextResolver.resolve(tree, file, registry)` — there is no global registry to reset (#1452 box 3 deleted the static and its `reset()`)
+- **Test isolation**: build a fresh `new SymbolRegistry()` per test and pass it to `CNextResolver.resolve(program, file, registry)` — there is no global registry to reset (#1452 box 3 deleted the static and its `reset()`)
 - **Array dimensions**: `IVariableSymbol.arrayDimensions` is `(number | string)[]` — numbers for resolved constants, strings for C macros
 - **What an analyzer may read is `IAnalysisContext`, and nothing else.** #1456
   made it a parameter: `symbols` (this file's view), `program` (1.4's artifact),

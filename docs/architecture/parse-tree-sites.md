@@ -32,11 +32,11 @@ lexer-only include scan. Nothing from 2.2 Plan on.
 
 | Layer                | Modules |
 | -------------------- | ------: |
-| `src/cnx/PARSE/`     |      11 |
+| `src/cnx/PARSE/`     |       9 |
 | `src/cnx/TRANSPILE/` |       3 |
 | `src/cnx/utils/`     |       2 |
 | `src/cnx/types/`     |       1 |
-| **total**            |  **17** |
+| **total**            |  **15** |
 
 `src/cnx/TRANSPILE/3-Render/` is the render layer, and its share is the number
 the issue singles out: the render layer holding parse nodes is how a
@@ -44,24 +44,22 @@ diagnostic can originate there at all, which is what #1322 relocates.
 
 ## Modules
 
-| Module                                                              | Holds             |
-| ------------------------------------------------------------------- | ----------------- |
-| `src/cnx/PARSE/1-Discover/IncludeDiscovery.ts`                      | antlr4ng, grammar |
-| `src/cnx/PARSE/3-Declare/c/collectors/EnumCollector.ts`             | grammar           |
-| `src/cnx/PARSE/3-Declare/c/collectors/FunctionCollector.ts`         | grammar           |
-| `src/cnx/PARSE/3-Declare/c/collectors/StructCollector.ts`           | grammar           |
-| `src/cnx/PARSE/3-Declare/c/index.ts`                                | grammar           |
-| `src/cnx/PARSE/3-Declare/c/utils/DeclaratorUtils.ts`                | grammar           |
-| `src/cnx/PARSE/3-Declare/cnext/collectors/LexicalScopeCollector.ts` | antlr4ng, grammar |
-| `src/cnx/PARSE/3-Declare/cnext/index.ts`                            | grammar           |
-| `src/cnx/PARSE/3-Declare/cpp/index.ts`                              | grammar           |
-| `src/cnx/PARSE/3-Declare/cpp/utils/DeclaratorUtils.ts`              | grammar           |
-| `src/cnx/PARSE/3-Declare/HeaderDeclarations.ts`                     | grammar           |
-| `src/cnx/TRANSPILE/1-Analyze/GrammarCoverageListener.ts`            | antlr4ng          |
-| `src/cnx/TRANSPILE/1-Analyze/runAnalyzers.ts`                       | grammar           |
-| `src/cnx/TRANSPILE/1-Analyze/TreePasses.ts`                         | grammar           |
-| `src/cnx/types/IParsedFile.ts`                                      | antlr4ng, grammar |
-| `src/cnx/utils/ChainRoot.ts`                                        | grammar           |
-| `src/cnx/utils/ExpressionUnwrapper.ts`                              | grammar           |
+| Module                                                      | Holds             |
+| ----------------------------------------------------------- | ----------------- |
+| `src/cnx/PARSE/1-Discover/IncludeDiscovery.ts`              | antlr4ng, grammar |
+| `src/cnx/PARSE/3-Declare/c/collectors/EnumCollector.ts`     | grammar           |
+| `src/cnx/PARSE/3-Declare/c/collectors/FunctionCollector.ts` | grammar           |
+| `src/cnx/PARSE/3-Declare/c/collectors/StructCollector.ts`   | grammar           |
+| `src/cnx/PARSE/3-Declare/c/index.ts`                        | grammar           |
+| `src/cnx/PARSE/3-Declare/c/utils/DeclaratorUtils.ts`        | grammar           |
+| `src/cnx/PARSE/3-Declare/cpp/index.ts`                      | grammar           |
+| `src/cnx/PARSE/3-Declare/cpp/utils/DeclaratorUtils.ts`      | grammar           |
+| `src/cnx/PARSE/3-Declare/HeaderDeclarations.ts`             | grammar           |
+| `src/cnx/TRANSPILE/1-Analyze/GrammarCoverageListener.ts`    | antlr4ng          |
+| `src/cnx/TRANSPILE/1-Analyze/runAnalyzers.ts`               | grammar           |
+| `src/cnx/TRANSPILE/1-Analyze/TreePasses.ts`                 | grammar           |
+| `src/cnx/types/IParsedFile.ts`                              | antlr4ng, grammar |
+| `src/cnx/utils/ChainRoot.ts`                                | grammar           |
+| `src/cnx/utils/ExpressionUnwrapper.ts`                      | grammar           |
 
-17 module(s).
+15 module(s).

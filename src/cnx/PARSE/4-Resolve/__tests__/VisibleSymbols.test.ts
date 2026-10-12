@@ -25,7 +25,6 @@ import SymbolRegistry from "../../3-Declare/SymbolRegistry";
 const declared = (source: string, path: string) =>
   TSymbolInfoAdapter.convert(
     CNextResolver.resolve(
-      CNextSourceParser.parse(source).tree,
       ProgramLowering.program(CNextSourceParser.parse(source).tree, null),
       path,
       new SymbolRegistry(),

@@ -33,6 +33,7 @@ class ProgramLowering {
         ? comments.getCommentsBefore(ctx.start.tokenIndex)
         : [];
     return {
+      span: ParserUtils.getSpan(tree),
       includes: tree.includeDirective().map((include) => ({
         ...SyntaxLowering.node(include),
         leadingComments: leadingComments(include),
