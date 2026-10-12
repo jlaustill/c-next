@@ -345,7 +345,7 @@ function runAnalyzers(
     },
     {
       label: "`this` outside a scope (ADR-016)",
-      run: () => new ThisOutsideScopeAnalyzer().analyze(tree),
+      run: () => new ThisOutsideScopeAnalyzer().analyze(parsed.program),
     },
     {
       // Before the enum type-safety step: `Color c <- YELLOW` with YELLOW

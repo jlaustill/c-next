@@ -36,72 +36,59 @@
  * changing them.
  */
 
-import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
-
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import ParserUtils from "../../utils/ParserUtils";
+import type ISourceSpan from "../../types/ISourceSpan";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type TExpression from "../../types/syntax/TExpression";
+import type TSyntaxPart from "../../types/syntax/TSyntaxPart";
+import type TTypeSyntax from "../../types/syntax/TTypeSyntax";
+import DeclarationParts from "../../utils/DeclarationParts";
+import ExpressionChildren from "../../utils/ExpressionChildren";
+import TypeParts from "../../utils/TypeParts";
 import IThisOutsideScopeError from "./types/IThisOutsideScopeError";
 
-/**
- * Tracks how many `scope` declarations are open, and reports any `this` seen
- * while none is.
- *
- * A depth counter rather than `EnclosingScope`: this asks only whether it is
- * inside one, never which, so carrying the path would be state with no reader.
- */
-class ThisOutsideScopeListener extends CNextListener {
-  private depth = 0;
-
+/** `this` as a value, an assignment target's root, or `this.Type`, anywhere outside a top-level scope */
+class ThisOutsideScopeAnalyzer {
   private readonly found: IThisOutsideScopeError[] = [];
 
-  public errors(): IThisOutsideScopeError[] {
+  public analyze(program: IProgramSyntax): IThisOutsideScopeError[] {
+    for (const member of program.declarations) {
+      if (member.declaration.kind === "scope") continue;
+      for (const part of DeclarationParts.of(member.declaration)) {
+        this.part(part);
+      }
+    }
     return this.found;
   }
 
-  override enterScopeDeclaration = (): void => {
-    this.depth += 1;
-  };
+  private part(part: TSyntaxPart): void {
+    if (part.kind === "type") {
+      this.type(part.type);
+    } else {
+      this.expression(part.expression);
+    }
+  }
 
-  override exitScopeDeclaration = (): void => {
-    this.depth -= 1;
-  };
+  private type(type: TTypeSyntax): void {
+    if (type.kind === "scoped") this.report(type.span);
+    for (const part of TypeParts.of(type)) this.part(part);
+  }
 
-  override enterPrimaryExpression = (
-    ctx: Parser.PrimaryExpressionContext,
-  ): void => {
-    if (ctx.THIS()) this.report(ctx);
-  };
+  private expression(expr: TExpression): void {
+    if (expr.kind === "root" && expr.root === "this") this.report(expr.span);
+    if (expr.kind === "cast") this.type(expr.type);
+    if (expr.kind === "sizeof" && expr.type !== null) this.type(expr.type);
+    for (const child of ExpressionChildren.of(expr)) this.expression(child);
+  }
 
-  override enterAssignmentTarget = (
-    ctx: Parser.AssignmentTargetContext,
-  ): void => {
-    if (ctx.THIS()) this.report(ctx);
-  };
-
-  override enterScopedType = (ctx: Parser.ScopedTypeContext): void => {
-    if (ctx.THIS()) this.report(ctx);
-  };
-
-  private report(ctx: ParserRuleContext): void {
-    if (this.depth > 0) return;
-    const { line, column } = ParserUtils.getPosition(ctx);
+  private report(span: ISourceSpan): void {
     this.found.push({
       code: "E0431",
-      line,
-      column,
+      line: span.line,
+      column: span.column,
       message: "'this' can only be used inside a scope",
       helpText:
         "`this` names the enclosing scope's own member. Outside a scope, write `global.Name` for a file-scope declaration, or move the code into the scope it belongs to.",
     });
-  }
-}
-
-class ThisOutsideScopeAnalyzer {
-  public analyze(tree: Parser.ProgramContext): IThisOutsideScopeError[] {
-    const listener = new ThisOutsideScopeListener();
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
-    return listener.errors();
   }
 }
 
