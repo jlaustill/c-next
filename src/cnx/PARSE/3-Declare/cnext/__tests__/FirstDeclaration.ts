@@ -22,6 +22,10 @@ class FirstDeclaration {
     return DeclarationSyntax.of(FirstDeclaration.lowered(tree), "register");
   }
 
+  static function(tree: ProgramContext) {
+    return DeclarationSyntax.of(FirstDeclaration.lowered(tree), "function");
+  }
+
   static bitmap(tree: ProgramContext) {
     return DeclarationSyntax.of(FirstDeclaration.lowered(tree), "bitmap");
   }

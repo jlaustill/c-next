@@ -166,7 +166,7 @@ class ScopeCollector {
         // Use collectAndRegister to populate both memberSymbols and SymbolRegistry
         const funcSymbol = FunctionCollector.collectAndRegister(
           registry,
-          funcDecl,
+          DeclarationSyntax.of(memberSyntax, "function"),
           sourceFile,
           scopePath,
           visibility,

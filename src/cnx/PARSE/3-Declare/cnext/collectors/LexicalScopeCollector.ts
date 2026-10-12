@@ -19,6 +19,7 @@ import { ParserRuleContext, ParseTreeWalker, TerminalNode } from "antlr4ng";
 import { CNextListener } from "../../../2-Parse/grammar/CNextListener";
 import * as Parser from "../../../2-Parse/grammar/CNextParser";
 import FunctionCollector from "./FunctionCollector";
+import ProgramLowering from "../../../2-Parse/ProgramLowering";
 import VariableCollector from "./VariableCollector";
 import type SymbolRegistry from "../../SymbolRegistry";
 import OverflowBehaviorUtils from "../../../../utils/OverflowBehaviorUtils";
@@ -108,7 +109,8 @@ class FrameListener extends CNextListener {
       }),
     );
 
-    const params = ctx.parameterList()?.parameter() ?? [];
+    // Interim (#1991): lowered here until 1.3 walks 1.2's bodies, not the tree
+    const params = ProgramLowering.parameters(ctx.parameterList()) ?? [];
     const infos = FunctionCollector.collectParameters(
       params,
       scopePath,
@@ -118,7 +120,9 @@ class FrameListener extends CNextListener {
       this.top().declarations.push({
         name: info.name,
         kind: "parameter",
-        span: FrameListener.spanOf(params[index].IDENTIFIER()),
+        span: FrameListener.spanOf(
+          ctx.parameterList()!.parameter(index)!.IDENTIFIER(),
+        ),
         type: info.type,
         arrayDimensions: info.arrayDimensions ?? [],
         arrayDimensionExprs: info.arrayDimensionExprs ?? [],

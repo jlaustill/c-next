@@ -5,8 +5,8 @@
  * Produces TType-based IFunctionSymbol with proper IScopeSymbol references.
  */
 
-import SyntaxLowering from "../../../2-Parse/SyntaxLowering";
-import * as Parser from "../../../2-Parse/grammar/CNextParser";
+import type IFunctionDeclarationSyntax from "../../../../types/syntax/IFunctionDeclarationSyntax";
+import type IParameterSyntax from "../../../../types/syntax/IParameterSyntax";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import IFunctionSymbol from "../../../../types/symbols/IFunctionSymbol";
 import IParameterInfo from "../../../../types/symbols/IParameterInfo";
@@ -14,7 +14,6 @@ import TypeUtils from "../utils/TypeUtils";
 import SymbolRegistry from "../../SymbolRegistry";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 import TVisibility from "../../../../types/TVisibility";
-import ParserUtils from "../../../../utils/ParserUtils";
 import DimensionResolver from "../utils/DimensionResolver";
 
 class FunctionCollector {
@@ -31,17 +30,15 @@ class FunctionCollector {
    * @returns The function symbol with TType-based types and scope reference
    */
   static collect(
-    ctx: Parser.FunctionDeclarationContext,
+    syntax: IFunctionDeclarationSyntax,
     sourceFile: string,
     scopePath: string,
     visibility: TVisibility,
     isScopeType?: (qualifiedName: string) => boolean,
   ): IFunctionSymbol {
-    const name = ctx.IDENTIFIER().getText();
-    const span = ParserUtils.getSpan(ctx);
+    const name = syntax.name;
+    const span = syntax.span;
 
-    // Get return type string and convert to TType
-    const returnTypeCtx = ctx.type();
     // #1298: members carry the scope's PATH, not the scope object. The path
     // holds every outer component, so nothing downstream can flatten it to a
     // leaf -- which is what the reference threaded here used to protect against.
@@ -49,15 +46,13 @@ class FunctionCollector {
     // of guessing it, so 1.4 Resolve can apply ADR-057 with the whole-program
     // scope-type set. Everything it can settle resolves exactly as before.
     const returnType = TypeUtils.resolveType(
-      SyntaxLowering.type(returnTypeCtx),
+      syntax.returnType,
       scopePath,
       isScopeType,
     );
 
-    // Collect parameters with TType
-    const params = ctx.parameterList()?.parameter() ?? [];
     const parameters = FunctionCollector.collectParameters(
-      params,
+      syntax.parameters ?? [],
       scopePath,
       isScopeType,
     );
@@ -86,7 +81,7 @@ class FunctionCollector {
    * 2. Collects the function with TType-based types
    * 3. Registers the function in that scope
    *
-   * @param ctx The function declaration context
+   * @param syntax The function declaration, as 1.2 lowered it
    * @param sourceFile Source file path
    * @param scopePath Declaring scope path; carries every outer component
    * @param visibility Required: #1161 — a default here is a third source
@@ -97,7 +92,7 @@ class FunctionCollector {
    */
   static collectAndRegister(
     registry: SymbolRegistry,
-    ctx: Parser.FunctionDeclarationContext,
+    syntax: IFunctionDeclarationSyntax,
     sourceFile: string,
     scopePath: string,
     visibility: TVisibility,
@@ -107,7 +102,7 @@ class FunctionCollector {
 
     // 2. Collect function with TType-based types and scope reference
     const symbol = FunctionCollector.collect(
-      ctx,
+      syntax,
       sourceFile,
       scopePath,
       visibility,
@@ -121,45 +116,41 @@ class FunctionCollector {
   }
 
   /**
-   * Extract parameter information from parameter contexts.
+   * Extract parameter information from 1.2's lowered parameters.
    * Converts type strings to TType.
    */
   static collectParameters(
-    params: Parser.ParameterContext[],
+    params: readonly IParameterSyntax[],
     scopePath = "",
     isScopeType?: (qualifiedName: string) => boolean,
   ): IParameterInfo[] {
     return params.map((p) => {
-      const name = p.IDENTIFIER().getText();
-      const typeCtx = p.type();
-      const type = TypeUtils.resolveType(
-        SyntaxLowering.type(typeCtx),
-        scopePath,
-        isScopeType,
-      );
-      const isConst = p.constModifier() !== null;
+      const name = p.name;
+      const type = TypeUtils.resolveType(p.type, scopePath, isScopeType);
+      const isConst = p.const;
 
       // Check for C-Next style array type (u8[8] param, u8[4][4] param, u8[] param)
-      const arrayTypeCtx = typeCtx.arrayType();
+      const arrayTypeDimensions =
+        p.type.kind === "array" ? p.type.dimensions : null;
       // #1668: and the C-style dimensions E0874 admits for `main(string
       // args[])`, which this dropped -- so the declaration read `args` as a
       // scalar while the function's own plan read it as an array
-      const cStyleDimensions = p.arrayDimension();
-      const isArray = arrayTypeCtx !== null || cStyleDimensions.length > 0;
+      const cStyleDimensions = p.dimensions;
+      const isArray =
+        arrayTypeDimensions !== null || cStyleDimensions.length > 0;
 
       // Each dimension folds as a declaration's does (#1760 review): parseInt
       // read `2*BUF` as 2 and `0x10` as 0, so the prototype disagreed with
       // the definition and a subscript was checked against the wrong size.
       // An unsized `[]` keeps its slot as "".
       const declared = [
-        ...(arrayTypeCtx?.arrayTypeDimension() ?? []),
+        ...(arrayTypeDimensions ?? []),
         ...cStyleDimensions,
-      ].map((dim) => {
-        const sizeExpr = dim.expression();
-        return sizeExpr
-          ? DimensionResolver.resolve(SyntaxLowering.expression(sizeExpr))
-          : { size: "", expr: null };
-      });
+      ].map((sizeExpr) =>
+        sizeExpr
+          ? DimensionResolver.resolve(sizeExpr)
+          : { size: "", expr: null },
+      );
       const arrayDimensions = declared.map((dim) => dim.size);
       const arrayDimensionExprs = declared.map((dim) => dim.expr);
 

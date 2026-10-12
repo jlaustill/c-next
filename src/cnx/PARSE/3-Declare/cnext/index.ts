@@ -442,11 +442,10 @@ class CNextResolver {
 
     // Top-level functions
     if (decl.functionDeclaration()) {
-      const funcDecl = decl.functionDeclaration()!;
       // Use collectAndRegister to populate both old symbols and SymbolRegistry
       const symbol = FunctionCollector.collectAndRegister(
         registry,
-        funcDecl,
+        DeclarationSyntax.of(syntax, "function"),
         sourceFile,
         "",
         // ADR-016 (#1161): not a literal that can drift from the ADR. #1300
