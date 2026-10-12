@@ -1,0 +1,24 @@
+// test-error
+// Issue #1195: a call inside a bracketed comparison is a call in a condition
+// (E0702, MISRA C:2012 Rule 13.5). The brackets used to hide it: the whole
+// operand read as a bare value and was reported as E0701, the wrong rule.
+bool isValid() {
+    return true;
+}
+
+bool h() {
+    if ((isValid() = true)) {
+        return true;
+    }
+    return false;
+}
+
+// NEGATIVE CONTROL -- the call hoisted out, which is what E0702 asks for. The
+// bracketed comparison that remains must be silent.
+bool okHoisted() {
+    bool valid <- isValid();
+    if ((valid = true)) {
+        return true;
+    }
+    return false;
+}
