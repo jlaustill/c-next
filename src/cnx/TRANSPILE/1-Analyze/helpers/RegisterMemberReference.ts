@@ -20,13 +20,13 @@
  */
 
 import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
-import ChainRoot from "../../../utils/ChainRoot";
+import SyntaxLowering from "../../../PARSE/2-Parse/SyntaxLowering";
+import type TExpression from "../../../types/syntax/TExpression";
 import QualifiedCName from "../../../utils/QualifiedCName";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import IRegisterMember from "../types/IRegisterMember";
 import TChainRoot from "../../../types/TChainRoot";
 import OperandTyper from "../../../utils/OperandTyper";
-import ParserUtils from "../../../utils/ParserUtils";
 import type ISourcePosition from "../../../utils/types/ISourcePosition";
 import type IAnalysisContext from "../types/IAnalysisContext";
 import type ICodeGenSymbols from "../../../types/ICodeGenSymbols";
@@ -139,24 +139,33 @@ class RegisterMemberReference {
         );
   }
 
-  /**
-   * The register member an assignment target names, or null: its leading
-   * names up to the first subscript, read from the target's own root
-   */
+  /** The register member an assignment target writes, if it names one */
   static ofTarget(
     target: Parser.AssignmentTargetContext,
     context: IAnalysisContext,
   ): IRegisterMember | null {
-    const names = target
-      .postfixTargetOp()
-      .map((op) => (op.DOT() === null ? null : op.IDENTIFIER()!.getText()));
+    return RegisterMemberReference.ofChain(
+      SyntaxLowering.assignmentTarget(target),
+      context,
+    );
+  }
+
+  /** The register member a lowered chain names, if it names one */
+  static ofChain(
+    chain: TExpression,
+    context: IAnalysisContext,
+  ): IRegisterMember | null {
+    if (chain.kind !== "postfix") return null;
+    const root = chain.primary.kind === "root" ? chain.primary.root : null;
+    const head =
+      chain.primary.kind === "identifier" ? chain.primary.name : undefined;
     return RegisterMemberReference.resolve(
-      ChainRoot.ofTarget(target),
+      root,
       RegisterMemberReference.leadingNames(
-        target.IDENTIFIER().getText(),
-        names,
+        head,
+        chain.ops.map((op) => (op.kind === "member" ? op.name : null)),
       ),
-      ParserUtils.getPosition(target),
+      chain.span,
       context,
     );
   }

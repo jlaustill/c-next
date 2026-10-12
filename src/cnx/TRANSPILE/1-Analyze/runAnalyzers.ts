@@ -441,7 +441,7 @@ function runAnalyzers(
     },
     {
       label: "bit indexing depth and scope (ADR-007/036, E0856/E0888)",
-      run: () => new BitAccessAnalyzer(context).analyze(tree),
+      run: () => new BitAccessAnalyzer(context).analyze(parsed.program),
     },
     {
       // Last, and does not halt: comment findings are reported alongside
