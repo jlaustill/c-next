@@ -793,14 +793,14 @@ class CodeGenWalker {
   }
 
   /**
-   * Where a declaration's name binds to the declaration itself: just inside
-   * the name, since LexicalFrames binds a declaration that starts before the
-   * position asked about. Before the name, it is the one being shadowed.
+   * Where a declaration's name binds to the declaration itself: where it
+   * closes, as a declaration is defined from there on (#1643, ADR-030). Any
+   * earlier, its name means the one it shadows, or nothing.
    */
   private static declaredAt(decl: {
-    readonly nameSpan: ISourceSpan;
+    readonly span: ISourceSpan;
   }): ISourcePosition {
-    return { line: decl.nameSpan.line, column: decl.nameSpan.column + 1 };
+    return { line: decl.span.endLine, column: decl.span.endColumn };
   }
 
   /**
