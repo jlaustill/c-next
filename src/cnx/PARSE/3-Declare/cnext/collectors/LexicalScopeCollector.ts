@@ -20,6 +20,7 @@ import { CNextListener } from "../../../2-Parse/grammar/CNextListener";
 import * as Parser from "../../../2-Parse/grammar/CNextParser";
 import FunctionCollector from "./FunctionCollector";
 import ProgramLowering from "../../../2-Parse/ProgramLowering";
+import StatementLowering from "../../../2-Parse/StatementLowering";
 import VariableCollector from "./VariableCollector";
 import type SymbolRegistry from "../../SymbolRegistry";
 import OverflowBehaviorUtils from "../../../../utils/OverflowBehaviorUtils";
@@ -177,7 +178,9 @@ class FrameListener extends CNextListener {
     // #1664 box 7: a local's `u8[N]` keeps `N` as written, so 1.4 folds it
     // where it is declared -- after a local `const N` that shadows a global one.
     const facts = VariableCollector.declaredFacts(
-      ctx,
+      ctx instanceof Parser.VariableDeclarationContext
+        ? VariableCollector.asVariable(StatementLowering.declaration(ctx))
+        : StatementLowering.variableDeclaration(ctx),
       frame.scopePath,
       this.isScopeType,
     );

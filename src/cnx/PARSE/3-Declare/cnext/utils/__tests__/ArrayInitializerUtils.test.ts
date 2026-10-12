@@ -6,109 +6,19 @@
 import { describe, it, expect } from "vitest";
 import CNextSourceParser from "../../../../2-Parse/CNextSourceParser";
 import ArrayInitializerUtils from "../ArrayInitializerUtils";
-import * as Parser from "../../../../2-Parse/grammar/CNextParser";
 
 describe("ArrayInitializerUtils", () => {
-  function getVariableExpression(
-    source: string,
-  ): Parser.ExpressionContext | null {
-    const result = CNextSourceParser.parse(source);
-    const decl = result.tree.declaration(0);
-    const varDecl = decl?.variableDeclaration();
-    return varDecl?.expression() ?? null;
+  function initializerOf(source: string, index = 0) {
+    const declaration =
+      CNextSourceParser.parse(source).program.declarations[index].declaration;
+    if (
+      declaration.kind !== "variableDeclaration" ||
+      !declaration.initializer
+    ) {
+      throw new Error(`declaration ${index} has no initializer`);
+    }
+    return declaration.initializer;
   }
-
-  describe("findArrayInitializer", () => {
-    it("finds array initializer in simple expression", () => {
-      const expr = getVariableExpression("u8 arr[] <- [1, 2, 3];");
-      expect(expr).not.toBeNull();
-      const arrayInit = ArrayInitializerUtils.findArrayInitializer(expr!);
-      expect(arrayInit).not.toBeNull();
-    });
-
-    it.each([
-      [
-        "returns null when expression is not an array initializer",
-        "u8 x <- 42;",
-      ],
-      ["returns null for identifier expression", "u8 x <- other;"],
-      ["returns null for arithmetic expression", "u8 x <- 1 + 2;"],
-      ["returns null for logical expression", "bool x <- true && false;"],
-      ["returns null for comparison expression", "bool x <- 1 < 2;"],
-      ["returns null for bitwise expression", "u8 x <- 0xFF & 0x0F;"],
-      ["returns null for shift expression", "u8 x <- 1 << 2;"],
-      ["returns null for unary expression", "bool x <- !true;"],
-      ["returns null for string literal", 'string<10> s <- "hello";'],
-    ])("%s", (_label, source) => {
-      const expr = getVariableExpression(source);
-      expect(expr).not.toBeNull();
-      const arrayInit = ArrayInitializerUtils.findArrayInitializer(expr!);
-      expect(arrayInit).toBeNull();
-    });
-  });
-
-  describe("countElements", () => {
-    it("counts elements in list-style initializer", () => {
-      const expr = getVariableExpression("u8 arr[] <- [1, 2, 3, 4, 5];");
-      const arrayInit = ArrayInitializerUtils.findArrayInitializer(expr!);
-      expect(arrayInit).not.toBeNull();
-      const result = ArrayInitializerUtils.countElements(arrayInit!);
-      expect(result.count).toBe(5);
-      expect(result.isFillAll).toBe(false);
-    });
-
-    it("counts single element array", () => {
-      const expr = getVariableExpression("u8 arr[] <- [42];");
-      const arrayInit = ArrayInitializerUtils.findArrayInitializer(expr!);
-      expect(arrayInit).not.toBeNull();
-      const result = ArrayInitializerUtils.countElements(arrayInit!);
-      expect(result.count).toBe(1);
-      expect(result.isFillAll).toBe(false);
-    });
-
-    it("identifies fill-all syntax", () => {
-      const expr = getVariableExpression("u8 arr[10] <- [0*];");
-      const arrayInit = ArrayInitializerUtils.findArrayInitializer(expr!);
-      expect(arrayInit).not.toBeNull();
-      const result = ArrayInitializerUtils.countElements(arrayInit!);
-      expect(result.isFillAll).toBe(true);
-    });
-
-    it("identifies fill-all with non-zero value", () => {
-      const expr = getVariableExpression("u8 arr[5] <- [0xFF*];");
-      const arrayInit = ArrayInitializerUtils.findArrayInitializer(expr!);
-      expect(arrayInit).not.toBeNull();
-      const result = ArrayInitializerUtils.countElements(arrayInit!);
-      expect(result.isFillAll).toBe(true);
-    });
-
-    it("counts struct initializers in array", () => {
-      const source = `
-struct Point { i32 x; i32 y; }
-Point points[] <- [{ x: 1, y: 2 }, { x: 3, y: 4 }, { x: 5, y: 6 }];
-`;
-      const result = CNextSourceParser.parse(source);
-      const decls = result.tree.declaration();
-      const varDecl = decls[1].variableDeclaration();
-      const expr = varDecl?.expression();
-      expect(expr).not.toBeNull();
-      const arrayInit = ArrayInitializerUtils.findArrayInitializer(expr!);
-      expect(arrayInit).not.toBeNull();
-      const elemResult = ArrayInitializerUtils.countElements(arrayInit!);
-      expect(elemResult.count).toBe(3);
-    });
-
-    it("counts nested array initializers", () => {
-      const expr = getVariableExpression(
-        "u8 arr[][] <- [[1, 2], [3, 4], [5, 6]];",
-      );
-      const arrayInit = ArrayInitializerUtils.findArrayInitializer(expr!);
-      expect(arrayInit).not.toBeNull();
-      const result = ArrayInitializerUtils.countElements(arrayInit!);
-      expect(result.count).toBe(3);
-      expect(result.isFillAll).toBe(false);
-    });
-  });
 
   describe("getInferredSize", () => {
     it.each([
@@ -119,19 +29,29 @@ Point points[] <- [{ x: 1, y: 2 }, { x: 3, y: 4 }, { x: 5, y: 6 }];
         "u8 arr[][] <- [[1, 2], [3, 4]];",
         2,
       ],
+      [
+        "a string literal's bytes and terminator (ADR-035)",
+        'u8[] m <- "Hi";',
+        3,
+      ],
     ])("returns %s", (_label, source, expected) => {
-      const expr = getVariableExpression(source);
-      expect(ArrayInitializerUtils.getInferredSize(expr!)).toBe(expected);
+      expect(ArrayInitializerUtils.getInferredSize(initializerOf(source))).toBe(
+        expected,
+      );
     });
 
     it.each([
-      ["returns undefined for fill-all syntax", "u8 arr[5] <- [0*];"],
-      ["returns undefined for non-array expression", "u8 x <- 42;"],
-      ["returns undefined for arithmetic expression", "u8 x <- 1 + 2 + 3;"],
-    ])("%s", (_label, source) => {
-      const expr = getVariableExpression(source);
-      const size = ArrayInitializerUtils.getInferredSize(expr!);
-      expect(size).toBeUndefined();
+      ["fill-all syntax", "u8 arr[5] <- [0*];"],
+      ["a number", "u8 x <- 42;"],
+      ["an identifier", "u8 x <- other;"],
+      ["arithmetic", "u8 x <- 1 + 2 + 3;"],
+      ["a comparison", "bool x <- 1 < 2;"],
+      ["a unary expression", "bool x <- !true;"],
+      ["a parenthesized list", "u8 arr[] <- ([1, 2]);"],
+    ])("returns undefined for %s", (_label, source) => {
+      expect(
+        ArrayInitializerUtils.getInferredSize(initializerOf(source)),
+      ).toBeUndefined();
     });
 
     it("handles const struct array initializer (issue #636)", () => {
@@ -139,13 +59,9 @@ Point points[] <- [{ x: 1, y: 2 }, { x: 3, y: 4 }, { x: 5, y: 6 }];
 struct TItem { u32 id; u16 value; }
 const TItem ITEMS[] <- [{ id: 1, value: 100 }, { id: 2, value: 200 }, { id: 3, value: 300 }];
 `;
-      const result = CNextSourceParser.parse(source);
-      const decls = result.tree.declaration();
-      const varDecl = decls[1].variableDeclaration();
-      const expr = varDecl?.expression();
-      expect(expr).not.toBeNull();
-      const size = ArrayInitializerUtils.getInferredSize(expr!);
-      expect(size).toBe(3);
+      expect(
+        ArrayInitializerUtils.getInferredSize(initializerOf(source, 1)),
+      ).toBe(3);
     });
   });
 });

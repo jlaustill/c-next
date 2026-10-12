@@ -1,16 +1,26 @@
 import { describe, expect, it } from "vitest";
 import parse from "./testHelpers";
 import VariableCollector from "../collectors/VariableCollector";
+import ProgramLowering from "../../../2-Parse/ProgramLowering";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import TypeResolver from "../../../../utils/TypeResolver";
 import ConstExprShape from "../../../../utils/__testUtils__/ConstExprShape";
 import UNRESOLVED_DIMENSION from "../../../../types/UNRESOLVED_DIMENSION";
 
 describe("VariableCollector", () => {
+  const variableOf = (tree: ReturnType<typeof parse>) => {
+    const declaration = ProgramLowering.program(tree, null).declarations[0]
+      .declaration;
+    if (declaration.kind !== "variableDeclaration") {
+      throw new Error(`1.2 lowered a ${declaration.kind}`);
+    }
+    return declaration;
+  };
+
   describe("omitted sizes (#1822, #1824 review)", () => {
     const dimensionsOf = (code: string) =>
       VariableCollector.collect(
-        parse(code).declaration(0)!.variableDeclaration()!,
+        variableOf(parse(code)),
         "test.cnx",
         "",
         "public",
@@ -34,13 +44,34 @@ describe("VariableCollector", () => {
     });
   });
 
+  describe("bare string capacity (ADR-045, #1164)", () => {
+    const typeOf = (code: string) =>
+      VariableCollector.collect(
+        variableOf(parse(code)),
+        "test.cnx",
+        "",
+        "public",
+      ).type;
+
+    it("takes the capacity from a string literal", () => {
+      expect(typeOf('const string s <- "abc";')).toEqual({
+        kind: "string",
+        capacity: 3,
+      });
+    });
+
+    it("takes none from another literal", () => {
+      expect(typeOf("const string s <- 42;").kind).not.toBe("string");
+    });
+  });
+
   describe("basic variable extraction", () => {
     it("collects a simple variable declaration", () => {
       const code = `
         u32 counter;
       `;
       const tree = parse(code);
-      const varCtx = tree.declaration(0)!.variableDeclaration()!;
+      const varCtx = variableOf(tree);
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
@@ -71,7 +102,7 @@ describe("VariableCollector", () => {
       ];
 
       for (const [code, name, expected] of cases) {
-        const varCtx = parse(code).declaration(0)!.variableDeclaration()!;
+        const varCtx = variableOf(parse(code));
         const symbol = VariableCollector.collect(
           varCtx,
           "test.cnx",
@@ -89,7 +120,7 @@ describe("VariableCollector", () => {
         i64 timestamp;
       `;
       const tree = parse(code);
-      const varCtx = tree.declaration(0)!.variableDeclaration()!;
+      const varCtx = variableOf(tree);
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
@@ -105,7 +136,7 @@ describe("VariableCollector", () => {
         u32 count <- 0;
       `;
       const tree = parse(code);
-      const varCtx = tree.declaration(0)!.variableDeclaration()!;
+      const varCtx = variableOf(tree);
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
@@ -123,7 +154,7 @@ describe("VariableCollector", () => {
         const u32 MAX_SIZE <- 1024;
       `;
       const tree = parse(code);
-      const varCtx = tree.declaration(0)!.variableDeclaration()!;
+      const varCtx = variableOf(tree);
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
@@ -140,7 +171,7 @@ describe("VariableCollector", () => {
         const u32 MAGIC <- 0xDEADBEEF;
       `;
       const tree = parse(code);
-      const varCtx = tree.declaration(0)!.variableDeclaration()!;
+      const varCtx = variableOf(tree);
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
@@ -158,7 +189,7 @@ describe("VariableCollector", () => {
         u8 buffer[256];
       `;
       const tree = parse(code);
-      const varCtx = tree.declaration(0)!.variableDeclaration()!;
+      const varCtx = variableOf(tree);
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
@@ -175,7 +206,7 @@ describe("VariableCollector", () => {
         f32 matrix[4][4];
       `;
       const tree = parse(code);
-      const varCtx = tree.declaration(0)!.variableDeclaration()!;
+      const varCtx = variableOf(tree);
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
@@ -192,7 +223,7 @@ describe("VariableCollector", () => {
         bool flags[DEVICE_COUNT];
       `;
       const tree = parse(code);
-      const varCtx = tree.declaration(0)!.variableDeclaration()!;
+      const varCtx = variableOf(tree);
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
@@ -212,7 +243,7 @@ describe("VariableCollector", () => {
         i32 matrix[ROWS][8];
       `;
       const tree = parse(code);
-      const varCtx = tree.declaration(0)!.variableDeclaration()!;
+      const varCtx = variableOf(tree);
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
@@ -233,7 +264,7 @@ describe("VariableCollector", () => {
         u16 data[WIDTH][HEIGHT];
       `;
       const tree = parse(code);
-      const varCtx = tree.declaration(0)!.variableDeclaration()!;
+      const varCtx = variableOf(tree);
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
@@ -257,7 +288,7 @@ describe("VariableCollector", () => {
         u8[8] buffer;
       `;
       const tree = parse(code);
-      const varCtx = tree.declaration(0)!.variableDeclaration()!;
+      const varCtx = variableOf(tree);
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
@@ -274,7 +305,7 @@ describe("VariableCollector", () => {
         u8[4][4] matrix;
       `;
       const tree = parse(code);
-      const varCtx = tree.declaration(0)!.variableDeclaration()!;
+      const varCtx = variableOf(tree);
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
@@ -291,7 +322,7 @@ describe("VariableCollector", () => {
         u8[SIZE] buffer;
       `;
       const tree = parse(code);
-      const varCtx = tree.declaration(0)!.variableDeclaration()!;
+      const varCtx = variableOf(tree);
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
@@ -309,7 +340,7 @@ describe("VariableCollector", () => {
         u8[BUFFER_SIZE] buffer;
       `;
       const tree = parse(code);
-      const varCtx = tree.declaration(0)!.variableDeclaration()!;
+      const varCtx = variableOf(tree);
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
@@ -331,7 +362,7 @@ describe("VariableCollector", () => {
         u32 position;
       `;
       const tree = parse(code);
-      const varCtx = tree.declaration(0)!.variableDeclaration()!;
+      const varCtx = variableOf(tree);
       const symbol = VariableCollector.collect(
         varCtx,
         "motor.cnx",
@@ -350,7 +381,7 @@ describe("VariableCollector", () => {
         u32 privateVar;
       `;
       const tree = parse(code);
-      const varCtx = tree.declaration(0)!.variableDeclaration()!;
+      const varCtx = variableOf(tree);
       const symbol = VariableCollector.collect(
         varCtx,
         "motor.cnx",
@@ -368,7 +399,7 @@ describe("VariableCollector", () => {
         Point origin;
       `;
       const tree = parse(code);
-      const varCtx = tree.declaration(0)!.variableDeclaration()!;
+      const varCtx = variableOf(tree);
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
@@ -387,7 +418,7 @@ describe("VariableCollector", () => {
         u32 onLine3;
       `;
       const tree = parse(code);
-      const varCtx = tree.declaration(0)!.variableDeclaration()!;
+      const varCtx = variableOf(tree);
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
@@ -402,12 +433,13 @@ describe("VariableCollector", () => {
   describe("initializerCallee (#895, #1668)", () => {
     /** What 1.3 records the first local's initializer calling */
     const calleeOf = (body: string) => {
-      const declaration = parse(`void f() {\n${body}\n}`)
-        .declaration(0)!
-        .functionDeclaration()!
-        .block()!
-        .statement(0)!
-        .variableDeclaration()!;
+      const fn = ProgramLowering.program(parse(`void f() {\n${body}\n}`), null)
+        .declarations[0].declaration;
+      if (fn.kind !== "function") throw new Error(`1.2 lowered a ${fn.kind}`);
+      const declaration = fn.body.statements[0];
+      if (declaration.kind !== "variableDeclaration") {
+        throw new Error(`1.2 lowered a ${declaration.kind}`);
+      }
       return VariableCollector.declaredFacts(declaration, "").initializerCallee;
     };
 

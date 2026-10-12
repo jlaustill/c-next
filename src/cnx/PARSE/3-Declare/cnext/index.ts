@@ -460,7 +460,7 @@ class CNextResolver {
     // Top-level variables
     if (decl.variableDeclaration()) {
       const symbol = VariableCollector.collect(
-        decl.variableDeclaration()!,
+        syntax,
         sourceFile,
         globalScopePath,
         ScopeUtils.getTopLevelVisibility(),

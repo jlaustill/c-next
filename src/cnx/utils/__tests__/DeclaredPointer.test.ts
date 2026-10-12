@@ -78,6 +78,19 @@ handle_t *handle_create(void);`);
     ).toBe(true);
   });
 
+  it("is a pointer when the call is written with a space before its arguments", () => {
+    expect(
+      DeclaredPointer.of(
+        facts({
+          cType: "FILE",
+          name: "c_f",
+          initialValue: 'fopen ("a", "r")',
+        }),
+        c,
+      ),
+    ).toBe(true);
+  });
+
   it("is not without the c_ prefix", () => {
     expect(
       DeclaredPointer.of(

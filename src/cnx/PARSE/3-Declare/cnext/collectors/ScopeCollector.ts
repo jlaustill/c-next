@@ -147,7 +147,7 @@ class ScopeCollector {
         addMember(varName);
 
         const varSymbol = VariableCollector.collect(
-          varDecl,
+          memberSyntax,
           sourceFile,
           scopePath,
           visibility,

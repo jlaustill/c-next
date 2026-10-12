@@ -76,7 +76,8 @@ class DeclaredPointer {
     return (
       facts.name.startsWith("c_") &&
       [...STRUCT_POINTER_C_FUNCTIONS].some((fn) =>
-        initialValue.includes(`${fn}(`),
+        // As written: `fopen ("f", "r")` calls `fopen` too
+        new RegExp(String.raw`${fn}\s*\(`).test(initialValue),
       )
     );
   }
