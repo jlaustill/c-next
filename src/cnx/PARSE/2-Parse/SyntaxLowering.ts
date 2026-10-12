@@ -14,7 +14,7 @@ import { TerminalNode } from "antlr4ng";
 import type { ParserRuleContext, ParseTree, Token } from "antlr4ng";
 import * as Parser from "./grammar/CNextParser";
 import ParserUtils from "../../utils/ParserUtils";
-import ChainRoot from "../../utils/ChainRoot";
+import ChainRoot from "./ChainRoot";
 import invariant from "../../utils/invariant";
 import type TOverflowBehavior from "../../types/TOverflowBehavior";
 import type ISyntaxNode from "../../types/syntax/ISyntaxNode";

@@ -20,7 +20,7 @@ import testAnalysisContextFor from "../TRANSPILE/1-Analyze/testAnalysisContextFo
 import type IOperandType from "../../../../cnx/types/IOperandType";
 import type ITypingContext from "../../../../cnx/types/ITypingContext";
 import type TSubscriptKind from "../../../../cnx/types/TSubscriptKind";
-import ExpressionUnwrapper from "../../../../cnx/utils/ExpressionUnwrapper";
+import ExpressionUnwrapper from "../../../../cnx/PARSE/2-Parse/ExpressionUnwrapper";
 
 /** Register a C symbol, as Stage 2 would from a header */
 function withC(

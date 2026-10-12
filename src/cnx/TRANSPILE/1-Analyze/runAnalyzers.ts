@@ -15,7 +15,8 @@
  * gated.
  */
 
-import type IParsedFile from "../../types/IParsedFile";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type IComment from "../../types/IComment";
 import CodedErrorText from "../../utils/CodedErrorText";
 import CppClassInitializerAnalyzer from "./CppClassInitializerAnalyzer";
 import DefineDirectiveAnalyzer from "./DefineDirectiveAnalyzer";
@@ -162,7 +163,10 @@ type TAnalyzerStep = ICodedAnalyzerStep | IFormattedAnalyzerStep;
  * @returns Array of errors (empty if all pass)
  */
 function runAnalyzers(
-  parsed: Pick<IParsedFile, "comments" | "program">,
+  parsed: {
+    readonly comments: readonly IComment[];
+    readonly program: IProgramSyntax;
+  },
   options: IAnalyzerOptions,
 ): ITranspileError[] {
   const comments = parsed.comments;

@@ -13,8 +13,8 @@
  * the two node shapes stay two named questions rather than one guess.
  */
 
-import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
-import TChainRoot from "../types/TChainRoot";
+import * as Parser from "./grammar/CNextParser";
+import TChainRoot from "../../types/TChainRoot";
 
 class ChainRoot {
   /** The root a postfix expression starts from. */
