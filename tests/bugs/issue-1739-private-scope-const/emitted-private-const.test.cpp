@@ -13,19 +13,17 @@
 // float expression) is emitted as its object; a suffixed literal is inlined
 // as its value, which C can read
 /* Scope: S */
-static const bool S__READY = true;
-static const float S__HALF = 1.0 / 2.0;
 
 bool S__ready(void) {
-    return S__READY;
+    return true;
 }
 
 float S__half(void) {
-    return S__HALF;
+    return 0.5f;
 }
 
 uint8_t S__nine(void) {
-    return 9;
+    return 9U;
 }
 
 int main(void) {

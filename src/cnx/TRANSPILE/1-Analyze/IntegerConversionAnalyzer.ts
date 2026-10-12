@@ -66,6 +66,7 @@
  */
 
 import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
+import type TExpression from "../../types/syntax/TExpression";
 import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
@@ -165,29 +166,15 @@ class IntegerConversionListener extends CNextListener {
   }
 
   /**
-   * E0914: a string value at a position that types it an integer, a float or
-   * a bool. True when reported, so the value is not judged again as a number.
+   * E0914: a string value at a position that types it a C-Next scalar -- an
+   * integer, a float, a bool, an enum or a bitmap. True when reported, so the
+   * value is not judged again as a number.
    */
   private checkStringAt(value: Parser.ExpressionContext | null): boolean {
     if (!value) return false;
     const target = StructInitializerType.valueType(value, this.context);
-    if (
-      target === null ||
-      !(
-        TypeCheckUtils.isInteger(target) ||
-        TypeCheckUtils.isFloat(target) ||
-        target === "bool"
-      )
-    ) {
-      return false;
-    }
-    const lowered = SyntaxLowering.expressionNode(value);
-    if (
-      !ExpressionShape.isStringLiteral(lowered) &&
-      !OperandTyper.isScalarString(OperandTyper.typeOf(lowered, this.context))
-    ) {
-      return false;
-    }
+    if (target === null || !this.isScalar(target, value)) return false;
+    if (!this.landsString(SyntaxLowering.expressionNode(value))) return false;
     this.report(
       value,
       "E0914",
@@ -195,6 +182,47 @@ class IntegerConversionListener extends CNextListener {
       "A string lands only in a string<N> (ADR-045); a u8 array may be initialized by a string literal (ADR-035)",
     );
     return true;
+  }
+
+  /**
+   * Every C-Next type that holds one value and is not a string. A named type
+   * is the one its spelling names where the value is (ADR-057): `ELocal` in
+   * `scope S` is `S__ELocal`.
+   */
+  private isScalar(target: string, value: ParserRuleContext): boolean {
+    if (
+      TypeCheckUtils.isInteger(target) ||
+      TypeCheckUtils.isFloat(target) ||
+      target === "bool"
+    ) {
+      return true;
+    }
+    const cName = this.context.program.cTypeNameAt(
+      this.context.sourceFile,
+      target,
+      { line: value.start?.line ?? 0, column: value.start?.column ?? 0 },
+    );
+    const symbols = this.context.symbols;
+    return symbols.knownEnums.has(cName) || symbols.knownBitmaps.has(cName);
+  }
+
+  /**
+   * Whether a string is what lands: the value itself, the one it
+   * parenthesizes, or either arm of a ternary -- each arm lands in the target
+   */
+  private landsString(value: TExpression): boolean {
+    if (value.kind === "parenthesized") {
+      return this.landsString(value.expression);
+    }
+    if (value.kind === "ternary") {
+      return (
+        this.landsString(value.whenTrue) || this.landsString(value.whenFalse)
+      );
+    }
+    return (
+      ExpressionShape.isStringLiteral(value) ||
+      OperandTyper.isScalarString(OperandTyper.typeOf(value, this.context))
+    );
   }
 
   /** An assignment, in a statement or a `for` header (#1726) */

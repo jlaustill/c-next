@@ -1,0 +1,6 @@
+20:20 error[E0914]: A string value cannot be assigned to ELocal: '"X"'
+       help: A string lands only in a string<N> (ADR-045); a u8 array may be initialized by a string literal (ADR-035)
+26:16 error[E0914]: A string value cannot be assigned to EColor: '"RED"'
+       help: A string lands only in a string<N> (ADR-045); a u8 array may be initialized by a string literal (ADR-035)
+27:15 error[E0914]: A string value cannot be assigned to Flags: '"x"'
+       help: A string lands only in a string<N> (ADR-045); a u8 array may be initialized by a string literal (ADR-035)

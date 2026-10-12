@@ -794,7 +794,7 @@ const generateMemberAccess = (
 ): MemberAccessResult => {
   return (
     tryBitmapFieldAccess(ctx, input, effects, orchestrator) ??
-    tryScopeMemberAccess(ctx, input, state) ??
+    tryScopeMemberAccess(ctx, state, orchestrator, effects) ??
     tryKnownScopeAccess(ctx, orchestrator) ??
     tryEnumMemberAccess(ctx, input, orchestrator) ??
     tryRegisterMemberAccess(ctx, input) ??
@@ -854,8 +854,9 @@ const tryBitmapFieldAccess = (
  */
 const tryScopeMemberAccess = (
   ctx: IMemberAccessContext,
-  input: IGeneratorInput,
   state: IGeneratorState,
+  orchestrator: IOrchestrator,
+  effects: TGeneratorEffect[],
 ): MemberAccessResult | null => {
   if (ctx.result !== "__THIS_SCOPE__") {
     return null;
@@ -867,8 +868,13 @@ const tryScopeMemberAccess = (
     ctx.memberName,
   );
   // #1739: a private const is written as its settled value
-  output.result =
-    PrivateConstValue.inlined(input.program, fullName) ?? fullName;
+  const inlined = PrivateConstValue.inlined(
+    state,
+    orchestrator.state,
+    fullName,
+  );
+  if (inlined !== null) effects.push(...inlined.effects);
+  output.result = inlined?.code ?? fullName;
   output.resolvedIdentifier = fullName;
   return output;
 };

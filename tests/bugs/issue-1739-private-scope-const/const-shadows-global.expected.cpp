@@ -17,7 +17,7 @@ extern const uint32_t N = 4U;
 static uint8_t S__buf[20] = {};
 
 uint32_t S__size(void) {
-    return 20;
+    return 20U;
 }
 
 uint32_t S__elements(void) {

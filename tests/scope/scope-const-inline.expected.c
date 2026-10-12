@@ -35,25 +35,24 @@ static inline uint8_t cnx_clamp_mul_u8(uint8_t a, uint32_t b) {
 // Tests: Scope-level const values should be inlined, not created as local variables
 // Issue #282: Const declarations were incorrectly being generated as mutable locals
 /* Scope: ConstTest */
-static const bool ConstTest__ENABLED = true;
 const uint8_t ConstTest__PUBLIC_MAX = 200U;
 const uint32_t ConstTest__PUBLIC_ID = 42U;
 static uint8_t ConstTest__counter = 0U;
 
 uint8_t ConstTest__getMaxValue(void) {
-    return 255;
+    return 255U;
 }
 
 uint16_t ConstTest__getBufferSize(void) {
-    return 1024;
+    return 1024U;
 }
 
 int32_t ConstTest__getOffset(void) {
-    return -100;
+    return (-100);
 }
 
 bool ConstTest__getEnabled(void) {
-    return ConstTest__ENABLED;
+    return true;
 }
 
 uint8_t ConstTest__getPublicMax(void) {
@@ -69,21 +68,21 @@ uint8_t ConstTest__getCounter(void) {
 }
 
 uint8_t ConstTest__getHexFlags(void) {
-    return 0xAB;
+    return 0xABU;
 }
 
 uint8_t ConstTest__getBinMask(void) {
-    return 0b11001010;
+    return 0b11001010U;
 }
 
 uint32_t ConstTest__getHexAddr(void) {
-    return 0x40001000;
+    return 0x40001000U;
 }
 
 uint16_t ConstTest__multipleRefs(void) {
-    uint16_t a = 255;
-    uint16_t b = cnx_clamp_add_u8(255, 1U);
-    uint16_t c = cnx_clamp_mul_u8(255, 2U);
+    uint16_t a = 255U;
+    uint16_t b = cnx_clamp_add_u8(255U, 1U);
+    uint16_t c = cnx_clamp_mul_u8(255U, 2U);
     return cnx_clamp_add_u16(cnx_clamp_add_u16(a, b), c);
 }
 

@@ -512,6 +512,14 @@ describe("PostfixExpressionGenerator", () => {
   // Reset TranspileState before each test to avoid state pollution
   beforeEach(() => {
     sharedState = new TranspileState();
+    // Render runs against a program (#1668); `this.member` asks it whether
+    // the member is a private const (#1739)
+    sharedState.program = {
+      symbolByCName: () => undefined,
+      settledConstOf: () => null,
+    } as unknown as IProgram;
+    sharedState.symbols = createMockSymbols();
+    sharedState.sourcePath = "test.cnx";
   });
 
   describe("basic expression generation", () => {
@@ -768,7 +776,8 @@ describe("PostfixExpressionGenerator", () => {
       const ctx = createMockPostfixExpressionContext("this", [
         createMockPostfixOp({ identifier: "MAX_SPEED" }),
       ]);
-      const input = { ...createMockInput(), program };
+      sharedState.program = program;
+      const input = createMockInput();
       const state = createMockState({
         currentScopePath: "Motor",
       });
@@ -777,7 +786,8 @@ describe("PostfixExpressionGenerator", () => {
       });
 
       const result = runPostfix(ctx, input, state, orchestrator);
-      expect(result.code).toBe("100");
+      // A literal of the const's u32 type, so the MISRA 7.2 U is on it
+      expect(result.code).toBe("100U");
     });
 
     it("resolves this.member to struct type when member is a struct", () => {

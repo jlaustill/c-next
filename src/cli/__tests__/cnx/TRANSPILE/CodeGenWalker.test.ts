@@ -17571,8 +17571,9 @@ describe("CodeGenWalker", () => {
         sourcePath: "test.cnx",
       });
 
-      // Should inline the value, not generate a reference to Foo_MY_CONSTANT
-      expect(code).toContain("return 42;");
+      // Should inline the value, not generate a reference to Foo_MY_CONSTANT.
+      // #1739: spelled as a literal of its type, so the MISRA 7.2 U is on it
+      expect(code).toContain("return 42U;");
       expect(code).not.toContain("Foo_MY_CONSTANT");
     });
 
@@ -17606,7 +17607,8 @@ describe("CodeGenWalker", () => {
       // sum of a u8 const and a literal saturates (ADR-044): the transpiler
       // always emitted this helper; the harness said `10 + 5U` only while
       // 2.2's own lookup could not find the scope const (#1668, C6b).
-      expect(code).toContain("uint8_t result = cnx_clamp_add_u8(10, 5U);");
+      // #1739: the inlined const is a literal of its u8 type, suffixed too
+      expect(code).toContain("uint8_t result = cnx_clamp_add_u8(10U, 5U);");
       expect(code).not.toContain("Bar_OFFSET");
     });
   });

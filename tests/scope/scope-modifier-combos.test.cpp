@@ -49,26 +49,25 @@ static uint8_t Combos__privateWrapByte = 5U;
 static uint16_t Combos__privateWrapWord = 100U;
 const uint8_t Combos__PUBLIC_CONST = 42U;
 const bool Combos__PUBLIC_FLAG = true;
-static const bool Combos__PRIVATE_FLAG = false;
 
 uint8_t Combos__getMaxBrightness(void) {
-    return 255;
+    return 255U;
 }
 
 uint16_t Combos__getMaxSensor(void) {
-    return 65535;
+    return 65535U;
 }
 
 int8_t Combos__getMinTemp(void) {
-    return -128;
+    return (-128);
 }
 
 uint8_t Combos__getCounterStart(void) {
-    return 0;
+    return 0U;
 }
 
 uint16_t Combos__getTickStart(void) {
-    return 1000;
+    return 1000U;
 }
 
 uint8_t Combos__getPublicClampByte(void) {
@@ -120,11 +119,11 @@ bool Combos__getPublicFlag(void) {
 }
 
 uint8_t Combos__getPrivateConst(void) {
-    return 99;
+    return 99U;
 }
 
 bool Combos__getPrivateFlag(void) {
-    return Combos__PRIVATE_FLAG;
+    return false;
 }
 
 void Combos__increasePublicClampByte(void) {

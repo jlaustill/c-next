@@ -2938,7 +2938,13 @@ class CodeGenWalker {
     // file scope. Issue #500 exempts arrays, which cannot be inlined, and #1739
     // one with no value to inline. Decided before any render, so a skipped
     // declaration registers no include.
-    if (PrivateConstValue.inlined(this.host.state.program, fullName) !== null) {
+    if (
+      PrivateConstValue.inlined(
+        this.host.getState(),
+        this.transpileState,
+        fullName,
+      ) !== null
+    ) {
       return { kind: "skipped" };
     }
     // Issue #998: the one modifier builder, which validates the atomic/volatile
@@ -4583,9 +4589,14 @@ class CodeGenWalker {
     );
     if (resolved !== null) {
       // Issue #741, #1739: a private const is written as its settled value
-      return (
-        PrivateConstValue.inlined(this.host.state.program, resolved) ?? resolved
+      const inlined = PrivateConstValue.inlined(
+        this.host.getState(),
+        this.transpileState,
+        resolved,
       );
+      if (inlined === null) return resolved;
+      this.host.applyEffects(inlined.effects);
+      return inlined.code;
     }
 
     // Issue #452: Check if identifier is an unqualified enum member reference

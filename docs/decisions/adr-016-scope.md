@@ -726,14 +726,21 @@ its initializer, read in the scope's binding context (`N` is the scope's `N`,
 and `this.N` is too). The same settled value sizes an array and stands where
 the const is named, so `const u32 M <- N * 2;` is 20 at both places.
 
-- An integer const with a settled value is inlined as that value. An
-  unsuffixed literal keeps its spelling (`0xAB`); a suffixed literal and an
-  expression are inlined as the settled digits, because C reads neither `9u8`
-  nor `this.N + 1`. A float const written as a plain literal keeps its spelling.
-- Every other private const -- a bool, an enum, a string, a float expression,
-  or an initializer that does not fold -- is emitted as a `static const`
-  object, as `Teensy4__LED_BIT` and `Motor__defaultValue` are above, and named
-  where it is used.
+A use can stand in a static initializer (`bool flag <- EN;` at scope level),
+where C99 6.7.8p4 takes only a constant expression and a `const` object is not
+one. So a private const is written, wherever it is named, as a literal of its
+declared type that holds its settled value:
+
+- an integer as a literal of its type: an initializer that is one literal
+  keeps its notation (`0xAB` is `0xABU`), anything else is its digits, a `u64`
+  is `ULL`, and a negative value is parenthesized (`-X` is `-(-5)`);
+- a float as its value held at its type, so an `f32` is a `float` literal
+  (`0.1f`) and a copy of the const equals it;
+- a bool as `true` or `false`, and an enum as its member (`EMode__RUN`).
+
+A private const with no such value -- a string, or one whose initializer is
+not constant -- is emitted as a `static const` object, as `Teensy4__LED_BIT`
+and `Motor__defaultValue` are above, and named where it is used.
 
 The initializer's source text is never a value. Whether a const is inlined is
 one decision, asked both where the declaration is planned and where the const

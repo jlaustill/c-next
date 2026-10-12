@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-548 fixture(s) assert a diagnostic; 538 carry a code.
+550 fixture(s) assert a diagnostic; 540 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -236,7 +236,9 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/analysis/signed-arithmetic-index.test.cnx                                                  | E0850               |
 | tests/analysis/signed-array-index.test.cnx                                                       | E0850               |
 | tests/analysis/signed-bit-index.test.cnx                                                         | E0850               |
+| tests/analysis/string-arm-to-integer.test.cnx                                                    | E0914               |
 | tests/analysis/string-literal-to-integer.test.cnx                                                | E0914               |
+| tests/analysis/string-literal-to-named-scalar.test.cnx                                           | E0914               |
 | tests/analysis/string-literal-to-scalar.test.cnx                                                 | E0914               |
 | tests/analysis/string-variable-to-integer.test.cnx                                               | E0914               |
 | tests/analysis/undefined-function.test.cnx                                                       | E0422               |

@@ -1,0 +1,40 @@
+// test-execution
+// Tests: a private scope const named in a scope variable's initializer is a
+// C constant expression there (C99 6.7.8p4), whatever its type
+enum EMode {
+    IDLE,
+    RUN
+}
+
+scope S {
+    const bool EN <- true;
+    bool flag <- EN;
+    const f32 HALF <- 1.0 / 2.0;
+    f32 twice <- HALF * 2.0;
+    const EMode D <- EMode.RUN;
+    EMode mode <- D;
+    const bool A <- true;
+    const bool B <- A;
+    bool copied <- B;
+
+    public u32 check() {
+        if (flag != true) {
+            return 1;
+        }
+        if (twice != 1.0) {
+            return 2;
+        }
+        if (mode != EMode.RUN) {
+            return 3;
+        }
+        if (copied != true) {
+            return 4;
+        }
+        return 0;
+    }
+}
+
+u32 main() {
+    u32 r <- S.check();
+    return r;
+}
