@@ -157,10 +157,51 @@ class ControllingExpressionListener extends CNextListener {
         // A relational operator (`<`, `>`, `<=`, `>=`) does too.
         if (relational.bitwiseOrExpression().length > 1) continue;
 
+        // A bracketed group is decided by what it holds (#1195): `(n < 5)` is
+        // a comparison, and `(a)` is still a bare value.
+        const inner =
+          ControllingExpressionListener.parenthesizedInner(relational);
+        if (inner) {
+          const before = this.found.length;
+          this.check(inner, kind);
+          if (this.found.length > before) return;
+          continue;
+        }
+
         this.reportNotComparison(equalityExpr, kind);
         return;
       }
     }
+  }
+
+  /**
+   * The expression a leaf operand brackets, when the operand is nothing but
+   * one parenthesized group; otherwise null.
+   *
+   * Only a bare group unwraps. `!(n < 5)` keeps its negation and `n[0]` its
+   * subscript, so each stays one operand and is judged as written.
+   */
+  private static parenthesizedInner(
+    relational: Parser.RelationalExpressionContext,
+  ): Parser.ExpressionContext | null {
+    const xorExpressions = relational
+      .bitwiseOrExpression(0)
+      ?.bitwiseXorExpression();
+    if (xorExpressions?.length !== 1) return null;
+    const andExpressions = xorExpressions[0].bitwiseAndExpression();
+    if (andExpressions.length !== 1) return null;
+    const shiftExpressions = andExpressions[0].shiftExpression();
+    if (shiftExpressions.length !== 1) return null;
+    const additiveExpressions = shiftExpressions[0].additiveExpression();
+    if (additiveExpressions.length !== 1) return null;
+    const multiplicativeExpressions =
+      additiveExpressions[0].multiplicativeExpression();
+    if (multiplicativeExpressions.length !== 1) return null;
+    const unaryExpressions = multiplicativeExpressions[0].unaryExpression();
+    if (unaryExpressions.length !== 1) return null;
+    const postfix = unaryExpressions[0].postfixExpression();
+    if (!postfix || postfix.postfixOp().length !== 0) return null;
+    return postfix.primaryExpression().expression();
   }
 
   private reportNotComparison(

@@ -77,6 +77,46 @@ describe("ControllingExpressionAnalyzer", () => {
     });
   });
 
+  describe("#1195 -- a bracketed operand is judged by what it holds", () => {
+    // A parenthesized comparison is a comparison. The brackets used to make
+    // every operand look like a bare value, so ordinary defensive style was
+    // rejected while the same condition without them compiled.
+    it.each([
+      "(n > 0)",
+      "((n > 0))",
+      "(n > 0) && (n < 5)",
+      "((n > 0) && (n < 5))",
+      "(n = 0) || (n >= 32)",
+      "(flag = true)",
+      "(n > 0) && flag = true",
+    ])("accepts %s", (condition) => {
+      expect(errors(inIf(condition))).toEqual([]);
+    });
+
+    // Unwrapping must let nothing through that is rejected unbracketed. Only
+    // a bare group unwraps, so every other shape -- a prefix, a postfix, an
+    // operator outside the brackets -- stays one operand, judged as written.
+    it.each([
+      "(flag)",
+      "((flag))",
+      "((n))",
+      "(n > 0) && (flag)",
+      "(flag) && (n > 0)",
+      "!(n > 0)",
+      "n | 1",
+      "n ^ 1",
+      "n & 1",
+      "n << 1",
+      "n + 1",
+      "n * 2",
+      "n[0]",
+    ])("still rejects %s, once", (condition) => {
+      const found = errors(inIf(condition));
+      expect(found).toHaveLength(1);
+      expect(found[0].code).toBe("E0701");
+    });
+  });
+
   describe("E0702 -- a condition may not call a function", () => {
     const withCall = (condition: string): string =>
       `bool isValid() {\n    return true;\n}\nvoid t() {\n    if (${condition}) { }\n}`;
@@ -86,6 +126,14 @@ describe("ControllingExpressionAnalyzer", () => {
       expect(found).toHaveLength(1);
       expect(found[0].code).toBe("E0702");
       expect(found[0].line).toBe(5);
+    });
+
+    it("rejects a call inside a bracketed comparison as a call", () => {
+      // #1195: the brackets hid the call, and the operand was reported as a
+      // bare value (E0701) -- the wrong rule for what the author wrote.
+      const found = errors(withCall("(isValid() = true)"));
+      expect(found).toHaveLength(1);
+      expect(found[0].code).toBe("E0702");
     });
 
     it("rejects a negated and a double-negated call", () => {
