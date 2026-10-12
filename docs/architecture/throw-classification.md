@@ -81,12 +81,12 @@ the corpus has there. The sum is held to the citations as well, so the rows cove
 #1322's audit split `3-Render/` five ways, and all five are now empty. That history is in the
 bucket sections below, not in this table (#1531):
 
-| area                                                         | sites |
-| ------------------------------------------------------------ | ----- |
-| `src/cnx/PARSE/` (1.1 Discover, 1.4 Resolve)                 | 3     |
-| `src/cnx/TRANSPILE/` (2.1 to 2.3; #1322 emptied `3-Render/`) | 0     |
-| `src/cli/` (the host; #1443 moved `TargetCatalogFile` in)    | 1     |
-| `src/cnx/utils/`                                             | 3     |
+| area                                                                          | sites |
+| ----------------------------------------------------------------------------- | ----- |
+| `src/cnx/PARSE/` (1.1 Discover, 1.4 Resolve)                                  | 4     |
+| `src/cnx/TRANSPILE/` (2.1 to 2.3; #1322 emptied `3-Render/`)                  | 0     |
+| `src/cli/` (the host; #1991 moved the catalog search to 1.1's `Installation`) | 0     |
+| `src/cnx/utils/`                                                              | 3     |
 
 ## Position availability — the finding that shapes #1322
 
@@ -361,12 +361,12 @@ a tool it calls. No line of a program is the cause, so pass 2.1 is not their hom
 cannot be given. None reaches the user with a code today. #1847 decides the format for an error
 that names no file and no line, and codes them.
 
-| file:line                             | anchor                                | what the user sees                                                                                                                                                     | card  |
-| ------------------------------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
-| `1-Discover/InputExpansion.ts:31`     | `Input not found`                     | nothing. The CLI checks that the entry exists before this runs, with its own message, so this copy is unreachable and the check is decided twice                       | #1847 |
-| `1-Discover/InputExpansion.ts:63`     | `Invalid file extension`              | only through `--clean`, as `Error: Error: Invalid file extension …` at exit 0                                                                                          | #1847 |
-| `cli/TargetCatalogFile.ts:52`         | `was not found above`                 | a broken installation. In a run it reads `Code generation failed:`, from the catch around building `Program`; the CLI's usage text also reads the catalog (not traced) | #1847 |
-| `4-Resolve/TargetDescriptions.ts:215` | `the compiler installation is broken` | a broken installation. In a run it reads `Code generation failed:`, from the catch around building `Program`; the CLI's usage text also reads the catalog (not traced) | #1847 |
+| file:line                             | anchor                                | what the user sees                                                                                                                                                                                  | card  |
+| ------------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| `1-Discover/InputExpansion.ts:31`     | `Input not found`                     | nothing. The CLI checks that the entry exists before this runs, with its own message, so this copy is unreachable and the check is decided twice                                                    | #1847 |
+| `1-Discover/InputExpansion.ts:63`     | `Invalid file extension`              | only through `--clean`, as `Error: Error: Invalid file extension …` at exit 0                                                                                                                       | #1847 |
+| `1-Discover/Installation.ts:28`       | `was not found above`                 | a broken installation. In a run it reads `Code generation failed:`, from the catch around building `Program`; the CLI's usage text and 1.1's stdin preprocessing also read the catalog (not traced) | #1847 |
+| `4-Resolve/TargetDescriptions.ts:215` | `the compiler installation is broken` | a broken installation. In a run it reads `Code generation failed:`, from the catch around building `Program`; the CLI's usage text also reads the catalog (not traced)                              | #1847 |
 
 ## Proposed split of #1322
 
