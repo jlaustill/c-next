@@ -9,6 +9,7 @@
  * - Property access (.length, .capacity, .size)
  */
 
+import SymbolTable from "../../../../../../PARSE/3-Declare/SymbolTable";
 import type IProgram from "../../../../../../types/IProgram";
 import type IChainBase from "../../../../../../types/IChainBase";
 import type IOperandType from "../../../../../../types/IOperandType";
@@ -514,6 +515,7 @@ describe("PostfixExpressionGenerator", () => {
     // Render runs against a program (#1668); `this.member` asks it whether
     // the member is a private const (#1739)
     sharedState.program = {
+      symbolTable: () => new SymbolTable(),
       symbolByCName: () => undefined,
       settledConstOf: () => null,
     } as unknown as IProgram;
@@ -766,6 +768,7 @@ describe("PostfixExpressionGenerator", () => {
         initialValueExpr: { kind: "binary" },
       };
       const program = {
+        symbolTable: () => new SymbolTable(),
         symbolByCName: (cName: string) =>
           cName === "Motor__MAX_SPEED" ? constSymbol : undefined,
         settledConstOf: (cName: string) =>

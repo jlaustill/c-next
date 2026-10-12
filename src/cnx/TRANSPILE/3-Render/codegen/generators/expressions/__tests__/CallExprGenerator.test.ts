@@ -1,4 +1,5 @@
 import type TParameterInfo from "../../../../../../types/TParameterInfo";
+import TestSymbolTable from "../../../../../__tests__/TestSymbolTable";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import generateFunctionCall from "../CallExprGenerator";
 import IGeneratorInput from "../../IGeneratorInput";
@@ -176,6 +177,7 @@ describe("CallExprGenerator", () => {
   // Reset TranspileState before each test to avoid state pollution
   beforeEach(() => {
     sharedState = new TranspileState();
+    TestSymbolTable.install(sharedState);
   });
 
   describe("empty function call", () => {
@@ -1753,6 +1755,7 @@ describe("CallExprGenerator", () => {
   describe("inDeclarationInit clearing (Issue #992)", () => {
     beforeEach(() => {
       sharedState = new TranspileState();
+      TestSymbolTable.install(sharedState);
     });
 
     it("clears inDeclarationInit during function argument generation", () => {

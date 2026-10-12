@@ -1,5 +1,5 @@
 import type IBitmapFieldLayout from "../../../../types/IBitmapFieldLayout";
-import SymbolTable from "../../../../PARSE/3-Declare/SymbolTable";
+import type IResolvedSymbols from "../../../../types/IResolvedSymbols";
 import IHeaderCallbackType from "../../../../types/IHeaderCallbackType";
 
 /**
@@ -11,8 +11,8 @@ import IHeaderCallbackType from "../../../../types/IHeaderCallbackType";
  * the data needed for generating enums, structs, and bitmaps.
  */
 interface IHeaderTypeInput {
-  /** Issue #502: Optional SymbolTable for C++ type detection */
-  readonly symbolTable?: SymbolTable;
+  /** Issue #502: Optional IResolvedSymbols for C++ type detection */
+  readonly symbolTable?: IResolvedSymbols;
   /** Enum members and values: enumName -> (memberName -> value) */
   readonly enumMembers: ReadonlyMap<string, ReadonlyMap<string, number>>;
 

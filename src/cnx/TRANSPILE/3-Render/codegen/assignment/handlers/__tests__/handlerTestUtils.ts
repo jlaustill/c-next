@@ -3,10 +3,10 @@
  * Provides common mock setup functions to reduce duplication.
  */
 
+import TestSymbolTable from "../../../../../__tests__/TestSymbolTable";
 import { vi } from "vitest";
 import createMockSymbols from "../../../../../../types/__testUtils__/codeGenSymbolsHelpers";
 import TranspileState from "../../../../../TranspileState";
-import SymbolTable from "../../../../../../PARSE/3-Declare/SymbolTable";
 import type ICodeGenApi from "../../../../../types/ICodeGenApi";
 import type ICodeGenSymbols from "../../../../../../types/ICodeGenSymbols";
 import type TTypeInfo from "../../../../../../types/TTypeInfo";
@@ -34,12 +34,10 @@ function setupMockSymbols(
 
   // Also register struct fields in SymbolTable (single source of truth)
   if (overrides.structFields) {
-    if (!state.symbolTable) {
-      state.symbolTable = new SymbolTable();
-    }
+    const table = TestSymbolTable.of(state);
     for (const [structName, fields] of overrides.structFields) {
       for (const [fieldName, fieldType] of fields) {
-        state.symbolTable.addStructField(structName, fieldName, fieldType);
+        table.addStructField(structName, fieldName, fieldType);
       }
     }
   }

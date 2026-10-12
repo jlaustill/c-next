@@ -3,6 +3,7 @@
  * Issue #503: Tests for C++ class initialization handling
  */
 
+import TestSymbolTable from "../../../../../cnx/TRANSPILE/__tests__/TestSymbolTable";
 import { CharStream, CommonTokenStream } from "antlr4ng";
 import { describe, expect, it, beforeEach } from "vitest";
 import { CNextLexer } from "../../../../../cnx/PARSE/2-Parse/grammar/CNextLexer";
@@ -33,7 +34,7 @@ let state = new TranspileState();
 /** #2004: the analyzer binds through the program 1.4 built from `code` */
 function contextFor(
   code: string,
-  symbolTable: SymbolTable = state.symbolTable,
+  symbolTable: SymbolTable = TestSymbolTable.of(state),
 ) {
   return testAnalysisContextFor(code, { cppMode: false, symbolTable }).context;
 }
@@ -42,7 +43,7 @@ describe("InitializationAnalyzer", () => {
   // Reset TranspileState before each test
   beforeEach(() => {
     state = new TranspileState();
-    state.symbolTable = new SymbolTable();
+    TestSymbolTable.install(state);
   });
 
   // ========================================================================
@@ -60,7 +61,7 @@ describe("InitializationAnalyzer", () => {
       const tree = parse(code);
 
       // Set up TranspileState with C++ class
-      state.symbolTable.addCppSymbol({
+      TestSymbolTable.of(state).addCppSymbol({
         name: "CppMessage",
         kind: "class",
         sourceLanguage: ESourceLanguage.Cpp,
@@ -69,7 +70,7 @@ describe("InitializationAnalyzer", () => {
         visibility: "public",
       });
       // Add the field so the analyzer knows about it
-      state.symbolTable.addStructField("CppMessage", "pgn", "u16");
+      TestSymbolTable.of(state).addStructField("CppMessage", "pgn", "u16");
 
       // Build external struct fields from symbol table
       state.program = Program.build([], {
@@ -120,7 +121,7 @@ describe("InitializationAnalyzer", () => {
       const tree = parse(code);
 
       // Set up TranspileState with C++ struct (not class)
-      state.symbolTable.addCppSymbol({
+      TestSymbolTable.of(state).addCppSymbol({
         name: "CppStruct",
         kind: "struct",
         sourceLanguage: ESourceLanguage.Cpp,
@@ -128,7 +129,7 @@ describe("InitializationAnalyzer", () => {
         span: TestSourceSpan.at(1),
         visibility: "public",
       });
-      state.symbolTable.addStructField("CppStruct", "value", "u32");
+      TestSymbolTable.of(state).addStructField("CppStruct", "value", "u32");
 
       // Build external struct fields from symbol table
       state.program = Program.build([], {
@@ -153,7 +154,7 @@ describe("InitializationAnalyzer", () => {
       const tree = parse(code);
 
       // Set up TranspileState with C struct (not C++)
-      state.symbolTable.addCSymbol({
+      TestSymbolTable.of(state).addCSymbol({
         name: "CStruct",
         kind: "struct",
         sourceLanguage: ESourceLanguage.C,
@@ -162,7 +163,7 @@ describe("InitializationAnalyzer", () => {
         visibility: "public",
         isUnion: false,
       });
-      state.symbolTable.addStructField("CStruct", "value", "u32");
+      TestSymbolTable.of(state).addStructField("CStruct", "value", "u32");
 
       // Build external struct fields from symbol table (as pipeline does)
       state.program = Program.build([], {

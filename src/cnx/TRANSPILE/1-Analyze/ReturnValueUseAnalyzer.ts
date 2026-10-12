@@ -34,7 +34,7 @@ import StdlibFunctions from "./StdlibFunctions";
 import CalleeNameResolver from "./helpers/CalleeNameResolver";
 import EnclosingScope from "./helpers/EnclosingScope";
 import IReturnValueUseError from "./types/IReturnValueUseError";
-import type SymbolTable from "../../PARSE/3-Declare/SymbolTable";
+import type IResolvedSymbols from "../../types/IResolvedSymbols";
 import DeclaredTypeFacts from "../../utils/DeclaredTypeFacts";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
@@ -135,13 +135,13 @@ class ReturnValueUseAnalyzer {
    */
   static externalReturnType(
     name: string,
-    symbolTable: SymbolTable,
+    symbolTable: IResolvedSymbols,
   ): string | null {
     // .hpp symbols land in a separate index from .h ones; ICppFunctionSymbol
     // is structurally identical, so one lookup covers both.
     //
     // #1456: the `?.` on the table AND on both methods is gone. Neither can be
-    // absent -- `SymbolTable` declares both -- so the optional call was a guard
+    // absent -- `IResolvedSymbols` declares both -- so the optional call was a guard
     // that could not fire, and it would have turned a genuinely missing method
     // into `null`, which reads here as "this function returns nothing" rather
     // than as an error.

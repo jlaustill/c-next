@@ -1,6 +1,6 @@
 import type ICodeGenSymbols from "../../../types/ICodeGenSymbols";
 import type IProgram from "../../../types/IProgram";
-import type SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
+import type IResolvedSymbols from "../../../types/IResolvedSymbols";
 
 /**
  * What 2.1 Analyze is allowed to know about the program it is judging.
@@ -47,7 +47,7 @@ interface IAnalysisContext {
   readonly program: IProgram;
 
   /** What the program declares, C and C++ headers included. */
-  readonly symbolTable: SymbolTable;
+  readonly symbolTable: IResolvedSymbols;
 
   /**
    * Whether this file can see a C/C++ header, which is what decides if an

@@ -329,6 +329,7 @@ function callResultReaches(type: Type): boolean {
 function heldParseValues(pattern: RegExp, stopAfter = Infinity): string[] {
   const found: string[] = [];
   for (const sf of project.getSourceFiles()) {
+    if (found.length >= stopAfter) break;
     const path = sf.getFilePath();
     if (path.includes("__tests__") || !pattern.test(path)) continue;
     // Every way a value is obtained or named: a call, a member read, an

@@ -19,7 +19,7 @@ import TypeResolver from "../../utils/TypeResolver";
 import TypeMapping from "../../utils/mapType";
 import TYPE_WIDTH from "../../types/TYPE_WIDTH";
 import ArrayDimensionText from "../../utils/ArrayDimensionText";
-import type SymbolTable from "./SymbolTable";
+import type IResolvedSymbols from "../../types/IResolvedSymbols";
 import type ICodeGenSymbols from "../../types/ICodeGenSymbols";
 import type TOverflowBehavior from "../../types/TOverflowBehavior";
 import type TTypeInfo from "../../types/TTypeInfo";
@@ -49,7 +49,7 @@ class DeclaredTypeInfo {
   static of(
     binding: TValueBinding | null,
     symbols: ICodeGenSymbols | null,
-    symbolTable: SymbolTable,
+    symbolTable: IResolvedSymbols,
     target: ITargetDescription | null,
   ): TTypeInfo | undefined {
     switch (binding?.kind) {
@@ -93,7 +93,7 @@ class DeclaredTypeInfo {
   static ofChain(
     chain: IChainTyping,
     symbols: ICodeGenSymbols | null,
-    symbolTable: SymbolTable,
+    symbolTable: IResolvedSymbols,
     target: ITargetDescription | null,
   ): IChainBase {
     const rootTypeInfo = DeclaredTypeInfo.of(
@@ -131,7 +131,7 @@ class DeclaredTypeInfo {
   private static declared(
     d: IDeclared,
     symbols: ICodeGenSymbols | null,
-    symbolTable: SymbolTable,
+    symbolTable: IResolvedSymbols,
   ): TTypeInfo {
     const dimensions = ArrayDimensionText.numeric(d.arrayDimensions);
     if (d.type.kind === "string") {
@@ -179,7 +179,7 @@ class DeclaredTypeInfo {
   private static parameter(
     d: IDeclared,
     symbols: ICodeGenSymbols | null,
-    symbolTable: SymbolTable,
+    symbolTable: IResolvedSymbols,
   ): TTypeInfo {
     const dimensions = ArrayDimensionText.numeric(d.arrayDimensions);
     const isArray = dimensions.length > 0;
@@ -209,7 +209,10 @@ class DeclaredTypeInfo {
   }
 
   /** A declared type's name as C spells it, `::` for a C++ namespace */
-  private static baseTypeOf(type: TType, symbolTable: SymbolTable): string {
+  private static baseTypeOf(
+    type: TType,
+    symbolTable: IResolvedSymbols,
+  ): string {
     return CppNamespaceUtils.convertToCppNamespace(
       TypeResolver.getTypeName(type),
       symbolTable,

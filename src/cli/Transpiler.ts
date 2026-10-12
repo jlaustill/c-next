@@ -29,7 +29,6 @@ import SymbolRegistry from "../cnx/PARSE/3-Declare/SymbolRegistry";
 import Program from "../cnx/PARSE/4-Resolve/Program";
 import type IProgram from "../cnx/types/IProgram";
 import type IAnalyzedFile from "../cnx/types/IAnalyzedFile";
-import TSymbol from "../cnx/types/symbols/TSymbol";
 
 import IDiscoveredFile from "../cnx/PARSE/1-Discover/types/IDiscoveredFile";
 import EHeaderLanguage from "../cnx/PARSE/1-Discover/types/EHeaderLanguage";
@@ -192,6 +191,13 @@ class Transpiler {
 
   // eslint-disable-next-line @typescript-eslint/lines-between-class-members
   private program: IProgram | null = null;
+
+  /**
+   * 1.3 Declare's header symbols, which 1.4 Resolve takes into `Program` and
+   * completes with the C-Next ones. A pass after 1.4 reads the table through
+   * `program.symbolTable()`, never this field (#1991).
+   */
+  private declaredSymbols = new SymbolTable();
 
   /**
    * What Stage 5 reads (#1932): each file's plain data, as `TreePasses`
@@ -642,7 +648,7 @@ class Transpiler {
     // line can observe an unsettled one.
     try {
       // The symbol table holds only C/C++ header symbols at this point --
-      // this run's C-Next symbols are added below, per file -- so this IS
+      // `Program.build` adds this run's C-Next symbols to it -- so this IS
       // the external set, which is what the fact is about.
       //
       // It is also read AFTER `_collectExternalDeclarations`, and that ordering
@@ -654,32 +660,27 @@ class Transpiler {
       this.program = Program.build(
         declared.map((entry) => entry.fileSymbols),
         {
-          headerStructFields:
-            this.codeGenerator.transpileState.symbolTable.getAllStructFields(),
+          headerStructFields: this.declaredSymbols.getAllStructFields(),
           // #1511: everything the C/C++ headers contributed. The opacity inputs
           // are the RAW bookkeeping, not the verdict -- `Program` resolves which
           // typedefs never received a body. Read here because #985 phantom-body
           // recovery has already run (Stage 2), so the state is final.
           foreign: {
-            c: this.codeGenerator.transpileState.symbolTable.getAllCSymbols(),
-            cpp: this.codeGenerator.transpileState.symbolTable.getAllCppSymbols(),
-            opaqueTypedefs: new Set(
-              this.codeGenerator.transpileState.symbolTable.getAllOpaqueTypes(),
-            ),
-            typedefToTag: new Map(
-              this.codeGenerator.transpileState.symbolTable.getAllTypedefToTag(),
-            ),
+            c: this.declaredSymbols.getAllCSymbols(),
+            cpp: this.declaredSymbols.getAllCppSymbols(),
+            opaqueTypedefs: new Set(this.declaredSymbols.getAllOpaqueTypes()),
+            typedefToTag: new Map(this.declaredSymbols.getAllTypedefToTag()),
             structTagsWithBodies: new Set(
-              this.codeGenerator.transpileState.symbolTable.getAllStructTagsWithBodies(),
+              this.declaredSymbols.getAllStructTagsWithBodies(),
             ),
             // #1688: each file's own, from its C includes' macro dump
             macros: this.headerMacrosByFile,
             macrosUnread: this.headerMacrosUnread,
           },
           // #1825: ADR-006's and ADR-029's derivations look callees and
-          // typedefs up in it. It holds the headers' symbols only until the
-          // files are published below, which is the state they need.
-          symbolTable: this.codeGenerator.transpileState.symbolTable,
+          // typedefs up in it. 1.4 completes it with every file's resolved
+          // symbols and hands it on as `program.symbolTable()` (#1991).
+          symbolTable: this.declaredSymbols,
           // #1175: where a name nothing binds may be a macro -- discovery's
           // one answer, the same 2.1's E0427 reads
           filesReachingForeignHeaders: new Set(
@@ -721,42 +722,7 @@ class Transpiler {
       return false;
     }
 
-    for (const entry of declared) {
-      const errors = this._publishResolvedFile(
-        this.program.symbolsInFile(entry.file.path),
-      );
-      if (errors) {
-        result.errors.push(...errors);
-        result.success = false;
-      }
-    }
-
     return result.success;
-  }
-
-  /**
-   * Publish one file's RESOLVED symbols to everything downstream of 1.4.
-   *
-   * Everything below consumed resolved type names before the pass split too;
-   * what changed is that the names are now correct for a bare reference to a
-   * scope type declared in another file, which no per-file pass could answer.
-   *
-   * The retention decision lives here rather than in Declare because what is
-   * retained must be the SETTLED symbols -- Stage 5 reads this entry instead of
-   * re-declaring, so handing it Declare's provisional types would put unsettled
-   * names back into codegen through the cache.
-   */
-  private _publishResolvedFile(
-    tSymbols: ReadonlyArray<TSymbol>,
-  ): ITranspileError[] | null {
-    try {
-      // ADR-055 Phase 7: Store TSymbol directly in SymbolTable (no ISymbol conversion)
-      this.codeGenerator.transpileState.symbolTable.addTSymbols(tSymbols);
-    } catch (err) {
-      return [CaughtError.asTranspileError(err)];
-    }
-
-    return null;
   }
 
   /**
@@ -805,7 +771,7 @@ class Transpiler {
       context: {
         symbols,
         program: this.program,
-        symbolTable: this.codeGenerator.transpileState.symbolTable,
+        symbolTable: this.program.symbolTable(),
         reachesForeignHeader: file.reachesForeignHeader,
         sourceFile: sourcePath,
       },
@@ -990,9 +956,7 @@ class Transpiler {
         // #1515: decided here, from the rule's owner. 1.3 Declare used to
         // answer this, which put an emission decision in the parse layer.
         hasPublicInterface: PublicInterface.existsIn(
-          this.codeGenerator.transpileState.symbolTable.getTSymbolsByFile(
-            sourcePath,
-          ),
+          program.symbolTable().getTSymbolsByFile(sourcePath),
         ),
       });
 
@@ -1104,7 +1068,7 @@ class Transpiler {
     // transpiler, so that second run is a real one. Adding the twelfth line
     // would have fixed this instance and left the shape; construction leaves no
     // teardown to drift from.
-    this.codeGenerator.transpileState.symbolTable = new SymbolTable();
+    this.declaredSymbols = new SymbolTable();
     // Reset SymbolRegistry for new run (new IFunctionSymbol type system)
     this.symbolRegistry = new SymbolRegistry();
     // #1452: the callback map needed a per-RUN reset here because it was a
@@ -1221,19 +1185,17 @@ class Transpiler {
 
     const cleanState = TreePasses.recoverDeclarations(
       recovered.slices,
-      this.codeGenerator.transpileState.symbolTable,
+      this.declaredSymbols,
     );
     HeaderDeclarations.clearPhantomStructBodies(
       cleanState,
-      this.codeGenerator.transpileState.symbolTable,
+      this.declaredSymbols,
     );
 
     // Function-like macros have no declaration to parse; register their names for
     // the undeclared-call check only (a by-value macro invocation is correct).
     if (recovered.macroNames.size > 0) {
-      this.codeGenerator.transpileState.symbolTable.addExternalDeclarationNames(
-        recovered.macroNames,
-      );
+      this.declaredSymbols.addExternalDeclarationNames(recovered.macroNames);
     }
   }
 
@@ -1402,10 +1364,11 @@ class Transpiler {
     if (this.config.parseOnly && this.program?.target().kind !== "resolved") {
       return true;
     }
+    invariant(this.program, "1.4 Resolve built Program before its checks ran");
     return Transpiler._recordChecked(
       result,
       ProgramChecks.externalIdentifiers(
-        this.codeGenerator.transpileState.symbolTable,
+        this.program.symbolTable(),
         this._runTarget().description,
       ),
     );
@@ -1500,8 +1463,7 @@ class Transpiler {
     if (warning) {
       result.warnings.push(warning);
     }
-    result.symbolsCollected =
-      this.codeGenerator.transpileState.symbolTable.size;
+    result.symbolsCollected = this.declaredSymbols.size;
     result.warnings = [...result.warnings, ...this.warnings];
     // Issue #1143: union of what each file's emitters recorded.
     result.requirements = RequirementAggregator.merge(result.files);
@@ -1564,19 +1526,13 @@ class Transpiler {
 
     // Debug: Show symbols found
     if (this.config.debugMode) {
-      const symbols =
-        this.codeGenerator.transpileState.symbolTable.getSymbolsByFile(
-          file.path,
-        );
+      const symbols = this.declaredSymbols.getSymbolsByFile(file.path);
       console.log(`[DEBUG]   Found ${symbols.length} symbols in ${file.path}`);
     }
 
     // Issue #590: Cache the results using simplified API
     if (this.cacheManager) {
-      this.cacheManager.setSymbolsFromTable(
-        file.path,
-        this.codeGenerator.transpileState.symbolTable,
-      );
+      this.cacheManager.setSymbolsFromTable(file.path, this.declaredSymbols);
     }
   }
 
@@ -1621,27 +1577,19 @@ class Transpiler {
   ): void {
     for (const symbol of symbols) {
       if (symbol.sourceLanguage === ESourceLanguage.C) {
-        this.codeGenerator.transpileState.symbolTable.addCSymbol(symbol);
+        this.declaredSymbols.addCSymbol(symbol);
       } else {
-        this.codeGenerator.transpileState.symbolTable.addCppSymbol(symbol);
+        this.declaredSymbols.addCppSymbol(symbol);
       }
     }
 
-    this.codeGenerator.transpileState.symbolTable.restoreStructFields(
-      cached.structFields,
-    );
-    this.codeGenerator.transpileState.symbolTable.restoreNeedsStructKeyword(
-      cached.needsStructKeyword,
-    );
-    this.codeGenerator.transpileState.symbolTable.restoreEnumBitWidths(
-      cached.enumBitWidth,
-    );
+    this.declaredSymbols.restoreStructFields(cached.structFields);
+    this.declaredSymbols.restoreNeedsStructKeyword(cached.needsStructKeyword);
+    this.declaredSymbols.restoreEnumBitWidths(cached.enumBitWidth);
 
     // Issue #1225: the whole struct state at once. It used to be four separate
     // restore calls, which is how #1164's pointerTypedefs was missed.
-    this.codeGenerator.transpileState.symbolTable.restoreStructState(
-      cached.structState,
-    );
+    this.declaredSymbols.restoreStructState(cached.structState);
   }
 
   /** How a debug log names `language` */
@@ -1667,11 +1615,7 @@ class Transpiler {
         `[DEBUG]   Parsing ${Transpiler._languageName(source.language)} header: ${file.path}`,
       );
     }
-    TreePasses.declareHeader(
-      file.path,
-      source,
-      this.codeGenerator.transpileState.symbolTable,
-    );
+    TreePasses.declareHeader(file.path, source, this.declaredSymbols);
   }
 
   // ===========================================================================

@@ -2,9 +2,9 @@
  * Tests for TranspileState - centralized code generation state management
  */
 
+import TestSymbolTable from "../../../../cnx/TRANSPILE/__tests__/TestSymbolTable";
 import ProgramLowering from "../../../../cnx/PARSE/2-Parse/ProgramLowering";
 import TargetResolver from "../../../TargetResolver";
-import SymbolTable from "../../../../cnx/PARSE/3-Declare/SymbolTable";
 import type IScopeSymbol from "../../../../cnx/types/symbols/IScopeSymbol";
 import { describe, it, expect, beforeEach } from "vitest";
 import type IProgram from "../../../../cnx/types/IProgram";
@@ -56,7 +56,7 @@ let state = new TranspileState();
 describe("TranspileState", () => {
   beforeEach(() => {
     state = new TranspileState();
-    state.symbolTable = new SymbolTable();
+    TestSymbolTable.install(state);
   });
 
   describe("reset()", () => {
@@ -249,7 +249,7 @@ describe("TranspileState", () => {
       "isHeldThroughPointer answers for %s",
       (_label, isTypedefStruct, expected) => {
         if (isTypedefStruct) {
-          state.symbolTable.markOpaqueType("Dev");
+          TestSymbolTable.of(state).markOpaqueType("Dev");
         }
 
         expect(state.isHeldThroughPointer("Dev")).toBe(expected);
@@ -355,7 +355,7 @@ describe("TranspileState", () => {
       structFields.set("Point", pointFields);
 
       // Use restoreStructFields to populate the symbol table
-      state.symbolTable.restoreStructFields(structFields);
+      TestSymbolTable.of(state).restoreStructFields(structFields);
 
       state.program = Program.build([], {
         cppMode: false,
@@ -382,7 +382,7 @@ describe("TranspileState", () => {
       bufferFields.set("data", { type: "u8", arrayDimensions: [256] }); // Array
 
       structFields.set("Buffer", bufferFields);
-      state.symbolTable.restoreStructFields(structFields);
+      TestSymbolTable.of(state).restoreStructFields(structFields);
 
       state.program = Program.build([], {
         cppMode: false,
@@ -409,7 +409,7 @@ describe("TranspileState", () => {
       arrayOnlyFields.set("values", { type: "i32", arrayDimensions: [5] });
 
       structFields.set("ArrayOnly", arrayOnlyFields);
-      state.symbolTable.restoreStructFields(structFields);
+      TestSymbolTable.of(state).restoreStructFields(structFields);
 
       state.program = Program.build([], {
         cppMode: false,
@@ -445,7 +445,7 @@ describe("TranspileState", () => {
 
       structFields.set("Mixed", mixedFields);
       structFields.set("Simple", simpleFields);
-      state.symbolTable.restoreStructFields(structFields);
+      TestSymbolTable.of(state).restoreStructFields(structFields);
 
       state.program = Program.build([], {
         cppMode: false,

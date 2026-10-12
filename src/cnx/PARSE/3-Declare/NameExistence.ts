@@ -16,12 +16,12 @@
  * | view                              | scope     | sibling case says |
  * | --------------------------------- | --------- | ----------------- |
  * | `ICodeGenSymbols` `known*` sets    | per FILE  | `Mode` unknown    |
- * | `SymbolTable.getOverloadsByCName`  | whole RUN | `Mode` known      |
+ * | `IResolvedSymbols.getOverloadsByCName`  | whole RUN | `Mode` known      |
  *
  * `ICodeGenSymbols` is built by 1.4's `Program.deriveVisibleSymbols`, over the
  * include graph discovery resolved, so it holds exactly what this file can see
  * (#1435; it cited a `_declareFile` signature #1472 removed). The
- * `SymbolTable` accumulates every file in the run and is cleared once, so a
+ * `IResolvedSymbols` accumulates every file in the run and is cleared once, so a
  * sibling that was never included is still in it. Asking the run-wide table
  * whether a C-Next type exists would answer "yes" in the file that cannot see
  * it, and the diagnostic would never fire where it is needed -- the trap #1312
@@ -45,7 +45,7 @@
 
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
 import ICodeGenSymbols from "../../types/ICodeGenSymbols";
-import SymbolTable from "./SymbolTable";
+import type IResolvedSymbols from "../../types/IResolvedSymbols";
 
 class NameExistence {
   /**
@@ -87,7 +87,7 @@ class NameExistence {
   static isTypeName(
     typeName: string,
     symbols: ICodeGenSymbols,
-    symbolTable: SymbolTable,
+    symbolTable: IResolvedSymbols,
   ): boolean {
     return (
       NameExistence._isKnownCNextType(typeName, symbols, symbolTable) ||
@@ -121,7 +121,7 @@ class NameExistence {
    * that claims the question holding the incomplete answer.
    *
    * `knownVariables` is a per-file set, so it belongs on the per-file side of
-   * the table above, beside the type-forming kinds. The run-wide `SymbolTable`
+   * the table above, beside the type-forming kinds. The run-wide `IResolvedSymbols`
    * must NOT answer it, and that is #1398 itself: a const declared in a sibling
    * this file never included was reachable through `ScopeFrameResolver`'s
    * run-wide fallback, so E0427 could not fire across a file boundary while
@@ -140,7 +140,7 @@ class NameExistence {
   static isValueName(
     name: string,
     symbols: ICodeGenSymbols,
-    symbolTable: SymbolTable,
+    symbolTable: IResolvedSymbols,
   ): boolean {
     return (
       NameExistence.isTypeName(name, symbols, symbolTable) ||
@@ -184,7 +184,7 @@ class NameExistence {
   private static _isKnownCNextType(
     typeName: string,
     symbols: ICodeGenSymbols,
-    symbolTable: SymbolTable,
+    symbolTable: IResolvedSymbols,
   ): boolean {
     return (
       symbols.knownEnums.has(typeName) ||
@@ -210,7 +210,7 @@ class NameExistence {
    */
   private static _isKnownForeignName(
     name: string,
-    symbolTable: SymbolTable,
+    symbolTable: IResolvedSymbols,
   ): boolean {
     return symbolTable
       .getOverloadsByCName(name)

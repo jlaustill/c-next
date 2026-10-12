@@ -13,7 +13,7 @@
  * 3. ADR-046: a `c_`-prefixed variable initialized from one of the C library
  *    functions that return a struct pointer.
  */
-import type SymbolTable from "../PARSE/3-Declare/SymbolTable";
+import type IResolvedSymbols from "../types/IResolvedSymbols";
 import STRUCT_POINTER_C_FUNCTIONS from "./constants/STRUCT_POINTER_C_FUNCTIONS";
 
 /** What the three arms read of a declaration */
@@ -46,7 +46,7 @@ class DeclaredPointer {
    */
   static isHandleType(
     cType: string,
-    foreign: Pick<SymbolTable, "isOpaqueType">,
+    foreign: Pick<IResolvedSymbols, "isOpaqueType">,
   ): boolean {
     return foreign.isOpaqueType(cType);
   }
@@ -54,7 +54,7 @@ class DeclaredPointer {
   /** Whether the declaration is a pointer, by the three arms above */
   static of(
     facts: IPointerFacts,
-    foreign: Pick<SymbolTable, "isOpaqueType" | "getCSymbol">,
+    foreign: Pick<IResolvedSymbols, "isOpaqueType" | "getCSymbol">,
   ): boolean {
     if (facts.cType.endsWith("*")) return true;
     if (DeclaredPointer.isHandleType(facts.cType, foreign)) return true;

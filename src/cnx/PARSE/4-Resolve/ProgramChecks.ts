@@ -3,7 +3,7 @@ import type IProgram from "../../types/IProgram";
 import type ITargetDescription from "../../types/ITargetDescription";
 import type ITranspileError from "../../types/ITranspileError";
 import CodedErrorText from "../../utils/CodedErrorText";
-import SymbolTable from "../3-Declare/SymbolTable";
+import type IResolvedSymbols from "../../types/IResolvedSymbols";
 import IRunTargetCheck from "./types/IRunTargetCheck";
 
 /**
@@ -90,7 +90,7 @@ class ProgramChecks {
    * target in a long-lived one (#1307 review).
    */
   static externalIdentifiers(
-    symbolTable: SymbolTable,
+    symbolTable: IResolvedSymbols,
     targetDescription: ITargetDescription,
   ): ITranspileError[] {
     return symbolTable

@@ -5,13 +5,13 @@
  */
 import IFunctionSignature from "../../../../types/IFunctionSignature";
 import ICallbackTypeInfo from "../../../../types/ICallbackTypeInfo";
-import SymbolTable from "../../../../PARSE/3-Declare/SymbolTable";
+import type IResolvedSymbols from "../../../../types/IResolvedSymbols";
 import ICodeGenSymbols from "../../../../types/ICodeGenSymbols";
 import type IProgram from "../../../../types/IProgram";
 
 interface IGeneratorInput {
   /** Symbol table from parsed C/C++ headers (may be null for single-file transpilation) */
-  readonly symbolTable: SymbolTable | null;
+  readonly symbolTable: IResolvedSymbols | null;
 
   /** C-Next symbols collected from the parse tree (enums, structs, scopes, etc.) */
   readonly symbols: ICodeGenSymbols | null;

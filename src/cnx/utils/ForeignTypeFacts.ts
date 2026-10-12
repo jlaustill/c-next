@@ -1,4 +1,4 @@
-import type SymbolTable from "../PARSE/3-Declare/SymbolTable";
+import type IResolvedSymbols from "../types/IResolvedSymbols";
 import type TTypeInfo from "../types/TTypeInfo";
 import TYPE_WIDTH from "../types/TYPE_WIDTH";
 import type TCSymbol from "../types/symbols/c/TCSymbol";
@@ -54,7 +54,7 @@ class ForeignTypeFacts {
    * disagreed wherever `double` is not 64 bits.
    */
   static variableType(
-    symbolTable: SymbolTable,
+    symbolTable: IResolvedSymbols,
     name: string,
     target: ITargetDescription | null,
   ): string | null {
@@ -88,7 +88,7 @@ class ForeignTypeFacts {
    * C++ header's variable had no type.
    */
   static variableTypeInfo(
-    symbolTable: SymbolTable,
+    symbolTable: IResolvedSymbols,
     name: string,
     target: ITargetDescription | null,
   ): TTypeInfo | undefined {

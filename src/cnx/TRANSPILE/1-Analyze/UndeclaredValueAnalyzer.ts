@@ -47,7 +47,7 @@ import NameExistence from "../../PARSE/3-Declare/NameExistence";
 import REJECTED_KEYWORDS from "./REJECTED_KEYWORDS";
 import ScopeUtils from "../../utils/ScopeUtils";
 import OperandTyper from "../../utils/OperandTyper";
-import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
+import type IResolvedSymbols from "../../types/IResolvedSymbols";
 import TChainRoot from "../../types/TChainRoot";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
@@ -263,7 +263,7 @@ class UndeclaredValueAnalyzer {
     name: string,
     scopePath: string,
     symbols: ICodeGenSymbols,
-    symbolTable: SymbolTable,
+    symbolTable: IResolvedSymbols,
   ): boolean {
     return (
       NameExistence.isValueName(

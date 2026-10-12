@@ -2,6 +2,7 @@
  * Unit tests for CodeGenWalker - the main transpiler component.
  * Tests the IOrchestrator interface and internal methods.
  */
+import TestSymbolTable from "../../../../cnx/TRANSPILE/__tests__/TestSymbolTable";
 import ProgramLowering from "../../../../cnx/PARSE/2-Parse/ProgramLowering";
 import TargetResolver from "../../../TargetResolver";
 import ProgramGeneration from "./ProgramGeneration";
@@ -98,7 +99,7 @@ function setupGenerator(
   const generator = new CodeGenWalker(host);
   const state = host.state;
   // Set symbolTable in TranspileState before generate (TranspileState owns SymbolTable)
-  state.symbolTable = symbolTable;
+  TestSymbolTable.install(state, symbolTable);
   // Generate to initialize the generator state
   generateWithProgram(generator, tree, program, {
     cppMode,
@@ -9245,7 +9246,7 @@ describe("CodeGenWalker", () => {
         // produced the right output for the wrong reason.
         const symbolTable = new SymbolTable();
         symbolTable.addTSymbols(tSymbols);
-        host.state.symbolTable = symbolTable;
+        TestSymbolTable.install(host.state, symbolTable);
 
         const code = generateWithProgram(generator, tree, program, {
           cppMode: false,
@@ -9378,8 +9379,7 @@ describe("CodeGenWalker", () => {
         // pipeline never reaches, and one in which kind-aware type resolution
         // silently finds nothing. 390 sites in this file share this shape and pass
         // because they do not assert on scope-qualified names; these two do.
-        host.state.symbolTable = new SymbolTable();
-        host.state.symbolTable.addTSymbols(tSymbols);
+        TestSymbolTable.install(host.state);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, program, {
@@ -9489,7 +9489,7 @@ describe("CodeGenWalker", () => {
         // Issue #831: Register TSymbols in SymbolTable (single source of truth)
         const symbolTable = new SymbolTable();
         symbolTable.addTSymbols(tSymbols);
-        host.state.symbolTable = symbolTable;
+        TestSymbolTable.install(host.state, symbolTable);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, program, {
@@ -10254,8 +10254,7 @@ describe("CodeGenWalker", () => {
         // pipeline never reaches, and one in which kind-aware type resolution
         // silently finds nothing. 390 sites in this file share this shape and pass
         // because they do not assert on scope-qualified names; these two do.
-        host.state.symbolTable = new SymbolTable();
-        host.state.symbolTable.addTSymbols(tSymbols);
+        TestSymbolTable.install(host.state);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, program, {
@@ -11957,7 +11956,7 @@ describe("CodeGenWalker", () => {
         // so it is populated here exactly as the Pipeline populates it.
         const symbolTable = new SymbolTable();
         symbolTable.addTSymbols(tSymbols);
-        host.state.symbolTable = symbolTable;
+        TestSymbolTable.install(host.state, symbolTable);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, program, {
@@ -13366,7 +13365,7 @@ describe("CodeGenWalker", () => {
         // so it is populated here exactly as the Pipeline populates it.
         const symbolTable = new SymbolTable();
         symbolTable.addTSymbols(tSymbols);
-        host.state.symbolTable = symbolTable;
+        TestSymbolTable.install(host.state, symbolTable);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, program, {
@@ -13396,7 +13395,7 @@ describe("CodeGenWalker", () => {
         symbolTable.addTSymbols(tSymbols);
         // What a C header's `struct Point { ... };` with no typedef records.
         symbolTable.markNeedsStructKeyword("Point");
-        host.state.symbolTable = symbolTable;
+        TestSymbolTable.install(host.state, symbolTable);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         generateWithProgram(generator, tree, program, {

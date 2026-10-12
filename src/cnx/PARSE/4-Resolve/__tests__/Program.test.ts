@@ -100,6 +100,29 @@ describe("Program", () => {
     },
   });
 
+  // #1991: a pass after 1.4 reads the run's symbol table only off Program, so
+  // 1.4 is what completes it -- 1.3's header symbols, plus the C-Next ones it
+  // resolved -- and hands that one table on.
+  describe("symbolTable()", () => {
+    it("is the table 1.3 declared into, completed with what 1.4 resolved", () => {
+      const declared = new SymbolTable();
+      declared.markOpaqueType("Handle");
+      const program = Program.build([declare("u32 x <- 1;", "a.cnx")], {
+        cppMode: false,
+        symbolTable: declared,
+      });
+
+      expect(program.symbolTable()).toBe(declared);
+      expect(program.symbolTable().isOpaqueType("Handle")).toBe(true);
+      expect(
+        program
+          .symbolTable()
+          .getTSymbolsByFile("a.cnx")
+          .map((symbol) => symbol.name),
+      ).toEqual(["x"]);
+    });
+  });
+
   // #1760 review: a file the program does not hold is a caller's bug. The
   // binding accessors used to fall back to "no locals" for one, which loses
   // every shadowing decision with no error, while lexicalFrameAt asserted.
@@ -1073,6 +1096,7 @@ scope Gauge {
         "settledConstOf",
         "sourceFiles",
         "symbolByCName",
+        "symbolTable",
         "symbolsInFile",
         "target",
         "typesDeclaredIn",

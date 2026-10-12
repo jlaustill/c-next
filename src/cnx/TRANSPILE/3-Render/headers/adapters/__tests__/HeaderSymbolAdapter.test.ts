@@ -2,6 +2,8 @@
  * Unit tests for HeaderSymbolAdapter
  * ADR-055 Phase 5/7: Converts TSymbol to IHeaderSymbol (ISymbol methods removed in Phase 7)
  */
+import SymbolTable from "../../../../../PARSE/3-Declare/SymbolTable";
+import TestSymbolTable from "../../../../__tests__/TestSymbolTable";
 import { describe, it, expect } from "vitest";
 import TranspileState from "../../../../TranspileState";
 import HeaderSymbolAdapter from "../HeaderSymbolAdapter";
@@ -26,6 +28,7 @@ let state = new TranspileState();
 describe("HeaderSymbolAdapter", () => {
   beforeEach(() => {
     state = new TranspileState();
+    TestSymbolTable.install(state);
   });
 
   // ========================================================================
@@ -150,7 +153,7 @@ describe("HeaderSymbolAdapter", () => {
     ])(
       "marks a variable of %s by whether it is held through a pointer",
       (_label, typeName, expected) => {
-        state.symbolTable.markOpaqueType("Dev");
+        TestSymbolTable.of(state).markOpaqueType("Dev");
         const tSymbol: IVariableSymbol = {
           ...TestSymbolUtils.base({
             kind: "variable",
@@ -281,6 +284,7 @@ describe("HeaderSymbolAdapter", () => {
      */
     it("marks each parameter by the opaque-handle stamp it was settled with", () => {
       state.program = {
+        symbolTable: () => new SymbolTable(),
         isOpaqueType: () => false,
       } as unknown as IProgram;
       const tSymbol: IFunctionSymbol = {

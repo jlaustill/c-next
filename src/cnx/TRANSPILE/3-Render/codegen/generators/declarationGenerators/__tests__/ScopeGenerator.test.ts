@@ -16,6 +16,7 @@
  * input those decisions are actually made from.
  */
 
+import TestSymbolTable from "../../../../../__tests__/TestSymbolTable";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import generateScope from "../ScopeGenerator";
 import IGeneratorInput from "../../IGeneratorInput";
@@ -584,7 +585,7 @@ describe("ScopeGenerator", () => {
 
   describe("type definitions (#1300)", () => {
     it("emits each planned definition through its kind's emitter, in plan order", () => {
-      const symbolTable = state.symbolTable;
+      const symbolTable = TestSymbolTable.of(state);
       const result = generateScope(
         scope({
           typeDefinitions: [

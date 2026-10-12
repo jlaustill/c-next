@@ -4,7 +4,7 @@
  */
 import TYPE_MAP from "../../types/TYPE_MAP";
 import IFunctionSignature from "../../../../../types/IFunctionSignature";
-import SymbolTable from "../../../../../PARSE/3-Declare/SymbolTable";
+import type IResolvedSymbols from "../../../../../types/IResolvedSymbols";
 import TypeResolver from "../../../../../utils/TypeResolver";
 
 class CallExprUtils {
@@ -45,7 +45,7 @@ class CallExprUtils {
   }
 
   /**
-   * Issue #315: Resolve target parameter info from local signature or cross-file SymbolTable.
+   * Issue #315: Resolve target parameter info from local signature or cross-file IResolvedSymbols.
    * Returns the parameter info and whether it came from a cross-file lookup.
    *
    * Issue #1139: `funcName` is a transpiled C name (`Sensors__readValue`), so
@@ -58,7 +58,7 @@ class CallExprUtils {
     sig: IFunctionSignature | undefined,
     paramIndex: number,
     funcName: string,
-    symbolTable: SymbolTable | null,
+    symbolTable: IResolvedSymbols | null,
   ): {
     param: IFunctionSignature["parameters"][0] | undefined;
     isCrossFile: boolean;

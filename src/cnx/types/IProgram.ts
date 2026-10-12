@@ -16,6 +16,7 @@ import type TSymbol from "./symbols/TSymbol";
 import type IConflict from "./IConflict";
 import type ICodeGenSymbols from "./ICodeGenSymbols";
 import type THeaderMacro from "./THeaderMacro";
+import type IResolvedSymbols from "./IResolvedSymbols";
 
 /**
  * `Program` — the artifact 1.4 Resolve emits, and the only place a cross-file
@@ -66,6 +67,8 @@ interface IProgram {
 
   /** The settled symbols a file declares. */
   symbolsInFile(sourceFile: string): ReadonlyArray<TSymbol>;
+  /** The run's symbol table, complete: 1.3's header symbols plus the C-Next ones 1.4 resolved (#1991). */
+  symbolTable(): IResolvedSymbols;
 
   /** Every file the program declared, in the order they were declared. */
   sourceFiles(): ReadonlyArray<string>;

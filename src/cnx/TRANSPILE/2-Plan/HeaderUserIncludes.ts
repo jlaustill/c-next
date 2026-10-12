@@ -1,4 +1,4 @@
-import type SymbolTable from "../../PARSE/3-Declare/SymbolTable";
+import type IResolvedSymbols from "../../types/IResolvedSymbols";
 import type IProgram from "../../types/IProgram";
 import type TSymbol from "../../types/symbols/TSymbol";
 import QualifiedCName from "../../utils/QualifiedCName";
@@ -27,7 +27,7 @@ class HeaderUserIncludes {
    */
   static needed(
     symbols: readonly TSymbol[],
-    symbolTable: SymbolTable,
+    symbolTable: IResolvedSymbols,
     program: IProgram | null,
   ): boolean {
     if (symbols.some(HeaderUserIncludes.namesMacroDimension)) {
@@ -66,7 +66,7 @@ class HeaderUserIncludes {
    */
   private static needsDefiningHeader(
     typeName: string,
-    symbolTable: SymbolTable,
+    symbolTable: IResolvedSymbols,
     program: IProgram | null,
   ): boolean {
     if (symbolTable.isPointerTypedef(typeName)) {

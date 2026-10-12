@@ -1,6 +1,6 @@
 import type EFileType from "../PARSE/1-Discover/types/EFileType";
 import type ITargetDescription from "../types/ITargetDescription";
-import SymbolTable from "../PARSE/3-Declare/SymbolTable";
+import type IResolvedSymbols from "../types/IResolvedSymbols";
 import ReservedCnxName from "../utils/ReservedCnxName";
 import ICodeGenSymbols from "../types/ICodeGenSymbols";
 import TTypeInfo from "../types/TTypeInfo";
@@ -688,7 +688,17 @@ class TranspileState {
    */
   program: IProgram | null = null;
 
-  symbolTable: SymbolTable = new SymbolTable();
+  /**
+   * The run's symbol table, read off 1.4's `Program` -- the only place a pass
+   * after 1.4 may take it from (#1991).
+   */
+  get symbolTable(): IResolvedSymbols {
+    invariant(
+      this.program !== null,
+      "1.4 Resolve built Program before a pass read its symbol table",
+    );
+    return this.program.symbolTable();
+  }
 
   // ===========================================================================
   // TYPE TRACKING

@@ -9,7 +9,7 @@
  * - generateStructHeader.ts (isCppNamespace, convertToCppNamespaceIfNeeded)
  */
 
-import SymbolTable from "../PARSE/3-Declare/SymbolTable";
+import type IResolvedSymbols from "../types/IResolvedSymbols";
 import ESourceLanguage from "./types/ESourceLanguage";
 import QualifiedCName from "./QualifiedCName";
 
@@ -27,7 +27,7 @@ class CppNamespaceUtils {
    */
   static isCppNamespace(
     name: string,
-    symbolTable: SymbolTable | undefined,
+    symbolTable: IResolvedSymbols | undefined,
   ): boolean {
     if (!symbolTable) {
       return false;
@@ -63,7 +63,7 @@ class CppNamespaceUtils {
    */
   static isCppNamespaceType(
     typeName: string,
-    symbolTable: SymbolTable | undefined,
+    symbolTable: IResolvedSymbols | undefined,
   ): boolean {
     // Types already in :: format are clearly C++ namespaced
     if (typeName.includes("::")) {
@@ -93,7 +93,7 @@ class CppNamespaceUtils {
    */
   static convertToCppNamespace(
     typeName: string,
-    symbolTable: SymbolTable | undefined,
+    symbolTable: IResolvedSymbols | undefined,
   ): string {
     // Already in :: format
     if (typeName.includes("::")) {

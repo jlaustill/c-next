@@ -7,6 +7,7 @@
  * - Integer suffixes: u64 → ULL, i64 → LL, 8/16/32-bit → stripped
  */
 
+import TestSymbolTable from "../../../../../__tests__/TestSymbolTable";
 import { describe, it, expect, beforeEach } from "vitest";
 import generateLiteral from "../LiteralGenerator";
 import type IGeneratorState from "../../IGeneratorState";
@@ -22,6 +23,7 @@ let state = new TranspileState();
 describe("LiteralGenerator", () => {
   beforeEach(() => {
     state = new TranspileState();
+    TestSymbolTable.install(state);
   });
 
   describe("boolean literals", () => {

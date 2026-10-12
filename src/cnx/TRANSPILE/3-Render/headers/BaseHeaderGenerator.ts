@@ -13,7 +13,7 @@ import IParameterSymbol from "../../../utils/types/IParameterSymbol";
 import IHeaderOptions from "../codegen/types/IHeaderOptions";
 import IHeaderTypeInput from "./generators/IHeaderTypeInput";
 import HeaderGeneratorUtils from "./HeaderGeneratorUtils";
-import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
+import type IResolvedSymbols from "../../../types/IResolvedSymbols";
 // Unified parameter generation (Phase 1)
 import ParameterInputAdapter from "../codegen/helpers/ParameterInputAdapter";
 import ParameterSignatureBuilder from "../codegen/helpers/ParameterSignatureBuilder";
@@ -61,7 +61,7 @@ abstract class BaseHeaderGenerator {
    */
   private static assertNoPointerTypedefs(
     externalTypes: string[],
-    symbolTable: SymbolTable | undefined,
+    symbolTable: IResolvedSymbols | undefined,
     headerName: string,
     symbols: IHeaderSymbol[],
   ): void {
@@ -287,7 +287,7 @@ abstract class BaseHeaderGenerator {
     passByValueParams?: TPassByValueParams,
     allKnownEnums?: ReadonlySet<string>,
     generatedStructInits?: ReadonlySet<string>,
-    symbolTable?: SymbolTable,
+    symbolTable?: IResolvedSymbols,
   ): string[] {
     // #1205: the ADR-029 init functions are declarations too, so the section
     // exists when there is either kind. Keying the early return on `functions`
@@ -323,7 +323,7 @@ abstract class BaseHeaderGenerator {
     sym: IHeaderSymbol,
     passByValueParams?: TPassByValueParams,
     allKnownEnums?: ReadonlySet<string>,
-    symbolTable?: SymbolTable,
+    symbolTable?: IResolvedSymbols,
   ): string | null {
     // Map return type (main() always returns int). `headerCType`, not
     // `mapType`: a C++ namespaced return type is written `A::B` here exactly as
@@ -355,7 +355,7 @@ abstract class BaseHeaderGenerator {
     p: IParameterSymbol,
     passByValueSet?: ReadonlySet<string>,
     allKnownEnums?: ReadonlySet<string>,
-    symbolTable?: SymbolTable,
+    symbolTable?: IResolvedSymbols,
   ): string {
     // Pre-compute pass-by-value (ISR, float, enum, or explicitly marked)
     const isPassByValue =

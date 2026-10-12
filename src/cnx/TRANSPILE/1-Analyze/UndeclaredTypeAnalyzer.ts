@@ -39,7 +39,7 @@ import BUILTIN_TYPE_NAMES from "./BUILTIN_TYPE_NAMES";
 import ICodeGenSymbols from "../../types/ICodeGenSymbols";
 import IUndeclaredTypeError from "./types/IUndeclaredTypeError";
 import NameExistence from "../../PARSE/3-Declare/NameExistence";
-import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
+import type IResolvedSymbols from "../../types/IResolvedSymbols";
 import ScopeUtils from "../../utils/ScopeUtils";
 import DeclarationParts from "../../utils/DeclarationParts";
 import ExpressionChildren from "../../utils/ExpressionChildren";
@@ -263,11 +263,11 @@ class UndeclaredTypeAnalyzer {
     typeName: string,
     scope: string,
     symbols: ICodeGenSymbols,
-    symbolTable: SymbolTable,
+    symbolTable: IResolvedSymbols,
     test: (
       name: string,
       symbols: ICodeGenSymbols,
-      symbolTable: SymbolTable,
+      symbolTable: IResolvedSymbols,
     ) => boolean,
   ): boolean {
     if (scope) {
