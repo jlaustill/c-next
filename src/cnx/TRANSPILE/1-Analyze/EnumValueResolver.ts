@@ -16,9 +16,6 @@
  * member however it is qualified, and a C enum is an enum.
  */
 
-import { ParserRuleContext, ParseTree } from "antlr4ng";
-
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import OperandTyper from "../../utils/OperandTyper";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import type IOperandType from "../../types/IOperandType";
@@ -121,24 +118,10 @@ class EnumValueResolver {
    * A call or a subscript is excluded because either can make a chain
    * legitimately unresolvable to this pass.
    */
-  public isPureMemberPath(ctx: ParserRuleContext): boolean {
-    const node = EnumValueResolver.descend(ctx);
-    if (!(node instanceof Parser.PostfixExpressionContext)) return false;
-
-    const ops = node.postfixOp();
-    if (ops.length === 0) return false;
-    return ops.every((op) => op.DOT() !== null && op.LBRACKET() === null);
-  }
-
-  /** Descend through pass-through levels that carry exactly one child. */
-  private static descend(ctx: ParserRuleContext): ParseTree {
-    let node: ParseTree = ctx;
-    while (node instanceof ParserRuleContext && node.getChildCount() === 1) {
-      const child = node.getChild(0);
-      if (!child) break;
-      node = child;
-    }
-    return node;
+  public static isPureMemberPath(expr: TExpression): boolean {
+    return (
+      expr.kind === "postfix" && expr.ops.every((op) => op.kind === "member")
+    );
   }
 }
 

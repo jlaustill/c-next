@@ -359,7 +359,7 @@ function runAnalyzers(
     },
     {
       label: "enum type safety (ADR-017, E0428/E0434)",
-      run: () => new EnumTypeSafetyAnalyzer(context).analyze(tree),
+      run: () => new EnumTypeSafetyAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "slice assignment (ADR-007, E0858-E0861)",

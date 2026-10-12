@@ -12,8 +12,10 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  * test's source declares -- the same path as production.
  */
 const errors = (source: string) => {
-  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
-  return new EnumTypeSafetyAnalyzer(context).analyze(tree);
+  const { syntax, context } = testAnalysisContextFor(source, {
+    cppMode: false,
+  });
+  return new EnumTypeSafetyAnalyzer(context).analyze(syntax);
 };
 
 describe("EnumTypeSafetyAnalyzer", () => {
@@ -159,5 +161,47 @@ describe("EnumTypeSafetyAnalyzer", () => {
       ].join("\n");
       expect(errors(source)).toEqual([]);
     });
+  });
+});
+
+// #1991: read off 1.2's syntax, a `for` header's declaration is a site like any
+// other -- the parse-tree listener hooked `variableDeclaration` alone, so
+// `for (State s <- 1; ...)` compiled.
+describe("EnumTypeSafetyAnalyzer -- sites on 1.2's syntax", () => {
+  const at = (body: readonly string[]) =>
+    errors(
+      [
+        "enum State { IDLE, RUNNING }",
+        "scope S {",
+        "    State held <- 1;",
+        "}",
+        "void main(u8 i) {",
+        ...body.map((line) => `    ${line}`),
+        "}",
+      ].join("\n"),
+    ).map((e) => `${e.code}@${e.line}:${e.column}`);
+
+  it("reads a scope member, a for header and a comparison's right operand", () => {
+    expect(
+      at([
+        "State s <- State.IDLE;",
+        "for (State k <- 1; i < 3; i +<- 1) { }",
+        "for (s <- 2; s = 1; s <- State.IDLE) { }",
+        "s +<- 1;",
+      ]),
+    ).toEqual(["E0428@3:18", "E0428@7:20", "E0428@8:14", "E0434@8:21"]);
+  });
+
+  it("only equality and relational operators compare", () => {
+    expect(
+      at(["State s <- State.IDLE;", "u8 n <- s + 1;", "u8 m <- s & 1;"]),
+    ).toEqual(["E0428@3:18"]);
+  });
+
+  it("a path of members that resolves to nothing names nothing", () => {
+    expect(at(["State s <- this.Other.X;", "State t <- f();"])).toEqual([
+      "E0428@3:18",
+      "E0428@6:15",
+    ]);
   });
 });

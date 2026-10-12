@@ -32,11 +32,11 @@ lexer-only include scan. Nothing from 2.2 Plan on.
 
 | Layer                | Modules |
 | -------------------- | ------: |
-| `src/cnx/TRANSPILE/` |      24 |
+| `src/cnx/TRANSPILE/` |      20 |
 | `src/cnx/PARSE/`     |      14 |
 | `src/cnx/utils/`     |       4 |
 | `src/cnx/types/`     |       2 |
-| **total**            |  **44** |
+| **total**            |  **40** |
 
 `src/cnx/TRANSPILE/3-Render/` is the render layer, and its share is the number
 the issue singles out: the render layer holding parse nodes is how a
@@ -62,14 +62,10 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/cnx/PARSE/3-Declare/HeaderDeclarations.ts`                     | grammar           |
 | `src/cnx/TRANSPILE/1-Analyze/ArrayDeclarationAnalyzer.ts`           | antlr4ng, grammar |
 | `src/cnx/TRANSPILE/1-Analyze/ArrayIndexBoundsAnalyzer.ts`           | antlr4ng, grammar |
-| `src/cnx/TRANSPILE/1-Analyze/AssignmentSiteListener.ts`             | grammar           |
-| `src/cnx/TRANSPILE/1-Analyze/BinaryOperatorLevelListener.ts`        | antlr4ng, grammar |
 | `src/cnx/TRANSPILE/1-Analyze/ConstantDimensionAnalyzer.ts`          | antlr4ng, grammar |
 | `src/cnx/TRANSPILE/1-Analyze/ConstAssignmentAnalyzer.ts`            | antlr4ng, grammar |
 | `src/cnx/TRANSPILE/1-Analyze/ControllingExpressionAnalyzer.ts`      | antlr4ng, grammar |
 | `src/cnx/TRANSPILE/1-Analyze/CPointerArgumentAnalyzer.ts`           | antlr4ng, grammar |
-| `src/cnx/TRANSPILE/1-Analyze/EnumTypeSafetyAnalyzer.ts`             | antlr4ng, grammar |
-| `src/cnx/TRANSPILE/1-Analyze/EnumValueResolver.ts`                  | antlr4ng, grammar |
 | `src/cnx/TRANSPILE/1-Analyze/FunctionCallAnalyzer.ts`               | antlr4ng, grammar |
 | `src/cnx/TRANSPILE/1-Analyze/GrammarCoverageListener.ts`            | antlr4ng          |
 | `src/cnx/TRANSPILE/1-Analyze/helpers/FunctionReference.ts`          | grammar           |
@@ -91,4 +87,4 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/cnx/utils/ExpressionUtils.ts`                                  | grammar           |
 | `src/cnx/utils/PostfixAnalysisUtils.ts`                             | grammar           |
 
-44 module(s).
+40 module(s).
