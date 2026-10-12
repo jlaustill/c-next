@@ -1,0 +1,17 @@
+// test-error
+// test-adr: 045
+// The file-scope rule (E0863) with a source imported across TWO include hops.
+// At file scope only a literal is allowed, which is decided from this file's
+// syntax alone, so the include chain does not change it. Split from
+// `string-imported-transitive-error` (#1991).
+
+#include "string-relay.cnx"
+
+// ASSERTION
+string<8> narrowGlobal <- wideShared;
+
+u32 main() {
+    // NEGATIVE CONTROL -- the same copy inside a function is not this rule's.
+    string<16> okSameWidth <- wideShared;
+    return 0;
+}

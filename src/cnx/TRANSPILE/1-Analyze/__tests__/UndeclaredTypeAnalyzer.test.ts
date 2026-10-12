@@ -49,7 +49,7 @@ function analyze(source: string) {
   // nothing, so the diagnostic is in scope.
   return new UndeclaredTypeAnalyzer(
     testAnalysisContext(state, { reachesForeignHeader: false }),
-  ).analyze(tree);
+  ).analyze(ProgramLowering.program(tree, null));
 }
 
 const REGISTER = `register Control @ 0x40000000 { DR: u32 rw @ 0x00, }`;
@@ -132,6 +132,42 @@ describe("UndeclaredTypeAnalyzer", () => {
       `);
       expect(errors.map((e) => e.typeName)).toEqual(["Nowhere", "Elsewhere"]);
     });
+
+    // #1991: the walk reads 1.2's syntax, so each place a type is written is
+    // listed here rather than found by a tree walk that visits them all.
+    it("finds a type in every position 1.2 records, at its own position", () => {
+      const errors = analyze(
+        [
+          "struct S { Field f; }",
+          "Ret go(Param p) {",
+          "    Elem[(Dim) 4] a;",
+          "    u32 n <- (Cast) 1;",
+          "    return n;",
+          "}",
+        ].join("\n"),
+      );
+      expect(errors.map((e) => [e.typeName, e.line, e.column])).toEqual([
+        ["Field", 1, 11],
+        ["Ret", 2, 0],
+        ["Param", 2, 7],
+        ["Elem", 3, 4],
+        ["Dim", 3, 10],
+        ["Cast", 4, 14],
+      ]);
+    });
+
+    it("never reads a sizeof operand, down to a cast inside it (ADR-023)", () => {
+      const errors = analyze(
+        [
+          "u32 main() {",
+          "    u32 a <- sizeof(Nowhere);",
+          "    u32 b <- sizeof((Elsewhere) 1);",
+          "    return a + b;",
+          "}",
+        ].join("\n"),
+      );
+      expect(errors).toHaveLength(0);
+    });
   });
 
   describe("names that must stay silent", () => {
@@ -205,7 +241,7 @@ describe("UndeclaredTypeAnalyzer", () => {
       expect(
         new UndeclaredTypeAnalyzer(
           testAnalysisContext(state, { reachesForeignHeader: true }),
-        ).analyze(tree),
+        ).analyze(ProgramLowering.program(tree, null)),
       ).toHaveLength(0);
     });
   });

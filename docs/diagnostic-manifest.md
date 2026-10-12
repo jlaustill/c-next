@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-550 fixture(s) assert a diagnostic; 540 carry a code.
+556 fixture(s) assert a diagnostic; 546 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -162,7 +162,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-034/bitmap-bracket-indexing-error.test.cnx                                             | E0883               |
 | tests/adr-034/bitmap-error-overflow.test.cnx                                                     | E0881               |
 | tests/adr-034/bitmap-unknown-field-error.test.cnx                                                | E0882               |
-| tests/adr-035/array-init-error.test.cnx                                                          | E0866, E0876        |
+| tests/adr-035/array-form-error.test.cnx                                                          | E0866, E0876        |
+| tests/adr-035/array-init-error.test.cnx                                                          | E0866               |
 | tests/adr-035/empty-dimension-error.test.cnx                                                     | E0892               |
 | tests/adr-035/empty-dimension-included.test.cnx                                                  | E0892               |
 | tests/adr-036/array-bounds-uncovered-arms-error.test.cnx                                         | E0854               |
@@ -180,15 +181,19 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-045/string-error-concat-overflow.test.cnx                                              | E0864               |
 | tests/adr-045/string-error-const-no-init.test.cnx                                                | E0862               |
 | tests/adr-045/string-error-in-scope.test.cnx                                                     | E0864               |
+| tests/adr-045/string-error-infer-from-concat.test.cnx                                            | E0862               |
 | tests/adr-045/string-error-init-global.test.cnx                                                  | E0863               |
 | tests/adr-045/string-error-nonconst-unsized.test.cnx                                             | E0862               |
 | tests/adr-045/string-error-overflow.test.cnx                                                     | E0864               |
 | tests/adr-045/string-error-substring-bounds.test.cnx                                             | E0865               |
 | tests/adr-045/string-error-substring-dest.test.cnx                                               | E0864               |
 | tests/adr-045/string-error-substring-global.test.cnx                                             | E0863               |
-| tests/adr-045/string-error-uncovered-forms.test.cnx                                              | E0862, E0864        |
-| tests/adr-045/string-imported-direct-error.test.cnx                                              | E0863, E0864        |
-| tests/adr-045/string-imported-transitive-error.test.cnx                                          | E0863, E0864        |
+| tests/adr-045/string-error-uncovered-fit.test.cnx                                                | E0864               |
+| tests/adr-045/string-error-uncovered-forms.test.cnx                                              | E0862               |
+| tests/adr-045/string-imported-direct-error.test.cnx                                              | E0864               |
+| tests/adr-045/string-imported-global-error.test.cnx                                              | E0863               |
+| tests/adr-045/string-imported-transitive-error.test.cnx                                          | E0864               |
+| tests/adr-045/string-imported-transitive-global-error.test.cnx                                   | E0863               |
 | tests/adr-045/string-storage-properties-error.test.cnx                                           | E0887               |
 | tests/adr-049/atomic-volatile-error.test.cnx                                                     | E0889               |
 | tests/adr-050/return-in-critical-error.test.cnx                                                  | E0853               |
@@ -477,6 +482,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1980-enum-read-before-assign/enum-read-before-assign.test.cnx                   | E0381               |
 | tests/bugs/issue-1981-struct-cycle/direct.test.cnx                                               | E0426               |
 | tests/bugs/issue-1981-struct-cycle/mutual.test.cnx                                               | E0426               |
+| tests/bugs/issue-1991-for-header-enum-assign/for-header-enum-assign.test.cnx                     | E0428               |
 | tests/bugs/issue-2001-qualified-write-initializes-local/global-write-local-shadow.test.cnx       | E0381               |
 | tests/bugs/issue-2001-qualified-write-initializes-local/global-write-scope-member.test.cnx       | E0381               |
 | tests/bugs/issue-2001-qualified-write-initializes-local/local-write-scope-member.test.cnx        | E0381               |

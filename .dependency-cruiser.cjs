@@ -108,7 +108,6 @@ const PARSE_TREE_TYPES = [
  */
 const PARSE_TREE_HELPERS = [
   "^src/cnx/utils/(ChainRoot|ExpressionUnwrapper|ExpressionUtils|OverflowBehaviorUtils|ParserUtils|PostfixAnalysisUtils)\\.ts$",
-  "^src/cnx/types/TAssignmentSite\\.ts$",
 ];
 
 /** @type {import('dependency-cruiser').IConfiguration} */

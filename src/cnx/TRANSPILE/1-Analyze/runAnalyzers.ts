@@ -249,7 +249,7 @@ function runAnalyzers(
       // nothing feeds an unknown type into every later question, so the
       // diagnostics after it would name a consequence rather than the cause.
       label: "undefined type references (#1312)",
-      run: () => new UndeclaredTypeAnalyzer(context).analyze(tree),
+      run: () => new UndeclaredTypeAnalyzer(context).analyze(parsed.program),
     },
     {
       // After the type check, so a file whose type is undefined reports the
