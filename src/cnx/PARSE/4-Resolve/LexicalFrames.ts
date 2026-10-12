@@ -297,12 +297,14 @@ class LexicalFrames {
     let emitted = isFileScopeName(name)
       ? QualifiedCName.fromParts([functionCName, name])
       : name;
-    for (let suffix = 1; emitted === readsEmitted; suffix++) {
+    let suffix = 1;
+    while (emitted === readsEmitted) {
       emitted = QualifiedCName.fromParts([
         functionCName,
         name,
         suffix === 1 ? null : String(suffix),
       ]);
+      suffix++;
     }
     return emitted;
   }
