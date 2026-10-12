@@ -11,6 +11,9 @@ import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
 import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
+import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
+import type TExpression from "../../types/syntax/TExpression";
+import type TPostfixOpSyntax from "../../types/syntax/TPostfixOpSyntax";
 import IFunctionCallError from "./types/IFunctionCallError";
 import ParserUtils from "../../utils/ParserUtils";
 import AdrProvenance from "../../instrumentation/AdrProvenance";
@@ -169,8 +172,10 @@ class FunctionCallListener extends CNextListener {
   override enterPostfixExpression = (
     ctx: Parser.PostfixExpressionContext,
   ): void => {
-    const ops = ctx.postfixOp();
-    const primary = ctx.primaryExpression();
+    const lowered = SyntaxLowering.expressionNode(ctx);
+    if (lowered.kind !== "postfix") return;
+    const ops = lowered.ops;
+    const primary = lowered.primary;
 
     // Determine the base name: could be an identifier or 'this'
     const baseName = this.extractBaseName(primary);
@@ -197,9 +202,7 @@ class FunctionCallListener extends CNextListener {
   /**
    * Extract base name from primary expression.
    */
-  private extractBaseName(
-    primary: Parser.PrimaryExpressionContext,
-  ): string | null {
+  private extractBaseName(primary: TExpression): string | null {
     return CalleeNameResolver.baseName(primary);
   }
 
@@ -209,7 +212,7 @@ class FunctionCallListener extends CNextListener {
    * SonarCloud S3776: Extracted from enterPostfixExpression().
    */
   private resolveCallTarget(
-    ops: Parser.PostfixOpContext[],
+    ops: readonly TPostfixOpSyntax[],
     baseName: string,
   ): { resolvedName: string; foundCall: boolean; isGlobalCall: boolean } {
     return CalleeNameResolver.resolveCallTarget(

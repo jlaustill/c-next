@@ -18,7 +18,8 @@
  * function of what the caller can see.
  */
 
-import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
+import type TExpression from "../../../types/syntax/TExpression";
+import type TPostfixOpSyntax from "../../../types/syntax/TPostfixOpSyntax";
 import QualifiedCName from "../../../utils/QualifiedCName";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import ICalleeResolution from "../types/ICalleeResolution";
@@ -29,17 +30,9 @@ class CalleeNameResolver {
    * ADR-016 qualifier keywords, which are separate tokens rather than
    * identifiers. Returns null for anything that cannot start a named call.
    */
-  static baseName(primary: Parser.PrimaryExpressionContext): string | null {
-    if (primary.IDENTIFIER()) {
-      return primary.IDENTIFIER()!.getText();
-    }
-    if (primary.THIS()) {
-      return "this";
-    }
-    if (primary.GLOBAL()) {
-      return "global";
-    }
-    return null;
+  static baseName(primary: TExpression): string | null {
+    if (primary.kind === "identifier") return primary.name;
+    return primary.kind === "root" ? primary.root : null;
   }
 
   /**
@@ -48,12 +41,10 @@ class CalleeNameResolver {
    */
   static resolveMemberAccess(
     resolvedName: string,
-    op: Parser.PostfixOpContext,
+    memberName: string,
     currentScopePath: string,
     isScope: (name: string) => boolean,
   ): string | null {
-    const memberName = op.IDENTIFIER()!.getText();
-
     // this.member -> CurrentScope__member (only meaningful inside a scope)
     if (resolvedName === "this") {
       return currentScopePath
@@ -79,7 +70,7 @@ class CalleeNameResolver {
    * qualified name as it goes.
    */
   static resolveCallTarget(
-    ops: Parser.PostfixOpContext[],
+    ops: readonly TPostfixOpSyntax[],
     baseName: string,
     currentScopePath: string,
     isScope: (name: string) => boolean,
@@ -88,10 +79,10 @@ class CalleeNameResolver {
     let isGlobalCall = baseName === "global";
 
     for (const op of ops) {
-      if (op.IDENTIFIER()) {
+      if (op.kind === "member") {
         const resolved = CalleeNameResolver.resolveMemberAccess(
           resolvedName,
-          op,
+          op.name,
           currentScopePath,
           isScope,
         );
@@ -107,10 +98,8 @@ class CalleeNameResolver {
         continue;
       }
 
-      if (op.argumentList() || op.getChildCount() === 2) {
-        if (op.getText().startsWith("(")) {
-          return { resolvedName, foundCall: true, isGlobalCall };
-        }
+      if (op.kind === "call") {
+        return { resolvedName, foundCall: true, isGlobalCall };
       }
     }
 
@@ -126,15 +115,16 @@ class CalleeNameResolver {
    * indistinguishable at the lookup.
    */
   static resolveDetailed(
-    postfix: Parser.PostfixExpressionContext,
+    postfix: TExpression,
     currentScopePath: string,
     isScope: (name: string) => boolean,
   ): { name: string; isGlobalCall: boolean } | null {
-    const base = CalleeNameResolver.baseName(postfix.primaryExpression());
+    if (postfix.kind !== "postfix") return null;
+    const base = CalleeNameResolver.baseName(postfix.primary);
     if (base === null) return null;
 
     const result = CalleeNameResolver.resolveCallTarget(
-      postfix.postfixOp(),
+      postfix.ops,
       base,
       currentScopePath,
       isScope,

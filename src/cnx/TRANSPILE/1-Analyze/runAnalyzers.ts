@@ -307,7 +307,7 @@ function runAnalyzers(
     {
       label:
         "return-value use (ADR-070 / MISRA C:2012 Rule 17.7 at source level)",
-      run: () => ReturnValueUseAnalyzer.analyze(tree, context),
+      run: () => ReturnValueUseAnalyzer.analyze(parsed.program, context),
     },
     // ---------------------------------------------------------------------
     // #1322 relocations: appended as a BLOCK, never inserted among the steps

@@ -36,7 +36,10 @@ function analyze(source: string) {
       registry,
     ).symbols,
   );
-  return ReturnValueUseAnalyzer.analyze(tree, testAnalysisContext(state));
+  return ReturnValueUseAnalyzer.analyze(
+    ProgramLowering.program(tree, null),
+    testAnalysisContext(state),
+  );
 }
 
 let registry = new SymbolRegistry();

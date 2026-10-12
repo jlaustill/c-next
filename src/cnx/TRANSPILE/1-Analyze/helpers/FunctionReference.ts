@@ -24,6 +24,7 @@
  */
 
 import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
+import SyntaxLowering from "../../../PARSE/2-Parse/SyntaxLowering";
 import IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
 import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
 import QualifiedCName from "../../../utils/QualifiedCName";
@@ -87,7 +88,7 @@ class FunctionReference {
     context: IAnalysisContext,
   ): IFunctionSymbol | null {
     const resolved = CalleeNameResolver.resolveDetailed(
-      postfix,
+      SyntaxLowering.expressionNode(postfix),
       scopePath,
       (name) => context.symbols.knownScopes.has(name),
     );
@@ -116,13 +117,15 @@ class FunctionReference {
     if (postfix === null) return null;
     const ops = postfix.postfixOp();
     if (ops.some((op) => op.DOT() === null)) return null;
-    const base = CalleeNameResolver.baseName(postfix.primaryExpression());
+    const base = CalleeNameResolver.baseName(
+      SyntaxLowering.expressionNode(postfix.primaryExpression()),
+    );
     if (base === null) return null;
     let name = base;
     for (const op of ops) {
       const next = CalleeNameResolver.resolveMemberAccess(
         name,
-        op,
+        op.IDENTIFIER()?.getText() ?? "",
         scopePath,
         (name) => context.symbols.knownScopes.has(name),
       );
