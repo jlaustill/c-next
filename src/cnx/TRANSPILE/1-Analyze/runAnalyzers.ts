@@ -277,7 +277,7 @@ function runAnalyzers(
     },
     {
       label: "float modulo (% with f32/f64)",
-      run: () => new FloatModuloAnalyzer(context).analyze(tree),
+      run: () => new FloatModuloAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "array index type (ADR-054: unsigned indexes only)",
