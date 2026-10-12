@@ -174,7 +174,7 @@ class ArrayIndexBoundsListener extends CNextListener {
   ): void {
     if (bound === null || subscript.expressions.length !== 1) return;
     const index = ConstantExpression.valueAt(
-      subscript.expressions[0],
+      SyntaxLowering.expression(subscript.expressions[0]),
       this.context,
     );
     if (index === null) return;

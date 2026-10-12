@@ -40,6 +40,7 @@
  * change on code the corpus treats as valid.
  */
 
+import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import MainSignature from "../../utils/MainSignature";
 import ProgramLowering from "../../PARSE/2-Parse/ProgramLowering";
 import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
@@ -219,7 +220,10 @@ class ArrayDeclarationListener extends CNextListener {
       const expr = d.expression();
       return expr === null
         ? null
-        : ConstantExpression.valueAt(expr, this.context);
+        : ConstantExpression.valueAt(
+            SyntaxLowering.expression(expr),
+            this.context,
+          );
     });
     this.checkLevel(initializer, sizes, 0);
   }

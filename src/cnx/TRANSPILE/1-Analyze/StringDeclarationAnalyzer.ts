@@ -27,6 +27,7 @@
  * runs; the parse tree answers the same question by position.
  */
 
+import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
@@ -401,7 +402,10 @@ class StringDeclarationListener extends CNextListener {
    * bound is written, locals included.
    */
   private constantOf(expr: Parser.ExpressionContext): number | null {
-    return ConstantExpression.valueAt(expr, this.context);
+    return ConstantExpression.valueAt(
+      SyntaxLowering.expression(expr),
+      this.context,
+    );
   }
 
   private report(

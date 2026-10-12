@@ -361,7 +361,7 @@ function runAnalyzers(
     },
     {
       label: "slice assignment (ADR-007, E0858-E0861)",
-      run: () => new SliceAssignmentAnalyzer(context).analyze(tree),
+      run: () => new SliceAssignmentAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "switch statements (ADR-025, E0711-E0714)",

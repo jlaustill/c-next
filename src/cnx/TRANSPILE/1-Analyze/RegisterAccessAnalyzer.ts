@@ -39,6 +39,7 @@
  * their bits reject zero as codegen's `isWriteOnlyRegister` set did.
  */
 
+import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
@@ -151,7 +152,10 @@ class RegisterAccessListener extends CNextListener {
     // #1322 review: the flat map again -- and this one decides whether a
     // register write clears a `wo` bit, so the wrong scope's const changed
     // which diagnostic fired. `isFalseConst` below was already scope-aware.
-    const value = ConstantExpression.valueAt(expr, this.context);
+    const value = ConstantExpression.valueAt(
+      SyntaxLowering.expression(expr),
+      this.context,
+    );
     if (value !== null) return value === 0;
     return this.isFalseConst(text, node);
   }

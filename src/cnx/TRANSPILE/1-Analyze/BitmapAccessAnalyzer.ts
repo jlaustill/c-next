@@ -104,7 +104,10 @@ class BitmapAccessListener extends CNextListener {
       .get(bitmapAt.bitmap)
       ?.get(bitmapAt.field);
     if (layout === undefined) return;
-    const value = ConstantExpression.valueAt(ctx.expression(), this.context);
+    const value = ConstantExpression.valueAt(
+      SyntaxLowering.expression(ctx.expression()),
+      this.context,
+    );
     const maximum = 2 ** layout.width - 1;
     if (value === null || value <= maximum) return;
     this.report(

@@ -33,19 +33,16 @@
  * keeps one (#1664 box 7).
  */
 
-import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
-import { ParseTreeWalker } from "antlr4ng";
-
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
+import type TExpression from "../../types/syntax/TExpression";
+import StatementNodes from "../../utils/StatementNodes";
 import TYPE_WIDTH from "../../types/TYPE_WIDTH";
-import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
-import AssignmentSiteListener from "./AssignmentSiteListener";
 import ISliceAssignmentError from "./types/ISliceAssignmentError";
 import ConstantExpression from "./helpers/ConstantExpression";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import type IOperandType from "../../types/IOperandType";
-import type TAssignmentSite from "../../types/TAssignmentSite";
 
 /** `string<N>` holds N characters plus the terminator. */
 const STRING_TERMINATOR_BYTES = 1;
@@ -66,42 +63,35 @@ class SliceAssignmentListener {
   }
 
   /** `buf[offset, length] <- value`, in a statement or a `for` header */
-  public checkSite(site: TAssignmentSite): void {
-    // A compound operator on any two-subscript target is E0857's, reported
-    // before this step runs. Checking the slice as well would give one mistake
-    // two diagnostics.
-    if (!site.assignmentOperator().ASSIGN()) return;
-
-    const target = site.assignmentTarget();
-    const ops = target.postfixTargetOp();
+  public checkSite(site: IAssignmentSyntax): void {
+    if (site.operator !== "<-") return;
+    const target = site.target;
+    if (target.kind !== "postfix") return;
+    // `this.buf[...]` and `global.buf[...]` name the buffer after the root
+    const rooted = target.primary.kind === "root";
+    const ops = rooted ? target.ops.slice(1) : target.ops;
     if (ops.length !== 1) return;
-
-    const subscripts = ops[0].expression();
-    if (subscripts.length !== 2) return;
-
-    const name = target.IDENTIFIER()?.getText();
-    // The buffer as its declaration states it, bound by the one binder --
-    // this file's locals first, then scope members, globals and includes
-    // (#1668), so a buffer declared in an included file is found
-    const declared = OperandTyper.chainOf(
-      SyntaxLowering.assignmentTarget(target),
-      this.context,
-    ).steps[0]?.before;
-    // Not established, or a SCALAR base -- on a scalar, two subscripts are a
-    // bit RANGE (ADR-007), which is a different construct with its own rules.
+    const op = ops[0];
+    if (op.kind !== "subscript" || op.indexes.length !== 2) return;
+    const subscripts = op.indexes;
+    const head = rooted ? target.ops[0] : undefined;
+    let name: string | undefined;
+    if (head?.kind === "member") name = head.name;
+    else if (target.primary.kind === "identifier") name = target.primary.name;
+    const declared = OperandTyper.chainOf(target, this.context).steps[0]
+      ?.before;
     if (name === undefined || !declared) return;
     if (declared.dimensions.length === 0 && declared.stringCapacity === null) {
       return;
     }
-
     this.check(site, name, declared, subscripts);
   }
 
   private check(
-    site: TAssignmentSite,
+    site: IAssignmentSyntax,
     name: string,
     declared: IOperandType,
-    subscripts: readonly Parser.ExpressionContext[],
+    subscripts: readonly TExpression[],
   ): void {
     const destination = this.destinationOf(name, declared, subscripts[0]);
     if (destination === null) return;
@@ -176,7 +166,7 @@ class SliceAssignmentListener {
   private destinationOf(
     name: string,
     declared: IOperandType,
-    at: Parser.ExpressionContext,
+    at: TExpression,
   ): IDestination | null {
     if (declared.stringCapacity !== null) {
       // A string buffer is `char[N + 1]`; the terminator is part of it.
@@ -240,11 +230,11 @@ class SliceAssignmentListener {
 
   /** The source value has to fit the slice it is written into. */
   private checkSource(
-    site: TAssignmentSite,
+    site: IAssignmentSyntax,
     name: string,
     length: number,
   ): void {
-    const value = site.expression();
+    const value = site.value;
 
     const literal = this.constantOf(value);
     if (literal !== undefined) {
@@ -270,8 +260,7 @@ class SliceAssignmentListener {
     // An integer composite's type is the typer's (`CompositeType`); null
     // when it cannot name one (a mixed composite, an unknown-width C integer)
     const sourceType =
-      OperandTyper.typeOf(SyntaxLowering.expressionNode(value), this.context)
-        ?.typeName ?? null;
+      OperandTyper.typeOf(value, this.context)?.typeName ?? null;
     if (sourceType === null) return;
 
     const bits = TYPE_WIDTH[sourceType];
@@ -307,18 +296,23 @@ class SliceAssignmentListener {
    * measured against whichever scope was derived last. `ConstantExpression`
    * is the one evaluator now, and it asks from where the bound is written.
    */
-  private constantOf(expr: Parser.ExpressionContext): number | undefined {
+  private constantOf(expr: TExpression): number | undefined {
     return ConstantExpression.valueAt(expr, this.context) ?? undefined;
   }
 
   private report(
-    at: Parser.ExpressionContext,
+    at: TExpression,
     code: string,
     message: string,
     helpText: string,
   ): void {
-    const { line, column } = ParserUtils.getPosition(at);
-    this.found.push({ code, line, column, message, helpText });
+    this.found.push({
+      code,
+      line: at.span.line,
+      column: at.span.column,
+      message,
+      helpText,
+    });
   }
 }
 
@@ -326,12 +320,14 @@ class SliceAssignmentAnalyzer {
   /** #1456: handed in rather than read off shared state. */
   constructor(private readonly context: IAnalysisContext) {}
 
-  public analyze(tree: Parser.ProgramContext): ISliceAssignmentError[] {
+  /** #1991: reads 1.2's syntax, not the parse tree */
+  public analyze(program: IProgramSyntax): ISliceAssignmentError[] {
     const listener = new SliceAssignmentListener(this.context);
-    ParseTreeWalker.DEFAULT.walk(
-      new AssignmentSiteListener((site) => listener.checkSite(site)),
-      tree,
-    );
+    for (const member of program.declarations) {
+      for (const site of StatementNodes.assignments(member.declaration)) {
+        listener.checkSite(site);
+      }
+    }
     return listener.errors();
   }
 }

@@ -22,9 +22,8 @@
  * review).
  */
 
-import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
+import type TExpression from "../../../types/syntax/TExpression";
 import ConstExprLowering from "../../../utils/ConstExprLowering";
-import SyntaxLowering from "../../../PARSE/2-Parse/SyntaxLowering";
 import ConstantFold from "../../../utils/ConstantFold";
 import type IAnalysisContext from "../types/IAnalysisContext";
 
@@ -42,13 +41,10 @@ class ConstantExpression {
    * pass cannot resolve, and a rule that guessed a value for it would report
    * against a bound the C compiler never sees.
    */
-  static valueAt(
-    expr: Parser.ExpressionContext,
-    context: IAnalysisContext,
-  ): number | null {
+  static valueAt(expr: TExpression, context: IAnalysisContext): number | null {
     return (
       ConstExprLowering.valueOf(
-        SyntaxLowering.expression(expr),
+        expr,
         ConstantFold.environment(context.program, context.sourceFile),
       ) ?? null
     );
