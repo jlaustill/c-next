@@ -72,7 +72,7 @@ class DeclarationParts {
   }
 
   /** The statement's own parts, not those of statements nested in it */
-  private static statement(statement: TStatement): readonly TSyntaxPart[] {
+  static statement(statement: TStatement): readonly TSyntaxPart[] {
     switch (statement.kind) {
       case "variableDeclaration":
         return DeclarationParts.variable(statement);

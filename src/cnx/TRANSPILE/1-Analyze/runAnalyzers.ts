@@ -259,8 +259,7 @@ function runAnalyzers(
     },
     {
       label: "call analysis (ADR-030: define-before-use)",
-      run: () =>
-        new FunctionCallAnalyzer(context).analyze(tree, parsed.program),
+      run: () => new FunctionCallAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "NULL checks (ADR-047: C library interop)",
