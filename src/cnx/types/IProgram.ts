@@ -1,3 +1,4 @@
+import type IVariableSymbol from "./symbols/IVariableSymbol";
 import type IFunctionSymbol from "./symbols/IFunctionSymbol";
 import type IFoldedConstant from "./IFoldedConstant";
 import type TConstExpr from "./TConstExpr";
@@ -219,6 +220,19 @@ interface IProgram {
     name: string,
     at: Pick<ISourceSpan, "line" | "column">,
   ): TValueBinding | null;
+
+  /**
+   * #1643 (ADR-030): the variable of `sourceFile` a spelling would name at
+   * `at` were it already defined, when its declaration has not closed there --
+   * later in the file, or `at` in its own initializer; null otherwise. Such a
+   * spelling means what `bindValue` binds past it, or is not defined.
+   */
+  valueDefinedAfter(
+    sourceFile: string,
+    root: TChainRoot,
+    name: string,
+    at: Pick<ISourceSpan, "line" | "column">,
+  ): IVariableSymbol | null;
 
   /**
    * What a name in a constant expression is worth where it is written: the

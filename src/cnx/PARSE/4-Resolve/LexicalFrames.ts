@@ -89,8 +89,9 @@ class LexicalFrames {
 
   /**
    * The declaration `name` binds to at `at`: in each frame from the innermost
-   * outward, the last declaration of `name` that starts before `at`. A later
-   * declaration in the same block does not bind an earlier use (#1702), and a
+   * outward, the last declaration of `name` that has closed by `at`. A later
+   * declaration in the same block does not bind an earlier use (#1702), nor
+   * does a declaration bind a use in its own initializer (#1643), and a
    * sibling block's declaration is never visible (#1666).
    */
   static declarationAt(
@@ -106,7 +107,7 @@ class LexicalFrames {
       for (const declaration of declarations) {
         if (
           declaration.name === name &&
-          LexicalFrames.before(declaration.span, at)
+          LexicalFrames.compare(declaration.visibleFrom, at) <= 0
         ) {
           found = declaration;
         }
@@ -201,11 +202,9 @@ class LexicalFrames {
 
   /**
    * #1760 review: a declaration's own dimensions come before its name, so
-   * they see the enclosing binding (`u8[N] N`). Its initializer comes after
-   * the name and sees the new one, as C scopes it and as emission binds it,
-   * so a const that names itself has no value; whether it is allowed at all
-   * is #1643's. Folding both at the name's start gave `const u16 N <- N + 1`
-   * the value 5 while the C read the uninitialized local.
+   * they see the enclosing binding (`u8[N] N`). #1643: its initializer comes
+   * before the declaration closes, so it does not see the new one either --
+   * `const u16 N <- N + 1` names the enclosing `N`, or nothing (E0427).
    *
    * #1175: each name in a dimension or an initializer carries its own
    * position, and binds there -- which is that rule, with nothing to pick.
@@ -262,11 +261,6 @@ class LexicalFrames {
 
   private static compare(a: TPosition, b: TPosition): number {
     return a.line === b.line ? a.column - b.column : a.line - b.line;
-  }
-
-  /** Whether a span starts strictly before a position */
-  private static before(span: ISourceSpan, at: TPosition): boolean {
-    return LexicalFrames.compare(span, at) < 0;
   }
 
   /** Whether a position lies in a span, whose end is exclusive (ISourceSpan) */

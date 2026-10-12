@@ -61,8 +61,13 @@ enum's zero enumerator (ADR-017) is the value an unassigned enum local, field or
 element holds, not an assignment of it (owner ruling on #1980, 2026-10-10). A
 callback's ADR-029 default is the same: a local struct's callback field, or an
 element of a local callback array, read before it is assigned is E0381
-(`Ticker t; t.handler();`). Globals and scope variables are never E0381, so
-that is where a default is observed.
+(`Ticker t; t.handler();`). A global or scope variable declared without an
+initializer holds its type's default, which is where a default is observed.
+
+A declaration's own initializer cannot read it at all, in any context: the
+variable is defined once its declaration closes, so `u32 n <- n + 1` names
+nothing yet and is ADR-030's E0427, not a read of an uninitialized value
+(owner ruling on #1643, 2026-10-12).
 
 This decision aligns with ADR-008 (Language-Level Bug Prevention), Section 6: Uninitialized Variables.
 

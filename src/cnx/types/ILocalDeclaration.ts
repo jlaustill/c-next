@@ -19,8 +19,14 @@ import type TSettledConst from "./TSettledConst";
 interface ILocalDeclaration {
   readonly name: string;
   readonly kind: "local" | "parameter" | "for" | "constructor";
-  /** The declarator IDENTIFIER's span; a use binds only after it starts */
+  /** The declarator IDENTIFIER's span */
   readonly span: ISourceSpan;
+  /**
+   * #1643: where the declaration closes -- after its initializer -- and a use
+   * starts binding it. Its own initializer names something not yet defined
+   * (ADR-030), as `u32 n <- n + 1` reads nothing a C-Next author declared.
+   */
+  readonly visibleFrom: Pick<ISourceSpan, "line" | "column">;
   readonly type: TType;
   /** Leading first; a const name 1.4 could not fold stays its text */
   readonly arrayDimensions: ReadonlyArray<number | string>;

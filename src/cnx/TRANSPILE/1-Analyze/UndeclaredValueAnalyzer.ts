@@ -195,10 +195,17 @@ class UndeclaredValueAnalyzer {
    */
   isVisible(name: string, root: TChainRoot, at: ParserRuleContext): boolean {
     const symbols = this.context.symbols;
-    const scopePath = OperandTyper.scopePathAt(
-      ParserUtils.getPosition(at),
-      this.context,
-    );
+    const position = ParserUtils.getPosition(at);
+    const scopePath = OperandTyper.scopePathAt(position, this.context);
+
+    // #1643 (ADR-030): a variable this file has not finished declaring -- below
+    // the use, or the use in its own initializer -- is not defined yet. The
+    // spelling means whatever it binds past it, or nothing.
+    const program = this.context.program;
+    const sourceFile = this.context.sourceFile;
+    if (program.valueDefinedAfter(sourceFile, root, name, position) !== null) {
+      return program.bindValue(sourceFile, root, name, position) !== null;
+    }
 
     if (root === null) {
       return (

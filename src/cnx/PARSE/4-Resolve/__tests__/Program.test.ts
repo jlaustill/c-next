@@ -105,7 +105,8 @@ describe("Program", () => {
   // binding accessors used to fall back to "no locals" for one, which loses
   // every shadowing decision with no error, while lexicalFrameAt asserted.
   describe("a file the program does not hold", () => {
-    const at = { line: 1, column: 0 };
+    // After the one declaration, which a use inside it would not see (#1643)
+    const at = { line: 2, column: 0 };
 
     it("is an internal error for every lexical accessor", () => {
       const program = Program.build([declare("u32 x <- 1;", "a.cnx")], {
@@ -381,10 +382,6 @@ describe("Program", () => {
         "dependency",
         (i: number, _n: number) => (i === 0 ? "1" : `C${i - 1} + 1`),
       ],
-      [
-        "reverse dependency",
-        (i: number, n: number) => (i === n - 1 ? "1" : `C${i + 1} + 1`),
-      ],
     ])(
       "folds a chain of consts in %s order with a linear number of attempts",
       (_order, initializer) => {
@@ -437,11 +434,12 @@ describe("Program", () => {
 
       expect(valueOf("Board__STEP")).toBe(12);
       expect(valueOf("Other__STEP")).toBe(3);
+      // At each scope's closing brace, after its const is declared (#1643)
       expect(
-        constantAt(program, "lib.cnx", "STEP", { line: 2, column: 4 })?.value,
+        constantAt(program, "lib.cnx", "STEP", { line: 3, column: 0 })?.value,
       ).toBe(12);
       expect(
-        constantAt(program, "lib.cnx", "STEP", { line: 5, column: 4 })?.value,
+        constantAt(program, "lib.cnx", "STEP", { line: 6, column: 0 })?.value,
       ).toBe(3);
       expect(
         constantAt(program, "lib.cnx", "STEP", { line: 7, column: 0 }),
@@ -550,13 +548,17 @@ describe("Program", () => {
       return (symbol as IVariableSymbol).arrayDimensions;
     };
 
-    it("folds a const derived from another const, in either order", () => {
+    it("folds a const derived from another const declared above it", () => {
       expect(
         dimensionsOf(`const u32 A <- 4;\nconst u32 B <- A;\nu8[B] g;`, "g"),
       ).toEqual([4]);
+    });
+
+    it("folds nothing from a const declared below the use (#1643, ADR-030)", () => {
+      // `B` is not defined yet where `g` names it: E0427, and no size
       expect(
         dimensionsOf(`u8[B] g;\nconst u32 B <- A;\nconst u32 A <- 4;`, "g"),
-      ).toEqual([4]);
+      ).toEqual([UNRESOLVED_DIMENSION]);
     });
 
     it("folds a scope member's dimension with its own scope's const (#1538)", () => {
@@ -589,13 +591,21 @@ describe("Program", () => {
       ).toEqual([UNRESOLVED_DIMENSION]);
     });
 
-    it("folds a scope const with its own scope's names, whichever is declared first (#1664 review)", () => {
+    it("folds a scope const with its own scope's names once they are declared (#1664 review, #1643)", () => {
+      expect(
+        dimensionsOf(
+          `const u32 N <- 4;\nscope S {\nconst u32 N <- 10;\nconst u32 M <- N;\npublic u8[M] buf;\n}`,
+          "buf",
+        ),
+      ).toEqual([10]);
+      // Above the scope's `N`, a bare `N` is the file's: the member is not
+      // defined yet (ADR-030), and `S__M = N` is what C reads too
       expect(
         dimensionsOf(
           `const u32 N <- 4;\nscope S {\nconst u32 M <- N;\nconst u32 N <- 10;\npublic u8[M] buf;\n}`,
           "buf",
         ),
-      ).toEqual([10]);
+      ).toEqual([4]);
     });
 
     it("does not fold a result an operand's type cannot hold (#1664 review)", () => {
@@ -1076,6 +1086,7 @@ scope Gauge {
         "symbolsInFile",
         "target",
         "typesDeclaredIn",
+        "valueDefinedAfter",
       ]);
     });
   });

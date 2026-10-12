@@ -1,0 +1,12 @@
+// test-error
+// test-adr: 030
+// Issue #1643: a declaration is defined once it closes, so an initializer
+// naming the variable it declares names nothing yet -- E0427 (ADR-030). Each
+// control names a different variable of the same type and stays silent.
+
+u8 main() {
+    u32 n <- 0;
+    u32 m <- n + 1; // control
+    u32 k <- k + 1; // ERROR: reads itself
+    return 0;
+}

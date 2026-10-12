@@ -369,6 +369,13 @@ class Program {
         at: TPosition,
       ): TValueBinding | null =>
         Program.bindValue(bound, sourceFile, root, name, at),
+      valueDefinedAfter: (
+        sourceFile: string,
+        root: TChainRoot,
+        name: string,
+        at: TPosition,
+      ): IVariableSymbol | null =>
+        Program.valueDefinedAfter(bound, sourceFile, root, name, at),
       constantValueOf: (
         sourceFile: string,
         name: Extract<TConstExpr, { kind: "name" }>,
@@ -1294,7 +1301,54 @@ class Program {
     if (local) {
       return { kind: "local", declaration: local, scopePath };
     }
-    return Program.bindOutside(facts, sourceFile, scopePath, root, name);
+    return Program.bindOutside(facts, sourceFile, scopePath, root, name, at);
+  }
+
+  /**
+   * #1643 (ADR-030): the variable of `sourceFile` a spelling would name at
+   * `at` were it already defined, when its declaration has not closed there --
+   * it comes later in the file, or `at` is in its own initializer. Null when
+   * the spelling names a local, or anything already defined.
+   */
+  private static valueDefinedAfter(
+    facts: IBindingFacts,
+    sourceFile: string,
+    root: TChainRoot,
+    name: string,
+    at: TPosition,
+  ): IVariableSymbol | null {
+    const frames = Program.framesOf(facts.framesByFile, sourceFile);
+    if (root === null && LexicalFrames.declarationAt(frames, name, at)) {
+      return null;
+    }
+    const scopePath = LexicalFrames.frameAt(frames, at).scopePath;
+    const binding = Program.bindOutside(
+      facts,
+      sourceFile,
+      scopePath,
+      root,
+      name,
+      null,
+    );
+    return binding?.kind === "variable" &&
+      Program.closesAfter(binding.symbol, sourceFile, at)
+      ? binding.symbol
+      : null;
+  }
+
+  /** Whether a variable of `sourceFile` has not closed its declaration at `at` */
+  private static closesAfter(
+    symbol: TSymbol,
+    sourceFile: string,
+    at: TPosition,
+  ): boolean {
+    const span = symbol.span;
+    return (
+      symbol.kind === "variable" &&
+      symbol.sourceFile === sourceFile &&
+      (at.line < span.endLine ||
+        (at.line === span.endLine && at.column < span.endColumn))
+    );
   }
 
   /**
@@ -1308,9 +1362,18 @@ class Program {
     scopePath: string,
     root: TChainRoot,
     name: string,
+    /** Null asks as if every variable of the file were already defined */
+    at: TPosition | null,
   ): TValueBinding | null {
-    const visibleSymbol = (cName: string): TSymbol | undefined =>
-      Program.visibleSymbolIn(facts, sourceFile, cName);
+    // #1643: a variable this file has not finished declaring is not there yet
+    const visibleSymbol = (cName: string): TSymbol | undefined => {
+      const symbol = Program.visibleSymbolIn(facts, sourceFile, cName);
+      return symbol !== undefined &&
+        at !== null &&
+        Program.closesAfter(symbol, sourceFile, at)
+        ? undefined
+        : symbol;
+    };
     const declared = (cName: string): TValueBinding | null => {
       const symbol = visibleSymbol(cName);
       if (symbol?.kind === "variable") return { kind: "variable", symbol };

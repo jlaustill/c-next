@@ -80,6 +80,14 @@ class FrameListener extends CNextListener {
     return ParserUtils.getSpan({ start: node.symbol, stop: node.symbol });
   }
 
+  /** Where a declaration closes, as `ILocalDeclaration.visibleFrom` */
+  private static endOf(
+    ctx: ParserRuleContext,
+  ): ILocalDeclaration["visibleFrom"] {
+    const span = ParserUtils.getSpan(ctx);
+    return { line: span.endLine, column: span.endColumn };
+  }
+
   override enterScopeDeclaration = (
     ctx: Parser.ScopeDeclarationContext,
   ): void => {
@@ -119,6 +127,7 @@ class FrameListener extends CNextListener {
         name: info.name,
         kind: "parameter",
         span: FrameListener.spanOf(params[index].IDENTIFIER()),
+        visibleFrom: FrameListener.endOf(params[index]),
         type: info.type,
         arrayDimensions: info.arrayDimensions ?? [],
         arrayDimensionExprs: info.arrayDimensionExprs ?? [],
@@ -181,6 +190,7 @@ class FrameListener extends CNextListener {
       name: ctx.IDENTIFIER().getText(),
       kind,
       span: FrameListener.spanOf(ctx.IDENTIFIER()),
+      visibleFrom: FrameListener.endOf(ctx),
       type: facts.type,
       arrayDimensions: facts.arrayDimensions,
       arrayDimensionExprs: facts.arrayDimensionExprs,
