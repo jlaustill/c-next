@@ -276,6 +276,7 @@ class ProgramLowering {
         type: SyntaxLowering.type(member.type()),
         name: member.IDENTIFIER().getText(),
         dimensions: member.arrayDimension().map(ProgramLowering.dimensionOf),
+        overflow: SyntaxLowering.overflow(member.overflowModifier()),
         ...SyntaxLowering.node(member),
       })),
       ...SyntaxLowering.node(ctx),

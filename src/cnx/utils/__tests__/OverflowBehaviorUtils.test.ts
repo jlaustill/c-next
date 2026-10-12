@@ -1,25 +1,24 @@
 import { describe, expect, it } from "vitest";
 import CNextSourceParser from "../../PARSE/2-Parse/CNextSourceParser";
 import OverflowBehaviorUtils from "../OverflowBehaviorUtils";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
+import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
+import type TOverflowBehavior from "../../types/TOverflowBehavior";
 
 /**
  * Issue #1303: the one decoder for ADR-044's `clamp`/`wrap` modifier.
  *
- * Parses real source rather than mocking a context, because the whole point of
- * this module is that it reads the CLAMP/WRAP tokens the grammar actually
- * produces -- a mock would let the test agree with a decoder that reads the
- * wrong node.
+ * Parses real source and lowers it through 1.2 rather than writing the modifier
+ * by hand, because 1.2 reads the CLAMP/WRAP tokens (#1991: 1.3 reads only what
+ * 1.2 returned) -- a hand-written value would let the test agree with a
+ * lowering that reads the wrong node.
  */
-const modifierFor = (
-  declaration: string,
-): Parser.OverflowModifierContext | null => {
+const modifierFor = (declaration: string): TOverflowBehavior | null => {
   const { tree, parseErrors: errors } = CNextSourceParser.parse(declaration);
   if (errors.length > 0) {
     throw new Error(`unparsable fixture: ${errors[0].message}`);
   }
   const varCtx = tree.declaration(0)!.variableDeclaration()!;
-  return varCtx.overflowModifier();
+  return SyntaxLowering.overflow(varCtx.overflowModifier());
 };
 
 describe("OverflowBehaviorUtils", () => {

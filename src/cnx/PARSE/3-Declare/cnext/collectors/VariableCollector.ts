@@ -68,7 +68,7 @@ class VariableCollector {
     // A literal folds here; a const or a C macro keeps its text (#455), and
     // 1.4 folds a const where the declaration is written (#1664 box 7)
     if (sizeExpr) {
-      return DimensionResolver.resolve(sizeExpr);
+      return DimensionResolver.resolve(SyntaxLowering.expression(sizeExpr));
     }
 
     // Issue #636: Empty dimension [] - infer size from array initializer
@@ -133,7 +133,9 @@ class VariableCollector {
       // C-Next type name in generated C, which does not compile -- while the
       // .c correctly said [4]. Text that does not fold is still kept, for macro and
       // enum references.
-      dimensions.push(DimensionResolver.resolve(sizeExpr));
+      dimensions.push(
+        DimensionResolver.resolve(SyntaxLowering.expression(sizeExpr)),
+      );
     }
     return dimensions;
   }
@@ -169,11 +171,19 @@ class VariableCollector {
     // #1298: members carry the scope's PATH, not the scope object. The path
     // holds every outer component, so nothing downstream can flatten it to a
     // leaf -- which is what the reference threaded here used to protect against.
-    const typeStr = TypeUtils.getTypeName(typeCtx, scopePath, isScopeType);
+    const typeStr = TypeUtils.getTypeName(
+      SyntaxLowering.type(typeCtx),
+      scopePath,
+      isScopeType,
+    );
     const type = VariableCollector.resolveDeclaredType(
       typeStr,
       ctx,
-      TypeUtils.resolveType(typeCtx, scopePath, isScopeType),
+      TypeUtils.resolveType(
+        SyntaxLowering.type(typeCtx),
+        scopePath,
+        isScopeType,
+      ),
     );
 
     // Check for const modifier (a `for` variable has none)
@@ -189,7 +199,7 @@ class VariableCollector {
     // volatile above, so it is read HERE and carried on the symbol. Reading it
     // only in codegen meant it existed for the declaring file and nowhere else.
     const overflowBehavior = OverflowBehaviorUtils.fromModifier(
-      ctx.overflowModifier(),
+      SyntaxLowering.overflow(ctx.overflowModifier()),
     );
 
     // Check for array dimensions - both C-style (arrayDimension) and C-Next style (arrayType)

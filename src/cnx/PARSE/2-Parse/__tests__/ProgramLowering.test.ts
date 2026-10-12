@@ -116,14 +116,14 @@ describe("ProgramLowering", () => {
 
   it("records a struct's fields with their dimensions", () => {
     const [{ declaration }] = lower(
-      "struct Point { i32 x; u8 tags[4]; }",
+      "struct Point { i32 x; wrap u8 tags[4]; }",
     ).declarations;
     expect(declaration).toMatchObject({
       kind: "struct",
       name: "Point",
       fields: [
-        { name: "x", dimensions: [] },
-        { name: "tags", dimensions: [{ written: "4" }] },
+        { name: "x", dimensions: [], overflow: null },
+        { name: "tags", dimensions: [{ written: "4" }], overflow: "wrap" },
       ],
     });
   });

@@ -5,6 +5,7 @@
  * Produces TType-based IFunctionSymbol with proper IScopeSymbol references.
  */
 
+import SyntaxLowering from "../../../2-Parse/SyntaxLowering";
 import * as Parser from "../../../2-Parse/grammar/CNextParser";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import IFunctionSymbol from "../../../../types/symbols/IFunctionSymbol";
@@ -48,7 +49,7 @@ class FunctionCollector {
     // of guessing it, so 1.4 Resolve can apply ADR-057 with the whole-program
     // scope-type set. Everything it can settle resolves exactly as before.
     const returnType = TypeUtils.resolveType(
-      returnTypeCtx,
+      SyntaxLowering.type(returnTypeCtx),
       scopePath,
       isScopeType,
     );
@@ -131,7 +132,11 @@ class FunctionCollector {
     return params.map((p) => {
       const name = p.IDENTIFIER().getText();
       const typeCtx = p.type();
-      const type = TypeUtils.resolveType(typeCtx, scopePath, isScopeType);
+      const type = TypeUtils.resolveType(
+        SyntaxLowering.type(typeCtx),
+        scopePath,
+        isScopeType,
+      );
       const isConst = p.constModifier() !== null;
 
       // Check for C-Next style array type (u8[8] param, u8[4][4] param, u8[] param)
@@ -152,7 +157,7 @@ class FunctionCollector {
       ].map((dim) => {
         const sizeExpr = dim.expression();
         return sizeExpr
-          ? DimensionResolver.resolve(sizeExpr)
+          ? DimensionResolver.resolve(SyntaxLowering.expression(sizeExpr))
           : { size: "", expr: null };
       });
       const arrayDimensions = declared.map((dim) => dim.size);

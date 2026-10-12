@@ -130,7 +130,6 @@ class StatementLowering {
     ctx: Parser.VariableDeclarationContext | Parser.ForVarDeclContext,
   ): IVariableDeclarationSyntax {
     const identifier = ctx.IDENTIFIER();
-    const overflow = ctx.overflowModifier()?.getText() ?? null;
     return {
       modifiers: {
         atomic: ctx.atomicModifier() !== null,
@@ -138,7 +137,7 @@ class StatementLowering {
         const:
           ctx instanceof Parser.VariableDeclarationContext &&
           ctx.constModifier() !== null,
-        overflow: overflow === "clamp" || overflow === "wrap" ? overflow : null,
+        overflow: SyntaxLowering.overflow(ctx.overflowModifier()),
       },
       type: SyntaxLowering.type(ctx.type()),
       name: identifier.getText(),

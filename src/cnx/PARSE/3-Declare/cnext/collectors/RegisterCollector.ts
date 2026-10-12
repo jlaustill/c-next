@@ -5,6 +5,7 @@
  * Produces TType-based IRegisterSymbol with proper IScopeSymbol references.
  */
 
+import SyntaxLowering from "../../../2-Parse/SyntaxLowering";
 import * as Parser from "../../../2-Parse/grammar/CNextParser";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import IRegisterSymbol from "../../../../types/symbols/IRegisterSymbol";
@@ -55,7 +56,7 @@ class RegisterCollector {
 
       // Get member type and convert to C type
       const typeName = TypeUtils.getTypeName(
-        member.type(),
+        SyntaxLowering.type(member.type()),
         scopePath,
         isScopeType,
       );

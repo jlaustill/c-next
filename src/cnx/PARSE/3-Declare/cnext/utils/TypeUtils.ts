@@ -2,10 +2,9 @@
  * TypeUtils - Utilities for extracting and converting C-Next types.
  */
 
-import * as Parser from "../../../2-Parse/grammar/CNextParser";
+import type TTypeSyntax from "../../../../types/syntax/TTypeSyntax";
 import CNEXT_TO_C_TYPE_MAP from "../../../../utils/constants/TypeMappings";
 import TypeNameLadder from "../../../../utils/TypeNameLadder";
-import SyntaxLowering from "../../../2-Parse/SyntaxLowering";
 import TypeResolver from "../../../../utils/TypeResolver";
 import TTypeUtils from "../../../../utils/TTypeUtils";
 import ScopeUtils from "../../../../utils/ScopeUtils";
@@ -29,26 +28,24 @@ class TypeUtils {
    * @returns The resolved type name
    */
   static getTypeName(
-    ctx: Parser.TypeContext | null,
+    type: TTypeSyntax | null,
     scopePath = "",
     isScopeType?: (qualifiedName: string) => boolean,
   ): string {
-    if (!ctx) return "void";
+    if (!type) return "void";
 
     // #1285/#1932: one ladder for a type's written name. The walker asks the
     // same `resolveWrittenName`, so the `.h` and the `.c` cannot disagree.
-    const result = TypeNameLadder.resolveWrittenName(
-      SyntaxLowering.type(ctx),
-      scopePath,
-      { isScopeType },
-    );
+    const result = TypeNameLadder.resolveWrittenName(type, scopePath, {
+      isScopeType,
+    });
     if (result !== null) {
       return result;
     }
 
     // templateType and `void` are the alternatives resolveWrittenName does not
     // answer for; both are already their own text.
-    return ctx.getText();
+    return type.text;
   }
 
   /**
@@ -66,14 +63,18 @@ class TypeUtils {
    * settled path keeps one implementation rather than gaining a second.
    */
   static resolveType(
-    ctx: Parser.TypeContext | null,
+    type: TTypeSyntax | null,
     scopePath = "",
     isScopeType?: (qualifiedName: string) => boolean,
   ): TType {
-    const deferred = TypeUtils.deferredIfUnsettled(ctx, scopePath, isScopeType);
+    const deferred = TypeUtils.deferredIfUnsettled(
+      type,
+      scopePath,
+      isScopeType,
+    );
     return (
       deferred ??
-      TypeResolver.resolve(TypeUtils.getTypeName(ctx, scopePath, isScopeType))
+      TypeResolver.resolve(TypeUtils.getTypeName(type, scopePath, isScopeType))
     );
   }
 
@@ -97,15 +98,15 @@ class TypeUtils {
    * `getTypeName` resolves through, so the spelling is derived in one place.
    */
   private static deferredIfUnsettled(
-    ctx: Parser.TypeContext | null,
+    type: TTypeSyntax | null,
     scopePath: string,
     isScopeType?: (qualifiedName: string) => boolean,
   ): TType | null {
-    if (!ctx || !isScopeType || ScopeUtils.isGlobalScopePath(scopePath)) {
+    if (!type || !isScopeType || ScopeUtils.isGlobalScopePath(scopePath)) {
       return null;
     }
 
-    const lowered = SyntaxLowering.type(ctx);
+    const lowered = type;
     const element = lowered.kind === "array" ? lowered.element : lowered;
     const classified = TypeNameLadder.classifyNamed(element, scopePath, {
       isScopeType,

@@ -14,6 +14,14 @@ class FirstDeclaration {
     return DeclarationSyntax.of(FirstDeclaration.lowered(tree), "scope");
   }
 
+  static struct(tree: ProgramContext) {
+    return DeclarationSyntax.of(FirstDeclaration.lowered(tree), "struct");
+  }
+
+  static register(tree: ProgramContext) {
+    return DeclarationSyntax.of(FirstDeclaration.lowered(tree), "register");
+  }
+
   static bitmap(tree: ProgramContext) {
     return DeclarationSyntax.of(FirstDeclaration.lowered(tree), "bitmap");
   }

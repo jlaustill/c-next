@@ -1,11 +1,14 @@
 /**
- * StructCollector - Extracts struct type declarations from parse trees.
+ * StructCollector - Extracts struct type declarations from 1.2's lowered
+ * syntax (#1991).
  * Handles fields with types, arrays, and const modifiers.
  *
  * Produces TType-based IStructSymbol with proper IScopeSymbol references.
  */
 
-import * as Parser from "../../../2-Parse/grammar/CNextParser";
+import type IStructDeclarationSyntax from "../../../../types/syntax/IStructDeclarationSyntax";
+import type TExpression from "../../../../types/syntax/TExpression";
+import type TTypeSyntax from "../../../../types/syntax/TTypeSyntax";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import IStructSymbol from "../../../../types/symbols/IStructSymbol";
 import type IStructFieldSymbol from "../../../../types/symbols/IStructFieldSymbol";
@@ -14,13 +17,11 @@ import DimensionResolver from "../utils/DimensionResolver";
 import type IDeclaredDimension from "../types/IDeclaredDimension";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 import TVisibility from "../../../../types/TVisibility";
-import ParserUtils from "../../../../utils/ParserUtils";
 import MemberSymbolBase from "../utils/MemberSymbolBase";
 import OverflowBehaviorUtils from "../../../../utils/OverflowBehaviorUtils";
-import type ISourceSpan from "../../../../types/ISourceSpan";
 
 /**
- * Result of processing an arrayType syntax context.
+ * Result of processing a field's array type, as 1.2 lowered it.
  */
 interface IArrayTypeResult {
   isArray: boolean;
@@ -46,10 +47,8 @@ interface IArrayTypeResult {
 /**
  * Process arrayType syntax (e.g., Item[3] items) and return array info.
  */
-function processArrayTypeSyntax(
-  arrayTypeCtx: Parser.ArrayTypeContext | null | undefined,
-): IArrayTypeResult {
-  if (!arrayTypeCtx) {
+function processArrayTypeSyntax(type: TTypeSyntax): IArrayTypeResult {
+  if (type.kind !== "array") {
     return { isArray: false, dimensions: undefined };
   }
 
@@ -57,14 +56,13 @@ function processArrayTypeSyntax(
   // `u8[2][3] cells` was recorded as [2]; that list is non-empty, so it won
   // over StructGenerator's AST fallback and both the .c and the .h emitted
   // `uint8_t cells[2]` while the body still emitted `cells[1][2]`.
-  const dims = arrayTypeCtx.arrayTypeDimension();
+  const dims = type.dimensions;
   if (dims.length === 0) {
     return { isArray: true, dimensions: undefined };
   }
 
   const dimensions: IDeclaredDimension[] = [];
-  for (const dim of dims) {
-    const sizeExpr = dim.expression();
+  for (const sizeExpr of dims) {
     if (!sizeExpr) {
       // Unsized `[]` -- size is not knowable here.
       return { isArray: true, dimensions: undefined };
@@ -81,16 +79,15 @@ function processArrayTypeSyntax(
  * Process string type fields and update dimensions array.
  */
 function processStringField(
-  stringCtx: Parser.StringTypeContext,
-  arrayDims: Parser.ArrayDimensionContext[],
+  capacityText: string | null,
+  arrayDims: ReadonlyArray<TExpression | null>,
   dimensions: IDeclaredDimension[],
 ): boolean {
-  const intLiteral = stringCtx.INTEGER_LITERAL();
-  if (!intLiteral) {
+  if (capacityText === null) {
     return false;
   }
 
-  const capacity = Number.parseInt(intLiteral.getText(), 10);
+  const capacity = Number.parseInt(capacityText, 10);
 
   // If there are array dimensions, they come BEFORE string capacity
   if (arrayDims.length > 0) {
@@ -102,14 +99,29 @@ function processStringField(
 }
 
 /**
+ * The string type a field is written with -- `string<N>` itself, or the
+ * element of `string<N>[M]` -- or null when it is not a string.
+ */
+function stringTypeOf(
+  type: TTypeSyntax,
+): Extract<TTypeSyntax, { kind: "string" }> | null {
+  if (type.kind === "string") {
+    return type;
+  }
+  if (type.kind === "array" && type.element.kind === "string") {
+    return type.element;
+  }
+  return null;
+}
+
+/**
  * Parse array dimension expressions and append resolved sizes to dimensions array.
  */
 function parseArrayDimensions(
-  arrayDims: Parser.ArrayDimensionContext[],
+  arrayDims: ReadonlyArray<TExpression | null>,
   dimensions: IDeclaredDimension[],
 ): void {
-  for (const dim of arrayDims) {
-    const sizeExpr = dim.expression();
+  for (const sizeExpr of arrayDims) {
     if (sizeExpr) {
       dimensions.push(DimensionResolver.resolve(sizeExpr));
     }
@@ -128,9 +140,6 @@ interface IFieldOwner {
   readonly scopedName: string;
   readonly sourceFile: string;
   readonly visibility: TVisibility;
-
-  /** The struct's own span, inherited by a field that has no start token. */
-  readonly span: ISourceSpan;
 }
 
 class StructCollector {
@@ -144,14 +153,14 @@ class StructCollector {
    * @returns The struct symbol with TType-based types and scope reference
    */
   static collect(
-    ctx: Parser.StructDeclarationContext,
+    syntax: IStructDeclarationSyntax,
     sourceFile: string,
     scopePath: string,
     visibility: TVisibility,
     isScopeType?: (qualifiedName: string) => boolean,
   ): IStructSymbol {
-    const name = ctx.IDENTIFIER().getText();
-    const span = ParserUtils.getSpan(ctx);
+    const name = syntax.name;
+    const span = syntax.span;
     // #1298: members carry the scope's PATH, not the scope object. The path
     // holds every outer component, so nothing downstream can flatten it to a
     // leaf -- which is what the reference threaded here used to protect against.
@@ -161,12 +170,12 @@ class StructCollector {
     const identity = ScopeUtils.identityOf({ name, scopePath });
     const ownerScopedName = identity.cnxScopedName;
 
-    for (const member of ctx.structMember()) {
-      const fieldName = member.IDENTIFIER().getText();
+    for (const field of syntax.fields) {
+      const fieldName = field.name;
       const fieldInfo = StructCollector.collectField(
-        member,
+        field,
         fieldName,
-        { scopedName: ownerScopedName, sourceFile, visibility, span },
+        { scopedName: ownerScopedName, sourceFile, visibility },
         scopePath,
         isScopeType,
       );
@@ -199,25 +208,25 @@ class StructCollector {
    * position, or none at all.
    */
   private static collectField(
-    member: Parser.StructMemberContext,
+    field: IStructDeclarationSyntax["fields"][number],
     fieldName: string,
     owner: IFieldOwner,
     scopePath = "",
     isScopeType?: (qualifiedName: string) => boolean,
   ): IStructFieldSymbol {
-    const typeCtx = member.type();
-    const fieldType = TypeUtils.resolveType(typeCtx, scopePath, isScopeType);
+    const typeSyntax = field.type;
+    const fieldType = TypeUtils.resolveType(typeSyntax, scopePath, isScopeType);
     // Note: C-Next struct members don't have const modifier in grammar
     const isConst = false;
     // C-Next struct members don't have atomic modifier
     const isAtomic = false;
 
-    const arrayDims = member.arrayDimension();
+    const arrayDims = field.dimensions;
     const dimensions: IDeclaredDimension[] = [];
     let isArray = false;
 
     // Check for C-Next style arrayType syntax: Item[3] items -> typeCtx.arrayType()
-    const arrayTypeResult = processArrayTypeSyntax(typeCtx.arrayType());
+    const arrayTypeResult = processArrayTypeSyntax(typeSyntax);
     if (arrayTypeResult.isArray) {
       isArray = true;
       if (arrayTypeResult.dimensions !== undefined) {
@@ -230,10 +239,10 @@ class StructCollector {
 
     // Handle string types specially -- `string<N>`, and #1569 the element
     // type of `string<N>[M]`, whose capacity follows the array dimensions
-    const stringCtx = typeCtx.stringType() ?? typeCtx.arrayType()?.stringType();
-    if (stringCtx) {
+    const stringSyntax = stringTypeOf(typeSyntax);
+    if (stringSyntax) {
       const stringHandled = processStringField(
-        stringCtx,
+        stringSyntax.capacity,
         arrayDims,
         dimensions,
       );
@@ -251,16 +260,14 @@ class StructCollector {
         kind: "struct_field" as const,
         name: fieldName,
         parentScopedName: owner.scopedName,
-        memberSpan: ParserUtils.getSpanOr(member, owner.span),
+        memberSpan: field.span,
         sourceFile: owner.sourceFile,
         visibility: owner.visibility,
       }),
       type: fieldType,
       isConst,
       isAtomic,
-      overflowBehavior: OverflowBehaviorUtils.fromModifier(
-        member.overflowModifier(),
-      ),
+      overflowBehavior: OverflowBehaviorUtils.fromModifier(field.overflow),
       isArray,
       dimensions:
         dimensions.length > 0 ? dimensions.map((dim) => dim.size) : undefined,

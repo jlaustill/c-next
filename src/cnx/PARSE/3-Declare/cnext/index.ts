@@ -325,9 +325,11 @@ class CNextResolver {
 
       // Collect structs early so they're available as types
       if (member.structDeclaration()) {
-        const structCtx = member.structDeclaration()!;
         const symbol = StructCollector.collect(
-          structCtx,
+          DeclarationSyntax.of(
+            scopeSyntax.members[index].declaration,
+            "struct",
+          ),
           sourceFile,
           scopePath,
           visibility,
@@ -404,7 +406,7 @@ class CNextResolver {
     // Top-level structs
     if (decl.structDeclaration()) {
       const symbol = StructCollector.collect(
-        decl.structDeclaration()!,
+        DeclarationSyntax.of(syntax, "struct"),
         sourceFile,
         globalScopePath,
         ScopeUtils.getTopLevelVisibility(),

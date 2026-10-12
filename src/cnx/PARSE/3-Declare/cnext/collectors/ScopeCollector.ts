@@ -215,7 +215,7 @@ class ScopeCollector {
         addMember(structName);
 
         const structSymbol = StructCollector.collect(
-          structDecl,
+          DeclarationSyntax.of(memberSyntax, "struct"),
           sourceFile,
           scopePath,
           visibility,

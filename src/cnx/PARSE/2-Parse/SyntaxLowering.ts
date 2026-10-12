@@ -16,6 +16,7 @@ import * as Parser from "./grammar/CNextParser";
 import ParserUtils from "../../utils/ParserUtils";
 import ChainRoot from "../../utils/ChainRoot";
 import invariant from "../../utils/invariant";
+import type TOverflowBehavior from "../../types/TOverflowBehavior";
 import type ISyntaxNode from "../../types/syntax/ISyntaxNode";
 import type TBinaryLevel from "../../types/syntax/TBinaryLevel";
 import BINARY_OPERATORS from "../../types/syntax/BINARY_OPERATORS";
@@ -633,6 +634,21 @@ class SyntaxLowering {
   /** Where the parser recovered from an error: see `TExpression`'s `missing` */
   static missing(ctx: ParserRuleContext): TExpression {
     return { kind: "missing", ...SyntaxLowering.node(ctx) };
+  }
+
+  /**
+   * ADR-044: a written clamp/wrap modifier, or null when none is written.
+   *
+   * Reads the CLAMP/WRAP tokens rather than comparing `getText()`, so a future
+   * spelling change cannot silently turn every declaration into a clamp.
+   */
+  static overflow(
+    ctx: Parser.OverflowModifierContext | null,
+  ): TOverflowBehavior | null {
+    if (ctx?.WRAP()) {
+      return "wrap";
+    }
+    return ctx?.CLAMP() ? "clamp" : null;
   }
 
   static node(ctx: ParserRuleContext): ISyntaxNode {

@@ -1,3 +1,4 @@
+import type TOverflowBehavior from "../TOverflowBehavior";
 import type ISyntaxNode from "./ISyntaxNode";
 import type TExpression from "./TExpression";
 import type TTypeSyntax from "./TTypeSyntax";
@@ -10,6 +11,8 @@ interface IStructDeclarationSyntax extends ISyntaxNode {
       readonly type: TTypeSyntax;
       readonly name: string;
       readonly dimensions: ReadonlyArray<TExpression | null>;
+      /** ADR-044: the field's own written clamp/wrap, or null when unwritten */
+      readonly overflow: TOverflowBehavior | null;
     }
   >;
 }
