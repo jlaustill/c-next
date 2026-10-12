@@ -190,7 +190,7 @@ cannot go unbound by the order rules. Changing the layout means changing the dra
 
 A fact has two independent properties, and conflating them mis-files the AST:
 
-|                                             | **short lifetime** -- gone before 2.2          | **long lifetime** -- travels to 3.1                 |
+|                                             | **short lifetime** -- never leaves 1.2         | **long lifetime** -- travels to 3.1                 |
 | ------------------------------------------- | ---------------------------------------------- | --------------------------------------------------- |
 | **Tier 1** -- computable with one file open | AST structure                                  | identity, kind, position, declared type, qualifiers |
 | **Tier 2** -- needs more than one file      | symbol conflicts (consumed into `Diagnostics`) | `isConst`, opaque-vs-defined, pass-by-value         |
@@ -227,9 +227,10 @@ The AST is Tier 1 with a short lifetime. That resolves the problem of a parse tr
 cannot be serialized, rather than relocating it: pull a serializable `SourceSpan` out and
 the tree is confined to a pass whose output is cheap to recompute.
 
-**The tree is gone before 2.2** (owner ruling on #1932). 1.2 Parse builds it; 1.3 Declare
-and 2.1 Analyze may read it; nothing from 2.2 Plan on may -- not Plan, not Render, not
-`CodeGenWalker`, not Write, and not a helper any of them calls. What a later pass needs of
+**The tree never leaves 1.2** (owner ruling on #1991, 2026-10-11; #1932 had let 1.3 and
+2.1 read it). 1.2 Parse builds it and lowers it; nothing after 1.2 may name it -- not 1.3
+Declare, not 2.1 Analyze, not Plan, not Render, not `CodeGenWalker`, not Write, and not a
+helper any of them calls. What a later pass needs of
 the syntax it reads as **plain data**, lowered from the tree by `SyntaxLowering`: an
 `expression` becomes a `TExpression` and a `type` a `TTypeSyntax` (`src/cnx/types/syntax/`).
 The shape is the grammar's minus its pass-through levels; every node carries its
@@ -241,9 +242,11 @@ the plain data survives a JSON round trip.
 
 1.2 lowers each file once: `ProgramLowering` turns the `ProgramContext` into an
 `IProgramSyntax` -- includes, directives, declarations, function bodies, and the comments
-above each item -- and `IParsedFile.program` carries it. `CodeGenWalker` generates from
-that and names no parse type (#1932). 1.3 and 2.1 still walk `IParsedFile.tree`, which
-they may.
+above each item -- and `ISourceSyntax.program` carries it. The run takes that artifact from
+`SourceSyntax.of`, which drops the tree before returning; `IParsedFile` (1.2's
+`types/`) adds the tree back only for the tools that read it -- the prettier plugin,
+`format-fidelity`, `grammar-coverage`. Headers are lowered the same way: `HeaderParser`
+returns `ICHeaderSyntax` or `ICppHeaderSyntax`, never a tree (#1991).
 
 A helper that both sides call is written once, over the plain data: `ConstExprLowering`
 lowers a `TExpression`, so 1.3, 2.1 and codegen share one lowering rather than one per
@@ -279,16 +282,16 @@ returns without naming its type (#1957).
 - `parse-tree-sites` (`info`) is the inventory: every module outside the parser that holds
   one. `npm run parse-tree:check` holds that population to the baseline in
   [`parse-tree-sites.md`](parse-tree-sites.md); what it forbids is the number RISING.
-- `parse-tree-confined-to-parser` (`error`) is the ruling. Only `src/cnx/PARSE/` (1.1's
-  lexer-only include scan (#1745), 1.2 and 1.3), 2.1, and the named shared helpers may
-  import the grammar. The host is not exempt: 2.1's `TreePasses` runs 1.2 through 2.1 as
-  one call, every tree a local of that call, and `src/cli/Transpiler.ts` hands it and
-  gets back plain data only (#1932). The library entry points in `src/lib/` start at
+- `parse-tree-confined-to-parser` (`error`) is the ruling. Only 1.2 (`src/cnx/PARSE/2-Parse/`),
+  1.1's lexer-only include scan (#1745), and the named shared helpers may import the
+  grammar (#1991). The host is not exempt: `TreePasses` takes 1.2's plain data from
+  `SourceSyntax` and `HeaderParser`, and `src/cli/Transpiler.ts` hands it text and gets
+  back plain data only (#1932). The library entry points in `src/lib/` start at
   1.1 too (`Discover.inMemoryFile`, `Discover.inMemoryCHeader`) and go through
   `TreePasses`, so they hold no tree (#1957). Each named helper is a target of the rule too,
-  so a pass after 2.1 that imports one fails as if it had imported the grammar.
+  so a pass after 1.2 that imports one fails as if it had imported the grammar.
 - `only-tree-passes-parse` (`error`): source text enters at 1.1, and only `TreePasses`
-  hands it to a parser (`CNextSourceParser`, `HeaderParser`). 1.3 takes 1.2's trees and
+  hands it to a parser (`SourceSyntax`, `HeaderParser`). 1.3 takes 1.2's plain data and
   never text, so no pass can parse again; `tree-passes-called-by-hosts-only` (`error`)
   lets only `src/cli/Transpiler.ts` and `src/lib/` call `TreePasses` (#1932, owner
   ruling 2026-10-09).

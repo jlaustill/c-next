@@ -16,7 +16,7 @@ import IdentifierForm from "./IdentifierForm";
 import ArrayForm from "./ArrayForm";
 import StringForm from "./StringForm";
 import LiteralForm from "./LiteralForm";
-import IParsedFile from "../../types/IParsedFile";
+import IParsedFile from "./types/IParsedFile";
 import ITranspileError from "../../types/ITranspileError";
 import CodedErrorText from "../../utils/CodedErrorText";
 

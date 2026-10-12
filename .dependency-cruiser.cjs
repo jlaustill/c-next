@@ -93,7 +93,7 @@ const PARSE_TREE_TYPES = [
   // -- exactly what naming the carriers here was for. Its `symbols`
   // half had no reader, so it was a bundle whose only live content was
   // the re-export.
-  "^src/cnx/types/IParsedFile\\.ts$",
+  "^src/cnx/PARSE/2-Parse/types/IParsedFile\\.ts$",
   // #1957: the 1.2 parser that RETURNS a tree. A module calling it holds the
   // tree as a value -- `CNextSourceParser.parse(src).tree` -- while naming no
   // grammar type, so without this it was counted by neither rule. #1991:
@@ -103,13 +103,12 @@ const PARSE_TREE_TYPES = [
 
 /**
  * #1932 box 2: the shared helpers that hold a parse tree. Each is allowed only
- * because every caller is 1.2 Parse, 1.3 Declare or 2.1 Analyze, so each is
- * also a `to` of `parse-tree-confined-to-parser`: a later pass importing one
- * fails exactly as if it had imported the grammar.
+ * because every caller is 1.2 Parse, so each is also a `to` of
+ * `parse-tree-confined-to-parser`: a later pass importing one fails exactly as
+ * if it had imported the grammar. #1991: `OverflowBehaviorUtils` left the list
+ * when it stopped taking a parse context.
  */
-const PARSE_TREE_HELPERS = [
-  "^src/cnx/utils/(OverflowBehaviorUtils|ParserUtils)\\.ts$",
-];
+const PARSE_TREE_HELPERS = ["^src/cnx/utils/ParserUtils\\.ts$"];
 
 /** @type {import('dependency-cruiser').IConfiguration} */
 module.exports = {
@@ -507,20 +506,19 @@ module.exports = {
     {
       name: "parse-tree-confined-to-parser",
       comment:
-        "#1932, owner ruling 2026-10-07: the parse tree is gone before 2.2. " +
-        "1.2 Parse makes it; 1.3 Declare and 2.1 Analyze may read it; nothing " +
-        "from 2.2 Plan on may -- not Plan, not Render, not CodeGenWalker, not " +
-        "Write, and not a helper any of them calls. Also exempt: the helpers in " +
-        "PARSE_TREE_HELPERS, which are `to` targets too, so only an allowed pass " +
+        "#1991, owner ruling 2026-10-11: the tree never leaves 1.2. 1.2 Parse " +
+        "makes it and lowers it to plain data; nothing after 1.2 may name it -- " +
+        "not 1.3 Declare, not 2.1 Analyze (#1932 allowed both), not Plan, " +
+        "Render or Write, and not a helper any of them calls. Also exempt: the " +
+        "helpers in PARSE_TREE_HELPERS, which are `to` targets too, so only 1.2 " +
         "can call one; " +
-        "1.2's carrier `IParsedFile`; " +
         "and 1.1's `IncludeDiscovery`, which lexes with 1.2's `CNextLexer` and " +
         "builds no tree (#1745, owner ruling 2026-09-30; PASS_ORDER `mayRead`). " +
         "The library entry points in `lib/` start at 1.1 and go through " +
         "`TreePasses`, so they hold no tree and are not exempt (#1957). " +
-        "Nor is the host: 1-Analyze's `TreePasses` runs 1.2 through 2.1 as one " +
-        "call, and `cli/Transpiler.ts` gets plain data in and out (#1932, " +
-        "owner ruling 2026-10-09). " +
+        "Nor is the host: 1-Analyze's `TreePasses` takes 1.2's plain data from " +
+        "`SourceSyntax` and `HeaderParser`, and `cli/Transpiler.ts` gets plain " +
+        "data in and out (#1932, owner ruling 2026-10-09). " +
         "A structural stand-in -- a later pass declaring its own copy of a " +
         "context's shape -- names no path this rule can match; " +
         "scripts/__tests__/artifact-lifetime.test.ts asks the type checker " +
@@ -530,9 +528,6 @@ module.exports = {
         path: "^src/",
         pathNot: [
           "^src/cnx/PARSE/2-Parse/",
-          "^src/cnx/PARSE/3-Declare/",
-          "^src/cnx/TRANSPILE/1-Analyze/",
-          "^src/cnx/types/IParsedFile\\.ts$",
           "^src/cnx/PARSE/1-Discover/IncludeDiscovery\\.ts$",
           ...PARSE_TREE_HELPERS,
           "__tests__/",

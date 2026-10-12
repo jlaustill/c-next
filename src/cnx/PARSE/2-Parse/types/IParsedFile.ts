@@ -1,7 +1,7 @@
 import type { CommonTokenStream } from "antlr4ng";
 
-import type * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
-import type ISourceSyntax from "./ISourceSyntax";
+import type * as Parser from "../grammar/CNextParser";
+import type ISourceSyntax from "../../../types/ISourceSyntax";
 
 /**
  * What 1.2 Parse produces for one file: syntax, and nothing derived from it.
