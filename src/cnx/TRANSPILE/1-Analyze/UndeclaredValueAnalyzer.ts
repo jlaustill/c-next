@@ -158,14 +158,6 @@ class UndeclaredValueAnalyzer {
 
   analyze(tree: Parser.ProgramContext): IUndeclaredValueError[] {
     this.errors.length = 0;
-
-    // Same precondition as E0426, and the value axis needs it MORE: a `#define`
-    // never reaches the symbol table at all, so `_isKnownForeignName` -- which
-    // does catch a header typedef -- has nothing to fall back on for a macro.
-    if (this.context.reachesForeignHeader) {
-      return this.errors;
-    }
-
     ParseTreeWalker.DEFAULT.walk(new UndeclaredValueListener(this), tree);
     return this.errors;
   }
@@ -193,6 +185,30 @@ class UndeclaredValueAnalyzer {
    * divergence this analyzer exists to prevent.
    */
   isVisible(name: string, root: TChainRoot, at: ParserRuleContext): boolean {
+    if (this.isNamed(name, root, at)) {
+      return true;
+    }
+    // ADR-030: a file that reaches a C or C++ header is exempt -- a `#define`
+    // reaches no symbol table, so a name nothing here declares may be a
+    // macro. A name this file declares is not one (#2019): until its
+    // declaration closes it is undefined here as anywhere.
+    return (
+      this.context.reachesForeignHeader &&
+      !this.context.program.isUnclosedAt(
+        this.context.sourceFile,
+        root,
+        name,
+        ParserUtils.getPosition(at),
+      )
+    );
+  }
+
+  /** Whether the spelling denotes something C-Next sees declared at `at` */
+  private isNamed(
+    name: string,
+    root: TChainRoot,
+    at: ParserRuleContext,
+  ): boolean {
     const symbols = this.context.symbols;
     const position = ParserUtils.getPosition(at);
     const scopePath = OperandTyper.scopePathAt(position, this.context);

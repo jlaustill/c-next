@@ -1,0 +1,22 @@
+// test-error
+// test-adr: 030
+// #2019: a file that reaches a C header is exempt from E0427 only for names
+// it does not declare. A name this file declares is undefined above where its
+// declaration closes, header or not (ADR-030). Each control names a variable
+// declared above its use and stays silent.
+
+#include <stdint.h>
+
+u8 before;
+
+void tick() {
+    before +<- 200; // control
+    counter +<- 200; // ERROR: counter is declared below
+}
+
+u8 counter;
+
+u32 b0 <- 1;
+u32 a0 <- b0 + 1; // control
+u32 a <- b + 1; // ERROR: b is declared below
+u32 b <- 1;

@@ -370,6 +370,12 @@ class Program {
         at: TPosition,
       ): TValueBinding | null =>
         Program.bindValue(bound, sourceFile, root, name, at),
+      isUnclosedAt: (
+        sourceFile: string,
+        root: TChainRoot,
+        name: string,
+        at: TPosition,
+      ): boolean => Program.isUnclosedAt(bound, sourceFile, root, name, at),
       constantValueOf: (
         sourceFile: string,
         name: Extract<TConstExpr, { kind: "name" }>,
@@ -1309,6 +1315,41 @@ class Program {
       symbol.sourceFile === sourceFile &&
       !DefinitionPoint.isDefinedAt(symbol.span, at)
     );
+  }
+
+  /**
+   * #2019: whether the spelling names a declaration of `sourceFile` that has
+   * not closed at `at` -- a local of an enclosing frame, or a file-scope or
+   * member variable -- where `bindValue` would look for it.
+   */
+  private static isUnclosedAt(
+    facts: IBindingFacts,
+    sourceFile: string,
+    root: TChainRoot,
+    name: string,
+    at: TPosition,
+  ): boolean {
+    const frames = Program.framesOf(facts.framesByFile, sourceFile);
+    if (root === null && LexicalFrames.isUnclosedAt(frames, name, at)) {
+      return true;
+    }
+    const unclosed = (cName: string): boolean => {
+      const symbol = Program.visibleSymbolIn(facts, sourceFile, cName);
+      return (
+        symbol !== undefined && Program.closesAfter(symbol, sourceFile, at)
+      );
+    };
+    const scopePath = LexicalFrames.frameAt(frames, at).scopePath;
+    const member =
+      scopePath !== "" &&
+      unclosed(ScopeUtils.getTranspiledCName({ name, scopePath }));
+    if (root === "this") {
+      return member;
+    }
+    if (root === "global") {
+      return unclosed(name);
+    }
+    return member || unclosed(name);
   }
 
   /**

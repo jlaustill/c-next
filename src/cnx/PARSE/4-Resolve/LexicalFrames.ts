@@ -120,6 +120,24 @@ class LexicalFrames {
     return null;
   }
 
+  /**
+   * #2019: whether a frame containing `at` declares `name` in a declaration
+   * that has not closed by `at` -- the declarations `declarationAt` skips.
+   */
+  static isUnclosedAt(
+    root: ILexicalFrame,
+    name: string,
+    at: TPosition,
+  ): boolean {
+    return LexicalFrames.pathTo(root, at).some((frame) =>
+      frame.declarations.some(
+        (declaration) =>
+          declaration.name === name &&
+          !DefinitionPoint.isDefinedAt(declaration.extent, at),
+      ),
+    );
+  }
+
   /** The frames containing `at`, outermost first */
   private static pathTo(root: ILexicalFrame, at: TPosition): ILexicalFrame[] {
     const path = [root];

@@ -406,7 +406,12 @@ visible at one level is not thereby visible at another.
 `#define` is not a declaration and appears in no symbol table — so C-Next
 cannot enumerate what is in scope and does not claim a name is undefined on
 evidence it does not have. The exemption is a promise about interop, and it
-covers the whole file, not the names that came from the header.
+covers every name the file does not itself declare, not only the names that
+came from the header. It does not cover a name the file declares: that is
+evidence C-Next has, and no header can give the name another meaning, since a
+macro of that name would break the file's own declaration. Above where its
+declaration closes, such a name is E0427 in a file that reaches a header as in
+any other (#2019).
 
 The qualifier matters and an earlier draft of this passage got it wrong, saying
 a header "the transpiler does not parse". Parsing is not the criterion and

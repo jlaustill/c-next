@@ -221,6 +221,17 @@ interface IProgram {
   ): TValueBinding | null;
 
   /**
+   * #2019: whether the spelling names a declaration of `sourceFile` that has
+   * not closed at `at` -- one `bindValue` does not bind yet (ADR-030).
+   */
+  isUnclosedAt(
+    sourceFile: string,
+    root: TChainRoot,
+    name: string,
+    at: Pick<ISourceSpan, "line" | "column">,
+  ): boolean;
+
+  /**
    * What a name in a constant expression is worth where it is written: the
    * whole chain (`N`, `this.N`, `Scope.N`, `EColor.COUNT`), from what
    * `bindValue` binds its head to. The one question every constant fold asks,
