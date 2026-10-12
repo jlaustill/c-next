@@ -11,8 +11,9 @@ import DeclarationModifierAnalyzer from "../DeclarationModifierAnalyzer";
  * here needs a type, a scope or the program's symbols.
  */
 const errors = (source: string) => {
-  const { tree } = CNextSourceParser.parse(source);
-  return new DeclarationModifierAnalyzer().analyze(tree);
+  return new DeclarationModifierAnalyzer().analyze(
+    CNextSourceParser.parse(source).program,
+  );
 };
 
 describe("DeclarationModifierAnalyzer (E0889)", () => {
@@ -33,6 +34,27 @@ describe("DeclarationModifierAnalyzer (E0889)", () => {
       ["E0889", 3],
       ["E0889", 6],
     ]);
+  });
+
+  it("reaches a declaration nested in a block, a loop and a switch case", () => {
+    // #1991: the walk is over 1.2's statements, so nesting is the walk's job
+    const found = errors(
+      [
+        "void f(u8 v) {",
+        "    if (v = 1) {",
+        "        atomic volatile u32 inIf <- 0;",
+        "    }",
+        "    while (v = 2) {",
+        "        atomic volatile u32 inLoop <- 0;",
+        "    }",
+        "    switch (v) {",
+        "        case 3 { atomic volatile u32 inCase <- 0; }",
+        "        default { }",
+        "    }",
+        "}",
+      ].join("\n"),
+    );
+    expect(found.map((e) => e.line)).toEqual([3, 6, 9]);
   });
 
   it("accepts either modifier alone", () => {

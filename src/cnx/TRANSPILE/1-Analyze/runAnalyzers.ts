@@ -437,7 +437,7 @@ function runAnalyzers(
     },
     {
       label: "declaration modifiers (ADR-049, E0889)",
-      run: () => new DeclarationModifierAnalyzer().analyze(tree),
+      run: () => new DeclarationModifierAnalyzer().analyze(parsed.program),
     },
     {
       label: "bit indexing depth and scope (ADR-007/036, E0856/E0888)",
