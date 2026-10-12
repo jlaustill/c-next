@@ -66,6 +66,14 @@ interface IEmissionPlan {
   /** ADR-044 overflow-clamp helper keys (`"add_u32"`), in emission order. */
   readonly clampOps: readonly string[];
 
+  /**
+   * ADR-044 debug mode's panicking overflow helpers, or null when the helpers
+   * clamp or there are none. Render picks the panic templates from this, so
+   * the hosted-libc cost and the `<stdio.h>` it pays for are one decision
+   * (#1997).
+   */
+  readonly panicOverflowHelpers: IPlannedBlock | null;
+
   /** ADR-051 safe-division helper keys (`"div_u32"`), in emission order. */
   readonly safeDivOps: readonly string[];
 
@@ -74,7 +82,7 @@ interface IEmissionPlan {
 
   /**
    * #1997: the requirements no planned block carries -- the mode baseline, the
-   * C++ initializer forms, the debug overflow helpers, LDREX/STREX atomics.
+   * C++ initializer forms, LDREX/STREX atomics.
    * Render reports which forms it emitted; what each costs is decided here.
    */
   readonly formRequirements: readonly IRecordedRequirement[];

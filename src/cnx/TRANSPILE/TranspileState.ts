@@ -109,12 +109,15 @@ class TranspileState {
   /** Issue #473: IRQ wrappers for critical sections */
   needsIrqWrappers: boolean = false;
   /**
-   * #1997: Render emitted a `.field = value` initializer. A fact about the
-   * form, in both modes; 2.2 decides what it costs.
+   * #1997: the forms Render emitted, in both modes; 2.2 decides what each
+   * costs. Written only through the `note*` methods below, which refuse a
+   * write once the emission plan is built: the plan has already read these,
+   * so a late one would drop its cost from the banner and the file result
+   * without failing.
    */
-  emittedDesignatedInitializer: boolean = false;
-  /** #1997: Render emitted a compound literal; 2.2 decides what it costs. */
-  emittedCompoundLiteral: boolean = false;
+  private designatedInitializerEmitted: boolean = false;
+  private compoundLiteralEmitted: boolean = false;
+  private ldrexStrexLoopEmitted: boolean = false;
   /** Track which overflow helper types/operations are needed: "add_u8", etc. */
   usedClampOps: Set<string> = new Set();
   /** Track which safe division helpers are needed: "div_u32", "mod_i16" */
@@ -122,20 +125,67 @@ class TranspileState {
   /** #1668: single-evaluation saturating casts, as `"f32_u8"` keys */
   usedCastHelpers: Set<string> = new Set();
 
+  /** #1997: Render emitted a `.field = value` initializer. */
+  get emittedDesignatedInitializer(): boolean {
+    return this.designatedInitializerEmitted;
+  }
+
+  /** #1997: Render emitted a compound literal. */
+  get emittedCompoundLiteral(): boolean {
+    return this.compoundLiteralEmitted;
+  }
+
+  /** #1997: Render emitted an LDREX/STREX loop. */
+  get emittedLdrexStrexLoop(): boolean {
+    return this.ldrexStrexLoopEmitted;
+  }
+
+  noteDesignatedInitializer(): void {
+    this.assertFormBeforePlan("designated initializer");
+    this.designatedInitializerEmitted = true;
+  }
+
+  noteCompoundLiteral(): void {
+    this.assertFormBeforePlan("compound literal");
+    this.compoundLiteralEmitted = true;
+  }
+
+  /**
+   * The form decides the requirement; the site is attribution only, so the
+   * plan keeps the key even if no site arrives.
+   */
+  noteLdrexStrexLoop(): void {
+    this.assertFormBeforePlan("LDREX/STREX loop");
+    this.ldrexStrexLoopEmitted = true;
+    ToolchainRequirements.noteDeferredSite(
+      "ldrex_strex_loop",
+      this.sourcePath ?? "",
+      null,
+    );
+  }
+
+  private assertFormBeforePlan(form: string): void {
+    invariant(
+      this.emissionPlanOrNull === null,
+      `a ${form} was emitted after 2.2 Plan built the emission plan, so its cost would be lost`,
+    );
+  }
+
   /**
    * THE sink for include and deferred-emission requests.
    *
    * Every transport lands here -- generator effects via
    * `CodeGenerator.applyEffects`, the `requireInclude` callbacks injected into
    * the static helpers, and direct calls from assignment handlers. One sink so
-   * that the question "does
-   * this file need <string.h>?" gets exactly one recorded answer, so changing
-   * how that answer is REPRESENTED is one edit rather than one per writer.
+   * that the question "does this file need <string.h>?" gets exactly one
+   * recorded answer, so changing how that answer is REPRESENTED is one edit
+   * rather than one per writer.
    *
    * #1452 moved the requirement half to `instrumentation/`, so the two no
-   * longer sit beside each other. They are still one decision made once -- this
-   * method is the only caller of `noteDeferredSite`, and the deferral keys below
-   * are the only ones it can produce.
+   * longer sit beside each other. They are still one decision made once --
+   * this class is the only caller of `noteDeferredSite`: this method for the
+   * two deferral keys below, and `noteLdrexStrexLoop` for `ldrex_strex_loop`
+   * (#1997). Those three are the only keys it can produce.
    * It was a private method on `CodeGenerator` until #1449, which is why five
    * sites in `StringHandlers` set `needsString` raw instead -- a handler could
    * not reach the funnel, so it wrote the flag. That made the include decision
@@ -1261,8 +1311,9 @@ class TranspileState {
     this.needsCMSIS = false;
     this.needsLimits = false;
     this.needsIrqWrappers = false;
-    this.emittedDesignatedInitializer = false;
-    this.emittedCompoundLiteral = false;
+    this.designatedInitializerEmitted = false;
+    this.compoundLiteralEmitted = false;
+    this.ldrexStrexLoopEmitted = false;
     this.emittedCallbackTypedefs = new Set();
     this.pendingCallbackTypedefs = [];
     this.currentFunctionReturnType = null;

@@ -28,7 +28,7 @@
  * 2.3 Render and read once at the end of the run. This module claims no such
  * exemption, because it is not cross-pass state at all. Every write is inside
  * 2.3 Render's walk -- `TranspileState.requireInclude` and
- * `CodeGenerator.applyEffects` -- and every read is `takeDeferredSites` in
+ * `TranspileState.noteLdrexStrexLoop` -- and every read is `takeDeferredSites` in
  * `captureEmissionFacts`, inside the same `generate()` call for the same file.
  *
  * Do not read its presence in this root as a precedent for parking cross-pass

@@ -150,8 +150,8 @@ There are no bare files at either level: an entry point lives inside the root it
   ` * Requires: C++20.` into a generated `.cpp` that uses a designated initializer
   (`cpp-designated-initializer`, decided by 2.2 from the form Render reports, #1997), and `captureEmissionFacts` carries
   `takeDeferredSites(...)` into `IEmissionFacts`. Checked, because a rule stated loosely
-  reads as violated: `EmissionPlan` branches on `facts.needsFloatStaticAssert` and
-  `facts.needsIrqWrappers` -- both render state -- and the sites travel beside them as
+  reads as violated: `EmissionPlan` branches on render state -- the `needs*` and
+  `emitted*` facts and `debugMode`, never a site -- and the sites travel beside them as
   attribution that no decision consults. So no generated CODE differs because of
   instrumentation; a comment and a diagnostic's file:line do.
 

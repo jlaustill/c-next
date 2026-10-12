@@ -38,10 +38,13 @@ const generateSafeArithmeticHelper = (
 /**
  * Generate all needed overflow helper functions
  * ADR-044: Overflow helper functions with clamping or panic behavior
+ *
+ * @param panic - 2.2's decision (`plan.panicOverflowHelpers`), not a re-read
+ *   of debug mode: the block that decides it carries its hosted-libc cost
  */
 const generateOverflowHelpers = (
   usedClampOps: ReadonlySet<string>,
-  debugMode: boolean,
+  panic: boolean,
 ): string[] => {
   if (usedClampOps.size === 0) {
     return [];
@@ -49,7 +52,7 @@ const generateOverflowHelpers = (
 
   const lines: string[] = [];
 
-  if (debugMode) {
+  if (panic) {
     lines.push(
       "// ADR-044: Debug overflow helper functions (panic on overflow)",
       "#include <limits.h>",
@@ -80,7 +83,7 @@ const generateOverflowHelpers = (
 
   for (const op of sortedOps) {
     const [operation, cnxType] = op.split("_");
-    const helper = debugMode
+    const helper = panic
       ? OverflowHelperTemplates.generatePanicHelper(operation, cnxType)
       : OverflowHelperTemplates.generateClampHelper(operation, cnxType);
     if (helper) {

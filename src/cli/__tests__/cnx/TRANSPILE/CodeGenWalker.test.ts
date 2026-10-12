@@ -209,6 +209,33 @@ describe("CodeGenWalker", () => {
 
       // Debug mode affects helper generation
       expect(code).toContain("cnx_clamp_add_u8");
+      // #1997: 2.2's one panic decision drives both the helper Render emits
+      // and the cost the banner reports.
+      expect(code).toContain("abort();");
+      expect(code).toContain("hosted libc");
+    });
+
+    it("clamps without a hosted-libc cost outside debug mode", () => {
+      const source = `
+        clamp u8 val;
+        void main() {
+          val +<- 1;
+        }
+      `;
+      const { tree, program } = CNextSourceParser.parse(source);
+      const generator = new CodeGenWalker(new CodeGenerator());
+      const symbols = TSymbolInfoAdapter.convert(declareAndResolve(tree));
+
+      const code = generateWithProgram(generator, tree, program, {
+        cppMode: false,
+        symbolInfo: symbols,
+        sourcePath: "test.cnx",
+        debugMode: false,
+      });
+
+      expect(code).toContain("cnx_clamp_add_u8");
+      expect(code).not.toContain("abort();");
+      expect(code).not.toContain("hosted libc");
     });
 
     it("should generate C++ output when cppMode is enabled", () => {
@@ -298,7 +325,6 @@ describe("CodeGenWalker", () => {
         expect(input.knownStructs).toBeInstanceOf(Set);
         expect(input.callbackTypes).toBeInstanceOf(Map);
         expect(input.callbackFieldTypes).toBeInstanceOf(Map);
-        expect(typeof input.debugMode).toBe("boolean");
       });
     });
 

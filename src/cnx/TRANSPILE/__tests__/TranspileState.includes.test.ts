@@ -10,6 +10,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import TranspileState from "../TranspileState";
 import ToolchainRequirements from "../../instrumentation/ToolchainRequirements";
+import type IEmissionPlan from "../../types/IEmissionPlan";
 
 describe("TranspileState", () => {
   let state = new TranspileState();
@@ -292,5 +293,56 @@ describe("TranspileState", () => {
       expect(state.expectedType).toBeNull();
       expect(state.suppressBareEnumResolution).toBe(false);
     });
+  });
+});
+
+// #1997: Render reports the forms it emitted; 2.2 reads them once, at the
+// plan build. A form noted after that would vanish from the banner and the
+// file result without failing, so the write is refused instead.
+describe("TranspileState -- emitted forms", () => {
+  let state = new TranspileState();
+
+  beforeEach(() => {
+    state = new TranspileState();
+    ToolchainRequirements.reset();
+  });
+
+  it.each([
+    [
+      "designated initializer",
+      (s: TranspileState) => s.noteDesignatedInitializer(),
+      (s: TranspileState) => s.emittedDesignatedInitializer,
+    ],
+    [
+      "compound literal",
+      (s: TranspileState) => s.noteCompoundLiteral(),
+      (s: TranspileState) => s.emittedCompoundLiteral,
+    ],
+    [
+      "LDREX/STREX loop",
+      (s: TranspileState) => s.noteLdrexStrexLoop(),
+      (s: TranspileState) => s.emittedLdrexStrexLoop,
+    ],
+  ] as const)(
+    "records a %s before the plan, and refuses one after",
+    (form, note, emitted) => {
+      expect(emitted(state)).toBe(false);
+      note(state);
+      expect(emitted(state)).toBe(true);
+
+      state.emissionPlanOrNull = {} as IEmissionPlan;
+      expect(() => note(state)).toThrow(`a ${form} was emitted after 2.2 Plan`);
+    },
+  );
+
+  it("notes the LDREX/STREX site for attribution, and reset clears the form", () => {
+    state.sourcePath = "a.cnx";
+    state.noteLdrexStrexLoop();
+
+    expect(ToolchainRequirements.takeDeferredSites("ldrex_strex_loop")).toEqual(
+      [{ sourcePath: "a.cnx", line: null }],
+    );
+    state.reset();
+    expect(state.emittedLdrexStrexLoop).toBe(false);
   });
 });

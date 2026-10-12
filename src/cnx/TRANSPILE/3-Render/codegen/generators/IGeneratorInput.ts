@@ -33,9 +33,6 @@ interface IGeneratorInput {
   /** Callback types used as struct field types: "StructName.fieldName" -> callback type name */
   readonly callbackFieldTypes: ReadonlyMap<string, string>;
 
-  /** Debug mode - affects overflow helper generation */
-  readonly debugMode: boolean;
-
   /** The program's declarations, by C name -- a struct's fields (#1535) */
   readonly program: IProgram | null;
 }

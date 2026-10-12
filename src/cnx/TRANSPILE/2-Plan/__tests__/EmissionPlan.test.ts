@@ -29,6 +29,7 @@ const NOTHING: IEmissionFacts = {
   debugMode: false,
   emittedDesignatedInitializer: false,
   emittedCompoundLiteral: false,
+  emittedLdrexStrexLoop: false,
   ldrexStrexSites: [],
 };
 
@@ -186,24 +187,69 @@ describe("EmissionPlan (2.2 Plan)", () => {
     // not cause.
     it("keeps the sites as decided when the facts' lists grow later", () => {
       const early = { sourcePath: "a.cnx", line: 3 };
+      const late = { sourcePath: "a.cnx", line: 9 };
       const irqWrapperSites = [early];
       const floatAssertSites = [early];
+      const ldrexStrexSites = [early];
       const plan = EmissionPlan.build(
         facts({
           needsIrqWrappers: true,
           irqWrapperSites,
           needsFloatStaticAssert: true,
           floatAssertSites,
+          emittedLdrexStrexLoop: true,
+          ldrexStrexSites,
         }),
       );
 
-      irqWrapperSites.push({ sourcePath: "a.cnx", line: 9 });
-      floatAssertSites.push({ sourcePath: "a.cnx", line: 9 });
+      irqWrapperSites.push(late);
+      floatAssertSites.push(late);
+      ldrexStrexSites.push(late);
 
-      for (const entry of EmissionPlan.requirements(plan)) {
-        if (entry.key.startsWith("baseline-")) continue;
-        expect(entry.sites).toEqual([early]);
-      }
+      expect(EmissionPlan.requirements(plan)).toEqual([
+        { key: "baseline-c", sites: [] },
+        { key: "atomic-ldrex-cmsis", sites: [early] },
+        { key: "float-assert-c11", sites: [early] },
+        { key: "critical-arm-gnu", sites: [early] },
+        { key: "critical-arduino", sites: [early] },
+        { key: "critical-avr-libc", sites: [early] },
+        { key: "critical-cmsis-fallback", sites: [early] },
+      ]);
+    });
+
+    // The banner and ITranspilerResult both read this list, and freezing the
+    // plan is shallow; one reader editing it must not change what the next
+    // one sees, nor one IRQ key's sites another's.
+    it("hands out copies, so one reader cannot edit what the next sees", () => {
+      const site = { sourcePath: "a.cnx", line: 3 };
+      const forged = { sourcePath: "forged.cnx", line: 99 };
+      const plan = EmissionPlan.build(
+        facts({
+          needsIrqWrappers: true,
+          irqWrapperSites: [site],
+          emittedLdrexStrexLoop: true,
+          ldrexStrexSites: [site],
+        }),
+      );
+      type Site = { sourcePath: string; line: number | null };
+      const sitesIn = (
+        list: ReturnType<typeof EmissionPlan.requirements>,
+        key: string,
+      ): Site[] => {
+        const entry = list.find((candidate) => candidate.key === key);
+        if (entry === undefined) throw new Error(`no ${key} requirement`);
+        return entry.sites as Site[];
+      };
+      const sitesOf = (key: string) =>
+        sitesIn(EmissionPlan.requirements(plan), key);
+
+      sitesOf("atomic-ldrex-cmsis").push(forged);
+      const first = EmissionPlan.requirements(plan);
+      sitesIn(first, "critical-arm-gnu").push(forged);
+
+      expect(sitesOf("atomic-ldrex-cmsis")).toEqual([site]);
+      expect(sitesIn(first, "critical-arduino")).toEqual([site]);
+      expect(sitesOf("critical-arm-gnu")).toEqual([site]);
     });
 
     it("is the mode baseline alone when nothing else costs anything", () => {
@@ -239,7 +285,9 @@ describe("EmissionPlan (2.2 Plan)", () => {
 
     it("an LDREX/STREX loop costs CMSIS, attributed to its sites", () => {
       const site = { sourcePath: "a.cnx", line: null };
-      const plan = EmissionPlan.build(facts({ ldrexStrexSites: [site] }));
+      const plan = EmissionPlan.build(
+        facts({ emittedLdrexStrexLoop: true, ldrexStrexSites: [site] }),
+      );
 
       expect(plan.formRequirements).toEqual([
         { key: "baseline-c", sites: [] },
@@ -247,16 +295,44 @@ describe("EmissionPlan (2.2 Plan)", () => {
       ]);
     });
 
-    it("panicking clamp helpers cost a hosted libc; clamping ones do not", () => {
-      const clampOps = new Set(["add_u8"]);
+    // README §1: no decision consults instrumentation. Losing the sites loses
+    // attribution, never the key; sites without the form decide nothing.
+    it("decides the LDREX key from the form, never from its sites", () => {
+      expect(keys({ emittedLdrexStrexLoop: true })).toEqual([
+        "baseline-c",
+        "atomic-ldrex-cmsis",
+      ]);
+      expect(
+        keys({ ldrexStrexSites: [{ sourcePath: "a.cnx", line: null }] }),
+      ).toEqual(["baseline-c"]);
+    });
+  });
 
-      expect(keys({ debugMode: true, clampOps })).toEqual([
+  // #1997: one decision -- Render picks the panic templates from this block,
+  // and the block carries what they cost.
+  describe("panicking overflow helpers", () => {
+    const clampOps = new Set(["add_u8"]);
+
+    it("cost a hosted libc, as a planned block", () => {
+      const plan = EmissionPlan.build(facts({ debugMode: true, clampOps }));
+
+      expect(plan.panicOverflowHelpers).toEqual({
+        keyword: null,
+        requirements: ["overflow-panic-hosted-libc"],
+        sites: [],
+      });
+      expect(EmissionPlan.requirements(plan).map((r) => r.key)).toEqual([
         "baseline-c",
         "overflow-panic-hosted-libc",
       ]);
-      expect(keys({ debugMode: false, clampOps })).toEqual(["baseline-c"]);
-      // Control: debug mode with no helper emitted costs nothing.
-      expect(keys({ debugMode: true })).toEqual(["baseline-c"]);
+      expect(plan.formRequirements.map((r) => r.key)).toEqual(["baseline-c"]);
+    });
+
+    it.each([
+      ["clamping helpers outside debug mode", { debugMode: false, clampOps }],
+      ["debug mode with no helper emitted", { debugMode: true }],
+    ] as const)("are absent for %s", (_label, over) => {
+      expect(EmissionPlan.build(facts(over)).panicOverflowHelpers).toBeNull();
     });
   });
 

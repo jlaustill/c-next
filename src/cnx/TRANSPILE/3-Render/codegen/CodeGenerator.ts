@@ -73,7 +73,6 @@ import PassByValueAnalyzer from "../../2-Plan/PassByValueAnalyzer";
 // Extracted resolvers that use CodeGenState
 // Issue #797: Centralized C-style name generation
 import type IRecordedRequirement from "../../../types/IRecordedRequirement";
-import ToolchainRequirements from "../../../instrumentation/ToolchainRequirements";
 import EmissionPlan from "../../2-Plan/EmissionPlan";
 import TranspileState from "../../TranspileState";
 import StructDefaultInitializer from "./helpers/StructDefaultInitializer";
@@ -111,7 +110,6 @@ export default class CodeGenerator implements IOrchestrator {
       knownStructs: this.state.symbols?.knownStructs ?? new Set(),
       callbackTypes: this.state.callbackTypes,
       callbackFieldTypes: this.state.callbackFieldTypes,
-      debugMode: this.state.debugMode,
       program: this.state.program,
     };
   }
@@ -156,14 +154,10 @@ export default class CodeGenerator implements IOrchestrator {
           this.state.emittedCTypes.add(effect.cType);
           break;
 
-        // Emitted-form effects (Issue #1143): the site travels to the plan,
-        // which decides what the form costs (#1997).
+        // Emitted-form effects (Issue #1143): the form is a fact for the
+        // plan, which decides what it costs (#1997).
         case "ldrex-strex-loop":
-          ToolchainRequirements.noteDeferredSite(
-            "ldrex_strex_loop",
-            this.state.sourcePath ?? "",
-            null,
-          );
+          this.state.noteLdrexStrexLoop();
           break;
 
         // Helper function effects
