@@ -11,9 +11,10 @@
  * `sizeof(data)` measures the array when `data` is a local, and a POINTER when
  * it is a parameter -- ADR-006 passes arrays by reference, so the parameter is
  * a pointer whatever its declared dimensions say. The rule is therefore about
- * where the name is DECLARED, not about its type, which is why it asks
- * `EnclosingFunction.parameterOf` rather than the frames: a local array of the
- * same name and shape is fine.
+ * where the name is DECLARED, not about its type, which is why it asks the
+ * enclosing function's own parameter list rather than the frames: a local
+ * array of the same name and shape is fine. Both come from 1.2's syntax, not
+ * the parse tree (#1991).
  *
  * ## E0602: what a side effect actually is
  *
@@ -25,85 +26,88 @@
  * whole check here.
  */
 
-import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
-
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import ExpressionShape from "../../utils/ExpressionShape";
+import type IParameterSyntax from "../../types/syntax/IParameterSyntax";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type ISourceSpan from "../../types/ISourceSpan";
+import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
+import type TExpression from "../../types/syntax/TExpression";
+import DeclarationParts from "../../utils/DeclarationParts";
 import ExpressionCalls from "../../utils/ExpressionCalls";
-import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
-import ParserUtils from "../../utils/ParserUtils";
-import EnclosingFunction from "./helpers/EnclosingFunction";
+import ExpressionNodes from "../../utils/ExpressionNodes";
+import ExpressionShape from "../../utils/ExpressionShape";
 import ISizeofError from "./types/ISizeofError";
 
-class SizeofListener extends CNextListener {
+type TSizeof = Extract<TExpression, { readonly kind: "sizeof" }>;
+
+class SizeofAnalyzer {
   private readonly found: ISizeofError[] = [];
 
-  public errors(): ISizeofError[] {
+  public analyze(program: IProgramSyntax): ISizeofError[] {
+    for (const member of program.declarations) {
+      this.declaration(member.declaration);
+    }
     return this.found;
   }
 
-  override enterSizeofExpression = (
-    ctx: Parser.SizeofExpressionContext,
-  ): void => {
-    // The grammar is `sizeof '(' (type | expression) ')'` and tries TYPE
-    // first, so a bare name -- which is what `sizeof(data)` is -- arrives as a
-    // `userType` rather than as an expression. Both branches are read here for
-    // that reason: reading only `expression()` finds nothing for the exact
-    // spelling E0601 exists to reject.
-    const bareName =
-      ctx.type()?.userType() !== null && ctx.type() !== null
-        ? ctx.type()!.getText()
-        : null;
-    const expr = ctx.expression();
-    const operand = expr === null ? null : SyntaxLowering.expression(expr);
+  private declaration(declaration: TDeclarationSyntax): void {
+    if (declaration.kind === "scope") {
+      for (const member of declaration.members) {
+        this.declaration(member.declaration);
+      }
+      return;
+    }
+    const parameters =
+      declaration.kind === "function" ? (declaration.parameters ?? []) : [];
+    for (const part of DeclarationParts.of(declaration)) {
+      for (const expr of ExpressionNodes.of(part)) {
+        if (expr.kind === "sizeof") this.check(expr, parameters);
+      }
+    }
+  }
+
+  private check(
+    sizeOf: TSizeof,
+    parameters: readonly IParameterSyntax[],
+  ): void {
+    const bareName = sizeOf.type?.kind === "user" ? sizeOf.type.text : null;
+    const operand = sizeOf.expression;
     const name =
       bareName ??
       (operand === null ? null : ExpressionShape.simpleIdentifier(operand));
-
-    if (name !== null) {
-      const parameter = EnclosingFunction.parameterOf(name, ctx);
-      if (parameter !== null && EnclosingFunction.isArrayParameter(parameter)) {
-        this.report(
-          ctx,
-          "E0601",
-          `sizeof() on array parameter '${name}' measures a pointer, not the array`,
-          `An array parameter is passed by reference (ADR-006), so its size is the pointer's. Use ${name}.element_count for the count, or sizeof(elementType) * ${name}.element_count for the bytes.`,
-        );
-        return;
-      }
-    }
-
-    if (
-      expr !== null &&
-      operand !== null &&
-      ExpressionCalls.containsCall(operand)
-    ) {
+    const parameter =
+      name === null ? undefined : parameters.find((p) => p.name === name);
+    if (parameter?.type.kind === "array") {
       this.report(
-        expr,
+        sizeOf.span,
+        "E0601",
+        `sizeof() on array parameter '${name}' measures a pointer, not the array`,
+        `An array parameter is passed by reference (ADR-006), so its size is the pointer's. Use ${name}.element_count for the count, or sizeof(elementType) * ${name}.element_count for the bytes.`,
+      );
+      return;
+    }
+    if (operand !== null && ExpressionCalls.containsCall(operand)) {
+      this.report(
+        operand.span,
         "E0602",
         "sizeof() operand must not have side effects",
         "MISRA C:2012 Rule 13.6: `sizeof` does not evaluate its operand, so a call inside it never runs. Compute the value first and take the size of that.",
       );
     }
-  };
+  }
 
   private report(
-    at: ParserRuleContext,
+    at: ISourceSpan,
     code: string,
     message: string,
     helpText: string,
   ): void {
-    const { line, column } = ParserUtils.getPosition(at);
-    this.found.push({ code, line, column, message, helpText });
-  }
-}
-
-class SizeofAnalyzer {
-  public analyze(tree: Parser.ProgramContext): ISizeofError[] {
-    const listener = new SizeofListener();
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
-    return listener.errors();
+    this.found.push({
+      code,
+      line: at.line,
+      column: at.column,
+      message,
+      helpText,
+    });
   }
 }
 

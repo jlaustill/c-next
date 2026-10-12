@@ -432,7 +432,7 @@ function runAnalyzers(
     },
     {
       label: "sizeof operands (ADR-023, E0601/E0602)",
-      run: () => new SizeofAnalyzer().analyze(tree),
+      run: () => new SizeofAnalyzer().analyze(parsed.program),
     },
     {
       label: "declaration modifiers (ADR-049, E0889)",

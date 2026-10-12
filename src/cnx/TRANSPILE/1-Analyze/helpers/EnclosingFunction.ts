@@ -27,35 +27,6 @@ class EnclosingFunction {
     }
     return null;
   }
-
-  /** The enclosing function's parameter of this name, or null. */
-  static parameterOf(
-    name: string,
-    at: ParserRuleContext,
-  ): Parser.ParameterContext | null {
-    const fn = EnclosingFunction.of(at);
-    return (
-      fn
-        ?.parameterList()
-        ?.parameter()
-        .find((p) => p.IDENTIFIER().getText() === name) ?? null
-    );
-  }
-
-  /**
-   * Whether a parameter is declared as an array.
-   *
-   * Only the PREFIX form `u8[4] data`, which is the one ADR-036 allows. The
-   * grammar still parses the trailing form `u8 data[4]`, and a second arm here
-   * accepted it -- but E0874 rejects that spelling for every parameter and
-   * runs first, so the arm could not fire for any program and reddened no
-   * fixture when removed. Dead code that reads as a rule is worse than absent:
-   * it says the trailing form is handled here, and the reason it never arrives
-   * is somewhere else entirely.
-   */
-  static isArrayParameter(parameter: Parser.ParameterContext): boolean {
-    return parameter.type().arrayType() !== null;
-  }
 }
 
 export default EnclosingFunction;

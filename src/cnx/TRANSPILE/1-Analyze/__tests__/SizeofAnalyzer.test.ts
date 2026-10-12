@@ -12,8 +12,7 @@ import SizeofAnalyzer from "../SizeofAnalyzer";
  * this card's analyzers these are fully testable without a `Program`.
  */
 const errors = (source: string) => {
-  const { tree } = CNextSourceParser.parse(source);
-  return new SizeofAnalyzer().analyze(tree);
+  return new SizeofAnalyzer().analyze(CNextSourceParser.parse(source).program);
 };
 
 describe("SizeofAnalyzer (E0601)", () => {
@@ -70,5 +69,23 @@ describe("SizeofAnalyzer (E0602)", () => {
         "void f() {\n    u32 v <- 1;\n    u8[4] arr;\n    u32 a <- sizeof(v + 1);\n    u32 b <- sizeof(arr[0]);\n}",
       ),
     ).toEqual([]);
+  });
+});
+
+describe("SizeofAnalyzer reads 1.2's syntax (#1991)", () => {
+  it("checks a function declared inside a scope", () => {
+    const found = errors(
+      "scope Buffers {\n    void fill(u8[8] data) {\n        u32 n <- sizeof(data);\n    }\n}",
+    );
+    expect(found.map((e) => [e.code, e.line])).toEqual([["E0601", 3]]);
+  });
+
+  it("reports E0602 at the operand, not at the sizeof", () => {
+    const found = errors(
+      "u32 f() {\n    return 1;\n}\nu32 n <- sizeof(f());\n",
+    );
+    expect(found.map((e) => [e.code, e.line, e.column])).toEqual([
+      ["E0602", 4, 16],
+    ]);
   });
 });
