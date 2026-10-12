@@ -14,11 +14,11 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
 function analyze(source: string) {
   // Same precondition as E0426: the analyzer declines unless the transpiler
   // knows the file's whole name universe. These sources include nothing.
-  const { tree, context } = testAnalysisContextFor(source, {
+  const { syntax, context } = testAnalysisContextFor(source, {
     cppMode: false,
     overrides: { reachesForeignHeader: false },
   });
-  return new UndeclaredValueAnalyzer(context).analyze(tree);
+  return new UndeclaredValueAnalyzer(context).analyze(syntax);
 }
 
 describe("UndeclaredValueAnalyzer", () => {
@@ -163,6 +163,45 @@ describe("UndeclaredValueAnalyzer", () => {
    * `Motor__declaredAtFileScope` -- a name nothing declares -- at exit 0.
    * A single-position table cannot fail on that.
    */
+  // #1991: the walk reads 1.2's syntax, so each place a name can stand is
+  // listed here rather than found by a tree walk that visits them all.
+  describe("every position 1.2 records", () => {
+    function namesAndCarets(source: string) {
+      const lines = source.split("\n");
+      return analyze(source).map((e) => [
+        e.identifier,
+        e.column === lines[e.line - 1].indexOf(e.identifier),
+      ]);
+    }
+
+    it("asks a chain's head once, not again as its primary", () => {
+      expect(
+        namesAndCarets(
+          `u32 main() {\n    u32 v <- Missing.x;\n    return v;\n}`,
+        ),
+      ).toEqual([["Missing", true]]);
+    });
+
+    it("reaches a name inside parentheses and a type's dimension", () => {
+      expect(
+        namesAndCarets(
+          `u32 main() {\n    u8[Size] a;\n    u32 v <- (Inner);\n    return v;\n}`,
+        ),
+      ).toEqual([
+        ["Size", true],
+        ["Inner", true],
+      ]);
+    });
+
+    it("leaves a call's target to E0422 but still reads its arguments", () => {
+      expect(
+        namesAndCarets(
+          `u32 known(u32 a) { return a; }\nu32 main() {\n    u32 v <- known(Arg);\n    u32 w <- missingFn();\n    return v + w;\n}`,
+        ),
+      ).toEqual([["Arg", true]]);
+    });
+  });
+
   describe("reads and writes ask one question", () => {
     const inScope = (body: string): string => `
       u32 declaredAtFileScope <- 0;

@@ -255,7 +255,7 @@ function runAnalyzers(
       // After the type check, so a file whose type is undefined reports the
       // type rather than every use of it.
       label: "undefined value references (#1353)",
-      run: () => new UndeclaredValueAnalyzer(context).analyze(tree),
+      run: () => new UndeclaredValueAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "call analysis (ADR-030: define-before-use)",
