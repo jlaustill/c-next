@@ -22,7 +22,7 @@ class QualifiedCName {
    * The separator between components of a qualified C name.
    *
    * ADR-063 reserves this sequence: no C-Next identifier may contain it, which is
-   * what makes the join injective. Enforced by E0201 (IdentifierSyntaxAnalyzer).
+   * what makes the join injective. Enforced by E0201 (1.2's IdentifierForm).
    */
   static readonly SEPARATOR = "__";
 

@@ -22,7 +22,7 @@ class ReservedCnxName {
   /**
    * The reserved prefix, in the case used for C identifiers.
    *
-   * Rejected in user declarations by E0202 (IdentifierSyntaxAnalyzer).
+   * Rejected in user declarations by E0202 (1.2's IdentifierForm).
    */
   static readonly PREFIX = "cnx_";
 

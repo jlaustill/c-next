@@ -86,33 +86,20 @@ describe("runAnalyzers", () => {
   });
 
   // ========================================================================
-  // Phase 1: Identifier Syntax Errors (early return) - ADR-063
+  // Identifier syntax - ADR-063
   // ========================================================================
 
-  describe("phase 1 - identifier syntax", () => {
-    it("should return early on a trailing-underscore identifier", () => {
+  describe("identifier syntax", () => {
+    // #1991: the spelling of a name is syntax, so 1.2 reports it
+    // (IdentifierForm). 2.1 reporting it too would print it twice.
+    it("leaves E0201 to 1.2", () => {
       const { parsed, contextWith } = parseWithComments(`u8 value_ <- 1;`);
       const errors = runAnalyzers(parsed, {
         context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
       });
 
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0].severity).toBe("error");
-      // Registered WITH formatWithCode, so the code reaches the message
-      expect(errors[0].message).toContain("error[E0201]");
-      expect(errors[0].message).toContain("value_");
-    });
-
-    it("should return early on consecutive underscores", () => {
-      const { parsed, contextWith } = parseWithComments(`u8 my__value <- 1;`);
-      const errors = runAnalyzers(parsed, {
-        context: contextWith(new SymbolTable()),
-        includes: NO_INCLUDES,
-      });
-
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0].message).toContain("error[E0201]");
+      expect(errors.map((e) => e.message).join("\n")).not.toContain("E0201");
     });
 
     it("should accept a leading underscore (ADR-063)", () => {

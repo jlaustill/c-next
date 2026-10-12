@@ -7,7 +7,7 @@
  * "trailing" and "consecutive" break part 1 (the underscore rule, E0201);
  * "reserved-prefix" breaks part 2 (the reserved transpiler namespace, E0202).
  * They are carried in one union because a single classifier and a single walk
- * decide both — see IdentifierSyntaxAnalyzer.
+ * decide both — see IdentifierForm.
  */
 type TIdentifierViolation = "trailing" | "consecutive" | "reserved-prefix";
 

@@ -1,32 +1,32 @@
 /**
- * Unit tests for IdentifierSyntaxAnalyzer
+ * Unit tests for IdentifierForm
  * ADR-063 / Issue #1117: declared identifiers may not end with `_` or contain `__`
  */
 import { describe, it, expect } from "vitest";
-import { CharStream, CommonTokenStream } from "antlr4ng";
-import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
-import { CNextParser } from "../../../PARSE/2-Parse/grammar/CNextParser";
-import IdentifierSyntaxAnalyzer from "../IdentifierSyntaxAnalyzer";
+import CNextSourceParser from "../CNextSourceParser";
+
+const VIOLATIONS: ReadonlyArray<[string, string]> = [
+  ["cannot begin with", "reserved-prefix"],
+  ["consecutive underscores", "consecutive"],
+  ["cannot end with an underscore", "trailing"],
+];
 
 /**
- * Helper to parse C-Next code and return the AST
- */
-function parse(source: string) {
-  const charStream = CharStream.fromString(source);
-  const lexer = new CNextLexer(charStream);
-  const tokenStream = new CommonTokenStream(lexer);
-  const parser = new CNextParser(tokenStream);
-  return parser.program();
-}
-
-/**
- * Helper to analyze a source snippet
+ * E0201/E0202 as 1.2 reports them, with the code, name and violation read
+ * back off the message the user sees (#1991).
  */
 function analyze(source: string) {
-  return new IdentifierSyntaxAnalyzer().analyze(parse(source));
+  return CNextSourceParser.parse(source)
+    .parseErrors.filter((e) => /^error\[E020[12]\]/.test(e.message))
+    .map((e) => ({
+      ...e,
+      code: /E020[12]/.exec(e.message)![0],
+      identifierName: /Identifier '([^']+)'/.exec(e.message)![1],
+      violation: VIOLATIONS.find((v) => e.message.includes(v[0]))![1],
+    }));
 }
 
-describe("IdentifierSyntaxAnalyzer", () => {
+describe("IdentifierForm (E0201, E0202)", () => {
   // ==========================================================================
   // Trailing underscore
   // ==========================================================================
@@ -294,6 +294,20 @@ describe("IdentifierSyntaxAnalyzer", () => {
       `);
 
       expect(errors).toHaveLength(0);
+    });
+  });
+
+  // #1991: 1.2 walks the tree even when the parse failed, so a declaration the
+  // parser recovered without a name must not crash the check.
+  describe("recovered trees", () => {
+    it.each([
+      `void f(u8 a_, ) { }`,
+      `scope { }`,
+      `struct S { u8 ; }`,
+      `u8 f( { }`,
+    ])("reports the parse error, not a crash, for %s", (code) => {
+      const parsed = CNextSourceParser.parse(code);
+      expect(parsed.parseErrors.length).toBeGreaterThan(0);
     });
   });
 });

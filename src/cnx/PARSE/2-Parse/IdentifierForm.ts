@@ -1,6 +1,8 @@
 /**
- * Identifier Syntax Analyzer
- * ADR-063 / Issue #1117: Validates the underscore rule on declared identifiers.
+ * ADR-063 / Issue #1117: the underscore rule on declared identifiers.
+ *
+ * How a declared name is spelled is syntax, so 1.2 reports it with the file's
+ * other parse errors (#1991), off the tree only 1.2 holds.
  *
  * A C-Next identifier may not end with `_` and may not contain `__`. That reserves
  * `__` exclusively for the transpiler as the qualified-name separator, which makes
@@ -15,11 +17,12 @@
  */
 
 import { ParseTreeWalker, TerminalNode } from "antlr4ng";
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import IIdentifierSyntaxError from "./types/IIdentifierSyntaxError";
-import TIdentifierViolation from "./types/TIdentifierViolation";
+import { CNextListener } from "./grammar/CNextListener";
+import * as Parser from "./grammar/CNextParser";
+import type ITranspileError from "../../types/ITranspileError";
+import CodedErrorText from "../../utils/CodedErrorText";
 import ReservedCnxName from "../../utils/ReservedCnxName";
+import TIdentifierViolation from "./types/TIdentifierViolation";
 
 /**
  * Pure function classifying an identifier against the ADR-063 rule.
@@ -127,126 +130,106 @@ function formatIdentifierSyntaxHelp(
  * handlers from tripping duplication analysis.
  */
 class IdentifierSyntaxListener extends CNextListener {
-  private readonly analyzer: IdentifierSyntaxAnalyzer;
-
-  constructor(analyzer: IdentifierSyntaxAnalyzer) {
-    super();
-    this.analyzer = analyzer;
-  }
+  readonly found: ITranspileError[] = [];
 
   override enterScopeDeclaration = (
     ctx: Parser.ScopeDeclarationContext,
   ): void => {
-    this.analyzer.check(ctx.IDENTIFIER());
+    this.check(ctx.IDENTIFIER());
   };
 
   override enterRegisterDeclaration = (
     ctx: Parser.RegisterDeclarationContext,
   ): void => {
-    this.analyzer.check(ctx.IDENTIFIER());
+    this.check(ctx.IDENTIFIER());
   };
 
   override enterRegisterMember = (ctx: Parser.RegisterMemberContext): void => {
-    this.analyzer.check(ctx.IDENTIFIER());
+    this.check(ctx.IDENTIFIER());
   };
 
   override enterStructDeclaration = (
     ctx: Parser.StructDeclarationContext,
   ): void => {
-    this.analyzer.check(ctx.IDENTIFIER());
+    this.check(ctx.IDENTIFIER());
   };
 
   override enterStructMember = (ctx: Parser.StructMemberContext): void => {
-    this.analyzer.check(ctx.IDENTIFIER());
+    this.check(ctx.IDENTIFIER());
   };
 
   override enterEnumDeclaration = (
     ctx: Parser.EnumDeclarationContext,
   ): void => {
-    this.analyzer.check(ctx.IDENTIFIER());
+    this.check(ctx.IDENTIFIER());
   };
 
   override enterEnumMember = (ctx: Parser.EnumMemberContext): void => {
-    this.analyzer.check(ctx.IDENTIFIER());
+    this.check(ctx.IDENTIFIER());
   };
 
   override enterBitmapDeclaration = (
     ctx: Parser.BitmapDeclarationContext,
   ): void => {
-    this.analyzer.check(ctx.IDENTIFIER());
+    this.check(ctx.IDENTIFIER());
   };
 
   override enterBitmapMember = (ctx: Parser.BitmapMemberContext): void => {
-    this.analyzer.check(ctx.IDENTIFIER());
+    this.check(ctx.IDENTIFIER());
   };
 
   override enterFunctionDeclaration = (
     ctx: Parser.FunctionDeclarationContext,
   ): void => {
-    this.analyzer.check(ctx.IDENTIFIER());
+    this.check(ctx.IDENTIFIER());
   };
 
   override enterParameter = (ctx: Parser.ParameterContext): void => {
-    this.analyzer.check(ctx.IDENTIFIER());
+    this.check(ctx.IDENTIFIER());
   };
 
   override enterVariableDeclaration = (
     ctx: Parser.VariableDeclarationContext,
   ): void => {
-    this.analyzer.check(ctx.IDENTIFIER());
+    this.check(ctx.IDENTIFIER());
   };
 
   override enterForVarDecl = (ctx: Parser.ForVarDeclContext): void => {
-    this.analyzer.check(ctx.IDENTIFIER());
+    this.check(ctx.IDENTIFIER());
   };
+
+  private check(identifier: TerminalNode | null): void {
+    // A tree the parser recovered can hold a declaration with no name.
+    if (identifier === null) {
+      return;
+    }
+    const identifierName = identifier.getText();
+    const violation = classifyIdentifier(identifierName);
+    if (violation === null) {
+      return;
+    }
+    this.found.push({
+      line: identifier.symbol.line,
+      column: identifier.symbol.column,
+      message: CodedErrorText.of(
+        VIOLATION_CODES[violation],
+        formatIdentifierSyntaxError(identifierName, violation),
+      ),
+      helpText: formatIdentifierSyntaxHelp(identifierName, violation),
+      severity: "error",
+    });
+  }
 }
 
 /**
  * Analyzer for identifier syntax violations (ADR-063)
  */
-class IdentifierSyntaxAnalyzer {
-  private errors: IIdentifierSyntaxError[] = [];
-
-  /**
-   * Analyze the parse tree for identifier syntax violations
-   *
-   * @param tree - The parsed program AST
-   * @returns Array of errors (empty if all pass)
-   */
-  public analyze(tree: Parser.ProgramContext): IIdentifierSyntaxError[] {
-    this.errors = [];
-
-    const listener = new IdentifierSyntaxListener(this);
+class IdentifierForm {
+  static errorsIn(tree: Parser.ProgramContext): ITranspileError[] {
+    const listener = new IdentifierSyntaxListener();
     ParseTreeWalker.DEFAULT.walk(listener, tree);
-
-    return this.errors;
-  }
-
-  /**
-   * Check one declared identifier, recording an error if it breaks the rule.
-   *
-   * Single entry point for all declaration contexts, so the rule and its reported
-   * position are defined in exactly one place.
-   */
-  public check(identifier: TerminalNode): void {
-    const identifierName = identifier.getText();
-    const violation = classifyIdentifier(identifierName);
-
-    if (violation === null) {
-      return;
-    }
-
-    this.errors.push({
-      code: VIOLATION_CODES[violation],
-      identifierName,
-      violation,
-      // The identifier's own token, not the enclosing rule's start token
-      line: identifier.symbol.line,
-      column: identifier.symbol.column,
-      message: formatIdentifierSyntaxError(identifierName, violation),
-      helpText: formatIdentifierSyntaxHelp(identifierName, violation),
-    });
+    return listener.found;
   }
 }
 
-export default IdentifierSyntaxAnalyzer;
+export default IdentifierForm;

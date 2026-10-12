@@ -19,7 +19,6 @@ import type IParsedFile from "../../types/IParsedFile";
 import CodedErrorText from "../../utils/CodedErrorText";
 import CppClassInitializerAnalyzer from "./CppClassInitializerAnalyzer";
 import DefineDirectiveAnalyzer from "./DefineDirectiveAnalyzer";
-import IdentifierSyntaxAnalyzer from "./IdentifierSyntaxAnalyzer";
 import ParameterNamingAnalyzer from "./ParameterNamingAnalyzer";
 import StructFieldAnalyzer from "./StructFieldAnalyzer";
 import TypeDeclarationAnalyzer from "./TypeDeclarationAnalyzer";
@@ -201,11 +200,6 @@ function runAnalyzers(
       label:
         "C++ class initializers (Issue #517: no statement position at file scope)",
       run: () => new CppClassInitializerAnalyzer(context).analyze(tree),
-    },
-    {
-      // A malformed identifier feeds a bad name into every later analysis.
-      label: "identifier syntax (ADR-063: no trailing or consecutive '_')",
-      run: () => new IdentifierSyntaxAnalyzer().analyze(tree),
     },
     {
       // #1090: a body's braces decide its scope. An unbraced declaration kept

@@ -37,8 +37,8 @@ codes that already have a fixture.
 
 | Code  | Message                                                                      | Help                                                              | Source                                            |
 | ----- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------- |
-| E0201 | Identifier ends with, or contains consecutive, underscores                   | Remove the trailing underscore, or collapse `__` to `_`           | `TRANSPILE/1-Analyze/IdentifierSyntaxAnalyzer.ts` |
-| E0202 | Identifier begins with the reserved prefix `cnx_`                            | Drop the reserved prefix                                          | `TRANSPILE/1-Analyze/IdentifierSyntaxAnalyzer.ts` |
+| E0201 | Identifier ends with, or contains consecutive, underscores                   | Remove the trailing underscore, or collapse `__` to `_`           | `PARSE/2-Parse/IdentifierForm.ts`                 |
+| E0202 | Identifier begins with the reserved prefix `cnx_`                            | Drop the reserved prefix                                          | `PARSE/2-Parse/IdentifierForm.ts`                 |
 | E0203 | Two source files produce the same include guard                              | Rename one so the generated headers stay distinguishable          | `Transpiler.ts`                                   |
 | E0204 | External identifiers not distinct within the target's significant characters | Shorten the scope name or the member names                        | `Transpiler.ts`, `PARSE/3-Declare/SymbolTable.ts` |
 | E0227 | Parameter cannot start with function name prefix                             | Consider renaming to a name that doesn't start with function name | `TRANSPILE/1-Analyze/ParameterNamingAnalyzer.ts`  |

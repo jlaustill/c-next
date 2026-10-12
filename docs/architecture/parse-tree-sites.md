@@ -32,11 +32,11 @@ lexer-only include scan. Nothing from 2.2 Plan on.
 
 | Layer                | Modules |
 | -------------------- | ------: |
-| `src/cnx/TRANSPILE/` |      51 |
+| `src/cnx/TRANSPILE/` |      50 |
 | `src/cnx/PARSE/`     |      14 |
 | `src/cnx/utils/`     |       5 |
 | `src/cnx/types/`     |       2 |
-| **total**            |  **72** |
+| **total**            |  **71** |
 
 `src/cnx/TRANSPILE/3-Render/` is the render layer, and its share is the number
 the issue singles out: the render layer holding parse nodes is how a
@@ -90,7 +90,6 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/cnx/TRANSPILE/1-Analyze/helpers/RegisterMemberReference.ts`    | antlr4ng, grammar |
 | `src/cnx/TRANSPILE/1-Analyze/helpers/SafeDivision.ts`               | grammar           |
 | `src/cnx/TRANSPILE/1-Analyze/helpers/StructInitializerType.ts`      | antlr4ng, grammar |
-| `src/cnx/TRANSPILE/1-Analyze/IdentifierSyntaxAnalyzer.ts`           | antlr4ng, grammar |
 | `src/cnx/TRANSPILE/1-Analyze/InitializationAnalyzer.ts`             | antlr4ng, grammar |
 | `src/cnx/TRANSPILE/1-Analyze/IntegerConversionAnalyzer.ts`          | antlr4ng, grammar |
 | `src/cnx/TRANSPILE/1-Analyze/LengthPropertyAnalyzer.ts`             | antlr4ng, grammar |
@@ -119,4 +118,4 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/cnx/utils/ParserUtils.ts`                                      | antlr4ng, grammar |
 | `src/cnx/utils/PostfixAnalysisUtils.ts`                             | grammar           |
 
-72 module(s).
+71 module(s).
