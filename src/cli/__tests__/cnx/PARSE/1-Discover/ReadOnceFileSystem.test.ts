@@ -51,14 +51,6 @@ describe("ReadOnceFileSystem (#1444, owner ruling 3)", () => {
     expect(host.getWriteLog()).toEqual([]);
   });
 
-  it("refuses the preprocessor's scratch file", () => {
-    const view = new ReadOnceFileSystem(new CountingFileSystem());
-
-    expect(() => view.withTempFile("t.h")).toThrow(
-      "1.1 Discover changes nothing on disk",
-    );
-  });
-
   it("does not remember a read that failed", () => {
     const host = new CountingFileSystem();
     const view = new ReadOnceFileSystem(host);

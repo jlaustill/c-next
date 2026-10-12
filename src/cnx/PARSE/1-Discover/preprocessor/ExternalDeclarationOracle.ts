@@ -179,9 +179,9 @@ class ExternalDeclarationOracle {
     return { perFileContent, directiveOf };
   }
 
-  /** `<built-in>`, `<command-line>`, the unit itself, or no file yet */
+  /** `<built-in>`, `<command-line>`, the unit itself (`<stdin>`), or no file yet */
   private static isSynthetic(file: string): boolean {
-    return file === "" || file.startsWith("<") || file.endsWith(TU_NAME);
+    return file === "" || file.startsWith("<");
   }
 
   /**
@@ -202,7 +202,11 @@ class ExternalDeclarationOracle {
       return;
     }
     const directive = directives[Number(marker[1]) - 2];
-    if (walk.current.endsWith(TU_NAME) && flags.has("2") && directive) {
+    if (
+      walk.current === Preprocessor.STRING_MARKER &&
+      flags.has("2") &&
+      directive
+    ) {
       for (const file of walk.entered) {
         if (!directiveOf.has(file)) directiveOf.set(file, directive);
       }
@@ -263,7 +267,10 @@ class ExternalDeclarationOracle {
     count: number,
   ): number {
     if (!error) return -1;
-    const escapedTu = TU_NAME.replaceAll(".", String.raw`\.`);
+    const escapedTu = Preprocessor.STRING_MARKER.replaceAll(
+      /[.*+?^${}()|[\]\\]/g,
+      String.raw`\$&`,
+    );
     const pattern = new RegExp(escapedTu + String.raw`:(\d+)`, "g");
     let match: RegExpExecArray | null;
     while ((match = pattern.exec(error)) !== null) {

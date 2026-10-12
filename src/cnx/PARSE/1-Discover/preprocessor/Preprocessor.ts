@@ -4,16 +4,7 @@
  */
 
 import { execFile } from "node:child_process";
-import { promisify } from "node:util";
-import {
-  basename,
-  dirname,
-  extname,
-  join,
-  relative,
-  resolve,
-  sep,
-} from "node:path";
+import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import IToolchain from "./types/IToolchain";
 import IPreprocessResult from "./types/IPreprocessResult";
 import ISourceMapping from "./types/ISourceMapping";
@@ -24,24 +15,55 @@ import type IPreprocessCacheEntry from "./types/IPreprocessCacheEntry";
 import IFileSystem from "../../../types/IFileSystem";
 import LineMarkers from "./LineMarkers";
 import PreprocessCache from "./PreprocessCache";
-
-const execFileAsync = promisify(execFile);
+import Installation from "../Installation";
 
 /** What one run of the compiler printed, and why it failed, if it did */
 type IPreprocessOutcome = Omit<IPreprocessCacheEntry, "deps" | "absent">;
 
-/** The name a string's input is keyed by, in place of its temporary file */
-const STRING_INPUT = join("<cnext-string>", "input");
-
-/** The `-MT` target the dependency file is written for */
+/** The `-MT` target the dependency list is printed for */
 const DEPS_TARGET = "cnext";
 
-const DEPS_FILE = "cnext.d";
+/**
+ * The language cpp gives a file of each extension, which a string on standard
+ * input has to be told with `-x` (gcc's table, "Options Controlling the Kind
+ * of Output").
+ */
+const LANGUAGE_OF_EXTENSION: Readonly<Record<string, string>> = {
+  ".c": "c",
+  ".h": "c-header",
+  ".cc": "c++",
+  ".cp": "c++",
+  ".cxx": "c++",
+  ".cpp": "c++",
+  ".CPP": "c++",
+  ".c++": "c++",
+  ".C": "c++",
+  ".hh": "c++-header",
+  ".H": "c++-header",
+  ".hp": "c++-header",
+  ".hxx": "c++-header",
+  ".hpp": "c++-header",
+  ".HPP": "c++-header",
+  ".h++": "c++-header",
+  ".tcc": "c++-header",
+};
+
+/** A string the preprocessor reads on standard input, and where it runs */
+interface IStringInput {
+  readonly filename: string;
+  readonly content: string;
+}
 
 /**
  * Handles preprocessing of C/C++ files
  */
 class Preprocessor {
+  /** The input argument that names standard input */
+  private static readonly STDIN = "-";
+
+  /** What gcc and clang name standard input in their line markers */
+  static readonly STRING_MARKER = "<stdin>";
+
   private readonly toolchain: IToolchain | null;
 
   private readonly defaultIncludePaths: string[] = [];
@@ -92,36 +114,31 @@ class Preprocessor {
   }
 
   /**
-   * Preprocess content from a string, through a temporary file the port owns.
-   *
-   * Not stdin (#1653, measured on gcc and clang): on stdin a quoted `#include`
-   * is searched for first in the process's working directory, so a header
-   * there would shadow the one the search paths name. A temporary file in an
-   * otherwise empty directory keeps the resolution this always had.
+   * Preprocess content from a string, on standard input (#1991: 1.1 creates no
+   * file, scratch included). On stdin cpp searches its working directory first
+   * for a quoted `#include` (#1653, measured on gcc), so it runs from a
+   * directory that holds no header, which keeps the resolution the string had
+   * from a temporary file alone in its directory.
    */
   async preprocessString(
     content: string,
     filename: string,
     options: IPreprocessOptions = {},
   ): Promise<IPreprocessResult> {
-    const result = await this.fs.withTempFile(
-      basename(filename),
-      content,
-      (tempFile) => this.run(tempFile, options, { filename, content }),
-    );
+    const result = await this.run(filename, options, { filename, content });
     result.originalFile = filename;
     return result;
   }
 
   /**
    * One preprocessor run, from `options.cache` when no file it read has
-   * changed (#1844). `text` is the string a temporary `filePath` holds: the
-   * key names it, not the temporary path, which differs on every run.
+   * changed (#1844). For a string, `filePath` is its `filename`, and the key
+   * names it with its text.
    */
   private async run(
     filePath: string,
     options: IPreprocessOptions,
-    text: { readonly filename: string; readonly content: string } | null,
+    text: IStringInput | null,
   ): Promise<IPreprocessResult> {
     const toolchain = options.toolchain ?? this.toolchain;
     if (!toolchain) {
@@ -134,6 +151,24 @@ class Preprocessor {
         originalFile: filePath,
       };
     }
+    const language =
+      text === null ? null : LANGUAGE_OF_EXTENSION[extname(text.filename)];
+    if (language === undefined) {
+      return {
+        content: "",
+        sourceMappings: [],
+        success: false,
+        error: `Preprocessor failed for ${filePath}: no C or C++ language has the extension ${extname(filePath)}`,
+        originalFile: filePath,
+        toolchain: toolchain.name,
+      };
+    }
+    const input =
+      language === null ? [filePath] : ["-x", language, Preprocessor.STDIN];
+    const args = this.argsFor(
+      text === null ? dirname(filePath) : null,
+      options,
+    );
     const cache = options.cache;
     let outcome: IPreprocessOutcome;
     if (cache) {
@@ -142,36 +177,27 @@ class Preprocessor {
         toolchain.cpp,
         toolchain.version ?? null,
         toolchain.target ?? null,
-        text === null
-          ? [...this.argsFor(filePath, options), filePath]
-          : [...this.argsFor(STRING_INPUT, options), text.filename],
+        [...args, ...input],
         text?.content ?? null,
       ]);
       outcome =
         cache.lookup(key) ??
-        (await this.runRecorded(
-          toolchain,
-          filePath,
-          options,
-          key,
-          cache,
-          text !== null,
-        ));
+        (await this.runRecorded(toolchain, filePath, options, key, cache, {
+          input,
+          text,
+        }));
     } else {
-      outcome = await this.exec(
-        toolchain,
-        [...this.argsFor(filePath, options), filePath],
-        filePath,
-      );
+      outcome = await this.exec(toolchain, [...args, ...input], filePath, text);
     }
     return this.resultOf(outcome, filePath, options, toolchain);
   }
 
   /**
-   * Run with the compiler's dependency output (`-MD`), and record the outcome
-   * under `key` with every file it read. A run whose dependencies the
-   * compiler did not write (a missing `#include` stops it before it writes
-   * them) is not recorded: what it would have read is not known.
+   * Run, then ask the compiler which files the run read (`-M`, on its output),
+   * and record the outcome under `key` with every one of them. A run whose
+   * dependencies the compiler could not list (a missing `#include` stops it
+   * before it prints them) is not recorded: what it would have read is not
+   * known.
    */
   private async runRecorded(
     toolchain: IToolchain,
@@ -179,49 +205,49 @@ class Preprocessor {
     options: IPreprocessOptions,
     key: string,
     cache: PreprocessCache,
-    isString: boolean,
+    run: { readonly input: string[]; readonly text: IStringInput | null },
   ): Promise<IPreprocessOutcome> {
-    return this.fs.withTempFile(DEPS_FILE, "", async (depsPath) => {
-      const outcome = await this.exec(
-        toolchain,
-        [
-          ...this.argsFor(filePath, options),
-          "-MD",
-          "-MF",
-          depsPath,
-          "-MT",
-          DEPS_TARGET,
-          filePath,
-        ],
-        filePath,
-      );
-      // A string's temporary file is keyed by its text, not by its path
-      const input = isString ? resolve(filePath) : null;
-      const read = Preprocessor.depsOf(this.fs.readFile(depsPath)).filter(
-        (path) => path !== input,
-      );
-      if (read.length > 0) {
-        // The string's own temporary directory is gone after the run
-        const search = [
-          ...this.defaultIncludePaths,
-          ...(options.includePaths ?? []),
-          ...(isString ? [] : [dirname(filePath)]),
-        ].map((dir) => resolve(dir));
-        try {
-          cache.record(key, {
-            ...outcome,
-            deps: read.map((path): [string, number] => [
-              path,
-              this.fs.stat(path).mtimeMs,
-            ]),
-            absent: this.shadowing(read, search),
-          });
-        } catch {
-          // A file it read is already gone: nothing to key the entry on
-        }
+    const own = run.text === null ? dirname(filePath) : null;
+    const outcome = await this.exec(
+      toolchain,
+      [...this.argsFor(own, options), ...run.input],
+      filePath,
+      run.text,
+    );
+    const listed = await this.exec(
+      toolchain,
+      [
+        ...this.argsFor(own, { ...options, dumpMacros: false }),
+        "-M",
+        "-MT",
+        DEPS_TARGET,
+        ...run.input,
+      ],
+      filePath,
+      run.text,
+    );
+    // An `#error` fails the run after the list is printed (measured on gcc)
+    const read = Preprocessor.depsOf(listed.stdout);
+    if (read.length > 0) {
+      const search = [
+        ...this.defaultIncludePaths,
+        ...(options.includePaths ?? []),
+        ...(own === null ? [] : [own]),
+      ].map((dir) => resolve(dir));
+      try {
+        cache.record(key, {
+          ...outcome,
+          deps: read.map((path): [string, number] => [
+            path,
+            this.fs.stat(path).mtimeMs,
+          ]),
+          absent: this.shadowing(read, search),
+        });
+      } catch {
+        // A file it read is already gone: nothing to key the entry on
       }
-      return outcome;
-    });
+    }
+    return outcome;
   }
 
   /**
@@ -250,7 +276,7 @@ class Preprocessor {
   }
 
   /**
-   * The files a `-MD -MT ${DEPS_TARGET}` dependency file names: the target,
+   * The files a `-M -MT ${DEPS_TARGET}` dependency list names: the target,
    * then each file, with backslash-newline continuations and `\ ` for a
    * space in a path.
    */
@@ -306,9 +332,13 @@ class Preprocessor {
   }
 
   /**
-   * The preprocessor's arguments for `filePath`, up to the file itself
+   * The preprocessor's arguments, up to its input: `ownDirectory` is the
+   * input file's, which a string on standard input has none of
    */
-  private argsFor(filePath: string, options: IPreprocessOptions): string[] {
+  private argsFor(
+    ownDirectory: string | null,
+    options: IPreprocessOptions,
+  ): string[] {
     const args: string[] = [
       "-E", // Preprocess only
       "-P", // Don't generate linemarkers (we'll add them back if needed)
@@ -329,7 +359,7 @@ class Preprocessor {
     const includePaths = [
       ...this.defaultIncludePaths,
       ...(options.includePaths ?? []),
-      dirname(filePath), // Include the file's directory
+      ...(ownDirectory === null ? [] : [ownDirectory]),
     ];
 
     for (const path of includePaths) {
@@ -370,21 +400,55 @@ class Preprocessor {
     toolchain: IToolchain,
     args: readonly string[],
     filePath: string,
+    text: IStringInput | null,
   ): Promise<IPreprocessOutcome> {
     try {
-      const { stdout, stderr } = await execFileAsync(toolchain.cpp, args, {
-        maxBuffer: 50 * 1024 * 1024, // 50MB buffer for large headers
-      });
+      const { stdout, stderr } = await Preprocessor.spawn(
+        toolchain.cpp,
+        args,
+        text === null
+          ? null
+          : {
+              content: text.content,
+              cwd: Installation.headerFreeDirectory(this.fs),
+            },
+      );
       return { stdout, stderr: stderr ?? "", error: null };
     } catch (error: unknown) {
       // Include stderr in error message for better debugging
       const failure = ExecFailure.of(error);
       return {
-        stdout: "",
+        stdout: failure.stdout ?? "",
         stderr: failure.stderr ?? "",
         error: `Preprocessor failed for ${filePath}:\n${failure.message}\n${failure.stderr ?? ""}`,
       };
     }
+  }
+
+  /** `execFile`, handing `stdin.content` to the process from `stdin.cwd` */
+  private static spawn(
+    file: string,
+    args: readonly string[],
+    stdin: { readonly content: string; readonly cwd: string } | null,
+  ): Promise<{ stdout: string; stderr: string }> {
+    return new Promise((resolvePromise, reject) => {
+      const child = execFile(
+        file,
+        args,
+        {
+          maxBuffer: 50 * 1024 * 1024, // 50MB buffer for large headers
+          ...(stdin === null ? {} : { cwd: stdin.cwd }),
+        },
+        (error, stdout, stderr) => {
+          if (error === null) {
+            resolvePromise({ stdout, stderr });
+          } else {
+            reject(Object.assign(error, { stdout, stderr }));
+          }
+        },
+      );
+      child.stdin?.end(stdin?.content ?? "");
+    });
   }
 
   /**

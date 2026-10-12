@@ -117,7 +117,6 @@ describe("IncludeDiscovery", () => {
         mkdir: () => {},
         unlink: () => {},
         rename: () => {},
-        withTempFile: () => Promise.reject(new Error("not used by this test")),
         stat: () => ({ mtimeMs: 0 }),
       };
 
@@ -140,7 +139,6 @@ describe("IncludeDiscovery", () => {
         mkdir: () => {},
         unlink: () => {},
         rename: () => {},
-        withTempFile: () => Promise.reject(new Error("not used by this test")),
         stat: () => ({ mtimeMs: 0 }),
       };
 

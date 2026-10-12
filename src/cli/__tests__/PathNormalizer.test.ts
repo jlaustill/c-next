@@ -173,7 +173,6 @@ describe("PathNormalizer", () => {
         mkdir: () => {},
         unlink: () => {},
         rename: () => {},
-        withTempFile: () => Promise.reject(new Error("not used by this test")),
         isFile: () => false,
         stat: () => ({ mtimeMs: 0 }),
       };
@@ -259,7 +258,6 @@ describe("PathNormalizer", () => {
         mkdir: () => {},
         unlink: () => {},
         rename: () => {},
-        withTempFile: () => Promise.reject(new Error("not used by this test")),
         isFile: () => false,
         stat: () => ({ mtimeMs: 0 }),
       };
@@ -288,7 +286,6 @@ describe("PathNormalizer", () => {
         mkdir: () => {},
         unlink: () => {},
         rename: () => {},
-        withTempFile: () => Promise.reject(new Error("not used by this test")),
         isFile: () => false,
         stat: () => ({ mtimeMs: 0 }),
       };
@@ -327,7 +324,6 @@ describe("PathNormalizer", () => {
         mkdir: () => {},
         unlink: () => {},
         rename: () => {},
-        withTempFile: () => Promise.reject(new Error("not used by this test")),
         isFile: () => false,
         stat: () => ({ mtimeMs: 0 }),
       };
