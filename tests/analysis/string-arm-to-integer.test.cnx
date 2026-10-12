@@ -1,0 +1,10 @@
+// test-error
+// Tests: E0914 -- each arm of a ternary lands in the target, and a
+// parenthesized string is the string
+u32 main() {
+    u32 a <- 1;
+    u32 x <- (a = 1) ? "x" : "y";
+    u32 y <- ("y");
+    u32 z <- (a = 1) ? 2 : "n";
+    return x + y + z;
+}

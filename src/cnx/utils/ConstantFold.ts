@@ -107,6 +107,17 @@ class ConstantFold {
         typeName === "f32" ? "f32" : "f64",
       );
     }
+    if (typeName === "bool") return ConstantFold.boolConst(expr, env);
+    if (type.kind === "enum" || type.kind === "struct") {
+      const result = ConstantEvaluator.evaluate(expr, env);
+      return result.kind === "value"
+        ? {
+            kind: "named",
+            digits: result.value.toString(),
+            typeName: type.name,
+          }
+        : null;
+    }
     if (typeName === null || !TypeCheckUtils.isInteger(typeName)) return null;
     const result = ConstantEvaluator.evaluate(expr, env, typeName);
     if (result.kind !== "value") return result;
@@ -115,6 +126,17 @@ class ConstantFold {
       return { kind: "overflow", typeName };
     }
     return { kind: "value", digits: result.value.toString(), typeName };
+  }
+
+  /** #1739: a bool const is its initializer's truth, as C's `bool` holds it */
+  private static boolConst(
+    expr: TConstExpr,
+    env: IConstantEnvironment,
+  ): TSettledConst | null {
+    const result = ConstantEvaluator.evaluate(expr, env, "bool");
+    return result.kind === "value"
+      ? { kind: "bool", value: result.value !== 0n }
+      : null;
   }
 
   private static floatConst(

@@ -288,10 +288,8 @@ Transpiles to:
 #define Teensy4__GPIO7__DR_CLEAR (*(volatile uint32_t*)(0x42004000 + 0x88))
 #define Teensy4__GPIO7__DR_TOGGLE (*(volatile uint32_t*)(0x42004000 + 0x8C))
 
-static const uint32_t Teensy4__LED_BIT = 3;
-
 void Teensy4__blinkLed(void) {
-    Teensy4__GPIO7__DR_TOGGLE = (1 << Teensy4__LED_BIT);
+    Teensy4__GPIO7__DR_TOGGLE = ((uint32_t)1U << 3U);
 }
 ```
 
@@ -416,7 +414,7 @@ scope Motor {
 #### Transpiles to:
 
 ```c
-const uint8_t defaultValue = 3;
+const uint8_t defaultValue = 3U;
 
 #define GPIO7__DR_SET (*(volatile uint32_t*)(0x42004000 + 0x84))
 
@@ -426,18 +424,16 @@ typedef enum {
     Motor__State__STALLED = 2
 } Motor__State;
 
-static const uint8_t Motor__defaultValue = 1;
-
-Motor__State Motor__current = Motor__State__IDLE;
+static Motor__State Motor__current = Motor__State__IDLE;
 
 uint8_t Motor__start(void) {
-    uint8_t localVar = 5;
+    uint8_t localVar = 5U;
     Motor__current = Motor__State__RUNNING;
-    return localVar + Motor__defaultValue + defaultValue;
+    return cnx_clamp_add_u8(cnx_clamp_add_u8(localVar, 1U), defaultValue);
 }
 
 void Motor__setPin(void) {
-    GPIO7__DR_SET = (1 << 3);
+    GPIO7__DR_SET = ((uint32_t)1U << 3);
 }
 ```
 
@@ -718,6 +714,42 @@ The `scope` keyword replaces `namespace` in the current implementation:
 - `this.Type` in type position for scoped types
 
 The class implementation has been removed pending further research.
+
+### Private scope consts (#1739)
+
+A private scope const has one value: the one the const pipeline settles from
+its initializer, read in the scope's binding context (`N` is the scope's `N`,
+and `this.N` is too). The same settled value sizes an array and stands where
+the const is named, so `const u32 M <- N * 2;` is 20 at both places.
+
+A use can stand in a static initializer (`bool flag <- EN;` at scope level),
+where C99 6.7.8p4 takes only a constant expression and a `const` object is not
+one. So a private const is written, wherever it is named, as a literal of its
+declared type that holds its settled value:
+
+- an integer as a literal of its type: an initializer that is one literal
+  keeps its notation (`0xAB` is `0xABU`), anything else is its digits, a `u64`
+  is `ULL`, and a negative value is parenthesized (`-X` is `-(-5)`);
+- a float as its value held at its type, so an `f32` is a `float` literal
+  (`0.1f`) and a copy of the const equals it;
+- a bool as `true` or `false`, and an enum as its member (`EMode__RUN`);
+- a char literal as that literal (`(uint8_t)'A'`), and a header macro named
+  alone as that name (`(LIMIT)`), which C evaluates.
+
+A private const with no such value -- a string, or one whose initializer is
+not constant -- is emitted as a `static const` object and named where it is
+used: `const string<8> NAME <- "abc";` in `scope S` is
+`static const char S__NAME[9] = "abc";`.
+
+A bool or enum const has a value as its literal or member does, so it also
+sizes an array the way the literal or member does: `const EMode MODE <-
+EMode.STOP; u8[MODE] buf;` is `uint8_t buf[2]`. Owner ruling, 2026-10-12
+(#2014): _"Yes, the same way its literal or enum member does"_. Whether a bool
+may size an array at all is #2025.
+
+The initializer's source text is never a value. Whether a const is inlined is
+one decision, asked both where the declaration is planned and wherever the
+const is named -- an expression, `this.`, or a `case` label.
 
 ---
 

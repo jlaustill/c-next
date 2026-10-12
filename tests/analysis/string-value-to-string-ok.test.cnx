@@ -1,0 +1,29 @@
+// test-execution
+// Tests: E0914's controls -- a string lands in a string, a u8 array takes a
+// string literal whole, and a character literal is a u8
+
+u32 lengthOf(string<16> s) {
+    return s.char_count;
+}
+
+u32 main() {
+    string<16> a <- "hello";
+    string<16> b <- a;
+    b <- "hi";
+    u8[] bytes <- "abc";
+    u8 c <- 'A';
+    u32 n <- lengthOf("four");
+    if (b.char_count != 2) {
+        return 1;
+    }
+    if (bytes.element_count != 4) {
+        return 2;
+    }
+    if (c != 65) {
+        return 3;
+    }
+    if (n != 4) {
+        return 4;
+    }
+    return 0;
+}

@@ -27,7 +27,7 @@ extern const uint8_t globalValue = 10U;
 static uint8_t Motor__state = 0U;
 
 uint8_t Motor__getLocalValue(void) {
-    return 5;
+    return 5U;
 }
 
 uint8_t Motor__getGlobalValue(void) {
@@ -35,7 +35,7 @@ uint8_t Motor__getGlobalValue(void) {
 }
 
 uint8_t Motor__getSum(void) {
-    return cnx_clamp_add_u8(5, globalValue);
+    return cnx_clamp_add_u8(5U, globalValue);
 }
 
 void Motor__setState(uint8_t val) {

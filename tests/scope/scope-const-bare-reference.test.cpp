@@ -26,11 +26,11 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 /* Scope: Foo */
 
 uint32_t Foo__getConstant(void) {
-    return 42;
+    return 42U;
 }
 
 uint8_t Foo__useInExpression(void) {
-    uint8_t result = cnx_clamp_add_u8(10, 5U);
+    uint8_t result = cnx_clamp_add_u8(10U, 5U);
     return result;
 }
 

@@ -1,0 +1,26 @@
+// test-execution
+// Tests: a bool or enum const sizes an array as its literal or member does
+// (owner ruling on #2014, 2026-10-12)
+enum EMode {
+    IDLE,
+    RUN,
+    STOP
+}
+
+const bool FLAG <- true;
+const EMode MODE <- EMode.STOP;
+
+u8[FLAG] flagged;
+u8[MODE] moded;
+
+u32 main() {
+    u32 a <- flagged.element_count;
+    u32 b <- moded.element_count;
+    if (a != 1) {
+        return 1;
+    }
+    if (b != 2) {
+        return 2;
+    }
+    return 0;
+}

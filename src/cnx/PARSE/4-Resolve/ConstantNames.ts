@@ -213,6 +213,21 @@ class ConstantNames {
         typeName: settled.typeName,
       };
     }
+    // #1739: a bool const is worth what its literal is, an enum const what
+    // its member is
+    if (settled?.kind === "bool") {
+      return {
+        kind: "value",
+        value: settled.value ? 1n : 0n,
+        typeName: "bool",
+      };
+    }
+    if (
+      settled?.kind === "named" &&
+      walk.facts.visibleSymbol(settled.typeName)?.kind === "enum"
+    ) {
+      return { kind: "value", value: BigInt(settled.digits), typeName: null };
+    }
     if (settled?.kind === "float") {
       return {
         kind: "float",
@@ -224,7 +239,9 @@ class ConstantNames {
     }
     return {
       ...ConstantNames.without("unfolded", walk),
-      ...(settled === undefined ? {} : { because: settled }),
+      ...(settled === undefined || settled.kind === "named"
+        ? {}
+        : { because: settled }),
     };
   }
 

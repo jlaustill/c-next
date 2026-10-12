@@ -1,0 +1,42 @@
+// test-execution
+// Tests: a const named as a case label is written as its value -- C switches
+// only on an integer constant expression, which a const object is not
+const u32 G <- 40;
+
+scope S {
+    const u32 M <- 20;
+    public const u32 P <- 30;
+
+    public u32 pick(u32 v) {
+        switch (v) {
+            case M {
+                return 1;
+            }
+            case P {
+                return 2;
+            }
+            case G {
+                return 3;
+            }
+            default {
+                return 4;
+            }
+        }
+    }
+}
+
+u32 main() {
+    u32 a <- S.pick(20);
+    u32 b <- S.pick(30);
+    u32 c <- S.pick(40);
+    if (a != 1) {
+        return 1;
+    }
+    if (b != 2) {
+        return 2;
+    }
+    if (c != 3) {
+        return 3;
+    }
+    return 0;
+}
