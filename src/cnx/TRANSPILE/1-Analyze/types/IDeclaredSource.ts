@@ -1,6 +1,6 @@
 import type IPipelineFile from "../../../PARSE/1-Discover/types/IPipelineFile";
 import type IFileSymbols from "../../../types/IFileSymbols";
-import type ITargetDirective from "../../../types/ITargetDirective";
+import type ISourceSyntax from "../../../types/ISourceSyntax";
 
 /**
  * What `TreePasses` hands the host for 1.4 Resolve: one declared file, as
@@ -9,7 +9,8 @@ import type ITargetDirective from "../../../types/ITargetDirective";
 interface IDeclaredSource {
   readonly file: IPipelineFile;
   readonly fileSymbols: IFileSymbols;
-  readonly targetDirectives: readonly ITargetDirective[];
+  /** 1.2's syntax, carried through 1.3 to 1.4 (`targetDirectives`) and 2.1 (#1991) */
+  readonly syntax: ISourceSyntax;
 }
 
 export default IDeclaredSource;

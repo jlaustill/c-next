@@ -94,10 +94,11 @@ const PARSE_TREE_TYPES = [
   // half had no reader, so it was a bundle whose only live content was
   // the re-export.
   "^src/cnx/types/IParsedFile\\.ts$",
-  // #1957: the 1.2 parsers that RETURN a tree. A module calling one holds the
+  // #1957: the 1.2 parser that RETURNS a tree. A module calling it holds the
   // tree as a value -- `CNextSourceParser.parse(src).tree` -- while naming no
-  // grammar type, so without these it was counted by neither rule.
-  "^src/cnx/PARSE/2-Parse/(CNextSourceParser|HeaderParser)\\.ts$",
+  // grammar type, so without this it was counted by neither rule. #1991:
+  // `HeaderParser` left the list when it began returning lowered syntax.
+  "^src/cnx/PARSE/2-Parse/CNextSourceParser\\.ts$",
 ];
 
 /**
@@ -478,6 +479,7 @@ module.exports = {
         path: [
           "^src/cnx/PARSE/2-Parse/CNextSourceParser\\.ts$",
           "^src/cnx/PARSE/2-Parse/HeaderParser\\.ts$",
+          "^src/cnx/PARSE/2-Parse/SourceSyntax\\.ts$",
         ],
       },
     },

@@ -707,7 +707,7 @@ class Transpiler {
             catalog: TargetCatalogFile.targets(this.fs),
             files: declared.map((entry) => ({
               sourcePath: entry.file.path,
-              directives: entry.targetDirectives,
+              directives: entry.syntax.targetDirectives,
             })),
           },
         },

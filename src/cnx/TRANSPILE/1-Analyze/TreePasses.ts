@@ -11,7 +11,7 @@
  * the host resolves the whole program (1.4 needs every file declared first),
  * then 2.1 analyzes every file before any is planned (#1320).
  */
-import CNextSourceParser from "../../PARSE/2-Parse/CNextSourceParser";
+import SourceSyntax from "../../PARSE/2-Parse/SourceSyntax";
 import HeaderParser from "../../PARSE/2-Parse/HeaderParser";
 import EHeaderLanguage from "../../PARSE/1-Discover/types/EHeaderLanguage";
 import type IHeaderSource from "../../PARSE/1-Discover/types/IHeaderSource";
@@ -25,7 +25,7 @@ import invariant from "../../utils/invariant";
 import CNextResolver from "../../PARSE/3-Declare/cnext/index";
 import type IPipelineFile from "../../PARSE/1-Discover/types/IPipelineFile";
 import type IAnalyzedFile from "../../types/IAnalyzedFile";
-import type IParsedFile from "../../types/IParsedFile";
+import type ISourceSyntax from "../../types/ISourceSyntax";
 import type ITranspileError from "../../types/ITranspileError";
 import CaughtError from "../../utils/CaughtError";
 import Diagnostics from "./Diagnostics";
@@ -42,13 +42,8 @@ class TreePasses {
   ): TTreePassesResult {
     const errors: ITranspileError[] = [];
     const declared: IDeclaredSource[] = [];
-    // Only files that produce output are analyzed and planned. A symbol-only
-    // file is still parsed, declared and resolved -- that is why it was
-    // discovered -- but nothing reads its tree after 1.3.
-    const parses: { file: IPipelineFile; parsed: IParsedFile }[] = [];
-
     for (const file of files) {
-      const parsed = CNextSourceParser.parse(file.source);
+      const parsed = SourceSyntax.of(file.source);
       // #1445: 1.2 carries its own errors; this stamps the path the text
       // came from, the one fact 1.2 cannot know because it parses a string.
       const fileErrors = [...parsed.parseErrors, ...parsed.formErrors];
@@ -66,14 +61,11 @@ class TreePasses {
             file.path,
             host.registry,
           ),
-          targetDirectives: parsed.targetDirectives,
+          syntax: parsed,
         });
       } catch (err) {
         errors.push(CaughtError.asTranspileError(err));
         continue;
-      }
-      if (TreePasses.producesOutput(file)) {
-        parses.push({ file, parsed });
       }
     }
 
@@ -87,16 +79,21 @@ class TreePasses {
     const analysisInputs = host.analysisInputs;
     const byFile = new Map<string, readonly ITranspileError[]>();
     const analyzed = new Map<string, IAnalyzedFile>();
-    for (const entry of parses) {
+    // Only files that produce output are analyzed and planned. A symbol-only
+    // file is still parsed, declared and resolved -- that is why it was
+    // discovered -- but nothing reads its syntax after 1.4.
+    for (const entry of declared.filter((d) =>
+      TreePasses.producesOutput(d.file),
+    )) {
       if (analysisInputs) {
         byFile.set(
           entry.file.path,
-          TreePasses._analyze(entry.parsed, () => analysisInputs(entry.file)),
+          TreePasses._analyze(entry.syntax, () => analysisInputs(entry.file)),
         );
       }
       analyzed.set(entry.file.path, {
-        program: entry.parsed.program,
-        declarationCount: entry.parsed.declarationCount,
+        program: entry.syntax.program,
+        declarationCount: entry.syntax.declarationCount,
       });
     }
 
@@ -151,7 +148,7 @@ class TreePasses {
     file: IPipelineFile,
     registry: SymbolRegistry,
   ): { symbols: IFileSymbols; parseErrors: readonly ITranspileError[] } {
-    const parsed = CNextSourceParser.parse(file.source);
+    const parsed = SourceSyntax.of(file.source);
     return {
       symbols: CNextResolver.resolve(parsed.program, file.path, registry),
       parseErrors: parsed.parseErrors,
@@ -180,7 +177,7 @@ class TreePasses {
   }
 
   private static _analyze(
-    parsed: IParsedFile,
+    parsed: ISourceSyntax,
     inputs: () => IAnalyzerOptions,
   ): readonly ITranspileError[] {
     try {

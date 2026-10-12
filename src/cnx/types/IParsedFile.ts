@@ -1,17 +1,15 @@
 import type { CommonTokenStream } from "antlr4ng";
 
 import type * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
-import type IComment from "./IComment";
-import type ITargetDirective from "./ITargetDirective";
-import type ITranspileError from "./ITranspileError";
-import type IProgramSyntax from "./syntax/IProgramSyntax";
+import type ISourceSyntax from "./ISourceSyntax";
 
 /**
  * What 1.2 Parse produces for one file: syntax, and nothing derived from it.
  *
- * Named rather than passed as a loose triple because it is the boundary between
- * 1.2 and 1.3 -- "one tree per file, per run" is the rule this carries, and a
- * pass that needs the tree takes this instead of re-parsing.
+ * The tree and its token stream stay in 1.2 (#1991): the run takes
+ * `ISourceSyntax` from `SourceSyntax.of`, and only tools that read the tree
+ * itself (the prettier plugin, `format-fidelity`, `grammar-coverage`) hold
+ * this.
  *
  * ## What rides along, and why it is not "derived"
  *
@@ -48,61 +46,17 @@ import type IProgramSyntax from "./syntax/IProgramSyntax";
  * A non-empty `parseErrors` means the tree is a RECOVERY tree: ANTLR still
  * returns one, and it is not to be trusted for anything but reporting.
  */
-interface IParsedFile {
+interface IParsedFile extends ISourceSyntax {
   readonly tree: Parser.ProgramContext;
   readonly tokenStream: CommonTokenStream;
-  readonly declarationCount: number;
 
   /**
-   * Every comment on the hidden channel, in token order (ADR-043).
-   *
-   * Computed on FIRST READ and memoized, not on parse: 2.1's MISRA 3.1/3.2
-   * check is the only reader, and most callers of `parse` -- the prettier
-   * plugin, `format-fidelity`, `grammar-coverage`, `FixtureOccupancy`, every
-   * `symbolOnly` include, every file that returned early on a parse error --
-   * take the tree or the errors and never ask. Reading it is still a property
-   * OF the parse, because the token stream it walks is this artifact's own.
-   *
-   * Each entry carries `tokenIndex`. Nothing reads it today: the positional
-   * question ("which comments precede THIS token") is answered in 1.2 by
-   * `ProgramLowering`, which asks the parse's `CommentScanner` while it lowers
-   * each item into `program` (see above), and an index-ordered array
-   * is not obviously the better answer. It is recorded because 1.2 is the
-   * pass that can see it for free, not because a consumer was waiting.
+   * Computed on FIRST READ and memoized, not on parse: most callers of
+   * `parse` -- the prettier plugin, `format-fidelity`, `grammar-coverage`,
+   * `FixtureOccupancy` -- take the tree or the errors and never ask. The
+   * transpile run reads it once, in `SourceSyntax.of` (#1991).
    */
-  readonly comments: readonly IComment[];
-  /**
-   * The file as plain data (#1932): what passes after 2.1 read instead of
-   * `tree`. Lowered by 1.2 on parse, not on first read, so it exists before
-   * the tree is released at the end of 2.1. Meaningful only when `parseErrors` is empty -- a repaired tree's
-   * invented names (`<missing IDENTIFIER>`) pass through as names, and the
-   * run stops at the parse error before anything reads this.
-   */
-  readonly program: IProgramSyntax;
-
-  /**
-   * The file's `#pragma` lines as plain data (ADR-049), for 1.4 to settle the
-   * program's one target without holding this tree.
-   */
-  readonly targetDirectives: readonly ITargetDirective[];
-
-  /**
-   * Syntax errors from the lexer and parser, in the order reported.
-   *
-   * Empty on a clean parse. Positions are the SOURCE's -- no `sourcePath` is
-   * set here, because 1.2 parses text and does not know which file it came
-   * from; the caller that supplied the text stamps it.
-   */
-  readonly parseErrors: readonly ITranspileError[];
-
-  /**
-   * 1.2's errors on a tree that DID parse: how a literal or a declared name is
-   * written (E0912, E0201, E0202). Kept apart from `parseErrors` because the
-   * tree is sound -- the prettier plugin and `format-fidelity` format such a
-   * file, and only the transpile run stops on them (#1991). Empty whenever
-   * `parseErrors` is not.
-   */
-  readonly formErrors: readonly ITranspileError[];
+  readonly comments: ISourceSyntax["comments"];
 }
 
 export default IParsedFile;
