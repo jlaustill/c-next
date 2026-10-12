@@ -35,6 +35,7 @@ import CommentFormatter from "./3-Render/codegen/CommentFormatter";
 import IComment from "../types/IComment";
 import TYPE_MAP from "./3-Render/codegen/types/TYPE_MAP";
 import TParameterInfo from "../types/TParameterInfo";
+import type IBoundParameter from "./types/IBoundParameter";
 import ICodeGeneratorOptions from "./3-Render/codegen/types/ICodeGeneratorOptions";
 import TypeValidator from "./3-Render/codegen/TypeValidator";
 import IGeneratorOutput from "./3-Render/codegen/generators/IGeneratorOutput";
@@ -113,6 +114,7 @@ import scopeGenerator from "./3-Render/codegen/generators/declarationGenerators/
 import FormatUtils from "../utils/FormatUtils";
 import TypeCheckUtils from "../utils/TypeCheckUtils";
 import ExpressionShape from "../utils/ExpressionShape";
+import StatementChildren from "../utils/StatementChildren";
 import type IChainHead from "../types/IChainHead";
 import ExpressionCalls from "../utils/ExpressionCalls";
 import helperGenerators from "./3-Render/codegen/generators/support/HelperGenerator";
@@ -518,7 +520,7 @@ class CodeGenWalker {
     const steps = chain.steps;
     const offset = head.opsConsumed;
     const plannedOps = ops.map((op, i) =>
-      this.planPostfixOp(op, steps[i - offset] ?? null),
+      this.planPostfixOp(op, steps[i - offset] ?? null, head.rootOp),
     );
 
     return {
@@ -561,11 +563,17 @@ class CodeGenWalker {
   private planPostfixOp(
     op: TPostfixOpSyntax,
     step: IChainStep | null,
+    rootOp: TPostfixOpSyntax | null,
   ): TPlannedPostfixOp {
     const typedAs = step?.subscript ?? null;
     switch (op.kind) {
       case "member":
-        return { kind: "member", name: op.name, step };
+        return {
+          kind: "member",
+          name: op.name,
+          appliesToRoot: op === rootOp,
+          step,
+        };
       case "subscript": {
         const indexes = op.indexes;
         // Issue #1094: the final index is the WIDTH on the two-index arm, and
@@ -831,14 +839,12 @@ class CodeGenWalker {
    * through `TypeValidator.resolveBareIdentifier`.
    */
   private boundArgumentName(expr: TExpression): {
-    readonly id: string;
     readonly emitted: string;
     readonly parameter: TParameterInfo | undefined;
   } | null {
     const id = ExpressionShape.simpleIdentifier(expr);
     if (id === null) return null;
     return {
-      id,
       emitted: this.boundName(id, CodeGenWalker.positionOf(expr)),
       parameter: this.host.state.parameterAt(
         id,
@@ -1060,8 +1066,13 @@ class CodeGenWalker {
     // Also skip known registers - they should be handled by the postfix chain builder
     // to enable proper register validation (requiring global. when shadowed).
     let resolvedIdentifier = identifier ?? "";
+    // The parameter a bare root binds to; a `global.`/`this.` root binds
+    // past it (ADR-057)
+    const parameter =
+      !hasGlobal && !hasThis && identifier
+        ? this.host.state.parameterBindingAt(identifier, parts.position)
+        : undefined;
     if (!hasGlobal && !hasThis && identifier) {
-      const paramInfo = this.host.state.parameterAt(identifier, parts.position);
       const isKnownRegister =
         this.host.state.symbols?.knownRegisters.has(identifier);
       // Issue #1100: Parameters with postfix ops (array/bit subscript, member
@@ -1074,10 +1085,9 @@ class CodeGenWalker {
       // access (`v[4] <- true`) now correctly dereferences to `(*v)[4]`
       // (which AssignmentContextBuilder reduces to base identifier `(*v)`)
       // instead of assigning through the raw pointer.
-      if (paramInfo) {
+      if (parameter) {
         resolvedIdentifier = ParameterDereferenceResolver.resolve(
-          identifier,
-          paramInfo,
+          parameter,
           this._buildParameterDereferenceDeps(),
         );
       } else if (!isKnownRegister) {
@@ -1114,13 +1124,13 @@ class CodeGenWalker {
     }
 
     // SonarCloud S3776: Use PostfixChainBuilder for postfix operations
-    const operations = this._extractPostfixOperations(postfixOps);
+    const operations = this._extractPostfixOperations(postfixOps, parts.rootOp);
     const postfixDeps = this._buildPostfixChainDeps(
       firstId,
+      parameter?.info,
       hasGlobal,
       hasThis,
       this.targetDeclaration(ctx).rootTypeInfo,
-      parts.position,
     );
 
     return PostfixChainBuilder.build(
@@ -2174,8 +2184,6 @@ class CodeGenWalker {
   private collectCallbackTypeReferencesIn(statement: TStatement): void {
     const visit = (child: TStatement): void =>
       this.collectCallbackTypeReferencesIn(child);
-    const visitBody = (body: { statements: readonly TStatement[] }): void =>
-      body.statements.forEach(visit);
     switch (statement.kind) {
       case "variableDeclaration":
       case "constructorDeclaration":
@@ -2183,31 +2191,19 @@ class CodeGenWalker {
           this.typeNameOf(statement.type),
         );
         return;
-      case "if":
-        visit(statement.whenTrue);
-        if (statement.whenFalse) visit(statement.whenFalse);
+      case "for":
+        if (statement.init?.kind === "variableDeclaration")
+          visit(statement.init);
+        StatementChildren.of(statement).forEach(visit);
         return;
+      case "if":
       case "while":
       case "doWhile":
       case "forever":
       case "critical":
-        if ("kind" in statement.body) {
-          visit(statement.body);
-        } else {
-          visitBody(statement.body);
-        }
-        return;
-      case "for":
-        if (statement.init?.kind === "variableDeclaration")
-          visit(statement.init);
-        visit(statement.body);
-        return;
       case "switch":
-        statement.cases.forEach((switchCase) => visitBody(switchCase.body));
-        if (statement.defaultCase) visitBody(statement.defaultCase.body);
-        return;
       case "block":
-        visitBody(statement);
+        StatementChildren.of(statement).forEach(visit);
         return;
       case "assignment":
       case "expression":
@@ -2408,8 +2404,13 @@ class CodeGenWalker {
           param.isArray,
           functionsAsTypes,
         );
+        // #1290 review: the typedef names a parameter as its prototype does
+        invariant(
+          param.emittedName !== null,
+          `1.4 settled the C name of ${cName}'s parameter ${param.name}`,
+        );
         return {
-          name: param.name,
+          name: param.emittedName,
           ...shape,
           isConst: CodeGenWalker.typedefParamIsConst(
             cName,
@@ -3355,7 +3356,7 @@ class CodeGenWalker {
 
   private generateParameter(
     param: IParameterSyntax,
-    paramIndex?: number,
+    paramIndex: number,
   ): string {
     const typeName = this.typeNameOf(param.type);
     const name = param.name;
@@ -3404,34 +3405,43 @@ class CodeGenWalker {
       `a parameter is registered in its function's context before the signature renders ('${name}')`,
     );
 
-    const input = ParameterInputAdapter.fromAST(this.planParameter(param), {
-      callbackTypes: this.host.state.callbackTypes,
-      isKnownStruct: (t) => {
-        if (this.host.isKnownStruct(t)) return true;
-        // ADR-057: check qualified name for scope-local struct types only
-        const qualified = this.host.state.currentScopePath
-          ? QualifiedNameGenerator.forMember(
-              this.host.state.currentScopePath,
-              t,
-            )
-          : t;
-        return this.host.state.symbols?.knownStructs.has(qualified) ?? false;
+    // #1290: the C name 1.4 settled on the parameter, which the `.h`
+    // prototype and every use in the body read too (ADR-057)
+    const emittedName = FunctionContextManager.parameterEmittedName(
+      paramIndex,
+      this.host.state,
+    );
+    const input = ParameterInputAdapter.fromAST(
+      this.planParameter(param, emittedName),
+      {
+        callbackTypes: this.host.state.callbackTypes,
+        isKnownStruct: (t) => {
+          if (this.host.isKnownStruct(t)) return true;
+          // ADR-057: check qualified name for scope-local struct types only
+          const qualified = this.host.state.currentScopePath
+            ? QualifiedNameGenerator.forMember(
+                this.host.state.currentScopePath,
+                t,
+              )
+            : t;
+          return this.host.state.symbols?.knownStructs.has(qualified) ?? false;
+        },
+        typeMap: TYPE_MAP,
+        isModified,
+        isPassByValue,
+        isCallbackCompatible,
+        forcePassByReference,
+        forceConst,
+        // #1545: the one named accessor, which is also what _isPassByValueType
+        // asks, so the auto-const rule and the pass-by-value decision cannot
+        // disagree about what an enum is. `t` arrives from getTypeName, which
+        // resolves through the ADR-057 isScopeType predicate, so this is already
+        // the qualified lookup the scope rule calls for.
+        isKnownEnum: (t) => this.host.state.isKnownEnum(t),
+        // Issue #995: Opaque handles should not get auto-const
+        isOpaqueHandle: registered.isOpaqueHandle ?? false,
       },
-      typeMap: TYPE_MAP,
-      isModified,
-      isPassByValue,
-      isCallbackCompatible,
-      forcePassByReference,
-      forceConst,
-      // #1545: the one named accessor, which is also what _isPassByValueType
-      // asks, so the auto-const rule and the pass-by-value decision cannot
-      // disagree about what an enum is. `t` arrives from getTypeName, which
-      // resolves through the ADR-057 isScopeType predicate, so this is already
-      // the qualified lookup the scope rule calls for.
-      isKnownEnum: (t) => this.host.state.isKnownEnum(t),
-      // Issue #995: Opaque handles should not get auto-const
-      isOpaqueHandle: registered.isOpaqueHandle ?? false,
-    });
+    );
 
     // Use shared builder with C/C++ mode
     return ParameterSignatureBuilder.build(
@@ -3454,12 +3464,15 @@ class CodeGenWalker {
    * which can queue a pending temp declaration -- so rendering one that is
    * then discarded leaks it.
    */
-  private planParameter(param: IParameterSyntax): IPlannedParameter {
+  private planParameter(
+    param: IParameterSyntax,
+    emittedName: string,
+  ): IPlannedParameter {
     const arrayType = param.type.kind === "array" ? param.type : null;
     const element = arrayType ? arrayType.element : param.type;
     const stringType = element.kind === "string" ? element : null;
     return {
-      name: param.name,
+      name: emittedName,
       isConst: param.const,
       typeName: this.typeNameOf(param.type),
       mappedType: this.renderType(param.type),
@@ -4187,18 +4200,17 @@ class CodeGenWalker {
    */
   private _buildSimpleIdentifierDeps(): ISimpleIdentifierDeps {
     return {
-      getParameterInfo: (name: string, at: ISourcePosition) =>
-        this.host.state.parameterAt(name, at),
+      getParameter: (name: string, at: ISourcePosition) =>
+        this.host.state.parameterBindingAt(name, at),
       // A target with no postfix op is the parameter's whole value, written
       // as the read side reads it (#1760 second review: `p = (*q);`)
-      resolveParameter: (name: string, paramInfo: TParameterInfo) =>
+      resolveParameter: (parameter: IBoundParameter) =>
         memberAccessChain.wholeParamValue(
           ParameterDereferenceResolver.resolve(
-            name,
-            paramInfo,
+            parameter,
             this._buildParameterDereferenceDeps(),
           ),
-          paramInfo,
+          parameter.info,
           this.host.state.cppMode,
         ),
       resolveBareIdentifier: (name: string, at: ISourcePosition) =>
@@ -4216,11 +4228,13 @@ class CodeGenWalker {
    */
   private _extractPostfixOperations(
     postfixOps: readonly TPostfixOpSyntax[],
+    rootOp: TPostfixOpSyntax | null,
   ): IPostfixOperation[] {
     return postfixOps.map((op) => {
       const expressions = op.kind === "subscript" ? op.indexes : [];
       return {
         memberName: op.kind === "member" ? op.name : null,
+        appliesToRoot: op === rootOp,
         indexCount: expressions.length,
         // #1652: the nodes stay closed over HERE, in the walk. What crosses
         // into the render layer is a count and a function returning strings.
@@ -4235,15 +4249,17 @@ class CodeGenWalker {
    */
   private _buildPostfixChainDeps(
     firstId: string,
+    rootParameter: TParameterInfo | undefined,
     hasGlobal: boolean,
     hasThis: boolean,
     rootTypeInfo: TTypeInfo | undefined,
-    at: ISourcePosition,
   ): IPostfixChainDeps {
     // How the root is held: the one answer the read path reads too (#1760
     // review: a local #895 made a pointer took `.`)
+    // #1290 review: the root's parameter is the caller's, bound by the name
+    // as written -- `firstId` is the C name, which ADR-057 may have moved
     const holding = memberAccessChain.rootHolding(
-      this.host.state.parameterAt(firstId, at),
+      rootParameter,
       rootTypeInfo,
       this.host,
     );
@@ -4543,11 +4559,10 @@ class CodeGenWalker {
     }
 
     // ADR-006: Check if it's a function parameter
-    const paramInfo = this.host.state.parameterAt(id, at);
-    if (paramInfo) {
+    const parameter = this.host.state.parameterBindingAt(id, at);
+    if (parameter) {
       return ParameterDereferenceResolver.resolve(
-        id,
-        paramInfo,
+        parameter,
         this._buildParameterDereferenceDeps(),
       );
     }

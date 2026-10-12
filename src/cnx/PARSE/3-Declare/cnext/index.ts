@@ -5,6 +5,7 @@
  * Produces TType-based symbols with proper IScopeSymbol references.
  */
 
+import type IProgramSyntax from "../../../types/syntax/IProgramSyntax";
 import LexicalScopeCollector from "./collectors/LexicalScopeCollector";
 import ModificationCollector from "./collectors/ModificationCollector";
 import CallbackUseCollector from "./collectors/CallbackUseCollector";
@@ -44,6 +45,7 @@ class CNextResolver {
    * Resolve all symbols from a C-Next program parse tree.
    *
    * @param tree The program context from the parser
+   * @param program The same program, lowered (1.2): its statements' children
    * @param sourceFile Source file path
    * @returns `IFileSymbols` -- the symbols this file declares, plus the scope
    *   types it declares. The latter is a per-file fact and travels on the
@@ -51,6 +53,7 @@ class CNextResolver {
    */
   static resolve(
     tree: Parser.ProgramContext,
+    program: IProgramSyntax,
     sourceFile: string,
     registry: SymbolRegistry,
   ): IFileSymbols {
@@ -125,10 +128,10 @@ class CNextResolver {
     // #1825: ADR-006's and ADR-029's per-file halves. Each records what this
     // file spells; resolving a callee and deciding a callback need every file,
     // so 1.4 does both.
-    const modifications = ModificationCollector.collect(tree, (scopeName) =>
+    const modifications = ModificationCollector.collect(program, (scopeName) =>
       registry.scopePathOf(scopeName),
     );
-    const callbackUses = CallbackUseCollector.collect(tree, (scopeName) =>
+    const callbackUses = CallbackUseCollector.collect(program, (scopeName) =>
       registry.scopePathOf(scopeName),
     );
 

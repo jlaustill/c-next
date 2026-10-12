@@ -9,6 +9,7 @@
  * `test-error` fixture stops the analyzer pipeline at the first analyzer that
  * returns errors.
  */
+import ProgramLowering from "../../../PARSE/2-Parse/ProgramLowering";
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { CharStream, CommonTokenStream } from "antlr4ng";
 import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
@@ -36,7 +37,12 @@ function parse(source: string) {
 function analyze(source: string) {
   const tree = parse(source);
   state.symbols = TSymbolInfoAdapter.convert(
-    CNextResolver.resolve(tree, "test.cnx", registry).symbols,
+    CNextResolver.resolve(
+      tree,
+      ProgramLowering.program(tree, null),
+      "test.cnx",
+      registry,
+    ).symbols,
   );
   // `true` is the declining default -- the analyzer stays silent unless the
   // transpiler knows the file's whole name universe. These sources include
@@ -189,7 +195,12 @@ describe("UndeclaredTypeAnalyzer", () => {
       // status quo -- so the analyzer declines rather than guesses.
       const tree = parse(`u32 main() { Nowhere c; return 0; }`);
       state.symbols = TSymbolInfoAdapter.convert(
-        CNextResolver.resolve(tree, "test.cnx", registry).symbols,
+        CNextResolver.resolve(
+          tree,
+          ProgramLowering.program(tree, null),
+          "test.cnx",
+          registry,
+        ).symbols,
       );
       expect(
         new UndeclaredTypeAnalyzer(

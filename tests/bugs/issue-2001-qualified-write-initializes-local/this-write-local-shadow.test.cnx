@@ -1,0 +1,13 @@
+// test-error
+// test-adr: 057
+// #2001: `this.count <- 5` writes the scope member, so the local `count`
+// that shadows it is still uninitialized when it is read
+scope S {
+    u32 count <- 1;
+
+    public u32 f() {
+        u32 count;
+        this.count <- 5;
+        return count;
+    }
+}

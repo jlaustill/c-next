@@ -2,7 +2,10 @@
  * Represents a function parameter symbol
  */
 interface IParameterSymbol {
+  /** The source name, which per-parameter facts are keyed by */
   name: string;
+  /** #1290: the C name the prototype writes, as 1.4 settled it (ADR-057) */
+  emittedName: string;
   type: string; // C-Next type (u32, Configuration, etc.)
   isConst: boolean;
   isArray: boolean;

@@ -2,6 +2,7 @@
  * Tests for TranspileState - centralized code generation state management
  */
 
+import ProgramLowering from "../../../../cnx/PARSE/2-Parse/ProgramLowering";
 import TargetResolver from "../../../TargetResolver";
 import SymbolTable from "../../../../cnx/PARSE/3-Declare/SymbolTable";
 import type IScopeSymbol from "../../../../cnx/types/symbols/IScopeSymbol";
@@ -270,16 +271,24 @@ describe("TranspileState", () => {
         parse(
           `scope A { public enum B { X } public struct S { u8 f; } public bitmap8 Flags { Ready, Mode[3], Reserved[4] } }`,
         ),
+        ProgramLowering.program(
+          parse(
+            `scope A { public enum B { X } public struct S { u8 f; } public bitmap8 Flags { Ready, Mode[3], Reserved[4] } }`,
+          ),
+          null,
+        ),
         "declares.cnx",
         registry,
       );
       const includer = CNextResolver.resolve(
         parse(`u32 x <- 1;`),
+        ProgramLowering.program(parse(`u32 x <- 1;`), null),
         "includer.cnx",
         registry,
       );
       const sibling = CNextResolver.resolve(
         parse(`u32 y <- 1;`),
+        ProgramLowering.program(parse(`u32 y <- 1;`), null),
         "sibling.cnx",
         registry,
       );

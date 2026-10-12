@@ -1,0 +1,75 @@
+// test-adr: 051
+// test-error
+// #1268 review: a float divisor is zero by the rule an integer one is
+// (ADR-051 §4) -- parenthesized, negated, cast, through a const that names
+// another, or computed. Each was accepted and emitted a division by zero.
+// C computes `f32 op f32` in float (FLT_EVAL_METHOD 0), so `0.1f32 + 0.2f32 -
+// 0.3f32` and `1e-30f32 * 1e-30f32` are each 0.0f, written inline or named.
+//
+// NEGATIVE CONTROLS: ONE_F, (f32)1, HALF_F2 (0.5 - 0.25), and
+// `1e-30f32 * 1e-30` (at f64, 1e-60), each nonzero. So are two conversions
+// to f32 that C rounds once and a round through double would round twice
+// onto zero: `1.00000005960464477550f32 - 1.0f32` is 2^-23, and
+// `(f32)(2^60 + 2^36 + 1) - (f32)2^60` is 2^37, whether the integer reaches
+// f32 by a cast, beside an f32 operand, or as a const's value (BIG2_F).
+// Their partners 2^60 + 1, which C rounds to 2^60 each way, are zero.
+// A decimal f32 literal just below a midpoint rounds down even where that
+// midpoint ties up, to 1 + 2^-23 (row z) or to FLT_MAX below 2^128 (row y,
+// and row y3 through the consts BIG and TOP),
+// so each subtraction is zero. Their controls z2 and y2 sit on the midpoint
+// and tie up, to 1 + 2^-22 and to infinity, so neither is zero. At the
+// bottom, 2^-150 exactly (row n) ties to even, to zero; a literal just above
+// it (row p) rounds up to 2^-149, the smallest subnormal, which is not zero.
+
+const f32 FZ <- 0.0;
+const f32 FZ2 <- FZ;
+const f32 FZ3 <- 1.0 - 1.0;
+const f32 FZ4 <- -0.0;
+const f32 ONE_F <- 1.0;
+const f32 HALF_F2 <- 0.5 - 0.25;
+const f32 SUM_F <- 0.1f32 + 0.2f32;
+const f32 ROUNDED_F <- SUM_F - 0.3f32;
+const f32 BIG_F <- 1152921504606846977u64;
+const f32 BIG2_F <- 1152921573326323713u64;
+const f32 BIG <- 340282356779733651637539395458142568448.0f32;
+const f32 TOP <- 340282346638528859811704183484516925440.0f32;
+
+scope Gauge {
+    const f32 FZ <- 0.0;
+
+    public f32 qualified(f32 k) {
+        return k / (this.FZ);
+    }
+}
+
+f32 forms(f32 k) {
+    f32 a <- k / (0.0);
+    f32 b <- k / -0.0;
+    f32 c <- k / (f32)0;
+    f32 d <- k / ((FZ));
+    f32 e <- k / FZ2;
+    f32 f <- k / FZ3;
+    f32 g <- k / FZ4;
+    f32 h <- k / ONE_F;
+    f32 i <- k / (f32)1;
+    f32 j <- k / HALF_F2;
+    f64 l <- k / (0.1f32 + 0.2f32 - 0.3f32);
+    f64 m <- k / (1e-30f32 * 1e-30f32);
+    f64 o <- k / ROUNDED_F;
+    f64 q <- k / (1e-30f32 * 1e-30);
+    f32 r <- k / (1.00000005960464477550f32 - 1.0f32);
+    f32 s <- k / ((f32)1152921573326323713u64 - (f32)1152921504606846976u64);
+    f32 t <- k / ((f32)1152921504606846977u64 - (f32)1152921504606846976u64);
+    f32 u <- k / (1152921504606846977u64 - 1152921504606846976.0f32);
+    f32 v <- k / (1152921573326323713u64 - 1152921504606846976.0f32);
+    f32 w <- k / (BIG_F - 1152921504606846976.0f32);
+    f32 x <- k / (BIG2_F - 1152921504606846976.0f32);
+    f32 y <- k / (340282356779733651637539395458142568448.0f32 - 340282346638528859811704183484516925440.0f32);
+    f32 y2 <- k / (340282356779733661637539395458142568448.0f32 - 340282346638528859811704183484516925440.0f32);
+    f32 y3 <- k / (BIG - TOP);
+    f32 z <- k / (1.00000017881393432617187499f32 - 1.00000011920928955078125f32);
+    f32 z2 <- k / (1.000000178813934326171875f32 - 1.00000011920928955078125f32);
+    f32 n <- k / 7.00649232162408535461864791644958065640130970938257885878534141944895541342930300743319094181060791015625e-46f32;
+    f32 p <- k / 7.006492321624085354618647916449580656401309709382578858785341419448955413429303007433190941810607910156251e-46f32;
+    return a + b + c + d + e + f + g + h + i + j + l + m + o + q + r + s + t + u + v + w + x + y + y2 + y3 + z + z2 + n + p;
+}

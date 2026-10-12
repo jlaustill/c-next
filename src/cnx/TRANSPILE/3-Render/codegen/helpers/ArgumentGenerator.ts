@@ -29,15 +29,15 @@ class ArgumentGenerator {
    * Handle simple identifier argument (parameter, array, pointer, or variable).
    * This is a pure function that only reads from state.
    *
-   * @param id the name as written, which is how parameters are keyed
-   * @param emitted the C name the one binder gives it (#1760 review):
+   * @param emitted the C name the one binder gives the identifier (#1760
+   *   review), a parameter's too (#1290 review: a moved parameter passed
+   *   under the name as written was the global it shadows):
    *   a shadowing local's ADR-057 name, or a scope member's qualified name.
    *   This used to be decided here from `getScopeMembers().has(id)` or the
    *   bare `id`, so a local shadowing a global or a member was passed as the
    *   global or the member, and a scope member array as its bare name.
    */
   static handleIdentifierArg(
-    id: string,
     emitted: string,
     parameter: TParameterInfo | undefined,
     declared: TTypeInfo | undefined,
@@ -46,7 +46,7 @@ class ArgumentGenerator {
     // Parameters are already pointers (#1969: the parameter the name binds to
     // where it is passed, not a block-local that shadows it)
     if (parameter) {
-      return id;
+      return emitted;
     }
 
     // Arrays decay to pointers, local or not, strings included (#1668: the
@@ -224,13 +224,12 @@ class ArgumentGenerator {
   /**
    * Main entry point: Generate a function argument with proper ADR-006 semantics.
    *
-   * @param simpleId - The simple identifier as written, and the C name it binds to
+   * @param simpleId - The C name a simple identifier binds to, and its parameter
    * @param targetParamBaseType - The target parameter's base type
    * @param callbacks - Callbacks to CodeGenerator methods
    */
   static generateArg(
     simpleId: {
-      readonly id: string;
       readonly emitted: string;
       readonly parameter: TParameterInfo | undefined;
     } | null,
@@ -242,7 +241,6 @@ class ArgumentGenerator {
     // Handle simple identifiers
     if (simpleId) {
       return ArgumentGenerator.handleIdentifierArg(
-        simpleId.id,
         simpleId.emitted,
         simpleId.parameter,
         declared,

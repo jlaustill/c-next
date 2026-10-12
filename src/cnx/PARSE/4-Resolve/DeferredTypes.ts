@@ -37,6 +37,7 @@ import type IStructFieldSymbol from "../../types/symbols/IStructFieldSymbol";
 import type IFunctionSymbol from "../../types/symbols/IFunctionSymbol";
 import ScopeUtils from "../../utils/ScopeUtils";
 import TypeResolver from "../../utils/TypeResolver";
+import ScopeFunctions from "./ScopeFunctions";
 
 class DeferredTypes {
   /**
@@ -77,31 +78,10 @@ class DeferredTypes {
     };
 
     const resolved = symbols.map(settleOnce);
-
-    // `IScopeSymbol.functions` is type-bearing, and unlike every other container
-    // here it cannot be REBUILT into agreement: `SymbolRegistry.getOrCreateScope`
-    // caches scopes by path, so the registry holds this very object and a fresh
-    // copy would leave it pointing at the unsettled one. The array is written in
-    // place instead -- the single mutation in a pass that is otherwise a rebuild,
-    // and the justification is the alias, not convenience.
-    //
-    // Only entries THIS file declared are replaced, which is what consulting the
-    // memo (rather than settling afresh) buys: a scope spanned across files
-    // (#1333) holds its siblings' functions too, and settling those here would
-    // overwrite the object their own file already settled -- reintroducing the
-    // divergence one file over.
-    for (const symbol of resolved) {
-      if (symbol.kind !== "scope") {
-        continue;
-      }
-      symbol.functions.forEach((func, index) => {
-        const already = settled.get(func);
-        if (already && already !== func) {
-          symbol.functions[index] = already as IFunctionSymbol;
-        }
-      });
-    }
-
+    // The single mutation in a pass that is otherwise a rebuild; consulting
+    // the memo rather than settling afresh is what limits it to the functions
+    // THIS file declared.
+    ScopeFunctions.adopt(resolved, settled);
     return resolved;
   }
 

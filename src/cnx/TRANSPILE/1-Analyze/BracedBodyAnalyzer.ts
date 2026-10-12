@@ -12,12 +12,14 @@
  * and each of its own bodies is checked here.
  *
  * 1.2's syntax already says whether a body is a block, so this reads it and
- * holds no parse tree.
+ * holds no parse tree; the statements nested in each come from
+ * `StatementChildren` (#2003).
  */
 
 import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
 import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
 import type TStatement from "../../types/syntax/TStatement";
+import StatementChildren from "../../utils/StatementChildren";
 import IBracedBodyError from "./types/IBracedBodyError";
 
 type TBodyKeyword = "if" | "else" | "while" | "for";
@@ -46,40 +48,42 @@ class BracedBodyAnalyzer {
     for (const statement of statements) this.statement(statement);
   }
 
+  /** The statement's own body checks, then every statement nested in it */
   private statement(statement: TStatement): void {
+    this.bodies(statement);
+    this.statements(StatementChildren.of(statement));
+  }
+
+  private bodies(statement: TStatement): void {
     switch (statement.kind) {
       case "if":
         this.body("if", statement.whenTrue);
-        if (statement.whenFalse?.kind === "if") {
-          this.statement(statement.whenFalse);
-        } else if (statement.whenFalse !== null) {
+        // `else if`: the nested `if` checks its own bodies
+        if (statement.whenFalse !== null && statement.whenFalse.kind !== "if") {
           this.body("else", statement.whenFalse);
         }
         return;
       case "while":
-        this.body("while", statement.body);
-        return;
       case "for":
-        this.body("for", statement.body);
+        this.body(statement.kind, statement.body);
         return;
+      // The grammar braces these bodies, or the statement has none
       case "doWhile":
       case "forever":
       case "critical":
-        this.statements(statement.body.statements);
-        return;
       case "switch":
-        for (const switchCase of statement.cases) {
-          this.statements(switchCase.body.statements);
-        }
-        if (statement.defaultCase !== null) {
-          this.statements(statement.defaultCase.body.statements);
-        }
-        return;
       case "block":
-        this.statements(statement.statements);
+      case "variableDeclaration":
+      case "constructorDeclaration":
+      case "assignment":
+      case "expression":
+      case "return":
+      case "missing":
         return;
-      default:
-        return;
+      default: {
+        const unplaced: never = statement;
+        return unplaced;
+      }
     }
   }
 
@@ -95,7 +99,6 @@ class BracedBodyAnalyzer {
         helpText: `Wrap the body in braces: \`${example} { ... }\` (MISRA C:2012 Rule 15.6)`,
       });
     }
-    this.statement(body);
   }
 }
 

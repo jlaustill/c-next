@@ -225,7 +225,7 @@ const generatePostfixExpression = (
 
   for (const op of ops) {
     if (op.kind === "member") {
-      handleMemberOp(op.name, op.step, tracking, postfixCtx);
+      handleMemberOp(op.name, op.step, op.appliesToRoot, tracking, postfixCtx);
     } else if (op.kind === "subscript") {
       const subscriptResult = generateSubscriptAccess(
         {
@@ -304,6 +304,7 @@ const generatePostfixExpression = (
 const handleMemberOp = (
   memberName: string,
   step: IChainStep | null,
+  isRootOp: boolean,
   tracking: ITrackingState,
   ctx: IPostfixContext,
 ): void => {
@@ -339,6 +340,7 @@ const handleMemberOp = (
       result: tracking.result,
       memberName,
       rootIdentifier: ctx.rootIdentifier,
+      isRootOp,
       rootParameter: ctx.rootParameter,
       holding: ctx.holding,
       isGlobalAccess: tracking.isGlobalAccess,
@@ -708,6 +710,13 @@ interface IMemberAccessContext {
   result: string;
   memberName: string;
   rootIdentifier: string | undefined;
+  /**
+   * The member is applied to the chain's root: the op's `appliesToRoot`,
+   * decided once by the chain head as the write path's is (#1994), not by
+   * comparing text -- the rendered root is its C name, which differs from the
+   * name as written once ADR-057 moves it
+   */
+  isRootOp: boolean;
   /** #1969: the parameter the root binds to where it is written */
   rootParameter: TParameterInfo | undefined;
   /** How the root is held (`memberAccessChain.rootHolding`) */
@@ -818,14 +827,13 @@ const tryBitmapFieldAccess = (
 
   // A bitmap parameter's field is worked in its whole value (#1760 second
   // review: `s.C` shifted the pointer `s`)
-  const whole =
-    ctx.result === ctx.rootIdentifier
-      ? memberAccessChain.wholeParamValue(
-          ctx.result,
-          ctx.rootParameter,
-          orchestrator.isCppMode(),
-        )
-      : ctx.result;
+  const whole = ctx.isRootOp
+    ? memberAccessChain.wholeParamValue(
+        ctx.result,
+        ctx.rootParameter,
+        orchestrator.isCppMode(),
+      )
+    : ctx.result;
   const output = initializeMemberOutput(ctx);
   const bitmapResult = BitmapAccessHelper.generate(
     whole,
@@ -931,7 +939,7 @@ const tryStructParamAccess = (
   orchestrator: IOrchestrator,
 ): MemberAccessResult | null => {
   const held = ctx.holding.isStructParam || ctx.holding.isPointerLocal;
-  if (!held || ctx.result !== ctx.rootIdentifier) {
+  if (!held || !ctx.isRootOp) {
     return null;
   }
 

@@ -1,0 +1,19 @@
+// test-error
+// test-adr: 057
+// #2004: `count <- 5` writes the `for` variable, not the scope member it
+// shadows, so the member is never initialized -- the reader after the writer
+u32 flag <- 0;
+
+scope S {
+    u32 count;
+
+    public void set() {
+        for (u32 count <- 0; flag < 3; flag +<- 1) {
+            count <- 5;
+        }
+    }
+
+    public u32 get() {
+        return count;
+    }
+}

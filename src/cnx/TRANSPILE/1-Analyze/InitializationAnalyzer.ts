@@ -6,7 +6,7 @@
  * 1. Linear code tracking
  * 2. Control flow (if/else branches)
  * 3. Loop analysis
- * 4. Scope tracking
+ * 4. Bindings from 1.4 (`IProgram.bindValue`, #2004)
  * 5. Function parameters (always initialized)
  * 7. Per-field struct tracking
  */
@@ -16,13 +16,32 @@ import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import IInitializationError from "./types/IInitializationError";
 import IDeclarationInfo from "./types/IDeclarationInfo";
-import ScopeStack from "./ScopeStack";
 import ExpressionUtils from "../../utils/ExpressionUtils";
 import ParserUtils from "../../utils/ParserUtils";
 import analyzePostfixOps from "../../utils/PostfixAnalysisUtils";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
 import ScopeUtils from "../../utils/ScopeUtils";
+import ChainRoot from "../../utils/ChainRoot";
+import ExpressionShape from "../../utils/ExpressionShape";
+import StatementChildren from "../../utils/StatementChildren";
+import StatementWrites from "../../utils/StatementWrites";
+import LoweredStatements from "../../utils/LoweredStatements";
+import type TExpression from "../../types/syntax/TExpression";
+import invariant from "../../utils/invariant";
+import type ISourcePosition from "../../utils/types/ISourcePosition";
+import type ILocalDeclaration from "../../types/ILocalDeclaration";
+import type TChainRoot from "../../types/TChainRoot";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
+import type TStatement from "../../types/syntax/TStatement";
 import type IAnalysisContext from "./types/IAnalysisContext";
+
+/**
+ * #2004: what initialization state is kept for -- the declaration 1.4 binds a
+ * spelling to: a function-local declaration itself, or a file-scope variable
+ * or scope member by its C name
+ */
+type TInitKey = ILocalDeclaration | string;
 
 /**
  * Tracks the initialization state of a variable
@@ -49,7 +68,7 @@ class InitializationListener extends CNextListener {
   private readonly analyzer: InitializationAnalyzer;
 
   /** Stack of saved states before each if statement */
-  private readonly savedStates: Map<string, IVariableState>[] = [];
+  private readonly savedStates: Map<TInitKey, IVariableState>[] = [];
 
   /** Track when we're inside a function call's argument list */
   private inFunctionCallArgs: number = 0;
@@ -67,43 +86,15 @@ class InitializationListener extends CNextListener {
   // ========================================================================
 
   override enterFunctionDeclaration = (
-    ctx: Parser.FunctionDeclarationContext,
+    _ctx: Parser.FunctionDeclarationContext,
   ): void => {
     this.functionDepth++;
-    this.analyzer.enterScope();
-
-    // Declare parameters as initialized
-    const paramList = ctx.parameterList();
-    if (paramList) {
-      for (const param of paramList.parameter()) {
-        const name = param.IDENTIFIER().getText();
-        const { line, column } = ParserUtils.getPosition(param);
-
-        // Get type name for struct tracking
-        const typeCtx = param.type();
-        let typeName: string | null = null;
-        if (typeCtx.userType()) {
-          typeName = typeCtx.userType()!.IDENTIFIER().getText();
-        }
-
-        this.analyzer.declareParameter(name, line, column, typeName);
-      }
-    }
   };
 
   override exitFunctionDeclaration = (
     _ctx: Parser.FunctionDeclarationContext,
   ): void => {
-    this.analyzer.exitScope();
     this.functionDepth--;
-  };
-
-  override enterBlock = (_ctx: Parser.BlockContext): void => {
-    this.analyzer.enterScope();
-  };
-
-  override exitBlock = (_ctx: Parser.BlockContext): void => {
-    this.analyzer.exitScope();
   };
 
   // ========================================================================
@@ -132,10 +123,17 @@ class InitializationListener extends CNextListener {
     // Check if this is a string type (string<N> or string)
     const isStringType = typeCtx.stringType() !== null;
 
+    // #2004: state is kept for the declaration 1.4 framed, the one a use of
+    // this name binds to
+    const key = this.analyzer.framedDeclaration(ctx.IDENTIFIER().symbol);
+    invariant(
+      key !== null,
+      `1.4 frames every declaration in a function body ('${name}')`,
+    );
+
     this.analyzer.declareVariable(
-      name,
-      line,
-      column,
+      key,
+      { name, line, column },
       hasInitializer,
       typeName,
       isStringType,
@@ -151,25 +149,44 @@ class InitializationListener extends CNextListener {
   ): void => {
     const targetCtx = ctx.assignmentTarget();
     const baseId = targetCtx.IDENTIFIER()?.getText();
-    const postfixOps = targetCtx.postfixTargetOp();
-
     if (!baseId) {
       return;
     }
 
+    // #2004: what 1.4 binds the target to, from the target's own root --
+    // `global.x` is the file-scope variable and `this.x` the scope member,
+    // even where a local of the name shadows it (#2001)
+    const key = this.analyzer.bindingKey(
+      ChainRoot.ofTarget(targetCtx),
+      baseId,
+      ParserUtils.getPosition(targetCtx),
+    );
+    if (key === null) {
+      return;
+    }
+
     // Resolve the assignment target ONCE (single source of truth)
-    const target = this._resolveAssignmentTarget(baseId, postfixOps);
+    const target = this._resolveAssignmentTarget(
+      baseId,
+      targetCtx.postfixTargetOp(),
+    );
 
     // Issue #1012: Compound assignment reads the LHS before writing.
     // Check if the assignment operator is a compound operator (not simple `<-`).
     const isCompoundAssignment = ctx.assignmentOperator().ASSIGN() === null;
     if (isCompoundAssignment) {
       const { line, column } = ParserUtils.getPosition(ctx);
-      this.analyzer.checkRead(target.varName, line, column, target.fieldName);
+      this.analyzer.checkRead(
+        key,
+        target.varName,
+        line,
+        column,
+        target.fieldName,
+      );
     }
 
     // Record the assignment to the resolved target
-    this.analyzer.recordAssignment(target.varName, target.fieldName);
+    this.analyzer.recordAssignment(key, target.fieldName);
   };
 
   /**
@@ -225,8 +242,14 @@ class InitializationListener extends CNextListener {
    */
   private markArgumentsAsInitialized(expr: Parser.ExpressionContext): void {
     const identifier = ExpressionUtils.extractIdentifier(expr);
-    if (identifier) {
-      this.analyzer.recordAssignment(identifier);
+    if (!identifier) return;
+    const key = this.analyzer.bindingKey(
+      null,
+      identifier,
+      ParserUtils.getPosition(expr),
+    );
+    if (key !== null) {
+      this.analyzer.recordAssignment(key);
     }
   }
 
@@ -242,14 +265,16 @@ class InitializationListener extends CNextListener {
 
     const name = ctx.IDENTIFIER()!.getText();
     const { line, column } = ParserUtils.getPosition(ctx);
+    const key = this.analyzer.bindingKey(null, name, { line, column });
+    if (key === null) return;
 
     // Check if this is part of a postfixExpression with member access
     const parent = ctx.parent as Parser.PostfixExpressionContext | undefined;
-    if (this._handlePostfixExpression(parent, name, line, column)) {
+    if (this._handlePostfixExpression(parent, key, name, line, column)) {
       return;
     }
 
-    this.analyzer.checkRead(name, line, column);
+    this.analyzer.checkRead(key, name, line, column);
   };
 
   /**
@@ -264,6 +289,7 @@ class InitializationListener extends CNextListener {
    */
   private _handlePostfixExpression(
     parent: Parser.PostfixExpressionContext | undefined,
+    key: TInitKey,
     name: string,
     line: number,
     column: number,
@@ -275,7 +301,7 @@ class InitializationListener extends CNextListener {
     const ops = parent.postfixOp();
 
     // Check if we should skip for .length on non-string types
-    if (this._shouldSkipLengthCheck(name, ops)) {
+    if (this._shouldSkipLengthCheck(key, ops)) {
       return true;
     }
 
@@ -283,7 +309,7 @@ class InitializationListener extends CNextListener {
     const firstOpText = ops[0].getText();
     if (firstOpText.startsWith(".")) {
       const fieldName = firstOpText.slice(1);
-      this.analyzer.checkRead(name, line, column, fieldName);
+      this.analyzer.checkRead(key, name, line, column, fieldName);
       return true;
     }
 
@@ -295,10 +321,10 @@ class InitializationListener extends CNextListener {
    * on non-string types (compile-time property)
    */
   private _shouldSkipLengthCheck(
-    name: string,
+    key: TInitKey,
     ops: Parser.PostfixOpContext[],
   ): boolean {
-    const varState = this.analyzer.lookupVariableState(name);
+    const varState = this.analyzer.lookupVariableState(key);
     const isStringType = varState?.isStringType ?? false;
 
     if (isStringType) return false;
@@ -326,8 +352,8 @@ class InitializationListener extends CNextListener {
     const stateBefore = this.savedStates.pop();
     if (!stateBefore) return;
 
-    // Check if there's an else clause
-    const hasElse = ctx.ELSE() !== null;
+    // Check if there's an else clause (#2003: the lowered `if` says)
+    const hasElse = this.analyzer.lowered("if", ctx).whenFalse !== null;
 
     if (hasElse) {
       // With else: the tree walker processes both branches in order.
@@ -371,44 +397,47 @@ class InitializationListener extends CNextListener {
   /**
    * Check if a for-loop is deterministic (will definitely run at least once)
    * A loop is deterministic if it has the form: for (var <- 0; var < CONSTANT; ...)
-   * where CONSTANT > 0
+   * where CONSTANT > 0. Its parts are the lowered `for`'s (#2003).
    */
-  private isDeterministicForLoop(ctx: Parser.ForStatementContext): boolean {
-    const init = ctx.forInit();
-    const cond = ctx.expression();
+  private isDeterministicForLoop(
+    loop: Extract<TStatement, { kind: "for" }>,
+  ): boolean {
+    const { init, condition } = loop;
+    if (!init || !condition) return false;
 
-    if (!init || !cond) return false;
+    // The init, a declaration or an assignment, starts at 0
+    const start = init.kind === "assignment" ? init.value : init.initializer;
+    if (!InitializationListener.isLiteral(start, /^0$/)) return false;
 
-    // Check if init is a variable declaration starting at 0
-    const forVarDecl = init.forVarDecl();
-    if (forVarDecl) {
-      const initExpr = forVarDecl.expression();
-      if (!initExpr) return false;
-      const initText = initExpr.getText();
-      if (initText !== "0") return false;
-    } else {
-      // forAssignment case: check if assigning 0
-      const forAssign = init.forAssignment();
-      if (!forAssign) return false;
-      const assignExpr = forAssign.expression();
-      if (!assignExpr) return false;
-      const assignText = assignExpr.getText();
-      if (assignText !== "0") return false;
+    // The condition is var < POSITIVE_CONSTANT
+    if (
+      condition.kind !== "binary" ||
+      condition.operators.length !== 1 ||
+      condition.operators[0] !== "<"
+    ) {
+      return false;
     }
+    const [left, bound] = condition.operands;
+    return (
+      left.kind === "identifier" &&
+      InitializationListener.isLiteral(bound, /^\d+$/) &&
+      Number.parseInt(bound.written, 10) > 0
+    );
+  }
 
-    // Check if condition is var < POSITIVE_CONSTANT
-    const condText = cond.getText();
-    // Match patterns like "i<4" or "ti<3" (no spaces in AST getText())
-    const match = /^\w+<(\d+)$/.exec(condText);
-    if (!match) return false;
-    const bound = Number.parseInt(match[1], 10);
-    return bound > 0;
+  private static isLiteral(
+    expression: TExpression | null,
+    text: RegExp,
+  ): boolean {
+    return expression?.kind === "literal" && text.test(expression.text);
   }
 
   override exitForStatement = (ctx: Parser.ForStatementContext): void => {
     const stateBeforeLoop = this.savedStates.pop();
     if (stateBeforeLoop) {
-      const isDeterministic = this.isDeterministicForLoop(ctx);
+      const isDeterministic = this.isDeterministicForLoop(
+        this.analyzer.lowered("for", ctx),
+      );
       if (isDeterministic) {
         // Deterministic loop - preserve initialization (loop WILL run)
         this.analyzer.mergeInitializationState(stateBeforeLoop);
@@ -429,7 +458,19 @@ class InitializationAnalyzer {
 
   private errors: IInitializationError[] = [];
 
-  private scopeStack: ScopeStack<IVariableState> = new ScopeStack();
+  private states = new Map<TInitKey, IVariableState>();
+
+  /** The program's lowered statements, for the listener's roles (#2003) */
+  private statements: LoweredStatements | null = null;
+
+  /** The lowered `kind` statement a parse node starts (#2003) */
+  public lowered<K extends TStatement["kind"]>(
+    kind: K,
+    ctx: Parameters<typeof ParserUtils.getPosition>[0],
+  ): Extract<TStatement, { kind: K }> {
+    invariant(this.statements !== null, "lowered() read outside analyze()");
+    return this.statements.at(kind, ParserUtils.getPosition(ctx));
+  }
 
   /**
    * C-Next struct fields from current file (collected at analysis time).
@@ -483,11 +524,16 @@ class InitializationAnalyzer {
   /**
    * Analyze a parsed program for initialization errors
    * @param tree The parsed program AST
+   * @param program The same program, lowered (1.2): its statements' children
    * @returns Array of initialization errors
    */
-  public analyze(tree: Parser.ProgramContext): IInitializationError[] {
+  public analyze(
+    tree: Parser.ProgramContext,
+    program: IProgramSyntax,
+  ): IInitializationError[] {
     this.errors = [];
-    this.scopeStack = new ScopeStack();
+    this.states = new Map();
+    this.statements = new LoweredStatements(program);
     // Clear C-Next struct fields from previous analysis (external fields come from CodeGenState)
     this.cnextStructFields = new Map();
 
@@ -495,7 +541,7 @@ class InitializationAnalyzer {
     this.collectStructDefinitions(tree);
 
     // Create global scope with all global/namespace variable declarations
-    this.createGlobalScope(tree);
+    this.createGlobalScope(tree, program);
 
     // Second pass: analyze initialization
     const listener = new InitializationListener(this);
@@ -508,12 +554,13 @@ class InitializationAnalyzer {
    * Create the global scope with all top-level variable declarations
    * Global variables are considered "initialized" (zero-init by ADR-015)
    */
-  private createGlobalScope(tree: Parser.ProgramContext): void {
-    this.enterScope(); // Create global scope
-
+  private createGlobalScope(
+    tree: Parser.ProgramContext,
+    program: IProgramSyntax,
+  ): void {
     for (const decl of tree.declaration()) {
       this._processGlobalVariable(decl);
-      this._processScopeMembers(decl);
+      this._processScopeMembers(decl, program);
     }
   }
 
@@ -529,16 +576,35 @@ class InitializationAnalyzer {
     const typeName = this._extractUserTypeName(varDecl.type());
 
     // Globals are always initialized (zero-init or explicit)
-    this.declareVariable(name, line, column, true, typeName);
+    this.declareVariable(
+      ScopeUtils.getTranspiledCName({ name, scopePath: "" }),
+      { name, line, column },
+      true,
+      typeName,
+    );
   }
 
   /**
    * Process scope member variable declarations (ADR-016)
    * Issue #1019: Scope members require explicit initialization like locals
    */
-  private _processScopeMembers(decl: Parser.DeclarationContext): void {
+  private _processScopeMembers(
+    decl: Parser.DeclarationContext,
+    program: IProgramSyntax,
+  ): void {
     const scopeDecl = decl.scopeDeclaration();
     if (!scopeDecl) return;
+    const { line, column } = ParserUtils.getPosition(scopeDecl);
+    const lowered = program.declarations.find(
+      ({ declaration }) =>
+        declaration.kind === "scope" &&
+        declaration.span.line === line &&
+        declaration.span.column === column,
+    )?.declaration;
+    invariant(
+      lowered?.kind === "scope",
+      `1.2 lowers every scope ('${scopeDecl.IDENTIFIER().getText()}')`,
+    );
 
     // #1298: the whole scope PATH, not its leaf name, so a nested scope keeps
     // its outer components when its members are qualified.
@@ -550,7 +616,7 @@ class InitializationAnalyzer {
     );
 
     // Phase 1: Find all members assigned in any scope function
-    const assignedMembers = this._findAssignedScopeMembers(scopeDecl);
+    const assignedMembers = this._findAssignedScopeMembers(lowered);
 
     // Phase 2: Process each member with assignment info
     for (const member of scopeDecl.scopeMember()) {
@@ -564,136 +630,51 @@ class InitializationAnalyzer {
    * for reads in other functions within the same scope.
    */
   private _findAssignedScopeMembers(
-    scopeDecl: Parser.ScopeDeclarationContext,
-  ): Set<string> {
-    const assigned = new Set<string>();
+    scopeDecl: Extract<TDeclarationSyntax, { kind: "scope" }>,
+  ): Set<TInitKey> {
+    const assigned = new Set<TInitKey>();
 
-    for (const member of scopeDecl.scopeMember()) {
-      const funcDecl = member.functionDeclaration();
-      if (!funcDecl) continue;
-
-      const body = funcDecl.block();
-      if (!body) continue;
-
+    for (const member of scopeDecl.members) {
+      if (member.declaration.kind !== "function") continue;
       // Scan the function body for assignments to scope members
-      this._collectAssignmentsInBlock(body, assigned);
+      this._collectAssignments(member.declaration.body.statements, assigned);
     }
 
     return assigned;
   }
 
   /**
-   * Recursively collect variable names that are assigned in a block.
-   * Looks for assignment statements targeting bare identifiers or this.member.
+   * Recursively collect the members assigned in statements, and in every
+   * statement nested inside them (#2003: `critical` and `forever` included).
    */
-  private _collectAssignmentsInBlock(
-    block: Parser.BlockContext,
-    assigned: Set<string>,
+  private _collectAssignments(
+    statements: readonly TStatement[],
+    assigned: Set<TInitKey>,
   ): void {
-    for (const stmt of block.statement()) {
-      this._collectAssignmentsInStatement(stmt, assigned);
+    for (const statement of statements) {
+      this._collectDirectAssignment(statement, assigned);
+      this._collectAssignments(StatementChildren.of(statement), assigned);
     }
   }
 
   /**
-   * Collect assignments from a single statement, recursing into nested blocks.
-   */
-  private _collectAssignmentsInStatement(
-    stmt: Parser.StatementContext,
-    assigned: Set<string>,
-  ): void {
-    this._collectDirectAssignment(stmt, assigned);
-    this._collectFromControlFlow(stmt, assigned);
-    this._collectFromSwitch(stmt, assigned);
-    this._collectFromBlock(stmt, assigned);
-  }
-
-  /**
-   * Collect assignment from the statement itself (if it's an assignment).
+   * Collect the assignments the statement itself performs: an assignment
+   * statement, or a `for` header's init and update (#2010).
    */
   private _collectDirectAssignment(
-    stmt: Parser.StatementContext,
-    assigned: Set<string>,
+    statement: TStatement,
+    assigned: Set<TInitKey>,
   ): void {
-    const assignStmt = stmt.assignmentStatement();
-    if (!assignStmt) return;
+    for (const { target } of StatementWrites.of(statement)) {
+      const head = ExpressionShape.headOf(target);
+      if (!head.identifier) continue;
 
-    const target = assignStmt.assignmentTarget();
-    if (!target) return;
-
-    // Both bare identifier and this.member use the same IDENTIFIER token
-    const id = target.IDENTIFIER()?.getText();
-    if (id) {
-      assigned.add(id);
-    }
-  }
-
-  /**
-   * Recurse into control flow statements (if, while, do-while, for).
-   */
-  private _collectFromControlFlow(
-    stmt: Parser.StatementContext,
-    assigned: Set<string>,
-  ): void {
-    // if statement
-    const ifStmt = stmt.ifStatement();
-    if (ifStmt) {
-      for (const childStmt of ifStmt.statement()) {
-        this._collectAssignmentsInStatement(childStmt, assigned);
+      // #2004: what 1.4 binds the target to -- a local, parameter or `for`
+      // variable of the name, or `global.x`, is not this scope's member
+      const key = this.bindingKey(head.root, head.identifier.name, target.span);
+      if (key !== null) {
+        assigned.add(key);
       }
-    }
-
-    // while statement
-    const whileBody = stmt.whileStatement()?.statement();
-    if (whileBody) {
-      this._collectAssignmentsInStatement(whileBody, assigned);
-    }
-
-    // do-while statement (Issue #1019 review feedback)
-    const doWhileBody = stmt.doWhileStatement()?.block();
-    if (doWhileBody) {
-      this._collectAssignmentsInBlock(doWhileBody, assigned);
-    }
-
-    // for statement
-    const forBody = stmt.forStatement()?.statement();
-    if (forBody) {
-      this._collectAssignmentsInStatement(forBody, assigned);
-    }
-  }
-
-  /**
-   * Recurse into switch statement cases.
-   */
-  private _collectFromSwitch(
-    stmt: Parser.StatementContext,
-    assigned: Set<string>,
-  ): void {
-    const switchStmt = stmt.switchStatement();
-    if (!switchStmt) return;
-
-    for (const switchCase of switchStmt.switchCase()) {
-      const caseBlock = switchCase.block();
-      if (caseBlock) {
-        this._collectAssignmentsInBlock(caseBlock, assigned);
-      }
-    }
-    const defaultBlock = switchStmt.defaultCase()?.block();
-    if (defaultBlock) {
-      this._collectAssignmentsInBlock(defaultBlock, assigned);
-    }
-  }
-
-  /**
-   * Recurse into standalone block statement.
-   */
-  private _collectFromBlock(
-    stmt: Parser.StatementContext,
-    assigned: Set<string>,
-  ): void {
-    const block = stmt.block();
-    if (block) {
-      this._collectAssignmentsInBlock(block, assigned);
     }
   }
 
@@ -703,7 +684,7 @@ class InitializationAnalyzer {
   private _processScopeMemberVariable(
     member: Parser.ScopeMemberContext,
     scopePath: string,
-    assignedMembers: Set<string>,
+    assignedMembers: Set<TInitKey>,
   ): void {
     const memberVar = member.variableDeclaration();
     if (!memberVar) return;
@@ -716,12 +697,15 @@ class InitializationAnalyzer {
     // Issue #1019: Scope members are initialized if they have an inline
     // initializer OR are assigned in any function within the scope
     const hasInlineInit = memberVar.expression() !== null;
-    const isAssignedInScope = assignedMembers.has(varName);
+    const isAssignedInScope = assignedMembers.has(fullName);
     const hasInitializer = hasInlineInit || isAssignedInScope;
 
-    // Register with both raw name and transpiled C name for scope resolution
-    this.declareVariable(varName, line, column, hasInitializer, typeName);
-    this.declareVariable(fullName, line, column, hasInitializer, typeName);
+    this.declareVariable(
+      fullName,
+      { name: varName, line, column },
+      hasInitializer,
+      typeName,
+    );
   }
 
   /**
@@ -753,21 +737,45 @@ class InitializationAnalyzer {
   }
 
   // ========================================================================
-  // Scope Management (delegated to ScopeStack)
+  // Binding (#2004: 1.4's decision, not this analyzer's)
   // ========================================================================
 
-  /**
-   * Enter a new scope (function, block, etc.)
-   */
-  public enterScope(): void {
-    this.scopeStack.enterScope();
+  /** The declaration 1.4 framed for a declaring identifier, by its span */
+  public framedDeclaration(identifier: {
+    line: number;
+    column: number;
+  }): ILocalDeclaration | null {
+    const frame = this.context.program.lexicalFrameAt(
+      this.context.sourceFile,
+      identifier,
+    );
+    return (
+      frame.declarations.find(
+        (d) =>
+          d.span.line === identifier.line &&
+          d.span.column === identifier.column,
+      ) ?? null
+    );
   }
 
   /**
-   * Exit the current scope
+   * What `IProgram.bindValue` binds a spelling to at a position, as a state
+   * key; null for a name with no state here (a function, a scope, a header's)
    */
-  public exitScope(): void {
-    this.scopeStack.exitScope();
+  public bindingKey(
+    root: TChainRoot,
+    name: string,
+    at: ISourcePosition,
+  ): TInitKey | null {
+    const binding = this.context.program.bindValue(
+      this.context.sourceFile,
+      root,
+      name,
+      at,
+    );
+    if (binding?.kind === "local") return binding.declaration;
+    if (binding?.kind === "variable") return binding.symbol.fullyQualifiedCName;
+    return null;
   }
 
   // ========================================================================
@@ -775,21 +783,17 @@ class InitializationAnalyzer {
   // ========================================================================
 
   /**
-   * Declare a variable (may or may not be initialized)
+   * Start tracking a declaration. A parameter or `for` variable is never
+   * tracked: its caller or its header initializes it, and an untracked key
+   * reads as initialized.
    */
   public declareVariable(
-    name: string,
-    line: number,
-    column: number,
+    key: TInitKey,
+    declaration: IDeclarationInfo,
     hasInitializer: boolean,
     typeName: string | null,
     isStringType: boolean = false,
   ): void {
-    if (!this.scopeStack.hasActiveScope()) {
-      // Global scope - create implicit scope
-      this.enterScope();
-    }
-
     const isStruct = typeName !== null && this.isKnownStruct(typeName);
     const fields = isStruct
       ? this.getStructFields(typeName)!
@@ -799,32 +803,28 @@ class InitializationAnalyzer {
     const isCppClassType = typeName !== null && this.isCppClass(typeName);
     const isInitialized = hasInitializer || isCppClassType;
 
-    const state: IVariableState = {
-      declaration: { name, line, column },
+    this.states.set(key, {
+      declaration,
       initialized: isInitialized,
       typeName,
       isStruct,
       isStringType,
       // If initialized with full struct initializer or C++ class, all fields are initialized
       initializedFields: isInitialized ? new Set(fields) : new Set(),
-    };
-
-    this.scopeStack.declare(name, state);
+    });
   }
 
   /**
    * Record that a variable (or field) has been assigned
-   * SonarCloud S3776: Refactored to use helper methods.
    */
-  public recordAssignment(name: string, field?: string): void {
-    this.scopeStack.update(name, (state) => {
-      if (field) {
-        this.recordFieldAssignment(state, field);
-      } else {
-        this.recordWholeAssignment(state);
-      }
-      return state;
-    });
+  public recordAssignment(key: TInitKey, field?: string): void {
+    const state = this.states.get(key);
+    if (!state) return;
+    if (field) {
+      this.recordFieldAssignment(state, field);
+    } else {
+      this.recordWholeAssignment(state);
+    }
   }
 
   /**
@@ -865,12 +865,13 @@ class InitializationAnalyzer {
    * SonarCloud S3776: Refactored to use helper methods.
    */
   public checkRead(
+    key: TInitKey,
     name: string,
     line: number,
     column: number,
     field?: string,
   ): void {
-    const state = this.scopeStack.lookup(name);
+    const state = this.states.get(key);
 
     if (!state) {
       // Variable not found - let undefined variable handling deal with it
@@ -944,33 +945,37 @@ class InitializationAnalyzer {
    * Public method to look up variable state
    * Issue #196 Bug 2: Used by visitor to check if variable is string type
    */
-  public lookupVariableState(name: string): IVariableState | null {
-    return this.scopeStack.lookup(name);
+  public lookupVariableState(key: TInitKey): IVariableState | null {
+    return this.states.get(key) ?? null;
   }
 
   // ========================================================================
-  // Control Flow (using ScopeStack's clone/restore)
+  // Control Flow
   // ========================================================================
 
   /**
    * Clone the current scope state for branch analysis
    */
-  public cloneScopeState(): Map<string, IVariableState> {
-    return this.scopeStack.cloneState((state) => ({
-      ...state,
-      initializedFields: new Set(state.initializedFields),
-    }));
+  public cloneScopeState(): Map<TInitKey, IVariableState> {
+    return new Map(
+      [...this.states].map(([key, state]) => [
+        key,
+        { ...state, initializedFields: new Set(state.initializedFields) },
+      ]),
+    );
   }
 
   /**
    * Restore initialization state from a saved snapshot
    * Used for control flow analysis to "undo" branch changes
    */
-  public restoreFromState(savedState: Map<string, IVariableState>): void {
-    this.scopeStack.restoreState(savedState, (_current, saved) => ({
-      ...saved,
-      initializedFields: new Set(saved.initializedFields),
-    }));
+  public restoreFromState(savedState: Map<TInitKey, IVariableState>): void {
+    for (const [key, saved] of savedState) {
+      this.states.set(key, {
+        ...saved,
+        initializedFields: new Set(saved.initializedFields),
+      });
+    }
   }
 
   /**
@@ -979,17 +984,14 @@ class InitializationAnalyzer {
    * should be preserved (the loop WILL run at least once)
    */
   public mergeInitializationState(
-    beforeState: Map<string, IVariableState>,
+    beforeState: Map<TInitKey, IVariableState>,
   ): void {
-    // For each variable, keep current init state but merge in any fields
-    // that were initialized before the loop
-    for (const [name, beforeVar] of beforeState) {
-      this.scopeStack.update(name, (currentState) => {
-        for (const field of beforeVar.initializedFields) {
-          currentState.initializedFields.add(field);
-        }
-        return currentState;
-      });
+    for (const [key, beforeVar] of beforeState) {
+      const current = this.states.get(key);
+      if (!current) continue;
+      for (const field of beforeVar.initializedFields) {
+        current.initializedFields.add(field);
+      }
     }
   }
 
@@ -1014,40 +1016,6 @@ class InitializationAnalyzer {
       mayBeUninitialized,
       message: `use of ${certainty}uninitialized variable '${variable}'`,
     });
-  }
-
-  // ========================================================================
-  // Function Parameters
-  // ========================================================================
-
-  /**
-   * Declare function parameters (always initialized by caller)
-   */
-  public declareParameter(
-    name: string,
-    line: number,
-    column: number,
-    typeName: string | null,
-  ): void {
-    if (!this.scopeStack.hasActiveScope()) {
-      this.enterScope();
-    }
-
-    const isStruct = typeName !== null && this.isKnownStruct(typeName);
-    const fields = isStruct
-      ? this.getStructFields(typeName)!
-      : new Set<string>();
-
-    const state: IVariableState = {
-      declaration: { name, line, column },
-      initialized: true, // Parameters are always initialized by caller
-      typeName,
-      isStruct,
-      isStringType: false, // Not tracked for parameters since they're always initialized
-      initializedFields: new Set(fields), // All fields initialized
-    };
-
-    this.scopeStack.declare(name, state);
   }
 }
 

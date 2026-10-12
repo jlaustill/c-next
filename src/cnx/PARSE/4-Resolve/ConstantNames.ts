@@ -3,7 +3,8 @@
  * its chain, from the binder's answer for its head.
  *
  * - a local, or a const declared at file or scope level, is worth its folded
- *   value, typed by its declaration (ADR-044's arithmetic needs the width);
+ *   value, typed by its declaration (ADR-044's arithmetic needs the width) --
+ *   an integer's or a float's, settled once by 1.4 (#1268 review);
  * - a scope's member (`Scope.N`) or an enum's (`EColor.COUNT`, `this.EMode.X`,
  *   `Motor.EMode.X`) is found by C name, as everything is (ADR-063);
  * - a name an included header defines is C's to evaluate;
@@ -45,6 +46,15 @@ interface IWalk {
   readonly at: ISourcePosition;
   readonly facts: IConstantNameFacts;
 }
+
+/** What declares a type; a function too, as its callback type (ADR-029) */
+const TYPE_KINDS: ReadonlySet<string> = new Set([
+  "struct",
+  "enum",
+  "bitmap",
+  "scope",
+  "function",
+]);
 
 class ConstantNames {
   static valueOf(name: TConstName, facts: IConstantNameFacts): TConstResult {
@@ -125,6 +135,23 @@ class ConstantNames {
     return QualifiedCName.fromParts(qualified.split("."));
   }
 
+  /**
+   * Whether a type name that is not a primitive denotes a type where it is
+   * written: a C-Next type this file can see, or -- in a file that reaches a
+   * C or C++ header, which is not parsed for every name -- any name at all.
+   * The same answer E0426 gives (`UndeclaredTypeAnalyzer.knowsEveryName`).
+   */
+  static isTypeName(
+    typeName: string,
+    at: ISourcePosition,
+    facts: IConstantNameFacts,
+  ): boolean {
+    const cName = ConstantNames.cTypeName(typeName, at, facts);
+    const symbol = facts.visibleSymbol(cName);
+    if (symbol === undefined) return facts.reachesForeignHeader;
+    return TYPE_KINDS.has(symbol.kind);
+  }
+
   /** `this.N`, `global.N`, `Scope.N`, `m[].element_count` */
   static spell(name: TConstName): string {
     return [...(name.root === null ? [] : [name.root]), ...name.path]
@@ -184,6 +211,15 @@ class ConstantNames {
         kind: "value",
         value: BigInt(settled.digits),
         typeName: settled.typeName,
+      };
+    }
+    if (settled?.kind === "float") {
+      return {
+        kind: "float",
+        value: Number(settled.digits),
+        typeName: settled.typeName,
+        spelling: walk.spelling,
+        at: walk.at,
       };
     }
     return {

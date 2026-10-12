@@ -1,3 +1,5 @@
+import IFloatLiteralParts from "../types/IFloatLiteralParts";
+
 /**
  * Utility class for analyzing literal values from their written text.
  *
@@ -11,50 +13,12 @@
  * grammar also requires a fraction or an exponent, which `[.eE]` asserts
  * beside it -- in the pattern, that requirement doubled every arm.
  */
-const FLOAT_LITERAL = /^\d+(?:\.\d+)?(?:[eE][+-]?\d+)?(?:[fF](32|64))?$/;
+const FLOAT_LITERAL = /^(\d+)(?:\.(\d+))?(?:[eE]([+-]?\d+))?(?:[fF](32|64))?$/;
 
 /**
  * Static utility methods for literal analysis
  */
 class LiteralUtils {
-  /**
-   * Whether a numeric literal's text is zero, by its VALUE rather than its
-   * spelling -- for a node's text, and for a const's initializer, which
-   * arrives as text from a declaration that may be in another file (#1664
-   * box 7). The spelling test this replaced missed `00`, `0x00`, `0x00u8`
-   * and every suffixed float (`0.0f32`). Anything that is not a numeric
-   * literal (a string, a char, `false`) is not zero.
-   */
-  static isZeroText(text: string): boolean {
-    const trimmed = text.trim();
-    const integer = LiteralUtils.parseIntegerLiteral(
-      trimmed.replace(/[uUiI](?:8|16|32|64)$/, ""),
-    );
-    if (integer !== undefined) return integer === 0;
-    return (
-      LiteralUtils.floatLiteralWidth(trimmed) !== null &&
-      LiteralUtils.isFloatZero(trimmed.replace(/[fF](?:32|64)$/, ""))
-    );
-  }
-
-  /**
-   * Check if a float literal string represents zero.
-   * Issue #1010: Detect float zero for division-by-zero checking.
-   *
-   * Handles: 0.0, .0, 0., 0.0f, 0.0F, 0.0e0, 0.0E0, etc.
-   *
-   * @param text - The float literal text
-   * @returns true if the float is zero
-   */
-  static isFloatZero(text: string): boolean {
-    // Remove optional float suffix (f, F)
-    const withoutSuffix = text.replace(/[fF]$/, "");
-
-    // Parse to number and check if zero
-    const value = Number.parseFloat(withoutSuffix);
-    return value === 0;
-  }
-
   /**
    * The width of a floating literal's type, read from its text: 32 for
    * `2.5f32`, 64 for `2.5f64` and for an unsuffixed `2.5` (a C `double`).
@@ -68,9 +32,24 @@ class LiteralUtils {
    * must match the grammar's FLOAT_LITERAL / SUFFIXED_FLOAT shape as a whole.
    */
   static floatLiteralWidth(text: string): 32 | 64 | null {
+    return LiteralUtils.floatLiteralParts(text)?.width ?? null;
+  }
+
+  /**
+   * A floating literal's parts, read once from its text (#1268 review): the
+   * width above and the digits a value is computed from both come from here.
+   * Null when the text is not a floating literal.
+   */
+  static floatLiteralParts(text: string): IFloatLiteralParts | null {
     const match = FLOAT_LITERAL.exec(text);
     if (!match || !/[.eE]/.test(text)) return null;
-    return match[1] === "32" ? 32 : 64;
+    return {
+      unsuffixed: match[4] === undefined ? text : text.slice(0, -3),
+      whole: match[1],
+      fraction: match[2] ?? "",
+      exponent: Number(match[3] ?? "0"),
+      width: match[4] === "32" ? 32 : 64,
+    };
   }
 
   /**

@@ -68,13 +68,27 @@ class ExpressionShape {
         first?.kind === "member"
           ? { name: first.name, span: first.nameSpan }
           : null;
-      return { primary, root: primary.root, identifier, ops, opsConsumed: 1 };
+      return {
+        primary,
+        root: primary.root,
+        identifier,
+        ops,
+        opsConsumed: 1,
+        rootOp: ops[1] ?? null,
+      };
     }
     const identifier =
       primary.kind === "identifier"
         ? { name: primary.name, span: primary.span }
         : null;
-    return { primary, root: null, identifier, ops, opsConsumed: 0 };
+    return {
+      primary,
+      root: null,
+      identifier,
+      ops,
+      opsConsumed: 0,
+      rootOp: ops[0] ?? null,
+    };
   }
 
   /**

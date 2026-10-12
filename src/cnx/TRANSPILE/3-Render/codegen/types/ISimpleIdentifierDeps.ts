@@ -3,17 +3,14 @@ import type ISourcePosition from "../../../../utils/types/ISourcePosition";
  * Dependencies needed for simple identifier resolution
  */
 
-import TParameterInfo from "../../../../types/TParameterInfo";
+import type IBoundParameter from "../../../types/IBoundParameter";
 
 interface ISimpleIdentifierDeps {
   /** The parameter a name binds to at `at` (#1969) */
-  getParameterInfo(
-    name: string,
-    at: ISourcePosition,
-  ): TParameterInfo | undefined;
+  getParameter(name: string, at: ISourcePosition): IBoundParameter | undefined;
 
-  /** Resolve parameter to its output form */
-  resolveParameter(name: string, paramInfo: TParameterInfo): string;
+  /** Resolve parameter to its output form, under its C name there (#1290) */
+  resolveParameter(parameter: IBoundParameter): string;
 
   /**
    * Resolve bare identifier (local -> scope -> global priority), bound at the

@@ -1,7 +1,8 @@
 // test-error
 // #1863 review: a member a scope does not have sized a struct field `f[0]`,
-// which GNU C accepts -- a silently different layout -- and a computed zero
-// divisor reached render's internal invariant. Each is E0909.
+// which GNU C accepts -- a silently different layout. It is E0909. The
+// computed zero divisor this file also held is E0800 since #1268; it is in
+// dimension-zero-divisor.test.cnx.
 //
 // NEGATIVE CONTROL: `ok`, sized by a member the scope has.
 
@@ -13,7 +14,5 @@ struct T {
     u8[S.NOPE] f;
     u8[S.MAX] ok;
 }
-
-u8[4 / (2 - 2)] g;
 
 void main() {}

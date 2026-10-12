@@ -1,0 +1,27 @@
+// test-c-only
+// test-execution
+// test-target-xfail: host #1147 "implicit declaration of function"
+// #2003: `this.count` written inside `critical` initializes the member
+// (#1019), so a read in a function declared before the writer is not E0381
+scope S {
+    u32 count;
+
+    public u32 get() {
+        return count;
+    }
+
+    public void set() {
+        critical {
+            this.count <- 5;
+        }
+    }
+}
+
+u32 main() {
+    S.set();
+    u32 got <- S.get();
+    if (got != 5) {
+        return 1;
+    }
+    return 0;
+}

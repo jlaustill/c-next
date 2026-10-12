@@ -29,6 +29,7 @@ function makeParam(
   partial: Partial<IParameterSymbol> & { name: string; type: string },
 ): IParameterSymbol {
   return {
+    emittedName: partial.name,
     isConst: false,
     isArray: false,
     ...partial,

@@ -30,6 +30,8 @@ const NO_NAMES: IConstantEnvironment = {
     spelling: name.path.join("."),
     at: name.at,
   }),
+  // A type is a name too: a cast to one waits for 1.4, as a name does
+  isTypeName: () => false,
   // 1.3 only folds what needs no name; writing C for the rest is 1.4's
   cTypeName: (typeName): string => {
     invariant(false, `1.3 writes no constant expression as C: ${typeName}`);

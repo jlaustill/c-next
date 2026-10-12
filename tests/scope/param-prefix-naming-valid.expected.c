@@ -17,7 +17,7 @@
 void calculate(uint32_t value) {
 }
 
-void process(uint32_t process) {
+void process(uint32_t process__process) {
 }
 
 void update(uint32_t upd_value) {

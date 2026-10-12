@@ -242,6 +242,7 @@ describe("TypedefParamParser", () => {
     ): IParameterSymbol {
       return {
         name,
+        emittedName: name,
         type,
         isConst: false,
         isArray: false,

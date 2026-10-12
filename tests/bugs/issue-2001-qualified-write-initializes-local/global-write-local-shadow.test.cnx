@@ -1,0 +1,17 @@
+// test-error
+// test-adr: 057
+// #2001: `global.pt.x <- 5` writes the global, so the local `pt` that
+// shadows it is still uninitialized when it is read
+struct Point {
+    u32 x;
+    u32 y;
+}
+
+Point pt <- { x: 1, y: 2 };
+
+u32 shadowUninit() {
+    Point pt;
+    global.pt.x <- 5;
+    u32 r <- pt.x;
+    return r;
+}

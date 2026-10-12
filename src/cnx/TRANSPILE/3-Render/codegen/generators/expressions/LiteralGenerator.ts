@@ -117,13 +117,10 @@ const generateLiteral = (
   // 3.14f64 -> 3.14 (C double, no suffix needed)
   // #1668: asked of the whole literal, not of its last three characters --
   // the hex integer 0xFF32 ends in `F32` too, and was emitted as 0xFf.
-  const floatWidth = LiteralUtils.floatLiteralWidth(literalText);
-  if (floatWidth !== null) {
-    literalText = literalText.replace(
-      /[fF](32|64)$/,
-      floatWidth === 32 ? "f" : "",
-    );
-    return { code: literalText, effects };
+  const floatParts = LiteralUtils.floatLiteralParts(literalText);
+  if (floatParts !== null) {
+    const suffix = floatParts.width === 32 ? "f" : "";
+    return { code: floatParts.unsuffixed + suffix, effects };
   }
 
   // Issue #130: Transform C-Next integer suffixes to standard C syntax

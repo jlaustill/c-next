@@ -62,6 +62,7 @@ class TreePasses {
           file,
           fileSymbols: CNextResolver.resolve(
             parsed.tree,
+            parsed.program,
             file.path,
             host.registry,
           ),
@@ -152,7 +153,12 @@ class TreePasses {
   ): { symbols: IFileSymbols; parseErrors: readonly ITranspileError[] } {
     const parsed = CNextSourceParser.parse(file.source);
     return {
-      symbols: CNextResolver.resolve(parsed.tree, file.path, registry),
+      symbols: CNextResolver.resolve(
+        parsed.tree,
+        parsed.program,
+        file.path,
+        registry,
+      ),
       parseErrors: parsed.parseErrors,
     };
   }

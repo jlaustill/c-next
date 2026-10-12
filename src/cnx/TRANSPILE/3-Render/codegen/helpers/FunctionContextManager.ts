@@ -24,6 +24,7 @@ import IFunctionContextCallbacks from "../types/IFunctionContextCallbacks";
 import TypedefParamParser from "./TypedefParamParser";
 import SymbolGuards from "../../../../types/symbols/SymbolGuards";
 import invariant from "../../../../utils/invariant";
+import type IParameterInfo from "../../../../types/symbols/IParameterInfo";
 import type IPlannedFunctionParameter from "../types/IPlannedFunctionParameter";
 import type IPlannedType from "../types/IPlannedType";
 import type TranspileState from "../../../TranspileState";
@@ -317,6 +318,34 @@ class FunctionContextManager {
     paramIndex: number,
     state: TranspileState,
   ): boolean {
+    return (
+      FunctionContextManager.settledParameters(state)[paramIndex]
+        ?.isOpaqueHandle === true
+    );
+  }
+
+  /**
+   * #1290: the C name of the current function's parameter at `paramIndex`, as
+   * 1.4 settled it on the function's symbol (ADR-057) -- the stamp the `.h`
+   * prototype reads, and the one every use in the body binds to.
+   */
+  static parameterEmittedName(
+    paramIndex: number,
+    state: TranspileState,
+  ): string {
+    const emittedName =
+      FunctionContextManager.settledParameters(state)[paramIndex]?.emittedName;
+    invariant(
+      emittedName !== undefined && emittedName !== null,
+      `1.4 settled the C name of parameter ${paramIndex} of ${state.currentFunctionName}`,
+    );
+    return emittedName;
+  }
+
+  /** The current function's parameters, as 1.4 settled them */
+  private static settledParameters(
+    state: TranspileState,
+  ): ReadonlyArray<IParameterInfo> {
     const functionName = state.currentFunctionName;
     const symbol =
       functionName === null
@@ -326,7 +355,7 @@ class FunctionContextManager {
       symbol !== undefined && SymbolGuards.isFunction(symbol),
       `a function being generated has a settled symbol (missing ${functionName})`,
     );
-    return symbol.parameters[paramIndex]?.isOpaqueHandle === true;
+    return symbol.parameters;
   }
 
   /**

@@ -14,6 +14,7 @@
 import TYPE_LIMITS from "../types/TYPE_LIMITS";
 import CNEXT_TO_C_TYPE_MAP from "../../../../utils/constants/TypeMappings";
 import invariant from "../../../../utils/invariant";
+import SaturationRule from "../../../../utils/SaturationRule";
 
 class SaturatingCast {
   /**
@@ -44,10 +45,9 @@ class SaturatingCast {
     const finalCast = cast(targetCType, `(${operand})`);
     const castMax = cast(targetCType, maxValue);
     const castMin = cast(targetCType, minValue);
-    // `>=`, not `>` (#1760 review): `(float)UINT32_MAX` rounds up to 2^32,
-    // and under `>` that value reached the raw cast, which is undefined. At an
-    // exactly representable maximum both branches give MAX.
-    return `((${operand}) >= ${maxComparison} ? ${castMax} : (${operand}) < ${minComparison} ? ${castMin} : ${finalCast})`;
+    // Which side of each bound saturates is `SaturationRule`'s, shared with
+    // the compile-time fold
+    return `((${operand}) ${SaturationRule.ABOVE} ${maxComparison} ? ${castMax} : (${operand}) ${SaturationRule.BELOW} ${minComparison} ? ${castMin} : ${finalCast})`;
   }
 
   /**

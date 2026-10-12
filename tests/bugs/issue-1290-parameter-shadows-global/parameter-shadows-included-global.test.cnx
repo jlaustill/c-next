@@ -1,0 +1,21 @@
+// test-execution
+// test-adr: 057
+// #1290 across an include: the shadowed global is declared in an included
+// file, so the parameter's C name must still move for `global.limit` to
+// reach it.
+
+#include "shared-globals.cnx"
+
+scope Gate {
+    public u32 check(u32 limit) {
+        return limit + global.limit;
+    }
+}
+
+u32 main() {
+    u32 r1 <- Gate.check(100);
+    if (r1 != 111) {
+        return 1;
+    }
+    return 0;
+}

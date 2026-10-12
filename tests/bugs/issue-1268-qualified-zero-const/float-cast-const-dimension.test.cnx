@@ -1,0 +1,24 @@
+// test-execution
+// test-adr: 024
+// #1268 review: a const initialized by a float cast is worth the truncated
+// value (ADR-024), so it sizes an array as any integer const does (ADR-044).
+// Main rejected `u8[N]` with E0909 "'N' has no value known at compile time:
+// in its initializer, '2.5' is a floating-point value".
+//
+// CONTROL: M, from `(u32)3.99`, is 3 -- the cast truncates, it does not round.
+
+const u32 N <- (u32)2.5;
+const u32 M <- (u32)3.99;
+
+u8[N] two;
+u8[M] three;
+
+u32 main() {
+    if (two.element_count != 2) {
+        return 1;
+    }
+    if (three.element_count != 3) {
+        return 2;
+    }
+    return 0;
+}

@@ -10,6 +10,10 @@ import type ISourcePosition from "../utils/types/ISourcePosition";
  * - `notConstant`: something in it has no value while the program compiles.
  * - `overflow`: the arithmetic happens at `typeName`, which cannot hold the
  *   result, so at run time the program would clamp or wrap there.
+ * - `float`: a float value, as IEEE arithmetic at `typeName` computes it --
+ *   C's, with `FLT_EVAL_METHOD` 0 (ADR-051 §4). Not an integer constant, so
+ *   `evaluate` reports it as `notConstant` "float"; `fold` and `numberValue`
+ *   see it.
  * - `foreign`: it depends on a name only C knows the value of -- a macro, or
  *   `sizeof` of a type whose size the target decides. C can evaluate it where C
  *   allows (an array dimension); C-Next cannot use it where it needs the value.
@@ -48,9 +52,20 @@ type TConstResult =
       readonly spelling: string;
       readonly at: ISourcePosition | null;
       /** For an `unfolded` const: why its own initializer has no value */
-      readonly because?: Exclude<TConstResult, { readonly kind: "value" }>;
+      readonly because?: Exclude<
+        TConstResult,
+        { readonly kind: "value" | "float" }
+      >;
     }
   | { readonly kind: "overflow"; readonly typeName: string }
+  | {
+      readonly kind: "float";
+      readonly value: number;
+      readonly typeName: "f32" | "f64";
+      /** Where the float comes from, for a message where an integer is needed */
+      readonly spelling: string;
+      readonly at: ISourcePosition | null;
+    }
   | {
       readonly kind: "foreign";
       /** What only C knows, as the source spells it, for a message */

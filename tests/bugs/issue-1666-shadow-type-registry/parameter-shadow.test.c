@@ -12,8 +12,8 @@
 // global's type alone in a later function. This held before the fix too.
 uint32_t x = 0U;
 
-uint32_t first(uint8_t x) {
-    uint32_t v = x;
+uint32_t first(uint8_t first__x) {
+    uint32_t v = first__x;
     return v;
 }
 

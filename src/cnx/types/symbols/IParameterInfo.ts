@@ -8,6 +8,15 @@ interface IParameterInfo {
   /** Parameter name */
   readonly name: string;
 
+  /**
+   * #1290: the C identifier the parameter is emitted under -- its frame's
+   * settled declaration's (`ILocalDeclaration.emittedName`), copied on by 1.4
+   * Resolve, so the `.h` prototype reads the answer the `.c` signature and
+   * every use in the body read. ADR-057: one that shadows a file-scope name is
+   * `<function>__<name>`. Null until 1.4 settles it.
+   */
+  readonly emittedName: string | null;
+
   /** Parameter type */
   readonly type: TType;
 
