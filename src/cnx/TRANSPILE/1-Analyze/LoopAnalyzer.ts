@@ -171,8 +171,9 @@ class LoopListener extends CNextListener {
 
   /**
    * `ctx` as a single comparison of two literal operands -- no `||`/`&&`, no
-   * ternary, no chaining -- or null. Anything involving identifiers, floats or
-   * sub-expressions is left to #1076.
+   * ternary, no chaining -- or null. Anything involving identifiers or floats
+   * is left to #1076, and a constant sub-expression -- `1 + 1 = 2`, or a
+   * bracketed operand such as `(1) < (2)` -- to #1879.
    *
    * A bare bracketed group is judged by what it holds, as E0701 judges it
    * (#1195): `while ((1 = 1))` is the same always-true loop as `while (1 = 1)`.

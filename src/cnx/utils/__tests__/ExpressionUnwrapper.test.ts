@@ -105,10 +105,6 @@ describe("ExpressionUnwrapper", () => {
     });
   });
 
-  // #1445: these two shapes moved here from StringOperationsHelper, which
-  // asked them of the tree before it could ask the type registry anything.
-  // The assertions are its assertions -- including both of its regressions.
-
   describe("bracketedInner", () => {
     /** The relational a condition leaf is: the single one under `source`. */
     const leaf = (source: string): Parser.RelationalExpressionContext =>
@@ -136,7 +132,7 @@ describe("ExpressionUnwrapper", () => {
     // no group at all is declined at the last step whether or not the guard
     // exists, so it would prove nothing about the guard.
     it.each([
-      ["no group", "a"],
+      ["no group (control for the last step)", "a"],
       ["a relational operator", "(a) < b"],
       ["`|` outside the group", "(a > b) | 1"],
       ["`^` outside the group", "(a > b) ^ 1"],

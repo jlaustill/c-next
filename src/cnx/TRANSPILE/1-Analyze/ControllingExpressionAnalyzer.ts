@@ -32,6 +32,7 @@ import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import ExpressionCalls from "../../utils/ExpressionCalls";
 import ExpressionUnwrapper from "../../utils/ExpressionUnwrapper";
+import ExpressionUtils from "../../utils/ExpressionUtils";
 import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
@@ -224,20 +225,67 @@ class ControllingExpressionListener extends CNextListener {
    * name lookup does not.
    */
   private suggestionFor(node: ParserRuleContext, text: string): string {
+    const negatedGroup = this.negatedGroupSuggestion(node);
+    if (negatedGroup) return negatedGroup;
+
     const negated = text.startsWith("!");
     const base = negated ? text.slice(1) : text;
-    if (
-      OperandTyper.isBoolean(
-        OperandTyper.typeOfName(
-          base,
-          ParserUtils.getPosition(node),
-          this.context,
-        ),
-      )
-    ) {
+    if (this.isBoolName(base, node)) {
       return `write it out, e.g. ${base} = ${negated ? "false" : "true"}`;
     }
     return `write it out, e.g. ${text} > 0 or ${text} != 0`;
+  }
+
+  /**
+   * What to write instead of a negated bracketed group, or null when the
+   * operand is not one. `!(n < 5)` is `(n<5) = false` and `!(flag)` is
+   * `flag = false`. Read as a whole, `!(...)` names no declaration, so the
+   * general case offered `!(n<5) > 0` -- which is E0807 on a bool (#1195
+   * review).
+   */
+  private negatedGroupSuggestion(node: ParserRuleContext): string | null {
+    if (!(node instanceof Parser.EqualityExpressionContext)) return null;
+    const relational = node.relationalExpression(0);
+    const unary = relational ? ExpressionUnwrapper.leafUnary(relational) : null;
+    const operand = unary?.unaryExpression();
+    if (unary?.getChild(0)?.getText() !== "!" || !operand) return null;
+    const group = ExpressionUnwrapper.unaryGroup(operand);
+    if (!group) return null;
+
+    if (this.holdsComparison(group)) {
+      return `write it out, e.g. (${group.getText()}) = false`;
+    }
+    const name = ControllingExpressionListener.bareName(group);
+    if (name !== null && this.isBoolName(name, node)) {
+      return `write it out, e.g. ${name} = false`;
+    }
+    return null;
+  }
+
+  /** Whether `expr` passes this rule on its own: every leaf a comparison. */
+  private holdsComparison(expr: Parser.ExpressionContext): boolean {
+    const probe = new ControllingExpressionListener(this.context);
+    probe.check(expr, "if");
+    return probe.errors().length === 0;
+  }
+
+  /** The name an expression is, through any brackets, or null. */
+  private static bareName(expr: Parser.ExpressionContext): string | null {
+    const primary = ExpressionUtils.extractPrimaryExpression(expr);
+    const inner = primary?.expression();
+    if (inner) return ControllingExpressionListener.bareName(inner);
+    return primary?.IDENTIFIER()?.getText() ?? null;
+  }
+
+  /** Whether `name`, where `node` stands, is declared a bool. */
+  private isBoolName(name: string, node: ParserRuleContext): boolean {
+    return OperandTyper.isBoolean(
+      OperandTyper.typeOfName(
+        name,
+        ParserUtils.getPosition(node),
+        this.context,
+      ),
+    );
   }
 }
 

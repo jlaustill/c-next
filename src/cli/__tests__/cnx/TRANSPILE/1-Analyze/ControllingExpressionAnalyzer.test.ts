@@ -43,6 +43,34 @@ describe("ControllingExpressionAnalyzer", () => {
       expect(found.helpText).toContain("flag = false");
     });
 
+    // #1195 review: the general case reads `!(...)` whole, names no
+    // declaration, and offered `!(n<5) > 0` -- which is E0807 on a bool. A
+    // negated bracketed group is written out from what it holds.
+    it.each([
+      ["!(n > 0)", "(n>0) = false"],
+      ["!((n > 0) && (n < 5))", "((n>0)&&(n<5)) = false"],
+      ["!(flag)", "flag = false"],
+      ["!((flag))", "flag = false"],
+    ])("suggests a form that compiles for %s", (condition, suggestion) => {
+      const [found] = errors(inIf(condition));
+      expect(found.code).toBe("E0701");
+      expect(found.helpText).toContain(`e.g. ${suggestion}`);
+    });
+
+    it("offers the bool write-out only under `!`", () => {
+      // `-(flag)` is not a negation; `flag = false` would drop the minus.
+      const [found] = errors(inIf("-(flag)"));
+      expect(found.code).toBe("E0701");
+      expect(found.helpText).not.toContain("flag = false");
+    });
+
+    it("still rejects a negated group that holds neither", () => {
+      // A number under `!` is #1734's question (MISRA 10.1), not this one's.
+      const found = errors(inIf("!(n)"));
+      expect(found).toHaveLength(1);
+      expect(found[0].code).toBe("E0701");
+    });
+
     it("suggests a numeric form for a non-bool", () => {
       const [found] = errors(inIf("n"));
       expect(found.helpText).toContain("n > 0");
@@ -138,6 +166,26 @@ describe("ControllingExpressionAnalyzer", () => {
       const found = errors(withCall("(isValid() = true)"));
       expect(found).toHaveLength(1);
       expect(found[0].code).toBe("E0702");
+    });
+
+    // #1195 review: a call wrapped in its own brackets runs exactly as the
+    // bare call does, so it is a call in the condition however it is spelled
+    // -- on the right of `&&`/`||` too, which is what MISRA 13.5 forbids.
+    it.each([
+      "(isValid()) = true",
+      "n > 0 && (isValid()) = true",
+      "(n > 0) && ((isValid()) = true)",
+      "n < 5 || ((isValid())) != false",
+    ])("rejects the bracketed call in %s", (condition) => {
+      const found = errors(
+        `bool isValid() {\n    return true;\n}\nu32 n <- 1;\nvoid t() {\n    if (${condition}) { }\n}`,
+      );
+      expect(found).toHaveLength(1);
+      expect(found[0].code).toBe("E0702");
+    });
+
+    it("says nothing about brackets that hold no call", () => {
+      expect(errors(inIf("(n + 1) > 0 && (flag = true)"))).toEqual([]);
     });
 
     it("rejects a negated and a double-negated call", () => {

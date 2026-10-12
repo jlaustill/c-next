@@ -129,9 +129,30 @@ class ExpressionUnwrapper {
   static bracketedInner(
     rel: Parser.RelationalExpressionContext,
   ): Parser.ExpressionContext | null {
+    const unary = this.leafUnary(rel);
+    return unary ? this.unaryGroup(unary) : null;
+  }
+
+  /**
+   * The unary a relational is, when it is a single term at every level below
+   * it; otherwise null. A prefix such as `!` is still one unary, so a caller
+   * can look past it (#1195 review: the help for `!(n < 5)`).
+   */
+  static leafUnary(
+    rel: Parser.RelationalExpressionContext,
+  ): Parser.UnaryExpressionContext | null {
     const shift = this.relationalToShift(rel);
-    const unary = shift ? this.shiftToUnary(shift) : null;
-    const postfix = unary?.postfixExpression();
+    return shift ? this.shiftToUnary(shift) : null;
+  }
+
+  /**
+   * What a unary's bare bracketed group holds -- no prefix and no postfix
+   * around it -- or null.
+   */
+  static unaryGroup(
+    unary: Parser.UnaryExpressionContext,
+  ): Parser.ExpressionContext | null {
+    const postfix = unary.postfixExpression();
     if (postfix?.postfixOp().length !== 0) return null;
     return postfix.primaryExpression().expression();
   }

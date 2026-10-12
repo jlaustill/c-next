@@ -280,7 +280,10 @@ that is nothing but one bracketed group is decomposed again, so
 Anything around the group — a prefix such as `!(…)`, a postfix such as `(…)[0]`,
 or an operator outside the brackets — makes it a single operand, judged as
 written. The always-true loop check (E0707) reads a bracketed condition the same
-way, so `while ((1 = 1))` is rejected exactly as `while (1 = 1)` is.
+way, so `while ((1 = 1))` is rejected exactly as `while (1 = 1)` is, and so does
+the no-call rule (E0702): `(isValid()) = true` runs `isValid()` exactly as
+`isValid() = true` does, so it is a call in the condition however it is
+bracketed.
 
 Uniformity is stated here because it is the part most easily lost. A check applied
 to one spelling and not another passes the corpus while leaving the rule with a
