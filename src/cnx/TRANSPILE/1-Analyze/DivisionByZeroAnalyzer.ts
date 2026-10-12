@@ -14,16 +14,15 @@ import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
 import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
 import type TExpression from "../../types/syntax/TExpression";
 import type TStatement from "../../types/syntax/TStatement";
+import type TBinaryExpression from "../../types/syntax/TBinaryExpression";
 import DeclarationParts from "../../utils/DeclarationParts";
 import ExpressionNodes from "../../utils/ExpressionNodes";
-import StatementChildren from "../../utils/StatementChildren";
+import StatementNodes from "../../utils/StatementNodes";
 import IDivisionByZeroError from "./types/IDivisionByZeroError";
 import OperandTyper from "../../utils/OperandTyper";
 import ConstantFold from "../../utils/ConstantFold";
 import ConstExprLowering from "../../utils/ConstExprLowering";
 import type IAnalysisContext from "./types/IAnalysisContext";
-
-type TBinary = Extract<TExpression, { readonly kind: "binary" }>;
 
 /** #1991: reads 1.2's syntax, not the parse tree */
 class DivisionByZeroAnalyzer {
@@ -60,7 +59,7 @@ class DivisionByZeroAnalyzer {
     }
   }
 
-  private check(expr: TBinary, atRunTime: boolean): void {
+  private check(expr: TBinaryExpression, atRunTime: boolean): void {
     expr.operators.forEach((operator, i) => {
       if (operator !== "/" && operator !== "%") return;
       const divisor = expr.operands[i + 1];
@@ -100,9 +99,9 @@ class DivisionByZeroAnalyzer {
     statements: readonly TStatement[],
   ): readonly TExpression[] {
     const compileTime = new Set(
-      statements
-        .flatMap(DivisionByZeroAnalyzer.allStatements)
-        .flatMap(DivisionByZeroAnalyzer.compileTimeRoots),
+      StatementNodes.of(statements).flatMap(
+        DivisionByZeroAnalyzer.compileTimeRoots,
+      ),
     );
     return DeclarationParts.statements(statements).flatMap((part) =>
       part.kind === "expression" && !compileTime.has(part.expression)
@@ -111,24 +110,10 @@ class DivisionByZeroAnalyzer {
     );
   }
 
-  private static allStatements(statement: TStatement): readonly TStatement[] {
-    return [
-      statement,
-      ...StatementChildren.of(statement).flatMap(
-        DivisionByZeroAnalyzer.allStatements,
-      ),
-    ];
-  }
-
   /** A local's dimensions, and a const local's value */
   private static compileTimeRoots(
     statement: TStatement,
   ): readonly TExpression[] {
-    if (statement.kind === "for") {
-      return statement.init === null
-        ? []
-        : DivisionByZeroAnalyzer.compileTimeRoots(statement.init);
-    }
     if (statement.kind !== "variableDeclaration") return [];
     return [
       ...statement.dimensions.filter((d): d is TExpression => d !== null),

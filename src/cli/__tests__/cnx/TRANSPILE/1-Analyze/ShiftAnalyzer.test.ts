@@ -23,11 +23,11 @@ describe("ShiftAnalyzer", () => {
           i8 result <- x << 2;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code, {
+      const { syntax, context } = testAnalysisContextFor(code, {
         cppMode: false,
       });
       const analyzer = new ShiftAnalyzer(context);
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(syntax);
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0805");
@@ -42,11 +42,11 @@ describe("ShiftAnalyzer", () => {
           i16 result <- x << 3;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code, {
+      const { syntax, context } = testAnalysisContextFor(code, {
         cppMode: false,
       });
       const analyzer = new ShiftAnalyzer(context);
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(syntax);
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0805");
@@ -59,11 +59,11 @@ describe("ShiftAnalyzer", () => {
           i32 result <- x << 4;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code, {
+      const { syntax, context } = testAnalysisContextFor(code, {
         cppMode: false,
       });
       const analyzer = new ShiftAnalyzer(context);
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(syntax);
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0805");
@@ -76,11 +76,11 @@ describe("ShiftAnalyzer", () => {
           i64 result <- x << 5;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code, {
+      const { syntax, context } = testAnalysisContextFor(code, {
         cppMode: false,
       });
       const analyzer = new ShiftAnalyzer(context);
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(syntax);
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0805");
@@ -99,11 +99,11 @@ describe("ShiftAnalyzer", () => {
           i8 result <- x >> 2;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code, {
+      const { syntax, context } = testAnalysisContextFor(code, {
         cppMode: false,
       });
       const analyzer = new ShiftAnalyzer(context);
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(syntax);
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0805");
@@ -117,11 +117,11 @@ describe("ShiftAnalyzer", () => {
           i32 result <- x >> 4;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code, {
+      const { syntax, context } = testAnalysisContextFor(code, {
         cppMode: false,
       });
       const analyzer = new ShiftAnalyzer(context);
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(syntax);
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0805");
@@ -139,11 +139,11 @@ describe("ShiftAnalyzer", () => {
           i32 result <- value << 2;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code, {
+      const { syntax, context } = testAnalysisContextFor(code, {
         cppMode: false,
       });
       const analyzer = new ShiftAnalyzer(context);
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(syntax);
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0805");
@@ -155,11 +155,11 @@ describe("ShiftAnalyzer", () => {
           i64 result <- value >> 3;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code, {
+      const { syntax, context } = testAnalysisContextFor(code, {
         cppMode: false,
       });
       const analyzer = new ShiftAnalyzer(context);
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(syntax);
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0805");
@@ -179,11 +179,11 @@ describe("ShiftAnalyzer", () => {
           }
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code, {
+      const { syntax, context } = testAnalysisContextFor(code, {
         cppMode: false,
       });
       const analyzer = new ShiftAnalyzer(context);
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(syntax);
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0805");
@@ -202,11 +202,11 @@ describe("ShiftAnalyzer", () => {
           u8 result <- x << 2;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code, {
+      const { syntax, context } = testAnalysisContextFor(code, {
         cppMode: false,
       });
       const analyzer = new ShiftAnalyzer(context);
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(syntax);
 
       expect(errors).toHaveLength(0);
     });
@@ -218,11 +218,11 @@ describe("ShiftAnalyzer", () => {
           u16 result <- x >> 3;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code, {
+      const { syntax, context } = testAnalysisContextFor(code, {
         cppMode: false,
       });
       const analyzer = new ShiftAnalyzer(context);
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(syntax);
 
       expect(errors).toHaveLength(0);
     });
@@ -234,11 +234,11 @@ describe("ShiftAnalyzer", () => {
           u32 result <- x << 4;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code, {
+      const { syntax, context } = testAnalysisContextFor(code, {
         cppMode: false,
       });
       const analyzer = new ShiftAnalyzer(context);
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(syntax);
 
       expect(errors).toHaveLength(0);
     });
@@ -250,11 +250,11 @@ describe("ShiftAnalyzer", () => {
           u64 result <- x >> 5;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code, {
+      const { syntax, context } = testAnalysisContextFor(code, {
         cppMode: false,
       });
       const analyzer = new ShiftAnalyzer(context);
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(syntax);
 
       expect(errors).toHaveLength(0);
     });
@@ -265,11 +265,11 @@ describe("ShiftAnalyzer", () => {
           u32 result <- 1 << 3;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code, {
+      const { syntax, context } = testAnalysisContextFor(code, {
         cppMode: false,
       });
       const analyzer = new ShiftAnalyzer(context);
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(syntax);
 
       expect(errors).toHaveLength(0);
     });
@@ -286,11 +286,11 @@ describe("ShiftAnalyzer", () => {
           i32 result <- -5 << 2;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code, {
+      const { syntax, context } = testAnalysisContextFor(code, {
         cppMode: false,
       });
       const analyzer = new ShiftAnalyzer(context);
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(syntax);
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0805");
@@ -309,11 +309,11 @@ describe("ShiftAnalyzer", () => {
           i32 result <- x << 2;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code, {
+      const { syntax, context } = testAnalysisContextFor(code, {
         cppMode: false,
       });
       const analyzer = new ShiftAnalyzer(context);
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(syntax);
 
       expect(errors[0].helpText).toContain("undefined");
       expect(errors[0].helpText).toContain("unsigned types");
@@ -324,11 +324,11 @@ describe("ShiftAnalyzer", () => {
   i32 x <- 5;
   i32 result <- x << 2;
 }`;
-      const { tree, context } = testAnalysisContextFor(code, {
+      const { syntax, context } = testAnalysisContextFor(code, {
         cppMode: false,
       });
       const analyzer = new ShiftAnalyzer(context);
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(syntax);
 
       expect(errors[0].line).toBe(3);
     });
@@ -348,11 +348,11 @@ describe("ShiftAnalyzer", () => {
           i64 d <- c >> 3;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code, {
+      const { syntax, context } = testAnalysisContextFor(code, {
         cppMode: false,
       });
       const analyzer = new ShiftAnalyzer(context);
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(syntax);
 
       expect(errors).toHaveLength(2);
     });
@@ -365,11 +365,11 @@ describe("ShiftAnalyzer", () => {
   describe("edge cases", () => {
     it("should handle empty program", () => {
       const code = ``;
-      const { tree, context } = testAnalysisContextFor(code, {
+      const { syntax, context } = testAnalysisContextFor(code, {
         cppMode: false,
       });
       const analyzer = new ShiftAnalyzer(context);
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(syntax);
 
       expect(errors).toHaveLength(0);
     });
@@ -381,11 +381,11 @@ describe("ShiftAnalyzer", () => {
           i32 y <- 10 - 2;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code, {
+      const { syntax, context } = testAnalysisContextFor(code, {
         cppMode: false,
       });
       const analyzer = new ShiftAnalyzer(context);
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(syntax);
 
       expect(errors).toHaveLength(0);
     });
@@ -400,11 +400,11 @@ describe("ShiftAnalyzer", () => {
           i32 e <- a ^ b;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code, {
+      const { syntax, context } = testAnalysisContextFor(code, {
         cppMode: false,
       });
       const analyzer = new ShiftAnalyzer(context);
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(syntax);
 
       expect(errors).toHaveLength(0);
     });
@@ -422,11 +422,11 @@ describe("ShiftAnalyzer", () => {
           i32 result <- (x) << 2;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code, {
+      const { syntax, context } = testAnalysisContextFor(code, {
         cppMode: false,
       });
       const analyzer = new ShiftAnalyzer(context);
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(syntax);
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0805");
@@ -439,11 +439,11 @@ describe("ShiftAnalyzer", () => {
           u32 result <- (x) << 2;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code, {
+      const { syntax, context } = testAnalysisContextFor(code, {
         cppMode: false,
       });
       const analyzer = new ShiftAnalyzer(context);
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(syntax);
 
       expect(errors).toHaveLength(0);
     });
@@ -461,11 +461,11 @@ describe("ShiftAnalyzer", () => {
           x <<<- 2;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code, {
+      const { syntax, context } = testAnalysisContextFor(code, {
         cppMode: false,
       });
       const analyzer = new ShiftAnalyzer(context);
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(syntax);
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0805");
@@ -480,11 +480,11 @@ describe("ShiftAnalyzer", () => {
           x >><- 2;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code, {
+      const { syntax, context } = testAnalysisContextFor(code, {
         cppMode: false,
       });
       const analyzer = new ShiftAnalyzer(context);
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(syntax);
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0805");
@@ -498,11 +498,11 @@ describe("ShiftAnalyzer", () => {
           x <<<- 4;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code, {
+      const { syntax, context } = testAnalysisContextFor(code, {
         cppMode: false,
       });
       const analyzer = new ShiftAnalyzer(context);
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(syntax);
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0805");
@@ -515,11 +515,11 @@ describe("ShiftAnalyzer", () => {
           x <<<- 8;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code, {
+      const { syntax, context } = testAnalysisContextFor(code, {
         cppMode: false,
       });
       const analyzer = new ShiftAnalyzer(context);
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(syntax);
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0805");
@@ -532,11 +532,11 @@ describe("ShiftAnalyzer", () => {
           x <<<- 16;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code, {
+      const { syntax, context } = testAnalysisContextFor(code, {
         cppMode: false,
       });
       const analyzer = new ShiftAnalyzer(context);
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(syntax);
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0805");
@@ -549,11 +549,11 @@ describe("ShiftAnalyzer", () => {
           x <<<- 2;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code, {
+      const { syntax, context } = testAnalysisContextFor(code, {
         cppMode: false,
       });
       const analyzer = new ShiftAnalyzer(context);
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(syntax);
 
       expect(errors).toHaveLength(0);
     });
@@ -565,11 +565,11 @@ describe("ShiftAnalyzer", () => {
           x >><- 4;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code, {
+      const { syntax, context } = testAnalysisContextFor(code, {
         cppMode: false,
       });
       const analyzer = new ShiftAnalyzer(context);
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(syntax);
 
       expect(errors).toHaveLength(0);
     });
@@ -583,11 +583,11 @@ describe("ShiftAnalyzer", () => {
           b >><- 3;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code, {
+      const { syntax, context } = testAnalysisContextFor(code, {
         cppMode: false,
       });
       const analyzer = new ShiftAnalyzer(context);
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(syntax);
 
       expect(errors).toHaveLength(2);
       expect(errors[0].message).toContain("<<<-");
@@ -608,11 +608,11 @@ describe("ShiftAnalyzer", () => {
           x ^<- 0xAA;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code, {
+      const { syntax, context } = testAnalysisContextFor(code, {
         cppMode: false,
       });
       const analyzer = new ShiftAnalyzer(context);
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(syntax);
 
       expect(errors).toHaveLength(0);
     });
@@ -636,10 +636,10 @@ describe("ShiftAnalyzer", () => {
           d.val <<<- 2;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code, {
+      const { syntax, context } = testAnalysisContextFor(code, {
         cppMode: false,
       });
-      const errors = new ShiftAnalyzer(context).analyze(tree);
+      const errors = new ShiftAnalyzer(context).analyze(syntax);
       expect(errors.map((e) => [e.code, e.line])).toEqual([["E0805", 5]]);
     });
 
@@ -651,11 +651,11 @@ describe("ShiftAnalyzer", () => {
           d.val <<<- 2;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code, {
+      const { syntax, context } = testAnalysisContextFor(code, {
         cppMode: false,
       });
       const analyzer = new ShiftAnalyzer(context);
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(syntax);
 
       expect(errors).toHaveLength(0);
     });
@@ -669,11 +669,11 @@ describe("ShiftAnalyzer", () => {
           x <<<- 2;
         }
       `;
-      const { tree, context } = testAnalysisContextFor(code, {
+      const { syntax, context } = testAnalysisContextFor(code, {
         cppMode: false,
       });
       const analyzer = new ShiftAnalyzer(context);
-      const errors = analyzer.analyze(tree);
+      const errors = analyzer.analyze(syntax);
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0805");
@@ -684,8 +684,10 @@ describe("ShiftAnalyzer", () => {
 
 describe("ShiftAnalyzer -- E0873 shift amount (MISRA C:2012 Rule 12.2)", () => {
   const errors = (code: string) => {
-    const { tree, context } = testAnalysisContextFor(code, { cppMode: false });
-    return new ShiftAnalyzer(context).analyze(tree);
+    const { syntax, context } = testAnalysisContextFor(code, {
+      cppMode: false,
+    });
+    return new ShiftAnalyzer(context).analyze(syntax);
   };
   const inMain = (body: string) => `void main() {\n    u8 a <- 1;\n${body}\n}`;
 
@@ -795,11 +797,11 @@ describe("ShiftAnalyzer -- E0873 shift amount (MISRA C:2012 Rule 12.2)", () => {
 // #1668: every operand typed by the one operand typer
 describe("ShiftAnalyzer -- operands typed by the one operand typer", () => {
   function analyze(source: string, symbolTable?: SymbolTable) {
-    const { tree, context } = testAnalysisContextFor(source, {
+    const { syntax, context } = testAnalysisContextFor(source, {
       cppMode: false,
       symbolTable,
     });
-    return new ShiftAnalyzer(context).analyze(tree);
+    return new ShiftAnalyzer(context).analyze(syntax);
   }
 
   it.each([
@@ -845,5 +847,39 @@ describe("ShiftAnalyzer -- operands typed by the one operand typer", () => {
       symbolTable,
     );
     expect(errors.map((e) => e.code)).toEqual(["E0805", "E0873"]);
+  });
+});
+
+// #1991: read off 1.2's syntax, so where each report lands and which
+// assignment sites are reached are asserted directly.
+describe("ShiftAnalyzer -- positions and for headers", () => {
+  const errors = (body: string) => {
+    const { syntax, context } = testAnalysisContextFor(
+      `void main() {\n${body}\n}`,
+      { cppMode: false },
+    );
+    return new ShiftAnalyzer(context).analyze(syntax);
+  };
+  const where = (body: string) =>
+    errors(body).map((e) => [e.code, e.line, e.column]);
+
+  it("reports a signed operand where it starts", () => {
+    expect(where("    i8 x <- 5;\n    i8 r <- x << 2;")).toEqual([
+      ["E0805", 3, 12],
+    ]);
+  });
+
+  it("reports a signed compound target where it starts", () => {
+    expect(where("    i8 y <- 1;\n    y <<<- 2;")).toEqual([["E0805", 3, 4]]);
+  });
+
+  it("checks a for loop's update, and quotes it as written", () => {
+    const found = errors(
+      "    u8 a <- 1;\n    for (u8 i <- 0; i < 3; a <<<- 9) { }",
+    );
+    expect(found.map((e) => [e.code, e.line, e.column])).toEqual([
+      ["E0873", 3, 34],
+    ]);
+    expect(found[0].message).toContain("(expression: a <<<- 9)");
   });
 });

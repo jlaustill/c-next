@@ -286,7 +286,7 @@ function runAnalyzers(
     {
       label:
         "shift operands and amounts (MISRA C:2012 Rules 10.1 and 12.2, E0805/E0873)",
-      run: () => new ShiftAnalyzer(context).analyze(tree),
+      run: () => new ShiftAnalyzer(context).analyze(parsed.program),
     },
     {
       // Before the Rule 10.4 check, so a bool in an arithmetic expression is

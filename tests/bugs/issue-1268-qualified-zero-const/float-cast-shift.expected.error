@@ -1,2 +1,2 @@
-12:17 error[E0873]: Shift amount (40) exceeds type width (32 bits) for type 'u32' (expression: n<<(u32)40.5)
+12:17 error[E0873]: Shift amount (40) exceeds type width (32 bits) for type 'u32' (expression: n << (u32)40.5)
        help: Shift amount must be < 32 for 32-bit types; shifting by the width or more is undefined behavior (MISRA C:2012 Rule 12.2).

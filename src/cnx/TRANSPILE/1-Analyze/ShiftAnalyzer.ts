@@ -27,17 +27,17 @@
  * site is checked, `for` headers included (#1726).
  */
 
-import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
-import { ParseTreeWalker, ParserRuleContext } from "antlr4ng";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import IShiftError from "./types/IShiftError";
-import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
-import BinaryOperatorLevelListener from "./BinaryOperatorLevelListener";
-import AssignmentSiteListener from "./AssignmentSiteListener";
+import DeclarationParts from "../../utils/DeclarationParts";
+import ExpressionNodes from "../../utils/ExpressionNodes";
+import StatementNodes from "../../utils/StatementNodes";
 import type IAnalysisContext from "./types/IAnalysisContext";
-import type TAssignmentSite from "../../types/TAssignmentSite";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
+import type TExpression from "../../types/syntax/TExpression";
+import type TBinaryExpression from "../../types/syntax/TBinaryExpression";
 import type IOperandType from "../../types/IOperandType";
 
 class ShiftCheck {
@@ -47,17 +47,14 @@ class ShiftCheck {
   ) {}
 
   /** Each `<<` / `>>` of one shift level, between adjacent operands */
-  public checkLevel(operands: ParserRuleContext[]): void {
-    const parent = operands[0]?.parent;
-    if (!parent) return;
-    for (let i = 0; i < operands.length - 1; i += 1) {
-      const operator = parent.getChild(i * 2 + 1)?.getText() ?? "";
+  public checkLevel(level: TBinaryExpression): void {
+    for (let i = 0; i < level.operators.length; i += 1) {
+      const operator = level.operators[i];
       if (operator !== "<<" && operator !== ">>") continue;
 
-      const left = operands[i];
+      const left = level.operands[i];
       if (this.isSigned(left)) {
-        const { line, column } = ParserUtils.getPosition(left);
-        this.analyzer.addError(line, column, operator);
+        this.analyzer.addError(left.span.line, left.span.column, operator);
         continue;
       }
 
@@ -68,8 +65,8 @@ class ShiftCheck {
       // `cnx_clamp_add_u32(a, b)`)
       this.checkAmount(
         ShiftCheck.shiftedType(left, this.context),
-        operands[i + 1],
-        parent,
+        level.operands[i + 1],
+        level.written,
       );
     }
   }
@@ -79,22 +76,19 @@ class ShiftCheck {
    * checked against the target's width, which codegen never did -- `a <<<- 9`
    * on a u8 emitted `a = (uint8_t)(a << 9U)` at exit 0.
    */
-  public checkAssignment(site: TAssignmentSite): void {
-    const operator = site.assignmentOperator();
-    const left = operator.LSHIFT_ASSIGN() !== null;
-    if (!left && operator.RSHIFT_ASSIGN() === null) return;
+  public checkAssignment(site: IAssignmentSyntax): void {
+    if (site.operator !== "<<<-" && site.operator !== ">><-") return;
 
-    const target = site.assignmentTarget();
-    const targetType = OperandTyper.typeOfTarget(
-      SyntaxLowering.assignmentTarget(target),
-      this.context,
-    );
+    const targetType = OperandTyper.typeOfTarget(site.target, this.context);
     if (targetType?.category === "signed") {
-      const { line, column } = ParserUtils.getPosition(target);
-      this.analyzer.addError(line, column, left ? "<<<-" : ">><-");
+      this.analyzer.addError(
+        site.target.span.line,
+        site.target.span.column,
+        site.operator,
+      );
       return;
     }
-    this.checkAmount(targetType, site.expression(), site);
+    this.checkAmount(targetType, site.value, site.written);
   }
 
   /**
@@ -102,10 +96,10 @@ class ShiftCheck {
    * typer settled it, or the operand's own type.
    */
   private static shiftedType(
-    left: ParserRuleContext,
+    left: TExpression,
     context: IAnalysisContext,
   ): IOperandType | null {
-    const t = OperandTyper.typeOf(SyntaxLowering.expressionNode(left), context);
+    const t = OperandTyper.typeOf(left, context);
     if (t?.form.kind !== "composite") return t;
     if (t.typeName === null || t.bitWidth === null) return null;
     return {
@@ -115,11 +109,8 @@ class ShiftCheck {
   }
 
   /** Any value leaf signed, or a negated literal */
-  private isSigned(operand: ParserRuleContext): boolean {
-    return OperandTyper.valueLeaves(
-      SyntaxLowering.expressionNode(operand),
-      this.context,
-    ).some(
+  private isSigned(operand: TExpression): boolean {
+    return OperandTyper.valueLeaves(operand, this.context).some(
       (leaf) =>
         leaf !== null &&
         (leaf.category === "signed" ||
@@ -135,8 +126,8 @@ class ShiftCheck {
    */
   private checkAmount(
     shifted: IOperandType | null,
-    amountExpr: ParserRuleContext,
-    at: ParserRuleContext,
+    amountExpr: TExpression,
+    written: string,
   ): void {
     if (shifted === null) return;
     if (shifted.form.kind === "bitIndex" || shifted.form.kind === "bitRange") {
@@ -147,17 +138,15 @@ class ShiftCheck {
     const width = shifted.bitWidth;
     if (!integer || width === null || shifted.dimensions.length > 0) return;
     const leftType = shifted.typeName ?? shifted.category;
-    const amount = OperandTyper.constantOf(
-      SyntaxLowering.expressionNode(amountExpr),
-      this.context,
-    );
+    const amount = OperandTyper.constantOf(amountExpr, this.context);
     if (amount === null) return;
-    const { line, column } = ParserUtils.getPosition(amountExpr);
+    const line = amountExpr.span.line;
+    const column = amountExpr.span.column;
     if (amount < 0) {
       this.analyzer.addAmountError(
         line,
         column,
-        `Negative shift amount (${amount}) is undefined behavior (type: ${leftType}, expression: ${at.getText()})`,
+        `Negative shift amount (${amount}) is undefined behavior (type: ${leftType}, expression: ${written})`,
         "Shift amounts must be non-negative (MISRA C:2012 Rule 12.2).",
       );
       return;
@@ -166,7 +155,7 @@ class ShiftCheck {
       this.analyzer.addAmountError(
         line,
         column,
-        `Shift amount (${amount}) exceeds type width (${width} bits) for type '${leftType}' (expression: ${at.getText()})`,
+        `Shift amount (${amount}) exceeds type width (${width} bits) for type '${leftType}' (expression: ${written})`,
         `Shift amount must be < ${width} for ${width}-bit types; shifting by the width or more is undefined behavior (MISRA C:2012 Rule 12.2).`,
       );
     }
@@ -184,25 +173,26 @@ class ShiftAnalyzer {
   // eslint-disable-next-line @typescript-eslint/lines-between-class-members
   constructor(private readonly context: IAnalysisContext) {}
 
-  /**
-   * Analyze the parse tree for shift operations
-   */
-  public analyze(tree: Parser.ProgramContext): IShiftError[] {
+  /** #1991: reads 1.2's syntax, not the parse tree */
+  public analyze(program: IProgramSyntax): IShiftError[] {
     this.errors = [];
     const check = new ShiftCheck(this, this.context);
 
-    ParseTreeWalker.DEFAULT.walk(
-      new BinaryOperatorLevelListener((operands, level) => {
-        if (level === "shift") check.checkLevel(operands);
-      }),
-      tree,
-    );
-    ParseTreeWalker.DEFAULT.walk(
-      new AssignmentSiteListener((site) => check.checkAssignment(site)),
-      tree,
-    );
+    for (const member of program.declarations) {
+      for (const part of DeclarationParts.of(member.declaration)) {
+        for (const expr of ExpressionNodes.of(part)) {
+          if (expr.kind === "binary") check.checkLevel(expr);
+        }
+      }
+      for (const statement of StatementNodes.in(member.declaration)) {
+        if (statement.kind === "assignment") check.checkAssignment(statement);
+        if (statement.kind === "for" && statement.update !== null) {
+          check.checkAssignment(statement.update);
+        }
+      }
+    }
 
-    // Two walks; report in source order, as the one walk they replace did
+    // Levels, then assignments; report in source order
     return this.errors.sort((a, b) => a.line - b.line || a.column - b.column);
   }
 
