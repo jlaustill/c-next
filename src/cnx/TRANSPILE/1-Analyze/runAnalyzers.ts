@@ -298,7 +298,7 @@ function runAnalyzers(
     {
       label:
         "mixed essential type category (MISRA C:2012 Rule 10.4, ADR-024 / Issue #1091)",
-      run: () => new MixedTypeCategoryAnalyzer(context).analyze(tree),
+      run: () => new MixedTypeCategoryAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "return paths (ADR-067: non-void must return on all paths)",

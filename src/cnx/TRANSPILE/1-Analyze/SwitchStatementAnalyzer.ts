@@ -87,7 +87,9 @@ class SwitchStatementListener extends CNextListener {
 
     if (this.reportDuplicateCase(cases)) return;
 
-    const verdict = this.values.classify(switchExpr);
+    const verdict = this.values.classify(
+      SyntaxLowering.expressionNode(switchExpr),
+    );
     const switchEnum = verdict.kind === "enum" ? verdict.typeName : null;
     if (this.reportBareMemberLabels(cases, switchEnum)) return;
     if (switchEnum !== null) {

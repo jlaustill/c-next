@@ -135,7 +135,9 @@ class EnumTypeSafetyListener extends CNextListener {
     if (targetKind.kind !== "enum") return;
     const targetType = targetKind.typeName;
 
-    const verdict = this.values.classify(expression);
+    const verdict = this.values.classify(
+      SyntaxLowering.expressionNode(expression),
+    );
     if (
       verdict.kind === "unresolved" &&
       !this.values.isPureMemberPath(expression)
@@ -160,8 +162,12 @@ class EnumTypeSafetyListener extends CNextListener {
   public checkComparison(operands: readonly ParserRuleContext[]): void {
     if (operands.length < 2) return;
 
-    const left = this.values.classify(operands[0]);
-    const right = this.values.classify(operands[1]);
+    const left = this.values.classify(
+      SyntaxLowering.expressionNode(operands[0]),
+    );
+    const right = this.values.classify(
+      SyntaxLowering.expressionNode(operands[1]),
+    );
     if (left.kind === "unresolved" || right.kind === "unresolved") return;
     if (left.kind !== "enum" && right.kind !== "enum") return;
     if (
