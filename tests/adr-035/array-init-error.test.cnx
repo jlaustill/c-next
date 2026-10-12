@@ -1,13 +1,13 @@
 // test-error
 // test-adr: 035
-// ADR-035, E0866/E0876: an array's initializer is a list with one element per
-// slot at every level, or the fill-all form for a level; the fill-all form
-// cannot fix an inferred size.
+// ADR-035, E0866: an array's list initializer has one element per slot at
+// every level, or the fill-all form for a level.
 //
-// #1322 relocated the size mismatch and the fill-all rule from `output/`,
-// where they reported `1:0`, and closed two holes probed on the way: an
-// array initialized from another array reached C as `uint8_t b[2] = a;`,
-// and only the OUTER list was counted, so an inner excess reached C too.
+// #1322 relocated the size mismatch from `output/`, where it reported `1:0`,
+// and closed a hole probed on the way: only the OUTER list was counted, so an
+// inner excess reached C. Whether the initializer is a list at all, and the
+// fill-all form on an inferred size, are syntax that 1.2 reports before any
+// count is made (#1991): array-form-error.test.cnx.
 
 struct Point {
     u8 x;
@@ -37,19 +37,10 @@ u8[3] tooMany <- [1, 2, 3, 4, 5];
 // ASSERTION 3 -- an inner level with the wrong count (the closed hole).
 u8[2][2] innerBad <- [[1, 2, 3], [4, 5]];
 
-// ASSERTION 4 -- the fill-all form on an inferred size.
-u8[] fillInferred <- [0*];
-
 void main() {
     u8[2] a <- [1, 2];
-    // ASSERTION 5 -- initialized from another array (the closed hole).
-    u8[2] copy <- a;
     // ASSERTION 6 -- a const dimension counted like a literal one.
     u8[THREE] viaConst <- [1, 2];
-    // ASSERTION 6b -- a string array from a variable: the same non-list rule
-    // (it was ADR-045's arm of E0866 before the count was made one rule).
-    string<8>[2] names <- ["a", "b"];
-    string<8>[2] namesCopy <- names;
 }
 
 scope Table {

@@ -1,0 +1,29 @@
+// test-error
+// test-adr: 035
+// ADR-035, E0866/E0876 as written: an array's initializer is a list (or, for
+// a u8 array, a string literal), and the fill-all form cannot fix an inferred
+// size. Both are syntax, so 1.2 reports them with the file's other parse
+// errors (#1991); the element count against a declared size is 2.1's,
+// array-init-error.test.cnx.
+//
+// #1322 closed the first hole: an array initialized from another array
+// reached C as `uint8_t b[2] = a;`.
+
+// NEGATIVE CONTROLS -- a list, a fill-all with a size, a string literal into
+// a u8 array.
+u8[3] okList <- [1, 2, 3];
+u8[4] okFill <- [0*];
+u8[] okText <- "Hello";
+
+// ASSERTION 1 -- the fill-all form on an inferred size.
+u8[] fillInferred <- [0*];
+
+void main() {
+    u8[2] a <- [1, 2];
+    // ASSERTION 2 -- initialized from another array.
+    u8[2] copy <- a;
+    // ASSERTION 3 -- a string array from a variable: the same non-list rule
+    // (it was ADR-045's arm of E0866 before the count was made one rule).
+    string<8>[2] names <- ["a", "b"];
+    string<8>[2] namesCopy <- names;
+}

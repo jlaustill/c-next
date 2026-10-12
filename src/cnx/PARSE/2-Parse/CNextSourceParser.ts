@@ -13,6 +13,7 @@ import { CNextParser } from "./grammar/CNextParser";
 import CommentScanner from "./CommentScanner";
 import ProgramLowering from "./ProgramLowering";
 import IdentifierForm from "./IdentifierForm";
+import ArrayForm from "./ArrayForm";
 import LiteralForm from "./LiteralForm";
 import IParsedFile from "../../types/IParsedFile";
 import ITranspileError from "../../types/ITranspileError";
@@ -218,6 +219,7 @@ class CNextSourceParser {
         : [
             ...LiteralForm.errorsIn(tokenStream),
             ...IdentifierForm.errorsIn(tree),
+            ...ArrayForm.errorsIn(tree),
           ];
     const declarationCount = tree.declaration().length;
 

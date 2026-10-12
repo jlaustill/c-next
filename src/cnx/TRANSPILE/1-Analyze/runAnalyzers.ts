@@ -402,9 +402,8 @@ function runAnalyzers(
       run: () => new LoopAnalyzer(context).analyze(parsed.program),
     },
     {
-      label:
-        "array declarations and initializers (ADR-035/036, E0866/E0874-E0876/E0892)",
-      run: () => new ArrayDeclarationAnalyzer(context).analyze(tree),
+      label: "array initializer element counts (ADR-035, E0866)",
+      run: () => new ArrayDeclarationAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "constant array index bounds (ADR-036, E0854)",
