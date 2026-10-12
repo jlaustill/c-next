@@ -337,7 +337,8 @@ function runAnalyzers(
     },
     {
       label: "C++ constructor arguments must be declared const (ADR-013, #375)",
-      run: () => new ConstructorArgumentAnalyzer(context).analyze(tree),
+      run: () =>
+        new ConstructorArgumentAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "`return` inside a critical section (ADR-050, E0853)",

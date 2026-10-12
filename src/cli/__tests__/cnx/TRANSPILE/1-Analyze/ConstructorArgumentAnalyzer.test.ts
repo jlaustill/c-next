@@ -21,8 +21,10 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  * declaration site, so 2.1 can answer this without codegen state at all.
  */
 const errors = (source: string) => {
-  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
-  return new ConstructorArgumentAnalyzer(context).analyze(tree);
+  const { syntax, context } = testAnalysisContextFor(source, {
+    cppMode: false,
+  });
+  return new ConstructorArgumentAnalyzer(context).analyze(syntax);
 };
 
 describe("ConstructorArgumentAnalyzer", () => {
@@ -88,5 +90,18 @@ describe("ConstructorArgumentAnalyzer", () => {
     // The negative control the rule turns on: `Type name <- value;` is not a
     // constructor call and must never be visited.
     expect(errors("u8 pin <- 10;\nu8 other <- pin;")).toEqual([]);
+  });
+});
+
+// #1991: read off 1.2's syntax, so a constructor inside a function body, and
+// where its report lands, are asserted directly.
+describe("ConstructorArgumentAnalyzer -- local constructors", () => {
+  it("checks one declared in a function body, at the declaration", () => {
+    const found = errors(
+      ["void f() {", "    Widget w(missing);", "}"].join("\n"),
+    );
+    expect(found.map((e) => [e.code, e.line, e.column])).toEqual([
+      ["E0433", 2, 4],
+    ]);
   });
 });
