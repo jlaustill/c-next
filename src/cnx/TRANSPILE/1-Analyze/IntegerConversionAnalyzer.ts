@@ -1,5 +1,6 @@
 /**
- * ADR-024 integer conversions: E0868, E0869 and E0891.
+ * ADR-024 integer conversions: E0868, E0869 and E0891; and E0914, a string
+ * at the same positions.
  *
  * #1322. Six rules across `TypeResolver` and `CodeGenerator`, reached through
  * three entry points -- a declaration's initializer, an assignment, a cast --
@@ -53,6 +54,15 @@
  * and a C or C++ header's integer -- a source, or the field a value lands in
  * -- has its width on this target. Every assignment site is read, `for`
  * headers included (#1726).
+ *
+ * ## A string lands in no scalar (#1739)
+ *
+ * ADR-024's positions are where a value meets a typed target, and a string --
+ * a literal or a `string<N>` value (ADR-045) -- is not an integer, a float or
+ * a bool, so it lands in none of them: E0914. Each was accepted at exit 0 and
+ * emitted as C's pointer-to-integer conversion (`uint32_t g = "hello";`). The
+ * target is the one `StructInitializerType.valueType` gives, which is no
+ * whole array, so ADR-035's `u8[] buf <- "abc"` stands.
  */
 
 import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
@@ -66,6 +76,7 @@ import ParserUtils from "../../utils/ParserUtils";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
 import OperandTyper from "../../utils/OperandTyper";
 import CompositeType from "../../utils/CompositeType";
+import ExpressionShape from "../../utils/ExpressionShape";
 import AssignmentSiteListener from "./AssignmentSiteListener";
 import StructInitializerType from "./helpers/StructInitializerType";
 import IIntegerConversionError from "./types/IIntegerConversionError";
@@ -91,6 +102,7 @@ class IntegerConversionListener extends CNextListener {
   override enterVariableDeclaration = (
     ctx: Parser.VariableDeclarationContext,
   ): void => {
+    if (this.checkStringAt(ctx.expression())) return;
     this.checkDeclaration(ctx.type().getText(), ctx.expression());
   };
 
@@ -99,6 +111,7 @@ class IntegerConversionListener extends CNextListener {
    * `for (u8 j <- 300; ...)` and `for (u32 i <- k; ...)` were accepted).
    */
   override enterForVarDecl = (ctx: Parser.ForVarDeclContext): void => {
+    if (this.checkStringAt(ctx.expression())) return;
     this.checkDeclaration(ctx.type().getText(), ctx.expression());
   };
 
@@ -142,17 +155,51 @@ class IntegerConversionListener extends CNextListener {
     }
   };
 
-  /** E0891 for a value, at the integer type its position gives it */
+  /** E0914, then E0891, for a value at the type its position gives it */
   private checkFloatingAt(value: Parser.ExpressionContext | null): void {
-    if (!value) return;
+    if (!value || this.checkStringAt(value)) return;
     const target = StructInitializerType.valueType(value, this.context);
     if (target !== null && TypeCheckUtils.isInteger(target)) {
       this.checkFloating(target, value);
     }
   }
 
+  /**
+   * E0914: a string value at a position that types it an integer, a float or
+   * a bool. True when reported, so the value is not judged again as a number.
+   */
+  private checkStringAt(value: Parser.ExpressionContext | null): boolean {
+    if (!value) return false;
+    const target = StructInitializerType.valueType(value, this.context);
+    if (
+      target === null ||
+      !(
+        TypeCheckUtils.isInteger(target) ||
+        TypeCheckUtils.isFloat(target) ||
+        target === "bool"
+      )
+    ) {
+      return false;
+    }
+    const lowered = SyntaxLowering.expressionNode(value);
+    if (
+      !ExpressionShape.isStringLiteral(lowered) &&
+      !OperandTyper.isScalarString(OperandTyper.typeOf(lowered, this.context))
+    ) {
+      return false;
+    }
+    this.report(
+      value,
+      "E0914",
+      `A string value cannot be assigned to ${target}: '${value.getText()}'`,
+      "A string lands only in a string<N> (ADR-045); a u8 array may be initialized by a string literal (ADR-035)",
+    );
+    return true;
+  }
+
   /** An assignment, in a statement or a `for` header (#1726) */
   public checkSite(site: TAssignmentSite): void {
+    if (this.checkStringAt(site.expression())) return;
     // A compound operator is arithmetic at the operands' width, which ADR-044
     // governs; only a plain `<-` is a conversion.
     if (!site.assignmentOperator().ASSIGN()) return;

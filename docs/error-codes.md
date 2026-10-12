@@ -20,8 +20,8 @@ codes that already have a fixture.
 | E06xx     | Sizeof Expressions                             | 2       |
 | E07xx     | Control Flow                                   | 14      |
 | E08xx     | Arithmetic/Array Safety                        | 58      |
-| E09xx     | NULL Safety, Compile-Time Values, Literal Form | 13      |
-| **Total** |                                                | **132** |
+| E09xx     | NULL Safety, Compile-Time Values, Literal Form | 14      |
+| **Total** |                                                | **133** |
 
 ---
 
@@ -394,7 +394,7 @@ base: bare, `this.` and `global.`.
 | ----- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
 | E0912 | A decimal integer literal has a leading zero; C-Next has no octal literal (ADR-044)                    | Write the value in decimal without the leading zero, or as `0x…` or `0b…`                                     | `TRANSPILE/1-Analyze/LiteralFormAnalyzer.ts`       |
 | E0913 | Array dimension is zero or negative (a literal, a folded const, or a header macro's value)             | An array holds one element or more (C99 6.7.5.2, ADR-036)                                                     | `TRANSPILE/1-Analyze/ConstantDimensionAnalyzer.ts` |
-| E0914 | A string value (a literal or a `string<N>`) lands in an integer, float or bool target (ADR-024, #1739) | A string lands only in a `string<N>` (ADR-045); a `u8` array may be initialized by a string literal (ADR-035) | `TRANSPILE/1-Analyze/StringValueTargetAnalyzer.ts` |
+| E0914 | A string value (a literal or a `string<N>`) lands in an integer, float or bool target (ADR-024, #1739) | A string lands only in a `string<N>` (ADR-045); a `u8` array may be initialized by a string literal (ADR-035) | `TRANSPILE/1-Analyze/IntegerConversionAnalyzer.ts` |
 
 ---
 

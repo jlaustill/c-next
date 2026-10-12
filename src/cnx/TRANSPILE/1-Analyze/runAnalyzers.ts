@@ -62,7 +62,6 @@ import LoopAnalyzer from "./LoopAnalyzer";
 import SliceAssignmentAnalyzer from "./SliceAssignmentAnalyzer";
 import ControllingExpressionAnalyzer from "./ControllingExpressionAnalyzer";
 import IntegerConversionAnalyzer from "./IntegerConversionAnalyzer";
-import StringValueTargetAnalyzer from "./StringValueTargetAnalyzer";
 import LengthPropertyAnalyzer from "./LengthPropertyAnalyzer";
 import StringDeclarationAnalyzer from "./StringDeclarationAnalyzer";
 import SwitchStatementAnalyzer from "./SwitchStatementAnalyzer";
@@ -390,10 +389,6 @@ function runAnalyzers(
     {
       label: "integer conversions (ADR-024, E0868/E0869)",
       run: () => new IntegerConversionAnalyzer(context).analyze(tree),
-    },
-    {
-      label: "string value targets (ADR-024, E0914)",
-      run: () => new StringValueTargetAnalyzer(context).analyze(tree),
     },
     {
       label: "scope access (ADR-016, E0435-E0437)",

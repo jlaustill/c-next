@@ -4,7 +4,7 @@
        help: A string lands only in a string<N> (ADR-045); a u8 array may be initialized by a string literal (ADR-035)
 16:13 error[E0914]: A string value cannot be assigned to u32: '"hi"'
        help: A string lands only in a string<N> (ADR-045); a u8 array may be initialized by a string literal (ADR-035)
-18:18 error[E0914]: A string value cannot be assigned to u32: '"arg"'
-       help: A string lands only in a string<N> (ADR-045); a u8 array may be initialized by a string literal (ADR-035)
 17:9 error[E0914]: A string value cannot be assigned to u32: '"assign"'
+       help: A string lands only in a string<N> (ADR-045); a u8 array may be initialized by a string literal (ADR-035)
+18:18 error[E0914]: A string value cannot be assigned to u32: '"arg"'
        help: A string lands only in a string<N> (ADR-045); a u8 array may be initialized by a string literal (ADR-035)

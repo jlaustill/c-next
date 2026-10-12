@@ -735,9 +735,9 @@ the const is named, so `const u32 M <- N * 2;` is 20 at both places.
   object, as `Teensy4__LED_BIT` and `Motor__defaultValue` are above, and named
   where it is used.
 
-The initializer's source text is never a value: `PrivateConstValue.inlined` is
-the one decision, asked both where the declaration is planned and where the
-const is named.
+The initializer's source text is never a value. Whether a const is inlined is
+one decision, asked both where the declaration is planned and where the const
+is named.
 
 ---
 
