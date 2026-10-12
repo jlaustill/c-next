@@ -263,7 +263,7 @@ function runAnalyzers(
     },
     {
       label: "NULL checks (ADR-047: C library interop)",
-      run: () => new NullCheckAnalyzer().analyze(tree, parsed.program),
+      run: () => new NullCheckAnalyzer().analyze(parsed.program),
     },
     {
       // #1175: before anything that reads a dimension's size -- a slice's

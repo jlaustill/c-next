@@ -12,16 +12,19 @@
  * - Dynamic allocation functions (malloc, etc.) remain forbidden (ADR-003)
  */
 
-import { ParseTreeWalker } from "antlr4ng";
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import INullCheckError from "./types/INullCheckError";
-import ParserUtils from "../../utils/ParserUtils";
-import BareIdentifier from "../../utils/BareIdentifier";
-import LoweredStatements from "../../utils/LoweredStatements";
-import invariant from "../../utils/invariant";
+import DeclarationParts from "../../utils/DeclarationParts";
+import ExpressionChildren from "../../utils/ExpressionChildren";
+import ExpressionNodes from "../../utils/ExpressionNodes";
+import ExpressionShape from "../../utils/ExpressionShape";
+import StatementChildren from "../../utils/StatementChildren";
+import TypeParts from "../../utils/TypeParts";
+import type IFunctionDeclarationSyntax from "../../types/syntax/IFunctionDeclarationSyntax";
 import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
+import type TExpression from "../../types/syntax/TExpression";
 import type TStatement from "../../types/syntax/TStatement";
+import type TSyntaxPart from "../../types/syntax/TSyntaxPart";
 
 /**
  * Metadata for C library functions that can return NULL
@@ -192,47 +195,44 @@ interface INullCheckScope {
   isNullEqualityCheck: boolean;
 }
 
+/** A bare `c_` name, the only thing a NULL check or E0908 tracks */
+const NULLABLE_NAME = /^c_[a-zA-Z_]\w*$/;
+
+/** What an `if` or `while` condition says about one `c_` variable */
+interface INullCheckCondition {
+  varName: string;
+  /** `c_var != NULL`; false for `c_var = NULL` */
+  isNotNull: boolean;
+}
+
 /**
- * Listener that walks the parse tree and checks NULL usage
+ * Walks 1.2's syntax, not the parse tree (#1991), in source order: each
+ * statement's own check runs before its parts are read, and each part's
+ * checks see the comparison or declaration that holds it.
  */
-class NullCheckListener extends CNextListener {
+class NullCheckWalk {
   private readonly analyzer: NullCheckAnalyzer;
 
   /** Whether we're currently inside an equality comparison (= or !=) */
   private inEqualityComparison = false;
+
   /** Track variable names in the current equality comparison */
   private equalityComparisonVarNames: string[] = [];
 
-  /** Whether we're currently inside a variable declaration (with c_ prefix handling) */
+  /** Whether we're currently inside a declaration or assignment that stores a nullable call */
   private inVariableDeclarationWithNullable = false;
 
-  // ========================================================================
-  // Flow Analysis State (E0908)
-  // ========================================================================
-
-  /** Current scope for tracking nullable variable states */
+  /** Current scope for tracking nullable variable states (E0908) */
   private currentScope: INullCheckScope | null = null;
 
-  /** Stack of if-statement info for tracking nested conditions */
+  /** The enclosing `if` statements, innermost last: what each one checks, and whether it returns */
   private readonly ifStack: Array<{
     varName: string | null;
     isNullCheck: boolean;
     hasReturn: boolean;
   }> = [];
-  /** The current lowered `if`, for body detection (#2003) */
-  private currentIf: Extract<TStatement, { kind: "if" }> | null = null;
-
-  /** Stack of while-statement info for tracking nested while conditions */
-  private readonly whileStack: Array<{
-    varName: string | null;
-    isNotNullCheck: boolean;
-  }> = [];
-
-  /** The current lowered `while`, for body detection (#2003) */
-  private currentWhile: Extract<TStatement, { kind: "while" }> | null = null;
 
   constructor(analyzer: NullCheckAnalyzer) {
-    super();
     this.analyzer = analyzer;
   }
 
@@ -240,34 +240,22 @@ class NullCheckListener extends CNextListener {
   // Scope Management (E0908)
   // ========================================================================
 
-  /**
-   * Create a new scope (e.g., entering a function or if-body)
-   */
   private pushScope(): void {
-    const newScope: INullCheckScope = {
+    this.currentScope = {
       variables: new Map(),
       parent: this.currentScope,
       isGuardClause: false,
       guardVariable: null,
       isNullEqualityCheck: false,
     };
-    this.currentScope = newScope;
   }
 
-  /**
-   * Exit the current scope and return to parent
-   */
-  private popScope(): INullCheckScope | null {
-    const oldScope = this.currentScope;
+  private popScope(): void {
     if (this.currentScope) {
       this.currentScope = this.currentScope.parent;
     }
-    return oldScope;
   }
 
-  /**
-   * Look up a variable's state in the current scope chain
-   */
   private lookupVariable(name: string): INullableVariableState | null {
     let scope = this.currentScope;
     while (scope) {
@@ -278,24 +266,14 @@ class NullCheckListener extends CNextListener {
     return null;
   }
 
-  /**
-   * Update a variable's state in the scope where it's defined
-   */
+  /** Update a variable's state in the scope where it's defined */
   private updateVariableState(name: string, newState: NullCheckState): void {
-    let scope = this.currentScope;
-    while (scope) {
-      if (scope.variables.has(name)) {
-        const varState = scope.variables.get(name)!;
-        varState.state = newState;
-        return;
-      }
-      scope = scope.parent;
+    const state = this.lookupVariable(name);
+    if (state) {
+      state.state = newState;
     }
   }
 
-  /**
-   * Register a c_ prefixed variable in the current scope
-   */
   private registerNullableVariable(
     name: string,
     typeName: string,
@@ -311,391 +289,286 @@ class NullCheckListener extends CNextListener {
   }
 
   // ========================================================================
-  // Function Scope Management (E0908)
+  // Declarations and statements
   // ========================================================================
 
-  override enterFunctionDeclaration = (
-    _ctx: Parser.FunctionDeclarationContext,
-  ): void => {
-    // Create a new scope for the function body
+  declaration(declaration: TDeclarationSyntax): void {
+    switch (declaration.kind) {
+      case "scope":
+        for (const member of declaration.members) {
+          this.declaration(member.declaration);
+        }
+        return;
+      case "function":
+        this.function(declaration);
+        return;
+      case "variableDeclaration":
+      case "constructorDeclaration":
+        this.statement(declaration);
+        return;
+      default:
+        for (const part of DeclarationParts.of(declaration)) {
+          this.part(part);
+        }
+    }
+  }
+
+  private function(fn: IFunctionDeclarationSyntax): void {
     this.pushScope();
-  };
-
-  override exitFunctionDeclaration = (
-    _ctx: Parser.FunctionDeclarationContext,
-  ): void => {
-    // Exit the function scope
+    this.part({ kind: "type", type: fn.returnType });
+    for (const parameter of fn.parameters ?? []) {
+      this.part({ kind: "type", type: parameter.type });
+      for (const part of TypeParts.dimensions(parameter.dimensions)) {
+        this.part(part);
+      }
+    }
+    for (const statement of fn.body.statements) {
+      this.statement(statement);
+    }
     this.popScope();
-  };
+  }
+
+  private statement(statement: TStatement): void {
+    switch (statement.kind) {
+      case "variableDeclaration":
+        this.variableDeclaration(statement);
+        this.ownParts(statement);
+        this.inVariableDeclarationWithNullable = false;
+        return;
+      case "assignment":
+        this.assignment(statement);
+        this.ownParts(statement);
+        this.inVariableDeclarationWithNullable = false;
+        return;
+      case "if":
+        this.ifStatement(statement);
+        return;
+      case "while":
+        this.whileStatement(statement);
+        return;
+      case "return":
+        // An `if` that returns is a guard clause when it checks `= NULL`
+        if (this.ifStack.length > 0) {
+          this.ifStack.at(-1)!.hasReturn = true;
+        }
+        this.ownParts(statement);
+        return;
+      default:
+        this.ownParts(statement);
+        for (const child of StatementChildren.of(statement)) {
+          this.statement(child);
+        }
+    }
+  }
+
+  private ownParts(statement: TStatement): void {
+    for (const part of DeclarationParts.statement(statement)) {
+      this.part(part);
+    }
+  }
 
   // ========================================================================
-  // If-Statement Flow Analysis (E0908)
+  // If/While Flow Analysis (E0908)
   // ========================================================================
 
-  override enterIfStatement = (ctx: Parser.IfStatementContext): void => {
-    // Parse the condition to detect NULL checks
-    const condition = ctx.expression();
-    const conditionText = condition?.getText() ?? "";
-
-    // Check for patterns like "c_var != NULL" or "c_var = NULL"
-    const nullCheckMatch = /^(c_[a-zA-Z_]\w*)\s*(!?=)\s*NULL$/.exec(
-      conditionText,
-    );
-
-    if (nullCheckMatch) {
-      const varName = nullCheckMatch[1];
-      const operator = nullCheckMatch[2];
-      const isNotNullCheck = operator === "!=";
-
-      // Push info onto the if-stack for tracking
-      this.ifStack.push({
-        varName,
-        isNullCheck: !isNotNullCheck, // true if checking == NULL
-        hasReturn: false,
-      });
-
-      // For != NULL check, mark the variable as checked in the if-body
-      if (isNotNullCheck) {
-        // We'll set state to CheckedNotNull when entering the if-body
-        this.currentIf = this.analyzer.lowered("if", ctx);
-      }
-    } else {
-      // Not a null check, just track for nesting
-      this.ifStack.push({
-        varName: null,
-        isNullCheck: false,
-        hasReturn: false,
-      });
+  /** `c_var != NULL` or `c_var = NULL`, exactly; anything else checks nothing */
+  private static nullCheckIn(
+    condition: TExpression,
+  ): INullCheckCondition | null {
+    if (condition.kind !== "binary" || condition.operands.length !== 2) {
+      return null;
     }
-  };
-
-  override exitIfStatement = (ctx: Parser.IfStatementContext): void => {
-    const ifInfo = this.ifStack.pop();
-    if (!ifInfo) return;
-
-    // Handle guard clause pattern: if (c_var == NULL) { return; }
-    // After such a guard, the variable is known to be not null
-    if (ifInfo.varName && ifInfo.isNullCheck && ifInfo.hasReturn) {
-      // This was a guard clause - the variable is checked after the if
-      const hasElse = this.analyzer.lowered("if", ctx).whenFalse !== null;
-      if (!hasElse) {
-        this.updateVariableState(ifInfo.varName, NullCheckState.CheckedNotNull);
-      }
+    const operator = condition.operators[0];
+    const variable = condition.operands[0];
+    const nullLiteral = condition.operands[1];
+    if (
+      (operator !== "=" && operator !== "!=") ||
+      variable.kind !== "identifier" ||
+      !NULLABLE_NAME.test(variable.name) ||
+      nullLiteral.kind !== "literal" ||
+      nullLiteral.literalKind !== "null"
+    ) {
+      return null;
     }
+    return { varName: variable.name, isNotNull: operator === "!=" };
+  }
 
-    this.currentIf = null;
-  };
-
-  /**
-   * Detect when we enter the body of an if or while statement
-   * For "if (c_var != NULL)" or "while (c_var != NULL)" the body has the variable checked
-   * SonarCloud S3776: Refactored to use helper methods.
-   */
-  override enterStatement = (ctx: Parser.StatementContext): void => {
-    this.handleIfBranchNullCheck(ctx);
-    this.handleWhileBodyNullCheck(ctx);
-  };
-
-  /**
-   * Handle null-check for if statement "then" branch.
-   * SonarCloud S3776: Extracted from enterStatement().
-   */
-  private handleIfBranchNullCheck(ctx: Parser.StatementContext): void {
-    if (!this.currentIf || this.ifStack.length === 0) {
-      return;
+  private ifStatement(statement: Extract<TStatement, { kind: "if" }>): void {
+    const check = NullCheckWalk.nullCheckIn(statement.condition);
+    const ifInfo = {
+      varName: check?.varName ?? null,
+      isNullCheck: check !== null && !check.isNotNull,
+      hasReturn: false,
+    };
+    this.ifStack.push(ifInfo);
+    this.expression(statement.condition);
+    // The body of `if (c_var != NULL)` has the variable checked
+    if (check?.isNotNull) {
+      this.updateVariableState(check.varName, NullCheckState.CheckedNotNull);
     }
-
-    const ifInfo = this.ifStack.at(-1)!;
-    if (ifInfo.isNullCheck || !ifInfo.varName) {
-      return;
+    this.statement(statement.whenTrue);
+    if (statement.whenFalse !== null) {
+      this.statement(statement.whenFalse);
     }
-
-    const start = ParserUtils.getPosition(ctx);
-    if (LoweredStatements.startsAt(this.currentIf.whenTrue, start)) {
+    this.ifStack.pop();
+    // Guard clause: after `if (c_var = NULL) { return; }`, with no else, the
+    // variable is known to be not null
+    if (
+      ifInfo.varName !== null &&
+      ifInfo.isNullCheck &&
+      ifInfo.hasReturn &&
+      statement.whenFalse === null
+    ) {
       this.updateVariableState(ifInfo.varName, NullCheckState.CheckedNotNull);
     }
   }
 
-  /**
-   * Handle null-check for while statement body.
-   * SonarCloud S3776: Extracted from enterStatement().
-   */
-  private handleWhileBodyNullCheck(ctx: Parser.StatementContext): void {
-    if (!this.currentWhile || this.whileStack.length === 0) {
+  private whileStatement(
+    statement: Extract<TStatement, { kind: "while" }>,
+  ): void {
+    const check = NullCheckWalk.nullCheckIn(statement.condition);
+    this.expression(statement.condition);
+    // The body of `while (c_var != NULL)` has the variable checked
+    if (check?.isNotNull) {
+      this.updateVariableState(check.varName, NullCheckState.CheckedNotNull);
+    }
+    this.statement(statement.body);
+  }
+
+  // ========================================================================
+  // Expressions
+  // ========================================================================
+
+  private part(part: TSyntaxPart): void {
+    if (part.kind === "type") {
+      for (const inner of TypeParts.of(part.type)) {
+        this.part(inner);
+      }
       return;
     }
+    this.expression(part.expression);
+  }
 
-    const whileInfo = this.whileStack.at(-1)!;
-    if (!whileInfo.varName || !whileInfo.isNotNullCheck) {
-      return;
-    }
-
-    const start = ParserUtils.getPosition(ctx);
-    if (LoweredStatements.startsAt(this.currentWhile.body, start)) {
-      this.updateVariableState(
-        whileInfo.varName,
-        NullCheckState.CheckedNotNull,
+  private expression(expr: TExpression): void {
+    const isComparison =
+      expr.kind === "binary" &&
+      expr.operators.some((op) => op === "=" || op === "!=");
+    if (isComparison) {
+      this.inEqualityComparison = true;
+      this.equalityComparisonVarNames = expr.operands.flatMap((operand) =>
+        operand.kind === "identifier" ? [operand.name] : [],
       );
     }
-  }
-
-  override enterReturnStatement = (
-    _ctx: Parser.ReturnStatementContext,
-  ): void => {
-    // Mark current if-statement (if any) as having a return
-    if (this.ifStack.length > 0) {
-      this.ifStack.at(-1)!.hasReturn = true;
+    if (expr.kind === "postfix") {
+      this.postfix(expr);
     }
-  };
-
-  // ========================================================================
-  // While-Statement Flow Analysis (E0908)
-  // ========================================================================
-
-  override enterWhileStatement = (ctx: Parser.WhileStatementContext): void => {
-    // Parse the condition to detect NULL checks
-    const condition = ctx.expression();
-    const conditionText = condition?.getText() ?? "";
-
-    // Check for patterns like "c_var != NULL"
-    const nullCheckMatch = /^(c_[a-zA-Z_]\w*)\s*!=\s*NULL$/.exec(conditionText);
-
-    if (nullCheckMatch) {
-      const varName = nullCheckMatch[1];
-
-      // Push info onto the while-stack for tracking
-      this.whileStack.push({
-        varName,
-        isNotNullCheck: true,
-      });
-
-      // For != NULL check, mark the variable as checked in the while-body
-      this.currentWhile = this.analyzer.lowered("while", ctx);
-    } else {
-      // Not a null check, just track for nesting
-      this.whileStack.push({
-        varName: null,
-        isNotNullCheck: false,
-      });
+    if (expr.kind === "literal" && expr.literalKind === "null") {
+      this.nullLiteral(expr);
     }
-  };
-
-  override exitWhileStatement = (_ctx: Parser.WhileStatementContext): void => {
-    this.whileStack.pop();
-    this.currentWhile = null;
-  };
-
-  // ========================================================================
-  // Equality Comparison Context
-  // ========================================================================
-
-  override enterEqualityExpression = (
-    ctx: Parser.EqualityExpressionContext,
-  ): void => {
-    // Check if this is actually a comparison (has = or !=)
-    // The grammar has equalityExpression : relationalExpression (('=' | '!=') relationalExpression)*
-    const children = ctx.children ?? [];
-
-    // Look for comparison operators
-    for (const child of children) {
-      const text = child.getText();
-      if (text === "=" || text === "!=") {
-        this.inEqualityComparison = true;
-        // Extract variable names from the comparison
-        this.equalityComparisonVarNames = this.extractVariableNames(ctx);
-        return;
-      }
+    for (const child of ExpressionChildren.of(expr)) {
+      this.expression(child);
     }
-  };
-
-  /**
-   * Extract simple variable names from an equality expression
-   */
-  private extractVariableNames(
-    ctx: Parser.EqualityExpressionContext,
-  ): string[] {
-    const names: string[] = [];
-    // Get relational expressions (left and right sides of comparison)
-    const children = ctx.relationalExpression();
-    for (const child of children) {
-      const text = child.getText();
-      // Simple check: if it's a simple identifier and not NULL, add it
-      if (BareIdentifier.matches(text) && text !== "NULL") {
-        names.push(text);
-      }
+    if (
+      expr.kind === "cast" ||
+      (expr.kind === "sizeof" && expr.type !== null)
+    ) {
+      this.part({ kind: "type", type: expr.type! });
     }
-    return names;
-  }
-
-  override exitEqualityExpression = (
-    ctx: Parser.EqualityExpressionContext,
-  ): void => {
-    // Check if this was a comparison (has = or !=)
-    const children = ctx.children ?? [];
-    let isComparison = false;
-    for (const child of children) {
-      const text = child.getText();
-      if (text === "=" || text === "!=") {
-        isComparison = true;
-        break;
-      }
-    }
-
     if (isComparison) {
-      // If we had a stream function in this comparison, it's OK
-      // (the function was used correctly in a NULL check)
       this.inEqualityComparison = false;
       this.equalityComparisonVarNames = [];
     }
-  };
+  }
 
-  // ========================================================================
-  // Function Calls
-  // ========================================================================
+  private postfix(expr: Extract<TExpression, { kind: "postfix" }>): void {
+    if (expr.primary.kind !== "identifier") return;
+    const funcName = expr.primary.name;
+    if (!expr.ops.some((op) => op.kind === "call")) return;
+    const line = expr.span.line;
+    const column = expr.span.column;
 
-  override enterPostfixExpression = (
-    ctx: Parser.PostfixExpressionContext,
-  ): void => {
-    const primary = ctx.primaryExpression();
-    if (!primary?.IDENTIFIER()) return;
+    // ADR-003 is NOT decided here. This walk sees a callee's NAME and nothing
+    // about what it resolved to, so it answered "you imported this from C/C++"
+    // for `pool_free` and `slot_is_free` defined in the same file (#1306
+    // review). Call analysis runs first, knows the difference, and halts the
+    // step loop before this analyzer is reached.
 
-    const funcName = primary.IDENTIFIER()!.getText();
-    const ops = ctx.postfixOp();
-
-    // Check if it's a function call (has argument list or parens)
-    const isCall = ops.some((op) => {
-      const text = op.getText();
-      return text.startsWith("(");
-    });
-
-    if (!isCall) return;
-
-    const { line, column } = ParserUtils.getPosition(ctx);
-
-    // ADR-003 is NOT decided here. This listener sees a callee's NAME and
-    // nothing about what it resolved to, so it answered "you imported this from
-    // C/C++" for `pool_free` and `slot_is_free` defined in the same file
-    // (#1306 review). Call analysis runs first, knows the difference, and halts
-    // the step loop before this analyzer is reached.
-
-    // Check nullable C functions
-    if (NULLABLE_C_FUNCTIONS.has(funcName)) {
-      if (this.inEqualityComparison) {
-        // Used correctly inside a NULL comparison -- nothing to report.
-        // This branch must stay: it is what keeps the cases below from firing
-        // for a nullable C function that IS being NULL-checked. It read as an
-        // oversight once the assignment it used to hold was removed with the
-        // write-only field it wrote to (#1556).
-      } else if (this.inVariableDeclarationWithNullable) {
-        // Inside a variable declaration - E0905 or valid c_ prefix already handled
-        // Don't also report E0901
-      } else {
-        // Stream function used outside of NULL comparison - error
-        this.analyzer.reportMissingNullCheck(funcName, line, column);
-      }
+    if (
+      NULLABLE_C_FUNCTIONS.has(funcName) &&
+      !this.inEqualityComparison &&
+      !this.inVariableDeclarationWithNullable
+    ) {
+      // Inside a NULL comparison the call is checked; inside a declaration or
+      // assignment that stores it, E0905 or the `c_` prefix already decided
+      this.analyzer.reportMissingNullCheck(funcName, line, column);
     }
 
-    // E0908: Check for unchecked c_ variables passed as function arguments
-    this.checkFunctionArgumentsForUncheckedVariables(ops, line);
-  };
+    this.checkFunctionArgumentsForUncheckedVariables(expr.ops);
+  }
 
-  /**
-   * Check if any c_ prefixed variables in function arguments are unchecked (E0908)
-   */
+  /** E0908: a `c_` variable passed to a call before it is checked */
   private checkFunctionArgumentsForUncheckedVariables(
-    ops: Parser.PostfixOpContext[],
-    line: number,
+    ops: Extract<TExpression, { kind: "postfix" }>["ops"],
   ): void {
     // Skip if we're in a NULL comparison context (the check itself)
     if (this.inEqualityComparison) return;
-
     for (const op of ops) {
-      const argList = op.argumentList();
-      if (!argList) continue;
-
-      // Get all expressions in the argument list
-      const args = argList.expression();
-      for (const arg of args) {
-        const argText = arg.getText();
-        // Check if argument is a simple c_ prefixed variable
-        if (/^c_[a-zA-Z_]\w*$/.test(argText)) {
-          const varState = this.lookupVariable(argText);
-          if (varState?.state === NullCheckState.Unchecked) {
-            const argLine = arg.start?.line ?? line;
-            const argColumn = arg.start?.column ?? 0;
-            this.analyzer.reportMissingNullCheckBeforeUse(
-              argText,
-              argLine,
-              argColumn,
-            );
-          }
+      if (op.kind !== "call") continue;
+      for (const arg of op.arguments) {
+        if (arg.kind !== "identifier" || !NULLABLE_NAME.test(arg.name)) {
+          continue;
+        }
+        const varState = this.lookupVariable(arg.name);
+        if (varState?.state === NullCheckState.Unchecked) {
+          this.analyzer.reportMissingNullCheckBeforeUse(
+            arg.name,
+            arg.span.line,
+            arg.span.column,
+          );
         }
       }
     }
   }
 
-  // ========================================================================
-  // NULL Literal
-  // ========================================================================
-
-  override enterLiteral = (ctx: Parser.LiteralContext): void => {
-    const text = ctx.getText();
-
-    // Check for uppercase NULL (C library NULL)
-    if (text === "NULL") {
-      const { line, column } = ParserUtils.getPosition(ctx);
-
-      if (this.inEqualityComparison) {
-        // Check if any compared variable lacks c_ prefix and is not a nullable C function
-        for (const varName of this.equalityComparisonVarNames) {
-          if (
-            !NullCheckAnalyzer.hasNullablePrefix(varName) &&
-            !NULLABLE_C_FUNCTIONS.has(varName)
-          ) {
-            this.analyzer.reportNullComparisonOnNonNullable(
-              varName,
-              line,
-              column,
-            );
-          }
-        }
-        // NULL in comparison context - OK (for c_ prefixed variables or functions)
-      } else {
-        // NULL outside comparison - error
-        this.analyzer.reportInvalidNullUsage(line, column);
+  private nullLiteral(expr: TExpression): void {
+    const line = expr.span.line;
+    const column = expr.span.column;
+    if (!this.inEqualityComparison) {
+      this.analyzer.reportInvalidNullUsage(line, column);
+      return;
+    }
+    // NULL in a comparison is for c_ prefixed variables or nullable functions
+    for (const varName of this.equalityComparisonVarNames) {
+      if (
+        !NullCheckAnalyzer.hasNullablePrefix(varName) &&
+        !NULLABLE_C_FUNCTIONS.has(varName)
+      ) {
+        this.analyzer.reportNullComparisonOnNonNullable(varName, line, column);
       }
     }
-  };
+  }
 
   // ========================================================================
-  // Variable Assignment (check for storing stream function result)
+  // Storing a nullable call's result
   // ========================================================================
 
-  override enterVariableDeclaration = (
-    ctx: Parser.VariableDeclarationContext,
-  ): void => {
-    const expr = ctx.expression();
-    const varName = ctx.IDENTIFIER().getText();
-    const typeName = ctx.type()?.getText() ?? "unknown";
-    const identifierToken = ctx.IDENTIFIER().symbol;
-    const line = identifierToken.line;
-    const column = (identifierToken.column ?? 0) + 1; // 1-indexed column
+  private variableDeclaration(
+    statement: Extract<TStatement, { kind: "variableDeclaration" }>,
+  ): void {
+    const varName = statement.name;
+    const typeName = statement.type.text;
+    const line = statement.nameSpan.line;
+    const column = statement.nameSpan.column + 1; // 1-indexed column
 
     // E0908: Register c_ prefixed variables for flow tracking
     if (NullCheckAnalyzer.hasNullablePrefix(varName)) {
       this.registerNullableVariable(varName, typeName, line);
     }
+    if (!statement.initializer) return;
 
-    if (!expr) return;
-
-    const funcName = this.extractFunctionCallName(expr);
-
-    // Check if assigning from a nullable C function
-    if (funcName && NULLABLE_C_FUNCTIONS.has(funcName)) {
-      // Set flag to suppress E0901 for the function call inside this declaration
+    const funcName = NullCheckWalk.nullableCallIn(statement.initializer);
+    if (funcName !== null) {
       this.inVariableDeclarationWithNullable = true;
-
-      // Must have c_ prefix
       if (!NullCheckAnalyzer.hasNullablePrefix(varName)) {
         this.analyzer.reportMissingCPrefix(
           varName,
@@ -705,72 +578,63 @@ class NullCheckListener extends CNextListener {
           column,
         );
       }
-      // If has c_ prefix, storage is allowed (don't report E0904 or E0901)
       return;
     }
 
-    // Check for invalid c_ prefix on non-nullable types (E0906)
+    // E0906: a c_ prefix needs a nullable type when no nullable call is stored
+    if (
+      NullCheckAnalyzer.hasNullablePrefix(varName) &&
+      !NullCheckAnalyzer.isNullableCType(typeName)
+    ) {
+      this.analyzer.reportInvalidCPrefix(varName, typeName, line, column);
+    }
+  }
+
+  private assignment(
+    statement: Extract<TStatement, { kind: "assignment" }>,
+  ): void {
+    const funcName = NullCheckWalk.nullableCallIn(statement.value);
+    if (funcName === null) return;
+    const varName = statement.target.written;
+    // ADR-046: Allow reassignment to c_ prefixed variables (e.g., in while loops)
     if (NullCheckAnalyzer.hasNullablePrefix(varName)) {
-      // If NOT assigning from nullable function AND type is NOT nullable, c_ prefix is invalid
-      if (!funcName || !NULLABLE_C_FUNCTIONS.has(funcName)) {
-        if (!NullCheckAnalyzer.isNullableCType(typeName)) {
-          this.analyzer.reportInvalidCPrefix(varName, typeName, line, column);
-        }
-      }
+      this.inVariableDeclarationWithNullable = true;
+      // E0908: Reset state to Unchecked on reassignment from nullable function
+      this.updateVariableState(varName, NullCheckState.Unchecked);
+      return;
     }
-  };
-
-  override exitVariableDeclaration = (): void => {
-    // Clear the flag when leaving variable declaration
-    this.inVariableDeclarationWithNullable = false;
-  };
-
-  override enterAssignmentStatement = (
-    ctx: Parser.AssignmentStatementContext,
-  ): void => {
-    // Check if RHS contains a stream function call
-    const expr = ctx.expression();
-    const funcName = this.extractFunctionCallName(expr);
-    const target = ctx.assignmentTarget();
-    const varName = target.getText();
-    const { line, column } = ParserUtils.getPosition(ctx);
-
-    if (funcName && NULLABLE_C_FUNCTIONS.has(funcName)) {
-      // ADR-046: Allow reassignment to c_ prefixed variables (e.g., in while loops)
-      if (NullCheckAnalyzer.hasNullablePrefix(varName)) {
-        // Set flag to suppress E0901 for the function call inside this assignment
-        this.inVariableDeclarationWithNullable = true;
-        // E0908: Reset state to Unchecked on reassignment from nullable function
-        this.updateVariableState(varName, NullCheckState.Unchecked);
-        return;
-      }
-
-      this.analyzer.reportInvalidStorage(varName, funcName, line, column);
-    }
-  };
-
-  override exitAssignmentStatement = (): void => {
-    // Clear the flag when leaving assignment statement
-    this.inVariableDeclarationWithNullable = false;
-  };
+    this.analyzer.reportInvalidStorage(
+      varName,
+      funcName,
+      statement.span.line,
+      statement.span.column,
+    );
+  }
 
   /**
-   * Extract function call name from an expression (if it's a simple call)
+   * The nullable C function an expression calls, if any: a bare `fgets(...)`
+   * or `global.fgets(...)`. A member `obj.fgets()`, `this.fgets()` or
+   * `my_fgets()` is not one; matching the joined text found them all (#1991).
    */
-  private extractFunctionCallName(
-    ctx: Parser.ExpressionContext,
-  ): string | null {
-    // Simple heuristic: look for identifier followed by parens in text
-    // This could be improved with deeper AST analysis
-    const text = ctx.getText();
-
-    // Check nullable C functions
-    for (const funcName of NULLABLE_C_FUNCTIONS.keys()) {
-      if (text.includes(`${funcName}(`)) {
-        return funcName;
+  private static nullableCallIn(expr: TExpression): string | null {
+    const callees = new Set<string>();
+    for (const node of ExpressionNodes.of({
+      kind: "expression",
+      expression: expr,
+    })) {
+      if (node.kind !== "postfix") continue;
+      const head = ExpressionShape.headOf(node);
+      if (
+        head.identifier !== null &&
+        head.root !== "this" &&
+        head.ops[head.opsConsumed]?.kind === "call"
+      ) {
+        callees.add(head.identifier.name);
       }
     }
-
+    for (const funcName of NULLABLE_C_FUNCTIONS.keys()) {
+      if (callees.has(funcName)) return funcName;
+    }
     return null;
   }
 }
@@ -781,35 +645,13 @@ class NullCheckListener extends CNextListener {
 class NullCheckAnalyzer {
   private errors: INullCheckError[] = [];
 
-  /**
-   * Analyze a parsed program for NULL safety errors
-   * @param tree The parsed program AST
-   * @param program The same program, lowered (1.2): its statements' parts
-   * @returns Array of NULL check errors
-   */
-  /** The program's lowered statements, for the listener's roles (#2003) */
-  private statements: LoweredStatements | null = null;
-
-  /** The lowered `kind` statement a parse node starts (#2003) */
-  public lowered<K extends TStatement["kind"]>(
-    kind: K,
-    ctx: Parameters<typeof ParserUtils.getPosition>[0],
-  ): Extract<TStatement, { kind: K }> {
-    invariant(this.statements !== null, "lowered() read outside analyze()");
-    return this.statements.at(kind, ParserUtils.getPosition(ctx));
-  }
-
-  public analyze(
-    tree: Parser.ProgramContext,
-    program: IProgramSyntax,
-  ): INullCheckError[] {
+  /** Analyze 1.2's syntax for NULL safety errors */
+  public analyze(program: IProgramSyntax): INullCheckError[] {
     this.errors = [];
-    this.statements = new LoweredStatements(program);
-
-    // Walk tree and check NULL usage
-    const listener = new NullCheckListener(this);
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
-
+    const walk = new NullCheckWalk(this);
+    for (const member of program.declarations) {
+      walk.declaration(member.declaration);
+    }
     return this.errors;
   }
 
