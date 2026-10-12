@@ -328,7 +328,7 @@ function runAnalyzers(
     // ---------------------------------------------------------------------
     {
       label: "nested ternary in a condition or branch (ADR-022, E0710)",
-      run: () => new NestedTernaryAnalyzer().analyze(tree),
+      run: () => new NestedTernaryAnalyzer().analyze(parsed.program),
     },
     {
       label:

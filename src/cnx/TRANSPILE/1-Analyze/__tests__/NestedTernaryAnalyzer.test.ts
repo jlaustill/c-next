@@ -15,12 +15,13 @@ import NestedTernaryAnalyzer from "../NestedTernaryAnalyzer";
  * branch is a string literal that happens to contain both characters. Verified
  * by probe before this analyzer existed.
  *
- * A rule about SYNTAX asked about characters. The parse tree already has the
+ * A rule about SYNTAX asked about characters. 1.2's syntax already has the
  * answer, and asking it is both simpler and correct.
  */
 const errors = (source: string) => {
-  const { tree } = CNextSourceParser.parse(source);
-  return new NestedTernaryAnalyzer().analyze(tree);
+  return new NestedTernaryAnalyzer().analyze(
+    CNextSourceParser.parse(source).program,
+  );
 };
 
 const inMain = (body: string): string =>
