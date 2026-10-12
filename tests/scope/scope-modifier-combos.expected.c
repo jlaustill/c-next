@@ -49,6 +49,7 @@ static uint8_t Combos__privateWrapByte = 5U;
 static uint16_t Combos__privateWrapWord = 100U;
 const uint8_t Combos__PUBLIC_CONST = 42U;
 const bool Combos__PUBLIC_FLAG = true;
+static const bool Combos__PRIVATE_FLAG = false;
 
 uint8_t Combos__getMaxBrightness(void) {
     return 255;
@@ -123,7 +124,7 @@ uint8_t Combos__getPrivateConst(void) {
 }
 
 bool Combos__getPrivateFlag(void) {
-    return false;
+    return Combos__PRIVATE_FLAG;
 }
 
 void Combos__increasePublicClampByte(void) {

@@ -329,6 +329,8 @@ class Program {
             }),
           ),
         ),
+      settledConstOf: (cName: string): TSettledConst | null =>
+        constants.consts.get(cName) ?? null,
       conflicts: (): ReadonlyArray<IConflict> => conflicts,
       typesDeclaredIn: (sourceFile: string): ReadonlySet<string> =>
         typesByFile.get(sourceFile) ?? EMPTY_NAMES,

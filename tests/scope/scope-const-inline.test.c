@@ -35,6 +35,7 @@ static inline uint8_t cnx_clamp_mul_u8(uint8_t a, uint32_t b) {
 // Tests: Scope-level const values should be inlined, not created as local variables
 // Issue #282: Const declarations were incorrectly being generated as mutable locals
 /* Scope: ConstTest */
+static const bool ConstTest__ENABLED = true;
 const uint8_t ConstTest__PUBLIC_MAX = 200U;
 const uint32_t ConstTest__PUBLIC_ID = 42U;
 static uint8_t ConstTest__counter = 0U;
@@ -52,7 +53,7 @@ int32_t ConstTest__getOffset(void) {
 }
 
 bool ConstTest__getEnabled(void) {
-    return true;
+    return ConstTest__ENABLED;
 }
 
 uint8_t ConstTest__getPublicMax(void) {

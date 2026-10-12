@@ -384,6 +384,14 @@ explicit cast"_. Until then the implicit form was accepted, and it was emitted
 as C's own conversion, which is undefined for NaN and for a value past the
 target's range. The cast truncates and then clamps to the range (ADR-056).
 
+**A string lands in no integer, float or bool, at the same positions.** A
+string literal or a `string<N>` value (ADR-045) has no conversion to a scalar,
+cast or not, so `u32 g <- "hello";`, `x <- s;`, `take("arg")`, `return "r";`
+from a `u32` function, `bool b <- "flag";` and `a[0] <- s;` into a `u8[4]` are
+E0914 (#1739). Until then each was accepted at exit 0 and emitted as C's
+pointer-to-integer conversion. A whole `u8` array is no such position, so
+ADR-035's `u8[] buf <- "abc";` stands.
+
 **Note:** This is truncation, NOT bit reinterpretation. For raw IEEE-754 byte access, use float bit indexing (ADR-007):
 
 ```cnx

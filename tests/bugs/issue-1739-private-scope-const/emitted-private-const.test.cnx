@@ -1,0 +1,38 @@
+// test-execution
+// Tests: a private scope const with no integer value to inline (a bool, a
+// float expression) is emitted as its object; a suffixed literal is inlined
+// as its value, which C can read
+
+scope S {
+    const bool READY <- true;
+    const f32 HALF <- 1.0 / 2.0;
+    const u8 NINE <- 9u8;
+
+    public bool ready() {
+        return READY;
+    }
+
+    public f32 half() {
+        return this.HALF;
+    }
+
+    public u8 nine() {
+        return NINE;
+    }
+}
+
+u32 main() {
+    bool ready <- S.ready();
+    f32 half <- S.half();
+    u8 nine <- S.nine();
+    if (ready != true) {
+        return 1;
+    }
+    if (half != 0.5) {
+        return 2;
+    }
+    if (nine != 9) {
+        return 3;
+    }
+    return 0;
+}

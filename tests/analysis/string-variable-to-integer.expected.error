@@ -1,0 +1,10 @@
+12:11 error[E0914]: A string value cannot be assigned to u32: 's'
+       help: A string lands only in a string<N> (ADR-045); a u8 array may be initialized by a string literal (ADR-035)
+16:13 error[E0914]: A string value cannot be assigned to u32: 's'
+       help: A string lands only in a string<N> (ADR-045); a u8 array may be initialized by a string literal (ADR-035)
+18:18 error[E0914]: A string value cannot be assigned to u32: 's'
+       help: A string lands only in a string<N> (ADR-045); a u8 array may be initialized by a string literal (ADR-035)
+17:9 error[E0914]: A string value cannot be assigned to u32: 's'
+       help: A string lands only in a string<N> (ADR-045); a u8 array may be initialized by a string literal (ADR-035)
+20:12 error[E0914]: A string value cannot be assigned to u8: 's'
+       help: A string lands only in a string<N> (ADR-045); a u8 array may be initialized by a string literal (ADR-035)

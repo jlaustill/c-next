@@ -40,6 +40,7 @@ import QualifiedCName from "../../../../../utils/QualifiedCName";
 import OperandTyper from "../../../../../utils/OperandTyper";
 import invariant from "../../../../../utils/invariant";
 import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
+import PrivateConstValue from "../../PrivateConstValue";
 
 // ========================================================================
 // Tracking State
@@ -865,14 +866,10 @@ const tryScopeMemberAccess = (
     state.currentScopePath,
     ctx.memberName,
   );
-  const constValue = input.symbols!.scopePrivateConstValues.get(fullName);
-  if (constValue === undefined) {
-    output.result = fullName;
-    output.resolvedIdentifier = fullName;
-  } else {
-    output.result = constValue;
-    output.resolvedIdentifier = fullName;
-  }
+  // #1739: a private const is written as its settled value
+  output.result =
+    PrivateConstValue.inlined(input.program, fullName) ?? fullName;
+  output.resolvedIdentifier = fullName;
   return output;
 };
 

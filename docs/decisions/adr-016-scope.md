@@ -719,6 +719,26 @@ The `scope` keyword replaces `namespace` in the current implementation:
 
 The class implementation has been removed pending further research.
 
+### Private scope consts (#1739)
+
+A private scope const has one value: the one the const pipeline settles from
+its initializer, read in the scope's binding context (`N` is the scope's `N`,
+and `this.N` is too). The same settled value sizes an array and stands where
+the const is named, so `const u32 M <- N * 2;` is 20 at both places.
+
+- An integer const with a settled value is inlined as that value. An
+  unsuffixed literal keeps its spelling (`0xAB`); a suffixed literal and an
+  expression are inlined as the settled digits, because C reads neither `9u8`
+  nor `this.N + 1`. A float const written as a plain literal keeps its spelling.
+- Every other private const -- a bool, an enum, a string, a float expression,
+  or an initializer that does not fold -- is emitted as a `static const`
+  object, as `Teensy4__LED_BIT` and `Motor__defaultValue` are above, and named
+  where it is used.
+
+The initializer's source text is never a value: `PrivateConstValue.inlined` is
+the one decision, asked both where the declaration is planned and where the
+const is named.
+
 ---
 
 ## References

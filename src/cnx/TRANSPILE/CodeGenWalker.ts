@@ -32,6 +32,7 @@ import type EFileType from "../PARSE/1-Discover/types/EFileType";
 import type IStringConcatOps from "./3-Render/codegen/types/IStringConcatOps";
 import { basename } from "node:path";
 import CommentFormatter from "./3-Render/codegen/CommentFormatter";
+import PrivateConstValue from "./3-Render/codegen/PrivateConstValue";
 import IComment from "../types/IComment";
 import TYPE_MAP from "./3-Render/codegen/types/TYPE_MAP";
 import TParameterInfo from "../types/TParameterInfo";
@@ -2934,9 +2935,10 @@ class CodeGenWalker {
     const isArray = CodeGenWalker.isArrayDeclaration(decl);
 
     // Issue #282: a private const scalar is inlined at its uses, not emitted at
-    // file scope. Issue #500 exempts arrays, which cannot be inlined. Decided
-    // before any render, so a skipped declaration registers no include.
-    if (isPrivate && isConst && !isArray) {
+    // file scope. Issue #500 exempts arrays, which cannot be inlined, and #1739
+    // one with no value to inline. Decided before any render, so a skipped
+    // declaration registers no include.
+    if (PrivateConstValue.inlined(this.host.state.program, fullName) !== null) {
       return { kind: "skipped" };
     }
     // Issue #998: the one modifier builder, which validates the atomic/volatile
@@ -4580,13 +4582,10 @@ class CodeGenWalker {
       this.host.state,
     );
     if (resolved !== null) {
-      // Issue #741: Check if this is a private const that should be inlined
-      const constValue =
-        this.host.state.symbols!.scopePrivateConstValues.get(resolved);
-      if (constValue !== undefined) {
-        return constValue;
-      }
-      return resolved;
+      // Issue #741, #1739: a private const is written as its settled value
+      return (
+        PrivateConstValue.inlined(this.host.state.program, resolved) ?? resolved
+      );
     }
 
     // Issue #452: Check if identifier is an unqualified enum member reference
