@@ -39,7 +39,9 @@ uint32_t doubled(uint32_t v) {
 }
 
 int main(void) {
+    /* C11 6.2.1p4, C++ [basic.scope.hiding]: `counter` emitted as `main__counter` (a plain `counter` would hide the file-scope `counter` for the rest of its scope, so `global.counter` would reach the local). */
     uint32_t main__counter = 1U;
+    /* C11 6.2.1p4, C++ [basic.scope.hiding]: `limit` emitted as `main__limit` (a plain `limit` would hide the file-scope `limit` for the rest of its scope, so `global.limit` would reach the local). */
     uint32_t main__limit = 2U;
     main__counter = cnx_clamp_add_u32(main__counter, main__limit);
     uint32_t viaCall = doubled(main__counter);

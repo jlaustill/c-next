@@ -39,6 +39,7 @@ uint32_t point(uint32_t p) {
 
 uint32_t bump(uint32_t p) {
     if (p == 1) {
+        /* C11 6.2.1p7, C++ [basic.scope.pdecl]: `p` emitted as `bump__p` (a plain `p` is in scope from its declarator, so its initializer would read the new, uninitialized `p` instead of the enclosing one). */
         uint32_t bump__p = cnx_clamp_add_u32(p, 1U);
         return bump__p;
     }
@@ -64,6 +65,7 @@ int main(void) {
     }
     const uint32_t N = 2U;
     if (N == 2) {
+        /* C11 6.2.1p7, C++ [basic.scope.pdecl]: `N` emitted as `main__N` (a plain `N` is in scope from its declarator, so its initializer would read the new, uninitialized `N` instead of the enclosing one). */
         const uint32_t main__N = cnx_clamp_add_u32(N, 1U);
         uint8_t buf[3] = {7U, 7U, 7U};
         if (3 != 3) {
@@ -75,6 +77,7 @@ int main(void) {
     }
     uint32_t k = 1U;
     if (k == 1) {
+        /* C11 6.2.1p7, C++ [basic.scope.pdecl]: `k` emitted as `main__k` (a plain `k` is in scope from its declarator, so its initializer would read the new, uninitialized `k` instead of the enclosing one). */
         uint32_t main__k = cnx_clamp_add_u32(k, 1U);
         if (main__k == 2) {
             uint32_t k = cnx_clamp_add_u32(main__k, 1U);
@@ -89,6 +92,7 @@ int main(void) {
     uint32_t i = 3U;
     uint32_t total = 0U;
     if (i == 3) {
+        /* C11 6.2.1p7, C++ [basic.scope.pdecl]: `i` emitted as `main__i` (a plain `i` is in scope from its declarator, so its initializer would read the new, uninitialized `i` instead of the enclosing one). */
         for (uint32_t main__i = i; main__i < 5; main__i = cnx_clamp_add_u32(main__i, 1U)) {
             total = cnx_clamp_add_u32(total, main__i);
         }

@@ -19,6 +19,7 @@ int main(void) {
     const uint8_t seed = 3U;
     uint8_t result = 0U;
     if (seed == 3) {
+        /* C11 6.2.1p7, C++ [basic.scope.pdecl]: `seed` emitted as `main__seed` (a plain `seed` is in scope from its declarator, so its initializer would read the new, uninitialized `seed` instead of the enclosing one). */
         Tally main__seed(seed);
         result = main__seed.start;
     }

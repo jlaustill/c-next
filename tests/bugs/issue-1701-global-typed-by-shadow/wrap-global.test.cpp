@@ -13,6 +13,7 @@
 uint32_t x = 4294967295U;
 
 uint8_t f(void) {
+    /* C11 6.2.1p4, C++ [basic.scope.hiding]: `x` emitted as `f__x` (a plain `x` would hide the file-scope `x` for the rest of its scope, so `global.x` would reach the local). */
     uint8_t f__x = 1U;
     x += 1U;
     return f__x;

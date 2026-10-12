@@ -37,6 +37,7 @@ uint32_t S__bump(void) {
 }
 
 uint32_t fromGlobal(void) {
+    /* C11 6.2.1p4, C++ [basic.scope.hiding]: `g` emitted as `fromGlobal__g` (a plain `g` would hide the file-scope `g` for the rest of its scope, so `global.g` would reach the local). */
     uint32_t fromGlobal__g = cnx_clamp_add_u32(g, 1U);
     return fromGlobal__g;
 }

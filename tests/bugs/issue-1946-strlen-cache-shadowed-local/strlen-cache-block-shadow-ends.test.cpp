@@ -21,6 +21,7 @@ char label[9] = "xyz";
 int main(void) {
     uint32_t flag = 1U;
     if (flag == 1) {
+        /* C11 6.2.1p4, C++ [basic.scope.hiding]: `label` emitted as `main__label` (a plain `label` would hide the file-scope `label` for the rest of its scope, so `global.label` would reach the local). */
         char main__label[9] = "ab";
         size_t cnx_len_label = strlen(main__label);
         if (cnx_len_label != 2 || cnx_len_label < 1) {

@@ -25,9 +25,11 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // #2011 control: the same local one block deeper is shadowing, which C allows
 uint32_t total = 7U;
 
+/* C11 6.2.1p4, C++ [basic.scope.hiding]: `total` emitted as `shadowing__total` (a plain `total` would hide the file-scope `total` for the rest of its scope, so `global.total` would reach the local). */
 uint32_t shadowing(uint32_t shadowing__total) {
     uint32_t result = shadowing__total;
     if (shadowing__total > 0) {
+        /* C11 6.2.1p4, C++ [basic.scope.hiding]: `total` emitted as `shadowing__total` (a plain `total` would hide the file-scope `total` for the rest of its scope, so `global.total` would reach the local). */
         uint32_t shadowing__total = 3U;
         result = cnx_clamp_add_u32(shadowing__total, total);
     }
