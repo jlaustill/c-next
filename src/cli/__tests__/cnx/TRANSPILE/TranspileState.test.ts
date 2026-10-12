@@ -268,9 +268,6 @@ describe("TranspileState", () => {
       // bare name in `sibling.cnx` qualified to a type its generated C cannot
       // see, while 1.4 had settled the header's copy the same wrong way.
       const declares = CNextResolver.resolve(
-        parse(
-          `scope A { public enum B { X } public struct S { u8 f; } public bitmap8 Flags { Ready, Mode[3], Reserved[4] } }`,
-        ),
         ProgramLowering.program(
           parse(
             `scope A { public enum B { X } public struct S { u8 f; } public bitmap8 Flags { Ready, Mode[3], Reserved[4] } }`,
@@ -281,13 +278,11 @@ describe("TranspileState", () => {
         registry,
       );
       const includer = CNextResolver.resolve(
-        parse(`u32 x <- 1;`),
         ProgramLowering.program(parse(`u32 x <- 1;`), null),
         "includer.cnx",
         registry,
       );
       const sibling = CNextResolver.resolve(
-        parse(`u32 y <- 1;`),
         ProgramLowering.program(parse(`u32 y <- 1;`), null),
         "sibling.cnx",
         registry,

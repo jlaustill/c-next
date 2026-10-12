@@ -74,7 +74,6 @@ function testAnalysisContextFor(
       path,
       parsed,
       declared: CNextResolver.resolve(
-        parsed.tree,
         ProgramLowering.program(parsed.tree, null),
         path,
         registry,

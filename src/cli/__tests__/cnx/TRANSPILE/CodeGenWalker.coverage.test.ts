@@ -57,7 +57,6 @@ function setupGenerator(
     ...Program.build(
       [
         CNextResolver.resolve(
-          tree,
           ProgramLowering.program(tree, null),
           "test.cnx",
           registry,
@@ -696,7 +695,6 @@ describe("CodeGenWalker Coverage Tests", () => {
         ...Program.build(
           [
             CNextResolver.resolve(
-              tree,
               ProgramLowering.program(tree, null),
               "test.cnx",
               registry,
@@ -754,7 +752,6 @@ describe("CodeGenWalker Coverage Tests", () => {
         ...Program.build(
           [
             CNextResolver.resolve(
-              tree,
               ProgramLowering.program(tree, null),
               "test.cnx",
               registry,
@@ -803,7 +800,6 @@ describe("CodeGenWalker Coverage Tests", () => {
         ...Program.build(
           [
             CNextResolver.resolve(
-              tree,
               ProgramLowering.program(tree, null),
               "test.cnx",
               registry,
@@ -1225,7 +1221,6 @@ describe("CodeGenWalker Coverage Tests", () => {
           ...Program.build(
             [
               CNextResolver.resolve(
-                tree,
                 ProgramLowering.program(tree, null),
                 "test.cnx",
                 registry,
@@ -1372,7 +1367,6 @@ describe("CodeGenWalker Coverage Tests", () => {
         ...Program.build(
           [
             CNextResolver.resolve(
-              tree,
               ProgramLowering.program(tree, null),
               "test.cnx",
               registry,
@@ -1582,7 +1576,6 @@ describe("CodeGenWalker Coverage Tests", () => {
         ...Program.build(
           [
             CNextResolver.resolve(
-              tree,
               ProgramLowering.program(tree, null),
               "test.cnx",
               registry,
@@ -1641,7 +1634,6 @@ describe("CodeGenWalker Coverage Tests", () => {
         ...Program.build(
           [
             CNextResolver.resolve(
-              tree,
               ProgramLowering.program(tree, null),
               "test.cnx",
               registry,

@@ -49,7 +49,6 @@ function declareAndResolveAs(
   sourcePath: string,
 ): TSymbol[] {
   const declared = CNextResolver.resolve(
-    tree,
     ProgramLowering.program(tree, null),
     sourcePath,
     registry,

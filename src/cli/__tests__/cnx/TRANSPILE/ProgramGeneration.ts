@@ -65,7 +65,6 @@ class ProgramGeneration {
     const state = generator.transpileState;
 
     const declared = CNextResolver.resolve(
-      tree,
       ProgramLowering.program(tree, null),
       sourcePath,
       registry,
