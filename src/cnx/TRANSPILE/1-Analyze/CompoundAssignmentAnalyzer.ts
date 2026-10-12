@@ -28,15 +28,12 @@
  * where it decides something.
  */
 
-import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
-import { ParseTreeWalker } from "antlr4ng";
-
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import ParserUtils from "../../utils/ParserUtils";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
+import type TExpression from "../../types/syntax/TExpression";
+import StatementNodes from "../../utils/StatementNodes";
 import OperandTyper from "../../utils/OperandTyper";
-import AssignmentSiteListener from "./AssignmentSiteListener";
 import ICompoundAssignmentError from "./types/ICompoundAssignmentError";
-import type TAssignmentSite from "../../types/TAssignmentSite";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
 /** What made a target unusable, in words the message can name. */
@@ -52,20 +49,19 @@ class CompoundAssignmentCheck {
   }
 
   /** A compound assignment, in a statement or a `for` header (#1726) */
-  public checkSite(site: TAssignmentSite): void {
+  public checkSite(site: IAssignmentSyntax): void {
     // `ASSIGN` is the plain `<-`; every other operator in the rule is compound.
     // Asking what it is NOT keeps this from listing the operators, which is the
     // enumeration that let E0853 miss `switch`.
-    if (site.assignmentOperator().ASSIGN()) return;
+    if (site.operator === "<-") return;
 
-    const reason = this.rejectionFor(site.assignmentTarget());
+    const reason = this.rejectionFor(site.target);
     if (reason === null) return;
 
-    const { line, column } = ParserUtils.getPosition(site);
     this.found.push({
       code: "E0857",
-      line,
-      column,
+      line: site.span.line,
+      column: site.span.column,
       message: `Compound assignment operators are not supported on a ${reason}`,
       helpText:
         "A compound operator reads, modifies and writes back one storage location. Write the read and the write out separately.",
@@ -83,18 +79,18 @@ class CompoundAssignmentCheck {
    * and never rejects: a name this pass cannot resolve is another
    * diagnostic's to report, not this one's to guess at.
    */
-  private rejectionFor(
-    target: Parser.AssignmentTargetContext,
-  ): TRejection | null {
+  private rejectionFor(target: TExpression): TRejection | null {
     // A range or a slice is never one storage location, whatever it
     // indexes, so this needs no resolved shape.
-    if (target.postfixTargetOp().some((op) => op.expression().length >= 2)) {
+    if (
+      target.kind === "postfix" &&
+      target.ops.some(
+        (op) => op.kind === "subscript" && op.indexes.length === 2,
+      )
+    ) {
       return "bit range or slice";
     }
-    const typing = OperandTyper.chainOf(
-      SyntaxLowering.assignmentTarget(target),
-      this.context,
-    );
+    const typing = OperandTyper.chainOf(target, this.context);
     if (typing.steps.some((step) => step.subscript === "bit_single")) {
       return "bit index";
     }
@@ -102,10 +98,7 @@ class CompoundAssignmentCheck {
     // `name` is a `string<32>` field. A string is a buffer copied by
     // `strncpy`, not a value `+` can be applied to, wherever it is reached
     // from.
-    const last = OperandTyper.typeOfTarget(
-      SyntaxLowering.assignmentTarget(target),
-      this.context,
-    );
+    const last = OperandTyper.typeOfTarget(target, this.context);
     return OperandTyper.isScalarString(last) ? "string" : null;
   }
 }
@@ -114,12 +107,14 @@ class CompoundAssignmentAnalyzer {
   /** #1456: handed in rather than read off shared state. */
   constructor(private readonly context: IAnalysisContext) {}
 
-  public analyze(tree: Parser.ProgramContext): ICompoundAssignmentError[] {
+  /** #1991: reads 1.2's syntax, not the parse tree */
+  public analyze(program: IProgramSyntax): ICompoundAssignmentError[] {
     const check = new CompoundAssignmentCheck(this.context);
-    ParseTreeWalker.DEFAULT.walk(
-      new AssignmentSiteListener((site) => check.checkSite(site)),
-      tree,
-    );
+    for (const member of program.declarations) {
+      for (const site of StatementNodes.assignments(member.declaration)) {
+        check.checkSite(site);
+      }
+    }
     return check.errors();
   }
 }

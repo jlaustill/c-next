@@ -332,7 +332,8 @@ function runAnalyzers(
     {
       label:
         "compound assignment needs a whole storage location (ADR-007, E0857)",
-      run: () => new CompoundAssignmentAnalyzer(context).analyze(tree),
+      run: () =>
+        new CompoundAssignmentAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "C++ constructor arguments must be declared const (ADR-013, #375)",
