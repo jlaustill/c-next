@@ -16,12 +16,19 @@ class ExpressionNodes {
       : ExpressionNodes.expression(part.expression);
   }
 
-  private static expression(expr: TExpression): readonly TExpression[] {
+  /** `expr` and every expression nested in it, but not through a type */
+  static direct(expr: TExpression): readonly TExpression[] {
     return [
       expr,
-      ...ExpressionChildren.of(expr).flatMap(ExpressionNodes.expression),
-      ...ExpressionNodes.namedTypes(expr).flatMap(ExpressionNodes.of),
+      ...ExpressionChildren.of(expr).flatMap(ExpressionNodes.direct),
     ];
+  }
+
+  private static expression(expr: TExpression): readonly TExpression[] {
+    return ExpressionNodes.direct(expr).flatMap((node) => [
+      node,
+      ...ExpressionNodes.namedTypes(node).flatMap(ExpressionNodes.of),
+    ]);
   }
 
   private static namedTypes(expr: TExpression): readonly TSyntaxPart[] {

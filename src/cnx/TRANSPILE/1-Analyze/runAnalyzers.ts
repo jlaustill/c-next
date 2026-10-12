@@ -228,7 +228,7 @@ function runAnalyzers(
       // written, so before the enum values and the array dimensions that
       // would each report it as a value with no size (E0909, #1268 review)
       label: "division by zero (ADR-051: compile-time detection)",
-      run: () => new DivisionByZeroAnalyzer(context).analyze(tree),
+      run: () => new DivisionByZeroAnalyzer(context).analyze(parsed.program),
     },
     {
       // #1531: before anything reads a bitmap's fields or an enum's values.

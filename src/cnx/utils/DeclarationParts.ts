@@ -64,9 +64,7 @@ class DeclarationParts {
     }
   }
 
-  private static statements(
-    statements: readonly TStatement[],
-  ): readonly TSyntaxPart[] {
+  static statements(statements: readonly TStatement[]): readonly TSyntaxPart[] {
     return statements.flatMap((statement) => [
       ...DeclarationParts.statement(statement),
       ...DeclarationParts.statements(StatementChildren.of(statement)),
