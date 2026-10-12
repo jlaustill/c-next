@@ -134,6 +134,43 @@ describe("Program", () => {
     });
   });
 
+  // #2019: the names a header-reaching file may not leave to the header --
+  // those it declares itself, above where the declaration closes (ADR-030).
+  describe("a declaration of this file that has not closed", () => {
+    const build = (source: string) =>
+      Program.build([declare(source, "a.cnx")], { cppMode: false });
+
+    it("is a global above its declaration, bare or through `global.`", () => {
+      const program = build("u32 a <- b + 1;\nu32 b <- 1;\nu32 c <- b;");
+      const above = { line: 1, column: 9 };
+      expect(program.isUnclosedAt("a.cnx", null, "b", above)).toBe(true);
+      expect(program.isUnclosedAt("a.cnx", "global", "b", above)).toBe(true);
+      // negative controls: below the declaration, and a name nothing declares
+      const below = { line: 3, column: 9 };
+      expect(program.isUnclosedAt("a.cnx", null, "b", below)).toBe(false);
+      expect(program.isUnclosedAt("a.cnx", null, "zz", above)).toBe(false);
+    });
+
+    it("is a local in its own initializer", () => {
+      const program = build("void f() { u32 n <- n + 1; u32 m <- n; }");
+      const own = { line: 1, column: 20 };
+      expect(program.isUnclosedAt("a.cnx", null, "n", own)).toBe(true);
+      // negative control: a later declaration reads the closed one
+      const later = { line: 1, column: 36 };
+      expect(program.isUnclosedAt("a.cnx", null, "n", later)).toBe(false);
+    });
+
+    it("is a scope member above its declaration through `this.`", () => {
+      const program = build(
+        "scope S {\n  public void f() { this.x <- 1; this.y <- 1; }\n  u32 x;\n}\n",
+      );
+      const use = { line: 2, column: 20 };
+      expect(program.isUnclosedAt("a.cnx", "this", "x", use)).toBe(true);
+      // negative control: a member S does not declare
+      expect(program.isUnclosedAt("a.cnx", "this", "y", use)).toBe(false);
+    });
+  });
+
   describe("the copy a scope holds", () => {
     it("settles a scope member's parameter type, not just the file's own list", () => {
       // `IScopeSymbol.functions` is type-bearing, and it was excluded from the
@@ -1085,6 +1122,7 @@ scope Gauge {
         "isOpaqueType",
         "isScopeTypeVisibleFrom",
         "isTypeNameAt",
+        "isUnclosedAt",
         "knownEnums",
         "lexicalDeclarationAt",
         "lexicalFrameAt",
