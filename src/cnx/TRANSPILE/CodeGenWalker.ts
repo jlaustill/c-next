@@ -41,6 +41,8 @@ import ICodeGeneratorOptions from "./3-Render/codegen/types/ICodeGeneratorOption
 import TypeValidator from "./3-Render/codegen/TypeValidator";
 import IGeneratorOutput from "./3-Render/codegen/generators/IGeneratorOutput";
 import EmissionPlan from "./2-Plan/EmissionPlan";
+import ComplianceAnnotations from "./2-Plan/ComplianceAnnotations";
+import emittedLocalName from "../utils/emittedLocalName";
 import DeclarationPlan from "./2-Plan/DeclarationPlan";
 import CastRequirement from "./2-Plan/CastRequirement";
 import OperandTyper from "../utils/OperandTyper";
@@ -957,12 +959,29 @@ class CodeGenWalker {
     return result;
   }
 
+  /**
+   * #1643 review: the comment lines that cite why a declaration is emitted
+   * under a moved name -- empty when it keeps its own
+   */
+  private nameMoveComments(
+    decl: Pick<IVariableDeclarationSyntax, "name" | "nameSpan">,
+  ): string {
+    const local = this.host.state.ownLocalDeclaration(decl);
+    return local
+      ? ComplianceAnnotations.renderMoves(
+          local.nameMoves,
+          local.name,
+          emittedLocalName(local),
+        )
+      : "";
+  }
+
   private renderStatementCode(statement: TStatement): string {
     switch (statement.kind) {
       case "variableDeclaration":
       case "constructorDeclaration":
         return (
-          this.host.state.ownNameMoveComments(statement) +
+          this.nameMoveComments(statement) +
           VariableDeclHelper.renderVariableDecl(
             this.planVariableDecl(statement),
             this.host.state,
@@ -4384,7 +4403,7 @@ class CodeGenWalker {
       volatile: modifiers.volatile,
       typeName,
       emittedName: this.host.state.ownEmittedName(decl),
-      nameMoveComments: this.host.state.ownNameMoveComments(decl),
+      nameMoveComments: this.nameMoveComments(decl),
       renderArrayDimensions:
         decl.dimensions.length > 0
           ? () => this.renderLoweredDimensions(decl.dimensions)
