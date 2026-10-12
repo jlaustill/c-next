@@ -741,6 +741,12 @@ not constant -- is emitted as a `static const` object and named where it is
 used: `const string<8> NAME <- "abc";` in `scope S` is
 `static const char S__NAME[9] = "abc";`.
 
+A bool or enum const has a value as its literal or member does, so it also
+sizes an array the way the literal or member does: `const EMode MODE <-
+EMode.STOP; u8[MODE] buf;` is `uint8_t buf[2]`. Owner ruling, 2026-10-12
+(#2014): _"Yes, the same way its literal or enum member does"_. Whether a bool
+may size an array at all is #2025.
+
 The initializer's source text is never a value. Whether a const is inlined is
 one decision, asked both where the declaration is planned and wherever the
 const is named -- an expression, `this.`, or a `case` label.
