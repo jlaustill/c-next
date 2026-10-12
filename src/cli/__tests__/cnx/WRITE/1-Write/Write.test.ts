@@ -11,11 +11,44 @@ describe("Write", () => {
     expect(fs.getWrittenContent("/out/sub/a.c")).toBe("int a;");
   });
 
-  it("creates no directory that already exists", () => {
+  it("creates a directory that already exists without failing", () => {
     const fs = new MockFileSystem().addDirectory("/out");
-    Write.file(fs, "/out/a.c", "int a;");
     Write.directory(fs, "/out");
-    expect(fs.getMkdirLog()).toEqual([]);
+    expect(fs.isDirectory("/out")).toBe(true);
+  });
+
+  // #1991: 3.1 only writes. Every read method of the port throws here, so a
+  // check before a write, such as `exists` before `mkdir`, fails the test.
+  it("reads nothing from the filesystem", () => {
+    const READS = new Set([
+      "readFile",
+      "exists",
+      "isDirectory",
+      "isFile",
+      "readdir",
+      "stat",
+      "realpath",
+    ]);
+    const mock = new MockFileSystem().addFile("/out/old.c", "int a;");
+    const fs = new Proxy(mock, {
+      get(target, name, receiver) {
+        if (typeof name === "string" && READS.has(name)) {
+          throw new Error(`3.1 read the filesystem: ${name}`);
+        }
+        return Reflect.get(target, name, receiver);
+      },
+    });
+
+    Write.file(fs, "/out/sub/a.c", "int a;");
+    Write.directory(fs, "/out/sub");
+    Write.move(fs, "/out/old.c", "/elsewhere/main.c");
+    Write.remove(fs, "/out/sub/a.c");
+
+    expect(mock.getMkdirLog().map((entry) => entry.path)).toEqual([
+      "/out/sub",
+      "/out/sub",
+      "/elsewhere",
+    ]);
   });
 
   it("removes a file", () => {

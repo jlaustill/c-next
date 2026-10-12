@@ -22,11 +22,12 @@ class Write {
     fs.writeFile(path, content);
   }
 
-  /** Create `path` and its parents, if it does not exist yet. */
+  /**
+   * Create `path` and its parents. A recursive `mkdir` is a no-op on a
+   * directory that exists, so 3.1 asks the filesystem nothing first (#1991).
+   */
   static directory(fs: IFileSystem, path: string): void {
-    if (!fs.exists(path)) {
-      fs.mkdir(path, { recursive: true });
-    }
+    fs.mkdir(path, { recursive: true });
   }
 
   /** Delete the file at `path`. */
