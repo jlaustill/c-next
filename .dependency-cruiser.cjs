@@ -107,7 +107,7 @@ const PARSE_TREE_TYPES = [
  * fails exactly as if it had imported the grammar.
  */
 const PARSE_TREE_HELPERS = [
-  "^src/cnx/utils/(ChainRoot|ExpressionUnwrapper|OverflowBehaviorUtils|ParserUtils)\\.ts$",
+  "^src/cnx/utils/(OverflowBehaviorUtils|ParserUtils)\\.ts$",
 ];
 
 /** @type {import('dependency-cruiser').IConfiguration} */
