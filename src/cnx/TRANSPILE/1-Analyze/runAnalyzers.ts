@@ -281,7 +281,7 @@ function runAnalyzers(
     },
     {
       label: "array index type (ADR-054: unsigned indexes only)",
-      run: () => new ArrayIndexTypeAnalyzer(context).analyze(tree),
+      run: () => new ArrayIndexTypeAnalyzer(context).analyze(parsed.program),
     },
     {
       label:

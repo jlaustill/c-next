@@ -14,12 +14,11 @@
  * accepted (#1694). A prefix operator (`-i`) was not typed at all.
  */
 
-import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
-import { ParseTreeWalker } from "antlr4ng";
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import IArrayIndexTypeError from "./types/IArrayIndexTypeError";
-import ParserUtils from "../../utils/ParserUtils";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type TExpression from "../../types/syntax/TExpression";
+import DeclarationParts from "../../utils/DeclarationParts";
+import ExpressionNodes from "../../utils/ExpressionNodes";
 import OperandTyper from "../../utils/OperandTyper";
 import type IOperandType from "../../types/IOperandType";
 import type IAnalysisContext from "./types/IAnalysisContext";
@@ -27,49 +26,35 @@ import type IAnalysisContext from "./types/IAnalysisContext";
 /**
  * Validate subscript index expressions use unsigned integer types
  */
-class IndexTypeListener extends CNextListener {
+class IndexTypeCheck {
   constructor(
     private readonly analyzer: ArrayIndexTypeAnalyzer,
     private readonly context: IAnalysisContext,
-  ) {
-    super();
+  ) {}
+
+  /** Every subscript of `expr`'s own chain; nested chains arrive on their own */
+  public checkExpression(expr: TExpression): void {
+    if (expr.kind !== "postfix") return;
+    for (const op of expr.ops) {
+      if (op.kind !== "subscript") continue;
+      for (const index of op.indexes) this.validateIndexExpression(index);
+    }
   }
-
-  /**
-   * Check postfix operations in expressions (RHS: arr[idx], flags[bit])
-   */
-  override enterPostfixOp = (ctx: Parser.PostfixOpContext): void => {
-    if (!ctx.LBRACKET()) return;
-    for (const expr of ctx.expression()) {
-      this.validateIndexExpression(expr);
-    }
-  };
-
-  /**
-   * Check postfix target operations in assignments (LHS: arr[idx] <- val)
-   */
-  override enterPostfixTargetOp = (
-    ctx: Parser.PostfixTargetOpContext,
-  ): void => {
-    if (!ctx.LBRACKET()) return;
-    for (const expr of ctx.expression()) {
-      this.validateIndexExpression(expr);
-    }
-  };
 
   /**
    * Validate that a subscript index uses an unsigned integer type: each value
    * leaf of it, reported once, at the index.
    */
-  private validateIndexExpression(ctx: Parser.ExpressionContext): void {
-    for (const leaf of OperandTyper.valueLeaves(
-      SyntaxLowering.expressionNode(ctx),
-      this.context,
-    )) {
-      const verdict = IndexTypeListener.verdictOf(leaf);
+  private validateIndexExpression(index: TExpression): void {
+    for (const leaf of OperandTyper.valueLeaves(index, this.context)) {
+      const verdict = IndexTypeCheck.verdictOf(leaf);
       if (verdict === null) continue;
-      const { line, column } = ParserUtils.getPosition(ctx);
-      this.analyzer.addError(line, column, verdict.code, verdict.actualType);
+      this.analyzer.addError(
+        index.span.line,
+        index.span.column,
+        verdict.code,
+        verdict.actualType,
+      );
       return;
     }
   }
@@ -88,7 +73,7 @@ class IndexTypeListener extends CNextListener {
         ? { code: "E0851", actualType: "float literal" }
         : null;
     }
-    const spelling = IndexTypeListener.spelling(leaf);
+    const spelling = IndexTypeCheck.spelling(leaf);
     if (leaf.dimensions.length > 0)
       return { code: "E0852", actualType: spelling };
     switch (leaf.category) {
@@ -129,14 +114,18 @@ class ArrayIndexTypeAnalyzer {
   /**
    * Analyze the parse tree for invalid subscript index types
    */
-  public analyze(tree: Parser.ProgramContext): IArrayIndexTypeError[] {
+  /** #1991: reads 1.2's syntax, not the parse tree */
+  public analyze(program: IProgramSyntax): IArrayIndexTypeError[] {
     this.errors = [];
-    ParseTreeWalker.DEFAULT.walk(
-      new IndexTypeListener(this, this.context),
-      tree,
-    );
-
-    return this.errors;
+    const check = new IndexTypeCheck(this, this.context);
+    for (const member of program.declarations) {
+      for (const expr of DeclarationParts.of(member.declaration).flatMap(
+        ExpressionNodes.of,
+      )) {
+        check.checkExpression(expr);
+      }
+    }
+    return this.errors.sort((a, b) => a.line - b.line || a.column - b.column);
   }
 
   /**
