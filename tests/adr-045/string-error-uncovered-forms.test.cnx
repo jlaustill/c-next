@@ -41,9 +41,9 @@ u32 main() {
     // `tests/adr-035/array-init-error`; a second copy here would be decided
     // by a later step and never reached while this file's E0862 halts first.)
 
-    // ASSERTION 4 -- a source wider than its destination. The copy would
-    // truncate silently, so it is rejected rather than narrowed.
-    string<8> narrow <- okSource;
+    // (A source wider than its destination was ASSERTION 4 here. Whether a
+    // copy fits is decided by a later step than this file's E0862, which
+    // halts first, so it is asserted by `string-error-uncovered-fit`.)
 
     return 0;
 }

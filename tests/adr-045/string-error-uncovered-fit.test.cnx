@@ -1,0 +1,18 @@
+// test-error
+// test-adr: 045
+// A source wider than its destination, which had no fixture before #1322.
+// Split from `string-error-uncovered-forms` (#1991): those rules are syntax and
+// halt before this one, which needs the source's declared capacity.
+
+string<16> okSource <- "wide";
+
+u32 main() {
+    // NEGATIVE CONTROL -- the same width fits.
+    string<16> sameWidth <- okSource;
+
+    // ASSERTION -- the copy would truncate silently, so it is rejected rather
+    // than narrowed.
+    string<8> narrow <- okSource;
+
+    return 0;
+}

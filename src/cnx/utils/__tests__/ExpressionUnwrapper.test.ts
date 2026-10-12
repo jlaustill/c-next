@@ -89,22 +89,6 @@ describe("ExpressionUnwrapper", () => {
     });
   });
 
-  describe("getAdditiveExpression", () => {
-    it("should extract additive from simple expression", () => {
-      const expr = parseExpression("myVar");
-      const additive = ExpressionUnwrapper.getAdditiveExpression(expr);
-
-      expect(additive).not.toBeNull();
-    });
-
-    it("should return null for comparison expression", () => {
-      const expr = parseExpression("a > b");
-      const additive = ExpressionUnwrapper.getAdditiveExpression(expr);
-
-      expect(additive).toBeNull();
-    });
-  });
-
   // #1445: these two shapes moved here from StringOperationsHelper, which
   // asked them of the tree before it could ask the type registry anything.
   // The assertions are its assertions -- including both of its regressions.

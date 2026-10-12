@@ -14,6 +14,7 @@ import CommentScanner from "./CommentScanner";
 import ProgramLowering from "./ProgramLowering";
 import IdentifierForm from "./IdentifierForm";
 import ArrayForm from "./ArrayForm";
+import StringForm from "./StringForm";
 import LiteralForm from "./LiteralForm";
 import IParsedFile from "../../types/IParsedFile";
 import ITranspileError from "../../types/ITranspileError";
@@ -220,6 +221,7 @@ class CNextSourceParser {
             ...LiteralForm.errorsIn(tokenStream),
             ...IdentifierForm.errorsIn(tree),
             ...ArrayForm.errorsIn(tree),
+            ...StringForm.errorsIn(tree),
           ];
     const declarationCount = tree.declaration().length;
 

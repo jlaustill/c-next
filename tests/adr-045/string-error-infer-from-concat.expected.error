@@ -1,0 +1,2 @@
+12:20 error[E0862]: A const string without a capacity requires a string literal to infer it from
+       help: Write the capacity, e.g. string<64>. A capacity can only be inferred from a literal.

@@ -100,23 +100,6 @@ class ExpressionUnwrapper {
     if (!unary?.postfixExpression()) return null;
     return unary.postfixExpression()!;
   }
-
-  /**
-   * Navigate from ExpressionContext to AdditiveExpressionContext.
-   * Returns null if the expression has multiple terms at outer levels.
-   *
-   * Use this when you need to check for additive operations (+, -)
-   */
-  static getAdditiveExpression(
-    ctx: Parser.ExpressionContext,
-  ): Parser.AdditiveExpressionContext | null {
-    const shift = this.navigateToShift(ctx);
-    if (!shift) return null;
-
-    if (shift.additiveExpression().length !== 1) return null;
-
-    return shift.additiveExpression()[0];
-  }
 }
 
 export default ExpressionUnwrapper;

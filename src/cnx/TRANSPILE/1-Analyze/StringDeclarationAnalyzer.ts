@@ -1,5 +1,17 @@
+import ExpressionShape from "../../utils/ExpressionShape";
+import StatementNodes from "../../utils/StatementNodes";
+import StringUtils from "../../utils/StringUtils";
+import OperandTyper from "../../utils/OperandTyper";
+import IStringDeclarationError from "./types/IStringDeclarationError";
+import ConstantExpression from "./helpers/ConstantExpression";
+import type IAnalysisContext from "./types/IAnalysisContext";
+import type ISourceSpan from "../../types/ISourceSpan";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type IVariableDeclarationSyntax from "../../types/syntax/IVariableDeclarationSyntax";
+import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
+import type TExpression from "../../types/syntax/TExpression";
 /**
- * ADR-045 string declarations: E0862-E0866.
+ * ADR-045 string declarations: whether an initializer fits, E0864-E0865.
  *
  * #1322. Fourteen throws in `StringDeclHelper`, all reaching the user as `1:0`.
  *
@@ -22,169 +34,82 @@
  * capacity, which is `IDeclaredVar.stringCapacity`: a literal's is its length,
  * a variable's is what its declaration said.
  *
- * `CodeGenState.inFunctionBody` is what codegen asked for the file-scope
- * question. It is a generation-time cursor and does not exist when this pass
- * runs; the parse tree answers the same question by position.
+ * #1991: those capacity rules and the file-scope form are syntax, so 1.2's
+ * `StringForm` reports them (E0862/E0863). This pass reads 1.2's declarations
+ * and asks only whether an initializer fits (E0864/E0865).
  */
 
-import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
-import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
-
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import ExpressionUnwrapper from "../../utils/ExpressionUnwrapper";
-import ParserUtils from "../../utils/ParserUtils";
-import StringUtils from "../../utils/StringUtils";
-import OperandTyper from "../../utils/OperandTyper";
-import IStringDeclarationError from "./types/IStringDeclarationError";
-import ConstantExpression from "./helpers/ConstantExpression";
-import type IAnalysisContext from "./types/IAnalysisContext";
-
 /** What a string-valued expression can hold, or null if it is not one. */
+interface ISubstring {
+  readonly start: number | null;
+  readonly length: number | null;
+  readonly sourceCapacity: number;
+}
+
 interface IStringSource {
   readonly capacity: number;
   readonly isLiteral: boolean;
 }
 
-class StringDeclarationListener extends CNextListener {
+/** The declarations 1.2 returned, each string's initializer checked against its capacity */
+class StringDeclarationCheck {
   private readonly found: IStringDeclarationError[] = [];
 
-  public constructor(private readonly context: IAnalysisContext) {
-    super();
-  }
+  public constructor(private readonly context: IAnalysisContext) {}
 
   public errors(): IStringDeclarationError[] {
     return this.found;
   }
 
-  override enterVariableDeclaration = (
-    ctx: Parser.VariableDeclarationContext,
-  ): void => {
-    const typeCtx = ctx.type();
-    const arrayType = typeCtx.arrayType?.();
-    const stringCtx = arrayType?.stringType?.() ?? typeCtx.stringType();
-    if (!stringCtx) return;
-
-    const isArray = arrayType?.stringType?.() !== undefined;
-    const declared = stringCtx.INTEGER_LITERAL();
-    const expression = ctx.expression();
-    const isConst = StringDeclarationListener.isConstDeclaration(ctx);
-
-    if (
-      !this.checkCapacityIsStated(
-        stringCtx,
-        declared,
-        isArray,
-        isConst,
-        expression,
-      )
-    ) {
+  public declaration(declaration: TDeclarationSyntax): void {
+    if (declaration.kind === "scope") {
+      for (const member of declaration.members) {
+        this.declaration(member.declaration);
+      }
       return;
     }
-    if (declared === null) return; // an inferred const capacity always fits
-
-    const capacity = Number.parseInt(declared.getText(), 10);
-    if (!expression) return;
-
-    if (isArray) {
-      // #1322: a string ARRAY's initializer -- a list, of the declared size --
-      // is the same rule for every element type, and it is asked once, in
-      // `ArrayDeclarationAnalyzer` (ADR-035, E0866). The capacity rules below
-      // are about one string.
+    if (declaration.kind === "variableDeclaration") {
+      this.variable(declaration, false);
       return;
     }
-    if (!this.checkFileScopeForm(ctx, expression)) return;
-    this.checkFit(ctx, expression, capacity);
-  };
-
-  /**
-   * A declaration has to state a capacity, or be a `const` this pass can infer
-   * one from. Four throws, one question.
-   */
-  private checkCapacityIsStated(
-    stringCtx: Parser.StringTypeContext,
-    declared: unknown,
-    isArray: boolean,
-    isConst: boolean,
-    expression: Parser.ExpressionContext | null,
-  ): boolean {
-    if (declared !== null) return true;
-
-    if (isArray) {
-      this.report(
-        stringCtx,
-        "E0862",
-        "A string array requires an explicit capacity",
-        "Write the element capacity, e.g. string<64>[4].",
-      );
-      return false;
+    if (declaration.kind !== "function") return;
+    for (const statement of StatementNodes.of(declaration.body.statements)) {
+      if (statement.kind === "variableDeclaration") {
+        this.variable(statement, true);
+      }
     }
-    if (!isConst) {
-      this.report(
-        stringCtx,
-        "E0862",
-        "A non-const string requires an explicit capacity",
-        "Write the capacity, e.g. string<64>. Only a `const` can have one inferred.",
-      );
-      return false;
-    }
-    if (!expression) {
-      this.report(
-        stringCtx,
-        "E0862",
-        "A const string without a capacity requires an initializer to infer it from",
-        "Write the capacity, e.g. string<64>, or initialize it with a literal.",
-      );
-      return false;
-    }
-    if (StringDeclarationListener.literalOf(expression) === null) {
-      this.report(
-        expression,
-        "E0862",
-        "A const string without a capacity requires a string literal to infer it from",
-        "Write the capacity, e.g. string<64>. A capacity can only be inferred from a literal.",
-      );
-      return false;
-    }
-    return true;
   }
 
-  /**
-   * At file scope a string may only be initialized by a literal.
-   *
-   * Returns false when it reported, so the fit checks below do not also fire on
-   * an initializer that cannot be there at all.
-   */
-  private checkFileScopeForm(
-    ctx: Parser.VariableDeclarationContext,
-    expression: Parser.ExpressionContext,
-  ): boolean {
-    if (StringDeclarationListener.isInsideFunction(ctx)) return true;
-    if (StringDeclarationListener.literalOf(expression) !== null) return true;
-
-    this.report(
-      expression,
-      "E0863",
-      `A string at file scope may only be initialized by a literal, not '${expression.getText()}'`,
-      "Copying, concatenating and extracting a substring all need runtime calls, which C cannot make before `main`. Move the declaration into a function, or initialize it empty and assign later.",
+  private variable(
+    declaration: IVariableDeclarationSyntax,
+    insideFunction: boolean,
+  ): void {
+    const type = declaration.type;
+    // An inferred const capacity always fits; a string array's elements are
+    // checked where they are written
+    if (type.kind !== "string" || type.capacity === null) return;
+    const initializer = declaration.initializer;
+    if (initializer === null) return;
+    // 1.2 reported any other file-scope initializer (E0863)
+    if (!insideFunction && !ExpressionShape.isStringLiteral(initializer))
+      return;
+    this.checkFit(
+      declaration.span,
+      initializer,
+      Number.parseInt(type.capacity, 10),
     );
-    return false;
   }
 
-  /** The initializer has to fit the declared capacity. */
   private checkFit(
-    ctx: Parser.VariableDeclarationContext,
-    expression: Parser.ExpressionContext,
+    at: ISourceSpan,
+    expression: TExpression,
     capacity: number,
   ): void {
-    const at: ParserRuleContext = ctx;
-
     const substring = this.substringOf(expression, at);
     if (substring !== null) {
       this.checkSubstring(expression, substring, capacity);
       return;
     }
-
     const concat = this.concatOf(expression, at);
     if (concat !== null) {
       const required = concat[0] + concat[1];
@@ -198,10 +123,8 @@ class StringDeclarationListener extends CNextListener {
       }
       return;
     }
-
     const source = this.stringSourceOf(expression, at);
     if (source === null) return;
-
     if (source.isLiteral && source.capacity > capacity) {
       this.report(
         expression,
@@ -222,15 +145,13 @@ class StringDeclarationListener extends CNextListener {
   }
 
   private checkSubstring(
-    expression: Parser.ExpressionContext,
-    substring: {
-      start: number | null;
-      length: number | null;
-      sourceCapacity: number;
-    },
+    expression: TExpression,
+    substring: ISubstring,
     capacity: number,
   ): void {
-    const { start, length, sourceCapacity } = substring;
+    const start = substring.start;
+    const length = substring.length;
+    const sourceCapacity = substring.sourceCapacity;
     if (start !== null && length !== null && start + length > sourceCapacity) {
       this.report(
         expression,
@@ -250,183 +171,106 @@ class StringDeclarationListener extends CNextListener {
     }
   }
 
-  // --- The facts the rules above are asked of ------------------------------
-
-  /** A string-valued expression's capacity: a literal's length, or a declared one. */
   private stringSourceOf(
-    expression: Parser.ExpressionContext,
-    at: ParserRuleContext,
+    expression: TExpression,
+    at: ISourceSpan,
   ): IStringSource | null {
-    const literal = StringDeclarationListener.literalOf(expression);
-    if (literal !== null) {
-      return { capacity: StringUtils.literalLength(literal), isLiteral: true };
+    if (
+      expression.kind === "literal" &&
+      ExpressionShape.isStringLiteral(expression)
+    ) {
+      return {
+        capacity: StringUtils.literalLength(expression.text),
+        isLiteral: true,
+      };
     }
-    const name = expression.getText();
-    const capacity = this.capacityOfName(name, at);
+    const capacity = this.capacityOfOperand(expression, at);
     return capacity === null ? null : { capacity, isLiteral: false };
   }
 
-  /**
-   * A declared string's capacity, from this file's frames or the run-wide view.
-   *
-   * The name binds through Program's one binder (#1668), so a local still
-   * shadows an imported declaration, written once here rather than at each
-   * of the three places that ask.
-   */
-  private capacityOfName(name: string, at: ParserRuleContext): number | null {
-    if (!/^[A-Za-z_]\w*$/.test(name)) return null;
-    const t = OperandTyper.typeOfName(
-      name,
-      ParserUtils.getPosition(at),
-      this.context,
-    );
+  private capacityOfName(name: string, at: ISourceSpan): number | null {
+    const t = OperandTyper.typeOfName(name, at, this.context);
     return t !== null && t.dimensions.length === 0 ? t.stringCapacity : null;
   }
 
-  /** `left + right` where BOTH operands are strings, as their capacities. */
   private concatOf(
-    expression: Parser.ExpressionContext,
-    at: ParserRuleContext,
+    expression: TExpression,
+    at: ISourceSpan,
   ): [number, number] | null {
-    const additive = ExpressionUnwrapper.getAdditiveExpression(expression);
-    if (!additive) return null;
-    const operands = additive.multiplicativeExpression();
-    // Exactly two operands, joined by `+` -- a `-` is not a concatenation, and
-    // the token is checked rather than the text, which would match a hyphen
-    // inside an identifier or a literal.
-    if (operands.length !== 2 || additive.MINUS().length > 0) return null;
-
-    const left = this.capacityOfOperand(operands[0], at);
-    const right = this.capacityOfOperand(operands[1], at);
+    const operands = ExpressionShape.additionOperands(expression);
+    if (operands === null) return null;
+    const left = this.capacityOfConcatOperand(operands[0], at);
+    const right = this.capacityOfConcatOperand(operands[1], at);
     return left !== null && right !== null ? [left, right] : null;
   }
 
-  private capacityOfOperand(
-    operand: ParserRuleContext,
-    at: ParserRuleContext,
+  private capacityOfConcatOperand(
+    operand: TExpression,
+    at: ISourceSpan,
   ): number | null {
-    const text = operand.getText();
-    if (text.startsWith('"') && text.endsWith('"')) {
-      return StringUtils.literalLength(text);
+    if (
+      operand.kind === "literal" &&
+      ExpressionShape.isStringLiteral(operand)
+    ) {
+      return StringUtils.literalLength(operand.text);
     }
-    return this.capacityOfName(text, at);
+    return this.capacityOfOperand(operand, at);
   }
 
-  /** `src[start, length]`, or `src[i]` which is sugar for `src[i, 1]`. */
+  /** A bare name's capacity; anything else has none this check can read */
+  private capacityOfOperand(
+    operand: TExpression,
+    at: ISourceSpan,
+  ): number | null {
+    const name = ExpressionShape.simpleIdentifier(operand);
+    return name === null ? null : this.capacityOfName(name, at);
+  }
+
   private substringOf(
-    expression: Parser.ExpressionContext,
-    at: ParserRuleContext,
-  ): {
-    start: number | null;
-    length: number | null;
-    sourceCapacity: number;
-  } | null {
-    const postfix = ExpressionUnwrapper.getPostfixExpression(expression);
-    if (!postfix) return null;
-    const ops = postfix.postfixOp();
-    if (ops.length !== 1) return null;
-
-    const sourceName = postfix.primaryExpression()?.IDENTIFIER()?.getText();
-    if (!sourceName) return null;
-
-    const capacity = this.capacityOfName(sourceName, at);
+    expression: TExpression,
+    at: ISourceSpan,
+  ): ISubstring | null {
+    const subscripted = ExpressionShape.subscriptedIdentifier(expression);
+    if (subscripted === null) return null;
+    const capacity = this.capacityOfName(subscripted.name, at);
     if (capacity === null) return null;
-
-    const subscripts = ops[0].expression();
-    if (subscripts.length === 2) {
-      return {
-        start: this.constantOf(subscripts[0]),
-        length: this.constantOf(subscripts[1]),
-        sourceCapacity: capacity,
-      };
-    }
-    if (subscripts.length === 1) {
-      // `src[i]` is one character, which ADR-045 defines as `src[i, 1]`.
-      return {
-        start: this.constantOf(subscripts[0]),
-        length: 1,
-        sourceCapacity: capacity,
-      };
-    }
-    return null;
+    const indexes = subscripted.indexes;
+    return {
+      start: this.constantOf(indexes[0]),
+      length: indexes.length === 2 ? this.constantOf(indexes[1]) : 1,
+      sourceCapacity: capacity,
+    };
   }
 
-  // --- Static helpers -------------------------------------------------------
-
-  /** The string literal an expression IS, or null. */
-  private static literalOf(
-    expression: Parser.ExpressionContext,
-  ): string | null {
-    const text = expression.getText();
-    return text.startsWith('"') && text.endsWith('"') && text.length >= 2
-      ? text
-      : null;
-  }
-
-  private static isConstDeclaration(
-    ctx: Parser.VariableDeclarationContext,
-  ): boolean {
-    // Ask the grammar, not the text. The rule orders the modifiers
-    // `atomicModifier? volatileModifier? constModifier?`, so the text of
-    // `volatile const string s <- "x"` begins with the volatile keyword and a
-    // `startsWith("const")` test read it as NON-const -- rejecting valid
-    // C-Next with E0862 ("a non-const string requires an explicit capacity")
-    // on a declaration that is const. Every `atomic`/`volatile` unsized string was unreachable,
-    // which is also what hid the qualifier drop in `StringDeclHelper`'s
-    // unsized arm: nothing could get there to expose it.
-    //
-    // `VariableModifierBuilder.build` already asked this way; this was the
-    // second derivation of one predicate, and the text one was the wrong one.
-    return ctx.constModifier() !== null;
-  }
-
-  /**
-   * Whether the declaration sits inside a function body.
-   *
-   * `CodeGenState.inFunctionBody` is the generation-time cursor codegen asked;
-   * position in the tree is the same fact, available now.
-   */
-  private static isInsideFunction(ctx: ParserRuleContext): boolean {
-    let node: ParserRuleContext | null = ctx.parent;
-    while (node) {
-      if (node instanceof Parser.FunctionDeclarationContext) return true;
-      node = node.parent;
-    }
-    return false;
-  }
-
-  /**
-   * #1322 review: the flat const map answers "whichever scope declared this
-   * name last". A string index or slice bound named by a scoped const was
-   * measured against the wrong one; `ConstantExpression` asks from where the
-   * bound is written, locals included.
-   */
-  private constantOf(expr: Parser.ExpressionContext): number | null {
-    return ConstantExpression.valueAt(
-      SyntaxLowering.expression(expr),
-      this.context,
-    );
+  private constantOf(expr: TExpression): number | null {
+    return ConstantExpression.valueAt(expr, this.context);
   }
 
   private report(
-    at: ParserRuleContext,
+    at: TExpression,
     code: string,
     message: string,
     helpText: string,
   ): void {
-    const { line, column } = ParserUtils.getPosition(at);
-    this.found.push({ code, line, column, message, helpText });
+    this.found.push({
+      code,
+      line: at.span.line,
+      column: at.span.column,
+      message,
+      helpText,
+    });
   }
 }
 
 class StringDeclarationAnalyzer {
-  /** #1456: handed in rather than read off shared state. */
   constructor(private readonly context: IAnalysisContext) {}
 
-  public analyze(tree: Parser.ProgramContext): IStringDeclarationError[] {
-    const listener = new StringDeclarationListener(this.context);
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
-    return listener.errors();
+  public analyze(program: IProgramSyntax): IStringDeclarationError[] {
+    const check = new StringDeclarationCheck(this.context);
+    for (const member of program.declarations) {
+      check.declaration(member.declaration);
+    }
+    return check.errors();
   }
 }
 
