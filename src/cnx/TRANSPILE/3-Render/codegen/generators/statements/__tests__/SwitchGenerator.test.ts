@@ -127,7 +127,7 @@ describe("SwitchGenerator", () => {
       ],
       [
         "a plain identifier (a const)",
-        { kind: "identifier", name: "MAX_VALUE" },
+        { kind: "identifier", name: "MAX_VALUE", resolved: null },
         "MAX_VALUE",
       ],
       [
@@ -212,7 +212,9 @@ describe("SwitchGenerator", () => {
       const result = generate(
         planned({
           subjectEnumType: "State",
-          cases: [switchCase([{ kind: "identifier", name: "IDLE" }])],
+          cases: [
+            switchCase([{ kind: "identifier", name: "IDLE", resolved: null }]),
+          ],
         }),
         input,
       );
@@ -228,7 +230,11 @@ describe("SwitchGenerator", () => {
       const result = generate(
         planned({
           subjectEnumType: "State",
-          cases: [switchCase([{ kind: "identifier", name: "MAX_VALUE" }])],
+          cases: [
+            switchCase([
+              { kind: "identifier", name: "MAX_VALUE", resolved: null },
+            ]),
+          ],
         }),
         input,
       );

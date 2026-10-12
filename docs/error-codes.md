@@ -10,18 +10,18 @@ codes that already have a fixture.
 
 ## Error Code Ranges
 
-| Range     | Category                                       | Count   |
-| --------- | ---------------------------------------------- | ------- |
-| E00xx     | Reserved/Test                                  | 1       |
-| E02xx     | Identifier/Param Naming                        | 5       |
-| E03xx     | Struct Fields/Init                             | 6       |
-| E04xx     | Symbol Resolution                              | 16      |
-| E05xx     | Include/Preprocessor                           | 17      |
-| E06xx     | Sizeof Expressions                             | 2       |
-| E07xx     | Control Flow                                   | 14      |
-| E08xx     | Arithmetic/Array Safety                        | 58      |
-| E09xx     | NULL Safety, Compile-Time Values, Literal Form | 14      |
-| **Total** |                                                | **133** |
+| Range     | Category                                                           | Count   |
+| --------- | ------------------------------------------------------------------ | ------- |
+| E00xx     | Reserved/Test                                                      | 1       |
+| E02xx     | Identifier/Param Naming                                            | 5       |
+| E03xx     | Struct Fields/Init                                                 | 6       |
+| E04xx     | Symbol Resolution                                                  | 16      |
+| E05xx     | Include/Preprocessor                                               | 17      |
+| E06xx     | Sizeof Expressions                                                 | 2       |
+| E07xx     | Control Flow                                                       | 14      |
+| E08xx     | Arithmetic/Array Safety                                            | 58      |
+| E09xx     | NULL Safety, Compile-Time Values, Literal Form, String Conversions | 14      |
+| **Total** |                                                                    | **133** |
 
 ---
 
@@ -390,10 +390,15 @@ base: bare, `this.` and `global.`.
 
 ## E0912 — Integer Literal Form (ADR-044)
 
+| Code  | Message                                                                                    | Help                                                                      | Source                                             |
+| ----- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- | -------------------------------------------------- |
+| E0912 | A decimal integer literal has a leading zero; C-Next has no octal literal (ADR-044)        | Write the value in decimal without the leading zero, or as `0x…` or `0b…` | `TRANSPILE/1-Analyze/LiteralFormAnalyzer.ts`       |
+| E0913 | Array dimension is zero or negative (a literal, a folded const, or a header macro's value) | An array holds one element or more (C99 6.7.5.2, ADR-036)                 | `TRANSPILE/1-Analyze/ConstantDimensionAnalyzer.ts` |
+
+## E0914 — A String Into a Scalar (ADR-024)
+
 | Code  | Message                                                                                                                                                                           | Help                                                                                                          | Source                                             |
 | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| E0912 | A decimal integer literal has a leading zero; C-Next has no octal literal (ADR-044)                                                                                               | Write the value in decimal without the leading zero, or as `0x…` or `0b…`                                     | `TRANSPILE/1-Analyze/LiteralFormAnalyzer.ts`       |
-| E0913 | Array dimension is zero or negative (a literal, a folded const, or a header macro's value)                                                                                        | An array holds one element or more (C99 6.7.5.2, ADR-036)                                                     | `TRANSPILE/1-Analyze/ConstantDimensionAnalyzer.ts` |
 | E0914 | A string value (a literal or a `string<N>`) lands in an integer, float, bool, enum or bitmap target -- as the value, the value it parenthesizes or a ternary arm (ADR-024, #1739) | A string lands only in a `string<N>` (ADR-045); a `u8` array may be initialized by a string literal (ADR-035) | `TRANSPILE/1-Analyze/IntegerConversionAnalyzer.ts` |
 
 ---

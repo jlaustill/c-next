@@ -1,6 +1,9 @@
 // test-execution
 // Tests: a private scope const named in a scope variable's initializer is a
-// C constant expression there (C99 6.7.8p4), whatever its type
+// C constant expression there (C99 6.7.8p4), whatever its type -- a char
+// literal and a header macro included
+#include "limit.h"
+
 enum EMode {
     IDLE,
     RUN
@@ -16,6 +19,10 @@ scope S {
     const bool A <- true;
     const bool B <- A;
     bool copied <- B;
+    const u8 CH <- 'A';
+    u8 first <- CH;
+    const u32 FROM_MACRO <- LIMIT;
+    u32 fromMacro <- FROM_MACRO;
 
     public u32 check() {
         if (flag != true) {
@@ -29,6 +36,12 @@ scope S {
         }
         if (copied != true) {
             return 4;
+        }
+        if (first != 65) {
+            return 5;
+        }
+        if (fromMacro != 10) {
+            return 6;
         }
         return 0;
     }

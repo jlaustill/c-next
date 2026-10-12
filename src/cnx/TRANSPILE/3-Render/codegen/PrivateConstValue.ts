@@ -2,14 +2,16 @@ import type IProgram from "../../../types/IProgram";
 import type IVariableSymbol from "../../../types/symbols/IVariableSymbol";
 import type TSettledConst from "../../../types/TSettledConst";
 import QualifiedCName from "../../../utils/QualifiedCName";
+import ConstantFold from "../../../utils/ConstantFold";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import type TranspileState from "../../TranspileState";
 import type IGeneratorOutput from "./generators/IGeneratorOutput";
 import type IGeneratorState from "./generators/IGeneratorState";
 import generateLiteral from "./generators/expressions/LiteralGenerator";
 
-/** C's spelling of the most negative i64, which no literal reaches */
+/** The most negative i64, which no C literal reaches, and how C spells it */
 const I64_MIN = "-9223372036854775808";
+const I64_MIN_SPELLING = "(-9223372036854775807LL - 1)";
 
 /**
  * #1739: what a private scope const is written as where it is used, or null
@@ -27,8 +29,9 @@ const I64_MIN = "-9223372036854775808";
  * one): an integer is spelled as a literal of its type, a float as its value
  * held at its type, a bool as `true`/`false` and an enum as its member. Each
  * is rendered by `generateLiteral`, so it is spelled as a literal of its
- * declared type is. A const with no such value (a string, or one whose
- * initializer is not constant) is emitted.
+ * declared type. A char literal is that literal, and a name only a header
+ * knows (a macro) is that name, which C evaluates. A const with no such value
+ * (a string, or one whose initializer is not constant) is emitted.
  */
 class PrivateConstValue {
   static inlined(
@@ -36,26 +39,48 @@ class PrivateConstValue {
     transpileState: TranspileState,
     cName: string,
   ): IGeneratorOutput | null {
-    const program = transpileState.typingContext().program;
-    const symbol = program.symbolByCName(cName);
+    const symbol = transpileState.typingContext().program.symbolByCName(cName);
     if (symbol?.kind !== "variable" || !PrivateConstValue.canInline(symbol)) {
       return null;
     }
-    const text = PrivateConstValue.literalText(
-      program,
-      symbol,
-      program.settledConstOf(cName),
-    );
+    return PrivateConstValue.constant(generatorState, transpileState, cName);
+  }
+
+  /**
+   * Any const's value as a C constant expression, or null -- what a `case`
+   * label needs of a public or file-scope const too, which is emitted as an
+   * object C cannot switch on (C99 6.8.4.2p3)
+   */
+  static constant(
+    generatorState: IGeneratorState,
+    transpileState: TranspileState,
+    cName: string,
+  ): IGeneratorOutput | null {
+    const program = transpileState.typingContext().program;
+    const symbol = program.symbolByCName(cName);
+    if (
+      symbol?.kind !== "variable" ||
+      !symbol.isConst ||
+      symbol.isArray ||
+      symbol.initialValueExpr === undefined ||
+      symbol.initialValue === undefined
+    ) {
+      return null;
+    }
+    const settled = program.settledConstOf(cName);
+    if (settled?.kind === "value" && settled.digits === I64_MIN) {
+      return { code: I64_MIN_SPELLING, effects: [] };
+    }
+    const text = PrivateConstValue.literalText(program, symbol, settled);
     if (text === null) return null;
     // A literal has no sign: a negative value is the negated literal, in
     // parentheses so `-X` does not read as a decrement
     const negative = text.startsWith("-");
-    const settled = program.settledConstOf(cName)!;
     const output = generateLiteral(
       negative ? text.slice(1) : text,
       {
         ...generatorState,
-        expectedType: settled.kind === "value" ? settled.typeName : null,
+        expectedType: ConstantFold.typeNameOf(symbol.type),
       },
       transpileState,
     );
@@ -78,13 +103,41 @@ class PrivateConstValue {
       case "named":
         return PrivateConstValue.enumMember(program, settled);
       default:
-        return null;
+        return PrivateConstValue.unsettledText(symbol, settled);
     }
+  }
+
+  /**
+   * A constant 1.4 has no value for, which C does: a char literal, and a
+   * header macro named alone (parenthesized, as its expansion may not be one
+   * operand). Anything else is null.
+   */
+  private static unsettledText(
+    symbol: IVariableSymbol,
+    settled: TSettledConst | null,
+  ): string | null {
+    const expr = symbol.initialValueExpr!;
+    if (
+      settled?.kind === "notConstant" &&
+      settled.reason === "character" &&
+      expr.kind === "other" &&
+      expr.what === "character"
+    ) {
+      return symbol.initialValue!;
+    }
+    if (
+      settled?.kind === "foreign" &&
+      expr.kind === "name" &&
+      expr.root === null &&
+      expr.path.length === 1
+    ) {
+      return `(${expr.path[0]})`;
+    }
+    return null;
   }
 
   /** A literal initializer keeps its notation (`0xAB`); the rest are digits */
   private static integerText(symbol: IVariableSymbol, digits: string): string {
-    if (digits === I64_MIN) return "-9223372036854775807LL - 1";
     const expr = symbol.initialValueExpr!;
     return expr.kind === "literal" ? symbol.initialValue! : digits;
   }
@@ -134,15 +187,11 @@ class PrivateConstValue {
       : QualifiedCName.fromParts([settled.typeName, names[index]]);
   }
 
-  /** Issue #282/#500: a private, scalar scope const with an initializer */
+  /** Issue #282: a private scope const, which is never emitted when it has a value */
   private static canInline(symbol: IVariableSymbol): boolean {
     return (
       !ScopeUtils.isGlobalScopePath(symbol.scopePath) &&
-      symbol.visibility === "private" &&
-      symbol.isConst &&
-      !symbol.isArray &&
-      symbol.initialValueExpr !== undefined &&
-      symbol.initialValue !== undefined
+      symbol.visibility === "private"
     );
   }
 }

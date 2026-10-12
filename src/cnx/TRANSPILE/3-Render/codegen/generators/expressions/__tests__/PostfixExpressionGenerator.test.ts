@@ -762,6 +762,7 @@ describe("PostfixExpressionGenerator", () => {
         visibility: "private",
         isConst: true,
         isArray: false,
+        type: { kind: "primitive", primitive: "u32" },
         initialValue: "LIMIT * 2",
         initialValueExpr: { kind: "binary" },
       };

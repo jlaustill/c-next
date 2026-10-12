@@ -5,17 +5,22 @@
 
 #include "static-initializer.test.hpp"
 
+// test-execution
+// Tests: a private scope const named in a scope variable's initializer is a
+// C constant expression there (C99 6.7.8p4), whatever its type -- a char
+// literal and a header macro included
+#include "limit.h"
+
 #include <stdint.h>
 #include <stdbool.h>
 
-// test-execution
-// Tests: a private scope const named in a scope variable's initializer is a
-// C constant expression there (C99 6.7.8p4), whatever its type
 /* Scope: S */
 static bool S__flag = true;
 static float S__twice = 0.5f * 2.0;
 static EMode S__mode = EMode__RUN;
 static bool S__copied = true;
+static uint8_t S__first = static_cast<uint8_t>('A');
+static uint32_t S__fromMacro = (LIMIT);
 
 uint32_t S__check(void) {
     if (S__flag != true) {
@@ -29,6 +34,12 @@ uint32_t S__check(void) {
     }
     if (S__copied != true) {
         return 4U;
+    }
+    if (S__first != 65) {
+        return 5U;
+    }
+    if (S__fromMacro != 10) {
+        return 6U;
     }
     return 0U;
 }

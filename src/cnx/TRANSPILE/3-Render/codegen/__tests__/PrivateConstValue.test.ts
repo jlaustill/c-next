@@ -26,6 +26,10 @@ function stateWith(
     visibility: "private",
     isConst: true,
     isArray: false,
+    type: {
+      kind: "primitive",
+      primitive: settled?.kind === "value" ? settled.typeName : "u32",
+    },
     ...symbol,
   };
   const program = {
