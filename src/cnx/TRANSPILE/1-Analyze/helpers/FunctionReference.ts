@@ -26,6 +26,7 @@
 import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
 import SyntaxLowering from "../../../PARSE/2-Parse/SyntaxLowering";
 import IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
+import type TExpression from "../../../types/syntax/TExpression";
 import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
 import QualifiedCName from "../../../utils/QualifiedCName";
 import ScopeUtils from "../../../utils/ScopeUtils";
@@ -87,8 +88,21 @@ class FunctionReference {
     scopePath: string,
     context: IAnalysisContext,
   ): IFunctionSymbol | null {
-    const resolved = CalleeNameResolver.resolveDetailed(
+    return FunctionReference.ofCallChain(
       SyntaxLowering.expressionNode(postfix),
+      scopePath,
+      context,
+    );
+  }
+
+  /** The function a lowered call chain names (#1991) */
+  static ofCallChain(
+    chain: TExpression,
+    scopePath: string,
+    context: IAnalysisContext,
+  ): IFunctionSymbol | null {
+    const resolved = CalleeNameResolver.resolveDetailed(
+      chain,
       scopePath,
       (name) => context.symbols.knownScopes.has(name),
     );

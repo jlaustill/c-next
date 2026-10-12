@@ -199,7 +199,8 @@ function runAnalyzers(
       // settled before this pass.
       label:
         "C++ class initializers (Issue #517: no statement position at file scope)",
-      run: () => new CppClassInitializerAnalyzer(context).analyze(tree),
+      run: () =>
+        new CppClassInitializerAnalyzer(context).analyze(parsed.program),
     },
     {
       // #1090: a body's braces decide its scope. An unbraced declaration kept
@@ -418,7 +419,7 @@ function runAnalyzers(
     },
     {
       label: "struct initializers (ADR-014, E0357/E0358)",
-      run: () => new StructLiteralAnalyzer(context).analyze(tree),
+      run: () => new StructLiteralAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "bitmap access (ADR-034, E0881-E0883)",

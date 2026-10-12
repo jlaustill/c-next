@@ -42,47 +42,45 @@
  * may not import `output/`.
  */
 
-import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
-
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import CppConstructorHelper from "../../utils/CppConstructorHelper";
-import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type TExpression from "../../types/syntax/TExpression";
+import DeclarationParts from "../../utils/DeclarationParts";
+import ExpressionNodes from "../../utils/ExpressionNodes";
+import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
 import FunctionReference from "./helpers/FunctionReference";
-import StructInitializerType from "./helpers/StructInitializerType";
+import ValuePositions from "./helpers/ValuePositions";
+import type IValuePosition from "./types/IValuePosition";
 import ICppClassInitializerError from "./types/ICppClassInitializerError";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
-class CppClassInitializerListener extends CNextListener {
+class CppClassInitializerCheck {
   private readonly found: ICppClassInitializerError[] = [];
 
-  public constructor(private readonly context: IAnalysisContext) {
-    super();
-  }
+  public constructor(
+    private readonly context: IAnalysisContext,
+    private readonly positions: ReadonlyMap<TExpression, IValuePosition>,
+  ) {}
 
   public errors(): ICppClassInitializerError[] {
     return this.found;
   }
 
-  override enterStructInitializer = (
-    ctx: Parser.StructInitializerContext,
-  ): void => {
-    if (CppClassInitializerListener.insideFunctionBody(ctx)) return;
+  public checkExpression(init: TExpression): void {
+    if (init.kind !== "structInitializer") return;
 
-    const typeText = StructInitializerType.establishedTypeText(
-      ctx,
-      this.context,
-    );
+    const typeText = ValuePositions.at(this.positions, init).typeText;
     if (typeText === null) return; // E0357's to report
 
     const cppClass = this.cppClassWithConstructor(
       typeText,
-      OperandTyper.scopePathAt(ParserUtils.getPosition(ctx), this.context),
+      OperandTyper.scopePathAt(init.span, this.context),
     );
     if (cppClass === null) return;
 
-    const { line, column } = ParserUtils.getPosition(ctx);
+    const line = init.span.line;
+    const column = init.span.column;
     this.found.push({
       code: "E0508",
       line,
@@ -91,7 +89,7 @@ class CppClassInitializerListener extends CNextListener {
       helpText:
         "A class with a constructor is not an aggregate, so the fields are assigned one at a time -- and a declaration outside a function body has no statement to assign them in. Initialize it inside a function, or use constructor syntax.",
     });
-  };
+  }
 
   /**
    * The C++ name of the class this type text denotes, when it has a
@@ -118,36 +116,33 @@ class CppClassInitializerListener extends CNextListener {
     }
     return null;
   }
-
-  /**
-   * Whether a function body encloses this node.
-   *
-   * A scope METHOD counts -- it becomes a function. A scope MEMBER does not:
-   * it is emitted as a file-scope `static`, so it has no more room for a
-   * statement than a global does, which is the hole codegen's check had.
-   */
-  private static insideFunctionBody(ctx: ParserRuleContext): boolean {
-    let cursor: ParserRuleContext | null = ctx.parent;
-    while (cursor) {
-      if (cursor instanceof Parser.FunctionDeclarationContext) return true;
-      cursor = cursor.parent;
-    }
-    return false;
-  }
 }
 
 class CppClassInitializerAnalyzer {
   /** #1456: handed in rather than read off shared state. */
   constructor(private readonly context: IAnalysisContext) {}
 
-  public analyze(tree: Parser.ProgramContext): ICppClassInitializerError[] {
-    // C mode never emits a C++ class: a `.hpp` include in a C run is E0507,
-    // reported before this pass, so there is nothing here to decide.
+  /** #1991: reads 1.2's syntax; a function body's initializers are skipped */
+  public analyze(program: IProgramSyntax): ICppClassInitializerError[] {
     if (!this.context.program.cppMode()) return [];
-
-    const listener = new CppClassInitializerListener(this.context);
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
-    return listener.errors();
+    const check = new CppClassInitializerCheck(
+      this.context,
+      ValuePositions.of(program, this.context),
+    );
+    const visit = (declaration: TDeclarationSyntax): void => {
+      if (declaration.kind === "scope") {
+        for (const member of declaration.members) visit(member.declaration);
+        return;
+      }
+      if (declaration.kind === "function") return;
+      for (const expr of DeclarationParts.of(declaration).flatMap(
+        ExpressionNodes.of,
+      )) {
+        check.checkExpression(expr);
+      }
+    };
+    for (const member of program.declarations) visit(member.declaration);
+    return check.errors();
   }
 }
 

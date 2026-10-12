@@ -33,11 +33,11 @@ const withCppClass = (className: string) => {
 
 const analyze = (source: string, table: SymbolTable, cppMode: boolean) => {
   // #1428: the analyzer reads the run's mode from `Program`, as in a run.
-  const { tree, context } = testAnalysisContextFor(source, {
+  const { syntax, context } = testAnalysisContextFor(source, {
     symbolTable: table,
     cppMode,
   });
-  return new CppClassInitializerAnalyzer(context).analyze(tree);
+  return new CppClassInitializerAnalyzer(context).analyze(syntax);
 };
 
 describe("CppClassInitializerAnalyzer (E0508)", () => {

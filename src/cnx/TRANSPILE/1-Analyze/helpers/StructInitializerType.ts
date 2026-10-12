@@ -27,6 +27,8 @@ import FunctionReference from "./FunctionReference";
 import TypeText from "./TypeText";
 import invariant from "../../../utils/invariant";
 import type IAnalysisContext from "../types/IAnalysisContext";
+import type IValuePosition from "../types/IValuePosition";
+import type ISourcePosition from "../../../utils/types/ISourcePosition";
 
 /** What an establishing position gives the value under it */
 interface IPositionType {
@@ -52,7 +54,7 @@ class StructInitializerType {
     init: Parser.StructInitializerContext,
     context: IAnalysisContext,
   ): string | null {
-    const typeText = StructInitializerType.establishedTypeText(init, context);
+    const typeText = StructInitializerType.establish(init, context).typeText;
     return typeText === null
       ? null
       : StructInitializerType.structNamed(
@@ -103,11 +105,11 @@ class StructInitializerType {
    * "known NOT to be a struct" let a header's pointer or function-pointer
    * typedef and an ADR-029 function type through, since none has a category.
    */
-  static nonStructTarget(
-    init: Parser.StructInitializerContext,
+  static nonStructTypeOf(
+    established: Pick<IValuePosition, "typeText" | "isArray" | "inList">,
+    at: ISourcePosition,
     context: IAnalysisContext,
   ): { readonly typeName: string; readonly isBitmap: boolean } | null {
-    const established = StructInitializerType.establish(init, context);
     const typeText = established.typeText;
     if (typeText === null) return null;
     if (established.isArray && !established.inList) return null;
@@ -115,7 +117,7 @@ class StructInitializerType {
     const symbols = context.symbols;
     const candidates = FunctionReference.candidatesForTypeText(
       typeName,
-      OperandTyper.scopePathAt(ParserUtils.getPosition(init), context),
+      OperandTyper.scopePathAt(at, context),
     );
     if (candidates.some((c) => DeclaredTypeFacts.isBitmap(symbols, c))) {
       return { typeName, isBitmap: true };
@@ -162,18 +164,6 @@ class StructInitializerType {
     );
   }
 
-  static hasEstablishingPosition(
-    init: Parser.StructInitializerContext,
-  ): boolean {
-    let cursor: ParserRuleContext | null = init.parent;
-    while (cursor) {
-      const position = StructInitializerType.positionOf(cursor);
-      if (position !== "neither") return position === "supplies";
-      cursor = cursor.parent;
-    }
-    return false;
-  }
-
   /**
    * What an ancestor is to an initializer below it: a position that supplies
    * its type, a subscript, or neither. A subscript's expression is reached
@@ -193,27 +183,6 @@ class StructInitializerType {
       cursor instanceof Parser.ArgumentListContext
       ? "supplies"
       : "neither";
-  }
-
-  /**
-   * The type an inferred initializer must take, read off the nearest
-   * establishing ancestor, or null when it stands somewhere no type reaches
-   * it (a subscript, a bare expression statement).
-   *
-   * Public because ADR-014's two diagnostics ask exactly this and nothing
-   * else: a written type where a position already supplies one is redundant
-   * (E0356), and no written type where no position supplies one cannot be
-   * resolved (E0357). Codegen asks the same question by threading
-   * `expectedType` DOWN as it generates; this walks UP from the literal. Two
-   * mechanisms, one rule -- the boundary is stated at both ends, because the
-   * renderer may not import an analyzer and the analyzer must not read
-   * codegen state.
-   */
-  static establishedTypeText(
-    init: Parser.StructInitializerContext,
-    context: IAnalysisContext,
-  ): string | null {
-    return StructInitializerType.establish(init, context).typeText;
   }
 
   /**
@@ -245,11 +214,9 @@ class StructInitializerType {
    * review: these positions typed the element, so the initializer was
    * E0358's -- or, for an array of structs, emitted as one struct.
    */
-  static takesWholeArray(
-    init: Parser.StructInitializerContext,
-    context: IAnalysisContext,
+  static takesWholeArrayAt(
+    established: Pick<IValuePosition, "isArray" | "inList" | "isDeclaration">,
   ): boolean {
-    const established = StructInitializerType.establish(init, context);
     return (
       established.isArray && !established.inList && !established.isDeclaration
     );

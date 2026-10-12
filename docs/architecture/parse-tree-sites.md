@@ -32,11 +32,11 @@ lexer-only include scan. Nothing from 2.2 Plan on.
 
 | Layer                | Modules |
 | -------------------- | ------: |
-| `src/cnx/TRANSPILE/` |      30 |
+| `src/cnx/TRANSPILE/` |      28 |
 | `src/cnx/PARSE/`     |      14 |
 | `src/cnx/utils/`     |       4 |
 | `src/cnx/types/`     |       2 |
-| **total**            |  **50** |
+| **total**            |  **48** |
 
 `src/cnx/TRANSPILE/3-Render/` is the render layer, and its share is the number
 the issue singles out: the render layer holding parse nodes is how a
@@ -70,7 +70,6 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/cnx/TRANSPILE/1-Analyze/ConstAssignmentAnalyzer.ts`            | antlr4ng, grammar |
 | `src/cnx/TRANSPILE/1-Analyze/ControllingExpressionAnalyzer.ts`      | antlr4ng, grammar |
 | `src/cnx/TRANSPILE/1-Analyze/CPointerArgumentAnalyzer.ts`           | antlr4ng, grammar |
-| `src/cnx/TRANSPILE/1-Analyze/CppClassInitializerAnalyzer.ts`        | antlr4ng, grammar |
 | `src/cnx/TRANSPILE/1-Analyze/EnumTypeSafetyAnalyzer.ts`             | antlr4ng, grammar |
 | `src/cnx/TRANSPILE/1-Analyze/EnumValueResolver.ts`                  | antlr4ng, grammar |
 | `src/cnx/TRANSPILE/1-Analyze/FunctionCallAnalyzer.ts`               | antlr4ng, grammar |
@@ -85,7 +84,6 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/cnx/TRANSPILE/1-Analyze/runAnalyzers.ts`                       | grammar           |
 | `src/cnx/TRANSPILE/1-Analyze/ScopeAccessAnalyzer.ts`                | antlr4ng, grammar |
 | `src/cnx/TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts`          | antlr4ng, grammar |
-| `src/cnx/TRANSPILE/1-Analyze/StructLiteralAnalyzer.ts`              | antlr4ng, grammar |
 | `src/cnx/TRANSPILE/1-Analyze/SwitchStatementAnalyzer.ts`            | antlr4ng, grammar |
 | `src/cnx/TRANSPILE/1-Analyze/TreePasses.ts`                         | grammar           |
 | `src/cnx/TRANSPILE/1-Analyze/UndeclaredTypeAnalyzer.ts`             | antlr4ng, grammar |
@@ -97,4 +95,4 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/cnx/utils/ExpressionUtils.ts`                                  | grammar           |
 | `src/cnx/utils/PostfixAnalysisUtils.ts`                             | grammar           |
 
-50 module(s).
+48 module(s).
