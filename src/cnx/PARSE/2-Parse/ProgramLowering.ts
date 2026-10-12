@@ -5,6 +5,7 @@ import type CommentScanner from "./CommentScanner";
 import SyntaxLowering from "./SyntaxLowering";
 import StatementLowering from "./StatementLowering";
 import type IComment from "../../types/IComment";
+import type ISourceSpan from "../../types/ISourceSpan";
 import type TRegisterAccessMode from "../../types/TRegisterAccessMode";
 import type IFunctionDeclarationSyntax from "../../types/syntax/IFunctionDeclarationSyntax";
 import type IParameterSyntax from "../../types/syntax/IParameterSyntax";
@@ -245,6 +246,7 @@ class ProgramLowering {
       const: ctx.constModifier() !== null,
       type: SyntaxLowering.type(ctx.type()),
       name: ctx.IDENTIFIER().getText(),
+      nameSpan: ProgramLowering.spanOf(ctx.IDENTIFIER()),
       dimensions: ctx.arrayDimension().map(ProgramLowering.dimensionOf),
       ...SyntaxLowering.node(ctx),
     };
@@ -275,12 +277,20 @@ class ProgramLowering {
       fields: ctx.structMember().map((member) => ({
         type: SyntaxLowering.type(member.type()),
         name: member.IDENTIFIER().getText(),
+        nameSpan: ProgramLowering.spanOf(member.IDENTIFIER()),
         dimensions: member.arrayDimension().map(ProgramLowering.dimensionOf),
         overflow: SyntaxLowering.overflow(member.overflowModifier()),
         ...SyntaxLowering.node(member),
       })),
       ...SyntaxLowering.node(ctx),
     };
+  }
+
+  private static spanOf(identifier: TerminalNode): ISourceSpan {
+    return ParserUtils.getSpan({
+      start: identifier.symbol,
+      stop: identifier.symbol,
+    });
   }
 
   private static dimensionOf(

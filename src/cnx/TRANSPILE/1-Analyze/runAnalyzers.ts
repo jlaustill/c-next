@@ -219,11 +219,11 @@ function runAnalyzers(
     },
     {
       label: "parameter naming (Issue #227: reserved naming patterns)",
-      run: () => new ParameterNamingAnalyzer().analyze(tree),
+      run: () => new ParameterNamingAnalyzer().analyze(parsed.program),
     },
     {
       label: "struct fields (reserved field names like 'length')",
-      run: () => new StructFieldAnalyzer().analyze(tree),
+      run: () => new StructFieldAnalyzer().analyze(parsed.program),
     },
     {
       // ADR-051: a compile-time zero divisor is E0800/E0802 wherever it is

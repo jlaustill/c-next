@@ -6,9 +6,9 @@
  * built-in .length property for primitives and arrays.
  */
 
-import { ParseTreeWalker } from "antlr4ng";
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
+import type ISourceSpan from "../../types/ISourceSpan";
 import IStructFieldError from "./types/IStructFieldError";
 import SymbolUtils from "../../PARSE/3-Declare/SymbolUtils";
 
@@ -26,73 +26,42 @@ function formatStructFieldError(fieldName: string, structName: string): string {
   );
 }
 
-/**
- * Listener that walks the parse tree to find struct field naming violations
- */
-class StructFieldListener extends CNextListener {
-  private readonly analyzer: StructFieldAnalyzer;
-
-  constructor(analyzer: StructFieldAnalyzer) {
-    super();
-    this.analyzer = analyzer;
-  }
-
-  override enterStructDeclaration = (
-    ctx: Parser.StructDeclarationContext,
-  ): void => {
-    const structName = ctx.IDENTIFIER().getText();
-    const members = ctx.structMember();
-
-    for (const member of members) {
-      const fieldIdentifier = member.IDENTIFIER();
-      const fieldName = fieldIdentifier.getText();
-      const line = fieldIdentifier.symbol.line;
-      const column = fieldIdentifier.symbol.column;
-
-      if (SymbolUtils.isReservedFieldName(fieldName)) {
-        this.analyzer.addError(structName, fieldName, line, column);
-      }
-    }
-  };
-}
-
-/**
- * Analyzer for struct field naming violations
- */
 class StructFieldAnalyzer {
-  private errors: IStructFieldError[] = [];
+  private readonly errors: IStructFieldError[] = [];
 
-  /**
-   * Analyze the parse tree for struct field naming violations
-   *
-   * @param tree - The parsed program AST
-   * @returns Array of errors (empty if all pass)
-   */
-  public analyze(tree: Parser.ProgramContext): IStructFieldError[] {
-    this.errors = [];
-
-    const listener = new StructFieldListener(this);
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
-
+  public analyze(program: IProgramSyntax): IStructFieldError[] {
+    for (const member of program.declarations) {
+      this.declaration(member.declaration);
+    }
     return this.errors;
   }
 
-  /**
-   * Add a struct field naming error
-   */
-  public addError(
+  private declaration(declaration: TDeclarationSyntax): void {
+    if (declaration.kind === "scope") {
+      for (const member of declaration.members) {
+        this.declaration(member.declaration);
+      }
+    } else if (declaration.kind === "struct") {
+      for (const field of declaration.fields) {
+        if (SymbolUtils.isReservedFieldName(field.name)) {
+          this.addError(declaration.name, field.name, field.nameSpan);
+        }
+      }
+    }
+  }
+
+  private addError(
     structName: string,
     fieldName: string,
-    line: number,
-    column: number,
+    at: ISourceSpan,
   ): void {
     const reservedNames = SymbolUtils.getReservedFieldNames().join(", ");
     this.errors.push({
       code: "E0355",
       structName,
       fieldName,
-      line,
-      column,
+      line: at.line,
+      column: at.column,
       message: formatStructFieldError(fieldName, structName),
       helpText: `Reserved field names: ${reservedNames}. Consider using 'len', 'size', or 'count' instead.`,
     });

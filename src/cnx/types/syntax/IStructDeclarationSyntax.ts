@@ -10,6 +10,7 @@ interface IStructDeclarationSyntax extends ISyntaxNode {
     ISyntaxNode & {
       readonly type: TTypeSyntax;
       readonly name: string;
+      readonly nameSpan: ISyntaxNode["span"];
       readonly dimensions: ReadonlyArray<TExpression | null>;
       /** ADR-044: the field's own written clamp/wrap, or null when unwritten */
       readonly overflow: TOverflowBehavior | null;

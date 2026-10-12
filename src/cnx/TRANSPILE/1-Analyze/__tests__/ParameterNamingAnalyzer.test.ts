@@ -3,20 +3,14 @@
  * Tests validation of function parameter naming conventions (Issue #227)
  */
 import { describe, it, expect } from "vitest";
-import { CharStream, CommonTokenStream } from "antlr4ng";
-import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
-import { CNextParser } from "../../../PARSE/2-Parse/grammar/CNextParser";
+import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import ParameterNamingAnalyzer from "../ParameterNamingAnalyzer";
 
 /**
- * Helper to parse C-Next code and return the AST
+ * Helper to parse C-Next code and return 1.2's syntax
  */
 function parse(source: string) {
-  const charStream = CharStream.fromString(source);
-  const lexer = new CNextLexer(charStream);
-  const tokenStream = new CommonTokenStream(lexer);
-  const parser = new CNextParser(tokenStream);
-  return parser.program();
+  return CNextSourceParser.parse(source).program;
 }
 
 describe("ParameterNamingAnalyzer", () => {
