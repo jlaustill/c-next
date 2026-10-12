@@ -19,8 +19,8 @@ int main(void) {
     const uint8_t seed = 3U;
     uint8_t result = 0U;
     if (seed == 3) {
-        Tally seed(seed);
-        result = seed.start;
+        Tally main__seed(seed);
+        result = main__seed.start;
     }
     if (result != 3) {
         return 1U;

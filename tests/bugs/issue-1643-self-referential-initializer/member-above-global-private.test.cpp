@@ -18,7 +18,7 @@ uint32_t y = 5U;
 /* Scope: S */
 
 void S__set(void) {
-    S__y = 300U;
+    y = 300U;
 }
 static uint8_t S__y = 1U;
 

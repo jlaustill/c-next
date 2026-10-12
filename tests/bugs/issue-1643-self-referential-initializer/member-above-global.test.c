@@ -19,11 +19,11 @@ uint32_t y = 5U;
 /* Scope: S */
 
 void S__set(void) {
-    S__y = 300U;
+    y = 300U;
 }
 
 uint32_t S__get(void) {
-    return S__y;
+    return y;
 }
 uint8_t S__y = 1U;
 
