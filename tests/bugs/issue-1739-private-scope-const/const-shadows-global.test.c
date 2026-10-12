@@ -17,7 +17,7 @@ const uint32_t N = 4U;
 static uint8_t S__buf[20] = {0};
 
 uint32_t S__size(void) {
-    return N*2;
+    return 20;
 }
 
 uint32_t S__elements(void) {
