@@ -12,6 +12,7 @@ import { CNextLexer } from "./grammar/CNextLexer";
 import { CNextParser } from "./grammar/CNextParser";
 import CommentScanner from "./CommentScanner";
 import ProgramLowering from "./ProgramLowering";
+import LiteralForm from "./LiteralForm";
 import IParsedFile from "../../types/IParsedFile";
 import ITranspileError from "../../types/ITranspileError";
 import CodedErrorText from "../../utils/CodedErrorText";
@@ -208,6 +209,7 @@ class CNextSourceParser {
     parser.addErrorListener(errorListener);
 
     const tree = parser.program();
+    errors.push(...LiteralForm.errorsIn(tokenStream));
     const declarationCount = tree.declaration().length;
 
     // Scanned off THIS token stream, which the parse has already filled, so

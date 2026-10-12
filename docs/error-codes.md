@@ -392,7 +392,7 @@ base: bare, `this.` and `global.`.
 
 | Code  | Message                                                                                    | Help                                                                      | Source                                             |
 | ----- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- | -------------------------------------------------- |
-| E0912 | A decimal integer literal has a leading zero; C-Next has no octal literal (ADR-044)        | Write the value in decimal without the leading zero, or as `0x…` or `0b…` | `TRANSPILE/1-Analyze/LiteralFormAnalyzer.ts`       |
+| E0912 | A decimal integer literal has a leading zero; C-Next has no octal literal (ADR-044)        | Write the value in decimal without the leading zero, or as `0x…` or `0b…` | `PARSE/2-Parse/LiteralForm.ts`                     |
 | E0913 | Array dimension is zero or negative (a literal, a folded const, or a header macro's value) | An array holds one element or more (C99 6.7.5.2, ADR-036)                 | `TRANSPILE/1-Analyze/ConstantDimensionAnalyzer.ts` |
 
 ---
