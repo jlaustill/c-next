@@ -1,0 +1,19 @@
+// test-error
+// Issue #1195: a parenthesized operand is judged by what it holds, so the
+// brackets must not let a bare value through either. '(ready)' is still a bare
+// bool and stays E0701, exactly as 'ready' unbracketed does.
+bool h(bool ready, u8 n) {
+    if ((n > 0) && (ready)) {
+        return true;
+    }
+    return false;
+}
+
+// NEGATIVE CONTROL -- the same condition with the bool compared. Its brackets
+// are what #1195 rejected; they must now be silent.
+bool okCompared(bool ready, u8 n) {
+    if ((n > 0) && (ready = true)) {
+        return true;
+    }
+    return false;
+}

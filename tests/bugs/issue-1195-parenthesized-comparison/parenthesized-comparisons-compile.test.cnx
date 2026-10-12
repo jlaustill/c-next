@@ -1,0 +1,37 @@
+// Issue #1195: a parenthesized comparison is a comparison. Every condition
+// below brackets its operands -- ordinary defensive style -- and each was
+// rejected with E0701 because the brackets made the operand look like a bare
+// value. All five productions that carry a controlling expression appear, so
+// a fix that reached only one of them leaves this fixture failing.
+u8 n <- 3;
+bool ready <- true;
+u8 hits <- 0;
+
+void main() {
+    if ((n < 5) && (n > 1)) {
+        hits +<- 1;
+    }
+    if ((n = 0) || (n >= 32)) {
+        hits +<- 1;
+    }
+    if ((n < 5)) {
+        hits +<- 1;
+    }
+    if (((n < 5) && (n > 1))) {
+        hits +<- 1;
+    }
+    if ((ready = true) && (n != 0)) {
+        hits +<- 1;
+    }
+    while ((n > 0) && (hits < 10)) {
+        n -<- 1;
+    }
+    do {
+        n +<- 1;
+    } while ((n < 3));
+    for (u8 i <- 0; (i < 3); i +<- 1) {
+        hits +<- 1;
+    }
+    u8 picked <- ((n > 1)) ? 1 : 0;
+    hits +<- picked;
+}

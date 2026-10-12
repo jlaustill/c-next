@@ -77,7 +77,11 @@ describe("ExpressionCalls.callsAtTop", () => {
     ],
     ["should return false for array access", "arr[0]", false],
     ["should return false for member access", "obj.field", false],
-    ["should not look inside parentheses", "(getValue())", false],
+    // #1195: a bracketed call runs exactly as the bare call does.
+    ["should look inside parentheses", "(getValue())", true],
+    ["should look inside nested parentheses", "((getValue()))", true],
+    ["should see a bracketed call as an operand", "(getValue()) = 1", true],
+    ["should return false for parentheses with no call", "(a + b)", false],
     ["should not look inside a subscript", "arr[getIndex()]", false],
     ["should detect the call around call arguments", "foo(bar())", true],
     [
