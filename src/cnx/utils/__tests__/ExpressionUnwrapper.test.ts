@@ -108,4 +108,46 @@ describe("ExpressionUnwrapper", () => {
   // #1445: these two shapes moved here from StringOperationsHelper, which
   // asked them of the tree before it could ask the type registry anything.
   // The assertions are its assertions -- including both of its regressions.
+
+  describe("bracketedInner", () => {
+    /** The relational a condition leaf is: the single one under `source`. */
+    const leaf = (source: string): Parser.RelationalExpressionContext =>
+      parseExpression(source)
+        .ternaryExpression()
+        .orExpression(0)!
+        .andExpression(0)!
+        .equalityExpression(0)!
+        .relationalExpression(0)!;
+
+    it("returns what a bare group holds", () => {
+      expect(
+        ExpressionUnwrapper.bracketedInner(leaf("(a > b)"))?.getText(),
+      ).toBe("a>b");
+    });
+
+    it("unwraps one group per call", () => {
+      // The caller recurses, so `((a > b))` is decided by the same check.
+      expect(
+        ExpressionUnwrapper.bracketedInner(leaf("((a > b))"))?.getText(),
+      ).toBe("(a>b)");
+    });
+
+    // Every shape a guard declines, with the group FIRST: an operand that has
+    // no group at all is declined at the last step whether or not the guard
+    // exists, so it would prove nothing about the guard.
+    it.each([
+      ["no group", "a"],
+      ["a relational operator", "(a) < b"],
+      ["`|` outside the group", "(a > b) | 1"],
+      ["`^` outside the group", "(a > b) ^ 1"],
+      ["`&` outside the group", "(a > b) & 1"],
+      ["`<<` outside the group", "(a > b) << 1"],
+      ["`+` outside the group", "(a > b) + 1"],
+      ["`*` outside the group", "(a > b) * 2"],
+      ["a prefix", "!(a > b)"],
+      ["a postfix", "(a > b)[0]"],
+    ])("returns null for %s: %s", (_label, source) => {
+      expect(ExpressionUnwrapper.bracketedInner(leaf(source))).toBeNull();
+    });
+  });
 });

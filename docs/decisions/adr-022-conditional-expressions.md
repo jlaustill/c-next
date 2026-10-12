@@ -274,6 +274,14 @@ controlling position: a local, a parameter, and a `this.`/`global.` scope member
 are all held to it, and a ternary condition is held to exactly the same rule as an
 `if` condition — error **E0701**.
 
+**A bracketed group is judged by what it holds (Issue #1195).** A leaf operand
+that is nothing but one bracketed group is decomposed again, so
+`(n < 5) && (n > 1)` is two comparisons and `(flag)` is still a bare bool.
+Anything around the group — a prefix such as `!(…)`, a postfix such as `(…)[0]`,
+or an operator outside the brackets — makes it a single operand, judged as
+written. The always-true loop check (E0707) reads a bracketed condition the same
+way, so `while ((1 = 1))` is rejected exactly as `while (1 = 1)` is.
+
 Uniformity is stated here because it is the part most easily lost. A check applied
 to one spelling and not another passes the corpus while leaving the rule with a
 hole, and the scope-context matrix cannot see the difference: a bare `read()` and
@@ -294,7 +302,11 @@ while (running) { }
 
 // ERROR (E0701): negation is not a comparison
 if (!flag) { }
+if (!(n < 5)) { }                  // brackets do not change that
 while (!done && tries < MAX) { }   // use: done = false && tries < MAX
+
+// ERROR (E0701): brackets do not make a bare bool a comparison
+if ((flag)) { }
 
 // ERROR (E0701): each operand of a logical combination must be a comparison
 if (a && b) { }                    // use: a = true && b = true
@@ -307,6 +319,7 @@ if (flag = true) { }
 if (this.flag = false) { }
 while (running = true) { }
 if (x > 0 && y != 0) { }
+if ((x > 0) && (y != 0)) { }       // each bracketed group holds a comparison
 ```
 
 Before this fix only the `this.`/`global.` member form was rejected (member

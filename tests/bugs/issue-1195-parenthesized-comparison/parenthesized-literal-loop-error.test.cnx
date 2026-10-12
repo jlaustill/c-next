@@ -1,0 +1,22 @@
+// test-error
+// Issue #1195: a bare bracketed group is judged by what it holds -- by the
+// always-true loop check (E0707) as much as by E0701. Accepting the brackets
+// in E0701 alone let `while ((1 = 1))` through to an infinite loop that
+// `while (1 = 1)` is rejected for. All three loop kinds must report.
+void spin() {
+    while ((1 = 1)) {}
+    do {} while (((5 > 3)));
+    for (u8 i <- 0; ((true = true)); i +<- 1) {}
+}
+
+// NEGATIVE CONTROL -- bracketed conditions that are not one always-true
+// literal comparison stay silent: a variable, and a compound condition.
+void bounded() {
+    u8 state <- 0;
+    while ((state < 3)) {
+        state +<- 1;
+    }
+    while ((state > 0) && (state < 10)) {
+        state -<- 1;
+    }
+}

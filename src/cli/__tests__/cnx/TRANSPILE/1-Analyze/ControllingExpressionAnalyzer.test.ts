@@ -96,20 +96,24 @@ describe("ControllingExpressionAnalyzer", () => {
     // Unwrapping must let nothing through that is rejected unbracketed. Only
     // a bare group unwraps, so every other shape -- a prefix, a postfix, an
     // operator outside the brackets -- stays one operand, judged as written.
+    // Each case puts the group FIRST: without a group the operand is declined
+    // at the last step whether or not a guard exists, so it proves nothing.
+    // `(flag) && (n)` has two bad operands and must still report once.
     it.each([
       "(flag)",
       "((flag))",
       "((n))",
       "(n > 0) && (flag)",
       "(flag) && (n > 0)",
+      "(flag) && (n)",
       "!(n > 0)",
-      "n | 1",
-      "n ^ 1",
-      "n & 1",
-      "n << 1",
-      "n + 1",
-      "n * 2",
-      "n[0]",
+      "(n > 0) | 1",
+      "(n > 0) ^ 1",
+      "(n > 0) & 1",
+      "(n > 0) << 1",
+      "(n > 0) + 1",
+      "(n > 0) * 2",
+      "(n > 0)[0]",
     ])("still rejects %s, once", (condition) => {
       const found = errors(inIf(condition));
       expect(found).toHaveLength(1);

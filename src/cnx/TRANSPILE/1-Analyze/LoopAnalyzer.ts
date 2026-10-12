@@ -35,6 +35,7 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import REJECTED_KEYWORDS from "./REJECTED_KEYWORDS";
+import ExpressionUnwrapper from "../../utils/ExpressionUnwrapper";
 import LiteralUtils from "../../utils/LiteralUtils";
 import ParserUtils from "../../utils/ParserUtils";
 import ForHeaderAssignment from "../../utils/ForHeaderAssignment";
@@ -172,6 +173,9 @@ class LoopListener extends CNextListener {
    * `ctx` as a single comparison of two literal operands -- no `||`/`&&`, no
    * ternary, no chaining -- or null. Anything involving identifiers, floats or
    * sub-expressions is left to #1076.
+   *
+   * A bare bracketed group is judged by what it holds, as E0701 judges it
+   * (#1195): `while ((1 = 1))` is the same always-true loop as `while (1 = 1)`.
    */
   private static asSingleLiteralComparison(
     ctx: Parser.ExpressionContext,
@@ -203,6 +207,8 @@ class LoopListener extends CNextListener {
           operands[1].getText(),
         );
       }
+      const inner = ExpressionUnwrapper.bracketedInner(relationalExprs[0]);
+      if (inner) return LoopListener.asSingleLiteralComparison(inner);
     }
     return null;
   }
