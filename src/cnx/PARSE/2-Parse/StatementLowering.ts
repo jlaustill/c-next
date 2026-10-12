@@ -2,7 +2,6 @@ import type { ParserRuleContext, TerminalNode } from "antlr4ng";
 import * as Parser from "./grammar/CNextParser";
 import SyntaxLowering from "./SyntaxLowering";
 import ParserUtils from "../../utils/ParserUtils";
-import invariant from "../../utils/invariant";
 import type ISourceSpan from "../../types/ISourceSpan";
 import ASSIGNMENT_OPERATORS from "../../types/syntax/ASSIGNMENT_OPERATORS";
 import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
@@ -54,20 +53,6 @@ class StatementLowering {
       };
     }
     return StatementLowering.control(ctx) ?? StatementLowering.nested(ctx);
-  }
-
-  static assignment(
-    ctx:
-      | Parser.AssignmentStatementContext
-      | Parser.ForAssignmentContext
-      | Parser.ForUpdateContext,
-  ): IAssignmentSyntax {
-    const lowered = StatementLowering.assignmentOrNull(ctx);
-    invariant(
-      lowered !== null,
-      `'${ctx.getText()}' has a target and one of the grammar's assignment operators -- only a repaired parse lacks them`,
-    );
-    return lowered;
   }
 
   /** The assignment, or null when the parser repaired its target or operator */

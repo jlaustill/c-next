@@ -25,16 +25,11 @@
  * statement and are checked here on the same terms.
  */
 
-import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
-
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import ExpressionUnwrapper from "../../utils/ExpressionUnwrapper";
 import ExpressionShape from "../../utils/ExpressionShape";
-import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
-import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
-import ChainRoot from "../../utils/ChainRoot";
+import DeclarationParts from "../../utils/DeclarationParts";
+import ExpressionNodes from "../../utils/ExpressionNodes";
+import StatementNodes from "../../utils/StatementNodes";
 import FunctionReference from "./helpers/FunctionReference";
 import BoundDeclaration from "./helpers/BoundDeclaration";
 import SafeDivision from "./helpers/SafeDivision";
@@ -42,48 +37,72 @@ import IConstAssignmentError from "./types/IConstAssignmentError";
 import TChainRoot from "../../types/TChainRoot";
 import type ISourceSpan from "../../types/ISourceSpan";
 import type IAnalysisContext from "./types/IAnalysisContext";
+import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type TExpression from "../../types/syntax/TExpression";
+import type TPostfixOpSyntax from "../../types/syntax/TPostfixOpSyntax";
 
 /** What kind of const binding a name is, or null when it is not const. */
 type TConstKind = "parameter" | "variable" | null;
 
 type TPosition = Pick<ISourceSpan, "line" | "column">;
 
-class ConstAssignmentListener extends CNextListener {
+/** An assignment target as a declared name and what is written through it */
+interface ITargetName {
+  readonly root: TChainRoot;
+  readonly name: string;
+  readonly ops: readonly TPostfixOpSyntax[];
+}
+
+class ConstAssignmentCheck {
   private readonly found: IConstAssignmentError[] = [];
 
-  public constructor(private readonly context: IAnalysisContext) {
-    super();
-  }
+  public constructor(private readonly context: IAnalysisContext) {}
 
   public errors(): IConstAssignmentError[] {
     return this.found;
   }
 
   /** Every assignment form -- a statement, a `for` init, a `for` update. */
-  override enterAssignmentTarget = (
-    ctx: Parser.AssignmentTargetContext,
-  ): void => {
-    const name = ctx.IDENTIFIER().getText();
-    const kind = this.constKind(ChainRoot.ofTarget(ctx), name, ctx);
+  public checkSite(site: IAssignmentSyntax): void {
+    const target = ConstAssignmentCheck.targetName(site.target);
+    if (target === null) return;
+    const kind = this.constKind(target.root, target.name, site.target.span);
     if (kind === null) return;
 
-    const suffix = ConstAssignmentListener.targetSuffix(ctx.postfixTargetOp());
+    const suffix = ConstAssignmentCheck.targetSuffix(target.ops);
     this.report(
-      ctx,
+      site.target.span,
       "E0877",
-      `cannot assign to const ${kind} '${name}'${suffix}`,
+      `cannot assign to const ${kind} '${target.name}'${suffix}`,
       kind === "parameter"
         ? "A const parameter is read-only for the whole function (ADR-013); remove `const` from the parameter if the function must change it."
         : "A const binding is read-only after its declaration (ADR-013); remove `const` if the value must change.",
     );
-  };
+  }
+
+  /** `K`, `table[0]`, `this.K`, `global.cfg.x`: the name the target is reached through */
+  private static targetName(target: TExpression): ITargetName | null {
+    if (target.kind === "identifier") {
+      return { root: null, name: target.name, ops: [] };
+    }
+    if (target.kind !== "postfix") return null;
+    if (target.primary.kind === "identifier") {
+      return { root: null, name: target.primary.name, ops: target.ops };
+    }
+    const first = target.ops[0];
+    if (target.primary.kind !== "root" || first.kind !== "member") return null;
+    return {
+      root: target.primary.root,
+      name: first.name,
+      ops: target.ops.slice(1),
+    };
+  }
 
   /** How the target's shape is named in E0877's message. */
-  private static targetSuffix(
-    ops: readonly Parser.PostfixTargetOpContext[],
-  ): string {
-    if (ops.some((op) => op.LBRACKET() !== null)) return " (array element)";
-    if (ops.some((op) => op.DOT() !== null)) return " (member access)";
+  private static targetSuffix(ops: readonly TPostfixOpSyntax[]): string {
+    if (ops.some((op) => op.kind === "subscript")) return " (array element)";
+    if (ops.some((op) => op.kind === "member")) return " (member access)";
     return "";
   }
 
@@ -99,14 +118,14 @@ class ConstAssignmentListener extends CNextListener {
    * ADR-051's fact and is asked of `SafeDivision`, so this rule does not carry
    * a second opinion about the builtins' signature.
    */
-  private checkSafeDivisionOutput(ctx: Parser.PostfixExpressionContext): void {
-    const call = SafeDivision.callOf(SyntaxLowering.expressionNode(ctx));
+  private checkSafeDivisionOutput(expr: TExpression): void {
+    const call = SafeDivision.callOf(expr);
     if (call === null) return;
     const output = SafeDivision.outputName(call.args);
     if (output === null) return; // not a variable at all -- E0885's to report
     // Always a BARE name: `outputName` accepts only a plain identifier, so a
     // `this.`-rooted first argument returns null above and is E0885's to report.
-    const kind = this.constKind(null, output, ctx);
+    const kind = this.constKind(null, output, expr.span);
     if (kind === null) return;
     this.report(
       call.args[0].span,
@@ -117,32 +136,30 @@ class ConstAssignmentListener extends CNextListener {
   }
 
   /** E0878: a const value passed where the callee may write. */
-  override enterPostfixExpression = (
-    ctx: Parser.PostfixExpressionContext,
-  ): void => {
-    const call = ctx.postfixOp().find((op) => op.LPAREN() !== null);
-    if (call === undefined) return;
-    this.checkSafeDivisionOutput(ctx);
-    const callee = FunctionReference.ofCall(
-      ctx,
-      OperandTyper.scopePathAt(ParserUtils.getPosition(ctx), this.context),
+  public checkExpression(expr: TExpression): void {
+    if (expr.kind !== "postfix") return;
+    const call = expr.ops.find((op) => op.kind === "call");
+    if (call?.kind !== "call") return;
+    this.checkSafeDivisionOutput(expr);
+    const callee = FunctionReference.ofCallChain(
+      expr,
+      OperandTyper.scopePathAt(expr.span, this.context),
       this.context,
     );
     if (callee === null) return;
-    const args = call.argumentList()?.expression() ?? [];
-    args.forEach((arg, index) => {
+    call.arguments.forEach((arg, index) => {
       const param = callee.parameters[index];
       if (param === undefined || param.isConst) return;
       const argName = this.constArgumentName(arg);
       if (argName === null) return;
       this.report(
-        arg,
+        arg.span,
         "E0878",
         `cannot pass const '${argName}' to non-const parameter '${param.name}' of function '${callee.name}'`,
         "The callee may write through that parameter; declare it `const` in the callee, or pass a mutable copy (ADR-013).",
       );
     });
-  };
+  }
 
   // --- The facts -----------------------------------------------------------
 
@@ -150,23 +167,18 @@ class ConstAssignmentListener extends CNextListener {
    * The name of a const binding an argument IS -- `K`, `this.K`, `global.K`
    * -- or null for anything else (an expression has no binding to protect).
    */
-  private constArgumentName(arg: Parser.ExpressionContext): string | null {
-    const bare = ExpressionShape.simpleIdentifier(
-      SyntaxLowering.expression(arg),
-    );
+  private constArgumentName(arg: TExpression): string | null {
+    const bare = ExpressionShape.simpleIdentifier(arg);
     if (bare !== null) {
-      return this.constKind(null, bare, arg) === null ? null : bare;
+      return this.constKind(null, bare, arg.span) === null ? null : bare;
     }
-    const postfix = ExpressionUnwrapper.getPostfixExpression(arg);
-    const primary = postfix?.primaryExpression();
-    const ops = postfix?.postfixOp() ?? [];
-    if (!postfix || !primary || ops.length !== 1 || ops[0].DOT() === null)
-      return null;
-    const name = ops[0].IDENTIFIER()?.getText();
-    if (name === undefined) return null;
-    const root = ChainRoot.ofPrimary(primary);
-    if (root === null) return null;
-    return this.constKind(root, name, arg) === null ? null : `${root}.${name}`;
+    if (arg.kind !== "postfix" || arg.primary.kind !== "root") return null;
+    const member = arg.ops[0];
+    if (arg.ops.length !== 1 || member.kind !== "member") return null;
+    const root = arg.primary.root;
+    return this.constKind(root, member.name, arg.span) === null
+      ? null
+      : `${root}.${member.name}`;
   }
 
   /**
@@ -181,16 +193,12 @@ class ConstAssignmentListener extends CNextListener {
    * local `STEP` shadowing the const member resolved to the local, lost E0877,
    * and emitted `Board__STEP = 5U;` at exit 0.
    */
-  private constKind(
-    root: TChainRoot,
-    name: string,
-    at: ParserRuleContext,
-  ): TConstKind {
+  private constKind(root: TChainRoot, name: string, at: TPosition): TConstKind {
     const binding = this.context.program.bindValue(
       this.context.sourceFile,
       root,
       name,
-      ParserUtils.getPosition(at),
+      at,
     );
     const declared = BoundDeclaration.of(binding);
     if (!declared?.isConst) return null;
@@ -198,14 +206,18 @@ class ConstAssignmentListener extends CNextListener {
   }
 
   private report(
-    at: ParserRuleContext | TPosition,
+    at: TPosition,
     code: string,
     message: string,
     helpText: string,
   ): void {
-    const { line, column } =
-      at instanceof ParserRuleContext ? ParserUtils.getPosition(at) : at;
-    this.found.push({ code, line, column, message, helpText });
+    this.found.push({
+      code,
+      line: at.line,
+      column: at.column,
+      message,
+      helpText,
+    });
   }
 }
 
@@ -213,10 +225,21 @@ class ConstAssignmentAnalyzer {
   /** #1456: handed in rather than read off shared state. */
   constructor(private readonly context: IAnalysisContext) {}
 
-  public analyze(tree: Parser.ProgramContext): IConstAssignmentError[] {
-    const listener = new ConstAssignmentListener(this.context);
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
-    return listener.errors();
+  public analyze(program: IProgramSyntax): IConstAssignmentError[] {
+    const check = new ConstAssignmentCheck(this.context);
+    for (const member of program.declarations) {
+      for (const site of StatementNodes.assignments(member.declaration)) {
+        check.checkSite(site);
+      }
+      for (const part of DeclarationParts.of(member.declaration)) {
+        for (const expr of ExpressionNodes.of(part))
+          check.checkExpression(expr);
+      }
+    }
+    // Read off 1.2's syntax (#1991); reported in source order
+    return check
+      .errors()
+      .sort((a, b) => a.line - b.line || a.column - b.column);
   }
 }
 

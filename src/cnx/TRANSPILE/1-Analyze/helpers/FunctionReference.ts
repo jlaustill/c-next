@@ -23,8 +23,6 @@
  * one place the order is written, and every lookup walks it.
  */
 
-import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
-import SyntaxLowering from "../../../PARSE/2-Parse/SyntaxLowering";
 import IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
 import type TExpression from "../../../types/syntax/TExpression";
 import QualifiedCName from "../../../utils/QualifiedCName";
@@ -82,19 +80,6 @@ class FunctionReference {
    * The function a call chain targets, or null: a foreign function, a call
    * through a value (`p.handler(5)`), or a name the program does not declare.
    */
-  static ofCall(
-    postfix: Parser.PostfixExpressionContext,
-    scopePath: string,
-    context: IAnalysisContext,
-  ): IFunctionSymbol | null {
-    return FunctionReference.ofCallChain(
-      SyntaxLowering.expressionNode(postfix),
-      scopePath,
-      context,
-    );
-  }
-
-  /** The function a lowered call chain names (#1991) */
   static ofCallChain(
     chain: TExpression,
     scopePath: string,

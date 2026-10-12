@@ -412,7 +412,7 @@ function runAnalyzers(
     },
     {
       label: "const enforcement (ADR-013, E0877/E0878)",
-      run: () => new ConstAssignmentAnalyzer(context).analyze(tree),
+      run: () => new ConstAssignmentAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "callback typing (ADR-029, E0879/E0880)",
