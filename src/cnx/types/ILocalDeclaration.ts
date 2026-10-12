@@ -41,6 +41,11 @@ interface ILocalDeclaration {
   readonly initialValue: string | null;
   /** #1175: a const's initializer as written, which `constValue` folds from */
   readonly initialValueExpr: TConstExpr | null;
+  /**
+   * #1643: the bare names the initializer spells. One naming this
+   * declaration's own name reads the enclosing declaration (ADR-057).
+   */
+  readonly initializerNames: ReadonlySet<string>;
   /** #895: what the initializer calls (`VariableCollector.calleeOf`) */
   readonly initializerCallee: string | null;
   /**

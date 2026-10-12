@@ -1,0 +1,60 @@
+// test-execution
+// test-adr: 030
+// test-adr: 057
+// #1643 review: an initializer that names the enclosing local or parameter its
+// declaration shadows reads that one (ADR-030). C scopes the new local from
+// its declarator, before the initializer, so the new one gets its own C name
+// (ADR-057). Each case returns a distinct code if the C reads the new local.
+
+u32 bump(u32 p) {
+    if (p = 1) {
+        u32 p <- p + 1;
+        return p;
+    }
+    return 0;
+}
+
+u32 replace(u32 q) {
+    // NEGATIVE CONTROL -- shadows the parameter without reading it
+    if (q = 1) {
+        u32 q <- 7;
+        return q;
+    }
+    return 0;
+}
+
+u8 main() {
+    u32 bumped <- bump(1);
+    if (bumped != 2) {
+        return 1;
+    }
+    u32 replaced <- replace(1);
+    if (replaced != 7) {
+        return 2;
+    }
+    const u32 N <- 2;
+    if (N = 2) {
+        const u32 N <- N + 1;
+        u8[N] buf <- [7*];
+        if (buf.element_count != 3) {
+            return 3;
+        }
+        if (N != 3) {
+            return 4;
+        }
+    }
+    u32 k <- 1;
+    if (k = 1) {
+        u32 k <- k + 1;
+        if (k = 2) {
+            u32 k <- k + 1;
+            if (k != 3) {
+                return 5;
+            }
+        }
+    }
+    if (N != 2) {
+        return 6;
+    }
+    return 0;
+}

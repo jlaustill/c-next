@@ -247,7 +247,7 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | warn   | warn       | n/a         | n/a        |
 | scope method       | ok        | ok     | warn       | n/a         | n/a        |
 
-14 linked fixtures with no derivable context:
+16 linked fixtures with no derivable context:
 
 - `bugs/issue-1312-undefined-type-position/order-consumer-first.test.cnx`
 - `bugs/issue-1312-undefined-type-position/order-lib-first.test.cnx`
@@ -262,6 +262,8 @@ cell is declared by the ADR that owns it.
 - `bugs/issue-1582-undeclared-write-target/shadowed-write-resolves.test.cnx`
 - `bugs/issue-1582-undeclared-write-target/undeclared-write-sibling-consumer-first.test.cnx`
 - `bugs/issue-1582-undeclared-write-target/undeclared-write-sibling-source-first.test.cnx`
+- `bugs/issue-1643-self-referential-initializer/outer-bare-name.test.cnx`
+- `bugs/issue-1643-self-referential-initializer/shadow-enclosing-local.test.cnx`
 - `bugs/issue-1866-scope-member-is-not-external/included-member-from-reopened-scope.test.cnx`
 
 ## ADR-034

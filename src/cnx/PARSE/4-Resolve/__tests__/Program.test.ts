@@ -377,14 +377,22 @@ describe("Program", () => {
 
     // #1760 second review: the fold repeated rounds over every pending
     // const, O(n^2) in reverse dependency order. The guard counts attempts.
+    // #1643: in reverse order each const names one not yet defined, so C0
+    // has no value -- the attempts must still be linear.
     it.each([
       [
         "dependency",
         (i: number, _n: number) => (i === 0 ? "1" : `C${i - 1} + 1`),
+        true,
+      ],
+      [
+        "reverse dependency",
+        (i: number, n: number) => (i === n - 1 ? "1" : `C${i + 1} + 1`),
+        false,
       ],
     ])(
       "folds a chain of consts in %s order with a linear number of attempts",
-      (_order, initializer) => {
+      (_order, initializer, folds) => {
         const n = 200;
         const source = Array.from(
           { length: n },
@@ -395,10 +403,15 @@ describe("Program", () => {
           const program = Program.build([declare(source, "lib.cnx")], {
             cppMode: false,
           });
-          expect(
-            constantAt(program, "lib.cnx", "C0", { line: n + 1, column: 0 })
-              ?.value,
-          ).toBeGreaterThan(0);
+          const c0 = constantAt(program, "lib.cnx", "C0", {
+            line: n + 1,
+            column: 0,
+          });
+          if (folds) {
+            expect(c0?.value).toBeGreaterThan(0);
+          } else {
+            expect(c0).toBeNull();
+          }
           expect(attempts.mock.calls.length).toBeLessThanOrEqual(2 * n);
         } finally {
           attempts.mockRestore();

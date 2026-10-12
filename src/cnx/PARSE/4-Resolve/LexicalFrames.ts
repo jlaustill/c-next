@@ -75,12 +75,12 @@ class LexicalFrames {
       cTypeName,
       isTypeName,
     };
-    return LexicalFrames.settleFrame(frame, null, {
-      isScopeType,
-      isFileScopeName,
-      env,
-      settledOf,
-    });
+    return LexicalFrames.settleFrame(
+      frame,
+      null,
+      { isScopeType, isFileScopeName, env, settledOf },
+      () => undefined,
+    );
   }
 
   /** The innermost frame containing `at`; the file frame if none does */
@@ -167,8 +167,13 @@ class LexicalFrames {
     frame: ILexicalFrame,
     enclosingFunction: string | null,
     facts: ISettleFacts,
+    /** The settled local a name binds to where this frame opens */
+    enclosing: (name: string) => ILocalDeclaration | undefined,
   ): ILexicalFrame {
     const functionCName = frame.functionCName ?? enclosingFunction;
+    const declared = new Map<string, ILocalDeclaration>();
+    const visible = (name: string): ILocalDeclaration | undefined =>
+      declared.get(name) ?? enclosing(name);
     // Declarations and child frames in source order, so each local is
     // settled before any use that can bind it.
     const declarations: ILocalDeclaration[] = [];
@@ -181,7 +186,7 @@ class LexicalFrames {
     for (const item of items) {
       if ("child" in item) {
         children.push(
-          LexicalFrames.settleFrame(item.child, functionCName, facts),
+          LexicalFrames.settleFrame(item.child, functionCName, facts, visible),
         );
         continue;
       }
@@ -189,8 +194,10 @@ class LexicalFrames {
         item.declaration,
         functionCName,
         facts,
+        visible(item.declaration.name),
       );
       facts.settledOf.set(item.declaration, settled);
+      declared.set(settled.name, settled);
       declarations.push(settled);
     }
 
@@ -214,6 +221,8 @@ class LexicalFrames {
     declaration: ILocalDeclaration,
     functionCName: string | null,
     { isScopeType, env, isFileScopeName }: ISettleFacts,
+    /** The settled local this one shadows, if any */
+    shadowed: ILocalDeclaration | undefined,
   ): ILocalDeclaration {
     const arrayDimensions = declaration.arrayDimensions.map((dimension, i) => {
       const expr = declaration.arrayDimensionExprs[i];
@@ -235,6 +244,9 @@ class LexicalFrames {
         declaration,
         functionCName,
         isFileScopeName,
+        declaration.initializerNames.has(declaration.name)
+          ? (shadowed?.emittedName ?? null)
+          : null,
       ),
     });
   }
@@ -247,17 +259,34 @@ class LexicalFrames {
    * signature, the `.h` prototype and every use in the body read.
    * `__` cannot be written in a C-Next identifier (E0201), so the moved name
    * collides with nothing the source declares.
+   *
+   * #1643: an initializer that names the enclosing local it shadows reads that
+   * one, but C scopes the new name from its declarator, before the
+   * initializer. So the new one moves off the enclosing one's C name too --
+   * `<function>__<name>`, then `<function>__<name>__2`, and so on.
    */
   private static emittedName(
     declaration: ILocalDeclaration,
     functionCName: string | null,
     isFileScopeName: (cName: string) => boolean,
+    /** The C name of the enclosing local its initializer reads, if any */
+    readsEmitted: string | null,
   ): string {
     const { name } = declaration;
-    if (functionCName === null || !isFileScopeName(name)) {
+    if (functionCName === null) {
       return name;
     }
-    return QualifiedCName.fromParts([functionCName, name]);
+    let emitted = isFileScopeName(name)
+      ? QualifiedCName.fromParts([functionCName, name])
+      : name;
+    for (let suffix = 1; emitted === readsEmitted; suffix++) {
+      emitted = QualifiedCName.fromParts([
+        functionCName,
+        name,
+        suffix === 1 ? null : String(suffix),
+      ]);
+    }
+    return emitted;
   }
 
   private static compare(a: TPosition, b: TPosition): number {

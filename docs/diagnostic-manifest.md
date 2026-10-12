@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-552 fixture(s) assert a diagnostic; 542 carry a code.
+553 fixture(s) assert a diagnostic; 543 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -377,6 +377,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1582-undeclared-write-target/undeclared-write-sibling-consumer-first.test.cnx   | E0427               |
 | tests/bugs/issue-1582-undeclared-write-target/undeclared-write-sibling-source-first.test.cnx     | E0427               |
 | tests/bugs/issue-1582-undeclared-write-target/undeclared-write-target.test.cnx                   | E0427               |
+| tests/bugs/issue-1624-variable-above-declaration/variable-above-declaration.test.cnx             | E0427               |
 | tests/bugs/issue-1643-self-referential-initializer/concatenation-local.test.cnx                  | E0427               |
 | tests/bugs/issue-1643-self-referential-initializer/for-header.test.cnx                           | E0427               |
 | tests/bugs/issue-1643-self-referential-initializer/global-variable.test.cnx                      | E0427               |

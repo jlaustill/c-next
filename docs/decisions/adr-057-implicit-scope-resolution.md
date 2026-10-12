@@ -147,7 +147,11 @@ shadowing local that kept its bare name lands on the global, compiles under
 `-Wall -Wextra`, and is invisible until runtime. A local that shadows nothing,
 or that shadows only an enclosing _local_, keeps its own name: C block scoping
 already gives the right answer there, and neither `this.` nor `global.` can name
-an enclosing local. The generated file is a certification artifact, so names stay
+an enclosing local. The exception is an initializer that names the enclosing
+local or parameter it shadows (#1643): C-Next reads the enclosing one (ADR-030),
+but C scopes the new name from its declarator, so the new local moves to
+`<function>__<name>` — or `<function>__<name>__2`, and so on, past the enclosing
+one's C name. The generated file is a certification artifact, so names stay
 plain wherever the language does not require otherwise.
 
 One gap is tracked rather than hidden: the "is this name taken at file

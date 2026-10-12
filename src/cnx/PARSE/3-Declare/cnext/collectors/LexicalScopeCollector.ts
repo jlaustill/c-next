@@ -14,7 +14,12 @@
  * already derive them for symbols, so a declaration means the same thing
  * wherever it is written.
  */
-import { ParserRuleContext, ParseTreeWalker, TerminalNode } from "antlr4ng";
+import {
+  ParserRuleContext,
+  ParseTree,
+  ParseTreeWalker,
+  TerminalNode,
+} from "antlr4ng";
 
 import { CNextListener } from "../../../2-Parse/grammar/CNextListener";
 import * as Parser from "../../../2-Parse/grammar/CNextParser";
@@ -130,6 +135,7 @@ class FrameListener extends CNextListener {
         overflowBehavior: OverflowBehaviorUtils.fromModifier(null),
         initialValue: null,
         initialValueExpr: null,
+        initializerNames: new Set(),
         initializerCallee: null,
         constValue: null,
         emittedName: null,
@@ -166,6 +172,29 @@ class FrameListener extends CNextListener {
     this.record(ctx, "for");
   };
 
+  /** The bare names an expression spells -- not `this.x`, `global.x` or `.x` */
+  private static bareNamesIn(tree: ParseTree | null): ReadonlySet<string> {
+    const names = new Set<string>();
+    const visit = (node: ParseTree): void => {
+      if (node instanceof Parser.PrimaryExpressionContext) {
+        const identifier = node.IDENTIFIER();
+        if (identifier) {
+          names.add(identifier.getText());
+        }
+      }
+      for (let i = 0; i < node.getChildCount(); i++) {
+        const child = node.getChild(i);
+        if (child) {
+          visit(child);
+        }
+      }
+    };
+    if (tree) {
+      visit(tree);
+    }
+    return names;
+  }
+
   private record(
     ctx: Parser.VariableDeclarationContext | Parser.ForVarDeclContext,
     kind: ILocalDeclaration["kind"],
@@ -192,6 +221,7 @@ class FrameListener extends CNextListener {
       overflowBehavior: facts.overflowBehavior,
       initialValue: facts.initialValue ?? null,
       initialValueExpr: facts.initialValueExpr,
+      initializerNames: FrameListener.bareNamesIn(ctx.expression()),
       initializerCallee: facts.initializerCallee,
       constValue: null,
       emittedName: null,

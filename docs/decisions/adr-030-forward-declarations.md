@@ -390,7 +390,10 @@ a scope and `u32 g <- global.g + 1` at file scope are each E0427, as a global
 or member named above its declaration is. Where an outer declaration of the
 name is defined, the spelling means that one — `u32 g <- g + 1` in a function,
 under a global `g`, reads the global, and so does the C, since the local is
-emitted as `f__g` (ADR-057). The variable is not zero-initialized-then-read,
+emitted as `f__g` (ADR-057). Under an enclosing local or parameter it is the
+same: `u32 p <- p + 1` in a block, under a parameter `p`, reads the parameter,
+and the new local gets its own C name so the C reads the parameter too
+(ADR-057). The variable is not zero-initialized-then-read,
 which is why this is not ADR-015's E0381 (owner ruling, 2026-10-12).
 
 **A qualified spelling states which level to search, and searching any other
