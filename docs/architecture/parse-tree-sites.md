@@ -33,10 +33,10 @@ lexer-only include scan. Nothing from 2.2 Plan on.
 | Layer                | Modules |
 | -------------------- | ------: |
 | `src/cnx/PARSE/`     |      14 |
-| `src/cnx/TRANSPILE/` |       4 |
-| `src/cnx/utils/`     |       4 |
+| `src/cnx/TRANSPILE/` |       3 |
+| `src/cnx/utils/`     |       2 |
 | `src/cnx/types/`     |       1 |
-| **total**            |  **23** |
+| **total**            |  **20** |
 
 `src/cnx/TRANSPILE/3-Render/` is the render layer, and its share is the number
 the issue singles out: the render layer holding parse nodes is how a
@@ -61,13 +61,10 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/cnx/PARSE/3-Declare/cpp/utils/DeclaratorUtils.ts`              | grammar           |
 | `src/cnx/PARSE/3-Declare/HeaderDeclarations.ts`                     | grammar           |
 | `src/cnx/TRANSPILE/1-Analyze/GrammarCoverageListener.ts`            | antlr4ng          |
-| `src/cnx/TRANSPILE/1-Analyze/InitializationAnalyzer.ts`             | antlr4ng, grammar |
 | `src/cnx/TRANSPILE/1-Analyze/runAnalyzers.ts`                       | grammar           |
 | `src/cnx/TRANSPILE/1-Analyze/TreePasses.ts`                         | grammar           |
 | `src/cnx/types/IParsedFile.ts`                                      | antlr4ng, grammar |
 | `src/cnx/utils/ChainRoot.ts`                                        | grammar           |
 | `src/cnx/utils/ExpressionUnwrapper.ts`                              | grammar           |
-| `src/cnx/utils/ExpressionUtils.ts`                                  | grammar           |
-| `src/cnx/utils/PostfixAnalysisUtils.ts`                             | grammar           |
 
-23 module(s).
+20 module(s).

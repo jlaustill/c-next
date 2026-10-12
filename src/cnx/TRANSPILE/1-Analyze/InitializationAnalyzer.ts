@@ -11,21 +11,22 @@
  * 7. Per-field struct tracking
  */
 
-import { ParseTreeWalker } from "antlr4ng";
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import IInitializationError from "./types/IInitializationError";
 import IDeclarationInfo from "./types/IDeclarationInfo";
-import ExpressionUtils from "../../utils/ExpressionUtils";
-import ParserUtils from "../../utils/ParserUtils";
-import analyzePostfixOps from "../../utils/PostfixAnalysisUtils";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
 import ScopeUtils from "../../utils/ScopeUtils";
-import ChainRoot from "../../utils/ChainRoot";
 import ExpressionShape from "../../utils/ExpressionShape";
 import StatementChildren from "../../utils/StatementChildren";
 import StatementWrites from "../../utils/StatementWrites";
-import LoweredStatements from "../../utils/LoweredStatements";
+import DeclarationParts from "../../utils/DeclarationParts";
+import ExpressionChildren from "../../utils/ExpressionChildren";
+import TypeParts from "../../utils/TypeParts";
+import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
+import type IFunctionDeclarationSyntax from "../../types/syntax/IFunctionDeclarationSyntax";
+import type IVariableDeclarationSyntax from "../../types/syntax/IVariableDeclarationSyntax";
+import type TPostfixOpSyntax from "../../types/syntax/TPostfixOpSyntax";
+import type TSyntaxPart from "../../types/syntax/TSyntaxPart";
+import type TTypeSyntax from "../../types/syntax/TTypeSyntax";
 import type TExpression from "../../types/syntax/TExpression";
 import invariant from "../../utils/invariant";
 import type ISourcePosition from "../../utils/types/ISourcePosition";
@@ -62,354 +63,135 @@ interface IVariableState {
 }
 
 /**
- * Listener that walks the parse tree and tracks initialization
+ * Walks 1.2's syntax, not the parse tree (#1991), in source order. A
+ * declaration or assignment is recorded before its own parts are read, and
+ * each `if`, `while` and `for` saves the state before it and decides after it
+ * which of its body's assignments to keep.
  */
-class InitializationListener extends CNextListener {
+class InitializationWalk {
   private readonly analyzer: InitializationAnalyzer;
 
-  /** Stack of saved states before each if statement */
-  private readonly savedStates: Map<TInitKey, IVariableState>[] = [];
-
-  /** Track when we're inside a function call's argument list */
+  /** Inside a call's arguments, reads are not checked: a call may initialize them */
   private inFunctionCallArgs: number = 0;
 
-  /** Track nesting depth inside functions/methods (0 = global level) */
-  private functionDepth: number = 0;
-
   constructor(analyzer: InitializationAnalyzer) {
-    super();
     this.analyzer = analyzer;
   }
 
-  // ========================================================================
-  // Scope Entry/Exit
-  // ========================================================================
-
-  override enterFunctionDeclaration = (
-    _ctx: Parser.FunctionDeclarationContext,
-  ): void => {
-    this.functionDepth++;
-  };
-
-  override exitFunctionDeclaration = (
-    _ctx: Parser.FunctionDeclarationContext,
-  ): void => {
-    this.functionDepth--;
-  };
-
-  // ========================================================================
-  // Variable Declarations
-  // ========================================================================
-
-  override enterVariableDeclaration = (
-    ctx: Parser.VariableDeclarationContext,
-  ): void => {
-    // Skip global variables - they're already handled by createGlobalScope()
-    if (this.functionDepth === 0) {
-      return;
-    }
-
-    const name = ctx.IDENTIFIER().getText();
-    const { line, column } = ParserUtils.getPosition(ctx);
-    const hasInitializer = ctx.expression() !== null;
-
-    // Get type name for struct tracking
-    const typeCtx = ctx.type();
-    let typeName: string | null = null;
-    if (typeCtx.userType()) {
-      typeName = typeCtx.userType()!.IDENTIFIER().getText();
-    }
-
-    // Check if this is a string type (string<N> or string)
-    const isStringType = typeCtx.stringType() !== null;
-
-    // #2004: state is kept for the declaration 1.4 framed, the one a use of
-    // this name binds to
-    const key = this.analyzer.framedDeclaration(ctx.IDENTIFIER().symbol);
-    invariant(
-      key !== null,
-      `1.4 frames every declaration in a function body ('${name}')`,
-    );
-
-    this.analyzer.declareVariable(
-      key,
-      { name, line, column },
-      hasInitializer,
-      typeName,
-      isStringType,
-    );
-  };
-
-  // ========================================================================
-  // Assignments
-  // ========================================================================
-
-  override enterAssignmentStatement = (
-    ctx: Parser.AssignmentStatementContext,
-  ): void => {
-    const targetCtx = ctx.assignmentTarget();
-    const baseId = targetCtx.IDENTIFIER()?.getText();
-    if (!baseId) {
-      return;
-    }
-
-    // #2004: what 1.4 binds the target to, from the target's own root --
-    // `global.x` is the file-scope variable and `this.x` the scope member,
-    // even where a local of the name shadows it (#2001)
-    const key = this.analyzer.bindingKey(
-      ChainRoot.ofTarget(targetCtx),
-      baseId,
-      ParserUtils.getPosition(targetCtx),
-    );
-    if (key === null) {
-      return;
-    }
-
-    // Resolve the assignment target ONCE (single source of truth)
-    const target = this._resolveAssignmentTarget(
-      baseId,
-      targetCtx.postfixTargetOp(),
-    );
-
-    // Issue #1012: Compound assignment reads the LHS before writing.
-    // Check if the assignment operator is a compound operator (not simple `<-`).
-    const isCompoundAssignment = ctx.assignmentOperator().ASSIGN() === null;
-    if (isCompoundAssignment) {
-      const { line, column } = ParserUtils.getPosition(ctx);
-      this.analyzer.checkRead(
-        key,
-        target.varName,
-        line,
-        column,
-        target.fieldName,
-      );
-    }
-
-    // Record the assignment to the resolved target
-    this.analyzer.recordAssignment(key, target.fieldName);
-  };
-
-  /**
-   * Resolve an assignment target to its variable name and optional field name.
-   * Single classification path used by both read checks and assignment recording.
-   */
-  private _resolveAssignmentTarget(
-    baseId: string,
-    postfixOps: Parser.PostfixTargetOpContext[],
-  ): { varName: string; fieldName?: string } {
-    // Simple variable: x <- value (no postfix ops)
-    if (postfixOps.length === 0) {
-      return { varName: baseId };
-    }
-
-    // Analyze postfix operations
-    const { identifiers, hasSubscript } = analyzePostfixOps(baseId, postfixOps);
-
-    // Member access: p.x <- value (struct field)
-    if (identifiers.length >= 2 && !hasSubscript) {
-      return { varName: identifiers[0], fieldName: identifiers[1] };
-    }
-
-    // Array access or mixed: arr[i] <- value or arr[i].field <- value
-    // Consider the array/base as a whole
-    return { varName: baseId };
-  }
-
-  // ========================================================================
-  // Function Call Arguments (ADR-006: pass-by-reference may initialize)
-  // ========================================================================
-
-  override enterArgumentList = (_ctx: Parser.ArgumentListContext): void => {
-    // When inside function call arguments, variables passed may be output params
-    // We don't error on uninitialized reads, and we mark them as initialized after
-    this.inFunctionCallArgs++;
-  };
-
-  override exitArgumentList = (ctx: Parser.ArgumentListContext): void => {
-    this.inFunctionCallArgs--;
-
-    // Mark any simple identifiers passed as arguments as initialized
-    // (they might be output parameters that the function writes to)
-    for (const expr of ctx.expression()) {
-      // Walk down to find simple identifiers
-      this.markArgumentsAsInitialized(expr);
-    }
-  };
-
-  /**
-   * Mark simple identifier arguments as initialized.
-   * Only marks truly simple identifiers (not complex expressions like `a + b`).
-   */
-  private markArgumentsAsInitialized(expr: Parser.ExpressionContext): void {
-    const identifier = ExpressionUtils.extractIdentifier(expr);
-    if (!identifier) return;
-    const key = this.analyzer.bindingKey(
-      null,
-      identifier,
-      ParserUtils.getPosition(expr),
-    );
-    if (key !== null) {
-      this.analyzer.recordAssignment(key);
+  declaration(declaration: TDeclarationSyntax): void {
+    switch (declaration.kind) {
+      case "scope":
+        for (const member of declaration.members) {
+          this.declaration(member.declaration);
+        }
+        return;
+      case "function":
+        this.function(declaration);
+        return;
+      default:
+        for (const part of DeclarationParts.of(declaration)) {
+          this.part(part);
+        }
     }
   }
 
-  // ========================================================================
-  // Variable Reads (in expressions)
-  // ========================================================================
-
-  override enterPrimaryExpression = (
-    ctx: Parser.PrimaryExpressionContext,
-  ): void => {
-    if (this._shouldSkipReadCheck()) return;
-    if (!ctx.IDENTIFIER()) return;
-
-    const name = ctx.IDENTIFIER()!.getText();
-    const { line, column } = ParserUtils.getPosition(ctx);
-    const key = this.analyzer.bindingKey(null, name, { line, column });
-    if (key === null) return;
-
-    // Check if this is part of a postfixExpression with member access
-    const parent = ctx.parent as Parser.PostfixExpressionContext | undefined;
-    if (this._handlePostfixExpression(parent, key, name, line, column)) {
-      return;
+  private function(fn: IFunctionDeclarationSyntax): void {
+    this.part({ kind: "type", type: fn.returnType });
+    for (const parameter of fn.parameters ?? []) {
+      this.part({ kind: "type", type: parameter.type });
+      for (const part of TypeParts.dimensions(parameter.dimensions)) {
+        this.part(part);
+      }
     }
-
-    this.analyzer.checkRead(key, name, line, column);
-  };
-
-  /**
-   * Check if we should skip read checking in current context
-   */
-  private _shouldSkipReadCheck(): boolean {
-    return this.inFunctionCallArgs > 0;
+    this.statements(fn.body.statements);
   }
 
-  /**
-   * Handle postfix expression member access. Returns true if handled.
-   */
-  private _handlePostfixExpression(
-    parent: Parser.PostfixExpressionContext | undefined,
-    key: TInitKey,
-    name: string,
-    line: number,
-    column: number,
-  ): boolean {
-    if (!parent?.postfixOp || parent.postfixOp().length === 0) {
-      return false;
+  private statements(statements: readonly TStatement[]): void {
+    for (const statement of statements) {
+      this.statement(statement);
     }
-
-    const ops = parent.postfixOp();
-
-    // Check if we should skip for .length on non-string types
-    if (this._shouldSkipLengthCheck(key, ops)) {
-      return true;
-    }
-
-    // If the first postfixOp is a member access, check the field
-    const firstOpText = ops[0].getText();
-    if (firstOpText.startsWith(".")) {
-      const fieldName = firstOpText.slice(1);
-      this.analyzer.checkRead(key, name, line, column, fieldName);
-      return true;
-    }
-
-    return false;
   }
 
-  /**
-   * Issue #196 Bug 2: Check if we should skip init check for .length
-   * on non-string types (compile-time property)
-   */
-  private _shouldSkipLengthCheck(
-    key: TInitKey,
-    ops: Parser.PostfixOpContext[],
-  ): boolean {
-    const varState = this.analyzer.lookupVariableState(key);
-    const isStringType = varState?.isStringType ?? false;
-
-    if (isStringType) return false;
-
-    const lastOp = ops.at(-1)!.getText();
-    if (lastOp !== ".length") return false;
-
-    const firstOpText = ops[0].getText();
-    // Skip if: direct .length or array element .length
-    // Don't skip for struct member access (.field.length)
-    return ops.length === 1 || firstOpText.startsWith("[");
+  private statement(statement: TStatement): void {
+    switch (statement.kind) {
+      case "variableDeclaration":
+        this.declare(statement);
+        this.variableParts(statement);
+        return;
+      case "assignment":
+        this.recordAssignment(statement);
+        this.assignmentParts(statement);
+        return;
+      case "if": {
+        const stateBefore = this.analyzer.cloneScopeState();
+        this.expression(statement.condition);
+        this.statement(statement.whenTrue);
+        if (statement.whenFalse === null) {
+          // No else: the branch may not run, so its assignments don't count
+          this.analyzer.restoreFromState(stateBefore);
+        } else {
+          // Both branches ran one way or the other; what either assigned is kept
+          this.statement(statement.whenFalse);
+        }
+        return;
+      }
+      case "while": {
+        const stateBeforeLoop = this.analyzer.cloneScopeState();
+        this.expression(statement.condition);
+        this.statement(statement.body);
+        // The body may not run at all
+        this.analyzer.restoreFromState(stateBeforeLoop);
+        return;
+      }
+      case "for":
+        this.forStatement(statement);
+        return;
+      case "doWhile":
+        // The body runs before the condition is read
+        this.statements(statement.body.statements);
+        this.expression(statement.condition);
+        return;
+      default:
+        for (const part of DeclarationParts.statement(statement)) {
+          this.part(part);
+        }
+        this.statements(StatementChildren.of(statement));
+    }
   }
 
-  // ========================================================================
-  // Control Flow: If Statements
-  // ========================================================================
-
-  override enterIfStatement = (_ctx: Parser.IfStatementContext): void => {
-    // Save current state before entering if
-    const stateBefore = this.analyzer.cloneScopeState();
-    this.savedStates.push(stateBefore);
-  };
-
-  override exitIfStatement = (ctx: Parser.IfStatementContext): void => {
-    const stateBefore = this.savedStates.pop();
-    if (!stateBefore) return;
-
-    // Check if there's an else clause (#2003: the lowered `if` says)
-    const hasElse = this.analyzer.lowered("if", ctx).whenFalse !== null;
-
-    if (hasElse) {
-      // With else: the tree walker processes both branches in order.
-      // If a variable is initialized in both branches, it ends up initialized.
-      // If only one branch initializes it, it may or may not be initialized
-      // depending on which branch ran last in the traversal.
-      // For now, we'll trust the final state - this is optimistic but
-      // often correct for the common pattern where both branches initialize.
-      // (A more precise analysis would track both branches separately)
-      // Don't restore - keep whatever state the branches produced.
+  private forStatement(loop: Extract<TStatement, { kind: "for" }>): void {
+    const stateBeforeLoop = this.analyzer.cloneScopeState();
+    // The init and update are not declarations or assignments this tracks;
+    // only what they read is checked
+    if (loop.init?.kind === "variableDeclaration") {
+      this.variableParts(loop.init);
+    } else if (loop.init) {
+      this.assignmentParts(loop.init);
+    }
+    if (loop.condition) {
+      this.expression(loop.condition);
+    }
+    if (loop.update) {
+      this.assignmentParts(loop.update);
+    }
+    this.statement(loop.body);
+    // A loop that certainly runs keeps what its body assigned
+    if (InitializationWalk.isDeterministicForLoop(loop)) {
+      this.analyzer.mergeInitializationState(stateBeforeLoop);
     } else {
-      // No else: the if might not execute, so restore to state before if
-      // Any initializations inside the if are not guaranteed
-      this.analyzer.restoreFromState(stateBefore);
-    }
-  };
-
-  // ========================================================================
-  // Control Flow: Loops
-  // ========================================================================
-
-  override enterWhileStatement = (_ctx: Parser.WhileStatementContext): void => {
-    // Save state before loop - we'll restore after because loop might not run
-    this.savedStates.push(this.analyzer.cloneScopeState());
-  };
-
-  override exitWhileStatement = (_ctx: Parser.WhileStatementContext): void => {
-    // Loops are conservative: we assume they might not run at all
-    // So we restore state to before the loop
-    const stateBeforeLoop = this.savedStates.pop();
-    if (stateBeforeLoop) {
       this.analyzer.restoreFromState(stateBeforeLoop);
     }
-  };
+  }
 
-  override enterForStatement = (_ctx: Parser.ForStatementContext): void => {
-    // Save state before loop
-    this.savedStates.push(this.analyzer.cloneScopeState());
-  };
-
-  /**
-   * Check if a for-loop is deterministic (will definitely run at least once)
-   * A loop is deterministic if it has the form: for (var <- 0; var < CONSTANT; ...)
-   * where CONSTANT > 0. Its parts are the lowered `for`'s (#2003).
-   */
-  private isDeterministicForLoop(
+  /** `for (i <- 0; i < N; ...)` with a literal N > 0: the body runs at least once */
+  private static isDeterministicForLoop(
     loop: Extract<TStatement, { kind: "for" }>,
   ): boolean {
-    const { init, condition } = loop;
+    const init = loop.init;
+    const condition = loop.condition;
     if (!init || !condition) return false;
-
-    // The init, a declaration or an assignment, starts at 0
     const start = init.kind === "assignment" ? init.value : init.initializer;
-    if (!InitializationListener.isLiteral(start, /^0$/)) return false;
-
-    // The condition is var < POSITIVE_CONSTANT
+    if (!InitializationWalk.isLiteral(start, /^0$/)) return false;
     if (
       condition.kind !== "binary" ||
       condition.operators.length !== 1 ||
@@ -417,10 +199,11 @@ class InitializationListener extends CNextListener {
     ) {
       return false;
     }
-    const [left, bound] = condition.operands;
+    const left = condition.operands[0];
+    const bound = condition.operands[1];
     return (
       left.kind === "identifier" &&
-      InitializationListener.isLiteral(bound, /^\d+$/) &&
+      InitializationWalk.isLiteral(bound, /^\d+$/) &&
       Number.parseInt(bound.written, 10) > 0
     );
   }
@@ -432,21 +215,179 @@ class InitializationListener extends CNextListener {
     return expression?.kind === "literal" && text.test(expression.text);
   }
 
-  override exitForStatement = (ctx: Parser.ForStatementContext): void => {
-    const stateBeforeLoop = this.savedStates.pop();
-    if (stateBeforeLoop) {
-      const isDeterministic = this.isDeterministicForLoop(
-        this.analyzer.lowered("for", ctx),
+  // ========================================================================
+  // Declarations and assignments
+  // ========================================================================
+
+  /** A local; globals and scope members are declared before the walk */
+  private declare(
+    statement: Extract<TStatement, { kind: "variableDeclaration" }>,
+  ): void {
+    const key = this.analyzer.framedDeclaration(statement.nameSpan);
+    invariant(
+      key !== null,
+      `1.4 frames every declaration in a function body ('${statement.name}')`,
+    );
+    this.analyzer.declareVariable(
+      key,
+      {
+        name: statement.name,
+        line: statement.span.line,
+        column: statement.span.column,
+      },
+      statement.initializer !== null,
+      InitializationAnalyzer.userTypeName(statement.type),
+      statement.type.kind === "string",
+    );
+  }
+
+  private variableParts(declaration: IVariableDeclarationSyntax): void {
+    this.part({ kind: "type", type: declaration.type });
+    for (const part of TypeParts.dimensions(declaration.dimensions)) {
+      this.part(part);
+    }
+    if (declaration.initializer) {
+      this.expression(declaration.initializer);
+    }
+  }
+
+  private recordAssignment(assignment: IAssignmentSyntax): void {
+    const head = ExpressionShape.headOf(assignment.target);
+    if (!head.identifier) return;
+    const name = head.identifier.name;
+    const key = this.analyzer.bindingKey(
+      head.root,
+      name,
+      assignment.target.span,
+    );
+    if (key === null) return;
+    const fieldName = InitializationWalk.fieldOf(
+      head.ops.slice(head.opsConsumed),
+    );
+    // A compound assignment (`+<-`) reads the target first
+    if (assignment.operator !== "<-") {
+      this.analyzer.checkRead(
+        key,
+        name,
+        assignment.span.line,
+        assignment.span.column,
+        fieldName,
       );
-      if (isDeterministic) {
-        // Deterministic loop - preserve initialization (loop WILL run)
-        this.analyzer.mergeInitializationState(stateBeforeLoop);
+    }
+    this.analyzer.recordAssignment(key, fieldName);
+  }
+
+  /** `s.field <- v` assigns that field; through a subscript, the whole variable */
+  private static fieldOf(ops: readonly TPostfixOpSyntax[]): string | undefined {
+    const first = ops[0];
+    if (first?.kind !== "member") return undefined;
+    return ops.every((op) => op.kind === "member") ? first.name : undefined;
+  }
+
+  /** What an assignment reads: its target's subscripts, then its value */
+  private assignmentParts(assignment: IAssignmentSyntax): void {
+    const head = ExpressionShape.headOf(assignment.target);
+    this.ops(head.ops.slice(head.opsConsumed));
+    this.expression(assignment.value);
+  }
+
+  // ========================================================================
+  // Reads
+  // ========================================================================
+
+  private part(part: TSyntaxPart): void {
+    if (part.kind === "type") {
+      for (const inner of TypeParts.of(part.type)) {
+        this.part(inner);
+      }
+      return;
+    }
+    this.expression(part.expression);
+  }
+
+  private expression(expr: TExpression): void {
+    if (expr.kind === "identifier") {
+      this.read(expr.name, expr.span, []);
+      return;
+    }
+    if (expr.kind === "postfix") {
+      if (expr.primary.kind === "identifier") {
+        this.read(expr.primary.name, expr.primary.span, expr.ops);
       } else {
-        // Non-deterministic loop - conservative restore (loop might not run)
-        this.analyzer.restoreFromState(stateBeforeLoop);
+        this.expression(expr.primary);
+      }
+      this.ops(expr.ops);
+      return;
+    }
+    for (const child of ExpressionChildren.of(expr)) {
+      this.expression(child);
+    }
+    if (
+      expr.kind === "cast" ||
+      (expr.kind === "sizeof" && expr.type !== null)
+    ) {
+      this.part({ kind: "type", type: expr.type! });
+    }
+  }
+
+  private ops(ops: readonly TPostfixOpSyntax[]): void {
+    for (const op of ops) {
+      if (op.kind === "subscript") {
+        for (const index of op.indexes) {
+          this.expression(index);
+        }
+      } else if (op.kind === "call") {
+        this.callArguments(op.arguments);
       }
     }
-  };
+  }
+
+  /** A bare variable passed to a call counts as initialized after it */
+  private callArguments(args: readonly TExpression[]): void {
+    this.inFunctionCallArgs++;
+    for (const arg of args) {
+      this.expression(arg);
+    }
+    this.inFunctionCallArgs--;
+    for (const arg of args) {
+      if (arg.kind !== "identifier") continue;
+      const key = this.analyzer.bindingKey(null, arg.name, arg.span);
+      if (key !== null) {
+        this.analyzer.recordAssignment(key);
+      }
+    }
+  }
+
+  /** A read of `name`, followed by `ops`: the whole variable, or its first field */
+  private read(
+    name: string,
+    at: ISourcePosition,
+    ops: readonly TPostfixOpSyntax[],
+  ): void {
+    if (this.inFunctionCallArgs > 0) return;
+    const key = this.analyzer.bindingKey(null, name, at);
+    if (key === null) return;
+    if (ops.length > 0) {
+      if (this.isLengthOfNonString(key, ops)) return;
+      const first = ops[0];
+      if (first.kind === "member") {
+        this.analyzer.checkRead(key, name, at.line, at.column, first.name);
+        return;
+      }
+    }
+    this.analyzer.checkRead(key, name, at.line, at.column);
+  }
+
+  /** `arr.length` or `arr[i].length` is a compile-time size, not a read */
+  private isLengthOfNonString(
+    key: TInitKey,
+    ops: readonly TPostfixOpSyntax[],
+  ): boolean {
+    if (this.analyzer.lookupVariableState(key)?.isStringType) return false;
+    const last = ops.at(-1)!;
+    if (last.kind !== "member" || last.name !== "length") return false;
+    return ops.length === 1 || ops[0].kind === "subscript";
+  }
 }
 
 /**
@@ -459,18 +400,6 @@ class InitializationAnalyzer {
   private errors: IInitializationError[] = [];
 
   private states = new Map<TInitKey, IVariableState>();
-
-  /** The program's lowered statements, for the listener's roles (#2003) */
-  private statements: LoweredStatements | null = null;
-
-  /** The lowered `kind` statement a parse node starts (#2003) */
-  public lowered<K extends TStatement["kind"]>(
-    kind: K,
-    ctx: Parameters<typeof ParserUtils.getPosition>[0],
-  ): Extract<TStatement, { kind: K }> {
-    invariant(this.statements !== null, "lowered() read outside analyze()");
-    return this.statements.at(kind, ParserUtils.getPosition(ctx));
-  }
 
   /**
    * C-Next struct fields from current file (collected at analysis time).
@@ -521,106 +450,71 @@ class InitializationAnalyzer {
     return false;
   }
 
-  /**
-   * Analyze a parsed program for initialization errors
-   * @param tree The parsed program AST
-   * @param program The same program, lowered (1.2): its statements' children
-   * @returns Array of initialization errors
-   */
-  public analyze(
-    tree: Parser.ProgramContext,
-    program: IProgramSyntax,
-  ): IInitializationError[] {
+  /** Analyze 1.2's syntax for reads before initialization (E0381) */
+  public analyze(program: IProgramSyntax): IInitializationError[] {
     this.errors = [];
     this.states = new Map();
-    this.statements = new LoweredStatements(program);
-    // Clear C-Next struct fields from previous analysis (external fields come from CodeGenState)
     this.cnextStructFields = new Map();
-
-    // First pass: collect struct definitions from current file
-    this.collectStructDefinitions(tree);
-
-    // Create global scope with all global/namespace variable declarations
-    this.createGlobalScope(tree, program);
-
-    // Second pass: analyze initialization
-    const listener = new InitializationListener(this);
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
-
+    this.collectStructDefinitions(program);
+    this.createGlobalScope(program);
+    const walk = new InitializationWalk(this);
+    for (const member of program.declarations) {
+      walk.declaration(member.declaration);
+    }
     return this.errors;
   }
 
+  /** The name of a plain user type (`Point`), the only kind tracked by field */
+  public static userTypeName(type: TTypeSyntax): string | null {
+    return type.kind === "user" ? type.name : null;
+  }
+
   /**
-   * Create the global scope with all top-level variable declarations
-   * Global variables are considered "initialized" (zero-init by ADR-015)
+   * Globals count as initialized (C zero-initializes them). A scope member
+   * does when it has an initializer or one of the scope's functions assigns it.
    */
-  private createGlobalScope(
-    tree: Parser.ProgramContext,
-    program: IProgramSyntax,
-  ): void {
-    for (const decl of tree.declaration()) {
-      this._processGlobalVariable(decl);
-      this._processScopeMembers(decl, program);
+  private createGlobalScope(program: IProgramSyntax): void {
+    for (const member of program.declarations) {
+      const declaration = member.declaration;
+      if (declaration.kind === "variableDeclaration") {
+        this.declareVariable(
+          ScopeUtils.getTranspiledCName({
+            name: declaration.name,
+            scopePath: "",
+          }),
+          {
+            name: declaration.name,
+            line: declaration.span.line,
+            column: declaration.span.column,
+          },
+          true,
+          InitializationAnalyzer.userTypeName(declaration.type),
+        );
+      } else if (declaration.kind === "scope") {
+        this._processScopeMembers(declaration);
+      }
     }
   }
 
-  /**
-   * Process a global variable declaration
-   */
-  private _processGlobalVariable(decl: Parser.DeclarationContext): void {
-    const varDecl = decl.variableDeclaration();
-    if (!varDecl) return;
-
-    const name = varDecl.IDENTIFIER().getText();
-    const { line, column } = ParserUtils.getPosition(varDecl);
-    const typeName = this._extractUserTypeName(varDecl.type());
-
-    // Globals are always initialized (zero-init or explicit)
-    this.declareVariable(
-      ScopeUtils.getTranspiledCName({ name, scopePath: "" }),
-      { name, line, column },
-      true,
-      typeName,
-    );
-  }
-
-  /**
-   * Process scope member variable declarations (ADR-016)
-   * Issue #1019: Scope members require explicit initialization like locals
-   */
   private _processScopeMembers(
-    decl: Parser.DeclarationContext,
-    program: IProgramSyntax,
+    scopeDecl: Extract<TDeclarationSyntax, { kind: "scope" }>,
   ): void {
-    const scopeDecl = decl.scopeDeclaration();
-    if (!scopeDecl) return;
-    const { line, column } = ParserUtils.getPosition(scopeDecl);
-    const lowered = program.declarations.find(
-      ({ declaration }) =>
-        declaration.kind === "scope" &&
-        declaration.span.line === line &&
-        declaration.span.column === column,
-    )?.declaration;
-    invariant(
-      lowered?.kind === "scope",
-      `1.2 lowers every scope ('${scopeDecl.IDENTIFIER().getText()}')`,
-    );
-
-    // #1298: the whole scope PATH, not its leaf name, so a nested scope keeps
-    // its outer components when its members are qualified.
-    // No `??` fallback: `IProgram.scopePathOf` returns `string` and already
-    // answers the bare name on a miss, so a second fallback here is a guard
-    // that cannot fire and reads as if the method could answer null.
-    const scopePath = this.context.program.scopePathOf(
-      scopeDecl.IDENTIFIER().getText(),
-    );
-
-    // Phase 1: Find all members assigned in any scope function
-    const assignedMembers = this._findAssignedScopeMembers(lowered);
-
-    // Phase 2: Process each member with assignment info
-    for (const member of scopeDecl.scopeMember()) {
-      this._processScopeMemberVariable(member, scopePath, assignedMembers);
+    const scopePath = this.context.program.scopePathOf(scopeDecl.name);
+    const assignedMembers = this._findAssignedScopeMembers(scopeDecl);
+    for (const member of scopeDecl.members) {
+      const variable = member.declaration;
+      if (variable.kind !== "variableDeclaration") continue;
+      const fullName = ScopeUtils.qualifyInScope(variable.name, scopePath); // Transpiled C name
+      this.declareVariable(
+        fullName,
+        {
+          name: variable.name,
+          line: variable.span.line,
+          column: variable.span.column,
+        },
+        variable.initializer !== null || assignedMembers.has(fullName),
+        InitializationAnalyzer.userTypeName(variable.type),
+      );
     }
   }
 
@@ -678,67 +572,17 @@ class InitializationAnalyzer {
     }
   }
 
-  /**
-   * Process a single scope member variable
-   */
-  private _processScopeMemberVariable(
-    member: Parser.ScopeMemberContext,
-    scopePath: string,
-    assignedMembers: Set<TInitKey>,
-  ): void {
-    const memberVar = member.variableDeclaration();
-    if (!memberVar) return;
-
-    const varName = memberVar.IDENTIFIER().getText();
-    const fullName = ScopeUtils.qualifyInScope(varName, scopePath); // Transpiled C name
-    const { line, column } = ParserUtils.getPosition(memberVar);
-    const typeName = this._extractUserTypeName(memberVar.type());
-
-    // Issue #1019: Scope members are initialized if they have an inline
-    // initializer OR are assigned in any function within the scope
-    const hasInlineInit = memberVar.expression() !== null;
-    const isAssignedInScope = assignedMembers.has(fullName);
-    const hasInitializer = hasInlineInit || isAssignedInScope;
-
-    this.declareVariable(
-      fullName,
-      { name: varName, line, column },
-      hasInitializer,
-      typeName,
-    );
-  }
-
-  /**
-   * Extract user type name from a type context
-   */
-  private _extractUserTypeName(typeCtx: Parser.TypeContext): string | null {
-    return typeCtx.userType()?.IDENTIFIER().getText() ?? null;
-  }
-
-  /**
-   * Collect struct definitions from current file to know their fields.
-   * This supplements the external struct fields from CodeGenState.
-   */
-  private collectStructDefinitions(tree: Parser.ProgramContext): void {
-    for (const decl of tree.declaration()) {
-      const structDecl = decl.structDeclaration();
-      if (structDecl) {
-        const structName = structDecl.IDENTIFIER().getText();
-        const fields = new Set<string>();
-
-        for (const member of structDecl.structMember()) {
-          const fieldName = member.IDENTIFIER().getText();
-          fields.add(fieldName);
-        }
-
-        this.cnextStructFields.set(structName, fields);
-      }
+  /** The fields of each struct the file declares at file level */
+  private collectStructDefinitions(program: IProgramSyntax): void {
+    for (const member of program.declarations) {
+      const declaration = member.declaration;
+      if (declaration.kind !== "struct") continue;
+      this.cnextStructFields.set(
+        declaration.name,
+        new Set(declaration.fields.map((field) => field.name)),
+      );
     }
   }
-
-  // ========================================================================
-  // Binding (#2004: 1.4's decision, not this analyzer's)
-  // ========================================================================
 
   /** The declaration 1.4 framed for a declaring identifier, by its span */
   public framedDeclaration(identifier: {

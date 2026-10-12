@@ -460,7 +460,7 @@ shortcut.
 
 **Before PRs**: Run `npm run unit:coverage` and check new/modified files.
 
-**Reducing complexity**: Extract nested logic to private helpers with early returns. Check `src/cnx/utils/ExpressionUtils.ts` for existing patterns first.
+**Reducing complexity**: Extract nested logic to private helpers with early returns. Check `src/cnx/utils/ExpressionShape.ts` for existing patterns first.
 
 **Generated Markdown**: format the generator's output through Prettier before writing or diffing —
 the pre-commit hook formats staged `.md`, so unformatted output makes the committed file

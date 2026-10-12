@@ -157,15 +157,15 @@ type TAnalyzerStep = ICodedAnalyzerStep | IFormattedAnalyzerStep;
 /**
  * Run all semantic analyzers on a parsed program.
  *
- * @param parsed - 1.2 Parse's tree, its comments (MISRA 3.1/3.2) and its syntax
+ * @param parsed - 1.2 Parse's comments (MISRA 3.1/3.2) and its syntax
  * @param options - Optional configuration including external struct info
  * @returns Array of errors (empty if all pass)
  */
 function runAnalyzers(
-  parsed: Pick<IParsedFile, "tree" | "comments" | "program">,
+  parsed: Pick<IParsedFile, "comments" | "program">,
   options: IAnalyzerOptions,
 ): ITranspileError[] {
-  const { tree, comments } = parsed;
+  const comments = parsed.comments;
   const errors: ITranspileError[] = [];
   const formatWithCode = (e: TCodedAnalyzerError) =>
     CodedErrorText.of(e.code, e.message, e.severity);
@@ -241,8 +241,7 @@ function runAnalyzers(
     },
     {
       label: "initialization (Rust-style use-before-init)",
-      run: () =>
-        new InitializationAnalyzer(context).analyze(tree, parsed.program),
+      run: () => new InitializationAnalyzer(context).analyze(parsed.program),
     },
     {
       // Before the call and essential-type analyses: a type that denotes
