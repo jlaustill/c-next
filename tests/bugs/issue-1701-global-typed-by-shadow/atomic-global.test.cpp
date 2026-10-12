@@ -65,6 +65,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 volatile uint32_t x = 0U;
 
 uint8_t f(void) {
+    /* C11 6.2.1p4, C++ [basic.scope.hiding]: `x` emitted as `f__x` (a plain `x` would hide the file-scope `x` for the rest of its scope, so `global.x` would reach the local). */
     uint8_t f__x = 1U;
     {
         uint32_t __primask = __cnx_get_PRIMASK();

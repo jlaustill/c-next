@@ -11,6 +11,7 @@
  * parse, so a node's position is the same in every pass.
  */
 import ConstantFold from "../../utils/ConstantFold";
+import DefinitionPoint from "../../utils/DefinitionPoint";
 import DeferredTypes from "./DeferredTypes";
 import type IConstantEnvironment from "../../utils/types/IConstantEnvironment";
 import type TConstExpr from "../../types/TConstExpr";
@@ -18,7 +19,9 @@ import type TConstResult from "../../types/TConstResult";
 import type ILexicalFrame from "../../types/ILexicalFrame";
 import type ILocalDeclaration from "../../types/ILocalDeclaration";
 import type ISourceSpan from "../../types/ISourceSpan";
+import type TDefinedAt from "../../utils/types/TDefinedAt";
 import QualifiedCName from "../../utils/QualifiedCName";
+import type TNameMove from "../../types/TNameMove";
 
 /** A use's position */
 type TPosition = Pick<ISourceSpan, "line" | "column">;
@@ -42,6 +45,8 @@ interface ISettleFacts {
   readonly isFileScopeName: (cName: string) => boolean;
   readonly env: IConstantEnvironment;
   readonly settledOf: Map<ILocalDeclaration, ILocalDeclaration>;
+  /** The file's unsettled frames, which the binder walks */
+  readonly root: ILexicalFrame;
 }
 
 class LexicalFrames {
@@ -79,6 +84,7 @@ class LexicalFrames {
       isFileScopeName,
       env,
       settledOf,
+      root: frame,
     });
   }
 
@@ -89,14 +95,16 @@ class LexicalFrames {
 
   /**
    * The declaration `name` binds to at `at`: in each frame from the innermost
-   * outward, the last declaration of `name` that starts before `at`. A later
-   * declaration in the same block does not bind an earlier use (#1702), and a
+   * outward, the last declaration of `name` that has closed by `at`. A later
+   * declaration in the same block does not bind an earlier use (#1702), nor
+   * does a declaration bind a use in its own initializer (#1643), and a
    * sibling block's declaration is never visible (#1666).
    */
   static declarationAt(
     root: ILexicalFrame,
     name: string,
     at: TPosition,
+    isDefinedAt: TDefinedAt = DefinitionPoint.isDefinedAt,
   ): ILocalDeclaration | null {
     const path = LexicalFrames.pathTo(root, at);
     for (let i = path.length - 1; i >= 0; i--) {
@@ -104,15 +112,33 @@ class LexicalFrames {
       const declarations = path[i].declarations;
       let found: ILocalDeclaration | undefined;
       for (const declaration of declarations) {
-        if (
-          declaration.name === name &&
-          LexicalFrames.before(declaration.span, at)
-        ) {
+        if (declaration.name === name && isDefinedAt(declaration, at)) {
           found = declaration;
         }
       }
       if (found) {
         return found;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * #1643 review: the declaration whose declarator IDENTIFIER is at `at` --
+   * found by identity, for a site holding the declaration itself
+   */
+  static declarationDeclaredAt(
+    root: ILexicalFrame,
+    at: TPosition,
+  ): ILocalDeclaration | null {
+    for (const frame of LexicalFrames.pathTo(root, at)) {
+      for (const declaration of frame.declarations) {
+        if (
+          declaration.span.line === at.line &&
+          declaration.span.column === at.column
+        ) {
+          return declaration;
+        }
       }
     }
     return null;
@@ -187,6 +213,7 @@ class LexicalFrames {
         item.declaration,
         functionCName,
         facts,
+        LexicalFrames.ownNameBinds(item.declaration, facts),
       );
       facts.settledOf.set(item.declaration, settled);
       declarations.push(settled);
@@ -200,12 +227,27 @@ class LexicalFrames {
   }
 
   /**
+   * #1643 review: the settled local a declaration's own name, spelled inside
+   * it, binds to -- the binder's answer where the declaration starts. Nothing
+   * new has closed there, so it is the answer at every point inside it.
+   */
+  private static ownNameBinds(
+    declaration: ILocalDeclaration,
+    facts: ISettleFacts,
+  ): ILocalDeclaration | undefined {
+    const bound = LexicalFrames.declarationAt(
+      facts.root,
+      declaration.name,
+      declaration.extent,
+    );
+    return bound ? facts.settledOf.get(bound) : undefined;
+  }
+
+  /**
    * #1760 review: a declaration's own dimensions come before its name, so
-   * they see the enclosing binding (`u8[N] N`). Its initializer comes after
-   * the name and sees the new one, as C scopes it and as emission binds it,
-   * so a const that names itself has no value; whether it is allowed at all
-   * is #1643's. Folding both at the name's start gave `const u16 N <- N + 1`
-   * the value 5 while the C read the uninitialized local.
+   * they see the enclosing binding (`u8[N] N`). #1643: its initializer comes
+   * before the declaration closes, so it does not see the new one either --
+   * `const u16 N <- N + 1` names the enclosing `N`, or nothing (E0427).
    *
    * #1175: each name in a dimension or an initializer carries its own
    * position, and binds there -- which is that rule, with nothing to pick.
@@ -214,6 +256,8 @@ class LexicalFrames {
     declaration: ILocalDeclaration,
     functionCName: string | null,
     { isScopeType, env, isFileScopeName }: ISettleFacts,
+    /** The settled local its own name binds to inside it, if any */
+    shadowed: ILocalDeclaration | undefined,
   ): ILocalDeclaration {
     const arrayDimensions = declaration.arrayDimensions.map((dimension, i) => {
       const expr = declaration.arrayDimensionExprs[i];
@@ -231,10 +275,11 @@ class LexicalFrames {
       type,
       arrayDimensions: Object.freeze(arrayDimensions),
       constValue,
-      emittedName: LexicalFrames.emittedName(
+      ...LexicalFrames.emittedName(
         declaration,
         functionCName,
         isFileScopeName,
+        declaration.spellsOwnName ? (shadowed?.emittedName ?? null) : null,
       ),
     });
   }
@@ -247,26 +292,51 @@ class LexicalFrames {
    * signature, the `.h` prototype and every use in the body read.
    * `__` cannot be written in a C-Next identifier (E0201), so the moved name
    * collides with nothing the source declares.
+   *
+   * #1643: an initializer that names the enclosing local it shadows reads that
+   * one, but C scopes the new name from its declarator, before the
+   * initializer. So the new one moves off the enclosing one's C name too --
+   * `<function>__<name>`, then `<function>__<name>__2`, and so on.
    */
   private static emittedName(
     declaration: ILocalDeclaration,
     functionCName: string | null,
     isFileScopeName: (cName: string) => boolean,
-  ): string {
+    /** The C name of the enclosing local its initializer reads, if any */
+    readsEmitted: string | null,
+  ): { emittedName: string; nameMoves: ReadonlyArray<TNameMove> } {
     const { name } = declaration;
-    if (functionCName === null || !isFileScopeName(name)) {
-      return name;
+    if (functionCName === null) {
+      return { emittedName: name, nameMoves: [] };
     }
-    return QualifiedCName.fromParts([functionCName, name]);
+    const nameMoves: TNameMove[] = [];
+    if (isFileScopeName(name)) {
+      nameMoves.push("hidesFileScope");
+    }
+    let emitted =
+      nameMoves.length > 0
+        ? QualifiedCName.fromParts([functionCName, name])
+        : name;
+    if (emitted === readsEmitted) {
+      nameMoves.push("readsEnclosing");
+    }
+    let suffix = 1;
+    while (emitted === readsEmitted) {
+      emitted = QualifiedCName.fromParts([
+        functionCName,
+        name,
+        suffix === 1 ? null : String(suffix),
+      ]);
+      suffix++;
+    }
+    return {
+      emittedName: emitted,
+      nameMoves: Object.freeze(nameMoves),
+    };
   }
 
   private static compare(a: TPosition, b: TPosition): number {
     return a.line === b.line ? a.column - b.column : a.line - b.line;
-  }
-
-  /** Whether a span starts strictly before a position */
-  private static before(span: ISourceSpan, at: TPosition): boolean {
-    return LexicalFrames.compare(span, at) < 0;
   }
 
   /** Whether a position lies in a span, whose end is exclusive (ISourceSpan) */

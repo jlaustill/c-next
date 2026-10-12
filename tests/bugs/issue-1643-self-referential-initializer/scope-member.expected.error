@@ -1,0 +1,3 @@
+10:13 error[E0427]: 'x' is not defined
+11:18 error[E0427]: 'y' is not defined
+15:17 error[E0427]: 'w' is not defined

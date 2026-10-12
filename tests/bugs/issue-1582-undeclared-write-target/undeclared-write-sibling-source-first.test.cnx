@@ -5,8 +5,8 @@
 //
 // Paired with undeclared-write-sibling-consumer-first.test.cnx -- same two
 // sources, opposite include order, and the two must produce the IDENTICAL
-// diagnostic set. `knownVariables` is assembled incrementally and is
-// order-sensitive, which is what made #1430 flip a diagnostic on and off by
+// diagnostic set. What a file can see was once assembled incrementally and
+// order-sensitively, which is what made #1430 flip a diagnostic on and off by
 // swapping two `#include` lines. The pair asserts that, rather than a comment
 // anyone has to trust.
 //

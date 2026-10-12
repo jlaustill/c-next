@@ -1,0 +1,30 @@
+// test-error
+// test-adr: 030
+// #1624 (variable row), via #1643: a global or scope member is defined once
+// its declaration closes, so a use above the declaration is E0427 (ADR-030).
+// Each control names a variable declared above its use and stays silent.
+
+u32 b0 <- 1;
+u32 a0 <- b0 + 1; // control
+u32 a <- b + 1; // ERROR: b is declared below
+u32 b <- 1;
+
+u32 g0;
+
+void set() {
+    g0 <- 5; // control
+    g <- 5; // ERROR: g is declared below
+}
+
+u32 g;
+
+scope S {
+    u32 y;
+
+    public void put() {
+        this.y <- 5; // control
+        this.x <- 5; // ERROR: x is declared below
+    }
+
+    u32 x;
+}

@@ -41,6 +41,8 @@ import ICodeGeneratorOptions from "./3-Render/codegen/types/ICodeGeneratorOption
 import TypeValidator from "./3-Render/codegen/TypeValidator";
 import IGeneratorOutput from "./3-Render/codegen/generators/IGeneratorOutput";
 import EmissionPlan from "./2-Plan/EmissionPlan";
+import ComplianceAnnotations from "./2-Plan/ComplianceAnnotations";
+import emittedLocalName from "../utils/emittedLocalName";
 import DeclarationPlan from "./2-Plan/DeclarationPlan";
 import CastRequirement from "./2-Plan/CastRequirement";
 import OperandTyper from "../utils/OperandTyper";
@@ -163,7 +165,6 @@ import type TExpressionOf from "../types/syntax/TExpressionOf";
 import type TPostfixOpSyntax from "../types/syntax/TPostfixOpSyntax";
 import type TTypeSyntax from "../types/syntax/TTypeSyntax";
 import type ISourcePosition from "../utils/types/ISourcePosition";
-import type ISourceSpan from "../types/ISourceSpan";
 import IMemberSeparatorDeps from "./3-Render/codegen/types/IMemberSeparatorDeps";
 import IParameterDereferenceDeps from "./3-Render/codegen/types/IParameterDereferenceDeps";
 import ISeparatorContext from "./3-Render/codegen/types/ISeparatorContext";
@@ -794,17 +795,6 @@ class CodeGenWalker {
   }
 
   /**
-   * Where a declaration's name binds to the declaration itself: just inside
-   * the name, since LexicalFrames binds a declaration that starts before the
-   * position asked about. Before the name, it is the one being shadowed.
-   */
-  private static declaredAt(decl: {
-    readonly nameSpan: ISourceSpan;
-  }): ISourcePosition {
-    return { line: decl.nameSpan.line, column: decl.nameSpan.column + 1 };
-  }
-
-  /**
    * Generate function argument with pass-by-reference handling.
    * Part of IOrchestrator interface - delegates to ArgumentGenerator.
    */
@@ -969,13 +959,33 @@ class CodeGenWalker {
     return result;
   }
 
+  /**
+   * #1643 review: the comment lines that cite why a declaration is emitted
+   * under a moved name -- empty when it keeps its own
+   */
+  private nameMoveComments(
+    decl: Pick<IVariableDeclarationSyntax, "name" | "nameSpan">,
+  ): string {
+    const local = this.host.state.ownLocalDeclaration(decl);
+    return local
+      ? ComplianceAnnotations.renderMoves(
+          local.nameMoves,
+          local.name,
+          emittedLocalName(local),
+        )
+      : "";
+  }
+
   private renderStatementCode(statement: TStatement): string {
     switch (statement.kind) {
       case "variableDeclaration":
       case "constructorDeclaration":
-        return VariableDeclHelper.renderVariableDecl(
-          this.planVariableDecl(statement),
-          this.host.state,
+        return (
+          this.nameMoveComments(statement) +
+          VariableDeclHelper.renderVariableDecl(
+            this.planVariableDecl(statement),
+            this.host.state,
+          )
         );
       case "assignment":
         return this.generateAssignment(statement);
@@ -3645,10 +3655,7 @@ class CodeGenWalker {
     // declaration is assembled -- a second call would be a second place
     // deciding the same thing. Registries keep the source name; only the
     // generated text moves.
-    const emittedName = this.host.state.emittedLocalNameAt(
-      name,
-      CodeGenWalker.declaredAt(decl),
-    );
+    const emittedName = this.host.state.ownEmittedName(decl);
     const stringPlan = this.planStringDecl(decl);
     if (stringPlan) {
       return {
@@ -3701,10 +3708,7 @@ class CodeGenWalker {
     return {
       kind: "constructor",
       type,
-      emittedName: this.host.state.emittedLocalNameAt(
-        decl.name,
-        CodeGenWalker.declaredAt(decl),
-      ),
+      emittedName: this.host.state.ownEmittedName(decl),
       args,
     };
   }
@@ -3806,17 +3810,13 @@ class CodeGenWalker {
 
   /**
    * #1664 box 3: what this declaration says, as 1.3 recorded it and 1.4
-   * settled it -- the facts the `.h` is written from. Asked at `declaredAt`,
-   * so it reads this declaration, never one it shadows.
+   * settled it -- the facts the `.h` is written from. Found by identity, so
+   * it reads this declaration, never one it shadows.
    */
   private declaredHere(
     decl: IVariableDeclarationSyntax,
   ): TTypeInfo | undefined {
-    return this.host.state.declarationTypeInfo(
-      null,
-      decl.name,
-      CodeGenWalker.declaredAt(decl),
-    );
+    return this.host.state.ownTypeInfo(decl);
   }
 
   /**
@@ -3994,11 +3994,7 @@ class CodeGenWalker {
    */
   private _inferVariableType(decl: IVariableDeclarationSyntax): string {
     const type = this.renderDeclaredType(decl.type);
-    const info = this.host.state.declarationTypeInfo(
-      null,
-      decl.name,
-      CodeGenWalker.declaredAt(decl),
-    );
+    const info = this.host.state.ownTypeInfo(decl);
     return DeclaredPointer.spell(type, info?.isPointer ?? false);
   }
 
@@ -4406,10 +4402,8 @@ class CodeGenWalker {
       atomic: modifiers.atomic,
       volatile: modifiers.volatile,
       typeName,
-      emittedName: this.host.state.emittedLocalNameAt(
-        decl.name,
-        CodeGenWalker.declaredAt(decl),
-      ),
+      emittedName: this.host.state.ownEmittedName(decl),
+      nameMoveComments: this.nameMoveComments(decl),
       renderArrayDimensions:
         decl.dimensions.length > 0
           ? () => this.renderLoweredDimensions(decl.dimensions)

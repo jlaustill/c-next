@@ -14,7 +14,12 @@
  * already derive them for symbols, so a declaration means the same thing
  * wherever it is written.
  */
-import { ParserRuleContext, ParseTreeWalker, TerminalNode } from "antlr4ng";
+import {
+  ParserRuleContext,
+  ParseTree,
+  ParseTreeWalker,
+  TerminalNode,
+} from "antlr4ng";
 
 import { CNextListener } from "../../../2-Parse/grammar/CNextListener";
 import * as Parser from "../../../2-Parse/grammar/CNextParser";
@@ -119,6 +124,7 @@ class FrameListener extends CNextListener {
         name: info.name,
         kind: "parameter",
         span: FrameListener.spanOf(params[index].IDENTIFIER()),
+        extent: ParserUtils.getSpan(params[index]),
         type: info.type,
         arrayDimensions: info.arrayDimensions ?? [],
         arrayDimensionExprs: info.arrayDimensionExprs ?? [],
@@ -129,9 +135,11 @@ class FrameListener extends CNextListener {
         overflowBehavior: OverflowBehaviorUtils.fromModifier(null),
         initialValue: null,
         initialValueExpr: null,
+        spellsOwnName: false,
         initializerCallee: null,
         constValue: null,
         emittedName: null,
+        nameMoves: [],
       });
     });
   };
@@ -165,6 +173,53 @@ class FrameListener extends CNextListener {
     this.record(ctx, "for");
   };
 
+  /**
+   * #1643 (ADR-030): whether a declaration spells its own name, written bare,
+   * past its declarator -- in an initializer or constructor arguments. The
+   * declaration is not defined until it closes, so that spelling binds the
+   * declaration it shadows; `this.x`, `global.x` and `.x` follow a `.`, and a
+   * struct initializer's `x:` names a field.
+   */
+  private static spellsOwnName(
+    ctx: Parser.VariableDeclarationContext | Parser.ForVarDeclContext,
+  ): boolean {
+    const declarator = ctx.IDENTIFIER();
+    const name = declarator.getText();
+    let isPastDeclarator = false;
+    let previous = "";
+    let spells = false;
+    const visit = (node: ParseTree): void => {
+      if (node instanceof TerminalNode) {
+        spells ||=
+          isPastDeclarator &&
+          node.symbol.type === Parser.CNextParser.IDENTIFIER &&
+          node.getText() === name &&
+          previous !== "." &&
+          !FrameListener.isFieldKey(node);
+        isPastDeclarator ||= node === declarator;
+        previous = node.getText();
+        return;
+      }
+      for (let i = 0; i < node.getChildCount(); i++) {
+        const child = node.getChild(i);
+        if (child) {
+          visit(child);
+        }
+      }
+    };
+    visit(ctx);
+    return spells;
+  }
+
+  /** Whether a terminal is the field name of a struct initializer's `x: v` */
+  private static isFieldKey(node: TerminalNode): boolean {
+    const parent = node.parent;
+    return (
+      parent instanceof Parser.FieldInitializerContext &&
+      parent.IDENTIFIER() === node
+    );
+  }
+
   private record(
     ctx: Parser.VariableDeclarationContext | Parser.ForVarDeclContext,
     kind: ILocalDeclaration["kind"],
@@ -181,6 +236,7 @@ class FrameListener extends CNextListener {
       name: ctx.IDENTIFIER().getText(),
       kind,
       span: FrameListener.spanOf(ctx.IDENTIFIER()),
+      extent: ParserUtils.getSpan(ctx),
       type: facts.type,
       arrayDimensions: facts.arrayDimensions,
       arrayDimensionExprs: facts.arrayDimensionExprs,
@@ -190,9 +246,11 @@ class FrameListener extends CNextListener {
       overflowBehavior: facts.overflowBehavior,
       initialValue: facts.initialValue ?? null,
       initialValueExpr: facts.initialValueExpr,
+      spellsOwnName: FrameListener.spellsOwnName(ctx),
       initializerCallee: facts.initializerCallee,
       constValue: null,
       emittedName: null,
+      nameMoves: [],
     });
   }
 }

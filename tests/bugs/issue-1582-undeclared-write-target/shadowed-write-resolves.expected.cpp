@@ -35,6 +35,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 uint32_t shared = 1U;
 
 int main(void) {
+    /* C11 6.2.1p4, C++ [basic.scope.hiding]: `shared` emitted as `main__shared` (a plain `shared` would hide the file-scope `shared` for the rest of its scope, so `global.shared` would reach the local). */
     uint32_t main__shared = 2U;
     main__shared = 3U;
     shared = 4U;

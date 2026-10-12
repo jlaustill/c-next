@@ -391,6 +391,7 @@
     "parsetree",
     "pathlib",
     "pathnorm",
+    "pdecl",
     "perror",
     "Pico",
     "PINB",

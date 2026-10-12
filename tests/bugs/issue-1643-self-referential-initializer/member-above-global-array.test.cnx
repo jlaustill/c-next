@@ -1,0 +1,30 @@
+// test-execution
+// test-adr: 030
+// test-adr: 057
+// #1643 review: a scope member named above its declaration, under a global of
+// that name, means the global -- ADR-057's local -> scope -> global priority
+// over what is defined at the use (owner ruling, 2026-10-12). So `M` is the
+// global `N`, 4, and `buf` has 4 elements rather than S's own `N`, 10.
+
+const u32 N <- 4;
+
+scope S {
+    const u32 M <- N;
+    const u32 N <- 10;
+    public u8[M] buf;
+
+    public u32 own() {
+        return N;
+    }
+}
+
+u32 main() {
+    if (S.buf.element_count != 4) {
+        return 1;
+    }
+    u32 own <- S.own();
+    if (own != 10) {
+        return 2;
+    }
+    return 0;
+}

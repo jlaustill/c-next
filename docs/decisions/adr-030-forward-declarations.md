@@ -357,12 +357,12 @@ made the harness link the include closure.
 Define-before-use is one promise, and a name can be used in three positions, so
 the rule is enforced in three places rather than decided in three places.
 
-| Code  | Reported when                                                               | Asserted by                                                                                                                                           |
-| ----- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| E0422 | A function is called before it is defined, or is defined nowhere visible    | `tests/forward-declarations/call-before-define-error`, `.../bare-undeclared-function-error`, `.../scope-member-undefined-error`                       |
-| E0423 | A function calls itself (MISRA C:2012 Rule 17.2)                            | `tests/forward-declarations/recursive-call-error`, `tests/analysis/self-recursion`                                                                    |
-| E0426 | A name in a type position denotes nothing visible in the file that uses it  | `tests/bugs/issue-1312-undefined-type-position/` — same file, sibling, and both include orders                                                        |
-| E0427 | A name in a value position denotes nothing visible in the file that uses it | `tests/bugs/issue-1353-undeclared-value-position/`, `tests/bugs/issue-1430-e0427-order-dependence/`, `tests/bugs/issue-1582-undeclared-write-target/` |
+| Code  | Reported when                                                               | Asserted by                                                                                                                                                                                                                                                                                                      |
+| ----- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E0422 | A function is called before it is defined, or is defined nowhere visible    | `tests/forward-declarations/call-before-define-error`, `.../bare-undeclared-function-error`, `.../scope-member-undefined-error`                                                                                                                                                                                  |
+| E0423 | A function calls itself (MISRA C:2012 Rule 17.2)                            | `tests/forward-declarations/recursive-call-error`, `tests/analysis/self-recursion`                                                                                                                                                                                                                               |
+| E0426 | A name in a type position denotes nothing visible in the file that uses it  | `tests/bugs/issue-1312-undefined-type-position/` — same file, sibling, and both include orders                                                                                                                                                                                                                   |
+| E0427 | A name in a value position denotes nothing visible in the file that uses it | `tests/bugs/issue-1353-undeclared-value-position/`, `tests/bugs/issue-1430-e0427-order-dependence/`, `tests/bugs/issue-1582-undeclared-write-target/`, `tests/bugs/issue-1643-self-referential-initializer/`, `tests/bugs/issue-1624-variable-above-declaration/`, `tests/bugs/issue-2019-header-unclosed-name/` |
 
 **Visibility is answered per file, not per run.** A name declared in a sibling
 that this file never includes is not visible here, and saying so is the whole
@@ -382,6 +382,28 @@ What E0427 answers about is the name a spelling STARTS from. Whether a member
 further along a chain exists — the `nope` in `Scope.nope` or `this.cfg.nope` —
 is a different question and is not covered here, equally in both positions.
 
+One value position is not reached yet: a `switch` case label, where `case
+NOPE { }` is emitted as written (#1629, open).
+
+**A variable is defined once its declaration closes** — after its initializer
+— whatever declares it: a local, a `for` variable, a parameter, a global or a
+scope member (#1643). Its own initializer therefore names something not yet
+defined: `u32 n <- n + 1`, `string<32> s <- s[0, 2]`, `u32 x <- this.x + 1` in
+a scope and `u32 g <- global.g + 1` at file scope are each E0427, as a global
+or member named above its declaration is when nothing else of that name is
+defined there. Where an outer declaration of the name is defined, the spelling
+means that one, by ADR-057's local → scope → global priority applied to what is
+defined at the use. `u32 g <- g + 1` in a function, under a global `g`, reads
+the global, and so does the C, since the local is emitted as `f__g`
+(ADR-057). Under an enclosing local or parameter it is the same: `u32 p <- p +
+1` in a block, under a parameter `p`, reads the parameter, and the new local
+gets its own C name so the C reads the parameter too (ADR-057). A scope member
+named above its declaration, under a global of that name, means the global:
+in `scope S { const u32 M <- N; const u32 N <- 10; }` under `const u32 N <-
+4;`, `M` is 4 (owner ruling, 2026-10-12, on #2013). The variable is not
+zero-initialized-then-read, which is why this is not ADR-015's E0381 (owner
+ruling, 2026-10-12).
+
 **A qualified spelling states which level to search, and searching any other
 level is a different answer, not a fallback.** `this.x` asks the enclosing
 scope, `global.x` asks file scope, and a bare name searches outward. A name
@@ -392,7 +414,16 @@ visible at one level is not thereby visible at another.
 `#define` is not a declaration and appears in no symbol table — so C-Next
 cannot enumerate what is in scope and does not claim a name is undefined on
 evidence it does not have. The exemption is a promise about interop, and it
-covers the whole file, not the names that came from the header.
+covers every name the file does not itself declare, not only the names that
+came from the header. It does not cover a spelling that a declaration of the
+file would bind where it is written, once that declaration has closed: that is
+evidence C-Next has, so above the declaration's end it is E0427 in a file that
+reaches a header as in any other (#2019). A declaration that could not bind
+there is no such evidence. Another function's local, or a scope's member under
+a bare name outside the scope, leaves the name to the header, as
+`global.REG_BYTE` beside a scope's own `REG_BYTE` names the header's macro
+(#1688). A header macro of the same name can still redirect the file's own
+declaration, which C-Next cannot see today (#2032).
 
 The qualifier matters and an earlier draft of this passage got it wrong, saying
 a header "the transpiler does not parse". Parsing is not the criterion and

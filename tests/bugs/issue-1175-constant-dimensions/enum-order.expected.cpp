@@ -11,7 +11,9 @@
 // #1863 review: 1.4 settled a whole enum at a time and locked the first that
 // could not finish, so an enum and a const naming each other -- or two enums
 // -- were rejected depending on declaration order. Each member settles when
-// what it names does.
+// what it names does. `N` sits above `E`, since a const is defined only once
+// its declaration closes (#1643, ADR-030). `N` naming `E.X` above `enum E`
+// relies on #1624's open type row; its fix decides what this pair becomes.
 //
 // NEGATIVE CONTROL: `E.X`, which names nothing.
 extern const int32_t N = static_cast<int32_t>(E__X);

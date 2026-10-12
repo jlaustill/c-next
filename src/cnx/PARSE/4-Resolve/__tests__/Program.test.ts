@@ -105,7 +105,8 @@ describe("Program", () => {
   // binding accessors used to fall back to "no locals" for one, which loses
   // every shadowing decision with no error, while lexicalFrameAt asserted.
   describe("a file the program does not hold", () => {
-    const at = { line: 1, column: 0 };
+    // After the one declaration, which a use inside it would not see (#1643)
+    const at = { line: 2, column: 0 };
 
     it("is an internal error for every lexical accessor", () => {
       const program = Program.build([declare("u32 x <- 1;", "a.cnx")], {
@@ -130,6 +131,90 @@ describe("Program", () => {
         kind: "variable",
       });
       expect(program.lexicalDeclarationAt("a.cnx", "x", at)).toBeNull();
+    });
+  });
+
+  // #1643 review: codegen reads a declaration's own facts by its identity,
+  // never by binding a position rebuilt from its syntax.
+  describe("the declaration a declarator names", () => {
+    const build = (source: string) =>
+      Program.build([declare(source, "a.cnx")], { cppMode: false });
+
+    it("is the shadowing local itself, not the one its initializer reads", () => {
+      const program = build("void f() { u32 n <- 1; { u32 n <- n; } }");
+      expect(
+        program.declarationOf("a.cnx", "n", { line: 1, column: 29 }),
+      ).toMatchObject({ kind: "local", declaration: { span: { column: 29 } } });
+      // negative control: the outer declarator names the outer local
+      expect(
+        program.declarationOf("a.cnx", "n", { line: 1, column: 15 }),
+      ).toMatchObject({ kind: "local", declaration: { span: { column: 15 } } });
+    });
+
+    it("is a global's own variable, and nothing for a name it does not declare", () => {
+      const program = build("u32 g <- 1;");
+      const declarator = { line: 1, column: 4 };
+      expect(program.declarationOf("a.cnx", "g", declarator)).toMatchObject({
+        kind: "variable",
+        symbol: { name: "g" },
+      });
+      expect(program.declarationOf("a.cnx", "zz", declarator)).toBeNull();
+    });
+  });
+
+  // #2019: the names a header-reaching file may not leave to the header --
+  // those a declaration of its own would bind, were it closed (ADR-030).
+  describe("a name that may be a header's", () => {
+    const build = (source: string, reachesHeader = true) =>
+      Program.build([declare(source, "a.cnx")], {
+        cppMode: false,
+        filesReachingForeignHeaders: new Set(reachesHeader ? ["a.cnx"] : []),
+      });
+
+    it("is not a global above its declaration, bare or through `global.`", () => {
+      const program = build("u32 a <- b + 1;\nu32 b <- 1;\nu32 c <- b;");
+      const above = { line: 1, column: 9 };
+      expect(program.mayBeHeaderName("a.cnx", null, "b", above)).toBe(false);
+      expect(program.mayBeHeaderName("a.cnx", "global", "b", above)).toBe(
+        false,
+      );
+      // negative control: a name nothing declares
+      expect(program.mayBeHeaderName("a.cnx", null, "zz", above)).toBe(true);
+    });
+
+    it("is not a local in its own initializer", () => {
+      const program = build("void f() { u32 n <- n + 1; u32 m <- n; }");
+      const own = { line: 1, column: 20 };
+      expect(program.mayBeHeaderName("a.cnx", null, "n", own)).toBe(false);
+    });
+
+    it("is not a scope member above its declaration through `this.`", () => {
+      const program = build(
+        "scope S {\n  public void f() { this.x <- 1; this.y <- 1; }\n  u32 x;\n}\n",
+      );
+      const use = { line: 2, column: 20 };
+      expect(program.mayBeHeaderName("a.cnx", "this", "x", use)).toBe(false);
+      // negative control: a member S does not declare
+      expect(program.mayBeHeaderName("a.cnx", "this", "y", use)).toBe(true);
+    });
+
+    it("is a name declared only where it cannot bind: another function's local, a scope's member", () => {
+      const program = build(
+        "scope S { u32 m; }\nvoid f() { u32 n <- 1; }\nvoid g() { u32 k <- n + m; }",
+      );
+      const use = { line: 3, column: 20 };
+      expect(program.mayBeHeaderName("a.cnx", null, "n", use)).toBe(true);
+      expect(program.mayBeHeaderName("a.cnx", null, "m", use)).toBe(true);
+    });
+
+    it("is nothing in a file that reaches no header", () => {
+      const program = build("u32 a <- 1;", false);
+      expect(
+        program.mayBeHeaderName("a.cnx", null, "LED_PIN", {
+          line: 1,
+          column: 0,
+        }),
+      ).toBe(false);
     });
   });
 
@@ -376,18 +461,22 @@ describe("Program", () => {
 
     // #1760 second review: the fold repeated rounds over every pending
     // const, O(n^2) in reverse dependency order. The guard counts attempts.
+    // #1643: in reverse order each const names one not yet defined, so C0
+    // has no value -- the attempts must still be linear.
     it.each([
       [
         "dependency",
         (i: number, _n: number) => (i === 0 ? "1" : `C${i - 1} + 1`),
+        true,
       ],
       [
         "reverse dependency",
         (i: number, n: number) => (i === n - 1 ? "1" : `C${i + 1} + 1`),
+        false,
       ],
     ])(
       "folds a chain of consts in %s order with a linear number of attempts",
-      (_order, initializer) => {
+      (_order, initializer, folds) => {
         const n = 200;
         const source = Array.from(
           { length: n },
@@ -398,10 +487,15 @@ describe("Program", () => {
           const program = Program.build([declare(source, "lib.cnx")], {
             cppMode: false,
           });
-          expect(
-            constantAt(program, "lib.cnx", "C0", { line: n + 1, column: 0 })
-              ?.value,
-          ).toBeGreaterThan(0);
+          const c0 = constantAt(program, "lib.cnx", "C0", {
+            line: n + 1,
+            column: 0,
+          });
+          if (folds) {
+            expect(c0?.value).toBeGreaterThan(0);
+          } else {
+            expect(c0).toBeNull();
+          }
           expect(attempts.mock.calls.length).toBeLessThanOrEqual(2 * n);
         } finally {
           attempts.mockRestore();
@@ -437,11 +531,12 @@ describe("Program", () => {
 
       expect(valueOf("Board__STEP")).toBe(12);
       expect(valueOf("Other__STEP")).toBe(3);
+      // At each scope's closing brace, after its const is declared (#1643)
       expect(
-        constantAt(program, "lib.cnx", "STEP", { line: 2, column: 4 })?.value,
+        constantAt(program, "lib.cnx", "STEP", { line: 3, column: 0 })?.value,
       ).toBe(12);
       expect(
-        constantAt(program, "lib.cnx", "STEP", { line: 5, column: 4 })?.value,
+        constantAt(program, "lib.cnx", "STEP", { line: 6, column: 0 })?.value,
       ).toBe(3);
       expect(
         constantAt(program, "lib.cnx", "STEP", { line: 7, column: 0 }),
@@ -550,13 +645,17 @@ describe("Program", () => {
       return (symbol as IVariableSymbol).arrayDimensions;
     };
 
-    it("folds a const derived from another const, in either order", () => {
+    it("folds a const derived from another const declared above it", () => {
       expect(
         dimensionsOf(`const u32 A <- 4;\nconst u32 B <- A;\nu8[B] g;`, "g"),
       ).toEqual([4]);
+    });
+
+    it("folds nothing from a const declared below the use (#1643, ADR-030)", () => {
+      // `B` is not defined yet where `g` names it: E0427, and no size
       expect(
         dimensionsOf(`u8[B] g;\nconst u32 B <- A;\nconst u32 A <- 4;`, "g"),
-      ).toEqual([4]);
+      ).toEqual([UNRESOLVED_DIMENSION]);
     });
 
     it("folds a scope member's dimension with its own scope's const (#1538)", () => {
@@ -589,13 +688,21 @@ describe("Program", () => {
       ).toEqual([UNRESOLVED_DIMENSION]);
     });
 
-    it("folds a scope const with its own scope's names, whichever is declared first (#1664 review)", () => {
+    it("folds a scope const with its own scope's names once they are declared (#1664 review, #1643)", () => {
+      expect(
+        dimensionsOf(
+          `const u32 N <- 4;\nscope S {\nconst u32 N <- 10;\nconst u32 M <- N;\npublic u8[M] buf;\n}`,
+          "buf",
+        ),
+      ).toEqual([10]);
+      // Above the scope's `N`, a bare `N` is the file's: the member is not
+      // defined yet (ADR-030), and `S__M = N` is what C reads too
       expect(
         dimensionsOf(
           `const u32 N <- 4;\nscope S {\nconst u32 M <- N;\nconst u32 N <- 10;\npublic u8[M] buf;\n}`,
           "buf",
         ),
-      ).toEqual([10]);
+      ).toEqual([4]);
     });
 
     it("does not fold a result an operand's type cannot hold (#1664 review)", () => {
@@ -1054,6 +1161,7 @@ scope Gauge {
         "constantOf",
         "constantValueOf",
         "cppMode",
+        "declarationOf",
         "enumMemberValues",
         "externalStructFields",
         "functionParamLists",
@@ -1065,6 +1173,7 @@ scope Gauge {
         "knownEnums",
         "lexicalDeclarationAt",
         "lexicalFrameAt",
+        "mayBeHeaderName",
         "modifiedParameters",
         "opaqueTypes",
         "passByValueParams",

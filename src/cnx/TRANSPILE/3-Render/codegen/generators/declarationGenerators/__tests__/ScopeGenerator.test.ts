@@ -74,6 +74,7 @@ function createMockOrchestrator(options?: {
     isHeldThroughPointer: vi.fn(() => options?.isOpaque ?? false),
     enterFunctionContext: vi.fn(),
     updateFunctionParamsAutoConst: vi.fn(),
+    movedParameterComments: vi.fn(() => ""),
     exitFunctionContext: vi.fn(),
     recordCallbackTypedef: vi.fn(),
     applyEffects: vi.fn(),

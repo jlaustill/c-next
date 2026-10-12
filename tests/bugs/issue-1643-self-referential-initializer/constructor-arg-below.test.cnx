@@ -1,0 +1,19 @@
+// test-error
+// test-cpp-only
+// test-adr: 015
+// test-adr: 030
+// #1643 review: a constructor argument naming a const declared below the use
+// names nothing yet -- E0433, the constructor form of E0427 (ADR-015). The
+// control names a const declared above and stays silent.
+
+#include "Tally.hpp"
+
+const u8 EARLY <- 3;
+
+u32 main() {
+    Tally ok(EARLY); // control
+    Tally t(LATER); // ERROR: LATER is declared below
+    return 0;
+}
+
+const u8 LATER <- 3;

@@ -56,9 +56,6 @@ class TSymbolInfoAdapter {
     const knownBitmaps = new Set<string>();
     const knownRegisters = new Set<string>();
 
-    // === Issue #1398: File-Scope Value Names ===
-    const knownVariables = new Set<string>();
-
     // === Scope Information ===
     const scopeMembers = new Map<string, Set<string>>();
     const scopeMemberVisibility = new Map<
@@ -143,11 +140,7 @@ class TSymbolInfoAdapter {
 
         case "variable":
           // Track scope membership and file-scope names
-          TSymbolInfoAdapter.processVariable(
-            symbol,
-            scopeMembers,
-            knownVariables,
-          );
+          TSymbolInfoAdapter.processVariable(symbol, scopeMembers);
           break;
 
         // Track function return types for enum validation
@@ -165,7 +158,6 @@ class TSymbolInfoAdapter {
       knownEnums,
       knownBitmaps,
       knownRegisters,
-      knownVariables,
 
       // Scope info
       scopeMembers,
@@ -364,7 +356,6 @@ class TSymbolInfoAdapter {
   private static processVariable(
     variable: IVariableSymbol,
     scopeMembers: Map<string, Set<string>>,
-    knownVariables: Set<string>,
   ): void {
     // #1295: `scopeMembers` is keyed by the scope's dotted source path, which is
     // exactly what `scopePath` already holds -- no conversion here, and no
@@ -380,14 +371,6 @@ class TSymbolInfoAdapter {
         scopeMembers.set(scopeName, members);
       }
       members.add(variable.name); // Add local name (e.g., "value"), not transpiled C name
-    } else {
-      // Issue #1398: a file-scope variable is reachable by its bare name, which
-      // is the key the run-wide table is indexed by -- so recording it here is
-      // what lets the value check ask a per-file question instead of a run-wide
-      // one. Scoped variables are excluded because they are NOT reachable bare;
-      // they are reached through `scopeMembers` above, which the value check
-      // already consults under a scope path.
-      knownVariables.add(variable.name);
     }
   }
 

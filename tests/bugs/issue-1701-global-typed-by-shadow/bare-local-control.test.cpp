@@ -26,6 +26,7 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 uint32_t x = 0U;
 
 uint32_t f(void) {
+    /* C11 6.2.1p4, C++ [basic.scope.hiding]: `x` emitted as `f__x` (a plain `x` would hide the file-scope `x` for the rest of its scope, so `global.x` would reach the local). */
     uint8_t f__x = 1U;
     f__x = cnx_clamp_add_u8(f__x, 1000U);
     uint32_t local = f__x;

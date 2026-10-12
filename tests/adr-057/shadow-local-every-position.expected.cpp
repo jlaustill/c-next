@@ -65,12 +65,19 @@ uint32_t takes(uint32_t v) {
 /* Scope: S */
 
 uint32_t S__positions(uint32_t flag) {
+    /* C11 6.2.1p4, C++ [basic.scope.hiding]: `probe` emitted as `S__positions__probe` (a plain `probe` would hide the file-scope `probe` for the rest of its scope, so `global.probe` would reach the local). */
     uint32_t S__positions__probe = 1U;
+    /* C11 6.2.1p4, C++ [basic.scope.hiding]: `parr` emitted as `S__positions__parr` (a plain `parr` would hide the file-scope `parr` for the rest of its scope, so `global.parr` would reach the local). */
     uint32_t S__positions__parr[4] = {5U, 6U, 7U, 8U};
+    /* C11 6.2.1p4, C++ [basic.scope.hiding]: `pbits` emitted as `S__positions__pbits` (a plain `pbits` would hide the file-scope `pbits` for the rest of its scope, so `global.pbits` would reach the local). */
     uint8_t S__positions__pbits = 0U;
+    /* C11 6.2.1p4, C++ [basic.scope.hiding]: `pidx` emitted as `S__positions__pidx` (a plain `pidx` would hide the file-scope `pidx` for the rest of its scope, so `global.pidx` would reach the local). */
     uint32_t S__positions__pidx = 1U;
+    /* C11 6.2.1p4, C++ [basic.scope.hiding]: `pdown` emitted as `S__positions__pdown` (a plain `pdown` would hide the file-scope `pdown` for the rest of its scope, so `global.pdown` would reach the local). */
     uint32_t S__positions__pdown = 2U;
+    /* C11 6.2.1p4, C++ [basic.scope.hiding]: `pcfg` emitted as `S__positions__pcfg` (a plain `pcfg` would hide the file-scope `pcfg` for the rest of its scope, so `global.pcfg` would reach the local). */
     Holder S__positions__pcfg = { .x = 1U };
+    /* C11 6.2.1p4, C++ [basic.scope.hiding]: `pstr` emitted as `S__positions__pstr` (a plain `pstr` would hide the file-scope `pstr` for the rest of its scope, so `global.pstr` would reach the local). */
     char S__positions__pstr[9] = "ab";
     uint32_t acc = 0U;
     S__positions__probe = 2U;

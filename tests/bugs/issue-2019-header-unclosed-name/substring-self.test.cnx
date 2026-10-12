@@ -1,0 +1,16 @@
+// test-error
+// test-adr: 030
+// test-adr: 045
+// #2019: a file that reaches a C header is exempt from E0427 only for names
+// it does not declare. A name this file declares is undefined above where its
+// declaration closes, header or not (ADR-030). Each control names a variable
+// declared above its use and stays silent.
+
+#include <stdint.h>
+
+u8 main() {
+    string<32> r <- "abc";
+    string<32> t <- r[0, 2]; // control
+    string<32> s <- s[0, 2]; // ERROR: reads itself
+    return 0;
+}

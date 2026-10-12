@@ -229,6 +229,29 @@ interface IProgram {
   ): TValueBinding | null;
 
   /**
+   * #1643 review: what a use of the declaration whose declarator `name` is at
+   * `declarator` binds to once it closes -- the declaration itself, found by
+   * identity, never by binding a position rebuilt from its syntax
+   */
+  declarationOf(
+    sourceFile: string,
+    name: string,
+    declarator: Pick<ISourceSpan, "line" | "column">,
+  ): TValueBinding | null;
+
+  /**
+   * ADR-030 / #2019: whether a spelling nothing binds at `at` may be a
+   * header's `#define`: the file reaches a C or C++ header, and no
+   * declaration of its own would bind the spelling there once closed
+   */
+  mayBeHeaderName(
+    sourceFile: string,
+    root: TChainRoot,
+    name: string,
+    at: Pick<ISourceSpan, "line" | "column">,
+  ): boolean;
+
+  /**
    * What a name in a constant expression is worth where it is written: the
    * whole chain (`N`, `this.N`, `Scope.N`, `EColor.COUNT`), from what
    * `bindValue` binds its head to. The one question every constant fold asks,

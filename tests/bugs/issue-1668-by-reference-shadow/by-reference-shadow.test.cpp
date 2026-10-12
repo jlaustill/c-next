@@ -63,12 +63,14 @@ uint8_t Sc__controlArray(void) {
 }
 
 uint32_t local(void) {
+    /* C11 6.2.1p4, C++ [basic.scope.hiding]: `x` emitted as `local__x` (a plain `x` would hide the file-scope `x` for the rest of its scope, so `global.x` would reach the local). */
     uint32_t local__x = 7U;
     bump(local__x);
     return local__x;
 }
 
 uint8_t localArray(void) {
+    /* C11 6.2.1p4, C++ [basic.scope.hiding]: `buf` emitted as `localArray__buf` (a plain `buf` would hide the file-scope `buf` for the rest of its scope, so `global.buf` would reach the local). */
     uint8_t localArray__buf[4] = {7U, 7U, 7U, 7U};
     return first(localArray__buf);
 }
