@@ -15,11 +15,9 @@
  * `discards 'const' qualifier`, at exit 0.
  */
 
-import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
+import type TExpression from "../../../types/syntax/TExpression";
 import ExpressionShape from "../../../utils/ExpressionShape";
-import SyntaxLowering from "../../../PARSE/2-Parse/SyntaxLowering";
 
-/** The two ADR-051 builtins, which share a signature. */
 const SAFE_DIVISION = new Set(["safe_div", "safe_mod"]);
 
 class SafeDivision {
@@ -31,29 +29,20 @@ class SafeDivision {
    * op: `safe_div(...)`. A member access that happens to end in the same name
    * is a different function.
    */
-  static callOf(ctx: Parser.PostfixExpressionContext): {
-    name: string;
-    args: Parser.ExpressionContext[];
-  } | null {
-    const primary = ctx.primaryExpression();
-    const ops = ctx.postfixOp();
-    if (!primary || ops.length !== 1) return null;
-    const name = primary.IDENTIFIER()?.getText();
-    if (name === undefined || !SAFE_DIVISION.has(name)) return null;
-    if (ops[0].LPAREN() === null) return null;
-    return { name, args: ops[0].argumentList()?.expression() ?? [] };
+  static callOf(
+    expr: TExpression,
+  ): { name: string; args: readonly TExpression[] } | null {
+    if (expr.kind !== "postfix" || expr.ops.length !== 1) return null;
+    if (expr.primary.kind !== "identifier") return null;
+    const name = expr.primary.name;
+    const op = expr.ops[0];
+    if (!SAFE_DIVISION.has(name) || op.kind !== "call") return null;
+    return { name, args: op.arguments };
   }
 
-  /**
-   * The name the call writes its result to, or null when the first argument is
-   * not a plain variable name. ADR-051 needs a storage location: the helper
-   * takes its address.
-   */
-  static outputName(args: readonly Parser.ExpressionContext[]): string | null {
+  static outputName(args: readonly TExpression[]): string | null {
     const first = args[0];
-    return first === undefined
-      ? null
-      : ExpressionShape.simpleIdentifier(SyntaxLowering.expression(first));
+    return first === undefined ? null : ExpressionShape.simpleIdentifier(first);
   }
 }
 

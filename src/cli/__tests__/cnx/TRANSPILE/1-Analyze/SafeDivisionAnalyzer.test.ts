@@ -13,8 +13,10 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  * end to end.
  */
 const errors = (source: string) => {
-  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
-  return new SafeDivisionAnalyzer(context).analyze(tree);
+  const { syntax, context } = testAnalysisContextFor(source, {
+    cppMode: false,
+  });
+  return new SafeDivisionAnalyzer(context).analyze(syntax);
 };
 
 const wrap = (body: string) =>
@@ -79,6 +81,17 @@ describe("SafeDivisionAnalyzer (E0885)", () => {
     const found = errors(program);
     // Only `helper`, on line 13: `total` and the member `sum` are variables
     expect(found.map((e) => [e.code, e.line])).toEqual([["E0885", 13]]);
+  });
+
+  // #1991: the position comes from 1.2's span of the first argument.
+  it("reports E0885 at the first argument", () => {
+    const [found] = errors(wrap("    err <- safe_div(1 + 1, 10, 2, 0);"));
+    expect([found.line, found.column]).toEqual([4, 20]);
+  });
+
+  it("checks only a bare call, not an index or a chain", () => {
+    expect(errors(wrap("    err <- safe_div[1];"))).toEqual([]);
+    expect(errors(wrap("    err <- safe_div(1 + 1, 10, 2).x;"))).toEqual([]);
   });
 
   it("is not confused by a member access ending in the same name", () => {

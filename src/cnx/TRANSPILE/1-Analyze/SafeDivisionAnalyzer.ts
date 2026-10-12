@@ -26,113 +26,96 @@
  * emitted `&K` into a non-const pointer parameter.
  */
 
-import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
-
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import ParserUtils from "../../utils/ParserUtils";
+import type ISourceSpan from "../../types/ISourceSpan";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import DeclarationParts from "../../utils/DeclarationParts";
+import ExpressionNodes from "../../utils/ExpressionNodes";
 import SafeDivision from "./helpers/SafeDivision";
 import ISafeDivisionError from "./types/ISafeDivisionError";
 import BoundDeclaration from "./helpers/BoundDeclaration";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
-/** ADR-051 fixes the signature at four. */
+/** `safe_div(output, numerator, divisor, defaultValue)` (ADR-051) */
 const REQUIRED_ARGUMENTS = 4;
 
-class SafeDivisionListener extends CNextListener {
+/** #1991: reads 1.2's syntax, not the parse tree */
+class SafeDivisionAnalyzer {
   private readonly found: ISafeDivisionError[] = [];
 
-  public constructor(private readonly context: IAnalysisContext) {
-    super();
-  }
+  constructor(private readonly context: IAnalysisContext) {}
 
-  public errors(): ISafeDivisionError[] {
+  public analyze(program: IProgramSyntax): ISafeDivisionError[] {
+    for (const member of program.declarations) {
+      for (const part of DeclarationParts.of(member.declaration)) {
+        for (const expr of ExpressionNodes.of(part)) this.check(expr);
+      }
+    }
     return this.found;
   }
 
-  override enterPostfixExpression = (
-    ctx: Parser.PostfixExpressionContext,
-  ): void => {
-    const call = SafeDivision.callOf(ctx);
+  private check(expr: Parameters<typeof SafeDivision.callOf>[0]): void {
+    const call = SafeDivision.callOf(expr);
     if (call === null) return;
-
     if (call.args.length !== REQUIRED_ARGUMENTS) {
       this.report(
-        ctx,
+        expr.span,
         "E0884",
         `${call.name} takes exactly ${REQUIRED_ARGUMENTS} arguments (output, numerator, divisor, defaultValue), not ${call.args.length}`,
         "The result is written to the first argument and the fourth is used when the divisor is zero, so neither can be left out (ADR-051).",
       );
       return;
     }
-
     const output = SafeDivision.outputName(call.args);
     if (output === null) {
       this.report(
-        call.args[0],
+        call.args[0].span,
         "E0885",
         `${call.name} writes its result to the first argument, so it must be a variable`,
         "The generated helper takes the output's address; an expression has none. Declare a variable and pass it (ADR-051).",
       );
       return;
     }
-
-    // A name that resolves to nothing is E0427's to report -- saying it twice
-    // for one mistake is what the analyzer order exists to prevent.
-    if (!this.isDeclared(output, ctx)) return;
-    if (this.isVariable(output, ctx)) return;
-
+    if (!this.isDeclared(output, expr.span)) return;
+    if (this.isVariable(output, expr.span)) return;
     this.report(
-      call.args[0],
+      call.args[0].span,
       "E0885",
       `${call.name} writes its result to the first argument, and '${output}' is not a variable`,
       "The generated helper takes the output's address. Declare a variable of the result's type and pass that (ADR-051).",
     );
-  };
+  }
 
-  /** Whether anything at all declares this name where the call stands. */
-  private isDeclared(name: string, at: ParserRuleContext): boolean {
+  private isDeclared(name: string, at: ISourceSpan): boolean {
     if (this.isVariable(name, at)) return true;
-    const symbols = this.context.symbols;
     return (
-      symbols.functionReturnTypes.has(name) ||
+      this.context.symbols.functionReturnTypes.has(name) ||
       this.context.program.symbolByCName(name) !== undefined
     );
   }
 
-  /**
-   * Whether the name binds to a variable here -- a local, a member or a
-   * global, this file's or an included one's -- through Program's one binder
-   */
-  private isVariable(name: string, at: ParserRuleContext): boolean {
+  private isVariable(name: string, at: ISourceSpan): boolean {
     const binding = this.context.program.bindValue(
       this.context.sourceFile,
       null,
       name,
-      ParserUtils.getPosition(at),
+      at,
     );
     return BoundDeclaration.of(binding) !== null;
   }
 
   private report(
-    at: ParserRuleContext,
+    at: ISourceSpan,
     code: string,
     message: string,
     helpText: string,
   ): void {
-    const { line, column } = ParserUtils.getPosition(at);
-    this.found.push({ code, line, column, message, helpText });
-  }
-}
-
-class SafeDivisionAnalyzer {
-  /** #1456: handed in rather than read off shared state. */
-  constructor(private readonly context: IAnalysisContext) {}
-
-  public analyze(tree: Parser.ProgramContext): ISafeDivisionError[] {
-    const listener = new SafeDivisionListener(this.context);
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
-    return listener.errors();
+    this.found.push({
+      code,
+      line: at.line,
+      column: at.column,
+      message,
+      helpText,
+    });
   }
 }
 

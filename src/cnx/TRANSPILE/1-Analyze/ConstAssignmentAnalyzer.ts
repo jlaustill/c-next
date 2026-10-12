@@ -40,10 +40,13 @@ import BoundDeclaration from "./helpers/BoundDeclaration";
 import SafeDivision from "./helpers/SafeDivision";
 import IConstAssignmentError from "./types/IConstAssignmentError";
 import TChainRoot from "../../types/TChainRoot";
+import type ISourceSpan from "../../types/ISourceSpan";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
 /** What kind of const binding a name is, or null when it is not const. */
 type TConstKind = "parameter" | "variable" | null;
+
+type TPosition = Pick<ISourceSpan, "line" | "column">;
 
 class ConstAssignmentListener extends CNextListener {
   private readonly found: IConstAssignmentError[] = [];
@@ -97,7 +100,7 @@ class ConstAssignmentListener extends CNextListener {
    * a second opinion about the builtins' signature.
    */
   private checkSafeDivisionOutput(ctx: Parser.PostfixExpressionContext): void {
-    const call = SafeDivision.callOf(ctx);
+    const call = SafeDivision.callOf(SyntaxLowering.expressionNode(ctx));
     if (call === null) return;
     const output = SafeDivision.outputName(call.args);
     if (output === null) return; // not a variable at all -- E0885's to report
@@ -106,7 +109,7 @@ class ConstAssignmentListener extends CNextListener {
     const kind = this.constKind(null, output, ctx);
     if (kind === null) return;
     this.report(
-      call.args[0],
+      call.args[0].span,
       "E0877",
       `cannot assign to const ${kind} '${output}' (${call.name} output)`,
       `${call.name} writes its result through its first argument, so a const cannot receive it; remove \`const\`, or pass a mutable variable (ADR-013).`,
@@ -195,12 +198,13 @@ class ConstAssignmentListener extends CNextListener {
   }
 
   private report(
-    at: ParserRuleContext,
+    at: ParserRuleContext | TPosition,
     code: string,
     message: string,
     helpText: string,
   ): void {
-    const { line, column } = ParserUtils.getPosition(at);
+    const { line, column } =
+      at instanceof ParserRuleContext ? ParserUtils.getPosition(at) : at;
     this.found.push({ code, line, column, message, helpText });
   }
 }

@@ -32,11 +32,11 @@ lexer-only include scan. Nothing from 2.2 Plan on.
 
 | Layer                | Modules |
 | -------------------- | ------: |
-| `src/cnx/TRANSPILE/` |      48 |
+| `src/cnx/TRANSPILE/` |      46 |
 | `src/cnx/PARSE/`     |      14 |
 | `src/cnx/utils/`     |       5 |
 | `src/cnx/types/`     |       2 |
-| **total**            |  **69** |
+| **total**            |  **67** |
 
 `src/cnx/TRANSPILE/3-Render/` is the render layer, and its share is the number
 the issue singles out: the render layer holding parse nodes is how a
@@ -87,7 +87,6 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/cnx/TRANSPILE/1-Analyze/helpers/EnclosingFunction.ts`          | antlr4ng, grammar |
 | `src/cnx/TRANSPILE/1-Analyze/helpers/FunctionReference.ts`          | grammar           |
 | `src/cnx/TRANSPILE/1-Analyze/helpers/RegisterMemberReference.ts`    | antlr4ng, grammar |
-| `src/cnx/TRANSPILE/1-Analyze/helpers/SafeDivision.ts`               | grammar           |
 | `src/cnx/TRANSPILE/1-Analyze/helpers/StructInitializerType.ts`      | antlr4ng, grammar |
 | `src/cnx/TRANSPILE/1-Analyze/InitializationAnalyzer.ts`             | antlr4ng, grammar |
 | `src/cnx/TRANSPILE/1-Analyze/IntegerConversionAnalyzer.ts`          | antlr4ng, grammar |
@@ -98,7 +97,6 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/cnx/TRANSPILE/1-Analyze/RegisterAccessAnalyzer.ts`             | antlr4ng, grammar |
 | `src/cnx/TRANSPILE/1-Analyze/ReturnValueUseAnalyzer.ts`             | antlr4ng, grammar |
 | `src/cnx/TRANSPILE/1-Analyze/runAnalyzers.ts`                       | grammar           |
-| `src/cnx/TRANSPILE/1-Analyze/SafeDivisionAnalyzer.ts`               | antlr4ng, grammar |
 | `src/cnx/TRANSPILE/1-Analyze/ScopeAccessAnalyzer.ts`                | antlr4ng, grammar |
 | `src/cnx/TRANSPILE/1-Analyze/ShiftAnalyzer.ts`                      | antlr4ng, grammar |
 | `src/cnx/TRANSPILE/1-Analyze/SliceAssignmentAnalyzer.ts`            | antlr4ng, grammar |
@@ -116,4 +114,4 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/cnx/utils/ParserUtils.ts`                                      | antlr4ng, grammar |
 | `src/cnx/utils/PostfixAnalysisUtils.ts`                             | grammar           |
 
-69 module(s).
+67 module(s).

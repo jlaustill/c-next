@@ -424,7 +424,7 @@ function runAnalyzers(
     },
     {
       label: "safe_div/safe_mod call shape (ADR-051, E0884/E0885)",
-      run: () => new SafeDivisionAnalyzer(context).analyze(tree),
+      run: () => new SafeDivisionAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "C pointer parameter arguments (#1977, E0895)",
