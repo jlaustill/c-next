@@ -1,25 +1,19 @@
 /**
- * FunctionCollector - Collects function symbols from C parse trees.
+ * FunctionCollector - C function definitions and prototypes, from 1.2's
+ * plain-data header (#1991).
  */
-
-import type {
-  DeclaratorContext,
-  FunctionDefinitionContext,
-} from "../../../2-Parse/c/grammar/CParser";
 import type ICFunctionSymbol from "../../../../types/symbols/c/ICFunctionSymbol";
 import type ICParameterInfo from "../../../../types/symbols/c/ICParameterInfo";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
-import DeclaratorUtils from "../utils/DeclaratorUtils";
-import type IExtractedParameter from "../../shared/IExtractedParameter";
+import DeclaratorTypes from "../utils/DeclaratorTypes";
+import type IExtractedParameter from "../../../2-Parse/shared/IExtractedParameter";
+import type ICDeclaratorSyntax from "../../../2-Parse/types/ICDeclaratorSyntax";
+import type TCExternalDeclarationSyntax from "../../../2-Parse/types/TCExternalDeclarationSyntax";
 import type ISourceSpan from "../../../../types/ISourceSpan";
-import ParserUtils from "../../../../utils/ParserUtils";
 
 class FunctionCollector {
-  /**
-   * Map extracted parameters to ICParameterInfo array.
-   */
   private static _mapParameters(
-    extracted: IExtractedParameter[],
+    extracted: readonly IExtractedParameter[],
   ): ICParameterInfo[] {
     return extracted.map((p) => ({
       name: p.name,
@@ -29,89 +23,42 @@ class FunctionCollector {
     }));
   }
 
-  /**
-   * Resolve return type, with the declarator's pointers.
-   * Issue #895 Bug B / Issue #945: C grammar puts pointer before directDeclarator
-   * (e.g., `widget_t *func()` has declarator.pointer() !== null)
-   */
-  private static _resolveReturnType(
-    baseType: string,
-    declarator: DeclaratorContext,
-  ): string {
-    return DeclaratorUtils.pointerType(baseType, declarator);
-  }
-
-  /**
-   * Collect a function symbol from a function definition.
-   *
-   * @param funcDef The function definition context
-   * @param sourceFile Source file path
-   */
+  /** A function definition; null when its declarator names nothing */
   static collectFromDefinition(
-    funcDef: FunctionDefinitionContext,
+    funcDef: Extract<
+      TCExternalDeclarationSyntax,
+      { kind: "functionDefinition" }
+    >,
     sourceFile: string,
   ): ICFunctionSymbol | null {
-    const declarator = funcDef.declarator();
-    if (!declarator) return null;
-
-    const name = DeclaratorUtils.extractDeclaratorName(declarator);
-    if (!name) return null;
-
-    const span = ParserUtils.getSpan(funcDef);
-
-    // Get return type from declaration specifiers
-    const declSpecs = funcDef.declarationSpecifiers();
-    const baseType = declSpecs
-      ? DeclaratorUtils.extractTypeFromDeclSpecs(declSpecs)
-      : "int";
-
-    const returnType = FunctionCollector._resolveReturnType(
-      baseType,
-      declarator,
-    );
-
-    const parameters = FunctionCollector._mapParameters(
-      DeclaratorUtils.extractFunctionParameters(declarator),
-    );
-
+    const declarator = funcDef.declarator;
+    if (!declarator?.name) return null;
+    const parameters = FunctionCollector._mapParameters(declarator.parameters);
     return {
       kind: "function",
-      name,
+      name: declarator.name,
       sourceFile,
-      span,
+      span: funcDef.span,
       sourceLanguage: ESourceLanguage.C,
       visibility: "public",
-      type: returnType,
+      type: DeclaratorTypes.pointerType(
+        DeclaratorTypes.baseType(funcDef.typeSpecifiers),
+        declarator,
+      ),
       parameters: parameters.length > 0 ? parameters : undefined,
       isDeclaration: false,
     };
   }
 
-  /**
-   * Collect a function symbol from a declaration (prototype).
-   *
-   * @param name Function name
-   * @param baseType Return type
-   * @param declarator The declarator context
-   * @param sourceFile Source file path
-   * @param span Source span of the declaration
-   */
+  /** A function prototype */
   static collectFromDeclaration(
     name: string,
     baseType: string,
-    declarator: DeclaratorContext,
+    declarator: ICDeclaratorSyntax,
     sourceFile: string,
     span: ISourceSpan,
   ): ICFunctionSymbol {
-    const parameters = FunctionCollector._mapParameters(
-      DeclaratorUtils.extractFunctionParameters(declarator),
-    );
-
-    const returnType = FunctionCollector._resolveReturnType(
-      baseType,
-      declarator,
-    );
-
+    const parameters = FunctionCollector._mapParameters(declarator.parameters);
     return {
       kind: "function",
       name,
@@ -119,7 +66,7 @@ class FunctionCollector {
       span,
       sourceLanguage: ESourceLanguage.C,
       visibility: "public",
-      type: returnType,
+      type: DeclaratorTypes.pointerType(baseType, declarator),
       parameters: parameters.length > 0 ? parameters : undefined,
       isDeclaration: true,
     };

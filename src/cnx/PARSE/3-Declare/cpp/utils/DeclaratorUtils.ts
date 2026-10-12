@@ -13,8 +13,8 @@ import type {
   DeclSpecifierSeqContext,
   PointerOperatorContext,
 } from "../../../2-Parse/cpp/grammar/CPP14Parser";
-import IExtractedParameter from "../../shared/IExtractedParameter";
-import ParameterExtractorUtils from "../../shared/ParameterExtractorUtils";
+import IExtractedParameter from "../../../2-Parse/shared/IExtractedParameter";
+import ParameterExtractorUtils from "../../../2-Parse/shared/ParameterExtractorUtils";
 
 class DeclaratorUtils {
   /**

@@ -10,7 +10,7 @@ import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import ICppFunctionSymbol from "../../../../types/symbols/cpp/ICppFunctionSymbol";
 import ICppParameterInfo from "../../../../types/symbols/cpp/ICppParameterInfo";
 import DeclaratorUtils from "../utils/DeclaratorUtils";
-import IExtractedParameter from "../../shared/IExtractedParameter";
+import IExtractedParameter from "../../../2-Parse/shared/IExtractedParameter";
 import type ISourceSpan from "../../../../types/ISourceSpan";
 
 class FunctionCollector {

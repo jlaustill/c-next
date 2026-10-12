@@ -9,7 +9,9 @@
 import { CharStream, CommonTokenStream } from "antlr4ng";
 
 import { CLexer } from "./c/grammar/CLexer";
-import { CParser, CompilationUnitContext } from "./c/grammar/CParser";
+import { CParser } from "./c/grammar/CParser";
+import CHeaderLowering from "./c/CHeaderLowering";
+import type ICHeaderSyntax from "./types/ICHeaderSyntax";
 import { CPP14Lexer } from "./cpp/grammar/CPP14Lexer";
 import { CPP14Parser, TranslationUnitContext } from "./cpp/grammar/CPP14Parser";
 import EHeaderLanguage from "../1-Discover/types/EHeaderLanguage";
@@ -20,8 +22,8 @@ import type TParsedHeader from "./types/TParsedHeader";
  * Result of parsing a C header
  */
 interface ICParseResult {
-  /** The parsed AST, or null if parsing failed */
-  tree: CompilationUnitContext | null;
+  /** The header lowered to plain data, or null if parsing failed (#1991) */
+  syntax: ICHeaderSyntax | null;
 }
 
 /**
@@ -52,7 +54,7 @@ class HeaderParser {
       case EHeaderLanguage.C:
         return {
           language: EHeaderLanguage.C,
-          tree: HeaderParser.parseC(source.text).tree,
+          syntax: HeaderParser.parseC(source.text).syntax,
         };
     }
   }
@@ -122,11 +124,10 @@ class HeaderParser {
       lexer.removeErrorListeners();
       parser.removeErrorListeners();
 
-      const tree = parser.compilationUnit();
-      return { tree };
+      return { syntax: CHeaderLowering.header(parser.compilationUnit()) };
     } catch {
       // Return null tree on parse failure
-      return { tree: null };
+      return { syntax: null };
     }
   }
 

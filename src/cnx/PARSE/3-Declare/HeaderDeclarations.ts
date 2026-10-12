@@ -1,5 +1,5 @@
 import EHeaderLanguage from "../1-Discover/types/EHeaderLanguage";
-import type { CompilationUnitContext } from "../2-Parse/c/grammar/CParser";
+import type ICHeaderSyntax from "../2-Parse/types/ICHeaderSyntax";
 import type TParsedHeader from "../2-Parse/types/TParsedHeader";
 import CaughtError from "../../utils/CaughtError";
 import CResolver from "./c/index";
@@ -37,10 +37,10 @@ class HeaderDeclarations {
         }
         return;
       case EHeaderLanguage.C:
-        if (parsed.tree) {
+        if (parsed.syntax) {
           // ADR-055 Phase 7: Store TCSymbol directly
           symbolTable.addCSymbols(
-            CResolver.resolve(parsed.tree, filePath, symbolTable).symbols,
+            CResolver.resolve(parsed.syntax, filePath, symbolTable).symbols,
           );
         }
         return;
@@ -59,7 +59,7 @@ class HeaderDeclarations {
   static recoverSlice(
     path: string,
     parsed: TParsedHeader,
-    asC: CompilationUnitContext | null,
+    asC: ICHeaderSyntax | null,
     symbolTable: SymbolTable,
     cleanState: SymbolTable,
   ): void {

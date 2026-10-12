@@ -46,7 +46,7 @@ function header(source: string, cpp = false): SymbolTable {
     const tree = HeaderParser.parseCpp(source).tree;
     table.addCppSymbols(CppResolver.resolve(tree!, "api.hpp", table).symbols);
   } else {
-    const tree = HeaderParser.parseC(source).tree;
+    const tree = HeaderParser.parseC(source).syntax;
     table.addCSymbols(CResolver.resolve(tree!, "api.h", table).symbols);
   }
   return table;

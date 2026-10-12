@@ -1,16 +1,11 @@
 /**
- * Test helpers for C collector tests.
+ * Test helpers for the C resolver: 1.2's lowered C header (#1991).
  */
-
 import HeaderParser from "../../../2-Parse/HeaderParser";
-import { CompilationUnitContext } from "../../../2-Parse/c/grammar/CParser";
+import type ICHeaderSyntax from "../../../2-Parse/types/ICHeaderSyntax";
 
-/**
- * Parse C source code and return the compilation unit context.
- */
-function parseC(source: string): CompilationUnitContext | null {
-  const result = HeaderParser.parseC(source);
-  return result.tree;
+function parseC(source: string): ICHeaderSyntax | null {
+  return HeaderParser.parseC(source).syntax;
 }
 
 class TestHelpers {

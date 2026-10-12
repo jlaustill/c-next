@@ -133,7 +133,7 @@ class TreePasses {
       HeaderDeclarations.recoverSlice(
         path,
         HeaderParser.parse(slice),
-        HeaderParser.parseC(slice.text).tree,
+        HeaderParser.parseC(slice.text).syntax,
         symbolTable,
         cleanState,
       );
@@ -170,8 +170,8 @@ class TreePasses {
       source.language === EHeaderLanguage.C,
       `resolveCHeader reads a C header, not ${source.language}`,
     );
-    const { tree } = HeaderParser.parseC(source.text);
-    return tree ? CResolver.resolve(tree, path) : null;
+    const { syntax } = HeaderParser.parseC(source.text);
+    return syntax ? CResolver.resolve(syntax, path) : null;
   }
 
   /** True for a file the run analyzes, plans and writes, not only declares */

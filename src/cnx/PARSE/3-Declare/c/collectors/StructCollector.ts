@@ -2,15 +2,14 @@
  * StructCollector - Collects struct and union symbols from C parse trees.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
-import type { StructOrUnionSpecifierContext } from "../../../2-Parse/c/grammar/CParser";
+import type ICFieldSyntax from "../../../2-Parse/types/ICFieldSyntax";
+import type ICStructSyntax from "../../../2-Parse/types/ICStructSyntax";
 import type ICStructSymbol from "../../../../types/symbols/c/ICStructSymbol";
 import type ICFieldInfo from "../../../../types/symbols/c/ICFieldInfo";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import SymbolTable from "../../SymbolTable";
 import SymbolUtils from "../../SymbolUtils";
-import DeclaratorUtils from "../utils/DeclaratorUtils";
+import DeclaratorTypes from "../utils/DeclaratorTypes";
 import type ISourceSpan from "../../../../types/ISourceSpan";
 
 /**
@@ -50,23 +49,23 @@ class StructCollector {
    * @param options Optional collection options (typedef info, warnings)
    */
   static collect(
-    structSpec: StructOrUnionSpecifierContext,
+    structSpec: ICStructSyntax,
     sourceFile: string,
     span: ISourceSpan,
     symbolTable: SymbolTable | null,
     options: ICollectOptions = {},
   ): ICStructSymbol | null {
     const { typedefName, isTypedef, warnings, isPointerTypedef } = options;
-    const identifier = structSpec.Identifier();
+    const tag = structSpec.tag;
 
     // Use typedef name for anonymous structs (e.g., typedef struct { ... } AppConfig;)
-    const name = identifier?.getText() || typedefName;
+    const name = tag || typedefName;
     if (!name) return null; // Skip if no name available
 
-    const isUnion = structSpec.structOrUnion()?.getText() === "union";
+    const isUnion = structSpec.isUnion;
 
     // Issue #948: Detect forward declaration (struct with no body)
-    const hasBody = structSpec.structDeclarationList() !== null;
+    const hasBody = structSpec.hasBody;
 
     // Extract fields if struct has a body
     const fields = StructCollector.collectFields(
@@ -79,7 +78,7 @@ class StructCollector {
     // Mark named structs that are not typedef'd - they need 'struct' keyword
     // Example: "struct NamedPoint { ... };" -> needs "struct NamedPoint var"
     // But "typedef struct { ... } Rectangle;" -> just "Rectangle var"
-    const needsStructKeyword = Boolean(identifier && !isTypedef);
+    const needsStructKeyword = Boolean(tag && !isTypedef);
 
     if (symbolTable) {
       StructCollector.updateSymbolTable(symbolTable, name, {
@@ -87,7 +86,7 @@ class StructCollector {
         hasBody,
         isTypedef,
         typedefName,
-        structTag: identifier?.getText(),
+        structTag: tag ?? undefined,
         isPointerTypedef,
       });
     }
@@ -153,105 +152,52 @@ class StructCollector {
     }
   }
 
-  /**
-   * Collect fields from a struct/union definition.
-   */
   private static collectFields(
-    structSpec: StructOrUnionSpecifierContext,
+    structSpec: ICStructSyntax,
     structName: string,
     symbolTable: SymbolTable | null,
     warnings?: string[],
   ): ReadonlyMap<string, ICFieldInfo> {
     const fields = new Map<string, ICFieldInfo>();
-
-    const declList = structSpec.structDeclarationList();
-    if (!declList) return fields;
-
-    for (const structDecl of declList.structDeclaration()) {
-      StructCollector.collectFieldsFromDecl(
-        structDecl,
+    for (const field of structSpec.fields) {
+      StructCollector.processField(
+        field,
         structName,
         fields,
         symbolTable,
         warnings,
       );
     }
-
     return fields;
   }
 
-  /**
-   * Collect fields from a single struct declaration.
-   */
-  private static collectFieldsFromDecl(
-    structDecl: any,
+  private static processField(
+    field: ICFieldSyntax,
     structName: string,
     fields: Map<string, ICFieldInfo>,
     symbolTable: SymbolTable | null,
     warnings?: string[],
   ): void {
-    const specQualList = structDecl.specifierQualifierList?.();
-    if (!specQualList) return;
-
-    const fieldType = DeclaratorUtils.extractTypeFromSpecQualList(specQualList);
-    const structDeclList = structDecl.structDeclaratorList?.();
-    if (!structDeclList) return;
-
-    for (const structDeclarator of structDeclList.structDeclarator()) {
-      StructCollector.processFieldDeclarator(
-        structDeclarator,
-        structName,
-        fieldType,
-        fields,
-        symbolTable,
-        warnings,
-      );
-    }
-  }
-
-  /**
-   * Process a single field declarator and add to fields map.
-   */
-  private static processFieldDeclarator(
-    structDeclarator: any,
-    structName: string,
-    fieldType: string,
-    fields: Map<string, ICFieldInfo>,
-    symbolTable: SymbolTable | null,
-    warnings?: string[],
-  ): void {
-    const declarator = structDeclarator.declarator?.();
-    if (!declarator) return;
-
-    const fieldName = DeclaratorUtils.extractDeclaratorName(declarator);
+    const fieldName = field.declarator.name;
     if (!fieldName) return;
-
     if (warnings && SymbolUtils.isReservedFieldName(fieldName)) {
       warnings.push(
         SymbolUtils.getReservedFieldWarning("C", structName, fieldName),
       );
     }
-
-    const arrayDimensions = DeclaratorUtils.extractArrayDimensions(declarator);
-    // The declarator's indirection, by the rule a typedef's type follows
-    // (#1760 review): `uint8_t *buf` is a pointer, `float (*get)(void)` a
-    // function pointer -- both were recorded as their specifiers alone
-    const declaredType = DeclaratorUtils.declaredType(fieldType, declarator);
-    const fieldInfo: ICFieldInfo = {
+    const arrayDimensions = field.declarator.arrayDimensions;
+    const declaredType = DeclaratorTypes.declaredType(
+      field.type,
+      field.declarator,
+    );
+    const dims = arrayDimensions.length > 0 ? [...arrayDimensions] : undefined;
+    fields.set(fieldName, {
       name: fieldName,
       type: declaredType,
-      arrayDimensions: arrayDimensions.length > 0 ? arrayDimensions : undefined,
-    };
-
-    fields.set(fieldName, fieldInfo);
-
+      arrayDimensions: dims,
+    });
     if (symbolTable) {
-      symbolTable.addStructField(
-        structName,
-        fieldName,
-        declaredType,
-        arrayDimensions.length > 0 ? arrayDimensions : undefined,
-      );
+      symbolTable.addStructField(structName, fieldName, declaredType, dims);
     }
   }
 }
