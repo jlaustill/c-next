@@ -274,7 +274,7 @@ function runAnalyzers(
       // a divisor that is a compile-time zero.
       label:
         "constant array dimensions (ADR-023 no VLAs, ADR-044, E0909/E0910)",
-      run: () => new ConstantDimensionAnalyzer(context).analyze(tree),
+      run: () => new ConstantDimensionAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "float modulo (% with f32/f64)",

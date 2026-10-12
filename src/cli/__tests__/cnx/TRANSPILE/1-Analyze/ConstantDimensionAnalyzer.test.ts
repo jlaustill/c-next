@@ -6,11 +6,11 @@ function errors(
   source: string,
   helpers?: Record<string, string>,
 ): { code: string; line: number; column: number; message: string }[] {
-  const { tree, context } = testAnalysisContextFor(source, {
+  const { syntax, context } = testAnalysisContextFor(source, {
     cppMode: false,
     helpers,
   });
-  return new ConstantDimensionAnalyzer(context).analyze(tree);
+  return new ConstantDimensionAnalyzer(context).analyze(syntax);
 }
 
 describe("ConstantDimensionAnalyzer (#1175: E0909, E0910)", () => {
@@ -79,6 +79,36 @@ describe("ConstantDimensionAnalyzer (#1175: E0909, E0910)", () => {
   });
 });
 
+describe("ConstantDimensionAnalyzer on 1.2's syntax (#1991)", () => {
+  // A dimension after the name, a cast's and a sizeof's are each their own
+  // place in 1.2's syntax, so each is asked on its own
+  it.each([
+    ["a global", "u8 n <- 3;\nu8 g[n];"],
+    ["a local", "void f(u32 n) {\n    u8 a[n];\n    a[0] <- 1;\n}"],
+    ["a parameter", "void f(u32 n, u8 p[n]) {\n}"],
+    ["a struct field", "u8 n <- 3;\nstruct S {\n    u8 data[n];\n}"],
+    ["a scope member", "u8 n <- 3;\nscope M {\n    u8 slots[n];\n}"],
+    ["a cast's type", "u8 n <- 3;\nvoid f(u8 x) {\n    u32 y <- (u8[n])x;\n}"],
+    ["a sizeof's type", "u8 n <- 3;\nu32 s <- sizeof(u8[n]);"],
+  ])("rejects a dimension with no value: %s", (_label, source) => {
+    expect(errors(source).map((e) => e.code)).toEqual(["E0909"]);
+  });
+
+  it("leaves a sizeof of a subscript to the expression it is", () => {
+    expect(
+      errors("u8[4] arr;\nvoid f(u32 i) {\n    u32 s <- sizeof(arr[i]);\n}"),
+    ).toEqual([]);
+  });
+
+  it("reports a declaration's dimensions in source order", () => {
+    const found = errors("u8 n <- 3;\nu8[n] g[n];");
+    expect(found.map((e) => [e.line, e.column])).toEqual([
+      [2, 3],
+      [2, 8],
+    ]);
+  });
+});
+
 describe("ConstantDimensionAnalyzer (#1283: E0359)", () => {
   const macros = {
     N_HANDLERS: {
@@ -97,11 +127,11 @@ describe("ConstantDimensionAnalyzer (#1283: E0359)", () => {
     },
   } as const;
   const errorsWith = (source: string) => {
-    const { tree, context } = testAnalysisContextFor(source, {
+    const { syntax, context } = testAnalysisContextFor(source, {
       cppMode: false,
       macros,
     });
-    return new ConstantDimensionAnalyzer(context).analyze(tree);
+    return new ConstantDimensionAnalyzer(context).analyze(syntax);
   };
   const callback = "u32 onSample(u32 input) {\n    return input + 1;\n}\n";
   const withDefault = `${callback}struct Inner {\n    onSample handler;\n}\n`;

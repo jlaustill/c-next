@@ -4,7 +4,7 @@
  *
  * Every dimension, wherever the grammar has one -- a declaration at any
  * scope, a struct field, a parameter, a `for` header -- because the check
- * listens on the dimension nodes themselves rather than on the declarations
+ * reads every dimension 1.2 returned (#1991) rather than the declarations
  * that hold them. A rule enforced at some positions and silent at others is
  * how this card's defects survived: a parameter-sized local reached C as an
  * initialized variable-length array, at exit 0.
@@ -19,75 +19,117 @@
  * C-Next reads (`ElementCount`). A header macro of plain
  * integer arithmetic is; a `sizeof`, a cast or a macro it cannot see is not.
  */
-import { ParseTreeWalker } from "antlr4ng";
-
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import ConstExprLowering from "../../utils/ConstExprLowering";
-import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import ConstantEvaluator from "../../utils/ConstantEvaluator";
 import ConstantFold from "../../utils/ConstantFold";
-import ParserUtils from "../../utils/ParserUtils";
+import DeclarationParts from "../../utils/DeclarationParts";
 import ElementCount from "../../utils/ElementCount";
+import ExpressionNodes from "../../utils/ExpressionNodes";
+import StatementNodes from "../../utils/StatementNodes";
 import StructDefault from "../../utils/StructDefault";
 import type TType from "../../types/TType";
 import type TConstExpr from "../../types/TConstExpr";
 import type ILexicalFrame from "../../types/ILexicalFrame";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
+import type TExpression from "../../types/syntax/TExpression";
+import type TSyntaxPart from "../../types/syntax/TSyntaxPart";
+import type TTypeSyntax from "../../types/syntax/TTypeSyntax";
 import type ISourcePosition from "../../utils/types/ISourcePosition";
 import ConstantDiagnostics from "./helpers/ConstantDiagnostics";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import type IConstantDimensionError from "./types/IConstantDimensionError";
 
-class ConstantDimensionListener extends CNextListener {
+/** Every dimension 1.2 returned: the ones after a name and the ones in a type */
+class Dimensions {
+  static in(
+    declaration: TDeclarationSyntax,
+  ): ReadonlyArray<TExpression | null> {
+    return [
+      ...Dimensions.afterNames(declaration),
+      ...DeclarationParts.of(declaration).flatMap(Dimensions.inTypes),
+    ];
+  }
+
+  /** `u8 buf[4]`: a variable's, a parameter's, a field's, a `for` header's */
+  private static afterNames(
+    declaration: TDeclarationSyntax,
+  ): ReadonlyArray<TExpression | null> {
+    switch (declaration.kind) {
+      case "scope":
+        return declaration.members.flatMap((member) =>
+          Dimensions.afterNames(member.declaration),
+        );
+      case "variableDeclaration":
+        return declaration.dimensions;
+      case "struct":
+        return declaration.fields.flatMap((field) => field.dimensions);
+      case "function":
+        return [
+          ...(declaration.parameters ?? []).flatMap(
+            (parameter) => parameter.dimensions,
+          ),
+          ...StatementNodes.of(declaration.body.statements).flatMap(
+            (statement) =>
+              statement.kind === "variableDeclaration"
+                ? statement.dimensions
+                : [],
+          ),
+        ];
+      default:
+        return [];
+    }
+  }
+
+  /** `u8[4]`: a written type's, a cast's, a `sizeof`'s */
+  private static inTypes(part: TSyntaxPart): ReadonlyArray<TExpression | null> {
+    const named = ExpressionNodes.of(part).flatMap((expr) => {
+      if (expr.kind === "cast") return Dimensions.ofType(expr.type);
+      if (expr.kind !== "sizeof" || expr.type === null) return [];
+      return Dimensions.isSizeofSubscript(expr.type)
+        ? []
+        : Dimensions.ofType(expr.type);
+    });
+    return part.kind === "type"
+      ? [...Dimensions.ofType(part.type), ...named]
+      : named;
+  }
+
+  /** An array type's element is never an array, nor a template argument one */
+  private static ofType(type: TTypeSyntax): ReadonlyArray<TExpression | null> {
+    return type.kind === "array" ? type.dimensions : [];
+  }
+
+  /**
+   * ADR-023: `sizeof ( type | expression )` is ambiguous for `arr[0]` and
+   * ANTLR takes the `type` branch, so a subscript of a variable arrives as a
+   * user-type array (UndeclaredTypeAnalyzer's ruling). A primitive base,
+   * `sizeof(u8[4])`, is a type and its dimension is checked.
+   */
+  private static isSizeofSubscript(type: TTypeSyntax): boolean {
+    return type.kind === "array" && type.element.kind === "user";
+  }
+}
+
+class ConstantDimensionCheck {
   private readonly found: IConstantDimensionError[] = [];
 
-  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
-  constructor(private readonly context: IAnalysisContext) {
-    super();
-  }
+  public constructor(private readonly context: IAnalysisContext) {}
 
   public errors(): IConstantDimensionError[] {
     return this.found;
   }
 
-  override enterArrayTypeDimension = (
-    ctx: Parser.ArrayTypeDimensionContext,
-  ): void => {
-    if (ConstantDimensionListener.isSizeofSubscript(ctx)) return;
-    this.check(ctx.expression());
-  };
-
-  override enterArrayDimension = (ctx: Parser.ArrayDimensionContext): void => {
-    this.check(ctx.expression());
-  };
-
-  /**
-   * ADR-023: `sizeof ( type | expression )` is ambiguous for `arr[0]` and
-   * ANTLR takes the `type` branch, so a subscript of a variable arrives as a
-   * `userType` dimension (UndeclaredTypeAnalyzer's ruling). A primitive base,
-   * `sizeof(u8[4])`, is a type and its dimension is checked.
-   */
-  private static isSizeofSubscript(
-    ctx: Parser.ArrayTypeDimensionContext,
-  ): boolean {
-    const arrayType = ctx.parent;
-    if (!(arrayType instanceof Parser.ArrayTypeContext)) return false;
-    if (arrayType.userType() === null) return false;
-    return arrayType.parent?.parent instanceof Parser.SizeofExpressionContext;
-  }
-
   /** Report any E0909 / E0910 / E0913 the dimension earns */
-  private check(expression: Parser.ExpressionContext | null): void {
-    if (!expression) return; // an unsized `[]` is E0892's
+  public check(expression: TExpression | null): void {
+    if (expression === null) return; // an unsized `[]` is E0892's
     const { program, sourceFile } = this.context;
-    const lowered = ConstExprLowering.lower(
-      SyntaxLowering.expression(expression),
-    );
+    const lowered = ConstExprLowering.lower(expression);
     const result = ConstantEvaluator.evaluate(
       lowered,
       ConstantFold.environment(program, sourceFile),
     );
-    const at = ParserUtils.getPosition(expression);
+    const at = { line: expression.span.line, column: expression.span.column };
     if (result.kind === "overflow") {
       this.found.push({
         code: "E0910",
@@ -126,10 +168,17 @@ class ConstantDimensionListener extends CNextListener {
 class ConstantDimensionAnalyzer {
   constructor(private readonly context: IAnalysisContext) {}
 
-  public analyze(tree: Parser.ProgramContext): IConstantDimensionError[] {
-    const listener = new ConstantDimensionListener(this.context);
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
-    return [...listener.errors(), ...this.unreadableCounts()];
+  public analyze(program: IProgramSyntax): IConstantDimensionError[] {
+    const check = new ConstantDimensionCheck(this.context);
+    for (const member of program.declarations) {
+      for (const dimension of Dimensions.in(member.declaration)) {
+        check.check(dimension);
+      }
+    }
+    const walked = check
+      .errors()
+      .sort((a, b) => a.line - b.line || a.column - b.column);
+    return [...walked, ...this.unreadableCounts()];
   }
 
   /**
