@@ -103,6 +103,15 @@ cell is declared by the ADR that owns it.
 - `adr-014/struct-literal-for-header.test.cnx`
 - `adr-014/struct-literal-positions.test.cnx`
 
+## ADR-015
+
+| Context            | same file | direct | transitive | from 1 away | thru chain |
+| ------------------ | --------- | ------ | ---------- | ----------- | ---------- |
+| global variable    | -         | -      | -          | n/a         | n/a        |
+| top-level function | ok        | -      | -          | n/a         | n/a        |
+| scope member       | -         | -      | -          | n/a         | n/a        |
+| scope method       | -         | -      | -          | n/a         | n/a        |
+
 ## ADR-016
 
 | Context            | same file | direct | transitive | from 1 away | thru chain |
@@ -247,7 +256,7 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | warn   | warn       | n/a         | n/a        |
 | scope method       | ok        | ok     | warn       | n/a         | n/a        |
 
-19 linked fixtures with no derivable context:
+21 linked fixtures with no derivable context:
 
 - `bugs/issue-1312-undefined-type-position/order-consumer-first.test.cnx`
 - `bugs/issue-1312-undefined-type-position/order-lib-first.test.cnx`
@@ -262,12 +271,14 @@ cell is declared by the ADR that owns it.
 - `bugs/issue-1582-undeclared-write-target/shadowed-write-resolves.test.cnx`
 - `bugs/issue-1582-undeclared-write-target/undeclared-write-sibling-consumer-first.test.cnx`
 - `bugs/issue-1582-undeclared-write-target/undeclared-write-sibling-source-first.test.cnx`
+- `bugs/issue-1643-self-referential-initializer/member-above-global-array.test.cnx`
 - `bugs/issue-1643-self-referential-initializer/member-above-global-private.test.cnx`
 - `bugs/issue-1643-self-referential-initializer/member-above-global.test.cnx`
 - `bugs/issue-1643-self-referential-initializer/outer-bare-name.test.cnx`
 - `bugs/issue-1643-self-referential-initializer/shadow-enclosing-local.test.cnx`
 - `bugs/issue-1866-scope-member-is-not-external/included-member-from-reopened-scope.test.cnx`
 - `bugs/issue-1953-block-shadow-rename-ends/block-shadow-constructor-reads-outer.test.cnx`
+- `bugs/issue-2019-header-unclosed-name/declared-elsewhere.test.cnx`
 
 ## ADR-034
 
