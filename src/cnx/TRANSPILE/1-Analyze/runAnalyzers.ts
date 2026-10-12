@@ -388,7 +388,7 @@ function runAnalyzers(
     },
     {
       label: "scope access (ADR-016, E0435-E0437)",
-      run: () => new ScopeAccessAnalyzer(context).analyze(tree),
+      run: () => new ScopeAccessAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "register access modifiers (ADR-004, E0870-E0872)",

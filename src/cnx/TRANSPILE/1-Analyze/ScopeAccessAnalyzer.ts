@@ -34,30 +34,31 @@
  * frames.
  */
 
-import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
-
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import ParserUtils from "../../utils/ParserUtils";
 import ScopeUtils from "../../utils/ScopeUtils";
 import OperandTyper from "../../utils/OperandTyper";
+import DeclarationParts from "../../utils/DeclarationParts";
+import ExpressionNodes from "../../utils/ExpressionNodes";
+import StatementNodes from "../../utils/StatementNodes";
+import type ISourceSpan from "../../types/ISourceSpan";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
+import type TExpression from "../../types/syntax/TExpression";
+import type TPostfixOpSyntax from "../../types/syntax/TPostfixOpSyntax";
+import type TTypeSyntax from "../../types/syntax/TTypeSyntax";
 import IScopeAccessError from "./types/IScopeAccessError";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
-/** `Scope.member`, as written, with where it was written. */
 interface IAccess {
   readonly scope: string;
   readonly member: string;
   readonly viaGlobal: boolean;
-  readonly at: ParserRuleContext;
+  readonly at: ISourceSpan;
 }
 
-class ScopeAccessListener extends CNextListener {
+class ScopeAccessCheck {
   private readonly found: IScopeAccessError[] = [];
 
-  public constructor(private readonly context: IAnalysisContext) {
-    super();
-  }
+  public constructor(private readonly context: IAnalysisContext) {}
 
   public errors(): IScopeAccessError[] {
     return this.found;
@@ -65,84 +66,89 @@ class ScopeAccessListener extends CNextListener {
 
   // --- The three positions. Each only names the access. -------------------
 
-  override enterPostfixExpression = (
-    ctx: Parser.PostfixExpressionContext,
-  ): void => {
-    const primary = ctx.primaryExpression();
-    const ops = ctx.postfixOp();
-    if (!primary || ops.length === 0) return;
-    if (primary.THIS()) return; // `this.` states the scope; nothing to resolve
-
-    if (primary.GLOBAL()) {
-      // `global.Scope.member`: the scope is the first op, the member the second.
-      const scope = ScopeAccessListener.memberOf(ops[0]);
-      const member = ScopeAccessListener.memberOf(ops[1]);
-      if (scope && member)
-        this.check({ scope, member, viaGlobal: true, at: ctx }, ctx);
+  /**
+   * A struct MEMBER's type was never visibility-checked by codegen: `S.onTick
+   * handler;` with a private `onTick` compiles, and #1205's fixture depends
+   * on it -- its whole point is the header prototype for that private
+   * callback. Reproduced rather than closed; a variable's or parameter's
+   * qualified type IS checked, as it was.
+   */
+  public declaration(declaration: TDeclarationSyntax): void {
+    if (declaration.kind === "scope") {
+      for (const member of declaration.members) {
+        this.declaration(member.declaration);
+      }
       return;
     }
-    const scope = primary.IDENTIFIER()?.getText();
-    const member = ScopeAccessListener.memberOf(ops[0]);
-    if (scope && member)
-      this.check({ scope, member, viaGlobal: false, at: ctx }, ctx);
-  };
-
-  override enterAssignmentTarget = (
-    ctx: Parser.AssignmentTargetContext,
-  ): void => {
-    // The grammar gives a target its own THIS/GLOBAL root: `global.S.m` is
-    // GLOBAL + IDENTIFIER(S) + `.m`, and `this.m` states the scope outright.
-    if (ctx.THIS() !== null) return;
-    const member = ScopeAccessListener.memberOf(ctx.postfixTargetOp()[0]);
-    if (member === null) return;
-    const scope = ctx.IDENTIFIER().getText();
-    this.check(
-      { scope, member, viaGlobal: ctx.GLOBAL() !== null, at: ctx },
-      ctx,
-    );
-  };
-
-  override enterQualifiedType = (ctx: Parser.QualifiedTypeContext): void => {
-    // A struct MEMBER's type was never visibility-checked by codegen: `S.onTick
-    // handler;` with a private `onTick` compiles, and #1205's fixture depends
-    // on it -- its whole point is the header prototype for that private
-    // callback. Reproduced rather than closed; a variable's or parameter's
-    // qualified type IS checked, as it was.
-    if (ScopeAccessListener.insideStructMember(ctx)) return;
-    const names = ctx.IDENTIFIER().map((id) => id.getText());
-    if (names.length < 2) return;
-    const viaGlobal = names[0] === "global";
-    const [scope, member] = viaGlobal ? names.slice(1, 3) : names.slice(0, 2);
-    if (scope && member) this.check({ scope, member, viaGlobal, at: ctx }, ctx);
-  };
-
-  private static insideStructMember(node: ParserRuleContext): boolean {
-    let cursor: ParserRuleContext | null = node.parent;
-    while (cursor) {
-      if (cursor instanceof Parser.StructMemberContext) return true;
-      cursor = cursor.parent;
+    const types = declaration.kind !== "struct";
+    for (const part of DeclarationParts.of(declaration)) {
+      if (types && part.kind === "type") this.type(part.type);
+      for (const expr of ExpressionNodes.of(part)) this.expression(expr, types);
     }
-    return false;
+    if (declaration.kind !== "function") return;
+    for (const statement of StatementNodes.of(declaration.body.statements)) {
+      if (statement.kind !== "switch") continue;
+      for (const switchCase of statement.cases) {
+        for (const label of switchCase.labels) {
+          if (label.kind === "qualified")
+            this.qualified(label.path, label.span);
+        }
+      }
+    }
   }
 
   /**
-   * The member a `.name` op names, or null for a subscript, a call, or no op.
-   *
-   * An optional-chained `DOT()` compared to null is TRUE for a MISSING op, and
-   * the `.IDENTIFIER()` that followed then ran on undefined -- every `global.x`
-   * with a single member crashed, and sixteen fixtures failed with an internal
-   * error before this was one guarded helper.
+   * A chain -- a value or an assignment target, which 1.2 returns alike.
+   * `this.` states the scope; nothing to resolve. `global.Scope.member`: the
+   * scope is the first op, the member the second.
    */
-  private static memberOf(
-    op: Parser.PostfixOpContext | Parser.PostfixTargetOpContext | undefined,
-  ): string | null {
-    if (op === undefined || op.DOT() === null) return null;
-    return op.IDENTIFIER()?.getText() ?? null;
+  private expression(expr: TExpression, types: boolean): void {
+    if (types && expr.kind === "cast") this.type(expr.type);
+    if (types && expr.kind === "sizeof" && expr.type !== null) {
+      this.type(expr.type);
+    }
+    if (expr.kind !== "postfix") return;
+    const primary = expr.primary;
+    if (primary.kind === "root") {
+      if (primary.root === "this") return;
+      const scope = ScopeAccessCheck.memberOf(expr.ops[0]);
+      const member = ScopeAccessCheck.memberOf(expr.ops[1]);
+      if (scope && member) {
+        this.check({ scope, member, viaGlobal: true, at: expr.span });
+      }
+      return;
+    }
+    if (primary.kind !== "identifier") return;
+    const member = ScopeAccessCheck.memberOf(expr.ops[0]);
+    if (member) {
+      this.check({
+        scope: primary.name,
+        member,
+        viaGlobal: false,
+        at: expr.span,
+      });
+    }
+  }
+
+  private type(type: TTypeSyntax): void {
+    if (type.kind === "array") this.type(type.element);
+    if (type.kind === "qualified") this.qualified(type.path, type.span);
+  }
+
+  /** `Scope.member`, or `Scope.member.more`; 1.2 spells `global.T` apart */
+  private qualified(names: readonly string[], at: ISourceSpan): void {
+    if (names.length < 2) return;
+    this.check({ scope: names[0], member: names[1], viaGlobal: false, at });
+  }
+
+  /** The member a `.name` op names, or null for a subscript, a call, or no op */
+  private static memberOf(op: TPostfixOpSyntax | undefined): string | null {
+    return op?.kind === "member" ? op.name : null;
   }
 
   // --- The rules, asked once ------------------------------------------------
 
-  private check(access: IAccess, node: ParserRuleContext): void {
+  private check(access: IAccess): void {
     // A register declared inside a scope is owned by the register rules, not
     // these: `Board.GPIO.DR_SET[3] <- true;` inside `Board` compiles, and so
     // does `Board.GPIO.DR[0] <- true;` from `main`, private or not. Codegen's
@@ -152,10 +158,7 @@ class ScopeAccessListener extends CNextListener {
     // goes through the single encoder rather than being spelled by hand.
     if (this.isScopedRegister(access)) return;
 
-    const here = OperandTyper.scopePathAt(
-      ParserUtils.getPosition(node),
-      this.context,
-    );
+    const here = OperandTyper.scopePathAt(access.at, this.context);
 
     if (this.reportOwnScope(access, here)) return;
     if (this.reportPrivate(access, here)) return;
@@ -215,7 +218,7 @@ class ScopeAccessListener extends CNextListener {
         this.context.sourceFile,
         null,
         access.scope,
-        ParserUtils.getPosition(access.at),
+        access.at,
       )?.kind === "local";
     if (!shadowedByMember && !shadowedByLocal) return;
 
@@ -240,13 +243,18 @@ class ScopeAccessListener extends CNextListener {
   }
 
   private report(
-    at: ParserRuleContext,
+    at: ISourceSpan,
     code: string,
     message: string,
     helpText: string,
   ): void {
-    const { line, column } = ParserUtils.getPosition(at);
-    this.found.push({ code, line, column, message, helpText });
+    this.found.push({
+      code,
+      line: at.line,
+      column: at.column,
+      message,
+      helpText,
+    });
   }
 }
 
@@ -254,10 +262,15 @@ class ScopeAccessAnalyzer {
   /** #1456: handed in rather than read off shared state. */
   constructor(private readonly context: IAnalysisContext) {}
 
-  public analyze(tree: Parser.ProgramContext): IScopeAccessError[] {
-    const listener = new ScopeAccessListener(this.context);
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
-    return listener.errors();
+  /** 1.2's syntax: declarations, then each function's case labels (#1991) */
+  public analyze(program: IProgramSyntax): IScopeAccessError[] {
+    const check = new ScopeAccessCheck(this.context);
+    for (const member of program.declarations) {
+      check.declaration(member.declaration);
+    }
+    return check
+      .errors()
+      .sort((a, b) => a.line - b.line || a.column - b.column);
   }
 }
 

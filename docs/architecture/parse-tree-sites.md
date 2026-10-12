@@ -33,10 +33,10 @@ lexer-only include scan. Nothing from 2.2 Plan on.
 | Layer                | Modules |
 | -------------------- | ------: |
 | `src/cnx/PARSE/`     |      14 |
-| `src/cnx/TRANSPILE/` |      13 |
+| `src/cnx/TRANSPILE/` |      12 |
 | `src/cnx/utils/`     |       4 |
 | `src/cnx/types/`     |       1 |
-| **total**            |  **32** |
+| **total**            |  **31** |
 
 `src/cnx/TRANSPILE/3-Render/` is the render layer, and its share is the number
 the issue singles out: the render layer holding parse nodes is how a
@@ -67,7 +67,6 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/cnx/TRANSPILE/1-Analyze/LengthPropertyAnalyzer.ts`             | antlr4ng, grammar |
 | `src/cnx/TRANSPILE/1-Analyze/NullCheckAnalyzer.ts`                  | antlr4ng, grammar |
 | `src/cnx/TRANSPILE/1-Analyze/runAnalyzers.ts`                       | grammar           |
-| `src/cnx/TRANSPILE/1-Analyze/ScopeAccessAnalyzer.ts`                | antlr4ng, grammar |
 | `src/cnx/TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts`          | antlr4ng, grammar |
 | `src/cnx/TRANSPILE/1-Analyze/SwitchStatementAnalyzer.ts`            | antlr4ng, grammar |
 | `src/cnx/TRANSPILE/1-Analyze/TreePasses.ts`                         | grammar           |
@@ -79,4 +78,4 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/cnx/utils/ExpressionUtils.ts`                                  | grammar           |
 | `src/cnx/utils/PostfixAnalysisUtils.ts`                             | grammar           |
 
-32 module(s).
+31 module(s).
