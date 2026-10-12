@@ -87,9 +87,6 @@ class TSymbolInfoAdapter {
     const registerMemberOffsets = new Map<string, string>();
     const registerMemberCTypes = new Map<string, string>();
 
-    // === Issue #282: Private const values for inlining ===
-    const scopePrivateConstValues = new Map<string, string>();
-
     // === Function Return Types ===
     const functionReturnTypes = new Map<string, string>();
 
@@ -142,12 +139,8 @@ class TSymbolInfoAdapter {
           break;
 
         case "variable":
-          // Track scope membership, private const values, and file-scope names
-          TSymbolInfoAdapter.processVariable(
-            symbol,
-            scopeMembers,
-            scopePrivateConstValues,
-          );
+          // Track scope membership and file-scope names
+          TSymbolInfoAdapter.processVariable(symbol, scopeMembers);
           break;
 
         // Track function return types for enum validation
@@ -190,9 +183,6 @@ class TSymbolInfoAdapter {
       registerBaseAddresses,
       registerMemberOffsets,
       registerMemberCTypes,
-
-      // Issue #282: Private const values for inlining
-      scopePrivateConstValues,
 
       // Function return types
       functionReturnTypes,
@@ -366,9 +356,7 @@ class TSymbolInfoAdapter {
   private static processVariable(
     variable: IVariableSymbol,
     scopeMembers: Map<string, Set<string>>,
-    scopePrivateConstValues: Map<string, string>,
   ): void {
-    const cName = TSymbolInfoAdapter.getTranspiledCName(variable);
     // #1295: `scopeMembers` is keyed by the scope's dotted source path, which is
     // exactly what `scopePath` already holds -- no conversion here, and no
     // collision at depth two.
@@ -383,20 +371,6 @@ class TSymbolInfoAdapter {
         scopeMembers.set(scopeName, members);
       }
       members.add(variable.name); // Add local name (e.g., "value"), not transpiled C name
-    }
-
-    // Issue #282: Track private const values for inlining
-    const isPrivate = variable.visibility === "private";
-
-    // Issue #500: Only inline SCALAR consts, not arrays - arrays must be emitted
-    if (
-      isScoped &&
-      isPrivate &&
-      variable.isConst &&
-      variable.initialValue &&
-      !variable.isArray
-    ) {
-      scopePrivateConstValues.set(cName, variable.initialValue);
     }
   }
 

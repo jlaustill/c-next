@@ -56,9 +56,6 @@ function createMockSymbols(
     registerMemberOffsets: new Map(),
     registerMemberCTypes: new Map(),
 
-    // Issue #282: Private const values for inlining
-    scopePrivateConstValues: new Map(),
-
     // Function return types
     functionReturnTypes: new Map(),
 

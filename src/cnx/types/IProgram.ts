@@ -2,6 +2,7 @@ import type IFunctionSymbol from "./symbols/IFunctionSymbol";
 import type IFoldedConstant from "./IFoldedConstant";
 import type TConstExpr from "./TConstExpr";
 import type TConstResult from "./TConstResult";
+import type TSettledConst from "./TSettledConst";
 import type TEnumMemberValue from "./TEnumMemberValue";
 import type ISourcePosition from "../utils/types/ISourcePosition";
 import type ILexicalFrame from "./ILexicalFrame";
@@ -96,6 +97,13 @@ interface IProgram {
    * declaration the spelling means (#1538, #1664 review).
    */
   constantOf(binding: TValueBinding): IFoldedConstant | null;
+
+  /**
+   * What a const declaration, by its C name, settled to in 1.4 -- its value,
+   * or why it has none -- or null for a name that is not a const with an
+   * initializer (#1739). The one value every use of the const reads.
+   */
+  settledConstOf(cName: string): TSettledConst | null;
 
   /**
    * Every symbol conflict in the program.

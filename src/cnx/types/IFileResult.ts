@@ -40,8 +40,8 @@ interface IFileResult {
 
   /**
    * Issue #1143: Toolchain requirements this file's generated output actually
-   * carries: recorded by the emitters that produced the text, plus what the
-   * emission plan's blocks carry (#1928).
+   * carries. 2.2 Plan decides every key, from a planned block (#1928) or a
+   * form Render reported emitting (#1997); the sites are attribution.
    */
   requirements?: readonly IRecordedRequirement[];
 }

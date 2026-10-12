@@ -330,6 +330,8 @@ class Program {
             }),
           ),
         ),
+      settledConstOf: (cName: string): TSettledConst | null =>
+        constants.consts.get(cName) ?? null,
       conflicts: (): ReadonlyArray<IConflict> => conflicts,
       typesDeclaredIn: (sourceFile: string): ReadonlySet<string> =>
         typesByFile.get(sourceFile) ?? EMPTY_NAMES,
@@ -1008,11 +1010,17 @@ class Program {
   }
 
   /**
-   * Whether a settled const has a value, integer or float: one answer for
+   * Whether a settled const has a value -- integer, float, bool or a named
+   * type's (#1739): one answer for
    * whether it waits and whether another round may give it one (#1268 review)
    */
   private static hasValue(settled: TSettledConst | null | undefined): boolean {
-    return settled?.kind === "value" || settled?.kind === "float";
+    return (
+      settled?.kind === "value" ||
+      settled?.kind === "float" ||
+      settled?.kind === "bool" ||
+      settled?.kind === "named"
+    );
   }
 
   private static environment(facts: IConstantNameFacts): IConstantEnvironment {

@@ -1,0 +1,27 @@
+// test-execution
+// Tests: a private integer const is spelled as a literal of its type: a u64
+// past INT64_MAX is unsigned long long, and a negative value negates
+scope S {
+    const u64 BIG <- 0xFFFFFFFFFFFFFFFFu64;
+    const i32 X <- -5;
+
+    public u64 big() {
+        return BIG;
+    }
+
+    public i32 negated() {
+        return -X;
+    }
+}
+
+u32 main() {
+    u64 big <- S.big();
+    i32 negated <- S.negated();
+    if (big != 0xFFFFFFFFFFFFFFFFu64) {
+        return 1;
+    }
+    if (negated != 5) {
+        return 2;
+    }
+    return 0;
+}

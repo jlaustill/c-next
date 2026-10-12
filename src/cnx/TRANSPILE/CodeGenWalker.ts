@@ -32,6 +32,7 @@ import type EFileType from "../PARSE/1-Discover/types/EFileType";
 import type IStringConcatOps from "./3-Render/codegen/types/IStringConcatOps";
 import { basename } from "node:path";
 import CommentFormatter from "./3-Render/codegen/CommentFormatter";
+import PrivateConstValue from "./3-Render/codegen/PrivateConstValue";
 import IComment from "../types/IComment";
 import TYPE_MAP from "./3-Render/codegen/types/TYPE_MAP";
 import TParameterInfo from "../types/TParameterInfo";
@@ -1598,13 +1599,6 @@ class CodeGenWalker {
   ): string {
     const output: string[] = [];
 
-    // Issue #1143: every file carries its mode's baseline. Recorded here rather
-    // than assumed by consumers, so "what does this file need?" has exactly one
-    // answer source even for the trivial case.
-    ToolchainRequirements.record(
-      this.host.state.cppMode ? "baseline-cpp" : "baseline-c",
-    );
-
     // 2.2 Plan's fact, recorded where it is KNOWN rather than recovered from
     // text. `captureEmissionFacts` used to regex `#include` lines back out of
     // the rendered `output` array, so a fact the parse tree carries was
@@ -1884,6 +1878,13 @@ class CodeGenWalker {
         "float_static_assert",
       ),
       irqWrapperSites: ToolchainRequirements.takeDeferredSites("irq_wrappers"),
+      debugMode: this.host.state.debugMode,
+      emittedDesignatedInitializer:
+        this.host.state.emittedDesignatedInitializer,
+      emittedCompoundLiteral: this.host.state.emittedCompoundLiteral,
+      emittedLdrexStrexLoop: this.host.state.emittedLdrexStrexLoop,
+      ldrexStrexSites:
+        ToolchainRequirements.takeDeferredSites("ldrex_strex_loop"),
     };
   }
 
@@ -1928,7 +1929,7 @@ class CodeGenWalker {
       );
     }
 
-    const helpers = this.generateOverflowHelpers(plan.clampOps);
+    const helpers = this.generateOverflowHelpers(plan);
     if (helpers.length > 0) {
       output.push(...helpers);
     }
@@ -2935,9 +2936,16 @@ class CodeGenWalker {
     const isArray = CodeGenWalker.isArrayDeclaration(decl);
 
     // Issue #282: a private const scalar is inlined at its uses, not emitted at
-    // file scope. Issue #500 exempts arrays, which cannot be inlined. Decided
-    // before any render, so a skipped declaration registers no include.
-    if (isPrivate && isConst && !isArray) {
+    // file scope. Issue #500 exempts arrays, which cannot be inlined, and #1739
+    // one with no value to inline. Decided before any render, so a skipped
+    // declaration registers no include.
+    if (
+      PrivateConstValue.inlined(
+        this.host.getState(),
+        this.transpileState,
+        fullName,
+      ) !== null
+    ) {
       return { kind: "skipped" };
     }
     // Issue #998: the one modifier builder, which validates the atomic/volatile
@@ -3226,14 +3234,11 @@ class CodeGenWalker {
     }
 
     // For C-Next/C structs, generate designated initializer.
-    // Issue #1143: `.field = value` is C99 in C mode (baseline, free) but
-    // C++20 in C++ mode -- GCC and Clang accept it earlier as an extension,
-    // which is how this repo's own -std=c++14 harness compiles the output.
-    // The text is identical in both modes, so the mode has to be recorded
-    // here; no probe over the output could recover it.
-    if (this.host.state.cppMode) {
-      ToolchainRequirements.record("cpp-designated-initializer");
-    }
+    // #1997: reported as the form emitted, in both modes. What it costs (C99 in
+    // C, C++20 in C++) is 2.2's decision, made from this fact and the mode.
+    // The text is identical in both modes, so no probe over the output could
+    // recover it; the fact has to come from here.
+    this.host.state.noteDesignatedInitializer();
     const fieldInits = fields.map((f) => `.${f.fieldName} = ${f.value}`);
 
     return this.formatStructInitializer(typeName, castType, fieldInits);
@@ -3267,11 +3272,9 @@ class CodeGenWalker {
       return initializer;
     }
 
-    // Issue #1143: a compound literal is C99, but is not ISO C++ at any
-    // version -- GCC and Clang accept it as an extension.
-    if (this.host.state.cppMode) {
-      ToolchainRequirements.record("cpp-compound-literal");
-    }
+    // #1997: reported as the form emitted. A compound literal is C99, but is
+    // not ISO C++ at any version, and 2.2 decides what that costs.
+    this.host.state.noteCompoundLiteral();
     return `(${castType})${initializer}`;
   }
 
@@ -4522,7 +4525,11 @@ class CodeGenWalker {
       case "qualified":
         return { kind: "qualified", parts: label.path };
       case "identifier":
-        return { kind: "identifier", name: label.name };
+        return {
+          kind: "identifier",
+          name: label.name,
+          resolved: this.resolveCaseConst(label.name, label.span),
+        };
       case "integer":
       case "hex":
         return { kind: "numeric", text: label.text, negative: label.negative };
@@ -4533,6 +4540,42 @@ class CodeGenWalker {
       case "missing":
         return { kind: "none" };
     }
+  }
+
+  /**
+   * A bare const named as a case label (#1739). C switches only on an integer
+   * constant expression, which no const object is, so any const with a value
+   * is written as that value; another name as its C name. Null for a name no
+   * binding resolves, which the generator treats as an enum member.
+   */
+  private resolveCaseConst(name: string, at: ISourcePosition): string | null {
+    const resolved = TypeValidator.resolveBareIdentifier(
+      name,
+      at,
+      (typeName: string) => this.host.isKnownStruct(typeName),
+      this.host.state,
+    );
+    if (resolved === null) return null;
+    const constant = PrivateConstValue.constant(
+      this.host.getState(),
+      this.transpileState,
+      resolved,
+    );
+    if (constant === null) return resolved;
+    this.host.applyEffects(constant.effects);
+    return constant.code;
+  }
+
+  /** A resolved name, or -- for a private const -- its value (#741, #1739) */
+  private constOrName(resolved: string): string {
+    const inlined = PrivateConstValue.inlined(
+      this.host.getState(),
+      this.transpileState,
+      resolved,
+    );
+    if (inlined === null) return resolved;
+    this.host.applyEffects(inlined.effects);
+    return inlined.code;
   }
 
   /** Every statement of a block, rendered in order. */
@@ -4581,13 +4624,7 @@ class CodeGenWalker {
       this.host.state,
     );
     if (resolved !== null) {
-      // Issue #741: Check if this is a private const that should be inlined
-      const constValue =
-        this.host.state.symbols!.scopePrivateConstValues.get(resolved);
-      if (constValue !== undefined) {
-        return constValue;
-      }
-      return resolved;
+      return this.constOrName(resolved);
     }
 
     // Issue #452: Check if identifier is an unqualified enum member reference
@@ -4821,12 +4858,13 @@ class CodeGenWalker {
    * Takes the ops from the PLAN, not from `CodeGenState`. Reading the state
    * here while the plan also carried them was the fact in two places with the
    * renderer using the other one -- the duplicate path this pass exists to
-   * remove, reintroduced by the pass itself.
+   * remove, reintroduced by the pass itself. The panic-or-clamp flavor comes
+   * off the plan too (#1997): the block that decides it carries its cost.
    */
-  private generateOverflowHelpers(clampOps: readonly string[]): string[] {
+  private generateOverflowHelpers(plan: IEmissionPlan): string[] {
     return helperGenerateOverflowHelpers(
-      new Set(clampOps),
-      this.host.state.debugMode,
+      new Set(plan.clampOps),
+      plan.panicOverflowHelpers !== null,
     );
   }
 

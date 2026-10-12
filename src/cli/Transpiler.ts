@@ -1018,19 +1018,12 @@ class Transpiler {
         this.headerEmissionFactsByPath.set(sourcePath, headerFacts);
       }
 
-      // Issue #1143: the file's one requirement list -- Render's records plus
-      // what the emission plan's blocks carry (#1928). Read after header-facts
-      // CAPTURE, and before the next file's TranspileState.reset() clears both.
-      // This covers a requirement that capturing a header's facts triggers
-      // (e.g. through HeaderEmissionCapture.convertToHeaderSymbols) -- it does
-      // NOT cover one the header RENDER might trigger, since #1323 moved
-      // rendering to Stage 5.5, after every file's requirements have already
-      // been read here and reset() has run N times. Currently unreachable
-      // rather than wrong: nothing under TRANSPILE/3-Render/headers/ calls
-      // ToolchainRequirements, so no header render records one -- but this
-      // read does not guarantee that stays true, and #1143 is precisely the
-      // bug class where an ordering assumption like that broke under a later
-      // refactor.
+      // Issue #1143: the file's one requirement list, a view of the emission
+      // plan, which decides every key (#1928, #1997). EmissionPlan.build froze
+      // that plan inside generate(), so which line reads it here no longer
+      // matters: the boundary is the plan build. A form emitted after it would
+      // lose its cost from the banner and from this result alike, so
+      // TranspileState's note* methods refuse such a write instead.
       const requirements = this.codeGenerator.getToolchainRequirements();
 
       return this.buildSuccessResult(
@@ -1133,9 +1126,9 @@ class Transpiler {
     //
     // The comment here used to claim it stopped a run that plans nothing from
     // reporting the previous run's cost. It cannot: every reader runs after
-    // `generate()`'s own `reset()` -- `collect()` from `buildBanner` inside
-    // `generate()` and from `_transpileFile` immediately after it,
-    // `takeDeferredSites()` from inside `generate()` -- so a run that plans no
+    // `generate()`'s own `reset()` -- `takeDeferredSites()` from inside
+    // `generate()`, whose sites the plan carries to `buildBanner` and to
+    // `_transpileFile` immediately after it -- so a run that plans no
     // file never reads the ledger at all. Verified by deleting this line: 7438
     // unit tests and 1263 fixtures stay green, which is why no regression test
     // could be written for it.

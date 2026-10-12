@@ -100,8 +100,10 @@ class EmissionPlan {
         facts.needsISR &&
         !HeaderOwnership.ownsDeclarations(facts.selfIncludeAdded),
       clampOps: [...facts.clampOps],
+      panicOverflowHelpers: EmissionPlan.decidePanicOverflowHelpers(facts),
       safeDivOps: [...facts.safeDivOps],
       castHelpers: [...facts.castHelpers].sort((a, b) => a.localeCompare(b)),
+      formRequirements: EmissionPlan.decideFormRequirements(facts),
     };
 
     return Object.freeze(plan);
@@ -122,22 +124,79 @@ class EmissionPlan {
   } = {
     floatStaticAssert: true,
     irqWrappers: true,
+    panicOverflowHelpers: true,
   };
 
   /**
-   * The requirements the plan's blocks carry, each with the sites that asked
-   * for its block. A view of decisions already in the plan, not a new one.
+   * Every requirement the plan decided: the forms' and the blocks', each with
+   * the sites that asked for it. A view of decisions already in the plan, not
+   * a new one. Copied on the way out: `Object.freeze` is shallow, the banner
+   * and `ITranspilerResult` both read this list, and the IRQ block's four keys
+   * share one `sites` array.
    */
   static requirements(plan: IEmissionPlan): readonly IRecordedRequirement[] {
     const fields = Object.keys(
       EmissionPlan.PLANNED_BLOCKS,
     ) as (keyof typeof EmissionPlan.PLANNED_BLOCKS)[];
-    return fields.flatMap((field) => {
-      const block = plan[field] ?? null;
-      return block === null
-        ? []
-        : block.requirements.map((key) => ({ key, sites: block.sites }));
-    });
+    return [
+      ...plan.formRequirements.map((entry) => ({
+        key: entry.key,
+        sites: [...entry.sites],
+      })),
+      ...fields.flatMap((field) => {
+        const block = plan[field] ?? null;
+        return block === null
+          ? []
+          : block.requirements.map((key) => ({ key, sites: [...block.sites] }));
+      }),
+    ];
+  }
+
+  /**
+   * What the forms Render emitted cost, beside the planned blocks (#1997).
+   *
+   * Render reports the form -- it wrote a designated initializer -- and this
+   * decides the cost: C99 and free in C, C++20 in C++. Each branch reads an
+   * `emitted*` fact; the LDREX sites ride along as attribution and decide
+   * nothing (README §1: no decision consults instrumentation).
+   */
+  private static decideFormRequirements(
+    facts: IEmissionFacts,
+  ): readonly IRecordedRequirement[] {
+    const decided: IRecordedRequirement[] = [
+      { key: facts.cppMode ? "baseline-cpp" : "baseline-c", sites: [] },
+    ];
+    if (facts.cppMode && facts.emittedDesignatedInitializer) {
+      decided.push({ key: "cpp-designated-initializer", sites: [] });
+    }
+    if (facts.cppMode && facts.emittedCompoundLiteral) {
+      decided.push({ key: "cpp-compound-literal", sites: [] });
+    }
+    if (facts.emittedLdrexStrexLoop) {
+      decided.push({
+        key: "atomic-ldrex-cmsis",
+        sites: [...facts.ldrexStrexSites],
+      });
+    }
+    return decided;
+  }
+
+  /**
+   * Whether the overflow helpers panic, with what that costs (#1997).
+   *
+   * Render reads this block to choose the panic templates, so the hosted-libc
+   * key and the `<stdio.h>` it pays for are one decision rather than two
+   * readings of `debugMode` that happen to agree.
+   */
+  private static decidePanicOverflowHelpers(
+    facts: IEmissionFacts,
+  ): IPlannedBlock | null {
+    if (!facts.debugMode || facts.clampOps.size === 0) return null;
+    return {
+      keyword: null,
+      requirements: ["overflow-panic-hosted-libc"],
+      sites: [],
+    };
   }
 
   /**

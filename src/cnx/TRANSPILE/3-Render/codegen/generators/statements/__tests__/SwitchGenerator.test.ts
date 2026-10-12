@@ -64,7 +64,6 @@ function createMockInput(options?: {
     constValues: new Map(),
     callbackTypes: new Map(),
     callbackFieldTypes: new Map(),
-    debugMode: false,
     program: null,
   } as unknown as IGeneratorInput;
 }
@@ -127,7 +126,7 @@ describe("SwitchGenerator", () => {
       ],
       [
         "a plain identifier (a const)",
-        { kind: "identifier", name: "MAX_VALUE" },
+        { kind: "identifier", name: "MAX_VALUE", resolved: null },
         "MAX_VALUE",
       ],
       [
@@ -212,7 +211,9 @@ describe("SwitchGenerator", () => {
       const result = generate(
         planned({
           subjectEnumType: "State",
-          cases: [switchCase([{ kind: "identifier", name: "IDLE" }])],
+          cases: [
+            switchCase([{ kind: "identifier", name: "IDLE", resolved: null }]),
+          ],
         }),
         input,
       );
@@ -228,7 +229,11 @@ describe("SwitchGenerator", () => {
       const result = generate(
         planned({
           subjectEnumType: "State",
-          cases: [switchCase([{ kind: "identifier", name: "MAX_VALUE" }])],
+          cases: [
+            switchCase([
+              { kind: "identifier", name: "MAX_VALUE", resolved: null },
+            ]),
+          ],
         }),
         input,
       );

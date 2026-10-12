@@ -1,0 +1,32 @@
+// test-execution
+// Tests: a private scope const has one value, used both to size an array and
+// where it is referenced. M's initializer N * 2 reads the scope's N (10), not
+// the file-scope N (4), at both places.
+
+const u32 N <- 4;
+
+scope S {
+    const u32 N <- 10;
+    const u32 M <- N * 2;
+    u8[M] buf;
+
+    public u32 size() {
+        return M;
+    }
+
+    public u32 elements() {
+        return this.buf.element_count;
+    }
+}
+
+u32 main() {
+    u32 size <- S.size();
+    u32 elements <- S.elements();
+    if (size != 20) {
+        return 1;
+    }
+    if (size != elements) {
+        return 2;
+    }
+    return 0;
+}

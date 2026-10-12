@@ -1,0 +1,21 @@
+// test-execution
+// Tests: a private scope const whose initializer reads another scope const,
+// bare and as this.N, compiles and has its value.
+
+scope S {
+    const u32 N <- 10;
+    const u32 M <- N * 2;
+    const u32 Q <- this.N + 1;
+
+    public u32 size() {
+        return M + Q;
+    }
+}
+
+u32 main() {
+    u32 size <- S.size();
+    if (size != 31) {
+        return 1;
+    }
+    return 0;
+}

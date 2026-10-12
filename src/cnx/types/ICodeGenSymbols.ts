@@ -115,14 +115,6 @@ interface ICodeGenSymbols {
   /** Register member C types: "reg_member" -> C type (e.g., "uint32_t") */
   readonly registerMemberCTypes: ReadonlyMap<string, string>;
 
-  // === Issue #282: Scope Private Const Inlining ===
-
-  /**
-   * Private const values for inlining: "Scope_constName" -> literal value string.
-   * Used to inline private const values at usage sites.
-   */
-  readonly scopePrivateConstValues: ReadonlyMap<string, string>;
-
   // === Function Return Types ===
 
   /**

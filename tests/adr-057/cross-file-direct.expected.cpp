@@ -34,7 +34,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 /* Scope: Gauge */
 static uint32_t Gauge__total = 0U;
 static uint32_t Gauge__step = 2U;
-static uint32_t Gauge__primed = 3;
+static uint32_t Gauge__primed = 3U;
 
 uint32_t Gauge__bump(void) {
     return Gauge__step;

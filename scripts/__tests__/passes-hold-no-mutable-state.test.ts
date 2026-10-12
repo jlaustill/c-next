@@ -72,7 +72,7 @@ const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const PASS_ROOTS = ["src/cnx/PARSE", "src/cnx/TRANSPILE", "src/cnx/WRITE"];
 
 /**
- * Scanned alongside the pass roots, with its four holders listed below.
+ * Scanned alongside the pass roots, with its three holders listed below.
  *
  * The `instrumentation/` root did not exist when this file was written, and #1452
  * created it -- so the four mutable statics this card RELOCATED there sat
@@ -100,8 +100,7 @@ const INSTRUMENTATION_ROOT = "src/cnx/instrumentation";
 const INSTRUMENTATION_HOLDERS = [
   "src/cnx/instrumentation/AdrProvenance.ts:58",
   "src/cnx/instrumentation/AdrProvenance.ts:59",
-  "src/cnx/instrumentation/ToolchainRequirements.ts:65",
-  "src/cnx/instrumentation/ToolchainRequirements.ts:78",
+  "src/cnx/instrumentation/ToolchainRequirements.ts:49",
 ];
 
 /**

@@ -16,7 +16,12 @@ type TPlannedCaseLabel =
   /** `EState.IDLE` -- the identifiers of a qualified type, in order. */
   | { readonly kind: "qualified"; readonly parts: readonly string[] }
   /** A bare identifier: a const, or an enum member the switch's type declares. */
-  | { readonly kind: "identifier"; readonly name: string }
+  | {
+      readonly kind: "identifier";
+      readonly name: string;
+      /** The name as a use of it is written, when a binding resolves it */
+      readonly resolved: string | null;
+    }
   /** An integer or hex literal, with the minus that may precede it. */
   | {
       readonly kind: "numeric";

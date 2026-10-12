@@ -215,6 +215,33 @@ describe("CodeGenWalker", () => {
 
       // Debug mode affects helper generation
       expect(code).toContain("cnx_clamp_add_u8");
+      // #1997: 2.2's one panic decision drives both the helper Render emits
+      // and the cost the banner reports.
+      expect(code).toContain("abort();");
+      expect(code).toContain("hosted libc");
+    });
+
+    it("clamps without a hosted-libc cost outside debug mode", () => {
+      const source = `
+        clamp u8 val;
+        void main() {
+          val +<- 1;
+        }
+      `;
+      const { tree, program } = CNextSourceParser.parse(source);
+      const generator = new CodeGenWalker(new CodeGenerator());
+      const symbols = TSymbolInfoAdapter.convert(declareAndResolve(tree));
+
+      const code = generateWithProgram(generator, tree, program, {
+        cppMode: false,
+        symbolInfo: symbols,
+        sourcePath: "test.cnx",
+        debugMode: false,
+      });
+
+      expect(code).toContain("cnx_clamp_add_u8");
+      expect(code).not.toContain("abort();");
+      expect(code).not.toContain("hosted libc");
     });
 
     it("should generate C++ output when cppMode is enabled", () => {
@@ -304,7 +331,6 @@ describe("CodeGenWalker", () => {
         expect(input.knownStructs).toBeInstanceOf(Set);
         expect(input.callbackTypes).toBeInstanceOf(Map);
         expect(input.callbackFieldTypes).toBeInstanceOf(Map);
-        expect(typeof input.debugMode).toBe("boolean");
       });
     });
 
@@ -17545,6 +17571,53 @@ describe("CodeGenWalker", () => {
     });
   });
 
+  describe("Issue #1739: a const is a C constant expression where it is named", () => {
+    const generate = (source: string): string => {
+      const { tree, program } = CNextSourceParser.parse(source);
+      const generator = new CodeGenWalker(new CodeGenerator());
+      const symbols = TSymbolInfoAdapter.convert(declareAndResolve(tree));
+      return generateWithProgram(generator, tree, program, {
+        cppMode: false,
+        symbolInfo: symbols,
+        sourcePath: "test.cnx",
+      });
+    };
+
+    it("writes a const case label as its value", () => {
+      const code = generate(`
+        scope S {
+          const u32 M <- 20;
+          public const u32 P <- 30;
+          public u32 pick(u32 v) {
+            switch (v) {
+              case M { return 1; }
+              case P { return 2; }
+              default { return 3; }
+            }
+          }
+        }
+      `);
+      expect(code).toContain("case 20U:");
+      expect(code).toContain("case 30U:");
+    });
+
+    it("folds a bool and an enum const named in a static initializer", () => {
+      const code = generate(`
+        enum EMode { IDLE, RUN }
+        scope S {
+          const bool A <- true;
+          const bool B <- A;
+          bool copied <- B;
+          const EMode D <- EMode.RUN;
+          const EMode D2 <- D;
+          EMode mode <- D2;
+        }
+      `);
+      expect(code).toContain("static bool S__copied = true;");
+      expect(code).toContain("static EMode S__mode = EMode__RUN;");
+    });
+  });
+
   describe("Issue #741: const scope members bare reference inlining", () => {
     it("should inline private const when referenced without this. prefix", () => {
       const source = `
@@ -17571,8 +17644,9 @@ describe("CodeGenWalker", () => {
         sourcePath: "test.cnx",
       });
 
-      // Should inline the value, not generate a reference to Foo_MY_CONSTANT
-      expect(code).toContain("return 42;");
+      // Should inline the value, not generate a reference to Foo_MY_CONSTANT.
+      // #1739: spelled as a literal of its type, so the MISRA 7.2 U is on it
+      expect(code).toContain("return 42U;");
       expect(code).not.toContain("Foo_MY_CONSTANT");
     });
 
@@ -17606,7 +17680,8 @@ describe("CodeGenWalker", () => {
       // sum of a u8 const and a literal saturates (ADR-044): the transpiler
       // always emitted this helper; the harness said `10 + 5U` only while
       // 2.2's own lookup could not find the scope const (#1668, C6b).
-      expect(code).toContain("uint8_t result = cnx_clamp_add_u8(10, 5U);");
+      // #1739: the inlined const is a literal of its u8 type, suffixed too
+      expect(code).toContain("uint8_t result = cnx_clamp_add_u8(10U, 5U);");
       expect(code).not.toContain("Bar_OFFSET");
     });
   });

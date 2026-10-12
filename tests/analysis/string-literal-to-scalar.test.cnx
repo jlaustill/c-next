@@ -1,0 +1,18 @@
+// test-error
+// Tests: a string literal does not land in a bool, a float or a scope const;
+// a string<N> and a whole u8 array still take one
+
+scope S {
+    const u32 N <- "abc";
+
+    public u32 get() {
+        return N;
+    }
+}
+
+void main() {
+    bool b <- "flag";
+    f32 f <- "float";
+    string<8> t <- "fine";
+    u8[] bytes <- "abc";
+}
