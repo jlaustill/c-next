@@ -355,7 +355,7 @@ function runAnalyzers(
       // "did you mean 'Status.YELLOW'" is the useful answer; the type-safety
       // step would call the same line a non-enum value.
       label: "bare enum members (ADR-017, E0424)",
-      run: () => new BareEnumMemberAnalyzer(context).analyze(tree),
+      run: () => new BareEnumMemberAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "enum type safety (ADR-017, E0428/E0434)",

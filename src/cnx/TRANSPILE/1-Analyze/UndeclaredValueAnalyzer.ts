@@ -30,6 +30,7 @@
  * diagnostics for one name is worse than one.
  */
 
+import type ISourcePosition from "../../utils/types/ISourcePosition";
 import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
@@ -204,7 +205,7 @@ class UndeclaredValueAnalyzer {
       return (
         UndeclaredValueAnalyzer.isDeclaredValue(
           name,
-          at,
+          ParserUtils.getPosition(at),
           scopePath,
           this.context,
         ) || NameExistence.isKnownEnumMember(name, symbols)
@@ -270,7 +271,7 @@ class UndeclaredValueAnalyzer {
    */
   static isDeclaredValue(
     name: string,
-    at: ParserRuleContext,
+    at: ISourcePosition,
     scopePath: string,
     context: IAnalysisContext,
   ): boolean {
@@ -287,11 +288,8 @@ class UndeclaredValueAnalyzer {
     // term is include-filtered. The fallback itself stays for #1220's
     // essential-type analyzers, which want exactly the run-wide answer.
     if (
-      context.program.lexicalDeclarationAt(
-        context.sourceFile,
-        name,
-        ParserUtils.getPosition(at),
-      ) !== null
+      context.program.lexicalDeclarationAt(context.sourceFile, name, at) !==
+      null
     ) {
       return true;
     }

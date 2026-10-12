@@ -14,8 +14,10 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  * and structs it uses and the view comes from the program 1.4 built for it.
  */
 const errors = (source: string) => {
-  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
-  return new BareEnumMemberAnalyzer(context).analyze(tree);
+  const { syntax, context } = testAnalysisContextFor(source, {
+    cppMode: false,
+  });
+  return new BareEnumMemberAnalyzer(context).analyze(syntax);
 };
 
 describe("BareEnumMemberAnalyzer (E0424)", () => {
@@ -113,5 +115,54 @@ describe("BareEnumMemberAnalyzer (E0424)", () => {
 
   it("says nothing without a symbol view", () => {
     expect(errors("u8 g <- RED;")).toEqual([]);
+  });
+});
+
+// #1991: the positions are read top down off 1.2's syntax, so each place that
+// names no enum -- or is not a value at all -- is asserted on its own.
+describe("BareEnumMemberAnalyzer -- positions on 1.2's syntax", () => {
+  const codes = (body: readonly string[]) =>
+    errors(
+      [
+        "enum Color { RED, GREEN }",
+        "Color[2] pair;",
+        "void f(u8 i) {",
+        ...body.map((line) => `    ${line}`),
+        "}",
+      ].join("\n"),
+    ).map((e) => `${e.code}@${e.line}:${e.column}`);
+
+  it("a comparison names no enum, even inside an enum's position", () => {
+    expect(codes(["Color d <- (pair[0] = RED) ? GREEN : RED;"])).toEqual([
+      "E0424@4:26",
+    ]);
+  });
+
+  it("a subscript names no enum for its index", () => {
+    expect(codes(["Color d <- pair[RED];"])).toEqual(["E0424@4:20"]);
+  });
+
+  it("a for loop's init and update name no enum", () => {
+    expect(
+      codes([
+        "Color c <- GREEN;",
+        "for (c <- RED; i < 3; c <- GREEN) { }",
+        "for (Color k <- RED; i < 3; i +<- 1) { }",
+      ]),
+    ).toEqual(["E0424@5:14", "E0424@5:31", "E0424@6:20"]);
+  });
+
+  it("a parenthesized chain head takes its chain's position", () => {
+    expect(codes(["Color d <- (GREEN).x;"])).toEqual([]);
+  });
+
+  it("a chain's head and an assignment's target are not values", () => {
+    expect(codes(["u8 n <- RED.length;", "RED <- 1;"])).toEqual([]);
+  });
+
+  it("a bit range names no enum", () => {
+    expect(codes(["Color c <- GREEN;", "c[0, 2] <- RED;"])).toEqual([
+      "E0424@5:15",
+    ]);
   });
 });
