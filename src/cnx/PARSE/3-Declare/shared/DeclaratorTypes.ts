@@ -1,5 +1,5 @@
-import type ICDeclaratorSyntax from "../../../2-Parse/types/ICDeclaratorSyntax";
-import type ICTypeSpecifierSyntax from "../../../2-Parse/types/ICTypeSpecifierSyntax";
+import type IHeaderDeclaratorSyntax from "../../2-Parse/types/IHeaderDeclaratorSyntax";
+import type ICTypeSpecifierSyntax from "../../2-Parse/types/ICTypeSpecifierSyntax";
 
 /** The C type a declarator spells, from 1.2's plain-data declarator (#1991) */
 class DeclaratorTypes {
@@ -19,7 +19,7 @@ class DeclaratorTypes {
   /** `baseType` with one `*` for each the declarator's pointer spells */
   static pointerType(
     baseType: string,
-    declarator: ICDeclaratorSyntax | null,
+    declarator: IHeaderDeclaratorSyntax | null,
   ): string {
     return baseType + "*".repeat(declarator?.pointerDepth ?? 0);
   }
@@ -30,7 +30,7 @@ class DeclaratorTypes {
    */
   static declaredType(
     baseType: string,
-    declarator: ICDeclaratorSyntax,
+    declarator: IHeaderDeclaratorSyntax,
   ): string {
     if (declarator.functionPointerParams !== null) {
       return `${baseType} (*)(${declarator.functionPointerParams})`;

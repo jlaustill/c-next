@@ -6,13 +6,13 @@
  */
 
 import type ICHeaderSyntax from "../../2-Parse/types/ICHeaderSyntax";
-import type ICDeclaratorSyntax from "../../2-Parse/types/ICDeclaratorSyntax";
+import type IHeaderDeclaratorSyntax from "../../2-Parse/types/IHeaderDeclaratorSyntax";
 import type ICEnumSyntax from "../../2-Parse/types/ICEnumSyntax";
 import type ICStructSyntax from "../../2-Parse/types/ICStructSyntax";
 import type TCExternalDeclarationSyntax from "../../2-Parse/types/TCExternalDeclarationSyntax";
 import type TCSymbol from "../../../types/symbols/c/TCSymbol";
 import SymbolTable from "../SymbolTable";
-import DeclaratorTypes from "./utils/DeclaratorTypes";
+import DeclaratorTypes from "../shared/DeclaratorTypes";
 import StructCollector from "./collectors/StructCollector";
 import EnumCollector from "./collectors/EnumCollector";
 import FunctionCollector from "./collectors/FunctionCollector";
@@ -173,7 +173,7 @@ class CResolver {
   }
 
   private static collectDeclarators(
-    declarators: readonly ICDeclaratorSyntax[],
+    declarators: readonly IHeaderDeclaratorSyntax[],
     baseType: string,
     ctx: IDeclarationContext,
   ): void {

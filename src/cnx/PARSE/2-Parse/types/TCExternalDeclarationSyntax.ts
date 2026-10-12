@@ -1,6 +1,6 @@
 import type ISourceSpan from "../../../types/ISourceSpan";
 import type ICTypeSpecifierSyntax from "./ICTypeSpecifierSyntax";
-import type ICDeclaratorSyntax from "./ICDeclaratorSyntax";
+import type IHeaderDeclaratorSyntax from "./IHeaderDeclaratorSyntax";
 import type ICStructSyntax from "./ICStructSyntax";
 import type ICEnumSyntax from "./ICEnumSyntax";
 
@@ -9,7 +9,7 @@ type TCExternalDeclarationSyntax =
       readonly kind: "functionDefinition";
       readonly span: ISourceSpan;
       readonly typeSpecifiers: readonly ICTypeSpecifierSyntax[];
-      readonly declarator: ICDeclaratorSyntax | null;
+      readonly declarator: IHeaderDeclaratorSyntax | null;
     }
   | {
       readonly kind: "declaration";
@@ -21,7 +21,7 @@ type TCExternalDeclarationSyntax =
       readonly struct: ICStructSyntax | null;
       readonly enum: ICEnumSyntax | null;
       /** null when the declaration has no init-declarator list */
-      readonly declarators: readonly ICDeclaratorSyntax[] | null;
+      readonly declarators: readonly IHeaderDeclaratorSyntax[] | null;
     };
 
 export default TCExternalDeclarationSyntax;

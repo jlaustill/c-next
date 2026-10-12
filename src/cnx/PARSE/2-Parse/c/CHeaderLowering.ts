@@ -17,7 +17,7 @@ import type {
   TypeSpecifierContext,
 } from "./grammar/CParser";
 import type ICHeaderSyntax from "../types/ICHeaderSyntax";
-import type ICDeclaratorSyntax from "../types/ICDeclaratorSyntax";
+import type IHeaderDeclaratorSyntax from "../types/IHeaderDeclaratorSyntax";
 import type ICEnumSyntax from "../types/ICEnumSyntax";
 import type ICFieldSyntax from "../types/ICFieldSyntax";
 import type ICStructSyntax from "../types/ICStructSyntax";
@@ -116,7 +116,9 @@ class CHeaderLowering {
     });
   }
 
-  private static declarator(declarator: DeclaratorContext): ICDeclaratorSyntax {
+  private static declarator(
+    declarator: DeclaratorContext,
+  ): IHeaderDeclaratorSyntax {
     const directDecl = declarator.directDeclarator();
     const pointerText = declarator.pointer()?.getText() ?? "";
     const hasParams =

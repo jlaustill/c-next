@@ -9,7 +9,7 @@ import type ICFieldInfo from "../../../../types/symbols/c/ICFieldInfo";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import SymbolTable from "../../SymbolTable";
 import SymbolUtils from "../../SymbolUtils";
-import DeclaratorTypes from "../utils/DeclaratorTypes";
+import DeclaratorTypes from "../../shared/DeclaratorTypes";
 import type ISourceSpan from "../../../../types/ISourceSpan";
 
 /**

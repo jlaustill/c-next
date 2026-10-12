@@ -7,11 +7,11 @@ import CppResolver from "./cpp/index";
 import SymbolTable from "./SymbolTable";
 
 /**
- * 1.3 Declare for C and C++ headers: one header's 1.2 tree, and its symbols
+ * 1.3 Declare for C and C++ headers: one header's 1.2 syntax, and its symbols
  * written to the table.
  *
  * Moved out of the orchestrator by #1443. Everything here needs one header's
- * tree and nothing else, which is `IFileSymbols`' admission test for 1.3. It
+ * lowered syntax and nothing else, which is `IFileSymbols`' admission test for 1.3. It
  * takes no text: 1.2 parses, so nothing here can parse again (#1932).
  */
 class HeaderDeclarations {
@@ -29,10 +29,10 @@ class HeaderDeclarations {
         return;
       case EHeaderLanguage.Cpp:
         // C++14 parser for typed enums, classes, namespaces, templates
-        if (parsed.tree) {
+        if (parsed.syntax) {
           // ADR-055 Phase 7: Store TCppSymbol directly
           symbolTable.addCppSymbols(
-            CppResolver.resolve(parsed.tree, filePath, symbolTable).symbols,
+            CppResolver.resolve(parsed.syntax, filePath, symbolTable).symbols,
           );
         }
         return;

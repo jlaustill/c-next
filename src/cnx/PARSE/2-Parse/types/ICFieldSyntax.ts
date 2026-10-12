@@ -1,9 +1,9 @@
-import type ICDeclaratorSyntax from "./ICDeclaratorSyntax";
+import type IHeaderDeclaratorSyntax from "./IHeaderDeclaratorSyntax";
 
 interface ICFieldSyntax {
   /** The specifier-qualifier list, as written */
   readonly type: string;
-  readonly declarator: ICDeclaratorSyntax;
+  readonly declarator: IHeaderDeclaratorSyntax;
 }
 
 export default ICFieldSyntax;

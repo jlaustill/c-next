@@ -5,9 +5,9 @@
 import type ICFunctionSymbol from "../../../../types/symbols/c/ICFunctionSymbol";
 import type ICParameterInfo from "../../../../types/symbols/c/ICParameterInfo";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
-import DeclaratorTypes from "../utils/DeclaratorTypes";
+import DeclaratorTypes from "../../shared/DeclaratorTypes";
 import type IExtractedParameter from "../../../2-Parse/shared/IExtractedParameter";
-import type ICDeclaratorSyntax from "../../../2-Parse/types/ICDeclaratorSyntax";
+import type IHeaderDeclaratorSyntax from "../../../2-Parse/types/IHeaderDeclaratorSyntax";
 import type TCExternalDeclarationSyntax from "../../../2-Parse/types/TCExternalDeclarationSyntax";
 import type ISourceSpan from "../../../../types/ISourceSpan";
 
@@ -54,7 +54,7 @@ class FunctionCollector {
   static collectFromDeclaration(
     name: string,
     baseType: string,
-    declarator: ICDeclaratorSyntax,
+    declarator: IHeaderDeclaratorSyntax,
     sourceFile: string,
     span: ISourceSpan,
   ): ICFunctionSymbol {

@@ -1,11 +1,9 @@
 /**
- * ClassCollector - Extracts class/struct definitions from C++ parse trees.
+ * ClassCollector - C++ class/struct symbols from 1.2's lowered header (#1991).
  *
  * Handles class members including data fields and member functions.
  * Produces ICppClassSymbol instances with optional field information.
  */
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import ICppClassSymbol from "../../../../types/symbols/cpp/ICppClassSymbol";
@@ -13,10 +11,13 @@ import ICppFunctionSymbol from "../../../../types/symbols/cpp/ICppFunctionSymbol
 import ICppFieldInfo from "../../../../types/symbols/cpp/ICppFieldInfo";
 import SymbolTable from "../../SymbolTable";
 import SymbolUtils from "../../SymbolUtils";
-import DeclaratorUtils from "../utils/DeclaratorUtils";
+import DeclaratorTypes from "../../shared/DeclaratorTypes";
 import FunctionCollector from "./FunctionCollector";
 import type ISourceSpan from "../../../../types/ISourceSpan";
-import ParserUtils from "../../../../utils/ParserUtils";
+import type ICppClassSyntax from "../../../2-Parse/types/ICppClassSyntax";
+import type ICppFunctionDefinitionSyntax from "../../../2-Parse/types/ICppFunctionDefinitionSyntax";
+import type IHeaderDeclaratorSyntax from "../../../2-Parse/types/IHeaderDeclaratorSyntax";
+import type TCppMemberSyntax from "../../../2-Parse/types/TCppMemberSyntax";
 
 /**
  * Result of collecting a class, including the class symbol and any member function symbols.
@@ -43,7 +44,7 @@ class ClassCollector {
   /**
    * Collect a class specifier and return an ICppClassSymbol with member functions.
    *
-   * @param classSpec The class specifier context
+   * @param classSyntax The class 1.2 lowered
    * @param sourceFile Source file path
    * @param span Source span of the declaration
    * @param currentNamespace Optional current namespace
@@ -51,23 +52,13 @@ class ClassCollector {
    * @returns The class symbol with member functions, or null if no name
    */
   static collect(
-    classSpec: any,
+    classSyntax: ICppClassSyntax,
     sourceFile: string,
     span: ISourceSpan,
     currentNamespace?: string,
     symbolTable?: SymbolTable | null,
   ): IClassCollectorResult | null {
-    const classHead = classSpec.classHead?.();
-    if (!classHead) return null;
-
-    const classHeadName = classHead.classHeadName?.();
-    if (!classHeadName) return null;
-
-    const className = classHeadName.className?.();
-    if (!className) return null;
-
-    const identifier = className.Identifier?.();
-    const name = identifier?.getText();
+    const name = classSyntax.name;
     if (!name) return null;
 
     const fullName = currentNamespace ? `${currentNamespace}::${name}` : name;
@@ -79,8 +70,8 @@ class ClassCollector {
       : undefined;
 
     // Extract class members
-    const memberSpec = classSpec.memberSpecification?.();
-    if (memberSpec) {
+    const members = classSyntax.members;
+    if (members) {
       const ctx: IMemberCollectionContext = {
         className: fullName,
         sourceFile,
@@ -89,7 +80,7 @@ class ClassCollector {
         memberFunctions,
         warnings,
       };
-      ClassCollector._collectClassMembers(ctx, memberSpec);
+      ClassCollector._collectClassMembers(ctx, members);
     }
 
     const classSymbol: ICppClassSymbol = {
@@ -109,7 +100,7 @@ class ClassCollector {
   /**
    * Collect an anonymous class from a typedef.
    *
-   * @param classSpec The class specifier context (anonymous)
+   * @param classSyntax The anonymous class 1.2 lowered
    * @param typedefName The typedef name to use as the class name
    * @param sourceFile Source file path
    * @param span Source span of the declaration
@@ -117,14 +108,14 @@ class ClassCollector {
    * @returns The class symbol result, or null on error
    */
   static collectAnonymousTypedef(
-    classSpec: any,
+    classSyntax: ICppClassSyntax,
     typedefName: string,
     sourceFile: string,
     span: ISourceSpan,
     symbolTable: SymbolTable,
   ): IClassCollectorResult | null {
-    const memberSpec = classSpec.memberSpecification?.();
-    if (!memberSpec) return null;
+    const members = classSyntax.members;
+    if (!members) return null;
 
     const memberFunctions: ICppFunctionSymbol[] = [];
     const warnings: string[] = [];
@@ -138,7 +129,7 @@ class ClassCollector {
       memberFunctions,
       warnings,
     };
-    ClassCollector._collectClassMembers(ctx, memberSpec);
+    ClassCollector._collectClassMembers(ctx, members);
 
     const classSymbol: ICppClassSymbol = {
       kind: "class",
@@ -154,60 +145,26 @@ class ClassCollector {
   }
 
   /**
-   * Collect class members (data fields and member functions).
-   *
-   * `memberSpecification` is `(memberdeclaration | accessSpecifier ':')+`, and this walks
-   * the first alternative only, so every member is recorded "public" whatever label
-   * precedes it. Tracking the access level starts here (#1475).
+   * Collect class members (data fields and member functions). 1.2 does not
+   * lower access labels, so every member is recorded "public" (#1475).
    */
   private static _collectClassMembers(
     ctx: IMemberCollectionContext,
-    memberSpec: any,
+    members: readonly TCppMemberSyntax[],
   ): void {
-    for (const memberDecl of memberSpec.memberdeclaration?.() ?? []) {
-      ClassCollector._collectMemberDeclaration(memberDecl, ctx);
-    }
-  }
-
-  /**
-   * Collect a single member declaration.
-   */
-  private static _collectMemberDeclaration(
-    memberDecl: any,
-    ctx: IMemberCollectionContext,
-  ): void {
-    const span = ParserUtils.getSpan(memberDecl);
-
-    // Check for inline function definition within the class
-    const funcDef = memberDecl.functionDefinition?.();
-    if (funcDef) {
-      ClassCollector._collectInlineFunctionDef(
-        ctx.className,
-        funcDef,
-        ctx.sourceFile,
-        span,
-        ctx.memberFunctions,
-      );
-      return;
-    }
-
-    // Get member declaration list (for data members and function declarations)
-    const declSpecSeq = memberDecl.declSpecifierSeq?.();
-    if (!declSpecSeq) return;
-
-    const fieldType = DeclaratorUtils.extractTypeFromDeclSpecSeq(declSpecSeq);
-
-    // Get declarator list
-    const memberDeclList = memberDecl.memberDeclaratorList?.();
-    if (!memberDeclList) return;
-
-    for (const memberDeclarator of memberDeclList.memberDeclarator?.() ?? []) {
-      ClassCollector._collectMemberDeclarator(
-        memberDeclarator,
-        fieldType,
-        span,
-        ctx,
-      );
+    for (const member of members) {
+      if (member.kind === "functionDefinition") {
+        ClassCollector._collectInlineFunctionDef(member, ctx);
+        continue;
+      }
+      for (const declarator of member.declarators) {
+        ClassCollector._collectMemberDeclarator(
+          declarator,
+          member.fieldType,
+          member.span,
+          ctx,
+        );
+      }
     }
   }
 
@@ -215,70 +172,53 @@ class ClassCollector {
    * Collect an inline function definition within a class.
    */
   private static _collectInlineFunctionDef(
-    className: string,
-    funcDef: any,
-    sourceFile: string,
-    span: ISourceSpan,
-    memberFunctions: ICppFunctionSymbol[],
+    funcDef: ICppFunctionDefinitionSyntax,
+    ctx: IMemberCollectionContext,
   ): void {
-    const declarator = funcDef.declarator?.();
-    if (!declarator) return;
-
-    const funcName = DeclaratorUtils.extractDeclaratorName(declarator);
+    const funcName = funcDef.declarator.name;
     if (!funcName) return;
-
-    const declSpecSeq = funcDef.declSpecifierSeq?.();
-    const returnType = declSpecSeq
-      ? DeclaratorUtils.extractTypeFromDeclSpecSeq(declSpecSeq)
-      : "void";
-
-    const symbol = FunctionCollector.collectMemberFunction(
-      className,
-      funcName,
-      declarator,
-      returnType,
-      sourceFile,
-      span,
-      false, // not a declaration, it's a definition
+    ctx.memberFunctions.push(
+      FunctionCollector.collectMemberFunction(
+        ctx.className,
+        funcName,
+        funcDef.declarator,
+        funcDef.returnType,
+        ctx.sourceFile,
+        funcDef.span,
+        false, // not a declaration, it's a definition
+      ),
     );
-    memberFunctions.push(symbol);
   }
 
   /**
    * Collect a single member declarator (function or data field).
    */
   private static _collectMemberDeclarator(
-    memberDeclarator: any,
+    declarator: IHeaderDeclaratorSyntax,
     fieldType: string,
     span: ISourceSpan,
     ctx: IMemberCollectionContext,
   ): void {
-    const declarator = memberDeclarator.declarator?.();
-    if (!declarator) return;
-
-    const fieldName = DeclaratorUtils.extractDeclaratorName(declarator);
+    const fieldName = declarator.name;
     if (!fieldName) return;
 
     // Check if this is a member function -- a pointer to one is a data
     // member, as a C struct's function-pointer field is (#1760 review)
-    if (
-      DeclaratorUtils.declaratorIsFunction(declarator) &&
-      !DeclaratorUtils.isFunctionPointer(declarator)
-    ) {
-      const symbol = FunctionCollector.collectMemberFunction(
-        ctx.className,
-        fieldName,
-        declarator,
-        fieldType,
-        ctx.sourceFile,
-        span,
-        true, // declaration
+    if (declarator.isFunction && declarator.functionPointerParams === null) {
+      ctx.memberFunctions.push(
+        FunctionCollector.collectMemberFunction(
+          ctx.className,
+          fieldName,
+          declarator,
+          fieldType,
+          ctx.sourceFile,
+          span,
+          true, // declaration
+        ),
       );
-      ctx.memberFunctions.push(symbol);
       return;
     }
 
-    // Data field
     ClassCollector._collectDataField(fieldName, declarator, fieldType, ctx);
   }
 
@@ -287,7 +227,7 @@ class ClassCollector {
    */
   private static _collectDataField(
     fieldName: string,
-    declarator: any,
+    declarator: IHeaderDeclaratorSyntax,
     fieldType: string,
     ctx: IMemberCollectionContext,
   ): void {
@@ -299,9 +239,9 @@ class ClassCollector {
     }
 
     // Extract array dimensions if any
-    const arrayDimensions = DeclaratorUtils.extractArrayDimensions(declarator);
+    const arrayDimensions = [...declarator.arrayDimensions];
     // The declarator's indirection, recorded as the C side records it
-    const declaredType = DeclaratorUtils.declaredType(fieldType, declarator);
+    const declaredType = DeclaratorTypes.declaredType(fieldType, declarator);
 
     // Add to SymbolTable if provided
     if (ctx.symbolTable) {

@@ -1,43 +1,23 @@
 /**
- * NamespaceCollector - Extracts namespace declarations from C++ parse trees.
- *
- * Produces ICppNamespaceSymbol instances.
+ * NamespaceCollector - C++ namespace symbols from 1.2's lowered header (#1991).
  */
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import ICppNamespaceSymbol from "../../../../types/symbols/cpp/ICppNamespaceSymbol";
 import type ISourceSpan from "../../../../types/ISourceSpan";
 
 class NamespaceCollector {
-  /**
-   * Collect a namespace definition and return an ICppNamespaceSymbol.
-   *
-   * @param nsDef The namespace definition context
-   * @param sourceFile Source file path
-   * @param span Source span of the declaration
-   * @param currentNamespace Optional parent namespace name
-   * @returns The namespace symbol
-   */
+  /** A namespace; null for an anonymous one */
   static collect(
-    nsDef: any,
+    name: string | null,
     sourceFile: string,
     span: ISourceSpan,
     currentNamespace?: string,
   ): ICppNamespaceSymbol | null {
-    const identifier = nsDef.Identifier?.();
-    const originalNs = nsDef.originalNamespaceName?.();
-
-    const name = identifier?.getText() ?? originalNs?.getText();
     if (!name) return null;
-
-    // Use full qualified name for nested namespaces
-    const fullName = currentNamespace ? `${currentNamespace}::${name}` : name;
-
     return {
       kind: "namespace",
-      name: fullName,
+      name: currentNamespace ? `${currentNamespace}::${name}` : name,
       sourceFile,
       span,
       sourceLanguage: ESourceLanguage.Cpp,
@@ -46,19 +26,12 @@ class NamespaceCollector {
     };
   }
 
-  /**
-   * Get the full namespace name after processing this namespace definition.
-   */
+  /** The namespace a body declares into: an anonymous one keeps its parent's */
   static getFullNamespaceName(
-    nsDef: any,
+    name: string | null,
     currentNamespace?: string,
   ): string | undefined {
-    const identifier = nsDef.Identifier?.();
-    const originalNs = nsDef.originalNamespaceName?.();
-
-    const name = identifier?.getText() ?? originalNs?.getText();
     if (!name) return currentNamespace;
-
     return currentNamespace ? `${currentNamespace}::${name}` : name;
   }
 }

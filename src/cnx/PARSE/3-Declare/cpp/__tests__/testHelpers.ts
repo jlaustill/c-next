@@ -1,16 +1,12 @@
 /**
- * Test helpers for C++ collector tests.
+ * Test helpers for C++ collector tests: 1.2's lowered C++ header (#1991).
  */
 
 import HeaderParser from "../../../2-Parse/HeaderParser";
-import { TranslationUnitContext } from "../../../2-Parse/cpp/grammar/CPP14Parser";
+import type ICppHeaderSyntax from "../../../2-Parse/types/ICppHeaderSyntax";
 
-/**
- * Parse C++ source code and return the translation unit context.
- */
-function parseCpp(source: string): TranslationUnitContext | null {
-  const result = HeaderParser.parseCpp(source);
-  return result.tree;
+function parseCpp(source: string): ICppHeaderSyntax | null {
+  return HeaderParser.parseCpp(source).syntax;
 }
 
 class TestHelpers {

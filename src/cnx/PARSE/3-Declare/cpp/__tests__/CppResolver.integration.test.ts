@@ -1,6 +1,6 @@
 /**
  * Integration tests for CppResolver.
- * Verifies that the resolver correctly extracts symbols from C++ parse trees.
+ * Verifies that the resolver correctly extracts symbols from 1.2's lowered C++ headers (#1991).
  */
 
 import { describe, it, expect, beforeEach } from "vitest";

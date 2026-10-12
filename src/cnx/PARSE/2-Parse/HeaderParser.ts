@@ -11,9 +11,11 @@ import { CharStream, CommonTokenStream } from "antlr4ng";
 import { CLexer } from "./c/grammar/CLexer";
 import { CParser } from "./c/grammar/CParser";
 import CHeaderLowering from "./c/CHeaderLowering";
+import CppHeaderLowering from "./cpp/CppHeaderLowering";
+import type ICppHeaderSyntax from "./types/ICppHeaderSyntax";
 import type ICHeaderSyntax from "./types/ICHeaderSyntax";
 import { CPP14Lexer } from "./cpp/grammar/CPP14Lexer";
-import { CPP14Parser, TranslationUnitContext } from "./cpp/grammar/CPP14Parser";
+import { CPP14Parser } from "./cpp/grammar/CPP14Parser";
 import EHeaderLanguage from "../1-Discover/types/EHeaderLanguage";
 import type IHeaderSource from "../1-Discover/types/IHeaderSource";
 import type TParsedHeader from "./types/TParsedHeader";
@@ -30,8 +32,8 @@ interface ICParseResult {
  * Result of parsing a C++ header
  */
 interface ICppParseResult {
-  /** The parsed AST, or null if parsing failed */
-  tree: TranslationUnitContext | null;
+  /** The header lowered to plain data, or null if parsing failed (#1991) */
+  syntax: ICppHeaderSyntax | null;
 }
 
 /**
@@ -49,7 +51,7 @@ class HeaderParser {
       case EHeaderLanguage.Cpp:
         return {
           language: EHeaderLanguage.Cpp,
-          tree: HeaderParser.parseCpp(source.text).tree,
+          syntax: HeaderParser.parseCpp(source.text).syntax,
         };
       case EHeaderLanguage.C:
         return {
@@ -105,11 +107,11 @@ class HeaderParser {
    * preprocessing unconditional at this boundary would therefore add a system
    * compiler dependency rather than remaining a listener-only change.
    *
-   * A null tree, not a silent empty one, is what a caller sees when the parse
+   * A null result, not a silent empty one, is what a caller sees when the parse
    * cannot proceed at all.
    *
    * @param content - The header file content
-   * @returns Parse result with tree (null if parsing failed)
+   * @returns The header lowered to plain data (null if parsing failed)
    */
   static parseC(content: string): ICParseResult {
     try {
@@ -126,7 +128,7 @@ class HeaderParser {
 
       return { syntax: CHeaderLowering.header(parser.compilationUnit()) };
     } catch {
-      // Return null tree on parse failure
+      // Return null on parse failure
       return { syntax: null };
     }
   }
@@ -141,7 +143,7 @@ class HeaderParser {
    * construct, so the mix differs even though the cause does not.
    *
    * @param content - The header file content
-   * @returns Parse result with tree (null if parsing failed)
+   * @returns The header lowered to plain data (null if parsing failed)
    */
   static parseCpp(content: string): ICppParseResult {
     try {
@@ -154,11 +156,10 @@ class HeaderParser {
       lexer.removeErrorListeners();
       parser.removeErrorListeners();
 
-      const tree = parser.translationUnit();
-      return { tree };
+      return { syntax: CppHeaderLowering.header(parser.translationUnit()) };
     } catch {
-      // Return null tree on parse failure
-      return { tree: null };
+      // Return null on parse failure
+      return { syntax: null };
     }
   }
 }

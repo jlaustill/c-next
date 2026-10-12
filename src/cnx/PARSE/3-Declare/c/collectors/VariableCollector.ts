@@ -4,8 +4,8 @@
 
 import type ICVariableSymbol from "../../../../types/symbols/c/ICVariableSymbol";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
-import DeclaratorTypes from "../utils/DeclaratorTypes";
-import type ICDeclaratorSyntax from "../../../2-Parse/types/ICDeclaratorSyntax";
+import DeclaratorTypes from "../../shared/DeclaratorTypes";
+import type IHeaderDeclaratorSyntax from "../../../2-Parse/types/IHeaderDeclaratorSyntax";
 import type ISourceSpan from "../../../../types/ISourceSpan";
 
 class VariableCollector {
@@ -22,7 +22,7 @@ class VariableCollector {
   static collect(
     name: string,
     baseType: string,
-    declarator: ICDeclaratorSyntax,
+    declarator: IHeaderDeclaratorSyntax,
     sourceFile: string,
     span: ISourceSpan,
     isExtern: boolean,

@@ -1,45 +1,27 @@
 /**
- * VariableCollector - Extracts variable declarations from C++ parse trees.
- *
- * Produces ICppVariableSymbol instances.
+ * VariableCollector - C++ variable symbols from 1.2's lowered header (#1991).
  */
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import ICppVariableSymbol from "../../../../types/symbols/cpp/ICppVariableSymbol";
-import DeclaratorUtils from "../utils/DeclaratorUtils";
+import type IHeaderDeclaratorSyntax from "../../../2-Parse/types/IHeaderDeclaratorSyntax";
 import type ISourceSpan from "../../../../types/ISourceSpan";
 
 class VariableCollector {
-  /**
-   * Collect a variable declaration and return an ICppVariableSymbol.
-   *
-   * @param declarator The declarator context
-   * @param baseType The variable type string
-   * @param sourceFile Source file path
-   * @param span Source span of the declaration
-   * @param currentNamespace Optional current namespace
-   * @returns The variable symbol or null if no name
-   */
+  /** A variable; null when its declarator has no name */
   static collect(
-    declarator: any,
+    declarator: IHeaderDeclaratorSyntax,
     baseType: string,
     sourceFile: string,
     span: ISourceSpan,
     currentNamespace?: string,
   ): ICppVariableSymbol | null {
-    const name = DeclaratorUtils.extractDeclaratorName(declarator);
+    const name = declarator.name;
     if (!name) return null;
-
-    const fullName = currentNamespace ? `${currentNamespace}::${name}` : name;
-
-    // Extract array dimensions
-    const arrayDimensions = DeclaratorUtils.extractArrayDimensions(declarator);
-
+    const arrayDimensions = [...declarator.arrayDimensions];
     return {
       kind: "variable",
-      name: fullName,
+      name: currentNamespace ? `${currentNamespace}::${name}` : name,
       type: baseType,
       sourceFile,
       span,

@@ -1,24 +1,18 @@
 /**
- * FunctionCollector - Extracts function definitions and declarations from C++ parse trees.
- *
- * Produces ICppFunctionSymbol instances with parameters.
+ * FunctionCollector - C++ function symbols from 1.2's lowered header (#1991).
  */
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import ICppFunctionSymbol from "../../../../types/symbols/cpp/ICppFunctionSymbol";
 import ICppParameterInfo from "../../../../types/symbols/cpp/ICppParameterInfo";
-import DeclaratorUtils from "../utils/DeclaratorUtils";
-import IExtractedParameter from "../../../2-Parse/shared/IExtractedParameter";
+import type IExtractedParameter from "../../../2-Parse/shared/IExtractedParameter";
+import type ICppFunctionDefinitionSyntax from "../../../2-Parse/types/ICppFunctionDefinitionSyntax";
+import type IHeaderDeclaratorSyntax from "../../../2-Parse/types/IHeaderDeclaratorSyntax";
 import type ISourceSpan from "../../../../types/ISourceSpan";
 
 class FunctionCollector {
-  /**
-   * Map extracted parameters to ICppParameterInfo array.
-   */
   private static _mapParameters(
-    extracted: IExtractedParameter[],
+    extracted: readonly IExtractedParameter[],
   ): ICppParameterInfo[] {
     return extracted.map((p) => ({
       name: p.name,
@@ -28,44 +22,23 @@ class FunctionCollector {
     }));
   }
 
-  /**
-   * Collect a function definition and return an ICppFunctionSymbol.
-   *
-   * @param funcDef The function definition context
-   * @param sourceFile Source file path
-   * @param span Source span of the declaration
-   * @param currentNamespace Optional current namespace
-   * @returns The function symbol or null if no name
-   */
+  /** A function definition at namespace scope; null when it has no name */
   static collectDefinition(
-    funcDef: any,
+    funcDef: ICppFunctionDefinitionSyntax,
     sourceFile: string,
-    span: ISourceSpan,
     currentNamespace?: string,
   ): ICppFunctionSymbol | null {
-    const declarator = funcDef.declarator?.();
-    if (!declarator) return null;
-
-    const name = DeclaratorUtils.extractDeclaratorName(declarator);
+    const name = funcDef.declarator.name;
     if (!name) return null;
-
-    // Get return type
-    const declSpecSeq = funcDef.declSpecifierSeq?.();
-    const returnType = declSpecSeq
-      ? DeclaratorUtils.extractTypeFromDeclSpecSeq(declSpecSeq)
-      : "void";
-
-    const fullName = currentNamespace ? `${currentNamespace}::${name}` : name;
     const params = FunctionCollector._mapParameters(
-      DeclaratorUtils.extractFunctionParameters(declarator),
+      funcDef.declarator.parameters,
     );
-
     return {
       kind: "function",
-      name: fullName,
-      type: returnType,
+      name: currentNamespace ? `${currentNamespace}::${name}` : name,
+      type: funcDef.returnType,
       sourceFile,
-      span,
+      span: funcDef.span,
       sourceLanguage: ESourceLanguage.Cpp,
       visibility: "public",
       parent: currentNamespace,
@@ -74,34 +47,20 @@ class FunctionCollector {
     };
   }
 
-  /**
-   * Collect a function declaration (prototype) and return an ICppFunctionSymbol.
-   *
-   * @param declarator The function declarator context
-   * @param baseType The return type string
-   * @param sourceFile Source file path
-   * @param span Source span of the declaration
-   * @param currentNamespace Optional current namespace
-   * @returns The function symbol or null if no name
-   */
+  /** A function prototype; null when its declarator has no name */
   static collectDeclaration(
-    declarator: any,
+    declarator: IHeaderDeclaratorSyntax,
     baseType: string,
     sourceFile: string,
     span: ISourceSpan,
     currentNamespace?: string,
   ): ICppFunctionSymbol | null {
-    const name = DeclaratorUtils.extractDeclaratorName(declarator);
+    const name = declarator.name;
     if (!name) return null;
-
-    const fullName = currentNamespace ? `${currentNamespace}::${name}` : name;
-    const params = FunctionCollector._mapParameters(
-      DeclaratorUtils.extractFunctionParameters(declarator),
-    );
-
+    const params = FunctionCollector._mapParameters(declarator.parameters);
     return {
       kind: "function",
-      name: fullName,
+      name: currentNamespace ? `${currentNamespace}::${name}` : name,
       type: baseType,
       sourceFile,
       span,
@@ -113,31 +72,17 @@ class FunctionCollector {
     };
   }
 
-  /**
-   * Collect a member function (method) and return an ICppFunctionSymbol.
-   *
-   * @param className The class this method belongs to
-   * @param funcName The method name
-   * @param declarator The function declarator context
-   * @param returnType The return type string
-   * @param sourceFile Source file path
-   * @param span Source span of the declaration
-   * @param isDeclaration Whether this is a declaration (vs inline definition)
-   * @returns The function symbol
-   */
+  /** A member function, declared or defined inline in its class */
   static collectMemberFunction(
     className: string,
     funcName: string,
-    declarator: any,
+    declarator: IHeaderDeclaratorSyntax,
     returnType: string,
     sourceFile: string,
     span: ISourceSpan,
     isDeclaration: boolean,
   ): ICppFunctionSymbol {
-    const params = FunctionCollector._mapParameters(
-      DeclaratorUtils.extractFunctionParameters(declarator),
-    );
-
+    const params = FunctionCollector._mapParameters(declarator.parameters);
     return {
       kind: "function",
       name: `${className}::${funcName}`,

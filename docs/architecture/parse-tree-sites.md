@@ -32,10 +32,10 @@ lexer-only include scan. Nothing from 2.2 Plan on.
 
 | Layer                | Modules |
 | -------------------- | ------: |
-| `src/cnx/PARSE/`     |       3 |
 | `src/cnx/TRANSPILE/` |       2 |
+| `src/cnx/PARSE/`     |       1 |
 | `src/cnx/types/`     |       1 |
-| **total**            |   **6** |
+| **total**            |   **4** |
 
 `src/cnx/TRANSPILE/3-Render/` is the render layer, and its share is the number
 the issue singles out: the render layer holding parse nodes is how a
@@ -46,10 +46,8 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | Module                                                   | Holds             |
 | -------------------------------------------------------- | ----------------- |
 | `src/cnx/PARSE/1-Discover/IncludeDiscovery.ts`           | antlr4ng, grammar |
-| `src/cnx/PARSE/3-Declare/cpp/index.ts`                   | grammar           |
-| `src/cnx/PARSE/3-Declare/cpp/utils/DeclaratorUtils.ts`   | grammar           |
 | `src/cnx/TRANSPILE/1-Analyze/GrammarCoverageListener.ts` | antlr4ng          |
 | `src/cnx/TRANSPILE/1-Analyze/TreePasses.ts`              | grammar           |
 | `src/cnx/types/IParsedFile.ts`                           | antlr4ng, grammar |
 
-6 module(s).
+4 module(s).
