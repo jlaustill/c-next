@@ -399,7 +399,7 @@ function runAnalyzers(
       // already guaranteed a comparison, as it did in codegen.
       label:
         "loops and break/continue (ADR-068/ADR-026, E0703/E0705/E0707/E0715)",
-      run: () => new LoopAnalyzer(context).analyze(tree),
+      run: () => new LoopAnalyzer(context).analyze(parsed.program),
     },
     {
       label:

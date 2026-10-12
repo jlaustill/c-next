@@ -13,8 +13,10 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  * statement) reads the target's type, so the analyzer takes the symbol view.
  */
 const errors = (source: string) => {
-  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
-  return new LoopAnalyzer(context).analyze(tree);
+  const { syntax, context } = testAnalysisContextFor(source, {
+    cppMode: false,
+  });
+  return new LoopAnalyzer(context).analyze(syntax);
 };
 
 const inRun = (body: string): string =>
@@ -84,9 +86,8 @@ describe("LoopAnalyzer", () => {
         ),
       );
       expect(found.map((e) => e.code)).toEqual(["E0707", "E0707", "E0707"]);
-      // The condition's text is the parse tree's spelling (whitespace dropped),
-      // as codegen printed it.
-      expect(found[0].message).toContain("'1=1' is always true");
+      // The condition as written (#1991: 1.2 owns the spelling).
+      expect(found[0].message).toContain("'1 = 1' is always true");
       // The condition's own position, not the statement's.
       expect(found[1].line).toBe(6);
     });
@@ -168,6 +169,20 @@ describe("LoopAnalyzer", () => {
         "}",
       ].join("\n");
       expect(codes(source)).toEqual([]);
+    });
+  });
+
+  describe("on 1.2's syntax (#1991)", () => {
+    it("asks only a single comparison whether it is always true", () => {
+      expect(errors(inRun("    while (1 < 2 < 3) {\n    }"))).toEqual([]);
+    });
+
+    it("reports in source order across statements and expressions", () => {
+      const found = errors(inRun("    continue;\n    for (;;) {\n    }"));
+      expect(found.map((e) => `${e.code}@${e.line}`)).toEqual([
+        "E0703@3",
+        "E0707@4",
+      ]);
     });
   });
 });
