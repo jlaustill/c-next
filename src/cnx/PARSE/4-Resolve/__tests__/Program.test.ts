@@ -1086,7 +1086,6 @@ scope Gauge {
         "symbolsInFile",
         "target",
         "typesDeclaredIn",
-        "valueDefinedAfter",
       ]);
     });
   });

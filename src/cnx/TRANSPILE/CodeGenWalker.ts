@@ -43,6 +43,7 @@ import EmissionPlan from "./2-Plan/EmissionPlan";
 import DeclarationPlan from "./2-Plan/DeclarationPlan";
 import CastRequirement from "./2-Plan/CastRequirement";
 import OperandTyper from "../utils/OperandTyper";
+import DefinitionPoint from "../utils/DefinitionPoint";
 import CppNamespaceUtils from "../utils/CppNamespaceUtils";
 import headerCType from "../utils/headerCType";
 import PlanTyping from "./2-Plan/PlanTyping";
@@ -800,7 +801,7 @@ class CodeGenWalker {
   private static declaredAt(decl: {
     readonly span: ISourceSpan;
   }): ISourcePosition {
-    return { line: decl.span.endLine, column: decl.span.endColumn };
+    return DefinitionPoint.of(decl.span);
   }
 
   /**

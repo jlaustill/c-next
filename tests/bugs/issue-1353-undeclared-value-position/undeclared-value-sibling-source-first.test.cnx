@@ -5,7 +5,7 @@
 //
 // #1502 review: paired with undeclared-value-sibling-consumer-first.test.cnx
 // — same two sources, opposite include order, and the two must produce the
-// IDENTICAL diagnostic set. `knownVariables` is assembled from
+// IDENTICAL diagnostic set. What a file can see was once assembled from
 // `getSymbolInfoByFileMap()`, which Transpiler.ts documents at the call site
 // as filled incrementally and order-sensitive, so "stage 5 reads a complete
 // map" is a property this pair asserts rather than a comment anyone has to

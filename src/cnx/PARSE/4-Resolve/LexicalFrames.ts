@@ -11,6 +11,7 @@
  * parse, so a node's position is the same in every pass.
  */
 import ConstantFold from "../../utils/ConstantFold";
+import DefinitionPoint from "../../utils/DefinitionPoint";
 import DeferredTypes from "./DeferredTypes";
 import type IConstantEnvironment from "../../utils/types/IConstantEnvironment";
 import type TConstExpr from "../../types/TConstExpr";
@@ -107,7 +108,7 @@ class LexicalFrames {
       for (const declaration of declarations) {
         if (
           declaration.name === name &&
-          LexicalFrames.compare(declaration.visibleFrom, at) <= 0
+          DefinitionPoint.isDefinedAt(declaration.extent, at)
         ) {
           found = declaration;
         }

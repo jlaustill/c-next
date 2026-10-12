@@ -37,16 +37,15 @@ import BUILTIN_TYPE_NAMES from "./BUILTIN_TYPE_NAMES";
 import ExpressionShape from "../../utils/ExpressionShape";
 import type IChainHead from "../../types/IChainHead";
 import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
-import ICodeGenSymbols from "../../types/ICodeGenSymbols";
 import IUndeclaredValueError from "./types/IUndeclaredValueError";
 import NameExistence from "../../PARSE/3-Declare/NameExistence";
 import ParserUtils from "../../utils/ParserUtils";
 import REJECTED_KEYWORDS from "./REJECTED_KEYWORDS";
 import ScopeUtils from "../../utils/ScopeUtils";
 import OperandTyper from "../../utils/OperandTyper";
-import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import TChainRoot from "../../types/TChainRoot";
 import type IAnalysisContext from "./types/IAnalysisContext";
+import type ISourcePosition from "../../utils/types/ISourcePosition";
 
 class UndeclaredValueListener extends CNextListener {
   constructor(private readonly analyzer: UndeclaredValueAnalyzer) {
@@ -178,9 +177,9 @@ class UndeclaredValueAnalyzer {
    * asks the enclosing scope, `global.x` asks file scope, and only a bare name
    * searches outward (#1322 found four copies of that distinction disagreeing,
    * three of which emitted broken C at exit 0). A local is Program's lexical
-   * frames' answer (#1668); a file-scope value -- this file's or an included
-   * one's -- is `NameExistence.isValueName`'s, and a scope member is
-   * `isScopeMemberValue`'s, whichever file declared it.
+   * frames' answer (#1668). A variable -- local, file-scope or member -- is
+   * `binds`', once its declaration closes (#1643, ADR-030); any other value
+   * is `NameExistence.isValueName`'s or `isScopeMemberValue`'s.
    *
    * Without the split, `this.gx` where `gx` is a file-scope global -- not a
    * member of the enclosing scope -- passes on the bare lookup and emits
@@ -198,15 +197,6 @@ class UndeclaredValueAnalyzer {
     const position = ParserUtils.getPosition(at);
     const scopePath = OperandTyper.scopePathAt(position, this.context);
 
-    // #1643 (ADR-030): a variable this file has not finished declaring -- below
-    // the use, or the use in its own initializer -- is not defined yet. The
-    // spelling means whatever it binds past it, or nothing.
-    const program = this.context.program;
-    const sourceFile = this.context.sourceFile;
-    if (program.valueDefinedAfter(sourceFile, root, name, position) !== null) {
-      return program.bindValue(sourceFile, root, name, position) !== null;
-    }
-
     if (root === null) {
       return (
         UndeclaredValueAnalyzer.isDeclaredValue(
@@ -221,7 +211,10 @@ class UndeclaredValueAnalyzer {
     // `global.x` is a file-scope value, this file's or one an `#include`
     // brought: the include-filtered predicate answers both.
     if (root === "global") {
-      return NameExistence.isValueName(name, symbols, this.context.symbolTable);
+      return (
+        UndeclaredValueAnalyzer.binds(root, name, position, this.context) ||
+        NameExistence.isValueName(name, symbols, this.context.symbolTable)
+      );
     }
 
     // `this.` outside any scope is E0431's to reject, and two diagnostics for
@@ -230,11 +223,27 @@ class UndeclaredValueAnalyzer {
       return true;
     }
 
-    return UndeclaredValueAnalyzer.isScopeMemberValue(
-      name,
-      scopePath,
-      symbols,
-      this.context.symbolTable,
+    return (
+      UndeclaredValueAnalyzer.binds(root, name, position, this.context) ||
+      UndeclaredValueAnalyzer.isScopeMemberValue(name, scopePath, this.context)
+    );
+  }
+
+  /**
+   * #1643: whether the spelling binds a declaration at `at`. Every variable's
+   * answer -- local, file-scope or member -- since `Program.bindValue` is the
+   * one place a spelling becomes a declaration (#1668), and it binds one only
+   * from a file this one sees (#1398) and once its declaration closes
+   * (ADR-030).
+   */
+  private static binds(
+    root: TChainRoot,
+    name: string,
+    at: ISourcePosition,
+    context: IAnalysisContext,
+  ): boolean {
+    return (
+      context.program.bindValue(context.sourceFile, root, name, at) !== null
     );
   }
 
@@ -251,16 +260,22 @@ class UndeclaredValueAnalyzer {
   private static isScopeMemberValue(
     name: string,
     scopePath: string,
-    symbols: ICodeGenSymbols,
-    symbolTable: SymbolTable,
+    context: IAnalysisContext,
   ): boolean {
+    const symbols = context.symbols;
+    // #1643: a variable member is `binds`' alone. `scopeMembers` has no
+    // position, so it would admit one whose declaration has not closed.
+    const isVariable =
+      context.program.symbolByCName(
+        ScopeUtils.getTranspiledCName({ name, scopePath }),
+      )?.kind === "variable";
     return (
       NameExistence.isValueName(
         ScopeUtils.qualifyInScope(name, scopePath),
         symbols,
-        symbolTable,
+        context.symbolTable,
       ) ||
-      (symbols.scopeMembers.get(scopePath)?.has(name) ?? false)
+      (!isVariable && (symbols.scopeMembers.get(scopePath)?.has(name) ?? false))
     );
   }
 
@@ -282,23 +297,16 @@ class UndeclaredValueAnalyzer {
     context: IAnalysisContext,
   ): boolean {
     const symbolTable = context.symbolTable;
-    // A local, parameter or `for` variable in an enclosing lexical frame of
-    // THIS file, declared before `at` (#1668: Program's frames).
-    //
-    // #1398: deliberately the lexical half alone. The full `typeOfName` falls
-    // back to the run-wide symbol table, which answers "declared anywhere in
-    // this run" -- so a const declared in a sibling that this file never
-    // included resolved here and returned visible, and E0427 could not fire
-    // across a file boundary at all. The cross-file half of the question is
-    // answered by `NameExistence.isValueName` below, whose `knownVariables`
-    // term is include-filtered. The fallback itself stays for #1220's
-    // essential-type analyzers, which want exactly the run-wide answer.
+    // A local, parameter, `for` variable, file-scope variable or scope member
+    // that is defined at `at` (#1668, #1643). #1398: binding sees only files
+    // this one includes, so a sibling's const never answers here.
     if (
-      context.program.lexicalDeclarationAt(
-        context.sourceFile,
+      UndeclaredValueAnalyzer.binds(
+        null,
         name,
         ParserUtils.getPosition(at),
-      ) !== null
+        context,
+      )
     ) {
       return true;
     }
@@ -307,13 +315,10 @@ class UndeclaredValueAnalyzer {
 
     // A function referenced as a value (ADR-029 function-as-type), a type used
     // as the base of `Type.MEMBER`, a register, which is a value at an address
-    // (ADR-004) and so answers here but NOT in the type position (#1336), and
-    // -- since #1398 -- a file-scope variable or const from this file or a
-    // `.cnx` it includes. That last term was briefly written here instead of in
-    // the predicate, which left the module that owns "is this a visible value"
-    // with the incomplete answer; see `isValueName`'s comment.
-    // ADR-111: when a register becomes a type, `isValueName` loses the register
-    // term. It does not collapse into `isTypeName` -- the variable term stays.
+    // (ADR-004) and so answers here but NOT in the type position (#1336). A
+    // variable is `binds`' above, never this predicate's (#1643).
+    // ADR-111: when a register becomes a type, `isValueName` collapses into
+    // `isTypeName`.
     //
     // #1430: `CodeGenState.knownFunctions` is deliberately NOT consulted, for
     // the reason `NameExistence`'s class comment already gives for
@@ -342,12 +347,7 @@ class UndeclaredValueAnalyzer {
 
     return (
       scopePath !== "" &&
-      UndeclaredValueAnalyzer.isScopeMemberValue(
-        name,
-        scopePath,
-        symbols,
-        symbolTable,
-      )
+      UndeclaredValueAnalyzer.isScopeMemberValue(name, scopePath, context)
     );
   }
 

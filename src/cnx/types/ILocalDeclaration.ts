@@ -22,11 +22,11 @@ interface ILocalDeclaration {
   /** The declarator IDENTIFIER's span */
   readonly span: ISourceSpan;
   /**
-   * #1643: where the declaration closes -- after its initializer -- and a use
-   * starts binding it. Its own initializer names something not yet defined
-   * (ADR-030), as `u32 n <- n + 1` reads nothing a C-Next author declared.
+   * #1643: the whole declaration's span, initializer included. It is defined
+   * where this closes (`DefinitionPoint`), so its own initializer names
+   * something not yet defined (ADR-030).
    */
-  readonly visibleFrom: Pick<ISourceSpan, "line" | "column">;
+  readonly extent: ISourceSpan;
   readonly type: TType;
   /** Leading first; a const name 1.4 could not fold stays its text */
   readonly arrayDimensions: ReadonlyArray<number | string>;
