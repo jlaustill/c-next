@@ -184,7 +184,11 @@ function runAnalyzers(
       // every later step would be answering about a program the author did not
       // write.
       label: "#include targets (ADR-010: headers only, .cnx over .h)",
-      run: () => new IncludeDirectiveAnalyzer().analyze(tree, options.includes),
+      run: () =>
+        new IncludeDirectiveAnalyzer().analyze(
+          parsed.program,
+          options.includes,
+        ),
     },
     {
       label: "#define shape (ADR-037: flag-only defines)",
@@ -260,7 +264,8 @@ function runAnalyzers(
     },
     {
       label: "call analysis (ADR-030: define-before-use)",
-      run: () => new FunctionCallAnalyzer(context).analyze(tree),
+      run: () =>
+        new FunctionCallAnalyzer(context).analyze(tree, parsed.program),
     },
     {
       label: "NULL checks (ADR-047: C library interop)",

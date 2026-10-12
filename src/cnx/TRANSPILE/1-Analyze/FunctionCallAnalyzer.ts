@@ -7,6 +7,7 @@
  * the C compiler or runtime.
  */
 
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
 import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
@@ -250,9 +251,13 @@ class FunctionCallAnalyzer {
   /**
    * Analyze a parsed program for function call errors
    * @param tree The parsed program AST
+   * @param program 1.2's syntax for the same file
    * @returns Array of function call errors
    */
-  public analyze(tree: Parser.ProgramContext): IFunctionCallError[] {
+  public analyze(
+    tree: Parser.ProgramContext,
+    program: IProgramSyntax,
+  ): IFunctionCallError[] {
     this.errors = [];
     this.definedFunctions = new Set();
     this.allLocalFunctions = new Set();
@@ -264,7 +269,7 @@ class FunctionCallAnalyzer {
     // First pass: collect scope names, includes, and all local functions --
     // which ADR-029 also makes the set of callback types (see isCallbackType).
     this.collectScopes(tree);
-    this.collectIncludes(tree);
+    this.collectIncludes(program);
     this.collectAllLocalFunctions(tree);
 
     // Second pass: walk tree in order, tracking definitions and checking calls
@@ -289,11 +294,11 @@ class FunctionCallAnalyzer {
   /**
    * Collect included headers for stdlib function lookup
    */
-  private collectIncludes(tree: Parser.ProgramContext): void {
+  private collectIncludes(program: IProgramSyntax): void {
     // #1322: one parse, shared with ADR-010's own rules. The spelling that
     // stood here matched the two delimiters independently, so `<foo.h"` read
     // as an include.
-    for (const path of IncludeDirective.pathsIn(tree)) {
+    for (const path of IncludeDirective.pathsIn(program)) {
       this.includedHeaders.add(path);
     }
   }
