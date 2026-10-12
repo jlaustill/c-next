@@ -91,9 +91,6 @@ class TSymbolInfoAdapter {
     const registerMemberOffsets = new Map<string, TExpression>();
     const registerMemberCTypes = new Map<string, string>();
 
-    // === Issue #282: Private const values for inlining ===
-    const scopePrivateConstValues = new Map<string, string>();
-
     // === Function Return Types ===
     const functionReturnTypes = new Map<string, string>();
 
@@ -146,11 +143,10 @@ class TSymbolInfoAdapter {
           break;
 
         case "variable":
-          // Track scope membership, private const values, and file-scope names
+          // Track scope membership and file-scope names
           TSymbolInfoAdapter.processVariable(
             symbol,
             scopeMembers,
-            scopePrivateConstValues,
             knownVariables,
           );
           break;
@@ -196,9 +192,6 @@ class TSymbolInfoAdapter {
       registerBaseAddresses,
       registerMemberOffsets,
       registerMemberCTypes,
-
-      // Issue #282: Private const values for inlining
-      scopePrivateConstValues,
 
       // Function return types
       functionReturnTypes,
@@ -372,10 +365,8 @@ class TSymbolInfoAdapter {
   private static processVariable(
     variable: IVariableSymbol,
     scopeMembers: Map<string, Set<string>>,
-    scopePrivateConstValues: Map<string, string>,
     knownVariables: Set<string>,
   ): void {
-    const cName = TSymbolInfoAdapter.getTranspiledCName(variable);
     // #1295: `scopeMembers` is keyed by the scope's dotted source path, which is
     // exactly what `scopePath` already holds -- no conversion here, and no
     // collision at depth two.
@@ -398,20 +389,6 @@ class TSymbolInfoAdapter {
       // they are reached through `scopeMembers` above, which the value check
       // already consults under a scope path.
       knownVariables.add(variable.name);
-    }
-
-    // Issue #282: Track private const values for inlining
-    const isPrivate = variable.visibility === "private";
-
-    // Issue #500: Only inline SCALAR consts, not arrays - arrays must be emitted
-    if (
-      isScoped &&
-      isPrivate &&
-      variable.isConst &&
-      variable.initialValue &&
-      !variable.isArray
-    ) {
-      scopePrivateConstValues.set(cName, variable.initialValue);
     }
   }
 

@@ -62,6 +62,7 @@ import DeclarationParts from "../../utils/DeclarationParts";
 import ExpressionNodes from "../../utils/ExpressionNodes";
 import StatementNodes from "../../utils/StatementNodes";
 import OperandTyper from "../../utils/OperandTyper";
+import ExpressionShape from "../../utils/ExpressionShape";
 import type IVariableDeclarationSyntax from "../../types/syntax/IVariableDeclarationSyntax";
 import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
 import TYPE_WIDTH from "../../types/TYPE_WIDTH";
@@ -91,8 +92,10 @@ class IntegerConversionCheck {
   }
 
   public checkDeclaration(declaration: IVariableDeclarationSyntax): void {
+    if (!declaration.initializer) return;
+    if (this.checkStringAt(declaration.initializer)) return;
     const target = TypeText.ofType(declaration.type);
-    if (!declaration.initializer || !TypeCheckUtils.isInteger(target)) return;
+    if (!TypeCheckUtils.isInteger(target)) return;
     this.check(target, declaration.initializer, "assign", true);
   }
 
@@ -120,7 +123,9 @@ class IntegerConversionCheck {
     }
   }
 
+  /** E0914, then E0891, for a value at the type its position gives it */
   public checkFloatingAt(value: TExpression): void {
+    if (this.checkStringAt(value)) return;
     const target = StructInitializerType.valueTypeAt(
       ValuePositions.at(this.positions, value),
     );
@@ -131,6 +136,9 @@ class IntegerConversionCheck {
 
   /** An assignment statement, or a `for` loop's init or update */
   public checkSite(site: IAssignmentSyntax): void {
+    if (this.checkStringAt(site.value)) return;
+    // A compound operator is arithmetic at the operands' width, which ADR-044
+    // governs; only a plain `<-` is a conversion.
     if (site.operator !== "<-") return;
     const target = site.target;
     if (
@@ -145,6 +153,67 @@ class IntegerConversionCheck {
       OperandTyper.typeOfTarget(target, this.context)?.typeName ?? "";
     if (!TypeCheckUtils.isInteger(targetType)) return;
     this.check(targetType, site.value, "assign", true);
+  }
+
+  /**
+   * E0914: a string value at a position that types it a C-Next scalar -- an
+   * integer, a float, a bool, an enum or a bitmap. True when reported, so the
+   * value is not judged again as a number.
+   */
+  private checkStringAt(value: TExpression): boolean {
+    const target = StructInitializerType.valueTypeAt(
+      ValuePositions.at(this.positions, value),
+    );
+    if (target === null || !this.isScalar(target, value)) return false;
+    if (!this.landsString(value)) return false;
+    this.report(
+      value,
+      "E0914",
+      `A string value cannot be assigned to ${target}: '${value.written}'`,
+      "A string lands only in a string<N> (ADR-045); a u8 array may be initialized by a string literal (ADR-035)",
+    );
+    return true;
+  }
+
+  /**
+   * Every C-Next type that holds one value and is not a string. A named type
+   * is the one its spelling names where the value is (ADR-057): `ELocal` in
+   * `scope S` is `S__ELocal`.
+   */
+  private isScalar(target: string, value: TExpression): boolean {
+    if (
+      TypeCheckUtils.isInteger(target) ||
+      TypeCheckUtils.isFloat(target) ||
+      target === "bool"
+    ) {
+      return true;
+    }
+    const cName = this.context.program.cTypeNameAt(
+      this.context.sourceFile,
+      target,
+      { line: value.span.line, column: value.span.column },
+    );
+    const symbols = this.context.symbols;
+    return symbols.knownEnums.has(cName) || symbols.knownBitmaps.has(cName);
+  }
+
+  /**
+   * Whether a string is what lands: the value itself, the one it
+   * parenthesizes, or either arm of a ternary -- each arm lands in the target
+   */
+  private landsString(value: TExpression): boolean {
+    if (value.kind === "parenthesized") {
+      return this.landsString(value.expression);
+    }
+    if (value.kind === "ternary") {
+      return (
+        this.landsString(value.whenTrue) || this.landsString(value.whenFalse)
+      );
+    }
+    return (
+      ExpressionShape.isStringLiteral(value) ||
+      OperandTyper.isScalarString(OperandTyper.typeOf(value, this.context))
+    );
   }
 
   private checkCast(cast: Extract<TExpression, { kind: "cast" }>): void {

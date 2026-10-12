@@ -19,7 +19,7 @@
 void MotorController__start(void) {
     MotorController__MOTOR_REG__CTRL = (uint8_t)((MotorController__MOTOR_REG__CTRL & ~(1U << 0)) | (1U << 0));
     MotorController__MOTOR_REG__CTRL = (uint8_t)((MotorController__MOTOR_REG__CTRL & ~(0x7U << 3)) | ((3U & 0x7U) << 3));
-    MotorController__MOTOR_REG__SPEED = 100;
+    MotorController__MOTOR_REG__SPEED = 100U;
 }
 
 bool MotorController__isRunning(void) {
@@ -35,7 +35,7 @@ uint8_t MotorController__getMode(void) {
 
 
 void Board__toggleLed(void) {
-    Board__GPIO__DR_SET = ((uint32_t)1U << 3);
+    Board__GPIO__DR_SET = ((uint32_t)1U << 3U);
 }
 
 int main(void) {

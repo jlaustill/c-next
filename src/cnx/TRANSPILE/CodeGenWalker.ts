@@ -32,6 +32,7 @@ import type EFileType from "../PARSE/1-Discover/types/EFileType";
 import type IStringConcatOps from "./3-Render/codegen/types/IStringConcatOps";
 import { basename } from "node:path";
 import CommentFormatter from "./3-Render/codegen/CommentFormatter";
+import PrivateConstValue from "./3-Render/codegen/PrivateConstValue";
 import IComment from "../types/IComment";
 import TYPE_MAP from "./3-Render/codegen/types/TYPE_MAP";
 import TParameterInfo from "../types/TParameterInfo";
@@ -2934,9 +2935,16 @@ class CodeGenWalker {
     const isArray = CodeGenWalker.isArrayDeclaration(decl);
 
     // Issue #282: a private const scalar is inlined at its uses, not emitted at
-    // file scope. Issue #500 exempts arrays, which cannot be inlined. Decided
-    // before any render, so a skipped declaration registers no include.
-    if (isPrivate && isConst && !isArray) {
+    // file scope. Issue #500 exempts arrays, which cannot be inlined, and #1739
+    // one with no value to inline. Decided before any render, so a skipped
+    // declaration registers no include.
+    if (
+      PrivateConstValue.inlined(
+        this.host.getState(),
+        this.transpileState,
+        fullName,
+      ) !== null
+    ) {
       return { kind: "skipped" };
     }
     // Issue #998: the one modifier builder, which validates the atomic/volatile
@@ -4516,7 +4524,11 @@ class CodeGenWalker {
       case "qualified":
         return { kind: "qualified", parts: label.path };
       case "identifier":
-        return { kind: "identifier", name: label.name };
+        return {
+          kind: "identifier",
+          name: label.name,
+          resolved: this.resolveCaseConst(label.name, label.span),
+        };
       case "integer":
       case "hex":
         return { kind: "numeric", text: label.text, negative: label.negative };
@@ -4527,6 +4539,42 @@ class CodeGenWalker {
       case "missing":
         return { kind: "none" };
     }
+  }
+
+  /**
+   * A bare const named as a case label (#1739). C switches only on an integer
+   * constant expression, which no const object is, so any const with a value
+   * is written as that value; another name as its C name. Null for a name no
+   * binding resolves, which the generator treats as an enum member.
+   */
+  private resolveCaseConst(name: string, at: ISourcePosition): string | null {
+    const resolved = TypeValidator.resolveBareIdentifier(
+      name,
+      at,
+      (typeName: string) => this.host.isKnownStruct(typeName),
+      this.host.state,
+    );
+    if (resolved === null) return null;
+    const constant = PrivateConstValue.constant(
+      this.host.getState(),
+      this.transpileState,
+      resolved,
+    );
+    if (constant === null) return resolved;
+    this.host.applyEffects(constant.effects);
+    return constant.code;
+  }
+
+  /** A resolved name, or -- for a private const -- its value (#741, #1739) */
+  private constOrName(resolved: string): string {
+    const inlined = PrivateConstValue.inlined(
+      this.host.getState(),
+      this.transpileState,
+      resolved,
+    );
+    if (inlined === null) return resolved;
+    this.host.applyEffects(inlined.effects);
+    return inlined.code;
   }
 
   /** Every statement of a block, rendered in order. */
@@ -4575,13 +4623,7 @@ class CodeGenWalker {
       this.host.state,
     );
     if (resolved !== null) {
-      // Issue #741: Check if this is a private const that should be inlined
-      const constValue =
-        this.host.state.symbols!.scopePrivateConstValues.get(resolved);
-      if (constValue !== undefined) {
-        return constValue;
-      }
-      return resolved;
+      return this.constOrName(resolved);
     }
 
     // Issue #452: Check if identifier is an unqualified enum member reference

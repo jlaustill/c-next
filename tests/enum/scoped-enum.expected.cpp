@@ -17,7 +17,7 @@ Motor__State Motor__current = Motor__State__IDLE;
 
 uint8_t Motor__start(void) {
     Motor__current = Motor__State__RUNNING;
-    return 1;
+    return 1U;
 }
 
 uint8_t Motor__stop(void) {

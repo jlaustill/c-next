@@ -169,6 +169,53 @@ describe("IntegerConversionAnalyzer", () => {
   // #1800, owner ruling 2026-09-28: "this should be a compiler error with an
   // explicit cast". The implicit form was emitted as C's conversion, which is
   // undefined for NaN and past the target's range; the cast saturates.
+  describe("E0914 -- a string lands in no scalar (#1739)", () => {
+    const codes = (source: string) => errors(source).map((e) => e.code);
+
+    it("rejects a string in an integer, a bool, an enum and a bitmap", () => {
+      expect(
+        codes(
+          "enum EColor { RED, GREEN }\nbitmap8 Flags { a, b, c, d, e, f, g, h }\n" +
+            inMain(
+              '    u32 x <- "a";\n    bool b <- "b";\n    EColor c <- "RED";\n    Flags f <- "x";',
+            ),
+        ),
+      ).toEqual(["E0914", "E0914", "E0914", "E0914"]);
+    });
+
+    it("looks through parentheses and into each ternary arm", () => {
+      expect(
+        codes(
+          inMain('    u32 x <- ("y");\n    u32 y <- (wide = 1) ? 2 : "n";'),
+        ),
+      ).toEqual(["E0914", "E0914"]);
+    });
+
+    it("accepts a string into a string and a char into a u8", () => {
+      expect(
+        codes(
+          inMain(
+            '    string<8> s <- (wide = 1) ? "x" : "y";\n    u8 c <- \'A\';',
+          ),
+        ),
+      ).toEqual([]);
+    });
+
+    it("rejects a string assigned, passed, returned and in a field", () => {
+      const found = errors(
+        "struct P {\n    u32 v;\n}\nu32 take(u32 v) {\n    return v;\n}\n" +
+          'u32 give() {\n    return "r";\n}\n' +
+          inMain('    wide <- "a";\n    take("b");\n    P p <- { v: "c" };'),
+      );
+      expect(found.map((e) => [e.code, e.line, e.column])).toEqual([
+        ["E0914", 8, 11],
+        ["E0914", 14, 12],
+        ["E0914", 15, 9],
+        ["E0914", 16, 16],
+      ]);
+    });
+  });
+
   describe("E0891 -- a float reaches an integer only through a cast", () => {
     const withFloat = (line: string): string =>
       `f32 read() {\n    return 1.5;\n}\n${inMain(`    f32 k <- 2.5;\n    bool c <- true;\n${line}`)}`;
