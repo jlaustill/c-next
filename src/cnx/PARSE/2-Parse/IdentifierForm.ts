@@ -199,7 +199,8 @@ class IdentifierSyntaxListener extends CNextListener {
   };
 
   private check(identifier: TerminalNode | null): void {
-    // A tree the parser recovered can hold a declaration with no name.
+    // ANTLR types every name as optional; only a recovery tree omits one,
+    // and 1.2 does not check form on those.
     if (identifier === null) {
       return;
     }

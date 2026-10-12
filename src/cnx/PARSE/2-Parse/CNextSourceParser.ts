@@ -210,8 +210,15 @@ class CNextSourceParser {
     parser.addErrorListener(errorListener);
 
     const tree = parser.program();
-    errors.push(...LiteralForm.errorsIn(tokenStream));
-    errors.push(...IdentifierForm.errorsIn(tree));
+    // A recovery tree's spelling is not the source's, so form is checked only
+    // on a tree that parsed.
+    const formErrors =
+      errors.length > 0
+        ? []
+        : [
+            ...LiteralForm.errorsIn(tokenStream),
+            ...IdentifierForm.errorsIn(tree),
+          ];
     const declarationCount = tree.declaration().length;
 
     // Scanned off THIS token stream, which the parse has already filled, so
@@ -243,6 +250,7 @@ class CNextSourceParser {
       program: ProgramLowering.program(tree, scanner),
       targetDirectives: TargetDirectives.read(tree),
       parseErrors: errors,
+      formErrors,
     };
   }
 }

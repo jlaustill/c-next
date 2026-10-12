@@ -51,9 +51,10 @@ class TreePasses {
       const parsed = CNextSourceParser.parse(file.source);
       // #1445: 1.2 carries its own errors; this stamps the path the text
       // came from, the one fact 1.2 cannot know because it parses a string.
-      if (parsed.parseErrors.length > 0) {
+      const fileErrors = [...parsed.parseErrors, ...parsed.formErrors];
+      if (fileErrors.length > 0) {
         errors.push(
-          ...parsed.parseErrors.map((e) => ({ ...e, sourcePath: file.path })),
+          ...fileErrors.map((e) => ({ ...e, sourcePath: file.path })),
         );
         continue;
       }

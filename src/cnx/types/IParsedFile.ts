@@ -94,6 +94,15 @@ interface IParsedFile {
    * from; the caller that supplied the text stamps it.
    */
   readonly parseErrors: readonly ITranspileError[];
+
+  /**
+   * 1.2's errors on a tree that DID parse: how a literal or a declared name is
+   * written (E0912, E0201, E0202). Kept apart from `parseErrors` because the
+   * tree is sound -- the prettier plugin and `format-fidelity` format such a
+   * file, and only the transpile run stops on them (#1991). Empty whenever
+   * `parseErrors` is not.
+   */
+  readonly formErrors: readonly ITranspileError[];
 }
 
 export default IParsedFile;

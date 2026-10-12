@@ -17,7 +17,7 @@ const VIOLATIONS: ReadonlyArray<[string, string]> = [
  */
 function analyze(source: string) {
   return CNextSourceParser.parse(source)
-    .parseErrors.filter((e) => /^error\[E020[12]\]/.test(e.message))
+    .formErrors.filter((e) => /^error\[E020[12]\]/.test(e.message))
     .map((e) => ({
       ...e,
       code: /E020[12]/.exec(e.message)![0],
@@ -297,8 +297,8 @@ describe("IdentifierForm (E0201, E0202)", () => {
     });
   });
 
-  // #1991: 1.2 walks the tree even when the parse failed, so a declaration the
-  // parser recovered without a name must not crash the check.
+  // #1991: a recovery tree can hold a declaration with no name, and its
+  // spelling is not the source's, so form is not checked on it.
   describe("recovered trees", () => {
     it.each([
       `void f(u8 a_, ) { }`,
@@ -308,6 +308,18 @@ describe("IdentifierForm (E0201, E0202)", () => {
     ])("reports the parse error, not a crash, for %s", (code) => {
       const parsed = CNextSourceParser.parse(code);
       expect(parsed.parseErrors.length).toBeGreaterThan(0);
+      expect(parsed.formErrors).toEqual([]);
     });
+  });
+
+  // #1991: the tree is sound, so the formatter (which reads parseErrors) must
+  // still accept the file.
+  it("keeps form errors out of parseErrors", () => {
+    const parsed = CNextSourceParser.parse(`u8 value_ <- 010;`);
+    expect(parsed.parseErrors).toEqual([]);
+    expect(parsed.formErrors.map((e) => e.message.slice(0, 11))).toEqual([
+      "error[E0912",
+      "error[E0201",
+    ]);
   });
 });
