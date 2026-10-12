@@ -20,43 +20,38 @@
  * passed as a compound literal of the parameter's type.
  */
 
-import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
-
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
-import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
 import CPointerParameter from "../../utils/CPointerParameter";
+import DeclarationParts from "../../utils/DeclarationParts";
+import ExpressionNodes from "../../utils/ExpressionNodes";
 import CNEXT_TO_C_TYPE_MAP from "../../utils/constants/TypeMappings";
 import type IOperandType from "../../types/IOperandType";
 import type TValueBinding from "../../types/TValueBinding";
 import type ICParameterInfo from "../../types/symbols/c/ICParameterInfo";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type TExpression from "../../types/syntax/TExpression";
 import type IBaseAnalysisError from "./types/IBaseAnalysisError";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
-class CPointerArgumentListener extends CNextListener {
+class CPointerArgumentCheck {
   private readonly found: IBaseAnalysisError[] = [];
 
-  public constructor(private readonly context: IAnalysisContext) {
-    super();
-  }
+  public constructor(private readonly context: IAnalysisContext) {}
 
   public errors(): IBaseAnalysisError[] {
     return this.found;
   }
 
-  override enterPostfixExpression = (
-    ctx: Parser.PostfixExpressionContext,
-  ): void => {
-    const ops = ctx.postfixOp();
-    if (ops.length !== 1 || ops[0].LPAREN() === null) return;
-    const name = ctx.primaryExpression()?.IDENTIFIER()?.getText();
-    if (name === undefined) return;
+  /** `f(a, b)`: a call by name, and nothing after it */
+  public checkExpression(expr: TExpression): void {
+    if (expr.kind !== "postfix") return;
+    const call = expr.ops[0];
+    if (expr.ops.length !== 1 || call.kind !== "call") return;
+    if (expr.primary.kind !== "identifier") return;
+    const name = expr.primary.name;
     const parameters = this.cParameters(name);
     if (parameters === null) return;
-    const args = ops[0].argumentList()?.expression() ?? [];
-    args.forEach((arg, index) => {
+    call.arguments.forEach((arg, index) => {
       const parameter = parameters[index];
       const pointee = CPointerParameter.pointee(parameter?.type);
       if (pointee === null) return;
@@ -68,44 +63,43 @@ class CPointerArgumentListener extends CNextListener {
       }
       this.report(
         arg,
-        `C-Next cannot see how '${name}' uses parameter ${index + 1}, so passing '${arg.getText()}' to it is not memory safe`,
+        `C-Next cannot see how '${name}' uses parameter ${index + 1}, so passing '${arg.written}' to it is not memory safe`,
         `Consider converting '${name}' to C-Next.`,
         "E0896",
         "warning",
       );
     });
-  };
+  }
 
   /** E0895, when the argument is not what the pointer points to */
   private rejects(
-    arg: Parser.ExpressionContext,
+    arg: TExpression,
     name: string,
     index: number,
     parameter: ICParameterInfo,
     pointee: string,
   ): boolean {
-    const expression = SyntaxLowering.expression(arg);
     const argType = CPointerArgumentAnalyzer.cTypeOf(
-      OperandTyper.typeOf(expression, this.context),
+      OperandTyper.typeOf(arg, this.context),
     );
     if (argType === null) return false;
     if (argType !== pointee) {
       this.report(
         arg,
-        `'${arg.getText()}' is ${argType}, and parameter ${index + 1} of '${name}' points to ${pointee}`,
+        `'${arg.written}' is ${argType}, and parameter ${index + 1} of '${name}' points to ${pointee}`,
         `A C pointer parameter takes an object of the type it points to; pass a ${pointee}, or an array of them.`,
       );
       return true;
     }
     const isConst = CPointerArgumentAnalyzer.isConstRoot(
-      OperandTyper.chainOf(expression, this.context).root,
+      OperandTyper.chainOf(arg, this.context).root,
     );
     if (isConst !== true || CPointerParameter.pointsToConst(parameter)) {
       return false;
     }
     this.report(
       arg,
-      `'${arg.getText()}' is const ${argType}, and parameter ${index + 1} of '${name}' is a pointer '${name}' may write through`,
+      `'${arg.written}' is const ${argType}, and parameter ${index + 1} of '${name}' is a pointer '${name}' may write through`,
       `Pass a non-const ${argType}, or declare the C parameter const ${pointee}*.`,
     );
     return true;
@@ -125,24 +119,35 @@ class CPointerArgumentListener extends CNextListener {
   }
 
   private report(
-    at: ParserRuleContext,
+    at: TExpression,
     message: string,
     helpText: string,
     code = "E0895",
     severity: IBaseAnalysisError["severity"] = "error",
   ) {
-    const { line, column } = ParserUtils.getPosition(at);
-    this.found.push({ code, line, column, message, helpText, severity });
+    this.found.push({
+      code,
+      line: at.span.line,
+      column: at.span.column,
+      message,
+      helpText,
+      severity,
+    });
   }
 }
 
 class CPointerArgumentAnalyzer {
   constructor(private readonly context: IAnalysisContext) {}
 
-  public analyze(tree: Parser.ProgramContext): IBaseAnalysisError[] {
-    const listener = new CPointerArgumentListener(this.context);
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
-    return listener.errors();
+  public analyze(program: IProgramSyntax): IBaseAnalysisError[] {
+    const check = new CPointerArgumentCheck(this.context);
+    for (const member of program.declarations) {
+      for (const part of DeclarationParts.of(member.declaration)) {
+        for (const expr of ExpressionNodes.of(part))
+          check.checkExpression(expr);
+      }
+    }
+    return check.errors();
   }
 
   /** Whether the value a chain starts at is declared const; null if unknown */

@@ -371,7 +371,8 @@ function runAnalyzers(
     },
     {
       label: "controlling expressions (ADR-022, MISRA 14.4/13.5, E0701/E0702)",
-      run: () => new ControllingExpressionAnalyzer(context).analyze(tree),
+      run: () =>
+        new ControllingExpressionAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "string declarations (ADR-045, E0862-E0866)",
@@ -432,7 +433,7 @@ function runAnalyzers(
     },
     {
       label: "C pointer parameter arguments (#1977, E0895)",
-      run: () => new CPointerArgumentAnalyzer(context).analyze(tree),
+      run: () => new CPointerArgumentAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "sizeof operands (ADR-023, E0601/E0602)",

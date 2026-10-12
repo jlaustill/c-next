@@ -26,80 +26,74 @@
  * the list -- it has no controlling expression, which is the point of it.
  */
 
-import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
-
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import ExpressionCalls from "../../utils/ExpressionCalls";
-import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
-import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
+import DeclarationParts from "../../utils/DeclarationParts";
+import ExpressionNodes from "../../utils/ExpressionNodes";
+import StatementNodes from "../../utils/StatementNodes";
 import IControllingExpressionError from "./types/IControllingExpressionError";
 import type IAnalysisContext from "./types/IAnalysisContext";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type TExpression from "../../types/syntax/TExpression";
+import type TStatement from "../../types/syntax/TStatement";
 
 const CALL_HELP = "Store the function result in a variable first.";
 
-class ControllingExpressionListener extends CNextListener {
+class ControllingExpressionCheck {
   private readonly found: IControllingExpressionError[] = [];
 
-  public constructor(private readonly context: IAnalysisContext) {
-    super();
-  }
+  public constructor(private readonly context: IAnalysisContext) {}
 
   public errors(): IControllingExpressionError[] {
     return this.found;
   }
 
-  // --- The five productions that carry a controlling expression -------------
+  // --- The places that carry a controlling expression -----------------------
   // Each one only NAMES its expression; the rule itself lives in `check`.
 
-  override enterIfStatement = (ctx: Parser.IfStatementContext): void => {
-    this.check(ctx.expression(), "if");
-  };
+  public checkStatement(statement: TStatement): void {
+    switch (statement.kind) {
+      case "if":
+        this.check(statement.condition, "if");
+        return;
+      case "while":
+        this.check(statement.condition, "while");
+        return;
+      case "doWhile":
+        this.check(statement.condition, "do-while");
+        return;
+      case "for":
+        // `for (;;)` has no controlling expression at all -- that is E0707's
+        // case (a disguised infinite loop), not this rule's.
+        if (statement.condition) this.check(statement.condition, "for");
+        return;
+      default:
+        return;
+    }
+  }
 
-  override enterWhileStatement = (ctx: Parser.WhileStatementContext): void => {
-    this.check(ctx.expression(), "while");
-  };
-
-  override enterDoWhileStatement = (
-    ctx: Parser.DoWhileStatementContext,
-  ): void => {
-    this.check(ctx.expression(), "do-while");
-  };
-
-  override enterForStatement = (ctx: Parser.ForStatementContext): void => {
-    // `for (;;)` has no controlling expression at all -- that is E0707's case
-    // (a disguised infinite loop), not this rule's.
-    const condition = ctx.expression();
-    if (condition) this.check(condition, "for");
-  };
-
-  override enterTernaryExpression = (
-    ctx: Parser.TernaryExpressionContext,
-  ): void => {
-    if (ctx.COLON() === null) return;
-    const condition = ctx.orExpression(0);
-    // Addressed through `orExpression(0)`, never `getChild(0)`: the condition
-    // is parenthesised, so child 0 is the `(` (CLAUDE.md).
-    if (condition) this.checkOrExpression(condition, "ternary");
-  };
+  public checkTernary(expr: TExpression): void {
+    if (expr.kind !== "ternary") return;
+    if (ExpressionCalls.callsAtTop(expr.condition)) {
+      this.reportCall(expr.condition, "ternary");
+      return;
+    }
+    this.checkComparison(expr.condition, "ternary");
+  }
 
   // --- The one decision -----------------------------------------------------
 
-  private check(ctx: Parser.ExpressionContext, kind: string): void {
-    if (ExpressionCalls.callsAtTop(SyntaxLowering.expressionNode(ctx))) {
-      this.reportCall(ctx, kind);
+  private check(expr: TExpression, kind: string): void {
+    if (ExpressionCalls.callsAtTop(expr)) {
+      this.reportCall(expr, kind);
       return;
     }
 
-    const orExprs = ctx.ternaryExpression().orExpression();
-    if (orExprs.length !== 1) {
-      // The controlling expression is itself a ternary.
-      const { line, column } = ParserUtils.getPosition(ctx);
+    if (expr.kind === "ternary") {
       this.found.push({
         code: "E0701",
-        line,
-        column,
+        line: expr.span.line,
+        column: expr.span.column,
         message: `${kind} condition must be a comparison, not a ternary`,
         helpText:
           "MISRA C:2012 Rule 14.4: lift the ternary into a variable and compare that.",
@@ -107,87 +101,54 @@ class ControllingExpressionListener extends CNextListener {
       return;
     }
 
-    this.checkComparison(orExprs[0], kind);
-  }
-
-  private checkOrExpression(
-    ctx: Parser.OrExpressionContext,
-    kind: string,
-  ): void {
-    if (ExpressionCalls.callsAtTop(SyntaxLowering.expressionNode(ctx))) {
-      this.reportCall(ctx, kind);
-      return;
-    }
-    this.checkComparison(ctx, kind);
+    this.checkComparison(expr, kind);
   }
 
   /**
    * Every leaf operand, after decomposing `||` and `&&`, has to carry a
-   * comparison operator of its own.
+   * comparison operator of its own; the first that does not is reported.
    *
    * A bare value, a bare bool, a literal or a negation is rejected: `!ready` is
    * not a comparison, and MISRA C:2012 Rule 14.4 wants the intent written out.
    */
-  private checkComparison(
-    orExpr: Parser.OrExpressionContext,
-    kind: string,
-  ): void {
-    const andExprs = orExpr.andExpression();
-    if (andExprs.length === 0) {
-      this.reportNotComparison(orExpr, kind);
-      return;
-    }
-
-    for (const andExpr of andExprs) {
-      const equalityExprs = andExpr.equalityExpression();
-      if (equalityExprs.length === 0) {
-        this.reportNotComparison(orExpr, kind);
-        return;
-      }
-
-      for (const equalityExpr of equalityExprs) {
-        // An equality operator (`=`, `!=`) makes this operand a comparison.
-        if (equalityExpr.relationalExpression().length > 1) continue;
-
-        const relational = equalityExpr.relationalExpression(0);
-        if (!relational) {
-          this.reportNotComparison(orExpr, kind);
-          return;
-        }
-        // A relational operator (`<`, `>`, `<=`, `>=`) does too.
-        if (relational.bitwiseOrExpression().length > 1) continue;
-
-        this.reportNotComparison(equalityExpr, kind);
-        return;
-      }
-    }
+  private checkComparison(expr: TExpression, kind: string): void {
+    const leaf = ControllingExpressionCheck.leaves(expr).find(
+      (operand) =>
+        operand.kind !== "binary" ||
+        (operand.level !== "equality" && operand.level !== "relational"),
+    );
+    if (leaf !== undefined) this.reportNotComparison(leaf, kind);
   }
 
-  private reportNotComparison(
-    node: Parser.OrExpressionContext | Parser.EqualityExpressionContext,
-    kind: string,
-  ): void {
-    const text = node.getText();
-    const { line, column } = ParserUtils.getPosition(node);
+  /** The operands `||` and `&&` join, left to right */
+  private static leaves(expr: TExpression): readonly TExpression[] {
+    if (
+      expr.kind === "binary" &&
+      (expr.level === "or" || expr.level === "and")
+    ) {
+      return expr.operands.flatMap((operand) =>
+        ControllingExpressionCheck.leaves(operand),
+      );
+    }
+    return [expr];
+  }
+
+  private reportNotComparison(node: TExpression, kind: string): void {
     this.found.push({
       code: "E0701",
-      line,
-      column,
-      message: `${kind} condition must be a comparison, not '${text}'`,
-      helpText: `MISRA C:2012 Rule 14.4: ${this.suggestionFor(node, text)}`,
+      line: node.span.line,
+      column: node.span.column,
+      message: `${kind} condition must be a comparison, not '${node.written}'`,
+      helpText: `MISRA C:2012 Rule 14.4: ${this.suggestionFor(node)}`,
     });
   }
 
-  private reportCall(
-    node: Parser.ExpressionContext | Parser.OrExpressionContext,
-    kind: string,
-  ): void {
-    const { line, column } = ParserUtils.getPosition(node);
+  private reportCall(node: TExpression, kind: string): void {
     this.found.push({
       code: "E0702",
-      line,
-      column,
-      message: `${kind} condition may not call a function: '${node.getText()}'`,
+      line: node.span.line,
+      column: node.span.column,
+      message: `${kind} condition may not call a function: '${node.written}'`,
       helpText: `MISRA C:2012 Rule 13.5: ${CALL_HELP}`,
     });
   }
@@ -201,21 +162,17 @@ class ControllingExpressionListener extends CNextListener {
    * pass runs, and the frames also honour shadowing, which the registry's flat
    * name lookup does not.
    */
-  private suggestionFor(node: ParserRuleContext, text: string): string {
-    const negated = text.startsWith("!");
-    const base = negated ? text.slice(1) : text;
+  private suggestionFor(node: TExpression): string {
+    const negated = node.kind === "unary" && node.operator === "!";
+    const base = negated ? node.operand.written : node.written;
     if (
       OperandTyper.isBoolean(
-        OperandTyper.typeOfName(
-          base,
-          ParserUtils.getPosition(node),
-          this.context,
-        ),
+        OperandTyper.typeOfName(base, node.span, this.context),
       )
     ) {
       return `write it out, e.g. ${base} = ${negated ? "false" : "true"}`;
     }
-    return `write it out, e.g. ${text} > 0 or ${text} != 0`;
+    return `write it out, e.g. ${node.written} > 0 or ${node.written} != 0`;
   }
 }
 
@@ -223,10 +180,20 @@ class ControllingExpressionAnalyzer {
   /** #1456: handed in rather than read off shared state. */
   constructor(private readonly context: IAnalysisContext) {}
 
-  public analyze(tree: Parser.ProgramContext): IControllingExpressionError[] {
-    const listener = new ControllingExpressionListener(this.context);
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
-    return listener.errors();
+  public analyze(program: IProgramSyntax): IControllingExpressionError[] {
+    const check = new ControllingExpressionCheck(this.context);
+    for (const member of program.declarations) {
+      for (const statement of StatementNodes.in(member.declaration)) {
+        check.checkStatement(statement);
+      }
+      for (const part of DeclarationParts.of(member.declaration)) {
+        for (const expr of ExpressionNodes.of(part)) check.checkTernary(expr);
+      }
+    }
+    // Read off 1.2's syntax (#1991); reported in source order
+    return check
+      .errors()
+      .sort((a, b) => a.line - b.line || a.column - b.column);
   }
 }
 
