@@ -146,32 +146,42 @@ class ControllingExpressionListener extends CNextListener {
       }
 
       for (const equalityExpr of equalityExprs) {
-        // An equality operator (`=`, `!=`) makes this operand a comparison.
-        if (equalityExpr.relationalExpression().length > 1) continue;
-
-        const relational = equalityExpr.relationalExpression(0);
-        if (!relational) {
-          this.reportNotComparison(orExpr, kind);
-          return;
-        }
-        // A relational operator (`<`, `>`, `<=`, `>=`) does too.
-        if (relational.bitwiseOrExpression().length > 1) continue;
-
-        // A bracketed group is decided by what it holds (#1195): `(n < 5)` is
-        // a comparison, and `(a)` is still a bare value.
-        const inner =
-          ControllingExpressionListener.parenthesizedInner(relational);
-        if (inner) {
-          const before = this.found.length;
-          this.check(inner, kind);
-          if (this.found.length > before) return;
-          continue;
-        }
-
-        this.reportNotComparison(equalityExpr, kind);
-        return;
+        if (this.checkLeaf(equalityExpr, orExpr, kind)) return;
       }
     }
+  }
+
+  /**
+   * Judges one leaf operand, and says whether it reported. One report per
+   * condition is enough, so a report ends the walk over the rest.
+   */
+  private checkLeaf(
+    equalityExpr: Parser.EqualityExpressionContext,
+    orExpr: Parser.OrExpressionContext,
+    kind: string,
+  ): boolean {
+    // An equality operator (`=`, `!=`) makes this operand a comparison.
+    if (equalityExpr.relationalExpression().length > 1) return false;
+
+    const relational = equalityExpr.relationalExpression(0);
+    if (!relational) {
+      this.reportNotComparison(orExpr, kind);
+      return true;
+    }
+    // A relational operator (`<`, `>`, `<=`, `>=`) does too.
+    if (relational.bitwiseOrExpression().length > 1) return false;
+
+    // A bracketed group is decided by what it holds (#1195): `(n < 5)` is a
+    // comparison, and `(a)` is still a bare value.
+    const inner = ControllingExpressionListener.parenthesizedInner(relational);
+    if (inner) {
+      const before = this.found.length;
+      this.check(inner, kind);
+      return this.found.length > before;
+    }
+
+    this.reportNotComparison(equalityExpr, kind);
+    return true;
   }
 
   /**
@@ -200,7 +210,7 @@ class ControllingExpressionListener extends CNextListener {
     const unaryExpressions = multiplicativeExpressions[0].unaryExpression();
     if (unaryExpressions.length !== 1) return null;
     const postfix = unaryExpressions[0].postfixExpression();
-    if (!postfix || postfix.postfixOp().length !== 0) return null;
+    if (postfix?.postfixOp().length !== 0) return null;
     return postfix.primaryExpression().expression();
   }
 
