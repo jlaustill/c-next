@@ -347,19 +347,6 @@ class TranspileState {
   }
 
   /**
-   * #1934: the C identifier a name is emitted under where it is used -- the
-   * bound local's, as 1.4 settled it (ADR-057), else the name as written.
-   * Bound at `at`, so a block's shadowing local is renamed only inside it.
-   */
-  emittedLocalNameAt(name: string, at: ISourcePosition): string {
-    const binding = this.bindingAt(null, name, at);
-    if (binding?.kind !== "local") {
-      return name;
-    }
-    return this.localCName(binding.declaration, at);
-  }
-
-  /**
    * The C name a local or parameter is emitted under at `at`: the one place
    * a bound local's name is decided for the body. A moved name IS ADR-057's
    * shadowing rule firing, so it is recorded; a local that shadows nothing is
