@@ -421,7 +421,7 @@ function runAnalyzers(
     },
     {
       label: "bitmap access (ADR-034, E0881-E0883)",
-      run: () => new BitmapAccessAnalyzer(context).analyze(tree),
+      run: () => new BitmapAccessAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "safe_div/safe_mod call shape (ADR-051, E0884/E0885)",

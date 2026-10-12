@@ -140,7 +140,12 @@ class RegisterAccessListener extends CNextListener {
     chain: string[],
     node: ParserRuleContext,
   ): IRegisterMember | null {
-    return RegisterMemberReference.resolve(root, chain, node, this.context);
+    return RegisterMemberReference.resolve(
+      root,
+      chain,
+      ParserUtils.getPosition(node),
+      this.context,
+    );
   }
 
   private isZero(

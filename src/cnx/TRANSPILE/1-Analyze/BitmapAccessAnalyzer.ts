@@ -22,78 +22,62 @@
  * only in the register map. ADR-034 says a bitmap is addressed by named field.
  */
 
-import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
-import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
-
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import ParserUtils from "../../utils/ParserUtils";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
+import type TExpression from "../../types/syntax/TExpression";
+import type TPostfixOpSyntax from "../../types/syntax/TPostfixOpSyntax";
+import DeclarationParts from "../../utils/DeclarationParts";
+import ExpressionNodes from "../../utils/ExpressionNodes";
+import StatementNodes from "../../utils/StatementNodes";
 import OperandTyper from "../../utils/OperandTyper";
-import AssignmentSiteListener from "./AssignmentSiteListener";
 import PROPERTY_NAMES from "../../utils/constants/PROPERTY_NAMES";
-import ChainRoot from "../../utils/ChainRoot";
 import RegisterMemberReference from "./helpers/RegisterMemberReference";
 import ConstantExpression from "./helpers/ConstantExpression";
 import IBitmapAccessError from "./types/IBitmapAccessError";
-import type TAssignmentSite from "../../types/TAssignmentSite";
 import TChainRoot from "../../types/TChainRoot";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
-class BitmapAccessListener extends CNextListener {
+class BitmapAccessCheck {
   private readonly found: IBitmapAccessError[] = [];
 
-  public constructor(private readonly context: IAnalysisContext) {
-    super();
-  }
+  public constructor(private readonly context: IAnalysisContext) {}
 
   public errors(): IBitmapAccessError[] {
     return this.found;
   }
 
-  /** Reads: `f.Mode`, `this.SysTick.CTRL.EN`, and the bracket forms. */
-  override enterPostfixExpression = (
-    ctx: Parser.PostfixExpressionContext,
-  ): void => {
-    const primary = ctx.primaryExpression();
-    if (!primary) return;
-    const root = ChainRoot.ofPrimary(primary);
-    const ops = ctx.postfixOp();
-    const names = ops.map((op) =>
-      op.DOT() !== null ? op.IDENTIFIER()!.getText() : null,
-    );
-    const head = root === null ? primary.IDENTIFIER()?.getText() : undefined;
-    // A `this.`/`global.` root puts the chain's FIRST name in an op, where a
-    // bare head comes from the primary expression and consumes none. Slicing
-    // here is what keeps `ops[i]` the op that FOLLOWS `chain[i]` in both
-    // forms -- the alignment an assignment target has for free, since its head
-    // is always the target's own IDENTIFIER.
-    this.checkChain(
-      RegisterMemberReference.leadingNames(head, names),
+  /** A chain's leading names, its root, and the operations after the root */
+  private static partsOf(expr: TExpression): {
+    chain: string[];
+    root: TChainRoot;
+    ops: readonly TPostfixOpSyntax[];
+  } | null {
+    if (expr.kind !== "postfix") return null;
+    const root = expr.primary.kind === "root" ? expr.primary.root : null;
+    const names = expr.ops.map((op) => (op.kind === "member" ? op.name : null));
+    const head =
+      expr.primary.kind === "identifier" ? expr.primary.name : undefined;
+    return {
+      chain: RegisterMemberReference.leadingNames(head, names),
       root,
-      root === null ? ops : ops.slice(1),
-      ctx,
-    );
-  };
+      ops: root === null ? expr.ops : expr.ops.slice(1),
+    };
+  }
 
-  /**
-   * Targets: `f.Mode <- 10;` and `this.SysTick.CTRL[0] <- true;` -- a write,
-   * in a statement or a `for` header (#1726).
-   */
-  public checkSite(ctx: TAssignmentSite): void {
-    const target = ctx.assignmentTarget();
-    const ops = target.postfixTargetOp();
-    const names = ops.map((op) =>
-      op.DOT() !== null ? op.IDENTIFIER()!.getText() : null,
-    );
-    const chain = RegisterMemberReference.leadingNames(
-      target.IDENTIFIER().getText(),
-      names,
-    );
+  public checkExpression(expr: TExpression): void {
+    const parts = BitmapAccessCheck.partsOf(expr);
+    if (parts === null) return;
+    this.checkChain(parts.chain, parts.root, parts.ops, expr);
+  }
+
+  public checkSite(site: IAssignmentSyntax): void {
+    const parts = BitmapAccessCheck.partsOf(site.target);
+    if (parts === null) return;
     const bitmapAt = this.checkChain(
-      chain,
-      ChainRoot.ofTarget(target),
-      ops,
-      target,
+      parts.chain,
+      parts.root,
+      parts.ops,
+      site.target,
     );
     if (bitmapAt === null) return;
 
@@ -104,14 +88,11 @@ class BitmapAccessListener extends CNextListener {
       .get(bitmapAt.bitmap)
       ?.get(bitmapAt.field);
     if (layout === undefined) return;
-    const value = ConstantExpression.valueAt(
-      SyntaxLowering.expression(ctx.expression()),
-      this.context,
-    );
+    const value = ConstantExpression.valueAt(site.value, this.context);
     const maximum = 2 ** layout.width - 1;
     if (value === null || value <= maximum) return;
     this.report(
-      ctx.expression(),
+      site.value,
       "E0881",
       `Value ${value} exceeds ${layout.width}-bit field '${bitmapAt.field}' maximum of ${maximum}`,
       `A ${layout.width}-bit field holds 0 through ${maximum}; widen the field in the bitmap declaration, or write a value that fits (ADR-034).`,
@@ -125,8 +106,8 @@ class BitmapAccessListener extends CNextListener {
   private checkChain(
     chain: string[],
     root: TChainRoot,
-    ops: readonly (Parser.PostfixOpContext | Parser.PostfixTargetOpContext)[],
-    node: ParserRuleContext,
+    ops: readonly TPostfixOpSyntax[],
+    node: TExpression,
   ): { bitmap: string; field: string } | null {
     const bitmaps = this.context.symbols.bitmapFields;
     if (!bitmaps || chain.length === 0) return null;
@@ -139,7 +120,7 @@ class BitmapAccessListener extends CNextListener {
     // `ops[i]` follows `chain[i]`. A subscript there is E0883: ADR-034
     // addresses a bitmap by named field, never by bit index.
     const after = ops[at - 1];
-    if (after?.DOT() === null) {
+    if (after !== undefined && after.kind !== "member") {
       this.report(
         node,
         "E0883",
@@ -170,25 +151,16 @@ class BitmapAccessListener extends CNextListener {
     return { bitmap, field };
   }
 
-  /**
-   * The bitmap a chain reaches and how many names it took to get there.
-   *
-   * Two routes, asked in the order codegen resolved them: a register member
-   * whose declared type is a bitmap, then a declared variable whose type is
-   * one. A register wins because its spelling (`this.SysTick.CTRL`) consumes
-   * more names than a variable ever can.
-   */
   private bitmapOf(
     chain: string[],
     root: TChainRoot,
-    node: ParserRuleContext,
+    node: TExpression,
   ): { bitmap: string; at: number } | null {
     const symbols = this.context.symbols;
-
     const member = RegisterMemberReference.resolve(
       root,
       chain,
-      node,
+      node.span,
       this.context,
     );
     if (member !== null) {
@@ -198,22 +170,8 @@ class BitmapAccessListener extends CNextListener {
       }
       return null;
     }
-
-    // A declared variable: `Flags f;` then `f.Mode`, or `this.f.Mode`. The
-    // typer binds the root and names its bitmap type as `bitmapFields` keys
-    // it, however the declaration spelled the type (#1668)
     if (root === "global") return null;
-    if (
-      !(node instanceof Parser.PostfixExpressionContext) &&
-      !(node instanceof Parser.AssignmentTargetContext)
-    ) {
-      return null;
-    }
-    // An ARRAY of bitmaps is not a bitmap: `arr[0].Mode` indexes the array
-    const declared = OperandTyper.chainOf(
-      SyntaxLowering.expressionNode(node),
-      this.context,
-    ).steps[0]?.before;
+    const declared = OperandTyper.chainOf(node, this.context).steps[0]?.before;
     const bitmap =
       declared?.dimensions.length === 0 ? declared.bitmapTypeName : null;
     return bitmap !== null && symbols.bitmapFields.has(bitmap)
@@ -222,13 +180,18 @@ class BitmapAccessListener extends CNextListener {
   }
 
   private report(
-    at: ParserRuleContext,
+    at: TExpression,
     code: string,
     message: string,
     helpText: string,
   ): void {
-    const { line, column } = ParserUtils.getPosition(at);
-    this.found.push({ code, line, column, message, helpText });
+    this.found.push({
+      code,
+      line: at.span.line,
+      column: at.span.column,
+      message,
+      helpText,
+    });
   }
 }
 
@@ -236,15 +199,23 @@ class BitmapAccessAnalyzer {
   /** #1456: handed in rather than read off shared state. */
   constructor(private readonly context: IAnalysisContext) {}
 
-  public analyze(tree: Parser.ProgramContext): IBitmapAccessError[] {
-    const listener = new BitmapAccessListener(this.context);
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
-    ParseTreeWalker.DEFAULT.walk(
-      new AssignmentSiteListener((site) => listener.checkSite(site)),
-      tree,
-    );
-    // Reported in source order, as the one walk these replace did
-    return listener
+  /**
+   * #1991: reads 1.2's syntax, not the parse tree. A target is checked as a
+   * site, with its value, and not again as an expression.
+   */
+  public analyze(program: IProgramSyntax): IBitmapAccessError[] {
+    const check = new BitmapAccessCheck(this.context);
+    for (const member of program.declarations) {
+      const sites = StatementNodes.assignments(member.declaration);
+      const targets = new Set<TExpression>(sites.map((site) => site.target));
+      for (const expr of DeclarationParts.of(member.declaration).flatMap(
+        ExpressionNodes.of,
+      )) {
+        if (!targets.has(expr)) check.checkExpression(expr);
+      }
+      for (const site of sites) check.checkSite(site);
+    }
+    return check
       .errors()
       .sort((a, b) => a.line - b.line || a.column - b.column);
   }
