@@ -30,68 +30,52 @@
  * two-expression subscript, which is a slice or a bit range (ADR-007).
  */
 
-import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
-import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
-
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
 import ElementCount from "../../utils/ElementCount";
+import DeclarationParts from "../../utils/DeclarationParts";
+import ExpressionNodes from "../../utils/ExpressionNodes";
 import UNRESOLVED_DIMENSION from "../../types/UNRESOLVED_DIMENSION";
 import type IChainTyping from "../../types/IChainTyping";
+import type ISourceSpan from "../../types/ISourceSpan";
 import type TConstExpr from "../../types/TConstExpr";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type TExpression from "../../types/syntax/TExpression";
+import type TPostfixOpSyntax from "../../types/syntax/TPostfixOpSyntax";
 import IArrayIndexBoundsError from "./types/IArrayIndexBoundsError";
 import ConstantExpression from "./helpers/ConstantExpression";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import type IOperandType from "../../types/IOperandType";
 
+type TChain = Extract<TExpression, { kind: "postfix" }>;
+
 /** One subscript in a chain: its expressions, and how many ops follow it. */
 interface ISubscript {
-  readonly expressions: readonly Parser.ExpressionContext[];
+  readonly expressions: readonly TExpression[];
   readonly opsAfter: number;
   readonly dimension: number;
-  readonly at: ParserRuleContext;
+  readonly at: ISourceSpan;
 }
 
-class ArrayIndexBoundsListener extends CNextListener {
+class ArrayIndexBoundsCheck {
   private readonly found: IArrayIndexBoundsError[] = [];
 
-  public constructor(private readonly context: IAnalysisContext) {
-    super();
-  }
+  public constructor(private readonly context: IAnalysisContext) {}
 
   public errors(): IArrayIndexBoundsError[] {
     return this.found;
   }
 
-  override enterPostfixExpression = (
-    ctx: Parser.PostfixExpressionContext,
-  ): void => {
-    this.checkChain(ctx, ctx.postfixOp());
-  };
-
-  override enterAssignmentTarget = (
-    ctx: Parser.AssignmentTargetContext,
-  ): void => {
-    this.checkChain(ctx, ctx.postfixTargetOp());
-  };
-
   /**
    * Each subscript against the value it indexes, as the one operand typer
-   * typed the chain. A `this.`/`global.` root consumes its first `.name`, so
+   * typed the chain -- a value or an assignment target, which 1.2 returns as
+   * the same chain. A `this.`/`global.` root consumes its first `.name`, so
    * the typer's steps are the chain's LAST ops, in order.
    */
-  private checkChain(
-    ctx: Parser.PostfixExpressionContext | Parser.AssignmentTargetContext,
-    ops: readonly (Parser.PostfixOpContext | Parser.PostfixTargetOpContext)[],
-  ): void {
-    const subscripts = ArrayIndexBoundsListener.subscriptsOf(ops);
+  public checkChain(chain: TExpression): void {
+    if (chain.kind !== "postfix") return;
+    const subscripts = ArrayIndexBoundsCheck.subscriptsOf(chain.ops);
     if (subscripts.length === 0) return;
-    const typing = OperandTyper.chainOf(
-      SyntaxLowering.expressionNode(ctx),
-      this.context,
-    );
+    const typing = OperandTyper.chainOf(chain, this.context);
     for (const subscript of subscripts) {
       const step = typing.steps.at(-1 - subscript.opsAfter);
       const indexed = step?.before ?? null;
@@ -99,8 +83,8 @@ class ArrayIndexBoundsListener extends CNextListener {
         subscript,
         indexed === null
           ? null
-          : this.boundOf(indexed, subscript, typing, ctx, ops),
-        ArrayIndexBoundsListener.spelling(ctx, ops, subscript.opsAfter),
+          : this.boundOf(indexed, subscript, typing, chain),
+        ArrayIndexBoundsCheck.spelling(chain, subscript.opsAfter),
       );
     }
   }
@@ -115,15 +99,14 @@ class ArrayIndexBoundsListener extends CNextListener {
     indexed: IOperandType,
     subscript: ISubscript,
     typing: IChainTyping,
-    ctx: Parser.PostfixExpressionContext | Parser.AssignmentTargetContext,
-    ops: readonly (Parser.PostfixOpContext | Parser.PostfixTargetOpContext)[],
+    chain: TChain,
   ): number | null {
     const settled = indexed.dimensions[0];
     if (typeof settled === "number" && settled !== UNRESOLVED_DIMENSION) {
       return settled;
     }
     if (settled === "") return null; // an unsized `[]`
-    const declared = this.declaredDimensions(subscript, typing, ctx, ops);
+    const declared = this.declaredDimensions(subscript, typing, chain);
     const expr = declared?.[subscript.dimension - 1] ?? null;
     return expr === null
       ? null
@@ -134,19 +117,15 @@ class ArrayIndexBoundsListener extends CNextListener {
   private declaredDimensions(
     subscript: ISubscript,
     typing: IChainTyping,
-    ctx: Parser.PostfixExpressionContext | Parser.AssignmentTargetContext,
-    ops: readonly (Parser.PostfixOpContext | Parser.PostfixTargetOpContext)[],
+    chain: TChain,
   ): ReadonlyArray<TConstExpr | null> | undefined {
+    const ops = chain.ops;
     const at = ops.length - 1 - subscript.opsAfter;
     // A `this.`/`global.` root's first `.name` is the root itself
-    const rootText =
-      ctx instanceof Parser.PostfixExpressionContext
-        ? ctx.primaryExpression().getText()
-        : "";
-    const first = rootText === "this" || rootText === "global" ? 1 : 0;
+    const first = chain.primary.kind === "root" ? 1 : 0;
     let member = -1;
     for (let i = at - 1; i >= first; i -= 1) {
-      if (ops[i].LBRACKET() === null) {
+      if (ops[i].kind !== "subscript") {
         member = i;
         break;
       }
@@ -162,7 +141,8 @@ class ArrayIndexBoundsListener extends CNextListener {
       ? this.context.program.symbolByCName(owner.typeName)
       : undefined;
     if (struct?.kind !== "struct") return undefined;
-    return struct.fields.get(ops[member].IDENTIFIER()?.getText() ?? "")
+    const op = ops[member];
+    return struct.fields.get(op.kind === "member" ? op.name : "")
       ?.dimensionExprs;
   }
 
@@ -174,11 +154,12 @@ class ArrayIndexBoundsListener extends CNextListener {
   ): void {
     if (bound === null || subscript.expressions.length !== 1) return;
     const index = ConstantExpression.valueAt(
-      SyntaxLowering.expression(subscript.expressions[0]),
+      subscript.expressions[0],
       this.context,
     );
     if (index === null) return;
-    const { line, column } = ParserUtils.getPosition(subscript.at);
+    const line = subscript.at.line;
+    const column = subscript.at.column;
     if (index < 0) {
       this.found.push({
         code: "E0854",
@@ -205,40 +186,35 @@ class ArrayIndexBoundsListener extends CNextListener {
    * ops after it (so the prefix walk can stop before it) and which dimension
    * of the current base it indexes (subscripts since the last member step).
    */
-  private static subscriptsOf(
-    ops: readonly (Parser.PostfixOpContext | Parser.PostfixTargetOpContext)[],
-  ): ISubscript[] {
+  private static subscriptsOf(ops: readonly TPostfixOpSyntax[]): ISubscript[] {
     const found: ISubscript[] = [];
     let depth = 0;
     ops.forEach((op, index) => {
-      if (op.LBRACKET() === null) {
+      if (op.kind !== "subscript") {
         depth = 0;
         return;
       }
       depth += 1;
       found.push({
-        expressions: op.expression(),
+        expressions: op.indexes,
         opsAfter: ops.length - index - 1,
         dimension: depth,
-        at: op,
+        at: op.span,
       });
     });
     return found;
   }
 
   /** The chain as written up to (not including) the op `opsAfter` from the end. */
-  private static spelling(
-    ctx: ParserRuleContext,
-    ops: readonly ParserRuleContext[],
-    opsAfter: number,
-  ): string {
-    const keep = ops.length - opsAfter - 1;
-    const full = ctx.getText();
-    let cut = full.length;
-    for (let i = keep; i < ops.length; i += 1) {
-      cut -= ops[i].getText().length;
-    }
-    return full.slice(0, cut);
+  private static spelling(chain: TChain, opsAfter: number): string {
+    const keep = chain.ops.length - opsAfter - 1;
+    return (
+      chain.primary.written +
+      chain.ops
+        .slice(0, keep)
+        .map((op) => op.written)
+        .join("")
+    );
   }
 }
 
@@ -246,10 +222,16 @@ class ArrayIndexBoundsAnalyzer {
   /** #1456: handed in rather than read off shared state. */
   constructor(private readonly context: IAnalysisContext) {}
 
-  public analyze(tree: Parser.ProgramContext): IArrayIndexBoundsError[] {
-    const listener = new ArrayIndexBoundsListener(this.context);
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
-    return listener.errors();
+  /** Every chain 1.2 returned, values and assignment targets alike (#1991) */
+  public analyze(program: IProgramSyntax): IArrayIndexBoundsError[] {
+    const check = new ArrayIndexBoundsCheck(this.context);
+    for (const member of program.declarations) {
+      for (const part of DeclarationParts.of(member.declaration)) {
+        for (const expr of ExpressionNodes.of(part)) check.checkChain(expr);
+      }
+    }
+    // 1.2's parts and their expressions are in source order
+    return check.errors();
   }
 }
 

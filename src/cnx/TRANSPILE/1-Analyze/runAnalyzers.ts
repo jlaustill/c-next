@@ -408,7 +408,7 @@ function runAnalyzers(
     },
     {
       label: "constant array index bounds (ADR-036, E0854)",
-      run: () => new ArrayIndexBoundsAnalyzer(context).analyze(tree),
+      run: () => new ArrayIndexBoundsAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "const enforcement (ADR-013, E0877/E0878)",
