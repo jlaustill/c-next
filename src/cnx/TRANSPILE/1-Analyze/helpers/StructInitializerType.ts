@@ -195,11 +195,9 @@ class StructInitializerType {
    * float reaches an integer parameter, return, field or element only
    * through a cast, as it reaches a declaration.
    */
-  static valueType(
-    value: ParserRuleContext,
-    context: IAnalysisContext,
+  static valueTypeAt(
+    established: Pick<IValuePosition, "typeText" | "isArray" | "inList">,
   ): string | null {
-    const established = StructInitializerType.establish(value, context);
     const typeText = established.typeText;
     if (typeText === null) return null;
     if (established.isArray && !established.inList) return null;

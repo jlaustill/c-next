@@ -15,8 +15,10 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  * type `p.col` and stays silent, which looks exactly like the rule not firing.
  */
 const errors = (source: string) => {
-  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
-  return new IntegerConversionAnalyzer(context).analyze(tree);
+  const { syntax, context } = testAnalysisContextFor(source, {
+    cppMode: false,
+  });
+  return new IntegerConversionAnalyzer(context).analyze(syntax);
 };
 
 const inMain = (body: string): string =>
@@ -242,5 +244,22 @@ describe("IntegerConversionAnalyzer", () => {
     ])("reports %s in a for header", (code, line) => {
       expect(codes(line)).toEqual([code]);
     });
+  });
+});
+
+// #1991: the rule reads 1.2's syntax, so how a value is written and which
+// shapes it skips are asserted directly.
+describe("IntegerConversionAnalyzer -- on 1.2's syntax", () => {
+  it("reads a literal spelled with spaces, as the parse tree's text did", () => {
+    const found = errors("void f() {\n    u8 x <- - 5;\n}");
+    expect(found.map((e) => e.code)).toEqual(["E0868"]);
+    expect(found[0].message).toContain("-5");
+  });
+
+  it("leaves a ternary's conversion to its arms", () => {
+    const found = errors(
+      "u16 a;\nu16 b;\nvoid f(bool c) {\n    u8 x <- (c) ? a : b;\n}",
+    );
+    expect(found.map((e) => e.code)).not.toContain("E0869");
   });
 });

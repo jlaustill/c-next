@@ -27,7 +27,6 @@ import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
 import SyntaxLowering from "../../../PARSE/2-Parse/SyntaxLowering";
 import IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
 import type TExpression from "../../../types/syntax/TExpression";
-import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
 import QualifiedCName from "../../../utils/QualifiedCName";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import TypeText from "./TypeText";
@@ -123,23 +122,21 @@ class FunctionReference {
    * a variable of callback type, a call, a subscript, an expression.
    */
   static ofValue(
-    expression: Parser.ExpressionContext,
+    expression: TExpression,
     scopePath: string,
     context: IAnalysisContext,
   ): IFunctionSymbol | null {
-    const postfix = ExpressionUnwrapper.getPostfixExpression(expression);
-    if (postfix === null) return null;
-    const ops = postfix.postfixOp();
-    if (ops.some((op) => op.DOT() === null)) return null;
-    const base = CalleeNameResolver.baseName(
-      SyntaxLowering.expressionNode(postfix.primaryExpression()),
-    );
+    const primary =
+      expression.kind === "postfix" ? expression.primary : expression;
+    const ops = expression.kind === "postfix" ? expression.ops : [];
+    if (ops.some((op) => op.kind !== "member")) return null;
+    const base = CalleeNameResolver.baseName(primary);
     if (base === null) return null;
     let name = base;
     for (const op of ops) {
       const next = CalleeNameResolver.resolveMemberAccess(
         name,
-        op.IDENTIFIER()?.getText() ?? "",
+        op.kind === "member" ? op.name : "",
         scopePath,
         (name) => context.symbols.knownScopes.has(name),
       );

@@ -4,7 +4,6 @@ import type IVariableDeclarationSyntax from "../../../types/syntax/IVariableDecl
 import type TDeclarationSyntax from "../../../types/syntax/TDeclarationSyntax";
 import type TExpression from "../../../types/syntax/TExpression";
 import type TStatement from "../../../types/syntax/TStatement";
-import type TTypeSyntax from "../../../types/syntax/TTypeSyntax";
 import OperandTyper from "../../../utils/OperandTyper";
 import StatementNodes from "../../../utils/StatementNodes";
 import TypeResolver from "../../../utils/TypeResolver";
@@ -14,7 +13,7 @@ import TypeText from "./TypeText";
 import type IAnalysisContext from "../types/IAnalysisContext";
 import type IValuePosition from "../types/IValuePosition";
 
-const UNSUPPLIED: IValuePosition = {
+const NOWHERE: IValuePosition = {
   typeText: null,
   isArray: false,
   isDeclaration: false,
@@ -22,7 +21,7 @@ const UNSUPPLIED: IValuePosition = {
   supplied: false,
 };
 
-const NO_TYPE: IValuePosition = { ...UNSUPPLIED, supplied: true };
+const NO_TYPE: IValuePosition = { ...NOWHERE, supplied: true };
 
 type TPostfix = Extract<TExpression, { kind: "postfix" }>;
 type TStructInitializer = Extract<TExpression, { kind: "structInitializer" }>;
@@ -60,7 +59,7 @@ class ValuePositionWalk {
         this.forClauses.add(statement.init);
       }
     }
-    const returnType = ValuePositionWalk.typeText(declaration.returnType);
+    const returnType = TypeText.ofType(declaration.returnType);
     for (const statement of statements) this.statement(statement, returnType);
   }
 
@@ -73,19 +72,19 @@ class ValuePositionWalk {
         this.assignment(statement);
         return;
       case "expression":
-        this.place(statement.expression, UNSUPPLIED);
+        this.place(statement.expression, NOWHERE);
         return;
       case "if":
       case "while":
       case "doWhile":
-        this.place(statement.condition, UNSUPPLIED);
+        this.place(statement.condition, NOWHERE);
         return;
       case "for":
-        if (statement.condition) this.place(statement.condition, UNSUPPLIED);
+        if (statement.condition) this.place(statement.condition, NOWHERE);
         if (statement.update) this.unplacedAssignment(statement.update);
         return;
       case "switch":
-        this.place(statement.subject, UNSUPPLIED);
+        this.place(statement.subject, NOWHERE);
         return;
       case "return":
         if (statement.value) {
@@ -99,10 +98,10 @@ class ValuePositionWalk {
 
   private variable(declaration: IVariableDeclarationSyntax): void {
     for (const dimension of declaration.dimensions) {
-      if (dimension) this.place(dimension, UNSUPPLIED);
+      if (dimension) this.place(dimension, NOWHERE);
     }
     if (!declaration.initializer) return;
-    const typeText = ValuePositionWalk.typeText(declaration.type);
+    const typeText = TypeText.ofType(declaration.type);
     this.place(declaration.initializer, {
       ...NO_TYPE,
       typeText,
@@ -119,7 +118,7 @@ class ValuePositionWalk {
       return;
     }
     const target = OperandTyper.typeOfTarget(site.target, this.context);
-    this.place(site.target, UNSUPPLIED);
+    this.place(site.target, NOWHERE);
     this.place(site.value, {
       ...NO_TYPE,
       typeText: target?.typeName ?? null,
@@ -128,8 +127,8 @@ class ValuePositionWalk {
   }
 
   private unplacedAssignment(site: IAssignmentSyntax): void {
-    this.place(site.target, UNSUPPLIED);
-    this.place(site.value, UNSUPPLIED);
+    this.place(site.target, NOWHERE);
+    this.place(site.value, NOWHERE);
   }
 
   private place(expr: TExpression, at: IValuePosition): void {
@@ -174,7 +173,7 @@ class ValuePositionWalk {
     this.place(chain.primary, at);
     for (const op of chain.ops) {
       if (op.kind === "subscript") {
-        for (const index of op.indexes) this.place(index, UNSUPPLIED);
+        for (const index of op.indexes) this.place(index, NOWHERE);
       } else if (op.kind === "call") {
         op.arguments.forEach((argument, index) =>
           this.place(argument, this.parameter(chain, index)),
@@ -225,11 +224,6 @@ class ValuePositionWalk {
       );
     }
   }
-
-  /** A type as the parse tree's `getText()` spelled it: no whitespace */
-  private static typeText(type: TTypeSyntax): string {
-    return type.written.replaceAll(/\s+/g, "");
-  }
 }
 
 /** Where every value in a file stands (#1991) */
@@ -251,7 +245,7 @@ class ValuePositions {
     positions: ReadonlyMap<TExpression, IValuePosition>,
     expr: TExpression,
   ): IValuePosition {
-    return positions.get(expr) ?? UNSUPPLIED;
+    return positions.get(expr) ?? NOWHERE;
   }
 }
 

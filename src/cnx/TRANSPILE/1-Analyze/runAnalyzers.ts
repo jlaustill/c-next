@@ -383,7 +383,7 @@ function runAnalyzers(
     },
     {
       label: "integer conversions (ADR-024, E0868/E0869)",
-      run: () => new IntegerConversionAnalyzer(context).analyze(tree),
+      run: () => new IntegerConversionAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "scope access (ADR-016, E0435-E0437)",
@@ -415,7 +415,8 @@ function runAnalyzers(
     },
     {
       label: "callback typing (ADR-029, E0879/E0880)",
-      run: () => new CallbackAssignmentAnalyzer(context).analyze(tree),
+      run: () =>
+        new CallbackAssignmentAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "struct initializers (ADR-014, E0357/E0358)",
