@@ -19,8 +19,6 @@
  * held two more.
  */
 
-import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
-import SyntaxLowering from "../../../PARSE/2-Parse/SyntaxLowering";
 import type TExpression from "../../../types/syntax/TExpression";
 import QualifiedCName from "../../../utils/QualifiedCName";
 import ScopeUtils from "../../../utils/ScopeUtils";
@@ -137,17 +135,6 @@ class RegisterMemberReference {
           here,
           isShadowed,
         );
-  }
-
-  /** The register member an assignment target writes, if it names one */
-  static ofTarget(
-    target: Parser.AssignmentTargetContext,
-    context: IAnalysisContext,
-  ): IRegisterMember | null {
-    return RegisterMemberReference.ofChain(
-      SyntaxLowering.assignmentTarget(target),
-      context,
-    );
   }
 
   /** The register member a lowered chain names, if it names one */

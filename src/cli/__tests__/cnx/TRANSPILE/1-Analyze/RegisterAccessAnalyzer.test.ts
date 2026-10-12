@@ -24,8 +24,10 @@ const register = (name: string, members: Record<string, string>): string =>
     .join(" ")} } `;
 
 const errors = (source: string) => {
-  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
-  return new RegisterAccessAnalyzer(context).analyze(tree);
+  const { syntax, context } = testAnalysisContextFor(source, {
+    cppMode: false,
+  });
+  return new RegisterAccessAnalyzer(context).analyze(syntax);
 };
 
 const inMain = (body: string): string => `void main() {\n${body}\n}`;
@@ -206,5 +208,38 @@ describe("RegisterAccessAnalyzer", () => {
   it("says nothing without a symbol view", () => {
     // The view is real; it just declares no register `R`.
     expect(errors(inMain("    u32 v <- R.CMD;"))).toEqual([]);
+  });
+});
+
+// #1991: read off 1.2's syntax, so a `global.`-rooted target and an index
+// spelled as written are asserted directly.
+describe("RegisterAccessAnalyzer -- E0872 on 1.2's syntax", () => {
+  const e0872 = (body: string) =>
+    errors(
+      [
+        "register GPIO @ 0x40000000 {",
+        "    DR_SET: u32 wo @ 0x04,",
+        "}",
+        "scope S {",
+        "    public void f() {",
+        "        u8 i <- 0;",
+        body,
+        "    }",
+        "}",
+      ].join("\n"),
+    )
+      .filter((e) => e.code === "E0872")
+      .map((e) => e.message);
+
+  it("finds the bit after a `global.` root", () => {
+    expect(e0872("        global.GPIO.DR_SET[3] <- false;")).toEqual([
+      "Cannot assign false to write-only register bit global.GPIO.DR_SET[3]",
+    ]);
+  });
+
+  it("names the index as it was written", () => {
+    expect(e0872("        global.GPIO.DR_SET[i + 1] <- false;")).toEqual([
+      "Cannot assign false to write-only register bit global.GPIO.DR_SET[i + 1]",
+    ]);
   });
 });

@@ -390,7 +390,7 @@ function runAnalyzers(
     },
     {
       label: "register access modifiers (ADR-004, E0870-E0872)",
-      run: () => new RegisterAccessAnalyzer(context).analyze(tree),
+      run: () => new RegisterAccessAnalyzer(context).analyze(parsed.program),
     },
     {
       // After controlling expressions: the always-true check assumes E0701
