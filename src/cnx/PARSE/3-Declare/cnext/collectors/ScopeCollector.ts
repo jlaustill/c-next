@@ -7,6 +7,8 @@
  */
 
 import * as Parser from "../../../2-Parse/grammar/CNextParser";
+import type TDeclarationSyntax from "../../../../types/syntax/TDeclarationSyntax";
+import DeclarationSyntax from "../utils/DeclarationSyntax";
 import DeclarationSite from "../../../../utils/DeclarationSite";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import ScopeUtils from "../../../../utils/ScopeUtils";
@@ -47,6 +49,7 @@ class ScopeCollector {
   static collect(
     registry: SymbolRegistry,
     ctx: Parser.ScopeDeclarationContext,
+    syntax: Extract<TDeclarationSyntax, { kind: "scope" }>,
     sourceFile: string,
     knownBitmaps: Set<string>,
     isScopeType?: (qualifiedName: string) => boolean,
@@ -132,7 +135,8 @@ class ScopeCollector {
       }
     };
 
-    for (const member of ctx.scopeMember()) {
+    for (const [index, member] of ctx.scopeMember().entries()) {
+      const memberSyntax = syntax.members[index].declaration;
       const visibility = ScopeUtils.getMemberVisibility(member);
 
       // Handle variable declarations
@@ -179,7 +183,7 @@ class ScopeCollector {
         addMember(enumName);
 
         const enumSymbol = EnumCollector.collect(
-          enumDecl,
+          DeclarationSyntax.of(memberSyntax, "enum"),
           sourceFile,
           scopePath,
           visibility,
@@ -195,7 +199,7 @@ class ScopeCollector {
         addMember(bitmapName);
 
         const bitmapSymbol = BitmapCollector.collect(
-          bitmapDecl,
+          DeclarationSyntax.of(memberSyntax, "bitmap"),
           sourceFile,
           scopePath,
           visibility,

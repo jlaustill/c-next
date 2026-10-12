@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import parse from "./testHelpers";
+import FirstDeclaration from "./FirstDeclaration";
 import BitmapCollector from "../collectors/BitmapCollector";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 
@@ -16,7 +17,7 @@ describe("BitmapCollector", () => {
         }
       `;
       const tree = parse(code);
-      const bitmapCtx = tree.declaration(0)!.bitmapDeclaration()!;
+      const bitmapCtx = FirstDeclaration.bitmap(tree);
       const symbol = BitmapCollector.collect(
         bitmapCtx,
         "test.cnx",
@@ -62,7 +63,7 @@ describe("BitmapCollector", () => {
         }
       `;
       const tree = parse(code);
-      const bitmapCtx = tree.declaration(0)!.bitmapDeclaration()!;
+      const bitmapCtx = FirstDeclaration.bitmap(tree);
       const symbol = BitmapCollector.collect(
         bitmapCtx,
         "control.cnx",
@@ -94,7 +95,7 @@ describe("BitmapCollector", () => {
         }
       `;
       const tree = parse(code);
-      const bitmapCtx = tree.declaration(0)!.bitmapDeclaration()!;
+      const bitmapCtx = FirstDeclaration.bitmap(tree);
       const symbol = BitmapCollector.collect(
         bitmapCtx,
         "config.cnx",
@@ -116,7 +117,7 @@ describe("BitmapCollector", () => {
         }
       `;
       const tree = parse(code);
-      const bitmapCtx = tree.declaration(0)!.bitmapDeclaration()!;
+      const bitmapCtx = FirstDeclaration.bitmap(tree);
       const symbol = BitmapCollector.collect(
         bitmapCtx,
         "rgb.cnx",
@@ -142,7 +143,7 @@ describe("BitmapCollector", () => {
         }
       `;
       const tree = parse(code);
-      const bitmapCtx = tree.declaration(0)!.bitmapDeclaration()!;
+      const bitmapCtx = FirstDeclaration.bitmap(tree);
       const symbol = BitmapCollector.collect(
         bitmapCtx,
         "motor.cnx",
@@ -166,7 +167,7 @@ describe("BitmapCollector", () => {
       "records $name's fields as written, without judging their total",
       ({ name, fields, widths }) => {
         const tree = parse(`bitmap8 ${name} { ${fields} }`);
-        const bitmapCtx = tree.declaration(0)!.bitmapDeclaration()!;
+        const bitmapCtx = FirstDeclaration.bitmap(tree);
 
         const symbol = BitmapCollector.collect(
           bitmapCtx,
@@ -190,7 +191,7 @@ describe("BitmapCollector", () => {
         }
       `;
       const tree = parse(code);
-      const bitmapCtx = tree.declaration(0)!.bitmapDeclaration()!;
+      const bitmapCtx = FirstDeclaration.bitmap(tree);
       const symbol = BitmapCollector.collect(
         bitmapCtx,
         "test.cnx",
@@ -214,7 +215,7 @@ describe("BitmapCollector", () => {
         }
       `);
       const symbol = BitmapCollector.collect(
-        tree.declaration(0)!.bitmapDeclaration()!,
+        FirstDeclaration.bitmap(tree),
         "test.cnx",
         "",
         "private",
@@ -227,7 +228,7 @@ describe("BitmapCollector", () => {
   describe("fields carry their own position and identity (#1318)", () => {
     const collect = (code: string, scopePath = "", visibility = "public") =>
       BitmapCollector.collect(
-        parse(code).declaration(0)!.bitmapDeclaration()!,
+        FirstDeclaration.bitmap(parse(code)),
         "test.cnx",
         scopePath,
         visibility as "public" | "private",

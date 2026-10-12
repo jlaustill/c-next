@@ -5,14 +5,12 @@
  * Produces TType-based IEnumSymbol with proper IScopeSymbol references.
  */
 
-import * as Parser from "../../../2-Parse/grammar/CNextParser";
+import type TDeclarationSyntax from "../../../../types/syntax/TDeclarationSyntax";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import IEnumSymbol from "../../../../types/symbols/IEnumSymbol";
 import ConstExprLowering from "../../../../utils/ConstExprLowering";
-import SyntaxLowering from "../../../2-Parse/SyntaxLowering";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 import TVisibility from "../../../../types/TVisibility";
-import ParserUtils from "../../../../utils/ParserUtils";
 import type IEnumMemberSymbol from "../../../../types/symbols/IEnumMemberSymbol";
 import MemberSymbolBase from "../utils/MemberSymbolBase";
 
@@ -20,7 +18,7 @@ class EnumCollector {
   /**
    * Collect an enum declaration and return an IEnumSymbol.
    *
-   * @param ctx The enum declaration context
+   * @param syntax The enum declaration as 1.2 lowered it (#1991)
    * @param sourceFile Source file path
    * @param scopePath The path of the scope this enum belongs to (dotted path, "" at file scope)
    * @param visibility ADR-016 visibility as declared (#1300)
@@ -32,13 +30,13 @@ class EnumCollector {
    *          2.1 Analyze's to report.
    */
   static collect(
-    ctx: Parser.EnumDeclarationContext,
+    syntax: Extract<TDeclarationSyntax, { kind: "enum" }>,
     sourceFile: string,
     scopePath: string,
     visibility: TVisibility,
   ): IEnumSymbol {
-    const name = ctx.IDENTIFIER().getText();
-    const span = ParserUtils.getSpan(ctx);
+    const name = syntax.name;
+    const span = syntax.span;
 
     const members = new Map<string, IEnumMemberSymbol>();
 
@@ -50,23 +48,18 @@ class EnumCollector {
     const identity = ScopeUtils.identityOf({ name, scopePath });
     const enumScopedName = identity.cnxScopedName;
 
-    for (const member of ctx.enumMember()) {
-      const memberName = member.IDENTIFIER().getText();
-
-      const valueExpression = member.expression();
+    for (const member of syntax.members) {
+      const memberName = member.name;
       members.set(memberName, {
         ...MemberSymbolBase.of({
           kind: "enum_member" as const,
           name: memberName,
           parentScopedName: enumScopedName,
-          memberCtx: member,
-          parentSpan: span,
+          memberSpan: member.span,
           sourceFile,
           visibility,
         }),
-        valueExpr: valueExpression
-          ? ConstExprLowering.lower(SyntaxLowering.expression(valueExpression))
-          : null,
+        valueExpr: member.value ? ConstExprLowering.lower(member.value) : null,
         value: null,
       });
     }

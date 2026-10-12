@@ -6,6 +6,8 @@
  */
 
 import type IProgramSyntax from "../../../types/syntax/IProgramSyntax";
+import type TDeclarationSyntax from "../../../types/syntax/TDeclarationSyntax";
+import DeclarationSyntax from "./utils/DeclarationSyntax";
 import LexicalScopeCollector from "./collectors/LexicalScopeCollector";
 import ModificationCollector from "./collectors/ModificationCollector";
 import CallbackUseCollector from "./collectors/CallbackUseCollector";
@@ -101,6 +103,7 @@ class CNextResolver {
     CNextResolver.collectBitmapsPass1(
       registry,
       tree,
+      program,
       sourceFile,
       symbols,
       knownBitmaps,
@@ -111,6 +114,7 @@ class CNextResolver {
     CNextResolver.collectAllPass2(
       registry,
       tree,
+      program,
       sourceFile,
       symbols,
       knownBitmaps,
@@ -239,6 +243,7 @@ class CNextResolver {
   private static collectBitmapsPass1(
     registry: SymbolRegistry,
     tree: Parser.ProgramContext,
+    program: IProgramSyntax,
     sourceFile: string,
     symbols: TSymbol[],
     knownBitmaps: Set<string>,
@@ -248,12 +253,12 @@ class CNextResolver {
     // only needed where a mutable member list is.
     const globalScopePath = "";
 
-    for (const decl of tree.declaration()) {
+    for (const [index, decl] of tree.declaration().entries()) {
+      const syntax = program.declarations[index].declaration;
       // Top-level bitmaps
       if (decl.bitmapDeclaration()) {
-        const bitmapCtx = decl.bitmapDeclaration()!;
         const symbol = BitmapCollector.collect(
-          bitmapCtx,
+          DeclarationSyntax.of(syntax, "bitmap"),
           sourceFile,
           globalScopePath,
           ScopeUtils.getTopLevelVisibility(),
@@ -268,6 +273,7 @@ class CNextResolver {
         CNextResolver.collectScopedBitmapsAndStructs(
           registry,
           decl.scopeDeclaration()!,
+          DeclarationSyntax.of(syntax, "scope"),
           sourceFile,
           symbols,
           knownBitmaps,
@@ -284,6 +290,7 @@ class CNextResolver {
   private static collectScopedBitmapsAndStructs(
     registry: SymbolRegistry,
     scopeDecl: Parser.ScopeDeclarationContext,
+    scopeSyntax: Extract<TDeclarationSyntax, { kind: "scope" }>,
     sourceFile: string,
     symbols: TSymbol[],
     knownBitmaps: Set<string>,
@@ -292,16 +299,18 @@ class CNextResolver {
     const scopeName = scopeDecl.IDENTIFIER().getText();
     const scopePath = ScopeUtils.pathOf(registry.getOrCreateScope(scopeName));
 
-    for (const member of scopeDecl.scopeMember()) {
+    for (const [index, member] of scopeDecl.scopeMember().entries()) {
       // #1300: these are the scoped bitmap and struct symbols that SURVIVE --
       // `collectScopeDeclaration` drops ScopeCollector's copies of both kinds.
       // Ask the same helper that pass 2 asks, so one fact has one answer.
       const visibility = ScopeUtils.getMemberVisibility(member);
 
       if (member.bitmapDeclaration()) {
-        const bitmapCtx = member.bitmapDeclaration()!;
         const symbol = BitmapCollector.collect(
-          bitmapCtx,
+          DeclarationSyntax.of(
+            scopeSyntax.members[index].declaration,
+            "bitmap",
+          ),
           sourceFile,
           scopePath,
           visibility,
@@ -336,12 +345,13 @@ class CNextResolver {
   private static collectAllPass2(
     registry: SymbolRegistry,
     tree: Parser.ProgramContext,
+    program: IProgramSyntax,
     sourceFile: string,
     symbols: TSymbol[],
     knownBitmaps: Set<string>,
     isScopeType: (qualifiedName: string) => boolean,
   ): void {
-    for (const decl of tree.declaration()) {
+    for (const [index, decl] of tree.declaration().entries()) {
       // Skip bitmaps (already collected in pass 1)
       if (decl.bitmapDeclaration()) {
         continue;
@@ -350,6 +360,7 @@ class CNextResolver {
       CNextResolver._collectDeclaration(
         registry,
         decl,
+        program.declarations[index].declaration,
         sourceFile,
         symbols,
         knownBitmaps,
@@ -367,6 +378,7 @@ class CNextResolver {
   private static _collectDeclaration(
     registry: SymbolRegistry,
     decl: Parser.DeclarationContext,
+    syntax: TDeclarationSyntax,
     sourceFile: string,
     symbols: TSymbol[],
     knownBitmaps: Set<string>,
@@ -380,6 +392,7 @@ class CNextResolver {
       CNextResolver._collectScopeDeclaration(
         registry,
         decl.scopeDeclaration()!,
+        DeclarationSyntax.of(syntax, "scope"),
         sourceFile,
         symbols,
         knownBitmaps,
@@ -403,7 +416,7 @@ class CNextResolver {
     // Top-level enums
     if (decl.enumDeclaration()) {
       const symbol = EnumCollector.collect(
-        decl.enumDeclaration()!,
+        DeclarationSyntax.of(syntax, "enum"),
         sourceFile,
         globalScopePath,
         ScopeUtils.getTopLevelVisibility(),
@@ -461,6 +474,7 @@ class CNextResolver {
   private static _collectScopeDeclaration(
     registry: SymbolRegistry,
     scopeCtx: Parser.ScopeDeclarationContext,
+    scopeSyntax: Extract<TDeclarationSyntax, { kind: "scope" }>,
     sourceFile: string,
     symbols: TSymbol[],
     knownBitmaps: Set<string>,
@@ -469,6 +483,7 @@ class CNextResolver {
     const result = ScopeCollector.collect(
       registry,
       scopeCtx,
+      scopeSyntax,
       sourceFile,
       knownBitmaps,
       isScopeType,

@@ -1,6 +1,7 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import DeclarationSite from "../../../../utils/DeclarationSite";
 import parse from "./testHelpers";
+import FirstDeclaration from "./FirstDeclaration";
 import ScopeCollector from "../collectors/ScopeCollector";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import SymbolGuards from "../../../../types/symbols/SymbolGuards";
@@ -32,7 +33,13 @@ describe("ScopeCollector", () => {
     ): ReturnType<typeof ScopeCollector.collect> => {
       const tree = parse(code);
       const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
-      return ScopeCollector.collect(registry, scopeCtx, sourceFile, new Set());
+      return ScopeCollector.collect(
+        registry,
+        scopeCtx,
+        FirstDeclaration.scope(tree),
+        sourceFile,
+        new Set(),
+      );
     };
 
     it("records every block of a scope spanning four files", () => {
@@ -82,6 +89,7 @@ describe("ScopeCollector", () => {
       const result = ScopeCollector.collect(
         registry,
         scopeCtx,
+        FirstDeclaration.scope(tree),
         "test.cnx",
         new Set(),
       );
@@ -111,6 +119,7 @@ describe("ScopeCollector", () => {
       const result = ScopeCollector.collect(
         registry,
         scopeCtx,
+        FirstDeclaration.scope(tree),
         "test.cnx",
         new Set(),
       );
@@ -153,6 +162,7 @@ describe("ScopeCollector", () => {
       const result = ScopeCollector.collect(
         registry,
         scopeCtx,
+        FirstDeclaration.scope(tree),
         "test.cnx",
         new Set(),
       );
@@ -193,6 +203,7 @@ describe("ScopeCollector", () => {
       const result = ScopeCollector.collect(
         registry,
         scopeCtx,
+        FirstDeclaration.scope(tree),
         "test.cnx",
         new Set(),
       );
@@ -225,6 +236,7 @@ describe("ScopeCollector", () => {
       const result = ScopeCollector.collect(
         registry,
         scopeCtx,
+        FirstDeclaration.scope(tree),
         "test.cnx",
         new Set(),
       );
@@ -259,6 +271,7 @@ describe("ScopeCollector", () => {
       const result = ScopeCollector.collect(
         registry,
         scopeCtx,
+        FirstDeclaration.scope(tree),
         "test.cnx",
         new Set(),
       );
@@ -293,6 +306,7 @@ describe("ScopeCollector", () => {
       const result = ScopeCollector.collect(
         registry,
         scopeCtx,
+        FirstDeclaration.scope(tree),
         "test.cnx",
         new Set(),
       );
@@ -330,6 +344,7 @@ describe("ScopeCollector", () => {
       const result = ScopeCollector.collect(
         registry,
         scopeCtx,
+        FirstDeclaration.scope(tree),
         "test.cnx",
         new Set(),
       );
@@ -373,6 +388,7 @@ describe("ScopeCollector", () => {
       const result = ScopeCollector.collect(
         registry,
         scopeCtx,
+        FirstDeclaration.scope(tree),
         "test.cnx",
         knownBitmaps,
         isScopeType,
@@ -406,6 +422,7 @@ describe("ScopeCollector", () => {
       const result = ScopeCollector.collect(
         registry,
         scopeCtx,
+        FirstDeclaration.scope(tree),
         "test.cnx",
         knownBitmaps,
         isScopeType,
@@ -431,6 +448,7 @@ describe("ScopeCollector", () => {
       const result = ScopeCollector.collect(
         registry,
         scopeCtx,
+        FirstDeclaration.scope(tree),
         "test.cnx",
         new Set(),
       );
