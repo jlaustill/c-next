@@ -14,11 +14,13 @@ import CriticalSectionAnalyzer from "../CriticalSectionAnalyzer";
  * below. That is the failure mode of enumerating: the walk is correct for every
  * case someone listed, and silently absent for the one nobody did.
  *
- * A tree walk cannot have that hole. It does not enumerate; it visits.
+ * The walk that replaced it descends through `StatementChildren`, which names
+ * every statement kind and stops compiling when one is added.
  */
 const errors = (source: string) => {
-  const { tree } = CNextSourceParser.parse(source);
-  return new CriticalSectionAnalyzer().analyze(tree);
+  return new CriticalSectionAnalyzer().analyze(
+    CNextSourceParser.parse(source).program,
+  );
 };
 
 const inCritical = (body: string): string =>

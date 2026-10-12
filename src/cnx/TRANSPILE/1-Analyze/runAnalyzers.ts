@@ -348,7 +348,7 @@ function runAnalyzers(
     },
     {
       label: "`return` inside a critical section (ADR-050, E0853)",
-      run: () => new CriticalSectionAnalyzer().analyze(tree),
+      run: () => new CriticalSectionAnalyzer().analyze(parsed.program),
     },
     {
       label: "`this` outside a scope (ADR-016)",
