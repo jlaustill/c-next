@@ -114,27 +114,6 @@ describe("TranspileState", () => {
     });
   });
 
-  describe("resolveIdentifier()", () => {
-    it("returns identifier unchanged when not in a scope", () => {
-      enterScope(state, null);
-      expect(state.resolveIdentifier("varName")).toBe("varName");
-    });
-
-    it("returns identifier unchanged when not a scope member", () => {
-      enterScope(state, "TestScope");
-      state.setScopeMembers("TestScope", new Set(["member1"]));
-
-      expect(state.resolveIdentifier("varName")).toBe("varName");
-    });
-
-    it("returns scoped name for scope member", () => {
-      enterScope(state, "TestScope");
-      state.setScopeMembers("TestScope", new Set(["member1"]));
-
-      expect(state.resolveIdentifier("member1")).toBe("TestScope__member1");
-    });
-  });
-
   describe("Type Registration Helpers", () => {
     it("setCurrentScopeByPath resolves a DOTTED PATH to the registered scope", () => {
       // The contract is a path, not a leaf. This proves the API is chain-capable,
@@ -677,31 +656,4 @@ describe("TranspileState", () => {
    * producer; before this, re-inlining `ScopeUtils.leafOf` at any reader site
    * left the whole suite green.
    */
-  describe("scope identity comes from the registry, not the caller's string (#1295, #1304)", () => {
-    beforeEach(() => {
-      state = new TranspileState();
-    });
-
-    it("resolves a member through the whole path when the scope is registered", () => {
-      registerScope("Outer.Inner");
-      state.setScopeMembers("Outer.Inner", new Set(["token"]));
-
-      state.setCurrentScopeByPath("Outer.Inner");
-
-      expect(state.currentScopePath).toBe("Outer.Inner");
-      expect(state.resolveIdentifier("token")).toBe("Outer__Inner__token");
-    });
-
-    /**
-     * NEGATIVE CONTROL for the case above. Without it the assertions would pass
-     * just as well if every name were qualified.
-     */
-    it("leaves a name that is not a member unqualified", () => {
-      registerScope("Outer.Inner");
-      state.setScopeMembers("Outer.Inner", new Set(["token"]));
-      state.setCurrentScopeByPath("Outer.Inner");
-
-      expect(state.resolveIdentifier("hidden")).toBe("hidden");
-    });
-  });
 });

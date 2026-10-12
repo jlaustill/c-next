@@ -19,6 +19,7 @@ import type TConstResult from "../../types/TConstResult";
 import type ILexicalFrame from "../../types/ILexicalFrame";
 import type ILocalDeclaration from "../../types/ILocalDeclaration";
 import type ISourceSpan from "../../types/ISourceSpan";
+import type TDefinedAt from "../../utils/types/TDefinedAt";
 import QualifiedCName from "../../utils/QualifiedCName";
 
 /** A use's position */
@@ -99,6 +100,7 @@ class LexicalFrames {
     root: ILexicalFrame,
     name: string,
     at: TPosition,
+    isDefinedAt: TDefinedAt = DefinitionPoint.isDefinedAt,
   ): ILocalDeclaration | null {
     const path = LexicalFrames.pathTo(root, at);
     for (let i = path.length - 1; i >= 0; i--) {
@@ -106,10 +108,7 @@ class LexicalFrames {
       const declarations = path[i].declarations;
       let found: ILocalDeclaration | undefined;
       for (const declaration of declarations) {
-        if (
-          declaration.name === name &&
-          DefinitionPoint.isDefinedAt(declaration.extent, at)
-        ) {
+        if (declaration.name === name && isDefinedAt(declaration.extent, at)) {
           found = declaration;
         }
       }
@@ -120,25 +119,28 @@ class LexicalFrames {
     return null;
   }
 
+  /** The frames containing `at`, outermost first */
   /**
-   * #2019: whether a frame containing `at` declares `name` in a declaration
-   * that has not closed by `at` -- the declarations `declarationAt` skips.
+   * #1643 review: the declaration whose declarator IDENTIFIER is at `at` --
+   * found by identity, for a site holding the declaration itself
    */
-  static isUnclosedAt(
+  static declarationDeclaredAt(
     root: ILexicalFrame,
-    name: string,
     at: TPosition,
-  ): boolean {
-    return LexicalFrames.pathTo(root, at).some((frame) =>
-      frame.declarations.some(
-        (declaration) =>
-          declaration.name === name &&
-          !DefinitionPoint.isDefinedAt(declaration.extent, at),
-      ),
-    );
+  ): ILocalDeclaration | null {
+    for (const frame of LexicalFrames.pathTo(root, at)) {
+      for (const declaration of frame.declarations) {
+        if (
+          declaration.span.line === at.line &&
+          declaration.span.column === at.column
+        ) {
+          return declaration;
+        }
+      }
+    }
+    return null;
   }
 
-  /** The frames containing `at`, outermost first */
   private static pathTo(root: ILexicalFrame, at: TPosition): ILexicalFrame[] {
     const path = [root];
     let current = root;
@@ -262,9 +264,7 @@ class LexicalFrames {
         declaration,
         functionCName,
         isFileScopeName,
-        declaration.initializerNames.has(declaration.name)
-          ? (shadowed?.emittedName ?? null)
-          : null,
+        declaration.spellsOwnName ? (shadowed?.emittedName ?? null) : null,
       ),
     });
   }

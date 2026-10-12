@@ -26,6 +26,7 @@ import invariant from "../utils/invariant";
 import emittedLocalName from "../utils/emittedLocalName";
 import AdrProvenance from "../instrumentation/AdrProvenance";
 import type ILocalDeclaration from "../types/ILocalDeclaration";
+import type IVariableDeclarationSyntax from "../types/syntax/IVariableDeclarationSyntax";
 import type IBoundParameter from "./types/IBoundParameter";
 import ToolchainRequirements from "../instrumentation/ToolchainRequirements";
 import type TIncludeHeader from "../types/TIncludeHeader";
@@ -292,6 +293,42 @@ class TranspileState {
       this.typingContext().symbols,
       this.symbolTable,
       this.targetDescription,
+    );
+  }
+
+  /**
+   * #1643 review: a declaration's own facts -- the declaration itself, found
+   * by its declarator's identity, so it never reads one it shadows
+   */
+  ownTypeInfo(
+    decl: Pick<IVariableDeclarationSyntax, "name" | "nameSpan">,
+  ): TTypeInfo | undefined {
+    return DeclaredTypeInfo.of(
+      this.ownBinding(decl),
+      this.typingContext().symbols,
+      this.symbolTable,
+      this.targetDescription,
+    );
+  }
+
+  /** The C identifier a declaration is emitted under (ADR-057) */
+  ownEmittedName(
+    decl: Pick<IVariableDeclarationSyntax, "name" | "nameSpan">,
+  ): string {
+    const binding = this.ownBinding(decl);
+    return binding?.kind === "local"
+      ? this.localCName(binding.declaration, decl.nameSpan)
+      : decl.name;
+  }
+
+  private ownBinding(
+    decl: Pick<IVariableDeclarationSyntax, "name" | "nameSpan">,
+  ): TValueBinding | null {
+    const typing = this.typingContext();
+    return typing.program.declarationOf(
+      typing.sourceFile,
+      decl.name,
+      decl.nameSpan,
     );
   }
 
@@ -1200,25 +1237,6 @@ class TranspileState {
    */
   getAllScopeMembers(): ReadonlyMap<string, ReadonlySet<string>> {
     return this.scopeMembers;
-  }
-
-  /**
-   * Resolve an identifier to its fully-scoped name.
-   * Inside a scope, checks if the identifier is a scope member first.
-   */
-  resolveIdentifier(identifier: string): string {
-    if (this.currentScopePath !== "") {
-      const members = this.scopeMembers.get(this.currentScopePath);
-      if (members?.has(identifier)) {
-        // Built from the whole PATH, so a member of a nested scope gets every
-        // component rather than just the innermost one.
-        return ScopeUtils.getTranspiledCName({
-          name: identifier,
-          scopePath: this.currentScopePath,
-        });
-      }
-    }
-    return identifier;
   }
 
   // ===========================================================================

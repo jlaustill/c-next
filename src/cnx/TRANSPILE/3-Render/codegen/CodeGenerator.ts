@@ -250,19 +250,6 @@ export default class CodeGenerator implements IOrchestrator {
     return FormatUtils.indent(this.state.indentLevel);
   }
 
-  /**
-   * Resolve an identifier to its fully-scoped name.
-   * Part of IOrchestrator interface.
-   * ADR-016: Inside a scope, checks if the identifier is a scope member first.
-   * Otherwise returns the identifier unchanged (global scope).
-   */
-  resolveIdentifier(identifier: string): string {
-    // Delegates to CodeGenState, which owns scope membership. This method used to
-    // be a byte-identical copy of this.state.resolveIdentifier, so the two
-    // could drift apart silently.
-    return this.state.resolveIdentifier(identifier);
-  }
-
   // === Expression Generation ===
 
   // === Type Utilities ===

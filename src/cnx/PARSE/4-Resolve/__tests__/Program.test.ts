@@ -134,6 +134,34 @@ describe("Program", () => {
     });
   });
 
+  // #1643 review: codegen reads a declaration's own facts by its identity,
+  // never by binding a position rebuilt from its syntax.
+  describe("the declaration a declarator names", () => {
+    const build = (source: string) =>
+      Program.build([declare(source, "a.cnx")], { cppMode: false });
+
+    it("is the shadowing local itself, not the one its initializer reads", () => {
+      const program = build("void f() { u32 n <- 1; { u32 n <- n; } }");
+      expect(
+        program.declarationOf("a.cnx", "n", { line: 1, column: 29 }),
+      ).toMatchObject({ kind: "local", declaration: { span: { column: 29 } } });
+      // negative control: the outer declarator names the outer local
+      expect(
+        program.declarationOf("a.cnx", "n", { line: 1, column: 15 }),
+      ).toMatchObject({ kind: "local", declaration: { span: { column: 15 } } });
+    });
+
+    it("is a global's own variable, and nothing for a name it does not declare", () => {
+      const program = build("u32 g <- 1;");
+      const declarator = { line: 1, column: 4 };
+      expect(program.declarationOf("a.cnx", "g", declarator)).toMatchObject({
+        kind: "variable",
+        symbol: { name: "g" },
+      });
+      expect(program.declarationOf("a.cnx", "zz", declarator)).toBeNull();
+    });
+  });
+
   // #2019: the names a header-reaching file may not leave to the header --
   // those it declares itself, above where the declaration closes (ADR-030).
   describe("a declaration of this file that has not closed", () => {
@@ -1114,6 +1142,7 @@ scope Gauge {
         "constantOf",
         "constantValueOf",
         "cppMode",
+        "declarationOf",
         "enumMemberValues",
         "externalStructFields",
         "functionParamLists",

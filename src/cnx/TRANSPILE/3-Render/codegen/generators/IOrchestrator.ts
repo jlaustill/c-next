@@ -46,9 +46,6 @@ interface IOrchestrator {
   /** Get the current indentation string */
   getIndent(): string;
 
-  /** Resolve an identifier to its fully-scoped name */
-  resolveIdentifier(name: string): string;
-
   // === Expression Generation ===
   // These methods allow extracted generators to call back into CodeGenerator
   // for parts not yet extracted, enabling incremental "strangler fig" migration.

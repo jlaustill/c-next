@@ -44,7 +44,6 @@ import EmissionPlan from "./2-Plan/EmissionPlan";
 import DeclarationPlan from "./2-Plan/DeclarationPlan";
 import CastRequirement from "./2-Plan/CastRequirement";
 import OperandTyper from "../utils/OperandTyper";
-import DefinitionPoint from "../utils/DefinitionPoint";
 import CppNamespaceUtils from "../utils/CppNamespaceUtils";
 import headerCType from "../utils/headerCType";
 import PlanTyping from "./2-Plan/PlanTyping";
@@ -164,7 +163,6 @@ import type TExpressionOf from "../types/syntax/TExpressionOf";
 import type TPostfixOpSyntax from "../types/syntax/TPostfixOpSyntax";
 import type TTypeSyntax from "../types/syntax/TTypeSyntax";
 import type ISourcePosition from "../utils/types/ISourcePosition";
-import type ISourceSpan from "../types/ISourceSpan";
 import IMemberSeparatorDeps from "./3-Render/codegen/types/IMemberSeparatorDeps";
 import IParameterDereferenceDeps from "./3-Render/codegen/types/IParameterDereferenceDeps";
 import ISeparatorContext from "./3-Render/codegen/types/ISeparatorContext";
@@ -792,17 +790,6 @@ class CodeGenWalker {
 
   private static positionOf(expr: TExpression): ISourcePosition {
     return { line: expr.span.line, column: expr.span.column };
-  }
-
-  /**
-   * Where a declaration's name binds to the declaration itself: where it
-   * closes, as a declaration is defined from there on (#1643, ADR-030). Any
-   * earlier, its name means the one it shadows, or nothing.
-   */
-  private static declaredAt(decl: {
-    readonly span: ISourceSpan;
-  }): ISourcePosition {
-    return DefinitionPoint.of(decl.span);
   }
 
   /**
@@ -3646,10 +3633,7 @@ class CodeGenWalker {
     // declaration is assembled -- a second call would be a second place
     // deciding the same thing. Registries keep the source name; only the
     // generated text moves.
-    const emittedName = this.host.state.emittedLocalNameAt(
-      name,
-      CodeGenWalker.declaredAt(decl),
-    );
+    const emittedName = this.host.state.ownEmittedName(decl);
     const stringPlan = this.planStringDecl(decl);
     if (stringPlan) {
       return {
@@ -3702,10 +3686,7 @@ class CodeGenWalker {
     return {
       kind: "constructor",
       type,
-      emittedName: this.host.state.emittedLocalNameAt(
-        decl.name,
-        CodeGenWalker.declaredAt(decl),
-      ),
+      emittedName: this.host.state.ownEmittedName(decl),
       args,
     };
   }
@@ -3807,17 +3788,13 @@ class CodeGenWalker {
 
   /**
    * #1664 box 3: what this declaration says, as 1.3 recorded it and 1.4
-   * settled it -- the facts the `.h` is written from. Asked at `declaredAt`,
-   * so it reads this declaration, never one it shadows.
+   * settled it -- the facts the `.h` is written from. Found by identity, so
+   * it reads this declaration, never one it shadows.
    */
   private declaredHere(
     decl: IVariableDeclarationSyntax,
   ): TTypeInfo | undefined {
-    return this.host.state.declarationTypeInfo(
-      null,
-      decl.name,
-      CodeGenWalker.declaredAt(decl),
-    );
+    return this.host.state.ownTypeInfo(decl);
   }
 
   /**
@@ -3995,11 +3972,7 @@ class CodeGenWalker {
    */
   private _inferVariableType(decl: IVariableDeclarationSyntax): string {
     const type = this.renderDeclaredType(decl.type);
-    const info = this.host.state.declarationTypeInfo(
-      null,
-      decl.name,
-      CodeGenWalker.declaredAt(decl),
-    );
+    const info = this.host.state.ownTypeInfo(decl);
     return DeclaredPointer.spell(type, info?.isPointer ?? false);
   }
 
@@ -4407,10 +4380,7 @@ class CodeGenWalker {
       atomic: modifiers.atomic,
       volatile: modifiers.volatile,
       typeName,
-      emittedName: this.host.state.emittedLocalNameAt(
-        decl.name,
-        CodeGenWalker.declaredAt(decl),
-      ),
+      emittedName: this.host.state.ownEmittedName(decl),
       renderArrayDimensions:
         decl.dimensions.length > 0
           ? () => this.renderLoweredDimensions(decl.dimensions)

@@ -1,0 +1,36 @@
+// test-execution
+// test-adr: 030
+// test-adr: 057
+// #1643 review: in a method above a member's declaration, the bare name means
+// the global of that name -- the member is not defined yet (ADR-030) -- and
+// the C writes and reads the global too. Returns a distinct code if the C
+// touches the member instead.
+
+u32 y <- 5;
+
+scope S {
+    public void set() {
+        y <- 300;
+    }
+
+    public u32 get() {
+        return y;
+    }
+
+    public u8 y <- 1;
+}
+
+u32 main() {
+    S.set();
+    if (y != 300) {
+        return 1;
+    }
+    u32 got <- S.get();
+    if (got != 300) {
+        return 2;
+    }
+    if (S.y != 1) {
+        return 3;
+    }
+    return 0;
+}

@@ -1,8 +1,8 @@
 /**
  * Unit tests for CodeGenWalker - Coverage for uncovered lines
  *
- * This file targets paths SonarCloud reported as uncovered: resolveIdentifier
- * with scope members, C++ member conversion, member-access argument handling,
+ * This file targets paths SonarCloud reported as uncovered: C++ member
+ * conversion, member-access argument handling,
  * scope-generation fallback, and function/array generation.
  *
  * #1445: the line numbers this header used to carry are gone with the
@@ -27,7 +27,6 @@ import TSymbolInfoAdapter from "../../../../cnx/PARSE/3-Declare/cnext/adapters/T
 import CallbackTypedefFormatter from "../../../../cnx/TRANSPILE/3-Render/codegen/helpers/CallbackTypedefFormatter";
 import ESourceLanguage from "../../../../cnx/utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../../cnx/types/__testUtils__/testSourceSpan";
-import enterScope from "../../../../cnx/TRANSPILE/__tests__/enterScope";
 
 /**
  * Helper to parse C-Next source and return tree + generator ready for testing.
@@ -240,9 +239,6 @@ describe("CodeGenWalker Coverage Tests", () => {
     });
   });
 
-  // ==========================================================================
-  // resolveIdentifier with scope members
-  // ==========================================================================
   describe("omitted sizes render the declaration's count (#1664 box 3)", () => {
     it("states a scope member's and a string literal's size, as the .h does", () => {
       const { code } = setupGenerator(
@@ -258,53 +254,6 @@ describe("CodeGenWalker Coverage Tests", () => {
       expect(code).toContain('uint8_t msg[3] = "Hi";');
       expect(code).toContain("uint8_t Table__row[4] = {1U, 2U, 3U, 4U};");
       expect(code).toContain('uint8_t Table__text[4] = "abc";');
-    });
-  });
-
-  describe("resolveIdentifier() with scope members", () => {
-    it("should resolve identifier to scope-prefixed name when inside scope", () => {
-      // Generate code with a scope to populate scopeMembers
-      const source = `
-        scope Motor {
-          public u32 speed;
-          public void setSpeed() {
-            speed <- 100;
-          }
-        }
-      `;
-      const { host } = setupGenerator(source, { cppMode: false });
-
-      // Manually set up scope context to test the resolution path
-      enterScope(host.state, "Motor");
-      host.state.setScopeMembers("Motor", new Set(["speed", "setSpeed"]));
-
-      // Now resolve should return prefixed name (line 633)
-      const resolved = host.resolveIdentifier("speed");
-      expect(resolved).toBe("Motor__speed");
-    });
-
-    it("should return unchanged identifier when not a scope member", () => {
-      const { host } = setupGenerator("u32 globalVar; void main() {}", {
-        cppMode: false,
-      });
-
-      enterScope(host.state, "Motor");
-      host.state.setScopeMembers("Motor", new Set(["speed"]));
-
-      // globalVar is not in Motor scope members
-      const resolved = host.resolveIdentifier("globalVar");
-      expect(resolved).toBe("globalVar");
-    });
-
-    it("should return unchanged identifier when not in any scope", () => {
-      const { host } = setupGenerator("u32 globalVar; void main() {}", {
-        cppMode: false,
-      });
-
-      enterScope(host.state, null);
-
-      const resolved = host.resolveIdentifier("globalVar");
-      expect(resolved).toBe("globalVar");
     });
   });
 

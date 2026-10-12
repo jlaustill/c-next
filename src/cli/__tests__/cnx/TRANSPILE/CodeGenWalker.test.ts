@@ -543,37 +543,6 @@ describe("CodeGenWalker", () => {
       });
     });
 
-    describe("resolveIdentifier()", () => {
-      it("should resolve simple identifier", () => {
-        const { host } = createMinimalGenerator(
-          `
-          u32 globalVar;
-          void foo() { }
-        `,
-          false,
-        );
-
-        const resolved = host.resolveIdentifier("globalVar");
-        expect(resolved).toBe("globalVar");
-      });
-
-      it("should resolve scope-prefixed identifier", () => {
-        const source = `
-          scope Motor {
-            u32 speed;
-            public void setSpeed() { }
-          }
-        `;
-        const { host } = createMinimalGenerator(source, false);
-
-        // When inside a scope, identifiers should be resolved with prefix
-        host.setCurrentScope("Motor");
-
-        // Verify scope was set correctly
-        expect(host.getState().currentScopePath).toBe("Motor");
-      });
-    });
-
     describe("isKnownStruct()", () => {
       it("should return true for known struct", () => {
         const { host } = createMinimalGenerator(

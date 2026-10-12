@@ -7,13 +7,6 @@ import type ISourcePosition from "./types/ISourcePosition";
  * a global or a scope member. The one place that point is decided.
  */
 class DefinitionPoint {
-  /** Where a declaration spanning `declaration` becomes defined */
-  static of(
-    declaration: Pick<ISourceSpan, "endLine" | "endColumn">,
-  ): ISourcePosition {
-    return { line: declaration.endLine, column: declaration.endColumn };
-  }
-
   /** Whether a declaration spanning `declaration` is defined at `at` */
   static isDefinedAt(
     declaration: Pick<ISourceSpan, "endLine" | "endColumn">,

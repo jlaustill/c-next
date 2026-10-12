@@ -135,7 +135,7 @@ class FrameListener extends CNextListener {
         overflowBehavior: OverflowBehaviorUtils.fromModifier(null),
         initialValue: null,
         initialValueExpr: null,
-        initializerNames: new Set(),
+        spellsOwnName: false,
         initializerCallee: null,
         constValue: null,
         emittedName: null,
@@ -172,15 +172,30 @@ class FrameListener extends CNextListener {
     this.record(ctx, "for");
   };
 
-  /** The bare names an expression spells -- not `this.x`, `global.x` or `.x` */
-  private static bareNamesIn(tree: ParseTree | null): ReadonlySet<string> {
-    const names = new Set<string>();
+  /**
+   * #1643 (ADR-030): whether a declaration spells its own name, written bare,
+   * past its declarator -- in an initializer or constructor arguments. The
+   * declaration is not defined until it closes, so that spelling binds the
+   * declaration it shadows; `this.x`, `global.x` and `.x` follow a `.`.
+   */
+  private static spellsOwnName(
+    ctx: Parser.VariableDeclarationContext | Parser.ForVarDeclContext,
+  ): boolean {
+    const declarator = ctx.IDENTIFIER();
+    const name = declarator.getText();
+    let isPastDeclarator = false;
+    let previous = "";
+    let spells = false;
     const visit = (node: ParseTree): void => {
-      if (node instanceof Parser.PrimaryExpressionContext) {
-        const identifier = node.IDENTIFIER();
-        if (identifier) {
-          names.add(identifier.getText());
-        }
+      if (node instanceof TerminalNode) {
+        spells ||=
+          isPastDeclarator &&
+          node.symbol.type === Parser.CNextParser.IDENTIFIER &&
+          node.getText() === name &&
+          previous !== ".";
+        isPastDeclarator ||= node === declarator;
+        previous = node.getText();
+        return;
       }
       for (let i = 0; i < node.getChildCount(); i++) {
         const child = node.getChild(i);
@@ -189,10 +204,8 @@ class FrameListener extends CNextListener {
         }
       }
     };
-    if (tree) {
-      visit(tree);
-    }
-    return names;
+    visit(ctx);
+    return spells;
   }
 
   private record(
@@ -221,7 +234,7 @@ class FrameListener extends CNextListener {
       overflowBehavior: facts.overflowBehavior,
       initialValue: facts.initialValue ?? null,
       initialValueExpr: facts.initialValueExpr,
-      initializerNames: FrameListener.bareNamesIn(ctx.expression()),
+      spellsOwnName: FrameListener.spellsOwnName(ctx),
       initializerCallee: facts.initializerCallee,
       constValue: null,
       emittedName: null,

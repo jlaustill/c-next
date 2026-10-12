@@ -42,6 +42,7 @@ import NameExistence from "../../PARSE/3-Declare/NameExistence";
 import ParserUtils from "../../utils/ParserUtils";
 import REJECTED_KEYWORDS from "./REJECTED_KEYWORDS";
 import ScopeUtils from "../../utils/ScopeUtils";
+import ScopeTypeMember from "../../utils/ScopeTypeMember";
 import OperandTyper from "../../utils/OperandTyper";
 import TChainRoot from "../../types/TChainRoot";
 import type IAnalysisContext from "./types/IAnalysisContext";
@@ -279,19 +280,18 @@ class UndeclaredValueAnalyzer {
     context: IAnalysisContext,
   ): boolean {
     const symbols = context.symbols;
-    // #1643: a variable member is `binds`' alone. `scopeMembers` has no
-    // position, so it would admit one whose declaration has not closed.
-    const isVariable =
-      context.program.symbolByCName(
-        ScopeUtils.getTranspiledCName({ name, scopePath }),
-      )?.kind === "variable";
     return (
       NameExistence.isValueName(
         ScopeUtils.qualifyInScope(name, scopePath),
         symbols,
         context.symbolTable,
       ) ||
-      (!isVariable && (symbols.scopeMembers.get(scopePath)?.has(name) ?? false))
+      ScopeTypeMember.is(
+        symbols.scopeMembers.get(scopePath),
+        scopePath,
+        name,
+        context.program,
+      )
     );
   }
 

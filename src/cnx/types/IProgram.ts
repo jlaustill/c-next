@@ -229,6 +229,17 @@ interface IProgram {
   ): TValueBinding | null;
 
   /**
+   * #1643 review: what a use of the declaration whose declarator `name` is at
+   * `declarator` binds to once it closes -- the declaration itself, found by
+   * identity, never by binding a position rebuilt from its syntax
+   */
+  declarationOf(
+    sourceFile: string,
+    name: string,
+    declarator: Pick<ISourceSpan, "line" | "column">,
+  ): TValueBinding | null;
+
+  /**
    * #2019: whether the spelling names a declaration of `sourceFile` that has
    * not closed at `at` -- one `bindValue` does not bind yet (ADR-030).
    */
