@@ -70,6 +70,28 @@ describe("Discover", () => {
     return { graph, warnings };
   }
 
+  // #1991: 1.1 names every output path, so no later stage asks PathResolver
+  it("names each file's output paths, below its input directory", async () => {
+    fs = new MockFileSystem()
+      .addFile("/proj/app.cnx", '#include "src/lib.cnx"\n\nvoid main() { }\n')
+      .addFile("/proj/src/lib.cnx", "u32 twice(u32 v) { return v * 2; }\n");
+    const tree = { ...settings, input: "/proj/app.cnx", outDir: "/out" };
+    const anchor = RunAnchor.at(tree.input, null, tree, fs);
+    const { graph } = await Discover.run(
+      { kind: "files" },
+      anchor,
+      tree,
+      fs,
+      [],
+    );
+
+    expect(graph.outputs.get("/proj/src/lib.cnx")).toEqual({
+      sourceRelativePath: "src/lib.cnx",
+      source: "/out/src/lib.c",
+      header: "/out/src/lib.h",
+    });
+  });
+
   it("orders the files so each follows the files it includes", async () => {
     const { graph } = await discover(project());
 

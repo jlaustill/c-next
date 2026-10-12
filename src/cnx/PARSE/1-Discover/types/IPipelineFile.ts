@@ -47,9 +47,6 @@ interface IPipelineFile {
    * include?" and that spelling missed `.cnext`.
    */
   readonly reachesForeignHeader: boolean;
-
-  /** Override for source-relative path (used in source mode) */
-  readonly sourceRelativePath?: string;
 }
 
 export default IPipelineFile;

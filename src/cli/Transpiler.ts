@@ -46,6 +46,7 @@ import IPipelineFile from "../cnx/PARSE/1-Discover/types/IPipelineFile";
 import type ISourceGraph from "../cnx/PARSE/1-Discover/types/ISourceGraph";
 import HeaderMacros from "../cnx/PARSE/4-Resolve/HeaderMacros";
 import type THeaderMacro from "../cnx/types/THeaderMacro";
+import type IOutputPaths from "../cnx/PARSE/1-Discover/types/IOutputPaths";
 import type IFileIncludes from "../cnx/PARSE/1-Discover/types/IFileIncludes";
 import Discover from "../cnx/PARSE/1-Discover/Discover";
 import RunAnchor from "../cnx/PARSE/1-Discover/RunAnchor";
@@ -978,16 +979,12 @@ class Transpiler {
       const symbolInfo = this._establishPerFileCodeGenState(sourcePath);
 
       // Generate code
-      // Use file's sourceRelativePath (source mode) or compute from PathResolver (files mode)
-      const sourceRelativePath =
-        file.sourceRelativePath ??
-        this.anchor.pathResolver.getSourceRelativePath(sourcePath);
       const code = this.codeGenerator.generate(analyzed.program, {
         debugMode: this.config.debugMode,
         targetDescription: this._runTarget().description,
         sourcePath,
         symbolInfo,
-        sourceRelativePath,
+        sourceRelativePath: this._outputsOf(sourcePath).sourceRelativePath,
         cnxIncludeRewrites: this._includesOf(sourcePath).cnxIncludeRewrites,
         includeKinds: this._includesOf(sourcePath).kinds,
         // #1515: decided here, from the rule's owner. 1.3 Declare used to
@@ -1431,10 +1428,7 @@ class Transpiler {
       fileResult.success &&
       fileResult.code
     ) {
-      outputPath = this.anchor.pathResolver.getOutputPath(
-        file,
-        this.outputExtensions.source,
-      );
+      outputPath = this._outputsOf(file.path).source;
       // #1233: queued, not written -- the caller flushes only if the whole run
       // succeeds, matching how Stage 6 already gates headers.
       pendingWrites.push({ path: outputPath, content: fileResult.code });
@@ -1489,10 +1483,7 @@ class Transpiler {
       const headerContent = renderedFiles.get(file.path)?.header;
       if (headerContent) {
         // Issue #933: .hpp in C++ mode, so C and C++ headers cannot overwrite
-        const headerPath = this.anchor.pathResolver.getHeaderOutputPath(
-          file.discoveredFile,
-          this.outputExtensions.header,
-        );
+        const headerPath = this._outputsOf(file.path).header;
         Write.file(this.fs, headerPath, headerContent);
         result.outputFiles.push(headerPath);
       }
@@ -1704,6 +1695,16 @@ class Transpiler {
       `1.1 Discover records the includes of every file it discovers (missing ${sourcePath})`,
     );
     return includes;
+  }
+
+  /** Where 1.1 Discover named one file's output (#1991) */
+  private _outputsOf(sourcePath: string): IOutputPaths {
+    const outputs = this._requireSourceGraph().outputs.get(sourcePath);
+    invariant(
+      outputs !== undefined,
+      `1.1 Discover names the output of every file it discovers (missing ${sourcePath})`,
+    );
+    return outputs;
   }
 
   /**

@@ -30,6 +30,7 @@ import invariant from "../../utils/invariant";
 import DeclarationSite from "../../utils/DeclarationSite";
 import IncludeDirectiveText from "../../utils/IncludeDirectiveText";
 import OutputExtensions from "../../utils/OutputExtensions";
+import type IOutputPaths from "./types/IOutputPaths";
 import ReadOnceFileSystem from "./ReadOnceFileSystem";
 import RunAnchor from "./RunAnchor";
 import type IFileIncludes from "./types/IFileIncludes";
@@ -47,7 +48,12 @@ type TDiscoverySettings = Pick<
 /** The graph before it is frozen, without the facts gathered beside it. */
 type TDiscoveredFiles = Omit<
   ISourceGraph,
-  "includes" | "anchor" | "headerSources" | "recoveredDeclarations" | "cppMode"
+  | "includes"
+  | "anchor"
+  | "headerSources"
+  | "recoveredDeclarations"
+  | "cppMode"
+  | "outputs"
 > & {
   /** #1844: every `.cnx` file's header includes, in discovery order */
   readonly headerIncludes: readonly IHeaderInclude[];
@@ -552,7 +558,36 @@ class Discover {
           : null,
       },
       writeOutputToDisk: files.writeOutputToDisk,
+      outputs: this._outputs(files, cppMode),
     });
+  }
+
+  /**
+   * #1991: where each file's output goes, named once the mode has settled the
+   * extensions. A source run's file is named by its basename, as a files run
+   * names a file outside every input directory.
+   */
+  private _outputs(
+    files: TDiscoveredFiles,
+    cppMode: boolean,
+  ): ReadonlyMap<string, IOutputPaths> {
+    const extensions = OutputExtensions.forCppMode(cppMode);
+    const paths = this.anchor.pathResolver;
+    return new Map(
+      files.cnextFiles.map((file): [string, IOutputPaths] => [
+        file.path,
+        {
+          sourceRelativePath: files.writeOutputToDisk
+            ? paths.getSourceRelativePath(file.path)
+            : basename(file.path),
+          source: paths.getOutputPath(file.discoveredFile, extensions.source),
+          header: paths.getHeaderOutputPath(
+            file.discoveredFile,
+            extensions.header,
+          ),
+        },
+      ]),
+    );
   }
 
   /**
@@ -711,11 +746,7 @@ class Discover {
       ...discovered,
       cnextFiles: discovered.cnextFiles.map((file) =>
         file.path === entry.path
-          ? {
-              ...file,
-              source: entry.source,
-              sourceRelativePath: basename(entry.path),
-            }
+          ? { ...file, source: entry.source }
           : { ...file, symbolOnly: true },
       ),
       writeOutputToDisk: false,

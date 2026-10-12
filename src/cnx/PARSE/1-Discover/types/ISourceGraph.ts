@@ -4,6 +4,7 @@ import type IPlatformIOProject from "../../../types/IPlatformIOProject";
 import type IAnchorFacts from "./IAnchorFacts";
 import type IFileIncludes from "./IFileIncludes";
 import type IHeaderSource from "./IHeaderSource";
+import type IOutputPaths from "./IOutputPaths";
 import type IRecoveredDeclarations from "./IRecoveredDeclarations";
 
 /**
@@ -98,6 +99,13 @@ interface ISourceGraph {
 
   /** Whether to write generated output to disk: a files run, not a source run. */
   readonly writeOutputToDisk: boolean;
+
+  /**
+   * #1991: each C-Next file's output paths, by its path. Named here, once the
+   * run's mode has settled the extensions, so no later stage asks
+   * `PathResolver`.
+   */
+  readonly outputs: ReadonlyMap<string, IOutputPaths>;
 }
 
 export default ISourceGraph;
