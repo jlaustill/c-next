@@ -110,7 +110,8 @@ class ComplianceAnnotations {
 
   /**
    * The one rendering of the house form,
-   * `/* <Standard> Rule <N>: <what> (<why>). *\/`.
+   * `/* <citation>: <what> (<why>). *\/`, the citation a standard's rule
+   * (`MISRA C:2012 Rule <N>`, `C11 6.2.1p7, C++ [basic.scope.pdecl]`).
    */
   static render(annotation: IComplianceAnnotation): string {
     return `/* ${annotation.citation}: ${annotation.what} (${annotation.why}). */`;
