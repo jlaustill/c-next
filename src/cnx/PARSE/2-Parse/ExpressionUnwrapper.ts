@@ -32,6 +32,18 @@ class ExpressionUnwrapper {
   private static navigateToShift(
     ctx: Parser.ExpressionContext,
   ): Parser.ShiftExpressionContext | null {
+    const rel = this.navigateToRelational(ctx);
+    return rel ? this.relationalToShift(rel) : null;
+  }
+
+  /**
+   * Navigate from ExpressionContext to RelationalExpressionContext.
+   *
+   * Returns null if expression has multiple terms at any level above relational.
+   */
+  private static navigateToRelational(
+    ctx: Parser.ExpressionContext,
+  ): Parser.RelationalExpressionContext | null {
     const ternary = ctx.ternaryExpression();
     const orExprs = ternary.orExpression();
     // If it's a ternary (3 orExpressions), we can't get a single expression
@@ -46,7 +58,19 @@ class ExpressionUnwrapper {
     const eq = and.equalityExpression()[0];
     if (eq.relationalExpression().length !== 1) return null;
 
-    const rel = eq.relationalExpression()[0];
+    return eq.relationalExpression()[0];
+  }
+
+  /**
+   * Navigate from RelationalExpressionContext to ShiftExpressionContext.
+   *
+   * The walk is split here because a condition leaf -- what is left once
+   * `||`, `&&`, `=` and `!=` are decomposed -- is a relational with no
+   * ExpressionContext of its own (#1195).
+   */
+  private static relationalToShift(
+    rel: Parser.RelationalExpressionContext,
+  ): Parser.ShiftExpressionContext | null {
     if (rel.bitwiseOrExpression().length !== 1) return null;
 
     const bor = rel.bitwiseOrExpression()[0];
@@ -62,17 +86,13 @@ class ExpressionUnwrapper {
   }
 
   /**
-   * Navigate from ExpressionContext to UnaryExpressionContext.
-   * Common helper for getPostfixExpression and getUnaryExpression.
+   * Navigate from ShiftExpressionContext to UnaryExpressionContext.
    *
-   * Returns null if expression has multiple terms at any level.
+   * Returns null if shift has multiple terms at any level below it.
    */
-  private static navigateToUnary(
-    ctx: Parser.ExpressionContext,
+  private static shiftToUnary(
+    shift: Parser.ShiftExpressionContext,
   ): Parser.UnaryExpressionContext | null {
-    const shift = this.navigateToShift(ctx);
-    if (!shift) return null;
-
     if (shift.additiveExpression().length !== 1) return null;
 
     const add = shift.additiveExpression()[0];
@@ -82,6 +102,19 @@ class ExpressionUnwrapper {
     if (mult.unaryExpression().length !== 1) return null;
 
     return mult.unaryExpression()[0];
+  }
+
+  /**
+   * Navigate from ExpressionContext to UnaryExpressionContext.
+   * Common helper for getPostfixExpression and getUnaryExpression.
+   *
+   * Returns null if expression has multiple terms at any level.
+   */
+  private static navigateToUnary(
+    ctx: Parser.ExpressionContext,
+  ): Parser.UnaryExpressionContext | null {
+    const shift = this.navigateToShift(ctx);
+    return shift ? this.shiftToUnary(shift) : null;
   }
 
   /**

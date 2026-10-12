@@ -45,6 +45,34 @@ describe("ControllingExpressionAnalyzer", () => {
       expect(found.helpText).toContain("flag = false");
     });
 
+    // #1195 review: the general case reads `!(...)` whole, names no
+    // declaration, and offered `!(n<5) > 0` -- which is E0807 on a bool. A
+    // negated bracketed group is written out from what it holds.
+    it.each([
+      ["!(n > 0)", "(n > 0) = false"],
+      ["!((n > 0) && (n < 5))", "((n > 0) && (n < 5)) = false"],
+      ["!(flag)", "flag = false"],
+      ["!((flag))", "flag = false"],
+    ])("suggests a form that compiles for %s", (condition, suggestion) => {
+      const [found] = errors(inIf(condition));
+      expect(found.code).toBe("E0701");
+      expect(found.helpText).toContain(`e.g. ${suggestion}`);
+    });
+
+    it("offers the bool write-out only under `!`", () => {
+      // `-(flag)` is not a negation; `flag = false` would drop the minus.
+      const [found] = errors(inIf("-(flag)"));
+      expect(found.code).toBe("E0701");
+      expect(found.helpText).not.toContain("flag = false");
+    });
+
+    it("still rejects a negated group that holds neither", () => {
+      // A number under `!` is #1734's question (MISRA 10.1), not this one's.
+      const found = errors(inIf("!(n)"));
+      expect(found).toHaveLength(1);
+      expect(found[0].code).toBe("E0701");
+    });
+
     it("suggests a numeric form for a non-bool", () => {
       const [found] = errors(inIf("n"));
       expect(found.helpText).toContain("n > 0");
@@ -79,6 +107,50 @@ describe("ControllingExpressionAnalyzer", () => {
     });
   });
 
+  describe("#1195 -- a bracketed operand is judged by what it holds", () => {
+    // A parenthesized comparison is a comparison. The brackets used to make
+    // every operand look like a bare value, so ordinary defensive style was
+    // rejected while the same condition without them compiled.
+    it.each([
+      "(n > 0)",
+      "((n > 0))",
+      "(n > 0) && (n < 5)",
+      "((n > 0) && (n < 5))",
+      "(n = 0) || (n >= 32)",
+      "(flag = true)",
+      "(n > 0) && flag = true",
+    ])("accepts %s", (condition) => {
+      expect(errors(inIf(condition))).toEqual([]);
+    });
+
+    // Unwrapping must let nothing through that is rejected unbracketed. Only
+    // a bare group unwraps, so every other shape -- a prefix, a postfix, an
+    // operator outside the brackets -- stays one operand, judged as written.
+    // Each case puts the group FIRST: without a group the operand is declined
+    // at the last step whether or not a guard exists, so it proves nothing.
+    // `(flag) && (n)` has two bad operands and must still report once.
+    it.each([
+      "(flag)",
+      "((flag))",
+      "((n))",
+      "(n > 0) && (flag)",
+      "(flag) && (n > 0)",
+      "(flag) && (n)",
+      "!(n > 0)",
+      "(n > 0) | 1",
+      "(n > 0) ^ 1",
+      "(n > 0) & 1",
+      "(n > 0) << 1",
+      "(n > 0) + 1",
+      "(n > 0) * 2",
+      "(n > 0)[0]",
+    ])("still rejects %s, once", (condition) => {
+      const found = errors(inIf(condition));
+      expect(found).toHaveLength(1);
+      expect(found[0].code).toBe("E0701");
+    });
+  });
+
   describe("E0702 -- a condition may not call a function", () => {
     const withCall = (condition: string): string =>
       `bool isValid() {\n    return true;\n}\nvoid t() {\n    if (${condition}) { }\n}`;
@@ -88,6 +160,34 @@ describe("ControllingExpressionAnalyzer", () => {
       expect(found).toHaveLength(1);
       expect(found[0].code).toBe("E0702");
       expect(found[0].line).toBe(5);
+    });
+
+    it("rejects a call inside a bracketed comparison as a call", () => {
+      // #1195: the brackets hid the call, and the operand was reported as a
+      // bare value (E0701) -- the wrong rule for what the author wrote.
+      const found = errors(withCall("(isValid() = true)"));
+      expect(found).toHaveLength(1);
+      expect(found[0].code).toBe("E0702");
+    });
+
+    // #1195 review: a call wrapped in its own brackets runs exactly as the
+    // bare call does, so it is a call in the condition however it is spelled
+    // -- on the right of `&&`/`||` too, which is what MISRA 13.5 forbids.
+    it.each([
+      "(isValid()) = true",
+      "n > 0 && (isValid()) = true",
+      "(n > 0) && ((isValid()) = true)",
+      "n < 5 || ((isValid())) != false",
+    ])("rejects the bracketed call in %s", (condition) => {
+      const found = errors(
+        `bool isValid() {\n    return true;\n}\nu32 n <- 1;\nvoid t() {\n    if (${condition}) { }\n}`,
+      );
+      expect(found).toHaveLength(1);
+      expect(found[0].code).toBe("E0702");
+    });
+
+    it("says nothing about brackets that hold no call", () => {
+      expect(errors(inIf("(n + 1) > 0 && (flag = true)"))).toEqual([]);
     });
 
     it("rejects a negated and a double-negated call", () => {

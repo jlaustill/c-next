@@ -336,7 +336,7 @@ struct tags that are 94 characters and byte-identical for 63 — transpiling exi
 | 14.1 | Loop counter float                         | **By Design** | Loop validation                                                                                                                                          |
 | 14.2 | For loop well-formed                       | Partial       | Some validation                                                                                                                                          |
 | 14.3 | Controlling expression not invariant       | Partial       | E0707 forbids `for(;;)` and always-true literal loop conditions (ADR-068 / #1075); named-constant/non-literal invariants + always-false tracked in #1076 |
-| 14.4 | Controlling expression essentially boolean | Partial       | E0701 for do-while only                                                                                                                                  |
+| 14.4 | Controlling expression essentially boolean | Partial       | E0701 on all five controlling expressions: `if`, `while`, `do-while`, `for` and the ternary (ADR-022)                                                    |
 
 ---
 

@@ -1,0 +1,28 @@
+// test-error
+// Issue #1195 review: a call wrapped in its own brackets runs exactly as the
+// bare call does, so it is a call in a condition however it is spelled (E0702,
+// MISRA C:2012 Rule 13.5) -- including on the right of `&&`/`||`, which is
+// what Rule 13.5 forbids. The brackets used to hide it from E0702 entirely.
+bool isValid() {
+    return true;
+}
+
+bool h(u8 n) {
+    if (n > 0 && (isValid()) = true) {
+        return true;
+    }
+    if ((n > 0) && ((isValid()) = true)) {
+        return true;
+    }
+    return false;
+}
+
+// NEGATIVE CONTROL -- the call hoisted out, as E0702 asks. The bracketed
+// operands that remain hold no call and must be silent.
+bool okHoisted(u8 n) {
+    bool valid <- isValid();
+    if ((n + 1) > 1 && ((valid) = true)) {
+        return true;
+    }
+    return false;
+}

@@ -1,0 +1,2 @@
+6:20 error[E0701]: if condition must be a comparison, not 'ready'
+       help: MISRA C:2012 Rule 14.4: write it out, e.g. ready = true

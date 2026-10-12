@@ -112,12 +112,31 @@ class ControllingExpressionCheck {
    * not a comparison, and MISRA C:2012 Rule 14.4 wants the intent written out.
    */
   private checkComparison(expr: TExpression, kind: string): void {
-    const leaf = ControllingExpressionCheck.leaves(expr).find(
-      (operand) =>
-        operand.kind !== "binary" ||
-        (operand.level !== "equality" && operand.level !== "relational"),
-    );
-    if (leaf !== undefined) this.reportNotComparison(leaf, kind);
+    for (const leaf of ControllingExpressionCheck.leaves(expr)) {
+      if (this.checkLeaf(leaf, kind)) return;
+    }
+  }
+
+  /**
+   * Judges one leaf operand, and says whether it reported. One report per
+   * condition is enough, so a report ends the walk over the rest.
+   */
+  private checkLeaf(leaf: TExpression, kind: string): boolean {
+    // A bracketed group is decided by what it holds (#1195): `(n < 5)` is a
+    // comparison, and `(a)` is still a bare value.
+    if (leaf.kind === "parenthesized") {
+      const before = this.found.length;
+      this.check(leaf.expression, kind);
+      return this.found.length > before;
+    }
+    if (
+      leaf.kind === "binary" &&
+      (leaf.level === "equality" || leaf.level === "relational")
+    ) {
+      return false;
+    }
+    this.reportNotComparison(leaf, kind);
+    return true;
   }
 
   /** The operands `||` and `&&` join, left to right */
@@ -163,16 +182,59 @@ class ControllingExpressionCheck {
    * name lookup does not.
    */
   private suggestionFor(node: TExpression): string {
+    const negatedGroup = this.negatedGroupSuggestion(node);
+    if (negatedGroup) return negatedGroup;
+
     const negated = node.kind === "unary" && node.operator === "!";
     const base = negated ? node.operand.written : node.written;
-    if (
-      OperandTyper.isBoolean(
-        OperandTyper.typeOfName(base, node.span, this.context),
-      )
-    ) {
+    if (this.isBoolName(base, node)) {
       return `write it out, e.g. ${base} = ${negated ? "false" : "true"}`;
     }
     return `write it out, e.g. ${node.written} > 0 or ${node.written} != 0`;
+  }
+
+  /**
+   * What to write instead of a negated bracketed group, or null when the
+   * operand is not one. `!(n < 5)` is `(n < 5) = false` and `!(flag)` is
+   * `flag = false`. Read as a whole, `!(...)` names no declaration, so the
+   * general case offered `!(n < 5) > 0` -- which is E0807 on a bool (#1195
+   * review).
+   */
+  private negatedGroupSuggestion(node: TExpression): string | null {
+    if (node.kind !== "unary" || node.operator !== "!") return null;
+    if (node.operand.kind !== "parenthesized") return null;
+    const group = node.operand.expression;
+
+    if (this.holdsComparison(group)) {
+      return `write it out, e.g. (${group.written}) = false`;
+    }
+    const name = ControllingExpressionCheck.bareName(group);
+    if (name !== null && this.isBoolName(name, node)) {
+      return `write it out, e.g. ${name} = false`;
+    }
+    return null;
+  }
+
+  /** Whether `expr` passes this rule on its own: every leaf a comparison. */
+  private holdsComparison(expr: TExpression): boolean {
+    const probe = new ControllingExpressionCheck(this.context);
+    probe.check(expr, "if");
+    return probe.errors().length === 0;
+  }
+
+  /** The name an expression is, through any brackets, or null. */
+  private static bareName(expr: TExpression): string | null {
+    if (expr.kind === "parenthesized") {
+      return ControllingExpressionCheck.bareName(expr.expression);
+    }
+    return expr.kind === "identifier" ? expr.name : null;
+  }
+
+  /** Whether `name`, where `node` stands, is declared a bool. */
+  private isBoolName(name: string, node: TExpression): boolean {
+    return OperandTyper.isBoolean(
+      OperandTyper.typeOfName(name, node.span, this.context),
+    );
   }
 }
 

@@ -129,6 +129,31 @@ describe("LoopAnalyzer", () => {
         errors(inRun("    while (state < 10) {\n        state +<- 1;\n    }")),
       ).toEqual([]);
     });
+
+    it("judges a bracketed condition by what it holds (#1195)", () => {
+      // E0701 accepts a bare bracketed group, so this check has to look inside
+      // it too, or `while ((1 = 1))` compiles to the infinite loop that
+      // `while (1 = 1)` is rejected for.
+      const found = errors(
+        inRun(
+          "    while ((1 = 1)) {\n    }\n    do {\n    } while (((5 > 3)));\n    for (u8 i <- 0; ((true = true)); i +<- 1) {\n    }",
+        ),
+      );
+      expect(found.map((e) => e.code)).toEqual(["E0707", "E0707", "E0707"]);
+      expect(found[0].message).toContain("'(1 = 1)' is always true");
+    });
+
+    it("unwraps only a bare group, and leaves the rest to #1076", () => {
+      // `(1 = 1) && (state < 3)` is a compound condition and `(state < 3)`
+      // names a variable: both stay silent bracketed, as they do unbracketed.
+      expect(
+        errors(
+          inRun(
+            "    while ((1 = 1) && (state < 3)) {\n    }\n    while ((state < 3)) {\n        state +<- 1;\n    }",
+          ),
+        ),
+      ).toEqual([]);
+    });
   });
   describe("E0715 -- a for header assignment that is more than one statement", () => {
     const codes = (source: string) =>

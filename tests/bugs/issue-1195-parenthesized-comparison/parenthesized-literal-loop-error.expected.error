@@ -1,0 +1,6 @@
+7:11 error[E0707]: loop condition '(1 = 1)' is always true
+       help: write 'forever { ... }' for an intentional infinite loop
+8:17 error[E0707]: loop condition '((5 > 3))' is always true
+       help: write 'forever { ... }' for an intentional infinite loop
+9:20 error[E0707]: loop condition '((true = true))' is always true
+       help: write 'forever { ... }' for an intentional infinite loop
