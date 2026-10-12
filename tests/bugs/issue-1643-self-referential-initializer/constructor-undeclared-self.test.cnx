@@ -1,0 +1,17 @@
+// test-error
+// test-cpp-only
+// test-adr: 015
+// test-adr: 030
+// #1643 review: a constructor declaration is defined once it closes, so an
+// argument naming the variable it declares names nothing yet. A constructor
+// argument that names nothing is E0433 (ADR-015). The control names a const
+// declared above it and stays silent.
+
+#include "Tally.hpp"
+
+u32 main() {
+    const u8 early <- 3;
+    Tally ok(early); // control
+    Tally seed(seed); // ERROR: no `seed` is defined here
+    return 0;
+}

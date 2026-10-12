@@ -961,9 +961,12 @@ class CodeGenWalker {
     switch (statement.kind) {
       case "variableDeclaration":
       case "constructorDeclaration":
-        return VariableDeclHelper.renderVariableDecl(
-          this.planVariableDecl(statement),
-          this.host.state,
+        return (
+          this.host.state.ownNameMoveComments(statement) +
+          VariableDeclHelper.renderVariableDecl(
+            this.planVariableDecl(statement),
+            this.host.state,
+          )
         );
       case "assignment":
         return this.generateAssignment(statement);
@@ -4381,6 +4384,7 @@ class CodeGenWalker {
       volatile: modifiers.volatile,
       typeName,
       emittedName: this.host.state.ownEmittedName(decl),
+      nameMoveComments: this.host.state.ownNameMoveComments(decl),
       renderArrayDimensions:
         decl.dimensions.length > 0
           ? () => this.renderLoweredDimensions(decl.dimensions)

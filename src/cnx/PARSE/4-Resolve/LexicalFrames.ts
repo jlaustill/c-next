@@ -21,6 +21,7 @@ import type ILocalDeclaration from "../../types/ILocalDeclaration";
 import type ISourceSpan from "../../types/ISourceSpan";
 import type TDefinedAt from "../../utils/types/TDefinedAt";
 import QualifiedCName from "../../utils/QualifiedCName";
+import type TNameMove from "../../types/TNameMove";
 
 /** A use's position */
 type TPosition = Pick<ISourceSpan, "line" | "column">;
@@ -44,6 +45,8 @@ interface ISettleFacts {
   readonly isFileScopeName: (cName: string) => boolean;
   readonly env: IConstantEnvironment;
   readonly settledOf: Map<ILocalDeclaration, ILocalDeclaration>;
+  /** The file's unsettled frames, which the binder walks */
+  readonly root: ILexicalFrame;
 }
 
 class LexicalFrames {
@@ -76,12 +79,13 @@ class LexicalFrames {
       cTypeName,
       isTypeName,
     };
-    return LexicalFrames.settleFrame(
-      frame,
-      null,
-      { isScopeType, isFileScopeName, env, settledOf },
-      () => undefined,
-    );
+    return LexicalFrames.settleFrame(frame, null, {
+      isScopeType,
+      isFileScopeName,
+      env,
+      settledOf,
+      root: frame,
+    });
   }
 
   /** The innermost frame containing `at`; the file frame if none does */
@@ -108,7 +112,7 @@ class LexicalFrames {
       const declarations = path[i].declarations;
       let found: ILocalDeclaration | undefined;
       for (const declaration of declarations) {
-        if (declaration.name === name && isDefinedAt(declaration.extent, at)) {
+        if (declaration.name === name && isDefinedAt(declaration, at)) {
           found = declaration;
         }
       }
@@ -119,7 +123,6 @@ class LexicalFrames {
     return null;
   }
 
-  /** The frames containing `at`, outermost first */
   /**
    * #1643 review: the declaration whose declarator IDENTIFIER is at `at` --
    * found by identity, for a site holding the declaration itself
@@ -141,6 +144,7 @@ class LexicalFrames {
     return null;
   }
 
+  /** The frames containing `at`, outermost first */
   private static pathTo(root: ILexicalFrame, at: TPosition): ILexicalFrame[] {
     const path = [root];
     let current = root;
@@ -187,13 +191,8 @@ class LexicalFrames {
     frame: ILexicalFrame,
     enclosingFunction: string | null,
     facts: ISettleFacts,
-    /** The settled local a name binds to where this frame opens */
-    enclosing: (name: string) => ILocalDeclaration | undefined,
   ): ILexicalFrame {
     const functionCName = frame.functionCName ?? enclosingFunction;
-    const declared = new Map<string, ILocalDeclaration>();
-    const visible = (name: string): ILocalDeclaration | undefined =>
-      declared.get(name) ?? enclosing(name);
     // Declarations and child frames in source order, so each local is
     // settled before any use that can bind it.
     const declarations: ILocalDeclaration[] = [];
@@ -206,7 +205,7 @@ class LexicalFrames {
     for (const item of items) {
       if ("child" in item) {
         children.push(
-          LexicalFrames.settleFrame(item.child, functionCName, facts, visible),
+          LexicalFrames.settleFrame(item.child, functionCName, facts),
         );
         continue;
       }
@@ -214,10 +213,9 @@ class LexicalFrames {
         item.declaration,
         functionCName,
         facts,
-        visible(item.declaration.name),
+        LexicalFrames.ownNameBinds(item.declaration, facts),
       );
       facts.settledOf.set(item.declaration, settled);
-      declared.set(settled.name, settled);
       declarations.push(settled);
     }
 
@@ -226,6 +224,23 @@ class LexicalFrames {
       declarations: Object.freeze(declarations),
       children: Object.freeze(children),
     });
+  }
+
+  /**
+   * #1643 review: the settled local a declaration's own name, spelled inside
+   * it, binds to -- the binder's answer where the declaration starts. Nothing
+   * new has closed there, so it is the answer at every point inside it.
+   */
+  private static ownNameBinds(
+    declaration: ILocalDeclaration,
+    facts: ISettleFacts,
+  ): ILocalDeclaration | undefined {
+    const bound = LexicalFrames.declarationAt(
+      facts.root,
+      declaration.name,
+      declaration.extent,
+    );
+    return bound ? facts.settledOf.get(bound) : undefined;
   }
 
   /**
@@ -241,7 +256,7 @@ class LexicalFrames {
     declaration: ILocalDeclaration,
     functionCName: string | null,
     { isScopeType, env, isFileScopeName }: ISettleFacts,
-    /** The settled local this one shadows, if any */
+    /** The settled local its own name binds to inside it, if any */
     shadowed: ILocalDeclaration | undefined,
   ): ILocalDeclaration {
     const arrayDimensions = declaration.arrayDimensions.map((dimension, i) => {
@@ -260,7 +275,7 @@ class LexicalFrames {
       type,
       arrayDimensions: Object.freeze(arrayDimensions),
       constValue,
-      emittedName: LexicalFrames.emittedName(
+      ...LexicalFrames.emittedName(
         declaration,
         functionCName,
         isFileScopeName,
@@ -289,14 +304,22 @@ class LexicalFrames {
     isFileScopeName: (cName: string) => boolean,
     /** The C name of the enclosing local its initializer reads, if any */
     readsEmitted: string | null,
-  ): string {
+  ): { emittedName: string; nameMoves: ReadonlyArray<TNameMove> } {
     const { name } = declaration;
     if (functionCName === null) {
-      return name;
+      return { emittedName: name, nameMoves: [] };
     }
-    let emitted = isFileScopeName(name)
-      ? QualifiedCName.fromParts([functionCName, name])
-      : name;
+    const nameMoves: TNameMove[] = [];
+    if (isFileScopeName(name)) {
+      nameMoves.push("hidesFileScope");
+    }
+    let emitted =
+      nameMoves.length > 0
+        ? QualifiedCName.fromParts([functionCName, name])
+        : name;
+    if (emitted === readsEmitted) {
+      nameMoves.push("readsEnclosing");
+    }
     let suffix = 1;
     while (emitted === readsEmitted) {
       emitted = QualifiedCName.fromParts([
@@ -306,7 +329,10 @@ class LexicalFrames {
       ]);
       suffix++;
     }
-    return emitted;
+    return {
+      emittedName: emitted,
+      nameMoves: Object.freeze(nameMoves),
+    };
   }
 
   private static compare(a: TPosition, b: TPosition): number {

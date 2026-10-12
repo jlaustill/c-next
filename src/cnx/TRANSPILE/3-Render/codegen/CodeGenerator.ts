@@ -552,6 +552,10 @@ export default class CodeGenerator implements IOrchestrator {
     this.enterFunctionBody();
   }
 
+  movedParameterComments(): string {
+    return FunctionContextManager.movedParameterComments(this.state);
+  }
+
   exitFunctionContext(): void {
     this.exitFunctionBody();
     this.setCurrentFunctionName(null);

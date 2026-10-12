@@ -24,6 +24,7 @@ import type IEmissionPlan from "../types/IEmissionPlan";
 import type IFunctionSignature from "../types/IFunctionSignature";
 import invariant from "../utils/invariant";
 import emittedLocalName from "../utils/emittedLocalName";
+import ComplianceAnnotations from "./2-Plan/ComplianceAnnotations";
 import AdrProvenance from "../instrumentation/AdrProvenance";
 import type ILocalDeclaration from "../types/ILocalDeclaration";
 import type IVariableDeclarationSyntax from "../types/syntax/IVariableDeclarationSyntax";
@@ -309,6 +310,23 @@ class TranspileState {
       this.symbolTable,
       this.targetDescription,
     );
+  }
+
+  /**
+   * #1643 review: the comment lines that cite why a declaration is emitted
+   * under a moved name -- empty when it keeps its own
+   */
+  ownNameMoveComments(
+    decl: Pick<IVariableDeclarationSyntax, "name" | "nameSpan">,
+  ): string {
+    const binding = this.ownBinding(decl);
+    return binding?.kind === "local"
+      ? ComplianceAnnotations.renderMoves(
+          binding.declaration.nameMoves,
+          binding.declaration.name,
+          emittedLocalName(binding.declaration),
+        )
+      : "";
   }
 
   /** The C identifier a declaration is emitted under (ADR-057) */

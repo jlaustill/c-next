@@ -163,39 +163,58 @@ describe("Program", () => {
   });
 
   // #2019: the names a header-reaching file may not leave to the header --
-  // those it declares itself, above where the declaration closes (ADR-030).
-  describe("a declaration of this file that has not closed", () => {
-    const build = (source: string) =>
-      Program.build([declare(source, "a.cnx")], { cppMode: false });
+  // those a declaration of its own would bind, were it closed (ADR-030).
+  describe("a name that may be a header's", () => {
+    const build = (source: string, reachesHeader = true) =>
+      Program.build([declare(source, "a.cnx")], {
+        cppMode: false,
+        filesReachingForeignHeaders: new Set(reachesHeader ? ["a.cnx"] : []),
+      });
 
-    it("is a global above its declaration, bare or through `global.`", () => {
+    it("is not a global above its declaration, bare or through `global.`", () => {
       const program = build("u32 a <- b + 1;\nu32 b <- 1;\nu32 c <- b;");
       const above = { line: 1, column: 9 };
-      expect(program.isUnclosedAt("a.cnx", null, "b", above)).toBe(true);
-      expect(program.isUnclosedAt("a.cnx", "global", "b", above)).toBe(true);
-      // negative controls: below the declaration, and a name nothing declares
-      const below = { line: 3, column: 9 };
-      expect(program.isUnclosedAt("a.cnx", null, "b", below)).toBe(false);
-      expect(program.isUnclosedAt("a.cnx", null, "zz", above)).toBe(false);
+      expect(program.mayBeHeaderName("a.cnx", null, "b", above)).toBe(false);
+      expect(program.mayBeHeaderName("a.cnx", "global", "b", above)).toBe(
+        false,
+      );
+      // negative control: a name nothing declares
+      expect(program.mayBeHeaderName("a.cnx", null, "zz", above)).toBe(true);
     });
 
-    it("is a local in its own initializer", () => {
+    it("is not a local in its own initializer", () => {
       const program = build("void f() { u32 n <- n + 1; u32 m <- n; }");
       const own = { line: 1, column: 20 };
-      expect(program.isUnclosedAt("a.cnx", null, "n", own)).toBe(true);
-      // negative control: a later declaration reads the closed one
-      const later = { line: 1, column: 36 };
-      expect(program.isUnclosedAt("a.cnx", null, "n", later)).toBe(false);
+      expect(program.mayBeHeaderName("a.cnx", null, "n", own)).toBe(false);
     });
 
-    it("is a scope member above its declaration through `this.`", () => {
+    it("is not a scope member above its declaration through `this.`", () => {
       const program = build(
         "scope S {\n  public void f() { this.x <- 1; this.y <- 1; }\n  u32 x;\n}\n",
       );
       const use = { line: 2, column: 20 };
-      expect(program.isUnclosedAt("a.cnx", "this", "x", use)).toBe(true);
+      expect(program.mayBeHeaderName("a.cnx", "this", "x", use)).toBe(false);
       // negative control: a member S does not declare
-      expect(program.isUnclosedAt("a.cnx", "this", "y", use)).toBe(false);
+      expect(program.mayBeHeaderName("a.cnx", "this", "y", use)).toBe(true);
+    });
+
+    it("is a name declared only where it cannot bind: another function's local, a scope's member", () => {
+      const program = build(
+        "scope S { u32 m; }\nvoid f() { u32 n <- 1; }\nvoid g() { u32 k <- n + m; }",
+      );
+      const use = { line: 3, column: 20 };
+      expect(program.mayBeHeaderName("a.cnx", null, "n", use)).toBe(true);
+      expect(program.mayBeHeaderName("a.cnx", null, "m", use)).toBe(true);
+    });
+
+    it("is nothing in a file that reaches no header", () => {
+      const program = build("u32 a <- 1;", false);
+      expect(
+        program.mayBeHeaderName("a.cnx", null, "LED_PIN", {
+          line: 1,
+          column: 0,
+        }),
+      ).toBe(false);
     });
   });
 
@@ -1151,10 +1170,10 @@ scope Gauge {
         "isOpaqueType",
         "isScopeTypeVisibleFrom",
         "isTypeNameAt",
-        "isUnclosedAt",
         "knownEnums",
         "lexicalDeclarationAt",
         "lexicalFrameAt",
+        "mayBeHeaderName",
         "modifiedParameters",
         "opaqueTypes",
         "passByValueParams",

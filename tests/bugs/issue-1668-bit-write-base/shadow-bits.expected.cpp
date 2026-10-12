@@ -16,6 +16,7 @@
 S gs = {};
 
 uint32_t f(void) {
+    /* C11 6.2.1p4, C++ [basic.scope.hiding]: `gs` emitted as `f__gs` (a plain `gs` would hide the file-scope `gs` for the rest of its scope, so `global.gs` would reach the local). */
     S f__gs = gs;
     f__gs.flags = (uint8_t)((f__gs.flags & ~(1U << 2)) | (1U << 2));
     f__gs.arr[1] = (uint8_t)((f__gs.arr[1] & ~(1U << 3)) | (1U << 3));

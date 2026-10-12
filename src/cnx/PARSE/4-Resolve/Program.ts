@@ -379,12 +379,13 @@ class Program {
         declarator: TPosition,
       ): TValueBinding | null =>
         Program.declarationOf(bound, sourceFile, name, declarator),
-      isUnclosedAt: (
+      mayBeHeaderName: (
         sourceFile: string,
         root: TChainRoot,
         name: string,
         at: TPosition,
-      ): boolean => Program.isUnclosedAt(bound, sourceFile, root, name, at),
+      ): boolean =>
+        Program.mayBeHeaderName(bound, fileFacts, sourceFile, root, name, at),
       constantValueOf: (
         sourceFile: string,
         name: Extract<TConstExpr, { kind: "name" }>,
@@ -969,6 +970,8 @@ class Program {
       get reachesForeignHeader() {
         return options.files.reachesForeignHeader(file());
       },
+      mayBeHeaderName: (root, name, at) =>
+        Program.mayBeHeaderName(facts, options.files, file(), root, name, at),
       foreignValue: (name) => facts.foreignValues.get(name) ?? null,
       constValue: (symbol) => {
         const value = constants.consts.get(symbol.fullyQualifiedCName);
@@ -1387,7 +1390,7 @@ class Program {
     return (
       symbol.kind === "variable" &&
       symbol.sourceFile === sourceFile &&
-      !isDefinedAt(symbol.span, at)
+      !isDefinedAt(symbol, at)
     );
   }
 
@@ -1412,7 +1415,7 @@ class Program {
       Program.EVERY_DECLARATION_DEFINED,
     );
     if (reached?.kind === "local") {
-      return !DefinitionPoint.isDefinedAt(reached.declaration.extent, at);
+      return !DefinitionPoint.isDefinedAt(reached.declaration, at);
     }
     return (
       reached?.kind === "variable" &&
@@ -1421,6 +1424,26 @@ class Program {
   }
 
   private static readonly EVERY_DECLARATION_DEFINED: TDefinedAt = () => true;
+
+  /**
+   * ADR-030 / #2019: whether a spelling nothing binds at `at` may be a
+   * header's `#define`, which reaches no symbol table: the file reaches a C
+   * or C++ header, and no declaration of the file would bind it there were
+   * it closed. One that would is C-Next's, and not defined yet (E0427).
+   */
+  private static mayBeHeaderName(
+    facts: IBindingFacts,
+    files: IFileConstantFacts,
+    sourceFile: string,
+    root: TChainRoot,
+    name: string,
+    at: TPosition,
+  ): boolean {
+    return (
+      files.reachesForeignHeader(sourceFile) &&
+      !Program.isUnclosedAt(facts, sourceFile, root, name, at)
+    );
+  }
 
   /**
    * The binding a name has when no local declares it, as seen from inside

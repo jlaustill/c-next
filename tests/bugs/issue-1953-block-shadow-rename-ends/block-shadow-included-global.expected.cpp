@@ -14,6 +14,7 @@
 int main(void) {
     uint32_t flag = 1U;
     if (flag == 1) {
+        /* C11 6.2.1p4, C++ [basic.scope.hiding]: `shared` emitted as `main__shared` (a plain `shared` would hide the file-scope `shared` for the rest of its scope, so `global.shared` would reach the local). */
         uint8_t main__shared[8] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
         if (sizeof(main__shared) != 8) {
             return 1U;

@@ -27,8 +27,17 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // declaration shadows reads that one (ADR-030). C scopes the new local from
 // its declarator, before the initializer, so the new one gets its own C name
 // (ADR-057). Each case returns a distinct code if the C reads the new local.
+uint32_t point(uint32_t p) {
+    if (p == 1) {
+        Point p = { .p = 5U, .y = 6U };
+        return p.p;
+    }
+    return 0U;
+}
+
 uint32_t bump(uint32_t p) {
     if (p == 1) {
+        /* C11 6.2.1p7, C++ [basic.scope.pdecl]: `p` emitted as `bump__p` (a plain `p` is in scope from its declarator, so its initializer would read the new, uninitialized `p` instead of the enclosing one). */
         uint32_t bump__p = cnx_clamp_add_u32(p, 1U);
         return bump__p;
     }
@@ -54,6 +63,7 @@ int main(void) {
     }
     const uint32_t N = 2U;
     if (N == 2) {
+        /* C11 6.2.1p7, C++ [basic.scope.pdecl]: `N` emitted as `main__N` (a plain `N` is in scope from its declarator, so its initializer would read the new, uninitialized `N` instead of the enclosing one). */
         const uint32_t main__N = cnx_clamp_add_u32(N, 1U);
         uint8_t buf[3] = {7U, 7U, 7U};
         if (3 != 3) {
@@ -65,6 +75,7 @@ int main(void) {
     }
     uint32_t k = 1U;
     if (k == 1) {
+        /* C11 6.2.1p7, C++ [basic.scope.pdecl]: `k` emitted as `main__k` (a plain `k` is in scope from its declarator, so its initializer would read the new, uninitialized `k` instead of the enclosing one). */
         uint32_t main__k = cnx_clamp_add_u32(k, 1U);
         if (main__k == 2) {
             uint32_t k = cnx_clamp_add_u32(main__k, 1U);
@@ -75,6 +86,30 @@ int main(void) {
     }
     if (N != 2) {
         return 6U;
+    }
+    uint32_t i = 3U;
+    uint32_t total = 0U;
+    if (i == 3) {
+        /* C11 6.2.1p7, C++ [basic.scope.pdecl]: `i` emitted as `main__i` (a plain `i` is in scope from its declarator, so its initializer would read the new, uninitialized `i` instead of the enclosing one). */
+        for (uint32_t main__i = i; main__i < 5; main__i = cnx_clamp_add_u32(main__i, 1U)) {
+            total = cnx_clamp_add_u32(total, main__i);
+        }
+    }
+    if (total != 7) {
+        return 7U;
+    }
+    uint32_t count = 0U;
+    if (i == 3) {
+        for (uint32_t i = 0U; i < 2; i = cnx_clamp_add_u32(i, 1U)) {
+            count = cnx_clamp_add_u32(count, 1U);
+        }
+    }
+    if (count != 2) {
+        return 8U;
+    }
+    uint32_t field = point(1U);
+    if (field != 5) {
+        return 9U;
     }
     return 0U;
 }

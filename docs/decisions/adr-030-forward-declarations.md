@@ -382,19 +382,27 @@ What E0427 answers about is the name a spelling STARTS from. Whether a member
 further along a chain exists — the `nope` in `Scope.nope` or `this.cfg.nope` —
 is a different question and is not covered here, equally in both positions.
 
+One value position is not reached yet: a `switch` case label, where `case
+NOPE { }` is emitted as written (#1629, open).
+
 **A variable is defined once its declaration closes** — after its initializer
 — whatever declares it: a local, a `for` variable, a parameter, a global or a
 scope member (#1643). Its own initializer therefore names something not yet
 defined: `u32 n <- n + 1`, `string<32> s <- s[0, 2]`, `u32 x <- this.x + 1` in
 a scope and `u32 g <- global.g + 1` at file scope are each E0427, as a global
-or member named above its declaration is. Where an outer declaration of the
-name is defined, the spelling means that one — `u32 g <- g + 1` in a function,
-under a global `g`, reads the global, and so does the C, since the local is
-emitted as `f__g` (ADR-057). Under an enclosing local or parameter it is the
-same: `u32 p <- p + 1` in a block, under a parameter `p`, reads the parameter,
-and the new local gets its own C name so the C reads the parameter too
-(ADR-057). The variable is not zero-initialized-then-read,
-which is why this is not ADR-015's E0381 (owner ruling, 2026-10-12).
+or member named above its declaration is when nothing else of that name is
+defined there. Where an outer declaration of the name is defined, the spelling
+means that one, by ADR-057's local → scope → global priority applied to what is
+defined at the use. `u32 g <- g + 1` in a function, under a global `g`, reads
+the global, and so does the C, since the local is emitted as `f__g`
+(ADR-057). Under an enclosing local or parameter it is the same: `u32 p <- p +
+1` in a block, under a parameter `p`, reads the parameter, and the new local
+gets its own C name so the C reads the parameter too (ADR-057). A scope member
+named above its declaration, under a global of that name, means the global:
+in `scope S { const u32 M <- N; const u32 N <- 10; }` under `const u32 N <-
+4;`, `M` is 4 (owner ruling, 2026-10-12, on #2013). The variable is not
+zero-initialized-then-read, which is why this is not ADR-015's E0381 (owner
+ruling, 2026-10-12).
 
 **A qualified spelling states which level to search, and searching any other
 level is a different answer, not a fallback.** `this.x` asks the enclosing
@@ -407,11 +415,15 @@ visible at one level is not thereby visible at another.
 cannot enumerate what is in scope and does not claim a name is undefined on
 evidence it does not have. The exemption is a promise about interop, and it
 covers every name the file does not itself declare, not only the names that
-came from the header. It does not cover a name the file declares: that is
-evidence C-Next has, and no header can give the name another meaning, since a
-macro of that name would break the file's own declaration. Above where its
-declaration closes, such a name is E0427 in a file that reaches a header as in
-any other (#2019).
+came from the header. It does not cover a spelling that a declaration of the
+file would bind where it is written, once that declaration has closed: that is
+evidence C-Next has, so above the declaration's end it is E0427 in a file that
+reaches a header as in any other (#2019). A declaration that could not bind
+there is no such evidence. Another function's local, or a scope's member under
+a bare name outside the scope, leaves the name to the header, as
+`global.REG_BYTE` beside a scope's own `REG_BYTE` names the header's macro
+(#1688). A header macro of the same name can still redirect the file's own
+declaration, which C-Next cannot see today (#2032).
 
 The qualifier matters and an earlier draft of this passage got it wrong, saying
 a header "the transpiler does not parse". Parsing is not the criterion and

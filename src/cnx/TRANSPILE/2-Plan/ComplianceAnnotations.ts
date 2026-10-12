@@ -1,4 +1,5 @@
 import type IComplianceAnnotation from "./types/IComplianceAnnotation";
+import type TNameMove from "../../types/TNameMove";
 
 /**
  * 2.2 Plan -- which safety-standard rule shaped a construct, and how that is
@@ -31,19 +32,18 @@ import type IComplianceAnnotation from "./types/IComplianceAnnotation";
  */
 
 class ComplianceAnnotations {
-  /** The only standard cited today. Kept explicit so a second one is visible. */
-  private static readonly STANDARD = "MISRA C:2012";
+  private static readonly MISRA = "MISRA C:2012 Rule";
 
   /** ADR-026 `forever` lowers to `for (;;)`. */
   static readonly FOREVER_LOOP: IComplianceAnnotation = {
-    rule: "14.3",
+    citation: `${ComplianceAnnotations.MISRA} 14.3`,
     what: "infinite loop written as `for (;;)` for C-Next `forever`",
     why: "`while (1)` has a controlling expression with an invariant value, which the rule forbids",
   };
 
   /** ADR-029's generated init function needs a declaration before its definition. */
   static readonly INIT_PROTOTYPE: IComplianceAnnotation = {
-    rule: "8.4",
+    citation: `${ComplianceAnnotations.MISRA} 8.4`,
     what: "declaration for the ADR-029 generated init function",
     why: "the definition has external linkage and would otherwise be undeclared",
   };
@@ -61,7 +61,7 @@ class ComplianceAnnotations {
     srcCType: string,
   ): IComplianceAnnotation {
     return {
-      rule: "21.15",
+      citation: `${ComplianceAnnotations.MISRA} 21.15`,
       what: "slice copy unrolled to per-element writes",
       why: `memcpy would pass incompatible pointer types: ${destCType}* vs ${srcCType}*`,
     };
@@ -77,9 +77,34 @@ class ComplianceAnnotations {
     bitsCType: string,
   ): IComplianceAnnotation {
     return {
-      rule: "21.15",
+      citation: `${ComplianceAnnotations.MISRA} 21.15`,
       what: "float bits accessed through a union",
       why: `memcpy would pass incompatible pointer types: ${floatCType}* vs ${bitsCType}*`,
+    };
+  }
+
+  /**
+   * ADR-057 / #1643: a local or parameter emitted under a moved C name. C
+   * has no `::`, and a name's scope starts right after its declarator, so the
+   * plain name is wrong in each case the move records.
+   */
+  static movedName(
+    move: TNameMove,
+    name: string,
+    emittedName: string,
+  ): IComplianceAnnotation {
+    const what = `\`${name}\` emitted as \`${emittedName}\``;
+    if (move === "hidesFileScope") {
+      return {
+        citation: "C11 6.2.1p4, C++ [basic.scope.hiding]",
+        what,
+        why: `a plain \`${name}\` would hide the file-scope \`${name}\` for the rest of its scope, so \`global.${name}\` would reach the local`,
+      };
+    }
+    return {
+      citation: "C11 6.2.1p7, C++ [basic.scope.pdecl]",
+      what,
+      why: `a plain \`${name}\` is in scope from its declarator, so its initializer would read the new, uninitialized \`${name}\` instead of the enclosing one`,
     };
   }
 
@@ -88,10 +113,23 @@ class ComplianceAnnotations {
    * `/* <Standard> Rule <N>: <what> (<why>). *\/`.
    */
   static render(annotation: IComplianceAnnotation): string {
-    return (
-      `/* ${ComplianceAnnotations.STANDARD} Rule ${annotation.rule}: ` +
-      `${annotation.what} (${annotation.why}). */`
-    );
+    return `/* ${annotation.citation}: ${annotation.what} (${annotation.why}). */`;
+  }
+
+  /** `render` for each of a declaration's moves, one line each, above it */
+  static renderMoves(
+    moves: ReadonlyArray<TNameMove>,
+    name: string,
+    emittedName: string,
+  ): string {
+    return moves
+      .map(
+        (move) =>
+          ComplianceAnnotations.render(
+            ComplianceAnnotations.movedName(move, name, emittedName),
+          ) + "\n",
+      )
+      .join("");
   }
 
   /**
@@ -121,6 +159,8 @@ class ComplianceAnnotations {
       ComplianceAnnotations.INIT_PROTOTYPE,
       ComplianceAnnotations.sliceUnroll("uint8_t", "uint32_t"),
       ComplianceAnnotations.floatBitsUnion("float", "uint32_t"),
+      ComplianceAnnotations.movedName("hidesFileScope", "g", "f__g"),
+      ComplianceAnnotations.movedName("readsEnclosing", "p", "f__p"),
     ];
   }
 }

@@ -3,6 +3,7 @@ import type TOverflowBehavior from "./TOverflowBehavior";
 import type TType from "./TType";
 import type TConstExpr from "./TConstExpr";
 import type TSettledConst from "./TSettledConst";
+import type TNameMove from "./TNameMove";
 
 /**
  * One declaration inside a function: a local, a parameter, a `for` variable
@@ -61,6 +62,11 @@ interface ILocalDeclaration {
    * binding at its own position, so a block's rename ends with the block.
    */
   readonly emittedName: string | null;
+  /**
+   * #1643 review: why `emittedName` is not `name`, settled with it -- empty
+   * when it is, and before 1.4 settles it
+   */
+  readonly nameMoves: ReadonlyArray<TNameMove>;
 }
 
 export default ILocalDeclaration;

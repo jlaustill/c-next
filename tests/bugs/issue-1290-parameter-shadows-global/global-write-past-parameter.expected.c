@@ -18,6 +18,7 @@ uint32_t total = 7U;
 
 Point pt = { .x = 1U, .y = 2U };
 
+/* C11 6.2.1p4, C++ [basic.scope.hiding]: `total` emitted as `shadowWritesGlobal__total` (a plain `total` would hide the file-scope `total` for the rest of its scope, so `global.total` would reach the local). */
 uint32_t shadowWritesGlobal(uint32_t shadowWritesGlobal__total) {
     total = shadowWritesGlobal__total;
     return shadowWritesGlobal__total;
@@ -28,6 +29,7 @@ uint32_t controlWritesGlobal(uint32_t other) {
     return other;
 }
 
+/* C11 6.2.1p4, C++ [basic.scope.hiding]: `pt` emitted as `shadowWritesGlobalMember__pt` (a plain `pt` would hide the file-scope `pt` for the rest of its scope, so `global.pt` would reach the local). */
 uint32_t shadowWritesGlobalMember(const Point* shadowWritesGlobalMember__pt) {
     pt.y = shadowWritesGlobalMember__pt->x;
     return shadowWritesGlobalMember__pt->y;

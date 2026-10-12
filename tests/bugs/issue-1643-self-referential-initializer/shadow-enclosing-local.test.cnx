@@ -6,6 +6,21 @@
 // its declarator, before the initializer, so the new one gets its own C name
 // (ADR-057). Each case returns a distinct code if the C reads the new local.
 
+struct Point {
+    u32 p;
+    u32 y;
+}
+
+u32 point(u32 p) {
+    // NEGATIVE CONTROL -- `p:` names a field, not the parameter, so the
+    // local keeps its plain C name
+    if (p = 1) {
+        Point p <- { p: 5, y: 6 };
+        return p.p;
+    }
+    return 0;
+}
+
 u32 bump(u32 p) {
     if (p = 1) {
         u32 p <- p + 1;
@@ -55,6 +70,30 @@ u8 main() {
     }
     if (N != 2) {
         return 6;
+    }
+    u32 i <- 3;
+    u32 total <- 0;
+    if (i = 3) {
+        for (u32 i <- i; i < 5; i +<- 1) {
+            total +<- i;
+        }
+    }
+    if (total != 7) {
+        return 7;
+    }
+    u32 count <- 0;
+    if (i = 3) {
+        // NEGATIVE CONTROL -- shadows `i` without reading it
+        for (u32 i <- 0; i < 2; i +<- 1) {
+            count +<- 1;
+        }
+    }
+    if (count != 2) {
+        return 8;
+    }
+    u32 field <- point(1);
+    if (field != 5) {
+        return 9;
     }
     return 0;
 }

@@ -18,6 +18,7 @@ uint32_t x = 5U;
 
 int main(void) {
     {
+        /* C11 6.2.1p4, C++ [basic.scope.hiding]: `x` emitted as `main__x` (a plain `x` would hide the file-scope `x` for the rest of its scope, so `global.x` would reach the local). */
         uint8_t main__x = 1U;
         main__x = 2U;
         if (main__x != 2) {

@@ -29,6 +29,7 @@ extern const uint32_t N = 8U;
 uint32_t probe(void) {
     uint32_t x = 0U;
     {
+        /* C11 6.2.1p4, C++ [basic.scope.hiding]: `N` emitted as `probe__N` (a plain `N` would hide the file-scope `N` for the rest of its scope, so `global.N` would reach the local). */
         const uint32_t probe__N = 2U;
         x = probe__N;
     }

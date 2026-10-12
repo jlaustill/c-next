@@ -139,6 +139,7 @@ class FrameListener extends CNextListener {
         initializerCallee: null,
         constValue: null,
         emittedName: null,
+        nameMoves: [],
       });
     });
   };
@@ -176,7 +177,8 @@ class FrameListener extends CNextListener {
    * #1643 (ADR-030): whether a declaration spells its own name, written bare,
    * past its declarator -- in an initializer or constructor arguments. The
    * declaration is not defined until it closes, so that spelling binds the
-   * declaration it shadows; `this.x`, `global.x` and `.x` follow a `.`.
+   * declaration it shadows; `this.x`, `global.x` and `.x` follow a `.`, and a
+   * struct initializer's `x:` names a field.
    */
   private static spellsOwnName(
     ctx: Parser.VariableDeclarationContext | Parser.ForVarDeclContext,
@@ -192,7 +194,8 @@ class FrameListener extends CNextListener {
           isPastDeclarator &&
           node.symbol.type === Parser.CNextParser.IDENTIFIER &&
           node.getText() === name &&
-          previous !== ".";
+          previous !== "." &&
+          !FrameListener.isFieldKey(node);
         isPastDeclarator ||= node === declarator;
         previous = node.getText();
         return;
@@ -206,6 +209,15 @@ class FrameListener extends CNextListener {
     };
     visit(ctx);
     return spells;
+  }
+
+  /** Whether a terminal is the field name of a struct initializer's `x: v` */
+  private static isFieldKey(node: TerminalNode): boolean {
+    const parent = node.parent;
+    return (
+      parent instanceof Parser.FieldInitializerContext &&
+      parent.IDENTIFIER() === node
+    );
   }
 
   private record(
@@ -238,6 +250,7 @@ class FrameListener extends CNextListener {
       initializerCallee: facts.initializerCallee,
       constValue: null,
       emittedName: null,
+      nameMoves: [],
     });
   }
 }

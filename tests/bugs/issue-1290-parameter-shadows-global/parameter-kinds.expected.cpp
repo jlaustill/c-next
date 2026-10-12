@@ -60,34 +60,41 @@ void bump(uint32_t& v) {
 
 /* Scope: S */
 
+/* C11 6.2.1p4, C++ [basic.scope.hiding]: `pt` emitted as `S__structCase__pt` (a plain `pt` would hide the file-scope `pt` for the rest of its scope, so `global.pt` would reach the local). */
 int32_t S__structCase(Point& S__structCase__pt) {
     S__structCase__pt.x = 30;
     pt.y = 9;
     return cnx_clamp_add_i32(S__structCase__pt.y, pt.x);
 }
 
+/* C11 6.2.1p4, C++ [basic.scope.hiding]: `pt` emitted as `S__structCopy__pt` (a plain `pt` would hide the file-scope `pt` for the rest of its scope, so `global.pt` would reach the local). */
 int32_t S__structCopy(const Point& S__structCopy__pt) {
     Point copy = S__structCopy__pt;
     return copy.x;
 }
 
+/* C11 6.2.1p4, C++ [basic.scope.hiding]: `pt` emitted as `S__structPass__pt` (a plain `pt` would hide the file-scope `pt` for the rest of its scope, so `global.pt` would reach the local). */
 int32_t S__structPass(const Point& S__structPass__pt) {
     return sumPoint(S__structPass__pt);
 }
 
+/* C11 6.2.1p4, C++ [basic.scope.hiding]: `label` emitted as `stringPass__label` (a plain `label` would hide the file-scope `label` for the rest of its scope, so `global.label` would reach the local). */
 uint32_t stringPass(const char* stringPass__label) {
     return measure(stringPass__label);
 }
 
+/* C11 6.2.1p4, C++ [basic.scope.hiding]: `flags` emitted as `readFlag__flags` (a plain `flags` would hide the file-scope `flags` for the rest of its scope, so `global.flags` would reach the local). */
 bool readFlag(const Flags& readFlag__flags) {
     bool r = ((((readFlag__flags >> 2) & 1)) != 0U);
     return r;
 }
 
+/* C11 6.2.1p4, C++ [basic.scope.hiding]: `flags` emitted as `writeFlag__flags` (a plain `flags` would hide the file-scope `flags` for the rest of its scope, so `global.flags` would reach the local). */
 void writeFlag(Flags& writeFlag__flags) {
     writeFlag__flags = (uint8_t)((writeFlag__flags & ~(1U << 3)) | (1U << 3));
 }
 
+/* C11 6.2.1p4, C++ [basic.scope.hiding]: `count` emitted as `passOn__count` (a plain `count` would hide the file-scope `count` for the rest of its scope, so `global.count` would reach the local). */
 void passOn(uint32_t& passOn__count) {
     bump(passOn__count);
 }

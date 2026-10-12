@@ -192,6 +192,12 @@ interface IOrchestrator {
     parameters: readonly IPlannedFunctionParameter[] | null,
   ): void;
 
+  /**
+   * #1643 review: one comment per parameter of the function being generated
+   * whose C name moved (ADR-057), for above its definition
+   */
+  movedParameterComments(): string;
+
   exitFunctionContext(): void;
 
   // === Function Body Management ===

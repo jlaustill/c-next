@@ -1,12 +1,13 @@
-import type ISourceSpan from "../../types/ISourceSpan";
+import type ILocalDeclaration from "../../types/ILocalDeclaration";
+import type IVariableSymbol from "../../types/symbols/IVariableSymbol";
 import type ISourcePosition from "./ISourcePosition";
 
 /**
- * #1643: when a declaration spanning `declaration` counts as defined at
- * `at` -- `DefinitionPoint.isDefinedAt`, the one rule binding follows
+ * #1643: when a declaration counts as defined at `at` --
+ * `DefinitionPoint.isDefinedAt`, the one rule binding follows
  */
 type TDefinedAt = (
-  declaration: Pick<ISourceSpan, "endLine" | "endColumn">,
+  declaration: ILocalDeclaration | IVariableSymbol,
   at: Pick<ISourcePosition, "line" | "column">,
 ) => boolean;
 

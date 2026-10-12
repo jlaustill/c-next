@@ -19,6 +19,7 @@
 Full held = { .x = 100, .y = 200 };
 
 int32_t readThrough(void) {
+    /* C11 6.2.1p4, C++ [basic.scope.hiding]: `held` emitted as `readThrough__held` (a plain `held` would hide the file-scope `held` for the rest of its scope, so `global.held` would reach the local). */
     Full* readThrough__held = full_get();
     readThrough__held->x = 4;
     return readThrough__held->y;

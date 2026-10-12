@@ -12,7 +12,14 @@
 extern "C" {
 #endif
 
+/* Struct definitions */
+typedef struct Point {
+    uint32_t p;
+    uint32_t y;
+} Point;
+
 /* Function prototypes */
+uint32_t point(uint32_t p);
 uint32_t bump(uint32_t p);
 uint32_t replace(uint32_t q);
 

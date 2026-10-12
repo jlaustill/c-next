@@ -240,10 +240,11 @@ interface IProgram {
   ): TValueBinding | null;
 
   /**
-   * #2019: whether the spelling names a declaration of `sourceFile` that has
-   * not closed at `at` -- one `bindValue` does not bind yet (ADR-030).
+   * ADR-030 / #2019: whether a spelling nothing binds at `at` may be a
+   * header's `#define`: the file reaches a C or C++ header, and no
+   * declaration of its own would bind the spelling there once closed
    */
-  isUnclosedAt(
+  mayBeHeaderName(
     sourceFile: string,
     root: TChainRoot,
     name: string,

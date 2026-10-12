@@ -13,6 +13,8 @@ interface IPlannedForVarDecl {
   readonly typeName: string;
   /** #1934: the C identifier it is emitted under, as 1.4 settled it (ADR-057) */
   readonly emittedName: string;
+  /** #1643 review: why `emittedName` moved, above the `for` (ADR-057) */
+  readonly nameMoveComments: string;
   /** ADR-036 dimensions, or null when the declaration is not an array. */
   readonly renderArrayDimensions: (() => string) | null;
   /**

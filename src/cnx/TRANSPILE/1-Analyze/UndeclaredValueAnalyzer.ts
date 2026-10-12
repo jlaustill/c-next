@@ -42,7 +42,7 @@ import NameExistence from "../../PARSE/3-Declare/NameExistence";
 import ParserUtils from "../../utils/ParserUtils";
 import REJECTED_KEYWORDS from "./REJECTED_KEYWORDS";
 import ScopeUtils from "../../utils/ScopeUtils";
-import ScopeTypeMember from "../../utils/ScopeTypeMember";
+import PositionFreeScopeMember from "../../utils/PositionFreeScopeMember";
 import OperandTyper from "../../utils/OperandTyper";
 import TChainRoot from "../../types/TChainRoot";
 import type IAnalysisContext from "./types/IAnalysisContext";
@@ -189,18 +189,13 @@ class UndeclaredValueAnalyzer {
     if (this.isNamed(name, root, at)) {
       return true;
     }
-    // ADR-030: a file that reaches a C or C++ header is exempt -- a `#define`
-    // reaches no symbol table, so a name nothing here declares may be a
-    // macro. A name this file declares is not one (#2019): until its
-    // declaration closes it is undefined here as anywhere.
-    return (
-      this.context.reachesForeignHeader &&
-      !this.context.program.isUnclosedAt(
-        this.context.sourceFile,
-        root,
-        name,
-        ParserUtils.getPosition(at),
-      )
+    // ADR-030 / #2019: a name no declaration of this file would bind here may
+    // be a header's `#define`, which reaches no symbol table
+    return this.context.program.mayBeHeaderName(
+      this.context.sourceFile,
+      root,
+      name,
+      ParserUtils.getPosition(at),
     );
   }
 
@@ -286,7 +281,7 @@ class UndeclaredValueAnalyzer {
         symbols,
         context.symbolTable,
       ) ||
-      ScopeTypeMember.is(
+      PositionFreeScopeMember.is(
         symbols.scopeMembers.get(scopePath),
         scopePath,
         name,

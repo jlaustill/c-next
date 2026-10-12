@@ -67,7 +67,10 @@ initializer holds its type's default, which is where a default is observed.
 A declaration's own initializer cannot read it at all, in any context: the
 variable is defined once its declaration closes, so `u32 n <- n + 1` names
 nothing yet and is ADR-030's E0427, not a read of an uninitialized value
-(owner ruling on #1643, 2026-10-12).
+(owner ruling on #1643, 2026-10-12). A constructor declaration's arguments are the
+one place the same use has its own code: `Tally seed(seed);` with no `seed`
+defined above it, or `Tally t(LATER);` above `const u8 LATER <- 3;`, is E0433
+(constructor argument not declared), the constructor form of E0427.
 
 This decision aligns with ADR-008 (Language-Level Bug Prevention), Section 6: Uninitialized Variables.
 

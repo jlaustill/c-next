@@ -30,6 +30,7 @@ Point pt = { .x = 1U, .y = 2U };
 uint32_t total = 7U;
 
 uint32_t shadowInit(void) {
+    /* C11 6.2.1p4, C++ [basic.scope.hiding]: `pt` emitted as `shadowInit__pt` (a plain `pt` would hide the file-scope `pt` for the rest of its scope, so `global.pt` would reach the local). */
     Point shadowInit__pt = { .x = 3U, .y = 4U };
     pt.x = 5U;
     return shadowInit__pt.x;

@@ -87,9 +87,10 @@ const generateFunction: TGeneratorFn<IPlannedFunction> = (
       : "void";
   }
 
+  const moveComments = orchestrator.movedParameterComments();
   orchestrator.exitFunctionContext();
 
-  const functionCode = `${actualReturnType} ${name}(${params}) ${body}\n`;
+  const functionCode = `${moveComments}${actualReturnType} ${name}(${params}) ${body}\n`;
 
   orchestrator.recordCallbackTypedef(name);
 
