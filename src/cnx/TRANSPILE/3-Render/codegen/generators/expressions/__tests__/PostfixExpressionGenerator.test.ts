@@ -9,6 +9,7 @@
  * - Property access (.length, .capacity, .size)
  */
 
+import type IProgram from "../../../../../../types/IProgram";
 import type IChainBase from "../../../../../../types/IChainBase";
 import type IOperandType from "../../../../../../types/IOperandType";
 import type IChainStep from "../../../../../../types/IChainStep";
@@ -510,6 +511,14 @@ describe("PostfixExpressionGenerator", () => {
   // Reset TranspileState before each test to avoid state pollution
   beforeEach(() => {
     sharedState = new TranspileState();
+    // Render runs against a program (#1668); `this.member` asks it whether
+    // the member is a private const (#1739)
+    sharedState.program = {
+      symbolByCName: () => undefined,
+      settledConstOf: () => null,
+    } as unknown as IProgram;
+    sharedState.symbols = createMockSymbols();
+    sharedState.sourcePath = "test.cnx";
   });
 
   describe("basic expression generation", () => {
@@ -744,14 +753,31 @@ describe("PostfixExpressionGenerator", () => {
       expect(result.code).toBe("Motor__speed");
     });
 
-    it("resolves this.member to const value when available", () => {
-      const symbols = createMockSymbols({
-        scopePrivateConstValues: new Map([["Motor__MAX_SPEED", "100"]]),
-      });
+    it("resolves this.member to the program's settled const value", () => {
+      // #1739: the value 1.4 settled, not the initializer's text
+      const constSymbol = {
+        kind: "variable",
+        scopePath: "Motor",
+        visibility: "private",
+        isConst: true,
+        isArray: false,
+        type: { kind: "primitive", primitive: "u32" },
+        initialValue: "LIMIT * 2",
+        initialValueExpr: { kind: "binary" },
+      };
+      const program = {
+        symbolByCName: (cName: string) =>
+          cName === "Motor__MAX_SPEED" ? constSymbol : undefined,
+        settledConstOf: (cName: string) =>
+          cName === "Motor__MAX_SPEED"
+            ? { kind: "value", digits: "100", typeName: "u32" }
+            : null,
+      } as unknown as IProgram;
       const ctx = createMockPostfixExpressionContext("this", [
         createMockPostfixOp({ identifier: "MAX_SPEED" }),
       ]);
-      const input = createMockInput({ symbols });
+      sharedState.program = program;
+      const input = createMockInput();
       const state = createMockState({
         currentScopePath: "Motor",
       });
@@ -760,7 +786,8 @@ describe("PostfixExpressionGenerator", () => {
       });
 
       const result = runPostfix(ctx, input, state, orchestrator);
-      expect(result.code).toBe("100");
+      // A literal of the const's u32 type, so the MISRA 7.2 U is on it
+      expect(result.code).toBe("100U");
     });
 
     it("resolves this.member to struct type when member is a struct", () => {

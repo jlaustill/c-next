@@ -1,0 +1,21 @@
+// test-error
+// Tests: a string<N> value does not land in an integer either: a declaration,
+// an assignment, an argument, a return and an element are all rejected
+
+u32 take(u32 v) {
+    return v;
+}
+
+string<8> s <- "ok";
+
+u32 give() {
+    return s;
+}
+
+void main() {
+    u32 x <- s;
+    x <- s;
+    u32 y <- take(s);
+    u8[4] a <- [0*];
+    a[0] <- s;
+}

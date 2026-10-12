@@ -34,7 +34,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 /* Scope: Report */
 static uint32_t Report__tally = 0U;
 static uint32_t Report__weight = 5U;
-static uint32_t Report__primed = 3;
+static uint32_t Report__primed = 3U;
 
 uint32_t Report__factor(void) {
     return Report__weight;

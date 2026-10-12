@@ -73,10 +73,14 @@ function renderCaseLabel(
       // Issue #471: an unqualified member of the switch's enum takes its
       // type prefix. #1322: a bare member the enum does NOT declare is E0424
       // in pass 2.1 (ADR-017); what reaches here otherwise is a const label.
-      return subjectEnumType
-        ? (tryResolveEnumMember(label.name, subjectEnumType, input.symbols) ??
-            label.name)
-        : label.name;
+      // #1739: a const label is written as any use of the const is
+      return (
+        (subjectEnumType
+          ? tryResolveEnumMember(label.name, subjectEnumType, input.symbols)
+          : null) ??
+        label.resolved ??
+        label.name
+      );
     case "numeric":
       return label.negative ? `-${label.text}` : label.text;
     case "binary":

@@ -1,0 +1,35 @@
+// test-error
+// Tests: E0914 -- a string lands in no enum or bitmap
+enum EColor {
+    RED,
+    GREEN
+}
+
+bitmap8 Flags {
+    a,
+    b,
+    c,
+    d,
+    e,
+    f,
+    g,
+    h
+}
+
+scope S {
+    enum ELocal {
+        X,
+        Y
+    }
+
+    public u32 pick() {
+        ELocal l <- "X";
+        return 0;
+    }
+}
+
+u32 main() {
+    EColor c <- "RED";
+    Flags f <- "x";
+    return 0;
+}
