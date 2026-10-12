@@ -10,6 +10,8 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import TranspileState from "../TranspileState";
 import ToolchainRequirements from "../../instrumentation/ToolchainRequirements";
+import type IEmissionPlan from "../../types/IEmissionPlan";
+import type TDeferredSiteKey from "../../types/TDeferredSiteKey";
 
 describe("TranspileState", () => {
   let state = new TranspileState();
@@ -57,17 +59,24 @@ describe("TranspileState", () => {
     // #1452 moved the sink to instrumentation/, so the observation is made
     // there. The subject is still this funnel: requireInclude decides which
     // headers defer, and that decision is what these four rows pin.
+    const DEFERRED_KEYS: readonly TDeferredSiteKey[] = [
+      "irq_wrappers",
+      "float_static_assert",
+      "ldrex_strex_loop",
+    ];
     it.each([
-      ["float_static_assert", true],
-      ["irq_wrappers", true],
-      ["isr", false],
-      ["string", false],
-    ] as const)("%s deferred-site recorded: %s", (header, recorded) => {
+      ["float_static_assert", ["float_static_assert"]],
+      ["irq_wrappers", ["irq_wrappers"]],
+      ["isr", []],
+      ["string", []],
+    ] as const)("%s defers a site under: %j", (header, deferred) => {
       state.requireInclude(header, 42);
 
-      expect(ToolchainRequirements.takeDeferredSites(header).length > 0).toBe(
-        recorded,
-      );
+      expect(
+        DEFERRED_KEYS.filter(
+          (key) => ToolchainRequirements.takeDeferredSites(key).length > 0,
+        ),
+      ).toEqual(deferred);
     });
 
     // #1452: the sink's third argument. `requireInclude` briefly took
@@ -292,5 +301,63 @@ describe("TranspileState", () => {
       expect(state.expectedType).toBeNull();
       expect(state.suppressBareEnumResolution).toBe(false);
     });
+  });
+});
+
+// #1997: Render reports the forms it emitted; 2.2 reads them once, at the
+// plan build. A form noted after that would vanish from the banner and the
+// file result without failing, so the write is refused instead.
+const FORMS = [
+  [
+    "designated initializer",
+    (s: TranspileState) => s.noteDesignatedInitializer(),
+    (s: TranspileState) => s.emittedDesignatedInitializer,
+  ],
+  [
+    "compound literal",
+    (s: TranspileState) => s.noteCompoundLiteral(),
+    (s: TranspileState) => s.emittedCompoundLiteral,
+  ],
+  [
+    "LDREX/STREX loop",
+    (s: TranspileState) => s.noteLdrexStrexLoop(),
+    (s: TranspileState) => s.emittedLdrexStrexLoop,
+  ],
+] as const;
+
+describe("TranspileState -- emitted forms", () => {
+  let state = new TranspileState();
+
+  beforeEach(() => {
+    state = new TranspileState();
+    ToolchainRequirements.reset();
+  });
+
+  it.each(FORMS)(
+    "records a %s before the plan, and refuses one after",
+    (form, note, emitted) => {
+      expect(emitted(state)).toBe(false);
+      note(state);
+      expect(emitted(state)).toBe(true);
+
+      state.emissionPlanOrNull = {} as IEmissionPlan;
+      expect(() => note(state)).toThrow(`a ${form} was emitted after 2.2 Plan`);
+    },
+  );
+
+  // #1143's leak shape: a form one file emitted must not cost the next file.
+  it.each(FORMS)("reset clears a noted %s", (_form, note, emitted) => {
+    note(state);
+    state.reset();
+    expect(emitted(state)).toBe(false);
+  });
+
+  it("notes the LDREX/STREX site for attribution", () => {
+    state.sourcePath = "a.cnx";
+    state.noteLdrexStrexLoop();
+
+    expect(ToolchainRequirements.takeDeferredSites("ldrex_strex_loop")).toEqual(
+      [{ sourcePath: "a.cnx", line: null }],
+    );
   });
 });

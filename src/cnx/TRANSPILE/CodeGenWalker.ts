@@ -1597,13 +1597,6 @@ class CodeGenWalker {
   ): string {
     const output: string[] = [];
 
-    // Issue #1143: every file carries its mode's baseline. Recorded here rather
-    // than assumed by consumers, so "what does this file need?" has exactly one
-    // answer source even for the trivial case.
-    ToolchainRequirements.record(
-      this.host.state.cppMode ? "baseline-cpp" : "baseline-c",
-    );
-
     // 2.2 Plan's fact, recorded where it is KNOWN rather than recovered from
     // text. `captureEmissionFacts` used to regex `#include` lines back out of
     // the rendered `output` array, so a fact the parse tree carries was
@@ -1883,6 +1876,13 @@ class CodeGenWalker {
         "float_static_assert",
       ),
       irqWrapperSites: ToolchainRequirements.takeDeferredSites("irq_wrappers"),
+      debugMode: this.host.state.debugMode,
+      emittedDesignatedInitializer:
+        this.host.state.emittedDesignatedInitializer,
+      emittedCompoundLiteral: this.host.state.emittedCompoundLiteral,
+      emittedLdrexStrexLoop: this.host.state.emittedLdrexStrexLoop,
+      ldrexStrexSites:
+        ToolchainRequirements.takeDeferredSites("ldrex_strex_loop"),
     };
   }
 
@@ -1927,7 +1927,7 @@ class CodeGenWalker {
       );
     }
 
-    const helpers = this.generateOverflowHelpers(plan.clampOps);
+    const helpers = this.generateOverflowHelpers(plan);
     if (helpers.length > 0) {
       output.push(...helpers);
     }
@@ -3225,14 +3225,11 @@ class CodeGenWalker {
     }
 
     // For C-Next/C structs, generate designated initializer.
-    // Issue #1143: `.field = value` is C99 in C mode (baseline, free) but
-    // C++20 in C++ mode -- GCC and Clang accept it earlier as an extension,
-    // which is how this repo's own -std=c++14 harness compiles the output.
-    // The text is identical in both modes, so the mode has to be recorded
-    // here; no probe over the output could recover it.
-    if (this.host.state.cppMode) {
-      ToolchainRequirements.record("cpp-designated-initializer");
-    }
+    // #1997: reported as the form emitted, in both modes. What it costs (C99 in
+    // C, C++20 in C++) is 2.2's decision, made from this fact and the mode.
+    // The text is identical in both modes, so no probe over the output could
+    // recover it; the fact has to come from here.
+    this.host.state.noteDesignatedInitializer();
     const fieldInits = fields.map((f) => `.${f.fieldName} = ${f.value}`);
 
     return this.formatStructInitializer(typeName, castType, fieldInits);
@@ -3266,11 +3263,9 @@ class CodeGenWalker {
       return initializer;
     }
 
-    // Issue #1143: a compound literal is C99, but is not ISO C++ at any
-    // version -- GCC and Clang accept it as an extension.
-    if (this.host.state.cppMode) {
-      ToolchainRequirements.record("cpp-compound-literal");
-    }
+    // #1997: reported as the form emitted. A compound literal is C99, but is
+    // not ISO C++ at any version, and 2.2 decides what that costs.
+    this.host.state.noteCompoundLiteral();
     return `(${castType})${initializer}`;
   }
 
@@ -4820,12 +4815,13 @@ class CodeGenWalker {
    * Takes the ops from the PLAN, not from `CodeGenState`. Reading the state
    * here while the plan also carried them was the fact in two places with the
    * renderer using the other one -- the duplicate path this pass exists to
-   * remove, reintroduced by the pass itself.
+   * remove, reintroduced by the pass itself. The panic-or-clamp flavor comes
+   * off the plan too (#1997): the block that decides it carries its cost.
    */
-  private generateOverflowHelpers(clampOps: readonly string[]): string[] {
+  private generateOverflowHelpers(plan: IEmissionPlan): string[] {
     return helperGenerateOverflowHelpers(
-      new Set(clampOps),
-      this.host.state.debugMode,
+      new Set(plan.clampOps),
+      plan.panicOverflowHelpers !== null,
     );
   }
 

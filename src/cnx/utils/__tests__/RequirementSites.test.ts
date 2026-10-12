@@ -1,6 +1,6 @@
 /**
- * #1928: the one key-to-sites fold `ToolchainRequirements.record`,
- * `.noteDeferredSite` and `RequirementAggregator.union` all share.
+ * #1928: the one key-to-sites fold `ToolchainRequirements.noteDeferredSite`
+ * and `RequirementAggregator.union` share (`record` too, until #1997).
  */
 import { describe, it, expect } from "vitest";
 import RequirementSites from "../RequirementSites";

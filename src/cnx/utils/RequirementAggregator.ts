@@ -24,8 +24,8 @@ class RequirementAggregator {
 
   /**
    * Union requirement lists by key, keeping every distinct site in the order
-   * first seen. One file's list is built this way too (#1928): what Render
-   * recorded, plus what the emission plan's blocks carry.
+   * first seen. Feeds `merge` only: one file's list is a view of its emission
+   * plan (#1997), which has one entry per key already.
    */
   static union(
     lists: readonly (readonly IRecordedRequirement[])[],

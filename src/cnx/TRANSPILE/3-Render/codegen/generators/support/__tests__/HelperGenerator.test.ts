@@ -1,25 +1,8 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import helperGenerators from "../HelperGenerator";
-import ToolchainRequirements from "../../../../../../instrumentation/ToolchainRequirements";
 
 const { generateOverflowHelpers, generateSafeDivHelpers, generateCastHelpers } =
   helperGenerators;
-
-/**
- * Issue #1143: the debug branch records `overflow-panic-hosted-libc`, so these
- * template functions are no longer pure. Vitest's per-file isolation hides the
- * leak today, which makes it a trap rather than a failure -- the same reason
- * CLAUDE.md already requires this for analyzer tests.
- *
- * #1452: this was `CodeGenState.reset()`, which cleared the requirement maps as
- * part of clearing everything. Those maps moved to `ToolchainRequirements`, so
- * the teardown names the owner directly -- it was briefly an empty body under
- * this same docblock, which reads as "handled" while the write at
- * `HelperGenerator.ts` records into a `private static` Map nothing clears.
- */
-afterEach(() => {
-  ToolchainRequirements.reset();
-});
 
 describe("HelperGenerator - generateOverflowHelpers", () => {
   describe("empty input", () => {

@@ -13,7 +13,6 @@ import OverflowHelperTemplates from "./OverflowHelperTemplates";
 import SaturatingCast from "../../helpers/SaturatingCast";
 import CppModeHelper from "../../helpers/CppModeHelper";
 import ReservedCnxName from "../../../../../utils/ReservedCnxName";
-import ToolchainRequirements from "../../../../../instrumentation/ToolchainRequirements";
 
 /**
  * Generate a safe arithmetic helper function (div or mod).
@@ -39,10 +38,13 @@ const generateSafeArithmeticHelper = (
 /**
  * Generate all needed overflow helper functions
  * ADR-044: Overflow helper functions with clamping or panic behavior
+ *
+ * @param panic - 2.2's decision (`plan.panicOverflowHelpers`), not a re-read
+ *   of debug mode: the block that decides it carries its hosted-libc cost
  */
 const generateOverflowHelpers = (
   usedClampOps: ReadonlySet<string>,
-  debugMode: boolean,
+  panic: boolean,
 ): string[] => {
   if (usedClampOps.size === 0) {
     return [];
@@ -50,11 +52,7 @@ const generateOverflowHelpers = (
 
   const lines: string[] = [];
 
-  if (debugMode) {
-    // Issue #1143: this branch, and only this branch, pulls in a hosted libc.
-    // Release-mode clamp helpers are freestanding-safe, so the requirement is
-    // recorded here rather than wherever a clamp op happens to be registered.
-    ToolchainRequirements.record("overflow-panic-hosted-libc");
+  if (panic) {
     lines.push(
       "// ADR-044: Debug overflow helper functions (panic on overflow)",
       "#include <limits.h>",
@@ -85,7 +83,7 @@ const generateOverflowHelpers = (
 
   for (const op of sortedOps) {
     const [operation, cnxType] = op.split("_");
-    const helper = debugMode
+    const helper = panic
       ? OverflowHelperTemplates.generatePanicHelper(operation, cnxType)
       : OverflowHelperTemplates.generateClampHelper(operation, cnxType);
     if (helper) {
