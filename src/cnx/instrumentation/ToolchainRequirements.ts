@@ -38,22 +38,23 @@
  */
 import RequirementSites from "../utils/RequirementSites";
 import type IRequirementSite from "../types/IRequirementSite";
+import type TDeferredSiteKey from "../types/TDeferredSiteKey";
 
 class ToolchainRequirements {
   /**
-   * Sites that asked for a plan-decided emission, keyed by the request
-   * ("irq_wrappers", "float_static_assert", "ldrex_strex_loop").
+   * Sites that asked for a plan-decided emission, keyed by the request.
    * `captureEmissionFacts` takes these into `IEmissionFacts`, and the plan
    * carries them as its requirements' sites (#1928, #1997).
    */
-  private static deferred: Map<string, IRequirementSite[]> = new Map();
+  private static deferred: Map<TDeferredSiteKey, IRequirementSite[]> =
+    new Map();
 
   /**
    * Note where a plan-decided emission was requested, so the plan can
    * attribute its requirement.
    */
   static noteDeferredSite(
-    requestKey: string,
+    requestKey: TDeferredSiteKey,
     sourcePath: string,
     line: number | null,
   ): void {
@@ -63,7 +64,9 @@ class ToolchainRequirements {
   }
 
   /** Sites recorded for a deferred emission. */
-  static takeDeferredSites(requestKey: string): readonly IRequirementSite[] {
+  static takeDeferredSites(
+    requestKey: TDeferredSiteKey,
+  ): readonly IRequirementSite[] {
     return this.deferred.get(requestKey) ?? [];
   }
 
