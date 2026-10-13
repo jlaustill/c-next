@@ -44,6 +44,7 @@ import EmissionPlan from "./2-Plan/EmissionPlan";
 import ComplianceAnnotations from "./2-Plan/ComplianceAnnotations";
 import emittedLocalName from "../utils/emittedLocalName";
 import DeclarationPlan from "./2-Plan/DeclarationPlan";
+import TypeSites from "./2-Plan/TypeSites";
 import CastRequirement from "./2-Plan/CastRequirement";
 import OperandTyper from "../utils/OperandTyper";
 import CppNamespaceUtils from "../utils/CppNamespaceUtils";
@@ -235,6 +236,9 @@ class CodeGenWalker {
    */
   private readonly host: CodeGenerator;
 
+  /** 2.2's plan for each type this file writes, decided before 2.3 renders */
+  private plannedTypes: ReadonlyMap<TTypeSyntax, IPlannedType> = new Map();
+
   /**
    * 2.3 Render's per-file state, for callers that hold the WALKER (#1452 box 4).
    *
@@ -365,7 +369,11 @@ class CodeGenWalker {
   }
 
   private renderType(type: TTypeSyntax): string {
-    const plan = this.planType(type);
+    const plan = this.plannedTypes.get(type);
+    invariant(
+      plan !== undefined,
+      `2.2 planned every type 2.3 renders (got "${type.text}" at line ${type.span.line})`,
+    );
 
     // Track required includes based on type usage
     const requiredInclude = TypeGenerationHelper.getRequiredInclude(plan);
@@ -1529,8 +1537,29 @@ class CodeGenWalker {
     // Initialize all helper objects
     this.initializeHelperObjects(program);
 
+    this.plannedTypes = this.planTypeSites(program);
+
     // Assemble and return the output
     return this.assembleGeneratedOutput(program, options);
+  }
+
+  /**
+   * #1991: 2.2 decides every written type's plan before 2.3 renders any of
+   * the file, so `renderType` reads a decision rather than making one.
+   */
+  private planTypeSites(
+    program: IProgramSyntax,
+  ): ReadonlyMap<TTypeSyntax, IPlannedType> {
+    const planned = new Map<TTypeSyntax, IPlannedType>();
+    for (const { type, scope } of TypeSites.of(program)) {
+      planned.set(
+        type,
+        scope === null
+          ? this.planType(type)
+          : this.host.state.withScopePath(scope, () => this.planType(type)),
+      );
+    }
+    return planned;
   }
 
   /**
