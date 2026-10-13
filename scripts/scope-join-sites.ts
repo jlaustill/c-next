@@ -17,6 +17,7 @@ import chalk from "chalk";
 import ScopeJoinSites from "./scope-joins/ScopeJoinSites";
 import FileScanner from "./utils/FileScanner";
 import GeneratedMarkdown from "./utils/GeneratedMarkdown";
+import SourceModule from "./utils/SourceModule";
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const docPath = join(rootDir, "docs", "architecture", "scope-join-sites.md");
@@ -25,16 +26,14 @@ const srcDir = join(rootDir, "src");
 function collectSources(): Map<string, string> {
   const sources = new Map<string, string>();
   for (const full of FileScanner.findFiles(srcDir, ".ts")) {
-    if (full.includes(`${sep}__tests__${sep}`) || full.endsWith(".test.ts")) {
+    const path = full
+      .slice(rootDir.length + 1)
+      .split(sep)
+      .join("/");
+    if (!SourceModule.isModule(path)) {
       continue;
     }
-    sources.set(
-      full
-        .slice(rootDir.length + 1)
-        .split(sep)
-        .join("/"),
-      readFileSync(full, "utf-8"),
-    );
+    sources.set(path, readFileSync(full, "utf-8"));
   }
   return sources;
 }

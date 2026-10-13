@@ -23,6 +23,7 @@ import { dirname, join, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import FileScanner from "../utils/FileScanner";
+import SourceModule from "../utils/SourceModule";
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
@@ -44,7 +45,8 @@ class ThrowSources {
   );
 
   /**
-   * `__tests__` is skipped because a test's own `throw new` is not a rejection
+   * Test code (`SourceModule.isModule`: `__tests__/`, `__testUtils__/`,
+   * `*.test.ts`) is skipped because a test's own `throw new` is not a rejection
    * the transpiler makes. A generated parser is skipped because
    * nobody writes its throws: they are ANTLR's, and regenerating would undo
    * any classification of them.
@@ -52,14 +54,15 @@ class ThrowSources {
   static read(): Map<string, string> {
     const sources = new Map<string, string>();
     for (const full of FileScanner.findFiles(join(rootDir, "src"), ".ts")) {
-      if (full.includes(`${sep}__tests__${sep}`)) {
+      const path = full.slice(rootDir.length + 1);
+      if (!SourceModule.isModule(path.split(sep).join("/"))) {
         continue;
       }
       const text = readFileSync(full, "utf-8");
       if (GENERATED_BY_ANTLR.test(text)) {
         continue;
       }
-      sources.set(full.slice(rootDir.length + 1), text);
+      sources.set(path, text);
     }
     return sources;
   }

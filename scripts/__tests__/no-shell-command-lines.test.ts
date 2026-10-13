@@ -1,33 +1,84 @@
 /**
- * #1827 box 4: no module under `src/` builds a shell command line from a
- * template literal. `ToolchainDetector` did, three times, and one of the values
- * it interpolated came from the project being compiled. A process is started
- * with an argument array (`execFileSync`, `spawnSync`, `execFile`), so no shell
- * parses a name or a path.
- *
- * What this cannot catch: a command line built into a variable first and passed
- * as `execSync(command)`. It matches the call that takes the template directly,
- * which is how all three sites were written.
+ * #1827 box 4: no non-test module under `src/` starts a shell. `ToolchainDetector`
+ * built three command lines from template literals and ran them with
+ * `execSync`, and one value it interpolated came from the project being
+ * compiled. This bans the APIs that start a shell, whatever their argument, so
+ * a command line built into a variable first is caught too: `execSync` and
+ * `exec` always run `/bin/sh`, and `spawn`/`execFile` do when given
+ * `shell: true`. A process is started with an argument array (`execFileSync`,
+ * `spawnSync`, `execFile`), so no shell parses a name or a path.
  */
 import { describe, expect, it } from "vitest";
 
 import SourceScan from "./SourceScan";
 
-// `\b` admits `child_process.execSync(` and `cp.execSync(`; `\s*` admits the
-// template on the next line, as prettier wraps a long one.
-const SHELL_TEMPLATE = /\bexecSync\(\s*`/g;
+interface IShellApi {
+  readonly name: string;
+  readonly pattern: RegExp;
+  /** One control per arm: a dropped alternative fails its own control. */
+  readonly matches: readonly string[];
+}
 
-describe("no shell command line is built from a template literal", () => {
-  it("no non-test module under src/ calls execSync with a template literal", () => {
-    const hits = SourceScan.scan(SHELL_TEMPLATE).map(
-      (hit) => `${hit.file}: ${hit.text}`,
-    );
-    expect(hits).toEqual([]);
-  });
+const SHELL_APIS: readonly IShellApi[] = [
+  {
+    name: "execSync",
+    pattern: /\bexecSync\(/g,
+    matches: [
+      "const result = execSync(`which ${name}`, {",
+      "const result = execSync(`${compiler} --version`, {",
+      "const result = execSync(\n  `echo | ${toolchain.cc} -E -Wp,-v - 2>&1`,",
+      'execSync(command, { encoding: "utf-8" })',
+      "child_process.execSync(cmd)",
+    ],
+  },
+  {
+    name: "exec imported from child_process",
+    pattern:
+      /import\s*\{[^}]*\bexec\b[^}]*\}\s*from\s*["'](?:node:)?child_process["']/g,
+    matches: [
+      'import { exec } from "node:child_process";',
+      "import { execFile, exec } from 'child_process';",
+      'import {\n  exec,\n  spawn,\n} from "node:child_process";',
+    ],
+  },
+  {
+    name: "shell: true",
+    pattern: /\bshell:\s*true\b/g,
+    matches: [
+      "spawn(cc, args, { shell: true })",
+      "execFile(cc, args, {\n  shell:true,\n})",
+    ],
+  },
+];
 
-  // Population control: the scan reads the module that held the three sites,
-  // and the pattern matches each spelling they had. Without it, a scan over
-  // the wrong population, or a pattern that matches nothing, passes above.
+/** Argument-array calls, and text that resembles a shell API, that start no shell. */
+const NOT_A_SHELL = [
+  'execFileSync(compiler, ["--version"], { encoding: "utf-8" })',
+  "execFile(cc, args)",
+  'spawnSync(cc, ["-E"], { input: "" })',
+  "PATTERN.exec(line)",
+  'import { execFile, spawnSync } from "node:child_process";',
+  "{ shell: false }",
+];
+
+describe("no non-test module under src/ starts a shell", () => {
+  for (const api of SHELL_APIS) {
+    describe(api.name, () => {
+      it("no non-test module under src/ uses it", () => {
+        const hits = SourceScan.scan(api.pattern).map(
+          (hit) => `${hit.file}: ${hit.text}`,
+        );
+        expect(hits).toEqual([]);
+      });
+
+      it.each(api.matches)("matches %j", (line) => {
+        expect([...line.matchAll(api.pattern)]).toHaveLength(1);
+      });
+    });
+  }
+
+  // Population control: the scan reads the module that held the three sites.
+  // Without it, a scan over the wrong population passes every arm above.
   it("scans the module that held the defect", () => {
     expect(
       SourceScan.sourceFiles().some((file) =>
@@ -38,17 +89,9 @@ describe("no shell command line is built from a template literal", () => {
     ).toBe(true);
   });
 
-  it.each([
-    "const result = execSync(`which ${name}`, {",
-    "const result = execSync(`${compiler} --version`, {",
-    "const result = execSync(\n  `echo | ${toolchain.cc} -E -Wp,-v - 2>&1`,",
-    "child_process.execSync(`${cmd}`)",
-  ])("matches %j", (line) => {
-    expect([...line.matchAll(SHELL_TEMPLATE)]).toHaveLength(1);
-  });
-
-  it("does not match a call that passes an argument array", () => {
-    const line = 'execFileSync(compiler, ["--version"], { encoding: "utf-8" })';
-    expect([...line.matchAll(SHELL_TEMPLATE)]).toHaveLength(0);
+  it.each(NOT_A_SHELL)("no arm matches %j", (line) => {
+    for (const api of SHELL_APIS) {
+      expect([...line.matchAll(api.pattern)]).toHaveLength(0);
+    }
   });
 });

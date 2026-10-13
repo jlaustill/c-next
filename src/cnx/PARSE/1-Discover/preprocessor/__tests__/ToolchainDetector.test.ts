@@ -13,7 +13,9 @@ vi.mock("node:child_process", () => ({
 }));
 
 import { execFileSync, spawnSync } from "node:child_process";
-import installed from "./installedExecutables";
+import TestFileSystem from "../../../../types/__testUtils__/TestFileSystem";
+
+const installed = TestFileSystem.installedExecutables;
 
 /**
  * Answer the mocked `execFileSync` by the command it would run, written as one
@@ -154,6 +156,7 @@ describe("ToolchainDetector", () => {
 End of search list.
 `;
       vi.mocked(spawnSync).mockReturnValue({
+        status: 0,
         stderr: compilerOutput,
       } as ReturnType<typeof spawnSync>);
 
@@ -192,8 +195,27 @@ End of search list.
       expect(paths).toEqual([]);
     });
 
+    it("returns empty array when the compiler exits non-zero", () => {
+      vi.mocked(spawnSync).mockReturnValue({
+        status: 1,
+        stderr:
+          "#include <...> search starts here:\n /partial/include\nEnd of search list.\n",
+      } as ReturnType<typeof spawnSync>);
+
+      const toolchain = {
+        name: "gcc",
+        cc: "/usr/bin/gcc",
+        cxx: "/usr/bin/g++",
+        cpp: "/usr/bin/gcc",
+        isCrossCompiler: false,
+      };
+
+      expect(ToolchainDetector.getDefaultIncludePaths(toolchain)).toEqual([]);
+    });
+
     it("returns empty array when no include section found", () => {
       vi.mocked(spawnSync).mockReturnValue({
+        status: 0,
         stderr: "Some other output\n",
       } as ReturnType<typeof spawnSync>);
 

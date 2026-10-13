@@ -7,12 +7,24 @@
  * preprocessor at that compiler (e.g. xtensa-esp32s3-elf-gcc).
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import ToolchainDetector from "../ToolchainDetector";
 
 vi.mock("node:child_process", () => ({ execFileSync: vi.fn() }));
 
 import { execFileSync } from "node:child_process";
-import installed from "./installedExecutables";
+import NodeFileSystem from "../../NodeFileSystem";
+import TestFileSystem from "../../../../types/__testUtils__/TestFileSystem";
+
+const installed = TestFileSystem.installedExecutables;
 
 describe("ToolchainDetector.fromPath", () => {
   const originalPath = process.env.PATH;
@@ -77,5 +89,58 @@ describe("ToolchainDetector.detect with CNEXT_CROSS_COMPILER", () => {
     expect(tc).not.toBeNull();
     expect(tc!.cpp).toBe("/opt/xt/bin/xtensa-esp32s3-elf-gcc");
     expect(tc!.isCrossCompiler).toBe(true);
+  });
+});
+
+// The real filesystem: a path resolves only to a file this process may run,
+// the same test a PATH name passes. The double above cannot tell "exists" from
+// "executable", so these cases need real permissions.
+describe("ToolchainDetector.fromPath on the real filesystem", () => {
+  let dir: string;
+  beforeEach(() => {
+    vi.clearAllMocks();
+    dir = mkdtempSync(join(tmpdir(), "cnx-from-path-"));
+  });
+  afterEach(() => rmSync(dir, { recursive: true, force: true }));
+
+  it.skipIf(process.platform === "win32")(
+    "returns null for a file without execute permission",
+    () => {
+      const path = join(dir, "plain-file");
+      writeFileSync(path, "");
+      chmodSync(path, 0o644);
+
+      expect(
+        ToolchainDetector.fromPath(path, NodeFileSystem.instance),
+      ).toBeNull();
+    },
+  );
+
+  it("returns null for a directory", () => {
+    const path = join(dir, "bin");
+    mkdirSync(path);
+
+    expect(
+      ToolchainDetector.fromPath(`${path}/`, NodeFileSystem.instance),
+    ).toBeNull();
+  });
+
+  it("takes the g++ beside gcc only when it may run", () => {
+    vi.mocked(execFileSync).mockReturnValue("gcc 13\n");
+    const gcc = join(dir, "x-gcc");
+    const gxx = join(dir, "x-g++");
+    writeFileSync(gcc, "");
+    chmodSync(gcc, 0o755);
+    writeFileSync(gxx, "");
+    chmodSync(gxx, 0o644);
+
+    expect(ToolchainDetector.fromPath(gcc, NodeFileSystem.instance)!.cxx).toBe(
+      gcc,
+    );
+
+    chmodSync(gxx, 0o755);
+    expect(ToolchainDetector.fromPath(gcc, NodeFileSystem.instance)!.cxx).toBe(
+      gxx,
+    );
   });
 });

@@ -46,12 +46,13 @@ class ToolchainDetector {
    * Build a toolchain from an explicit compiler path or executable name (e.g. a
    * target cross-compiler such as xtensa-esp32s3-elf-gcc). Used by the
    * CNEXT_CROSS_COMPILER override so a project can preprocess its target headers with the compiler
-   * that owns them.
+   * that owns them. A path and a PATH name resolve by the same test: an
+   * executable file, as `fs.isExecutable` answers it.
    */
   static fromPath(compiler: string, fs: IFileSystem): IToolchain | null {
     let cc: string | null;
     if (compiler.includes("/")) {
-      cc = fs.exists(compiler) ? compiler : null;
+      cc = fs.isExecutable(compiler) ? compiler : null;
     } else {
       cc = this.findExecutable(compiler, fs);
     }
@@ -61,7 +62,7 @@ class ToolchainDetector {
     // preprocessing; cxx is derived for completeness).
     const cxxCandidate = cc.replace(/gcc(\.exe)?$/, "g++$1");
     const cxx =
-      cxxCandidate !== cc && fs.exists(cxxCandidate) ? cxxCandidate : cc;
+      cxxCandidate !== cc && fs.isExecutable(cxxCandidate) ? cxxCandidate : cc;
 
     return {
       name: basename(cc),
@@ -180,7 +181,11 @@ class ToolchainDetector {
       input: "",
       encoding: "utf-8",
     });
-    if (result.error || typeof result.stderr !== "string") {
+    if (
+      result.error ||
+      result.status !== 0 ||
+      typeof result.stderr !== "string"
+    ) {
       return [];
     }
 

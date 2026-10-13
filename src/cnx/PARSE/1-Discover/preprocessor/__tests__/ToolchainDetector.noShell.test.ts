@@ -10,6 +10,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { execSync } from "node:child_process";
 import {
+  chmodSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -62,6 +63,7 @@ describe("ToolchainDetector starts no shell (#1827)", () => {
       mkdirSync(join(dir, "bin"));
       const path = join(dir, "bin", fileName);
       writeFileSync(path, "");
+      chmodSync(path, 0o755);
 
       const toolchain = ToolchainDetector.fromPath(
         path,
@@ -69,7 +71,7 @@ describe("ToolchainDetector starts no shell (#1827)", () => {
       );
 
       expect(existsSync(marker)).toBe(false);
-      expect(toolchain?.version).toBeUndefined();
+      expect(toolchain?.cc).toBe(path);
     });
   });
 

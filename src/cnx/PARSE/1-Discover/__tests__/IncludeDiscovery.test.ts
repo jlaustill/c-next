@@ -15,6 +15,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import IncludeDiscovery from "../IncludeDiscovery";
 import IFileSystem from "../../../types/IFileSystem";
+import TestFileSystem from "../../../types/__testUtils__/TestFileSystem";
 import NodeFileSystem from "../NodeFileSystem";
 
 describe("IncludeDiscovery", () => {
@@ -107,20 +108,13 @@ describe("IncludeDiscovery", () => {
       // Use a path that walks up to filesystem root
       // This is tricky to test - the actual repo has markers
       // We test with a mock filesystem instead
-      const mockFs: IFileSystem = {
+      const mockFs: IFileSystem = TestFileSystem.with({
         exists: () => false,
         isDirectory: () => true,
         isFile: () => false,
-        isExecutable: () => false,
-        readFile: () => "",
-        writeFile: () => {},
         readdir: () => [],
-        mkdir: () => {},
-        unlink: () => {},
-        rename: () => {},
-        withTempFile: () => Promise.reject(new Error("not used by this test")),
         stat: () => ({ mtimeMs: 0 }),
-      };
+      });
 
       const result = IncludeDiscovery.findProjectRoot(
         "/some/deep/path",
@@ -131,20 +125,13 @@ describe("IncludeDiscovery", () => {
     });
 
     it("checks the filesystem root itself", () => {
-      const mockFs: IFileSystem = {
+      const mockFs: IFileSystem = TestFileSystem.with({
         exists: (path: string) => path === join("/", ".git"),
         isDirectory: () => true,
         isFile: () => false,
-        isExecutable: () => false,
-        readFile: () => "",
-        writeFile: () => {},
         readdir: () => [],
-        mkdir: () => {},
-        unlink: () => {},
-        rename: () => {},
-        withTempFile: () => Promise.reject(new Error("not used by this test")),
         stat: () => ({ mtimeMs: 0 }),
-      };
+      });
 
       expect(IncludeDiscovery.findProjectRoot("/some/deep/path", mockFs)).toBe(
         "/",
