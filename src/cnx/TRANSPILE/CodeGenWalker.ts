@@ -1,3 +1,4 @@
+import COMPOUND_TO_BINARY from "./3-Render/codegen/types/COMPOUND_TO_BINARY";
 import NarrowingCastHelper from "./3-Render/codegen/helpers/NarrowingCastHelper";
 import OverflowHelperTemplates from "./3-Render/codegen/generators/support/OverflowHelperTemplates";
 import CTypeIncludes from "./2-Plan/CTypeIncludes";
@@ -2273,6 +2274,7 @@ class CodeGenWalker {
       types,
     );
     this.planNarrowingCTypes(expectedTypes, decidedCTypes);
+    this.planAssignmentCTypes(program, atomicForms, decidedCTypes);
     return {
       program,
       selfInclude,
@@ -2488,6 +2490,58 @@ class CodeGenWalker {
       }
     }
     return found;
+  }
+
+  /**
+   * The C types 2.3 writes for an assignment's own form: a slice write's
+   * element type (#1081), and MISRA 10.3's cast back to a narrow variable
+   * that a compound write promotes to `int` (#845). A field or an element is
+   * written `op=`, uncast.
+   */
+  private planAssignmentCTypes(
+    program: IProgramSyntax,
+    atomicForms: ReadonlyMap<IAssignmentSyntax, TAtomicForm>,
+    cTypes: Set<string>,
+  ): void {
+    const typing = this.host.state.typingContext();
+    const sites = program.declarations.flatMap((entry) =>
+      StatementNodes.assignments(entry.declaration),
+    );
+    for (const site of sites) {
+      const last = OperandTyper.chainOf(site.target, typing).steps.at(-1);
+      if (last?.subscript === "array_slice") {
+        const element = last.before?.typeName ?? null;
+        invariant(element !== null, "a sliced buffer names its element type");
+        // A string's bytes are cast through uint8_t (MISRA 10.8)
+        cTypes.add(TYPE_MAP[element] ?? "uint8_t");
+        continue;
+      }
+      if (site.operator === "<-" || atomicForms.has(site)) continue;
+      if (AssignmentTarget.parts(site.target).ops.length > 0) continue;
+      const written = OperandTyper.typeOfTarget(site.target, typing);
+      const baseType = written?.typeName ?? null;
+      if (
+        written === null ||
+        baseType === null ||
+        baseType === "int" ||
+        NarrowingCastHelper.getPromotedType(baseType) !== "int"
+      ) {
+        continue;
+      }
+      const cOp = AssignmentOperatorMapper.toCOperator(
+        site.operator,
+        site.operatorSpan.line,
+      );
+      const clamp = AssignmentClassifier.clampOf(
+        baseType,
+        written.overflow,
+        cOp,
+        () => this.hasFloatingLeaf(site.value),
+      );
+      if (COMPOUND_TO_BINARY[cOp] !== undefined && clamp === null) {
+        cTypes.add(TYPE_MAP[baseType] ?? baseType);
+      }
+    }
   }
 
   /**

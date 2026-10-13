@@ -1,0 +1,8 @@
+// #1991: `|<-` on an element of an included u8 buffer is written
+// `buf[1] |= 3U;`, with no cast (only a whole variable gets #845's cast).
+// The file writes no fixed-width type, so it includes no <stdint.h>.
+#include "imported-values.cnx"
+
+void compoundElement() {
+    buf[1] |<- 3;
+}

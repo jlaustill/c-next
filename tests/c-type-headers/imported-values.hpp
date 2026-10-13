@@ -16,6 +16,7 @@ extern "C" {
 extern uint8_t small;
 extern uint16_t val;
 extern uint32_t big;
+extern uint8_t buf[8];
 
 #ifdef __cplusplus
 }

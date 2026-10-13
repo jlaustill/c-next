@@ -836,11 +836,27 @@ class AssignmentClassifier {
     ctx: IAssignmentContext,
   ): { operation: string; cnxType: string } | null {
     const written = AssignmentClassifier.writtenValue(ctx);
-    if (written?.overflowBehavior !== "clamp") return null;
-    if (!TypeCheckUtils.isInteger(written.baseType)) return null;
-    if (ctx.valueHasFloatingOperand()) return null;
-    const operation = CLAMP_HELPER_FOR_COMPOUND[ctx.cOp];
-    return operation ? { operation, cnxType: written.baseType } : null;
+    if (written === null) return null;
+    return AssignmentClassifier.clampOf(
+      written.baseType,
+      written.overflowBehavior,
+      ctx.cOp,
+      () => ctx.valueHasFloatingOperand(),
+    );
+  }
+
+  /** ADR-044: the clamp helper a compound `cOp` write of this type calls, or null */
+  static clampOf(
+    baseType: string,
+    overflowBehavior: TOverflowBehavior | null,
+    cOp: string,
+    hasFloatingOperand: () => boolean,
+  ): { operation: string; cnxType: string } | null {
+    if (overflowBehavior !== "clamp") return null;
+    if (!TypeCheckUtils.isInteger(baseType)) return null;
+    if (hasFloatingOperand()) return null;
+    const operation = CLAMP_HELPER_FOR_COMPOUND[cOp];
+    return operation ? { operation, cnxType: baseType } : null;
   }
 
   /**

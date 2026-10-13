@@ -4,3 +4,4 @@
 u8 small;
 u16 val;
 u32 big;
+u8[8] buf;

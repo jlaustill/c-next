@@ -15,3 +15,5 @@ uint8_t small = 0;
 uint16_t val = 0;
 
 uint32_t big = 0;
+
+uint8_t buf[8] = {0};
