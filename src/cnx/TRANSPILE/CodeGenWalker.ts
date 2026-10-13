@@ -202,6 +202,7 @@ import type IValueSite from "../types/IValueSite";
 import type TValueSite from "../types/TValueSite";
 import type IPlannedExpectedType from "./2-Plan/types/IPlannedExpectedType";
 import type IFilePlan from "./2-Plan/types/IFilePlan";
+import type IRenderLedger from "./3-Render/types/IRenderLedger";
 import type IPlannedClamp from "./2-Plan/types/IPlannedClamp";
 import type IPlannedSliceSource from "./2-Plan/types/IPlannedSliceSource";
 import SliceSource from "./2-Plan/SliceSource";
@@ -283,31 +284,22 @@ class CodeGenWalker {
    */
   private readonly host: CodeGenerator;
 
-  /** 2.2's plan for the file 2.3 is rendering, set only while `render` runs */
-  private filePlanOrNull: IFilePlan | null = null;
+  /** The render in progress, set only while `render` runs */
+  private renderingOrNull: IRenderLedger | null = null;
   private parametersOrNull: ReadonlyMap<string, TParameterInfo> | null = null;
-
-  /** The planned types 2.3 rendered, checked against `plannedTypes` once it is done */
-  private readonly renderedTypes = new Set<TTypeSyntax>();
-
-  /** The planned comparisons 2.3 rendered, checked against `plannedComparisons` once it is done */
-  private readonly renderedComparisons = new Set<TExpression>();
-
-  /** The planned casts 2.3 rendered, checked against `plannedCasts` once it is done */
-  private readonly renderedCasts = new Set<TExpression>();
-  /** The planned negative minimums 2.3 rendered, checked against the plan once it is done */
-  private readonly renderedMinimums = new Set<TExpression>();
-  private readonly renderedComplementCasts = new Set<TExpression>();
-  /** The planned struct initializers 2.3 rendered, checked against the plan once it is done */
-  private readonly renderedStructInitializers = new Set<TExpression>();
 
   /** The plan 2.3 renders from; asking outside `render` is a bug */
   private get filePlan(): IFilePlan {
+    return this.rendering.plan;
+  }
+
+  /** What 2.3 has rendered of the plan so far; asking outside `render` is a bug */
+  private get rendering(): IRenderLedger {
     invariant(
-      this.filePlanOrNull,
+      this.renderingOrNull,
       "2.3 reads 2.2's plan only while rendering the file it was made for",
     );
-    return this.filePlanOrNull;
+    return this.renderingOrNull;
   }
 
   /**
@@ -447,7 +439,7 @@ class CodeGenWalker {
     );
 
     const cType = this.cTypeOf(plan);
-    this.renderedTypes.add(type);
+    this.rendering.types.add(type);
     return cType;
   }
 
@@ -513,9 +505,9 @@ class CodeGenWalker {
 
     const operand = expr.operand;
     const minimum = this.filePlan.negativeMinimums.get(expr) ?? null;
-    if (minimum !== null) this.renderedMinimums.add(expr);
+    if (minimum !== null) this.rendering.minimums.add(expr);
     const complementCast = this.filePlan.complementCasts.get(expr) ?? null;
-    if (complementCast !== null) this.renderedComplementCasts.add(expr);
+    if (complementCast !== null) this.rendering.complementCasts.add(expr);
     return this.invokeGenerator(generateUnaryExpr, {
       operator: expr.operator,
       operandCode: this.renderUnary(operand),
@@ -767,7 +759,7 @@ class CodeGenWalker {
           isStrcmp !== undefined,
           `2.2 planned every comparison 2.3 renders (got line ${expr.span.line})`,
         );
-        this.renderedComparisons.add(expr);
+        this.rendering.comparisons.add(expr);
         return {
           kind: "comparison",
           defaultOperator: "=",
@@ -1661,7 +1653,15 @@ class CodeGenWalker {
 
   /** 2.3 Render: the file's C, written from 2.2's plan (#1991) */
   render(plan: IFilePlan): IRenderedSource {
-    this.filePlanOrNull = plan;
+    this.renderingOrNull = {
+      plan,
+      types: new Set(),
+      comparisons: new Set(),
+      casts: new Set(),
+      minimums: new Set(),
+      complementCasts: new Set(),
+      structInitializers: new Set(),
+    };
     this.parametersOrNull = plan.setup.parameters;
     // #1928: the banner and the file result read the planned blocks'
     // requirements off the plan itself, so nothing copies them anywhere. Held
@@ -1676,7 +1676,7 @@ class CodeGenWalker {
         requirements: this.host.getToolchainRequirements(),
       };
     } finally {
-      this.filePlanOrNull = null;
+      this.renderingOrNull = null;
     }
   }
 
@@ -3116,17 +3116,10 @@ class CodeGenWalker {
     // Process preprocessor directives
     this.processPreprocessorDirectives(program, output);
 
-    this.renderedTypes.clear();
-    this.renderedComparisons.clear();
-    this.renderedCasts.clear();
-    this.renderedMinimums.clear();
-    this.renderedComplementCasts.clear();
-    this.renderedStructInitializers.clear();
-
     // Generate declarations
     const declarations = this.generateAllDeclarations(program);
     const unrendered = [...this.filePlan.types.keys()].find(
-      (type) => !this.renderedTypes.has(type),
+      (type) => !this.rendering.types.has(type),
     );
     invariant(
       unrendered === undefined,
@@ -3134,27 +3127,27 @@ class CodeGenWalker {
     );
     CodeGenWalker.assertAllRendered(
       this.filePlan.comparisons.keys(),
-      this.renderedComparisons,
+      this.rendering.comparisons,
       "comparison",
     );
     CodeGenWalker.assertAllRendered(
       this.filePlan.casts.keys(),
-      this.renderedCasts,
+      this.rendering.casts,
       "cast",
     );
     CodeGenWalker.assertAllRendered(
       this.filePlan.negativeMinimums.keys(),
-      this.renderedMinimums,
+      this.rendering.minimums,
       "negative minimum",
     );
     CodeGenWalker.assertAllRendered(
       this.filePlan.complementCasts.keys(),
-      this.renderedComplementCasts,
+      this.rendering.complementCasts,
       "complement cast",
     );
     CodeGenWalker.assertAllRendered(
       this.filePlan.structInitializers.keys(),
-      this.renderedStructInitializers,
+      this.rendering.structInitializers,
       "struct initializer",
     );
 
@@ -4740,7 +4733,7 @@ class CodeGenWalker {
       form !== undefined,
       `2.2 planned the struct initializer on line ${expr.span.line} that 2.3 writes`,
     );
-    this.renderedStructInitializers.add(expr);
+    this.rendering.structInitializers.add(expr);
     const isCppClass = form === "cppClass";
 
     // Issue #834: For named struct tags (no typedef), we need 'struct' prefix in C mode
@@ -6203,7 +6196,7 @@ class CodeGenWalker {
       planned !== undefined,
       `2.2 planned every cast 2.3 renders (got line ${expr.span.line})`,
     );
-    this.renderedCasts.add(expr);
+    this.rendering.casts.add(expr);
     const targetType = this.renderType(expr.type);
     return {
       targetType,
