@@ -239,6 +239,9 @@ class CodeGenWalker {
   /** 2.2's plan for each type this file writes, decided before 2.3 renders */
   private plannedTypes: ReadonlyMap<TTypeSyntax, IPlannedType> = new Map();
 
+  /** 2.2's decision of which private scope consts are inlined, not declared */
+  private plannedInlinedConsts: ReadonlySet<TDeclarationSyntax> = new Set();
+
   /**
    * 2.3 Render's per-file state, for callers that hold the WALKER (#1452 box 4).
    *
@@ -1537,8 +1540,6 @@ class CodeGenWalker {
     // Initialize all helper objects
     this.initializeHelperObjects(program);
 
-    this.plannedTypes = this.planTypeSites(program);
-
     // Assemble and return the output
     return this.assembleGeneratedOutput(program, options);
   }
@@ -1560,6 +1561,39 @@ class CodeGenWalker {
       );
     }
     return planned;
+  }
+
+  /**
+   * Issue #282: a private const scalar is inlined at its uses, not declared at
+   * file scope. Issue #500 exempts arrays, which cannot be inlined, and #1739
+   * one with no value to inline. 2.2 decides it once, before 2.3 renders
+   * the scope.
+   */
+  private planInlinedConsts(
+    program: IProgramSyntax,
+  ): ReadonlySet<TDeclarationSyntax> {
+    const inlined = new Set<TDeclarationSyntax>();
+    for (const { declaration: scope } of program.declarations) {
+      if (scope.kind !== "scope") continue;
+      const declaringScopePath =
+        this.host.state.program?.scopePathOf(scope.name) ?? scope.name;
+      for (const { declaration } of scope.members) {
+        if (
+          declaration.kind === "variableDeclaration" &&
+          PrivateConstValue.inlined(
+            this.host.getState(),
+            this.transpileState,
+            QualifiedNameGenerator.forMember(
+              declaringScopePath,
+              declaration.name,
+            ),
+          ) !== null
+        ) {
+          inlined.add(declaration);
+        }
+      }
+    }
+    return inlined;
   }
 
   /**
@@ -1682,6 +1716,8 @@ class CodeGenWalker {
       ),
       this.host.state.selfIncludeAdded,
     );
+    this.plannedInlinedConsts = this.planInlinedConsts(program);
+    this.plannedTypes = this.planTypeSites(program);
 
     // Generate declarations
     const declarations = this.generateAllDeclarations(program);
@@ -2973,17 +3009,8 @@ class CodeGenWalker {
     const arrayType = decl.type.kind === "array" ? decl.type : null;
     const isArray = CodeGenWalker.isArrayDeclaration(decl);
 
-    // Issue #282: a private const scalar is inlined at its uses, not emitted at
-    // file scope. Issue #500 exempts arrays, which cannot be inlined, and #1739
-    // one with no value to inline. Decided before any render, so a skipped
-    // declaration registers no include.
-    if (
-      PrivateConstValue.inlined(
-        this.host.getState(),
-        this.transpileState,
-        fullName,
-      ) !== null
-    ) {
+    // Issue #282: 2.2 decided which private consts are inlined at their uses
+    if (this.plannedInlinedConsts.has(decl)) {
       return { kind: "skipped" };
     }
     // Issue #998: the one modifier builder, which validates the atomic/volatile

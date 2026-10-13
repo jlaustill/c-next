@@ -38,6 +38,14 @@ describe("TypeSites", () => {
     ]);
   });
 
+  it("plans no type inside a scope's struct, which the .c takes from the header", () => {
+    expect(
+      sites(
+        "scope S {\n  struct C { u8 a; }\n  enum E { A <- (u8)1 }\n  u16 n;\n}\n",
+      ),
+    ).toEqual(["S:u16"]);
+  });
+
   it("names the scope a scope member's types are written in", () => {
     expect(
       sites(
