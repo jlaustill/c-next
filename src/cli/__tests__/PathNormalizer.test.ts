@@ -9,6 +9,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import PathNormalizer from "../PathNormalizer";
 import NodeFileSystem from "../../cnx/PARSE/1-Discover/NodeFileSystem";
 import IFileSystem from "../../cnx/types/IFileSystem";
+import TestFileSystem from "../../cnx/types/__testUtils__/TestFileSystem";
 import ICliConfig from "../types/ICliConfig";
 
 // Store original environment variables at module level for all tests
@@ -163,20 +164,14 @@ describe("PathNormalizer", () => {
 
     it("expands tilde in all paths", () => {
       // Use mock fs for tilde paths since they won't exist
-      const mockFs: IFileSystem = {
+      const mockFs: IFileSystem = TestFileSystem.with({
         exists: (p) => p === "/home/testuser/a" || p === "/home/testuser/b",
         isDirectory: (p) =>
           p === "/home/testuser/a" || p === "/home/testuser/b",
         readdir: () => [],
-        readFile: () => "",
-        writeFile: () => {},
-        mkdir: () => {},
-        unlink: () => {},
-        rename: () => {},
-        withTempFile: () => Promise.reject(new Error("not used by this test")),
         isFile: () => false,
         stat: () => ({ mtimeMs: 0 }),
-      };
+      });
       const result = PathNormalizer.normalizeIncludePaths(
         ["~/a", "~/b"],
         mockFs,
@@ -240,7 +235,7 @@ describe("PathNormalizer", () => {
 
   describe("expandRecursive symlink handling", () => {
     it("handles symlink loops via realpath", () => {
-      const mockFs: IFileSystem = {
+      const mockFs: IFileSystem = TestFileSystem.with({
         exists: () => true,
         isDirectory: () => true,
         // Simulate symlink loop: dir -> subdir -> (symlink to dir)
@@ -254,15 +249,9 @@ describe("PathNormalizer", () => {
           if (path === "/root/subdir/link-to-root") return "/root";
           return path;
         },
-        readFile: () => "",
-        writeFile: () => {},
-        mkdir: () => {},
-        unlink: () => {},
-        rename: () => {},
-        withTempFile: () => Promise.reject(new Error("not used by this test")),
         isFile: () => false,
         stat: () => ({ mtimeMs: 0 }),
-      };
+      });
 
       const result = PathNormalizer.expandRecursive("/root/**", mockFs);
 
@@ -274,7 +263,7 @@ describe("PathNormalizer", () => {
     });
 
     it("works without realpath (graceful degradation)", () => {
-      const mockFs: IFileSystem = {
+      const mockFs: IFileSystem = TestFileSystem.with({
         exists: () => true,
         isDirectory: (path) =>
           path === "/root" || path === "/root/sub1" || path === "/root/sub2",
@@ -283,15 +272,9 @@ describe("PathNormalizer", () => {
           return [];
         },
         // No realpath method
-        readFile: () => "",
-        writeFile: () => {},
-        mkdir: () => {},
-        unlink: () => {},
-        rename: () => {},
-        withTempFile: () => Promise.reject(new Error("not used by this test")),
         isFile: () => false,
         stat: () => ({ mtimeMs: 0 }),
-      };
+      });
 
       const result = PathNormalizer.expandRecursive("/root/**", mockFs);
 
@@ -318,19 +301,13 @@ describe("PathNormalizer", () => {
     });
 
     it("normalizes all path fields in config", () => {
-      const mockFs: IFileSystem = {
+      const mockFs: IFileSystem = TestFileSystem.with({
         exists: () => true,
         isDirectory: () => true,
         readdir: () => [],
-        readFile: () => "",
-        writeFile: () => {},
-        mkdir: () => {},
-        unlink: () => {},
-        rename: () => {},
-        withTempFile: () => Promise.reject(new Error("not used by this test")),
         isFile: () => false,
         stat: () => ({ mtimeMs: 0 }),
-      };
+      });
 
       const config: ICliConfig = {
         input: "file.cnx",

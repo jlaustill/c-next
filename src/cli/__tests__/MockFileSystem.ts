@@ -163,6 +163,11 @@ class MockFileSystem implements IFileSystem {
     return this.files.has(this.normalizePath(path));
   }
 
+  /** Every virtual file is executable: the double models no permissions. */
+  isExecutable(path: string): boolean {
+    return this.isFile(path);
+  }
+
   mkdir(path: string, options?: { recursive?: boolean }): void {
     const normalized = this.normalizePath(path);
     this.directories.add(normalized);

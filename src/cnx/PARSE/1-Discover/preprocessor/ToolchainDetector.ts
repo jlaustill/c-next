@@ -3,8 +3,8 @@
  * Finds available C/C++ compilers on the system
  */
 
-import { execSync } from "node:child_process";
-import { basename } from "node:path";
+import { execFileSync, spawnSync } from "node:child_process";
+import { basename, delimiter, join } from "node:path";
 import IToolchain from "./types/IToolchain";
 import IFileSystem from "../../../types/IFileSystem";
 
@@ -46,12 +46,13 @@ class ToolchainDetector {
    * Build a toolchain from an explicit compiler path or executable name (e.g. a
    * target cross-compiler such as xtensa-esp32s3-elf-gcc). Used by the
    * CNEXT_CROSS_COMPILER override so a project can preprocess its target headers with the compiler
-   * that owns them.
+   * that owns them. A path and a PATH name resolve by the same test: an
+   * executable file, as `fs.isExecutable` answers it.
    */
   static fromPath(compiler: string, fs: IFileSystem): IToolchain | null {
     let cc: string | null;
     if (compiler.includes("/")) {
-      cc = fs.exists(compiler) ? compiler : null;
+      cc = fs.isExecutable(compiler) ? compiler : null;
     } else {
       cc = this.findExecutable(compiler, fs);
     }
@@ -61,7 +62,7 @@ class ToolchainDetector {
     // preprocessing; cxx is derived for completeness).
     const cxxCandidate = cc.replace(/gcc(\.exe)?$/, "g++$1");
     const cxx =
-      cxxCandidate !== cc && fs.exists(cxxCandidate) ? cxxCandidate : cc;
+      cxxCandidate !== cc && fs.isExecutable(cxxCandidate) ? cxxCandidate : cc;
 
     return {
       name: basename(cc),
@@ -135,22 +136,20 @@ class ToolchainDetector {
   }
 
   /**
-   * Find an executable in PATH
+   * Find an executable in PATH, as `which` does, without starting a process.
+   * `name` can come from the project being compiled (#1827), so it is only ever
+   * joined to a PATH directory: no shell parses a compiler name, and every
+   * process this class starts is given an argument array. An empty PATH entry
+   * is skipped rather than read as the current directory.
    */
   private static findExecutable(name: string, fs: IFileSystem): string | null {
-    try {
-      const result = execSync(`which ${name}`, {
-        encoding: "utf-8",
-        stdio: ["pipe", "pipe", "pipe"],
-      }).trim();
-
-      if (result && fs.exists(result)) {
-        return result;
+    for (const dir of (process.env.PATH ?? "").split(delimiter)) {
+      if (!dir) continue;
+      const candidate = join(dir, name);
+      if (fs.isExecutable(candidate)) {
+        return candidate;
       }
-    } catch {
-      // Not found
     }
-
     return null;
   }
 
@@ -159,7 +158,7 @@ class ToolchainDetector {
    */
   private static getVersion(compiler: string): string | undefined {
     try {
-      const result = execSync(`${compiler} --version`, {
+      const result = execFileSync(compiler, ["--version"], {
         encoding: "utf-8",
         stdio: ["pipe", "pipe", "pipe"],
       });
@@ -176,33 +175,35 @@ class ToolchainDetector {
    * Get default include paths for a toolchain
    */
   static getDefaultIncludePaths(toolchain: IToolchain): string[] {
-    try {
-      // Ask the compiler for its default include paths
-      const result = execSync(`echo | ${toolchain.cc} -E -Wp,-v - 2>&1`, {
-        encoding: "utf-8",
-        stdio: ["pipe", "pipe", "pipe"],
-      });
-
-      const paths: string[] = [];
-      let inIncludeSection = false;
-
-      for (const line of result.split("\n")) {
-        if (line.includes("#include <...> search starts here:")) {
-          inIncludeSection = true;
-          continue;
-        }
-        if (line.includes("End of search list.")) {
-          break;
-        }
-        if (inIncludeSection && line.trim()) {
-          paths.push(line.trim());
-        }
-      }
-
-      return paths;
-    } catch {
+    // Ask the compiler for its default include paths: it prints them to stderr
+    // while preprocessing an empty input.
+    const result = spawnSync(toolchain.cc, ["-E", "-Wp,-v", "-"], {
+      input: "",
+      encoding: "utf-8",
+      // gcc translates the banners parsed below; LC_ALL=C keeps them in English.
+      env: { ...process.env, LC_ALL: "C" },
+    });
+    if (result.error || result.status !== 0) {
       return [];
     }
+
+    const paths: string[] = [];
+    let inIncludeSection = false;
+
+    for (const line of result.stderr.split("\n")) {
+      if (line.includes("#include <...> search starts here:")) {
+        inIncludeSection = true;
+        continue;
+      }
+      if (line.includes("End of search list.")) {
+        break;
+      }
+      if (inIncludeSection && line.trim()) {
+        paths.push(line.trim());
+      }
+    }
+
+    return paths;
   }
 }
 

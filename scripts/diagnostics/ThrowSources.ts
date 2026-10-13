@@ -19,12 +19,10 @@
  */
 
 import { readFileSync } from "node:fs";
-import { dirname, join, sep } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
 import FileScanner from "../utils/FileScanner";
-
-const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
+import SourceModule from "../utils/SourceModule";
 
 /**
  * The first line ANTLR writes into every file it generates. Keyed on the
@@ -37,29 +35,33 @@ const GENERATED_BY_ANTLR = /^\/\/ Generated from .* by ANTLR/;
 
 class ThrowSources {
   static readonly docPath = join(
-    rootDir,
+    SourceModule.rootDir,
     "docs",
     "architecture",
     "throw-classification.md",
   );
 
   /**
-   * `__tests__` is skipped because a test's own `throw new` is not a rejection
+   * Test code (`SourceModule.isModule`: `__tests__/`, `__testUtils__/`,
+   * `*.test.ts`) is skipped because a test's own `throw new` is not a rejection
    * the transpiler makes. A generated parser is skipped because
    * nobody writes its throws: they are ANTLR's, and regenerating would undo
    * any classification of them.
    */
   static read(): Map<string, string> {
     const sources = new Map<string, string>();
-    for (const full of FileScanner.findFiles(join(rootDir, "src"), ".ts")) {
-      if (full.includes(`${sep}__tests__${sep}`)) {
+    for (const full of FileScanner.findFiles(
+      join(SourceModule.rootDir, "src"),
+      ".ts",
+    )) {
+      if (!SourceModule.isModule(full)) {
         continue;
       }
       const text = readFileSync(full, "utf-8");
       if (GENERATED_BY_ANTLR.test(text)) {
         continue;
       }
-      sources.set(full.slice(rootDir.length + 1), text);
+      sources.set(SourceModule.relativePath(full), text);
     }
     return sources;
   }

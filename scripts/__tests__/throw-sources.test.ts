@@ -35,16 +35,19 @@ describe("ThrowSources (#1531)", () => {
   });
 
   it("leaves out exactly the tests and the files ANTLR generated", () => {
-    const isTest = (path: string) => path.includes("/__tests__/");
+    const inTests = (path: string) => path.includes("/__tests__/");
+    const inTestUtils = (path: string) => path.includes("/__testUtils__/");
+    const isTest = (path: string) => inTests(path) || inTestUtils(path);
     const isGenerated = (path: string) =>
       GENERATED.test(readFileSync(path, "utf-8"));
 
     // One control per arm: each exclusion has something to exclude, so
-    // dropping either arm would put files in the corpus and fail below.
-    expect(tracked.some(isTest)).toBe(true);
+    // dropping any arm would put files in the corpus and fail below.
+    expect(tracked.some(inTests)).toBe(true);
+    expect(tracked.some(inTestUtils)).toBe(true);
     expect(tracked.some(isGenerated)).toBe(true);
 
-    // Both ways: a file is in the corpus exactly when it is neither. A third
+    // Both ways: a file is in the corpus exactly when it is none of them. A third
     // kind of exclusion, or a generated file kept, shows up by name.
     const wrong = tracked.filter(
       (path) => corpus.has(path) === (isTest(path) || isGenerated(path)),

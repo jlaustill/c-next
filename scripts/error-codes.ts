@@ -6,7 +6,8 @@
  * one place and recorded nowhere is assigned twice and the collision is silent.
  * This card allocates roughly 45-60 codes into a file holding 55.
  *
- * `__tests__` is excluded from the emitted set with one exception that is not
+ * Test code (`SourceModule.isModule`: `__tests__/`, `__testUtils__/`) is
+ * excluded from the emitted set (`EmittedCodes`) with one exception that is not
  * an exception at all: E0000 is the reserved generic test code, and its only
  * emitter is the unit test that asserts the shape of `IBaseAnalysisError`. Its
  * row names that test file as its source, so the registry already documents
@@ -29,42 +30,20 @@
  */
 
 import { readFileSync } from "node:fs";
-import { dirname, join, sep } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import chalk from "chalk";
 
+import EmittedCodes from "./diagnostics/EmittedCodes";
 import ErrorCodeRegistry from "./diagnostics/ErrorCodeRegistry";
-import FileScanner from "./utils/FileScanner";
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const registryPath = join(rootDir, "docs", "error-codes.md");
 
-/** Codes a row explicitly attributes to a `__tests__` file, e.g. E0000. */
-function testOwnedCodes(markdown: string): Set<string> {
-  return new Set(
-    ErrorCodeRegistry.rows(markdown)
-      .filter((row) => row.source.includes("__tests__"))
-      .map((row) => row.code),
-  );
-}
-
-function emittedCodes(allowTestOwned: ReadonlySet<string>): Set<string> {
-  const codes = new Set<string>();
-  for (const full of FileScanner.findFiles(join(rootDir, "src"), ".ts")) {
-    const isTest = full.includes(`${sep}__tests__${sep}`);
-    for (const match of readFileSync(full, "utf-8").matchAll(/\bE\d{4}\b/g)) {
-      if (!isTest || allowTestOwned.has(match[0])) {
-        codes.add(match[0]);
-      }
-    }
-  }
-  return codes;
-}
-
 function main(): void {
   const markdown = readFileSync(registryPath, "utf-8");
-  const emitted = emittedCodes(testOwnedCodes(markdown));
+  const emitted = EmittedCodes.read(EmittedCodes.testOwned(markdown));
   const errors = ErrorCodeRegistry.check(markdown, emitted);
 
   if (errors.length > 0) {
