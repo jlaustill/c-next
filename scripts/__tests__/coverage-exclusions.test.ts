@@ -2,7 +2,9 @@
  * #1827 review: `vitest.config.ts` and `sonar-project.properties` each list
  * what coverage leaves out, and neither can import `SourceModule`. Both named
  * `__tests__/` but not `__testUtils__/`, so test doubles were measured as
- * production code. This holds both lists to `SourceModule.testDirectories`.
+ * production code. `.jscpd.json` had the same gap, so a double counted against
+ * the duplication threshold. This holds all three lists to
+ * `SourceModule.testDirectories`.
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -30,18 +32,31 @@ class CoverageExclusions {
     );
     return (line?.[1] ?? "").split(",").map((glob) => glob.trim());
   }
+
+  /** The `ignore` globs of `.jscpd.json` (`analyze:duplication`). */
+  static jscpd(): string[] {
+    const config = JSON.parse(read(".jscpd.json")) as { ignore?: string[] };
+    return config.ignore ?? [];
+  }
 }
 
-describe("coverage leaves out every test directory SourceModule names", () => {
-  const lists = {
-    "vitest coverage.exclude": CoverageExclusions.vitest(),
-    "sonar.coverage.exclusions": CoverageExclusions.sonar(),
+describe("coverage and duplication leave out every SourceModule test directory", () => {
+  // Each list with an entry it is known to hold, so an empty parse fails.
+  const lists: Record<string, [globs: string[], control: string]> = {
+    "vitest coverage.exclude": [
+      CoverageExclusions.vitest(),
+      "src/cli/index.ts",
+    ],
+    "sonar.coverage.exclusions": [
+      CoverageExclusions.sonar(),
+      "src/cli/index.ts",
+    ],
+    ".jscpd.json ignore": [CoverageExclusions.jscpd(), "**/node_modules/**"],
   };
 
-  for (const [name, globs] of Object.entries(lists)) {
-    // Control: the list was found, so an empty parse cannot pass below.
+  for (const [name, [globs, control]] of Object.entries(lists)) {
     it(`reads ${name}`, () => {
-      expect(globs).toContain("src/cli/index.ts");
+      expect(globs).toContain(control);
     });
 
     it.each(SourceModule.testDirectories)(`${name} names **/%s/**`, (dir) => {

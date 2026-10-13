@@ -16,9 +16,9 @@ const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
  * transpiler source. It takes the absolute path a `FileScanner` walk yields, so
  * the conversion to a repository-relative path is written once, here.
  *
- * `vitest.config.ts` and `sonar-project.properties` cannot import this, so they
- * repeat `testDirectories` in their coverage exclusions;
- * `coverage-exclusions.test.ts` fails when either list lacks one.
+ * `vitest.config.ts`, `sonar-project.properties` and `.jscpd.json` cannot import
+ * this, so they repeat `testDirectories` in their coverage and duplication
+ * exclusions; `coverage-exclusions.test.ts` fails when any list lacks one.
  */
 class SourceModule {
   static readonly rootDir = rootDir;
