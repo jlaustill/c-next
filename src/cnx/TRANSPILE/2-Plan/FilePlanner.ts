@@ -204,6 +204,7 @@ class FilePlanner {
       isArray: type.kind === "array",
       userTypeLine: element.kind === "user" ? element.span.line : undefined,
       text: type.text,
+      writtenName: this.typeNameIn(type, scopePath),
     };
   }
 

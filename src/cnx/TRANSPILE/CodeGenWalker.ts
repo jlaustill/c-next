@@ -164,6 +164,7 @@ import type IPlannedParameter from "./3-Render/codegen/types/IPlannedParameter";
 import type IPlannedFunctionParameter from "./2-Plan/types/IPlannedFunctionParameter";
 import FunctionContextManager from "./3-Render/codegen/helpers/FunctionContextManager";
 import BitRangeHelper from "./3-Render/codegen/helpers/BitRangeHelper";
+import type IPlannedType from "./2-Plan/types/IPlannedType";
 import invariant from "../utils/invariant";
 import AdrProvenance from "../instrumentation/AdrProvenance";
 import PassByValueAnalyzer from "./2-Plan/PassByValueAnalyzer";
@@ -179,7 +180,6 @@ import QualifiedCName from "../utils/QualifiedCName";
 import ToolchainRequirementUtils from "../utils/ToolchainRequirementUtils";
 import MainSignature from "../utils/MainSignature";
 import ScopeUtils from "../utils/ScopeUtils";
-import TypeNameLadder from "../utils/TypeNameLadder";
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
   generateSafeDivHelpers: helperGenerateSafeDivHelpers,
@@ -247,7 +247,7 @@ class CodeGenWalker {
   }
 
   private typeNameOf(type: TTypeSyntax): string {
-    return this.planner.typeNameIn(type, this.host.state.currentScopePath);
+    return this.plannedType(type).writtenName;
   }
 
   /**
@@ -359,14 +359,17 @@ class CodeGenWalker {
     };
   }
 
-  private renderType(type: TTypeSyntax): string {
+  private plannedType(type: TTypeSyntax): IPlannedType {
     const plan = this.filePlan.types.get(type);
     invariant(
       plan !== undefined,
       `2.2 planned every type 2.3 renders (got "${type.text}" at line ${type.span.line})`,
     );
+    return plan;
+  }
 
-    const cType = this.planner.cTypeOf(plan);
+  private renderType(type: TTypeSyntax): string {
+    const cType = this.planner.cTypeOf(this.plannedType(type));
     this.rendering.types.add(type);
     return cType;
   }
@@ -1052,8 +1055,7 @@ class CodeGenWalker {
     type: TTypeSyntax,
     nameDimensions: ReadonlyArray<TExpression | null>,
   ): string | null {
-    const element = type.kind === "array" ? type.element : type;
-    const resolved = this.namedTypeOf(element);
+    const resolved = this.namedTypeOf(type, true);
     if (!resolved) {
       return null;
     }
@@ -2058,12 +2060,15 @@ class CodeGenWalker {
       name: struct.name,
       fields: struct.fields.map((field) => {
         const arrayType = field.type.kind === "array" ? field.type : null;
+        // a callback field is written through its typedef, so 2.2 names it
+        // in its callback field types rather than in the written types
+        const callbackType = this.host.state.callbackFieldTypes.get(
+          `${struct.name}.${field.name}`,
+        );
         return {
           name: field.name,
-          typeName: this.typeNameOf(field.type),
-          isCallback: this.host.state.callbackFieldTypes.has(
-            `${struct.name}.${field.name}`,
-          ),
+          typeName: callbackType ?? this.typeNameOf(field.type),
+          isCallback: callbackType !== undefined,
           hasNameDimensions: field.dimensions.length > 0,
           hasTypeDimensions: arrayType !== null,
           renderCType: () => this.renderType(field.type),
@@ -2914,19 +2919,19 @@ class CodeGenWalker {
    */
   private namedTypeOf(
     type: TTypeSyntax,
+    ofElement = false,
   ): { name: string; separator: string } | null {
     // #1285: ask for named types by name. Everything else -- string, array,
     // template, primitive, `void` -- returns null and is handled by the
     // caller's own chain, which is where it was always handled. An enumerated
     // list of alternatives to SKIP would have to be kept in step with the
     // grammar from ~3000 lines away, and getting it wrong fails open.
-    const name = TypeNameLadder.classifyNamed(
-      type,
-      this.host.state.currentScopePath,
-      this.host.state.typeBindingDeps((parts) =>
-        this.planner.resolveQualifiedType(parts),
-      ),
-    )?.name;
+    // #1991: 2.2 classified it in the scope that writes it; for an array the
+    // plan describes the element, which only an element's caller asks about
+    const name =
+      type.kind === "array" && !ofElement
+        ? undefined
+        : this.plannedType(type).named?.name;
     if (name === undefined) {
       return null;
     }

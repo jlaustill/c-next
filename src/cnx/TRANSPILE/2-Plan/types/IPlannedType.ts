@@ -60,6 +60,12 @@ interface IPlannedType {
    * text, which is why the renderer needs no special case for it.
    */
   readonly text: string;
+
+  /**
+   * The type's written name, resolved in the scope that writes it: a named
+   * type's C name, an array's element name, or else the source text (#1991)
+   */
+  readonly writtenName: string;
 }
 
 export default IPlannedType;

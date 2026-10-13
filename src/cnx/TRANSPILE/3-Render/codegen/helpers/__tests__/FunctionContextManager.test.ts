@@ -54,6 +54,7 @@ function plannedType(overrides: Partial<IPlannedType> = {}): IPlannedType {
     isArray: false,
     userTypeLine: undefined,
     text: "",
+    writtenName: "",
     ...overrides,
   };
 }

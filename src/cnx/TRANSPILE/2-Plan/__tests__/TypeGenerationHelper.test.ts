@@ -30,6 +30,7 @@ describe("TypeGenerationHelper", () => {
       isArray: false,
       userTypeLine: undefined,
       text: "",
+      writtenName: "",
       ...overrides,
     };
   }
