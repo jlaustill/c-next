@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -6,6 +6,8 @@ import { tmpdir } from "node:os";
 import Transpiler from "../Transpiler";
 import ITranspilerConfig from "../../cnx/types/ITranspilerConfig";
 import NodeFileSystem from "../../cnx/PARSE/1-Discover/NodeFileSystem";
+import Analyze from "../../cnx/TRANSPILE/1-Analyze/Analyze";
+import type IAnalyzedFile from "../../cnx/types/IAnalyzedFile";
 
 /**
  * #1301 review: the run's per-file artifacts must be released when a run ENDS, not
@@ -24,22 +26,38 @@ import NodeFileSystem from "../../cnx/PARSE/1-Discover/NodeFileSystem";
  */
 describe("#1301: the per-file cache is released at end of run", () => {
   let tempDir: string;
+  let analyzed: IAnalyzedFile[];
 
   beforeEach(() => {
     tempDir = mkdtempSync(join(tmpdir(), "cnext-cache-release-"));
+    analyzed = [];
+    const run = Analyze.run.bind(Analyze);
+    vi.spyOn(Analyze, "run").mockImplementation((...args) => {
+      const front = run(...args);
+      analyzed.push(...front.files.values());
+      return front;
+    });
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     rmSync(tempDir, { recursive: true, force: true });
   });
 
-  /** Reads the private cache without widening its visibility for production. */
+  /**
+   * How many of 2.1's file artifacts a field of the instance still reaches,
+   * directly or as a map's value. #1991: the host holds none; Stage 5 takes
+   * them from 2.1's artifact.
+   */
   function cacheSize(transpiler: Transpiler): number {
-    // #1932: the cache holds 2.1's plain-data `IAnalyzedFile`, not 1.2's
-    // `IParsedFile`. The property under test is unchanged -- what is retained
-    // must not outlive the run.
-    return (transpiler as unknown as { analyzedFiles: Map<string, unknown> })
-      .analyzedFiles.size;
+    const held = new Set<unknown>();
+    for (const value of Object.values(transpiler)) {
+      held.add(value);
+      if (value instanceof Map) {
+        for (const entry of value.values()) held.add(entry);
+      }
+    }
+    return analyzed.filter((file) => held.has(file)).length;
   }
 
   function writeProject(): string {
@@ -118,13 +136,14 @@ describe("#1301: the per-file cache is released at end of run", () => {
   it("Stage 5 reads every file's plain data (#1932)", async () => {
     const transpiler = createTranspiler(writeProject());
     const internals = transpiler as unknown as {
-      analyzedFiles: Map<string, unknown>;
       _transpileFile: (...args: unknown[]) => unknown;
     };
     const seen: number[] = [];
     const original = internals._transpileFile.bind(transpiler);
     internals._transpileFile = (...args: unknown[]) => {
-      seen.push(internals.analyzedFiles.size);
+      seen.push(
+        (args[1] as { files: ReadonlyMap<string, unknown> }).files.size,
+      );
       return original(...args);
     };
 
@@ -134,6 +153,7 @@ describe("#1301: the per-file cache is released at end of run", () => {
     expect(result.success).toBe(true);
     expect(seen.length).toBeGreaterThan(0);
     expect(seen).toEqual(seen.map(() => 2));
-    expect(internals.analyzedFiles.size).toBe(0);
+    expect(analyzed.length).toBe(2);
+    expect(cacheSize(transpiler)).toBe(0);
   });
 });

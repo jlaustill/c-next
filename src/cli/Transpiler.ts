@@ -109,6 +109,9 @@ type THeaderPreparation = {
 /**
  * Unified transpiler
  */
+/** 2.1 Analyze's artifact, which Stage 5 takes (#1991) */
+type TAnalyzedFront = Extract<TFrontEndResult, { kind: "analyzed" }>;
+
 class Transpiler {
   private readonly config: TRunConfig;
   private readonly codeGenerator: CodeGenWalker;
@@ -161,29 +164,10 @@ class Transpiler {
   private readonly headerMacrosUnread = new Set<string>();
 
   /**
-   * #1323: one file's fully-resolved header-render input, captured while its
-   * `CodeGenState` was warm. `_renderHeaders` (Stage 5.5) reads this map ONCE,
-   * after every file has been transpiled, to render every header -- see
-   * `IHeaderEmissionFacts` for why this is what makes issue #1139's failure
-   * mode structurally impossible rather than merely fixed.
-   *
-   * Lives here, on the orchestrator, rather than on `TranspilerState`:
-   * `IHeaderEmissionFacts` carries `output/`-layer shapes
-   * (`IHeaderSymbol`/`IHeaderOptions`/`IHeaderTypeInput`), and `state/` may
-   * never reach `output/`, even transitively (#1297) -- `Transpiler.ts` sits
-   * above the 4-layer structure and coordinates all of them, so it alone may
-   * hold both. Cleared per run by `_initializeRun()`.
-   */
-  private readonly headerEmissionFactsByPath = new Map<
-    string,
-    IHeaderEmissionFacts
-  >();
-  /**
    * The artifact 1.4 Resolve emitted for this run.
    *
-   * Held so passes after 1.4 read a cross-file fact from here rather than
-   * recomputing one. Null until Stage 3 completes, which is the only window
-   * in which nothing is entitled to ask.
+   * Read only by `getExternalStructFields`. No pass reads it: each takes
+   * 1.4's program from the artifact the pass before it returned (#1991).
    */
   /**
    * #1452 box 3: the run's scope graph. One per run, constructed here and
@@ -200,13 +184,6 @@ class Transpiler {
    * `program.symbolTable()`, never this field (#1991).
    */
   private declaredSymbols = new SymbolTable();
-
-  /**
-   * What Stage 5 reads (#1932): each file's plain data, as 2.1's `Analyze`
-   * returned it. The host never holds a parse tree -- every tree is a local of
-   * 1.2's `SourceSyntax.of` and is gone when it returns (#1991).
-   */
-  private readonly analyzedFiles = new Map<string, IAnalyzedFile>();
 
   /**
    * Settles when this instance's previous run has (#1721). A run starts by
@@ -337,26 +314,6 @@ class Transpiler {
       return this._finalizeResult(result);
     } catch (err) {
       return this._handleRunError(result, err);
-    } finally {
-      // #1301 review: release the run's per-file artifacts when the run ends,
-      // not merely when the next one starts. `Transpiler` is not always
-      // per-process -- `ServeCommand` holds ONE instance in a static field and
-      // reuses it for every request -- so clearing only on entry would leave the
-      // language server holding the last request's files for as long as the
-      // editor sits idle. The parse trees need no clearing: since #1991 they are
-      // locals of 1.2's `SourceSyntax.of` and never reach this class.
-      //
-      // Peak-RSS benchmarking cannot see this: it measures the in-run high water
-      // mark, and post-run residency is a different number. Stage 6 does not need
-      // them -- `_generateAllHeadersFromPipeline` reads `result.files[].headerCode`
-      // -- so the run is genuinely done with them here.
-      //
-      // This is the ONLY clear site. `_initializeRun` used to clear on entry too,
-      // but with this `finally` covering every exit -- success, `_handleRunError`,
-      // and a throw -- that one could never observe a non-empty map, so deleting it
-      // reddened nothing. Two sites for one invariant is the duplication CLAUDE.md
-      // calls the worst anti-pattern, and the unreachable half is the #1143 shape.
-      this.analyzedFiles.clear();
     }
   }
 
@@ -415,11 +372,10 @@ class Transpiler {
       }
       return;
     }
-    // 2.1's artifact carries 1.4's program on to Stage 5 (#1991)
     this.program = front.program;
-    for (const [path, analyzed] of front.files) {
-      this.analyzedFiles.set(path, analyzed);
-    }
+    // 2.2 and 2.3 read cross-file facts from 2.1's program (#1991)
+    this.codeGenerator.transpileState.program = front.program;
+    const headerFactsByPath = new Map<string, IHeaderEmissionFacts>();
     const diagnostics = front.diagnostics;
 
     // Stage 5: Plan and Render each C-Next file
@@ -445,8 +401,8 @@ class Transpiler {
       }
 
       const fileResult = rejected
-        ? this._rejectedFileResult(file, diagnostics)
-        : this._transpileFile(file, front.discovery);
+        ? this._rejectedFileResult(file, front)
+        : this._transpileFile(file, front, headerFactsByPath);
       this._recordFileResult(
         file.discoveredFile,
         front.discovery,
@@ -468,7 +424,11 @@ class Transpiler {
     // captured header input to render either, same as parse-only mode.
     // `_renderHeaders` already treats a missing capture as "no header for this
     // file" rather than an error, so this is a silent no-op for it, not a bug.
-    const renderedFiles = this._renderHeaders(result);
+    const renderedFiles = this._renderHeaders(
+      result,
+      headerFactsByPath,
+      front.program,
+    );
 
     // One gate for both halves of the output: a .c is written only when its
     // header is (#1233)
@@ -555,7 +515,7 @@ class Transpiler {
    * only reads the captured records -- so calling it here, once, after every
    * file's state has already moved on, is exactly the timing issue #1139's
    * fix forbade for `generateHeaderForFile`. That method no longer exists;
-   * only its decision does, frozen per file in `headerEmissionFactsByPath`.
+   * only its decision does, frozen per file in Stage 5's `headerFactsByPath`.
    *
    * Mutates `result.files[]` in place: `_recordFileResult` already pushed one
    * entry per file with `headerCode: undefined`, and this fills it in (or, on
@@ -571,14 +531,12 @@ class Transpiler {
    */
   private _renderHeaders(
     result: ITranspilerResult,
+    headerFactsByPath: ReadonlyMap<string, IHeaderEmissionFacts>,
+    program: IProgram,
   ): ReadonlyMap<string, IRenderedFile> {
-    invariant(
-      this.program,
-      "1.4 Resolve built Program before any header is rendered",
-    );
     const rendered = HeaderRenderer.render(
-      this.headerEmissionFactsByPath,
-      new HeaderGenerator(this.program),
+      headerFactsByPath,
+      new HeaderGenerator(program),
     );
 
     // 2.3 Render's artifact, assembled here because this is the first moment a
@@ -699,9 +657,6 @@ class Transpiler {
           pioEnv: this.config.pioEnv || undefined,
         },
       });
-      // Passes after 1.4 read cross-file facts from the artifact rather than
-      // re-deriving them. Set once per run, not per file.
-      this.codeGenerator.transpileState.program = resolved.program;
       return result.success ? resolved : null;
     } catch (err) {
       result.errors.push(CaughtError.asTranspileError(err));
@@ -778,14 +733,13 @@ class Transpiler {
    */
   private _rejectedFileResult(
     file: IPipelineFile,
-    diagnostics: IDiagnostics,
+    front: TAnalyzedFront,
   ): IFileResult {
     const sourcePath = file.path;
-    const errors = diagnostics
+    const errors = front.diagnostics
       .forFile(sourcePath)
       .filter((e) => e.severity === "error");
-    const declarationCount =
-      this.analyzedFiles.get(sourcePath)?.declarationCount ?? 0;
+    const declarationCount = front.files.get(sourcePath)?.declarationCount ?? 0;
 
     return errors.length > 0
       ? this.buildErrorResult(sourcePath, [...errors], declarationCount)
@@ -813,8 +767,11 @@ class Transpiler {
   }
 
   /** Stage 5's input for this file, from 2.1's `Analyze` (#1991) */
-  private _requireAnalyzedFile(sourcePath: string): IAnalyzedFile {
-    const analyzed = this.analyzedFiles.get(sourcePath);
+  private static _requireAnalyzedFile(
+    front: TAnalyzedFront,
+    sourcePath: string,
+  ): IAnalyzedFile {
+    const analyzed = front.files.get(sourcePath);
     invariant(
       analyzed,
       `every file that reaches code generation was analyzed and its plain data kept, ${sourcePath} included`,
@@ -889,22 +846,11 @@ class Transpiler {
    */
   private _transpileFile(
     file: IPipelineFile,
-    discovery: TDiscoveryFacts,
+    front: TAnalyzedFront,
+    headerFactsByPath: Map<string, IHeaderEmissionFacts>,
   ): IFileResult {
     const sourcePath = file.path;
-
-    // #1452: asserted, not defaulted. Stage 3 builds `Program` and returns
-    // false on failure before Stage 5 runs, so a null here is a broken stage
-    // order -- and defaulting the include rewrites to an empty map would be a
-    // REAL answer meaning "this file includes nothing", silently dropping every
-    // #1467 rewrite with no diagnostic. Bound to a local because TypeScript
-    // drops the narrowing of a mutable class property across any intervening
-    // call, and this method makes several before the reads below.
-    invariant(
-      this.program,
-      "1.4 Resolve built Program before Stage 5 read its discovery facts",
-    );
-    const program = this.program;
+    const { program, discovery } = front;
 
     // #1241: attribute ADR provenance from here, not from codegen. A rule firing
     // during header capture below would otherwise be credited to whichever file
@@ -914,7 +860,7 @@ class Transpiler {
     AdrProvenance.beginFile(sourcePath);
 
     try {
-      const analyzed = this._requireAnalyzedFile(sourcePath);
+      const analyzed = Transpiler._requireAnalyzedFile(front, sourcePath);
       const { declarationCount } = analyzed;
 
       // Parse only mode
@@ -933,7 +879,7 @@ class Transpiler {
       // Generate code
       const code = this.codeGenerator.generate(analyzed.program, {
         debugMode: this.config.debugMode,
-        targetDescription: this._runTarget().description,
+        targetDescription: Transpiler._runTarget(program).description,
         sourcePath,
         symbolInfo,
         sourceRelativePath: Transpiler._outputsOf(discovery, sourcePath)
@@ -964,7 +910,7 @@ class Transpiler {
         ownIncludes: Transpiler._includesOf(discovery, sourcePath),
       });
       if (headerFacts) {
-        this.headerEmissionFactsByPath.set(sourcePath, headerFacts);
+        headerFactsByPath.set(sourcePath, headerFacts);
       }
 
       // Issue #1143: the file's one requirement list, a view of the emission
@@ -1045,9 +991,6 @@ class Transpiler {
     this.warnings.length = 0;
     this.headerMacrosByFile.clear();
     this.headerMacrosUnread.clear();
-    // #1323: a stale entry here would let one run's header content leak into
-    // the next, the same shape #1143's toolchain-requirements leak was.
-    this.headerEmissionFactsByPath.clear();
     // Issue #634: Reset symbol table for new run
     // #1452 box 5 / #1177: a run BUILDS its table rather than clearing one.
     // `clear()` listed eleven of twelve indexes -- `externalDeclarationNames`
@@ -1264,8 +1207,10 @@ class Transpiler {
   }
 
   /** The run's target; valid once Stage 3b has passed */
-  private _runTarget(): Extract<TRunTarget, { kind: "resolved" }> {
-    const target = this.program?.target();
+  private static _runTarget(
+    program: IProgram,
+  ): Extract<TRunTarget, { kind: "resolved" }> {
+    const target = program.target();
     invariant(
       target?.kind === "resolved",
       "Stage 3b halts a run whose target did not resolve",
