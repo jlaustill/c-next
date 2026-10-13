@@ -1,0 +1,7 @@
+// test-transpile-only
+// Tests: a declarator error recovery damages skips only that declarator, not the header's other symbols (#1991 review)
+#include "header-recovery-declarator.h"
+
+void main() {
+    good(1);
+}

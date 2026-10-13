@@ -16,6 +16,7 @@ import type {
   StructOrUnionSpecifierContext,
   TypeSpecifierContext,
 } from "./grammar/CParser";
+import { DirectDeclaratorContext } from "./grammar/CParser";
 import type ICHeaderSyntax from "../types/ICHeaderSyntax";
 import type IHeaderDeclaratorSyntax from "../types/IHeaderDeclaratorSyntax";
 import type ICEnumSyntax from "../types/ICEnumSyntax";
@@ -25,19 +26,24 @@ import type ICTypeSpecifierSyntax from "../types/ICTypeSpecifierSyntax";
 import type TCExternalDeclarationSyntax from "../types/TCExternalDeclarationSyntax";
 import type IExtractedParameter from "../shared/IExtractedParameter";
 import ParameterExtractorUtils from "../shared/ParameterExtractorUtils";
+import DeclaratorTypes from "../shared/DeclaratorTypes";
 import ArrayDimensionText from "../../../utils/ArrayDimensionText";
 import ParserUtils from "../../../utils/ParserUtils";
 
 class CHeaderLowering {
   static header(tree: CompilationUnitContext): ICHeaderSyntax {
     const declarations: TCExternalDeclarationSyntax[] = [];
-    for (const extDecl of tree.translationUnit()?.externalDeclaration() ?? []) {
-      const funcDef = extDecl.functionDefinition();
-      if (funcDef) {
-        declarations.push(CHeaderLowering.functionDefinition(funcDef));
+    for (const externalDeclaration of tree
+      .translationUnit()
+      ?.externalDeclaration() ?? []) {
+      const functionDefinition = externalDeclaration.functionDefinition();
+      if (functionDefinition) {
+        declarations.push(
+          CHeaderLowering.functionDefinition(functionDefinition),
+        );
         continue;
       }
-      const decl = extDecl.declaration();
+      const decl = externalDeclaration.declaration();
       const lowered = decl ? CHeaderLowering.declaration(decl) : null;
       if (lowered) declarations.push(lowered);
     }
@@ -45,15 +51,15 @@ class CHeaderLowering {
   }
 
   private static functionDefinition(
-    funcDef: FunctionDefinitionContext,
+    functionDefinition: FunctionDefinitionContext,
   ): TCExternalDeclarationSyntax {
-    const declSpecs = funcDef.declarationSpecifiers();
-    const declarator = funcDef.declarator();
+    const declarationSpecifiers = functionDefinition.declarationSpecifiers();
+    const declarator = functionDefinition.declarator();
     return {
       kind: "functionDefinition",
-      span: ParserUtils.getSpan(funcDef),
-      typeSpecifiers: declSpecs
-        ? CHeaderLowering.typeSpecifiers(declSpecs)
+      span: ParserUtils.getSpan(functionDefinition),
+      typeSpecifiers: declarationSpecifiers
+        ? CHeaderLowering.typeSpecifiers(declarationSpecifiers)
         : [],
       declarator: declarator ? CHeaderLowering.declarator(declarator) : null,
     };
@@ -62,49 +68,58 @@ class CHeaderLowering {
   private static declaration(
     decl: DeclarationContext,
   ): TCExternalDeclarationSyntax | null {
-    const declSpecs = decl.declarationSpecifiers();
-    if (!declSpecs) return null;
-    const specs = declSpecs.declarationSpecifier();
+    const declarationSpecifiers = decl.declarationSpecifiers();
+    if (!declarationSpecifiers) return null;
+    const specs = declarationSpecifiers.declarationSpecifier();
     const typeSpecs = specs.flatMap((spec) => spec.typeSpecifier() ?? []);
     const structSpec = typeSpecs
       .find((t) => t.structOrUnionSpecifier())
       ?.structOrUnionSpecifier();
     const enumSpec = typeSpecs.find((t) => t.enumSpecifier())?.enumSpecifier();
     const span = ParserUtils.getSpan(decl);
-    const initDeclList = decl.initDeclaratorList();
+    const initDeclaratorList = decl.initDeclaratorList();
     return {
       kind: "declaration",
       span,
-      isTypedef: CHeaderLowering.hasStorageClass(declSpecs, "typedef"),
-      isExtern: CHeaderLowering.hasStorageClass(declSpecs, "extern"),
+      isTypedef: CHeaderLowering.hasStorageClass(
+        declarationSpecifiers,
+        "typedef",
+      ),
+      isExtern: CHeaderLowering.hasStorageClass(
+        declarationSpecifiers,
+        "extern",
+      ),
       isVolatile: specs.some(
         (spec) => spec.typeQualifier()?.getText() === "volatile",
       ),
-      typeSpecifiers: CHeaderLowering.typeSpecifiers(declSpecs),
+      typeSpecifiers: CHeaderLowering.typeSpecifiers(declarationSpecifiers),
       struct: structSpec ? CHeaderLowering.struct(structSpec) : null,
       enum: enumSpec ? CHeaderLowering.enum(enumSpec, span) : null,
-      declarators: initDeclList
-        ? initDeclList.initDeclarator().flatMap((initDecl) => {
-            const declarator = initDecl.declarator();
-            return declarator ? [CHeaderLowering.declarator(declarator)] : [];
+      declarators: initDeclaratorList
+        ? initDeclaratorList.initDeclarator().flatMap((initDeclarator) => {
+            const declarator = initDeclarator.declarator();
+            const lowered = declarator
+              ? CHeaderLowering.declarator(declarator)
+              : null;
+            return lowered ? [lowered] : [];
           })
         : null,
     };
   }
 
   private static hasStorageClass(
-    declSpecs: DeclarationSpecifiersContext,
+    declarationSpecifiers: DeclarationSpecifiersContext,
     storage: string,
   ): boolean {
-    return declSpecs
+    return declarationSpecifiers
       .declarationSpecifier()
       .some((spec) => spec.storageClassSpecifier()?.getText() === storage);
   }
 
   private static typeSpecifiers(
-    declSpecs: DeclarationSpecifiersContext,
+    declarationSpecifiers: DeclarationSpecifiersContext,
   ): ICTypeSpecifierSyntax[] {
-    return declSpecs.declarationSpecifier().flatMap((spec) => {
+    return declarationSpecifiers.declarationSpecifier().flatMap((spec) => {
       const typeSpec = spec.typeSpecifier();
       if (!typeSpec) return [];
       return [
@@ -116,40 +131,58 @@ class CHeaderLowering {
     });
   }
 
+  /**
+   * A declarator, or null for one error recovery left without its direct
+   * declarator (an unpreprocessed `#ifdef` branch's `int a, 8[2];`): only that
+   * declarator is skipped, not the header
+   */
   private static declarator(
     declarator: DeclaratorContext,
-  ): IHeaderDeclaratorSyntax {
-    const directDecl = declarator.directDeclarator();
-    const pointerText = declarator.pointer()?.getText() ?? "";
+  ): IHeaderDeclaratorSyntax | null {
+    const directDeclarator = CHeaderLowering.directDeclaratorOf(declarator);
+    if (directDeclarator === null) return null;
     const hasParams =
-      directDecl.parameterTypeList() !== null ||
-      directDecl.LeftParen() !== null;
+      directDeclarator.parameterTypeList() !== null ||
+      directDeclarator.LeftParen() !== null;
     const isFunctionPointer =
       hasParams &&
-      (directDecl.directDeclarator()?.declarator()?.pointer() ?? null) !== null;
+      (directDeclarator.directDeclarator()?.declarator()?.pointer() ?? null) !==
+        null;
     return {
       name: CHeaderLowering.declaratorName(declarator),
       isFunction: hasParams,
       hasPointer: declarator.pointer() !== null,
-      pointerDepth: pointerText.split("*").length - 1,
+      pointerDepth: CHeaderLowering.pointerDepth(declarator),
       functionPointerParams: isFunctionPointer
-        ? (directDecl.parameterTypeList()?.getText() ?? "")
+        ? (directDeclarator.parameterTypeList()?.getText() ?? "")
         : null,
       parameters: CHeaderLowering.parameters(declarator),
-      arrayDimensions: ArrayDimensionText.parse(directDecl.getText()),
+      arrayDimensions: ArrayDimensionText.parse(directDeclarator.getText()),
     };
+  }
+
+  /** The generated accessor claims non-null; a recovery tree breaks that */
+  private static directDeclaratorOf(
+    declarator: DeclaratorContext | null,
+  ): DirectDeclaratorContext | null {
+    return declarator?.getRuleContext(0, DirectDeclaratorContext) ?? null;
+  }
+
+  /** The `*`s a declarator's pointer spells */
+  private static pointerDepth(declarator: DeclaratorContext | null): number {
+    return (declarator?.pointer()?.getText() ?? "").split("*").length - 1;
   }
 
   private static declaratorName(
     declarator: DeclaratorContext | null,
   ): string | null {
-    let directDecl = declarator?.directDeclarator() ?? null;
-    while (directDecl) {
-      const identifier = directDecl.Identifier();
+    let directDeclarator = declarator?.directDeclarator() ?? null;
+    while (directDeclarator) {
+      const identifier = directDeclarator.Identifier();
       if (identifier) return identifier.getText();
-      const nested = directDecl.declarator();
+      const nested = directDeclarator.declarator();
       if (nested) return CHeaderLowering.declaratorName(nested);
-      directDecl = directDecl.directDeclarator();
+      directDeclarator = directDeclarator.directDeclarator();
     }
     return null;
   }
@@ -157,33 +190,33 @@ class CHeaderLowering {
   private static parameters(
     declarator: DeclaratorContext,
   ): IExtractedParameter[] {
-    const paramList = declarator
-      .directDeclarator()
-      .parameterTypeList()
+    const parameterList = CHeaderLowering.directDeclaratorOf(declarator)
+      ?.parameterTypeList()
       ?.parameterList();
-    if (!paramList) return [];
+    if (!parameterList) return [];
     return ParameterExtractorUtils.processParameterList(
-      paramList,
+      parameterList,
       CHeaderLowering.parameter,
     );
   }
 
   private static parameter(
-    paramDecl: ParameterDeclarationContext,
+    parameterDeclaration: ParameterDeclarationContext,
   ): IExtractedParameter | null {
-    const declSpecs = paramDecl.declarationSpecifiers();
-    if (!declSpecs) return null;
-    const baseType =
-      CHeaderLowering.typeSpecifiers(declSpecs)
-        .map((spec) => spec.text)
-        .join(" ") || "int";
-    const declarator = paramDecl.declarator();
-    const directText = declarator?.directDeclarator().getText() ?? "";
-    const pointerText = declarator?.pointer()?.getText() ?? "";
+    const declarationSpecifiers = parameterDeclaration.declarationSpecifiers();
+    if (!declarationSpecifiers) return null;
+    const declarator = parameterDeclaration.declarator();
+    const directText =
+      CHeaderLowering.directDeclaratorOf(declarator)?.getText() ?? "";
     return ParameterExtractorUtils.buildParameterInfo(
       declarator,
-      baseType + "*".repeat(pointerText.split("*").length - 1),
-      declSpecs.getText().includes("const"),
+      DeclaratorTypes.withPointers(
+        DeclaratorTypes.baseType(
+          CHeaderLowering.typeSpecifiers(declarationSpecifiers),
+        ),
+        CHeaderLowering.pointerDepth(declarator),
+      ),
+      declarationSpecifiers.getText().includes("const"),
       directText.includes("[") && directText.includes("]"),
       CHeaderLowering.declaratorName,
     );
@@ -204,15 +237,16 @@ class CHeaderLowering {
   }
 
   private static fields(decl: StructDeclarationContext): ICFieldSyntax[] {
-    const specQualList = decl.specifierQualifierList();
+    const specifierQualifierList = decl.specifierQualifierList();
     const declaratorList = decl.structDeclaratorList();
-    if (!specQualList || !declaratorList) return [];
-    const type = CHeaderLowering.specQualText(specQualList);
+    if (!specifierQualifierList || !declaratorList) return [];
+    const type = CHeaderLowering.specifierQualifierText(specifierQualifierList);
     return declaratorList.structDeclarator().flatMap((structDecl) => {
       const declarator = structDecl.declarator();
-      return declarator
-        ? [{ type, declarator: CHeaderLowering.declarator(declarator) }]
-        : [];
+      const lowered = declarator
+        ? CHeaderLowering.declarator(declarator)
+        : null;
+      return lowered ? [{ type, declarator: lowered }] : [];
     });
   }
 
@@ -255,16 +289,16 @@ class CHeaderLowering {
     return typeSpec.getText();
   }
 
-  private static specQualText(
-    specQualList: SpecifierQualifierListContext,
+  private static specifierQualifierText(
+    specifierQualifierList: SpecifierQualifierListContext,
   ): string {
     const parts: string[] = [];
-    let current: SpecifierQualifierListContext | null = specQualList;
+    let current: SpecifierQualifierListContext | null = specifierQualifierList;
     while (current) {
       const typeSpec = current.typeSpecifier();
       if (typeSpec) parts.push(CHeaderLowering.typeSpecifierText(typeSpec));
-      const typeQual = current.typeQualifier();
-      if (typeQual) parts.push(typeQual.getText());
+      const typeQualifier = current.typeQualifier();
+      if (typeQualifier) parts.push(typeQualifier.getText());
       current = current.specifierQualifierList();
     }
     return parts.join(" ") || "int";
@@ -286,9 +320,11 @@ class CHeaderLowering {
   private static anonymousFieldText(
     decl: StructDeclarationContext,
   ): string | null {
-    const specQualList = decl.specifierQualifierList();
-    if (!specQualList) return null;
-    const baseType = CHeaderLowering.specQualText(specQualList);
+    const specifierQualifierList = decl.specifierQualifierList();
+    if (!specifierQualifierList) return null;
+    const baseType = CHeaderLowering.specifierQualifierText(
+      specifierQualifierList,
+    );
     const declarators = (
       decl.structDeclaratorList()?.structDeclarator() ?? []
     ).flatMap(

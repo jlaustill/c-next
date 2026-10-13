@@ -4,7 +4,7 @@
 
 import type ICVariableSymbol from "../../../../types/symbols/c/ICVariableSymbol";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
-import DeclaratorTypes from "../../shared/DeclaratorTypes";
+import DeclaratorTypes from "../../../2-Parse/shared/DeclaratorTypes";
 import type IHeaderDeclaratorSyntax from "../../../2-Parse/types/IHeaderDeclaratorSyntax";
 import type ISourceSpan from "../../../../types/ISourceSpan";
 

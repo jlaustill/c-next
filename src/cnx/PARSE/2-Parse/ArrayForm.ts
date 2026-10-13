@@ -63,8 +63,13 @@ class ArrayFormListener extends CNextListener {
     }
     const arrayType = typeCtx.arrayType();
     const expression = ctx.expression();
-    const dims = [...(arrayType?.arrayTypeDimension() ?? []), ...trailing];
-    if (this.checkEmptyDimensions(dims, identifier.getText(), !!expression)) {
+    const dimensions = [
+      ...(arrayType?.arrayTypeDimension() ?? []),
+      ...trailing,
+    ];
+    if (
+      this.checkEmptyDimensions(dimensions, identifier.getText(), !!expression)
+    ) {
       return;
     }
     if (!arrayType || !expression) return;
@@ -72,11 +77,11 @@ class ArrayFormListener extends CNextListener {
   };
 
   override enterStructMember = (ctx: Parser.StructMemberContext): void => {
-    const dims = [
+    const dimensions = [
       ...(ctx.type().arrayType()?.arrayTypeDimension() ?? []),
       ...ctx.arrayDimension(),
     ];
-    this.checkEmptyDimensions(dims, ctx.IDENTIFIER().getText(), false);
+    this.checkEmptyDimensions(dimensions, ctx.IDENTIFIER().getText(), false);
   };
 
   override enterParameter = (ctx: Parser.ParameterContext): void => {
@@ -106,8 +111,8 @@ class ArrayFormListener extends CNextListener {
       );
       return;
     }
-    const dims = ctx.type().arrayType()?.arrayTypeDimension() ?? [];
-    if (dims.some((d) => d.expression() === null)) {
+    const dimensions = ctx.type().arrayType()?.arrayTypeDimension() ?? [];
+    if (dimensions.some((dimension) => dimension.expression() === null)) {
       this.report(
         ctx,
         "E0875",
@@ -125,16 +130,16 @@ class ArrayFormListener extends CNextListener {
    * to count. Returns whether anything was reported.
    */
   private checkEmptyDimensions(
-    dims: readonly (
+    dimensions: readonly (
       | Parser.ArrayDimensionContext
       | Parser.ArrayTypeDimensionContext
     )[],
     name: string,
     hasInitializer: boolean,
   ): boolean {
-    if (dims.length === 1 && hasInitializer) return false;
+    if (dimensions.length === 1 && hasInitializer) return false;
     let reported = false;
-    dims.forEach((dim, index) => {
+    dimensions.forEach((dim, index) => {
       if (dim.expression() !== null) return;
       this.report(
         dim,
@@ -174,7 +179,7 @@ class ArrayFormListener extends CNextListener {
     }
     const inferred = arrayType
       .arrayTypeDimension()
-      .some((d) => d.expression() === null);
+      .some((dimension) => dimension.expression() === null);
     if (inferred && initializer.STAR() !== null) {
       this.report(
         expression,
@@ -200,12 +205,12 @@ class ArrayFormListener extends CNextListener {
   }
 
   private static dimensionText(
-    dims: readonly (
+    dimensions: readonly (
       | Parser.ArrayDimensionContext
       | Parser.ArrayTypeDimensionContext
     )[],
   ): string {
-    return dims
+    return dimensions
       .map((d) => {
         const size = d.expression();
         return `[${size === null ? "" : SyntaxLowering.node(size).written}]`;

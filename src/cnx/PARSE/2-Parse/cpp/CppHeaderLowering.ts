@@ -64,8 +64,9 @@ class CppHeaderLowering {
     const span = ParserUtils.getSpan(decl);
     const funcDef = decl.functionDefinition();
     if (funcDef) return CppHeaderLowering.functionDefinition(funcDef, span);
-    const nsDef = decl.namespaceDefinition();
-    if (nsDef) return CppHeaderLowering.namespace(nsDef, span);
+    const namespaceDefinition = decl.namespaceDefinition();
+    if (namespaceDefinition)
+      return CppHeaderLowering.namespace(namespaceDefinition, span);
     const block = decl.blockDeclaration();
     const alias = block?.aliasDeclaration();
     if (alias) {
@@ -91,18 +92,18 @@ class CppHeaderLowering {
   }
 
   private static namespace(
-    nsDef: NamespaceDefinitionContext,
+    namespaceDefinition: NamespaceDefinitionContext,
     span: ISourceSpan,
   ): TCppDeclarationSyntax {
     return {
       kind: "namespace",
       span,
       name:
-        nsDef.Identifier()?.getText() ??
-        nsDef.originalNamespaceName()?.getText() ??
+        namespaceDefinition.Identifier()?.getText() ??
+        namespaceDefinition.originalNamespaceName()?.getText() ??
         null,
       declarations: CppHeaderLowering.declarations(
-        nsDef.declarationseq()?.declaration() ?? [],
+        namespaceDefinition.declarationseq()?.declaration() ?? [],
       ),
     };
   }

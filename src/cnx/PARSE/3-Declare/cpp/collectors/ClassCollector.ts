@@ -11,7 +11,7 @@ import ICppFunctionSymbol from "../../../../types/symbols/cpp/ICppFunctionSymbol
 import ICppFieldInfo from "../../../../types/symbols/cpp/ICppFieldInfo";
 import SymbolTable from "../../SymbolTable";
 import SymbolUtils from "../../SymbolUtils";
-import DeclaratorTypes from "../../shared/DeclaratorTypes";
+import DeclaratorTypes from "../../../2-Parse/shared/DeclaratorTypes";
 import FunctionCollector from "./FunctionCollector";
 import type ISourceSpan from "../../../../types/ISourceSpan";
 import type ICppClassSyntax from "../../../2-Parse/types/ICppClassSyntax";

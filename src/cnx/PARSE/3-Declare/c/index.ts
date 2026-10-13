@@ -12,7 +12,7 @@ import type ICStructSyntax from "../../2-Parse/types/ICStructSyntax";
 import type TCExternalDeclarationSyntax from "../../2-Parse/types/TCExternalDeclarationSyntax";
 import type TCSymbol from "../../../types/symbols/c/TCSymbol";
 import SymbolTable from "../SymbolTable";
-import DeclaratorTypes from "../shared/DeclaratorTypes";
+import DeclaratorTypes from "../../2-Parse/shared/DeclaratorTypes";
 import StructCollector from "./collectors/StructCollector";
 import EnumCollector from "./collectors/EnumCollector";
 import FunctionCollector from "./collectors/FunctionCollector";

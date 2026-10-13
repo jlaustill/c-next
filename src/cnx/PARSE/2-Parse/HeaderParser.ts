@@ -10,6 +10,7 @@ import { CharStream, CommonTokenStream } from "antlr4ng";
 
 import { CLexer } from "./c/grammar/CLexer";
 import { CParser } from "./c/grammar/CParser";
+import type { CompilationUnitContext } from "./c/grammar/CParser";
 import CHeaderLowering from "./c/CHeaderLowering";
 import CppHeaderLowering from "./cpp/CppHeaderLowering";
 import type ICppHeaderSyntax from "./types/ICppHeaderSyntax";
@@ -114,6 +115,7 @@ class HeaderParser {
    * @returns The header lowered to plain data (null if parsing failed)
    */
   static parseC(content: string): ICParseResult {
+    let unit: CompilationUnitContext;
     try {
       const charStream = CharStream.fromString(content);
       const lexer = new CLexer(charStream);
@@ -125,12 +127,13 @@ class HeaderParser {
       // switched-off branches it reaches the parser with.
       lexer.removeErrorListeners();
       parser.removeErrorListeners();
-
-      return { syntax: CHeaderLowering.header(parser.compilationUnit()) };
+      unit = parser.compilationUnit();
     } catch {
-      // Return null on parse failure
       return { syntax: null };
     }
+    // Outside the catch: a lowering bug reaches 1.3's header warning, and is
+    // not read as a parse that failed
+    return { syntax: CHeaderLowering.header(unit) };
   }
 
   /**

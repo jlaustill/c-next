@@ -1377,6 +1377,27 @@ for (const includeCase of includePathCases) {
 // #1991 review: cpp reading a string runs from another directory, so a
 // relative --include must reach it as an absolute path, for a header that
 // includes another header too
+test("a header declaration error recovery damages drops only that declaration", () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "cnext-header-recovery-"));
+  try {
+    writeFileSync(
+      join(tempDir, "dev.h"),
+      "void good(int a);\n#ifdef OTHER_COMPILER\nint a, 8[2];\n#endif\n",
+    );
+    writeFileSync(
+      join(tempDir, "main.cnx"),
+      '#include "dev.h"\n\nvoid main() {\n    good(1);\n}\n',
+    );
+    const result = runCliInDir(tempDir, ["main.cnx", "--target", "host"], true);
+    assert(
+      result.success,
+      `expected exit 0, got ${result.exitCode}: ${result.stderr}${result.output}`,
+    );
+  } finally {
+    cleanupTempDir(tempDir);
+  }
+});
+
 test("a relative --include reaches headers that include each other", () => {
   const tempDir = mkdtempSync(join(tmpdir(), "cnext-rel-include-"));
   try {

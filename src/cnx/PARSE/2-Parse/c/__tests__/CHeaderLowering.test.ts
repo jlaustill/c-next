@@ -93,6 +93,14 @@ describe("CHeaderLowering", () => {
       ]);
     });
 
+    it("skips only a declarator error recovery left without its direct declarator", () => {
+      const lowered = declarations(`void good(int a);\nint a, 8[2];\n`);
+      const good = lowered[0];
+      expect(good.kind === "declaration" && good.declarators?.[0]?.name).toBe(
+        "good",
+      );
+    });
+
     it("leaves declarators null when the declaration has none", () => {
       const decl = declarations(`struct Point { int x; };`)[0];
       expect(decl.kind === "declaration" && decl.declarators).toBeNull();

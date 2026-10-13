@@ -5,7 +5,7 @@
 import type ICFunctionSymbol from "../../../../types/symbols/c/ICFunctionSymbol";
 import type ICParameterInfo from "../../../../types/symbols/c/ICParameterInfo";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
-import DeclaratorTypes from "../../shared/DeclaratorTypes";
+import DeclaratorTypes from "../../../2-Parse/shared/DeclaratorTypes";
 import type IExtractedParameter from "../../../2-Parse/shared/IExtractedParameter";
 import type IHeaderDeclaratorSyntax from "../../../2-Parse/types/IHeaderDeclaratorSyntax";
 import type TCExternalDeclarationSyntax from "../../../2-Parse/types/TCExternalDeclarationSyntax";
