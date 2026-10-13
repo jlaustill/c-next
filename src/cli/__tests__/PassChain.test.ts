@@ -180,7 +180,9 @@ describe("#1991: each pass takes only what the pass before it returned", () => {
   it("1.3 Declare takes 1.2's artifact itself", async () => {
     await run();
     // #1991 part B: the table and registry are 1.3's own, not handed in
-    expect(only("1.3").args).toEqual([only("1.2").returned]);
+    const declare = only("1.3");
+    expect(declare.args).toHaveLength(1);
+    expect(declare.args[0]).toBe(only("1.2").returned);
   });
 
   it("1.4 Resolve takes 1.3's artifact itself", async () => {
