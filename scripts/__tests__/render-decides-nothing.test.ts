@@ -72,19 +72,15 @@ const rootDir = join(__dirname, "..", "..");
 /**
  * The methods allowed to read the flags, and the reason each exists.
  *
- * Two, not one: the `.c` and the `.h` are separate artifacts with separate
- * emission facts, and each freezes the warm per-file state at the one moment
- * it is correct for that file (#1323). Everything downstream of both reads the
- * captured record instead -- see `IEmissionPlan` and `IHeaderEmissionFacts`.
+ * One, for the `.h`: it freezes the warm per-file state at the one moment it
+ * is correct for that file (#1323), and everything downstream reads the
+ * captured `IHeaderEmissionFacts`. The `.c`'s facts are planned by 2.2 (#1991)
+ * and arrive in `IEmissionPlan`, so no render state is read for them.
  */
 const CAPTURES = [
-  {
-    // #1445 box 3: the capture is reached from `generate()`, which takes the
-    // parse tree, so it moved to the walker with the rest of the walk. It is
-    // still exactly one capture per artifact -- the file changed, not the rule.
-    file: join("src", "cnx", "TRANSPILE", "CodeGenWalker.ts"),
-    needle: "private planEmissionFacts(",
-  },
+  // #1991: the `.c` capture stood here (`planEmissionFacts`). 2.2 now builds
+  // the `.c`'s emission facts from its own `PlannedRequirements` before 2.3
+  // runs, so it reads no flag off the render state and is not a capture.
   {
     // #1443 moved the header capture out of the orchestrator, beside the
     // header adapter it reads. Still one capture for the `.h`.
@@ -197,9 +193,15 @@ const ORDER_DECIDER = join(
   "DeclarationPlan.ts",
 );
 // #1445 box 3: `declarationKindOf` reasons about which grammar alternative a
-// declaration matched, so it moved to the walker with everything else that
-// asks the tree a question.
-const ORDER_CLASSIFIER = join("src", "cnx", "TRANSPILE", "CodeGenWalker.ts");
+// declaration matched. #1991 moved 2.2's planning out of the walker, so it
+// lives with the rest of 2.2 in `FilePlanner`.
+const ORDER_CLASSIFIER = join(
+  "src",
+  "cnx",
+  "TRANSPILE",
+  "2-Plan",
+  "FilePlanner.ts",
+);
 
 /**
  * A predicate that DECIDES, keyed on the verb in its name.
@@ -273,7 +275,9 @@ const PLAN_DECISIONS: Readonly<Record<string, readonly string[]>> = {
     // consultation went with it. #1668 (C5) then moved the decision itself
     // into the plan: `IPlannedCast.clampForm` says whether and how a cast
     // saturates, so `CastExprGenerator` reads the plan and consults nothing.
-    "codegen/helpers/NarrowingCastHelper.ts",
+    // #1991: `codegen/helpers/NarrowingCastHelper.ts` stood here and is
+    // deleted: 2.2 plans each narrowing (`IFilePlan.narrowings`) and 2.3
+    // writes the planned one.
   ],
   ComplianceAnnotations: [
     "codegen/assignment/handlers/ArrayHandlers.ts",
@@ -299,9 +303,9 @@ const PLAN_DECISIONS: Readonly<Record<string, readonly string[]>> = {
     // roster exists to make visible in a diff.
   ],
   MisraSuppressions: ["MisraSuppressionUtils.ts"],
-  // Still a render consultation: the emission-fact capture that stayed behind
-  // asks it directly, so this one did NOT move with the walk (#1445 box 3).
-  PassByValueAnalyzer: ["codegen/CodeGenerator.ts"],
+  // #1991: `codegen/CodeGenerator.ts` stood here. 2.2 decides each argument's
+  // passing before 2.3 runs, so no render module asks it.
+  PassByValueAnalyzer: [],
   PublicInterface: [
     // #1445 box 3: `ScopeGenerator` used to ask this while walking its own
     // members. It renders a plan now, so "does the header already define this
@@ -412,7 +416,7 @@ describe("2.3 Render decides nothing (#1449)", () => {
     expect(new RegExp(FLAG_READ.source).test(line)).toBe(true);
   });
 
-  it("reads a decision off the render state in exactly the two capture files", () => {
+  it("reads a decision off the render state only in the .h capture", () => {
     expect(filesMatching(FLAG_READ)).toEqual(
       CAPTURES.map((capture) => capture.file).sort(),
     );

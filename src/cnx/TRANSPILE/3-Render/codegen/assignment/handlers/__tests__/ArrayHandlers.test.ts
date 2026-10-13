@@ -6,17 +6,6 @@
 import SliceSource from "../../../../../2-Plan/SliceSource";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock TypeValidator before imports (use vi.hoisted for hoisted mock reference)
-const { mockCheckArrayBounds } = vi.hoisted(() => ({
-  mockCheckArrayBounds: vi.fn(),
-}));
-
-vi.mock("../../../TypeValidator", () => ({
-  default: {
-    checkArrayBounds: mockCheckArrayBounds,
-  },
-}));
-
 // Slice codegen reads the source value's type off the context (Issue #1081
 // review) — these stand in for it, so slice tests control the source type
 // independently of a real parse tree.
