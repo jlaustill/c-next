@@ -8,8 +8,8 @@ const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
  * TypeScript under `src/`, outside `__tests__/` and `__testUtils__/`, and not a
  * `*.test.ts`. The same split `.dependency-cruiser.cjs` makes. #1827 moved it
  * here from `SourceScan` so every script that scans `src/` reads the same
- * population: `ThrowSources`, `scope-join-sites` and `error-codes` each
- * skipped `__tests__/` alone, so a `__testUtils__/` double read as transpiler
+ * population: `ThrowSources`, `scope-join-sites`, `error-codes` and
+ * `PlanRenderState` each skipped `__tests__/` alone, so a `__testUtils__/` double read as transpiler
  * source. It takes the absolute path a `FileScanner` walk yields, so the
  * conversion to a repository-relative path is written once, here.
  */
@@ -22,7 +22,11 @@ class SourceModule {
   }
 
   static isModule(full: string): boolean {
-    const path = SourceModule.relativePath(full);
+    return SourceModule.isModulePath(SourceModule.relativePath(full));
+  }
+
+  /** `isModule` for a path already relative to the repository root. */
+  static isModulePath(path: string): boolean {
     return (
       path.startsWith("src/") &&
       path.endsWith(".ts") &&

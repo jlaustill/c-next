@@ -19,13 +19,10 @@
  */
 
 import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
 import FileScanner from "../utils/FileScanner";
 import SourceModule from "../utils/SourceModule";
-
-const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 /**
  * The first line ANTLR writes into every file it generates. Keyed on the
@@ -38,7 +35,7 @@ const GENERATED_BY_ANTLR = /^\/\/ Generated from .* by ANTLR/;
 
 class ThrowSources {
   static readonly docPath = join(
-    rootDir,
+    SourceModule.rootDir,
     "docs",
     "architecture",
     "throw-classification.md",
@@ -53,7 +50,10 @@ class ThrowSources {
    */
   static read(): Map<string, string> {
     const sources = new Map<string, string>();
-    for (const full of FileScanner.findFiles(join(rootDir, "src"), ".ts")) {
+    for (const full of FileScanner.findFiles(
+      join(SourceModule.rootDir, "src"),
+      ".ts",
+    )) {
       if (!SourceModule.isModule(full)) {
         continue;
       }

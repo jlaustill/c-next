@@ -1,13 +1,11 @@
 import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
 import FileScanner from "../utils/FileScanner";
 import SourceModule from "../utils/SourceModule";
 import ISourceHit from "./ISourceHit";
 
-const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const srcDir = join(rootDir, "src");
+const srcDir = join(SourceModule.rootDir, "src");
 
 /**
  * Pattern scans over the non-test modules under `src/`, for guards that hold a

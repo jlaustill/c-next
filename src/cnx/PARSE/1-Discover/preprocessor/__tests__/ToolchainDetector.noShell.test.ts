@@ -106,6 +106,7 @@ describe("ToolchainDetector starts no shell (#1827)", () => {
     it("lists the same include paths the shell command line did", () => {
       const reference = execSync("echo | gcc -E -Wp,-v - 2>&1", {
         encoding: "utf-8",
+        env: { ...process.env, LC_ALL: "C" },
       });
       const start = reference.indexOf("#include <...> search starts here:");
       const end = reference.indexOf("End of search list.");

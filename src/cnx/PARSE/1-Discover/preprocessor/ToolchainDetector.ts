@@ -180,6 +180,8 @@ class ToolchainDetector {
     const result = spawnSync(toolchain.cc, ["-E", "-Wp,-v", "-"], {
       input: "",
       encoding: "utf-8",
+      // gcc translates the banners parsed below; LC_ALL=C keeps them in English.
+      env: { ...process.env, LC_ALL: "C" },
     });
     if (
       result.error ||

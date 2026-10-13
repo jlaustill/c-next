@@ -9,8 +9,7 @@
  */
 
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
 import chalk from "chalk";
 
@@ -19,9 +18,13 @@ import FileScanner from "./utils/FileScanner";
 import GeneratedMarkdown from "./utils/GeneratedMarkdown";
 import SourceModule from "./utils/SourceModule";
 
-const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..");
-const docPath = join(rootDir, "docs", "architecture", "scope-join-sites.md");
-const srcDir = join(rootDir, "src");
+const docPath = join(
+  SourceModule.rootDir,
+  "docs",
+  "architecture",
+  "scope-join-sites.md",
+);
+const srcDir = join(SourceModule.rootDir, "src");
 
 function collectSources(): Map<string, string> {
   const sources = new Map<string, string>();

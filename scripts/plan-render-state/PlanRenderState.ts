@@ -16,6 +16,8 @@
 
 import { Node, Project, SyntaxKind } from "ts-morph";
 
+import SourceModule from "../utils/SourceModule";
+
 /** One reference to a `TranspileState` member, outside tests and the class. */
 interface IUse {
   readonly member: string;
@@ -262,7 +264,7 @@ class PlanRenderState {
 
   /** `2-Plan`, `3-Render`, `CodeGenWalker`, `cli`...; null for tests and the class. */
   static placeOf(file: string): string | null {
-    if (/__tests__\/|\.test\.ts$/.test(file) || file === STATE_PATH) {
+    if (!SourceModule.isModulePath(file) || file === STATE_PATH) {
       return null;
     }
     const pass = /^src\/cnx\/TRANSPILE\/(\d-[^/]+)\//.exec(file);

@@ -41,12 +41,14 @@ const cli = `import TranspileState from "../TRANSPILE/TranspileState";
 export default function c(s: TranspileState): void { s.program = {}; }
 `;
 
-function measure(plan: string) {
+function measure(plan: string, at = "src/cnx/TRANSPILE/2-Plan/P.ts") {
+  const depth = at.split("/").length - 4;
+  const toState = `${"../".repeat(depth)}TranspileState`;
   return PlanRenderState.measure(
     project({
       "src/cnx/TRANSPILE/3-Render/R.ts": render,
       "src/cli/C.ts": cli,
-      "src/cnx/TRANSPILE/2-Plan/P.ts": `${imp}\n${plan}`,
+      [at]: `import TranspileState from "${toState}";\n${plan}`,
     }),
     ROOT,
   );
@@ -59,6 +61,27 @@ describe("PlanRenderState.measure", () => {
     );
     expect(m.flows.map((f) => f.field)).toEqual(["renames"]);
     expect(m.flows[0].writes[0].file).toBe("src/cnx/TRANSPILE/3-Render/R.ts");
+  });
+
+  // #1827 review: test code is SourceModule's population, so a 2-Plan test
+  // double reading a field 3-Render writes is not a flow.
+  const renamesRead =
+    "export default (s: TranspileState) => s.renames.get('x');";
+
+  it("reports the read from a 2-Plan module (control)", () => {
+    expect(
+      measure(renamesRead, "src/cnx/TRANSPILE/2-Plan/P.ts").flows.map(
+        (f) => f.field,
+      ),
+    ).toEqual(["renames"]);
+  });
+
+  it.each([
+    "src/cnx/TRANSPILE/2-Plan/__tests__/P.ts",
+    "src/cnx/TRANSPILE/2-Plan/__testUtils__/P.ts",
+    "src/cnx/TRANSPILE/2-Plan/P.test.ts",
+  ])("leaves out the same read from test code at %s", (at) => {
+    expect(measure(renamesRead, at).flows).toEqual([]);
   });
 
   it("follows a read through a member that reads the field", () => {
