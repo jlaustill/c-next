@@ -360,8 +360,21 @@ function heldParseValues(pattern: RegExp, stopAfter = Infinity): string[] {
  * The modules after 1.2 Parse (#1991, "the tree never leaves 1.2"): 1.3, 1.4,
  * 2.1, the walker, its state, and every later layer
  */
-const AFTER_PARSE =
-  /src\/cnx\/PARSE\/(3-Declare|4-Resolve)\/|src\/cnx\/TRANSPILE\/(1-Analyze|2-Plan|3-Render|types)\/|src\/cnx\/TRANSPILE\/(CodeGenWalker|TranspileState)\.ts$|src\/cnx\/WRITE\//;
+const AFTER_PARSE_PASSES: ReadonlyArray<readonly [string, RegExp]> = [
+  ["1.3 Declare", /src\/cnx\/PARSE\/3-Declare\//],
+  ["1.4 Resolve", /src\/cnx\/PARSE\/4-Resolve\//],
+  ["2.1 Analyze", /src\/cnx\/TRANSPILE\/1-Analyze\//],
+  ["2.2 Plan", /src\/cnx\/TRANSPILE\/2-Plan\//],
+  ["2.3 Render", /src\/cnx\/TRANSPILE\/3-Render\//],
+  [
+    "the walker and its state",
+    /src\/cnx\/TRANSPILE\/types\/|src\/cnx\/TRANSPILE\/(CodeGenWalker|TranspileState)\.ts$/,
+  ],
+  ["3.1 Write", /src\/cnx\/WRITE\//],
+];
+const AFTER_PARSE = new RegExp(
+  AFTER_PARSE_PASSES.map(([, pass]) => pass.source).join("|"),
+);
 
 /** 1.2 Parse, which holds the tree, so every detector must find it there */
 const PARSE = /src\/cnx\/PARSE\/2-Parse\//;
@@ -515,14 +528,23 @@ describe("artifact lifetime (#1445 box 2)", () => {
     WALK_TIMEOUT_MS,
   );
   it(
-    "nothing after 1.2 holds a parse node as a value, however obtained (#1957, #1991)",
+    "the value sweep finds the parse nodes 1.2 holds",
     () => {
       // DETECTOR CONTROL: 1.2 walks the tree, so the same sweep over it must
       // find parse-node values -- otherwise an empty result below could mean
       // a sweep that cannot match.
       expect(heldParseValues(PARSE, 1)).toHaveLength(1);
+    },
+    WALK_TIMEOUT_MS,
+  );
+  // One test per pass: the sweep type-checks every module it reads, and all
+  // of them in one test took 75s under CI's coverage run (#1991).
+  it.each(AFTER_PARSE_PASSES)(
+    "nothing in %s holds a parse node as a value, however obtained (#1957, #1991)",
+    (_pass, modules) => {
+      expect(matchingModules(modules)).not.toEqual([]);
 
-      expect(heldParseValues(AFTER_PARSE)).toEqual([]);
+      expect(heldParseValues(modules)).toEqual([]);
     },
     WALK_TIMEOUT_MS,
   );
