@@ -15,6 +15,7 @@ import type { ParserRuleContext, ParseTree, Token } from "antlr4ng";
 import * as Parser from "./grammar/CNextParser";
 import ParserUtils from "../../utils/ParserUtils";
 import ChainRoot from "./ChainRoot";
+import SourceSpelling from "./SourceSpelling";
 import invariant from "../../utils/invariant";
 import type TOverflowBehavior from "../../types/TOverflowBehavior";
 import type ISyntaxNode from "../../types/syntax/ISyntaxNode";
@@ -419,9 +420,9 @@ class SyntaxLowering {
   private static tokenNode(start: Token, stop: Token): ISyntaxNode {
     return {
       span: ParserUtils.getSpan({ start, stop }),
-      written:
-        start.inputStream?.getTextFromRange(start.start, stop.stop) ??
-        `${start.text ?? ""}`,
+      written: start.inputStream
+        ? SourceSpelling.of(start.inputStream, start.start, stop.stop)
+        : `${start.text ?? ""}`,
     };
   }
 
@@ -671,7 +672,7 @@ class SyntaxLowering {
   private static asWritten(ctx: ParserRuleContext): string {
     const stream = ctx.start?.inputStream;
     return stream && ctx.start && ctx.stop
-      ? stream.getTextFromRange(ctx.start.start, ctx.stop.stop)
+      ? SourceSpelling.of(stream, ctx.start.start, ctx.stop.stop)
       : ctx.getText();
   }
 }

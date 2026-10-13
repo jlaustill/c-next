@@ -1,0 +1,24 @@
+// test-execution
+// Tests: a comment inside a declared type still gives bare enum members their type (#1991 review)
+enum Color {
+    RED,
+    GREEN
+}
+struct Pt {
+    Color c;
+    u8 x;
+}
+
+u32 main() {
+    Pt /* two points */[2] pts <- [{ c: RED, x: 1 }, { c: GREEN, x: 2 }];
+    if (pts[0].c != Color.RED) {
+        return 1;
+    }
+    if (pts[1].c != Color.GREEN) {
+        return 2;
+    }
+    if (pts[1].x != 2) {
+        return 3;
+    }
+    return 0;
+}

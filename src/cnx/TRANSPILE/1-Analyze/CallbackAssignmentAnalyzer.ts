@@ -53,7 +53,6 @@ import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
 import IFunctionSymbol from "../../types/symbols/IFunctionSymbol";
 import TypeResolver from "../../utils/TypeResolver";
 import FunctionReference from "./helpers/FunctionReference";
-import TypeText from "./helpers/TypeText";
 import ValuePositions from "./helpers/ValuePositions";
 import ICallbackAssignmentError from "./types/ICallbackAssignmentError";
 import type IAnalysisContext from "./types/IAnalysisContext";
@@ -92,7 +91,7 @@ class CallbackAssignmentCheck {
 
   public checkDeclaration(declaration: IVariableDeclarationSyntax): void {
     if (!declaration.initializer) return;
-    this.check(TypeText.ofType(declaration.type), declaration.initializer, {
+    this.check(declaration.type.text, declaration.initializer, {
       verb: "assign",
       description: `callback variable '${declaration.name}'`,
     });

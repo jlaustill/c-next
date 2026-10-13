@@ -24,6 +24,7 @@ import * as Parser from "./grammar/CNextParser";
 import SyntaxLowering from "./SyntaxLowering";
 import ProgramLowering from "./ProgramLowering";
 import MainSignature from "../../utils/MainSignature";
+import ExpressionShape from "../../utils/ExpressionShape";
 import ParserUtils from "../../utils/ParserUtils";
 import CodedErrorText from "../../utils/CodedErrorText";
 import type ITranspileError from "../../types/ITranspileError";
@@ -158,7 +159,9 @@ class ArrayFormListener extends CNextListener {
     const written = SyntaxLowering.node(expression).written;
     const initializer = ArrayFormListener.arrayInitializerOf(expression);
     if (initializer === null) {
-      const isStringLiteral = /^".*"$/.test(written.trim());
+      const isStringLiteral = ExpressionShape.isStringLiteral(
+        SyntaxLowering.expression(expression),
+      );
       const isByteArray = arrayType.primitiveType()?.getText() === "u8";
       if (isStringLiteral && isByteArray) return; // `u8[] s <- "Hello"` (ADR-035)
       this.report(

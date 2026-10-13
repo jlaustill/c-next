@@ -105,7 +105,7 @@ class ValuePositionWalk {
         if (statement.value) {
           this.place(
             statement.value,
-            { ...NO_TYPE, typeText: TypeText.ofType(fn.returnType) },
+            { ...NO_TYPE, typeText: fn.returnType.text },
             { site: { kind: "return", function: fn }, outer: null },
           );
         }
@@ -120,7 +120,7 @@ class ValuePositionWalk {
       if (dimension) this.place(dimension, NOWHERE, null);
     }
     if (!declaration.initializer) return;
-    const typeText = TypeText.ofType(declaration.type);
+    const typeText = declaration.type.text;
     this.place(
       declaration.initializer,
       {

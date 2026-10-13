@@ -1,0 +1,5 @@
+// test-error
+// Tests: two string literals joined by + are not a string literal (#1991 review)
+void main() {
+    u8[] s <- "ab" + "cd";
+}

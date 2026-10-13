@@ -1,0 +1,12 @@
+// test-error
+// Tests: a quoted condition drops its comment and line break (#1991 review)
+u8 getLimit() {
+    return 3;
+}
+
+void main() {
+    u8 i <- 1;
+    if (i < /* the limit */ getLimit() && i > 0) {
+        i <- 2;
+    }
+}

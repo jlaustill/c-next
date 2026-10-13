@@ -1,5 +1,3 @@
-import type TTypeSyntax from "../../../types/syntax/TTypeSyntax";
-
 /**
  * Reading a declared type as WRITTEN, before any resolution.
  *
@@ -18,11 +16,6 @@ import type TTypeSyntax from "../../../types/syntax/TTypeSyntax";
  * does), which is a different question from "what is the base name".
  */
 class TypeText {
-  /** A lowered type spelled as the parse tree's `getText()` spelled it: no whitespace (#1991) */
-  static ofType(type: TTypeSyntax): string {
-    return type.written.replaceAll(/\s+/g, "");
-  }
-
   /**
    * The type without any array dimensions: `u8[4][2]` -> `u8`, `Color` ->
    * `Color`. A text with no `[` is returned unchanged.

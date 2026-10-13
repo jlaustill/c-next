@@ -1,0 +1,2 @@
+4:15 error[E0866]: An array must be initialized by a list, not '"ab" + "cd"'
+       help: Write the elements out in brackets, or declare it empty and assign the elements afterwards (ADR-035).

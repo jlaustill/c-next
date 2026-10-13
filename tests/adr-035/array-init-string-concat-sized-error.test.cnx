@@ -1,0 +1,5 @@
+// test-error
+// Tests: a sized u8 array is not initialized by two string literals joined by + (#1991 review)
+void main() {
+    u8[8] t <- "ab" + "cd";
+}

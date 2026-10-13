@@ -70,7 +70,6 @@ import invariant from "../../utils/invariant";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
 import CompositeType from "../../utils/CompositeType";
 import StructInitializerType from "./helpers/StructInitializerType";
-import TypeText from "./helpers/TypeText";
 import ValuePositions from "./helpers/ValuePositions";
 import IIntegerConversionError from "./types/IIntegerConversionError";
 import type IAnalysisContext from "./types/IAnalysisContext";
@@ -94,7 +93,7 @@ class IntegerConversionCheck {
   public checkDeclaration(declaration: IVariableDeclarationSyntax): void {
     if (!declaration.initializer) return;
     if (this.checkStringAt(declaration.initializer)) return;
-    const target = TypeText.ofType(declaration.type);
+    const target = declaration.type.text;
     if (!TypeCheckUtils.isInteger(target)) return;
     this.check(target, declaration.initializer, "assign", true);
   }
@@ -217,7 +216,7 @@ class IntegerConversionCheck {
   }
 
   private checkCast(cast: Extract<TExpression, { kind: "cast" }>): void {
-    const target = TypeText.ofType(cast.type);
+    const target = cast.type.text;
     if (!TypeCheckUtils.isInteger(target)) return;
     const source = this.conversionSource(cast.operand, false);
     if (source !== null) this.checkConversion(target, source, cast, "cast");
@@ -229,14 +228,23 @@ class IntegerConversionCheck {
     kind: "assign" | "cast",
     typeComposites: boolean,
   ): void {
-    const text = value.written.replaceAll(/\s+/g, "");
-    if (INTEGER_LITERAL.test(text)) {
+    const text = IntegerConversionCheck.integerLiteralText(value);
+    if (text !== null) {
       this.checkLiteral(target, text, value);
       return;
     }
     if (this.checkFloating(target, value)) return;
     const source = this.conversionSource(value, typeComposites);
     if (source !== null) this.checkConversion(target, source, value, kind);
+  }
+
+  /** An integer literal, or a minus over one, as one token: `-1`, `0xFF` */
+  private static integerLiteralText(value: TExpression): string | null {
+    const negated = value.kind === "unary" && value.operator === "-";
+    const literal = negated ? value.operand : value;
+    if (literal.kind !== "literal") return null;
+    const text = negated ? `-${literal.text}` : literal.text;
+    return INTEGER_LITERAL.test(text) ? text : null;
   }
 
   private checkFloating(target: string, value: TExpression): boolean {
