@@ -164,7 +164,6 @@ When in doubt: **ASK.** Syntax changes require ADR discussion and user approval.
 
 - No root-level analysis artifacts (`*.csv`, `*-report.md`) — use terminal or `docs/`
 - `.auto-claude-status` is gitignored
-- **NEVER use git worktrees** — work directly on the repo
 
 ### Starting a Task
 
@@ -845,7 +844,7 @@ generator (#1489 deleted the one that duplicated this).
   vanished. Commit before mutating, or `cp` the file aside and copy it back, then grep for
   the mutation marker to confirm it is gone
 - **Full-suite mutation or before-fix runs**: `git clone --local` into scratch and check out
-  the SHA. Not `git archive`, since unit tests run `git ls-files`, and never a worktree.
+  the SHA. Not `git archive`, since unit tests run `git ls-files`.
   Parallel runs each keep their logs inside their own clone
 - **2.1 stops at a file's first failing analyzer stage**: a `test-error` fixture cannot
   assert that a later-stage diagnostic stays silent (a false E0854 beside an E0892 never
