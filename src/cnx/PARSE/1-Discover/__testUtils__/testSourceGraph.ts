@@ -15,6 +15,10 @@ function testSourceGraph(
   | "outputs"
   | "targetCatalog"
   | "headerMacroDumps"
+  | "headerFiles"
+  | "headerSources"
+  | "cachedHeaders"
+  | "recoveredDeclarations"
 > {
   const catalog = Installation.catalog(NodeFileSystem.instance);
   return {
@@ -29,6 +33,10 @@ function testSourceGraph(
     includes: new Map(),
     outputs: new Map(),
     headerMacroDumps: new Map(),
+    headerFiles: [],
+    headerSources: new Map(),
+    cachedHeaders: new Map(),
+    recoveredDeclarations: null,
     targetCatalog: {
       path: catalog,
       text: NodeFileSystem.instance.readFile(catalog),

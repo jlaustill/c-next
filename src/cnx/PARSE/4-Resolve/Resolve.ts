@@ -9,7 +9,6 @@
 import type IDeclaredSources from "../3-Declare/types/IDeclaredSources";
 import HeaderMacros from "./HeaderMacros";
 import Program from "./Program";
-import type IForeignSymbols from "./types/IForeignSymbols";
 import type THeaderMacro from "../../types/THeaderMacro";
 import TargetDescriptions from "./TargetDescriptions";
 import type IProgramInputs from "./types/IProgramInputs";
@@ -23,8 +22,10 @@ type TResolveInputs = Omit<
   | "target"
   | "cppMode"
   | "foreign"
+  | "headerStructFields"
+  | "symbolTable"
+  | "registry"
 > & {
-  readonly foreign: Omit<IForeignSymbols, "macros" | "macrosUnread">;
   readonly target: Omit<IRunTargetInputs, "files" | "catalog" | "platformio">;
 };
 
@@ -34,6 +35,7 @@ class Resolve {
     inputs: TResolveInputs,
   ): IResolvedProgram {
     const declared = input.declared;
+    const table = input.symbolTable;
     // #1688: each file's header macros, typed (ADR-024) from the macro dump
     // 1.1 took of that file's own C includes. Unread is not "no macros".
     const macros = new Map<string, ReadonlyMap<string, THeaderMacro>>();
@@ -46,7 +48,25 @@ class Resolve {
       declared.map((entry) => entry.fileSymbols),
       {
         ...inputs,
-        foreign: { ...inputs.foreign, macros, macrosUnread },
+        // #1511: everything the C/C++ headers contributed, from 1.3's table.
+        // The opacity inputs are the raw bookkeeping, not the verdict --
+        // `Program` resolves which typedefs never received a body. #985's
+        // phantom-body recovery ran in 1.3, so the state is final.
+        headerStructFields: table.getAllStructFields(),
+        foreign: {
+          c: table.getAllCSymbols(),
+          cpp: table.getAllCppSymbols(),
+          opaqueTypedefs: new Set(table.getAllOpaqueTypes()),
+          typedefToTag: new Map(table.getAllTypedefToTag()),
+          structTagsWithBodies: new Set(table.getAllStructTagsWithBodies()),
+          macros,
+          macrosUnread,
+        },
+        // #1825: ADR-006's and ADR-029's derivations look callees and typedefs
+        // up in it. 1.4 completes it with every file's resolved symbols and
+        // hands it on as `program.symbolTable()` (#1991).
+        symbolTable: table,
+        registry: input.registry,
         // #1428: 1.1's one answer, which every pass after 1.4 reads from here
         cppMode: input.discovery.cppMode,
         // #1175: where a name nothing binds may be a macro -- discovery's

@@ -30,18 +30,17 @@ const ROOT = join(__dirname, "..", "..", "..");
 /**
  * The files whose catches sit on the header call graph. #1443 split it: the
  * host's header loop stayed with the orchestrator, and slice recovery moved to
- * 1.3 with the header parsing it calls.
+ * 1.3 with the header parsing it calls. #1991 moved the header loop into 1.3
+ * as well.
  */
 const FILES = [
   join("src", "cli", "Transpiler.ts"),
   join("src", "cnx", "PARSE", "3-Declare", "HeaderDeclarations.ts"),
+  join("src", "cnx", "PARSE", "3-Declare", "Declare.ts"),
 ];
 
 /** Calls that can now raise a C-Next diagnostic rather than a parse failure. */
-const DIAGNOSTIC_RAISING = [
-  "HeaderDeclarations.declare(",
-  "_collectHeaderSymbols(",
-];
+const DIAGNOSTIC_RAISING = ["HeaderDeclarations.declare("];
 
 interface ICatchSite {
   readonly tryBody: string;

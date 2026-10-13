@@ -155,16 +155,16 @@ void run() {
 
   it("is a warning in its place, and the headers after it are still collected", async () => {
     // #1844: Stage 2 reads no header -- 1.1 read and settled it -- so what can
-    // fail there is the header's cache entry.
+    // fail there is the header's cache entry, which 1.1 reads (#1991).
     const readCached = vi
       .spyOn(
-        Transpiler.prototype as unknown as {
-          _readCachedHeader: (file: { path: string }) => unknown;
+        Transpiler as unknown as {
+          _headerCacheOf: () => (path: string) => null;
         },
-        "_readCachedHeader",
+        "_headerCacheOf",
       )
-      .mockImplementation((file) => {
-        if (file.path.endsWith("broken.h")) {
+      .mockImplementation(() => (path) => {
+        if (path.endsWith("broken.h")) {
           throw new Error("simulated read failure");
         }
         return null;

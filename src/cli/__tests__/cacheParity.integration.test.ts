@@ -14,7 +14,7 @@
  * C++ resolver records the flag and emits no symbol for it — so if the cache
  * drops that one fact, a warm build has never heard of `handle_t`.
  */
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import {
   mkdtempSync,
   writeFileSync,
@@ -28,6 +28,7 @@ import Transpiler from "../Transpiler";
 import CacheManager from "../cache/CacheManager";
 import CachedSymbolReader from "../cache/CachedSymbolReader";
 import NodeFileSystem from "../../cnx/PARSE/1-Discover/NodeFileSystem";
+import HeaderDeclarations from "../../cnx/PARSE/3-Declare/HeaderDeclarations";
 
 const EXTERNAL_HPP = `#ifndef CNX_CACHE_PARITY_EXTERNAL_HPP
 #define CNX_CACHE_PARITY_EXTERNAL_HPP
@@ -171,6 +172,22 @@ describe("cache parity (integration, #1225)", () => {
     cache.flush();
     return cache;
   }
+
+  // #1991: 1.1 reads the entry and 1.3 restores it, so a warm run declares
+  // nothing from external.hpp's text. Byte-identical output alone cannot tell
+  // a hit from a miss that parsed the header again.
+  it("restores a current entry instead of declaring the header again", async () => {
+    await coldOutput();
+    const declare = vi.spyOn(HeaderDeclarations, "declare");
+    try {
+      await transpileOnce();
+      expect(declare.mock.calls.map(([, path]) => path)).not.toContain(
+        join(dir, "external.hpp"),
+      );
+    } finally {
+      declare.mockRestore();
+    }
+  });
 
   it("parses the header again when its entry's struct state cannot be read", async () => {
     const expected = await coldOutput();

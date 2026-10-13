@@ -6,6 +6,7 @@ import type IPlatformIOProject from "../../../types/IPlatformIOProject";
 import type IAnchorFacts from "./IAnchorFacts";
 import type IFileIncludes from "./IFileIncludes";
 import type IHeaderSource from "./IHeaderSource";
+import type TCachedHeaderRead from "./TCachedHeaderRead";
 import type IOutputPaths from "./IOutputPaths";
 import type IRecoveredDeclarations from "./IRecoveredDeclarations";
 
@@ -44,6 +45,13 @@ interface ISourceGraph {
    * preprocessed lines. Nothing after 1.1 reads a header or judges one again.
    */
   readonly headerSources: ReadonlyMap<string, IHeaderSource>;
+
+  /**
+   * #1991: per header (by `path`) the symbol cache holds a valid record for,
+   * that record, or what reading it threw. Every one is read before 1.3
+   * declares any header (#1817). A header not here is parsed.
+   */
+  readonly cachedHeaders: ReadonlyMap<string, TCachedHeaderRead>;
 
   /**
    * Issue #985: the run's C includes preprocessed as one translation unit,

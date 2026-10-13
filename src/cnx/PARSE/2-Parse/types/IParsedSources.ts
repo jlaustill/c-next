@@ -1,3 +1,5 @@
+import type IParsedRecovery from "./IParsedRecovery";
+import type TParsedHeaderEntry from "./TParsedHeaderEntry";
 import type TDiscoveryFacts from "../../1-Discover/types/TDiscoveryFacts";
 import type ITranspileError from "../../../types/ITranspileError";
 import type IParsedSource from "./IParsedSource";
@@ -5,6 +7,10 @@ import type IParsedTargetCatalog from "./IParsedTargetCatalog";
 
 /** 1.2's artifact (#1991): each file that parsed, the others' errors, and 1.1's facts carried on */
 interface IParsedSources {
+  /** #1991: the C/C++ headers 1.1 settled, in its order */
+  readonly headers: readonly TParsedHeaderEntry[];
+  /** #1991: issue #985's recovery slices, parsed; null when 1.1 had none */
+  readonly recovered: IParsedRecovery | null;
   readonly sources: readonly IParsedSource[];
   readonly errors: readonly ITranspileError[];
   readonly targetCatalog: IParsedTargetCatalog;

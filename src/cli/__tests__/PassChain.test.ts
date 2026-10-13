@@ -22,9 +22,9 @@ import Write from "../../cnx/WRITE/1-Write/Write";
  * a copy, a field, a skipped pass's result -- fails here.
  *
  * Arguments that are not artifacts are named per entry: the filesystem port,
- * 1.1's run inputs, and the walker's per-file options. Not yet covered: 1.3
- * and 1.4 also read the host's symbol table (`symbolRegistry`, and the
- * header symbols Resolve takes), which #1991 part B moves into the artifacts.
+ * 1.1's run inputs, and the walker's per-file options. The symbol table and
+ * registry are 1.3's artifact data (#1991 part B): 1.3 builds them from the
+ * headers 1.2 parsed, and 1.4 reads them off 1.3's result.
  *
  * Mutation-checked: handing each of 1.2 through 2.3 a copy of its artifact,
  * or 3.1 text 2.3 did not render, fails one test here per boundary.

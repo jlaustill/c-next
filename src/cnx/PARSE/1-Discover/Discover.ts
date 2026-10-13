@@ -1,5 +1,7 @@
 import { basename, dirname, join, resolve } from "node:path";
 
+import type TCachedHeaderRead from "./types/TCachedHeaderRead";
+import type THeaderDeclarationCache from "./types/THeaderDeclarationCache";
 import HeaderMacroDumps from "./HeaderMacroDumps";
 import type IHeaderMacroDump from "./types/IHeaderMacroDump";
 import Installation from "./Installation";
@@ -55,6 +57,7 @@ type TDiscoveredFiles = Omit<
   | "includes"
   | "anchor"
   | "headerSources"
+  | "cachedHeaders"
   | "recoveredDeclarations"
   | "cppMode"
   | "outputs"
@@ -159,6 +162,7 @@ class Discover {
     fs: IFileSystem,
     warnings: string[],
     preprocessCache: PreprocessCache | null = null,
+    headerCache: THeaderDeclarationCache | null = null,
   ): Promise<{
     readonly graph: ISourceGraph;
     readonly anchor: IRunAnchor;
@@ -202,6 +206,7 @@ class Discover {
           false,
           // E0516 ends the run before any macro is read
           new Map(),
+          new Map(),
         ),
         anchor,
         errors: discovery.errors,
@@ -244,6 +249,10 @@ class Discover {
         settled.recovered,
         cppMode,
         await discovery._headerMacroDumps(files, preprocessCache),
+        Discover._cachedHeaders(
+          files.headerFiles.filter((file) => settled.sources.has(file.path)),
+          headerCache,
+        ),
       ),
       anchor,
       errors: discovery.errors,
@@ -548,6 +557,7 @@ class Discover {
     recoveredDeclarations: IRecoveredDeclarations | null,
     cppMode: boolean,
     headerMacroDumps: ReadonlyMap<string, IHeaderMacroDump>,
+    cachedHeaders: ReadonlyMap<string, TCachedHeaderRead>,
   ): ISourceGraph {
     return Discover._frozen({
       cnextFiles: files.cnextFiles,
@@ -556,6 +566,7 @@ class Discover {
         headerSources.has(file.path),
       ),
       headerSources,
+      cachedHeaders,
       recoveredDeclarations,
       cppMode,
       headerSearchPaths: files.headerSearchPaths,
@@ -634,6 +645,28 @@ class Discover {
    * it is. The graph holds no cycle: an include edge names the included
    * file's `IDiscoveredFile`, which refers to nothing.
    */
+  /**
+   * #1991: each settled header's cache record, every one read before 1.3
+   * declares any header (#1817)
+   */
+  private static _cachedHeaders(
+    headers: readonly IDiscoveredFile[],
+    cache: THeaderDeclarationCache | null,
+  ): ReadonlyMap<string, TCachedHeaderRead> {
+    const reads = new Map<string, TCachedHeaderRead>();
+    if (cache === null) return reads;
+    for (const file of headers) {
+      try {
+        const record = cache(file.path);
+        if (record !== null) reads.set(file.path, { kind: "cached", record });
+      } catch (error) {
+        // 1.3 decides, in header order, whether it is a diagnostic (#1319)
+        reads.set(file.path, { kind: "failed", error });
+      }
+    }
+    return reads;
+  }
+
   private static _frozen<T>(value: T): T {
     if (typeof value !== "object" || value === null || value instanceof Map) {
       return value;

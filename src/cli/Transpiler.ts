@@ -9,6 +9,7 @@
  * _executePipeline(). There is ONE pipeline for all transpilation.
  */
 
+import type THeaderDeclarationCache from "../cnx/PARSE/1-Discover/types/THeaderDeclarationCache";
 import type TRunTarget from "../cnx/types/TRunTarget";
 
 import IFileSystem from "../cnx/types/IFileSystem";
@@ -17,20 +18,15 @@ import CodeGenWalker from "../cnx/TRANSPILE/CodeGenWalker";
 import invariant from "../cnx/utils/invariant";
 import AdrProvenance from "../cnx/instrumentation/AdrProvenance";
 import ToolchainRequirements from "../cnx/instrumentation/ToolchainRequirements";
-import CachedSymbolReader from "./cache/CachedSymbolReader";
 import PublicInterface from "../cnx/TRANSPILE/2-Plan/PublicInterface";
 import HeaderGenerator from "../cnx/TRANSPILE/3-Render/headers/HeaderGenerator";
 import HeaderRenderer from "../cnx/TRANSPILE/3-Render/headers/HeaderRenderer";
 import IHeaderEmissionFacts from "../cnx/TRANSPILE/3-Render/headers/types/IHeaderEmissionFacts";
-import SymbolTable from "../cnx/PARSE/3-Declare/SymbolTable";
-import ESourceLanguage from "../cnx/utils/types/ESourceLanguage";
-import SymbolRegistry from "../cnx/PARSE/3-Declare/SymbolRegistry";
 import type IProgram from "../cnx/types/IProgram";
 import type IAnalyzedFile from "../cnx/types/IAnalyzedFile";
 
 import IDiscoveredFile from "../cnx/PARSE/1-Discover/types/IDiscoveredFile";
 import EHeaderLanguage from "../cnx/PARSE/1-Discover/types/EHeaderLanguage";
-import type IHeaderSource from "../cnx/PARSE/1-Discover/types/IHeaderSource";
 import OutputExtensions from "../cnx/utils/OutputExtensions";
 import type IOutputExtensions from "../cnx/types/IOutputExtensions";
 
@@ -48,7 +44,6 @@ import RunAnchor from "../cnx/PARSE/1-Discover/RunAnchor";
 import TTranspileInput from "../cnx/types/TTranspileInput";
 import ITranspileError from "../cnx/types/ITranspileError";
 import DeclarationSite from "../cnx/utils/DeclarationSite";
-import TreePasses from "../cnx/TRANSPILE/1-Analyze/TreePasses";
 import type IDeclaredSource from "../cnx/PARSE/3-Declare/types/IDeclaredSource";
 import type IDeclaredSources from "../cnx/PARSE/3-Declare/types/IDeclaredSources";
 import type TDiscoveryFacts from "../cnx/PARSE/1-Discover/types/TDiscoveryFacts";
@@ -69,16 +64,9 @@ import RequirementAggregator from "../cnx/utils/RequirementAggregator";
 import type IRenderedOutput from "../cnx/TRANSPILE/3-Render/types/IRenderedOutput";
 import Write from "../cnx/WRITE/1-Write/Write";
 import CaughtError from "../cnx/utils/CaughtError";
-import HeaderDeclarations from "../cnx/PARSE/3-Declare/HeaderDeclarations";
 import ProgramChecks from "../cnx/PARSE/4-Resolve/ProgramChecks";
 import IncludeGuards from "../cnx/TRANSPILE/3-Render/headers/IncludeGuards";
 import HeaderEmissionCapture from "../cnx/TRANSPILE/3-Render/headers/HeaderEmissionCapture";
-
-/** A header's cache entry, as `CacheManager` returns it. */
-type TCachedHeader = NonNullable<ReturnType<CacheManager["getSymbols"]>>;
-
-/** A cache entry's symbols, once validated. */
-type TCachedSymbols = NonNullable<ReturnType<typeof CachedSymbolReader.read>>;
 
 /**
  * The config with every default filled in, except `cppRequired`: unset is
@@ -86,24 +74,6 @@ type TCachedSymbols = NonNullable<ReturnType<typeof CachedSymbolReader.read>>;
  */
 type TRunConfig = Required<Omit<ITranspilerConfig, "cppRequired">> &
   Pick<ITranspilerConfig, "cppRequired">;
-
-/**
- * #1817: one header, settled before any of its symbols is written: its cache
- * entry, or the source 1.1 settled for it (#1844). A header whose cache entry
- * threw is `failed`.
- */
-type THeaderPreparation = {
-  readonly file: IDiscoveredFile;
-  readonly source: IHeaderSource;
-} & (
-  | {
-      readonly kind: "cached";
-      readonly entry: TCachedHeader;
-      readonly symbols: TCachedSymbols;
-    }
-  | { readonly kind: "parse" }
-  | { readonly kind: "failed"; readonly error: unknown }
-);
 
 /**
  * Unified transpiler
@@ -159,21 +129,9 @@ class Transpiler {
    * Read only by `getExternalStructFields`. No pass reads it: each takes
    * 1.4's program from the artifact the pass before it returned (#1991).
    */
-  /**
-   * #1452 box 3: the run's scope graph. One per run, constructed here and
-   * threaded -- there is no global to clear, so a test cannot forget to.
-   */
-  private symbolRegistry = new SymbolRegistry();
 
   // eslint-disable-next-line @typescript-eslint/lines-between-class-members
   private program: IProgram | null = null;
-
-  /**
-   * 1.3 Declare's header symbols, which 1.4 Resolve takes into `Program` and
-   * completes with the C-Next ones. A pass after 1.4 reads the table through
-   * `program.symbolTable()`, never this field (#1991).
-   */
-  private declaredSymbols = new SymbolTable();
 
   /**
    * Settles when this instance's previous run has (#1721). A run starts by
@@ -283,6 +241,7 @@ class Transpiler {
         this.fs,
         this.warnings,
         this.preprocessCache,
+        Transpiler._headerCacheOf(this.cacheManager),
       );
       this.anchor = discovered.anchor;
       this.cppMode = discovered.graph.cppMode;
@@ -332,11 +291,6 @@ class Transpiler {
   ): Promise<void> {
     // Stage 2: Collect symbols from C/C++ headers and build analyzer context
     // Issue #945: Now async for preprocessing support
-    this._collectAllHeaderSymbols(input, result);
-
-    // Issue #985 recovery: when standalone header preprocessing missed framework
-    // symbols, recover their declared names via translation-unit preprocessing.
-    this._collectExternalDeclarations(input);
 
     // Stages 3 to 4d: 1.2 Parse, 1.3 Declare, then (through `resolve`) 1.4
     // Resolve and the whole-program checks, then 2.1 Analyze -- EVERY file,
@@ -431,6 +385,38 @@ class Transpiler {
     }
   }
 
+  /** #1991: where 1.1 reads each header's cached declarations */
+  private static _headerCacheOf(
+    cache: CacheManager | null,
+  ): THeaderDeclarationCache | null {
+    return cache === null ? null : (path) => cache.headerDeclarations(path);
+  }
+
+  /**
+   * Stage 2's host side (#1991): 1.3 declares the C/C++ headers; the host
+   * counts, logs and caches what it declared.
+   */
+  private _recordDeclaredHeaders(
+    declared: IDeclaredSources,
+    result: ITranspilerResult,
+  ): void {
+    const headers = declared.headers;
+    result.filesProcessed += headers.processed;
+    result.symbolsCollected = declared.symbolTable.size;
+    this.warnings.push(...headers.warnings);
+    for (const header of headers.declared) {
+      if (this.config.debugMode) {
+        console.log(
+          `[DEBUG]   Parsing ${Transpiler._languageName(header.language)} header: ${header.path}`,
+        );
+        console.log(
+          `[DEBUG]   Found ${header.record.symbols.length} symbols in ${header.path}`,
+        );
+      }
+      this.cacheManager?.setHeaderDeclarations(header.path, header.record);
+    }
+  }
+
   /**
    * Stages 3 to 4d, one pass at a time (#1991): 1.2 `Parse`, 1.3 `Declare`,
    * 1.4 Resolve with the whole-program checks, then 2.1 `Analyze`.
@@ -442,7 +428,8 @@ class Transpiler {
     const parsed = Parse.sources(input);
     // A file that failed to parse is not declared; the others still are, so
     // one run reports both kinds of error, as it did before #1991.
-    const declared = Declare.sources(parsed, this.symbolRegistry);
+    const declared = Declare.sources(parsed);
+    this._recordDeclaredHeaders(declared, result);
     const errors = [...parsed.errors, ...declared.errors];
     if (errors.length > 0) {
       return { kind: "stopped", errors };
@@ -615,30 +602,13 @@ class Transpiler {
       // silently exempting it from ADR-016 init-completeness checking, which is
       // the one consumer of the fact.
       const resolved = Resolve.program(declared, {
-        headerStructFields: this.declaredSymbols.getAllStructFields(),
-        // #1511: everything the C/C++ headers contributed. The opacity inputs
-        // are the RAW bookkeeping, not the verdict -- `Program` resolves which
-        // typedefs never received a body. Read here because #985 phantom-body
-        // recovery has already run (Stage 2), so the state is final.
-        foreign: {
-          c: this.declaredSymbols.getAllCSymbols(),
-          cpp: this.declaredSymbols.getAllCppSymbols(),
-          opaqueTypedefs: new Set(this.declaredSymbols.getAllOpaqueTypes()),
-          typedefToTag: new Map(this.declaredSymbols.getAllTypedefToTag()),
-          structTagsWithBodies: new Set(
-            this.declaredSymbols.getAllStructTagsWithBodies(),
-          ),
-        },
-        // #1825: ADR-006's and ADR-029's derivations look callees and
-        // typedefs up in it. 1.4 completes it with every file's resolved
-        // symbols and hands it on as `program.symbolTable()` (#1991).
-        symbolTable: this.declaredSymbols,
-        registry: this.symbolRegistry,
         target: {
           option: this.config.target,
           pioEnv: this.config.pioEnv || undefined,
         },
       });
+      // 1.4 completed 1.3's table with every file's symbols
+      result.symbolsCollected = declared.symbolTable.size;
       return result.success ? resolved : null;
     } catch (err) {
       result.errors.push(CaughtError.asTranspileError(err));
@@ -973,16 +943,6 @@ class Transpiler {
     // result copies it with a spread, so nothing holds the array itself.
     this.warnings.length = 0;
     // Issue #634: Reset symbol table for new run
-    // #1452 box 5 / #1177: a run BUILDS its table rather than clearing one.
-    // `clear()` listed eleven of twelve indexes -- `externalDeclarationNames`
-    // was added and the teardown was not, so names recovered from one run
-    // silenced a diagnostic in the next. `ServeCommand` holds a static
-    // transpiler, so that second run is a real one. Adding the twelfth line
-    // would have fixed this instance and left the shape; construction leaves no
-    // teardown to drift from.
-    this.declaredSymbols = new SymbolTable();
-    // Reset SymbolRegistry for new run (new IFunctionSymbol type system)
-    this.symbolRegistry = new SymbolRegistry();
     // #1452: the callback map needed a per-RUN reset here because it was a
     // mutable static that `TranspileState.reset()` deliberately skipped.
     // `CallbackCompatibility.derive` returns it now, so there is nothing to
@@ -1022,92 +982,6 @@ class Transpiler {
     }
     if (this.config.headerOutDir) {
       Write.directory(this.fs, this.config.headerOutDir);
-    }
-  }
-
-  /**
-   * Stage 2: Collect symbols from all C/C++ headers
-   *
-   * #1817: in two steps. `_prepareHeaders` settles every header's cache entry
-   * first and writes nothing. Symbols are then written here, in header order,
-   * because what the symbol table holds depends on it. #1844: each header's
-   * text and language are 1.1's; preprocessing them moved there.
-   */
-  private _collectAllHeaderSymbols(
-    input: ISourceGraph,
-    result: ITranspilerResult,
-  ): void {
-    const prepared = this._prepareHeaders(input);
-    for (const header of prepared) {
-      try {
-        this._collectHeaderSymbols(header);
-        result.filesProcessed++;
-      } catch (err) {
-        // Issue #1319: this catch exists to tolerate third-party headers that
-        // will not parse -- a real need, and why it is broad. A C-Next
-        // diagnostic is not that: it is a rejection this transpiler made on
-        // purpose. Swallowing one turned E0507 into `Warning: ...` followed by
-        // `Compiled 1 files` and exit 0, which is the silent-failure shape the
-        // diagnostic exists to remove. Diagnostics propagate; parse failures
-        // still degrade.
-        if (CaughtError.isDiagnostic(err)) {
-          throw err;
-        }
-        this.warnings.push(
-          `Failed to process header ${header.file.path}: ${err}`,
-        );
-      }
-    }
-  }
-
-  /**
-   * #1817: every header's cache entry, read before any symbol is written, so
-   * the cache decision cannot depend on the symbols of the headers before it.
-   */
-  private _prepareHeaders(input: ISourceGraph): THeaderPreparation[] {
-    return input.headerFiles.map((file) => {
-      const source = input.headerSources.get(file.path);
-      invariant(
-        source !== undefined,
-        `1.1 settles the source of every header it resolves (missing ${file.path})`,
-      );
-      try {
-        const cached = this._readCachedHeader(file);
-        return cached
-          ? { file, source, kind: "cached", ...cached }
-          : { file, source, kind: "parse" };
-      } catch (error) {
-        // Re-thrown by `_collectHeaderSymbols` in header order, where the
-        // #1319 catch decides whether it is a diagnostic.
-        return { file, source, kind: "failed", error };
-      }
-    });
-  }
-
-  /**
-   * Issue #985 recovery: the NAMES of framework functions / function-like
-   * macros that standalone header preprocessing missed, from each .cnx's C
-   * includes preprocessed as a translation unit (predecessors first -- the way
-   * the real compiler does). #1844: 1.1 preprocessed it, when a header could
-   * not be preprocessed alone, so a clean project pays nothing.
-   */
-  private _collectExternalDeclarations(input: ISourceGraph): void {
-    const recovered = input.recoveredDeclarations;
-    if (recovered === null) return;
-
-    const cleanState = TreePasses.recoverDeclarations(
-      recovered.slices,
-      this.declaredSymbols,
-    );
-    HeaderDeclarations.clearPhantomStructBodies(
-      cleanState,
-      this.declaredSymbols,
-    );
-
-    // Function-like macros have no declaration to parse; register their names for
-    // the undeclared-call check only (a by-value macro invocation is correct).
-    if (recovered.macroNames.size > 0) {
-      this.declaredSymbols.addExternalDeclarationNames(recovered.macroNames);
     }
   }
 
@@ -1297,7 +1171,6 @@ class Transpiler {
     if (warning) {
       result.warnings.push(warning);
     }
-    result.symbolsCollected = this.declaredSymbols.size;
     result.warnings = [...result.warnings, ...this.warnings];
     // Issue #1143: union of what each file's emitters recorded.
     result.requirements = RequirementAggregator.merge(result.files);
@@ -1339,93 +1212,6 @@ class Transpiler {
   // Header Symbol Collection
   // ===========================================================================
 
-  /**
-   * Stage 2: Collect symbols from a single prepared C/C++ header, in header order
-   * Issue #592: Recursive include processing moved to IncludeResolver.resolveHeadersTransitively()
-   * Issue #945: Added preprocessing support for conditional compilation
-   * #1817: synchronous. Its content was settled by `_prepareHeaders`; this is
-   * every write the header makes, which is why the order is kept here.
-   */
-  private _collectHeaderSymbols(header: THeaderPreparation): void {
-    const file = header.file;
-
-    if (header.kind === "failed") {
-      throw header.error;
-    }
-    if (header.kind === "cached") {
-      this._restoreCachedHeader(header.entry, header.symbols);
-      return; // Cache hit - skip full parsing
-    }
-    this.parseHeaderFile(file, header.source);
-
-    // Debug: Show symbols found
-    if (this.config.debugMode) {
-      const symbols = this.declaredSymbols.getSymbolsByFile(file.path);
-      console.log(`[DEBUG]   Found ${symbols.length} symbols in ${file.path}`);
-    }
-
-    // Issue #590: Cache the results using simplified API
-    if (this.cacheManager) {
-      this.cacheManager.setSymbolsFromTable(file.path, this.declaredSymbols);
-    }
-  }
-
-  /**
-   * A header's cache entry, read and validated but not restored, or null on a
-   * miss. #1817: split from the restore, so the cache decision is made before
-   * any symbol is written.
-   */
-  private _readCachedHeader(
-    file: IDiscoveredFile,
-  ): { entry: TCachedHeader; symbols: TCachedSymbols } | null {
-    if (!this.cacheManager?.isValid(file.path)) {
-      return null;
-    }
-
-    const entry = this.cacheManager.getSymbols(file.path);
-    if (!entry) {
-      return null;
-    }
-
-    // Issue #1225: a cache entry that does not validate is a miss, not a
-    // degraded hit. Returning null re-parses the header instead of continuing
-    // with symbols we could not verify. Every symbol is validated here, before
-    // any is added, so a rejected entry cannot leave half its symbols behind.
-    const symbols = CachedSymbolReader.read(entry.symbols);
-    return symbols === null ? null : { entry, symbols };
-  }
-
-  /**
-   * Issue #1225: revive a validated cache entry into the symbol table.
-   *
-   * This used to rebuild each symbol field by field from a flat
-   * `ISerializedSymbol` -- the legacy model ADR-055 Phase 7 removed everywhere
-   * else -- behind an `as TCSymbol` cast the union could not check. That cast
-   * is what let #1214's dropped `isConst` compile, and the same shape dropped
-   * `pointerTypedefs` here. The symbols now come back as themselves, so there
-   * is nothing to convert and nothing to forget.
-   */
-  private _restoreCachedHeader(
-    cached: TCachedHeader,
-    symbols: TCachedSymbols,
-  ): void {
-    for (const symbol of symbols) {
-      if (symbol.sourceLanguage === ESourceLanguage.C) {
-        this.declaredSymbols.addCSymbol(symbol);
-      } else {
-        this.declaredSymbols.addCppSymbol(symbol);
-      }
-    }
-
-    this.declaredSymbols.restoreStructFields(cached.structFields);
-    this.declaredSymbols.restoreNeedsStructKeyword(cached.needsStructKeyword);
-    this.declaredSymbols.restoreEnumBitWidths(cached.enumBitWidth);
-
-    // Issue #1225: the whole struct state at once. It used to be four separate
-    // restore calls, which is how #1164's pointerTypedefs was missed.
-    this.declaredSymbols.restoreStructState(cached.structState);
-  }
-
   /** How a debug log names `language` */
   private static _languageName(language: EHeaderLanguage): string {
     switch (language) {
@@ -1436,20 +1222,6 @@ class Transpiler {
       case EHeaderLanguage.Assembler:
         return "assembler";
     }
-  }
-
-  /**
-   * Parse a header with the parser of the language 1.1 judged it to be
-   * (#1844). SonarCloud S3776: Extracted from the Stage 2 per-header method,
-   * now `_collectHeaderSymbols` (#1817).
-   */
-  private parseHeaderFile(file: IDiscoveredFile, source: IHeaderSource): void {
-    if (this.config.debugMode) {
-      console.log(
-        `[DEBUG]   Parsing ${Transpiler._languageName(source.language)} header: ${file.path}`,
-      );
-    }
-    TreePasses.declareHeader(file.path, source, this.declaredSymbols);
   }
 
   // ===========================================================================

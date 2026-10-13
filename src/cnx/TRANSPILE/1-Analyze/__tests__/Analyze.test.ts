@@ -5,7 +5,6 @@ import Analyze from "../Analyze";
 import Discover from "../../../PARSE/1-Discover/Discover";
 import Parse from "../../../PARSE/2-Parse/Parse";
 import Declare from "../../../PARSE/3-Declare/Declare";
-import SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
 import Resolve from "../../../PARSE/4-Resolve/Resolve";
 import testSourceGraph from "../../../PARSE/1-Discover/__testUtils__/testSourceGraph";
 
@@ -19,15 +18,8 @@ function resolved() {
       },
     ]),
   );
-  return Resolve.program(Declare.sources(parsed, new SymbolRegistry()), {
+  return Resolve.program(Declare.sources(parsed), {
     target: {},
-    foreign: {
-      c: [],
-      cpp: [],
-      opaqueTypedefs: new Set<string>(),
-      typedefToTag: new Map<string, string>(),
-      structTagsWithBodies: new Set<string>(),
-    },
   });
 }
 
