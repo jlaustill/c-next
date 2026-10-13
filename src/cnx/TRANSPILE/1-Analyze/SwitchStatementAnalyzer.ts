@@ -235,7 +235,7 @@ class SwitchStatementListener extends CNextListener {
         // `Panel.LIMIT`: the scope names where to look, the member decides
         if (label.kind !== "qualified") return false;
         const member = this.context.program.symbolByCName(
-          QualifiedCName.fromParts([binding.scopePath, ...label.path.slice(1)]),
+          ScopeUtils.qualifyPathInScope(label.path.slice(1), binding.scopePath),
         );
         if (member?.kind === "variable") {
           return (

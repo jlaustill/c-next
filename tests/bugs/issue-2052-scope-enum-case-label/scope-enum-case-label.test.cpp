@@ -24,7 +24,7 @@ static Motor__State Motor__current = Motor__State__STOPPED;
 
 uint32_t Motor__step(void) {
     switch (Motor__current) {
-        case State__STOPPED: {
+        case Motor__State__STOPPED: {
             Motor__current = Motor__State__RUNNING;
             return 1U;
             break;
