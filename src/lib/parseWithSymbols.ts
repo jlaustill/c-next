@@ -6,7 +6,8 @@
 import SymbolRegistry from "../cnx/PARSE/3-Declare/SymbolRegistry";
 import Discover from "../cnx/PARSE/1-Discover/Discover";
 import TreePasses from "../cnx/TRANSPILE/1-Analyze/TreePasses";
-import DeferredTypes from "../cnx/PARSE/4-Resolve/DeferredTypes";
+import Program from "../cnx/PARSE/4-Resolve/Program";
+import invariant from "../cnx/utils/invariant";
 import ScopeUtils from "../cnx/utils/ScopeUtils";
 import TypeResolver from "../cnx/utils/TypeResolver";
 import ISymbolInfo from "./types/ISymbolInfo";
@@ -300,25 +301,27 @@ function parseWithSymbols(source: string): IParseWithSymbolsResult {
   // #1472: both passes, because this API has the same obligation the pipeline
   // does. 1.3 Declare defers a bare type name it cannot settle, and reading one
   // of those as a type name throws -- so a caller that ran Declare alone would
-  // get an internal error on any scope that names a type bare. This entry point
-  // takes a single source with no include context, so the program IS this file
-  // and its own declared scope types are the whole-program set.
+  // get an internal error on any scope that names a type bare.
+  // #2036: and 1.4's own settling, not a copy of it. This path called
+  // `DeferredTypes.settle` with both predicates written by hand, which settled
+  // the type names and nothing else: every const-sized array kept 1.3's
+  // placeholder dimension `0`. It has one file and no mode or target, so it
+  // cannot build a program; `Program.settleFiles` is the step `build` begins
+  // with. Given no includes and no headers, the file sees only itself and no
+  // typedef can be opaque (ADR-030, #1722).
   // #1378, closed by construction (#1452 box 3): this path never reset the
   // global registry, so scopes from a previously parsed source leaked into the
   // next call. There is no global to reset now -- each call gets its own.
+  const registry = new SymbolRegistry();
   const resolved = TreePasses.declareFile(
     Discover.inMemoryFile(source, "<source>"),
-    new SymbolRegistry(),
+    registry,
   );
-  const declared = resolved.symbols;
   const errors = resolved.parseErrors;
-  // No header reaches this API, so no typedef here can be opaque (ADR-030,
-  // #1722): opacity is decided over the headers a program includes.
-  const tSymbols = DeferredTypes.settle(
-    declared.symbols,
-    (qualifiedName) => declared.declaredScopeTypes.has(qualifiedName),
-    () => false,
-  );
+  const tSymbols = Program.settleFiles([resolved.symbols], {
+    registry,
+  }).symbolsByFile.get(resolved.symbols.sourceFile);
+  invariant(tSymbols, "1.4 settles every file it is given");
   const symbols = convertTSymbolsToISymbolInfo(tSymbols);
 
   return {
