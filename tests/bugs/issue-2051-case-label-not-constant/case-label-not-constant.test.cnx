@@ -4,7 +4,8 @@
 // variable, a function or a scope reached the C as a name gcc rejects, at
 // exit 0, in every spelling. Each flagged label sits beside a const, an enum
 // member and a literal in the same switch, which stay silent. A label naming
-// a type (#2069) or a const with no C constant value (a string) is E0717 too.
+// a type (#2069) or a const with no C constant value (a string) is E0717 too,
+// as is a chain through a struct or a bitmap (#2072) in any spelling.
 u8 counter <- 2;
 const u8 REAL <- 1;
 
@@ -15,6 +16,17 @@ enum EMode {
 
 struct Pt {
     u8 x;
+}
+
+bitmap8 Bits {
+    a,
+    b,
+    c,
+    d,
+    e,
+    f,
+    g,
+    h
 }
 
 scope Panel {
@@ -82,6 +94,9 @@ scope Panel {
             case this.S {
                 return 5;
             }
+            case global.Pt.x || this.Flags.a {
+                return 6;
+            }
             default {
                 return 0;
             }
@@ -131,6 +146,9 @@ u32 typedOutside(u8 s) {
         }
         case Panel.S {
             return 3;
+        }
+        case EMode.RUN || Pt.x || Bits.a {
+            return 4;
         }
         default {
             return 0;

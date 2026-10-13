@@ -4538,7 +4538,8 @@ class CodeGenWalker {
         if (label.root === null) {
           return { kind: "identifier", name: label.name, resolved };
         }
-        // E0427 and E0717 (2.1) rejected a rooted label that binds no constant
+        // E0427, E0431 and E0717 (2.1) rejected a rooted label that binds no
+        // constant
         invariant(
           resolved !== null,
           `case label '${label.root}.${label.name}' reached codegen unbound`,
@@ -4590,6 +4591,9 @@ class CodeGenWalker {
       this.host.applyEffects(constant.effects);
       return constant.code;
     }
+    // `global.HDR_K`: a header's macro binds nothing, and is written as its
+    // name, as the value position writes it
+    if (root === "global") return declared ?? name;
     if (root !== null) return declared;
     return TypeValidator.resolveBoundIdentifier(
       name,

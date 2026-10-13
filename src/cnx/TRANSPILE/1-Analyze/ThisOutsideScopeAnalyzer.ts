@@ -24,7 +24,8 @@
  * ## All three contexts, not just the obvious one
  *
  * `THIS` appears in `PrimaryExpressionContext` (a read), `AssignmentTargetContext`
- * (a write) and `ScopedTypeContext` (`this.Type` in a type position). A walk
+ * (a write), `ScopedTypeContext` (`this.Type` in a type position) and
+ * `CaseLabelContext` (`case this.LIMIT`, #1629). A walk
  * that visited only expressions would silently stop rejecting the other two,
  * which is how a rule with a hole becomes more dangerous than no rule: people
  * trust it.
@@ -40,6 +41,7 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
+import ChainRoot from "../../utils/ChainRoot";
 import ParserUtils from "../../utils/ParserUtils";
 import IThisOutsideScopeError from "./types/IThisOutsideScopeError";
 
@@ -81,6 +83,11 @@ class ThisOutsideScopeListener extends CNextListener {
 
   override enterScopedType = (ctx: Parser.ScopedTypeContext): void => {
     if (ctx.THIS()) this.report(ctx);
+  };
+
+  /** `case this.X` (#1629), which a case label's own grammar rule spells */
+  override enterCaseLabel = (ctx: Parser.CaseLabelContext): void => {
+    if (ChainRoot.ofCaseLabel(ctx) === "this") this.report(ctx);
   };
 
   private report(ctx: ParserRuleContext): void {

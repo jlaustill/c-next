@@ -183,6 +183,24 @@ describe("SwitchStatementAnalyzer", () => {
       expect(found[0].message).toContain("'this.State.RUN'");
     });
 
+    it("keeps a local `LIMIT` and `global.LIMIT` apart: two consts", () => {
+      const found = errors(
+        [
+          "const u8 LIMIT <- 1;",
+          "u32 pick(u8 s) {",
+          "    const u8 LIMIT <- 5;",
+          "    switch (s) {",
+          "        case LIMIT { return 1; }",
+          "        case global.LIMIT { return 2; }",
+          "        default { return 0; }",
+          "    }",
+          "    return 0;",
+          "}",
+        ].join("\n"),
+      );
+      expect(found).toEqual([]);
+    });
+
     it("rejects the same character label twice", () => {
       const found = errors(labels("'a'", "'a'"));
       expect(found).toHaveLength(1);
@@ -311,6 +329,9 @@ describe("SwitchStatementAnalyzer", () => {
       "global.Pt",
       "Pt",
       "this.Flags",
+      "this.Flags.a",
+      "global.Pt.x",
+      "Pt.x",
       "this.S",
       "S",
       "Panel.S",
@@ -333,6 +354,7 @@ describe("SwitchStatementAnalyzer", () => {
       "this.State.STOPPED",
       "Panel.State.GOING",
       "global.EMode.RUN",
+      "EMode.RUN",
     ])("accepts `%s`", (label) => {
       expect(pick(label)).toEqual([]);
     });

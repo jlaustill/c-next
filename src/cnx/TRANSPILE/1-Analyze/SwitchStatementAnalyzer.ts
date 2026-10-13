@@ -34,6 +34,7 @@ import ParserUtils from "../../utils/ParserUtils";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeUtils from "../../utils/ScopeUtils";
 import ConstLiteral from "../../utils/ConstLiteral";
+import type TChainRoot from "../../types/TChainRoot";
 import type TValueBinding from "../../types/TValueBinding";
 import OperandTyper from "../../utils/OperandTyper";
 import EnumValueResolver from "./EnumValueResolver";
@@ -171,8 +172,9 @@ class SwitchStatementListener extends CNextListener {
    *
    * Asked of what the label BINDS, so one check covers every spelling the
    * grammar admits: `level`, `this.level`, `global.level`, `Panel.level`.
-   * A label binding no value is a type (E0717 too: `EMode`, `this.State`,
-   * #2069), an enum member, or E0427's.
+   * A label binding no value is a type or a chain through a struct or a
+   * bitmap (E0717 too: `EMode`, `this.State`, `global.Pt.x`; #2069, #2072),
+   * an enum member, a header's macro, or E0427's.
    */
   private reportNonConstantLabels(
     cases: readonly Parser.SwitchCaseContext[],
@@ -226,28 +228,37 @@ class SwitchStatementListener extends CNextListener {
   ): boolean {
     const binding = this.labelBinding(label);
     if (binding !== null) return this.isConstant(binding, label);
-    return label.kind !== "identifier" || !this.namesType(label, at);
+    if (label.kind === "identifier") {
+      const kind = this.typeKindOf(label.root, label.name, at);
+      return kind === undefined || !TYPE_KINDS.has(kind);
+    }
+    if (label.kind !== "qualified") return true;
+    // A chain through an enum names its member; through a struct or a bitmap
+    // a field, which is no constant (#2072). No symbol at all is E0427's.
+    const kind = this.typeKindOf(label.root, label.path[0], at);
+    return kind === undefined || kind === "enum";
   }
 
   /**
-   * A label spelled as a type -- `EMode`, `this.State`, `global.Pt` -- binds
-   * no value, so it is looked up where a member chain's head would be. Not
-   * `isTypeNameAt`: in a file that includes a header it calls a name it
-   * cannot find a type, which a bare enum member (`IDLE`) is.
+   * The kind of type a name that binds no value names -- `EMode`,
+   * `this.State`, `global.Pt`, or a chain's head -- looked up where a member
+   * chain's head would be. Not `isTypeNameAt`: in a file that includes a
+   * header it calls a name it cannot find a type, which a bare enum member
+   * (`IDLE`) is.
    */
-  private namesType(
-    label: Extract<TCaseLabelSyntax, { kind: "identifier" }>,
+  private typeKindOf(
+    root: TChainRoot,
+    name: string,
     at: Parser.CaseLabelContext,
-  ): boolean {
+  ): string | undefined {
     const { program, sourceFile } = this.context;
     const cName = ScopeUtils.typeHeadCName(
-      label.root,
-      label.name,
+      root,
+      name,
       OperandTyper.scopePathAt(ParserUtils.getPosition(at), this.context),
-      (name) => program.isScopeTypeVisibleFrom(sourceFile, name),
+      (qualified) => program.isScopeTypeVisibleFrom(sourceFile, qualified),
     );
-    const kind = program.symbolByCName(cName)?.kind;
-    return kind !== undefined && TYPE_KINDS.has(kind);
+    return program.symbolByCName(cName)?.kind;
   }
 
   /** Whether a bound label is a constant, asked of the one const-value answer */
@@ -318,7 +329,10 @@ class SwitchStatementListener extends CNextListener {
       for (const label of caseCtx.caseLabel()) {
         const lowered = StatementLowering.caseLabel(label);
         const value = SwitchStatementListener.caseLabelValue(lowered);
-        const key = this.labelIdentity(lowered, label) ?? value;
+        // A declaration and a spelling are different keys: a local `LIMIT`
+        // is not the file's, which `global.LIMIT` binds
+        const identity = this.labelIdentity(lowered, label);
+        const key = identity === null ? `value:${value}` : `decl:${identity}`;
         if (seen.has(key)) {
           const { line, column } = ParserUtils.getPosition(label);
           this.found.push({
