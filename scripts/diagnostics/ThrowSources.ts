@@ -19,7 +19,7 @@
  */
 
 import { readFileSync } from "node:fs";
-import { dirname, join, sep } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import FileScanner from "../utils/FileScanner";
@@ -54,15 +54,14 @@ class ThrowSources {
   static read(): Map<string, string> {
     const sources = new Map<string, string>();
     for (const full of FileScanner.findFiles(join(rootDir, "src"), ".ts")) {
-      const path = full.slice(rootDir.length + 1);
-      if (!SourceModule.isModule(path.split(sep).join("/"))) {
+      if (!SourceModule.isModule(full)) {
         continue;
       }
       const text = readFileSync(full, "utf-8");
       if (GENERATED_BY_ANTLR.test(text)) {
         continue;
       }
-      sources.set(path, text);
+      sources.set(SourceModule.relativePath(full), text);
     }
     return sources;
   }

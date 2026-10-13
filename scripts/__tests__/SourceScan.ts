@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { dirname, join, relative, sep } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import FileScanner from "../utils/FileScanner";
@@ -19,7 +19,7 @@ class SourceScan {
   /** Every non-test module under `src/`, as absolute paths. */
   static sourceFiles(): string[] {
     return FileScanner.findFiles(srcDir, ".ts").filter((full) =>
-      SourceModule.isModule(relative(rootDir, full).split(sep).join("/")),
+      SourceModule.isModule(full),
     );
   }
 
@@ -52,7 +52,7 @@ class SourceScan {
       for (const match of source.matchAll(pattern)) {
         if (SourceScan.inComment(source, match.index)) continue;
         hits.push({
-          file: full.slice(rootDir.length + 1),
+          file: SourceModule.relativePath(full),
           offset: match.index,
           text: match[0],
         });

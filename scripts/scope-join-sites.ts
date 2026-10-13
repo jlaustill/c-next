@@ -9,7 +9,7 @@
  */
 
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
-import { dirname, join, sep } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import chalk from "chalk";
@@ -26,14 +26,10 @@ const srcDir = join(rootDir, "src");
 function collectSources(): Map<string, string> {
   const sources = new Map<string, string>();
   for (const full of FileScanner.findFiles(srcDir, ".ts")) {
-    const path = full
-      .slice(rootDir.length + 1)
-      .split(sep)
-      .join("/");
-    if (!SourceModule.isModule(path)) {
+    if (!SourceModule.isModule(full)) {
       continue;
     }
-    sources.set(path, readFileSync(full, "utf-8"));
+    sources.set(SourceModule.relativePath(full), readFileSync(full, "utf-8"));
   }
   return sources;
 }

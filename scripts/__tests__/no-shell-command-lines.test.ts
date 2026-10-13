@@ -1,27 +1,35 @@
 /**
- * #1827 box 4: no non-test module under `src/` starts a shell. `ToolchainDetector`
- * built three command lines from template literals and ran them with
- * `execSync`, and one value it interpolated came from the project being
- * compiled. This bans the APIs that start a shell, whatever their argument, so
- * a command line built into a variable first is caught too: `execSync` and
- * `exec` always run `/bin/sh`, and `spawn`/`execFile` do when given
- * `shell: true`. A process is started with an argument array (`execFileSync`,
- * `spawnSync`, `execFile`), so no shell parses a name or a path.
+ * #1827 box 4: `ToolchainDetector` built three command lines from template
+ * literals and ran them with `execSync`, i.e. `/bin/sh`, and one value it
+ * interpolated came from the project being compiled. This guard holds the
+ * non-test modules under `src/` to the argument-array APIs:
+ *
+ * - `execSync(` is not called, whatever its argument;
+ * - an import from `child_process` is a named import of `execFile`,
+ *   `execFileSync`, `spawn` or `spawnSync` only (aliases allowed), so `exec`,
+ *   `execSync` under another name, a namespace and a default import are out;
+ * - `child_process` is not loaded by `require(…)` or `import(…)`;
+ * - no `shell` option is set to anything but the literal `false`.
+ *
+ * It is lexical. It cannot see a shell started on purpose through an allowed
+ * API, e.g. `execFileSync("/bin/sh", ["-c", …])`.
  */
 import { describe, expect, it } from "vitest";
 
 import SourceScan from "./SourceScan";
 
-interface IShellApi {
+interface IShellArm {
   readonly name: string;
   readonly pattern: RegExp;
   /** One control per arm: a dropped alternative fails its own control. */
   readonly matches: readonly string[];
 }
 
-const SHELL_APIS: readonly IShellApi[] = [
+const SAFE = String.raw`(?:execFile|execFileSync|spawn|spawnSync)(?:\s+as\s+\w+)?`;
+
+const SHELL_ARMS: readonly IShellArm[] = [
   {
-    name: "execSync",
+    name: "execSync call",
     pattern: /\bexecSync\(/g,
     matches: [
       "const result = execSync(`which ${name}`, {",
@@ -32,21 +40,41 @@ const SHELL_APIS: readonly IShellApi[] = [
     ],
   },
   {
-    name: "exec imported from child_process",
-    pattern:
-      /import\s*\{[^}]*\bexec\b[^}]*\}\s*from\s*["'](?:node:)?child_process["']/g,
+    name: "child_process import beyond the argument-array APIs",
+    pattern: new RegExp(
+      String.raw`import\s+(?!type\b)(?!\{\s*${SAFE}(?:\s*,\s*${SAFE})*\s*,?\s*\}\s*from)[^;]*?from\s*["'](?:node:)?child_process["']`,
+      "g",
+    ),
     matches: [
       'import { exec } from "node:child_process";',
       "import { execFile, exec } from 'child_process';",
       'import {\n  exec,\n  spawn,\n} from "node:child_process";',
+      'import { execSync } from "node:child_process";',
+      'import { execSync as runShell } from "node:child_process";',
+      'import * as childProcess from "node:child_process";',
+      'import childProcess from "node:child_process";',
+      'import cp, { execFile } from "child_process";',
     ],
   },
   {
-    name: "shell: true",
-    pattern: /\bshell:\s*true\b/g,
+    name: "child_process loaded dynamically",
+    pattern: /\b(?:require|import)\(\s*["'](?:node:)?child_process["']\s*\)/g,
+    matches: [
+      'const cp = require("child_process");',
+      "const cp = await import('node:child_process');",
+      'require( "node:child_process" )',
+    ],
+  },
+  {
+    name: "shell option other than false",
+    pattern: /[{,]\s*shell\s*(?::(?!\s*false\b)|[,}])/g,
     matches: [
       "spawn(cc, args, { shell: true })",
       "execFile(cc, args, {\n  shell:true,\n})",
+      'spawn(cc, args, { shell: "/bin/sh" })',
+      'spawn(cc, args, { shell: process.platform === "win32" })',
+      "spawn(cc, args, { shell })",
+      "spawn(cc, args, { cwd, shell, env })",
     ],
   },
 ];
@@ -57,22 +85,27 @@ const NOT_A_SHELL = [
   "execFile(cc, args)",
   'spawnSync(cc, ["-E"], { input: "" })',
   "PATTERN.exec(line)",
-  'import { execFile, spawnSync } from "node:child_process";',
-  "{ shell: false }",
+  'import { execFile } from "node:child_process";',
+  'import { execFileSync, spawnSync } from "node:child_process";',
+  'import {\n  execFileSync,\n  spawnSync,\n} from "node:child_process";',
+  'import { spawnSync as run } from "node:child_process";',
+  'import type { SpawnSyncReturns } from "node:child_process";',
+  "spawn(cc, args, { shell: false })",
+  " * slide with the shell:",
 ];
 
-describe("no non-test module under src/ starts a shell", () => {
-  for (const api of SHELL_APIS) {
-    describe(api.name, () => {
-      it("no non-test module under src/ uses it", () => {
-        const hits = SourceScan.scan(api.pattern).map(
+describe("non-test modules under src/ start processes with argument arrays", () => {
+  for (const arm of SHELL_ARMS) {
+    describe(arm.name, () => {
+      it("no non-test module under src/ matches", () => {
+        const hits = SourceScan.scan(arm.pattern).map(
           (hit) => `${hit.file}: ${hit.text}`,
         );
         expect(hits).toEqual([]);
       });
 
-      it.each(api.matches)("matches %j", (line) => {
-        expect([...line.matchAll(api.pattern)]).toHaveLength(1);
+      it.each(arm.matches)("matches %j", (line) => {
+        expect([...line.matchAll(arm.pattern)]).toHaveLength(1);
       });
     });
   }
@@ -90,8 +123,8 @@ describe("no non-test module under src/ starts a shell", () => {
   });
 
   it.each(NOT_A_SHELL)("no arm matches %j", (line) => {
-    for (const api of SHELL_APIS) {
-      expect([...line.matchAll(api.pattern)]).toHaveLength(0);
+    for (const arm of SHELL_ARMS) {
+      expect([...line.matchAll(arm.pattern)]).toHaveLength(0);
     }
   });
 });
