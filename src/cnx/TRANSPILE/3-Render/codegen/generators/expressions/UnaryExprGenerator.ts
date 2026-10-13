@@ -11,7 +11,7 @@ import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
 import TGeneratorFn from "../TGeneratorFn";
-import CppModeHelper from "../../helpers/CppModeHelper";
+import CppModeHelper from "../../../../2-Plan/CppModeHelper";
 import invariant from "../../../../../utils/invariant";
 import type TNegativeMinimum from "../../../../2-Plan/types/TNegativeMinimum";
 

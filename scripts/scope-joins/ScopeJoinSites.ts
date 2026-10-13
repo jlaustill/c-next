@@ -213,7 +213,7 @@ class ScopeJoinSites {
       why: "`ids[0]` of `Scope.REG.MEMBER[bit]`, guarded by `isKnownScope`",
     },
     {
-      file: "src/cnx/TRANSPILE/3-Render/codegen/assignment/handlers/AssignmentHandlerUtils.ts",
+      file: "src/cnx/TRANSPILE/2-Plan/AssignmentHandlerUtils.ts",
       element: "leadingId",
       kind: "path",
       pairedWith: null,

@@ -8,10 +8,10 @@
  *
  * Issue #707: Refactored to use OverflowHelperTemplates for reduced duplication.
  */
-import TYPE_MAP from "../../types/TYPE_MAP";
+import TYPE_MAP from "../../../../2-Plan/types/TYPE_MAP";
 import OverflowHelperTemplates from "./OverflowHelperTemplates";
 import SaturatingCast from "../../helpers/SaturatingCast";
-import CppModeHelper from "../../helpers/CppModeHelper";
+import CppModeHelper from "../../../../2-Plan/CppModeHelper";
 import ReservedCnxName from "../../../../../utils/ReservedCnxName";
 
 /**

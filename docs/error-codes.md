@@ -249,9 +249,9 @@ include-visibility is not derivable for a C or C++ name.
 
 ### Critical Section Safety
 
-| Code  | Message                                     | Help                                              | Source                                        |
-| ----- | ------------------------------------------- | ------------------------------------------------- | --------------------------------------------- |
-| E0853 | Cannot use `return` inside critical section | Would leave interrupts disabled; restructure flow | `TRANSPILE/3-Render/codegen/TypeValidator.ts` |
+| Code  | Message                                     | Help                                              | Source                              |
+| ----- | ------------------------------------------- | ------------------------------------------------- | ----------------------------------- |
+| E0853 | Cannot use `return` inside critical section | Would leave interrupts disabled; restructure flow | `TRANSPILE/2-Plan/TypeValidator.ts` |
 
 ### Array Index Bounds (ADR-036; E0855 reserved for ADR-054)
 

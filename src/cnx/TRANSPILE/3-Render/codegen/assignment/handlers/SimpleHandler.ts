@@ -9,10 +9,10 @@
  * Also handles int-to-float conversions with explicit casts.
  */
 import IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
-import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
-import TYPE_MAP from "../../types/TYPE_MAP";
-import CppModeHelper from "../../helpers/CppModeHelper";
-import COMPOUND_TO_BINARY from "../../types/COMPOUND_TO_BINARY";
+import NarrowingCastHelper from "../../../../2-Plan/NarrowingCastHelper";
+import TYPE_MAP from "../../../../2-Plan/types/TYPE_MAP";
+import CppModeHelper from "../../../../2-Plan/CppModeHelper";
+import COMPOUND_TO_BINARY from "../../../../2-Plan/types/COMPOUND_TO_BINARY";
 
 /**
  * Try to handle compound assignment on narrow types (MISRA 10.3).

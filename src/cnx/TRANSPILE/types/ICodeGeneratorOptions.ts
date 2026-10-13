@@ -1,8 +1,8 @@
-import ICodeGenSymbols from "../../../../types/ICodeGenSymbols";
-import type ITargetDescription from "../../../../types/ITargetDescription";
-import type EFileType from "../../../../PARSE/1-Discover/types/EFileType";
-import type IProgram from "../../../../types/IProgram";
-import type IHeaderSetup from "../../../types/IHeaderSetup";
+import ICodeGenSymbols from "../../types/ICodeGenSymbols";
+import type ITargetDescription from "../../types/ITargetDescription";
+import type EFileType from "../../PARSE/1-Discover/types/EFileType";
+import type IProgram from "../../types/IProgram";
+import type IHeaderSetup from "./IHeaderSetup";
 
 /**
  * Options for the code generator

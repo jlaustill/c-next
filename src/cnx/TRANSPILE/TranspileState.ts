@@ -88,9 +88,6 @@ class TranspileState {
    * and before the first function.
    */
   pendingCallbackTypedefs: string[] = [];
-  /** Issue #369: Whether self-include was added */
-  selfIncludeAdded: boolean = false;
-
   /** ADR-040: For ISR function pointer type */
   needsISR: boolean = false;
 
@@ -408,17 +405,6 @@ class TranspileState {
       result.set(funcName, unmodified);
     }
     return result;
-  }
-  /**
-   * Record a callback type named by a declaration that APPEARS IN THE HEADER.
-   *
-   * The single writer for that decision, so "does the public interface name
-   * this type" is decided in one place rather than by remembering to update a
-   * second set at each of the three declaration sites.
-   */
-  notePublicCallbackTypeReference(functionName: string): void {
-    this.callbackTypeReferences.add(functionName);
-    this.publicCallbackTypeReferences.add(functionName);
   }
   /**
    * Issue #1164: does the generated header own this callback's typedef?
@@ -759,34 +745,6 @@ class TranspileState {
   private clearFunctionLocals(): void {
     this.floatBitShadows.clear();
     this.floatShadowCurrent.clear();
-  }
-
-  /**
-   * Execute fn with the current scope set to `scopeName`'s path, restoring the
-   * previous path on exit.
-   *
-   * The sibling these four helpers were missing. Two sites hand-rolled it --
-   * `const savedScope = ...; setCurrentScopeByPath(...); ...; currentScopePath
-   * = savedScope;` -- with the restore as a plain trailing statement rather
-   * than a `finally`, which is the precise defect #872 extracted
-   * `withExpectedType` (now `withPlannedExpectedType`) to fix: its own doc says "eliminate duplicate
-   * save/restore pattern and ADD EXCEPTION SAFETY". Scope path never got the
-   * same treatment.
-   *
-   * Latent rather than live today: a throw inside either body is caught per
-   * file by `Transpiler`, and `reset()` clears the path before the next file,
-   * so the stale value has nothing left to reach. That is a property of two
-   * unrelated mechanisms rather than of this code, which is why it is fixed
-   * here instead of relied upon.
-   */
-  withScopePath<T>(scopeName: string, fn: () => T): T {
-    const saved = this.currentScopePath;
-    this.setCurrentScopeByPath(scopeName);
-    try {
-      return fn();
-    } finally {
-      this.currentScopePath = saved;
-    }
   }
 
   // ===========================================================================
@@ -1161,10 +1119,6 @@ class TranspileState {
     );
   }
 
-  reset(targetDescription: ITargetDescription | null = null): void {
-    this.clearFileData(targetDescription);
-  }
-
   /**
    * 2.2's setup for this file, copied so the plan carries it and 2.3 can
    * start from it alone (#1991).
@@ -1214,7 +1168,6 @@ class TranspileState {
     this.useInputs(setup);
     this.useCallbackTypes(setup.callbackTypes);
     this.useFunctionCatalog(setup);
-    this.selfIncludeAdded = setup.selfIncludeAdded;
     this.needsISR = setup.needsISR;
     this.declarationPlanOrNull = setup.declarationPlan;
     this.plannedParameters = setup.parameters;
@@ -1281,7 +1234,6 @@ class TranspileState {
     this.indentLevel = 0;
     this.lengthCache = null;
     this.debugMode = false;
-    this.selfIncludeAdded = false;
     this.cnxIncludeRewrites = new Map<string, string>();
     this.includeKinds = new Map<string, EFileType>();
   }

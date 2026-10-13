@@ -9,7 +9,7 @@ import NodeFileSystem from "../../cnx/PARSE/1-Discover/NodeFileSystem";
 import Analyze from "../../cnx/TRANSPILE/1-Analyze/Analyze";
 import type IAnalyzedFile from "../../cnx/types/IAnalyzedFile";
 import CodeGenWalker from "../../cnx/TRANSPILE/CodeGenWalker";
-import type ICodeGeneratorOptions from "../../cnx/TRANSPILE/3-Render/codegen/types/ICodeGeneratorOptions";
+import type ICodeGeneratorOptions from "../../cnx/TRANSPILE/types/ICodeGeneratorOptions";
 
 /**
  * #1301 review: the run's per-file artifacts must be released when a run ENDS, not

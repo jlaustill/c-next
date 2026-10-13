@@ -1,15 +1,12 @@
 import type TPlannedNarrowing from "./types/TPlannedNarrowing";
-import COMPOUND_TO_BINARY from "../3-Render/codegen/types/COMPOUND_TO_BINARY";
-import NarrowingCastHelper from "../3-Render/codegen/helpers/NarrowingCastHelper";
-import OverflowHelperTemplates from "../3-Render/codegen/generators/support/OverflowHelperTemplates";
-import FloatBitHelper from "../3-Render/codegen/helpers/FloatBitHelper";
+import COMPOUND_TO_BINARY from "./types/COMPOUND_TO_BINARY";
+import NarrowingCastHelper from "./NarrowingCastHelper";
 import type EFileType from "../../PARSE/1-Discover/types/EFileType";
 import CNextSourcePath from "../../utils/CNextSourcePath";
-import PrivateConstValue from "../3-Render/codegen/PrivateConstValue";
-import TYPE_MAP from "../3-Render/codegen/types/TYPE_MAP";
+import TYPE_MAP from "./types/TYPE_MAP";
 import TParameterInfo from "../../types/TParameterInfo";
-import ICodeGeneratorOptions from "../3-Render/codegen/types/ICodeGeneratorOptions";
-import TypeValidator from "../3-Render/codegen/TypeValidator";
+import ICodeGeneratorOptions from "../types/ICodeGeneratorOptions";
+import TypeValidator from "./TypeValidator";
 import EmissionPlan from "./EmissionPlan";
 import DeclarationPlan from "./DeclarationPlan";
 import TypeSites from "./TypeSites";
@@ -43,24 +40,22 @@ import ExpressionShape from "../../utils/ExpressionShape";
 import StatementNodes from "../../utils/StatementNodes";
 import RegisterAccessMode from "../../utils/RegisterAccessMode";
 import RegisterMmio from "./RegisterMmio";
-import AssignmentHandlerUtils from "../3-Render/codegen/assignment/handlers/AssignmentHandlerUtils";
+import AssignmentHandlerUtils from "./AssignmentHandlerUtils";
 import StatementChildren from "../../utils/StatementChildren";
-import LDREX_MAP from "../3-Render/codegen/types/LDREX_MAP";
+import LDREX_MAP from "./types/LDREX_MAP";
 import type TAtomicForm from "../types/TAtomicForm";
-import includeGenerators from "../3-Render/codegen/generators/support/IncludeGenerator";
+import includeGenerators from "./IncludeGenerator";
 import DeclaredTypeInfo from "../../PARSE/3-Declare/DeclaredTypeInfo";
 import type IChainBase from "../../types/IChainBase";
 import AssignmentClassifier from "./AssignmentClassifier";
 import ForHeaderAssignment from "../../utils/ForHeaderAssignment";
-import AssignmentOperatorMapper from "../3-Render/codegen/helpers/AssignmentOperatorMapper";
+import AssignmentOperatorMapper from "./AssignmentOperatorMapper";
 import type IPlannedCast from "./types/IPlannedCast";
 import ConstExprLowering from "../../utils/ConstExprLowering";
 import UNRESOLVED_DIMENSION from "../../types/UNRESOLVED_DIMENSION";
 import dimensionEvalOptions from "./dimensionEvalOptions";
-import CallArgumentPassing from "../3-Render/codegen/generators/expressions/CallArgumentPassing";
-import ArgumentGenerator from "../3-Render/codegen/helpers/ArgumentGenerator";
-import type IArgumentGeneratorCallbacks from "../3-Render/codegen/helpers/types/IArgumentGeneratorCallbacks";
-import type IArgumentPassing from "../3-Render/codegen/types/IArgumentPassing";
+import CallArgumentPassing from "./CallArgumentPassing";
+import type IArgumentPassing from "./types/IArgumentPassing";
 import CppMemberHelper from "./CppMemberHelper";
 import IPostfixOp from "../../types/IPostfixOp";
 import CppConstructorHelper from "../../utils/CppConstructorHelper";
@@ -71,7 +66,7 @@ import type TStructInitializerForm from "./types/TStructInitializerForm";
 import type TPostfixOpSyntax from "../../types/syntax/TPostfixOpSyntax";
 import type TTypeSyntax from "../../types/syntax/TTypeSyntax";
 import type ISourcePosition from "../../utils/types/ISourcePosition";
-import TypeGenerationHelper from "../3-Render/codegen/helpers/TypeGenerationHelper";
+import TypeGenerationHelper from "./TypeGenerationHelper";
 import type IPlannedType from "./types/IPlannedType";
 import type IAnalyzedFile from "../../types/IAnalyzedFile";
 import type IValuePositions from "../../types/IValuePositions";
@@ -96,8 +91,13 @@ import SymbolGuards from "../../types/symbols/SymbolGuards";
 import type IFunctionSymbol from "../../types/symbols/IFunctionSymbol";
 import type TSymbol from "../../types/symbols/TSymbol";
 import type ICallbackTypeInfo from "../../types/ICallbackTypeInfo";
-import CodeGenerator from "../3-Render/codegen/CodeGenerator";
 import PlannedRequirements from "./PlannedRequirements";
+import PrivateConstSpelling from "./PrivateConstSpelling";
+import ClampTypes from "./ClampTypes";
+import FloatBitType from "./FloatBitType";
+import ArgumentForm from "./ArgumentForm";
+import type TArgumentShape from "./types/TArgumentShape";
+import PlanQueries from "./PlanQueries";
 import TranspileState from "../TranspileState";
 import ParameterInfoPlanner from "./ParameterInfoPlanner";
 
@@ -129,11 +129,13 @@ const NO_EXPECTED_TYPE: IPlannedExpectedType = {
  * plan-render-state and depcruise rules for `2-Plan/` see the planning code.
  */
 class FilePlanner {
-  private readonly host: CodeGenerator;
+  private readonly state: TranspileState;
+  private readonly queries: PlanQueries;
   private parametersOrNull: ReadonlyMap<string, TParameterInfo> | null = null;
 
-  constructor(host: CodeGenerator) {
-    this.host = host;
+  constructor(state: TranspileState) {
+    this.state = state;
+    this.queries = new PlanQueries(state);
   }
 
   /**
@@ -183,15 +185,14 @@ class FilePlanner {
   cTypeOf(plan: IPlannedType): string {
     return TypeGenerationHelper.generate(plan, {
       checkNeedsStructKeyword: (name) =>
-        this.host.state.symbolTable.checkNeedsStructKeyword(name),
-      isCrossFileDeclaration: (name) =>
-        this.host.state.isCrossFileDeclaration(name),
+        this.state.symbolTable.checkNeedsStructKeyword(name),
+      isCrossFileDeclaration: (name) => this.state.isCrossFileDeclaration(name),
     });
   }
 
   private planType(type: TTypeSyntax, scopePath: string): IPlannedType {
     const element = type.kind === "array" ? type.element : type;
-    const deps = this.host.state.typeBindingDeps((identifiers) =>
+    const deps = this.state.typeBindingDeps((identifiers) =>
       this.resolveQualifiedType(identifiers),
     );
 
@@ -212,14 +213,14 @@ class FilePlanner {
    * conversion check cannot count a different set of operands
    */
   private compositeClampType(expr: TExpression): string | null {
-    const t = OperandTyper.typeOf(expr, this.host.state.typingContext());
+    const t = OperandTyper.typeOf(expr, this.state.typingContext());
     return t?.bitWidth === null ? null : (t?.typeName ?? null);
   }
 
   /** #1668 (C6b): ADR-044's behavior for a composite, PlanTyping's row */
   private compositeClampBehavior(expr: TExpression): TOverflowBehavior | null {
     return PlanTyping.overflowOf(
-      OperandTyper.valueLeaves(expr, this.host.state.typingContext()),
+      OperandTyper.valueLeaves(expr, this.state.typingContext()),
     );
   }
 
@@ -235,7 +236,7 @@ class FilePlanner {
     }
 
     return OperandTyper.isString(
-      OperandTyper.typeOf(expr, this.host.state.typingContext()),
+      OperandTyper.typeOf(expr, this.state.typingContext()),
     );
   }
 
@@ -244,9 +245,7 @@ class FilePlanner {
   }
 
   /** What decides an argument's form (#1991), asked by 2.2 and 2.3 alike */
-  argumentShape(
-    expr: TExpression,
-  ): Omit<IArgumentGeneratorCallbacks, "generateExpression"> {
+  argumentShape(expr: TExpression): TArgumentShape {
     return {
       getLvalueType: () => this.getLvalueType(expr),
       getMemberAccessArrayStatus: () => this.getMemberAccessArrayStatus(expr),
@@ -279,8 +278,8 @@ class FilePlanner {
       TypeValidator.resolveBareIdentifier(
         id,
         at,
-        (name: string) => this.host.isKnownStruct(name),
-        this.host.state,
+        (name: string) => this.queries.isKnownStruct(name),
+        this.state,
       ) ?? id
     );
   }
@@ -288,7 +287,7 @@ class FilePlanner {
   /** #1668 (C6c): an expression's one type for 2.2, PlanTyping's row */
   directTypeOf(expr: TExpression): string | null {
     return PlanTyping.directTypeName(
-      OperandTyper.typeOf(expr, this.host.state.typingContext()),
+      OperandTyper.typeOf(expr, this.state.typingContext()),
     );
   }
 
@@ -302,7 +301,7 @@ class FilePlanner {
 
   /** Whether any value leaf is floating, or indeterminate (CompositeType) */
   hasFloatingLeaf(expr: TExpression): boolean {
-    const typing = this.host.state.typingContext();
+    const typing = this.state.typingContext();
     return CompositeType.anyFloating(OperandTyper.valueLeaves(expr, typing));
   }
 
@@ -313,7 +312,7 @@ class FilePlanner {
     const resolved = TypeNameLadder.resolveWrittenName(
       type,
       scopePath,
-      this.host.state.typeBindingDeps((identifiers) =>
+      this.state.typeBindingDeps((identifiers) =>
         this.resolveQualifiedType(identifiers),
       ),
     );
@@ -328,7 +327,7 @@ class FilePlanner {
     // Both sites are one mechanism (provenance at the point of resolution), not
     // the two the matrix guidance warns against mixing: neither depends on a
     // diagnostic, and a fixture is credited once per position either way.
-    if (resolved !== null && this.host.state.isCrossFileDeclaration(resolved)) {
+    if (resolved !== null && this.state.isCrossFileDeclaration(resolved)) {
       AdrProvenance.record("010", type.span.line);
     }
     return resolved ?? type.text;
@@ -352,7 +351,7 @@ class FilePlanner {
   private _isCppClassWithConstructor(typeName: string): boolean {
     return CppConstructorHelper.hasConstructor(
       typeName,
-      this.host.state.symbolTable,
+      this.state.symbolTable,
     );
   }
 
@@ -372,7 +371,7 @@ class FilePlanner {
     const firstName = identifiers[0];
 
     // Check if the first identifier is a C++ scope symbol (namespace, class, enum)
-    if (this.host.isCppScopeSymbol(firstName)) {
+    if (this.queries.isCppScopeSymbol(firstName)) {
       // C++ namespace type: join all parts with ::
       return identifiers.join("::");
     }
@@ -413,10 +412,7 @@ class FilePlanner {
     const planned = new Map<TTypeSyntax, IPlannedType>();
     for (const { type, scope } of TypeSites.of(program, inlinedConsts)) {
       if (unwritten.has(type)) continue;
-      planned.set(
-        type,
-        this.planType(type, this.host.state.scopePathOf(scope)),
-      );
+      planned.set(type, this.planType(type, this.state.scopePathOf(scope)));
     }
     return planned;
   }
@@ -456,7 +452,7 @@ class FilePlanner {
     TExpressionOf<"cast">,
     Pick<IPlannedCast, "operandType" | "clampForm">
   > {
-    const typing = this.host.state.typingContext();
+    const typing = this.state.typingContext();
     const planned = new Map<
       TExpressionOf<"cast">,
       Pick<IPlannedCast, "operandType" | "clampForm">
@@ -498,7 +494,7 @@ class FilePlanner {
     readonly reads: ReadonlySet<TPostfixOpSyntax>;
     readonly writes: ReadonlySet<TExpression>;
   } {
-    const typing = this.host.state.typingContext();
+    const typing = this.state.typingContext();
     const targets = new Set<TExpression>(
       program.declarations.flatMap((entry) =>
         StatementNodes.assignments(entry.declaration).map(
@@ -516,7 +512,7 @@ class FilePlanner {
         // The union's integer member (#1927)
         const floatType = last.before.typeName;
         invariant(floatType !== null, "a floating operand names its type");
-        cTypes.add(FloatBitHelper.bitsTypeOf(floatType));
+        cTypes.add(FloatBitType.of(floatType));
       }
     }
     const reads = new Set<TPostfixOpSyntax>();
@@ -536,7 +532,7 @@ class FilePlanner {
           steps[i - head.opsConsumed]?.subscript === "bit_range"
         ) {
           reads.add(op);
-          cTypes.add(FloatBitHelper.bitsTypeOf(rootType));
+          cTypes.add(FloatBitType.of(rootType));
         }
       });
     }
@@ -575,7 +571,7 @@ class FilePlanner {
     cTypes: Set<string>,
     requirements: PlannedRequirements,
   ): ReadonlySet<TExpression> {
-    const state = this.host.state;
+    const state = this.state;
     const typing = state.typingContext();
     const planned = new Set<TExpression>();
     for (const expression of FilePlanner.writtenExpressions(
@@ -643,7 +639,7 @@ class FilePlanner {
         }
       }
     }
-    const cppMode = this.host.state.cppMode;
+    const cppMode = this.state.cppMode;
     const planned = new Map<
       TExpressionOf<"structInitializer">,
       TStructInitializerForm
@@ -720,7 +716,7 @@ class FilePlanner {
     program: IProgramSyntax,
     inlinedConsts: ReadonlySet<TDeclarationSyntax>,
   ): boolean {
-    const typing = this.host.state.typingContext();
+    const typing = this.state.typingContext();
     return FilePlanner.writtenExpressions(program, inlinedConsts).some(
       (expression) =>
         expression.kind === "postfix" &&
@@ -765,9 +761,7 @@ class FilePlanner {
       if (declaration.kind !== "struct") continue;
       for (const field of declaration.fields) {
         if (
-          this.host.state.callbackFieldTypes.has(
-            `${declaration.name}.${field.name}`,
-          )
+          this.state.callbackFieldTypes.has(`${declaration.name}.${field.name}`)
         ) {
           unwritten.add(field.type);
         }
@@ -789,7 +783,7 @@ class FilePlanner {
       if (expression.type?.kind === "user") {
         planned.set(
           expression,
-          this.host.state.bindingAt(
+          this.state.bindingAt(
             null,
             expression.type.text,
             FilePlanner.positionOf(expression),
@@ -808,7 +802,7 @@ class FilePlanner {
   private planSizeofMemberAccesses(
     program: IProgramSyntax,
   ): ReadonlySet<TExpressionOf<"sizeof">> {
-    const typing = this.host.state.typingContext();
+    const typing = this.state.typingContext();
     return new Set(
       FilePlanner.sizeofExpressionsIn(program).filter(
         (expression) =>
@@ -847,16 +841,16 @@ class FilePlanner {
     for (const { declaration: scope } of program.declarations) {
       if (scope.kind !== "scope") continue;
       const declaringScopePath =
-        this.host.state.program?.scopePathOf(scope.name) ?? scope.name;
+        this.state.program?.scopePathOf(scope.name) ?? scope.name;
       for (const { declaration } of scope.members) {
         if (declaration.kind !== "variableDeclaration") continue;
         const cName = QualifiedNameGenerator.forMember(
           declaringScopePath,
           declaration.name,
         );
-        if (!PrivateConstValue.inlines(constants, cName)) continue;
+        if (!PrivateConstSpelling.inlines(constants, cName)) continue;
         inlined.add(declaration);
-        const narrowing = PrivateConstValue.narrowingOf(constants, cName);
+        const narrowing = PrivateConstSpelling.narrowingOf(constants, cName);
         if (narrowing?.kind === "cast") cTypes.add(narrowing.cType);
       }
     }
@@ -870,7 +864,7 @@ class FilePlanner {
   ): IFilePlan {
     const selfInclude = this.planSelfInclude(options);
     const selfIncludeAdded = selfInclude !== null;
-    const requirements = new PlannedRequirements(this.host.state.sourcePath);
+    const requirements = new PlannedRequirements(this.state.sourcePath);
 
     // Neither answer depends on what rendering turns out to produce, so
     // Render reads them rather than interpreting the state they came from.
@@ -1012,7 +1006,7 @@ class FilePlanner {
       emission: EmissionPlan.build(
         this.planEmissionFacts(decided, requirements, selfIncludeAdded),
       ),
-      setup: this.host.state.fileSetup({
+      setup: this.state.fileSetup({
         parameters: this.parameters(),
         selfIncludeAdded,
         needsISR: requirements.requires("isr"),
@@ -1052,10 +1046,10 @@ class FilePlanner {
   ): IArgumentPassing {
     const head = ExpressionShape.headOf(site.call);
     const step =
-      OperandTyper.chainOf(site.call, this.host.state.typingContext()).steps[
+      OperandTyper.chainOf(site.call, this.state.typingContext()).steps[
         site.op - head.opsConsumed
       ] ?? null;
-    const input = this.host.getInput();
+    const input = this.state;
     return CallArgumentPassing.of(
       CallArgumentPassing.callbackFunction(
         step?.before?.typeName ?? null,
@@ -1065,7 +1059,7 @@ class FilePlanner {
         null,
       site.argument,
       input,
-      this.host,
+      this.queries,
     );
   }
 
@@ -1089,18 +1083,18 @@ class FilePlanner {
       const base = passing.param?.baseType;
       const cType =
         passing.mode === "reference"
-          ? ArgumentGenerator.cTypeOf(
-              ArgumentGenerator.formOf(
+          ? ArgumentForm.cTypeOf(
+              ArgumentForm.of(
                 this.boundArgumentName(expression) !== null,
                 base,
                 this.argumentShape(expression),
-                this.host.state.cppMode,
+                this.state.cppMode,
               ),
             )
           : CallArgumentPassing.cppEnumCast(
               this.directTypeOf(expression),
               base,
-              this.host,
+              this.queries,
             );
       if (cType !== null) cTypes.add(cType);
     }
@@ -1150,13 +1144,13 @@ class FilePlanner {
       if (forInits.has(declaration)) {
         if (planned === undefined) return null;
         const declared = this.cTypeOf(planned);
-        return this.host.getCallbackTypedefName(declared) ?? declared;
+        return this.queries.getCallbackTypedefName(declared) ?? declared;
       }
       return (
         TypeNameLadder.resolveWrittenName(
           type,
-          this.host.state.scopePathOf(typeScopes.get(type) ?? null),
-          this.host.state.typeBindingDeps((identifiers) =>
+          this.state.scopePathOf(typeScopes.get(type) ?? null),
+          this.state.typeBindingDeps((identifiers) =>
             this.resolveQualifiedType(identifiers),
           ),
         ) ?? type.text
@@ -1181,7 +1175,7 @@ class FilePlanner {
             ? null
             : (this._resolveFieldType(
                 site.field,
-                this.host.state.symbolTable?.getStructFieldTypes(outer),
+                this.state.symbolTable?.getStructFieldTypes(outer),
               ) ?? null);
         case "index":
           return "size_t";
@@ -1253,7 +1247,7 @@ class FilePlanner {
     cTypes: Set<string>,
   ): TExpression[] {
     invariant(valuePositions !== null, "2.1 hands 2.2 where each value stands");
-    const symbols = this.host.state.symbols!;
+    const symbols = this.state.symbols!;
     const foreign: TExpression[] = [];
     const sites = program.declarations.flatMap((entry) =>
       StatementNodes.assignments(entry.declaration),
@@ -1272,7 +1266,7 @@ class FilePlanner {
       if (!members.every((op) => op.kind === "member")) continue;
       const names = AssignmentHandlerUtils.buildRegisterNameWithScopeDetection(
         [parts.identifier, ...members.map((op) => op.name)],
-        (name) => this.host.state.isKnownScope(name),
+        (name) => this.state.isKnownScope(name),
       );
       const base = symbols.registerBaseAddresses.get(names.regName);
       const offset = symbols.registerMemberOffsets.get(names.fullName);
@@ -1328,7 +1322,7 @@ class FilePlanner {
     inlinedConsts: ReadonlySet<TDeclarationSyntax>,
     cTypes: Set<string>,
   ): void {
-    const typing = this.host.state.typingContext();
+    const typing = this.state.typingContext();
     for (const expression of FilePlanner.writtenExpressions(
       program,
       inlinedConsts,
@@ -1357,7 +1351,7 @@ class FilePlanner {
     sliceSources: Map<IAssignmentSyntax, IPlannedSliceSource>,
     cTypes: Set<string>,
   ): void {
-    const typing = this.host.state.typingContext();
+    const typing = this.state.typingContext();
     const sites = program.declarations.flatMap((entry) =>
       StatementNodes.assignments(entry.declaration),
     );
@@ -1414,7 +1408,7 @@ class FilePlanner {
     const ops = new Set<string>();
     const use = (operation: string, cnxType: string): void => {
       ops.add(`${operation}_${cnxType}`);
-      OverflowHelperTemplates.cTypesOf(cnxType).forEach((t) => cTypes.add(t));
+      ClampTypes.cTypesOf(cnxType).forEach((t) => cTypes.add(t));
     };
 
     const chains = new Map<TExpression, IPlannedClamp>();
@@ -1525,8 +1519,8 @@ class FilePlanner {
     expectedTypes: ReadonlyMap<TExpression, IPlannedExpectedType>,
     cTypes: Set<string>,
   ): ReadonlyMap<TExpression, ReadonlyMap<number, TPlannedNarrowing>> {
-    const typing = this.host.state.typingContext();
-    const bitmapFields = this.host.state.symbols?.bitmapFields;
+    const typing = this.state.typingContext();
+    const bitmapFields = this.state.symbols?.bitmapFields;
     const promotedSources = (node: TExpression): Array<[number, string]> => {
       if (node.kind === "literal")
         return node.text.startsWith("'") ? [[0, "int"]] : [];
@@ -1620,7 +1614,7 @@ class FilePlanner {
     // The typedef is generated even where the header owns it (#369/#1164)
     for (const entry of program.declarations) {
       if (entry.declaration.kind !== "bitmap") continue;
-      const backing = this.host.state.symbols?.bitmapBackingType.get(
+      const backing = this.state.symbols?.bitmapBackingType.get(
         entry.declaration.name,
       );
       if (backing !== undefined) cTypes.add(backing);
@@ -1683,14 +1677,14 @@ class FilePlanner {
     if (parts.ops.length > 0 || parts.root === "this") return null;
     const written = OperandTyper.typeOfTarget(
       site.target,
-      this.host.state.typingContext(),
+      this.state.typingContext(),
     );
     if (!ForHeaderAssignment.isAtomic(written)) return null;
     const typeName = written?.typeName ?? "";
     const exclusive = LDREX_MAP[typeName] !== undefined;
     return {
       form:
-        this.host.state.targetDescription?.ldrex_strex === true && exclusive
+        this.state.targetDescription?.ldrex_strex === true && exclusive
           ? "ldrex-strex"
           : "interrupt-mask",
       typeName,
@@ -1707,7 +1701,7 @@ class FilePlanner {
    * itself. #1515: supplied by the caller, which asked `PublicInterface`.
    */
   private planSelfInclude(options: ICodeGeneratorOptions): string | null {
-    const sourcePath = this.host.state.sourcePath;
+    const sourcePath = this.state.sourcePath;
     if (!options.hasPublicInterface || !sourcePath) {
       return null;
     }
@@ -1716,7 +1710,7 @@ class FilePlanner {
     // Issue #933/#1319: the run's header extension, not re-derived from the mode
     return CNextSourcePath.withExtension(
       pathToUse,
-      this.host.state.outputExtensions.header,
+      this.state.outputExtensions.header,
     );
   }
 
@@ -1757,7 +1751,7 @@ class FilePlanner {
       if (target !== null) existingIncludeTargets.push(target);
     }
     return {
-      cppMode: this.host.isCppMode(),
+      cppMode: this.queries.isCppMode(),
       cTypes: plan.cTypes,
       needsString: requirements.requires("string"),
       needsCMSIS: requirements.requires("cmsis"),
@@ -1772,7 +1766,7 @@ class FilePlanner {
       safeDivOps: requirements.safeDivisions,
       floatAssertSites: requirements.sitesOf("float_static_assert"),
       irqWrapperSites: requirements.sitesOf("irq_wrappers"),
-      debugMode: this.host.state.debugMode,
+      debugMode: this.state.debugMode,
       emittedDesignatedInitializer: [...plan.structInitializers.values()].some(
         (form) => form !== "cppClass",
       ),
@@ -1802,10 +1796,10 @@ class FilePlanner {
    */
   private transformIncludeDirective(includeText: string): string {
     return includeGenerators.transformIncludeDirective(includeText, {
-      sourcePath: this.host.state.sourcePath,
-      rewrites: this.host.state.cnxIncludeRewrites,
-      kinds: this.host.state.includeKinds,
-      headerExtension: this.host.state.outputExtensions.header,
+      sourcePath: this.state.sourcePath,
+      rewrites: this.state.cnxIncludeRewrites,
+      kinds: this.state.includeKinds,
+      headerExtension: this.state.outputExtensions.header,
     });
   }
 
@@ -1846,12 +1840,12 @@ class FilePlanner {
     scopeDecl: Extract<TDeclarationSyntax, { kind: "scope" }>,
   ): void {
     const scopeName = scopeDecl.name;
-    const typeScopePath = this.host.state.scopePathOf(scopeName);
+    const typeScopePath = this.state.scopePathOf(scopeName);
     for (const { declaration } of scopeDecl.members) {
       if (declaration.kind === "function") {
         this._registerScopeFunction(
           catalog,
-          this.host.state.program?.scopePathOf(scopeName) ?? scopeName,
+          this.state.program?.scopePathOf(scopeName) ?? scopeName,
           declaration,
           typeScopePath,
         );
@@ -1886,7 +1880,7 @@ class FilePlanner {
     const fullName = QualifiedNameGenerator.forFunctionInScope(
       declaringScopePath,
       funcDecl.name,
-      this.host.state.program,
+      this.state.program,
     );
     catalog.addFunction(
       fullName,
@@ -1980,7 +1974,7 @@ class FilePlanner {
   ): ReadonlyMap<string, TParameterInfo> {
     const infos = new Map<string, TParameterInfo>();
     const callbacks = {
-      isKnownStruct: (typeName: string) => this.host.isKnownStruct(typeName),
+      isKnownStruct: (typeName: string) => this.queries.isKnownStruct(typeName),
     };
     const planParameters = (
       cName: string,
@@ -1995,7 +1989,7 @@ class FilePlanner {
             index,
             cName,
             callbacks,
-            this.host.state,
+            this.state,
           ),
         );
       });
@@ -2006,16 +2000,15 @@ class FilePlanner {
         planParameters(declaration.name, declaration, "");
       } else if (declaration.kind === "scope") {
         const scopePath =
-          this.host.state.program?.scopePathOf(declaration.name) ??
-          declaration.name;
-        const typeScopePath = this.host.state.scopePathOf(declaration.name);
+          this.state.program?.scopePathOf(declaration.name) ?? declaration.name;
+        const typeScopePath = this.state.scopePathOf(declaration.name);
         for (const member of declaration.members) {
           if (member.declaration.kind !== "function") continue;
           planParameters(
             QualifiedNameGenerator.forFunctionInScope(
               scopePath,
               member.declaration.name,
-              this.host.state.program,
+              this.state.program,
             ),
             member.declaration,
             typeScopePath,
@@ -2036,7 +2029,7 @@ class FilePlanner {
 
   /** The parameter `name` binds to at `at`, as 2.2 planned it */
   parameterAt(name: string, at: ISourcePosition): TParameterInfo | undefined {
-    return this.host.state.parameterIn(this.parameters(), name, at);
+    return this.state.parameterIn(this.parameters(), name, at);
   }
 
   /**
@@ -2190,11 +2183,8 @@ class FilePlanner {
     // ADR-006: struct-ness drives reference semantics. A C++ namespaced
     // struct is known by its `::` spelling, which is how the prototype that
     // takes it by reference names it; the C join (`hw__Dev`) is not.
-    const isStruct = this.host.isKnownStruct(
-      CppNamespaceUtils.convertToCppNamespace(
-        typeName,
-        this.host.state.symbolTable,
-      ),
+    const isStruct = this.queries.isKnownStruct(
+      CppNamespaceUtils.convertToCppNamespace(typeName, this.state.symbolTable),
     );
 
     // ADR-029: a parameter whose type is itself a function-as-type.
@@ -2232,7 +2222,7 @@ class FilePlanner {
     // beside `void aPoke(Dev* d)`. Not ADR-006 reference semantics, so not
     // `isStruct` -- which is also what keeps an unmodified handle free of the
     // auto-const its prototype never takes.
-    if (this.host.state.isHeldThroughPointer(typeName)) {
+    if (this.state.isHeldThroughPointer(typeName)) {
       return {
         type: this.callbackCType(typeName),
         isStruct: false,
@@ -2270,7 +2260,7 @@ class FilePlanner {
    */
   planCallbackTypes(): ReadonlyMap<string, ICallbackTypeInfo> {
     const callbackTypes = new Map<string, ICallbackTypeInfo>();
-    const symbols = this.host.state.symbols;
+    const symbols = this.state.symbols;
     if (!symbols) {
       return callbackTypes;
     }
@@ -2285,7 +2275,7 @@ class FilePlanner {
     for (const cName of symbols.functionReturnTypes.keys()) {
       // Run-wide identity lookup -- the exact-name index, never the bare-name
       // one, which returns empty for every scoped symbol (#1139).
-      const symbol = this.host.state.symbolTable
+      const symbol = this.state.symbolTable
         .getOverloadsByCName(cName)
         .find(
           (candidate) =>
@@ -2367,7 +2357,7 @@ class FilePlanner {
             param.isConst,
             shape.isStruct,
             shape.isString,
-            this.host.state,
+            this.state,
           ),
           isArray: param.isArray,
           // Already folded to literals by the symbols layer, which is exactly
@@ -2390,7 +2380,7 @@ class FilePlanner {
    * needs. A bare primitive lookup lost both (#1942 review).
    */
   private callbackCType(typeName: string): string {
-    const symbolTable = this.host.state.symbolTable;
+    const symbolTable = this.state.symbolTable;
     return TypeGenerationHelper.generateUserType(
       headerCType(typeName, symbolTable),
       symbolTable.checkNeedsStructKeyword(typeName),
@@ -2468,7 +2458,7 @@ class FilePlanner {
     expr: TExpression,
     targetParamBaseType?: string,
   ): boolean {
-    if (!this.host.state.cppMode) return false;
+    if (!this.state.cppMode) return false;
     if (!targetParamBaseType) return false;
 
     const view = ExpressionShape.postfixView(expr);
@@ -2520,7 +2510,7 @@ class FilePlanner {
     targetParamBaseType: string,
     at: ISourcePosition,
   ): boolean {
-    const typeInfo = this.host.state.declarationTypeInfo(null, baseId, at);
+    const typeInfo = this.state.declarationTypeInfo(null, baseId, at);
     return CppMemberHelper.needsComplexMemberConversion(
       FilePlanner.toPostfixOps(ops),
       typeInfo,
@@ -2545,7 +2535,7 @@ class FilePlanner {
     const baseId = ExpressionShape.rootName(expr);
     if (!baseId) return false;
 
-    const typeInfo = this.host.state.declarationTypeInfo(
+    const typeInfo = this.state.declarationTypeInfo(
       null,
       baseId,
       FilePlanner.positionOf(expr),
@@ -2584,7 +2574,7 @@ class FilePlanner {
       return "not-array";
     }
 
-    const member = OperandTyper.typeOf(expr, this.host.state.typingContext());
+    const member = OperandTyper.typeOf(expr, this.state.typingContext());
     if (member === null) {
       return "unknown";
     }
@@ -2595,7 +2585,7 @@ class FilePlanner {
   /** Whether a chain's root names a declaration (#1668) or a parameter */
   private rootBindsToVariable(baseId: string, at: TExpression): boolean {
     return (
-      this.host.state.declarationTypeInfo(
+      this.state.declarationTypeInfo(
         null,
         baseId,
         FilePlanner.positionOf(at),
@@ -2628,7 +2618,7 @@ class FilePlanner {
     const fieldType = structFieldTypes.get(fieldName)!;
     if (!QualifiedCName.isQualified(fieldType)) return fieldType;
     const parts = QualifiedCName.split(fieldType);
-    if (parts.length > 1 && this.host.isCppScopeSymbol(parts[0])) {
+    if (parts.length > 1 && this.queries.isCppScopeSymbol(parts[0])) {
       return parts.join("::");
     }
     return fieldType;
@@ -2643,12 +2633,12 @@ class FilePlanner {
 
   /** #1668 (C7): what an assignment target writes, by the one binder */
   targetDeclaration(target: TExpression): IChainBase {
-    const typing = this.host.state.typingContext();
+    const typing = this.state.typingContext();
     return DeclaredTypeInfo.ofChain(
       OperandTyper.chainOf(target, typing),
       typing.symbols,
-      this.host.state.symbolTable,
-      this.host.state.targetDescription,
+      this.state.symbolTable,
+      this.state.targetDescription,
     );
   }
 
@@ -2670,15 +2660,12 @@ class FilePlanner {
     if (target.last?.subscript === "array_slice") return null;
     const written = OperandTyper.typeOfTarget(
       targetExpr,
-      this.host.state.typingContext(),
+      this.state.typingContext(),
     );
     const name = written?.cType ?? written?.typeName ?? null;
     return name === null
       ? null
-      : CppNamespaceUtils.convertToCppNamespace(
-          name,
-          this.host.state.symbolTable,
-        );
+      : CppNamespaceUtils.convertToCppNamespace(name, this.state.symbolTable);
   }
 
   /**
@@ -2707,11 +2694,11 @@ class FilePlanner {
    * `transpileState` 45 times, so what it is narrow about is the OBJECT
    * exposed, not the number of reads.
    *
-   * The walk itself does not go through here -- it holds `this.host` directly
-   * and spells the state `this.host.state`.
+   * The walk itself does not go through here -- it holds the state directly as
+   * `this.state`.
    */
   get transpileState(): TranspileState {
-    return this.host.state;
+    return this.state;
   }
 }
 

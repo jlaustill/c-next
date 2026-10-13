@@ -11,6 +11,7 @@
  * This generator was extracted from CodeGenerator._generatePostfixExpr
  * to reduce the size and complexity of CodeGenerator.ts.
  */
+import FloatBitType from "../../../../2-Plan/FloatBitType";
 import type TPlannedNarrowing from "../../../../2-Plan/types/TPlannedNarrowing";
 import type IChainBase from "../../../../../types/IChainBase";
 import type TParameterInfo from "../../../../../types/TParameterInfo";
@@ -29,7 +30,7 @@ import type IRootHolding from "../../types/IRootHolding";
 import BitmapAccessHelper from "./BitmapAccessHelper";
 import BitRangeHelper from "../../helpers/BitRangeHelper";
 import FloatBitHelper from "../../helpers/FloatBitHelper";
-import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
+import NarrowingCastHelper from "../../../../2-Plan/NarrowingCastHelper";
 import BitUtils from "../../../../../utils/BitUtils";
 import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
 import SubscriptDepthValidator from "../../../../2-Plan/SubscriptDepthValidator";
@@ -1256,7 +1257,7 @@ const handleFloatBitRange = (
     `2.2 planned every float bit range 2.3 reads (${ctx.rootIdentifier})`,
   );
 
-  const intType = FloatBitHelper.bitsTypeOf(ctx.baseType);
+  const intType = FloatBitType.of(ctx.baseType);
   const shadowName = BitRangeHelper.getShadowVarName(ctx.rootIdentifier);
   const mask = BitUtils.generateMask(ctx.maskWidth, intType);
 

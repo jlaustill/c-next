@@ -19,7 +19,7 @@
  * asserts directly. Rendering stays with the walker; this decides shape only.
  */
 import invariant from "../../../../../utils/invariant";
-import CppModeHelper from "../../helpers/CppModeHelper";
+import CppModeHelper from "../../../../2-Plan/CppModeHelper";
 import SaturatingCast from "../../helpers/SaturatingCast";
 import ReservedCnxName from "../../../../../utils/ReservedCnxName";
 import type IPlannedCast from "../../../../2-Plan/types/IPlannedCast";

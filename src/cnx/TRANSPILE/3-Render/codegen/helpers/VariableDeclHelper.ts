@@ -29,7 +29,7 @@
 
 import invariant from "../../../../utils/invariant";
 import ArrayInitHelper from "./ArrayInitHelper";
-import NarrowingCastHelper from "./NarrowingCastHelper";
+import NarrowingCastHelper from "../../../2-Plan/NarrowingCastHelper";
 import StringDeclHelper from "./StringDeclHelper";
 import IPlannedArrayDeclaration from "../types/IPlannedArrayDeclaration";
 import TPlannedVariableDecl from "../types/TPlannedVariableDecl";

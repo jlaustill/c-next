@@ -9,7 +9,7 @@
  */
 import AssignmentKind from "../../../../../types/AssignmentKind";
 import IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
-import AssignmentHandlerUtils from "./AssignmentHandlerUtils";
+import AssignmentHandlerUtils from "../../../../2-Plan/AssignmentHandlerUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 
 /**

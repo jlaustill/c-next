@@ -1,7 +1,7 @@
-import IGeneratorInput from "../IGeneratorInput";
-import IOrchestrator from "../IOrchestrator";
+import type ICallArgumentFacts from "./types/ICallArgumentFacts";
+import type IPlanQueries from "./types/IPlanQueries";
 import CallExprUtils from "./CallExprUtils";
-import type IArgumentPassing from "../../types/IArgumentPassing";
+import type IArgumentPassing from "./types/IArgumentPassing";
 
 /**
  * How a call passes each argument: the parameter it binds to, and whether it
@@ -23,7 +23,7 @@ class CallArgumentPassing {
    */
   static callbackFunction(
     calleeType: string | null,
-    input: IGeneratorInput,
+    input: ICallArgumentFacts,
   ): string | undefined {
     return calleeType === null
       ? undefined
@@ -37,7 +37,7 @@ class CallArgumentPassing {
   static cppEnumCast(
     argType: string | null,
     targetParamBaseType: string | undefined,
-    orchestrator: IOrchestrator,
+    orchestrator: IPlanQueries,
   ): string | null {
     if (!orchestrator.isCppMode() || !targetParamBaseType) return null;
     if (argType === null || !orchestrator.isCppEnumClass(argType)) return null;
@@ -50,8 +50,8 @@ class CallArgumentPassing {
   static of(
     signatureName: string | null,
     index: number,
-    input: IGeneratorInput,
-    orchestrator: IOrchestrator,
+    input: ICallArgumentFacts,
+    orchestrator: IPlanQueries,
   ): IArgumentPassing {
     if (signatureName === null) return { param: undefined, mode: "c" };
     const resolved = CallExprUtils.resolveTargetParam(
@@ -83,7 +83,7 @@ class CallArgumentPassing {
     idx: number,
     targetParam: IArgumentPassing["param"],
     isCrossFile: boolean,
-    orchestrator: IOrchestrator,
+    orchestrator: IPlanQueries,
   ): boolean {
     if (!targetParam) return false;
 

@@ -4,7 +4,6 @@
 
 import TestSymbolTable from "../../../../cnx/TRANSPILE/__tests__/TestSymbolTable";
 import ProgramLowering from "../../../../cnx/PARSE/2-Parse/ProgramLowering";
-import TargetResolver from "../../../TargetResolver";
 import type IScopeSymbol from "../../../../cnx/types/symbols/IScopeSymbol";
 import { describe, it, expect, beforeEach } from "vitest";
 import type IProgram from "../../../../cnx/types/IProgram";
@@ -19,8 +18,6 @@ import parse from "../../../../cnx/PARSE/3-Declare/cnext/__tests__/testHelpers";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
-import enterScope from "../../../../cnx/TRANSPILE/__tests__/enterScope";
-import NodeFileSystem from "../../../../cnx/PARSE/1-Discover/NodeFileSystem";
 
 /** Repo root, for the source-scanning guard in `scopeTypePredicate`. */
 const repoRootForGuard = join(
@@ -57,46 +54,6 @@ describe("TranspileState", () => {
   beforeEach(() => {
     state = new TranspileState();
     TestSymbolTable.install(state);
-  });
-
-  describe("reset()", () => {
-    it("resets all state to initial values", () => {
-      // Dirty ONE instance and call `reset()` on it. #1452 merged two classes
-      // into this one, and for a while this test swapped in a
-      // `new TranspileState()` and asserted that object's INITIALIZERS -- which
-      // is true of any fresh object and says nothing about `reset()`. Under
-      // that shape, deleting `currentScopePath`, `currentFunctionName` and
-      // `generator` from `reset()` left the whole suite green.
-      enterScope(state, "TestScope");
-      state.currentFunctionName = "testFunc";
-      state.indentLevel = 5;
-
-      state.reset();
-
-      expect(state.currentScopePath).toBe("");
-      expect(state.currentFunctionName).toBeNull();
-      expect(state.indentLevel).toBe(0);
-    });
-
-    it("resets generator reference", () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      state.generator = {} as any;
-
-      state.reset();
-
-      expect(state.generator).toBeNull();
-    });
-
-    it("holds the target description it is reset with", () => {
-      const target = TargetResolver.byName(
-        "cortex-m7",
-        NodeFileSystem.instance,
-      )!;
-
-      state.reset(target);
-
-      expect(state.targetDescription).toBe(target);
-    });
   });
 
   describe("Scope Member Helpers", () => {
@@ -529,44 +486,6 @@ describe("TranspileState", () => {
    * what this pins. Mutation: replacing the `finally` with a trailing
    * assignment reddens exactly this test.
    */
-  describe("withScopePath", () => {
-    it("restores the previous scope path when fn throws", () => {
-      // #1304 landed while this branch was open: the registry is now the
-      // authority on which scopes exist, so both paths must be registered
-      // before they can be entered. `enterScope` is main's helper for exactly
-      // this; `Inner` is registered directly because `withScopePath` is what
-      // enters it.
-      enterScope(state, "Outer");
-      registerScope("Inner");
-      const before = state.currentScopePath;
-
-      expect(() =>
-        state.withScopePath("Inner", () => {
-          expect(state.currentScopePath).toBe("Inner");
-          throw new Error("boom");
-        }),
-      ).toThrow("boom");
-
-      expect(state.currentScopePath).toBe(before);
-    });
-
-    it("restores the previous scope path on the ordinary path too", () => {
-      // #1304 landed while this branch was open: the registry is now the
-      // authority on which scopes exist, so both paths must be registered
-      // before they can be entered. `enterScope` is main's helper for exactly
-      // this; `Inner` is registered directly because `withScopePath` is what
-      // enters it.
-      enterScope(state, "Outer");
-      registerScope("Inner");
-      const before = state.currentScopePath;
-
-      const seen = state.withScopePath("Inner", () => state.currentScopePath);
-
-      expect(seen).toBe("Inner");
-      expect(state.currentScopePath).toBe(before);
-    });
-  });
-
   describe("scopeTypePredicate", () => {
     it("survives being passed unbound, which is why it exists", () => {
       const predicate: (name: string) => boolean = state.scopeTypePredicate;

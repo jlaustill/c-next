@@ -4,14 +4,14 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import createMockSymbols from "../../../../../../cnx/types/__testUtils__/codeGenSymbolsHelpers";
-import TranspileState from "../../../../../../cnx/TRANSPILE/TranspileState";
-import type ICodeGenSymbols from "../../../../../../cnx/types/ICodeGenSymbols";
-import type ICallbackTypeInfo from "../../../../../../cnx/types/ICallbackTypeInfo";
-import type TParameterInfo from "../../../../../../cnx/types/TParameterInfo";
-import TypeValidator from "../../../../../../cnx/TRANSPILE/3-Render/codegen/TypeValidator";
-import enterScope from "../../../../../../cnx/TRANSPILE/__tests__/enterScope";
-import testAnalysisContextFor from "../../1-Analyze/testAnalysisContextFor";
+import createMockSymbols from "../../../../../cnx/types/__testUtils__/codeGenSymbolsHelpers";
+import TranspileState from "../../../../../cnx/TRANSPILE/TranspileState";
+import type ICodeGenSymbols from "../../../../../cnx/types/ICodeGenSymbols";
+import type ICallbackTypeInfo from "../../../../../cnx/types/ICallbackTypeInfo";
+import type TParameterInfo from "../../../../../cnx/types/TParameterInfo";
+import TypeValidator from "../../../../../cnx/TRANSPILE/2-Plan/TypeValidator";
+import enterScope from "../../../../../cnx/TRANSPILE/__tests__/enterScope";
+import testAnalysisContextFor from "../1-Analyze/testAnalysisContextFor";
 
 // ========================================================================
 // Test Helpers - Mock Symbols

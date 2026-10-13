@@ -3,6 +3,7 @@
  * Transforms C-Next AST to clean, readable C code
  */
 
+import PlanQueries from "../../2-Plan/PlanQueries";
 import type IFloatBitWrite from "../../../types/IFloatBitWrite";
 import ReservedCnxName from "../../../utils/ReservedCnxName";
 
@@ -18,7 +19,6 @@ import atomicGenerators from "./generators/statements/AtomicGenerator";
 import type TAtomicForm from "../../types/TAtomicForm";
 // Declaration generators
 // ADR-065: Extracted utilities
-import CppNamespaceUtils from "../../../utils/CppNamespaceUtils";
 import FormatUtils from "../../../utils/FormatUtils";
 import StringUtils from "../../../utils/StringUtils";
 import invariant from "../../../utils/invariant";
@@ -46,7 +46,7 @@ import FloatBitHelper from "./helpers/FloatBitHelper";
 // PR #715: C++ constructor detection helper for improved testability
 // PR #715: Set/Map utilities for improved testability
 // PR #715: Symbol lookup utilities for improved testability
-import SymbolLookupHelper from "./helpers/SymbolLookupHelper";
+import SymbolLookupHelper from "../../2-Plan/SymbolLookupHelper";
 // Issue #644: Assignment validation coordinator helper
 // Issue #696: Variable modifier extraction helper
 // Note: VariableModifierBuilder is now used via VariableDeclHelper
@@ -62,10 +62,8 @@ import type IPlannedFunctionParameter from "../../2-Plan/types/IPlannedFunctionP
 // Issue #793: Function context lifecycle and parameter processing helper
 import FunctionContextManager from "./helpers/FunctionContextManager";
 // Global state for code generation (simplifies debugging, eliminates DI complexity)
-import TypeCheckUtils from "../../../utils/TypeCheckUtils";
 import CallbackTypedefFormatter from "./helpers/CallbackTypedefFormatter";
 // Issue #269: Pass-by-value analysis extracted from CodeGenerator
-import PassByValueAnalyzer from "../../2-Plan/PassByValueAnalyzer";
 // Unified parameter generation (Phase 1)
 // Issue #895: Parse typedef signatures to determine pointer vs value params
 // Extracted resolvers that use CodeGenState
@@ -90,6 +88,8 @@ export default class CodeGenerator implements IOrchestrator {
    * without a global between them.
    */
   readonly state = new TranspileState();
+
+  private readonly planQueries = new PlanQueries(this.state);
 
   // ===========================================================================
   // IOrchestrator Implementation
@@ -214,7 +214,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   isKnownStruct(typeName: string): boolean {
-    return this.state.isKnownStruct(typeName);
+    return this.planQueries.isKnownStruct(typeName);
   }
 
   /**
@@ -222,7 +222,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface - delegates to TypeCheckUtils.
    */
   isFloatType(typeName: string): boolean {
-    return TypeCheckUtils.isFloat(typeName);
+    return this.planQueries.isFloatType(typeName);
   }
 
   /**
@@ -230,7 +230,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface - delegates to TypeCheckUtils.
    */
   isIntegerType(typeName: string): boolean {
-    return TypeCheckUtils.isInteger(typeName);
+    return this.planQueries.isIntegerType(typeName);
   }
 
   /**
@@ -238,11 +238,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   isCNextFunction(name: string): boolean {
-    return SymbolLookupHelper.isCNextFunctionCombined(
-      this.state.knownFunctions,
-      this.state.symbolTable,
-      name,
-    );
+    return this.planQueries.isCNextFunction(name);
   }
 
   // === Expression Analysis ===
@@ -256,7 +252,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   getKnownEnums(): ReadonlySet<string> {
-    return this.state.symbols!.knownEnums;
+    return this.planQueries.getKnownEnums();
   }
 
   /**
@@ -264,7 +260,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   isCppMode(): boolean {
-    return this.state.cppMode;
+    return this.planQueries.isCppMode();
   }
 
   /**
@@ -316,7 +312,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   isCppEnumClass(typeName: string): boolean {
-    return SymbolLookupHelper.isCppEnumClass(this.state.symbolTable, typeName);
+    return this.planQueries.isCppEnumClass(typeName);
   }
 
   /**
@@ -417,7 +413,7 @@ export default class CodeGenerator implements IOrchestrator {
    * convention that `CodeGenWalker.callbackTypedefName` owns.
    */
   getCallbackTypedefName(typeName: string): string | null {
-    return this.state.callbackTypes.get(typeName)?.typedefName ?? null;
+    return this.planQueries.getCallbackTypedefName(typeName);
   }
 
   /**
@@ -608,10 +604,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   isCppScopeSymbol(name: string): boolean {
-    return CppNamespaceUtils.isCppNamespace(
-      name,
-      this.state.symbolTable ?? undefined,
-    );
+    return this.planQueries.isCppScopeSymbol(name);
   }
 
   /**
@@ -689,11 +682,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Delegates to PassByValueAnalyzer.
    */
   isParameterPassByValue(funcName: string, paramIndex: number): boolean {
-    return PassByValueAnalyzer.isParameterPassByValue(
-      funcName,
-      paramIndex,
-      this.state,
-    );
+    return this.planQueries.isParameterPassByValue(funcName, paramIndex);
   }
 
   /**

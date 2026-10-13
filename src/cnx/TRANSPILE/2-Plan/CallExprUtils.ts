@@ -2,10 +2,10 @@
  * Pure utility functions for function call expression generation.
  * Extracted from CallExprGenerator for testability (Issue #420).
  */
-import TYPE_MAP from "../../types/TYPE_MAP";
-import IFunctionSignature from "../../../../../types/IFunctionSignature";
-import type IResolvedSymbols from "../../../../../types/IResolvedSymbols";
-import TypeResolver from "../../../../../utils/TypeResolver";
+import TYPE_MAP from "./types/TYPE_MAP";
+import IFunctionSignature from "../../types/IFunctionSignature";
+import type IResolvedSymbols from "../../types/IResolvedSymbols";
+import TypeResolver from "../../utils/TypeResolver";
 
 class CallExprUtils {
   /**

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import includeGenerators from "../IncludeGenerator";
-import IncludeDirectiveText from "../../../../../../utils/IncludeDirectiveText";
-import FileDiscovery from "../../../../../../PARSE/1-Discover/FileDiscovery";
-import EFileType from "../../../../../../PARSE/1-Discover/types/EFileType";
+import IncludeDirectiveText from "../../../utils/IncludeDirectiveText";
+import FileDiscovery from "../../../PARSE/1-Discover/FileDiscovery";
+import EFileType from "../../../PARSE/1-Discover/types/EFileType";
 
 /**
  * 1.1 Discover's answer for one directive, as it records it: the kind its

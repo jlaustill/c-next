@@ -8,14 +8,14 @@
  */
 import { describe, it, expect } from "vitest";
 import { ParseTreeWalker } from "antlr4ng";
-import { CNextListener } from "../../../../../../cnx/PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../../../../../cnx/PARSE/2-Parse/grammar/CNextParser";
-import TypeValidator from "../../../../../../cnx/TRANSPILE/3-Render/codegen/TypeValidator";
-import TranspileState from "../../../../../../cnx/TRANSPILE/TranspileState";
-import ParserUtils from "../../../../../../cnx/utils/ParserUtils";
-import enterScope from "../../../../../../cnx/TRANSPILE/__tests__/enterScope";
-import testAnalysisContextFor from "../../1-Analyze/testAnalysisContextFor";
-import type ISourcePosition from "../../../../../../cnx/utils/types/ISourcePosition";
+import { CNextListener } from "../../../../../cnx/PARSE/2-Parse/grammar/CNextListener";
+import * as Parser from "../../../../../cnx/PARSE/2-Parse/grammar/CNextParser";
+import TypeValidator from "../../../../../cnx/TRANSPILE/2-Plan/TypeValidator";
+import TranspileState from "../../../../../cnx/TRANSPILE/TranspileState";
+import ParserUtils from "../../../../../cnx/utils/ParserUtils";
+import enterScope from "../../../../../cnx/TRANSPILE/__tests__/enterScope";
+import testAnalysisContextFor from "../1-Analyze/testAnalysisContextFor";
+import type ISourcePosition from "../../../../../cnx/utils/types/ISourcePosition";
 
 const SOURCE = `u32 globalCounter <- 0;
 void globalFunc() { }

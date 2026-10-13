@@ -1,4 +1,4 @@
-import type TDirectiveKind from "../../../../types/syntax/TDirectiveKind";
+import type TDirectiveKind from "../../../types/syntax/TDirectiveKind";
 
 /**
  * An ADR-037 preprocessor directive, reduced to which shape the parser matched

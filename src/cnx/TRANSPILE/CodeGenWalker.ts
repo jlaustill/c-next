@@ -37,11 +37,11 @@ import { basename } from "node:path";
 import CommentFormatter from "./3-Render/codegen/CommentFormatter";
 import PrivateConstValue from "./3-Render/codegen/PrivateConstValue";
 import IComment from "../types/IComment";
-import TYPE_MAP from "./3-Render/codegen/types/TYPE_MAP";
+import TYPE_MAP from "./2-Plan/types/TYPE_MAP";
 import TParameterInfo from "../types/TParameterInfo";
 import type IBoundParameter from "./types/IBoundParameter";
-import ICodeGeneratorOptions from "./3-Render/codegen/types/ICodeGeneratorOptions";
-import TypeValidator from "./3-Render/codegen/TypeValidator";
+import ICodeGeneratorOptions from "./types/ICodeGeneratorOptions";
+import TypeValidator from "./2-Plan/TypeValidator";
 import IGeneratorOutput from "./3-Render/codegen/generators/IGeneratorOutput";
 import ComplianceAnnotations from "./2-Plan/ComplianceAnnotations";
 import emittedLocalName from "../utils/emittedLocalName";
@@ -113,7 +113,7 @@ import ExpressionShape from "../utils/ExpressionShape";
 import type IChainHead from "../types/IChainHead";
 import ExpressionCalls from "../utils/ExpressionCalls";
 import helperGenerators from "./3-Render/codegen/generators/support/HelperGenerator";
-import includeGenerators from "./3-Render/codegen/generators/support/IncludeGenerator";
+import includeGenerators from "./2-Plan/IncludeGenerator";
 import DeclaredTypeInfo from "../PARSE/3-Declare/DeclaredTypeInfo";
 import DeclaredPointer from "../utils/DeclaredPointer";
 import type TTypeInfo from "../types/TTypeInfo";
@@ -122,10 +122,10 @@ import type IRootHolding from "./3-Render/codegen/types/IRootHolding";
 import AssignmentHandlerRegistry from "./3-Render/codegen/assignment/index";
 import AssignmentClassifier from "./2-Plan/AssignmentClassifier";
 import ForHeaderAssignment from "../utils/ForHeaderAssignment";
-import AssignmentOperatorMapper from "./3-Render/codegen/helpers/AssignmentOperatorMapper";
+import AssignmentOperatorMapper from "./2-Plan/AssignmentOperatorMapper";
 import buildAssignmentContext from "./2-Plan/AssignmentContextBuilder";
 import StringLengthCounter from "./2-Plan/StringLengthCounter";
-import CppModeHelper from "./3-Render/codegen/helpers/CppModeHelper";
+import CppModeHelper from "./2-Plan/CppModeHelper";
 import generateCast from "./3-Render/codegen/generators/expressions/CastExprGenerator";
 import type IPlannedCast from "./2-Plan/types/IPlannedCast";
 import ConstExprLowering from "../utils/ConstExprLowering";
@@ -155,7 +155,7 @@ import type ISourcePosition from "../utils/types/ISourcePosition";
 import IMemberSeparatorDeps from "./3-Render/codegen/types/IMemberSeparatorDeps";
 import IParameterDereferenceDeps from "./3-Render/codegen/types/IParameterDereferenceDeps";
 import ISeparatorContext from "./3-Render/codegen/types/ISeparatorContext";
-import TypeGenerationHelper from "./3-Render/codegen/helpers/TypeGenerationHelper";
+import TypeGenerationHelper from "./2-Plan/TypeGenerationHelper";
 import type IAnalyzedFile from "../types/IAnalyzedFile";
 import type IFilePlan from "./2-Plan/types/IFilePlan";
 import type IRenderLedger from "./3-Render/types/IRenderLedger";
@@ -187,7 +187,6 @@ const {
 const { processPreprocessorDirective: includeProcessPreprocessorDirective } =
   includeGenerators;
 import CodeGenerator from "./3-Render/codegen/CodeGenerator";
-import type TranspileState from "./TranspileState";
 import FilePlanner from "./2-Plan/FilePlanner";
 /** What render folds a constant chain at: wide enough to hold any i64 */
 const WIDEST_SIGNED = "i64";
@@ -224,12 +223,7 @@ class CodeGenWalker {
 
   constructor(host: CodeGenerator = new CodeGenerator()) {
     this.host = host;
-    this.planner = new FilePlanner(host);
-  }
-
-  /** The per-file state the walker's planner and renderer share */
-  get transpileState(): TranspileState {
-    return this.planner.transpileState;
+    this.planner = new FilePlanner(host.state);
   }
 
   /**

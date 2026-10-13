@@ -5,12 +5,12 @@
  * Issue #707: Extracted from RegisterHandlers.ts and AccessPatternHandlers.ts.
  */
 
-import IRegisterNameResult from "./IRegisterNameResult";
-import QualifiedCName from "../../../../../utils/QualifiedCName";
-import invariant from "../../../../../utils/invariant";
-import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
-import BitUtils from "../../../../../utils/BitUtils";
-import type IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
+import IRegisterNameResult from "./types/IRegisterNameResult";
+import QualifiedCName from "../../utils/QualifiedCName";
+import invariant from "../../utils/invariant";
+import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
+import BitUtils from "../../utils/BitUtils";
+import type IAssignmentContext from "./types/IAssignmentContext";
 
 /**
  * Validate that compound assignment operators are not used with bit field access.

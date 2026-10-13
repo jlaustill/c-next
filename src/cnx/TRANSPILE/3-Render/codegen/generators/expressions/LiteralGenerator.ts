@@ -12,7 +12,7 @@ import type TPlannedNarrowing from "../../../../2-Plan/types/TPlannedNarrowing";
 import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
 import IGeneratorState from "../IGeneratorState";
-import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
+import NarrowingCastHelper from "../../../../2-Plan/NarrowingCastHelper";
 import LiteralUtils from "../../../../../utils/LiteralUtils";
 import type TranspileState from "../../../../TranspileState";
 

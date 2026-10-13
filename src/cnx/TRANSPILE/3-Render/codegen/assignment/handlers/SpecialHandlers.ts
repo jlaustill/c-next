@@ -11,7 +11,7 @@ import AssignmentClassifier from "../../../../2-Plan/AssignmentClassifier";
 import TAssignmentHandler from "./TAssignmentHandler";
 import TTypeInfo from "../../../../../types/TTypeInfo";
 import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
-import TYPE_MAP from "../../types/TYPE_MAP";
+import TYPE_MAP from "../../../../2-Plan/types/TYPE_MAP";
 import invariant from "../../../../../utils/invariant";
 
 /**

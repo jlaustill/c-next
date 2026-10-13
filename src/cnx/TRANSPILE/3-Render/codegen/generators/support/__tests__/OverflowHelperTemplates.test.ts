@@ -2,13 +2,14 @@
  * Unit tests for OverflowHelperTemplates
  */
 
+import ClampTypes from "../../../../../2-Plan/ClampTypes";
 import { describe, it, expect } from "vitest";
 import OverflowHelperTemplates from "../OverflowHelperTemplates";
 
 describe("OverflowHelperTemplates", () => {
   describe("resolveTypeInfo", () => {
     it("should resolve unsigned type info correctly", () => {
-      const info = OverflowHelperTemplates.resolveTypeInfo("u32");
+      const info = ClampTypes.resolve("u32");
 
       expect(info).not.toBeNull();
       expect(info?.cType).toBe("uint32_t");
@@ -17,7 +18,7 @@ describe("OverflowHelperTemplates", () => {
     });
 
     it("should resolve signed narrow type info with wider arithmetic", () => {
-      const info = OverflowHelperTemplates.resolveTypeInfo("i16");
+      const info = ClampTypes.resolve("i16");
 
       expect(info).not.toBeNull();
       expect(info?.cType).toBe("int16_t");
@@ -26,7 +27,7 @@ describe("OverflowHelperTemplates", () => {
     });
 
     it("should resolve i64 without wider arithmetic (widest type)", () => {
-      const info = OverflowHelperTemplates.resolveTypeInfo("i64");
+      const info = ClampTypes.resolve("i64");
 
       expect(info).not.toBeNull();
       expect(info?.cType).toBe("int64_t");
@@ -35,7 +36,7 @@ describe("OverflowHelperTemplates", () => {
     });
 
     it("should return null for invalid types", () => {
-      const info = OverflowHelperTemplates.resolveTypeInfo("invalid");
+      const info = ClampTypes.resolve("invalid");
       expect(info).toBeNull();
     });
   });

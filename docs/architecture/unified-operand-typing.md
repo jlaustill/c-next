@@ -365,7 +365,7 @@ type TValueBinding =
 
 **`Scope.x`** binds the root as `{kind: "scope"}`, then takes the member step `symbolByCName(getTranspiledCName({scopePath, name}))` (fixes C07 and C13). Every spelling goes through the `ScopeUtils` encoders, so `scope-joins:check` gains no `fromParts` site. `OperandTypeResolver.ts:232` goes away.
 
-**Emission shares the decision** (graft from incremental; needed for #1700 box 3). `TypeValidator.resolveBareIdentifier` (`3-Render/codegen/TypeValidator.ts:77-127`) takes the `TValueBinding` instead of `isLocalVariable` plus `_resolveScopeMember`:
+**Emission shares the decision** (graft from incremental; needed for #1700 box 3). `TypeValidator.resolveBareIdentifier` (then `3-Render/codegen/TypeValidator.ts:77-127`, now `2-Plan/TypeValidator.ts`) takes the `TValueBinding` instead of `isLocalVariable` plus `_resolveScopeMember`:
 
 - `local` gives the declaration's `emittedName`, which keeps the ADR-057 rename. #1934 settles it in 1.4, on the declaration, so it is bound at the use's position and a block's rename ends with the block (#1953); before, 2.3 kept it in a per-function map.
 - `variable` gives `symbol.fullyQualifiedCName`.

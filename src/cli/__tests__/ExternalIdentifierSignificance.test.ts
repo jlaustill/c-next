@@ -47,7 +47,7 @@ i32 main() {
  * `CrossRunDiscoveryFacts.test.ts` reaches a private field.
  */
 function stateOf(walker: CodeGenWalker) {
-  return walker.transpileState;
+  return walker["planner"].transpileState;
 }
 
 /**

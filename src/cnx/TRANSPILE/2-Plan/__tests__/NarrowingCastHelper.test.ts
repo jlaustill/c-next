@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import NarrowingCastHelper from "../NarrowingCastHelper";
-import TranspileState from "../../../../TranspileState";
+import TranspileState from "../../TranspileState";
 
 let state = new TranspileState();
 

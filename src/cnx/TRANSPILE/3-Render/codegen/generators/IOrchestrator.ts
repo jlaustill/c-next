@@ -1,3 +1,4 @@
+import type IPlanQueries from "../../../2-Plan/types/IPlanQueries";
 /**
  * Interface that CodeGenerator implements to orchestrate generators.
  *
@@ -17,7 +18,7 @@ import IGeneratorState from "./IGeneratorState";
 import TGeneratorEffect from "./TGeneratorEffect";
 import type TranspileState from "../../../TranspileState";
 
-interface IOrchestrator {
+interface IOrchestrator extends IPlanQueries {
   /**
    * 2.3 Render's per-file working state (#1452 box 4).
    *

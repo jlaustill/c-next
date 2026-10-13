@@ -8,11 +8,11 @@
  * which MISRA flags when assigned back to narrower types without explicit cast.
  */
 
-import type TPlannedNarrowing from "../../../2-Plan/types/TPlannedNarrowing";
-import type TranspileState from "../../../TranspileState";
+import type TPlannedNarrowing from "./types/TPlannedNarrowing";
+import type TranspileState from "../TranspileState";
 import CppModeHelper from "./CppModeHelper";
-import TYPE_MAP from "../types/TYPE_MAP";
-import CastRequirement from "../../../2-Plan/CastRequirement";
+import TYPE_MAP from "./types/TYPE_MAP";
+import CastRequirement from "./CastRequirement";
 
 /**
  * Types that get promoted to int in C's integer promotion rules.

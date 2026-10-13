@@ -84,7 +84,7 @@ class ProgramGeneration {
       TargetResolver.byName("host", NodeFileSystem.instance);
     invariant(targetDescription !== undefined, "the catalog defines `host`");
     const sourcePath = options.sourcePath ?? "test.cnx";
-    const state = generator.transpileState;
+    const state = generator["planner"].transpileState;
 
     const declared = CNextResolver.resolve(
       ProgramLowering.program(tree, null),

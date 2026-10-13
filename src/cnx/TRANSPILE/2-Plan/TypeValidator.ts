@@ -3,14 +3,15 @@
  * Static class using CodeGenState for all state access.
  * Issue #63: Validation logic separated for independent testing
  */
-import type TValueBinding from "../../../types/TValueBinding";
-import type ISourcePosition from "../../../utils/types/ISourcePosition";
-import AdrProvenance from "../../../instrumentation/AdrProvenance";
+import OperandTyper from "../../utils/OperandTyper";
+import type TValueBinding from "../../types/TValueBinding";
+import type ISourcePosition from "../../utils/types/ISourcePosition";
+import AdrProvenance from "../../instrumentation/AdrProvenance";
 // SonarCloud S3776: Extracted literal parsing to reduce complexity
-import QualifiedCName from "../../../utils/QualifiedCName";
-import QualifiedNameGenerator from "../../../utils/QualifiedNameGenerator";
-import PositionFreeScopeMember from "../../../utils/PositionFreeScopeMember";
-import type TranspileState from "../../TranspileState";
+import QualifiedCName from "../../utils/QualifiedCName";
+import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
+import PositionFreeScopeMember from "../../utils/PositionFreeScopeMember";
+import type TranspileState from "../TranspileState";
 
 /**
  * TypeValidator class - validates types, assignments, and control flow at compile time.
@@ -132,7 +133,12 @@ class TypeValidator {
       return binding.symbol.fullyQualifiedCName;
     }
 
-    const currentScopePath = state.currentScopePath;
+    // #1991 review: the scope enclosing the reference, from Program's lexical
+    // frames -- not the scope 2.3 is writing, which 2.2 never has
+    const currentScopePath = OperandTyper.scopePathAt(
+      at,
+      state.typingContext(),
+    );
 
     if (currentScopePath) {
       const scopeResolved = TypeValidator._resolveScopeMember(

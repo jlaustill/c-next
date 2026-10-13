@@ -1,5 +1,5 @@
-import CExpression from "../../../../utils/CExpression";
-import type TranspileState from "../../../TranspileState";
+import CExpression from "../../utils/CExpression";
+import type TranspileState from "../TranspileState";
 /**
  * CppModeHelper - Utilities for C/C++ mode-specific code generation
  *

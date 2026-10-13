@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import CppModeHelper from "../CppModeHelper";
-import TranspileState from "../../../../TranspileState";
+import TranspileState from "../../TranspileState";
 
 let state = new TranspileState();
 

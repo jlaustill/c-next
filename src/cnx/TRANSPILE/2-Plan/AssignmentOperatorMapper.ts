@@ -26,9 +26,9 @@
  * `scripts/__tests__/assignment-operator-parity.test.ts` catches the divergence
  * at its source; this catches it at the point of use.
  */
-import AdrProvenance from "../../../../instrumentation/AdrProvenance";
-import ASSIGNMENT_OPERATOR_MAP from "../../../../utils/constants/OperatorMappings";
-import invariant from "../../../../utils/invariant";
+import AdrProvenance from "../../instrumentation/AdrProvenance";
+import ASSIGNMENT_OPERATOR_MAP from "../../utils/constants/OperatorMappings";
+import invariant from "../../utils/invariant";
 
 class AssignmentOperatorMapper {
   /**

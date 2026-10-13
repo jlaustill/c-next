@@ -9,6 +9,7 @@
  * of its own, and annotates every union with the rule that shaped it.
  */
 
+import FloatBitType from "../../../../2-Plan/FloatBitType";
 import { describe, it, expect, beforeEach } from "vitest";
 import FloatBitHelper from "../FloatBitHelper";
 import TranspileState from "../../../../TranspileState";
@@ -142,7 +143,7 @@ describe("FloatBitHelper", () => {
       expect(FloatBitHelper.unionDeclaration("f32", "__bits_x")).toBe(
         `${F32_ANNOTATION}\nunion { float f; uint32_t u; } __bits_x;`,
       );
-      expect(FloatBitHelper.bitsTypeOf("f64")).toBe("uint64_t");
+      expect(FloatBitType.of("f64")).toBe("uint64_t");
     });
   });
 });

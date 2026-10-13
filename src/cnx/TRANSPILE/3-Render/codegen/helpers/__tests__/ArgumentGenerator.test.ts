@@ -3,10 +3,11 @@
  * Issue #794: Extract Argument Generator from CodeGenerator
  */
 
+import ArgumentForm from "../../../../2-Plan/ArgumentForm";
 import { describe, it, expect, beforeEach } from "vitest";
 import ArgumentGenerator from "../ArgumentGenerator";
 import TranspileState from "../../../../TranspileState";
-import IArgumentGeneratorCallbacks from "../types/IArgumentGeneratorCallbacks";
+import IArgumentGeneratorCallbacks from "../../../../2-Plan/types/IArgumentGeneratorCallbacks";
 import type TTypeInfo from "../../../../../types/TTypeInfo";
 
 let state = new TranspileState();
@@ -213,9 +214,9 @@ describe("ArgumentGenerator", () => {
 
   describe("formOf", () => {
     it("is identifier for a bare name", () => {
-      expect(
-        ArgumentGenerator.formOf(true, "u8", createMockCallbacks(), false),
-      ).toEqual({ kind: "identifier" });
+      expect(ArgumentForm.of(true, "u8", createMockCallbacks(), false)).toEqual(
+        { kind: "identifier" },
+      );
     });
 
     it.each([
@@ -226,7 +227,7 @@ describe("ArgumentGenerator", () => {
       ["C, an i32 parameter", "i32", false, "int32_t"],
     ])("rvalue: %s", (_label, target, cppMode, compoundLiteral) => {
       expect(
-        ArgumentGenerator.formOf(false, target, createMockCallbacks(), cppMode),
+        ArgumentForm.of(false, target, createMockCallbacks(), cppMode),
       ).toEqual({ kind: "rvalue", compoundLiteral });
     });
 
@@ -235,7 +236,7 @@ describe("ArgumentGenerator", () => {
         getLvalueType: () => "member",
         getMemberAccessArrayStatus: () => "array",
       });
-      expect(ArgumentGenerator.formOf(false, "u8", shape, false)).toEqual({
+      expect(ArgumentForm.of(false, "u8", shape, false)).toEqual({
         kind: "array-member",
       });
     });
@@ -252,7 +253,7 @@ describe("ArgumentGenerator", () => {
           getMemberAccessArrayStatus: () => arrayStatus,
           isCppMemberConversionRequired: () => converts,
         });
-        expect(ArgumentGenerator.formOf(false, target, shape, true)).toEqual(
+        expect(ArgumentForm.of(false, target, shape, true)).toEqual(
           kind === "member-temp"
             ? { kind, cType: "int16_t" }
             : { kind, cast: null },
@@ -271,7 +272,7 @@ describe("ArgumentGenerator", () => {
         getLvalueType: () => "array",
         isStringSubscriptAccess: () => isString,
       });
-      expect(ArgumentGenerator.formOf(false, target, shape, false)).toEqual({
+      expect(ArgumentForm.of(false, target, shape, false)).toEqual({
         kind: "lvalue",
         cast,
       });
@@ -288,7 +289,7 @@ describe("ArgumentGenerator", () => {
       [{ kind: "rvalue", compoundLiteral: "int32_t" }, "int32_t"],
       [{ kind: "rvalue", compoundLiteral: null }, null],
     ] as const)("%o writes %s", (form, cType) => {
-      expect(ArgumentGenerator.cTypeOf(form)).toBe(cType);
+      expect(ArgumentForm.cTypeOf(form)).toBe(cType);
     });
   });
 

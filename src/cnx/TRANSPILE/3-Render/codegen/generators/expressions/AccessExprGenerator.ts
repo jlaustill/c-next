@@ -14,7 +14,7 @@
 import type TPlannedNarrowing from "../../../../2-Plan/types/TPlannedNarrowing";
 import type IBitmapFieldLayout from "../../../../../types/IBitmapFieldLayout";
 import IGeneratorOutput from "../IGeneratorOutput";
-import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
+import NarrowingCastHelper from "../../../../2-Plan/NarrowingCastHelper";
 import invariant from "../../../../../utils/invariant";
 import type TranspileState from "../../../../TranspileState";
 
