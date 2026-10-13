@@ -1,0 +1,13 @@
+// Tests: a scope's private struct is written into the .c as the header's
+// text, so the .c includes <stdint.h> for its u32 field though nothing else
+// it writes is a fixed-width type. 2.2 plans it from the struct (#1991, #1300).
+
+scope Motor {
+    struct Config {
+        u32 speed;
+    }
+
+    public bool ready() {
+        return true;
+    }
+}

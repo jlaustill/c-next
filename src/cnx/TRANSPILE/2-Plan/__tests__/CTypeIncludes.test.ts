@@ -15,6 +15,9 @@ describe("CTypeIncludes.decide (#1927)", () => {
     ["double", []],
     ["char*", []],
     ["void", []],
+    ["Vector<uint32_t>", ["<stdint.h>"]],
+    ["Map<int, bool>", ["<stdbool.h>"]],
+    ["Vector<float>", []],
   ])("%s decides %j", (cType, expected) => {
     expect(CTypeIncludes.decide([cType])).toEqual(expected);
   });

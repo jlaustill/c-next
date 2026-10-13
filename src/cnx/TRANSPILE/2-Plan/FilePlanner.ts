@@ -25,6 +25,8 @@ import type TNegativeMinimum from "./types/TNegativeMinimum";
 import OperandTyper from "../../utils/OperandTyper";
 import CppNamespaceUtils from "../../utils/CppNamespaceUtils";
 import headerCType from "../../utils/headerCType";
+import HeaderTypeNames from "./HeaderTypeNames";
+import PublicInterface from "./PublicInterface";
 import PlanTyping from "./PlanTyping";
 import CompositeType from "../../utils/CompositeType";
 import type IOperandType from "../../types/IOperandType";
@@ -1608,7 +1610,8 @@ class FilePlanner {
   /**
    * #1927: every C type the file's text uses, from which 2.2 decides
    * `<stdint.h>` and `<stdbool.h>` (`CTypeIncludes`): each written type, each
-   * `true`/`false`, each bitmap's backing type, and the C types of the forms
+   * `true`/`false`, each bitmap's backing type (and that of each bitmap whose
+   * field the file writes), and the C types of the forms
    * 2.2 already chose (`decided`).
    */
   private planCTypes(
@@ -1638,7 +1641,80 @@ class FilePlanner {
       );
       if (backing !== undefined) cTypes.add(backing);
     }
+    this.planBitmapWriteCTypes(program, cTypes);
+    this.planHeaderTextCTypes(cTypes);
     return cTypes;
+  }
+
+  /**
+   * #1300: a type the header does not define is written into the `.c` as the
+   * header's text (a scope's private struct, enum or bitmap), so the `.c`
+   * spells every type that text names
+   */
+  private planHeaderTextCTypes(cTypes: Set<string>): void {
+    const { symbolTable, sourcePath } = this.state;
+    if (sourcePath === null) return;
+    const inHeader = new Set(
+      PublicInterface.forFile(symbolTable, sourcePath).map(
+        (symbol) => symbol.fullyQualifiedCName,
+      ),
+    );
+    const inSource = symbolTable
+      .getTSymbolsByFile(sourcePath)
+      .filter((symbol) => !inHeader.has(symbol.fullyQualifiedCName));
+    for (const named of HeaderTypeNames.collect(
+      inSource.filter(
+        (symbol) => symbol.kind === "struct" || symbol.kind === "bitmap",
+      ),
+    )) {
+      cTypes.add(headerCType(named, symbolTable));
+    }
+  }
+
+  /**
+   * The backing type of each bitmap whose field the file writes: 2.3 casts
+   * the write to it, and the bitmap may be another file's (a register
+   * member's type included)
+   */
+  private planBitmapWriteCTypes(
+    program: IProgramSyntax,
+    cTypes: Set<string>,
+  ): void {
+    const symbols = this.state.symbols!;
+    const sites = program.declarations.flatMap((entry) =>
+      StatementNodes.assignments(entry.declaration),
+    );
+    for (const site of sites) {
+      const parts = AssignmentTarget.parts(site.target);
+      if (parts.identifier === null || parts.ops.at(-1)?.kind !== "member") {
+        continue;
+      }
+      const bitmap =
+        this.targetDeclaration(site.target).last?.before?.bitmapTypeName ??
+        this.registerMemberBitmap(parts.identifier, parts.ops.slice(0, -1));
+      const backing =
+        bitmap === undefined
+          ? undefined
+          : symbols.bitmapBackingType.get(bitmap);
+      if (backing !== undefined) cTypes.add(backing);
+    }
+  }
+
+  /** The bitmap type of the register member `identifier.ops` names, if it is one */
+  private registerMemberBitmap(
+    identifier: string,
+    ops: ReturnType<typeof AssignmentTarget.parts>["ops"],
+  ): string | undefined {
+    const names: string[] = [identifier];
+    for (const op of ops) {
+      if (op.kind !== "member") return undefined;
+      names.push(op.name);
+    }
+    const member = AssignmentHandlerUtils.buildRegisterNameWithScopeDetection(
+      names,
+      (name) => this.state.isKnownScope(name),
+    ).fullName;
+    return this.state.symbols!.registerMemberTypes.get(member);
   }
 
   /**

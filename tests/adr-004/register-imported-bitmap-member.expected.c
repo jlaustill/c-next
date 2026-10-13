@@ -12,6 +12,7 @@
 // register's member types as well as a function's signature (#1453).
 #include "register-bitmap-declarations.h"
 
+#include <stdint.h>
 #include <stdbool.h>
 
 int main(void) {

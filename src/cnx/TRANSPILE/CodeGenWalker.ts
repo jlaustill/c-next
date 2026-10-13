@@ -166,6 +166,8 @@ import type IPlannedFunctionParameter from "./2-Plan/types/IPlannedFunctionParam
 import FunctionContextManager from "./3-Render/codegen/helpers/FunctionContextManager";
 import BitRangeHelper from "./3-Render/codegen/helpers/BitRangeHelper";
 import type IPlannedType from "./2-Plan/types/IPlannedType";
+import CTypeIncludes from "./2-Plan/CTypeIncludes";
+import WrittenCTypes from "./3-Render/codegen/helpers/WrittenCTypes";
 import invariant from "../utils/invariant";
 import AdrProvenance from "../instrumentation/AdrProvenance";
 import PassByValueAnalyzer from "./2-Plan/PassByValueAnalyzer";
@@ -1364,6 +1366,7 @@ class CodeGenWalker {
     this.host.state.generator = this.host;
     try {
       const code = this.assembleGeneratedOutput(plan);
+      CodeGenWalker.assertHeadersPlanned(code, plan.cTypes);
       return {
         code,
         headerFacts: this.captureHeader(plan),
@@ -1372,6 +1375,24 @@ class CodeGenWalker {
     } finally {
       this.renderingOrNull = null;
     }
+  }
+
+  /**
+   * Every `<stdint.h>`/`<stdbool.h>` type the file's C spells needs only the
+   * headers 2.2 planned from its C types (#1991)
+   */
+  private static assertHeadersPlanned(
+    code: string,
+    planned: ReadonlySet<string>,
+  ): void {
+    const plannedHeaders = new Set(CTypeIncludes.decide(planned));
+    const missing = CTypeIncludes.decide(WrittenCTypes.of(code)).filter(
+      (header) => !plannedHeaders.has(header),
+    );
+    invariant(
+      missing.length === 0,
+      `2.2 planned the headers of every C type 2.3 writes (missing ${missing.join(", ")})`,
+    );
   }
 
   /** The reverse of each render-time "2.2 planned this" check: 2.2 planned nothing 2.3 skipped */
