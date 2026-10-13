@@ -54,7 +54,7 @@ describe("a C-Next extension is lowercase (#1833)", () => {
   }
 
   const codesOf = (errors: readonly { message: string }[]) =>
-    errors.map((e) => /E\d{4}/.exec(e.message)?.[0] ?? e.message);
+    errors.map((e) => /^error\[(E\d{4})\]/.exec(e.message)?.[1] ?? e.message);
 
   for (const name of ["Colors.CNX", "Colors.Cnx", "Colors.CNEXT"]) {
     it(`rejects an include of ${name} and writes nothing`, async () => {
@@ -78,6 +78,36 @@ describe("a C-Next extension is lowercase (#1833)", () => {
       expect(codesOf(result.errors)).toEqual(["E0518"]);
       expect(readFileSync(join(src, name), "utf8")).toBe(COLORS);
       expect(readdirSync(src)).toEqual([name]);
+    });
+  }
+
+  // A source run (the editor's) names its text by a path it never reads.
+  async function buildSource(sourcePath?: string) {
+    return new Transpiler(
+      { target: "host", input: "", noCache: true },
+      NodeFileSystem.instance,
+    ).transpile({
+      kind: "source",
+      source: "scope Led {\n    public void blink() { }\n}\n",
+      ...(sourcePath === undefined
+        ? {}
+        : { sourcePath: join(src, sourcePath) }),
+    });
+  }
+
+  it("rejects a source run's text named Colors.CNX", async () => {
+    const result = await buildSource("Colors.CNX");
+
+    expect(result.success).toBe(false);
+    expect(codesOf(result.errors)).toEqual(["E0518"]);
+  });
+
+  for (const name of ["Colors.cnx", undefined]) {
+    it(`control: a source run's text named ${name ?? "nothing"} renders its header`, async () => {
+      const result = await buildSource(name);
+
+      expect(result.errors).toEqual([]);
+      expect(result.files[0].headerCode).toContain("blink");
     });
   }
 

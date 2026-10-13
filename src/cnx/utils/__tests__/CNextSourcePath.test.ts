@@ -30,7 +30,14 @@ describe("CNextSourcePath (#1833)", () => {
     );
   });
 
-  it("gives no stem to a path that is not C-Next source", () => {
-    expect(() => CNextSourcePath.stem("Colors.CNX")).toThrow(/C-Next stem/);
+  it("leaves a path with no C-Next extension whole", () => {
+    expect(CNextSourcePath.stem("<string>")).toBe("<string>");
+    expect(CNextSourcePath.withExtension("notes.txt", ".h")).toBe(
+      "notes.txt.h",
+    );
+  });
+
+  it("gives no stem to a miscased path, which is E0518 first", () => {
+    expect(() => CNextSourcePath.stem("Colors.CNX")).toThrow(/E0518/);
   });
 });

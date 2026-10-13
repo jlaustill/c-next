@@ -34,6 +34,7 @@ import ReadOnceFileSystem from "./ReadOnceFileSystem";
 import RunAnchor from "./RunAnchor";
 import type IFileIncludes from "./types/IFileIncludes";
 import type ISourceGraph from "./types/ISourceGraph";
+import CNextSourcePath from "../../utils/CNextSourcePath";
 
 /** The configuration a run's discovery reads. */
 type TDiscoverySettings = Pick<
@@ -589,21 +590,7 @@ class Discover {
 
     const entryFile = FileDiscovery.discoverFile(entryPath, this.fs);
     if (entryFile?.type === EFileType.MiscasedCNext) {
-      // #1833: no directive names the input, so the diagnostic names the
-      // file alone (line 0), rather than a `1:0` nothing is at.
-      this.errors.push({
-        sourcePath: entryPath,
-        line: 0,
-        column: 0,
-        message: CodedErrorText.of(
-          "E0518",
-          `C-Next source extension must be lowercase: ${basename(entryPath)}`,
-        ),
-        helpText:
-          "Only `.cnx` and `.cnext`, spelled in lowercase, name C-Next source (ADR-010); rename the file.",
-        severity: "error",
-      });
-      return Discover._noCNextFiles();
+      return this._miscasedInput(entryPath);
     }
     if (entryFile?.type !== EFileType.CNext) {
       return Discover._noCNextFiles();
@@ -676,6 +663,27 @@ class Discover {
     return this._buildFiles(cnextFiles, fileByPath);
   }
 
+  /**
+   * #1833: E0518 for the run's input, files or source. No directive names the
+   * input, so the diagnostic names the file alone (line 0), rather than a
+   * `1:0` nothing is at.
+   */
+  private _miscasedInput(path: string): TDiscoveredFiles {
+    this.errors.push({
+      sourcePath: path,
+      line: 0,
+      column: 0,
+      message: CodedErrorText.of(
+        "E0518",
+        `C-Next source extension must be lowercase: ${basename(path)}`,
+      ),
+      helpText:
+        "Only `.cnx` and `.cnext`, spelled in lowercase, name C-Next source (ADR-010); rename the file.",
+      severity: "error",
+    });
+    return Discover._noCNextFiles();
+  }
+
   /** Discovery's answer when it finds no C-Next file to transpile. */
   private static _noCNextFiles(): TDiscoveredFiles {
     return {
@@ -709,6 +717,9 @@ class Discover {
     entry: IInMemorySource,
     callerIncludeDirs: readonly string[],
   ): TDiscoveredFiles {
+    if (CNextSourcePath.isMiscased(entry.path)) {
+      return this._miscasedInput(entry.path);
+    }
     const root: IDiscoveredFile = {
       path: entry.path,
       type: EFileType.CNext,

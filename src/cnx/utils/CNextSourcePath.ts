@@ -30,13 +30,20 @@ class CNextSourcePath {
     );
   }
 
-  /** `path` without its C-Next extension: `src/led.cnx` is `src/led`. */
+  /**
+   * `path` without its C-Next extension: `src/led.cnx` is `src/led`. A path
+   * with none is its own stem: a source run's text may have no path, or an
+   * editor's (`<string>`, `notes.txt`), and its header was always named so.
+   * A miscased path never gets here; it was E0518 at discovery.
+   */
   static stem(path: string): string {
     invariant(
-      CNextSourcePath.isSource(path),
-      `only a C-Next source path has a C-Next stem (${path})`,
+      !CNextSourcePath.isMiscased(path),
+      `a miscased C-Next path is E0518 before it is named (${path})`,
     );
-    return path.slice(0, -extname(path).length);
+    return CNextSourcePath.isSource(path)
+      ? path.slice(0, -extname(path).length)
+      : path;
   }
 
   /** `path` with its C-Next extension replaced: `led.cnx`, `.h` is `led.h`. */
