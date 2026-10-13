@@ -26,7 +26,7 @@
  *
  * Each pass's subtree stays on its own side: nothing reachable from the
  * ANALYSIS root may call the generator, and nothing reachable from the EMISSION
- * root may call the analyzers. Moving `TreePasses.run` into `_transpileFile`
+ * root may call the analyzers. Moving `Analyze.run` into `_transpileFile`
  * violates it, and so does the subtler version -- calling the analysis half from
  * a helper the emission half already reaches.
  *
@@ -50,17 +50,16 @@ const TRANSPILER_PATH = join(
 );
 
 /**
- * Pass 2.1's entry point. Since #1932 the host never holds a tree, so it calls
- * 2.1's `TreePasses`, which runs the analyzers over every file, not
- * `runAnalyzers` itself.
+ * Pass 2.1's entry point: `Analyze`, which runs the analyzers over every file
+ * 1.3 declared (#1991), not `runAnalyzers` itself.
  */
-const ANALYSIS_CALL = "TreePasses.run";
+const ANALYSIS_CALL = "Analyze.run";
 
 /** Pass 2.2/2.3's entry point: handing one tree to the generator. */
 const EMISSION_CALL = "this.codeGenerator.generate";
 
 /** The method that performs 2.1 over the whole program. */
-const ANALYSIS_ROOT = "_runTreePasses";
+const ANALYSIS_ROOT = "_runParseThroughAnalyze";
 
 /** The method that performs 2.2 and 2.3 for one file. */
 const EMISSION_ROOT = "_transpileFile";

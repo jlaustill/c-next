@@ -284,14 +284,15 @@ returns without naming its type (#1957).
   [`parse-tree-sites.md`](parse-tree-sites.md); what it forbids is the number RISING.
 - `parse-tree-confined-to-parser` (`error`) is the ruling. Only 1.2 (`src/cnx/PARSE/2-Parse/`),
   1.1's lexer-only include scan (#1745), and the named shared helpers may import the
-  grammar (#1991). The host is not exempt: `TreePasses` takes 1.2's plain data from
-  `SourceSyntax` and `HeaderParser`, and `src/cli/Transpiler.ts` hands it text and gets
-  back plain data only (#1932). The library entry points in `src/lib/` start at
+  grammar (#1991). The host is not exempt: 1.2's `Parse` and 2.1's `TreePasses` take 1.2's
+  plain data from `SourceSyntax` and `HeaderParser`, and `src/cli/Transpiler.ts` hands
+  them text and gets back plain data only (#1932). The library entry points in `src/lib/` start at
   1.1 too (`Discover.inMemoryFile`, `Discover.inMemoryCHeader`) and go through
   `TreePasses`, so they hold no tree (#1957). Each named helper is a target of the rule too,
   so a pass after 1.2 that imports one fails as if it had imported the grammar.
-- `only-tree-passes-parse` (`error`): source text enters at 1.1, and only `TreePasses`
-  hands it to a parser (`SourceSyntax`, `HeaderParser`). 1.3 takes 1.2's plain data and
+- `only-tree-passes-parse` (`error`): source text enters at 1.1, and only 1.2 (whose `Parse`
+  takes the run's C-Next files, #1991) and `TreePasses` (headers, and `src/lib/`'s one-file
+  entries) hand it to a parser (`SourceSyntax`, `HeaderParser`). 1.3 takes 1.2's plain data and
   never text, so no pass can parse again; `tree-passes-called-by-hosts-only` (`error`)
   lets only `src/cli/Transpiler.ts` and `src/lib/` call `TreePasses` (#1932, owner
   ruling 2026-10-09).

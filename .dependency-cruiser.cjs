@@ -484,7 +484,7 @@ module.exports = {
       comment:
         "#1932, owner ruling 2026-10-09: 1.1 exports what 1.2 needs, 1.2 returns " +
         "what 1.3 needs, and so on down the chain. Source text enters at 1.1, " +
-        "and only `TreePasses` hands it to a parser, so no pass -- 1.3 included " +
+        "and only 1.2 and `TreePasses` hand it to a parser, so no pass -- 1.3 included " +
         "-- can take text and parse it again. The old routes " +
         "(`CNextResolver.resolveSource`, `HeaderDeclarations.resolveC`, " +
         "`declare(text, ...)`) are deleted; this keeps them from coming back.",
@@ -541,7 +541,7 @@ module.exports = {
         "builds no tree (#1745, owner ruling 2026-09-30; PASS_ORDER `mayRead`). " +
         "The library entry points in `lib/` start at 1.1 and go through " +
         "`TreePasses`, so they hold no tree and are not exempt (#1957). " +
-        "Nor is the host: 1-Analyze's `TreePasses` takes 1.2's plain data from " +
+        "Nor is the host: 1.2's `Parse` and 1-Analyze's `TreePasses` take 1.2's plain data from " +
         "`SourceSyntax` and `HeaderParser`, and `cli/Transpiler.ts` gets plain " +
         "data in and out (#1932, owner ruling 2026-10-09). " +
         "A structural stand-in -- a later pass declaring its own copy of a " +

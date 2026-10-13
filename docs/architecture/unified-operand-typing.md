@@ -313,7 +313,7 @@ type TValueBinding =
   | { kind: "foreign"; name: string };
 ```
 
-- **Stable positions.** 2.1 reads the same parse 1.3 declared (both inside `TreePasses.run`), and Stage 5 reads the plain data 1.2 lowered from that same parse (`analyzedFiles`, #1932), so a node's position is the same in every pass.
+- **Stable positions.** 2.1 reads the same parse 1.3 declared (1.3 `Declare` carries 1.2's syntax to 2.1 `Analyze`), and Stage 5 reads the plain data 1.2 lowered from that same parse (`analyzedFiles`, #1932), so a node's position is the same in every pass.
 - **Comparison.** Positions compare lexicographically on `(line, column)`.
 - **artifact-lifetime.**
   - `IFileSymbols` and `Program` are already in `ARTIFACTS` (`artifact-lifetime.test.ts:146-160`).

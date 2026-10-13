@@ -52,9 +52,12 @@ import TTranspileInput from "../cnx/types/TTranspileInput";
 import ITranspileError from "../cnx/types/ITranspileError";
 import DeclarationSite from "../cnx/utils/DeclarationSite";
 import TreePasses from "../cnx/TRANSPILE/1-Analyze/TreePasses";
-import type IDeclaredSource from "../cnx/TRANSPILE/1-Analyze/types/IDeclaredSource";
+import type IDeclaredSource from "../cnx/PARSE/3-Declare/types/IDeclaredSource";
+import Parse from "../cnx/PARSE/2-Parse/Parse";
+import Declare from "../cnx/PARSE/3-Declare/Declare";
+import Analyze from "../cnx/TRANSPILE/1-Analyze/Analyze";
 import type IAnalyzerOptions from "../cnx/TRANSPILE/1-Analyze/types/IAnalyzerOptions";
-import type TTreePassesResult from "../cnx/TRANSPILE/1-Analyze/types/TTreePassesResult";
+import type TFrontEndResult from "./types/TFrontEndResult";
 import type IDiagnostics from "../cnx/types/IDiagnostics";
 import type ICodeGenSymbols from "../cnx/types/ICodeGenSymbols";
 import CacheManager from "./cache/CacheManager";
@@ -197,9 +200,9 @@ class Transpiler {
   private declaredSymbols = new SymbolTable();
 
   /**
-   * What Stage 5 reads (#1932): each file's plain data, as `TreePasses`
+   * What Stage 5 reads (#1932): each file's plain data, as 2.1's `Analyze`
    * returned it. The host never holds a parse tree -- every tree is a local of
-   * `TreePasses.run` and is gone when it returns, before 2.2 Plan begins.
+   * 1.2's `SourceSyntax.of` and is gone when it returns (#1991).
    */
   private readonly analyzedFiles = new Map<string, IAnalyzedFile>();
 
@@ -348,8 +351,8 @@ class Transpiler {
       // per-process -- `ServeCommand` holds ONE instance in a static field and
       // reuses it for every request -- so clearing only on entry would leave the
       // language server holding the last request's files for as long as the
-      // editor sits idle. The parse trees need no clearing: since #1932 they are
-      // locals of `TreePasses.run` and never reach this class.
+      // editor sits idle. The parse trees need no clearing: since #1991 they are
+      // locals of 1.2's `SourceSyntax.of` and never reach this class.
       //
       // Peak-RSS benchmarking cannot see this: it measures the in-run high water
       // mark, and post-run residency is a different number. Stage 6 does not need
@@ -407,13 +410,13 @@ class Transpiler {
     // emitted, and an analyzer reading state codegen fills saw the PREVIOUS
     // file's data (#1430).
     //
-    // #1932: one call, because these are the passes that read the parse tree.
-    // Every tree is a local of `TreePasses.run`; what comes back is plain data.
+    // #1991: 1.2, 1.3, 1.4 and 2.1, each taking what the one before returned.
+    // Every tree is a local of 1.2; what comes back is plain data.
     //
     // Parse-only mode analyzes nothing, exactly as before: `_transpileFile`
     // returned its parse-only result before reaching the analyzers, so running
     // them would be new work on a path that asked for none.
-    const front = this._runTreePasses(input, result);
+    const front = this._runParseThroughAnalyze(input, result);
     if (front.kind === "stopped") {
       if (front.errors.length > 0) {
         result.errors.push(...front.errors);
@@ -489,21 +492,31 @@ class Transpiler {
   }
 
   /**
-   * Stages 3 to 4d through 2.1's `TreePasses`: the host supplies 1.4 Resolve,
-   * the whole-program checks and each file's 2.1 inputs, and gets plain data
-   * back (#1932).
+   * Stages 3 to 4d, one pass at a time (#1991): 1.2 `Parse`, 1.3 `Declare`,
+   * 1.4 Resolve with the whole-program checks, then 2.1 `Analyze`.
    */
-  private _runTreePasses(
+  private _runParseThroughAnalyze(
     input: ISourceGraph,
     result: ITranspilerResult,
-  ): TTreePassesResult {
-    return TreePasses.run(input.cnextFiles, {
-      registry: this.symbolRegistry,
-      resolve: (declared) => this._passesProgramChecks(input, declared, result),
-      analysisInputs: this.config.parseOnly
-        ? null
-        : (file) => this._analysisInputs(file),
-    });
+  ): TFrontEndResult {
+    const parsed = Parse.sources(input.cnextFiles);
+    // A file that failed to parse is not declared; the others still are, so
+    // one run reports both kinds of error, as it did before #1991.
+    const declared = Declare.sources(parsed.sources, this.symbolRegistry);
+    const errors = [...parsed.errors, ...declared.errors];
+    if (errors.length > 0) {
+      return { kind: "stopped", errors };
+    }
+    if (!this._passesProgramChecks(input, declared.declared, result)) {
+      return { kind: "stopped", errors: [] };
+    }
+    return {
+      kind: "analyzed",
+      ...Analyze.run(
+        declared.declared,
+        this.config.parseOnly ? null : (file) => this._analysisInputs(file),
+      ),
+    };
   }
 
   /**
@@ -516,7 +529,7 @@ class Transpiler {
     result: ITranspilerResult,
   ): boolean {
     return (
-      // Stage 3: 1.4 Resolve once over every file `TreePasses` declared
+      // Stage 3: 1.4 Resolve once over every file 1.3 `Declare` declared
       this._resolveProgram(declared, result) &&
       // Stage 3b: the program's one target (ADR-049), settled by 1.4. Nothing
       // below may run for a program whose target is unknown or contested.
@@ -725,7 +738,7 @@ class Transpiler {
   }
 
   /**
-   * One file's 2.1 inputs, which `TreePasses` hands its analyzers.
+   * One file's 2.1 inputs, which `Analyze` hands its analyzers.
    *
    * Stage 4d, over the WHOLE program (#1320): every file is analyzed before
    * Stage 5 plans any of them. That order is the pass boundary
@@ -826,7 +839,7 @@ class Transpiler {
     }
   }
 
-  /** Stage 5's input for this file, from `TreePasses` (#1932) */
+  /** Stage 5's input for this file, from 2.1's `Analyze` (#1991) */
   private _requireAnalyzedFile(sourcePath: string): IAnalyzedFile {
     const analyzed = this.analyzedFiles.get(sourcePath);
     invariant(
@@ -1033,7 +1046,7 @@ class Transpiler {
    * rather than introduced. Changing what "produces output" means is now one edit.
    */
   private static _producesOutput(file: IPipelineFile): boolean {
-    return TreePasses.producesOutput(file);
+    return Analyze.producesOutput(file);
   }
 
   private _initializeRun(): void {

@@ -1,16 +1,16 @@
-import type IAnalyzedFile from "../../../types/IAnalyzedFile";
-import type IDiagnostics from "../../../types/IDiagnostics";
-import type ITranspileError from "../../../types/ITranspileError";
+import type IAnalyzedFile from "../../cnx/types/IAnalyzedFile";
+import type IDiagnostics from "../../cnx/types/IDiagnostics";
+import type ITranspileError from "../../cnx/types/ITranspileError";
 
 /**
- * What `TreePasses.run` returns: plain data only (#1932).
+ * What 1.2 Parse through 2.1 Analyze return to the host: plain data only (#1932, #1991).
  *
- * - `stopped`: 1.2 or 1.3 failed (`errors`), or the host's `resolve` ended
+ * - `stopped`: 1.2 or 1.3 failed (`errors`), or 1.4 Resolve's checks ended
  *   the run (`errors` empty; the host recorded its own).
  * - `analyzed`: 2.1's verdict and, per file that produces output, the
  *   plain data 2.2 Plan and 2.3 Render read.
  */
-type TTreePassesResult =
+type TFrontEndResult =
   | {
       readonly kind: "stopped";
       readonly errors: readonly ITranspileError[];
@@ -21,4 +21,4 @@ type TTreePassesResult =
       readonly files: ReadonlyMap<string, IAnalyzedFile>;
     };
 
-export default TTreePassesResult;
+export default TFrontEndResult;

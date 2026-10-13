@@ -1,15 +1,10 @@
 /**
- * 1.2 Parse through 2.1 Analyze: the only passes that read a parse tree, run
- * as one call (#1932, owner ruling 2026-10-09).
+ * Header text from 1.1 through 1.2 into 1.3, and the `lib/` entry points'
+ * one-file versions of 1.2 and 1.3, each run as one call so that every tree
+ * stays a local here and plain data comes out (#1932).
  *
- * Every tree is a local of `run` and dies when it returns. The host gets plain
- * data in, through `ITreePassesHost`, and plain data out, through
- * `TTreePassesResult`, so nothing that orchestrates the run ever holds a tree.
- * That is what lets `parse-tree-confined-to-parser` name no host.
- *
- * The order is the pipeline's, unchanged: parse and declare every file, then
- * the host resolves the whole program (1.4 needs every file declared first),
- * then 2.1 analyzes every file before any is planned (#1320).
+ * The run's C-Next files go through `Parse`, `Declare` and `Analyze` instead,
+ * which the host chains one pass at a time (#1991).
  */
 import SourceSyntax from "../../PARSE/2-Parse/SourceSyntax";
 import HeaderParser from "../../PARSE/2-Parse/HeaderParser";
@@ -24,86 +19,9 @@ import type IFileSymbols from "../../types/IFileSymbols";
 import invariant from "../../utils/invariant";
 import CNextResolver from "../../PARSE/3-Declare/cnext/index";
 import type IPipelineFile from "../../PARSE/1-Discover/types/IPipelineFile";
-import type IAnalyzedFile from "../../types/IAnalyzedFile";
-import type ISourceSyntax from "../../types/ISourceSyntax";
 import type ITranspileError from "../../types/ITranspileError";
-import CaughtError from "../../utils/CaughtError";
-import Diagnostics from "./Diagnostics";
-import runAnalyzers from "./runAnalyzers";
-import type IAnalyzerOptions from "./types/IAnalyzerOptions";
-import type IDeclaredSource from "./types/IDeclaredSource";
-import type ITreePassesHost from "./types/ITreePassesHost";
-import type TTreePassesResult from "./types/TTreePassesResult";
 
 class TreePasses {
-  static run(
-    files: readonly IPipelineFile[],
-    host: ITreePassesHost,
-  ): TTreePassesResult {
-    const errors: ITranspileError[] = [];
-    const declared: IDeclaredSource[] = [];
-    for (const file of files) {
-      const parsed = SourceSyntax.of(file.source);
-      // #1445: 1.2 carries its own errors; this stamps the path the text
-      // came from, the one fact 1.2 cannot know because it parses a string.
-      const fileErrors = [...parsed.parseErrors, ...parsed.formErrors];
-      if (fileErrors.length > 0) {
-        errors.push(
-          ...fileErrors.map((e) => ({ ...e, sourcePath: file.path })),
-        );
-        continue;
-      }
-      try {
-        declared.push({
-          file,
-          fileSymbols: CNextResolver.resolve(
-            parsed.program,
-            file.path,
-            host.registry,
-          ),
-          syntax: parsed,
-        });
-      } catch (err) {
-        errors.push(CaughtError.asTranspileError(err));
-        continue;
-      }
-    }
-
-    if (errors.length > 0) {
-      return { kind: "stopped", errors };
-    }
-    if (!host.resolve(declared)) {
-      return { kind: "stopped", errors: [] };
-    }
-
-    const analysisInputs = host.analysisInputs;
-    const byFile = new Map<string, readonly ITranspileError[]>();
-    const analyzed = new Map<string, IAnalyzedFile>();
-    // Only files that produce output are analyzed and planned. A symbol-only
-    // file is still parsed, declared and resolved -- that is why it was
-    // discovered -- but nothing reads its syntax after 1.4.
-    for (const entry of declared.filter((d) =>
-      TreePasses.producesOutput(d.file),
-    )) {
-      if (analysisInputs) {
-        byFile.set(
-          entry.file.path,
-          TreePasses._analyze(entry.syntax, () => analysisInputs(entry.file)),
-        );
-      }
-      analyzed.set(entry.file.path, {
-        program: entry.syntax.program,
-        declarationCount: entry.syntax.declarationCount,
-      });
-    }
-
-    return {
-      kind: "analyzed",
-      diagnostics: Diagnostics.build(byFile),
-      files: analyzed,
-    };
-  }
-
   /**
    * One header from 1.1, through 1.2 into 1.3: its symbols written to the
    * run's table, its tree a local here (#1932).
@@ -169,22 +87,6 @@ class TreePasses {
     );
     const { syntax } = HeaderParser.parseC(source.text);
     return syntax ? CResolver.resolve(syntax, path) : null;
-  }
-
-  /** True for a file the run analyzes, plans and writes, not only declares */
-  static producesOutput(file: IPipelineFile): boolean {
-    return !file.symbolOnly;
-  }
-
-  private static _analyze(
-    parsed: ISourceSyntax,
-    inputs: () => IAnalyzerOptions,
-  ): readonly ITranspileError[] {
-    try {
-      return runAnalyzers(parsed, inputs());
-    } catch (err) {
-      return [CaughtError.asTranspileError(err)];
-    }
   }
 }
 

@@ -15,7 +15,7 @@ import NodeFileSystem from "../../cnx/PARSE/1-Discover/NodeFileSystem";
  * static field and reuses it for every request, so a cache cleared only on entry
  * leaves the language server holding the last request's files for as long as the
  * editor sits idle. Since #1932 what it holds is plain data: every parse tree is a
- * local of `TreePasses.run` and never reaches `Transpiler`, which
+ * local of 1.2's `SourceSyntax.of` and never reaches `Transpiler`, which
  * `scripts/__tests__/artifact-lifetime.test.ts` asserts of every field and value.
  *
  * Peak-RSS benchmarking cannot see this -- it measures the in-run high water mark,
