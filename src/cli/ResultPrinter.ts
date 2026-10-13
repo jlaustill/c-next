@@ -38,8 +38,10 @@ class ResultPrinter {
       // path, so one diagnostic spelled the same file two ways, one line apart.
       // DeclarationSite's docblock claims to be the single source of truth for
       // `sourceFile:line`; the header was the last renderer bypassing it.
+      // Line 0 is a diagnostic about a whole file, which has no position.
+      const position = error.line === 0 ? "" : `:${error.line}:${error.column}`;
       const location = error.sourcePath
-        ? `${DeclarationSite.displayPath(error.sourcePath)}:${error.line}:${error.column}`
+        ? `${DeclarationSite.displayPath(error.sourcePath)}${position}`
         : `${error.line}:${error.column}`;
       console.error(`Error: ${location} ${error.message}`);
       // The advice an analyzer wrote, indented under its diagnostic. Error

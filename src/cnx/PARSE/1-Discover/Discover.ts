@@ -82,6 +82,7 @@ class Discover {
 
   /**
    * The run's discovery errors: E0509, each at its header's marker (#1542),
+   * E0518 for an input whose C-Next extension is not lowercase (#1833),
    * and E0507, at the `.cnx` include that reached the C++ header (#1844).
    */
   private readonly errors: ITranspileError[] = [];
@@ -111,7 +112,7 @@ class Discover {
     return {
       path,
       source,
-      discoveredFile: { path, type: EFileType.CNext, extension: ".cnx" },
+      discoveredFile: { path, type: EFileType.CNext },
       cnextIncludes: [],
       reachesForeignHeader: false,
     };
@@ -587,6 +588,23 @@ class Discover {
     const fileByPath = new Map<string, IDiscoveredFile>();
 
     const entryFile = FileDiscovery.discoverFile(entryPath, this.fs);
+    if (entryFile?.type === EFileType.MiscasedCNext) {
+      // #1833: no directive names the input, so the diagnostic names the
+      // file alone (line 0), rather than a `1:0` nothing is at.
+      this.errors.push({
+        sourcePath: entryPath,
+        line: 0,
+        column: 0,
+        message: CodedErrorText.of(
+          "E0518",
+          `C-Next source extension must be lowercase: ${basename(entryPath)}`,
+        ),
+        helpText:
+          "Only `.cnx` and `.cnext`, spelled in lowercase, name C-Next source (ADR-010); rename the file.",
+        severity: "error",
+      });
+      return Discover._noCNextFiles();
+    }
     if (entryFile?.type !== EFileType.CNext) {
       return Discover._noCNextFiles();
     }
@@ -643,7 +661,6 @@ class Discover {
       (path) => ({
         path,
         type: EFileType.CNext,
-        extension: ".cnx",
       }),
     );
 
@@ -695,7 +712,6 @@ class Discover {
     const root: IDiscoveredFile = {
       path: entry.path,
       type: EFileType.CNext,
-      extension: ".cnx",
     };
     const discovered = this._buildFiles(
       [root],

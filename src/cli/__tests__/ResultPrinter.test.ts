@@ -147,6 +147,26 @@ describe("ResultPrinter", () => {
       expect(errorOutput).toContain("Error: src/main.cnx:10:5 Syntax error");
     });
 
+    // #1833: line 0 is about the whole file, so no `1:0` nothing is at.
+    it("prints a file-level error (line 0) by its file alone", () => {
+      ResultPrinter.print(
+        createResult({
+          success: false,
+          errors: [
+            {
+              line: 0,
+              column: 0,
+              message: "error[E0518]: bad",
+              sourcePath: "src/Colors.CNX",
+              severity: "error",
+            },
+          ],
+        }),
+      );
+
+      expect(errorOutput).toContain("Error: src/Colors.CNX error[E0518]: bad");
+    });
+
     it("prints errors without source path", () => {
       ResultPrinter.print(
         createResult({

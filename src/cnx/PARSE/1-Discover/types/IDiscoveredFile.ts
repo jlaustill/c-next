@@ -9,9 +9,6 @@ interface IDiscoveredFile {
 
   /** File type */
   readonly type: EFileType;
-
-  /** File extension */
-  readonly extension: string;
 }
 
 export default IDiscoveredFile;
