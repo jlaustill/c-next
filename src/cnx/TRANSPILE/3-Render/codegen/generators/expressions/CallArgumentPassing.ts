@@ -30,6 +30,22 @@ class CallArgumentPassing {
       : input.callbackTypes.get(calleeType)?.functionName;
   }
 
+  /**
+   * Issue #304: the integer C type a C++ enum class argument is cast to for
+   * an integer parameter, or null
+   */
+  static cppEnumCast(
+    argType: string | null,
+    targetParamBaseType: string | undefined,
+    orchestrator: IOrchestrator,
+  ): string | null {
+    if (!orchestrator.isCppMode() || !targetParamBaseType) return null;
+    if (argType === null || !orchestrator.isCppEnumClass(argType)) return null;
+    return orchestrator.isIntegerType(targetParamBaseType)
+      ? CallExprUtils.mapTypeToCType(targetParamBaseType)
+      : null;
+  }
+
   /** Argument `index` of a call to `signatureName`; null when it names none */
   static of(
     signatureName: string | null,

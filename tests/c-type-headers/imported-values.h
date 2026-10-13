@@ -20,6 +20,9 @@ extern uint32_t big;
 extern uint8_t buf[8];
 extern uint8_t mbuf[BUF_COUNT];
 
+/* Function prototypes */
+void paint(uint8_t c);
+
 #ifdef __cplusplus
 }
 #endif

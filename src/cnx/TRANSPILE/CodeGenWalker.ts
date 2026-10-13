@@ -162,6 +162,8 @@ import type IBitAccessAnalysis from "../types/IBitAccessAnalysis";
 import type TPlannedTargetOp from "../types/TPlannedTargetOp";
 import CallArgumentPassing from "./3-Render/codegen/generators/expressions/CallArgumentPassing";
 import ArgumentGenerator from "./3-Render/codegen/helpers/ArgumentGenerator";
+import type IArgumentGeneratorCallbacks from "./3-Render/codegen/helpers/types/IArgumentGeneratorCallbacks";
+import type IArgumentPassing from "./3-Render/codegen/types/IArgumentPassing";
 import CppMemberHelper from "./2-Plan/CppMemberHelper";
 import IPostfixOp from "../types/IPostfixOp";
 import CppConstructorHelper from "../utils/CppConstructorHelper";
@@ -885,15 +887,24 @@ class CodeGenWalker {
       declared,
       targetParamBaseType,
       {
+        ...this.argumentShape(expr),
         generateExpression: () => this.renderExpression(expr),
-        getLvalueType: () => this.getLvalueType(expr),
-        getMemberAccessArrayStatus: () => this.getMemberAccessArrayStatus(expr),
-        isCppMemberConversionRequired: (t) =>
-          this.isCppMemberConversionRequired(expr, t),
-        isStringSubscriptAccess: () => this.isStringSubscriptAccess(expr),
       },
       this.host.state,
     );
+  }
+
+  /** What decides an argument's form (#1991), asked by 2.2 and 2.3 alike */
+  private argumentShape(
+    expr: TExpression,
+  ): Omit<IArgumentGeneratorCallbacks, "generateExpression"> {
+    return {
+      getLvalueType: () => this.getLvalueType(expr),
+      getMemberAccessArrayStatus: () => this.getMemberAccessArrayStatus(expr),
+      isCppMemberConversionRequired: (t) =>
+        this.isCppMemberConversionRequired(expr, t),
+      isStringSubscriptAccess: () => this.isStringSubscriptAccess(expr),
+    };
   }
 
   /**
@@ -2274,6 +2285,8 @@ class CodeGenWalker {
       types,
     );
     this.planNarrowingCTypes(expectedTypes, decidedCTypes);
+    invariant(valuePositions !== null, "2.1 hands 2.2 where each value stands");
+    this.planArgumentCTypes(valuePositions, decidedCTypes);
     this.planAssignmentCTypes(program, atomicForms, decidedCTypes);
     this.planLengthCTypes(program, inlinedConsts, decidedCTypes);
     return {
@@ -2318,13 +2331,28 @@ class CodeGenWalker {
   private argumentExpectedType(
     site: Extract<TValueSite, { kind: "argument" }>,
   ): string | null {
+    const passing = this.argumentPassing(site);
+    const base = passing.param?.baseType;
+    if (!base) return null;
+    const call = site.call.ops[site.op];
+    invariant(call?.kind === "call", "an argument site names a call");
+    return passing.mode === "reference" &&
+      this.getLvalueType(call.arguments[site.argument]) !== null
+      ? null
+      : base;
+  }
+
+  /** How the call at `site` passes its argument (#1991) */
+  private argumentPassing(
+    site: Extract<TValueSite, { kind: "argument" }>,
+  ): IArgumentPassing {
     const head = ExpressionShape.headOf(site.call);
     const step =
       OperandTyper.chainOf(site.call, this.host.state.typingContext()).steps[
         site.op - head.opsConsumed
       ] ?? null;
     const input = this.host.getInput();
-    const passing = CallArgumentPassing.of(
+    return CallArgumentPassing.of(
       CallArgumentPassing.callbackFunction(
         step?.before?.typeName ?? null,
         input,
@@ -2335,14 +2363,43 @@ class CodeGenWalker {
       input,
       this.host,
     );
-    const base = passing.param?.baseType;
-    if (!base) return null;
-    const call = site.call.ops[site.op];
-    invariant(call?.kind === "call", "an argument site names a call");
-    return passing.mode === "reference" &&
-      this.getLvalueType(call.arguments[site.argument]) !== null
-      ? null
-      : base;
+  }
+
+  /**
+   * The C type an argument's form writes (#1991): a by-reference argument's
+   * temporary, cast or compound literal, or a C++ enum class value's cast to
+   * its integer parameter (#304)
+   */
+  private planArgumentCTypes(
+    valuePositions: IValuePositions,
+    cTypes: Set<string>,
+  ): void {
+    for (const [expression, at] of valuePositions.sites) {
+      const site = at.site;
+      if (site.kind !== "argument") continue;
+      const call = site.call.ops[site.op];
+      invariant(call?.kind === "call", "an argument site names a call");
+      if (call.arguments[site.argument] !== expression) continue;
+
+      const passing = this.argumentPassing(site);
+      const base = passing.param?.baseType;
+      const cType =
+        passing.mode === "reference"
+          ? ArgumentGenerator.cTypeOf(
+              ArgumentGenerator.formOf(
+                this.boundArgumentName(expression) !== null,
+                base,
+                this.argumentShape(expression),
+                this.host.state.cppMode,
+              ),
+            )
+          : CallArgumentPassing.cppEnumCast(
+              this.directTypeOf(expression),
+              base,
+              this.host,
+            );
+      if (cType !== null) cTypes.add(cType);
+    }
   }
 
   private planExpectedTypes(

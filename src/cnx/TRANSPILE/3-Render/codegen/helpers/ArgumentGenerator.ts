@@ -20,6 +20,14 @@ import IArgumentGeneratorCallbacks from "./types/IArgumentGeneratorCallbacks";
 import type TranspileState from "../../../TranspileState";
 import type TTypeInfo from "../../../../types/TTypeInfo";
 import type TParameterInfo from "../../../../types/TParameterInfo";
+import type TArgumentForm from "./types/TArgumentForm";
+import invariant from "../../../../utils/invariant";
+
+/** What decides an argument's form, read off the argument without rendering it */
+type TArgumentShape = Omit<IArgumentGeneratorCallbacks, "generateExpression">;
+
+/** Parameter types a string's element is not cast to a pointer of */
+const NOT_CAST_TO = new Set(["float", "double", "bool", "void"]);
 
 /**
  * Generates function arguments with proper pass-by-reference semantics.
@@ -71,43 +79,85 @@ class ArgumentGenerator {
   }
 
   /**
-   * Handle rvalue argument (literals or complex expressions).
-   * Issue #872: 2.2 plans it against the parameter's type, for MISRA 7.2's U
-   * suffix on an unsigned literal (#1991).
+   * How an argument passed by reference is written (#1991): the one decision
+   * 2.3 writes it by and 2.2 plans its C type from.
    */
-  static handleRvalueArg(
+  static formOf(
+    isIdentifier: boolean,
     targetParamBaseType: string | undefined,
-    callbacks: IArgumentGeneratorCallbacks,
-    state: TranspileState,
-  ): string {
-    const value = callbacks.generateExpression();
-    if (!targetParamBaseType) {
-      return value;
+    shape: TArgumentShape,
+    cppMode: boolean,
+  ): TArgumentForm {
+    if (isIdentifier) return { kind: "identifier" };
+
+    const lvalueType = shape.getLvalueType();
+    if (lvalueType === null) {
+      const cType = targetParamBaseType
+        ? TYPE_MAP[targetParamBaseType]
+        : undefined;
+      // C++: an rvalue binds to const T&
+      return {
+        kind: "rvalue",
+        compoundLiteral: !cType || cType === "void" || cppMode ? null : cType,
+      };
     }
 
-    const cType = TYPE_MAP[targetParamBaseType];
-    if (!cType || cType === "void") {
-      return value;
+    if (lvalueType === "member") {
+      const arrayStatus = shape.getMemberAccessArrayStatus();
+      if (arrayStatus === "array") return { kind: "array-member" };
+      if (
+        arrayStatus === "not-array" &&
+        targetParamBaseType &&
+        shape.isCppMemberConversionRequired(targetParamBaseType)
+      ) {
+        return {
+          kind: "member-temp",
+          cType: TYPE_MAP[targetParamBaseType] || "uint8_t",
+        };
+      }
+      return { kind: "lvalue", cast: null };
     }
 
-    // C++ mode: rvalues can bind to const T&
-    if (state.cppMode) {
-      return value;
-    }
-
-    // C mode: Use compound literal syntax
-    return `&(${cType}){${value}}`;
+    // A string's element goes to an integer pointer parameter cast
+    const cType =
+      targetParamBaseType && shape.isStringSubscriptAccess()
+        ? TYPE_MAP[targetParamBaseType]
+        : undefined;
+    return {
+      kind: "lvalue",
+      cast: cType && !NOT_CAST_TO.has(cType) ? cType : null,
+    };
   }
 
-  /**
-   * Create temp variable for C++ member conversion.
-   */
+  /** The C type `form` writes, or null */
+  static cTypeOf(form: TArgumentForm): string | null {
+    switch (form.kind) {
+      case "member-temp":
+        return form.cType;
+      case "lvalue":
+        return form.cast;
+      case "rvalue":
+        return form.compoundLiteral;
+      default:
+        return null;
+    }
+  }
+
+  /** A value: in C, a compound literal the pointer parameter can point at */
+  static handleRvalueArg(
+    compoundLiteral: string | null,
+    callbacks: IArgumentGeneratorCallbacks,
+  ): string {
+    const value = callbacks.generateExpression();
+    return compoundLiteral === null ? value : `&(${compoundLiteral}){${value}}`;
+  }
+
+  /** C++: a member converted to the parameter's type through a temporary */
   static createCppMemberConversionTemp(
-    targetParamBaseType: string,
+    cType: string,
     callbacks: IArgumentGeneratorCallbacks,
     state: TranspileState,
   ): string {
-    const cType = TYPE_MAP[targetParamBaseType] || "uint8_t";
     const value = callbacks.generateExpression();
     // Issue #1131: one temporary namer for every family. This site previously
     // incremented the shared counter itself and spelled the name a third way
@@ -120,103 +170,21 @@ class ArgumentGenerator {
     return CppModeHelper.maybeAddressOf(tempName, state);
   }
 
-  /**
-   * Maybe cast string subscript access for integer pointer parameters.
-   */
-  static maybeCastStringSubscript(
-    expr: string,
-    targetParamBaseType: string | undefined,
-    callbacks: IArgumentGeneratorCallbacks,
-    state: TranspileState,
-  ): string {
-    if (!targetParamBaseType || !callbacks.isStringSubscriptAccess()) {
-      return expr;
-    }
-
-    const cType = TYPE_MAP[targetParamBaseType];
-    if (cType && !["float", "double", "bool", "void"].includes(cType)) {
-      state.emittedCTypes.add(cType);
-      return CppModeHelper.reinterpretCast(`${cType}*`, expr, state);
-    }
-
-    return expr;
-  }
-
-  /**
-   * Handle member access argument - may need special handling for arrays or C++ conversions.
-   * Returns null if default lvalue handling should be used.
-   */
-  static handleMemberAccessArg(
-    targetParamBaseType: string | undefined,
-    callbacks: IArgumentGeneratorCallbacks,
-    state: TranspileState,
-  ): string | null {
-    const arrayStatus = callbacks.getMemberAccessArrayStatus();
-
-    // Array member - no address-of needed
-    if (arrayStatus === "array") {
-      return callbacks.generateExpression();
-    }
-
-    // C++ mode may need temp variable for type conversion
-    if (
-      arrayStatus === "not-array" &&
-      targetParamBaseType &&
-      callbacks.isCppMemberConversionRequired(targetParamBaseType)
-    ) {
-      return ArgumentGenerator.createCppMemberConversionTemp(
-        targetParamBaseType,
-        callbacks,
-        state,
-      );
-    }
-
-    return null; // Fall through to default lvalue handling
-  }
-
-  /**
-   * Handle lvalue argument (member access or array access).
-   */
+  /** An lvalue by address, cast to `cast*` when `cast` is not null */
   static handleLvalueArg(
-    lvalueType: "member" | "array",
-    targetParamBaseType: string | undefined,
+    cast: string | null,
     callbacks: IArgumentGeneratorCallbacks,
     state: TranspileState,
   ): string {
-    // Member access to array field - arrays decay to pointers
-    if (lvalueType === "member") {
-      const memberResult = ArgumentGenerator.handleMemberAccessArg(
-        targetParamBaseType,
-        callbacks,
-        state,
-      );
-      if (memberResult) return memberResult;
-    }
-
-    // Generate expression with address-of
-    const generatedExpr = callbacks.generateExpression();
-    const expr = CppModeHelper.maybeAddressOf(generatedExpr, state);
-
-    // String subscript access may need cast
-    if (lvalueType === "array") {
-      return ArgumentGenerator.maybeCastStringSubscript(
-        expr,
-        targetParamBaseType,
-        callbacks,
-        state,
-      );
-    }
-
-    return expr;
+    const expr = CppModeHelper.maybeAddressOf(
+      callbacks.generateExpression(),
+      state,
+    );
+    if (cast === null) return expr;
+    state.emittedCTypes.add(cast);
+    return CppModeHelper.reinterpretCast(`${cast}*`, expr, state);
   }
 
-  /**
-   * Main entry point: Generate a function argument with proper ADR-006 semantics.
-   *
-   * @param simpleId - The C name a simple identifier binds to, and its parameter
-   * @param targetParamBaseType - The target parameter's base type
-   * @param callbacks - Callbacks to CodeGenerator methods
-   */
   static generateArg(
     simpleId: {
       readonly emitted: string;
@@ -227,33 +195,37 @@ class ArgumentGenerator {
     callbacks: IArgumentGeneratorCallbacks,
     state: TranspileState,
   ): string {
-    // Handle simple identifiers
-    if (simpleId) {
-      return ArgumentGenerator.handleIdentifierArg(
-        simpleId.emitted,
-        simpleId.parameter,
-        declared,
-        state,
-      );
-    }
-
-    // Check if expression is an lvalue
-    const lvalueType = callbacks.getLvalueType();
-    if (lvalueType) {
-      return ArgumentGenerator.handleLvalueArg(
-        lvalueType,
-        targetParamBaseType,
-        callbacks,
-        state,
-      );
-    }
-
-    // Handle rvalue (literals or complex expressions)
-    return ArgumentGenerator.handleRvalueArg(
+    const form = ArgumentGenerator.formOf(
+      simpleId !== null,
       targetParamBaseType,
       callbacks,
-      state,
+      state.cppMode,
     );
+    switch (form.kind) {
+      case "identifier":
+        invariant(simpleId !== null, "an identifier argument is a bare name");
+        return ArgumentGenerator.handleIdentifierArg(
+          simpleId.emitted,
+          simpleId.parameter,
+          declared,
+          state,
+        );
+      case "array-member":
+        return callbacks.generateExpression();
+      case "member-temp":
+        return ArgumentGenerator.createCppMemberConversionTemp(
+          form.cType,
+          callbacks,
+          state,
+        );
+      case "lvalue":
+        return ArgumentGenerator.handleLvalueArg(form.cast, callbacks, state);
+      case "rvalue":
+        return ArgumentGenerator.handleRvalueArg(
+          form.compoundLiteral,
+          callbacks,
+        );
+    }
   }
 }
 

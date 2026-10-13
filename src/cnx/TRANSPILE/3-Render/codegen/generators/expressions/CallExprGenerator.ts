@@ -42,20 +42,14 @@ const wrapWithCppEnumCast = (
   targetParamBaseType: string | undefined,
   orchestrator: IOrchestrator,
 ): string => {
-  if (!orchestrator.isCppMode() || !targetParamBaseType) {
-    return argCode;
-  }
-
-  const argType = arg.expressionType();
-  if (argType && orchestrator.isCppEnumClass(argType)) {
-    if (orchestrator.isIntegerType(targetParamBaseType)) {
-      const cType = CallExprUtils.mapTypeToCType(targetParamBaseType);
-      orchestrator.state.emittedCTypes.add(cType);
-      return `static_cast<${cType}>(${argCode})`;
-    }
-  }
-
-  return argCode;
+  const cType = CallArgumentPassing.cppEnumCast(
+    arg.expressionType(),
+    targetParamBaseType,
+    orchestrator,
+  );
+  if (cType === null) return argCode;
+  orchestrator.state.emittedCTypes.add(cType);
+  return `static_cast<${cType}>(${argCode})`;
 };
 
 /**
