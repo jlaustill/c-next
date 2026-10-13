@@ -12,6 +12,7 @@
 // global's type alone in a later function. This held before the fix too.
 uint32_t x = 0U;
 
+/* C11 6.2.1p4, C++ [basic.scope.hiding]: `x` emitted as `first__x` (a plain `x` would hide the file-scope `x` for the rest of its scope, so `global.x` would reach the local). */
 uint32_t first(uint8_t first__x) {
     uint32_t v = first__x;
     return v;

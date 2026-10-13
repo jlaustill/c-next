@@ -64,17 +64,20 @@ uint32_t Counter__plain(void) {
 }
 
 uint32_t Counter__allThreeLevels(void) {
+    /* C11 6.2.1p4, C++ [basic.scope.hiding]: `count` emitted as `Counter__allThreeLevels__count` (a plain `count` would hide the file-scope `count` for the rest of its scope, so `global.count` would reach the local). */
     uint32_t Counter__allThreeLevels__count = 10U;
     return cnx_clamp_add_u32(cnx_clamp_add_u32(Counter__allThreeLevels__count, Counter__count), count);
 }
 
 uint32_t Counter__arrayShadow(void) {
+    /* C11 6.2.1p4, C++ [basic.scope.hiding]: `buf` emitted as `Counter__arrayShadow__buf` (a plain `buf` would hide the file-scope `buf` for the rest of its scope, so `global.buf` would reach the local). */
     uint32_t Counter__arrayShadow__buf[2] = {1U, 2U};
     return cnx_clamp_add_u32(Counter__arrayShadow__buf[0U], buf[0U]);
 }
 
 uint32_t Counter__loopShadow(void) {
     uint32_t sum = 0U;
+    /* C11 6.2.1p4, C++ [basic.scope.hiding]: `tick` emitted as `Counter__loopShadow__tick` (a plain `tick` would hide the file-scope `tick` for the rest of its scope, so `global.tick` would reach the local). */
     for (uint32_t Counter__loopShadow__tick = 0U; Counter__loopShadow__tick < 2; Counter__loopShadow__tick = cnx_clamp_add_u32(Counter__loopShadow__tick, 1U)) {
         sum = cnx_clamp_add_u32(sum, tick);
     }
@@ -82,39 +85,46 @@ uint32_t Counter__loopShadow(void) {
 }
 
 uint32_t Counter__writeSubscript(void) {
+    /* C11 6.2.1p4, C++ [basic.scope.hiding]: `wbuf` emitted as `Counter__writeSubscript__wbuf` (a plain `wbuf` would hide the file-scope `wbuf` for the rest of its scope, so `global.wbuf` would reach the local). */
     uint32_t Counter__writeSubscript__wbuf[2] = {1U, 2U};
     Counter__writeSubscript__wbuf[0] = 5U;
     return Counter__writeSubscript__wbuf[0U];
 }
 
 uint32_t Counter__writeStructField(void) {
+    /* C11 6.2.1p4, C++ [basic.scope.hiding]: `wcfg` emitted as `Counter__writeStructField__wcfg` (a plain `wcfg` would hide the file-scope `wcfg` for the rest of its scope, so `global.wcfg` would reach the local). */
     Holder Counter__writeStructField__wcfg = { .x = 1U };
     Counter__writeStructField__wcfg.x = 7U;
     return Counter__writeStructField__wcfg.x;
 }
 
 uint32_t Counter__writeBitRange(void) {
+    /* C11 6.2.1p4, C++ [basic.scope.hiding]: `wflags` emitted as `Counter__writeBitRange__wflags` (a plain `wflags` would hide the file-scope `wflags` for the rest of its scope, so `global.wflags` would reach the local). */
     uint8_t Counter__writeBitRange__wflags = 0U;
     Counter__writeBitRange__wflags = (uint8_t)((Counter__writeBitRange__wflags & ~(0xFU << 0)) | ((3U & 0xFU) << 0));
     return Counter__writeBitRange__wflags;
 }
 
 uint32_t Counter__shadowingString(void) {
+    /* C11 6.2.1p4, C++ [basic.scope.hiding]: `wmsg` emitted as `Counter__shadowingString__wmsg` (a plain `wmsg` would hide the file-scope `wmsg` for the rest of its scope, so `global.wmsg` would reach the local). */
     char Counter__shadowingString__wmsg[9] = "ab";
     return strlen(Counter__shadowingString__wmsg);
 }
 
 uint32_t Counter__sizeofArray(void) {
+    /* C11 6.2.1p4, C++ [basic.scope.hiding]: `sarr` emitted as `Counter__sizeofArray__sarr` (a plain `sarr` would hide the file-scope `sarr` for the rest of its scope, so `global.sarr` would reach the local). */
     uint32_t Counter__sizeofArray__sarr[2] = {1U, 2U};
     return sizeof(Counter__sizeofArray__sarr);
 }
 
 uint32_t Counter__sizeofMember(void) {
+    /* C11 6.2.1p4, C++ [basic.scope.hiding]: `scfg` emitted as `Counter__sizeofMember__scfg` (a plain `scfg` would hide the file-scope `scfg` for the rest of its scope, so `global.scfg` would reach the local). */
     Narrow Counter__sizeofMember__scfg = { .x = 1U };
     return sizeof(Counter__sizeofMember__scfg.x);
 }
 
 uint32_t Counter__elementCount(void) {
+    /* C11 6.2.1p4, C++ [basic.scope.hiding]: `sarr` emitted as `Counter__elementCount__sarr` (a plain `sarr` would hide the file-scope `sarr` for the rest of its scope, so `global.sarr` would reach the local). */
     uint32_t Counter__elementCount__sarr[2] = {1U, 2U};
     return 2;
 }

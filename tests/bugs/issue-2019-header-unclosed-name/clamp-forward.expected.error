@@ -1,0 +1,2 @@
+14:4 error[E0427]: 'counter' is not defined
+21:9 error[E0427]: 'b' is not defined

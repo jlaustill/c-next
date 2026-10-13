@@ -36,6 +36,8 @@ interface IConstantNameFacts {
    * a name nothing binds may then be a macro, which only C can evaluate
    */
   readonly reachesForeignHeader: boolean;
+  /** `IProgram.mayBeHeaderName`, for this file */
+  mayBeHeaderName(root: TChainRoot, name: string, at: ISourcePosition): boolean;
   /** A header's variable or function the binder bound `name` to; null otherwise */
   foreignValue(name: string): IForeignValue | null;
   /** A member of the enum with C name `enumCName` */

@@ -1,0 +1,2 @@
+9:9 error[E0427]: 'x' is not defined
+10:16 error[E0427]: 'z' is not defined

@@ -107,6 +107,7 @@ function varDecl(
     volatile: "",
     typeName: "int32_t",
     emittedName: "i",
+    nameMoveComments: "",
     renderArrayDimensions: null,
     renderInitializer: null,
     ...overrides,

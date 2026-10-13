@@ -1,0 +1,23 @@
+// test-cpp-only
+// test-execution
+// test-adr: 030
+// test-adr: 057
+// #1643 review: a constructor-declared block-local whose arguments name the
+// local it shadows reads that one -- the new one is not defined until its
+// declaration closes (ADR-030). C++ scopes it from its declarator, so it gets
+// its own C name; emitted as `Tally seed(seed)` it would copy itself.
+
+#include "Tally.hpp"
+
+u32 main() {
+    const u8 seed <- 3;
+    u8 result <- 0;
+    if (seed = 3) {
+        Tally seed(seed);
+        result <- seed.start;
+    }
+    if (result != 3) {
+        return 1;
+    }
+    return 0;
+}

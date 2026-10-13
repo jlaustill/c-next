@@ -12,20 +12,24 @@
 
 import ComplianceAnnotations from "../ComplianceAnnotations";
 
-/** `/* MISRA C:2012 Rule 8.4: what (why). *\/` */
-const HOUSE_FORM = /^\/\* MISRA C:2012 Rule \d+(?:\.\d+)*: .+ \(.+\)\. \*\/$/;
+/**
+ * `/* MISRA C:2012 Rule 8.4: what (why). *\/`, or the language's own rule:
+ * `/* C11 6.2.1p7, C++ [basic.scope.pdecl]: what (why). *\/`
+ */
+const HOUSE_FORM =
+  /^\/\* (?:MISRA C:2012 Rule \d+(?:\.\d+)*|C11 \d+(?:\.\d+)*p\d+, C\+\+ \[[a-z.]+\]): .+ \(.+\)\. \*\/$/;
 
 describe("ComplianceAnnotations", () => {
   describe("every annotation the transpiler can emit", () => {
-    it.each(ComplianceAnnotations.all().map((a) => [a.rule, a] as const))(
-      "Rule %s matches the house form",
+    it.each(ComplianceAnnotations.all().map((a) => [a.citation, a] as const))(
+      "%s matches the house form",
       (_rule, annotation) => {
         expect(ComplianceAnnotations.render(annotation)).toMatch(HOUSE_FORM);
       },
     );
 
-    it.each(ComplianceAnnotations.all().map((a) => [a.rule, a] as const))(
-      "Rule %s opens no nested comment (MISRA Rule 3.1)",
+    it.each(ComplianceAnnotations.all().map((a) => [a.citation, a] as const))(
+      "%s opens no nested comment (MISRA Rule 3.1)",
       (_rule, annotation) => {
         const rendered = ComplianceAnnotations.render(annotation);
 
@@ -33,12 +37,12 @@ describe("ComplianceAnnotations", () => {
       },
     );
 
-    it.each(ComplianceAnnotations.all().map((a) => [a.rule, a] as const))(
-      "Rule %s says what the naive form would have done, not just what this one does",
+    it.each(ComplianceAnnotations.all().map((a) => [a.citation, a] as const))(
+      "%s says what the naive form would have done, not just what this one does",
       (_rule, annotation) => {
         // The `why` is the half CLAUDE.md is specific about, and the half that
         // drifted. A why that merely restates the construct is not one.
-        expect(annotation.why.length).toBeGreaterThan(annotation.rule.length);
+        expect(annotation.why.length).toBeGreaterThan(annotation.what.length);
         expect(annotation.why.endsWith(".")).toBe(false);
       },
     );
@@ -47,9 +51,16 @@ describe("ComplianceAnnotations", () => {
   it("cites exactly the rules it is known to cite", () => {
     // Fails loudly when a rule is added or removed, so the set an auditor would
     // enumerate stays visible in review rather than growing quietly.
-    const rules = ComplianceAnnotations.all().map((a) => a.rule);
+    const rules = ComplianceAnnotations.all().map((a) => a.citation);
 
-    expect(rules.sort()).toEqual(["14.3", "21.15", "21.15", "8.4"]);
+    expect(rules.sort()).toEqual([
+      "C11 6.2.1p4, C++ [basic.scope.hiding]",
+      "C11 6.2.1p7, C++ [basic.scope.pdecl]",
+      "MISRA C:2012 Rule 14.3",
+      "MISRA C:2012 Rule 21.15",
+      "MISRA C:2012 Rule 21.15",
+      "MISRA C:2012 Rule 8.4",
+    ]);
   });
 
   it("renders the float bits union with both pointer types it names", () => {
@@ -59,6 +70,18 @@ describe("ComplianceAnnotations", () => {
 
     expect(rendered).toContain("double* vs uint64_t*");
     expect(rendered).toMatch(HOUSE_FORM);
+  });
+
+  it("renders a moved name with both of its names (#1643 review)", () => {
+    const rendered = ComplianceAnnotations.renderMoves(
+      ["hidesFileScope", "readsEnclosing"],
+      "n",
+      "main__n__2",
+    );
+
+    expect(rendered.split("\n")).toHaveLength(3);
+    expect(rendered).toContain("`n` emitted as `main__n__2`");
+    expect(ComplianceAnnotations.renderMoves([], "n", "n")).toBe("");
   });
 
   it("renders the slice unroll with both pointer types it names", () => {

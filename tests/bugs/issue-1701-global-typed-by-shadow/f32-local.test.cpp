@@ -26,6 +26,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 uint32_t x = 4294967295U;
 
 float f(void) {
+    /* C11 6.2.1p4, C++ [basic.scope.hiding]: `x` emitted as `f__x` (a plain `x` would hide the file-scope `x` for the rest of its scope, so `global.x` would reach the local). */
     float f__x = 1.0;
     x = cnx_clamp_add_u32(x, 1000U);
     return f__x;

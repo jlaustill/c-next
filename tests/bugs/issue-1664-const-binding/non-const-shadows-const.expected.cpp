@@ -38,6 +38,7 @@ extern const uint32_t i = 7U;
 
 extern const uint32_t D = 0U;
 
+/* C11 6.2.1p4, C++ [basic.scope.hiding]: `N` emitted as `viaParameter__N` (a plain `N` would hide the file-scope `N` for the rest of its scope, so `global.N` would reach the local). */
 uint8_t viaParameter(uint32_t viaParameter__N) {
     uint8_t arr[4] = {5U, 6U, 7U, 8U};
     return arr[viaParameter__N];
@@ -45,6 +46,7 @@ uint8_t viaParameter(uint32_t viaParameter__N) {
 
 uint8_t viaLocal(void) {
     uint8_t arr[4] = {5U, 6U, 7U, 8U};
+    /* C11 6.2.1p4, C++ [basic.scope.hiding]: `N` emitted as `viaLocal__N` (a plain `N` would hide the file-scope `N` for the rest of its scope, so `global.N` would reach the local). */
     uint32_t viaLocal__N = 1U;
     return arr[viaLocal__N];
 }
@@ -52,6 +54,7 @@ uint8_t viaLocal(void) {
 uint8_t viaFor(void) {
     uint8_t arr[4] = {5U, 6U, 7U, 8U};
     uint8_t last = 0U;
+    /* C11 6.2.1p4, C++ [basic.scope.hiding]: `i` emitted as `viaFor__i` (a plain `i` would hide the file-scope `i` for the rest of its scope, so `global.i` would reach the local). */
     for (uint32_t viaFor__i = 0U; viaFor__i < 4; viaFor__i = cnx_clamp_add_u32(viaFor__i, 1U)) {
         last = arr[viaFor__i];
     }
@@ -59,11 +62,13 @@ uint8_t viaFor(void) {
 }
 
 uint32_t viaRuntimeConst(uint32_t a) {
+    /* C11 6.2.1p4, C++ [basic.scope.hiding]: `D` emitted as `viaRuntimeConst__D` (a plain `D` would hide the file-scope `D` for the rest of its scope, so `global.D` would reach the local). */
     const uint32_t viaRuntimeConst__D = cnx_clamp_add_u32(a, 1U);
     return 100U / viaRuntimeConst__D;
 }
 
 float viaFloatConst(void) {
+    /* C11 6.2.1p4, C++ [basic.scope.hiding]: `D` emitted as `viaFloatConst__D` (a plain `D` would hide the file-scope `D` for the rest of its scope, so `global.D` would reach the local). */
     const float viaFloatConst__D = 2.5;
     return 10.0 / viaFloatConst__D;
 }

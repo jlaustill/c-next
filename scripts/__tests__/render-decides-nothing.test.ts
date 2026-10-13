@@ -152,11 +152,11 @@ const STD_HEADER_DECIDER = join(
 
 /**
  * The house form of a compliance annotation, keyed on its SHAPE: a C comment
- * opener and a cited rule. Deliberately not keyed on the standard's name --
+ * opener and a citation (a rule, a C11 clause, or the owner's `.citation`). Deliberately not keyed on the standard's name --
  * see the header. `[^*\n]` stops the match at the comment's own `*\/`, so this
  * cannot span two unrelated comments on one line.
  */
-const ANNOTATION_FORM = /\/\*[^*\n]{0,80}\bRule\b/g;
+const ANNOTATION_FORM = /\/\*[^*\n]{0,80}(?:\bRule\b|\bC11\b|\.citation\b)/g;
 
 /**
  * An import of a named module, however its path is spelled.
@@ -280,6 +280,8 @@ const PLAN_DECISIONS: Readonly<Record<string, readonly string[]>> = {
     "codegen/generators/statements/ControlFlowGenerator.ts",
     // #1760 review: the float bits union, which carried no citation
     "codegen/helpers/FloatBitHelper.ts",
+    // #1643 review: a moved parameter's C11 6.2.1 comment, at the definition
+    "codegen/helpers/FunctionContextManager.ts",
     "codegen/helpers/StructInitFunction.ts",
   ],
   CppMemberHelper: [

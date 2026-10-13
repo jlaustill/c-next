@@ -25,7 +25,8 @@ beforeEach(() => {
 });
 
 const FILE = "a.cnx";
-const TOP = { line: 1, column: 0 };
+/** At file scope, after every declaration a source here makes (#1643) */
+const TOP = { line: 1000, column: 0 };
 
 function build(
   source: string,

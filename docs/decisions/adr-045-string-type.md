@@ -378,6 +378,12 @@ message <- message[0, 58] + " World";  // OK: 64 >= 58 + 6
 
 This forces the developer to consciously manage string bounds rather than risk silent overflow.
 
+A declaration's own initializer is different: it cannot name the string at all.
+The string is defined once its declaration closes (ADR-030), so both
+`string<32> s <- s + "x";` and `string<32> s <- s[0, 2];` are E0427, `'s' is
+not defined`, before any capacity is compared (#1643). They had emitted a read
+of the uninitialized buffer, and an overlapping `strncpy(s, s + 0, 2)`.
+
 ---
 
 ## Comparison

@@ -108,6 +108,7 @@ class FrameWalker {
         name: info.name,
         kind: "parameter",
         span: parameters[index].nameSpan,
+        extent: parameters[index].span,
         type: info.type,
         arrayDimensions: info.arrayDimensions ?? [],
         arrayDimensionExprs: info.arrayDimensionExprs ?? [],
@@ -118,9 +119,11 @@ class FrameWalker {
         overflowBehavior: OverflowBehaviorUtils.fromModifier(null),
         initialValue: null,
         initialValueExpr: null,
+        spellsOwnName: false,
         initializerCallee: null,
         constValue: null,
         emittedName: null,
+        nameMoves: [],
       });
     });
     this.block(frame, fn.body);
@@ -218,6 +221,7 @@ class FrameWalker {
       name: declaration.name,
       kind,
       span: declaration.nameSpan,
+      extent: declaration.span,
       type: facts.type,
       arrayDimensions: facts.arrayDimensions,
       arrayDimensionExprs: facts.arrayDimensionExprs,
@@ -227,9 +231,11 @@ class FrameWalker {
       overflowBehavior: facts.overflowBehavior,
       initialValue: facts.initialValue ?? null,
       initialValueExpr: facts.initialValueExpr,
+      spellsOwnName: declaration.spellsOwnName,
       initializerCallee: facts.initializerCallee,
       constValue: null,
       emittedName: null,
+      nameMoves: [],
     });
   }
 }

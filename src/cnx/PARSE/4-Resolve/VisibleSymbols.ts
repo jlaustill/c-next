@@ -41,7 +41,6 @@ interface IMergeAccumulator {
   >;
   readonly knownStructs: Set<string>;
   readonly knownBitmaps: Set<string>;
-  readonly knownVariables: Set<string>;
   readonly bitmapFields: Map<string, Map<string, IBitmapFieldLayout>>;
   readonly bitmapBackingType: Map<string, string>;
   readonly knownRegisters: Set<string>;
@@ -91,7 +90,6 @@ class VisibleSymbols {
     const mergedKnownScopes = new Set(base.knownScopes);
     const mergedKnownStructs = new Set(base.knownStructs);
     const mergedKnownBitmaps = new Set(base.knownBitmaps);
-    const mergedKnownVariables = new Set(base.knownVariables);
     const mergedBitmapFields = VisibleSymbols._copyNestedMap(base.bitmapFields);
     const mergedBitmapBackingType = new Map(base.bitmapBackingType);
     const mergedBitmapBitWidth = new Map(base.bitmapBitWidth);
@@ -131,7 +129,6 @@ class VisibleSymbols {
         bitmapFields: mergedBitmapFields,
         bitmapBackingType: mergedBitmapBackingType,
         bitmapBitWidth: mergedBitmapBitWidth,
-        knownVariables: mergedKnownVariables,
         knownRegisters: mergedKnownRegisters,
         scopedRegisters: mergedScopedRegisters,
         registerMemberAccess: mergedRegisterMemberAccess,
@@ -158,7 +155,6 @@ class VisibleSymbols {
       enumMembers: mergedEnumMembers,
       functionReturnTypes: mergedFunctionReturnTypes,
       scopeMemberVisibility: mergedScopeMemberVisibility,
-      knownVariables: mergedKnownVariables,
       knownRegisters: mergedKnownRegisters,
       scopedRegisters: mergedScopedRegisters,
       registerMemberAccess: mergedRegisterMemberAccess,
@@ -191,13 +187,6 @@ class VisibleSymbols {
     // included scope look public, because the access check reads `undefined` and
     // only rejects an explicit "private".
     VisibleSymbols._mergeNames(external.knownScopes, into.knownScopes);
-
-    // Issue #1398: file-scope VALUE names cross on the same terms as the
-    // type-forming kinds above. The #1333 asymmetry this function was written to
-    // fix was between two kinds of type; this is the same asymmetry one axis
-    // over -- a type declared in an included file resolved and a const declared
-    // beside it did not, so E0426 fired cross-file and E0427 could not.
-    VisibleSymbols._mergeNames(external.knownVariables, into.knownVariables);
 
     // A type's NAME is not enough; its detail travels with it. enumMembers already
     // moved with knownEnums, which is exactly why enums were the only kind that

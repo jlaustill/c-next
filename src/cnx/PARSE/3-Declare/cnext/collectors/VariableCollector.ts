@@ -106,6 +106,7 @@ class VariableCollector {
       nameSpan: declaration.nameSpan,
       dimensions: [],
       initializer: null,
+      spellsOwnName: declaration.spellsOwnName,
       span: declaration.span,
       written: declaration.written,
     };

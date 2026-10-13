@@ -1,6 +1,6 @@
 /**
- * One construct whose shape a safety standard dictated, rather than the
- * obvious translation.
+ * One construct whose shape a standard dictated -- a safety standard, or the
+ * C or C++ standard itself -- rather than the obvious translation.
  *
  * CLAUDE.md makes emitting these a C-Next standard: the generated C is the
  * certification artifact, so a reviewer must be able to trace each non-obvious
@@ -8,8 +8,11 @@
  * accidental complexity.
  */
 interface IComplianceAnnotation {
-  /** Rule number as the standard writes it, e.g. `21.15`. */
-  readonly rule: string;
+  /**
+   * The standard and its rule, as each writes it: `MISRA C:2012 Rule 21.15`,
+   * or `C11 6.2.1p7, C++ [basic.scope.pdecl]` for the language's own.
+   */
+  readonly citation: string;
 
   /** What the generated construct does instead of the naive translation. */
   readonly what: string;

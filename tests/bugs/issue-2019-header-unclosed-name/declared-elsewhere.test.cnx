@@ -1,0 +1,25 @@
+// test-execution
+// test-adr: 030
+// #2019 review: in a file that reaches a C header, a name is C-Next's where a
+// declaration of the file would bind it once closed. A declaration that
+// cannot bind at the use is no such evidence: a scope's member, under a bare
+// name outside the scope, leaves the name to the header's macro (ADR-030, as
+// #1688's `global.REG_BYTE` beside the scope's own `REG_BYTE`).
+
+#include "limit_macro.h"
+
+scope S {
+    public u32 LIMIT <- 1;
+}
+
+u32 main() {
+    u32 fromHeader <- LIMIT;
+    if (fromHeader != 7) {
+        return 1;
+    }
+    // control: the scope's own member, qualified
+    if (S.LIMIT != 1) {
+        return 2;
+    }
+    return 0;
+}

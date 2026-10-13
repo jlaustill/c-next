@@ -28,6 +28,8 @@ type TStatement = ISyntaxNode &
         readonly arguments: readonly (ISyntaxNode & {
           readonly name: string;
         })[];
+        /** #1643 (ADR-030): its own name is written bare in its arguments */
+        readonly spellsOwnName: boolean;
       }
     | ({ readonly kind: "assignment" } & IAssignmentSyntax)
     | { readonly kind: "expression"; readonly expression: TExpression }

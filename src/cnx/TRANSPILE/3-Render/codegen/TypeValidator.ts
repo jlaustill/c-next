@@ -9,6 +9,7 @@ import AdrProvenance from "../../../instrumentation/AdrProvenance";
 // SonarCloud S3776: Extracted literal parsing to reduce complexity
 import QualifiedCName from "../../../utils/QualifiedCName";
 import QualifiedNameGenerator from "../../../utils/QualifiedNameGenerator";
+import PositionFreeScopeMember from "../../../utils/PositionFreeScopeMember";
 import type TranspileState from "../../TranspileState";
 
 /**
@@ -114,7 +115,8 @@ class TypeValidator {
   ): string | null {
     if (binding?.kind === "local") {
       // ADR-057: a local normally emits under its own name (null = "leave it
-      // alone"). One that shadows a file-scope symbol was given a distinct C
+      // alone"). One that shadows a file-scope symbol, or whose initializer
+      // reads the enclosing local it shadows (#1643), was given a distinct C
       // identifier at its declaration, and every reference must follow it.
       const emitted = state.localCName(binding.declaration, at);
       return emitted === identifier ? null : emitted;
@@ -169,10 +171,16 @@ class TypeValidator {
     state: TranspileState,
   ): string | null {
     // #1295: getScopeMembers is keyed by the scope's dotted source path.
-    // A member the binder gives no value binding: a type. Its variables and
-    // functions were answered above, from the binding (#1760 review).
-    const scopeMembers = state.getScopeMembers(currentScopePath);
-    if (scopeMembers?.has(identifier)) {
+    // Its variables and functions were answered above, from the binding
+    // (#1760 review); one the binder skipped is not there yet (#1643).
+    if (
+      PositionFreeScopeMember.is(
+        state.getScopeMembers(currentScopePath),
+        currentScopePath,
+        identifier,
+        state.typingContext().program,
+      )
+    ) {
       return QualifiedNameGenerator.forMember(currentScopePath, identifier);
     }
     return null;

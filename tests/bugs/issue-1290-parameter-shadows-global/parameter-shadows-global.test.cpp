@@ -35,23 +35,28 @@ uint32_t buf[2] = {70U, 80U};
 
 /* Scope: S */
 
+/* C11 6.2.1p4, C++ [basic.scope.hiding]: `total` emitted as `S__paramCase__total` (a plain `total` would hide the file-scope `total` for the rest of its scope, so `global.total` would reach the local). */
 uint32_t S__paramCase(uint32_t S__paramCase__total) {
     return total;
 }
 
+/* C11 6.2.1p4, C++ [basic.scope.hiding]: `total` emitted as `S__bareCase__total` (a plain `total` would hide the file-scope `total` for the rest of its scope, so `global.total` would reach the local). */
 uint32_t S__bareCase(uint32_t S__bareCase__total) {
     return S__bareCase__total;
 }
 
+/* C11 6.2.1p4, C++ [basic.scope.hiding]: `total` emitted as `S__bothCase__total` (a plain `total` would hide the file-scope `total` for the rest of its scope, so `global.total` would reach the local). */
 uint32_t S__bothCase(uint32_t S__bothCase__total) {
     return cnx_clamp_add_u32(S__bothCase__total, total);
 }
 
+/* C11 6.2.1p4, C++ [basic.scope.hiding]: `total` emitted as `S__writeCase__total` (a plain `total` would hide the file-scope `total` for the rest of its scope, so `global.total` would reach the local). */
 uint32_t S__writeCase(uint32_t& S__writeCase__total) {
     S__writeCase__total = 5U;
     return total;
 }
 
+/* C11 6.2.1p4, C++ [basic.scope.hiding]: `buf` emitted as `S__arrayCase__buf` (a plain `buf` would hide the file-scope `buf` for the rest of its scope, so `global.buf` would reach the local). */
 uint32_t S__arrayCase(uint32_t S__arrayCase__buf[2]) {
     return cnx_clamp_add_u32(S__arrayCase__buf[0U], buf[0U]);
 }
@@ -61,6 +66,7 @@ uint32_t S__plainCase(uint32_t fresh) {
 }
 
 // Outside any scope: the same rule for a free function
+/* C11 6.2.1p4, C++ [basic.scope.hiding]: `total` emitted as `freeCase__total` (a plain `total` would hide the file-scope `total` for the rest of its scope, so `global.total` would reach the local). */
 uint32_t freeCase(uint32_t freeCase__total) {
     return cnx_clamp_add_u32(freeCase__total, total);
 }

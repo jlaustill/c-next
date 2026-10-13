@@ -3,7 +3,8 @@ import ElementCount from "../../../../cnx/utils/ElementCount";
 import testAnalysisContextFor from "../TRANSPILE/1-Analyze/testAnalysisContextFor";
 import type TConstExpr from "../../../../cnx/types/TConstExpr";
 
-const AT = { line: 1, column: 0 };
+/** After each source's one declaration, where a use sees it (#1643) */
+const AT = { line: 2, column: 0 };
 const lit = (digits: string): TConstExpr => ({
   kind: "literal",
   digits,

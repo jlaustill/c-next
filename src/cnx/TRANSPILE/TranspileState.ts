@@ -26,6 +26,7 @@ import invariant from "../utils/invariant";
 import emittedLocalName from "../utils/emittedLocalName";
 import AdrProvenance from "../instrumentation/AdrProvenance";
 import type ILocalDeclaration from "../types/ILocalDeclaration";
+import type IVariableDeclarationSyntax from "../types/syntax/IVariableDeclarationSyntax";
 import type IBoundParameter from "./types/IBoundParameter";
 import ToolchainRequirements from "../instrumentation/ToolchainRequirements";
 import type TIncludeHeader from "../types/TIncludeHeader";
@@ -296,6 +297,53 @@ class TranspileState {
   }
 
   /**
+   * #1643 review: a declaration's own facts -- the declaration itself, found
+   * by its declarator's identity, so it never reads one it shadows
+   */
+  ownTypeInfo(
+    decl: Pick<IVariableDeclarationSyntax, "name" | "nameSpan">,
+  ): TTypeInfo | undefined {
+    return DeclaredTypeInfo.of(
+      this.ownBinding(decl),
+      this.typingContext().symbols,
+      this.symbolTable,
+      this.targetDescription,
+    );
+  }
+
+  /**
+   * #1643 review: the local a declaration declares, found by its declarator's
+   * identity -- undefined for a file-scope one
+   */
+  ownLocalDeclaration(
+    decl: Pick<IVariableDeclarationSyntax, "name" | "nameSpan">,
+  ): ILocalDeclaration | undefined {
+    const binding = this.ownBinding(decl);
+    return binding?.kind === "local" ? binding.declaration : undefined;
+  }
+
+  /** The C identifier a declaration is emitted under (ADR-057) */
+  ownEmittedName(
+    decl: Pick<IVariableDeclarationSyntax, "name" | "nameSpan">,
+  ): string {
+    const binding = this.ownBinding(decl);
+    return binding?.kind === "local"
+      ? this.localCName(binding.declaration, decl.nameSpan)
+      : decl.name;
+  }
+
+  private ownBinding(
+    decl: Pick<IVariableDeclarationSyntax, "name" | "nameSpan">,
+  ): TValueBinding | null {
+    const typing = this.typingContext();
+    return typing.program.declarationOf(
+      typing.sourceFile,
+      decl.name,
+      decl.nameSpan,
+    );
+  }
+
+  /**
    * #1668 (C7): which declaration a name means where it is used -- the
    * binder's local -> scope -> global order (ADR-057), for a name as the
    * source spelled it.
@@ -307,19 +355,6 @@ class TranspileState {
   ): TValueBinding | null {
     const typing = this.typingContext();
     return typing.program.bindValue(typing.sourceFile, root, name, at);
-  }
-
-  /**
-   * #1934: the C identifier a name is emitted under where it is used -- the
-   * bound local's, as 1.4 settled it (ADR-057), else the name as written.
-   * Bound at `at`, so a block's shadowing local is renamed only inside it.
-   */
-  emittedLocalNameAt(name: string, at: ISourcePosition): string {
-    const binding = this.bindingAt(null, name, at);
-    if (binding?.kind !== "local") {
-      return name;
-    }
-    return this.localCName(binding.declaration, at);
   }
 
   /**
@@ -1210,25 +1245,6 @@ class TranspileState {
    */
   getAllScopeMembers(): ReadonlyMap<string, ReadonlySet<string>> {
     return this.scopeMembers;
-  }
-
-  /**
-   * Resolve an identifier to its fully-scoped name.
-   * Inside a scope, checks if the identifier is a scope member first.
-   */
-  resolveIdentifier(identifier: string): string {
-    if (this.currentScopePath !== "") {
-      const members = this.scopeMembers.get(this.currentScopePath);
-      if (members?.has(identifier)) {
-        // Built from the whole PATH, so a member of a nested scope gets every
-        // component rather than just the innermost one.
-        return ScopeUtils.getTranspiledCName({
-          name: identifier,
-          scopePath: this.currentScopePath,
-        });
-      }
-    }
-    return identifier;
   }
 
   // ===========================================================================

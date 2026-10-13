@@ -568,12 +568,7 @@ describe("TSymbolInfoAdapter", () => {
 
   describe("convert variables", () => {
     /**
-     * #1398: `processVariable` routes a variable to exactly one of two places,
-     * and the value check reads them on different keys -- `knownVariables` by
-     * bare name, `scopeMembers` under a scope path. The exclusion is the half
-     * most likely to drift, because putting a scoped variable in both sets
-     * still passes every fixture: it would only make E0427 more permissive,
-     * which no assertion notices until a scoped name leaks bare.
+     * #1398: a scoped variable is reached through its scope path, never bare.
      */
     const makeValue = (name: string, scopePath: string): IVariableSymbol => ({
       ...TestSymbolUtils.base({
@@ -594,20 +589,11 @@ describe("TSymbolInfoAdapter", () => {
       initialValue: "42",
     });
 
-    it("records a file-scope variable in knownVariables (#1398)", () => {
-      const info = TSymbolInfoAdapter.convert([makeValue("SHARED_LIMIT", "")]);
-
-      expect(info.knownVariables.has("SHARED_LIMIT")).toBe(true);
-    });
-
-    it("keeps a scoped variable OUT of knownVariables, in scopeMembers", () => {
+    it("records a scoped variable in scopeMembers", () => {
       const info = TSymbolInfoAdapter.convert([
         makeValue("MAX_SPEED", "Motor"),
       ]);
 
-      // Not reachable bare, so it must not answer the bare value lookup...
-      expect(info.knownVariables.has("MAX_SPEED")).toBe(false);
-      // ...it is reached through the scope path instead.
       expect(info.scopeMembers.get("Motor")?.has("MAX_SPEED")).toBe(true);
     });
 

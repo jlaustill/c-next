@@ -17,6 +17,7 @@
 void calculate(uint32_t value) {
 }
 
+/* C11 6.2.1p4, C++ [basic.scope.hiding]: `process` emitted as `process__process` (a plain `process` would hide the file-scope `process` for the rest of its scope, so `global.process` would reach the local). */
 void process(uint32_t process__process) {
 }
 

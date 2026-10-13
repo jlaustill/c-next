@@ -30,6 +30,7 @@ uint32_t buf[2] = {70U, 80U};
 
 uint32_t seen = 0U;
 
+/* C11 6.2.1p4, C++ [basic.scope.hiding]: `buf` emitted as `handler__buf` (a plain `buf` would hide the file-scope `buf` for the rest of its scope, so `global.buf` would reach the local). */
 void handler(uint32_t total, uint32_t handler__buf[2]) {
     seen = cnx_clamp_add_u32(total, handler__buf[1U]);
 }

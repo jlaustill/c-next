@@ -394,7 +394,7 @@ class ConstantNames {
     rest: ReadonlyArray<string>,
     walk: IWalk,
   ): TConstResult {
-    if (rest.length !== 1) return ConstantNames.unbound(rest, walk);
+    if (rest.length !== 1) return ConstantNames.unbound(root, head, rest, walk);
     const scopePath = walk.facts.scopePathAt(walk.at);
     let cName = head;
     if (root === "this") {
@@ -408,20 +408,22 @@ class ConstantNames {
     if (walk.facts.visibleSymbol(cName)?.kind === "enum") {
       return walk.facts.enumMember(cName, rest[0], walk.spelling, walk.at);
     }
-    return ConstantNames.unbound(rest, walk);
+    return ConstantNames.unbound(root, head, rest, walk);
   }
 
   /**
-   * A name nothing C-Next declares. A `#define` never reaches the symbol
-   * model, so in a file that includes a header it may be a macro -- C's to
-   * evaluate, as E0427 leaves it (#1175). Elsewhere it is undeclared, which
-   * E0427 reports.
+   * A name nothing binds. A `#define` never reaches the symbol model, so one
+   * no declaration of the file would bind, in a file that includes a header,
+   * may be a macro -- C's to evaluate, as E0427 leaves it (#1175). Elsewhere it is
+   * undeclared, which E0427 reports.
    */
   private static unbound(
+    root: TChainRoot,
+    head: string,
     rest: ReadonlyArray<string>,
     walk: IWalk,
   ): TConstResult {
-    if (!walk.facts.reachesForeignHeader) {
+    if (!walk.facts.mayBeHeaderName(root, head, walk.at)) {
       return ConstantNames.without("unknown", walk);
     }
     // A macro is a bare name: C has no spelling for `X.y` that C-Next could

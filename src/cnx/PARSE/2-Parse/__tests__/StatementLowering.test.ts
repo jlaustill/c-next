@@ -120,3 +120,31 @@ describe("StatementLowering", () => {
     expect(only("return;")).toMatchObject({ value: null });
   });
 });
+
+// #1643 (ADR-030): whether a declaration spells its own name past its
+// declarator is how it is WRITTEN, so 1.2 answers it from the tokens.
+describe("spellsOwnName", () => {
+  const spells = (statement: string): boolean => {
+    const lowered = only(statement);
+    if (
+      lowered.kind !== "variableDeclaration" &&
+      lowered.kind !== "constructorDeclaration"
+    ) {
+      throw new Error(`not a declaration: ${statement}`);
+    }
+    return lowered.spellsOwnName;
+  };
+
+  it("is true for a bare spelling in the initializer or the arguments", () => {
+    expect(spells("u32 x <- x + 1;")).toBe(true);
+    expect(spells("Widget w(w);")).toBe(true);
+  });
+
+  it("is false after a `.`, for a field key, and for another name", () => {
+    expect(spells("u32 x <- this.x;")).toBe(false);
+    expect(spells("u32 x <- global.x;")).toBe(false);
+    expect(spells("P x <- { x: 1 };")).toBe(false);
+    expect(spells("u32 x <- y;")).toBe(false);
+    expect(spells("Widget w(v);")).toBe(false);
+  });
+});

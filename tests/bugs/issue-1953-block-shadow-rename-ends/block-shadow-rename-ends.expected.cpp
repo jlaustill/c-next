@@ -17,6 +17,7 @@ uint8_t count = 7U;
 int main(void) {
     uint32_t flag = 1U;
     if (flag == 1) {
+        /* C11 6.2.1p4, C++ [basic.scope.hiding]: `buf` emitted as `main__buf` (a plain `buf` would hide the file-scope `buf` for the rest of its scope, so `global.buf` would reach the local). */
         uint8_t main__buf[8] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
         if (sizeof(main__buf) != 8) {
             return 1U;
@@ -26,6 +27,7 @@ int main(void) {
         return 2U;
     }
     if (flag == 1) {
+        /* C11 6.2.1p4, C++ [basic.scope.hiding]: `buf` emitted as `main__buf` (a plain `buf` would hide the file-scope `buf` for the rest of its scope, so `global.buf` would reach the local). */
         uint8_t main__buf[2] = {0U, 0U};
         if (sizeof(main__buf) != 2) {
             return 3U;
@@ -35,6 +37,7 @@ int main(void) {
         return 4U;
     }
     if (flag == 1) {
+        /* C11 6.2.1p4, C++ [basic.scope.hiding]: `count` emitted as `main__count` (a plain `count` would hide the file-scope `count` for the rest of its scope, so `global.count` would reach the local). */
         uint8_t main__count = 3U;
         if (main__count != 3) {
             return 5U;

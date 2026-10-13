@@ -134,7 +134,6 @@ function createMockOrchestrator(overrides?: {
     getState: vi.fn(),
     applyEffects: vi.fn(),
     getIndent: vi.fn(() => ""),
-    resolveIdentifier: vi.fn((name) => name),
     generateExpression:
       overrides?.generateExpression ?? vi.fn((ctx) => ctx.getText()),
     generateExpressionWithExpectedType: vi.fn(),

@@ -553,10 +553,10 @@ void f(u32 a) {
     expect(constantAt(program, "a.cnx", "C", use)?.value).toBe(5);
   });
 
-  it("folds an initializer where its names bind, after the declared name (#1760 review)", () => {
-    // Emission binds `N` in `N + 1` to the new local, as C scopes it, so the
-    // fold must too: a self-referencing const has no value (#1643 decides
-    // whether it is allowed). It used to fold against the global, 5.
+  it("folds an initializer where its names bind, before the declaration closes (#1760 review, #1643)", () => {
+    // `N + 1` is in `N`'s own initializer, where the new local is not defined
+    // yet (ADR-030): it binds the global, and emission reads the global too --
+    // the local is emitted as `f__N` (ADR-057), so C's `N` is the global's
     const source = `const u8 N <- 4;
 void f() {
     const u16 N <- N + 1;
@@ -564,13 +564,12 @@ void f() {
 }`;
     const program = build({ "a.cnx": source });
     const use = at(source, "u8 last");
-    // It settled with no value, and keeps why for a use to say (#1863 review)
     expect(
       program.lexicalDeclarationAt("a.cnx", "N", use)?.constValue,
-    ).toMatchObject({ kind: "notConstant" });
+    ).toMatchObject({ kind: "value", digits: "5" });
     expect(
       program.bindValue("a.cnx", null, "N", at(source, "N + 1"))?.kind,
-    ).toBe("local");
+    ).toBe("variable");
   });
 
   it("folds a declaration's own dimensions before its name (#1760 review)", () => {

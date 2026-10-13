@@ -24,6 +24,7 @@ import IFunctionContextCallbacks from "../types/IFunctionContextCallbacks";
 import TypedefParamParser from "./TypedefParamParser";
 import SymbolGuards from "../../../../types/symbols/SymbolGuards";
 import invariant from "../../../../utils/invariant";
+import ComplianceAnnotations from "../../../2-Plan/ComplianceAnnotations";
 import type IParameterInfo from "../../../../types/symbols/IParameterInfo";
 import type IPlannedFunctionParameter from "../types/IPlannedFunctionParameter";
 import type IPlannedType from "../types/IPlannedType";
@@ -340,6 +341,26 @@ class FunctionContextManager {
       `1.4 settled the C name of parameter ${paramIndex} of ${state.currentFunctionName}`,
     );
     return emittedName;
+  }
+
+  /**
+   * #1643 review: the comment lines citing why each of the current function's
+   * moved parameters moved, for above its definition. A parameter has no
+   * initializer, so ADR-057's file-scope name is the one thing that moves it.
+   */
+  static movedParameterComments(state: TranspileState): string {
+    return FunctionContextManager.settledParameters(state)
+      .map((parameter) =>
+        parameter.emittedName === null ||
+        parameter.emittedName === parameter.name
+          ? ""
+          : ComplianceAnnotations.renderMoves(
+              ["hidesFileScope"],
+              parameter.name,
+              parameter.emittedName,
+            ),
+      )
+      .join("");
   }
 
   /** The current function's parameters, as 1.4 settled them */

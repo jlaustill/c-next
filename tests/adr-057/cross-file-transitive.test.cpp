@@ -54,6 +54,7 @@ uint32_t Report__readTally(void) {
 uint32_t spare = 40U;
 
 uint32_t detached(void) {
+    /* C11 6.2.1p4, C++ [basic.scope.hiding]: `spare` emitted as `detached__spare` (a plain `spare` would hide the file-scope `spare` for the rest of its scope, so `global.spare` would reach the local). */
     uint32_t detached__spare = 6U;
     return detached__spare;
 }

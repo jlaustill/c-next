@@ -3,6 +3,7 @@ import type TOverflowBehavior from "./TOverflowBehavior";
 import type TType from "./TType";
 import type TConstExpr from "./TConstExpr";
 import type TSettledConst from "./TSettledConst";
+import type TNameMove from "./TNameMove";
 
 /**
  * One declaration inside a function: a local, a parameter, a `for` variable
@@ -19,8 +20,14 @@ import type TSettledConst from "./TSettledConst";
 interface ILocalDeclaration {
   readonly name: string;
   readonly kind: "local" | "parameter" | "for" | "constructor";
-  /** The declarator IDENTIFIER's span; a use binds only after it starts */
+  /** The declarator IDENTIFIER's span */
   readonly span: ISourceSpan;
+  /**
+   * #1643: the whole declaration's span, initializer included. It is defined
+   * where this closes (`DefinitionPoint`), so its own initializer names
+   * something not yet defined (ADR-030).
+   */
+  readonly extent: ISourceSpan;
   readonly type: TType;
   /** Leading first; a const name 1.4 could not fold stays its text */
   readonly arrayDimensions: ReadonlyArray<number | string>;
@@ -35,6 +42,11 @@ interface ILocalDeclaration {
   readonly initialValue: string | null;
   /** #1175: a const's initializer as written, which `constValue` folds from */
   readonly initialValueExpr: TConstExpr | null;
+  /**
+   * #1643: whether the declaration spells its own name, bare, before it
+   * closes -- a spelling that binds the declaration it shadows (ADR-057)
+   */
+  readonly spellsOwnName: boolean;
   /** #895: what the initializer calls (`VariableCollector.calleeOf`) */
   readonly initializerCallee: string | null;
   /**
@@ -50,6 +62,11 @@ interface ILocalDeclaration {
    * binding at its own position, so a block's rename ends with the block.
    */
   readonly emittedName: string | null;
+  /**
+   * #1643 review: why `emittedName` is not `name`, settled with it -- empty
+   * when it is, and before 1.4 settles it
+   */
+  readonly nameMoves: ReadonlyArray<TNameMove>;
 }
 
 export default ILocalDeclaration;

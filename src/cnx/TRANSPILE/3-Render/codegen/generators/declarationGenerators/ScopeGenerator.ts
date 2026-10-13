@@ -239,11 +239,15 @@ function renderScopeFunction(
 
   // Now generate parameter list (can use modifiedParameters for auto-const)
   const params = plan.renderParameterList();
+  const moveComments = orchestrator.movedParameterComments();
 
   orchestrator.exitFunctionContext();
 
   const lines: string[] = [];
-  lines.push("", `${prefix}${returnType} ${plan.fullName}(${params}) ${body}`);
+  lines.push(
+    "",
+    `${moveComments}${prefix}${returnType} ${plan.fullName}(${params}) ${body}`,
+  );
 
   // ADR-029: Generate callback typedef only if used as a type
   orchestrator.recordCallbackTypedef(plan.fullName);

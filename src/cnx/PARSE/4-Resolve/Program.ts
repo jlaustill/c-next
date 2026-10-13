@@ -36,6 +36,8 @@ import invariant from "../../utils/invariant";
 import emittedLocalName from "../../utils/emittedLocalName";
 import type IFunctionSymbol from "../../types/symbols/IFunctionSymbol";
 import ScopeUtils from "../../utils/ScopeUtils";
+import type TDefinedAt from "../../utils/types/TDefinedAt";
+import DefinitionPoint from "../../utils/DefinitionPoint";
 import type IScopeSymbol from "../../types/symbols/IScopeSymbol";
 import type IFileSymbols from "../../types/IFileSymbols";
 import type IStructFieldInfo from "../../types/symbols/IStructFieldInfo";
@@ -379,6 +381,19 @@ class Program {
         at: TPosition,
       ): TValueBinding | null =>
         Program.bindValue(bound, sourceFile, root, name, at),
+      declarationOf: (
+        sourceFile: string,
+        name: string,
+        declarator: TPosition,
+      ): TValueBinding | null =>
+        Program.declarationOf(bound, sourceFile, name, declarator),
+      mayBeHeaderName: (
+        sourceFile: string,
+        root: TChainRoot,
+        name: string,
+        at: TPosition,
+      ): boolean =>
+        Program.mayBeHeaderName(bound, fileFacts, sourceFile, root, name, at),
       constantValueOf: (
         sourceFile: string,
         name: Extract<TConstExpr, { kind: "name" }>,
@@ -963,6 +978,8 @@ class Program {
       get reachesForeignHeader() {
         return options.files.reachesForeignHeader(file());
       },
+      mayBeHeaderName: (root, name, at) =>
+        Program.mayBeHeaderName(facts, options.files, file(), root, name, at),
       foreignValue: (name) => facts.foreignValues.get(name) ?? null,
       constValue: (symbol) => {
         const value = constants.consts.get(symbol.fullyQualifiedCName);
@@ -1303,14 +1320,137 @@ class Program {
     name: string,
     at: TPosition,
   ): TValueBinding | null {
+    return Program.lookUp(
+      facts,
+      sourceFile,
+      root,
+      name,
+      at,
+      DefinitionPoint.isDefinedAt,
+    );
+  }
+
+  /**
+   * `bindValue`'s order, with `isDefinedAt` deciding whether a declaration of
+   * `sourceFile` is there yet. Binding passes `DefinitionPoint`'s; reach
+   * passes one that counts every declaration, to find the one binding skipped.
+   */
+  private static lookUp(
+    facts: IBindingFacts,
+    sourceFile: string,
+    root: TChainRoot,
+    name: string,
+    at: TPosition,
+    isDefinedAt: TDefinedAt,
+  ): TValueBinding | null {
     const frames = Program.framesOf(facts.framesByFile, sourceFile);
     const scopePath = LexicalFrames.frameAt(frames, at).scopePath;
     const local =
-      root === null ? LexicalFrames.declarationAt(frames, name, at) : null;
+      root === null
+        ? LexicalFrames.declarationAt(frames, name, at, isDefinedAt)
+        : null;
     if (local) {
       return { kind: "local", declaration: local, scopePath };
     }
-    return Program.bindOutside(facts, sourceFile, scopePath, root, name);
+    return Program.bindOutside(
+      facts,
+      sourceFile,
+      scopePath,
+      root,
+      name,
+      at,
+      isDefinedAt,
+    );
+  }
+
+  /**
+   * #1643 review: what a use of the declaration whose declarator `name` is at
+   * `declarator` binds to, found by identity: its local, else the file-scope
+   * or member variable of that C name `sourceFile` declares
+   */
+  private static declarationOf(
+    facts: IBindingFacts,
+    sourceFile: string,
+    name: string,
+    declarator: TPosition,
+  ): TValueBinding | null {
+    const frames = Program.framesOf(facts.framesByFile, sourceFile);
+    const scopePath = LexicalFrames.frameAt(frames, declarator).scopePath;
+    const local = LexicalFrames.declarationDeclaredAt(frames, declarator);
+    if (local) {
+      return { kind: "local", declaration: local, scopePath };
+    }
+    const symbol = facts.symbolsByCName.get(
+      ScopeUtils.getTranspiledCName({ name, scopePath }),
+    );
+    return symbol?.kind === "variable" && symbol.sourceFile === sourceFile
+      ? { kind: "variable", symbol }
+      : null;
+  }
+
+  /** Whether a variable of `sourceFile` has not closed its declaration at `at` */
+  private static closesAfter(
+    symbol: TSymbol,
+    sourceFile: string,
+    at: TPosition,
+    isDefinedAt: TDefinedAt = DefinitionPoint.isDefinedAt,
+  ): boolean {
+    return (
+      symbol.kind === "variable" &&
+      symbol.sourceFile === sourceFile &&
+      !isDefinedAt(symbol, at)
+    );
+  }
+
+  /**
+   * #2019: whether the spelling names a declaration of `sourceFile` that has
+   * not closed at `at`: what `bindValue` would bind were every declaration
+   * already defined, when that one is not defined yet.
+   */
+  private static isUnclosedAt(
+    facts: IBindingFacts,
+    sourceFile: string,
+    root: TChainRoot,
+    name: string,
+    at: TPosition,
+  ): boolean {
+    const reached = Program.lookUp(
+      facts,
+      sourceFile,
+      root,
+      name,
+      at,
+      Program.EVERY_DECLARATION_DEFINED,
+    );
+    if (reached?.kind === "local") {
+      return !DefinitionPoint.isDefinedAt(reached.declaration, at);
+    }
+    return (
+      reached?.kind === "variable" &&
+      Program.closesAfter(reached.symbol, sourceFile, at)
+    );
+  }
+
+  private static readonly EVERY_DECLARATION_DEFINED: TDefinedAt = () => true;
+
+  /**
+   * ADR-030 / #2019: whether a spelling nothing binds at `at` may be a
+   * header's `#define`, which reaches no symbol table: the file reaches a C
+   * or C++ header, and no declaration of the file would bind it there were
+   * it closed. One that would is C-Next's, and not defined yet (E0427).
+   */
+  private static mayBeHeaderName(
+    facts: IBindingFacts,
+    files: IFileConstantFacts,
+    sourceFile: string,
+    root: TChainRoot,
+    name: string,
+    at: TPosition,
+  ): boolean {
+    return (
+      files.reachesForeignHeader(sourceFile) &&
+      !Program.isUnclosedAt(facts, sourceFile, root, name, at)
+    );
   }
 
   /**
@@ -1324,9 +1464,17 @@ class Program {
     scopePath: string,
     root: TChainRoot,
     name: string,
+    at: TPosition,
+    isDefinedAt: TDefinedAt,
   ): TValueBinding | null {
-    const visibleSymbol = (cName: string): TSymbol | undefined =>
-      Program.visibleSymbolIn(facts, sourceFile, cName);
+    // #1643: a variable this file has not finished declaring is not there yet
+    const visibleSymbol = (cName: string): TSymbol | undefined => {
+      const symbol = Program.visibleSymbolIn(facts, sourceFile, cName);
+      return symbol !== undefined &&
+        Program.closesAfter(symbol, sourceFile, at, isDefinedAt)
+        ? undefined
+        : symbol;
+    };
     const declared = (cName: string): TValueBinding | null => {
       const symbol = visibleSymbol(cName);
       if (symbol?.kind === "variable") return { kind: "variable", symbol };

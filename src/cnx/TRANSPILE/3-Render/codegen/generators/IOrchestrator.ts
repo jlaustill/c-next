@@ -46,9 +46,6 @@ interface IOrchestrator {
   /** Get the current indentation string */
   getIndent(): string;
 
-  /** Resolve an identifier to its fully-scoped name */
-  resolveIdentifier(name: string): string;
-
   // === Expression Generation ===
   // These methods allow extracted generators to call back into CodeGenerator
   // for parts not yet extracted, enabling incremental "strangler fig" migration.
@@ -194,6 +191,12 @@ interface IOrchestrator {
     returnTypeText: string,
     parameters: readonly IPlannedFunctionParameter[] | null,
   ): void;
+
+  /**
+   * #1643 review: one comment per parameter of the function being generated
+   * whose C name moved (ADR-057), for above its definition
+   */
+  movedParameterComments(): string;
 
   exitFunctionContext(): void;
 

@@ -134,6 +134,7 @@ uint32_t count = 1000U;
 static uint32_t Counter__count = 100U;
 
 uint32_t Counter__test(void) {
+    /* C11 6.2.1p4, C++ [basic.scope.hiding]: `count` emitted as `Counter__test__count` (a plain `count` would hide the file-scope `count` for the rest of its scope, so `global.count` would reach the local). */
     uint32_t Counter__test__count = 10U;
     return Counter__test__count + Counter__count + count;
 }
@@ -147,8 +148,17 @@ shadowing local that kept its bare name lands on the global, compiles under
 `-Wall -Wextra`, and is invisible until runtime. A local that shadows nothing,
 or that shadows only an enclosing _local_, keeps its own name: C block scoping
 already gives the right answer there, and neither `this.` nor `global.` can name
-an enclosing local. The generated file is a certification artifact, so names stay
-plain wherever the language does not require otherwise.
+an enclosing local. The exception is an initializer that names the enclosing
+local or parameter it shadows (#1643): C-Next reads the enclosing one (ADR-030),
+but C scopes the new name from its declarator, so the new local moves to
+`<function>__<name>` — or `<function>__<name>__2`, and so on, past the enclosing
+one's C name. The generated file is a certification artifact, so names stay
+plain wherever the language does not require otherwise, and every moved name
+carries a one-line comment at its declaration citing why: C11 6.2.1p4 and C++
+[basic.scope.hiding] for a file-scope shadow, as above, and C11 6.2.1p7 and C++
+[basic.scope.pdecl] for #1643's, since there the new name's scope begins before
+its initializer. A moved parameter's comment is above its function's
+definition, not inside the parameter list.
 
 One gap is tracked rather than hidden: the "is this name taken at file
 scope" test is currently answered run-wide rather than per translation unit, so

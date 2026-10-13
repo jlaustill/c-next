@@ -315,6 +315,9 @@ const generateFor = (
   const body = plan.renderBody();
 
   let result = `for (${init}; ${condition}; ${update}) ${body}`;
+  if (plan.init?.kind === "varDecl") {
+    result = plan.init.plan.nameMoveComments + result;
+  }
 
   // Prepend all temps before the for statement
   const allTemps = [initTemps, conditionTemps, updateTemps]

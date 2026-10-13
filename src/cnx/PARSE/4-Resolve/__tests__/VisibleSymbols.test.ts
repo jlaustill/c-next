@@ -12,8 +12,6 @@ import type IBitmapFieldLayout from "../../../types/IBitmapFieldLayout";
 import TSymbolInfoAdapter from "../../3-Declare/cnext/adapters/TSymbolInfoAdapter";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import IBitmapSymbol from "../../../types/symbols/IBitmapSymbol";
-import IVariableSymbol from "../../../types/symbols/IVariableSymbol";
-import TypeResolver from "../../../utils/TypeResolver";
 import TestSymbolUtils from "../../3-Declare/cnext/__tests__/testSymbolUtils";
 import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
 import TestMembers from "../../../types/__testUtils__/testMembers";
@@ -139,64 +137,6 @@ describe("VisibleSymbols", () => {
       const base = TSymbolInfoAdapter.convert([makeBitmap("Flags")]);
 
       expect(VisibleSymbols.mergeExternalSymbols(base, [])).toBe(base);
-    });
-  });
-  describe("mergeExternalSymbols — file-scope value names (#1398)", () => {
-    const makeFileScopeConst = (name: string): IVariableSymbol => ({
-      ...TestSymbolUtils.base({
-        kind: "variable",
-        name,
-        scopePath: "",
-        sourceFile: "lib.cnx",
-        span: TestSourceSpan.at(1),
-        sourceLanguage: ESourceLanguage.CNext,
-        visibility: "public",
-      }),
-      type: TypeResolver.resolve("u32"),
-      isConst: true,
-      isAtomic: false,
-      isVolatile: false,
-      overflowBehavior: "clamp",
-      isArray: false,
-      initialValue: "42",
-    });
-
-    /**
-     * The value-axis twin of the bitmap test above. #1333 fixed this same
-     * asymmetry between two kinds of TYPE in this same function; #1398 is the
-     * kind of asymmetry one axis over -- a type declared in an included file
-     * crossed and a const beside it did not, so E0426 fired across a file
-     * boundary and E0427 could not.
-     *
-     * Asserted here rather than only through `declared-value-resolves` because
-     * the integration control reaches this line by traversal: deleting the
-     * `_mergeNames` call reddens a `.cnx` fixture three layers away, and per
-     * CLAUDE.md's "presence is not proof", an assertion beside the line is the
-     * one that cannot be satisfied by accident.
-     */
-    it("carries a file-scope value name across the boundary", () => {
-      const base = TSymbolInfoAdapter.convert([]);
-      const external = TSymbolInfoAdapter.convert([
-        makeFileScopeConst("SHARED_LIMIT"),
-      ]);
-
-      const merged = VisibleSymbols.mergeExternalSymbols(base, [external]);
-
-      expect(merged.knownVariables.has("SHARED_LIMIT")).toBe(true);
-    });
-
-    it("keeps the local file's own value names when merging", () => {
-      const base = TSymbolInfoAdapter.convert([
-        makeFileScopeConst("OWN_LIMIT"),
-      ]);
-      const external = TSymbolInfoAdapter.convert([
-        makeFileScopeConst("SHARED_LIMIT"),
-      ]);
-
-      const merged = VisibleSymbols.mergeExternalSymbols(base, [external]);
-
-      expect(merged.knownVariables.has("OWN_LIMIT")).toBe(true);
-      expect(merged.knownVariables.has("SHARED_LIMIT")).toBe(true);
     });
   });
 });
