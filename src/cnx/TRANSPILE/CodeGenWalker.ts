@@ -1649,6 +1649,18 @@ class CodeGenWalker {
     return planned;
   }
 
+  /** Whether 2.3 writes a `.char_count` read: the typer's step names the property */
+  private readsCharCount(program: IProgramSyntax): boolean {
+    const typing = this.host.state.typingContext();
+    return this.writtenExpressions(program).some(
+      (expression) =>
+        expression.kind === "postfix" &&
+        OperandTyper.chainOf(expression, typing).steps.some(
+          (step) => step.property === "char_count",
+        ),
+    );
+  }
+
   /** Every expression 2.3 writes, except inside a dimension or enum value, which 1.4 spells */
   private writtenExpressions(program: IProgramSyntax): TExpression[] {
     return WrittenParts.of(program, this.plannedInlinedConsts).flatMap(
@@ -1925,6 +1937,10 @@ class CodeGenWalker {
     this.plannedComparisons = this.planComparisons(program);
     // ADR-045: a string comparison is written as strcmp, from <string.h>
     if ([...this.plannedComparisons.values()].includes(true)) {
+      this.host.state.requireInclude("string");
+    }
+    // ADR-058: `.char_count` is written as strlen, from <string.h>
+    if (this.readsCharCount(program)) {
       this.host.state.requireInclude("string");
     }
     this.plannedCasts = this.planCasts(program);

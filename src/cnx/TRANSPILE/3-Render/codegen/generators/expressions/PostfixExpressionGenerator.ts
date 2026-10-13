@@ -461,7 +461,7 @@ const tryPropertyAccess = (
       result = generateElementCountProperty(ctx, input, state);
       break;
     case "char_count":
-      result = generateCharCountProperty(ctx, state, effects);
+      result = generateCharCountProperty(ctx, state);
       break;
     // ADR-045: string storage
     case "capacity":
@@ -663,7 +663,6 @@ const generateElementCountProperty = (
 const generateCharCountProperty = (
   ctx: IPropertyContext,
   state: IGeneratorState,
-  effects: TGeneratorEffect[],
 ): string => {
   // Special case: main function's args
   invariant(
@@ -675,7 +674,7 @@ const generateCharCountProperty = (
     `E0867 rejects this in pass 2.1 -- .char_count is only available on strings, not on '${ctx.result}'.`,
   );
 
-  effects.push({ type: "include", header: "string" });
+  // 2.2 required <string.h> when it planned the read (#1991)
 
   // #1946/#1650: the cache is keyed by the operand it measured, rendered as
   // this read renders it, so a read takes it exactly when both name one object.

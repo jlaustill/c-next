@@ -2352,7 +2352,8 @@ describe("PostfixExpressionGenerator", () => {
 
       const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("strlen(str)");
-      expect(result.effects).toContainEqual({
+      // 2.2 requires <string.h> for the read (#1991): 2.3 adds no effect
+      expect(result.effects).not.toContainEqual({
         type: "include",
         header: "string",
       });
