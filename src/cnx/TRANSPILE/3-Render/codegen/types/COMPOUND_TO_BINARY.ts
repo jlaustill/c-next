@@ -10,7 +10,7 @@ import ASSIGNMENT_OPERATOR_MAP from "../../../../utils/constants/OperatorMapping
  * - AtomicGenerator.ts: Atomic compound operation expansion
  */
 // Partial: a spelling that is not a compound assignment yields undefined,
-// which callers check (S7765)
+// which callers refuse with an invariant (S7765)
 const COMPOUND_TO_BINARY: Readonly<Partial<Record<string, string>>> =
   Object.fromEntries(
     Object.entries(COMPOUND_BINARY_OPERATORS).map(([spelling, operator]) => [

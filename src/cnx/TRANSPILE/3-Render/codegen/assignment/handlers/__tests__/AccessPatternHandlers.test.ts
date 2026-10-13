@@ -137,6 +137,7 @@ describe("AccessPatternHandlers", () => {
       });
       const ctx = createMockContext({
         isCompound: true,
+        cnextOp: "+<-",
         cOp: "+=",
       });
 
@@ -206,6 +207,7 @@ describe("AccessPatternHandlers", () => {
         hasThis: true,
         hasGlobal: false,
         isCompound: true,
+        cnextOp: "-<-",
         cOp: "-=",
       });
 
@@ -356,6 +358,7 @@ describe("AccessPatternHandlers", () => {
       const ctx = createMockContext({
         identifiers: ["obj", "field"],
         isCompound: true,
+        cnextOp: "*<-",
         cOp: "*=",
       });
 

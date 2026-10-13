@@ -343,6 +343,7 @@ describe("SpecialHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["d"],
+        cnextOp: "-<-",
         cOp: "-=",
         generatedValue: "0.5",
       });
