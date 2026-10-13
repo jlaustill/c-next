@@ -2,10 +2,13 @@
  * Issue #1588: the grammar and ASSIGNMENT_OPERATOR_MAP are two halves of one
  * fact, and nothing tied them together.
  *
- * Adding an assignment operator is a two-file edit: `grammar/CNext.g4` and
- * `src/cnx/utils/constants/OperatorMappings.ts`. Miss the second and codegen used to
- * emit a plain `=` for it -- `i +<- 1` becoming `i = 1`, an infinite loop in a
- * `for` update, at transpile exit 0.
+ * Adding an assignment operator is an edit to `grammar/CNext.g4`,
+ * `src/cnx/types/syntax/ASSIGNMENT_OPERATORS.ts` and, for a compound one,
+ * `src/cnx/types/syntax/COMPOUND_BINARY_OPERATORS.ts`. The map is derived from
+ * that table, whose type requires an entry for every compound operator in the
+ * list, so this test holds the grammar, the list and the table together. Before
+ * the map was derived, missing it made codegen emit a plain `=` -- `i +<- 1`
+ * becoming `i = 1`, an infinite loop in a `for` update, at transpile exit 0.
  *
  * The mapper now throws on a lookup miss, which catches the divergence when
  * someone transpiles a program using the new operator. This catches it at the

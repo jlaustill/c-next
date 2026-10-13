@@ -40,6 +40,7 @@ import AssignmentSiteListener from "./AssignmentSiteListener";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import type TAssignmentSite from "../../types/TAssignmentSite";
 import type IOperandType from "../../types/IOperandType";
+import SourceOrder from "../../utils/SourceOrder";
 
 class ShiftCheck {
   constructor(
@@ -204,7 +205,7 @@ class ShiftAnalyzer {
     );
 
     // Two walks; report in source order, as the one walk they replace did
-    return this.errors.sort((a, b) => a.line - b.line || a.column - b.column);
+    return this.errors.sort(SourceOrder.compare);
   }
 
   /**

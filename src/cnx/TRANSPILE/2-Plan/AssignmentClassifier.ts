@@ -18,13 +18,8 @@ import OperandTyper from "../../utils/OperandTyper";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeUtils from "../../utils/ScopeUtils";
-
-/** ADR-044: the clamp helper each overflowing compound operator lowers to. */
-const CLAMP_HELPER_FOR_COMPOUND: Readonly<Partial<Record<string, string>>> = {
-  "+=": "add",
-  "-=": "sub",
-  "*=": "mul",
-};
+import CompoundOperator from "../../utils/CompoundOperator";
+import CLAMP_HELPER_FOR_OPERATOR from "../../types/CLAMP_HELPER_FOR_OPERATOR";
 
 /**
  * Classifies assignment statements by analyzing their structure.
@@ -844,7 +839,9 @@ class AssignmentClassifier {
     if (written?.overflowBehavior !== "clamp") return null;
     if (!TypeCheckUtils.isInteger(written.baseType)) return null;
     if (ctx.valueHasFloatingOperand()) return null;
-    const operation = CLAMP_HELPER_FOR_COMPOUND[ctx.cOp];
+    const operator = CompoundOperator.binaryOf(ctx.cnextOp);
+    const operation =
+      operator === null ? undefined : CLAMP_HELPER_FOR_OPERATOR[operator];
     return operation ? { operation, cnxType: written.baseType } : null;
   }
 

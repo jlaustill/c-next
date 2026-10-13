@@ -13,6 +13,7 @@ import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
 import type ITargetDescription from "../../../../../types/ITargetDescription";
 import COMPOUND_TO_BINARY from "../../types/COMPOUND_TO_BINARY";
+import invariant from "../../../../../utils/invariant";
 import InterruptMask from "../../helpers/InterruptMask";
 
 /**
@@ -68,7 +69,11 @@ function generateInnerAtomicOp(
   helperOp: string | null,
 ): IGeneratorOutput {
   const effects: TGeneratorEffect[] = [];
-  const simpleOp = COMPOUND_TO_BINARY[cOp] || "+";
+  const simpleOp = COMPOUND_TO_BINARY[cOp];
+  invariant(
+    simpleOp !== undefined,
+    `an atomic read-modify-write is a compound assignment (got '${cOp}')`,
+  );
 
   // Saturate when the classifier chose a clamp helper
   if (helperOp) {

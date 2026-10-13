@@ -56,6 +56,7 @@ import AssignmentSiteListener from "./AssignmentSiteListener";
 import ICallbackAssignmentError from "./types/ICallbackAssignmentError";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import type TAssignmentSite from "../../types/TAssignmentSite";
+import SourceOrder from "../../utils/SourceOrder";
 
 /** Where a function name landed, for the message. */
 interface ISlot {
@@ -321,9 +322,7 @@ class CallbackAssignmentAnalyzer {
       tree,
     );
     // Reported in source order, as the one walk these replace did
-    return listener
-      .errors()
-      .sort((a, b) => a.line - b.line || a.column - b.column);
+    return listener.errors().sort(SourceOrder.compare);
   }
 }
 

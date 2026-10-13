@@ -40,6 +40,7 @@ import IOrchestrator from "../IOrchestrator";
 import TGeneratorEffect from "../TGeneratorEffect";
 import TPlannedBinaryExpr from "../../types/TPlannedBinaryExpr";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
+import CLAMP_HELPER_FOR_OPERATOR from "../../../../../types/CLAMP_HELPER_FOR_OPERATOR";
 
 /**
  * Render every operand, collecting their effects.
@@ -76,22 +77,6 @@ const joinWithOperators = (
     result += ` ${operator} ${operandCodes[index]}`;
   }
   return result;
-};
-
-/**
- * Issue #1152: C-Next operators that have a saturating helper.
- *
- * Only `+ - *` can overflow into a helper. Unsigned division and modulo cannot
- * overflow at all, and the sole signed case (`INT_MIN / -1`) is left to the
- * existing safe-division path rather than folded in here.
- */
-// Partial: an operator outside this map yields undefined, which the chain
-// guard below relies on. Typing it as a total Record made that lookup appear
-// to always produce a string, so the guard read as dead code (S7765).
-const CLAMP_HELPER_FOR_OPERATOR: Readonly<Partial<Record<string, string>>> = {
-  "+": "add",
-  "-": "sub",
-  "*": "mul",
 };
 
 /**

@@ -24,6 +24,7 @@ import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import AssignmentSiteListener from "./AssignmentSiteListener";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import type TAssignmentSite from "../../types/TAssignmentSite";
+import SourceOrder from "../../utils/SourceOrder";
 
 /**
  * Detect division by zero (including const identifiers)
@@ -160,7 +161,7 @@ class DivisionByZeroAnalyzer {
     );
 
     // Two walks; report in source order
-    return this.errors.sort((a, b) => a.line - b.line || a.column - b.column);
+    return this.errors.sort(SourceOrder.compare);
   }
 
   /**
