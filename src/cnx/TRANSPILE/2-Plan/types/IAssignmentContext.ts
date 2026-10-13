@@ -77,6 +77,8 @@ interface IAssignmentContext {
   readonly plannedClamp: { operation: string; cnxType: string } | null;
   /** 2.2's decision: how a slice write reads its source (#1081), or null */
   readonly plannedSliceSource: IPlannedSliceSource | null;
+  /** 2.2's decision: the C type a narrow compound write is cast to, or null */
+  readonly plannedCompoundCast: string | null;
 
   /**
    * The value's essential type, its integer type, and its constant fold.

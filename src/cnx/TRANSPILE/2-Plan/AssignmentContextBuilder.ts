@@ -50,6 +50,7 @@ interface IContextBuilderDeps {
   readonly plannedClamp: { operation: string; cnxType: string } | null;
   /** 2.2's decision: how a slice write reads its source (#1081), or null */
   readonly plannedSliceSource: IPlannedSliceSource | null;
+  readonly plannedCompoundCast: string | null;
 
   /**
    * 2.3 Render's per-file working state (#1452 box 4), carried onto the built
@@ -284,6 +285,7 @@ function buildAssignmentContext(
     atomicForm: deps.atomicForm,
     plannedClamp: deps.plannedClamp,
     plannedSliceSource: deps.plannedSliceSource,
+    plannedCompoundCast: deps.plannedCompoundCast,
     hasValue: valueExpr.kind !== "missing",
     valueExpressionType: () => deps.expressionType(valueExpr),
     valueIntegerType: () => deps.integerExpressionType(valueExpr),

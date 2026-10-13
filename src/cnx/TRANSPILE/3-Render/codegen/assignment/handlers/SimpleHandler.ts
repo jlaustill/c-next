@@ -8,9 +8,9 @@
  * u8, u16), expands to explicit cast: `target = (type)(target OP value);`
  * Also handles int-to-float conversions with explicit casts.
  */
+import invariant from "../../../../../utils/invariant";
 import IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
 import NarrowingCastHelper from "../../../../2-Plan/NarrowingCastHelper";
-import TYPE_MAP from "../../../../2-Plan/types/TYPE_MAP";
 import CppModeHelper from "../../../../2-Plan/CppModeHelper";
 import COMPOUND_TO_BINARY from "../../../../2-Plan/types/COMPOUND_TO_BINARY";
 
@@ -22,23 +22,17 @@ function tryHandleCompoundNarrowingCast(
   ctx: IAssignmentContext,
   target: string,
 ): string | null {
-  if (!ctx.isCompound || !ctx.target.typeInfo) {
-    return null;
-  }
-
-  const baseType = ctx.target.typeInfo.baseType;
-  const promotedType = NarrowingCastHelper.getPromotedType(baseType);
-
-  if (promotedType !== "int" || baseType === "int") {
+  // 2.2 decided which compound writes are cast, and to what (#1991)
+  const cType = ctx.plannedCompoundCast;
+  if (cType === null) {
     return null;
   }
 
   const binaryOp = COMPOUND_TO_BINARY[ctx.cOp];
-  if (!binaryOp) {
-    return null;
-  }
-
-  const cType = TYPE_MAP[baseType] ?? baseType;
+  invariant(
+    binaryOp !== undefined,
+    `2.2 casts only a compound write with a binary form (${ctx.cOp})`,
+  );
   const expr = `(${target} ${binaryOp} ${ctx.generatedValue})`;
   const castExpr = CppModeHelper.cast(cType, expr, ctx.state);
   return `${target} = ${castExpr};`;

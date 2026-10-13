@@ -10,6 +10,7 @@
  * in the other.
  */
 import type IGeneratorOutput from "../generators/IGeneratorOutput";
+import PRIMASK_C_TYPE from "../../../2-Plan/types/PRIMASK_C_TYPE";
 
 class InterruptMask {
   /**
@@ -21,7 +22,7 @@ class InterruptMask {
   static wrap(inner: string): IGeneratorOutput {
     return {
       code: `{
-    uint32_t __primask = __cnx_get_PRIMASK();
+    ${PRIMASK_C_TYPE} __primask = __cnx_get_PRIMASK();
     __cnx_disable_irq();
     ${inner}
     __cnx_set_PRIMASK(__primask);

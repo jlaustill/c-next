@@ -1,4 +1,6 @@
 import type IPlannedArgument from "./types/IPlannedArgument";
+import LengthProperty from "../../utils/LengthProperty";
+import PRIMASK_C_TYPE from "./types/PRIMASK_C_TYPE";
 import FloatBits from "../../utils/FloatBits";
 import type IPlannedFloatBits from "./types/IPlannedFloatBits";
 import type TPlannedNarrowing from "./types/TPlannedNarrowing";
@@ -953,11 +955,13 @@ class FilePlanner {
       decidedCTypes,
     );
     const sliceSources = new Map<IAssignmentSyntax, IPlannedSliceSource>();
+    const compoundCasts = new Map<IAssignmentSyntax, string>();
     this.planAssignmentCTypes(
       program,
       atomicForms,
       clamps.compound,
       sliceSources,
+      compoundCasts,
       decidedCTypes,
     );
     this.planLengthCTypes(program, inlinedConsts, decidedCTypes);
@@ -989,6 +993,7 @@ class FilePlanner {
       safeDivisions,
       clampChains: clamps.chains,
       compoundClamps: clamps.compound,
+      compoundCasts,
       clampOps: clamps.ops,
       sliceSources,
       expectedTypes,
@@ -1338,7 +1343,7 @@ class FilePlanner {
           (step.property === "bit_length" || step.property === "byte_length") &&
           step.before?.dimensions.some((dim) => typeof dim !== "number"),
       );
-      if (unfolded) cTypes.add("uint32_t");
+      if (unfolded) cTypes.add(LengthProperty.PRODUCT_C_TYPE);
     }
   }
 
@@ -1353,6 +1358,7 @@ class FilePlanner {
     atomicForms: ReadonlyMap<IAssignmentSyntax, TAtomicForm>,
     compoundClamps: ReadonlyMap<IAssignmentSyntax, unknown>,
     sliceSources: Map<IAssignmentSyntax, IPlannedSliceSource>,
+    compoundCasts: Map<IAssignmentSyntax, string>,
     cTypes: Set<string>,
   ): void {
     const typing = this.state.typingContext();
@@ -1386,7 +1392,9 @@ class FilePlanner {
         site.operatorSpan.line,
       );
       if (COMPOUND_TO_BINARY[cOp] !== undefined && !compoundClamps.has(site)) {
-        cTypes.add(TYPE_MAP[baseType] ?? baseType);
+        const cType = TYPE_MAP[baseType] ?? baseType;
+        compoundCasts.set(site, cType);
+        cTypes.add(cType);
       }
     }
   }
@@ -1646,7 +1654,7 @@ class FilePlanner {
         if (statement.kind === "critical") {
           requirements.require("irq_wrappers", statement.span.line);
           // The saved mask's type (#1927)
-          cTypes.add("uint32_t");
+          cTypes.add(PRIMASK_C_TYPE);
           continue;
         }
         if (statement.kind !== "assignment") continue;
@@ -1658,7 +1666,7 @@ class FilePlanner {
           cTypes.add(TYPE_MAP[atomic.typeName]);
         } else {
           requirements.require("irq_wrappers");
-          cTypes.add("uint32_t");
+          cTypes.add(PRIMASK_C_TYPE);
         }
         forms.set(statement, atomic.form);
       }

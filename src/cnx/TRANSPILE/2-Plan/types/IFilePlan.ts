@@ -95,6 +95,12 @@ interface IFilePlan {
   >;
   /** #1081: how each slice write reads its source */
   readonly sliceSources: ReadonlyMap<IAssignmentSyntax, IPlannedSliceSource>;
+
+  /**
+   * MISRA 10.3 (#845): the C type a compound write to a narrow variable is
+   * cast back to, for each write that is cast
+   */
+  readonly compoundCasts: ReadonlyMap<IAssignmentSyntax, string>;
   /** ADR-044: every `<operation>_<cnxType>` helper the file calls */
   readonly clampOps: ReadonlySet<string>;
   /** #1927: the C types the file's text uses, which decide `<stdint.h>`/`<stdbool.h>` */

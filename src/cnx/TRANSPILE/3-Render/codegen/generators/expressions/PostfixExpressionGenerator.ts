@@ -590,7 +590,7 @@ const measuredLength = (
     typeof dim === "number" ? `${dim}U` : `(${dim})`,
   );
   const unit = `${perElement}U`;
-  return `((uint32_t)${[...factors, unit].join(" * ")})`;
+  return `((${LengthProperty.PRODUCT_C_TYPE})${[...factors, unit].join(" * ")})`;
 };
 
 /**

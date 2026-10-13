@@ -13,23 +13,10 @@ import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
 import type TAtomicForm from "../../../../types/TAtomicForm";
 import LDREX_MAP from "../../../../2-Plan/types/LDREX_MAP";
+import TYPE_MAP from "../../../../2-Plan/types/TYPE_MAP";
 import invariant from "../../../../../utils/invariant";
 import COMPOUND_TO_BINARY from "../../../../2-Plan/types/COMPOUND_TO_BINARY";
 import InterruptMask from "../../helpers/InterruptMask";
-
-/**
- * Maps C-Next types to C types (for atomic operations)
- */
-const TYPE_MAP: Record<string, string> = {
-  u8: "uint8_t",
-  u16: "uint16_t",
-  u32: "uint32_t",
-  u64: "uint64_t",
-  i8: "int8_t",
-  i16: "int16_t",
-  i32: "int32_t",
-  i64: "int64_t",
-};
 
 /**
  * ADR-049: STREX intrinsic map for atomic operations
