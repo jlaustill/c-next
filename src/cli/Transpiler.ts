@@ -705,7 +705,9 @@ class Transpiler {
             // include discovery used (#1444, owner ruling 3)
             platformio: this._requireSourceGraph().anchor.platformio,
             pioEnv: this.config.pioEnv || undefined,
-            catalog: TargetCatalogFile.targets(this.fs),
+            catalog: TargetCatalogFile.parse(
+              this._requireSourceGraph().targetCatalog,
+            ),
             files: declared.map((entry) => ({
               sourcePath: entry.file.path,
               directives: entry.syntax.targetDirectives,

@@ -1,5 +1,7 @@
 import { basename, dirname, join, resolve } from "node:path";
 
+import Installation from "./Installation";
+import type ITargetCatalogFile from "./types/ITargetCatalogFile";
 import CppEntryPointScanner from "./CppEntryPointScanner";
 import DependencyGraph from "./DependencyGraph";
 import FileDiscovery from "./FileDiscovery";
@@ -54,6 +56,7 @@ type TDiscoveredFiles = Omit<
   | "recoveredDeclarations"
   | "cppMode"
   | "outputs"
+  | "targetCatalog"
 > & {
   /** #1844: every `.cnx` file's header includes, in discovery order */
   readonly headerIncludes: readonly IHeaderInclude[];
@@ -559,7 +562,14 @@ class Discover {
       },
       writeOutputToDisk: files.writeOutputToDisk,
       outputs: this._outputs(files, cppMode),
+      targetCatalog: this._targetCatalog(),
     });
+  }
+
+  /** ADR-049: the catalog this compiler ships, found by `Installation` */
+  private _targetCatalog(): ITargetCatalogFile {
+    const path = Installation.catalog(this.fs);
+    return { path, text: this.fs.readFile(path) };
   }
 
   /**

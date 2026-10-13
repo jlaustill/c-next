@@ -1,3 +1,4 @@
+import type ITargetCatalogFile from "./ITargetCatalogFile";
 import type IDiscoveredFile from "./IDiscoveredFile";
 import type IPipelineFile from "./IPipelineFile";
 import type IPlatformIOProject from "../../../types/IPlatformIOProject";
@@ -106,6 +107,12 @@ interface ISourceGraph {
    * `PathResolver`.
    */
   readonly outputs: ReadonlyMap<string, IOutputPaths>;
+
+  /**
+   * #1991: the target catalog (ADR-049), read here so that no later pass
+   * reads the filesystem for it.
+   */
+  readonly targetCatalog: ITargetCatalogFile;
 }
 
 export default ISourceGraph;

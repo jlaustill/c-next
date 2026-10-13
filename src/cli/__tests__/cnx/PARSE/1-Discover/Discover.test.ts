@@ -70,6 +70,17 @@ describe("Discover", () => {
     return { graph, warnings };
   }
 
+  // #1991: 1.1 reads the target catalog, so no later stage reads the disk for it
+  it("carries the target catalog's text and path", async () => {
+    const { graph } = await discover(project());
+
+    expect(graph.targetCatalog.path).toMatch(/targets[\\/]targets\.cnx$/);
+    expect(graph.targetCatalog.text).toBe(
+      fs.readFile(graph.targetCatalog.path),
+    );
+    expect(graph.targetCatalog.text.length).toBeGreaterThan(0);
+  });
+
   // #1991: 1.1 names every output path, so no later stage asks PathResolver
   it("names each file's output paths, below its input directory", async () => {
     fs = new MockFileSystem()
