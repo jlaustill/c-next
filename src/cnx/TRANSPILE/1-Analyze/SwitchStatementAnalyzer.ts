@@ -362,7 +362,9 @@ class SwitchStatementListener extends CNextListener {
   private static caseLabelValue(label: TCaseLabelSyntax): string {
     switch (label.kind) {
       case "qualified":
-        return [label.root, ...label.path].filter((part) => part).join(".");
+        return (
+          label.root === null ? label.path : [label.root, ...label.path]
+        ).join(".");
       case "identifier":
         return label.root === null ? label.name : `${label.root}.${label.name}`;
       case "integer":
