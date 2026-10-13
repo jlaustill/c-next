@@ -79,7 +79,11 @@ type TOperatorSite = "binary" | "conditional" | "compound";
  */
 const UNREADABLE_MACRO = "unreadable macro";
 
-/** Operators whose operands are not Rule 10.4 operands */
+/**
+ * The compound arm's shifts, whose operands are not Rule 10.4 operands. The
+ * binary walk skips the same operators by level (`level === "shift"`); #2049
+ * makes the two one rule.
+ */
 const NOT_RULE_10_4_OPERATORS: ReadonlySet<string> = new Set(["<<", ">>"]);
 
 /** The operators MISRA lets combine a character with an integer */
@@ -368,6 +372,7 @@ class MixedTypeCategoryAnalyzer {
       check.checkLevel(operands, level);
     }
 
+    // Compound arm; #2049 replaces the per-analyzer arms with one
     ParseTreeWalker.DEFAULT.walk(
       new AssignmentSiteListener((site) => check.checkCompound(site)),
       tree,

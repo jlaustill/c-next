@@ -199,6 +199,7 @@ class ShiftAnalyzer {
       }),
       tree,
     );
+    // Compound arm (#1008); #2049 replaces the per-analyzer arms with one
     ParseTreeWalker.DEFAULT.walk(
       new AssignmentSiteListener((site) => check.checkAssignment(site)),
       tree,

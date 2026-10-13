@@ -183,6 +183,7 @@ class BooleanOperandAnalyzer {
       tree,
     );
 
+    // Compound arm; #2049 replaces the per-analyzer arms with one
     ParseTreeWalker.DEFAULT.walk(
       new AssignmentSiteListener((site) => listener.checkAssignment(site)),
       tree,

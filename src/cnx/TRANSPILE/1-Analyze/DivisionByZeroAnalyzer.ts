@@ -155,6 +155,7 @@ class DivisionByZeroAnalyzer {
     this.errors = [];
     const listener = new DivisionByZeroListener(this, this.context);
     ParseTreeWalker.DEFAULT.walk(listener, tree);
+    // Compound arm (#1770); #2049 replaces the per-analyzer arms with one
     ParseTreeWalker.DEFAULT.walk(
       new AssignmentSiteListener((site) => listener.checkAssignment(site)),
       tree,
