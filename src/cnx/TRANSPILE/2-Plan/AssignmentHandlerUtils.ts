@@ -135,22 +135,22 @@ function writeBits(ctx: IAssignmentContext): string {
     widthText === undefined
       ? undefined
       : { text: widthText, folded: last.foldWidth() };
-  const value = ctx.target.last?.before ?? null;
-  if (value?.category === "floating") {
-    invariant(value.typeName !== null, "the typer names a float's type");
-    invariant(
-      ctx.floatBitsPlanned,
-      "2.2 planned every float bit write 2.3 writes",
-    );
+  const floatBits = ctx.floatBits;
+  if (floatBits !== null) {
     return ctx.state.requireGenerator().generateFloatBitWrite({
       target: base,
-      floatType: value.typeName,
+      floatType: floatBits.floatType,
       bitIndex: start,
       width: width ?? null,
       value: ctx.generatedValue,
-      isVariable: ctx.postfixOps.length === 1,
+      isVariable: floatBits.shared,
     });
   }
+  const value = ctx.target.last?.before ?? null;
+  invariant(
+    value?.category !== "floating",
+    "2.2 planned every float bit write 2.3 writes",
+  );
   const storage = BitUtils.storageOf(value);
   return width === undefined
     ? BitUtils.singleBitWrite(base, start, ctx.generatedValue, storage)

@@ -26,7 +26,7 @@ describe("SafeDivision", () => {
   it.each([
     ["safe_div(r, a, b, 0)", "safe_div", "div"],
     ["safe_mod(r, a, b, 0)", "safe_mod", "mod"],
-  ])("recognises %s", (source, name, operation) => {
+  ])("recognizes %s", (source, name, operation) => {
     const call = SafeDivision.callOf(lowered(source));
     expect(call?.name).toBe(name);
     expect(call?.args).toHaveLength(4);

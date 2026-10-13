@@ -561,7 +561,7 @@ class CodeGenWalker {
               : this.planner.constantOf(widthExpr),
           typedAs,
           step,
-          floatBits: this.filePlan.floatBitReads.has(op),
+          floatBits: this.filePlan.floatBitReads.get(op) ?? null,
           narrowing,
         };
       }
@@ -3024,7 +3024,7 @@ class CodeGenWalker {
     // Build context, classify, and dispatch - all patterns handled by handlers
     const assignCtx = buildAssignmentContext(site, {
       target,
-      floatBitsPlanned: this.filePlan.floatBitWrites.has(targetExpr),
+      floatBits: this.filePlan.floatBitWrites.get(targetExpr) ?? null,
       atomicForm: this.filePlan.atomicForms.get(site) ?? null,
       plannedClamp: this.filePlan.compoundClamps.get(site) ?? null,
       plannedSliceSource: this.filePlan.sliceSources.get(site) ?? null,

@@ -1,3 +1,5 @@
+import FloatBits from "../../utils/FloatBits";
+import type IPlannedFloatBits from "./types/IPlannedFloatBits";
 import type TPlannedNarrowing from "./types/TPlannedNarrowing";
 import COMPOUND_TO_BINARY from "./types/COMPOUND_TO_BINARY";
 import NarrowingCastHelper from "./NarrowingCastHelper";
@@ -489,8 +491,8 @@ class FilePlanner {
     inlinedConsts: ReadonlySet<TDeclarationSyntax>,
     cTypes: Set<string>,
   ): {
-    readonly reads: ReadonlySet<TPostfixOpSyntax>;
-    readonly writes: ReadonlySet<TExpression>;
+    readonly reads: ReadonlyMap<TPostfixOpSyntax, IPlannedFloatBits>;
+    readonly writes: ReadonlyMap<TExpression, IPlannedFloatBits>;
   } {
     const typing = this.state.typingContext();
     const targets = new Set<TExpression>(
@@ -500,38 +502,32 @@ class FilePlanner {
         ),
       ),
     );
-    const writes = new Set<TExpression>();
+    const writes = new Map<TExpression, IPlannedFloatBits>();
     for (const target of targets) {
       const last = OperandTyper.chainOf(target, typing).steps.at(-1);
-      const bits =
-        last?.subscript === "bit_single" || last?.subscript === "bit_range";
-      if (bits && last?.before?.category === "floating") {
-        writes.add(target);
-        // The union's integer member (#1927)
-        const floatType = last.before.typeName;
-        invariant(floatType !== null, "a floating operand names its type");
-        cTypes.add(FloatBitType.of(floatType));
-      }
+      const floatType = FloatBits.typeOf(last);
+      if (floatType === null) continue;
+      const head = ExpressionShape.headOf(target);
+      const shared = FloatBits.sharesShadow(head, head.ops.length - 1);
+      writes.set(target, { floatType, shared });
+      // The union's integer member (#1927)
+      cTypes.add(FloatBitType.of(floatType));
     }
-    const reads = new Set<TPostfixOpSyntax>();
+    const reads = new Map<TPostfixOpSyntax, IPlannedFloatBits>();
     for (const expression of FilePlanner.writtenExpressions(
       program,
       inlinedConsts,
     )) {
       if (expression.kind !== "postfix" || targets.has(expression)) continue;
       const head = ExpressionShape.headOf(expression);
-      if (head.root !== null || !head.identifier) continue;
       const steps = OperandTyper.chainOf(expression, typing).steps;
-      const rootType = steps[0]?.before?.typeName ?? null;
-      if (rootType !== "f32" && rootType !== "f64") continue;
       head.ops.forEach((op, i) => {
-        if (
-          op.kind === "subscript" &&
-          steps[i - head.opsConsumed]?.subscript === "bit_range"
-        ) {
-          reads.add(op);
-          cTypes.add(FloatBitType.of(rootType));
-        }
+        const floatType = FloatBits.rangeTypeOf(steps[i - head.opsConsumed]);
+        if (op.kind !== "subscript" || floatType === null) return;
+        // #2057, #1099: the ranged value's type, not the root's, which sent a
+        // member's, a field's or an element's bits down the integer path
+        reads.set(op, { floatType, shared: FloatBits.sharesShadow(head, i) });
+        cTypes.add(FloatBitType.of(floatType));
       });
     }
     return { reads, writes };
@@ -1521,7 +1517,9 @@ class FilePlanner {
           const from = step.before?.typeName ?? null;
           if (step.subscript === "bit_single") return [[index, "int"]];
           if (step.subscript === "bit_range") {
-            return from === null
+            // A float's bits are read through a union's integer member, which
+            // is not promoted (ADR-007)
+            return from === null || FloatBits.rangeTypeOf(step) !== null
               ? []
               : [[index, NarrowingCastHelper.getPromotedType(from)]];
           }

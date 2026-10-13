@@ -56,6 +56,7 @@ function createMockContext(
     // True so slice codegen resolves the source type via the mocked
     // TypeResolver.getExpressionType (Issue #1081 review).
     hasValue: true,
+    floatBits: null,
     valueExpressionType: () => mockGetExpressionType(null),
     valueIntegerType: () => mockGetIntegerExpressionType(null),
     valueHasFloatingOperand: () => false,

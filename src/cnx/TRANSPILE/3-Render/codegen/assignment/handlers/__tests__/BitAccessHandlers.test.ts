@@ -39,7 +39,7 @@ function createMockContext(
       HandlerTestUtils.planner().analyzeMemberChainForBitAccess(null as never),
     targetLine: 1,
     hasValue: true,
-    floatBitsPlanned: true,
+    floatBits: null,
     valueExpressionType: () => null,
     valueIntegerType: () => null,
     valueHasFloatingOperand: () => false,
@@ -193,6 +193,7 @@ describe("BitAccessHandlers", () => {
         generateExpression: vi.fn().mockReturnValue("3"),
       });
       const ctx = createMockContext({
+        floatBits: { floatType: "f32", shared: true },
         identifiers: ["f"],
       });
 
@@ -302,6 +303,7 @@ describe("BitAccessHandlers", () => {
           .mockReturnValueOnce("8"),
       });
       const ctx = createMockContext({
+        floatBits: { floatType: "f32", shared: true },
         lastSubscriptExprCount: 2,
         identifiers: ["f"],
         ...HandlerTestUtils.subscriptsOf([
@@ -342,6 +344,7 @@ describe("BitAccessHandlers", () => {
           .mockReturnValueOnce("31"),
       });
       const ctx = createMockContext({
+        floatBits: { floatType: "f32", shared: false },
         identifiers: ["fa"],
         ...HandlerTestUtils.subscriptsOf([
           { mockValue: "1" } as never,

@@ -624,6 +624,14 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
+   * A name no other temporary in the file has.
+   * Part of IOrchestrator interface.
+   */
+  nextTempName(): string {
+    return this.state.getNextTempVarName();
+  }
+
+  /**
    * Register a float bit shadow variable.
    * Part of IOrchestrator interface.
    */

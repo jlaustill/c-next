@@ -1,3 +1,4 @@
+import type IPlannedFloatBits from "./IPlannedFloatBits";
 import type IEmissionPlan from "../../../types/IEmissionPlan";
 import type TPlannedNarrowing from "./TPlannedNarrowing";
 import type TAtomicForm from "../../types/TAtomicForm";
@@ -65,10 +66,10 @@ interface IFilePlan {
   >;
   /** MISRA 10.1: each written `~` of an unsigned operand, and the C type it is cast back to */
   readonly complementCasts: ReadonlyMap<TExpressionOf<"unary">, string>;
-  /** ADR-007: each written range read of a named float's bits, through a union */
-  readonly floatBitReads: ReadonlySet<TPostfixOpSyntax>;
-  /** ADR-007: each assignment target that writes a float's bits, through a union */
-  readonly floatBitWrites: ReadonlySet<TExpression>;
+  /** ADR-007: each written range read of a float's bits, and its union */
+  readonly floatBitReads: ReadonlyMap<TPostfixOpSyntax, IPlannedFloatBits>;
+  /** ADR-007: each assignment target that writes a float's bits, and its union */
+  readonly floatBitWrites: ReadonlyMap<TExpression, IPlannedFloatBits>;
   /** ADR-049: how each written atomic read-modify-write is written */
   readonly atomicForms: ReadonlyMap<IAssignmentSyntax, TAtomicForm>;
   /** ADR-051: each written `safe_div`/`safe_mod` call, and the helper it is written as */

@@ -41,6 +41,7 @@ function createMockContext(
       HandlerTestUtils.planner().analyzeMemberChainForBitAccess(null as never),
     targetLine: 1,
     hasValue: true,
+    floatBits: null,
     atomicForm: "ldrex-strex",
     valueExpressionType: () => null,
     valueIntegerType: () => null,

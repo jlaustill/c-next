@@ -11,6 +11,7 @@
  * This generator was extracted from CodeGenerator._generatePostfixExpr
  * to reduce the size and complexity of CodeGenerator.ts.
  */
+import type IPlannedFloatBits from "../../../../2-Plan/types/IPlannedFloatBits";
 import FloatBitType from "../../../../2-Plan/FloatBitType";
 import type TPlannedNarrowing from "../../../../2-Plan/types/TPlannedNarrowing";
 import type IChainBase from "../../../../../types/IChainBase";
@@ -187,8 +188,6 @@ const generatePostfixExpression = (
   // through the pointer instead of pointer-indexing past it.
   const result: string = plan.renderPrimary();
 
-  const primaryTypeInfo = rootIdentifier ? plan.base.rootTypeInfo : undefined;
-
   // Issue #1106: reject over-indexing the base variable (e.g. flags[4][3] on a
   // scalar u8, which would otherwise chain bit-indexes into always-zero code:
   // `((flags >> 4) & 1) >> 3) & 1` extracts bit 3 of a single bit).
@@ -233,7 +232,6 @@ const generatePostfixExpression = (
           result: tracking.result,
           subscript: op,
           rootIdentifier,
-          primaryTypeInfo,
           resolvedIdentifier: tracking.resolvedIdentifier,
           subscriptDepth: tracking.subscriptDepth,
           isRegisterChain: tracking.isRegisterChain,
@@ -1044,9 +1042,6 @@ interface ISubscriptAccessContext {
   result: string;
   subscript: Extract<TPlannedPostfixOp, { kind: "subscript" }>;
   rootIdentifier: string | undefined;
-  primaryTypeInfo:
-    | { baseType: string; arrayDimensions?: (number | string)[] }
-    | undefined;
   resolvedIdentifier: string | undefined;
   subscriptDepth: number;
   isRegisterChain: boolean;
@@ -1176,25 +1171,24 @@ const handleBitRangeSubscript = (
     folded: ctx.subscript.foldWidth(),
   });
 
-  const isFloatType =
-    ctx.primaryTypeInfo?.baseType === "f32" ||
-    ctx.primaryTypeInfo?.baseType === "f64";
-
-  if (isFloatType && ctx.rootIdentifier) {
+  const floatBits = ctx.subscript.floatBits;
+  if (floatBits !== null) {
     output.result = handleFloatBitRange(
       {
         result: ctx.result,
         rootIdentifier: ctx.rootIdentifier,
-        baseType: ctx.primaryTypeInfo!.baseType,
+        floatBits,
         start,
-        width,
         maskWidth,
-        planned: ctx.subscript.floatBits,
       },
       state,
       orchestrator,
     );
   } else {
+    invariant(
+      ctx.subscript.step?.before?.category !== "floating",
+      `2.2 planned every float bit range 2.3 reads (${ctx.result})`,
+    );
     // Issue #1094, #1668: a width known only at run time computes its mask
     // in the operand's own width, so a 64-bit operand's does not shift past
     // a 32-bit literal's, nor a 32-bit one's past a 16-bit int's. #1760
@@ -1225,16 +1219,59 @@ const handleBitRangeSubscript = (
  * Context for float bit range access.
  */
 interface IFloatBitRangeContext {
+  /** The float read, as written in C */
   result: string;
-  rootIdentifier: string;
-  baseType: string;
+  /** The variable whose shadow a shared read uses */
+  rootIdentifier: string | undefined;
+  /** 2.2's decision for this read (ADR-007) */
+  floatBits: IPlannedFloatBits;
   start: string;
-  width: string;
   /** Width formatted for mask generation (const-resolved when possible, #1094). */
   maskWidth: string;
-  /** 2.2 planned this read's union (ADR-007) */
-  planned: boolean;
 }
+
+/**
+ * A variable's shadow union, declared at its first read or write and copied
+ * into only when a whole-variable write made it stale.
+ */
+const sharedShadow = (
+  ctx: IFloatBitRangeContext,
+  orchestrator: IOrchestrator,
+): string => {
+  invariant(
+    ctx.rootIdentifier !== undefined,
+    `a shared float shadow is a named variable's (${ctx.result})`,
+  );
+  const shadowName = BitRangeHelper.getShadowVarName(ctx.rootIdentifier);
+  if (!orchestrator.hasFloatBitShadow(shadowName)) {
+    orchestrator.registerFloatBitShadow(shadowName);
+    orchestrator.addPendingTempDeclaration(
+      FloatBitHelper.unionDeclaration(ctx.floatBits.floatType, shadowName),
+    );
+  }
+  const shadowIsCurrent = orchestrator.isFloatShadowCurrent(shadowName);
+  orchestrator.markFloatShadowCurrent(shadowName);
+  if (!shadowIsCurrent) {
+    orchestrator.addPendingTempDeclaration(`${shadowName}.f = ${ctx.result};`);
+  }
+  return shadowName;
+};
+
+/**
+ * A union of the read's own, for a float with no shadow -- a `this.`/`global.`
+ * member, a field, an element -- copied into at this read (#2057, #1099).
+ */
+const ownUnion = (
+  ctx: IFloatBitRangeContext,
+  orchestrator: IOrchestrator,
+): string => {
+  const name = orchestrator.nextTempName();
+  orchestrator.addPendingTempDeclaration(
+    FloatBitHelper.unionDeclaration(ctx.floatBits.floatType, name),
+  );
+  orchestrator.addPendingTempDeclaration(`${name}.f = ${ctx.result};`);
+  return name;
+};
 
 /**
  * Handle float bit range access with union-based type punning.
@@ -1250,33 +1287,14 @@ const handleFloatBitRange = (
   // generator flag.
   invariant(
     state.inFunctionBody,
-    `a float bit range is read inside a function (${ctx.rootIdentifier}) -- E0888 rejects this in pass 2.1, before this runs`,
+    `a float bit range is read inside a function (${ctx.result}) -- E0888 rejects this in pass 2.1, before this runs`,
   );
 
-  invariant(
-    ctx.planned,
-    `2.2 planned every float bit range 2.3 reads (${ctx.rootIdentifier})`,
-  );
-
-  const intType = FloatBitType.of(ctx.baseType);
-  const shadowName = BitRangeHelper.getShadowVarName(ctx.rootIdentifier);
+  const intType = FloatBitType.of(ctx.floatBits.floatType);
   const mask = BitUtils.generateMask(ctx.maskWidth, intType);
-
-  const needsDeclaration = !orchestrator.hasFloatBitShadow(shadowName);
-  if (needsDeclaration) {
-    orchestrator.registerFloatBitShadow(shadowName);
-    orchestrator.addPendingTempDeclaration(
-      FloatBitHelper.unionDeclaration(ctx.baseType, shadowName),
-    );
-  }
-
-  const shadowIsCurrent = orchestrator.isFloatShadowCurrent(shadowName);
-  orchestrator.markFloatShadowCurrent(shadowName);
-
-  // If shadow is not current, emit assignment: __bits_name.f = floatVar;
-  if (!shadowIsCurrent) {
-    orchestrator.addPendingTempDeclaration(`${shadowName}.f = ${ctx.result};`);
-  }
+  const shadowName = ctx.floatBits.shared
+    ? sharedShadow(ctx, orchestrator)
+    : ownUnion(ctx, orchestrator);
 
   // Return just the bit read expression using union member .u
   // Skip shift when start is 0 (either "0" or "0U" with MISRA suffix)

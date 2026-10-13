@@ -9,6 +9,7 @@
  * - Property access (.length, .capacity, .size)
  */
 
+import type IPlannedFloatBits from "../../../../../2-Plan/types/IPlannedFloatBits";
 import SymbolTable from "../../../../../../PARSE/3-Declare/SymbolTable";
 import type IProgram from "../../../../../../types/IProgram";
 import type IChainBase from "../../../../../../types/IChainBase";
@@ -274,6 +275,8 @@ function createMockPostfixOp(options?: {
   argumentList?: { expression: () => { getText: () => string }[] } | null;
   /** The type of the value a call op calls -- `peek` for `h.onPeek(...)`. */
   calleeType?: string;
+  /** 2.2's decision for a float bit range read (ADR-007) */
+  floatBits?: IPlannedFloatBits;
 }): TPlannedPostfixOp {
   if (options?.identifier) {
     return {
@@ -298,8 +301,7 @@ function createMockPostfixOp(options?: {
         options?.typedAs ??
         (expressions.length === 2 ? "bit_range" : "array_element"),
       widthText: expressions[expressions.length - 1]?.getText(),
-      // 2.2 plans a float range read; the integer arms never read this
-      floatBits: true,
+      floatBits: options?.floatBits ?? null,
       step: null,
       narrowing: null,
     } as TPlannedPostfixOp & { widthText?: string };
@@ -1541,6 +1543,7 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const ctx = createMockPostfixExpressionContext("f", [
         createMockPostfixOp({
+          floatBits: { floatType: "f32", shared: true },
           expressions: [createMockExpression("0"), createMockExpression("8")],
         }),
       ]);
@@ -1573,6 +1576,7 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const ctx = createMockPostfixExpressionContext("f", [
         createMockPostfixOp({
+          floatBits: { floatType: "f32", shared: true },
           expressions: [createMockExpression("0"), createMockExpression("8")],
         }),
       ]);
@@ -1602,6 +1606,7 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const ctx = createMockPostfixExpressionContext("f", [
         createMockPostfixOp({
+          floatBits: { floatType: "f32", shared: true },
           expressions: [createMockExpression("0"), createMockExpression("8")],
         }),
       ]);
@@ -1630,6 +1635,7 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const ctx = createMockPostfixExpressionContext("d", [
         createMockPostfixOp({
+          floatBits: { floatType: "f64", shared: true },
           expressions: [
             createMockExpression("0"),
             createMockExpression("WIDTH"),

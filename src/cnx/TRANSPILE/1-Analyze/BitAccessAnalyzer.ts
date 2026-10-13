@@ -35,6 +35,8 @@
  * evaluated once and is not restricted.
  */
 
+import ExpressionShape from "../../utils/ExpressionShape";
+import FloatBits from "../../utils/FloatBits";
 import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
 import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
 import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
@@ -49,17 +51,7 @@ import IBitAccessError from "./types/IBitAccessError";
 import TChainRoot from "../../types/TChainRoot";
 import RegisterAccessMode from "../../utils/RegisterAccessMode";
 import RegisterMemberReference from "./helpers/RegisterMemberReference";
-import SHARED_FLOAT_TYPES from "../../types/FLOAT_TYPES";
 import type IAnalysisContext from "./types/IAnalysisContext";
-
-/**
- * The floats a bit range is lowered through a union for.
- *
- * #1450: built from ADR-024's shared list rather than respelling it. The two
- * agreed, which is exactly why nothing would have failed when a new float width
- * was added to one of them.
- */
-const FLOAT_TYPES = new Set<string>(SHARED_FLOAT_TYPES);
 
 class BitAccessCheck {
   private readonly found: IBitAccessError[] = [];
@@ -156,9 +148,7 @@ class BitAccessCheck {
     const spelling =
       parts.root === null ? parts.name : `${parts.root}.${parts.name}`;
     const baseType = declared.typeName ?? "";
-    if (!inFunction) {
-      this.checkFloatRangeScope(parts.subscripts, baseType, spelling, at);
-    }
+    if (!inFunction) this.checkFloatRangeScope(spelling, at);
     this.checkDepth(
       parts.subscripts,
       declared.dimensions.length,
@@ -172,23 +162,33 @@ class BitAccessCheck {
    * E0888: a float bit RANGE read outside a function body. A single bit index
    * is not lowered through a union, so it is not restricted.
    */
-  private checkFloatRangeScope(
-    subscripts: readonly TPostfixOpSyntax[],
-    baseType: string,
-    name: string,
-    at: TExpression,
-  ): void {
-    if (!FLOAT_TYPES.has(baseType)) return;
-    const range = subscripts.find(
-      (op) => op.kind === "subscript" && op.indexes.length === 2,
+  private checkFloatRangeScope(name: string, at: TExpression): void {
+    const head = ExpressionShape.headOf(at);
+    const steps = OperandTyper.chainOf(at, this.context).steps;
+    const index = head.ops.findIndex(
+      (op, i) =>
+        op.kind === "subscript" &&
+        FloatBits.rangeTypeOf(steps[i - head.opsConsumed]) !== null,
     );
+    const range = head.ops[index];
     if (range === undefined) return;
+    // The float ranged, not the chain's root (#1099): `r.field`, not `r`
+    const reached = head.ops
+      .slice(head.opsConsumed, index)
+      .map((op) => {
+        if (op.kind === "member") return `.${op.name}`;
+        if (op.kind === "subscript") {
+          return `[${op.indexes.map((e) => e.written).join(", ")}]`;
+        }
+        return "(...)";
+      })
+      .join("");
     const bounds =
       range.kind === "subscript" ? range.indexes.map((e) => e.written) : [];
     this.report(
       at,
       "E0888",
-      `Float bit range '${name}[${bounds.join(", ")}]' cannot be read at file scope`,
+      `Float bit range '${name}${reached}[${bounds.join(", ")}]' cannot be read at file scope`,
       "Reading a float's bits copies it through a union (MISRA C:2012 Rule 21.15 forbids the pointer cast), and a copy is a statement -- there is none at file scope. Read it inside a function.",
     );
   }

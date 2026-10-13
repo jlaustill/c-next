@@ -1,0 +1,20 @@
+// test-error
+// test-adr: 007
+// test-transpile-only
+// #1099: E0888 asks the type of the float ranged, not of the chain's root.
+// It asked the root's, so a struct field's bits read at file scope passed
+// 2.1 and reached C as `(r.value) & 0xFFU`, which gcc rejects.
+
+struct Reading {
+    f32 value;
+}
+
+Reading r;
+
+// NEGATIVE CONTROL -- the same field read inside a function is silent
+u32 inFunction() {
+    return r.value[4, 12];
+}
+
+// THE ASSERTION -- a struct field's float bit range at file scope
+u32 bits <- r.value[0, 8];

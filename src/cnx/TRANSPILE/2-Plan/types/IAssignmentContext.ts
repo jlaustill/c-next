@@ -5,6 +5,7 @@
  * code for an assignment. Built once by the context extractor, then used
  * by the classifier and handlers.
  */
+import type IPlannedFloatBits from "./IPlannedFloatBits";
 import type IPlannedSliceSource from "./IPlannedSliceSource";
 import type TAtomicForm from "../../types/TAtomicForm";
 import type IBitAccessAnalysis from "../../../types/IBitAccessAnalysis";
@@ -68,8 +69,8 @@ interface IAssignmentContext {
 
   /** Whether the assignment has a right-hand side at all. */
   readonly hasValue: boolean;
-  /** 2.2's decision: the target writes a float's bits through a union (ADR-007) */
-  readonly floatBitsPlanned: boolean;
+  /** 2.2's decision: how the target writes a float's bits (ADR-007), or null */
+  readonly floatBits: IPlannedFloatBits | null;
   /** 2.2's decision: how this write is atomic (ADR-049), or null if it is not */
   readonly atomicForm: TAtomicForm | null;
   /** 2.2's decision: the ADR-044 helper this compound write calls, or null */

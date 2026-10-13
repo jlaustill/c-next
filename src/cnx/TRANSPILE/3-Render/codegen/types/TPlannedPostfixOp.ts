@@ -1,3 +1,4 @@
+import type IPlannedFloatBits from "../../../2-Plan/types/IPlannedFloatBits";
 import type TPlannedNarrowing from "../../../2-Plan/types/TPlannedNarrowing";
 import type IPlannedCallArgument from "./IPlannedCallArgument";
 import type TSubscriptKind from "../../../../types/TSubscriptKind";
@@ -59,8 +60,8 @@ type TPlannedPostfixOp =
        * integer is subscripted as bits (ADR-024) in both passes.
        */
       readonly typedAs: TSubscriptKind;
-      /** 2.2's decision: this range reads a float's bits through a union (ADR-007) */
-      readonly floatBits: boolean;
+      /** 2.2's decision: how this range reads a float's bits (ADR-007), or null */
+      readonly floatBits: IPlannedFloatBits | null;
       /** #1668 (C12): the typer's step, or null for an untyped chain */
       readonly step: IChainStep | null;
       /** 2.2's decision for a bit or bit-range read (MISRA 10.3), or null */

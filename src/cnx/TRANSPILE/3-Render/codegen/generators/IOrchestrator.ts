@@ -237,6 +237,9 @@ interface IOrchestrator extends IPlanQueries {
   /** Add a pending temp variable declaration (for float bit indexing) */
   addPendingTempDeclaration(declaration: string): void;
 
+  /** A name no other temporary in the file has */
+  nextTempName(): string;
+
   /** Register a float bit shadow variable */
   registerFloatBitShadow(shadowName: string): void;
 

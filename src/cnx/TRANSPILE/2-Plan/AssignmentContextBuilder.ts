@@ -20,6 +20,7 @@
  * carrier. They hold no nodes now, and the two modules that did name types are
  * out of the population for real rather than by spelling.
  */
+import type IPlannedFloatBits from "./types/IPlannedFloatBits";
 import type IPlannedSliceSource from "./types/IPlannedSliceSource";
 import type TAtomicForm from "../types/TAtomicForm";
 import AssignmentTarget from "../../utils/AssignmentTarget";
@@ -41,8 +42,8 @@ interface IContextBuilderDeps {
   /** #1668: what the target writes, bound where it was typed */
   readonly target: IChainBase;
 
-  /** 2.2's decision: the target writes a float's bits through a union (ADR-007) */
-  readonly floatBitsPlanned: boolean;
+  /** 2.2's decision: how the target writes a float's bits (ADR-007), or null */
+  readonly floatBits: IPlannedFloatBits | null;
   /** 2.2's decision: how this write is atomic (ADR-049), or null if it is not */
   readonly atomicForm: TAtomicForm | null;
   /** 2.2's decision: the ADR-044 helper this compound write calls, or null */
@@ -279,7 +280,7 @@ function buildAssignmentContext(
     analyzeTargetForBitAccess: () =>
       deps.analyzeMemberChainForBitAccess(targetExpr, deps.target.last),
     targetLine: targetExpr.span.line,
-    floatBitsPlanned: deps.floatBitsPlanned,
+    floatBits: deps.floatBits,
     atomicForm: deps.atomicForm,
     plannedClamp: deps.plannedClamp,
     plannedSliceSource: deps.plannedSliceSource,
