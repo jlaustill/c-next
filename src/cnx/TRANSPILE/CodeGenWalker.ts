@@ -252,6 +252,15 @@ class CodeGenWalker {
   /** The planned comparisons 2.3 rendered, checked against `plannedComparisons` once it is done */
   private readonly renderedComparisons = new Set<TExpression>();
 
+  /** 2.2's ADR-024 decision for each written cast: the type it converts from, and whether and how it saturates */
+  private plannedCasts: ReadonlyMap<
+    TExpressionOf<"cast">,
+    Pick<IPlannedCast, "operandType" | "clampForm">
+  > = new Map();
+
+  /** The planned casts 2.3 rendered, checked against `plannedCasts` once it is done */
+  private readonly renderedCasts = new Set<TExpression>();
+
   /** 2.2's decision of which private scope consts are inlined, not declared */
   private plannedInlinedConsts: ReadonlySet<TDeclarationSyntax> = new Set();
 
@@ -1603,22 +1612,70 @@ class CodeGenWalker {
     program: IProgramSyntax,
   ): ReadonlyMap<TExpression, boolean> {
     const planned = new Map<TExpression, boolean>();
-    for (const { part } of WrittenParts.of(
-      program,
-      this.plannedInlinedConsts,
-    )) {
-      if (part.kind !== "expression" || part.constant) continue;
-      for (const expression of ExpressionNodes.direct(part.expression)) {
-        if (expression.kind === "binary" && expression.level === "equality") {
-          planned.set(
-            expression,
-            this.isStringExpression(expression.operands[0]) ||
-              this.isStringExpression(expression.operands[1]),
-          );
-        }
+    for (const expression of this.writtenExpressions(program)) {
+      if (expression.kind === "binary" && expression.level === "equality") {
+        planned.set(
+          expression,
+          this.isStringExpression(expression.operands[0]) ||
+            this.isStringExpression(expression.operands[1]),
+        );
       }
     }
     return planned;
+  }
+
+  /**
+   * ADR-024: 2.2 decides, for every cast 2.3 writes, the type it converts
+   * from and whether it saturates, before 2.3 renders any of them
+   */
+  private planCasts(
+    program: IProgramSyntax,
+  ): ReadonlyMap<
+    TExpressionOf<"cast">,
+    Pick<IPlannedCast, "operandType" | "clampForm">
+  > {
+    const typing = this.host.state.typingContext();
+    const planned = new Map<
+      TExpressionOf<"cast">,
+      Pick<IPlannedCast, "operandType" | "clampForm">
+    >();
+    for (const expression of this.writtenExpressions(program)) {
+      if (expression.kind !== "cast") continue;
+      const operand = OperandTyper.typeOf(expression.operand, typing);
+      const operandType = PlanTyping.castSourceType(operand);
+      planned.set(expression, {
+        operandType,
+        clampForm: CodeGenWalker.clampFormOf(
+          operand,
+          operandType,
+          expression.type.text,
+        ),
+      });
+    }
+    return planned;
+  }
+
+  /** Every expression 2.3 writes, except inside a dimension or enum value, which 1.4 spells */
+  private writtenExpressions(program: IProgramSyntax): TExpression[] {
+    return WrittenParts.of(program, this.plannedInlinedConsts).flatMap(
+      ({ part }) =>
+        part.kind === "expression" && !part.constant
+          ? ExpressionNodes.direct(part.expression)
+          : [],
+    );
+  }
+
+  /** The reverse of each render-time "2.2 planned this" check: 2.2 planned nothing 2.3 skipped */
+  private static assertAllRendered(
+    planned: Iterable<TExpression>,
+    rendered: ReadonlySet<TExpression>,
+    what: string,
+  ): void {
+    const missed = [...planned].find((expression) => !rendered.has(expression));
+    invariant(
+      missed === undefined,
+      `2.3 rendered every ${what} 2.2 planned (missed line ${missed?.span.line})`,
+    );
   }
 
   /**
@@ -1869,9 +1926,23 @@ class CodeGenWalker {
     if ([...this.plannedComparisons.values()].includes(true)) {
       this.host.state.requireInclude("string");
     }
+    this.plannedCasts = this.planCasts(program);
+    for (const [expression, cast] of this.plannedCasts) {
+      // ADR-024: a saturating cast compares against <limits.h>'s macros
+      if (cast.clampForm !== null) {
+        this.host.state.requireInclude("limits");
+      }
+      if (cast.clampForm === "helper") {
+        this.host.state.markCastHelperUsed(
+          cast.operandType!,
+          expression.type.text,
+        );
+      }
+    }
 
     this.renderedTypes.clear();
     this.renderedComparisons.clear();
+    this.renderedCasts.clear();
 
     // Generate declarations
     const declarations = this.generateAllDeclarations(program);
@@ -1882,12 +1953,15 @@ class CodeGenWalker {
       unrendered === undefined,
       `2.3 rendered every type 2.2 planned (missed "${unrendered?.text}" at line ${unrendered?.span.line})`,
     );
-    const unrenderedComparison = [...this.plannedComparisons.keys()].find(
-      (expression) => !this.renderedComparisons.has(expression),
+    CodeGenWalker.assertAllRendered(
+      this.plannedComparisons.keys(),
+      this.renderedComparisons,
+      "comparison",
     );
-    invariant(
-      unrenderedComparison === undefined,
-      `2.3 rendered every comparison 2.2 planned (missed line ${unrenderedComparison?.span.line})`,
+    CodeGenWalker.assertAllRendered(
+      this.plannedCasts.keys(),
+      this.renderedCasts,
+      "cast",
     );
 
     // 2.2 Plan: every "does this file need X?" question the declarations above
@@ -4935,25 +5009,18 @@ class CodeGenWalker {
    * pass 2.1. They stood here as two throws that reached the user as `1:0`.
    */
   private planCast(expr: TExpressionOf<"cast">): IPlannedCast {
-    const targetType = this.renderType(expr.type);
-    const targetTypeName = expr.type.text;
-    const operandCode = this.renderUnary(expr.operand);
-    const operand = OperandTyper.typeOf(
-      expr.operand,
-      this.host.state.typingContext(),
+    const planned = this.plannedCasts.get(expr);
+    invariant(
+      planned !== undefined,
+      `2.2 planned every cast 2.3 renders (got line ${expr.span.line})`,
     );
-    const operandType = PlanTyping.castSourceType(operand);
-
+    this.renderedCasts.add(expr);
+    const targetType = this.renderType(expr.type);
     return {
       targetType,
-      targetTypeName,
-      operandCode,
-      operandType,
-      clampForm: CodeGenWalker.clampFormOf(
-        operand,
-        operandType,
-        targetTypeName,
-      ),
+      targetTypeName: expr.type.text,
+      operandCode: this.renderUnary(expr.operand),
+      ...planned,
     };
   }
 
