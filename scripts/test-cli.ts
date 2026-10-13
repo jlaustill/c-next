@@ -1374,6 +1374,52 @@ for (const includeCase of includePathCases) {
   });
 }
 
+// #1991 review: cpp reading a string runs from another directory, so a
+// relative --include must reach it as an absolute path, for a header that
+// includes another header too
+test("a relative --include reaches headers that include each other", () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "cnext-rel-include-"));
+  try {
+    mkdirSync(join(tempDir, "include"));
+    mkdirSync(join(tempDir, "deps"));
+    writeFileSync(
+      join(tempDir, "include", "lib.h"),
+      "#ifndef LIB_H\n#define LIB_H\n#include <dep.h>\nvoid lib_set(dep_t v);\n#endif\n",
+    );
+    writeFileSync(
+      join(tempDir, "deps", "dep.h"),
+      "#ifndef DEP_H\n#define DEP_H\ntypedef unsigned char dep_t;\n#endif\n",
+    );
+    writeFileSync(
+      join(tempDir, "main.cnx"),
+      "#include <lib.h>\n\nvoid main() {\n    lib_set(5);\n}\n",
+    );
+    const result = runCliInDir(
+      tempDir,
+      [
+        "main.cnx",
+        "--target",
+        "host",
+        "--include",
+        "include",
+        "--include",
+        "deps",
+      ],
+      true,
+    );
+    assert(
+      result.success,
+      `expected exit 0, got ${result.exitCode}: ${result.stderr}${result.output}`,
+    );
+    assert(
+      readFileSync(join(tempDir, "main.c"), "utf-8").includes("lib_set(5"),
+      "expected main.c to call lib_set",
+    );
+  } finally {
+    cleanupTempDir(tempDir);
+  }
+});
+
 // ============================================================================
 // Summary
 // ============================================================================

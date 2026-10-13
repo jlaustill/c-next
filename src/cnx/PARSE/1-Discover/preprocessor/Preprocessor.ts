@@ -194,11 +194,12 @@ class Preprocessor {
   }
 
   /**
-   * Run, then ask the compiler which files the run read (`-M`, on its output),
-   * and record the outcome under `key` with every one of them. A run whose
-   * dependencies the compiler could not list (a missing `#include` stops it
-   * before it prints them) is not recorded: what it would have read is not
-   * known.
+   * Ask the compiler which files a run reads (`-M`) and stat them at once,
+   * then run, and record the outcome under `key` with every one of them: a
+   * file saved after the stat is newer than its entry, so the next run misses.
+   * A run whose dependencies the compiler could not list (a missing
+   * `#include` stops it before it prints them) is not recorded: what it would
+   * have read is not known.
    */
   private async runRecorded(
     toolchain: IToolchain,
@@ -209,12 +210,6 @@ class Preprocessor {
     run: { readonly input: string[]; readonly text: IStringInput | null },
   ): Promise<IPreprocessOutcome> {
     const own = run.text === null ? dirname(filePath) : null;
-    const outcome = await this.exec(
-      toolchain,
-      [...this.argsFor(own, options), ...run.input],
-      filePath,
-      run.text,
-    );
     const listed = await this.exec(
       toolchain,
       [
@@ -228,27 +223,34 @@ class Preprocessor {
       run.text,
     );
     // An `#error` fails the run after the list is printed (measured on gcc)
-    const read = Preprocessor.depsOf(listed.stdout);
-    if (read.length > 0) {
-      const search = [
-        ...this.defaultIncludePaths,
-        ...(options.includePaths ?? []),
-        ...(own === null ? [] : [own]),
-      ].map((dir) => resolve(dir));
-      try {
-        cache.record(key, {
-          ...outcome,
-          deps: read.map((path): [string, number] => [
-            path,
-            this.fs.stat(path).mtimeMs,
-          ]),
-          absent: this.shadowing(read, search),
-        });
-      } catch {
-        // A file it read is already gone: nothing to key the entry on
-      }
+    const read = Preprocessor.depsOf(listed.stdout, this.cwdFor(run.text));
+    const deps = this.modifiedTimes(read);
+    const outcome = await this.exec(
+      toolchain,
+      [...this.argsFor(own, options), ...run.input],
+      filePath,
+      run.text,
+    );
+    if (read.length > 0 && deps !== null) {
+      cache.record(key, {
+        ...outcome,
+        deps,
+        absent: this.shadowing(read, this.searchPath(own, options)),
+      });
     }
     return outcome;
+  }
+
+  /** Each file's mtime; null when one is already gone: nothing to key on */
+  private modifiedTimes(paths: readonly string[]): [string, number][] | null {
+    try {
+      return paths.map((path): [string, number] => [
+        path,
+        this.fs.stat(path).mtimeMs,
+      ]);
+    } catch {
+      return null;
+    }
   }
 
   /**
@@ -278,10 +280,11 @@ class Preprocessor {
 
   /**
    * The files a `-M -MT ${DEPS_TARGET}` dependency list names: the target,
-   * then each file, with backslash-newline continuations and `\ ` for a
-   * space in a path.
+   * then each file, with backslash-newline continuations, `\ ` for a space
+   * and `\#` for a `#` in a path. A relative path is relative to the
+   * compiler's directory, `cwd`, or this process's when null.
    */
-  private static depsOf(text: string): string[] {
+  private static depsOf(text: string, cwd: string | null): string[] {
     const body = text.replaceAll(/\\\r?\n/g, " ").trim();
     if (!body.startsWith(`${DEPS_TARGET}:`)) return [];
     return body
@@ -290,7 +293,13 @@ class Preprocessor {
       .split(/(?<!\\)\s+/)
       .filter((path) => path !== "")
       .map((path) =>
-        resolve(path.replaceAll(String.raw`\ `, " ").replaceAll("$$", "$")),
+        resolve(
+          cwd ?? ".",
+          path
+            .replaceAll(String.raw`\ `, " ")
+            .replaceAll(String.raw`\#`, "#")
+            .replaceAll("$$", "$"),
+        ),
       );
   }
 
@@ -356,14 +365,7 @@ class Preprocessor {
       args.push("-dM");
     }
 
-    // Add include paths
-    const includePaths = [
-      ...this.defaultIncludePaths,
-      ...(options.includePaths ?? []),
-      ...(ownDirectory === null ? [] : [ownDirectory]),
-    ];
-
-    for (const path of includePaths) {
+    for (const path of this.searchPath(ownDirectory, options)) {
       args.push(`-I${path}`);
     }
 
@@ -384,10 +386,41 @@ class Preprocessor {
     // so the output stays scoped to the target file.
     if (options.imacros) {
       for (const macroHeader of options.imacros) {
-        args.push("-imacros", macroHeader);
+        args.push("-imacros", resolve(macroHeader));
       }
     }
     return args;
+  }
+
+  /**
+   * The directories searched for an include, absolute: cpp reading a string
+   * runs from another directory than this process (`cwdFor`)
+   */
+  private searchPath(
+    ownDirectory: string | null,
+    options: IPreprocessOptions,
+  ): string[] {
+    return [
+      ...this.defaultIncludePaths,
+      ...(options.includePaths ?? []),
+      ...(ownDirectory === null ? [] : [ownDirectory]),
+    ].map((dir) => resolve(dir));
+  }
+
+  /** Where cpp runs: a string from a directory with no headers, else here */
+  private cwdFor(text: IStringInput | null): string | null {
+    return this.stdinOf(text)?.cwd ?? null;
+  }
+
+  private stdinOf(
+    text: IStringInput | null,
+  ): { readonly content: string; readonly cwd: string } | null {
+    return text === null
+      ? null
+      : {
+          content: text.content,
+          cwd: Installation.headerFreeDirectory(this.fs),
+        };
   }
 
   /**
@@ -407,12 +440,7 @@ class Preprocessor {
       const { stdout, stderr } = await Preprocessor.spawn(
         toolchain.cpp,
         args,
-        text === null
-          ? null
-          : {
-              content: text.content,
-              cwd: Installation.headerFreeDirectory(this.fs),
-            },
+        this.stdinOf(text),
       );
       return { stdout, stderr: stderr ?? "", error: null };
     } catch (error: unknown) {
