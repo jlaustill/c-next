@@ -15,7 +15,7 @@ import { describe, it, expect, afterEach, beforeEach } from "vitest";
 import generateCast from "../CastExprGenerator";
 import TranspileState from "../../../../../TranspileState";
 import CastRequirement from "../../../../../2-Plan/CastRequirement";
-import type IPlannedCast from "../../../types/IPlannedCast";
+import type IPlannedCast from "../../../../../2-Plan/types/IPlannedCast";
 
 /** The plan's saturation decision, asked of the one function that makes it */
 const clampFormOf = (

@@ -130,7 +130,7 @@ const generateWithProgram = (
   tree: Parser.ProgramContext,
   program: Parameters<typeof ProgramGeneration.generate>[2],
   options: Parameters<typeof ProgramGeneration.generate>[3],
-): ReturnType<CodeGenWalker["generate"]> =>
+): string =>
   ProgramGeneration.generate(generator, tree, program, options, registry);
 
 let registry = new SymbolRegistry();

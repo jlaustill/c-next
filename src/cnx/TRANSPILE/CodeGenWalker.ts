@@ -141,7 +141,7 @@ import buildAssignmentContext from "./2-Plan/AssignmentContextBuilder";
 import StringLengthCounter from "./2-Plan/StringLengthCounter";
 import CppModeHelper from "./3-Render/codegen/helpers/CppModeHelper";
 import generateCast from "./3-Render/codegen/generators/expressions/CastExprGenerator";
-import type IPlannedCast from "./3-Render/codegen/types/IPlannedCast";
+import type IPlannedCast from "./2-Plan/types/IPlannedCast";
 import ConstExprLowering from "../utils/ConstExprLowering";
 import ElementCount from "../utils/ElementCount";
 import ConstantEvaluator from "../utils/ConstantEvaluator";
@@ -174,7 +174,8 @@ import IMemberSeparatorDeps from "./3-Render/codegen/types/IMemberSeparatorDeps"
 import IParameterDereferenceDeps from "./3-Render/codegen/types/IParameterDereferenceDeps";
 import ISeparatorContext from "./3-Render/codegen/types/ISeparatorContext";
 import TypeGenerationHelper from "./3-Render/codegen/helpers/TypeGenerationHelper";
-import type IPlannedType from "./3-Render/codegen/types/IPlannedType";
+import type IPlannedType from "./2-Plan/types/IPlannedType";
+import type IFilePlan from "./2-Plan/types/IFilePlan";
 import type IPlannedParameter from "./3-Render/codegen/types/IPlannedParameter";
 import type IPlannedFunctionParameter from "./3-Render/codegen/types/IPlannedFunctionParameter";
 import FunctionContextManager from "./3-Render/codegen/helpers/FunctionContextManager";
@@ -240,39 +241,26 @@ class CodeGenWalker {
    */
   private readonly host: CodeGenerator;
 
-  /** 2.2's plan for each type this file writes, decided before 2.3 renders */
-  private plannedTypes: ReadonlyMap<TTypeSyntax, IPlannedType> = new Map();
+  /** 2.2's plan for the file 2.3 is rendering, set only while `render` runs */
+  private filePlanOrNull: IFilePlan | null = null;
 
   /** The planned types 2.3 rendered, checked against `plannedTypes` once it is done */
   private readonly renderedTypes = new Set<TTypeSyntax>();
 
-  /** 2.2's decision, for each written `=`/`!=` comparison, of whether it compares strings (ADR-045) */
-  private plannedComparisons: ReadonlyMap<TExpression, boolean> = new Map();
-
   /** The planned comparisons 2.3 rendered, checked against `plannedComparisons` once it is done */
   private readonly renderedComparisons = new Set<TExpression>();
-
-  /** 2.2's ADR-024 decision for each written cast: the type it converts from, and whether and how it saturates */
-  private plannedCasts: ReadonlyMap<
-    TExpressionOf<"cast">,
-    Pick<IPlannedCast, "operandType" | "clampForm">
-  > = new Map();
 
   /** The planned casts 2.3 rendered, checked against `plannedCasts` once it is done */
   private readonly renderedCasts = new Set<TExpression>();
 
-  /** 2.2's decision of which private scope consts are inlined, not declared */
-  private plannedInlinedConsts: ReadonlySet<TDeclarationSyntax> = new Set();
-
-  /** 2.2's decision of which `sizeof(a.b)` operands are member accesses */
-  private plannedSizeofMemberAccesses: ReadonlySet<TExpressionOf<"sizeof">> =
-    new Set();
-
-  /** 2.2's decision of what each `sizeof(Name)` operand's name binds to */
-  private plannedSizeofBindings: ReadonlyMap<
-    TExpressionOf<"sizeof">,
-    TValueBinding | null
-  > = new Map();
+  /** The plan 2.3 renders from; asking outside `render` is a bug */
+  private get filePlan(): IFilePlan {
+    invariant(
+      this.filePlanOrNull,
+      "2.3 reads 2.2's plan only while rendering the file it was made for",
+    );
+    return this.filePlanOrNull;
+  }
 
   /**
    * 2.3 Render's per-file state, for callers that hold the WALKER (#1452 box 4).
@@ -404,7 +392,7 @@ class CodeGenWalker {
   }
 
   private renderType(type: TTypeSyntax): string {
-    const plan = this.plannedTypes.get(type);
+    const plan = this.filePlan.types.get(type);
     invariant(
       plan !== undefined,
       `2.2 planned every type 2.3 renders (got "${type.text}" at line ${type.span.line})`,
@@ -704,7 +692,7 @@ class CodeGenWalker {
       case "bitwiseAnd":
         return { kind: "join", separator: " & ", renderOperands };
       case "equality": {
-        const isStrcmp = this.plannedComparisons.get(expr);
+        const isStrcmp = this.filePlan.comparisons.get(expr);
         invariant(
           isStrcmp !== undefined,
           `2.2 planned every comparison 2.3 renders (got line ${expr.span.line})`,
@@ -1543,11 +1531,10 @@ class CodeGenWalker {
   }
 
   /**
-   * Generate C code from a C-Next program
-   * @param program The file as plain data, lowered by 1.2 (#1932)
-   * @param options Code generator options; `symbolInfo` and the target are required
+   * 2.2 Plan: every decision 2.3 Render reads for this file, made before any
+   * of it is written. `render` takes what this returns (#1991).
    */
-  generate(program: IProgramSyntax, options: ICodeGeneratorOptions): string {
+  plan(program: IProgramSyntax, options: ICodeGeneratorOptions): IFilePlan {
     // ADR-049: the target is decided before codegen, by the orchestrator;
     // this walk only reads it.
 
@@ -1570,8 +1557,17 @@ class CodeGenWalker {
     // Initialize all helper objects
     this.initializeHelperObjects(program);
 
-    // Assemble and return the output
-    return this.assembleGeneratedOutput(program, options);
+    return this.planFile(program, options);
+  }
+
+  /** 2.3 Render: the file's C, written from 2.2's plan (#1991) */
+  render(plan: IFilePlan): string {
+    this.filePlanOrNull = plan;
+    try {
+      return this.assembleGeneratedOutput(plan);
+    } finally {
+      this.filePlanOrNull = null;
+    }
   }
 
   /**
@@ -1580,13 +1576,17 @@ class CodeGenWalker {
    */
   private planTypeSites(
     program: IProgramSyntax,
+    inlinedConsts: ReadonlySet<TDeclarationSyntax>,
+    sizeofBindings: IFilePlan["sizeofBindings"],
+    sizeofMemberAccesses: IFilePlan["sizeofMemberAccesses"],
   ): ReadonlyMap<TTypeSyntax, IPlannedType> {
-    const unwritten = this.unwrittenTypes(program);
-    const planned = new Map<TTypeSyntax, IPlannedType>();
-    for (const { type, scope } of TypeSites.of(
+    const unwritten = this.unwrittenTypes(
       program,
-      this.plannedInlinedConsts,
-    )) {
+      sizeofBindings,
+      sizeofMemberAccesses,
+    );
+    const planned = new Map<TTypeSyntax, IPlannedType>();
+    for (const { type, scope } of TypeSites.of(program, inlinedConsts)) {
       if (unwritten.has(type)) continue;
       planned.set(
         type,
@@ -1604,9 +1604,13 @@ class CodeGenWalker {
    */
   private planComparisons(
     program: IProgramSyntax,
+    inlinedConsts: ReadonlySet<TDeclarationSyntax>,
   ): ReadonlyMap<TExpression, boolean> {
     const planned = new Map<TExpression, boolean>();
-    for (const expression of this.writtenExpressions(program)) {
+    for (const expression of CodeGenWalker.writtenExpressions(
+      program,
+      inlinedConsts,
+    )) {
       if (expression.kind === "binary" && expression.level === "equality") {
         planned.set(
           expression,
@@ -1624,6 +1628,7 @@ class CodeGenWalker {
    */
   private planCasts(
     program: IProgramSyntax,
+    inlinedConsts: ReadonlySet<TDeclarationSyntax>,
   ): ReadonlyMap<
     TExpressionOf<"cast">,
     Pick<IPlannedCast, "operandType" | "clampForm">
@@ -1633,7 +1638,10 @@ class CodeGenWalker {
       TExpressionOf<"cast">,
       Pick<IPlannedCast, "operandType" | "clampForm">
     >();
-    for (const expression of this.writtenExpressions(program)) {
+    for (const expression of CodeGenWalker.writtenExpressions(
+      program,
+      inlinedConsts,
+    )) {
       if (expression.kind !== "cast") continue;
       const operand = OperandTyper.typeOf(expression.operand, typing);
       const operandType = PlanTyping.castSourceType(operand);
@@ -1650,9 +1658,12 @@ class CodeGenWalker {
   }
 
   /** Whether 2.3 writes a `.char_count` read: the typer's step names the property */
-  private readsCharCount(program: IProgramSyntax): boolean {
+  private readsCharCount(
+    program: IProgramSyntax,
+    inlinedConsts: ReadonlySet<TDeclarationSyntax>,
+  ): boolean {
     const typing = this.host.state.typingContext();
-    return this.writtenExpressions(program).some(
+    return CodeGenWalker.writtenExpressions(program, inlinedConsts).some(
       (expression) =>
         expression.kind === "postfix" &&
         OperandTyper.chainOf(expression, typing).steps.some(
@@ -1662,12 +1673,14 @@ class CodeGenWalker {
   }
 
   /** Every expression 2.3 writes, except inside a dimension or enum value, which 1.4 spells */
-  private writtenExpressions(program: IProgramSyntax): TExpression[] {
-    return WrittenParts.of(program, this.plannedInlinedConsts).flatMap(
-      ({ part }) =>
-        part.kind === "expression" && !part.constant
-          ? ExpressionNodes.direct(part.expression)
-          : [],
+  private static writtenExpressions(
+    program: IProgramSyntax,
+    inlinedConsts: ReadonlySet<TDeclarationSyntax>,
+  ): TExpression[] {
+    return WrittenParts.of(program, inlinedConsts).flatMap(({ part }) =>
+      part.kind === "expression" && !part.constant
+        ? ExpressionNodes.direct(part.expression)
+        : [],
     );
   }
 
@@ -1689,12 +1702,16 @@ class CodeGenWalker {
    * field by its typedef (ADR-029), and a `sizeof(Name)` whose name binds to a
    * value (#1974).
    */
-  private unwrittenTypes(program: IProgramSyntax): ReadonlySet<TTypeSyntax> {
+  private unwrittenTypes(
+    program: IProgramSyntax,
+    sizeofBindings: IFilePlan["sizeofBindings"],
+    sizeofMemberAccesses: IFilePlan["sizeofMemberAccesses"],
+  ): ReadonlySet<TTypeSyntax> {
     const unwritten = new Set<TTypeSyntax>();
-    for (const expression of this.plannedSizeofMemberAccesses) {
+    for (const expression of sizeofMemberAccesses) {
       if (expression.type) unwritten.add(expression.type);
     }
-    for (const [expression, binding] of this.plannedSizeofBindings) {
+    for (const [expression, binding] of sizeofBindings) {
       if (binding !== null && binding.kind !== "scope" && expression.type) {
         unwritten.add(expression.type);
       }
@@ -1872,79 +1889,49 @@ class CodeGenWalker {
   /**
    * Assemble the final generated output.
    */
-  private assembleGeneratedOutput(
+  /** 2.2's decisions for the file, in the order each needs the ones before it */
+  private planFile(
     program: IProgramSyntax,
     options: ICodeGeneratorOptions,
-  ): string {
-    const output: string[] = [];
+  ): IFilePlan {
+    const selfInclude = this.planSelfInclude(options);
+    this.host.state.selfIncludeAdded = selfInclude !== null;
 
-    // 2.2 Plan's fact, recorded where it is KNOWN rather than recovered from
-    // text. `captureEmissionFacts` used to regex `#include` lines back out of
-    // the rendered `output` array, so a fact the parse tree carries was
-    // serialized to text and re-derived from it -- the pass boundary running
-    // backwards inside one method. Both producers append here instead.
-    const sourceIncludeTargets: string[] = [];
-
-    // Self-include for extern "C" linkage
-    // Issue #1164: this used to ask a second predicate that saw only scope
-    // members, so a file exporting types, consts or top-level functions got a
-    // header nothing included. Same question, same answer source as the header
-    // itself.
-    // #1515: supplied by the caller, which asked `PublicInterface`. Not read
-    // off `ICodeGenSymbols`, where 1.3 Declare used to put it.
-    if (options.hasPublicInterface && this.host.state.sourcePath) {
-      const pathToUse =
-        options.sourceRelativePath ||
-        this.host.state.sourcePath.replace(/^.*[\\/]/, "");
-      // Issue #933: Use .hpp extension in C++ mode to match header file
-      // Issue #1319: read the run's extension; do not re-derive it from the mode
-      const ext = this.host.state.outputExtensions.header;
-      const headerName = pathToUse.replace(/\.cnx$|\.cnext$/, ext);
-      output.push(`#include "${headerName}"`, "");
-      sourceIncludeTargets.push(`"${headerName}"`);
-      this.host.state.selfIncludeAdded = true;
-    }
-
-    // Process include directives
-    sourceIncludeTargets.push(
-      ...this.processIncludeDirectives(program, output),
-    );
-
-    // Process preprocessor directives
-    this.processPreprocessorDirectives(program, output);
-
-    // 2.2 Plan: the declaration decisions, settled BEFORE anything is rendered.
-    // Unlike the emission plan below, neither answer depends on what rendering
-    // turns out to produce, so Render reads them rather than interpreting the
-    // state they came from.
+    // Neither answer depends on what rendering turns out to produce, so
+    // Render reads them rather than interpreting the state they came from.
     this.host.state.declarationPlanOrNull = DeclarationPlan.build(
       program.declarations.map((entry) =>
         CodeGenWalker.declarationKindOf(entry.declaration),
       ),
       this.host.state.selfIncludeAdded,
     );
-    this.plannedInlinedConsts = this.planInlinedConsts(program);
-    this.plannedSizeofBindings = this.planSizeofBindings(program);
-    this.plannedSizeofMemberAccesses = this.planSizeofMemberAccesses(program);
-    this.plannedTypes = this.planTypeSites(program);
+    const inlinedConsts = this.planInlinedConsts(program);
+    const sizeofBindings = this.planSizeofBindings(program);
+    const sizeofMemberAccesses = this.planSizeofMemberAccesses(program);
+    const types = this.planTypeSites(
+      program,
+      inlinedConsts,
+      sizeofBindings,
+      sizeofMemberAccesses,
+    );
     // Each planned type is written once 2.3 is done, so its include is decided here
-    for (const plan of this.plannedTypes.values()) {
+    for (const plan of types.values()) {
       const requiredInclude = TypeGenerationHelper.getRequiredInclude(plan);
       if (requiredInclude) {
         this.host.state.requireInclude(requiredInclude);
       }
     }
-    this.plannedComparisons = this.planComparisons(program);
+    const comparisons = this.planComparisons(program, inlinedConsts);
     // ADR-045: a string comparison is written as strcmp, from <string.h>
-    if ([...this.plannedComparisons.values()].includes(true)) {
+    if ([...comparisons.values()].includes(true)) {
       this.host.state.requireInclude("string");
     }
     // ADR-058: `.char_count` is written as strlen, from <string.h>
-    if (this.readsCharCount(program)) {
+    if (this.readsCharCount(program, inlinedConsts)) {
       this.host.state.requireInclude("string");
     }
-    this.plannedCasts = this.planCasts(program);
-    for (const [expression, cast] of this.plannedCasts) {
+    const casts = this.planCasts(program, inlinedConsts);
+    for (const [expression, cast] of casts) {
       // ADR-024: a saturating cast compares against <limits.h>'s macros
       if (cast.clampForm !== null) {
         this.host.state.requireInclude("limits");
@@ -1956,6 +1943,62 @@ class CodeGenWalker {
         );
       }
     }
+    return {
+      program,
+      selfInclude,
+      inlinedConsts,
+      sizeofBindings,
+      sizeofMemberAccesses,
+      types,
+      comparisons,
+      casts,
+    };
+  }
+
+  /**
+   * The file's own header, which the `.c` includes first for extern "C"
+   * linkage, or null when the file has no public interface.
+   *
+   * Issue #1164: this used to ask a second predicate that saw only scope
+   * members, so a file exporting types, consts or top-level functions got a
+   * header nothing included. Same question, same answer source as the header
+   * itself. #1515: supplied by the caller, which asked `PublicInterface`.
+   */
+  private planSelfInclude(options: ICodeGeneratorOptions): string | null {
+    const sourcePath = this.host.state.sourcePath;
+    if (!options.hasPublicInterface || !sourcePath) {
+      return null;
+    }
+    const pathToUse =
+      options.sourceRelativePath || sourcePath.replace(/^.*[\\/]/, "");
+    // Issue #933/#1319: the run's header extension, not re-derived from the mode
+    return pathToUse.replace(
+      /\.cnx$|\.cnext$/,
+      this.host.state.outputExtensions.header,
+    );
+  }
+
+  private assembleGeneratedOutput(plan: IFilePlan): string {
+    const { program } = plan;
+    const output: string[] = [];
+
+    // 2.2 Plan's fact, recorded where it is KNOWN rather than recovered from
+    // text: `captureEmissionFacts` used to regex `#include` lines back out of
+    // the rendered `output` array. Both producers append here instead.
+    const sourceIncludeTargets: string[] = [];
+
+    if (plan.selfInclude !== null) {
+      output.push(`#include "${plan.selfInclude}"`, "");
+      sourceIncludeTargets.push(`"${plan.selfInclude}"`);
+    }
+
+    // Process include directives
+    sourceIncludeTargets.push(
+      ...this.processIncludeDirectives(program, output),
+    );
+
+    // Process preprocessor directives
+    this.processPreprocessorDirectives(program, output);
 
     this.renderedTypes.clear();
     this.renderedComparisons.clear();
@@ -1963,7 +2006,7 @@ class CodeGenWalker {
 
     // Generate declarations
     const declarations = this.generateAllDeclarations(program);
-    const unrendered = [...this.plannedTypes.keys()].find(
+    const unrendered = [...this.filePlan.types.keys()].find(
       (type) => !this.renderedTypes.has(type),
     );
     invariant(
@@ -1971,12 +2014,12 @@ class CodeGenWalker {
       `2.3 rendered every type 2.2 planned (missed "${unrendered?.text}" at line ${unrendered?.span.line})`,
     );
     CodeGenWalker.assertAllRendered(
-      this.plannedComparisons.keys(),
+      this.filePlan.comparisons.keys(),
       this.renderedComparisons,
       "comparison",
     );
     CodeGenWalker.assertAllRendered(
-      this.plannedCasts.keys(),
+      this.filePlan.casts.keys(),
       this.renderedCasts,
       "cast",
     );
@@ -1984,17 +2027,17 @@ class CodeGenWalker {
     // 2.2 Plan: every "does this file need X?" question the declarations above
     // raised is answered ONCE, here, from state that is warm for exactly this
     // long. Nothing below reads a `needs*` flag.
-    const plan = EmissionPlan.build(
+    const emissionPlan = EmissionPlan.build(
       this.captureEmissionFacts(sourceIncludeTargets),
     );
 
     // #1928: the banner and the file result read the planned blocks'
     // requirements off the plan itself, so nothing copies them anywhere.
-    this.host.state.emissionPlanOrNull = plan;
+    this.host.state.emissionPlanOrNull = emissionPlan;
 
     // 2.3 Render: format the plan. These two decide nothing.
-    this.addAutoIncludes(output, plan);
-    this.addGeneratedHelpers(output, plan);
+    this.addAutoIncludes(output, emissionPlan);
+    this.addGeneratedHelpers(output, emissionPlan);
 
     // Add the declarations
     output.push(...declarations);
@@ -3269,7 +3312,7 @@ class CodeGenWalker {
     const isArray = CodeGenWalker.isArrayDeclaration(decl);
 
     // Issue #282: 2.2 decided which private consts are inlined at their uses
-    if (this.plannedInlinedConsts.has(decl)) {
+    if (this.filePlan.inlinedConsts.has(decl)) {
       return { kind: "skipped" };
     }
     // Issue #998: the one modifier builder, which validates the atomic/volatile
@@ -5024,7 +5067,7 @@ class CodeGenWalker {
    * pass 2.1. They stood here as two throws that reached the user as `1:0`.
    */
   private planCast(expr: TExpressionOf<"cast">): IPlannedCast {
-    const planned = this.plannedCasts.get(expr);
+    const planned = this.filePlan.casts.get(expr);
     invariant(
       planned !== undefined,
       `2.2 planned every cast 2.3 renders (got line ${expr.span.line})`,
@@ -5084,7 +5127,7 @@ class CodeGenWalker {
         invariant(chain !== null, "a qualified operand is also a member chain");
         // #1972: a chain that types is a member access, spelled as every
         // member access is
-        if (this.plannedSizeofMemberAccesses.has(expr)) {
+        if (this.filePlan.sizeofMemberAccesses.has(expr)) {
           return {
             kind: "expression",
             simpleIdentifier: null,
@@ -5101,7 +5144,7 @@ class CodeGenWalker {
         };
       }
       if (type.kind === "user") {
-        const binding = this.plannedSizeofBindings.get(expr);
+        const binding = this.filePlan.sizeofBindings.get(expr);
         invariant(
           binding !== undefined,
           `2.2 decided what every sizeof name binds to (got "${type.text}" at line ${type.span.line})`,

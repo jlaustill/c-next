@@ -1,4 +1,4 @@
-import type IPlannedType from "./IPlannedType";
+import type IPlannedType from "../../../2-Plan/types/IPlannedType";
 
 /**
  * A function parameter as the function CONTEXT needs it -- the registry of

@@ -16,7 +16,7 @@
 
 import { describe, it, expect } from "vitest";
 import TypeGenerationHelper from "../TypeGenerationHelper";
-import type IPlannedType from "../../types/IPlannedType";
+import type IPlannedType from "../../../../2-Plan/types/IPlannedType";
 import type INamedTypeResolution from "../../../../../types/INamedTypeResolution";
 
 describe("TypeGenerationHelper", () => {

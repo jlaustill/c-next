@@ -36,12 +36,12 @@ import NodeFileSystem from "../../../../cnx/PARSE/1-Discover/NodeFileSystem";
  * `cppMode` is required here, and nothing falls back to "C".
  */
 /**
- * What a test hands `generate()`, plus the mode a run's 1.1 would have settled.
+ * What a test hands `plan()`, plus the mode a run's 1.1 would have settled.
  * The target may be left out: this helper then supplies the build machine's,
  * as an orchestrator that names none would.
  */
 type ITestGenerateOptions = Omit<
-  Parameters<CodeGenWalker["generate"]>[1],
+  Parameters<CodeGenWalker["plan"]>[1],
   "targetDescription"
 > & {
   readonly targetDescription?: ITargetDescription;
@@ -55,7 +55,7 @@ class ProgramGeneration {
     program: IProgramSyntax,
     options: ITestGenerateOptions,
     registry: SymbolRegistry,
-  ): ReturnType<CodeGenWalker["generate"]> {
+  ): string {
     // ADR-049: the orchestrator always decides a target before codegen; a
     // test that does not care about one gets the build machine's.
     const targetDescription =
@@ -85,10 +85,12 @@ class ProgramGeneration {
     // that passes only `symbolInfo` would otherwise leave the table empty, a
     // state the real pipeline never reaches (#1283 review: every
     // function-as-type `symbolInfo` names must resolve in the table).
-    return generator.generate(program, {
-      ...options,
-      targetDescription,
-    });
+    return generator.render(
+      generator.plan(program, {
+        ...options,
+        targetDescription,
+      }),
+    );
   }
 }
 

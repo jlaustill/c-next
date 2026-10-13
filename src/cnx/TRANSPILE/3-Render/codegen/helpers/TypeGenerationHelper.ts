@@ -33,7 +33,7 @@ import TYPE_MAP from "../types/TYPE_MAP";
 import TIncludeHeader from "../../../../types/TIncludeHeader";
 import AdrProvenance from "../../../../instrumentation/AdrProvenance";
 import type INamedTypeResolution from "../../../../types/INamedTypeResolution";
-import type IPlannedType from "../types/IPlannedType";
+import type IPlannedType from "../../../2-Plan/types/IPlannedType";
 
 /**
  * Result of generating a primitive type.

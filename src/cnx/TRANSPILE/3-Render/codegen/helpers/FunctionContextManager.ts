@@ -27,7 +27,7 @@ import invariant from "../../../../utils/invariant";
 import ComplianceAnnotations from "../../../2-Plan/ComplianceAnnotations";
 import type IParameterInfo from "../../../../types/symbols/IParameterInfo";
 import type IPlannedFunctionParameter from "../types/IPlannedFunctionParameter";
-import type IPlannedType from "../types/IPlannedType";
+import type IPlannedType from "../../../2-Plan/types/IPlannedType";
 import type TranspileState from "../../../TranspileState";
 
 /**

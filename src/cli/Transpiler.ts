@@ -877,7 +877,7 @@ class Transpiler {
       );
 
       // Generate code
-      const code = this.codeGenerator.generate(analyzed.program, {
+      const plan = this.codeGenerator.plan(analyzed.program, {
         debugMode: this.config.debugMode,
         targetDescription: Transpiler._runTarget(program).description,
         sourcePath,
@@ -893,6 +893,7 @@ class Transpiler {
           program.symbolTable().getTSymbolsByFile(sourcePath),
         ),
       });
+      const code = this.codeGenerator.render(plan);
 
       // #1323: resolve this file's header-render input while its state is
       // warm (reads from state populated above), but do not render it here.

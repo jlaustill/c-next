@@ -20,7 +20,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import FunctionContextManager from "../FunctionContextManager";
 import IFunctionContextCallbacks from "../../types/IFunctionContextCallbacks";
 import TranspileState from "../../../../TranspileState";
-import type IPlannedType from "../../types/IPlannedType";
+import type IPlannedType from "../../../../2-Plan/types/IPlannedType";
 import type IPlannedFunctionParameter from "../../types/IPlannedFunctionParameter";
 import type INamedTypeResolution from "../../../../../types/INamedTypeResolution";
 import type IProgram from "../../../../../types/IProgram";

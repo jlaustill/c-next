@@ -22,7 +22,7 @@ import invariant from "../../../../../utils/invariant";
 import CppModeHelper from "../../helpers/CppModeHelper";
 import SaturatingCast from "../../helpers/SaturatingCast";
 import ReservedCnxName from "../../../../../utils/ReservedCnxName";
-import type IPlannedCast from "../../types/IPlannedCast";
+import type IPlannedCast from "../../../../2-Plan/types/IPlannedCast";
 import type TranspileState from "../../../../TranspileState";
 
 /**
