@@ -45,6 +45,7 @@ import ComplianceAnnotations from "./2-Plan/ComplianceAnnotations";
 import emittedLocalName from "../utils/emittedLocalName";
 import DeclarationPlan from "./2-Plan/DeclarationPlan";
 import TypeSites from "./2-Plan/TypeSites";
+import WrittenParts from "./2-Plan/WrittenParts";
 import DeclarationParts from "../utils/DeclarationParts";
 import ExpressionNodes from "../utils/ExpressionNodes";
 import type TValueBinding from "../types/TValueBinding";
@@ -244,6 +245,12 @@ class CodeGenWalker {
 
   /** The planned types 2.3 rendered, checked against `plannedTypes` once it is done */
   private readonly renderedTypes = new Set<TTypeSyntax>();
+
+  /** 2.2's decision, for each written `=`/`!=` comparison, of whether it compares strings (ADR-045) */
+  private plannedComparisons: ReadonlyMap<TExpression, boolean> = new Map();
+
+  /** The planned comparisons 2.3 rendered, checked against `plannedComparisons` once it is done */
+  private readonly renderedComparisons = new Set<TExpression>();
 
   /** 2.2's decision of which private scope consts are inlined, not declared */
   private plannedInlinedConsts: ReadonlySet<TDeclarationSyntax> = new Set();
@@ -694,9 +701,12 @@ class CodeGenWalker {
       case "bitwiseAnd":
         return { kind: "join", separator: " & ", renderOperands };
       case "equality": {
-        const isStrcmp =
-          this.isStringExpression(operands[0]) ||
-          this.isStringExpression(operands[1]);
+        const isStrcmp = this.plannedComparisons.get(expr);
+        invariant(
+          isStrcmp !== undefined,
+          `2.2 planned every comparison 2.3 renders (got line ${expr.span.line})`,
+        );
+        this.renderedComparisons.add(expr);
         return {
           kind: "comparison",
           defaultOperator: "=",
@@ -1586,6 +1596,32 @@ class CodeGenWalker {
   }
 
   /**
+   * ADR-045: 2.2 decides, for every `=`/`!=` comparison 2.3 writes, whether it
+   * compares strings, so 2.3 writes strcmp from that decision
+   */
+  private planComparisons(
+    program: IProgramSyntax,
+  ): ReadonlyMap<TExpression, boolean> {
+    const planned = new Map<TExpression, boolean>();
+    for (const { part } of WrittenParts.of(
+      program,
+      this.plannedInlinedConsts,
+    )) {
+      if (part.kind !== "expression" || part.constant) continue;
+      for (const expression of ExpressionNodes.direct(part.expression)) {
+        if (expression.kind === "binary" && expression.level === "equality") {
+          planned.set(
+            expression,
+            this.isStringExpression(expression.operands[0]) ||
+              this.isStringExpression(expression.operands[1]),
+          );
+        }
+      }
+    }
+    return planned;
+  }
+
+  /**
    * Types in a written declaration that 2.3 spells some other way: a callback
    * field by its typedef (ADR-029), and a `sizeof(Name)` whose name binds to a
    * value (#1974).
@@ -1828,8 +1864,14 @@ class CodeGenWalker {
     this.plannedSizeofBindings = this.planSizeofBindings(program);
     this.plannedSizeofMemberAccesses = this.planSizeofMemberAccesses(program);
     this.plannedTypes = this.planTypeSites(program);
+    this.plannedComparisons = this.planComparisons(program);
+    // ADR-045: a string comparison is written as strcmp, from <string.h>
+    if ([...this.plannedComparisons.values()].includes(true)) {
+      this.host.state.requireInclude("string");
+    }
 
     this.renderedTypes.clear();
+    this.renderedComparisons.clear();
 
     // Generate declarations
     const declarations = this.generateAllDeclarations(program);
@@ -1839,6 +1881,13 @@ class CodeGenWalker {
     invariant(
       unrendered === undefined,
       `2.3 rendered every type 2.2 planned (missed "${unrendered?.text}" at line ${unrendered?.span.line})`,
+    );
+    const unrenderedComparison = [...this.plannedComparisons.keys()].find(
+      (expression) => !this.renderedComparisons.has(expression),
+    );
+    invariant(
+      unrenderedComparison === undefined,
+      `2.3 rendered every comparison 2.2 planned (missed line ${unrenderedComparison?.span.line})`,
     );
 
     // 2.2 Plan: every "does this file need X?" question the declarations above

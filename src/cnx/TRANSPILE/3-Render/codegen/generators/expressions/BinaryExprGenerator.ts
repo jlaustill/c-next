@@ -212,11 +212,8 @@ const renderComparison = (
   AdrProvenance.record("001", plan.adrLine);
 
   if (plan.strcmp) {
-    // ADR-045: string comparison lowers to strcmp, which needs <string.h>.
-    // Raised HERE rather than carried on the plan: a plan that pre-registered
-    // it would drag the header into every file containing a comparison.
-    effects.push({ type: "include", header: "string" });
-
+    // ADR-045: string comparison lowers to strcmp. 2.2 required <string.h>
+    // when it planned the comparison, which 2.3 then renders (#1991).
     // #1649: only the FIRST TWO operands are rendered, and the code below is
     // the entire result -- so `s = t = u` emits `strcmp(s, t) == 0` and drops
     // `= u` silently. Pre-existing and preserved exactly: this slice's oracle
