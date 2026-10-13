@@ -369,7 +369,7 @@ const generateFunctionCall = (
 
   // ADR-051: Handle safe_div() and safe_mod() built-in functions
   if (funcExpr === "safe_div" || funcExpr === "safe_mod") {
-    return generateSafeDivMod(funcExpr, args, effects);
+    return generateSafeDivMod(funcExpr, args, effects, orchestrator);
   }
 
   // Regular function call handling
@@ -449,6 +449,7 @@ const generateSafeDivMod = (
   funcName: string,
   args: readonly IPlannedCallArgument[],
   effects: TGeneratorEffect[],
+  orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
   // #1322: ADR-051's call shape is E0884 (four arguments) and E0885 (the first
   // is a variable to receive the result) in pass 2.1, and a `const` output is
@@ -493,9 +494,12 @@ const generateSafeDivMod = (
     cnxType,
   );
 
-  // Track that this operation is used for helper generation
+  // 2.2 planned the helper, and the C types it is written with (#1991)
   const opType: "div" | "mod" = funcName === "safe_div" ? "div" : "mod";
-  effects.push({ type: "safe-div", operation: opType, cnxType });
+  invariant(
+    orchestrator.state.usedSafeDivOps.has(`${opType}_${cnxType}`),
+    `2.2 planned every safe-division helper 2.3 calls (${opType}_${cnxType})`,
+  );
 
   return {
     code: `${helperName}(${outputArg}, ${numeratorArg}, ${divisorArg}, ${defaultArg})`,

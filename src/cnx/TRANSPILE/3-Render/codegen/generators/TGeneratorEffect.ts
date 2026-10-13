@@ -16,7 +16,6 @@ type TGeneratorEffect =
 
   // === Helper Function Effects ===
   | { type: "helper"; operation: string; cnxType: string } // Overflow clamp helper
-  | { type: "safe-div"; operation: "div" | "mod"; cnxType: string } // Safe division helper
 
   // === Type Registration Effects ===
 

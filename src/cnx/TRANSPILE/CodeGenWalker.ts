@@ -1743,6 +1743,40 @@ class CodeGenWalker {
     return planned;
   }
 
+  /**
+   * ADR-051: the helper each written `safe_div`/`safe_mod` call is written as,
+   * keyed by the output variable's type, and the C types it is written with:
+   * its integer type and the `bool` error flag it returns (#1108, #1927)
+   */
+  private planSafeDivisions(
+    program: IProgramSyntax,
+    inlinedConsts: ReadonlySet<TDeclarationSyntax>,
+  ): void {
+    const state = this.host.state;
+    const typing = state.typingContext();
+    for (const expression of CodeGenWalker.writtenExpressions(
+      program,
+      inlinedConsts,
+    )) {
+      if (expression.kind !== "postfix") continue;
+      const head = ExpressionShape.headOf(expression);
+      const operation =
+        CodeGenWalker.SAFE_DIVISIONS[head.identifier?.name ?? ""];
+      const call = head.ops[0];
+      if (head.root !== null || operation === undefined) continue;
+      if (call?.kind !== "call" || call.arguments.length !== 4) continue;
+      const cnxType = OperandTyper.typeOf(call.arguments[0], typing)?.typeName;
+      if (cnxType == null) continue;
+      state.usedSafeDivOps.add(`${operation}_${cnxType}`);
+      state.emittedCTypes.add("bool");
+      state.emittedCTypes.add(TYPE_MAP[cnxType]);
+    }
+  }
+
+  private static readonly SAFE_DIVISIONS: Readonly<
+    Partial<Record<string, "div" | "mod">>
+  > = { safe_div: "div", safe_mod: "mod" };
+
   /** Whether 2.3 writes a `.char_count` read: the typer's step names the property */
   private readsCharCount(
     program: IProgramSyntax,
@@ -2016,6 +2050,7 @@ class CodeGenWalker {
     if (this.readsCharCount(program, inlinedConsts)) {
       this.host.state.requireInclude("string");
     }
+    this.planSafeDivisions(program, inlinedConsts);
     const casts = this.planCasts(program, inlinedConsts);
     for (const [expression, cast] of casts) {
       // ADR-024: a saturating cast compares against <limits.h>'s macros

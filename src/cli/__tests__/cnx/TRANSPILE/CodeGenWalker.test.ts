@@ -426,20 +426,6 @@ describe("CodeGenWalker", () => {
         expect(host.getState()).toBeDefined();
       });
 
-      it("should process safe-div effects (division operations)", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`, false);
-
-        // Apply safe division effect
-        expect(() =>
-          host.applyEffects([
-            { type: "safe-div", operation: "div", cnxType: "u32" },
-          ]),
-        ).not.toThrow();
-
-        // Generator should track the safe division operation
-        expect(host.getState()).toBeDefined();
-      });
-
       it("should process set-parameters effects", () => {
         const { host } = createMinimalGenerator(`void foo() { }`, false);
 

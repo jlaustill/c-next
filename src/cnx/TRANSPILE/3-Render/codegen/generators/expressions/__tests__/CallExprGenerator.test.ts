@@ -992,7 +992,7 @@ describe("CallExprGenerator", () => {
   });
 
   describe("safe_div and safe_mod (ADR-051)", () => {
-    it("generates safe_div call with correct helper name and effects", () => {
+    it("generates safe_div call with the helper 2.2 planned", () => {
       const argExpressions = [
         createMockExpressionContext("result"),
         createMockExpressionContext("a"),
@@ -1014,6 +1014,8 @@ describe("CallExprGenerator", () => {
         ),
       });
 
+      // 2.2 planned the helper before 2.3 calls it (#1991)
+      sharedState.usedSafeDivOps.add("div_u32");
       const result = generateFunctionCall(
         "safe_div",
         planArguments(orchestrator, argExpressions),
@@ -1023,12 +1025,10 @@ describe("CallExprGenerator", () => {
       );
 
       expect(result.code).toBe("cnx_safe_div_u32(&result, a, b, 0)");
-      expect(result.effects).toEqual([
-        { type: "safe-div", operation: "div", cnxType: "u32" },
-      ]);
+      expect(result.effects).toEqual([]);
     });
 
-    it("generates safe_mod call with correct helper name and effects", () => {
+    it("generates safe_mod call with the helper 2.2 planned", () => {
       const argExpressions = [
         createMockExpressionContext("out"),
         createMockExpressionContext("x"),
@@ -1050,6 +1050,8 @@ describe("CallExprGenerator", () => {
         ),
       });
 
+      // 2.2 planned the helper before 2.3 calls it (#1991)
+      sharedState.usedSafeDivOps.add("mod_i64");
       const result = generateFunctionCall(
         "safe_mod",
         planArguments(orchestrator, argExpressions),
@@ -1059,9 +1061,7 @@ describe("CallExprGenerator", () => {
       );
 
       expect(result.code).toBe("cnx_safe_mod_i64(&out, x, y, 1)");
-      expect(result.effects).toEqual([
-        { type: "safe-div", operation: "mod", cnxType: "i64" },
-      ]);
+      expect(result.effects).toEqual([]);
     });
 
     // #1322: these four asserted the user-facing throws. ADR-051's call shape

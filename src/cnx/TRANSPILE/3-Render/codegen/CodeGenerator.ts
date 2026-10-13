@@ -3,7 +3,6 @@
  * Transforms C-Next AST to clean, readable C code
  */
 
-import TYPE_MAP from "./types/TYPE_MAP";
 import OverflowHelperTemplates from "./generators/support/OverflowHelperTemplates";
 import type IFloatBitWrite from "../../../types/IFloatBitWrite";
 import ReservedCnxName from "../../../utils/ReservedCnxName";
@@ -158,17 +157,6 @@ export default class CodeGenerator implements IOrchestrator {
           )) {
             this.state.emittedCTypes.add(cType);
           }
-          break;
-        case "safe-div":
-          // Internal helper-op key, not a scope-qualified C name
-          this.state.usedSafeDivOps.add(
-            `${effect.operation}_${effect.cnxType}`,
-          );
-          // ADR-051 safe-div helpers return a bool error flag. Record the
-          // type, and the plan decides the header (#1108, #1927) rather than
-          // the helper emitting its own #include <stdbool.h>.
-          this.state.emittedCTypes.add("bool");
-          this.state.emittedCTypes.add(TYPE_MAP[effect.cnxType]);
           break;
 
         // #1452 box 2: three "type registration" effects stood here --
