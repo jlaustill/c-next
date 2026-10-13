@@ -25,7 +25,6 @@ import IHeaderEmissionFacts from "../cnx/TRANSPILE/3-Render/headers/types/IHeade
 import SymbolTable from "../cnx/PARSE/3-Declare/SymbolTable";
 import ESourceLanguage from "../cnx/utils/types/ESourceLanguage";
 import SymbolRegistry from "../cnx/PARSE/3-Declare/SymbolRegistry";
-import Program from "../cnx/PARSE/4-Resolve/Program";
 import type IProgram from "../cnx/types/IProgram";
 import type IAnalyzedFile from "../cnx/types/IAnalyzedFile";
 
@@ -56,6 +55,8 @@ import type IDeclaredSource from "../cnx/PARSE/3-Declare/types/IDeclaredSource";
 import Parse from "../cnx/PARSE/2-Parse/Parse";
 import Declare from "../cnx/PARSE/3-Declare/Declare";
 import Analyze from "../cnx/TRANSPILE/1-Analyze/Analyze";
+import Resolve from "../cnx/PARSE/4-Resolve/Resolve";
+import type IResolvedProgram from "../cnx/PARSE/4-Resolve/types/IResolvedProgram";
 import type IAnalyzerOptions from "../cnx/TRANSPILE/1-Analyze/types/IAnalyzerOptions";
 import type TFrontEndResult from "./types/TFrontEndResult";
 import type IDiagnostics from "../cnx/types/IDiagnostics";
@@ -424,6 +425,8 @@ class Transpiler {
       }
       return;
     }
+    // 2.1's artifact carries 1.4's program on to Stage 5 (#1991)
+    this.program = front.program;
     for (const [path, analyzed] of front.files) {
       this.analyzedFiles.set(path, analyzed);
     }
@@ -507,14 +510,22 @@ class Transpiler {
     if (errors.length > 0) {
       return { kind: "stopped", errors };
     }
-    if (!this._passesProgramChecks(input, declared.declared, result)) {
+    const resolved = this._passesProgramChecks(
+      input,
+      declared.declared,
+      result,
+    );
+    if (resolved === null) {
       return { kind: "stopped", errors: [] };
     }
     return {
       kind: "analyzed",
       ...Analyze.run(
-        declared.declared,
-        this.config.parseOnly ? null : (file) => this._analysisInputs(file),
+        resolved.program,
+        resolved.sources,
+        this.config.parseOnly
+          ? null
+          : (file, program) => this._analysisInputs(file, program),
       ),
     };
   }
@@ -527,20 +538,24 @@ class Transpiler {
     input: ISourceGraph,
     declared: readonly IDeclaredSource[],
     result: ITranspilerResult,
-  ): boolean {
-    return (
-      // Stage 3: 1.4 Resolve once over every file 1.3 `Declare` declared
-      this._resolveProgram(declared, result) &&
+  ): IResolvedProgram | null {
+    // Stage 3: 1.4 Resolve once over every file 1.3 `Declare` declared
+    const resolved = this._resolveProgram(declared, result);
+    if (resolved === null) {
+      return null;
+    }
+    const { program } = resolved;
+    const passes =
       // Stage 3b: the program's one target (ADR-049), settled by 1.4. Nothing
       // below may run for a program whose target is unknown or contested.
-      this._checkRunTarget(input, result) &&
+      this._checkRunTarget(program, input, result) &&
       // Stage 4: symbol conflicts
-      this._checkSymbolConflicts(result) &&
+      Transpiler._recordChecked(result, ProgramChecks.conflicts(program)) &&
       // Stage 4b: include guard collisions (ADR-063, issue #1133)
       this._checkIncludeGuardCollisions(input.cnextFiles, result) &&
       // Stage 4c: external identifier significance (MISRA 5.1, issue #1307)
-      this._checkExternalIdentifierSignificance(result)
-    );
+      this._checkExternalIdentifierSignificance(program, result);
+    return passes ? resolved : null;
   }
 
   /**
@@ -643,12 +658,12 @@ class Transpiler {
   /**
    * Stage 3: 1.4 Resolve over every declared C-Next file, then publish each
    * file's resolved symbols.
-   * @returns true if successful, false if errors occurred
+   * @returns 1.4's artifact, or null if errors occurred
    */
   private _resolveProgram(
     declared: readonly IDeclaredSource[],
     result: ITranspilerResult,
-  ): boolean {
+  ): IResolvedProgram | null {
     // 1.4 Resolve. The whole program exists only now that every file has been
     // declared, which is the entire reason the two loops are separate: a file's
     // bare type reference may name a scope type declared in a file that had not
@@ -667,74 +682,51 @@ class Transpiler {
       // reading the set any earlier would drop it from `externalStructFields` --
       // silently exempting it from ADR-016 init-completeness checking, which is
       // the one consumer of the fact.
-      this.program = Program.build(
-        declared.map((entry) => entry.fileSymbols),
-        {
-          headerStructFields: this.declaredSymbols.getAllStructFields(),
-          // #1511: everything the C/C++ headers contributed. The opacity inputs
-          // are the RAW bookkeeping, not the verdict -- `Program` resolves which
-          // typedefs never received a body. Read here because #985 phantom-body
-          // recovery has already run (Stage 2), so the state is final.
-          foreign: {
-            c: this.declaredSymbols.getAllCSymbols(),
-            cpp: this.declaredSymbols.getAllCppSymbols(),
-            opaqueTypedefs: new Set(this.declaredSymbols.getAllOpaqueTypes()),
-            typedefToTag: new Map(this.declaredSymbols.getAllTypedefToTag()),
-            structTagsWithBodies: new Set(
-              this.declaredSymbols.getAllStructTagsWithBodies(),
-            ),
-            // #1688: each file's own, from its C includes' macro dump
-            macros: this.headerMacrosByFile,
-            macrosUnread: this.headerMacrosUnread,
-          },
-          // #1825: ADR-006's and ADR-029's derivations look callees and
-          // typedefs up in it. 1.4 completes it with every file's resolved
-          // symbols and hands it on as `program.symbolTable()` (#1991).
-          symbolTable: this.declaredSymbols,
-          // #1175: where a name nothing binds may be a macro -- discovery's
-          // one answer, the same 2.1's E0427 reads
-          filesReachingForeignHeaders: new Set(
-            declared
-              .filter((entry) => entry.file.reachesForeignHeader)
-              .map((entry) => entry.fileSymbols.sourceFile),
+      const resolved = Resolve.program(declared, {
+        headerStructFields: this.declaredSymbols.getAllStructFields(),
+        // #1511: everything the C/C++ headers contributed. The opacity inputs
+        // are the RAW bookkeeping, not the verdict -- `Program` resolves which
+        // typedefs never received a body. Read here because #985 phantom-body
+        // recovery has already run (Stage 2), so the state is final.
+        foreign: {
+          c: this.declaredSymbols.getAllCSymbols(),
+          cpp: this.declaredSymbols.getAllCppSymbols(),
+          opaqueTypedefs: new Set(this.declaredSymbols.getAllOpaqueTypes()),
+          typedefToTag: new Map(this.declaredSymbols.getAllTypedefToTag()),
+          structTagsWithBodies: new Set(
+            this.declaredSymbols.getAllStructTagsWithBodies(),
           ),
-          visibility: {
-            cnextIncludesByFile: new Map(
-              declared.map((entry) => [
-                entry.file.path,
-                entry.file.cnextIncludes,
-              ]),
-            ),
-          },
-          registry: this.symbolRegistry,
-          // #1428: 1.1's one answer, which every pass after 1.4 reads from here
-          cppMode: this._requireSourceGraph().cppMode,
-          target: {
-            option: this.config.target,
-            // ADR-049's build-system rung, read once by 1.1 from the text its
-            // include discovery used (#1444, owner ruling 3)
-            platformio: this._requireSourceGraph().anchor.platformio,
-            pioEnv: this.config.pioEnv || undefined,
-            catalog: TargetCatalogFile.parse(
-              this._requireSourceGraph().targetCatalog,
-            ),
-            files: declared.map((entry) => ({
-              sourcePath: entry.file.path,
-              directives: entry.syntax.targetDirectives,
-            })),
-          },
+          // #1688: each file's own, from its C includes' macro dump
+          macros: this.headerMacrosByFile,
+          macrosUnread: this.headerMacrosUnread,
         },
-      );
+        // #1825: ADR-006's and ADR-029's derivations look callees and
+        // typedefs up in it. 1.4 completes it with every file's resolved
+        // symbols and hands it on as `program.symbolTable()` (#1991).
+        symbolTable: this.declaredSymbols,
+        registry: this.symbolRegistry,
+        // #1428: 1.1's one answer, which every pass after 1.4 reads from here
+        cppMode: this._requireSourceGraph().cppMode,
+        target: {
+          option: this.config.target,
+          // ADR-049's build-system rung, read once by 1.1 from the text its
+          // include discovery used (#1444, owner ruling 3)
+          platformio: this._requireSourceGraph().anchor.platformio,
+          pioEnv: this.config.pioEnv || undefined,
+          catalog: TargetCatalogFile.parse(
+            this._requireSourceGraph().targetCatalog,
+          ),
+        },
+      });
       // Passes after 1.4 read cross-file facts from the artifact rather than
       // re-deriving them. Set once per run, not per file.
-      this.codeGenerator.transpileState.program = this.program;
+      this.codeGenerator.transpileState.program = resolved.program;
+      return result.success ? resolved : null;
     } catch (err) {
       result.errors.push(CaughtError.asTranspileError(err));
       result.success = false;
-      return false;
+      return null;
     }
-
-    return result.success;
   }
 
   /**
@@ -751,7 +743,10 @@ class Transpiler {
    * `Program`, which 1.4 completed, so it does not depend on any file having
    * been emitted.
    */
-  private _analysisInputs(file: IPipelineFile): IAnalyzerOptions {
+  private _analysisInputs(
+    file: IPipelineFile,
+    program: IProgram,
+  ): IAnalyzerOptions {
     const sourcePath = file.path;
 
     // #1241: attribute ADR provenance to the file being analyzed. Analysis runs
@@ -760,7 +755,7 @@ class Transpiler {
     // the first, which reads identically to "this rule never fires".
     AdrProvenance.beginFile(sourcePath);
 
-    const symbols = this._establishPerFileCodeGenState(sourcePath);
+    const symbols = this._establishPerFileCodeGenState(sourcePath, program);
 
     // #1322: the ADR-010 include facts are handed in rather than read off
     // CodeGenState, whose `sourcePath` is not written until `generate()` and
@@ -771,19 +766,14 @@ class Transpiler {
     // read discovery's per-directive answers through `Program` (#1672), and
     // an empty set of answers is not "this file includes nothing". Same
     // reasoning as the conflict check.
-    invariant(
-      this.program,
-      "1.4 Resolve built Program before a later pass read its discovery facts",
-    );
-
     return {
       // #1456: handed over rather than reached for. Nineteen analyzer sites
       // used to read these off `CodeGenState` themselves, for facts this
       // caller is already holding.
       context: {
         symbols,
-        program: this.program,
-        symbolTable: this.program.symbolTable(),
+        program,
+        symbolTable: program.symbolTable(),
         reachesForeignHeader: file.reachesForeignHeader,
         sourceFile: sourcePath,
       },
@@ -866,18 +856,10 @@ class Transpiler {
    * invariant that should fail loudly if it ever stops holding. Same treatment
    * as `Program.settleEveryFile`'s deferred-type check.
    */
-  private _requireSymbolInfo(sourcePath: string): ICodeGenSymbols {
-    // #1452: see `_analysisInputs` -- the include rewrites below are asserted
-    // rather than defaulted, for the same reason.
-    invariant(
-      this.program,
-      "1.4 Resolve built Program before a later pass read its discovery facts",
-    );
-    // Bound to a local because TypeScript drops the narrowing of a mutable
-    // class property across any intervening call, and this method makes
-    // several before the two reads below.
-    const program = this.program;
-
+  private _requireSymbolInfo(
+    sourcePath: string,
+    program: IProgram,
+  ): ICodeGenSymbols {
     const symbolInfo = program.codeGenSymbolsFor(sourcePath);
     invariant(
       symbolInfo,
@@ -907,8 +889,11 @@ class Transpiler {
    * callers need the view to exist, and `_requireSymbolInfo` throws rather than
    * returning a nullable that every caller would then guard.
    */
-  private _establishPerFileCodeGenState(sourcePath: string): ICodeGenSymbols {
-    return this._requireSymbolInfo(sourcePath);
+  private _establishPerFileCodeGenState(
+    sourcePath: string,
+    program: IProgram,
+  ): ICodeGenSymbols {
+    return this._requireSymbolInfo(sourcePath, program);
   }
 
   /**
@@ -954,7 +939,10 @@ class Transpiler {
       // #1320: 2.1 Analyze already ran, whole-program, in Stage 4d. What is left
       // here is 2.2 Plan and 2.3 Render. The per-file state codegen reads is
       // still established per file -- it is `generate()`'s input, not analysis's.
-      const symbolInfo = this._establishPerFileCodeGenState(sourcePath);
+      const symbolInfo = this._establishPerFileCodeGenState(
+        sourcePath,
+        program,
+      );
 
       // Generate code
       const code = this.codeGenerator.generate(analyzed.program, {
@@ -1261,36 +1249,18 @@ class Transpiler {
   }
 
   /**
-   * Stage 4: Check for symbol conflicts (`ProgramChecks.conflicts`).
-   * @returns true if no blocking conflicts, false otherwise
-   */
-  private _checkSymbolConflicts(result: ITranspilerResult): boolean {
-    // #1511: asserted, not defaulted -- a missing artifact would report zero
-    // conflicts and pass the check. Stage 3 returns false on a build failure
-    // before this runs, so reaching here without one is a broken stage order.
-    invariant(
-      this.program,
-      "1.4 Resolve built Program before the symbol-conflict check ran",
-    );
-    return Transpiler._recordChecked(
-      result,
-      ProgramChecks.conflicts(this.program),
-    );
-  }
-
-  /**
    * Stage 3b: report the run's target, or why it has none (ADR-049). The
    * check is `ProgramChecks.runTarget`.
    *
    * @returns true when the run may continue
    */
   private _checkRunTarget(
+    program: IProgram,
     input: ISourceGraph,
     result: ITranspilerResult,
   ): boolean {
-    invariant(this.program, "Stage 3 built the program");
     const checked = ProgramChecks.runTarget(
-      this.program,
+      program,
       this.config.parseOnly === true,
       input.cnextFiles.at(-1)?.path,
     );
@@ -1323,19 +1293,24 @@ class Transpiler {
    * @returns true when every external identifier is distinct within the budget
    */
   private _checkExternalIdentifierSignificance(
+    program: IProgram,
     result: ITranspilerResult,
   ): boolean {
+    const target = program.target();
     // ADR-049: a parse-only run needs no target, and without one there is no
     // budget to check against. Every other run reaches here with one (3b).
-    if (this.config.parseOnly && this.program?.target().kind !== "resolved") {
+    if (this.config.parseOnly && target.kind !== "resolved") {
       return true;
     }
-    invariant(this.program, "1.4 Resolve built Program before its checks ran");
+    invariant(
+      target.kind === "resolved",
+      "Stage 3b halts a run whose target did not resolve",
+    );
     return Transpiler._recordChecked(
       result,
       ProgramChecks.externalIdentifiers(
-        this.program.symbolTable(),
-        this._runTarget().description,
+        program.symbolTable(),
+        target.description,
       ),
     );
   }

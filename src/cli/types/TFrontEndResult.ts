@@ -1,5 +1,6 @@
 import type IAnalyzedFile from "../../cnx/types/IAnalyzedFile";
 import type IDiagnostics from "../../cnx/types/IDiagnostics";
+import type IProgram from "../../cnx/types/IProgram";
 import type ITranspileError from "../../cnx/types/ITranspileError";
 
 /**
@@ -17,6 +18,7 @@ type TFrontEndResult =
     }
   | {
       readonly kind: "analyzed";
+      readonly program: IProgram;
       readonly diagnostics: IDiagnostics;
       readonly files: ReadonlyMap<string, IAnalyzedFile>;
     };
