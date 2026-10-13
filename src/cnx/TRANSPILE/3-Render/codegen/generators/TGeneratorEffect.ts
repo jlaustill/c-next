@@ -7,14 +7,9 @@
  * - Central effect processing in the orchestrator
  */
 import TParameterInfo from "../../../../types/TParameterInfo";
-import TIncludeHeader from "../../../../types/TIncludeHeader";
 
 type TGeneratorEffect =
-  // === Include Effects ===
-  // `line` is only meaningful for the code-emission headers (irq_wrappers,
-  // float_static_assert, isr): it lets the deferred emitter attribute the
-  // requirement back to the .cnx line that asked for it (Issue #1143).
-  | { type: "include"; header: TIncludeHeader; line?: number }
+  // No include effect: 2.2 requires every header before 2.3 renders (#1991).
   // #1927: a C type the generated text uses. The plan, not the generator,
   // decides which header that costs (`CTypeIncludes`).
   | { type: "c-type"; cType: string }

@@ -240,10 +240,6 @@ describe("AtomicGenerator", () => {
       expect(result.code).toContain("__cnx_disable_irq();");
       expect(result.code).toContain("counter += 1;");
       expect(result.code).toContain("__cnx_set_PRIMASK(__primask);");
-      // 2.2 requires the wrappers for the region, before 2.3 writes it (#1991)
-      expect(result.effects).not.toContainEqual(
-        expect.objectContaining({ type: "include" }),
-      );
     });
 
     it("generates PRIMASK wrapper with clamp helper for +=", () => {

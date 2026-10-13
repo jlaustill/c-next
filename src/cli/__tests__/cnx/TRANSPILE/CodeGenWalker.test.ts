@@ -354,18 +354,6 @@ describe("CodeGenWalker", () => {
     });
 
     describe("applyEffects()", () => {
-      it("should process include effects", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`, false);
-
-        // Apply string include effect - verify it doesn't throw
-        expect(() =>
-          host.applyEffects([{ type: "include", header: "string" }]),
-        ).not.toThrow();
-
-        // Verify generator is still functional after applying effects
-        expect(host.getState()).toBeDefined();
-      });
-
       it("should process set-scope effects", () => {
         const { host } = createMinimalGenerator(`void foo() { }`, false);
         // #1304: entering a scope the registry does not hold is an invariant

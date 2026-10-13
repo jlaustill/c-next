@@ -1555,16 +1555,6 @@ describe("PostfixExpressionGenerator", () => {
       // Uses union member .u for bit access, not memcpy
       expect(result.code).toContain("__bits_f.u");
       expect(result.code).not.toContain("memcpy");
-      // No string.h needed for MISRA 21.15 compliance
-      expect(result.effects).not.toContainEqual({
-        type: "include",
-        header: "string",
-      });
-      // 2.2 requires the float static assert, before 2.3 renders (#1991)
-      expect(result.effects).not.toContainEqual({
-        type: "include",
-        header: "float_static_assert",
-      });
     });
 
     it("throws for float bit indexing at global scope", () => {
@@ -2355,11 +2345,6 @@ describe("PostfixExpressionGenerator", () => {
 
       const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("strlen(str)");
-      // 2.2 requires <string.h> for the read (#1991): 2.3 adds no effect
-      expect(result.effects).not.toContainEqual({
-        type: "include",
-        header: "string",
-      });
     });
 
     it("throws error for non-string type", () => {

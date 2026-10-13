@@ -144,10 +144,6 @@ export default class CodeGenerator implements IOrchestrator {
   applyEffects(effects: readonly TGeneratorEffect[]): void {
     for (const effect of effects) {
       switch (effect.type) {
-        // Include effects - delegate to requireInclude()
-        case "include":
-          this.state.requireInclude(effect.header, effect.line ?? null);
-          break;
         case "c-type":
           this.state.emittedCTypes.add(effect.cType);
           break;
