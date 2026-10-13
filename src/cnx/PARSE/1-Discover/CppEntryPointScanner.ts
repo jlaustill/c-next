@@ -205,10 +205,11 @@ class CppEntryPointScanner {
         column: marker.column,
         message: CodedErrorText.of(
           "E0518",
-          `C-Next source extension must be lowercase: ${sourcePath}`,
+          CNextSourcePath.miscasedMessage(sourcePath),
         ),
-        helpText:
-          "Only `.cnx` and `.cnext`, spelled in lowercase, name C-Next source (ADR-010); rename the source and regenerate this header.",
+        helpText: CNextSourcePath.miscasedHelp(
+          "rename the source and regenerate this header.",
+        ),
         severity: "error",
       });
       return;

@@ -3,7 +3,6 @@ import type IProgram from "../../types/IProgram";
 import type TSymbol from "../../types/symbols/TSymbol";
 import QualifiedCName from "../../utils/QualifiedCName";
 import HeaderTypeNames from "./HeaderTypeNames";
-import CNextSourcePath from "../../utils/CNextSourcePath";
 
 /**
  * Whether a generated header carries its source's own C/C++ includes -- a 2.2
@@ -92,11 +91,8 @@ class HeaderUserIncludes {
       return false;
     }
 
-    return (
-      // #1511: the artifact's verdict, not the table's.
-      !(program?.isOpaqueType(typeName) ?? false) &&
-      !CNextSourcePath.isSource(declared.sourceFile)
-    );
+    // #1511: the artifact's verdict, not the table's.
+    return !(program?.isOpaqueType(typeName) ?? false);
   }
 
   /**

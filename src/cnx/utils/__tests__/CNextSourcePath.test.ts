@@ -32,9 +32,8 @@ describe("CNextSourcePath (#1833)", () => {
 
   it("leaves a path with no C-Next extension whole", () => {
     expect(CNextSourcePath.stem("<string>")).toBe("<string>");
-    expect(CNextSourcePath.withExtension("notes.txt", ".h")).toBe(
-      "notes.txt.h",
-    );
+    expect(CNextSourcePath.withExtension("<string>", ".h")).toBe("<string>");
+    expect(CNextSourcePath.withExtension("notes.txt", ".h")).toBe("notes.txt");
   });
 
   it("gives no stem to a miscased path, which is E0518 first", () => {

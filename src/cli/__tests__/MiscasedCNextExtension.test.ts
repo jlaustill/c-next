@@ -76,6 +76,8 @@ describe("a C-Next extension is lowercase (#1833)", () => {
 
       expect(result.success).toBe(false);
       expect(codesOf(result.errors)).toEqual(["E0518"]);
+      // No line names the input: `1:0`, as every run diagnostic (#1847).
+      expect(result.errors[0]).toMatchObject({ line: 1, column: 0 });
       expect(readFileSync(join(src, name), "utf8")).toBe(COLORS);
       expect(readdirSync(src)).toEqual([name]);
     });
@@ -102,12 +104,19 @@ describe("a C-Next extension is lowercase (#1833)", () => {
     expect(codesOf(result.errors)).toEqual(["E0518"]);
   });
 
-  for (const name of ["Colors.cnx", undefined]) {
-    it(`control: a source run's text named ${name ?? "nothing"} renders its header`, async () => {
+  // Its self-include, which a path with no C-Next extension leaves as it was
+  // before #1833 (`<string>` itself is #1204).
+  for (const [name, selfInclude] of [
+    ["Colors.cnx", "Colors.h"],
+    ["notes.txt", "notes.txt"],
+    [undefined, "<string>"],
+  ] as const) {
+    it(`control: a source run's text named ${name ?? "nothing"} includes ${selfInclude}`, async () => {
       const result = await buildSource(name);
 
       expect(result.errors).toEqual([]);
       expect(result.files[0].headerCode).toContain("blink");
+      expect(result.files[0].code).toContain(`#include "${selfInclude}"`);
     });
   }
 

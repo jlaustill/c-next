@@ -44,6 +44,7 @@ import EFileType from "../../PARSE/1-Discover/types/EFileType";
 import IncludeDirective from "./helpers/IncludeDirective";
 import IIncludeContext from "./types/IIncludeContext";
 import IIncludeDirectiveError from "./types/IIncludeDirectiveError";
+import CNextSourcePath from "../../utils/CNextSourcePath";
 
 /**
  * Files that carry definitions; including one duplicates every symbol in it.
@@ -127,8 +128,8 @@ class IncludeDirectiveListener extends CNextListener {
     this.report(
       ctx,
       "E0518",
-      `C-Next source extension must be lowercase: ${spec.path}`,
-      "Only `.cnx` and `.cnext`, spelled in lowercase, name C-Next source (ADR-010); rename the file and this include.",
+      CNextSourcePath.miscasedMessage(spec.path),
+      CNextSourcePath.miscasedHelp("rename the file and this include."),
     );
     return true;
   }

@@ -174,8 +174,10 @@ beside the source were rejected.
 **Only a lowercase `.cnx` or `.cnext` names C-Next source** (owner ruling on
 #1833). `Colors.CNX`, `Colors.Cnx` and `Colors.CNEXT` are not C-Next source,
 and naming one is E0518: at the directive's line and column for an include, at
-the marker for a generated header's record, and by the file's name alone when
-it is the run's input, which has no line to point at. Nothing is written. The
+the marker for a generated header's record, and at `1:0` of the file when it
+is the run's input, as the other diagnostics about the run are (#1847 decides
+that form for all of them). `cnext --clean` reports it for such an input too.
+Nothing is written. The
 case of an extension is significant elsewhere in C tooling as well — GCC reads
 `.C` as C++, not C. Before the ruling, discovery accepted the extension in any
 case while the name of each generated file was derived from the lowercase

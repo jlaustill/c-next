@@ -5,6 +5,9 @@
  * `".cnx"` and `".cnext"` -- can disagree with it, which is how `Colors.CNX`
  * was transpiled by discovery and then named as if it were not C-Next.
  *
+ * A stem cut with `extname` is the same decision without a literal
+ * (`IncludeRewriter.besideSource` was one), so `extname` is scanned too.
+ *
  * What it cannot see: a match built at runtime from pieces (`"." + "cnx"`).
  */
 import { readFileSync } from "node:fs";
@@ -31,6 +34,16 @@ const NOT_A_MATCH: ReadonlyArray<readonly [string, string]> = [
   // Builds E0504's candidate spelling from a header's; the candidate is then
   // resolved, not classified.
   ["src/cnx/PARSE/1-Discover/IncludeResolver.ts", 'ADMITTED_HEADER, ".cnx"'],
+];
+
+/** `extname` outside the owner, each with what it reads instead. */
+const EXTNAME_NOT_A_STEM: ReadonlyArray<readonly [string, string]> = [
+  // A C/C++ entry point's extension (#2050), and the rejection's text.
+  ["src/cnx/PARSE/1-Discover/InputExpansion.ts", "const ext = extname(path);"],
+  // The temporary file keeps the source's extension for the compiler.
+  ["src/cnx/PARSE/1-Discover/preprocessor/Preprocessor.ts", "cnext-include"],
+  // Every other kind's table key (#2043); C-Next is asked of the owner.
+  ["src/cnx/PARSE/1-Discover/FileDiscovery.ts", "extname(filePath)"],
 ];
 
 function lineAt(file: string, offset: number): string {
@@ -74,6 +87,33 @@ describe("one rule says what C-Next source is (#1833)", () => {
       ),
     ).toBe(true);
   });
+
+  it("no module but CNextSourcePath cuts a stem with extname", () => {
+    const outside = SourceScan.scan(/\bextname\(/g)
+      .filter((hit) => hit.file !== OWNER)
+      .filter(
+        (hit) =>
+          !EXTNAME_NOT_A_STEM.some(
+            ([file, snippet]) =>
+              hit.file === file &&
+              lineAt(hit.file, hit.offset).includes(snippet),
+          ),
+      )
+      .map((hit) => `${hit.file}: ${lineAt(hit.file, hit.offset).trim()}`);
+    expect(outside).toEqual([]);
+  });
+
+  it.each(EXTNAME_NOT_A_STEM)(
+    "extname exemption %s (%s) is still there",
+    (file, snippet) => {
+      expect(
+        SourceScan.scan(/\bextname\(/g).some(
+          (hit) =>
+            hit.file === file && lineAt(hit.file, hit.offset).includes(snippet),
+        ),
+      ).toBe(true);
+    },
+  );
 
   it.each([
     String.raw`p.replace(/\.cnx$|\.cnext$/, ext)`,

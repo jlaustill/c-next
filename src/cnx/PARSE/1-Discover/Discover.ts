@@ -665,20 +665,19 @@ class Discover {
 
   /**
    * #1833: E0518 for the run's input, files or source. No directive names the
-   * input, so the diagnostic names the file alone (line 0), rather than a
-   * `1:0` nothing is at.
+   * input, so it is placed at `1:0`, as every diagnostic about the run is
+   * (E0510, E0511, E0515); #1847 decides that form for all of them.
    */
   private _miscasedInput(path: string): TDiscoveredFiles {
     this.errors.push({
       sourcePath: path,
-      line: 0,
+      line: 1,
       column: 0,
       message: CodedErrorText.of(
         "E0518",
-        `C-Next source extension must be lowercase: ${basename(path)}`,
+        CNextSourcePath.miscasedMessage(basename(path)),
       ),
-      helpText:
-        "Only `.cnx` and `.cnext`, spelled in lowercase, name C-Next source (ADR-010); rename the file.",
+      helpText: CNextSourcePath.miscasedHelp("rename the file."),
       severity: "error",
     });
     return Discover._noCNextFiles();
