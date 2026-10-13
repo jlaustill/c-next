@@ -196,6 +196,8 @@ import type TValueSite from "../types/TValueSite";
 import type IPlannedExpectedType from "./2-Plan/types/IPlannedExpectedType";
 import type IFilePlan from "./2-Plan/types/IFilePlan";
 import type IPlannedClamp from "./2-Plan/types/IPlannedClamp";
+import type IPlannedSliceSource from "./2-Plan/types/IPlannedSliceSource";
+import SliceSource from "./2-Plan/SliceSource";
 import type IPlannedParameter from "./3-Render/codegen/types/IPlannedParameter";
 import type IPlannedFunctionParameter from "./3-Render/codegen/types/IPlannedFunctionParameter";
 import FunctionContextManager from "./3-Render/codegen/helpers/FunctionContextManager";
@@ -2295,10 +2297,12 @@ class CodeGenWalker {
     invariant(valuePositions !== null, "2.1 hands 2.2 where each value stands");
     this.planArgumentCTypes(valuePositions, decidedCTypes);
     const clamps = this.planClamps(program, inlinedConsts, decidedCTypes);
+    const sliceSources = new Map<IAssignmentSyntax, IPlannedSliceSource>();
     this.planAssignmentCTypes(
       program,
       atomicForms,
       clamps.compound,
+      sliceSources,
       decidedCTypes,
     );
     this.planLengthCTypes(program, inlinedConsts, decidedCTypes);
@@ -2325,6 +2329,7 @@ class CodeGenWalker {
       clampChains: clamps.chains,
       compoundClamps: clamps.compound,
       clampOps: clamps.ops,
+      sliceSources,
       expectedTypes,
       structInitializers: this.planStructInitializers(
         program,
@@ -2601,6 +2606,7 @@ class CodeGenWalker {
     program: IProgramSyntax,
     atomicForms: ReadonlyMap<IAssignmentSyntax, TAtomicForm>,
     compoundClamps: ReadonlyMap<IAssignmentSyntax, unknown>,
+    sliceSources: Map<IAssignmentSyntax, IPlannedSliceSource>,
     cTypes: Set<string>,
   ): void {
     const typing = this.host.state.typingContext();
@@ -2614,6 +2620,7 @@ class CodeGenWalker {
         invariant(element !== null, "a sliced buffer names its element type");
         // A string's bytes are cast through uint8_t (MISRA 10.8)
         cTypes.add(TYPE_MAP[element] ?? "uint8_t");
+        this.planSliceSource(site, sliceSources, cTypes);
         continue;
       }
       if (site.operator === "<-" || atomicForms.has(site)) continue;
@@ -2710,6 +2717,51 @@ class CodeGenWalker {
       compound.set(site, clamp);
     }
     return { chains, compound, ops };
+  }
+
+  /**
+   * #1081: how a slice write reads its source, and the C types its source
+   * temps write. 2.1 has checked the geometry, so offset and length fold.
+   */
+  private planSliceSource(
+    site: IAssignmentSyntax,
+    sliceSources: Map<IAssignmentSyntax, IPlannedSliceSource>,
+    cTypes: Set<string>,
+  ): void {
+    const parts = AssignmentTarget.parts(site.target);
+    const slice = parts.ops.at(-1);
+    invariant(
+      slice?.kind === "subscript" && slice.indexes.length === 2,
+      "a slice write ends in a two-index subscript",
+    );
+    const lengthValue = this.tryEvaluateConstant(slice.indexes[1]);
+    invariant(lengthValue !== undefined, "2.1 folded the slice length (E0859)");
+    const value = site.value;
+    const hasValue = value.kind !== "missing";
+    const source = SliceSource.of(
+      {
+        hasValue,
+        valueExpressionType: () => this.directTypeOf(value),
+        valueIntegerType: () => this.integerTypeOf(value),
+        foldValue: () => this.tryEvaluateConstant(value),
+      },
+      parts.identifier ?? "",
+      lengthValue,
+    );
+    sliceSources.set(site, source);
+    for (const cType of [source.cType, source.unsignedCType]) {
+      if (cType !== null) cTypes.add(cType);
+    }
+    const elementBytes = SliceSource.elementBytes(
+      this.targetDeclaration(site.target).typeInfo,
+    );
+    const elementCount = lengthValue / elementBytes;
+    if (
+      SliceSource.materializes(source, elementCount) &&
+      !SliceSource.splits(source)
+    ) {
+      cTypes.add(SliceSource.tempTypeOf(source, lengthValue));
+    }
   }
 
   /**
@@ -5458,6 +5510,7 @@ class CodeGenWalker {
       floatBitsPlanned: this.filePlan.floatBitWrites.has(targetExpr),
       atomicForm: this.filePlan.atomicForms.get(site) ?? null,
       plannedClamp: this.filePlan.compoundClamps.get(site) ?? null,
+      plannedSliceSource: this.filePlan.sliceSources.get(site) ?? null,
       state: this.host.state,
       // Already rendered once, above -- never again.
       generatedValue: () => value,

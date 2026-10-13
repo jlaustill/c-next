@@ -9,6 +9,7 @@ import type TTypeSyntax from "../../../types/syntax/TTypeSyntax";
 import type TValueBinding from "../../../types/TValueBinding";
 import type IPlannedCast from "./IPlannedCast";
 import type IPlannedClamp from "./IPlannedClamp";
+import type IPlannedSliceSource from "./IPlannedSliceSource";
 import type IPlannedExpectedType from "./IPlannedExpectedType";
 import type IPlannedType from "./IPlannedType";
 import type TNegativeMinimum from "./TNegativeMinimum";
@@ -72,6 +73,8 @@ interface IFilePlan {
     IAssignmentSyntax,
     { operation: string; cnxType: string }
   >;
+  /** #1081: how each slice write reads its source */
+  readonly sliceSources: ReadonlyMap<IAssignmentSyntax, IPlannedSliceSource>;
   /** ADR-044: every `<operation>_<cnxType>` helper the file calls */
   readonly clampOps: ReadonlySet<string>;
   /** #1927: the C types the file's text uses, which decide `<stdint.h>`/`<stdbool.h>` */

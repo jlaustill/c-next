@@ -3,6 +3,7 @@
  * Tests array assignment handler functions.
  */
 
+import SliceSource from "../../../../../2-Plan/SliceSource";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock TypeValidator before imports (use vi.hoisted for hoisted mock reference)
@@ -91,9 +92,19 @@ function createMockContext(
     ...overrides,
   } as IAssignmentContext;
   // #1668 (C7): what the target writes, as the binder would bind it
+  // #1991: 2.2's slice-source decision, made by the call 2.2 makes, once 2.3
+  // has folded the length the way 2.2 did
+  const folds: Array<number | undefined> = [];
   return {
     ...ctx,
     target: overrides.target ?? HandlerTestUtils.targetOf(state, ctx),
+    foldSubscript: (index) => (folds[index] = ctx.foldSubscript(index)),
+    get plannedSliceSource() {
+      const length = folds[1];
+      return length === undefined
+        ? null
+        : SliceSource.of(ctx, ctx.identifiers[0], length);
+    },
   };
 }
 

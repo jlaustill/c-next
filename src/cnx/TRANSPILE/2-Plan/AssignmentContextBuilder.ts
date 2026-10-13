@@ -20,6 +20,7 @@
  * carrier. They hold no nodes now, and the two modules that did name types are
  * out of the population for real rather than by spelling.
  */
+import type IPlannedSliceSource from "./types/IPlannedSliceSource";
 import type TAtomicForm from "../types/TAtomicForm";
 import AssignmentTarget from "../../utils/AssignmentTarget";
 import type TExpression from "../../types/syntax/TExpression";
@@ -46,6 +47,8 @@ interface IContextBuilderDeps {
   readonly atomicForm: TAtomicForm | null;
   /** 2.2's decision: the ADR-044 helper this compound write calls, or null */
   readonly plannedClamp: { operation: string; cnxType: string } | null;
+  /** 2.2's decision: how a slice write reads its source (#1081), or null */
+  readonly plannedSliceSource: IPlannedSliceSource | null;
 
   /**
    * 2.3 Render's per-file working state (#1452 box 4), carried onto the built
@@ -279,6 +282,7 @@ function buildAssignmentContext(
     floatBitsPlanned: deps.floatBitsPlanned,
     atomicForm: deps.atomicForm,
     plannedClamp: deps.plannedClamp,
+    plannedSliceSource: deps.plannedSliceSource,
     hasValue: valueExpr.kind !== "missing",
     valueExpressionType: () => deps.expressionType(valueExpr),
     valueIntegerType: () => deps.integerExpressionType(valueExpr),

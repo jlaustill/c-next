@@ -5,6 +5,7 @@
  * code for an assignment. Built once by the context extractor, then used
  * by the classifier and handlers.
  */
+import type IPlannedSliceSource from "./IPlannedSliceSource";
 import type TAtomicForm from "../../types/TAtomicForm";
 import type IBitAccessAnalysis from "../../../types/IBitAccessAnalysis";
 import type TPlannedTargetOp from "../../../types/TPlannedTargetOp";
@@ -73,6 +74,8 @@ interface IAssignmentContext {
   readonly atomicForm: TAtomicForm | null;
   /** 2.2's decision: the ADR-044 helper this compound write calls, or null */
   readonly plannedClamp: { operation: string; cnxType: string } | null;
+  /** 2.2's decision: how a slice write reads its source (#1081), or null */
+  readonly plannedSliceSource: IPlannedSliceSource | null;
 
   /**
    * The value's essential type, its integer type, and its constant fold.
