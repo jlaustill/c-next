@@ -24,6 +24,7 @@ describe("CppEntryPointScanner", () => {
       exists: (path: string) => files.has(path),
       isDirectory: () => false,
       isFile: (path: string) => files.has(path),
+      isExecutable: () => false,
       writeFile: () => {},
       mkdir: () => {},
       unlink: () => {},

@@ -4,7 +4,7 @@
  */
 
 import { execFileSync, spawnSync } from "node:child_process";
-import { basename } from "node:path";
+import { basename, delimiter, join } from "node:path";
 import IToolchain from "./types/IToolchain";
 import IFileSystem from "../../../types/IFileSystem";
 
@@ -135,24 +135,20 @@ class ToolchainDetector {
   }
 
   /**
-   * Find an executable in PATH. `name` can come from the project being compiled
-   * (#1827), so every process here is started with an argument array: no shell
-   * parses a compiler name or path.
+   * Find an executable in PATH, as `which` does, without starting a process.
+   * `name` can come from the project being compiled (#1827), so it is only ever
+   * joined to a PATH directory: no shell parses a compiler name, and every
+   * process this class starts is given an argument array. An empty PATH entry
+   * is skipped rather than read as the current directory.
    */
   private static findExecutable(name: string, fs: IFileSystem): string | null {
-    try {
-      const result = execFileSync("which", [name], {
-        encoding: "utf-8",
-        stdio: ["pipe", "pipe", "pipe"],
-      }).trim();
-
-      if (result && fs.exists(result)) {
-        return result;
+    for (const dir of (process.env.PATH ?? "").split(delimiter)) {
+      if (!dir) continue;
+      const candidate = join(dir, name);
+      if (fs.isExecutable(candidate)) {
+        return candidate;
       }
-    } catch {
-      // Not found
     }
-
     return null;
   }
 

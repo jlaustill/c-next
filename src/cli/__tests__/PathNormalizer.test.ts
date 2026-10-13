@@ -175,6 +175,7 @@ describe("PathNormalizer", () => {
         rename: () => {},
         withTempFile: () => Promise.reject(new Error("not used by this test")),
         isFile: () => false,
+        isExecutable: () => false,
         stat: () => ({ mtimeMs: 0 }),
       };
       const result = PathNormalizer.normalizeIncludePaths(
@@ -261,6 +262,7 @@ describe("PathNormalizer", () => {
         rename: () => {},
         withTempFile: () => Promise.reject(new Error("not used by this test")),
         isFile: () => false,
+        isExecutable: () => false,
         stat: () => ({ mtimeMs: 0 }),
       };
 
@@ -290,6 +292,7 @@ describe("PathNormalizer", () => {
         rename: () => {},
         withTempFile: () => Promise.reject(new Error("not used by this test")),
         isFile: () => false,
+        isExecutable: () => false,
         stat: () => ({ mtimeMs: 0 }),
       };
 
@@ -329,6 +332,7 @@ describe("PathNormalizer", () => {
         rename: () => {},
         withTempFile: () => Promise.reject(new Error("not used by this test")),
         isFile: () => false,
+        isExecutable: () => false,
         stat: () => ({ mtimeMs: 0 }),
       };
 

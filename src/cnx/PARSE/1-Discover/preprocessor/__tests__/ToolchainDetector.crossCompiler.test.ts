@@ -10,40 +10,34 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import ToolchainDetector from "../ToolchainDetector";
 
 vi.mock("node:child_process", () => ({ execFileSync: vi.fn() }));
-vi.mock("node:fs", () => ({ existsSync: vi.fn() }));
 
 import { execFileSync } from "node:child_process";
-import { existsSync } from "node:fs";
-import NodeFileSystem from "../../NodeFileSystem";
+import MockFileSystem from "../../../../../cli/__tests__/MockFileSystem";
 
-/**
- * Answer the mocked `execFileSync` by the command it would run, written as one
- * string (`which gcc`, `/usr/bin/gcc --version`) so a case reads as the
- * invocation it stubs.
- */
-function whenRun(answer: (command: string) => string): void {
-  vi.mocked(execFileSync).mockImplementation(((
-    file: string,
-    args?: readonly string[],
-  ) => answer([file, ...(args ?? [])].join(" "))) as typeof execFileSync);
+/** A filesystem holding exactly these executables. */
+function installed(...paths: string[]): MockFileSystem {
+  const fs = new MockFileSystem();
+  for (const path of paths) fs.addFile(path, "");
+  return fs;
 }
 
 describe("ToolchainDetector.fromPath", () => {
+  const originalPath = process.env.PATH;
   beforeEach(() => vi.clearAllMocks());
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => {
+    vi.restoreAllMocks();
+    process.env.PATH = originalPath;
+  });
 
   it("builds a cross-compiler toolchain from an executable name on PATH", () => {
-    whenRun((cmd) => {
-      if (cmd === "which xtensa-esp32s3-elf-gcc") {
-        return "/opt/xt/bin/xtensa-esp32s3-elf-gcc\n";
-      }
-      return "xtensa-esp32s3-elf-gcc (crosstool-NG) 12.2.0\n";
-    });
-    vi.mocked(existsSync).mockReturnValue(true);
+    process.env.PATH = "/opt/xt/bin";
+    vi.mocked(execFileSync).mockReturnValue(
+      "xtensa-esp32s3-elf-gcc (crosstool-NG) 12.2.0\n",
+    );
 
     const tc = ToolchainDetector.fromPath(
       "xtensa-esp32s3-elf-gcc",
-      NodeFileSystem.instance,
+      installed("/opt/xt/bin/xtensa-esp32s3-elf-gcc"),
     );
 
     expect(tc).not.toBeNull();
@@ -53,22 +47,19 @@ describe("ToolchainDetector.fromPath", () => {
   });
 
   it("accepts an absolute compiler path directly", () => {
-    vi.mocked(existsSync).mockReturnValue(true);
-    whenRun(() => "gcc 13\n");
+    vi.mocked(execFileSync).mockReturnValue("gcc 13\n");
 
     const tc = ToolchainDetector.fromPath(
       "/usr/bin/xtensa-esp32s3-elf-gcc",
-      NodeFileSystem.instance,
+      installed("/usr/bin/xtensa-esp32s3-elf-gcc"),
     );
 
     expect(tc!.cpp).toBe("/usr/bin/xtensa-esp32s3-elf-gcc");
   });
 
   it("returns null when the compiler path does not exist", () => {
-    vi.mocked(existsSync).mockReturnValue(false);
-
     expect(
-      ToolchainDetector.fromPath("/nope/xtensa-gcc", NodeFileSystem.instance),
+      ToolchainDetector.fromPath("/nope/xtensa-gcc", installed()),
     ).toBeNull();
   });
 });
@@ -84,10 +75,11 @@ describe("ToolchainDetector.detect with CNEXT_CROSS_COMPILER", () => {
 
   it("prefers CNEXT_CROSS_COMPILER over auto-detected toolchains", () => {
     process.env.CNEXT_CROSS_COMPILER = "/opt/xt/bin/xtensa-esp32s3-elf-gcc";
-    vi.mocked(existsSync).mockReturnValue(true);
-    whenRun(() => "xtensa gcc 12.2\n");
+    vi.mocked(execFileSync).mockReturnValue("xtensa gcc 12.2\n");
 
-    const tc = ToolchainDetector.detect(NodeFileSystem.instance);
+    const tc = ToolchainDetector.detect(
+      installed("/opt/xt/bin/xtensa-esp32s3-elf-gcc", "/usr/bin/gcc"),
+    );
 
     expect(tc).not.toBeNull();
     expect(tc!.cpp).toBe("/opt/xt/bin/xtensa-esp32s3-elf-gcc");
