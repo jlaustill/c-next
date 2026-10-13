@@ -2,6 +2,7 @@ import type TDeclarationSyntax from "../types/syntax/TDeclarationSyntax";
 import type IAssignmentSyntax from "../types/syntax/IAssignmentSyntax";
 import type TStatement from "../types/syntax/TStatement";
 import StatementChildren from "./StatementChildren";
+import StatementWrites from "./StatementWrites";
 
 /**
  * Every lowered statement in a declaration, in source order (#1991): the
@@ -24,22 +25,23 @@ class StatementNodes {
     return declaration.kind === "function" ? declaration.body.statements : [];
   }
 
-  /** Every assignment site, in source order: statements, a `for`'s init and update */
+  /**
+   * Every assignment site, in source order: each statement's own writes
+   * (`StatementWrites`), so a `for` header's init and update are counted once,
+   * at the loop, ahead of its body. Not `in(...).flatMap(StatementWrites.of)`:
+   * `in` lists a `for`'s init as a statement too, which would count it twice.
+   */
   static assignments(
     declaration: TDeclarationSyntax,
   ): readonly IAssignmentSyntax[] {
-    // A `for`'s update is listed with the loop, before its init; sort back
-    // into source order
-    return StatementNodes.in(declaration)
-      .flatMap((statement) => {
-        if (statement.kind === "assignment") return [statement];
-        return statement.kind === "for" && statement.update !== null
-          ? [statement.update]
-          : [];
-      })
-      .sort(
-        (a, b) => a.span.line - b.span.line || a.span.column - b.span.column,
-      );
+    const walk = (
+      statements: readonly TStatement[],
+    ): readonly IAssignmentSyntax[] =>
+      statements.flatMap((statement) => [
+        ...StatementWrites.of(statement),
+        ...walk(StatementChildren.of(statement)),
+      ]);
+    return walk(StatementNodes.roots(declaration));
   }
 
   static of(statements: readonly TStatement[]): readonly TStatement[] {
