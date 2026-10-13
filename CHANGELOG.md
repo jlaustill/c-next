@@ -10,9 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Compound division and modulo by a compile-time zero are errors** (ADR-051,
-  Issue #1770). `x /<- 0` is E0800 and `x %<- ZERO` is E0802, as `x / 0` and
-  `x % ZERO` already were, in a statement and in a `for` header alike. Both
-  were accepted and emitted `x /= 0U` or `x %= 0U`.
+  Issues #1770, #1796). `x /<- 0` is E0800 and `x %<- ZERO` is E0802, as
+  `x / 0` and `x % ZERO` already were, in a statement and in a `for` header
+  alike. Both were accepted and emitted `x /= 0U` or `x %= 0U`.
 
 ## [0.3.1] - 2026-10-07
 

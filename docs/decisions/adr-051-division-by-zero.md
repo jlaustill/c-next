@@ -734,10 +734,12 @@ for (x /<- 0; x < 5; x %<- ZERO) { }   // E0800, E0802
 
 ## Diagnostics
 
-| Code  | Reported when                                                     | Asserted by                                        |
-| ----- | ----------------------------------------------------------------- | -------------------------------------------------- |
-| E0884 | `safe_div` or `safe_mod` is called with other than four arguments | `tests/adr-051/safe-division-shape-error.test.cnx` |
-| E0885 | The first argument is not a variable that can receive the result  | `tests/adr-051/safe-division-shape-error.test.cnx` |
+| Code  | Reported when                                                                                      | Asserted by                                                                                                                          |
+| ----- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| E0800 | `/` or `/<-` by a compile-time zero: a literal, a const or a constant expression, integer or float | `tests/arithmetic/division-by-zero-literal.test.cnx`, `tests/bugs/issue-1770-compound-division-zero/compound-division-zero.test.cnx` |
+| E0802 | `%` or `%<-` by a compile-time zero: a literal, a const or a constant expression                   | `tests/arithmetic/modulo-by-zero-literal.test.cnx`, `tests/bugs/issue-1770-compound-division-zero/compound-division-zero.test.cnx`   |
+| E0884 | `safe_div` or `safe_mod` is called with other than four arguments                                  | `tests/adr-051/safe-division-shape-error.test.cnx`                                                                                   |
+| E0885 | The first argument is not a variable that can receive the result                                   | `tests/adr-051/safe-division-shape-error.test.cnx`                                                                                   |
 
 The result is written THROUGH the first argument, which is why it must be a
 variable rather than an expression: the generated helper takes its address. A

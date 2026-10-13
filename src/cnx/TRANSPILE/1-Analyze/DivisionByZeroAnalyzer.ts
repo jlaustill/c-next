@@ -19,6 +19,7 @@ import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
 import ConstantFold from "../../utils/ConstantFold";
 import ConstExprLowering from "../../utils/ConstExprLowering";
+import CompoundOperator from "../../utils/CompoundOperator";
 import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
 import AssignmentSiteListener from "./AssignmentSiteListener";
 import type IAnalysisContext from "./types/IAnalysisContext";
@@ -56,23 +57,7 @@ class DivisionByZeroListener extends CNextListener {
       const operatorToken = ctx.getChild(i * 2 + 1); // Operators are at odd indices
       if (!operatorToken) continue;
 
-      const operator = operatorToken.getText();
-      if (operator !== "/" && operator !== "%") {
-        continue; // Only check division and modulo
-      }
-
-      const rightOperand = operands[i + 1];
-      const { line, column } = ParserUtils.getPosition(rightOperand);
-
-      // Check if right operand is zero
-      if (this.isZero(rightOperand)) {
-        this.analyzer.addError(
-          operator,
-          line,
-          column,
-          DivisionByZeroListener.atRunTime(ctx),
-        );
-      }
+      this.checkDivision(operatorToken.getText(), operands[i + 1]);
     }
   };
 
@@ -81,22 +66,26 @@ class DivisionByZeroListener extends CNextListener {
    * header
    */
   public checkAssignment(site: TAssignmentSite): void {
-    const op = site.assignmentOperator();
-    let operator: string | null = null;
-    if (op.SLASH_ASSIGN() !== null) operator = "/";
-    else if (op.PERCENT_ASSIGN() !== null) operator = "%";
-    if (operator === null) return;
+    const operator = CompoundOperator.binaryOf(
+      site.assignmentOperator().getText(),
+    );
+    if (operator !== null) this.checkDivision(operator, site.expression());
+  }
 
-    const divisor = site.expression();
-    if (this.isZero(divisor)) {
-      const { line, column } = ParserUtils.getPosition(divisor);
-      this.analyzer.addError(
-        operator,
-        line,
-        column,
-        DivisionByZeroListener.atRunTime(divisor),
-      );
-    }
+  /** `/` or `%` by a compile-time zero, at the divisor */
+  private checkDivision(
+    operator: string,
+    divisor: Parser.UnaryExpressionContext | Parser.ExpressionContext,
+  ): void {
+    if (operator !== "/" && operator !== "%") return;
+    if (!this.isZero(divisor)) return;
+    const { line, column } = ParserUtils.getPosition(divisor);
+    this.analyzer.addError(
+      operator,
+      line,
+      column,
+      DivisionByZeroListener.atRunTime(divisor),
+    );
   }
 
   /**

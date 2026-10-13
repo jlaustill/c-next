@@ -55,6 +55,7 @@ import BooleanOperandAnalyzer from "./BooleanOperandAnalyzer";
 import EnumValueResolver from "./EnumValueResolver";
 import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
+import CompoundOperator from "../../utils/CompoundOperator";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import type TBinaryOperatorLevel from "./types/TBinaryOperatorLevel";
 import type TAssignmentSite from "../../types/TAssignmentSite";
@@ -80,24 +81,13 @@ const UNREADABLE_MACRO = "unreadable macro";
  * The operators that hand an integer operand to a clamp helper (ADR-044), so
  * an unreadable macro beside one is E0811; beside any other it is E0812
  */
-const CLAMPED_ARITHMETIC: ReadonlySet<string> = new Set([
-  "+",
-  "-",
-  "*",
-  "+<-",
-  "-<-",
-  "*<-",
-]);
+const CLAMPED_ARITHMETIC: ReadonlySet<string> = new Set(["+", "-", "*"]);
 
-/** Assignments that are not arithmetic, so not Rule 10.4 operands */
-const NOT_RULE_10_4_ASSIGNMENTS: ReadonlySet<string> = new Set([
-  "<-",
-  "<<<-",
-  ">><-",
-]);
+/** Operators whose operands are not Rule 10.4 operands */
+const NOT_RULE_10_4_OPERATORS: ReadonlySet<string> = new Set(["<<", ">>"]);
 
 /** The operators MISRA lets combine a character with an integer */
-const CHARACTER_ARITHMETIC: ReadonlySet<string> = new Set(["+", "+<-"]);
+const CHARACTER_ARITHMETIC: ReadonlySet<string> = new Set(["+"]);
 
 class MixedCategoryCheck {
   private readonly enums: EnumValueResolver;
@@ -324,8 +314,10 @@ class MixedCategoryCheck {
   }
 
   public checkCompound(site: TAssignmentSite): void {
-    const text = site.assignmentOperator().getText();
-    if (NOT_RULE_10_4_ASSIGNMENTS.has(text)) return;
+    const operator = CompoundOperator.binaryOf(
+      site.assignmentOperator().getText(),
+    );
+    if (operator === null || NOT_RULE_10_4_OPERATORS.has(operator)) return;
 
     const value = site.expression();
     const left = MixedCategoryCheck.rule104Category(
@@ -336,9 +328,9 @@ class MixedCategoryCheck {
     );
     const right = this.operandCategory(value);
     if (MixedCategoryCheck.ownedElsewhere(left, right, "compound")) return;
-    if (MixedCategoryCheck.differ(left, right, text)) {
+    if (MixedCategoryCheck.differ(left, right, operator)) {
       const { line, column } = ParserUtils.getPosition(value);
-      this.analyzer.addError(line, column, left!, right!, "compound", text);
+      this.analyzer.addError(line, column, left!, right!, "compound", operator);
     }
   }
 }

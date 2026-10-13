@@ -34,6 +34,7 @@ import IShiftError from "./types/IShiftError";
 import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
+import CompoundOperator from "../../utils/CompoundOperator";
 import BinaryOperatorLevelListener from "./BinaryOperatorLevelListener";
 import AssignmentSiteListener from "./AssignmentSiteListener";
 import type IAnalysisContext from "./types/IAnalysisContext";
@@ -80,9 +81,9 @@ class ShiftCheck {
    * on a u8 emitted `a = (uint8_t)(a << 9U)` at exit 0.
    */
   public checkAssignment(site: TAssignmentSite): void {
-    const operator = site.assignmentOperator();
-    const left = operator.LSHIFT_ASSIGN() !== null;
-    if (!left && operator.RSHIFT_ASSIGN() === null) return;
+    const spelling = site.assignmentOperator().getText();
+    const operator = CompoundOperator.binaryOf(spelling);
+    if (operator !== "<<" && operator !== ">>") return;
 
     const target = site.assignmentTarget();
     const targetType = OperandTyper.typeOfTarget(
@@ -91,7 +92,7 @@ class ShiftCheck {
     );
     if (targetType?.category === "signed") {
       const { line, column } = ParserUtils.getPosition(target);
-      this.analyzer.addError(line, column, left ? "<<<-" : ">><-");
+      this.analyzer.addError(line, column, spelling);
       return;
     }
     this.checkAmount(targetType, site.expression(), site);
