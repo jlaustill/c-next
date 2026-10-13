@@ -2129,26 +2129,24 @@ class CodeGenWalker {
    */
   private planInlinedConsts(
     program: IProgramSyntax,
+    cTypes: Set<string>,
   ): ReadonlySet<TDeclarationSyntax> {
+    const constants = this.transpileState.typingContext().program;
     const inlined = new Set<TDeclarationSyntax>();
     for (const { declaration: scope } of program.declarations) {
       if (scope.kind !== "scope") continue;
       const declaringScopePath =
         this.host.state.program?.scopePathOf(scope.name) ?? scope.name;
       for (const { declaration } of scope.members) {
-        if (
-          declaration.kind === "variableDeclaration" &&
-          PrivateConstValue.inlined(
-            this.host.getState(),
-            this.transpileState,
-            QualifiedNameGenerator.forMember(
-              declaringScopePath,
-              declaration.name,
-            ),
-          ) !== null
-        ) {
-          inlined.add(declaration);
-        }
+        if (declaration.kind !== "variableDeclaration") continue;
+        const cName = QualifiedNameGenerator.forMember(
+          declaringScopePath,
+          declaration.name,
+        );
+        if (!PrivateConstValue.inlines(constants, cName)) continue;
+        inlined.add(declaration);
+        const narrowing = PrivateConstValue.narrowingOf(constants, cName);
+        if (narrowing?.kind === "cast") cTypes.add(narrowing.cType);
       }
     }
     return inlined;
@@ -2240,7 +2238,8 @@ class CodeGenWalker {
       ),
       this.host.state.selfIncludeAdded,
     );
-    const inlinedConsts = this.planInlinedConsts(program);
+    const decidedCTypes = new Set<string>();
+    const inlinedConsts = this.planInlinedConsts(program, decidedCTypes);
     const sizeofBindings = this.planSizeofBindings(program);
     const sizeofMemberAccesses = this.planSizeofMemberAccesses(program);
     const types = this.planTypeSites(
@@ -2265,7 +2264,6 @@ class CodeGenWalker {
     if (this.readsCharCount(program, inlinedConsts)) {
       this.host.state.requireInclude("string");
     }
-    const decidedCTypes = new Set<string>();
     const safeDivisions = this.planSafeDivisions(
       program,
       inlinedConsts,

@@ -1,0 +1,15 @@
+// Tests: a private char const inlined at its use is cast to its u8 type
+// (MISRA 10.3), so the file needs <stdint.h> though it writes no u8 itself.
+// 2.2 plans that cast before 2.3 writes it (#1991).
+
+scope Keys {
+    const u8 A <- 'a';
+
+    public bool isA() {
+        return this.A = 97;
+    }
+}
+
+void main() {
+    bool result <- Keys.isA();
+}

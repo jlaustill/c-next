@@ -1,3 +1,4 @@
+import type TPlannedNarrowing from "../../2-Plan/types/TPlannedNarrowing";
 import NarrowingCastHelper from "./helpers/NarrowingCastHelper";
 import type IProgram from "../../../types/IProgram";
 import type IVariableSymbol from "../../../types/symbols/IVariableSymbol";
@@ -47,6 +48,36 @@ class PrivateConstValue {
     return PrivateConstValue.constant(generatorState, transpileState, cName);
   }
 
+  /** Whether `inlined` writes the const as its value: 2.2 decides it (#282) */
+  static inlines(program: IProgram, cName: string): boolean {
+    const symbol = program.symbolByCName(cName);
+    return (
+      symbol?.kind === "variable" &&
+      PrivateConstValue.canInline(symbol) &&
+      PrivateConstValue.spelling(program, cName) !== null
+    );
+  }
+
+  /**
+   * MISRA 10.3: a char const's literal is an `int` in C, cast to the const's
+   * type where it is written; null for any other const
+   */
+  static narrowingOf(
+    program: IProgram,
+    cName: string,
+  ): TPlannedNarrowing | null {
+    const spelling = PrivateConstValue.spelling(program, cName);
+    if (
+      spelling === null ||
+      spelling.verbatim ||
+      !spelling.text.startsWith("'") ||
+      spelling.typeName === null
+    ) {
+      return null;
+    }
+    return NarrowingCastHelper.narrowingOf("int", spelling.typeName);
+  }
+
   /**
    * Any const's value as a C constant expression, or null -- what a `case`
    * label needs of a public or file-scope const too, which is emitted as an
@@ -58,6 +89,29 @@ class PrivateConstValue {
     cName: string,
   ): IGeneratorOutput | null {
     const program = transpileState.typingContext().program;
+    const spelling = PrivateConstValue.spelling(program, cName);
+    if (spelling === null) return null;
+    if (spelling.verbatim) return { code: spelling.text, effects: [] };
+    // A literal has no sign: a negative value is the negated literal, in
+    // parentheses so `-X` does not read as a decrement
+    const negative = spelling.text.startsWith("-");
+    const output = generateLiteral(
+      negative ? spelling.text.slice(1) : spelling.text,
+      { ...generatorState, expectedType: spelling.typeName },
+      transpileState,
+      PrivateConstValue.narrowingOf(program, cName),
+    );
+    return negative ? { ...output, code: `(-${output.code})` } : output;
+  }
+
+  /**
+   * The literal a const is written as and the type it is held at, or null
+   * when it has none; `verbatim` is C's own spelling, written as it stands
+   */
+  private static spelling(
+    program: IProgram,
+    cName: string,
+  ): { text: string; typeName: string | null; verbatim: boolean } | null {
     const symbol = program.symbolByCName(cName);
     if (
       symbol?.kind !== "variable" ||
@@ -70,23 +124,15 @@ class PrivateConstValue {
     }
     const settled = program.settledConstOf(cName);
     if (settled?.kind === "value" && settled.digits === I64_MIN) {
-      return { code: I64_MIN_SPELLING, effects: [] };
+      return { text: I64_MIN_SPELLING, typeName: null, verbatim: true };
     }
     const text = PrivateConstValue.literalText(program, symbol, settled);
     if (text === null) return null;
-    // A literal has no sign: a negative value is the negated literal, in
-    // parentheses so `-X` does not read as a decrement
-    const negative = text.startsWith("-");
-    const typeName = ConstantFold.typeNameOf(symbol.type);
-    const output = generateLiteral(
-      negative ? text.slice(1) : text,
-      { ...generatorState, expectedType: typeName },
-      transpileState,
-      text.startsWith("'") && typeName !== null
-        ? NarrowingCastHelper.narrowingOf("int", typeName)
-        : null,
-    );
-    return negative ? { ...output, code: `(-${output.code})` } : output;
+    return {
+      text,
+      typeName: ConstantFold.typeNameOf(symbol.type),
+      verbatim: false,
+    };
   }
 
   /** The literal the const's settled value is, before C spells it */
