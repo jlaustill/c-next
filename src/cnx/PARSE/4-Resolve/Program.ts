@@ -15,7 +15,9 @@
  * Building and settling are one step on purpose. A `Program` holding unsettled
  * symbols would be an artifact that says "complete" and is not, and every
  * consumer would have to remember to settle first -- the shape that makes an
- * invariant unenforceable.
+ * invariant unenforceable. `build` begins with `settleFiles`; a caller with no
+ * run, which cannot build a program, reads `settleFiles` alone (#2036), so
+ * there is still one settling and nothing holds a program before it.
  *
  * `docs/architecture/symbol-store-prior-art.md` governs the design:
  * normalization as discipline in plain TypeScript, the SQL engine rejected on
@@ -63,6 +65,7 @@ import CallbackCompatibility from "./CallbackCompatibility";
 import SymbolTable from "../3-Declare/SymbolTable";
 import type ICodeGenSymbols from "../../types/ICodeGenSymbols";
 import type IProgramInputs from "./types/IProgramInputs";
+import type ISettledFiles from "./types/ISettledFiles";
 import type IVisibilityInput from "./types/IVisibilityInput";
 import TSymbolInfoAdapter from "../3-Declare/cnext/adapters/TSymbolInfoAdapter";
 import TransitiveEnumCollector from "./TransitiveEnumCollector";
@@ -124,6 +127,12 @@ const NO_VISIBILITY: IVisibilityInput = {
 /** A use's position */
 type TPosition = Pick<ISourceSpan, "line" | "column">;
 
+/** What settling reads of the inputs: none of the run's mode or target */
+type TSettleInputs = Pick<
+  IProgramInputs,
+  "foreign" | "visibility" | "registry" | "filesReachingForeignHeaders"
+>;
+
 /** No symbol views, for a closure walk that reads only the paths it visits. */
 const NO_VIEWS: ReadonlyMap<string, ICodeGenSymbols> = new Map();
 
@@ -138,10 +147,10 @@ class Program {
     inputs: IProgramInputs,
   ): IProgram {
     // Destructured once, here, so the body reads exactly as it did when these
-    // were positional. `IProgramInputs` says why they travel together.
+    // were positional. `IProgramInputs` says why they travel together. The
+    // foreign symbols and visibility are read from the settling below, which
+    // applied their defaults.
     const headerStructFields = inputs.headerStructFields ?? EMPTY_HEADER_FIELDS;
-    const foreign = inputs.foreign ?? NO_FOREIGN;
-    const visibility = inputs.visibility ?? NO_VISIBILITY;
     const registry = inputs.registry ?? null;
 
     // #1511: one derivation over every file, before the artifact exists. Each
@@ -164,112 +173,21 @@ class Program {
       symbolTable,
     );
 
-    // Each derivation is its own step, in dependency order: the scope types
-    // each file can see settle the types, settled types yield const values,
-    // const values resolve dimensions, and the finished symbols answer
-    // everything else. Written inline this read as one function with six
-    // nested loops, which is both hard to follow and hard to change one part of.
-    // Each file's include closure, derived once: the scope types it can see
-    // and the declarations it can bind are both read from it
-    const visibleFiles = Program.visibleFiles(files, visibility);
-    const isScopeTypeVisibleFrom = Program.scopeTypeVisibility(
-      files,
-      visibleFiles,
-    );
-    // Opacity is a fact of the headers alone, so it is ready before the settle,
-    // which stamps each opaque parameter with it (#1722).
-    const opaqueTypes = Program.deriveOpaqueTypes(foreign);
-    // #1175: what a constant name's facts read of the files, beside the binder
-    const fileFacts: IFileConstantFacts = {
-      isScopeTypeVisibleFrom,
-      reachesForeignHeader: (sourceFile) =>
-        (inputs.filesReachingForeignHeaders ?? EMPTY_NAMES).has(sourceFile),
-    };
-    const settledByFile = Program.settleEveryFile(
-      files,
-      isScopeTypeVisibleFrom,
-      opaqueTypes,
-    );
-    const foreignNames = new Set([
-      ...foreign.c.map((symbol) => symbol.name),
-      ...foreign.cpp.map((symbol) => symbol.name),
-    ]);
-    const foreignValues = Program.foreignValues(foreign);
-    // What a spelling means while the consts fold: the declarations as 1.3
-    // recorded them, bound in the same order every later pass binds in.
-    const declared: IBindingFacts = {
-      framesByFile: new Map(
-        files.map((file) => [file.sourceFile, file.lexicalScopes]),
-      ),
-      symbolsByCName: Program.indexByCName(settledByFile),
-      registry,
-      foreignNames,
-      foreignValues,
-      visibleFiles,
-    };
-    const values = Program.settleValues(settledByFile, declared, fileFacts);
-    const constants = values.constants;
-    // What a spelling means once every array is sized: a local sized by a
-    // global's property (`u8[table.element_count]`) measures the settled global
-    // (#1863 review: the frames read 1.3's unsized one)
-    const dimensioned: IBindingFacts = {
-      ...declared,
-      symbolsByCName: Program.indexByCName(values.symbolsByFile),
-    };
-    // #1668: each file's lexical frames, settled against the scope types THAT
-    // file can see (#1724) and the program's consts, then frozen with it.
-    const settledLocals = new Map<ILocalDeclaration, ILocalDeclaration>();
-    const framesByFile = new Map(
-      files.map((file) => [
-        file.sourceFile,
-        LexicalFrames.settle(
-          file.lexicalScopes,
-          (qualifiedName) =>
-            isScopeTypeVisibleFrom(file.sourceFile, qualifiedName),
-          (name, settled) =>
-            ConstantNames.valueOf(
-              name,
-              Program.nameFacts(dimensioned, file.sourceFile, constants, {
-                settledLocal: settled,
-                files: fileFacts,
-              }),
-            ),
-          (typeName, at) =>
-            ConstantNames.cTypeName(
-              typeName,
-              at,
-              Program.nameFacts(dimensioned, file.sourceFile, constants, {
-                settledLocal: SETTLED,
-                files: fileFacts,
-              }),
-            ),
-          (typeName, at) =>
-            ConstantNames.isTypeName(
-              typeName,
-              at,
-              Program.nameFacts(dimensioned, file.sourceFile, constants, {
-                settledLocal: SETTLED,
-                files: fileFacts,
-              }),
-            ),
-          // ADR-057: the program's own file-scope C names, and the headers'
-          // (the same set the binder's foreign tier reads)
-          (cName) =>
-            dimensioned.symbolsByCName.has(cName) || foreignNames.has(cName),
-          settledLocals,
-        ),
-      ]),
-    );
-    // A parameter sized by an earlier one (`u8[a.element_count] b`) is the
-    // frame's to settle: the header writes the same answer the .c does
-    const symbolsByFile = Program.withSettledParameters(
-      values.symbolsByFile,
-      dimensioned,
-      constants,
-      fileFacts,
-      (declaration) => settledLocals.get(declaration),
-      framesByFile,
-    );
+    // #2036: settling is its own step, which a caller with no run reads
+    // alone. Everything below reads the files' settled symbols and the inputs
+    // they were settled against, never a second copy of either.
+    const settled = Program.settleFiles(files, inputs);
+    const foreign = settled.foreign;
+    const visibility = settled.visibility;
+    const visibleFiles = settled.visibleFiles;
+    const isScopeTypeVisibleFrom = settled.isScopeTypeVisibleFrom;
+    const opaqueTypes = settled.opaqueTypes;
+    const fileFacts = settled.fileFacts;
+    const foreignNames = settled.foreignNames;
+    const foreignValues = settled.foreignValues;
+    const constants = settled.constants;
+    const framesByFile = settled.framesByFile;
+    const symbolsByFile = settled.symbolsByFile;
     const symbolsByCName = Program.indexByCName(symbolsByFile);
     const bound: IBindingFacts = {
       framesByFile,
@@ -460,6 +378,149 @@ class Program {
           registry.getScope(fromScopePath) ?? registry.getGlobalScope(),
         ) ?? null,
     });
+  }
+
+  /**
+   * Every file's symbols as 1.4 settles them, with the facts the settling
+   * derived, which `build` assembles its query surface from.
+   *
+   * #2036: also the whole of 1.4 that a caller with no run needs.
+   * `lib/parseWithSymbols` has one file and no mode or target, so it cannot
+   * build a program, and it settled 1.3's symbols itself: the type names and
+   * nothing else, so a const-sized array kept 1.3's placeholder `0` and no
+   * parameter received its emitted name. Nothing here reads the run's mode,
+   * target, header struct fields or symbol table, so a caller without them
+   * settles exactly as a run does.
+   *
+   * @param files one `IFileSymbols` per file, in declaration order
+   */
+  static settleFiles(
+    files: ReadonlyArray<IFileSymbols>,
+    inputs: TSettleInputs,
+  ): ISettledFiles {
+    const foreign = inputs.foreign ?? NO_FOREIGN;
+    const visibility = inputs.visibility ?? NO_VISIBILITY;
+    const registry = inputs.registry ?? null;
+
+    // Each derivation is its own step, in dependency order: the scope types
+    // each file can see settle the types, settled types yield const values,
+    // const values resolve dimensions, and the finished symbols answer
+    // everything else. Written inline this read as one function with six
+    // nested loops, which is both hard to follow and hard to change one part of.
+    // Each file's include closure, derived once: the scope types it can see
+    // and the declarations it can bind are both read from it
+    const visibleFiles = Program.visibleFiles(files, visibility);
+    const isScopeTypeVisibleFrom = Program.scopeTypeVisibility(
+      files,
+      visibleFiles,
+    );
+    // Opacity is a fact of the headers alone, so it is ready before the settle,
+    // which stamps each opaque parameter with it (#1722).
+    const opaqueTypes = Program.deriveOpaqueTypes(foreign);
+    // #1175: what a constant name's facts read of the files, beside the binder
+    const fileFacts: IFileConstantFacts = {
+      isScopeTypeVisibleFrom,
+      reachesForeignHeader: (sourceFile) =>
+        (inputs.filesReachingForeignHeaders ?? EMPTY_NAMES).has(sourceFile),
+    };
+    const settledByFile = Program.settleEveryFile(
+      files,
+      isScopeTypeVisibleFrom,
+      opaqueTypes,
+    );
+    const foreignNames = new Set([
+      ...foreign.c.map((symbol) => symbol.name),
+      ...foreign.cpp.map((symbol) => symbol.name),
+    ]);
+    const foreignValues = Program.foreignValues(foreign);
+    // What a spelling means while the consts fold: the declarations as 1.3
+    // recorded them, bound in the same order every later pass binds in.
+    const declared: IBindingFacts = {
+      framesByFile: new Map(
+        files.map((file) => [file.sourceFile, file.lexicalScopes]),
+      ),
+      symbolsByCName: Program.indexByCName(settledByFile),
+      registry,
+      foreignNames,
+      foreignValues,
+      visibleFiles,
+    };
+    const values = Program.settleValues(settledByFile, declared, fileFacts);
+    const constants = values.constants;
+    // What a spelling means once every array is sized: a local sized by a
+    // global's property (`u8[table.element_count]`) measures the settled global
+    // (#1863 review: the frames read 1.3's unsized one)
+    const dimensioned: IBindingFacts = {
+      ...declared,
+      symbolsByCName: Program.indexByCName(values.symbolsByFile),
+    };
+    // #1668: each file's lexical frames, settled against the scope types THAT
+    // file can see (#1724) and the program's consts, then frozen with it.
+    const settledLocals = new Map<ILocalDeclaration, ILocalDeclaration>();
+    const framesByFile = new Map(
+      files.map((file) => [
+        file.sourceFile,
+        LexicalFrames.settle(
+          file.lexicalScopes,
+          (qualifiedName) =>
+            isScopeTypeVisibleFrom(file.sourceFile, qualifiedName),
+          (name, settled) =>
+            ConstantNames.valueOf(
+              name,
+              Program.nameFacts(dimensioned, file.sourceFile, constants, {
+                settledLocal: settled,
+                files: fileFacts,
+              }),
+            ),
+          (typeName, at) =>
+            ConstantNames.cTypeName(
+              typeName,
+              at,
+              Program.nameFacts(dimensioned, file.sourceFile, constants, {
+                settledLocal: SETTLED,
+                files: fileFacts,
+              }),
+            ),
+          (typeName, at) =>
+            ConstantNames.isTypeName(
+              typeName,
+              at,
+              Program.nameFacts(dimensioned, file.sourceFile, constants, {
+                settledLocal: SETTLED,
+                files: fileFacts,
+              }),
+            ),
+          // ADR-057: the program's own file-scope C names, and the headers'
+          // (the same set the binder's foreign tier reads)
+          (cName) =>
+            dimensioned.symbolsByCName.has(cName) || foreignNames.has(cName),
+          settledLocals,
+        ),
+      ]),
+    );
+    // A parameter sized by an earlier one (`u8[a.element_count] b`) is the
+    // frame's to settle: the header writes the same answer the .c does
+    const symbolsByFile = Program.withSettledParameters(
+      values.symbolsByFile,
+      dimensioned,
+      constants,
+      fileFacts,
+      (declaration) => settledLocals.get(declaration),
+      framesByFile,
+    );
+    return {
+      symbolsByFile,
+      framesByFile,
+      constants,
+      isScopeTypeVisibleFrom,
+      fileFacts,
+      opaqueTypes,
+      visibleFiles,
+      foreignNames,
+      foreignValues,
+      foreign,
+      visibility,
+    };
   }
 
   /**

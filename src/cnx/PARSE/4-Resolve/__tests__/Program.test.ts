@@ -1123,6 +1123,57 @@ scope Gauge {
     });
   });
 
+  describe("a file settled with no run (#2036)", () => {
+    // `lib/parseWithSymbols` holds one file and no run -- no mode, no target --
+    // so it cannot build a program. It settled 1.3's symbols itself and
+    // stopped at the type names: a const-sized array kept 1.3's placeholder
+    // `0`, and no parameter received its emitted name.
+    const source = [
+      "const u8 N <- 4;",
+      "u8[N] buffer;",
+      "scope Motor {",
+      "  void fill(u8[N] data) { }",
+      "}",
+      "",
+    ].join("\n");
+
+    const settledIn = (file: IFileSymbols): ReadonlyArray<TSymbol> => {
+      const symbols = Program.settleFiles([file], {
+        registry,
+      }).symbolsByFile.get(file.sourceFile);
+      expect(symbols).toBeDefined();
+      return symbols!;
+    };
+
+    it("folds a const into an array dimension, as a run does", () => {
+      const buffer = find(settledIn(declare(source, "a.cnx")), "buffer");
+      expect(
+        SymbolGuards.isVariable(buffer) ? buffer.arrayDimensions : null,
+      ).toEqual([4]);
+    });
+
+    it("gives each parameter its emitted name and settled dimension", () => {
+      const fill = find(settledIn(declare(source, "a.cnx")), "fill");
+      expect(
+        SymbolGuards.isFunction(fill)
+          ? fill.parameters.map((p) => [p.emittedName, p.arrayDimensions])
+          : null,
+      ).toEqual([["data", [4]]]);
+    });
+
+    it("settles a file exactly as a program built over it holds it", () => {
+      const settled = settledIn(declare(source, "a.cnx"));
+      // A registry of its own: declaring `Motor` again into the first would
+      // reopen the scope rather than declare it once
+      registry = new SymbolRegistry();
+      const program = Program.build([declare(source, "a.cnx")], {
+        cppMode: false,
+        registry,
+      });
+      expect(settled).toEqual(program.symbolsInFile("a.cnx"));
+    });
+  });
+
   describe("the query surface", () => {
     it("answers by canonical C name, by file, and lists its files", () => {
       const lib = declare(
