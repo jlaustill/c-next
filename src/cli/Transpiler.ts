@@ -52,6 +52,8 @@ import ITranspileError from "../cnx/types/ITranspileError";
 import DeclarationSite from "../cnx/utils/DeclarationSite";
 import TreePasses from "../cnx/TRANSPILE/1-Analyze/TreePasses";
 import type IDeclaredSource from "../cnx/PARSE/3-Declare/types/IDeclaredSource";
+import type IDeclaredSources from "../cnx/PARSE/3-Declare/types/IDeclaredSources";
+import type TDiscoveryFacts from "../cnx/PARSE/1-Discover/types/TDiscoveryFacts";
 import Parse from "../cnx/PARSE/2-Parse/Parse";
 import Declare from "../cnx/PARSE/3-Declare/Declare";
 import Analyze from "../cnx/TRANSPILE/1-Analyze/Analyze";
@@ -66,7 +68,6 @@ import PreprocessCache from "../cnx/PARSE/1-Discover/preprocessor/PreprocessCach
 import type IRecordedRequirement from "../cnx/types/IRecordedRequirement";
 import type IRenderedFile from "./types/IRenderedFile";
 import RequirementAggregator from "../cnx/utils/RequirementAggregator";
-import TargetCatalogFile from "./TargetCatalogFile";
 import Write from "../cnx/WRITE/1-Write/Write";
 import CaughtError from "../cnx/utils/CaughtError";
 import HeaderDeclarations from "../cnx/PARSE/3-Declare/HeaderDeclarations";
@@ -233,15 +234,6 @@ class Transpiler {
    */
   private anchor: IRunAnchor;
 
-  /**
-   * The artifact 1.1 Discover emitted for the current run (#1444).
-   *
-   * Held as `program` is, so a stage with no graph in hand reads it from
-   * here. Null outside a run: it holds every source text, and `ServeCommand`
-   * keeps one instance alive between requests, so it is released when the
-   * run ends, as the retained parses are.
-   */
-  private sourceGraph: ISourceGraph | null = null;
   /** File system abstraction for testability */
   private readonly fs: IFileSystem;
 
@@ -326,7 +318,6 @@ class Transpiler {
         this.preprocessCache,
       );
       this.anchor = discovered.anchor;
-      this.sourceGraph = discovered.graph;
       this.cppMode = discovered.graph.cppMode;
       const pipelineInput = discovered.graph;
       if (discovered.errors.length > 0) {
@@ -366,7 +357,6 @@ class Transpiler {
       // reddened nothing. Two sites for one invariant is the duplication CLAUDE.md
       // calls the worst anti-pattern, and the unreachable half is the #1143 shape.
       this.analyzedFiles.clear();
-      this.sourceGraph = null;
     }
   }
 
@@ -456,9 +446,10 @@ class Transpiler {
 
       const fileResult = rejected
         ? this._rejectedFileResult(file, diagnostics)
-        : this._transpileFile(file);
+        : this._transpileFile(file, front.discovery);
       this._recordFileResult(
         file.discoveredFile,
+        front.discovery,
         fileResult,
         result,
         input.writeOutputToDisk,
@@ -487,6 +478,7 @@ class Transpiler {
       }
       // Stage 6: Write the Stage 5.5 headers (only to disk in files mode)
       this._generateAllHeadersFromPipeline(
+        front.discovery,
         input.cnextFiles,
         result,
         renderedFiles,
@@ -502,19 +494,15 @@ class Transpiler {
     input: ISourceGraph,
     result: ITranspilerResult,
   ): TFrontEndResult {
-    const parsed = Parse.sources(input.cnextFiles);
+    const parsed = Parse.sources(input);
     // A file that failed to parse is not declared; the others still are, so
     // one run reports both kinds of error, as it did before #1991.
-    const declared = Declare.sources(parsed.sources, this.symbolRegistry);
+    const declared = Declare.sources(parsed, this.symbolRegistry);
     const errors = [...parsed.errors, ...declared.errors];
     if (errors.length > 0) {
       return { kind: "stopped", errors };
     }
-    const resolved = this._passesProgramChecks(
-      input,
-      declared.declared,
-      result,
-    );
+    const resolved = this._passesProgramChecks(declared, result);
     if (resolved === null) {
       return { kind: "stopped", errors: [] };
     }
@@ -523,9 +511,11 @@ class Transpiler {
       ...Analyze.run(
         resolved.program,
         resolved.sources,
+        resolved.discovery,
         this.config.parseOnly
           ? null
-          : (file, program) => this._analysisInputs(file, program),
+          : (file, program, discovery) =>
+              this._analysisInputs(file, program, discovery),
       ),
     };
   }
@@ -535,8 +525,7 @@ class Transpiler {
    * its own errors; the first to fail ends the run, in this order.
    */
   private _passesProgramChecks(
-    input: ISourceGraph,
-    declared: readonly IDeclaredSource[],
+    declared: IDeclaredSources,
     result: ITranspilerResult,
   ): IResolvedProgram | null {
     // Stage 3: 1.4 Resolve once over every file 1.3 `Declare` declared
@@ -548,11 +537,11 @@ class Transpiler {
     const passes =
       // Stage 3b: the program's one target (ADR-049), settled by 1.4. Nothing
       // below may run for a program whose target is unknown or contested.
-      this._checkRunTarget(program, input, result) &&
+      this._checkRunTarget(program, resolved.sources, result) &&
       // Stage 4: symbol conflicts
       Transpiler._recordChecked(result, ProgramChecks.conflicts(program)) &&
       // Stage 4b: include guard collisions (ADR-063, issue #1133)
-      this._checkIncludeGuardCollisions(input.cnextFiles, result) &&
+      this._checkIncludeGuardCollisions(resolved, result) &&
       // Stage 4c: external identifier significance (MISRA 5.1, issue #1307)
       this._checkExternalIdentifierSignificance(program, result);
     return passes ? resolved : null;
@@ -661,7 +650,7 @@ class Transpiler {
    * @returns 1.4's artifact, or null if errors occurred
    */
   private _resolveProgram(
-    declared: readonly IDeclaredSource[],
+    declared: IDeclaredSources,
     result: ITranspilerResult,
   ): IResolvedProgram | null {
     // 1.4 Resolve. The whole program exists only now that every file has been
@@ -705,17 +694,9 @@ class Transpiler {
         // symbols and hands it on as `program.symbolTable()` (#1991).
         symbolTable: this.declaredSymbols,
         registry: this.symbolRegistry,
-        // #1428: 1.1's one answer, which every pass after 1.4 reads from here
-        cppMode: this._requireSourceGraph().cppMode,
         target: {
           option: this.config.target,
-          // ADR-049's build-system rung, read once by 1.1 from the text its
-          // include discovery used (#1444, owner ruling 3)
-          platformio: this._requireSourceGraph().anchor.platformio,
           pioEnv: this.config.pioEnv || undefined,
-          catalog: TargetCatalogFile.parse(
-            this._requireSourceGraph().targetCatalog,
-          ),
         },
       });
       // Passes after 1.4 read cross-file facts from the artifact rather than
@@ -746,6 +727,7 @@ class Transpiler {
   private _analysisInputs(
     file: IPipelineFile,
     program: IProgram,
+    discovery: TDiscoveryFacts,
   ): IAnalyzerOptions {
     const sourcePath = file.path;
 
@@ -756,6 +738,7 @@ class Transpiler {
     AdrProvenance.beginFile(sourcePath);
 
     const symbols = this._establishPerFileCodeGenState(sourcePath, program);
+    const includes = Transpiler._includesOf(discovery, sourcePath);
 
     // #1322: the ADR-010 include facts are handed in rather than read off
     // CodeGenState, whose `sourcePath` is not written until `generate()` and
@@ -778,9 +761,9 @@ class Transpiler {
         sourceFile: sourcePath,
       },
       includes: {
-        resolutions: this._includesOf(sourcePath).resolutions,
-        cnextAlternatives: this._includesOf(sourcePath).cnextAlternatives,
-        kinds: this._includesOf(sourcePath).kinds,
+        resolutions: includes.resolutions,
+        cnextAlternatives: includes.cnextAlternatives,
+        kinds: includes.kinds,
       },
     };
   }
@@ -904,7 +887,10 @@ class Transpiler {
    * analysis to Stage 4d, so by here the question "is this program legal?" has
    * been answered for EVERY file, not just the ones walked so far.
    */
-  private _transpileFile(file: IPipelineFile): IFileResult {
+  private _transpileFile(
+    file: IPipelineFile,
+    discovery: TDiscoveryFacts,
+  ): IFileResult {
     const sourcePath = file.path;
 
     // #1452: asserted, not defaulted. Stage 3 builds `Program` and returns
@@ -950,9 +936,11 @@ class Transpiler {
         targetDescription: this._runTarget().description,
         sourcePath,
         symbolInfo,
-        sourceRelativePath: this._outputsOf(sourcePath).sourceRelativePath,
-        cnxIncludeRewrites: this._includesOf(sourcePath).cnxIncludeRewrites,
-        includeKinds: this._includesOf(sourcePath).kinds,
+        sourceRelativePath: Transpiler._outputsOf(discovery, sourcePath)
+          .sourceRelativePath,
+        cnxIncludeRewrites: Transpiler._includesOf(discovery, sourcePath)
+          .cnxIncludeRewrites,
+        includeKinds: Transpiler._includesOf(discovery, sourcePath).kinds,
         // #1515: decided here, from the rule's owner. 1.3 Declare used to
         // answer this, which put an emission decision in the parse layer.
         hasPublicInterface: PublicInterface.existsIn(
@@ -970,10 +958,10 @@ class Transpiler {
         typeInput: symbolInfo,
         state: this.codeGenerator.transpileState,
         unmodifiedParams: this.codeGenerator.getFunctionUnmodifiedParams(),
-        anchor: this._requireSourceGraph().anchor,
+        anchor: discovery.anchor,
         headerExtension: this.outputExtensions.header,
-        includes: this._requireSourceGraph().includes,
-        ownIncludes: this._includesOf(sourcePath),
+        includes: discovery.includes,
+        ownIncludes: Transpiler._includesOf(discovery, sourcePath),
       });
       if (headerFacts) {
         this.headerEmissionFactsByPath.set(sourcePath, headerFacts);
@@ -1220,14 +1208,14 @@ class Transpiler {
    * @returns true when every guard is unique
    */
   private _checkIncludeGuardCollisions(
-    cnextFiles: readonly IPipelineFile[],
+    resolved: IResolvedProgram,
     result: ITranspilerResult,
   ): boolean {
     return Transpiler._recordChecked(
       result,
       IncludeGuards.collisions(
-        this._requireSourceGraph().anchor,
-        cnextFiles.map((file) => file.path),
+        resolved.discovery.anchor,
+        resolved.sources.map((source) => source.file.path),
       ),
     );
   }
@@ -1256,13 +1244,13 @@ class Transpiler {
    */
   private _checkRunTarget(
     program: IProgram,
-    input: ISourceGraph,
+    sources: readonly IDeclaredSource[],
     result: ITranspilerResult,
   ): boolean {
     const checked = ProgramChecks.runTarget(
       program,
       this.config.parseOnly === true,
-      input.cnextFiles.at(-1)?.path,
+      sources.at(-1)?.file.path,
     );
     if (checked.target !== null) {
       result.target = checked.target;
@@ -1320,6 +1308,7 @@ class Transpiler {
    */
   private _recordFileResult(
     file: IDiscoveredFile,
+    discovery: TDiscoveryFacts,
     fileResult: IFileResult,
     result: ITranspilerResult,
     writeOutputToDisk: boolean,
@@ -1332,7 +1321,7 @@ class Transpiler {
       fileResult.success &&
       fileResult.code
     ) {
-      outputPath = this._outputsOf(file.path).source;
+      outputPath = Transpiler._outputsOf(discovery, file.path).source;
       // #1233: queued, not written -- the caller flushes only if the whole run
       // succeeds, matching how Stage 6 already gates headers.
       pendingWrites.push({ path: outputPath, content: fileResult.code });
@@ -1376,6 +1365,7 @@ class Transpiler {
    * "second call" left to make by accident, only a wrong one to add back.
    */
   private _generateAllHeadersFromPipeline(
+    discovery: TDiscoveryFacts,
     cnextFiles: readonly IPipelineFile[],
     result: ITranspilerResult,
     renderedFiles: ReadonlyMap<string, IRenderedFile>,
@@ -1387,7 +1377,7 @@ class Transpiler {
       const headerContent = renderedFiles.get(file.path)?.header;
       if (headerContent) {
         // Issue #933: .hpp in C++ mode, so C and C++ headers cannot overwrite
-        const headerPath = this._outputsOf(file.path).header;
+        const headerPath = Transpiler._outputsOf(discovery, file.path).header;
         Write.file(this.fs, headerPath, headerContent);
         result.outputFiles.push(headerPath);
       }
@@ -1563,18 +1553,12 @@ class Transpiler {
   // Code Generation Helpers
   // ===========================================================================
 
-  /** The run's `SourceGraph`, which every stage after 1.1 runs inside. */
-  private _requireSourceGraph(): ISourceGraph {
-    invariant(
-      this.sourceGraph !== null,
-      "1.1 Discover emitted the SourceGraph before a later stage read it",
-    );
-    return this.sourceGraph;
-  }
-
   /** What 1.1 Discover learned about one file's includes (#1444). */
-  private _includesOf(sourcePath: string): IFileIncludes {
-    const includes = this._requireSourceGraph().includes.get(sourcePath);
+  private static _includesOf(
+    discovery: TDiscoveryFacts,
+    sourcePath: string,
+  ): IFileIncludes {
+    const includes = discovery.includes.get(sourcePath);
     invariant(
       includes !== undefined,
       `1.1 Discover records the includes of every file it discovers (missing ${sourcePath})`,
@@ -1583,8 +1567,11 @@ class Transpiler {
   }
 
   /** Where 1.1 Discover named one file's output (#1991) */
-  private _outputsOf(sourcePath: string): IOutputPaths {
-    const outputs = this._requireSourceGraph().outputs.get(sourcePath);
+  private static _outputsOf(
+    discovery: TDiscoveryFacts,
+    sourcePath: string,
+  ): IOutputPaths {
+    const outputs = discovery.outputs.get(sourcePath);
     invariant(
       outputs !== undefined,
       `1.1 Discover names the output of every file it discovers (missing ${sourcePath})`,

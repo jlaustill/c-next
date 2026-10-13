@@ -6,26 +6,32 @@
  * its C-Next includes, its target directives -- is taken here, from 1.3's
  * artifact, not handed in by the host.
  */
-import type IDeclaredSource from "../3-Declare/types/IDeclaredSource";
+import type IDeclaredSources from "../3-Declare/types/IDeclaredSources";
 import Program from "./Program";
+import TargetDescriptions from "./TargetDescriptions";
 import type IProgramInputs from "./types/IProgramInputs";
 import type IResolvedProgram from "./types/IResolvedProgram";
 import type IRunTargetInputs from "./types/IRunTargetInputs";
 
 type TResolveInputs = Omit<
   IProgramInputs,
-  "filesReachingForeignHeaders" | "visibility" | "target"
-> & { readonly target: Omit<IRunTargetInputs, "files"> };
+  "filesReachingForeignHeaders" | "visibility" | "target" | "cppMode"
+> & {
+  readonly target: Omit<IRunTargetInputs, "files" | "catalog" | "platformio">;
+};
 
 class Resolve {
   static program(
-    declared: readonly IDeclaredSource[],
+    input: IDeclaredSources,
     inputs: TResolveInputs,
   ): IResolvedProgram {
+    const declared = input.declared;
     const program = Program.build(
       declared.map((entry) => entry.fileSymbols),
       {
         ...inputs,
+        // #1428: 1.1's one answer, which every pass after 1.4 reads from here
+        cppMode: input.discovery.cppMode,
         // #1175: where a name nothing binds may be a macro -- discovery's
         // one answer, the same 2.1's E0427 reads
         filesReachingForeignHeaders: new Set(
@@ -43,6 +49,13 @@ class Resolve {
         },
         target: {
           ...inputs.target,
+          catalog: TargetDescriptions.catalog(
+            input.targetCatalog.source,
+            input.targetCatalog.path,
+          ),
+          // ADR-049's build-system rung, read once by 1.1 from the text its
+          // include discovery used (#1444, owner ruling 3)
+          platformio: input.discovery.anchor.platformio,
           files: declared.map((entry) => ({
             sourcePath: entry.file.path,
             directives: entry.syntax.targetDirectives,
@@ -50,7 +63,7 @@ class Resolve {
         },
       },
     );
-    return { program, sources: declared };
+    return { program, sources: declared, discovery: input.discovery };
   }
 }
 

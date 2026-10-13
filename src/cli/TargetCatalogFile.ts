@@ -17,7 +17,6 @@ import TargetCatalogParser from "../cnx/PARSE/2-Parse/TargetCatalogParser";
 import TargetDescriptions from "../cnx/PARSE/4-Resolve/TargetDescriptions";
 import type ITargetDescription from "../cnx/types/ITargetDescription";
 import type IFileSystem from "../cnx/types/IFileSystem";
-import type ITargetCatalogFile from "../cnx/PARSE/1-Discover/types/ITargetCatalogFile";
 
 class TargetCatalogFile {
   /**
@@ -27,16 +26,9 @@ class TargetCatalogFile {
    */
   static targets(fs: IFileSystem): ReadonlyMap<string, ITargetDescription> {
     const path = TargetCatalogFile.locate(fs);
-    return TargetCatalogFile.parse({ path, text: fs.readFile(path) });
-  }
-
-  /** Every target name in a catalog 1.1 already read, to its description */
-  static parse(
-    file: ITargetCatalogFile,
-  ): ReadonlyMap<string, ITargetDescription> {
     return TargetDescriptions.catalog(
-      TargetCatalogParser.parse(file.text),
-      file.path,
+      TargetCatalogParser.parse(fs.readFile(path)),
+      path,
     );
   }
 

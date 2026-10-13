@@ -3,6 +3,7 @@
  * carried on, against the program 1.4 resolved. The program goes on to 2.2.
  * Every file is analyzed before 2.2 plans any of them (#1320).
  */
+import type TDiscoveryFacts from "../../PARSE/1-Discover/types/TDiscoveryFacts";
 import type IPipelineFile from "../../PARSE/1-Discover/types/IPipelineFile";
 import type IDeclaredSource from "../../PARSE/3-Declare/types/IDeclaredSource";
 import type IAnalyzedFile from "../../types/IAnalyzedFile";
@@ -25,11 +26,17 @@ class Analyze {
     // may name `IProgram` and nothing in `4-Resolve/` (#1447)
     program: IProgram,
     sources: readonly IDeclaredSource[],
+    discovery: TDiscoveryFacts,
     analysisInputs:
-      | ((file: IPipelineFile, program: IProgram) => IAnalyzerOptions)
+      | ((
+          file: IPipelineFile,
+          program: IProgram,
+          discovery: TDiscoveryFacts,
+        ) => IAnalyzerOptions)
       | null,
   ): {
     readonly program: IProgram;
+    readonly discovery: TDiscoveryFacts;
     readonly diagnostics: IDiagnostics;
     readonly files: ReadonlyMap<string, IAnalyzedFile>;
   } {
@@ -42,7 +49,7 @@ class Analyze {
         byFile.set(
           entry.file.path,
           Analyze._analyze(entry.syntax, () =>
-            analysisInputs(entry.file, program),
+            analysisInputs(entry.file, program, discovery),
           ),
         );
       }
@@ -53,6 +60,7 @@ class Analyze {
     }
     return {
       program,
+      discovery,
       diagnostics: Diagnostics.build(byFile),
       files,
     };

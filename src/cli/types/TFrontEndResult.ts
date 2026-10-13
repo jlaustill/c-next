@@ -1,3 +1,4 @@
+import type TDiscoveryFacts from "../../cnx/PARSE/1-Discover/types/TDiscoveryFacts";
 import type IAnalyzedFile from "../../cnx/types/IAnalyzedFile";
 import type IDiagnostics from "../../cnx/types/IDiagnostics";
 import type IProgram from "../../cnx/types/IProgram";
@@ -19,6 +20,7 @@ type TFrontEndResult =
   | {
       readonly kind: "analyzed";
       readonly program: IProgram;
+      readonly discovery: TDiscoveryFacts;
       readonly diagnostics: IDiagnostics;
       readonly files: ReadonlyMap<string, IAnalyzedFile>;
     };
