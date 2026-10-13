@@ -161,6 +161,15 @@ describe("InputExpansion", () => {
       ).toThrow("Invalid file extension '.txt'");
     });
 
+    // #1833: C-Next in any case but lowercase is E0518, as in compile mode.
+    it("rejects a miscased C-Next extension with E0518", () => {
+      expect(() =>
+        InputExpansion.validateFileExtension("/path/to/Colors.CNX"),
+      ).toThrow(
+        "error[E0518]: C-Next source extension must be lowercase: Colors.CNX",
+      );
+    });
+
     it("rejects header files", () => {
       expect(() =>
         InputExpansion.validateFileExtension("/path/to/file.h"),

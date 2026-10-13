@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Only a lowercase `.cnx` or `.cnext` is C-Next source** (Issue #1833). A
+  source spelled `Colors.CNX` (or any other case) is now **E0518** at the
+  include that names it, or for the run's input, and nothing is written. It
+  used to be transpiled with its generated header named `Colors.CNX`, so an
+  in-place build overwrote the source and exited 0.
+
 ## [0.3.1] - 2026-10-07
 
 ### Added

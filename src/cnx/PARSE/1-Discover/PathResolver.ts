@@ -12,6 +12,7 @@ import IDiscoveredFile from "./types/IDiscoveredFile";
 import type TSourceExtension from "../../types/TSourceExtension";
 import type THeaderExtension from "../../types/THeaderExtension";
 import IFileSystem from "../../types/IFileSystem";
+import CNextSourcePath from "../../utils/CNextSourcePath";
 
 /**
  * Configuration for PathResolver
@@ -99,13 +100,13 @@ class PathResolver {
     const relativePath = this.getRelativePathFromInputs(file.path);
     if (relativePath) {
       // File is under an input directory - preserve structure
-      const outputRelative = relativePath.replace(/\.cnx$|\.cnext$/, ext);
+      const outputRelative = CNextSourcePath.withExtension(relativePath, ext);
       return join(this.config.outDir, outputRelative);
     }
 
     // Fallback: output next to the source file (not in outDir)
     // This handles included files that aren't under any input directory
-    const outputName = basename(file.path).replace(/\.cnx$|\.cnext$/, ext);
+    const outputName = CNextSourcePath.withExtension(basename(file.path), ext);
     return join(dirname(file.path), outputName);
   }
 
@@ -170,7 +171,7 @@ class PathResolver {
     const relativePath = this.getRelativePathFromInputs(cnxPath);
     if (relativePath) {
       // File is under an input directory - preserve structure
-      return join(headerDir, relativePath.replace(/\.cnx$|\.cnext$/, ext));
+      return join(headerDir, CNextSourcePath.withExtension(relativePath, ext));
     }
 
     // Issue #489: a file outside every input directory still has to land
@@ -198,14 +199,14 @@ class PathResolver {
       if (relativeFromBase && !relativeFromBase.startsWith("..")) {
         return join(
           this.config.headerOutDir,
-          relativeFromBase.replace(/\.cnx$|\.cnext$/, ext),
+          CNextSourcePath.withExtension(relativeFromBase, ext),
         );
       }
 
       // File outside the base: place by basename.
       return join(
         this.config.headerOutDir,
-        basename(cnxPath).replace(/\.cnx$|\.cnext$/, ext),
+        CNextSourcePath.withExtension(basename(cnxPath), ext),
       );
     }
 
@@ -213,7 +214,7 @@ class PathResolver {
     // This handles included files that aren't under any input directory
     return join(
       dirname(cnxPath),
-      basename(cnxPath).replace(/\.cnx$|\.cnext$/, ext),
+      CNextSourcePath.withExtension(basename(cnxPath), ext),
     );
   }
 }

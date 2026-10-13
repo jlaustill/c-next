@@ -3,6 +3,7 @@ import { basename, relative, sep } from "node:path";
 import type IHeaderCallbackType from "../../../types/IHeaderCallbackType";
 import type TSymbol from "../../../types/symbols/TSymbol";
 import AutoConstRule from "../../../utils/AutoConstRule";
+import CNextSourcePath from "../../../utils/CNextSourcePath";
 import HeaderIncludes from "../../2-Plan/HeaderIncludes";
 import HeaderUserIncludes from "../../2-Plan/HeaderUserIncludes";
 import PublicInterface from "../../2-Plan/PublicInterface";
@@ -73,10 +74,10 @@ class HeaderEmissionCapture {
     // Issue #933: Use .hpp extension for include guard in C++ mode
     // Issue #1319: read the run's extension; do not re-derive it from the mode
     const ext = request.headerExtension;
-    const headerName = IncludeGuards.identity(
-      request.anchor,
-      sourcePath,
-    ).replace(/\.cnx$|\.cnext$/, ext);
+    const headerName = CNextSourcePath.withExtension(
+      IncludeGuards.identity(request.anchor, sourcePath),
+      ext,
+    );
 
     // #1671: both decided by 1.4 Resolve, the first layer that can see every
     // file. `typeInput` is the view `generate()` received, so the `.h` and the
