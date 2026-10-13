@@ -716,7 +716,9 @@ renders them `n/a` rather than counting them empty.
 holds for them as it does for `/` and `%`: E0800 for `/<-` and E0802 for `%<-`,
 at the divisor, wherever the assignment stands -- a statement, a `for`
 initializer or a `for` update. Before #1770 each of these was accepted and
-emitted `x /= 0U` or `x %= 0U`.
+emitted `x /= 0U` or `x %= 0U`, while every cell of the matrix in §5 was
+occupied: the grid has no axis for how a division is spelled, its operator or
+its const (#1268).
 
 **File:** `tests/bugs/issue-1770-compound-division-zero/compound-division-zero.test.cnx`
 

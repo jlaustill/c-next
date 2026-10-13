@@ -11,7 +11,7 @@
  * divides by its value the same way (#1770).
  */
 
-import { ParseTreeWalker } from "antlr4ng";
+import { ParseTreeWalker, ParserRuleContext } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import IDivisionByZeroError from "./types/IDivisionByZeroError";
@@ -78,7 +78,7 @@ class DivisionByZeroListener extends CNextListener {
 
   /**
    * `x /<- d` and `x %<- d` divide `x` by `d`, in a statement or a `for`
-   * header; either is inside a statement, so `safe_div` could replace it
+   * header
    */
   public checkAssignment(site: TAssignmentSite): void {
     const op = site.assignmentOperator();
@@ -90,7 +90,12 @@ class DivisionByZeroListener extends CNextListener {
     const divisor = site.expression();
     if (this.isZero(divisor)) {
       const { line, column } = ParserUtils.getPosition(divisor);
-      this.analyzer.addError(operator, line, column, true);
+      this.analyzer.addError(
+        operator,
+        line,
+        column,
+        DivisionByZeroListener.atRunTime(divisor),
+      );
     }
   }
 
@@ -127,9 +132,7 @@ class DivisionByZeroListener extends CNextListener {
    * not in what must be known at compile time there -- an array dimension, an
    * enum member's value, a const's initializer (#1268 review)
    */
-  private static atRunTime(
-    ctx: Parser.MultiplicativeExpressionContext,
-  ): boolean {
+  private static atRunTime(ctx: ParserRuleContext): boolean {
     for (let node = ctx.parent; node !== null; node = node.parent) {
       if (
         node instanceof Parser.ArrayDimensionContext ||

@@ -1,0 +1,41 @@
+// test-adr: 051
+// test-error
+// #1770 review: a compound division or modulo in a scope method, by a const
+// zero spelled this.NAME, global.NAME or Scope.NAME, is the same divisor as the
+// bare name (ADR-057 binding, as #1268 checks for the binary operators).
+//
+// NEGATIVE CONTROLS: this.ONE is nonzero; global.Z and the bare Z outside the
+// scope name the file's nonzero Z, not the scope's zero Z.
+
+const u32 ZERO <- 0;
+const u32 Z <- 5;
+
+scope Counter {
+    const u32 Z <- 0;
+    const u32 ONE <- 1;
+    public const u32 SHARED_ZERO <- 0;
+
+    public u32 viaThis(u32 n) {
+        u32 x <- n;
+        x /<- this.Z;
+        x %<- this.Z;
+        x /<- this.ONE;
+        return x;
+    }
+
+    public u32 viaGlobal(u32 n) {
+        u32 x <- n;
+        x /<- global.ZERO;
+        x %<- global.ZERO;
+        x /<- global.Z;
+        return x;
+    }
+}
+
+u32 viaScopeName(u32 n) {
+    u32 x <- n;
+    x /<- Counter.SHARED_ZERO;
+    x %<- global.Counter.SHARED_ZERO;
+    x /<- Z;
+    return x;
+}
