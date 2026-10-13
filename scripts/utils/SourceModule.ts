@@ -6,13 +6,15 @@ const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 /**
  * The one definition of "a non-test module under `src/`" (#1826 review):
  * TypeScript under `src/`, outside `__tests__/` and `__testUtils__/`, and not a
- * `*.test.ts`. The same split `.dependency-cruiser.cjs` makes. #1827 moved it
- * here from `SourceScan` so every script that scans `src/` reads the same
- * population: `ThrowSources`, `scope-join-sites`, `error-codes` and
- * `PlanRenderState` each left out `__tests__/` but not `__testUtils__/`, so a
- * `__testUtils__/` double read as transpiler source. It takes the absolute
- * path a `FileScanner` walk yields, so the conversion to a repository-relative
- * path is written once, here.
+ * `*.test.ts`. `.dependency-cruiser.cjs` draws the same line in
+ * `not-to-dev-dep` and the rules whose `pathNot` names both directories, but
+ * its pass-order rules exempt `__tests__/` alone, so a `__testUtils__/` double
+ * is held to the layer order (#2066). #1827 moved it here from `SourceScan` so
+ * every script that scans `src/` reads the same population: `ThrowSources`,
+ * `scope-join-sites`, `error-codes` and `PlanRenderState` each left out
+ * `__tests__/` but not `__testUtils__/`, so a `__testUtils__/` double read as
+ * transpiler source. It takes the absolute path a `FileScanner` walk yields, so
+ * the conversion to a repository-relative path is written once, here.
  *
  * `vitest.config.ts` and `sonar-project.properties` cannot import this, so they
  * repeat `testDirectories` in their coverage exclusions;

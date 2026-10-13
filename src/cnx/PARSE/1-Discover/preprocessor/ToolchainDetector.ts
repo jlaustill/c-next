@@ -183,11 +183,7 @@ class ToolchainDetector {
       // gcc translates the banners parsed below; LC_ALL=C keeps them in English.
       env: { ...process.env, LC_ALL: "C" },
     });
-    if (
-      result.error ||
-      result.status !== 0 ||
-      typeof result.stderr !== "string"
-    ) {
+    if (result.error || result.status !== 0) {
       return [];
     }
 

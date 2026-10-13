@@ -8,19 +8,28 @@ import ErrorCodeRegistry from "./ErrorCodeRegistry";
 /**
  * The `E####` codes `src/` emits, for `error-codes.ts`. Test code
  * (`SourceModule.isModule`) is left out, except for a code whose registry row
- * names a `__tests__` file as its source (E0000): a code invented in a mock or
- * a `__testUtils__/` double must not register itself as real. Extracted from
+ * names a file in a `SourceModule.testDirectories` directory as its source
+ * (E0000): a code invented in a mock or a double must not register itself as
+ * real. Extracted from
  * `error-codes.ts` (#1827 review) so a test can reach it; that script runs
  * `main()` when imported.
  */
 class EmittedCodes {
   private static readonly CODE = /\bE\d{4}\b/g;
 
-  /** Codes a row explicitly attributes to a `__tests__` file, e.g. E0000. */
+  /**
+   * Codes a row explicitly attributes to test code, e.g. E0000. Row sources
+   * are relative to `src/cnx/`, so the directory list applies, not
+   * `isModulePath`.
+   */
   static testOwned(markdown: string): Set<string> {
     return new Set(
       ErrorCodeRegistry.rows(markdown)
-        .filter((row) => row.source.includes("__tests__"))
+        .filter((row) =>
+          SourceModule.testDirectories.some((dir) =>
+            row.source.includes(`${dir}/`),
+          ),
+        )
         .map((row) => row.code),
     );
   }

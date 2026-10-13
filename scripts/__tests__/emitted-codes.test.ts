@@ -38,6 +38,19 @@ describe("EmittedCodes", () => {
     );
   });
 
+  it("counts a row naming any test directory as test-owned", () => {
+    // Row sources are relative to src/cnx/; E9991 is the non-test control.
+    const markdown = [
+      "| E0000 | Generic | `TRANSPILE/1-Analyze/types/__tests__/I.test.ts` |",
+      "| E9993 | Double | `types/__testUtils__/Double.ts` |",
+      "| E9991 | Real | `Emitter.ts` |",
+    ].join("\n");
+    expect([...EmittedCodes.testOwned(markdown)].sort()).toEqual([
+      "E0000",
+      "E9993",
+    ]);
+  });
+
   it("reads exactly the codes in the non-test modules of src/", () => {
     const tracked = execFileSync("git", ["ls-files", "--", "src/*.ts"], {
       encoding: "utf-8",
