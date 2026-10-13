@@ -29,6 +29,8 @@ import type ILocalDeclaration from "../types/ILocalDeclaration";
 import type IVariableDeclarationSyntax from "../types/syntax/IVariableDeclarationSyntax";
 import type IBoundParameter from "./types/IBoundParameter";
 import type IFileSetup from "./types/IFileSetup";
+import type IFunctionCatalog from "./types/IFunctionCatalog";
+import type TPlanInputs from "./types/TPlanInputs";
 
 /**
  * 2.3 Render's per-file working state, as an INSTANCE.
@@ -1086,16 +1088,20 @@ class TranspileState {
    * scope's `cnxScopedName`, not two strings that happen to match.
    */
   setCurrentScopeByPath(name: string | null): void {
+    this.currentScopePath = this.scopePathOf(name);
+  }
+
+  /** The path of the scope named `name`, or "" for none */
+  scopePathOf(name: string | null): string {
     if (name === null) {
-      this.currentScopePath = "";
-      return;
+      return "";
     }
     const scope = this.program?.scope(name) ?? null;
     invariant(
       scope !== null,
       `a scope entered during generation was registered by the symbols pass (got "${name}")`,
     );
-    this.currentScopePath = ScopeUtils.pathOf(scope);
+    return ScopeUtils.pathOf(scope);
   }
 
   // ===========================================================================
@@ -1114,6 +1120,47 @@ class TranspileState {
   }
 
   /** Cleared per file, at the top of `generate()`. */
+  /**
+   * #1991: 2.2 starts a file from what it read off the options; the walker
+   * calls this, so 2.2 itself writes nothing here.
+   */
+  beginPlan(inputs: TPlanInputs, generator: ICodeGenApi): void {
+    this.clearFileData(inputs.targetDescription);
+    this.useInputs(inputs);
+    this.generator = generator;
+  }
+
+  private useInputs(inputs: TPlanInputs): void {
+    this.program = inputs.program;
+    this.symbols = inputs.symbols;
+    this.sourcePath = inputs.sourcePath;
+    this.debugMode = inputs.debugMode;
+    this.cppMode = inputs.cppMode;
+    this.cnxIncludeRewrites = inputs.cnxIncludeRewrites;
+    this.includeKinds = inputs.includeKinds;
+    for (const [scope, members] of inputs.scopeMembers) {
+      this.setScopeMembers(scope, new Set(members));
+    }
+  }
+
+  /** ADR-029: the callback types 2.2 planned for the file */
+  useCallbackTypes(
+    callbackTypes: ReadonlyMap<string, ICallbackTypeInfo>,
+  ): void {
+    this.callbackTypes = new Map(callbackTypes);
+  }
+
+  /** The functions and callback references 2.2's pre-pass found */
+  useFunctionCatalog(catalog: IFunctionCatalog): void {
+    this.knownFunctions = new Set(catalog.knownFunctions);
+    this.functionSignatures = new Map(catalog.functionSignatures);
+    this.callbackFieldTypes = new Map(catalog.callbackFieldTypes);
+    this.callbackTypeReferences = new Set(catalog.callbackTypeReferences);
+    this.publicCallbackTypeReferences = new Set(
+      catalog.publicCallbackTypeReferences,
+    );
+  }
+
   reset(targetDescription: ITargetDescription | null = null): void {
     this.clearFileData(targetDescription);
   }
@@ -1164,27 +1211,12 @@ class TranspileState {
    */
   beginRender(setup: IFileSetup, emission: IEmissionPlan): void {
     this.clearFileData(setup.targetDescription);
-    this.program = setup.program;
-    this.symbols = setup.symbols;
-    this.sourcePath = setup.sourcePath;
-    this.debugMode = setup.debugMode;
-    this.cppMode = setup.cppMode;
-    this.cnxIncludeRewrites = setup.cnxIncludeRewrites;
-    this.includeKinds = setup.includeKinds;
+    this.useInputs(setup);
+    this.useCallbackTypes(setup.callbackTypes);
+    this.useFunctionCatalog(setup);
     this.selfIncludeAdded = setup.selfIncludeAdded;
     this.needsISR = setup.needsISR;
     this.declarationPlanOrNull = setup.declarationPlan;
-    this.knownFunctions = new Set(setup.knownFunctions);
-    this.functionSignatures = new Map(setup.functionSignatures);
-    this.callbackTypes = new Map(setup.callbackTypes);
-    this.callbackFieldTypes = new Map(setup.callbackFieldTypes);
-    this.callbackTypeReferences = new Set(setup.callbackTypeReferences);
-    this.publicCallbackTypeReferences = new Set(
-      setup.publicCallbackTypeReferences,
-    );
-    for (const [scope, members] of setup.scopeMembers) {
-      this.setScopeMembers(scope, new Set(members));
-    }
     this.plannedParameters = setup.parameters;
     this.emissionPlanOrNull = emission;
   }

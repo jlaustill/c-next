@@ -52,8 +52,8 @@ class NameExistence {
    * Whether a bare type name denotes a type this file can see.
    *
    * `TranspileState.callbackTypes` is deliberately NOT consulted. It is codegen
-   * state -- filled by `CodeGenWalker.registerCallbackTypes` and cleared at the
-   * start of `generate()`, both of which run after the analyzers -- so at
+   * state -- planned by `FilePlanner.planCallbackTypes` and replaced at the
+   * start of each file's 2.2 Plan, both of which run after the analyzers -- so at
    * analysis time it is empty for the first file and holds file N-1's function
    * names for every file after. Reading it made E0426 order-dependent: the same
    * two files with their `#include` lines swapped either diagnosed the undefined

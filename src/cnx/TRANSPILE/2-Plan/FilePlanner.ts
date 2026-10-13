@@ -84,11 +84,12 @@ import type IPlannedSliceSource from "./types/IPlannedSliceSource";
 import SliceSource from "./SliceSource";
 import type IPlannedFunctionParameter from "./types/IPlannedFunctionParameter";
 import invariant from "../../utils/invariant";
+import FunctionCatalog from "./FunctionCatalog";
+import type TPlanInputs from "../types/TPlanInputs";
 import AdrProvenance from "../../instrumentation/AdrProvenance";
 import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 import QualifiedCName from "../../utils/QualifiedCName";
 import TypeNameLadder from "../../utils/TypeNameLadder";
-import type ITargetDescription from "../../types/ITargetDescription";
 import SymbolTypeResolver from "../../utils/TypeResolver";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
 import SymbolGuards from "../../types/symbols/SymbolGuards";
@@ -135,6 +136,26 @@ class FilePlanner {
     this.host = host;
   }
 
+  /**
+   * What 2.2 reads off the options before it plans anything, which the walker
+   * installs on TranspileState for the plan and `fileSetup` hands on to 2.3.
+   */
+  static planInputs(options: ICodeGeneratorOptions): TPlanInputs {
+    const symbols = options.symbolInfo;
+    return {
+      program: options.program,
+      symbols,
+      sourcePath: options.sourcePath ?? null,
+      debugMode: options.debugMode ?? false,
+      cppMode: options.program.cppMode(),
+      targetDescription: options.targetDescription,
+      cnxIncludeRewrites:
+        options.cnxIncludeRewrites ?? new Map<string, string>(),
+      includeKinds: options.includeKinds ?? new Map<string, EFileType>(),
+      scopeMembers: symbols.scopeMembers,
+    };
+  }
+
   /** 2.3 renders against the parameters 2.2 planned for the file */
   useParameters(parameters: ReadonlyMap<string, TParameterInfo>): void {
     this.parametersOrNull = parameters;
@@ -168,18 +189,14 @@ class FilePlanner {
     });
   }
 
-  private planType(type: TTypeSyntax): IPlannedType {
+  private planType(type: TTypeSyntax, scopePath: string): IPlannedType {
     const element = type.kind === "array" ? type.element : type;
     const deps = this.host.state.typeBindingDeps((identifiers) =>
       this.resolveQualifiedType(identifiers),
     );
 
     return {
-      named: TypeNameLadder.classifyNamed(
-        element,
-        this.host.state.currentScopePath,
-        deps,
-      ),
+      named: TypeNameLadder.classifyNamed(element, scopePath, deps),
       isString: element.kind === "string",
       stringTypeText: element.kind === "string" ? element.text : undefined,
       primitiveName: element.kind === "primitive" ? element.text : null,
@@ -289,13 +306,13 @@ class FilePlanner {
     return CompositeType.anyFloating(OperandTyper.valueLeaves(expr, typing));
   }
 
-  typeNameOf(type: TTypeSyntax): string {
+  typeNameIn(type: TTypeSyntax, scopePath: string): string {
     // #1285: one ladder. This was the largest of seven copies, and the only one
     // that handled `arrayType` by peeking at two of its six element
     // alternatives -- TypeNameLadder recurses into all of them.
     const resolved = TypeNameLadder.resolveWrittenName(
       type,
-      this.host.state.currentScopePath,
+      scopePath,
       this.host.state.typeBindingDeps((identifiers) =>
         this.resolveQualifiedType(identifiers),
       ),
@@ -373,25 +390,6 @@ class FilePlanner {
     // ADR-049: the target is decided before codegen, by the orchestrator;
     // this walk only reads it.
 
-    // Reset state for fresh generation (must be before any state assignments)
-    this.resetGeneratorState(options.targetDescription);
-    this.host.state.program = options.program;
-
-    // Initialize options and configuration (after reset)
-    this.initializeGenerateOptions(options);
-
-    // ADR-055: Use pre-collected symbolInfo from Pipeline (TSymbolInfoAdapter)
-    this.host.state.symbols = options.symbolInfo;
-
-    // ADR-029: register every function-as-type this file can see BEFORE
-    // anything can reference one. Must run after `symbols` is set.
-    this.registerCallbackTypes();
-
-    // Initialize symbol data
-    this.initializeSymbolData();
-
-    // Initialize all helper objects
-    this.initializeHelperObjects(program);
     this.parametersOrNull = this.planParameterInfos(program);
 
     return this.planFile(program, options, file.valuePositions);
@@ -417,9 +415,7 @@ class FilePlanner {
       if (unwritten.has(type)) continue;
       planned.set(
         type,
-        scope === null
-          ? this.planType(type)
-          : this.host.state.withScopePath(scope, () => this.planType(type)),
+        this.planType(type, this.host.state.scopePathOf(scope)),
       );
     }
     return planned;
@@ -867,72 +863,6 @@ class FilePlanner {
     return inlined;
   }
 
-  /**
-   * Initialize options and configuration for generate().
-   */
-  private initializeGenerateOptions(options: ICodeGeneratorOptions): void {
-    this.host.state.debugMode = options.debugMode ?? false;
-    this.host.state.sourcePath = options.sourcePath ?? null;
-    // #1241: Transpiler._analysisInputs sets the provenance file before analyzers
-    // run; re-assert it here for API callers that drive the generator directly
-    // and never go through that path. (Said `_transpileFile` until #1320
-    // hoisted analysis out of it into its own pass -- by the time
-    // `_transpileFile` runs, every file's analyzers are already done.)
-    AdrProvenance.beginFile(this.host.state.sourcePath);
-    this.host.state.cnxIncludeRewrites =
-      options.cnxIncludeRewrites ?? new Map<string, string>();
-    this.host.state.includeKinds =
-      options.includeKinds ?? new Map<string, EFileType>();
-    // #1428: the run's mode is 1.1's answer, carried by the program. A caller
-    // cannot supply one, so none can claim C by leaving it out.
-    const program = this.host.state.program;
-    invariant(program, "1.4 Resolve built Program before codegen");
-    this.host.state.cppMode = program.cppMode();
-    this.host.state.pendingTempDeclarations = [];
-    this.host.state.pendingCppClassAssignments = [];
-  }
-
-  /**
-   * Reset all generator state for a fresh generation pass.
-   */
-  private resetGeneratorState(targetDescription: ITargetDescription): void {
-    // One reset, because there is one state. Two classes stood here --
-    // `CodeGenState.reset(targetCapabilities)` and `TranspilerState.reset()` --
-    // and merging them under #1452 left the second call clobbering the first's
-    // argument, so `--target` silently fell back to the default capabilities.
-    this.host.state.reset(targetDescription);
-
-    // Set generator reference for handlers to use
-    // #1652 removed `ICodeGenApi`'s four parse-node members, and every one that
-    // remains is implemented on the host. The walker used to be assigned here
-    // and forward all five, which made a sixth member two places to write.
-    this.host.state.generator = this.host;
-  }
-
-  /**
-   * Initialize symbol data and const values from symbol table.
-   */
-  private initializeSymbolData(): void {
-    const symbols = this.host.state.symbols!;
-
-    // Copy symbol data to this.host.state.scopeMembers
-    for (const [scopeName, members] of symbols.scopeMembers) {
-      this.host.state.setScopeMembers(scopeName, new Set(members));
-    }
-
-    // #1664 box 7: const values are not seeded here. A dimension folds with
-    // `dimensionEvalOptions(state, position)`, what 1.4 settled as visible
-    // there.
-  }
-
-  /**
-   * Initialize all helper objects needed for code generation.
-   */
-  private initializeHelperObjects(program: IProgramSyntax): void {
-    // Collect function/callback information
-    this.collectFunctionsAndCallbacks(program);
-  }
-
   private planFile(
     program: IProgramSyntax,
     options: ICodeGeneratorOptions,
@@ -1222,18 +1152,15 @@ class FilePlanner {
         const declared = this.cTypeOf(planned);
         return this.host.getCallbackTypedefName(declared) ?? declared;
       }
-      const scope = typeScopes.get(type) ?? null;
-      const spell = (): string =>
+      return (
         TypeNameLadder.resolveWrittenName(
           type,
-          this.host.state.currentScopePath,
+          this.host.state.scopePathOf(typeScopes.get(type) ?? null),
           this.host.state.typeBindingDeps((identifiers) =>
             this.resolveQualifiedType(identifiers),
           ),
-        ) ?? type.text;
-      return scope === null
-        ? spell()
-        : this.host.state.withScopePath(scope, spell);
+        ) ?? type.text
+      );
     };
     const spellSite = (
       site: TValueSite,
@@ -1887,56 +1814,61 @@ class FilePlanner {
    * Issue #60: Symbol collection extracted to SymbolCollector.
    * This method handles function signatures and callback types (not yet extracted).
    */
-  private collectFunctionsAndCallbacks(program: IProgramSyntax): void {
+  functionCatalog(
+    program: IProgramSyntax,
+    callbackTypes: ReadonlyMap<string, ICallbackTypeInfo>,
+  ): FunctionCatalog {
+    const catalog = new FunctionCatalog(callbackTypes);
     for (const { declaration } of program.declarations) {
       if (declaration.kind === "scope") {
-        this._collectScopeFunctions(declaration);
+        this._collectScopeFunctions(catalog, declaration);
       } else if (declaration.kind === "struct") {
-        this._collectStructCallbackFields(declaration);
+        this._collectStructCallbackFields(catalog, declaration, "");
       } else if (declaration.kind === "function") {
-        this._collectTopLevelFunction(declaration);
+        this._collectTopLevelFunction(catalog, declaration);
       } else if (
         declaration.kind === "variableDeclaration" ||
         declaration.kind === "constructorDeclaration"
       ) {
         // #1562: a file-scope variable is declared `extern` in the header,
         // so the header owns the typedef its type names
-        this.host.state.notePublicCallbackTypeReference(
-          this.typeNameOf(declaration.type),
-        );
+        catalog.notePublicReference(this.typeNameIn(declaration.type, ""));
       }
     }
+    return catalog;
   }
 
   /**
    * Collect scoped functions and their callback types
    */
   private _collectScopeFunctions(
+    catalog: FunctionCatalog,
     scopeDecl: Extract<TDeclarationSyntax, { kind: "scope" }>,
   ): void {
     const scopeName = scopeDecl.name;
-    this.host.state.withScopePath(scopeName, () => {
-      for (const { declaration } of scopeDecl.members) {
-        if (declaration.kind === "function") {
-          this._registerScopeFunction(
-            this.host.state.program?.scopePathOf(scopeName) ?? scopeName,
-            declaration,
-          );
-        }
+    const typeScopePath = this.host.state.scopePathOf(scopeName);
+    for (const { declaration } of scopeDecl.members) {
+      if (declaration.kind === "function") {
+        this._registerScopeFunction(
+          catalog,
+          this.host.state.program?.scopePathOf(scopeName) ?? scopeName,
+          declaration,
+          typeScopePath,
+        );
       }
-      for (const { declaration } of scopeDecl.members) {
-        if (declaration.kind === "struct") {
-          this._collectStructCallbackFields(declaration);
-        } else if (
-          declaration.kind === "variableDeclaration" ||
-          declaration.kind === "constructorDeclaration"
-        ) {
-          this.host.state.notePublicCallbackTypeReference(
-            this.typeNameOf(declaration.type),
-          );
-        }
+    }
+    for (const { declaration } of scopeDecl.members) {
+      if (declaration.kind === "struct") {
+        this._collectStructCallbackFields(catalog, declaration, typeScopePath);
+      } else if (
+        declaration.kind === "variableDeclaration" ||
+        declaration.kind === "constructorDeclaration"
+      ) {
+        catalog.notePublicReference(
+          this.typeNameIn(declaration.type, typeScopePath),
+        );
       }
-    });
+    }
   }
 
   /**
@@ -1946,51 +1878,66 @@ class FilePlanner {
    * reference to one is resolved.
    */
   private _registerScopeFunction(
+    catalog: FunctionCatalog,
     declaringScopePath: string,
     funcDecl: IFunctionDeclarationSyntax,
+    typeScopePath: string,
   ): void {
     const fullName = QualifiedNameGenerator.forFunctionInScope(
       declaringScopePath,
       funcDecl.name,
       this.host.state.program,
     );
-    this.host.state.knownFunctions.add(fullName);
-    const sig = this.extractFunctionSignature(fullName, funcDecl.parameters);
-    this.host.state.functionSignatures.set(fullName, sig);
+    catalog.addFunction(
+      fullName,
+      this.extractFunctionSignature(
+        catalog,
+        fullName,
+        funcDecl.parameters,
+        typeScopePath,
+      ),
+    );
     // #1484: locals in the body name callback types too.
-    this._collectLocalCallbackTypeReferences(funcDecl.body);
+    this._collectLocalCallbackTypeReferences(
+      catalog,
+      funcDecl.body,
+      typeScopePath,
+    );
   }
 
   /**
    * Collect callback field types from struct declaration
    */
   private _collectStructCallbackFields(
+    catalog: FunctionCatalog,
     structDecl: IStructDeclarationSyntax,
+    scopePath: string,
   ): void {
     for (const field of structDecl.fields) {
-      const fieldType = this.typeNameOf(field.type);
-      if (this.host.state.callbackTypes.has(fieldType)) {
-        this.host.state.callbackFieldTypes.set(
-          `${structDecl.name}.${field.name}`,
-          fieldType,
-        );
-      }
-      this.host.state.notePublicCallbackTypeReference(fieldType);
+      const fieldType = this.typeNameIn(field.type, scopePath);
+      catalog.noteStructField(`${structDecl.name}.${field.name}`, fieldType);
+      catalog.notePublicReference(fieldType);
     }
   }
 
   /**
    * Collect top-level function and register as callback type
    */
-  private _collectTopLevelFunction(funcDecl: IFunctionDeclarationSyntax): void {
-    this.host.state.knownFunctions.add(funcDecl.name);
-    const sig = this.extractFunctionSignature(
+  private _collectTopLevelFunction(
+    catalog: FunctionCatalog,
+    funcDecl: IFunctionDeclarationSyntax,
+  ): void {
+    catalog.addFunction(
       funcDecl.name,
-      funcDecl.parameters,
+      this.extractFunctionSignature(
+        catalog,
+        funcDecl.name,
+        funcDecl.parameters,
+        "",
+      ),
     );
-    this.host.state.functionSignatures.set(funcDecl.name, sig);
     // #1484: locals in the body name callback types too.
-    this._collectLocalCallbackTypeReferences(funcDecl.body);
+    this._collectLocalCallbackTypeReferences(catalog, funcDecl.body, "");
   }
 
   /**
@@ -2002,7 +1949,10 @@ class FilePlanner {
    * dimensions are folded to VALUES for ADR-036 bounds checking rather than
    * rendered as C text.
    */
-  planFunctionParameter(param: IParameterSyntax): IPlannedFunctionParameter {
+  planFunctionParameter(
+    param: IParameterSyntax,
+    scopePath: string,
+  ): IPlannedFunctionParameter {
     const arrayType = param.type.kind === "array" ? param.type : null;
     const isArray = param.dimensions.length > 0 || arrayType !== null;
     return {
@@ -2016,7 +1966,7 @@ class FilePlanner {
         isArray,
       ),
       stringCapacity: FilePlanner.stringCapacityOf(param.type) ?? undefined,
-      type: this.planType(param.type),
+      type: this.planType(param.type, scopePath),
     };
   }
 
@@ -2035,12 +1985,13 @@ class FilePlanner {
     const planParameters = (
       cName: string,
       fn: IFunctionDeclarationSyntax,
+      typeScopePath: string,
     ): void => {
       (fn.parameters ?? []).forEach((param, index) => {
         infos.set(
           TranspileState.parameterKey(param.nameSpan),
           ParameterInfoPlanner.infoOf(
-            this.planFunctionParameter(param),
+            this.planFunctionParameter(param, typeScopePath),
             index,
             cName,
             callbacks,
@@ -2052,24 +2003,24 @@ class FilePlanner {
     for (const entry of program.declarations) {
       const declaration = entry.declaration;
       if (declaration.kind === "function") {
-        planParameters(declaration.name, declaration);
+        planParameters(declaration.name, declaration, "");
       } else if (declaration.kind === "scope") {
         const scopePath =
           this.host.state.program?.scopePathOf(declaration.name) ??
           declaration.name;
-        this.host.state.withScopePath(declaration.name, () => {
-          for (const member of declaration.members) {
-            if (member.declaration.kind !== "function") continue;
-            planParameters(
-              QualifiedNameGenerator.forFunctionInScope(
-                scopePath,
-                member.declaration.name,
-                this.host.state.program,
-              ),
-              member.declaration,
-            );
-          }
-        });
+        const typeScopePath = this.host.state.scopePathOf(declaration.name);
+        for (const member of declaration.members) {
+          if (member.declaration.kind !== "function") continue;
+          planParameters(
+            QualifiedNameGenerator.forFunctionInScope(
+              scopePath,
+              member.declaration.name,
+              this.host.state.program,
+            ),
+            member.declaration,
+            typeScopePath,
+          );
+        }
       }
     }
     return infos;
@@ -2120,8 +2071,10 @@ class FilePlanner {
    * ADR-013: Extract function signature from parameter list
    */
   private extractFunctionSignature(
+    catalog: FunctionCatalog,
     name: string,
     params: readonly IParameterSyntax[] | null,
+    scopePath: string,
   ): FunctionSignature {
     const parameters: Array<{
       name: string;
@@ -2136,10 +2089,10 @@ class FilePlanner {
         const isConst = param.const;
         const isArray =
           param.dimensions.length > 0 || param.type.kind === "array";
-        const baseType = this.typeNameOf(param.type);
+        const baseType = this.typeNameIn(param.type, scopePath);
         // Issue #1201: a parameter naming a callback type needs that type's
         // typedef emitted, exactly as a struct field does.
-        this.host.state.notePublicCallbackTypeReference(baseType);
+        catalog.notePublicReference(baseType);
         parameters.push({ name: paramName, baseType, isConst, isArray });
       }
     }
@@ -2163,21 +2116,27 @@ class FilePlanner {
    * reference discovered while generating a later body would arrive after the
    * decision it exists to inform.
    */
-  private _collectLocalCallbackTypeReferences(body: TBlockSyntax): void {
+  private _collectLocalCallbackTypeReferences(
+    catalog: FunctionCatalog,
+    body: TBlockSyntax,
+    scopePath: string,
+  ): void {
     for (const statement of body.statements) {
-      this.collectCallbackTypeReferencesIn(statement);
+      this.collectCallbackTypeReferencesIn(catalog, statement, scopePath);
     }
   }
 
-  private collectCallbackTypeReferencesIn(statement: TStatement): void {
+  private collectCallbackTypeReferencesIn(
+    catalog: FunctionCatalog,
+    statement: TStatement,
+    scopePath: string,
+  ): void {
     const visit = (child: TStatement): void =>
-      this.collectCallbackTypeReferencesIn(child);
+      this.collectCallbackTypeReferencesIn(catalog, child, scopePath);
     switch (statement.kind) {
       case "variableDeclaration":
       case "constructorDeclaration":
-        this.host.state.callbackTypeReferences.add(
-          this.typeNameOf(statement.type),
-        );
+        catalog.noteReference(this.typeNameIn(statement.type, scopePath));
         return;
       case "for":
         if (statement.init?.kind === "variableDeclaration")
@@ -2309,10 +2268,11 @@ class FilePlanner {
    * So a visible function nobody uses as a type still yields no typedef and
    * cannot trip MISRA Rule 2.3 (unused type declarations).
    */
-  private registerCallbackTypes(): void {
+  planCallbackTypes(): ReadonlyMap<string, ICallbackTypeInfo> {
+    const callbackTypes = new Map<string, ICallbackTypeInfo>();
     const symbols = this.host.state.symbols;
     if (!symbols) {
-      return;
+      return callbackTypes;
     }
 
     // The per-file VISIBLE set: what this file declares, plus what its includes
@@ -2357,7 +2317,7 @@ class FilePlanner {
       for (const param of symbol.parameters) {
         register(SymbolTypeResolver.getTypeName(param.type));
       }
-      this.host.state.callbackTypes.set(
+      callbackTypes.set(
         cName,
         this.callbackInfoFromSymbol(cName, symbol, functions),
       );
@@ -2365,6 +2325,7 @@ class FilePlanner {
     for (const cName of functions.keys()) {
       register(cName);
     }
+    return callbackTypes;
   }
 
   /**

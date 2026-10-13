@@ -237,7 +237,22 @@ class CodeGenWalker {
    * of it is written. `render` takes what this returns (#1991).
    */
   plan(file: IAnalyzedFile, options: ICodeGeneratorOptions): IFilePlan {
+    const state = this.host.state;
+    const inputs = FilePlanner.planInputs(options);
+    state.beginPlan(inputs, this.host);
+    AdrProvenance.beginFile(inputs.sourcePath);
+    // ADR-029: every function-as-type this file can see, before anything can
+    // reference one
+    const callbackTypes = this.planner.planCallbackTypes();
+    state.useCallbackTypes(callbackTypes);
+    state.useFunctionCatalog(
+      this.planner.functionCatalog(file.program, callbackTypes),
+    );
     return this.planner.plan(file, options);
+  }
+
+  private typeNameOf(type: TTypeSyntax): string {
+    return this.planner.typeNameIn(type, this.host.state.currentScopePath);
   }
 
   /**
@@ -1130,7 +1145,12 @@ class CodeGenWalker {
     params: readonly IParameterSyntax[] | null,
   ): readonly IPlannedFunctionParameter[] | null {
     return (
-      params?.map((param) => this.planner.planFunctionParameter(param)) ?? null
+      params?.map((param) =>
+        this.planner.planFunctionParameter(
+          param,
+          this.host.state.currentScopePath,
+        ),
+      ) ?? null
     );
   }
 
@@ -2039,7 +2059,7 @@ class CodeGenWalker {
         const arrayType = field.type.kind === "array" ? field.type : null;
         return {
           name: field.name,
-          typeName: this.planner.typeNameOf(field.type),
+          typeName: this.typeNameOf(field.type),
           isCallback: this.host.state.callbackFieldTypes.has(
             `${struct.name}.${field.name}`,
           ),
@@ -2258,7 +2278,7 @@ class CodeGenWalker {
     param: IParameterSyntax,
     paramIndex: number,
   ): string {
-    const typeName = this.planner.typeNameOf(param.type);
+    const typeName = this.typeNameOf(param.type);
     const name = param.name;
 
     // #1322: a C-style or unbounded array parameter is E0874/E0875 in pass
@@ -2374,7 +2394,7 @@ class CodeGenWalker {
     return {
       name: emittedName,
       isConst: param.const,
-      typeName: this.planner.typeNameOf(param.type),
+      typeName: this.typeNameOf(param.type),
       mappedType: this.renderType(param.type),
       renderDimensions: arrayType
         ? () =>
@@ -2746,7 +2766,7 @@ class CodeGenWalker {
     }
     return {
       kind: "expression",
-      renderTypeName: () => this.planner.typeNameOf(decl.type),
+      renderTypeName: () => this.typeNameOf(decl.type),
       renderExpression: () => this.renderExpression(initializer),
       resolveExpressionType: () => this.planner.directTypeOf(initializer),
     };
