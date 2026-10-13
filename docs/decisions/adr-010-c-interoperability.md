@@ -142,6 +142,7 @@ This enables modular C-Next code while ensuring the generated C code includes th
 | E0504 | a header is included where its C-Next source exists                        |
 | E0506 | a quoted C-Next include names a file that is not there                     |
 | E0509 | a generated header records a C-Next source that is not there               |
+| E0518 | a C-Next extension spelled in any case but lowercase                       |
 
 The first three are reported at the directive's own line and column.
 
@@ -170,11 +171,24 @@ was live until #1322, where a header and its C-Next twin sitting together in an
 added include directory transpiled with no diagnostic while the same two files
 beside the source were rejected.
 
-**None of these four occupies a cell of the scope-context matrix, and that is a
+**Only a lowercase `.cnx` or `.cnext` names C-Next source** (owner ruling on
+#1833). `Colors.CNX`, `Colors.Cnx` and `Colors.CNEXT` are not C-Next source,
+and naming one is E0518: at the directive's line and column for an include, at
+the marker for a generated header's record, and at `1:0` of the file when it
+is the run's input, as the other diagnostics about the run are (#1847 decides
+that form for all of them). `cnext --clean` reports it for such an input too.
+Nothing is written. The
+case of an extension is significant elsewhere in C tooling as well — GCC reads
+`.C` as C++, not C. Before the ruling, discovery accepted the extension in any
+case while the name of each generated file was derived from the lowercase
+spelling only, so an in-place build of `Colors.CNX` wrote its generated header
+over the source and finished successfully.
+
+**None of these five occupies a cell of the scope-context matrix, and that is a
 property of the construct rather than a coverage gap.** An `#include` is only
 grammatical before the first declaration, so it is enclosed by no scope, no
 function and no variable, and the matrix's context axis asks exactly that. This
-statement is scoped to these four codes — E0509 the most plainly, since the
+statement is scoped to these five codes — E0509 the most plainly, since the
 reference it rejects is not in C-Next source at all; ADR-010's other decisions
 are about
 declarations and are not covered by it.

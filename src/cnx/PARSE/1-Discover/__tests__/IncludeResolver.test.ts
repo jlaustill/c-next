@@ -614,11 +614,13 @@ describe("IncludeResolver", () => {
     });
 
     // #1444, owner ruling 1: the one classification of an include. Render
-    // and 2.1 read this map; `IncludeRewriter`'s own case-sensitive regexes
-    // once called `Utils.CNX` foreign while 1.1 pulled it into the run (#1833).
+    // and 2.1 read this map. #1833 ruling: only a lowercase C-Next extension
+    // is C-Next; any other case is its own kind, which 2.1 rejects as E0518.
     it.each([
-      ['#include "Utils.CNX"', EFileType.CNext],
-      ["#include <utils.Cnext>", EFileType.CNext],
+      ['#include "Utils.cnx"', EFileType.CNext],
+      ["#include <utils.cnext>", EFileType.CNext],
+      ['#include "Utils.CNX"', EFileType.MiscasedCNext],
+      ["#include <utils.Cnext>", EFileType.MiscasedCNext],
       ['#include "utils.h"', EFileType.CHeader],
       ['#include "utils.cnx.h"', EFileType.CHeader],
       ['#include "impl.c++"', EFileType.CppSource],
@@ -765,7 +767,6 @@ describe("IncludeResolver", () => {
       headers: ReadonlyArray<{
         path: string;
         type: EFileType;
-        extension: string;
       }>,
       dir: string,
     ) => headers.map((file) => ({ file, searchPaths: [dir] }));
@@ -776,7 +777,6 @@ describe("IncludeResolver", () => {
         {
           path: join(includeDir, "types.h"),
           type: EFileType.CHeader,
-          extension: ".h",
         },
       ];
 
@@ -804,7 +804,6 @@ describe("IncludeResolver", () => {
         {
           path: join(nestedDir, "derived.h"),
           type: EFileType.CHeader,
-          extension: ".h",
         },
       ];
 
@@ -830,7 +829,6 @@ describe("IncludeResolver", () => {
         {
           path: join(circularDir, "a.h"),
           type: EFileType.CHeader,
-          extension: ".h",
         },
       ];
 
@@ -859,7 +857,6 @@ describe("IncludeResolver", () => {
         {
           path: join(generatedDir, "user.h"),
           type: EFileType.CHeader,
-          extension: ".h",
         },
       ];
 
@@ -885,7 +882,6 @@ describe("IncludeResolver", () => {
         {
           path: join(warningDir, "main.h"),
           type: EFileType.CHeader,
-          extension: ".h",
         },
       ];
 
@@ -908,7 +904,6 @@ describe("IncludeResolver", () => {
       const aHeader = {
         path: join(libA, "a.h"),
         type: EFileType.CHeader,
-        extension: ".h",
       };
 
       const along = IncludeResolver.resolveHeadersTransitively(

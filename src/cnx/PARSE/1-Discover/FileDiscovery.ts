@@ -7,13 +7,12 @@ import { extname, resolve } from "node:path";
 import EFileType from "./types/EFileType";
 import IDiscoveredFile from "./types/IDiscoveredFile";
 import IFileSystem from "../../types/IFileSystem";
+import CNextSourcePath from "../../utils/CNextSourcePath";
 
 /**
  * Default extensions for each file type
  */
 const EXTENSION_MAP: Record<string, EFileType> = {
-  ".cnx": EFileType.CNext,
-  ".cnext": EFileType.CNext,
   ".h": EFileType.CHeader,
   ".hpp": EFileType.CppHeader,
   ".hxx": EFileType.CppHeader,
@@ -34,15 +33,22 @@ class FileDiscovery {
   /**
    * Classify a file path into a discovered file, by its extension alone --
    * nothing is read, so the path need not exist.
+   *
+   * Whether it is C-Next is `CNextSourcePath`'s answer, which is case-
+   * sensitive (#1833); the C and C++ extensions are looked up lowercased.
    */
   static classifyFile(filePath: string): IDiscoveredFile {
     const ext = extname(filePath).toLowerCase();
-    const type = EXTENSION_MAP[ext] ?? EFileType.Unknown;
     return {
       path: filePath,
-      type,
-      extension: ext,
+      type: FileDiscovery._typeOf(filePath, ext),
     };
+  }
+
+  private static _typeOf(filePath: string, ext: string): EFileType {
+    if (CNextSourcePath.isSource(filePath)) return EFileType.CNext;
+    if (CNextSourcePath.isMiscased(filePath)) return EFileType.MiscasedCNext;
+    return EXTENSION_MAP[ext] ?? EFileType.Unknown;
   }
 
   /**

@@ -1,0 +1,1 @@
+enum EColor { RED, GREEN, BLUE }
