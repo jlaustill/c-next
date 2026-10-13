@@ -138,6 +138,10 @@ function writeBits(ctx: IAssignmentContext): string {
   const value = ctx.target.last?.before ?? null;
   if (value?.category === "floating") {
     invariant(value.typeName !== null, "the typer names a float's type");
+    invariant(
+      ctx.floatBitsPlanned,
+      "2.2 planned every float bit write 2.3 writes",
+    );
     return ctx.state.requireGenerator().generateFloatBitWrite({
       target: base,
       floatType: value.typeName,

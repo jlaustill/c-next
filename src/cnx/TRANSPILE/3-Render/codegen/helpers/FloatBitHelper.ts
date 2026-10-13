@@ -16,21 +16,12 @@
  * Migrated to use CodeGenState instead of constructor DI.
  */
 
-import TIncludeHeader from "../../../../types/TIncludeHeader";
 import BitRangeHelper from "./BitRangeHelper";
 import SaturatingCast from "./SaturatingCast";
 import BitUtils from "../../../../utils/BitUtils";
 import ComplianceAnnotations from "../../../2-Plan/ComplianceAnnotations";
 import type TranspileState from "../../../TranspileState";
 import type IFloatBitWrite from "../../../../types/IFloatBitWrite";
-
-/**
- * Callback types for code generation operations.
- */
-interface IFloatBitCallbacks {
-  /** Request an include header */
-  requireInclude: (header: TIncludeHeader) => void;
-}
 
 /**
  * Generates float bit write operations using union-based type punning.
@@ -71,15 +62,11 @@ class FloatBitHelper {
    * written as a plain subscript store that C rejects).
    *
    * @param bitWrite - The float written, its type, and the bits written
-   * @param callbacks - Code generation callbacks
    */
   static generateFloatBitWrite(
     bitWrite: IFloatBitWrite,
-    callbacks: IFloatBitCallbacks,
     state: TranspileState,
   ): string {
-    callbacks.requireInclude("float_static_assert"); // For size verification
-
     const target = bitWrite.target;
     const intType = FloatBitHelper.bitsTypeOf(bitWrite.floatType);
     // The union's integer member: the plan decides its header (#1927)

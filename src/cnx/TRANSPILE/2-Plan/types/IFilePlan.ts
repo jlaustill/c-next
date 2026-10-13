@@ -2,6 +2,7 @@ import type IProgramSyntax from "../../../types/syntax/IProgramSyntax";
 import type TDeclarationSyntax from "../../../types/syntax/TDeclarationSyntax";
 import type TExpression from "../../../types/syntax/TExpression";
 import type TExpressionOf from "../../../types/syntax/TExpressionOf";
+import type TPostfixOpSyntax from "../../../types/syntax/TPostfixOpSyntax";
 import type TTypeSyntax from "../../../types/syntax/TTypeSyntax";
 import type TValueBinding from "../../../types/TValueBinding";
 import type IPlannedCast from "./IPlannedCast";
@@ -49,6 +50,10 @@ interface IFilePlan {
     TExpressionOf<"unary">,
     TNegativeMinimum
   >;
+  /** ADR-007: each written range read of a named float's bits, through a union */
+  readonly floatBitReads: ReadonlySet<TPostfixOpSyntax>;
+  /** ADR-007: each assignment target that writes a float's bits, through a union */
+  readonly floatBitWrites: ReadonlySet<TExpression>;
 }
 
 export default IFilePlan;

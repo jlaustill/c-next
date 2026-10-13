@@ -123,6 +123,7 @@ import scopeGenerator from "./3-Render/codegen/generators/declarationGenerators/
 import FormatUtils from "../utils/FormatUtils";
 import TypeCheckUtils from "../utils/TypeCheckUtils";
 import ExpressionShape from "../utils/ExpressionShape";
+import StatementNodes from "../utils/StatementNodes";
 import StatementChildren from "../utils/StatementChildren";
 import type IChainHead from "../types/IChainHead";
 import ExpressionCalls from "../utils/ExpressionCalls";
@@ -627,6 +628,7 @@ class CodeGenWalker {
             widthExpr === undefined ? undefined : this.constantOf(widthExpr),
           typedAs,
           step,
+          floatBits: this.filePlan.floatBitReads.has(op),
         };
       }
       case "call": {
@@ -1669,6 +1671,56 @@ class CodeGenWalker {
    * spells as the `<limits.h>` macro. The literal's suffix is the one 2.3
    * drops (8/16/32 bits) or spells `LL` (i64).
    */
+  /**
+   * ADR-007: a float's bits are read and written through a union, which the
+   * float static assert sizes (MISRA 21.15): a range read off a named float,
+   * and any bit write to a float
+   */
+  private planFloatBits(
+    program: IProgramSyntax,
+    inlinedConsts: ReadonlySet<TDeclarationSyntax>,
+  ): {
+    readonly reads: ReadonlySet<TPostfixOpSyntax>;
+    readonly writes: ReadonlySet<TExpression>;
+  } {
+    const typing = this.host.state.typingContext();
+    const targets = new Set<TExpression>(
+      program.declarations.flatMap((entry) =>
+        StatementNodes.assignments(entry.declaration).map(
+          (write) => write.target,
+        ),
+      ),
+    );
+    const writes = new Set<TExpression>();
+    for (const target of targets) {
+      const last = OperandTyper.chainOf(target, typing).steps.at(-1);
+      const bits =
+        last?.subscript === "bit_single" || last?.subscript === "bit_range";
+      if (bits && last?.before?.category === "floating") writes.add(target);
+    }
+    const reads = new Set<TPostfixOpSyntax>();
+    for (const expression of CodeGenWalker.writtenExpressions(
+      program,
+      inlinedConsts,
+    )) {
+      if (expression.kind !== "postfix" || targets.has(expression)) continue;
+      const head = ExpressionShape.headOf(expression);
+      if (head.root !== null || !head.identifier) continue;
+      const steps = OperandTyper.chainOf(expression, typing).steps;
+      const rootType = steps[0]?.before?.typeName ?? null;
+      if (rootType !== "f32" && rootType !== "f64") continue;
+      head.ops.forEach((op, i) => {
+        if (
+          op.kind === "subscript" &&
+          steps[i - head.opsConsumed]?.subscript === "bit_range"
+        ) {
+          reads.add(op);
+        }
+      });
+    }
+    return { reads, writes };
+  }
+
   private static planNegativeMinimums(
     program: IProgramSyntax,
     inlinedConsts: ReadonlySet<TDeclarationSyntax>,
@@ -1984,6 +2036,11 @@ class CodeGenWalker {
     if (negativeMinimums.size > 0) {
       this.host.state.requireInclude("limits");
     }
+    const floatBits = this.planFloatBits(program, inlinedConsts);
+    // ADR-007: each union copy is checked by the float static assert
+    for (let i = 0; i < floatBits.reads.size + floatBits.writes.size; i++) {
+      this.host.state.requireInclude("float_static_assert");
+    }
     return {
       program,
       selfInclude,
@@ -1994,6 +2051,8 @@ class CodeGenWalker {
       comparisons,
       casts,
       negativeMinimums,
+      floatBitReads: floatBits.reads,
+      floatBitWrites: floatBits.writes,
     };
   }
 
@@ -4585,6 +4644,7 @@ class CodeGenWalker {
     // Build context, classify, and dispatch - all patterns handled by handlers
     const assignCtx = buildAssignmentContext(site, {
       target,
+      floatBitsPlanned: this.filePlan.floatBitWrites.has(targetExpr),
       state: this.host.state,
       // Already rendered, inside the expectedType window above -- never again.
       generatedValue: () => value,

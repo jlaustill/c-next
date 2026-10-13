@@ -299,6 +299,8 @@ function createMockPostfixOp(options?: {
         options?.typedAs ??
         (expressions.length === 2 ? "bit_range" : "array_element"),
       widthText: expressions[expressions.length - 1]?.getText(),
+      // 2.2 plans a float range read; the integer arms never read this
+      floatBits: true,
       step: null,
     } as TPlannedPostfixOp & { widthText?: string };
   }
@@ -1558,7 +1560,8 @@ describe("PostfixExpressionGenerator", () => {
         type: "include",
         header: "string",
       });
-      expect(result.effects).toContainEqual({
+      // 2.2 requires the float static assert, before 2.3 renders (#1991)
+      expect(result.effects).not.toContainEqual({
         type: "include",
         header: "float_static_assert",
       });

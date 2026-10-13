@@ -845,14 +845,7 @@ export default class CodeGenerator implements IOrchestrator {
    * @public
    */
   generateFloatBitWrite(bitWrite: IFloatBitWrite): string {
-    // Issue #644: FloatBitHelper is now static, pass callbacks
-    return FloatBitHelper.generateFloatBitWrite(
-      bitWrite,
-      {
-        requireInclude: (header) => this.state.requireInclude(header),
-      },
-      this.state,
-    );
+    return FloatBitHelper.generateFloatBitWrite(bitWrite, this.state);
   }
 
   // ADR-001: <- becomes = in C, with compound assignment operators

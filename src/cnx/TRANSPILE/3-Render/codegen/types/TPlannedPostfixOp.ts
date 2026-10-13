@@ -57,6 +57,8 @@ type TPlannedPostfixOp =
        * integer is subscripted as bits (ADR-024) in both passes.
        */
       readonly typedAs: TSubscriptKind;
+      /** 2.2's decision: this range reads a float's bits through a union (ADR-007) */
+      readonly floatBits: boolean;
       /** #1668 (C12): the typer's step, or null for an untyped chain */
       readonly step: IChainStep | null;
     }

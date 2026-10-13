@@ -39,6 +39,7 @@ function createMockContext(
       HandlerTestUtils.planner().analyzeMemberChainForBitAccess(null as never),
     targetLine: 1,
     hasValue: true,
+    floatBitsPlanned: true,
     valueExpressionType: () => null,
     valueIntegerType: () => null,
     valueHasFloatingOperand: () => false,

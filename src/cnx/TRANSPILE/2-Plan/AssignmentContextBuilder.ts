@@ -39,6 +39,9 @@ interface IContextBuilderDeps {
   /** #1668: what the target writes, bound where it was typed */
   readonly target: IChainBase;
 
+  /** 2.2's decision: the target writes a float's bits through a union (ADR-007) */
+  readonly floatBitsPlanned: boolean;
+
   /**
    * 2.3 Render's per-file working state (#1452 box 4), carried onto the built
    * context so the handlers that receive it have a channel to the same
@@ -268,6 +271,7 @@ function buildAssignmentContext(
     analyzeTargetForBitAccess: () =>
       deps.analyzeMemberChainForBitAccess(targetExpr, deps.target.last),
     targetLine: targetExpr.span.line,
+    floatBitsPlanned: deps.floatBitsPlanned,
     hasValue: valueExpr.kind !== "missing",
     valueExpressionType: () => deps.expressionType(valueExpr),
     valueIntegerType: () => deps.integerExpressionType(valueExpr),

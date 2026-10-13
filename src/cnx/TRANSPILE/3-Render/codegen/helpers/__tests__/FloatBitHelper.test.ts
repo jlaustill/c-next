@@ -9,17 +9,9 @@
  * of its own, and annotates every union with the rule that shaped it.
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import FloatBitHelper from "../FloatBitHelper";
 import TranspileState from "../../../../TranspileState";
-import type TIncludeHeader from "../../../../../types/TIncludeHeader";
-
-/**
- * Callback types for code generation operations.
- */
-interface IFloatBitCallbacks {
-  requireInclude: (header: TIncludeHeader) => void;
-}
 
 let state = new TranspileState();
 
@@ -27,14 +19,8 @@ const F32_ANNOTATION =
   "/* MISRA C:2012 Rule 21.15: float bits accessed through a union (memcpy would pass incompatible pointer types: float* vs uint32_t*). */";
 
 describe("FloatBitHelper", () => {
-  let callbacks: IFloatBitCallbacks;
-
   beforeEach(() => {
     state = new TranspileState();
-
-    callbacks = {
-      requireInclude: vi.fn(),
-    };
   });
 
   const write = (
@@ -54,7 +40,6 @@ describe("FloatBitHelper", () => {
         value,
         isVariable,
       },
-      callbacks,
       state,
     );
 
@@ -76,10 +61,6 @@ describe("FloatBitHelper", () => {
       expect(result).toContain("myFloat = __bits_myFloat.f;");
       // No memcpy call for MISRA compliance (the annotation names it)
       expect(result).not.toContain("memcpy(");
-      expect(callbacks.requireInclude).not.toHaveBeenCalledWith("string");
-      expect(callbacks.requireInclude).toHaveBeenCalledWith(
-        "float_static_assert",
-      );
     });
 
     it("generates single bit write for f64 using union", () => {

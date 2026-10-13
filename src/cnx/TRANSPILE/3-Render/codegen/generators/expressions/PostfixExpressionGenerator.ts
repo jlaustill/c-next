@@ -1195,6 +1195,7 @@ const handleBitRangeSubscript = (
         start,
         width,
         maskWidth,
+        planned: ctx.subscript.floatBits,
       },
       state,
       orchestrator,
@@ -1248,6 +1249,8 @@ interface IFloatBitRangeContext {
   width: string;
   /** Width formatted for mask generation (const-resolved when possible, #1094). */
   maskWidth: string;
+  /** 2.2 planned this read's union (ADR-007) */
+  planned: boolean;
 }
 
 /**
@@ -1268,7 +1271,10 @@ const handleFloatBitRange = (
     `a float bit range is read inside a function (${ctx.rootIdentifier}) -- E0888 rejects this in pass 2.1, before this runs`,
   );
 
-  effects.push({ type: "include", header: "float_static_assert" });
+  invariant(
+    ctx.planned,
+    `2.2 planned every float bit range 2.3 reads (${ctx.rootIdentifier})`,
+  );
 
   const intType = FloatBitHelper.bitsTypeOf(ctx.baseType);
   // The union's integer member: the plan decides its header (#1927)

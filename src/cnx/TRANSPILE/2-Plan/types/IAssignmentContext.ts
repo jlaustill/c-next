@@ -66,6 +66,8 @@ interface IAssignmentContext {
 
   /** Whether the assignment has a right-hand side at all. */
   readonly hasValue: boolean;
+  /** 2.2's decision: the target writes a float's bits through a union (ADR-007) */
+  readonly floatBitsPlanned: boolean;
 
   /**
    * The value's essential type, its integer type, and its constant fold.
