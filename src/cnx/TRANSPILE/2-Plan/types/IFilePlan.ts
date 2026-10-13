@@ -62,6 +62,8 @@ interface IFilePlan {
   readonly atomicForms: ReadonlyMap<IAssignmentSyntax, TAtomicForm>;
   /** ADR-051: each written `safe_div`/`safe_mod` call, whose helper 2.2 required */
   readonly safeDivisions: ReadonlySet<TExpression>;
+  /** #1927: the C types the file's text uses, which decide `<stdint.h>`/`<stdbool.h>` */
+  readonly cTypes: ReadonlySet<string>;
   /** The type each value is rendered against; a value not listed has none */
   readonly expectedTypes: ReadonlyMap<TExpression, IPlannedExpectedType>;
   /** ADR-014: how each written struct initializer is written */

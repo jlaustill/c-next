@@ -1,3 +1,6 @@
+import OverflowHelperTemplates from "./3-Render/codegen/generators/support/OverflowHelperTemplates";
+import CTypeIncludes from "./2-Plan/CTypeIncludes";
+import FloatBitHelper from "./3-Render/codegen/helpers/FloatBitHelper";
 /**
  * CodeGenWalker -- the walk over one file's plain-data `IProgramSyntax`
  * that drives code generation.
@@ -1725,6 +1728,7 @@ class CodeGenWalker {
   private planFloatBits(
     program: IProgramSyntax,
     inlinedConsts: ReadonlySet<TDeclarationSyntax>,
+    cTypes: Set<string>,
   ): {
     readonly reads: ReadonlySet<TPostfixOpSyntax>;
     readonly writes: ReadonlySet<TExpression>;
@@ -1742,7 +1746,13 @@ class CodeGenWalker {
       const last = OperandTyper.chainOf(target, typing).steps.at(-1);
       const bits =
         last?.subscript === "bit_single" || last?.subscript === "bit_range";
-      if (bits && last?.before?.category === "floating") writes.add(target);
+      if (bits && last?.before?.category === "floating") {
+        writes.add(target);
+        // The union's integer member (#1927)
+        const floatType = last.before.typeName;
+        invariant(floatType !== null, "a floating operand names its type");
+        cTypes.add(FloatBitHelper.bitsTypeOf(floatType));
+      }
     }
     const reads = new Set<TPostfixOpSyntax>();
     for (const expression of CodeGenWalker.writtenExpressions(
@@ -1761,6 +1771,7 @@ class CodeGenWalker {
           steps[i - head.opsConsumed]?.subscript === "bit_range"
         ) {
           reads.add(op);
+          cTypes.add(FloatBitHelper.bitsTypeOf(rootType));
         }
       });
     }
@@ -1796,6 +1807,7 @@ class CodeGenWalker {
   private planSafeDivisions(
     program: IProgramSyntax,
     inlinedConsts: ReadonlySet<TDeclarationSyntax>,
+    cTypes: Set<string>,
   ): ReadonlySet<TExpression> {
     const state = this.host.state;
     const typing = state.typingContext();
@@ -1812,8 +1824,8 @@ class CodeGenWalker {
       if (cnxType == null) continue;
       planned.add(expression);
       state.usedSafeDivOps.add(`${operation}_${cnxType}`);
-      state.emittedCTypes.add("bool");
-      state.emittedCTypes.add(TYPE_MAP[cnxType]);
+      cTypes.add("bool");
+      cTypes.add(TYPE_MAP[cnxType]);
     }
     return planned;
   }
@@ -2217,7 +2229,12 @@ class CodeGenWalker {
     if (this.readsCharCount(program, inlinedConsts)) {
       this.host.state.requireInclude("string");
     }
-    const safeDivisions = this.planSafeDivisions(program, inlinedConsts);
+    const decidedCTypes = new Set<string>();
+    const safeDivisions = this.planSafeDivisions(
+      program,
+      inlinedConsts,
+      decidedCTypes,
+    );
     const casts = this.planCasts(program, inlinedConsts);
     for (const [expression, cast] of casts) {
       // ADR-024: a saturating cast compares against <limits.h>'s macros
@@ -2239,7 +2256,8 @@ class CodeGenWalker {
     if (negativeMinimums.size > 0) {
       this.host.state.requireInclude("limits");
     }
-    const floatBits = this.planFloatBits(program, inlinedConsts);
+    const floatBits = this.planFloatBits(program, inlinedConsts, decidedCTypes);
+    const atomicForms = this.planInterruptSafety(program, decidedCTypes);
     // ADR-007: each union copy is checked by the float static assert
     for (let i = 0; i < floatBits.reads.size + floatBits.writes.size; i++) {
       this.host.state.requireInclude("float_static_assert");
@@ -2262,7 +2280,11 @@ class CodeGenWalker {
       negativeMinimums,
       floatBitReads: floatBits.reads,
       floatBitWrites: floatBits.writes,
-      atomicForms: this.planInterruptSafety(program),
+      atomicForms,
+      cTypes: this.planCTypes(program, inlinedConsts, types, [
+        ...decidedCTypes,
+        ...negativeMinimums.values(),
+      ]),
       safeDivisions,
       expectedTypes,
       structInitializers: this.planStructInitializers(
@@ -2462,6 +2484,42 @@ class CodeGenWalker {
   }
 
   /**
+   * #1927: every C type the file's text uses, from which 2.2 decides
+   * `<stdint.h>` and `<stdbool.h>` (`CTypeIncludes`): each written type, each
+   * `true`/`false`, each bitmap's backing type, and the C types of the forms
+   * 2.2 already chose (`decided`).
+   */
+  private planCTypes(
+    program: IProgramSyntax,
+    inlinedConsts: ReadonlySet<TDeclarationSyntax>,
+    types: ReadonlyMap<TTypeSyntax, IPlannedType>,
+    decided: Iterable<string>,
+  ): ReadonlySet<string> {
+    const cTypes = new Set<string>(decided);
+    for (const plan of types.values()) cTypes.add(this.cTypeOf(plan));
+    for (const expression of CodeGenWalker.writtenExpressions(
+      program,
+      inlinedConsts,
+    )) {
+      if (
+        expression.kind === "literal" &&
+        (expression.text === "true" || expression.text === "false")
+      ) {
+        cTypes.add("bool");
+      }
+    }
+    // The typedef is generated even where the header owns it (#369/#1164)
+    for (const entry of program.declarations) {
+      if (entry.declaration.kind !== "bitmap") continue;
+      const backing = this.host.state.symbols?.bitmapBackingType.get(
+        entry.declaration.name,
+      );
+      if (backing !== undefined) cTypes.add(backing);
+    }
+    return cTypes;
+  }
+
+  /**
    * ADR-049/050: the form of each atomic read-modify-write, and what the
    * file's masked regions and LDREX/STREX loops need. Required in the order
    * 2.3 writes them, a `critical` block after the statements inside it, so
@@ -2469,6 +2527,7 @@ class CodeGenWalker {
    */
   private planInterruptSafety(
     program: IProgramSyntax,
+    cTypes: Set<string>,
   ): ReadonlyMap<IAssignmentSyntax, TAtomicForm> {
     const state = this.host.state;
     const forms = new Map<IAssignmentSyntax, TAtomicForm>();
@@ -2477,17 +2536,22 @@ class CodeGenWalker {
         visit(StatementChildren.of(statement));
         if (statement.kind === "critical") {
           state.requireInclude("irq_wrappers", statement.span.line);
+          // The saved mask's type (#1927)
+          cTypes.add("uint32_t");
           continue;
         }
         if (statement.kind !== "assignment") continue;
-        const form = this.atomicFormOf(statement);
-        if (form === "ldrex-strex") {
+        const atomic = this.atomicFormOf(statement);
+        if (atomic === null) continue;
+        if (atomic.form === "ldrex-strex") {
           state.requireInclude("cmsis");
           state.noteLdrexStrexLoop();
-        } else if (form === "interrupt-mask") {
+          cTypes.add(TYPE_MAP[atomic.typeName]);
+        } else {
           state.requireInclude("irq_wrappers");
+          cTypes.add("uint32_t");
         }
-        if (form !== null) forms.set(statement, form);
+        forms.set(statement, atomic.form);
       }
     };
     for (const entry of program.declarations) {
@@ -2502,7 +2566,9 @@ class CodeGenWalker {
    * LDREX/STREX loop where the target and the type allow one, otherwise the
    * masked region. Null when the write is not atomic.
    */
-  private atomicFormOf(site: IAssignmentSyntax): TAtomicForm | null {
+  private atomicFormOf(
+    site: IAssignmentSyntax,
+  ): { readonly form: TAtomicForm; readonly typeName: string } | null {
     if (site.operator === "<-") return null;
     const parts = AssignmentTarget.parts(site.target);
     if (parts.ops.length > 0 || parts.root === "this") return null;
@@ -2511,10 +2577,15 @@ class CodeGenWalker {
       this.host.state.typingContext(),
     );
     if (!ForHeaderAssignment.isAtomic(written)) return null;
-    const exclusive = LDREX_MAP[written?.typeName ?? ""] !== undefined;
-    return this.host.state.targetDescription?.ldrex_strex === true && exclusive
-      ? "ldrex-strex"
-      : "interrupt-mask";
+    const typeName = written?.typeName ?? "";
+    const exclusive = LDREX_MAP[typeName] !== undefined;
+    return {
+      form:
+        this.host.state.targetDescription?.ldrex_strex === true && exclusive
+          ? "ldrex-strex"
+          : "interrupt-mask",
+      typeName,
+    };
   }
 
   /**
@@ -2810,6 +2881,21 @@ class CodeGenWalker {
   private captureEmissionFacts(
     existingIncludeTargets: readonly string[],
   ): IEmissionFacts {
+    // #1991: 2.3 still reports the C types it writes until 2.2's plan is
+    // shown to decide the same headers on every fixture. The clamp helpers'
+    // types are still 2.3's to report (C5).
+    const helperCTypes = [...this.host.state.usedClampOps].flatMap((op) =>
+      OverflowHelperTemplates.cTypesOf(op.slice(op.indexOf("_") + 1)),
+    );
+    const plannedHeaders = CTypeIncludes.decide([
+      ...this.filePlan.cTypes,
+      ...helperCTypes,
+    ]);
+    const renderedHeaders = CTypeIncludes.decide(this.host.state.emittedCTypes);
+    invariant(
+      plannedHeaders.join() === renderedHeaders.join(),
+      `2.2 planned the C type headers 2.3 writes in ${this.host.state.sourcePath} (planned [${plannedHeaders.join()}], written [${renderedHeaders.join()}])`,
+    );
     return {
       cppMode: this.host.isCppMode(),
       emittedCTypes: this.host.state.emittedCTypes,
