@@ -15,7 +15,6 @@ type TGeneratorEffect =
   // float_static_assert, isr): it lets the deferred emitter attribute the
   // requirement back to the .cnx line that asked for it (Issue #1143).
   | { type: "include"; header: TIncludeHeader; line?: number }
-  | { type: "isr" } // Needs ISR typedef
   // #1927: a C type the generated text uses. The plan, not the generator,
   // decides which header that costs (`CTypeIncludes`).
   | { type: "c-type"; cType: string }

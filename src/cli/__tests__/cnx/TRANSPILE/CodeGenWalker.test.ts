@@ -424,16 +424,6 @@ describe("CodeGenWalker", () => {
         expect(host.getState()).toBeDefined();
       });
 
-      it("should process isr effects (adds ISR include)", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`, false);
-
-        // Apply ISR effect - this triggers requireInclude("isr")
-        expect(() => host.applyEffects([{ type: "isr" }])).not.toThrow();
-
-        // Generator should still be functional
-        expect(host.getState()).toBeDefined();
-      });
-
       it("should process helper effects (clamp operations)", () => {
         const { host } = createMinimalGenerator(`void foo() { }`, false);
 

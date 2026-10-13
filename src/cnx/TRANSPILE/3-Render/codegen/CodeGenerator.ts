@@ -147,9 +147,6 @@ export default class CodeGenerator implements IOrchestrator {
         case "include":
           this.state.requireInclude(effect.header, effect.line ?? null);
           break;
-        case "isr":
-          this.state.requireInclude("isr");
-          break;
         case "c-type":
           this.state.emittedCTypes.add(effect.cType);
           break;

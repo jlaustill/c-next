@@ -4199,7 +4199,6 @@ class CodeGenWalker {
   ): TPlannedStringDecl | null {
     const type = decl.type;
     if (type.kind === "array" && type.element.kind === "string") {
-      this.host.state.requireInclude("string");
       return this.planStringArray(decl, type.dimensions, type.element.capacity);
     }
     if (type.kind !== "string") {
@@ -4213,7 +4212,6 @@ class CodeGenWalker {
         declaredCapacity: this.declaredHere(decl)?.stringCapacity ?? null,
       };
     }
-    this.host.state.requireInclude("string");
     return {
       kind: "bounded",
       capacity: Number.parseInt(type.capacity, 10),
