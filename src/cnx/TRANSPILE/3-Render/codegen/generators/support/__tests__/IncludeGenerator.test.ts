@@ -281,11 +281,12 @@ describe("IncludeGenerator", () => {
       kinds: new Map([[directive, kind]]),
     });
 
-    it("rewrites a directive 1.1 classified as C-Next, whatever it is spelled", () => {
+    // #1833: only a lowercase `.cnx`/`.cnext` is C-Next; `Utils.CNX` is E0518.
+    it("rewrites a directive 1.1 classified as C-Next", () => {
       expect(
         transformIncludeDirective(
-          '#include "Utils.CNX"',
-          options(EFileType.CNext, '#include "Utils.CNX"'),
+          '#include "Utils.cnext"',
+          options(EFileType.CNext, '#include "Utils.cnext"'),
         ),
       ).toBe('#include "Utils.h"');
     });

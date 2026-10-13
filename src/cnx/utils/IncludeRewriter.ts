@@ -15,12 +15,11 @@
  * `-I <header-out>`.
  */
 
-import { extname } from "node:path";
-
 import EFileType from "../PARSE/1-Discover/types/EFileType";
 import type THeaderExtension from "../types/THeaderExtension";
 import IncludeDirectiveText from "./IncludeDirectiveText";
 import invariant from "./invariant";
+import CNextSourcePath from "./CNextSourcePath";
 
 class IncludeRewriter {
   /**
@@ -103,16 +102,7 @@ class IncludeRewriter {
     rewrites: ReadonlyMap<string, string>,
     ext: THeaderExtension,
   ): string {
-    return rewrites.get(spec) ?? IncludeRewriter.besideSource(spec, ext);
-  }
-
-  /**
-   * The header generated beside a `.cnx`: the same path with its C-Next
-   * extension swapped for `ext`. Right only for a header written beside its
-   * source -- the fallback when the output root does not reach it.
-   */
-  static besideSource(cnxPath: string, ext: THeaderExtension): string {
-    return cnxPath.slice(0, cnxPath.length - extname(cnxPath).length) + ext;
+    return rewrites.get(spec) ?? CNextSourcePath.withExtension(spec, ext);
   }
 }
 

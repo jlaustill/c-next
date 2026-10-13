@@ -1,5 +1,7 @@
 import { resolve, extname, basename } from "node:path";
 import IFileSystem from "../../types/IFileSystem";
+import CNextSourcePath from "../../utils/CNextSourcePath";
+import CodedErrorText from "../../utils/CodedErrorText";
 
 /**
  * Input expansion for C-Next CLI
@@ -14,7 +16,6 @@ class InputExpansion {
     ".cxx",
     ".c++",
   ];
-  private static readonly CNEXT_EXTENSIONS = [".cnx", ".cnext"];
   /**
    * Expand inputs (files) to list of .cnx files
    *
@@ -51,8 +52,14 @@ class InputExpansion {
     const fileName = basename(path);
 
     // Accept C-Next source files
-    if (InputExpansion.CNEXT_EXTENSIONS.includes(ext)) {
+    if (CNextSourcePath.isSource(path)) {
       return;
+    }
+
+    if (CNextSourcePath.isMiscased(path)) {
+      throw new Error(
+        CodedErrorText.of("E0518", CNextSourcePath.miscasedMessage(fileName)),
+      );
     }
 
     // Accept C/C++ entry point files

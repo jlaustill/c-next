@@ -31,6 +31,7 @@ import type IChainStep from "../types/IChainStep";
 import type EFileType from "../PARSE/1-Discover/types/EFileType";
 import type IStringConcatOps from "./3-Render/codegen/types/IStringConcatOps";
 import { basename } from "node:path";
+import CNextSourcePath from "../utils/CNextSourcePath";
 import CommentFormatter from "./3-Render/codegen/CommentFormatter";
 import PrivateConstValue from "./3-Render/codegen/PrivateConstValue";
 import IComment from "../types/IComment";
@@ -1629,7 +1630,7 @@ class CodeGenWalker {
       // Issue #933: Use .hpp extension in C++ mode to match header file
       // Issue #1319: read the run's extension; do not re-derive it from the mode
       const ext = this.host.state.outputExtensions.header;
-      const headerName = pathToUse.replace(/\.cnx$|\.cnext$/, ext);
+      const headerName = CNextSourcePath.withExtension(pathToUse, ext);
       output.push(`#include "${headerName}"`, "");
       sourceIncludeTargets.push(`"${headerName}"`);
       this.host.state.selfIncludeAdded = true;

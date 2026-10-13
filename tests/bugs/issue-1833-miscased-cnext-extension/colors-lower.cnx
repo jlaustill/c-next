@@ -1,0 +1,4 @@
+enum ELowerColor {
+    CYAN,
+    MAGENTA
+}

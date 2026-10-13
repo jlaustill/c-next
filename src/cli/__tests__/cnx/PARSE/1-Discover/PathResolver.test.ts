@@ -35,7 +35,6 @@ describe("PathResolver", () => {
     return {
       path: resolve(path),
       type: EFileType.CNext,
-      extension: ".cnx",
     };
   }
 
