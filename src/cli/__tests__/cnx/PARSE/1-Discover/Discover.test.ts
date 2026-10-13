@@ -81,6 +81,28 @@ describe("Discover", () => {
     expect(graph.targetCatalog.text.length).toBeGreaterThan(0);
   });
 
+  // #1991: 1.1 takes each file's #1688 macro dump, so the host runs no preprocessor
+  it("takes a macro dump for each file with a C include, and only those", async () => {
+    const { graph } = await discover(project());
+
+    expect([...graph.headerMacroDumps.keys()]).toEqual(["/proj/src/app.cnx"]);
+  });
+
+  it("marks every dump unread when there is no preprocessor", async () => {
+    vi.spyOn(Preprocessor.prototype, "isAvailable").mockReturnValue(false);
+    const { graph } = await discover(
+      new MockFileSystem().addFile(
+        "/proj/src/app.cnx",
+        "#include <stdint.h>\n\nvoid main() { }\n",
+      ),
+    );
+
+    expect(graph.headerMacroDumps.get("/proj/src/app.cnx")).toEqual({
+      dump: null,
+      complete: false,
+    });
+  });
+
   // #1991: 1.1 names every output path, so no later stage asks PathResolver
   it("names each file's output paths, below its input directory", async () => {
     fs = new MockFileSystem()

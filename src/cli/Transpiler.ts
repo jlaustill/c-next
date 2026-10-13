@@ -10,7 +10,6 @@
  */
 
 import type TRunTarget from "../cnx/types/TRunTarget";
-import { availableParallelism } from "node:os";
 
 import IFileSystem from "../cnx/types/IFileSystem";
 
@@ -60,8 +59,6 @@ import type IDiagnostics from "../cnx/types/IDiagnostics";
 import type ICodeGenSymbols from "../cnx/types/ICodeGenSymbols";
 import CacheManager from "./cache/CacheManager";
 import PreprocessCache from "../cnx/PARSE/1-Discover/preprocessor/PreprocessCache";
-import ConcurrencyLimit from "../cnx/utils/ConcurrencyLimit";
-import ExternalDeclarationOracle from "../cnx/PARSE/1-Discover/preprocessor/ExternalDeclarationOracle";
 import type IRecordedRequirement from "../cnx/types/IRecordedRequirement";
 import type IRenderedFile from "./types/IRenderedFile";
 import RequirementAggregator from "../cnx/utils/RequirementAggregator";
@@ -401,7 +398,7 @@ class Transpiler {
     this._collectExternalDeclarations(input);
 
     // #1688: the macros each file's C includes define, typed (ADR-024)
-    await this._collectHeaderMacros(input);
+    this._collectHeaderMacros(input);
 
     // Stages 3 to 4d: 1.2 Parse, 1.3 Declare, then (through `resolve`) 1.4
     // Resolve and the whole-program checks, then 2.1 Analyze -- EVERY file,
@@ -1201,64 +1198,18 @@ class Transpiler {
     }
   }
 
-  /** One .cnx file's C header includes, as `"x.h"` or `<x.h>`, in source order */
-  private _cIncludeDirectivesOf(sourcePath: string): string[] {
-    // #1830 review: the directives 1.1 reads, so a commented-out header adds
-    // nothing to the translation unit. The regex this replaced did not know
-    // about comments, missed `#include"x.h"`, which the grammar allows, and
-    // skipped `.cnx` but sent a `.cnext` include in as a header.
-    // #1444: and read from 1.1's answer, rather than lexed and classified
-    // again here from the file's text.
-    return [...this._includesOf(sourcePath).cHeaderSpecs];
-  }
-
   /**
-   * #1688: each file's header macros, from the preprocessor's macro dump of
-   * that file's own C includes -- so a file sees the macros C sees for it,
-   * system headers and compiler builtins included, and no other file's.
-   * Without a preprocessor a macro has no type, as before #1688.
+   * #1688: each file's header macros, from the macro dump 1.1 took of that
+   * file's own C includes (#1991). Unread is not "no macros": a name the file
+   * uses may be one (#1688 review).
    */
-  private async _collectHeaderMacros(input: ISourceGraph): Promise<void> {
-    const withIncludes = input.cnextFiles.flatMap((file) => {
-      const directives = this._cIncludeDirectivesOf(file.path);
-      return directives.length === 0 ? [] : [{ file, directives }];
-    });
-    // Unread is not "no macros": a name the file uses may be one (#1688 review)
-    if (!this.anchor.preprocessor.isAvailable()) {
-      for (const { file } of withIncludes)
-        this.headerMacrosUnread.add(file.path);
-      return;
+  private _collectHeaderMacros(input: ISourceGraph): void {
+    for (const [path, read] of input.headerMacroDumps) {
+      if (!read.complete) this.headerMacrosUnread.add(path);
+      if (read.dump !== null) {
+        this.headerMacrosByFile.set(path, HeaderMacros.collect(read.dump));
+      }
     }
-    const limit = ConcurrencyLimit.create(availableParallelism());
-    const defines = { ...this._requireSourceGraph().anchor.defines };
-    await Promise.all(
-      withIncludes.map(async ({ file, directives }) => {
-        const read = await limit(() =>
-          ExternalDeclarationOracle.macroDump(
-            directives,
-            this.anchor.preprocessor,
-            {
-              // The file's own directory first, as C searches a quoted include
-              includePaths: [
-                this._includesOf(file.path).quotedIncludeDirectory,
-                ...input.includeSearchPaths,
-              ],
-              defines,
-              ...(this.preprocessCache === null
-                ? {}
-                : { cache: this.preprocessCache }),
-            },
-          ),
-        );
-        if (read?.complete !== true) this.headerMacrosUnread.add(file.path);
-        if (read !== null) {
-          this.headerMacrosByFile.set(
-            file.path,
-            HeaderMacros.collect(read.dump),
-          );
-        }
-      }),
-    );
   }
 
   /**

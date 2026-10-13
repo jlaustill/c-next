@@ -1,3 +1,4 @@
+import type IHeaderMacroDump from "./IHeaderMacroDump";
 import type ITargetCatalogFile from "./ITargetCatalogFile";
 import type IDiscoveredFile from "./IDiscoveredFile";
 import type IPipelineFile from "./IPipelineFile";
@@ -113,6 +114,9 @@ interface ISourceGraph {
    * reads the filesystem for it.
    */
   readonly targetCatalog: ITargetCatalogFile;
+
+  /** #1688: each C-Next file with a C include, to its header macro dump */
+  readonly headerMacroDumps: ReadonlyMap<string, IHeaderMacroDump>;
 }
 
 export default ISourceGraph;

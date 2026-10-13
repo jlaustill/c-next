@@ -1,5 +1,7 @@
 import { basename, dirname, join, resolve } from "node:path";
 
+import HeaderMacroDumps from "./HeaderMacroDumps";
+import type IHeaderMacroDump from "./types/IHeaderMacroDump";
 import Installation from "./Installation";
 import type ITargetCatalogFile from "./types/ITargetCatalogFile";
 import CppEntryPointScanner from "./CppEntryPointScanner";
@@ -57,6 +59,7 @@ type TDiscoveredFiles = Omit<
   | "cppMode"
   | "outputs"
   | "targetCatalog"
+  | "headerMacroDumps"
 > & {
   /** #1844: every `.cnx` file's header includes, in discovery order */
   readonly headerIncludes: readonly IHeaderInclude[];
@@ -192,7 +195,14 @@ class Discover {
     if (files.headerFiles.length > 0 && !anchor.preprocessor.isAvailable()) {
       discovery._noPreprocessor(files.headerIncludes);
       return {
-        graph: discovery._freeze(files, new Map(), null, false),
+        graph: discovery._freeze(
+          files,
+          new Map(),
+          null,
+          false,
+          // E0516 ends the run before any macro is read
+          new Map(),
+        ),
         anchor,
         errors: discovery.errors,
       };
@@ -233,6 +243,7 @@ class Discover {
         settled.sources,
         settled.recovered,
         cppMode,
+        await discovery._headerMacroDumps(files, preprocessCache),
       ),
       anchor,
       errors: discovery.errors,
@@ -536,6 +547,7 @@ class Discover {
     headerSources: ReadonlyMap<string, IHeaderSource>,
     recoveredDeclarations: IRecoveredDeclarations | null,
     cppMode: boolean,
+    headerMacroDumps: ReadonlyMap<string, IHeaderMacroDump>,
   ): ISourceGraph {
     return Discover._frozen({
       cnextFiles: files.cnextFiles,
@@ -563,7 +575,24 @@ class Discover {
       writeOutputToDisk: files.writeOutputToDisk,
       outputs: this._outputs(files, cppMode),
       targetCatalog: this._targetCatalog(),
+      headerMacroDumps,
     });
+  }
+
+  private _headerMacroDumps(
+    files: TDiscoveredFiles,
+    cache: PreprocessCache | null,
+  ): Promise<ReadonlyMap<string, IHeaderMacroDump>> {
+    return HeaderMacroDumps.read(
+      files.cnextFiles,
+      this.includes,
+      this.anchor.preprocessor,
+      {
+        includeSearchPaths: files.includeSearchPaths,
+        defines: this.anchor.defines,
+        cache,
+      },
+    );
   }
 
   /** ADR-049: the catalog this compiler ships, found by `Installation` */
