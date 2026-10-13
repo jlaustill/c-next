@@ -74,7 +74,7 @@ import TypeText from "./helpers/TypeText";
 import ValuePositions from "./helpers/ValuePositions";
 import IIntegerConversionError from "./types/IIntegerConversionError";
 import type IAnalysisContext from "./types/IAnalysisContext";
-import type IValuePosition from "./types/IValuePosition";
+import type IValuePosition from "../../types/IValuePosition";
 import type IOperandType from "../../types/IOperandType";
 
 const INTEGER_LITERAL = /^-?(?:\d+|0[xX][0-9a-fA-F]+|0[bB][01]+)$/;
@@ -370,11 +370,11 @@ class IntegerConversionAnalyzer {
   constructor(private readonly context: IAnalysisContext) {}
 
   /** #1991: reads 1.2's syntax, not the parse tree */
-  public analyze(program: IProgramSyntax): IIntegerConversionError[] {
-    const check = new IntegerConversionCheck(
-      this.context,
-      ValuePositions.of(program, this.context),
-    );
+  public analyze(
+    program: IProgramSyntax,
+    positions: ReadonlyMap<TExpression, IValuePosition>,
+  ): IIntegerConversionError[] {
+    const check = new IntegerConversionCheck(this.context, positions);
     const visit = (declaration: TDeclarationSyntax): void => {
       if (declaration.kind === "scope") {
         for (const member of declaration.members) visit(member.declaration);

@@ -8,6 +8,7 @@ import type TPostfixOpSyntax from "../../../types/syntax/TPostfixOpSyntax";
 import type TTypeSyntax from "../../../types/syntax/TTypeSyntax";
 import type TValueBinding from "../../../types/TValueBinding";
 import type IPlannedCast from "./IPlannedCast";
+import type IPlannedExpectedType from "./IPlannedExpectedType";
 import type IPlannedType from "./IPlannedType";
 import type TNegativeMinimum from "./TNegativeMinimum";
 
@@ -60,6 +61,8 @@ interface IFilePlan {
   readonly atomicForms: ReadonlyMap<IAssignmentSyntax, TAtomicForm>;
   /** ADR-051: each written `safe_div`/`safe_mod` call, whose helper 2.2 required */
   readonly safeDivisions: ReadonlySet<TExpression>;
+  /** The type each value is rendered against; a value not listed has none */
+  readonly expectedTypes: ReadonlyMap<TExpression, IPlannedExpectedType>;
 }
 
 export default IFilePlan;

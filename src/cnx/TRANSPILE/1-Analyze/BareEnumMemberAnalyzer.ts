@@ -61,7 +61,7 @@ import ValuePositions from "./helpers/ValuePositions";
 import IBareEnumMemberError from "./types/IBareEnumMemberError";
 import UndeclaredValueAnalyzer from "./UndeclaredValueAnalyzer";
 import type IAnalysisContext from "./types/IAnalysisContext";
-import type IValuePosition from "./types/IValuePosition";
+import type IValuePosition from "../../types/IValuePosition";
 
 /** The enum a position names, or null when it names none */
 type TExpected = string | null;
@@ -87,11 +87,9 @@ class ExpectedEnums {
   static of(
     program: IProgramSyntax,
     context: IAnalysisContext,
+    positions: ReadonlyMap<TExpression, IValuePosition>,
   ): ReadonlyMap<TExpression, TExpected> {
-    const walk = new ExpectedEnums(
-      context,
-      ValuePositions.of(program, context),
-    );
+    const walk = new ExpectedEnums(context, positions);
     for (const member of program.declarations) {
       walk.declaration(member.declaration);
     }
@@ -198,8 +196,11 @@ class BareEnumMemberAnalyzer {
   constructor(private readonly context: IAnalysisContext) {}
 
   /** #1991: reads 1.2's syntax, not the parse tree */
-  public analyze(program: IProgramSyntax): IBareEnumMemberError[] {
-    const expected = ExpectedEnums.of(program, this.context);
+  public analyze(
+    program: IProgramSyntax,
+    positions: ReadonlyMap<TExpression, IValuePosition>,
+  ): IBareEnumMemberError[] {
+    const expected = ExpectedEnums.of(program, this.context, positions);
     const expressions = program.declarations
       .flatMap((member) => DeclarationParts.of(member.declaration))
       .flatMap(ExpressionNodes.of);

@@ -20,7 +20,7 @@ import ForeignTypeFacts from "../../../utils/ForeignTypeFacts";
 import FunctionReference from "./FunctionReference";
 import TypeText from "./TypeText";
 import type IAnalysisContext from "../types/IAnalysisContext";
-import type IValuePosition from "../types/IValuePosition";
+import type IValuePosition from "../../../types/IValuePosition";
 import type ISourcePosition from "../../../utils/types/ISourcePosition";
 
 /** What an establishing position gives the value under it */

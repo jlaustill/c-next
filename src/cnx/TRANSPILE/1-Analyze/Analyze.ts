@@ -15,6 +15,7 @@ import CaughtError from "../../utils/CaughtError";
 import Diagnostics from "./Diagnostics";
 import runAnalyzers from "./runAnalyzers";
 import type IAnalyzerOptions from "./types/IAnalyzerOptions";
+import type IFileAnalysis from "./types/IFileAnalysis";
 
 class Analyze {
   /**
@@ -45,17 +46,16 @@ class Analyze {
     // A symbol-only file is still parsed, declared and resolved -- that is
     // why it was discovered -- but nothing reads its syntax after 1.4.
     for (const entry of sources.filter((d) => Analyze.producesOutput(d.file))) {
-      if (analysisInputs) {
-        byFile.set(
-          entry.file.path,
-          Analyze._analyze(entry.syntax, () =>
+      const analysis = analysisInputs
+        ? Analyze._analyze(entry.syntax, () =>
             analysisInputs(entry.file, program, discovery),
-          ),
-        );
-      }
+          )
+        : null;
+      if (analysis) byFile.set(entry.file.path, analysis.errors);
       files.set(entry.file.path, {
         program: entry.syntax.program,
         declarationCount: entry.syntax.declarationCount,
+        valuePositions: analysis?.valuePositions ?? null,
       });
     }
     return {
@@ -74,11 +74,14 @@ class Analyze {
   private static _analyze(
     syntax: ISourceSyntax,
     inputs: () => IAnalyzerOptions,
-  ): readonly ITranspileError[] {
+  ): IFileAnalysis {
     try {
       return runAnalyzers(syntax, inputs());
     } catch (err) {
-      return [CaughtError.asTranspileError(err)];
+      return {
+        errors: [CaughtError.asTranspileError(err)],
+        valuePositions: null,
+      };
     }
   }
 }

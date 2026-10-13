@@ -61,6 +61,9 @@ import LoopAnalyzer from "./LoopAnalyzer";
 import SliceAssignmentAnalyzer from "./SliceAssignmentAnalyzer";
 import ControllingExpressionAnalyzer from "./ControllingExpressionAnalyzer";
 import IntegerConversionAnalyzer from "./IntegerConversionAnalyzer";
+import ValuePositions from "./helpers/ValuePositions";
+import type IFileAnalysis from "./types/IFileAnalysis";
+import type IValuePositions from "../../types/IValuePositions";
 import LengthPropertyAnalyzer from "./LengthPropertyAnalyzer";
 import StringDeclarationAnalyzer from "./StringDeclarationAnalyzer";
 import SwitchStatementAnalyzer from "./SwitchStatementAnalyzer";
@@ -168,7 +171,7 @@ function runAnalyzers(
     readonly program: IProgramSyntax;
   },
   options: IAnalyzerOptions,
-): ITranspileError[] {
+): IFileAnalysis {
   const comments = parsed.comments;
   const errors: ITranspileError[] = [];
   const formatWithCode = (e: TCodedAnalyzerError) =>
@@ -176,6 +179,15 @@ function runAnalyzers(
 
   // #1456: the caller's, always. No fallback to shared state -- see the field.
   const context = options.context;
+  // #1991: one walk, shared by every step that types a value by its
+  // position, and handed on to 2.2. Walked when the first such step runs, as
+  // each step walked it itself before; an earlier step's error stops the run
+  // first.
+  let walked: IValuePositions | null = null;
+  const positions = (): IValuePositions => {
+    walked ??= ValuePositions.of(parsed.program, context);
+    return walked;
+  };
 
   const steps: readonly TAnalyzerStep[] = [
     {
@@ -204,7 +216,10 @@ function runAnalyzers(
       label:
         "C++ class initializers (Issue #517: no statement position at file scope)",
       run: () =>
-        new CppClassInitializerAnalyzer(context).analyze(parsed.program),
+        new CppClassInitializerAnalyzer(context).analyze(
+          parsed.program,
+          positions().positions,
+        ),
     },
     {
       // #1090: a body's braces decide its scope. An unbraced declaration kept
@@ -357,7 +372,11 @@ function runAnalyzers(
       // "did you mean 'Status.YELLOW'" is the useful answer; the type-safety
       // step would call the same line a non-enum value.
       label: "bare enum members (ADR-017, E0424)",
-      run: () => new BareEnumMemberAnalyzer(context).analyze(parsed.program),
+      run: () =>
+        new BareEnumMemberAnalyzer(context).analyze(
+          parsed.program,
+          positions().positions,
+        ),
     },
     {
       label: "enum type safety (ADR-017, E0428/E0434)",
@@ -386,7 +405,11 @@ function runAnalyzers(
     },
     {
       label: "integer conversions (ADR-024, E0868/E0869)",
-      run: () => new IntegerConversionAnalyzer(context).analyze(parsed.program),
+      run: () =>
+        new IntegerConversionAnalyzer(context).analyze(
+          parsed.program,
+          positions().positions,
+        ),
     },
     {
       label: "scope access (ADR-016, E0435-E0437)",
@@ -418,11 +441,18 @@ function runAnalyzers(
     {
       label: "callback typing (ADR-029, E0879/E0880)",
       run: () =>
-        new CallbackAssignmentAnalyzer(context).analyze(parsed.program),
+        new CallbackAssignmentAnalyzer(context).analyze(
+          parsed.program,
+          positions().positions,
+        ),
     },
     {
       label: "struct initializers (ADR-014, E0357/E0358)",
-      run: () => new StructLiteralAnalyzer(context).analyze(parsed.program),
+      run: () =>
+        new StructLiteralAnalyzer(context).analyze(
+          parsed.program,
+          positions().positions,
+        ),
     },
     {
       label: "bitmap access (ADR-034, E0881-E0883)",
@@ -458,6 +488,7 @@ function runAnalyzers(
     },
   ];
 
+  let halted = false;
   for (const step of steps) {
     const found =
       step.format === undefined
@@ -468,11 +499,12 @@ function runAnalyzers(
     // value (S3516) when it is really one exit and a stopping condition. What
     // varies is what `errors` CONTAINS, which no return statement expresses.
     if (found && !step.advisory) {
+      halted = true;
       break;
     }
   }
 
-  return errors;
+  return { errors, valuePositions: halted ? null : positions() };
 }
 
 export default runAnalyzers;

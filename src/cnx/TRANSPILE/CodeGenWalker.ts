@@ -179,6 +179,11 @@ import IParameterDereferenceDeps from "./3-Render/codegen/types/IParameterDerefe
 import ISeparatorContext from "./3-Render/codegen/types/ISeparatorContext";
 import TypeGenerationHelper from "./3-Render/codegen/helpers/TypeGenerationHelper";
 import type IPlannedType from "./2-Plan/types/IPlannedType";
+import type IAnalyzedFile from "../types/IAnalyzedFile";
+import type IValuePositions from "../types/IValuePositions";
+import type IValueSite from "../types/IValueSite";
+import type TValueSite from "../types/TValueSite";
+import type IPlannedExpectedType from "./2-Plan/types/IPlannedExpectedType";
 import type IFilePlan from "./2-Plan/types/IFilePlan";
 import type IPlannedParameter from "./3-Render/codegen/types/IPlannedParameter";
 import type IPlannedFunctionParameter from "./3-Render/codegen/types/IPlannedFunctionParameter";
@@ -233,6 +238,11 @@ import type TranspileState from "./TranspileState";
 
 /** What render folds a constant chain at: wide enough to hold any i64 */
 const WIDEST_SIGNED = "i64";
+
+const NO_EXPECTED_TYPE: IPlannedExpectedType = {
+  type: null,
+  suppressBareEnumResolution: false,
+};
 
 class CodeGenWalker {
   /**
@@ -404,12 +414,7 @@ class CodeGenWalker {
       `2.2 planned every type 2.3 renders (got "${type.text}" at line ${type.span.line})`,
     );
 
-    const cType = TypeGenerationHelper.generate(plan, {
-      checkNeedsStructKeyword: (name) =>
-        this.host.state.symbolTable.checkNeedsStructKeyword(name),
-      isCrossFileDeclaration: (name) =>
-        this.host.state.isCrossFileDeclaration(name),
-    });
+    const cType = this.cTypeOf(plan);
     // #1927: the plan decides `<stdint.h>` / `<stdbool.h>` from this spelling.
     this.host.state.emittedCTypes.add(cType);
     this.renderedTypes.add(type);
@@ -431,6 +436,15 @@ class CodeGenWalker {
    * `getRequiredInclude` asks a narrower question than `generate` does -- see
    * its comment.
    */
+  private cTypeOf(plan: IPlannedType): string {
+    return TypeGenerationHelper.generate(plan, {
+      checkNeedsStructKeyword: (name) =>
+        this.host.state.symbolTable.checkNeedsStructKeyword(name),
+      isCrossFileDeclaration: (name) =>
+        this.host.state.isCrossFileDeclaration(name),
+    });
+  }
+
   private planType(type: TTypeSyntax): IPlannedType {
     const element = type.kind === "array" ? type.element : type;
     const deps = this.host.state.typeBindingDeps((identifiers) =>
@@ -658,6 +672,7 @@ class CodeGenWalker {
   }
 
   private renderPostfix(expr: TExpression): string {
+    this.checkExpectedType(expr);
     invariant(
       CodeGenWalker.safeDivisionOperation(expr) === null ||
         this.filePlan.safeDivisions.has(expr),
@@ -1436,7 +1451,21 @@ class CodeGenWalker {
    * Part of IOrchestrator interface for PostfixExpressionGenerator.
    */
 
+  /** 2.3 writes each value against the type 2.2 planned for it (#1991) */
+  private checkExpectedType(expr: TExpression): void {
+    const planned = this.filePlan.expectedTypes.get(expr);
+    if (planned === undefined) return;
+    const state = this.host.state;
+    invariant(
+      planned.type === (state.expectedType ?? null) &&
+        planned.suppressBareEnumResolution === state.suppressBareEnumResolution,
+      `2.2 planned the type 2.3 writes the value on line ${expr.span.line} against: ` +
+        `planned ${planned.type}, written ${state.expectedType ?? null}`,
+    );
+  }
+
   private renderPrimary(expr: TExpression): string {
+    this.checkExpectedType(expr);
     switch (expr.kind) {
       case "sizeof":
         return this.generateSizeofExpr(expr);
@@ -1550,7 +1579,8 @@ class CodeGenWalker {
    * 2.2 Plan: every decision 2.3 Render reads for this file, made before any
    * of it is written. `render` takes what this returns (#1991).
    */
-  plan(program: IProgramSyntax, options: ICodeGeneratorOptions): IFilePlan {
+  plan(file: IAnalyzedFile, options: ICodeGeneratorOptions): IFilePlan {
+    const program = file.program;
     // ADR-049: the target is decided before codegen, by the orchestrator;
     // this walk only reads it.
 
@@ -1573,7 +1603,7 @@ class CodeGenWalker {
     // Initialize all helper objects
     this.initializeHelperObjects(program);
 
-    return this.planFile(program, options);
+    return this.planFile(program, options, file.valuePositions);
   }
 
   /** 2.3 Render: the file's C, written from 2.2's plan (#1991) */
@@ -2032,6 +2062,7 @@ class CodeGenWalker {
   private planFile(
     program: IProgramSyntax,
     options: ICodeGeneratorOptions,
+    valuePositions: IValuePositions | null,
   ): IFilePlan {
     const selfInclude = this.planSelfInclude(options);
     this.host.state.selfIncludeAdded = selfInclude !== null;
@@ -2110,7 +2141,162 @@ class CodeGenWalker {
       floatBitWrites: floatBits.writes,
       atomicForms: this.planInterruptSafety(program),
       safeDivisions,
+      expectedTypes: this.planExpectedTypes(
+        program,
+        inlinedConsts,
+        valuePositions,
+        types,
+      ),
     };
+  }
+
+  /**
+   * MISRA 7.2, ADR-014, #477: the type each value is rendered against, read
+   * off 2.1's walk of where it stands. The innermost site that names a type
+   * sets it; a comparison operand has none (#1032), and a function
+   * argument's bare enum member stays unresolved.
+   */
+  private planExpectedTypes(
+    program: IProgramSyntax,
+    inlinedConsts: ReadonlySet<TDeclarationSyntax>,
+    valuePositions: IValuePositions | null,
+    types: ReadonlyMap<TTypeSyntax, IPlannedType>,
+  ): ReadonlyMap<TExpression, IPlannedExpectedType> {
+    invariant(valuePositions !== null, "2.1 hands 2.2 where each value stands");
+    const typeScopes = new Map(
+      TypeSites.of(program, inlinedConsts).map((site) => [
+        site.type,
+        site.scope,
+      ]),
+    );
+    const scopeMembers = CodeGenWalker.scopeVariables(program.declarations);
+    const forInits = new Set<IVariableDeclarationSyntax>(
+      program.declarations.flatMap((entry) =>
+        StatementNodes.in(entry.declaration).flatMap((statement) =>
+          statement.kind === "for" &&
+          statement.init?.kind === "variableDeclaration"
+            ? [statement.init]
+            : [],
+        ),
+      ),
+    );
+    // A string outside a scope is copied in by the string helpers, so neither
+    // it nor its indexes are written against a type
+    const copiesString = (declaration: IVariableDeclarationSyntax): boolean => {
+      const type = declaration.type;
+      const element = type.kind === "array" ? type.element : type;
+      return element.kind === "string" && !scopeMembers.has(declaration);
+    };
+    const spellDeclared = (
+      declaration: IVariableDeclarationSyntax,
+    ): string | null => {
+      const type = declaration.type;
+      if (copiesString(declaration)) return null;
+      const planned = types.get(type);
+      if (scopeMembers.has(declaration)) {
+        return planned === undefined ? null : this.cTypeOf(planned);
+      }
+      if (forInits.has(declaration)) {
+        if (planned === undefined) return null;
+        const declared = this.cTypeOf(planned);
+        return this.host.getCallbackTypedefName(declared) ?? declared;
+      }
+      const scope = typeScopes.get(type) ?? null;
+      const spell = (): string =>
+        TypeNameLadder.resolveWrittenName(
+          type,
+          this.host.state.currentScopePath,
+          this.host.state.typeBindingDeps((identifiers) =>
+            this.resolveQualifiedType(identifiers),
+          ),
+        ) ?? type.text;
+      return scope === null
+        ? spell()
+        : this.host.state.withScopePath(scope, spell);
+    };
+    const spellSite = (
+      site: TValueSite,
+      outer: string | null,
+    ): string | null => {
+      switch (site.kind) {
+        case "declaration":
+          return spellDeclared(site.declaration);
+        case "assignment":
+          return this.assignedValueType(
+            site.assignment.target,
+            this.targetDeclaration(site.assignment.target),
+          );
+        case "return":
+          return site.function.returnType.text;
+        case "field":
+          return outer === null
+            ? null
+            : (this._resolveFieldType(
+                site.field,
+                this.host.state.symbolTable?.getStructFieldTypes(outer),
+              ) ?? null);
+        case "index":
+          return "size_t";
+        default:
+          return null;
+      }
+    };
+    // An argument's type is decided with its call's path in 2.3, so a value
+    // under an argument is not planned yet
+    const resolved = new Map<IValueSite, IPlannedExpectedType | null>();
+    const resolve = (at: IValueSite | null): IPlannedExpectedType | null => {
+      if (at === null) return NO_EXPECTED_TYPE;
+      if (at.site.kind === "comparison") return NO_EXPECTED_TYPE;
+      if (at.site.kind === "argument") return null;
+      // A target's index, or a copied string's, is written against no type
+      const outerSite = at.outer?.site;
+      if (
+        at.site.kind === "index" &&
+        (outerSite?.kind === "target" ||
+          (outerSite?.kind === "declaration" &&
+            copiesString(outerSite.declaration)))
+      ) {
+        return NO_EXPECTED_TYPE;
+      }
+      const known = resolved.get(at);
+      if (known !== undefined) return known;
+      const outer = resolve(at.outer);
+      const type = outer === null ? null : spellSite(at.site, outer.type);
+      const planned =
+        outer === null || type === null
+          ? outer
+          : {
+              type,
+              suppressBareEnumResolution: outer.suppressBareEnumResolution,
+            };
+      resolved.set(at, planned);
+      return planned;
+    };
+    const planned = new Map<TExpression, IPlannedExpectedType>();
+    for (const [expression, at] of valuePositions.sites) {
+      const expected = resolve(at);
+      if (expected !== null) planned.set(expression, expected);
+    }
+    return planned;
+  }
+
+  /** Every variable a scope declares, at any depth */
+  private static scopeVariables(
+    declarations: readonly { readonly declaration: TDeclarationSyntax }[],
+  ): ReadonlySet<IVariableDeclarationSyntax> {
+    const found = new Set<IVariableDeclarationSyntax>();
+    for (const entry of declarations) {
+      if (entry.declaration.kind !== "scope") continue;
+      for (const member of entry.declaration.members) {
+        if (member.declaration.kind === "variableDeclaration") {
+          found.add(member.declaration);
+        }
+        for (const nested of CodeGenWalker.scopeVariables([member])) {
+          found.add(nested);
+        }
+      }
+    }
+    return found;
   }
 
   /**

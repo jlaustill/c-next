@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../../../cnx/PARSE/2-Parse/CNextSourceParser";
 import CallbackAssignmentAnalyzer from "../../../../../cnx/TRANSPILE/1-Analyze/CallbackAssignmentAnalyzer";
+import ValuePositions from "../../../../../cnx/TRANSPILE/1-Analyze/helpers/ValuePositions";
 import TranspileState from "../../../../../cnx/TRANSPILE/TranspileState";
 import testAnalysisContext from "../../../../../cnx/TRANSPILE/1-Analyze/__tests__/testAnalysisContext";
 import testAnalysisContextFor from "./testAnalysisContextFor";
@@ -29,7 +30,10 @@ const build = (source: string) => {
   const { syntax, context } = testAnalysisContextFor(source, {
     cppMode: false,
   });
-  return new CallbackAssignmentAnalyzer(context).analyze(syntax);
+  return new CallbackAssignmentAnalyzer(context).analyze(
+    syntax,
+    ValuePositions.of(syntax, context).positions,
+  );
 };
 
 // Only the empty-program case below: it asserts what an EMPTY program does,
@@ -38,7 +42,7 @@ const findings = (source: string) => {
   const syntax = CNextSourceParser.parse(source).program;
   return new CallbackAssignmentAnalyzer(
     testAnalysisContext(new TranspileState()),
-  ).analyze(syntax);
+  ).analyze(syntax, new Map());
 };
 
 describe("CallbackAssignmentAnalyzer", () => {

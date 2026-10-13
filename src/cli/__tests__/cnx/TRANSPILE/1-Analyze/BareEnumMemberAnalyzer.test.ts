@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import BareEnumMemberAnalyzer from "../../../../../cnx/TRANSPILE/1-Analyze/BareEnumMemberAnalyzer";
+import ValuePositions from "../../../../../cnx/TRANSPILE/1-Analyze/helpers/ValuePositions";
 import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /**
@@ -17,7 +18,10 @@ const errors = (source: string) => {
   const { syntax, context } = testAnalysisContextFor(source, {
     cppMode: false,
   });
-  return new BareEnumMemberAnalyzer(context).analyze(syntax);
+  return new BareEnumMemberAnalyzer(context).analyze(
+    syntax,
+    ValuePositions.of(syntax, context).positions,
+  );
 };
 
 describe("BareEnumMemberAnalyzer (E0424)", () => {

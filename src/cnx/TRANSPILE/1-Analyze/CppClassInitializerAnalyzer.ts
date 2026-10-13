@@ -51,7 +51,7 @@ import ExpressionNodes from "../../utils/ExpressionNodes";
 import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
 import FunctionReference from "./helpers/FunctionReference";
 import ValuePositions from "./helpers/ValuePositions";
-import type IValuePosition from "./types/IValuePosition";
+import type IValuePosition from "../../types/IValuePosition";
 import ICppClassInitializerError from "./types/ICppClassInitializerError";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
@@ -123,12 +123,12 @@ class CppClassInitializerAnalyzer {
   constructor(private readonly context: IAnalysisContext) {}
 
   /** #1991: reads 1.2's syntax; a function body's initializers are skipped */
-  public analyze(program: IProgramSyntax): ICppClassInitializerError[] {
+  public analyze(
+    program: IProgramSyntax,
+    positions: ReadonlyMap<TExpression, IValuePosition>,
+  ): ICppClassInitializerError[] {
     if (!this.context.program.cppMode()) return [];
-    const check = new CppClassInitializerCheck(
-      this.context,
-      ValuePositions.of(program, this.context),
-    );
+    const check = new CppClassInitializerCheck(this.context, positions);
     const visit = (declaration: TDeclarationSyntax): void => {
       if (declaration.kind === "scope") {
         for (const member of declaration.members) visit(member.declaration);

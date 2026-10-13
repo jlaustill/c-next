@@ -4,6 +4,7 @@ import HeaderParser from "../../../../../cnx/PARSE/2-Parse/HeaderParser";
 import CResolver from "../../../../../cnx/PARSE/3-Declare/c/index";
 import SymbolTable from "../../../../../cnx/PARSE/3-Declare/SymbolTable";
 import StructLiteralAnalyzer from "../../../../../cnx/TRANSPILE/1-Analyze/StructLiteralAnalyzer";
+import ValuePositions from "../../../../../cnx/TRANSPILE/1-Analyze/helpers/ValuePositions";
 import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /**
@@ -24,7 +25,10 @@ const errors = (source: string, symbolTable?: SymbolTable) => {
     symbolTable,
     cppMode: false,
   });
-  return new StructLiteralAnalyzer(built.context).analyze(built.syntax);
+  return new StructLiteralAnalyzer(built.context).analyze(
+    built.syntax,
+    ValuePositions.of(built.syntax, built.context).positions,
+  );
 };
 
 /** A C header's symbols, as Stage 2 declares them */

@@ -52,7 +52,7 @@ import DeclarationParts from "../../utils/DeclarationParts";
 import ExpressionNodes from "../../utils/ExpressionNodes";
 import StructInitializerType from "./helpers/StructInitializerType";
 import ValuePositions from "./helpers/ValuePositions";
-import type IValuePosition from "./types/IValuePosition";
+import type IValuePosition from "../../types/IValuePosition";
 import IStructLiteralError from "./types/IStructLiteralError";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
@@ -135,11 +135,11 @@ class StructLiteralAnalyzer {
   public constructor(private readonly context: IAnalysisContext) {}
 
   /** #1991: reads 1.2's syntax, not the parse tree */
-  public analyze(program: IProgramSyntax): IStructLiteralError[] {
-    const check = new StructLiteralCheck(
-      this.context,
-      ValuePositions.of(program, this.context),
-    );
+  public analyze(
+    program: IProgramSyntax,
+    positions: ReadonlyMap<TExpression, IValuePosition>,
+  ): IStructLiteralError[] {
+    const check = new StructLiteralCheck(this.context, positions);
     for (const member of program.declarations) {
       for (const expr of DeclarationParts.of(member.declaration).flatMap(
         ExpressionNodes.of,

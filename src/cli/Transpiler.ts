@@ -811,7 +811,7 @@ class Transpiler {
       );
 
       // Generate code
-      const plan = this.codeGenerator.plan(analyzed.program, {
+      const plan = this.codeGenerator.plan(analyzed, {
         debugMode: this.config.debugMode,
         targetDescription: Transpiler._runTarget(program).description,
         sourcePath,

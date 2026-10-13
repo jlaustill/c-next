@@ -2,9 +2,10 @@
  * Unit tests for runAnalyzers
  * Tests that all analyzers run in sequence with early returns on errors
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import CNextSourceParser from "../../../../../cnx/PARSE/2-Parse/CNextSourceParser";
 import runAnalyzers from "../../../../../cnx/TRANSPILE/1-Analyze/runAnalyzers";
+import ValuePositions from "../../../../../cnx/TRANSPILE/1-Analyze/helpers/ValuePositions";
 import SymbolTable from "../../../../../cnx/PARSE/3-Declare/SymbolTable";
 import ESourceLanguage from "../../../../../cnx/utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../../../cnx/types/__testUtils__/testSourceSpan";
@@ -71,7 +72,7 @@ describe("runAnalyzers", () => {
       const errors = runAnalyzers(parsed, {
         context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
-      });
+      }).errors;
       expect(errors).toHaveLength(0);
     });
 
@@ -80,7 +81,7 @@ describe("runAnalyzers", () => {
       const errors = runAnalyzers(parsed, {
         context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
-      });
+      }).errors;
       expect(errors).toHaveLength(0);
     });
   });
@@ -97,7 +98,7 @@ describe("runAnalyzers", () => {
       const errors = runAnalyzers(parsed, {
         context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
-      });
+      }).errors;
 
       expect(errors.map((e) => e.message).join("\n")).not.toContain("E0201");
     });
@@ -112,7 +113,7 @@ describe("runAnalyzers", () => {
       const errors = runAnalyzers(parsed, {
         context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
-      });
+      }).errors;
 
       expect(errors).toHaveLength(0);
     });
@@ -132,7 +133,7 @@ describe("runAnalyzers", () => {
       const errors = runAnalyzers(parsed, {
         context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
-      });
+      }).errors;
 
       expect(errors.length).toBeGreaterThan(0);
       expect(errors[0].severity).toBe("error");
@@ -164,7 +165,7 @@ describe("runAnalyzers", () => {
       const errors = runAnalyzers(parsed, {
         context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
-      });
+      }).errors;
 
       expect(errors.length).toBeGreaterThan(0);
       expect(errors[0].severity).toBe("error");
@@ -190,7 +191,7 @@ describe("runAnalyzers", () => {
       const errors = runAnalyzers(parsed, {
         context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
-      });
+      }).errors;
 
       expect(errors.length).toBeGreaterThan(0);
       expect(errors[0].severity).toBe("error");
@@ -214,7 +215,7 @@ describe("runAnalyzers", () => {
       const errors = runAnalyzers(parsed, {
         context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
-      });
+      }).errors;
 
       expect(errors.length).toBeGreaterThan(0);
       expect(errors[0].severity).toBe("error");
@@ -236,7 +237,7 @@ describe("runAnalyzers", () => {
       const errors = runAnalyzers(parsed, {
         context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
-      });
+      }).errors;
 
       expect(errors.length).toBeGreaterThan(0);
       expect(errors[0].severity).toBe("error");
@@ -264,7 +265,7 @@ describe("runAnalyzers", () => {
       const errors = runAnalyzers(parsed, {
         context,
         includes: NO_INCLUDES,
-      });
+      }).errors;
 
       expect(errors.length).toBeGreaterThan(0);
       expect(errors[0].severity).toBe("error");
@@ -284,7 +285,7 @@ describe("runAnalyzers", () => {
       const errors = runAnalyzers(parsed, {
         context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
-      });
+      }).errors;
 
       expect(errors.length).toBeGreaterThan(0);
       expect(errors[0].severity).toBe("error");
@@ -317,7 +318,7 @@ describe("runAnalyzers", () => {
       const errors = runAnalyzers(parsed, {
         context: contextWith(headers),
         includes: NO_INCLUDES,
-      });
+      }).errors;
       expect(errors).toHaveLength(0);
     });
 
@@ -342,7 +343,7 @@ describe("runAnalyzers", () => {
       const errors = runAnalyzers(parsed, {
         context: contextWith(symbolTable),
         includes: NO_INCLUDES,
-      });
+      }).errors;
       expect(errors).toHaveLength(0);
     });
 
@@ -380,7 +381,7 @@ describe("runAnalyzers", () => {
       const errors = runAnalyzers(parsed, {
         context: contextWith(caller),
         includes: NO_INCLUDES,
-      });
+      }).errors;
       expect(errors).toHaveLength(0);
     });
   });
@@ -399,7 +400,7 @@ describe("runAnalyzers", () => {
       const errors = runAnalyzers(parsed, {
         context: contextWith(new SymbolTable()),
         includes: NO_INCLUDES,
-      });
+      }).errors;
 
       for (const error of errors) {
         expect(error).toHaveProperty("line");
@@ -411,6 +412,57 @@ describe("runAnalyzers", () => {
         expect(typeof error.message).toBe("string");
         expect(error.severity).toBe("error");
       }
+    });
+  });
+
+  // #1991: 2.1 walks each file's value positions once, for every step that
+  // types a value by where it stands, and hands that walk on to 2.2.
+  describe("value positions", () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it("hands on where each value stands", () => {
+      const { parsed, contextWith } = parseWithComments(`u8 g <- 5;`);
+      const analysis = runAnalyzers(parsed, {
+        context: contextWith(new SymbolTable()),
+        includes: NO_INCLUDES,
+      });
+      const declaration = parsed.program.declarations[0].declaration;
+      expect(declaration.kind).toBe("variableDeclaration");
+      const initializer =
+        declaration.kind === "variableDeclaration"
+          ? declaration.initializer
+          : null;
+      expect(analysis.errors).toHaveLength(0);
+      expect(
+        analysis.valuePositions?.positions.get(initializer!)?.typeText,
+      ).toBe("u8");
+    });
+
+    it("walks them once, for every step that reads them", () => {
+      const walk = vi.spyOn(ValuePositions, "of");
+      const { parsed, contextWith } = parseWithComments(`u8 g <- 5;`);
+      runAnalyzers(parsed, {
+        context: contextWith(new SymbolTable()),
+        includes: NO_INCLUDES,
+      });
+      expect(walk).toHaveBeenCalledTimes(1);
+    });
+
+    it("hands on none when an error stopped the analysis", () => {
+      const { parsed, contextWith } = parseWithComments(`
+        void main() {
+          u32 x;
+          u32 y <- x;
+        }
+      `);
+      const analysis = runAnalyzers(parsed, {
+        context: contextWith(new SymbolTable()),
+        includes: NO_INCLUDES,
+      });
+      expect(analysis.errors.length).toBeGreaterThan(0);
+      expect(analysis.valuePositions).toBeNull();
     });
   });
 });

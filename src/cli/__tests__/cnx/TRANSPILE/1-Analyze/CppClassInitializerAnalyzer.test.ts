@@ -4,6 +4,7 @@ import SymbolTable from "../../../../../cnx/PARSE/3-Declare/SymbolTable";
 import ESourceLanguage from "../../../../../cnx/utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../../../cnx/types/__testUtils__/testSourceSpan";
 import CppClassInitializerAnalyzer from "../../../../../cnx/TRANSPILE/1-Analyze/CppClassInitializerAnalyzer";
+import ValuePositions from "../../../../../cnx/TRANSPILE/1-Analyze/helpers/ValuePositions";
 import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /**
@@ -37,7 +38,10 @@ const analyze = (source: string, table: SymbolTable, cppMode: boolean) => {
     symbolTable: table,
     cppMode,
   });
-  return new CppClassInitializerAnalyzer(context).analyze(syntax);
+  return new CppClassInitializerAnalyzer(context).analyze(
+    syntax,
+    ValuePositions.of(syntax, context).positions,
+  );
 };
 
 describe("CppClassInitializerAnalyzer (E0508)", () => {

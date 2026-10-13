@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import IntegerConversionAnalyzer from "../../../../../cnx/TRANSPILE/1-Analyze/IntegerConversionAnalyzer";
+import ValuePositions from "../../../../../cnx/TRANSPILE/1-Analyze/helpers/ValuePositions";
 import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /**
@@ -18,7 +19,10 @@ const errors = (source: string) => {
   const { syntax, context } = testAnalysisContextFor(source, {
     cppMode: false,
   });
-  return new IntegerConversionAnalyzer(context).analyze(syntax);
+  return new IntegerConversionAnalyzer(context).analyze(
+    syntax,
+    ValuePositions.of(syntax, context).positions,
+  );
 };
 
 const inMain = (body: string): string =>

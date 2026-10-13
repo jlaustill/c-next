@@ -10,6 +10,9 @@ import invariant from "../../../../cnx/utils/invariant";
 import type CodeGenWalker from "../../../../cnx/TRANSPILE/CodeGenWalker";
 import type ITargetDescription from "../../../../cnx/types/ITargetDescription";
 import type IProgramSyntax from "../../../../cnx/types/syntax/IProgramSyntax";
+import type IAnalyzedFile from "../../../../cnx/types/IAnalyzedFile";
+import type IFilePlan from "../../../../cnx/TRANSPILE/2-Plan/types/IFilePlan";
+import ValuePositions from "../../../../cnx/TRANSPILE/1-Analyze/helpers/ValuePositions";
 import NodeFileSystem from "../../../../cnx/PARSE/1-Discover/NodeFileSystem";
 
 /**
@@ -56,6 +59,19 @@ class ProgramGeneration {
     options: ITestGenerateOptions,
     registry: SymbolRegistry,
   ): string {
+    return generator.render(
+      ProgramGeneration.plan(generator, tree, program, options, registry),
+    );
+  }
+
+  /** 2.2's decisions for the file, as `generate` hands them to 2.3 */
+  static plan(
+    generator: CodeGenWalker,
+    tree: Parser.ProgramContext,
+    program: IProgramSyntax,
+    options: ITestGenerateOptions,
+    registry: SymbolRegistry,
+  ): IFilePlan {
     // ADR-049: the orchestrator always decides a target before codegen; a
     // test that does not care about one gets the build machine's.
     const targetDescription =
@@ -85,12 +101,23 @@ class ProgramGeneration {
     // that passes only `symbolInfo` would otherwise leave the table empty, a
     // state the real pipeline never reaches (#1283 review: every
     // function-as-type `symbolInfo` names must resolve in the table).
-    return generator.render(
-      generator.plan(program, {
-        ...options,
-        targetDescription,
+    // #1991: 2.1's walk of the file, as `Analyze.run` hands it to 2.2
+    const resolved = state.program;
+    const analyzed: IAnalyzedFile = {
+      program,
+      declarationCount: program.declarations.length,
+      valuePositions: ValuePositions.of(program, {
+        symbols: options.symbolInfo,
+        program: resolved,
+        symbolTable: resolved.symbolTable(),
+        reachesForeignHeader: true,
+        sourceFile: sourcePath,
       }),
-    );
+    };
+    return generator.plan(analyzed, {
+      ...options,
+      targetDescription,
+    });
   }
 }
 

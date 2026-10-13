@@ -57,7 +57,7 @@ import TypeText from "./helpers/TypeText";
 import ValuePositions from "./helpers/ValuePositions";
 import ICallbackAssignmentError from "./types/ICallbackAssignmentError";
 import type IAnalysisContext from "./types/IAnalysisContext";
-import type IValuePosition from "./types/IValuePosition";
+import type IValuePosition from "../../types/IValuePosition";
 
 /** The slot a value fills, for E0880's wording */
 interface ISlot {
@@ -270,11 +270,11 @@ class CallbackAssignmentAnalyzer {
   constructor(private readonly context: IAnalysisContext) {}
 
   /** #1991: reads 1.2's syntax, not the parse tree */
-  public analyze(program: IProgramSyntax): ICallbackAssignmentError[] {
-    const check = new CallbackAssignmentCheck(
-      this.context,
-      ValuePositions.of(program, this.context),
-    );
+  public analyze(
+    program: IProgramSyntax,
+    positions: ReadonlyMap<TExpression, IValuePosition>,
+  ): ICallbackAssignmentError[] {
+    const check = new CallbackAssignmentCheck(this.context, positions);
     const visit = (declaration: TDeclarationSyntax): void => {
       if (declaration.kind === "scope") {
         for (const member of declaration.members) visit(member.declaration);

@@ -11,7 +11,10 @@ import FunctionReference from "./FunctionReference";
 import StructInitializerType from "./StructInitializerType";
 import TypeText from "./TypeText";
 import type IAnalysisContext from "../types/IAnalysisContext";
-import type IValuePosition from "../types/IValuePosition";
+import type IValuePosition from "../../../types/IValuePosition";
+import type IValuePositions from "../../../types/IValuePositions";
+import type IValueSite from "../../../types/IValueSite";
+import type IFunctionDeclarationSyntax from "../../../types/syntax/IFunctionDeclarationSyntax";
 
 const NOWHERE: IValuePosition = {
   typeText: null,
@@ -32,11 +35,14 @@ type TStructInitializer = Extract<TExpression, { kind: "structInitializer" }>;
  * establishing parent. A `for`'s init and update assignments establish
  * nothing, as their parse-tree rules were not assignment statements.
  */
+const TARGET: IValueSite = { site: { kind: "target" }, outer: null };
+
 class ValuePositionWalk {
   private readonly forClauses = new Set<IAssignmentSyntax>();
 
   public constructor(
     private readonly positions: Map<TExpression, IValuePosition>,
+    private readonly sites: Map<TExpression, IValueSite>,
     private readonly context: IAnalysisContext,
   ) {}
 
@@ -59,11 +65,13 @@ class ValuePositionWalk {
         this.forClauses.add(statement.init);
       }
     }
-    const returnType = TypeText.ofType(declaration.returnType);
-    for (const statement of statements) this.statement(statement, returnType);
+    for (const statement of statements) this.statement(statement, declaration);
   }
 
-  private statement(statement: TStatement, returnType: string): void {
+  private statement(
+    statement: TStatement,
+    fn: IFunctionDeclarationSyntax,
+  ): void {
     switch (statement.kind) {
       case "variableDeclaration":
         this.variable(statement);
@@ -72,23 +80,27 @@ class ValuePositionWalk {
         this.assignment(statement);
         return;
       case "expression":
-        this.place(statement.expression, NOWHERE);
+        this.place(statement.expression, NOWHERE, null);
         return;
       case "if":
       case "while":
       case "doWhile":
-        this.place(statement.condition, NOWHERE);
+        this.place(statement.condition, NOWHERE, null);
         return;
       case "for":
-        if (statement.condition) this.place(statement.condition, NOWHERE);
+        if (statement.condition) this.place(statement.condition, NOWHERE, null);
         if (statement.update) this.unplacedAssignment(statement.update);
         return;
       case "switch":
-        this.place(statement.subject, NOWHERE);
+        this.place(statement.subject, NOWHERE, null);
         return;
       case "return":
         if (statement.value) {
-          this.place(statement.value, { ...NO_TYPE, typeText: returnType });
+          this.place(
+            statement.value,
+            { ...NO_TYPE, typeText: TypeText.ofType(fn.returnType) },
+            { site: { kind: "return", function: fn }, outer: null },
+          );
         }
         return;
       default:
@@ -98,18 +110,22 @@ class ValuePositionWalk {
 
   private variable(declaration: IVariableDeclarationSyntax): void {
     for (const dimension of declaration.dimensions) {
-      if (dimension) this.place(dimension, NOWHERE);
+      if (dimension) this.place(dimension, NOWHERE, null);
     }
     if (!declaration.initializer) return;
     const typeText = TypeText.ofType(declaration.type);
-    this.place(declaration.initializer, {
-      ...NO_TYPE,
-      typeText,
-      isArray:
-        declaration.dimensions.length > 0 ||
-        TypeText.withoutDimensions(typeText) !== typeText,
-      isDeclaration: true,
-    });
+    this.place(
+      declaration.initializer,
+      {
+        ...NO_TYPE,
+        typeText,
+        isArray:
+          declaration.dimensions.length > 0 ||
+          TypeText.withoutDimensions(typeText) !== typeText,
+        isDeclaration: true,
+      },
+      { site: { kind: "declaration", declaration }, outer: null },
+    );
   }
 
   private assignment(site: IAssignmentSyntax): void {
@@ -118,50 +134,73 @@ class ValuePositionWalk {
       return;
     }
     const target = OperandTyper.typeOfTarget(site.target, this.context);
-    this.place(site.target, NOWHERE);
-    this.place(site.value, {
-      ...NO_TYPE,
-      typeText: target?.typeName ?? null,
-      isArray: (target?.dimensions.length ?? 0) > 0,
-    });
+    this.place(site.target, NOWHERE, TARGET);
+    this.place(
+      site.value,
+      {
+        ...NO_TYPE,
+        typeText: target?.typeName ?? null,
+        isArray: (target?.dimensions.length ?? 0) > 0,
+      },
+      ValuePositionWalk.assigned(site),
+    );
   }
 
+  /** A `for` clause's: no position for 2.1, the target's type for 2.2 */
   private unplacedAssignment(site: IAssignmentSyntax): void {
-    this.place(site.target, NOWHERE);
-    this.place(site.value, NOWHERE);
+    this.place(site.target, NOWHERE, TARGET);
+    this.place(site.value, NOWHERE, ValuePositionWalk.assigned(site));
   }
 
-  private place(expr: TExpression, at: IValuePosition): void {
+  private static assigned(assignment: IAssignmentSyntax): IValueSite {
+    return { site: { kind: "assignment", assignment }, outer: null };
+  }
+
+  private place(
+    expr: TExpression,
+    at: IValuePosition,
+    site: IValueSite | null,
+  ): void {
     this.positions.set(expr, at);
+    if (site) this.sites.set(expr, site);
     switch (expr.kind) {
       case "ternary":
-        this.place(expr.condition, at);
-        this.place(expr.whenTrue, at);
-        this.place(expr.whenFalse, at);
+        this.place(expr.condition, at, site);
+        this.place(expr.whenTrue, at, site);
+        this.place(expr.whenFalse, at, site);
         return;
-      case "binary":
-        for (const operand of expr.operands) this.place(operand, at);
+      case "binary": {
+        const operandSite: IValueSite | null =
+          expr.level === "equality" || expr.level === "relational"
+            ? { site: { kind: "comparison" }, outer: site }
+            : site;
+        for (const operand of expr.operands) {
+          this.place(operand, at, operandSite);
+        }
         return;
+      }
       case "unary":
       case "cast":
-        this.place(expr.operand, at);
+        this.place(expr.operand, at, site);
         return;
       case "parenthesized":
-        this.place(expr.expression, at);
+        this.place(expr.expression, at, site);
         return;
       case "sizeof":
-        if (expr.expression) this.place(expr.expression, at);
+        if (expr.expression) this.place(expr.expression, at, site);
         return;
       case "postfix":
-        this.postfix(expr, at);
+        this.postfix(expr, at, site);
         return;
       case "structInitializer":
-        this.fields(expr, at);
+        this.fields(expr, at, site);
         return;
       case "arrayInitializer": {
         const listed = { ...at, inList: true };
-        for (const element of expr.elements) this.place(element, listed);
-        if (expr.fill) this.place(expr.fill, listed);
+        for (const element of expr.elements) {
+          this.place(element, listed, site);
+        }
+        if (expr.fill) this.place(expr.fill, listed, site);
         return;
       }
       default:
@@ -169,17 +208,30 @@ class ValuePositionWalk {
     }
   }
 
-  private postfix(chain: TPostfix, at: IValuePosition): void {
-    this.place(chain.primary, at);
-    for (const op of chain.ops) {
+  private postfix(
+    chain: TPostfix,
+    at: IValuePosition,
+    site: IValueSite | null,
+  ): void {
+    this.place(chain.primary, at, site);
+    const indexed: IValueSite = { site: { kind: "index" }, outer: site };
+    chain.ops.forEach((op, opIndex) => {
       if (op.kind === "subscript") {
-        for (const index of op.indexes) this.place(index, NOWHERE);
+        for (const index of op.indexes) this.place(index, NOWHERE, indexed);
       } else if (op.kind === "call") {
         op.arguments.forEach((argument, index) =>
-          this.place(argument, this.parameter(chain, index)),
+          this.place(argument, this.parameter(chain, index), {
+            site: {
+              kind: "argument",
+              call: chain,
+              op: opIndex,
+              argument: index,
+            },
+            outer: site,
+          }),
         );
       }
-    }
+    });
   }
 
   private parameter(chain: TPostfix, index: number): IValuePosition {
@@ -198,7 +250,11 @@ class ValuePositionWalk {
         };
   }
 
-  private fields(init: TStructInitializer, at: IValuePosition): void {
+  private fields(
+    init: TStructInitializer,
+    at: IValuePosition,
+    site: IValueSite | null,
+  ): void {
     const structName =
       at.typeText === null
         ? null
@@ -221,6 +277,10 @@ class ValuePositionWalk {
                 symbols.structFieldArrays.get(structName)?.has(field.name) ??
                 false,
             },
+        {
+          site: { kind: "field", initializer: init, field: field.name },
+          outer: site,
+        },
       );
     }
   }
@@ -231,13 +291,14 @@ class ValuePositions {
   static of(
     program: IProgramSyntax,
     context: IAnalysisContext,
-  ): ReadonlyMap<TExpression, IValuePosition> {
+  ): IValuePositions {
     const positions = new Map<TExpression, IValuePosition>();
-    const walk = new ValuePositionWalk(positions, context);
+    const sites = new Map<TExpression, IValueSite>();
+    const walk = new ValuePositionWalk(positions, sites, context);
     for (const member of program.declarations) {
       walk.declaration(member.declaration);
     }
-    return positions;
+    return { positions, sites };
   }
 
   /** `expr`'s position; one the walk never placed stands nowhere */
