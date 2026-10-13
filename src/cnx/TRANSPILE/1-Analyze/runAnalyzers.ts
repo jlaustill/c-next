@@ -375,7 +375,7 @@ function runAnalyzers(
       run: () =>
         new BareEnumMemberAnalyzer(context).analyze(
           parsed.program,
-          positions().positions,
+          positions(),
         ),
     },
     {

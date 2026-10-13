@@ -7,29 +7,24 @@
  * `Color.RED`) stands where something names its enum. Two of them reported
  * `1:0`; the other two computed a position and spent it on the message.
  *
- * ## The rule is about POSITION, and codegen decided it by control flow
+ * ## The rule is about POSITION, read off 2.1's one walk of positions
  *
- * Codegen carried an `expectedType` set by whichever generator was running --
- * a declaration's type, an assignment target's type, a function's return type,
- * a struct field's type, an array's element type -- cleared by a comparison,
- * and suppressed inside a call's arguments. A bare member resolved when that
- * type was an enum declaring it, and was rejected otherwise. The same decision
- * is made here from the parse tree: walk up from the identifier to the nearest
- * node that ESTABLISHES a type, and stop early at the nodes that cleared or
- * suppressed one. The table is the one CLAUDE.md records under "Enum
- * `expectedType` Contexts", reproduced rather than redrawn:
+ * Codegen carried an `expectedType` set by whichever generator was running,
+ * cleared by a comparison and suppressed inside a call's arguments. That
+ * position is now recorded once, by `ValuePositions` (#1991): each value's
+ * innermost site and the site enclosing it. 2.2 plans the type each value is
+ * written against from the same sites, and this check reads the enum from them:
  *
- *   establishes   variable initializer, plain and compound assignment, return,
- *                 struct-initializer field, array-initializer element,
- *                 ternary arm (inherits)
- *   clears        `=`/`!=`/`<`/`>`/`<=`/`>=` operands, a subscript, an array
- *                 dimension, a `for` header's declaration or update
- *   suppresses    a call's arguments
+ *   names its enum   a variable initializer, a plain or compound assignment,
+ *                    a return, a struct-initializer field (even one passed as
+ *                    an argument, or declared in a `for` header)
+ *   names none       a comparison operand, a subscript, a call argument, an
+ *                    assignment's target, a slice or bit range written to,
+ *                    and a `for` header's own declaration and assignments
  *
- * The `for` header and a `forUpdate` are listed as codegen had them -- those
- * generators never set an expected type, so `for (Color c <- RED; …)` was
- * rejected. Reproduced, not closed: closing it is a behavior change on a
- * position the corpus never exercises.
+ * The `for` header's own value is the one row that differs from a statement
+ * outside it: #1537 waits on ADR-017 saying whether it names an enum. A field
+ * inside it does, as it did before #1991.
  *
  * ## One hole closed, probed
  *
@@ -46,13 +41,10 @@
  */
 
 import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
-import type IVariableDeclarationSyntax from "../../types/syntax/IVariableDeclarationSyntax";
-import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
 import type TExpression from "../../types/syntax/TExpression";
 import type TTypeSyntax from "../../types/syntax/TTypeSyntax";
 import type ISourcePosition from "../../utils/types/ISourcePosition";
 import DeclarationParts from "../../utils/DeclarationParts";
-import ExpressionChildren from "../../utils/ExpressionChildren";
 import ExpressionNodes from "../../utils/ExpressionNodes";
 import StatementNodes from "../../utils/StatementNodes";
 import OperandTyper from "../../utils/OperandTyper";
@@ -61,125 +53,80 @@ import ValuePositions from "./helpers/ValuePositions";
 import IBareEnumMemberError from "./types/IBareEnumMemberError";
 import UndeclaredValueAnalyzer from "./UndeclaredValueAnalyzer";
 import type IAnalysisContext from "./types/IAnalysisContext";
-import type IValuePosition from "../../types/IValuePosition";
+import type IValuePositions from "../../types/IValuePositions";
+import type TValueSite from "../../types/TValueSite";
 
 /** The enum a position names, or null when it names none */
 type TExpected = string | null;
 
 type TIdentifier = Extract<TExpression, { kind: "identifier" }>;
 
-/**
- * Top down over 1.2's syntax (#1991), the enum each value's position names:
- * a declaration or assignment of an enum type, a return from a function of
- * one, a field of one. A comparison, a subscript, a call argument and a
- * `for` clause name none; an array initializer, a ternary and an operator
- * hand their own position on to what they hold.
- */
+/** The enum each value's site names (#1991), from 2.1's one walk of sites */
 class ExpectedEnums {
-  private readonly expected = new Map<TExpression, TExpected>();
-  private readonly forClauses = new Set<object>();
-
   private constructor(
     private readonly context: IAnalysisContext,
-    private readonly positions: ReadonlyMap<TExpression, IValuePosition>,
+    private readonly valuePositions: IValuePositions,
+    private readonly forClauses: ReadonlySet<object>,
   ) {}
 
   static of(
     program: IProgramSyntax,
     context: IAnalysisContext,
-    positions: ReadonlyMap<TExpression, IValuePosition>,
-  ): ReadonlyMap<TExpression, TExpected> {
-    const walk = new ExpectedEnums(context, positions);
+    valuePositions: IValuePositions,
+  ): ExpectedEnums {
+    const forClauses = new Set<object>();
     for (const member of program.declarations) {
-      walk.declaration(member.declaration);
-    }
-    return walk.expected;
-  }
-
-  private declaration(declaration: TDeclarationSyntax): void {
-    if (declaration.kind === "scope") {
-      for (const member of declaration.members) {
-        this.declaration(member.declaration);
-      }
-      return;
-    }
-    if (declaration.kind === "variableDeclaration") {
-      this.variable(declaration);
-      return;
-    }
-    if (declaration.kind !== "function") return;
-    const statements = StatementNodes.in(declaration);
-    for (const statement of statements) {
-      if (statement.kind !== "for") continue;
-      if (statement.init) this.forClauses.add(statement.init);
-      if (statement.update) this.forClauses.add(statement.update);
-    }
-    for (const statement of statements) {
-      if (statement.kind === "variableDeclaration") {
-        if (!this.forClauses.has(statement)) this.variable(statement);
-      } else if (statement.kind === "return" && statement.value) {
-        this.place(
-          statement.value,
-          this.enumOfWritten(declaration.returnType, declaration.span),
-        );
+      for (const statement of StatementNodes.in(member.declaration)) {
+        if (statement.kind !== "for") continue;
+        if (statement.init) forClauses.add(statement.init);
+        if (statement.update) forClauses.add(statement.update);
       }
     }
-    for (const site of StatementNodes.assignments(declaration)) {
-      if (this.forClauses.has(site)) continue;
-      this.place(site.value, this.targetEnum(site.target));
-    }
+    return new ExpectedEnums(context, valuePositions, forClauses);
   }
 
-  private variable(declaration: IVariableDeclarationSyntax): void {
-    if (!declaration.initializer) return;
-    this.place(
-      declaration.initializer,
-      this.enumOfWritten(declaration.type, declaration.span),
-    );
+  at(expr: TExpression): TExpected {
+    const at = this.valuePositions.sites.get(expr);
+    return at === undefined ? null : this.ofSite(at.site, expr);
   }
 
-  private place(expr: TExpression, expected: TExpected): void {
-    this.expected.set(expr, expected);
-    switch (expr.kind) {
-      case "postfix":
-        this.place(expr.primary, expected);
-        for (const op of expr.ops) {
-          if (op.kind === "subscript") {
-            for (const index of op.indexes) this.place(index, null);
-          } else if (op.kind === "call") {
-            for (const argument of op.arguments) this.place(argument, null);
-          }
-        }
-        return;
-      case "binary": {
-        const compares =
-          expr.level === "equality" || expr.level === "relational";
-        for (const operand of expr.operands) {
-          this.place(operand, compares ? null : expected);
-        }
-        return;
-      }
-      case "structInitializer":
-        for (const field of expr.fields) {
-          this.place(field.value, this.fieldEnum(field.value));
-        }
-        return;
+  private ofSite(site: TValueSite, expr: TExpression): TExpected {
+    switch (site.kind) {
+      case "declaration":
+        return this.forClauses.has(site.declaration)
+          ? null
+          : this.enumOfWritten(site.declaration.type, site.declaration.span);
+      case "assignment":
+        return this.forClauses.has(site.assignment)
+          ? null
+          : this.targetEnum(site.assignment.target);
+      case "return":
+        return this.enumOfWritten(site.function.returnType, site.function.span);
+      case "field":
+        return this.fieldEnum(expr);
       default:
-        for (const child of ExpressionChildren.of(expr)) {
-          this.place(child, expected);
-        }
+        return null;
     }
   }
 
   private fieldEnum(value: TExpression): TExpected {
-    const field = ValuePositions.at(this.positions, value).typeText;
+    const field = ValuePositions.at(
+      this.valuePositions.positions,
+      value,
+    ).typeText;
     return field !== null && this.context.symbols.knownEnums.has(field)
       ? field
       : null;
   }
 
-  /** A bit range's target type names no enum: it writes bits */
+  /** A slice or bit range writes elements or bits, and names no enum */
   private targetEnum(target: TExpression): TExpected {
+    const writesRange =
+      target.kind === "postfix" &&
+      target.ops.some(
+        (op) => op.kind === "subscript" && op.indexes.length === 2,
+      );
+    if (writesRange) return null;
     return (
       OperandTyper.typeOfTarget(target, this.context)?.enumTypeName ?? null
     );
@@ -198,9 +145,9 @@ class BareEnumMemberAnalyzer {
   /** #1991: reads 1.2's syntax, not the parse tree */
   public analyze(
     program: IProgramSyntax,
-    positions: ReadonlyMap<TExpression, IValuePosition>,
+    valuePositions: IValuePositions,
   ): IBareEnumMemberError[] {
-    const expected = ExpectedEnums.of(program, this.context, positions);
+    const expected = ExpectedEnums.of(program, this.context, valuePositions);
     const expressions = program.declarations
       .flatMap((member) => DeclarationParts.of(member.declaration))
       .flatMap(ExpressionNodes.of);
@@ -217,7 +164,7 @@ class BareEnumMemberAnalyzer {
     const found: IBareEnumMemberError[] = [];
     for (const expr of expressions) {
       if (expr.kind !== "identifier" || notValues.has(expr)) continue;
-      const error = this.check(expr, expected.get(expr) ?? null);
+      const error = this.check(expr, expected.at(expr));
       if (error !== null) found.push(error);
     }
     return found.sort((a, b) => a.line - b.line || a.column - b.column);

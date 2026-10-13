@@ -20,7 +20,7 @@ const errors = (source: string) => {
   });
   return new BareEnumMemberAnalyzer(context).analyze(
     syntax,
-    ValuePositions.of(syntax, context).positions,
+    ValuePositions.of(syntax, context),
   );
 };
 
@@ -168,5 +168,55 @@ describe("BareEnumMemberAnalyzer -- positions on 1.2's syntax", () => {
     expect(codes(["Color c <- GREEN;", "c[0, 2] <- RED;"])).toEqual([
       "E0424@5:15",
     ]);
+  });
+});
+
+describe("BareEnumMemberAnalyzer reads 2.1's value sites (#1991 review)", () => {
+  const header = [
+    "enum Color { RED, GREEN }",
+    "struct Pt { Color c; u8 x; }",
+    "Color[4] arr <- [Color.RED*];",
+  ];
+  const codes = (body: string[]) =>
+    errors([...header, ...body].join("\n")).map((error) => error.line);
+
+  it("rejects a member written to a slice", () => {
+    expect(codes(["void main() {", "    arr[0, 1] <- GREEN;", "}"])).toEqual([
+      5,
+    ]);
+  });
+
+  it("accepts a struct literal's field in a for header", () => {
+    expect(
+      codes([
+        "void main(u8 limit) {",
+        "    u8 i <- 0;",
+        "    for (Pt p <- { c: RED, x: 1 }; i < limit; i +<- 1) {}",
+        "}",
+      ]),
+    ).toEqual([]);
+  });
+
+  it("accepts a struct literal's field passed as an argument", () => {
+    expect(
+      codes([
+        "void take(Pt p) {}",
+        "void main() {",
+        "    take({ c: RED, x: 1 });",
+        "}",
+      ]),
+    ).toEqual([]);
+  });
+
+  it("still rejects a member passed as an argument, and a for header's own value (#1537)", () => {
+    expect(
+      codes([
+        "void takeColor(Color c) {}",
+        "void main() {",
+        "    takeColor(RED);",
+        "    for (Color c <- RED; c != Color.GREEN; c <- GREEN) {}",
+        "}",
+      ]),
+    ).toEqual([6, 7, 7]);
   });
 });

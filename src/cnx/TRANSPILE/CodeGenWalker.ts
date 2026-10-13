@@ -2580,14 +2580,16 @@ class CodeGenWalker {
       if (known !== undefined) return known;
       const outer = resolve(at.outer);
       // A site with a type sets it, and one without leaves the outer one's.
-      // A function argument's suppresses its bare enum member (#872)
+      // A function argument's suppresses its bare enum member (#872), and a
+      // struct field's names its own, even in an argument (ADR-017)
       const planned =
         at.site.kind === "argument"
           ? within(this.argumentExpectedType(at.site), outer, true)
           : within(
               outer === null ? null : spellSite(at.site, outer.type),
               outer,
-              outer?.suppressBareEnumResolution ?? false,
+              at.site.kind !== "field" &&
+                (outer?.suppressBareEnumResolution ?? false),
             );
       resolved.set(at, planned);
       return planned;
