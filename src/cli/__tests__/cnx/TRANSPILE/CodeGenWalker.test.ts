@@ -514,25 +514,6 @@ describe("CodeGenWalker", () => {
         host.applyEffects([{ type: "clear-parameters" }]);
         expect(host.getState().currentParameters.size).toBe(0);
       });
-
-      it("should process register-callback-field effects", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`, false);
-
-        // Apply register-callback-field effect
-        expect(() =>
-          host.applyEffects([
-            {
-              type: "register-callback-field",
-              key: "MyStruct.callback",
-              typeName: "void(*)(void)",
-            },
-          ]),
-        ).not.toThrow();
-
-        // Callback field should be registered
-        const input = host.getInput();
-        expect(input.callbackFieldTypes.has("MyStruct.callback")).toBe(true);
-      });
     });
 
     describe("getIndent()", () => {

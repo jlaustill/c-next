@@ -115,20 +115,11 @@ const generateStruct: TGeneratorFn<IPlannedStruct> = (
   lines.push(`typedef struct ${name} {`);
 
   for (const field of planned.fields) {
-    const fieldName = field.name;
     const typeName = field.typeName;
 
     // ADR-029: Check if this is a callback type field
-    if (input.callbackTypes.has(typeName)) {
+    if (field.isCallback) {
       const callbackInfo = input.callbackTypes.get(typeName)!;
-
-      // Track callback field for assignment validation via effect
-      effects.push({
-        type: "register-callback-field",
-        key: `${name}.${fieldName}`,
-        typeName,
-      });
-
       lines.push(generateCallbackField(field, callbackInfo));
     } else {
       // Regular field handling

@@ -39,6 +39,8 @@ interface IStructFieldDef {
   arrayDims?: string[];
   /** Dimensions written on the TYPE, e.g. "[16]" for `u8[16] data`. */
   typeDims?: string;
+  /** 2.2 decided this field is a callback (ADR-029). */
+  callback?: boolean;
 }
 
 /** A planned field. */
@@ -46,6 +48,7 @@ function field(def: IStructFieldDef): IPlannedStructField {
   return {
     name: def.name,
     typeName: def.type,
+    isCallback: def.callback ?? false,
     hasNameDimensions: (def.arrayDims?.length ?? 0) > 0,
     hasTypeDimensions: def.typeDims !== undefined,
     renderCType: () => C_TYPES[def.type] ?? def.type,
@@ -90,13 +93,8 @@ function createMockState(): IGeneratorState {
  * `StructDefaultInitializer`'s and is tested there; this mock gives every
  * struct with a callback field a designated brace naming those fields.
  */
-function createMockOrchestrator(
-  struct: IPlannedStruct,
-  input: IGeneratorInput,
-): IOrchestrator {
-  const callbackFields = struct.fields.filter((f) =>
-    input.callbackTypes.has(f.typeName),
-  );
+function createMockOrchestrator(struct: IPlannedStruct): IOrchestrator {
+  const callbackFields = struct.fields.filter((f) => f.isCallback);
   const brace =
     callbackFields.length === 0
       ? null
@@ -112,7 +110,7 @@ function generate(struct: IPlannedStruct, input: IGeneratorInput) {
     struct,
     input,
     createMockState(),
-    createMockOrchestrator(struct, input),
+    createMockOrchestrator(struct),
   );
 }
 
@@ -253,6 +251,7 @@ describe("StructGenerator", () => {
         {
           name: "onEvent",
           type: "EventCallback",
+          callback: true,
         },
       ]);
       const callbackTypes = new Map([
@@ -270,6 +269,7 @@ describe("StructGenerator", () => {
         {
           name: "callback",
           type: "MyCallback",
+          callback: true,
         },
       ]);
       const callbackTypes = new Map([
@@ -294,10 +294,12 @@ describe("StructGenerator", () => {
         {
           name: "onStart",
           type: "StartCallback",
+          callback: true,
         },
         {
           name: "onStop",
           type: "StopCallback",
+          callback: true,
         },
       ]);
       const callbackTypes = new Map([
@@ -318,6 +320,7 @@ describe("StructGenerator", () => {
         {
           name: "callbacks",
           type: "Handler",
+          callback: true,
           arrayDims: ["4"],
         },
       ]);
@@ -340,27 +343,6 @@ describe("StructGenerator", () => {
       const result = generate(struct, input);
 
       expect(result.effects).toEqual([]);
-    });
-
-    it("registers callback field effect", () => {
-      const struct = planned("Handler", [
-        {
-          name: "onEvent",
-          type: "Callback",
-        },
-      ]);
-      const callbackTypes = new Map([
-        ["Callback", { typedefName: "Callback_t" }],
-      ]);
-      const input = createMockInput({ callbackTypes });
-
-      const result = generate(struct, input);
-
-      expect(result.effects).toContainEqual({
-        type: "register-callback-field",
-        key: "Handler.onEvent",
-        typeName: "Callback",
-      });
     });
   });
 

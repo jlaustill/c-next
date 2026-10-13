@@ -211,9 +211,6 @@ export default class CodeGenerator implements IOrchestrator {
           break;
 
         // Callback effects
-        case "register-callback-field":
-          this.state.callbackFieldTypes.set(effect.key, effect.typeName);
-          break;
         case "register-struct-init":
           this.state.generatedStructInits.add(effect.structName);
           break;

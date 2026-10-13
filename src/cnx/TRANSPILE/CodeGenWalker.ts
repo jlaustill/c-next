@@ -3189,6 +3189,9 @@ class CodeGenWalker {
         return {
           name: field.name,
           typeName: this.typeNameOf(field.type),
+          isCallback: this.host.state.callbackFieldTypes.has(
+            `${struct.name}.${field.name}`,
+          ),
           hasNameDimensions: field.dimensions.length > 0,
           hasTypeDimensions: arrayType !== null,
           renderCType: () => this.renderType(field.type),
