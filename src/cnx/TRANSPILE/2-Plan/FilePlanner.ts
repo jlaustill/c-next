@@ -1,3 +1,4 @@
+import type IPlannedArgument from "./types/IPlannedArgument";
 import FloatBits from "../../utils/FloatBits";
 import type IPlannedFloatBits from "./types/IPlannedFloatBits";
 import type TPlannedNarrowing from "./types/TPlannedNarrowing";
@@ -944,7 +945,7 @@ class FilePlanner {
     );
     const narrowings = this.planNarrowings(expectedTypes, decidedCTypes);
     invariant(valuePositions !== null, "2.1 hands 2.2 where each value stands");
-    this.planArgumentCTypes(valuePositions, decidedCTypes);
+    const argumentPlans = this.planArguments(valuePositions, decidedCTypes);
     const clamps = this.planClamps(
       program,
       inlinedConsts,
@@ -966,6 +967,7 @@ class FilePlanner {
     const decided: Omit<IFilePlan, "emission" | "setup" | "header"> = {
       program,
       functionParameters,
+      arguments: argumentPlans,
       selfInclude,
       includeDirectives,
       inlinedConsts,
@@ -1060,14 +1062,15 @@ class FilePlanner {
   }
 
   /**
-   * The C type an argument's form writes (#1991): a by-reference argument's
-   * temporary, cast or compound literal, or a C++ enum class value's cast to
-   * its integer parameter (#304)
+   * How each call argument is passed and written (#1991), and the C type its
+   * form writes: a by-reference argument's temporary, cast or compound
+   * literal, or a C++ enum class value's cast to its integer parameter (#304)
    */
-  private planArgumentCTypes(
+  private planArguments(
     valuePositions: IValuePositions,
     cTypes: Set<string>,
-  ): void {
+  ): ReadonlyMap<TExpression, IPlannedArgument> {
+    const planned = new Map<TExpression, IPlannedArgument>();
     for (const [expression, at] of valuePositions.sites) {
       const site = at.site;
       if (site.kind !== "argument") continue;
@@ -1077,23 +1080,28 @@ class FilePlanner {
 
       const passing = this.argumentPassing(site);
       const base = passing.param?.baseType;
-      const cType =
+      const form =
         passing.mode === "reference"
-          ? ArgumentForm.cTypeOf(
-              ArgumentForm.of(
-                this.boundArgumentName(expression) !== null,
-                base,
-                this.argumentShape(expression),
-                this.state.cppMode,
-              ),
+          ? ArgumentForm.of(
+              this.boundArgumentName(expression) !== null,
+              base,
+              this.argumentShape(expression),
+              this.state.cppMode,
             )
+          : null;
+      const enumCast =
+        passing.mode === "reference"
+          ? null
           : CallArgumentPassing.cppEnumCast(
               this.directTypeOf(expression),
               base,
               this.queries,
             );
+      planned.set(expression, { passing, form, enumCast });
+      const cType = form === null ? enumCast : ArgumentForm.cTypeOf(form);
       if (cType !== null) cTypes.add(cType);
     }
+    return planned;
   }
 
   private planExpectedTypes(

@@ -1,3 +1,4 @@
+import type IPlannedArgument from "./2-Plan/types/IPlannedArgument";
 import type TPlannedNarrowing from "./2-Plan/types/TPlannedNarrowing";
 import HeaderEmissionCapture from "./3-Render/headers/HeaderEmissionCapture";
 import type IHeaderEmissionFacts from "./3-Render/headers/types/IHeaderEmissionFacts";
@@ -744,8 +745,12 @@ class CodeGenWalker {
    */
   private generateFunctionArg(
     expr: TExpression,
-    targetParamBaseType?: string,
+    planned: IPlannedArgument,
   ): string {
+    invariant(
+      planned.form !== null,
+      "2.2 planned the form of every argument 2.3 passes by reference",
+    );
     const simpleId = this.planner.boundArgumentName(expr);
     const declared = this.nameTypeOf(expr);
     // #1445: thunks closing over `ctx`. `ArgumentGenerator` never read a
@@ -755,11 +760,8 @@ class CodeGenWalker {
     return ArgumentGenerator.generateArg(
       simpleId,
       declared,
-      targetParamBaseType,
-      {
-        ...this.planner.argumentShape(expr),
-        generateExpression: () => this.renderExpression(expr),
-      },
+      planned.form,
+      { generateExpression: () => this.renderExpression(expr) },
       this.host.state,
     );
   }
@@ -2115,7 +2117,17 @@ class CodeGenWalker {
   ): readonly IPlannedCallArgument[] | null {
     if (args === null) return null;
 
-    return args.map((expression) => ({
+    return args.map((expression) => this.planCallArgument(expression));
+  }
+
+  private planCallArgument(expression: TExpression): IPlannedCallArgument {
+    const planned = this.filePlan.arguments.get(expression);
+    invariant(
+      planned !== undefined,
+      `2.2 planned every argument 2.3 writes (line ${expression.span.line})`,
+    );
+    return {
+      planned,
       simpleIdentifier: ExpressionShape.simpleIdentifier(expression),
       parameter: this.parameterNamed(expression),
       declared: this.nameTypeOf(expression),
@@ -2126,9 +2138,8 @@ class CodeGenWalker {
         ),
       isHandleArrayElement: () => this.isHandleArrayElement(expression),
       render: () => this.renderExpression(expression),
-      renderByReference: (targetParamBaseType: string | undefined) =>
-        this.generateFunctionArg(expression, targetParamBaseType),
-    }));
+      renderByReference: () => this.generateFunctionArg(expression, planned),
+    };
   }
 
   /**

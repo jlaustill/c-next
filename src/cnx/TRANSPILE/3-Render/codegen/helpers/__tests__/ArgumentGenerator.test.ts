@@ -381,7 +381,7 @@ describe("ArgumentGenerator", () => {
           parameter: state.currentParameters.get("value"),
         },
         declared.get("value"),
-        "u8",
+        { kind: "identifier" },
         callbacks,
         state,
       );
@@ -408,7 +408,7 @@ describe("ArgumentGenerator", () => {
           parameter: state.currentParameters.get("cfg"),
         },
         declared.get("cfg"),
-        "Config",
+        { kind: "identifier" },
         callbacks,
         state,
       );
@@ -428,7 +428,7 @@ describe("ArgumentGenerator", () => {
         null,
         undefined,
         // no simple identifier
-        "u8",
+        { kind: "lvalue", cast: null },
         callbacks,
         state,
       );
@@ -446,7 +446,7 @@ describe("ArgumentGenerator", () => {
         null,
         undefined,
         // no simple identifier
-        "u8",
+        { kind: "rvalue", compoundLiteral: "uint8_t" },
         callbacks,
         state,
       );

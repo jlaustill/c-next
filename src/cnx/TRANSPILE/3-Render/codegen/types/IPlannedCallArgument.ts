@@ -1,3 +1,4 @@
+import type IPlannedArgument from "../../../2-Plan/types/IPlannedArgument";
 import type TTypeInfo from "../../../../types/TTypeInfo";
 import type TParameterInfo from "../../../../types/TParameterInfo";
 /**
@@ -80,10 +81,11 @@ interface IPlannedCallArgument {
    */
   readonly render: () => string;
 
-  /** The argument, rendered through ADR-006 reference semantics. */
-  readonly renderByReference: (
-    targetParamBaseType: string | undefined,
-  ) => string;
+  /** The argument, rendered by reference in the form 2.2 planned (ADR-006) */
+  readonly renderByReference: () => string;
+
+  /** 2.2's decision for how this argument is passed and written (#1991) */
+  readonly planned: IPlannedArgument;
 }
 
 export default IPlannedCallArgument;

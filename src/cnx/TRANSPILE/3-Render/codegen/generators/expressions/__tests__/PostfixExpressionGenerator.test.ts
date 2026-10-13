@@ -10,6 +10,7 @@
  */
 
 import type IPlannedFloatBits from "../../../../../2-Plan/types/IPlannedFloatBits";
+import type IPlannedArgument from "../../../../../2-Plan/types/IPlannedArgument";
 import SymbolTable from "../../../../../../PARSE/3-Declare/SymbolTable";
 import type IProgram from "../../../../../../types/IProgram";
 import type IChainBase from "../../../../../../types/IChainBase";
@@ -275,6 +276,7 @@ function createMockPostfixOp(options?: {
   argumentList?: { expression: () => { getText: () => string }[] } | null;
   /** The type of the value a call op calls -- `peek` for `h.onPeek(...)`. */
   calleeType?: string;
+  plannedArgument?: IPlannedArgument;
   /** 2.2's decision for a float bit range read (ADR-007) */
   floatBits?: IPlannedFloatBits;
 }): TPlannedPostfixOp {
@@ -324,6 +326,11 @@ function createMockPostfixOp(options?: {
         isHandleArrayElement: () => false,
         render: () => expression.getText(),
         renderByReference: () => `&${expression.getText()}`,
+        planned: options?.plannedArgument ?? {
+          passing: { param: undefined, mode: "c" as const },
+          form: null,
+          enumCast: null,
+        },
       })) ?? null,
     safeDivisionHelper: null,
   };
@@ -1679,18 +1686,17 @@ describe("PostfixExpressionGenerator", () => {
     });
 
     /**
-     * ADR-029: the call op carries the type of the value it calls, and a
-     * value of a callback type is called with that type's parameters -- here
-     * `peek`'s, whose struct parameter takes the argument by reference.
-     * Without the type the call has no parameters in view and the struct goes
-     * by value.
+     * ADR-029: a value of a callback type is called with that type's
+     * parameters -- here `peek`'s, whose struct parameter takes the argument
+     * by reference. 2.2 decides that (#1991); 2.3 writes the argument the way
+     * 2.2 planned it.
      */
-    it.each<[string, string | undefined, string]>([
-      ["a callback-typed field", "peek", "h.onPeek(&p)"],
-      ["an untyped callee", undefined, "h.onPeek(p)"],
+    it.each<[string, string | undefined, "c" | "reference", string]>([
+      ["a callback-typed field", "peek", "reference", "h.onPeek(&p)"],
+      ["an untyped callee", undefined, "c", "h.onPeek(p)"],
     ])(
       "calls %s with the parameters its type names",
-      (_l, calleeType, code) => {
+      (_l, calleeType, mode, code) => {
         const ctx = createMockPostfixExpressionContext("h", [
           createMockPostfixOp({ identifier: "onPeek" }),
           createMockPostfixOp({
@@ -1698,6 +1704,14 @@ describe("PostfixExpressionGenerator", () => {
               expression: () => [createMockExpression("p")],
             } as unknown as Parser.ArgumentListContext,
             calleeType,
+            plannedArgument: {
+              passing: {
+                param: mode === "c" ? undefined : { baseType: "Point" },
+                mode,
+              },
+              form: mode === "c" ? null : { kind: "identifier" },
+              enumCast: null,
+            },
           }),
         ]);
         const input = {

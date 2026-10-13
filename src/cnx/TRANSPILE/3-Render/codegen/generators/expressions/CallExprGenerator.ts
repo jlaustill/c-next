@@ -39,14 +39,8 @@ import type IPlannedCallArgument from "../../types/IPlannedCallArgument";
 const wrapWithCppEnumCast = (
   argCode: string,
   arg: IPlannedCallArgument,
-  targetParamBaseType: string | undefined,
-  orchestrator: IOrchestrator,
 ): string => {
-  const cType = CallArgumentPassing.cppEnumCast(
-    arg.expressionType(),
-    targetParamBaseType,
-    orchestrator,
-  );
+  const cType = arg.planned.enumCast;
   if (cType === null) return argCode;
   return `static_cast<${cType}>(${argCode})`;
 };
@@ -166,12 +160,7 @@ const _generateCFunctionArg = (
   // If target expects a pointer and argument is a callback-promoted param,
   // use the identifier directly (it's already a pointer matching the typedef)
   if (targetParam?.baseType?.endsWith("*") && callbackPromotedParam !== null) {
-    return wrapWithCppEnumCast(
-      callbackPromotedParam,
-      arg,
-      targetParam?.baseType,
-      orchestrator,
-    );
+    return wrapWithCppEnumCast(callbackPromotedParam, arg);
   }
 
   // Issue #872: 2.2 plans it against the parameter's type for MISRA 7.2, with
@@ -181,12 +170,7 @@ const _generateCFunctionArg = (
 
   // Issue #322: Check if parameter expects a pointer and argument is a struct
   if (!targetParam?.baseType?.endsWith("*")) {
-    return wrapWithCppEnumCast(
-      argCode,
-      arg,
-      targetParam?.baseType,
-      orchestrator,
-    );
+    return wrapWithCppEnumCast(argCode, arg);
   }
 
   // Resolve the argument's type (expression type → variable registry → C symbol
@@ -235,12 +219,7 @@ const _generateCFunctionArg = (
 
   const finalArgCode = needsAddressOf ? `&${argCode}` : argCode;
 
-  return wrapWithCppEnumCast(
-    finalArgCode,
-    arg,
-    targetParam?.baseType,
-    orchestrator,
-  );
+  return wrapWithCppEnumCast(finalArgCode, arg);
 };
 
 /**
@@ -298,14 +277,9 @@ const generateFunctionCall = (
   // Issue #992: 2.2 plans a struct initializer in an argument as a compound
   // literal (#1991).
   const rendered = args
-    .map((arg, idx) => {
-      // Get parameter type info from local signature or cross-file SymbolTable
-      const passing = CallArgumentPassing.of(
-        signatureName,
-        idx,
-        input,
-        orchestrator,
-      );
+    .map((arg) => {
+      // 2.2 decided how the argument binds and is passed (#1991)
+      const passing = arg.planned.passing;
       const targetParam = passing.param;
 
       // C/C++ function: use pass-by-value semantics
@@ -318,16 +292,11 @@ const generateFunctionCall = (
         // Issue #872: 2.2 plans it against the parameter's type, with bare
         // enum resolution suppressed (#1991)
         const argCode = arg.render();
-        return wrapWithCppEnumCast(
-          argCode,
-          arg,
-          targetParam?.baseType,
-          orchestrator,
-        );
+        return wrapWithCppEnumCast(argCode, arg);
       }
 
       // Target parameter is pass-by-reference: use & logic
-      return arg.renderByReference(targetParam?.baseType);
+      return arg.renderByReference();
     })
     .join(", ");
 

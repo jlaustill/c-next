@@ -10,6 +10,8 @@ import TranspileState from "../../../../../TranspileState";
 import TTypeInfo from "../../../../../../types/TTypeInfo";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
 import type IPlannedCallArgument from "../../../types/IPlannedCallArgument";
+import type IPlannedArgument from "../../../../../2-Plan/types/IPlannedArgument";
+import CallArgumentPassing from "../../../../../2-Plan/CallArgumentPassing";
 
 // ========================================================================
 // Test Helpers
@@ -40,10 +42,44 @@ function createMockExpressionContext(text: string): Parser.ExpressionContext {
  * may happen per argument.
  */
 function planArguments(
-  orchestrator: IArgumentPlannerStub,
+  orchestrator: IArgumentPlannerStub &
+    Parameters<typeof CallArgumentPassing.of>[3],
   expressions: Parser.ExpressionContext[],
+  callee: string,
+  input: IGeneratorInput,
 ): readonly IPlannedCallArgument[] {
-  return expressions.map((expression) => ({
+  return expressions.map((expression, index) => {
+    // 2.2's decision, made the way `FilePlanner.planArguments` makes it
+    const passing = CallArgumentPassing.of(callee, index, input, orchestrator);
+    const base = passing.param?.baseType;
+    return planArgument(
+      orchestrator,
+      expression,
+      {
+        passing,
+        form: null,
+        enumCast:
+          passing.mode === "reference"
+            ? null
+            : CallArgumentPassing.cppEnumCast(
+                orchestrator.getExpressionType(expression),
+                base,
+                orchestrator,
+              ),
+      },
+      base,
+    );
+  });
+}
+
+function planArgument(
+  orchestrator: IArgumentPlannerStub,
+  expression: Parser.ExpressionContext,
+  planned: IPlannedArgument,
+  base: string | undefined,
+): IPlannedCallArgument {
+  return {
+    planned,
     simpleIdentifier: orchestrator.getSimpleIdentifier(expression),
     parameter: orchestrator.getParameter(expression),
     declared: declaredTypes.get(expression.getText()),
@@ -59,9 +95,8 @@ function planArguments(
       return (array?.isArray ?? false) && (array?.isPointer ?? false);
     },
     render: () => orchestrator.generateExpression(expression),
-    renderByReference: (targetParamBaseType: string | undefined) =>
-      orchestrator.generateFunctionArg(expression, targetParamBaseType),
-  }));
+    renderByReference: () => orchestrator.generateFunctionArg(expression, base),
+  };
 }
 
 /** What each case declares, by name -- see `createMockInput` */
@@ -213,7 +248,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "printf",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "printf", input),
         input,
         state,
         orchestrator,
@@ -250,7 +285,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "c_func",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "c_func", input),
         input,
         state,
         orchestrator,
@@ -288,7 +323,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "c_func",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "c_func", input),
         input,
         state,
         orchestrator,
@@ -320,7 +355,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "c_func",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "c_func", input),
         input,
         state,
         orchestrator,
@@ -357,7 +392,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "c_func",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "c_func", input),
         input,
         state,
         orchestrator,
@@ -402,7 +437,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "c_func",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "c_func", input),
         input,
         state,
         orchestrator,
@@ -438,7 +473,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "c_func",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "c_func", input),
         input,
         state,
         orchestrator,
@@ -494,7 +529,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "draw_bitmap",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "draw_bitmap", input),
         input,
         generatorState,
         orchestrator,
@@ -534,7 +569,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "c_func",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "c_func", input),
         input,
         state,
         orchestrator,
@@ -565,7 +600,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "c_func",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "c_func", input),
         input,
         state,
         orchestrator,
@@ -598,7 +633,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "c_func",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "c_func", input),
         input,
         state,
         orchestrator,
@@ -637,7 +672,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "c_func",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "c_func", input),
         input,
         state,
         orchestrator,
@@ -669,7 +704,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "c_func",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "c_func", input),
         input,
         state,
         orchestrator,
@@ -703,7 +738,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "doWork",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "doWork", input),
         input,
         state,
         orchestrator,
@@ -735,7 +770,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "setTemp",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "setTemp", input),
         input,
         state,
         orchestrator,
@@ -769,7 +804,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "setState",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "setState", input),
         input,
         state,
         orchestrator,
@@ -801,7 +836,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "setFlag",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "setFlag", input),
         input,
         state,
         orchestrator,
@@ -839,7 +874,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "process",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "process", input),
         input,
         state,
         orchestrator,
@@ -875,7 +910,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "doWork",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "doWork", input),
         input,
         state,
         orchestrator,
@@ -911,7 +946,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "crossFileFunc",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "crossFileFunc", input),
         input,
         state,
         orchestrator,
@@ -951,7 +986,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "crossFileFunc",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "crossFileFunc", input),
         input,
         state,
         orchestrator,
@@ -980,7 +1015,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "unknownFunc",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "unknownFunc", input),
         input,
         state,
         orchestrator,
@@ -1016,7 +1051,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "safe_div",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "safe_div", input),
         input,
         state,
         orchestrator,
@@ -1052,7 +1087,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "safe_mod",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "safe_mod", input),
         input,
         state,
         orchestrator,
@@ -1082,7 +1117,7 @@ describe("CallExprGenerator", () => {
       expect(() =>
         generateFunctionCall(
           "safe_div",
-          planArguments(orchestrator, argExpressions),
+          planArguments(orchestrator, argExpressions, "safe_div", input),
           input,
           state,
           orchestrator,
@@ -1103,7 +1138,7 @@ describe("CallExprGenerator", () => {
       expect(() =>
         generateFunctionCall(
           "safe_mod",
-          planArguments(orchestrator, argExpressions),
+          planArguments(orchestrator, argExpressions, "safe_mod", input),
           input,
           state,
           orchestrator,
@@ -1126,7 +1161,12 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "safe_div",
-        planArguments(orchestrator, argExpressions),
+        planArguments(
+          orchestrator,
+          argExpressions,
+          "safe_div",
+          createMockInput(),
+        ),
         createMockInput(),
         createMockState(),
         orchestrator,
@@ -1161,7 +1201,7 @@ describe("CallExprGenerator", () => {
       // Should not throw
       const result = generateFunctionCall(
         "readOnly",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "readOnly", input),
         input,
         state,
         orchestrator,
@@ -1184,7 +1224,7 @@ describe("CallExprGenerator", () => {
       // Should not throw
       const result = generateFunctionCall(
         "unknownFunc",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "unknownFunc", input),
         input,
         state,
         orchestrator,
@@ -1222,7 +1262,7 @@ describe("CallExprGenerator", () => {
 
       generateFunctionCall(
         "callee",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "callee", input),
         input,
         state,
         orchestrator,
@@ -1257,7 +1297,7 @@ describe("CallExprGenerator", () => {
 
       generateFunctionCall(
         "callee",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "callee", input),
         input,
         state,
         orchestrator,
@@ -1293,7 +1333,7 @@ describe("CallExprGenerator", () => {
 
       generateFunctionCall(
         "callee",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "callee", input),
         input,
         state,
         orchestrator,
@@ -1329,7 +1369,7 @@ describe("CallExprGenerator", () => {
 
       generateFunctionCall(
         "callee",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "callee", input),
         input,
         state,
         orchestrator,
@@ -1405,7 +1445,7 @@ describe("CallExprGenerator", () => {
 
         const result = generateFunctionCall(
           "take",
-          planArguments(orchestrator, argExpressions),
+          planArguments(orchestrator, argExpressions, "take", input),
           input,
           createMockState(),
           orchestrator,
@@ -1446,7 +1486,12 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "take",
-        planArguments(orchestrator, [createMockExpressionContext("pts")]),
+        planArguments(
+          orchestrator,
+          [createMockExpressionContext("pts")],
+          "take",
+          createMockInput({ functionSignatures: takeSignature("CPoint*") }),
+        ),
         createMockInput({ functionSignatures: takeSignature("CPoint*") }),
         createMockState(),
         orchestrator,
@@ -1497,7 +1542,12 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "take",
-        planArguments(orchestrator, [createMockExpressionContext("d")]),
+        planArguments(
+          orchestrator,
+          [createMockExpressionContext("d")],
+          "take",
+          input,
+        ),
         input,
         createMockState(),
         orchestrator,
@@ -1545,7 +1595,15 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "h.onPeek",
-        planArguments(orchestrator, [createMockExpressionContext("p")]),
+        planArguments(
+          orchestrator,
+          [createMockExpressionContext("p")],
+          CallArgumentPassing.callbackFunction(
+            calleeType,
+            createMockInput({ functionSignatures, callbackTypes }),
+          ) ?? "h.onPeek",
+          createMockInput({ functionSignatures, callbackTypes }),
+        ),
         createMockInput({ functionSignatures, callbackTypes }),
         createMockState(),
         orchestrator,
@@ -1594,7 +1652,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "create_handle",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "create_handle", input),
         input,
         state,
         orchestrator,
@@ -1640,7 +1698,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "send_data",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "send_data", input),
         input,
         state,
         orchestrator,
@@ -1687,7 +1745,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "use_handle",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "use_handle", input),
         input,
         state,
         orchestrator,

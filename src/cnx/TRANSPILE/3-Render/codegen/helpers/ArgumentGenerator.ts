@@ -14,12 +14,12 @@
  * - Complex expressions are passed as-is
  */
 
+import type TArgumentForm from "../../../2-Plan/types/TArgumentForm";
 import CppModeHelper from "../../../2-Plan/CppModeHelper";
 import IArgumentGeneratorCallbacks from "../../../2-Plan/types/IArgumentGeneratorCallbacks";
 import type TranspileState from "../../../TranspileState";
 import type TTypeInfo from "../../../../types/TTypeInfo";
 import type TParameterInfo from "../../../../types/TParameterInfo";
-import ArgumentForm from "../../../2-Plan/ArgumentForm";
 import invariant from "../../../../utils/invariant";
 
 /**
@@ -74,7 +74,7 @@ class ArgumentGenerator {
   /** A value: in C, a compound literal the pointer parameter can point at */
   static handleRvalueArg(
     compoundLiteral: string | null,
-    callbacks: IArgumentGeneratorCallbacks,
+    callbacks: Pick<IArgumentGeneratorCallbacks, "generateExpression">,
   ): string {
     const value = callbacks.generateExpression();
     return compoundLiteral === null ? value : `&(${compoundLiteral}){${value}}`;
@@ -83,7 +83,7 @@ class ArgumentGenerator {
   /** C++: a member converted to the parameter's type through a temporary */
   static createCppMemberConversionTemp(
     cType: string,
-    callbacks: IArgumentGeneratorCallbacks,
+    callbacks: Pick<IArgumentGeneratorCallbacks, "generateExpression">,
     state: TranspileState,
   ): string {
     const value = callbacks.generateExpression();
@@ -100,7 +100,7 @@ class ArgumentGenerator {
   /** An lvalue by address, cast to `cast*` when `cast` is not null */
   static handleLvalueArg(
     cast: string | null,
-    callbacks: IArgumentGeneratorCallbacks,
+    callbacks: Pick<IArgumentGeneratorCallbacks, "generateExpression">,
     state: TranspileState,
   ): string {
     const expr = CppModeHelper.maybeAddressOf(
@@ -117,16 +117,10 @@ class ArgumentGenerator {
       readonly parameter: TParameterInfo | undefined;
     } | null,
     declared: TTypeInfo | undefined,
-    targetParamBaseType: string | undefined,
-    callbacks: IArgumentGeneratorCallbacks,
+    form: TArgumentForm,
+    callbacks: Pick<IArgumentGeneratorCallbacks, "generateExpression">,
     state: TranspileState,
   ): string {
-    const form = ArgumentForm.of(
-      simpleId !== null,
-      targetParamBaseType,
-      callbacks,
-      state.cppMode,
-    );
     switch (form.kind) {
       case "identifier":
         invariant(simpleId !== null, "an identifier argument is a bare name");

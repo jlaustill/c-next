@@ -1,3 +1,4 @@
+import type IPlannedArgument from "./IPlannedArgument";
 import type IPlannedFunctionParameter from "./IPlannedFunctionParameter";
 import type IParameterSyntax from "../../../types/syntax/IParameterSyntax";
 import type IPlannedFloatBits from "./IPlannedFloatBits";
@@ -51,6 +52,9 @@ interface IFilePlan {
 
   /** The plan for each type the file writes */
   readonly types: ReadonlyMap<TTypeSyntax, IPlannedType>;
+
+  /** How each call argument is passed and written */
+  readonly arguments: ReadonlyMap<TExpression, IPlannedArgument>;
 
   /** Each function parameter of the file, as its function's context reads it */
   readonly functionParameters: ReadonlyMap<
