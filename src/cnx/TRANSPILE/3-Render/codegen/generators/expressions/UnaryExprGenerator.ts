@@ -11,9 +11,7 @@ import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
 import TGeneratorFn from "../TGeneratorFn";
-import TYPE_MAP from "../../types/TYPE_MAP";
 import CppModeHelper from "../../helpers/CppModeHelper";
-import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import invariant from "../../../../../utils/invariant";
 import type TNegativeMinimum from "../../../../2-Plan/types/TNegativeMinimum";
 
@@ -62,11 +60,8 @@ interface IPlannedUnary {
   /** 2.2's decision: the type whose minimum macro this `-` literal is written as (MISRA 10.3) */
   readonly minimum: TNegativeMinimum | null;
 
-  /**
-   * The operand's resolved type. LAZY: only `~` consults it, and resolving it
-   * eagerly would do strictly more work than the node-taking version did.
-   */
-  readonly operandType: () => string | null;
+  /** 2.2's decision: the unsigned C type this `~` is cast back to (MISRA 10.1) */
+  readonly complementCast: string | null;
 }
 
 const generateUnaryExpr: TGeneratorFn<IPlannedUnary> = (
@@ -93,9 +88,8 @@ const generateUnaryExpr: TGeneratorFn<IPlannedUnary> = (
     return { code: `-${inner}`, effects: [] };
   }
   if (unary.operator === "~") {
-    const innerType = unary.operandType();
-    if (innerType && TypeCheckUtils.isUnsigned(innerType)) {
-      const cType = TYPE_MAP[innerType] ?? innerType;
+    const cType = unary.complementCast;
+    if (cType !== null) {
       return {
         code: CppModeHelper.cast(cType, `~${inner}`, orchestrator.state),
         effects: [{ type: "c-type", cType }],

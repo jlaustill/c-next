@@ -6,7 +6,7 @@
  * - Signed types and unresolvable types are unchanged
  * - C++ mode uses static_cast
  *
- * #1445: the generator takes `{ operator, operandCode, operandType }`, so
+ * #1445: the generator takes `{ operator, operandCode, complementCast }`, so
  * there is no node to fake and no orchestrator to stand in for the recursion.
  * The operand's type arrives through the thunk, and whether it is unsigned is
  * `TypeCheckUtils`'s real answer (#1668: the mocked `ExpressionTypeResolver`
@@ -32,27 +32,27 @@ const state = new TranspileState();
 // state, for the MISRA 10.1/10.3 cast. That is the only member it touches.
 const mockOrchestrator = { state } as unknown as IOrchestrator;
 
-/** The generator's whole input: an operator, the operand's code, its type. */
+/** The generator's whole input: an operator, the operand's code, 2.2's `~` cast. */
 function planned(
   operator: "!" | "-" | "~" | "&" | null,
   operandCode: string,
-  operandType: string | null = null,
+  complementCast: string | null = null,
 ) {
   return {
     operator,
     operandCode,
     minimum: null,
-    operandType: () => operandType,
+    complementCast,
   };
 }
 
 const run = (
   operator: "!" | "-" | "~" | "&" | null,
   operandCode: string,
-  operandType: string | null = null,
+  complementCast: string | null = null,
 ) =>
   generateUnaryExpr(
-    planned(operator, operandCode, operandType),
+    planned(operator, operandCode, complementCast),
     mockInput,
     mockState,
     mockOrchestrator,
@@ -69,14 +69,14 @@ describe("UnaryExprGenerator", () => {
 
   describe("bitwise NOT on unsigned types", () => {
     it("should cast ~u8 to (uint8_t)~c in C mode", () => {
-      const result = run("~", "c", "u8");
+      const result = run("~", "c", "uint8_t");
 
       expect(result.code).toBe("(uint8_t)~c");
       expect(result.effects).toEqual([{ type: "c-type", cType: "uint8_t" }]);
     });
 
     it("should cast ~u16 to (uint16_t)~c in C mode", () => {
-      const result = run("~", "c", "u16");
+      const result = run("~", "c", "uint16_t");
 
       expect(result.code).toBe("(uint16_t)~c");
       expect(result.effects).toEqual([{ type: "c-type", cType: "uint16_t" }]);
@@ -85,7 +85,7 @@ describe("UnaryExprGenerator", () => {
     it("should use static_cast in C++ mode", () => {
       state.cppMode = true;
 
-      const result = run("~", "c", "u8");
+      const result = run("~", "c", "uint8_t");
 
       expect(result.code).toBe("static_cast<uint8_t>(~c)");
       expect(result.effects).toEqual([{ type: "c-type", cType: "uint8_t" }]);
@@ -94,7 +94,7 @@ describe("UnaryExprGenerator", () => {
 
   describe("bitwise NOT on signed/unresolvable types", () => {
     it("should not cast ~i8 (signed type)", () => {
-      const result = run("~", "c", "i8");
+      const result = run("~", "c", null);
 
       expect(result.code).toBe("~c");
       expect(result.effects).toEqual([]);

@@ -35,4 +35,13 @@ describe("2.2 plans the C types a file uses", () => {
       "void",
     ]);
   });
+
+  it("casts a `~` of an unsigned operand back to its C type, not a signed one", () => {
+    const plan = ProgramGeneration.planSource(
+      ["u16 v;", "i16 w;", "void f() {", "  v <- ~v;", "  w <- ~w;", "}"].join(
+        "\n",
+      ),
+    );
+    expect([...plan.complementCasts.values()]).toEqual(["uint16_t"]);
+  });
 });

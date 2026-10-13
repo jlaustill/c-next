@@ -274,6 +274,7 @@ class CodeGenWalker {
   private readonly renderedCasts = new Set<TExpression>();
   /** The planned negative minimums 2.3 rendered, checked against the plan once it is done */
   private readonly renderedMinimums = new Set<TExpression>();
+  private readonly renderedComplementCasts = new Set<TExpression>();
   /** The planned struct initializers 2.3 rendered, checked against the plan once it is done */
   private readonly renderedStructInitializers = new Set<TExpression>();
 
@@ -485,19 +486,20 @@ class CodeGenWalker {
         operator: null,
         operandCode: this.renderPostfix(expr),
         minimum: null,
-        operandType: () => null,
+        complementCast: null,
       });
     }
 
     const operand = expr.operand;
     const minimum = this.filePlan.negativeMinimums.get(expr) ?? null;
     if (minimum !== null) this.renderedMinimums.add(expr);
+    const complementCast = this.filePlan.complementCasts.get(expr) ?? null;
+    if (complementCast !== null) this.renderedComplementCasts.add(expr);
     return this.invokeGenerator(generateUnaryExpr, {
       operator: expr.operator,
       operandCode: this.renderUnary(operand),
       minimum,
-      // lazy: only `~` consults it
-      operandType: () => this.directTypeOf(operand),
+      complementCast,
     });
   }
 
@@ -2256,6 +2258,7 @@ class CodeGenWalker {
     if (negativeMinimums.size > 0) {
       this.host.state.requireInclude("limits");
     }
+    const complementCasts = this.planComplementCasts(program, inlinedConsts);
     const floatBits = this.planFloatBits(program, inlinedConsts, decidedCTypes);
     const atomicForms = this.planInterruptSafety(program, decidedCTypes);
     // ADR-007: each union copy is checked by the float static assert
@@ -2278,12 +2281,14 @@ class CodeGenWalker {
       comparisons,
       casts,
       negativeMinimums,
+      complementCasts,
       floatBitReads: floatBits.reads,
       floatBitWrites: floatBits.writes,
       atomicForms,
       cTypes: this.planCTypes(program, inlinedConsts, types, [
         ...decidedCTypes,
         ...negativeMinimums.values(),
+        ...complementCasts.values(),
       ]),
       safeDivisions,
       expectedTypes,
@@ -2484,6 +2489,28 @@ class CodeGenWalker {
   }
 
   /**
+   * MISRA 10.1: each written `~` of an unsigned operand, and the C type 2.3
+   * casts it back to (`~` promotes a narrow operand to `int`)
+   */
+  private planComplementCasts(
+    program: IProgramSyntax,
+    inlinedConsts: ReadonlySet<TDeclarationSyntax>,
+  ): ReadonlyMap<TExpressionOf<"unary">, string> {
+    const casts = new Map<TExpressionOf<"unary">, string>();
+    for (const expression of CodeGenWalker.writtenExpressions(
+      program,
+      inlinedConsts,
+    )) {
+      if (expression.kind !== "unary" || expression.operator !== "~") continue;
+      const operandType = this.directTypeOf(expression.operand);
+      if (operandType !== null && TypeCheckUtils.isUnsigned(operandType)) {
+        casts.set(expression, TYPE_MAP[operandType] ?? operandType);
+      }
+    }
+    return casts;
+  }
+
+  /**
    * #1927: every C type the file's text uses, from which 2.2 decides
    * `<stdint.h>` and `<stdbool.h>` (`CTypeIncludes`): each written type, each
    * `true`/`false`, each bitmap's backing type, and the C types of the forms
@@ -2637,6 +2664,7 @@ class CodeGenWalker {
     this.renderedComparisons.clear();
     this.renderedCasts.clear();
     this.renderedMinimums.clear();
+    this.renderedComplementCasts.clear();
     this.renderedStructInitializers.clear();
 
     // Generate declarations
@@ -2662,6 +2690,11 @@ class CodeGenWalker {
       this.filePlan.negativeMinimums.keys(),
       this.renderedMinimums,
       "negative minimum",
+    );
+    CodeGenWalker.assertAllRendered(
+      this.filePlan.complementCasts.keys(),
+      this.renderedComplementCasts,
+      "complement cast",
     );
     CodeGenWalker.assertAllRendered(
       this.filePlan.structInitializers.keys(),

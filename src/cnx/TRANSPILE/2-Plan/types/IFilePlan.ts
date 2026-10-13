@@ -54,6 +54,8 @@ interface IFilePlan {
     TExpressionOf<"unary">,
     TNegativeMinimum
   >;
+  /** MISRA 10.1: each written `~` of an unsigned operand, and the C type it is cast back to */
+  readonly complementCasts: ReadonlyMap<TExpressionOf<"unary">, string>;
   /** ADR-007: each written range read of a named float's bits, through a union */
   readonly floatBitReads: ReadonlySet<TPostfixOpSyntax>;
   /** ADR-007: each assignment target that writes a float's bits, through a union */
