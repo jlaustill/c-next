@@ -126,7 +126,7 @@ describe("CriticalGenerator", () => {
         orchestrator,
       );
 
-      expect(result.effects).toEqual([{ type: "c-type", cType: "uint32_t" }]);
+      expect(result.effects).toEqual([]);
     });
 
     it("uses __cnx_ prefixed functions (avoids macro collisions)", () => {

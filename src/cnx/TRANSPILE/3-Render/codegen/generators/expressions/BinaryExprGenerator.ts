@@ -92,7 +92,6 @@ const joinWithOperators = (
 const tryClampOperands = (
   plan: Extract<TPlannedBinaryExpr, { kind: "arithmetic" }>,
   operandCodes: readonly string[],
-  effects: TGeneratorEffect[],
 ): string | null => {
   const clamp = plan.clamp;
   if (clamp === null) return null;
@@ -108,7 +107,6 @@ const tryClampOperands = (
 
   let code = operandCodes[0];
   clamp.operations.forEach((operation, index) => {
-    effects.push({ type: "helper", operation, cnxType: clamp.cnxType });
     code = `cnx_clamp_${operation}_${clamp.cnxType}(${code}, ${operandCodes[index + 1]})`;
   });
   return code;
@@ -145,7 +143,7 @@ const renderArithmetic = (
   }
 
   // Issue #1152: saturate when the operands are of a clamp integer type
-  const clamped = tryClampOperands(plan, operandCodes, effects);
+  const clamped = tryClampOperands(plan, operandCodes);
   if (clamped !== null) {
     return { code: clamped, effects };
   }

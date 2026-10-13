@@ -90,14 +90,6 @@ class TranspileState {
   /** Issue #369: Whether self-include was added */
   selfIncludeAdded: boolean = false;
 
-  /**
-   * The C types render recorded spelling into this file (`uint8_t`, `bool`),
-   * from which the plan decides `<stdint.h>` / `<stdbool.h>` (#1927). Holds
-   * only what the recording sites add: every render site that spells a
-   * `<stdint.h>` / `<stdbool.h>` name records it, or says in a comment which
-   * record necessarily comes with it.
-   */
-  emittedCTypes: Set<string> = new Set();
   /** ADR-045: For strlen, strncpy, etc. */
   needsString: boolean = false;
   /** ADR-049/050: For atomic intrinsics and critical sections */
@@ -118,8 +110,6 @@ class TranspileState {
    * without failing.
    */
   private ldrexStrexLoopEmitted: boolean = false;
-  /** Track which overflow helper types/operations are needed: "add_u8", etc. */
-  usedClampOps: Set<string> = new Set();
   /** Track which safe division helpers are needed: "div_u32", "mod_i16" */
   usedSafeDivOps: Set<string> = new Set();
   /** #1668: single-evaluation saturating casts, as `"f32_u8"` keys */
@@ -225,14 +215,6 @@ class TranspileState {
         this.needsIrqWrappers = true;
         break;
     }
-  }
-  /**
-   * Mark a clamp operation as used.
-   */
-  markClampOpUsed(operation: string, cnxType: string): void {
-    // Internal helper-op key (e.g. "add_u32"), not a scope-qualified C name.
-    // HelperGenerator splits this on a single underscore.
-    this.usedClampOps.add(`${operation}_${cnxType}`);
   }
 
   /**
@@ -1291,10 +1273,8 @@ class TranspileState {
     this.publicCallbackTypeReferences = new Set();
     this.declarationPlanOrNull = null;
     this.emissionPlanOrNull = null;
-    this.usedClampOps = new Set();
     this.usedSafeDivOps = new Set();
     this.usedCastHelpers = new Set();
-    this.emittedCTypes = new Set();
     this.needsString = false;
     this.needsFloatStaticAssert = false;
     this.needsISR = false;

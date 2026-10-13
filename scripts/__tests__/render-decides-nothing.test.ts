@@ -83,7 +83,7 @@ const CAPTURES = [
     // parse tree, so it moved to the walker with the rest of the walk. It is
     // still exactly one capture per artifact -- the file changed, not the rule.
     file: join("src", "cnx", "TRANSPILE", "CodeGenWalker.ts"),
-    needle: "private captureEmissionFacts(",
+    needle: "private planEmissionFacts(",
   },
   {
     // #1443 moved the header capture out of the orchestrator, beside the
@@ -103,8 +103,8 @@ const CAPTURES = [
 /**
  * A decision read off the render state: an include flag, or a helper-op set.
  *
- * `usedClampOps` and `usedSafeDivOps` are here because the plan carries them
- * too, and for a while the renderer took them from the state anyway -- the fact
+ * `usedSafeDivOps` is here because the plan carries it too, and for a while
+ * the renderer took it from the state anyway -- the fact
  * in two places with the renderer using the other one. Nothing behavioral
  * could catch that: the plan is BUILT from the state, so both hold the same
  * values and a test asserting the output cannot tell which was read. The claim
@@ -124,7 +124,7 @@ const CAPTURES = [
  * the questions the plan answers. Reading one at emission time is the defect.
  */
 const FLAG_READ =
-  /(?:\bstate|\w+\.state|\w+\.transpileState)\.(?:needs[A-Z]\w*|usedClampOps|usedSafeDivOps|emittedCTypes)(?!\.add\()/g;
+  /(?:\bstate|\w+\.state|\w+\.transpileState)\.(?:needs[A-Z]\w*|usedSafeDivOps)(?!\.add\()/g;
 
 /**
  * #1927: `<stdint.h>` / `<stdbool.h>` are decided by ONE predicate, which both

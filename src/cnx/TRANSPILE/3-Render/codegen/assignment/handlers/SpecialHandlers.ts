@@ -11,7 +11,6 @@ import AssignmentClassifier from "../../../../2-Plan/AssignmentClassifier";
 import TAssignmentHandler from "./TAssignmentHandler";
 import TTypeInfo from "../../../../../types/TTypeInfo";
 import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
-import OverflowHelperTemplates from "../../generators/support/OverflowHelperTemplates";
 import TYPE_MAP from "../../types/TYPE_MAP";
 import invariant from "../../../../../utils/invariant";
 
@@ -62,10 +61,6 @@ function handleOverflowClamp(ctx: IAssignmentContext): string {
   // which reaches a different decision and would otherwise leave every
   // compound-only fixture without a derivable context.
   AdrProvenance.record("044", ctx.targetLine);
-  ctx.state.markClampOpUsed(clamp.operation, clamp.cnxType);
-  for (const cType of OverflowHelperTemplates.cTypesOf(clamp.cnxType)) {
-    ctx.state.emittedCTypes.add(cType);
-  }
   const helper = `cnx_clamp_${clamp.operation}_${clamp.cnxType}`;
   if (!ctx.targetIndexHasSideEffect) {
     return `${target} = ${helper}(${target}, ${ctx.generatedValue});`;

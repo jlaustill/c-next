@@ -82,7 +82,6 @@ class NarrowingCastHelper {
   ): string {
     if (narrowing === null) return expr;
     if (narrowing.kind === "compare") return `((${expr}) != 0U)`;
-    state.emittedCTypes.add(narrowing.cType);
     return CppModeHelper.cast(narrowing.cType, expr, state);
   }
 

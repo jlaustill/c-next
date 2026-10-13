@@ -27,18 +27,18 @@ describe("LiteralGenerator", () => {
   });
 
   describe("boolean literals", () => {
-    it("should pass through boolean true with the bool c-type effect", () => {
+    it("should pass through boolean true with no effect", () => {
       const result = generateLiteral("true", mockState, state, null);
 
       expect(result.code).toBe("true");
-      expect(result.effects).toEqual([{ type: "c-type", cType: "bool" }]);
+      expect(result.effects).toEqual([]);
     });
 
-    it("should pass through boolean false with the bool c-type effect", () => {
+    it("should pass through boolean false with no effect", () => {
       const result = generateLiteral("false", mockState, state, null);
 
       expect(result.code).toBe("false");
-      expect(result.effects).toEqual([{ type: "c-type", cType: "bool" }]);
+      expect(result.effects).toEqual([]);
     });
   });
 

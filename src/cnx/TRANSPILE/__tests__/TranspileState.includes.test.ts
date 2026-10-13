@@ -96,13 +96,6 @@ describe("TranspileState", () => {
     });
   });
 
-  describe("clamp and safe-division helpers", () => {
-    it("markClampOpUsed adds to usedClampOps", () => {
-      state.markClampOpUsed("add", "u8");
-      expect(state.usedClampOps.has("add_u8")).toBe(true);
-    });
-  });
-
   // Opaque scope variables used to be tracked here by generated name, a second
   // store of what the member's declared type already says; a call site reads
   // that type now (#1668), and the fixtures under tests/bugs that pass scope

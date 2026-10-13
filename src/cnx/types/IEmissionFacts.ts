@@ -27,13 +27,10 @@ interface IEmissionFacts {
   readonly cppMode: boolean;
 
   /**
-   * The C types render recorded spelling into this file (`uint8_t`, `bool`),
-   * from which the plan decides `<stdint.h>` / `<stdbool.h>` (#1927). Holds
-   * only what the recording sites add: every render site that spells a
-   * `<stdint.h>` / `<stdbool.h>` name records it, or says in a comment which
-   * record necessarily comes with it.
+   * The C types 2.2 planned the file's text to spell (`uint8_t`, `bool`),
+   * from which the plan decides `<stdint.h>` / `<stdbool.h>` (#1927, #1991)
    */
-  readonly emittedCTypes: ReadonlySet<string>;
+  readonly cTypes: ReadonlySet<string>;
   readonly needsString: boolean;
   readonly needsCMSIS: boolean;
   readonly needsLimits: boolean;

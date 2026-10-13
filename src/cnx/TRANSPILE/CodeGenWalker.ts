@@ -2,7 +2,6 @@ import type TPlannedNarrowing from "./2-Plan/types/TPlannedNarrowing";
 import COMPOUND_TO_BINARY from "./3-Render/codegen/types/COMPOUND_TO_BINARY";
 import NarrowingCastHelper from "./3-Render/codegen/helpers/NarrowingCastHelper";
 import OverflowHelperTemplates from "./3-Render/codegen/generators/support/OverflowHelperTemplates";
-import CTypeIncludes from "./2-Plan/CTypeIncludes";
 import FloatBitHelper from "./3-Render/codegen/helpers/FloatBitHelper";
 /**
  * CodeGenWalker -- the walk over one file's plain-data `IProgramSyntax`
@@ -439,8 +438,6 @@ class CodeGenWalker {
     );
 
     const cType = this.cTypeOf(plan);
-    // #1927: the plan decides `<stdint.h>` / `<stdbool.h>` from this spelling.
-    this.host.state.emittedCTypes.add(cType);
     this.renderedTypes.add(type);
     return cType;
   }
@@ -3047,7 +3044,6 @@ class CodeGenWalker {
       "struct initializer",
     );
 
-    this.assertHelpersAndCTypesPlanned();
     const emissionPlan = plan.emission;
 
     // 2.3 Render: format the plan. These two decide nothing.
@@ -3224,27 +3220,6 @@ class CodeGenWalker {
   }
 
   /**
-   * #1991: the headers and clamp helpers come from 2.2's plan. 2.3 still
-   * reports what it writes, and anything it reports that the plan lacks is a
-   * decision 2.2 missed.
-   */
-  private assertHelpersAndCTypesPlanned(): void {
-    const renderedOps = this.host.state.usedClampOps;
-    const plannedOps = this.filePlan.clampOps;
-    invariant(
-      renderedOps.size === plannedOps.size &&
-        [...renderedOps].every((op) => plannedOps.has(op)),
-      `2.2 planned the clamp helpers 2.3 calls in ${this.host.state.sourcePath} (planned [${[...plannedOps].join()}], called [${[...renderedOps].join()}])`,
-    );
-    const plannedHeaders = CTypeIncludes.decide(this.filePlan.cTypes);
-    const renderedHeaders = CTypeIncludes.decide(this.host.state.emittedCTypes);
-    invariant(
-      renderedHeaders.every((header) => plannedHeaders.includes(header)),
-      `2.2 planned the C type headers 2.3 writes in ${this.host.state.sourcePath} (planned [${plannedHeaders.join()}], written [${renderedHeaders.join()}])`,
-    );
-  }
-
-  /**
    * The file's emission questions, from 2.2's decisions above and the
    * requirements they raised, so the emission plan is built before 2.3
    * writes any of the file (#1991)
@@ -3260,7 +3235,7 @@ class CodeGenWalker {
     }
     return {
       cppMode: this.host.isCppMode(),
-      emittedCTypes: plan.cTypes,
+      cTypes: plan.cTypes,
       needsString: this.host.state.needsString,
       needsCMSIS: this.host.state.needsCMSIS,
       needsLimits: this.host.state.needsLimits,

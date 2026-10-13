@@ -9,16 +9,8 @@
 import TParameterInfo from "../../../../types/TParameterInfo";
 
 type TGeneratorEffect =
-  // No include effect: 2.2 requires every header before 2.3 renders (#1991).
-  // #1927: a C type the generated text uses. The plan, not the generator,
-  // decides which header that costs (`CTypeIncludes`).
-  | { type: "c-type"; cType: string }
-
-  // === Helper Function Effects ===
-  | { type: "helper"; operation: string; cnxType: string } // Overflow clamp helper
-
-  // === Type Registration Effects ===
-
+  // No include, C type or helper effect: 2.2 decides every header and helper
+  // before 2.3 renders (#1991).
   // === Scope Effects (ADR-016) ===
   | { type: "set-scope"; name: string | null } // Enter/exit a scope
 

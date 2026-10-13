@@ -412,20 +412,6 @@ describe("CodeGenWalker", () => {
         expect(host.getState()).toBeDefined();
       });
 
-      it("should process helper effects (clamp operations)", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`, false);
-
-        // Apply helper effect for clamp add operation
-        expect(() =>
-          host.applyEffects([
-            { type: "helper", operation: "add", cnxType: "u8" },
-          ]),
-        ).not.toThrow();
-
-        // Generator should track the helper operation
-        expect(host.getState()).toBeDefined();
-      });
-
       it("should process set-parameters effects", () => {
         const { host } = createMinimalGenerator(`void foo() { }`, false);
 

@@ -26,8 +26,7 @@ class InterruptMask {
     ${inner}
     __cnx_set_PRIMASK(__primask);
 }`,
-      // `uint32_t` is also every `__cnx_` wrapper's mask type (#1927)
-      effects: [{ type: "c-type", cType: "uint32_t" }],
+      effects: [],
     };
   }
 }

@@ -80,9 +80,9 @@ class PlanRenderState {
     'import TranspileState from "../TranspileState";',
     "export default function probe(s: TranspileState): void {",
     "  s.indentLevel++;",
-    "  const used = s.usedClampOps;",
-    '  used.add("x");',
-    '  s.markClampOpUsed("add", "u8");',
+    "  const pending = s.pendingTempDeclarations;",
+    '  pending.push("x");',
+    "  s.getNextTempVarName();",
     "}",
     "",
   ].join("\n");
@@ -90,8 +90,8 @@ class PlanRenderState {
   /** The probe's writes, as `member@line`. */
   static readonly PROBE_WRITES = [
     "indentLevel@3",
-    "usedClampOps@4",
-    "markClampOpUsed@6",
+    "pendingTempDeclarations@4",
+    "getNextTempVarName@6",
   ];
 
   /** Measures the project's TranspileState traffic between 2.2 and 2.3. */
@@ -254,7 +254,7 @@ class PlanRenderState {
     );
     if (!probeFlow) {
       out.push(
-        "control: the probe reads usedClampOps, which 3-Render writes, and no flow was detected",
+        "control: the probe reads pendingTempDeclarations, which 3-Render writes, and no flow was detected",
       );
     }
     return out;

@@ -97,7 +97,7 @@ describe("PlanRenderState.violations", () => {
       line,
       write: true,
       wrote: [],
-      read: ["usedClampOps"],
+      read: ["pendingTempDeclarations"],
     });
     const uses = PlanRenderState.PROBE_WRITES.map((w) => {
       const [member, line] = w.split("@");
@@ -105,7 +105,7 @@ describe("PlanRenderState.violations", () => {
     });
     const probe = {
       planWrites: uses,
-      flows: [{ field: "usedClampOps", reads: uses, writes: [] }],
+      flows: [{ field: "pendingTempDeclarations", reads: uses, writes: [] }],
     };
     expect(PlanRenderState.violations(clean, probe)).toEqual([]);
   });

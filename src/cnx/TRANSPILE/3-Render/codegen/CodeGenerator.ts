@@ -3,7 +3,6 @@
  * Transforms C-Next AST to clean, readable C code
  */
 
-import OverflowHelperTemplates from "./generators/support/OverflowHelperTemplates";
 import type IFloatBitWrite from "../../../types/IFloatBitWrite";
 import ReservedCnxName from "../../../utils/ReservedCnxName";
 
@@ -143,22 +142,6 @@ export default class CodeGenerator implements IOrchestrator {
   applyEffects(effects: readonly TGeneratorEffect[]): void {
     for (const effect of effects) {
       switch (effect.type) {
-        case "c-type":
-          this.state.emittedCTypes.add(effect.cType);
-          break;
-
-        // Helper function effects
-        case "helper":
-          // Route through the single marker rather than writing the set
-          // directly, so helper-op bookkeeping has one entry point (#1143).
-          this.state.markClampOpUsed(effect.operation, effect.cnxType);
-          for (const cType of OverflowHelperTemplates.cTypesOf(
-            effect.cnxType,
-          )) {
-            this.state.emittedCTypes.add(cType);
-          }
-          break;
-
         // #1452 box 2: three "type registration" effects stood here --
         // `register-type`, `register-local`, `register-const-value` -- and NO
         // generator emitted any of them (`grep` for each literal outside this

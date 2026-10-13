@@ -40,7 +40,6 @@ function tryHandleCompoundNarrowingCast(
 
   const cType = TYPE_MAP[baseType] ?? baseType;
   const expr = `(${target} ${binaryOp} ${ctx.generatedValue})`;
-  ctx.state.emittedCTypes.add(cType);
   const castExpr = CppModeHelper.cast(cType, expr, ctx.state);
   return `${target} = ${castExpr};`;
 }

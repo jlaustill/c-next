@@ -70,14 +70,12 @@ describe("TranspileState", () => {
       enterScope(state, "TestScope");
       state.currentFunctionName = "testFunc";
       state.indentLevel = 5;
-      state.emittedCTypes.add("uint8_t");
 
       state.reset();
 
       expect(state.currentScopePath).toBe("");
       expect(state.currentFunctionName).toBeNull();
       expect(state.indentLevel).toBe(0);
-      expect(state.emittedCTypes.size).toBe(0);
     });
 
     it("resets generator reference", () => {

@@ -48,7 +48,7 @@ const STREX_MAP: Record<string, string> = {
  * Generate the inner operation for atomic RMW.
  * Handles clamp/wrap behavior for arithmetic operations.
  *
- * @returns Object with code and effects (may include helper effects for clamp)
+ * @returns Object with code and effects
  */
 function generateInnerAtomicOp(
   cOp: string,
@@ -61,11 +61,6 @@ function generateInnerAtomicOp(
 
   // Saturate when the classifier chose a clamp helper
   if (helperOp) {
-    effects.push({
-      type: "helper",
-      operation: helperOp,
-      cnxType: typeInfo.baseType,
-    });
     return {
       code: `cnx_clamp_${helperOp}_${typeInfo.baseType}(__old, ${value})`,
       effects,
@@ -93,9 +88,6 @@ function generateLdrexStrexLoop(
   const strex = STREX_MAP[typeInfo.baseType];
   const cType = TYPE_MAP[typeInfo.baseType];
 
-  // 2.2 chose this form, and required CMSIS and the loop's cost with it (#1991)
-  effects.push({ type: "c-type", cType });
-
   // Generate LDREX/STREX retry loop
   // Uses do-while because we always need at least one attempt
   const code = `do {
@@ -115,7 +107,7 @@ function generateLdrexStrexLoop(
  * (#1146: this emitted raw CMSIS with no platform guard, so AVR got CMSIS
  * calls where `critical` got SREG).
  *
- * @returns Object with code and effects (the IRQ wrappers, may include helper)
+ * @returns Object with code and effects
  */
 function generatePrimaskWrapper(
   target: string,
@@ -131,11 +123,6 @@ function generatePrimaskWrapper(
 
   // Saturate when the classifier chose a clamp helper
   if (helperOp) {
-    effects.push({
-      type: "helper",
-      operation: helperOp,
-      cnxType: typeInfo.baseType,
-    });
     assignment = `${target} = cnx_clamp_${helperOp}_${typeInfo.baseType}(${target}, ${value});`;
   } else {
     assignment = `${target} ${cOp} ${value};`;

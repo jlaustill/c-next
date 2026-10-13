@@ -214,7 +214,7 @@ class EmissionPlan {
     const already = new Set(facts.existingIncludeTargets);
     const decided: string[] = [];
     const candidates = [
-      ...CTypeIncludes.decide(facts.emittedCTypes),
+      ...CTypeIncludes.decide(facts.cTypes),
       ...SYSTEM_INCLUDES.filter((c) => c.needed(facts)).map((c) => c.target),
     ];
     for (const target of candidates) {

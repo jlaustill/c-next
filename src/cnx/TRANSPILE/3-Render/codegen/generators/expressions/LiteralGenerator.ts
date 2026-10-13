@@ -92,9 +92,7 @@ const generateLiteral = (
   const effects: TGeneratorEffect[] = [];
   let literalText = text;
 
-  // `true`/`false` are `bool` values; the plan decides `<stdbool.h>` (#1927)
   if (literalText === "true" || literalText === "false") {
-    effects.push({ type: "c-type", cType: "bool" });
     return { code: literalText, effects };
   }
 

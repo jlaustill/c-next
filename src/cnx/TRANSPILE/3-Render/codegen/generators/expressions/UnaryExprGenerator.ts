@@ -78,7 +78,7 @@ const generateUnaryExpr: TGeneratorFn<IPlannedUnary> = (
     if (unary.minimum !== null) {
       return {
         code: `(${unary.minimum})${MINIMUM_MACRO[unary.minimum]}`,
-        effects: [{ type: "c-type", cType: unary.minimum }],
+        effects: [],
       };
     }
     invariant(
@@ -92,7 +92,7 @@ const generateUnaryExpr: TGeneratorFn<IPlannedUnary> = (
     if (cType !== null) {
       return {
         code: CppModeHelper.cast(cType, `~${inner}`, orchestrator.state),
-        effects: [{ type: "c-type", cType }],
+        effects: [],
       };
     }
     return { code: `~${inner}`, effects: [] };

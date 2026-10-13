@@ -48,7 +48,6 @@ const wrapWithCppEnumCast = (
     orchestrator,
   );
   if (cType === null) return argCode;
-  orchestrator.state.emittedCTypes.add(cType);
   return `static_cast<${cType}>(${argCode})`;
 };
 

@@ -154,17 +154,14 @@ describe("BitmapGenerator", () => {
   });
 
   describe("effects", () => {
-    it("records the backing C type", () => {
+    it("reports no C type: 2.2 planned the backing type's header (#1991)", () => {
       const input = createMockInput("Test", "uint8_t");
       const state = createMockState();
       const orchestrator = createMockOrchestrator();
 
       const result = generateBitmap("Test", input, state, orchestrator);
 
-      expect(result.effects).toContainEqual({
-        type: "c-type",
-        cType: "uint8_t",
-      });
+      expect(result.effects).toEqual([]);
     });
   });
 

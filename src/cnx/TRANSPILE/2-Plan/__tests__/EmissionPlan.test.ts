@@ -12,7 +12,7 @@ import type IEmissionFacts from "../../../types/IEmissionFacts";
 
 const NOTHING: IEmissionFacts = {
   cppMode: false,
-  emittedCTypes: new Set<string>(),
+  cTypes: new Set<string>(),
   needsString: false,
   needsCMSIS: false,
   needsLimits: false,
@@ -58,9 +58,7 @@ describe("EmissionPlan (2.2 Plan)", () => {
       ["float", []],
       ["char*", []],
     ] as const)("an emitted %s decides %j", (cType, expected) => {
-      const plan = EmissionPlan.build(
-        facts({ emittedCTypes: new Set([cType]) }),
-      );
+      const plan = EmissionPlan.build(facts({ cTypes: new Set([cType]) }));
 
       expect(plan.systemIncludes).toEqual(expected);
     });
@@ -79,7 +77,7 @@ describe("EmissionPlan (2.2 Plan)", () => {
     it("keeps a fixed emission order", () => {
       const plan = EmissionPlan.build(
         facts({
-          emittedCTypes: new Set(["bool", "uint32_t"]),
+          cTypes: new Set(["bool", "uint32_t"]),
           needsString: true,
           needsCMSIS: true,
           needsLimits: true,
@@ -99,7 +97,7 @@ describe("EmissionPlan (2.2 Plan)", () => {
     it("does not re-emit a header the source already includes", () => {
       const plan = EmissionPlan.build(
         facts({
-          emittedCTypes: new Set(["uint32_t"]),
+          cTypes: new Set(["uint32_t"]),
           needsString: true,
           existingIncludeTargets: ["<stdint.h>"],
         }),

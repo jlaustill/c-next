@@ -184,7 +184,6 @@ function materializeSliceSource(
   }
 
   const tempType = SliceSource.tempTypeOf(src, lengthValue);
-  state.emittedCTypes.add(tempType);
   const tempName = state.getNextTempVarName();
   writes.push(`const ${tempType} ${tempName} = (${tempType})(${value});`);
   return tempName;
@@ -219,15 +218,6 @@ function buildSliceWrites(
   const dest = resolveSliceElement(typeInfo, rawName);
   const src = ctx.plannedSliceSource;
   invariant(src !== null, "2.2 planned every slice source 2.3 writes");
-  // The element casts, including a string element's `(char)(uint8_t)`, and
-  // the source temps: the plan decides their header (#1927)
-  for (const cType of [
-    dest.cType === "char" ? "uint8_t" : dest.cType,
-    src.cType,
-    src.unsignedCType,
-  ]) {
-    if (cType !== null) ctx.state.emittedCTypes.add(cType);
-  }
   const elementCount = validateSliceSpan(
     dest,
     src,
