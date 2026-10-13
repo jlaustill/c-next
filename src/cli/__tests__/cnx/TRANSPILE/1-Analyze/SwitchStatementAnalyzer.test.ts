@@ -129,6 +129,40 @@ describe("SwitchStatementAnalyzer", () => {
     ).toEqual([]);
   });
 
+  describe("rooted labels (#1629)", () => {
+    const labels = (a: string, b: string) =>
+      [
+        "const u8 LIMIT <- 1;",
+        "scope Panel {",
+        "    const u8 LIMIT <- 3;",
+        "    public u32 pick(u8 s) {",
+        "        switch (s) {",
+        `            case ${a} { return 1; }`,
+        `            case ${b} { return 2; }`,
+        "            default { return 0; }",
+        "        }",
+        "    }",
+        "}",
+      ].join("\n");
+
+    it("rejects the same rooted label twice", () => {
+      const found = errors(labels("this.LIMIT", "this.LIMIT"));
+      expect(found).toHaveLength(1);
+      expect(found[0].code).toBe("E0713");
+      expect(found[0].message).toContain("'this.LIMIT'");
+    });
+
+    it("keeps `this.LIMIT` and `global.LIMIT` apart: they are two consts", () => {
+      expect(errors(labels("this.LIMIT", "global.LIMIT"))).toEqual([]);
+    });
+
+    it("rejects the same character label twice", () => {
+      const found = errors(labels("'a'", "'a'"));
+      expect(found).toHaveLength(1);
+      expect(found[0].code).toBe("E0713");
+    });
+  });
+
   describe("enum exhaustiveness (E0714)", () => {
     const source = (cases: string): string =>
       [

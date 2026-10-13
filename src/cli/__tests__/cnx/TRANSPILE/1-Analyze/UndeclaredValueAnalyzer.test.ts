@@ -239,4 +239,51 @@ describe("UndeclaredValueAnalyzer", () => {
       },
     );
   });
+
+  /**
+   * #1629. A case label is its own grammar rule, so it is reached by its own
+   * hook, which asks the same question in each spelling the label admits.
+   */
+  describe("the case-label position", () => {
+    const inSwitch = (label: string) => `
+      const u8 REAL <- 1;
+      enum EMode { IDLE, RUN }
+      scope Panel {
+          const u8 OWN <- 3;
+          public u32 pick(u8 s) {
+              switch (s) {
+                  case ${label} { return 1; }
+                  default { return 0; }
+              }
+          }
+      }
+    `;
+
+    it.each([
+      ["a bare name", "NOPE", "NOPE"],
+      ["a `this.` name", "this.NOPE", "NOPE"],
+      ["a `global.` name", "global.NOPE", "NOPE"],
+      ["a file const asked of the scope", "this.REAL", "REAL"],
+      ["the head of a qualified label", "NOPE.RUN", "NOPE"],
+    ])("rejects %s that names nothing", (_label, label, name) => {
+      const source = inSwitch(label);
+      const errors = analyze(source);
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0427");
+      expect(errors[0].identifier).toBe(name);
+      const line = source.split("\n")[errors[0].line - 1];
+      expect(errors[0].column).toBe(line.indexOf(name, line.indexOf("case")));
+    });
+
+    it.each([
+      ["a visible const", "REAL"],
+      ["a scope const", "OWN"],
+      ["a `this.` const", "this.OWN"],
+      ["a `global.` const", "global.REAL"],
+      ["a qualified enum member", "EMode.RUN"],
+      ["a literal", "7"],
+    ])("accepts %s", (_label, label) => {
+      expect(analyze(inSwitch(label))).toHaveLength(0);
+    });
+  });
 });

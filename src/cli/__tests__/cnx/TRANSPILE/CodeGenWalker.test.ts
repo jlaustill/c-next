@@ -17570,6 +17570,39 @@ describe("CodeGenWalker", () => {
       expect(code).toContain("case 30U:");
     });
 
+    it("writes a `this.`/`global.` case label as the value it names (#1629)", () => {
+      const code = generate(`
+        const u8 LIMIT <- 1;
+        scope Panel {
+          const u8 LIMIT <- 3;
+          public u32 pick(u8 v) {
+            switch (v) {
+              case this.LIMIT { return 1; }
+              case global.LIMIT { return 2; }
+              default { return 3; }
+            }
+          }
+        }
+      `);
+      expect(code).toContain("case 3U:");
+      expect(code).toContain("case 1U:");
+      expect(code).not.toContain("case LIMIT:");
+    });
+
+    it("leaves a rooted label no binding resolves as it was written (#1629)", () => {
+      // E0427 stops such a label before codegen; without analysis the walk
+      // still renders it rather than dropping it
+      const code = generate(`
+        u32 pick(u8 v) {
+          switch (v) {
+            case global.NOPE { return 1; }
+            default { return 3; }
+          }
+        }
+      `);
+      expect(code).toContain("case NOPE:");
+    });
+
     it("folds a bool and an enum const named in a static initializer", () => {
       const code = generate(`
         enum EMode { IDLE, RUN }
