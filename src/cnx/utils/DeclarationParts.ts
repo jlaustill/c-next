@@ -52,7 +52,7 @@ class DeclarationParts {
         return declaration.members.flatMap((member) =>
           member.value === null
             ? []
-            : [DeclarationParts.expression(member.value)],
+            : [DeclarationParts.expression(member.value, true)],
         );
       case "bitmap":
       case "missing":
@@ -130,8 +130,11 @@ class DeclarationParts {
     return { kind: "type", type };
   }
 
-  private static expression(expression: TExpression): TSyntaxPart {
-    return { kind: "expression", expression };
+  private static expression(
+    expression: TExpression,
+    constant = false,
+  ): TSyntaxPart {
+    return { kind: "expression", expression, constant };
   }
 
   private static expressions(

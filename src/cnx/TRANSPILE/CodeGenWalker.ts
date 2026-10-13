@@ -242,8 +242,15 @@ class CodeGenWalker {
   /** 2.2's plan for each type this file writes, decided before 2.3 renders */
   private plannedTypes: ReadonlyMap<TTypeSyntax, IPlannedType> = new Map();
 
+  /** The planned types 2.3 rendered, checked against `plannedTypes` once it is done */
+  private readonly renderedTypes = new Set<TTypeSyntax>();
+
   /** 2.2's decision of which private scope consts are inlined, not declared */
   private plannedInlinedConsts: ReadonlySet<TDeclarationSyntax> = new Set();
+
+  /** 2.2's decision of which `sizeof(a.b)` operands are member accesses */
+  private plannedSizeofMemberAccesses: ReadonlySet<TExpressionOf<"sizeof">> =
+    new Set();
 
   /** 2.2's decision of what each `sizeof(Name)` operand's name binds to */
   private plannedSizeofBindings: ReadonlyMap<
@@ -401,6 +408,7 @@ class CodeGenWalker {
     });
     // #1927: the plan decides `<stdint.h>` / `<stdbool.h>` from this spelling.
     this.host.state.emittedCTypes.add(cType);
+    this.renderedTypes.add(type);
     return cType;
   }
 
@@ -1560,8 +1568,13 @@ class CodeGenWalker {
   private planTypeSites(
     program: IProgramSyntax,
   ): ReadonlyMap<TTypeSyntax, IPlannedType> {
+    const unwritten = this.unwrittenTypes(program);
     const planned = new Map<TTypeSyntax, IPlannedType>();
-    for (const { type, scope } of TypeSites.of(program)) {
+    for (const { type, scope } of TypeSites.of(
+      program,
+      this.plannedInlinedConsts,
+    )) {
+      if (unwritten.has(type)) continue;
       planned.set(
         type,
         scope === null
@@ -1573,6 +1586,36 @@ class CodeGenWalker {
   }
 
   /**
+   * Types in a written declaration that 2.3 spells some other way: a callback
+   * field by its typedef (ADR-029), and a `sizeof(Name)` whose name binds to a
+   * value (#1974).
+   */
+  private unwrittenTypes(program: IProgramSyntax): ReadonlySet<TTypeSyntax> {
+    const unwritten = new Set<TTypeSyntax>();
+    for (const expression of this.plannedSizeofMemberAccesses) {
+      if (expression.type) unwritten.add(expression.type);
+    }
+    for (const [expression, binding] of this.plannedSizeofBindings) {
+      if (binding !== null && binding.kind !== "scope" && expression.type) {
+        unwritten.add(expression.type);
+      }
+    }
+    for (const { declaration } of program.declarations) {
+      if (declaration.kind !== "struct") continue;
+      for (const field of declaration.fields) {
+        if (
+          this.host.state.callbackFieldTypes.has(
+            `${declaration.name}.${field.name}`,
+          )
+        ) {
+          unwritten.add(field.type);
+        }
+      }
+    }
+    return unwritten;
+  }
+
+  /**
    * #1974: whether `sizeof(Name)` sizes a value or a type depends on what
    * `Name` binds to at that point. 2.2 decides it for every such operand
    * before 2.3 spells any of them.
@@ -1581,26 +1624,49 @@ class CodeGenWalker {
     program: IProgramSyntax,
   ): ReadonlyMap<TExpressionOf<"sizeof">, TValueBinding | null> {
     const planned = new Map<TExpressionOf<"sizeof">, TValueBinding | null>();
-    for (const { declaration } of program.declarations) {
-      for (const part of DeclarationParts.of(declaration)) {
-        for (const expression of ExpressionNodes.of(part)) {
-          if (
-            expression.kind === "sizeof" &&
-            expression.type?.kind === "user"
-          ) {
-            planned.set(
-              expression,
-              this.host.state.bindingAt(
-                null,
-                expression.type.text,
-                CodeGenWalker.positionOf(expression),
-              ),
-            );
-          }
-        }
+    for (const expression of CodeGenWalker.sizeofsOf(program)) {
+      if (expression.type?.kind === "user") {
+        planned.set(
+          expression,
+          this.host.state.bindingAt(
+            null,
+            expression.type.text,
+            CodeGenWalker.positionOf(expression),
+          ),
+        );
       }
     }
     return planned;
+  }
+
+  /**
+   * #1972: `sizeof(a.b)` is spelled like `sizeof(Scope.Type)`, and is a member
+   * access when the chain has a value type. 2.2 decides which before 2.3
+   * spells either.
+   */
+  private planSizeofMemberAccesses(
+    program: IProgramSyntax,
+  ): ReadonlySet<TExpressionOf<"sizeof">> {
+    const typing = this.host.state.typingContext();
+    return new Set(
+      CodeGenWalker.sizeofsOf(program).filter(
+        (expression) =>
+          expression.type?.kind === "qualified" &&
+          expression.memberChain !== null &&
+          OperandTyper.typeOf(expression.memberChain, typing) !== null,
+      ),
+    );
+  }
+
+  private static sizeofsOf(program: IProgramSyntax): TExpressionOf<"sizeof">[] {
+    return program.declarations.flatMap(({ declaration }) =>
+      DeclarationParts.of(declaration).flatMap((part) =>
+        ExpressionNodes.of(part).filter(
+          (expression): expression is TExpressionOf<"sizeof"> =>
+            expression.kind === "sizeof",
+        ),
+      ),
+    );
   }
 
   /**
@@ -1758,10 +1824,20 @@ class CodeGenWalker {
     );
     this.plannedInlinedConsts = this.planInlinedConsts(program);
     this.plannedSizeofBindings = this.planSizeofBindings(program);
+    this.plannedSizeofMemberAccesses = this.planSizeofMemberAccesses(program);
     this.plannedTypes = this.planTypeSites(program);
+
+    this.renderedTypes.clear();
 
     // Generate declarations
     const declarations = this.generateAllDeclarations(program);
+    const unrendered = [...this.plannedTypes.keys()].find(
+      (type) => !this.renderedTypes.has(type),
+    );
+    invariant(
+      unrendered === undefined,
+      `2.3 rendered every type 2.2 planned (missed "${unrendered?.text}" at line ${unrendered?.span.line})`,
+    );
 
     // 2.2 Plan: every "does this file need X?" question the declarations above
     // raised is answered ONCE, here, from state that is warm for exactly this
@@ -4875,7 +4951,7 @@ class CodeGenWalker {
         invariant(chain !== null, "a qualified operand is also a member chain");
         // #1972: a chain that types is a member access, spelled as every
         // member access is
-        if (OperandTyper.typeOf(chain, this.host.state.typingContext())) {
+        if (this.plannedSizeofMemberAccesses.has(expr)) {
           return {
             kind: "expression",
             simpleIdentifier: null,

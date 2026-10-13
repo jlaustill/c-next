@@ -26,7 +26,9 @@ class TypeParts {
     dimensions: ReadonlyArray<TExpression | null>,
   ): readonly TSyntaxPart[] {
     return dimensions.flatMap((dimension): TSyntaxPart[] =>
-      dimension === null ? [] : [{ kind: "expression", expression: dimension }],
+      dimension === null
+        ? []
+        : [{ kind: "expression", expression: dimension, constant: true }],
     );
   }
 }

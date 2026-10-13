@@ -621,6 +621,7 @@ class NullCheckWalk {
     for (const node of ExpressionNodes.of({
       kind: "expression",
       expression: expr,
+      constant: false,
     })) {
       if (node.kind !== "postfix") continue;
       const head = ExpressionShape.headOf(node);

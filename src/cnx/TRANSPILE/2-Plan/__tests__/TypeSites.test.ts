@@ -37,11 +37,10 @@ describe("TypeSites", () => {
     ]);
   });
 
-  it("plans a sizeof inside a declared type's dimension", () => {
-    expect(sites("u8[sizeof(u64)] buffer;\n").sort()).toEqual([
-      "-:u64",
-      "-:u8[sizeof(u64)]",
-    ]);
+  it("plans no type inside a dimension or enum value, which 1.4 spells", () => {
+    expect(
+      sites("u8[sizeof(u64)] buffer;\nenum E { A <- (u32)2.5 }\n"),
+    ).toEqual(["-:u8[sizeof(u64)]"]);
   });
 
   it("plans no type inside a scope's struct, which the .c takes from the header", () => {

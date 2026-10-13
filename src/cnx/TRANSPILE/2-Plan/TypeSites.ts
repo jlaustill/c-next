@@ -1,6 +1,7 @@
 import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
 import type TExpression from "../../types/syntax/TExpression";
 import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
+import type TSyntaxPart from "../../types/syntax/TSyntaxPart";
 import type TTypeSyntax from "../../types/syntax/TTypeSyntax";
 import DeclarationParts from "../../utils/DeclarationParts";
 import ExpressionNodes from "../../utils/ExpressionNodes";
@@ -11,14 +12,22 @@ import type ITypeSite from "./types/ITypeSite";
  * Every type 2.3 writes in one file, with the scope it is written in: what
  * 2.2 plans before 2.3 renders any of the file (#1991). A declaration's own types
  * come from `DeclarationParts`; a `cast` or `sizeof` names one inside an
- * expression, a dimension included.
+ * expression, except a dimension or enum value, which 1.4 spells.
  */
 class TypeSites {
-  static of(program: IProgramSyntax): readonly ITypeSite[] {
+  /** `unwritten`: declarations 2.2 decided 2.3 writes nothing of, e.g. an inlined private const (#282) */
+  static of(
+    program: IProgramSyntax,
+    unwritten: ReadonlySet<TDeclarationSyntax> = new Set(),
+  ): readonly ITypeSite[] {
     return program.declarations.flatMap(({ declaration }) =>
       declaration.kind === "scope"
         ? declaration.members
-            .filter((member) => !TypeSites.headerText(member.declaration))
+            .filter(
+              (member) =>
+                !TypeSites.headerText(member.declaration) &&
+                !unwritten.has(member.declaration),
+            )
             .flatMap((member) =>
               TypeSites.inDeclaration(member.declaration, declaration.name),
             )
@@ -43,10 +52,7 @@ class TypeSites {
     scope: string | null,
   ): ITypeSite[] {
     return DeclarationParts.of(TypeSites.asSpelled(declaration))
-      .flatMap((part) => [
-        ...(part.kind === "type" ? [part.type] : []),
-        ...ExpressionNodes.of(part).flatMap(TypeSites.namedBy),
-      ])
+      .flatMap(TypeSites.inPart)
       .map((type) => ({ type, scope }));
   }
 
@@ -59,6 +65,13 @@ class TypeSites {
       MainSignature.takesArgs(declaration.name, declaration.parameters)
       ? { ...declaration, parameters: null }
       : declaration;
+  }
+
+  private static inPart(part: TSyntaxPart): TTypeSyntax[] {
+    if (part.kind === "type") return [part.type];
+    return part.constant
+      ? []
+      : ExpressionNodes.direct(part.expression).flatMap(TypeSites.namedBy);
   }
 
   private static namedBy(expression: TExpression): TTypeSyntax[] {
