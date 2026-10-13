@@ -31,12 +31,20 @@ class SourceScan {
    * style is JSDoc, so it was latent rather than live, but this function's reach
    * widened from `output/` to all of `src/`, where the population it screens is
    * much less uniform.
+   *
+   * A block comment that closes before the match leaves the match in code, so
+   * `/* note *\/ execSync(cmd)` and a `*\/ execSync(cmd)` that ends a JSDoc
+   * block are scanned (#1827 review).
    */
   static inComment(source: string, index: number): boolean {
     const lineStart = source.lastIndexOf("\n", index) + 1;
     const lineEnd = source.indexOf("\n", index);
     const line = source.slice(lineStart, lineEnd === -1 ? undefined : lineEnd);
-    return /^\s*(\*|\/\/|\/\*)/.test(line);
+    const opener = /^\s*(\*|\/\/|\/\*)/.exec(line);
+    if (!opener) return false;
+    if (opener[1] === "//") return true;
+    const close = line.indexOf("*/");
+    return close === -1 || close > index - lineStart;
   }
 
   /**

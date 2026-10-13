@@ -112,6 +112,19 @@ describe("non-test modules under src/ start processes with argument arrays", () 
 
   // Population control: the scan reads the module that held the three sites.
   // Without it, a scan over the wrong population passes every arm above.
+  // The scan skips comments by line; code after a closed block comment is
+  // still code, and the arms must see it.
+  it.each([
+    ["const r = execSync(cmd);", false],
+    ["/* MISRA note */ const r = execSync(cmd);", false],
+    [" */ const r = execSync(cmd);", false],
+    ["// const r = execSync(cmd);", true],
+    ["/* const r = execSync(cmd); */", true],
+    [" * const r = execSync(cmd);", true],
+  ])("treats %j as comment: %s", (line, comment) => {
+    expect(SourceScan.inComment(line, line.indexOf("execSync("))).toBe(comment);
+  });
+
   it("scans the module that held the defect", () => {
     expect(
       SourceScan.sourceFiles().some((file) =>
