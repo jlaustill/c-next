@@ -10,3 +10,11 @@
        help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
 29:31 error[E0802]: Modulo by zero
        help: Consider using safe_mod(output, numerator, divisor, defaultValue) for runtime safety
+37:10 error[E0800]: Division by zero
+       help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
+38:10 error[E0800]: Division by zero
+       help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
+45:10 error[E0800]: Division by zero
+       help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
+46:10 error[E0802]: Modulo by zero
+       help: Consider using safe_mod(output, numerator, divisor, defaultValue) for runtime safety

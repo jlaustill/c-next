@@ -4,7 +4,7 @@
 // division by zero as the binary operator (ADR-051 section 1). At a2f390fdf
 // each flagged row exited 0 and emitted x /= 0U or x %= 0U.
 //
-// NEGATIVE CONTROLS: x /<- 2 and x %<- 3 are nonzero and stay silent.
+// NEGATIVE CONTROLS: x /<- 2, x %<- 3, y /<- 2.0, x /<- (2 - 1) stay silent.
 
 const u32 ZERO <- 0;
 
@@ -29,5 +29,21 @@ u32 header() {
     for (x /<- 0; x < 5; x %<- ZERO) {
         x +<- 1;
     }
+    return x;
+}
+
+f32 floating() {
+    f32 y <- 10.0;
+    y /<- 0.0;
+    y /<- -0.0;
+    y /<- 2.0;
+    return y;
+}
+
+u32 folded() {
+    u32 x <- 10;
+    x /<- (1 - 1);
+    x %<- (u32)0;
+    x /<- (2 - 1);
     return x;
 }
