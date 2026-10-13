@@ -410,6 +410,19 @@ module.exports = {
       to: { path: "^(node:)?fs(/promises)?$", reachable: true },
     },
     {
+      name: "child-processes-only-in-discover",
+      severity: "error",
+      comment:
+        "#1991 box 1: child processes run only in 1.1 Discover, which runs " +
+        "the preprocessor and detects the toolchain. A direct-edge rule: the " +
+        "host reaches 1.1, and so its child processes, by design.",
+      from: {
+        path: "^src/",
+        pathNot: ["(__tests__|__testUtils__)", "^src/cnx/PARSE/1-Discover/"],
+      },
+      to: { path: "^(node:)?child_process$" },
+    },
+    {
       name: "filesystem-only-in-discover-and-write",
       severity: "error",
       comment:

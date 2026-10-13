@@ -8,6 +8,8 @@ import ITranspilerConfig from "../../cnx/types/ITranspilerConfig";
 import NodeFileSystem from "../../cnx/PARSE/1-Discover/NodeFileSystem";
 import Analyze from "../../cnx/TRANSPILE/1-Analyze/Analyze";
 import type IAnalyzedFile from "../../cnx/types/IAnalyzedFile";
+import CodeGenWalker from "../../cnx/TRANSPILE/CodeGenWalker";
+import type ICodeGeneratorOptions from "../../cnx/TRANSPILE/3-Render/codegen/types/ICodeGeneratorOptions";
 
 /**
  * #1301 review: the run's per-file artifacts must be released when a run ENDS, not
@@ -27,10 +29,21 @@ import type IAnalyzedFile from "../../cnx/types/IAnalyzedFile";
 describe("#1301: the per-file cache is released at end of run", () => {
   let tempDir: string;
   let analyzed: IAnalyzedFile[];
+  let programs: unknown[];
 
   beforeEach(() => {
     tempDir = mkdtempSync(join(tmpdir(), "cnext-cache-release-"));
     analyzed = [];
+    programs = [];
+    const plan = CodeGenWalker.prototype.plan;
+    vi.spyOn(CodeGenWalker.prototype, "plan").mockImplementation(function (
+      this: CodeGenWalker,
+      file: IAnalyzedFile,
+      options: ICodeGeneratorOptions,
+    ) {
+      programs.push(options.program);
+      return plan.call(this, file, options);
+    });
     const run = Analyze.run.bind(Analyze);
     vi.spyOn(Analyze, "run").mockImplementation((...args) => {
       const front = run(...args);
@@ -44,20 +57,35 @@ describe("#1301: the per-file cache is released at end of run", () => {
     rmSync(tempDir, { recursive: true, force: true });
   });
 
-  /**
-   * How many of 2.1's file artifacts a field of the instance still reaches,
-   * directly or as a map's value. #1991: the host holds none; Stage 5 takes
-   * them from 2.1's artifact.
-   */
-  function cacheSize(transpiler: Transpiler): number {
-    const held = new Set<unknown>();
-    for (const value of Object.values(transpiler)) {
-      held.add(value);
+  /** Every object the instance reaches, however deep */
+  function reachableFrom(root: object): Set<unknown> {
+    const seen = new Set<unknown>();
+    const pending: unknown[] = [root];
+    while (pending.length > 0) {
+      const value = pending.pop();
+      if (value === null || typeof value !== "object" || seen.has(value)) {
+        continue;
+      }
+      seen.add(value);
       if (value instanceof Map) {
-        for (const entry of value.values()) held.add(entry);
+        for (const entry of value) pending.push(entry[0], entry[1]);
+      } else if (value instanceof Set || Array.isArray(value)) {
+        pending.push(...value);
+      } else {
+        pending.push(...Object.values(value));
       }
     }
-    return analyzed.filter((file) => held.has(file)).length;
+    return seen;
+  }
+
+  /**
+   * How many of 2.1's file artifacts, and of the programs 2.2 planned from,
+   * the instance still reaches by any path. #1991: the host holds none; Stage
+   * 5 takes them from 2.1's artifact, and its walker is a local of each file.
+   */
+  function cacheSize(transpiler: Transpiler): number {
+    const held = reachableFrom(transpiler);
+    return [...analyzed, ...programs].filter((value) => held.has(value)).length;
   }
 
   function writeProject(): string {
@@ -95,6 +123,7 @@ describe("#1301: the per-file cache is released at end of run", () => {
     // successful multi-file run is only reachable through a populated cache.
     expect(result.success).toBe(true);
     expect(result.files.length).toBeGreaterThan(0);
+    expect(programs.length).toBeGreaterThan(0);
 
     expect(cacheSize(transpiler)).toBe(0);
   });

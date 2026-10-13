@@ -15,11 +15,12 @@
  * difference is observable.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import Transpiler from "../Transpiler";
+import CodeGenWalkerClass from "../../cnx/TRANSPILE/CodeGenWalker";
 import type CodeGenWalker from "../../cnx/TRANSPILE/CodeGenWalker";
 import TargetResolver from "../TargetResolver";
 import NodeFileSystem from "../../cnx/PARSE/1-Discover/NodeFileSystem";
@@ -45,9 +46,25 @@ i32 main() {
  * be set on the transpiler that will run, the way
  * `CrossRunDiscoveryFacts.test.ts` reaches a private field.
  */
-function stateOf(transpiler: Transpiler) {
-  return (transpiler as unknown as { codeGenerator: CodeGenWalker })
-    .codeGenerator.transpileState;
+function stateOf(walker: CodeGenWalker) {
+  return walker.transpileState;
+}
+
+/**
+ * #1991: the transpiler makes a walker per file, so the state a run leaves
+ * behind is on the walker it rendered with; this records each one.
+ */
+function recordWalkers(): CodeGenWalker[] {
+  const walkers: CodeGenWalker[] = [];
+  const render = CodeGenWalkerClass.prototype.render;
+  vi.spyOn(CodeGenWalkerClass.prototype, "render").mockImplementation(function (
+    this: CodeGenWalker,
+    plan,
+  ) {
+    walkers.push(this);
+    return render.call(this, plan);
+  });
+  return walkers;
 }
 
 describe("External identifier significance (#1307)", () => {
@@ -58,6 +75,7 @@ describe("External identifier significance (#1307)", () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     rmSync(tempDir, { recursive: true, force: true });
   });
 
@@ -106,21 +124,25 @@ describe("External identifier significance (#1307)", () => {
         sourcePath,
       });
 
+    const walkers = recordWalkers();
     const clean = await run();
     expect(clean.success).toBe(true);
+    const earlier = walkers[walkers.length - 1];
 
     // Exactly what generating a file for a 6-significant-character target
     // leaves on the state Stage 4c used to read -- on THIS transpiler's
     // instance, so the second run below actually sees it.
-    stateOf(transpiler).targetDescription = {
+    stateOf(earlier).targetDescription = {
       ...TargetResolver.byName("host", NodeFileSystem.instance)!,
       external_identifier_chars: 6,
     };
-    expect(
-      stateOf(transpiler).targetDescription?.external_identifier_chars,
-    ).toBe(6);
+    expect(stateOf(earlier).targetDescription?.external_identifier_chars).toBe(
+      6,
+    );
 
     const afterPoisoning = await run();
+    // #1991: the second run renders on a walker of its own, not the poisoned one
+    expect(walkers[walkers.length - 1]).not.toBe(earlier);
     expect(afterPoisoning.errors.map((e) => e.message)).toEqual([]);
     expect(afterPoisoning.success).toBe(true);
   });

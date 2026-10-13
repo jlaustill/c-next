@@ -56,7 +56,7 @@ const TRANSPILER_PATH = join(
 const ANALYSIS_CALL = "Analyze.run";
 
 /** Pass 2.2/2.3's entry point: handing one tree to the generator. */
-const EMISSION_CALL = "this.codeGenerator.plan";
+const EMISSION_CALL = "walker.plan";
 
 /** The method that performs 2.1 over the whole program. */
 const ANALYSIS_ROOT = "_runParseThroughAnalyze";

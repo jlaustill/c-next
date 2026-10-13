@@ -81,7 +81,6 @@ type TAnalyzedFront = Extract<TFrontEndResult, { kind: "analyzed" }>;
 
 class Transpiler {
   private readonly config: TRunConfig;
-  private readonly codeGenerator: CodeGenWalker;
   private readonly warnings: string[];
   private readonly cacheManager: CacheManager | null;
   private readonly preprocessCache: PreprocessCache | null;
@@ -152,7 +151,6 @@ class Transpiler {
       noCache: config.noCache ?? false,
     };
 
-    this.codeGenerator = new CodeGenWalker();
     this.warnings = [];
     this.anchor = RunAnchor.at(this.config.input, null, this.config, this.fs);
 
@@ -796,8 +794,10 @@ class Transpiler {
         program,
       );
 
-      // Generate code
-      const plan = this.codeGenerator.plan(analyzed, {
+      // #1991: one walker per file, so nothing 2.2 or 2.3 set up outlives
+      // the file -- the instance holds no walker between files or runs.
+      const walker = new CodeGenWalker();
+      const plan = walker.plan(analyzed, {
         program,
         debugMode: this.config.debugMode,
         targetDescription: Transpiler._runTarget(program).description,
@@ -823,7 +823,7 @@ class Transpiler {
       });
       // #1323: 2.3 returns the header's input; HeaderRenderer renders every
       // file's header in one step, after this per-file loop finishes.
-      const rendered = this.codeGenerator.render(plan);
+      const rendered = walker.render(plan);
       if (rendered.headerFacts) {
         headerFactsByPath.set(sourcePath, rendered.headerFacts);
       }
