@@ -190,10 +190,73 @@ describe("2.2 plans the type each value is written against", () => {
         ].join("\n"),
       ),
     ].filter(
-      (entry) => entry[0].span.line === 7 && entry[0].kind === "postfix",
+      (entry) =>
+        entry[0].span.line === 7 &&
+        entry[0].span.column === 6 &&
+        entry[0].kind === "postfix",
     );
     expect(planned.map((entry) => entry[1])).toEqual([
       { type: null, suppressBareEnumResolution: false },
+    ]);
+  });
+
+  it("plans a value no site types, against no type", () => {
+    const planned = [
+      ...plannedExpectedTypes(
+        [
+          "void g(u8 v) {",
+          "}",
+          "void f() {",
+          "  u8 y <- 0;",
+          "  g(y);",
+          "}",
+          "",
+        ].join("\n"),
+      ),
+    ].filter(
+      (entry) =>
+        entry[0].span.line === 5 &&
+        entry[0].span.column === 2 &&
+        entry[0].kind === "postfix",
+    );
+    expect(planned.map((entry) => entry[1])).toEqual([
+      { type: null, suppressBareEnumResolution: false },
+    ]);
+  });
+
+  it("plans a register's address and offsets, against no type (ADR-004)", () => {
+    const literals = plannedLiterals(
+      ["register HW @ 0x40000000 {", "  CTRL: u32 rw @ 0x04,", "}", ""].join(
+        "\n",
+      ),
+    );
+    expect(literals.get("0x40000000")).toEqual({
+      type: null,
+      suppressBareEnumResolution: false,
+    });
+    expect(literals.get("0x04")).toEqual({
+      type: null,
+      suppressBareEnumResolution: false,
+    });
+  });
+
+  it("plans sizeof's member access against the outer type (#1972)", () => {
+    const planned = [
+      ...plannedExpectedTypes(
+        [
+          "struct Data { u32[10] values; }",
+          "void f() {",
+          "  Data d;",
+          "  u32 size <- sizeof(d.values);",
+          "}",
+          "",
+        ].join("\n"),
+      ),
+    ].filter(
+      (entry) => entry[0].span.line === 4 && entry[0].kind === "postfix",
+    );
+    expect(planned.map((entry) => entry[1])).toEqual([
+      { type: "u32", suppressBareEnumResolution: false },
     ]);
   });
 });

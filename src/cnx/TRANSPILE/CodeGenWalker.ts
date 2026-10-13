@@ -1455,7 +1455,10 @@ class CodeGenWalker {
   /** 2.3 writes each value against the type 2.2 planned for it (#1991) */
   private checkExpectedType(expr: TExpression): void {
     const planned = this.filePlan.expectedTypes.get(expr);
-    if (planned === undefined) return;
+    invariant(
+      planned !== undefined,
+      `2.2 planned the type of the value on line ${expr.span.line} that 2.3 writes`,
+    );
     const state = this.host.state;
     invariant(
       planned.type === (state.expectedType ?? null) &&
@@ -2276,8 +2279,6 @@ class CodeGenWalker {
           return null;
       }
     };
-    // An argument's type is decided with its call's path in 2.3, so a value
-    // under an argument is not planned yet
     const resolved = new Map<IValueSite, IPlannedExpectedType | null>();
     const within = (
       type: string | null,
@@ -2315,8 +2316,8 @@ class CodeGenWalker {
       return planned;
     };
     const planned = new Map<TExpression, IPlannedExpectedType>();
-    for (const [expression, at] of valuePositions.sites) {
-      const expected = resolve(at);
+    for (const expression of valuePositions.positions.keys()) {
+      const expected = resolve(valuePositions.sites.get(expression) ?? null);
       if (expected !== null) planned.set(expression, expected);
     }
     return planned;

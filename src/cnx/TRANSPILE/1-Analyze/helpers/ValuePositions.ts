@@ -57,6 +57,13 @@ class ValuePositionWalk {
       this.variable(declaration);
       return;
     }
+    if (declaration.kind === "register") {
+      this.place(declaration.address, NOWHERE, null);
+      for (const member of declaration.members) {
+        this.place(member.offset, NOWHERE, null);
+      }
+      return;
+    }
     if (declaration.kind !== "function") return;
     const statements = StatementNodes.in(declaration);
     for (const statement of statements) {
@@ -188,6 +195,8 @@ class ValuePositionWalk {
         return;
       case "sizeof":
         if (expr.expression) this.place(expr.expression, at, site);
+        // A qualified operand that 2.2 finds is a member access (#1972)
+        if (expr.memberChain) this.place(expr.memberChain, NOWHERE, site);
         return;
       case "postfix":
         this.postfix(expr, at, site);
