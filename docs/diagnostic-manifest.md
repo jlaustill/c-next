@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-575 fixture(s) assert a diagnostic; 565 carry a code.
+579 fixture(s) assert a diagnostic; 569 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -164,6 +164,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-034/bitmap-unknown-field-error.test.cnx                                                | E0882               |
 | tests/adr-035/array-form-error.test.cnx                                                          | E0866, E0876        |
 | tests/adr-035/array-init-error.test.cnx                                                          | E0866               |
+| tests/adr-035/array-init-string-concat-error.test.cnx                                            | E0866               |
+| tests/adr-035/array-init-string-concat-sized-error.test.cnx                                      | E0866               |
 | tests/adr-035/empty-dimension-error.test.cnx                                                     | E0892               |
 | tests/adr-035/empty-dimension-included.test.cnx                                                  | E0892               |
 | tests/adr-036/array-bounds-uncovered-arms-error.test.cnx                                         | E0854               |
@@ -523,6 +525,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/c-interop/use-c-union-basic.test.cnx                                                       | (uncoded)           |
 | tests/c-interop/use-c-union-typedef.test.cnx                                                     | (uncoded)           |
 | tests/casting/mixed-category-arithmetic.test.cnx                                                 | E0810               |
+| tests/comments/comment-in-condition-message-error.test.cnx                                       | E0702               |
+| tests/comments/comment-in-negative-literal-error.test.cnx                                        | E0868               |
 | tests/comments/misra-3-1-nested-block.test.cnx                                                   | MISRA-3.1           |
 | tests/comments/misra-3-2-backslash.test.cnx                                                      | MISRA-3.2           |
 | tests/compound-assign/bit-index-compound.test.cnx                                                | E0857               |

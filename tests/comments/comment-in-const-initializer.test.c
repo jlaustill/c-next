@@ -9,8 +9,8 @@
 // A block comment, and a line comment that splits the initializer over lines
 /* Scope: Board */
 
-/* Register: Board__Gpio @ (0x40000000 ) */
-#define Board__Gpio__DATA (*(volatile uint32_t*)((0x40000000 ) + 0x00))
+/* Register: Board__Gpio @ 0x40000000U */
+#define Board__Gpio__DATA (*(volatile uint32_t*)(0x40000000U + 0x00))
 
 
 /* Register: Board__Pins @ 1073742080U */

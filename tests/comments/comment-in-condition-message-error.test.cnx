@@ -1,5 +1,5 @@
 // test-error
-// Tests: a quoted condition drops its comment and line break (#1991 review)
+// Tests: a quoted condition drops its comment (#1991 review); SourceSpelling.test pins the line break, which the formatter joins here
 u8 getLimit() {
     return 3;
 }

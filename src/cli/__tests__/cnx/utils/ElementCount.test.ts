@@ -8,6 +8,7 @@ const AT = { line: 2, column: 0 };
 const lit = (digits: string): TConstExpr => ({
   kind: "literal",
   digits,
+  text: digits,
   typeName: null,
 });
 const name = (...path: string[]): TConstExpr => ({

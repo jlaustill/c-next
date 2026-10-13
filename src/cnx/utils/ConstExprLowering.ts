@@ -209,6 +209,7 @@ class ConstExprLowering {
       return {
         kind: "literal",
         digits: literalKind === "true" ? "1" : "0",
+        text,
         typeName: "bool",
       };
     }
@@ -232,6 +233,7 @@ class ConstExprLowering {
         return {
           kind: "literal",
           digits: BigInt(match[1]).toString(),
+          text,
           typeName: match[2].toLowerCase(),
         };
       }
@@ -241,6 +243,7 @@ class ConstExprLowering {
         return {
           kind: "literal",
           digits: BigInt(text).toString(),
+          text,
           typeName: null,
         };
       case "float":
