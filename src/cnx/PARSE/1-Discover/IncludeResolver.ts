@@ -4,6 +4,7 @@ import CNextMarkerDetector from "./CNextMarkerDetector";
 import IncludeDirectiveText from "../../utils/IncludeDirectiveText";
 import IncludeDiscovery from "./IncludeDiscovery";
 import IncludeRewriter from "../../utils/IncludeRewriter";
+import CNextSourcePath from "../../utils/CNextSourcePath";
 import FileDiscovery from "./FileDiscovery";
 import type THeaderExtension from "../../types/THeaderExtension";
 import IDiscoveredFile from "./types/IDiscoveredFile";
@@ -308,7 +309,7 @@ class IncludeResolver {
       const reachable = headerIncludePathFor?.(absolutePath) ?? null;
       const headerPath =
         reachable ??
-        IncludeRewriter.besideSource(includeInfo.path, headerExtension);
+        CNextSourcePath.withExtension(includeInfo.path, headerExtension);
       spelling.headerIncludeDirectives.set(
         absolutePath,
         IncludeDirectiveText.join({
@@ -323,7 +324,7 @@ class IncludeResolver {
       if (reachable === null && besideWriter) {
         spelling.writerRelativeIncludes.set(
           absolutePath,
-          IncludeRewriter.besideSource(absolutePath, headerExtension),
+          CNextSourcePath.withExtension(absolutePath, headerExtension),
         );
       }
     }

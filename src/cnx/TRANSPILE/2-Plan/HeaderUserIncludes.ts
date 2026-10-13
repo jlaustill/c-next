@@ -91,11 +91,8 @@ class HeaderUserIncludes {
       return false;
     }
 
-    return (
-      // #1511: the artifact's verdict, not the table's.
-      !(program?.isOpaqueType(typeName) ?? false) &&
-      !declared.sourceFile.endsWith(".cnx")
-    );
+    // #1511: the artifact's verdict, not the table's.
+    return !(program?.isOpaqueType(typeName) ?? false);
   }
 
   /**

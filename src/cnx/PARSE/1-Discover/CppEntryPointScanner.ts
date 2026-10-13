@@ -3,6 +3,7 @@ import IncludeDiscovery from "./IncludeDiscovery";
 import CNextMarkerDetector from "./CNextMarkerDetector";
 import IFileSystem from "../../types/IFileSystem";
 import CodedErrorText from "../../utils/CodedErrorText";
+import CNextSourcePath from "../../utils/CNextSourcePath";
 import type ITranspileError from "../../types/ITranspileError";
 import type ICNextMarker from "./types/ICNextMarker";
 
@@ -192,6 +193,23 @@ class CppEntryPointScanner {
         helpText:
           "A generated header records the C-Next source it was written from. " +
           "Check that source is present, and reachable from the include path.",
+        severity: "error",
+      });
+      return;
+    }
+
+    if (CNextSourcePath.isMiscased(absoluteSourcePath)) {
+      this.errors.push({
+        sourcePath: headerPath,
+        line: marker.line,
+        column: marker.column,
+        message: CodedErrorText.of(
+          "E0518",
+          CNextSourcePath.miscasedMessage(sourcePath),
+        ),
+        helpText: CNextSourcePath.miscasedHelp(
+          "rename the source and regenerate this header.",
+        ),
         severity: "error",
       });
       return;

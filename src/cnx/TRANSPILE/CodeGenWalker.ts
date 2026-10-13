@@ -39,6 +39,7 @@ import type IChainStep from "../types/IChainStep";
 import type EFileType from "../PARSE/1-Discover/types/EFileType";
 import type IStringConcatOps from "./3-Render/codegen/types/IStringConcatOps";
 import { basename } from "node:path";
+import CNextSourcePath from "../utils/CNextSourcePath";
 import CommentFormatter from "./3-Render/codegen/CommentFormatter";
 import PrivateConstValue from "./3-Render/codegen/PrivateConstValue";
 import IComment from "../types/IComment";
@@ -3010,8 +3011,8 @@ class CodeGenWalker {
     const pathToUse =
       options.sourceRelativePath || sourcePath.replace(/^.*[\\/]/, "");
     // Issue #933/#1319: the run's header extension, not re-derived from the mode
-    return pathToUse.replace(
-      /\.cnx$|\.cnext$/,
+    return CNextSourcePath.withExtension(
+      pathToUse,
       this.host.state.outputExtensions.header,
     );
   }

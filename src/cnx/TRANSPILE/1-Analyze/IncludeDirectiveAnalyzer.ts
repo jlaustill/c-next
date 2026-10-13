@@ -42,6 +42,7 @@ import EFileType from "../../PARSE/1-Discover/types/EFileType";
 import IncludeDirective from "./helpers/IncludeDirective";
 import IIncludeContext from "./types/IIncludeContext";
 import IIncludeDirectiveError from "./types/IIncludeDirectiveError";
+import CNextSourcePath from "../../utils/CNextSourcePath";
 
 /**
  * Files that carry definitions; including one duplicates every symbol in it.
@@ -70,6 +71,7 @@ class IncludeDirectiveChecks {
 
     const directive = IncludeDirectiveText.join(spec);
     const kind = this.kindOf(directive);
+    if (this.checkMiscasedCnextFile(ctx, spec, kind)) return;
     if (this.checkImplementationFile(ctx, spec, kind)) return;
     if (
       this.checkMissingCnextFile(ctx, spec, kind, this.resolutionOf(directive))
@@ -105,6 +107,25 @@ class IncludeDirectiveChecks {
       `1.1 Discover resolved every directive 1.2 parsed (missing ${directive})`,
     );
     return resolved;
+  }
+
+  /**
+   * E0518: `#include "Colors.CNX"`. Only a lowercase `.cnx` or `.cnext` is
+   * C-Next source (#1833, owner ruling), in either form of include.
+   */
+  private checkMiscasedCnextFile(
+    ctx: ISyntaxNode,
+    spec: { path: string; isLocal: boolean },
+    kind: EFileType,
+  ): boolean {
+    if (kind !== EFileType.MiscasedCNext) return false;
+    this.report(
+      ctx,
+      "E0518",
+      CNextSourcePath.miscasedMessage(spec.path),
+      CNextSourcePath.miscasedHelp("rename the file and this include."),
+    );
+    return true;
   }
 
   /** E0503: `#include "helper.c"` -- a definition, not an interface. */

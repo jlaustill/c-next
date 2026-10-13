@@ -151,14 +151,15 @@ class Preprocessor {
         originalFile: filePath,
       };
     }
+    const extension = text === null ? null : extname(text.filename);
     const language =
-      text === null ? null : LANGUAGE_OF_EXTENSION[extname(text.filename)];
+      extension === null ? null : LANGUAGE_OF_EXTENSION[extension];
     if (language === undefined) {
       return {
         content: "",
         sourceMappings: [],
         success: false,
-        error: `Preprocessor failed for ${filePath}: no C or C++ language has the extension ${extname(filePath)}`,
+        error: `Preprocessor failed for ${filePath}: no C or C++ language has the extension ${extension}`,
         originalFile: filePath,
         toolchain: toolchain.name,
       };

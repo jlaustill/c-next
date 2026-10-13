@@ -58,8 +58,8 @@ describe("IncludeRewriter", () => {
       ["#include <utils.cnext>", ".h", "#include <utils.h>"],
       ["#include <utils.cnx>", ".hpp", "#include <utils.hpp>"],
       ["#include <utils.cnext>", ".hpp", "#include <utils.hpp>"],
-      // #1672: the C-Next extension FileDiscovery recognizes, in any case
-      ['#include "Utils.CNX"', ".h", '#include "Utils.h"'],
+      // #1833: only a lowercase extension is C-Next; `Utils.CNX` is E0518
+      ['#include "Utils.cnext"', ".h", '#include "Utils.h"'],
       // only the path is replaced: the author's spacing survives
       ["#  include  <utils.cnx>", ".h", "#  include  <utils.h>"],
     ])(
