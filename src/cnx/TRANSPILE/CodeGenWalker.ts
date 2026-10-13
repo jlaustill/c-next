@@ -45,6 +45,9 @@ import ComplianceAnnotations from "./2-Plan/ComplianceAnnotations";
 import emittedLocalName from "../utils/emittedLocalName";
 import DeclarationPlan from "./2-Plan/DeclarationPlan";
 import TypeSites from "./2-Plan/TypeSites";
+import DeclarationParts from "../utils/DeclarationParts";
+import ExpressionNodes from "../utils/ExpressionNodes";
+import type TValueBinding from "../types/TValueBinding";
 import CastRequirement from "./2-Plan/CastRequirement";
 import OperandTyper from "../utils/OperandTyper";
 import CppNamespaceUtils from "../utils/CppNamespaceUtils";
@@ -241,6 +244,12 @@ class CodeGenWalker {
 
   /** 2.2's decision of which private scope consts are inlined, not declared */
   private plannedInlinedConsts: ReadonlySet<TDeclarationSyntax> = new Set();
+
+  /** 2.2's decision of what each `sizeof(Name)` operand's name binds to */
+  private plannedSizeofBindings: ReadonlyMap<
+    TExpressionOf<"sizeof">,
+    TValueBinding | null
+  > = new Map();
 
   /**
    * 2.3 Render's per-file state, for callers that hold the WALKER (#1452 box 4).
@@ -1564,6 +1573,37 @@ class CodeGenWalker {
   }
 
   /**
+   * #1974: whether `sizeof(Name)` sizes a value or a type depends on what
+   * `Name` binds to at that point. 2.2 decides it for every such operand
+   * before 2.3 spells any of them.
+   */
+  private planSizeofBindings(
+    program: IProgramSyntax,
+  ): ReadonlyMap<TExpressionOf<"sizeof">, TValueBinding | null> {
+    const planned = new Map<TExpressionOf<"sizeof">, TValueBinding | null>();
+    for (const { declaration } of program.declarations) {
+      for (const part of DeclarationParts.of(declaration)) {
+        for (const expression of ExpressionNodes.of(part)) {
+          if (
+            expression.kind === "sizeof" &&
+            expression.type?.kind === "user"
+          ) {
+            planned.set(
+              expression,
+              this.host.state.bindingAt(
+                null,
+                expression.type.text,
+                CodeGenWalker.positionOf(expression),
+              ),
+            );
+          }
+        }
+      }
+    }
+    return planned;
+  }
+
+  /**
    * Issue #282: a private const scalar is inlined at its uses, not declared at
    * file scope. Issue #500 exempts arrays, which cannot be inlined, and #1739
    * one with no value to inline. 2.2 decides it once, before 2.3 renders
@@ -1717,6 +1757,7 @@ class CodeGenWalker {
       this.host.state.selfIncludeAdded,
     );
     this.plannedInlinedConsts = this.planInlinedConsts(program);
+    this.plannedSizeofBindings = this.planSizeofBindings(program);
     this.plannedTypes = this.planTypeSites(program);
 
     // Generate declarations
@@ -4848,9 +4889,15 @@ class CodeGenWalker {
         };
       }
       if (type.kind === "user") {
+        const binding = this.plannedSizeofBindings.get(expr);
+        invariant(
+          binding !== undefined,
+          `2.2 decided what every sizeof name binds to (got "${type.text}" at line ${type.span.line})`,
+        );
         const textBinding = this.sizeofName(
           type.text,
           CodeGenWalker.positionOf(expr),
+          binding,
         );
         // #1974: a name that binds to no value is a type, named as every
         // type position names it
@@ -4878,8 +4925,11 @@ class CodeGenWalker {
    * #1967), and the binding is the one at the `sizeof`, so a block's local
    * ends with its block (#1966).
    */
-  private sizeofName(name: string, at: ISourcePosition): TSizeofName {
-    const binding = this.host.state.bindingAt(null, name, at);
+  private sizeofName(
+    name: string,
+    at: ISourcePosition,
+    binding: TValueBinding | null,
+  ): TSizeofName {
     if (binding === null || binding.kind === "scope") {
       return { kind: "none" };
     }

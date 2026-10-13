@@ -26,6 +26,14 @@ describe("2.3 spells each type from 2.2's plan", () => {
     expect(code).toContain("uint32_t n = (uint32_t)sizeof(int16_t);");
   });
 
+  it("sizes a sizeof name as the value or the type it binds to", async () => {
+    const code = await generate(
+      `struct Cfg { u8 a; }\nu32 f() { u16 n <- 0; u32 v <- sizeof(n); return sizeof(Cfg) + v; }\n`,
+    );
+    expect(code).toContain("uint32_t v = sizeof(n);");
+    expect(code).toContain("cnx_clamp_add_u32(sizeof(Cfg), v)");
+  });
+
   it("spells a scope's own type in that scope", async () => {
     const code = await generate(
       `scope Motor {\n  struct Cfg { u8 a; }\n  Cfg cfg;\n  public u8 get() { return this.cfg.a; }\n}\n`,
