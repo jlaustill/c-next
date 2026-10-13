@@ -1,3 +1,4 @@
+import NarrowingCastHelper from "./3-Render/codegen/helpers/NarrowingCastHelper";
 import OverflowHelperTemplates from "./3-Render/codegen/generators/support/OverflowHelperTemplates";
 import CTypeIncludes from "./2-Plan/CTypeIncludes";
 import FloatBitHelper from "./3-Render/codegen/helpers/FloatBitHelper";
@@ -2271,6 +2272,7 @@ class CodeGenWalker {
       valuePositions,
       types,
     );
+    this.planNarrowingCTypes(expectedTypes, decidedCTypes);
     return {
       program,
       selfInclude,
@@ -2486,6 +2488,52 @@ class CodeGenWalker {
       }
     }
     return found;
+  }
+
+  /**
+   * MISRA 10.3: the C types of the narrowing casts 2.3 writes around a value
+   * C promotes to `int` -- a bit read, a bitmap field read or a character
+   * literal -- against the type 2.2 planned for the value it sits in
+   */
+  private planNarrowingCTypes(
+    expectedTypes: ReadonlyMap<TExpression, IPlannedExpectedType>,
+    cTypes: Set<string>,
+  ): void {
+    const typing = this.host.state.typingContext();
+    const bitmapFields = this.host.state.symbols?.bitmapFields;
+    const promotedSources = (node: TExpression): string[] => {
+      if (node.kind === "literal")
+        return node.text.startsWith("'") ? ["int"] : [];
+      if (node.kind !== "postfix") return [];
+      return OperandTyper.chainOf(node, typing).steps.flatMap((step) => {
+        const from = step.before?.typeName ?? null;
+        if (step.subscript === "bit_single") return ["int"];
+        if (step.subscript === "bit_range") {
+          return from === null
+            ? []
+            : [NarrowingCastHelper.getPromotedType(from)];
+        }
+        return step.property !== null &&
+          from !== null &&
+          bitmapFields?.has(from)
+          ? ["int"]
+          : [];
+      });
+    };
+    for (const [value, planned] of expectedTypes) {
+      const target = planned.type;
+      if (target === null || target === "bool") continue;
+      const visit = (node: TExpression): void => {
+        if (node !== value && expectedTypes.has(node)) return;
+        for (const source of promotedSources(node)) {
+          if (CastRequirement.forConversion(source, target)) {
+            cTypes.add(TYPE_MAP[target] ?? target);
+          }
+        }
+        ExpressionChildren.of(node).forEach(visit);
+      };
+      visit(value);
+    }
   }
 
   /**
