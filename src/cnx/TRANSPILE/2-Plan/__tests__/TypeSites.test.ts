@@ -31,6 +31,12 @@ describe("TypeSites", () => {
     expect(sites("u32 n <- sizeof(n + 1);\n")).toEqual(["-:u32"]);
   });
 
+  it("plans no parameter type for main's args, which 2.3 writes as argc and argv", () => {
+    expect(sites("u32 main(string args[]) {\n  return 0;\n}\n")).toEqual([
+      "-:u32",
+    ]);
+  });
+
   it("plans a sizeof inside a declared type's dimension", () => {
     expect(sites("u8[sizeof(u64)] buffer;\n").sort()).toEqual([
       "-:u64",

@@ -4,6 +4,7 @@ import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
 import type TTypeSyntax from "../../types/syntax/TTypeSyntax";
 import DeclarationParts from "../../utils/DeclarationParts";
 import ExpressionNodes from "../../utils/ExpressionNodes";
+import MainSignature from "../../utils/MainSignature";
 import type ITypeSite from "./types/ITypeSite";
 
 /**
@@ -41,7 +42,7 @@ class TypeSites {
     declaration: TDeclarationSyntax,
     scope: string | null,
   ): ITypeSite[] {
-    return DeclarationParts.of(declaration)
+    return DeclarationParts.of(TypeSites.asSpelled(declaration))
       .flatMap((part) => [
         ...(part.kind === "type" ? [part.type] : []),
         ...ExpressionNodes.of(part).flatMap(TypeSites.namedBy),
@@ -50,6 +51,16 @@ class TypeSites {
   }
 
   /** The type a `cast` or a type-operand `sizeof` names */
+  /** `main(string args[])` is written `int main(int argc, char *argv[])`, so 2.3 spells none of its parameter types */
+  private static asSpelled(
+    declaration: TDeclarationSyntax,
+  ): TDeclarationSyntax {
+    return declaration.kind === "function" &&
+      MainSignature.takesArgs(declaration.name, declaration.parameters)
+      ? { ...declaration, parameters: null }
+      : declaration;
+  }
+
   private static namedBy(expression: TExpression): TTypeSyntax[] {
     if (expression.kind === "cast") {
       return [expression.type];
