@@ -92,6 +92,8 @@ type TPlannedPostfixOp =
        */
       readonly calleeType: () => string | null;
       readonly planArguments: () => readonly IPlannedCallArgument[] | null;
+      /** ADR-051: the helper 2.2 planned this `safe_div`/`safe_mod` call as, else null */
+      readonly safeDivisionHelper: string | null;
     };
 
 export default TPlannedPostfixOp;

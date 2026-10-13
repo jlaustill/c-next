@@ -262,6 +262,7 @@ const generateFunctionCall = (
   _state: IGeneratorState,
   orchestrator: IOrchestrator,
   calleeType: string | null = null,
+  safeDivisionHelper: string | null = null,
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
 
@@ -278,9 +279,9 @@ const generateFunctionCall = (
   // Check if this is a C-Next function (uses pass-by-reference)
   const isCNextFunc = orchestrator.isCNextFunction(signatureName);
 
-  // ADR-051: Handle safe_div() and safe_mod() built-in functions
-  if (funcExpr === "safe_div" || funcExpr === "safe_mod") {
-    return generateSafeDivMod(funcExpr, args, effects);
+  // ADR-051: 2.2 planned this call as a safe_div()/safe_mod() helper
+  if (safeDivisionHelper !== null) {
+    return generateSafeDivMod(funcExpr, safeDivisionHelper, args, effects);
   }
 
   // Regular function call handling
@@ -344,6 +345,7 @@ const generateFunctionCall = (
  */
 const generateSafeDivMod = (
   funcName: string,
+  helperName: string,
   args: readonly IPlannedCallArgument[],
   effects: TGeneratorEffect[],
 ): IGeneratorOutput => {
@@ -356,39 +358,11 @@ const generateSafeDivMod = (
     `${funcName} takes four arguments -- E0884 rejects this in pass 2.1, before this runs`,
   );
 
-  // Get the output parameter (first argument) to determine type
-  const outputArgId = args[0].simpleIdentifier;
-  invariant(
-    outputArgId,
-    `${funcName}'s first argument is a variable -- E0885 rejects this in pass 2.1, before this runs`,
-  );
-
-  // Look up the type of the output parameter
-  const typeInfo = args[0].declared;
-  invariant(
-    typeInfo,
-    `${funcName}'s output parameter is a declared variable with a type -- E0885 rejects this in pass 2.1, before this runs`,
-  );
-
-  // Map C-Next type to helper function suffix
-  const cnxType = typeInfo.baseType;
-  invariant(
-    cnxType,
-    `a registered variable always has a non-empty baseType (output parameter '${outputArgId}' of ${funcName})`,
-  );
-
   // Generate arguments: &output, numerator, divisor, defaultValue
-  // These four render OUTSIDE `withoutDeclarationInit`, because the early
-  // return above precedes that scope. Every other route renders inside it.
   const outputArg = `&${args[0].render()}`;
   const numeratorArg = args[1].render();
   const divisorArg = args[2].render();
   const defaultArg = args[3].render();
-
-  const helperName = CallExprUtils.generateSafeDivModHelperName(
-    funcName as "safe_div" | "safe_mod",
-    cnxType,
-  );
 
   return {
     code: `${helperName}(${outputArg}, ${numeratorArg}, ${divisorArg}, ${defaultArg})`,

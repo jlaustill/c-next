@@ -30,7 +30,7 @@ import type ISourceSpan from "../../types/ISourceSpan";
 import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
 import DeclarationParts from "../../utils/DeclarationParts";
 import ExpressionNodes from "../../utils/ExpressionNodes";
-import SafeDivision from "./helpers/SafeDivision";
+import SafeDivision from "../../utils/SafeDivision";
 import ISafeDivisionError from "./types/ISafeDivisionError";
 import BoundDeclaration from "./helpers/BoundDeclaration";
 import type IAnalysisContext from "./types/IAnalysisContext";

@@ -37,6 +37,7 @@ import type TBlockSyntax from "../../types/syntax/TBlockSyntax";
 import AssignmentTarget from "../../utils/AssignmentTarget";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
 import ExpressionShape from "../../utils/ExpressionShape";
+import SafeDivision from "../../utils/SafeDivision";
 import StatementNodes from "../../utils/StatementNodes";
 import RegisterAccessMode from "../../utils/RegisterAccessMode";
 import RegisterMmio from "./RegisterMmio";
@@ -79,6 +80,7 @@ import type IPlannedSliceSource from "./types/IPlannedSliceSource";
 import SliceSource from "./SliceSource";
 import type IPlannedFunctionParameter from "./types/IPlannedFunctionParameter";
 import invariant from "../../utils/invariant";
+import CallExprUtils from "./CallExprUtils";
 import FunctionCatalog from "./FunctionCatalog";
 import type TPlanInputs from "../types/TPlanInputs";
 import AdrProvenance from "../../instrumentation/AdrProvenance";
@@ -162,10 +164,6 @@ class FilePlanner {
   useParameters(parameters: ReadonlyMap<string, TParameterInfo>): void {
     this.parametersOrNull = parameters;
   }
-
-  private static readonly SAFE_DIVISIONS: Readonly<
-    Partial<Record<string, "div" | "mod">>
-  > = { safe_div: "div", safe_mod: "mod" };
 
   /**
    * A type context reduced to what the renderer asks of it (#1445).
@@ -570,22 +568,26 @@ class FilePlanner {
     inlinedConsts: ReadonlySet<TDeclarationSyntax>,
     cTypes: Set<string>,
     requirements: PlannedRequirements,
-  ): ReadonlySet<TExpression> {
+  ): ReadonlyMap<TExpression, string> {
     const state = this.state;
     const typing = state.typingContext();
-    const planned = new Set<TExpression>();
+    const planned = new Map<TExpression, string>();
     for (const expression of FilePlanner.writtenExpressions(
       program,
       inlinedConsts,
     )) {
-      const operation = FilePlanner.safeDivisionOperation(expression);
-      if (operation === null || expression.kind !== "postfix") continue;
-      const call = ExpressionShape.headOf(expression).ops[0];
-      if (call?.kind !== "call") continue;
-      const cnxType = OperandTyper.typeOf(call.arguments[0], typing)?.typeName;
-      if (cnxType == null) continue;
-      planned.add(expression);
-      requirements.safeDivision(operation, cnxType);
+      const call = SafeDivision.callOf(expression);
+      if (call === null) continue;
+      const output = call.args[0];
+      // E0884 and E0885 stop a call without a typed output before 2.2 runs
+      invariant(output !== undefined, `${call.name} has an output argument`);
+      const cnxType = OperandTyper.typeOf(output, typing)?.typeName;
+      invariant(cnxType != null, `${call.name}'s output argument is typed`);
+      planned.set(
+        expression,
+        CallExprUtils.generateSafeDivModHelperName(call.name, cnxType),
+      );
+      requirements.safeDivision(SafeDivision.operationOf(call.name), cnxType);
       cTypes.add("bool");
       cTypes.add(TYPE_MAP[cnxType]);
     }
@@ -698,17 +700,6 @@ class FilePlanner {
       );
     }
     return planned;
-  }
-
-  /** ADR-051: whether an expression is a `safe_div`/`safe_mod` call, and which */
-  static safeDivisionOperation(expression: TExpression): "div" | "mod" | null {
-    if (expression.kind !== "postfix") return null;
-    const head = ExpressionShape.headOf(expression);
-    const operation = FilePlanner.SAFE_DIVISIONS[head.identifier?.name ?? ""];
-    const call = head.ops[0];
-    if (head.root !== null || operation === undefined) return null;
-    if (call?.kind !== "call" || call.arguments.length !== 4) return null;
-    return operation;
   }
 
   /** Whether 2.3 writes a `.char_count` read: the typer's step names the property */

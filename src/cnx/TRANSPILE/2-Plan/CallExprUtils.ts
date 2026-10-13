@@ -3,6 +3,7 @@
  * Extracted from CallExprGenerator for testability (Issue #420).
  */
 import TYPE_MAP from "./types/TYPE_MAP";
+import SafeDivision from "../../utils/SafeDivision";
 import IFunctionSignature from "../../types/IFunctionSignature";
 import type IResolvedSymbols from "../../types/IResolvedSymbols";
 import TypeResolver from "../../utils/TypeResolver";
@@ -40,8 +41,7 @@ class CallExprUtils {
     funcName: "safe_div" | "safe_mod",
     cnxType: string,
   ): string {
-    const op = funcName === "safe_div" ? "div" : "mod";
-    return `cnx_safe_${op}_${cnxType}`;
+    return `cnx_safe_${SafeDivision.operationOf(funcName)}_${cnxType}`;
   }
 
   /**

@@ -71,8 +71,8 @@ interface IFilePlan {
   readonly floatBitWrites: ReadonlySet<TExpression>;
   /** ADR-049: how each written atomic read-modify-write is written */
   readonly atomicForms: ReadonlyMap<IAssignmentSyntax, TAtomicForm>;
-  /** ADR-051: each written `safe_div`/`safe_mod` call, whose helper 2.2 required */
-  readonly safeDivisions: ReadonlySet<TExpression>;
+  /** ADR-051: each written `safe_div`/`safe_mod` call, and the helper it is written as */
+  readonly safeDivisions: ReadonlyMap<TExpression, string>;
   /** ADR-044: each written `clamp` integer `+ - *` chain, and the helpers it calls */
   readonly clampChains: ReadonlyMap<TExpression, IPlannedClamp>;
   /** ADR-044: each compound write that calls a clamp helper, and which */

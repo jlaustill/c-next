@@ -15,10 +15,18 @@
  * `discards 'const' qualifier`, at exit 0.
  */
 
-import type TExpression from "../../../types/syntax/TExpression";
-import ExpressionShape from "../../../utils/ExpressionShape";
+import type TExpression from "../types/syntax/TExpression";
+import ExpressionShape from "./ExpressionShape";
 
-const SAFE_DIVISION = new Set(["safe_div", "safe_mod"]);
+type TSafeDivisionName = "safe_div" | "safe_mod";
+
+const OPERATIONS: Readonly<Record<TSafeDivisionName, "div" | "mod">> = {
+  safe_div: "div",
+  safe_mod: "mod",
+};
+
+const isName = (name: string): name is TSafeDivisionName =>
+  Object.hasOwn(OPERATIONS, name);
 
 class SafeDivision {
   /**
@@ -31,13 +39,18 @@ class SafeDivision {
    */
   static callOf(
     expr: TExpression,
-  ): { name: string; args: readonly TExpression[] } | null {
+  ): { name: TSafeDivisionName; args: readonly TExpression[] } | null {
     if (expr.kind !== "postfix" || expr.ops.length !== 1) return null;
     if (expr.primary.kind !== "identifier") return null;
     const name = expr.primary.name;
     const op = expr.ops[0];
-    if (!SAFE_DIVISION.has(name) || op.kind !== "call") return null;
+    if (!isName(name) || op.kind !== "call") return null;
     return { name, args: op.arguments };
+  }
+
+  /** The helper family a call is written through: `cnx_safe_div_*` or `cnx_safe_mod_*` */
+  static operationOf(name: TSafeDivisionName): "div" | "mod" {
+    return OPERATIONS[name];
   }
 
   static outputName(args: readonly TExpression[]): string | null {

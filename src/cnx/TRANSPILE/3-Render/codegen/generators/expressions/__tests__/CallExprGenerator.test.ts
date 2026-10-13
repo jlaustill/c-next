@@ -1020,6 +1020,8 @@ describe("CallExprGenerator", () => {
         input,
         state,
         orchestrator,
+        null,
+        "cnx_safe_div_u32",
       );
 
       expect(result.code).toBe("cnx_safe_div_u32(&result, a, b, 0)");
@@ -1054,6 +1056,8 @@ describe("CallExprGenerator", () => {
         input,
         state,
         orchestrator,
+        null,
+        "cnx_safe_mod_i64",
       );
 
       expect(result.code).toBe("cnx_safe_mod_i64(&out, x, y, 1)");
@@ -1082,6 +1086,8 @@ describe("CallExprGenerator", () => {
           input,
           state,
           orchestrator,
+          null,
+          "cnx_safe_div_u32",
         ),
       ).toThrow("E0884 rejects this in pass 2.1");
     });
@@ -1101,89 +1107,32 @@ describe("CallExprGenerator", () => {
           input,
           state,
           orchestrator,
+          null,
+          "cnx_safe_mod_i64",
         ),
       ).toThrow("E0884 rejects this in pass 2.1");
     });
 
-    it("asserts the invariant when the first argument is not an identifier", () => {
+    it("writes an unplanned call by its name: 2.3 does not decide it is ADR-051's", () => {
       const argExpressions = [
-        createMockExpressionContext("a + b"),
-        createMockExpressionContext("x"),
-        createMockExpressionContext("y"),
-        createMockExpressionContext("0"),
-      ];
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        isCNextFunction: vi.fn(() => false),
-        getSimpleIdentifier: vi.fn(() => null),
-      });
-
-      expect(() =>
-        generateFunctionCall(
-          "safe_div",
-          planArguments(orchestrator, argExpressions),
-          input,
-          state,
-          orchestrator,
-        ),
-      ).toThrow("E0885 rejects this in pass 2.1");
-    });
-
-    it("asserts the invariant when the output parameter has no type", () => {
-      const argExpressions = [
-        createMockExpressionContext("unknownVar"),
+        createMockExpressionContext("result"),
         createMockExpressionContext("a"),
         createMockExpressionContext("b"),
         createMockExpressionContext("0"),
       ];
-      const input = createMockInput(); // empty typeRegistry
-      const state = createMockState();
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn(() => false),
-        getSimpleIdentifier: vi.fn(() => "unknownVar"),
       });
 
-      expect(() =>
-        generateFunctionCall(
-          "safe_div",
-          planArguments(orchestrator, argExpressions),
-          input,
-          state,
-          orchestrator,
-        ),
-      ).toThrow("E0885 rejects this in pass 2.1");
-    });
+      const result = generateFunctionCall(
+        "safe_div",
+        planArguments(orchestrator, argExpressions),
+        createMockInput(),
+        createMockState(),
+        orchestrator,
+      );
 
-    it("throws error when output parameter has no baseType", () => {
-      const argExpressions = [
-        createMockExpressionContext("noType"),
-        createMockExpressionContext("a"),
-        createMockExpressionContext("b"),
-        createMockExpressionContext("0"),
-      ];
-      const typeRegistry = new Map([
-        [
-          "noType",
-          { baseType: "", bitWidth: 0, isArray: false, isConst: false },
-        ],
-      ]);
-      const input = createMockInput({ typeRegistry });
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        isCNextFunction: vi.fn(() => false),
-        getSimpleIdentifier: vi.fn(() => "noType"),
-      });
-
-      expect(() =>
-        generateFunctionCall(
-          "safe_div",
-          planArguments(orchestrator, argExpressions),
-          input,
-          state,
-          orchestrator,
-        ),
-      ).toThrow("a registered variable always has a non-empty baseType");
+      expect(result.code).toBe("safe_div(result, a, b, 0)");
     });
   });
 

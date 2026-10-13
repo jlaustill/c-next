@@ -110,6 +110,7 @@ import scopeGenerator from "./3-Render/codegen/generators/declarationGenerators/
 import FormatUtils from "../utils/FormatUtils";
 import TypeCheckUtils from "../utils/TypeCheckUtils";
 import ExpressionShape from "../utils/ExpressionShape";
+import SafeDivision from "../utils/SafeDivision";
 import type IChainHead from "../types/IChainHead";
 import ExpressionCalls from "../utils/ExpressionCalls";
 import helperGenerators from "./3-Render/codegen/generators/support/HelperGenerator";
@@ -482,6 +483,7 @@ class CodeGenWalker {
         steps[i - offset] ?? null,
         head.rootOp,
         this.filePlan.narrowings.get(expr)?.get(i - offset) ?? null,
+        this.filePlan.safeDivisions.get(expr) ?? null,
       ),
     );
 
@@ -527,6 +529,7 @@ class CodeGenWalker {
     step: IChainStep | null,
     rootOp: TPostfixOpSyntax | null,
     narrowing: TPlannedNarrowing | null,
+    safeDivisionHelper: string | null,
   ): TPlannedPostfixOp {
     const typedAs = step?.subscript ?? null;
     switch (op.kind) {
@@ -576,6 +579,7 @@ class CodeGenWalker {
           calleeType: () => step?.before?.typeName ?? null,
           planArguments: () =>
             this.planCallArguments(args.length === 0 ? null : args),
+          safeDivisionHelper,
         };
       }
       case "missing":
@@ -592,7 +596,7 @@ class CodeGenWalker {
 
   private writePostfix(expr: TExpression): string {
     invariant(
-      FilePlanner.safeDivisionOperation(expr) === null ||
+      SafeDivision.callOf(expr) === null ||
         this.filePlan.safeDivisions.has(expr),
       "2.2 planned every safe-division helper 2.3 calls (ADR-051)",
     );

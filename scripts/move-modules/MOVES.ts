@@ -28,6 +28,10 @@ const PLAN_DECIDES =
   "pass, which the pass order allows, so the decision has one owner.";
 
 /** #1992 box 4: why a test that composes passes moves to the host. */
+const ONE_PREDICATE =
+  "#1991 review: 2.1, 2.2 and 2.3 each asked this question with their own " +
+  "test. It moves to src/cnx/utils/ so every pass asks the one predicate.";
+
 const HOST_TEST =
   "#1992 box 4: owner direction 2026-10-11: nothing in `src/cnx/`, tests " +
   "included, imports `src/cli/` or `src/lib/`. This test reaches the host " +
@@ -2105,6 +2109,11 @@ const MOVES: readonly IMove[] = [
     from: "src/cnx/TRANSPILE/3-Render/codegen/types/ICodeGeneratorOptions.ts",
     to: "src/cnx/TRANSPILE/types/ICodeGeneratorOptions.ts",
     because: PLAN_DECIDES,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/helpers/SafeDivision.ts",
+    to: "src/cnx/utils/SafeDivision.ts",
+    because: ONE_PREDICATE,
   },
 ];
 

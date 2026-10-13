@@ -267,6 +267,7 @@ const generatePostfixExpression = (
         state,
         orchestrator,
         op.calleeType(),
+        op.safeDivisionHelper,
       );
       applyAccessEffects(callResult.effects, effects);
       tracking.result = callResult.code;

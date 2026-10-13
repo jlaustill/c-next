@@ -323,6 +323,7 @@ function createMockPostfixOp(options?: {
         render: () => expression.getText(),
         renderByReference: () => `&${expression.getText()}`,
       })) ?? null,
+    safeDivisionHelper: null,
   };
 }
 

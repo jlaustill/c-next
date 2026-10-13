@@ -32,7 +32,7 @@ import ExpressionNodes from "../../utils/ExpressionNodes";
 import StatementNodes from "../../utils/StatementNodes";
 import FunctionReference from "./helpers/FunctionReference";
 import BoundDeclaration from "./helpers/BoundDeclaration";
-import SafeDivision from "./helpers/SafeDivision";
+import SafeDivision from "../../utils/SafeDivision";
 import IConstAssignmentError from "./types/IConstAssignmentError";
 import TChainRoot from "../../types/TChainRoot";
 import type ISourceSpan from "../../types/ISourceSpan";
