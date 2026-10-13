@@ -1,4 +1,5 @@
-import type IPlannedType from "../../../2-Plan/types/IPlannedType";
+import type IPlannedType from "./IPlannedType";
+import type ISourceSpan from "../../../types/ISourceSpan";
 
 /**
  * A function parameter as the function CONTEXT needs it -- the registry of
@@ -30,6 +31,9 @@ import type IPlannedType from "../../../2-Plan/types/IPlannedType";
  */
 interface IPlannedFunctionParameter {
   readonly name: string;
+
+  /** Where the name is declared: the key of 2.2's answer for it (#1991) */
+  readonly nameSpan: ISourceSpan;
 
   /** An explicit `const` modifier in the source. */
   readonly isConst: boolean;

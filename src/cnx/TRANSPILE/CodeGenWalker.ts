@@ -206,7 +206,7 @@ import type IPlannedClamp from "./2-Plan/types/IPlannedClamp";
 import type IPlannedSliceSource from "./2-Plan/types/IPlannedSliceSource";
 import SliceSource from "./2-Plan/SliceSource";
 import type IPlannedParameter from "./3-Render/codegen/types/IPlannedParameter";
-import type IPlannedFunctionParameter from "./3-Render/codegen/types/IPlannedFunctionParameter";
+import type IPlannedFunctionParameter from "./2-Plan/types/IPlannedFunctionParameter";
 import FunctionContextManager from "./3-Render/codegen/helpers/FunctionContextManager";
 import BitRangeHelper from "./3-Render/codegen/helpers/BitRangeHelper";
 import invariant from "../utils/invariant";
@@ -261,7 +261,7 @@ const CLAMP_HELPER_FOR_OPERATOR: Readonly<Partial<Record<string, string>>> = {
   "-": "sub",
   "*": "mul",
 };
-import type TranspileState from "./TranspileState";
+import TranspileState from "./TranspileState";
 
 /** What render folds a constant chain at: wide enough to hold any i64 */
 const WIDEST_SIGNED = "i64";
@@ -271,6 +271,7 @@ const NO_EXPECTED_TYPE: IPlannedExpectedType = {
   suppressBareEnumResolution: false,
 };
 
+import ParameterInfoPlanner from "./2-Plan/ParameterInfoPlanner";
 class CodeGenWalker {
   /**
    * The render-side services. Generators receive THIS object as their
@@ -284,6 +285,7 @@ class CodeGenWalker {
 
   /** 2.2's plan for the file 2.3 is rendering, set only while `render` runs */
   private filePlanOrNull: IFilePlan | null = null;
+  private parametersOrNull: ReadonlyMap<string, TParameterInfo> | null = null;
 
   /** The planned types 2.3 rendered, checked against `plannedTypes` once it is done */
   private readonly renderedTypes = new Set<TTypeSyntax>();
@@ -613,7 +615,7 @@ class CodeGenWalker {
       rootIdentifier,
       rootParameter:
         rootIdentifier && head.identifier
-          ? this.host.state.parameterAt(rootIdentifier, {
+          ? this.parameterAt(rootIdentifier, {
               line: head.identifier.span.line,
               column: head.identifier.span.column,
             })
@@ -942,10 +944,7 @@ class CodeGenWalker {
     if (id === null) return null;
     return {
       emitted: this.boundName(id, CodeGenWalker.positionOf(expr)),
-      parameter: this.host.state.parameterAt(
-        id,
-        CodeGenWalker.positionOf(expr),
-      ),
+      parameter: this.parameterAt(id, CodeGenWalker.positionOf(expr)),
     };
   }
 
@@ -954,7 +953,7 @@ class CodeGenWalker {
     const id = ExpressionShape.simpleIdentifier(expr);
     return id === null
       ? undefined
-      : this.host.state.parameterAt(id, CodeGenWalker.positionOf(expr));
+      : this.parameterAt(id, CodeGenWalker.positionOf(expr));
   }
 
   /** The C name a bare identifier at `at` is emitted under (ADR-057) */
@@ -1655,6 +1654,7 @@ class CodeGenWalker {
 
     // Initialize all helper objects
     this.initializeHelperObjects(program);
+    this.parametersOrNull = this.planParameterInfos(program);
 
     return this.planFile(program, options, file.valuePositions);
   }
@@ -1662,6 +1662,7 @@ class CodeGenWalker {
   /** 2.3 Render: the file's C, written from 2.2's plan (#1991) */
   render(plan: IFilePlan): IRenderedSource {
     this.filePlanOrNull = plan;
+    this.parametersOrNull = plan.setup.parameters;
     // #1928: the banner and the file result read the planned blocks'
     // requirements off the plan itself, so nothing copies them anywhere. Held
     // from here, so anything 2.3 asks to require is a decision 2.2 missed.
@@ -2396,7 +2397,7 @@ class CodeGenWalker {
     return {
       ...decided,
       emission: EmissionPlan.build(this.planEmissionFacts(decided)),
-      setup: this.host.state.fileSetup(),
+      setup: this.host.state.fileSetup(this.parameters()),
       header: options.header ?? null,
     };
   }
@@ -3581,6 +3582,7 @@ class CodeGenWalker {
     const isArray = param.dimensions.length > 0 || arrayType !== null;
     return {
       name: param.name,
+      nameSpan: param.nameSpan,
       isConst: param.const,
       isArray,
       arrayDimensions: this.foldParameterDimensions(
@@ -3591,6 +3593,77 @@ class CodeGenWalker {
       stringCapacity: CodeGenWalker.stringCapacityOf(param.type) ?? undefined,
       type: this.planType(param.type),
     };
+  }
+
+  /**
+   * #1991: 2.2's answer for every parameter of the file, decided before 2.3
+   * enters any function, so the argument 2.2 plans and the body 2.3 renders
+   * read one answer
+   */
+  private planParameterInfos(
+    program: IProgramSyntax,
+  ): ReadonlyMap<string, TParameterInfo> {
+    const infos = new Map<string, TParameterInfo>();
+    const callbacks = {
+      isKnownStruct: (typeName: string) => this.host.isKnownStruct(typeName),
+    };
+    const planParameters = (
+      cName: string,
+      fn: IFunctionDeclarationSyntax,
+    ): void => {
+      (fn.parameters ?? []).forEach((param, index) => {
+        infos.set(
+          TranspileState.parameterKey(param.nameSpan),
+          ParameterInfoPlanner.infoOf(
+            this.planFunctionParameter(param),
+            index,
+            cName,
+            callbacks,
+            this.host.state,
+          ),
+        );
+      });
+    };
+    for (const entry of program.declarations) {
+      const declaration = entry.declaration;
+      if (declaration.kind === "function") {
+        planParameters(declaration.name, declaration);
+      } else if (declaration.kind === "scope") {
+        const scopePath =
+          this.host.state.program?.scopePathOf(declaration.name) ??
+          declaration.name;
+        this.host.state.withScopePath(declaration.name, () => {
+          for (const member of declaration.members) {
+            if (member.declaration.kind !== "function") continue;
+            planParameters(
+              QualifiedNameGenerator.forFunctionInScope(
+                scopePath,
+                member.declaration.name,
+                this.host.state.program,
+              ),
+              member.declaration,
+            );
+          }
+        });
+      }
+    }
+    return infos;
+  }
+
+  private parameters(): ReadonlyMap<string, TParameterInfo> {
+    invariant(
+      this.parametersOrNull !== null,
+      "2.2 plans the file's parameters before one is read",
+    );
+    return this.parametersOrNull;
+  }
+
+  /** The parameter `name` binds to at `at`, as 2.2 planned it */
+  private parameterAt(
+    name: string,
+    at: ISourcePosition,
+  ): TParameterInfo | undefined {
+    return this.host.state.parameterIn(this.parameters(), name, at);
   }
 
   /**
@@ -4075,10 +4148,7 @@ class CodeGenWalker {
     const ops = view.ops;
 
     // Case 1: Direct parameter member access (cfg.value)
-    const paramInfo = this.host.state.parameterAt(
-      baseId,
-      CodeGenWalker.positionOf(expr),
-    );
+    const paramInfo = this.parameterAt(baseId, CodeGenWalker.positionOf(expr));
     if (paramInfo) {
       return CppMemberHelper.needsParamMemberConversion(
         paramInfo,
@@ -4150,10 +4220,7 @@ class CodeGenWalker {
       baseId,
       CodeGenWalker.positionOf(expr),
     );
-    const paramInfo = this.host.state.parameterAt(
-      baseId,
-      CodeGenWalker.positionOf(expr),
-    );
+    const paramInfo = this.parameterAt(baseId, CodeGenWalker.positionOf(expr));
 
     return CppMemberHelper.isStringSubscriptPattern(
       hasPostfixOps,
@@ -4203,8 +4270,7 @@ class CodeGenWalker {
         baseId,
         CodeGenWalker.positionOf(at),
       ) !== undefined ||
-      this.host.state.parameterAt(baseId, CodeGenWalker.positionOf(at)) !==
-        undefined
+      this.parameterAt(baseId, CodeGenWalker.positionOf(at)) !== undefined
     );
   }
 

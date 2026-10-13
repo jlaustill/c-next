@@ -1,4 +1,4 @@
-import type IPlannedFunctionParameter from "./IPlannedFunctionParameter";
+import type IPlannedFunctionParameter from "../../../2-Plan/types/IPlannedFunctionParameter";
 
 /**
  * A C-Next function declaration, decided.

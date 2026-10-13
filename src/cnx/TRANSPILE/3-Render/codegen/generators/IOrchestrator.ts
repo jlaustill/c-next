@@ -11,7 +11,7 @@
  * - Testing generators with mock orchestrators
  * - Gradual migration via "strangler fig" pattern
  */
-import type IPlannedFunctionParameter from "../types/IPlannedFunctionParameter";
+import type IPlannedFunctionParameter from "../../../2-Plan/types/IPlannedFunctionParameter";
 import IGeneratorInput from "./IGeneratorInput";
 import IGeneratorState from "./IGeneratorState";
 import TGeneratorEffect from "./TGeneratorEffect";

@@ -57,11 +57,10 @@ import SymbolLookupHelper from "./helpers/SymbolLookupHelper";
 // Issue #707: Expression unwrapping utility for reducing duplication
 // Stateless parser utilities extracted from CodeGenerator
 // Phase 3: Type generation helper for improved testability
-import type IPlannedFunctionParameter from "./types/IPlannedFunctionParameter";
+import type IPlannedFunctionParameter from "../../2-Plan/types/IPlannedFunctionParameter";
 // Phase 5: Cast validation helper for improved testability
 // Issue #793: Function context lifecycle and parameter processing helper
 import FunctionContextManager from "./helpers/FunctionContextManager";
-import IFunctionContextCallbacks from "./types/IFunctionContextCallbacks";
 // Global state for code generation (simplifies debugging, eliminates DI complexity)
 import TypeCheckUtils from "../../../utils/TypeCheckUtils";
 import CallbackTypedefFormatter from "./helpers/CallbackTypedefFormatter";
@@ -404,11 +403,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   /** Set current function parameters */
   setParameters(parameters: readonly IPlannedFunctionParameter[] | null): void {
-    FunctionContextManager.processParameterList(
-      parameters,
-      this._getFunctionContextCallbacks(),
-      this.state,
-    );
+    FunctionContextManager.processParameterList(parameters, this.state);
   }
 
   /** Clear current function parameters */
@@ -739,15 +734,6 @@ export default class CodeGenerator implements IOrchestrator {
   // ========================================================================
   // Functions
   // ========================================================================
-
-  /**
-   * Issue #793: Create callbacks for FunctionContextManager.
-   */
-  private _getFunctionContextCallbacks(): IFunctionContextCallbacks {
-    return {
-      isKnownStruct: (typeName: string) => this.isKnownStruct(typeName),
-    };
-  }
 
   // ========================================================================
   // Variables

@@ -34,10 +34,13 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
-2 linked fixtures with no derivable context:
+5 linked fixtures with no derivable context:
 
+- `adr-004/register-expression-address-mmio.test.cnx`
 - `adr-004/register-imported-bitmap-member.test.cnx`
+- `adr-004/register-imported-expression-mmio.test.cnx`
 - `adr-004/register-imported-rw.test.cnx`
+- `adr-004/register-imported-wo-mmio.test.cnx`
 
 ## ADR-007
 

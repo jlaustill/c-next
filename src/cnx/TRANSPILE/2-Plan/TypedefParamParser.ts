@@ -9,7 +9,7 @@
  * Used by Issue #914 to resolve callback pointer/const info onto IParameterSymbol.
  */
 
-import IParameterSymbol from "../../../../utils/types/IParameterSymbol";
+import IParameterSymbol from "../../utils/types/IParameterSymbol";
 
 /**
  * Parsed parameter info from a typedef.

@@ -1,5 +1,5 @@
 import type IPlannedRegister from "./IPlannedRegister";
-import type IPlannedFunctionParameter from "./IPlannedFunctionParameter";
+import type IPlannedFunctionParameter from "../../../2-Plan/types/IPlannedFunctionParameter";
 import type TPlannedScopeVariable from "./TPlannedScopeVariable";
 
 /**

@@ -332,18 +332,24 @@ class TranspileState {
   }
 
   /**
-   * #1969: the current function's parameter a name means where it is used.
-   * Bound at `at`, so a block-local that shadows a parameter is the local
-   * inside its block, and the parameter again after it.
+   * #1969: the current function's parameter a name means where it is used,
+   * answered from `parameters` (2.2's, #1991). Bound at `at`, so a
+   * block-local that shadows a parameter is the local inside its block, and
+   * the parameter again after it.
    */
-  parameterAt(name: string, at: ISourcePosition): TParameterInfo | undefined {
-    return this.parameterDeclarationAt(name, at) === null
+  parameterIn(
+    parameters: ReadonlyMap<string, TParameterInfo>,
+    name: string,
+    at: ISourcePosition,
+  ): TParameterInfo | undefined {
+    const declaration = this.parameterDeclarationAt(name, at);
+    return declaration === null
       ? undefined
-      : this.currentParameters.get(name);
+      : TranspileState.plannedParameterIn(parameters, declaration.span);
   }
 
   /**
-   * `parameterAt`'s parameter with the C name it is emitted under there, for
+   * `parameterIn`'s parameter with the C name it is emitted under there, for
    * a site that writes it (#1290 review)
    */
   parameterBindingAt(
@@ -352,11 +358,35 @@ class TranspileState {
   ): IBoundParameter | undefined {
     const declaration = this.parameterDeclarationAt(name, at);
     const info =
-      declaration === null ? undefined : this.currentParameters.get(name);
+      declaration === null
+        ? undefined
+        : this.plannedParameterAt(declaration.span);
     if (declaration === null || info === undefined) {
       return undefined;
     }
     return { info, emittedName: this.localCName(declaration, at) };
+  }
+
+  /** The key of 2.2's answer for the parameter declared at `nameSpan` */
+  static parameterKey(nameSpan: ISourcePosition): string {
+    return `${nameSpan.line}:${nameSpan.column}`;
+  }
+
+  /** 2.2's answer for the parameter declared at `nameSpan` (#1991) */
+  plannedParameterAt(nameSpan: ISourcePosition): TParameterInfo {
+    return TranspileState.plannedParameterIn(this.plannedParameters, nameSpan);
+  }
+
+  private static plannedParameterIn(
+    parameters: ReadonlyMap<string, TParameterInfo>,
+    nameSpan: ISourcePosition,
+  ): TParameterInfo {
+    const info = parameters.get(TranspileState.parameterKey(nameSpan));
+    invariant(
+      info !== undefined,
+      `2.2 planned the parameter declared on line ${nameSpan.line}`,
+    );
+    return info;
   }
 
   private parameterDeclarationAt(
@@ -721,6 +751,9 @@ class TranspileState {
 
   /** ADR-006: Current function parameters for pointer semantics */
   currentParameters: Map<string, TParameterInfo> = new Map();
+
+  /** 2.2's answer for every parameter of the file being rendered (#1991) */
+  plannedParameters: ReadonlyMap<string, TParameterInfo> = new Map();
 
   /** Scope member names: scope -> Set of member names */
   private scopeMembers: Map<string, Set<string>> = new Map();
@@ -1228,7 +1261,7 @@ class TranspileState {
    * 2.2's setup for this file, copied so the plan carries it and 2.3 can
    * start from it alone (#1991).
    */
-  fileSetup(): IFileSetup {
+  fileSetup(parameters: ReadonlyMap<string, TParameterInfo>): IFileSetup {
     invariant(this.program, "2.1 hands 2.2 the program");
     invariant(this.symbols, "2.2 sets the file's symbols before planning it");
     return {
@@ -1255,6 +1288,7 @@ class TranspileState {
           new Set(members),
         ]),
       ),
+      parameters,
     };
   }
 
@@ -1285,6 +1319,7 @@ class TranspileState {
     for (const [scope, members] of setup.scopeMembers) {
       this.setScopeMembers(scope, new Set(members));
     }
+    this.plannedParameters = setup.parameters;
     this.emissionPlanOrNull = emission;
   }
 
@@ -1310,6 +1345,7 @@ class TranspileState {
     this.currentScopePath = "";
     this.currentFunctionName = null;
     this.currentParameters = new Map();
+    this.plannedParameters = new Map();
     this.scopeMembers = new Map();
     this.floatBitShadows = new Set();
     this.floatShadowCurrent = new Set();
