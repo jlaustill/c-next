@@ -1624,7 +1624,7 @@ class CodeGenWalker {
     program: IProgramSyntax,
   ): ReadonlyMap<TExpressionOf<"sizeof">, TValueBinding | null> {
     const planned = new Map<TExpressionOf<"sizeof">, TValueBinding | null>();
-    for (const expression of CodeGenWalker.sizeofsOf(program)) {
+    for (const expression of CodeGenWalker.sizeofExpressionsIn(program)) {
       if (expression.type?.kind === "user") {
         planned.set(
           expression,
@@ -1649,7 +1649,7 @@ class CodeGenWalker {
   ): ReadonlySet<TExpressionOf<"sizeof">> {
     const typing = this.host.state.typingContext();
     return new Set(
-      CodeGenWalker.sizeofsOf(program).filter(
+      CodeGenWalker.sizeofExpressionsIn(program).filter(
         (expression) =>
           expression.type?.kind === "qualified" &&
           expression.memberChain !== null &&
@@ -1658,7 +1658,9 @@ class CodeGenWalker {
     );
   }
 
-  private static sizeofsOf(program: IProgramSyntax): TExpressionOf<"sizeof">[] {
+  private static sizeofExpressionsIn(
+    program: IProgramSyntax,
+  ): TExpressionOf<"sizeof">[] {
     return program.declarations.flatMap(({ declaration }) =>
       DeclarationParts.of(declaration).flatMap((part) =>
         ExpressionNodes.of(part).filter(
