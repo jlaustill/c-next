@@ -12,14 +12,7 @@ import ToolchainDetector from "../ToolchainDetector";
 vi.mock("node:child_process", () => ({ execFileSync: vi.fn() }));
 
 import { execFileSync } from "node:child_process";
-import MockFileSystem from "../../../../../cli/__tests__/MockFileSystem";
-
-/** A filesystem holding exactly these executables. */
-function installed(...paths: string[]): MockFileSystem {
-  const fs = new MockFileSystem();
-  for (const path of paths) fs.addFile(path, "");
-  return fs;
-}
+import installed from "./installedExecutables";
 
 describe("ToolchainDetector.fromPath", () => {
   const originalPath = process.env.PATH;

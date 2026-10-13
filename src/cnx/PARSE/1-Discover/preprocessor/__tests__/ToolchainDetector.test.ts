@@ -13,7 +13,7 @@ vi.mock("node:child_process", () => ({
 }));
 
 import { execFileSync, spawnSync } from "node:child_process";
-import MockFileSystem from "../../../../../cli/__tests__/MockFileSystem";
+import installed from "./installedExecutables";
 
 /**
  * Answer the mocked `execFileSync` by the command it would run, written as one
@@ -24,13 +24,6 @@ function whenRun(answer: (command: string) => string): void {
     file: string,
     args?: readonly string[],
   ) => answer([file, ...(args ?? [])].join(" "))) as typeof execFileSync);
-}
-
-/** A filesystem holding exactly these executables. */
-function installed(...paths: string[]): MockFileSystem {
-  const fs = new MockFileSystem();
-  for (const path of paths) fs.addFile(path, "");
-  return fs;
 }
 
 describe("ToolchainDetector", () => {
