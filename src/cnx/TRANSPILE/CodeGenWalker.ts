@@ -50,6 +50,7 @@ import DeclarationParts from "../utils/DeclarationParts";
 import ExpressionNodes from "../utils/ExpressionNodes";
 import type TValueBinding from "../types/TValueBinding";
 import CastRequirement from "./2-Plan/CastRequirement";
+import type TNegativeMinimum from "./2-Plan/types/TNegativeMinimum";
 import OperandTyper from "../utils/OperandTyper";
 import CppNamespaceUtils from "../utils/CppNamespaceUtils";
 import headerCType from "../utils/headerCType";
@@ -252,6 +253,8 @@ class CodeGenWalker {
 
   /** The planned casts 2.3 rendered, checked against `plannedCasts` once it is done */
   private readonly renderedCasts = new Set<TExpression>();
+  /** The planned negative minimums 2.3 rendered, checked against the plan once it is done */
+  private readonly renderedMinimums = new Set<TExpression>();
 
   /** The plan 2.3 renders from; asking outside `render` is a bug */
   private get filePlan(): IFilePlan {
@@ -456,14 +459,18 @@ class CodeGenWalker {
       return this.invokeGenerator(generateUnaryExpr, {
         operator: null,
         operandCode: this.renderPostfix(expr),
+        minimum: null,
         operandType: () => null,
       });
     }
 
     const operand = expr.operand;
+    const minimum = this.filePlan.negativeMinimums.get(expr) ?? null;
+    if (minimum !== null) this.renderedMinimums.add(expr);
     return this.invokeGenerator(generateUnaryExpr, {
       operator: expr.operator,
       operandCode: this.renderUnary(operand),
+      minimum,
       // lazy: only `~` consults it
       operandType: () => this.directTypeOf(operand),
     });
@@ -1657,6 +1664,32 @@ class CodeGenWalker {
     return planned;
   }
 
+  /**
+   * MISRA 10.3: each written `-` literal that is its type's minimum, which 2.3
+   * spells as the `<limits.h>` macro. The literal's suffix is the one 2.3
+   * drops (8/16/32 bits) or spells `LL` (i64).
+   */
+  private static planNegativeMinimums(
+    program: IProgramSyntax,
+    inlinedConsts: ReadonlySet<TDeclarationSyntax>,
+  ): ReadonlyMap<TExpressionOf<"unary">, TNegativeMinimum> {
+    const planned = new Map<TExpressionOf<"unary">, TNegativeMinimum>();
+    for (const expression of CodeGenWalker.writtenExpressions(
+      program,
+      inlinedConsts,
+    )) {
+      if (expression.kind !== "unary" || expression.operator !== "-") continue;
+      if (expression.operand.kind !== "literal") continue;
+      const text = expression.operand.text;
+      if (/^2147483648(?:[uUiI](?:8|16|32))?$/.test(text)) {
+        planned.set(expression, "int32_t");
+      } else if (/^9223372036854775808(?:[iI]64)?$/.test(text)) {
+        planned.set(expression, "int64_t");
+      }
+    }
+    return planned;
+  }
+
   /** Whether 2.3 writes a `.char_count` read: the typer's step names the property */
   private readsCharCount(
     program: IProgramSyntax,
@@ -1943,6 +1976,14 @@ class CodeGenWalker {
         );
       }
     }
+    const negativeMinimums = CodeGenWalker.planNegativeMinimums(
+      program,
+      inlinedConsts,
+    );
+    // MISRA 10.3: a minimum is written as its <limits.h> macro
+    if (negativeMinimums.size > 0) {
+      this.host.state.requireInclude("limits");
+    }
     return {
       program,
       selfInclude,
@@ -1952,6 +1993,7 @@ class CodeGenWalker {
       types,
       comparisons,
       casts,
+      negativeMinimums,
     };
   }
 
@@ -2003,6 +2045,7 @@ class CodeGenWalker {
     this.renderedTypes.clear();
     this.renderedComparisons.clear();
     this.renderedCasts.clear();
+    this.renderedMinimums.clear();
 
     // Generate declarations
     const declarations = this.generateAllDeclarations(program);
@@ -2022,6 +2065,11 @@ class CodeGenWalker {
       this.filePlan.casts.keys(),
       this.renderedCasts,
       "cast",
+    );
+    CodeGenWalker.assertAllRendered(
+      this.filePlan.negativeMinimums.keys(),
+      this.renderedMinimums,
+      "negative minimum",
     );
 
     // 2.2 Plan: every "does this file need X?" question the declarations above

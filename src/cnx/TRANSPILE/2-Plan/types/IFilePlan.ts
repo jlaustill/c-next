@@ -6,6 +6,7 @@ import type TTypeSyntax from "../../../types/syntax/TTypeSyntax";
 import type TValueBinding from "../../../types/TValueBinding";
 import type IPlannedCast from "./IPlannedCast";
 import type IPlannedType from "./IPlannedType";
+import type TNegativeMinimum from "./TNegativeMinimum";
 
 /**
  * 2.2 Plan's artifact for one file: every decision 2.3 Render reads, made
@@ -41,6 +42,12 @@ interface IFilePlan {
   readonly casts: ReadonlyMap<
     TExpressionOf<"cast">,
     Pick<IPlannedCast, "operandType" | "clampForm">
+  >;
+
+  /** Each written `-` literal 2.3 spells as its type's minimum macro (MISRA 10.3) */
+  readonly negativeMinimums: ReadonlyMap<
+    TExpressionOf<"unary">,
+    TNegativeMinimum
   >;
 }
 
