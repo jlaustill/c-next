@@ -33,6 +33,7 @@ import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import ParserUtils from "../../utils/ParserUtils";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeUtils from "../../utils/ScopeUtils";
+import ConstLiteral from "../../utils/ConstLiteral";
 import type TValueBinding from "../../types/TValueBinding";
 import OperandTyper from "../../utils/OperandTyper";
 import EnumValueResolver from "./EnumValueResolver";
@@ -42,6 +43,14 @@ import type IAnalysisContext from "./types/IAnalysisContext";
 
 /** MISRA C:2012 Rule 16.6: a switch needs at least two clauses. */
 const MINIMUM_CLAUSES = 2;
+
+/** Symbols that name a type, which a case label cannot be (#2051, #2069) */
+const TYPE_KINDS: ReadonlySet<string> = new Set([
+  "enum",
+  "struct",
+  "bitmap",
+  "register",
+]);
 
 class SwitchStatementListener extends CNextListener {
   private readonly found: ISwitchStatementError[] = [];
@@ -162,7 +171,8 @@ class SwitchStatementListener extends CNextListener {
    *
    * Asked of what the label BINDS, so one check covers every spelling the
    * grammar admits: `level`, `this.level`, `global.level`, `Panel.level`.
-   * A label binding nothing is an enum member, a header's name or E0427's.
+   * A label binding no value is a type (E0717 too: `EMode`, `this.State`,
+   * #2069), an enum member, or E0427's.
    */
   private reportNonConstantLabels(
     cases: readonly Parser.SwitchCaseContext[],
@@ -171,8 +181,7 @@ class SwitchStatementListener extends CNextListener {
     for (const caseCtx of cases) {
       for (const label of caseCtx.caseLabel()) {
         const lowered = StatementLowering.caseLabel(label);
-        const binding = this.labelBinding(lowered);
-        if (binding === null || this.isConstant(binding, lowered)) continue;
+        if (this.isConstantLabel(lowered, label)) continue;
         const { line, column } = ParserUtils.getPosition(label);
         this.found.push({
           code: "E0717",
@@ -211,40 +220,65 @@ class SwitchStatementListener extends CNextListener {
     }
   }
 
+  private isConstantLabel(
+    label: TCaseLabelSyntax,
+    at: Parser.CaseLabelContext,
+  ): boolean {
+    const binding = this.labelBinding(label);
+    if (binding !== null) return this.isConstant(binding, label);
+    return label.kind !== "identifier" || !this.namesType(label, at);
+  }
+
+  /**
+   * A label spelled as a type -- `EMode`, `this.State`, `global.Pt` -- binds
+   * no value, so it is looked up where a member chain's head would be. Not
+   * `isTypeNameAt`: in a file that includes a header it calls a name it
+   * cannot find a type, which a bare enum member (`IDLE`) is.
+   */
+  private namesType(
+    label: Extract<TCaseLabelSyntax, { kind: "identifier" }>,
+    at: Parser.CaseLabelContext,
+  ): boolean {
+    const { program, sourceFile } = this.context;
+    const cName = ScopeUtils.typeHeadCName(
+      label.root,
+      label.name,
+      OperandTyper.scopePathAt(ParserUtils.getPosition(at), this.context),
+      (name) => program.isScopeTypeVisibleFrom(sourceFile, name),
+    );
+    const kind = program.symbolByCName(cName)?.kind;
+    return kind !== undefined && TYPE_KINDS.has(kind);
+  }
+
+  /** Whether a bound label is a constant, asked of the one const-value answer */
   private isConstant(binding: TValueBinding, label: TCaseLabelSyntax): boolean {
+    const { program } = this.context;
     switch (binding.kind) {
       case "foreign":
         return true;
       case "variable":
         return (
           label.kind === "identifier" &&
-          binding.symbol.isConst &&
-          !binding.symbol.isArray &&
-          binding.symbol.initialValueExpr !== undefined
+          ConstLiteral.textOf(program, binding.symbol) !== null
         );
       case "local":
         return (
-          label.kind === "identifier" &&
-          binding.declaration.isConst &&
-          binding.declaration.arrayDimensions.length === 0 &&
-          binding.declaration.initialValueExpr !== null
+          label.kind === "identifier" && program.constantOf(binding) !== null
         );
       case "function":
         return false;
       case "scope": {
         // `Panel.LIMIT`: the scope names where to look, the member decides
         if (label.kind !== "qualified") return false;
-        const member = this.context.program.symbolByCName(
+        const member = program.symbolByCName(
           ScopeUtils.qualifyPathInScope(label.path.slice(1), binding.scopePath),
         );
-        if (member?.kind === "variable") {
-          return (
-            member.isConst &&
-            !member.isArray &&
-            member.initialValueExpr !== undefined
-          );
-        }
-        return member?.kind !== "function";
+        // No symbol: an enum member chain (`Panel.State.IDLE`), or #1630's
+        if (member === undefined) return true;
+        return (
+          member.kind === "variable" &&
+          ConstLiteral.textOf(program, member) !== null
+        );
       }
     }
   }

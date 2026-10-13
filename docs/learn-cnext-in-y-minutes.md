@@ -217,7 +217,7 @@ switch (cmd) {
 
 // A const label may be written bare, this.X or global.X, resolving as
 // anywhere else; a label naming nothing is an error (E0427), and one naming
-// a variable or a function is not a constant (E0717)
+// a variable, a function or a type is not a constant (E0717)
 switch (level) {
     case global.LIMIT {
         warn();

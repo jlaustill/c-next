@@ -271,12 +271,18 @@ describe("SwitchStatementAnalyzer", () => {
         [
           "u8 counter <- 2;",
           "const u8 REAL <- 1;",
+          "enum EMode { IDLE, RUN }",
+          "struct Pt { u8 x; }",
           "scope Panel {",
           "    u8 level <- 1;",
           "    const u8 OWN <- 3;",
+          '    public const string<4> S <- "ab";',
+          "    public enum State { STOPPED, GOING }",
+          "    bitmap8 Flags { a, b, c, d, e, f, g, h }",
           "    public u8 helper() { return 1; }",
           "    public u32 pick(u8 s, u8 p) {",
           "        const u8 K <- 5;",
+          '        const string<4> L <- "x";',
           "        switch (s) {",
           `            case ${label} { return 1; }`,
           "            default { return 0; }",
@@ -297,6 +303,18 @@ describe("SwitchStatementAnalyzer", () => {
       "Panel.level",
       "Panel.helper",
       "p",
+      "this.State",
+      "State",
+      "Panel.State",
+      "global.EMode",
+      "EMode",
+      "global.Pt",
+      "Pt",
+      "this.Flags",
+      "this.S",
+      "S",
+      "Panel.S",
+      "L",
     ])("rejects `%s`", (label) => {
       const found = pick(label);
       expect(found).toHaveLength(1);
@@ -304,11 +322,19 @@ describe("SwitchStatementAnalyzer", () => {
       expect(found[0].message).toBe(`Case label '${label}' is not a constant`);
     });
 
-    it.each(["OWN", "this.OWN", "global.REAL", "REAL", "Panel.OWN", "K", "9"])(
-      "accepts `%s`",
-      (label) => {
-        expect(pick(label)).toEqual([]);
-      },
-    );
+    it.each([
+      "OWN",
+      "this.OWN",
+      "global.REAL",
+      "REAL",
+      "Panel.OWN",
+      "K",
+      "9",
+      "this.State.STOPPED",
+      "Panel.State.GOING",
+      "global.EMode.RUN",
+    ])("accepts `%s`", (label) => {
+      expect(pick(label)).toEqual([]);
+    });
   });
 });

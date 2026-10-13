@@ -3,7 +3,8 @@
 // #2051: ADR-025 admits only constants as case labels. A label naming a
 // variable, a function or a scope reached the C as a name gcc rejects, at
 // exit 0, in every spelling. Each flagged label sits beside a const, an enum
-// member and a literal in the same switch, which stay silent.
+// member and a literal in the same switch, which stay silent. A label naming
+// a type (#2069) or a const with no C constant value (a string) is E0717 too.
 u8 counter <- 2;
 const u8 REAL <- 1;
 
@@ -12,9 +13,30 @@ enum EMode {
     RUN
 }
 
+struct Pt {
+    u8 x;
+}
+
 scope Panel {
     u8 level <- 1;
     const u8 OWN <- 3;
+    public const string<4> S <- "ab";
+
+    public enum State {
+        STOPPED,
+        GOING
+    }
+
+    bitmap8 Flags {
+        a,
+        b,
+        c,
+        d,
+        e,
+        f,
+        g,
+        h
+    }
 
     public u8 helper() {
         return 1;
@@ -35,6 +57,29 @@ scope Panel {
                 return 4;
             }
             case global.Panel {
+                return 5;
+            }
+            default {
+                return 0;
+            }
+        }
+    }
+
+    public u32 typed(u8 s) {
+        switch (s) {
+            case this.OWN || global.REAL || 7 {
+                return 1;
+            }
+            case this.State {
+                return 2;
+            }
+            case global.EMode || global.Pt {
+                return 3;
+            }
+            case this.Flags {
+                return 4;
+            }
+            case this.S {
                 return 5;
             }
             default {
@@ -76,6 +121,35 @@ u32 qualified(u8 s, u8 p) {
     }
 }
 
+u32 typedOutside(u8 s) {
+    switch (s) {
+        case Panel.OWN || REAL || 8 {
+            return 1;
+        }
+        case Panel.State || EMode || Pt {
+            return 2;
+        }
+        case Panel.S {
+            return 3;
+        }
+        default {
+            return 0;
+        }
+    }
+}
+
+u32 onState(Panel.State st) {
+    switch (st) {
+        case Panel.State.STOPPED {
+            return 1;
+        }
+        case Panel.State.GOING {
+            return 2;
+        }
+    }
+    return 0;
+}
+
 u32 onEnum(EMode e) {
     switch (e) {
         case EMode.IDLE {
@@ -93,5 +167,8 @@ u32 main() {
     u32 b <- Panel.bare(1);
     u32 c <- qualified(1, 2);
     u32 d <- onEnum(EMode.IDLE);
-    return a + b + c + d;
+    u32 t <- Panel.typed(1);
+    u32 o <- typedOutside(1);
+    u32 q <- onState(Panel.State.STOPPED);
+    return a + b + c + d + t + o + q;
 }
