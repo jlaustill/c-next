@@ -2914,24 +2914,22 @@ class CodeGenWalker {
   private captureEmissionFacts(
     existingIncludeTargets: readonly string[],
   ): IEmissionFacts {
-    // #1991: 2.3 still reports the C types it writes until 2.2's plan is
-    // shown to decide the same headers on every fixture. The clamp helpers'
-    // types are still 2.3's to report (C5).
+    // #1991: the headers come from 2.2's plan. 2.3 still reports the C
+    // types it writes, and any header those need that the plan lacks is a
+    // type 2.2 missed. The clamp helpers' types are still 2.3's (C5).
     const helperCTypes = [...this.host.state.usedClampOps].flatMap((op) =>
       OverflowHelperTemplates.cTypesOf(op.slice(op.indexOf("_") + 1)),
     );
-    const plannedHeaders = CTypeIncludes.decide([
-      ...this.filePlan.cTypes,
-      ...helperCTypes,
-    ]);
+    const cTypes = new Set([...this.filePlan.cTypes, ...helperCTypes]);
+    const plannedHeaders = CTypeIncludes.decide(cTypes);
     const renderedHeaders = CTypeIncludes.decide(this.host.state.emittedCTypes);
     invariant(
-      plannedHeaders.join() === renderedHeaders.join(),
+      renderedHeaders.every((header) => plannedHeaders.includes(header)),
       `2.2 planned the C type headers 2.3 writes in ${this.host.state.sourcePath} (planned [${plannedHeaders.join()}], written [${renderedHeaders.join()}])`,
     );
     return {
       cppMode: this.host.isCppMode(),
-      emittedCTypes: this.host.state.emittedCTypes,
+      emittedCTypes: cTypes,
       needsString: this.host.state.needsString,
       needsCMSIS: this.host.state.needsCMSIS,
       needsLimits: this.host.state.needsLimits,
