@@ -1,3 +1,4 @@
+import type IEmissionPlan from "../../../types/IEmissionPlan";
 import type TPlannedNarrowing from "./TPlannedNarrowing";
 import type TAtomicForm from "../../types/TAtomicForm";
 import type IAssignmentSyntax from "../../../types/syntax/IAssignmentSyntax";
@@ -27,6 +28,9 @@ interface IFilePlan {
 
   /** The file's own header, included first for its public interface, or null (#1164) */
   readonly selfInclude: string | null;
+
+  /** Each of the file's own `#include`s as the C writes it */
+  readonly includeDirectives: readonly string[];
 
   /** Which private scope consts are inlined, not declared (#282) */
   readonly inlinedConsts: ReadonlySet<TDeclarationSyntax>;
@@ -95,6 +99,9 @@ interface IFilePlan {
     TExpressionOf<"structInitializer">,
     TStructInitializerForm
   >;
+
+  /** What the file's text costs: its system includes, helpers and requirements */
+  readonly emission: IEmissionPlan;
 }
 
 export default IFilePlan;

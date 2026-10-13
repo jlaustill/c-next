@@ -177,6 +177,7 @@ class TranspileState {
    * @param line - The `.cnx` line that asked, for deferred attribution
    */
   requireInclude(header: TIncludeHeader, line: number | null = null): void {
+    this.assertFormBeforePlan(`<${header}> requirement`);
     // Issue #1143: three of these "headers" are really deferred code-emission
     // requests. Record where they were asked for, so the 2.2 plan block that
     // decides the emission carries them as its requirements' sites (#1928). No
@@ -425,7 +426,7 @@ class TranspileState {
    *
    * Held for the rest of the file's turn so the requirements its planned
    * blocks carry are read off the plan, never copied into
-   * `ToolchainRequirements` (#1928). Null until the declarations have rendered.
+   * `ToolchainRequirements` (#1928). Null until 2.3 takes the file's plan.
    */
   emissionPlanOrNull: IEmissionPlan | null = null;
   /** ADR-013: Track function parameter const-ness for call-site validation */

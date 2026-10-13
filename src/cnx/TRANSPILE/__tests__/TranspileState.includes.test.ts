@@ -185,6 +185,18 @@ describe("TranspileState -- emitted forms", () => {
     },
   );
 
+  // #1991: the emission plan is built before 2.3 writes, so a requirement
+  // 2.3 raises would cost nothing.
+  it("refuses a requirement after the plan", () => {
+    state.requireInclude("string");
+    expect(state.needsString).toBe(true);
+
+    state.emissionPlanOrNull = {} as IEmissionPlan;
+    expect(() => state.requireInclude("limits")).toThrow(
+      "a <limits> requirement was emitted after 2.2 Plan",
+    );
+  });
+
   // #1143's leak shape: a form one file emitted must not cost the next file.
   it.each(FORMS)("reset clears a noted %s", (_form, note, emitted) => {
     note(state);

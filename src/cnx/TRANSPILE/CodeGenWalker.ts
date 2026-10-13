@@ -1657,6 +1657,10 @@ class CodeGenWalker {
   /** 2.3 Render: the file's C, written from 2.2's plan (#1991) */
   render(plan: IFilePlan): string {
     this.filePlanOrNull = plan;
+    // #1928: the banner and the file result read the planned blocks'
+    // requirements off the plan itself, so nothing copies them anywhere. Held
+    // from here, so anything 2.3 asks to require is a decision 2.2 missed.
+    this.host.state.emissionPlanOrNull = plan.emission;
     try {
       return this.assembleGeneratedOutput(plan);
     } finally {
@@ -2316,9 +2320,13 @@ class CodeGenWalker {
       decidedCTypes,
     );
     this.planLengthCTypes(program, inlinedConsts, decidedCTypes);
-    return {
+    const includeDirectives = program.includes.map((include) =>
+      this.transformIncludeDirective(include.written),
+    );
+    const decided: Omit<IFilePlan, "emission"> = {
       program,
       selfInclude,
+      includeDirectives,
       inlinedConsts,
       sizeofBindings,
       sizeofMemberAccesses,
@@ -2347,6 +2355,10 @@ class CodeGenWalker {
         inlinedConsts,
         expectedTypes,
       ),
+    };
+    return {
+      ...decided,
+      emission: EmissionPlan.build(this.planEmissionFacts(decided)),
     };
   }
 
@@ -2984,20 +2996,11 @@ class CodeGenWalker {
     const { program } = plan;
     const output: string[] = [];
 
-    // 2.2 Plan's fact, recorded where it is KNOWN rather than recovered from
-    // text: `captureEmissionFacts` used to regex `#include` lines back out of
-    // the rendered `output` array. Both producers append here instead.
-    const sourceIncludeTargets: string[] = [];
-
     if (plan.selfInclude !== null) {
       output.push(`#include "${plan.selfInclude}"`, "");
-      sourceIncludeTargets.push(`"${plan.selfInclude}"`);
     }
 
-    // Process include directives
-    sourceIncludeTargets.push(
-      ...this.processIncludeDirectives(program, output),
-    );
+    this.processIncludeDirectives(plan, output);
 
     // Process preprocessor directives
     this.processPreprocessorDirectives(program, output);
@@ -3044,16 +3047,8 @@ class CodeGenWalker {
       "struct initializer",
     );
 
-    // 2.2 Plan: every "does this file need X?" question the declarations above
-    // raised is answered ONCE, here, from state that is warm for exactly this
-    // long. Nothing below reads a `needs*` flag.
-    const emissionPlan = EmissionPlan.build(
-      this.captureEmissionFacts(sourceIncludeTargets),
-    );
-
-    // #1928: the banner and the file result read the planned blocks'
-    // requirements off the plan itself, so nothing copies them anywhere.
-    this.host.state.emissionPlanOrNull = emissionPlan;
+    this.assertHelpersAndCTypesPlanned();
+    const emissionPlan = plan.emission;
 
     // 2.3 Render: format the plan. These two decide nothing.
     this.addAutoIncludes(output, emissionPlan);
@@ -3105,12 +3100,9 @@ class CodeGenWalker {
   /**
    * Process all include directives and add to output.
    */
-  private processIncludeDirectives(
-    program: IProgramSyntax,
-    output: string[],
-  ): string[] {
-    const targets: string[] = [];
-    for (const include of program.includes) {
+  private processIncludeDirectives(plan: IFilePlan, output: string[]): void {
+    const { program } = plan;
+    for (const [index, include] of program.includes.entries()) {
       output.push(...this.formatLeadingComments(include.leadingComments));
       const includeText = include.written;
       // Issue #850: a MISRA suppression for banned headers
@@ -3119,17 +3111,11 @@ class CodeGenWalker {
       if (suppression) {
         output.push(suppression);
       }
-      const line = this.transformIncludeDirective(includeText);
-      output.push(line);
-      const target = CodeGenWalker.extractIncludeTarget(line);
-      if (target !== null) {
-        targets.push(target);
-      }
+      output.push(plan.includeDirectives[index]);
     }
     if (program.includes.length > 0) {
       output.push("");
     }
-    return targets;
   }
 
   /**
@@ -3238,28 +3224,11 @@ class CodeGenWalker {
   }
 
   /**
-   * Freeze this file's emission questions while `CodeGenState` still holds
-   * them.
-   *
-   * The `.c` counterpart of `Transpiler._captureHeaderEmissionFacts`, and
-   * captured at the same kind of moment: `this.host.state.reset()` runs per file,
-   * so every field below is correct for exactly the window between this file's
-   * declarations being generated and the next file's `generate()`.
-   *
-   * Nothing here reads rendered text. `existingIncludeTargets` arrives from the
-   * two places that KNOW it -- the self-include, and `processIncludeDirectives`
-   * as it walks the tree -- so the plan decides the final set rather than a
-   * renderer subtracting one list from another, and no fact is recovered from
-   * the output it was rendered into. This comment described the opposite until
-   * `02df0e77`, which is the same commit that stopped it being true.
+   * #1991: the headers and clamp helpers come from 2.2's plan. 2.3 still
+   * reports what it writes, and anything it reports that the plan lacks is a
+   * decision 2.2 missed.
    */
-  private captureEmissionFacts(
-    existingIncludeTargets: readonly string[],
-  ): IEmissionFacts {
-    // #1991: the headers and the clamp helpers come from 2.2's plan. 2.3
-    // still reports what it writes, and anything it reports that the plan
-    // lacks is a decision 2.2 missed.
-    const cTypes = this.filePlan.cTypes;
+  private assertHelpersAndCTypesPlanned(): void {
     const renderedOps = this.host.state.usedClampOps;
     const plannedOps = this.filePlan.clampOps;
     invariant(
@@ -3267,15 +3236,31 @@ class CodeGenWalker {
         [...renderedOps].every((op) => plannedOps.has(op)),
       `2.2 planned the clamp helpers 2.3 calls in ${this.host.state.sourcePath} (planned [${[...plannedOps].join()}], called [${[...renderedOps].join()}])`,
     );
-    const plannedHeaders = CTypeIncludes.decide(cTypes);
+    const plannedHeaders = CTypeIncludes.decide(this.filePlan.cTypes);
     const renderedHeaders = CTypeIncludes.decide(this.host.state.emittedCTypes);
     invariant(
       renderedHeaders.every((header) => plannedHeaders.includes(header)),
       `2.2 planned the C type headers 2.3 writes in ${this.host.state.sourcePath} (planned [${plannedHeaders.join()}], written [${renderedHeaders.join()}])`,
     );
+  }
+
+  /**
+   * The file's emission questions, from 2.2's decisions above and the
+   * requirements they raised, so the emission plan is built before 2.3
+   * writes any of the file (#1991)
+   */
+  private planEmissionFacts(plan: Omit<IFilePlan, "emission">): IEmissionFacts {
+    const existingIncludeTargets: string[] = [];
+    if (plan.selfInclude !== null) {
+      existingIncludeTargets.push(`"${plan.selfInclude}"`);
+    }
+    for (const line of plan.includeDirectives) {
+      const target = CodeGenWalker.extractIncludeTarget(line);
+      if (target !== null) existingIncludeTargets.push(target);
+    }
     return {
       cppMode: this.host.isCppMode(),
-      emittedCTypes: cTypes,
+      emittedCTypes: plan.cTypes,
       needsString: this.host.state.needsString,
       needsCMSIS: this.host.state.needsCMSIS,
       needsLimits: this.host.state.needsLimits,
@@ -3284,7 +3269,7 @@ class CodeGenWalker {
       needsISR: this.host.state.needsISR,
       selfIncludeAdded: this.host.state.selfIncludeAdded,
       existingIncludeTargets,
-      clampOps: plannedOps,
+      clampOps: plan.clampOps,
       castHelpers: this.host.state.usedCastHelpers,
       safeDivOps: this.host.state.usedSafeDivOps,
       floatAssertSites: ToolchainRequirements.takeDeferredSites(
@@ -3292,12 +3277,12 @@ class CodeGenWalker {
       ),
       irqWrapperSites: ToolchainRequirements.takeDeferredSites("irq_wrappers"),
       debugMode: this.host.state.debugMode,
-      emittedDesignatedInitializer: [
-        ...this.filePlan.structInitializers.values(),
-      ].some((form) => form !== "cppClass"),
-      emittedCompoundLiteral: [
-        ...this.filePlan.structInitializers.values(),
-      ].some((form) => form === "compound"),
+      emittedDesignatedInitializer: [...plan.structInitializers.values()].some(
+        (form) => form !== "cppClass",
+      ),
+      emittedCompoundLiteral: [...plan.structInitializers.values()].some(
+        (form) => form === "compound",
+      ),
       emittedLdrexStrexLoop: this.host.state.emittedLdrexStrexLoop,
       ldrexStrexSites:
         ToolchainRequirements.takeDeferredSites("ldrex_strex_loop"),

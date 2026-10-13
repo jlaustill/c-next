@@ -27,9 +27,9 @@
  * genuinely cross-pass, written at 17 `record` sites spanning 2.1 Analyze and
  * 2.3 Render and read once at the end of the run. This module claims no such
  * exemption, because it is not cross-pass state at all. Every write is inside
- * 2.3 Render's walk -- `TranspileState.requireInclude` and
+ * 2.2 Plan's walk -- `TranspileState.requireInclude` and
  * `TranspileState.noteLdrexStrexLoop` -- and every read is `takeDeferredSites` in
- * `captureEmissionFacts`, inside the same `generate()` call for the same file.
+ * `planEmissionFacts`, inside the same `plan()` call for the same file.
  *
  * Do not read its presence in this root as a precedent for parking cross-pass
  * state here to get out from under `passes-hold-no-mutable-state.test.ts` --
@@ -43,7 +43,7 @@ import type TDeferredSiteKey from "../types/TDeferredSiteKey";
 class ToolchainRequirements {
   /**
    * Sites that asked for a plan-decided emission, keyed by the request.
-   * `captureEmissionFacts` takes these into `IEmissionFacts`, and the plan
+   * `planEmissionFacts` takes these into `IEmissionFacts`, and the plan
    * carries them as its requirements' sites (#1928, #1997).
    */
   private static deferred: Map<TDeferredSiteKey, IRequirementSite[]> =

@@ -1,15 +1,12 @@
 import type IRequirementSite from "./IRequirementSite";
 
 /**
- * The fully-resolved input to ONE file's emission decisions, captured at the
- * warm per-file moment.
+ * The fully-resolved input to ONE file's emission decisions, gathered at the
+ * end of 2.2 Plan's walk of the file, before 2.3 writes any of it (#1991).
  *
- * The `.c` analogue of `IHeaderEmissionFacts`, and captured for the same reason
- * (#1323): the answers below only exist once that file's declarations have been
- * generated, and they are gone the moment `CodeGenState.reset()` runs for the
- * next file. Freezing them into a record is what lets 2.2 Plan decide from a
- * value rather than from live state, and what lets 2.3 Render take a plan
- * instead of a state container.
+ * The `.c` analogue of `IHeaderEmissionFacts` (#1323): freezing the questions
+ * into a record is what lets 2.2 decide from a value rather than from live
+ * state, and what lets 2.3 Render take a plan instead of a state container.
  *
  * ## Questions, not answers
  *
