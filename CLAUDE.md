@@ -961,9 +961,9 @@ Update: `src/cli/index.ts` (parse + pass), `src/cnx/types/ITranspilerConfig.ts` 
 1. Add to the `TIncludeHeader` union in `src/cnx/types/` — it is a shared
    contract, not a codegen type: `TranspileState` names it too, and
    `transpile-state-reads-no-later-pass` forbids the state importing `3-Render/`
-2. Add the `needs<Effect>` field to **`TranspileState`** (reset in its `reset()`)
-3. Handle it in **`CodeGenerator.applyEffects()`**, which delegates to the one sink,
-   `TranspileState.requireInclude()` — never set a `needs*` field directly
+2. Require it in 2.2 through **`PlannedRequirements.require()`** (`2-Plan/`), the
+   one sink; `planFile` makes one per file, so it is never shared state
+3. Read it into `IEmissionFacts` in **`CodeGenWalker.planEmissionFacts()`**
 4. Emit it in **`CodeGenWalker.assembleGeneratedOutput()`** (via `addAutoIncludes()` for
    a real `#include`, or `addGeneratedHelpers()` for the three deferred code-emission
    members)

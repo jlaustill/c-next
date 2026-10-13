@@ -1,5 +1,5 @@
 /**
- * #1928: the one key-to-sites fold `ToolchainRequirements.noteDeferredSite`
+ * #1928: the one key-to-sites fold `PlannedRequirements`
  * and `RequirementAggregator.union` share (`record` too, until #1997).
  */
 import { describe, it, expect } from "vitest";

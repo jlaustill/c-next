@@ -17,7 +17,6 @@ import IFileSystem from "../cnx/types/IFileSystem";
 import CodeGenWalker from "../cnx/TRANSPILE/CodeGenWalker";
 import invariant from "../cnx/utils/invariant";
 import AdrProvenance from "../cnx/instrumentation/AdrProvenance";
-import ToolchainRequirements from "../cnx/instrumentation/ToolchainRequirements";
 import PublicInterface from "../cnx/TRANSPILE/2-Plan/PublicInterface";
 import HeaderGenerator from "../cnx/TRANSPILE/3-Render/headers/HeaderGenerator";
 import HeaderRenderer from "../cnx/TRANSPILE/3-Render/headers/HeaderRenderer";
@@ -906,23 +905,6 @@ class Transpiler {
     // shape #1323's header-content leak had.
     // Issue #1241: the previous run's ADR provenance is not this run's evidence
     AdrProvenance.reset();
-    // #1143, #1452: the toolchain ledger, and unlike everything above it this
-    // one cannot change any output. It is MEMORY HYGIENE, stated as such.
-    //
-    // The comment here used to claim it stopped a run that plans nothing from
-    // reporting the previous run's cost. It cannot: every reader runs after
-    // `generate()`'s own `reset()` -- `takeDeferredSites()` from inside
-    // `generate()`, whose sites the plan carries to `buildBanner` and to
-    // `_transpileFile` immediately after it -- so a run that plans no
-    // file never reads the ledger at all. Verified by deleting this line: 7438
-    // unit tests and 1263 fixtures stay green, which is why no regression test
-    // could be written for it.
-    //
-    // Kept because `ServeCommand` holds a `private static transpiler`, so
-    // without it the last run's entries sit in a process-wide map until the
-    // next file is planned. A line that provably changes no output needs to say
-    // so, or the next reader preserves it for the reason it does not have.
-    ToolchainRequirements.reset();
   }
 
   /**

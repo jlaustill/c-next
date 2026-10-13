@@ -179,7 +179,7 @@ describe("EmissionPlan (2.2 Plan)", () => {
       ]);
     });
 
-    // `takeDeferredSites` hands the facts `ToolchainRequirements.deferred`'s
+    // `takeDeferredSites` hands the facts `PlannedRequirements`'s
     // own arrays without copying them, so they can still grow after
     // `build()`; a site noted after the decision must not join a block it did
     // not cause.

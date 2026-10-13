@@ -1,6 +1,6 @@
 /**
  * #1997: the atomic requirement's site travels from where Render notes the
- * LDREX/STREX loop to the result through `ToolchainRequirements`. No fixture
+ * LDREX/STREX loop to the result through `PlannedRequirements`. No fixture
  * can see it -- the banner prints no sites -- so this is the one check that
  * fails if the note and the take stop meeting.
  */

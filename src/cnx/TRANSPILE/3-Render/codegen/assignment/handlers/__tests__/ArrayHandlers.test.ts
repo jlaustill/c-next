@@ -320,8 +320,7 @@ describe("ArrayHandlers", () => {
           "buffer[2] = (uint8_t)(cnx_tmp0 >> 16U);\n" +
           "buffer[3] = (uint8_t)(cnx_tmp0 >> 24U);",
       );
-      // No memcpy means <string.h> is not required.
-      expect(state.needsString).toBe(false);
+      // No memcpy, so nothing here needs <string.h>, which 2.2 decides.
     });
 
     it("writes at element granularity for a u16 slice (offset = element index)", () => {

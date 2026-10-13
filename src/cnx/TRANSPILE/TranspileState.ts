@@ -29,8 +29,6 @@ import type ILocalDeclaration from "../types/ILocalDeclaration";
 import type IVariableDeclarationSyntax from "../types/syntax/IVariableDeclarationSyntax";
 import type IBoundParameter from "./types/IBoundParameter";
 import type IFileSetup from "./types/IFileSetup";
-import ToolchainRequirements from "../instrumentation/ToolchainRequirements";
-import type TIncludeHeader from "../types/TIncludeHeader";
 
 /**
  * 2.3 Render's per-file working state, as an INSTANCE.
@@ -91,142 +89,8 @@ class TranspileState {
   /** Issue #369: Whether self-include was added */
   selfIncludeAdded: boolean = false;
 
-  /** ADR-045: For strlen, strncpy, etc. */
-  needsString: boolean = false;
-  /** ADR-049/050: For atomic intrinsics and critical sections */
-  needsCMSIS: boolean = false;
-  /** Issue #632: For float-to-int clamp casts */
-  needsLimits: boolean = false;
   /** ADR-040: For ISR function pointer type */
   needsISR: boolean = false;
-  /** For float bit indexing size verification */
-  needsFloatStaticAssert: boolean = false;
-  /** Issue #473: IRQ wrappers for critical sections */
-  needsIrqWrappers: boolean = false;
-  /**
-   * #1997: the forms Render emitted, in both modes; 2.2 decides what each
-   * costs. Written only through the `note*` methods below, which refuse a
-   * write once the emission plan is built: the plan has already read these,
-   * so a late one would drop its cost from the banner and the file result
-   * without failing.
-   */
-  private ldrexStrexLoopEmitted: boolean = false;
-  /** Track which safe division helpers are needed: "div_u32", "mod_i16" */
-  usedSafeDivOps: Set<string> = new Set();
-  /** #1668: single-evaluation saturating casts, as `"f32_u8"` keys */
-  usedCastHelpers: Set<string> = new Set();
-
-  /** #1997: Render emitted an LDREX/STREX loop. */
-  get emittedLdrexStrexLoop(): boolean {
-    return this.ldrexStrexLoopEmitted;
-  }
-
-  /**
-   * The form decides the requirement; the site is attribution only, so the
-   * plan keeps the key even if no site arrives.
-   */
-  noteLdrexStrexLoop(): void {
-    this.assertFormBeforePlan("LDREX/STREX loop");
-    this.ldrexStrexLoopEmitted = true;
-    ToolchainRequirements.noteDeferredSite(
-      "ldrex_strex_loop",
-      this.sourcePath ?? "",
-      null,
-    );
-  }
-
-  private assertFormBeforePlan(form: string): void {
-    invariant(
-      this.emissionPlanOrNull === null,
-      `a ${form} was emitted after 2.2 Plan built the emission plan, so its cost would be lost`,
-    );
-  }
-
-  /**
-   * THE sink for include and deferred-emission requests.
-   *
-   * Every transport lands here -- generator effects via
-   * `CodeGenerator.applyEffects`, the `requireInclude` callbacks injected into
-   * the static helpers, and direct calls from assignment handlers. One sink so
-   * that the question "does this file need <string.h>?" gets exactly one
-   * recorded answer, so changing how that answer is REPRESENTED is one edit
-   * rather than one per writer.
-   *
-   * #1452 moved the requirement half to `instrumentation/`, so the two no
-   * longer sit beside each other. They are still one decision made once --
-   * this class is the only caller of `noteDeferredSite`: this method for the
-   * two deferral keys below, and `noteLdrexStrexLoop` for `ldrex_strex_loop`
-   * (#1997). Those three are the only keys it can produce.
-   * It was a private method on `CodeGenerator` until #1449, which is why five
-   * sites in `StringHandlers` set `needsString` raw instead -- a handler could
-   * not reach the funnel, so it wrote the flag. That made the include decision
-   * six edits wide, and #1449 turns these flags into an `EmissionPlan` entry.
-   * Every line of the body writes this class and reads nothing from the
-   * generator, so `state/` is where it already lived in all but name.
-   *
-   * @param header - The header to require (string, cmsis, limits, ...)
-   * @param line - The `.cnx` line that asked, for deferred attribution
-   */
-  requireInclude(header: TIncludeHeader, line: number | null = null): void {
-    this.assertFormBeforePlan(`<${header}> requirement`);
-    // Issue #1143: three of these "headers" are really deferred code-emission
-    // requests. Record where they were asked for, so the 2.2 plan block that
-    // decides the emission carries them as its requirements' sites (#1928). No
-    // requirement is recorded here -- the code does not exist yet, and
-    // recording a requirement for text that may never be emitted is exactly
-    // the mistake that made #1141's guard fire on files without the construct.
-    // Only the two headers whose sites a plan block carries. "isr" was noted here
-    // and never read: ToolchainRequirements.takeDeferredSites is called for
-    // float_static_assert and irq_wrappers alone, and the ISR typedef carries
-    // no requirement. Keeping
-    // the deferred keys equal to the set that gets claimed is the property the
-    // rest of this design leans on.
-    // #1452: the path comes off THIS object, the way it did when the two halves
-    // shared a class. It was briefly a defaulted third parameter, which no
-    // caller ever supplied -- so every site recorded `sourcePath: ""`, and
-    // `ResultPrinter.printSites` filters those out and falls back to the
-    // generic `from <incurredBy>` line. A defaulted parameter for a fact the
-    // receiver already holds is a channel nobody uses, and the default is the
-    // wrong answer rather than a missing one.
-    if (header === "irq_wrappers" || header === "float_static_assert") {
-      ToolchainRequirements.noteDeferredSite(
-        header,
-        this.sourcePath ?? "",
-        line,
-      );
-    }
-
-    switch (header) {
-      case "string":
-        this.needsString = true;
-        break;
-      case "cmsis":
-        this.needsCMSIS = true;
-        break;
-      case "limits":
-        this.needsLimits = true;
-        break;
-      case "isr":
-        this.needsISR = true;
-        break;
-      case "float_static_assert":
-        this.needsFloatStaticAssert = true;
-        break;
-      case "irq_wrappers":
-        this.needsIrqWrappers = true;
-        break;
-    }
-  }
-
-  /**
-   * #1668: mark a single-evaluation saturating cast as used -- the helper a
-   * clamped cast calls when its operand has a side effect. The helper uses
-   * the limit macros, so it needs `<limits.h>` exactly as the inline form does.
-   */
-  markCastHelperUsed(sourceType: string, targetType: string): void {
-    this.usedCastHelpers.add(`${sourceType}_${targetType}`);
-    this.requireInclude("limits");
-  }
 
   /**
    * #1668: the operand typer's context for this file, over the facts 1.4
@@ -439,7 +303,7 @@ class TranspileState {
    *
    * Held for the rest of the file's turn so the requirements its planned
    * blocks carry are read off the plan, never copied into
-   * `ToolchainRequirements` (#1928). Null until 2.3 takes the file's plan.
+   * `PlannedRequirements` (#1928, #1991). Null until 2.3 takes the file's plan.
    */
   emissionPlanOrNull: IEmissionPlan | null = null;
   /** ADR-013: Track function parameter const-ness for call-site validation */
@@ -1252,16 +1116,18 @@ class TranspileState {
   /** Cleared per file, at the top of `generate()`. */
   reset(targetDescription: ITargetDescription | null = null): void {
     this.clearFileData(targetDescription);
-    // Issue #1143, #1452: the per-file requirement sites live in
-    // src/cnx/instrumentation/ToolchainRequirements, which owns its own clearing.
-    ToolchainRequirements.reset();
   }
 
   /**
    * 2.2's setup for this file, copied so the plan carries it and 2.3 can
    * start from it alone (#1991).
    */
-  fileSetup(parameters: ReadonlyMap<string, TParameterInfo>): IFileSetup {
+  fileSetup(
+    decided: Pick<
+      IFileSetup,
+      "parameters" | "selfIncludeAdded" | "needsISR" | "declarationPlan"
+    >,
+  ): IFileSetup {
     invariant(this.program, "2.1 hands 2.2 the program");
     invariant(this.symbols, "2.2 sets the file's symbols before planning it");
     return {
@@ -1273,9 +1139,9 @@ class TranspileState {
       targetDescription: this.targetDescription,
       cnxIncludeRewrites: this.cnxIncludeRewrites,
       includeKinds: this.includeKinds,
-      selfIncludeAdded: this.selfIncludeAdded,
-      needsISR: this.needsISR,
-      declarationPlan: this.declarationPlan(),
+      selfIncludeAdded: decided.selfIncludeAdded,
+      needsISR: decided.needsISR,
+      declarationPlan: decided.declarationPlan,
       knownFunctions: new Set(this.knownFunctions),
       functionSignatures: new Map(this.functionSignatures),
       callbackTypes: new Map(this.callbackTypes),
@@ -1288,7 +1154,7 @@ class TranspileState {
           new Set(members),
         ]),
       ),
-      parameters,
+      parameters: decided.parameters,
     };
   }
 
@@ -1377,15 +1243,7 @@ class TranspileState {
     this.publicCallbackTypeReferences = new Set();
     this.declarationPlanOrNull = null;
     this.emissionPlanOrNull = null;
-    this.usedSafeDivOps = new Set();
-    this.usedCastHelpers = new Set();
-    this.needsString = false;
-    this.needsFloatStaticAssert = false;
     this.needsISR = false;
-    this.needsCMSIS = false;
-    this.needsLimits = false;
-    this.needsIrqWrappers = false;
-    this.ldrexStrexLoopEmitted = false;
     this.emittedCallbackTypedefs = new Set();
     this.pendingCallbackTypedefs = [];
     this.indentLevel = 0;

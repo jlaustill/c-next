@@ -254,7 +254,7 @@ interface FunctionSignature {
   }>;
 }
 import CodeGenerator from "./3-Render/codegen/CodeGenerator";
-import ToolchainRequirements from "../instrumentation/ToolchainRequirements";
+import PlannedRequirements from "./2-Plan/PlannedRequirements";
 
 /** ADR-044 (#1152): the `+ - *` operators that saturate through a helper */
 const CLAMP_HELPER_FOR_OPERATOR: Readonly<Partial<Record<string, string>>> = {
@@ -1860,6 +1860,7 @@ class CodeGenWalker {
     program: IProgramSyntax,
     inlinedConsts: ReadonlySet<TDeclarationSyntax>,
     cTypes: Set<string>,
+    requirements: PlannedRequirements,
   ): ReadonlySet<TExpression> {
     const state = this.host.state;
     const typing = state.typingContext();
@@ -1875,7 +1876,7 @@ class CodeGenWalker {
       const cnxType = OperandTyper.typeOf(call.arguments[0], typing)?.typeName;
       if (cnxType == null) continue;
       planned.add(expression);
-      state.usedSafeDivOps.add(`${operation}_${cnxType}`);
+      requirements.safeDivision(operation, cnxType);
       cTypes.add("bool");
       cTypes.add(TYPE_MAP[cnxType]);
     }
@@ -2259,15 +2260,16 @@ class CodeGenWalker {
     valuePositions: IValuePositions | null,
   ): IFilePlan {
     const selfInclude = this.planSelfInclude(options);
-    this.host.state.selfIncludeAdded = selfInclude !== null;
+    const selfIncludeAdded = selfInclude !== null;
+    const requirements = new PlannedRequirements(this.host.state.sourcePath);
 
     // Neither answer depends on what rendering turns out to produce, so
     // Render reads them rather than interpreting the state they came from.
-    this.host.state.declarationPlanOrNull = DeclarationPlan.build(
+    const declarationPlan = DeclarationPlan.build(
       program.declarations.map((entry) =>
         CodeGenWalker.declarationKindOf(entry.declaration),
       ),
-      this.host.state.selfIncludeAdded,
+      selfIncludeAdded,
     );
     const decidedCTypes = new Set<string>();
     const inlinedConsts = this.planInlinedConsts(program, decidedCTypes);
@@ -2283,34 +2285,32 @@ class CodeGenWalker {
     for (const plan of types.values()) {
       const requiredInclude = TypeGenerationHelper.getRequiredInclude(plan);
       if (requiredInclude) {
-        this.host.state.requireInclude(requiredInclude);
+        requirements.require(requiredInclude);
       }
     }
     const comparisons = this.planComparisons(program, inlinedConsts);
     // ADR-045: a string comparison is written as strcmp, from <string.h>
     if ([...comparisons.values()].includes(true)) {
-      this.host.state.requireInclude("string");
+      requirements.require("string");
     }
     // ADR-058: `.char_count` is written as strlen, from <string.h>
     if (this.readsCharCount(program, inlinedConsts)) {
-      this.host.state.requireInclude("string");
+      requirements.require("string");
     }
     const safeDivisions = this.planSafeDivisions(
       program,
       inlinedConsts,
       decidedCTypes,
+      requirements,
     );
     const casts = this.planCasts(program, inlinedConsts);
     for (const [expression, cast] of casts) {
       // ADR-024: a saturating cast compares against <limits.h>'s macros
       if (cast.clampForm !== null) {
-        this.host.state.requireInclude("limits");
+        requirements.require("limits");
       }
       if (cast.clampForm === "helper") {
-        this.host.state.markCastHelperUsed(
-          cast.operandType!,
-          expression.type.text,
-        );
+        requirements.castHelper(cast.operandType!, expression.type.text);
       }
     }
     const negativeMinimums = CodeGenWalker.planNegativeMinimums(
@@ -2319,14 +2319,18 @@ class CodeGenWalker {
     );
     // MISRA 10.3: a minimum is written as its <limits.h> macro
     if (negativeMinimums.size > 0) {
-      this.host.state.requireInclude("limits");
+      requirements.require("limits");
     }
     const complementCasts = this.planComplementCasts(program, inlinedConsts);
     const floatBits = this.planFloatBits(program, inlinedConsts, decidedCTypes);
-    const atomicForms = this.planInterruptSafety(program, decidedCTypes);
+    const atomicForms = this.planInterruptSafety(
+      program,
+      decidedCTypes,
+      requirements,
+    );
     // ADR-007: each union copy is checked by the float static assert
     for (let i = 0; i < floatBits.reads.size + floatBits.writes.size; i++) {
-      this.host.state.requireInclude("float_static_assert");
+      requirements.require("float_static_assert");
     }
     const foreignRegisterValues = this.planRegisterAccesses(
       program,
@@ -2396,8 +2400,15 @@ class CodeGenWalker {
     };
     return {
       ...decided,
-      emission: EmissionPlan.build(this.planEmissionFacts(decided)),
-      setup: this.host.state.fileSetup(this.parameters()),
+      emission: EmissionPlan.build(
+        this.planEmissionFacts(decided, requirements, selfIncludeAdded),
+      ),
+      setup: this.host.state.fileSetup({
+        parameters: this.parameters(),
+        selfIncludeAdded,
+        needsISR: requirements.requires("isr"),
+        declarationPlan,
+      }),
       header: options.header ?? null,
     };
   }
@@ -3020,14 +3031,14 @@ class CodeGenWalker {
   private planInterruptSafety(
     program: IProgramSyntax,
     cTypes: Set<string>,
+    requirements: PlannedRequirements,
   ): ReadonlyMap<IAssignmentSyntax, TAtomicForm> {
-    const state = this.host.state;
     const forms = new Map<IAssignmentSyntax, TAtomicForm>();
     const visit = (statements: readonly TStatement[]): void => {
       for (const statement of statements) {
         visit(StatementChildren.of(statement));
         if (statement.kind === "critical") {
-          state.requireInclude("irq_wrappers", statement.span.line);
+          requirements.require("irq_wrappers", statement.span.line);
           // The saved mask's type (#1927)
           cTypes.add("uint32_t");
           continue;
@@ -3036,11 +3047,11 @@ class CodeGenWalker {
         const atomic = this.atomicFormOf(statement);
         if (atomic === null) continue;
         if (atomic.form === "ldrex-strex") {
-          state.requireInclude("cmsis");
-          state.noteLdrexStrexLoop();
+          requirements.require("cmsis");
+          requirements.noteLdrexStrexLoop();
           cTypes.add(TYPE_MAP[atomic.typeName]);
         } else {
-          state.requireInclude("irq_wrappers");
+          requirements.require("irq_wrappers");
           cTypes.add("uint32_t");
         }
         forms.set(statement, atomic.form);
@@ -3333,6 +3344,8 @@ class CodeGenWalker {
    */
   private planEmissionFacts(
     plan: Omit<IFilePlan, "emission" | "setup" | "header">,
+    requirements: PlannedRequirements,
+    selfIncludeAdded: boolean,
   ): IEmissionFacts {
     const existingIncludeTargets: string[] = [];
     if (plan.selfInclude !== null) {
@@ -3345,21 +3358,19 @@ class CodeGenWalker {
     return {
       cppMode: this.host.isCppMode(),
       cTypes: plan.cTypes,
-      needsString: this.host.state.needsString,
-      needsCMSIS: this.host.state.needsCMSIS,
-      needsLimits: this.host.state.needsLimits,
-      needsFloatStaticAssert: this.host.state.needsFloatStaticAssert,
-      needsIrqWrappers: this.host.state.needsIrqWrappers,
-      needsISR: this.host.state.needsISR,
-      selfIncludeAdded: this.host.state.selfIncludeAdded,
+      needsString: requirements.requires("string"),
+      needsCMSIS: requirements.requires("cmsis"),
+      needsLimits: requirements.requires("limits"),
+      needsFloatStaticAssert: requirements.requires("float_static_assert"),
+      needsIrqWrappers: requirements.requires("irq_wrappers"),
+      needsISR: requirements.requires("isr"),
+      selfIncludeAdded,
       existingIncludeTargets,
       clampOps: plan.clampOps,
-      castHelpers: this.host.state.usedCastHelpers,
-      safeDivOps: this.host.state.usedSafeDivOps,
-      floatAssertSites: ToolchainRequirements.takeDeferredSites(
-        "float_static_assert",
-      ),
-      irqWrapperSites: ToolchainRequirements.takeDeferredSites("irq_wrappers"),
+      castHelpers: requirements.castHelpers,
+      safeDivOps: requirements.safeDivisions,
+      floatAssertSites: requirements.sitesOf("float_static_assert"),
+      irqWrapperSites: requirements.sitesOf("irq_wrappers"),
       debugMode: this.host.state.debugMode,
       emittedDesignatedInitializer: [...plan.structInitializers.values()].some(
         (form) => form !== "cppClass",
@@ -3367,9 +3378,8 @@ class CodeGenWalker {
       emittedCompoundLiteral: [...plan.structInitializers.values()].some(
         (form) => form === "compound",
       ),
-      emittedLdrexStrexLoop: this.host.state.emittedLdrexStrexLoop,
-      ldrexStrexSites:
-        ToolchainRequirements.takeDeferredSites("ldrex_strex_loop"),
+      emittedLdrexStrexLoop: requirements.emitsLdrexStrexLoop,
+      ldrexStrexSites: requirements.sitesOf("ldrex_strex_loop"),
     };
   }
 
