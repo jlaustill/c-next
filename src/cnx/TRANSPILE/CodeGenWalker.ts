@@ -1142,14 +1142,17 @@ class CodeGenWalker {
   planFunctionParameters(
     params: readonly IParameterSyntax[] | null,
   ): readonly IPlannedFunctionParameter[] | null {
-    return (
-      params?.map((param) =>
-        this.planner.planFunctionParameter(
-          param,
-          this.host.state.currentScopePath,
-        ),
-      ) ?? null
+    return params?.map((param) => this.plannedParameter(param)) ?? null;
+  }
+
+  /** 2.2's plan for a parameter (#1991 review: never re-planned at render) */
+  private plannedParameter(param: IParameterSyntax): IPlannedFunctionParameter {
+    const planned = this.filePlan.functionParameters.get(param);
+    invariant(
+      planned !== undefined,
+      `2.2 planned every parameter 2.3 renders ('${param.name}' at line ${param.nameSpan.line})`,
     );
+    return planned;
   }
 
   /**
@@ -2276,7 +2279,7 @@ class CodeGenWalker {
     param: IParameterSyntax,
     paramIndex: number,
   ): string {
-    const typeName = this.typeNameOf(param.type);
+    const typeName = this.plannedParameter(param).typeName;
     const name = param.name;
 
     // #1322: a C-style or unbounded array parameter is E0874/E0875 in pass
@@ -2392,7 +2395,7 @@ class CodeGenWalker {
     return {
       name: emittedName,
       isConst: param.const,
-      typeName: this.typeNameOf(param.type),
+      typeName: this.plannedParameter(param).typeName,
       mappedType: this.renderType(param.type),
       renderDimensions: arrayType
         ? () =>

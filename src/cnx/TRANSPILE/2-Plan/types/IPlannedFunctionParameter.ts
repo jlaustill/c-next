@@ -52,6 +52,9 @@ interface IPlannedFunctionParameter {
 
   /** The type's alternatives, classified once by the one ladder. */
   readonly type: IPlannedType;
+
+  /** The type's written name, resolved in the scope its function declares it */
+  readonly typeName: string;
 }
 
 export default IPlannedFunctionParameter;

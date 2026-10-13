@@ -87,6 +87,7 @@ function plannedParam(
     arrayDimensions: [],
     stringCapacity: undefined,
     type,
+    typeName: type.text,
     ...overrides,
   };
 }

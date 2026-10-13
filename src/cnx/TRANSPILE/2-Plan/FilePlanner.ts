@@ -389,9 +389,15 @@ class FilePlanner {
     // ADR-049: the target is decided before codegen, by the orchestrator;
     // this walk only reads it.
 
-    this.parametersOrNull = this.planParameterInfos(program);
+    const parameters = this.planParameterInfos(program);
+    this.parametersOrNull = parameters.infos;
 
-    return this.planFile(program, options, file.valuePositions);
+    return this.planFile(
+      program,
+      options,
+      file.valuePositions,
+      parameters.planned,
+    );
   }
 
   /**
@@ -848,6 +854,7 @@ class FilePlanner {
     program: IProgramSyntax,
     options: ICodeGeneratorOptions,
     valuePositions: IValuePositions | null,
+    functionParameters: IFilePlan["functionParameters"],
   ): IFilePlan {
     const selfInclude = this.planSelfInclude(options);
     const selfIncludeAdded = selfInclude !== null;
@@ -957,6 +964,7 @@ class FilePlanner {
     );
     const decided: Omit<IFilePlan, "emission" | "setup" | "header"> = {
       program,
+      functionParameters,
       selfInclude,
       includeDirectives,
       inlinedConsts,
@@ -1950,6 +1958,7 @@ class FilePlanner {
       ),
       stringCapacity: FilePlanner.stringCapacityOf(param.type) ?? undefined,
       type: this.planType(param.type, scopePath),
+      typeName: this.typeNameIn(param.type, scopePath),
     };
   }
 
@@ -1958,10 +1967,12 @@ class FilePlanner {
    * enters any function, so the argument 2.2 plans and the body 2.3 renders
    * read one answer
    */
-  private planParameterInfos(
-    program: IProgramSyntax,
-  ): ReadonlyMap<string, TParameterInfo> {
+  private planParameterInfos(program: IProgramSyntax): {
+    readonly infos: ReadonlyMap<string, TParameterInfo>;
+    readonly planned: ReadonlyMap<IParameterSyntax, IPlannedFunctionParameter>;
+  } {
     const infos = new Map<string, TParameterInfo>();
+    const planned = new Map<IParameterSyntax, IPlannedFunctionParameter>();
     const callbacks = {
       isKnownStruct: (typeName: string) => this.queries.isKnownStruct(typeName),
     };
@@ -1971,10 +1982,12 @@ class FilePlanner {
       typeScopePath: string,
     ): void => {
       (fn.parameters ?? []).forEach((param, index) => {
+        const parameter = this.planFunctionParameter(param, typeScopePath);
+        planned.set(param, parameter);
         infos.set(
           TranspileState.parameterKey(param.nameSpan),
           ParameterInfoPlanner.infoOf(
-            this.planFunctionParameter(param, typeScopePath),
+            parameter,
             index,
             cName,
             callbacks,
@@ -2005,7 +2018,7 @@ class FilePlanner {
         }
       }
     }
-    return infos;
+    return { infos, planned };
   }
 
   private parameters(): ReadonlyMap<string, TParameterInfo> {

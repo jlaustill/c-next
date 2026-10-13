@@ -1,3 +1,5 @@
+import type IPlannedFunctionParameter from "./IPlannedFunctionParameter";
+import type IParameterSyntax from "../../../types/syntax/IParameterSyntax";
 import type IPlannedFloatBits from "./IPlannedFloatBits";
 import type IEmissionPlan from "../../../types/IEmissionPlan";
 import type TPlannedNarrowing from "./TPlannedNarrowing";
@@ -49,6 +51,12 @@ interface IFilePlan {
 
   /** The plan for each type the file writes */
   readonly types: ReadonlyMap<TTypeSyntax, IPlannedType>;
+
+  /** Each function parameter of the file, as its function's context reads it */
+  readonly functionParameters: ReadonlyMap<
+    IParameterSyntax,
+    IPlannedFunctionParameter
+  >;
 
   /** For each written `=`/`!=` comparison, whether it compares strings (ADR-045) */
   readonly comparisons: ReadonlyMap<TExpression, boolean>;
