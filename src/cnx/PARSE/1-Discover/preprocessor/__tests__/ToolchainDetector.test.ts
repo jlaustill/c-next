@@ -7,7 +7,8 @@ import ToolchainDetector from "../ToolchainDetector";
 
 // Mock child_process
 vi.mock("node:child_process", () => ({
-  execSync: vi.fn(),
+  execFileSync: vi.fn(),
+  spawnSync: vi.fn(),
 }));
 
 // Mock fs
@@ -15,9 +16,21 @@ vi.mock("node:fs", () => ({
   existsSync: vi.fn(),
 }));
 
-import { execSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import NodeFileSystem from "../../NodeFileSystem";
+
+/**
+ * Answer the mocked `execFileSync` by the command it would run, written as one
+ * string (`which gcc`, `/usr/bin/gcc --version`) so a case reads as the
+ * invocation it stubs.
+ */
+function whenRun(answer: (command: string) => string): void {
+  vi.mocked(execFileSync).mockImplementation(((
+    file: string,
+    args?: readonly string[],
+  ) => answer([file, ...(args ?? [])].join(" "))) as typeof execFileSync);
+}
 
 describe("ToolchainDetector", () => {
   beforeEach(() => {
@@ -30,7 +43,7 @@ describe("ToolchainDetector", () => {
 
   describe("detect", () => {
     it("returns null when no toolchain is available", () => {
-      vi.mocked(execSync).mockImplementation(() => {
+      whenRun(() => {
         throw new Error("not found");
       });
 
@@ -39,7 +52,7 @@ describe("ToolchainDetector", () => {
     });
 
     it("detects ARM toolchain with highest priority", () => {
-      vi.mocked(execSync).mockImplementation((cmd: string) => {
+      whenRun((cmd) => {
         if (cmd === "which arm-none-eabi-gcc") {
           return "/usr/bin/arm-none-eabi-gcc";
         }
@@ -64,7 +77,7 @@ describe("ToolchainDetector", () => {
     });
 
     it("detects clang when ARM is not available", () => {
-      vi.mocked(execSync).mockImplementation((cmd: string) => {
+      whenRun((cmd) => {
         if (cmd.includes("arm-none-eabi")) {
           throw new Error("not found");
         }
@@ -91,7 +104,7 @@ describe("ToolchainDetector", () => {
     });
 
     it("detects gcc when ARM and clang are not available", () => {
-      vi.mocked(execSync).mockImplementation((cmd: string) => {
+      whenRun((cmd) => {
         if (cmd.includes("arm-none-eabi") || cmd.includes("clang")) {
           throw new Error("not found");
         }
@@ -118,7 +131,7 @@ describe("ToolchainDetector", () => {
     });
 
     it("uses cc for cxx when c++ compiler not found", () => {
-      vi.mocked(execSync).mockImplementation((cmd: string) => {
+      whenRun((cmd) => {
         if (cmd.includes("arm-none-eabi") || cmd.includes("clang")) {
           throw new Error("not found");
         }
@@ -141,7 +154,7 @@ describe("ToolchainDetector", () => {
     });
 
     it("returns null when executable path does not exist", () => {
-      vi.mocked(execSync).mockImplementation((cmd: string) => {
+      whenRun((cmd) => {
         if (cmd === "which gcc") {
           return "/usr/bin/gcc";
         }
@@ -165,7 +178,9 @@ describe("ToolchainDetector", () => {
  /usr/include
 End of search list.
 `;
-      vi.mocked(execSync).mockReturnValue(compilerOutput);
+      vi.mocked(spawnSync).mockReturnValue({
+        stderr: compilerOutput,
+      } as ReturnType<typeof spawnSync>);
 
       const toolchain = {
         name: "gcc",
@@ -185,10 +200,10 @@ End of search list.
       ]);
     });
 
-    it("returns empty array when command fails", () => {
-      vi.mocked(execSync).mockImplementation(() => {
-        throw new Error("command failed");
-      });
+    it("returns empty array when the compiler cannot be started", () => {
+      vi.mocked(spawnSync).mockReturnValue({
+        error: new Error("spawn /usr/bin/gcc ENOENT"),
+      } as ReturnType<typeof spawnSync>);
 
       const toolchain = {
         name: "gcc",
@@ -203,7 +218,9 @@ End of search list.
     });
 
     it("returns empty array when no include section found", () => {
-      vi.mocked(execSync).mockReturnValue("Some other output\n");
+      vi.mocked(spawnSync).mockReturnValue({
+        stderr: "Some other output\n",
+      } as ReturnType<typeof spawnSync>);
 
       const toolchain = {
         name: "gcc",
@@ -220,7 +237,7 @@ End of search list.
 
   describe("version extraction", () => {
     it("extracts version from first line of output", () => {
-      vi.mocked(execSync).mockImplementation((cmd: string) => {
+      whenRun((cmd) => {
         if (cmd === "which gcc") {
           return "/usr/bin/gcc";
         }
@@ -237,7 +254,7 @@ End of search list.
     });
 
     it("handles missing version gracefully", () => {
-      vi.mocked(execSync).mockImplementation((cmd: string) => {
+      whenRun((cmd) => {
         if (cmd === "which gcc") {
           return "/usr/bin/gcc";
         }

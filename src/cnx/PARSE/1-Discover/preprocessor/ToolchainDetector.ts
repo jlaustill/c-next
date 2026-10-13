@@ -3,7 +3,7 @@
  * Finds available C/C++ compilers on the system
  */
 
-import { execSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { basename } from "node:path";
 import IToolchain from "./types/IToolchain";
 import IFileSystem from "../../../types/IFileSystem";
@@ -135,11 +135,13 @@ class ToolchainDetector {
   }
 
   /**
-   * Find an executable in PATH
+   * Find an executable in PATH. `name` can come from the project being compiled
+   * (#1827), so every process here is started with an argument array: no shell
+   * parses a compiler name or path.
    */
   private static findExecutable(name: string, fs: IFileSystem): string | null {
     try {
-      const result = execSync(`which ${name}`, {
+      const result = execFileSync("which", [name], {
         encoding: "utf-8",
         stdio: ["pipe", "pipe", "pipe"],
       }).trim();
@@ -159,7 +161,7 @@ class ToolchainDetector {
    */
   private static getVersion(compiler: string): string | undefined {
     try {
-      const result = execSync(`${compiler} --version`, {
+      const result = execFileSync(compiler, ["--version"], {
         encoding: "utf-8",
         stdio: ["pipe", "pipe", "pipe"],
       });
@@ -176,33 +178,33 @@ class ToolchainDetector {
    * Get default include paths for a toolchain
    */
   static getDefaultIncludePaths(toolchain: IToolchain): string[] {
-    try {
-      // Ask the compiler for its default include paths
-      const result = execSync(`echo | ${toolchain.cc} -E -Wp,-v - 2>&1`, {
-        encoding: "utf-8",
-        stdio: ["pipe", "pipe", "pipe"],
-      });
-
-      const paths: string[] = [];
-      let inIncludeSection = false;
-
-      for (const line of result.split("\n")) {
-        if (line.includes("#include <...> search starts here:")) {
-          inIncludeSection = true;
-          continue;
-        }
-        if (line.includes("End of search list.")) {
-          break;
-        }
-        if (inIncludeSection && line.trim()) {
-          paths.push(line.trim());
-        }
-      }
-
-      return paths;
-    } catch {
+    // Ask the compiler for its default include paths: it prints them to stderr
+    // while preprocessing an empty input.
+    const result = spawnSync(toolchain.cc, ["-E", "-Wp,-v", "-"], {
+      input: "",
+      encoding: "utf-8",
+    });
+    if (result.error || typeof result.stderr !== "string") {
       return [];
     }
+
+    const paths: string[] = [];
+    let inIncludeSection = false;
+
+    for (const line of result.stderr.split("\n")) {
+      if (line.includes("#include <...> search starts here:")) {
+        inIncludeSection = true;
+        continue;
+      }
+      if (line.includes("End of search list.")) {
+        break;
+      }
+      if (inIncludeSection && line.trim()) {
+        paths.push(line.trim());
+      }
+    }
+
+    return paths;
   }
 }
 

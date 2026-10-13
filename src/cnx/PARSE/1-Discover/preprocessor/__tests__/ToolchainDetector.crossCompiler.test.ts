@@ -9,19 +9,31 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import ToolchainDetector from "../ToolchainDetector";
 
-vi.mock("node:child_process", () => ({ execSync: vi.fn() }));
+vi.mock("node:child_process", () => ({ execFileSync: vi.fn() }));
 vi.mock("node:fs", () => ({ existsSync: vi.fn() }));
 
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import NodeFileSystem from "../../NodeFileSystem";
+
+/**
+ * Answer the mocked `execFileSync` by the command it would run, written as one
+ * string (`which gcc`, `/usr/bin/gcc --version`) so a case reads as the
+ * invocation it stubs.
+ */
+function whenRun(answer: (command: string) => string): void {
+  vi.mocked(execFileSync).mockImplementation(((
+    file: string,
+    args?: readonly string[],
+  ) => answer([file, ...(args ?? [])].join(" "))) as typeof execFileSync);
+}
 
 describe("ToolchainDetector.fromPath", () => {
   beforeEach(() => vi.clearAllMocks());
   afterEach(() => vi.restoreAllMocks());
 
   it("builds a cross-compiler toolchain from an executable name on PATH", () => {
-    vi.mocked(execSync).mockImplementation((cmd: string) => {
+    whenRun((cmd) => {
       if (cmd === "which xtensa-esp32s3-elf-gcc") {
         return "/opt/xt/bin/xtensa-esp32s3-elf-gcc\n";
       }
@@ -42,7 +54,7 @@ describe("ToolchainDetector.fromPath", () => {
 
   it("accepts an absolute compiler path directly", () => {
     vi.mocked(existsSync).mockReturnValue(true);
-    vi.mocked(execSync).mockReturnValue("gcc 13\n");
+    whenRun(() => "gcc 13\n");
 
     const tc = ToolchainDetector.fromPath(
       "/usr/bin/xtensa-esp32s3-elf-gcc",
@@ -73,7 +85,7 @@ describe("ToolchainDetector.detect with CNEXT_CROSS_COMPILER", () => {
   it("prefers CNEXT_CROSS_COMPILER over auto-detected toolchains", () => {
     process.env.CNEXT_CROSS_COMPILER = "/opt/xt/bin/xtensa-esp32s3-elf-gcc";
     vi.mocked(existsSync).mockReturnValue(true);
-    vi.mocked(execSync).mockReturnValue("xtensa gcc 12.2\n");
+    whenRun(() => "xtensa gcc 12.2\n");
 
     const tc = ToolchainDetector.detect(NodeFileSystem.instance);
 
