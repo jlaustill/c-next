@@ -212,7 +212,13 @@ describe("StringHandlers", () => {
         ...base,
         target: {
           ...base.target,
-          last: { before: null, subscript: null, after: name, property: null },
+          last: {
+            before: null,
+            subscript: null,
+            after: name,
+            property: null,
+            callee: null,
+          },
         },
       };
 
@@ -273,6 +279,7 @@ describe("StringHandlers", () => {
             subscript: "array_element",
             after: element,
             property: null,
+            callee: null,
           },
         },
       };

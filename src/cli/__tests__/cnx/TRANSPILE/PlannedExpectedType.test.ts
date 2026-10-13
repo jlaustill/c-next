@@ -16,9 +16,13 @@ import CNextResolver from "../../../../cnx/PARSE/3-Declare/cnext/index";
 import TSymbolInfoAdapter from "../../../../cnx/PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
 import SymbolRegistry from "../../../../cnx/PARSE/3-Declare/SymbolRegistry";
 import Program from "../../../../cnx/PARSE/4-Resolve/Program";
+import type TExpression from "../../../../cnx/types/syntax/TExpression";
+import type IPlannedExpectedType from "../../../../cnx/TRANSPILE/2-Plan/types/IPlannedExpectedType";
 
-/** Each literal's planned type, keyed by its text */
-function plannedLiteralTypes(source: string): Map<string, string | null> {
+/** 2.2's plan of each value's type, for a whole file */
+function plannedExpectedTypes(
+  source: string,
+): ReadonlyMap<TExpression, IPlannedExpectedType> {
   const parsed = CNextSourceParser.parse(source);
   expect(parsed.parseErrors).toEqual([]);
   const registry = new SymbolRegistry();
@@ -48,11 +52,23 @@ function plannedLiteralTypes(source: string): Map<string, string | null> {
     },
     new SymbolRegistry(),
   );
-  const types = new Map<string, string | null>();
-  for (const entry of plan.expectedTypes) {
-    if (entry[0].kind === "literal") types.set(entry[0].text, entry[1].type);
+  return plan.expectedTypes;
+}
+
+/** Each literal's planned type, keyed by its text */
+function plannedLiterals(source: string): Map<string, IPlannedExpectedType> {
+  const literals = new Map<string, IPlannedExpectedType>();
+  for (const entry of plannedExpectedTypes(source)) {
+    if (entry[0].kind === "literal") literals.set(entry[0].text, entry[1]);
   }
-  return types;
+  return literals;
+}
+
+/** Each literal's planned type name, keyed by its text */
+function plannedLiteralTypes(source: string): Map<string, string | null> {
+  return new Map(
+    [...plannedLiterals(source)].map((entry) => [entry[0], entry[1].type]),
+  );
 }
 
 describe("2.2 plans the type each value is written against", () => {
@@ -99,5 +115,85 @@ describe("2.2 plans the type each value is written against", () => {
       'scope Names {\n  public string<8> first <- "cd";\n}\n',
     );
     expect(types.get('"cd"')).toBe("char");
+  });
+
+  it("gives a function argument its parameter's type, its bare enum member unresolved", () => {
+    const literals = plannedLiterals(
+      [
+        "u8 take(u32 v) {",
+        "  return 0;",
+        "}",
+        "void f() {",
+        "  u8 y <- take(5);",
+        "}",
+        "",
+      ].join("\n"),
+    );
+    expect(literals.get("5")).toEqual({
+      type: "u32",
+      suppressBareEnumResolution: true,
+    });
+  });
+
+  it("gives a callback field's argument the parameter of the function its type names (ADR-029)", () => {
+    const types = plannedLiteralTypes(
+      [
+        "u32 addTwo(u8 a, u8 b) {",
+        "  return 0;",
+        "}",
+        "struct Handler {",
+        "  addTwo handler;",
+        "}",
+        "void f() {",
+        "  Handler h;",
+        "  h.handler <- addTwo;",
+        "  u32 r <- h.handler(10, 20);",
+        "}",
+        "",
+      ].join("\n"),
+    );
+    expect(types.get("10")).toBe("u8");
+    expect(types.get("20")).toBe("u8");
+  });
+
+  it("gives safe_div's arguments the outer type (ADR-051)", () => {
+    const literals = plannedLiterals(
+      [
+        "void f() {",
+        "  u16 q <- 1;",
+        "  u16 a <- 10;",
+        "  u16 b <- 2;",
+        "  bool ok <- safe_div(q, a, b, 7);",
+        "}",
+        "",
+      ].join("\n"),
+    );
+    expect(literals.get("7")).toEqual({
+      type: "bool",
+      suppressBareEnumResolution: false,
+    });
+  });
+
+  it("writes a by-reference lvalue argument as itself, against no type", () => {
+    const planned = [
+      ...plannedExpectedTypes(
+        [
+          "struct P { u8 a; }",
+          "void set(u8 v) {",
+          "  v <- 1;",
+          "}",
+          "void f() {",
+          "  P p <- { a: 3 };",
+          "  set(p.a);",
+          "}",
+          "",
+        ].join("\n"),
+      ),
+    ].filter(
+      (entry) => entry[0].span.line === 7 && entry[0].kind === "postfix",
+    );
+    expect(planned.map((entry) => entry[1])).toEqual([
+      { type: null, suppressBareEnumResolution: false },
+    ]);
   });
 });

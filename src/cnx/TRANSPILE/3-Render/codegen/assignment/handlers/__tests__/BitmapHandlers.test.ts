@@ -130,7 +130,13 @@ describe("BitmapHandlers", () => {
         renderBitTarget: () => rendered,
         target: {
           ...ctx.target,
-          last: { before, subscript: null, property: null, after: null },
+          last: {
+            before,
+            subscript: null,
+            property: null,
+            after: null,
+            callee: null,
+          },
         },
       };
     };

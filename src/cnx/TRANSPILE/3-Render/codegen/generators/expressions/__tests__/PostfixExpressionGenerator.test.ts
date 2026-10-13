@@ -261,7 +261,7 @@ function memberStep(
   after: IOperandType | null,
   property: string | null = null,
 ) {
-  return { before, subscript: null, after, property };
+  return { before, subscript: null, after, property, callee: null };
 }
 
 function createMockPostfixOp(options?: {
@@ -447,6 +447,7 @@ function withPropertySteps(
               subscript: op.typedAs,
               after: current,
               property: null,
+              callee: null,
             },
           };
     }

@@ -111,7 +111,7 @@ function typedLast(
     ...ctx,
     target: {
       ...ctx.target,
-      last: { before, subscript, after: null, property: null },
+      last: { before, subscript, after: null, property: null, callee: null },
     },
   };
 }
@@ -135,6 +135,7 @@ function typedStep(
         subscript,
         after: step.after ?? null,
         property: null,
+        callee: null,
       },
     },
   };

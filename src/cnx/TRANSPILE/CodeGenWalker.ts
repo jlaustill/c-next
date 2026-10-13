@@ -155,6 +155,7 @@ import dimensionEvalOptions from "./2-Plan/dimensionEvalOptions";
 import MemberChainAnalyzer from "./3-Render/codegen/analysis/MemberChainAnalyzer";
 import type IBitAccessAnalysis from "../types/IBitAccessAnalysis";
 import type TPlannedTargetOp from "../types/TPlannedTargetOp";
+import CallArgumentPassing from "./3-Render/codegen/generators/expressions/CallArgumentPassing";
 import ArgumentGenerator from "./3-Render/codegen/helpers/ArgumentGenerator";
 import CppMemberHelper from "./2-Plan/CppMemberHelper";
 import IPostfixOp from "../types/IPostfixOp";
@@ -2156,6 +2157,40 @@ class CodeGenWalker {
    * sets it; a comparison operand has none (#1032), and a function
    * argument's bare enum member stays unresolved.
    */
+  /**
+   * The type 2.3 writes a call's argument against: its parameter's, unless it
+   * goes by reference as an lvalue, which is written as itself.
+   */
+  private argumentExpectedType(
+    site: Extract<TValueSite, { kind: "argument" }>,
+  ): string | null {
+    const head = ExpressionShape.headOf(site.call);
+    const step =
+      OperandTyper.chainOf(site.call, this.host.state.typingContext()).steps[
+        site.op - head.opsConsumed
+      ] ?? null;
+    const input = this.host.getInput();
+    const passing = CallArgumentPassing.of(
+      CallArgumentPassing.callbackFunction(
+        step?.before?.typeName ?? null,
+        input,
+      ) ??
+        step?.callee ??
+        null,
+      site.argument,
+      input,
+      this.host,
+    );
+    const base = passing.param?.baseType;
+    if (!base) return null;
+    const call = site.call.ops[site.op];
+    invariant(call?.kind === "call", "an argument site names a call");
+    return passing.mode === "reference" &&
+      this.getLvalueType(call.arguments[site.argument]) !== null
+      ? null
+      : base;
+  }
+
   private planExpectedTypes(
     program: IProgramSyntax,
     inlinedConsts: ReadonlySet<TDeclarationSyntax>,
@@ -2244,10 +2279,15 @@ class CodeGenWalker {
     // An argument's type is decided with its call's path in 2.3, so a value
     // under an argument is not planned yet
     const resolved = new Map<IValueSite, IPlannedExpectedType | null>();
+    const within = (
+      type: string | null,
+      outer: IPlannedExpectedType | null,
+      suppressBareEnumResolution: boolean,
+    ): IPlannedExpectedType | null =>
+      type === null ? outer : { type, suppressBareEnumResolution };
     const resolve = (at: IValueSite | null): IPlannedExpectedType | null => {
       if (at === null) return NO_EXPECTED_TYPE;
       if (at.site.kind === "comparison") return NO_EXPECTED_TYPE;
-      if (at.site.kind === "argument") return null;
       // A target's index, or a copied string's, is written against no type
       const outerSite = at.outer?.site;
       if (
@@ -2261,14 +2301,16 @@ class CodeGenWalker {
       const known = resolved.get(at);
       if (known !== undefined) return known;
       const outer = resolve(at.outer);
-      const type = outer === null ? null : spellSite(at.site, outer.type);
+      // `withExpectedType`: a type opens a window, and no type leaves the
+      // outer one. A function argument's suppresses its bare enum member (#872)
       const planned =
-        outer === null || type === null
-          ? outer
-          : {
-              type,
-              suppressBareEnumResolution: outer.suppressBareEnumResolution,
-            };
+        at.site.kind === "argument"
+          ? within(this.argumentExpectedType(at.site), outer, true)
+          : within(
+              outer === null ? null : spellSite(at.site, outer.type),
+              outer,
+              outer?.suppressBareEnumResolution ?? false,
+            );
       resolved.set(at, planned);
       return planned;
     };

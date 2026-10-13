@@ -295,6 +295,7 @@ function bitWriteOf(
       subscript: lastIndexCount === 2 ? "bit_range" : "bit_single",
       after: null,
       property: null,
+      callee: null,
     },
   };
 }

@@ -58,7 +58,11 @@ type TChainValue =
   | { readonly k: "scope"; readonly scopePath: string }
   | { readonly k: "enumType"; readonly name: string }
   | { readonly k: "register"; readonly name: string }
-  | { readonly k: "function"; readonly returnType: TType }
+  | {
+      readonly k: "function";
+      readonly cName: string;
+      readonly returnType: TType;
+    }
   /** An unresolved name path: a C/C++ namespace, class or function */
   | { readonly k: "foreignPath"; readonly parts: readonly string[] }
   /** A header's function pointer, not yet called: its call's result */
@@ -274,6 +278,7 @@ class OperandTyper {
         before,
         subscript,
         after: next.k === "value" ? next.t : null,
+        callee: op.kind === "call" ? OperandTyper.calleeOf(current) : null,
         property:
           before !== null &&
           member !== null &&
@@ -936,7 +941,11 @@ class OperandTyper {
       if (fn)
         return {
           binding: null,
-          value: { k: "function", returnType: fn.returnType },
+          value: {
+            k: "function",
+            cName: ScopeUtils.getTranspiledCName(fn),
+            returnType: fn.returnType,
+          },
           ops,
         };
     }
@@ -1064,7 +1073,7 @@ class OperandTyper {
         return t ? { k: "value", t, register: false } : UNKNOWN;
       }
       case "function":
-        return { k: "function", returnType: symbol.returnType };
+        return { k: "function", cName, returnType: symbol.returnType };
       case "enum":
         return { k: "enumType", name: cName };
       case "register":
@@ -1441,6 +1450,13 @@ class OperandTyper {
         };
       }
     }
+  }
+
+  /** The C name of the function a call on `current` calls */
+  private static calleeOf(current: TChainValue): string | null {
+    if (current.k === "function") return current.cName;
+    if (current.k === "foreignPath") return current.parts.join("::");
+    return null;
   }
 
   private static callOf(

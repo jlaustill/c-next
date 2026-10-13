@@ -14,6 +14,8 @@ interface IChainStep {
    */
   readonly property: string | null;
   readonly after: IOperandType | null;
+  /** A call's: the C name of the function it calls, when the chain names one (#1991) */
+  readonly callee: string | null;
 }
 
 export default IChainStep;
