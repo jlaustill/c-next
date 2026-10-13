@@ -18,7 +18,6 @@ import JsonCodec from "./JsonCodec";
 import CachedSymbolReader from "./CachedSymbolReader";
 import IStructFieldInfo from "../../cnx/types/symbols/IStructFieldInfo";
 import SymbolTable from "../../cnx/PARSE/3-Declare/SymbolTable";
-import HeaderDeclarationRecord from "../../cnx/PARSE/3-Declare/HeaderDeclarationRecord";
 import type IHeaderDeclarationRecord from "../../cnx/PARSE/1-Discover/types/IHeaderDeclarationRecord";
 import ICacheConfig from "../types/ICacheConfig";
 import ICachedFileEntry from "../types/ICachedFileEntry";
@@ -275,24 +274,6 @@ class CacheManager {
 
     this.cache.set(filePath, entry);
     this.dirty = true;
-  }
-
-  /**
-   * Issue #590: Store symbols from a SymbolTable for a specific file.
-   * Extracts all necessary data (symbols, struct fields, enum bit widths)
-   * from the SymbolTable and caches it.
-   *
-   * This method encapsulates the serialization logic that was previously
-   * scattered in Transpiler, providing a cleaner API for callers.
-   *
-   * @param filePath - Path to the file being cached
-   * @param symbolTable - SymbolTable containing all parsed symbols
-   */
-  setSymbolsFromTable(filePath: string, symbolTable: SymbolTable): void {
-    this.setHeaderDeclarations(
-      filePath,
-      HeaderDeclarationRecord.of(filePath, symbolTable),
-    );
   }
 
   /** #1991: cache what 1.3 declared for the header at `filePath` */
