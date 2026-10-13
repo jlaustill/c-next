@@ -7,7 +7,7 @@ import type ISourceGraph from "./ISourceGraph";
  */
 type TDiscoveryFacts = Pick<
   ISourceGraph,
-  "cppMode" | "anchor" | "includes" | "outputs"
+  "cppMode" | "anchor" | "includes" | "outputs" | "headerMacroDumps"
 >;
 
 export default TDiscoveryFacts;

@@ -41,8 +41,6 @@ import IFileResult from "../cnx/types/IFileResult";
 import type IRunAnchor from "../cnx/PARSE/1-Discover/types/IRunAnchor";
 import IPipelineFile from "../cnx/PARSE/1-Discover/types/IPipelineFile";
 import type ISourceGraph from "../cnx/PARSE/1-Discover/types/ISourceGraph";
-import HeaderMacros from "../cnx/PARSE/4-Resolve/HeaderMacros";
-import type THeaderMacro from "../cnx/types/THeaderMacro";
 import type IOutputPaths from "../cnx/PARSE/1-Discover/types/IOutputPaths";
 import type IFileIncludes from "../cnx/PARSE/1-Discover/types/IFileIncludes";
 import Discover from "../cnx/PARSE/1-Discover/Discover";
@@ -154,15 +152,6 @@ class Transpiler {
     );
     return OutputExtensions.forCppMode(this.cppMode);
   }
-
-  /** #1688: each C-Next file's header macros, by the file's path */
-  private readonly headerMacrosByFile = new Map<
-    string,
-    ReadonlyMap<string, THeaderMacro>
-  >();
-
-  /** #1688: the C-Next files whose C includes' macros were not all read */
-  private readonly headerMacrosUnread = new Set<string>();
 
   /**
    * The artifact 1.4 Resolve emitted for this run.
@@ -348,9 +337,6 @@ class Transpiler {
     // Issue #985 recovery: when standalone header preprocessing missed framework
     // symbols, recover their declared names via translation-unit preprocessing.
     this._collectExternalDeclarations(input);
-
-    // #1688: the macros each file's C includes define, typed (ADR-024)
-    this._collectHeaderMacros(input);
 
     // Stages 3 to 4d: 1.2 Parse, 1.3 Declare, then (through `resolve`) 1.4
     // Resolve and the whole-program checks, then 2.1 Analyze -- EVERY file,
@@ -642,9 +628,6 @@ class Transpiler {
           structTagsWithBodies: new Set(
             this.declaredSymbols.getAllStructTagsWithBodies(),
           ),
-          // #1688: each file's own, from its C includes' macro dump
-          macros: this.headerMacrosByFile,
-          macrosUnread: this.headerMacrosUnread,
         },
         // #1825: ADR-006's and ADR-029's derivations look callees and
         // typedefs up in it. 1.4 completes it with every file's resolved
@@ -989,8 +972,6 @@ class Transpiler {
     // `warnings` is `readonly`, so it is emptied rather than replaced -- the
     // result copies it with a spread, so nothing holds the array itself.
     this.warnings.length = 0;
-    this.headerMacrosByFile.clear();
-    this.headerMacrosUnread.clear();
     // Issue #634: Reset symbol table for new run
     // #1452 box 5 / #1177: a run BUILDS its table rather than clearing one.
     // `clear()` listed eleven of twelve indexes -- `externalDeclarationNames`
@@ -1127,20 +1108,6 @@ class Transpiler {
     // the undeclared-call check only (a by-value macro invocation is correct).
     if (recovered.macroNames.size > 0) {
       this.declaredSymbols.addExternalDeclarationNames(recovered.macroNames);
-    }
-  }
-
-  /**
-   * #1688: each file's header macros, from the macro dump 1.1 took of that
-   * file's own C includes (#1991). Unread is not "no macros": a name the file
-   * uses may be one (#1688 review).
-   */
-  private _collectHeaderMacros(input: ISourceGraph): void {
-    for (const [path, read] of input.headerMacroDumps) {
-      if (!read.complete) this.headerMacrosUnread.add(path);
-      if (read.dump !== null) {
-        this.headerMacrosByFile.set(path, HeaderMacros.collect(read.dump));
-      }
     }
   }
 

@@ -45,6 +45,7 @@ class Parse {
         anchor: graph.anchor,
         includes: graph.includes,
         outputs: graph.outputs,
+        headerMacroDumps: graph.headerMacroDumps,
       },
     };
   }

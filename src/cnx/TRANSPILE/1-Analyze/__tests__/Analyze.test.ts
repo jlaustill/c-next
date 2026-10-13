@@ -21,6 +21,13 @@ function resolved() {
   );
   return Resolve.program(Declare.sources(parsed, new SymbolRegistry()), {
     target: {},
+    foreign: {
+      c: [],
+      cpp: [],
+      opaqueTypedefs: new Set<string>(),
+      typedefToTag: new Map<string, string>(),
+      structTagsWithBodies: new Set<string>(),
+    },
   });
 }
 

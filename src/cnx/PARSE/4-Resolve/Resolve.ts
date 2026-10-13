@@ -7,7 +7,10 @@
  * artifact, not handed in by the host.
  */
 import type IDeclaredSources from "../3-Declare/types/IDeclaredSources";
+import HeaderMacros from "./HeaderMacros";
 import Program from "./Program";
+import type IForeignSymbols from "./types/IForeignSymbols";
+import type THeaderMacro from "../../types/THeaderMacro";
 import TargetDescriptions from "./TargetDescriptions";
 import type IProgramInputs from "./types/IProgramInputs";
 import type IResolvedProgram from "./types/IResolvedProgram";
@@ -15,8 +18,13 @@ import type IRunTargetInputs from "./types/IRunTargetInputs";
 
 type TResolveInputs = Omit<
   IProgramInputs,
-  "filesReachingForeignHeaders" | "visibility" | "target" | "cppMode"
+  | "filesReachingForeignHeaders"
+  | "visibility"
+  | "target"
+  | "cppMode"
+  | "foreign"
 > & {
+  readonly foreign: Omit<IForeignSymbols, "macros" | "macrosUnread">;
   readonly target: Omit<IRunTargetInputs, "files" | "catalog" | "platformio">;
 };
 
@@ -26,10 +34,19 @@ class Resolve {
     inputs: TResolveInputs,
   ): IResolvedProgram {
     const declared = input.declared;
+    // #1688: each file's header macros, typed (ADR-024) from the macro dump
+    // 1.1 took of that file's own C includes. Unread is not "no macros".
+    const macros = new Map<string, ReadonlyMap<string, THeaderMacro>>();
+    const macrosUnread = new Set<string>();
+    for (const [path, read] of input.discovery.headerMacroDumps) {
+      if (!read.complete) macrosUnread.add(path);
+      if (read.dump !== null) macros.set(path, HeaderMacros.collect(read.dump));
+    }
     const program = Program.build(
       declared.map((entry) => entry.fileSymbols),
       {
         ...inputs,
+        foreign: { ...inputs.foreign, macros, macrosUnread },
         // #1428: 1.1's one answer, which every pass after 1.4 reads from here
         cppMode: input.discovery.cppMode,
         // #1175: where a name nothing binds may be a macro -- discovery's

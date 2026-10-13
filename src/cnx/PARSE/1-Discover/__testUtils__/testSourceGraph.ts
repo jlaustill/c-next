@@ -8,7 +8,13 @@ function testSourceGraph(
   files: readonly IPipelineFile[],
 ): Pick<
   ISourceGraph,
-  "cnextFiles" | "cppMode" | "anchor" | "includes" | "outputs" | "targetCatalog"
+  | "cnextFiles"
+  | "cppMode"
+  | "anchor"
+  | "includes"
+  | "outputs"
+  | "targetCatalog"
+  | "headerMacroDumps"
 > {
   const catalog = Installation.catalog(NodeFileSystem.instance);
   return {
@@ -22,6 +28,7 @@ function testSourceGraph(
     },
     includes: new Map(),
     outputs: new Map(),
+    headerMacroDumps: new Map(),
     targetCatalog: {
       path: catalog,
       text: NodeFileSystem.instance.readFile(catalog),
