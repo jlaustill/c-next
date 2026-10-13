@@ -384,6 +384,31 @@ module.exports = {
       to: { path: "^(node:)?fs(/promises)?$", reachable: true },
     },
     {
+      name: "filesystem-only-in-discover-and-write",
+      severity: "error",
+      comment:
+        "#1991 box 1: within src/cnx/, only 1.1 Discover and 3.1 Write touch " +
+        "the filesystem. `node-fs-only-through-the-port` confines node:fs to " +
+        "the port; this confines the port, and the `IFileSystem` it " +
+        "implements, to those two passes. `reachable: true`, so a module " +
+        "that gets a port through a helper is caught too. src/cli/ is the " +
+        "host, outside this box by the owner's 2026-10-11 ruling, and is not " +
+        "under src/cnx/.",
+      from: {
+        path: "^src/cnx/",
+        pathNot: [
+          "(__tests__|__testUtils__)",
+          "^src/cnx/PARSE/1-Discover/",
+          "^src/cnx/WRITE/1-Write/",
+          "^src/cnx/types/IFileSystem\\.ts$",
+        ],
+      },
+      to: {
+        path: "^src/cnx/(types/IFileSystem|PARSE/1-Discover/NodeFileSystem)\\.ts$",
+        reachable: true,
+      },
+    },
+    {
       name: "host-reads-through-the-port",
       severity: "error",
       comment:
