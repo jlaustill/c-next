@@ -410,12 +410,6 @@ class CodeGenWalker {
       `2.2 planned every type 2.3 renders (got "${type.text}" at line ${type.span.line})`,
     );
 
-    // Track required includes based on type usage
-    const requiredInclude = TypeGenerationHelper.getRequiredInclude(plan);
-    if (requiredInclude) {
-      this.host.state.requireInclude(requiredInclude);
-    }
-
     const cType = TypeGenerationHelper.generate(plan, {
       checkNeedsStructKeyword: (name) =>
         this.host.state.symbolTable.checkNeedsStructKeyword(name),
@@ -1921,6 +1915,13 @@ class CodeGenWalker {
     this.plannedSizeofBindings = this.planSizeofBindings(program);
     this.plannedSizeofMemberAccesses = this.planSizeofMemberAccesses(program);
     this.plannedTypes = this.planTypeSites(program);
+    // Each planned type is written once 2.3 is done, so its include is decided here
+    for (const plan of this.plannedTypes.values()) {
+      const requiredInclude = TypeGenerationHelper.getRequiredInclude(plan);
+      if (requiredInclude) {
+        this.host.state.requireInclude(requiredInclude);
+      }
+    }
     this.plannedComparisons = this.planComparisons(program);
     // ADR-045: a string comparison is written as strcmp, from <string.h>
     if ([...this.plannedComparisons.values()].includes(true)) {

@@ -18,6 +18,13 @@ async function generate(source: string): Promise<string> {
 }
 
 describe("2.3 spells each type from 2.2's plan", () => {
+  it("requires each planned type's include: <string.h> for a string parameter", async () => {
+    const code = await generate(
+      `u32 cap(string<8> a) { return a.capacity; }\n`,
+    );
+    expect(code).toContain("#include <string.h>");
+  });
+
   it("spells a function's types, a cast's and a sizeof's", async () => {
     const code = await generate(
       `u16 f(u8 a) { u32 n <- (u32)sizeof(i16); return a; }\n`,
