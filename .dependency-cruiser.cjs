@@ -5,7 +5,8 @@
  * the pass just before it returned (#1991), and "a module may import code or
  * types from a lower-numbered pass in its own layer, or from any earlier
  * layer, and nothing else." This file enforces the second half: which
- * modules may import which. So each place below may reach every place before
+ * modules may import which. `src/cli/__tests__/PassChain.test.ts` checks
+ * the first. So each place below may reach every place before
  * it and none after
  * it, and one rule per place says so. The rules are generated from this list
  * rather than written out because the order is ONE fact: written as pairs it

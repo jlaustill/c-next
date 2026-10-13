@@ -99,7 +99,9 @@ src/
 The digit is not decoration. When the transpiler runs, each pass takes only the artifact
 the pass just before it returned, and nothing else (#1991, owner ruling). Whatever a later
 pass needs, every pass in between carries forward, and the host calls the eight entries in
-order. A module may import code or types from a lower-numbered pass in its own layer, or
+order. `src/cli/__tests__/PassChain.test.ts` checks each hand-off at run time: every entry
+takes the very objects its predecessor returned, and 2.2 and 2.3 give the same result on a
+walker that has run nothing before. A module may import code or types from a lower-numbered pass in its own layer, or
 from any earlier layer, and nothing else. So "which pass owns this module?"
 and "may it read that?" are both answerable from the path -- by a reader, and by a gate --
 without opening the file.
@@ -108,7 +110,9 @@ without opening the file.
 (#1443, owner ruling). `CodeGenWalker.ts` walks one file's plain-data `IProgramSyntax` (never its parse tree, #1932) and calls into both 2.2 Plan and
 2.3 Render, so inside `2-Plan/` it would be Plan importing Render. `TranspileState.ts` is
 the per-file working data of 2.2 and 2.3. 2.3 and the walker write it. 2.2 writes none of
-it and reads nothing 2.3 writes: the fields it reads are written by the CLI and the walker.
+it and reads nothing 2.3 writes: the fields it reads are written by the walker, from 2.1's
+file and 2.2's options. 2.3 reads nothing 2.2 left there: `render` clears the state and
+refills it from the plan's `setup` (#1991).
 It takes a target's scope path from Program's lexical frames, as 2.1 does, and looks a name
 up as the source spells it, so it needs no rename (#1934). #1313 box 3 records that
 measurement, and `npm run plan-render-state:check` asserts it in CI. Placed in `3-Render/`, the

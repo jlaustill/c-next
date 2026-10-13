@@ -109,7 +109,7 @@ describe("#1991: each pass takes only what the pass before it returned", () => {
     const entry = join(tempDir, "app.cnx");
     writeFileSync(
       entry,
-      `#include "lib.cnx"\n\nu32 total <- 0;\n\nu32 readX(Point p) {\n    return p.x;\n}\n\nvoid main() {\n    Point pt <- { x: 3 };\n    total <- Lib.double(21) + readX(pt);\n}\n`,
+      `#include "lib.cnx"\n\nu32 total <- 0;\n\nu32 readX(Point p) {\n    return p.x;\n}\n\nvoid main() {\n    Point pt <- { x: 3 };\n    total <- Lib.double(21) + readX(pt) + Lib.xOf(pt);\n}\n`,
     );
     const transpiler = new Transpiler(
       {
@@ -215,6 +215,18 @@ describe("#1991: each pass takes only what the pass before it returned", () => {
     expect(renders).toHaveLength(of("2.2").length);
     for (const render of renders) {
       expect(planned.has(render.args[0])).toBe(true);
+    }
+  });
+
+  it("2.2 Plan needs nothing but 2.1's file and its options", async () => {
+    await run();
+    const plans = of("2.2");
+    expect(plans.length).toBeGreaterThan(1);
+    for (const plan of plans) {
+      // A walker that planned no earlier file: nothing another file left behind
+      expect(
+        new CodeGenWalker().plan(plan.args[0] as never, plan.args[1] as never),
+      ).toEqual(plan.returned);
     }
   });
 
