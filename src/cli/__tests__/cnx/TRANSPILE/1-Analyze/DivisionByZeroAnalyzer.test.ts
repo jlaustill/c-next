@@ -577,4 +577,50 @@ describe("DivisionByZeroAnalyzer", () => {
       expect(errors).toHaveLength(count);
     });
   });
+
+  describe("compound assignment (#1770)", () => {
+    const analyze = (body: string) => {
+      const code = `
+        const u32 ZERO <- 0;
+        void main() {
+          u32 x <- 10;
+          ${body}
+        }
+      `;
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
+      return new DivisionByZeroAnalyzer(context).analyze(tree);
+    };
+
+    it.each([
+      ["x /<- 0;", "E0800"],
+      ["x /<- ZERO;", "E0800"],
+      ["x %<- 0;", "E0802"],
+      ["x %<- ZERO;", "E0802"],
+    ])("%s reports %s", (body, code) => {
+      const errors = analyze(body);
+
+      expect(errors.map((e) => e.code)).toEqual([code]);
+    });
+
+    it.each(["x /<- 2;", "x %<- 3;", "x <- 0;", "x +<- 0;", "x *<- ZERO;"])(
+      "%s reports nothing",
+      (body) => {
+        expect(analyze(body)).toHaveLength(0);
+      },
+    );
+
+    it("reports both for-header positions in source order", () => {
+      const body = "for (x /<- 0; x < 5; x %<- ZERO) { u32 y <- x / 0; }";
+      const indent = 10;
+      const errors = analyze(body);
+
+      expect(errors.map((e) => [e.code, e.column])).toEqual([
+        ["E0800", indent + body.indexOf("0;")],
+        ["E0802", indent + body.indexOf("ZERO")],
+        ["E0800", indent + body.lastIndexOf("0;")],
+      ]);
+    });
+  });
 });
