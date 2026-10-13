@@ -2522,7 +2522,7 @@ class CodeGenWalker {
    * The C types 2.3 writes for an assignment's own form: a slice write's
    * element type (#1081), and MISRA 10.3's cast back to a narrow variable
    * that a compound write promotes to `int` (#845). A field or an element is
-   * written `op=`, uncast.
+   * written `op=`, with no cast.
    */
   private planAssignmentCTypes(
     program: IProgramSyntax,
