@@ -2,6 +2,7 @@ import type { ParserRuleContext, TerminalNode } from "antlr4ng";
 import * as Parser from "./grammar/CNextParser";
 import SyntaxLowering from "./SyntaxLowering";
 import ParserUtils from "../../utils/ParserUtils";
+import ChainRoot from "../../utils/ChainRoot";
 import invariant from "../../utils/invariant";
 import type ISourceSpan from "../../types/ISourceSpan";
 import ASSIGNMENT_OPERATORS from "../../types/syntax/ASSIGNMENT_OPERATORS";
@@ -350,7 +351,16 @@ class StatementLowering {
     }
     const identifier = ctx.IDENTIFIER();
     if (identifier) {
-      return { kind: "identifier", name: identifier.getText(), ...node };
+      return {
+        kind: "identifier",
+        root: ChainRoot.ofCaseLabel(ctx),
+        name: identifier.getText(),
+        nameSpan: ParserUtils.getSpan({
+          start: identifier.symbol,
+          stop: identifier.symbol,
+        }),
+        ...node,
+      };
     }
     const integer = ctx.INTEGER_LITERAL();
     if (integer) {

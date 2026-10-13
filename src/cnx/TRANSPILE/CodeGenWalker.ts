@@ -33,6 +33,8 @@ import type IStringConcatOps from "./3-Render/codegen/types/IStringConcatOps";
 import { basename } from "node:path";
 import CommentFormatter from "./3-Render/codegen/CommentFormatter";
 import PrivateConstValue from "./3-Render/codegen/PrivateConstValue";
+import type TChainRoot from "../types/TChainRoot";
+import type TValueBinding from "../types/TValueBinding";
 import IComment from "../types/IComment";
 import TYPE_MAP from "./3-Render/codegen/types/TYPE_MAP";
 import TParameterInfo from "../types/TParameterInfo";
@@ -4517,12 +4519,16 @@ class CodeGenWalker {
     switch (label.kind) {
       case "qualified":
         return { kind: "qualified", parts: label.path };
-      case "identifier":
-        return {
-          kind: "identifier",
-          name: label.name,
-          resolved: this.resolveCaseConst(label.name, label.span),
-        };
+      case "identifier": {
+        const resolved = this.resolveCaseConst(
+          label.root,
+          label.name,
+          label.span,
+        );
+        return label.root === null
+          ? { kind: "identifier", name: label.name, resolved }
+          : { kind: "rooted", code: resolved ?? label.name };
+      }
       case "integer":
       case "hex":
         return { kind: "numeric", text: label.text, negative: label.negative };
@@ -4536,18 +4542,32 @@ class CodeGenWalker {
   }
 
   /**
-   * A bare const named as a case label (#1739). C switches only on an integer
-   * constant expression, which no const object is, so any const with a value
-   * is written as that value; another name as its C name. Null for a name no
-   * binding resolves, which the generator treats as an enum member.
+   * A const named as a case label (#1739), in any of ADR-016's spellings
+   * (#1629). C switches only on an integer constant expression, which no
+   * const object is, so any const with a value is written as that value;
+   * another name as its C name. Null for a name no binding resolves, which
+   * the generator treats as an enum member.
+   *
+   * The spelling is bound once, here, with its root: a bare name takes the
+   * C name every bare identifier emits under, and a rooted one names the
+   * declaration the binder found where the root points (ADR-057).
    */
-  private resolveCaseConst(name: string, at: ISourcePosition): string | null {
-    const resolved = TypeValidator.resolveBareIdentifier(
-      name,
-      at,
-      (typeName: string) => this.host.isKnownStruct(typeName),
-      this.host.state,
-    );
+  private resolveCaseConst(
+    root: TChainRoot,
+    name: string,
+    at: ISourcePosition,
+  ): string | null {
+    const binding = this.host.state.bindingAt(root, name, at);
+    const resolved =
+      root === null
+        ? TypeValidator.resolveBoundIdentifier(
+            name,
+            binding,
+            at,
+            (typeName: string) => this.host.isKnownStruct(typeName),
+            this.host.state,
+          )
+        : CodeGenWalker.rootedCName(binding);
     if (resolved === null) return null;
     const constant = PrivateConstValue.constant(
       this.host.getState(),
@@ -4557,6 +4577,19 @@ class CodeGenWalker {
     if (constant === null) return resolved;
     this.host.applyEffects(constant.effects);
     return constant.code;
+  }
+
+  /** The C name a `this.`/`global.` spelling's binding is emitted under */
+  private static rootedCName(binding: TValueBinding | null): string | null {
+    switch (binding?.kind) {
+      case "variable":
+      case "function":
+        return binding.symbol.fullyQualifiedCName;
+      case "foreign":
+        return binding.name;
+      default:
+        return null;
+    }
   }
 
   /** A resolved name, or -- for a private const -- its value (#741, #1739) */

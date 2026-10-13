@@ -215,6 +215,17 @@ switch (cmd) {
     }
 }
 
+// A const label may be written bare, this.X or global.X, resolving as
+// anywhere else; a label naming nothing is an error (E0427)
+switch (level) {
+    case global.LIMIT {
+        warn();
+    }
+    default {
+        idle();
+    }
+}
+
 // No break/continue - use structured conditions
 // Instead of: while (true) { if (done) break; }
 while (done = false) {

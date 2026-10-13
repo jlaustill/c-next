@@ -1,0 +1,3 @@
+// Helper for case-label-rooted-resolves: a const that reaches the switch only
+// through a `.cnx` include, so `global.FAR` is answered across a file boundary.
+const u8 FAR <- 9;

@@ -1,10 +1,22 @@
+import type ISourceSpan from "../ISourceSpan";
+import type TChainRoot from "../TChainRoot";
 import type ISyntaxNode from "./ISyntaxNode";
 
 /** One `caseLabel` alternative, as written */
 type TCaseLabelSyntax = ISyntaxNode &
   (
     | { readonly kind: "qualified"; readonly path: readonly string[] }
-    | { readonly kind: "identifier"; readonly name: string }
+    /**
+     * A name in any of ADR-016's three spellings: `LIMIT`, `this.LIMIT` or
+     * `global.LIMIT` (#1629). `nameSpan` is the name's own token, which a
+     * rooted label does not start with.
+     */
+    | {
+        readonly kind: "identifier";
+        readonly root: TChainRoot;
+        readonly name: string;
+        readonly nameSpan: ISourceSpan;
+      }
     | {
         readonly kind: "integer" | "hex";
         readonly text: string;

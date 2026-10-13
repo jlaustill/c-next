@@ -1,0 +1,101 @@
+// test-error
+// test-adr: 030
+// #1629: a `case` label is a value position. `caseLabel` is its own grammar
+// rule, reachable from neither `postfixExpression` nor `assignmentTarget`, so
+// E0427 never saw it and each flagged label below was emitted into the C as a
+// name nothing declares, at exit 0. Every flagged label sits beside a label in
+// the same spelling that names something real and must stay silent.
+const u8 REAL <- 1;
+
+enum EMode {
+    IDLE,
+    RUN
+}
+
+scope Panel {
+    const u8 OWN <- 3;
+
+    public u32 pick(u8 s) {
+        switch (s) {
+            case OWN {
+                return 1;
+            }
+            case NOPE_MEMBER {
+                return 2;
+            }
+            default {
+                return 0;
+            }
+        }
+    }
+
+    public u32 rooted(u8 s) {
+        switch (s) {
+            case this.OWN {
+                return 1;
+            }
+            case this.NOPE_THIS {
+                return 2;
+            }
+            case global.REAL {
+                return 3;
+            }
+            case global.NOPE_GLOBAL {
+                return 4;
+            }
+            case this.REAL {
+                return 5;
+            }
+            default {
+                return 0;
+            }
+        }
+    }
+}
+
+u32 onConst(u8 s) {
+    switch (s) {
+        case REAL {
+            return 1;
+        }
+        case NOPE_CONST {
+            return 2;
+        }
+        default {
+            return 0;
+        }
+    }
+}
+
+u32 onEnum(EMode m) {
+    switch (m) {
+        case IDLE {
+            return 1;
+        }
+        case EMode.RUN {
+            return 2;
+        }
+    }
+    return 0;
+}
+
+u32 onQualified(EMode m) {
+    switch (m) {
+        case EMode.IDLE {
+            return 1;
+        }
+        case NOPE_ENUM.RUN {
+            return 2;
+        }
+    }
+    return 0;
+}
+
+u32 main() {
+    u32 a <- Panel.pick(1);
+    u32 r <- Panel.rooted(1);
+    u32 b <- onConst(1);
+    u32 c <- onEnum(EMode.IDLE);
+    u32 d <- onQualified(EMode.IDLE);
+    return a + r + b + c + d;
+}

@@ -37,6 +37,7 @@ import BUILTIN_TYPE_NAMES from "./BUILTIN_TYPE_NAMES";
 import ExpressionShape from "../../utils/ExpressionShape";
 import type IChainHead from "../../types/IChainHead";
 import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
+import StatementLowering from "../../PARSE/2-Parse/StatementLowering";
 import IUndeclaredValueError from "./types/IUndeclaredValueError";
 import NameExistence from "../../PARSE/3-Declare/NameExistence";
 import ParserUtils from "../../utils/ParserUtils";
@@ -98,7 +99,26 @@ class UndeclaredValueListener extends CNextListener {
   };
 
   /**
-   * One name, one question, for both positions.
+   * The CASE LABEL position (#1629). `caseLabel` is its own grammar rule too,
+   * reachable from neither hook above, so `case NOPE { }` reached the C as a
+   * name nothing declares, at exit 0.
+   *
+   * A qualified label is asked about the name it starts from, as a qualified
+   * read is: `NOPE.RUN` names nothing, while whether `EMode.NOPE` is a member
+   * of `EMode` is the chain's question, not this one's. A bare enum member
+   * (`case IDLE`) is visible, and whether it may stand bare is E0424's.
+   */
+  override enterCaseLabel = (ctx: Parser.CaseLabelContext): void => {
+    const label = StatementLowering.caseLabel(ctx);
+    if (label.kind === "identifier") {
+      this.check({ name: label.name, span: label.nameSpan }, label.root, ctx);
+    } else if (label.kind === "qualified") {
+      this.check({ name: label.path[0], span: label.span }, null, ctx);
+    }
+  };
+
+  /**
+   * One name, one question, for every position.
    *
    * The two hooks differ only in how they read `(root, identifier)` off their
    * node -- the pair `ChainRoot` already separates. Everything after that is

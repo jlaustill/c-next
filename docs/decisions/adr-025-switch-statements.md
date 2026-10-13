@@ -154,6 +154,34 @@ switch (cmd) {
 }
 ```
 
+### Const Labels
+
+A label may name a const in any of ADR-016's three spellings (#1629):
+
+```cnx
+const u8 LIMIT <- 1;
+
+scope Panel {
+    const u8 LIMIT <- 3;
+
+    public u32 pick(u8 s) {
+        switch (s) {
+            case this.LIMIT {   // the scope's LIMIT: 3
+                return 30;
+            }
+            case global.LIMIT { // the file's LIMIT: 1
+                return 10;
+            }
+            default {
+                return 0;
+            }
+        }
+    }
+}
+```
+
+A bare `LIMIT` inside `Panel` is the scope's, as it is in any expression.
+
 ### Exhaustive Enum Matching (No Default)
 
 ```cnx
@@ -366,6 +394,10 @@ defaultCase
 9. ✅ Minimum clauses? **2 required** - MISRA 16.6 compliance
 10. ✅ Boolean switches? **Error** - MISRA 16.7 compliance, use `if/else`
 11. ✅ `default(0)` allowed? **Yes** - self-documenting defensive programming
+12. ✅ May a const label be written `this.X` or `global.X`? **Yes** - owner
+    ruling on #1629 (2026-10-13). They resolve as in every other value position
+    (ADR-016/ADR-057): `this.` asks the enclosing scope, `global.` file scope.
+    A name that resolves to nothing in any spelling is E0427 (ADR-030).
 
 ## MISRA C:2012/2023 Compliance
 

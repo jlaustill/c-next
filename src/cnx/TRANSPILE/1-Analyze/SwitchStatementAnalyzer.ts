@@ -24,6 +24,8 @@
  */
 
 import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
+import StatementLowering from "../../PARSE/2-Parse/StatementLowering";
+import type TCaseLabelSyntax from "../../types/syntax/TCaseLabelSyntax";
 import { ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
@@ -111,8 +113,11 @@ class SwitchStatementListener extends CNextListener {
     switchEnum: string | null,
   ): boolean {
     const symbols = this.context.symbols;
-    const name = label.IDENTIFIER()?.getText();
-    if (name === undefined) return false;
+    const lowered = StatementLowering.caseLabel(label);
+    // `this.X` and `global.X` name a const by where it lives (ADR-057), so
+    // they are never a bare member (#1629)
+    if (lowered.kind !== "identifier" || lowered.root !== null) return false;
+    const name = lowered.name;
     if (switchEnum !== null && symbols.enumMembers.get(switchEnum)?.has(name)) {
       return false;
     }
@@ -153,7 +158,9 @@ class SwitchStatementListener extends CNextListener {
     const seen = new Set<string>();
     for (const caseCtx of cases) {
       for (const label of caseCtx.caseLabel()) {
-        const value = SwitchStatementListener.caseLabelValue(label);
+        const value = SwitchStatementListener.caseLabelValue(
+          StatementLowering.caseLabel(label),
+        );
         if (seen.has(value)) {
           const { line, column } = ParserUtils.getPosition(label);
           this.found.push({
@@ -228,27 +235,25 @@ class SwitchStatementListener extends CNextListener {
    * `-0x1` are the same case written two ways, and `tests/switch` has a fixture
    * for each. Moved wholesale from codegen, where it had no other caller.
    */
-  private static caseLabelValue(ctx: Parser.CaseLabelContext): string {
-    const qualified = ctx.qualifiedType();
-    if (qualified) {
-      return qualified
-        .IDENTIFIER()
-        .map((id) => id.getText())
-        .join(".");
+  private static caseLabelValue(label: TCaseLabelSyntax): string {
+    switch (label.kind) {
+      case "qualified":
+        return label.path.join(".");
+      case "identifier":
+        // #1629: `global.LIMIT` and a scope's `LIMIT` are different consts
+        return label.root === null ? label.name : `${label.root}.${label.name}`;
+      case "integer":
+      case "hex": {
+        const value = BigInt(label.text);
+        return String(label.negative ? -value : value);
+      }
+      case "binary":
+        return String(BigInt(label.text));
+      case "char":
+        return label.text;
+      case "missing":
+        return "";
     }
-    const identifier = ctx.IDENTIFIER();
-    if (identifier) return identifier.getText();
-
-    const negated = ctx.children?.[0]?.getText() === "-";
-    const numeric =
-      ctx.INTEGER_LITERAL() ?? ctx.HEX_LITERAL() ?? ctx.BINARY_LITERAL();
-    if (numeric) {
-      const value = BigInt(numeric.getText());
-      return String(negated ? -value : value);
-    }
-
-    const character = ctx.CHAR_LITERAL();
-    return character ? character.getText() : "";
   }
 
   private report(

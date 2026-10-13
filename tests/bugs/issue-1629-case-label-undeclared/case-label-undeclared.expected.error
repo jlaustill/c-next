@@ -1,0 +1,6 @@
+23:17 error[E0427]: 'NOPE_MEMBER' is not defined
+37:22 error[E0427]: 'NOPE_THIS' is not defined
+43:24 error[E0427]: 'NOPE_GLOBAL' is not defined
+46:22 error[E0427]: 'REAL' is not defined
+61:13 error[E0427]: 'NOPE_CONST' is not defined
+87:13 error[E0427]: 'NOPE_ENUM' is not defined

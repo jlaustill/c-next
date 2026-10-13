@@ -30,6 +30,13 @@ class ChainRoot {
     if (target.GLOBAL()) return "global";
     return null;
   }
+
+  /** The same for a `case` label, which carries them as a target does (#1629). */
+  static ofCaseLabel(label: Parser.CaseLabelContext): TChainRoot {
+    if (label.THIS()) return "this";
+    if (label.GLOBAL()) return "global";
+    return null;
+  }
 }
 
 export default ChainRoot;

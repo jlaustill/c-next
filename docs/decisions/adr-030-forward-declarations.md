@@ -357,12 +357,12 @@ made the harness link the include closure.
 Define-before-use is one promise, and a name can be used in three positions, so
 the rule is enforced in three places rather than decided in three places.
 
-| Code  | Reported when                                                               | Asserted by                                                                                                                                                                                                                                                                                                      |
-| ----- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| E0422 | A function is called before it is defined, or is defined nowhere visible    | `tests/forward-declarations/call-before-define-error`, `.../bare-undeclared-function-error`, `.../scope-member-undefined-error`                                                                                                                                                                                  |
-| E0423 | A function calls itself (MISRA C:2012 Rule 17.2)                            | `tests/forward-declarations/recursive-call-error`, `tests/analysis/self-recursion`                                                                                                                                                                                                                               |
-| E0426 | A name in a type position denotes nothing visible in the file that uses it  | `tests/bugs/issue-1312-undefined-type-position/` — same file, sibling, and both include orders                                                                                                                                                                                                                   |
-| E0427 | A name in a value position denotes nothing visible in the file that uses it | `tests/bugs/issue-1353-undeclared-value-position/`, `tests/bugs/issue-1430-e0427-order-dependence/`, `tests/bugs/issue-1582-undeclared-write-target/`, `tests/bugs/issue-1643-self-referential-initializer/`, `tests/bugs/issue-1624-variable-above-declaration/`, `tests/bugs/issue-2019-header-unclosed-name/` |
+| Code  | Reported when                                                               | Asserted by                                                                                                                                                                                                                                                                                                                                                      |
+| ----- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E0422 | A function is called before it is defined, or is defined nowhere visible    | `tests/forward-declarations/call-before-define-error`, `.../bare-undeclared-function-error`, `.../scope-member-undefined-error`                                                                                                                                                                                                                                  |
+| E0423 | A function calls itself (MISRA C:2012 Rule 17.2)                            | `tests/forward-declarations/recursive-call-error`, `tests/analysis/self-recursion`                                                                                                                                                                                                                                                                               |
+| E0426 | A name in a type position denotes nothing visible in the file that uses it  | `tests/bugs/issue-1312-undefined-type-position/` — same file, sibling, and both include orders                                                                                                                                                                                                                                                                   |
+| E0427 | A name in a value position denotes nothing visible in the file that uses it | `tests/bugs/issue-1353-undeclared-value-position/`, `tests/bugs/issue-1430-e0427-order-dependence/`, `tests/bugs/issue-1582-undeclared-write-target/`, `tests/bugs/issue-1643-self-referential-initializer/`, `tests/bugs/issue-1624-variable-above-declaration/`, `tests/bugs/issue-2019-header-unclosed-name/`, `tests/bugs/issue-1629-case-label-undeclared/` |
 
 **Visibility is answered per file, not per run.** A name declared in a sibling
 that this file never includes is not visible here, and saying so is the whole
@@ -382,8 +382,10 @@ What E0427 answers about is the name a spelling STARTS from. Whether a member
 further along a chain exists — the `nope` in `Scope.nope` or `this.cfg.nope` —
 is a different question and is not covered here, equally in both positions.
 
-One value position is not reached yet: a `switch` case label, where `case
-NOPE { }` is emitted as written (#1629, open).
+A `switch` case label is a value position too (#1629), in every spelling it
+admits: `case NOPE`, `case this.NOPE`, `case global.NOPE`, and the head of
+`case NOPE.RUN`. A bare enum member (`case IDLE`) is visible, and whether it
+may stand bare is E0424's question (ADR-017), not this one's.
 
 **A variable is defined once its declaration closes** — after its initializer
 — whatever declares it: a local, a `for` variable, a parameter, a global or a
