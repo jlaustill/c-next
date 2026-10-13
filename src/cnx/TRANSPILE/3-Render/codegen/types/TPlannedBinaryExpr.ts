@@ -1,3 +1,4 @@
+import type IPlannedClamp from "../../../2-Plan/types/IPlannedClamp";
 import type IGeneratorOutput from "../generators/IGeneratorOutput";
 
 /**
@@ -84,9 +85,8 @@ type TPlannedBinaryExpr =
    * `+ - * / %` -- constant-folded, or lowered to ADR-044 saturating helpers,
    * or joined.
    *
-   * `clampType` and `clampBehavior` are thunks asked AFTER the operands render,
-   * which is where they are asked today. Both read the typer over 1.4's settled
-   * declarations (#1668), so the order is not load-bearing.
+   * `clamp` is 2.2's decision (#1991): the helpers a `clamp` integer chain
+   * calls, or null when it is plain C.
    */
   | {
       readonly kind: "arithmetic";
@@ -98,8 +98,7 @@ type TPlannedBinaryExpr =
       readonly constantValue: string | null;
       readonly defaultOperator: string;
       readonly operators: readonly string[];
-      readonly clampType: () => string | null;
-      readonly clampBehavior: () => string | null;
+      readonly clamp: IPlannedClamp | null;
       readonly adrLine: number | undefined;
       readonly renderOperands: readonly (() => IGeneratorOutput)[];
     };

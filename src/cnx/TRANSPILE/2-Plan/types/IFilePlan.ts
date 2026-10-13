@@ -8,6 +8,7 @@ import type TPostfixOpSyntax from "../../../types/syntax/TPostfixOpSyntax";
 import type TTypeSyntax from "../../../types/syntax/TTypeSyntax";
 import type TValueBinding from "../../../types/TValueBinding";
 import type IPlannedCast from "./IPlannedCast";
+import type IPlannedClamp from "./IPlannedClamp";
 import type IPlannedExpectedType from "./IPlannedExpectedType";
 import type IPlannedType from "./IPlannedType";
 import type TNegativeMinimum from "./TNegativeMinimum";
@@ -64,6 +65,15 @@ interface IFilePlan {
   readonly atomicForms: ReadonlyMap<IAssignmentSyntax, TAtomicForm>;
   /** ADR-051: each written `safe_div`/`safe_mod` call, whose helper 2.2 required */
   readonly safeDivisions: ReadonlySet<TExpression>;
+  /** ADR-044: each written `clamp` integer `+ - *` chain, and the helpers it calls */
+  readonly clampChains: ReadonlyMap<TExpression, IPlannedClamp>;
+  /** ADR-044: each compound write that calls a clamp helper, and which */
+  readonly compoundClamps: ReadonlyMap<
+    IAssignmentSyntax,
+    { operation: string; cnxType: string }
+  >;
+  /** ADR-044: every `<operation>_<cnxType>` helper the file calls */
+  readonly clampOps: ReadonlySet<string>;
   /** #1927: the C types the file's text uses, which decide `<stdint.h>`/`<stdbool.h>` */
   readonly cTypes: ReadonlySet<string>;
   /** The type each value is rendered against; a value not listed has none */

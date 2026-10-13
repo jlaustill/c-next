@@ -71,6 +71,8 @@ interface IAssignmentContext {
   readonly floatBitsPlanned: boolean;
   /** 2.2's decision: how this write is atomic (ADR-049), or null if it is not */
   readonly atomicForm: TAtomicForm | null;
+  /** 2.2's decision: the ADR-044 helper this compound write calls, or null */
+  readonly plannedClamp: { operation: string; cnxType: string } | null;
 
   /**
    * The value's essential type, its integer type, and its constant fold.

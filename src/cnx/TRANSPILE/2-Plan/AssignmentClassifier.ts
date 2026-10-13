@@ -835,13 +835,26 @@ class AssignmentClassifier {
   static compoundClamp(
     ctx: IAssignmentContext,
   ): { operation: string; cnxType: string } | null {
-    const written = AssignmentClassifier.writtenValue(ctx);
+    return ctx.plannedClamp;
+  }
+
+  /**
+   * 2.2's one decision behind `compoundClamp`: the helper a compound `cOp`
+   * write to `target` calls, from the type the write stores
+   */
+  static clampOfWrite(
+    target: IChainBase,
+    isSimple: boolean,
+    cOp: string,
+    hasFloatingOperand: () => boolean,
+  ): { operation: string; cnxType: string } | null {
+    const written = AssignmentClassifier.writtenValue(target, isSimple);
     if (written === null) return null;
     return AssignmentClassifier.clampOf(
       written.baseType,
       written.overflowBehavior,
-      ctx.cOp,
-      () => ctx.valueHasFloatingOperand(),
+      cOp,
+      hasFloatingOperand,
     );
   }
 
@@ -867,11 +880,12 @@ class AssignmentClassifier {
    * the variable itself.
    */
   private static writtenValue(
-    ctx: IAssignmentContext,
+    target: IChainBase,
+    isSimple: boolean,
   ): { baseType: string; overflowBehavior: TOverflowBehavior | null } | null {
-    const last = ctx.target.last;
+    const last = target.last;
     if (last === undefined) {
-      const typeInfo = AssignmentClassifier.targetTypeInfo(ctx);
+      const typeInfo = isSimple ? target.typeInfo : undefined;
       if (!typeInfo) return null;
       return {
         baseType: typeInfo.baseType,

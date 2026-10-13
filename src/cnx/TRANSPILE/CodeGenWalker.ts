@@ -195,6 +195,7 @@ import type IValueSite from "../types/IValueSite";
 import type TValueSite from "../types/TValueSite";
 import type IPlannedExpectedType from "./2-Plan/types/IPlannedExpectedType";
 import type IFilePlan from "./2-Plan/types/IFilePlan";
+import type IPlannedClamp from "./2-Plan/types/IPlannedClamp";
 import type IPlannedParameter from "./3-Render/codegen/types/IPlannedParameter";
 import type IPlannedFunctionParameter from "./3-Render/codegen/types/IPlannedFunctionParameter";
 import FunctionContextManager from "./3-Render/codegen/helpers/FunctionContextManager";
@@ -244,6 +245,13 @@ interface FunctionSignature {
 }
 import CodeGenerator from "./3-Render/codegen/CodeGenerator";
 import ToolchainRequirements from "../instrumentation/ToolchainRequirements";
+
+/** ADR-044 (#1152): the `+ - *` operators that saturate through a helper */
+const CLAMP_HELPER_FOR_OPERATOR: Readonly<Partial<Record<string, string>>> = {
+  "+": "add",
+  "-": "sub",
+  "*": "mul",
+};
 import type TranspileState from "./TranspileState";
 
 /** What render folds a constant chain at: wide enough to hold any i64 */
@@ -772,8 +780,7 @@ class CodeGenWalker {
           constantValue: this.constantValue(expr),
           defaultOperator: expr.level === "additive" ? "+" : "*",
           operators,
-          clampType: () => this.compositeClampType(expr),
-          clampBehavior: () => this.compositeClampBehavior(expr),
+          clamp: this.filePlan.clampChains.get(expr) ?? null,
           adrLine: expr.span.line,
           renderOperands,
         };
@@ -2287,7 +2294,13 @@ class CodeGenWalker {
     this.planNarrowingCTypes(expectedTypes, decidedCTypes);
     invariant(valuePositions !== null, "2.1 hands 2.2 where each value stands");
     this.planArgumentCTypes(valuePositions, decidedCTypes);
-    this.planAssignmentCTypes(program, atomicForms, decidedCTypes);
+    const clamps = this.planClamps(program, inlinedConsts, decidedCTypes);
+    this.planAssignmentCTypes(
+      program,
+      atomicForms,
+      clamps.compound,
+      decidedCTypes,
+    );
     this.planLengthCTypes(program, inlinedConsts, decidedCTypes);
     return {
       program,
@@ -2309,6 +2322,9 @@ class CodeGenWalker {
         ...complementCasts.values(),
       ]),
       safeDivisions,
+      clampChains: clamps.chains,
+      compoundClamps: clamps.compound,
+      clampOps: clamps.ops,
       expectedTypes,
       structInitializers: this.planStructInitializers(
         program,
@@ -2584,6 +2600,7 @@ class CodeGenWalker {
   private planAssignmentCTypes(
     program: IProgramSyntax,
     atomicForms: ReadonlyMap<IAssignmentSyntax, TAtomicForm>,
+    compoundClamps: ReadonlyMap<IAssignmentSyntax, unknown>,
     cTypes: Set<string>,
   ): void {
     const typing = this.host.state.typingContext();
@@ -2615,16 +2632,84 @@ class CodeGenWalker {
         site.operator,
         site.operatorSpan.line,
       );
-      const clamp = AssignmentClassifier.clampOf(
-        baseType,
-        written.overflow,
-        cOp,
-        () => this.hasFloatingLeaf(site.value),
-      );
-      if (COMPOUND_TO_BINARY[cOp] !== undefined && clamp === null) {
+      if (COMPOUND_TO_BINARY[cOp] !== undefined && !compoundClamps.has(site)) {
         cTypes.add(TYPE_MAP[baseType] ?? baseType);
       }
     }
+  }
+
+  /**
+   * ADR-044: which written `+ - *` chains and compound writes of a `clamp`
+   * integer saturate, and through which helpers. A chain qualifies only when
+   * every operator has a helper; a mixed chain like `a * b / c` stays plain C.
+   */
+  private planClamps(
+    program: IProgramSyntax,
+    inlinedConsts: ReadonlySet<TDeclarationSyntax>,
+    cTypes: Set<string>,
+  ): {
+    readonly chains: ReadonlyMap<TExpression, IPlannedClamp>;
+    readonly compound: ReadonlyMap<
+      IAssignmentSyntax,
+      { operation: string; cnxType: string }
+    >;
+    readonly ops: ReadonlySet<string>;
+  } {
+    const ops = new Set<string>();
+    const use = (operation: string, cnxType: string): void => {
+      ops.add(`${operation}_${cnxType}`);
+      OverflowHelperTemplates.cTypesOf(cnxType).forEach((t) => cTypes.add(t));
+    };
+
+    const chains = new Map<TExpression, IPlannedClamp>();
+    for (const expr of CodeGenWalker.writtenExpressions(
+      program,
+      inlinedConsts,
+    )) {
+      if (expr.kind !== "binary") continue;
+      if (expr.level !== "additive" && expr.level !== "multiplicative") {
+        continue;
+      }
+      const cnxType = this.compositeClampType(expr);
+      if (cnxType === null || TypeCheckUtils.usesNativeArithmetic(cnxType)) {
+        continue;
+      }
+      if (this.compositeClampBehavior(expr) !== "clamp") continue;
+      const defaultOperator = expr.level === "additive" ? "+" : "*";
+      const helpers = expr.operands
+        .slice(1)
+        .map(
+          (_, i) =>
+            CLAMP_HELPER_FOR_OPERATOR[expr.operators[i] ?? defaultOperator],
+        );
+      if (!helpers.every((op): op is string => op !== undefined)) continue;
+      helpers.forEach((operation) => use(operation, cnxType));
+      chains.set(expr, { cnxType, operations: helpers });
+    }
+
+    const compound = new Map<
+      IAssignmentSyntax,
+      { operation: string; cnxType: string }
+    >();
+    const sites = program.declarations.flatMap((entry) =>
+      StatementNodes.assignments(entry.declaration),
+    );
+    for (const site of sites) {
+      if (site.operator === "<-") continue;
+      const clamp = AssignmentClassifier.clampOfWrite(
+        this.targetDeclaration(site.target),
+        AssignmentTarget.parts(site.target).ops.length === 0,
+        AssignmentOperatorMapper.toCOperator(
+          site.operator,
+          site.operatorSpan.line,
+        ),
+        () => site.value.kind !== "missing" && this.hasFloatingLeaf(site.value),
+      );
+      if (clamp === null) continue;
+      use(clamp.operation, clamp.cnxType);
+      compound.set(site, clamp);
+    }
+    return { chains, compound, ops };
   }
 
   /**
@@ -3099,13 +3184,17 @@ class CodeGenWalker {
   private captureEmissionFacts(
     existingIncludeTargets: readonly string[],
   ): IEmissionFacts {
-    // #1991: the headers come from 2.2's plan. 2.3 still reports the C
-    // types it writes, and any header those need that the plan lacks is a
-    // type 2.2 missed. The clamp helpers' types are still 2.3's (C5).
-    const helperCTypes = [...this.host.state.usedClampOps].flatMap((op) =>
-      OverflowHelperTemplates.cTypesOf(op.slice(op.indexOf("_") + 1)),
+    // #1991: the headers and the clamp helpers come from 2.2's plan. 2.3
+    // still reports what it writes, and anything it reports that the plan
+    // lacks is a decision 2.2 missed.
+    const cTypes = this.filePlan.cTypes;
+    const renderedOps = this.host.state.usedClampOps;
+    const plannedOps = this.filePlan.clampOps;
+    invariant(
+      renderedOps.size === plannedOps.size &&
+        [...renderedOps].every((op) => plannedOps.has(op)),
+      `2.2 planned the clamp helpers 2.3 calls in ${this.host.state.sourcePath} (planned [${[...plannedOps].join()}], called [${[...renderedOps].join()}])`,
     );
-    const cTypes = new Set([...this.filePlan.cTypes, ...helperCTypes]);
     const plannedHeaders = CTypeIncludes.decide(cTypes);
     const renderedHeaders = CTypeIncludes.decide(this.host.state.emittedCTypes);
     invariant(
@@ -3123,7 +3212,7 @@ class CodeGenWalker {
       needsISR: this.host.state.needsISR,
       selfIncludeAdded: this.host.state.selfIncludeAdded,
       existingIncludeTargets,
-      clampOps: this.host.state.usedClampOps,
+      clampOps: plannedOps,
       castHelpers: this.host.state.usedCastHelpers,
       safeDivOps: this.host.state.usedSafeDivOps,
       floatAssertSites: ToolchainRequirements.takeDeferredSites(
@@ -5368,6 +5457,7 @@ class CodeGenWalker {
       target,
       floatBitsPlanned: this.filePlan.floatBitWrites.has(targetExpr),
       atomicForm: this.filePlan.atomicForms.get(site) ?? null,
+      plannedClamp: this.filePlan.compoundClamps.get(site) ?? null,
       state: this.host.state,
       // Already rendered once, above -- never again.
       generatedValue: () => value,

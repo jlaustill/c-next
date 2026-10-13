@@ -44,6 +44,8 @@ interface IContextBuilderDeps {
   readonly floatBitsPlanned: boolean;
   /** 2.2's decision: how this write is atomic (ADR-049), or null if it is not */
   readonly atomicForm: TAtomicForm | null;
+  /** 2.2's decision: the ADR-044 helper this compound write calls, or null */
+  readonly plannedClamp: { operation: string; cnxType: string } | null;
 
   /**
    * 2.3 Render's per-file working state (#1452 box 4), carried onto the built
@@ -276,6 +278,7 @@ function buildAssignmentContext(
     targetLine: targetExpr.span.line,
     floatBitsPlanned: deps.floatBitsPlanned,
     atomicForm: deps.atomicForm,
+    plannedClamp: deps.plannedClamp,
     hasValue: valueExpr.kind !== "missing",
     valueExpressionType: () => deps.expressionType(valueExpr),
     valueIntegerType: () => deps.integerExpressionType(valueExpr),

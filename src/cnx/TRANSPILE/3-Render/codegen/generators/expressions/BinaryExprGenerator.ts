@@ -35,7 +35,7 @@ import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
 import TGeneratorEffect from "../TGeneratorEffect";
 import TPlannedBinaryExpr from "../../types/TPlannedBinaryExpr";
-import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
+import invariant from "../../../../../utils/invariant";
 
 /**
  * Render every operand, collecting their effects.
@@ -75,22 +75,6 @@ const joinWithOperators = (
 };
 
 /**
- * Issue #1152: C-Next operators that have a saturating helper.
- *
- * Only `+ - *` can overflow into a helper. Unsigned division and modulo cannot
- * overflow at all, and the sole signed case (`INT_MIN / -1`) is left to the
- * existing safe-division path rather than folded in here.
- */
-// Partial: an operator outside this map yields undefined, which the chain
-// guard below relies on. Typing it as a total Record made that lookup appear
-// to always produce a string, so the guard read as dead code (S7765).
-const CLAMP_HELPER_FOR_OPERATOR: Readonly<Partial<Record<string, string>>> = {
-  "+": "add",
-  "-": "sub",
-  "*": "mul",
-};
-
-/**
  * Issue #1152: Fold a chain of operands into saturating helper calls when the
  * expression's operands are of a `clamp` integer type.
  *
@@ -110,39 +94,22 @@ const tryClampOperands = (
   operandCodes: readonly string[],
   effects: TGeneratorEffect[],
 ): string | null => {
-  const cnxType = plan.clampType();
-  if (cnxType === null) return null;
-  if (TypeCheckUtils.usesNativeArithmetic(cnxType)) return null;
-  if (plan.clampBehavior() !== "clamp") return null;
-
-  // Every operator in the chain must have a helper; a mixed chain such as
-  // `a * b / c` is left alone rather than clamped in part, which would be
-  // harder to reason about than not clamping at all.
-  const chain = operandCodes.slice(1).map((_, index) => {
-    return CLAMP_HELPER_FOR_OPERATOR[
-      plan.operators[index] ?? plan.defaultOperator
-    ];
-  });
-  if (chain.includes(undefined)) {
-    return null;
-  }
+  const clamp = plan.clamp;
+  if (clamp === null) return null;
+  invariant(
+    clamp.operations.length === operandCodes.length - 1,
+    "2.2 planned one clamp helper per operator",
+  );
 
   // #1241: ADR-044's rule -- a `clamp` integer expression is lowered to
-  // saturating helper calls rather than plain C arithmetic -- has fired by this
-  // point: the type resolved, it is not natively handled, the operands are
-  // clamping, and every operator in the chain has a helper. Recorded here, at
-  // the last gate, so a chain that bails out above does not claim a cell it
-  // never reached.
+  // saturating helper calls rather than plain C arithmetic -- fired in 2.2,
+  // which decided this chain's helpers.
   AdrProvenance.record("044", plan.adrLine);
 
   let code = operandCodes[0];
-  chain.forEach((helperOperation, index) => {
-    effects.push({
-      type: "helper",
-      operation: helperOperation!,
-      cnxType,
-    });
-    code = `cnx_clamp_${helperOperation}_${cnxType}(${code}, ${operandCodes[index + 1]})`;
+  clamp.operations.forEach((operation, index) => {
+    effects.push({ type: "helper", operation, cnxType: clamp.cnxType });
+    code = `cnx_clamp_${operation}_${clamp.cnxType}(${code}, ${operandCodes[index + 1]})`;
   });
   return code;
 };
@@ -170,6 +137,10 @@ const renderArithmetic = (
       (code) => BinaryExprUtils.tryParseNumericLiteral(code) !== undefined,
     )
   ) {
+    invariant(
+      plan.clamp === null,
+      `2.2 planned no clamp helper for a chain 2.3 folds (line ${plan.adrLine})`,
+    );
     return { code: plan.constantValue, effects };
   }
 
