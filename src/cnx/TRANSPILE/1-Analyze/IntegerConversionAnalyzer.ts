@@ -84,6 +84,7 @@ import IIntegerConversionError from "./types/IIntegerConversionError";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import type IOperandType from "../../types/IOperandType";
 import type TAssignmentSite from "../../types/TAssignmentSite";
+import SourceOrder from "../../utils/SourceOrder";
 
 const INTEGER_LITERAL = /^-?(?:\d+|0[xX][0-9a-fA-F]+|0[bB][01]+)$/;
 
@@ -455,9 +456,7 @@ class IntegerConversionAnalyzer {
       tree,
     );
     // Reported in source order, as the one walk these replace did
-    return listener
-      .errors()
-      .sort((a, b) => a.line - b.line || a.column - b.column);
+    return listener.errors().sort(SourceOrder.compare);
   }
 }
 

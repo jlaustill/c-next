@@ -55,6 +55,7 @@ import type TAssignmentSite from "../../types/TAssignmentSite";
 import ConstantExpression from "./helpers/ConstantExpression";
 import RegisterAccessMode from "../../utils/RegisterAccessMode";
 import type IAnalysisContext from "./types/IAnalysisContext";
+import SourceOrder from "../../utils/SourceOrder";
 
 class RegisterAccessListener extends CNextListener {
   private readonly found: IRegisterAccessError[] = [];
@@ -211,9 +212,7 @@ class RegisterAccessAnalyzer {
       tree,
     );
     // Reported in source order, as the one walk these replace did
-    return listener
-      .errors()
-      .sort((a, b) => a.line - b.line || a.column - b.column);
+    return listener.errors().sort(SourceOrder.compare);
   }
 }
 

@@ -38,6 +38,7 @@ import IBitmapAccessError from "./types/IBitmapAccessError";
 import type TAssignmentSite from "../../types/TAssignmentSite";
 import TChainRoot from "../../types/TChainRoot";
 import type IAnalysisContext from "./types/IAnalysisContext";
+import SourceOrder from "../../utils/SourceOrder";
 
 class BitmapAccessListener extends CNextListener {
   private readonly found: IBitmapAccessError[] = [];
@@ -241,9 +242,7 @@ class BitmapAccessAnalyzer {
       tree,
     );
     // Reported in source order, as the one walk these replace did
-    return listener
-      .errors()
-      .sort((a, b) => a.line - b.line || a.column - b.column);
+    return listener.errors().sort(SourceOrder.compare);
   }
 }
 

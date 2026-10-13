@@ -53,6 +53,7 @@ import RegisterMemberReference from "./helpers/RegisterMemberReference";
 import type TAssignmentSite from "../../types/TAssignmentSite";
 import SHARED_FLOAT_TYPES from "../../types/FLOAT_TYPES";
 import type IAnalysisContext from "./types/IAnalysisContext";
+import SourceOrder from "../../utils/SourceOrder";
 
 /**
  * The floats a bit range is lowered through a union for.
@@ -285,9 +286,7 @@ class BitAccessAnalyzer {
       tree,
     );
     // Reported in source order, as the one walk these replace did
-    return listener
-      .errors()
-      .sort((a, b) => a.line - b.line || a.column - b.column);
+    return listener.errors().sort(SourceOrder.compare);
   }
 }
 

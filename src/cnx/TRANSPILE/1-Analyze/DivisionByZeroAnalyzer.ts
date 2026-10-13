@@ -7,10 +7,11 @@
  * a constant expression (`2 - 2`, `-0.0`, `(f32)0`), by the one constant
  * fold, so a name means the declaration ADR-057 names wherever the division
  * is written -- a statement, a member or file initializer, an array dimension,
- * an enum member's value (#1664 box 7, #1268).
+ * an enum member's value (#1664 box 7, #1268). A compound `/<-` or `%<-`
+ * divides by its value the same way (#1770).
  */
 
-import { ParseTreeWalker } from "antlr4ng";
+import { ParseTreeWalker, ParserRuleContext } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import IDivisionByZeroError from "./types/IDivisionByZeroError";
@@ -18,8 +19,12 @@ import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
 import ConstantFold from "../../utils/ConstantFold";
 import ConstExprLowering from "../../utils/ConstExprLowering";
+import CompoundOperator from "../../utils/CompoundOperator";
 import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
+import AssignmentSiteListener from "./AssignmentSiteListener";
 import type IAnalysisContext from "./types/IAnalysisContext";
+import type TAssignmentSite from "../../types/TAssignmentSite";
+import SourceOrder from "../../utils/SourceOrder";
 
 /**
  * Detect division by zero (including const identifiers)
@@ -53,25 +58,36 @@ class DivisionByZeroListener extends CNextListener {
       const operatorToken = ctx.getChild(i * 2 + 1); // Operators are at odd indices
       if (!operatorToken) continue;
 
-      const operator = operatorToken.getText();
-      if (operator !== "/" && operator !== "%") {
-        continue; // Only check division and modulo
-      }
-
-      const rightOperand = operands[i + 1];
-      const { line, column } = ParserUtils.getPosition(rightOperand);
-
-      // Check if right operand is zero
-      if (this.isZero(rightOperand)) {
-        this.analyzer.addError(
-          operator,
-          line,
-          column,
-          DivisionByZeroListener.atRunTime(ctx),
-        );
-      }
+      this.checkDivision(operatorToken.getText(), operands[i + 1]);
     }
   };
+
+  /**
+   * `x /<- d` and `x %<- d` divide `x` by `d`, in a statement or a `for`
+   * header
+   */
+  public checkAssignment(site: TAssignmentSite): void {
+    const operator = CompoundOperator.binaryOf(
+      site.assignmentOperator().getText(),
+    );
+    if (operator !== null) this.checkDivision(operator, site.expression());
+  }
+
+  /** `/` or `%` by a compile-time zero, at the divisor */
+  private checkDivision(
+    operator: string,
+    divisor: Parser.UnaryExpressionContext | Parser.ExpressionContext,
+  ): void {
+    if (operator !== "/" && operator !== "%") return;
+    if (!this.isZero(divisor)) return;
+    const { line, column } = ParserUtils.getPosition(divisor);
+    this.analyzer.addError(
+      operator,
+      line,
+      column,
+      DivisionByZeroListener.atRunTime(divisor),
+    );
+  }
 
   /**
    * Whether a divisor is a compile-time zero, integer or float alike (ADR-051
@@ -82,7 +98,9 @@ class DivisionByZeroListener extends CNextListener {
    * value, so `(Nope)0` stays the undefined type's error, E0426 (#1268
    * review).
    */
-  private isZero(ctx: Parser.UnaryExpressionContext): boolean {
+  private isZero(
+    ctx: Parser.UnaryExpressionContext | Parser.ExpressionContext,
+  ): boolean {
     const divisor = SyntaxLowering.expressionNode(ctx);
     const numeric = OperandTyper.valueLeaves(divisor, this.context).every(
       (leaf) =>
@@ -104,9 +122,7 @@ class DivisionByZeroListener extends CNextListener {
    * not in what must be known at compile time there -- an array dimension, an
    * enum member's value, a const's initializer (#1268 review)
    */
-  private static atRunTime(
-    ctx: Parser.MultiplicativeExpressionContext,
-  ): boolean {
+  private static atRunTime(ctx: ParserRuleContext): boolean {
     for (let node = ctx.parent; node !== null; node = node.parent) {
       if (
         node instanceof Parser.ArrayDimensionContext ||
@@ -139,8 +155,14 @@ class DivisionByZeroAnalyzer {
     this.errors = [];
     const listener = new DivisionByZeroListener(this, this.context);
     ParseTreeWalker.DEFAULT.walk(listener, tree);
+    // Compound arm (#1770); #2049 replaces the per-analyzer arms with one
+    ParseTreeWalker.DEFAULT.walk(
+      new AssignmentSiteListener((site) => listener.checkAssignment(site)),
+      tree,
+    );
 
-    return this.errors;
+    // Two walks; report in source order
+    return this.errors.sort(SourceOrder.compare);
   }
 
   /**

@@ -13,6 +13,7 @@ import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
 import TYPE_MAP from "../../types/TYPE_MAP";
 import CppModeHelper from "../../helpers/CppModeHelper";
 import COMPOUND_TO_BINARY from "../../types/COMPOUND_TO_BINARY";
+import invariant from "../../../../../utils/invariant";
 
 /**
  * Try to handle compound assignment on narrow types (MISRA 10.3).
@@ -34,9 +35,10 @@ function tryHandleCompoundNarrowingCast(
   }
 
   const binaryOp = COMPOUND_TO_BINARY[ctx.cOp];
-  if (!binaryOp) {
-    return null;
-  }
+  invariant(
+    binaryOp !== undefined,
+    `a compound assignment applies a binary operator (got '${ctx.cOp}')`,
+  );
 
   const cType = TYPE_MAP[baseType] ?? baseType;
   const expr = `(${target} ${binaryOp} ${ctx.generatedValue})`;

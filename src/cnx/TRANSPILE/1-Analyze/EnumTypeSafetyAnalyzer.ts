@@ -61,6 +61,7 @@ import IEnumTypeSafetyError from "./types/IEnumTypeSafetyError";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import type IOperandType from "../../types/IOperandType";
 import type TAssignmentSite from "../../types/TAssignmentSite";
+import SourceOrder from "../../utils/SourceOrder";
 
 const ASSIGN_HELP =
   "ADR-017: an enum is its own type, not an integer. Assign one of its members, or convert explicitly with a cast.";
@@ -207,9 +208,7 @@ class EnumTypeSafetyAnalyzer {
       new AssignmentSiteListener((site) => listener.checkSite(site)),
       tree,
     );
-    return listener
-      .errors()
-      .sort((a, b) => a.line - b.line || a.column - b.column);
+    return listener.errors().sort(SourceOrder.compare);
   }
 }
 

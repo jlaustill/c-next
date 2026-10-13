@@ -473,6 +473,9 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1745-include-directive-agreement/commented-out-include-error.test.cnx           | E0426               |
 | tests/bugs/issue-1768-variable-dimension/header-variable.test.cnx                                | E0909               |
 | tests/bugs/issue-1768-variable-dimension/variable-dimension.test.cnx                             | E0909               |
+| tests/bugs/issue-1770-compound-division-zero/compound-division-zero-imported.test.cnx            | E0800, E0802        |
+| tests/bugs/issue-1770-compound-division-zero/compound-division-zero-scoped.test.cnx              | E0800, E0802        |
+| tests/bugs/issue-1770-compound-division-zero/compound-division-zero.test.cnx                     | E0800, E0802        |
 | tests/bugs/issue-1800-float-to-integer/for-header-rejected.test.cnx                              | E0868, E0869, E0891 |
 | tests/bugs/issue-1800-float-to-integer/implicit-rejected.test.cnx                                | E0891               |
 | tests/bugs/issue-1800-float-to-integer/positions-rejected.test.cnx                               | E0891               |

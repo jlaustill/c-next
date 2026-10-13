@@ -55,10 +55,13 @@ import BooleanOperandAnalyzer from "./BooleanOperandAnalyzer";
 import EnumValueResolver from "./EnumValueResolver";
 import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
+import CompoundOperator from "../../utils/CompoundOperator";
+import CLAMP_HELPER_FOR_OPERATOR from "../../types/CLAMP_HELPER_FOR_OPERATOR";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import type TBinaryOperatorLevel from "./types/TBinaryOperatorLevel";
 import type TAssignmentSite from "../../types/TAssignmentSite";
 import type IOperandType from "../../types/IOperandType";
+import SourceOrder from "../../utils/SourceOrder";
 
 /**
  * A Rule 10.4 category: `signed`, `unsigned`, `floating`, `character`,
@@ -77,27 +80,14 @@ type TOperatorSite = "binary" | "conditional" | "compound";
 const UNREADABLE_MACRO = "unreadable macro";
 
 /**
- * The operators that hand an integer operand to a clamp helper (ADR-044), so
- * an unreadable macro beside one is E0811; beside any other it is E0812
+ * The compound arm's shifts, whose operands are not Rule 10.4 operands. The
+ * binary walk skips the same operators by level (`level === "shift"`); #2049
+ * makes the two one rule.
  */
-const CLAMPED_ARITHMETIC: ReadonlySet<string> = new Set([
-  "+",
-  "-",
-  "*",
-  "+<-",
-  "-<-",
-  "*<-",
-]);
-
-/** Assignments that are not arithmetic, so not Rule 10.4 operands */
-const NOT_RULE_10_4_ASSIGNMENTS: ReadonlySet<string> = new Set([
-  "<-",
-  "<<<-",
-  ">><-",
-]);
+const NOT_RULE_10_4_OPERATORS: ReadonlySet<string> = new Set(["<<", ">>"]);
 
 /** The operators MISRA lets combine a character with an integer */
-const CHARACTER_ARITHMETIC: ReadonlySet<string> = new Set(["+", "+<-"]);
+const CHARACTER_ARITHMETIC: ReadonlySet<string> = new Set(["+"]);
 
 class MixedCategoryCheck {
   private readonly enums: EnumValueResolver;
@@ -324,8 +314,10 @@ class MixedCategoryCheck {
   }
 
   public checkCompound(site: TAssignmentSite): void {
-    const text = site.assignmentOperator().getText();
-    if (NOT_RULE_10_4_ASSIGNMENTS.has(text)) return;
+    const operator = CompoundOperator.binaryOf(
+      site.assignmentOperator().getText(),
+    );
+    if (operator === null || NOT_RULE_10_4_OPERATORS.has(operator)) return;
 
     const value = site.expression();
     const left = MixedCategoryCheck.rule104Category(
@@ -336,9 +328,9 @@ class MixedCategoryCheck {
     );
     const right = this.operandCategory(value);
     if (MixedCategoryCheck.ownedElsewhere(left, right, "compound")) return;
-    if (MixedCategoryCheck.differ(left, right, text)) {
+    if (MixedCategoryCheck.differ(left, right, operator)) {
       const { line, column } = ParserUtils.getPosition(value);
-      this.analyzer.addError(line, column, left!, right!, "compound", text);
+      this.analyzer.addError(line, column, left!, right!, "compound", operator);
     }
   }
 }
@@ -380,6 +372,7 @@ class MixedTypeCategoryAnalyzer {
       check.checkLevel(operands, level);
     }
 
+    // Compound arm; #2049 replaces the per-analyzer arms with one
     ParseTreeWalker.DEFAULT.walk(
       new AssignmentSiteListener((site) => check.checkCompound(site)),
       tree,
@@ -387,7 +380,7 @@ class MixedTypeCategoryAnalyzer {
     ParseTreeWalker.DEFAULT.walk(new TernaryListener(check), tree);
 
     // Three walks; reported in source order
-    return this.errors.sort((a, b) => a.line - b.line || a.column - b.column);
+    return this.errors.sort(SourceOrder.compare);
   }
 
   /** The diagnostic's text for each place two categories meet */
@@ -468,7 +461,11 @@ class MixedTypeCategoryAnalyzer {
     what: TOperatorSite,
     operator: string | undefined,
   ): void {
-    const clamped = operator !== undefined && CLAMPED_ARITHMETIC.has(operator);
+    // An operator that hands an integer operand to a clamp helper (ADR-044)
+    // makes an unreadable macro beside it E0811; any other makes it E0812
+    const clamped =
+      operator !== undefined &&
+      CLAMP_HELPER_FOR_OPERATOR[operator] !== undefined;
     const why = clamped
       ? "this operator would hand it to an integer clamp helper untyped"
       : "C's usual arithmetic conversions decide this result from the type it really has, which can change a comparison, a bit operation or a quotient (an unsigned 3 < -1 is true)";
