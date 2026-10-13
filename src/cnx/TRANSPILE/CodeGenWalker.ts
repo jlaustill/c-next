@@ -195,6 +195,9 @@ import FilePlanner from "./2-Plan/FilePlanner";
 /** What render folds a constant chain at: wide enough to hold any i64 */
 const WIDEST_SIGNED = "i64";
 
+/** A syntax node a render-time check can name the line of */
+type TSpanned = { readonly span: { readonly line: number } };
+
 class CodeGenWalker {
   /**
    * The render-side services. Generators receive THIS object as their
@@ -488,7 +491,7 @@ class CodeGenWalker {
         op,
         steps[i - offset] ?? null,
         head.rootOp,
-        this.filePlan.narrowings.get(expr)?.get(i - offset) ?? null,
+        this.plannedNarrowings(expr).get(i - offset) ?? null,
         this.filePlan.safeDivisions.get(expr) ?? null,
       ),
     );
@@ -683,7 +686,12 @@ class CodeGenWalker {
           constantValue: this.constantValue(expr),
           defaultOperator: expr.level === "additive" ? "+" : "*",
           operators,
-          clamp: this.filePlan.clampChains.get(expr) ?? null,
+          clamp: CodeGenWalker.plannedAt(
+            this.filePlan.clampChains,
+            expr,
+            this.rendering.clampChains,
+            "`+ - *` chain",
+          ),
           adrLine: expr.span.line,
           renderOperands,
         };
@@ -1294,7 +1302,7 @@ class CodeGenWalker {
       case "literal":
         return this._generateLiteralExpression(
           expr.text,
-          this.filePlan.narrowings.get(expr)?.get(0) ?? null,
+          this.plannedNarrowings(expr).get(0) ?? null,
         );
       case "parenthesized":
         return `(${this.renderExpression(expr.expression)})`;
@@ -1357,6 +1365,11 @@ class CodeGenWalker {
       minimums: new Set(),
       complementCasts: new Set(),
       structInitializers: new Set(),
+      narrowings: new Set(),
+      clampChains: new Set(),
+      floatBitWrites: new Set(),
+      compoundClamps: new Set(),
+      atomicForms: new Set(),
     };
     this.planner.useParameters(plan.setup.parameters);
     // #1928: the banner and the file result read the planned blocks'
@@ -1395,10 +1408,54 @@ class CodeGenWalker {
     );
   }
 
+  /**
+   * 2.2's decision at a site 2.3 renders, null where it decided there is
+   * nothing to write: a site 2.2's walk never reached fails here instead of
+   * losing its cast or clamp
+   */
+  private static plannedAt<K extends TSpanned, V>(
+    planned: ReadonlyMap<K, V | null>,
+    site: K,
+    rendered: Set<K>,
+    what: string,
+  ): V | null {
+    const decision = planned.get(site);
+    invariant(
+      decision !== undefined,
+      `2.2 considered every ${what} 2.3 renders (got line ${site.span.line})`,
+    );
+    rendered.add(site);
+    return decision;
+  }
+
+  /** MISRA 10.3: the promoted reads 2.2 planned in a value 2.3 renders */
+  private plannedNarrowings(
+    expr: TExpression,
+  ): ReadonlyMap<number, TPlannedNarrowing> {
+    const steps = CodeGenWalker.plannedAt(
+      this.filePlan.narrowings,
+      expr,
+      this.rendering.narrowings,
+      "postfix or literal value",
+    );
+    invariant(steps !== null, "2.2 plans a value's reads, empty for none");
+    return steps;
+  }
+
+  /** The sites where 2.2 decided something to write */
+  private static decidedSites<K, V>(
+    planned: ReadonlyMap<K, V | null>,
+    writes: (decision: V) => boolean = () => true,
+  ): K[] {
+    return [...planned]
+      .filter(([, decision]) => decision !== null && writes(decision))
+      .map(([site]) => site);
+  }
+
   /** The reverse of each render-time "2.2 planned this" check: 2.2 planned nothing 2.3 skipped */
-  private static assertAllRendered(
-    planned: Iterable<TExpression>,
-    rendered: ReadonlySet<TExpression>,
+  private static assertAllRendered<K extends TSpanned>(
+    planned: Iterable<K>,
+    rendered: ReadonlySet<K>,
     what: string,
   ): void {
     const missed = [...planned].find((expression) => !rendered.has(expression));
@@ -1473,6 +1530,34 @@ class CodeGenWalker {
       this.filePlan.structInitializers.keys(),
       this.rendering.structInitializers,
       "struct initializer",
+    );
+    CodeGenWalker.assertAllRendered(
+      CodeGenWalker.decidedSites(
+        this.filePlan.narrowings,
+        (steps) => steps.size > 0,
+      ),
+      this.rendering.narrowings,
+      "promoted read",
+    );
+    CodeGenWalker.assertAllRendered(
+      CodeGenWalker.decidedSites(this.filePlan.clampChains),
+      this.rendering.clampChains,
+      "clamp chain",
+    );
+    CodeGenWalker.assertAllRendered(
+      CodeGenWalker.decidedSites(this.filePlan.floatBitWrites),
+      this.rendering.floatBitWrites,
+      "float bit write",
+    );
+    CodeGenWalker.assertAllRendered(
+      CodeGenWalker.decidedSites(this.filePlan.compoundClamps),
+      this.rendering.compoundClamps,
+      "compound clamp",
+    );
+    CodeGenWalker.assertAllRendered(
+      CodeGenWalker.decidedSites(this.filePlan.atomicForms),
+      this.rendering.atomicForms,
+      "atomic write",
     );
 
     const emissionPlan = plan.emission;
@@ -3064,9 +3149,24 @@ class CodeGenWalker {
     // Build context, classify, and dispatch - all patterns handled by handlers
     const assignCtx = buildAssignmentContext(site, {
       target,
-      floatBits: this.filePlan.floatBitWrites.get(targetExpr) ?? null,
-      atomicForm: this.filePlan.atomicForms.get(site) ?? null,
-      plannedClamp: this.filePlan.compoundClamps.get(site) ?? null,
+      floatBits: CodeGenWalker.plannedAt(
+        this.filePlan.floatBitWrites,
+        targetExpr,
+        this.rendering.floatBitWrites,
+        "assignment target",
+      ),
+      atomicForm: CodeGenWalker.plannedAt(
+        this.filePlan.atomicForms,
+        site,
+        this.rendering.atomicForms,
+        "assignment",
+      ),
+      plannedClamp: CodeGenWalker.plannedAt(
+        this.filePlan.compoundClamps,
+        site,
+        this.rendering.compoundClamps,
+        "assignment",
+      ),
       plannedSliceSource: this.filePlan.sliceSources.get(site) ?? null,
       plannedCompoundCast: this.filePlan.compoundCasts.get(site) ?? null,
       plannedRegisterAccess: this.filePlan.registerAccesses.get(site) ?? null,

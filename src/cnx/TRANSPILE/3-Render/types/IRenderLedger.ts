@@ -1,4 +1,5 @@
 import type IFilePlan from "../../2-Plan/types/IFilePlan";
+import type IAssignmentSyntax from "../../../types/syntax/IAssignmentSyntax";
 import type TExpression from "../../../types/syntax/TExpression";
 import type TTypeSyntax from "../../../types/syntax/TTypeSyntax";
 
@@ -15,6 +16,11 @@ interface IRenderLedger {
   readonly minimums: Set<TExpression>;
   readonly complementCasts: Set<TExpression>;
   readonly structInitializers: Set<TExpression>;
+  readonly narrowings: Set<TExpression>;
+  readonly clampChains: Set<TExpression>;
+  readonly floatBitWrites: Set<TExpression>;
+  readonly compoundClamps: Set<IAssignmentSyntax>;
+  readonly atomicForms: Set<IAssignmentSyntax>;
 }
 
 export default IRenderLedger;

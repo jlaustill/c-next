@@ -80,18 +80,18 @@ interface IFilePlan {
   readonly complementCasts: ReadonlyMap<TExpressionOf<"unary">, string>;
   /** ADR-007: each written range read of a float's bits, and its union */
   readonly floatBitReads: ReadonlyMap<TPostfixOpSyntax, IPlannedFloatBits>;
-  /** ADR-007: each assignment target that writes a float's bits, and its union */
-  readonly floatBitWrites: ReadonlyMap<TExpression, IPlannedFloatBits>;
-  /** ADR-049: how each written atomic read-modify-write is written */
-  readonly atomicForms: ReadonlyMap<IAssignmentSyntax, TAtomicForm>;
+  /** ADR-007: each assignment target, and the union it writes a float's bits through (null: none) */
+  readonly floatBitWrites: ReadonlyMap<TExpression, IPlannedFloatBits | null>;
+  /** ADR-049: each assignment, and how it is written atomically (null: it is not atomic) */
+  readonly atomicForms: ReadonlyMap<IAssignmentSyntax, TAtomicForm | null>;
   /** ADR-051: each written `safe_div`/`safe_mod` call, and the helper it is written as */
   readonly safeDivisions: ReadonlyMap<TExpression, string>;
-  /** ADR-044: each written `clamp` integer `+ - *` chain, and the helpers it calls */
-  readonly clampChains: ReadonlyMap<TExpression, IPlannedClamp>;
-  /** ADR-044: each compound write that calls a clamp helper, and which */
+  /** ADR-044: each written `+ - *` chain, and the clamp helpers it calls (null: none) */
+  readonly clampChains: ReadonlyMap<TExpression, IPlannedClamp | null>;
+  /** ADR-044: each assignment, and the clamp helper it calls (null: none) */
   readonly compoundClamps: ReadonlyMap<
     IAssignmentSyntax,
-    { operation: string; cnxType: string }
+    { operation: string; cnxType: string } | null
   >;
   /** #1081: how each slice write reads its source */
   readonly sliceSources: ReadonlyMap<IAssignmentSyntax, IPlannedSliceSource>;
@@ -114,8 +114,9 @@ interface IFilePlan {
   /** The type each value is rendered against; a value not listed has none */
   readonly expectedTypes: ReadonlyMap<TExpression, IPlannedExpectedType>;
   /**
-   * MISRA 10.3: each promoted read 2.3 casts or compares, by the value and
-   * the index of its typer step (a character literal is step 0)
+   * MISRA 10.3: each written postfix or literal value, and the promoted
+   * reads in it 2.3 casts or compares, by the index of its typer step (a
+   * character literal is step 0) -- empty when it has none
    */
   readonly narrowings: ReadonlyMap<
     TExpression,

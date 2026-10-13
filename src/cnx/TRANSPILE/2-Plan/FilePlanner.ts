@@ -505,7 +505,7 @@ class FilePlanner {
     cTypes: Set<string>,
   ): {
     readonly reads: ReadonlyMap<TPostfixOpSyntax, IPlannedFloatBits>;
-    readonly writes: ReadonlyMap<TExpression, IPlannedFloatBits>;
+    readonly writes: ReadonlyMap<TExpression, IPlannedFloatBits | null>;
   } {
     const typing = this.state.typingContext();
     const targets = new Set<TExpression>(
@@ -515,10 +515,11 @@ class FilePlanner {
         ),
       ),
     );
-    const writes = new Map<TExpression, IPlannedFloatBits>();
+    const writes = new Map<TExpression, IPlannedFloatBits | null>();
     for (const target of targets) {
       const last = OperandTyper.chainOf(target, typing).steps.at(-1);
       const floatType = FloatBits.typeOf(last);
+      writes.set(target, null);
       if (floatType === null) continue;
       const head = ExpressionShape.headOf(target);
       const shared = FloatBits.sharesShadow(head, head.ops.length - 1);
@@ -932,7 +933,10 @@ class FilePlanner {
       requirements,
     );
     // ADR-007: each union copy is checked by the float static assert
-    for (let i = 0; i < floatBits.reads.size + floatBits.writes.size; i++) {
+    const floatBitWrites = [...floatBits.writes.values()].filter(
+      (write) => write !== null,
+    ).length;
+    for (let i = 0; i < floatBits.reads.size + floatBitWrites; i++) {
       requirements.require("float_static_assert");
     }
     const registerAccesses = new Map<IAssignmentSyntax, string>();
@@ -949,7 +953,12 @@ class FilePlanner {
       types,
       foreignRegisterValues,
     );
-    const narrowings = this.planNarrowings(expectedTypes, decidedCTypes);
+    const narrowings = this.planNarrowings(expectedTypes, decidedCTypes, [
+      ...FilePlanner.writtenExpressions(program, inlinedConsts),
+      ...foreignRegisterValues.flatMap((value) =>
+        ExpressionNodes.direct(value),
+      ),
+    ]);
     invariant(valuePositions !== null, "2.1 hands 2.2 where each value stands");
     const argumentPlans = this.planArguments(valuePositions, decidedCTypes);
     const clamps = this.planClamps(
@@ -1362,7 +1371,7 @@ class FilePlanner {
    */
   private planAssignmentCTypes(
     program: IProgramSyntax,
-    atomicForms: ReadonlyMap<IAssignmentSyntax, TAtomicForm>,
+    atomicForms: ReadonlyMap<IAssignmentSyntax, TAtomicForm | null>,
     compoundClamps: ReadonlyMap<IAssignmentSyntax, unknown>,
     sliceSources: Map<IAssignmentSyntax, IPlannedSliceSource>,
     compoundCasts: Map<IAssignmentSyntax, string>,
@@ -1382,7 +1391,9 @@ class FilePlanner {
         this.planSliceSource(site, sliceSources, cTypes);
         continue;
       }
-      if (site.operator === "<-" || atomicForms.has(site)) continue;
+      if (site.operator === "<-" || (atomicForms.get(site) ?? null) !== null) {
+        continue;
+      }
       if (AssignmentTarget.parts(site.target).ops.length > 0) continue;
       const written = OperandTyper.typeOfTarget(site.target, typing);
       const baseType = written?.typeName ?? null;
@@ -1398,7 +1409,10 @@ class FilePlanner {
         site.operator,
         site.operatorSpan.line,
       );
-      if (COMPOUND_TO_BINARY[cOp] !== undefined && !compoundClamps.has(site)) {
+      if (
+        COMPOUND_TO_BINARY[cOp] !== undefined &&
+        (compoundClamps.get(site) ?? null) === null
+      ) {
         const cType = TYPE_MAP[baseType] ?? baseType;
         compoundCasts.set(site, cType);
         cTypes.add(cType);
@@ -1417,10 +1431,10 @@ class FilePlanner {
     foreignRegisterValues: readonly TExpression[],
     cTypes: Set<string>,
   ): {
-    readonly chains: ReadonlyMap<TExpression, IPlannedClamp>;
+    readonly chains: ReadonlyMap<TExpression, IPlannedClamp | null>;
     readonly compound: ReadonlyMap<
       IAssignmentSyntax,
-      { operation: string; cnxType: string }
+      { operation: string; cnxType: string } | null
     >;
     readonly ops: ReadonlySet<string>;
   } {
@@ -1430,7 +1444,7 @@ class FilePlanner {
       ClampTypes.cTypesOf(cnxType).forEach((t) => cTypes.add(t));
     };
 
-    const chains = new Map<TExpression, IPlannedClamp>();
+    const chains = new Map<TExpression, IPlannedClamp | null>();
     for (const expr of [
       ...FilePlanner.writtenExpressions(program, inlinedConsts),
       ...foreignRegisterValues.flatMap((value) =>
@@ -1441,6 +1455,7 @@ class FilePlanner {
       if (expr.level !== "additive" && expr.level !== "multiplicative") {
         continue;
       }
+      chains.set(expr, null);
       const cnxType = this.compositeClampType(expr);
       if (cnxType === null || TypeCheckUtils.usesNativeArithmetic(cnxType)) {
         continue;
@@ -1460,12 +1475,13 @@ class FilePlanner {
 
     const compound = new Map<
       IAssignmentSyntax,
-      { operation: string; cnxType: string }
+      { operation: string; cnxType: string } | null
     >();
     const sites = program.declarations.flatMap((entry) =>
       StatementNodes.assignments(entry.declaration),
     );
     for (const site of sites) {
+      compound.set(site, null);
       if (site.operator === "<-") continue;
       const clamp = AssignmentClassifier.clampOfWrite(
         this.targetDeclaration(site.target),
@@ -1537,6 +1553,7 @@ class FilePlanner {
   private planNarrowings(
     expectedTypes: ReadonlyMap<TExpression, IPlannedExpectedType>,
     cTypes: Set<string>,
+    written: Iterable<TExpression>,
   ): ReadonlyMap<TExpression, ReadonlyMap<number, TPlannedNarrowing>> {
     const typing = this.state.typingContext();
     const bitmapFields = this.state.symbols?.bitmapFields;
@@ -1581,6 +1598,13 @@ class FilePlanner {
         ExpressionChildren.of(node).forEach(visit);
       };
       visit(value);
+    }
+    for (const expression of written) {
+      const read =
+        expression.kind === "postfix" || expression.kind === "literal";
+      if (read && !narrowings.has(expression)) {
+        narrowings.set(expression, new Map());
+      }
     }
     return narrowings;
   }
@@ -1727,8 +1751,8 @@ class FilePlanner {
     program: IProgramSyntax,
     cTypes: Set<string>,
     requirements: PlannedRequirements,
-  ): ReadonlyMap<IAssignmentSyntax, TAtomicForm> {
-    const forms = new Map<IAssignmentSyntax, TAtomicForm>();
+  ): ReadonlyMap<IAssignmentSyntax, TAtomicForm | null> {
+    const forms = new Map<IAssignmentSyntax, TAtomicForm | null>();
     const visit = (statements: readonly TStatement[]): void => {
       for (const statement of statements) {
         visit(StatementChildren.of(statement));
@@ -1736,10 +1760,14 @@ class FilePlanner {
           requirements.require("irq_wrappers", statement.span.line);
           // The saved mask's type (#1927)
           cTypes.add(PRIMASK_C_TYPE);
-          continue;
         }
-        if (statement.kind !== "assignment") continue;
-        const atomic = this.atomicFormOf(statement);
+      }
+    };
+    for (const entry of program.declarations) {
+      visit(StatementNodes.roots(entry.declaration));
+      for (const site of StatementNodes.assignments(entry.declaration)) {
+        const atomic = this.atomicFormOf(site);
+        forms.set(site, atomic?.form ?? null);
         if (atomic === null) continue;
         if (atomic.form === "ldrex-strex") {
           requirements.require("cmsis");
@@ -1749,11 +1777,7 @@ class FilePlanner {
           requirements.require("irq_wrappers");
           cTypes.add(PRIMASK_C_TYPE);
         }
-        forms.set(statement, atomic.form);
       }
-    };
-    for (const entry of program.declarations) {
-      visit(StatementNodes.roots(entry.declaration));
     }
     return forms;
   }
