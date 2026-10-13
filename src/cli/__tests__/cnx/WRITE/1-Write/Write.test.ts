@@ -11,6 +11,17 @@ describe("Write", () => {
     expect(fs.getWrittenContent("/out/sub/a.c")).toBe("int a;");
   });
 
+  // #1991: 3.1's entry takes 2.3's rendered files and writes each one.
+  it("writes every rendered file at its path", () => {
+    const fs = new MockFileSystem();
+    Write.outputs(fs, [
+      { path: "/out/a.c", content: "int a;" },
+      { path: "/out/a.h", content: "extern int a;" },
+    ]);
+    expect(fs.getWrittenContent("/out/a.c")).toBe("int a;");
+    expect(fs.getWrittenContent("/out/a.h")).toBe("extern int a;");
+  });
+
   it("creates a directory that already exists without failing", () => {
     const fs = new MockFileSystem().addDirectory("/out");
     Write.directory(fs, "/out");

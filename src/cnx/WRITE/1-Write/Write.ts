@@ -1,6 +1,7 @@
 import { dirname } from "node:path";
 
 import IFileSystem from "../../types/IFileSystem";
+import type IRenderedOutput from "../../TRANSPILE/3-Render/types/IRenderedOutput";
 
 /**
  * 3.1 Write: the only module that changes the filesystem (#1653, carrying
@@ -14,6 +15,13 @@ import IFileSystem from "../../types/IFileSystem";
  * mutating methods.
  */
 class Write {
+  /** 3.1's entry: every file 2.3 rendered, written where 1.1 named it (#1991) */
+  static outputs(fs: IFileSystem, outputs: readonly IRenderedOutput[]): void {
+    for (const output of outputs) {
+      Write.file(fs, output.path, output.content);
+    }
+  }
+
   /** Write `content` to `path`, creating its directory first. */
   static file(fs: IFileSystem, path: string, content: string): void {
     Write.directory(fs, dirname(path));

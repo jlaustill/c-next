@@ -96,8 +96,11 @@ src/
   lib/
 ```
 
-The digit is not decoration. A pass may read the artifact of a lower-numbered pass in its
-own layer, or of any earlier layer, and nothing else. So "which pass owns this module?"
+The digit is not decoration. When the transpiler runs, each pass takes only the artifact
+the pass just before it returned, and nothing else (#1991, owner ruling). Whatever a later
+pass needs, every pass in between carries forward, and the host calls the eight entries in
+order. A module may import code or types from a lower-numbered pass in its own layer, or
+from any earlier layer, and nothing else. So "which pass owns this module?"
 and "may it read that?" are both answerable from the path -- by a reader, and by a gate --
 without opening the file.
 

@@ -1,9 +1,12 @@
 /**
  * The pass order, as the places a module can sit in, earliest first (#1443).
  *
- * `docs/architecture/README.md` §1: "A pass may read the artifact of a
- * lower-numbered pass in its own layer, or of any earlier layer, and nothing
- * else." So each place below may reach every place before it and none after
+ * `docs/architecture/README.md` §1: at run time a pass takes only the artifact
+ * the pass just before it returned (#1991), and "a module may import code or
+ * types from a lower-numbered pass in its own layer, or from any earlier
+ * layer, and nothing else." This file enforces the second half: which
+ * modules may import which. So each place below may reach every place before
+ * it and none after
  * it, and one rule per place says so. The rules are generated from this list
  * rather than written out because the order is ONE fact: written as pairs it
  * was eight hand-authored rules, each naming one later root, and a pair nobody

@@ -68,6 +68,7 @@ import PreprocessCache from "../cnx/PARSE/1-Discover/preprocessor/PreprocessCach
 import type IRecordedRequirement from "../cnx/types/IRecordedRequirement";
 import type IRenderedFile from "./types/IRenderedFile";
 import RequirementAggregator from "../cnx/utils/RequirementAggregator";
+import type IRenderedOutput from "../cnx/TRANSPILE/3-Render/types/IRenderedOutput";
 import Write from "../cnx/WRITE/1-Write/Write";
 import CaughtError from "../cnx/utils/CaughtError";
 import HeaderDeclarations from "../cnx/PARSE/3-Declare/HeaderDeclarations";
@@ -394,7 +395,7 @@ class Transpiler {
     // gated on `result.success`.
     const rejected = diagnostics.hasErrors();
     Transpiler._reportWarnings(input.cnextFiles, diagnostics, result);
-    const pendingWrites: { path: string; content: string }[] = [];
+    const pendingWrites: IRenderedOutput[] = [];
     for (const file of input.cnextFiles) {
       if (!Transpiler._producesOutput(file)) {
         continue;
@@ -433,16 +434,14 @@ class Transpiler {
     // One gate for both halves of the output: a .c is written only when its
     // header is (#1233)
     if (result.success && input.writeOutputToDisk) {
-      for (const write of pendingWrites) {
-        Write.file(this.fs, write.path, write.content);
-      }
-      // Stage 6: Write the Stage 5.5 headers (only to disk in files mode)
-      this._generateAllHeadersFromPipeline(
+      const headers = Transpiler._headerOutputs(
         front.discovery,
         input.cnextFiles,
-        result,
         renderedFiles,
       );
+      // 3.1 Write takes what 2.3 rendered, and nothing else (#1991)
+      Write.outputs(this.fs, [...pendingWrites, ...headers]);
+      result.outputFiles.push(...headers.map((header) => header.path));
     }
   }
 
@@ -1258,7 +1257,7 @@ class Transpiler {
     fileResult: IFileResult,
     result: ITranspilerResult,
     writeOutputToDisk: boolean,
-    pendingWrites: { path: string; content: string }[],
+    pendingWrites: IRenderedOutput[],
   ): void {
     let outputPath: string | undefined;
     if (
@@ -1290,44 +1289,35 @@ class Transpiler {
   }
 
   /**
-   * Stage 6: Write the headers Stage 5.5 rendered for pipeline files.
+   * The headers Stage 5.5 rendered for pipeline files, at the paths 1.1 named.
    *
    * Issue #1139, historically: this stage used to call generateHeaderForFile()
    * a second time, once per file, after every file had been transpiled. That
-   * function read live CodeGenState — which is per-file — so by then it saw
+   * function read live CodeGenState -- which is per-file -- so by then it saw
    * only the last-transpiled file's data and rebuilt every other file's
-   * header from it. A dependency lost the ADR-006 auto-const its own .c
-   * definition carried, giving conflicting types. Single-file builds hid it
-   * because the only file is also the last one.
-   *
-   * #1323: that method no longer exists, and this stage was never the
-   * problem — it always just wrote `result.files[].headerCode`. What changed
-   * is who fills that field in: `HeaderEmissionCapture.capture` resolves each
-   * file's header content, at its own warm moment, into a frozen record;
-   * `_renderHeaders` (Stage 5.5) turns every record into text in one batch,
-   * reading no CodeGenState at all. Reintroducing #1139 today would mean
-   * making this stage call `CodeGenState`-reading logic directly again,
-   * instead of reading the already-rendered `headerCode` — there is no
-   * "second call" left to make by accident, only a wrong one to add back.
+   * header from it. #1323: `HeaderEmissionCapture.capture` now resolves each
+   * file's header content at its own warm moment, and `_renderHeaders`
+   * (Stage 5.5) turns every record into text in one batch, reading no
+   * CodeGenState at all. This only pairs that text with its path.
    */
-  private _generateAllHeadersFromPipeline(
+  private static _headerOutputs(
     discovery: TDiscoveryFacts,
     cnextFiles: readonly IPipelineFile[],
-    result: ITranspilerResult,
     renderedFiles: ReadonlyMap<string, IRenderedFile>,
-  ): void {
-    for (const file of cnextFiles) {
-      if (!Transpiler._producesOutput(file)) {
-        continue;
-      }
-      const headerContent = renderedFiles.get(file.path)?.header;
-      if (headerContent) {
-        // Issue #933: .hpp in C++ mode, so C and C++ headers cannot overwrite
-        const headerPath = Transpiler._outputsOf(discovery, file.path).header;
-        Write.file(this.fs, headerPath, headerContent);
-        result.outputFiles.push(headerPath);
-      }
-    }
+  ): IRenderedOutput[] {
+    return cnextFiles.flatMap((file) => {
+      const content = Transpiler._producesOutput(file)
+        ? renderedFiles.get(file.path)?.header
+        : undefined;
+      return content
+        ? [
+            {
+              path: Transpiler._outputsOf(discovery, file.path).header,
+              content,
+            },
+          ]
+        : [];
+    });
   }
 
   /**
