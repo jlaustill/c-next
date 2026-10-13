@@ -41,6 +41,7 @@ function createMockContext(
       HandlerTestUtils.planner().analyzeMemberChainForBitAccess(null as never),
     targetLine: 1,
     hasValue: true,
+    atomicForm: "ldrex-strex",
     valueExpressionType: () => null,
     valueIntegerType: () => null,
     valueHasFloatingOperand: () => false,
@@ -121,6 +122,7 @@ describe("SpecialHandlers", () => {
           isAtomic: true,
         }),
         null,
+        "ldrex-strex",
       );
       expect(result).toBe("LDREX/STREX pattern");
     });
@@ -154,6 +156,7 @@ describe("SpecialHandlers", () => {
           isAtomic: true,
         }),
         null,
+        "ldrex-strex",
       );
       expect(result).toBe("atomic result");
     });
@@ -199,6 +202,7 @@ describe("SpecialHandlers", () => {
         "1",
         expect.objectContaining({ baseType: "u32", isAtomic: true }),
         null,
+        "ldrex-strex",
       );
     });
 
@@ -246,6 +250,7 @@ describe("SpecialHandlers", () => {
         "1",
         expect.anything(),
         null,
+        "ldrex-strex",
       );
     });
   });
@@ -467,6 +472,7 @@ describe("SpecialHandlers", () => {
           "1",
           expect.anything(),
           expected,
+          "ldrex-strex",
         );
       },
     );

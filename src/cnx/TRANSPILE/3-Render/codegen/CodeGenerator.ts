@@ -17,6 +17,7 @@ import TGeneratorEffect from "./generators/TGeneratorEffect";
 // Expression generators
 // Statement generators
 import atomicGenerators from "./generators/statements/AtomicGenerator";
+import type TAtomicForm from "../../2-Plan/types/TAtomicForm";
 // Declaration generators
 // ADR-065: Extracted utilities
 import CppNamespaceUtils from "../../../utils/CppNamespaceUtils";
@@ -149,12 +150,6 @@ export default class CodeGenerator implements IOrchestrator {
           break;
         case "c-type":
           this.state.emittedCTypes.add(effect.cType);
-          break;
-
-        // Emitted-form effects (Issue #1143): the form is a fact for the
-        // plan, which decides what it costs (#1997).
-        case "ldrex-strex-loop":
-          this.state.noteLdrexStrexLoop();
           break;
 
         // Helper function effects
@@ -866,18 +861,15 @@ export default class CodeGenerator implements IOrchestrator {
     value: string,
     typeInfo: TTypeInfo,
     clampOp: string | null,
+    form: TAtomicForm,
   ): string {
-    invariant(
-      this.state.targetDescription,
-      "generate() sets the target before any statement is rendered",
-    );
     const result = atomicGenerators.generateAtomicRMW(
       target,
       cOp,
       value,
       typeInfo,
       clampOp,
-      this.state.targetDescription,
+      form,
     );
     this.applyEffects(result.effects);
     return result.code;

@@ -7,9 +7,6 @@
 import { describe, it, expect } from "vitest";
 import atomicGenerators from "../../../../../../../../cnx/TRANSPILE/3-Render/codegen/generators/statements/AtomicGenerator";
 import TTypeInfo from "../../../../../../../../cnx/types/TTypeInfo";
-import type ITargetDescription from "../../../../../../../../cnx/types/ITargetDescription";
-import TargetResolver from "../../../../../../../TargetResolver";
-import NodeFileSystem from "../../../../../../../../cnx/PARSE/1-Discover/NodeFileSystem";
 
 const {
   generateAtomicRMW,
@@ -36,12 +33,6 @@ function createTypeInfo(
 }
 
 /** A catalog target with, or without, LDREX/STREX */
-function createCapabilities(hasLdrexStrex: boolean): ITargetDescription {
-  return TargetResolver.byName(
-    hasLdrexStrex ? "cortex-m7" : "cortex-m0",
-    NodeFileSystem.instance,
-  )!;
-}
 
 // ============================================================================
 // Tests - generateInnerAtomicOp
@@ -168,10 +159,8 @@ describe("AtomicGenerator", () => {
       // cppcheck by a test stub that declared the intrinsics (#1668)
       expect(result.code).not.toMatch(/\)\s*break;/);
       expect(result.code).toContain("} while (1);");
-      expect(result.effects).toContainEqual({
-        type: "include",
-        header: "cmsis",
-      });
+      // 2.2 requires CMSIS for the loop, before 2.3 writes it (#1991)
+      expect(result.effects).toEqual([{ type: "c-type", cType: "uint32_t" }]);
     });
 
     it("generates LDREX/STREX loop for u16", () => {
@@ -225,10 +214,6 @@ describe("AtomicGenerator", () => {
         operation: "add",
         cnxType: "u32",
       });
-      expect(result.effects).toContainEqual({
-        type: "include",
-        header: "cmsis",
-      });
     });
   });
 
@@ -255,13 +240,9 @@ describe("AtomicGenerator", () => {
       expect(result.code).toContain("__cnx_disable_irq();");
       expect(result.code).toContain("counter += 1;");
       expect(result.code).toContain("__cnx_set_PRIMASK(__primask);");
-      expect(result.effects).toContainEqual({
-        type: "include",
-        header: "irq_wrappers",
-        line: undefined,
-      });
+      // 2.2 requires the wrappers for the region, before 2.3 writes it (#1991)
       expect(result.effects).not.toContainEqual(
-        expect.objectContaining({ header: "cmsis" }),
+        expect.objectContaining({ type: "include" }),
       );
     });
 
@@ -339,88 +320,41 @@ describe("AtomicGenerator", () => {
   // ============================================================================
 
   describe("generateAtomicRMW", () => {
-    it("uses LDREX/STREX when available for supported type", () => {
-      const typeInfo = createTypeInfo("u32");
-      const caps = createCapabilities(true);
-      const result = generateAtomicRMW(
+    const rmw = (baseType: string, form: "ldrex-strex" | "interrupt-mask") =>
+      generateAtomicRMW(
         "counter",
         "+=",
         "1",
-        typeInfo,
+        createTypeInfo(baseType, "clamp"),
         "add",
-        caps,
+        form,
       );
+
+    it("writes the LDREX/STREX loop 2.2 planned", () => {
+      const result = rmw("u32", "ldrex-strex");
 
       expect(result.code).toContain("__LDREXW");
       expect(result.code).toContain("__STREXW");
     });
 
-    it("falls back to PRIMASK when LDREX/STREX not available", () => {
-      const typeInfo = createTypeInfo("u32");
-      const caps = createCapabilities(false);
-      const result = generateAtomicRMW(
-        "counter",
-        "+=",
-        "1",
-        typeInfo,
-        "add",
-        caps,
-      );
+    it("writes the masked region 2.2 planned", () => {
+      const result = rmw("u32", "interrupt-mask");
 
       expect(result.code).toContain("__cnx_get_PRIMASK()");
       expect(result.code).toContain("__cnx_disable_irq()");
     });
 
-    it("falls back to PRIMASK for u64 (no LDREX support)", () => {
-      const typeInfo = createTypeInfo("u64");
-      const caps = createCapabilities(true);
-      const result = generateAtomicRMW(
-        "counter",
-        "+=",
-        "1",
-        typeInfo,
-        "add",
-        caps,
+    it("fails when 2.2 planned a loop for a type with no exclusive access", () => {
+      expect(() => rmw("u64", "ldrex-strex")).toThrow(
+        /exclusive-access type \(got u64\)/,
       );
-
-      // u64 doesn't have LDREX support, should mask interrupts
-      expect(result.code).toContain("__cnx_get_PRIMASK()");
     });
 
     it("includes clamp helper effect when using clamp behavior", () => {
-      const typeInfo = createTypeInfo("u32", "clamp");
-      const caps = createCapabilities(true);
-      const result = generateAtomicRMW(
-        "counter",
-        "+=",
-        "5",
-        typeInfo,
-        "add",
-        caps,
-      );
-
-      expect(result.effects).toContainEqual({
+      expect(rmw("u32", "ldrex-strex").effects).toContainEqual({
         type: "helper",
         operation: "add",
         cnxType: "u32",
-      });
-    });
-
-    it("includes cmsis header effect", () => {
-      const typeInfo = createTypeInfo("u32");
-      const caps = createCapabilities(true);
-      const result = generateAtomicRMW(
-        "counter",
-        "+=",
-        "1",
-        typeInfo,
-        "add",
-        caps,
-      );
-
-      expect(result.effects).toContainEqual({
-        type: "include",
-        header: "cmsis",
       });
     });
   });

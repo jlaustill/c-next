@@ -20,6 +20,7 @@
  * carrier. They hold no nodes now, and the two modules that did name types are
  * out of the population for real rather than by spelling.
  */
+import type TAtomicForm from "./types/TAtomicForm";
 import AssignmentTarget from "../../utils/AssignmentTarget";
 import type TExpression from "../../types/syntax/TExpression";
 import type TPostfixOpSyntax from "../../types/syntax/TPostfixOpSyntax";
@@ -41,6 +42,8 @@ interface IContextBuilderDeps {
 
   /** 2.2's decision: the target writes a float's bits through a union (ADR-007) */
   readonly floatBitsPlanned: boolean;
+  /** 2.2's decision: how this write is atomic (ADR-049), or null if it is not */
+  readonly atomicForm: TAtomicForm | null;
 
   /**
    * 2.3 Render's per-file working state (#1452 box 4), carried onto the built
@@ -272,6 +275,7 @@ function buildAssignmentContext(
       deps.analyzeMemberChainForBitAccess(targetExpr, deps.target.last),
     targetLine: targetExpr.span.line,
     floatBitsPlanned: deps.floatBitsPlanned,
+    atomicForm: deps.atomicForm,
     hasValue: valueExpr.kind !== "missing",
     valueExpressionType: () => deps.expressionType(valueExpr),
     valueIntegerType: () => deps.integerExpressionType(valueExpr),

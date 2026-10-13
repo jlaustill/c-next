@@ -11,14 +11,17 @@ import StatementChildren from "./StatementChildren";
  */
 class StatementNodes {
   static in(declaration: TDeclarationSyntax): readonly TStatement[] {
+    return StatementNodes.of(StatementNodes.roots(declaration));
+  }
+
+  /** A declaration's outermost statements: a function's body, each scope member's */
+  static roots(declaration: TDeclarationSyntax): readonly TStatement[] {
     if (declaration.kind === "scope") {
       return declaration.members.flatMap((member) =>
-        StatementNodes.in(member.declaration),
+        StatementNodes.roots(member.declaration),
       );
     }
-    return declaration.kind === "function"
-      ? StatementNodes.of(declaration.body.statements)
-      : [];
+    return declaration.kind === "function" ? declaration.body.statements : [];
   }
 
   /** Every assignment site, in source order: statements, a `for`'s init and update */

@@ -25,11 +25,12 @@ function targetTypeInfo(ctx: IAssignmentContext): TTypeInfo {
 /**
  * Handle atomic read-modify-write: atomic counter +<- 1
  *
- * Delegates to CodeGenerator's generateAtomicRMW which uses
- * LDREX/STREX on supported platforms or PRIMASK otherwise. Whether the inner
+ * Delegates to CodeGenerator's generateAtomicRMW, in the form 2.2 planned:
+ * LDREX/STREX or the masked region. Whether the inner
  * operation saturates is the classifier's decision, passed in.
  */
 function handleAtomicRMW(ctx: IAssignmentContext): string {
+  invariant(ctx.atomicForm !== null, "2.2 planned every atomic 2.3 writes");
   const typeInfo = targetTypeInfo(ctx);
   const target = ctx.renderTarget();
 
@@ -41,6 +42,7 @@ function handleAtomicRMW(ctx: IAssignmentContext): string {
       ctx.generatedValue,
       typeInfo,
       AssignmentClassifier.compoundClamp(ctx)?.operation ?? null,
+      ctx.atomicForm,
     );
 }
 

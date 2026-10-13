@@ -125,6 +125,8 @@ import TypeCheckUtils from "../utils/TypeCheckUtils";
 import ExpressionShape from "../utils/ExpressionShape";
 import StatementNodes from "../utils/StatementNodes";
 import StatementChildren from "../utils/StatementChildren";
+import LDREX_MAP from "./3-Render/codegen/types/LDREX_MAP";
+import type TAtomicForm from "./2-Plan/types/TAtomicForm";
 import type IChainHead from "../types/IChainHead";
 import ExpressionCalls from "../utils/ExpressionCalls";
 import helperGenerators from "./3-Render/codegen/generators/support/HelperGenerator";
@@ -1071,7 +1073,6 @@ class CodeGenWalker {
         // applied, and effect order is unchanged.
         return this.invokeGenerator(generateCriticalStatement, {
           blockCode: this.renderBlock(statement.body),
-          line: statement.span.line,
         });
       case "block":
         return this.renderBlock(statement);
@@ -2053,7 +2054,64 @@ class CodeGenWalker {
       negativeMinimums,
       floatBitReads: floatBits.reads,
       floatBitWrites: floatBits.writes,
+      atomicForms: this.planInterruptSafety(program),
     };
+  }
+
+  /**
+   * ADR-049/050: the form of each atomic read-modify-write, and what the
+   * file's masked regions and LDREX/STREX loops need. Required in the order
+   * 2.3 writes them, a `critical` block after the statements inside it, so
+   * the #1143 report lists their sites as before (#1991).
+   */
+  private planInterruptSafety(
+    program: IProgramSyntax,
+  ): ReadonlyMap<IAssignmentSyntax, TAtomicForm> {
+    const state = this.host.state;
+    const forms = new Map<IAssignmentSyntax, TAtomicForm>();
+    const visit = (statements: readonly TStatement[]): void => {
+      for (const statement of statements) {
+        visit(StatementChildren.of(statement));
+        if (statement.kind === "critical") {
+          state.requireInclude("irq_wrappers", statement.span.line);
+          continue;
+        }
+        if (statement.kind !== "assignment") continue;
+        const form = this.atomicFormOf(statement);
+        if (form === "ldrex-strex") {
+          state.requireInclude("cmsis");
+          state.noteLdrexStrexLoop();
+        } else if (form === "interrupt-mask") {
+          state.requireInclude("irq_wrappers");
+        }
+        if (form !== null) forms.set(statement, form);
+      }
+    };
+    for (const entry of program.declarations) {
+      visit(StatementNodes.roots(entry.declaration));
+    }
+    return forms;
+  }
+
+  /**
+   * ADR-049: a compound write to a variable declared `atomic`, named bare or
+   * through `global.` (a `this.` member saturates or wraps instead), is an
+   * LDREX/STREX loop where the target and the type allow one, otherwise the
+   * masked region. Null when the write is not atomic.
+   */
+  private atomicFormOf(site: IAssignmentSyntax): TAtomicForm | null {
+    if (site.operator === "<-") return null;
+    const parts = AssignmentTarget.parts(site.target);
+    if (parts.ops.length > 0 || parts.root === "this") return null;
+    const written = OperandTyper.typeOfTarget(
+      site.target,
+      this.host.state.typingContext(),
+    );
+    if (!ForHeaderAssignment.isAtomic(written)) return null;
+    const exclusive = LDREX_MAP[written?.typeName ?? ""] !== undefined;
+    return this.host.state.targetDescription?.ldrex_strex === true && exclusive
+      ? "ldrex-strex"
+      : "interrupt-mask";
   }
 
   /**
@@ -4645,6 +4703,7 @@ class CodeGenWalker {
     const assignCtx = buildAssignmentContext(site, {
       target,
       floatBitsPlanned: this.filePlan.floatBitWrites.has(targetExpr),
+      atomicForm: this.filePlan.atomicForms.get(site) ?? null,
       state: this.host.state,
       // Already rendered, inside the expectedType window above -- never again.
       generatedValue: () => value,

@@ -5,6 +5,7 @@
  * code for an assignment. Built once by the context extractor, then used
  * by the classifier and handlers.
  */
+import type TAtomicForm from "./TAtomicForm";
 import type IBitAccessAnalysis from "../../../types/IBitAccessAnalysis";
 import type TPlannedTargetOp from "../../../types/TPlannedTargetOp";
 import type IChainBase from "../../../types/IChainBase";
@@ -68,6 +69,8 @@ interface IAssignmentContext {
   readonly hasValue: boolean;
   /** 2.2's decision: the target writes a float's bits through a union (ADR-007) */
   readonly floatBitsPlanned: boolean;
+  /** 2.2's decision: how this write is atomic (ADR-049), or null if it is not */
+  readonly atomicForm: TAtomicForm | null;
 
   /**
    * The value's essential type, its integer type, and its constant fold.

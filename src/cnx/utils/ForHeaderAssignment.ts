@@ -41,7 +41,7 @@ class ForHeaderAssignment {
   }
 
   /** Declared `atomic`, by the declaration the target binds to */
-  private static isAtomic(t: IOperandType | null): boolean {
+  static isAtomic(t: IOperandType | null): boolean {
     const binding = t?.binding;
     if (binding?.kind === "local") return binding.declaration.isAtomic;
     if (binding?.kind === "variable") return binding.symbol.isAtomic;

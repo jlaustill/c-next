@@ -1,3 +1,5 @@
+import type TAtomicForm from "./TAtomicForm";
+import type IAssignmentSyntax from "../../../types/syntax/IAssignmentSyntax";
 import type IProgramSyntax from "../../../types/syntax/IProgramSyntax";
 import type TDeclarationSyntax from "../../../types/syntax/TDeclarationSyntax";
 import type TExpression from "../../../types/syntax/TExpression";
@@ -54,6 +56,8 @@ interface IFilePlan {
   readonly floatBitReads: ReadonlySet<TPostfixOpSyntax>;
   /** ADR-007: each assignment target that writes a float's bits, through a union */
   readonly floatBitWrites: ReadonlySet<TExpression>;
+  /** ADR-049: how each written atomic read-modify-write is written */
+  readonly atomicForms: ReadonlyMap<IAssignmentSyntax, TAtomicForm>;
 }
 
 export default IFilePlan;

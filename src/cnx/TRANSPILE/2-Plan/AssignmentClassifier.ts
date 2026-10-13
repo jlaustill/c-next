@@ -803,13 +803,8 @@ class AssignmentClassifier {
       return null;
     }
 
-    // Atomic RMW - for global atomic variables (simple identifiers or global.member)
-    // Scoped atomics (this.member) use overflow behavior, not LDREX/STREX
-    const typeInfo = AssignmentClassifier.targetTypeInfo(ctx);
-    const isGlobalAtomic =
-      typeInfo?.isAtomic === true &&
-      (ctx.isSimpleIdentifier || ctx.isSimpleGlobalAccess);
-    if (isGlobalAtomic) {
+    // ADR-049: 2.2 planned which writes are atomic read-modify-writes
+    if (ctx.atomicForm !== null) {
       return AssignmentKind.ATOMIC_RMW;
     }
 

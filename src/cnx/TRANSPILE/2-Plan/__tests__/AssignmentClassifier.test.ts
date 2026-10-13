@@ -38,6 +38,7 @@ function createMockContext(
   const ctx = {
     state,
     renderTarget: () => resolvedTarget,
+    atomicForm: null,
     analyzeTargetForBitAccess: () =>
       ({
         isBitAccess: false,
@@ -488,6 +489,7 @@ describe("AssignmentClassifier - Special Compound", () => {
       isSimpleIdentifier: true,
       isCompound: true,
       cOp: "+=",
+      atomicForm: "ldrex-strex",
     });
 
     expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.ATOMIC_RMW);

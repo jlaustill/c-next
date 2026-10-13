@@ -19,12 +19,6 @@ type TGeneratorEffect =
   // decides which header that costs (`CTypeIncludes`).
   | { type: "c-type"; cType: string }
 
-  // === Emitted-form Effects (Issue #1143, #1997) ===
-  // Emitted by the branch that produced the LDREX/STREX loop, so no consumer
-  // has to infer which branch ran. It names the form, not its cost: 2.2 Plan
-  // decides the requirement.
-  | { type: "ldrex-strex-loop" }
-
   // === Helper Function Effects ===
   | { type: "helper"; operation: string; cnxType: string } // Overflow clamp helper
   | { type: "safe-div"; operation: "div" | "mod"; cnxType: string } // Safe division helper
