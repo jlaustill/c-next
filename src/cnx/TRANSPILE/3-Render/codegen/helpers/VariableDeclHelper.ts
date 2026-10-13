@@ -117,25 +117,23 @@ class VariableDeclHelper {
     // ADR-035: Handle array initializers with size inference
     if (plan.init) {
       // MISRA C:2012 Rule 9.3: an array declaration initializer is a declaration
-      // initializer for its ELEMENTS too, so it takes withDeclarationInit exactly
-      // as the scalar path below does. Without it a struct element formatted as a
+      // initializer for its ELEMENTS too, so 2.2 plans its struct elements
+      // plain exactly as the scalar path below (#1991). Without it a struct element formatted as a
       // compound literal -- `Point pair[2] = {(Point){ .x = 1 }, ...}` -- which
       // cppcheck reads as a partially initialized array, while the scalar
       // `Point single = { .x = 1 }` on the next line was already plain. One
       // declaration-initializer decision, previously made in two places.
       const init = plan.init;
-      const arrayInitResult = state.withDeclarationInit(() =>
-        ArrayInitHelper.processArrayInit(
-          sourceName,
-          plan.hasEmptyDimension,
-          plan.declaredSize,
-          {
-            // Lazy, not pre-generated: the helper decides when each renders
-            generateExpression: init.renderExpression,
-            generateArrayDimensions: init.renderDimensions,
-          },
-          state,
-        ),
+      const arrayInitResult = ArrayInitHelper.processArrayInit(
+        sourceName,
+        plan.hasEmptyDimension,
+        plan.declaredSize,
+        {
+          // Lazy, not pre-generated: the helper decides when each renders
+          generateExpression: init.renderExpression,
+          generateArrayDimensions: init.renderDimensions,
+        },
+        state,
       );
       if (arrayInitResult) {
         // When size inference happens and the empty dim is in arrayType,
@@ -179,7 +177,7 @@ class VariableDeclHelper {
 
     // Issue #872: 2.2 planned the value against `typeName`, for MISRA 7.2's
     // U suffix (#1991)
-    let exprCode = state.withDeclarationInit(plan.renderExpression);
+    let exprCode = plan.renderExpression();
 
     // MISRA 10.3: Check for cross-type-category conversions (int <-> float).
     // Asked AFTER the render, because the question is what the expression

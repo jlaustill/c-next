@@ -301,43 +301,41 @@ const generateFunctionCall = (
 
   // Get function signature once for all arguments
 
-  // Issue #992: Clear inDeclarationInit for function call arguments — struct
-  // initializers inside function args need compound literals, not plain designated initializers.
-  const rendered = orchestrator.state.withoutDeclarationInit(() =>
-    args
-      .map((arg, idx) => {
-        // Get parameter type info from local signature or cross-file SymbolTable
-        const passing = CallArgumentPassing.of(
-          signatureName,
-          idx,
-          input,
+  // Issue #992: 2.2 plans a struct initializer in an argument as a compound
+  // literal (#1991).
+  const rendered = args
+    .map((arg, idx) => {
+      // Get parameter type info from local signature or cross-file SymbolTable
+      const passing = CallArgumentPassing.of(
+        signatureName,
+        idx,
+        input,
+        orchestrator,
+      );
+      const targetParam = passing.param;
+
+      // C/C++ function: use pass-by-value semantics
+      if (passing.mode === "c") {
+        return _generateCFunctionArg(arg, targetParam, orchestrator);
+      }
+
+      // C-Next function: check if target parameter should be passed by value
+      if (passing.mode === "value") {
+        // Issue #872: 2.2 plans it against the parameter's type, with bare
+        // enum resolution suppressed (#1991)
+        const argCode = arg.render();
+        return wrapWithCppEnumCast(
+          argCode,
+          arg,
+          targetParam?.baseType,
           orchestrator,
         );
-        const targetParam = passing.param;
+      }
 
-        // C/C++ function: use pass-by-value semantics
-        if (passing.mode === "c") {
-          return _generateCFunctionArg(arg, targetParam, orchestrator);
-        }
-
-        // C-Next function: check if target parameter should be passed by value
-        if (passing.mode === "value") {
-          // Issue #872: 2.2 plans it against the parameter's type, with bare
-          // enum resolution suppressed (#1991)
-          const argCode = arg.render();
-          return wrapWithCppEnumCast(
-            argCode,
-            arg,
-            targetParam?.baseType,
-            orchestrator,
-          );
-        }
-
-        // Target parameter is pass-by-reference: use & logic
-        return arg.renderByReference(targetParam?.baseType);
-      })
-      .join(", "),
-  );
+      // Target parameter is pass-by-reference: use & logic
+      return arg.renderByReference(targetParam?.baseType);
+    })
+    .join(", ");
 
   return { code: `${funcExpr}(${rendered})`, effects };
 };

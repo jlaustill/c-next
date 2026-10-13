@@ -11,6 +11,7 @@ import type IPlannedCast from "./IPlannedCast";
 import type IPlannedExpectedType from "./IPlannedExpectedType";
 import type IPlannedType from "./IPlannedType";
 import type TNegativeMinimum from "./TNegativeMinimum";
+import type TStructInitializerForm from "./TStructInitializerForm";
 
 /**
  * 2.2 Plan's artifact for one file: every decision 2.3 Render reads, made
@@ -63,6 +64,11 @@ interface IFilePlan {
   readonly safeDivisions: ReadonlySet<TExpression>;
   /** The type each value is rendered against; a value not listed has none */
   readonly expectedTypes: ReadonlyMap<TExpression, IPlannedExpectedType>;
+  /** ADR-014: how each written struct initializer is written */
+  readonly structInitializers: ReadonlyMap<
+    TExpressionOf<"structInitializer">,
+    TStructInitializerForm
+  >;
 }
 
 export default IFilePlan;

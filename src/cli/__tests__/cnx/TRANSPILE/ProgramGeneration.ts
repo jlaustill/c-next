@@ -2,12 +2,17 @@ import ProgramLowering from "../../../../cnx/PARSE/2-Parse/ProgramLowering";
 import TestSymbolTable from "../../../../cnx/TRANSPILE/__tests__/TestSymbolTable";
 import type * as Parser from "../../../../cnx/PARSE/2-Parse/grammar/CNextParser";
 import CNextResolver from "../../../../cnx/PARSE/3-Declare/cnext/index";
-import type SymbolRegistry from "../../../../cnx/PARSE/3-Declare/SymbolRegistry";
+import SymbolRegistry from "../../../../cnx/PARSE/3-Declare/SymbolRegistry";
 import Program from "../../../../cnx/PARSE/4-Resolve/Program";
 import TargetCatalogFile from "../../../TargetCatalogFile";
 import TargetResolver from "../../../TargetResolver";
 import invariant from "../../../../cnx/utils/invariant";
-import type CodeGenWalker from "../../../../cnx/TRANSPILE/CodeGenWalker";
+import CodeGenWalker from "../../../../cnx/TRANSPILE/CodeGenWalker";
+import CodeGenerator from "../../../../cnx/TRANSPILE/3-Render/codegen/CodeGenerator";
+import CNextSourceParser from "../../../../cnx/PARSE/2-Parse/CNextSourceParser";
+import SymbolTable from "../../../../cnx/PARSE/3-Declare/SymbolTable";
+import TSymbolInfoAdapter from "../../../../cnx/PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
+import { expect } from "vitest";
 import type ITargetDescription from "../../../../cnx/types/ITargetDescription";
 import type IProgramSyntax from "../../../../cnx/types/syntax/IProgramSyntax";
 import type IAnalyzedFile from "../../../../cnx/types/IAnalyzedFile";
@@ -118,6 +123,39 @@ class ProgramGeneration {
       ...options,
       targetDescription,
     });
+  }
+
+  /** 2.2's plan for one whole C-Next source, its symbols registered as 1.3 would */
+  static planSource(source: string): IFilePlan {
+    const parsed = CNextSourceParser.parse(source);
+    expect(parsed.parseErrors).toEqual([]);
+    const registry = new SymbolRegistry();
+    const declared = CNextResolver.resolve(
+      ProgramLowering.program(parsed.tree, null),
+      "test.cnx",
+      registry,
+    );
+    const symbols = [
+      ...Program.build([declared], { cppMode: false, registry }).symbolsInFile(
+        "test.cnx",
+      ),
+    ];
+    const symbolTable = new SymbolTable();
+    symbolTable.addTSymbols(symbols);
+    const host = new CodeGenerator();
+    const generator = new CodeGenWalker(host);
+    TestSymbolTable.install(host.state, symbolTable);
+    return ProgramGeneration.plan(
+      generator,
+      parsed.tree,
+      parsed.program,
+      {
+        cppMode: false,
+        symbolInfo: TSymbolInfoAdapter.convert(symbols),
+        sourcePath: "test.cnx",
+      },
+      new SymbolRegistry(),
+    );
   }
 }
 

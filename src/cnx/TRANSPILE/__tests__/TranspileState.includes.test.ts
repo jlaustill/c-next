@@ -108,134 +108,15 @@ describe("TranspileState", () => {
   // that type now (#1668), and the fixtures under tests/bugs that pass scope
   // handles to C functions guard it.
 
-  describe("withDeclarationInit()", () => {
-    it("sets inDeclarationInit to true during callback", () => {
-      state.inDeclarationInit = false;
-      let valueInside = false;
-
-      state.withDeclarationInit(() => {
-        valueInside = state.inDeclarationInit;
-      });
-
-      expect(valueInside).toBe(true);
-    });
-
-    it("restores prior value after callback", () => {
-      state.inDeclarationInit = false;
-
-      state.withDeclarationInit(() => {
-        // inside: true
-      });
-
-      expect(state.inDeclarationInit).toBe(false);
-    });
-
-    it("restores prior value even when already true", () => {
-      state.inDeclarationInit = true;
-
-      state.withDeclarationInit(() => {
-        expect(state.inDeclarationInit).toBe(true);
-      });
-
-      expect(state.inDeclarationInit).toBe(true);
-    });
-
-    it("returns the callback result", () => {
-      const result = state.withDeclarationInit(() => "hello");
-      expect(result).toBe("hello");
-    });
-
-    it("restores prior value on exception", () => {
-      state.inDeclarationInit = false;
-
-      expect(() =>
-        state.withDeclarationInit(() => {
-          throw new Error("test error");
-        }),
-      ).toThrow("test error");
-
-      expect(state.inDeclarationInit).toBe(false);
-    });
-  });
-
-  describe("withoutDeclarationInit()", () => {
-    it("sets inDeclarationInit to false during callback", () => {
-      state.inDeclarationInit = true;
-      let valueInside = true;
-
-      state.withoutDeclarationInit(() => {
-        valueInside = state.inDeclarationInit;
-      });
-
-      expect(valueInside).toBe(false);
-    });
-
-    it("restores prior value after callback", () => {
-      state.inDeclarationInit = true;
-
-      state.withoutDeclarationInit(() => {
-        // inside: false
-      });
-
-      expect(state.inDeclarationInit).toBe(true);
-    });
-
-    it("restores prior value even when already false", () => {
-      state.inDeclarationInit = false;
-
-      state.withoutDeclarationInit(() => {
-        expect(state.inDeclarationInit).toBe(false);
-      });
-
-      expect(state.inDeclarationInit).toBe(false);
-    });
-
-    it("returns the callback result", () => {
-      const result = state.withoutDeclarationInit(() => 42);
-      expect(result).toBe(42);
-    });
-
-    it("restores prior value on exception", () => {
-      state.inDeclarationInit = true;
-
-      expect(() =>
-        state.withoutDeclarationInit(() => {
-          throw new Error("test error");
-        }),
-      ).toThrow("test error");
-
-      expect(state.inDeclarationInit).toBe(true);
-    });
-
-    it("nests correctly with withDeclarationInit", () => {
-      state.inDeclarationInit = false;
-
-      state.withDeclarationInit(() => {
-        expect(state.inDeclarationInit).toBe(true);
-
-        state.withoutDeclarationInit(() => {
-          expect(state.inDeclarationInit).toBe(false);
-        });
-
-        expect(state.inDeclarationInit).toBe(true);
-      });
-
-      expect(state.inDeclarationInit).toBe(false);
-    });
-  });
-
   describe("withPlannedExpectedType()", () => {
     it("sets the planned type and suppression during callback", () => {
       state.expectedType = "u32";
       state.suppressBareEnumResolution = false;
       let inside: [string | null, boolean] = ["notSet", false];
 
-      state.withPlannedExpectedType(
-        { type: "u8", suppressBareEnumResolution: true },
-        () => {
-          inside = [state.expectedType, state.suppressBareEnumResolution];
-        },
-      );
+      state.withPlannedExpectedType("u8", true, () => {
+        inside = [state.expectedType, state.suppressBareEnumResolution];
+      });
 
       expect(inside).toEqual(["u8", true]);
     });
@@ -245,21 +126,15 @@ describe("TranspileState", () => {
       state.suppressBareEnumResolution = true;
       let inside: [string | null, boolean] = ["notCleared", true];
 
-      state.withPlannedExpectedType(
-        { type: null, suppressBareEnumResolution: false },
-        () => {
-          inside = [state.expectedType, state.suppressBareEnumResolution];
-        },
-      );
+      state.withPlannedExpectedType(null, false, () => {
+        inside = [state.expectedType, state.suppressBareEnumResolution];
+      });
 
       expect(inside).toEqual([null, false]);
     });
 
     it("returns the callback result", () => {
-      const result = state.withPlannedExpectedType(
-        { type: null, suppressBareEnumResolution: false },
-        () => 123,
-      );
+      const result = state.withPlannedExpectedType(null, false, () => 123);
       expect(result).toBe(123);
     });
 
@@ -268,12 +143,9 @@ describe("TranspileState", () => {
       state.suppressBareEnumResolution = true;
 
       expect(() =>
-        state.withPlannedExpectedType(
-          { type: "u8", suppressBareEnumResolution: false },
-          () => {
-            throw new Error("test error");
-          },
-        ),
+        state.withPlannedExpectedType("u8", false, () => {
+          throw new Error("test error");
+        }),
       ).toThrow("test error");
 
       expect(state.expectedType).toBe("bool");
@@ -286,16 +158,6 @@ describe("TranspileState", () => {
 // plan build. A form noted after that would vanish from the banner and the
 // file result without failing, so the write is refused instead.
 const FORMS = [
-  [
-    "designated initializer",
-    (s: TranspileState) => s.noteDesignatedInitializer(),
-    (s: TranspileState) => s.emittedDesignatedInitializer,
-  ],
-  [
-    "compound literal",
-    (s: TranspileState) => s.noteCompoundLiteral(),
-    (s: TranspileState) => s.emittedCompoundLiteral,
-  ],
   [
     "LDREX/STREX loop",
     (s: TranspileState) => s.noteLdrexStrexLoop(),

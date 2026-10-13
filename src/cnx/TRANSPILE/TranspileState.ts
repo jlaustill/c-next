@@ -28,7 +28,6 @@ import AdrProvenance from "../instrumentation/AdrProvenance";
 import type ILocalDeclaration from "../types/ILocalDeclaration";
 import type IVariableDeclarationSyntax from "../types/syntax/IVariableDeclarationSyntax";
 import type IBoundParameter from "./types/IBoundParameter";
-import type IPlannedExpectedType from "./2-Plan/types/IPlannedExpectedType";
 import ToolchainRequirements from "../instrumentation/ToolchainRequirements";
 import type TIncludeHeader from "../types/TIncludeHeader";
 
@@ -118,8 +117,6 @@ class TranspileState {
    * so a late one would drop its cost from the banner and the file result
    * without failing.
    */
-  private designatedInitializerEmitted: boolean = false;
-  private compoundLiteralEmitted: boolean = false;
   private ldrexStrexLoopEmitted: boolean = false;
   /** Track which overflow helper types/operations are needed: "add_u8", etc. */
   usedClampOps: Set<string> = new Set();
@@ -128,29 +125,9 @@ class TranspileState {
   /** #1668: single-evaluation saturating casts, as `"f32_u8"` keys */
   usedCastHelpers: Set<string> = new Set();
 
-  /** #1997: Render emitted a `.field = value` initializer. */
-  get emittedDesignatedInitializer(): boolean {
-    return this.designatedInitializerEmitted;
-  }
-
-  /** #1997: Render emitted a compound literal. */
-  get emittedCompoundLiteral(): boolean {
-    return this.compoundLiteralEmitted;
-  }
-
   /** #1997: Render emitted an LDREX/STREX loop. */
   get emittedLdrexStrexLoop(): boolean {
     return this.ldrexStrexLoopEmitted;
-  }
-
-  noteDesignatedInitializer(): void {
-    this.assertFormBeforePlan("designated initializer");
-    this.designatedInitializerEmitted = true;
-  }
-
-  noteCompoundLiteral(): void {
-    this.assertFormBeforePlan("compound literal");
-    this.compoundLiteralEmitted = true;
   }
 
   /**
@@ -581,11 +558,6 @@ class TranspileState {
 
   /** Expected type for struct initializers and enum inference */
   expectedType: string | null = null;
-  /** Whether we're generating the RHS of a variable declaration initializer.
-   *  When true, struct literals use { .field = value } instead of (Type){ .field = value }
-   *  because plain designated initializers are valid C99 at any scope, while compound
-   *  literals are not constant expressions and fail at file scope on GCC < 13. */
-  inDeclarationInit: boolean = false;
   /**
    * Suppress bare enum resolution even when expectedType is set.
    * Issue #872: MISRA 7.2 requires expectedType for U suffix on function args,
@@ -599,38 +571,20 @@ class TranspileState {
    * the outer value's on exit (#1991). 2.2 already resolved what a value
    * inherits from the site around it, so this sets both fields exactly.
    */
-  withPlannedExpectedType<T>(planned: IPlannedExpectedType, fn: () => T): T {
+  withPlannedExpectedType<T>(
+    type: string | null,
+    suppressBareEnumResolution: boolean,
+    fn: () => T,
+  ): T {
     const savedType = this.expectedType;
     const savedSuppress = this.suppressBareEnumResolution;
-    this.expectedType = planned.type;
-    this.suppressBareEnumResolution = planned.suppressBareEnumResolution;
+    this.expectedType = type;
+    this.suppressBareEnumResolution = suppressBareEnumResolution;
     try {
       return fn();
     } finally {
       this.expectedType = savedType;
       this.suppressBareEnumResolution = savedSuppress;
-    }
-  }
-  /** Execute fn with inDeclarationInit=true, restoring prior value on exit. */
-  withDeclarationInit<T>(fn: () => T): T {
-    const saved = this.inDeclarationInit;
-    this.inDeclarationInit = true;
-    try {
-      return fn();
-    } finally {
-      this.inDeclarationInit = saved;
-    }
-  }
-  /** Execute fn with inDeclarationInit=false, restoring prior value on exit.
-   *  Used in sub-expression contexts (function args, ternary arms) where
-   *  plain designated initializers are not valid C. */
-  withoutDeclarationInit<T>(fn: () => T): T {
-    const saved = this.inDeclarationInit;
-    this.inDeclarationInit = false;
-    try {
-      return fn();
-    } finally {
-      this.inDeclarationInit = saved;
     }
   }
   // ===========================================================================
@@ -1328,7 +1282,6 @@ class TranspileState {
 
     // Source paths
     this.sourcePath = null;
-    this.inDeclarationInit = false;
     this.expectedType = null;
     this.suppressBareEnumResolution = false;
     this.functionSignatures = new Map();
@@ -1347,8 +1300,6 @@ class TranspileState {
     this.needsCMSIS = false;
     this.needsLimits = false;
     this.needsIrqWrappers = false;
-    this.designatedInitializerEmitted = false;
-    this.compoundLiteralEmitted = false;
     this.ldrexStrexLoopEmitted = false;
     this.emittedCallbackTypedefs = new Set();
     this.pendingCallbackTypedefs = [];

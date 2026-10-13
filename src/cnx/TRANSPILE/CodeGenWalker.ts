@@ -172,6 +172,8 @@ import IPostfixChainDeps from "./3-Render/codegen/types/IPostfixChainDeps";
 import IPostfixOperation from "./3-Render/codegen/types/IPostfixOperation";
 import type TExpression from "../types/syntax/TExpression";
 import type TExpressionOf from "../types/syntax/TExpressionOf";
+import ExpressionChildren from "../utils/ExpressionChildren";
+import type TStructInitializerForm from "./2-Plan/types/TStructInitializerForm";
 import type TPostfixOpSyntax from "../types/syntax/TPostfixOpSyntax";
 import type TTypeSyntax from "../types/syntax/TTypeSyntax";
 import type ISourcePosition from "../utils/types/ISourcePosition";
@@ -269,6 +271,8 @@ class CodeGenWalker {
   private readonly renderedCasts = new Set<TExpression>();
   /** The planned negative minimums 2.3 rendered, checked against the plan once it is done */
   private readonly renderedMinimums = new Set<TExpression>();
+  /** The planned struct initializers 2.3 rendered, checked against the plan once it is done */
+  private readonly renderedStructInitializers = new Set<TExpression>();
 
   /** The plan 2.3 renders from; asking outside `render` is a bug */
   private get filePlan(): IFilePlan {
@@ -1459,7 +1463,11 @@ class CodeGenWalker {
       planned !== undefined,
       `2.2 planned the type of the value on line ${expr.span.line} that 2.3 writes`,
     );
-    return this.host.state.withPlannedExpectedType(planned, write);
+    return this.host.state.withPlannedExpectedType(
+      planned.type,
+      planned.suppressBareEnumResolution,
+      write,
+    );
   }
 
   private renderPrimary(expr: TExpression): string {
@@ -1810,6 +1818,114 @@ class CodeGenWalker {
     return planned;
   }
 
+  /**
+   * ADR-014: how each written struct initializer is written. A C++ class with
+   * a constructor takes `{}` and its fields after (#517). A declaration's
+   * initializer, outside a ternary arm or a call argument, is a plain
+   * designated initializer (#992): a compound literal is not a C99 constant
+   * expression and fails at file scope on GCC < 13. So is one outside any
+   * function, and in C++ one of an anonymous struct or union, since each
+   * `struct { ... }` is its own type there (#882). Any other is a compound
+   * literal.
+   */
+  private planStructInitializers(
+    program: IProgramSyntax,
+    inlinedConsts: ReadonlySet<TDeclarationSyntax>,
+    expectedTypes: ReadonlyMap<TExpression, IPlannedExpectedType>,
+  ): ReadonlyMap<TExpressionOf<"structInitializer">, TStructInitializerForm> {
+    const declarationInits = new Set<TExpression>();
+    const inFunctions = new Set<TExpression>();
+    for (const { declaration } of program.declarations) {
+      const members =
+        declaration.kind === "scope"
+          ? declaration.members.map((member) => member.declaration)
+          : [declaration];
+      for (const member of members) {
+        if (member.kind === "variableDeclaration" && member.initializer) {
+          declarationInits.add(member.initializer);
+        }
+        if (member.kind !== "function") continue;
+        const statements = StatementNodes.in(member);
+        const forInits = new Set<unknown>(
+          statements.flatMap((statement) =>
+            statement.kind === "for" && statement.init ? [statement.init] : [],
+          ),
+        );
+        for (const statement of statements) {
+          if (
+            statement.kind === "variableDeclaration" &&
+            statement.initializer &&
+            !forInits.has(statement)
+          ) {
+            declarationInits.add(statement.initializer);
+          }
+        }
+        for (const part of DeclarationParts.of(member)) {
+          if (part.kind === "expression") inFunctions.add(part.expression);
+        }
+      }
+    }
+    const cppMode = this.host.state.cppMode;
+    const planned = new Map<
+      TExpressionOf<"structInitializer">,
+      TStructInitializerForm
+    >();
+    const visit = (
+      expr: TExpression,
+      plain: boolean,
+      inFunction: boolean,
+    ): void => {
+      if (expr.kind === "structInitializer") {
+        const typeName = expectedTypes.get(expr)?.type ?? null;
+        invariant(
+          typeName !== null,
+          "a struct initializer takes its type from its position -- E0357 " +
+            "rejects this in pass 2.1, before this runs",
+        );
+        const anonymous =
+          typeName.startsWith("struct {") || typeName.startsWith("union {");
+        let form: TStructInitializerForm = "compound";
+        if (cppMode && this._isCppClassWithConstructor(typeName)) {
+          form = "cppClass";
+        } else if (plain || !inFunction || (cppMode && anonymous)) {
+          form = "designated";
+        }
+        planned.set(expr, form);
+      }
+      if (expr.kind === "ternary") {
+        visit(expr.condition, plain, inFunction);
+        visit(expr.whenTrue, false, inFunction);
+        visit(expr.whenFalse, false, inFunction);
+        return;
+      }
+      if (expr.kind === "postfix") {
+        visit(expr.primary, plain, inFunction);
+        for (const op of expr.ops) {
+          if (op.kind === "subscript") {
+            for (const index of op.indexes) visit(index, plain, inFunction);
+          } else if (op.kind === "call") {
+            for (const argument of op.arguments) {
+              visit(argument, false, inFunction);
+            }
+          }
+        }
+        return;
+      }
+      for (const child of ExpressionChildren.of(expr)) {
+        visit(child, plain, inFunction);
+      }
+    };
+    for (const { part } of WrittenParts.of(program, inlinedConsts)) {
+      if (part.kind !== "expression" || part.constant) continue;
+      visit(
+        part.expression,
+        declarationInits.has(part.expression),
+        inFunctions.has(part.expression),
+      );
+    }
+    return planned;
+  }
+
   /** ADR-051: whether an expression is a `safe_div`/`safe_mod` call, and which */
   private static safeDivisionOperation(
     expression: TExpression,
@@ -2128,6 +2244,12 @@ class CodeGenWalker {
     for (let i = 0; i < floatBits.reads.size + floatBits.writes.size; i++) {
       this.host.state.requireInclude("float_static_assert");
     }
+    const expectedTypes = this.planExpectedTypes(
+      program,
+      inlinedConsts,
+      valuePositions,
+      types,
+    );
     return {
       program,
       selfInclude,
@@ -2142,11 +2264,11 @@ class CodeGenWalker {
       floatBitWrites: floatBits.writes,
       atomicForms: this.planInterruptSafety(program),
       safeDivisions,
-      expectedTypes: this.planExpectedTypes(
+      expectedTypes,
+      structInitializers: this.planStructInitializers(
         program,
         inlinedConsts,
-        valuePositions,
-        types,
+        expectedTypes,
       ),
     };
   }
@@ -2444,6 +2566,7 @@ class CodeGenWalker {
     this.renderedComparisons.clear();
     this.renderedCasts.clear();
     this.renderedMinimums.clear();
+    this.renderedStructInitializers.clear();
 
     // Generate declarations
     const declarations = this.generateAllDeclarations(program);
@@ -2468,6 +2591,11 @@ class CodeGenWalker {
       this.filePlan.negativeMinimums.keys(),
       this.renderedMinimums,
       "negative minimum",
+    );
+    CodeGenWalker.assertAllRendered(
+      this.filePlan.structInitializers.keys(),
+      this.renderedStructInitializers,
+      "struct initializer",
     );
 
     // 2.2 Plan: every "does this file need X?" question the declarations above
@@ -2701,9 +2829,12 @@ class CodeGenWalker {
       ),
       irqWrapperSites: ToolchainRequirements.takeDeferredSites("irq_wrappers"),
       debugMode: this.host.state.debugMode,
-      emittedDesignatedInitializer:
-        this.host.state.emittedDesignatedInitializer,
-      emittedCompoundLiteral: this.host.state.emittedCompoundLiteral,
+      emittedDesignatedInitializer: [
+        ...this.filePlan.structInitializers.values(),
+      ].some((form) => form !== "cppClass"),
+      emittedCompoundLiteral: [
+        ...this.filePlan.structInitializers.values(),
+      ].some((form) => form === "compound"),
       emittedLdrexStrexLoop: this.host.state.emittedLdrexStrexLoop,
       ldrexStrexSites:
         ToolchainRequirements.takeDeferredSites("ldrex_strex_loop"),
@@ -3801,8 +3932,8 @@ class CodeGenWalker {
    * A scope variable's initializer.
    *
    * Issue #872: `expectedType` is what puts the MISRA C:2012 Rule 7.2 `U`
-   * suffix on an unsigned literal. Issue #992: `withDeclarationInit` suppresses
-   * compound literals at file scope, for GCC 9-12 compatibility.
+   * suffix on an unsigned literal. Issue #992: 2.2 plans its struct initializers
+   * plain, for GCC 9-12 compatibility (#1991).
    *
    * The type is rendered again here rather than reused from the declaration:
    * the caller's copy may have become a callback typedef or gained a `*`, and
@@ -3817,9 +3948,7 @@ class CodeGenWalker {
     if (initializer) {
       const state = this.host.state;
       state.resetArrayInitTracking();
-      const rendered = state.withDeclarationInit(
-        () => ` = ${this.renderExpression(initializer)}`,
-      );
+      const rendered = ` = ${this.renderExpression(initializer)}`;
       // #1824 review: an omitted size is emitted from 1.3's count (the
       // planner), so the list rendered here must have exactly that many
       // elements -- the same check the statement renderer makes.
@@ -4002,8 +4131,13 @@ class CodeGenWalker {
     // C++ classes with user-defined constructors are NOT aggregate types,
     // so designated initializers { .field = value } don't work with them.
     // We check the SymbolTable for a constructor symbol (TypeName::TypeName).
-    const isCppClass =
-      this.host.state.cppMode && this._isCppClassWithConstructor(typeName);
+    const form = this.filePlan.structInitializers.get(expr);
+    invariant(
+      form !== undefined,
+      `2.2 planned the struct initializer on line ${expr.span.line} that 2.3 writes`,
+    );
+    this.renderedStructInitializers.add(expr);
+    const isCppClass = form === "cppClass";
 
     // Issue #834: For named struct tags (no typedef), we need 'struct' prefix in C mode
     const needsStructKeyword =
@@ -4041,44 +4175,10 @@ class CodeGenWalker {
     // C, C++20 in C++) is 2.2's decision, made from this fact and the mode.
     // The text is identical in both modes, so no probe over the output could
     // recover it; the fact has to come from here.
-    this.host.state.noteDesignatedInitializer();
     const fieldInits = fields.map((f) => `.${f.fieldName} = ${f.value}`);
 
-    return this.formatStructInitializer(typeName, castType, fieldInits);
-  }
-
-  private formatStructInitializer(
-    typeName: string,
-    castType: string,
-    fieldInits: string[],
-  ): string {
-    const initializer: string = `{ ${fieldInits.join(", ")} }`;
-
-    // In a declaration initializer context, use plain designated initializer — no type cast
-    // prefix needed, and compound literals are not C99 constant expressions so they fail
-    // at file scope on GCC < 13.
-    if (this.host.state.inDeclarationInit) {
-      return initializer;
-    }
-
-    // Issue #882: In C++ mode, anonymous structs/unions must use plain brace init.
-    // Compound literals like (struct { ... }){ ... } create incompatible types in C++
-    // because each struct { ... } definition creates a distinct nominal type.
-    if (
-      this.host.state.cppMode &&
-      (typeName.startsWith("struct {") || typeName.startsWith("union {"))
-    ) {
-      return initializer;
-    }
-
-    if (!this.host.state.inFunctionBody) {
-      return initializer;
-    }
-
-    // #1997: reported as the form emitted. A compound literal is C99, but is
-    // not ISO C++ at any version, and 2.2 decides what that costs.
-    this.host.state.noteCompoundLiteral();
-    return `(${castType})${initializer}`;
+    const initializer = `{ ${fieldInits.join(", ")} }`;
+    return form === "compound" ? `(${castType})${initializer}` : initializer;
   }
 
   /**

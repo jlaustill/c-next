@@ -30,7 +30,7 @@ const generateTernaryExpr: TGeneratorFn<TPlannedTernary> = (
   planned: TPlannedTernary,
   _input: IGeneratorInput,
   _state: IGeneratorState,
-  orchestrator: IOrchestrator,
+  _orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
 
@@ -40,16 +40,11 @@ const generateTernaryExpr: TGeneratorFn<TPlannedTernary> = (
 
   // Parentheses are already present from the grammar.
   //
-  // Issue #992: clear inDeclarationInit in the ARMS only -- a struct
-  // initializer inside one needs a compound literal, not a plain designated
-  // initializer. The condition keeps the flag as it stands.
+  // Issue #992: 2.2 plans a struct initializer in an arm as a compound
+  // literal, and one in the condition as its outer position has it (#1991).
   const condition = planned.renderCondition();
-  const trueCode = orchestrator.state.withoutDeclarationInit(
-    planned.renderTrue,
-  );
-  const falseCode = orchestrator.state.withoutDeclarationInit(
-    planned.renderFalse,
-  );
+  const trueCode = planned.renderTrue();
+  const falseCode = planned.renderFalse();
 
   return { code: `(${condition}) ? ${trueCode} : ${falseCode}`, effects };
 };
