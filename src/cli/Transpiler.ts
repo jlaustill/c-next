@@ -28,7 +28,6 @@ import type IAnalyzedFile from "../cnx/types/IAnalyzedFile";
 import IDiscoveredFile from "../cnx/PARSE/1-Discover/types/IDiscoveredFile";
 import EHeaderLanguage from "../cnx/PARSE/1-Discover/types/EHeaderLanguage";
 import OutputExtensions from "../cnx/utils/OutputExtensions";
-import type IOutputExtensions from "../cnx/types/IOutputExtensions";
 
 import ErrorLocation from "../cnx/utils/ErrorLocation";
 import ITranspilerConfig from "../cnx/types/ITranspilerConfig";
@@ -105,23 +104,6 @@ class Transpiler {
    * from `Program`, which carries the graph's.
    */
   private cppMode: boolean | undefined;
-
-  /**
-   * Issue #1319: the run's output extensions -- the interim owner of a decision
-   * that belongs in pass 2.2 Plan, which does not exist yet.
-   *
-   * Nine sites across all four layers used to map the mode to an extension
-   * themselves. Handing out the extension instead of the mode is what lets
-   * `data/` stop naming output files: naming one is a decision, and `data/` is
-   * the earliest layer, so it ran before the latch had settled.
-   */
-  private get outputExtensions(): IOutputExtensions {
-    invariant(
-      this.cppMode !== undefined,
-      "1.1 Discover settled the run's mode before an output file is named",
-    );
-    return OutputExtensions.forCppMode(this.cppMode);
-  }
 
   /**
    * The artifact 1.4 Resolve emitted for this run.
@@ -858,7 +840,7 @@ class Transpiler {
         state: this.codeGenerator.transpileState,
         unmodifiedParams: this.codeGenerator.getFunctionUnmodifiedParams(),
         anchor: discovery.anchor,
-        headerExtension: this.outputExtensions.header,
+        headerExtension: OutputExtensions.forCppMode(discovery.cppMode).header,
         includes: discovery.includes,
         ownIncludes: Transpiler._includesOf(discovery, sourcePath),
       });
