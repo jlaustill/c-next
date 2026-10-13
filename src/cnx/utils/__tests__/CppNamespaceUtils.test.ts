@@ -270,4 +270,20 @@ describe("CppNamespaceUtils", () => {
       ).toBe("Lib::Sub::Deep::Type");
     });
   });
+
+  describe("qualify", () => {
+    it.each([
+      ["Lib", "Type", "Lib::Type"],
+      ["Lib::Sub", "Type", "Lib::Sub::Type"],
+      [undefined, "Type", "Type"],
+      [null, "Type", "Type"],
+      ["", "Type", "Type"],
+    ])("qualifies %s and %s as %s", (scope, name, expected) => {
+      expect(CppNamespaceUtils.qualify(scope, name)).toBe(expected);
+    });
+
+    it("joins parts with ::", () => {
+      expect(CppNamespaceUtils.fromParts(["A", "B", "C"])).toBe("A::B::C");
+    });
+  });
 });

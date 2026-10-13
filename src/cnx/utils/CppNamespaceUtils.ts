@@ -17,6 +17,18 @@ import QualifiedCName from "./QualifiedCName";
  * Static utility methods for C++ namespace operations
  */
 class CppNamespaceUtils {
+  static readonly SEPARATOR = "::";
+
+  /** The one spelling of a C++ qualified name: `scope::name`, or `name` at file scope */
+  static qualify(scope: string | null | undefined, name: string): string {
+    return scope ? CppNamespaceUtils.fromParts([scope, name]) : name;
+  }
+
+  /** `A::B::C` from its parts */
+  static fromParts(parts: readonly string[]): string {
+    return parts.join(CppNamespaceUtils.SEPARATOR);
+  }
+
   /**
    * Check if a symbol name refers to a C++ scope-like symbol that requires :: syntax.
    * This includes C++ namespaces, classes, and enum classes (scoped enums).
@@ -112,7 +124,7 @@ class CppNamespaceUtils {
       CppNamespaceUtils.isCppNamespace(parts[0], symbolTable)
     ) {
       // It's a C++ namespaced type - re-qualify for C++ namespace syntax
-      return parts.join("::");
+      return CppNamespaceUtils.fromParts(parts);
     }
 
     return typeName;

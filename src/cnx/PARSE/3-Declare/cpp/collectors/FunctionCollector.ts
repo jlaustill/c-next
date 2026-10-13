@@ -3,6 +3,7 @@
  */
 
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
+import CppNamespaceUtils from "../../../../utils/CppNamespaceUtils";
 import ICppFunctionSymbol from "../../../../types/symbols/cpp/ICppFunctionSymbol";
 import ICppParameterInfo from "../../../../types/symbols/cpp/ICppParameterInfo";
 import type IExtractedParameter from "../../../2-Parse/shared/IExtractedParameter";
@@ -35,7 +36,7 @@ class FunctionCollector {
     );
     return {
       kind: "function",
-      name: currentNamespace ? `${currentNamespace}::${name}` : name,
+      name: CppNamespaceUtils.qualify(currentNamespace, name),
       type: funcDef.returnType,
       sourceFile,
       span: funcDef.span,
@@ -60,7 +61,7 @@ class FunctionCollector {
     const params = FunctionCollector._mapParameters(declarator.parameters);
     return {
       kind: "function",
-      name: currentNamespace ? `${currentNamespace}::${name}` : name,
+      name: CppNamespaceUtils.qualify(currentNamespace, name),
       type: baseType,
       sourceFile,
       span,
@@ -85,7 +86,7 @@ class FunctionCollector {
     const params = FunctionCollector._mapParameters(declarator.parameters);
     return {
       kind: "function",
-      name: `${className}::${funcName}`,
+      name: CppNamespaceUtils.qualify(className, funcName),
       type: returnType,
       sourceFile,
       span,

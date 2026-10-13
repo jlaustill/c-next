@@ -14,6 +14,7 @@
  */
 
 import TSymbolKind from "../types/symbol-kinds/TSymbolKind";
+import CppNamespaceUtils from "./CppNamespaceUtils";
 import QualifiedCName from "./QualifiedCName";
 
 /**
@@ -57,7 +58,7 @@ class CppConstructorHelper {
     qualifiedName: string,
     className: string,
   ): string {
-    return `${qualifiedName}::${className}`;
+    return CppNamespaceUtils.qualify(qualifiedName, className);
   }
 
   /**

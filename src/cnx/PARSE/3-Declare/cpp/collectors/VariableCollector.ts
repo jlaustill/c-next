@@ -3,6 +3,7 @@
  */
 
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
+import CppNamespaceUtils from "../../../../utils/CppNamespaceUtils";
 import ICppVariableSymbol from "../../../../types/symbols/cpp/ICppVariableSymbol";
 import type IHeaderDeclaratorSyntax from "../../../2-Parse/types/IHeaderDeclaratorSyntax";
 import type ISourceSpan from "../../../../types/ISourceSpan";
@@ -21,7 +22,7 @@ class VariableCollector {
     const arrayDimensions = [...declarator.arrayDimensions];
     return {
       kind: "variable",
-      name: currentNamespace ? `${currentNamespace}::${name}` : name,
+      name: CppNamespaceUtils.qualify(currentNamespace, name),
       type: baseType,
       sourceFile,
       span,

@@ -7,6 +7,7 @@
  */
 
 import TCppSymbol from "../../../types/symbols/cpp/TCppSymbol";
+import CppNamespaceUtils from "../../../utils/CppNamespaceUtils";
 import SymbolTable from "../SymbolTable";
 import NamespaceCollector from "./collectors/NamespaceCollector";
 import EnumCollector from "./collectors/EnumCollector";
@@ -211,9 +212,7 @@ class CppResolver {
     const name = declarator.name;
     if (!name) return;
 
-    const fullName = ctx.currentNamespace
-      ? `${ctx.currentNamespace}::${name}`
-      : name;
+    const fullName = CppNamespaceUtils.qualify(ctx.currentNamespace, name);
 
     // Handle anonymous struct typedef
     if (anonymousClass && ctx.symbolTable) {

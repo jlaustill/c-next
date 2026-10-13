@@ -3,6 +3,7 @@
  */
 
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
+import CppNamespaceUtils from "../../../../utils/CppNamespaceUtils";
 import ICppNamespaceSymbol from "../../../../types/symbols/cpp/ICppNamespaceSymbol";
 import type ISourceSpan from "../../../../types/ISourceSpan";
 
@@ -17,7 +18,7 @@ class NamespaceCollector {
     if (!name) return null;
     return {
       kind: "namespace",
-      name: currentNamespace ? `${currentNamespace}::${name}` : name,
+      name: CppNamespaceUtils.qualify(currentNamespace, name),
       sourceFile,
       span,
       sourceLanguage: ESourceLanguage.Cpp,
@@ -32,7 +33,7 @@ class NamespaceCollector {
     currentNamespace?: string,
   ): string | undefined {
     if (!name) return currentNamespace;
-    return currentNamespace ? `${currentNamespace}::${name}` : name;
+    return CppNamespaceUtils.qualify(currentNamespace, name);
   }
 }
 

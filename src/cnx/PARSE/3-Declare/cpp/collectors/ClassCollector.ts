@@ -6,6 +6,7 @@
  */
 
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
+import CppNamespaceUtils from "../../../../utils/CppNamespaceUtils";
 import ICppClassSymbol from "../../../../types/symbols/cpp/ICppClassSymbol";
 import ICppFunctionSymbol from "../../../../types/symbols/cpp/ICppFunctionSymbol";
 import ICppFieldInfo from "../../../../types/symbols/cpp/ICppFieldInfo";
@@ -61,7 +62,7 @@ class ClassCollector {
     const name = classSyntax.name;
     if (!name) return null;
 
-    const fullName = currentNamespace ? `${currentNamespace}::${name}` : name;
+    const fullName = CppNamespaceUtils.qualify(currentNamespace, name);
 
     const memberFunctions: ICppFunctionSymbol[] = [];
     const warnings: string[] = [];

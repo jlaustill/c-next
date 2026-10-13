@@ -3,6 +3,7 @@
  */
 
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
+import CppNamespaceUtils from "../../../../utils/CppNamespaceUtils";
 import ICppEnumSymbol from "../../../../types/symbols/cpp/ICppEnumSymbol";
 import SymbolTable from "../../SymbolTable";
 import SymbolUtils from "../../SymbolUtils";
@@ -23,7 +24,7 @@ class EnumCollector {
   ): ICppEnumSymbol | null {
     const name = enumSyntax.name;
     if (!name) return null;
-    const fullName = currentNamespace ? `${currentNamespace}::${name}` : name;
+    const fullName = CppNamespaceUtils.qualify(currentNamespace, name);
 
     let bitWidth: number | undefined;
     if (symbolTable && enumSyntax.baseType) {

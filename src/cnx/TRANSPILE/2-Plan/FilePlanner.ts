@@ -371,7 +371,7 @@ class FilePlanner {
     // Check if the first identifier is a C++ scope symbol (namespace, class, enum)
     if (this.queries.isCppScopeSymbol(firstName)) {
       // C++ namespace type: join all parts with ::
-      return identifiers.join("::");
+      return CppNamespaceUtils.fromParts(identifiers);
     }
 
     // C-Next scope type: join all parts with _
@@ -2610,7 +2610,7 @@ class FilePlanner {
     if (!QualifiedCName.isQualified(fieldType)) return fieldType;
     const parts = QualifiedCName.split(fieldType);
     if (parts.length > 1 && this.queries.isCppScopeSymbol(parts[0])) {
-      return parts.join("::");
+      return CppNamespaceUtils.fromParts(parts);
     }
     return fieldType;
   }

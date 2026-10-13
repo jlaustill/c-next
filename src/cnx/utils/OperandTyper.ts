@@ -14,6 +14,7 @@
  * and the run's target.
  */
 import ExpressionCalls from "./ExpressionCalls";
+import CppNamespaceUtils from "./CppNamespaceUtils";
 import ExpressionShape from "./ExpressionShape";
 import ConstExprLowering from "./ConstExprLowering";
 import ConstantEvaluator from "./ConstantEvaluator";
@@ -1313,7 +1314,7 @@ class OperandTyper {
     ctx: ITypingContext,
   ): TChainValue {
     const t = ForeignTypeFacts.variableOperand(
-      parts.join("::"),
+      CppNamespaceUtils.fromParts(parts),
       ctx.symbolTable,
       OperandTyper.target(ctx),
     );
@@ -1455,7 +1456,8 @@ class OperandTyper {
   /** The C name of the function a call on `current` calls */
   private static calleeOf(current: TChainValue): string | null {
     if (current.k === "function") return current.cName;
-    if (current.k === "foreignPath") return current.parts.join("::");
+    if (current.k === "foreignPath")
+      return CppNamespaceUtils.fromParts(current.parts);
     return null;
   }
 
@@ -1501,7 +1503,7 @@ class OperandTyper {
     }
     if (current.k === "foreignPath") {
       const t = ForeignTypeFacts.callOperand(
-        current.parts.join("::"),
+        CppNamespaceUtils.fromParts(current.parts),
         ctx.symbolTable,
         OperandTyper.target(ctx),
       );

@@ -1,4 +1,5 @@
 import type IResolvedSymbols from "../types/IResolvedSymbols";
+import CppNamespaceUtils from "./CppNamespaceUtils";
 import type TTypeInfo from "../types/TTypeInfo";
 import TYPE_WIDTH from "../types/TYPE_WIDTH";
 import type TCSymbol from "../types/symbols/c/TCSymbol";
@@ -259,7 +260,10 @@ class ForeignTypeFacts {
     const spelling = ForeignTypeFacts.spellingOf(type);
     const scopes = qualifiedName.split("::").slice(0, -1);
     for (let depth = scopes.length; depth > 0; depth -= 1) {
-      const candidate = [...scopes.slice(0, depth), spelling].join("::");
+      const candidate = CppNamespaceUtils.fromParts([
+        ...scopes.slice(0, depth),
+        spelling,
+      ]);
       const symbol = lookup.getCppSymbol(candidate);
       if (
         symbol !== undefined &&
