@@ -28,6 +28,7 @@ import AdrProvenance from "../instrumentation/AdrProvenance";
 import type ILocalDeclaration from "../types/ILocalDeclaration";
 import type IVariableDeclarationSyntax from "../types/syntax/IVariableDeclarationSyntax";
 import type IBoundParameter from "./types/IBoundParameter";
+import type IPlannedExpectedType from "./2-Plan/types/IPlannedExpectedType";
 import ToolchainRequirements from "../instrumentation/ToolchainRequirements";
 import type TIncludeHeader from "../types/TIncludeHeader";
 
@@ -61,8 +62,6 @@ class TranspileState {
    * this answer and classifies nothing itself.
    */
   includeKinds: ReadonlyMap<string, EFileType> = new Map<string, EFileType>();
-  /** Issue #477: Current function return type for enum inference */
-  currentFunctionReturnType: string | null = null;
   /** Debug mode generates panic-on-overflow helpers (ADR-044) */
   debugMode: boolean = false;
   /**
@@ -596,46 +595,15 @@ class TranspileState {
   suppressBareEnumResolution: boolean = false;
 
   /**
-   * Execute a function with a temporary expectedType, restoring on completion.
-   * Issue #872: Extracted to eliminate duplicate save/restore pattern and add exception safety.
-   *
-   * @param type - The expected type to set (if falsy, no change is made)
-   * @param fn - The function to execute
-   * @param suppressEnumResolution - If true, suppress bare enum resolution (for MISRA-only contexts)
-   * @returns The result of the function
+   * Execute fn writing a value against the type 2.2 planned for it, restoring
+   * the outer value's on exit (#1991). 2.2 already resolved what a value
+   * inherits from the site around it, so this sets both fields exactly.
    */
-  withExpectedType<T>(
-    type: string | undefined | null,
-    fn: () => T,
-    suppressEnumResolution: boolean = false,
-  ): T {
-    if (!type) {
-      return fn();
-    }
+  withPlannedExpectedType<T>(planned: IPlannedExpectedType, fn: () => T): T {
     const savedType = this.expectedType;
     const savedSuppress = this.suppressBareEnumResolution;
-    this.expectedType = type;
-    if (suppressEnumResolution) {
-      this.suppressBareEnumResolution = true;
-    }
-    try {
-      return fn();
-    } finally {
-      this.expectedType = savedType;
-      this.suppressBareEnumResolution = savedSuppress;
-    }
-  }
-  /**
-   * Execute fn with expectedType=null, restoring prior value on exit.
-   * Issue #1032: Used in comparison contexts (relational/equality expressions)
-   * where MISRA 7.2 U suffix should NOT be applied - comparing `i32 < 0`
-   * should not generate `signedIdx < 0U` which changes comparison semantics.
-   */
-  withoutExpectedType<T>(fn: () => T): T {
-    const savedType = this.expectedType;
-    const savedSuppress = this.suppressBareEnumResolution;
-    this.expectedType = null;
-    this.suppressBareEnumResolution = false;
+    this.expectedType = planned.type;
+    this.suppressBareEnumResolution = planned.suppressBareEnumResolution;
     try {
       return fn();
     } finally {
@@ -964,7 +932,7 @@ class TranspileState {
    * `const savedScope = ...; setCurrentScopeByPath(...); ...; currentScopePath
    * = savedScope;` -- with the restore as a plain trailing statement rather
    * than a `finally`, which is the precise defect #872 extracted
-   * `withExpectedType` to fix: its own doc says "eliminate duplicate
+   * `withExpectedType` (now `withPlannedExpectedType`) to fix: its own doc says "eliminate duplicate
    * save/restore pattern and ADD EXCEPTION SAFETY". Scope path never got the
    * same treatment.
    *
@@ -1384,7 +1352,6 @@ class TranspileState {
     this.ldrexStrexLoopEmitted = false;
     this.emittedCallbackTypedefs = new Set();
     this.pendingCallbackTypedefs = [];
-    this.currentFunctionReturnType = null;
     this.indentLevel = 0;
     this.lengthCache = null;
     this.debugMode = false;

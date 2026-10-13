@@ -130,10 +130,8 @@ class VariableDeclHelper {
           plan.hasEmptyDimension,
           plan.declaredSize,
           {
-            // Lazy, not pre-generated: each must run inside the
-            // `withExpectedType` window the helper opens.
+            // Lazy, not pre-generated: the helper decides when each renders
             generateExpression: init.renderExpression,
-            getTypeName: init.renderTypeName,
             generateArrayDimensions: init.renderDimensions,
           },
           state,
@@ -179,44 +177,42 @@ class VariableDeclHelper {
 
     // #1322: ADR-024's initializer rules are E0868/E0869 in pass 2.1.
 
-    // Issue #872: Set expectedType for MISRA 7.2 U suffix compliance
-    // MISRA 10.3: Also check for cross-type-category conversions (int <-> float)
-    return state.withExpectedType(typeName, () => {
-      let exprCode = state.withDeclarationInit(plan.renderExpression);
+    // Issue #872: 2.2 planned the value against `typeName`, for MISRA 7.2's
+    // U suffix (#1991)
+    let exprCode = state.withDeclarationInit(plan.renderExpression);
 
-      // MISRA 10.3: Check for cross-type-category conversions (int <-> float).
-      // Asked AFTER the render, and inside the window, because the question is
-      // what the expression turned out to be.
-      const exprType = plan.resolveExpressionType();
+    // MISRA 10.3: Check for cross-type-category conversions (int <-> float).
+    // Asked AFTER the render, because the question is what the expression
+    // turned out to be.
+    const exprType = plan.resolveExpressionType();
+    if (
+      exprType &&
+      NarrowingCastHelper.isCrossTypeCategoryConversion(exprType, typeName)
+    ) {
+      // Int to float: add explicit cast
       if (
-        exprType &&
-        NarrowingCastHelper.isCrossTypeCategoryConversion(exprType, typeName)
+        NarrowingCastHelper.isIntegerCategory(exprType) &&
+        NarrowingCastHelper.isFloatCategory(typeName)
       ) {
-        // Int to float: add explicit cast
-        if (
-          NarrowingCastHelper.isIntegerCategory(exprType) &&
-          NarrowingCastHelper.isFloatCategory(typeName)
-        ) {
-          exprCode = NarrowingCastHelper.wrapIntToFloat(
-            exprCode,
-            typeName,
-            state,
-          );
-        }
-        // Float to int is E0891 in pass 2.1 (#1800): the author writes the
-        // cast, which saturates. This emitted a raw C conversion instead,
-        // undefined for NaN and past the target's range.
-        invariant(
-          !(
-            NarrowingCastHelper.isFloatCategory(exprType) &&
-            NarrowingCastHelper.isIntegerCategory(typeName)
-          ),
-          "an implicit float-to-integer conversion is rejected in pass 2.1 (E0891)",
+        exprCode = NarrowingCastHelper.wrapIntToFloat(
+          exprCode,
+          typeName,
+          state,
         );
       }
+      // Float to int is E0891 in pass 2.1 (#1800): the author writes the
+      // cast, which saturates. This emitted a raw C conversion instead,
+      // undefined for NaN and past the target's range.
+      invariant(
+        !(
+          NarrowingCastHelper.isFloatCategory(exprType) &&
+          NarrowingCastHelper.isIntegerCategory(typeName)
+        ),
+        "an implicit float-to-integer conversion is rejected in pass 2.1 (E0891)",
+      );
+    }
 
-      return `${decl} = ${exprCode}`;
-    });
+    return `${decl} = ${exprCode}`;
   }
 
   // ========================================================================

@@ -156,7 +156,7 @@ const _argPointerDepth = (
 /**
  * Generate argument code for a C/C++ function call.
  * Handles automatic address-of (&) for struct arguments passed to pointer params.
- * Issue #872: Sets expectedType for MISRA 7.2 U suffix on unsigned literals.
+ * Issue #872: the MISRA 7.2 U suffix comes from the type 2.2 planned (#1991).
  */
 const _generateCFunctionArg = (
   arg: IPlannedCallArgument,
@@ -181,13 +181,10 @@ const _generateCFunctionArg = (
     );
   }
 
-  // Issue #872: Set expectedType for MISRA 7.2 compliance, but suppress bare enum resolution
-  // (bare enums in function args was never allowed - changing that requires ADR approval)
-  const argCode = orchestrator.state.withExpectedType(
-    targetParam?.baseType,
-    arg.render,
-    true, // suppressEnumResolution
-  );
+  // Issue #872: 2.2 plans it against the parameter's type for MISRA 7.2, with
+  // bare enum resolution suppressed (bare enums in function args were never
+  // allowed - changing that requires ADR approval) (#1991)
+  const argCode = arg.render();
 
   // Issue #322: Check if parameter expects a pointer and argument is a struct
   if (!targetParam?.baseType?.endsWith("*")) {
@@ -325,12 +322,9 @@ const generateFunctionCall = (
 
         // C-Next function: check if target parameter should be passed by value
         if (passing.mode === "value") {
-          // Issue #872: Set expectedType for MISRA 7.2 compliance, but suppress bare enum resolution
-          const argCode = orchestrator.state.withExpectedType(
-            targetParam?.baseType,
-            arg.render,
-            true, // suppressEnumResolution
-          );
+          // Issue #872: 2.2 plans it against the parameter's type, with bare
+          // enum resolution suppressed (#1991)
+          const argCode = arg.render();
           return wrapWithCppEnumCast(
             argCode,
             arg,

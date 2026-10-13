@@ -224,51 +224,42 @@ describe("TranspileState", () => {
     });
   });
 
-  describe("withoutExpectedType()", () => {
-    it("clears expectedType during callback", () => {
+  describe("withPlannedExpectedType()", () => {
+    it("sets the planned type and suppression during callback", () => {
       state.expectedType = "u32";
-      let typeInside: string | null = "notCleared";
+      state.suppressBareEnumResolution = false;
+      let inside: [string | null, boolean] = ["notSet", false];
 
-      state.withoutExpectedType(() => {
-        typeInside = state.expectedType;
-      });
+      state.withPlannedExpectedType(
+        { type: "u8", suppressBareEnumResolution: true },
+        () => {
+          inside = [state.expectedType, state.suppressBareEnumResolution];
+        },
+      );
 
-      expect(typeInside).toBeNull();
+      expect(inside).toEqual(["u8", true]);
     });
 
-    it("clears suppressBareEnumResolution during callback", () => {
+    it("sets no type when 2.2 planned none, not the outer one", () => {
+      state.expectedType = "u32";
       state.suppressBareEnumResolution = true;
-      let suppressInside = true;
+      let inside: [string | null, boolean] = ["notCleared", true];
 
-      state.withoutExpectedType(() => {
-        suppressInside = state.suppressBareEnumResolution;
-      });
+      state.withPlannedExpectedType(
+        { type: null, suppressBareEnumResolution: false },
+        () => {
+          inside = [state.expectedType, state.suppressBareEnumResolution];
+        },
+      );
 
-      expect(suppressInside).toBe(false);
-    });
-
-    it("restores expectedType after callback", () => {
-      state.expectedType = "i32";
-
-      state.withoutExpectedType(() => {
-        // inside: null
-      });
-
-      expect(state.expectedType).toBe("i32");
-    });
-
-    it("restores suppressBareEnumResolution after callback", () => {
-      state.suppressBareEnumResolution = true;
-
-      state.withoutExpectedType(() => {
-        // inside: false
-      });
-
-      expect(state.suppressBareEnumResolution).toBe(true);
+      expect(inside).toEqual([null, false]);
     });
 
     it("returns the callback result", () => {
-      const result = state.withoutExpectedType(() => 123);
+      const result = state.withPlannedExpectedType(
+        { type: null, suppressBareEnumResolution: false },
+        () => 123,
+      );
       expect(result).toBe(123);
     });
 
@@ -277,29 +268,16 @@ describe("TranspileState", () => {
       state.suppressBareEnumResolution = true;
 
       expect(() =>
-        state.withoutExpectedType(() => {
-          throw new Error("test error");
-        }),
+        state.withPlannedExpectedType(
+          { type: "u8", suppressBareEnumResolution: false },
+          () => {
+            throw new Error("test error");
+          },
+        ),
       ).toThrow("test error");
 
       expect(state.expectedType).toBe("bool");
       expect(state.suppressBareEnumResolution).toBe(true);
-    });
-
-    it("handles null expectedType correctly", () => {
-      state.expectedType = null;
-      state.suppressBareEnumResolution = false;
-
-      let executed = false;
-      state.withoutExpectedType(() => {
-        executed = true;
-        expect(state.expectedType).toBeNull();
-        expect(state.suppressBareEnumResolution).toBe(false);
-      });
-
-      expect(executed).toBe(true);
-      expect(state.expectedType).toBeNull();
-      expect(state.suppressBareEnumResolution).toBe(false);
     });
   });
 });

@@ -673,7 +673,10 @@ class CodeGenWalker {
   }
 
   private renderPostfix(expr: TExpression): string {
-    this.checkExpectedType(expr);
+    return this.againstPlannedType(expr, () => this.writePostfix(expr));
+  }
+
+  private writePostfix(expr: TExpression): string {
     invariant(
       CodeGenWalker.safeDivisionOperation(expr) === null ||
         this.filePlan.safeDivisions.has(expr),
@@ -696,12 +699,9 @@ class CodeGenWalker {
    * operator run (#1932), so a plan is only as deep as the expression's
    * operator nesting, and a non-binary operand is a leaf.
    *
-   * Every operand is a thunk that re-enters the planner one level down. That
-   * laziness is in the PLANNER and not merely in a top-level thunk, because
-   * `withoutExpectedType` is a dynamic scope over the whole operand subtree:
-   * an operand nested any distance under a comparison must render inside the
-   * window the renderer opens, and anything rendered at plan time renders
-   * outside it (#1032).
+   * Every operand is a thunk that re-enters the planner one level down, so
+   * each renders when the renderer writes it, against the type 2.2 planned
+   * for it -- none, under a comparison (#1032, #1991).
    */
   private planBinaryExpr(expr: TExpression): TPlannedBinaryExpr {
     if (expr.kind !== "binary") {
@@ -1453,23 +1453,20 @@ class CodeGenWalker {
    */
 
   /** 2.3 writes each value against the type 2.2 planned for it (#1991) */
-  private checkExpectedType(expr: TExpression): void {
+  private againstPlannedType<T>(expr: TExpression, write: () => T): T {
     const planned = this.filePlan.expectedTypes.get(expr);
     invariant(
       planned !== undefined,
       `2.2 planned the type of the value on line ${expr.span.line} that 2.3 writes`,
     );
-    const state = this.host.state;
-    invariant(
-      planned.type === (state.expectedType ?? null) &&
-        planned.suppressBareEnumResolution === state.suppressBareEnumResolution,
-      `2.2 planned the type 2.3 writes the value on line ${expr.span.line} against: ` +
-        `planned ${planned.type}, written ${state.expectedType ?? null}`,
-    );
+    return this.host.state.withPlannedExpectedType(planned, write);
   }
 
   private renderPrimary(expr: TExpression): string {
-    this.checkExpectedType(expr);
+    return this.againstPlannedType(expr, () => this.writePrimary(expr));
+  }
+
+  private writePrimary(expr: TExpression): string {
     switch (expr.kind) {
       case "sizeof":
         return this.generateSizeofExpr(expr);
@@ -2302,8 +2299,8 @@ class CodeGenWalker {
       const known = resolved.get(at);
       if (known !== undefined) return known;
       const outer = resolve(at.outer);
-      // `withExpectedType`: a type opens a window, and no type leaves the
-      // outer one. A function argument's suppresses its bare enum member (#872)
+      // A site with a type sets it, and one without leaves the outer one's.
+      // A function argument's suppresses its bare enum member (#872)
       const planned =
         at.site.kind === "argument"
           ? within(this.argumentExpectedType(at.site), outer, true)
@@ -3704,7 +3701,6 @@ class CodeGenWalker {
             declaration.name,
             this.host.state.program,
           ),
-          declaredTypeText: declaration.returnType.text,
           renderReturnType: () => this.renderType(declaration.returnType),
           planParameters: () => this.planFunctionParameters(params),
           renderBody: () => this.renderBlock(declaration.body),
@@ -3819,13 +3815,10 @@ class CodeGenWalker {
   ): string {
     const initializer = decl.initializer;
     if (initializer) {
-      const typeName = this.renderType(decl.type);
       const state = this.host.state;
       state.resetArrayInitTracking();
-      const rendered = state.withExpectedType(typeName, () =>
-        state.withDeclarationInit(
-          () => ` = ${this.renderExpression(initializer)}`,
-        ),
+      const rendered = state.withDeclarationInit(
+        () => ` = ${this.renderExpression(initializer)}`,
       );
       // #1824 review: an omitted size is emitted from 1.3's count (the
       // planner), so the list rendered here must have exactly that many
@@ -4027,18 +4020,9 @@ class CodeGenWalker {
     // non-nullable in the generated parser and `{}` is a parse error. The
     // branch went with it rather than being left as a shape nothing can build.
 
-    // Get field type info for nested initializers
-    // Issue #831: SymbolTable is the single source of truth for struct fields
-    // (both C-Next and C/C++ header structs)
-    const structFieldTypes =
-      this.host.state.symbolTable?.getStructFieldTypes(typeName);
-
     const fields = expr.fields.map((field) => {
       const fieldName = field.name;
-      const fieldType = this._resolveFieldType(fieldName, structFieldTypes);
-      const value = this.host.state.withExpectedType(fieldType, () =>
-        this.renderExpression(field.value),
-      );
+      const value = this.renderExpression(field.value);
       return { fieldName, value };
     });
 
@@ -4167,7 +4151,6 @@ class CodeGenWalker {
     return {
       name: fn.name,
       returnType: this.renderType(fn.returnType),
-      returnTypeText: fn.returnType.text,
       isMainWithArgs: this.isMainFunctionWithArgs(fn.name, params),
       firstParameterName: params?.[0]?.name,
       parameters: this.planFunctionParameters(params),
@@ -4594,7 +4577,6 @@ class CodeGenWalker {
       init: initializer
         ? {
             renderExpression: () => this.renderExpression(initializer),
-            renderTypeName: () => this.typeNameOf(decl.type),
             renderDimensions: () => this.renderLoweredDimensions(arrayDims),
           }
         : null,
@@ -4950,11 +4932,7 @@ class CodeGenWalker {
     // #1668 (C7): what the target writes, bound once -- the expected type
     // below and every classifier rule and handler read this
     const target = this.targetDeclaration(targetExpr);
-    const expectedType = this.assignedValueType(targetExpr, target);
-    // withExpectedType restores expectedType however the render exits
-    const value = this.host.state.withExpectedType(expectedType, () =>
-      this.renderExpression(site.value),
-    );
+    const value = this.renderExpression(site.value);
 
     // #1322: the operator was mapped to its C form here and used for nothing
     // but the `isCompound` flag that `AssignmentValidator` took. ADR-065's
@@ -4989,7 +4967,7 @@ class CodeGenWalker {
       floatBitsPlanned: this.filePlan.floatBitWrites.has(targetExpr),
       atomicForm: this.filePlan.atomicForms.get(site) ?? null,
       state: this.host.state,
-      // Already rendered, inside the expectedType window above -- never again.
+      // Already rendered once, above -- never again.
       generatedValue: () => value,
       generateAssignmentTarget: (target, opCount) =>
         this.generateAssignmentTarget(target, opCount),
@@ -5117,12 +5095,7 @@ class CodeGenWalker {
     }
     return {
       kind: "value",
-      render: (expectedType) =>
-        expectedType
-          ? this.host.state.withExpectedType(expectedType, () =>
-              this.renderExpression(value),
-            )
-          : this.renderExpression(value),
+      render: () => this.renderExpression(value),
     };
   }
 
@@ -5219,10 +5192,7 @@ class CodeGenWalker {
           ? () => this.renderLoweredDimensions(decl.dimensions)
           : null,
       renderInitializer: initializer
-        ? (expectedType) =>
-            this.host.state.withExpectedType(expectedType, () =>
-              this.renderExpression(initializer),
-            )
+        ? () => this.renderExpression(initializer)
         : null,
     };
   }

@@ -1074,13 +1074,9 @@ const generateSubscriptAccess = (
     return output;
   }
 
-  // Set expectedType to size_t (unsigned) for indices per MISRA 7.2. This is
-  // what gives an index literal its U suffix regardless of element type, and it
-  // is why the plan hands over a render rather than a rendered string -- a
-  // value generated outside this window silently loses the suffix.
-  const indexes = orchestrator.state.withExpectedType("size_t", () =>
-    ctx.subscript.renderIndexes(),
-  );
+  // 2.2 plans each index against size_t (unsigned) per MISRA 7.2, which is
+  // what gives an index literal its U suffix regardless of element type (#1991)
+  const indexes = ctx.subscript.renderIndexes();
 
   if (indexCount === 1) {
     return handleSingleSubscript(ctx, indexes[0], input, orchestrator, output);

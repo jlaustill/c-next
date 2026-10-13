@@ -495,32 +495,15 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Issue #477: Get the current function's return type for enum inference.
-   * Used by return statement generation to set expectedType.
-   */
-  getCurrentFunctionReturnType(): string | null {
-    return this.state.currentFunctionReturnType;
-  }
-
-  /**
-   * Issue #477: Set the current function's return type for enum inference.
-   */
-  setCurrentFunctionReturnType(returnType: string | null): void {
-    this.state.currentFunctionReturnType = returnType;
-  }
-
-  /**
-   * #1277: the four facts a function body is generated against, set and
+   * #1277: the facts a function body is generated against, set and
    * cleared as one. See `IOrchestrator` for why this is a pair rather than
-   * four calls repeated at each site.
+   * calls repeated at each site.
    */
   enterFunctionContext(
     name: string,
-    returnTypeText: string,
     parameters: readonly IPlannedFunctionParameter[] | null,
   ): void {
     this.setCurrentFunctionName(name);
-    this.setCurrentFunctionReturnType(returnTypeText);
     this.setParameters(parameters);
     this.enterFunctionBody();
   }
@@ -532,7 +515,6 @@ export default class CodeGenerator implements IOrchestrator {
   exitFunctionContext(): void {
     this.exitFunctionBody();
     this.setCurrentFunctionName(null);
-    this.setCurrentFunctionReturnType(null);
     this.clearParameters();
   }
 

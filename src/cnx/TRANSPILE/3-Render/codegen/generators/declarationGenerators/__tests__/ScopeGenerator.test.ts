@@ -500,7 +500,6 @@ describe("ScopeGenerator", () => {
         adrLine: 5,
         fullName: "Driver__init",
         isPrivate,
-        declaredTypeText: "void",
         renderReturnType: () => "void",
         planParameters: () => null,
         renderBody: () => "{ }",
@@ -551,7 +550,6 @@ describe("ScopeGenerator", () => {
       expect(order).toEqual(["returnType", "body", "params"]);
       expect(orchestrator.enterFunctionContext).toHaveBeenCalledWith(
         "Driver__init",
-        "void",
         null,
       );
       expect(orchestrator.updateFunctionParamsAutoConst).toHaveBeenCalledWith(
@@ -578,7 +576,6 @@ describe("ScopeGenerator", () => {
 
       expect(orchestrator.enterFunctionContext).toHaveBeenCalledWith(
         "Driver__init",
-        "void",
         parameters,
       );
     });

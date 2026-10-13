@@ -74,9 +74,9 @@ interface IPlannedCallArgument {
   /**
    * The argument, rendered.
    *
-   * Zero-argument on purpose: Issue #872's `expectedType` scope, and the
-   * ADR-gated bare-enum suppression inside it, are the generator's decision,
-   * so the generator wraps this call rather than passing the type in.
+   * Zero-argument on purpose: Issue #872's expected type, and the ADR-gated
+   * bare-enum suppression with it, are planned by 2.2 for the argument's own
+   * expression (#1991), so the generator passes nothing in.
    */
   readonly render: () => string;
 

@@ -169,15 +169,9 @@ interface IOrchestrator {
   /** Issue #269: Set the current function name for pass-by-value lookup */
   setCurrentFunctionName(name: string | null): void;
 
-  /** Issue #477: Get the current function's return type for enum inference */
-  getCurrentFunctionReturnType(): string | null;
-
-  /** Issue #477: Set the current function's return type for enum inference */
-  setCurrentFunctionReturnType(returnType: string | null): void;
-
   /**
    * #1277: enter/leave the context a function body is generated in -- its
-   * name, its declared return type, and its parameters.
+   * name and its parameters (2.2 plans what a `return` is written against, #1991).
    *
    * One pair rather than four calls at each site. `FunctionGenerator` and
    * `ScopeGenerator` each open-coded the same four steps in the same order,
@@ -188,7 +182,6 @@ interface IOrchestrator {
    */
   enterFunctionContext(
     name: string,
-    returnTypeText: string,
     parameters: readonly IPlannedFunctionParameter[] | null,
   ): void;
 

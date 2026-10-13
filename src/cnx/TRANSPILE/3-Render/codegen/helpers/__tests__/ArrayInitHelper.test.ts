@@ -15,7 +15,6 @@ import TranspileState from "../../../../TranspileState";
 const defaultCallbacks = {
   state: new TranspileState(),
   generateExpression: vi.fn(() => "{1, 2, 3}"),
-  getTypeName: vi.fn(() => "u8"),
   // #1445: a thunk now. It used to compute the suffix from fake dimension
   // nodes; the helper never read them, so the fake only ever fed this mock.
   generateArrayDimensions: vi.fn(() => "[3]"),
@@ -51,7 +50,6 @@ describe("ArrayInitHelper", () => {
           state.lastArrayInitCount = 3;
           return "{1, 2, 3}";
         }),
-        getTypeName: vi.fn(() => "u8"),
         generateArrayDimensions: vi.fn(() => ""),
       };
 
@@ -76,7 +74,6 @@ describe("ArrayInitHelper", () => {
           state.lastArrayFillValue = "0";
           return "{0}";
         }),
-        getTypeName: vi.fn(() => "u8"),
         generateArrayDimensions: vi.fn(() => ""),
       };
 
@@ -101,7 +98,6 @@ describe("ArrayInitHelper", () => {
           state.lastArrayInitCount = 3;
           return "{1, 2, 3}";
         }),
-        getTypeName: vi.fn(() => "u8"),
         generateArrayDimensions: vi.fn(() => ""),
       };
 
@@ -117,7 +113,6 @@ describe("ArrayInitHelper", () => {
           state.lastArrayInitCount = 3;
           return "{1, 2, 3}";
         }),
-        getTypeName: vi.fn(() => "u8"),
         generateArrayDimensions: vi.fn(() => ""),
       };
 
@@ -133,7 +128,6 @@ describe("ArrayInitHelper", () => {
           state.lastArrayInitCount = 2; // Only 2 elements
           return "{1, 2}";
         }),
-        getTypeName: vi.fn(() => "u8"),
         generateArrayDimensions: vi.fn(() => "[3]"),
       };
 
@@ -155,7 +149,6 @@ describe("ArrayInitHelper", () => {
           state.lastArrayFillValue = "1";
           return "{1}";
         }),
-        getTypeName: vi.fn(() => "u8"),
         generateArrayDimensions: vi.fn(() => "[3]"),
       };
 
@@ -178,7 +171,6 @@ describe("ArrayInitHelper", () => {
           state.lastArrayFillValue = "0";
           return "{0}";
         }),
-        getTypeName: vi.fn(() => "u8"),
         generateArrayDimensions: vi.fn(() => "[3]"),
       };
 

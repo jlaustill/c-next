@@ -152,7 +152,6 @@ describe("VariableDeclHelper", () => {
           arrayTypeDimensions: "[2]",
           init: {
             renderExpression: arrayInitRender(2),
-            renderTypeName: () => "u8",
             renderDimensions: () => "",
           },
         }),
@@ -179,7 +178,6 @@ describe("VariableDeclHelper", () => {
           declaredSize: 2,
           init: {
             renderExpression: arrayInitRender(2),
-            renderTypeName: () => "u8",
             renderDimensions: () => "",
           },
         }),
@@ -234,12 +232,10 @@ describe("VariableDeclHelper", () => {
       ).toBe("uint8_t x = 42");
     });
 
-    // Issue #872: the declared type is the expected type for the whole render,
-    // which is what puts MISRA C:2012 Rule 7.2's suffix on an unsigned literal.
-    it("renders the expression inside the declared type's expectedType window", () => {
-      let seen: string | null = null;
-      // #1452: the window is opened on the instance passed in, so the
-      // assertion reads that same object rather than a static class.
+    // Issue #872: 2.2 plans the declared type as the value's expected type
+    // (#1991), so the helper sets none of its own.
+    it("renders the expression without setting an expected type itself", () => {
+      let seen: string | null = "notRead";
       const state = new TranspileState();
 
       VariableDeclHelper.renderVariableInitializer(
@@ -257,7 +253,7 @@ describe("VariableDeclHelper", () => {
         state,
       );
 
-      expect(seen).toBe("u32");
+      expect(seen).toBeNull();
     });
 
     // MISRA 10.3: the question is what the expression TURNED OUT to be, so it
@@ -383,7 +379,6 @@ describe("VariableDeclHelper", () => {
           arrayTypeDimensions: "[2]",
           init: {
             renderExpression: arrayInitRender(2),
-            renderTypeName: () => "u8",
             renderDimensions: () => "",
           },
         }),

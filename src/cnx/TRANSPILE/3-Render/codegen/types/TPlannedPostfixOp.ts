@@ -31,10 +31,9 @@ type TPlannedPostfixOp =
    * expressions is what keeps `flags[4, 3]` (one op, two expressions) distinct
    * from `flags[4][3]` (two ops, one each).
    *
-   * `renderIndexes` returns them together, in order, because the generator
-   * invokes it inside a single `withExpectedType("size_t", ...)` window --
-   * MISRA C:2012 Rule 7.2's `U` suffix on an index literal comes from that
-   * window, so a value rendered outside it silently loses the suffix.
+   * `renderIndexes` returns them together, in order. Each is written against
+   * `size_t`, which 2.2 planned for it, so an index literal takes MISRA
+   * C:2012 Rule 7.2's `U` suffix (#1991).
    */
   | {
       readonly kind: "subscript";

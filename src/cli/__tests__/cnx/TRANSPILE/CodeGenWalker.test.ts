@@ -638,20 +638,6 @@ describe("CodeGenWalker", () => {
       });
     });
 
-    describe("getCurrentFunctionReturnType() / setCurrentFunctionReturnType()", () => {
-      it("should get and set return type", () => {
-        const { host } = createMinimalGenerator(`void foo() { }`, false);
-
-        expect(host.getCurrentFunctionReturnType()).toBeNull();
-
-        host.setCurrentFunctionReturnType("u32");
-        expect(host.getCurrentFunctionReturnType()).toBe("u32");
-
-        host.setCurrentFunctionReturnType(null);
-        expect(host.getCurrentFunctionReturnType()).toBeNull();
-      });
-    });
-
     describe("enterFunctionBody() / exitFunctionBody()", () => {
       it("should track function body state", () => {
         const { host } = createMinimalGenerator(`void foo() { }`, false);

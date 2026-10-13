@@ -224,11 +224,7 @@ function renderScopeFunction(
   // file-scope one would otherwise be two derivations of one parameter list --
   // and it is unevaluated until here, because a parameter's type resolves
   // against the scope path this generator has already entered.
-  orchestrator.enterFunctionContext(
-    plan.fullName,
-    plan.declaredTypeText,
-    plan.planParameters(),
-  );
+  orchestrator.enterFunctionContext(plan.fullName, plan.planParameters());
 
   // Issue #281: Generate body FIRST to track parameter modifications,
   // then generate parameter list using that tracking info

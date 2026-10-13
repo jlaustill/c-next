@@ -20,16 +20,12 @@
  * the single-child pass-through levels -- which is most levels of most expressions --
  * so a plan is only as deep as the expression's real operator nesting.
  *
- * ## The window is opened HERE, around thunks the planner did not evaluate
+ * ## Each operand is a thunk the planner did not evaluate
  *
- * `orchestrator.state.withoutExpectedType` is a dynamic scope over the whole operand
- * subtree, not a parameter: it clears `expectedType` and
- * `suppressBareEnumResolution` for the duration of a callback, and a leaf reads
- * them live at the instant it renders. So an operand nested any distance under
- * a comparison must render inside the window, which is why the PLANNER is lazy
- * rather than only the top thunk. Issue #1032 is the cost of getting it wrong:
- * `i32 < 0` emitting `signedIdx < 0U`, promoted to unsigned by C's usual
- * arithmetic conversions, and the test is dead.
+ * 2.2 plans a comparison's operands, at any depth under it, with no expected
+ * type, and each operand is written against its plan when it renders (#1991).
+ * Issue #1032 is the cost of getting it wrong: `i32 < 0` emitting
+ * `signedIdx < 0U`, promoted to unsigned by C's usual arithmetic conversions.
  */
 import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
 import BinaryExprUtils from "./BinaryExprUtils";
@@ -199,7 +195,6 @@ const renderArithmetic = (
  */
 const renderComparison = (
   plan: Extract<TPlannedBinaryExpr, { kind: "comparison" }>,
-  orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
 
@@ -219,8 +214,9 @@ const renderComparison = (
     // `= u` silently. Pre-existing and preserved exactly: this slice's oracle
     // is a byte-identical corpus, and the fix needs a language decision about
     // chained comparison that #1649 records.
-    const [left, right] = orchestrator.state.withoutExpectedType(() =>
-      renderOperands(plan.renderOperands.slice(0, 2), effects),
+    const [left, right] = renderOperands(
+      plan.renderOperands.slice(0, 2),
+      effects,
     );
 
     return {
@@ -233,12 +229,10 @@ const renderComparison = (
     };
   }
 
-  // Issue #1032: the operands render with expectedType CLEARED. MISRA 7.2's U
+  // Issue #1032: 2.2 plans the operands with no expected type (#1991). MISRA 7.2's U
   // suffix applies to assignments, not comparisons -- `i32 < 0` becoming
   // `signedIdx < 0U` changes semantics under C's integer promotion.
-  const operandCodes = orchestrator.state.withoutExpectedType(() =>
-    renderOperands(plan.renderOperands, effects),
-  );
+  const operandCodes = renderOperands(plan.renderOperands, effects);
 
   return {
     code: joinWithOperators(
@@ -258,7 +252,7 @@ const generateBinaryExpr = (
   plan: TPlannedBinaryExpr,
   _input: IGeneratorInput,
   _state: IGeneratorState,
-  orchestrator: IOrchestrator,
+  _orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
   switch (plan.kind) {
     case "leaf":
@@ -271,7 +265,7 @@ const generateBinaryExpr = (
     }
 
     case "comparison":
-      return renderComparison(plan, orchestrator);
+      return renderComparison(plan);
 
     case "shift": {
       // #1322: the shift amount (MISRA 12.2, E0873) is checked in pass 2.1.

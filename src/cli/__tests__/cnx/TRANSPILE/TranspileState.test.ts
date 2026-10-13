@@ -523,7 +523,7 @@ describe("TranspileState", () => {
    * Two sites hand-rolled the save/restore with the restore as a plain trailing
    * statement, so a throw anywhere in the body left `currentScopePath` pointing
    * at the wrong scope. That is the same defect #872 extracted
-   * `withExpectedType` to fix -- its doc says "add exception safety" -- and
+   * `withExpectedType` (now `withPlannedExpectedType`) to fix -- its doc says "add exception safety" -- and
    * scope path never got the same treatment.
    *
    * The happy path is already covered by 1247 fixtures; it is the THROWING path

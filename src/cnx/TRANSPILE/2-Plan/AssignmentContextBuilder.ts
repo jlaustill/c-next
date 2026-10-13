@@ -56,8 +56,8 @@ interface IContextBuilderDeps {
    * The value expression, already generated.
    *
    * Takes no argument: `CodeGenerator.generateAssignment` renders the
-   * right-hand side inside its own `withExpectedType` window and passes the
-   * result, so this must not render it a second time.
+   * right-hand side and passes the result, so this must not render it a
+   * second time.
    */
   generatedValue(): string;
 

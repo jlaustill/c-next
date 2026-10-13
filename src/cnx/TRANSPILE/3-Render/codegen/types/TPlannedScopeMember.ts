@@ -34,8 +34,6 @@ type TPlannedScopeMember = {
       readonly kind: "function";
       readonly fullName: string;
       readonly isPrivate: boolean;
-      /** The DECLARED return type as written, for `enterFunctionContext`. */
-      readonly declaredTypeText: string;
       readonly renderReturnType: () => string;
       /** Null when the declaration takes no parameters -- what `enterFunctionContext` expects. */
       readonly planParameters: () =>

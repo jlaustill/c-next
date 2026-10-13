@@ -18,14 +18,12 @@ interface IPlannedForVarDecl {
   /** ADR-036 dimensions, or null when the declaration is not an array. */
   readonly renderArrayDimensions: (() => string) | null;
   /**
-   * The initializer, rendered with the declared type as its expected type.
-   *
-   * Null when the header declares without initializing. The expected type is a
-   * parameter rather than a captured value so the one fact -- `typeName` --
-   * has one home on this record (#1277: without it a struct literal in a `for`
-   * header was rejected as "Cannot infer struct type").
+   * The initializer, written against the declared type, which 2.2 planned for
+   * it (#1277: without it a struct literal in a `for` header was rejected as
+   * "Cannot infer struct type"). Null when the header declares without
+   * initializing.
    */
-  readonly renderInitializer: ((expectedType: string) => string) | null;
+  readonly renderInitializer: (() => string) | null;
 }
 
 export default IPlannedForVarDecl;

@@ -23,13 +23,9 @@ import type IGeneratorOutput from "../generators/IGeneratorOutput";
  *
  * ## Why every operand is a thunk
  *
- * `CodeGenState.withoutExpectedType` is a dynamic scope over the whole operand
- * SUBTREE at unbounded depth: it clears `expectedType` and
- * `suppressBareEnumResolution` for the duration of a callback, and the consumer
- * reads them live at the instant a leaf renders. So an operand of a bitwise,
- * shift or arithmetic level -- nested anywhere under a comparison -- must
- * render inside that window too, and a planner that renders eagerly renders it
- * outside.
+ * An operand renders when the renderer writes it, against the type 2.2
+ * planned for it -- none for an operand nested anywhere under a comparison
+ * (#1032, #1991).
  *
  * Issue #1032 is what that costs: `i32 < 0` emitting `signedIdx < 0U`, which C's
  * usual arithmetic conversions then promote to unsigned, making the test dead.
@@ -55,8 +51,7 @@ type TPlannedBinaryExpr =
   /**
    * An equality or relational comparison.
    *
-   * The renderer opens the `withoutExpectedType` window around the operands --
-   * see above. `adrLine` is present only when ADR-001's `=`-means-equality rule
+   * 2.2 plans its operands with no expected type -- see above. `adrLine` is present only when ADR-001's `=`-means-equality rule
    * actually fired: an expression using only `!=` is unchanged from C and must
    * not claim a matrix cell (#1241).
    */
