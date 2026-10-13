@@ -11,9 +11,9 @@
  * This generator was extracted from CodeGenerator._generatePostfixExpr
  * to reduce the size and complexity of CodeGenerator.ts.
  */
+import type TPlannedNarrowing from "../../../../2-Plan/types/TPlannedNarrowing";
 import type IChainBase from "../../../../../types/IChainBase";
 import type TParameterInfo from "../../../../../types/TParameterInfo";
-import type IChainStep from "../../../../../types/IChainStep";
 import type IOperandType from "../../../../../types/IOperandType";
 import IGeneratorOutput from "../IGeneratorOutput";
 import IPlannedPostfix from "../../types/IPlannedPostfix";
@@ -85,16 +85,14 @@ interface ITrackingState {
 const singleBitRead = (
   base: string,
   index: string,
+  narrowing: TPlannedNarrowing | null,
   orchestrator: IOrchestrator,
 ): string => {
   const expr =
     index === "0" || index === "0U"
       ? `((${base}) & 1)`
       : `((${base} >> ${index}) & 1)`;
-  const targetType = orchestrator.state.expectedType;
-  return targetType
-    ? NarrowingCastHelper.wrap(expr, "int", targetType, orchestrator.state)
-    : expr;
+  return NarrowingCastHelper.apply(expr, narrowing, orchestrator.state);
 };
 
 /**
@@ -226,7 +224,7 @@ const generatePostfixExpression = (
 
   for (const op of ops) {
     if (op.kind === "member") {
-      handleMemberOp(op.name, op.step, op.appliesToRoot, tracking, postfixCtx);
+      handleMemberOp(op, tracking, postfixCtx);
     } else if (op.kind === "subscript") {
       const subscriptResult = generateSubscriptAccess(
         {
@@ -303,12 +301,13 @@ const generatePostfixExpression = (
  * Mutates `tracking` in place.
  */
 const handleMemberOp = (
-  memberName: string,
-  step: IChainStep | null,
-  isRootOp: boolean,
+  op: Extract<TPlannedPostfixOp, { kind: "member" }>,
   tracking: ITrackingState,
   ctx: IPostfixContext,
 ): void => {
+  const memberName = op.name;
+  const step = op.step;
+  const isRootOp = op.appliesToRoot;
   // ADR-016: Handle global. prefix
   if (handleGlobalPrefix(memberName, tracking, ctx)) {
     return;
@@ -347,6 +346,7 @@ const handleMemberOp = (
       isGlobalAccess: tracking.isGlobalAccess,
       isCppAccessChain: tracking.isCppAccessChain,
       typed: step?.before ?? null,
+      narrowing: op.narrowing,
       resolvedIdentifier: tracking.resolvedIdentifier,
       isRegisterChain: tracking.isRegisterChain,
     },
@@ -728,6 +728,8 @@ interface IMemberAccessContext {
    * typer typed it; null where its root consumed the op or nothing typed it
    */
   typed: IOperandType | null;
+  /** 2.2's decision for a bitmap field read (MISRA 10.3), or null */
+  narrowing: TPlannedNarrowing | null;
   resolvedIdentifier: string | undefined;
   isRegisterChain: boolean;
 }
@@ -841,6 +843,7 @@ const tryBitmapFieldAccess = (
     typeInfo.bitmapTypeName,
     input.symbols!.bitmapFields,
     `type '${typeInfo.bitmapTypeName}'`,
+    ctx.narrowing,
     orchestrator.state,
   );
   applyAccessEffects(bitmapResult.effects, effects);
@@ -976,6 +979,7 @@ const tryRegisterBitmapAccess = (
     bitmapType,
     input.symbols!.bitmapFields,
     `register member '${ctx.result}' (bitmap type '${bitmapType}')`,
+    ctx.narrowing,
     orchestrator.state,
   );
   applyAccessEffects(bitmapResult.effects, effects);
@@ -1005,6 +1009,7 @@ const tryStructBitmapAccess = (
     bitmapType,
     input.symbols!.bitmapFields,
     `struct member '${ctx.result}' (bitmap type '${bitmapType}')`,
+    ctx.narrowing,
     orchestrator.state,
   );
   applyAccessEffects(bitmapResult.effects, effects);
@@ -1118,7 +1123,12 @@ const handleSingleSubscript = (
     checkRegisterAccess(ctx, input) ||
     ctx.subscript.typedAs === "bit_single"
   ) {
-    output.result = singleBitRead(ctx.result, index, orchestrator);
+    output.result = singleBitRead(
+      ctx.result,
+      index,
+      ctx.subscript.narrowing,
+      orchestrator,
+    );
     return output;
   }
   output.result = `${ctx.result}[${index}]`;
@@ -1213,22 +1223,12 @@ const handleBitRangeSubscript = (
       expr = `((${ctx.result} >> ${start}) & ${mask})`;
     }
 
-    // MISRA 10.3: Add narrowing cast if expected type is known
-    // Bit operations promote to int, so wrap with cast when assigning to narrower types
-    const targetType = orchestrator.state.expectedType;
-    if (targetType && ranged?.typeName) {
-      const promotedSourceType = NarrowingCastHelper.getPromotedType(
-        ranged.typeName,
-      );
-      output.result = NarrowingCastHelper.wrap(
-        expr,
-        promotedSourceType,
-        targetType,
-        orchestrator.state,
-      );
-    } else {
-      output.result = expr;
-    }
+    // MISRA 10.3: bit operations promote to int; 2.2 decided the cast
+    output.result = NarrowingCastHelper.apply(
+      expr,
+      ctx.subscript.narrowing,
+      orchestrator.state,
+    );
   }
 
   return output;

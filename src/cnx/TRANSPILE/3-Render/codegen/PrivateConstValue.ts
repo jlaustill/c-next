@@ -1,3 +1,4 @@
+import NarrowingCastHelper from "./helpers/NarrowingCastHelper";
 import type IProgram from "../../../types/IProgram";
 import type IVariableSymbol from "../../../types/symbols/IVariableSymbol";
 import type TSettledConst from "../../../types/TSettledConst";
@@ -76,13 +77,14 @@ class PrivateConstValue {
     // A literal has no sign: a negative value is the negated literal, in
     // parentheses so `-X` does not read as a decrement
     const negative = text.startsWith("-");
+    const typeName = ConstantFold.typeNameOf(symbol.type);
     const output = generateLiteral(
       negative ? text.slice(1) : text,
-      {
-        ...generatorState,
-        expectedType: ConstantFold.typeNameOf(symbol.type),
-      },
+      { ...generatorState, expectedType: typeName },
       transpileState,
+      text.startsWith("'") && typeName !== null
+        ? NarrowingCastHelper.narrowingOf("int", typeName)
+        : null,
     );
     return negative ? { ...output, code: `(-${output.code})` } : output;
   }

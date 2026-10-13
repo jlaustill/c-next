@@ -22,6 +22,7 @@ describe("BitmapAccessHelper", () => {
         "Status",
         bitmapFields,
         "type 'Status'",
+        null,
         new TranspileState(),
       );
 
@@ -40,6 +41,7 @@ describe("BitmapAccessHelper", () => {
         "Control",
         bitmapFields,
         "type 'Control'",
+        null,
         new TranspileState(),
       );
 
@@ -61,6 +63,7 @@ describe("BitmapAccessHelper", () => {
           "Status",
           bitmapFields,
           "type 'Status'",
+          null,
           new TranspileState(),
         ),
       ).toThrow("E0882 rejects this in pass 2.1");
@@ -76,6 +79,7 @@ describe("BitmapAccessHelper", () => {
           "CtrlBits",
           bitmapFields,
           "register member 'MOTOR_CTRL' (bitmap type 'CtrlBits')",
+          null,
           new TranspileState(),
         ),
       ).toThrow("E0882 rejects this in pass 2.1");
@@ -86,6 +90,7 @@ describe("BitmapAccessHelper", () => {
           "CtrlBits",
           bitmapFields,
           "register member 'MOTOR_CTRL' (bitmap type 'CtrlBits')",
+          null,
           new TranspileState(),
         ),
       ).toThrow("register member");
@@ -101,6 +106,7 @@ describe("BitmapAccessHelper", () => {
           "StatusBits",
           bitmapFields,
           "struct member 'device.flags' (bitmap type 'StatusBits')",
+          null,
           new TranspileState(),
         ),
       ).toThrow("struct member");
@@ -116,6 +122,7 @@ describe("BitmapAccessHelper", () => {
           "Unknown",
           bitmapFields,
           "type 'Unknown'",
+          null,
           new TranspileState(),
         ),
       ).toThrow("E0882 rejects this in pass 2.1");

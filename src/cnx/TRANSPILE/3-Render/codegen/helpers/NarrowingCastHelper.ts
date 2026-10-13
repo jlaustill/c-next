@@ -8,6 +8,7 @@
  * which MISRA flags when assigned back to narrower types without explicit cast.
  */
 
+import type TPlannedNarrowing from "../../../2-Plan/types/TPlannedNarrowing";
 import type TranspileState from "../../../TranspileState";
 import CppModeHelper from "./CppModeHelper";
 import TYPE_MAP from "../types/TYPE_MAP";
@@ -60,32 +61,29 @@ const INTEGER_TYPES = new Set([
  */
 class NarrowingCastHelper {
   /**
-   * Wrap expression with cast if needed for MISRA 10.3 compliance.
-   *
-   * @param expr - The generated C expression
-   * @param sourceType - Type of the expression (C-Next type or "int")
-   * @param targetType - Type of the assignment target (C-Next type)
-   * @returns Expression with cast wrapper if needed, or original expression
+   * MISRA 10.3: how a value of `sourceType` is written against `targetType`
+   * -- 2.2 decides it, once per promoted read
    */
-  static wrap(
-    expr: string,
+  static narrowingOf(
     sourceType: string,
     targetType: string,
+  ): TPlannedNarrowing | null {
+    if (!CastRequirement.forConversion(sourceType, targetType)) return null;
+    // Bool target: use comparison instead of cast (MISRA 10.5)
+    if (targetType === "bool") return { kind: "compare" };
+    return { kind: "cast", cType: TYPE_MAP[targetType] ?? targetType };
+  }
+
+  /** Write `expr` in 2.2's planned narrowing form */
+  static apply(
+    expr: string,
+    narrowing: TPlannedNarrowing | null,
     state: TranspileState,
   ): string {
-    if (!CastRequirement.forConversion(sourceType, targetType)) {
-      return expr;
-    }
-
-    // Bool target: use comparison instead of cast (MISRA 10.5)
-    if (targetType === "bool") {
-      return `((${expr}) != 0U)`;
-    }
-
-    // Get C type name for the target
-    const cType = TYPE_MAP[targetType] ?? targetType;
-    state.emittedCTypes.add(cType);
-    return CppModeHelper.cast(cType, expr, state);
+    if (narrowing === null) return expr;
+    if (narrowing.kind === "compare") return `((${expr}) != 0U)`;
+    state.emittedCTypes.add(narrowing.cType);
+    return CppModeHelper.cast(narrowing.cType, expr, state);
   }
 
   /**

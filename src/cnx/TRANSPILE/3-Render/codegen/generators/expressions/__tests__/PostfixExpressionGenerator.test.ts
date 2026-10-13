@@ -281,6 +281,7 @@ function createMockPostfixOp(options?: {
       name: options.identifier,
       appliesToRoot: options.appliesToRoot ?? false,
       step: options.step ?? null,
+      narrowing: null,
     };
   }
 
@@ -300,6 +301,7 @@ function createMockPostfixOp(options?: {
       // 2.2 plans a float range read; the integer arms never read this
       floatBits: true,
       step: null,
+      narrowing: null,
     } as TPlannedPostfixOp & { widthText?: string };
   }
 

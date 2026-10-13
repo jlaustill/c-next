@@ -20,45 +20,77 @@ describe("NarrowingCastHelper", () => {
     });
 
     it("returns expression unchanged for same type", () => {
-      expect(NarrowingCastHelper.wrap("x", "u32", "u32", state)).toBe("x");
+      expect(
+        NarrowingCastHelper.apply(
+          "x",
+          NarrowingCastHelper.narrowingOf("u32", "u32"),
+          state,
+        ),
+      ).toBe("x");
     });
 
     it("returns expression unchanged for widening", () => {
-      expect(NarrowingCastHelper.wrap("x", "u8", "u32", state)).toBe("x");
+      expect(
+        NarrowingCastHelper.apply(
+          "x",
+          NarrowingCastHelper.narrowingOf("u8", "u32"),
+          state,
+        ),
+      ).toBe("x");
     });
 
     it("adds C cast for narrowing u32 -> u8", () => {
       const expr = "((value >> 0U) & 0xFFU)";
-      expect(NarrowingCastHelper.wrap(expr, "u32", "u8", state)).toBe(
-        "(uint8_t)((value >> 0U) & 0xFFU)",
-      );
+      expect(
+        NarrowingCastHelper.apply(
+          expr,
+          NarrowingCastHelper.narrowingOf("u32", "u8"),
+          state,
+        ),
+      ).toBe("(uint8_t)((value >> 0U) & 0xFFU)");
     });
 
     it("adds C cast for narrowing u32 -> u16", () => {
       const expr = "((value >> 0U) & 0xFFFFU)";
-      expect(NarrowingCastHelper.wrap(expr, "u32", "u16", state)).toBe(
-        "(uint16_t)((value >> 0U) & 0xFFFFU)",
-      );
+      expect(
+        NarrowingCastHelper.apply(
+          expr,
+          NarrowingCastHelper.narrowingOf("u32", "u16"),
+          state,
+        ),
+      ).toBe("(uint16_t)((value >> 0U) & 0xFFFFU)");
     });
 
     it("adds C cast for int -> u8 (C promotion result)", () => {
       const expr = "((flags >> 3) & 0x7)";
-      expect(NarrowingCastHelper.wrap(expr, "int", "u8", state)).toBe(
-        "(uint8_t)((flags >> 3) & 0x7)",
-      );
+      expect(
+        NarrowingCastHelper.apply(
+          expr,
+          NarrowingCastHelper.narrowingOf("int", "u8"),
+          state,
+        ),
+      ).toBe("(uint8_t)((flags >> 3) & 0x7)");
     });
 
     it("uses != 0U comparison for bool target (MISRA 10.5)", () => {
       const expr = "((flags >> 0) & 1)";
-      expect(NarrowingCastHelper.wrap(expr, "int", "bool", state)).toBe(
-        "((((flags >> 0) & 1)) != 0U)",
-      );
+      expect(
+        NarrowingCastHelper.apply(
+          expr,
+          NarrowingCastHelper.narrowingOf("int", "bool"),
+          state,
+        ),
+      ).toBe("((((flags >> 0) & 1)) != 0U)");
     });
 
     it("adds cast for char literal to u8", () => {
-      expect(NarrowingCastHelper.wrap("'A'", "int", "u8", state)).toBe(
-        "(uint8_t)'A'",
-      );
+      expect(
+        NarrowingCastHelper.apply(
+          "'A'",
+          NarrowingCastHelper.narrowingOf("int", "u8"),
+          state,
+        ),
+      ).toBe("(uint8_t)'A'");
     });
   });
 
@@ -69,16 +101,24 @@ describe("NarrowingCastHelper", () => {
 
     it("uses static_cast for narrowing", () => {
       const expr = "((value >> 0U) & 0xFFU)";
-      expect(NarrowingCastHelper.wrap(expr, "u32", "u8", state)).toBe(
-        "static_cast<uint8_t>(((value >> 0U) & 0xFFU))",
-      );
+      expect(
+        NarrowingCastHelper.apply(
+          expr,
+          NarrowingCastHelper.narrowingOf("u32", "u8"),
+          state,
+        ),
+      ).toBe("static_cast<uint8_t>(((value >> 0U) & 0xFFU))");
     });
 
     it("uses != 0U for bool (same as C mode)", () => {
       const expr = "((flags >> 0) & 1)";
-      expect(NarrowingCastHelper.wrap(expr, "int", "bool", state)).toBe(
-        "((((flags >> 0) & 1)) != 0U)",
-      );
+      expect(
+        NarrowingCastHelper.apply(
+          expr,
+          NarrowingCastHelper.narrowingOf("int", "bool"),
+          state,
+        ),
+      ).toBe("((((flags >> 0) & 1)) != 0U)");
     });
   });
 

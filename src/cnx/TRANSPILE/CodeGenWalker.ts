@@ -1,3 +1,4 @@
+import type TPlannedNarrowing from "./2-Plan/types/TPlannedNarrowing";
 import COMPOUND_TO_BINARY from "./3-Render/codegen/types/COMPOUND_TO_BINARY";
 import NarrowingCastHelper from "./3-Render/codegen/helpers/NarrowingCastHelper";
 import OverflowHelperTemplates from "./3-Render/codegen/generators/support/OverflowHelperTemplates";
@@ -596,7 +597,12 @@ class CodeGenWalker {
     const steps = chain.steps;
     const offset = head.opsConsumed;
     const plannedOps = ops.map((op, i) =>
-      this.planPostfixOp(op, steps[i - offset] ?? null, head.rootOp),
+      this.planPostfixOp(
+        op,
+        steps[i - offset] ?? null,
+        head.rootOp,
+        this.filePlan.narrowings.get(expr)?.get(i - offset) ?? null,
+      ),
     );
 
     return {
@@ -640,6 +646,7 @@ class CodeGenWalker {
     op: TPostfixOpSyntax,
     step: IChainStep | null,
     rootOp: TPostfixOpSyntax | null,
+    narrowing: TPlannedNarrowing | null,
   ): TPlannedPostfixOp {
     const typedAs = step?.subscript ?? null;
     switch (op.kind) {
@@ -649,6 +656,7 @@ class CodeGenWalker {
           name: op.name,
           appliesToRoot: op === rootOp,
           step,
+          narrowing,
         };
       case "subscript": {
         const indexes = op.indexes;
@@ -669,6 +677,7 @@ class CodeGenWalker {
           typedAs,
           step,
           floatBits: this.filePlan.floatBitReads.has(op),
+          narrowing,
         };
       }
       case "call": {
@@ -1521,7 +1530,10 @@ class CodeGenWalker {
           CodeGenWalker.positionOf(expr),
         );
       case "literal":
-        return this._generateLiteralExpression(expr.text);
+        return this._generateLiteralExpression(
+          expr.text,
+          this.filePlan.narrowings.get(expr)?.get(0) ?? null,
+        );
       case "parenthesized":
         return `(${this.renderExpression(expr.expression)})`;
       default:
@@ -2293,7 +2305,7 @@ class CodeGenWalker {
       valuePositions,
       types,
     );
-    this.planNarrowingCTypes(expectedTypes, decidedCTypes);
+    const narrowings = this.planNarrowings(expectedTypes, decidedCTypes);
     invariant(valuePositions !== null, "2.1 hands 2.2 where each value stands");
     this.planArgumentCTypes(valuePositions, decidedCTypes);
     const clamps = this.planClamps(program, inlinedConsts, decidedCTypes);
@@ -2331,6 +2343,7 @@ class CodeGenWalker {
       clampOps: clamps.ops,
       sliceSources,
       expectedTypes,
+      narrowings,
       structInitializers: this.planStructInitializers(
         program,
         inlinedConsts,
@@ -2765,49 +2778,58 @@ class CodeGenWalker {
   }
 
   /**
-   * MISRA 10.3: the C types of the narrowing casts 2.3 writes around a value
-   * C promotes to `int` -- a bit read, a bitmap field read or a character
-   * literal -- against the type 2.2 planned for the value it sits in
+   * MISRA 10.3: how 2.3 writes each value C promotes to `int` -- a bit read, a
+   * bitmap field read or a character literal -- against the type 2.2 planned
+   * for the value it sits in, keyed by its typer step; and the C types of the
+   * casts
    */
-  private planNarrowingCTypes(
+  private planNarrowings(
     expectedTypes: ReadonlyMap<TExpression, IPlannedExpectedType>,
     cTypes: Set<string>,
-  ): void {
+  ): ReadonlyMap<TExpression, ReadonlyMap<number, TPlannedNarrowing>> {
     const typing = this.host.state.typingContext();
     const bitmapFields = this.host.state.symbols?.bitmapFields;
-    const promotedSources = (node: TExpression): string[] => {
+    const promotedSources = (node: TExpression): Array<[number, string]> => {
       if (node.kind === "literal")
-        return node.text.startsWith("'") ? ["int"] : [];
+        return node.text.startsWith("'") ? [[0, "int"]] : [];
       if (node.kind !== "postfix") return [];
-      return OperandTyper.chainOf(node, typing).steps.flatMap((step) => {
-        const from = step.before?.typeName ?? null;
-        if (step.subscript === "bit_single") return ["int"];
-        if (step.subscript === "bit_range") {
-          return from === null
-            ? []
-            : [NarrowingCastHelper.getPromotedType(from)];
-        }
-        return step.property !== null &&
-          from !== null &&
-          bitmapFields?.has(from)
-          ? ["int"]
-          : [];
-      });
+      return OperandTyper.chainOf(node, typing).steps.flatMap(
+        (step, index): Array<[number, string]> => {
+          const from = step.before?.typeName ?? null;
+          if (step.subscript === "bit_single") return [[index, "int"]];
+          if (step.subscript === "bit_range") {
+            return from === null
+              ? []
+              : [[index, NarrowingCastHelper.getPromotedType(from)]];
+          }
+          return step.subscript === null &&
+            step.property === null &&
+            from !== null &&
+            bitmapFields?.has(from)
+            ? [[index, "int"]]
+            : [];
+        },
+      );
     };
+    const narrowings = new Map<TExpression, Map<number, TPlannedNarrowing>>();
     for (const [value, planned] of expectedTypes) {
       const target = planned.type;
-      if (target === null || target === "bool") continue;
+      if (target === null) continue;
       const visit = (node: TExpression): void => {
         if (node !== value && expectedTypes.has(node)) return;
-        for (const source of promotedSources(node)) {
-          if (CastRequirement.forConversion(source, target)) {
-            cTypes.add(TYPE_MAP[target] ?? target);
-          }
+        for (const [index, source] of promotedSources(node)) {
+          const narrowing = NarrowingCastHelper.narrowingOf(source, target);
+          if (narrowing === null) continue;
+          const steps = narrowings.get(node) ?? new Map();
+          steps.set(index, narrowing);
+          narrowings.set(node, steps);
+          if (narrowing.kind === "cast") cTypes.add(narrowing.cType);
         }
         ExpressionChildren.of(node).forEach(visit);
       };
       visit(value);
     }
+    return narrowings;
   }
 
   /**
@@ -6001,11 +6023,15 @@ class CodeGenWalker {
    * Generate a literal expression with C++ mode handling
    * Uses extracted literal generator
    */
-  private _generateLiteralExpression(text: string): string {
+  private _generateLiteralExpression(
+    text: string,
+    narrowing: TPlannedNarrowing | null,
+  ): string {
     const result = generateLiteral(
       text,
       this.host.getState(),
       this.transpileState,
+      narrowing,
     );
     this.host.applyEffects(result.effects);
 

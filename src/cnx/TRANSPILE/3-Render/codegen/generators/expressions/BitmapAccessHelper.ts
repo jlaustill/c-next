@@ -7,6 +7,7 @@
  * - Register member bitmap type field access
  * - Struct member bitmap type field access
  */
+import type TPlannedNarrowing from "../../../../2-Plan/types/TPlannedNarrowing";
 import type IBitmapFieldLayout from "../../../../../types/IBitmapFieldLayout";
 import accessGenerators from "./AccessExprGenerator";
 import TGeneratorEffect from "../TGeneratorEffect";
@@ -39,6 +40,7 @@ class BitmapAccessHelper {
     bitmapType: string,
     bitmapFields: ReadonlyMap<string, ReadonlyMap<string, IBitmapFieldLayout>>,
     errorDescriptor: string,
+    narrowing: TPlannedNarrowing | null,
     state: TranspileState,
   ): BitmapAccessResult {
     const fieldInfo = bitmapFields.get(bitmapType)?.get(memberName);
@@ -50,6 +52,7 @@ class BitmapAccessHelper {
     const bitmapResult = accessGenerators.generateBitmapFieldAccess(
       result,
       fieldInfo,
+      narrowing,
       state,
     );
     return { code: bitmapResult.code, effects: bitmapResult.effects };

@@ -1,3 +1,4 @@
+import type TPlannedNarrowing from "../../../2-Plan/types/TPlannedNarrowing";
 import type IPlannedCallArgument from "./IPlannedCallArgument";
 import type TSubscriptKind from "../../../../types/TSubscriptKind";
 import type IChainStep from "../../../../types/IChainStep";
@@ -22,6 +23,8 @@ type TPlannedPostfixOp =
       readonly appliesToRoot: boolean;
       /** #1668 (C12): the typer's step, or null where its root consumed it */
       readonly step: IChainStep | null;
+      /** 2.2's decision for a bitmap field read (MISRA 10.3), or null */
+      readonly narrowing: TPlannedNarrowing | null;
     }
   /**
    * `[i]` or `[start, width]`.
@@ -60,6 +63,8 @@ type TPlannedPostfixOp =
       readonly floatBits: boolean;
       /** #1668 (C12): the typer's step, or null for an untyped chain */
       readonly step: IChainStep | null;
+      /** 2.2's decision for a bit or bit-range read (MISRA 10.3), or null */
+      readonly narrowing: TPlannedNarrowing | null;
     }
   /**
    * `(args)`

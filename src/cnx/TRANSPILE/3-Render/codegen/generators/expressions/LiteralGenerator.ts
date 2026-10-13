@@ -8,6 +8,7 @@
  * - MISRA Rule 7.2: Unsigned suffix for unsigned integer types
  * - String and numeric literals pass through unchanged
  */
+import type TPlannedNarrowing from "../../../../2-Plan/types/TPlannedNarrowing";
 import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
 import IGeneratorState from "../IGeneratorState";
@@ -86,6 +87,7 @@ const generateLiteral = (
   text: string,
   state: IGeneratorState,
   transpileState: TranspileState,
+  narrowing: TPlannedNarrowing | null,
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
   let literalText = text;
@@ -99,17 +101,10 @@ const generateLiteral = (
   // MISRA 10.3: Character literals have type int in C
   // When assigning to narrower types (u8, i8, u16, i16), add explicit cast
   if (literalText.startsWith("'")) {
-    const expectedType = state?.expectedType;
-    if (expectedType) {
-      const wrappedCode = NarrowingCastHelper.wrap(
-        literalText,
-        "int",
-        expectedType,
-        transpileState,
-      );
-      return { code: wrappedCode, effects };
-    }
-    return { code: literalText, effects };
+    return {
+      code: NarrowingCastHelper.apply(literalText, narrowing, transpileState),
+      effects,
+    };
   }
 
   // ADR-024: Transform C-Next float suffixes to standard C syntax

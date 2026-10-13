@@ -1,3 +1,4 @@
+import type TPlannedNarrowing from "./TPlannedNarrowing";
 import type TAtomicForm from "../../types/TAtomicForm";
 import type IAssignmentSyntax from "../../../types/syntax/IAssignmentSyntax";
 import type IProgramSyntax from "../../../types/syntax/IProgramSyntax";
@@ -81,6 +82,14 @@ interface IFilePlan {
   readonly cTypes: ReadonlySet<string>;
   /** The type each value is rendered against; a value not listed has none */
   readonly expectedTypes: ReadonlyMap<TExpression, IPlannedExpectedType>;
+  /**
+   * MISRA 10.3: each promoted read 2.3 casts or compares, by the value and
+   * the index of its typer step (a character literal is step 0)
+   */
+  readonly narrowings: ReadonlyMap<
+    TExpression,
+    ReadonlyMap<number, TPlannedNarrowing>
+  >;
   /** ADR-014: how each written struct initializer is written */
   readonly structInitializers: ReadonlyMap<
     TExpressionOf<"structInitializer">,
