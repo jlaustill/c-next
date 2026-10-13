@@ -50,7 +50,7 @@ import NodeFileSystem from "../../../../cnx/PARSE/1-Discover/NodeFileSystem";
  */
 type ITestGenerateOptions = Omit<
   Parameters<CodeGenWalker["plan"]>[1],
-  "targetDescription"
+  "targetDescription" | "program"
 > & {
   readonly targetDescription?: ITargetDescription;
   readonly cppMode: boolean;
@@ -66,7 +66,7 @@ class ProgramGeneration {
   ): string {
     return generator.render(
       ProgramGeneration.plan(generator, tree, program, options, registry),
-    );
+    ).code;
   }
 
   /** 2.2's decisions for the file, as `generate` hands them to 2.3 */
@@ -121,6 +121,7 @@ class ProgramGeneration {
     };
     return generator.plan(analyzed, {
       ...options,
+      program: resolved,
       targetDescription,
     });
   }

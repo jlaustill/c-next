@@ -761,14 +761,14 @@ describe("CodeGenWalker", () => {
 
     describe("getFunctionUnmodifiedParams()", () => {
       it("should return map of unmodified parameters", () => {
-        const { generator } = createMinimalGenerator(
+        const { host } = createMinimalGenerator(
           `
           void noModify(u32 param) { }
         `,
           false,
         );
 
-        const unmodifiedParams = generator.getFunctionUnmodifiedParams();
+        const unmodifiedParams = host.getFunctionUnmodifiedParams();
         expect(unmodifiedParams).toBeInstanceOf(Map);
       });
     });

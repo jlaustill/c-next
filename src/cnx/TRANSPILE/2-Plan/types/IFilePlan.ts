@@ -17,6 +17,7 @@ import type IPlannedType from "./IPlannedType";
 import type TNegativeMinimum from "./TNegativeMinimum";
 import type TStructInitializerForm from "./TStructInitializerForm";
 import type IFileSetup from "../../types/IFileSetup";
+import type IHeaderSetup from "../../types/IHeaderSetup";
 
 /**
  * 2.2 Plan's artifact for one file: every decision 2.3 Render reads, made
@@ -105,6 +106,8 @@ interface IFilePlan {
   readonly emission: IEmissionPlan;
   /** What 2.2 set up for the file, which 2.3 starts from instead of 2.2's leftovers */
   readonly setup: IFileSetup;
+  /** What 2.3 captures the file's header from, or null for no header */
+  readonly header: IHeaderSetup | null;
 }
 
 export default IFilePlan;

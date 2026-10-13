@@ -202,6 +202,9 @@ describe("#1991: each pass takes only what the pass before it returned", () => {
     expect(plans.length).toBeGreaterThan(1);
     for (const plan of plans) {
       expectFrom("2.2", plan.args[0], [only("2.1")]);
+      expectFrom("2.2", (plan.args[1] as { program: unknown }).program, [
+        only("2.1"),
+      ]);
     }
   });
 
@@ -221,7 +224,7 @@ describe("#1991: each pass takes only what the pass before it returned", () => {
     expect(renders.length).toBeGreaterThan(0);
     for (const render of renders) {
       // A walker that never planned anything: no state 2.2 left behind
-      expect(new CodeGenWalker().render(render.args[0] as never)).toBe(
+      expect(new CodeGenWalker().render(render.args[0] as never)).toEqual(
         render.returned,
       );
     }
@@ -230,7 +233,7 @@ describe("#1991: each pass takes only what the pass before it returned", () => {
   it("3.1 Write writes exactly what 2.3 rendered", async () => {
     await run();
     const rendered = [
-      ...of("2.3").map((call) => call.returned),
+      ...of("2.3").map((call) => (call.returned as { code: string }).code),
       ...of("2.3 headers").flatMap((call) => [
         ...(
           call.returned as { headersBySourcePath: Map<string, string> }
@@ -241,5 +244,18 @@ describe("#1991: each pass takes only what the pass before it returned", () => {
     expect(outputs.map((output) => output.content).sort()).toEqual(
       [...rendered].sort(),
     );
+  });
+
+  it("2.3's header step takes the header input 2.3 returned, itself", async () => {
+    await run();
+    const returned = of("2.3").map(
+      (call) => (call.returned as { headerFacts: unknown }).headerFacts,
+    );
+    expect(returned).not.toContain(null);
+    const taken = only("2.3 headers").args[0] as ReadonlyMap<string, unknown>;
+    expect(taken.size).toBe(returned.length);
+    for (const facts of taken.values()) {
+      expect(returned).toContain(facts);
+    }
   });
 });

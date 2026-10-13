@@ -65,7 +65,6 @@ import Write from "../cnx/WRITE/1-Write/Write";
 import CaughtError from "../cnx/utils/CaughtError";
 import ProgramChecks from "../cnx/PARSE/4-Resolve/ProgramChecks";
 import IncludeGuards from "../cnx/TRANSPILE/3-Render/headers/IncludeGuards";
-import HeaderEmissionCapture from "../cnx/TRANSPILE/3-Render/headers/HeaderEmissionCapture";
 
 /**
  * The config with every default filled in, except `cppRequired`: unset is
@@ -104,16 +103,6 @@ class Transpiler {
    * from `Program`, which carries the graph's.
    */
   private cppMode: boolean | undefined;
-
-  /**
-   * The artifact 1.4 Resolve emitted for this run.
-   *
-   * Read only by `getExternalStructFields`. No pass reads it: each takes
-   * 1.4's program from the artifact the pass before it returned (#1991).
-   */
-
-  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
-  private program: IProgram | null = null;
 
   /**
    * Settles when this instance's previous run has (#1721). A run starts by
@@ -295,9 +284,6 @@ class Transpiler {
       }
       return;
     }
-    this.program = front.program;
-    // 2.2 and 2.3 read cross-file facts from 2.1's program (#1991)
-    this.codeGenerator.transpileState.program = front.program;
     const headerFactsByPath = new Map<string, IHeaderEmissionFacts>();
     const diagnostics = front.diagnostics;
 
@@ -812,6 +798,7 @@ class Transpiler {
 
       // Generate code
       const plan = this.codeGenerator.plan(analyzed, {
+        program,
         debugMode: this.config.debugMode,
         targetDescription: Transpiler._runTarget(program).description,
         sourcePath,
@@ -826,41 +813,26 @@ class Transpiler {
         hasPublicInterface: PublicInterface.existsIn(
           program.symbolTable().getTSymbolsByFile(sourcePath),
         ),
+        header: {
+          anchor: discovery.anchor,
+          headerExtension: OutputExtensions.forCppMode(discovery.cppMode)
+            .header,
+          includes: discovery.includes,
+          ownIncludes: Transpiler._includesOf(discovery, sourcePath),
+        },
       });
-      const code = this.codeGenerator.render(plan);
-
-      // #1323: resolve this file's header-render input while its state is
-      // warm (reads from state populated above), but do not render it here.
-      // HeaderRenderer renders every file's header in one step, after
-      // this per-file loop finishes -- headerCode is filled in there.
-      const headerFacts = HeaderEmissionCapture.capture({
-        sourcePath,
-        program,
-        typeInput: symbolInfo,
-        state: this.codeGenerator.transpileState,
-        unmodifiedParams: this.codeGenerator.getFunctionUnmodifiedParams(),
-        anchor: discovery.anchor,
-        headerExtension: OutputExtensions.forCppMode(discovery.cppMode).header,
-        includes: discovery.includes,
-        ownIncludes: Transpiler._includesOf(discovery, sourcePath),
-      });
-      if (headerFacts) {
-        headerFactsByPath.set(sourcePath, headerFacts);
+      // #1323: 2.3 returns the header's input; HeaderRenderer renders every
+      // file's header in one step, after this per-file loop finishes.
+      const rendered = this.codeGenerator.render(plan);
+      if (rendered.headerFacts) {
+        headerFactsByPath.set(sourcePath, rendered.headerFacts);
       }
-
-      // Issue #1143: the file's one requirement list, a view of the emission
-      // plan, which decides every key (#1928, #1997). EmissionPlan.build froze
-      // that plan inside generate(), so which line reads it here no longer
-      // matters: the boundary is the plan build. A form emitted after it would
-      // lose its cost from the banner and from this result alike, so
-      // TranspileState's note* methods refuse such a write instead.
-      const requirements = this.codeGenerator.getToolchainRequirements();
 
       return this.buildSuccessResult(
         sourcePath,
-        code,
+        rendered.code,
         declarationCount,
-        requirements,
+        rendered.requirements,
       );
     } catch (err) {
       return this.buildCatchResult(sourcePath, err);
@@ -932,8 +904,6 @@ class Transpiler {
     // #1447: the previous run's Program is not this run's artifact. Nothing
     // may read one across runs, and leaving a stale one reachable is the
     // shape #1323's header-content leak had.
-    this.program = null;
-    this.codeGenerator.transpileState.program = null;
     // Issue #1241: the previous run's ADR provenance is not this run's evidence
     AdrProvenance.reset();
     // #1143, #1452: the toolchain ledger, and unlike everything above it this
@@ -1329,27 +1299,6 @@ class Transpiler {
   // ===========================================================================
   // Public Accessors
   // ===========================================================================
-
-  /**
-   * The external-struct snapshot `InitializationAnalyzer` consults, for
-   * inspection after a run.
-   *
-   * #1452 box 4: this was reachable as a mutable static, which is why no
-   * accessor existed. The state belongs to this transpiler's `CodeGenerator`
-   * now, so the one regression that asserts on it -- #985's recovered structs
-   * must reach the snapshot, which requires the snapshot to be taken AFTER
-   * recovery -- asks the instance that ran.
-   * @public read by externalSymbolRecovery.integration.test.ts, which asserts what recovery restored
-   */
-  getExternalStructFields(): ReadonlyMap<string, ReadonlySet<string>> {
-    // From the artifact, which is what `InitializationAnalyzer` reads
-    // (`context.program.externalStructFields()`). This delegated to a
-    // `TranspileState` method that wrapped the same call and had no production
-    // caller left -- so #985's regression asserted on a route the analyzer does
-    // not take, which is the #1418 shape with an integration test in front of
-    // it.
-    return this.program?.externalStructFields() ?? new Map();
-  }
 
   /**
    * Whether the last run emits C++, as its 1.1 Discover settled it (#1844).

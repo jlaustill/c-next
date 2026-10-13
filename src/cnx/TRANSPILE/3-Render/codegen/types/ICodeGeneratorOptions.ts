@@ -1,11 +1,17 @@
 import ICodeGenSymbols from "../../../../types/ICodeGenSymbols";
 import type ITargetDescription from "../../../../types/ITargetDescription";
 import type EFileType from "../../../../PARSE/1-Discover/types/EFileType";
+import type IProgram from "../../../../types/IProgram";
+import type IHeaderSetup from "../../../types/IHeaderSetup";
 
 /**
  * Options for the code generator
  */
 interface ICodeGeneratorOptions {
+  /** 2.1's program, which 2.2 and 2.3 read cross-file facts from (#1991) */
+  program: IProgram;
+  /** Absent when no header is captured for the file */
+  header?: IHeaderSetup;
   /** ADR-044: When true, generate panic helpers instead of clamp helpers */
   debugMode?: boolean;
   /**

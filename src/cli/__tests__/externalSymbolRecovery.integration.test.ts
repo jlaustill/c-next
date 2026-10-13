@@ -11,11 +11,12 @@
  *
  * Requires a C preprocessor toolchain; skips gracefully when none is available.
  */
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { mkdtempSync, writeFileSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import Transpiler from "../Transpiler";
+import Analyze from "../../cnx/TRANSPILE/1-Analyze/Analyze";
 import Preprocessor from "../../cnx/PARSE/1-Discover/preprocessor/Preprocessor";
 import detectCppSyntax from "../../cnx/PARSE/1-Discover/detectCppSyntax";
 import NodeFileSystem from "../../cnx/PARSE/1-Discover/NodeFileSystem";
@@ -159,10 +160,13 @@ describe("external-symbol recovery (integration)", () => {
       NodeFileSystem.instance,
     );
 
+    // The snapshot InitializationAnalyzer reads: 2.1's program, as 1.4 built it
+    const analyze = vi.spyOn(Analyze, "run");
     const result = await transpiler.transpile({ kind: "files" });
     expect(result.success).toBe(true);
 
-    const external = transpiler.getExternalStructFields();
+    const external = analyze.mock.calls[0][0].externalStructFields();
+    analyze.mockRestore();
     expect(external.has("widget_cfg_t")).toBe(true);
     expect([...(external.get("widget_cfg_t") ?? [])]).toContain("mode");
   });

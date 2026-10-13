@@ -1,4 +1,7 @@
 import type TPlannedNarrowing from "./2-Plan/types/TPlannedNarrowing";
+import HeaderEmissionCapture from "./3-Render/headers/HeaderEmissionCapture";
+import type IHeaderEmissionFacts from "./3-Render/headers/types/IHeaderEmissionFacts";
+import type IRenderedSource from "./3-Render/codegen/types/IRenderedSource";
 import COMPOUND_TO_BINARY from "./3-Render/codegen/types/COMPOUND_TO_BINARY";
 import NarrowingCastHelper from "./3-Render/codegen/helpers/NarrowingCastHelper";
 import OverflowHelperTemplates from "./3-Render/codegen/generators/support/OverflowHelperTemplates";
@@ -1631,6 +1634,7 @@ class CodeGenWalker {
 
     // Reset state for fresh generation (must be before any state assignments)
     this.resetGeneratorState(options.targetDescription);
+    this.host.state.program = options.program;
 
     // Initialize options and configuration (after reset)
     this.initializeGenerateOptions(options);
@@ -1652,7 +1656,7 @@ class CodeGenWalker {
   }
 
   /** 2.3 Render: the file's C, written from 2.2's plan (#1991) */
-  render(plan: IFilePlan): string {
+  render(plan: IFilePlan): IRenderedSource {
     this.filePlanOrNull = plan;
     // #1928: the banner and the file result read the planned blocks'
     // requirements off the plan itself, so nothing copies them anywhere. Held
@@ -1660,7 +1664,12 @@ class CodeGenWalker {
     this.host.state.beginRender(plan.setup, plan.emission);
     this.host.state.generator = this.host;
     try {
-      return this.assembleGeneratedOutput(plan);
+      const code = this.assembleGeneratedOutput(plan);
+      return {
+        code,
+        headerFacts: this.captureHeader(plan),
+        requirements: this.host.getToolchainRequirements(),
+      };
     } finally {
       this.filePlanOrNull = null;
     }
@@ -2224,6 +2233,21 @@ class CodeGenWalker {
    * Assemble the final generated output.
    */
   /** 2.2's decisions for the file, in the order each needs the ones before it */
+  /** #1323: the header's input, captured while this file's render state is warm */
+  private captureHeader(plan: IFilePlan): IHeaderEmissionFacts | null {
+    if (plan.header === null) return null;
+    const sourcePath = plan.setup.sourcePath;
+    invariant(sourcePath !== null, "a file with a header has a source path");
+    return HeaderEmissionCapture.capture({
+      ...plan.header,
+      sourcePath,
+      program: plan.setup.program,
+      typeInput: plan.setup.symbols,
+      state: this.host.state,
+      unmodifiedParams: this.host.getFunctionUnmodifiedParams(),
+    });
+  }
+
   private planFile(
     program: IProgramSyntax,
     options: ICodeGeneratorOptions,
@@ -2321,7 +2345,7 @@ class CodeGenWalker {
     const includeDirectives = program.includes.map((include) =>
       this.transformIncludeDirective(include.written),
     );
-    const decided: Omit<IFilePlan, "emission" | "setup"> = {
+    const decided: Omit<IFilePlan, "emission" | "setup" | "header"> = {
       program,
       selfInclude,
       includeDirectives,
@@ -2358,6 +2382,7 @@ class CodeGenWalker {
       ...decided,
       emission: EmissionPlan.build(this.planEmissionFacts(decided)),
       setup: this.host.state.fileSetup(),
+      header: options.header ?? null,
     };
   }
 
@@ -3227,7 +3252,7 @@ class CodeGenWalker {
    * writes any of the file (#1991)
    */
   private planEmissionFacts(
-    plan: Omit<IFilePlan, "emission" | "setup">,
+    plan: Omit<IFilePlan, "emission" | "setup" | "header">,
   ): IEmissionFacts {
     const existingIncludeTargets: string[] = [];
     if (plan.selfInclude !== null) {
@@ -6246,27 +6271,6 @@ class CodeGenWalker {
    */
   private generateSafeDivHelpers(safeDivOps: readonly string[]): string[] {
     return helperGenerateSafeDivHelpers(new Set(safeDivOps));
-  }
-
-  // === Pipeline surface ===
-  //
-  // `Transpiler` holds the walker, because the entry point it calls --
-  // `generate(tree, …)` -- takes the parse tree and therefore lives here. The
-  // two facts it reads afterwards are accumulated on the render side, so they
-  // are delegated rather than moved: they are answers ABOUT what was emitted,
-  // which is the host's business. Pass-by-value used to be a third, and is not
-  // (#1671): 1.4 Resolve decides it, and `Transpiler` reads `Program`.
-
-  getToolchainRequirements(
-    ...args: Parameters<CodeGenerator["getToolchainRequirements"]>
-  ): ReturnType<CodeGenerator["getToolchainRequirements"]> {
-    return this.host.getToolchainRequirements(...args);
-  }
-
-  getFunctionUnmodifiedParams(
-    ...args: Parameters<CodeGenerator["getFunctionUnmodifiedParams"]>
-  ): ReturnType<CodeGenerator["getFunctionUnmodifiedParams"]> {
-    return this.host.getFunctionUnmodifiedParams(...args);
   }
 }
 
