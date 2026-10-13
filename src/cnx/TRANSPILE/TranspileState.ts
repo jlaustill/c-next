@@ -28,6 +28,7 @@ import AdrProvenance from "../instrumentation/AdrProvenance";
 import type ILocalDeclaration from "../types/ILocalDeclaration";
 import type IVariableDeclarationSyntax from "../types/syntax/IVariableDeclarationSyntax";
 import type IBoundParameter from "./types/IBoundParameter";
+import type IFileSetup from "./types/IFileSetup";
 import ToolchainRequirements from "../instrumentation/ToolchainRequirements";
 import type TIncludeHeader from "../types/TIncludeHeader";
 
@@ -1217,6 +1218,77 @@ class TranspileState {
 
   /** Cleared per file, at the top of `generate()`. */
   reset(targetDescription: ITargetDescription | null = null): void {
+    this.clearFileData(targetDescription);
+    // Issue #1143, #1452: the per-file requirement sites live in
+    // src/cnx/instrumentation/ToolchainRequirements, which owns its own clearing.
+    ToolchainRequirements.reset();
+  }
+
+  /**
+   * 2.2's setup for this file, copied so the plan carries it and 2.3 can
+   * start from it alone (#1991).
+   */
+  fileSetup(): IFileSetup {
+    invariant(this.program, "2.1 hands 2.2 the program");
+    invariant(this.symbols, "2.2 sets the file's symbols before planning it");
+    return {
+      program: this.program,
+      symbols: this.symbols,
+      sourcePath: this.sourcePath,
+      debugMode: this.debugMode,
+      cppMode: this.cppMode,
+      targetDescription: this.targetDescription,
+      cnxIncludeRewrites: this.cnxIncludeRewrites,
+      includeKinds: this.includeKinds,
+      selfIncludeAdded: this.selfIncludeAdded,
+      needsISR: this.needsISR,
+      declarationPlan: this.declarationPlan(),
+      knownFunctions: new Set(this.knownFunctions),
+      functionSignatures: new Map(this.functionSignatures),
+      callbackTypes: new Map(this.callbackTypes),
+      callbackFieldTypes: new Map(this.callbackFieldTypes),
+      callbackTypeReferences: new Set(this.callbackTypeReferences),
+      publicCallbackTypeReferences: new Set(this.publicCallbackTypeReferences),
+      scopeMembers: new Map(
+        [...this.scopeMembers].map(([scope, members]) => [
+          scope,
+          new Set(members),
+        ]),
+      ),
+    };
+  }
+
+  /**
+   * 2.3 starts each file from the plan alone: everything 2.2 left here is
+   * cleared, then the plan's setup and emission are installed (#1991).
+   */
+  beginRender(setup: IFileSetup, emission: IEmissionPlan): void {
+    this.clearFileData(setup.targetDescription);
+    this.program = setup.program;
+    this.symbols = setup.symbols;
+    this.sourcePath = setup.sourcePath;
+    this.debugMode = setup.debugMode;
+    this.cppMode = setup.cppMode;
+    this.cnxIncludeRewrites = setup.cnxIncludeRewrites;
+    this.includeKinds = setup.includeKinds;
+    this.selfIncludeAdded = setup.selfIncludeAdded;
+    this.needsISR = setup.needsISR;
+    this.declarationPlanOrNull = setup.declarationPlan;
+    this.knownFunctions = new Set(setup.knownFunctions);
+    this.functionSignatures = new Map(setup.functionSignatures);
+    this.callbackTypes = new Map(setup.callbackTypes);
+    this.callbackFieldTypes = new Map(setup.callbackFieldTypes);
+    this.callbackTypeReferences = new Set(setup.callbackTypeReferences);
+    this.publicCallbackTypeReferences = new Set(
+      setup.publicCallbackTypeReferences,
+    );
+    for (const [scope, members] of setup.scopeMembers) {
+      this.setScopeMembers(scope, new Set(members));
+    }
+    this.emissionPlanOrNull = emission;
+  }
+
+  private clearFileData(targetDescription: ITargetDescription | null): void {
     // Generator reference
     this.generator = null;
 
@@ -1233,10 +1305,6 @@ class TranspileState {
     this.callbackTypes = new Map();
     this.generatedStructInits = new Set();
     this.exportedRegisterBlocks = [];
-
-    // Issue #1143, #1452: the per-file requirement sites live in
-    // src/cnx/instrumentation/ToolchainRequirements, which owns its own clearing.
-    ToolchainRequirements.reset();
 
     // Current context
     this.currentScopePath = "";

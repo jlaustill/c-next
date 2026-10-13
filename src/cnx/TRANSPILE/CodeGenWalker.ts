@@ -1657,7 +1657,8 @@ class CodeGenWalker {
     // #1928: the banner and the file result read the planned blocks'
     // requirements off the plan itself, so nothing copies them anywhere. Held
     // from here, so anything 2.3 asks to require is a decision 2.2 missed.
-    this.host.state.emissionPlanOrNull = plan.emission;
+    this.host.state.beginRender(plan.setup, plan.emission);
+    this.host.state.generator = this.host;
     try {
       return this.assembleGeneratedOutput(plan);
     } finally {
@@ -2320,7 +2321,7 @@ class CodeGenWalker {
     const includeDirectives = program.includes.map((include) =>
       this.transformIncludeDirective(include.written),
     );
-    const decided: Omit<IFilePlan, "emission"> = {
+    const decided: Omit<IFilePlan, "emission" | "setup"> = {
       program,
       selfInclude,
       includeDirectives,
@@ -2356,6 +2357,7 @@ class CodeGenWalker {
     return {
       ...decided,
       emission: EmissionPlan.build(this.planEmissionFacts(decided)),
+      setup: this.host.state.fileSetup(),
     };
   }
 
@@ -3224,7 +3226,9 @@ class CodeGenWalker {
    * requirements they raised, so the emission plan is built before 2.3
    * writes any of the file (#1991)
    */
-  private planEmissionFacts(plan: Omit<IFilePlan, "emission">): IEmissionFacts {
+  private planEmissionFacts(
+    plan: Omit<IFilePlan, "emission" | "setup">,
+  ): IEmissionFacts {
     const existingIncludeTargets: string[] = [];
     if (plan.selfInclude !== null) {
       existingIncludeTargets.push(`"${plan.selfInclude}"`);

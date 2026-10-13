@@ -104,12 +104,12 @@ describe("#1991: each pass takes only what the pass before it returned", () => {
   async function run(): Promise<void> {
     writeFileSync(
       join(tempDir, "lib.cnx"),
-      `scope Lib {\n    public u32 double(u32 v) { return v * 2; }\n}\n`,
+      `struct Point {\n    u32 x;\n}\n\nscope Lib {\n    public u32 double(u32 v) { return v * 2; }\n    public u32 xOf(Point p) { return p.x; }\n}\n`,
     );
     const entry = join(tempDir, "app.cnx");
     writeFileSync(
       entry,
-      `#include "lib.cnx"\n\nu32 total <- 0;\n\nvoid main() {\n    total <- Lib.double(21);\n}\n`,
+      `#include "lib.cnx"\n\nu32 total <- 0;\n\nu32 readX(Point p) {\n    return p.x;\n}\n\nvoid main() {\n    Point pt <- { x: 3 };\n    total <- Lib.double(21) + readX(pt);\n}\n`,
     );
     const transpiler = new Transpiler(
       {
@@ -212,6 +212,18 @@ describe("#1991: each pass takes only what the pass before it returned", () => {
     expect(renders).toHaveLength(of("2.2").length);
     for (const render of renders) {
       expect(planned.has(render.args[0])).toBe(true);
+    }
+  });
+
+  it("2.3 Render needs nothing but the plan", async () => {
+    await run();
+    const renders = of("2.3");
+    expect(renders.length).toBeGreaterThan(0);
+    for (const render of renders) {
+      // A walker that never planned anything: no state 2.2 left behind
+      expect(new CodeGenWalker().render(render.args[0] as never)).toBe(
+        render.returned,
+      );
     }
   });
 

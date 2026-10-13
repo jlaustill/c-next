@@ -16,6 +16,7 @@ import type IPlannedExpectedType from "./IPlannedExpectedType";
 import type IPlannedType from "./IPlannedType";
 import type TNegativeMinimum from "./TNegativeMinimum";
 import type TStructInitializerForm from "./TStructInitializerForm";
+import type IFileSetup from "../../types/IFileSetup";
 
 /**
  * 2.2 Plan's artifact for one file: every decision 2.3 Render reads, made
@@ -102,6 +103,8 @@ interface IFilePlan {
 
   /** What the file's text costs: its system includes, helpers and requirements */
   readonly emission: IEmissionPlan;
+  /** What 2.2 set up for the file, which 2.3 starts from instead of 2.2's leftovers */
+  readonly setup: IFileSetup;
 }
 
 export default IFilePlan;

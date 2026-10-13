@@ -240,7 +240,6 @@ const generatePostfixExpression = (
         input,
         state,
         orchestrator,
-        effects,
       );
 
       tracking.result = subscriptResult.result;
@@ -1060,7 +1059,6 @@ const generateSubscriptAccess = (
   input: IGeneratorInput,
   state: IGeneratorState,
   orchestrator: IOrchestrator,
-  effects: TGeneratorEffect[],
 ): SubscriptAccessResult => {
   const output: SubscriptAccessResult = {
     result: ctx.result,
@@ -1083,14 +1081,7 @@ const generateSubscriptAccess = (
     return handleSingleSubscript(ctx, indexes[0], input, orchestrator, output);
   }
 
-  return handleBitRangeSubscript(
-    ctx,
-    indexes,
-    state,
-    orchestrator,
-    effects,
-    output,
-  );
+  return handleBitRangeSubscript(ctx, indexes, state, orchestrator, output);
 };
 
 /**
@@ -1169,7 +1160,6 @@ const handleBitRangeSubscript = (
   indexes: readonly string[],
   state: IGeneratorState,
   orchestrator: IOrchestrator,
-  effects: TGeneratorEffect[],
   output: SubscriptAccessResult,
 ): SubscriptAccessResult => {
   const [start, width] = indexes;
