@@ -79,6 +79,8 @@ interface IAssignmentContext {
   readonly plannedSliceSource: IPlannedSliceSource | null;
   /** 2.2's decision: the C type a narrow compound write is cast to, or null */
   readonly plannedCompoundCast: string | null;
+  /** 2.2's decision: the `uintN_t` a write-only register range is written through, or null */
+  readonly plannedRegisterAccess: string | null;
 
   /**
    * The value's essential type, its integer type, and its constant fold.

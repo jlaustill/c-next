@@ -9,6 +9,7 @@ import NarrowingCastHelper from "./NarrowingCastHelper";
 import type EFileType from "../../PARSE/1-Discover/types/EFileType";
 import CNextSourcePath from "../../utils/CNextSourcePath";
 import TYPE_MAP from "./types/TYPE_MAP";
+import SafeDivisionTypes from "./SafeDivisionTypes";
 import TParameterInfo from "../../types/TParameterInfo";
 import ICodeGeneratorOptions from "../types/ICodeGeneratorOptions";
 import TypeValidator from "./TypeValidator";
@@ -594,8 +595,7 @@ class FilePlanner {
         CallExprUtils.generateSafeDivModHelperName(call.name, cnxType),
       );
       requirements.safeDivision(SafeDivision.operationOf(call.name), cnxType);
-      cTypes.add("bool");
-      cTypes.add(TYPE_MAP[cnxType]);
+      SafeDivisionTypes.cTypesOf(cnxType).forEach((t) => cTypes.add(t));
     }
     return planned;
   }
@@ -933,9 +933,11 @@ class FilePlanner {
     for (let i = 0; i < floatBits.reads.size + floatBits.writes.size; i++) {
       requirements.require("float_static_assert");
     }
+    const registerAccesses = new Map<IAssignmentSyntax, string>();
     const foreignRegisterValues = this.planRegisterAccesses(
       program,
       valuePositions,
+      registerAccesses,
       decidedCTypes,
     );
     const expectedTypes = this.planExpectedTypes(
@@ -994,6 +996,7 @@ class FilePlanner {
       clampChains: clamps.chains,
       compoundClamps: clamps.compound,
       compoundCasts,
+      registerAccesses,
       clampOps: clamps.ops,
       sliceSources,
       expectedTypes,
@@ -1253,6 +1256,7 @@ class FilePlanner {
   private planRegisterAccesses(
     program: IProgramSyntax,
     valuePositions: IValuePositions | null,
+    accesses: Map<IAssignmentSyntax, string>,
     cTypes: Set<string>,
   ): TExpression[] {
     invariant(valuePositions !== null, "2.1 hands 2.2 where each value stands");
@@ -1293,6 +1297,7 @@ class FilePlanner {
         this.tryEvaluateConstant(range.indexes[1]),
       );
       if (accessType === null) continue;
+      accesses.set(site, accessType);
       cTypes.add(accessType);
       for (const value of [base, offset]) {
         if (!valuePositions.positions.has(value) && !foreign.includes(value)) {

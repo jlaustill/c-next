@@ -101,6 +101,12 @@ interface IFilePlan {
    * cast back to, for each write that is cast
    */
   readonly compoundCasts: ReadonlyMap<IAssignmentSyntax, string>;
+
+  /**
+   * ADR-004: the `uintN_t` each byte-aligned write to a write-only register
+   * member is written through, for each write that is one memory access
+   */
+  readonly registerAccesses: ReadonlyMap<IAssignmentSyntax, string>;
   /** ADR-044: every `<operation>_<cnxType>` helper the file calls */
   readonly clampOps: ReadonlySet<string>;
   /** #1927: the C types the file's text uses, which decide `<stdint.h>`/`<stdbool.h>` */

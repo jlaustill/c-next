@@ -4,7 +4,6 @@
  *
  * Extracted from AccessPatternHandlers.ts and RegisterHandlers.ts to reduce duplication.
  */
-import RegisterMmio from "../../../../2-Plan/RegisterMmio";
 import RegisterAccessMode from "../../../../../utils/RegisterAccessMode";
 import type TranspileState from "../../../../TranspileState";
 import type TExpression from "../../../../../types/syntax/TExpression";
@@ -26,13 +25,13 @@ class RegisterUtils {
   static tryGenerateMMIO(
     fullName: string,
     regName: string,
+    accessType: string | null,
     startConst: number | undefined,
-    widthConst: number | undefined,
     value: string,
     state: TranspileState,
     renderExpression: (expr: TExpression) => string,
   ): IOptimizationResult {
-    const accessType = RegisterMmio.accessType(startConst, widthConst);
+    // 2.2 decided which writes are one memory access, and through what (#1991)
     if (accessType === null) return { success: false };
 
     const base = state.symbols!.registerBaseAddresses.get(regName);

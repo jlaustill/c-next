@@ -3,6 +3,7 @@
  * Tests shared utilities for register assignment handlers.
  */
 
+import RegisterMmio from "../../../../../2-Plan/RegisterMmio";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import RegisterUtils from "../RegisterUtils";
 import TranspileState from "../../../../../TranspileState";
@@ -63,7 +64,7 @@ describe("RegisterUtils", () => {
       const result = RegisterUtils.tryGenerateMMIO(
         "GPIO7_DR",
         "GPIO7",
-        undefined,
+        RegisterMmio.accessType(undefined, undefined),
         undefined,
         "0xFF",
         state,
@@ -84,8 +85,8 @@ describe("RegisterUtils", () => {
       const result = RegisterUtils.tryGenerateMMIO(
         "GPIO7_DR",
         "GPIO7",
+        RegisterMmio.accessType(3, 8),
         3,
-        8,
         "0xFF",
         state,
         (expr) => expr.written,
@@ -105,8 +106,8 @@ describe("RegisterUtils", () => {
       const result = RegisterUtils.tryGenerateMMIO(
         "GPIO7_DR",
         "GPIO7",
+        RegisterMmio.accessType(0, 12),
         0,
-        12,
         "0xFF",
         state,
         (expr) => expr.written,
@@ -132,8 +133,8 @@ describe("RegisterUtils", () => {
       const result = RegisterUtils.tryGenerateMMIO(
         "GPIO7_DR",
         "GPIO7",
+        RegisterMmio.accessType(0, 8),
         0,
-        8,
         "0xFF",
         state,
         (expr) => expr.written,
@@ -153,8 +154,8 @@ describe("RegisterUtils", () => {
       const result = RegisterUtils.tryGenerateMMIO(
         "GPIO7_DR",
         "GPIO7",
+        RegisterMmio.accessType(0, 8),
         0,
-        8,
         "0xFF",
         state,
         (expr) => expr.written,
@@ -177,8 +178,8 @@ describe("RegisterUtils", () => {
       const result = RegisterUtils.tryGenerateMMIO(
         "GPIO7_DR",
         "GPIO7",
+        RegisterMmio.accessType(8, 16),
         8,
-        16,
         "0xABCD",
         state,
         (expr) => expr.written,
@@ -201,8 +202,8 @@ describe("RegisterUtils", () => {
       const result = RegisterUtils.tryGenerateMMIO(
         "GPIO7_DR",
         "GPIO7",
+        RegisterMmio.accessType(0, 32),
         0,
-        32,
         "0xDEADBEEF",
         state,
         (expr) => expr.written,

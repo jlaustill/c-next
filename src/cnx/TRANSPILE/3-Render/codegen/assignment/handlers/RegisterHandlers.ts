@@ -77,8 +77,8 @@ function writeRegisterBitRange(
     const mmio = RegisterUtils.tryGenerateMMIO(
       memberName,
       regName,
+      ctx.plannedRegisterAccess,
       ctx.foldSubscript(0),
-      width.folded,
       ctx.generatedValue,
       ctx.state,
       ctx.renderExpression,

@@ -194,6 +194,8 @@ describe("RegisterHandlers", () => {
           { mockValue: "8" } as never,
         ]),
         generatedValue: "value",
+        // 2.2 planned this write as one uint8_t access
+        plannedRegisterAccess: "uint8_t",
       });
 
       const result = getHandler()!(ctx);
@@ -219,6 +221,8 @@ describe("RegisterHandlers", () => {
           { mockValue: "8" } as never,
         ]),
         generatedValue: "value",
+        // 2.2 planned this write as one uint8_t access
+        plannedRegisterAccess: "uint8_t",
       });
 
       const result = getHandler()!(ctx);
@@ -274,6 +278,8 @@ describe("RegisterHandlers", () => {
           { mockValue: "8" } as never,
         ]),
         generatedValue: "value",
+        // 2.2 planned this write as one uint8_t access
+        plannedRegisterAccess: "uint8_t",
       });
 
       const result = getHandler()!(ctx);
@@ -308,6 +314,8 @@ describe("RegisterHandlers", () => {
           { mockValue: "16" } as never,
         ]),
         generatedValue: "value",
+        // 2.2 planned this write as one uint16_t access
+        plannedRegisterAccess: "uint16_t",
       });
 
       const result = getHandler()!(ctx);
@@ -467,6 +475,8 @@ describe("RegisterHandlers", () => {
         ]),
         hasThis: true,
         generatedValue: "value",
+        // 2.2 planned this write as one uint32_t access
+        plannedRegisterAccess: "uint32_t",
       });
 
       const result = getHandler()!(ctx);

@@ -3048,6 +3048,7 @@ class CodeGenWalker {
       plannedClamp: this.filePlan.compoundClamps.get(site) ?? null,
       plannedSliceSource: this.filePlan.sliceSources.get(site) ?? null,
       plannedCompoundCast: this.filePlan.compoundCasts.get(site) ?? null,
+      plannedRegisterAccess: this.filePlan.registerAccesses.get(site) ?? null,
       state: this.host.state,
       // Already rendered once, above -- never again.
       generatedValue: () => value,
