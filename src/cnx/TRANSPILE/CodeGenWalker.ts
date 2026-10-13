@@ -133,6 +133,9 @@ import FormatUtils from "../utils/FormatUtils";
 import TypeCheckUtils from "../utils/TypeCheckUtils";
 import ExpressionShape from "../utils/ExpressionShape";
 import StatementNodes from "../utils/StatementNodes";
+import RegisterAccessMode from "../utils/RegisterAccessMode";
+import RegisterMmio from "./2-Plan/RegisterMmio";
+import AssignmentHandlerUtils from "./3-Render/codegen/assignment/handlers/AssignmentHandlerUtils";
 import StatementChildren from "../utils/StatementChildren";
 import LDREX_MAP from "./3-Render/codegen/types/LDREX_MAP";
 import type TAtomicForm from "./types/TAtomicForm";
@@ -2324,16 +2327,27 @@ class CodeGenWalker {
     for (let i = 0; i < floatBits.reads.size + floatBits.writes.size; i++) {
       this.host.state.requireInclude("float_static_assert");
     }
+    const foreignRegisterValues = this.planRegisterAccesses(
+      program,
+      valuePositions,
+      decidedCTypes,
+    );
     const expectedTypes = this.planExpectedTypes(
       program,
       inlinedConsts,
       valuePositions,
       types,
+      foreignRegisterValues,
     );
     const narrowings = this.planNarrowings(expectedTypes, decidedCTypes);
     invariant(valuePositions !== null, "2.1 hands 2.2 where each value stands");
     this.planArgumentCTypes(valuePositions, decidedCTypes);
-    const clamps = this.planClamps(program, inlinedConsts, decidedCTypes);
+    const clamps = this.planClamps(
+      program,
+      inlinedConsts,
+      foreignRegisterValues,
+      decidedCTypes,
+    );
     const sliceSources = new Map<IAssignmentSyntax, IPlannedSliceSource>();
     this.planAssignmentCTypes(
       program,
@@ -2476,6 +2490,7 @@ class CodeGenWalker {
     inlinedConsts: ReadonlySet<TDeclarationSyntax>,
     valuePositions: IValuePositions | null,
     types: ReadonlyMap<TTypeSyntax, IPlannedType>,
+    foreignRegisterValues: readonly TExpression[],
   ): ReadonlyMap<TExpression, IPlannedExpectedType> {
     invariant(valuePositions !== null, "2.1 hands 2.2 where each value stands");
     const typeScopes = new Map(
@@ -2599,7 +2614,72 @@ class CodeGenWalker {
       const expected = resolve(valuePositions.sites.get(expression) ?? null);
       if (expected !== null) planned.set(expression, expected);
     }
+    // Like the file's own register's: written against no type
+    for (const value of foreignRegisterValues) {
+      for (const node of ExpressionNodes.direct(value)) {
+        planned.set(node, NO_EXPECTED_TYPE);
+      }
+    }
     return planned;
+  }
+
+  /**
+   * ADR-004: the `uintN_t` each byte-aligned write to a write-only register
+   * member is written through, and the base address and offset expressions
+   * of the registers another file declares that those writes spell. The
+   * file's own registers' are already among 2.1's value positions.
+   */
+  private planRegisterAccesses(
+    program: IProgramSyntax,
+    valuePositions: IValuePositions | null,
+    cTypes: Set<string>,
+  ): TExpression[] {
+    invariant(valuePositions !== null, "2.1 hands 2.2 where each value stands");
+    const symbols = this.host.state.symbols!;
+    const foreign: TExpression[] = [];
+    const sites = program.declarations.flatMap((entry) =>
+      StatementNodes.assignments(entry.declaration),
+    );
+    for (const site of sites) {
+      const parts = AssignmentTarget.parts(site.target);
+      const range = parts.ops.at(-1);
+      if (
+        parts.identifier === null ||
+        range?.kind !== "subscript" ||
+        range.indexes.length !== 2
+      ) {
+        continue;
+      }
+      const members = parts.ops.slice(0, -1);
+      if (!members.every((op) => op.kind === "member")) continue;
+      const names = AssignmentHandlerUtils.buildRegisterNameWithScopeDetection(
+        [parts.identifier, ...members.map((op) => op.name)],
+        (name) => this.host.state.isKnownScope(name),
+      );
+      const base = symbols.registerBaseAddresses.get(names.regName);
+      const offset = symbols.registerMemberOffsets.get(names.fullName);
+      if (
+        base === undefined ||
+        offset === undefined ||
+        !RegisterAccessMode.isWriteOne(
+          symbols.registerMemberAccess.get(names.fullName),
+        )
+      ) {
+        continue;
+      }
+      const accessType = RegisterMmio.accessType(
+        this.tryEvaluateConstant(range.indexes[0]),
+        this.tryEvaluateConstant(range.indexes[1]),
+      );
+      if (accessType === null) continue;
+      cTypes.add(accessType);
+      for (const value of [base, offset]) {
+        if (!valuePositions.positions.has(value) && !foreign.includes(value)) {
+          foreign.push(value);
+        }
+      }
+    }
+    return foreign;
   }
 
   /** Every variable a scope declares, at any depth */
@@ -2703,6 +2783,7 @@ class CodeGenWalker {
   private planClamps(
     program: IProgramSyntax,
     inlinedConsts: ReadonlySet<TDeclarationSyntax>,
+    foreignRegisterValues: readonly TExpression[],
     cTypes: Set<string>,
   ): {
     readonly chains: ReadonlyMap<TExpression, IPlannedClamp>;
@@ -2719,10 +2800,12 @@ class CodeGenWalker {
     };
 
     const chains = new Map<TExpression, IPlannedClamp>();
-    for (const expr of CodeGenWalker.writtenExpressions(
-      program,
-      inlinedConsts,
-    )) {
+    for (const expr of [
+      ...CodeGenWalker.writtenExpressions(program, inlinedConsts),
+      ...foreignRegisterValues.flatMap((value) =>
+        ExpressionNodes.direct(value),
+      ),
+    ]) {
       if (expr.kind !== "binary") continue;
       if (expr.level !== "additive" && expr.level !== "multiplicative") {
         continue;

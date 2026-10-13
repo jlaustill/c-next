@@ -4,7 +4,7 @@
  *
  * Extracted from AccessPatternHandlers.ts and RegisterHandlers.ts to reduce duplication.
  */
-import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
+import RegisterMmio from "../../../../2-Plan/RegisterMmio";
 import RegisterAccessMode from "../../../../../utils/RegisterAccessMode";
 import type TranspileState from "../../../../TranspileState";
 import type TExpression from "../../../../../types/syntax/TExpression";
@@ -32,14 +32,8 @@ class RegisterUtils {
     state: TranspileState,
     renderExpression: (expr: TExpression) => string,
   ): IOptimizationResult {
-    if (
-      startConst === undefined ||
-      widthConst === undefined ||
-      startConst % 8 !== 0 ||
-      !TypeCheckUtils.isStandardWidth(widthConst)
-    ) {
-      return { success: false };
-    }
+    const accessType = RegisterMmio.accessType(startConst, widthConst);
+    if (accessType === null) return { success: false };
 
     const base = state.symbols!.registerBaseAddresses.get(regName);
     const offset = state.symbols!.registerMemberOffsets.get(fullName);
@@ -51,8 +45,7 @@ class RegisterUtils {
     const baseAddr = renderExpression(base);
     const memberOffset = renderExpression(offset);
 
-    const byteOffset = startConst / 8;
-    const accessType = `uint${widthConst}_t`;
+    const byteOffset = startConst! / 8;
     const totalOffset =
       byteOffset === 0 ? memberOffset : `${memberOffset} + ${byteOffset}`;
 
