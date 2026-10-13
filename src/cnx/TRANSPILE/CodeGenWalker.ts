@@ -4517,17 +4517,32 @@ class CodeGenWalker {
    */
   private planCaseLabel(label: TCaseLabelSyntax): TPlannedCaseLabel {
     switch (label.kind) {
-      case "qualified":
-        return { kind: "qualified", parts: label.path };
+      case "qualified": {
+        const typing = this.host.state.typingContext();
+        const head = ScopeUtils.typeHeadCName(
+          label.root,
+          label.path[0],
+          this.host.state.currentScopePath,
+          (name) =>
+            typing.program.isScopeTypeVisibleFrom(typing.sourceFile, name),
+        );
+        return { kind: "qualified", parts: [head, ...label.path.slice(1)] };
+      }
       case "identifier": {
         const resolved = this.resolveCaseConst(
           label.root,
           label.name,
           label.span,
         );
-        return label.root === null
-          ? { kind: "identifier", name: label.name, resolved }
-          : { kind: "rooted", code: resolved ?? label.name };
+        if (label.root === null) {
+          return { kind: "identifier", name: label.name, resolved };
+        }
+        // E0427 and E0717 (2.1) rejected a rooted label that binds no constant
+        invariant(
+          resolved !== null,
+          `case label '${label.root}.${label.name}' reached codegen unbound`,
+        );
+        return { kind: "rooted", code: resolved };
       }
       case "integer":
       case "hex":
@@ -4544,13 +4559,13 @@ class CodeGenWalker {
   /**
    * A const named as a case label (#1739), in any of ADR-016's spellings
    * (#1629). C switches only on an integer constant expression, which no
-   * const object is, so any const with a value is written as that value;
-   * another name as its C name. Null for a name no binding resolves, which
-   * the generator treats as an enum member.
+   * const object is, so any const with a value is written as that value.
    *
-   * The spelling is bound once, here, with its root: a bare name takes the
-   * C name every bare identifier emits under, and a rooted one names the
-   * declaration the binder found where the root points (ADR-057).
+   * The value comes from the binding, whatever the spelling: `LIMIT` and
+   * `global.LIMIT` naming one file-scope const fold alike. The spelling only
+   * decides the name of a label that does not fold -- a bare one the C name
+   * every bare identifier emits under, or null for an enum member the
+   * generator qualifies; a rooted one the declaration its root binds.
    */
   private resolveCaseConst(
     root: TChainRoot,
@@ -4558,29 +4573,34 @@ class CodeGenWalker {
     at: ISourcePosition,
   ): string | null {
     const binding = this.host.state.bindingAt(root, name, at);
-    const resolved =
-      root === null
-        ? TypeValidator.resolveBoundIdentifier(
-            name,
-            binding,
-            at,
-            (typeName: string) => this.host.isKnownStruct(typeName),
-            this.host.state,
-          )
-        : CodeGenWalker.rootedCName(binding);
-    if (resolved === null) return null;
-    const constant = PrivateConstValue.constant(
-      this.host.getState(),
-      this.transpileState,
-      resolved,
+    const declared = CodeGenWalker.boundCName(binding);
+    const constant =
+      declared === null
+        ? null
+        : PrivateConstValue.constant(
+            this.host.getState(),
+            this.transpileState,
+            declared,
+          );
+    if (constant !== null) {
+      // ADR-025's const label, recorded where it is written as its value so
+      // a codegen-only fixture occupies its matrix cell (#1241)
+      AdrProvenance.record("025", at.line);
+      this.host.applyEffects(constant.effects);
+      return constant.code;
+    }
+    if (root !== null) return declared;
+    return TypeValidator.resolveBoundIdentifier(
+      name,
+      binding,
+      at,
+      (typeName: string) => this.host.isKnownStruct(typeName),
+      this.host.state,
     );
-    if (constant === null) return resolved;
-    this.host.applyEffects(constant.effects);
-    return constant.code;
   }
 
-  /** The C name a `this.`/`global.` spelling's binding is emitted under */
-  private static rootedCName(binding: TValueBinding | null): string | null {
+  /** The C name of the declaration a binding names, when it has one */
+  private static boundCName(binding: TValueBinding | null): string | null {
     switch (binding?.kind) {
       case "variable":
       case "function":

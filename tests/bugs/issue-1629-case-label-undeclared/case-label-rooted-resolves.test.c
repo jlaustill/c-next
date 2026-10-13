@@ -6,11 +6,13 @@
 #include "case-label-rooted-resolves.test.h"
 
 // test-execution
-// test-adr: 016, 057
+// test-adr: 016, 025, 057
 // #1629: a `case` label may be written in all three of ADR-016's spellings,
 // and each resolves as it does in any other value position. Inside `Panel`,
 // `this.LIMIT` and bare `LIMIT` are the scope's 3 and `global.LIMIT` is the
-// file's 1; `global.FAR` arrives through an include.
+// file's 1; `global.FAR` arrives through an include and `FARTHER` through
+// that include's include. A bare `LIMIT` at file scope is the file's, and
+// folds as `global.LIMIT` does.
 #include <case-label-far.h>
 
 #include <stdint.h>
@@ -41,6 +43,10 @@ uint32_t Panel__pick(uint8_t s) {
             return 90U;
             break;
         }
+        case 11U: {
+            return 110U;
+            break;
+        }
         default: {
             return 0U;
             break;
@@ -52,6 +58,23 @@ uint32_t Panel__bare(uint8_t s) {
     switch (s) {
         case 3U: {
             return 30U;
+            break;
+        }
+        case 11U: {
+            return 111U;
+            break;
+        }
+        default: {
+            return 0U;
+            break;
+        }
+    }
+}
+
+uint32_t bareAtFileScope(uint8_t s) {
+    switch (s) {
+        case 1U: {
+            return 10U;
             break;
         }
         default: {
@@ -123,6 +146,22 @@ int main(void) {
     got = atFileScope(3U);
     if (got != 0) {
         return 11U;
+    }
+    got = Panel__pick(11U);
+    if (got != 110) {
+        return 12U;
+    }
+    got = Panel__bare(11U);
+    if (got != 111) {
+        return 13U;
+    }
+    got = bareAtFileScope(1U);
+    if (got != 10) {
+        return 14U;
+    }
+    got = bareAtFileScope(3U);
+    if (got != 0) {
+        return 15U;
     }
     return 0U;
 }

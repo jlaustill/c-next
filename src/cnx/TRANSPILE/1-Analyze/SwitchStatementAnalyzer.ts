@@ -1,5 +1,5 @@
 /**
- * ADR-025 switch statements: E0711-E0714.
+ * ADR-025 switch statements: E0711-E0714, and E0717.
  *
  * #1322. Five throws in `TypeValidator.validateSwitchStatement`, every one of
  * them reaching the user as `1:0` -- seven fixtures under `tests/switch/` all
@@ -31,6 +31,9 @@ import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import ParserUtils from "../../utils/ParserUtils";
+import QualifiedCName from "../../utils/QualifiedCName";
+import ScopeUtils from "../../utils/ScopeUtils";
+import type TValueBinding from "../../types/TValueBinding";
 import OperandTyper from "../../utils/OperandTyper";
 import EnumValueResolver from "./EnumValueResolver";
 import ISwitchStatementError from "./types/ISwitchStatementError";
@@ -87,6 +90,7 @@ class SwitchStatementListener extends CNextListener {
       return;
     }
 
+    if (this.reportNonConstantLabels(cases)) return;
     if (this.reportDuplicateCase(cases)) return;
 
     const verdict = this.values.classify(switchExpr);
@@ -151,6 +155,126 @@ class SwitchStatementListener extends CNextListener {
     return reported;
   }
 
+  /**
+   * E0717 (ADR-025 rule 6, #2051): a label is a literal, an enum member or a
+   * const with a value. A variable, a function or a scope has no value C can
+   * switch on, so each reached the C as a name gcc rejects, at exit 0.
+   *
+   * Asked of what the label BINDS, so one check covers every spelling the
+   * grammar admits: `level`, `this.level`, `global.level`, `Panel.level`.
+   * A label binding nothing is an enum member, a header's name or E0427's.
+   */
+  private reportNonConstantLabels(
+    cases: readonly Parser.SwitchCaseContext[],
+  ): boolean {
+    let reported = false;
+    for (const caseCtx of cases) {
+      for (const label of caseCtx.caseLabel()) {
+        const lowered = StatementLowering.caseLabel(label);
+        const binding = this.labelBinding(lowered);
+        if (binding === null || this.isConstant(binding, lowered)) continue;
+        const { line, column } = ParserUtils.getPosition(label);
+        this.found.push({
+          code: "E0717",
+          line,
+          column,
+          message: `Case label '${SwitchStatementListener.caseLabelValue(lowered)}' is not a constant`,
+          helpText:
+            "A case label must be a literal, an enum member or a const with a value (ADR-025); compare a variable with if/else.",
+        });
+        reported = true;
+      }
+    }
+    return reported;
+  }
+
+  /** What a label's name -- or a member chain's head -- binds, if it has one */
+  private labelBinding(label: TCaseLabelSyntax): TValueBinding | null {
+    const { program, sourceFile } = this.context;
+    switch (label.kind) {
+      case "identifier":
+        return program.bindValue(
+          sourceFile,
+          label.root,
+          label.name,
+          label.nameSpan,
+        );
+      case "qualified":
+        return program.bindValue(
+          sourceFile,
+          label.root,
+          label.path[0],
+          label.headSpan,
+        );
+      default:
+        return null;
+    }
+  }
+
+  private isConstant(binding: TValueBinding, label: TCaseLabelSyntax): boolean {
+    switch (binding.kind) {
+      case "foreign":
+        return true;
+      case "variable":
+        return (
+          label.kind === "identifier" &&
+          binding.symbol.isConst &&
+          !binding.symbol.isArray &&
+          binding.symbol.initialValueExpr !== undefined
+        );
+      case "local":
+        return (
+          label.kind === "identifier" &&
+          binding.declaration.isConst &&
+          binding.declaration.arrayDimensions.length === 0 &&
+          binding.declaration.initialValueExpr !== null
+        );
+      case "function":
+        return false;
+      case "scope": {
+        // `Panel.LIMIT`: the scope names where to look, the member decides
+        if (label.kind !== "qualified") return false;
+        const member = this.context.program.symbolByCName(
+          QualifiedCName.fromParts([binding.scopePath, ...label.path.slice(1)]),
+        );
+        if (member?.kind === "variable") {
+          return (
+            member.isConst &&
+            !member.isArray &&
+            member.initialValueExpr !== undefined
+          );
+        }
+        return member?.kind !== "function";
+      }
+    }
+  }
+
+  /**
+   * Which declaration or enum member a named label is, so two spellings of
+   * one -- `LIMIT` and `this.LIMIT` in its scope, `State.IDLE` and
+   * `this.State.IDLE` -- are one value. Null for a label keyed on its value.
+   */
+  private labelIdentity(
+    label: TCaseLabelSyntax,
+    at: Parser.CaseLabelContext,
+  ): string | null {
+    const { program, sourceFile } = this.context;
+    if (label.kind === "identifier") {
+      const binding = this.labelBinding(label);
+      return binding?.kind === "variable"
+        ? binding.symbol.fullyQualifiedCName
+        : null;
+    }
+    if (label.kind !== "qualified") return null;
+    const head = ScopeUtils.typeHeadCName(
+      label.root,
+      label.path[0],
+      OperandTyper.scopePathAt(ParserUtils.getPosition(at), this.context),
+      (name) => program.isScopeTypeVisibleFrom(sourceFile, name),
+    );
+    return QualifiedCName.fromParts([head, ...label.path.slice(1)]);
+  }
+
   /** True when a duplicate was reported, so the later checks are skipped. */
   private reportDuplicateCase(
     cases: readonly Parser.SwitchCaseContext[],
@@ -158,10 +282,10 @@ class SwitchStatementListener extends CNextListener {
     const seen = new Set<string>();
     for (const caseCtx of cases) {
       for (const label of caseCtx.caseLabel()) {
-        const value = SwitchStatementListener.caseLabelValue(
-          StatementLowering.caseLabel(label),
-        );
-        if (seen.has(value)) {
+        const lowered = StatementLowering.caseLabel(label);
+        const value = SwitchStatementListener.caseLabelValue(lowered);
+        const key = this.labelIdentity(lowered, label) ?? value;
+        if (seen.has(key)) {
           const { line, column } = ParserUtils.getPosition(label);
           this.found.push({
             code: "E0713",
@@ -173,7 +297,7 @@ class SwitchStatementListener extends CNextListener {
           });
           return true;
         }
-        seen.add(value);
+        seen.add(key);
       }
     }
     return false;
@@ -238,9 +362,8 @@ class SwitchStatementListener extends CNextListener {
   private static caseLabelValue(label: TCaseLabelSyntax): string {
     switch (label.kind) {
       case "qualified":
-        return label.path.join(".");
+        return [label.root, ...label.path].filter((part) => part).join(".");
       case "identifier":
-        // #1629: `global.LIMIT` and a scope's `LIMIT` are different consts
         return label.root === null ? label.name : `${label.root}.${label.name}`;
       case "integer":
       case "hex": {

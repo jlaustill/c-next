@@ -1,0 +1,53 @@
+// test-error
+// test-adr: 025
+// #1629 review: a label is keyed on the declaration it binds, not on how it
+// is spelled. Inside `Panel`, `LIMIT` and `this.LIMIT` are one const, so the
+// second is E0713. `this.LIMIT` and `global.LIMIT` bind two consts and stay
+// silent, as do `State.IDLE` and `global.State.IDLE`; `this.State.RUN`
+// repeats `State.RUN`.
+const u8 LIMIT <- 1;
+
+enum State {
+    IDLE,
+    RUN
+}
+
+scope Panel {
+    const u8 LIMIT <- 3;
+
+    enum State {
+        IDLE,
+        RUN
+    }
+
+    public u32 consts(u8 s) {
+        switch (s) {
+            case this.LIMIT || global.LIMIT {
+                return 1;
+            }
+            case LIMIT {
+                return 2;
+            }
+            default {
+                return 0;
+            }
+        }
+    }
+
+    public u32 members(State st, global.State g) {
+        switch (st) {
+            case State.IDLE {
+                return 1;
+            }
+            case State.RUN || this.State.RUN {
+                return 2;
+            }
+        }
+        return 0;
+    }
+}
+
+u32 main() {
+    u32 a <- Panel.consts(1);
+    return a;
+}

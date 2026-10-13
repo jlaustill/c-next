@@ -21,6 +21,7 @@ extern const uint8_t Panel__PUB;
 /* Function prototypes */
 uint32_t Panel__pick(uint8_t s);
 uint32_t Panel__bare(uint8_t s);
+uint32_t bareAtFileScope(uint8_t s);
 uint32_t atFileScope(uint8_t s);
 
 #ifdef __cplusplus

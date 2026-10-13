@@ -1,0 +1,3 @@
+// Helper for case-label-rooted-resolves: a const two `.cnx` includes away
+// from the switch, so a case label is answered across a transitive include.
+const u8 FARTHER <- 11;

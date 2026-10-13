@@ -216,13 +216,25 @@ switch (cmd) {
 }
 
 // A const label may be written bare, this.X or global.X, resolving as
-// anywhere else; a label naming nothing is an error (E0427)
+// anywhere else; a label naming nothing is an error (E0427), and one naming
+// a variable or a function is not a constant (E0717)
 switch (level) {
     case global.LIMIT {
         warn();
     }
     default {
         idle();
+    }
+}
+
+// An enum member takes a root too: inside a scope, this.State.IDLE
+// (or State.IDLE) is the scope's own State, global.EMode.IDLE the file's
+switch (state) {
+    case this.State.IDLE {
+        idle();
+    }
+    case this.State.RUN {
+        run();
     }
 }
 

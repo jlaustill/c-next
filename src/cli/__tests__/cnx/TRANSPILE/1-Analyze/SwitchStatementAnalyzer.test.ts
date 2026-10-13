@@ -156,6 +156,33 @@ describe("SwitchStatementAnalyzer", () => {
       expect(errors(labels("this.LIMIT", "global.LIMIT"))).toEqual([]);
     });
 
+    it("rejects `LIMIT` beside `this.LIMIT`: one const, two spellings", () => {
+      const found = errors(labels("this.LIMIT", "LIMIT"));
+      expect(found).toHaveLength(1);
+      expect(found[0].code).toBe("E0713");
+      expect(found[0].message).toContain("'LIMIT'");
+    });
+
+    it("rejects `this.State.RUN` beside `State.RUN` in its scope (#147)", () => {
+      const found = errors(
+        [
+          "scope Motor {",
+          "    enum State { IDLE, RUN }",
+          "    public u32 pick(State s) {",
+          "        switch (s) {",
+          "            case State.IDLE { return 1; }",
+          "            case State.RUN || this.State.RUN { return 2; }",
+          "        }",
+          "        return 0;",
+          "    }",
+          "}",
+        ].join("\n"),
+      );
+      expect(found).toHaveLength(1);
+      expect(found[0].code).toBe("E0713");
+      expect(found[0].message).toContain("'this.State.RUN'");
+    });
+
     it("rejects the same character label twice", () => {
       const found = errors(labels("'a'", "'a'"));
       expect(found).toHaveLength(1);
@@ -236,5 +263,52 @@ describe("SwitchStatementAnalyzer", () => {
         ),
       ).toEqual([]);
     });
+  });
+
+  describe("a label must be a constant (E0717, #2051)", () => {
+    const pick = (label: string) =>
+      errors(
+        [
+          "u8 counter <- 2;",
+          "const u8 REAL <- 1;",
+          "scope Panel {",
+          "    u8 level <- 1;",
+          "    const u8 OWN <- 3;",
+          "    public u8 helper() { return 1; }",
+          "    public u32 pick(u8 s, u8 p) {",
+          "        const u8 K <- 5;",
+          "        switch (s) {",
+          `            case ${label} { return 1; }`,
+          "            default { return 0; }",
+          "        }",
+          "    }",
+          "}",
+        ].join("\n"),
+      );
+
+    it.each([
+      "level",
+      "this.level",
+      "global.counter",
+      "counter",
+      "helper",
+      "this.helper",
+      "global.Panel",
+      "Panel.level",
+      "Panel.helper",
+      "p",
+    ])("rejects `%s`", (label) => {
+      const found = pick(label);
+      expect(found).toHaveLength(1);
+      expect(found[0].code).toBe("E0717");
+      expect(found[0].message).toBe(`Case label '${label}' is not a constant`);
+    });
+
+    it.each(["OWN", "this.OWN", "global.REAL", "REAL", "Panel.OWN", "K", "9"])(
+      "accepts `%s`",
+      (label) => {
+        expect(pick(label)).toEqual([]);
+      },
+    );
   });
 });

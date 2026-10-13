@@ -51,6 +51,20 @@ scope Panel {
             }
         }
     }
+
+    // a member chain's head is looked up from its root too (#147): `EMode` is
+    // the file's, so `this.EMode` names nothing while `global.EMode` is real
+    public u32 chains(EMode e) {
+        switch (e) {
+            case this.EMode.IDLE {
+                return 1;
+            }
+            case global.EMode.RUN {
+                return 2;
+            }
+        }
+        return 0;
+    }
 }
 
 u32 onConst(u8 s) {

@@ -7,6 +7,7 @@
  */
 
 #include <stdint.h>
+#include <case-label-farther.h>
 
 #ifdef __cplusplus
 extern "C" {

@@ -4,8 +4,17 @@ import type ISyntaxNode from "./ISyntaxNode";
 
 /** One `caseLabel` alternative, as written */
 type TCaseLabelSyntax = ISyntaxNode &
-  (
-    | { readonly kind: "qualified"; readonly path: readonly string[] }
+  /**
+   * A member chain, `EMode.IDLE`, in any of ADR-016's spellings:
+   * `this.State.IDLE` and `global.EMode.IDLE` too (#147). `headSpan` is the
+   * chain's first name, the one a root says where to look for.
+   */
+  (| {
+        readonly kind: "qualified";
+        readonly root: TChainRoot;
+        readonly path: readonly string[];
+        readonly headSpan: ISourceSpan;
+      }
     /**
      * A name in any of ADR-016's three spellings: `LIMIT`, `this.LIMIT` or
      * `global.LIMIT` (#1629). `nameSpan` is the name's own token, which a

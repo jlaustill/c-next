@@ -1,0 +1,97 @@
+// test-error
+// test-adr: 025
+// #2051: ADR-025 admits only constants as case labels. A label naming a
+// variable, a function or a scope reached the C as a name gcc rejects, at
+// exit 0, in every spelling. Each flagged label sits beside a const, an enum
+// member and a literal in the same switch, which stay silent.
+u8 counter <- 2;
+const u8 REAL <- 1;
+
+enum EMode {
+    IDLE,
+    RUN
+}
+
+scope Panel {
+    u8 level <- 1;
+    const u8 OWN <- 3;
+
+    public u8 helper() {
+        return 1;
+    }
+
+    public u32 rooted(u8 s) {
+        switch (s) {
+            case this.OWN || global.REAL || 9 {
+                return 1;
+            }
+            case this.helper {
+                return 2;
+            }
+            case this.level {
+                return 3;
+            }
+            case global.counter {
+                return 4;
+            }
+            case global.Panel {
+                return 5;
+            }
+            default {
+                return 0;
+            }
+        }
+    }
+
+    public u32 bare(u8 s) {
+        switch (s) {
+            case OWN || REAL || 'a' {
+                return 1;
+            }
+            case level || helper || counter {
+                return 2;
+            }
+            default {
+                return 0;
+            }
+        }
+    }
+}
+
+u32 qualified(u8 s, u8 p) {
+    u8 m <- 2;
+    switch (s) {
+        case Panel.level {
+            return 1;
+        }
+        case p || m {
+            return 2;
+        }
+        case REAL || 0x10 {
+            return 3;
+        }
+        default {
+            return 0;
+        }
+    }
+}
+
+u32 onEnum(EMode e) {
+    switch (e) {
+        case EMode.IDLE {
+            return 1;
+        }
+        case RUN {
+            return 2;
+        }
+    }
+    return 0;
+}
+
+u32 main() {
+    u32 a <- Panel.rooted(1);
+    u32 b <- Panel.bare(1);
+    u32 c <- qualified(1, 2);
+    u32 d <- onEnum(EMode.IDLE);
+    return a + b + c + d;
+}

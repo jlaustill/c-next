@@ -6,6 +6,7 @@
  * - E0712: fewer than two clauses (MISRA C:2012 Rule 16.6)
  * - E0713: duplicate case value
  * - E0714: the clauses do not cover the enum's variants exactly
+ * - E0717: a case label that is not a constant
  */
 import IBaseAnalysisError from "./IBaseAnalysisError";
 

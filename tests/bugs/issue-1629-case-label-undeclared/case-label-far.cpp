@@ -5,8 +5,11 @@
 
 #include "case-label-far.hpp"
 
-#include <stdint.h>
-
 // Helper for case-label-rooted-resolves: a const that reaches the switch only
 // through a `.cnx` include, so `global.FAR` is answered across a file boundary.
+// It includes the const one more hop away.
+#include <case-label-farther.hpp>
+
+#include <stdint.h>
+
 extern const uint8_t FAR = 9U;

@@ -17589,18 +17589,64 @@ describe("CodeGenWalker", () => {
       expect(code).not.toContain("case LIMIT:");
     });
 
-    it("leaves a rooted label no binding resolves as it was written (#1629)", () => {
-      // E0427 stops such a label before codegen; without analysis the walk
-      // still renders it rather than dropping it
+    it("refuses a rooted label no binding resolves, which 2.1 rejected (#1629)", () => {
+      // E0427 stops such a label before codegen, so reaching the walk is a
+      // broken invariant rather than a name to guess
+      expect(() =>
+        generate(`
+          u32 pick(u8 v) {
+            switch (v) {
+              case global.NOPE { return 1; }
+              default { return 3; }
+            }
+          }
+        `),
+      ).toThrow("case label 'global.NOPE' reached codegen unbound");
+    });
+
+    it("folds a bare file-scope const label as its rooted spelling does (#1629)", () => {
       const code = generate(`
-        u32 pick(u8 v) {
+        const u8 LIMIT <- 1;
+        u32 bare(u8 v) {
           switch (v) {
-            case global.NOPE { return 1; }
+            case LIMIT { return 1; }
+            default { return 3; }
+          }
+        }
+        u32 rooted(u8 v) {
+          switch (v) {
+            case global.LIMIT { return 1; }
             default { return 3; }
           }
         }
       `);
-      expect(code).toContain("case NOPE:");
+      expect(code).not.toContain("case LIMIT:");
+      expect(code.match(/case 1U:/g)).toHaveLength(2);
+    });
+
+    it("qualifies a scope's own enum in a label, in every spelling (#2052, #147)", () => {
+      const code = generate(`
+        enum EMode { IDLE, RUN }
+        scope Motor {
+          enum State { STOPPED, RUNNING }
+          public u32 step(State s, EMode m) {
+            switch (s) {
+              case State.STOPPED { return 1; }
+              case this.State.RUNNING { return 2; }
+            }
+            switch (m) {
+              case global.EMode.IDLE { return 3; }
+              case EMode.RUN { return 4; }
+            }
+            return 0;
+          }
+        }
+      `);
+      expect(code).toContain("case Motor__State__STOPPED:");
+      expect(code).toContain("case Motor__State__RUNNING:");
+      expect(code).toContain("case EMode__IDLE:");
+      expect(code).toContain("case EMode__RUN:");
+      expect(code).not.toContain("case State__");
     });
 
     it("folds a bool and an enum const named in a static initializer", () => {

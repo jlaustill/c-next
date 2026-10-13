@@ -343,9 +343,15 @@ class StatementLowering {
     const negative = ctx.children?.[0]?.getText() === "-";
     const qualified = ctx.qualifiedType();
     if (qualified) {
+      const names = qualified.IDENTIFIER();
       return {
         kind: "qualified",
-        path: qualified.IDENTIFIER().map((id) => id.getText()),
+        root: ChainRoot.ofCaseLabel(ctx),
+        path: names.map((id) => id.getText()),
+        headSpan: ParserUtils.getSpan({
+          start: names[0].symbol,
+          stop: names[0].symbol,
+        }),
         ...node,
       };
     }

@@ -113,7 +113,11 @@ class UndeclaredValueListener extends CNextListener {
     if (label.kind === "identifier") {
       this.check({ name: label.name, span: label.nameSpan }, label.root, ctx);
     } else if (label.kind === "qualified") {
-      this.check({ name: label.path[0], span: label.span }, null, ctx);
+      this.check(
+        { name: label.path[0], span: label.headSpan },
+        label.root,
+        ctx,
+      );
     }
   };
 

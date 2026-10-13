@@ -1,0 +1,66 @@
+// test-execution
+// test-adr: 016, 025, 057
+// #2052: inside its scope, `State.STOPPED` names the scope's own enum, as it
+// does in any other value position, so the label is `Motor__State__STOPPED`;
+// it used to be `State__STOPPED`, which nothing declares. `this.State.RUNNING`
+// and `global.EMode.IDLE` (#147) take the same qualification, and the bare
+// `EMode.RUN` beside them is the file-scope control.
+enum EMode {
+    IDLE,
+    RUN
+}
+
+scope Motor {
+    enum State {
+        STOPPED,
+        RUNNING
+    }
+
+    State current <- State.STOPPED;
+
+    public u32 step() {
+        switch (current) {
+            case State.STOPPED {
+                current <- State.RUNNING;
+                return 1;
+            }
+            case this.State.RUNNING {
+                return 2;
+            }
+        }
+        return 0;
+    }
+
+    public u32 mode(EMode m) {
+        switch (m) {
+            case global.EMode.IDLE {
+                return 10;
+            }
+            case EMode.RUN {
+                return 20;
+            }
+        }
+        return 0;
+    }
+}
+
+u32 main() {
+    u32 got <- 0;
+    got <- Motor.step();
+    if (got != 1) {
+        return 1;
+    }
+    got <- Motor.step();
+    if (got != 2) {
+        return 2;
+    }
+    got <- Motor.mode(EMode.IDLE);
+    if (got != 10) {
+        return 3;
+    }
+    got <- Motor.mode(EMode.RUN);
+    if (got != 20) {
+        return 4;
+    }
+    return 0;
+}

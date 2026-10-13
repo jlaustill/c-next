@@ -332,7 +332,7 @@ switchCase
 // No || ambiguity: logical OR isn't valid in constant context
 caseLabel
     : qualifiedType      // Enum value: EState.IDLE
-    | ('this' | 'global') '.' IDENTIFIER  // ADR-016/057 rooted const: this.LIMIT (#1629)
+    | ('this' | 'global') '.' (qualifiedType | IDENTIFIER)  // ADR-016 rooted: this.LIMIT, this.State.IDLE (#1629, #147)
     | IDENTIFIER         // Const or enum member
     | '-'? INTEGER_LITERAL  // Allow negative integers
     | '-'? HEX_LITERAL      // Allow negative hex (e.g., -0x80)

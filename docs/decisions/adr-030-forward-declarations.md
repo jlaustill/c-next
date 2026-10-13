@@ -384,7 +384,8 @@ is a different question and is not covered here, equally in both positions.
 
 A `switch` case label is a value position too (#1629), in every spelling it
 admits: `case NOPE`, `case this.NOPE`, `case global.NOPE`, and the head of
-`case NOPE.RUN`. A bare enum member (`case IDLE`) is visible, and whether it
+`case NOPE.RUN`, `case this.NOPE.RUN` and `case global.NOPE.RUN` (#147), looked
+up from its root like the rest. A bare enum member (`case IDLE`) is visible, and whether it
 may stand bare is E0424's question (ADR-017), not this one's.
 
 **A variable is defined once its declaration closes** — after its initializer
