@@ -658,6 +658,11 @@ class CodeGenWalker {
   }
 
   private renderPostfix(expr: TExpression): string {
+    invariant(
+      CodeGenWalker.safeDivisionOperation(expr) === null ||
+        this.filePlan.safeDivisions.has(expr),
+      "2.2 planned every safe-division helper 2.3 calls (ADR-051)",
+    );
     const result = generatePostfixExpression(
       this.planPostfixExpression(expr),
       this.host.getInput(),
@@ -1430,6 +1435,7 @@ class CodeGenWalker {
    * Generate a primary expression.
    * Part of IOrchestrator interface for PostfixExpressionGenerator.
    */
+
   private renderPrimary(expr: TExpression): string {
     switch (expr.kind) {
       case "sizeof":
@@ -1751,26 +1757,39 @@ class CodeGenWalker {
   private planSafeDivisions(
     program: IProgramSyntax,
     inlinedConsts: ReadonlySet<TDeclarationSyntax>,
-  ): void {
+  ): ReadonlySet<TExpression> {
     const state = this.host.state;
     const typing = state.typingContext();
+    const planned = new Set<TExpression>();
     for (const expression of CodeGenWalker.writtenExpressions(
       program,
       inlinedConsts,
     )) {
-      if (expression.kind !== "postfix") continue;
-      const head = ExpressionShape.headOf(expression);
-      const operation =
-        CodeGenWalker.SAFE_DIVISIONS[head.identifier?.name ?? ""];
-      const call = head.ops[0];
-      if (head.root !== null || operation === undefined) continue;
-      if (call?.kind !== "call" || call.arguments.length !== 4) continue;
+      const operation = CodeGenWalker.safeDivisionOperation(expression);
+      if (operation === null || expression.kind !== "postfix") continue;
+      const call = ExpressionShape.headOf(expression).ops[0];
+      if (call?.kind !== "call") continue;
       const cnxType = OperandTyper.typeOf(call.arguments[0], typing)?.typeName;
       if (cnxType == null) continue;
+      planned.add(expression);
       state.usedSafeDivOps.add(`${operation}_${cnxType}`);
       state.emittedCTypes.add("bool");
       state.emittedCTypes.add(TYPE_MAP[cnxType]);
     }
+    return planned;
+  }
+
+  /** ADR-051: whether an expression is a `safe_div`/`safe_mod` call, and which */
+  private static safeDivisionOperation(
+    expression: TExpression,
+  ): "div" | "mod" | null {
+    if (expression.kind !== "postfix") return null;
+    const head = ExpressionShape.headOf(expression);
+    const operation = CodeGenWalker.SAFE_DIVISIONS[head.identifier?.name ?? ""];
+    const call = head.ops[0];
+    if (head.root !== null || operation === undefined) return null;
+    if (call?.kind !== "call" || call.arguments.length !== 4) return null;
+    return operation;
   }
 
   private static readonly SAFE_DIVISIONS: Readonly<
@@ -2050,7 +2069,7 @@ class CodeGenWalker {
     if (this.readsCharCount(program, inlinedConsts)) {
       this.host.state.requireInclude("string");
     }
-    this.planSafeDivisions(program, inlinedConsts);
+    const safeDivisions = this.planSafeDivisions(program, inlinedConsts);
     const casts = this.planCasts(program, inlinedConsts);
     for (const [expression, cast] of casts) {
       // ADR-024: a saturating cast compares against <limits.h>'s macros
@@ -2090,6 +2109,7 @@ class CodeGenWalker {
       floatBitReads: floatBits.reads,
       floatBitWrites: floatBits.writes,
       atomicForms: this.planInterruptSafety(program),
+      safeDivisions,
     };
   }
 

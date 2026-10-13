@@ -58,6 +58,8 @@ interface IFilePlan {
   readonly floatBitWrites: ReadonlySet<TExpression>;
   /** ADR-049: how each written atomic read-modify-write is written */
   readonly atomicForms: ReadonlyMap<IAssignmentSyntax, TAtomicForm>;
+  /** ADR-051: each written `safe_div`/`safe_mod` call, whose helper 2.2 required */
+  readonly safeDivisions: ReadonlySet<TExpression>;
 }
 
 export default IFilePlan;

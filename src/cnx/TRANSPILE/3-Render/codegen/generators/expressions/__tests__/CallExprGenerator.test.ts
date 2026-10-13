@@ -1014,8 +1014,6 @@ describe("CallExprGenerator", () => {
         ),
       });
 
-      // 2.2 planned the helper before 2.3 calls it (#1991)
-      sharedState.usedSafeDivOps.add("div_u32");
       const result = generateFunctionCall(
         "safe_div",
         planArguments(orchestrator, argExpressions),
@@ -1050,8 +1048,6 @@ describe("CallExprGenerator", () => {
         ),
       });
 
-      // 2.2 planned the helper before 2.3 calls it (#1991)
-      sharedState.usedSafeDivOps.add("mod_i64");
       const result = generateFunctionCall(
         "safe_mod",
         planArguments(orchestrator, argExpressions),
