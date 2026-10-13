@@ -1,7 +1,10 @@
 // The values the c-type-headers fixtures read. They are declared here, in
 // an included file, so the including file declares no fixed-width type of
 // its own and its <stdint.h> comes only from the casts it writes (#1991).
+#include "macro-dims.h"
+
 u8 small;
 u16 val;
 u32 big;
 u8[8] buf;
+u8[BUF_COUNT] mbuf;

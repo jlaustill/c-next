@@ -5,11 +5,13 @@
 
 #include "imported-values.h"
 
-#include <stdint.h>
-
 // The values the c-type-headers fixtures read. They are declared here, in
 // an included file, so the including file declares no fixed-width type of
 // its own and its <stdint.h> comes only from the casts it writes (#1991).
+#include "macro-dims.h"
+
+#include <stdint.h>
+
 uint8_t small = 0;
 
 uint16_t val = 0;
@@ -17,3 +19,5 @@ uint16_t val = 0;
 uint32_t big = 0;
 
 uint8_t buf[8] = {0};
+
+uint8_t mbuf[BUF_COUNT] = {0};

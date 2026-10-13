@@ -2275,6 +2275,7 @@ class CodeGenWalker {
     );
     this.planNarrowingCTypes(expectedTypes, decidedCTypes);
     this.planAssignmentCTypes(program, atomicForms, decidedCTypes);
+    this.planLengthCTypes(program, inlinedConsts, decidedCTypes);
     return {
       program,
       selfInclude,
@@ -2490,6 +2491,31 @@ class CodeGenWalker {
       }
     }
     return found;
+  }
+
+  /**
+   * `.bit_length`/`.byte_length` of an array with a dimension that does not
+   * fold (a C macro) is a product 2.3 writes in `uint32_t` (#1760)
+   */
+  private planLengthCTypes(
+    program: IProgramSyntax,
+    inlinedConsts: ReadonlySet<TDeclarationSyntax>,
+    cTypes: Set<string>,
+  ): void {
+    const typing = this.host.state.typingContext();
+    for (const expression of CodeGenWalker.writtenExpressions(
+      program,
+      inlinedConsts,
+    )) {
+      if (expression.kind !== "postfix") continue;
+      const steps = OperandTyper.chainOf(expression, typing).steps;
+      const unfolded = steps.some(
+        (step) =>
+          (step.property === "bit_length" || step.property === "byte_length") &&
+          step.before?.dimensions.some((dim) => typeof dim !== "number"),
+      );
+      if (unfolded) cTypes.add("uint32_t");
+    }
   }
 
   /**

@@ -7,6 +7,7 @@
  */
 
 #include <stdint.h>
+#include "macro-dims.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -17,6 +18,7 @@ extern uint8_t small;
 extern uint16_t val;
 extern uint32_t big;
 extern uint8_t buf[8];
+extern uint8_t mbuf[BUF_COUNT];
 
 #ifdef __cplusplus
 }
