@@ -710,6 +710,26 @@ The two provider-side relationships carry no declaration: `.expected.error`
 holds no file path, so occupancy for them is not derivable and the report
 renders them `n/a` rather than counting them empty.
 
+### 6. Compound Division and Modulo (Issue #1770)
+
+`x /<- d` divides by `d` and `x %<- d` takes the remainder by `d`, so the check
+holds for them as it does for `/` and `%`: E0800 for `/<-` and E0802 for `%<-`,
+at the divisor, wherever the assignment stands -- a statement, a `for`
+initializer or a `for` update. Before #1770 each of these was accepted and
+emitted `x /= 0U` or `x %= 0U`.
+
+**File:** `tests/bugs/issue-1770-compound-division-zero/compound-division-zero.test.cnx`
+
+```cnx
+const u32 ZERO <- 0;
+
+u32 x <- 10;
+x /<- 0;      // Error: Division by zero (E0800)
+x %<- ZERO;   // Error: Modulo by zero (E0802)
+x /<- 2;      // OK
+for (x /<- 0; x < 5; x %<- ZERO) { }   // E0800, E0802
+```
+
 ## Diagnostics
 
 | Code  | Reported when                                                     | Asserted by                                        |

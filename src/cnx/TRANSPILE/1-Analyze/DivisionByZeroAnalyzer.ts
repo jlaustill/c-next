@@ -7,7 +7,8 @@
  * a constant expression (`2 - 2`, `-0.0`, `(f32)0`), by the one constant
  * fold, so a name means the declaration ADR-057 names wherever the division
  * is written -- a statement, a member or file initializer, an array dimension,
- * an enum member's value (#1664 box 7, #1268).
+ * an enum member's value (#1664 box 7, #1268). A compound `/<-` or `%<-`
+ * divides by its value the same way (#1770).
  */
 
 import { ParseTreeWalker } from "antlr4ng";
@@ -19,7 +20,9 @@ import OperandTyper from "../../utils/OperandTyper";
 import ConstantFold from "../../utils/ConstantFold";
 import ConstExprLowering from "../../utils/ConstExprLowering";
 import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
+import AssignmentSiteListener from "./AssignmentSiteListener";
 import type IAnalysisContext from "./types/IAnalysisContext";
+import type TAssignmentSite from "../../types/TAssignmentSite";
 
 /**
  * Detect division by zero (including const identifiers)
@@ -74,6 +77,24 @@ class DivisionByZeroListener extends CNextListener {
   };
 
   /**
+   * `x /<- d` and `x %<- d` divide `x` by `d`, in a statement or a `for`
+   * header; either is inside a statement, so `safe_div` could replace it
+   */
+  public checkAssignment(site: TAssignmentSite): void {
+    const op = site.assignmentOperator();
+    let operator: string | null = null;
+    if (op.SLASH_ASSIGN() !== null) operator = "/";
+    else if (op.PERCENT_ASSIGN() !== null) operator = "%";
+    if (operator === null) return;
+
+    const divisor = site.expression();
+    if (this.isZero(divisor)) {
+      const { line, column } = ParserUtils.getPosition(divisor);
+      this.analyzer.addError(operator, line, column, true);
+    }
+  }
+
+  /**
    * Whether a divisor is a compile-time zero, integer or float alike (ADR-051
    * §4). An enum or Boolean operand is not a number at all -- E0810/E0811 say
    * so -- so it is not this rule's. A leaf with no C-Next type is still a
@@ -82,7 +103,9 @@ class DivisionByZeroListener extends CNextListener {
    * value, so `(Nope)0` stays the undefined type's error, E0426 (#1268
    * review).
    */
-  private isZero(ctx: Parser.UnaryExpressionContext): boolean {
+  private isZero(
+    ctx: Parser.UnaryExpressionContext | Parser.ExpressionContext,
+  ): boolean {
     const divisor = SyntaxLowering.expressionNode(ctx);
     const numeric = OperandTyper.valueLeaves(divisor, this.context).every(
       (leaf) =>
@@ -139,8 +162,13 @@ class DivisionByZeroAnalyzer {
     this.errors = [];
     const listener = new DivisionByZeroListener(this, this.context);
     ParseTreeWalker.DEFAULT.walk(listener, tree);
+    ParseTreeWalker.DEFAULT.walk(
+      new AssignmentSiteListener((site) => listener.checkAssignment(site)),
+      tree,
+    );
 
-    return this.errors;
+    // Two walks; report in source order
+    return this.errors.sort((a, b) => a.line - b.line || a.column - b.column);
   }
 
   /**
