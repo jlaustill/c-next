@@ -34,6 +34,8 @@ import { basename } from "node:path";
 import CNextSourcePath from "../utils/CNextSourcePath";
 import CommentFormatter from "./3-Render/codegen/CommentFormatter";
 import PrivateConstValue from "./3-Render/codegen/PrivateConstValue";
+import type TChainRoot from "../types/TChainRoot";
+import type TValueBinding from "../types/TValueBinding";
 import IComment from "../types/IComment";
 import TYPE_MAP from "./3-Render/codegen/types/TYPE_MAP";
 import TParameterInfo from "../types/TParameterInfo";
@@ -4516,14 +4518,33 @@ class CodeGenWalker {
    */
   private planCaseLabel(label: TCaseLabelSyntax): TPlannedCaseLabel {
     switch (label.kind) {
-      case "qualified":
-        return { kind: "qualified", parts: label.path };
-      case "identifier":
-        return {
-          kind: "identifier",
-          name: label.name,
-          resolved: this.resolveCaseConst(label.name, label.span),
-        };
+      case "qualified": {
+        const typing = this.host.state.typingContext();
+        const head = ScopeUtils.typeHeadCName(
+          label.root,
+          label.path[0],
+          this.host.state.currentScopePath,
+          (name) =>
+            typing.program.isScopeTypeVisibleFrom(typing.sourceFile, name),
+        );
+        return { kind: "qualified", parts: [head, ...label.path.slice(1)] };
+      }
+      case "identifier": {
+        const resolved = this.resolveCaseConst(
+          label.root,
+          label.name,
+          label.span,
+        );
+        if (label.root === null) {
+          return { kind: "identifier", name: label.name, resolved };
+        }
+        // E0427 and E0717 (2.1) rejected a rooted label that binds no constant
+        invariant(
+          resolved !== null,
+          `case label '${label.root}.${label.name}' reached codegen unbound`,
+        );
+        return { kind: "rooted", code: resolved };
+      }
       case "integer":
       case "hex":
         return { kind: "numeric", text: label.text, negative: label.negative };
@@ -4537,27 +4558,59 @@ class CodeGenWalker {
   }
 
   /**
-   * A bare const named as a case label (#1739). C switches only on an integer
-   * constant expression, which no const object is, so any const with a value
-   * is written as that value; another name as its C name. Null for a name no
-   * binding resolves, which the generator treats as an enum member.
+   * A const named as a case label (#1739), in any of ADR-016's spellings
+   * (#1629). C switches only on an integer constant expression, which no
+   * const object is, so any const with a value is written as that value.
+   *
+   * The value comes from the binding, whatever the spelling: `LIMIT` and
+   * `global.LIMIT` naming one file-scope const fold alike. The spelling only
+   * decides the name of a label that does not fold -- a bare one the C name
+   * every bare identifier emits under, or null for an enum member the
+   * generator qualifies; a rooted one the declaration its root binds.
    */
-  private resolveCaseConst(name: string, at: ISourcePosition): string | null {
-    const resolved = TypeValidator.resolveBareIdentifier(
+  private resolveCaseConst(
+    root: TChainRoot,
+    name: string,
+    at: ISourcePosition,
+  ): string | null {
+    const binding = this.host.state.bindingAt(root, name, at);
+    const declared = CodeGenWalker.boundCName(binding);
+    const constant =
+      declared === null
+        ? null
+        : PrivateConstValue.constant(
+            this.host.getState(),
+            this.transpileState,
+            declared,
+          );
+    if (constant !== null) {
+      // ADR-025's const label, recorded where it is written as its value so
+      // a codegen-only fixture occupies its matrix cell (#1241)
+      AdrProvenance.record("025", at.line);
+      this.host.applyEffects(constant.effects);
+      return constant.code;
+    }
+    if (root !== null) return declared;
+    return TypeValidator.resolveBoundIdentifier(
       name,
+      binding,
       at,
       (typeName: string) => this.host.isKnownStruct(typeName),
       this.host.state,
     );
-    if (resolved === null) return null;
-    const constant = PrivateConstValue.constant(
-      this.host.getState(),
-      this.transpileState,
-      resolved,
-    );
-    if (constant === null) return resolved;
-    this.host.applyEffects(constant.effects);
-    return constant.code;
+  }
+
+  /** The C name of the declaration a binding names, when it has one */
+  private static boundCName(binding: TValueBinding | null): string | null {
+    switch (binding?.kind) {
+      case "variable":
+      case "function":
+        return binding.symbol.fullyQualifiedCName;
+      case "foreign":
+        return binding.name;
+      default:
+        return null;
+    }
   }
 
   /** A resolved name, or -- for a private const -- its value (#741, #1739) */

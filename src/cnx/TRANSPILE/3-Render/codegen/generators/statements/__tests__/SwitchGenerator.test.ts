@@ -130,6 +130,11 @@ describe("SwitchGenerator", () => {
         "MAX_VALUE",
       ],
       [
+        "a rooted const, as the planner wrote it",
+        { kind: "rooted", code: "3U" },
+        "3U",
+      ],
+      [
         "a positive integer",
         { kind: "numeric", text: "42", negative: false },
         "42",

@@ -81,6 +81,8 @@ function renderCaseLabel(
         label.resolved ??
         label.name
       );
+    case "rooted":
+      return label.code;
     case "numeric":
       return label.negative ? `-${label.text}` : label.text;
     case "binary":

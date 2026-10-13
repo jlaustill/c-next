@@ -1,0 +1,54 @@
+// test-execution
+// test-adr: 016, 025, 057
+// #1629 review: a scope method's case label naming a const one `.cnx`
+// include away folds to its value in every spelling. The include is this
+// fixture's only one, so it occupies ADR-025's `scope method / imported
+// direct` cell; `case-label-rooted-resolves` reaches two hops for the
+// transitive one.
+#include <case-label-farther.cnx>
+
+scope Gauge {
+    const u8 FARTHER <- 4;
+
+    public u32 read(u8 s) {
+        switch (s) {
+            case global.FARTHER {
+                return 1;
+            }
+            case this.FARTHER {
+                return 2;
+            }
+            default {
+                return 0;
+            }
+        }
+    }
+}
+
+u32 bare(u8 s) {
+    switch (s) {
+        case FARTHER {
+            return 3;
+        }
+        default {
+            return 0;
+        }
+    }
+}
+
+u32 main() {
+    u32 got <- 0;
+    got <- Gauge.read(11);
+    if (got != 1) {
+        return 1;
+    }
+    got <- Gauge.read(4);
+    if (got != 2) {
+        return 2;
+    }
+    got <- bare(11);
+    if (got != 3) {
+        return 3;
+    }
+    return 0;
+}

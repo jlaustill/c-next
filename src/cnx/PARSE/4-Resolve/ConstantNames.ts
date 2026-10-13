@@ -395,16 +395,12 @@ class ConstantNames {
     walk: IWalk,
   ): TConstResult {
     if (rest.length !== 1) return ConstantNames.unbound(root, head, rest, walk);
-    const scopePath = walk.facts.scopePathAt(walk.at);
-    let cName = head;
-    if (root === "this") {
-      cName = ScopeUtils.getTranspiledCName({ name: head, scopePath });
-    } else if (root === null) {
-      const qualified = ScopeUtils.qualifyScopeType(head, scopePath, (name) =>
-        walk.facts.isScopeTypeVisible(name),
-      );
-      cName = QualifiedCName.fromParts(qualified.split("."));
-    }
+    const cName = ScopeUtils.typeHeadCName(
+      root,
+      head,
+      walk.facts.scopePathAt(walk.at),
+      (name) => walk.facts.isScopeTypeVisible(name),
+    );
     if (walk.facts.visibleSymbol(cName)?.kind === "enum") {
       return walk.facts.enumMember(cName, rest[0], walk.spelling, walk.at);
     }

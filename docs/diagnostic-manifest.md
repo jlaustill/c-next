@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-569 fixture(s) assert a diagnostic; 559 carry a code.
+572 fixture(s) assert a diagnostic; 562 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -387,6 +387,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1582-undeclared-write-target/undeclared-write-sibling-source-first.test.cnx     | E0427               |
 | tests/bugs/issue-1582-undeclared-write-target/undeclared-write-target.test.cnx                   | E0427               |
 | tests/bugs/issue-1624-variable-above-declaration/variable-above-declaration.test.cnx             | E0427               |
+| tests/bugs/issue-1629-case-label-undeclared/case-label-duplicate-spelling.test.cnx               | E0713               |
+| tests/bugs/issue-1629-case-label-undeclared/case-label-undeclared.test.cnx                       | E0427               |
 | tests/bugs/issue-1643-self-referential-initializer/concatenation-local.test.cnx                  | E0427               |
 | tests/bugs/issue-1643-self-referential-initializer/constructor-arg-below.test.cnx                | E0433               |
 | tests/bugs/issue-1643-self-referential-initializer/constructor-undeclared-self.test.cnx          | E0433               |
@@ -506,6 +508,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-2019-header-unclosed-name/concatenation-self.test.cnx                           | E0427               |
 | tests/bugs/issue-2019-header-unclosed-name/self-local.test.cnx                                   | E0427               |
 | tests/bugs/issue-2019-header-unclosed-name/substring-self.test.cnx                               | E0427               |
+| tests/bugs/issue-2051-case-label-not-constant/case-label-not-constant.test.cnx                   | E0717               |
 | tests/bugs/issue-847-misra-17-7-lowering/bare-intra-scope-discard.test.cnx                       | E0708               |
 | tests/bugs/issue-847-misra-17-7-lowering/cross-file-scope-discard.test.cnx                       | E0708               |
 | tests/bugs/issue-847-misra-17-7-lowering/external-c-discard.test.cnx                             | E0708               |

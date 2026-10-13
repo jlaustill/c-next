@@ -22,6 +22,7 @@ function stateWith(
 ): TranspileState {
   const full = {
     kind: "variable",
+    fullyQualifiedCName: "S__K",
     scopePath: "S",
     visibility: "private",
     isConst: true,

@@ -1,0 +1,144 @@
+// test-execution
+// test-adr: 016, 025, 057
+// #1629: a `case` label may be written in all three of ADR-016's spellings,
+// and each resolves as it does in any other value position. Inside `Panel`,
+// `this.LIMIT` and bare `LIMIT` are the scope's 3 and `global.LIMIT` is the
+// file's 1; `global.FAR` arrives through an include and `FARTHER` through
+// that include's include. A bare `LIMIT` at file scope is the file's, and
+// folds as `global.LIMIT` does.
+#include <case-label-far.cnx>
+
+const u8 LIMIT <- 1;
+const u8 TOP <- 7;
+
+scope Panel {
+    const u8 LIMIT <- 3;
+    public const u8 PUB <- 4;
+
+    public u32 pick(u8 s) {
+        switch (s) {
+            case this.LIMIT {
+                return 30;
+            }
+            case global.LIMIT {
+                return 10;
+            }
+            case this.PUB || global.TOP {
+                return 47;
+            }
+            case global.FAR {
+                return 90;
+            }
+            case global.FARTHER {
+                return 110;
+            }
+            default {
+                return 0;
+            }
+        }
+    }
+
+    public u32 bare(u8 s) {
+        switch (s) {
+            case LIMIT {
+                return 30;
+            }
+            case FARTHER {
+                return 111;
+            }
+            default {
+                return 0;
+            }
+        }
+    }
+}
+
+u32 bareAtFileScope(u8 s) {
+    switch (s) {
+        case LIMIT {
+            return 10;
+        }
+        default {
+            return 0;
+        }
+    }
+}
+
+u32 atFileScope(u8 s) {
+    switch (s) {
+        case global.LIMIT {
+            return 10;
+        }
+        case global.TOP {
+            return 70;
+        }
+        default {
+            return 0;
+        }
+    }
+}
+
+u32 main() {
+    u32 got <- 0;
+    got <- Panel.pick(3);
+    if (got != 30) {
+        return 1;
+    }
+    got <- Panel.pick(1);
+    if (got != 10) {
+        return 2;
+    }
+    got <- Panel.pick(4);
+    if (got != 47) {
+        return 3;
+    }
+    got <- Panel.pick(7);
+    if (got != 47) {
+        return 4;
+    }
+    got <- Panel.pick(9);
+    if (got != 90) {
+        return 5;
+    }
+    got <- Panel.pick(2);
+    if (got != 0) {
+        return 6;
+    }
+    got <- Panel.bare(3);
+    if (got != 30) {
+        return 7;
+    }
+    got <- Panel.bare(1);
+    if (got != 0) {
+        return 8;
+    }
+    got <- atFileScope(1);
+    if (got != 10) {
+        return 9;
+    }
+    got <- atFileScope(7);
+    if (got != 70) {
+        return 10;
+    }
+    got <- atFileScope(3);
+    if (got != 0) {
+        return 11;
+    }
+    got <- Panel.pick(11);
+    if (got != 110) {
+        return 12;
+    }
+    got <- Panel.bare(11);
+    if (got != 111) {
+        return 13;
+    }
+    got <- bareAtFileScope(1);
+    if (got != 10) {
+        return 14;
+    }
+    got <- bareAtFileScope(3);
+    if (got != 0) {
+        return 15;
+    }
+    return 0;
+}

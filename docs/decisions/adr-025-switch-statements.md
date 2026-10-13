@@ -154,6 +154,40 @@ switch (cmd) {
 }
 ```
 
+### Const Labels
+
+A label may name a const in any of ADR-016's three spellings (#1629):
+
+```cnx
+const u8 LIMIT <- 1;
+
+scope Panel {
+    const u8 LIMIT <- 3;
+
+    public u32 pick(u8 s) {
+        switch (s) {
+            case this.LIMIT {   // the scope's LIMIT: 3
+                return 30;
+            }
+            case global.LIMIT { // the file's LIMIT: 1
+                return 10;
+            }
+            default {
+                return 0;
+            }
+        }
+    }
+}
+```
+
+A bare `LIMIT` inside `Panel` is the scope's, as it is in any expression.
+
+An enum member takes a root the same way: inside a scope, `State.IDLE` and
+`this.State.IDLE` both name the scope's own `State`, and `global.EMode.IDLE`
+the file's (#147, #2052). The label is the constant the binding names, so
+`LIMIT` and `global.LIMIT` naming one const are one value -- and E0713 when
+both are written.
+
 ### Exhaustive Enum Matching (No Default)
 
 ```cnx
@@ -303,11 +337,17 @@ switchStatement
     ;
 
 switchCase
-    : 'case' caseExpression block
+    : 'case' caseLabel ('||' caseLabel)* block
     ;
 
-caseExpression
-    : expression ('||' expression)*
+caseLabel
+    : qualifiedType                                  // EState.IDLE
+    | ('this' | 'global') '.' (qualifiedType | IDENTIFIER)  // ADR-016 roots
+    | IDENTIFIER                                     // const or enum member
+    | '-'? INTEGER_LITERAL
+    | '-'? HEX_LITERAL
+    | BINARY_LITERAL
+    | CHAR_LITERAL
     ;
 
 defaultCase
@@ -320,7 +360,8 @@ defaultCase
 **Type Checking:**
 
 - Verify switch expression is integral type (not boolean - error)
-- Verify all case labels are constant expressions
+- Verify all case labels are constant expressions: a literal, an enum member
+  or a const with a value, in every spelling (E0717, #2051)
 - Verify case label types match switch expression type
 
 **Structural Validation:**
@@ -366,6 +407,14 @@ defaultCase
 9. ✅ Minimum clauses? **2 required** - MISRA 16.6 compliance
 10. ✅ Boolean switches? **Error** - MISRA 16.7 compliance, use `if/else`
 11. ✅ `default(0)` allowed? **Yes** - self-documenting defensive programming
+12. ✅ May a const label be written `this.X` or `global.X`? **Yes** - ADR-016
+    (Implemented) decides it: `this.X` is "for ANY scope member (variables,
+    functions, types, enums)" and `global.X` "for ANY global", and its own
+    example is `this.State.IDLE`. A case label is a value position like any
+    other, so a member chain takes a root too (#1629, #147). `this.` asks the
+    enclosing scope, `global.` file scope, and a bare name searches outward
+    (ADR-057). A name that resolves to nothing in any spelling is E0427
+    (ADR-030); one that resolves to something that is not a constant is E0717.
 
 ## MISRA C:2012/2023 Compliance
 
@@ -389,6 +438,16 @@ C-Next's `default(n)` syntax goes beyond MISRA by providing **compile-time valid
 - **Rust:** `_` wildcard is silent when enum grows
 - **C-Next:** `default(n)` forces explicit acknowledgment; enum growth breaks build
 
+## Diagnostics
+
+| Code  | Meaning                                                                                                                | Fixture                                                                     |
+| ----- | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| E0711 | Switch on a `bool` (MISRA C:2012 Rule 16.7)                                                                            | `tests/switch/`                                                             |
+| E0712 | Fewer than two clauses (MISRA C:2012 Rule 16.6)                                                                        | `tests/switch/`                                                             |
+| E0713 | Duplicate case value, keyed on the declaration a label binds                                                           | `tests/bugs/issue-1629-case-label-undeclared/case-label-duplicate-spelling` |
+| E0714 | The clauses do not account for the enum's variants exactly                                                             | `tests/switch/`                                                             |
+| E0717 | A case label is a variable, a function, a scope, a type or a const with no C constant value (a string), not a constant | `tests/bugs/issue-2051-case-label-not-constant/case-label-not-constant`     |
+
 ## Scope-context matrix
 
 Declared for the switch rules #1322 moved out of codegen: no switch on a bool,
@@ -404,11 +463,11 @@ enum's variants exactly.
 | global variable    | same file           | off      |
 | scope member       | same file           | off      |
 | top-level function | imported direct     | error    |
-| scope method       | imported direct     | off      |
+| scope method       | imported direct     | error    |
 | global variable    | imported direct     | off      |
 | scope member       | imported direct     | off      |
 | top-level function | imported transitive | error    |
-| scope method       | imported transitive | off      |
+| scope method       | imported transitive | error    |
 | global variable    | imported transitive | off      |
 | scope member       | imported transitive | off      |
 
@@ -422,10 +481,12 @@ count of zero makes every switch look complete -- so the rule would go quiet
 across an include rather than fail, which is the silence this matrix exists to
 make visible.
 
-`scope method` is `off` in the imported columns as a stated obligation, not a
-claim the cell cannot exist: a scope method can certainly switch on an imported
-enum. It is declared `off` so the table does not assert coverage no fixture
-provides.
+`scope method` is `error` in the imported columns because a case label is
+answered across an include, and a label the binder could not reach through the
+include graph would emit a name C cannot switch on. Inside a scope method,
+`case-label-imported-direct` folds `global.FARTHER` from its one include, and
+`case-label-rooted-resolves` folds `global.FAR` and `FARTHER` through two
+(#1629). The cell is occupied where the label is written as its value.
 
 ## References
 
