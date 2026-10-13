@@ -13,7 +13,7 @@
  */
 import type IFloatBitWrite from "../../types/IFloatBitWrite";
 import type TTypeInfo from "../../types/TTypeInfo";
-import type TAtomicForm from "../2-Plan/types/TAtomicForm";
+import type TAtomicForm from "./TAtomicForm";
 
 interface ICodeGenApi {
   /**

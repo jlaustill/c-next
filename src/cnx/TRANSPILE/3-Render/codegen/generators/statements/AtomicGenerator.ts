@@ -11,7 +11,7 @@
 import TTypeInfo from "../../../../../types/TTypeInfo";
 import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
-import type TAtomicForm from "../../../../2-Plan/types/TAtomicForm";
+import type TAtomicForm from "../../../../types/TAtomicForm";
 import LDREX_MAP from "../../types/LDREX_MAP";
 import invariant from "../../../../../utils/invariant";
 import COMPOUND_TO_BINARY from "../../types/COMPOUND_TO_BINARY";

@@ -1,4 +1,4 @@
-import type TAtomicForm from "./TAtomicForm";
+import type TAtomicForm from "../../types/TAtomicForm";
 import type IAssignmentSyntax from "../../../types/syntax/IAssignmentSyntax";
 import type IProgramSyntax from "../../../types/syntax/IProgramSyntax";
 import type TDeclarationSyntax from "../../../types/syntax/TDeclarationSyntax";

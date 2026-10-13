@@ -126,7 +126,7 @@ import ExpressionShape from "../utils/ExpressionShape";
 import StatementNodes from "../utils/StatementNodes";
 import StatementChildren from "../utils/StatementChildren";
 import LDREX_MAP from "./3-Render/codegen/types/LDREX_MAP";
-import type TAtomicForm from "./2-Plan/types/TAtomicForm";
+import type TAtomicForm from "./types/TAtomicForm";
 import type IChainHead from "../types/IChainHead";
 import ExpressionCalls from "../utils/ExpressionCalls";
 import helperGenerators from "./3-Render/codegen/generators/support/HelperGenerator";

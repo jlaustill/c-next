@@ -17,7 +17,7 @@ import TGeneratorEffect from "./generators/TGeneratorEffect";
 // Expression generators
 // Statement generators
 import atomicGenerators from "./generators/statements/AtomicGenerator";
-import type TAtomicForm from "../../2-Plan/types/TAtomicForm";
+import type TAtomicForm from "../../types/TAtomicForm";
 // Declaration generators
 // ADR-065: Extracted utilities
 import CppNamespaceUtils from "../../../utils/CppNamespaceUtils";
