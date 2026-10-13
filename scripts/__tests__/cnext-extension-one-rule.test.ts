@@ -13,7 +13,7 @@ import { describe, expect, it } from "vitest";
 import SourceScan from "./SourceScan";
 
 // A regex literal's `\.cnx` in any case, or a quoted string that is exactly
-// the extension. Backquoted prose in a message (`.cnx`) is not a match.
+// the extension. Prose in backticks in a message (`.cnx`) is not a match.
 const EXTENSION_MATCH = /\\\.cn(?:x|ext)\b|["']\.cn(?:x|ext)["']/gi;
 const OWNER = "src/cnx/utils/CNextSourcePath.ts";
 
