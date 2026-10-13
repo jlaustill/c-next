@@ -268,6 +268,28 @@ module.exports = {
       to: { path: "^src/cnx/PARSE/4-Resolve/", reachable: true },
     },
     {
+      name: "deferred-types-are-settled-by-resolve",
+      comment:
+        "#2036. Settling 1.3's deferred types is one step of 1.4 Resolve, and " +
+        "`Program` is where it is taken: the scope types each file can see, " +
+        "the opaque typedefs, the consts folded into array dimensions and the " +
+        "parameters' emitted names settle together. `lib/parseWithSymbols` " +
+        "called `DeferredTypes.settle` itself with both predicates written by " +
+        "hand, so it settled the type names and nothing else -- every " +
+        "const-sized array kept 1.3's placeholder dimension `0` -- and agreed " +
+        "with 1.4 on the rest only because its one file includes nothing. A " +
+        "caller with no run reads `Program.settleFiles`. Direct, not " +
+        "`reachable`: every module reaches `DeferredTypes` through `Program`, " +
+        "which is the path this rule asks for.",
+      severity: "error",
+      from: {
+        pathNot: ["(__tests__|__testUtils__)", "^src/cnx/PARSE/4-Resolve/"],
+      },
+      to: {
+        path: "^src/cnx/PARSE/4-Resolve/DeferredTypes\\.ts$",
+      },
+    },
+    {
       name: "shared-contracts-cannot-import-a-pass",
       comment:
         "The shared `types/` root (`transpiler/types/` until #1853) is what CLAUDE.md and " +
