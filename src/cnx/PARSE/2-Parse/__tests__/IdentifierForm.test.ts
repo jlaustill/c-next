@@ -313,13 +313,14 @@ describe("IdentifierForm (E0201, E0202)", () => {
   });
 
   // #1991: the tree is sound, so the formatter (which reads parseErrors) must
-  // still accept the file.
+  // still accept the file. The form errors come in source order (#2020
+  // review): `value_` at 1:3 before `010` at 1:13.
   it("keeps form errors out of parseErrors", () => {
     const parsed = CNextSourceParser.parse(`u8 value_ <- 010;`);
     expect(parsed.parseErrors).toEqual([]);
     expect(parsed.formErrors.map((e) => e.message.slice(0, 11))).toEqual([
-      "error[E0912",
       "error[E0201",
+      "error[E0912",
     ]);
   });
 });
