@@ -34,7 +34,10 @@ import Write from "../../cnx/WRITE/1-Write/Write";
  * headers 1.2 parsed, and 1.4 reads them off 1.3's result.
  *
  * Mutation-checked: handing each of 1.2 through 2.3 a copy of its artifact,
- * or 3.1 text 2.3 did not render, fails one test here per boundary.
+ * or 3.1 text 2.3 did not render, fails one test here per boundary. So does
+ * a host that keeps run 1's program, a 2.2 cache keyed by path, a static the
+ * host sets and 2.2 reads, a write to a path 1.1 didn't name, and a 2.2
+ * option the host rebuilt.
  */
 interface ICall {
   readonly pass: string;

@@ -100,8 +100,11 @@ The digit is not decoration. When the transpiler runs, each pass takes only the 
 the pass just before it returned, and nothing else (#1991, owner ruling). Whatever a later
 pass needs, every pass in between carries forward, and the host calls the eight entries in
 order. `src/cli/__tests__/PassChain.test.ts` checks each hand-off at run time: every entry
-takes the very objects its predecessor returned, and 2.2 and 2.3 give the same result on a
-walker that has run nothing before. A module may import code or types from a lower-numbered pass in its own layer, or
+takes objects its predecessor returned, or reached from them; 3.1 writes only to paths 1.1
+named; and 2.2, 2.3 and the header step give one run's answers again, on fresh objects,
+after a second run with other sources. That last check is what catches a value kept in a
+static or on the host, which identity alone cannot. It does not watch 2.1's fourth
+argument, the host function 2.1 calls to build each file's analysis inputs. A module may import code or types from a lower-numbered pass in its own layer, or
 from any earlier layer, and nothing else. So "which pass owns this module?"
 and "may it read that?" are both answerable from the path -- by a reader, and by a gate --
 without opening the file.
