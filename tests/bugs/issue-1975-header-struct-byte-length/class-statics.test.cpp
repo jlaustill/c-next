@@ -29,10 +29,10 @@ int main(void) {
     if (total != 3) {
         return 4U;
     }
-    if (32 != 3) {
+    if (3 != 3) {
         return 5U;
     }
-    if (32 != 5) {
+    if (5 != 5) {
         return 6U;
     }
     return 0U;

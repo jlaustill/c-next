@@ -39,7 +39,7 @@ uint8_t wordBytes[2] = {};
 
 uint8_t gearBytes[4] = {};
 
-uint8_t bfBits[32] = {};
+uint8_t bfBits[5] = {};
 
 /* Scope: Box */
 
@@ -58,7 +58,7 @@ uint32_t sizeName(uint32_t n) {
             return 2U;
             break;
         }
-        case 32: {
+        case 3: {
             return 3U;
             break;
         }
@@ -133,13 +133,13 @@ int main(void) {
         return 19U;
     }
     BF bf = {};
-    if (32 != 3) {
+    if (3 != 3) {
         return 20U;
     }
-    if (32 != 5) {
+    if (5 != 5) {
         return 21U;
     }
-    if (32 != 5) {
+    if (5 != 5) {
         return 22U;
     }
     uint32_t bitNamed = sizeName(3U);
