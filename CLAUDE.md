@@ -642,7 +642,7 @@ E0424 is a 2.1 Analyze diagnostic since #1322, and render asserts it never sees 
 
 ### Key Patterns
 
-- **SymbolTable ownership**: `TranspileState.symbolTable` is single owner
+- **SymbolTable ownership**: the table is 1.3 Declare's artifact, reached through 1.4's `program.symbolTable()`; `TranspileState.symbolTable` is a getter over it, not a second owner
 - **TSymbols use bare names**: `name: "init"` with `scopePath: string` -- the dotted path of the enclosing scope (`""` at file scope), never the scope object. #1298: holding the object gave every symbol a chain to walk and a cycle to represent, which made the graph unserializable and left `getScopePath`'s identity-based guard unable to fire on a proxy chain. The scope object is one `SymbolRegistry.getScope(path)` away where a mutable member list is genuinely needed
 - **Lookup key by layer**: `getOverloads(bareName)` answers "what does `init` mean _here_?" and needs ADR-057 scope context; `getOverloadsByCName("Motor__init")` answers "which symbol _is_ this?" and is an exact canonical identity. Codegen and anything downstream of it holds the latter — asking the bare-name index with a transpiled C name returns empty for every scoped symbol, which reads as "no such symbol" rather than "wrong question" (#1139). Build the key with `ScopeUtils.getTranspiledCName()`, the single encoder; never re-derive a qualified name by hand
 - **Per-file vs run-wide symbol views**: `ICodeGenSymbols.known*` is built by 1.4 Resolve
@@ -660,10 +660,11 @@ E0424 is a 2.1 Analyze diagnostic since #1322, and render asserts it never sees 
   and the run-wide table about a foreign one
 - **Test isolation**: build a fresh `new SymbolRegistry()` per test and pass it to `CNextResolver.resolve(program, file, registry)` — there is no global registry to reset (#1452 box 3 deleted the static and its `reset()`)
 - **Array dimensions**: `IVariableSymbol.arrayDimensions` is `(number | string)[]` — numbers for resolved constants, strings for C macros
-- **What an analyzer may read is `IAnalysisContext`, and nothing else.** #1456
+- **What an analyzer may read is `IAnalysisContext`, plus the 1.2 syntax it walks.** #1456
   made it a parameter: `symbols` (this file's view), `program` (1.4's artifact),
-  `symbolTable`, `reachesForeignHeader`, and `sourceFile`. `Transpiler._analysisInputs` builds it
-  from artifacts settled before 2.1 begins, and
+  `symbolTable` (an `IResolvedSymbols`), `reachesForeignHeader`, and `sourceFile`. 2.1 builds it
+  itself (`Analyze`) from what 1.4 returned (#1991); `runAnalyzers` also hands
+  some analyzers 1.2's `IValuePositions`. And
   `2-1-analyze-reads-no-later-pass` (`error`, `reachable: true`) makes an
   analyzer that reaches `TranspileState` fail the **`lint`** job — through a
   shared helper as readily as directly. `symbols` and `program` are NON-nullable,
@@ -695,7 +696,7 @@ E0424 is a 2.1 Analyze diagnostic since #1322, and render asserts it never sees 
   `enterParameter` / `enterForVarDecl`: that is a second binding decision. #1220
   removed `trackIfFloat` and `SignedShiftAnalyzer`'s `trackType`, and #1668 the
   last, `ArrayIndexTypeAnalyzer.trackType` -- the helpers this entry used to recommend
-- **Ternary grammar**: `ternaryExpression` has 3 `orExpression` children: `[0]` = condition, `[1]` = true value, `[2]` = false value. When validating value types, skip index 0 — and address them via `orExpression()`, **never `getChild(i)`**: the condition is parenthesized, so `getChild(0)` is `(` and an index-based skip silently does nothing
+- **Ternary grammar** (1.2's lowering only; analyzers read the lowered syntax, not `ternaryExpression`): `ternaryExpression` has 3 `orExpression` children: `[0]` = condition, `[1]` = true value, `[2]` = false value. When validating value types, skip index 0 — and address them via `orExpression()`, **never `getChild(i)`**: the condition is parenthesized, so `getChild(0)` is `(` and an index-based skip silently does nothing
 - **Callback header params**: a callback-compatible function's parameters take pointer and const from its typedef, found by `TranspileState.callbackTypedefTypeFor` and read by `TypedefParamParser.isParamPointer`/`isParamConst` — one rule for both files. The `.h` path (`Transpiler.convertToHeaderSymbols()`) stores it on `IParameterSymbol.isCallbackPointer`/`isCallbackConst`; the `.c` path asks the parser through `FunctionContextManager.getCallbackTypedefParamInfo`. The two paths are two call chains to one rule, the shape #1639 tracks
 - **Scope type predicate**: `TranspileState.isScopeType(qualifiedName)` checks whether a qualified name is a scope type — an enum, struct, bitmap or ADR-029 function-as-type (the kinds are `TYPE_FORMING_KINDS`) — that the file being generated can see: declared by it or by a file in its include closure (`IProgram.isScopeTypeVisibleFrom`, #1724). Codegen sites bind it through `TranspileState.typeBindingDeps()`, which pairs `TranspileState.scopeTypePredicate` with the caller's `resolveQualifiedType` — don't re-pair the predicate with `currentScopePath` at each site, and don't inline `knownEnums || knownStructs || knownBitmaps`. This used to name `CodeGenState.qualifyScopeType(bareName)`; that method had **no production caller** and is deleted (#1452), because a rule naming a helper nothing uses teaches the next reader a pattern the codebase does not have.
 
@@ -1004,7 +1005,7 @@ This used to name a third, `buildStructParamMemberAccess()`, "for chains". It ha
 - **Keywords are separate tokens**: Use `ctx.THIS()` not `ctx.IDENTIFIER()?.getText() === "this"`
 - **Grammar rules**: `arrayType` vs `arrayDimension`, `templateType` for C++ interop
 - **AST navigation**: Use `functionDeclaration()` not `functionDefinition()`
-- **Expression unwrapping**: Use `ExpressionUnwrapper` utility
+- **Expression unwrapping**: Use `ExpressionUnwrapper` (`PARSE/2-Parse/`), in 1.2 only: `parse-tree-confined-to-parser` rejects it anywhere else
 
 ### After Grammar Changes
 
