@@ -109,8 +109,8 @@ class ForeignTypeFacts {
    * A header symbol by name: C first, then C++ (a `.hpp` in `--cpp` mode).
    * Both carry the same `kind` and `type` string for the shapes read here.
    */
-  private static foreignSymbol(
-    lookup: IForeignSymbolLookup,
+  static foreignSymbol(
+    lookup: Pick<IForeignSymbolLookup, "getCSymbol" | "getCppSymbol">,
     name: string,
   ): TCSymbol | TCppSymbol | undefined {
     return lookup.getCSymbol(name) ?? lookup.getCppSymbol(name);

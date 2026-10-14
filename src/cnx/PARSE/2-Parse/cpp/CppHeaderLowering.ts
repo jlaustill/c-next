@@ -34,6 +34,7 @@ import type TCppMemberSyntax from "../types/TCppMemberSyntax";
 import type TCppTypeSpecifierSyntax from "../types/TCppTypeSpecifierSyntax";
 import type IExtractedParameter from "../shared/IExtractedParameter";
 import type ISourceSpan from "../../../types/ISourceSpan";
+import DeclaratorTypes from "../shared/DeclaratorTypes";
 import ParameterExtractorUtils from "../shared/ParameterExtractorUtils";
 import ArrayDimensionText from "../../../utils/ArrayDimensionText";
 import ParserUtils from "../../../utils/ParserUtils";
@@ -317,8 +318,8 @@ class CppHeaderLowering {
   }
 
   /**
-   * One `*` whatever the declarator spells -- `Dev**` and a reference alike.
-   * The C lowering keeps the depth; this one never has.
+   * As many `*`s as the declarator spells, as the C lowering keeps (#2058).
+   * A reference, or a pointer only the text shows, is one.
    */
   private static parameter(
     paramDecl: ParameterDeclarationContext,
@@ -332,9 +333,17 @@ class CppHeaderLowering {
         CppHeaderLowering.hasPointer(declarator.pointerDeclarator())) ||
       (abstractDecl !== null &&
         CppHeaderLowering.abstractHasPointer(abstractDecl));
+    const operators =
+      declarator?.pointerDeclarator()?.pointerOperator() ??
+      abstractDecl?.pointerAbstractDeclarator()?.pointerOperator() ??
+      [];
+    const depth = Math.max(
+      CppHeaderLowering.starCount(operators),
+      isPointer ? 1 : 0,
+    );
     return ParameterExtractorUtils.buildParameterInfo(
       declarator,
-      isPointer ? `${baseType}*` : baseType,
+      DeclaratorTypes.withPointers(baseType, depth),
       declSpecSeq.getText().includes("const"),
       false,
       (decl: DeclaratorContext) => CppHeaderLowering.declaratorName(decl),

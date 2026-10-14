@@ -8,6 +8,7 @@ import ICppFunctionSymbol from "../../../../types/symbols/cpp/ICppFunctionSymbol
 import ICppParameterInfo from "../../../../types/symbols/cpp/ICppParameterInfo";
 import type IExtractedParameter from "../../../2-Parse/shared/IExtractedParameter";
 import type ICppFunctionDefinitionSyntax from "../../../2-Parse/types/ICppFunctionDefinitionSyntax";
+import DeclaratorTypes from "../../../2-Parse/shared/DeclaratorTypes";
 import type IHeaderDeclaratorSyntax from "../../../2-Parse/types/IHeaderDeclaratorSyntax";
 import type ISourceSpan from "../../../../types/ISourceSpan";
 
@@ -37,7 +38,7 @@ class FunctionCollector {
     return {
       kind: "function",
       name: CppNamespaceUtils.qualify(currentNamespace, name),
-      type: funcDef.returnType,
+      type: DeclaratorTypes.pointerType(funcDef.returnType, funcDef.declarator),
       sourceFile,
       span: funcDef.span,
       sourceLanguage: ESourceLanguage.Cpp,
@@ -62,7 +63,8 @@ class FunctionCollector {
     return {
       kind: "function",
       name: CppNamespaceUtils.qualify(currentNamespace, name),
-      type: baseType,
+      // #2058: a return type keeps the declarator's `*`s, as in C
+      type: DeclaratorTypes.pointerType(baseType, declarator),
       sourceFile,
       span,
       sourceLanguage: ESourceLanguage.Cpp,
@@ -87,7 +89,7 @@ class FunctionCollector {
     return {
       kind: "function",
       name: CppNamespaceUtils.qualify(className, funcName),
-      type: returnType,
+      type: DeclaratorTypes.pointerType(returnType, declarator),
       sourceFile,
       span,
       sourceLanguage: ESourceLanguage.Cpp,

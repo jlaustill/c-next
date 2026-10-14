@@ -22,6 +22,7 @@ import CallExprUtils from "../../../../2-Plan/CallExprUtils";
 import CallArgumentPassing from "../../../../2-Plan/CallArgumentPassing";
 import type IArgumentPassing from "../../../../2-Plan/types/IArgumentPassing";
 import C_TYPE_WIDTH from "../../types/C_TYPE_WIDTH";
+import ForeignTypeFacts from "../../../../../utils/ForeignTypeFacts";
 import CPointerParameter from "../../../../../utils/CPointerParameter";
 import CNEXT_TO_C_TYPE_MAP from "../../../../../utils/constants/TypeMappings";
 import type IPlannedCallArgument from "../../types/IPlannedCallArgument";
@@ -98,7 +99,7 @@ const _parameterExpectsAddressOf = (
 /**
  * Resolve an argument expression's C-Next type for the address-of decision.
  * Prefers the expression type, then the codegen variable registry, then the C
- * symbol table — the last covers extern C globals (e.g. an lvgl font
+ * symbol table — the last covers extern C and C++ globals (e.g. an lvgl font
  * `lv_font_montserrat_32` of type `lv_font_t`, Issue #985) whose type only
  * header symbol collection knows. Returns null when the type can't be resolved
  * or the argument is already an address-of expression.
@@ -113,8 +114,12 @@ const _resolveArgType = (
   if (exprType) return exprType;
   if (argCode.startsWith("&")) return null;
   if (typeInfoBaseType) return typeInfoBaseType;
-  const cSymbol = orchestrator.state.symbolTable?.getCSymbol(argCode);
-  if (cSymbol?.kind === "variable" && !cSymbol.isArray) return cSymbol.type;
+  const symbolTable = orchestrator.state.symbolTable;
+  // #2058: an extern C++ global says its type as a C one does
+  const symbol = symbolTable
+    ? ForeignTypeFacts.foreignSymbol(symbolTable, argCode)
+    : undefined;
+  if (symbol?.kind === "variable" && !symbol.isArray) return symbol.type;
   return null;
 };
 

@@ -230,6 +230,8 @@ class CppResolver {
       }
     }
 
+    // A variable's spelling keeps `volatile`, as a C one's does (#1760 review)
+    const variableType = isVolatile ? `volatile ${baseType}` : baseType;
     const symbol = declarator.isFunction
       ? FunctionCollector.collectDeclaration(
           declarator,
@@ -238,10 +240,9 @@ class CppResolver {
           span,
           ctx.currentNamespace,
         )
-      : // A variable's spelling keeps `volatile`, as a C one's does (#1760 review)
-        VariableCollector.collect(
+      : VariableCollector.collect(
           declarator,
-          isVolatile ? `volatile ${baseType}` : baseType,
+          variableType,
           ctx.sourceFile,
           span,
           ctx.currentNamespace,

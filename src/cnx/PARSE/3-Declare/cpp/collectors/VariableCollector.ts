@@ -5,6 +5,7 @@
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import CppNamespaceUtils from "../../../../utils/CppNamespaceUtils";
 import ICppVariableSymbol from "../../../../types/symbols/cpp/ICppVariableSymbol";
+import DeclaratorTypes from "../../../2-Parse/shared/DeclaratorTypes";
 import type IHeaderDeclaratorSyntax from "../../../2-Parse/types/IHeaderDeclaratorSyntax";
 import type ISourceSpan from "../../../../types/ISourceSpan";
 
@@ -23,7 +24,8 @@ class VariableCollector {
     return {
       kind: "variable",
       name: CppNamespaceUtils.qualify(currentNamespace, name),
-      type: baseType,
+      // #2058: the `*`s are the declarator's, as a C variable's are
+      type: DeclaratorTypes.pointerType(baseType, declarator),
       sourceFile,
       span,
       sourceLanguage: ESourceLanguage.Cpp,
