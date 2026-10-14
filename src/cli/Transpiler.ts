@@ -227,7 +227,7 @@ class Transpiler {
         this._ensureOutputDirectories();
       }
 
-      await this._executePipeline(pipelineInput, result);
+      this._executePipeline(pipelineInput, result);
       return this._finalizeResult(result);
     } catch (err) {
       return this._handleRunError(result, err);
@@ -253,10 +253,10 @@ class Transpiler {
    * Stage 5.5: Render every captured header, once, whole-program (#1323)
    * Stage 6: Write the Stage 5.5 headers to disk (per-file)
    */
-  private async _executePipeline(
+  private _executePipeline(
     input: ISourceGraph,
     result: ITranspilerResult,
-  ): Promise<void> {
+  ): void {
     // Stage 2: Collect symbols from C/C++ headers and build analyzer context
     // Issue #945: Now async for preprocessing support
 

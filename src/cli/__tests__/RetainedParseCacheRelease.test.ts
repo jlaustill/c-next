@@ -182,7 +182,7 @@ describe("#1301: the per-file cache is released at end of run", () => {
     expect(result.success).toBe(true);
     expect(seen.length).toBeGreaterThan(0);
     expect(seen).toEqual(seen.map(() => 2));
-    expect(analyzed.length).toBe(2);
+    expect(analyzed).toHaveLength(2);
     expect(cacheSize(transpiler)).toBe(0);
   });
 });

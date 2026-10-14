@@ -8,7 +8,7 @@
  */
 class WrittenCTypes {
   private static readonly TYPE_NAME =
-    /\b(?:u?int(?:8|16|32|64)_t|u?intptr_t|u?intmax_t|bool|true|false)\b/g;
+    /\b(?:u?int(?:8|16|32|64|ptr|max)_t|bool|true|false)\b/g;
 
   private static readonly NOT_CODE =
     /\/\*[\s\S]*?\*\/|\/\/[^\n]*|"(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'/g;

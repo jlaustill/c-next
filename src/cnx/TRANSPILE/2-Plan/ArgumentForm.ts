@@ -24,30 +24,10 @@ class ArgumentForm {
 
     const lvalueType = shape.getLvalueType();
     if (lvalueType === null) {
-      const cType = targetParamBaseType
-        ? TYPE_MAP[targetParamBaseType]
-        : undefined;
-      // C++: an rvalue binds to const T&
-      return {
-        kind: "rvalue",
-        compoundLiteral: !cType || cType === "void" || cppMode ? null : cType,
-      };
+      return ArgumentForm.rvalue(targetParamBaseType, cppMode);
     }
-
     if (lvalueType === "member") {
-      const arrayStatus = shape.getMemberAccessArrayStatus();
-      if (arrayStatus === "array") return { kind: "array-member" };
-      if (
-        arrayStatus === "not-array" &&
-        targetParamBaseType &&
-        shape.isCppMemberConversionRequired(targetParamBaseType)
-      ) {
-        return {
-          kind: "member-temp",
-          cType: TYPE_MAP[targetParamBaseType] || "uint8_t",
-        };
-      }
-      return { kind: "lvalue", cast: null };
+      return ArgumentForm.member(targetParamBaseType, shape);
     }
 
     // A string's element goes to an integer pointer parameter cast
@@ -59,6 +39,40 @@ class ArgumentForm {
       kind: "lvalue",
       cast: cType && !NOT_CAST_TO.has(cType) ? cType : null,
     };
+  }
+
+  /** C++: an rvalue binds to `const T&`; C takes a compound literal's address */
+  private static rvalue(
+    targetParamBaseType: string | undefined,
+    cppMode: boolean,
+  ): TArgumentForm {
+    const cType = targetParamBaseType
+      ? TYPE_MAP[targetParamBaseType]
+      : undefined;
+    return {
+      kind: "rvalue",
+      compoundLiteral: !cType || cType === "void" || cppMode ? null : cType,
+    };
+  }
+
+  /** A struct member: a whole array, a C++ conversion temporary, or itself */
+  private static member(
+    targetParamBaseType: string | undefined,
+    shape: TArgumentShape,
+  ): TArgumentForm {
+    const arrayStatus = shape.getMemberAccessArrayStatus();
+    if (arrayStatus === "array") return { kind: "array-member" };
+    if (
+      arrayStatus === "not-array" &&
+      targetParamBaseType &&
+      shape.isCppMemberConversionRequired(targetParamBaseType)
+    ) {
+      return {
+        kind: "member-temp",
+        cType: TYPE_MAP[targetParamBaseType] || "uint8_t",
+      };
+    }
+    return { kind: "lvalue", cast: null };
   }
 
   /** The C type `form` writes, or null */

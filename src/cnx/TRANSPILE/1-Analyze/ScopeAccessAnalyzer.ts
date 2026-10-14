@@ -85,14 +85,17 @@ class ScopeAccessCheck {
       if (types && part.kind === "type") this.type(part.type);
       for (const expr of ExpressionNodes.of(part)) this.expression(expr, types);
     }
-    if (declaration.kind !== "function") return;
-    for (const statement of StatementNodes.of(declaration.body.statements)) {
+    if (declaration.kind === "function") this.caseLabels(declaration);
+  }
+
+  /** A `case Scope.member:` label names a scope member too */
+  private caseLabels(
+    func: Extract<TDeclarationSyntax, { kind: "function" }>,
+  ): void {
+    for (const statement of StatementNodes.of(func.body.statements)) {
       if (statement.kind !== "switch") continue;
-      for (const switchCase of statement.cases) {
-        for (const label of switchCase.labels) {
-          if (label.kind === "qualified")
-            this.qualified(label.path, label.span);
-        }
+      for (const label of statement.cases.flatMap((c) => c.labels)) {
+        if (label.kind === "qualified") this.qualified(label.path, label.span);
       }
     }
   }

@@ -622,39 +622,8 @@ class FilePlanner {
     inlinedConsts: ReadonlySet<TDeclarationSyntax>,
     expectedTypes: ReadonlyMap<TExpression, IPlannedExpectedType>,
   ): ReadonlyMap<TExpressionOf<"structInitializer">, TStructInitializerForm> {
-    const declarationInits = new Set<TExpression>();
-    const inFunctions = new Set<TExpression>();
-    for (const { declaration } of program.declarations) {
-      const members =
-        declaration.kind === "scope"
-          ? declaration.members.map((member) => member.declaration)
-          : [declaration];
-      for (const member of members) {
-        if (member.kind === "variableDeclaration" && member.initializer) {
-          declarationInits.add(member.initializer);
-        }
-        if (member.kind !== "function") continue;
-        const statements = StatementNodes.in(member);
-        const forInits = new Set<unknown>(
-          statements.flatMap((statement) =>
-            statement.kind === "for" && statement.init ? [statement.init] : [],
-          ),
-        );
-        for (const statement of statements) {
-          if (
-            statement.kind === "variableDeclaration" &&
-            statement.initializer &&
-            !forInits.has(statement)
-          ) {
-            declarationInits.add(statement.initializer);
-          }
-        }
-        for (const part of DeclarationParts.of(member)) {
-          if (part.kind === "expression") inFunctions.add(part.expression);
-        }
-      }
-    }
-    const cppMode = this.state.cppMode;
+    const { declarationInits, inFunctions } =
+      FilePlanner.initializerPositions(program);
     const planned = new Map<
       TExpressionOf<"structInitializer">,
       TStructInitializerForm
@@ -671,37 +640,16 @@ class FilePlanner {
           "a struct initializer takes its type from its position -- E0357 " +
             "rejects this in pass 2.1, before this runs",
         );
-        const anonymous =
-          typeName.startsWith("struct {") || typeName.startsWith("union {");
-        let form: TStructInitializerForm = "compound";
-        if (cppMode && this._isCppClassWithConstructor(typeName)) {
-          form = "cppClass";
-        } else if (plain || !inFunction || (cppMode && anonymous)) {
-          form = "designated";
-        }
-        planned.set(expr, form);
+        planned.set(
+          expr,
+          this.structInitializerForm(typeName, plain, inFunction),
+        );
       }
-      if (expr.kind === "ternary") {
-        visit(expr.condition, plain, inFunction);
-        visit(expr.whenTrue, false, inFunction);
-        visit(expr.whenFalse, false, inFunction);
-        return;
-      }
-      if (expr.kind === "postfix") {
-        visit(expr.primary, plain, inFunction);
-        for (const op of expr.ops) {
-          if (op.kind === "subscript") {
-            for (const index of op.indexes) visit(index, plain, inFunction);
-          } else if (op.kind === "call") {
-            for (const argument of op.arguments) {
-              visit(argument, false, inFunction);
-            }
-          }
-        }
-        return;
-      }
-      for (const child of ExpressionChildren.of(expr)) {
-        visit(child, plain, inFunction);
+      for (const [child, childPlain] of FilePlanner.initializerChildren(
+        expr,
+        plain,
+      )) {
+        visit(child, childPlain, inFunction);
       }
     };
     for (const { part } of WrittenParts.of(program, inlinedConsts)) {
@@ -713,6 +661,103 @@ class FilePlanner {
       );
     }
     return planned;
+  }
+
+  /**
+   * The initializers of declarations, and the expressions written inside a
+   * function. A `for` header's declaration is neither plain nor a statement's.
+   */
+  private static initializerPositions(program: IProgramSyntax): {
+    readonly declarationInits: ReadonlySet<TExpression>;
+    readonly inFunctions: ReadonlySet<TExpression>;
+  } {
+    const declarationInits = new Set<TExpression>();
+    const inFunctions = new Set<TExpression>();
+    for (const { declaration } of program.declarations) {
+      const members =
+        declaration.kind === "scope"
+          ? declaration.members.map((member) => member.declaration)
+          : [declaration];
+      for (const member of members) {
+        if (member.kind === "variableDeclaration" && member.initializer) {
+          declarationInits.add(member.initializer);
+        }
+        if (member.kind !== "function") continue;
+        FilePlanner.statementInitializers(member).forEach((init) =>
+          declarationInits.add(init),
+        );
+        for (const part of DeclarationParts.of(member)) {
+          if (part.kind === "expression") inFunctions.add(part.expression);
+        }
+      }
+    }
+    return { declarationInits, inFunctions };
+  }
+
+  /** A function's declaration statements' initializers, outside `for` headers */
+  private static statementInitializers(
+    func: Extract<TDeclarationSyntax, { kind: "function" }>,
+  ): TExpression[] {
+    const statements = StatementNodes.in(func);
+    const forInits = new Set<unknown>(
+      statements.flatMap((statement) =>
+        statement.kind === "for" && statement.init ? [statement.init] : [],
+      ),
+    );
+    return statements.flatMap((statement) =>
+      statement.kind === "variableDeclaration" &&
+      statement.initializer &&
+      !forInits.has(statement)
+        ? [statement.initializer]
+        : [],
+    );
+  }
+
+  /**
+   * How a struct initializer of `typeName` is written: through a C++ class's
+   * constructor, designated, or as a compound literal
+   */
+  private structInitializerForm(
+    typeName: string,
+    plain: boolean,
+    inFunction: boolean,
+  ): TStructInitializerForm {
+    const cppMode = this.state.cppMode;
+    if (cppMode && this._isCppClassWithConstructor(typeName)) return "cppClass";
+    const anonymous =
+      typeName.startsWith("struct {") || typeName.startsWith("union {");
+    return plain || !inFunction || (cppMode && anonymous)
+      ? "designated"
+      : "compound";
+  }
+
+  /**
+   * Each child of `expr`, and whether a struct initializer there is still the
+   * plain value of a declaration: not in a ternary branch or a call argument
+   */
+  private static initializerChildren(
+    expr: TExpression,
+    plain: boolean,
+  ): Array<[TExpression, boolean]> {
+    if (expr.kind === "ternary") {
+      return [
+        [expr.condition, plain],
+        [expr.whenTrue, false],
+        [expr.whenFalse, false],
+      ];
+    }
+    if (expr.kind !== "postfix") {
+      return ExpressionChildren.of(expr).map((child) => [child, plain]);
+    }
+    const children: Array<[TExpression, boolean]> = [[expr.primary, plain]];
+    for (const op of expr.ops) {
+      if (op.kind === "subscript") {
+        op.indexes.forEach((index) => children.push([index, plain]));
+      } else if (op.kind === "call") {
+        op.arguments.forEach((argument) => children.push([argument, false]));
+      }
+    }
+    return children;
   }
 
   /** Whether 2.3 writes a `.char_count` read: the typer's step names the property */
@@ -1336,15 +1381,18 @@ class FilePlanner {
       // A site with a type sets it, and one without leaves the outer one's.
       // A function argument's suppresses its bare enum member (#872), and a
       // struct field's names its own, even in an argument (ADR-017)
-      const planned =
-        at.site.kind === "argument"
-          ? within(this.argumentExpectedType(at.site), outer, true)
-          : within(
-              outer === null ? null : spellSite(at.site, outer.type),
-              outer,
-              at.site.kind !== "field" &&
-                (outer?.suppressBareEnumResolution ?? false),
-            );
+      let planned: ReturnType<typeof within>;
+      if (at.site.kind === "argument") {
+        planned = within(this.argumentExpectedType(at.site), outer, true);
+      } else {
+        const spelled = outer === null ? null : spellSite(at.site, outer.type);
+        planned = within(
+          spelled,
+          outer,
+          at.site.kind !== "field" &&
+            (outer?.suppressBareEnumResolution ?? false),
+        );
+      }
       resolved.set(at, planned);
       return planned;
     };
@@ -1524,6 +1572,24 @@ class FilePlanner {
     }
   }
 
+  /** ADR-044: the helpers a `+ - *` chain saturates through, or null for plain C */
+  private clampChain(expr: TExpressionOf<"binary">): IPlannedClamp | null {
+    const cnxType = this.compositeClampType(expr);
+    if (cnxType === null || TypeCheckUtils.usesNativeArithmetic(cnxType)) {
+      return null;
+    }
+    if (this.compositeClampBehavior(expr) !== "clamp") return null;
+    const defaultOperator = expr.level === "additive" ? "+" : "*";
+    const helpers = expr.operands
+      .slice(1)
+      .map(
+        (_, i) =>
+          CLAMP_HELPER_FOR_OPERATOR[expr.operators[i] ?? defaultOperator],
+      );
+    if (!helpers.every((op): op is string => op !== undefined)) return null;
+    return { cnxType, operations: helpers };
+  }
+
   /**
    * ADR-044: which written `+ - *` chains and compound writes of a `clamp`
    * integer saturate, and through which helpers. A chain qualifies only when
@@ -1559,22 +1625,9 @@ class FilePlanner {
       if (expr.level !== "additive" && expr.level !== "multiplicative") {
         continue;
       }
-      chains.set(expr, null);
-      const cnxType = this.compositeClampType(expr);
-      if (cnxType === null || TypeCheckUtils.usesNativeArithmetic(cnxType)) {
-        continue;
-      }
-      if (this.compositeClampBehavior(expr) !== "clamp") continue;
-      const defaultOperator = expr.level === "additive" ? "+" : "*";
-      const helpers = expr.operands
-        .slice(1)
-        .map(
-          (_, i) =>
-            CLAMP_HELPER_FOR_OPERATOR[expr.operators[i] ?? defaultOperator],
-        );
-      if (!helpers.every((op): op is string => op !== undefined)) continue;
-      helpers.forEach((operation) => use(operation, cnxType));
-      chains.set(expr, { cnxType, operations: helpers });
+      const chain = this.clampChain(expr);
+      chains.set(expr, chain);
+      chain?.operations.forEach((operation) => use(operation, chain.cnxType));
     }
 
     const compound = new Map<
@@ -1990,8 +2043,8 @@ class FilePlanner {
       emittedDesignatedInitializer: [...plan.structInitializers.values()].some(
         (form) => form !== "cppClass",
       ),
-      emittedCompoundLiteral: [...plan.structInitializers.values()].some(
-        (form) => form === "compound",
+      emittedCompoundLiteral: [...plan.structInitializers.values()].includes(
+        "compound",
       ),
       emittedLdrexStrexLoop: requirements.emitsLdrexStrexLoop,
       ldrexStrexSites: requirements.sitesOf("ldrex_strex_loop"),

@@ -163,11 +163,7 @@ class BooleanOperandAnalyzer {
     for (const member of program.declarations) {
       for (const part of DeclarationParts.of(member.declaration)) {
         for (const expr of ExpressionNodes.of(part)) {
-          check.checkUnary(expr);
-          if (expr.kind !== "binary") continue;
-          if (expr.level === "or" || expr.level === "and") continue;
-          if (BooleanOperandAnalyzer.admitsBoolean(expr.level)) continue;
-          check.checkLevel(expr);
+          BooleanOperandAnalyzer.checkExpression(check, expr);
         }
       }
       for (const site of StatementNodes.assignments(member.declaration)) {
@@ -176,6 +172,18 @@ class BooleanOperandAnalyzer {
     }
 
     return this.errors;
+  }
+
+  /** `!` on a number, or a bool at a level that takes numbers */
+  private static checkExpression(
+    check: BooleanOperandCheck,
+    expr: TExpression,
+  ): void {
+    check.checkUnary(expr);
+    if (expr.kind !== "binary") return;
+    if (expr.level === "or" || expr.level === "and") return;
+    if (BooleanOperandAnalyzer.admitsBoolean(expr.level)) return;
+    check.checkLevel(expr);
   }
 
   /**

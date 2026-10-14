@@ -61,8 +61,14 @@ class DivisionByZeroAnalyzer {
         if (expr.kind === "binary") this.check(expr, atRunTime.has(expr));
       }
     }
-    // `x /<- d` and `x %<- d` divide `x` by `d`, in a statement or a `for`
-    // header (#1770)
+    this.compoundDivisions(declaration);
+  }
+
+  /**
+   * `x /<- d` and `x %<- d` divide `x` by `d`, in a statement or a `for`
+   * header (#1770)
+   */
+  private compoundDivisions(declaration: TDeclarationSyntax): void {
     for (const site of StatementNodes.assignments(declaration)) {
       const operator = CompoundOperator.binaryOf(site.operator);
       if (operator !== "/" && operator !== "%") continue;

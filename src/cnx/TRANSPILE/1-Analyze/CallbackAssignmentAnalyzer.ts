@@ -44,6 +44,7 @@
 import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
 import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
 import type TExpression from "../../types/syntax/TExpression";
+import type TPostfixOpSyntax from "../../types/syntax/TPostfixOpSyntax";
 import DeclarationParts from "../../utils/DeclarationParts";
 import ExpressionNodes from "../../utils/ExpressionNodes";
 import StatementNodes from "../../utils/StatementNodes";
@@ -131,12 +132,10 @@ class CallbackAssignmentCheck {
 
   /** `this.` and `global.` name where the target is, not a field of it */
   private static describeTarget(target: TExpression): string {
-    const ops =
-      target.kind !== "postfix"
-        ? []
-        : target.primary.kind === "root"
-          ? target.ops.slice(1)
-          : target.ops;
+    let ops: readonly TPostfixOpSyntax[] = [];
+    if (target.kind === "postfix") {
+      ops = target.primary.kind === "root" ? target.ops.slice(1) : target.ops;
+    }
     const last = ops.at(-1);
     if (last === undefined) {
       return `callback variable '${target.written}'`;
