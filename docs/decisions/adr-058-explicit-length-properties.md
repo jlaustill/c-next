@@ -159,6 +159,87 @@ Languages that put the unit in the property name have the fewest bugs and the le
 
 **MISRA Directive 4.6** recommends fixed-width types to make sizes unambiguous — the same principle applies to property names.
 
+### Research: Three Kinds of Length (#1975 review 2)
+
+The owner reopened this ADR during PR #2077: it never says which kind of
+length each property measures. There are three kinds, and they often give
+different numbers for the same subject:
+
+1. **Value length**: what a value holds now, known only at runtime
+   (`strlen("hi")` is 2; Python's `(5).bit_length()` is 3).
+2. **Type length**: the declared, logical width every value of the type shares
+   (`uint32_t` is 32 bits, a bit-field `a : 3` is 3).
+3. **Memory size**: what the compiler lays out, with padding, alignment and
+   whole storage units (C's `sizeof`: `struct { uint32_t a; uint8_t b; }` is 8
+   bytes on x86-64, not 5).
+
+They are ordered: the value fits in the type, and the type fits in its memory.
+
+#### How other languages separate them
+
+Read from each language's own reference (links under References):
+
+| Language      | Value length                                                               | Type length                                                                                                                           | Memory size                                                                                                                                                                                               | `bool` / a 3-bit field                                                                                                                                      |
+| ------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ada (RM 2022) | --                                                                         | `S'Size`: bits "the implementation would choose for ... a record component of subtype S when the record type is packed" (13.3(45-46)) | `S'Object_Size`: "the smallest multiple of the storage element size larger than or equal to S'Size that is consistent with the alignment of S" (13.3(58.3)); `X'Size` of an object                        | "Boolean'Size shall be 1" (13.3(49)). GNAT: `Natural'Size` is 31, its objects 32; a record of an `Integer` and a `Character` has `'Size` 40, its objects 64 |
+| Zig           | --                                                                         | `@bitSizeOf`: "the number of bits it takes to store T in memory if the type were a field in a packed struct/union"                    | `@sizeOf`: bytes, "may contain padding bytes"; `@sizeOf(u24) == 4`                                                                                                                                        | packed `bool` fields "use exactly 1 bit"; a `u3` is 3 bits                                                                                                  |
+| Rust          | --                                                                         | `u32::BITS`: "the size of this integer type in bits" (integers only)                                                                  | `size_of`: bytes, "including alignment padding", "always a multiple of its alignment"                                                                                                                     | `size_of::<bool>()` is 1; no bit-fields                                                                                                                     |
+| Swift         | --                                                                         | --                                                                                                                                    | `MemoryLayout<T>.size` ("contiguous memory footprint ... in bytes"), `.stride`, `.alignment`; excludes "out of line storage"                                                                              | --                                                                                                                                                          |
+| Go            | --                                                                         | --                                                                                                                                    | `unsafe.Sizeof`: bytes, "includes any padding"; lives in package `unsafe`                                                                                                                                 | --                                                                                                                                                          |
+| Java          | --                                                                         | `Integer.SIZE` (bits) / `Integer.BYTES`                                                                                               | none: no `sizeof`; the JVM compiles `boolean` to `int` (JVM spec 2.3.4)                                                                                                                                   | --                                                                                                                                                          |
+| C#            | --                                                                         | --                                                                                                                                    | `sizeof`: bytes "allocated by the common language runtime in managed memory", including padding; safe code only on built-in unmanaged types and enums. `Marshal.SizeOf` gives a different, unmanaged size | `sizeof(bool)` is 1                                                                                                                                         |
+| Odin          | --                                                                         | --                                                                                                                                    | `size_of` (bytes)                                                                                                                                                                                         | `bit_field` takes an explicit backing type, LSB-first; C's bit-fields "are undefined and are not portable"                                                  |
+| C             | --                                                                         | a bit-field's declared width                                                                                                          | `sizeof`: bytes, cannot be applied to a bit-field                                                                                                                                                         | `_Bool` is "at least CHAR_BIT" bits as an object, at most 1 as a bit-field                                                                                  |
+| C++           | `std::bit_width(x)`: "1 plus the base-2 logarithm of x"                    | --                                                                                                                                    | `sizeof`: bytes of the object representation "including any additional padding"                                                                                                                           | as C                                                                                                                                                        |
+| Python        | `int.bit_length()`: "the number of bits necessary to represent an integer" | --                                                                                                                                    | `sys.getsizeof`                                                                                                                                                                                           | --                                                                                                                                                          |
+
+What the survey shows:
+
+- **Each kind has its own name wherever a language has more than one.** Ada
+  (`'Size` vs `'Object_Size`) and Zig (`@bitSizeOf` vs `@sizeOf`) measure type
+  length and memory size with separate attributes. No surveyed language uses
+  one name for both.
+- **Type length is counted in bits, and memory size in whole bytes.** In the
+  sources above, no language gets a sub-byte type width's byte count by
+  dividing by 8. A 3-bit width has a bit count, and only the storage that
+  holds it has a byte count.
+- **A `bool` is 1 bit as a type length** (Ada `Boolean'Size`, a Zig packed
+  field, a C bit-field) **and 1 byte as memory** (Rust, C#, C).
+- **Memory-safe languages hide or narrow memory size, or leave it out.** Go
+  keeps it in `unsafe`; C# allows it in safe code only for built-in unmanaged
+  types and enums; Java has none. Rust is the exception, with a safe
+  `size_of`.
+- **Python's `int.bit_length()` is a value length.** The "Languages with
+  Explicit Naming" list above cites it as the source of C-Next's name, but
+  C-Next's `.bit_length` is never a value length.
+
+#### C-Next today
+
+Measured on PR #2077 (`168d5da32`, `--target host`):
+
+| Subject                                     | `.bit_length` | `.byte_length`              | Kind it measures                                                                                    |
+| ------------------------------------------- | ------------- | --------------------------- | --------------------------------------------------------------------------------------------------- |
+| `u32`                                       | 32            | 4                           | type (the same as memory)                                                                           |
+| `bool`                                      | 8             | 1                           | memory (type length is 1)                                                                           |
+| `bitmap8 Fl { on, mode[3], rest[4] }`       | 8             | 1                           | type (the same as memory)                                                                           |
+| `g.on` (1-bit bitmap field)                 | 8             | 1                           | memory (#2081)                                                                                      |
+| `g.mode` (3 bits)                           | 3             | `0.375`, emitted into the C | type                                                                                                |
+| `g.rest` (4 bits)                           | 4             | `0.5`, emitted into the C   | type                                                                                                |
+| header `uint32_t a : 3`                     | 3             | `0.375`, emitted into the C | type (owner ruling, #1975 review)                                                                   |
+| `enum Mode { A, B, C }`                     | 32            | 4                           | neither: emitted as a C `enum`, whose size the C compiler picks (the reason a header enum is E0867) |
+| `struct P { bool f; u8 g; }`                | 16            | 2                           | type sum (#1535), counting the `bool` as memory                                                     |
+| `bool[3]`                                   | 24            | 3                           | memory per element                                                                                  |
+| `string<4>`                                 | 40            | 5                           | the buffer, counting the terminator byte (Resolved Question 2)                                      |
+| `string.char_count`                         | --            | --                          | value                                                                                               |
+| `Cfg` (header `{ uint32_t a; uint8_t b; }`) | 40            | 5                           | type sum (owner ruling, #1975)                                                                      |
+
+So `.bit_length`/`.byte_length` measure type length for structs, bitmap
+fields and header bit-fields, and memory size for `bool`, 1-bit bitmap fields,
+strings and enums. The note under String Examples calls `.byte_length` "the
+universal storage-size property", which Resolved Question 7 contradicts.
+`.byte_length` is defined as `.bit_length / 8`, so wherever the type length
+is not a whole number of bytes, the fraction goes into the generated C.
+
 ---
 
 ## Proposal
@@ -483,6 +564,12 @@ error: `.length` is not a built-in property. Use explicit properties instead.
 
 1. **Nested struct arrays**: For `struct Outer { Inner[10] items; }`, should `outer.items.element_count` return 10? This follows naturally from the array rules, but the implementation needs to handle struct field type resolution.
 
+2. **Which kind of length** (#1975 review 2; see "Research: Three Kinds of Length"): do `.bit_length` and `.byte_length` measure the type length or the memory size?
+3. **`bool` and a 1-bit field** (#2081): what is their `.bit_length`, 1 or 8?
+4. **A width that is no whole number of bytes**: what is `.byte_length` of a 3-bit field? Today it emits `0.375` into the C.
+5. **Enums**: what is a C-Next enum's length? It is emitted as a C `enum`, whose size the C compiler picks.
+6. **Strings**: should a string's lengths count its terminator byte?
+
 ---
 
 ## Diagnostics
@@ -551,6 +638,17 @@ declared in this file or across an include, so every cell is `error`.
 - [Ada `'Size`/`'Length` attributes](https://en.wikibooks.org/wiki/Ada_Programming/Attributes)
 - [Swift String docs](https://docs.swift.org/swift-book/LanguageGuide/StringsAndCharacters.html)
 - [MDN `ArrayBuffer.byteLength`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer)
+- [Ada 2022 RM 13.3, Operational and Representation Attributes (`'Size`, `'Object_Size`)](http://www.ada-auth.org/standards/22rm/html/RM-13-3.html)
+- [GNAT RM: `Object_Size`](https://gcc.gnu.org/onlinedocs/gnat_rm/Attribute-Object_005fSize.html), [`Value_Size`](https://gcc.gnu.org/onlinedocs/gnat_rm/Attribute-Value_005fSize.html)
+- [Zig 0.13 language reference (`@bitSizeOf`, `@sizeOf`, packed structs)](https://ziglang.org/documentation/0.13.0/)
+- [Rust `std::mem::size_of`](https://doc.rust-lang.org/std/mem/fn.size_of.html), [Rust Reference: Type Layout](https://doc.rust-lang.org/reference/type-layout.html)
+- [Swift `MemoryLayout` source](https://github.com/swiftlang/swift/blob/main/stdlib/public/core/MemoryLayout.swift)
+- [Go `unsafe.Sizeof`](https://pkg.go.dev/unsafe#Sizeof), [Go spec: Size and alignment guarantees](https://go.dev/ref/spec#Size_and_alignment_guarantees)
+- [Java `Integer.SIZE`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Integer.html), [JVM spec 2.3.4: The boolean Type](https://docs.oracle.com/javase/specs/jvms/se21/html/jvms-2.html)
+- [C# `sizeof` operator](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/sizeof)
+- [Odin overview (`size_of`, `bit_field`)](https://odin-lang.org/docs/overview/)
+- [C bit-fields](https://en.cppreference.com/w/c/language/bit_field), [C++ `sizeof`](https://en.cppreference.com/w/cpp/language/sizeof), [C++ `std::bit_width`](https://en.cppreference.com/w/cpp/numeric/bit_width)
+- [Python `int.bit_length()`](https://docs.python.org/3/library/stdtypes.html#int.bit_length)
 
 ### Bug Patterns
 
