@@ -512,29 +512,24 @@ describe("HeaderGeneratorUtils", () => {
   describe("generateIncludes", () => {
     // #1517: no longer "by default" -- what is decided is what is emitted.
     it("emits exactly the system includes it was given", () => {
-      const lines = HeaderGeneratorUtils.generateIncludes(
-        { cppMode: false },
-        new Set(),
-        ["<stdint.h>", "<stdbool.h>"],
-      );
+      const lines = HeaderGeneratorUtils.generateIncludes({}, new Set(), [
+        "<stdint.h>",
+        "<stdbool.h>",
+      ]);
 
       expect(lines).toContain("#include <stdint.h>");
       expect(lines).toContain("#include <stdbool.h>");
     });
 
     it("emits no system include when the declarations need none", () => {
-      const lines = HeaderGeneratorUtils.generateIncludes(
-        { cppMode: false },
-        new Set(),
-        [],
-      );
+      const lines = HeaderGeneratorUtils.generateIncludes({}, new Set(), []);
 
       expect(lines).toEqual([]);
     });
 
     it("skips system includes when disabled", () => {
       const lines = HeaderGeneratorUtils.generateIncludes(
-        { cppMode: false, includeSystemHeaders: false },
+        { includeSystemHeaders: false },
         new Set(),
         ["<stdint.h>"],
       );
@@ -544,7 +539,7 @@ describe("HeaderGeneratorUtils", () => {
 
     it("includes user includes", () => {
       const lines = HeaderGeneratorUtils.generateIncludes(
-        { cppMode: false, userIncludes: ['#include "custom.h"'] },
+        { userIncludes: ['#include "custom.h"'] },
         new Set(),
         [],
       );
@@ -554,28 +549,24 @@ describe("HeaderGeneratorUtils", () => {
 
     it("includes external type headers", () => {
       const headers = new Set(['#include "external.h"']);
-      const lines = HeaderGeneratorUtils.generateIncludes(
-        { cppMode: false },
-        headers,
-        [],
-      );
+      const lines = HeaderGeneratorUtils.generateIncludes({}, headers, []);
 
       expect(lines).toContain('#include "external.h"');
     });
 
     it("adds blank line after includes", () => {
-      const lines = HeaderGeneratorUtils.generateIncludes(
-        { cppMode: false },
-        new Set(),
-        ["<stdint.h>"],
-      );
+      const lines = HeaderGeneratorUtils.generateIncludes({}, new Set(), [
+        "<stdint.h>",
+      ]);
 
       expect(lines[lines.length - 1]).toBe("");
     });
 
     it("passes through userIncludes as-is (1.1 Discover already rendered their extension)", () => {
       const lines = HeaderGeneratorUtils.generateIncludes(
-        { cppMode: false, userIncludes: ['#include "types.hpp"'] },
+        {
+          userIncludes: ['#include "types.hpp"'],
+        },
         new Set(),
         [],
       );
@@ -585,7 +576,9 @@ describe("HeaderGeneratorUtils", () => {
 
     it("deduplicates headersToInclude against userIncludes across path styles in C++ mode", () => {
       const result = HeaderGeneratorUtils.generateIncludes(
-        { cppMode: false, userIncludes: ["#include <AppConfig.hpp>"] },
+        {
+          userIncludes: ["#include <AppConfig.hpp>"],
+        },
         new Set(['#include "../AppConfig.hpp"']),
         [],
       );
@@ -600,7 +593,9 @@ describe("HeaderGeneratorUtils", () => {
       // direct test of the dedup itself, which still guards path-style
       // differences and would be the only thing standing if they diverged again.
       const result = HeaderGeneratorUtils.generateIncludes(
-        { cppMode: false, userIncludes: ["#include <Display/AppData.hpp>"] },
+        {
+          userIncludes: ["#include <Display/AppData.hpp>"],
+        },
         new Set(["#include <Display/AppData.h>"]),
         [],
       );
@@ -616,7 +611,7 @@ describe("HeaderGeneratorUtils", () => {
       ["#include <a/config.h>", "#include <b/config.h>"],
     ])("keeps %s and %s apart", (userInclude, external) => {
       const result = HeaderGeneratorUtils.generateIncludes(
-        { cppMode: false, userIncludes: [userInclude] },
+        { userIncludes: [userInclude] },
         new Set([external]),
         [],
       );

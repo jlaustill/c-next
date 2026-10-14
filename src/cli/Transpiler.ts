@@ -18,7 +18,6 @@ import CodeGenWalker from "../cnx/TRANSPILE/CodeGenWalker";
 import invariant from "../cnx/utils/invariant";
 import AdrProvenance from "../cnx/instrumentation/AdrProvenance";
 import PublicInterface from "../cnx/TRANSPILE/2-Plan/PublicInterface";
-import HeaderGenerator from "../cnx/TRANSPILE/3-Render/headers/HeaderGenerator";
 import HeaderRenderer from "../cnx/TRANSPILE/3-Render/headers/HeaderRenderer";
 import IHeaderEmissionFacts from "../cnx/TRANSPILE/3-Render/headers/types/IHeaderEmissionFacts";
 import type IProgram from "../cnx/types/IProgram";
@@ -466,10 +465,7 @@ class Transpiler {
     result: ITranspilerResult,
     headerFactsByPath: ReadonlyMap<string, IHeaderEmissionFacts>,
   ): ReadonlyMap<string, IRenderedFile> {
-    const rendered = HeaderRenderer.render(
-      headerFactsByPath,
-      new HeaderGenerator(),
-    );
+    const rendered = HeaderRenderer.render(headerFactsByPath);
 
     // 2.3 Render's artifact, assembled here because this is the first moment a
     // file's text is complete: the implementation came from Stage 5, the header

@@ -131,10 +131,10 @@ class HeaderEmissionCapture {
     );
 
     return {
+      program: request.program,
       symbols: headerSymbols,
       filename: headerName,
       options: {
-        cppMode: request.program.cppMode(),
         userIncludes,
         cHeadersIncluded,
         // ADR-040: same flag the .c consults, so exactly one file emits it.

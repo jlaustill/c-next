@@ -2,8 +2,6 @@
  * Options for header file generation
  */
 interface IHeaderOptions {
-  /** #1428: the run is C++, so the C++ header generator writes it (#1991: 2.3 captures it) */
-  readonly cppMode: boolean;
   /** Include system headers in the output */
   includeSystemHeaders?: boolean;
 

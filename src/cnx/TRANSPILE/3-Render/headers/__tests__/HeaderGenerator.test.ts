@@ -14,9 +14,10 @@ import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../../types/__testUtils__/testSourceSpan";
 
 /** #1428: the run's mode, stated -- the facade reads it from the program */
+const C_RUN = { cppMode: () => false };
 
 describe("HeaderGenerator", () => {
-  const generator = new HeaderGenerator();
+  const generator = new HeaderGenerator(C_RUN);
 
   // Helper to create a variable symbol
   function makeVarSymbol(
@@ -59,17 +60,14 @@ describe("HeaderGenerator", () => {
     };
 
     it("renders C for a program that emits C", () => {
-      const header = generator.generate([process], "test.h", {
-        cppMode: false,
-      });
+      const header = generator.generate([process], "test.h", {});
 
       expect(header).toContain("void process(uint32_t* value);");
     });
 
-    it("renders C++ for a header 2.3 captured in C++ mode", () => {
-      const header = generator.generate([process], "test.h", {
-        cppMode: true,
-      });
+    it("renders C++ for a program that emits C++", () => {
+      const cppRun = new HeaderGenerator({ cppMode: () => true });
+      const header = cppRun.generate([process], "test.h", {});
 
       expect(header).toContain("void process(uint32_t& value);");
     });
@@ -78,7 +76,7 @@ describe("HeaderGenerator", () => {
   describe("string<N> type handling in extern declarations", () => {
     it("should generate char[N+1] for string<N> variables", () => {
       const symbols = [makeVarSymbol("greeting", "string<32>")];
-      const header = generator.generate(symbols, "test.h", { cppMode: false });
+      const header = generator.generate(symbols, "test.h", {});
 
       expect(header).toContain("extern char greeting[33];");
       expect(header).not.toContain("string<32>");
@@ -88,7 +86,7 @@ describe("HeaderGenerator", () => {
       const symbols = [
         makeVarSymbol("message", "string<16>", { isConst: true }),
       ];
-      const header = generator.generate(symbols, "test.h", { cppMode: false });
+      const header = generator.generate(symbols, "test.h", {});
 
       expect(header).toContain("extern const char message[17];");
     });
@@ -101,7 +99,7 @@ describe("HeaderGenerator", () => {
           arrayDimensions: ["3"],
         }),
       ];
-      const header = generator.generate(symbols, "test.h", { cppMode: false });
+      const header = generator.generate(symbols, "test.h", {});
 
       expect(header).toContain("extern char labels[3][17];");
     });
@@ -114,7 +112,7 @@ describe("HeaderGenerator", () => {
           isConst: true,
         }),
       ];
-      const header = generator.generate(symbols, "test.h", { cppMode: false });
+      const header = generator.generate(symbols, "test.h", {});
 
       expect(header).toContain("extern const char names[5][65];");
     });
@@ -127,14 +125,14 @@ describe("HeaderGenerator", () => {
           arrayDimensions: ["2", "3"],
         }),
       ];
-      const header = generator.generate(symbols, "test.h", { cppMode: false });
+      const header = generator.generate(symbols, "test.h", {});
 
       expect(header).toContain("extern char matrix[2][3][9];");
     });
 
     it("should not generate typedef for string<N> types", () => {
       const symbols = [makeVarSymbol("buffer", "string<128>")];
-      const header = generator.generate(symbols, "test.h", { cppMode: false });
+      const header = generator.generate(symbols, "test.h", {});
 
       expect(header).not.toContain("typedef struct string");
       expect(header).not.toContain("External type dependencies");
@@ -166,7 +164,7 @@ describe("HeaderGenerator", () => {
       // Symbols in any order - generator should reorder them
       // Without typeInput, structs become forward declarations
       const symbols = [makeStructSymbol("MyStruct"), makeEnumSymbol("MyEnum")];
-      const header = generator.generate(symbols, "test.h", { cppMode: false });
+      const header = generator.generate(symbols, "test.h", {});
 
       const enumIndex = header.indexOf("/* Enumerations */");
       // Without typeInput, structs are output as "Forward declarations"
@@ -185,7 +183,7 @@ describe("HeaderGenerator", () => {
         makeStructSymbol("TDeviceStatus"),
         makeEnumSymbol("EDeviceState"),
       ];
-      const header = generator.generate(symbols, "test.h", { cppMode: false });
+      const header = generator.generate(symbols, "test.h", {});
 
       const enumIndex = header.indexOf("/* Enumerations */");
       const structIndex = header.indexOf("/* Forward declarations */");
@@ -199,7 +197,7 @@ describe("HeaderGenerator", () => {
   describe("regular type handling (non-string)", () => {
     it("should handle primitive types normally", () => {
       const symbols = [makeVarSymbol("count", "u32")];
-      const header = generator.generate(symbols, "test.h", { cppMode: false });
+      const header = generator.generate(symbols, "test.h", {});
 
       expect(header).toContain("extern uint32_t count;");
     });
@@ -211,14 +209,14 @@ describe("HeaderGenerator", () => {
           arrayDimensions: ["256"],
         }),
       ];
-      const header = generator.generate(symbols, "test.h", { cppMode: false });
+      const header = generator.generate(symbols, "test.h", {});
 
       expect(header).toContain("extern uint8_t data[256];");
     });
 
     it("should handle user-defined types", () => {
       const symbols = [makeVarSymbol("config", "Configuration")];
-      const header = generator.generate(symbols, "test.h", { cppMode: false });
+      const header = generator.generate(symbols, "test.h", {});
 
       expect(header).toContain("extern Configuration config;");
     });
@@ -255,9 +253,7 @@ describe("HeaderGenerator", () => {
     describe("extern variable filtering", () => {
       it("should filter out variables with :: namespace types", () => {
         const symbols = [makeVarSymbol("data", "Lib::Sub::Data")];
-        const header = generator.generate(symbols, "test.h", {
-          cppMode: false,
-        });
+        const header = generator.generate(symbols, "test.h", {});
 
         // Should not have any extern variable declarations (extern "C" is OK)
         expect(header).not.toContain("External variables");
@@ -267,9 +263,7 @@ describe("HeaderGenerator", () => {
 
       it("should filter out variables with dot-notation namespace types", () => {
         const symbols = [makeVarSymbol("data", "Lib.Sub.Data")];
-        const header = generator.generate(symbols, "test.h", {
-          cppMode: false,
-        });
+        const header = generator.generate(symbols, "test.h", {});
 
         expect(header).not.toContain("External variables");
         expect(header).not.toContain("extern Lib.Sub.Data");
@@ -278,12 +272,7 @@ describe("HeaderGenerator", () => {
       it("should filter out variables with underscore C++ namespace types when symbolTable provided", () => {
         const symbols = [makeVarSymbol("data", "SeaDash__Parse__Result")];
         const typeInput = makeTypeInputWithCppNamespace("SeaDash");
-        const header = generator.generate(
-          symbols,
-          "test.h",
-          { cppMode: false },
-          typeInput,
-        );
+        const header = generator.generate(symbols, "test.h", {}, typeInput);
 
         expect(header).not.toContain("External variables");
         expect(header).not.toContain("extern SeaDash__Parse__Result");
@@ -292,12 +281,7 @@ describe("HeaderGenerator", () => {
       it("should NOT filter snake_case types that are not C++ namespaces", () => {
         const symbols = [makeVarSymbol("config", "my_config_struct")];
         const typeInput = makeTypeInputWithCppNamespace("SomeOtherNamespace");
-        const header = generator.generate(
-          symbols,
-          "test.h",
-          { cppMode: false },
-          typeInput,
-        );
+        const header = generator.generate(symbols, "test.h", {}, typeInput);
 
         expect(header).toContain("extern my_config_struct config;");
       });
@@ -305,12 +289,7 @@ describe("HeaderGenerator", () => {
       it("should keep regular C types even when symbolTable is provided", () => {
         const symbols = [makeVarSymbol("count", "u32")];
         const typeInput = makeTypeInputWithCppNamespace("SeaDash");
-        const header = generator.generate(
-          symbols,
-          "test.h",
-          { cppMode: false },
-          typeInput,
-        );
+        const header = generator.generate(symbols, "test.h", {}, typeInput);
 
         expect(header).toContain("extern uint32_t count;");
       });
@@ -339,9 +318,7 @@ describe("HeaderGenerator", () => {
 
       it("should filter out forward declarations for :: namespace types", () => {
         const symbols = [makeFuncSymbol("process", "Lib::Sub::Data")];
-        const header = generator.generate(symbols, "test.h", {
-          cppMode: false,
-        });
+        const header = generator.generate(symbols, "test.h", {});
 
         expect(header).not.toContain("typedef struct Lib::Sub::Data");
         expect(header).not.toContain("typedef struct Lib_Sub_Data");
@@ -350,9 +327,7 @@ describe("HeaderGenerator", () => {
 
       it("should filter out forward declarations for dot-notation types", () => {
         const symbols = [makeFuncSymbol("process", "Lib.Sub.Data")];
-        const header = generator.generate(symbols, "test.h", {
-          cppMode: false,
-        });
+        const header = generator.generate(symbols, "test.h", {});
 
         expect(header).not.toContain("typedef struct Lib.Sub.Data");
         expect(header).not.toContain("External type dependencies");
@@ -361,12 +336,7 @@ describe("HeaderGenerator", () => {
       it("should filter out forward declarations for underscore C++ namespace types", () => {
         const symbols = [makeFuncSymbol("process", "SeaDash__Parse__Result")];
         const typeInput = makeTypeInputWithCppNamespace("SeaDash");
-        const header = generator.generate(
-          symbols,
-          "test.h",
-          { cppMode: false },
-          typeInput,
-        );
+        const header = generator.generate(symbols, "test.h", {}, typeInput);
 
         expect(header).not.toContain("typedef struct SeaDash__Parse__Result");
         expect(header).not.toContain("External type dependencies");
@@ -374,9 +344,7 @@ describe("HeaderGenerator", () => {
 
       it("should keep forward declarations for regular external types", () => {
         const symbols = [makeFuncSymbol("process", "ExternalConfig")];
-        const header = generator.generate(symbols, "test.h", {
-          cppMode: false,
-        });
+        const header = generator.generate(symbols, "test.h", {});
 
         expect(header).toContain(
           "typedef struct ExternalConfig ExternalConfig;",
@@ -388,9 +356,7 @@ describe("HeaderGenerator", () => {
     describe("edge cases", () => {
       it("should handle C++ template types (filter them out)", () => {
         const symbols = [makeVarSymbol("vec", "std::vector<int>")];
-        const header = generator.generate(symbols, "test.h", {
-          cppMode: false,
-        });
+        const header = generator.generate(symbols, "test.h", {});
 
         expect(header).not.toContain("External variables");
         expect(header).not.toContain("extern std::vector");
@@ -399,9 +365,7 @@ describe("HeaderGenerator", () => {
 
       it("should allow C-Next string<N> types (not C++ templates)", () => {
         const symbols = [makeVarSymbol("name", "string<32>")];
-        const header = generator.generate(symbols, "test.h", {
-          cppMode: false,
-        });
+        const header = generator.generate(symbols, "test.h", {});
 
         expect(header).toContain("extern char name[33];");
       });
@@ -412,9 +376,7 @@ describe("HeaderGenerator", () => {
           makeVarSymbol("regularData", "MyStruct"),
           makeVarSymbol("count", "u32"),
         ];
-        const header = generator.generate(symbols, "test.h", {
-          cppMode: false,
-        });
+        const header = generator.generate(symbols, "test.h", {});
 
         expect(header).not.toContain("Lib::Data");
         expect(header).toContain("extern MyStruct regularData;");

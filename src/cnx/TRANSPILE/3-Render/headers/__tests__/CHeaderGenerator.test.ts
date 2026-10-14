@@ -100,7 +100,7 @@ describe("CHeaderGenerator", () => {
       const generator = new CHeaderGenerator();
       const symbols: IHeaderSymbol[] = [];
 
-      const result = generator.generate(symbols, "test.h", { cppMode: false });
+      const result = generator.generate(symbols, "test.h", {});
 
       expect(result).toContain("#ifndef CNX_TEST_H");
       expect(result).toContain("#define CNX_TEST_H");
@@ -115,12 +115,8 @@ describe("CHeaderGenerator", () => {
       const generator = new CHeaderGenerator();
       const symbols: IHeaderSymbol[] = [];
 
-      const canResult = generator.generate(symbols, "can/config.h", {
-        cppMode: false,
-      });
-      const uartResult = generator.generate(symbols, "uart/config.h", {
-        cppMode: false,
-      });
+      const canResult = generator.generate(symbols, "can/config.h", {});
+      const uartResult = generator.generate(symbols, "uart/config.h", {});
 
       expect(canResult).toContain("#ifndef CNX_CAN_CONFIG_H");
       expect(canResult).toContain("#define CNX_CAN_CONFIG_H");
@@ -131,7 +127,7 @@ describe("CHeaderGenerator", () => {
       const generator = new CHeaderGenerator();
       const symbols: IHeaderSymbol[] = [];
 
-      const result = generator.generate(symbols, "test.h", { cppMode: false });
+      const result = generator.generate(symbols, "test.h", {});
 
       expect(result).toContain("#ifdef __cplusplus");
       expect(result).toContain('extern "C" {');
@@ -144,7 +140,7 @@ describe("CHeaderGenerator", () => {
         createFunctionSymbol("doSomething", "void"),
       ];
 
-      const result = generator.generate(symbols, "test.h", { cppMode: false });
+      const result = generator.generate(symbols, "test.h", {});
 
       expect(result).toContain("void doSomething(void);");
     });
@@ -155,7 +151,7 @@ describe("CHeaderGenerator", () => {
       const generator = new CHeaderGenerator();
       const symbols: IHeaderSymbol[] = [createFunctionSymbol("init", "void")];
 
-      const result = generator.generate(symbols, "test.h", { cppMode: false });
+      const result = generator.generate(symbols, "test.h", {});
 
       expect(result).toContain("void init(void);");
     });
@@ -166,7 +162,7 @@ describe("CHeaderGenerator", () => {
         createFunctionSymbol("getValue", "u32"),
       ];
 
-      const result = generator.generate(symbols, "test.h", { cppMode: false });
+      const result = generator.generate(symbols, "test.h", {});
 
       expect(result).toContain("uint32_t getValue(void);");
     });
@@ -175,7 +171,7 @@ describe("CHeaderGenerator", () => {
       const generator = new CHeaderGenerator();
       const symbols: IHeaderSymbol[] = [createFunctionSymbol("main", "u32")];
 
-      const result = generator.generate(symbols, "test.h", { cppMode: false });
+      const result = generator.generate(symbols, "test.h", {});
 
       expect(result).toContain("int main(void);");
     });
@@ -186,7 +182,7 @@ describe("CHeaderGenerator", () => {
         createFunctionSymbol("process", "void", [createParam("value", "u32")]),
       ];
 
-      const result = generator.generate(symbols, "test.h", { cppMode: false });
+      const result = generator.generate(symbols, "test.h", {});
 
       expect(result).toContain("void process(uint32_t* value);");
     });
@@ -199,7 +195,7 @@ describe("CHeaderGenerator", () => {
         ]),
       ];
 
-      const result = generator.generate(symbols, "test.h", { cppMode: false });
+      const result = generator.generate(symbols, "test.h", {});
 
       expect(result).toContain("void process(const uint32_t* value);");
     });
@@ -212,7 +208,7 @@ describe("CHeaderGenerator", () => {
         ]),
       ];
 
-      const result = generator.generate(symbols, "test.h", { cppMode: false });
+      const result = generator.generate(symbols, "test.h", {});
 
       expect(result).toContain("void process(const uint32_t* value);");
     });
@@ -226,7 +222,7 @@ describe("CHeaderGenerator", () => {
         ]),
       ];
 
-      const result = generator.generate(symbols, "test.h", { cppMode: false });
+      const result = generator.generate(symbols, "test.h", {});
 
       expect(result).toContain("uint32_t add(uint32_t* a, uint32_t* b);");
     });
@@ -241,7 +237,7 @@ describe("CHeaderGenerator", () => {
       const result = generator.generate(
         symbols,
         "test.h",
-        { cppMode: false },
+        {},
         undefined,
         passByValueParams,
       );
@@ -255,7 +251,7 @@ describe("CHeaderGenerator", () => {
         createFunctionSymbol("setFloat", "void", [createParam("value", "f32")]),
       ];
 
-      const result = generator.generate(symbols, "test.h", { cppMode: false });
+      const result = generator.generate(symbols, "test.h", {});
 
       expect(result).toContain("void setFloat(float value);");
     });
@@ -268,7 +264,7 @@ describe("CHeaderGenerator", () => {
         ]),
       ];
 
-      const result = generator.generate(symbols, "test.h", { cppMode: false });
+      const result = generator.generate(symbols, "test.h", {});
 
       expect(result).toContain("void setDouble(double value);");
     });
@@ -285,7 +281,7 @@ describe("CHeaderGenerator", () => {
       const result = generator.generate(
         symbols,
         "test.h",
-        { cppMode: false },
+        {},
         undefined,
         undefined,
         allKnownEnums,
@@ -302,7 +298,7 @@ describe("CHeaderGenerator", () => {
         ]),
       ];
 
-      const result = generator.generate(symbols, "test.h", { cppMode: false });
+      const result = generator.generate(symbols, "test.h", {});
 
       expect(result).toContain("void setHandler(ISR handler);");
     });
@@ -315,7 +311,7 @@ describe("CHeaderGenerator", () => {
         ]),
       ];
 
-      const result = generator.generate(symbols, "test.h", { cppMode: false });
+      const result = generator.generate(symbols, "test.h", {});
 
       expect(result).toContain("void processArray(uint8_t data[10]);");
     });
@@ -332,7 +328,7 @@ describe("CHeaderGenerator", () => {
         ]),
       ];
 
-      const result = generator.generate(symbols, "test.h", { cppMode: false });
+      const result = generator.generate(symbols, "test.h", {});
 
       expect(result).toContain("void readArray(const uint8_t data[10]);");
     });
@@ -349,7 +345,7 @@ describe("CHeaderGenerator", () => {
         ]),
       ];
 
-      const result = generator.generate(symbols, "test.h", { cppMode: false });
+      const result = generator.generate(symbols, "test.h", {});
 
       expect(result).toContain("void readArray(const uint8_t data[10]);");
     });
@@ -365,7 +361,7 @@ describe("CHeaderGenerator", () => {
         ]),
       ];
 
-      const result = generator.generate(symbols, "test.h", { cppMode: false });
+      const result = generator.generate(symbols, "test.h", {});
 
       expect(result).toContain("void processStrings(char* strings[5]);");
     });
@@ -381,7 +377,7 @@ describe("CHeaderGenerator", () => {
         ]),
       ];
 
-      const result = generator.generate(symbols, "test.h", { cppMode: false });
+      const result = generator.generate(symbols, "test.h", {});
 
       expect(result).toContain("void processMatrix(uint32_t matrix[3][4]);");
     });
@@ -398,7 +394,7 @@ describe("CHeaderGenerator", () => {
         },
       ];
 
-      const result = generator.generate(symbols, "test.h", { cppMode: false });
+      const result = generator.generate(symbols, "test.h", {});
 
       expect(result).toContain("void noReturn(void);");
     });
@@ -420,9 +416,7 @@ describe("CHeaderGenerator", () => {
 
       for (const { cnx, c } of types) {
         const symbols: IHeaderSymbol[] = [createFunctionSymbol("get", cnx)];
-        const result = generator.generate(symbols, "test.h", {
-          cppMode: false,
-        });
+        const result = generator.generate(symbols, "test.h", {});
         expect(result).toContain(`${c} get(void);`);
       }
     });
@@ -433,7 +427,7 @@ describe("CHeaderGenerator", () => {
         createFunctionSymbol("isReady", "bool"),
       ];
 
-      const result = generator.generate(symbols, "test.h", { cppMode: false });
+      const result = generator.generate(symbols, "test.h", {});
 
       expect(result).toContain("bool isReady(void);");
     });
@@ -445,7 +439,7 @@ describe("CHeaderGenerator", () => {
         createFunctionSymbol("getF64", "f64"),
       ];
 
-      const result = generator.generate(symbols, "test.h", { cppMode: false });
+      const result = generator.generate(symbols, "test.h", {});
 
       expect(result).toContain("float getF32(void);");
       expect(result).toContain("double getF64(void);");
@@ -461,7 +455,7 @@ describe("CHeaderGenerator", () => {
         ]),
       ];
 
-      const result = generator.generate(symbols, "test.h", { cppMode: false });
+      const result = generator.generate(symbols, "test.h", {});
 
       // Should not generate struct forward declaration for C++ namespace type
       // (the type still appears in function prototype, but not in forward decl)
@@ -476,7 +470,7 @@ describe("CHeaderGenerator", () => {
         createVariableSymbol("myVector", "std::vector<int>"),
       ];
 
-      const result = generator.generate(symbols, "test.h", { cppMode: false });
+      const result = generator.generate(symbols, "test.h", {});
 
       // Should not include the variable with C++ template type
       expect(result).not.toContain("std::vector");
@@ -490,7 +484,7 @@ describe("CHeaderGenerator", () => {
         ]),
       ];
 
-      const result = generator.generate(symbols, "test.h", { cppMode: false });
+      const result = generator.generate(symbols, "test.h", {});
 
       expect(result).toContain("typedef struct ExternalConfig ExternalConfig;");
     });
@@ -519,12 +513,7 @@ describe("CHeaderGenerator", () => {
       ];
 
       expect(() =>
-        generator.generate(
-          symbols,
-          "test.h",
-          { cppMode: false },
-          typeInputWith(symbolTable),
-        ),
+        generator.generate(symbols, "test.h", {}, typeInputWith(symbolTable)),
       ).toThrow(/Internal:.*handle_t/s);
     });
 
@@ -547,12 +536,7 @@ describe("CHeaderGenerator", () => {
 
       let message = "";
       try {
-        generator.generate(
-          symbols,
-          "test.h",
-          { cppMode: false },
-          typeInputWith(symbolTable),
-        );
+        generator.generate(symbols, "test.h", {}, typeInputWith(symbolTable));
       } catch (error) {
         message = error instanceof Error ? error.message : String(error);
       }
@@ -577,11 +561,7 @@ describe("CHeaderGenerator", () => {
       const result = generator.generate(
         symbols,
         "test.h",
-        {
-          cppMode: false,
-          cHeadersIncluded: true,
-          userIncludes: ['#include "handles.h"'],
-        },
+        { cHeadersIncluded: true, userIncludes: ['#include "handles.h"'] },
         typeInputWith(symbolTable),
       );
 
@@ -598,7 +578,7 @@ describe("CHeaderGenerator", () => {
         ]),
       ];
 
-      const result = generator.generate(symbols, "test.h", { cppMode: false });
+      const result = generator.generate(symbols, "test.h", {});
 
       // LocalStruct should appear in struct definitions, not external dependencies
       expect(result).not.toContain("External type dependencies");
@@ -616,7 +596,7 @@ describe("CHeaderGenerator", () => {
       const result = generator.generate(
         symbols,
         "test.h",
-        { cppMode: false },
+        {},
         undefined,
         undefined,
         allKnownEnums,
@@ -654,12 +634,7 @@ describe("CHeaderGenerator", () => {
         bitmapFields: new Map(),
       };
 
-      const result = generator.generate(
-        symbols,
-        "test.h",
-        { cppMode: false },
-        typeInput,
-      );
+      const result = generator.generate(symbols, "test.h", {}, typeInput);
 
       // Variable with underscore-format namespace type should be filtered
       expect(result).not.toContain("MyLib__MyClass instance");
@@ -693,12 +668,7 @@ describe("CHeaderGenerator", () => {
         bitmapFields: new Map(),
       };
 
-      const result = generator.generate(
-        symbols,
-        "test.h",
-        { cppMode: false },
-        typeInput,
-      );
+      const result = generator.generate(symbols, "test.h", {}, typeInput);
 
       // Should not forward-declare underscore-format namespace types
       expect(result).not.toContain("typedef struct LibName__Object");
@@ -716,7 +686,6 @@ describe("CHeaderGenerator", () => {
       ]);
 
       const result = generator.generate(symbols, "test.h", {
-        cppMode: false,
         externalTypeHeaders,
       });
 
@@ -733,7 +702,7 @@ describe("CHeaderGenerator", () => {
       const generator = new CHeaderGenerator();
       const symbols: IHeaderSymbol[] = [];
 
-      const result = generator.generate(symbols, "empty.h", { cppMode: false });
+      const result = generator.generate(symbols, "empty.h", {});
 
       expect(result).toContain("#ifndef CNX_EMPTY_H");
       expect(result).toContain("#define CNX_EMPTY_H");
@@ -747,7 +716,7 @@ describe("CHeaderGenerator", () => {
       const generator = new CHeaderGenerator();
       const symbols: IHeaderSymbol[] = [createVariableSymbol("counter", "u32")];
 
-      const result = generator.generate(symbols, "test.h", { cppMode: false });
+      const result = generator.generate(symbols, "test.h", {});
 
       expect(result).toContain("External variables");
       expect(result).toContain("uint32_t");
@@ -760,7 +729,7 @@ describe("CHeaderGenerator", () => {
         createVariableSymbol("instance", "MyModule.Config"),
       ];
 
-      const result = generator.generate(symbols, "test.h", { cppMode: false });
+      const result = generator.generate(symbols, "test.h", {});
 
       expect(result).not.toContain("MyModule.Config");
     });
@@ -786,12 +755,7 @@ describe("CHeaderGenerator", () => {
         bitmapFields: new Map(),
       };
 
-      const result = generator.generate(
-        symbols,
-        "test.h",
-        { cppMode: false },
-        typeInput,
-      );
+      const result = generator.generate(symbols, "test.h", {}, typeInput);
 
       expect(result).toContain("Struct definitions");
       expect(result).toContain("Point");
@@ -801,7 +765,7 @@ describe("CHeaderGenerator", () => {
       const generator = new CHeaderGenerator();
       const symbols: IHeaderSymbol[] = [createStructSymbol("Point")];
 
-      const result = generator.generate(symbols, "test.h", { cppMode: false });
+      const result = generator.generate(symbols, "test.h", {});
 
       expect(result).toContain("typedef struct Point Point;");
     });
@@ -810,7 +774,7 @@ describe("CHeaderGenerator", () => {
       const generator = new CHeaderGenerator();
       const symbols: IHeaderSymbol[] = [createEnumSymbol("Status")];
 
-      const result = generator.generate(symbols, "test.h", { cppMode: false });
+      const result = generator.generate(symbols, "test.h", {});
 
       expect(result).toContain("Enumerations");
       expect(result).toContain("Status");

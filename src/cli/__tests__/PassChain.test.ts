@@ -12,7 +12,6 @@ import Resolve from "../../cnx/PARSE/4-Resolve/Resolve";
 import Analyze from "../../cnx/TRANSPILE/1-Analyze/Analyze";
 import CodeGenWalker from "../../cnx/TRANSPILE/CodeGenWalker";
 import HeaderRenderer from "../../cnx/TRANSPILE/3-Render/headers/HeaderRenderer";
-import HeaderGenerator from "../../cnx/TRANSPILE/3-Render/headers/HeaderGenerator";
 import Write from "../../cnx/WRITE/1-Write/Write";
 
 /**
@@ -303,24 +302,16 @@ describe("#1991: each pass takes only what the pass before it returned", () => {
       );
     }
     for (const headers of first.filter((call) => call.pass === "2.3 headers")) {
-      expect(
-        HeaderRenderer.render(headers.args[0] as never, new HeaderGenerator()),
-      ).toEqual(headers.returned);
+      expect(HeaderRenderer.render(headers.args[0] as never)).toEqual(
+        headers.returned,
+      );
     }
   });
 
   it("2.3's header step is given nothing but 2.3's header input", async () => {
     await run();
-    const headers = only("2.3 headers");
-    const held = new Set<unknown>();
-    for (const call of calls.filter((each) => each !== headers)) {
-      for (const value of reachable(call.returned)) held.add(value);
-    }
-    for (const value of reachable(headers.args[1])) {
-      expect(held.has(value), "the header generator holds an artifact").toBe(
-        false,
-      );
-    }
+    // #1428: the mode comes in the facts, as the program 2.3 rendered against
+    expect(only("2.3 headers").args).toHaveLength(1);
   });
 
   it("3.1 Write writes to the paths 1.1 named", async () => {
