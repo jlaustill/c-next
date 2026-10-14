@@ -161,7 +161,7 @@ import ISeparatorContext from "./3-Render/codegen/types/ISeparatorContext";
 import TypeGenerationHelper from "./2-Plan/TypeGenerationHelper";
 import type IAnalyzedFile from "../types/IAnalyzedFile";
 import type IAnalysis from "./1-Analyze/types/IAnalysis";
-import FileFacts from "../utils/FileFacts";
+import AnalyzedFiles from "./1-Analyze/AnalyzedFiles";
 import PlanOptions from "./2-Plan/PlanOptions";
 import type IFilePlan from "./2-Plan/types/IFilePlan";
 import type IRenderLedger from "./3-Render/types/IRenderLedger";
@@ -244,7 +244,7 @@ class CodeGenWalker {
    */
   plan(sourcePath: string, analysis: IAnalysis): IFilePlan {
     return this.planWith(
-      FileFacts.analyzedFileOf(analysis, sourcePath),
+      AnalyzedFiles.fileOf(analysis, sourcePath),
       PlanOptions.of(sourcePath, analysis),
     );
   }

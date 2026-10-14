@@ -7,8 +7,6 @@ import type IFileIncludes from "../PARSE/1-Discover/types/IFileIncludes";
 import type IOutputPaths from "../PARSE/1-Discover/types/IOutputPaths";
 import type TDiscoveryFacts from "../PARSE/1-Discover/types/TDiscoveryFacts";
 import type ICodeGenSymbols from "../types/ICodeGenSymbols";
-import type IAnalysis from "../TRANSPILE/1-Analyze/types/IAnalysis";
-import type IAnalyzedFile from "../types/IAnalyzedFile";
 import type IProgram from "../types/IProgram";
 import invariant from "./invariant";
 
@@ -47,19 +45,6 @@ class FileFacts {
       `1.1 Discover names the outputs of every file it discovers (missing ${sourcePath})`,
     );
     return outputs;
-  }
-
-  /** What 2.1 kept of one file that produces output */
-  static analyzedFileOf(
-    analysis: IAnalysis,
-    sourcePath: string,
-  ): IAnalyzedFile {
-    const analyzed = analysis.files.get(sourcePath);
-    invariant(
-      analyzed !== undefined,
-      `2.1 Analyze keeps every file that produces output (missing ${sourcePath})`,
-    );
-    return analyzed;
   }
 }
 

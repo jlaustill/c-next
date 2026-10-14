@@ -42,6 +42,7 @@ import type TDiscoveryFacts from "../cnx/PARSE/1-Discover/types/TDiscoveryFacts"
 import Parse from "../cnx/PARSE/2-Parse/Parse";
 import Declare from "../cnx/PARSE/3-Declare/Declare";
 import Analyze from "../cnx/TRANSPILE/1-Analyze/Analyze";
+import AnalyzedFiles from "../cnx/TRANSPILE/1-Analyze/AnalyzedFiles";
 import Resolve from "../cnx/PARSE/4-Resolve/Resolve";
 import type IResolvedProgram from "../cnx/PARSE/4-Resolve/types/IResolvedProgram";
 import type TFrontEndResult from "./types/TFrontEndResult";
@@ -351,7 +352,7 @@ class Transpiler {
     result.symbolsCollected = declared.symbolTable.size;
     this.warnings.push(...headers.warnings);
     for (const header of headers.declared) {
-      if (this.config.debugMode) {
+      if (declared.discovery.run.debugMode) {
         console.log(
           `[DEBUG]   Parsing ${Transpiler._languageName(header.language)} header: ${header.path}`,
         );
@@ -575,7 +576,7 @@ class Transpiler {
     const errors = analysis.diagnostics
       .forFile(sourcePath)
       .filter((e) => e.severity === "error");
-    const declarationCount = FileFacts.analyzedFileOf(
+    const declarationCount = AnalyzedFiles.fileOf(
       analysis,
       sourcePath,
     ).declarationCount;
@@ -628,7 +629,7 @@ class Transpiler {
     AdrProvenance.beginFile(sourcePath);
 
     try {
-      const declarationCount = FileFacts.analyzedFileOf(
+      const declarationCount = AnalyzedFiles.fileOf(
         analysis,
         sourcePath,
       ).declarationCount;
