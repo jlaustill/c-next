@@ -591,6 +591,11 @@ error: `.length` is not a built-in property. Use explicit properties instead.
   `sizeof(Cfg)`, exact for every build, including header unions and
   bit-fields. C-Next itself does not know the number, so it cannot check
   anything sized by it.
+- The type row is the declared, logical width, so a `bool` and a 1-bit
+  bitmap field have `.type_bit_length` 1 and `.memory_bit_length` 8.
+- A `_byte_length` rounds up to the whole bytes that hold its bits: a 3-bit
+  field's `.type_byte_length` is 1, `struct P { bool f; u8 g; }` (9 bits) is 2,
+  and `.value_byte_length` of `n = 5` (3 bits) is 1.
 
 ---
 
