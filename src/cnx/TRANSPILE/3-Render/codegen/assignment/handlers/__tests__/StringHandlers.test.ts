@@ -219,6 +219,8 @@ describe("StringHandlers", () => {
             after: name,
             property: null,
             callee: null,
+            beforeNamesType: false,
+            beforeIsBitField: false,
           },
         },
       };
@@ -281,6 +283,8 @@ describe("StringHandlers", () => {
             after: element,
             property: null,
             callee: null,
+            beforeNamesType: false,
+            beforeIsBitField: false,
           },
         },
       };

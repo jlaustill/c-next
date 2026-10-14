@@ -1714,6 +1714,8 @@ class CodeGenWalker {
       output.push(...safeDivHelpers);
     }
 
+    output.push(...helperGenerators.generateLengthHelpers(plan.lengthHelpers));
+
     output.push(
       ...helperGenerators.generateCastHelpers(
         plan.castHelpers,

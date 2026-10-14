@@ -19,6 +19,9 @@ import QualifiedCName from "../../utils/QualifiedCName";
 import CNEXT_TO_C_TYPE_MAP from "../../utils/constants/TypeMappings";
 import ScopeUtils from "../../utils/ScopeUtils";
 import LengthProperty from "../../utils/LengthProperty";
+import TypeCheckUtils from "../../utils/TypeCheckUtils";
+import type ILengthSubject from "../../utils/types/ILengthSubject";
+import type TEssentialCategory from "../../types/TEssentialCategory";
 import TypeHead from "../../utils/TypeHead";
 import ForeignTypeFacts from "../../utils/ForeignTypeFacts";
 import type TSymbol from "../../types/symbols/TSymbol";
@@ -267,9 +270,19 @@ class ConstantNames {
       current = current && ConstantNames.stepInto(current, step, walk);
     }
     const property = rest.at(-1)!;
-    if (current === null || !LengthProperty.isLength(property)) {
-      return ConstantNames.without("member", walk);
+    const name = LengthProperty.parse(property);
+    if (current === null || name === null) {
+      return ConstantNames.without(
+        current !== null && LengthProperty.isLength(property)
+          ? "unfolded"
+          : "member",
+        walk,
+      );
     }
+    // ADR-058: only a logical length is C-Next's to fold; a runtime one and
+    // C's memory are written for the program and the C compiler to answer
+    const rule = LengthProperty.rule(name, ConstantNames.subjectOf(current));
+    if (rule.kind !== "logical") return ConstantNames.without("unfolded", walk);
     const lookup = (cName: string) => walk.facts.visibleSymbol(cName);
     const struct =
       current.type.kind === "struct"
@@ -281,7 +294,7 @@ class ConstantNames {
     const header = ConstantNames.headerType(current.type, walk);
     const element = ConstantNames.elementBits(current, header, walk);
     const value = LengthProperty.of(
-      property,
+      name.unit,
       current.dimensions,
       element,
       struct?.fields.size ??
@@ -329,6 +342,27 @@ class ConstantNames {
       rest,
       walk,
     );
+  }
+
+  /** A measured value as ADR-058's length rule asks about it */
+  private static subjectOf(current: IMeasured): ILengthSubject {
+    const type = current.type;
+    const primitive = type.kind === "primitive" ? type.primitive : "";
+    let category: TEssentialCategory = "none";
+    if (TypeCheckUtils.isUnsigned(primitive)) category = "unsigned";
+    else if (TypeCheckUtils.isSigned(primitive)) category = "signed";
+    else if (TypeCheckUtils.isFloat(primitive)) category = "floating";
+    else if (primitive === "bool") category = "boolean";
+    else if (type.kind === "enum") category = "enum";
+    return {
+      namesType: false,
+      category,
+      isString: type.kind === "string" && current.dimensions.length === 0,
+      isArray: current.dimensions.length > 0,
+      isStruct: type.kind === "struct",
+      isBitField: current.bitField !== undefined,
+      spelling: "",
+    };
   }
 
   /** One element's bits of a measured value; null when not known here */

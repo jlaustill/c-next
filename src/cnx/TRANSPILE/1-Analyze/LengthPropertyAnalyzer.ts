@@ -18,9 +18,11 @@
  *
  * ## What the rule is
  *
- * A length property asks a question of the type it is applied to, and not every
- * type can answer: `.element_count` needs an array, `.char_count` needs a
- * string, `.bit_length` and `.byte_length` need a type whose width is known.
+ * A length property names its kind and unit (#1975 review 2), and asks it of
+ * the subject it is applied to. `LengthProperty.rule` decides whether the
+ * subject can answer -- `.value_*` needs a value, `_element_count` an array or
+ * struct, `.memory_char_count` a string -- and a logical bit or byte length
+ * still needs a type whose width is known, which this pass checks.
  * The question is asked of the chain WITHOUT the property step -- for
  * `frame.data[0].element_count` the subject is `frame.data[0]` -- which is the
  * one operand typer's chain step before the property (#1668), not a second
@@ -41,6 +43,8 @@ import StatementNodes from "../../utils/StatementNodes";
 import OperandTyper from "../../utils/OperandTyper";
 import LengthProperty from "../../utils/LengthProperty";
 import ForeignTypeFacts from "../../utils/ForeignTypeFacts";
+import LengthSubject from "../../utils/LengthSubject";
+import type IChainStep from "../../types/IChainStep";
 import PROPERTY_NAMES from "../../utils/constants/PROPERTY_NAMES";
 import ILengthPropertyError from "./types/ILengthPropertyError";
 import type IAnalysisContext from "./types/IAnalysisContext";
@@ -93,11 +97,11 @@ class LengthPropertyCheck {
     if (property === null) return;
 
     if (LengthPropertyCheck.subjectIsArgs(chain)) {
-      if (property !== "element_count") {
+      if (LengthProperty.parse(property)?.unit !== "element_count") {
         this.report(
           last,
           `.${property} is not available on 'args'`,
-          "Use .element_count for the argument count.",
+          "Use .type_element_count for the argument count.",
         );
       }
       return;
@@ -108,20 +112,18 @@ class LengthPropertyCheck {
     // A scope variable may be called `length` (#212): `this.length` binds
     // the member at the chain's root, so there is no property step and no
     // subject, and no property rule applies.
-    const subject = step?.before ?? null;
-    if (subject === null) return; // unresolved -- another diagnostic's to report
+    if (step?.before == null) return; // unresolved -- another diagnostic's to report
 
-    this.check(last, property, subject);
+    this.check(last, property, step);
   }
 
   private check(
     at: TPostfixOpSyntax,
     property: string,
-    typed: IOperandType,
+    step: IChainStep,
   ): void {
-    const subject = LengthPropertyCheck.spelling(typed);
-    const dimensions = typed.dimensions.length;
-    const element = typed.typeName ?? "";
+    const typed = step.before!;
+    const subject = LengthSubject.spelling(typed);
     // `string<N>` and the unsized `const string`, whose capacity is inferred.
     const isString = OperandTyper.isString(typed);
 
@@ -133,6 +135,13 @@ class LengthPropertyCheck {
       this.reportDeprecatedLength(at);
       return;
     }
+    // ADR-058 (#1975 review 2): the unprefixed lengths are removed, each
+    // named one kind of length without saying which
+    const replacement = LengthProperty.removedHelp(property);
+    if (replacement !== null) {
+      this.report(at, `'.${property}' is removed`, replacement, "E0886");
+      return;
+    }
 
     // ADR-045's storage properties describe a string's buffer: `.capacity` is
     // the declared `N`, `.size` that plus the null terminator. Nothing else
@@ -142,47 +151,38 @@ class LengthPropertyCheck {
         this.report(
           at,
           `.${property} is only available on strings, not on '${subject}'`,
-          "Use .element_count for an array's length, or .byte_length for a value's size in bytes (ADR-045).",
+          "Use .type_element_count for an array's length, or .type_byte_length for a value's size in bytes (ADR-045).",
           "E0887",
         );
       }
       return;
     }
 
-    // #1535: a struct answers all three -- its field count, and its fields'
-    // sizes together, without C padding (ADR-058 resolved question 7)
+    const name = LengthProperty.parse(property);
+    if (name === null) return;
     const lookup = (cName: string) => this.context.program.symbolByCName(cName);
-    const struct = LengthProperty.struct(element, lookup);
-
-    if (property === "element_count") {
-      const headerFields = ForeignTypeFacts.fieldCount(
-        element,
-        this.context.symbolTable,
+    const rule = LengthProperty.rule(
+      name,
+      LengthSubject.of(
+        step,
+        LengthSubject.structTest(lookup, this.context.symbolTable),
+      )!,
+    );
+    if (rule.kind === "error") {
+      this.report(at, rule.message, rule.helpText);
+      return;
+    }
+    // A logical bit or byte length needs a width: a string, a struct whose
+    // fields all have one, and an array of either have one
+    if (rule.kind === "logical" && name.unit !== "element_count" && !isString) {
+      this.checkWidth(
+        at,
+        property,
+        typed,
+        LengthProperty.struct(typed.typeName ?? "", lookup),
+        lookup,
       );
-      if (dimensions === 0 && struct === undefined && headerFields === null) {
-        this.report(
-          at,
-          `.element_count is only available on arrays, not on '${subject}'`,
-          "A scalar has one value; use .bit_length or .byte_length for its width.",
-        );
-      }
-      return;
     }
-
-    if (property === "char_count") {
-      if (!isString) {
-        this.report(
-          at,
-          `.char_count is only available on strings, not on '${subject}'`,
-          "Use .element_count for an array's length, or .bit_length for a scalar's width.",
-        );
-      }
-      return;
-    }
-
-    // `.bit_length` and `.byte_length` need a width. A string, a struct whose
-    // fields all have one, and an array of either have one.
-    if (!isString) this.checkWidth(at, property, typed, struct, lookup);
   }
 
   private checkWidth(
@@ -192,7 +192,7 @@ class LengthPropertyCheck {
     struct: ReturnType<typeof LengthProperty.struct>,
     lookup: Parameters<typeof LengthProperty.struct>[1],
   ): void {
-    const subject = LengthPropertyCheck.spelling(typed);
+    const subject = LengthSubject.spelling(typed);
     const element = typed.typeName ?? "";
     // #1975 (owner ruling): a C-Next struct and a header's are each their
     // fields' sizes together, one rule, a header struct's field too; a
@@ -238,7 +238,7 @@ class LengthPropertyCheck {
     this.report(
       at,
       `'.length' is deprecated`,
-      "Use .char_count for a string's length, .element_count for an array's, or .bit_length / .byte_length for a width (ADR-058).",
+      "Use .value_char_count for a string's length, .type_element_count for an array's, or .type_bit_length / .type_byte_length for a width (ADR-058).",
       "E0886",
     );
   }
@@ -285,12 +285,6 @@ class LengthPropertyCheck {
         return [];
       }),
     );
-  }
-
-  /** A subject as a message names it: `u32`, `u8[4]` */
-  private static spelling(typed: IOperandType): string {
-    const dimensions = typed.dimensions.map((d) => `[${d}]`).join("");
-    return `${typed.typeName ?? typed.cType ?? typed.category}${dimensions}`;
   }
 
   /**

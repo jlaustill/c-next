@@ -62,6 +62,8 @@ interface IEmissionFacts {
   readonly clampOps: ReadonlySet<string>;
   /** #1668: single-evaluation saturating cast keys (`"f32_u8"`) */
   readonly castHelpers: ReadonlySet<string>;
+  /** ADR-058: runtime integer length helpers (`"cnx_value_bit_length"`) */
+  readonly lengthHelpers: ReadonlySet<string>;
 
   /** ADR-051 safe-division helper keys accumulated while generating. */
   readonly safeDivOps: ReadonlySet<string>;

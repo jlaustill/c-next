@@ -278,12 +278,15 @@ class OperandTyper {
     const start = OperandTyper.chainStart(chain, ctx);
     const steps: IChainStep[] = [];
     let current = start.value;
+    let bitField = false;
     for (const op of start.ops) {
       const before = OperandTyper.measuredBy(current, op, ctx);
       const { next, subscript } = OperandTyper.applyOp(current, op, ctx);
       const member = op.kind === "member" ? op.name : null;
       steps.push({
         before,
+        beforeNamesType: current.k === "type" || current.k === "enumType",
+        beforeIsBitField: bitField,
         subscript,
         after: next.k === "value" ? next.t : null,
         callee: op.kind === "call" ? OperandTyper.calleeOf(current) : null,
@@ -294,6 +297,7 @@ class OperandTyper {
             ? member
             : null,
       });
+      bitField = OperandTyper.isBitField(current, op, ctx);
       current = next;
     }
     return {
@@ -1438,6 +1442,26 @@ class OperandTyper {
       };
     }
     return OperandTyper.foreignFieldOf(t, t.typeName, member, ctx);
+  }
+
+  /** Whether `op` reads a bitmap field or a header bit-field of `current` (ADR-058) */
+  private static isBitField(
+    current: TChainValue,
+    op: TPostfixOpSyntax,
+    ctx: ITypingContext,
+  ): boolean {
+    if (op.kind !== "member" || current.k !== "value") return false;
+    const t = current.t;
+    if (t.dimensions.length > 0) return false;
+    if (t.bitmapTypeName !== null) {
+      return (
+        ctx.symbols.bitmapFields.get(t.bitmapTypeName)?.has(op.name) ?? false
+      );
+    }
+    const typeName = t.typeName ?? t.cType;
+    if (typeName === null) return false;
+    const info = ctx.symbolTable.getStructFieldInfo(typeName, op.name);
+    return info?.bitWidth !== undefined;
   }
 
   /** A bitmap field: a Boolean bit, or an unsigned run of bits */

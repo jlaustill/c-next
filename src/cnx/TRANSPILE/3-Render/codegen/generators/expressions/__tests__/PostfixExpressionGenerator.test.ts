@@ -258,7 +258,15 @@ function memberStep(
   after: IOperandType | null,
   property: string | null = null,
 ) {
-  return { before, subscript: null, after, property, callee: null };
+  return {
+    before,
+    subscript: null,
+    after,
+    property,
+    callee: null,
+    beforeNamesType: false,
+    beforeIsBitField: false,
+  };
 }
 
 function createMockPostfixOp(options?: {
@@ -452,6 +460,8 @@ function withPropertySteps(
               after: current,
               property: null,
               callee: null,
+              beforeNamesType: false,
+              beforeIsBitField: false,
             },
           };
     }

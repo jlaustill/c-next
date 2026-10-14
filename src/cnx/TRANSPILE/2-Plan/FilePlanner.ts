@@ -3,7 +3,6 @@ import type TTypeInfo from "../../types/TTypeInfo";
 import type TCArgumentForm from "./types/TCArgumentForm";
 import CArgumentAddress from "./CArgumentAddress";
 import type IPlannedArgument from "./types/IPlannedArgument";
-import LengthProperty from "../../utils/LengthProperty";
 import PRIMASK_C_TYPE from "./types/PRIMASK_C_TYPE";
 import FloatBits from "../../utils/FloatBits";
 import type IPlannedFloatBits from "./types/IPlannedFloatBits";
@@ -25,6 +24,8 @@ import DeclarationParts from "../../utils/DeclarationParts";
 import ExpressionNodes from "../../utils/ExpressionNodes";
 import CastRequirement from "./CastRequirement";
 import type TNegativeMinimum from "./types/TNegativeMinimum";
+import LengthProperty from "../../utils/LengthProperty";
+import LengthSubject from "../../utils/LengthSubject";
 import OperandTyper from "../../utils/OperandTyper";
 import CppNamespaceUtils from "../../utils/CppNamespaceUtils";
 import headerCType from "../../utils/headerCType";
@@ -769,19 +770,36 @@ class FilePlanner {
     return children;
   }
 
-  /** Whether 2.3 writes a `.char_count` read: the typer's step names the property */
-  private readsCharCount(
+  /**
+   * ADR-058: what 2.3's length reads need, by `LengthProperty.rule` -- a
+   * string's chars now are strlen, from <string.h>, and a runtime integer
+   * length is a helper. The typer's step names the property.
+   */
+  private planLengths(
     program: IProgramSyntax,
     inlinedConsts: ReadonlySet<TDeclarationSyntax>,
-  ): boolean {
+    requirements: PlannedRequirements,
+  ): void {
     const typing = this.state.typingContext();
-    return FilePlanner.writtenExpressions(program, inlinedConsts).some(
-      (expression) =>
-        expression.kind === "postfix" &&
-        OperandTyper.chainOf(expression, typing).steps.some(
-          (step) => step.property === "char_count",
-        ),
+    const isStruct = LengthSubject.structTest(
+      (cName) => typing.program.symbolByCName(cName),
+      typing.symbolTable,
     );
+    for (const expression of FilePlanner.writtenExpressions(
+      program,
+      inlinedConsts,
+    )) {
+      if (expression.kind !== "postfix") continue;
+      for (const step of OperandTyper.chainOf(expression, typing).steps) {
+        const name = LengthProperty.parse(step.property ?? "");
+        const subject = name && LengthSubject.of(step, isStruct);
+        if (name === null || !subject) continue;
+        const rule = LengthProperty.rule(name, subject);
+        if (rule.kind === "string") requirements.require("string");
+        const helper = LengthProperty.helperOf(rule);
+        if (helper !== null) requirements.lengthHelper(helper);
+      }
+    }
   }
 
   /** Every expression 2.3 writes, except inside a dimension or enum value, which 1.4 spells */
@@ -879,10 +897,7 @@ class FilePlanner {
     if ([...comparisons.values()].includes(true)) {
       requirements.require("string");
     }
-    // ADR-058: `.char_count` is written as strlen, from <string.h>
-    if (this.readsCharCount(program, inlinedConsts)) {
-      requirements.require("string");
-    }
+    this.planLengths(program, inlinedConsts, requirements);
     const safeDivisions = this.planSafeDivisions(
       program,
       inlinedConsts,
@@ -1961,6 +1976,7 @@ class FilePlanner {
       existingIncludeTargets,
       clampOps: plan.clampOps,
       castHelpers: requirements.castHelpers,
+      lengthHelpers: requirements.lengthHelpers,
       safeDivOps: requirements.safeDivisions,
       floatAssertSites: requirements.sitesOf("float_static_assert"),
       irqWrapperSites: requirements.sitesOf("irq_wrappers"),

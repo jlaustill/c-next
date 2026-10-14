@@ -14,6 +14,7 @@ import type TExpressionOf from "../../types/syntax/TExpressionOf";
 import type TBlockSyntax from "../../types/syntax/TBlockSyntax";
 import type TStatement from "../../types/syntax/TStatement";
 import type TranspileState from "../TranspileState";
+import LengthProperty from "../../utils/LengthProperty";
 
 /**
  * Counts .char_count accesses on string variables in an expression tree.
@@ -97,7 +98,7 @@ class StringLengthCounter {
     }
     if (primary.kind !== "identifier") return;
     const [first] = expr.ops;
-    if (first?.kind === "member" && first.name === "char_count") {
+    if (first?.kind === "member" && LengthProperty.readsStringNow(first.name)) {
       StringLengthCounter.countLengthRead(primary.name, expr, counts, state);
     }
     for (const op of expr.ops) {

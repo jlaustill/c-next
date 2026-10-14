@@ -137,6 +137,8 @@ describe("BitmapHandlers", () => {
             property: null,
             after: null,
             callee: null,
+            beforeNamesType: false,
+            beforeIsBitField: false,
           },
         },
       };
