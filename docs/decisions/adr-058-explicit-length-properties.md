@@ -620,6 +620,8 @@ error: `.length` is not a built-in property. Use explicit properties instead.
   still answers `.memory_*`. A C-Next bitmap field is the same.
 - `.memory_char_count` exists only on strings (`string<8>` is 9, its buffer
   with the `\0`); on anything else it is a compile error.
+- `*_element_count` exists only on arrays and structs (a struct counts its
+  fields); on anything else it is a compile error, as `.element_count` is.
 
 ---
 
