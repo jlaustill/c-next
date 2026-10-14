@@ -38,11 +38,11 @@ describe("#1301: the per-file cache is released at end of run", () => {
     const plan = CodeGenWalker.prototype.plan;
     vi.spyOn(CodeGenWalker.prototype, "plan").mockImplementation(function (
       this: CodeGenWalker,
-      file: IAnalyzedFile,
+      sourcePath: string,
       analysis: IAnalysis,
     ) {
       programs.push(analysis.program);
-      return plan.call(this, file, analysis);
+      return plan.call(this, sourcePath, analysis);
     });
     const run = Analyze.run.bind(Analyze);
     vi.spyOn(Analyze, "run").mockImplementation((...args) => {

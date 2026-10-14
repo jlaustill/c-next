@@ -3,7 +3,6 @@
  * hands 2.2 what 2.1 returned and decides nothing in between.
  */
 import type IAnalysis from "../1-Analyze/types/IAnalysis";
-import type IAnalyzedFile from "../../types/IAnalyzedFile";
 import OutputExtensions from "../../utils/OutputExtensions";
 import invariant from "../../utils/invariant";
 import FileFacts from "../../utils/FileFacts";
@@ -11,10 +10,9 @@ import type ICodeGeneratorOptions from "../types/ICodeGeneratorOptions";
 import PublicInterface from "./PublicInterface";
 
 class PlanOptions {
-  static of(file: IAnalyzedFile, analysis: IAnalysis): ICodeGeneratorOptions {
+  static of(sourcePath: string, analysis: IAnalysis): ICodeGeneratorOptions {
     const program = analysis.program;
     const discovery = analysis.discovery;
-    const sourcePath = file.path;
     const symbolInfo = FileFacts.symbolsFor(program, sourcePath);
     const target = program.target();
     invariant(

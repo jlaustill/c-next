@@ -25,7 +25,7 @@ class Analyze {
    * `run.parseOnly`) analyzes nothing.
    */
   static run(
-    // 1.4's artifact, `IResolvedProgram`, by its two fields: a pass after 1.4
+    // 1.4's artifact, `IResolvedProgram`, by its three fields: a pass after 1.4
     // may name `IProgram` and nothing in `4-Resolve/` (#1447)
     program: IProgram,
     sources: readonly IDeclaredSource[],
@@ -43,7 +43,6 @@ class Analyze {
           );
       if (analysis) byFile.set(entry.file.path, analysis.errors);
       files.set(entry.file.path, {
-        path: entry.file.path,
         program: entry.syntax.program,
         declarationCount: entry.syntax.declarationCount,
         valuePositions: analysis?.valuePositions ?? null,

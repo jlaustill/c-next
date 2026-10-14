@@ -3,12 +3,15 @@ import type IFileIncludes from "../../PARSE/1-Discover/types/IFileIncludes";
 import type IOutputPaths from "../../PARSE/1-Discover/types/IOutputPaths";
 import type TDiscoveryFacts from "../../PARSE/1-Discover/types/TDiscoveryFacts";
 import type ICodeGenSymbols from "../../types/ICodeGenSymbols";
+import type IAnalysis from "../../TRANSPILE/1-Analyze/types/IAnalysis";
+import type IAnalyzedFile from "../../types/IAnalyzedFile";
 import type IProgram from "../../types/IProgram";
 import FileFacts from "../FileFacts";
 
 const SYMBOLS = {} as ICodeGenSymbols;
 const INCLUDES = {} as IFileIncludes;
 const OUTPUTS = {} as IOutputPaths;
+const ANALYZED = {} as IAnalyzedFile;
 
 const program = {
   codeGenSymbolsFor: (path: string) => (path === "a.cnx" ? SYMBOLS : undefined),
@@ -19,11 +22,16 @@ const discovery = {
   outputs: new Map([["a.cnx", OUTPUTS]]),
 } as unknown as TDiscoveryFacts;
 
+const analysis = {
+  files: new Map([["a.cnx", ANALYZED]]),
+} as unknown as IAnalysis;
+
 describe("FileFacts", () => {
   it("returns exactly what 1.4 and 1.1 recorded for a file", () => {
     expect(FileFacts.symbolsFor(program, "a.cnx")).toBe(SYMBOLS);
     expect(FileFacts.includesOf(discovery, "a.cnx")).toBe(INCLUDES);
     expect(FileFacts.outputsOf(discovery, "a.cnx")).toBe(OUTPUTS);
+    expect(FileFacts.analyzedFileOf(analysis, "a.cnx")).toBe(ANALYZED);
   });
 
   it("names the file a pass never recorded", () => {
@@ -35,6 +43,9 @@ describe("FileFacts", () => {
     );
     expect(() => FileFacts.outputsOf(discovery, "b.cnx")).toThrow(
       "names the outputs of every file it discovers (missing b.cnx)",
+    );
+    expect(() => FileFacts.analyzedFileOf(analysis, "b.cnx")).toThrow(
+      "keeps every file that produces output (missing b.cnx)",
     );
   });
 });

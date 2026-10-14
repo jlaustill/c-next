@@ -8,10 +8,25 @@ import Declare from "../../../PARSE/3-Declare/Declare";
 import Resolve from "../../../PARSE/4-Resolve/Resolve";
 import testSourceGraph from "../../../PARSE/1-Discover/__testUtils__/testSourceGraph";
 
-function resolved() {
-  // Parse-only: these cases are about what 2.1 hands on, not what it finds
+// E0702: a function call in a condition, a 2.1 diagnostic
+const CALL_IN_CONDITION = `
+u8 limit() {
+    return 3;
+}
+
+void main() {
+    u8 i <- 0;
+    if (i < limit()) {
+        i <- 1;
+    }
+}
+`;
+
+function resolved(parseOnly = true, app = "void main() { }") {
+  // Parse-only by default: most cases are about what 2.1 hands on, not what
+  // it finds
   const graph = testSourceGraph([
-    Discover.inMemoryFile("void main() { }", "/p/app.cnx"),
+    Discover.inMemoryFile(app, "/p/app.cnx"),
     {
       ...Discover.inMemoryFile("u32 shared <- 0;", "/p/lib.cnx"),
       symbolOnly: true,
@@ -19,9 +34,15 @@ function resolved() {
   ]);
   return Resolve.program(
     Declare.sources(
-      Parse.sources({ ...graph, run: { ...graph.run, parseOnly: true } }),
+      Parse.sources({ ...graph, run: { ...graph.run, parseOnly } }),
     ),
   );
+}
+
+function codesOf(input: ReturnType<typeof resolved>): (string | undefined)[] {
+  return Analyze.run(input.program, input.sources, input.discovery)
+    .diagnostics.forFile("/p/app.cnx")
+    .map((e) => /E\d{4}/.exec(e.message)?.[0]);
 }
 
 describe("Analyze.run", () => {
@@ -41,14 +62,11 @@ describe("Analyze.run", () => {
     expect(discovery).toBe(input.discovery);
   });
 
-  it("analyzes nothing in a parse-only run", () => {
-    const input = resolved();
-    const { diagnostics } = Analyze.run(
-      input.program,
-      input.sources,
-      input.discovery,
-    );
+  it("finds a file's 2.1 diagnostic when the run is not parse-only", () => {
+    expect(codesOf(resolved(false, CALL_IN_CONDITION))).toEqual(["E0702"]);
+  });
 
-    expect(diagnostics.hasErrors()).toBe(false);
+  it("analyzes nothing in a parse-only run", () => {
+    expect(codesOf(resolved(true, CALL_IN_CONDITION))).toEqual([]);
   });
 });

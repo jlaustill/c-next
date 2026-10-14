@@ -1,9 +1,30 @@
 import Installation from "../Installation";
 import NodeFileSystem from "../NodeFileSystem";
+import type IFileIncludes from "../types/IFileIncludes";
 import type IPipelineFile from "../types/IPipelineFile";
 import type ISourceGraph from "../types/ISourceGraph";
 
-/** The part of 1.1's graph 1.2 `Parse` reads, for in-memory files and the installed catalog */
+/** What 1.1 records of a file that includes nothing */
+function noIncludes(): IFileIncludes {
+  return {
+    cnxIncludeRewrites: new Map(),
+    resolutions: new Map(),
+    cnextAlternatives: new Map(),
+    kinds: new Map(),
+    quotedIncludeDirectory: "/p",
+    headerIncludeDirectives: new Map(),
+    writerRelativeIncludes: new Map(),
+    userIncludes: [],
+    cHeaderIncludes: [],
+    cHeaderSpecs: [],
+  };
+}
+
+/**
+ * The part of 1.1's graph 1.2 `Parse` reads, for in-memory files and the
+ * installed catalog. Like 1.1, it records the includes of every file (here,
+ * none), so a pass after it finds each file's facts.
+ */
 function testSourceGraph(
   files: readonly IPipelineFile[],
 ): Pick<
@@ -31,7 +52,7 @@ function testSourceGraph(
       defines: {},
       platformio: null,
     },
-    includes: new Map(),
+    includes: new Map(files.map((file) => [file.path, noIncludes()])),
     outputs: new Map(),
     headerMacroDumps: new Map(),
     headerFiles: [],

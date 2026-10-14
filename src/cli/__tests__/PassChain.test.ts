@@ -227,12 +227,12 @@ describe("#1991: each pass takes only what the pass before it returned", () => {
     }
   });
 
-  it("2.2 Plan takes one of 2.1's files and 2.1's artifact itself, and nothing else", async () => {
+  it("2.2 Plan takes one of 2.1's file keys and 2.1's artifact itself, and nothing else", async () => {
     await run();
     const analysis = only("2.1").returned as {
       files: ReadonlyMap<string, unknown>;
     };
-    const files = [...analysis.files.values()];
+    const files = [...analysis.files.keys()];
     const plans = of("2.2");
     expect(plans.length).toBeGreaterThan(1);
     for (const plan of plans) {

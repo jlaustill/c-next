@@ -20,7 +20,6 @@ import AdrProvenance from "../cnx/instrumentation/AdrProvenance";
 import HeaderRenderer from "../cnx/TRANSPILE/3-Render/headers/HeaderRenderer";
 import IHeaderEmissionFacts from "../cnx/TRANSPILE/3-Render/headers/types/IHeaderEmissionFacts";
 import type IProgram from "../cnx/types/IProgram";
-import type IAnalyzedFile from "../cnx/types/IAnalyzedFile";
 
 import IDiscoveredFile from "../cnx/PARSE/1-Discover/types/IDiscoveredFile";
 import EHeaderLanguage from "../cnx/PARSE/1-Discover/types/EHeaderLanguage";
@@ -576,8 +575,10 @@ class Transpiler {
     const errors = analysis.diagnostics
       .forFile(sourcePath)
       .filter((e) => e.severity === "error");
-    const declarationCount =
-      analysis.files.get(sourcePath)?.declarationCount ?? 0;
+    const declarationCount = FileFacts.analyzedFileOf(
+      analysis,
+      sourcePath,
+    ).declarationCount;
 
     return errors.length > 0
       ? this.buildErrorResult(sourcePath, [...errors], declarationCount)
@@ -604,19 +605,6 @@ class Transpiler {
     }
   }
 
-  /** Stage 5's input for this file, from 2.1's `Analyze` (#1991) */
-  private static _requireAnalyzedFile(
-    analysis: IAnalysis,
-    sourcePath: string,
-  ): IAnalyzedFile {
-    const analyzed = analysis.files.get(sourcePath);
-    invariant(
-      analyzed,
-      `every file that reaches code generation was analyzed and its plain data kept, ${sourcePath} included`,
-    );
-    return analyzed;
-  }
-
   /**
    * Stage 5: Plan and Render a single C-Next file.
    *
@@ -640,8 +628,10 @@ class Transpiler {
     AdrProvenance.beginFile(sourcePath);
 
     try {
-      const analyzed = Transpiler._requireAnalyzedFile(analysis, sourcePath);
-      const declarationCount = analyzed.declarationCount;
+      const declarationCount = FileFacts.analyzedFileOf(
+        analysis,
+        sourcePath,
+      ).declarationCount;
 
       // Parse only mode
       if (analysis.discovery.run.parseOnly) {
@@ -654,7 +644,7 @@ class Transpiler {
       // #1991: one walker per file, so nothing 2.2 or 2.3 set up outlives
       // the file -- the instance holds no walker between files or runs.
       const walker = new CodeGenWalker();
-      const plan = walker.plan(analyzed, analysis);
+      const plan = walker.plan(sourcePath, analysis);
       // #1323: 2.3 returns the header's input; HeaderRenderer renders every
       // file's header in one step, after this per-file loop finishes.
       const rendered = walker.render(plan);
