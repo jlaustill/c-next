@@ -2,11 +2,12 @@
 
 ## Status
 
-**Research**
+**Rejected**
 
-This record holds the problem, the options and the research. The owner has
-ruled on the question (#1975, below); "Recommended Decision" is kept as the
-recommendation it was, and is superseded by that ruling.
+C-Next has no `sizeof` (#1975, below): a size is ADR-058's `.byte_length`. The
+problem, options and research are kept as the record of how that was decided;
+"Recommended Decision" is kept as the recommendation it was, and is superseded
+by the ruling.
 
 ## Owner Ruling (#1975)
 

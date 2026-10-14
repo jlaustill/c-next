@@ -82,7 +82,6 @@ v2 (so "Research (v2 Roadmap)" holds `1xx` ADRs).
 | ------------------------------------------------------- | ----------------------------- | ------------------------------------------------ |
 | [ADR-008](decisions/adr-008-language-bug-prevention.md) | Language-Level Bug Prevention | Top 15 embedded bugs and prevention              |
 | [ADR-009](decisions/adr-009-isr-safety.md)              | ISR Safety                    | Safe interrupts without `unsafe` blocks          |
-| [ADR-023](decisions/adr-023-sizeof.md)                  | Sizeof                        | No sizeof; a size is `.byte_length` (#1975)      |
 | [ADR-054](decisions/adr-054-array-index-overflow.md)    | Array Index Overflow          | Overflow semantics for array index expressions   |
 | [ADR-056](decisions/adr-056-cast-overflow-behavior.md)  | Cast Overflow Behavior        | Consistent overflow semantics for type casts     |
 | [ADR-066](decisions/adr-066-do178c-compliance.md)       | DO-178C Compliance            | Safety-critical software certification framework |
@@ -111,6 +110,7 @@ v2 (so "Research (v2 Roadmap)" holds `1xx` ADRs).
 | [ADR-020](decisions/adr-020-size-type.md)                   | Size Type           | Fixed-width types are more predictable than platform-sized              |
 | [ADR-019](decisions/adr-019-type-aliases.md)                | Type Aliases        | Fixed-width primitives already solve the problem                        |
 | [ADR-021](decisions/adr-021-increment-decrement.md)         | Increment/Decrement | Use `+<- 1` instead; separation of concerns                             |
+| [ADR-023](decisions/adr-023-sizeof.md)                      | Sizeof              | Use `.byte_length` (ADR-058): C-Next sizes a type, not the C compiler   |
 | [ADR-002](decisions/adr-002-namespaces.md)                  | Namespaces          | Replaced by `scope` keyword (ADR-016)                                   |
 | [ADR-005](decisions/adr-005-classes-without-inheritance.md) | Classes             | Use structs + free functions instead (ADR-016)                          |
 | [ADR-018](decisions/adr-018-unions.md)                      | Unions              | Use ADR-004 register bindings or explicit byte manipulation             |
