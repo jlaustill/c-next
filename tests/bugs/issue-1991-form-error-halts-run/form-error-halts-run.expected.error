@@ -1,0 +1,2 @@
+tests/bugs/issue-1991-form-error-halts-run/form-error-helper.cnx:3:4 error[E0201]: Identifier 'helper_value_' cannot end with an underscore. A trailing underscore would make scope-qualified names ambiguous in generated C.
+       help: Remove the trailing underscore (e.g. 'helper_value')

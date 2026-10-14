@@ -1,0 +1,6 @@
+// test-error
+// #2020 review: one file's form errors print in source order. E0202 (the
+// identifier checker) comes first here; E0912 (the literal checker, which
+// runs first) printed ahead of it before.
+u8 cnx_first <- 1;
+u8 second <- 012;
