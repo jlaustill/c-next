@@ -96,6 +96,11 @@ class ProgramGeneration {
       sourcePath,
       registry,
     );
+    // #831/#1285: `Program.build` registers the file's symbols in the table,
+    // as 1.4 does in a run. A test that passes only `symbolInfo` would
+    // otherwise leave the table empty, a state the real pipeline never reaches
+    // (#1283 review: every function-as-type `symbolInfo` names must resolve in
+    // the table).
     state.program = Program.build([declared], {
       symbolTable: TestSymbolTable.of(state),
       registry,
@@ -107,10 +112,6 @@ class ProgramGeneration {
       },
     });
 
-    // #831/#1285: register the file's symbols, as Transpiler.ts does. A test
-    // that passes only `symbolInfo` would otherwise leave the table empty, a
-    // state the real pipeline never reaches (#1283 review: every
-    // function-as-type `symbolInfo` names must resolve in the table).
     // #1991: 2.1's walk of the file, as `Analyze.run` hands it to 2.2
     const resolved = state.program;
     const analyzed: IAnalyzedFile = {

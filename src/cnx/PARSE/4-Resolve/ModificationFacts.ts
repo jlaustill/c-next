@@ -77,8 +77,8 @@ class ModificationFacts {
       );
     }
 
-    // The C-Next symbols are not in the table yet -- `_publishResolvedFile`
-    // puts them there, after this. Without them every scope field holding a
+    // The C-Next symbols are not in the table yet -- `Program.build` puts
+    // them there, after this. Without them every scope field holding a
     // callback reads as an undeclared function, so #1178's fail-safe fires on
     // the very calls it exists to spare and the parameter is wrongly promoted
     // to a pointer. They are in hand right here, so the predicate is supplied

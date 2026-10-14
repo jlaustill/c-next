@@ -31,7 +31,10 @@ class Resolve {
         // #1511: everything the C/C++ headers contributed, from 1.3's table.
         // The opacity inputs are the raw bookkeeping, not the verdict --
         // `Program` resolves which typedefs never received a body. #985's
-        // phantom-body recovery ran in 1.3, so the state is final.
+        // phantom-body recovery ran in 1.3, so the state is final: a struct
+        // known only through it has its fields here, and a read before 1.3
+        // would drop it from `externalStructFields`, exempting it from
+        // ADR-016's init-completeness check, the fact's one consumer.
         headerStructFields: table.getAllStructFields(),
         foreign: {
           c: table.getAllCSymbols(),

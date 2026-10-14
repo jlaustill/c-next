@@ -539,16 +539,6 @@ class Transpiler {
     // Building `Program` settles every deferred type, so nothing below this
     // line can observe an unsettled one.
     try {
-      // The symbol table holds only C/C++ header symbols at this point --
-      // `Program.build` adds this run's C-Next symbols to it -- so this IS
-      // the external set, which is what the fact is about.
-      //
-      // It is also read AFTER `_collectExternalDeclarations`, and that ordering
-      // is load-bearing rather than incidental: a struct that becomes known only
-      // through #985 recovery has its fields added to the symbol table there, and
-      // reading the set any earlier would drop it from `externalStructFields` --
-      // silently exempting it from ADR-016 init-completeness checking, which is
-      // the one consumer of the fact.
       const resolved = Resolve.program(declared);
       // 1.4 completed 1.3's table with every file's symbols
       result.symbolsCollected = declared.symbolTable.size;
