@@ -160,6 +160,8 @@ import IParameterDereferenceDeps from "./3-Render/codegen/types/IParameterDerefe
 import ISeparatorContext from "./3-Render/codegen/types/ISeparatorContext";
 import TypeGenerationHelper from "./2-Plan/TypeGenerationHelper";
 import type IAnalyzedFile from "../types/IAnalyzedFile";
+import type IAnalysis from "./1-Analyze/types/IAnalysis";
+import PlanOptions from "./2-Plan/PlanOptions";
 import type IFilePlan from "./2-Plan/types/IFilePlan";
 import type IRenderLedger from "./3-Render/types/IRenderLedger";
 import type IPlannedParameter from "./3-Render/codegen/types/IPlannedParameter";
@@ -236,9 +238,15 @@ class CodeGenWalker {
 
   /**
    * 2.2 Plan: every decision 2.3 Render reads for this file, made before any
-   * of it is written. `render` takes what this returns (#1991).
+   * of it is written, from one file of 2.1's artifact and the artifact
+   * itself. `render` takes what this returns (#1991).
    */
-  plan(file: IAnalyzedFile, options: ICodeGeneratorOptions): IFilePlan {
+  plan(file: IAnalyzedFile, analysis: IAnalysis): IFilePlan {
+    return this.planWith(file, PlanOptions.of(file, analysis));
+  }
+
+  /** 2.2 over options already read off 2.1's artifact; `plan` is the pass */
+  planWith(file: IAnalyzedFile, options: ICodeGeneratorOptions): IFilePlan {
     const state = this.host.state;
     const inputs = FilePlanner.planInputs(options);
     state.beginPlan(inputs, this.host);

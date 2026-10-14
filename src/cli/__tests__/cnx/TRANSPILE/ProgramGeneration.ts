@@ -49,7 +49,7 @@ import NodeFileSystem from "../../../../cnx/PARSE/1-Discover/NodeFileSystem";
  * as an orchestrator that names none would.
  */
 type ITestGenerateOptions = Omit<
-  Parameters<CodeGenWalker["plan"]>[1],
+  Parameters<CodeGenWalker["planWith"]>[1],
   "targetDescription" | "program"
 > & {
   readonly targetDescription?: ITargetDescription;
@@ -120,7 +120,7 @@ class ProgramGeneration {
         sourceFile: sourcePath,
       }),
     };
-    return generator.plan(analyzed, {
+    return generator.planWith(analyzed, {
       ...options,
       program: resolved,
       targetDescription,

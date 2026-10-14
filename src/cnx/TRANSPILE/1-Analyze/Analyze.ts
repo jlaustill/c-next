@@ -7,7 +7,6 @@ import type TDiscoveryFacts from "../../PARSE/1-Discover/types/TDiscoveryFacts";
 import type IPipelineFile from "../../PARSE/1-Discover/types/IPipelineFile";
 import type IDeclaredSource from "../../PARSE/3-Declare/types/IDeclaredSource";
 import type IAnalyzedFile from "../../types/IAnalyzedFile";
-import type IDiagnostics from "../../types/IDiagnostics";
 import type IProgram from "../../types/IProgram";
 import type ISourceSyntax from "../../types/ISourceSyntax";
 import type ITranspileError from "../../types/ITranspileError";
@@ -16,6 +15,7 @@ import CaughtError from "../../utils/CaughtError";
 import invariant from "../../utils/invariant";
 import Diagnostics from "./Diagnostics";
 import runAnalyzers from "./runAnalyzers";
+import type IAnalysis from "./types/IAnalysis";
 import type IAnalyzerOptions from "./types/IAnalyzerOptions";
 import type IFileAnalysis from "./types/IFileAnalysis";
 
@@ -30,12 +30,7 @@ class Analyze {
     program: IProgram,
     sources: readonly IDeclaredSource[],
     discovery: TDiscoveryFacts,
-  ): {
-    readonly program: IProgram;
-    readonly discovery: TDiscoveryFacts;
-    readonly diagnostics: IDiagnostics;
-    readonly files: ReadonlyMap<string, IAnalyzedFile>;
-  } {
+  ): IAnalysis {
     const byFile = new Map<string, readonly ITranspileError[]>();
     const files = new Map<string, IAnalyzedFile>();
     // A symbol-only file is still parsed, declared and resolved -- that is

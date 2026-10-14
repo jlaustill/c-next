@@ -10,14 +10,12 @@
  */
 
 import type THeaderDeclarationCache from "../cnx/PARSE/1-Discover/types/THeaderDeclarationCache";
-import type TRunTarget from "../cnx/types/TRunTarget";
 
 import IFileSystem from "../cnx/types/IFileSystem";
 
 import CodeGenWalker from "../cnx/TRANSPILE/CodeGenWalker";
 import invariant from "../cnx/utils/invariant";
 import AdrProvenance from "../cnx/instrumentation/AdrProvenance";
-import PublicInterface from "../cnx/TRANSPILE/2-Plan/PublicInterface";
 import HeaderRenderer from "../cnx/TRANSPILE/3-Render/headers/HeaderRenderer";
 import IHeaderEmissionFacts from "../cnx/TRANSPILE/3-Render/headers/types/IHeaderEmissionFacts";
 import type IProgram from "../cnx/types/IProgram";
@@ -25,7 +23,6 @@ import type IAnalyzedFile from "../cnx/types/IAnalyzedFile";
 
 import IDiscoveredFile from "../cnx/PARSE/1-Discover/types/IDiscoveredFile";
 import EHeaderLanguage from "../cnx/PARSE/1-Discover/types/EHeaderLanguage";
-import OutputExtensions from "../cnx/utils/OutputExtensions";
 
 import ErrorLocation from "../cnx/utils/ErrorLocation";
 import ITranspilerConfig from "../cnx/types/ITranspilerConfig";
@@ -35,7 +32,6 @@ import type IRunAnchor from "../cnx/PARSE/1-Discover/types/IRunAnchor";
 import IPipelineFile from "../cnx/PARSE/1-Discover/types/IPipelineFile";
 import type ISourceGraph from "../cnx/PARSE/1-Discover/types/ISourceGraph";
 import type IOutputPaths from "../cnx/PARSE/1-Discover/types/IOutputPaths";
-import type IFileIncludes from "../cnx/PARSE/1-Discover/types/IFileIncludes";
 import Discover from "../cnx/PARSE/1-Discover/Discover";
 import RunAnchor from "../cnx/PARSE/1-Discover/RunAnchor";
 import TTranspileInput from "../cnx/types/TTranspileInput";
@@ -51,7 +47,6 @@ import Resolve from "../cnx/PARSE/4-Resolve/Resolve";
 import type IResolvedProgram from "../cnx/PARSE/4-Resolve/types/IResolvedProgram";
 import type TFrontEndResult from "./types/TFrontEndResult";
 import type IDiagnostics from "../cnx/types/IDiagnostics";
-import type ICodeGenSymbols from "../cnx/types/ICodeGenSymbols";
 import CacheManager from "./cache/CacheManager";
 import PreprocessCache from "../cnx/PARSE/1-Discover/preprocessor/PreprocessCache";
 import type IRecordedRequirement from "../cnx/types/IRecordedRequirement";
@@ -616,63 +611,6 @@ class Transpiler {
   }
 
   /**
-   * This file's view of the resolved program.
-   *
-   * #1511: composed once, when the whole program was in hand. This used to walk
-   * the include closure and merge per file, over a map the publish loop was
-   * still filling -- so the same file saw more or less depending on when it was
-   * rendered.
-   *
-   * Asserted rather than defaulted. A per-file view would be the pre-#1301
-   * shape -- no cross-file enums, no #1333 struct qualification, no #1398 const
-   * names -- and codegen would emit subtly wrong C with no diagnostic. The
-   * guarantee that this is present is a key-provenance argument two call sites
-   * apart (`Program.build` keys on `IFileSymbols.sourceFile`, set from
-   * `file.path`, and this reads the same `file.path`), so it is the kind of
-   * invariant that should fail loudly if it ever stops holding. Same treatment
-   * as `Program.settleEveryFile`'s deferred-type check.
-   */
-  private _requireSymbolInfo(
-    sourcePath: string,
-    program: IProgram,
-  ): ICodeGenSymbols {
-    const symbolInfo = program.codeGenSymbolsFor(sourcePath);
-    invariant(
-      symbolInfo,
-      `1.4 Resolve built every file's visible symbol view before stage 5 read one, ${sourcePath}'s included`,
-    );
-    return symbolInfo;
-  }
-
-  /**
-   * The per-file symbol view, required present.
-   *
-   * This used to PUBLISH the view onto the state as well, and that write is now
-   * dead in both directions. `_analysisInputs`'s readers are the analyzers, which
-   * take `IAnalysisContext.symbols` since #1456 and are barred from the state by
-   * `2-1-analyze-reads-no-later-pass`. `_transpileFile`'s next state access
-   * is `generate()`, whose `reset()` sets `symbols = null` before the walker
-   * assigns `options.symbolInfo` -- so the value written here was overwritten
-   * before anything could read it. Verified by removing the write: 7435 unit
-   * tests and 1263 fixtures stay green.
-   *
-   * It set `currentFileReachesForeignHeader` too, and that went the same way for
-   * the same reason: #1456 moved its one reader onto `IAnalysisContext`, which
-   * `_analysisInputs` fills from the same expression, and `reset()` restored the
-   * declining default over it at the top of `generate()`.
-   *
-   * What is left is the requirement itself, which is why the method stays: both
-   * callers need the view to exist, and `_requireSymbolInfo` throws rather than
-   * returning a nullable that every caller would then guard.
-   */
-  private _establishPerFileCodeGenState(
-    sourcePath: string,
-    program: IProgram,
-  ): ICodeGenSymbols {
-    return this._requireSymbolInfo(sourcePath, program);
-  }
-
-  /**
    * Stage 5: Plan and Render a single C-Next file.
    *
    * Assumes the symbol table is already populated (stages 2-3 complete) and
@@ -686,7 +624,6 @@ class Transpiler {
     headerFactsByPath: Map<string, IHeaderEmissionFacts>,
   ): IFileResult {
     const sourcePath = file.path;
-    const { program, discovery } = front;
 
     // #1241: attribute ADR provenance from here, not from codegen. A rule firing
     // during header capture below would otherwise be credited to whichever file
@@ -707,38 +644,11 @@ class Transpiler {
       // #1320: 2.1 Analyze already ran, whole-program, in Stage 4d. What is left
       // here is 2.2 Plan and 2.3 Render. The per-file state codegen reads is
       // still established per file -- it is `generate()`'s input, not analysis's.
-      const symbolInfo = this._establishPerFileCodeGenState(
-        sourcePath,
-        program,
-      );
 
       // #1991: one walker per file, so nothing 2.2 or 2.3 set up outlives
       // the file -- the instance holds no walker between files or runs.
       const walker = new CodeGenWalker();
-      const plan = walker.plan(analyzed, {
-        program,
-        debugMode: this.config.debugMode,
-        targetDescription: Transpiler._runTarget(program).description,
-        sourcePath,
-        symbolInfo,
-        sourceRelativePath: Transpiler._outputsOf(discovery, sourcePath)
-          .sourceRelativePath,
-        cnxIncludeRewrites: Transpiler._includesOf(discovery, sourcePath)
-          .cnxIncludeRewrites,
-        includeKinds: Transpiler._includesOf(discovery, sourcePath).kinds,
-        // #1515: decided here, from the rule's owner. 1.3 Declare used to
-        // answer this, which put an emission decision in the parse layer.
-        hasPublicInterface: PublicInterface.existsIn(
-          program.symbolTable().getTSymbolsByFile(sourcePath),
-        ),
-        header: {
-          anchor: discovery.anchor,
-          headerExtension: OutputExtensions.forCppMode(discovery.cppMode)
-            .header,
-          includes: discovery.includes,
-          ownIncludes: Transpiler._includesOf(discovery, sourcePath),
-        },
-      });
+      const plan = walker.plan(analyzed, front);
       // #1323: 2.3 returns the header's input; HeaderRenderer renders every
       // file's header in one step, after this per-file loop finishes.
       const rendered = walker.render(plan);
@@ -901,16 +811,6 @@ class Transpiler {
   }
 
   /** The run's target; valid once Stage 3b has passed */
-  private static _runTarget(
-    program: IProgram,
-  ): Extract<TRunTarget, { kind: "resolved" }> {
-    const target = program.target();
-    invariant(
-      target?.kind === "resolved",
-      "Stage 3b halts a run whose target did not resolve",
-    );
-    return target;
-  }
 
   /**
    * Stage 4c: Reject external identifiers that are not distinct within the
@@ -1082,17 +982,6 @@ class Transpiler {
   // ===========================================================================
 
   /** What 1.1 Discover learned about one file's includes (#1444). */
-  private static _includesOf(
-    discovery: TDiscoveryFacts,
-    sourcePath: string,
-  ): IFileIncludes {
-    const includes = discovery.includes.get(sourcePath);
-    invariant(
-      includes !== undefined,
-      `1.1 Discover records the includes of every file it discovers (missing ${sourcePath})`,
-    );
-    return includes;
-  }
 
   /** Where 1.1 Discover named one file's output (#1991) */
   private static _outputsOf(
