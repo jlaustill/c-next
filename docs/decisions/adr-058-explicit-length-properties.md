@@ -2,7 +2,21 @@
 
 ## Status
 
-**Implemented**
+**Accepted** -- revised by #1975 review 2 (owner-approved: "Approved, make it
+the decision and implement it on #2077"); the revision is implemented in
+PR #2077. The original `bit_length`/`byte_length`/`element_count`/`char_count`
+design was Implemented and is superseded by the Decision below.
+
+## Decision
+
+Each length names its kind: what a value holds now (`value_`), the declared,
+logical width of its type (`type_`), or the memory C lays out for it
+(`memory_`). The twelve properties and what each gives are in "The design
+these rulings add up to" under Open Questions, with the ruling behind each
+row. `.bit_length`, `.byte_length`, `.char_count` and `.element_count` are
+removed, each a compile error whose help names its replacement. ADR-023 stays
+Rejected: C-Next has no `sizeof` operator; `.memory_byte_length` emits one for
+the C compiler to answer.
 
 ## Related
 
@@ -627,8 +641,7 @@ error: `.length` is not a built-in property. Use explicit properties instead.
 - `.value_char_count` on a float is a compile error: a float has no single
   decimal form (`0.1` prints as `"0.1"`, `"0.100000"` or `"0.100000001"`).
 
-**The design these rulings add up to (proposed; awaiting owner approval
-before it replaces the Decision):**
+**The design these rulings add up to (the Decision; owner-approved):**
 
 | Property                | Gives                                                                                                                                                                                                                                               | Compile error on                                                                       |
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
