@@ -1,3 +1,4 @@
+import type TStructLayout from "./TStructLayout";
 import type IConflict from "./IConflict";
 import type ITargetDescription from "./ITargetDescription";
 import type IStructFieldInfo from "./symbols/IStructFieldInfo";
@@ -31,6 +32,7 @@ interface IResolvedSymbols {
   getCSymbolsByFile(file: string): TCSymbol[];
   getAllCSymbols(): TCSymbol[];
   getCppSymbol(name: string): TCppSymbol | undefined;
+  getCOverloads(name: string): TCSymbol[];
   getCppOverloads(name: string): TCppSymbol[];
   getCppSymbolsByFile(file: string): TCppSymbol[];
   getAllCppSymbols(): TCppSymbol[];
@@ -51,6 +53,8 @@ interface IResolvedSymbols {
   getAllNeedsStructKeyword(): string[];
   isPointerTypedef(typeName: string): boolean;
   isOpaqueType(typeName: string): boolean;
+  /** #1975: why a header struct has no length, or null when its fields sum */
+  getStructLayout(structName: string): TStructLayout | null;
   getAllOpaqueTypes(): string[];
   getAllTypedefToTag(): Array<[string, string]>;
   getStructTagForTypedef(typedefName: string): string | undefined;

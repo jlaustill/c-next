@@ -1112,11 +1112,13 @@ class OperandTyper {
     ctx: ITypingContext,
   ): IChainStart {
     // A header's type binds as its name does, but names no value: `Cfg`. A
-    // scope's function shadows a global type of its name (ADR-057, #1281)
+    // value wins a name it shares with a type: a scope's function shadows a
+    // global type (ADR-057, #1281), a header's `stat()` its `struct stat` (C
+    // keeps tags apart), and a class's static member is no field (`Dev.make`)
     const namesType =
-      binding === null ||
-      (binding.kind === "foreign" &&
-        OperandTyper.boundValue(binding, ctx) === null);
+      (binding === null || binding.kind === "foreign") &&
+      !OperandTyper.headerNamesValue(name, ctx) &&
+      !OperandTyper.namesStaticMember(name, ops, ctx);
     const type = namesType ? OperandTyper.typeHead(name, scopePath, ctx) : null;
     if (type !== null) {
       return { binding: null, value: { k: "type", t: type }, ops };
@@ -1125,6 +1127,32 @@ class OperandTyper {
       return OperandTyper.foreignStart(binding, name, ops, ctx);
     }
     return { binding: null, value: { k: "foreignPath", parts: [name] }, ops };
+  }
+
+  /** #1975 review: whether a header declares a function or variable `name` */
+  private static headerNamesValue(name: string, ctx: ITypingContext): boolean {
+    return [
+      ...ctx.symbolTable.getCOverloads(name),
+      ...ctx.symbolTable.getCppOverloads(name),
+    ].some(
+      (symbol) => symbol.kind === "function" || symbol.kind === "variable",
+    );
+  }
+
+  /** #1975 review: `Dev.make(3)`, `Dev.LIMIT` -- a C++ class's static member */
+  private static namesStaticMember(
+    name: string,
+    ops: TChainOps,
+    ctx: ITypingContext,
+  ): boolean {
+    const first = ops[0];
+    return (
+      first?.kind === "member" &&
+      OperandTyper.headerNamesValue(
+        CppNamespaceUtils.fromParts([name, first.name]),
+        ctx,
+      )
+    );
   }
 
   /** A chain that is a floating or unreadable header macro named alone */

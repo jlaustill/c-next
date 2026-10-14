@@ -316,13 +316,17 @@ class ForeignTypeFacts {
     structName: string,
     lookup: IForeignSymbolLookup,
     target: ITargetDescription | null,
+    visiting: ReadonlySet<string> = new Set(),
   ): number | null {
     const fields = lookup.getStructFields(structName);
     if (fields === undefined) return null;
+    // A union's fields share their bits, a bit-field's are C's to pack, and a
+    // struct that holds itself (a tag and typedef sharing a name) has no end
+    if (lookup.getStructLayout(structName) !== null) return null;
+    if (visiting.has(structName)) return null;
+    const inside = new Set(visiting).add(structName);
     let bits = 0;
     for (const info of fields.values()) {
-      // A union's fields share their bits, and a bit-field's are C's to pack
-      if (info.layout !== undefined) return null;
       const field = ForeignTypeFacts.operandType(
         info.type,
         lookup,
@@ -335,7 +339,7 @@ class ForeignTypeFacts {
           : LengthProperty.of(
               "bit_length",
               field.dimensions,
-              ForeignTypeFacts.elementBits(field, lookup, target),
+              ForeignTypeFacts.elementBits(field, lookup, target, inside),
             );
       if (fieldBits === null) return null;
       bits += fieldBits;
@@ -368,12 +372,13 @@ class ForeignTypeFacts {
     typed: IOperandType,
     lookup: IForeignSymbolLookup,
     target: ITargetDescription | null,
+    visiting: ReadonlySet<string> = new Set(),
   ): number | null {
     if (typed.bitWidth !== null) return typed.bitWidth;
     if (typed.typeName === null) return null;
     return (
       TYPE_WIDTH[typed.typeName] ??
-      ForeignTypeFacts.structBits(typed.typeName, lookup, target)
+      ForeignTypeFacts.structBits(typed.typeName, lookup, target, visiting)
     );
   }
 

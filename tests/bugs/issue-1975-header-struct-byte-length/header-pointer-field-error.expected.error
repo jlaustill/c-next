@@ -1,10 +1,10 @@
 17:20 error[E0867]: Cannot determine .byte_length for type 'char*'
        help: C-Next has no pointers, so a header's pointer, or a type C-Next does not read, has no size.
 18:20 error[E0867]: Cannot determine .byte_length for type 'Odd'
-       help: A struct's length is its fields' sizes together; a pointer field, a field of a type C-Next does not read, a union's shared fields and a bit-field have no size C-Next fixes.
+       help: A struct's length is its fields' sizes together; a pointer field, a field of a type C-Next does not read, a union's shared fields, a bit-field, an unnamed member, and a C++ base or vtable have no size C-Next fixes.
 19:18 error[E0867]: Cannot determine .byte_length for type 'Odd'
-       help: A struct's length is its fields' sizes together; a pointer field, a field of a type C-Next does not read, a union's shared fields and a bit-field have no size C-Next fixes.
+       help: A struct's length is its fields' sizes together; a pointer field, a field of a type C-Next does not read, a union's shared fields, a bit-field, an unnamed member, and a C++ base or vtable have no size C-Next fixes.
 20:20 error[E0867]: Cannot determine .byte_length for type 'Un'
-       help: A struct's length is its fields' sizes together; a pointer field, a field of a type C-Next does not read, a union's shared fields and a bit-field have no size C-Next fixes.
+       help: A struct's length is its fields' sizes together; a pointer field, a field of a type C-Next does not read, a union's shared fields, a bit-field, an unnamed member, and a C++ base or vtable have no size C-Next fixes.
 21:20 error[E0867]: Cannot determine .byte_length for type 'BF'
-       help: A struct's length is its fields' sizes together; a pointer field, a field of a type C-Next does not read, a union's shared fields and a bit-field have no size C-Next fixes.
+       help: A struct's length is its fields' sizes together; a pointer field, a field of a type C-Next does not read, a union's shared fields, a bit-field, an unnamed member, and a C++ base or vtable have no size C-Next fixes.

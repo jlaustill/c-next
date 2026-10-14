@@ -1,0 +1,14 @@
+// test-error
+// test-c-only
+// #1975 review: a header struct whose fields C-Next does not all record has
+// no length. An unnamed union or struct member was dropped, so `AnonUnion`
+// summed to 1 and `AnonStruct` to 1 -- hiding its pointer. A type named by
+// its own field overflowed the stack. All three are E0867 now.
+#include "layouts.h"
+
+u32 main() {
+    u32 shared <- AnonUnion.byte_length;
+    u32 hidden <- AnonStruct.byte_length;
+    u32 cycle <- bar.byte_length;
+    return shared + hidden + cycle;
+}

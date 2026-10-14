@@ -191,7 +191,11 @@ class CppResolver {
         ctx.symbolTable,
       );
       if (result) {
-        ctx.symbols.push(result.classSymbol, ...result.memberFunctions);
+        ctx.symbols.push(
+          result.classSymbol,
+          ...result.memberFunctions,
+          ...result.staticMembers,
+        );
         ctx.warnings.push(...result.warnings);
       }
     }
@@ -224,7 +228,11 @@ class CppResolver {
         ctx.symbolTable,
       );
       if (result) {
-        ctx.symbols.push(result.classSymbol, ...result.memberFunctions);
+        ctx.symbols.push(
+          result.classSymbol,
+          ...result.memberFunctions,
+          ...result.staticMembers,
+        );
         ctx.warnings.push(...result.warnings);
         return;
       }

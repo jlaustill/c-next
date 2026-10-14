@@ -1,3 +1,5 @@
+import type TStructLayout from "../TStructLayout";
+
 /**
  * **Every field here must be required — never optional.** The cache's defense
  * against silently dropping one is a compile error from
@@ -33,6 +35,11 @@ interface IStructSymbolState {
    * filter and the include-propagation check can ask.
    */
   pointerTypedefs: Set<string>;
+  /**
+   * #1975: header structs whose members do not sum to a length, and why.
+   * A struct absent here sums its fields.
+   */
+  structLayouts: Map<string, TStructLayout>;
 }
 
 export default IStructSymbolState;

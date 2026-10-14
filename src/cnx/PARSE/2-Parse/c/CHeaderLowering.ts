@@ -236,9 +236,8 @@ class CHeaderLowering {
           (structDecl) => structDecl.Colon() !== null,
         ),
       ),
-      fields: (declList?.structDeclaration() ?? []).flatMap((decl) =>
-        CHeaderLowering.fields(decl),
-      ),
+      hasUnnamedMember: decls.some(CHeaderLowering.isUnnamedMember),
+      fields: decls.flatMap((decl) => CHeaderLowering.fields(decl)),
     };
   }
 
@@ -259,6 +258,17 @@ class CHeaderLowering {
       }
       return lowered ? [{ type, declarator: lowered }] : [];
     });
+  }
+
+  /** #1975 review: `union { ... };`, a member with no declarator */
+  private static isUnnamedMember(decl: StructDeclarationContext): boolean {
+    if (decl.structDeclaratorList() !== null) return false;
+    let current = decl.specifierQualifierList();
+    while (current) {
+      if (current.typeSpecifier()?.structOrUnionSpecifier()) return true;
+      current = current.specifierQualifierList();
+    }
+    return false;
   }
 
   /**

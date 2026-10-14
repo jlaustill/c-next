@@ -9,6 +9,8 @@ type TCppMemberSyntax =
       readonly kind: "declaration";
       readonly span: ISourceSpan;
       readonly fieldType: string;
+      /** `static`: the class's one value, not a field of each instance */
+      readonly isStatic: boolean;
       readonly declarators: readonly IHeaderDeclaratorSyntax[];
     };
 

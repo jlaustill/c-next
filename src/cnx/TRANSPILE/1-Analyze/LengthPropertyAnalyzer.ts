@@ -208,7 +208,7 @@ class LengthPropertyCheck {
         this.report(
           at,
           `Cannot determine .${property} for type '${subject}'`,
-          "A struct's length is its fields' sizes together; a pointer field, a field of a type C-Next does not read, a union's shared fields and a bit-field have no size C-Next fixes.",
+          "A struct's length is its fields' sizes together; a pointer field, a field of a type C-Next does not read, a union's shared fields, a bit-field, an unnamed member, and a C++ base or vtable have no size C-Next fixes.",
         );
       }
       return;

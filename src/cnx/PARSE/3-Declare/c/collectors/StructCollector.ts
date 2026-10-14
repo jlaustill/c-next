@@ -2,7 +2,7 @@
  * StructCollector - Collects struct and union symbols from C parse trees.
  */
 
-import type IStructFieldInfo from "../../../../types/symbols/IStructFieldInfo";
+import type TStructLayout from "../../../../types/TStructLayout";
 import type ICFieldSyntax from "../../../2-Parse/types/ICFieldSyntax";
 import type ICStructSyntax from "../../../2-Parse/types/ICStructSyntax";
 import type ICStructSymbol from "../../../../types/symbols/c/ICStructSymbol";
@@ -161,20 +161,26 @@ class StructCollector {
   ): ReadonlyMap<string, ICFieldInfo> {
     const fields = new Map<string, ICFieldInfo>();
     for (const field of structSpec.fields) {
-      StructCollector.processField(field, structName, fields, symbolTable, {
+      StructCollector.processField(
+        field,
+        structName,
+        fields,
+        symbolTable,
         warnings,
-        layout: StructCollector.layoutOf(structSpec),
-      });
+      );
+    }
+    const layout = StructCollector.layoutOf(structSpec);
+    if (symbolTable && layout !== null) {
+      symbolTable.setStructLayout(structName, layout);
     }
     return fields;
   }
 
-  /** How a struct's fields hold their bits, if not each its own in turn */
-  private static layoutOf(
-    structSpec: ICStructSyntax,
-  ): IStructFieldInfo["layout"] {
-    if (structSpec.isUnion) return "union-member";
-    return structSpec.hasBitField ? "bit-packed" : undefined;
+  /** Why a struct's fields do not sum to its length, or null when they do */
+  private static layoutOf(structSpec: ICStructSyntax): TStructLayout | null {
+    if (structSpec.isUnion) return "union";
+    if (structSpec.hasBitField) return "bit-packed";
+    return structSpec.hasUnnamedMember ? "unrecorded-member" : null;
   }
 
   private static processField(
@@ -182,9 +188,8 @@ class StructCollector {
     structName: string,
     fields: Map<string, ICFieldInfo>,
     symbolTable: SymbolTable | null,
-    options: { warnings?: string[]; layout: IStructFieldInfo["layout"] },
+    warnings?: string[],
   ): void {
-    const { warnings } = options;
     const fieldName = field.declarator.name;
     if (!fieldName) return;
     if (warnings && SymbolUtils.isReservedFieldName(fieldName)) {
@@ -198,21 +203,13 @@ class StructCollector {
       field.declarator,
     );
     const dims = arrayDimensions.length > 0 ? [...arrayDimensions] : undefined;
-    const { layout } = options;
     fields.set(fieldName, {
       name: fieldName,
       type: declaredType,
       arrayDimensions: dims,
-      ...(layout && { layout }),
     });
     if (symbolTable) {
-      symbolTable.addStructField(
-        structName,
-        fieldName,
-        declaredType,
-        dims,
-        layout,
-      );
+      symbolTable.addStructField(structName, fieldName, declaredType, dims);
     }
   }
 }

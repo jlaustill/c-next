@@ -9,6 +9,8 @@ import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import CppNamespaceUtils from "../../../../utils/CppNamespaceUtils";
 import ICppClassSymbol from "../../../../types/symbols/cpp/ICppClassSymbol";
 import ICppFunctionSymbol from "../../../../types/symbols/cpp/ICppFunctionSymbol";
+import ICppVariableSymbol from "../../../../types/symbols/cpp/ICppVariableSymbol";
+import type TStructLayout from "../../../../types/TStructLayout";
 import ICppFieldInfo from "../../../../types/symbols/cpp/ICppFieldInfo";
 import SymbolTable from "../../SymbolTable";
 import SymbolUtils from "../../SymbolUtils";
@@ -26,6 +28,8 @@ import type TCppMemberSyntax from "../../../2-Parse/types/TCppMemberSyntax";
 interface IClassCollectorResult {
   classSymbol: ICppClassSymbol;
   memberFunctions: ICppFunctionSymbol[];
+  /** #1975 review: `static` data members, values rather than fields */
+  staticMembers: ICppVariableSymbol[];
   warnings: string[];
 }
 
@@ -38,6 +42,7 @@ interface IMemberCollectionContext {
   readonly symbolTable: SymbolTable | null;
   readonly fields: Map<string, ICppFieldInfo> | undefined;
   readonly memberFunctions: ICppFunctionSymbol[];
+  readonly staticMembers: ICppVariableSymbol[];
   readonly warnings: string[];
 }
 
@@ -65,6 +70,7 @@ class ClassCollector {
     const fullName = CppNamespaceUtils.qualify(currentNamespace, name);
 
     const memberFunctions: ICppFunctionSymbol[] = [];
+    const staticMembers: ICppVariableSymbol[] = [];
     const warnings: string[] = [];
     const fields: Map<string, ICppFieldInfo> | undefined = symbolTable
       ? new Map()
@@ -79,10 +85,12 @@ class ClassCollector {
         symbolTable: symbolTable ?? null,
         fields,
         memberFunctions,
+        staticMembers,
         warnings,
       };
       ClassCollector._collectClassMembers(ctx, members);
     }
+    ClassCollector._recordLayout(fullName, classSyntax, symbolTable ?? null);
 
     const classSymbol: ICppClassSymbol = {
       kind: "class",
@@ -95,7 +103,7 @@ class ClassCollector {
       fields: fields && fields.size > 0 ? fields : undefined,
     };
 
-    return { classSymbol, memberFunctions, warnings };
+    return { classSymbol, memberFunctions, staticMembers, warnings };
   }
 
   /**
@@ -119,6 +127,7 @@ class ClassCollector {
     if (!members) return null;
 
     const memberFunctions: ICppFunctionSymbol[] = [];
+    const staticMembers: ICppVariableSymbol[] = [];
     const warnings: string[] = [];
     const fields = new Map<string, ICppFieldInfo>();
 
@@ -128,9 +137,11 @@ class ClassCollector {
       symbolTable,
       fields,
       memberFunctions,
+      staticMembers,
       warnings,
     };
     ClassCollector._collectClassMembers(ctx, members);
+    ClassCollector._recordLayout(typedefName, classSyntax, symbolTable);
 
     const classSymbol: ICppClassSymbol = {
       kind: "class",
@@ -142,7 +153,27 @@ class ClassCollector {
       fields: fields.size > 0 ? fields : undefined,
     };
 
-    return { classSymbol, memberFunctions, warnings };
+    return { classSymbol, memberFunctions, staticMembers, warnings };
+  }
+
+  /** #1975 review: why a class's fields do not sum to its length, if so */
+  private static _recordLayout(
+    className: string,
+    classSyntax: ICppClassSyntax,
+    symbolTable: SymbolTable | null,
+  ): void {
+    const layout = ClassCollector._layoutOf(classSyntax);
+    if (symbolTable && layout !== null) {
+      symbolTable.setStructLayout(className, layout);
+    }
+  }
+
+  private static _layoutOf(classSyntax: ICppClassSyntax): TStructLayout | null {
+    if (classSyntax.isUnion) return "union";
+    if (classSyntax.hasBitField) return "bit-packed";
+    if (classSyntax.hasBase) return "derived";
+    if (classSyntax.hasVirtual) return "virtual";
+    return classSyntax.hasUnnamedMember ? "unrecorded-member" : null;
   }
 
   /**
@@ -159,12 +190,7 @@ class ClassCollector {
         continue;
       }
       for (const declarator of member.declarators) {
-        ClassCollector._collectMemberDeclarator(
-          declarator,
-          member.fieldType,
-          member.span,
-          ctx,
-        );
+        ClassCollector._collectMemberDeclarator(declarator, member, ctx);
       }
     }
   }
@@ -196,12 +222,13 @@ class ClassCollector {
    */
   private static _collectMemberDeclarator(
     declarator: IHeaderDeclaratorSyntax,
-    fieldType: string,
-    span: ISourceSpan,
+    member: Extract<TCppMemberSyntax, { kind: "declaration" }>,
     ctx: IMemberCollectionContext,
   ): void {
     const fieldName = declarator.name;
     if (!fieldName) return;
+    const fieldType = member.fieldType;
+    const span = member.span;
 
     // Check if this is a member function -- a pointer to one is a data
     // member, as a C struct's function-pointer field is (#1760 review)
@@ -220,7 +247,38 @@ class ClassCollector {
       return;
     }
 
+    if (member.isStatic) {
+      ctx.staticMembers.push(
+        ClassCollector._staticMember(fieldName, declarator, member, ctx),
+      );
+      return;
+    }
+
     ClassCollector._collectDataField(fieldName, declarator, fieldType, ctx);
+  }
+
+  /** A `static` data member: one value the class holds, `Dev::LIMIT` */
+  private static _staticMember(
+    name: string,
+    declarator: IHeaderDeclaratorSyntax,
+    member: Extract<TCppMemberSyntax, { kind: "declaration" }>,
+    ctx: IMemberCollectionContext,
+  ): ICppVariableSymbol {
+    const dimensions = declarator.arrayDimensions;
+    return {
+      kind: "variable",
+      name: CppNamespaceUtils.qualify(ctx.className, name),
+      sourceFile: ctx.sourceFile,
+      span: member.span,
+      sourceLanguage: ESourceLanguage.Cpp,
+      visibility: "public",
+      parent: ctx.className,
+      type: DeclaratorTypes.declaredType(member.fieldType, declarator),
+      ...(dimensions.length > 0 && {
+        isArray: true,
+        arrayDimensions: [...dimensions],
+      }),
+    };
   }
 
   /**

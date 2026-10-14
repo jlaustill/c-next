@@ -1,0 +1,25 @@
+// test-execution
+// test-cpp-only
+// #1975 review: a class's static members are values, not its fields. They
+// are read and called through the class, and they add nothing to its length:
+// `Dev` is its two fields, 4 + 1 (on the PR head `Dev.make(3)` and
+// `Dev.LIMIT` were E0897, and `LIMIT` was summed into `Dev`).
+#include "statics.hpp"
+
+u32 main() {
+    if (Dev.byte_length != 5) {
+        return 1;
+    }
+    u32 made <- Dev.make(3);
+    if (made != 4) {
+        return 2;
+    }
+    if (Dev.LIMIT != 7) {
+        return 3;
+    }
+    i32 total <- Pod.total();
+    if (total != 3) {
+        return 4;
+    }
+    return 0;
+}
