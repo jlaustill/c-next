@@ -7,7 +7,7 @@
  * Each entry carries a `label` saying why it sits where it does.
  *
  * 1.2's form errors are not steps here: 1.2 rejects the file and the run stops
- * before 1.3, so no file reaches this table (docs/architecture/README.md, #1991).
+ * before 1.4, so no file reaches this table (docs/architecture/README.md, #1991).
  *
  * The header used to say "All 14 analyzers (plus comment validation)", a count
  * carried verbatim from the pre-#1322 path and wrong by a factor of three by

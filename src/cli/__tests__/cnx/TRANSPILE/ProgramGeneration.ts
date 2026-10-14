@@ -1,3 +1,4 @@
+import { basename } from "node:path";
 import ProgramLowering from "../../../../cnx/PARSE/2-Parse/ProgramLowering";
 import TestSymbolTable from "../../../../cnx/TRANSPILE/__tests__/TestSymbolTable";
 import type * as Parser from "../../../../cnx/PARSE/2-Parse/grammar/CNextParser";
@@ -22,7 +23,8 @@ import NodeFileSystem from "../../../../cnx/PARSE/1-Discover/NodeFileSystem";
 import noIncludes from "../../../../cnx/PARSE/1-Discover/__testUtils__/noIncludes";
 import Diagnostics from "../../../../cnx/TRANSPILE/1-Analyze/Diagnostics";
 import type IAnalysis from "../../../../cnx/TRANSPILE/1-Analyze/types/IAnalysis";
-import type ICodeGeneratorOptions from "../../../../cnx/TRANSPILE/types/ICodeGeneratorOptions";
+import type ICodeGenSymbols from "../../../../cnx/types/ICodeGenSymbols";
+import type EFileType from "../../../../cnx/PARSE/1-Discover/types/EFileType";
 import type IProgram from "../../../../cnx/types/IProgram";
 
 /**
@@ -54,13 +56,16 @@ import type IProgram from "../../../../cnx/types/IProgram";
  * The target may be left out: this helper then supplies the build machine's,
  * as an orchestrator that names none would.
  */
-type ITestGenerateOptions = Omit<
-  ICodeGeneratorOptions,
-  "targetDescription" | "program" | "header"
-> & {
-  readonly targetDescription?: ITargetDescription;
+interface ITestGenerateOptions {
+  readonly symbolInfo: ICodeGenSymbols;
   readonly cppMode: boolean;
-};
+  readonly targetDescription?: ITargetDescription;
+  readonly sourcePath?: string;
+  readonly sourceRelativePath?: string;
+  readonly cnxIncludeRewrites?: ReadonlyMap<string, string>;
+  readonly includeKinds?: ReadonlyMap<string, EFileType>;
+  readonly debugMode?: boolean;
+}
 
 class ProgramGeneration {
   static generate(
@@ -168,7 +173,8 @@ class ProgramGeneration {
           [
             sourcePath,
             {
-              sourceRelativePath: options.sourceRelativePath ?? sourcePath,
+              sourceRelativePath:
+                options.sourceRelativePath ?? basename(sourcePath),
               source: sourcePath,
               header: sourcePath,
             },

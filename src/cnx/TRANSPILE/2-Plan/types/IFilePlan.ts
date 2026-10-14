@@ -132,8 +132,8 @@ interface IFilePlan {
   readonly emission: IEmissionPlan;
   /** What 2.2 set up for the file, which 2.3 starts from instead of 2.2's leftovers */
   readonly setup: IFileSetup;
-  /** What 2.3 captures the file's header from, or null for no header */
-  readonly header: IHeaderSetup | null;
+  /** What 2.3 captures the file's header from */
+  readonly header: IHeaderSetup;
 }
 
 export default IFilePlan;

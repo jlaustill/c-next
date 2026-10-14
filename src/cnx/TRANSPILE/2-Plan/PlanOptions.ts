@@ -15,7 +15,7 @@ class PlanOptions {
     const symbolInfo = FileFacts.symbolsFor(program, sourcePath);
     const target = program.target();
     invariant(
-      target?.kind === "resolved",
+      target.kind === "resolved",
       "Stage 3b halts a run whose target did not resolve",
     );
     const includes = FileFacts.includesOf(discovery, sourcePath);

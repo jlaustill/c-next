@@ -6,7 +6,6 @@ import TestSymbolTable from "../../../../cnx/TRANSPILE/__tests__/TestSymbolTable
 import ProgramLowering from "../../../../cnx/PARSE/2-Parse/ProgramLowering";
 import TargetResolver from "../../../TargetResolver";
 import ProgramGeneration from "./ProgramGeneration";
-import PublicInterface from "../../../../cnx/TRANSPILE/2-Plan/PublicInterface";
 import { describe, it, expect, beforeEach } from "vitest";
 import IncludeResolver from "../../../../cnx/PARSE/1-Discover/IncludeResolver";
 import MockFileSystem from "../../MockFileSystem";
@@ -1882,11 +1881,6 @@ describe("CodeGenWalker", () => {
         symbolInfo: symbols,
         sourcePath: "myfile.cnx",
         sourceRelativePath: "myfile.cnx",
-        // #1515: the caller decides, from the rule's owner. This is the same
-        // call `Transpiler` makes; it used to be made inside 1.3 Declare and
-        // arrive on `symbolInfo`, which is what put an emission decision in the
-        // parse layer.
-        hasPublicInterface: PublicInterface.existsIn(tSymbols),
       });
 
       expect(code).toContain('#include "myfile.h"');

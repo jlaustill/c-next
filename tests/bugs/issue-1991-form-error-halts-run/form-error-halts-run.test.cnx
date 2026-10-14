@@ -1,5 +1,5 @@
 // test-error
-// #2020 review: a form error in one file stops the run before 1.3, so this
+// #2020 review: a form error in one file stops the run before 1.4, so this
 // file's own 2.1 error (E0702, a call in a condition) is not reported. 1.2
 // rejects the helper, so 1.3 cannot declare it, and this file would be
 // analyzed against declarations that are missing.

@@ -1431,7 +1431,6 @@ class CodeGenWalker {
   /** 2.2's decisions for the file, in the order each needs the ones before it */
   /** #1323: the header's input, captured while this file's render state is warm */
   private captureHeader(plan: IFilePlan): IHeaderEmissionFacts | null {
-    if (plan.header === null) return null;
     const sourcePath = plan.setup.sourcePath;
     invariant(sourcePath !== null, "a file with a header has a source path");
     return HeaderEmissionCapture.capture({

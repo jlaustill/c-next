@@ -595,6 +595,8 @@ class Discover {
       run: {
         debugMode: this.settings.debugMode,
         parseOnly: this.settings.parseOnly ?? false,
+        // Serve and the host pass "" for "no target" or "no environment";
+        // it names nothing, so 1.4 is handed only a name or nothing.
         target: {
           option: this.settings.target || undefined,
           pioEnv: this.settings.pioEnv || undefined,
