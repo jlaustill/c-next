@@ -47,7 +47,10 @@ import Write from "../../cnx/WRITE/1-Write/Write";
 // (`uint8_t*`, `float (*)(void)`), where it recorded its specifiers alone.
 // 16: #1653 -- the entries are plain JSON in `symbols.json`, read through the
 // port; flat-cache wrote `flatted` to `symbols`, which invalidation removes.
-const CACHE_VERSION = 16;
+// 17: #1975 review -- a C struct field records whether its struct is a union
+// or packs bit-fields, and a bit-field (`uint32_t a : 3`) is recorded where it
+// was dropped, so an entry written before sums a union's fields as a size.
+const CACHE_VERSION = 17;
 
 const TRANSPILER_VERSION = packageJson.version;
 

@@ -190,30 +190,25 @@ class LengthPropertyCheck {
   ): void {
     const subject = LengthPropertyCheck.spelling(typed);
     const element = typed.typeName ?? "";
-    if (struct !== undefined) {
-      if (LengthProperty.structBits(struct, lookup) === null) {
+    // #1975 (owner ruling): a C-Next struct and a header's are each their
+    // fields' sizes together, one rule, a header struct's field too; a
+    // pointer field has none -- C-Next has no pointers
+    const headerBits = ForeignTypeFacts.headerBits(
+      this.context.symbolTable,
+      OperandTyper.target(this.context),
+    );
+    const isHeaderStruct =
+      this.context.symbolTable.getStructFields(element) !== undefined;
+    if (struct !== undefined || isHeaderStruct) {
+      const bits =
+        struct === undefined
+          ? headerBits(element)
+          : LengthProperty.structBits(struct, lookup, headerBits);
+      if (bits === null) {
         this.report(
           at,
           `Cannot determine .${property} for type '${subject}'`,
-          "A struct's length is its fields' sizes together; a field from a C header has no size C-Next fixes.",
-        );
-      }
-      return;
-    }
-    // #1975 (owner ruling): a header's struct is its fields' sizes together,
-    // as a C-Next struct is; a pointer field has none -- C-Next has no pointers
-    if (this.context.symbolTable.getStructFields(element) !== undefined) {
-      if (
-        ForeignTypeFacts.structBits(
-          element,
-          this.context.symbolTable,
-          OperandTyper.target(this.context),
-        ) === null
-      ) {
-        this.report(
-          at,
-          `Cannot determine .${property} for type '${subject}'`,
-          "A struct's length is its fields' sizes together; a pointer field, or a field of a type C-Next does not read, has no size C-Next fixes.",
+          "A struct's length is its fields' sizes together; a pointer field, a field of a type C-Next does not read, a union's shared fields and a bit-field have no size C-Next fixes.",
         );
       }
       return;

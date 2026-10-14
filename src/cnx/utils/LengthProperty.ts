@@ -20,6 +20,8 @@ const ENUM_BITS = 32;
 
 /** A C-Next declaration by C name -- Program's, or what a file can see */
 type TSymbolLookup = (cName: string) => TSymbol | undefined;
+/** #1975 review: a header type's width, for a C-Next field of one; null for none */
+type THeaderBits = (typeName: string) => number | null;
 
 const LENGTHS: ReadonlySet<string> = new Set([
   "element_count",
@@ -74,15 +76,25 @@ class LengthProperty {
    * `elementBits` gives render for the type's name; null for a type whose
    * width C-Next does not fix (a C header type)
    */
-  static elementBitsOfType(type: TType, lookup: TSymbolLookup): number | null {
+  static elementBitsOfType(
+    type: TType,
+    lookup: TSymbolLookup,
+    headerBits?: THeaderBits,
+  ): number | null {
     switch (type.kind) {
       case "struct": {
         const struct = LengthProperty.struct(
           QualifiedCName.fromParts(type.name.split(".")),
           lookup,
         );
-        return struct ? LengthProperty.structBits(struct, lookup) : null;
+        if (struct)
+          return LengthProperty.structBits(struct, lookup, headerBits);
+        // A header's struct, which a C-Next field names as a struct (#1975)
+        return headerBits?.(type.name) ?? null;
       }
+      case "external":
+        // A header's type, measured as the header's own struct is (#1975)
+        return headerBits?.(type.name) ?? null;
       case "primitive":
         return TYPE_WIDTH[type.primitive] ?? null;
       case "enum":
@@ -130,13 +142,14 @@ class LengthProperty {
   static structBits(
     struct: IStructSymbol,
     lookup: TSymbolLookup,
+    headerBits?: THeaderBits,
   ): number | null {
     let bits = 0;
     for (const field of struct.fields.values()) {
       const fieldBits = LengthProperty.of(
         "bit_length",
         LengthProperty.fieldDimensions(field.type, field.dimensions ?? []),
-        LengthProperty.elementBitsOfType(field.type, lookup),
+        LengthProperty.elementBitsOfType(field.type, lookup, headerBits),
       );
       if (fieldBits === null) return null;
       bits += fieldBits;

@@ -4,6 +4,10 @@
 // holding one -- E0867, never the target's pointer size. On main
 // `o.p.byte_length` reached the C unchanged, at exit 0, and gcc rejected it.
 //
+// #1975 review: a union's fields share their bits and a bit-field's are C's
+// to pack, so neither fields' sum is a size: E0867 too (`Un` was summed to 6,
+// where C stores 4, and `BF.byte_length` reached the C unchanged).
+//
 // NEGATIVE CONTROL: `o.i`, the struct's other field, still has a length.
 #include "shapes.h"
 
@@ -13,5 +17,7 @@ u32 main() {
     u32 field <- o.p.byte_length;
     u32 whole <- Odd.byte_length;
     u32 value <- o.byte_length;
-    return ok + field + whole + value;
+    u32 shared <- Un.byte_length;
+    u32 packed <- BF.byte_length;
+    return ok + field + whole + value + shared + packed;
 }

@@ -7,6 +7,7 @@
  */
 
 #include <stdint.h>
+#include "shapes.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -17,6 +18,13 @@ typedef struct Point {
     uint32_t x;
     uint8_t y;
 } Point;
+typedef struct Wrap {
+    Cfg c;
+    uint8_t b;
+} Wrap;
+
+/* External variables */
+extern uint8_t wrapBytes[6];
 
 #ifdef __cplusplus
 }

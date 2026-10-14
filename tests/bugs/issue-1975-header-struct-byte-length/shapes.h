@@ -18,4 +18,14 @@ typedef struct {
     char *p;
 } Odd;
 
+typedef union {
+    uint32_t a;
+    uint8_t b[2];
+} Un;
+
+typedef struct {
+    uint32_t a : 3;
+    uint32_t b : 5;
+} BF;
+
 #endif

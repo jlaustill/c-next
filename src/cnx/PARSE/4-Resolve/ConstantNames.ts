@@ -19,7 +19,7 @@ import QualifiedCName from "../../utils/QualifiedCName";
 import CNEXT_TO_C_TYPE_MAP from "../../utils/constants/TypeMappings";
 import ScopeUtils from "../../utils/ScopeUtils";
 import LengthProperty from "../../utils/LengthProperty";
-import PrimitiveKindUtils from "../../utils/PrimitiveKindUtils";
+import TypeHead from "../../utils/TypeHead";
 import type TSymbol from "../../types/symbols/TSymbol";
 import type TType from "../../types/TType";
 import type IConstantNameFacts from "./types/IConstantNameFacts";
@@ -279,7 +279,9 @@ class ConstantNames {
     const header = ConstantNames.headerType(current.type, walk);
     const element =
       header === null
-        ? LengthProperty.elementBitsOfType(current.type, lookup)
+        ? LengthProperty.elementBitsOfType(current.type, lookup, (name) =>
+            walk.facts.headerTypeBits(name),
+          )
         : walk.facts.headerTypeBits(header);
     const value = LengthProperty.of(
       property,
@@ -411,11 +413,16 @@ class ConstantNames {
     if (symbol?.kind === "variable") {
       return ConstantNames.ofVariable(symbol, more, walk);
     }
-    if (symbol?.kind === "enum" && more.length === 1) {
+    if (symbol?.kind === "enum" && ConstantNames.namesMember(symbol, more)) {
       return walk.facts.enumMember(cName, more[0], walk.spelling, walk.at);
     }
     if (symbol === undefined) {
       return ConstantNames.without("undeclaredMember", walk);
+    }
+    // #1975 review: `Geo.Box.byte_length`, as a bare `Point.byte_length`
+    const type = more.length === 0 ? null : TypeHead.ofSymbol(symbol, cName);
+    if (type !== null) {
+      return ConstantNames.ofMember({ type, dimensions: [] }, more, walk);
     }
     // A function or a type the scope declares has no value
     return ConstantNames.without(
@@ -443,45 +450,47 @@ class ConstantNames {
       (name) => walk.facts.isScopeTypeVisible(name),
     );
     const symbol = walk.facts.visibleSymbol(cName);
-    if (
-      symbol?.kind === "enum" &&
-      rest.length === 1 &&
-      !(LengthProperty.isLength(rest[0]) && !symbol.members.has(rest[0]))
-    ) {
+    if (symbol?.kind === "enum" && ConstantNames.namesMember(symbol, rest)) {
       return walk.facts.enumMember(cName, rest[0], walk.spelling, walk.at);
     }
     // #1975: a type answers the length properties its values do --
-    // `u32.byte_length`, `Point.y.byte_length`, `EMode.bit_length`
-    const type =
-      root === null ? ConstantNames.typeNamed(head, cName, symbol, walk) : null;
+    // `u32.byte_length`, `Point.y.byte_length`, `EMode.bit_length`, and
+    // `this.P.byte_length`, `global.Point.byte_length` (#1975 review)
+    const type = ConstantNames.typeNamed(root, head, cName, symbol, walk);
     return type === null
       ? ConstantNames.unbound(root, head, rest, walk)
       : ConstantNames.ofMember({ type, dimensions: [] }, rest, walk);
   }
 
+  /** `EMode.RUN`: one name after the enum, a member and not a length of it */
+  private static namesMember(
+    symbol: TSymbol & { kind: "enum" },
+    rest: ReadonlyArray<string>,
+  ): boolean {
+    return (
+      rest.length === 1 &&
+      !(LengthProperty.isLength(rest[0]) && !symbol.members.has(rest[0]))
+    );
+  }
+
   /** The type a chain's head names, a header's struct too; null for none */
   private static typeNamed(
+    root: TChainRoot,
     head: string,
     cName: string,
     symbol: TSymbol | undefined,
     walk: IWalk,
   ): TType | null {
-    if (PrimitiveKindUtils.isPrimitive(head) && head !== "void") {
-      return { kind: "primitive", primitive: head };
-    }
-    switch (symbol?.kind) {
-      case "struct":
-      case "enum":
-        return { kind: symbol.kind, name: cName };
-      case "bitmap":
-        return { kind: "bitmap", name: cName, bitWidth: symbol.bitWidth };
-      default:
-        // #2076: a header's struct, which no C-Next symbol names
-        return symbol === undefined &&
-          walk.facts.headerStructFields(head) !== undefined
-          ? { kind: "external", name: head }
-          : null;
-    }
+    const named =
+      (root === null ? TypeHead.primitive(head) : null) ??
+      TypeHead.ofSymbol(symbol, cName);
+    if (named !== null) return named;
+    // #2076: a header's struct, which no C-Next symbol names
+    return root !== "this" &&
+      symbol === undefined &&
+      walk.facts.headerStructFields(head) !== undefined
+      ? { kind: "external", name: head }
+      : null;
   }
 
   /**

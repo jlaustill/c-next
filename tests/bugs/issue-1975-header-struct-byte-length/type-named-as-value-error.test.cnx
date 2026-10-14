@@ -1,0 +1,34 @@
+// test-error
+// #1975 review, #2078: a chain that names a type answers ADR-058's length
+// properties of it and of its fields' types, and names no value. Each of
+// these reached the C as written at exit 0, and gcc rejected it: a type's
+// missing field, a member that is no length property, a header struct's
+// missing field, an element of a type's array field, and a field read and
+// written as if it were a value.
+//
+// NEGATIVE CONTROL: `p.x` reads a value's field, and `Point.y.byte_length`
+// a length of a field's type.
+#include "shapes.h"
+
+struct Point {
+    u32 x;
+    u8 y;
+}
+
+struct A {
+    u8[3] d;
+}
+
+Point p;
+
+u32 main() {
+    u32 ok <- p.x + Point.y.byte_length;
+    u32 a <- u32.foo;
+    u32 b <- Point.z.byte_length;
+    u32 c <- Point.y.foo;
+    u32 d <- Cfg.zz.byte_length;
+    u32 e <- A.d[0].byte_length;
+    u32 f <- Point.x;
+    Point.x <- 5;
+    return ok + a + b + c + d + e + f;
+}

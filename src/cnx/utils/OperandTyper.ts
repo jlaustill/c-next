@@ -28,6 +28,8 @@ import LiteralUtils from "./LiteralUtils";
 import CompositeType from "./CompositeType";
 import QualifiedCName from "./QualifiedCName";
 import LengthProperty from "./LengthProperty";
+import TypeHead from "./TypeHead";
+import ResolvedTarget from "./ResolvedTarget";
 import PROPERTY_NAMES from "./constants/PROPERTY_NAMES";
 import ScopeUtils from "./ScopeUtils";
 import SubscriptClassifier from "./SubscriptClassifier";
@@ -346,13 +348,8 @@ class OperandTyper {
     scopePath: string,
     ctx: ITypingContext,
   ): IOperandType | null {
-    if (PrimitiveKindUtils.isPrimitive(name) && name !== "void") {
-      return OperandTyper.fromType(
-        { kind: "primitive", primitive: name },
-        [],
-        ctx,
-      );
-    }
+    const primitive = TypeHead.primitive(name);
+    if (primitive !== null) return OperandTyper.fromType(primitive, [], ctx);
     const cName = OperandTyper.cNameOf(
       ScopeUtils.qualifyScopeType(
         name,
@@ -360,17 +357,8 @@ class OperandTyper {
         OperandTyper.scopeTypesSeenBy(ctx),
       ),
     );
-    const symbol = ctx.program.symbolByCName(cName);
-    if (symbol?.kind === "struct") {
-      return OperandTyper.fromType({ kind: "struct", name: cName }, [], ctx);
-    }
-    if (symbol?.kind === "bitmap") {
-      return OperandTyper.fromType(
-        { kind: "bitmap", name: cName, bitWidth: symbol.bitWidth },
-        [],
-        ctx,
-      );
-    }
+    const named = OperandTyper.namedTypeOf(cName, ctx);
+    if (named !== null) return named;
     return ctx.symbolTable.getStructFields(name) === undefined
       ? null
       : ForeignTypeFacts.operandType(
@@ -378,6 +366,53 @@ class OperandTyper {
           ctx.symbolTable,
           OperandTyper.target(ctx),
         );
+  }
+
+  /** A C-Next struct or bitmap the C name names; null for any other symbol */
+  private static namedTypeOf(
+    cName: string,
+    ctx: ITypingContext,
+  ): IOperandType | null {
+    // An enum names its members first (`EMode.RUN`): `enumType` types it
+    const type = TypeHead.ofSymbol(ctx.program.symbolByCName(cName), cName);
+    return type === null || type.kind === "enum"
+      ? null
+      : OperandTyper.fromType(type, [], ctx);
+  }
+
+  /**
+   * #1975 review, #2078: the op at which a chain that names a type stops
+   * naming one it may. A type answers ADR-058's length properties, its own
+   * and its fields' types' (`Point.y.byte_length`), and names no value. The
+   * op that leaves that shape -- a missing field, `u32.foo`, a subscript --
+   * or `at: null` for a chain that ends on the type (`Point.x`). Null for a
+   * chain whose head is no type, or one that ends reading a length of one.
+   */
+  static typeNamedAsValue(
+    chain: TExpression,
+    ctx: ITypingContext,
+  ): { at: TPostfixOpSyntax | null; type: IOperandType } | null {
+    const start = OperandTyper.chainStart(chain, ctx);
+    let current = start.value;
+    for (const [i, op] of start.ops.entries()) {
+      if (current.k !== "type") {
+        current = OperandTyper.applyOp(current, op, ctx).next;
+        continue;
+      }
+      const next = OperandTyper.applyOp(current, op, ctx).next;
+      if (next.k === "type") {
+        current = next;
+        continue;
+      }
+      // A field of the name typed above; a length property ends the chain,
+      // and LengthPropertyAnalyzer holds it to the type it is asked of
+      if (op.kind === "member" && LengthProperty.isLength(op.name)) {
+        const after = start.ops[i + 1];
+        return after === undefined ? null : { at: after, type: current.t };
+      }
+      return { at: op, type: current.t };
+    }
+    return current.k === "type" ? { at: null, type: current.t } : null;
   }
 
   /**
@@ -1187,7 +1222,10 @@ class OperandTyper {
       default:
         break;
     }
-    return UNKNOWN;
+    // #1975 review: `Geo.Box`, `this.P`, `global.Point` name a type as a bare
+    // `Point` does, so they answer its length properties alike
+    const type = OperandTyper.namedTypeOf(cName, ctx);
+    return type === null ? UNKNOWN : { k: "type", t: type };
   }
 
   private static applyOp(
@@ -1706,8 +1744,7 @@ class OperandTyper {
 
   /** The run's target description, or null while 1.4 has not resolved it */
   static target(ctx: ITypingContext): ITargetDescription | null {
-    const target = ctx.program.target();
-    return target.kind === "resolved" ? target.description : null;
+    return ResolvedTarget.of(ctx.program.target());
   }
 }
 

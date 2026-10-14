@@ -1,6 +1,10 @@
-13:20 error[E0867]: Cannot determine .byte_length for type 'char*'
+17:20 error[E0867]: Cannot determine .byte_length for type 'char*'
        help: C-Next has no pointers, so a header's pointer, or a type C-Next does not read, has no size.
-14:20 error[E0867]: Cannot determine .byte_length for type 'Odd'
-       help: A struct's length is its fields' sizes together; a pointer field, or a field of a type C-Next does not read, has no size C-Next fixes.
-15:18 error[E0867]: Cannot determine .byte_length for type 'Odd'
-       help: A struct's length is its fields' sizes together; a pointer field, or a field of a type C-Next does not read, has no size C-Next fixes.
+18:20 error[E0867]: Cannot determine .byte_length for type 'Odd'
+       help: A struct's length is its fields' sizes together; a pointer field, a field of a type C-Next does not read, a union's shared fields and a bit-field have no size C-Next fixes.
+19:18 error[E0867]: Cannot determine .byte_length for type 'Odd'
+       help: A struct's length is its fields' sizes together; a pointer field, a field of a type C-Next does not read, a union's shared fields and a bit-field have no size C-Next fixes.
+20:20 error[E0867]: Cannot determine .byte_length for type 'Un'
+       help: A struct's length is its fields' sizes together; a pointer field, a field of a type C-Next does not read, a union's shared fields and a bit-field have no size C-Next fixes.
+21:20 error[E0867]: Cannot determine .byte_length for type 'BF'
+       help: A struct's length is its fields' sizes together; a pointer field, a field of a type C-Next does not read, a union's shared fields and a bit-field have no size C-Next fixes.

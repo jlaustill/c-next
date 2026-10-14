@@ -15,10 +15,15 @@
 // #1867: a length property reads no value, so measuring a field of a local
 // that was never written is not a use before initialization (it was E0381).
 //
-// NEGATIVE CONTROL: `Point`, a C-Next struct, sized by the same rule.
+// NEGATIVE CONTROL: `Point`, a C-Next struct, sized by the same rule; and
+// `Wrap`, a C-Next struct with a header struct's field, sized by it too.
 #include "shapes.h"
 
 #include <stdint.h>
+
+// #1975 review: a C-Next struct with a header struct's field is sized by the
+// one rule, its fields' sizes together: 5 + 1
+uint8_t wrapBytes[6] = {};
 
 int main(void) {
     Cfg c = {};
@@ -49,6 +54,12 @@ int main(void) {
     }
     if (4 != 4) {
         return 9U;
+    }
+    if (6 != 6) {
+        return 10U;
+    }
+    if (6 != 6) {
+        return 11U;
     }
     return 0U;
 }

@@ -226,10 +226,16 @@ class CHeaderLowering {
     structSpec: StructOrUnionSpecifierContext,
   ): ICStructSyntax {
     const declList = structSpec.structDeclarationList();
+    const decls = declList?.structDeclaration() ?? [];
     return {
       tag: structSpec.Identifier()?.getText() ?? null,
       isUnion: structSpec.structOrUnion()?.getText() === "union",
       hasBody: declList !== null,
+      hasBitField: decls.some((decl) =>
+        (decl.structDeclaratorList()?.structDeclarator() ?? []).some(
+          (structDecl) => structDecl.Colon() !== null,
+        ),
+      ),
       fields: (declList?.structDeclaration() ?? []).flatMap((decl) =>
         CHeaderLowering.fields(decl),
       ),
@@ -240,14 +246,51 @@ class CHeaderLowering {
     const specifierQualifierList = decl.specifierQualifierList();
     const declaratorList = decl.structDeclaratorList();
     if (!specifierQualifierList || !declaratorList) return [];
-    const type = CHeaderLowering.specifierQualifierText(specifierQualifierList);
+    const misread = CHeaderLowering.misreadFieldName(specifierQualifierList);
+    const type = CHeaderLowering.specifierQualifierText(
+      specifierQualifierList,
+      misread !== null,
+    );
     return declaratorList.structDeclarator().flatMap((structDecl) => {
       const declarator = structDecl.declarator();
-      const lowered = declarator
-        ? CHeaderLowering.declarator(declarator)
-        : null;
+      let lowered = declarator ? CHeaderLowering.declarator(declarator) : null;
+      if (lowered === null && misread !== null) {
+        lowered = CHeaderLowering.nameDeclarator(misread);
+      }
       return lowered ? [{ type, declarator: lowered }] : [];
     });
+  }
+
+  /**
+   * #1975 review: in `uint32_t a : 3;` the grammar reads `a` as a second type
+   * (a typedef name) and the bit-field as unnamed. A typedef name is the only
+   * type specifier a declaration may have (C11 6.7.2), so one that follows
+   * another names the field.
+   */
+  private static misreadFieldName(
+    list: SpecifierQualifierListContext,
+  ): string | null {
+    const types: TypeSpecifierContext[] = [];
+    let current: SpecifierQualifierListContext | null = list;
+    while (current) {
+      const typeSpec = current.typeSpecifier();
+      if (typeSpec) types.push(typeSpec);
+      current = current.specifierQualifierList();
+    }
+    const last = types.at(-1)?.typedefName() ?? null;
+    return types.length > 1 && last !== null ? last.getText() : null;
+  }
+
+  private static nameDeclarator(name: string): IHeaderDeclaratorSyntax {
+    return {
+      name,
+      isFunction: false,
+      hasPointer: false,
+      pointerDepth: 0,
+      functionPointerParams: null,
+      parameters: [],
+      arrayDimensions: [],
+    };
   }
 
   private static enum(
@@ -291,17 +334,33 @@ class CHeaderLowering {
 
   private static specifierQualifierText(
     specifierQualifierList: SpecifierQualifierListContext,
+    dropLastType = false,
   ): string {
     const parts: string[] = [];
     let current: SpecifierQualifierListContext | null = specifierQualifierList;
     while (current) {
       const typeSpec = current.typeSpecifier();
-      if (typeSpec) parts.push(CHeaderLowering.typeSpecifierText(typeSpec));
+      const isLastType =
+        dropLastType &&
+        typeSpec !== null &&
+        !CHeaderLowering.hasLaterType(current.specifierQualifierList());
+      if (typeSpec && !isLastType) {
+        parts.push(CHeaderLowering.typeSpecifierText(typeSpec));
+      }
       const typeQualifier = current.typeQualifier();
       if (typeQualifier) parts.push(typeQualifier.getText());
       current = current.specifierQualifierList();
     }
     return parts.join(" ") || "int";
+  }
+
+  private static hasLaterType(
+    list: SpecifierQualifierListContext | null,
+  ): boolean {
+    for (let at = list; at; at = at.specifierQualifierList()) {
+      if (at.typeSpecifier()) return true;
+    }
+    return false;
   }
 
   private static anonymousStructText(

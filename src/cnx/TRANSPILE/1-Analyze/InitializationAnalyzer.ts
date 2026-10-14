@@ -366,7 +366,7 @@ class InitializationWalk {
     const key = this.analyzer.bindingKey(null, name, at);
     if (key === null) return;
     if (ops.length > 0) {
-      if (this.isLengthOfNonString(key, ops)) return;
+      if (this.isCompileTimeLength(key, ops)) return;
       const first = ops[0];
       if (first.kind === "member") {
         this.analyzer.checkRead(key, name, at.line, at.column, first.name);
@@ -381,7 +381,7 @@ class InitializationWalk {
    * ADR-058's length property of anything, `cfg.a.byte_length` (#1867): it
    * reads the declared shape, never the value
    */
-  private isLengthOfNonString(
+  private isCompileTimeLength(
     key: TInitKey,
     ops: readonly TPostfixOpSyntax[],
   ): boolean {

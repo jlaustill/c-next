@@ -1,0 +1,4 @@
+// The first hop: it names the types it includes, and declares one const
+#include "geo-base.cnx"
+
+const u8 MID_HOP <- 1;

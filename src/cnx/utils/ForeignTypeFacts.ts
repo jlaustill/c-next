@@ -300,8 +300,18 @@ class ForeignTypeFacts {
    * ADR-058 for a header's struct (#1975, owner ruling): its fields' bits
    * together, without C padding, as a C-Next struct's are -- `struct { uint32_t
    * a; uint8_t b; }` is 40 bits where C stores 64. Null when a field has no
-   * width C-Next fixes: a pointer (C-Next has none), or a type it does not read.
+   * width C-Next fixes: a pointer (C-Next has none), or a type it does not read;
+   * and for a union or a struct with a bit-field, whose fields do not each
+   * hold their own bits (#1975 review).
    */
+  /** #1975 review: a header type's width, as a C-Next struct's field reads it */
+  static headerBits(
+    lookup: IForeignSymbolLookup,
+    target: ITargetDescription | null,
+  ): (typeName: string) => number | null {
+    return (typeName) => ForeignTypeFacts.typeBits(typeName, lookup, target);
+  }
+
   static structBits(
     structName: string,
     lookup: IForeignSymbolLookup,
@@ -311,6 +321,8 @@ class ForeignTypeFacts {
     if (fields === undefined) return null;
     let bits = 0;
     for (const info of fields.values()) {
+      // A union's fields share their bits, and a bit-field's are C's to pack
+      if (info.layout !== undefined) return null;
       const field = ForeignTypeFacts.operandType(
         info.type,
         lookup,

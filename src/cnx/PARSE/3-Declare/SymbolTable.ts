@@ -290,6 +290,7 @@ class SymbolTable implements IResolvedSymbols {
         fieldName,
         fieldInfo.type,
         fieldInfo.arrayDimensions,
+        fieldInfo.layout,
       );
     }
   }
@@ -700,6 +701,7 @@ class SymbolTable implements IResolvedSymbols {
     fieldName: string,
     fieldType: string,
     arrayDimensions?: readonly (number | string)[],
+    layout?: IStructFieldInfo["layout"],
   ): void {
     let fields = this.structFields.get(structName);
     if (!fields) {
@@ -711,6 +713,7 @@ class SymbolTable implements IResolvedSymbols {
     fields.set(fieldName, {
       type: fieldType,
       arrayDimensions: arrayDimensions ? [...arrayDimensions] : undefined,
+      ...(layout && { layout }),
     });
   }
 

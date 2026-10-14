@@ -158,6 +158,21 @@ describe("ForeignTypeFacts", () => {
       symbolTable.addStructField("Odd", "i", "int32_t");
       symbolTable.addStructField("Odd", "p", "char*");
       symbolTable.addStructField("Holder", "odd", "Odd");
+      symbolTable.addStructField(
+        "Un",
+        "a",
+        "uint32_t",
+        undefined,
+        "union-member",
+      );
+      symbolTable.addStructField("Un", "b", "uint8_t", [2], "union-member");
+      symbolTable.addStructField(
+        "BF",
+        "a",
+        "uint32_t",
+        undefined,
+        "bit-packed",
+      );
     });
 
     it("sums the fields' sizes, without C padding", () => {
@@ -175,6 +190,12 @@ describe("ForeignTypeFacts", () => {
       expect(
         ForeignTypeFacts.structBits("Holder", symbolTable, null),
       ).toBeNull();
+    });
+
+    // #1975 review: `Un` was summed to 48 bits, where C stores 32
+    it("has no size for a union or a struct C packs bit-fields into", () => {
+      expect(ForeignTypeFacts.structBits("Un", symbolTable, null)).toBeNull();
+      expect(ForeignTypeFacts.structBits("BF", symbolTable, null)).toBeNull();
     });
 
     it("has no size for a struct it was not given", () => {

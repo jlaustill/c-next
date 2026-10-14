@@ -19,7 +19,7 @@ codes that already have a fixture.
 | E05xx     | Include/Preprocessor                                               | 18      |
 | E06xx     | Sizeof Expressions                                                 | 3       |
 | E07xx     | Control Flow                                                       | 15      |
-| E08xx     | Arithmetic/Array Safety                                            | 58      |
+| E08xx     | Arithmetic/Array Safety                                            | 59      |
 | E09xx     | NULL Safety, Compile-Time Values, Literal Form, String Conversions | 14      |
 | **Total** |                                                                    | **136** |
 
@@ -363,12 +363,13 @@ base: bare, `this.` and `global.`.
 
 ### Declared Type Shape (ADR-034 / ADR-017)
 
-| Code  | Message                                                                                             | Help                                                                                            | Source                                            |
-| ----- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| E0893 | A bitmap's field widths do not add up to its size                                                   | Resize a field, or declare the bitmap with the size its fields add up to                        | `TRANSPILE/1-Analyze/TypeDeclarationAnalyzer.ts`  |
-| E0894 | An enum member's value is negative                                                                  | Use a non-negative value                                                                        | `TRANSPILE/1-Analyze/TypeDeclarationAnalyzer.ts`  |
-| E0895 | An argument is not what a C pointer parameter points to, or is const and the parameter is not       | Pass an object of the pointed-to type, or an array of them; a const one needs a const parameter | `TRANSPILE/1-Analyze/CPointerArgumentAnalyzer.ts` |
-| E0896 | Warning: C-Next cannot see how a C function uses a pointer argument, so the call is not memory safe | Consider converting the C function to C-Next                                                    | `TRANSPILE/1-Analyze/CPointerArgumentAnalyzer.ts` |
+| Code  | Message                                                                                             | Help                                                                                                       | Source                                            |
+| ----- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| E0893 | A bitmap's field widths do not add up to its size                                                   | Resize a field, or declare the bitmap with the size its fields add up to                                   | `TRANSPILE/1-Analyze/TypeDeclarationAnalyzer.ts`  |
+| E0894 | An enum member's value is negative                                                                  | Use a non-negative value                                                                                   | `TRANSPILE/1-Analyze/TypeDeclarationAnalyzer.ts`  |
+| E0895 | An argument is not what a C pointer parameter points to, or is const and the parameter is not       | Pass an object of the pointed-to type, or an array of them; a const one needs a const parameter            | `TRANSPILE/1-Analyze/CPointerArgumentAnalyzer.ts` |
+| E0896 | Warning: C-Next cannot see how a C function uses a pointer argument, so the call is not memory safe | Consider converting the C function to C-Next                                                               | `TRANSPILE/1-Analyze/CPointerArgumentAnalyzer.ts` |
+| E0897 | A type named where a value goes: a type answers only its length properties (ADR-058)                | Ask the type a length property (`Point.byte_length`, `Point.x.bit_length`), or read a variable of the type | `TRANSPILE/1-Analyze/TypeNameValueAnalyzer.ts`    |
 
 ## E09xx — NULL Safety (ADR-046)
 

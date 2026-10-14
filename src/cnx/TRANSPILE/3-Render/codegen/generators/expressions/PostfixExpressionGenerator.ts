@@ -37,6 +37,7 @@ import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
 import SubscriptDepthValidator from "../../../../2-Plan/SubscriptDepthValidator";
 import C_TYPE_WIDTH from "../../../../2-Plan/types/C_TYPE_WIDTH";
 import ForeignTypeFacts from "../../../../../utils/ForeignTypeFacts";
+import ResolvedTarget from "../../../../../utils/ResolvedTarget";
 import LengthProperty from "../../../../../utils/LengthProperty";
 import type IStructSymbol from "../../../../../types/symbols/IStructSymbol";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
@@ -539,28 +540,38 @@ const elementBitWidth = (
     return LengthProperty.stringElementBits(measured.stringCapacity);
   }
   if (measured.bitWidth !== null) return measured.bitWidth;
-  // #1535: its fields' sizes together, without C padding (ADR-058 q7)
+  // #1535: its fields' sizes together, without C padding (ADR-058 q7); a
+  // header's struct by the same rule, and a C-Next field of one (#1975)
+  const program = input.program;
+  const headers = input.symbolTable;
+  const headerBits =
+    headers === null || headers === undefined
+      ? undefined
+      : ForeignTypeFacts.headerBits(
+          headers,
+          ResolvedTarget.of(program?.target()),
+        );
   const struct = measuredStruct(measured, input);
-  if (struct !== undefined && input.program !== null) {
-    const program = input.program;
-    return (
-      LengthProperty.structBits(struct, (cName) =>
-        program.symbolByCName(cName),
-      ) ?? 0
+  if (struct !== undefined && program !== null) {
+    const bits = LengthProperty.structBits(
+      struct,
+      (cName) => program.symbolByCName(cName),
+      headerBits,
     );
+    invariant(
+      bits !== null,
+      `E0867 rejects this in pass 2.1 -- Cannot determine the length of struct '${measured.typeName}'.`,
+    );
+    return bits;
   }
   if (measured.typeName === null) return 0;
-  // #1975: a header's struct, its fields' sizes together, as a C-Next struct
-  const program = input.program;
-  if (input.symbolTable?.getStructFields(measured.typeName) !== undefined) {
-    const target = program?.target();
-    return (
-      ForeignTypeFacts.structBits(
-        measured.typeName,
-        input.symbolTable!,
-        target?.kind === "resolved" ? target.description : null,
-      ) ?? 0
+  if (headers?.getStructFields(measured.typeName) !== undefined) {
+    const bits = headerBits?.(measured.typeName) ?? null;
+    invariant(
+      bits !== null,
+      `E0867 rejects this in pass 2.1 -- Cannot determine the length of header struct '${measured.typeName}'.`,
     );
+    return bits;
   }
   return getNumericBitWidth(measured.typeName, input);
 };

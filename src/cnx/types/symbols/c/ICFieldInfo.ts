@@ -1,3 +1,4 @@
+import type IStructFieldInfo from "../IStructFieldInfo";
 /**
  * Metadata for a C struct field.
  * Uses simple strings for types since C types pass through unchanged.
@@ -15,6 +16,9 @@ interface ICFieldInfo {
    * Example: [8] for numeric, ["BUF_SIZE"] for macro-sized.
    */
   readonly arrayDimensions?: ReadonlyArray<number | string>;
+
+  /** A field that does not hold its own bits (IStructFieldInfo.layout) */
+  readonly layout?: IStructFieldInfo["layout"];
 }
 
 export default ICFieldInfo;

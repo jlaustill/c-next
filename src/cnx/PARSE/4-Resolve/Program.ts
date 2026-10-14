@@ -33,6 +33,7 @@ import type TChainRoot from "../../types/TChainRoot";
 import type TValueBinding from "../../types/TValueBinding";
 import RunTarget from "./RunTarget";
 import ForeignTypeFacts from "../../utils/ForeignTypeFacts";
+import ResolvedTarget from "../../utils/ResolvedTarget";
 import ScopeFunctions from "./ScopeFunctions";
 import type TRunTarget from "../../types/TRunTarget";
 import invariant from "../../utils/invariant";
@@ -441,7 +442,7 @@ class Program {
           : ForeignTypeFacts.typeBits(
               cType,
               headers,
-              target?.kind === "resolved" ? target.description : null,
+              ResolvedTarget.of(target),
             ),
     };
     const settledByFile = Program.settleEveryFile(

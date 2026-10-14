@@ -1650,7 +1650,7 @@ describe("CacheManager", () => {
       const content = mockFs.getWrittenContent("/project/.cnx/config.json");
       expect(content).toBeDefined();
       const newConfig = JSON.parse(content!);
-      expect(newConfig.version).toBe(16); // Current CACHE_VERSION (C pointer depth, #1668, #1760's volatile spellings, field declarators, then #1653's plain-JSON symbols.json)
+      expect(newConfig.version).toBe(17); // Current CACHE_VERSION (C pointer depth, #1668, #1760's volatile spellings, field declarators, #1653's plain-JSON symbols.json, then #1975's union and bit-field layout)
     });
 
     it("should not cache files that do not exist in IFileSystem", () => {

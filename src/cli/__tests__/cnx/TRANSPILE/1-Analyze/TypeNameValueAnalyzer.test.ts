@@ -1,0 +1,82 @@
+import { describe, expect, it } from "vitest";
+
+import TypeNameValueAnalyzer from "../../../../../cnx/TRANSPILE/1-Analyze/TypeNameValueAnalyzer";
+import testAnalysisContextFor from "./testAnalysisContextFor";
+
+/**
+ * #1975 review, #2078: a chain that names a type answers ADR-058's length
+ * properties of it and of its fields' types, and names no value -- E0897.
+ */
+const errors = (source: string) => {
+  const { syntax, context } = testAnalysisContextFor(source, {
+    cppMode: false,
+  });
+  return new TypeNameValueAnalyzer(context).analyze(syntax);
+};
+
+const DECLS = "struct Point { u32 x; u8 y; }\nstruct A { u8[3] d; }\nPoint p;";
+
+const inMain = (expr: string): string =>
+  `${DECLS}\nu32 main() {\n    u32 n <- ${expr};\n    return n;\n}`;
+
+describe("TypeNameValueAnalyzer", () => {
+  it("accepts a type's lengths and a value's fields", () => {
+    for (const expr of [
+      "u32.byte_length",
+      "Point.byte_length",
+      "Point.y.bit_length",
+      "A.d.element_count",
+      "p.x",
+      "p.y.byte_length",
+    ]) {
+      expect(errors(inMain(expr))).toEqual([]);
+    }
+  });
+
+  it("rejects a member that is neither a field nor a length", () => {
+    for (const [expr, message] of [
+      ["u32.foo", "Type 'u32' has no field or length property 'foo'"],
+      [
+        "Point.z.byte_length",
+        "Type 'Point' has no field or length property 'z'",
+      ],
+      ["Point.y.foo", "Type 'u8' has no field or length property 'foo'"],
+    ]) {
+      const found = errors(inMain(expr));
+      expect(found).toHaveLength(1);
+      expect(found[0].code).toBe("E0897");
+      expect(found[0].message).toBe(message);
+      expect(found[0].line).toBe(5);
+    }
+  });
+
+  it("rejects a type's field read or written as a value", () => {
+    expect(errors(inMain("Point.x"))[0]?.message).toBe(
+      "'u32' names a type, not a value",
+    );
+    expect(errors(inMain("A.d[0].byte_length"))[0]?.message).toBe(
+      "'u8[3]' names a type, not a value",
+    );
+    const write = `${DECLS}\nvoid main() {\n    Point.x <- 5;\n}`;
+    expect(errors(write).map((e) => e.code)).toEqual(["E0897"]);
+  });
+
+  it("names a scope's type, this. and global. heads as a bare one", () => {
+    const source = `scope Geo {
+    public struct Box { u8 w; }
+    public u32 own() {
+        return this.Box.byte_length + global.Point.byte_length;
+    }
+}
+${DECLS}
+u32 main() {
+    u32 a <- Geo.Box.w.byte_length;
+    u32 b <- Geo.Box.zz;
+    return a + b;
+}`;
+    const found = errors(source);
+    expect(found.map((e) => e.message)).toEqual([
+      "Type 'Geo__Box' has no field or length property 'zz'",
+    ]);
+  });
+});

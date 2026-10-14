@@ -65,6 +65,7 @@ import ValuePositions from "./helpers/ValuePositions";
 import type IFileAnalysis from "./types/IFileAnalysis";
 import type IValuePositions from "../../types/IValuePositions";
 import LengthPropertyAnalyzer from "./LengthPropertyAnalyzer";
+import TypeNameValueAnalyzer from "./TypeNameValueAnalyzer";
 import StringDeclarationAnalyzer from "./StringDeclarationAnalyzer";
 import SwitchStatementAnalyzer from "./SwitchStatementAnalyzer";
 import NestedTernaryAnalyzer from "./NestedTernaryAnalyzer";
@@ -402,6 +403,10 @@ function runAnalyzers(
     {
       label: "length properties (ADR-058, E0867)",
       run: () => new LengthPropertyAnalyzer(context).analyze(parsed.program),
+    },
+    {
+      label: "a type named as a value (ADR-058, E0897)",
+      run: () => new TypeNameValueAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "integer conversions (ADR-024, E0868/E0869)",
