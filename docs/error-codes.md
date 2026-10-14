@@ -341,11 +341,10 @@ base: bare, `this.` and `global.`.
 
 ### Value Properties (ADR-058 / ADR-045)
 
-| Code  | Message                                                                              | Help                                                                                                       | Source                                          |
-| ----- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| E0886 | `.length` is deprecated                                                              | Use `.char_count`, `.element_count`, `.bit_length` or `.byte_length`                                       | `TRANSPILE/1-Analyze/LengthPropertyAnalyzer.ts` |
-| E0887 | `.capacity` or `.size` on something with no buffer                                   | Both describe a string's buffer; use `.element_count` or `.byte_length`                                    | `TRANSPILE/1-Analyze/LengthPropertyAnalyzer.ts` |
-| E0897 | A type named where a value goes: a type answers only its length properties (ADR-058) | Ask the type a length property (`Point.byte_length`, `Point.x.bit_length`), or read a variable of the type | `TRANSPILE/1-Analyze/TypeNameValueAnalyzer.ts`  |
+| Code  | Message                                            | Help                                                                    | Source                                          |
+| ----- | -------------------------------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------- |
+| E0886 | `.length` is deprecated                            | Use `.char_count`, `.element_count`, `.bit_length` or `.byte_length`    | `TRANSPILE/1-Analyze/LengthPropertyAnalyzer.ts` |
+| E0887 | `.capacity` or `.size` on something with no buffer | Both describe a string's buffer; use `.element_count` or `.byte_length` | `TRANSPILE/1-Analyze/LengthPropertyAnalyzer.ts` |
 
 ### Bit Access and Declaration Modifiers (ADR-007 / ADR-049)
 
@@ -370,6 +369,12 @@ base: bare, `this.` and `global.`.
 | E0894 | An enum member's value is negative                                                                  | Use a non-negative value                                                                        | `TRANSPILE/1-Analyze/TypeDeclarationAnalyzer.ts`  |
 | E0895 | An argument is not what a C pointer parameter points to, or is const and the parameter is not       | Pass an object of the pointed-to type, or an array of them; a const one needs a const parameter | `TRANSPILE/1-Analyze/CPointerArgumentAnalyzer.ts` |
 | E0896 | Warning: C-Next cannot see how a C function uses a pointer argument, so the call is not memory safe | Consider converting the C function to C-Next                                                    | `TRANSPILE/1-Analyze/CPointerArgumentAnalyzer.ts` |
+
+### Type Named as a Value (ADR-058)
+
+| Code  | Message                                                                              | Help                                                                                                       | Source                                         |
+| ----- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| E0897 | A type named where a value goes: a type answers only its length properties (ADR-058) | Ask the type a length property (`Point.byte_length`, `Point.x.bit_length`), or read a variable of the type | `TRANSPILE/1-Analyze/TypeNameValueAnalyzer.ts` |
 
 ## E09xx — NULL Safety (ADR-046)
 
