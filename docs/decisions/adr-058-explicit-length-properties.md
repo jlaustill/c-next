@@ -624,6 +624,30 @@ error: `.length` is not a built-in property. Use explicit properties instead.
   fields); on anything else it is a compile error, as `.element_count` is.
 - The memory row works on a C header pointer and on a struct that holds one
   (`sizeof(o.p)`, `sizeof(Odd)`); their type row stays E0867.
+- `.value_char_count` on a float is a compile error: a float has no single
+  decimal form (`0.1` prints as `"0.1"`, `"0.100000"` or `"0.100000001"`).
+
+**The design these rulings add up to (proposed; awaiting owner approval
+before it replaces the Decision):**
+
+| Property                | Gives                                                                                                                                                                                                                                               | Compile error on                                                                       |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `.value_bit_length`     | unsigned integer: bits up to its highest 1, at runtime; string: 8 x the bytes it holds; anything else: `.type_bit_length`                                                                                                                           | signed integers, type names                                                            |
+| `.value_byte_length`    | `.value_bit_length` rounded up to whole bytes; string: the bytes it holds                                                                                                                                                                           | signed integers, type names                                                            |
+| `.value_char_count`     | integer: characters in decimal, at runtime (`-5` is 2); string: characters held; anything else: `.type_char_count`                                                                                                                                  | floats, type names                                                                     |
+| `.value_element_count`  | `.type_element_count`                                                                                                                                                                                                                               | what `.type_element_count` rejects, type names                                         |
+| `.type_bit_length`      | the declared, logical width: `u32` 32, `bool` 1, `f32` 32, an enum the fewest bits for its members, a bitmap field or header bit-field its declared width, `string<N>` 8N, an array its elements summed, a struct its fields summed with no padding | header pointers, unions, and structs holding them or other unsupported layouts (E0867) |
+| `.type_byte_length`     | `.type_bit_length` rounded up to whole bytes                                                                                                                                                                                                        | as `.type_bit_length`                                                                  |
+| `.type_char_count`      | the letters in the type's name (`u32` is 3)                                                                                                                                                                                                         | --                                                                                     |
+| `.type_element_count`   | an array's first dimension; a struct's field count                                                                                                                                                                                                  | anything else                                                                          |
+| `.memory_bit_length`    | `.memory_byte_length` x 8                                                                                                                                                                                                                           | as `.memory_byte_length`                                                               |
+| `.memory_byte_length`   | `sizeof`, emitted for the C compiler to answer                                                                                                                                                                                                      | bit-field and bitmap-field members                                                     |
+| `.memory_char_count`    | a string's buffer, `\0` included (`string<8>` is 9)                                                                                                                                                                                                 | anything but a string                                                                  |
+| `.memory_element_count` | `.type_element_count`                                                                                                                                                                                                                               | as `.type_element_count`                                                               |
+
+`.bit_length`, `.byte_length`, `.char_count` and `.element_count` are removed;
+each is a compile error whose help names its replacement. ADR-023 stays
+Rejected: C-Next has no `sizeof` operator.
 
 ---
 
