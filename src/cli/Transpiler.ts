@@ -330,11 +330,7 @@ class Transpiler {
     // captured header input to render either, same as parse-only mode.
     // `_renderHeaders` already treats a missing capture as "no header for this
     // file" rather than an error, so this is a silent no-op for it, not a bug.
-    const renderedFiles = this._renderHeaders(
-      result,
-      headerFactsByPath,
-      front.program,
-    );
+    const renderedFiles = this._renderHeaders(result, headerFactsByPath);
 
     // One gate for both halves of the output: a .c is written only when its
     // header is (#1233)
@@ -469,11 +465,10 @@ class Transpiler {
   private _renderHeaders(
     result: ITranspilerResult,
     headerFactsByPath: ReadonlyMap<string, IHeaderEmissionFacts>,
-    program: IProgram,
   ): ReadonlyMap<string, IRenderedFile> {
     const rendered = HeaderRenderer.render(
       headerFactsByPath,
-      new HeaderGenerator(program),
+      new HeaderGenerator(),
     );
 
     // 2.3 Render's artifact, assembled here because this is the first moment a

@@ -11,7 +11,6 @@ import IHeaderTypeInput from "./generators/IHeaderTypeInput";
 import CHeaderGenerator from "./CHeaderGenerator";
 import CppHeaderGenerator from "./CppHeaderGenerator";
 import TPassByValueParams from "./types/TPassByValueParams";
-import type IProgram from "../../../types/IProgram";
 
 /**
  * Facade that delegates header generation to the appropriate generator
@@ -20,8 +19,7 @@ class HeaderGenerator {
   private readonly cGenerator: CHeaderGenerator;
   private readonly cppGenerator: CppHeaderGenerator;
 
-  /** @param program - the run's program; its mode (#1428) picks the generator */
-  constructor(private readonly program: Pick<IProgram, "cppMode">) {
+  constructor() {
     this.cGenerator = new CHeaderGenerator();
     this.cppGenerator = new CppHeaderGenerator();
   }
@@ -46,9 +44,8 @@ class HeaderGenerator {
     allKnownEnums?: ReadonlySet<string>,
     sourcePath?: string,
   ): string {
-    const generator = this.program.cppMode()
-      ? this.cppGenerator
-      : this.cGenerator;
+    // #1428: the mode 2.3 captured with the header's facts picks the generator
+    const generator = options.cppMode ? this.cppGenerator : this.cGenerator;
 
     return generator.generate(
       symbols,

@@ -12,14 +12,21 @@ import Resolve from "../../cnx/PARSE/4-Resolve/Resolve";
 import Analyze from "../../cnx/TRANSPILE/1-Analyze/Analyze";
 import CodeGenWalker from "../../cnx/TRANSPILE/CodeGenWalker";
 import HeaderRenderer from "../../cnx/TRANSPILE/3-Render/headers/HeaderRenderer";
+import HeaderGenerator from "../../cnx/TRANSPILE/3-Render/headers/HeaderGenerator";
 import Write from "../../cnx/WRITE/1-Write/Write";
 
 /**
  * #1991, owner ruling: "each step should ONLY use the output of the previous
- * step". Every pass entry is watched through one real run, and each artifact
+ * step". Every pass entry is watched through real runs, and each artifact
  * argument it receives must be the previous entry's return value or reachable
  * from it. A host that hands a pass anything it rebuilt or kept for itself --
- * a copy, a field, a skipped pass's result -- fails here.
+ * a copy, a field, a skipped pass's result -- fails here. Identity alone can't
+ * catch a value kept in a static or on the host, so 2.2, 2.3 and the header
+ * step must also give one run's answers again, on fresh objects, after a
+ * second run whose included file changes what the first file's C must be.
+ *
+ * Not checked: 2.1's fourth argument, the host function 2.1 calls to build
+ * each file's analysis inputs. What it reads is not watched.
  *
  * Arguments that are not artifacts are named per entry: the filesystem port,
  * 1.1's run inputs, and the walker's per-file options. The symbol table and
@@ -101,19 +108,14 @@ describe("#1991: each pass takes only what the pass before it returned", () => {
     rmSync(tempDir, { recursive: true, force: true });
   });
 
-  async function run(): Promise<void> {
-    writeFileSync(
-      join(tempDir, "lib.cnx"),
-      `struct Point {\n    u32 x;\n}\n\nscope Lib {\n    public u32 double(u32 v) { return v * 2; }\n    public u32 xOf(Point p) { return p.x; }\n}\n`,
-    );
-    const entry = join(tempDir, "app.cnx");
-    writeFileSync(
-      entry,
-      `#include "lib.cnx"\n\nu32 total <- 0;\n\nu32 readX(Point p) {\n    return p.x;\n}\n\nvoid main() {\n    Point pt <- { x: 3 };\n    total <- Lib.double(21) + readX(pt) + Lib.xOf(pt);\n}\n`,
-    );
-    const transpiler = new Transpiler(
+  /** `Lib.echo` takes `v` by value until its body writes to it */
+  const ECHO_READS = "return v;";
+  const ECHO_WRITES = "v <- v + 1;\n        return v;";
+
+  function newTranspiler(): Transpiler {
+    return new Transpiler(
       {
-        input: entry,
+        input: join(tempDir, "app.cnx"),
         includeDirs: [tempDir],
         outDir: tempDir,
         headerOutDir: tempDir,
@@ -121,8 +123,49 @@ describe("#1991: each pass takes only what the pass before it returned", () => {
       },
       NodeFileSystem.instance,
     );
+  }
+
+  async function run(
+    echoBody = ECHO_READS,
+    transpiler = newTranspiler(),
+  ): Promise<void> {
+    writeFileSync(
+      join(tempDir, "lib.cnx"),
+      `struct Point {\n    u32 x;\n}\n\nscope Lib {\n    public u32 double(u32 v) { return v * 2; }\n    public u32 xOf(Point p) { return p.x; }\n    public u32 echo(u32 v) {\n        ${echoBody}\n    }\n}\n`,
+    );
+    writeFileSync(
+      join(tempDir, "app.cnx"),
+      `#include "lib.cnx"\n\nu32 total <- 0;\n\nu32 readX(Point p) {\n    return p.x;\n}\n\nvoid main() {\n    Point pt <- { x: 3 };\n    u32 n <- 4;\n    total <- Lib.double(21) + readX(pt) + Lib.xOf(pt) + Lib.echo(n);\n}\n`,
+    );
     const result = await transpiler.transpile({ kind: "files" });
     expect(result.success).toBe(true);
+  }
+
+  /** The C 2.3 rendered for app.cnx */
+  function appCode(): string {
+    const codes = of("2.3").map(
+      (call) => (call.returned as { code: string }).code,
+    );
+    const app = codes.find((code) => code.includes("total"));
+    expect(app).toBeDefined();
+    return app as string;
+  }
+
+  /** `value` is one 2.1 returned, or a plain record of such values */
+  function expectCarried(
+    pass: string,
+    value: unknown,
+    held: ReadonlySet<unknown>,
+  ): void {
+    if (value === null || typeof value !== "object" || held.has(value)) {
+      return;
+    }
+    const record =
+      Array.isArray(value) || Object.getPrototypeOf(value) === Object.prototype;
+    expect(record, `${pass} received an object 2.1 did not return`).toBe(true);
+    for (const field of Object.values(value)) {
+      expectCarried(pass, field, held);
+    }
   }
 
   function of(pass: string): ICall[] {
@@ -207,6 +250,94 @@ describe("#1991: each pass takes only what the pass before it returned", () => {
       expectFrom("2.2", (plan.args[1] as { program: unknown }).program, [
         only("2.1"),
       ]);
+    }
+  });
+
+  it("2.2 Plan takes every option from 2.1", async () => {
+    await run();
+    const held = reachable(only("2.1").returned);
+    for (const plan of of("2.2")) {
+      const options = plan.args[1] as {
+        program: { codeGenSymbolsFor(path: string): unknown };
+        sourcePath: string;
+        symbolInfo: unknown;
+      };
+      // 1.4 keeps each file's symbol view behind the program's query
+      expect(options.symbolInfo).toBe(
+        options.program.codeGenSymbolsFor(options.sourcePath),
+      );
+      for (const [name, option] of Object.entries(options)) {
+        if (name !== "symbolInfo") {
+          expectCarried(`2.2 option ${name}`, option, held);
+        }
+      }
+    }
+  });
+
+  it("a second run on one host takes the second run's sources", async () => {
+    const transpiler = newTranspiler();
+    await run(ECHO_READS, transpiler);
+    expect(appCode()).not.toContain("Lib__echo(&n)");
+    calls = [];
+    await run(ECHO_WRITES, transpiler);
+    expect(appCode()).toContain("Lib__echo(&n)");
+  });
+
+  it("2.2, 2.3 and the header step give a run's answers after another run", async () => {
+    await run(ECHO_READS);
+    const first = calls;
+    calls = [];
+    // Another host, other sources: anything static now holds this run's facts
+    await run(ECHO_WRITES);
+    for (const plan of first.filter((call) => call.pass === "2.2")) {
+      expect(
+        new CodeGenWalker().plan(plan.args[0] as never, plan.args[1] as never),
+      ).toEqual(plan.returned);
+    }
+    for (const render of first.filter((call) => call.pass === "2.3")) {
+      expect(new CodeGenWalker().render(render.args[0] as never)).toEqual(
+        render.returned,
+      );
+    }
+    for (const headers of first.filter((call) => call.pass === "2.3 headers")) {
+      expect(
+        HeaderRenderer.render(headers.args[0] as never, new HeaderGenerator()),
+      ).toEqual(headers.returned);
+    }
+  });
+
+  it("2.3's header step is given nothing but 2.3's header input", async () => {
+    await run();
+    const headers = only("2.3 headers");
+    const held = new Set<unknown>();
+    for (const call of calls.filter((each) => each !== headers)) {
+      for (const value of reachable(call.returned)) held.add(value);
+    }
+    for (const value of reachable(headers.args[1])) {
+      expect(held.has(value), "the header generator holds an artifact").toBe(
+        false,
+      );
+    }
+  });
+
+  it("3.1 Write writes to the paths 1.1 named", async () => {
+    await run();
+    const named = new Set<string>();
+    const discovered = only("1.1").returned as {
+      graph: {
+        outputs: ReadonlyMap<string, { source: string; header: string }>;
+      };
+    };
+    for (const paths of discovered.graph.outputs.values()) {
+      named.add(paths.source);
+      named.add(paths.header);
+    }
+    const outputs = only("3.1").args[1] as readonly { path: string }[];
+    expect(outputs.length).toBeGreaterThan(2);
+    const written = outputs.map((output) => output.path);
+    expect(new Set(written).size).toBe(written.length);
+    for (const path of written) {
+      expect(named.has(path), `3.1 wrote to ${path}`).toBe(true);
     }
   });
 

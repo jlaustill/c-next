@@ -54,7 +54,7 @@ describe("BaseHeaderGenerator", () => {
         ]),
       ];
 
-      const result = generator.generate(symbols, "test.h", {});
+      const result = generator.generate(symbols, "test.h", { cppMode: false });
 
       expect(result).toContain("void processData(MyStruct* data);");
     });
@@ -76,7 +76,7 @@ describe("BaseHeaderGenerator", () => {
       const result = generator.generate(
         symbols,
         "test.h",
-        {},
+        { cppMode: false },
         undefined,
         passByValueParams,
       );
@@ -92,7 +92,7 @@ describe("BaseHeaderGenerator", () => {
         ]),
       ];
 
-      const result = generator.generate(symbols, "test.h", {});
+      const result = generator.generate(symbols, "test.h", { cppMode: false });
 
       expect(result).toContain("void readData(const MyStruct* data);");
     });
@@ -107,7 +107,7 @@ describe("BaseHeaderGenerator", () => {
         ]),
       ];
 
-      const result = generator.generate(symbols, "test.h", {});
+      const result = generator.generate(symbols, "test.h", { cppMode: false });
 
       expect(result).toContain("void processData(MyStruct& data);");
     });
@@ -120,7 +120,7 @@ describe("BaseHeaderGenerator", () => {
         ]),
       ];
 
-      const result = generator.generate(symbols, "test.h", {});
+      const result = generator.generate(symbols, "test.h", { cppMode: false });
 
       expect(result).toContain("void readData(const MyStruct& data);");
     });
@@ -137,8 +137,12 @@ describe("BaseHeaderGenerator", () => {
         ]),
       ];
 
-      const cResult = cGenerator.generate(symbols, "test.h", {});
-      const cppResult = cppGenerator.generate(symbols, "test.h", {});
+      const cResult = cGenerator.generate(symbols, "test.h", {
+        cppMode: false,
+      });
+      const cppResult = cppGenerator.generate(symbols, "test.h", {
+        cppMode: false,
+      });
 
       expect(cResult).toContain("float calculate(float x, double y);");
       expect(cppResult).toContain("float calculate(float x, double y);");
@@ -158,7 +162,7 @@ describe("BaseHeaderGenerator", () => {
       const cResult = cGenerator.generate(
         symbols,
         "test.h",
-        {},
+        { cppMode: false },
         undefined,
         undefined,
         knownEnums,
@@ -166,7 +170,7 @@ describe("BaseHeaderGenerator", () => {
       const cppResult = cppGenerator.generate(
         symbols,
         "test.h",
-        {},
+        { cppMode: false },
         undefined,
         undefined,
         knownEnums,
@@ -185,8 +189,12 @@ describe("BaseHeaderGenerator", () => {
         ]),
       ];
 
-      const cResult = cGenerator.generate(symbols, "test.h", {});
-      const cppResult = cppGenerator.generate(symbols, "test.h", {});
+      const cResult = cGenerator.generate(symbols, "test.h", {
+        cppMode: false,
+      });
+      const cppResult = cppGenerator.generate(symbols, "test.h", {
+        cppMode: false,
+      });
 
       expect(cResult).toContain("void processArray(uint8_t arr[10]);");
       expect(cppResult).toContain("void processArray(uint8_t arr[10]);");
@@ -196,7 +204,9 @@ describe("BaseHeaderGenerator", () => {
       const generator = new CHeaderGenerator();
       const symbols: IHeaderSymbol[] = [];
 
-      const result = generator.generate(symbols, "my_module.h", {});
+      const result = generator.generate(symbols, "my_module.h", {
+        cppMode: false,
+      });
 
       expect(result).toContain("#ifndef CNX_MY_MODULE_H");
       expect(result).toContain("#define CNX_MY_MODULE_H");
@@ -207,7 +217,7 @@ describe("BaseHeaderGenerator", () => {
       const generator = new CHeaderGenerator();
       const symbols: IHeaderSymbol[] = [];
 
-      const result = generator.generate(symbols, "test.h", {});
+      const result = generator.generate(symbols, "test.h", { cppMode: false });
 
       expect(result).toContain("#ifdef __cplusplus");
       expect(result).toContain('extern "C" {');
@@ -222,8 +232,12 @@ describe("BaseHeaderGenerator", () => {
         ]),
       ];
 
-      const cResult = cGenerator.generate(symbols, "test.h", {});
-      const cppResult = cppGenerator.generate(symbols, "test.h", {});
+      const cResult = cGenerator.generate(symbols, "test.h", {
+        cppMode: false,
+      });
+      const cppResult = cppGenerator.generate(symbols, "test.h", {
+        cppMode: false,
+      });
 
       // ISR should not have * or & suffix
       expect(cResult).toContain("void registerHandler(ISR handler);");
@@ -238,7 +252,7 @@ describe("BaseHeaderGenerator", () => {
         ]),
       ];
 
-      const result = cGenerator.generate(symbols, "test.h", {});
+      const result = cGenerator.generate(symbols, "test.h", { cppMode: false });
 
       expect(result).toContain("void processData(const MyStruct* data);");
     });
@@ -253,7 +267,7 @@ describe("BaseHeaderGenerator", () => {
         ]),
       ];
 
-      const result = generator.generate(symbols, "test.h", {});
+      const result = generator.generate(symbols, "test.h", { cppMode: false });
 
       expect(result).toContain("uint8_t* buf");
     });
@@ -266,7 +280,7 @@ describe("BaseHeaderGenerator", () => {
         ]),
       ];
 
-      const result = generator.generate(symbols, "test.h", {});
+      const result = generator.generate(symbols, "test.h", { cppMode: false });
 
       // Must use * not & because headers are wrapped in extern "C"
       expect(result).toContain("uint8_t* buf");
@@ -285,7 +299,7 @@ describe("BaseHeaderGenerator", () => {
         ]),
       ];
 
-      const result = generator.generate(symbols, "test.h", {});
+      const result = generator.generate(symbols, "test.h", { cppMode: false });
 
       expect(result).toContain("const rect_t* area");
     });
@@ -298,7 +312,7 @@ describe("BaseHeaderGenerator", () => {
         ]),
       ];
 
-      const result = generator.generate(symbols, "test.h", {});
+      const result = generator.generate(symbols, "test.h", { cppMode: false });
 
       // Must use * not & for callback params
       expect(result).toContain("widget_t* w");
@@ -319,7 +333,7 @@ describe("BaseHeaderGenerator", () => {
         ]),
       ];
 
-      const result = generator.generate(symbols, "test.h", {});
+      const result = generator.generate(symbols, "test.h", { cppMode: false });
 
       expect(result).toContain(
         "void Renderer_flush(widget_t* w, const rect_t* area, uint8_t* buf);",
