@@ -585,6 +585,8 @@ error: `.length` is not a built-in property. Use explicit properties instead.
 - `.type_char_count` is the number of letters in the type's name (`u8` is 2,
   `u32` is 3). All three `_char_count` names exist, `.memory_char_count`
   included.
+- `.bit_length`, `.byte_length` and `.char_count` are removed: each is a
+  compile error whose help names its replacement, as `.length` became.
 
 ---
 
