@@ -602,6 +602,9 @@ error: `.length` is not a built-in property. Use explicit properties instead.
 { A, B, C }` (0 to 2) has `.type_bit_length` 2 and `.type_byte_length` 1.
   An enum holds one member at a time, so its members are not summed. Its
   memory row is the C compiler's `sizeof(Mode)`.
+- `.value_bit_length` of an unsigned integer counts bits up to its highest
+  set bit, at runtime (`u8 n <- 5` gives 3). It is a compile error on a
+  signed integer: cast to unsigned first, as C++'s `std::bit_width` requires.
 
 ---
 
