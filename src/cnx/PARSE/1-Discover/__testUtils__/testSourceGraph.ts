@@ -5,8 +5,8 @@ import type IPipelineFile from "../types/IPipelineFile";
 import type ISourceGraph from "../types/ISourceGraph";
 
 /**
- * The part of 1.1's graph 1.2 `Parse` reads, for in-memory files and the
- * installed catalog. Like 1.1, it records the includes of every file (here,
+ * The part of 1.1's graph that 1.2 through 2.1 read, for in-memory files and
+ * the installed catalog. Like 1.1, it records the includes of every file (here,
  * none), so a pass after it finds each file's facts.
  */
 function testSourceGraph(
