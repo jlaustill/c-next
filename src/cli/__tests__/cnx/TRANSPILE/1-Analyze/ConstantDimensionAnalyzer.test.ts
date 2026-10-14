@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import CResolver from "../../../../../cnx/PARSE/3-Declare/c/index";
+import HeaderParser from "../../../../../cnx/PARSE/2-Parse/HeaderParser";
 import ConstantDimensionAnalyzer from "../../../../../cnx/TRANSPILE/1-Analyze/ConstantDimensionAnalyzer";
 import testAnalysisContextFor from "./testAnalysisContextFor";
 import SymbolTable from "../../../../../cnx/PARSE/3-Declare/SymbolTable";
@@ -82,11 +84,15 @@ describe("ConstantDimensionAnalyzer (#1175: E0909, E0910)", () => {
   describe("a C header's struct (#2076)", () => {
     /** `typedef struct { uint32_t a; uint8_t b; } Cfg;` and a pointer holder */
     const headerErrors = (source: string) => {
+      // A header's struct is a declared type, as Stage 2 declares it
       const symbolTable = new SymbolTable();
-      symbolTable.addStructField("Cfg", "a", "uint32_t");
-      symbolTable.addStructField("Cfg", "b", "uint8_t");
-      symbolTable.addStructField("Odd", "i", "int32_t");
-      symbolTable.addStructField("Odd", "p", "char*");
+      const tree = HeaderParser.parseC(
+        "typedef struct { uint32_t a; uint8_t b; } Cfg;\n" +
+          "typedef struct { int32_t i; char *p; } Odd;\n",
+      ).syntax;
+      symbolTable.addCSymbols(
+        CResolver.resolve(tree!, "shapes.h", symbolTable).symbols,
+      );
       const { syntax, context } = testAnalysisContextFor(source, {
         cppMode: false,
         symbolTable,

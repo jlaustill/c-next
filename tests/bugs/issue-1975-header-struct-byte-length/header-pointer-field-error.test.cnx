@@ -8,6 +8,7 @@
 // to pack, so neither fields' sum is a size: E0867 too (`Un` was summed to 6,
 // where C stores 4, and `BF.byte_length` reached the C unchanged).
 //
+// A header enum's width is the C compiler's to pick, so `HE` has none either.
 // ADR-040's `ISR` is a function pointer, so it has no length either (#1975
 // review: `ISR.byte_length` reached the C as written).
 //
@@ -23,5 +24,6 @@ u32 main() {
     u32 shared <- Un.byte_length;
     u32 packed <- BF.byte_length;
     u32 isr <- ISR.byte_length;
-    return ok + field + whole + value + shared + packed + isr;
+    u32 en <- HE.byte_length;
+    return ok + field + whole + value + shared + packed + isr + en;
 }

@@ -526,6 +526,16 @@ const measuredStruct = (
   );
 };
 
+/** #1975 review: a header struct's field count, as 1.4 folds it */
+const measuredHeaderFields = (
+  measured: IOperandType | null,
+  input: IGeneratorInput,
+): number | undefined => {
+  const symbols = input.symbolTable;
+  if (measured?.typeName == null || symbols === null) return undefined;
+  return ForeignTypeFacts.fieldCount(measured.typeName, symbols) ?? undefined;
+};
+
 /** The bits one element of the measured value holds; 0 if not known */
 const elementBitWidth = (
   measured: IOperandType,
@@ -665,8 +675,9 @@ const generateElementCountProperty = (
   }
   const first =
     ctx.measured?.dimensions[0] ??
-    // #1535: a struct's element count is its field count
-    measuredStruct(ctx.measured, input)?.fields.size;
+    // #1535: a struct's element count is its field count, a header's too
+    measuredStruct(ctx.measured, input)?.fields.size ??
+    measuredHeaderFields(ctx.measured, input);
   invariant(
     first !== undefined,
     `E0867 rejects this in pass 2.1 -- .element_count is only available on arrays, not on '${ctx.result}'.`,

@@ -1,4 +1,5 @@
 import type IPlannedArgument from "./2-Plan/types/IPlannedArgument";
+import LengthProperty from "../utils/LengthProperty";
 import type TPlannedNarrowing from "./2-Plan/types/TPlannedNarrowing";
 import HeaderEmissionCapture from "./3-Render/headers/HeaderEmissionCapture";
 import type IHeaderEmissionFacts from "./3-Render/headers/types/IHeaderEmissionFacts";
@@ -3448,6 +3449,23 @@ class CodeGenWalker {
     switch (label.kind) {
       case "qualified": {
         const typing = this.host.state.typingContext();
+        const length = LengthProperty.labelName(label);
+        if (length !== null) {
+          const folded = typing.program.constantValueOf(
+            typing.sourceFile,
+            length,
+          );
+          // E0717 (2.1) rejected a length label that does not fold
+          invariant(
+            folded.kind === "value",
+            `case label '${label.path.join(".")}' reached codegen unfolded`,
+          );
+          return {
+            kind: "numeric",
+            text: folded.value.toString(),
+            negative: false,
+          };
+        }
         const head = ScopeUtils.typeHeadCName(
           label.root,
           label.path[0],

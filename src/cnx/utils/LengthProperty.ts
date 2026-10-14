@@ -8,6 +8,8 @@
  * type's width, from a table 1.4 may not read; for one of those a property is
  * not a constant.
  */
+import type TConstExpr from "../types/TConstExpr";
+import type TCaseLabelSyntax from "../types/syntax/TCaseLabelSyntax";
 import TYPE_WIDTH from "../types/TYPE_WIDTH";
 import QualifiedCName from "./QualifiedCName";
 import type IStructSymbol from "../types/symbols/IStructSymbol";
@@ -32,6 +34,25 @@ const LENGTHS: ReadonlySet<string> = new Set([
 class LengthProperty {
   /** The C type an unfolded length's product is taken in (#1760) */
   static readonly PRODUCT_C_TYPE = "uint32_t";
+
+  /**
+   * A case label that reads a length, `case Point.byte_length`, as the name a
+   * constant fold asks about; null for any other label. 2.1 judges it and 2.3
+   * writes it by the one fold (#1975 review: it reached the C as
+   * `case Point__byte_length:`).
+   */
+  static labelName(
+    label: TCaseLabelSyntax,
+  ): Extract<TConstExpr, { kind: "name" }> | null {
+    if (label.kind !== "qualified") return null;
+    if (!LengthProperty.isLength(label.path.at(-1) ?? "")) return null;
+    return {
+      kind: "name",
+      root: label.root,
+      path: label.path,
+      at: label.headSpan,
+    };
+  }
 
   /** Whether a member name is one of ADR-058's compile-time length properties */
   static isLength(property: string): boolean {

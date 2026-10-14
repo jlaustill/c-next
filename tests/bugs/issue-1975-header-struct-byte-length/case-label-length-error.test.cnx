@@ -1,0 +1,51 @@
+// test-error
+// #1975 review: a length is a case label's number, so two lengths that are
+// one number are one value (E0713), and a length C-Next has none of is no
+// constant (E0717). `case Point.byte_length` reached the C as
+// `case Point__byte_length:`.
+//
+// NEGATIVE CONTROL: `case Gear.byte_length` beside `case Point.byte_length`,
+// 4 and 5.
+#include "shapes.h"
+
+struct Point {
+    u32 x;
+    u8 y;
+}
+
+enum Gear {
+    LOW,
+    HIGH
+}
+
+u32 twice(u32 n) {
+    switch (n) {
+        case Point.byte_length {
+            return 1;
+        }
+        case Gear.byte_length {
+            return 2;
+        }
+        case Cfg.byte_length {
+            return 3;
+        }
+        default {
+            return 0;
+        }
+    }
+}
+
+u32 unsized(u32 n) {
+    switch (n) {
+        case Odd.byte_length {
+            return 1;
+        }
+        default {
+            return 0;
+        }
+    }
+}
+
+u32 main() {
+    return twice(1) + unsized(1);
+}

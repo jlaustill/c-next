@@ -296,14 +296,6 @@ class ForeignTypeFacts {
     );
   }
 
-  /**
-   * ADR-058 for a header's struct (#1975, owner ruling): its fields' bits
-   * together, without C padding, as a C-Next struct's are -- `struct { uint32_t
-   * a; uint8_t b; }` is 40 bits where C stores 64. Null when a field has no
-   * width C-Next fixes: a pointer (C-Next has none), or a type it does not read;
-   * and for a union or a struct with a bit-field, whose fields do not each
-   * hold their own bits (#1975 review).
-   */
   /** #1975 review: a header type's width, as a C-Next struct's field reads it */
   static headerBits(
     lookup: IForeignSymbolLookup,
@@ -312,6 +304,14 @@ class ForeignTypeFacts {
     return (typeName) => ForeignTypeFacts.typeBits(typeName, lookup, target);
   }
 
+  /**
+   * ADR-058 for a header's struct (#1975, owner ruling): its fields' bits
+   * together, without C padding, as a C-Next struct's are -- `struct { uint32_t
+   * a; uint8_t b; }` is 40 bits where C stores 64. Null when a field has no
+   * width C-Next fixes: a pointer (C-Next has none), or a type it does not read;
+   * and for a union or a struct with a bit-field, whose fields do not each
+   * hold their own bits (#1975 review).
+   */
   static structBits(
     structName: string,
     lookup: IForeignSymbolLookup,
@@ -345,6 +345,21 @@ class ForeignTypeFacts {
       bits += fieldBits;
     }
     return bits;
+  }
+
+  /**
+   * ADR-058's `.element_count` of a header's struct, its field count as a
+   * C-Next struct's is (#1535); null where its layout has no length either
+   * (#1975 review: `Cfg.element_count` was E0867, `Point.element_count` 2).
+   */
+  static fieldCount(
+    structName: string,
+    lookup: IForeignSymbolLookup,
+  ): number | null {
+    const fields = lookup.getStructFields(structName);
+    return fields === undefined || lookup.getStructLayout(structName) !== null
+      ? null
+      : fields.size;
   }
 
   /**

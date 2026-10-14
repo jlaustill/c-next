@@ -167,6 +167,12 @@ describe("ForeignTypeFacts", () => {
       symbolTable.addStructField("Loop", "z", "uint8_t");
     });
 
+    it("counts a header struct's fields as element_count (#1975 review)", () => {
+      expect(ForeignTypeFacts.fieldCount("Cfg", symbolTable)).toBe(2);
+      expect(ForeignTypeFacts.fieldCount("Un", symbolTable)).toBeNull();
+      expect(ForeignTypeFacts.fieldCount("Nope", symbolTable)).toBeNull();
+    });
+
     it("sums the fields' sizes, without C padding", () => {
       expect(ForeignTypeFacts.structBits("Cfg", symbolTable, null)).toBe(40);
     });

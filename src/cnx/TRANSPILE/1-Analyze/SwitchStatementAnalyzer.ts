@@ -23,6 +23,7 @@
  * differs; it does not.
  */
 
+import LengthProperty from "../../utils/LengthProperty";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeUtils from "../../utils/ScopeUtils";
 import ConstLiteral from "../../utils/ConstLiteral";
@@ -198,6 +199,17 @@ class SwitchStatementCheck {
     return reported;
   }
 
+  /** A length label's folded number (#1975 review); null for any other */
+  private lengthValue(label: TCaseLabelSyntax): string | null {
+    const length = LengthProperty.labelName(label);
+    if (length === null) return null;
+    const folded = this.context.program.constantValueOf(
+      this.context.sourceFile,
+      length,
+    );
+    return folded.kind === "value" ? folded.value.toString() : null;
+  }
+
   /** What a label's name -- or a member chain's head -- binds, if it has one */
   private labelBinding(label: TCaseLabelSyntax): TValueBinding | null {
     const { program, sourceFile } = this.context;
@@ -222,6 +234,9 @@ class SwitchStatementCheck {
   }
 
   private isConstantLabel(label: TCaseLabelSyntax): boolean {
+    if (LengthProperty.labelName(label) !== null) {
+      return this.lengthValue(label) !== null;
+    }
     const binding = this.labelBinding(label);
     if (binding !== null) return this.isConstant(binding, label);
     return label.kind !== "identifier" || !this.namesType(label);
@@ -309,7 +324,9 @@ class SwitchStatementCheck {
     for (const caseCtx of cases) {
       for (const label of caseCtx.labels) {
         const value = SwitchStatementCheck.caseLabelValue(label);
-        const key = this.labelIdentity(label) ?? value;
+        // `case Point.byte_length` is its number: `case 5` claims it too
+        const key =
+          this.lengthValue(label) ?? this.labelIdentity(label) ?? value;
         if (seen.has(key)) {
           this.found.push({
             code: "E0713",

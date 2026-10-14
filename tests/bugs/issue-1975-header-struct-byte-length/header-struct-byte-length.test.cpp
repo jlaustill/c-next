@@ -15,6 +15,12 @@
 // #1867: a length property reads no value, so measuring a field of a local
 // that was never written is not a use before initialization (it was E0381).
 //
+// #1975 review: a header typedef (`word_t`) and a C primitive spelling
+// (`uint32_t`) are types too, and size an array dimension the same; and the
+// #1867 rule holds for a C-Next struct's array field, in `main` and in a
+// scope's function. A header struct's `.element_count` is its field count, as
+// a C-Next struct's is, and a length is a case label's number.
+//
 // NEGATIVE CONTROL: `Point`, a C-Next struct, sized by the same rule; and
 // `Wrap`, a C-Next struct with a header struct's field, sized by it too.
 #include "shapes.h"
@@ -24,6 +30,34 @@
 // #1975 review: a C-Next struct with a header struct's field is sized by the
 // one rule, its fields' sizes together: 5 + 1
 uint8_t wrapBytes[6] = {};
+
+uint8_t wordBytes[2] = {};
+
+uint8_t gearBytes[4] = {};
+
+/* Scope: Box */
+
+uint32_t Box__count(void) {
+    Slots s = {};
+    return 3;
+}
+
+uint32_t sizeName(uint32_t n) {
+    switch (n) {
+        case 5: {
+            return 1U;
+            break;
+        }
+        case 4: {
+            return 2U;
+            break;
+        }
+        default: {
+            return 0U;
+            break;
+        }
+    }
+}
 
 int main(void) {
     Cfg c = {};
@@ -60,6 +94,33 @@ int main(void) {
     }
     if (6 != 6) {
         return 11U;
+    }
+    if (2 != 2) {
+        return 12U;
+    }
+    if (2 != 2) {
+        return 13U;
+    }
+    if (4 != 4) {
+        return 14U;
+    }
+    if (4 != 4) {
+        return 15U;
+    }
+    Slots s = {};
+    if (3 != 3) {
+        return 16U;
+    }
+    uint32_t counted = Box__count();
+    if (counted != 3) {
+        return 17U;
+    }
+    uint32_t named = sizeName(5U);
+    if (named != 1) {
+        return 18U;
+    }
+    if (2 != 2) {
+        return 19U;
     }
     return 0U;
 }

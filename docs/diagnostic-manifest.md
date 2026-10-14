@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-591 fixture(s) assert a diagnostic; 581 carry a code.
+593 fixture(s) assert a diagnostic; 583 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -497,10 +497,12 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1866-scope-member-is-not-external/included-member-from-file-scope.test.cnx      | E0422               |
 | tests/bugs/issue-1866-scope-member-is-not-external/included-member-from-other-scope.test.cnx     | E0422               |
 | tests/bugs/issue-1866-scope-member-is-not-external/later-member-bare-call.test.cnx               | E0422               |
+| tests/bugs/issue-1867-length-reads-no-value/element-read-uninit-error.test.cnx                   | E0381               |
 | tests/bugs/issue-1874-dimension-range/dimension-range.test.cnx                                   | E0913               |
 | tests/bugs/issue-1879-constant-expression-div0/div-constant-expression.test.cnx                  | E0800               |
 | tests/bugs/issue-1963-define-before-use/global-and-local.test.cnx                                | E0426               |
 | tests/bugs/issue-1963-define-before-use/struct-field.test.cnx                                    | E0426               |
+| tests/bugs/issue-1975-header-struct-byte-length/case-label-length-error.test.cnx                 | E0713, E0717        |
 | tests/bugs/issue-1975-header-struct-byte-length/cpp-class-layout-error.test.cnx                  | E0867               |
 | tests/bugs/issue-1975-header-struct-byte-length/header-layout-error.test.cnx                     | E0867               |
 | tests/bugs/issue-1975-header-struct-byte-length/header-pointer-field-error.test.cnx              | E0867               |

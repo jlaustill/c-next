@@ -155,7 +155,11 @@ class LengthPropertyCheck {
     const struct = LengthProperty.struct(element, lookup);
 
     if (property === "element_count") {
-      if (dimensions === 0 && struct === undefined) {
+      const headerFields = ForeignTypeFacts.fieldCount(
+        element,
+        this.context.symbolTable,
+      );
+      if (dimensions === 0 && struct === undefined && headerFields === null) {
         this.report(
           at,
           `.element_count is only available on arrays, not on '${subject}'`,

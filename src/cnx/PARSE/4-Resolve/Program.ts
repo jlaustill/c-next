@@ -445,6 +445,10 @@ class Program {
               headers,
               ResolvedTarget.of(target),
             ),
+      headerFieldCount: (structName) =>
+        headers === null
+          ? null
+          : ForeignTypeFacts.fieldCount(structName, headers),
       headerTypeHead: (name) =>
         headers === null
           ? null
@@ -1074,6 +1078,8 @@ class Program {
         options.files.headerStructFields(structName),
       headerTypeBits: (cType) => options.files.headerTypeBits(cType),
       headerTypeHead: (name) => options.files.headerTypeHead(name),
+      headerFieldCount: (structName) =>
+        options.files.headerFieldCount(structName),
       constValue: (symbol) => {
         const value = constants.consts.get(symbol.fullyQualifiedCName);
         if (value === undefined)

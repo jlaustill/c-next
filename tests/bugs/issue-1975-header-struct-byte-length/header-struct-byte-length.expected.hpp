@@ -13,6 +13,12 @@
 extern "C" {
 #endif
 
+/* Enumerations */
+typedef enum {
+    Gear__LOW = 0,
+    Gear__HIGH = 1
+} Gear;
+
 /* Struct definitions */
 typedef struct Point {
     uint32_t x;
@@ -22,9 +28,18 @@ typedef struct Wrap {
     Cfg c;
     uint8_t b;
 } Wrap;
+typedef struct Slots {
+    uint8_t f[3];
+} Slots;
 
 /* External variables */
 extern uint8_t wrapBytes[6];
+extern uint8_t wordBytes[2];
+extern uint8_t gearBytes[4];
+
+/* Function prototypes */
+uint32_t Box__count(void);
+uint32_t sizeName(uint32_t n);
 
 #ifdef __cplusplus
 }

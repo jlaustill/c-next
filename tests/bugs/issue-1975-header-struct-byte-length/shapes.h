@@ -28,4 +28,8 @@ typedef struct {
     uint32_t b : 5;
 } BF;
 
+typedef uint16_t word_t;
+
+typedef enum { HA, HB } HE;
+
 #endif

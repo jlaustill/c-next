@@ -12,7 +12,13 @@ type TWithoutValue = Extract<
 
 /** Each reason's sentence, after the offending part's spelling */
 const REASON: Readonly<
-  Record<Extract<TConstResult, { kind: "notConstant" }>["reason"], string>
+  Record<
+    Exclude<
+      Extract<TConstResult, { kind: "notConstant" }>["reason"],
+      "unknown" | "sizeofExpression"
+    >,
+    string
+  >
 > = {
   variable: "is a variable",
   parameter: "is a parameter",
@@ -22,7 +28,6 @@ const REASON: Readonly<
   unfolded: "has no value known at compile time",
   laterMember: "is declared below it",
   selfMember: "is the member itself",
-  unknown: "is not declared",
   subscript: "is an array element",
   float: "is a floating-point value",
   string: "is a string",
@@ -34,8 +39,6 @@ const REASON: Readonly<
   leadingZero:
     "is a leading-zero literal, which has no value: C-Next has no octal literal (E0912)",
   divisionByZero: "divides by zero",
-  sizeofExpression:
-    "is C's sizeof, which C-Next does not have: use .byte_length (E0603)",
   negativeShift:
     "shifts by a negative amount, or shifts a negative value right",
 };

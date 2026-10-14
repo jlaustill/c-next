@@ -147,7 +147,9 @@ usize pointBytes <- sizeof(Point) * points.length;  // Safe pattern
 
 ## Safety Rules
 
-C-Next enforces three safety rules to prevent common sizeof bugs.
+These are the research's rules, kept as the record of what was weighed. C-Next
+has no `sizeof` (#1975), so E0601 and E0602 are retired; the VLA rule below
+stands, under E0909.
 
 ### E0601: sizeof on Array Parameter
 
@@ -221,20 +223,14 @@ Variable-length arrays (VLAs) are not allowed in C-Next. This aligns with ADR-00
 
 ```cnx
 void process(u32 n) {
-    u8[n] buffer;  // ERROR E0603
+    u8[n] buffer;  // ERROR E0909
 }
 ```
 
 **Error message:**
 
 ```
-error[E0603]: variable-length arrays are not allowed (ADR-003: static allocation)
-  --> file.cnx:2:5
-   |
-2  |     u8[n] buffer;
-   |        ^^^^^^^^^ array size must be compile-time constant
-   |
-   = help: use a fixed-size buffer or allocate at startup
+error[E0909]: Array dimension must be known at compile time: 'n' is a parameter
 ```
 
 **Safe alternatives:**
@@ -333,8 +329,8 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 | ------------------ | ------------------- | -------- |
 | top-level function | same file           | error    |
 | scope method       | same file           | warn     |
-| global variable    | same file           | off      |
-| scope member       | same file           | off      |
+| global variable    | same file           | warn     |
+| scope member       | same file           | warn     |
 | top-level function | imported direct     | off      |
 | scope method       | imported direct     | off      |
 | global variable    | imported direct     | off      |
@@ -344,10 +340,10 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 | global variable    | imported transitive | off      |
 | scope member       | imported transitive | off      |
 
-Both rules are decided inside the function that writes the `sizeof`: E0601 asks
-that function's own parameter list, and E0602 asks the operand's own shape.
-Nothing crosses an include, and a parameter cannot exist at file scope, so the
-variable contexts and every imported cell record that they cannot exist.
+E0603 is decided by the syntax alone, where `sizeof` is written: a global
+variable's or a scope member's initializer can write it as a function can, so
+those cells exist, and no fixture covers them yet. Nothing about it crosses an
+include, so every imported cell records that it cannot exist.
 
 ## References
 

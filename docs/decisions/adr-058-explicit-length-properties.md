@@ -289,7 +289,16 @@ is 11, and `SensorReading.status.byte_length` is 1. A struct from a C header
 follows the same rule -- its fields' sizes summed, no padding -- so
 `typedef struct { uint32_t a; uint8_t b; } Cfg;` gives `Cfg.byte_length` 5.
 C-Next has no pointers, so a header's pointer field, and a struct that holds
-one, has no length: E0867.
+one, has no length: E0867. Nor has a header struct whose members do not each
+hold their own bytes, since C-Next could only sum them wrongly: a union, a
+struct with a bit-field or an unnamed member, a C++ class with a base or a
+virtual member, and a header enum, whose width the C compiler picks. A C++
+class's static members and methods are values, not storage, and are not
+counted.
+
+A chain that starts at a type names no value, so it must end in one of these
+length properties: `Point.x`, `Point.x <- 5`, `u32.foo` and
+`Point.z.byte_length` (no field `z`) are E0897.
 
 ### User-Defined `.length` Now Works
 
@@ -475,10 +484,11 @@ error: `.length` is not a built-in property. Use explicit properties instead.
 
 ## Diagnostics
 
-| Code  | Reported when                                                                 | Asserted by                                |
-| ----- | ----------------------------------------------------------------------------- | ------------------------------------------ |
-| E0867 | A shape property is asked of a subject that cannot answer it, or of a literal | `tests/explicit-length/`, `tests/adr-058/` |
-| E0886 | `.length` is used at all                                                      | `tests/adr-058/`                           |
+| Code  | Reported when                                                                                                                                          | Asserted by                                                                          |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| E0867 | A shape property is asked of a subject that cannot answer it (a pointer, a header union, bit-field or other layout C-Next cannot sum), or of a literal | `tests/explicit-length/`, `tests/adr-058/`                                           |
+| E0886 | `.length` is used at all                                                                                                                               | `tests/adr-058/`                                                                     |
+| E0897 | A chain that names a type does not end in a length property                                                                                            | `tests/bugs/issue-1975-header-struct-byte-length/type-named-as-value-error.test.cnx` |
 
 `.length` is rejected by NAME and needs no subject: naming a different thing on
 a string, an array and a scalar is what these four properties replaced.

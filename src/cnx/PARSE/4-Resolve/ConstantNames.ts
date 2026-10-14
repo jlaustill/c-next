@@ -287,7 +287,8 @@ class ConstantNames {
       property,
       current.dimensions,
       element,
-      struct?.fields.size ?? null,
+      struct?.fields.size ??
+        (header === null ? null : walk.facts.headerFieldCount(header)),
     );
     return value === null
       ? ConstantNames.without("unfolded", walk)

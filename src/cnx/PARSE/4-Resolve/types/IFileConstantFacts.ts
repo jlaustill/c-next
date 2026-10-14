@@ -18,6 +18,8 @@ interface IFileConstantFacts {
   headerTypeBits(cType: string): number | null;
   /** #1975 review: `TypeHead.header` over the run's headers */
   headerTypeHead(name: string): TType | null;
+  /** #1975 review: `ForeignTypeFacts.fieldCount` over the run's headers */
+  headerFieldCount(structName: string): number | null;
 }
 
 export default IFileConstantFacts;

@@ -8,6 +8,12 @@
 // #1867: a length property reads no value, so measuring a field of a local
 // that was never written is not a use before initialization (it was E0381).
 //
+// #1975 review: a header typedef (`word_t`) and a C primitive spelling
+// (`uint32_t`) are types too, and size an array dimension the same; and the
+// #1867 rule holds for a C-Next struct's array field, in `main` and in a
+// scope's function. A header struct's `.element_count` is its field count, as
+// a C-Next struct's is, and a length is a case label's number.
+//
 // NEGATIVE CONTROL: `Point`, a C-Next struct, sized by the same rule; and
 // `Wrap`, a C-Next struct with a header struct's field, sized by it too.
 #include "shapes.h"
@@ -25,6 +31,39 @@ struct Wrap {
 }
 
 u8[Wrap.byte_length] wrapBytes;
+
+enum Gear {
+    LOW,
+    HIGH
+}
+
+struct Slots {
+    u8[3] f;
+}
+
+u8[word_t.byte_length] wordBytes;
+u8[Gear.byte_length] gearBytes;
+
+scope Box {
+    public u32 count() {
+        Slots s;
+        return s.f.element_count;
+    }
+}
+
+u32 sizeName(u32 n) {
+    switch (n) {
+        case Point.byte_length {
+            return 1;
+        }
+        case Gear.byte_length {
+            return 2;
+        }
+        default {
+            return 0;
+        }
+    }
+}
 
 u32 main() {
     Cfg c;
@@ -61,6 +100,33 @@ u32 main() {
     }
     if (wrapBytes.element_count != 6) {
         return 11;
+    }
+    if (word_t.byte_length != 2) {
+        return 12;
+    }
+    if (wordBytes.element_count != 2) {
+        return 13;
+    }
+    if (uint32_t.byte_length != 4) {
+        return 14;
+    }
+    if (gearBytes.element_count != 4) {
+        return 15;
+    }
+    Slots s;
+    if (s.f.element_count != 3) {
+        return 16;
+    }
+    u32 counted <- Box.count();
+    if (counted != 3) {
+        return 17;
+    }
+    u32 named <- sizeName(5);
+    if (named != 1) {
+        return 18;
+    }
+    if (Cfg.element_count != 2) {
+        return 19;
     }
     return 0;
 }

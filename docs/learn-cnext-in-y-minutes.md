@@ -125,6 +125,10 @@ u8 classify(bool ready) {
 // Structs passed by reference automatically (no pointers needed)
 struct Point { i32 x; i32 y; }
 
+// A type answers its length properties, and its fields' (ADR-058)
+u32 pointBytes <- Point.byte_length;    // 8: fields summed, no C padding
+u32 xBytes <- Point.x.byte_length;      // 4
+
 void movePoint(Point p, i32 dx, i32 dy) {
     p.x +<- dx;     // Modifies original!
     p.y +<- dy;
@@ -366,6 +370,9 @@ u8 field <- flags[4, 3];        // Read 3-bit field
 // .bit_length on integers gives bit width
 u8 w8 <- flags.bit_length;          // 8
 u32 w32 <- counter.bit_length;      // 32
+
+// A type answers the same length properties; C-Next has no sizeof (ADR-023)
+u32 wordBytes <- u32.byte_length;   // 4
 
 // =============================================================================
 // 10. STRUCTS

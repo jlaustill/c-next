@@ -104,7 +104,7 @@ class TypeValidator {
 
   /**
    * `resolveBareIdentifier`'s decision for a caller that already holds the
-   * binding at `at` and asks it something else too (`sizeof`, #1967): the
+   * binding at `at` and asks it something else too (#1967): the
    * same C name, from the same binding, without binding the name twice.
    */
   static resolveBoundIdentifier(
