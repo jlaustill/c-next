@@ -83,41 +83,6 @@ class ParserUtils {
   }
 
   /**
-   * A context's span, or `fallback` when the context has no position at all.
-   *
-   * The single owner of one question: *what span does a member with no start
-   * token get?* #1318 answered it twice and differently -- the C enum collector
-   * inherited the enclosing enum's span, `MemberSymbolBase` called `getSpan`
-   * unconditionally and produced `0:0` -- in the same change that existed to
-   * stop members carrying four different construction paths.
-   *
-   * Inheriting is the right answer, and the C collector's reason is the one
-   * that generalizes: a diagnostic aimed at the top of the file is worse than
-   * one aimed at the enclosing declaration. `0:0` is also indistinguishable
-   * from `UNSET_SOURCE_SPAN`, so it would read as "position not yet collected"
-   * to anything checking that sentinel.
-   *
-   * Reachable only through error recovery, where a context can hold an error
-   * node with no start token -- which is exactly when a diagnostic is being
-   * produced and its position matters most.
-   */
-  static getSpanOr(
-    ctx: {
-      start?: { line?: number; column?: number } | null;
-      stop?: {
-        line?: number;
-        column?: number;
-        text?: string | null;
-        start?: number;
-        stop?: number;
-      } | null;
-    },
-    fallback: ISourceSpan,
-  ): ISourceSpan {
-    return ctx.start ? ParserUtils.getSpan(ctx) : fallback;
-  }
-
-  /**
    * How many characters the stop token actually occupies.
    *
    * Prefers the token's character offsets over `text.length`, because the two

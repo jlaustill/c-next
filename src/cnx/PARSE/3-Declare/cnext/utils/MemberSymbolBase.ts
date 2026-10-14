@@ -72,9 +72,8 @@ class MemberSymbolBase {
         scopePath: input.parentScopedName,
       }),
       sourceFile: input.sourceFile,
-      // 1.2 lowered it with the C path's fallback (`ParserUtils.getSpanOr`,
-      // through `SyntaxLowering.memberNode`): a member with no start token
-      // has its declaration's span, not 0:0 (#1318 review).
+      // 1.2's span for the member. A member always has a start token:
+      // antlr4ng's `enterRule` sets it to `LT(1)`, EOF at worst (#2074 review).
       span: input.memberSpan,
       sourceLanguage: ESourceLanguage.CNext,
       visibility: input.visibility,

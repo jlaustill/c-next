@@ -198,40 +198,4 @@ describe("ParserUtils", () => {
       expect(real.endColumn).toBe(19);
     });
   });
-
-  describe("getSpanOr", () => {
-    const FALLBACK = { line: 7, column: 2, endLine: 9, endColumn: 1 };
-
-    it("returns the context's own span when it has a start token", () => {
-      const span = ParserUtils.getSpanOr(
-        {
-          start: { line: 42, column: 8 },
-          stop: { line: 42, column: 8, text: "x" },
-        },
-        FALLBACK,
-      );
-      expect(span.line).toBe(42);
-      expect(span.column).toBe(8);
-    });
-
-    it("returns the fallback when the context has NO start token", () => {
-      // The whole reason this function exists: `getSpan` would return 0:0
-      // here, which is both the top of the file and byte-identical to
-      // UNSET_SOURCE_SPAN, so it reads as "position not yet collected".
-      expect(ParserUtils.getSpanOr({}, FALLBACK)).toEqual(FALLBACK);
-    });
-
-    it("treats a null start the same as a missing one", () => {
-      expect(ParserUtils.getSpanOr({ start: null }, FALLBACK)).toEqual(
-        FALLBACK,
-      );
-    });
-
-    it("never returns 0:0 for a context with no position", () => {
-      // The property, stated independently of the fallback values: a
-      // member with no start token must not land on the start of the file.
-      const span = ParserUtils.getSpanOr({}, FALLBACK);
-      expect([span.line, span.column]).not.toEqual([0, 0]);
-    });
-  });
 });

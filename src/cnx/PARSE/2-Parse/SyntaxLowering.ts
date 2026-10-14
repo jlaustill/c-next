@@ -659,17 +659,6 @@ class SyntaxLowering {
     };
   }
 
-  /** A member's node: a recovered member with no start token takes its declaration's span, as a C member does (#1318) */
-  static memberNode(
-    member: ParserRuleContext,
-    declaration: ParserRuleContext,
-  ): ISyntaxNode {
-    return {
-      span: ParserUtils.getSpanOr(member, ParserUtils.getSpan(declaration)),
-      written: SyntaxLowering.asWritten(member),
-    };
-  }
-
   private static typeNode(
     ctx: ParserRuleContext,
   ): ISyntaxNode & { readonly text: string } {
