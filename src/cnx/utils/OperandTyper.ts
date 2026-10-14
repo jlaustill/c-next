@@ -1296,6 +1296,27 @@ class OperandTyper {
     return op.kind === "call";
   }
 
+  /** A member named of a type: its field's type, or a header enum's member */
+  private static memberOfType(
+    t: IOperandType,
+    member: string,
+    ctx: ITypingContext,
+  ): TChainValue {
+    // A header enum names its members first (`Color.Red`), as a C-Next enum
+    // does; only a length property measures it. It stays the header's enum,
+    // which ADR-017 does not type (no `enumTypeName`)
+    if (t.category === "enum" && !LengthProperty.isLength(member)) {
+      return {
+        k: "value",
+        register: false,
+        t: { ...t, form: { kind: "enumMember" } },
+      };
+    }
+    // `Point.y` names the field's type, still no value
+    const field = OperandTyper.fieldOf(t, member, ctx);
+    return field.k === "value" ? { k: "type", t: field.t } : field;
+  }
+
   private static memberOf(
     current: TChainValue,
     member: string,
@@ -1304,21 +1325,8 @@ class OperandTyper {
     switch (current.k) {
       case "scope":
         return OperandTyper.memberOfScope(current.scopePath, member, ctx);
-      case "type": {
-        // A header enum names its members first (`Color.Red`), as a C-Next
-        // enum does; only a length property measures it. It stays the
-        // header's enum, which ADR-017 does not type (no `enumTypeName`)
-        if (current.t.category === "enum" && !LengthProperty.isLength(member)) {
-          return {
-            k: "value",
-            register: false,
-            t: { ...current.t, form: { kind: "enumMember" } },
-          };
-        }
-        // `Point.y` names the field's type, still no value
-        const field = OperandTyper.fieldOf(current.t, member, ctx);
-        return field.k === "value" ? { k: "type", t: field.t } : field;
-      }
+      case "type":
+        return OperandTyper.memberOfType(current.t, member, ctx);
       case "enumType":
         if (OperandTyper.enumReadsProperty(current.name, member, ctx)) {
           return UNKNOWN;
