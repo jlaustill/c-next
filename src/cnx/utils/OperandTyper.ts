@@ -1111,11 +1111,13 @@ class OperandTyper {
     ops: TChainOps,
     ctx: ITypingContext,
   ): IChainStart {
-    // A header's type binds as its name does, but names no value: `Cfg`
-    const value =
-      binding === null ? null : OperandTyper.boundValue(binding, ctx);
-    const type =
-      value === null ? OperandTyper.typeHead(name, scopePath, ctx) : null;
+    // A header's type binds as its name does, but names no value: `Cfg`. A
+    // scope's function shadows a global type of its name (ADR-057, #1281)
+    const namesType =
+      binding === null ||
+      (binding.kind === "foreign" &&
+        OperandTyper.boundValue(binding, ctx) === null);
+    const type = namesType ? OperandTyper.typeHead(name, scopePath, ctx) : null;
     if (type !== null) {
       return { binding: null, value: { k: "type", t: type }, ops };
     }

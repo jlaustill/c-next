@@ -21,7 +21,7 @@ codes that already have a fixture.
 | E07xx     | Control Flow                                                       | 15      |
 | E08xx     | Arithmetic/Array Safety                                            | 59      |
 | E09xx     | NULL Safety, Compile-Time Values, Literal Form, String Conversions | 14      |
-| **Total** |                                                                    | **136** |
+| **Total** |                                                                    | **137** |
 
 ---
 

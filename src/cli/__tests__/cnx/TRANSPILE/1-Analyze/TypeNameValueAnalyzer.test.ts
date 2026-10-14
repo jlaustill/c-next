@@ -79,4 +79,22 @@ u32 main() {
       "Type 'Geo__Box' has no field or length property 'zz'",
     ]);
   });
+
+  it("names a scope's function, not a global type it shadows (ADR-057)", () => {
+    const source = `struct Config { u32 x; }
+scope Shadow {
+    public u32 Config() {
+        return 9;
+    }
+    public struct Wrapper {
+        Config c;
+    }
+    public u32 run() {
+        Wrapper w;
+        w.c <- Config;
+        return w.c();
+    }
+}`;
+    expect(errors(source)).toEqual([]);
+  });
 });

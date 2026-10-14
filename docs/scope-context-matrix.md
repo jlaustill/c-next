@@ -432,11 +432,12 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
-3 linked fixtures with no derivable context:
+4 linked fixtures with no derivable context:
 
 - `adr-058/length-property-enum-and-bitmap.test.cnx`
 - `adr-058/length-property-struct.test.cnx`
 - `adr-058/slice-length-byte-length.test.cnx`
+- `bugs/issue-1975-type-length-across-includes/type-length-across-includes.test.cnx`
 
 ## ADR-068
 
