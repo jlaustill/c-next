@@ -17,8 +17,19 @@ class TypeParts {
             ? [{ kind: "type", type: argument.type }]
             : [],
         );
-      default:
+      case "primitive":
+      case "string":
+      case "scoped":
+      case "global":
+      case "qualified":
+      case "user":
+      case "void":
+      case "missing":
         return [];
+      default: {
+        const unhandled: never = type;
+        return unhandled;
+      }
     }
   }
 

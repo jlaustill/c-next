@@ -234,23 +234,17 @@ class Transpiler {
    *
    * transpile() delegates here with the `SourceGraph` 1.1 Discover emitted.
    *
-   * Stage 2: Collect symbols from C/C++ headers (includes building analyzer context)
-   * Stage 3: 1.3 Declare each C-Next file, then 1.4 Resolve the whole program --
-   *          the stage spans both passes because a bare type reference cannot be
-   *          settled until every file has been declared
-   * Stage 4: Check for symbol conflicts
-   * Stage 5: Generate code, and capture each file's header-render input
-   *          (per-file, while that file's state is warm)
+   * Stages 3 to 4d: 1.2 Parse, 1.3 Declare, 1.4 Resolve and its
+   *          whole-program checks, then 2.1 Analyze over every file
+   * Stage 5: 2.2 Plan and 2.3 Render each file, capturing its header input
    * Stage 5.5: Render every captured header, once, whole-program (#1323)
-   * Stage 6: Write the Stage 5.5 headers to disk (per-file)
+   * Stage 6: 3.1 Write every implementation and header, once, after the run
+   *          succeeded (#1233)
    */
   private _executePipeline(
     input: ISourceGraph,
     result: ITranspilerResult,
   ): void {
-    // Stage 2: Collect symbols from C/C++ headers and build analyzer context
-    // Issue #945: Now async for preprocessing support
-
     // Stages 3 to 4d: 1.2 Parse, 1.3 Declare, then (through `resolve`) 1.4
     // Resolve and the whole-program checks, then 2.1 Analyze -- EVERY file,
     // before ANY file is planned (#1320). Analysis used to run inside the loop
@@ -414,7 +408,7 @@ class Transpiler {
     if (resolved === null) {
       return null;
     }
-    const { program } = resolved;
+    const program = resolved.program;
     const passes =
       // Stage 3b: the program's one target (ADR-049), settled by 1.4. Nothing
       // below may run for a program whose target is unknown or contested.
@@ -637,7 +631,7 @@ class Transpiler {
 
     try {
       const analyzed = Transpiler._requireAnalyzedFile(front, sourcePath);
-      const { declarationCount } = analyzed;
+      const declarationCount = analyzed.declarationCount;
 
       // Parse only mode
       if (this.config.parseOnly) {
