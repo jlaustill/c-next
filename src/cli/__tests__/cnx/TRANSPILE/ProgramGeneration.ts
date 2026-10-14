@@ -6,15 +6,12 @@ import CNextResolver from "../../../../cnx/PARSE/3-Declare/cnext/index";
 import SymbolRegistry from "../../../../cnx/PARSE/3-Declare/SymbolRegistry";
 import Program from "../../../../cnx/PARSE/4-Resolve/Program";
 import TargetCatalogFile from "../../../TargetCatalogFile";
-import TargetResolver from "../../../TargetResolver";
-import invariant from "../../../../cnx/utils/invariant";
 import CodeGenWalker from "../../../../cnx/TRANSPILE/CodeGenWalker";
 import CodeGenerator from "../../../../cnx/TRANSPILE/3-Render/codegen/CodeGenerator";
 import CNextSourceParser from "../../../../cnx/PARSE/2-Parse/CNextSourceParser";
 import SymbolTable from "../../../../cnx/PARSE/3-Declare/SymbolTable";
 import TSymbolInfoAdapter from "../../../../cnx/PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
 import { expect } from "vitest";
-import type ITargetDescription from "../../../../cnx/types/ITargetDescription";
 import type IProgramSyntax from "../../../../cnx/types/syntax/IProgramSyntax";
 import type IAnalyzedFile from "../../../../cnx/types/IAnalyzedFile";
 import type IFilePlan from "../../../../cnx/TRANSPILE/2-Plan/types/IFilePlan";
@@ -39,7 +36,7 @@ import type IProgram from "../../../../cnx/types/IProgram";
  *
  * #1668: the program also carries the run's ONE target (ADR-049), which the
  * operand typer reads for a C type's width, and it is the target the render is
- * handed -- one name settles both, as the orchestrator does. `CodeGenWalker.test`
+ * handed -- one name settles both, as 1.4 does in a run. `CodeGenWalker.test`
  * and `CodeGenWalker.coverage.test` each carried a verbatim copy of this, and
  * neither gave the program a target, so the first C call the typer met threw.
  *
@@ -53,13 +50,13 @@ import type IProgram from "../../../../cnx/types/IProgram";
 /**
  * The facts a test states for its one file, plus the mode a run's 1.1 would
  * have settled. This helper puts each where 2.2 reads it in 2.1's artifact.
- * The target may be left out: this helper then supplies the build machine's,
- * as an orchestrator that names none would.
+ * The target is named, as on the command line, and 1.4 settles it from the
+ * catalog. It may be left out: this helper then names the build machine's.
  */
 interface ITestGenerateOptions {
   readonly symbolInfo: ICodeGenSymbols;
   readonly cppMode: boolean;
-  readonly targetDescription?: ITargetDescription;
+  readonly targetName?: string;
   readonly sourcePath?: string;
   readonly sourceRelativePath?: string;
   readonly cnxIncludeRewrites?: ReadonlyMap<string, string>;
@@ -88,12 +85,9 @@ class ProgramGeneration {
     options: ITestGenerateOptions,
     registry: SymbolRegistry,
   ): IFilePlan {
-    // ADR-049: the orchestrator always decides a target before codegen; a
-    // test that does not care about one gets the build machine's.
-    const targetDescription =
-      options.targetDescription ??
-      TargetResolver.byName("host", NodeFileSystem.instance);
-    invariant(targetDescription !== undefined, "the catalog defines `host`");
+    // ADR-049: a run always names a target before 1.4 settles it; a test
+    // that does not care about one names the build machine's.
+    const targetName = options.targetName ?? "host";
     const sourcePath = options.sourcePath ?? "test.cnx";
     const state = generator["planner"].transpileState;
 
@@ -107,7 +101,7 @@ class ProgramGeneration {
       registry,
       cppMode: options.cppMode,
       target: {
-        option: targetDescription.name,
+        option: targetName,
         catalog: TargetCatalogFile.targets(NodeFileSystem.instance),
         files: [{ sourcePath, directives: [] }],
       },

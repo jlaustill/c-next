@@ -17,7 +17,7 @@ interface IFileSetup {
   readonly sourcePath: string;
   readonly debugMode: boolean;
   readonly cppMode: boolean;
-  readonly targetDescription: ITargetDescription | null;
+  readonly targetDescription: ITargetDescription;
   readonly cnxIncludeRewrites: ReadonlyMap<string, string>;
   readonly includeKinds: ReadonlyMap<string, EFileType>;
   readonly selfIncludeAdded: boolean;

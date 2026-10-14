@@ -661,7 +661,7 @@ class TranspileState {
 
   /**
    * ADR-049: the target this file is generated for. Set by `reset()` from the
-   * description the orchestrator decided; null only before the first file.
+   * description 1.4 settled; null only before the first file.
    */
   targetDescription: ITargetDescription | null = null;
 
@@ -1135,6 +1135,10 @@ class TranspileState {
       this.sourcePath !== null,
       "2.2 sets the file's source path before planning it",
     );
+    invariant(
+      this.targetDescription !== null,
+      "2.2 sets the file's target before planning it",
+    );
     return {
       program: this.program,
       symbols: this.symbols,
@@ -1178,7 +1182,7 @@ class TranspileState {
     this.emissionPlanOrNull = emission;
   }
 
-  private clearFileData(targetDescription: ITargetDescription | null): void {
+  private clearFileData(targetDescription: ITargetDescription): void {
     // Generator reference
     this.generator = null;
 

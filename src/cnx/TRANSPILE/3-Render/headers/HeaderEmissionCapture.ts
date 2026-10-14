@@ -41,7 +41,7 @@ class HeaderEmissionCapture {
    * There is now only one caller, and nothing downstream of this method's
    * return value ever reads `CodeGenState` again -- see `IHeaderEmissionFacts`.
    *
-   * Still call this exactly once per file, from the host's `_transpileFile()`, while
+   * Still call this exactly once per file, from `CodeGenWalker.captureHeader`, while
    * that file's state is warm: `TranspileState.needsISR`,
    * `generatedStructInits`, `callbackTypes` and the auto-const/opaque
    * resolution inside `convertToHeaderSymbols` are ALL per-file, cleared by

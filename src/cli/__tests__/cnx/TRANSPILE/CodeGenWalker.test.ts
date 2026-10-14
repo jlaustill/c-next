@@ -966,9 +966,8 @@ describe("CodeGenWalker", () => {
   });
 
   describe("Target description", () => {
-    // Which target a file gets is decided before codegen (TargetResolver);
-    // the walk only records what it is given.
-    it("records the target it is given", () => {
+    // #1991: the target is named, and 1.4 settles it from the catalog
+    it("plans with the target 1.4 settled from the option", () => {
       const source = `void foo() { }`;
       const { tree, program } = CNextSourceParser.parse(source);
       const host = new CodeGenerator();
@@ -983,10 +982,9 @@ describe("CodeGenWalker", () => {
         cppMode: false,
         symbolInfo: symbols,
         sourcePath: "test.cnx",
-        targetDescription: teensy41,
+        targetName: "teensy41",
       });
 
-      // #1991: 2.2 reads the target 1.4's program settled from the catalog
       expect(host.state.targetDescription).toEqual(teensy41);
     });
   });

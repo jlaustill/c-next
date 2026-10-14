@@ -395,8 +395,7 @@ class FilePlanner {
    */
   plan(file: IAnalyzedFile, options: ICodeGeneratorOptions): IFilePlan {
     const program = file.program;
-    // ADR-049: the target is decided before codegen, by the orchestrator;
-    // this walk only reads it.
+    // ADR-049: 1.4 settled the target; 2.2 reads it off the program
 
     const parameters = this.planParameterInfos(program);
     this.parametersOrNull = parameters.infos;

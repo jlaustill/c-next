@@ -5,8 +5,9 @@ import type IProgram from "../../../../types/IProgram";
 import type TranspileState from "../../../TranspileState";
 
 /**
- * What `HeaderEmissionCapture.capture` reads for one file: the run's artifacts
- * and the file's warm per-file state, handed in by the host rather than
+ * What `HeaderEmissionCapture.capture` reads for one file: the run's artifacts,
+ * from the plan's `header` (`PlanOptions.of` fills it in 2.2), and the file's
+ * warm per-file state, handed in by `CodeGenWalker.captureHeader` rather than
  * reached for.
  */
 interface IHeaderEmissionRequest {
@@ -20,7 +21,7 @@ interface IHeaderEmissionRequest {
   readonly anchor: IAnchorFacts;
   /** Every discovered file's includes, from the run's `SourceGraph` */
   readonly includes: ReadonlyMap<string, IFileIncludes>;
-  /** This file's entry in `includes`, looked up once, by the host */
+  /** This file's entry in `includes`, looked up once, by 2.2 (`PlanOptions.of`) */
   readonly ownIncludes: IFileIncludes;
 }
 
