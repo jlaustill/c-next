@@ -987,7 +987,8 @@ describe("CodeGenWalker", () => {
         targetDescription: teensy41,
       });
 
-      expect(host.state.targetDescription).toBe(teensy41);
+      // #1991: 2.2 reads the target 1.4's program settled from the catalog
+      expect(host.state.targetDescription).toEqual(teensy41);
     });
   });
 

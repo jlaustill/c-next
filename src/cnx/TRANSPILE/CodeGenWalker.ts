@@ -43,7 +43,6 @@ import IComment from "../types/IComment";
 import TYPE_MAP from "./2-Plan/types/TYPE_MAP";
 import TParameterInfo from "../types/TParameterInfo";
 import type IBoundParameter from "./types/IBoundParameter";
-import ICodeGeneratorOptions from "./types/ICodeGeneratorOptions";
 import TypeValidator from "./2-Plan/TypeValidator";
 import IGeneratorOutput from "./3-Render/codegen/generators/IGeneratorOutput";
 import ComplianceAnnotations from "./2-Plan/ComplianceAnnotations";
@@ -159,7 +158,6 @@ import IMemberSeparatorDeps from "./3-Render/codegen/types/IMemberSeparatorDeps"
 import IParameterDereferenceDeps from "./3-Render/codegen/types/IParameterDereferenceDeps";
 import ISeparatorContext from "./3-Render/codegen/types/ISeparatorContext";
 import TypeGenerationHelper from "./2-Plan/TypeGenerationHelper";
-import type IAnalyzedFile from "../types/IAnalyzedFile";
 import type IAnalysis from "./1-Analyze/types/IAnalysis";
 import AnalyzedFiles from "./1-Analyze/AnalyzedFiles";
 import PlanOptions from "./2-Plan/PlanOptions";
@@ -243,18 +241,8 @@ class CodeGenWalker {
    * takes what this returns (#1991).
    */
   plan(sourcePath: string, analysis: IAnalysis): IFilePlan {
-    return this.planWith(
-      AnalyzedFiles.fileOf(analysis, sourcePath),
-      PlanOptions.of(sourcePath, analysis),
-    );
-  }
-
-  /**
-   * 2.2 over options already read off 2.1's artifact. `plan` is the pass; this
-   * is public only for the test helper `ProgramGeneration.plan`, which hands
-   * 2.2 options without a whole run. The host calls `plan`.
-   */
-  planWith(file: IAnalyzedFile, options: ICodeGeneratorOptions): IFilePlan {
+    const file = AnalyzedFiles.fileOf(analysis, sourcePath);
+    const options = PlanOptions.of(sourcePath, analysis);
     const state = this.host.state;
     const inputs = FilePlanner.planInputs(options);
     state.beginPlan(inputs, this.host);

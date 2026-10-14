@@ -1,24 +1,8 @@
 import Installation from "../Installation";
 import NodeFileSystem from "../NodeFileSystem";
-import type IFileIncludes from "../types/IFileIncludes";
+import noIncludes from "./noIncludes";
 import type IPipelineFile from "../types/IPipelineFile";
 import type ISourceGraph from "../types/ISourceGraph";
-
-/** What 1.1 records of a file that includes nothing */
-function noIncludes(): IFileIncludes {
-  return {
-    cnxIncludeRewrites: new Map(),
-    resolutions: new Map(),
-    cnextAlternatives: new Map(),
-    kinds: new Map(),
-    quotedIncludeDirectory: "/p",
-    headerIncludeDirectives: new Map(),
-    writerRelativeIncludes: new Map(),
-    userIncludes: [],
-    cHeaderIncludes: [],
-    cHeaderSpecs: [],
-  };
-}
 
 /**
  * The part of 1.1's graph 1.2 `Parse` reads, for in-memory files and the

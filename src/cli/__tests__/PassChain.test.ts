@@ -244,6 +244,7 @@ describe("#1991: each pass takes only what the pass before it returned", () => {
   it("1.2, 1.3, 1.4, 2.3 and the header step take one argument each", async () => {
     await run();
     for (const pass of ["1.2", "1.3", "1.4", "2.3", "2.3 headers"]) {
+      expect(of(pass).length, `${pass} ran`).toBeGreaterThan(0);
       for (const call of of(pass)) {
         expect(call.args, `${pass}'s arguments`).toHaveLength(1);
       }

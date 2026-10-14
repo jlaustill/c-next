@@ -19,6 +19,11 @@ import type IAnalyzedFile from "../../../../cnx/types/IAnalyzedFile";
 import type IFilePlan from "../../../../cnx/TRANSPILE/2-Plan/types/IFilePlan";
 import ValuePositions from "../../../../cnx/TRANSPILE/1-Analyze/helpers/ValuePositions";
 import NodeFileSystem from "../../../../cnx/PARSE/1-Discover/NodeFileSystem";
+import noIncludes from "../../../../cnx/PARSE/1-Discover/__testUtils__/noIncludes";
+import Diagnostics from "../../../../cnx/TRANSPILE/1-Analyze/Diagnostics";
+import type IAnalysis from "../../../../cnx/TRANSPILE/1-Analyze/types/IAnalysis";
+import type ICodeGeneratorOptions from "../../../../cnx/TRANSPILE/types/ICodeGeneratorOptions";
+import type IProgram from "../../../../cnx/types/IProgram";
 
 /**
  * Generate with the whole-program artifact in place.
@@ -44,13 +49,14 @@ import NodeFileSystem from "../../../../cnx/PARSE/1-Discover/NodeFileSystem";
  * `cppMode` is required here, and nothing falls back to "C".
  */
 /**
- * What a test hands `planWith()`, plus the mode a run's 1.1 would have settled.
+ * The facts a test states for its one file, plus the mode a run's 1.1 would
+ * have settled. This helper puts each where 2.2 reads it in 2.1's artifact.
  * The target may be left out: this helper then supplies the build machine's,
  * as an orchestrator that names none would.
  */
 type ITestGenerateOptions = Omit<
-  Parameters<CodeGenWalker["planWith"]>[1],
-  "targetDescription" | "program"
+  ICodeGeneratorOptions,
+  "targetDescription" | "program" | "header"
 > & {
   readonly targetDescription?: ITargetDescription;
   readonly cppMode: boolean;
@@ -119,11 +125,65 @@ class ProgramGeneration {
         sourceFile: sourcePath,
       }),
     };
-    return generator.planWith(analyzed, {
-      ...options,
-      program: resolved,
-      targetDescription,
-    });
+    return generator.plan(
+      sourcePath,
+      ProgramGeneration.analysis(resolved, sourcePath, analyzed, options),
+    );
+  }
+
+  /**
+   * 2.1's artifact for the test's one file. The test states the file's symbol
+   * view itself, so the program answers with it for that file.
+   */
+  private static analysis(
+    resolved: IProgram,
+    sourcePath: string,
+    analyzed: IAnalyzedFile,
+    options: ITestGenerateOptions,
+  ): IAnalysis {
+    const program: IProgram = {
+      ...resolved,
+      codeGenSymbolsFor: (file: string) =>
+        file === sourcePath
+          ? options.symbolInfo
+          : resolved.codeGenSymbolsFor(file),
+    };
+    const includes = {
+      ...noIncludes(),
+      cnxIncludeRewrites: options.cnxIncludeRewrites ?? new Map(),
+      kinds: options.includeKinds ?? new Map(),
+    };
+    return {
+      program,
+      discovery: {
+        cppMode: options.cppMode,
+        anchor: {
+          directory: "/p",
+          projectRoot: undefined,
+          defines: {},
+          platformio: null,
+        },
+        includes: new Map([[sourcePath, includes]]),
+        outputs: new Map([
+          [
+            sourcePath,
+            {
+              sourceRelativePath: options.sourceRelativePath ?? sourcePath,
+              source: sourcePath,
+              header: sourcePath,
+            },
+          ],
+        ]),
+        headerMacroDumps: new Map(),
+        run: {
+          debugMode: options.debugMode ?? false,
+          parseOnly: false,
+          target: {},
+        },
+      },
+      diagnostics: Diagnostics.build(new Map([[sourcePath, []]])),
+      files: new Map([[sourcePath, analyzed]]),
+    };
   }
 
   /** 2.2's plan for one whole C-Next source, its symbols registered as 1.3 would */
