@@ -12,7 +12,7 @@ import type ISourceSyntax from "../../types/ISourceSyntax";
 import type ITranspileError from "../../types/ITranspileError";
 import AdrProvenance from "../../instrumentation/AdrProvenance";
 import CaughtError from "../../utils/CaughtError";
-import invariant from "../../utils/invariant";
+import FileFacts from "../../utils/FileFacts";
 import Diagnostics from "./Diagnostics";
 import runAnalyzers from "./runAnalyzers";
 import type IAnalysis from "./types/IAnalysis";
@@ -73,16 +73,8 @@ class Analyze {
     // firing in `runAnalyzers` would otherwise be credited to whichever file
     // was begun last -- or dropped on the first.
     AdrProvenance.beginFile(sourcePath);
-    const symbols = program.codeGenSymbolsFor(sourcePath);
-    invariant(
-      symbols,
-      `1.4 Resolve built every file's visible symbol view, ${sourcePath}'s included`,
-    );
-    const includes = discovery.includes.get(sourcePath);
-    invariant(
-      includes !== undefined,
-      `1.1 Discover records the includes of every file it discovers (missing ${sourcePath})`,
-    );
+    const symbols = FileFacts.symbolsFor(program, sourcePath);
+    const includes = FileFacts.includesOf(discovery, sourcePath);
     return {
       context: {
         symbols,

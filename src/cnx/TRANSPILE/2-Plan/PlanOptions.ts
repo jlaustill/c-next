@@ -6,6 +6,7 @@ import type IAnalysis from "../1-Analyze/types/IAnalysis";
 import type IAnalyzedFile from "../../types/IAnalyzedFile";
 import OutputExtensions from "../../utils/OutputExtensions";
 import invariant from "../../utils/invariant";
+import FileFacts from "../../utils/FileFacts";
 import type ICodeGeneratorOptions from "../types/ICodeGeneratorOptions";
 import PublicInterface from "./PublicInterface";
 
@@ -14,26 +15,14 @@ class PlanOptions {
     const program = analysis.program;
     const discovery = analysis.discovery;
     const sourcePath = file.path;
-    const symbolInfo = program.codeGenSymbolsFor(sourcePath);
-    invariant(
-      symbolInfo,
-      `1.4 Resolve built every file's visible symbol view, ${sourcePath}'s included`,
-    );
+    const symbolInfo = FileFacts.symbolsFor(program, sourcePath);
     const target = program.target();
     invariant(
       target?.kind === "resolved",
       "Stage 3b halts a run whose target did not resolve",
     );
-    const includes = discovery.includes.get(sourcePath);
-    invariant(
-      includes !== undefined,
-      `1.1 Discover records the includes of every file it discovers (missing ${sourcePath})`,
-    );
-    const outputs = discovery.outputs.get(sourcePath);
-    invariant(
-      outputs !== undefined,
-      `1.1 Discover names the outputs of every file it discovers (missing ${sourcePath})`,
-    );
+    const includes = FileFacts.includesOf(discovery, sourcePath);
+    const outputs = FileFacts.outputsOf(discovery, sourcePath);
     return {
       program,
       debugMode: discovery.run.debugMode,

@@ -124,8 +124,10 @@ interface ISourceGraph {
    */
   readonly targetCatalog: ITargetCatalogFile;
 
-  /** #1688: each C-Next file with a C include, to its header macro dump */
+  /** #1991: the run's settings, which a later pass reads instead of the host's config */
   readonly run: IRunSettings;
+
+  /** #1688: each C-Next file with a C include, to its header macro dump */
   readonly headerMacroDumps: ReadonlyMap<string, IHeaderMacroDump>;
 }
 
