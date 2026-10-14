@@ -4,7 +4,7 @@
 //
 // A local's identifier reaches the generated C through several independent
 // emitters -- declarations, expression references, assignment targets, and the
-// resolvers for `sizeof` and the length properties. Each applies the shadow
+// resolvers for the length properties (once `sizeof` too). Each applies the shadow
 // rename separately, so each is a place the rename can be missed. Three
 // successive reviews of #1289 each found one more (declarations, then writes,
 // then `sizeof`), because coverage was written from bugs already found.
@@ -70,18 +70,18 @@ scope S {
         acc +<- parr[1];
         acc +<- parr[pidx];
 
-        // array length property and sizeof
+        // array length properties
         acc +<- parr.element_count;
-        acc +<- sizeof(parr);
+        acc +<- parr.byte_length;
 
         // bit write, whole-value read
         pbits[0, 4] <- 3;
         acc +<- pbits;
 
-        // struct member write, read, and sizeof of a member
+        // struct member write, read, and a member's .byte_length
         pcfg.x <- 7;
         acc +<- pcfg.x;
-        acc +<- sizeof(pcfg.x);
+        acc +<- pcfg.x.byte_length;
 
         // string assignment and length property
         pstr <- "cd";

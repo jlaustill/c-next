@@ -467,7 +467,7 @@ function runAnalyzers(
       run: () => new CPointerArgumentAnalyzer(context).analyze(parsed.program),
     },
     {
-      label: "sizeof operands (ADR-023, E0601/E0602)",
+      label: "no sizeof (ADR-023, E0603)",
       run: () => new SizeofAnalyzer().analyze(parsed.program),
     },
     {

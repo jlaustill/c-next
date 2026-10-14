@@ -468,11 +468,8 @@ class NullCheckWalk {
     for (const child of ExpressionChildren.of(expr)) {
       this.expression(child);
     }
-    if (
-      expr.kind === "cast" ||
-      (expr.kind === "sizeof" && expr.type !== null)
-    ) {
-      this.part({ kind: "type", type: expr.type! });
+    if (expr.kind === "cast") {
+      this.part({ kind: "type", type: expr.type });
     }
     if (isComparison) {
       this.inEqualityComparison = false;

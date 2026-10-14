@@ -193,11 +193,6 @@ class ValuePositionWalk {
       case "parenthesized":
         this.place(expr.expression, at, site);
         return;
-      case "sizeof":
-        if (expr.expression) this.place(expr.expression, at, site);
-        // A qualified operand that 2.2 finds is a member access (#1972)
-        if (expr.memberChain) this.place(expr.memberChain, NOWHERE, site);
-        return;
       case "postfix":
         this.postfix(expr, at, site);
         return;

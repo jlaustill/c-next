@@ -65,18 +65,11 @@ type TExpression = ISyntaxNode &
         readonly type: TTypeSyntax;
         readonly operand: TExpression;
       }
-    | {
-        readonly kind: "sizeof";
-        /** Exactly one of `type` and `expression` is set */
-        readonly type: TTypeSyntax | null;
-        readonly expression: TExpression | null;
-        /**
-         * #1972: a qualified `type` (`a.b.c`) read as the member chain it may
-         * be -- the same tokens, which the binding at the `sizeof` decides
-         * between. Null for any other operand.
-         */
-        readonly memberChain: TExpression | null;
-      }
+    /**
+     * ADR-023: C's `sizeof`, which C-Next does not have; parsed so that E0603
+     * rejects it with a code. A size is ADR-058's `.byte_length`.
+     */
+    | { readonly kind: "sizeof" }
     | {
         readonly kind: "structInitializer";
         readonly fields: readonly IFieldInitializerSyntax[];

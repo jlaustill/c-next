@@ -25,8 +25,6 @@ class ConstExprPrinter {
       case "name":
         // Only a header's name is left unvalued here, and C spells it as is
         return expr.path.join(".");
-      case "sizeof":
-        return `sizeof(${env.cTypeName(expr.typeName, expr.at)})`;
       case "cast":
         return `(${env.cTypeName(expr.typeName, expr.at)})${ConstExprPrinter.operand(expr.operand, env)}`;
       case "unary":

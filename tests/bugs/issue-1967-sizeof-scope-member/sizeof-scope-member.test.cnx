@@ -1,8 +1,9 @@
 // test-execution
-// Issue #1967: a scope member named bare in `sizeof` is emitted under its
-// scope-qualified C name, whole and through a member, as every other bare
-// identifier is. Controls: the `this.` form, and a local that shadows the
-// member, which measures the local.
+// Issue #1967: a scope member named bare is measured under its scope-qualified
+// C name, whole and through a member, as every other bare identifier is.
+// Written with `sizeof` then; ADR-058's `.byte_length` since #1975. Controls:
+// the `this.` form, and a local that shadows the member, which measures the
+// local.
 
 struct Pair {
     u8 a;
@@ -14,20 +15,20 @@ scope S {
     Pair cfg;
 
     public u32 measureBuf() {
-        return sizeof(buf);
+        return buf.byte_length;
     }
 
     public u32 measureField() {
-        return sizeof(cfg.b);
+        return cfg.b.byte_length;
     }
 
     public u32 measureThis() {
-        return sizeof(this.buf);
+        return this.buf.byte_length;
     }
 
     public u32 measureShadow() {
         u8[4] buf <- [0, 0, 0, 0];
-        return sizeof(buf);
+        return buf.byte_length;
     }
 }
 

@@ -107,9 +107,6 @@ class ScopeAccessCheck {
    */
   private expression(expr: TExpression, types: boolean): void {
     if (types && expr.kind === "cast") this.type(expr.type);
-    if (types && expr.kind === "sizeof" && expr.type !== null) {
-      this.type(expr.type);
-    }
     if (expr.kind !== "postfix") return;
     const primary = expr.primary;
     if (primary.kind === "root") {

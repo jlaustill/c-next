@@ -17,11 +17,11 @@ codes that already have a fixture.
 | E03xx     | Struct Fields/Init                                                 | 6       |
 | E04xx     | Symbol Resolution                                                  | 16      |
 | E05xx     | Include/Preprocessor                                               | 18      |
-| E06xx     | Sizeof Expressions                                                 | 2       |
+| E06xx     | Sizeof Expressions                                                 | 3       |
 | E07xx     | Control Flow                                                       | 15      |
 | E08xx     | Arithmetic/Array Safety                                            | 58      |
 | E09xx     | NULL Safety, Compile-Time Values, Literal Form, String Conversions | 14      |
-| **Total** |                                                                    | **135** |
+| **Total** |                                                                    | **136** |
 
 ---
 
@@ -186,10 +186,11 @@ include-visibility is not derivable for a C or C++ name.
 
 ## E06xx — Sizeof Expressions (ADR-023)
 
-| Code  | Message                                                            | Help                                                                                           | Source                                  |
-| ----- | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- | --------------------------------------- |
-| E0601 | `sizeof()` on an array parameter measures a pointer, not the array | Use `.element_count` for the count, or `sizeof(elementType) * .element_count` for the bytes    | `TRANSPILE/1-Analyze/SizeofAnalyzer.ts` |
-| E0602 | `sizeof()` operand must not have side effects                      | MISRA C:2012 Rule 13.6: `sizeof` never evaluates its operand, so a call inside it does not run | `TRANSPILE/1-Analyze/SizeofAnalyzer.ts` |
+| Code  | Message                                                                | Help                                                                                                                                                         | Source                                  |
+| ----- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------- |
+| E0601 | _(retired)_ — was: `sizeof()` on an array parameter measures a pointer | Retired by #1975: C-Next has no `sizeof` (E0603), and `.byte_length` of an array parameter is the array's. Not reassigned                                    | `TRANSPILE/1-Analyze/SizeofAnalyzer.ts` |
+| E0602 | _(retired)_ — was: `sizeof()` operand must not have side effects       | Retired by #1975: C-Next has no `sizeof` (E0603), and a length property reads no value, so it has no operand to evaluate. Not reassigned                     | `TRANSPILE/1-Analyze/SizeofAnalyzer.ts` |
+| E0603 | C-Next has no 'sizeof'                                                 | A type's or a value's size in bytes is its `.byte_length` (ADR-058): `u32.byte_length`, `buf.byte_length`, `Point.byte_length` — fields summed, no C padding | `TRANSPILE/1-Analyze/SizeofAnalyzer.ts` |
 
 ---
 

@@ -39,7 +39,7 @@ struct Buffer {
     u8[SIZE] constRef;
     u8[8 + 1] addLiteral;
     u8[SIZE + 2] addConst;
-    u8[sizeof(u32)] sizeofDim;
+    u8[u32.byte_length] byteLengthDim;
 }
 
 i32 main() {
@@ -50,7 +50,7 @@ i32 main() {
     b.constRef[5] <- 4;
     b.addLiteral[8] <- 5;
     b.addConst[7] <- 6;
-    b.sizeofDim[3] <- 7;
+    b.byteLengthDim[3] <- 7;
 
     if (b.plain[7] != 1) {
         return 1;
@@ -70,7 +70,7 @@ i32 main() {
     if (b.addConst[7] != 6) {
         return 6;
     }
-    if (b.sizeofDim[3] != 7) {
+    if (b.byteLengthDim[3] != 7) {
         return 7;
     }
     return 0;

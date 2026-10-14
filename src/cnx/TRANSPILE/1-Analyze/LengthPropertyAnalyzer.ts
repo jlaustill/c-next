@@ -40,6 +40,7 @@ import ExpressionNodes from "../../utils/ExpressionNodes";
 import StatementNodes from "../../utils/StatementNodes";
 import OperandTyper from "../../utils/OperandTyper";
 import LengthProperty from "../../utils/LengthProperty";
+import ForeignTypeFacts from "../../utils/ForeignTypeFacts";
 import PROPERTY_NAMES from "../../utils/constants/PROPERTY_NAMES";
 import ILengthPropertyError from "./types/ILengthPropertyError";
 import type IAnalysisContext from "./types/IAnalysisContext";
@@ -199,6 +200,24 @@ class LengthPropertyCheck {
       }
       return;
     }
+    // #1975 (owner ruling): a header's struct is its fields' sizes together,
+    // as a C-Next struct is; a pointer field has none -- C-Next has no pointers
+    if (this.context.symbolTable.getStructFields(element) !== undefined) {
+      if (
+        ForeignTypeFacts.structBits(
+          element,
+          this.context.symbolTable,
+          OperandTyper.target(this.context),
+        ) === null
+      ) {
+        this.report(
+          at,
+          `Cannot determine .${property} for type '${subject}'`,
+          "A struct's length is its fields' sizes together; a pointer field, or a field of a type C-Next does not read, has no size C-Next fixes.",
+        );
+      }
+      return;
+    }
     // An enum and a bitmap both have a fixed width; only a type nothing sizes
     // -- a struct, or a name this pass cannot see -- has none.
     if (
@@ -209,7 +228,9 @@ class LengthPropertyCheck {
       this.report(
         at,
         `Cannot determine .${property} for type '${subject}'`,
-        "A length in bits is only defined for a primitive, a string, or an array of them.",
+        typed.typeName === null && typed.cType !== null
+          ? "C-Next has no pointers, so a header's pointer, or a type C-Next does not read, has no size."
+          : "A length in bits is only defined for a primitive, a string, or an array of them.",
       );
     }
   }
@@ -270,7 +291,7 @@ class LengthPropertyCheck {
   /** A subject as a message names it: `u32`, `u8[4]` */
   private static spelling(typed: IOperandType): string {
     const dimensions = typed.dimensions.map((d) => `[${d}]`).join("");
-    return `${typed.typeName ?? typed.category}${dimensions}`;
+    return `${typed.typeName ?? typed.cType ?? typed.category}${dimensions}`;
   }
 
   /**

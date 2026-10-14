@@ -408,6 +408,7 @@ unaryExpression
 
 postfixExpression
     : primaryExpression postfixOp*
+    | primitiveType '.' IDENTIFIER                    // ADR-058: a type's length property, u32.byte_length
     ;
 
 postfixOp
@@ -418,7 +419,7 @@ postfixOp
     ;
 
 primaryExpression
-    : sizeofExpression                                // ADR-023: sizeof operator
+    : sizeofExpression                                // ADR-023: recognized only to be rejected (E0603)
     | castExpression
     | structInitializer
     | arrayInitializer                                // ADR-035: array initializers
@@ -429,8 +430,8 @@ primaryExpression
     | '(' expression ')'
     ;
 
-// ADR-023: Sizeof expression
-// sizeof(type) or sizeof(expression)
+// ADR-023: C-Next has no sizeof; a size is ADR-058's .byte_length. The C spelling
+// is parsed so that it is rejected with a code (E0603) rather than a parse error.
 sizeofExpression
     : 'sizeof' '(' (type | expression) ')'
     ;
@@ -680,7 +681,7 @@ TRUE        : 'true';
 FALSE       : 'false';
 C_NULL      : 'NULL';     // ADR-047: C library NULL for interop (no lowercase 'null' - ADR-039)
 STRING      : 'string';   // ADR-045: Bounded string type
-SIZEOF      : 'sizeof';   // ADR-023: Sizeof operator
+SIZEOF      : 'sizeof';   // ADR-023: reserved, rejected by E0603
 
 // ADR-034: Bitmap type keywords
 BITMAP8     : 'bitmap8';

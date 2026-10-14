@@ -283,6 +283,14 @@ size: C's `sizeof(SensorReading)` is 12 on x86-64, because one padding byte
 follows `u8 status`. An array of structs follows the array rule, so
 `SensorReading[100]` is 1100 bytes, while C stores it in 1200.
 
+A type answers the same length properties its values do (#1975), since C-Next
+has no `sizeof` (ADR-023): `u32.byte_length` is 4, `SensorReading.byte_length`
+is 11, and `SensorReading.status.byte_length` is 1. A struct from a C header
+follows the same rule -- its fields' sizes summed, no padding -- so
+`typedef struct { uint32_t a; uint8_t b; } Cfg;` gives `Cfg.byte_length` 5.
+C-Next has no pointers, so a header's pointer field, and a struct that holds
+one, has no length: E0867.
+
 ### User-Defined `.length` Now Works
 
 ```cnx

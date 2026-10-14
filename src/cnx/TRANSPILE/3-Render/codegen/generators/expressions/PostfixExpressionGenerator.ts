@@ -36,6 +36,7 @@ import BitUtils from "../../../../../utils/BitUtils";
 import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
 import SubscriptDepthValidator from "../../../../2-Plan/SubscriptDepthValidator";
 import C_TYPE_WIDTH from "../../../../2-Plan/types/C_TYPE_WIDTH";
+import ForeignTypeFacts from "../../../../../utils/ForeignTypeFacts";
 import LengthProperty from "../../../../../utils/LengthProperty";
 import type IStructSymbol from "../../../../../types/symbols/IStructSymbol";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
@@ -548,9 +549,20 @@ const elementBitWidth = (
       ) ?? 0
     );
   }
-  return measured.typeName === null
-    ? 0
-    : getNumericBitWidth(measured.typeName, input);
+  if (measured.typeName === null) return 0;
+  // #1975: a header's struct, its fields' sizes together, as a C-Next struct
+  const program = input.program;
+  if (input.symbolTable?.getStructFields(measured.typeName) !== undefined) {
+    const target = program?.target();
+    return (
+      ForeignTypeFacts.structBits(
+        measured.typeName,
+        input.symbolTable!,
+        target?.kind === "resolved" ? target.description : null,
+      ) ?? 0
+    );
+  }
+  return getNumericBitWidth(measured.typeName, input);
 };
 
 /**

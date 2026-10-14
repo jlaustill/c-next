@@ -1,0 +1,17 @@
+// test-error
+// Issue #1975 (owner ruling): C-Next has no pointers, so it cannot size one.
+// A header struct's pointer field has no length, and neither has a struct
+// holding one -- E0867, never the target's pointer size. On main
+// `o.p.byte_length` reached the C unchanged, at exit 0, and gcc rejected it.
+//
+// NEGATIVE CONTROL: `o.i`, the struct's other field, still has a length.
+#include "shapes.h"
+
+u32 main() {
+    Odd o;
+    u32 ok <- o.i.byte_length;
+    u32 field <- o.p.byte_length;
+    u32 whole <- Odd.byte_length;
+    u32 value <- o.byte_length;
+    return ok + field + whole + value;
+}

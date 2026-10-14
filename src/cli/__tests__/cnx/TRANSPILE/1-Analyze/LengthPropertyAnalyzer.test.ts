@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import LengthPropertyAnalyzer from "../../../../../cnx/TRANSPILE/1-Analyze/LengthPropertyAnalyzer";
+import SymbolTable from "../../../../../cnx/PARSE/3-Declare/SymbolTable";
 import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /**
@@ -137,5 +138,45 @@ describe("LengthPropertyAnalyzer", () => {
         (e) => e.code,
       ),
     ).toEqual(["E0886"]);
+  });
+
+  describe("a C header's struct (#1975)", () => {
+    /** `typedef struct { uint32_t a; uint8_t b; } Cfg;` and a pointer holder */
+    const headerErrors = (expr: string) => {
+      const symbolTable = new SymbolTable();
+      symbolTable.addStructField("Cfg", "a", "uint32_t");
+      symbolTable.addStructField("Cfg", "b", "uint8_t");
+      symbolTable.addStructField("Odd", "i", "int32_t");
+      symbolTable.addStructField("Odd", "p", "char*");
+      const { syntax, context } = testAnalysisContextFor(
+        inMain("Cfg c;\nOdd o;", expr),
+        { cppMode: false, symbolTable },
+      );
+      return new LengthPropertyAnalyzer(context).analyze(syntax);
+    };
+
+    it("answers its fields' sizes, on the type and on a value", () => {
+      for (const expr of [
+        "Cfg.byte_length",
+        "c.byte_length",
+        "c.a.byte_length",
+        "Cfg.b.bit_length",
+        "o.i.byte_length",
+      ]) {
+        expect(headerErrors(expr)).toEqual([]);
+      }
+    });
+
+    it("has no length for a pointer field, or a struct holding one", () => {
+      for (const expr of [
+        "o.p.byte_length",
+        "Odd.byte_length",
+        "o.bit_length",
+      ]) {
+        const found = headerErrors(expr);
+        expect(found.map((e) => e.code)).toEqual(["E0867"]);
+        expect(found[0].message).toMatch(/char\*|Odd/);
+      }
+    });
   });
 });

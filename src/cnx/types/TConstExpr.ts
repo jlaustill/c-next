@@ -44,12 +44,6 @@ type TConstExpr =
       readonly at: ISourcePosition;
     }
   | {
-      readonly kind: "sizeof";
-      readonly typeName: string;
-      /** Where it is written, which decides what a bare type name means */
-      readonly at: ISourcePosition;
-    }
-  | {
       readonly kind: "cast";
       readonly typeName: string;
       readonly operand: TConstExpr;

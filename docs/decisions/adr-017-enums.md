@@ -114,7 +114,7 @@ A member's value is computed while the program compiles, as in C (owner ruling, 
 
 - literals;
 - `const`s that have a value;
-- `sizeof` of a primitive type;
+- a type's length property (`u32.byte_length`, ADR-058);
 - casts;
 - the integer operators;
 - members of the same enum declared above it.

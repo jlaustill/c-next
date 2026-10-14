@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-588 fixture(s) assert a diagnostic; 578 carry a code.
+587 fixture(s) assert a diagnostic; 577 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -126,8 +126,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-022/nested-ternary-unparenthesized-error.test.cnx                                      | (uncoded)           |
 | tests/adr-022/ternary-error-non-boolean.test.cnx                                                 | E0701               |
 | tests/adr-022/while-error-non-boolean.test.cnx                                                   | E0701               |
-| tests/adr-023/sizeof-array-parameter-error.test.cnx                                              | E0601               |
-| tests/adr-023/sizeof-side-effects-error.test.cnx                                                 | E0602               |
+| tests/adr-023/sizeof-rejected-error.test.cnx                                                     | E0603               |
 | tests/adr-024/composite-narrowing-error.test.cnx                                                 | E0869               |
 | tests/adr-024/conversion-imported-direct-error.test.cnx                                          | E0869               |
 | tests/adr-024/conversion-imported-transitive-error.test.cnx                                      | E0869               |
@@ -305,7 +304,6 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1175-constant-dimensions/foreign-condition.test.cnx                             | E0909               |
 | tests/bugs/issue-1175-constant-dimensions/overflow-dimension.test.cnx                            | E0910               |
 | tests/bugs/issue-1175-constant-dimensions/property-bounds.test.cnx                               | E0854               |
-| tests/bugs/issue-1175-constant-dimensions/sizeof-expression.test.cnx                             | E0909               |
 | tests/bugs/issue-1175-constant-dimensions/stage-order.test.cnx                                   | E0909               |
 | tests/bugs/issue-1175-constant-dimensions/typed-literal-and-comparison.test.cnx                  | E0910               |
 | tests/bugs/issue-1175-constant-dimensions/variable-dimension-global.test.cnx                     | E0909               |
@@ -503,6 +501,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1879-constant-expression-div0/div-constant-expression.test.cnx                  | E0800               |
 | tests/bugs/issue-1963-define-before-use/global-and-local.test.cnx                                | E0426               |
 | tests/bugs/issue-1963-define-before-use/struct-field.test.cnx                                    | E0426               |
+| tests/bugs/issue-1975-header-struct-byte-length/header-pointer-field-error.test.cnx              | E0867               |
 | tests/bugs/issue-1977-struct-to-c-byte-pointer/struct-to-c-byte-pointer-error.test.cnx           | E0895, E0896        |
 | tests/bugs/issue-1980-enum-read-before-assign/enum-read-before-assign.test.cnx                   | E0381               |
 | tests/bugs/issue-1981-struct-cycle/direct.test.cnx                                               | E0426               |

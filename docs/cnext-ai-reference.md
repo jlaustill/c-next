@@ -300,25 +300,20 @@ POINTER CAST (NOT SUPPORTED):  use register keyword for MMIO
 
 ## sizeof (ADR-023)
 
-ADR-023 is **Research**: no decision has been made, so `sizeof` is not settled C-Next. The compiler accepts it today, as described here (#1975).
-
-`sizeof(...)` returns the byte size (a compile-time constant) of a type, variable, struct, struct member, or array:
+C-Next has no `sizeof` (#1975): writing `sizeof(...)` is `E0603`. A type's or a value's size in bytes is its `.byte_length` (ADR-058), a compile-time constant:
 
 ```cnx
-u32 a <- sizeof(u32);        // 4   (bool = 1, f64 = 8, ...)
-u32 b <- sizeof(myVar);      // size of a variable
-u32 c <- sizeof(Point);      // size of a struct type (or instance: sizeof(p))
-u32 d <- sizeof(p.x);        // size of a struct member
-u32 e <- sizeof(buffer);     // total bytes of an array  (u32[8] → 32)
-u8[sizeof(u32)] buf;         // usable as an array dimension
+u32 a <- u32.byte_length;      // 4   (bool = 1, f64 = 8, ...)
+u32 b <- myVar.byte_length;    // size of a variable
+u32 c <- Point.byte_length;    // size of a struct type (or instance: p.byte_length)
+u32 d <- Point.x.byte_length;  // size of a struct member (or p.x.byte_length)
+u32 e <- buffer.byte_length;   // total bytes of an array  (u32[8] → 32)
+u8[u32.byte_length] buf;       // usable as an array dimension
 ```
 
-Usable in any constant expression (arithmetic, comparison, ternary, array sizes). Errors:
-
-- `sizeof` on an **array parameter** (`u8[16] data`) → `E0601` (it would measure the pointer, not the array — use `data.element_count`).
-- `sizeof` of an expression **with side effects** (e.g. a function call) → `E0602`.
-
-(Arrays also expose `.byte_length` / `.element_count`; `sizeof` additionally covers types, structs, and members.)
+- A struct's size is its fields' sizes summed, with no C padding — also for a struct from a C header (`typedef struct { uint32_t a; uint8_t b; } Cfg;` → `Cfg.byte_length` is 5).
+- C-Next has no pointers, so a header struct's pointer field, or a struct holding one, has no `.byte_length` → `E0867`.
+- An array parameter's `.byte_length` is the array's, not a pointer's.
 
 ## Functions
 

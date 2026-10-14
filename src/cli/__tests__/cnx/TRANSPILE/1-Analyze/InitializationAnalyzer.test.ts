@@ -851,6 +851,42 @@ describe("InitializationAnalyzer", () => {
     });
   });
 
+  describe("ADR-058 length properties (#1867)", () => {
+    it("does not read a never-written field's value for its length", () => {
+      const code = `
+        struct Pair { u32 a; u8[4] b; }
+        void main() {
+          Pair p;
+          u32 n <- p.a.byte_length + p.b.element_count + p.b.bit_length;
+        }
+      `;
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
+      const analyzer = new InitializationAnalyzer(context);
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
+
+      expect(errors).toHaveLength(0);
+    });
+
+    it("still reads the field's value without a length property", () => {
+      const code = `
+        struct Pair { u32 a; u8[4] b; }
+        void main() {
+          Pair p;
+          u32 n <- p.a;
+        }
+      `;
+      const { tree, context } = testAnalysisContextFor(code, {
+        cppMode: false,
+      });
+      const analyzer = new InitializationAnalyzer(context);
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
+
+      expect(errors.map((e) => e.code)).toEqual(["E0381"]);
+    });
+  });
+
   // ========================================================================
   // Group G: String Type Properties
   // ========================================================================

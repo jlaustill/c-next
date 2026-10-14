@@ -151,13 +151,4 @@ describe("ArrayIndexBoundsAnalyzer on 1.2's syntax (#1991)", () => {
       "Array index out of bounds: 9 >= 4 for 'arr[0].d' dimension 1",
     ]);
   });
-
-  it("reports in source order, a sizeof's dimension included", () => {
-    const source =
-      "u8[4] buf;\nvoid f() {\n    u32 s <- sizeof(u8[buf[9]]) + buf[8];\n}";
-    expect(errors(source).map((e) => e.message)).toEqual([
-      "Array index out of bounds: 9 >= 4 for 'buf' dimension 1",
-      "Array index out of bounds: 8 >= 4 for 'buf' dimension 1",
-    ]);
-  });
 });

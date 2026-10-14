@@ -58,9 +58,7 @@ function shape(e: TExpression): string {
     case "cast":
       return `cast<${e.type.kind}:${e.type.text}>(${shape(e.operand)})`;
     case "sizeof":
-      return e.type
-        ? `sizeof<${e.type.kind}:${e.type.text}>`
-        : `sizeof(${shape(e.expression!)})`;
+      return "sizeof";
     case "structInitializer":
       return `{${e.fields.map((f) => `${f.name}: ${shape(f.value)}`).join(", ")}}`;
     case "missing":
@@ -99,8 +97,8 @@ describe("SyntaxLowering", () => {
     ["(x)", "paren(x)"],
     ["(u8)x", "cast<primitive:u8>(x)"],
     ["(Scope.T)x", "cast<qualified:Scope.T>(x)"],
-    ["sizeof(u32)", "sizeof<primitive:u32>"],
-    ["sizeof(a - -1)", "sizeof(additive(a - -integer:1))"],
+    ["sizeof(u32)", "sizeof"],
+    ["sizeof(a - -1)", "sizeof"],
     ["{ a: 1, b: x }", "{a: integer:1, b: x}"],
     ["[1, 2, 3]", "[integer:1, integer:2, integer:3]"],
     ["[0*]", "[integer:0*]"],
@@ -164,7 +162,7 @@ describe("SyntaxLowering", () => {
 
   it("is plain data: it survives a JSON round trip unchanged", () => {
     const lowered = expressionOf(
-      "(u32)EColor.COUNT + f(a[1], { x: 1 }) * sizeof(u8[2]) - ((b) ? 1 : 2)",
+      "(u32)EColor.COUNT + f(a[1], { x: 1 }) * u8.byte_length - ((b) ? 1 : 2)",
     );
     expect(JSON.parse(JSON.stringify(lowered))).toEqual(lowered);
   });
@@ -180,7 +178,7 @@ describe("SyntaxLowering", () => {
     ["a[", "a<missing op><missing op>"],
     ["[1, [", "[integer:1, <missing>]<missing op><missing op>"],
     ["- <- ( ] - global", "-<missing>(-global)"],
-    ["( u8", "cast<primitive:u8>(<missing>)"],
+    ["( u8", "<missing>"],
     // a field recovered without a name initializes nothing
     ["{ a: 1, : 2 }", "{a: integer:1}"],
     ["& {", "&{}"],

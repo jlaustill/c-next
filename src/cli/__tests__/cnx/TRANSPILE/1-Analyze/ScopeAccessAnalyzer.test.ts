@@ -143,7 +143,7 @@ describe("ScopeAccessAnalyzer on 1.2's syntax (#1991)", () => {
       "}",
       "void f(M.E e) {",
       "    M.T[2] pair;",
-      "    u32 n <- sizeof(M.T);",
+      "    u32 n <- M.T.byte_length;",
       "    u8 k <- (M.E)0;",
       "    switch (e) {",
       "        case M.E.A {",

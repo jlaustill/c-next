@@ -6,13 +6,12 @@
 #include "sizeof-member-chain.test.hpp"
 
 // test-execution
-// Issue #1972: a dotted `sizeof` operand that is a member access is spelled the
-// way the same expression is everywhere else. Before, `SizeofResolver` rebuilt
-// it from its first two names: `sizeof(shared.inner)` (all names past the
-// second dropped, measuring 8 instead of 1), `sizeof(w.v)` for a pointer local
-// (`w->v`), `sizeof(S__cfg__b)` for `S.cfg.b` (`S__cfg.b`), and
-// `sizeof(GPIO.DR)` for a register member (`GPIO__DR`). Each result is checked
-// against the size of the type the ordinary expression reads.
+// Issue #1972: a dotted member access is measured the way the same expression
+// reads everywhere else. `sizeof`'s resolver once rebuilt it from its first
+// two names (`shared.inner` for `shared.inner.x`, `w.v` for a pointer local,
+// `S__cfg__b`, `GPIO.DR`); since #1975 the size is ADR-058's `.byte_length`,
+// read from the same chain as the value. Each is checked against the width
+// of the type the ordinary expression reads.
 #include "widget.h"
 
 #include <stdint.h>
@@ -23,8 +22,8 @@ Pair S__cfg = {};
 Outer shared = {};
 
 int main(void) {
-    uint32_t nested = sizeof(shared.inner.x);
-    if (nested != sizeof(uint8_t)) {
+    uint32_t nested = 1;
+    if (nested != 1) {
         return 1U;
     }
     uint8_t nestedValue = shared.inner.x;
@@ -32,24 +31,24 @@ int main(void) {
         return 2U;
     }
     widget_t* w = widget_get();
-    uint32_t pointed = sizeof(w->v);
-    if (pointed != sizeof(uint32_t)) {
+    uint32_t pointed = 4;
+    if (pointed != 4) {
         return 3U;
     }
     uint32_t pointedValue = w->v;
     if (pointedValue != 5) {
         return 4U;
     }
-    uint32_t scoped = sizeof(S__cfg.b);
-    if (scoped != sizeof(uint32_t)) {
+    uint32_t scoped = 4;
+    if (scoped != 4) {
         return 5U;
     }
     uint32_t scopedValue = S__cfg.b;
     if (scopedValue != 0) {
         return 6U;
     }
-    uint32_t registerSize = sizeof(GPIO__DR);
-    if (registerSize != sizeof(uint32_t)) {
+    uint32_t registerSize = 4;
+    if (registerSize != 4) {
         return 7U;
     }
     return 0U;

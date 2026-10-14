@@ -4,7 +4,36 @@
 
 **Research**
 
-No decision has been made. This record holds the problem, the options and the research; "Recommended Decision" below is a recommendation, not a decision. The compiler accepts `sizeof` ahead of a decision (#1975).
+This record holds the problem, the options and the research. The owner has
+ruled on the question (#1975, below); "Recommended Decision" is kept as the
+recommendation it was, and is superseded by that ruling.
+
+## Owner Ruling (#1975)
+
+C-Next has no `sizeof`. The size of a type or of a value is ADR-058's
+`.byte_length` (and `.bit_length`), which C-Next decides itself rather than the
+C compiler:
+
+```cnx
+u32 a <- u32.byte_length;        // 4: a type answers its length properties
+u32 b <- Point.byte_length;      // a C-Next struct: its fields' sizes, summed
+u32 c <- Point.x.byte_length;    // a field of a type
+u32 d <- reading.byte_length;    // a value: the same answer as its type
+u32 e <- Cfg.byte_length;        // a C header's struct: also its fields summed
+```
+
+- A struct's size is the sum of its fields' sizes, without C padding, wherever
+  the struct is declared. For `typedef struct { uint32_t a; uint8_t b; } Cfg;`
+  from a header, `Cfg.byte_length` is 5, not gcc's 8: a memory-safe language
+  has no use for C's own size.
+- C-Next has no pointers, so it cannot size one. A header struct's pointer
+  field, and a header struct holding one, has no `.byte_length`: E0867.
+- Writing `sizeof(...)` is a compile error, E0603, whose help names
+  `.byte_length`. It is parsed only so that it is rejected with a code.
+- E0601 and E0602 judged `sizeof`'s operand; with no `sizeof` they are retired.
+
+The sections below that describe `sizeof` syntax and its rules are the
+research the ruling replaced.
 
 ## Context
 
@@ -180,7 +209,7 @@ x++;
 usize s <- sizeof(x);  // OK - no side effects
 ```
 
-### E0603: Variable-Length Arrays Forbidden (ADR-003)
+### Variable-Length Arrays Forbidden (ADR-003, E0909)
 
 Variable-length arrays (VLAs) are not allowed in C-Next. This aligns with ADR-003 (static allocation) and avoids:
 
@@ -277,22 +306,20 @@ size_t arrSize = sizeof(buffer);
 
 ## Resolved Questions
 
-1. **sizeof on expressions vs types?** - Both supported, same as C.
-2. **Compile-time only?** - Yes, sizeof is always compile-time (no VLAs).
+1. **sizeof on expressions vs types?** - Neither: C-Next has no `sizeof` (#1975). Both a type and a value answer `.byte_length`.
+2. **Compile-time only?** - Yes, a length property is always compile-time (no VLAs).
+3. **A C header struct's size?** - Its fields' sizes summed, no padding; a pointer field has none (E0867) (#1975).
 
 ## Diagnostics
 
-| Code  | Reported when                                        | Asserted by                                           |
-| ----- | ---------------------------------------------------- | ----------------------------------------------------- |
-| E0601 | `sizeof` is applied to an array PARAMETER            | `tests/adr-023/sizeof-array-parameter-error.test.cnx` |
-| E0602 | The operand contains a call (MISRA C:2012 Rule 13.6) | `tests/adr-023/sizeof-side-effects-error.test.cnx`    |
+| Code  | Reported when                         | Asserted by                                    |
+| ----- | ------------------------------------- | ---------------------------------------------- |
+| E0603 | `sizeof(...)` is written, in any form | `tests/adr-023/sizeof-rejected-error.test.cnx` |
 
-An array parameter is passed by reference (ADR-006), so its size is a
-pointer's. The identical spelling on a LOCAL array measures the array, which is
-why the rule asks where the name is declared rather than what its type is.
-
-`sizeof` never evaluates its operand, so a call inside one does not run. That
-is the only side effect an expression can have here: assignment is a statement.
+E0601 (`sizeof` of an array parameter measured a pointer) and E0602 (an operand
+with a side effect, MISRA C:2012 Rule 13.6) are retired by #1975 and not
+reassigned: `.byte_length` of an array parameter is the array's, and a length
+property reads no value, so it has no operand to evaluate.
 
 ## Scope-Context Matrix (#1219)
 

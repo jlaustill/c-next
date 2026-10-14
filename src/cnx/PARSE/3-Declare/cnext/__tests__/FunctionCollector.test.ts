@@ -165,7 +165,6 @@ describe("FunctionCollector", () => {
     it.each([
       ["void f(u8[0x10] p) { }", [16]],
       ["void f(u8[0b100] p) { }", [4]],
-      ["void f(u8[sizeof(u32)] p) { }", [4]],
       // #1175: a name is kept as written for 1.4, never as joined text
       ["void f(u8[2*BUF] p) { }", [UNRESOLVED_DIMENSION]],
       ["void f(u8[BUF] p) { }", [UNRESOLVED_DIMENSION]],

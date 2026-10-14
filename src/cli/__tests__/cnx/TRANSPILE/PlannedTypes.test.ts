@@ -25,20 +25,12 @@ describe("2.3 spells each type from 2.2's plan", () => {
     expect(code).toContain("#include <string.h>");
   });
 
-  it("spells a function's types, a cast's and a sizeof's", async () => {
+  it("spells a function's types and a cast's", async () => {
     const code = await generate(
-      `u16 f(u8 a) { u32 n <- (u32)sizeof(i16); return a; }\n`,
+      `u16 f(u8 a) { u32 n <- (u32)i16.byte_length; return a; }\n`,
     );
     expect(code).toContain("uint16_t f(uint8_t a)");
-    expect(code).toContain("uint32_t n = (uint32_t)sizeof(int16_t);");
-  });
-
-  it("sizes a sizeof name as the value or the type it binds to", async () => {
-    const code = await generate(
-      `struct Cfg { u8 a; }\nu32 f() { u16 n <- 0; u32 v <- sizeof(n); return sizeof(Cfg) + v; }\n`,
-    );
-    expect(code).toContain("uint32_t v = sizeof(n);");
-    expect(code).toContain("cnx_clamp_add_u32(sizeof(Cfg), v)");
+    expect(code).toContain("uint32_t n = (uint32_t)2;");
   });
 
   it("spells a scope's own type in that scope", async () => {

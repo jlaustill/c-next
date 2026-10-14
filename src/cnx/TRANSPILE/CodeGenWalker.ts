@@ -114,7 +114,6 @@ import TypeCheckUtils from "../utils/TypeCheckUtils";
 import ExpressionShape from "../utils/ExpressionShape";
 import SafeDivision from "../utils/SafeDivision";
 import type IChainHead from "../types/IChainHead";
-import ExpressionCalls from "../utils/ExpressionCalls";
 import helperGenerators from "./3-Render/codegen/generators/support/HelperGenerator";
 import includeGenerators from "./2-Plan/IncludeGenerator";
 import DeclaredTypeInfo from "../PARSE/3-Declare/DeclaredTypeInfo";
@@ -174,9 +173,6 @@ import AdrProvenance from "../instrumentation/AdrProvenance";
 import PassByValueAnalyzer from "./2-Plan/PassByValueAnalyzer";
 import ParameterInputAdapter from "./3-Render/codegen/helpers/ParameterInputAdapter";
 import ParameterSignatureBuilder from "./3-Render/codegen/helpers/ParameterSignatureBuilder";
-import SizeofResolver from "./3-Render/codegen/resolution/SizeofResolver";
-import type TSizeofOperand from "./3-Render/codegen/types/TSizeofOperand";
-import type TSizeofName from "./3-Render/codegen/types/TSizeofName";
 import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
 import MisraSuppressionUtils from "./3-Render/MisraSuppressionUtils";
 import EnumZeroValue from "../utils/EnumZeroValue";
@@ -1237,9 +1233,11 @@ class CodeGenWalker {
   }
 
   private writePrimary(expr: TExpression): string {
+    invariant(
+      expr.kind !== "sizeof",
+      "E0603 rejects sizeof in pass 2.1; a size is ADR-058's .byte_length",
+    );
     switch (expr.kind) {
-      case "sizeof":
-        return this.generateSizeofExpr(expr);
       case "cast":
         return generateCast(this.planCast(expr), this.host.state);
       case "structInitializer":
@@ -3709,108 +3707,6 @@ class CodeGenWalker {
       operandCode: this.renderUnary(expr.operand),
       ...planned,
     };
-  }
-
-  /**
-   * ADR-023: Generate sizeof expression
-   * Delegates to SizeofResolver which uses this.host.state.
-   */
-  private generateSizeofExpr(expr: TExpressionOf<"sizeof">): string {
-    return SizeofResolver.generate(
-      this.planSizeofOperand(expr),
-      this.host.state,
-    );
-  }
-
-  /**
-   * Which of `sizeof`'s four shapes this is, and the names each one needs.
-   *
-   * #1445: the discrimination is here because it is a question about which
-   * grammar alternative matched. `generateType` for the qualified arm goes
-   * over as a thunk -- `a.b` may turn out to be a member access, and
-   * rendering it as a type would register an include for a type the program
-   * never names. See `TSizeofOperand`.
-   */
-  private planSizeofOperand(expr: TExpressionOf<"sizeof">): TSizeofOperand {
-    const type = expr.type;
-    if (type) {
-      if (type.kind === "qualified") {
-        const chain = expr.memberChain;
-        invariant(chain !== null, "a qualified operand is also a member chain");
-        // #1972: a chain that types is a member access, spelled as every
-        // member access is
-        if (this.filePlan.sizeofMemberAccesses.has(expr)) {
-          return {
-            kind: "expression",
-            simpleIdentifier: null,
-            parameter: undefined,
-            hasSideEffects: false,
-            code: this.renderExpression(chain),
-          };
-        }
-        return {
-          kind: "qualified-type",
-          firstName: type.path[0],
-          memberName: type.path[1],
-          renderTypeName: () => this.renderType(type),
-        };
-      }
-      if (type.kind === "user") {
-        const binding = this.filePlan.sizeofBindings.get(expr);
-        invariant(
-          binding !== undefined,
-          `2.2 decided what every sizeof name binds to (got "${type.text}" at line ${type.span.line})`,
-        );
-        const textBinding = this.sizeofName(
-          type.text,
-          FilePlanner.positionOf(expr),
-          binding,
-        );
-        // #1974: a name that binds to no value is a type, named as every
-        // type position names it
-        if (textBinding.kind !== "none") {
-          return { kind: "user-type", text: type.text, textBinding };
-        }
-      }
-      return { kind: "plain-type", cTypeName: this.renderType(type) };
-    }
-
-    const expression = expr.expression;
-    invariant(expression !== null, "sizeof holds a type or an expression");
-    return {
-      kind: "expression",
-      simpleIdentifier: ExpressionShape.simpleIdentifier(expression),
-      parameter: this.parameterNamed(expression),
-      hasSideEffects: ExpressionCalls.containsCall(expression),
-      code: this.renderExpression(expression),
-    };
-  }
-
-  /**
-   * What a `sizeof` operand's name means at `at`. A value's C name is the one
-   * every bare identifier emits under (`TypeValidator.resolveBoundIdentifier`,
-   * #1967), and the binding is the one at the `sizeof`, so a block's local
-   * ends with its block (#1966).
-   */
-  private sizeofName(
-    name: string,
-    at: ISourcePosition,
-    binding: TValueBinding | null,
-  ): TSizeofName {
-    if (binding === null || binding.kind === "scope") {
-      return { kind: "none" };
-    }
-    if (binding.kind === "local" && binding.declaration.kind === "parameter") {
-      return { kind: "parameter" };
-    }
-    const cName = TypeValidator.resolveBoundIdentifier(
-      name,
-      binding,
-      at,
-      (candidate: string) => this.host.isKnownStruct(candidate),
-      this.host.state,
-    );
-    return { kind: "value", cName: cName ?? name };
   }
 
   /**

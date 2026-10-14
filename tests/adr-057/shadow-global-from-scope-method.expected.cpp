@@ -37,7 +37,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // unchanged -- reading the local back cannot tell the two apart.
 //
 // Every value is distinct so a wrong binding cannot pass by coincidence.
-// `sizeof` cases need the local and the global to differ in SIZE, or the
+// `.byte_length` cases need the local and the global to differ in SIZE, or the
 // assertion cannot fail. Same field name, different field width.
 uint32_t count = 1000U;
 
@@ -116,13 +116,13 @@ uint32_t Counter__shadowingString(void) {
 uint32_t Counter__sizeofArray(void) {
     /* C11 6.2.1p4, C++ [basic.scope.hiding]: `sarr` emitted as `Counter__sizeofArray__sarr` (a plain `sarr` would hide the file-scope `sarr` for the rest of its scope, so `global.sarr` would reach the local). */
     uint32_t Counter__sizeofArray__sarr[2] = {1U, 2U};
-    return sizeof(Counter__sizeofArray__sarr);
+    return 8;
 }
 
 uint32_t Counter__sizeofMember(void) {
     /* C11 6.2.1p4, C++ [basic.scope.hiding]: `scfg` emitted as `Counter__sizeofMember__scfg` (a plain `scfg` would hide the file-scope `scfg` for the rest of its scope, so `global.scfg` would reach the local). */
     Narrow Counter__sizeofMember__scfg = { .x = 1U };
-    return sizeof(Counter__sizeofMember__scfg.x);
+    return 1;
 }
 
 uint32_t Counter__elementCount(void) {

@@ -32,6 +32,7 @@
 
 import type ISourcePosition from "../../utils/types/ISourcePosition";
 import BUILTIN_TYPE_NAMES from "./BUILTIN_TYPE_NAMES";
+import PrimitiveKindUtils from "../../utils/PrimitiveKindUtils";
 import DeclarationParts from "../../utils/DeclarationParts";
 import StatementNodes from "../../utils/StatementNodes";
 import type TCaseLabelSyntax from "../../types/syntax/TCaseLabelSyntax";
@@ -177,6 +178,8 @@ class UndeclaredValueWalk {
     if (REJECTED_KEYWORDS.has(name) || BUILTIN_TYPE_NAMES.has(name)) {
       return;
     }
+    // `u32.byte_length` (#1975): the type keyword names a type, not a value
+    if (PrimitiveKindUtils.isPrimitive(name)) return;
 
     if (
       this.analyzer.isVisible(name, root, { line: at.line, column: at.column })

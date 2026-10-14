@@ -15,7 +15,7 @@
 // with THREE different evaluators:
 //
 //   * the declarator render          ArrayDimensionParser.parseSingleDimension
-//                                    (literals + consts + sizeof)
+//                                    (literals + consts + lengths)
 //   * TypeRegistrationEngine's
 //     _collectArrayDimensions        the same, moved there by #1159
 //   * TypeRegistrationEngine's

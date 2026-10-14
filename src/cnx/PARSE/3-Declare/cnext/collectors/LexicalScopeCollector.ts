@@ -245,7 +245,7 @@ class LexicalScopeCollector {
    * The file frame of `program`, with every frame nested in it.
    *
    * Array dimensions are left for 1.4 to fold in each declaration's lexical
-   * environment, except a literal or `sizeof`, which needs no const.
+   * environment, except a literal, which needs no const.
    *
    * @param isScopeType ADR-057: is this QUALIFIED name a scope type this file
    *   declares? A bare type it cannot settle is deferred, as for symbols

@@ -31,14 +31,9 @@ class TypeSites {
       : ExpressionNodes.direct(part.expression).flatMap(TypeSites.namedBy);
   }
 
-  /** The type a `cast` or a type-operand `sizeof` names */
+  /** The type a `cast` names */
   private static namedBy(expression: TExpression): TTypeSyntax[] {
-    if (expression.kind === "cast") {
-      return [expression.type];
-    }
-    return expression.kind === "sizeof" && expression.type !== null
-      ? [expression.type]
-      : [];
+    return expression.kind === "cast" ? [expression.type] : [];
   }
 }
 

@@ -8,35 +8,35 @@
 #include <stdint.h>
 
 // test-execution
-// Issue #1966: `sizeof(cfg.b)` after a block-local `cfg` ended reads the struct
+// Issue #1966: `cfg.b`'s size after a block-local `cfg` ended reads the struct
 // parameter `cfg`, not the block-local the function-wide local set still
-// remembered -- in C through `->`, in C++ through the reference's
-// `.`. Controls: the same parameter with no block, and a struct block-local's
+// remembered. Written `sizeof(cfg.b)` then; ADR-058's `.byte_length` since
+// #1975. Controls: the same parameter with no block, and a struct block-local's
 // own member inside its block.
 uint32_t measure(const Pair& cfg) {
     uint32_t flag = 1U;
     if (flag == 1) {
         uint8_t cfg[16] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
-        if (sizeof(cfg) != 16) {
+        if (16 != 16) {
             return 3U;
         }
     }
-    return sizeof(cfg.b);
+    return 4;
 }
 
 uint32_t measureDirect(const Pair& cfg) {
-    return sizeof(cfg.b);
+    return 4;
 }
 
 uint32_t measureLocalMember(const Pair& cfg) {
     uint32_t flag = 1U;
     if (flag == 1) {
         Pair cfg = {};
-        if (sizeof(cfg.a) != 1) {
+        if (1 != 1) {
             return 5U;
         }
     }
-    return sizeof(cfg.a);
+    return 1;
 }
 
 int main(void) {

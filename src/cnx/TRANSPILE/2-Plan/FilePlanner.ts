@@ -23,7 +23,6 @@ import TypeSites from "./TypeSites";
 import WrittenParts from "./WrittenParts";
 import DeclarationParts from "../../utils/DeclarationParts";
 import ExpressionNodes from "../../utils/ExpressionNodes";
-import type TValueBinding from "../../types/TValueBinding";
 import CastRequirement from "./CastRequirement";
 import type TNegativeMinimum from "./types/TNegativeMinimum";
 import OperandTyper from "../../utils/OperandTyper";
@@ -418,14 +417,8 @@ class FilePlanner {
   private planTypeSites(
     program: IProgramSyntax,
     inlinedConsts: ReadonlySet<TDeclarationSyntax>,
-    sizeofBindings: IFilePlan["sizeofBindings"],
-    sizeofMemberAccesses: IFilePlan["sizeofMemberAccesses"],
   ): ReadonlyMap<TTypeSyntax, IPlannedType> {
-    const unwritten = this.unwrittenTypes(
-      program,
-      sizeofBindings,
-      sizeofMemberAccesses,
-    );
+    const unwritten = this.unwrittenTypes(program);
     const planned = new Map<TTypeSyntax, IPlannedType>();
     for (const { type, scope } of TypeSites.of(program, inlinedConsts)) {
       if (unwritten.has(type)) continue;
@@ -805,23 +798,10 @@ class FilePlanner {
 
   /**
    * Types in a written declaration that 2.3 spells some other way: a callback
-   * field by its typedef (ADR-029), and a `sizeof(Name)` whose name binds to a
-   * value (#1974).
+   * field by its typedef (ADR-029).
    */
-  private unwrittenTypes(
-    program: IProgramSyntax,
-    sizeofBindings: IFilePlan["sizeofBindings"],
-    sizeofMemberAccesses: IFilePlan["sizeofMemberAccesses"],
-  ): ReadonlySet<TTypeSyntax> {
+  private unwrittenTypes(program: IProgramSyntax): ReadonlySet<TTypeSyntax> {
     const unwritten = new Set<TTypeSyntax>();
-    for (const expression of sizeofMemberAccesses) {
-      if (expression.type) unwritten.add(expression.type);
-    }
-    for (const [expression, binding] of sizeofBindings) {
-      if (binding !== null && binding.kind !== "scope" && expression.type) {
-        unwritten.add(expression.type);
-      }
-    }
     for (const { declaration } of program.declarations) {
       if (declaration.kind !== "struct") continue;
       for (const field of declaration.fields) {
@@ -833,62 +813,6 @@ class FilePlanner {
       }
     }
     return unwritten;
-  }
-
-  /**
-   * #1974: whether `sizeof(Name)` sizes a value or a type depends on what
-   * `Name` binds to at that point. 2.2 decides it for every such operand
-   * before 2.3 spells any of them.
-   */
-  private planSizeofBindings(
-    program: IProgramSyntax,
-  ): ReadonlyMap<TExpressionOf<"sizeof">, TValueBinding | null> {
-    const planned = new Map<TExpressionOf<"sizeof">, TValueBinding | null>();
-    for (const expression of FilePlanner.sizeofExpressionsIn(program)) {
-      if (expression.type?.kind === "user") {
-        planned.set(
-          expression,
-          this.state.bindingAt(
-            null,
-            expression.type.text,
-            FilePlanner.positionOf(expression),
-          ),
-        );
-      }
-    }
-    return planned;
-  }
-
-  /**
-   * #1972: `sizeof(a.b)` is spelled like `sizeof(Scope.Type)`, and is a member
-   * access when the chain has a value type. 2.2 decides which before 2.3
-   * spells either.
-   */
-  private planSizeofMemberAccesses(
-    program: IProgramSyntax,
-  ): ReadonlySet<TExpressionOf<"sizeof">> {
-    const typing = this.state.typingContext();
-    return new Set(
-      FilePlanner.sizeofExpressionsIn(program).filter(
-        (expression) =>
-          expression.type?.kind === "qualified" &&
-          expression.memberChain !== null &&
-          OperandTyper.typeOf(expression.memberChain, typing) !== null,
-      ),
-    );
-  }
-
-  private static sizeofExpressionsIn(
-    program: IProgramSyntax,
-  ): TExpressionOf<"sizeof">[] {
-    return program.declarations.flatMap(({ declaration }) =>
-      DeclarationParts.of(declaration).flatMap((part) =>
-        ExpressionNodes.of(part).filter(
-          (expression): expression is TExpressionOf<"sizeof"> =>
-            expression.kind === "sizeof",
-        ),
-      ),
-    );
   }
 
   /**
@@ -942,14 +866,7 @@ class FilePlanner {
     );
     const decidedCTypes = new Set<string>();
     const inlinedConsts = this.planInlinedConsts(program, decidedCTypes);
-    const sizeofBindings = this.planSizeofBindings(program);
-    const sizeofMemberAccesses = this.planSizeofMemberAccesses(program);
-    const types = this.planTypeSites(
-      program,
-      inlinedConsts,
-      sizeofBindings,
-      sizeofMemberAccesses,
-    );
+    const types = this.planTypeSites(program, inlinedConsts);
     // Each planned type is written once 2.3 is done, so its include is decided here
     for (const plan of types.values()) {
       const requiredInclude = TypeGenerationHelper.getRequiredInclude(plan);
@@ -1023,12 +940,6 @@ class FilePlanner {
       ...foreignRegisterValues.flatMap((value) =>
         ExpressionNodes.direct(value),
       ),
-      // #1972: `sizeof(d.values)` is written as the member access it types as
-      ...[...sizeofMemberAccesses].flatMap((sizeof) =>
-        sizeof.memberChain === null
-          ? []
-          : ExpressionNodes.direct(sizeof.memberChain),
-      ),
     ]);
     invariant(valuePositions !== null, "2.1 hands 2.2 where each value stands");
     const argumentPlans = this.planArguments(valuePositions, decidedCTypes);
@@ -1059,8 +970,6 @@ class FilePlanner {
       selfInclude,
       includeDirectives,
       inlinedConsts,
-      sizeofBindings,
-      sizeofMemberAccesses,
       types,
       comparisons,
       casts,

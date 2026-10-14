@@ -53,8 +53,7 @@ import type ISourceSpan from "../../types/ISourceSpan";
 /**
  * #1991: walks 1.2's syntax, not the parse tree. Every bare type name a
  * declaration, parameter, field, register member or cast writes, in source
- * order, with the scope it is written in. A `sizeof` operand names no type
- * here (ADR-023), down to a cast inside it.
+ * order, with the scope it is written in.
  */
 class UndeclaredTypeWalk {
   public constructor(private readonly analyzer: UndeclaredTypeAnalyzer) {}
@@ -68,15 +67,14 @@ class UndeclaredTypeWalk {
     }
     for (const part of DeclarationParts.of(declaration)) {
       if (part.kind === "type") this.type(part.type, scope);
-      else this.expression(part.expression, scope, false);
+      else this.expression(part.expression, scope);
     }
   }
 
-  private expression(expr: TExpression, scope: string, sized: boolean): void {
-    if (expr.kind === "cast" && !sized) this.type(expr.type, scope);
-    const inSizeof = sized || expr.kind === "sizeof";
+  private expression(expr: TExpression, scope: string): void {
+    if (expr.kind === "cast") this.type(expr.type, scope);
     for (const child of ExpressionChildren.of(expr)) {
-      this.expression(child, scope, inSizeof);
+      this.expression(child, scope);
     }
   }
 
@@ -93,7 +91,7 @@ class UndeclaredTypeWalk {
       case "array":
         this.type(type.element, scope);
         for (const dimension of type.dimensions) {
-          if (dimension) this.expression(dimension, scope, false);
+          if (dimension) this.expression(dimension, scope);
         }
         return;
       default:

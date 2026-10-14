@@ -20,8 +20,8 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 
 // test-execution
 // #1668 review: a bit range's width folds with the same lookups every other
-// constant does. The typer folded it without `sizeof`, so
-// `flags[0, sizeof(u8) * 8]` had no width, the composite had no integer
+// constant does. The typer folded it without the length
+// property, so `flags[0, u8.bit_length]` had no width, the composite had no integer
 // type, and the ADR-044 clamp was dropped: 200 + 255 wrapped to 199.
 int main(void) {
     uint8_t a = 200U;

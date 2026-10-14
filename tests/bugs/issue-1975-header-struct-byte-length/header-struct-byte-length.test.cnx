@@ -1,0 +1,50 @@
+// test-execution
+// Issue #1975 (owner ruling): C-Next has no `sizeof`, so a struct from a C
+// header answers ADR-058's length properties by C-Next's rule: its fields'
+// sizes summed, without C padding. `Cfg` is 5 (gcc's `sizeof` is 8), and
+// `Outer` is 5 + 6 + 4 = 15 through a nested header struct and an array field.
+// The type answers the same as a value of it.
+//
+// #1867: a length property reads no value, so measuring a field of a local
+// that was never written is not a use before initialization (it was E0381).
+//
+// NEGATIVE CONTROL: `Point`, a C-Next struct, sized by the same rule.
+#include "shapes.h"
+
+struct Point {
+    u32 x;
+    u8 y;
+}
+
+u32 main() {
+    Cfg c;
+    Outer o;
+    if (Cfg.byte_length != 5) {
+        return 1;
+    }
+    if (c.byte_length != 5) {
+        return 2;
+    }
+    if (Cfg.bit_length != 40) {
+        return 3;
+    }
+    if (Outer.byte_length != 15) {
+        return 4;
+    }
+    if (o.arr.byte_length != 6) {
+        return 5;
+    }
+    if (o.inner.b.byte_length != 1) {
+        return 6;
+    }
+    if (c.a.byte_length != u32.byte_length) {
+        return 7;
+    }
+    if (Point.byte_length != 5) {
+        return 8;
+    }
+    if (Point.x.byte_length != 4) {
+        return 9;
+    }
+    return 0;
+}

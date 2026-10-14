@@ -38,8 +38,6 @@ describe("ConstExprLowering", () => {
     ["this.N", "this.N"],
     ["global.S.N", "global.S.N"],
     ["src.element_count", "src.element_count"],
-    ["sizeof(u32)", "sizeof(u32)"],
-    ["sizeof(Point)", "sizeof(Point)"],
     ["(A < B) ? 1 : 2", "((A < B) ? 1 : 2)"],
     ["a << 2 | b & c", "((a << 2) | (b & c))"],
     ["A = B && C != D || !E", "(((A = B) && (C != D)) || !E)"],
@@ -56,7 +54,6 @@ describe("ConstExprLowering", () => {
     ["pick().element_count", "<call pick().element_count>"],
     // #1863 review: its text joined tokens (`word--1`); no value, spelt as written
     ["sizeof(word - -1)", "<sizeofExpression sizeof(word - -1)>"],
-    ["sizeof(word)", "sizeof(word)"],
     ["1.5", "<float 1.5>"],
     ['"s"', '<string "s">'],
     ["'c'", "<character 'c'>"],
@@ -77,7 +74,7 @@ describe("ConstExprLowering", () => {
 
   it("is plain data: it survives a JSON round trip unchanged (#1298)", () => {
     const lowered = lowerOf(
-      "(u32)EColor.COUNT + 0xFFFFFFFFFFFFFFFFu64 * sizeof(u8)",
+      "(u32)EColor.COUNT + 0xFFFFFFFFFFFFFFFFu64 * u8.byte_length",
     );
     expect(JSON.parse(JSON.stringify(lowered))).toEqual(lowered);
   });

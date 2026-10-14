@@ -1,9 +1,8 @@
 /**
- * ADR-023's `sizeof` operand rules.
+ * ADR-023: C-Next has no `sizeof`.
  *
  * Error codes:
- * - E0601: `sizeof` on an array parameter, which measures a pointer
- * - E0602: `sizeof` on an operand with side effects (MISRA C:2012 Rule 13.6)
+ * - E0603: `sizeof` is written; a size is ADR-058's `.byte_length`
  */
 import IBaseAnalysisError from "./IBaseAnalysisError";
 

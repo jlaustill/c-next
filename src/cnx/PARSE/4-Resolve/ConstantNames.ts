@@ -19,6 +19,8 @@ import QualifiedCName from "../../utils/QualifiedCName";
 import CNEXT_TO_C_TYPE_MAP from "../../utils/constants/TypeMappings";
 import ScopeUtils from "../../utils/ScopeUtils";
 import LengthProperty from "../../utils/LengthProperty";
+import PrimitiveKindUtils from "../../utils/PrimitiveKindUtils";
+import type TSymbol from "../../types/symbols/TSymbol";
 import type TType from "../../types/TType";
 import type IConstantNameFacts from "./types/IConstantNameFacts";
 import type ILocalDeclaration from "../../types/ILocalDeclaration";
@@ -107,7 +109,7 @@ class ConstantNames {
   /**
    * #1863 review: a C-Next type name as C spells it where it is written -- a
    * primitive's C type, or the scope type ADR-057 qualifies a bare name to
-   * (`sizeof(P)` inside scope S is `sizeof(S__P)`). Through
+   * (`(P)x` inside scope S is `(S__P)x`). Through
    * `ScopeUtils.qualifyScopeType`, the rule every type position uses.
    */
   static cTypeName(
@@ -394,17 +396,48 @@ class ConstantNames {
     rest: ReadonlyArray<string>,
     walk: IWalk,
   ): TConstResult {
-    if (rest.length !== 1) return ConstantNames.unbound(root, head, rest, walk);
+    if (rest.length === 0) return ConstantNames.unbound(root, head, rest, walk);
     const cName = ScopeUtils.typeHeadCName(
       root,
       head,
       walk.facts.scopePathAt(walk.at),
       (name) => walk.facts.isScopeTypeVisible(name),
     );
-    if (walk.facts.visibleSymbol(cName)?.kind === "enum") {
+    const symbol = walk.facts.visibleSymbol(cName);
+    if (
+      symbol?.kind === "enum" &&
+      rest.length === 1 &&
+      !(LengthProperty.isLength(rest[0]) && !symbol.members.has(rest[0]))
+    ) {
       return walk.facts.enumMember(cName, rest[0], walk.spelling, walk.at);
     }
-    return ConstantNames.unbound(root, head, rest, walk);
+    // #1975: a type answers the length properties its values do --
+    // `u32.byte_length`, `Point.y.byte_length`, `EMode.bit_length`
+    const type =
+      root === null ? ConstantNames.typeNamed(head, cName, symbol) : null;
+    return type === null
+      ? ConstantNames.unbound(root, head, rest, walk)
+      : ConstantNames.ofMember({ type, dimensions: [] }, rest, walk);
+  }
+
+  /** The C-Next type a chain's head names; null for a name that is none */
+  private static typeNamed(
+    head: string,
+    cName: string,
+    symbol: TSymbol | undefined,
+  ): TType | null {
+    if (PrimitiveKindUtils.isPrimitive(head) && head !== "void") {
+      return { kind: "primitive", primitive: head };
+    }
+    switch (symbol?.kind) {
+      case "struct":
+      case "enum":
+        return { kind: symbol.kind, name: cName };
+      case "bitmap":
+        return { kind: "bitmap", name: cName, bitWidth: symbol.bitWidth };
+      default:
+        return null;
+    }
   }
 
   /**

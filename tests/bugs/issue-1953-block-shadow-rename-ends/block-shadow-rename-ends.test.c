@@ -9,7 +9,7 @@
 
 // test-execution
 // Issue #1953: a block-local that shadows a global is renamed only inside its block
-// The sizeof after the block measures the global, and a sibling block renames its own local
+// The .byte_length after the block measures the global, and a sibling block renames its own local
 uint8_t buf[4] = {0U, 0U, 0U, 0U};
 
 uint8_t count = 7U;
@@ -19,21 +19,21 @@ int main(void) {
     if (flag == 1) {
         /* C11 6.2.1p4, C++ [basic.scope.hiding]: `buf` emitted as `main__buf` (a plain `buf` would hide the file-scope `buf` for the rest of its scope, so `global.buf` would reach the local). */
         uint8_t main__buf[8] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
-        if (sizeof(main__buf) != 8) {
+        if (8 != 8) {
             return 1U;
         }
     }
-    if (sizeof(buf) != 4) {
+    if (4 != 4) {
         return 2U;
     }
     if (flag == 1) {
         /* C11 6.2.1p4, C++ [basic.scope.hiding]: `buf` emitted as `main__buf` (a plain `buf` would hide the file-scope `buf` for the rest of its scope, so `global.buf` would reach the local). */
         uint8_t main__buf[2] = {0U, 0U};
-        if (sizeof(main__buf) != 2) {
+        if (2 != 2) {
             return 3U;
         }
     }
-    if (sizeof(buf) != 4) {
+    if (4 != 4) {
         return 4U;
     }
     if (flag == 1) {

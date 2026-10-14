@@ -2,6 +2,7 @@ import type IResolvedSymbols from "../types/IResolvedSymbols";
 import CppNamespaceUtils from "./CppNamespaceUtils";
 import type TTypeInfo from "../types/TTypeInfo";
 import TYPE_WIDTH from "../types/TYPE_WIDTH";
+import LengthProperty from "./LengthProperty";
 import type TCSymbol from "../types/symbols/c/TCSymbol";
 import type TCppSymbol from "../types/symbols/cpp/TCppSymbol";
 import type IForeignSymbolLookup from "../types/IForeignSymbolLookup";
@@ -293,6 +294,45 @@ class ForeignTypeFacts {
       target,
       info.arrayDimensions ?? [],
     );
+  }
+
+  /**
+   * ADR-058 for a header's struct (#1975, owner ruling): its fields' bits
+   * together, without C padding, as a C-Next struct's are -- `struct { uint32_t
+   * a; uint8_t b; }` is 40 bits where C stores 64. Null when a field has no
+   * width C-Next fixes: a pointer (C-Next has none), or a type it does not read.
+   */
+  static structBits(
+    structName: string,
+    lookup: IForeignSymbolLookup,
+    target: ITargetDescription | null,
+  ): number | null {
+    const fields = lookup.getStructFields(structName);
+    if (fields === undefined) return null;
+    let bits = 0;
+    for (const info of fields.values()) {
+      const field = ForeignTypeFacts.operandType(
+        info.type,
+        lookup,
+        target,
+        info.arrayDimensions ?? [],
+      );
+      if (field === null) return null;
+      const element =
+        field.bitWidth ??
+        (field.typeName === null
+          ? null
+          : (TYPE_WIDTH[field.typeName] ??
+            ForeignTypeFacts.structBits(field.typeName, lookup, target)));
+      const fieldBits = LengthProperty.of(
+        "bit_length",
+        field.dimensions,
+        element,
+      );
+      if (fieldBits === null) return null;
+      bits += fieldBits;
+    }
+    return bits;
   }
 
   /**

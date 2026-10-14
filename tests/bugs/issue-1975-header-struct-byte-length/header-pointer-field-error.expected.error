@@ -1,0 +1,6 @@
+13:20 error[E0867]: Cannot determine .byte_length for type 'char*'
+       help: C-Next has no pointers, so a header's pointer, or a type C-Next does not read, has no size.
+14:20 error[E0867]: Cannot determine .byte_length for type 'Odd'
+       help: A struct's length is its fields' sizes together; a pointer field, or a field of a type C-Next does not read, has no size C-Next fixes.
+15:18 error[E0867]: Cannot determine .byte_length for type 'Odd'
+       help: A struct's length is its fields' sizes together; a pointer field, or a field of a type C-Next does not read, has no size C-Next fixes.

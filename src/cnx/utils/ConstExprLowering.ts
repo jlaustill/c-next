@@ -23,9 +23,6 @@ import type TExpression from "../types/syntax/TExpression";
 import type TExpressionOf from "../types/syntax/TExpressionOf";
 import type TPostfixOpSyntax from "../types/syntax/TPostfixOpSyntax";
 
-/** A name with no member, subscript or operator: C reads it as written */
-const BARE_NAME = /^[A-Za-z_]\w*$/;
-
 type TOtherWhat = Extract<TConstExpr, { kind: "other" }>["what"];
 
 /** What a chain is, by the first operation that keeps it from naming a value */
@@ -110,7 +107,8 @@ class ConstExprLowering {
           at: ConstExprLowering.at(expr),
         };
       case "sizeof":
-        return ConstExprLowering.sizeOf(expr);
+        // ADR-023: E0603 rejects it; a size is ADR-058's `.byte_length`
+        return ConstExprLowering.other("sizeofExpression", expr);
       case "structInitializer":
       case "arrayInitializer":
         return ConstExprLowering.other("initializer", expr);
@@ -177,30 +175,6 @@ class ConstExprLowering {
   /** `[i]`, not a bit range `[start, width]` */
   private static isElement(op: TPostfixOpSyntax): boolean {
     return op.kind === "subscript" && op.indexes.length === 1;
-  }
-
-  /**
-   * `sizeof` of a type, or of a bare name C reads the same way, is C's to
-   * size. Any other expression has no value here: its text joins tokens
-   * (`sizeof(word - -1)` read back as `word--1`), and C-Next does not write an
-   * expression for C structurally inside `sizeof` (#1863 review).
-   */
-  private static sizeOf(expr: TExpressionOf<"sizeof">): TConstExpr {
-    const typeName = expr.type
-      ? expr.type.text
-      : ConstExprLowering.bareName(expr.expression);
-    return typeName === null
-      ? ConstExprLowering.other("sizeofExpression", expr)
-      : { kind: "sizeof", typeName, at: ConstExprLowering.at(expr) };
-  }
-
-  /** The one token an expression is, when that token reads as a name */
-  private static bareName(expr: TExpression | null): string | null {
-    if (expr === null) return null;
-    if (expr.kind === "identifier") return expr.name;
-    if (expr.kind === "root") return expr.root;
-    if (expr.kind === "literal" && BARE_NAME.test(expr.text)) return expr.text;
-    return null;
   }
 
   private static literal(expr: TExpressionOf<"literal">): TConstExpr {

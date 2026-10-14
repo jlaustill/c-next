@@ -17,7 +17,7 @@ struct Holder {
     u32 x;
 }
 
-// `sizeof` cases need the local and the global to differ in SIZE, or the
+// `.byte_length` cases need the local and the global to differ in SIZE, or the
 // assertion cannot fail. Same field name, different field width.
 struct Wide {
     u32 x;
@@ -91,17 +91,17 @@ scope Counter {
         return wmsg.char_count;
     }
 
-    // --- sizeof and element_count resolve their own identifiers, so they are
+    // --- the length properties resolve their own identifiers, so they are
     // --- separate emission sites from every read and write above ---
 
     public u32 sizeofArray() {
         u32[2] sarr <- [1, 2];
-        return sizeof(sarr);
+        return sarr.byte_length;
     }
 
     public u32 sizeofMember() {
         Narrow scfg <- { x: 1 };
-        return sizeof(scfg.x);
+        return scfg.x.byte_length;
     }
 
     public u32 elementCount() {
@@ -185,13 +185,13 @@ u32 main() {
         return 12;
     }
 
-    // sizeof the LOCAL u32[2] is 8; the shadowed global u32[4] would be 16
+    // .byte_length of the LOCAL u32[2] is 8; the shadowed global u32[4] would be 16
     u32 i <- Counter.sizeofArray();
     if (i != 8) {
         return 13;
     }
 
-    // sizeof the LOCAL Narrow.x is 1; the shadowed global Wide.x would be 4
+    // .byte_length of the LOCAL Narrow.x is 1; the shadowed global Wide.x would be 4
     u32 j <- Counter.sizeofMember();
     if (j != 1) {
         return 14;

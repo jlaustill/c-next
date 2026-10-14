@@ -148,4 +148,39 @@ describe("ForeignTypeFacts", () => {
       ).toBeUndefined();
     });
   });
+
+  describe("structBits (#1975)", () => {
+    beforeEach(() => {
+      symbolTable.addStructField("Cfg", "a", "uint32_t");
+      symbolTable.addStructField("Cfg", "b", "uint8_t");
+      symbolTable.addStructField("Outer", "inner", "Cfg");
+      symbolTable.addStructField("Outer", "arr", "uint16_t", [3]);
+      symbolTable.addStructField("Odd", "i", "int32_t");
+      symbolTable.addStructField("Odd", "p", "char*");
+      symbolTable.addStructField("Holder", "odd", "Odd");
+    });
+
+    it("sums the fields' sizes, without C padding", () => {
+      expect(ForeignTypeFacts.structBits("Cfg", symbolTable, null)).toBe(40);
+    });
+
+    it("measures a nested header struct and an array field", () => {
+      expect(ForeignTypeFacts.structBits("Outer", symbolTable, null)).toBe(
+        40 + 48,
+      );
+    });
+
+    it("has no size for a pointer field, or a struct holding one", () => {
+      expect(ForeignTypeFacts.structBits("Odd", symbolTable, null)).toBeNull();
+      expect(
+        ForeignTypeFacts.structBits("Holder", symbolTable, null),
+      ).toBeNull();
+    });
+
+    it("has no size for a struct it was not given", () => {
+      expect(
+        ForeignTypeFacts.structBits("Missing", symbolTable, null),
+      ).toBeNull();
+    });
+  });
 });

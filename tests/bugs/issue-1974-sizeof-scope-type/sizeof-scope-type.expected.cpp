@@ -8,10 +8,11 @@
 #include <stdint.h>
 
 // test-execution
-// Issue #1974: `sizeof` of a scope's own struct, enum or bitmap is written with
-// the type's C name, as every other type position writes it -- `S__Cfg`,
-// `S__Mode`, `S__Flags`. Before, the source spelling was emitted, which C does
-// not declare. A global type is the control: `sizeof(Pair)` stays as it is.
+// Issue #1974: a scope's own struct, enum or bitmap is measured as the type
+// its C name declares -- `S__Cfg`, `S__Mode`, `S__Flags` -- as every other
+// type position reads it. Before, `sizeof` emitted the source spelling, which
+// C does not declare; since #1975 the size is ADR-058's `.byte_length`. A
+// global type is the control: `Pair.byte_length`.
 /* Scope: S */
 
 typedef enum {
@@ -35,29 +36,29 @@ typedef struct S__Cfg {
 } S__Cfg;
 
 uint32_t S__cfgSize(void) {
-    return sizeof(S__Cfg);
+    return 5;
 }
 
 uint32_t S__cfgValueSize(void) {
     S__Cfg c = {};
-    return sizeof(c);
+    return 5;
 }
 
 uint32_t S__modeSize(void) {
-    return sizeof(S__Mode);
+    return 4;
 }
 
 uint32_t S__modeValueSize(void) {
     S__Mode m = S__Mode__A;
-    return sizeof(m);
+    return 4;
 }
 
 uint32_t S__flagsSize(void) {
-    return sizeof(S__Flags);
+    return 1;
 }
 
 uint32_t S__pairSize(void) {
-    return sizeof(Pair);
+    return 5;
 }
 
 int main(void) {
@@ -76,7 +77,7 @@ int main(void) {
         return 3U;
     }
     uint32_t pair = S__pairSize();
-    if (pair != sizeof(Pair)) {
+    if (pair != 5) {
         return 4U;
     }
     return 0U;

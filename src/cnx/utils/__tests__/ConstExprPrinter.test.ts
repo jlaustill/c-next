@@ -75,11 +75,6 @@ describe("ConstExprPrinter (#1175)", () => {
       { kind: "cast", typeName: "u32", operand: name("BUF_SIZE"), at: AT },
       "(uint32_t)BUF_SIZE",
     ],
-    [
-      "sizeof a scope's type is its C name",
-      { kind: "sizeof", typeName: "Motor.Config", at: AT },
-      "sizeof(Motor__Config)",
-    ],
   ])("%s", (_label, expr, expected) => {
     expect(ConstExprPrinter.toC(expr, ENV)).toBe(expected);
   });

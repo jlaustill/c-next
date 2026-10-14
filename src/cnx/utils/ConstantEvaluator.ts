@@ -93,8 +93,6 @@ class ConstantEvaluator {
         return ConstantEvaluator.literal(expr.digits, expr.typeName);
       case "name":
         return env.valueOf(expr);
-      case "sizeof":
-        return ConstantEvaluator.sizeOf(expr.typeName);
       case "cast":
         if (
           CNEXT_TO_C_TYPE_MAP[expr.typeName] === undefined &&
@@ -375,14 +373,6 @@ class ConstantEvaluator {
     return integer === null
       ? { kind: "value", value, typeName }
       : ConstantEvaluator.held(value, integer, integer);
-  }
-
-  /** A primitive's size in bytes; any other type's is the target's to decide */
-  private static sizeOf(typeName: string): TConstResult {
-    const width = TYPE_WIDTH[typeName];
-    return width === undefined
-      ? { kind: "foreign", spelling: `sizeof(${typeName})`, why: "targetSize" }
-      : { kind: "value", value: BigInt(width / 8), typeName: null };
   }
 
   private static cast(typeName: string, operand: TConstResult): TConstResult {

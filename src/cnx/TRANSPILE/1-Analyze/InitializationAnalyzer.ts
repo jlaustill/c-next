@@ -11,6 +11,7 @@
  * 7. Per-field struct tracking
  */
 
+import LengthProperty from "../../utils/LengthProperty";
 import IInitializationError from "./types/IInitializationError";
 import IDeclarationInfo from "./types/IDeclarationInfo";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
@@ -322,11 +323,8 @@ class InitializationWalk {
     for (const child of ExpressionChildren.of(expr)) {
       this.expression(child);
     }
-    if (
-      expr.kind === "cast" ||
-      (expr.kind === "sizeof" && expr.type !== null)
-    ) {
-      this.part({ kind: "type", type: expr.type! });
+    if (expr.kind === "cast") {
+      this.part({ kind: "type", type: expr.type });
     }
   }
 
@@ -378,14 +376,20 @@ class InitializationWalk {
     this.analyzer.checkRead(key, name, at.line, at.column);
   }
 
-  /** `arr.length` or `arr[i].length` is a compile-time size, not a read */
+  /**
+   * `arr.length` or `arr[i].length` is a compile-time size, not a read; so is
+   * ADR-058's length property of anything, `cfg.a.byte_length` (#1867): it
+   * reads the declared shape, never the value
+   */
   private isLengthOfNonString(
     key: TInitKey,
     ops: readonly TPostfixOpSyntax[],
   ): boolean {
-    if (this.analyzer.lookupVariableState(key)?.isStringType) return false;
     const last = ops.at(-1)!;
-    if (last.kind !== "member" || last.name !== "length") return false;
+    if (last.kind !== "member") return false;
+    if (LengthProperty.isLength(last.name)) return true;
+    if (this.analyzer.lookupVariableState(key)?.isStringType) return false;
+    if (last.name !== "length") return false;
     return ops.length === 1 || ops[0].kind === "subscript";
   }
 }

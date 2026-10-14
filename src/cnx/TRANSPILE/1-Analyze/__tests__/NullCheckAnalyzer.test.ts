@@ -69,12 +69,6 @@ describe("NullCheckAnalyzer", () => {
       expect(found(`enum E { A <- NULL }`)).toEqual([["E0903", "NULL", 1]]);
     });
 
-    it("checks NULL in a type sizeof reads", () => {
-      expect(found(`void main() {\n  u32 n <- sizeof(u8[NULL]);\n}`)).toEqual([
-        ["E0903", "NULL", 2],
-      ]);
-    });
-
     it("checks NULL in an else branch", () => {
       expect(
         found(

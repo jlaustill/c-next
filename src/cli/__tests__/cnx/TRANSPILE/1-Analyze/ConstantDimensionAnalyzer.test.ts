@@ -61,7 +61,7 @@ describe("ConstantDimensionAnalyzer (#1175: E0909, E0910)", () => {
     ["a literal", "u8[4] a;"],
     ["a const, and arithmetic over it", "const u8 N <- 4;\nu8[N * 2 + 1] a;"],
     ["a wider cast", "const u8 A <- 200;\nu8[(u16)A + (u16)A] a;"],
-    ["sizeof of a primitive", "u8[sizeof(u32)] a;"],
+    ["a primitive's length", "u8[u32.byte_length] a;"],
     ["an enum member", "enum E { A, B, COUNT }\nu8[E.COUNT] a;"],
     ["a property", "u8[3] src;\nu8[src.element_count] a;"],
     // not this analyzer's: E0427 reports an undeclared bare name
@@ -80,7 +80,7 @@ describe("ConstantDimensionAnalyzer (#1175: E0909, E0910)", () => {
 });
 
 describe("ConstantDimensionAnalyzer on 1.2's syntax (#1991)", () => {
-  // A dimension after the name, a cast's and a sizeof's are each their own
+  // A dimension after the name and a cast's are each their own
   // place in 1.2's syntax, so each is asked on its own
   it.each([
     ["a global", "u8 n <- 3;\nu8 g[n];"],
@@ -89,14 +89,15 @@ describe("ConstantDimensionAnalyzer on 1.2's syntax (#1991)", () => {
     ["a struct field", "u8 n <- 3;\nstruct S {\n    u8 data[n];\n}"],
     ["a scope member", "u8 n <- 3;\nscope M {\n    u8 slots[n];\n}"],
     ["a cast's type", "u8 n <- 3;\nvoid f(u8 x) {\n    u32 y <- (u8[n])x;\n}"],
-    ["a sizeof's type", "u8 n <- 3;\nu32 s <- sizeof(u8[n]);"],
   ])("rejects a dimension with no value: %s", (_label, source) => {
     expect(errors(source).map((e) => e.code)).toEqual(["E0909"]);
   });
 
-  it("leaves a sizeof of a subscript to the expression it is", () => {
+  it("leaves a length of a subscript to the expression it is", () => {
     expect(
-      errors("u8[4] arr;\nvoid f(u32 i) {\n    u32 s <- sizeof(arr[i]);\n}"),
+      errors(
+        "u8[4] arr;\nvoid f(u32 i) {\n    u32 s <- arr[i].byte_length;\n}",
+      ),
     ).toEqual([]);
   });
 

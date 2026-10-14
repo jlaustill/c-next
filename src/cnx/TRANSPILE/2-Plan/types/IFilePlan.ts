@@ -12,7 +12,6 @@ import type TExpression from "../../../types/syntax/TExpression";
 import type TExpressionOf from "../../../types/syntax/TExpressionOf";
 import type TPostfixOpSyntax from "../../../types/syntax/TPostfixOpSyntax";
 import type TTypeSyntax from "../../../types/syntax/TTypeSyntax";
-import type TValueBinding from "../../../types/TValueBinding";
 import type IPlannedCast from "./IPlannedCast";
 import type IPlannedClamp from "./IPlannedClamp";
 import type IPlannedSliceSource from "./IPlannedSliceSource";
@@ -40,15 +39,6 @@ interface IFilePlan {
 
   /** Which private scope consts are inlined, not declared (#282) */
   readonly inlinedConsts: ReadonlySet<TDeclarationSyntax>;
-
-  /** What each `sizeof(Name)` operand's name binds to (#1974) */
-  readonly sizeofBindings: ReadonlyMap<
-    TExpressionOf<"sizeof">,
-    TValueBinding | null
-  >;
-
-  /** Which `sizeof(a.b)` operands are member accesses (#1972) */
-  readonly sizeofMemberAccesses: ReadonlySet<TExpressionOf<"sizeof">>;
 
   /** The plan for each type the file writes */
   readonly types: ReadonlyMap<TTypeSyntax, IPlannedType>;

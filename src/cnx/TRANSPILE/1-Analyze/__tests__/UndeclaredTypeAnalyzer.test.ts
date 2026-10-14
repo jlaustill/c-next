@@ -154,19 +154,6 @@ describe("UndeclaredTypeAnalyzer", () => {
         ["Cast", 4, 14],
       ]);
     });
-
-    it("never reads a sizeof operand, down to a cast inside it (ADR-023)", () => {
-      const errors = analyze(
-        [
-          "u32 main() {",
-          "    u32 a <- sizeof(Nowhere);",
-          "    u32 b <- sizeof((Elsewhere) 1);",
-          "    return a + b;",
-          "}",
-        ].join("\n"),
-      );
-      expect(errors).toHaveLength(0);
-    });
   });
 
   describe("names that must stay silent", () => {

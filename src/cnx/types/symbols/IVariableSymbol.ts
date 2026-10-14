@@ -50,7 +50,7 @@ interface IVariableSymbol extends IBaseSymbol {
   readonly arrayDimensions?: ReadonlyArray<number | string>;
   /**
    * #1175: each dimension as written, index-aligned with the dimensions --
-   * null where 1.3 already knew the size (a literal, `sizeof` of a primitive,
+   * null where 1.3 already knew the size (a literal, arithmetic over literals,
    * an unsized `[]`). 1.4 Resolve settles the rest from this, never from
    * source text.
    */
