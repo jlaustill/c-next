@@ -294,7 +294,10 @@ hold their own bytes, since C-Next could only sum them wrongly: a union, a
 struct with a bit-field or an unnamed member, a C++ class with a base or a
 virtual member, and a header enum, whose width the C compiler picks. A C++
 class's static members and methods are values, not storage, and are not
-counted.
+counted. A header bit-field is its declared width, as a C-Next bitmap field
+is (#1975 review, owner ruling): in
+`typedef struct { uint32_t a : 3; uint32_t b : 5; } BF;`, `BF.a.bit_length`
+is 3, not its `uint32_t`'s 32, while `BF.byte_length` stays E0867.
 
 A chain that starts at a type names no value, so it must end in one of these
 length properties: `Point.x`, `Point.x <- 5`, `u32.foo` and

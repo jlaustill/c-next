@@ -21,6 +21,10 @@
 // scope's function. A header struct's `.element_count` is its field count, as
 // a C-Next struct's is, and a length is a case label's number.
 //
+// #1975 review (owner ruling): a header bit-field is its declared width, as a
+// C-Next bitmap field is -- `BF.a.bit_length` is 3, not its `uint32_t`'s 32 --
+// as a value, a dimension and a case label.
+//
 // NEGATIVE CONTROL: `Point`, a C-Next struct, sized by the same rule; and
 // `Wrap`, a C-Next struct with a header struct's field, sized by it too.
 #include "shapes.h"
@@ -34,6 +38,8 @@ uint8_t wrapBytes[6] = {};
 uint8_t wordBytes[2] = {};
 
 uint8_t gearBytes[4] = {};
+
+uint8_t bfBits[32] = {};
 
 /* Scope: Box */
 
@@ -50,6 +56,10 @@ uint32_t sizeName(uint32_t n) {
         }
         case 4: {
             return 2U;
+            break;
+        }
+        case 32: {
+            return 3U;
             break;
         }
         default: {
@@ -121,6 +131,20 @@ int main(void) {
     }
     if (2 != 2) {
         return 19U;
+    }
+    BF bf = {};
+    if (32 != 3) {
+        return 20U;
+    }
+    if (32 != 5) {
+        return 21U;
+    }
+    if (32 != 5) {
+        return 22U;
+    }
+    uint32_t bitNamed = sizeName(3U);
+    if (bitNamed != 3) {
+        return 23U;
     }
     return 0U;
 }

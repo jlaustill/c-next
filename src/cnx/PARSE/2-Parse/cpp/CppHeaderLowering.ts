@@ -37,6 +37,7 @@ import type ISourceSpan from "../../../types/ISourceSpan";
 import DeclaratorTypes from "../shared/DeclaratorTypes";
 import ParameterExtractorUtils from "../shared/ParameterExtractorUtils";
 import ArrayDimensionText from "../../../utils/ArrayDimensionText";
+import LiteralUtils from "../../../utils/LiteralUtils";
 import ParserUtils from "../../../utils/ParserUtils";
 
 class CppHeaderLowering {
@@ -190,8 +191,11 @@ class CppHeaderLowering {
     };
   }
 
-  /** #1975 review: `uint32_t a : 3;`, whose name the class must record */
-  private static bitFieldDeclarator(name: string): IHeaderDeclaratorSyntax {
+  /** #1975 review: `uint32_t a : 3;`, whose name and width the class records */
+  private static bitFieldDeclarator(
+    name: string,
+    width: string,
+  ): IHeaderDeclaratorSyntax {
     return {
       name,
       isFunction: false,
@@ -200,6 +204,7 @@ class CppHeaderLowering {
       functionPointerParams: null,
       parameters: [],
       arrayDimensions: [],
+      bitWidth: LiteralUtils.exactIntegerLiteral(width) ?? width,
     };
   }
 
@@ -243,7 +248,12 @@ class CppHeaderLowering {
         if (declarator) {
           declarators.push(CppHeaderLowering.declarator(declarator));
         } else if (bitFieldName !== null) {
-          declarators.push(CppHeaderLowering.bitFieldDeclarator(bitFieldName));
+          declarators.push(
+            CppHeaderLowering.bitFieldDeclarator(
+              bitFieldName,
+              member.constantExpression()?.getText() ?? "",
+            ),
+          );
         }
       }
       members.push({

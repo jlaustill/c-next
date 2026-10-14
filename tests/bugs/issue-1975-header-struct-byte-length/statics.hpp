@@ -11,6 +11,11 @@ struct Dev {
     static const uint32_t LIMIT = 7;
 };
 
+struct Bits {
+    uint32_t a : 3;
+    uint32_t b : 5;
+};
+
 struct Pod {
     static int32_t total() {
         return 3;

@@ -203,13 +203,21 @@ class StructCollector {
       field.declarator,
     );
     const dims = arrayDimensions.length > 0 ? [...arrayDimensions] : undefined;
+    const bitWidth = field.declarator.bitWidth;
     fields.set(fieldName, {
       name: fieldName,
       type: declaredType,
       arrayDimensions: dims,
+      ...(bitWidth !== undefined && { bitWidth }),
     });
     if (symbolTable) {
-      symbolTable.addStructField(structName, fieldName, declaredType, dims);
+      symbolTable.addStructField(
+        structName,
+        fieldName,
+        declaredType,
+        dims,
+        bitWidth,
+      );
     }
   }
 }

@@ -28,6 +28,7 @@ import type IExtractedParameter from "../shared/IExtractedParameter";
 import ParameterExtractorUtils from "../shared/ParameterExtractorUtils";
 import DeclaratorTypes from "../shared/DeclaratorTypes";
 import ArrayDimensionText from "../../../utils/ArrayDimensionText";
+import LiteralUtils from "../../../utils/LiteralUtils";
 import ParserUtils from "../../../utils/ParserUtils";
 
 class CHeaderLowering {
@@ -255,6 +256,13 @@ class CHeaderLowering {
       let lowered = declarator ? CHeaderLowering.declarator(declarator) : null;
       if (lowered === null && misread !== null) {
         lowered = CHeaderLowering.nameDeclarator(misread);
+      }
+      const width = structDecl.constantExpression()?.getText();
+      if (lowered && width !== undefined) {
+        lowered = {
+          ...lowered,
+          bitWidth: LiteralUtils.exactIntegerLiteral(width) ?? width,
+        };
       }
       return lowered ? [{ type, declarator: lowered }] : [];
     });

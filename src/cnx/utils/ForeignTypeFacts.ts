@@ -8,6 +8,7 @@ import type TCppSymbol from "../types/symbols/cpp/TCppSymbol";
 import type IForeignSymbolLookup from "../types/IForeignSymbolLookup";
 import type IOperandType from "../types/IOperandType";
 import type ITargetDescription from "../types/ITargetDescription";
+import type IStructFieldInfo from "../types/symbols/IStructFieldInfo";
 
 /** What a C spelling says of an operand: its name, category and width */
 type TForeignElement = Pick<IOperandType, "typeName" | "category" | "bitWidth">;
@@ -288,12 +289,26 @@ class ForeignTypeFacts {
   ): IOperandType | null {
     const info = lookup.getStructFieldInfo(structName, field);
     if (!info?.type) return null;
-    return ForeignTypeFacts.operandType(
+    const typed = ForeignTypeFacts.operandType(
       info.type,
       lookup,
       target,
       info.arrayDimensions ?? [],
     );
+    const width = ForeignTypeFacts.bitFieldWidth(info);
+    if (typed === null || width === undefined) return typed;
+    return width === null ? null : { ...typed, bitWidth: width };
+  }
+
+  /**
+   * #1975 review (owner ruling): a bit-field holds its declared width, as a
+   * C-Next bitmap field does -- `uint32_t a : 3` is 3 bits, not its storage
+   * type's 32. Null for a width that is no integer literal; undefined for a
+   * field that is no bit-field.
+   */
+  static bitFieldWidth(info: IStructFieldInfo): number | null | undefined {
+    if (info.bitWidth === undefined) return undefined;
+    return typeof info.bitWidth === "number" ? info.bitWidth : null;
   }
 
   /** #1975 review: a header type's width, as a C-Next struct's field reads it */

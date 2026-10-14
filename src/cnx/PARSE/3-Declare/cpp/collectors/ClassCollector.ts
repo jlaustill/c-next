@@ -309,6 +309,7 @@ class ClassCollector {
         fieldName,
         declaredType,
         arrayDimensions.length > 0 ? arrayDimensions : undefined,
+        declarator.bitWidth,
       );
     }
 
@@ -319,6 +320,9 @@ class ClassCollector {
         type: declaredType,
         arrayDimensions:
           arrayDimensions.length > 0 ? arrayDimensions : undefined,
+        ...(declarator.bitWidth !== undefined && {
+          bitWidth: declarator.bitWidth,
+        }),
       };
       ctx.fields.set(fieldName, fieldInfo);
     }

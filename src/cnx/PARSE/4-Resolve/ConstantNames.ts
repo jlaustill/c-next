@@ -20,6 +20,7 @@ import CNEXT_TO_C_TYPE_MAP from "../../utils/constants/TypeMappings";
 import ScopeUtils from "../../utils/ScopeUtils";
 import LengthProperty from "../../utils/LengthProperty";
 import TypeHead from "../../utils/TypeHead";
+import ForeignTypeFacts from "../../utils/ForeignTypeFacts";
 import type TSymbol from "../../types/symbols/TSymbol";
 import type TType from "../../types/TType";
 import type IConstantNameFacts from "./types/IConstantNameFacts";
@@ -40,6 +41,8 @@ type TReason = Extract<TConstResult, { kind: "notConstant" }>["reason"];
 interface IMeasured {
   readonly type: TType;
   readonly dimensions: ReadonlyArray<number | string>;
+  /** A header bit-field's declared width, `ForeignTypeFacts.bitFieldWidth` */
+  readonly bitField?: number | null;
 }
 
 /** Where the walk is, for a reason's message */
@@ -275,14 +278,8 @@ class ConstantNames {
             lookup,
           )
         : undefined;
-    // #2076: a header's type is measured as render measures it
     const header = ConstantNames.headerType(current.type, walk);
-    const element =
-      header === null
-        ? LengthProperty.elementBitsOfType(current.type, lookup, (name) =>
-            walk.facts.headerTypeBits(name),
-          )
-        : walk.facts.headerTypeBits(header);
+    const element = ConstantNames.elementBits(current, header, walk);
     const value = LengthProperty.of(
       property,
       current.dimensions,
@@ -334,6 +331,22 @@ class ConstantNames {
     );
   }
 
+  /** One element's bits of a measured value; null when not known here */
+  private static elementBits(
+    current: IMeasured,
+    header: string | null,
+    walk: IWalk,
+  ): number | null {
+    if (current.bitField !== undefined) return current.bitField;
+    // #2076: a header's type is measured as render measures it
+    if (header !== null) return walk.facts.headerTypeBits(header);
+    return LengthProperty.elementBitsOfType(
+      current.type,
+      (cName) => walk.facts.visibleSymbol(cName),
+      (name) => walk.facts.headerTypeBits(name),
+    );
+  }
+
   /**
    * The C type a header gave a measured value; null for a C-Next type. 1.3
    * types a name it does not know as a struct (`Cfg c;`), a header's too.
@@ -373,12 +386,13 @@ class ConstantNames {
     const headerType = ConstantNames.headerType(current.type, walk);
     if (headerType !== null) {
       const header = walk.facts.headerStructFields(headerType)?.get(field);
-      return header
-        ? {
-            type: { kind: "external", name: header.type },
-            dimensions: header.arrayDimensions ?? [],
-          }
-        : null;
+      if (!header) return null;
+      const bitField = ForeignTypeFacts.bitFieldWidth(header);
+      return {
+        type: { kind: "external", name: header.type },
+        dimensions: header.arrayDimensions ?? [],
+        ...(bitField !== undefined && { bitField }),
+      };
     }
     if (current.type.kind !== "struct") return null;
     const struct = walk.facts.visibleSymbol(

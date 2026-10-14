@@ -36,6 +36,7 @@ typedef struct Slots {
 extern uint8_t wrapBytes[6];
 extern uint8_t wordBytes[2];
 extern uint8_t gearBytes[4];
+extern uint8_t bfBits[32];
 
 /* Function prototypes */
 uint32_t Box__count(void);

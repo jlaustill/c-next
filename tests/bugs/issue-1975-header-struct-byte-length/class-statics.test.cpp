@@ -8,7 +8,8 @@
 // #1975 review: a class's static members are values, not its fields. They
 // are read and called through the class, and they add nothing to its length:
 // `Dev` is its two fields, 4 + 1 (on the PR head `Dev.make(3)` and
-// `Dev.LIMIT` were E0897, and `LIMIT` was summed into `Dev`).
+// `Dev.LIMIT` were E0897, and `LIMIT` was summed into `Dev`). A class's
+// bit-field is its declared width, as a C struct's is (owner ruling).
 #include "statics.hpp"
 
 #include <stdint.h>
@@ -27,6 +28,12 @@ int main(void) {
     int32_t total = Pod::total();
     if (total != 3) {
         return 4U;
+    }
+    if (32 != 3) {
+        return 5U;
+    }
+    if (32 != 5) {
+        return 6U;
     }
     return 0U;
 }

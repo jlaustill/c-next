@@ -50,7 +50,10 @@ import Write from "../../cnx/WRITE/1-Write/Write";
 // 17: #1975 review -- a C struct field records whether its struct is a union
 // or packs bit-fields, and a bit-field (`uint32_t a : 3`) is recorded where it
 // was dropped, so an entry written before sums a union's fields as a size.
-const CACHE_VERSION = 18;
+// 19: #1975 review (owner ruling) -- a C/C++ struct field records a
+// bit-field's declared width, so an entry written before measures
+// `uint32_t a : 3` as its storage type's 32 bits.
+const CACHE_VERSION = 19;
 
 const TRANSPILER_VERSION = packageJson.version;
 

@@ -14,6 +14,10 @@
 // scope's function. A header struct's `.element_count` is its field count, as
 // a C-Next struct's is, and a length is a case label's number.
 //
+// #1975 review (owner ruling): a header bit-field is its declared width, as a
+// C-Next bitmap field is -- `BF.a.bit_length` is 3, not its `uint32_t`'s 32 --
+// as a value, a dimension and a case label.
+//
 // NEGATIVE CONTROL: `Point`, a C-Next struct, sized by the same rule; and
 // `Wrap`, a C-Next struct with a header struct's field, sized by it too.
 #include "shapes.h"
@@ -43,6 +47,7 @@ struct Slots {
 
 u8[word_t.byte_length] wordBytes;
 u8[Gear.byte_length] gearBytes;
+u8[BF.b.bit_length] bfBits;
 
 scope Box {
     public u32 count() {
@@ -58,6 +63,9 @@ u32 sizeName(u32 n) {
         }
         case Gear.byte_length {
             return 2;
+        }
+        case BF.a.bit_length {
+            return 3;
         }
         default {
             return 0;
@@ -127,6 +135,20 @@ u32 main() {
     }
     if (Cfg.element_count != 2) {
         return 19;
+    }
+    BF bf;
+    if (BF.a.bit_length != 3) {
+        return 20;
+    }
+    if (bf.b.bit_length != 5) {
+        return 21;
+    }
+    if (bfBits.element_count != 5) {
+        return 22;
+    }
+    u32 bitNamed <- sizeName(3);
+    if (bitNamed != 3) {
+        return 23;
     }
     return 0;
 }

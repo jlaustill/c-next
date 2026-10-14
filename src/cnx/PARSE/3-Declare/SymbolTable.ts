@@ -300,6 +300,7 @@ class SymbolTable implements IResolvedSymbols {
         fieldName,
         fieldInfo.type,
         fieldInfo.arrayDimensions,
+        fieldInfo.bitWidth,
       );
     }
   }
@@ -704,12 +705,14 @@ class SymbolTable implements IResolvedSymbols {
    * @param fieldName Name of the field
    * @param fieldType Type of the field (e.g., "uint32_t")
    * @param arrayDimensions Optional array dimensions - numbers for resolved, strings for macros
+   * @param bitWidth A bit-field's declared width (#1975 review)
    */
   addStructField(
     structName: string,
     fieldName: string,
     fieldType: string,
     arrayDimensions?: readonly (number | string)[],
+    bitWidth?: number | string,
   ): void {
     let fields = this.structFields.get(structName);
     if (!fields) {
@@ -721,6 +724,7 @@ class SymbolTable implements IResolvedSymbols {
     fields.set(fieldName, {
       type: fieldType,
       arrayDimensions: arrayDimensions ? [...arrayDimensions] : undefined,
+      ...(bitWidth !== undefined && { bitWidth }),
     });
   }
 

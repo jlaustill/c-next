@@ -196,6 +196,23 @@ describe("ForeignTypeFacts", () => {
       expect(ForeignTypeFacts.structBits("BF", symbolTable, null)).toBeNull();
     });
 
+    // #1975 review (owner ruling): a bit-field is its declared width, as a
+    // C-Next bitmap field is -- it was its storage type's 32
+    it("types a bit-field by its declared width", () => {
+      symbolTable.addStructField("Bits", "a", "uint32_t", undefined, 3);
+      symbolTable.addStructField("Bits", "m", "uint32_t", undefined, "W");
+      expect(
+        ForeignTypeFacts.fieldOperand("Bits", "a", symbolTable, null)?.bitWidth,
+      ).toBe(3);
+      expect(
+        ForeignTypeFacts.fieldOperand("Bits", "m", symbolTable, null),
+      ).toBeNull();
+      // NEGATIVE CONTROL: a field that is no bit-field keeps its type's width
+      expect(
+        ForeignTypeFacts.fieldOperand("Cfg", "a", symbolTable, null)?.bitWidth,
+      ).toBe(32);
+    });
+
     // #1975 review: `struct bar { bar inner; }` overflowed the stack
     it("has no size for a struct that holds itself", () => {
       expect(ForeignTypeFacts.structBits("Loop", symbolTable, null)).toBeNull();

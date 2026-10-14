@@ -69,6 +69,18 @@ describe("CHeaderLowering", () => {
       ]);
     });
 
+    // #1975 review (owner ruling): `.bit_length` is the declared width
+    it("records a bit-field's declared width, or its text", () => {
+      const fields = struct(
+        `typedef struct { uint32_t a : 3, b : W; uint8_t c; } BF;`,
+      ).fields;
+      expect(fields.map((f) => f.declarator.bitWidth)).toEqual([
+        3,
+        "W",
+        undefined,
+      ]);
+    });
+
     it("marks a struct that has a bit-field, named or not", () => {
       expect(struct(`struct S { uint8_t x; uint8_t : 3; };`).hasBitField).toBe(
         true,
