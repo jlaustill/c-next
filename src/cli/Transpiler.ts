@@ -46,6 +46,7 @@ import Analyze from "../cnx/TRANSPILE/1-Analyze/Analyze";
 import Resolve from "../cnx/PARSE/4-Resolve/Resolve";
 import type IResolvedProgram from "../cnx/PARSE/4-Resolve/types/IResolvedProgram";
 import type TFrontEndResult from "./types/TFrontEndResult";
+import type IAnalysis from "../cnx/TRANSPILE/1-Analyze/types/IAnalysis";
 import type IDiagnostics from "../cnx/types/IDiagnostics";
 import CacheManager from "./cache/CacheManager";
 import PreprocessCache from "../cnx/PARSE/1-Discover/preprocessor/PreprocessCache";
@@ -68,9 +69,6 @@ type TRunConfig = Required<Omit<ITranspilerConfig, "cppRequired">> &
 /**
  * Unified transpiler
  */
-/** 2.1 Analyze's artifact, which Stage 5 takes (#1991) */
-type TAnalyzedFront = Extract<TFrontEndResult, { kind: "analyzed" }>;
-
 class Transpiler {
   private readonly config: TRunConfig;
   private readonly warnings: string[];
@@ -274,8 +272,9 @@ class Transpiler {
       }
       return;
     }
+    const analysis = front.analysis;
     const headerFactsByPath = new Map<string, IHeaderEmissionFacts>();
-    const diagnostics = front.diagnostics;
+    const diagnostics = analysis.diagnostics;
 
     // Stage 5: Plan and Render each C-Next file
     //
@@ -300,11 +299,11 @@ class Transpiler {
       }
 
       const fileResult = rejected
-        ? this._rejectedFileResult(file, front)
-        : this._transpileFile(file, front, headerFactsByPath);
+        ? this._rejectedFileResult(file, analysis)
+        : this._transpileFile(file, analysis, headerFactsByPath);
       this._recordFileResult(
         file.discoveredFile,
-        front.discovery,
+        analysis.discovery,
         fileResult,
         result,
         input.writeOutputToDisk,
@@ -329,7 +328,7 @@ class Transpiler {
     // header is (#1233)
     if (result.success && input.writeOutputToDisk) {
       const headers = Transpiler._headerOutputs(
-        front.discovery,
+        analysis.discovery,
         input.cnextFiles,
         renderedFiles,
       );
@@ -394,7 +393,11 @@ class Transpiler {
     }
     return {
       kind: "analyzed",
-      ...Analyze.run(resolved.program, resolved.sources, resolved.discovery),
+      analysis: Analyze.run(
+        resolved.program,
+        resolved.sources,
+        resolved.discovery,
+      ),
     };
   }
 
@@ -564,7 +567,7 @@ class Transpiler {
    */
   private _rejectedFileResult(
     file: IPipelineFile,
-    front: TAnalyzedFront,
+    front: IAnalysis,
   ): IFileResult {
     const sourcePath = file.path;
     const errors = front.diagnostics
@@ -599,7 +602,7 @@ class Transpiler {
 
   /** Stage 5's input for this file, from 2.1's `Analyze` (#1991) */
   private static _requireAnalyzedFile(
-    front: TAnalyzedFront,
+    front: IAnalysis,
     sourcePath: string,
   ): IAnalyzedFile {
     const analyzed = front.files.get(sourcePath);
@@ -620,7 +623,7 @@ class Transpiler {
    */
   private _transpileFile(
     file: IPipelineFile,
-    front: TAnalyzedFront,
+    front: IAnalysis,
     headerFactsByPath: Map<string, IHeaderEmissionFacts>,
   ): IFileResult {
     const sourcePath = file.path;
