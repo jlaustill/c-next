@@ -596,6 +596,8 @@ error: `.length` is not a built-in property. Use explicit properties instead.
 - A `_byte_length` rounds up to the whole bytes that hold its bits: a 3-bit
   field's `.type_byte_length` is 1, `struct P { bool f; u8 g; }` (9 bits) is 2,
   and `.value_byte_length` of `n = 5` (3 bits) is 1.
+- A string's type row is its declared capacity: `string<8>` has
+  `.type_byte_length` 8; the `\0` counts only in `.memory_byte_length` (9).
 
 ---
 
