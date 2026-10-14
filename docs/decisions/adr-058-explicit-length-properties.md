@@ -598,6 +598,10 @@ error: `.length` is not a built-in property. Use explicit properties instead.
   and `.value_byte_length` of `n = 5` (3 bits) is 1.
 - A string's type row is its declared capacity: `string<8>` has
   `.type_byte_length` 8; the `\0` counts only in `.memory_byte_length` (9).
+- An enum's type row is the fewest bits that hold every member: `enum Mode
+{ A, B, C }` (0 to 2) has `.type_bit_length` 2 and `.type_byte_length` 1.
+  An enum holds one member at a time, so its members are not summed. Its
+  memory row is the C compiler's `sizeof(Mode)`.
 
 ---
 
