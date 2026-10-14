@@ -365,6 +365,20 @@ class OperandTyper {
       : ForeignTypeFacts.operandType(name, ctx.symbolTable, target);
   }
 
+  /** A member of the enum the name names */
+  private static enumMember(enumName: string): TChainValue {
+    return {
+      k: "value",
+      register: false,
+      t: {
+        ...OperandTyper.plain(enumName),
+        category: "enum",
+        enumTypeName: enumName,
+        form: { kind: "enumMember" },
+      },
+    };
+  }
+
   /** A C-Next struct or bitmap the C name names; null for any other symbol */
   private static namedTypeOf(
     cName: string,
@@ -397,7 +411,10 @@ class OperandTyper {
         continue;
       }
       const next = OperandTyper.applyOp(current, op, ctx).next;
-      if (next.k === "type") {
+      if (
+        next.k === "type" ||
+        (next.k === "value" && next.t.form.kind === "enumMember")
+      ) {
         current = next;
         continue;
       }
@@ -1288,6 +1305,16 @@ class OperandTyper {
       case "scope":
         return OperandTyper.memberOfScope(current.scopePath, member, ctx);
       case "type": {
+        // A header enum names its members first (`Color.Red`), as a C-Next
+        // enum does; only a length property measures it. It stays the
+        // header's enum, which ADR-017 does not type (no `enumTypeName`)
+        if (current.t.category === "enum" && !LengthProperty.isLength(member)) {
+          return {
+            k: "value",
+            register: false,
+            t: { ...current.t, form: { kind: "enumMember" } },
+          };
+        }
         // `Point.y` names the field's type, still no value
         const field = OperandTyper.fieldOf(current.t, member, ctx);
         return field.k === "value" ? { k: "type", t: field.t } : field;
@@ -1296,16 +1323,7 @@ class OperandTyper {
         if (OperandTyper.enumReadsProperty(current.name, member, ctx)) {
           return UNKNOWN;
         }
-        return {
-          k: "value",
-          register: false,
-          t: {
-            ...OperandTyper.plain(current.name),
-            category: "enum",
-            enumTypeName: current.name,
-            form: { kind: "enumMember" },
-          },
-        };
+        return OperandTyper.enumMember(current.name);
       case "register": {
         // The register symbol is the one source; the per-file map only
         // records bitmap-typed members

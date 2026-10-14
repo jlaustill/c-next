@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import CResolver from "../../../../../cnx/PARSE/3-Declare/c/index";
+import HeaderParser from "../../../../../cnx/PARSE/2-Parse/HeaderParser";
+import SymbolTable from "../../../../../cnx/PARSE/3-Declare/SymbolTable";
 import TypeNameValueAnalyzer from "../../../../../cnx/TRANSPILE/1-Analyze/TypeNameValueAnalyzer";
 import testAnalysisContextFor from "./testAnalysisContextFor";
 
@@ -96,5 +99,22 @@ scope Shadow {
     }
 }`;
     expect(errors(source)).toEqual([]);
+  });
+
+  it("reads a header enum's member as a value, as a C-Next enum's", () => {
+    const symbolTable = new SymbolTable();
+    const tree = HeaderParser.parseC("typedef enum { HA, HB } HE;\n").syntax;
+    symbolTable.addCSymbols(
+      CResolver.resolve(tree!, "shapes.h", symbolTable).symbols,
+    );
+    const headerErrors = (expr: string) => {
+      const { syntax, context } = testAnalysisContextFor(inMain(expr), {
+        cppMode: false,
+        symbolTable,
+      });
+      return new TypeNameValueAnalyzer(context).analyze(syntax);
+    };
+    expect(headerErrors("HE.HB")).toEqual([]);
+    expect(headerErrors("HE.byte_length")).toEqual([]);
   });
 });
