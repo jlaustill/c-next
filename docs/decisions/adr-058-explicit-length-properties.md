@@ -618,6 +618,8 @@ error: `.length` is not a built-in property. Use explicit properties instead.
 - A bit-field member has no memory of its own, so its `.memory_*` is a compile
   error (`sizeof` cannot take a C bit-field either); the struct that holds it
   still answers `.memory_*`. A C-Next bitmap field is the same.
+- `.memory_char_count` exists only on strings (`string<8>` is 9, its buffer
+  with the `\0`); on anything else it is a compile error.
 
 ---
 
