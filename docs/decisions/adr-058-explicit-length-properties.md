@@ -608,6 +608,8 @@ error: `.length` is not a built-in property. Use explicit properties instead.
 - Where a value's length cannot differ from its type's (a struct, an array, a
   float, a `bool`), `.value_*` gives the same as `.type_*`, so every name works
   on every subject: `Cfg c; c.value_byte_length` is 5.
+- An integer's `.value_char_count` is the characters it prints as in decimal,
+  at runtime: `5` is 1, `255` is 3, and `-5` is 2.
 
 ---
 
