@@ -5,8 +5,8 @@
  * - E0866: an array's initializer has the wrong number of elements for a
  *   dimension
  *
- * 1.2 Parse reports the declaration's form (`ArrayForm`): E0866's
- * not-a-list case, E0874, E0875, E0876 and E0892.
+ * 1.2 Parse reports the declaration's form: the codes whose Source in
+ * `docs/error-codes.md` is `PARSE/2-Parse/ArrayForm.ts`.
  */
 import IBaseAnalysisError from "./IBaseAnalysisError";
 
