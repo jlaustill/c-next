@@ -72,8 +72,9 @@ class HeaderEmissionCapture {
     }
 
     // Issue #933: Use .hpp extension for include guard in C++ mode
-    // Issue #1319: read the run's extension; do not re-derive it from the mode
-    const ext = request.headerExtension;
+    // Issue #1319: the state's getter is the one derivation from the mode;
+    // the `#include` lines read the same getter
+    const ext = state.outputExtensions.header;
     const headerName = CNextSourcePath.withExtension(
       IncludeGuards.identity(request.anchor, sourcePath),
       ext,

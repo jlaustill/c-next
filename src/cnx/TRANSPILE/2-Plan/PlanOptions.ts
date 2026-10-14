@@ -3,7 +3,6 @@
  * hands 2.2 what 2.1 returned and decides nothing in between.
  */
 import type IAnalysis from "../1-Analyze/types/IAnalysis";
-import OutputExtensions from "../../utils/OutputExtensions";
 import invariant from "../../utils/invariant";
 import FileFacts from "../../utils/FileFacts";
 import type ICodeGeneratorOptions from "../types/ICodeGeneratorOptions";
@@ -37,8 +36,6 @@ class PlanOptions {
       ),
       header: {
         anchor: discovery.anchor,
-        // #1428: the mode has one source, the program's
-        headerExtension: OutputExtensions.forCppMode(program.cppMode()).header,
         includes: discovery.includes,
         ownIncludes: includes,
       },

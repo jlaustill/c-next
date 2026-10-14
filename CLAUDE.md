@@ -664,7 +664,7 @@ E0424 is a 2.1 Analyze diagnostic since #1322, and render asserts it never sees 
   made it a parameter: `symbols` (this file's view), `program` (1.4's artifact),
   `symbolTable` (an `IResolvedSymbols`), `reachesForeignHeader`, and `sourceFile`. 2.1 builds it
   itself (`Analyze`) from what 1.4 returned (#1991); `runAnalyzers` also hands
-  some analyzers 1.2's `IValuePositions`. And
+  some analyzers `IValuePositions`, 2.1's own walk of 1.2's syntax. And
   `2-1-analyze-reads-no-later-pass` (`error`, `reachable: true`) makes an
   analyzer that reaches `TranspileState` fail the **`lint`** job — through a
   shared helper as readily as directly. `symbols` and `program` are NON-nullable,

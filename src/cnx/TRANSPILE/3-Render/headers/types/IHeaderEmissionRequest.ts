@@ -18,8 +18,6 @@ interface IHeaderEmissionRequest {
   readonly unmodifiedParams: ReadonlyMap<string, ReadonlySet<string>>;
   /** Where the include guard's path is measured from (ADR-063) */
   readonly anchor: IAnchorFacts;
-  /** The run's header extension (#1319): read, never re-derived from the mode */
-  readonly headerExtension: string;
   /** Every discovered file's includes, from the run's `SourceGraph` */
   readonly includes: ReadonlyMap<string, IFileIncludes>;
   /** This file's entry in `includes`, looked up once, by the host */

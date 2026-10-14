@@ -51,7 +51,9 @@ type TDiscoverySettings = Pick<
 > &
   // #1844: unset is not false. Unset, C++ in a header makes the run C++;
   // `false` asked for C, and C++ met there is E0507.
-  Pick<ITranspilerConfig, "cppRequired" | "parseOnly" | "target" | "pioEnv">;
+  Pick<ITranspilerConfig, "cppRequired"> &
+  // #1991: carried onto `SourceGraph.run`. Unset means off, with no target rung.
+  Pick<ITranspilerConfig, "parseOnly" | "target" | "pioEnv">;
 
 /** The graph before it is frozen, without the facts gathered beside it. */
 type TDiscoveredFiles = Omit<
