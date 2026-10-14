@@ -570,6 +570,19 @@ error: `.length` is not a built-in property. Use explicit properties instead.
 5. **Enums**: what is a C-Next enum's length? It is emitted as a C `enum`, whose size the C compiler picks.
 6. **Strings**: should a string's lengths count its terminator byte?
 
+**Owner direction so far (#1975 review 2, PR #2077):**
+
+- Each kind of length gets its own name, with the kind in front:
+  `.value_bit_length`, `.value_byte_length`, `.value_char_count`,
+  `.type_bit_length`, `.type_byte_length`, `.type_char_count`,
+  `.memory_bit_length`, `.memory_byte_length`, `.memory_char_count`.
+- The memory row exists: "I mainly rejected C's sizeof because I wasn't
+  focusing on these 3 different types, after spelling them out, it seems like
+  it couldn't hurt, even if it only ever gets used for displaying memory used
+  to a user". This reopens ADR-023.
+- `.type_char_count` is the number of letters in the type's name (`u8` is 2,
+  `u32` is 3); the owner sees no use case for it yet.
+
 ---
 
 ## Diagnostics
