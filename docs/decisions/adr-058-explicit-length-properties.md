@@ -622,6 +622,8 @@ error: `.length` is not a built-in property. Use explicit properties instead.
   with the `\0`); on anything else it is a compile error.
 - `*_element_count` exists only on arrays and structs (a struct counts its
   fields); on anything else it is a compile error, as `.element_count` is.
+- The memory row works on a C header pointer and on a struct that holds one
+  (`sizeof(o.p)`, `sizeof(Odd)`); their type row stays E0867.
 
 ---
 
