@@ -69,7 +69,6 @@ class CallArgumentPassing {
         signatureName,
         index,
         resolved.param,
-        resolved.isCrossFile,
         orchestrator,
       )
         ? "value"
@@ -82,7 +81,6 @@ class CallArgumentPassing {
     funcExpr: string,
     idx: number,
     targetParam: IArgumentPassing["param"],
-    isCrossFile: boolean,
     orchestrator: IPlanQueries,
   ): boolean {
     if (!targetParam) return false;
@@ -94,14 +92,9 @@ class CallArgumentPassing {
       idx,
     );
 
-    // Issue #786: For cross-file calls, check if parameter is a known primitive type.
-    // Known primitives (u8-u64, i8-i64, bool) should always be pass-by-value.
-    // This handles the case where local passByValueParams isn't populated for cross-file functions.
-    const isCrossFilePrimitive =
-      isCrossFile &&
-      CallExprUtils.isKnownPrimitiveType(targetParam.baseType) &&
-      !orchestrator.isKnownStruct(targetParam.baseType) &&
-      !CallExprUtils.isStringType(targetParam.baseType);
+    // #786 forced a primitive from another file by value, because only this
+    // file's parameters were known then. 1.4 now decides eligibility across
+    // every file (#1511), so a modified one is passed by reference here too.
 
     // Issue #551: Unknown types (external enums, typedefs) use pass-by-value
     //
@@ -117,15 +110,10 @@ class CallArgumentPassing {
       !CallExprUtils.isKnownPrimitiveType(targetParam.baseType) &&
       !CallExprUtils.isStringType(targetParam.baseType) &&
       !isFloatParam &&
-      !isEnumParam &&
-      !isCrossFilePrimitive;
+      !isEnumParam;
 
     return (
-      isFloatParam ||
-      isEnumParam ||
-      isPrimitivePassByValue ||
-      isCrossFilePrimitive ||
-      isUnknownType
+      isFloatParam || isEnumParam || isPrimitivePassByValue || isUnknownType
     );
   }
 }

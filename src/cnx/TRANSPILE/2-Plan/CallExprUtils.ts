@@ -46,7 +46,7 @@ class CallExprUtils {
 
   /**
    * Issue #315: Resolve target parameter info from local signature or cross-file IResolvedSymbols.
-   * Returns the parameter info and whether it came from a cross-file lookup.
+   * Returns the parameter info.
    *
    * Issue #1139: `funcName` is a transpiled C name (`Sensors__readValue`), so
    * the cross-file lookup resolves by canonical identity. Asking the bare-name
@@ -61,11 +61,10 @@ class CallExprUtils {
     symbolTable: IResolvedSymbols | null,
   ): {
     param: IFunctionSignature["parameters"][0] | undefined;
-    isCrossFile: boolean;
   } {
     const localParam = sig?.parameters[paramIndex];
     if (localParam) {
-      return { param: localParam, isCrossFile: false };
+      return { param: localParam };
     }
 
     if (symbolTable) {
@@ -86,13 +85,12 @@ class CallExprUtils {
               isConst: p.isConst,
               isArray: p.isArray,
             },
-            isCrossFile: true,
           };
         }
       }
     }
 
-    return { param: undefined, isCrossFile: false };
+    return { param: undefined };
   }
 }
 

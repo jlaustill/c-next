@@ -73,7 +73,6 @@ describe("CallExprUtils", () => {
       const result = CallExprUtils.resolveTargetParam(sig, 0, "myFunc", null);
 
       expect(result.param).toEqual(sig.parameters[0]);
-      expect(result.isCrossFile).toBe(false);
     });
 
     it("returns undefined when signature has no parameter at index", () => {
@@ -87,7 +86,6 @@ describe("CallExprUtils", () => {
       const result = CallExprUtils.resolveTargetParam(sig, 1, "myFunc", null);
 
       expect(result.param).toBeUndefined();
-      expect(result.isCrossFile).toBe(false);
     });
 
     it("returns undefined when no signature and no symbol table", () => {
@@ -99,7 +97,6 @@ describe("CallExprUtils", () => {
       );
 
       expect(result.param).toBeUndefined();
-      expect(result.isCrossFile).toBe(false);
     });
 
     it("falls back to SymbolTable when no local signature", () => {
@@ -127,7 +124,6 @@ describe("CallExprUtils", () => {
         isConst: true,
         isArray: false,
       });
-      expect(result.isCrossFile).toBe(true);
       // Issue #1139: cross-file resolution goes by transpiled C name, which is
       // what codegen holds; the bare-name index misses every scoped function.
       expect(symbolTable.getOverloadsByCName).toHaveBeenCalledWith("crossFunc");
@@ -149,7 +145,6 @@ describe("CallExprUtils", () => {
       );
 
       expect(result.param).toBeUndefined();
-      expect(result.isCrossFile).toBe(false);
     });
 
     it("skips function symbols without parameter at index", () => {
@@ -172,7 +167,6 @@ describe("CallExprUtils", () => {
       );
 
       expect(result.param).toBeUndefined();
-      expect(result.isCrossFile).toBe(false);
     });
 
     it("prefers local signature over SymbolTable", () => {
@@ -201,7 +195,6 @@ describe("CallExprUtils", () => {
       );
 
       expect(result.param).toEqual(sig.parameters[0]);
-      expect(result.isCrossFile).toBe(false);
       expect(symbolTable.getOverloadsByCName).not.toHaveBeenCalled();
     });
   });
