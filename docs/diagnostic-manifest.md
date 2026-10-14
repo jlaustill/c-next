@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-588 fixture(s) assert a diagnostic; 578 carry a code.
+591 fixture(s) assert a diagnostic; 581 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -399,6 +399,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1624-variable-above-declaration/variable-above-declaration.test.cnx             | E0427               |
 | tests/bugs/issue-1629-case-label-undeclared/case-label-duplicate-spelling.test.cnx               | E0713               |
 | tests/bugs/issue-1629-case-label-undeclared/case-label-undeclared.test.cnx                       | E0427               |
+| tests/bugs/issue-1632-break-assignment/break-assignment.test.cnx                                 | E0703               |
 | tests/bugs/issue-1643-self-referential-initializer/concatenation-local.test.cnx                  | E0427               |
 | tests/bugs/issue-1643-self-referential-initializer/constructor-arg-below.test.cnx                | E0433               |
 | tests/bugs/issue-1643-self-referential-initializer/constructor-undeclared-self.test.cnx          | E0433               |
@@ -508,6 +509,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1981-struct-cycle/direct.test.cnx                                               | E0426               |
 | tests/bugs/issue-1981-struct-cycle/mutual.test.cnx                                               | E0426               |
 | tests/bugs/issue-1991-for-header-enum-assign/for-header-enum-assign.test.cnx                     | E0428               |
+| tests/bugs/issue-1991-form-error-halts-run/form-error-halts-run.test.cnx                         | E0201               |
+| tests/bugs/issue-1991-form-error-halts-run/form-errors-source-order.test.cnx                     | E0202, E0912        |
 | tests/bugs/issue-2001-qualified-write-initializes-local/global-write-local-shadow.test.cnx       | E0381               |
 | tests/bugs/issue-2001-qualified-write-initializes-local/global-write-scope-member.test.cnx       | E0381               |
 | tests/bugs/issue-2001-qualified-write-initializes-local/local-write-scope-member.test.cnx        | E0381               |
