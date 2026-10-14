@@ -940,7 +940,7 @@ describe("CallExprGenerator", () => {
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn(() => true),
         isFloatType: vi.fn(() => false),
-        isParameterPassByValue: vi.fn(() => false),
+        isParameterPassByValue: vi.fn(() => true),
         isKnownStruct: vi.fn(() => false),
       });
 
@@ -957,11 +957,12 @@ describe("CallExprGenerator", () => {
       expect(symbolTable.getOverloadsByCName).toHaveBeenCalledWith(
         "crossFileFunc",
       );
-      // Issue #786: Primitive types like u32 are now passed by value for cross-file calls
+      // #1991: 1.4's whole-program eligibility says the callee leaves it
+      // unmodified, so it is passed by value, from any file
       expect(result.code).toBe("crossFileFunc(myVal)");
     });
 
-    it("passes small primitive by value for cross-file functions", () => {
+    it("passes a cross-file primitive its callee modifies by reference", () => {
       const argExpressions = [createMockExpressionContext("flag")];
       const symbolTable = {
         getOverloadsByCName: vi.fn(() => [
@@ -992,7 +993,9 @@ describe("CallExprGenerator", () => {
         orchestrator,
       );
 
-      expect(result.code).toBe("crossFileFunc(flag)");
+      // #1991: a primitive is not forced by value for coming from another
+      // file (#786); 1.4 says the callee modifies it
+      expect(result.code).toBe("crossFileFunc(&flag)");
     });
 
     it("skips non-function symbols in SymbolTable overloads", () => {
