@@ -43,7 +43,6 @@ import IComment from "../types/IComment";
 import TYPE_MAP from "./2-Plan/types/TYPE_MAP";
 import TParameterInfo from "../types/TParameterInfo";
 import type IBoundParameter from "./types/IBoundParameter";
-import ICodeGeneratorOptions from "./types/ICodeGeneratorOptions";
 import TypeValidator from "./2-Plan/TypeValidator";
 import IGeneratorOutput from "./3-Render/codegen/generators/IGeneratorOutput";
 import ComplianceAnnotations from "./2-Plan/ComplianceAnnotations";
@@ -159,7 +158,9 @@ import IMemberSeparatorDeps from "./3-Render/codegen/types/IMemberSeparatorDeps"
 import IParameterDereferenceDeps from "./3-Render/codegen/types/IParameterDereferenceDeps";
 import ISeparatorContext from "./3-Render/codegen/types/ISeparatorContext";
 import TypeGenerationHelper from "./2-Plan/TypeGenerationHelper";
-import type IAnalyzedFile from "../types/IAnalyzedFile";
+import type IAnalysis from "./1-Analyze/types/IAnalysis";
+import AnalyzedFiles from "./1-Analyze/AnalyzedFiles";
+import PlanOptions from "./2-Plan/PlanOptions";
 import type IFilePlan from "./2-Plan/types/IFilePlan";
 import type IRenderLedger from "./3-Render/types/IRenderLedger";
 import type IPlannedParameter from "./3-Render/codegen/types/IPlannedParameter";
@@ -236,9 +237,12 @@ class CodeGenWalker {
 
   /**
    * 2.2 Plan: every decision 2.3 Render reads for this file, made before any
-   * of it is written. `render` takes what this returns (#1991).
+   * of it is written, from 2.1's artifact and the file's key in it. `render`
+   * takes what this returns (#1991).
    */
-  plan(file: IAnalyzedFile, options: ICodeGeneratorOptions): IFilePlan {
+  plan(sourcePath: string, analysis: IAnalysis): IFilePlan {
+    const file = AnalyzedFiles.fileOf(analysis, sourcePath);
+    const options = PlanOptions.of(sourcePath, analysis);
     const state = this.host.state;
     const inputs = FilePlanner.planInputs(options);
     state.beginPlan(inputs, this.host);
@@ -1421,18 +1425,11 @@ class CodeGenWalker {
     );
   }
 
-  /**
-   * Assemble the final generated output.
-   */
-  /** 2.2's decisions for the file, in the order each needs the ones before it */
   /** #1323: the header's input, captured while this file's render state is warm */
   private captureHeader(plan: IFilePlan): IHeaderEmissionFacts | null {
-    if (plan.header === null) return null;
-    const sourcePath = plan.setup.sourcePath;
-    invariant(sourcePath !== null, "a file with a header has a source path");
     return HeaderEmissionCapture.capture({
       ...plan.header,
-      sourcePath,
+      sourcePath: plan.setup.sourcePath,
       program: plan.setup.program,
       typeInput: plan.setup.symbols,
       state: this.host.state,
@@ -2729,10 +2726,10 @@ class CodeGenWalker {
     const initializer = decl.initializer;
     // #1822: the inferred path emits its one counted size as the whole suffix,
     // which is right only for a one-dimensional array. E0892 rejects every
-    // other empty dimension in pass 2.1.
+    // other empty dimension in pass 1.2.
     invariant(
       !hasEmptyDimension || CodeGenWalker.arrayRank(decl) === 1,
-      `an array that omits a size is one-dimensional -- E0892 rejects '${decl.name}' in pass 2.1, before this runs`,
+      `an array that omits a size is one-dimensional -- E0892 rejects '${decl.name}' in pass 1.2, before this runs`,
     );
     return {
       isArray: true,
@@ -2803,7 +2800,7 @@ class CodeGenWalker {
     const size = declaration === null ? null : this.countedSize(declaration);
     invariant(
       size !== null,
-      `an omitted array size is counted from a one-dimensional declaration's list or string literal -- E0892 rejects '${declaration?.name ?? "a struct field"}' in pass 2.1, before this runs`,
+      `an omitted array size is counted from a one-dimensional declaration's list or string literal -- E0892 rejects '${declaration?.name ?? "a struct field"}' in pass 1.2, before this runs`,
     );
     return size;
   }
@@ -2929,7 +2926,7 @@ class CodeGenWalker {
     if (elementCapacity === null) {
       invariant(
         false,
-        "a string array states its element capacity -- E0862 rejects an unsized one in pass 2.1",
+        "a string array states its element capacity -- E0862 rejects an unsized one in pass 1.2",
       );
     }
     let dimensions = ArrayDimensionUtils.renderArrayTypeDimensions(

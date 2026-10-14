@@ -94,7 +94,7 @@ class CHeaderLowering {
       ),
       typeSpecifiers: CHeaderLowering.typeSpecifiers(declarationSpecifiers),
       struct: structSpec ? CHeaderLowering.struct(structSpec) : null,
-      enum: enumSpec ? CHeaderLowering.enum(enumSpec, span) : null,
+      enum: enumSpec ? CHeaderLowering.enum(enumSpec) : null,
       declarators: initDeclaratorList
         ? initDeclaratorList.initDeclarator().flatMap((initDeclarator) => {
             const declarator = initDeclarator.declarator();
@@ -250,10 +250,7 @@ class CHeaderLowering {
     });
   }
 
-  private static enum(
-    enumSpec: EnumSpecifierContext,
-    span: ReturnType<typeof ParserUtils.getSpan>,
-  ): ICEnumSyntax {
+  private static enum(enumSpec: EnumSpecifierContext): ICEnumSyntax {
     return {
       name: enumSpec.Identifier()?.getText() ?? null,
       members: (enumSpec.enumeratorList()?.enumerator() ?? []).flatMap(
@@ -262,9 +259,7 @@ class CHeaderLowering {
             .enumerationConstant()
             ?.Identifier()
             ?.getText();
-          return name
-            ? [{ name, span: ParserUtils.getSpanOr(enumerator, span) }]
-            : [];
+          return name ? [{ name, span: ParserUtils.getSpan(enumerator) }] : [];
         },
       ),
     };

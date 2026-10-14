@@ -16,9 +16,7 @@ describe("Resolve.program", () => {
         ]),
       ),
     );
-    const resolved = Resolve.program(declared, {
-      target: {},
-    });
+    const resolved = Resolve.program(declared);
 
     expect(resolved.sources).toBe(declared.declared);
     expect(resolved.discovery).toBe(declared.discovery);
@@ -34,9 +32,7 @@ describe("Resolve.program", () => {
         ["/p/a.cnx", { dump: "#define SCALE_F 2.5f", complete: false }],
       ]),
     };
-    const resolved = Resolve.program(Declare.sources(Parse.sources(graph)), {
-      target: {},
-    });
+    const resolved = Resolve.program(Declare.sources(Parse.sources(graph)));
 
     expect(resolved.program.headerMacro("/p/a.cnx", "SCALE_F")).not.toBeNull();
     expect(resolved.program.headerMacrosUnread("/p/a.cnx")).toBe(true);

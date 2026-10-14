@@ -166,14 +166,9 @@ class UndeclaredValueWalk {
     // ADR-026: `break`/`continue` parse as identifiers and are rejected by
     // E0703, which names the structured alternative. Reporting them as
     // undefined would be true and useless.
-    //
-    // That reasoning is the READ position's, and it does not carry to the
-    // write position: E0703 is raised from `LoopAnalyzer`'s
-    // `enterPrimaryExpression` alone, so `break <- 5` is exempted here and
-    // owned by nothing -- it reaches the C compiler as `break = 5;`. The
-    // exemption stays shared rather than being split, because narrowing it is
-    // a diagnostic decision for the rule that owns those spellings; tracked as
-    // #1632 with the reproduction.
+    // The write position is E0703's too: `LoopAnalyzer` walks assignment
+    // targets, so `break <- 5` is E0703 rather than `break = 5;` in the C
+    // (#1632, fixture `tests/bugs/issue-1632-break-assignment`).
     if (REJECTED_KEYWORDS.has(name) || BUILTIN_TYPE_NAMES.has(name)) {
       return;
     }

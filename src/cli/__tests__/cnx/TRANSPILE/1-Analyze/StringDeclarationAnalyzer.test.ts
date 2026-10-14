@@ -98,12 +98,6 @@ describe("StringDeclarationAnalyzer", () => {
   });
 
   describe("what 1.2 reads, it leaves to 1.2 (#1991)", () => {
-    it("does not judge a file-scope string 1.2 rejected (E0863)", () => {
-      expect(
-        codes('const string<8> src <- "hi";\nstring<1> copied <- src;'),
-      ).toEqual([]);
-    });
-
     it("judges a literal at file scope, and a string in a scope's method", () => {
       const source = [
         'string<1> greeting <- "hello";',

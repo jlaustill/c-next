@@ -24,19 +24,16 @@ import Write from "../../cnx/WRITE/1-Write/Write";
  * step must also give one run's answers again, on fresh objects, after a
  * second run whose included file changes what the first file's C must be.
  *
- * Not checked: 2.1's fourth argument, the host function 2.1 calls to build
- * each file's analysis inputs. What it reads is not watched.
- *
  * Arguments that are not artifacts are named per entry: the filesystem port,
- * 1.1's run inputs, and the walker's per-file options. The symbol table and
+ * 1.1's run inputs, and 2.2's file key. The symbol table and
  * registry are 1.3's artifact data (#1991 part B): 1.3 builds them from the
  * headers 1.2 parsed, and 1.4 reads them off 1.3's result.
  *
  * Mutation-checked: handing each of 1.2 through 2.3 a copy of its artifact,
  * or 3.1 text 2.3 did not render, fails one test here per boundary. So does
  * a host that keeps run 1's program, a 2.2 cache keyed by path, a static the
- * host sets and 2.2 reads, a write to a path 1.1 didn't name, and a 2.2
- * option the host rebuilt.
+ * host sets and 2.2 reads, a write to a path 1.1 didn't name, and a copy of
+ * 2.1's artifact (`{ ...analysis }`) handed to 2.2.
  */
 interface ICall {
   readonly pass: string;
@@ -153,23 +150,6 @@ describe("#1991: each pass takes only what the pass before it returned", () => {
     return app as string;
   }
 
-  /** `value` is one 2.1 returned, or a plain record of such values */
-  function expectCarried(
-    pass: string,
-    value: unknown,
-    held: ReadonlySet<unknown>,
-  ): void {
-    if (value === null || typeof value !== "object" || held.has(value)) {
-      return;
-    }
-    const record =
-      Array.isArray(value) || Object.getPrototypeOf(value) === Object.prototype;
-    expect(record, `${pass} received an object 2.1 did not return`).toBe(true);
-    for (const field of Object.values(value)) {
-      expectCarried(pass, field, held);
-    }
-  }
-
   function of(pass: string): ICall[] {
     return calls.filter((call) => call.pass === pass);
   }
@@ -235,43 +215,38 @@ describe("#1991: each pass takes only what the pass before it returned", () => {
     expect(only("1.4").args[0]).toBe(only("1.3").returned);
   });
 
-  it("2.1 Analyze takes 1.4's program, sources and 1.1 facts", async () => {
+  it("2.1 Analyze takes 1.4's program, sources and 1.1 facts, and nothing else", async () => {
     await run();
     const analyze = only("2.1");
-    for (const argument of analyze.args.slice(0, 3)) {
+    expect(analyze.args).toHaveLength(3);
+    for (const argument of analyze.args) {
       expectFrom("2.1", argument, [only("1.4")]);
     }
   });
 
-  it("2.2 Plan takes each file's program from 2.1", async () => {
+  it("2.2 Plan takes one of 2.1's file keys and 2.1's artifact itself, and nothing else", async () => {
     await run();
+    const analysis = only("2.1").returned as {
+      files: ReadonlyMap<string, unknown>;
+    };
+    const files = [...analysis.files.keys()];
     const plans = of("2.2");
     expect(plans.length).toBeGreaterThan(1);
     for (const plan of plans) {
-      expectFrom("2.2", plan.args[0], [only("2.1")]);
-      expectFrom("2.2", (plan.args[1] as { program: unknown }).program, [
-        only("2.1"),
-      ]);
+      expect(plan.args).toHaveLength(2);
+      expect(files).toContain(plan.args[0]);
+      // Nothing the host computes reaches 2.2: no options object, no copy
+      expect(plan.args[1]).toBe(analysis);
     }
+    expect(new Set(plans.map((plan) => plan.args[0])).size).toBe(plans.length);
   });
 
-  it("2.2 Plan takes every option from 2.1", async () => {
+  it("1.2, 1.3, 1.4, 2.3 and the header step take one argument each", async () => {
     await run();
-    const held = reachable(only("2.1").returned);
-    for (const plan of of("2.2")) {
-      const options = plan.args[1] as {
-        program: { codeGenSymbolsFor(path: string): unknown };
-        sourcePath: string;
-        symbolInfo: unknown;
-      };
-      // 1.4 keeps each file's symbol view behind the program's query
-      expect(options.symbolInfo).toBe(
-        options.program.codeGenSymbolsFor(options.sourcePath),
-      );
-      for (const [name, option] of Object.entries(options)) {
-        if (name !== "symbolInfo") {
-          expectCarried(`2.2 option ${name}`, option, held);
-        }
+    for (const pass of ["1.2", "1.3", "1.4", "2.3", "2.3 headers"]) {
+      expect(of(pass).length, `${pass} ran`).toBeGreaterThan(0);
+      for (const call of of(pass)) {
+        expect(call.args, `${pass}'s arguments`).toHaveLength(1);
       }
     }
   });
@@ -308,12 +283,6 @@ describe("#1991: each pass takes only what the pass before it returned", () => {
     }
   });
 
-  it("2.3's header step is given nothing but 2.3's header input", async () => {
-    await run();
-    // #1428: the mode comes in the facts, as the program 2.3 rendered against
-    expect(only("2.3 headers").args).toHaveLength(1);
-  });
-
   it("3.1 Write writes to the paths 1.1 named", async () => {
     await run();
     const named = new Set<string>();
@@ -345,7 +314,7 @@ describe("#1991: each pass takes only what the pass before it returned", () => {
     }
   });
 
-  it("2.2 Plan needs nothing but 2.1's file and its options", async () => {
+  it("2.2 Plan needs nothing but 2.1's file and artifact", async () => {
     await run();
     const plans = of("2.2");
     expect(plans.length).toBeGreaterThan(1);

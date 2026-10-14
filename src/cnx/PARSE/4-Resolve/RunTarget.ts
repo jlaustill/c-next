@@ -63,8 +63,7 @@ class RunTarget {
       RunTarget.readFile(file, inputs.catalog, declared, errors);
     }
 
-    // Serve passes "" for "no target"; it names nothing.
-    const option = inputs.option || undefined;
+    const option = inputs.option;
     const fromOption = option ? inputs.catalog.get(option) : undefined;
     if (option && !fromOption) {
       errors.push(RunTarget.unknown(option, inputs.catalog, null));

@@ -41,7 +41,7 @@ class HeaderEmissionCapture {
    * There is now only one caller, and nothing downstream of this method's
    * return value ever reads `CodeGenState` again -- see `IHeaderEmissionFacts`.
    *
-   * Still call this exactly once per file, from the host's `_transpileFile()`, while
+   * Still call this exactly once per file, from `CodeGenWalker.captureHeader`, while
    * that file's state is warm: `TranspileState.needsISR`,
    * `generatedStructInits`, `callbackTypes` and the auto-const/opaque
    * resolution inside `convertToHeaderSymbols` are ALL per-file, cleared by
@@ -72,8 +72,9 @@ class HeaderEmissionCapture {
     }
 
     // Issue #933: Use .hpp extension for include guard in C++ mode
-    // Issue #1319: read the run's extension; do not re-derive it from the mode
-    const ext = request.headerExtension;
+    // Issue #1319: the state's getter is the one derivation from the mode;
+    // the `#include` lines read the same getter
+    const ext = state.outputExtensions.header;
     const headerName = CNextSourcePath.withExtension(
       IncludeGuards.identity(request.anchor, sourcePath),
       ext,

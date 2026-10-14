@@ -69,30 +69,24 @@ class StringDeclarationCheck {
       return;
     }
     if (declaration.kind === "variableDeclaration") {
-      this.variable(declaration, false);
+      this.variable(declaration);
       return;
     }
     if (declaration.kind !== "function") return;
     for (const statement of StatementNodes.of(declaration.body.statements)) {
       if (statement.kind === "variableDeclaration") {
-        this.variable(statement, true);
+        this.variable(statement);
       }
     }
   }
 
-  private variable(
-    declaration: IVariableDeclarationSyntax,
-    insideFunction: boolean,
-  ): void {
+  private variable(declaration: IVariableDeclarationSyntax): void {
     const type = declaration.type;
     // An inferred const capacity always fits; a string array's elements are
     // checked where they are written
     if (type.kind !== "string" || type.capacity === null) return;
     const initializer = declaration.initializer;
     if (initializer === null) return;
-    // 1.2 reported any other file-scope initializer (E0863)
-    if (!insideFunction && !ExpressionShape.isStringLiteral(initializer))
-      return;
     this.checkFit(
       declaration.span,
       initializer,
