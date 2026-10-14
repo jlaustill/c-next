@@ -51,13 +51,14 @@ type TDiscoverySettings = Pick<
 > &
   // #1844: unset is not false. Unset, C++ in a header makes the run C++;
   // `false` asked for C, and C++ met there is E0507.
-  Pick<ITranspilerConfig, "cppRequired">;
+  Pick<ITranspilerConfig, "cppRequired" | "parseOnly" | "target" | "pioEnv">;
 
 /** The graph before it is frozen, without the facts gathered beside it. */
 type TDiscoveredFiles = Omit<
   ISourceGraph,
   | "includes"
   | "anchor"
+  | "run"
   | "headerSources"
   | "cachedHeaders"
   | "recoveredDeclarations"
@@ -589,6 +590,14 @@ class Discover {
       outputs: this._outputs(files, cppMode),
       targetCatalog: this._targetCatalog(),
       headerMacroDumps,
+      run: {
+        debugMode: this.settings.debugMode,
+        parseOnly: this.settings.parseOnly ?? false,
+        target: {
+          option: this.settings.target || undefined,
+          pioEnv: this.settings.pioEnv || undefined,
+        },
+      },
     });
   }
 

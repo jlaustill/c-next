@@ -19,6 +19,7 @@ function testSourceGraph(
   | "headerSources"
   | "cachedHeaders"
   | "recoveredDeclarations"
+  | "run"
 > {
   const catalog = Installation.catalog(NodeFileSystem.instance);
   return {
@@ -37,6 +38,7 @@ function testSourceGraph(
     headerSources: new Map(),
     cachedHeaders: new Map(),
     recoveredDeclarations: null,
+    run: { debugMode: false, parseOnly: false, target: {} },
     targetCatalog: {
       path: catalog,
       text: NodeFileSystem.instance.readFile(catalog),

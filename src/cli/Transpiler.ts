@@ -49,7 +49,6 @@ import Declare from "../cnx/PARSE/3-Declare/Declare";
 import Analyze from "../cnx/TRANSPILE/1-Analyze/Analyze";
 import Resolve from "../cnx/PARSE/4-Resolve/Resolve";
 import type IResolvedProgram from "../cnx/PARSE/4-Resolve/types/IResolvedProgram";
-import type IAnalyzerOptions from "../cnx/TRANSPILE/1-Analyze/types/IAnalyzerOptions";
 import type TFrontEndResult from "./types/TFrontEndResult";
 import type IDiagnostics from "../cnx/types/IDiagnostics";
 import type ICodeGenSymbols from "../cnx/types/ICodeGenSymbols";
@@ -400,15 +399,7 @@ class Transpiler {
     }
     return {
       kind: "analyzed",
-      ...Analyze.run(
-        resolved.program,
-        resolved.sources,
-        resolved.discovery,
-        this.config.parseOnly
-          ? null
-          : (file, program, discovery) =>
-              this._analysisInputs(file, program, discovery),
-      ),
+      ...Analyze.run(resolved.program, resolved.sources, resolved.discovery),
     };
   }
 
@@ -557,12 +548,7 @@ class Transpiler {
       // reading the set any earlier would drop it from `externalStructFields` --
       // silently exempting it from ADR-016 init-completeness checking, which is
       // the one consumer of the fact.
-      const resolved = Resolve.program(declared, {
-        target: {
-          option: this.config.target,
-          pioEnv: this.config.pioEnv || undefined,
-        },
-      });
+      const resolved = Resolve.program(declared);
       // 1.4 completed 1.3's table with every file's symbols
       result.symbolsCollected = declared.symbolTable.size;
       return result.success ? resolved : null;
@@ -571,64 +557,6 @@ class Transpiler {
       result.success = false;
       return null;
     }
-  }
-
-  /**
-   * One file's 2.1 inputs, which `Analyze` hands its analyzers.
-   *
-   * Stage 4d, over the WHOLE program (#1320): every file is analyzed before
-   * Stage 5 plans any of them. That order is the pass boundary
-   * `docs/architecture/README.md` specifies -- "After **1.4**, nothing may
-   * compute a cross-file fact. A pass that needs one reads it from `Program`,
-   * which is complete before 2.1 begins."
-   *
-   * The per-file `CodeGenState` an analyzer reads is established here, the same
-   * way and from the same source as before the hoist -- `symbols` is a view of
-   * `Program`, which 1.4 completed, so it does not depend on any file having
-   * been emitted.
-   */
-  private _analysisInputs(
-    file: IPipelineFile,
-    program: IProgram,
-    discovery: TDiscoveryFacts,
-  ): IAnalyzerOptions {
-    const sourcePath = file.path;
-
-    // #1241: attribute ADR provenance to the file being analyzed. Analysis runs
-    // before the generator exists, so a rule firing in `runAnalyzers` would
-    // otherwise be credited to whichever file was begun last -- or dropped on
-    // the first, which reads identically to "this rule never fires".
-    AdrProvenance.beginFile(sourcePath);
-
-    const symbols = this._establishPerFileCodeGenState(sourcePath, program);
-    const includes = Transpiler._includesOf(discovery, sourcePath);
-
-    // #1322: the ADR-010 include facts are handed in rather than read off
-    // CodeGenState, whose `sourcePath` is not written until `generate()` and
-    // so holds another file's value here.
-    // #1452: asserted, not defaulted. Stage 3 builds `Program` and returns
-    // false on failure before this runs, so a null here is a broken stage
-    // order -- and a default would only move the failure: ADR-010's rules
-    // read discovery's per-directive answers through `Program` (#1672), and
-    // an empty set of answers is not "this file includes nothing". Same
-    // reasoning as the conflict check.
-    return {
-      // #1456: handed over rather than reached for. Nineteen analyzer sites
-      // used to read these off `CodeGenState` themselves, for facts this
-      // caller is already holding.
-      context: {
-        symbols,
-        program,
-        symbolTable: program.symbolTable(),
-        reachesForeignHeader: file.reachesForeignHeader,
-        sourceFile: sourcePath,
-      },
-      includes: {
-        resolutions: includes.resolutions,
-        cnextAlternatives: includes.cnextAlternatives,
-        kinds: includes.kinds,
-      },
-    };
   }
 
   /**

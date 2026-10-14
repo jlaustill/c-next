@@ -9,6 +9,7 @@ import type IHeaderSource from "./IHeaderSource";
 import type TCachedHeaderRead from "./TCachedHeaderRead";
 import type IOutputPaths from "./IOutputPaths";
 import type IRecoveredDeclarations from "./IRecoveredDeclarations";
+import type IRunSettings from "./IRunSettings";
 
 /**
  * `SourceGraph` — the artifact 1.1 Discover emits (#1444).
@@ -124,6 +125,7 @@ interface ISourceGraph {
   readonly targetCatalog: ITargetCatalogFile;
 
   /** #1688: each C-Next file with a C include, to its header macro dump */
+  readonly run: IRunSettings;
   readonly headerMacroDumps: ReadonlyMap<string, IHeaderMacroDump>;
 }
 

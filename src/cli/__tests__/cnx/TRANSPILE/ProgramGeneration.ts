@@ -109,6 +109,7 @@ class ProgramGeneration {
     // #1991: 2.1's walk of the file, as `Analyze.run` hands it to 2.2
     const resolved = state.program;
     const analyzed: IAnalyzedFile = {
+      path: sourcePath,
       program,
       declarationCount: program.declarations.length,
       valuePositions: ValuePositions.of(program, {

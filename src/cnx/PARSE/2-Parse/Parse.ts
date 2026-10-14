@@ -62,6 +62,7 @@ class Parse {
         includes: graph.includes,
         outputs: graph.outputs,
         headerMacroDumps: graph.headerMacroDumps,
+        run: graph.run,
       },
     };
   }

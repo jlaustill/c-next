@@ -9,18 +9,19 @@ import Resolve from "../../../PARSE/4-Resolve/Resolve";
 import testSourceGraph from "../../../PARSE/1-Discover/__testUtils__/testSourceGraph";
 
 function resolved() {
-  const parsed = Parse.sources(
-    testSourceGraph([
-      Discover.inMemoryFile("void main() { }", "/p/app.cnx"),
-      {
-        ...Discover.inMemoryFile("u32 shared <- 0;", "/p/lib.cnx"),
-        symbolOnly: true,
-      },
-    ]),
+  // Parse-only: these cases are about what 2.1 hands on, not what it finds
+  const graph = testSourceGraph([
+    Discover.inMemoryFile("void main() { }", "/p/app.cnx"),
+    {
+      ...Discover.inMemoryFile("u32 shared <- 0;", "/p/lib.cnx"),
+      symbolOnly: true,
+    },
+  ]);
+  return Resolve.program(
+    Declare.sources(
+      Parse.sources({ ...graph, run: { ...graph.run, parseOnly: true } }),
+    ),
   );
-  return Resolve.program(Declare.sources(parsed), {
-    target: {},
-  });
 }
 
 describe("Analyze.run", () => {
@@ -30,7 +31,6 @@ describe("Analyze.run", () => {
       input.program,
       input.sources,
       input.discovery,
-      null,
     );
 
     expect([...files.keys()]).toEqual(["/p/app.cnx"]);
@@ -41,13 +41,12 @@ describe("Analyze.run", () => {
     expect(discovery).toBe(input.discovery);
   });
 
-  it("analyzes nothing when parse-only mode hands it no inputs", () => {
+  it("analyzes nothing in a parse-only run", () => {
     const input = resolved();
     const { diagnostics } = Analyze.run(
       input.program,
       input.sources,
       input.discovery,
-      null,
     );
 
     expect(diagnostics.hasErrors()).toBe(false);

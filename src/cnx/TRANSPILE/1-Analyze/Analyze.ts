@@ -11,7 +11,9 @@ import type IDiagnostics from "../../types/IDiagnostics";
 import type IProgram from "../../types/IProgram";
 import type ISourceSyntax from "../../types/ISourceSyntax";
 import type ITranspileError from "../../types/ITranspileError";
+import AdrProvenance from "../../instrumentation/AdrProvenance";
 import CaughtError from "../../utils/CaughtError";
+import invariant from "../../utils/invariant";
 import Diagnostics from "./Diagnostics";
 import runAnalyzers from "./runAnalyzers";
 import type IAnalyzerOptions from "./types/IAnalyzerOptions";
@@ -19,8 +21,8 @@ import type IFileAnalysis from "./types/IFileAnalysis";
 
 class Analyze {
   /**
-   * Each file that produces output, analyzed. `analysisInputs` is null in
-   * parse-only mode, which analyzes nothing.
+   * Each file that produces output, analyzed. A parse-only run (1.1's
+   * `run.parseOnly`) analyzes nothing.
    */
   static run(
     // 1.4's artifact, `IResolvedProgram`, by its two fields: a pass after 1.4
@@ -28,13 +30,6 @@ class Analyze {
     program: IProgram,
     sources: readonly IDeclaredSource[],
     discovery: TDiscoveryFacts,
-    analysisInputs:
-      | ((
-          file: IPipelineFile,
-          program: IProgram,
-          discovery: TDiscoveryFacts,
-        ) => IAnalyzerOptions)
-      | null,
   ): {
     readonly program: IProgram;
     readonly discovery: TDiscoveryFacts;
@@ -46,13 +41,14 @@ class Analyze {
     // A symbol-only file is still parsed, declared and resolved -- that is
     // why it was discovered -- but nothing reads its syntax after 1.4.
     for (const entry of sources.filter((d) => Analyze.producesOutput(d.file))) {
-      const analysis = analysisInputs
-        ? Analyze._analyze(entry.syntax, () =>
-            analysisInputs(entry.file, program, discovery),
-          )
-        : null;
+      const analysis = discovery.run.parseOnly
+        ? null
+        : Analyze._analyze(entry.syntax, () =>
+            Analyze._inputsOf(entry.file, program, discovery),
+          );
       if (analysis) byFile.set(entry.file.path, analysis.errors);
       files.set(entry.file.path, {
+        path: entry.file.path,
         program: entry.syntax.program,
         declarationCount: entry.syntax.declarationCount,
         valuePositions: analysis?.valuePositions ?? null,
@@ -69,6 +65,43 @@ class Analyze {
   /** True for a file the run analyzes, plans and writes, not only declares */
   static producesOutput(file: IPipelineFile): boolean {
     return !file.symbolOnly;
+  }
+
+  /** One file's analyzer inputs, from 1.4's program and 1.1's facts */
+  private static _inputsOf(
+    file: IPipelineFile,
+    program: IProgram,
+    discovery: TDiscoveryFacts,
+  ): IAnalyzerOptions {
+    const sourcePath = file.path;
+    // #1241: attribute ADR provenance to the file being analyzed. A rule
+    // firing in `runAnalyzers` would otherwise be credited to whichever file
+    // was begun last -- or dropped on the first.
+    AdrProvenance.beginFile(sourcePath);
+    const symbols = program.codeGenSymbolsFor(sourcePath);
+    invariant(
+      symbols,
+      `1.4 Resolve built every file's visible symbol view, ${sourcePath}'s included`,
+    );
+    const includes = discovery.includes.get(sourcePath);
+    invariant(
+      includes !== undefined,
+      `1.1 Discover records the includes of every file it discovers (missing ${sourcePath})`,
+    );
+    return {
+      context: {
+        symbols,
+        program,
+        symbolTable: program.symbolTable(),
+        reachesForeignHeader: file.reachesForeignHeader,
+        sourceFile: sourcePath,
+      },
+      includes: {
+        resolutions: includes.resolutions,
+        cnextAlternatives: includes.cnextAlternatives,
+        kinds: includes.kinds,
+      },
+    };
   }
 
   private static _analyze(

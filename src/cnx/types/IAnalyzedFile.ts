@@ -9,6 +9,8 @@ import type IProgramSyntax from "./syntax/IProgramSyntax";
  * after 2.1 can reach them.
  */
 interface IAnalyzedFile {
+  /** The file's key in 2.1's `files` */
+  readonly path: string;
   readonly program: IProgramSyntax;
   readonly declarationCount: number;
   /**
