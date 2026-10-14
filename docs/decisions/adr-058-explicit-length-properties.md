@@ -587,6 +587,10 @@ error: `.length` is not a built-in property. Use explicit properties instead.
   included.
 - `.bit_length`, `.byte_length` and `.char_count` are removed: each is a
   compile error whose help names its replacement, as `.length` became.
+- The C compiler answers the memory row: `Cfg.memory_byte_length` emits
+  `sizeof(Cfg)`, exact for every build, including header unions and
+  bit-fields. C-Next itself does not know the number, so it cannot check
+  anything sized by it.
 
 ---
 
