@@ -610,6 +610,8 @@ error: `.length` is not a built-in property. Use explicit properties instead.
   on every subject: `Cfg c; c.value_byte_length` is 5.
 - An integer's `.value_char_count` is the characters it prints as in decimal,
   at runtime: `5` is 1, `255` is 3, and `-5` is 2.
+- `.value_*` on a type name is a compile error whose help names `.type_*`: a
+  type has no value (`Cfg.value_byte_length`, `u8.value_char_count`).
 
 ---
 
