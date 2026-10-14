@@ -928,7 +928,7 @@ class FilePlanner {
   ): IFilePlan {
     const selfInclude = this.planSelfInclude(options);
     const selfIncludeAdded = selfInclude !== null;
-    const requirements = new PlannedRequirements(this.state.sourcePath);
+    const requirements = new PlannedRequirements(options.sourcePath);
 
     // Neither answer depends on what rendering turns out to produce, so
     // Render reads them rather than interpreting the state they came from.

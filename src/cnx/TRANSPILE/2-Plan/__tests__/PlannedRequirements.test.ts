@@ -64,14 +64,6 @@ describe("PlannedRequirements", () => {
     ]);
   });
 
-  it("records a site with no path for a file with none", () => {
-    const requirements = new PlannedRequirements(null);
-    requirements.require("irq_wrappers", 3);
-    expect(requirements.sitesOf("irq_wrappers")).toEqual([
-      { sourcePath: "", line: 3 },
-    ]);
-  });
-
   it("keys a cast helper by its types, and needs <limits.h> for it", () => {
     const requirements = new PlannedRequirements("a.cnx");
     expect(requirements.requires("limits")).toBe(false);

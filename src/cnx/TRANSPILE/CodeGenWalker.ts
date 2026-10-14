@@ -1425,17 +1425,11 @@ class CodeGenWalker {
     );
   }
 
-  /**
-   * Assemble the final generated output.
-   */
-  /** 2.2's decisions for the file, in the order each needs the ones before it */
   /** #1323: the header's input, captured while this file's render state is warm */
   private captureHeader(plan: IFilePlan): IHeaderEmissionFacts | null {
-    const sourcePath = plan.setup.sourcePath;
-    invariant(sourcePath !== null, "a file with a header has a source path");
     return HeaderEmissionCapture.capture({
       ...plan.header,
-      sourcePath,
+      sourcePath: plan.setup.sourcePath,
       program: plan.setup.program,
       typeInput: plan.setup.symbols,
       state: this.host.state,

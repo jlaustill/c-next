@@ -14,7 +14,7 @@ import type TParameterInfo from "../../types/TParameterInfo";
 interface IFileSetup {
   readonly program: IProgram;
   readonly symbols: ICodeGenSymbols;
-  readonly sourcePath: string | null;
+  readonly sourcePath: string;
   readonly debugMode: boolean;
   readonly cppMode: boolean;
   readonly targetDescription: ITargetDescription | null;

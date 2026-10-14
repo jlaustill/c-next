@@ -1131,6 +1131,10 @@ class TranspileState {
   ): IFileSetup {
     invariant(this.program, "2.1 hands 2.2 the program");
     invariant(this.symbols, "2.2 sets the file's symbols before planning it");
+    invariant(
+      this.sourcePath !== null,
+      "2.2 sets the file's source path before planning it",
+    );
     return {
       program: this.program,
       symbols: this.symbols,
