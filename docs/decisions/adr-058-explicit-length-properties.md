@@ -605,6 +605,9 @@ error: `.length` is not a built-in property. Use explicit properties instead.
 - `.value_bit_length` of an unsigned integer counts bits up to its highest
   set bit, at runtime (`u8 n <- 5` gives 3). It is a compile error on a
   signed integer: cast to unsigned first, as C++'s `std::bit_width` requires.
+- Where a value's length cannot differ from its type's (a struct, an array, a
+  float, a `bool`), `.value_*` gives the same as `.type_*`, so every name works
+  on every subject: `Cfg c; c.value_byte_length` is 5.
 
 ---
 
