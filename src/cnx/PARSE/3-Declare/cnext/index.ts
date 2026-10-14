@@ -6,10 +6,10 @@
  */
 
 import type IProgramSyntax from "../../../types/syntax/IProgramSyntax";
+import type TDeclarationSyntax from "../../../types/syntax/TDeclarationSyntax";
 import LexicalScopeCollector from "./collectors/LexicalScopeCollector";
 import ModificationCollector from "./collectors/ModificationCollector";
 import CallbackUseCollector from "./collectors/CallbackUseCollector";
-import * as Parser from "../../2-Parse/grammar/CNextParser";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import TSymbol from "../../../types/symbols/TSymbol";
 import IFileSymbols from "../../../types/IFileSymbols";
@@ -24,35 +24,37 @@ import ScopeCollector from "./collectors/ScopeCollector";
 import TYPE_FORMING_KINDS from "../TYPE_FORMING_KINDS";
 import TSymbolKindCNext from "../../../types/symbol-kinds/TSymbolKindCNext";
 
-/**
- * The declaration node behind any one `scopeMember` alternative.
- *
- * A union of the real parse-tree context types rather than a structural
- * `{ IDENTIFIER(): ... }`: every scopeMember accessor satisfies the structural
- * shape, so a wrong kind/accessor pairing in `byKind` would still compile.
- */
-type TScopeMemberDeclaration =
-  | Parser.EnumDeclarationContext
-  | Parser.StructDeclarationContext
-  | Parser.BitmapDeclarationContext
-  | Parser.FunctionDeclarationContext
-  | Parser.VariableDeclarationContext
-  | Parser.RegisterDeclarationContext
-  | null;
+/** A declaration a scope may hold */
+type TScopeMemberSyntax = Extract<
+  TDeclarationSyntax,
+  { kind: "scope" }
+>["members"][number]["declaration"];
+
+/** The symbol kind each lowered member declares; "missing" declares none */
+const MEMBER_SYMBOL_KIND: Readonly<
+  Record<TScopeMemberSyntax["kind"], TSymbolKindCNext | null>
+> = {
+  enum: "enum",
+  struct: "struct",
+  bitmap: "bitmap",
+  function: "function",
+  variableDeclaration: "variable",
+  constructorDeclaration: "variable",
+  register: "register",
+  missing: null,
+};
 
 class CNextResolver {
   /**
-   * Resolve all symbols from a C-Next program parse tree.
+   * Resolve all symbols from a C-Next program, as 1.2 lowered it.
    *
-   * @param tree The program context from the parser
-   * @param program The same program, lowered (1.2): its statements' children
+   * @param program The file as 1.2 lowered it; 1.3 reads no parse tree
    * @param sourceFile Source file path
    * @returns `IFileSymbols` -- the symbols this file declares, plus the scope
    *   types it declares. The latter is a per-file fact and travels on the
    *   artifact; the seed it is merged with is cross-file and does not.
    */
   static resolve(
-    tree: Parser.ProgramContext,
     program: IProgramSyntax,
     sourceFile: string,
     registry: SymbolRegistry,
@@ -82,7 +84,11 @@ class CNextResolver {
     // closure. Collecting into one shared set made "declared here" and "visible
     // here" the same object, so neither could be read back afterwards.
     const declaredScopeTypes = new Set<string>();
-    CNextResolver.collectScopeTypesPass0b(registry, tree, declaredScopeTypes);
+    CNextResolver.collectScopeTypesPass0b(
+      registry,
+      program,
+      declaredScopeTypes,
+    );
 
     // What this file can SEE: its own declarations plus its includes'. Same set
     // as before the split, built in the other order -- union is commutative, so
@@ -100,7 +106,7 @@ class CNextResolver {
     // This includes bitmaps in scopes
     CNextResolver.collectBitmapsPass1(
       registry,
-      tree,
+      program,
       sourceFile,
       symbols,
       knownBitmaps,
@@ -110,7 +116,7 @@ class CNextResolver {
     // Pass 2: Collect everything else (with bitmap set and const values available)
     CNextResolver.collectAllPass2(
       registry,
-      tree,
+      program,
       sourceFile,
       symbols,
       knownBitmaps,
@@ -120,7 +126,7 @@ class CNextResolver {
     // #1668: the lexical frames, over the same ADR-057 predicate the symbols
     // were collected with.
     const lexicalScopes = LexicalScopeCollector.collect(
-      tree,
+      program,
       registry,
       isScopeType,
     );
@@ -146,38 +152,24 @@ class CNextResolver {
   }
 
   /**
-   * The declaration inside a scope member that introduces a TYPE NAME, or null.
+   * The name a scope member introduces as a TYPE, or null.
    *
-   * The kind-to-parse-node mapping lives here; whether that kind forms a type
-   * is TYPE_FORMING_KINDS' answer, asked rather than restated. Adding a kind to
-   * that set is therefore the whole change -- there is no second list to update.
+   * The kind of each member is MEMBER_SYMBOL_KIND's; whether that kind forms a
+   * type is TYPE_FORMING_KINDS' answer, asked rather than restated. Adding a
+   * kind to that set is therefore the whole change -- there is no second list
+   * to update. Every member kind is mapped, so TYPE_FORMING_KINDS is the ONLY
+   * thing that excludes one: adding "variable" to the set changes behavior,
+   * and a fixture can fail on it.
    */
-  private static typeFormingDeclaration(
-    member: Parser.ScopeMemberContext,
-  ): TScopeMemberDeclaration {
-    const byKind: ReadonlyArray<[TSymbolKindCNext, TScopeMemberDeclaration]> = [
-      ["enum", member.enumDeclaration()],
-      ["struct", member.structDeclaration()],
-      ["bitmap", member.bitmapDeclaration()],
-      ["function", member.functionDeclaration()],
-      // All six `scopeMember` alternatives (grammar/CNext.g4:81-88) are listed
-      // so TYPE_FORMING_KINDS is the ONLY thing that excludes a kind. Omitting
-      // these two instead would put the exclusion here while the reasoning for
-      // it lives in TYPE_FORMING_KINDS -- one file apart, which is the shape
-      // this work exists to remove. Listing them costs nothing (both are absent
-      // from the set, so behavior is unchanged) and makes the exclusions
-      // mutation-testable: adding "variable" to the set now actually changes
-      // behavior, and a fixture can fail on it.
-      ["variable", member.variableDeclaration()],
-      ["register", member.registerDeclaration()],
-    ];
-
-    for (const [kind, decl] of byKind) {
-      if (decl && TYPE_FORMING_KINDS.has(kind)) {
-        return decl;
-      }
-    }
-    return null;
+  private static typeFormingName(
+    declaration: TScopeMemberSyntax,
+  ): string | null {
+    const kind = MEMBER_SYMBOL_KIND[declaration.kind];
+    return kind !== null &&
+      declaration.kind !== "missing" &&
+      TYPE_FORMING_KINDS.has(kind)
+      ? declaration.name
+      : null;
   }
 
   /**
@@ -202,12 +194,11 @@ class CNextResolver {
    */
   private static collectScopeTypesPass0b(
     registry: SymbolRegistry,
-    tree: Parser.ProgramContext,
+    program: IProgramSyntax,
     scopeTypes: Set<string>,
   ): void {
-    for (const decl of tree.declaration()) {
-      const scopeDecl = decl.scopeDeclaration();
-      if (!scopeDecl) continue;
+    for (const { declaration: scopeDecl } of program.declarations) {
+      if (scopeDecl.kind !== "scope") continue;
 
       // #1285: resolve the scope through the registry -- the one thing that
       // builds a real parent chain -- rather than joining one level from the
@@ -215,17 +206,12 @@ class CNextResolver {
       // names, so a leaf-built key here never matched at depth two and the
       // lookup fell silently through to the bare name.
       const scopePath = ScopeUtils.pathOf(
-        registry.getOrCreateScope(scopeDecl.IDENTIFIER().getText()),
+        registry.getOrCreateScope(scopeDecl.name),
       );
-      for (const member of scopeDecl.scopeMember()) {
-        const typeDecl = CNextResolver.typeFormingDeclaration(member);
-        if (typeDecl) {
-          scopeTypes.add(
-            ScopeUtils.qualifyInScope(
-              typeDecl.IDENTIFIER().getText(),
-              scopePath,
-            ),
-          );
+      for (const member of scopeDecl.members) {
+        const typeName = CNextResolver.typeFormingName(member.declaration);
+        if (typeName !== null) {
+          scopeTypes.add(ScopeUtils.qualifyInScope(typeName, scopePath));
         }
       }
     }
@@ -238,7 +224,7 @@ class CNextResolver {
    */
   private static collectBitmapsPass1(
     registry: SymbolRegistry,
-    tree: Parser.ProgramContext,
+    program: IProgramSyntax,
     sourceFile: string,
     symbols: TSymbol[],
     knownBitmaps: Set<string>,
@@ -248,12 +234,11 @@ class CNextResolver {
     // only needed where a mutable member list is.
     const globalScopePath = "";
 
-    for (const decl of tree.declaration()) {
+    for (const { declaration: syntax } of program.declarations) {
       // Top-level bitmaps
-      if (decl.bitmapDeclaration()) {
-        const bitmapCtx = decl.bitmapDeclaration()!;
+      if (syntax.kind === "bitmap") {
         const symbol = BitmapCollector.collect(
-          bitmapCtx,
+          syntax,
           sourceFile,
           globalScopePath,
           ScopeUtils.getTopLevelVisibility(),
@@ -264,10 +249,10 @@ class CNextResolver {
       }
 
       // Bitmaps and structs inside scopes (collected early)
-      if (decl.scopeDeclaration()) {
+      if (syntax.kind === "scope") {
         CNextResolver.collectScopedBitmapsAndStructs(
           registry,
-          decl.scopeDeclaration()!,
+          syntax,
           sourceFile,
           symbols,
           knownBitmaps,
@@ -283,25 +268,28 @@ class CNextResolver {
    */
   private static collectScopedBitmapsAndStructs(
     registry: SymbolRegistry,
-    scopeDecl: Parser.ScopeDeclarationContext,
+    scopeSyntax: Extract<TDeclarationSyntax, { kind: "scope" }>,
     sourceFile: string,
     symbols: TSymbol[],
     knownBitmaps: Set<string>,
     isScopeType: (qualifiedName: string) => boolean,
   ): void {
-    const scopeName = scopeDecl.IDENTIFIER().getText();
+    const scopeName = scopeSyntax.name;
     const scopePath = ScopeUtils.pathOf(registry.getOrCreateScope(scopeName));
 
-    for (const member of scopeDecl.scopeMember()) {
+    for (const member of scopeSyntax.members) {
+      const declaration = member.declaration;
       // #1300: these are the scoped bitmap and struct symbols that SURVIVE --
       // `collectScopeDeclaration` drops ScopeCollector's copies of both kinds.
       // Ask the same helper that pass 2 asks, so one fact has one answer.
-      const visibility = ScopeUtils.getMemberVisibility(member);
+      const visibility = ScopeUtils.memberVisibility(
+        member.visibility,
+        declaration.kind === "function",
+      );
 
-      if (member.bitmapDeclaration()) {
-        const bitmapCtx = member.bitmapDeclaration()!;
+      if (declaration.kind === "bitmap") {
         const symbol = BitmapCollector.collect(
-          bitmapCtx,
+          declaration,
           sourceFile,
           scopePath,
           visibility,
@@ -315,10 +303,9 @@ class CNextResolver {
       }
 
       // Collect structs early so they're available as types
-      if (member.structDeclaration()) {
-        const structCtx = member.structDeclaration()!;
+      if (declaration.kind === "struct") {
         const symbol = StructCollector.collect(
-          structCtx,
+          declaration,
           sourceFile,
           scopePath,
           visibility,
@@ -335,21 +322,17 @@ class CNextResolver {
    */
   private static collectAllPass2(
     registry: SymbolRegistry,
-    tree: Parser.ProgramContext,
+    program: IProgramSyntax,
     sourceFile: string,
     symbols: TSymbol[],
     knownBitmaps: Set<string>,
     isScopeType: (qualifiedName: string) => boolean,
   ): void {
-    for (const decl of tree.declaration()) {
-      // Skip bitmaps (already collected in pass 1)
-      if (decl.bitmapDeclaration()) {
-        continue;
-      }
-
+    // `_collectDeclaration` has no bitmap branch: pass 1 owns bitmaps
+    for (const { declaration: syntax } of program.declarations) {
       CNextResolver._collectDeclaration(
         registry,
-        decl,
+        syntax,
         sourceFile,
         symbols,
         knownBitmaps,
@@ -366,7 +349,7 @@ class CNextResolver {
    */
   private static _collectDeclaration(
     registry: SymbolRegistry,
-    decl: Parser.DeclarationContext,
+    syntax: TDeclarationSyntax,
     sourceFile: string,
     symbols: TSymbol[],
     knownBitmaps: Set<string>,
@@ -376,10 +359,10 @@ class CNextResolver {
     const globalScopePath = "";
 
     // Scopes (ScopeCollector handles nested members)
-    if (decl.scopeDeclaration()) {
+    if (syntax.kind === "scope") {
       CNextResolver._collectScopeDeclaration(
         registry,
-        decl.scopeDeclaration()!,
+        syntax,
         sourceFile,
         symbols,
         knownBitmaps,
@@ -389,9 +372,9 @@ class CNextResolver {
     }
 
     // Top-level structs
-    if (decl.structDeclaration()) {
+    if (syntax.kind === "struct") {
       const symbol = StructCollector.collect(
-        decl.structDeclaration()!,
+        syntax,
         sourceFile,
         globalScopePath,
         ScopeUtils.getTopLevelVisibility(),
@@ -401,9 +384,9 @@ class CNextResolver {
     }
 
     // Top-level enums
-    if (decl.enumDeclaration()) {
+    if (syntax.kind === "enum") {
       const symbol = EnumCollector.collect(
-        decl.enumDeclaration()!,
+        syntax,
         sourceFile,
         globalScopePath,
         ScopeUtils.getTopLevelVisibility(),
@@ -413,9 +396,9 @@ class CNextResolver {
     }
 
     // Top-level registers
-    if (decl.registerDeclaration()) {
+    if (syntax.kind === "register") {
       const symbol = RegisterCollector.collect(
-        decl.registerDeclaration()!,
+        syntax,
         sourceFile,
         knownBitmaps,
         globalScopePath,
@@ -426,12 +409,11 @@ class CNextResolver {
     }
 
     // Top-level functions
-    if (decl.functionDeclaration()) {
-      const funcDecl = decl.functionDeclaration()!;
+    if (syntax.kind === "function") {
       // Use collectAndRegister to populate both old symbols and SymbolRegistry
       const symbol = FunctionCollector.collectAndRegister(
         registry,
-        funcDecl,
+        syntax,
         sourceFile,
         "",
         // ADR-016 (#1161): not a literal that can drift from the ADR. #1300
@@ -444,9 +426,12 @@ class CNextResolver {
     }
 
     // Top-level variables
-    if (decl.variableDeclaration()) {
+    if (
+      syntax.kind === "variableDeclaration" ||
+      syntax.kind === "constructorDeclaration"
+    ) {
       const symbol = VariableCollector.collect(
-        decl.variableDeclaration()!,
+        syntax,
         sourceFile,
         globalScopePath,
         ScopeUtils.getTopLevelVisibility(),
@@ -460,7 +445,7 @@ class CNextResolver {
    */
   private static _collectScopeDeclaration(
     registry: SymbolRegistry,
-    scopeCtx: Parser.ScopeDeclarationContext,
+    scopeSyntax: Extract<TDeclarationSyntax, { kind: "scope" }>,
     sourceFile: string,
     symbols: TSymbol[],
     knownBitmaps: Set<string>,
@@ -468,7 +453,7 @@ class CNextResolver {
   ): void {
     const result = ScopeCollector.collect(
       registry,
-      scopeCtx,
+      scopeSyntax,
       sourceFile,
       knownBitmaps,
       isScopeType,

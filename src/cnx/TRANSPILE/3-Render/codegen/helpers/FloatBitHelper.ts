@@ -16,21 +16,13 @@
  * Migrated to use CodeGenState instead of constructor DI.
  */
 
-import TIncludeHeader from "../../../../types/TIncludeHeader";
 import BitRangeHelper from "./BitRangeHelper";
+import FloatBitType from "../../../2-Plan/FloatBitType";
 import SaturatingCast from "./SaturatingCast";
 import BitUtils from "../../../../utils/BitUtils";
 import ComplianceAnnotations from "../../../2-Plan/ComplianceAnnotations";
 import type TranspileState from "../../../TranspileState";
 import type IFloatBitWrite from "../../../../types/IFloatBitWrite";
-
-/**
- * Callback types for code generation operations.
- */
-interface IFloatBitCallbacks {
-  /** Request an include header */
-  requireInclude: (header: TIncludeHeader) => void;
-}
 
 /**
  * Generates float bit write operations using union-based type punning.
@@ -39,11 +31,6 @@ interface IFloatBitCallbacks {
  * For bit range: width is provided, uses bitIndex as start position
  */
 class FloatBitHelper {
-  /** The unsigned integer a float's bits are held in, at its width */
-  static bitsTypeOf(floatType: string): string {
-    return floatType === "f64" ? "uint64_t" : "uint32_t";
-  }
-
   /**
    * The union a float's bits are read and written through, declared as
    * `name`, with the annotation that says why it is a union. The one
@@ -52,7 +39,7 @@ class FloatBitHelper {
    */
   static unionDeclaration(floatType: string, name: string): string {
     const floatCType = SaturatingCast.floatCType(floatType);
-    const bitsCType = FloatBitHelper.bitsTypeOf(floatType);
+    const bitsCType = FloatBitType.of(floatType);
     return [
       ComplianceAnnotations.render(
         ComplianceAnnotations.floatBitsUnion(floatCType, bitsCType),
@@ -71,19 +58,13 @@ class FloatBitHelper {
    * written as a plain subscript store that C rejects).
    *
    * @param bitWrite - The float written, its type, and the bits written
-   * @param callbacks - Code generation callbacks
    */
   static generateFloatBitWrite(
     bitWrite: IFloatBitWrite,
-    callbacks: IFloatBitCallbacks,
     state: TranspileState,
   ): string {
-    callbacks.requireInclude("float_static_assert"); // For size verification
-
     const target = bitWrite.target;
-    const intType = FloatBitHelper.bitsTypeOf(bitWrite.floatType);
-    // The union's integer member: the plan decides its header (#1927)
-    state.emittedCTypes.add(intType);
+    const intType = FloatBitType.of(bitWrite.floatType);
     // The integer member is written like any other integer (#1668): a bit
     // or a bit range of a uint32_t or a uint64_t
     const write = (bits: string): string =>

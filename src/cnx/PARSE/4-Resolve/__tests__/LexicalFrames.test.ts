@@ -41,7 +41,6 @@ function build(files: Record<string, string>) {
   const registry = new SymbolRegistry();
   const declared = Object.entries(files).map(([path, source]) =>
     CNextResolver.resolve(
-      CNextSourceParser.parse(source).tree,
       ProgramLowering.program(CNextSourceParser.parse(source).tree, null),
       path,
       registry,

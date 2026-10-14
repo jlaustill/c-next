@@ -20,6 +20,9 @@
  * carrier. They hold no nodes now, and the two modules that did name types are
  * out of the population for real rather than by spelling.
  */
+import type IPlannedFloatBits from "./types/IPlannedFloatBits";
+import type IPlannedSliceSource from "./types/IPlannedSliceSource";
+import type TAtomicForm from "../types/TAtomicForm";
 import AssignmentTarget from "../../utils/AssignmentTarget";
 import type TExpression from "../../types/syntax/TExpression";
 import type TPostfixOpSyntax from "../../types/syntax/TPostfixOpSyntax";
@@ -39,6 +42,17 @@ interface IContextBuilderDeps {
   /** #1668: what the target writes, bound where it was typed */
   readonly target: IChainBase;
 
+  /** 2.2's decision: how the target writes a float's bits (ADR-007), or null */
+  readonly floatBits: IPlannedFloatBits | null;
+  /** 2.2's decision: how this write is atomic (ADR-049), or null if it is not */
+  readonly atomicForm: TAtomicForm | null;
+  /** 2.2's decision: the ADR-044 helper this compound write calls, or null */
+  readonly plannedClamp: { operation: string; cnxType: string } | null;
+  /** 2.2's decision: how a slice write reads its source (#1081), or null */
+  readonly plannedSliceSource: IPlannedSliceSource | null;
+  readonly plannedCompoundCast: string | null;
+  readonly plannedRegisterAccess: string | null;
+
   /**
    * 2.3 Render's per-file working state (#1452 box 4), carried onto the built
    * context so the handlers that receive it have a channel to the same
@@ -50,8 +64,8 @@ interface IContextBuilderDeps {
    * The value expression, already generated.
    *
    * Takes no argument: `CodeGenerator.generateAssignment` renders the
-   * right-hand side inside its own `withExpectedType` window and passes the
-   * result, so this must not render it a second time.
+   * right-hand side and passes the result, so this must not render it a
+   * second time.
    */
   generatedValue(): string;
 
@@ -268,6 +282,12 @@ function buildAssignmentContext(
     analyzeTargetForBitAccess: () =>
       deps.analyzeMemberChainForBitAccess(targetExpr, deps.target.last),
     targetLine: targetExpr.span.line,
+    floatBits: deps.floatBits,
+    atomicForm: deps.atomicForm,
+    plannedClamp: deps.plannedClamp,
+    plannedSliceSource: deps.plannedSliceSource,
+    plannedCompoundCast: deps.plannedCompoundCast,
+    plannedRegisterAccess: deps.plannedRegisterAccess,
     hasValue: valueExpr.kind !== "missing",
     valueExpressionType: () => deps.expressionType(valueExpr),
     valueIntegerType: () => deps.integerExpressionType(valueExpr),
@@ -277,6 +297,7 @@ function buildAssignmentContext(
     identifiers,
     subscriptCount: subscripts.length,
     renderSubscript: (index) => deps.generateExpression(subscripts[index]),
+    renderExpression: (expr) => deps.generateExpression(expr),
     foldSubscript: (index) => deps.tryEvaluateConstant(subscripts[index]),
     postfixOps: ops,
     hasThis,

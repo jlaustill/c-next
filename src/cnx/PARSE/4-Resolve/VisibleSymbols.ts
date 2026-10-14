@@ -20,6 +20,7 @@
 
 import type IBitmapFieldLayout from "../../types/IBitmapFieldLayout";
 import type ICodeGenSymbols from "../../types/ICodeGenSymbols";
+import type TExpression from "../../types/syntax/TExpression";
 
 /**
  * The mutable collections mergeExternalSymbols accumulates into.
@@ -43,11 +44,11 @@ interface IMergeAccumulator {
   readonly bitmapFields: Map<string, Map<string, IBitmapFieldLayout>>;
   readonly bitmapBackingType: Map<string, string>;
   readonly knownRegisters: Set<string>;
-  readonly scopedRegisters: Map<string, string>;
+  readonly scopedRegisters: Map<string, TExpression>;
   readonly registerMemberAccess: Map<string, string>;
   readonly registerMemberTypes: Map<string, string>;
-  readonly registerBaseAddresses: Map<string, string>;
-  readonly registerMemberOffsets: Map<string, string>;
+  readonly registerBaseAddresses: Map<string, TExpression>;
+  readonly registerMemberOffsets: Map<string, TExpression>;
   readonly registerMemberCTypes: Map<string, string>;
   readonly bitmapBitWidth: Map<string, number>;
   readonly structFields: Map<string, Map<string, string>>;

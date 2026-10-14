@@ -44,14 +44,13 @@ class HeaderRenderer {
    */
   static render(
     factsBySourcePath: ReadonlyMap<string, IHeaderEmissionFacts>,
-    headerGenerator: HeaderGenerator,
   ): IHeaderRenderResult {
     const headersBySourcePath = new Map<string, string>();
     const errorsBySourcePath = new Map<string, string>();
 
     for (const [sourcePath, facts] of factsBySourcePath) {
       try {
-        const headerCode = headerGenerator.generate(
+        const headerCode = new HeaderGenerator(facts.program).generate(
           [...facts.symbols],
           facts.filename,
           facts.options,

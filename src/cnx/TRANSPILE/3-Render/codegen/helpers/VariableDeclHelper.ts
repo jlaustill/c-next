@@ -29,7 +29,7 @@
 
 import invariant from "../../../../utils/invariant";
 import ArrayInitHelper from "./ArrayInitHelper";
-import NarrowingCastHelper from "./NarrowingCastHelper";
+import NarrowingCastHelper from "../../../2-Plan/NarrowingCastHelper";
 import StringDeclHelper from "./StringDeclHelper";
 import IPlannedArrayDeclaration from "../types/IPlannedArrayDeclaration";
 import TPlannedVariableDecl from "../types/TPlannedVariableDecl";
@@ -117,27 +117,23 @@ class VariableDeclHelper {
     // ADR-035: Handle array initializers with size inference
     if (plan.init) {
       // MISRA C:2012 Rule 9.3: an array declaration initializer is a declaration
-      // initializer for its ELEMENTS too, so it takes withDeclarationInit exactly
-      // as the scalar path below does. Without it a struct element formatted as a
+      // initializer for its ELEMENTS too, so 2.2 plans its struct elements
+      // plain exactly as the scalar path below (#1991). Without it a struct element formatted as a
       // compound literal -- `Point pair[2] = {(Point){ .x = 1 }, ...}` -- which
       // cppcheck reads as a partially initialized array, while the scalar
       // `Point single = { .x = 1 }` on the next line was already plain. One
       // declaration-initializer decision, previously made in two places.
       const init = plan.init;
-      const arrayInitResult = state.withDeclarationInit(() =>
-        ArrayInitHelper.processArrayInit(
-          sourceName,
-          plan.hasEmptyDimension,
-          plan.declaredSize,
-          {
-            // Lazy, not pre-generated: each must run inside the
-            // `withExpectedType` window the helper opens.
-            generateExpression: init.renderExpression,
-            getTypeName: init.renderTypeName,
-            generateArrayDimensions: init.renderDimensions,
-          },
-          state,
-        ),
+      const arrayInitResult = ArrayInitHelper.processArrayInit(
+        sourceName,
+        plan.hasEmptyDimension,
+        plan.declaredSize,
+        {
+          // Lazy, not pre-generated: the helper decides when each renders
+          generateExpression: init.renderExpression,
+          generateArrayDimensions: init.renderDimensions,
+        },
+        state,
       );
       if (arrayInitResult) {
         // When size inference happens and the empty dim is in arrayType,
@@ -179,44 +175,42 @@ class VariableDeclHelper {
 
     // #1322: ADR-024's initializer rules are E0868/E0869 in pass 2.1.
 
-    // Issue #872: Set expectedType for MISRA 7.2 U suffix compliance
-    // MISRA 10.3: Also check for cross-type-category conversions (int <-> float)
-    return state.withExpectedType(typeName, () => {
-      let exprCode = state.withDeclarationInit(plan.renderExpression);
+    // Issue #872: 2.2 planned the value against `typeName`, for MISRA 7.2's
+    // U suffix (#1991)
+    let exprCode = plan.renderExpression();
 
-      // MISRA 10.3: Check for cross-type-category conversions (int <-> float).
-      // Asked AFTER the render, and inside the window, because the question is
-      // what the expression turned out to be.
-      const exprType = plan.resolveExpressionType();
+    // MISRA 10.3: Check for cross-type-category conversions (int <-> float).
+    // Asked AFTER the render, because the question is what the expression
+    // turned out to be.
+    const exprType = plan.resolveExpressionType();
+    if (
+      exprType &&
+      NarrowingCastHelper.isCrossTypeCategoryConversion(exprType, typeName)
+    ) {
+      // Int to float: add explicit cast
       if (
-        exprType &&
-        NarrowingCastHelper.isCrossTypeCategoryConversion(exprType, typeName)
+        NarrowingCastHelper.isIntegerCategory(exprType) &&
+        NarrowingCastHelper.isFloatCategory(typeName)
       ) {
-        // Int to float: add explicit cast
-        if (
-          NarrowingCastHelper.isIntegerCategory(exprType) &&
-          NarrowingCastHelper.isFloatCategory(typeName)
-        ) {
-          exprCode = NarrowingCastHelper.wrapIntToFloat(
-            exprCode,
-            typeName,
-            state,
-          );
-        }
-        // Float to int is E0891 in pass 2.1 (#1800): the author writes the
-        // cast, which saturates. This emitted a raw C conversion instead,
-        // undefined for NaN and past the target's range.
-        invariant(
-          !(
-            NarrowingCastHelper.isFloatCategory(exprType) &&
-            NarrowingCastHelper.isIntegerCategory(typeName)
-          ),
-          "an implicit float-to-integer conversion is rejected in pass 2.1 (E0891)",
+        exprCode = NarrowingCastHelper.wrapIntToFloat(
+          exprCode,
+          typeName,
+          state,
         );
       }
+      // Float to int is E0891 in pass 2.1 (#1800): the author writes the
+      // cast, which saturates. This emitted a raw C conversion instead,
+      // undefined for NaN and past the target's range.
+      invariant(
+        !(
+          NarrowingCastHelper.isFloatCategory(exprType) &&
+          NarrowingCastHelper.isIntegerCategory(typeName)
+        ),
+        "an implicit float-to-integer conversion is rejected in pass 2.1 (E0891)",
+      );
+    }
 
-      return `${decl} = ${exprCode}`;
-    });
+    return `${decl} = ${exprCode}`;
   }
 
   // ========================================================================

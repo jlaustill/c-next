@@ -7,31 +7,10 @@
  * - Central effect processing in the orchestrator
  */
 import TParameterInfo from "../../../../types/TParameterInfo";
-import TIncludeHeader from "../../../../types/TIncludeHeader";
 
 type TGeneratorEffect =
-  // === Include Effects ===
-  // `line` is only meaningful for the code-emission headers (irq_wrappers,
-  // float_static_assert, isr): it lets the deferred emitter attribute the
-  // requirement back to the .cnx line that asked for it (Issue #1143).
-  | { type: "include"; header: TIncludeHeader; line?: number }
-  | { type: "isr" } // Needs ISR typedef
-  // #1927: a C type the generated text uses. The plan, not the generator,
-  // decides which header that costs (`CTypeIncludes`).
-  | { type: "c-type"; cType: string }
-
-  // === Emitted-form Effects (Issue #1143, #1997) ===
-  // Emitted by the branch that produced the LDREX/STREX loop, so no consumer
-  // has to infer which branch ran. It names the form, not its cost: 2.2 Plan
-  // decides the requirement.
-  | { type: "ldrex-strex-loop" }
-
-  // === Helper Function Effects ===
-  | { type: "helper"; operation: string; cnxType: string } // Overflow clamp helper
-  | { type: "safe-div"; operation: "div" | "mod"; cnxType: string } // Safe division helper
-
-  // === Type Registration Effects ===
-
+  // No include, C type or helper effect: 2.2 decides every header and helper
+  // before 2.3 renders (#1991).
   // === Scope Effects (ADR-016) ===
   | { type: "set-scope"; name: string | null } // Enter/exit a scope
 
@@ -45,7 +24,6 @@ type TGeneratorEffect =
   | { type: "clear-parameters" } // Clear current function parameters
 
   // === Callback Effects ===
-  | { type: "register-callback-field"; key: string; typeName: string } // Register callback as struct field type
   | { type: "register-struct-init"; structName: string } // #1205: struct got an ADR-029 init function
 
   // === Array Initializer Effects ===

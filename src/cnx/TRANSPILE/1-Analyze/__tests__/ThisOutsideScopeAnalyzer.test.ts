@@ -17,8 +17,9 @@ import ThisOutsideScopeAnalyzer from "../ThisOutsideScopeAnalyzer";
  * produced the diagnostic before this analyzer existed.
  */
 const errors = (source: string) => {
-  const { tree } = CNextSourceParser.parse(source);
-  return new ThisOutsideScopeAnalyzer().analyze(tree);
+  return new ThisOutsideScopeAnalyzer().analyze(
+    CNextSourceParser.parse(source).program,
+  );
 };
 
 describe("ThisOutsideScopeAnalyzer", () => {
@@ -73,6 +74,21 @@ describe("ThisOutsideScopeAnalyzer", () => {
       "}",
     ].join("\n");
     expect(errors(source)).toEqual([]);
+  });
+
+  it("rejects `this.Type` in a type position outside a scope", () => {
+    // #1991: types are walked as well as expressions -- a declared type, a
+    // cast's type and an array's element type
+    const found = errors(
+      [
+        "this.State s <- 0;",
+        "void f() {",
+        "    u8 v <- (this.State)0;",
+        "    this.State[2] w <- [0, 0];",
+        "}",
+      ].join("\n"),
+    );
+    expect(found.map((e) => e.line)).toEqual([1, 3, 4]);
   });
 
   it("reports each offending `this` separately, unlike the throw it replaces", () => {

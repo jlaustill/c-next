@@ -11,9 +11,10 @@
  * .char_count) are handled in PostfixExpressionGenerator.ts, not here.
  * The deprecated .length property was removed per ADR-058.
  */
+import type TPlannedNarrowing from "../../../../2-Plan/types/TPlannedNarrowing";
 import type IBitmapFieldLayout from "../../../../../types/IBitmapFieldLayout";
 import IGeneratorOutput from "../IGeneratorOutput";
-import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
+import NarrowingCastHelper from "../../../../2-Plan/NarrowingCastHelper";
 import invariant from "../../../../../utils/invariant";
 import type TranspileState from "../../../../TranspileState";
 
@@ -68,6 +69,7 @@ const generateSizeProperty = (capacity: number | null): IGeneratorOutput => {
 const generateBitmapFieldAccess = (
   result: string,
   fieldInfo: IBitmapFieldLayout,
+  narrowing: TPlannedNarrowing | null,
   state: TranspileState,
 ): IGeneratorOutput => {
   let expr: string;
@@ -80,14 +82,12 @@ const generateBitmapFieldAccess = (
     expr = `((${result} >> ${fieldInfo.offset}) & 0x${mask.toString(16).toUpperCase()})`;
   }
 
-  // MISRA 10.3: Add narrowing cast if target type is known
-  const targetType = state.expectedType;
-  if (targetType) {
-    // Bitmap operations on small types produce int in C
-    expr = NarrowingCastHelper.wrap(expr, "int", targetType, state);
-  }
-
-  return { code: expr, effects: [] };
+  // MISRA 10.3: bitmap operations on small types produce int in C; 2.2
+  // decided the cast
+  return {
+    code: NarrowingCastHelper.apply(expr, narrowing, state),
+    effects: [],
+  };
 };
 
 // Export all generators

@@ -14,8 +14,9 @@ import DefineDirectiveAnalyzer from "../DefineDirectiveAnalyzer";
  * written beside was invisible to them for that reason.
  */
 const errors = (source: string) => {
-  const { tree } = CNextSourceParser.parse(source);
-  return new DefineDirectiveAnalyzer().analyze(tree);
+  return new DefineDirectiveAnalyzer().analyze(
+    CNextSourceParser.parse(source).program,
+  );
 };
 
 describe("DefineDirectiveAnalyzer", () => {

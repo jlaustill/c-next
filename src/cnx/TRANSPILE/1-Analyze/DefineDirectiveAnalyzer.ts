@@ -32,89 +32,42 @@
  * the included file, as it was before.
  */
 
-import { ParseTreeWalker } from "antlr4ng";
-
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
 import invariant from "../../utils/invariant";
-import ParserUtils from "../../utils/ParserUtils";
 import IDefineDirectiveError from "./types/IDefineDirectiveError";
 
-/**
- * The macro name a `#define` declares.
- *
- * All three `defineDirective` tokens require `[a-zA-Z_][a-zA-Z0-9_]*` after
- * `define` and its whitespace, so a node that exists has a name by
- * construction and the miss is an invariant, not a case. Codegen answered
- * `"unknown"` here and put it in the user's message.
- */
 const nameOf = (text: string): string => {
   const match = /#\s*define\s+([a-zA-Z_]\w*)/.exec(text);
   invariant(match !== null, "a defineDirective token always carries a name");
   return match[1];
 };
 
-class DefineDirectiveListener extends CNextListener {
-  private readonly found: IDefineDirectiveError[] = [];
-
-  public errors(): IDefineDirectiveError[] {
-    return this.found;
-  }
-
-  /**
-   * ADR-037 allows exactly one `#define` form -- a flag with no value, which
-   * passes through to the generated C. The other two alternatives are these
-   * two diagnostics, so the grammar rule is covered by naming the rejected
-   * forms and nothing else.
-   *
-   * There is deliberately no `if (ctx.DEFINE_FLAG()) return;` early exit above
-   * these. The first draft had one, described as the negative control, and
-   * mutation-checking it reddened NOTHING: a flag is protected by the two
-   * predicates below being false, never by that line. An arm that reads as a
-   * rule and enforces nothing is worse than no arm, because the fixture beside
-   * it then reads as covering something it does not.
-   */
-  override enterDefineDirective = (
-    ctx: Parser.DefineDirectiveContext,
-  ): void => {
-    if (ctx.DEFINE_FUNCTION()) {
-      const name = nameOf(ctx.getText());
-      this.report(
-        ctx,
-        "E0501",
-        `Function-like macro '${name}' is not allowed. Use inline functions instead.`,
-        "A macro is textual substitution, so its arguments are evaluated wherever they appear and its operators bind by text (ADR-037); write an `inline` function instead.",
-      );
-      return;
-    }
-
-    if (ctx.DEFINE_WITH_VALUE()) {
-      const name = nameOf(ctx.getText());
-      this.report(
-        ctx,
-        "E0502",
-        `#define with value '${name}' is not allowed. Use 'const' instead: const u32 ${name} <- value;`,
-        "A `#define` has no type and no scope, so the compiler cannot check its use (ADR-037); a `const` has both.",
-      );
-    }
-  };
-
-  private report(
-    at: Parser.DefineDirectiveContext,
-    code: string,
-    message: string,
-    helpText: string,
-  ): void {
-    const { line, column } = ParserUtils.getPosition(at);
-    this.found.push({ code, line, column, message, helpText });
-  }
-}
-
 class DefineDirectiveAnalyzer {
-  public analyze(tree: Parser.ProgramContext): IDefineDirectiveError[] {
-    const listener = new DefineDirectiveListener();
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
-    return listener.errors();
+  public analyze(program: IProgramSyntax): IDefineDirectiveError[] {
+    const found: IDefineDirectiveError[] = [];
+    for (const directive of program.directives) {
+      const at = { line: directive.span.line, column: directive.span.column };
+      if (directive.kind === "define-function") {
+        const name = nameOf(directive.text);
+        found.push({
+          code: "E0501",
+          ...at,
+          message: `Function-like macro '${name}' is not allowed. Use inline functions instead.`,
+          helpText:
+            "A macro is textual substitution, so its arguments are evaluated wherever they appear and its operators bind by text (ADR-037); write an `inline` function instead.",
+        });
+      } else if (directive.kind === "define-value") {
+        const name = nameOf(directive.text);
+        found.push({
+          code: "E0502",
+          ...at,
+          message: `#define with value '${name}' is not allowed. Use 'const' instead: const u32 ${name} <- value;`,
+          helpText:
+            "A `#define` has no type and no scope, so the compiler cannot check its use (ADR-037); a `const` has both.",
+        });
+      }
+    }
+    return found;
   }
 }
 

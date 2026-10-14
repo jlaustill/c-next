@@ -1,4 +1,5 @@
-import type SymbolTable from "../PARSE/3-Declare/SymbolTable";
+import type IResolvedSymbols from "../types/IResolvedSymbols";
+import CppNamespaceUtils from "./CppNamespaceUtils";
 import type TTypeInfo from "../types/TTypeInfo";
 import TYPE_WIDTH from "../types/TYPE_WIDTH";
 import type TCSymbol from "../types/symbols/c/TCSymbol";
@@ -54,7 +55,7 @@ class ForeignTypeFacts {
    * disagreed wherever `double` is not 64 bits.
    */
   static variableType(
-    symbolTable: SymbolTable,
+    symbolTable: IResolvedSymbols,
     name: string,
     target: ITargetDescription | null,
   ): string | null {
@@ -88,7 +89,7 @@ class ForeignTypeFacts {
    * C++ header's variable had no type.
    */
   static variableTypeInfo(
-    symbolTable: SymbolTable,
+    symbolTable: IResolvedSymbols,
     name: string,
     target: ITargetDescription | null,
   ): TTypeInfo | undefined {
@@ -108,8 +109,8 @@ class ForeignTypeFacts {
    * A header symbol by name: C first, then C++ (a `.hpp` in `--cpp` mode).
    * Both carry the same `kind` and `type` string for the shapes read here.
    */
-  private static foreignSymbol(
-    lookup: IForeignSymbolLookup,
+  static foreignSymbol(
+    lookup: Pick<IForeignSymbolLookup, "getCSymbol" | "getCppSymbol">,
     name: string,
   ): TCSymbol | TCppSymbol | undefined {
     return lookup.getCSymbol(name) ?? lookup.getCppSymbol(name);
@@ -259,7 +260,10 @@ class ForeignTypeFacts {
     const spelling = ForeignTypeFacts.spellingOf(type);
     const scopes = qualifiedName.split("::").slice(0, -1);
     for (let depth = scopes.length; depth > 0; depth -= 1) {
-      const candidate = [...scopes.slice(0, depth), spelling].join("::");
+      const candidate = CppNamespaceUtils.fromParts([
+        ...scopes.slice(0, depth),
+        spelling,
+      ]);
       const symbol = lookup.getCppSymbol(candidate);
       if (
         symbol !== undefined &&

@@ -1,4 +1,5 @@
 import TranspileState from "../TranspileState";
+import TestSymbolTable from "./TestSymbolTable";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
 import createMockSymbols from "../../types/__testUtils__/codeGenSymbolsHelpers";
@@ -87,7 +88,7 @@ function register(
       sourceLanguage: ESourceLanguage.CNext,
       visibility: "public" as TVisibility,
     };
-    state.symbolTable.addTSymbol(build(base));
+    TestSymbolTable.of(state).addTSymbol(build(base));
   }
 }
 

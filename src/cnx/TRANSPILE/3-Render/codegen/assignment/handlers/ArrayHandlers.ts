@@ -14,11 +14,8 @@ import type TTypeInfo from "../../../../../types/TTypeInfo";
 import CNEXT_TO_C_TYPE_MAP from "../../../../../utils/constants/TypeMappings";
 import invariant from "../../../../../utils/invariant";
 import type TranspileState from "../../../../TranspileState";
-
-/** Matches the unsigned C-Next integer types (u8/u16/u32/u64). */
-const UNSIGNED_INT_RE = /^u(8|16|32|64)$/;
-/** Matches the signed C-Next integer types (i8/i16/i32/i64). */
-const SIGNED_INT_RE = /^i(8|16|32|64)$/;
+import SliceSource from "../../../../2-Plan/SliceSource";
+import type IPlannedSliceSource from "../../../../2-Plan/types/IPlannedSliceSource";
 
 /**
  * Comment emitted above an unrolled slice copy so the generated C is
@@ -90,14 +87,14 @@ function resolveSliceElement(
   }
 
   const baseType = typeInfo?.baseType ?? "";
-  const bytes = Math.floor((typeInfo?.bitWidth ?? 0) / 8);
+  const bytes = SliceSource.elementBytes(typeInfo);
 
-  if (bytes > 0 && UNSIGNED_INT_RE.test(baseType)) {
+  if (bytes > 0 && SliceSource.UNSIGNED_INT_RE.test(baseType)) {
     const cType = CNEXT_TO_C_TYPE_MAP[baseType];
     return { bytes, cType, wrap: (chunk) => `(${cType})${chunk}` };
   }
 
-  if (bytes > 0 && SIGNED_INT_RE.test(baseType)) {
+  if (bytes > 0 && SliceSource.SIGNED_INT_RE.test(baseType)) {
     const cType = CNEXT_TO_C_TYPE_MAP[baseType];
     const uType = CNEXT_TO_C_TYPE_MAP[`u${baseType.slice(1)}`];
     return { bytes, cType, wrap: (chunk) => `(${cType})(${uType})${chunk}` };
@@ -108,177 +105,6 @@ function resolveSliceElement(
     `a sliced buffer has an integer or string element type -- E0858 rejects ` +
       `'${baseType}' on '${rawName}' in pass 2.1, before this runs`,
   );
-}
-
-/** Widest source the unroll can serialize when the type can't be resolved. */
-const UNRESOLVED_SOURCE_BYTES = 8;
-
-/**
- * Smallest standard unsigned C type that holds `bytes` bytes. Used to size the
- * source temp for an unresolved source to the *slice length* rather than always
- * the widest type — so the materializing cast is same-width (MISRA Rule 10.8
- * forbids casting a composite expression such as `a + b` to a *wider* type).
- */
-function unsignedCTypeForBytes(bytes: number): string {
-  if (bytes <= 1) return "uint8_t";
-  if (bytes <= 2) return "uint16_t";
-  if (bytes <= 4) return "uint32_t";
-  return "uint64_t";
-}
-
-/**
- * Fold a slice source that has no fixed essential category of its own.
- *
- * A bare integer literal types as `int`; a negative literal (unary minus) types
- * as null yet is still a compile-time constant. Both are contextually typed to
- * the slice byte-width (ADR-052), so both are folded here and range-checked.
- * A source that already resolves to a fixed-width type keeps that type and is
- * not folded.
- *
- * @returns the folded value, or undefined when the source is not a
- *          contextually-typed literal or does not evaluate to a constant
- */
-function foldContextuallyTypedLiteral(
-  directType: string | null,
-  ctx: IAssignmentContext,
-): number | undefined {
-  const isContextuallyTyped = directType === "int" || directType === null;
-  if (!isContextuallyTyped || !ctx.hasValue) {
-    return undefined;
-  }
-  return ctx.foldValue();
-}
-
-/**
- * Resolve the *source* value's type for a slice assignment (Issue #1081 review).
- *
- * The source is materialized once into an unsigned temp before the writes
- * (`buildSliceWrites`), so this drives the right-hand side of the unrolled copy:
- *  - non-integer sources (float/struct/string) cannot be shifted — reject them
- *    with a clear C-Next error instead of emitting non-compiling C;
- *  - `bytes` lets the caller reject `length > sizeof(source)` (an over-read that
- *    would otherwise emit an undefined out-of-range shift);
- *  - `unsignedCType` is the type of the materialized temp. Shifting that temp
- *    is MISRA Rule 10.1-clean (always unsigned); a signed source is cast to its
- *    same-width unsigned type once, in the temp declaration. It is null when the
- *    source type is unresolved — the caller sizes the temp to the slice length.
- *
- * `cType` is the source's actual C type (used to detect a Rule 21.15 mismatch
- * against the destination element type). When the type can't be statically
- * resolved (e.g. a computed expression or function call), `cType`/`unsignedCType`
- * are null and `bytes` is the widest serializable width (8), so the caller caps
- * the length and sizes the temp from the length to keep the cast Rule 10.8-clean.
- */
-function resolveSliceSource(
-  ctx: IAssignmentContext,
-  rawName: string,
-  lengthValue: number,
-): {
-  cType: string | null;
-  bytes: number;
-  unsignedCType: string | null;
-  isComposite: boolean;
-} {
-  // A composite source (e.g. `a + b`) is resolved through the Rule 10.4
-  // guarantee that its operands share a category, so its essential type is
-  // well-defined; `directType` tells us whether the source is composite so the
-  // caller can bind it to a same-type temp before the unsigned cast — keeping
-  // that cast off the composite itself (MISRA Rule 10.8).
-  const directType = ctx.hasValue ? ctx.valueExpressionType() : null;
-
-  // A bare integer literal has no fixed essential category; contextually type it
-  // to the slice byte-width (ADR-052), with a compile-time fit check. A positive
-  // literal types as `int`; a negative literal (unary minus) types as null yet is
-  // still a compile-time constant. Fold either so an out-of-range negative is
-  // rejected exactly like an out-of-range positive, rather than silently
-  // truncated (e.g. buf[0,1] <- -300 -> (uint8_t)(-300)) (Issue #1085 review).
-  // A source that resolves to a fixed-width type (variable, struct field, …)
-  // keeps that type and is not folded here.
-  const literalValue = foldContextuallyTypedLiteral(directType, ctx);
-  if (literalValue !== undefined) {
-    return resolveLiteralSliceSource(ctx, rawName, lengthValue);
-  }
-
-  const sourceType =
-    directType ?? (ctx.hasValue ? ctx.valueIntegerType() : null);
-
-  if (sourceType === null) {
-    return {
-      cType: null,
-      bytes: UNRESOLVED_SOURCE_BYTES,
-      unsignedCType: null,
-      isComposite: false,
-    };
-  }
-
-  const isUnsigned = UNSIGNED_INT_RE.test(sourceType);
-  const isSigned = SIGNED_INT_RE.test(sourceType);
-  if (!isUnsigned && !isSigned) {
-    invariant(
-      false,
-      `a slice source is an integer -- E0861 rejects '${sourceType}' for ` +
-        `'${rawName}' in pass 2.1, before this runs`,
-    );
-  }
-
-  return {
-    cType: CNEXT_TO_C_TYPE_MAP[sourceType],
-    bytes: Number.parseInt(sourceType.slice(1), 10) / 8,
-    // Signed sources are reinterpreted to their same-width unsigned type so
-    // every shift on the materialized temp satisfies MISRA Rule 10.1.
-    unsignedCType: isSigned
-      ? CNEXT_TO_C_TYPE_MAP[`u${sourceType.slice(1)}`]
-      : CNEXT_TO_C_TYPE_MAP[sourceType],
-    isComposite: directType === null,
-  };
-}
-
-/**
- * Resolve a bare integer-literal slice source (Issue #1085 review, Finding D).
- *
- * A literal has no fixed essential category, so it is contextually typed to the
- * slice byte-width (ADR-052): a `length`-byte slice serializes the literal as an
- * unsigned value of that width. The literal must fit in `length` bytes, else a
- * clear compile error — `buf[0,2] <- 0x12345678` cannot hold a 4-byte value.
- */
-function resolveLiteralSliceSource(
-  ctx: IAssignmentContext,
-  rawName: string,
-  lengthValue: number,
-): {
-  cType: string | null;
-  bytes: number;
-  unsignedCType: string | null;
-  isComposite: boolean;
-} {
-  const value = ctx.hasValue ? ctx.foldValue() : undefined;
-  if (value !== undefined) {
-    // The literal is contextually typed to the slice byte-width (ADR-052), so it
-    // must be representable in `length` bytes — either as an unsigned value
-    // (0 .. 2^(8N)-1) or as a two's-complement signed value (-2^(8N-1) .. -1).
-    // Guarding only the unsigned upper bound let a negative literal of any
-    // magnitude through, silently truncating it (e.g. buf[0,1] <- -300 became
-    // (uint8_t)(-300)) while the mirror-image positive overflow was rejected
-    // (Issue #1085 review). `lengthValue` is already validated > 0 by the caller.
-    const truncated = BigInt(Math.trunc(value));
-    const unsignedUpperBound = 1n << BigInt(8 * lengthValue);
-    const signedLowerBound = -(1n << BigInt(8 * lengthValue - 1));
-    if (truncated >= unsignedUpperBound || truncated < signedLowerBound) {
-      invariant(
-        false,
-        `a slice literal fits its byte width -- E0861 rejects ${value} in a ` +
-          `${lengthValue}-byte slice for '${rawName}' in pass 2.1`,
-      );
-    }
-  }
-
-  const cType = unsignedCTypeForBytes(lengthValue);
-  return {
-    cType,
-    bytes: lengthValue,
-    unsignedCType: cType,
-    isComposite: false,
-  };
 }
 
 /**
@@ -342,21 +168,12 @@ function validateSliceSpan(
  */
 function materializeSliceSource(
   writes: string[],
-  src: {
-    cType: string | null;
-    unsignedCType: string | null;
-    isComposite: boolean;
-  },
+  src: IPlannedSliceSource,
   value: string,
   lengthValue: number,
   state: TranspileState,
 ): string {
-  if (
-    src.isComposite &&
-    src.cType !== null &&
-    src.unsignedCType !== null &&
-    src.cType !== src.unsignedCType
-  ) {
+  if (SliceSource.splits(src)) {
     const signedName = state.getNextTempVarName();
     writes.push(`const ${src.cType} ${signedName} = ${value};`);
     const unsignedName = state.getNextTempVarName();
@@ -366,8 +183,7 @@ function materializeSliceSource(
     return unsignedName;
   }
 
-  const tempType = src.unsignedCType ?? unsignedCTypeForBytes(lengthValue);
-  state.emittedCTypes.add(tempType);
+  const tempType = SliceSource.tempTypeOf(src, lengthValue);
   const tempName = state.getNextTempVarName();
   writes.push(`const ${tempType} ${tempName} = (${tempType})(${value});`);
   return tempName;
@@ -400,16 +216,8 @@ function buildSliceWrites(
   rawName: string,
 ): string {
   const dest = resolveSliceElement(typeInfo, rawName);
-  const src = resolveSliceSource(ctx, rawName, geometry.lengthValue);
-  // The element casts, including a string element's `(char)(uint8_t)`, and
-  // the source temps: the plan decides their header (#1927)
-  for (const cType of [
-    dest.cType === "char" ? "uint8_t" : dest.cType,
-    src.cType,
-    src.unsignedCType,
-  ]) {
-    if (cType !== null) ctx.state.emittedCTypes.add(cType);
-  }
+  const src = ctx.plannedSliceSource;
+  invariant(src !== null, "2.2 planned every slice source 2.3 writes");
   const elementCount = validateSliceSpan(
     dest,
     src,
@@ -439,7 +247,7 @@ function buildSliceWrites(
   // expression TypeResolver cannot type) is still sized to the slice length and
   // cast directly — see issue #1089.
   let sourceExpr = ctx.generatedValue;
-  if (elementCount > 1 || src.isComposite) {
+  if (SliceSource.materializes(src, elementCount)) {
     sourceExpr = materializeSliceSource(
       writes,
       src,

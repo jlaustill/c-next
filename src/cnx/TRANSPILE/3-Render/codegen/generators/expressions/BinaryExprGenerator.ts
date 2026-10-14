@@ -20,16 +20,12 @@
  * the single-child pass-through levels -- which is most levels of most expressions --
  * so a plan is only as deep as the expression's real operator nesting.
  *
- * ## The window is opened HERE, around thunks the planner did not evaluate
+ * ## Each operand is a thunk the planner did not evaluate
  *
- * `orchestrator.state.withoutExpectedType` is a dynamic scope over the whole operand
- * subtree, not a parameter: it clears `expectedType` and
- * `suppressBareEnumResolution` for the duration of a callback, and a leaf reads
- * them live at the instant it renders. So an operand nested any distance under
- * a comparison must render inside the window, which is why the PLANNER is lazy
- * rather than only the top thunk. Issue #1032 is the cost of getting it wrong:
- * `i32 < 0` emitting `signedIdx < 0U`, promoted to unsigned by C's usual
- * arithmetic conversions, and the test is dead.
+ * 2.2 plans a comparison's operands, at any depth under it, with no expected
+ * type, and each operand is written against its plan when it renders (#1991).
+ * Issue #1032 is the cost of getting it wrong: `i32 < 0` emitting
+ * `signedIdx < 0U`, promoted to unsigned by C's usual arithmetic conversions.
  */
 import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
 import BinaryExprUtils from "./BinaryExprUtils";
@@ -39,8 +35,7 @@ import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
 import TGeneratorEffect from "../TGeneratorEffect";
 import TPlannedBinaryExpr from "../../types/TPlannedBinaryExpr";
-import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
-import CLAMP_HELPER_FOR_OPERATOR from "../../../../../types/CLAMP_HELPER_FOR_OPERATOR";
+import invariant from "../../../../../utils/invariant";
 
 /**
  * Render every operand, collecting their effects.
@@ -97,41 +92,22 @@ const joinWithOperators = (
 const tryClampOperands = (
   plan: Extract<TPlannedBinaryExpr, { kind: "arithmetic" }>,
   operandCodes: readonly string[],
-  effects: TGeneratorEffect[],
 ): string | null => {
-  const cnxType = plan.clampType();
-  if (cnxType === null) return null;
-  if (TypeCheckUtils.usesNativeArithmetic(cnxType)) return null;
-  if (plan.clampBehavior() !== "clamp") return null;
-
-  // Every operator in the chain must have a helper; a mixed chain such as
-  // `a * b / c` is left alone rather than clamped in part, which would be
-  // harder to reason about than not clamping at all.
-  const chain = operandCodes.slice(1).map((_, index) => {
-    return CLAMP_HELPER_FOR_OPERATOR[
-      plan.operators[index] ?? plan.defaultOperator
-    ];
-  });
-  if (chain.includes(undefined)) {
-    return null;
-  }
+  const clamp = plan.clamp;
+  if (clamp === null) return null;
+  invariant(
+    clamp.operations.length === operandCodes.length - 1,
+    "2.2 planned one clamp helper per operator",
+  );
 
   // #1241: ADR-044's rule -- a `clamp` integer expression is lowered to
-  // saturating helper calls rather than plain C arithmetic -- has fired by this
-  // point: the type resolved, it is not natively handled, the operands are
-  // clamping, and every operator in the chain has a helper. Recorded here, at
-  // the last gate, so a chain that bails out above does not claim a cell it
-  // never reached.
+  // saturating helper calls rather than plain C arithmetic -- fired in 2.2,
+  // which decided this chain's helpers.
   AdrProvenance.record("044", plan.adrLine);
 
   let code = operandCodes[0];
-  chain.forEach((helperOperation, index) => {
-    effects.push({
-      type: "helper",
-      operation: helperOperation!,
-      cnxType,
-    });
-    code = `cnx_clamp_${helperOperation}_${cnxType}(${code}, ${operandCodes[index + 1]})`;
+  clamp.operations.forEach((operation, index) => {
+    code = `cnx_clamp_${operation}_${clamp.cnxType}(${code}, ${operandCodes[index + 1]})`;
   });
   return code;
 };
@@ -159,11 +135,15 @@ const renderArithmetic = (
       (code) => BinaryExprUtils.tryParseNumericLiteral(code) !== undefined,
     )
   ) {
+    invariant(
+      plan.clamp === null,
+      `2.2 planned no clamp helper for a chain 2.3 folds (line ${plan.adrLine})`,
+    );
     return { code: plan.constantValue, effects };
   }
 
   // Issue #1152: saturate when the operands are of a clamp integer type
-  const clamped = tryClampOperands(plan, operandCodes, effects);
+  const clamped = tryClampOperands(plan, operandCodes);
   if (clamped !== null) {
     return { code: clamped, effects };
   }
@@ -184,7 +164,6 @@ const renderArithmetic = (
  */
 const renderComparison = (
   plan: Extract<TPlannedBinaryExpr, { kind: "comparison" }>,
-  orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
 
@@ -197,18 +176,16 @@ const renderComparison = (
   AdrProvenance.record("001", plan.adrLine);
 
   if (plan.strcmp) {
-    // ADR-045: string comparison lowers to strcmp, which needs <string.h>.
-    // Raised HERE rather than carried on the plan: a plan that pre-registered
-    // it would drag the header into every file containing a comparison.
-    effects.push({ type: "include", header: "string" });
-
+    // ADR-045: string comparison lowers to strcmp. 2.2 required <string.h>
+    // when it planned the comparison, which 2.3 then renders (#1991).
     // #1649: only the FIRST TWO operands are rendered, and the code below is
     // the entire result -- so `s = t = u` emits `strcmp(s, t) == 0` and drops
     // `= u` silently. Pre-existing and preserved exactly: this slice's oracle
     // is a byte-identical corpus, and the fix needs a language decision about
     // chained comparison that #1649 records.
-    const [left, right] = orchestrator.state.withoutExpectedType(() =>
-      renderOperands(plan.renderOperands.slice(0, 2), effects),
+    const [left, right] = renderOperands(
+      plan.renderOperands.slice(0, 2),
+      effects,
     );
 
     return {
@@ -221,12 +198,10 @@ const renderComparison = (
     };
   }
 
-  // Issue #1032: the operands render with expectedType CLEARED. MISRA 7.2's U
+  // Issue #1032: 2.2 plans the operands with no expected type (#1991). MISRA 7.2's U
   // suffix applies to assignments, not comparisons -- `i32 < 0` becoming
   // `signedIdx < 0U` changes semantics under C's integer promotion.
-  const operandCodes = orchestrator.state.withoutExpectedType(() =>
-    renderOperands(plan.renderOperands, effects),
-  );
+  const operandCodes = renderOperands(plan.renderOperands, effects);
 
   return {
     code: joinWithOperators(
@@ -246,7 +221,7 @@ const generateBinaryExpr = (
   plan: TPlannedBinaryExpr,
   _input: IGeneratorInput,
   _state: IGeneratorState,
-  orchestrator: IOrchestrator,
+  _orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
   switch (plan.kind) {
     case "leaf":
@@ -259,7 +234,7 @@ const generateBinaryExpr = (
     }
 
     case "comparison":
-      return renderComparison(plan, orchestrator);
+      return renderComparison(plan);
 
     case "shift": {
       // #1322: the shift amount (MISRA 12.2, E0873) is checked in pass 2.1.

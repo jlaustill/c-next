@@ -329,6 +329,7 @@ function callResultReaches(type: Type): boolean {
 function heldParseValues(pattern: RegExp, stopAfter = Infinity): string[] {
   const found: string[] = [];
   for (const sf of project.getSourceFiles()) {
+    if (found.length >= stopAfter) break;
     const path = sf.getFilePath();
     if (path.includes("__tests__") || !pattern.test(path)) continue;
     // Every way a value is obtained or named: a call, a member read, an
@@ -355,9 +356,28 @@ function heldParseValues(pattern: RegExp, stopAfter = Infinity): string[] {
   return found;
 }
 
-/** The modules after 2.1 Analyze: the walker, its state, and every later layer */
-const AFTER_ANALYZE =
-  /src\/cnx\/TRANSPILE\/(2-Plan|3-Render|types)\/|src\/cnx\/TRANSPILE\/(CodeGenWalker|TranspileState)\.ts$|src\/cnx\/WRITE\//;
+/**
+ * The modules after 1.2 Parse (#1991, "the tree never leaves 1.2"): 1.3, 1.4,
+ * 2.1, the walker, its state, and every later layer
+ */
+const AFTER_PARSE_PASSES: ReadonlyArray<readonly [string, RegExp]> = [
+  ["1.3 Declare", /src\/cnx\/PARSE\/3-Declare\//],
+  ["1.4 Resolve", /src\/cnx\/PARSE\/4-Resolve\//],
+  ["2.1 Analyze", /src\/cnx\/TRANSPILE\/1-Analyze\//],
+  ["2.2 Plan", /src\/cnx\/TRANSPILE\/2-Plan\//],
+  ["2.3 Render", /src\/cnx\/TRANSPILE\/3-Render\//],
+  [
+    "the walker and its state",
+    /src\/cnx\/TRANSPILE\/types\/|src\/cnx\/TRANSPILE\/(CodeGenWalker|TranspileState)\.ts$/,
+  ],
+  ["3.1 Write", /src\/cnx\/WRITE\//],
+];
+const AFTER_PARSE = new RegExp(
+  AFTER_PARSE_PASSES.map(([, pass]) => pass.source).join("|"),
+);
+
+/** 1.2 Parse, which holds the tree, so every detector must find it there */
+const PARSE = /src\/cnx\/PARSE\/2-Parse\//;
 
 /**
  * Each assertion walks types across the whole program, and `npm run unit` runs
@@ -444,7 +464,7 @@ describe("artifact lifetime (#1445 box 2)", () => {
   );
 
   it(
-    "no field outside the parser and 2.1 holds a parse node",
+    "no field outside the parser holds a parse node",
     () => {
       // The pattern is ALL of `src/` minus the two directories that may hold a
       // tree, because a check scoped to where holders were already known cannot
@@ -458,8 +478,20 @@ describe("artifact lifetime (#1445 box 2)", () => {
       // `ServeCommand.transpiler`, which reached a tree only through it. Since
       // 2.1's `TreePasses` holds every tree as a local of one call, the host has
       // none to hold, and a field that brings one back fails here.
+      const holders = storedParseNodes(/src\/(?!cnx\/PARSE\/2-Parse)/);
+
+      expect(holders).toEqual([]);
+    },
+    WALK_TIMEOUT_MS,
+  );
+
+  it(
+    "no pass after 1.2 holds one on a field",
+    () => {
+      // The passes proper. #1991: 1.3 and 2.1 read 1.2's plain data, so they are
+      // no longer excluded.
       const holders = storedParseNodes(
-        /src\/(?!cnx\/(PARSE\/2-Parse|TRANSPILE\/1-Analyze))/,
+        /src\/cnx\/(PARSE\/(3-Declare|4-Resolve)|TRANSPILE\/(1-Analyze|2-Plan|3-Render))\//,
       );
 
       expect(holders).toEqual([]);
@@ -468,66 +500,17 @@ describe("artifact lifetime (#1445 box 2)", () => {
   );
 
   it(
-    "no pass after 1.3 holds one on a field",
+    "nothing after 1.2 accepts a parse node, by name or by shape (#1932, #1991)",
     () => {
-      // The passes proper. 1-Analyze is excluded and that is by CONSTRUCTION, not
-      // exemption: its listeners index nodes while walking, but every one is a
-      // local built per traversal (`new ShiftListener(...)`) with no static
-      // holder in the pass, so nothing survives the walk that created it.
-      const holders = storedParseNodes(
-        /src\/cnx\/(PARSE\/4-Resolve|TRANSPILE\/2-Plan|TRANSPILE\/3-Render)\//,
-      );
-
-      expect(holders).toEqual([]);
-    },
-    WALK_TIMEOUT_MS,
-  );
-
-  it(
-    "1-Analyze holds parse nodes only on per-walk instances",
-    () => {
-      // Its listeners index nodes while walking -- `Map<ParserRuleContext, …>` on
-      // roughly two dozen fields -- and that is what analysis IS. What makes them
-      // working state rather than artifacts is that none outlives its traversal,
-      // so the property to assert is that no STATIC field holds one. Listing the
-      // instance fields instead would pin two dozen names that churn with every
-      // analyzer, and would assert nothing about lifetime.
-      const statics: string[] = [];
-      for (const sf of project.getSourceFiles()) {
-        const path = sf.getFilePath();
-        if (
-          path.includes("__tests__") ||
-          !/src\/cnx\/TRANSPILE\/1-Analyze\//.test(path)
-        )
-          continue;
-        for (const cls of sf.getClasses())
-          for (const prop of cls.getProperties()) {
-            if (!prop.isStatic()) continue;
-            try {
-              if (reachesParseNode(prop.getType()))
-                statics.push(`${cls.getName()}.${prop.getName()}`);
-            } catch {
-              /* unresolvable field */
-            }
-          }
-      }
-
-      expect(statics).toEqual([]);
-    },
-    WALK_TIMEOUT_MS,
-  );
-
-  it(
-    "nothing after 2.1 accepts a parse node, by name or by shape (#1932)",
-    () => {
-      const afterAnalyze = AFTER_ANALYZE;
-
-      // POPULATION CONTROL: the pattern reaches the walker, the state it
-      // writes into, and every layer and type directory after 2.1.
-      const modules = matchingModules(afterAnalyze);
+      // POPULATION CONTROL: the pattern reaches 1.3, 2.1, the walker, the state
+      // it writes into, and every layer and type directory after them.
+      const modules = matchingModules(AFTER_PARSE);
       expect(modules).toContain("src/cnx/TRANSPILE/CodeGenWalker.ts");
       expect(modules).toContain("src/cnx/TRANSPILE/TranspileState.ts");
       for (const layer of [
+        "3-Declare/",
+        "4-Resolve/",
+        "1-Analyze/",
         "2-Plan/",
         "3-Render/",
         "TRANSPILE/types/",
@@ -535,28 +518,33 @@ describe("artifact lifetime (#1445 box 2)", () => {
       ])
         expect(modules.some((m) => m.includes(layer))).toBe(true);
 
-      // DETECTOR CONTROL: 2.1 is handed the tree and must be, so the same scan
-      // over it has to find acceptors -- otherwise an empty result below could
-      // mean a scan that cannot match.
-      expect(
-        parseNodeAcceptors(/src\/cnx\/TRANSPILE\/1-Analyze\//).length,
-      ).toBeGreaterThan(0);
+      // DETECTOR CONTROL: 1.2 lowers the tree, so the same scan over it has to
+      // find acceptors -- otherwise an empty result below could mean a scan
+      // that cannot match.
+      expect(parseNodeAcceptors(PARSE).length).toBeGreaterThan(0);
 
-      expect(parseNodeAcceptors(afterAnalyze)).toEqual([]);
+      expect(parseNodeAcceptors(AFTER_PARSE)).toEqual([]);
     },
     WALK_TIMEOUT_MS,
   );
   it(
-    "nothing after 2.1 holds a parse node as a value, however obtained (#1957)",
+    "the value sweep finds the parse nodes 1.2 holds",
     () => {
-      // DETECTOR CONTROL: 2.1 walks the tree, so the same sweep over it must
+      // DETECTOR CONTROL: 1.2 walks the tree, so the same sweep over it must
       // find parse-node values -- otherwise an empty result below could mean
       // a sweep that cannot match.
-      expect(
-        heldParseValues(/src\/cnx\/TRANSPILE\/1-Analyze\//, 1),
-      ).toHaveLength(1);
+      expect(heldParseValues(PARSE, 1)).toHaveLength(1);
+    },
+    WALK_TIMEOUT_MS,
+  );
+  // One test per pass: the sweep type-checks every module it reads, and all
+  // of them in one test took 75s under CI's coverage run (#1991).
+  it.each(AFTER_PARSE_PASSES)(
+    "nothing in %s holds a parse node as a value, however obtained (#1957, #1991)",
+    (_pass, modules) => {
+      expect(matchingModules(modules)).not.toEqual([]);
 
-      expect(heldParseValues(AFTER_ANALYZE)).toEqual([]);
+      expect(heldParseValues(modules)).toEqual([]);
     },
     WALK_TIMEOUT_MS,
   );

@@ -2,7 +2,7 @@
        help: A bit, bit-range or bitmap-field write keeps the other bits, so it reads its target and stores it back, and every subscript in the target runs twice. Store the index in a variable first (ADR-007).
 39:9 error[E0890]: 'idx()' would be evaluated twice: 'word[idx()]' is read and then written back
        help: A bit, bit-range or bitmap-field write keeps the other bits, so it reads its target and stores it back, and every subscript in the target runs twice. Store the index in a variable first (ADR-007).
-40:8 error[E0890]: 'vidx' would be evaluated twice: 'arr[vidx][2,4]' is read and then written back
+40:8 error[E0890]: 'vidx' would be evaluated twice: 'arr[vidx][2, 4]' is read and then written back
        help: A bit, bit-range or bitmap-field write keeps the other bits, so it reads its target and stores it back, and every subscript in the target runs twice. Store the index in a variable first (ADR-007).
 41:10 error[E0890]: 'idx()' would be evaluated twice: 'modes[idx()].fast' is read and then written back
        help: A bit, bit-range or bitmap-field write keeps the other bits, so it reads its target and stores it back, and every subscript in the target runs twice. Store the index in a variable first (ADR-007).

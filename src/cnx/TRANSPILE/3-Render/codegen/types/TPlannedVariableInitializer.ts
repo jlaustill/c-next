@@ -6,9 +6,7 @@
  *
  * ## The order inside the `expression` arm is load-bearing
  *
- * `renderTypeName` is asked FIRST and OUTSIDE the `withExpectedType` window --
- * it is what the window is opened with. `renderExpression` runs inside it, and
- * `resolveExpressionType` runs inside it too, AFTER the render: MISRA C:2012
+ * `resolveExpressionType` runs AFTER `renderExpression`: MISRA C:2012
  * Rule 10.3's cross-category check compares what the expression turned out to
  * be against what the declaration expects, so asking before the render would
  * ask about an expression that had not been typed yet.

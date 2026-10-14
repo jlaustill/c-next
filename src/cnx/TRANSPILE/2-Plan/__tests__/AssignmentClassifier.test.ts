@@ -38,6 +38,7 @@ function createMockContext(
   const ctx = {
     state,
     renderTarget: () => resolvedTarget,
+    atomicForm: null,
     analyzeTargetForBitAccess: () =>
       ({
         isBitAccess: false,
@@ -76,10 +77,20 @@ function createMockContext(
     ...overrides,
   } as IAssignmentContext;
   // #1668 (C7): what the target writes, as the binder would bind it
-  return {
-    ...ctx,
-    target: overrides.target ?? HandlerTestUtils.targetOf(state, ctx),
-  };
+  const target = overrides.target ?? HandlerTestUtils.targetOf(state, ctx);
+  // #1991: 2.2's clamp decision, made by the call 2.2 makes
+  const plannedClamp =
+    overrides.plannedClamp === undefined
+      ? AssignmentClassifier.clampOfWrite(
+          target,
+          ctx.isSimpleIdentifier ||
+            ctx.isSimpleThisAccess ||
+            ctx.isSimpleGlobalAccess,
+          ctx.cnextOp,
+          ctx.valueHasFloatingOperand,
+        )
+      : overrides.plannedClamp;
+  return { ...ctx, target, plannedClamp };
 }
 
 /**
@@ -110,7 +121,7 @@ function typedLast(
     ...ctx,
     target: {
       ...ctx.target,
-      last: { before, subscript, after: null, property: null },
+      last: { before, subscript, after: null, property: null, callee: null },
     },
   };
 }
@@ -134,6 +145,7 @@ function typedStep(
         subscript,
         after: step.after ?? null,
         property: null,
+        callee: null,
       },
     },
   };
@@ -488,6 +500,7 @@ describe("AssignmentClassifier - Special Compound", () => {
       isSimpleIdentifier: true,
       isCompound: true,
       cOp: "+=",
+      atomicForm: "ldrex-strex",
       cnextOp: "+<-",
     });
 

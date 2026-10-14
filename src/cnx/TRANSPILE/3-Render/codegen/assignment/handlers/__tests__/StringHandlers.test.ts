@@ -41,6 +41,7 @@ function createMockContext(
       HandlerTestUtils.planner().analyzeMemberChainForBitAccess(null as never),
     targetLine: 1,
     hasValue: true,
+    floatBits: null,
     valueExpressionType: () => null,
     valueIntegerType: () => null,
     valueHasFloatingOperand: () => false,
@@ -212,7 +213,13 @@ describe("StringHandlers", () => {
         ...base,
         target: {
           ...base.target,
-          last: { before: null, subscript: null, after: name, property: null },
+          last: {
+            before: null,
+            subscript: null,
+            after: name,
+            property: null,
+            callee: null,
+          },
         },
       };
 
@@ -273,6 +280,7 @@ describe("StringHandlers", () => {
             subscript: "array_element",
             after: element,
             property: null,
+            callee: null,
           },
         },
       };

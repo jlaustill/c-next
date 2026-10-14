@@ -1,4 +1,4 @@
-11:8 error[E0702]: if condition may not call a function: 'n>0&&(isValid())=true'
+11:8 error[E0702]: if condition may not call a function: 'n > 0 && (isValid()) = true'
        help: MISRA C:2012 Rule 13.5: Store the function result in a variable first.
-14:8 error[E0702]: if condition may not call a function: '(n>0)&&((isValid())=true)'
+14:8 error[E0702]: if condition may not call a function: '(n > 0) && ((isValid()) = true)'
        help: MISRA C:2012 Rule 13.5: Store the function result in a variable first.

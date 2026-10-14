@@ -6,7 +6,7 @@
  * Uses SymbolRegistry for scope management.
  */
 
-import * as Parser from "../../../2-Parse/grammar/CNextParser";
+import type TDeclarationSyntax from "../../../../types/syntax/TDeclarationSyntax";
 import DeclarationSite from "../../../../utils/DeclarationSite";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import ScopeUtils from "../../../../utils/ScopeUtils";
@@ -22,7 +22,12 @@ import VariableCollector from "./VariableCollector";
 import RegisterCollector from "./RegisterCollector";
 import type ISourceSpan from "../../../../types/ISourceSpan";
 import UNSET_SOURCE_SPAN from "../../../../types/UNSET_SOURCE_SPAN";
-import ParserUtils from "../../../../utils/ParserUtils";
+
+type TScopeSyntax = Extract<TDeclarationSyntax, { kind: "scope" }>;
+type TScopeMemberSyntax = Exclude<
+  TScopeSyntax["members"][number]["declaration"],
+  { kind: "missing" }
+>;
 
 class ScopeCollector {
   /**
@@ -35,7 +40,7 @@ class ScopeCollector {
    * which creates the scope in global state if it doesn't exist. Tests
    * constructs its own registry, so there is nothing to reset (#1452 box 3).
    *
-   * @param ctx The scope declaration context
+   * @param syntax The scope declaration, as 1.2 lowered it
    * @param sourceFile Source file path
    * @param knownBitmaps Set of known bitmap type names for register resolution
    * @param isScopeType ADR-057: predicate answering whether a *qualified* name
@@ -46,13 +51,13 @@ class ScopeCollector {
    */
   static collect(
     registry: SymbolRegistry,
-    ctx: Parser.ScopeDeclarationContext,
+    syntax: TScopeSyntax,
     sourceFile: string,
     knownBitmaps: Set<string>,
     isScopeType?: (qualifiedName: string) => boolean,
   ): IScopeCollectorResult {
-    const scopeName = ctx.IDENTIFIER().getText();
-    const span = ParserUtils.getSpan(ctx);
+    const scopeName = syntax.name;
+    const span = syntax.span;
 
     // Get or create the scope via SymbolRegistry
     const scope = registry.getOrCreateScope(scopeName);
@@ -132,114 +137,94 @@ class ScopeCollector {
       }
     };
 
-    for (const member of ctx.scopeMember()) {
-      const visibility = ScopeUtils.getMemberVisibility(member);
-
-      // Handle variable declarations
-      if (member.variableDeclaration()) {
-        const varDecl = member.variableDeclaration()!;
-        const varName = varDecl.IDENTIFIER().getText();
-        memberVisibility.set(varName, visibility);
-        addMember(varName);
-
-        const varSymbol = VariableCollector.collect(
-          varDecl,
-          sourceFile,
-          scopePath,
-          visibility,
-          isScopeType,
-        );
-        memberSymbols.push(varSymbol);
-      }
-
-      // Handle function declarations
-      if (member.functionDeclaration()) {
-        const funcDecl = member.functionDeclaration()!;
-        const funcName = funcDecl.IDENTIFIER().getText();
-        memberVisibility.set(funcName, visibility);
-        addMember(funcName);
-
-        // Use collectAndRegister to populate both memberSymbols and SymbolRegistry
-        const funcSymbol = FunctionCollector.collectAndRegister(
+    for (const member of syntax.members) {
+      const declaration = member.declaration;
+      // Error recovery's repaired member declares nothing
+      if (declaration.kind === "missing") continue;
+      const visibility = ScopeUtils.memberVisibility(
+        member.visibility,
+        declaration.kind === "function",
+      );
+      memberVisibility.set(declaration.name, visibility);
+      addMember(declaration.name);
+      memberSymbols.push(
+        ScopeCollector.memberSymbol(
           registry,
-          funcDecl,
+          declaration,
+          sourceFile,
+          scopePath,
+          visibility,
+          knownBitmaps,
+          isScopeType,
+        ),
+      );
+    }
+
+    return { scopeSymbol: scope, memberSymbols };
+  }
+
+  /** One member's symbol, from the collector for its kind */
+  private static memberSymbol(
+    registry: SymbolRegistry,
+    declaration: TScopeMemberSyntax,
+    sourceFile: string,
+    scopePath: string,
+    visibility: TVisibility,
+    knownBitmaps: Set<string>,
+    isScopeType?: (qualifiedName: string) => boolean,
+  ): TSymbol {
+    switch (declaration.kind) {
+      case "variableDeclaration":
+      case "constructorDeclaration":
+        return VariableCollector.collect(
+          declaration,
           sourceFile,
           scopePath,
           visibility,
           isScopeType,
         );
-        memberSymbols.push(funcSymbol);
-      }
-
-      // Handle enum declarations
-      if (member.enumDeclaration()) {
-        const enumDecl = member.enumDeclaration()!;
-        const enumName = enumDecl.IDENTIFIER().getText();
-        memberVisibility.set(enumName, visibility);
-        addMember(enumName);
-
-        const enumSymbol = EnumCollector.collect(
-          enumDecl,
-          sourceFile,
-          scopePath,
-          visibility,
-        );
-        memberSymbols.push(enumSymbol);
-      }
-
-      // Handle bitmap declarations
-      if (member.bitmapDeclaration()) {
-        const bitmapDecl = member.bitmapDeclaration()!;
-        const bitmapName = bitmapDecl.IDENTIFIER().getText();
-        memberVisibility.set(bitmapName, visibility);
-        addMember(bitmapName);
-
-        const bitmapSymbol = BitmapCollector.collect(
-          bitmapDecl,
-          sourceFile,
-          scopePath,
-          visibility,
-        );
-        memberSymbols.push(bitmapSymbol);
-      }
-
-      // Handle struct declarations
-      if (member.structDeclaration()) {
-        const structDecl = member.structDeclaration()!;
-        const structName = structDecl.IDENTIFIER().getText();
-        memberVisibility.set(structName, visibility);
-        addMember(structName);
-
-        const structSymbol = StructCollector.collect(
-          structDecl,
+      case "function":
+        // collectAndRegister populates both memberSymbols and SymbolRegistry
+        return FunctionCollector.collectAndRegister(
+          registry,
+          declaration,
           sourceFile,
           scopePath,
           visibility,
           isScopeType,
         );
-        memberSymbols.push(structSymbol);
-      }
-
-      // Handle register declarations
-      if (member.registerDeclaration()) {
-        const regDecl = member.registerDeclaration()!;
-        const regName = regDecl.IDENTIFIER().getText();
-        memberVisibility.set(regName, visibility);
-        addMember(regName);
-
-        const regSymbol = RegisterCollector.collect(
-          regDecl,
+      case "enum":
+        return EnumCollector.collect(
+          declaration,
+          sourceFile,
+          scopePath,
+          visibility,
+        );
+      case "bitmap":
+        return BitmapCollector.collect(
+          declaration,
+          sourceFile,
+          scopePath,
+          visibility,
+        );
+      case "struct":
+        return StructCollector.collect(
+          declaration,
+          sourceFile,
+          scopePath,
+          visibility,
+          isScopeType,
+        );
+      case "register":
+        return RegisterCollector.collect(
+          declaration,
           sourceFile,
           knownBitmaps,
           scopePath,
           visibility,
           isScopeType,
         );
-        memberSymbols.push(regSymbol);
-      }
     }
-
-    return { scopeSymbol: scope, memberSymbols };
   }
 }
 

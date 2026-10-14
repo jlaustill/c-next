@@ -1,3 +1,4 @@
+import type IPlannedClamp from "../../../2-Plan/types/IPlannedClamp";
 import type IGeneratorOutput from "../generators/IGeneratorOutput";
 
 /**
@@ -23,13 +24,9 @@ import type IGeneratorOutput from "../generators/IGeneratorOutput";
  *
  * ## Why every operand is a thunk
  *
- * `CodeGenState.withoutExpectedType` is a dynamic scope over the whole operand
- * SUBTREE at unbounded depth: it clears `expectedType` and
- * `suppressBareEnumResolution` for the duration of a callback, and the consumer
- * reads them live at the instant a leaf renders. So an operand of a bitwise,
- * shift or arithmetic level -- nested anywhere under a comparison -- must
- * render inside that window too, and a planner that renders eagerly renders it
- * outside.
+ * An operand renders when the renderer writes it, against the type 2.2
+ * planned for it -- none for an operand nested anywhere under a comparison
+ * (#1032, #1991).
  *
  * Issue #1032 is what that costs: `i32 < 0` emitting `signedIdx < 0U`, which C's
  * usual arithmetic conversions then promote to unsigned, making the test dead.
@@ -55,8 +52,7 @@ type TPlannedBinaryExpr =
   /**
    * An equality or relational comparison.
    *
-   * The renderer opens the `withoutExpectedType` window around the operands --
-   * see above. `adrLine` is present only when ADR-001's `=`-means-equality rule
+   * 2.2 plans its operands with no expected type -- see above. `adrLine` is present only when ADR-001's `=`-means-equality rule
    * actually fired: an expression using only `!=` is unchanged from C and must
    * not claim a matrix cell (#1241).
    */
@@ -89,9 +85,8 @@ type TPlannedBinaryExpr =
    * `+ - * / %` -- constant-folded, or lowered to ADR-044 saturating helpers,
    * or joined.
    *
-   * `clampType` and `clampBehavior` are thunks asked AFTER the operands render,
-   * which is where they are asked today. Both read the typer over 1.4's settled
-   * declarations (#1668), so the order is not load-bearing.
+   * `clamp` is 2.2's decision (#1991): the helpers a `clamp` integer chain
+   * calls, or null when it is plain C.
    */
   | {
       readonly kind: "arithmetic";
@@ -103,8 +98,7 @@ type TPlannedBinaryExpr =
       readonly constantValue: string | null;
       readonly defaultOperator: string;
       readonly operators: readonly string[];
-      readonly clampType: () => string | null;
-      readonly clampBehavior: () => string | null;
+      readonly clamp: IPlannedClamp | null;
       readonly adrLine: number | undefined;
       readonly renderOperands: readonly (() => IGeneratorOutput)[];
     };

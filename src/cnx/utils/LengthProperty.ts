@@ -28,6 +28,9 @@ const LENGTHS: ReadonlySet<string> = new Set([
 ]);
 
 class LengthProperty {
+  /** The C type an unfolded length's product is taken in (#1760) */
+  static readonly PRODUCT_C_TYPE = "uint32_t";
+
   /** Whether a member name is one of ADR-058's compile-time length properties */
   static isLength(property: string): boolean {
     return LENGTHS.has(property);

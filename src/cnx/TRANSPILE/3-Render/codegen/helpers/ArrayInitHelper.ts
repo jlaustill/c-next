@@ -37,17 +37,12 @@ interface IArrayInitResult {
  * `ArrayDimensionContext` here bought a dependency on the grammar purely to
  * pass values through.
  *
- * Thunks rather than pre-generated strings, deliberately. `getTypeName` must
- * run BEFORE `generateExpression`, and `generateExpression` must run INSIDE
- * the `callbacks.state.withExpectedType` window that this helper opens -- that
- * window is the whole point of `_generateArrayInitValue`. Passing strings
- * would evaluate them at the call site, outside it.
+ * Thunks rather than pre-generated strings, deliberately: this helper decides
+ * whether, and in what order, each renders.
  */
 interface IArrayInitCallbacks {
   /** Generate the initializer expression's code */
   generateExpression: () => string;
-  /** Get the declared type's C name */
-  getTypeName: () => string;
   /** Generate the declaration's array dimension suffix */
   generateArrayDimensions: () => string;
 }
@@ -75,7 +70,7 @@ class ArrayInitHelper {
     // Reset and generate initializer
     state.resetArrayInitTracking();
 
-    const initValue = ArrayInitHelper._generateArrayInitValue(callbacks, state);
+    const initValue = callbacks.generateExpression();
 
     // Check if it was an array initializer
     if (!state.wasArrayInit()) {
@@ -93,19 +88,6 @@ class ArrayInitHelper {
     );
 
     return { isArrayInit: true, dimensionSuffix, initValue: finalInitValue };
-  }
-
-  /**
-   * Generate the array initializer value with proper expected type
-   */
-  private static _generateArrayInitValue(
-    callbacks: IArrayInitCallbacks,
-    state: TranspileState,
-  ): string {
-    const typeName = callbacks.getTypeName();
-    return state.withExpectedType(typeName, () =>
-      callbacks.generateExpression(),
-    );
   }
 
   /**

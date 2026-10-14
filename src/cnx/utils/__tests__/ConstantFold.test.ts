@@ -8,7 +8,7 @@ import type IConstantEnvironment from "../types/IConstantEnvironment";
 const AT = { line: 1, column: 0 };
 
 function lit(digits: string, typeName: string | null = null): TConstExpr {
-  return { kind: "literal", digits, typeName };
+  return { kind: "literal", digits, text: digits, typeName };
 }
 function name(...path: string[]): TConstExpr {
   return { kind: "name", root: null, path, at: AT };

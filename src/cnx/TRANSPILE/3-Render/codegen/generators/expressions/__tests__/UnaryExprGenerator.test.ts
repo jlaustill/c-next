@@ -6,7 +6,7 @@
  * - Signed types and unresolvable types are unchanged
  * - C++ mode uses static_cast
  *
- * #1445: the generator takes `{ operator, operandCode, operandType }`, so
+ * #1445: the generator takes `{ operator, operandCode, complementCast }`, so
  * there is no node to fake and no orchestrator to stand in for the recursion.
  * The operand's type arrives through the thunk, and whether it is unsigned is
  * `TypeCheckUtils`'s real answer (#1668: the mocked `ExpressionTypeResolver`
@@ -32,22 +32,27 @@ const state = new TranspileState();
 // state, for the MISRA 10.1/10.3 cast. That is the only member it touches.
 const mockOrchestrator = { state } as unknown as IOrchestrator;
 
-/** The generator's whole input: an operator, the operand's code, its type. */
+/** The generator's whole input: an operator, the operand's code, 2.2's `~` cast. */
 function planned(
   operator: "!" | "-" | "~" | "&" | null,
   operandCode: string,
-  operandType: string | null = null,
+  complementCast: string | null = null,
 ) {
-  return { operator, operandCode, operandType: () => operandType };
+  return {
+    operator,
+    operandCode,
+    minimum: null,
+    complementCast,
+  };
 }
 
 const run = (
   operator: "!" | "-" | "~" | "&" | null,
   operandCode: string,
-  operandType: string | null = null,
+  complementCast: string | null = null,
 ) =>
   generateUnaryExpr(
-    planned(operator, operandCode, operandType),
+    planned(operator, operandCode, complementCast),
     mockInput,
     mockState,
     mockOrchestrator,
@@ -64,32 +69,32 @@ describe("UnaryExprGenerator", () => {
 
   describe("bitwise NOT on unsigned types", () => {
     it("should cast ~u8 to (uint8_t)~c in C mode", () => {
-      const result = run("~", "c", "u8");
+      const result = run("~", "c", "uint8_t");
 
       expect(result.code).toBe("(uint8_t)~c");
-      expect(result.effects).toEqual([{ type: "c-type", cType: "uint8_t" }]);
+      expect(result.effects).toEqual([]);
     });
 
     it("should cast ~u16 to (uint16_t)~c in C mode", () => {
-      const result = run("~", "c", "u16");
+      const result = run("~", "c", "uint16_t");
 
       expect(result.code).toBe("(uint16_t)~c");
-      expect(result.effects).toEqual([{ type: "c-type", cType: "uint16_t" }]);
+      expect(result.effects).toEqual([]);
     });
 
     it("should use static_cast in C++ mode", () => {
       state.cppMode = true;
 
-      const result = run("~", "c", "u8");
+      const result = run("~", "c", "uint8_t");
 
       expect(result.code).toBe("static_cast<uint8_t>(~c)");
-      expect(result.effects).toEqual([{ type: "c-type", cType: "uint8_t" }]);
+      expect(result.effects).toEqual([]);
     });
   });
 
   describe("bitwise NOT on signed/unresolvable types", () => {
     it("should not cast ~i8 (signed type)", () => {
-      const result = run("~", "c", "i8");
+      const result = run("~", "c", null);
 
       expect(result.code).toBe("~c");
       expect(result.effects).toEqual([]);
@@ -116,6 +121,38 @@ describe("UnaryExprGenerator", () => {
       // #1445: null covers the base case (operand is a postfix expression) and
       // the grammar-impossible fallback. Both returned the operand before.
       expect(run(null, "someValue").code).toBe("someValue");
+    });
+  });
+
+  describe("negative minimums (MISRA 10.3)", () => {
+    it.each([
+      ["int32_t", "2147483648", "(int32_t)INT32_MIN"],
+      ["int64_t", "9223372036854775808LL", "(int64_t)INT64_MIN"],
+    ] as const)(
+      "writes 2.2's %s minimum as its macro, and asks for no include",
+      (minimum, operandCode, code) => {
+        const result = generateUnaryExpr(
+          { ...planned("-", operandCode), minimum },
+          mockInput,
+          mockState,
+          mockOrchestrator,
+        );
+        expect(result.code).toBe(code);
+        expect(result.effects).toEqual([]);
+      },
+    );
+
+    it("fails when 2.2 did not plan an overflowing literal", () => {
+      expect(() => run("-", "2147483648")).toThrow(
+        "2.2 planned every negative minimum",
+      );
+    });
+
+    it("negates any other operand plainly", () => {
+      expect(run("-", "(2147483648)")).toEqual({
+        code: "-(2147483648)",
+        effects: [],
+      });
     });
   });
 });

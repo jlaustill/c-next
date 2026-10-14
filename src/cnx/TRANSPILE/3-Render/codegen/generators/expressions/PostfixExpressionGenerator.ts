@@ -11,9 +11,11 @@
  * This generator was extracted from CodeGenerator._generatePostfixExpr
  * to reduce the size and complexity of CodeGenerator.ts.
  */
+import type IPlannedFloatBits from "../../../../2-Plan/types/IPlannedFloatBits";
+import FloatBitType from "../../../../2-Plan/FloatBitType";
+import type TPlannedNarrowing from "../../../../2-Plan/types/TPlannedNarrowing";
 import type IChainBase from "../../../../../types/IChainBase";
 import type TParameterInfo from "../../../../../types/TParameterInfo";
-import type IChainStep from "../../../../../types/IChainStep";
 import type IOperandType from "../../../../../types/IOperandType";
 import IGeneratorOutput from "../IGeneratorOutput";
 import IPlannedPostfix from "../../types/IPlannedPostfix";
@@ -29,11 +31,11 @@ import type IRootHolding from "../../types/IRootHolding";
 import BitmapAccessHelper from "./BitmapAccessHelper";
 import BitRangeHelper from "../../helpers/BitRangeHelper";
 import FloatBitHelper from "../../helpers/FloatBitHelper";
-import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
+import NarrowingCastHelper from "../../../../2-Plan/NarrowingCastHelper";
 import BitUtils from "../../../../../utils/BitUtils";
 import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
 import SubscriptDepthValidator from "../../../../2-Plan/SubscriptDepthValidator";
-import C_TYPE_WIDTH from "../../types/C_TYPE_WIDTH";
+import C_TYPE_WIDTH from "../../../../2-Plan/types/C_TYPE_WIDTH";
 import LengthProperty from "../../../../../utils/LengthProperty";
 import type IStructSymbol from "../../../../../types/symbols/IStructSymbol";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
@@ -85,16 +87,14 @@ interface ITrackingState {
 const singleBitRead = (
   base: string,
   index: string,
+  narrowing: TPlannedNarrowing | null,
   orchestrator: IOrchestrator,
 ): string => {
   const expr =
     index === "0" || index === "0U"
       ? `((${base}) & 1)`
       : `((${base} >> ${index}) & 1)`;
-  const targetType = orchestrator.state.expectedType;
-  return targetType
-    ? NarrowingCastHelper.wrap(expr, "int", targetType, orchestrator.state)
-    : expr;
+  return NarrowingCastHelper.apply(expr, narrowing, orchestrator.state);
 };
 
 /**
@@ -188,8 +188,6 @@ const generatePostfixExpression = (
   // through the pointer instead of pointer-indexing past it.
   const result: string = plan.renderPrimary();
 
-  const primaryTypeInfo = rootIdentifier ? plan.base.rootTypeInfo : undefined;
-
   // Issue #1106: reject over-indexing the base variable (e.g. flags[4][3] on a
   // scalar u8, which would otherwise chain bit-indexes into always-zero code:
   // `((flags >> 4) & 1) >> 3) & 1` extracts bit 3 of a single bit).
@@ -226,7 +224,7 @@ const generatePostfixExpression = (
 
   for (const op of ops) {
     if (op.kind === "member") {
-      handleMemberOp(op.name, op.step, op.appliesToRoot, tracking, postfixCtx);
+      handleMemberOp(op, tracking, postfixCtx);
     } else if (op.kind === "subscript") {
       const subscriptResult = generateSubscriptAccess(
         {
@@ -234,7 +232,6 @@ const generatePostfixExpression = (
           result: tracking.result,
           subscript: op,
           rootIdentifier,
-          primaryTypeInfo,
           resolvedIdentifier: tracking.resolvedIdentifier,
           subscriptDepth: tracking.subscriptDepth,
           isRegisterChain: tracking.isRegisterChain,
@@ -242,7 +239,6 @@ const generatePostfixExpression = (
         input,
         state,
         orchestrator,
-        effects,
       );
 
       tracking.result = subscriptResult.result;
@@ -269,6 +265,7 @@ const generatePostfixExpression = (
         state,
         orchestrator,
         op.calleeType(),
+        op.safeDivisionHelper,
       );
       applyAccessEffects(callResult.effects, effects);
       tracking.result = callResult.code;
@@ -303,12 +300,13 @@ const generatePostfixExpression = (
  * Mutates `tracking` in place.
  */
 const handleMemberOp = (
-  memberName: string,
-  step: IChainStep | null,
-  isRootOp: boolean,
+  op: Extract<TPlannedPostfixOp, { kind: "member" }>,
   tracking: ITrackingState,
   ctx: IPostfixContext,
 ): void => {
+  const memberName = op.name;
+  const step = op.step;
+  const isRootOp = op.appliesToRoot;
   // ADR-016: Handle global. prefix
   if (handleGlobalPrefix(memberName, tracking, ctx)) {
     return;
@@ -347,6 +345,7 @@ const handleMemberOp = (
       isGlobalAccess: tracking.isGlobalAccess,
       isCppAccessChain: tracking.isCppAccessChain,
       typed: step?.before ?? null,
+      narrowing: op.narrowing,
       resolvedIdentifier: tracking.resolvedIdentifier,
       isRegisterChain: tracking.isRegisterChain,
     },
@@ -452,16 +451,16 @@ const tryPropertyAccess = (
   switch (memberName) {
     // ADR-058: explicit length properties
     case "bit_length":
-      result = generateBitLengthProperty(ctx, input, state, effects);
+      result = generateBitLengthProperty(ctx, input, state);
       break;
     case "byte_length":
-      result = generateByteLengthProperty(ctx, input, state, effects);
+      result = generateByteLengthProperty(ctx, input, state);
       break;
     case "element_count":
       result = generateElementCountProperty(ctx, input, state);
       break;
     case "char_count":
-      result = generateCharCountProperty(ctx, state, effects);
+      result = generateCharCountProperty(ctx, state);
       break;
     // ADR-045: string storage
     case "capacity":
@@ -567,7 +566,6 @@ const measuredLength = (
   ctx: IPropertyContext,
   input: IGeneratorInput,
   unitBits: 1 | 8,
-  effects: TGeneratorEffect[],
 ): string => {
   const measured = ctx.measured;
   invariant(
@@ -592,8 +590,7 @@ const measuredLength = (
     typeof dim === "number" ? `${dim}U` : `(${dim})`,
   );
   const unit = `${perElement}U`;
-  effects.push({ type: "c-type", cType: "uint32_t" });
-  return `((uint32_t)${[...factors, unit].join(" * ")})`;
+  return `((${LengthProperty.PRODUCT_C_TYPE})${[...factors, unit].join(" * ")})`;
 };
 
 /**
@@ -604,14 +601,13 @@ const generateBitLengthProperty = (
   ctx: IPropertyContext,
   input: IGeneratorInput,
   state: IGeneratorState,
-  effects: TGeneratorEffect[],
 ): string => {
   // Special case: main function's args.bit_length -> not supported
   invariant(
     !(state.mainArgsName && ctx.rootIdentifier === state.mainArgsName),
     `E0867 rejects this in pass 2.1 -- .bit_length is not supported on 'args' parameter. Use .element_count for argc.`,
   );
-  return measuredLength(ctx, input, 1, effects);
+  return measuredLength(ctx, input, 1);
 };
 
 /**
@@ -622,14 +618,13 @@ const generateByteLengthProperty = (
   ctx: IPropertyContext,
   input: IGeneratorInput,
   state: IGeneratorState,
-  effects: TGeneratorEffect[],
 ): string => {
   // Special case: main function's args
   invariant(
     !(state.mainArgsName && ctx.rootIdentifier === state.mainArgsName),
     `E0867 rejects this in pass 2.1 -- .byte_length is not supported on 'args' parameter. Use .element_count for argc.`,
   );
-  return measuredLength(ctx, input, 8, effects);
+  return measuredLength(ctx, input, 8);
 };
 
 /**
@@ -663,7 +658,6 @@ const generateElementCountProperty = (
 const generateCharCountProperty = (
   ctx: IPropertyContext,
   state: IGeneratorState,
-  effects: TGeneratorEffect[],
 ): string => {
   // Special case: main function's args
   invariant(
@@ -675,7 +669,7 @@ const generateCharCountProperty = (
     `E0867 rejects this in pass 2.1 -- .char_count is only available on strings, not on '${ctx.result}'.`,
   );
 
-  effects.push({ type: "include", header: "string" });
+  // 2.2 required <string.h> when it planned the read (#1991)
 
   // #1946/#1650: the cache is keyed by the operand it measured, rendered as
   // this read renders it, so a read takes it exactly when both name one object.
@@ -729,6 +723,8 @@ interface IMemberAccessContext {
    * typer typed it; null where its root consumed the op or nothing typed it
    */
   typed: IOperandType | null;
+  /** 2.2's decision for a bitmap field read (MISRA 10.3), or null */
+  narrowing: TPlannedNarrowing | null;
   resolvedIdentifier: string | undefined;
   isRegisterChain: boolean;
 }
@@ -842,6 +838,7 @@ const tryBitmapFieldAccess = (
     typeInfo.bitmapTypeName,
     input.symbols!.bitmapFields,
     `type '${typeInfo.bitmapTypeName}'`,
+    ctx.narrowing,
     orchestrator.state,
   );
   applyAccessEffects(bitmapResult.effects, effects);
@@ -977,6 +974,7 @@ const tryRegisterBitmapAccess = (
     bitmapType,
     input.symbols!.bitmapFields,
     `register member '${ctx.result}' (bitmap type '${bitmapType}')`,
+    ctx.narrowing,
     orchestrator.state,
   );
   applyAccessEffects(bitmapResult.effects, effects);
@@ -1006,6 +1004,7 @@ const tryStructBitmapAccess = (
     bitmapType,
     input.symbols!.bitmapFields,
     `struct member '${ctx.result}' (bitmap type '${bitmapType}')`,
+    ctx.narrowing,
     orchestrator.state,
   );
   applyAccessEffects(bitmapResult.effects, effects);
@@ -1043,9 +1042,6 @@ interface ISubscriptAccessContext {
   result: string;
   subscript: Extract<TPlannedPostfixOp, { kind: "subscript" }>;
   rootIdentifier: string | undefined;
-  primaryTypeInfo:
-    | { baseType: string; arrayDimensions?: (number | string)[] }
-    | undefined;
   resolvedIdentifier: string | undefined;
   subscriptDepth: number;
   isRegisterChain: boolean;
@@ -1060,7 +1056,6 @@ const generateSubscriptAccess = (
   input: IGeneratorInput,
   state: IGeneratorState,
   orchestrator: IOrchestrator,
-  effects: TGeneratorEffect[],
 ): SubscriptAccessResult => {
   const output: SubscriptAccessResult = {
     result: ctx.result,
@@ -1075,26 +1070,15 @@ const generateSubscriptAccess = (
     return output;
   }
 
-  // Set expectedType to size_t (unsigned) for indices per MISRA 7.2. This is
-  // what gives an index literal its U suffix regardless of element type, and it
-  // is why the plan hands over a render rather than a rendered string -- a
-  // value generated outside this window silently loses the suffix.
-  const indexes = orchestrator.state.withExpectedType("size_t", () =>
-    ctx.subscript.renderIndexes(),
-  );
+  // 2.2 plans each index against size_t (unsigned) per MISRA 7.2, which is
+  // what gives an index literal its U suffix regardless of element type (#1991)
+  const indexes = ctx.subscript.renderIndexes();
 
   if (indexCount === 1) {
     return handleSingleSubscript(ctx, indexes[0], input, orchestrator, output);
   }
 
-  return handleBitRangeSubscript(
-    ctx,
-    indexes,
-    state,
-    orchestrator,
-    effects,
-    output,
-  );
+  return handleBitRangeSubscript(ctx, indexes, state, orchestrator, output);
 };
 
 /**
@@ -1123,7 +1107,12 @@ const handleSingleSubscript = (
     checkRegisterAccess(ctx, input) ||
     ctx.subscript.typedAs === "bit_single"
   ) {
-    output.result = singleBitRead(ctx.result, index, orchestrator);
+    output.result = singleBitRead(
+      ctx.result,
+      index,
+      ctx.subscript.narrowing,
+      orchestrator,
+    );
     return output;
   }
   output.result = `${ctx.result}[${index}]`;
@@ -1168,7 +1157,6 @@ const handleBitRangeSubscript = (
   indexes: readonly string[],
   state: IGeneratorState,
   orchestrator: IOrchestrator,
-  effects: TGeneratorEffect[],
   output: SubscriptAccessResult,
 ): SubscriptAccessResult => {
   const [start, width] = indexes;
@@ -1183,25 +1171,24 @@ const handleBitRangeSubscript = (
     folded: ctx.subscript.foldWidth(),
   });
 
-  const isFloatType =
-    ctx.primaryTypeInfo?.baseType === "f32" ||
-    ctx.primaryTypeInfo?.baseType === "f64";
-
-  if (isFloatType && ctx.rootIdentifier) {
+  const floatBits = ctx.subscript.floatBits;
+  if (floatBits !== null) {
     output.result = handleFloatBitRange(
       {
         result: ctx.result,
         rootIdentifier: ctx.rootIdentifier,
-        baseType: ctx.primaryTypeInfo!.baseType,
+        floatBits,
         start,
-        width,
         maskWidth,
       },
       state,
       orchestrator,
-      effects,
     );
   } else {
+    invariant(
+      ctx.subscript.step?.before?.category !== "floating",
+      `2.2 planned every float bit range 2.3 reads (${ctx.result})`,
+    );
     // Issue #1094, #1668: a width known only at run time computes its mask
     // in the operand's own width, so a 64-bit operand's does not shift past
     // a 32-bit literal's, nor a 32-bit one's past a 16-bit int's. #1760
@@ -1217,22 +1204,12 @@ const handleBitRangeSubscript = (
       expr = `((${ctx.result} >> ${start}) & ${mask})`;
     }
 
-    // MISRA 10.3: Add narrowing cast if expected type is known
-    // Bit operations promote to int, so wrap with cast when assigning to narrower types
-    const targetType = orchestrator.state.expectedType;
-    if (targetType && ranged?.typeName) {
-      const promotedSourceType = NarrowingCastHelper.getPromotedType(
-        ranged.typeName,
-      );
-      output.result = NarrowingCastHelper.wrap(
-        expr,
-        promotedSourceType,
-        targetType,
-        orchestrator.state,
-      );
-    } else {
-      output.result = expr;
-    }
+    // MISRA 10.3: bit operations promote to int; 2.2 decided the cast
+    output.result = NarrowingCastHelper.apply(
+      expr,
+      ctx.subscript.narrowing,
+      orchestrator.state,
+    );
   }
 
   return output;
@@ -1242,14 +1219,59 @@ const handleBitRangeSubscript = (
  * Context for float bit range access.
  */
 interface IFloatBitRangeContext {
+  /** The float read, as written in C */
   result: string;
-  rootIdentifier: string;
-  baseType: string;
+  /** The variable whose shadow a shared read uses */
+  rootIdentifier: string | undefined;
+  /** 2.2's decision for this read (ADR-007) */
+  floatBits: IPlannedFloatBits;
   start: string;
-  width: string;
   /** Width formatted for mask generation (const-resolved when possible, #1094). */
   maskWidth: string;
 }
+
+/**
+ * A variable's shadow union, declared at its first read or write and copied
+ * into only when a whole-variable write made it stale.
+ */
+const sharedShadow = (
+  ctx: IFloatBitRangeContext,
+  orchestrator: IOrchestrator,
+): string => {
+  invariant(
+    ctx.rootIdentifier !== undefined,
+    `a shared float shadow is a named variable's (${ctx.result})`,
+  );
+  const shadowName = BitRangeHelper.getShadowVarName(ctx.rootIdentifier);
+  if (!orchestrator.hasFloatBitShadow(shadowName)) {
+    orchestrator.registerFloatBitShadow(shadowName);
+    orchestrator.addPendingTempDeclaration(
+      FloatBitHelper.unionDeclaration(ctx.floatBits.floatType, shadowName),
+    );
+  }
+  const shadowIsCurrent = orchestrator.isFloatShadowCurrent(shadowName);
+  orchestrator.markFloatShadowCurrent(shadowName);
+  if (!shadowIsCurrent) {
+    orchestrator.addPendingTempDeclaration(`${shadowName}.f = ${ctx.result};`);
+  }
+  return shadowName;
+};
+
+/**
+ * A union of the read's own, for a float with no shadow -- a `this.`/`global.`
+ * member, a field, an element -- copied into at this read (#2057, #1099).
+ */
+const ownUnion = (
+  ctx: IFloatBitRangeContext,
+  orchestrator: IOrchestrator,
+): string => {
+  const name = orchestrator.nextTempName();
+  orchestrator.addPendingTempDeclaration(
+    FloatBitHelper.unionDeclaration(ctx.floatBits.floatType, name),
+  );
+  orchestrator.addPendingTempDeclaration(`${name}.f = ${ctx.result};`);
+  return name;
+};
 
 /**
  * Handle float bit range access with union-based type punning.
@@ -1259,39 +1281,20 @@ const handleFloatBitRange = (
   ctx: IFloatBitRangeContext,
   state: IGeneratorState,
   orchestrator: IOrchestrator,
-  effects: TGeneratorEffect[],
 ): string => {
   // #1322: ADR-007's file-scope restriction is E0888 in pass 2.1, which asks
   // the parse tree whether a function encloses the read rather than reading a
   // generator flag.
   invariant(
     state.inFunctionBody,
-    `a float bit range is read inside a function (${ctx.rootIdentifier}) -- E0888 rejects this in pass 2.1, before this runs`,
+    `a float bit range is read inside a function (${ctx.result}) -- E0888 rejects this in pass 2.1, before this runs`,
   );
 
-  effects.push({ type: "include", header: "float_static_assert" });
-
-  const intType = FloatBitHelper.bitsTypeOf(ctx.baseType);
-  // The union's integer member: the plan decides its header (#1927)
-  effects.push({ type: "c-type", cType: intType });
-  const shadowName = BitRangeHelper.getShadowVarName(ctx.rootIdentifier);
+  const intType = FloatBitType.of(ctx.floatBits.floatType);
   const mask = BitUtils.generateMask(ctx.maskWidth, intType);
-
-  const needsDeclaration = !orchestrator.hasFloatBitShadow(shadowName);
-  if (needsDeclaration) {
-    orchestrator.registerFloatBitShadow(shadowName);
-    orchestrator.addPendingTempDeclaration(
-      FloatBitHelper.unionDeclaration(ctx.baseType, shadowName),
-    );
-  }
-
-  const shadowIsCurrent = orchestrator.isFloatShadowCurrent(shadowName);
-  orchestrator.markFloatShadowCurrent(shadowName);
-
-  // If shadow is not current, emit assignment: __bits_name.f = floatVar;
-  if (!shadowIsCurrent) {
-    orchestrator.addPendingTempDeclaration(`${shadowName}.f = ${ctx.result};`);
-  }
+  const shadowName = ctx.floatBits.shared
+    ? sharedShadow(ctx, orchestrator)
+    : ownUnion(ctx, orchestrator);
 
   // Return just the bit read expression using union member .u
   // Skip shift when start is 0 (either "0" or "0U" with MISRA suffix)

@@ -1,0 +1,31 @@
+// test-cpp-only
+// test-execution
+// #2062: a C++ reference parameter takes the argument itself. Recording it
+// as a pointer made `touch(local)` pass `&local`, which g++ rejects.
+#include "cpp_references.hpp"
+
+u32 main() {
+    Sensor local;
+    // A struct by reference: the callee writes through it.
+    touch(local);
+    if (local.v != 7) {
+        return 1;
+    }
+    // A const reference reads it.
+    i32 seen <- peek(local);
+    if (seen != 7) {
+        return 2;
+    }
+    // A primitive by reference.
+    i32 n <- 1;
+    bump(n);
+    if (n != 2) {
+        return 3;
+    }
+    // NEGATIVE CONTROL: a pointer parameter still takes the address.
+    fill(local);
+    if (local.v != 11) {
+        return 4;
+    }
+    return 0;
+}

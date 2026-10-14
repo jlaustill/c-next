@@ -17,8 +17,10 @@ const FLAGS = "bitmap8 Flags { Mode[3], Enable, Reserved[4] }";
 const REGISTER = "register R @ 0x40000000 { CTRL: Flags rw @ 0x00, }";
 
 const errors = (source: string) => {
-  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
-  return new BitmapAccessAnalyzer(context).analyze(tree);
+  const { syntax, context } = testAnalysisContextFor(source, {
+    cppMode: false,
+  });
+  return new BitmapAccessAnalyzer(context).analyze(syntax);
 };
 
 describe("BitmapAccessAnalyzer (E0881)", () => {
@@ -151,5 +153,36 @@ describe("BitmapAccessAnalyzer (E0883)", () => {
         ].join("\n"),
       ),
     ).toEqual([]);
+  });
+});
+
+// #1991: read off 1.2's syntax, so where each report lands, and a chain that
+// starts at `this.`, are asserted directly.
+describe("BitmapAccessAnalyzer -- positions and rooted chains", () => {
+  const where = (source: string) =>
+    errors(source).map((e) => [e.code, e.line, e.column]);
+
+  it("reports a too-wide value at the value", () => {
+    expect(
+      where(
+        [FLAGS, "Flags f;", "void t() {", "    f.Mode <- 8;", "}"].join("\n"),
+      ),
+    ).toEqual([["E0881", 4, 14]]);
+  });
+
+  it("rejects bracket indexing on a bitmap reached through `this.`", () => {
+    expect(
+      where(
+        [
+          FLAGS,
+          "scope S {",
+          "    Flags f;",
+          "    public void t() {",
+          "        this.f[3] <- true;",
+          "    }",
+          "}",
+        ].join("\n"),
+      ),
+    ).toEqual([["E0883", 5, 8]]);
   });
 });

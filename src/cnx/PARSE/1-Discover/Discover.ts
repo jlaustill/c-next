@@ -1,5 +1,11 @@
 import { basename, dirname, join, resolve } from "node:path";
 
+import type TCachedHeaderRead from "./types/TCachedHeaderRead";
+import type THeaderDeclarationCache from "./types/THeaderDeclarationCache";
+import HeaderMacroDumps from "./HeaderMacroDumps";
+import type IHeaderMacroDump from "./types/IHeaderMacroDump";
+import Installation from "./Installation";
+import type ITargetCatalogFile from "./types/ITargetCatalogFile";
 import CppEntryPointScanner from "./CppEntryPointScanner";
 import DependencyGraph from "./DependencyGraph";
 import FileDiscovery from "./FileDiscovery";
@@ -30,6 +36,7 @@ import invariant from "../../utils/invariant";
 import DeclarationSite from "../../utils/DeclarationSite";
 import IncludeDirectiveText from "../../utils/IncludeDirectiveText";
 import OutputExtensions from "../../utils/OutputExtensions";
+import type IOutputPaths from "./types/IOutputPaths";
 import ReadOnceFileSystem from "./ReadOnceFileSystem";
 import RunAnchor from "./RunAnchor";
 import type IFileIncludes from "./types/IFileIncludes";
@@ -49,7 +56,15 @@ type TDiscoverySettings = Pick<
 /** The graph before it is frozen, without the facts gathered beside it. */
 type TDiscoveredFiles = Omit<
   ISourceGraph,
-  "includes" | "anchor" | "headerSources" | "recoveredDeclarations" | "cppMode"
+  | "includes"
+  | "anchor"
+  | "headerSources"
+  | "cachedHeaders"
+  | "recoveredDeclarations"
+  | "cppMode"
+  | "outputs"
+  | "targetCatalog"
+  | "headerMacroDumps"
 > & {
   /** #1844: every `.cnx` file's header includes, in discovery order */
   readonly headerIncludes: readonly IHeaderInclude[];
@@ -150,6 +165,7 @@ class Discover {
     fs: IFileSystem,
     warnings: string[],
     preprocessCache: PreprocessCache | null = null,
+    headerCache: THeaderDeclarationCache | null = null,
   ): Promise<{
     readonly graph: ISourceGraph;
     readonly anchor: IRunAnchor;
@@ -186,7 +202,15 @@ class Discover {
     if (files.headerFiles.length > 0 && !anchor.preprocessor.isAvailable()) {
       discovery._noPreprocessor(files.headerIncludes);
       return {
-        graph: discovery._freeze(files, new Map(), null, false),
+        graph: discovery._freeze(
+          files,
+          new Map(),
+          null,
+          false,
+          // E0516 ends the run before any macro is read
+          new Map(),
+          new Map(),
+        ),
         anchor,
         errors: discovery.errors,
       };
@@ -227,6 +251,11 @@ class Discover {
         settled.sources,
         settled.recovered,
         cppMode,
+        await discovery._headerMacroDumps(files, preprocessCache),
+        Discover._cachedHeaders(
+          files.headerFiles.filter((file) => settled.sources.has(file.path)),
+          headerCache,
+        ),
       ),
       anchor,
       errors: discovery.errors,
@@ -529,6 +558,8 @@ class Discover {
     headerSources: ReadonlyMap<string, IHeaderSource>,
     recoveredDeclarations: IRecoveredDeclarations | null,
     cppMode: boolean,
+    headerMacroDumps: ReadonlyMap<string, IHeaderMacroDump>,
+    cachedHeaders: ReadonlyMap<string, TCachedHeaderRead>,
   ): ISourceGraph {
     return Discover._frozen({
       cnextFiles: files.cnextFiles,
@@ -537,6 +568,7 @@ class Discover {
         headerSources.has(file.path),
       ),
       headerSources,
+      cachedHeaders,
       recoveredDeclarations,
       cppMode,
       headerSearchPaths: files.headerSearchPaths,
@@ -554,7 +586,60 @@ class Discover {
           : null,
       },
       writeOutputToDisk: files.writeOutputToDisk,
+      outputs: this._outputs(files, cppMode),
+      targetCatalog: this._targetCatalog(),
+      headerMacroDumps,
     });
+  }
+
+  private _headerMacroDumps(
+    files: TDiscoveredFiles,
+    cache: PreprocessCache | null,
+  ): Promise<ReadonlyMap<string, IHeaderMacroDump>> {
+    return HeaderMacroDumps.read(
+      files.cnextFiles,
+      this.includes,
+      this.anchor.preprocessor,
+      {
+        includeSearchPaths: files.includeSearchPaths,
+        defines: this.anchor.defines,
+        cache,
+      },
+    );
+  }
+
+  /** ADR-049: the catalog this compiler ships, found by `Installation` */
+  private _targetCatalog(): ITargetCatalogFile {
+    const path = Installation.catalog(this.fs);
+    return { path, text: this.fs.readFile(path) };
+  }
+
+  /**
+   * #1991: where each file's output goes, named once the mode has settled the
+   * extensions. A source run's file is named by its basename, as a files run
+   * names a file outside every input directory.
+   */
+  private _outputs(
+    files: TDiscoveredFiles,
+    cppMode: boolean,
+  ): ReadonlyMap<string, IOutputPaths> {
+    const extensions = OutputExtensions.forCppMode(cppMode);
+    const paths = this.anchor.pathResolver;
+    return new Map(
+      files.cnextFiles.map((file): [string, IOutputPaths] => [
+        file.path,
+        {
+          sourceRelativePath: files.writeOutputToDisk
+            ? paths.getSourceRelativePath(file.path)
+            : basename(file.path),
+          source: paths.getOutputPath(file.discoveredFile, extensions.source),
+          header: paths.getHeaderOutputPath(
+            file.discoveredFile,
+            extensions.header,
+          ),
+        },
+      ]),
+    );
   }
 
   /**
@@ -562,6 +647,28 @@ class Discover {
    * it is. The graph holds no cycle: an include edge names the included
    * file's `IDiscoveredFile`, which refers to nothing.
    */
+  /**
+   * #1991: each settled header's cache record, every one read before 1.3
+   * declares any header (#1817)
+   */
+  private static _cachedHeaders(
+    headers: readonly IDiscoveredFile[],
+    cache: THeaderDeclarationCache | null,
+  ): ReadonlyMap<string, TCachedHeaderRead> {
+    const reads = new Map<string, TCachedHeaderRead>();
+    if (cache === null) return reads;
+    for (const file of headers) {
+      try {
+        const record = cache(file.path);
+        if (record !== null) reads.set(file.path, { kind: "cached", record });
+      } catch (error) {
+        // 1.3 decides, in header order, whether it is a diagnostic (#1319)
+        reads.set(file.path, { kind: "failed", error });
+      }
+    }
+    return reads;
+  }
+
   private static _frozen<T>(value: T): T {
     if (typeof value !== "object" || value === null || value instanceof Map) {
       return value;
@@ -737,11 +844,7 @@ class Discover {
       ...discovered,
       cnextFiles: discovered.cnextFiles.map((file) =>
         file.path === entry.path
-          ? {
-              ...file,
-              source: entry.source,
-              sourceRelativePath: basename(entry.path),
-            }
+          ? { ...file, source: entry.source }
           : { ...file, symbolOnly: true },
       ),
       writeOutputToDisk: false,

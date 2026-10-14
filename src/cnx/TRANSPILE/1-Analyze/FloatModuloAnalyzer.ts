@@ -16,106 +16,46 @@
  * the essential-type analyzers share, instead of a per-analyzer cache.
  */
 
-import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
-import { ParseTreeWalker } from "antlr4ng";
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import IFloatModuloError from "./types/IFloatModuloError";
-import ParserUtils from "../../utils/ParserUtils";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import DeclarationParts from "../../utils/DeclarationParts";
+import ExpressionNodes from "../../utils/ExpressionNodes";
 import OperandTyper from "../../utils/OperandTyper";
+import IFloatModuloError from "./types/IFloatModuloError";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
-/**
- * Detects modulo operations with float operands
- */
-class FloatModuloListener extends CNextListener {
-  private readonly analyzer: FloatModuloAnalyzer;
-
-  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
-  constructor(
-    analyzer: FloatModuloAnalyzer,
-    private readonly context: IAnalysisContext,
-  ) {
-    super();
-    this.analyzer = analyzer;
-  }
-
-  /**
-   * Check multiplicative expressions for modulo with float operands
-   * multiplicativeExpression: unaryExpression (('*' | '/' | '%') unaryExpression)*
-   */
-  override enterMultiplicativeExpression = (
-    ctx: Parser.MultiplicativeExpressionContext,
-  ): void => {
-    const operands = ctx.unaryExpression();
-    if (operands.length < 2) return;
-
-    // Check each operator
-    for (let i = 0; i < operands.length - 1; i++) {
-      const operatorToken = ctx.getChild(i * 2 + 1);
-      if (!operatorToken) continue;
-
-      const operator = operatorToken.getText();
-      if (operator !== "%") continue;
-
-      const leftOperand = operands[i];
-      const rightOperand = operands[i + 1];
-
-      const leftIsFloat = this.isFloatOperand(leftOperand);
-      const rightIsFloat = this.isFloatOperand(rightOperand);
-
-      if (leftIsFloat || rightIsFloat) {
-        const { line, column } = ParserUtils.getPosition(leftOperand);
-        this.analyzer.addError(line, column);
-      }
-    }
-  };
-
-  /** Floating by the one operand typer, whatever the operand's shape (#1668) */
-  private isFloatOperand(ctx: Parser.UnaryExpressionContext): boolean {
-    return (
-      OperandTyper.typeOf(SyntaxLowering.expressionNode(ctx), this.context)
-        ?.category === "floating"
-    );
-  }
-}
-
-/**
- * Analyzer that detects modulo operations with floating-point types
- */
+/** #1991: reads 1.2's syntax, not the parse tree */
 class FloatModuloAnalyzer {
-  /** #1456: handed in rather than read off shared state. */
   constructor(private readonly context: IAnalysisContext) {}
 
-  private errors: IFloatModuloError[] = [];
-
-  /**
-   * Analyze the parse tree for float modulo operations
-   */
-  public analyze(tree: Parser.ProgramContext): IFloatModuloError[] {
-    this.errors = [];
-
-    // Operands bind and type through Program's lexical frames (#1668)
-    ParseTreeWalker.DEFAULT.walk(
-      new FloatModuloListener(this, this.context),
-      tree,
-    );
-
-    return this.errors;
+  public analyze(program: IProgramSyntax): IFloatModuloError[] {
+    const errors: IFloatModuloError[] = [];
+    for (const member of program.declarations) {
+      for (const part of DeclarationParts.of(member.declaration)) {
+        for (const expr of ExpressionNodes.of(part)) {
+          if (expr.kind !== "binary") continue;
+          expr.operators.forEach((operator, i) => {
+            const left = expr.operands[i];
+            if (operator !== "%") return;
+            if (this.isFloat(left) || this.isFloat(expr.operands[i + 1])) {
+              errors.push({
+                code: "E0804",
+                line: left.span.line,
+                column: left.span.column,
+                message:
+                  "Modulo operator not supported for floating-point types",
+                helpText:
+                  "The % operator only works with integer types. Use fmod() from <math.h> for floating-point remainder.",
+              });
+            }
+          });
+        }
+      }
+    }
+    return errors;
   }
 
-  /**
-   * Add a float modulo error
-   */
-  public addError(line: number, column: number): void {
-    this.errors.push({
-      code: "E0804",
-      line,
-      column,
-      message: "Modulo operator not supported for floating-point types",
-      helpText:
-        "The % operator only works with integer types. Use fmod() from <math.h> for floating-point remainder.",
-    });
+  private isFloat(operand: Parameters<typeof OperandTyper.typeOf>[0]): boolean {
+    return OperandTyper.typeOf(operand, this.context)?.category === "floating";
   }
 }
 

@@ -4,9 +4,9 @@
  *
  * Extracted from AccessPatternHandlers.ts and RegisterHandlers.ts to reduce duplication.
  */
-import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import RegisterAccessMode from "../../../../../utils/RegisterAccessMode";
 import type TranspileState from "../../../../TranspileState";
+import type TExpression from "../../../../../types/syntax/TExpression";
 
 /** Result from MMIO optimization attempt */
 interface IOptimizationResult {
@@ -25,29 +25,26 @@ class RegisterUtils {
   static tryGenerateMMIO(
     fullName: string,
     regName: string,
+    accessType: string | null,
     startConst: number | undefined,
-    widthConst: number | undefined,
     value: string,
     state: TranspileState,
+    renderExpression: (expr: TExpression) => string,
   ): IOptimizationResult {
-    if (
-      startConst === undefined ||
-      widthConst === undefined ||
-      startConst % 8 !== 0 ||
-      !TypeCheckUtils.isStandardWidth(widthConst)
-    ) {
+    // 2.2 decided which writes are one memory access, and through what (#1991)
+    if (accessType === null) return { success: false };
+
+    const base = state.symbols!.registerBaseAddresses.get(regName);
+    const offset = state.symbols!.registerMemberOffsets.get(fullName);
+
+    if (base === undefined || offset === undefined) {
       return { success: false };
     }
+    // The same renderer the register macro spells them with (#1991)
+    const baseAddr = renderExpression(base);
+    const memberOffset = renderExpression(offset);
 
-    const baseAddr = state.symbols!.registerBaseAddresses.get(regName);
-    const memberOffset = state.symbols!.registerMemberOffsets.get(fullName);
-
-    if (baseAddr === undefined || memberOffset === undefined) {
-      return { success: false };
-    }
-
-    const byteOffset = startConst / 8;
-    const accessType = `uint${widthConst}_t`;
+    const byteOffset = startConst! / 8;
     const totalOffset =
       byteOffset === 0 ? memberOffset : `${memberOffset} + ${byteOffset}`;
 

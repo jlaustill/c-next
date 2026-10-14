@@ -1,5 +1,6 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import parse from "./testHelpers";
+import FirstDeclaration from "./FirstDeclaration";
 import TestScopeUtils from "./testUtils";
 import FunctionCollector from "../collectors/FunctionCollector";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
@@ -25,7 +26,7 @@ describe("FunctionCollector", () => {
         }
       `;
       const tree = parse(code);
-      const funcCtx = tree.declaration(0)!.functionDeclaration()!;
+      const funcCtx = FirstDeclaration.function(tree);
       const symbol = FunctionCollector.collect(
         funcCtx,
         "test.cnx",
@@ -51,7 +52,7 @@ describe("FunctionCollector", () => {
         }
       `;
       const tree = parse(code);
-      const funcCtx = tree.declaration(0)!.functionDeclaration()!;
+      const funcCtx = FirstDeclaration.function(tree);
       const symbol = FunctionCollector.collect(
         funcCtx,
         "test.cnx",
@@ -69,7 +70,7 @@ describe("FunctionCollector", () => {
         }
       `;
       const tree = parse(code);
-      const funcCtx = tree.declaration(0)!.functionDeclaration()!;
+      const funcCtx = FirstDeclaration.function(tree);
       const symbol = FunctionCollector.collect(
         funcCtx,
         "test.cnx",
@@ -94,7 +95,7 @@ describe("FunctionCollector", () => {
         }
       `;
       const tree = parse(code);
-      const funcCtx = tree.declaration(0)!.functionDeclaration()!;
+      const funcCtx = FirstDeclaration.function(tree);
       const symbol = FunctionCollector.collect(
         funcCtx,
         "test.cnx",
@@ -111,7 +112,7 @@ describe("FunctionCollector", () => {
         }
       `;
       const tree = parse(code);
-      const funcCtx = tree.declaration(0)!.functionDeclaration()!;
+      const funcCtx = FirstDeclaration.function(tree);
       const symbol = FunctionCollector.collect(
         funcCtx,
         "test.cnx",
@@ -129,7 +130,7 @@ describe("FunctionCollector", () => {
         }
       `;
       const tree = parse(code);
-      const funcCtx = tree.declaration(0)!.functionDeclaration()!;
+      const funcCtx = FirstDeclaration.function(tree);
       const symbol = FunctionCollector.collect(
         funcCtx,
         "test.cnx",
@@ -147,7 +148,7 @@ describe("FunctionCollector", () => {
         }
       `;
       const tree = parse(code);
-      const funcCtx = tree.declaration(0)!.functionDeclaration()!;
+      const funcCtx = FirstDeclaration.function(tree);
       const symbol = FunctionCollector.collect(
         funcCtx,
         "test.cnx",
@@ -170,7 +171,7 @@ describe("FunctionCollector", () => {
       ["void f(u8[BUF] p) { }", [UNRESOLVED_DIMENSION]],
       ["void f(u8[8] p) { }", [8]],
     ])("folds a parameter's dimension as a declaration's: %s", (code, dims) => {
-      const funcCtx = parse(code).declaration(0)!.functionDeclaration()!;
+      const funcCtx = FirstDeclaration.function(parse(code));
       const symbol = FunctionCollector.collect(
         funcCtx,
         "test.cnx",
@@ -186,7 +187,7 @@ describe("FunctionCollector", () => {
     ])(
       "keeps the C-style dimensions E0874 admits for main's args: %s (#1668)",
       (code, dimensions) => {
-        const funcCtx = parse(code).declaration(0)!.functionDeclaration()!;
+        const funcCtx = FirstDeclaration.function(parse(code));
         const symbol = FunctionCollector.collect(
           funcCtx,
           "test.cnx",
@@ -207,7 +208,7 @@ describe("FunctionCollector", () => {
         }
       `;
       const tree = parse(code);
-      const funcCtx = tree.declaration(0)!.functionDeclaration()!;
+      const funcCtx = FirstDeclaration.function(tree);
       const symbol = FunctionCollector.collect(
         funcCtx,
         "motor.cnx",
@@ -226,7 +227,7 @@ describe("FunctionCollector", () => {
         }
       `;
       const tree = parse(code);
-      const funcCtx = tree.declaration(0)!.functionDeclaration()!;
+      const funcCtx = FirstDeclaration.function(tree);
       const symbol = FunctionCollector.collect(
         funcCtx,
         "motor.cnx",
@@ -243,7 +244,7 @@ describe("FunctionCollector", () => {
         }
       `;
       const tree = parse(code);
-      const funcCtx = tree.declaration(0)!.functionDeclaration()!;
+      const funcCtx = FirstDeclaration.function(tree);
       const symbol = FunctionCollector.collect(
         funcCtx,
         "motor.cnx",
@@ -264,7 +265,7 @@ describe("FunctionCollector", () => {
         }
       `;
       const tree = parse(code);
-      const funcCtx = tree.declaration(0)!.functionDeclaration()!;
+      const funcCtx = FirstDeclaration.function(tree);
       const symbol = FunctionCollector.collect(
         funcCtx,
         "test.cnx",
@@ -282,7 +283,7 @@ describe("FunctionCollector", () => {
         }
       `;
       const tree = parse(code);
-      const funcCtx = tree.declaration(0)!.functionDeclaration()!;
+      const funcCtx = FirstDeclaration.function(tree);
       const symbol = FunctionCollector.collect(
         funcCtx,
         "test.cnx",
@@ -303,7 +304,7 @@ describe("FunctionCollector", () => {
         }
       `;
       const tree = parse(code);
-      const funcCtx = tree.declaration(0)!.functionDeclaration()!;
+      const funcCtx = FirstDeclaration.function(tree);
       const symbol = FunctionCollector.collect(
         funcCtx,
         "test.cnx",
@@ -322,7 +323,7 @@ describe("FunctionCollector", () => {
         }
       `;
       const tree = parse(code);
-      const funcCtx = tree.declaration(0)!.functionDeclaration()!;
+      const funcCtx = FirstDeclaration.function(tree);
 
       const symbol = FunctionCollector.collectAndRegister(
         registry,
@@ -344,7 +345,7 @@ describe("FunctionCollector", () => {
         }
       `;
       const tree = parse(code);
-      const funcCtx = tree.declaration(0)!.functionDeclaration()!;
+      const funcCtx = FirstDeclaration.function(tree);
 
       FunctionCollector.collectAndRegister(
         registry,
@@ -365,7 +366,7 @@ describe("FunctionCollector", () => {
         }
       `;
       const tree = parse(code);
-      const funcCtx = tree.declaration(0)!.functionDeclaration()!;
+      const funcCtx = FirstDeclaration.function(tree);
 
       FunctionCollector.collectAndRegister(
         registry,
@@ -389,8 +390,8 @@ describe("FunctionCollector", () => {
         }
       `;
       const tree = parse(code);
-      const funcACtx = tree.declaration(0)!.functionDeclaration()!;
-      const funcBCtx = tree.declaration(1)!.functionDeclaration()!;
+      const funcACtx = FirstDeclaration.function(tree);
+      const funcBCtx = FirstDeclaration.at(tree, 1, "function");
 
       FunctionCollector.collectAndRegister(
         registry,
@@ -420,7 +421,7 @@ describe("FunctionCollector", () => {
         }
       `;
       const tree = parse(code);
-      const funcCtx = tree.declaration(0)!.functionDeclaration()!;
+      const funcCtx = FirstDeclaration.function(tree);
 
       FunctionCollector.collectAndRegister(
         registry,

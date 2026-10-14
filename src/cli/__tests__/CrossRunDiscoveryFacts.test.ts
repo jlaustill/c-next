@@ -19,9 +19,10 @@ import type ISourceGraph from "../../cnx/PARSE/1-Discover/types/ISourceGraph";
  *
  * #1444: the maps are gone. Each run's discovery is its own `Discover`, and
  * its facts are the run's `SourceGraph`, so there is no teardown to forget.
- * What `Transpiler` still holds is the graph itself, for the length of the
- * run. These assert both halves: the graph a run reads answers for that run's
- * files alone, and the instance lets go of it when the run ends.
+ * #1991: `Transpiler` no longer holds the graph at all. Each pass carries
+ * forward what the next one reads, so nothing after 1.1 needs it from the
+ * instance. These assert both halves: the graph a run reads answers for that
+ * run's files alone, and no field of the instance holds it after the run.
  *
  * ## Why this is asserted directly rather than through generated output
  *
@@ -65,10 +66,9 @@ describe("#1452: discovery's include facts are released at end of run", () => {
       .sort();
   }
 
-  /** The graph the instance holds, read without widening its visibility. */
-  function heldGraph(transpiler: Transpiler): ISourceGraph | null {
-    return (transpiler as unknown as { sourceGraph: ISourceGraph | null })
-      .sourceGraph;
+  /** Whether any field of the instance holds `graph`, private ones included. */
+  function holdsGraph(transpiler: Transpiler, graph: ISourceGraph): boolean {
+    return Object.values(transpiler).includes(graph);
   }
 
   /** An entry that includes a sibling `.cnx`, so both files get facts. */
@@ -133,10 +133,10 @@ describe("#1452: discovery's include facts are released at end of run", () => {
 
     expect((await transpiler.transpile({ kind: "files" })).success).toBe(true);
 
-    // The run did hold a graph, so its absence below is a release, not a
+    // The run did build a graph, so its absence below is a release, not a
     // graph that was never there.
     expect(graphs).toHaveLength(1);
-    expect(heldGraph(transpiler)).toBeNull();
+    expect(holdsGraph(transpiler, graphs[0])).toBe(false);
   });
 
   it("lets go of it when the run fails, too", async () => {
@@ -148,6 +148,6 @@ describe("#1452: discovery's include facts are released at end of run", () => {
     expect((await transpiler.transpile({ kind: "files" })).success).toBe(false);
 
     expect(graphs).toHaveLength(1);
-    expect(heldGraph(transpiler)).toBeNull();
+    expect(holdsGraph(transpiler, graphs[0])).toBe(false);
   });
 });

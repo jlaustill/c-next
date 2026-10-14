@@ -40,14 +40,10 @@ const generateFunction: TGeneratorFn<IPlannedFunction> = (
 ): IGeneratorOutput => {
   const { name, isMainWithArgs } = planned;
 
-  // Issues #269/#477, ADR-016: name for pass-by-value lookup, return type for
-  // typing `return` expressions, parameters for ADR-006 pointer semantics, and
-  // the fresh local registers -- one call, shared with ScopeGenerator.
-  orchestrator.enterFunctionContext(
-    name,
-    planned.returnTypeText,
-    planned.parameters,
-  );
+  // Issue #269, ADR-016: name for pass-by-value lookup, parameters for ADR-006
+  // pointer semantics, and the fresh local registers -- one call, shared with
+  // ScopeGenerator.
+  orchestrator.enterFunctionContext(name, planned.parameters);
 
   // #1445: this decision was written out here AND in
   // `FunctionContextManager.resolveReturnTypeAndParams`, byte-identical. That

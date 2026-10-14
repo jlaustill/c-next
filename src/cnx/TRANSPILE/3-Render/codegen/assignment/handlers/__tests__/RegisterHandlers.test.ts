@@ -10,6 +10,7 @@ import IAssignmentContext from "../../../../../2-Plan/types/IAssignmentContext";
 import TranspileState from "../../../../../TranspileState";
 import HandlerTestUtils from "./handlerTestUtils";
 import enterScope from "../../../../../__tests__/enterScope";
+import TestExpression from "../../../../../../types/__testUtils__/testExpression";
 
 /**
  * Create mock context for testing.
@@ -27,6 +28,7 @@ function createMockContext(
   return {
     identifiers,
     ...HandlerTestUtils.subscriptsOf([{ mockValue: "LED_BIT" } as never]),
+    renderExpression: (expr) => expr.written,
     isCompound: false,
     cnextOp: "<-",
     cOp: "=",
@@ -41,6 +43,7 @@ function createMockContext(
       HandlerTestUtils.planner().analyzeMemberChainForBitAccess(null as never),
     targetLine: 1,
     hasValue: true,
+    floatBits: null,
     valueExpressionType: () => null,
     valueIntegerType: () => null,
     valueHasFloatingOperand: () => false,
@@ -191,6 +194,8 @@ describe("RegisterHandlers", () => {
           { mockValue: "8" } as never,
         ]),
         generatedValue: "value",
+        // 2.2 planned this write as one uint8_t access
+        plannedRegisterAccess: "uint8_t",
       });
 
       const result = getHandler()!(ctx);
@@ -216,6 +221,8 @@ describe("RegisterHandlers", () => {
           { mockValue: "8" } as never,
         ]),
         generatedValue: "value",
+        // 2.2 planned this write as one uint8_t access
+        plannedRegisterAccess: "uint8_t",
       });
 
       const result = getHandler()!(ctx);
@@ -258,8 +265,12 @@ describe("RegisterHandlers", () => {
       });
       HandlerTestUtils.setupMockSymbols(state, {
         registerMemberAccess: new Map([["GPIO7__DR_SET", "wo"]]),
-        registerBaseAddresses: new Map([["GPIO7", "0x40000000"]]),
-        registerMemberOffsets: new Map([["GPIO7__DR_SET", "0x04"]]),
+        registerBaseAddresses: new Map([
+          ["GPIO7", TestExpression.hex("0x40000000")],
+        ]),
+        registerMemberOffsets: new Map([
+          ["GPIO7__DR_SET", TestExpression.hex("0x04")],
+        ]),
       });
       const ctx = createMockContext({
         ...HandlerTestUtils.subscriptsOf([
@@ -267,6 +278,8 @@ describe("RegisterHandlers", () => {
           { mockValue: "8" } as never,
         ]),
         generatedValue: "value",
+        // 2.2 planned this write as one uint8_t access
+        plannedRegisterAccess: "uint8_t",
       });
 
       const result = getHandler()!(ctx);
@@ -288,8 +301,12 @@ describe("RegisterHandlers", () => {
       });
       HandlerTestUtils.setupMockSymbols(state, {
         registerMemberAccess: new Map([["GPIO7__DR_SET", "wo"]]),
-        registerBaseAddresses: new Map([["GPIO7", "0x40000000"]]),
-        registerMemberOffsets: new Map([["GPIO7__DR_SET", "0x04"]]),
+        registerBaseAddresses: new Map([
+          ["GPIO7", TestExpression.hex("0x40000000")],
+        ]),
+        registerMemberOffsets: new Map([
+          ["GPIO7__DR_SET", TestExpression.hex("0x04")],
+        ]),
       });
       const ctx = createMockContext({
         ...HandlerTestUtils.subscriptsOf([
@@ -297,6 +314,8 @@ describe("RegisterHandlers", () => {
           { mockValue: "16" } as never,
         ]),
         generatedValue: "value",
+        // 2.2 planned this write as one uint16_t access
+        plannedRegisterAccess: "uint16_t",
       });
 
       const result = getHandler()!(ctx);
@@ -441,8 +460,12 @@ describe("RegisterHandlers", () => {
       });
       HandlerTestUtils.setupMockSymbols(state, {
         registerMemberAccess: new Map([["Motor__GPIO7__ICR1", "wo"]]),
-        registerBaseAddresses: new Map([["Motor__GPIO7", "0x40000000"]]),
-        registerMemberOffsets: new Map([["Motor__GPIO7__ICR1", "0x08"]]),
+        registerBaseAddresses: new Map([
+          ["Motor__GPIO7", TestExpression.hex("0x40000000")],
+        ]),
+        registerMemberOffsets: new Map([
+          ["Motor__GPIO7__ICR1", TestExpression.hex("0x08")],
+        ]),
       });
       const ctx = createMockContext({
         identifiers: ["GPIO7", "ICR1"],
@@ -452,6 +475,8 @@ describe("RegisterHandlers", () => {
         ]),
         hasThis: true,
         generatedValue: "value",
+        // 2.2 planned this write as one uint32_t access
+        plannedRegisterAccess: "uint32_t",
       });
 
       const result = getHandler()!(ctx);

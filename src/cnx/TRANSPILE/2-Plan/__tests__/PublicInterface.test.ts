@@ -9,6 +9,7 @@ import TestSymbolUtils from "../../../PARSE/3-Declare/cnext/__tests__/testSymbol
 import type IBitmapSymbol from "../../../types/symbols/IBitmapSymbol";
 import type IRegisterSymbol from "../../../types/symbols/IRegisterSymbol";
 import type TSymbol from "../../../types/symbols/TSymbol";
+import TestExpression from "../../../types/__testUtils__/testExpression";
 
 /**
  * #1453: a register is part of the public interface, and its accessor block
@@ -47,11 +48,19 @@ const register = (
   bitmapType?: string,
 ): IRegisterSymbol => ({
   ...base("register", name, scopePath, visibility),
-  baseAddress: "0x40000000",
+  baseAddress: TestExpression.hex("0x40000000"),
   members: TestMembers.asRegisterMembers(
     scopePath === "" ? name : `${scopePath}__${name}`,
     new Map([
-      ["DR", { offset: "0x00", cType: "uint32_t", access: "rw", bitmapType }],
+      [
+        "DR",
+        {
+          offset: TestExpression.hex("0x00"),
+          cType: "uint32_t",
+          access: "rw",
+          bitmapType,
+        },
+      ],
     ]),
   ),
 });

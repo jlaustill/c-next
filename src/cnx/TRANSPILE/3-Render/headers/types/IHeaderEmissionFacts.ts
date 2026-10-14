@@ -2,6 +2,7 @@ import IHeaderSymbol from "./IHeaderSymbol";
 import IHeaderOptions from "../../codegen/types/IHeaderOptions";
 import IHeaderTypeInput from "../generators/IHeaderTypeInput";
 import TPassByValueParams from "./TPassByValueParams";
+import type IProgram from "../../../../types/IProgram";
 
 /**
  * The fully-resolved input to one file's header render call
@@ -34,6 +35,8 @@ interface IHeaderEmissionFacts {
   readonly passByValueParams: TPassByValueParams;
   readonly allKnownEnums: ReadonlySet<string>;
   readonly basename: string;
+  /** #1428: the program 2.3 rendered against; its mode picks the generator */
+  readonly program: Pick<IProgram, "cppMode">;
 }
 
 export default IHeaderEmissionFacts;

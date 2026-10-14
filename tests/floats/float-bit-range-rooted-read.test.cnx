@@ -1,0 +1,71 @@
+// test-execution
+// test-target-xfail: atmega328p #1709 "Float bit indexing requires 64-bit double"
+// #2057, #1099: a float bit range read whose float is not a bare variable --
+// a `global.` or `this.` member, a struct field, an array element -- is read
+// through a union, as a bare variable's is. The chain's root was asked for
+// its type, so these took the integer path and masked the float itself, which
+// gcc rejects. IEEE-754 1.0f is 0x3F800000, so bits [24, 8] are 0x3F.
+// A `this.` member's bit WRITE shared a shadow that its whole-variable write
+// did not invalidate -- the two named it differently -- so the second bit
+// write below wrote into 1.0's stale bits instead of 2.0's (0x40000000).
+
+struct Reading {
+    f32 value;
+}
+
+f32 g <- 1.0;
+
+scope Sensor {
+    f32 reading <- 1.0;
+
+    public u8 topByte() {
+        u8 b <- this.reading[24, 8];
+        return b;
+    }
+
+    public u32 rewrite() {
+        this.reading[0, 8] <- 0x11;
+        this.reading <- 2.0;
+        this.reading[8, 8] <- 0x22;
+        f32 copy <- this.reading;
+        u32 bits <- copy[0, 32];
+        return bits;
+    }
+}
+
+u8 globalTopByte() {
+    u8 b <- global.g[24, 8];
+    return b;
+}
+
+u32 main() {
+    Reading r <- { value: 1.0 };
+    f32[2] values <- [2.0, 1.0];
+
+    u8 viaGlobal <- globalTopByte();
+    if (viaGlobal != 0x3F) {
+        return 1;
+    }
+    u8 viaThis <- Sensor.topByte();
+    if (viaThis != 0x3F) {
+        return 2;
+    }
+    u8 field <- r.value[24, 8];
+    if (field != 0x3F) {
+        return 3;
+    }
+    u8 element <- values[1][24, 8];
+    if (element != 0x3F) {
+        return 4;
+    }
+    u32 rewritten <- Sensor.rewrite();
+    if (rewritten != 0x40002200) {
+        return 6;
+    }
+    // NEGATIVE CONTROL -- a bare variable still shares its shadow
+    u8 bare <- g[24, 8];
+    if (bare != 0x3F) {
+        return 5;
+    }
+    return 0;
+}

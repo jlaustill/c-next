@@ -52,14 +52,11 @@ interface IPlannedArrayDeclaration {
 /**
  * What ADR-035's array-initializer processing needs, unevaluated.
  *
- * All three are thunks because `ArrayInitHelper.processArrayInit` opens a
- * `withExpectedType` window and they must render inside it -- a value rendered
- * before the window loses the MISRA C:2012 Rule 7.2 suffix the window exists to
- * apply.
+ * Thunks, because `ArrayInitHelper.processArrayInit` decides when each
+ * renders.
  */
 interface IPlannedArrayInitializer {
   readonly renderExpression: () => string;
-  readonly renderTypeName: () => string;
   readonly renderDimensions: () => string;
 }
 

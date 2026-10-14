@@ -13,11 +13,13 @@
  */
 import type IFloatBitWrite from "../../types/IFloatBitWrite";
 import type TTypeInfo from "../../types/TTypeInfo";
+import type TAtomicForm from "./TAtomicForm";
 
 interface ICodeGenApi {
   /**
    * Generate atomic read-modify-write operation. `clampOp` is the ADR-044
-   * helper the inner operation saturates with, or null for plain arithmetic.
+   * helper the inner operation saturates with, or null for plain arithmetic;
+   * `form` is the one 2.2 planned (ADR-049).
    */
   generateAtomicRMW(
     target: string,
@@ -25,6 +27,7 @@ interface ICodeGenApi {
     value: string,
     typeInfo: TTypeInfo,
     clampOp: string | null,
+    form: TAtomicForm,
   ): string;
 
   /** Generate a float bit write through a union (ADR-007) */

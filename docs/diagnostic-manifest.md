@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-572 fixture(s) assert a diagnostic; 562 carry a code.
+588 fixture(s) assert a diagnostic; 578 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -22,6 +22,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-004/register-read-wo-error.test.cnx                                                    | E0870               |
 | tests/adr-004/register-wo-set-false-error.test.cnx                                               | E0872               |
 | tests/adr-004/register-write-ro-error.test.cnx                                                   | E0871               |
+| tests/adr-007/float-bit-range-field-global-scope-error.test.cnx                                  | E0888               |
 | tests/adr-007/float-bit-range-global-scope-error.test.cnx                                        | E0888               |
 | tests/adr-007/rmw-side-effect-error.test.cnx                                                     | E0890               |
 | tests/adr-007/rmw-side-effect-imported-error.test.cnx                                            | E0890               |
@@ -87,6 +88,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-016/scope-enum-naming-conflict.test.cnx                                                | E0437               |
 | tests/adr-016/self-scope-bare-error.test.cnx                                                     | E0435               |
 | tests/adr-016/this-outside-scope-error.test.cnx                                                  | E0431               |
+| tests/adr-017/bare-enum-field-slice-target-error.test.cnx                                        | E0424               |
+| tests/adr-017/bare-enum-slice-target-error.test.cnx                                              | E0424               |
 | tests/adr-017/bare-enum-uncovered-arms-error.test.cnx                                            | E0424               |
 | tests/adr-017/enum-bare-in-array-dim.test.cnx                                                    | E0424               |
 | tests/adr-017/enum-bare-in-comparison.test.cnx                                                   | E0424               |
@@ -162,7 +165,10 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-034/bitmap-bracket-indexing-error.test.cnx                                             | E0883               |
 | tests/adr-034/bitmap-error-overflow.test.cnx                                                     | E0881               |
 | tests/adr-034/bitmap-unknown-field-error.test.cnx                                                | E0882               |
-| tests/adr-035/array-init-error.test.cnx                                                          | E0866, E0876        |
+| tests/adr-035/array-form-error.test.cnx                                                          | E0866, E0876        |
+| tests/adr-035/array-init-error.test.cnx                                                          | E0866               |
+| tests/adr-035/array-init-string-concat-error.test.cnx                                            | E0866               |
+| tests/adr-035/array-init-string-concat-sized-error.test.cnx                                      | E0866               |
 | tests/adr-035/empty-dimension-error.test.cnx                                                     | E0892               |
 | tests/adr-035/empty-dimension-included.test.cnx                                                  | E0892               |
 | tests/adr-036/array-bounds-uncovered-arms-error.test.cnx                                         | E0854               |
@@ -180,15 +186,19 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-045/string-error-concat-overflow.test.cnx                                              | E0864               |
 | tests/adr-045/string-error-const-no-init.test.cnx                                                | E0862               |
 | tests/adr-045/string-error-in-scope.test.cnx                                                     | E0864               |
+| tests/adr-045/string-error-infer-from-concat.test.cnx                                            | E0862               |
 | tests/adr-045/string-error-init-global.test.cnx                                                  | E0863               |
 | tests/adr-045/string-error-nonconst-unsized.test.cnx                                             | E0862               |
 | tests/adr-045/string-error-overflow.test.cnx                                                     | E0864               |
 | tests/adr-045/string-error-substring-bounds.test.cnx                                             | E0865               |
 | tests/adr-045/string-error-substring-dest.test.cnx                                               | E0864               |
 | tests/adr-045/string-error-substring-global.test.cnx                                             | E0863               |
-| tests/adr-045/string-error-uncovered-forms.test.cnx                                              | E0862, E0864        |
-| tests/adr-045/string-imported-direct-error.test.cnx                                              | E0863, E0864        |
-| tests/adr-045/string-imported-transitive-error.test.cnx                                          | E0863, E0864        |
+| tests/adr-045/string-error-uncovered-fit.test.cnx                                                | E0864               |
+| tests/adr-045/string-error-uncovered-forms.test.cnx                                              | E0862               |
+| tests/adr-045/string-imported-direct-error.test.cnx                                              | E0864               |
+| tests/adr-045/string-imported-global-error.test.cnx                                              | E0863               |
+| tests/adr-045/string-imported-transitive-error.test.cnx                                          | E0864               |
+| tests/adr-045/string-imported-transitive-global-error.test.cnx                                   | E0863               |
 | tests/adr-045/string-storage-properties-error.test.cnx                                           | E0887               |
 | tests/adr-049/atomic-volatile-error.test.cnx                                                     | E0889               |
 | tests/adr-050/return-in-critical-error.test.cnx                                                  | E0853               |
@@ -497,6 +507,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1980-enum-read-before-assign/enum-read-before-assign.test.cnx                   | E0381               |
 | tests/bugs/issue-1981-struct-cycle/direct.test.cnx                                               | E0426               |
 | tests/bugs/issue-1981-struct-cycle/mutual.test.cnx                                               | E0426               |
+| tests/bugs/issue-1991-for-header-enum-assign/for-header-enum-assign.test.cnx                     | E0428               |
 | tests/bugs/issue-2001-qualified-write-initializes-local/global-write-local-shadow.test.cnx       | E0381               |
 | tests/bugs/issue-2001-qualified-write-initializes-local/global-write-scope-member.test.cnx       | E0381               |
 | tests/bugs/issue-2001-qualified-write-initializes-local/local-write-scope-member.test.cnx        | E0381               |
@@ -523,6 +534,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/c-interop/use-c-union-basic.test.cnx                                                       | (uncoded)           |
 | tests/c-interop/use-c-union-typedef.test.cnx                                                     | (uncoded)           |
 | tests/casting/mixed-category-arithmetic.test.cnx                                                 | E0810               |
+| tests/comments/comment-in-condition-message-error.test.cnx                                       | E0702               |
+| tests/comments/comment-in-negative-literal-error.test.cnx                                        | E0868               |
 | tests/comments/misra-3-1-nested-block.test.cnx                                                   | MISRA-3.1           |
 | tests/comments/misra-3-2-backslash.test.cnx                                                      | MISRA-3.2           |
 | tests/compound-assign/bit-index-compound.test.cnx                                                | E0857               |

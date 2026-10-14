@@ -70,6 +70,61 @@ describe("Discover", () => {
     return { graph, warnings };
   }
 
+  // #1991: 1.1 reads the target catalog, so no later stage reads the disk for it
+  it("carries the target catalog's text and path", async () => {
+    const { graph } = await discover(project());
+
+    expect(graph.targetCatalog.path).toMatch(/targets[\\/]targets\.cnx$/);
+    expect(graph.targetCatalog.text).toBe(
+      fs.readFile(graph.targetCatalog.path),
+    );
+    expect(graph.targetCatalog.text.length).toBeGreaterThan(0);
+  });
+
+  // #1991: 1.1 takes each file's #1688 macro dump, so the host runs no preprocessor
+  it("takes a macro dump for each file with a C include, and only those", async () => {
+    const { graph } = await discover(project());
+
+    expect([...graph.headerMacroDumps.keys()]).toEqual(["/proj/src/app.cnx"]);
+  });
+
+  it("marks every dump unread when there is no preprocessor", async () => {
+    vi.spyOn(Preprocessor.prototype, "isAvailable").mockReturnValue(false);
+    const { graph } = await discover(
+      new MockFileSystem().addFile(
+        "/proj/src/app.cnx",
+        "#include <stdint.h>\n\nvoid main() { }\n",
+      ),
+    );
+
+    expect(graph.headerMacroDumps.get("/proj/src/app.cnx")).toEqual({
+      dump: null,
+      complete: false,
+    });
+  });
+
+  // #1991: 1.1 names every output path, so no later stage asks PathResolver
+  it("names each file's output paths, below its input directory", async () => {
+    fs = new MockFileSystem()
+      .addFile("/proj/app.cnx", '#include "src/lib.cnx"\n\nvoid main() { }\n')
+      .addFile("/proj/src/lib.cnx", "u32 twice(u32 v) { return v * 2; }\n");
+    const tree = { ...settings, input: "/proj/app.cnx", outDir: "/out" };
+    const anchor = RunAnchor.at(tree.input, null, tree, fs);
+    const { graph } = await Discover.run(
+      { kind: "files" },
+      anchor,
+      tree,
+      fs,
+      [],
+    );
+
+    expect(graph.outputs.get("/proj/src/lib.cnx")).toEqual({
+      sourceRelativePath: "src/lib.cnx",
+      source: "/out/src/lib.c",
+      header: "/out/src/lib.h",
+    });
+  });
+
   it("orders the files so each follows the files it includes", async () => {
     const { graph } = await discover(project());
 

@@ -42,6 +42,7 @@ function createMockContext(
       HandlerTestUtils.planner().analyzeMemberChainForBitAccess(null as never),
     targetLine: 1,
     hasValue: true,
+    floatBits: null,
     valueExpressionType: () => null,
     valueIntegerType: () => null,
     valueHasFloatingOperand: () => false,
@@ -130,7 +131,13 @@ describe("BitmapHandlers", () => {
         renderBitTarget: () => rendered,
         target: {
           ...ctx.target,
-          last: { before, subscript: null, property: null, after: null },
+          last: {
+            before,
+            subscript: null,
+            property: null,
+            after: null,
+            callee: null,
+          },
         },
       };
     };

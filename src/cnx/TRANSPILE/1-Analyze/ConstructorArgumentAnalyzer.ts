@@ -23,35 +23,33 @@
  * half in each pass.
  */
 
-import { ParseTreeWalker } from "antlr4ng";
-
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import ParserUtils from "../../utils/ParserUtils";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
+import type TStatement from "../../types/syntax/TStatement";
+import StatementNodes from "../../utils/StatementNodes";
 import BoundDeclaration from "./helpers/BoundDeclaration";
 import IConstructorArgumentError from "./types/IConstructorArgumentError";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
-class ConstructorArgumentListener extends CNextListener {
+type TConstructorDeclaration = Extract<
+  TStatement,
+  { kind: "constructorDeclaration" }
+>;
+
+class ConstructorArgumentCheck {
   private readonly found: IConstructorArgumentError[] = [];
 
-  public constructor(private readonly context: IAnalysisContext) {
-    super();
-  }
+  public constructor(private readonly context: IAnalysisContext) {}
 
   public errors(): IConstructorArgumentError[] {
     return this.found;
   }
 
-  override enterVariableDeclaration = (
-    ctx: Parser.VariableDeclarationContext,
-  ): void => {
-    const args = ctx.constructorArgumentList();
-    if (!args) return;
-
-    for (const identifier of args.IDENTIFIER()) {
-      const name = identifier.getText();
-      const { line, column } = ParserUtils.getPosition(ctx);
+  public check(declaration: TConstructorDeclaration): void {
+    const line = declaration.span.line;
+    const column = declaration.span.column;
+    for (const argument of declaration.arguments) {
+      const name = argument.name;
       // What the name binds to before this declaration, through Program's
       // one binder (#1668): a const local, member or global, this file's or
       // an included one's
@@ -60,7 +58,7 @@ class ConstructorArgumentListener extends CNextListener {
           this.context.sourceFile,
           null,
           name,
-          ParserUtils.getPosition({ start: identifier.symbol }),
+          argument.span,
         ),
       );
 
@@ -85,17 +83,29 @@ class ConstructorArgumentListener extends CNextListener {
         });
       }
     }
-  };
+  }
 }
 
 class ConstructorArgumentAnalyzer {
   /** #1456: handed in rather than read off shared state. */
   constructor(private readonly context: IAnalysisContext) {}
 
-  public analyze(tree: Parser.ProgramContext): IConstructorArgumentError[] {
-    const listener = new ConstructorArgumentListener(this.context);
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
-    return listener.errors();
+  /** #1991: reads 1.2's syntax, not the parse tree */
+  public analyze(program: IProgramSyntax): IConstructorArgumentError[] {
+    const check = new ConstructorArgumentCheck(this.context);
+    const visit = (declaration: TDeclarationSyntax): void => {
+      if (declaration.kind === "scope") {
+        for (const member of declaration.members) visit(member.declaration);
+        return;
+      }
+      if (declaration.kind === "constructorDeclaration")
+        check.check(declaration);
+      for (const statement of StatementNodes.in(declaration)) {
+        if (statement.kind === "constructorDeclaration") check.check(statement);
+      }
+    };
+    for (const member of program.declarations) visit(member.declaration);
+    return check.errors();
   }
 }
 

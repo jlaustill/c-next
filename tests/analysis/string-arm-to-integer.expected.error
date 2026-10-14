@@ -1,6 +1,6 @@
-6:13 error[E0914]: A string value cannot be assigned to u32: '(a=1)?"x":"y"'
+6:13 error[E0914]: A string value cannot be assigned to u32: '(a = 1) ? "x" : "y"'
        help: A string lands only in a string<N> (ADR-045); a u8 array may be initialized by a string literal (ADR-035)
 7:13 error[E0914]: A string value cannot be assigned to u32: '("y")'
        help: A string lands only in a string<N> (ADR-045); a u8 array may be initialized by a string literal (ADR-035)
-8:13 error[E0914]: A string value cannot be assigned to u32: '(a=1)?2:"n"'
+8:13 error[E0914]: A string value cannot be assigned to u32: '(a = 1) ? 2 : "n"'
        help: A string lands only in a string<N> (ADR-045); a u8 array may be initialized by a string literal (ADR-035)

@@ -13,9 +13,8 @@
  * (`1 - -1` became `1--1`) or name what C cannot see (`(LOCAL)`, `u32`).
  */
 
-import * as Parser from "../../../2-Parse/grammar/CNextParser";
 import ConstExprLowering from "../../../../utils/ConstExprLowering";
-import SyntaxLowering from "../../../2-Parse/SyntaxLowering";
+import type TExpression from "../../../../types/syntax/TExpression";
 import ConstantEvaluator from "../../../../utils/ConstantEvaluator";
 import invariant from "../../../../utils/invariant";
 import UNRESOLVED_DIMENSION from "../../../../types/UNRESOLVED_DIMENSION";
@@ -47,8 +46,8 @@ class DimensionResolver {
    * is kept as written for 1.4, which binds its names where the declaration
    * is written (#1664 box 7).
    */
-  static resolve(sizeExpr: Parser.ExpressionContext): IDeclaredDimension {
-    const expr = ConstExprLowering.lower(SyntaxLowering.expression(sizeExpr));
+  static resolve(sizeExpr: TExpression): IDeclaredDimension {
+    const expr = ConstExprLowering.lower(sizeExpr);
     const result = ConstantEvaluator.evaluate(expr, NO_NAMES);
     const size =
       result.kind === "value"

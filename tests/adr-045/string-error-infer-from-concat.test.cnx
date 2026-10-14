@@ -1,0 +1,16 @@
+// test-error
+// test-adr: 045
+// #1991: a capacity is inferred only from a string literal, and two literals
+// added are not one. The check used to ask whether the initializer's text
+// started and ended with a quote, which `"ab" + "cd"` does, so it passed and
+// code generation then failed with an internal capacity mismatch.
+
+// NEGATIVE CONTROL -- one literal infers its capacity.
+const string ONE <- "abcd";
+
+// ASSERTION
+const string TWO <- "ab" + "cd";
+
+u32 main() {
+    return 0;
+}

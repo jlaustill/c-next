@@ -23,9 +23,8 @@
  * one place the order is written, and every lookup walks it.
  */
 
-import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
 import IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
-import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
+import type TExpression from "../../../types/syntax/TExpression";
 import QualifiedCName from "../../../utils/QualifiedCName";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import TypeText from "./TypeText";
@@ -81,13 +80,13 @@ class FunctionReference {
    * The function a call chain targets, or null: a foreign function, a call
    * through a value (`p.handler(5)`), or a name the program does not declare.
    */
-  static ofCall(
-    postfix: Parser.PostfixExpressionContext,
+  static ofCallChain(
+    chain: TExpression,
     scopePath: string,
     context: IAnalysisContext,
   ): IFunctionSymbol | null {
     const resolved = CalleeNameResolver.resolveDetailed(
-      postfix,
+      chain,
       scopePath,
       (name) => context.symbols.knownScopes.has(name),
     );
@@ -108,21 +107,21 @@ class FunctionReference {
    * a variable of callback type, a call, a subscript, an expression.
    */
   static ofValue(
-    expression: Parser.ExpressionContext,
+    expression: TExpression,
     scopePath: string,
     context: IAnalysisContext,
   ): IFunctionSymbol | null {
-    const postfix = ExpressionUnwrapper.getPostfixExpression(expression);
-    if (postfix === null) return null;
-    const ops = postfix.postfixOp();
-    if (ops.some((op) => op.DOT() === null)) return null;
-    const base = CalleeNameResolver.baseName(postfix.primaryExpression());
+    const primary =
+      expression.kind === "postfix" ? expression.primary : expression;
+    const ops = expression.kind === "postfix" ? expression.ops : [];
+    if (ops.some((op) => op.kind !== "member")) return null;
+    const base = CalleeNameResolver.baseName(primary);
     if (base === null) return null;
     let name = base;
     for (const op of ops) {
       const next = CalleeNameResolver.resolveMemberAccess(
         name,
-        op,
+        op.kind === "member" ? op.name : "",
         scopePath,
         (name) => context.symbols.knownScopes.has(name),
       );

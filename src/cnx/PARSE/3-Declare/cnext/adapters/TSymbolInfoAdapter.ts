@@ -22,6 +22,7 @@ import IVariableSymbol from "../../../../types/symbols/IVariableSymbol";
 import TypeResolver from "../../../../utils/TypeResolver";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 import QualifiedCName from "../../../../utils/QualifiedCName";
+import type TExpression from "../../../../types/syntax/TExpression";
 
 /**
  * Groups register-related maps for processRegister method.
@@ -29,11 +30,11 @@ import QualifiedCName from "../../../../utils/QualifiedCName";
  */
 interface IRegisterMaps {
   knownRegisters: Set<string>;
-  scopedRegisters: Map<string, string>;
+  scopedRegisters: Map<string, TExpression>;
   registerMemberAccess: Map<string, string>;
   registerMemberTypes: Map<string, string>;
-  registerBaseAddresses: Map<string, string>;
-  registerMemberOffsets: Map<string, string>;
+  registerBaseAddresses: Map<string, TExpression>;
+  registerMemberOffsets: Map<string, TExpression>;
   registerMemberCTypes: Map<string, string>;
 }
 
@@ -80,11 +81,11 @@ class TSymbolInfoAdapter {
     const bitmapBitWidth = new Map<string, number>();
 
     // === Register Information ===
-    const scopedRegisters = new Map<string, string>();
+    const scopedRegisters = new Map<string, TExpression>();
     const registerMemberAccess = new Map<string, string>();
     const registerMemberTypes = new Map<string, string>();
-    const registerBaseAddresses = new Map<string, string>();
-    const registerMemberOffsets = new Map<string, string>();
+    const registerBaseAddresses = new Map<string, TExpression>();
+    const registerMemberOffsets = new Map<string, TExpression>();
     const registerMemberCTypes = new Map<string, string>();
 
     // === Function Return Types ===

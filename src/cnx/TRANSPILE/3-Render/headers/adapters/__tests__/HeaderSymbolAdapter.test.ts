@@ -2,6 +2,8 @@
  * Unit tests for HeaderSymbolAdapter
  * ADR-055 Phase 5/7: Converts TSymbol to IHeaderSymbol (ISymbol methods removed in Phase 7)
  */
+import SymbolTable from "../../../../../PARSE/3-Declare/SymbolTable";
+import TestSymbolTable from "../../../../__tests__/TestSymbolTable";
 import { describe, it, expect } from "vitest";
 import TranspileState from "../../../../TranspileState";
 import HeaderSymbolAdapter from "../HeaderSymbolAdapter";
@@ -19,12 +21,14 @@ import TestSourceSpan from "../../../../../types/__testUtils__/testSourceSpan";
 import TestEnumMembers from "../../../../../types/__testUtils__/testEnumMembers";
 import TestMembers from "../../../../../types/__testUtils__/testMembers";
 import type IProgram from "../../../../../types/IProgram";
+import TestExpression from "../../../../../types/__testUtils__/testExpression";
 
 let state = new TranspileState();
 
 describe("HeaderSymbolAdapter", () => {
   beforeEach(() => {
     state = new TranspileState();
+    TestSymbolTable.install(state);
   });
 
   // ========================================================================
@@ -149,7 +153,7 @@ describe("HeaderSymbolAdapter", () => {
     ])(
       "marks a variable of %s by whether it is held through a pointer",
       (_label, typeName, expected) => {
-        state.symbolTable.markOpaqueType("Dev");
+        TestSymbolTable.of(state).markOpaqueType("Dev");
         const tSymbol: IVariableSymbol = {
           ...TestSymbolUtils.base({
             kind: "variable",
@@ -280,6 +284,7 @@ describe("HeaderSymbolAdapter", () => {
      */
     it("marks each parameter by the opaque-handle stamp it was settled with", () => {
       state.program = {
+        symbolTable: () => new SymbolTable(),
         isOpaqueType: () => false,
       } as unknown as IProgram;
       const tSymbol: IFunctionSymbol = {
@@ -499,12 +504,26 @@ describe("HeaderSymbolAdapter", () => {
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
-        baseAddress: "0x40000000",
+        baseAddress: TestExpression.hex("0x40000000"),
         members: TestMembers.asRegisterMembers(
           "GPIO",
           new Map([
-            ["DATA", { cType: "u32", offset: "0x00", access: "rw" as const }],
-            ["DIR", { cType: "u32", offset: "0x04", access: "rw" as const }],
+            [
+              "DATA",
+              {
+                cType: "u32",
+                offset: TestExpression.hex("0x00"),
+                access: "rw" as const,
+              },
+            ],
+            [
+              "DIR",
+              {
+                cType: "u32",
+                offset: TestExpression.hex("0x04"),
+                access: "rw" as const,
+              },
+            ],
           ]),
         ),
       };
@@ -526,7 +545,7 @@ describe("HeaderSymbolAdapter", () => {
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
-        baseAddress: "0x50000000",
+        baseAddress: TestExpression.hex("0x50000000"),
         members: new Map(),
       };
 

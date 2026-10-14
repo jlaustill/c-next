@@ -13,8 +13,10 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  * and 1.3/1.4 settle, as in production.
  */
 const errors = (source: string) => {
-  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
-  return new ScopeAccessAnalyzer(context).analyze(tree);
+  const { syntax, context } = testAnalysisContextFor(source, {
+    cppMode: false,
+  });
+  return new ScopeAccessAnalyzer(context).analyze(syntax);
 };
 
 const GPIO = "register GPIO @ 0x40000000 {\n    DR: u32 rw @ 0x00,\n}\n";
@@ -125,5 +127,57 @@ describe("ScopeAccessAnalyzer", () => {
         ),
       ).toEqual([]);
     });
+  });
+});
+
+describe("ScopeAccessAnalyzer on 1.2's syntax (#1991)", () => {
+  it("checks every position a qualified name is written, in source order", () => {
+    const source = [
+      "scope M {",
+      "    enum E { A, B }",
+      "    struct T { u32 x; }",
+      "    u32 v <- 1;",
+      "}",
+      "struct H {",
+      "    M.T inner;",
+      "}",
+      "void f(M.E e) {",
+      "    M.T[2] pair;",
+      "    u32 n <- sizeof(M.T);",
+      "    u8 k <- (M.E)0;",
+      "    switch (e) {",
+      "        case M.E.A {",
+      "            M.v <- 2;",
+      "        }",
+      "        default { }",
+      "    }",
+      "}",
+    ].join("\n");
+    expect(errors(source).map((e) => [e.line, e.code])).toEqual([
+      [9, "E0436"],
+      [10, "E0436"],
+      [11, "E0436"],
+      [12, "E0436"],
+      [14, "E0436"],
+      [15, "E0436"],
+    ]);
+  });
+
+  it("does not read `this.A.x` as scope A's member x", () => {
+    const source = [
+      "scope A {",
+      "    u32 x <- 1;",
+      "}",
+      "struct P {",
+      "    u32 x;",
+      "}",
+      "scope B {",
+      "    P A;",
+      "    public u32 g() {",
+      "        return this.A.x;",
+      "    }",
+      "}",
+    ].join("\n");
+    expect(errors(source)).toEqual([]);
   });
 });

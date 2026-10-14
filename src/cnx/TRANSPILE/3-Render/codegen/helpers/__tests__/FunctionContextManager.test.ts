@@ -18,10 +18,11 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import FunctionContextManager from "../FunctionContextManager";
-import IFunctionContextCallbacks from "../../types/IFunctionContextCallbacks";
+import ParameterInfoPlanner from "../../../../2-Plan/ParameterInfoPlanner";
+import IFunctionContextCallbacks from "../../../../2-Plan/types/IFunctionContextCallbacks";
 import TranspileState from "../../../../TranspileState";
-import type IPlannedType from "../../types/IPlannedType";
-import type IPlannedFunctionParameter from "../../types/IPlannedFunctionParameter";
+import type IPlannedType from "../../../../2-Plan/types/IPlannedType";
+import type IPlannedFunctionParameter from "../../../../2-Plan/types/IPlannedFunctionParameter";
 import type INamedTypeResolution from "../../../../../types/INamedTypeResolution";
 import type IProgram from "../../../../../types/IProgram";
 import installMockSymbols from "../../../../__tests__/installMockSymbols";
@@ -53,6 +54,7 @@ function plannedType(overrides: Partial<IPlannedType> = {}): IPlannedType {
     isArray: false,
     userTypeLine: undefined,
     text: "",
+    writtenName: "",
     ...overrides,
   };
 }
@@ -72,18 +74,60 @@ function plannedParam(
   type: IPlannedType,
   overrides: Partial<IPlannedFunctionParameter> = {},
 ): IPlannedFunctionParameter {
+  nextColumn += 1;
   return {
     name,
+    nameSpan: {
+      line: 1,
+      column: nextColumn,
+      endLine: 1,
+      endColumn: nextColumn,
+    },
     isConst: false,
     isArray: false,
     arrayDimensions: [],
     stringCapacity: undefined,
     type,
+    typeName: type.text,
     ...overrides,
   };
 }
 
 let state = new TranspileState();
+let nextColumn = 0;
+
+/** 2.2 plans the parameter of the function being generated; 2.3 enters it */
+function processParameter(
+  param: IPlannedFunctionParameter,
+  callbacks: IFunctionContextCallbacks,
+  paramIndex: number,
+  into: TranspileState,
+): void {
+  into.currentParameters.set(
+    param.name,
+    ParameterInfoPlanner.infoOf(
+      param,
+      paramIndex,
+      into.currentFunctionName ?? "use",
+      callbacks,
+      into,
+    ),
+  );
+}
+
+/** 2.2 plans `params`, then 2.3 enters the function with them (#1991) */
+function enterParameters(
+  params: readonly IPlannedFunctionParameter[] | null,
+  callbacks: IFunctionContextCallbacks,
+): void {
+  state.plannedParameters = new Map(
+    (params ?? []).map((param, index) => [
+      TranspileState.parameterKey(param.nameSpan),
+      ParameterInfoPlanner.infoOf(param, index, "use", callbacks, state),
+    ]),
+  );
+  FunctionContextManager.processParameterList(params, state);
+}
 
 /**
  * #1722: registering a parameter reads its opaque-handle stamp from the settled
@@ -171,7 +215,7 @@ describe("FunctionContextManager", () => {
       });
       const callbacks = createMockCallbacks();
 
-      FunctionContextManager.processParameterList(null, callbacks, state);
+      enterParameters(null, callbacks);
 
       expect(state.currentParameters.size).toBe(0);
     });
@@ -179,13 +223,12 @@ describe("FunctionContextManager", () => {
     it("processes multiple parameters", () => {
       const callbacks = createMockCallbacks();
 
-      FunctionContextManager.processParameterList(
+      enterParameters(
         [
           plannedParam("x", plannedType({ primitiveName: "u32" })),
           plannedParam("y", plannedType({ primitiveName: "i32" })),
         ],
         callbacks,
-        state,
       );
 
       expect(state.currentParameters.size).toBe(2);
@@ -200,7 +243,7 @@ describe("FunctionContextManager", () => {
     it("registers primitive parameter", () => {
       const callbacks = createMockCallbacks();
 
-      FunctionContextManager.processParameter(
+      processParameter(
         plannedParam("x", plannedType({ primitiveName: "u32" })),
         callbacks,
         0,
@@ -217,7 +260,7 @@ describe("FunctionContextManager", () => {
     it("registers array parameter", () => {
       const callbacks = createMockCallbacks();
 
-      FunctionContextManager.processParameter(
+      processParameter(
         plannedParam(
           "arr",
           plannedType({ primitiveName: "u8", isArray: true }),
@@ -239,7 +282,7 @@ describe("FunctionContextManager", () => {
     it("registers const parameter", () => {
       const callbacks = createMockCallbacks();
 
-      FunctionContextManager.processParameter(
+      processParameter(
         plannedParam("x", plannedType({ primitiveName: "u32" }), {
           isConst: true,
         }),
@@ -259,7 +302,7 @@ describe("FunctionContextManager", () => {
         true,
       );
 
-      FunctionContextManager.processParameter(
+      processParameter(
         plannedParam("point", plannedType({ named: named("bare", "Point") })),
         callbacks,
         0,
@@ -275,7 +318,7 @@ describe("FunctionContextManager", () => {
     it("registers string parameter", () => {
       const callbacks = createMockCallbacks();
 
-      FunctionContextManager.processParameter(
+      processParameter(
         plannedParam(
           "name",
           plannedType({ isString: true, stringTypeText: "string<32>" }),
@@ -325,7 +368,7 @@ describe("FunctionContextManager", () => {
           isKnownStruct: vi.fn(() => !isOpaque),
         };
 
-        FunctionContextManager.processParameter(
+        processParameter(
           plannedParam(
             "p",
             plannedType({ named: named("bare", typeName), isArray }),
@@ -348,7 +391,7 @@ describe("FunctionContextManager", () => {
 
   describe("resolveParameterTypeInfo", () => {
     it("resolves primitive type", () => {
-      const result = FunctionContextManager.resolveParameterTypeInfo(
+      const result = ParameterInfoPlanner.resolveParameterTypeInfo(
         plannedType({ primitiveName: "u32", text: "u32" }),
         createMockCallbacks(),
         state,
@@ -366,7 +409,7 @@ describe("FunctionContextManager", () => {
         true,
       );
 
-      const result = FunctionContextManager.resolveParameterTypeInfo(
+      const result = ParameterInfoPlanner.resolveParameterTypeInfo(
         plannedType({ named: named("bare", "Point"), text: "Point" }),
         callbacks,
         state,
@@ -395,7 +438,7 @@ describe("FunctionContextManager", () => {
       ],
       ["a global type", named("global", "GlobalType"), "GlobalType"],
     ])("uses the resolved name for %s", (_label, resolution, expected) => {
-      const result = FunctionContextManager.resolveParameterTypeInfo(
+      const result = ParameterInfoPlanner.resolveParameterTypeInfo(
         plannedType({ named: resolution, text: resolution.written }),
         createMockCallbacks(),
         state,
@@ -405,7 +448,7 @@ describe("FunctionContextManager", () => {
     });
 
     it("resolves a top-level string to the bare name", () => {
-      const result = FunctionContextManager.resolveParameterTypeInfo(
+      const result = ParameterInfoPlanner.resolveParameterTypeInfo(
         plannedType({
           isString: true,
           stringTypeText: "string<32>",
@@ -421,7 +464,7 @@ describe("FunctionContextManager", () => {
     });
 
     it("keeps the written text for a string ARRAY element", () => {
-      const result = FunctionContextManager.resolveParameterTypeInfo(
+      const result = ParameterInfoPlanner.resolveParameterTypeInfo(
         plannedType({
           isString: true,
           isArray: true,
@@ -437,7 +480,7 @@ describe("FunctionContextManager", () => {
     });
 
     it("resolves an array of primitives to the element type", () => {
-      const result = FunctionContextManager.resolveParameterTypeInfo(
+      const result = ParameterInfoPlanner.resolveParameterTypeInfo(
         plannedType({ primitiveName: "u8", isArray: true, text: "u8[10]" }),
         createMockCallbacks(),
         state,
@@ -453,7 +496,7 @@ describe("FunctionContextManager", () => {
         true,
       );
 
-      const result = FunctionContextManager.resolveParameterTypeInfo(
+      const result = ParameterInfoPlanner.resolveParameterTypeInfo(
         plannedType({
           named: named("bare", "Point"),
           isArray: true,
@@ -468,7 +511,7 @@ describe("FunctionContextManager", () => {
     });
 
     it("returns fallback for unknown type", () => {
-      const result = FunctionContextManager.resolveParameterTypeInfo(
+      const result = ParameterInfoPlanner.resolveParameterTypeInfo(
         plannedType({ text: "SomeUnknownType" }),
         createMockCallbacks(),
         state,

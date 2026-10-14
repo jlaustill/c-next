@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -6,6 +6,10 @@ import { tmpdir } from "node:os";
 import Transpiler from "../Transpiler";
 import ITranspilerConfig from "../../cnx/types/ITranspilerConfig";
 import NodeFileSystem from "../../cnx/PARSE/1-Discover/NodeFileSystem";
+import Analyze from "../../cnx/TRANSPILE/1-Analyze/Analyze";
+import type IAnalyzedFile from "../../cnx/types/IAnalyzedFile";
+import CodeGenWalker from "../../cnx/TRANSPILE/CodeGenWalker";
+import type ICodeGeneratorOptions from "../../cnx/TRANSPILE/types/ICodeGeneratorOptions";
 
 /**
  * #1301 review: the run's per-file artifacts must be released when a run ENDS, not
@@ -15,7 +19,7 @@ import NodeFileSystem from "../../cnx/PARSE/1-Discover/NodeFileSystem";
  * static field and reuses it for every request, so a cache cleared only on entry
  * leaves the language server holding the last request's files for as long as the
  * editor sits idle. Since #1932 what it holds is plain data: every parse tree is a
- * local of `TreePasses.run` and never reaches `Transpiler`, which
+ * local of 1.2's `SourceSyntax.of` and never reaches `Transpiler`, which
  * `scripts/__tests__/artifact-lifetime.test.ts` asserts of every field and value.
  *
  * Peak-RSS benchmarking cannot see this -- it measures the in-run high water mark,
@@ -24,22 +28,64 @@ import NodeFileSystem from "../../cnx/PARSE/1-Discover/NodeFileSystem";
  */
 describe("#1301: the per-file cache is released at end of run", () => {
   let tempDir: string;
+  let analyzed: IAnalyzedFile[];
+  let programs: unknown[];
 
   beforeEach(() => {
     tempDir = mkdtempSync(join(tmpdir(), "cnext-cache-release-"));
+    analyzed = [];
+    programs = [];
+    const plan = CodeGenWalker.prototype.plan;
+    vi.spyOn(CodeGenWalker.prototype, "plan").mockImplementation(function (
+      this: CodeGenWalker,
+      file: IAnalyzedFile,
+      options: ICodeGeneratorOptions,
+    ) {
+      programs.push(options.program);
+      return plan.call(this, file, options);
+    });
+    const run = Analyze.run.bind(Analyze);
+    vi.spyOn(Analyze, "run").mockImplementation((...args) => {
+      const front = run(...args);
+      analyzed.push(...front.files.values());
+      return front;
+    });
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     rmSync(tempDir, { recursive: true, force: true });
   });
 
-  /** Reads the private cache without widening its visibility for production. */
+  /** Every object the instance reaches, however deep */
+  function reachableFrom(root: object): Set<unknown> {
+    const seen = new Set<unknown>();
+    const pending: unknown[] = [root];
+    while (pending.length > 0) {
+      const value = pending.pop();
+      if (value === null || typeof value !== "object" || seen.has(value)) {
+        continue;
+      }
+      seen.add(value);
+      if (value instanceof Map) {
+        for (const entry of value) pending.push(entry[0], entry[1]);
+      } else if (value instanceof Set || Array.isArray(value)) {
+        pending.push(...value);
+      } else {
+        pending.push(...Object.values(value));
+      }
+    }
+    return seen;
+  }
+
+  /**
+   * How many of 2.1's file artifacts, and of the programs 2.2 planned from,
+   * the instance still reaches by any path. #1991: the host holds none; Stage
+   * 5 takes them from 2.1's artifact, and its walker is a local of each file.
+   */
   function cacheSize(transpiler: Transpiler): number {
-    // #1932: the cache holds 2.1's plain-data `IAnalyzedFile`, not 1.2's
-    // `IParsedFile`. The property under test is unchanged -- what is retained
-    // must not outlive the run.
-    return (transpiler as unknown as { analyzedFiles: Map<string, unknown> })
-      .analyzedFiles.size;
+    const held = reachableFrom(transpiler);
+    return [...analyzed, ...programs].filter((value) => held.has(value)).length;
   }
 
   function writeProject(): string {
@@ -77,6 +123,7 @@ describe("#1301: the per-file cache is released at end of run", () => {
     // successful multi-file run is only reachable through a populated cache.
     expect(result.success).toBe(true);
     expect(result.files.length).toBeGreaterThan(0);
+    expect(programs.length).toBeGreaterThan(0);
 
     expect(cacheSize(transpiler)).toBe(0);
   });
@@ -118,13 +165,14 @@ describe("#1301: the per-file cache is released at end of run", () => {
   it("Stage 5 reads every file's plain data (#1932)", async () => {
     const transpiler = createTranspiler(writeProject());
     const internals = transpiler as unknown as {
-      analyzedFiles: Map<string, unknown>;
       _transpileFile: (...args: unknown[]) => unknown;
     };
     const seen: number[] = [];
     const original = internals._transpileFile.bind(transpiler);
     internals._transpileFile = (...args: unknown[]) => {
-      seen.push(internals.analyzedFiles.size);
+      seen.push(
+        (args[1] as { files: ReadonlyMap<string, unknown> }).files.size,
+      );
       return original(...args);
     };
 
@@ -134,6 +182,7 @@ describe("#1301: the per-file cache is released at end of run", () => {
     expect(result.success).toBe(true);
     expect(seen.length).toBeGreaterThan(0);
     expect(seen).toEqual(seen.map(() => 2));
-    expect(internals.analyzedFiles.size).toBe(0);
+    expect(analyzed).toHaveLength(2);
+    expect(cacheSize(transpiler)).toBe(0);
   });
 });

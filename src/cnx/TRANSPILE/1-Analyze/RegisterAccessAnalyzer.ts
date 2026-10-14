@@ -39,30 +39,25 @@
  * their bits reject zero as codegen's `isWriteOnlyRegister` set did.
  */
 
-import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
-
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import ParserUtils from "../../utils/ParserUtils";
-import AssignmentSiteListener from "./AssignmentSiteListener";
-import ChainRoot from "../../utils/ChainRoot";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
+import type TExpression from "../../types/syntax/TExpression";
+import DeclarationParts from "../../utils/DeclarationParts";
+import ExpressionNodes from "../../utils/ExpressionNodes";
+import StatementNodes from "../../utils/StatementNodes";
 import RegisterMemberReference from "./helpers/RegisterMemberReference";
 import BoundDeclaration from "./helpers/BoundDeclaration";
 import IRegisterMember from "./types/IRegisterMember";
 import IRegisterAccessError from "./types/IRegisterAccessError";
-import TChainRoot from "../../types/TChainRoot";
-import type TAssignmentSite from "../../types/TAssignmentSite";
 import ConstantExpression from "./helpers/ConstantExpression";
 import RegisterAccessMode from "../../utils/RegisterAccessMode";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import SourceOrder from "../../utils/SourceOrder";
 
-class RegisterAccessListener extends CNextListener {
+class RegisterAccessCheck {
   private readonly found: IRegisterAccessError[] = [];
 
-  public constructor(private readonly context: IAnalysisContext) {
-    super();
-  }
+  public constructor(private readonly context: IAnalysisContext) {}
 
   public errors(): IRegisterAccessError[] {
     return this.found;
@@ -71,30 +66,28 @@ class RegisterAccessListener extends CNextListener {
   // --- The two positions --------------------------------------------------
 
   /** Every postfix expression is a read: targets are `assignmentTarget`. */
-  override enterPostfixExpression = (
-    ctx: Parser.PostfixExpressionContext,
-  ): void => {
-    const primary = ctx.primaryExpression();
-    if (!primary) return;
-    const root: TChainRoot = ChainRoot.ofPrimary(primary);
-    const names = ctx
-      .postfixOp()
-      .map((op) => (op.DOT() !== null ? op.IDENTIFIER()!.getText() : null));
-    const head = root === null ? primary.IDENTIFIER()?.getText() : undefined;
-    const chain = RegisterMemberReference.leadingNames(head, names);
-    const found = this.resolve(root, chain, ctx);
+  public checkExpression(expr: TExpression): void {
+    const found = RegisterMemberReference.ofChain(expr, this.context);
     if (found === null) return;
-    this.reportRead(found, ctx);
-  };
+    this.reportRead(found, expr);
+  }
+
+  /** The target's operations after its first name, as `consumed` counts them */
+  private static opsAfterHead(
+    target: TExpression,
+  ): Extract<TExpression, { kind: "postfix" }>["ops"] {
+    if (target.kind !== "postfix") return [];
+    return target.primary.kind === "root" ? target.ops.slice(1) : target.ops;
+  }
 
   /** A write, in a statement or a `for` header (#1726) */
-  public checkSite(ctx: TAssignmentSite): void {
-    const target = ctx.assignmentTarget();
-    const ops = target.postfixTargetOp();
-    const found = RegisterMemberReference.ofTarget(target, this.context);
+  public checkSite(site: IAssignmentSyntax): void {
+    const target = site.target;
+    const ops = RegisterAccessCheck.opsAfterHead(target);
+    const found = RegisterMemberReference.ofChain(target, this.context);
     if (found === null) return;
 
-    const op = ctx.assignmentOperator().getText();
+    const op = site.operator;
     if (found.access === "ro") {
       this.report(
         target,
@@ -111,11 +104,13 @@ class RegisterAccessListener extends CNextListener {
     }
     // Bit forms: the ops after the member are exactly one subscript.
     const rest = ops.slice(found.consumed - 1);
-    if (rest.length !== 1 || rest[0].DOT() !== null) return;
+    if (rest.length !== 1) return;
+    const last = rest[0];
+    if (last.kind !== "subscript") return;
     if (!RegisterAccessMode.isWriteOne(found.access)) return;
-    const exprs = rest[0].expression();
-    if (!this.isZero(ctx.expression(), target)) return;
-    const index = exprs.map((e) => e.getText()).join(", ");
+    const exprs = last.indexes;
+    if (!this.isZero(site.value, target)) return;
+    const index = exprs.map((e) => e.written).join(", ");
     const what = exprs.length === 1 ? "false to" : "0 to";
     const noun = exprs.length === 1 ? "bit" : "bits";
     this.report(
@@ -128,26 +123,8 @@ class RegisterAccessListener extends CNextListener {
 
   // --- Resolution ---------------------------------------------------------
 
-  /**
-   * #1322: the chain walk, the candidate order and the shadowing rule moved to
-   * `helpers/RegisterMemberReference` when ADR-034's bitmap rules needed the
-   * same answer -- a register member may be TYPED by a bitmap, so a bitmap
-   * rule has to reach it through the register. Two copies would have been free
-   * to disagree about which register a spelling names.
-   */
-  private resolve(
-    root: TChainRoot,
-    chain: string[],
-    node: ParserRuleContext,
-  ): IRegisterMember | null {
-    return RegisterMemberReference.resolve(root, chain, node, this.context);
-  }
-
-  private isZero(
-    expr: Parser.ExpressionContext,
-    node: ParserRuleContext,
-  ): boolean {
-    const text = expr.getText().trim();
+  private isZero(expr: TExpression, node: TExpression): boolean {
+    const text = expr.written.trim();
     if (text === "false") return true;
     // #1322 review: the flat map again -- and this one decides whether a
     // register write clears a `wo` bit, so the wrong scope's const changed
@@ -161,13 +138,13 @@ class RegisterAccessListener extends CNextListener {
    * `const bool NAME <- false`, as the name binds here: a const local, a
    * scope member or a file-scope const, through Program's one binder (#1668)
    */
-  private isFalseConst(name: string, node: ParserRuleContext): boolean {
+  private isFalseConst(name: string, node: TExpression): boolean {
     if (!/^[A-Za-z_]\w*$/.test(name)) return false;
     const binding = this.context.program.bindValue(
       this.context.sourceFile,
       null,
       name,
-      ParserUtils.getPosition(node),
+      node.span,
     );
     const declared = BoundDeclaration.of(binding);
     return (
@@ -179,7 +156,7 @@ class RegisterAccessListener extends CNextListener {
 
   // --- Reporting ----------------------------------------------------------
 
-  private reportRead(found: IRegisterMember, at: ParserRuleContext): void {
+  private reportRead(found: IRegisterMember, at: TExpression): void {
     if (found.access !== "wo") return;
     this.report(
       at,
@@ -190,12 +167,13 @@ class RegisterAccessListener extends CNextListener {
   }
 
   private report(
-    at: ParserRuleContext,
+    at: TExpression,
     code: string,
     message: string,
     helpText: string,
   ): void {
-    const { line, column } = ParserUtils.getPosition(at);
+    const line = at.span.line;
+    const column = at.span.column;
     this.found.push({ code, line, column, message, helpText });
   }
 }
@@ -204,15 +182,20 @@ class RegisterAccessAnalyzer {
   /** #1456: handed in rather than read off shared state. */
   constructor(private readonly context: IAnalysisContext) {}
 
-  public analyze(tree: Parser.ProgramContext): IRegisterAccessError[] {
-    const listener = new RegisterAccessListener(this.context);
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
-    ParseTreeWalker.DEFAULT.walk(
-      new AssignmentSiteListener((site) => listener.checkSite(site)),
-      tree,
-    );
-    // Reported in source order, as the one walk these replace did
-    return listener.errors().sort(SourceOrder.compare);
+  /** #1991: reads 1.2's syntax, not the parse tree */
+  public analyze(program: IProgramSyntax): IRegisterAccessError[] {
+    const check = new RegisterAccessCheck(this.context);
+    for (const member of program.declarations) {
+      const sites = StatementNodes.assignments(member.declaration);
+      const targets = new Set<TExpression>(sites.map((site) => site.target));
+      for (const expr of DeclarationParts.of(member.declaration).flatMap(
+        ExpressionNodes.of,
+      )) {
+        if (!targets.has(expr)) check.checkExpression(expr);
+      }
+      for (const site of sites) check.checkSite(site);
+    }
+    return check.errors().sort(SourceOrder.compare);
   }
 }
 

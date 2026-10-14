@@ -35,110 +35,71 @@
  * checked here.
  */
 
-import { ParseTreeWalker } from "antlr4ng";
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import BUILTIN_TYPE_NAMES from "./BUILTIN_TYPE_NAMES";
-import EnclosingScope from "./helpers/EnclosingScope";
 import ICodeGenSymbols from "../../types/ICodeGenSymbols";
 import IUndeclaredTypeError from "./types/IUndeclaredTypeError";
 import NameExistence from "../../PARSE/3-Declare/NameExistence";
-import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
-import ParserUtils from "../../utils/ParserUtils";
+import type IResolvedSymbols from "../../types/IResolvedSymbols";
 import ScopeUtils from "../../utils/ScopeUtils";
+import DeclarationParts from "../../utils/DeclarationParts";
+import ExpressionChildren from "../../utils/ExpressionChildren";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
+import type TExpression from "../../types/syntax/TExpression";
+import type TTypeSyntax from "../../types/syntax/TTypeSyntax";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import type ISourceSpan from "../../types/ISourceSpan";
 
-class UndeclaredTypeListener extends CNextListener {
-  private readonly analyzer: UndeclaredTypeAnalyzer;
+/**
+ * #1991: walks 1.2's syntax, not the parse tree. Every bare type name a
+ * declaration, parameter, field, register member or cast writes, in source
+ * order, with the scope it is written in. A `sizeof` operand names no type
+ * here (ADR-023), down to a cast inside it.
+ */
+class UndeclaredTypeWalk {
+  public constructor(private readonly analyzer: UndeclaredTypeAnalyzer) {}
 
-  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
-  private readonly enclosing = new EnclosingScope();
-
-  constructor(analyzer: UndeclaredTypeAnalyzer) {
-    super();
-    this.analyzer = analyzer;
-  }
-
-  private static _isSizeofOperand(ctx: Parser.UserTypeContext): boolean {
-    for (
-      let node: Parser.UserTypeContext["parent"] = ctx.parent;
-      node;
-      node = node.parent
-    ) {
-      if (node instanceof Parser.SizeofExpressionContext) {
-        return true;
+  public declaration(declaration: TDeclarationSyntax, scope: string): void {
+    if (declaration.kind === "scope") {
+      for (const member of declaration.members) {
+        this.declaration(member.declaration, declaration.name);
       }
+      return;
     }
-    return false;
+    for (const part of DeclarationParts.of(declaration)) {
+      if (part.kind === "type") this.type(part.type, scope);
+      else this.expression(part.expression, scope, false);
+    }
   }
 
-  override enterScopeDeclaration = (
-    ctx: Parser.ScopeDeclarationContext,
-  ): void => {
-    this.enclosing.enter(ctx.IDENTIFIER().getText());
-  };
-
-  override exitScopeDeclaration = (
-    _ctx: Parser.ScopeDeclarationContext,
-  ): void => {
-    this.enclosing.exit();
-  };
-
-  override enterUserType = (ctx: Parser.UserTypeContext): void => {
-    const typeName = ctx.IDENTIFIER().getText();
-    if (BUILTIN_TYPE_NAMES.has(typeName)) {
-      return;
+  private expression(expr: TExpression, scope: string, sized: boolean): void {
+    if (expr.kind === "cast" && !sized) this.type(expr.type, scope);
+    const inSizeof = sized || expr.kind === "sizeof";
+    for (const child of ExpressionChildren.of(expr)) {
+      this.expression(child, scope, inSizeof);
     }
+  }
 
-    // ADR-023: `sizeof ( type | expression )`. The two alternatives are
-    // ambiguous for a bare identifier and ANTLR takes the `type` branch, so
-    // `sizeof(myArray)` arrives here as a `userType` naming a VARIABLE. The
-    // operand is genuinely undecidable from the grammar alone, so this is the
-    // one position where an unknown name is not evidence of a missing type.
-    if (UndeclaredTypeListener._isSizeofOperand(ctx)) {
-      return;
+  private type(type: TTypeSyntax, scope: string): void {
+    switch (type.kind) {
+      case "user":
+        this.analyzer.checkUse(
+          type.name,
+          scope,
+          type.span.line,
+          type.span.column,
+        );
+        return;
+      case "array":
+        this.type(type.element, scope);
+        for (const dimension of type.dimensions) {
+          if (dimension) this.expression(dimension, scope, false);
+        }
+        return;
+      default:
+        return;
     }
-
-    const scope = this.enclosing.current();
-    const { line, column } = ParserUtils.getPosition(ctx);
-
-    // ADR-030 "Define-Before-Use: Zero Exceptions" (#1963, #1981): this
-    // file's own type, named before its definition closes, denotes nothing
-    // yet -- whatever headers the file reaches.
-    const definition = this.analyzer.definitionAfter(
-      typeName,
-      scope,
-      line,
-      column,
-    );
-    if (definition !== null) {
-      this.analyzer.addUsedBeforeDefinitionError(
-        typeName,
-        line,
-        column,
-        definition,
-      );
-      return;
-    }
-
-    if (
-      !this.analyzer.knowsEveryName ||
-      this.analyzer.isVisibleType(typeName, scope)
-    ) {
-      return;
-    }
-
-    // A register IS declared -- just not as a type. Reporting "not defined" of
-    // a name declared a few lines up reads as a transpiler fault rather than a
-    // mistake in the source, so name what it actually is (#1336).
-    if (this.analyzer.isRegister(typeName, scope)) {
-      this.analyzer.addRegisterInTypePositionError(typeName, line, column);
-      return;
-    }
-
-    this.analyzer.addError(typeName, line, column);
-  };
+  }
 }
 
 class UndeclaredTypeAnalyzer {
@@ -147,8 +108,8 @@ class UndeclaredTypeAnalyzer {
   /**
    * #1456: what the program declares, handed in rather than read off
    * `CodeGenState`. Constructor rather than a parameter on `analyze`, because
-   * `isVisibleType` and `isRegister` are called by the listener and need it
-   * too -- a parameter would have to reach them through the walk.
+   * `isVisibleType` and `isRegister` are called by the walk and need it
+   * too -- a parameter would have to reach them through it.
    */
   constructor(private readonly context: IAnalysisContext) {}
 
@@ -157,7 +118,7 @@ class UndeclaredTypeAnalyzer {
 
   private typesHere: ReadonlyMap<string, ISourceSpan> | null = null;
 
-  analyze(tree: Parser.ProgramContext): IUndeclaredTypeError[] {
+  analyze(program: IProgramSyntax): IUndeclaredTypeError[] {
     this.errors.length = 0;
 
     // Only diagnose where the transpiler actually knows the whole name
@@ -178,8 +139,36 @@ class UndeclaredTypeAnalyzer {
     // code that main compiles.
     this.knowsEveryName = !this.context.reachesForeignHeader;
 
-    ParseTreeWalker.DEFAULT.walk(new UndeclaredTypeListener(this), tree);
+    const walk = new UndeclaredTypeWalk(this);
+    for (const member of program.declarations) {
+      walk.declaration(member.declaration, "");
+    }
     return this.errors;
+  }
+
+  /** One written type name: before its definition, unknown, or a register */
+  checkUse(
+    typeName: string,
+    scope: string,
+    line: number,
+    column: number,
+  ): void {
+    if (BUILTIN_TYPE_NAMES.has(typeName)) {
+      return;
+    }
+    const definition = this.definitionAfter(typeName, scope, line, column);
+    if (definition !== null) {
+      this.addUsedBeforeDefinitionError(typeName, line, column, definition);
+      return;
+    }
+    if (!this.knowsEveryName || this.isVisibleType(typeName, scope)) {
+      return;
+    }
+    if (this.isRegister(typeName, scope)) {
+      this.addRegisterInTypePositionError(typeName, line, column);
+      return;
+    }
+    this.addError(typeName, line, column);
   }
 
   /**
@@ -222,10 +211,7 @@ class UndeclaredTypeAnalyzer {
    * recorded under its qualified name. The bare spelling is still accepted,
    * because a scope may also reference a global type.
    */
-  isVisibleType(
-    typeName: string,
-    scope: ReturnType<EnclosingScope["current"]>,
-  ): boolean {
+  isVisibleType(typeName: string, scope: string): boolean {
     return UndeclaredTypeAnalyzer._eitherSpelling(
       typeName,
       scope,
@@ -251,10 +237,7 @@ class UndeclaredTypeAnalyzer {
    * ADR-111: retire this with E0429 when a register becomes a type -- at which
    * point `isVisibleType` answers yes and this is never reached.
    */
-  isRegister(
-    typeName: string,
-    scope: ReturnType<EnclosingScope["current"]>,
-  ): boolean {
+  isRegister(typeName: string, scope: string): boolean {
     return UndeclaredTypeAnalyzer._eitherSpelling(
       typeName,
       scope,
@@ -278,13 +261,13 @@ class UndeclaredTypeAnalyzer {
    */
   private static _eitherSpelling(
     typeName: string,
-    scope: ReturnType<EnclosingScope["current"]>,
+    scope: string,
     symbols: ICodeGenSymbols,
-    symbolTable: SymbolTable,
+    symbolTable: IResolvedSymbols,
     test: (
       name: string,
       symbols: ICodeGenSymbols,
-      symbolTable: SymbolTable,
+      symbolTable: IResolvedSymbols,
     ) => boolean,
   ): boolean {
     if (scope) {

@@ -5,10 +5,14 @@
  * code for an assignment. Built once by the context extractor, then used
  * by the classifier and handlers.
  */
+import type IPlannedFloatBits from "./IPlannedFloatBits";
+import type IPlannedSliceSource from "./IPlannedSliceSource";
+import type TAtomicForm from "../../types/TAtomicForm";
 import type IBitAccessAnalysis from "../../../types/IBitAccessAnalysis";
 import type TPlannedTargetOp from "../../../types/TPlannedTargetOp";
 import type IChainBase from "../../../types/IChainBase";
 import type TranspileState from "../../TranspileState";
+import type TExpression from "../../../types/syntax/TExpression";
 
 /**
  * Context extracted from assignment statement for classification.
@@ -65,6 +69,18 @@ interface IAssignmentContext {
 
   /** Whether the assignment has a right-hand side at all. */
   readonly hasValue: boolean;
+  /** 2.2's decision: how the target writes a float's bits (ADR-007), or null */
+  readonly floatBits: IPlannedFloatBits | null;
+  /** 2.2's decision: how this write is atomic (ADR-049), or null if it is not */
+  readonly atomicForm: TAtomicForm | null;
+  /** 2.2's decision: the ADR-044 helper this compound write calls, or null */
+  readonly plannedClamp: { operation: string; cnxType: string } | null;
+  /** 2.2's decision: how a slice write reads its source (#1081), or null */
+  readonly plannedSliceSource: IPlannedSliceSource | null;
+  /** 2.2's decision: the C type a narrow compound write is cast to, or null */
+  readonly plannedCompoundCast: string | null;
+  /** 2.2's decision: the `uintN_t` a write-only register range is written through, or null */
+  readonly plannedRegisterAccess: string | null;
 
   /**
    * The value's essential type, its integer type, and its constant fold.
@@ -108,6 +124,8 @@ interface IAssignmentContext {
    * first, and one returning a number cannot answer the second.
    */
   readonly renderSubscript: (index: number) => string;
+  /** Any expression a handler reads off a symbol, by the same renderer (#1991) */
+  readonly renderExpression: (expr: TExpression) => string;
   readonly foldSubscript: (index: number) => number | undefined;
 
   /** The postfix operations, reduced to what is asked of them. */

@@ -69,4 +69,18 @@ describe("ArrayDimensionText", () => {
       ]);
     });
   });
+
+  describe("declarator text from a header", () => {
+    it.each([
+      ["a single dimension", "data[8]", [8]],
+      ["a bare dimension", "[32]", [32]],
+      ["several dimensions", "cube[2][3][4]", [2, 3, 4]],
+      ["a non-array", "int x", []],
+      ["a full declaration", "uint8_t data[10];", [10]],
+      // Issue #981: macro-sized arrays are captured as strings
+      ["a macro size", "char buffer[BUFFER_SIZE]", ["BUFFER_SIZE"]],
+    ])("parses %s", (_label, source, expected) => {
+      expect(ArrayDimensionText.parse(source)).toEqual(expected);
+    });
+  });
 });

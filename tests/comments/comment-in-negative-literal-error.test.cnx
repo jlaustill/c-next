@@ -1,0 +1,5 @@
+// test-error
+// Tests: E0868 still sees a negative literal with a comment inside it (#1991 review)
+void main() {
+    u8 b <- - /* negative */1;
+}

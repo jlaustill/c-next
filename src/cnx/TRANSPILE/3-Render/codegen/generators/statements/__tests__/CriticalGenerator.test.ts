@@ -16,8 +16,8 @@ import TestGeneratorState from "../../__tests__/testGeneratorState";
  * block's code is passed in directly instead of being fetched back out of the
  * orchestrator.
  */
-function critical(blockCode: string, line?: number) {
-  return { blockCode, line };
+function critical(blockCode: string) {
+  return { blockCode };
 }
 
 /** CriticalGenerator does not use input (_input parameter). */
@@ -118,7 +118,7 @@ describe("CriticalGenerator", () => {
   // `__cnx_get_PRIMASK`, so no assertion was dropped without a home.
 
   describe("effects", () => {
-    it("returns irq_wrappers include effect", () => {
+    it("asks for no include: 2.2 required the IRQ wrappers (#1991)", () => {
       const result = generateCriticalStatement(
         critical("{\n    x <- 1;\n}"),
         input,
@@ -126,27 +126,7 @@ describe("CriticalGenerator", () => {
         orchestrator,
       );
 
-      expect(result.effects).toHaveLength(2);
-      expect(result.effects[0]).toEqual({
-        type: "include",
-        header: "irq_wrappers",
-      });
-      expect(result.effects[1]).toEqual({ type: "c-type", cType: "uint32_t" });
-    });
-
-    it("carries the construct's source line on the effect (#1143)", () => {
-      const result = generateCriticalStatement(
-        critical("{\n    x <- 1;\n}", 42),
-        input,
-        state,
-        orchestrator,
-      );
-
-      expect(result.effects[0]).toEqual({
-        type: "include",
-        header: "irq_wrappers",
-        line: 42,
-      });
+      expect(result.effects).toEqual([]);
     });
 
     it("uses __cnx_ prefixed functions (avoids macro collisions)", () => {

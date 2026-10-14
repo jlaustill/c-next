@@ -27,6 +27,8 @@ type TConstExpr =
       readonly kind: "literal";
       /** The value in decimal digits, whatever notation the source used */
       readonly digits: string;
+      /** The literal token as written, which C reads as the same value (`0xAB`) */
+      readonly text: string;
       /**
        * A suffixed literal's type (`9u8`); `bool` for `true` and `false`; null
        * for an unsuffixed integer literal, which has no type of its own (ADR-052)

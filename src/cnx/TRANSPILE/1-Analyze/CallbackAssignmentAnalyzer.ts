@@ -41,97 +41,86 @@
  * parameters are not compared, as they were not.
  */
 
-import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
-import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
-
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import IFunctionSymbol from "../../types/symbols/IFunctionSymbol";
-import ParserUtils from "../../utils/ParserUtils";
-import TypeResolver from "../../utils/TypeResolver";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
+import type TExpression from "../../types/syntax/TExpression";
+import type TPostfixOpSyntax from "../../types/syntax/TPostfixOpSyntax";
+import DeclarationParts from "../../utils/DeclarationParts";
+import ExpressionNodes from "../../utils/ExpressionNodes";
+import StatementNodes from "../../utils/StatementNodes";
 import OperandTyper from "../../utils/OperandTyper";
+import type IVariableDeclarationSyntax from "../../types/syntax/IVariableDeclarationSyntax";
+import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
+import IFunctionSymbol from "../../types/symbols/IFunctionSymbol";
+import TypeResolver from "../../utils/TypeResolver";
 import FunctionReference from "./helpers/FunctionReference";
-import StructInitializerType from "./helpers/StructInitializerType";
-import AssignmentSiteListener from "./AssignmentSiteListener";
+import ValuePositions from "./helpers/ValuePositions";
 import ICallbackAssignmentError from "./types/ICallbackAssignmentError";
 import type IAnalysisContext from "./types/IAnalysisContext";
-import type TAssignmentSite from "../../types/TAssignmentSite";
+import type IValuePosition from "../../types/IValuePosition";
 import SourceOrder from "../../utils/SourceOrder";
 
-/** Where a function name landed, for the message. */
+/** The slot a value fills, for E0880's wording */
 interface ISlot {
   readonly verb: "assign" | "pass";
   readonly description: string;
 }
 
-class CallbackAssignmentListener extends CNextListener {
+class CallbackAssignmentCheck {
   private readonly found: ICallbackAssignmentError[] = [];
   private fieldTypes: ReadonlySet<string> | null = null;
 
-  public constructor(private readonly context: IAnalysisContext) {
-    super();
-  }
+  public constructor(
+    private readonly context: IAnalysisContext,
+    private readonly positions: ReadonlyMap<TExpression, IValuePosition>,
+  ) {}
 
   public errors(): ICallbackAssignmentError[] {
     return this.found;
   }
 
-  /** `target <- f`, any target shape, in a statement or a `for` header */
-  public checkSite(site: TAssignmentSite): void {
-    const target = site.assignmentTarget();
-    const description = CallbackAssignmentListener.describeTarget(target);
+  /** An assignment statement, or a `for` loop's init or update */
+  public checkSite(site: IAssignmentSyntax): void {
     this.check(
-      OperandTyper.typeOfTarget(
-        SyntaxLowering.assignmentTarget(target),
-        this.context,
-      )?.typeName ?? null,
-      site.expression(),
-      { verb: "assign", description },
+      OperandTyper.typeOfTarget(site.target, this.context)?.typeName ?? null,
+      site.value,
+      {
+        verb: "assign",
+        description: CallbackAssignmentCheck.describeTarget(site.target),
+      },
     );
   }
 
-  /** `onDown cb <- f`, in a function, a scope, at file scope. */
-  override enterVariableDeclaration = (
-    ctx: Parser.VariableDeclarationContext,
-  ): void => {
-    this.checkDeclaration(ctx.type(), ctx.IDENTIFIER(), ctx.expression());
-  };
+  public checkDeclaration(declaration: IVariableDeclarationSyntax): void {
+    if (!declaration.initializer) return;
+    this.check(declaration.type.text, declaration.initializer, {
+      verb: "assign",
+      description: `callback variable '${declaration.name}'`,
+    });
+  }
 
-  /** `for (onDown cb <- f; ...)`. */
-  override enterForVarDecl = (ctx: Parser.ForVarDeclContext): void => {
-    this.checkDeclaration(ctx.type(), ctx.IDENTIFIER(), ctx.expression());
-  };
-
-  /** `{ down: f }`, wherever the initializer's struct is established. */
-  override enterFieldInitializer = (
-    ctx: Parser.FieldInitializerContext,
-  ): void => {
-    const init = ctx.parent?.parent;
-    if (!(init instanceof Parser.StructInitializerContext)) return;
-    const structName = StructInitializerType.of(init, this.context);
-    if (structName === null) return;
-    const fieldName = ctx.IDENTIFIER().getText();
-    this.check(
-      this.context.symbols.structFields.get(structName)?.get(fieldName) ?? null,
-      ctx.expression(),
-      { verb: "assign", description: `callback field '${fieldName}'` },
-    );
-  };
-
-  /** `register(f)`: each argument against its parameter's type. */
-  override enterPostfixExpression = (
-    ctx: Parser.PostfixExpressionContext,
-  ): void => {
-    const call = ctx.postfixOp().find((op) => op.LPAREN() !== null);
-    if (call === undefined) return;
-    const callee = FunctionReference.ofCall(
-      ctx,
-      OperandTyper.scopePathAt(ParserUtils.getPosition(ctx), this.context),
+  /** A struct initializer's fields, and the arguments of a chain's first call */
+  public checkExpression(expr: TExpression): void {
+    if (expr.kind === "structInitializer") {
+      for (const field of expr.fields) {
+        this.check(
+          ValuePositions.at(this.positions, field.value).typeText,
+          field.value,
+          { verb: "assign", description: `callback field '${field.name}'` },
+        );
+      }
+      return;
+    }
+    if (expr.kind !== "postfix") return;
+    const call = expr.ops.find((op) => op.kind === "call");
+    if (call?.kind !== "call") return;
+    const callee = FunctionReference.ofCallChain(
+      expr,
+      OperandTyper.scopePathAt(expr.span, this.context),
       this.context,
     );
     if (callee === null) return;
-    const args = call.argumentList()?.expression() ?? [];
-    args.forEach((arg, index) => {
+    call.arguments.forEach((arg, index) => {
       const param = callee.parameters[index];
       if (param === undefined) return;
       this.check(TypeResolver.getTypeName(param.type), arg, {
@@ -139,49 +128,31 @@ class CallbackAssignmentListener extends CNextListener {
         description: `parameter '${param.name}' of function '${callee.name}'`,
       });
     });
-  };
+  }
 
-  /** How an assignment target is named in a message. */
-  private static describeTarget(
-    target: Parser.AssignmentTargetContext,
-  ): string {
-    const last = target.postfixTargetOp().at(-1);
+  /** `this.` and `global.` name where the target is, not a field of it */
+  private static describeTarget(target: TExpression): string {
+    let ops: readonly TPostfixOpSyntax[] = [];
+    if (target.kind === "postfix") {
+      ops = target.primary.kind === "root" ? target.ops.slice(1) : target.ops;
+    }
+    const last = ops.at(-1);
     if (last === undefined) {
-      return `callback variable '${target.getText()}'`;
+      return `callback variable '${target.written}'`;
     }
-    if (last.DOT() !== null) {
-      return `callback field '${last.IDENTIFIER()?.getText()}'`;
+    if (last.kind === "member") {
+      return `callback field '${last.name}'`;
     }
-    return `callback '${target.getText()}'`;
+    return `callback '${target.written}'`;
   }
 
-  private checkDeclaration(
-    typeCtx: Parser.TypeContext | null,
-    identifier: { getText(): string } | null,
-    initializer: Parser.ExpressionContext | null,
-  ): void {
-    if (!typeCtx || !identifier || !initializer) return;
-    this.check(typeCtx.getText(), initializer, {
-      verb: "assign",
-      description: `callback variable '${identifier.getText()}'`,
-    });
-  }
-
-  /**
-   * The rule. Silent unless the slot's type is a function AND the value
-   * names one; then the signatures must match, and a value that is itself a
-   * field type must be the slot's own.
-   */
   private check(
     slotTypeText: string | null,
-    value: Parser.ExpressionContext,
+    value: TExpression,
     slot: ISlot,
   ): void {
     if (slotTypeText === null) return;
-    const scopePath = OperandTyper.scopePathAt(
-      ParserUtils.getPosition(value),
-      this.context,
-    );
+    const scopePath = OperandTyper.scopePathAt(value.span, this.context);
     const expected = FunctionReference.ofTypeText(
       slotTypeText,
       scopePath,
@@ -191,8 +162,8 @@ class CallbackAssignmentListener extends CNextListener {
     const actual = FunctionReference.ofValue(value, scopePath, this.context);
     if (actual === null) return;
 
-    const valueText = value.getText();
-    if (!CallbackAssignmentListener.signaturesMatch(expected, actual)) {
+    const valueText = value.written;
+    if (!CallbackAssignmentCheck.signaturesMatch(expected, actual)) {
       this.report(
         value,
         "E0879",
@@ -220,27 +191,6 @@ class CallbackAssignmentListener extends CNextListener {
     }
   }
 
-  /**
-   * Whether any struct in the program declares a field of this type -- what
-   * makes a function a nominal callback type rather than a plain function.
-   *
-   * Asked of the PROGRAM, not of the per-file view, and that is the decision.
-   * ADR-029 says "type identity is the function name": a function IS a type
-   * because some struct declares a field of it, which is a property of the
-   * program and not of who imported whom. Reading a per-file set would make
-   * the same function nominal in one file and plain in another, so the same
-   * assignment would be rejected or accepted depending on the include graph.
-   *
-   * This is deliberately the opposite choice from #1398's VISIBILITY question
-   * (E0427), where the run-wide table is wrong because a sibling that was
-   * never included must not resolve. Here the function is visible either way
-   * -- it was named in the source -- and the only question is what its type
-   * identity is.
-   *
-   * Codegen asked `CodeGenState.callbackFieldTypes`, which holds the structs
-   * emitted SO FAR in the current file, so a struct declared below the
-   * assignment, in an enclosing scope, or in an include did not count.
-   */
   private isFieldType(cName: string): boolean {
     this.fieldTypes ??= this.collectFieldTypes();
     return this.fieldTypes.has(cName);
@@ -300,29 +250,56 @@ class CallbackAssignmentListener extends CNextListener {
   }
 
   private report(
-    at: ParserRuleContext,
+    at: TExpression,
     code: string,
     message: string,
     helpText: string,
   ): void {
-    const { line, column } = ParserUtils.getPosition(at);
-    this.found.push({ code, line, column, message, helpText });
+    this.found.push({
+      code,
+      line: at.span.line,
+      column: at.span.column,
+      message,
+      helpText,
+    });
   }
 }
 
 class CallbackAssignmentAnalyzer {
-  /** #1456: handed in rather than read off shared state. */
   constructor(private readonly context: IAnalysisContext) {}
 
-  public analyze(tree: Parser.ProgramContext): ICallbackAssignmentError[] {
-    const listener = new CallbackAssignmentListener(this.context);
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
-    ParseTreeWalker.DEFAULT.walk(
-      new AssignmentSiteListener((site) => listener.checkSite(site)),
-      tree,
-    );
-    // Reported in source order, as the one walk these replace did
-    return listener.errors().sort(SourceOrder.compare);
+  /** #1991: reads 1.2's syntax, not the parse tree */
+  public analyze(
+    program: IProgramSyntax,
+    positions: ReadonlyMap<TExpression, IValuePosition>,
+  ): ICallbackAssignmentError[] {
+    const check = new CallbackAssignmentCheck(this.context, positions);
+    const visit = (declaration: TDeclarationSyntax): void => {
+      if (declaration.kind === "scope") {
+        for (const member of declaration.members) visit(member.declaration);
+        return;
+      }
+      if (declaration.kind === "variableDeclaration") {
+        check.checkDeclaration(declaration);
+      }
+      for (const statement of StatementNodes.in(declaration)) {
+        if (statement.kind === "variableDeclaration") {
+          check.checkDeclaration(statement);
+        }
+      }
+      for (const site of StatementNodes.assignments(declaration)) {
+        check.checkSite(site);
+      }
+    };
+    for (const member of program.declarations) {
+      visit(member.declaration);
+      for (const expr of DeclarationParts.of(member.declaration).flatMap(
+        ExpressionNodes.of,
+      )) {
+        check.checkExpression(expr);
+      }
+    }
+    return check.errors().sort(SourceOrder.compare);
   }
 }
 

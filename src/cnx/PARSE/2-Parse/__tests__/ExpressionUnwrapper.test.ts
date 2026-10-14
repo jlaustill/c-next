@@ -1,0 +1,95 @@
+/**
+ * Unit tests for ExpressionUnwrapper utility
+ */
+
+import { describe, it, expect } from "vitest";
+import ExpressionUnwrapper from "../ExpressionUnwrapper";
+import CNextSourceParser from "../CNextSourceParser";
+import * as Parser from "../grammar/CNextParser";
+
+/**
+ * Helper to parse a simple expression and get its ExpressionContext
+ */
+function parseExpression(exprSource: string): Parser.ExpressionContext {
+  // Wrap in a variable declaration in main() to get a complete program
+  const source = `void main() { u32 x <- ${exprSource}; }`;
+  const { tree, parseErrors: errors } = CNextSourceParser.parse(source);
+
+  if (errors.length > 0) {
+    throw new Error(`Parse failed: ${errors.map((e) => e.message).join(", ")}`);
+  }
+
+  // Navigate to the expression in the AST
+  // Find main function
+  for (const decl of tree.declaration()) {
+    if (decl.functionDeclaration()) {
+      const funcDecl = decl.functionDeclaration()!;
+      if (funcDecl.IDENTIFIER().getText() === "main") {
+        const block = funcDecl.block();
+        if (block && block.statement().length > 0) {
+          const stmt = block.statement()[0];
+          const varDecl = stmt.variableDeclaration();
+          if (varDecl?.expression()) {
+            return varDecl.expression()!;
+          }
+        }
+      }
+    }
+  }
+
+  throw new Error("Could not find expression in parsed tree");
+}
+
+describe("ExpressionUnwrapper", () => {
+  describe("getPostfixExpression", () => {
+    it("should extract postfix from simple identifier", () => {
+      const expr = parseExpression("myVar");
+      const postfix = ExpressionUnwrapper.getPostfixExpression(expr);
+
+      expect(postfix).not.toBeNull();
+      expect(postfix?.primaryExpression().IDENTIFIER()?.getText()).toBe(
+        "myVar",
+      );
+    });
+
+    it("should extract postfix from numeric literal", () => {
+      const expr = parseExpression("42");
+      const postfix = ExpressionUnwrapper.getPostfixExpression(expr);
+
+      expect(postfix).not.toBeNull();
+      expect(postfix?.primaryExpression().literal()).not.toBeNull();
+    });
+
+    it.each([
+      ["should return null for binary operation (addition)", "a + b"],
+      ["should return null for binary operation (comparison)", "a > b"],
+      ["should return null for logical OR", "a || b"],
+    ])("%s", (_label, source) => {
+      const expr = parseExpression(source);
+      const postfix = ExpressionUnwrapper.getPostfixExpression(expr);
+
+      expect(postfix).toBeNull();
+    });
+
+    it("should extract postfix from member access", () => {
+      const expr = parseExpression("obj.field");
+      const postfix = ExpressionUnwrapper.getPostfixExpression(expr);
+
+      expect(postfix).not.toBeNull();
+      // Has postfix operations
+      expect(postfix?.postfixOp().length).toBeGreaterThan(0);
+    });
+
+    it("should extract postfix from array indexing", () => {
+      const expr = parseExpression("arr[0]");
+      const postfix = ExpressionUnwrapper.getPostfixExpression(expr);
+
+      expect(postfix).not.toBeNull();
+      expect(postfix?.postfixOp().length).toBeGreaterThan(0);
+    });
+  });
+
+  // #1445: these two shapes moved here from StringOperationsHelper, which
+  // asked them of the tree before it could ask the type registry anything.
+  // The assertions are its assertions -- including both of its regressions.
+});

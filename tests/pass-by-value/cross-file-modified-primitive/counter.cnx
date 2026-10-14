@@ -1,0 +1,13 @@
+void bump(u32 x) {
+    x <- x + 1;
+}
+
+u32 twice(u32 x) {
+    return x * 2;
+}
+
+scope Counter {
+    public void add(u32 n, u32 by) {
+        n <- n + by;
+    }
+}

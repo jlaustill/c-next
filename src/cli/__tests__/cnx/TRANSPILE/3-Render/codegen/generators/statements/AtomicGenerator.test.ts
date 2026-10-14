@@ -7,9 +7,6 @@
 import { describe, it, expect } from "vitest";
 import atomicGenerators from "../../../../../../../../cnx/TRANSPILE/3-Render/codegen/generators/statements/AtomicGenerator";
 import TTypeInfo from "../../../../../../../../cnx/types/TTypeInfo";
-import type ITargetDescription from "../../../../../../../../cnx/types/ITargetDescription";
-import TargetResolver from "../../../../../../../TargetResolver";
-import NodeFileSystem from "../../../../../../../../cnx/PARSE/1-Discover/NodeFileSystem";
 
 const {
   generateAtomicRMW,
@@ -36,12 +33,6 @@ function createTypeInfo(
 }
 
 /** A catalog target with, or without, LDREX/STREX */
-function createCapabilities(hasLdrexStrex: boolean): ITargetDescription {
-  return TargetResolver.byName(
-    hasLdrexStrex ? "cortex-m7" : "cortex-m0",
-    NodeFileSystem.instance,
-  )!;
-}
 
 // ============================================================================
 // Tests - generateInnerAtomicOp
@@ -54,12 +45,8 @@ describe("AtomicGenerator", () => {
       const result = generateInnerAtomicOp("+=", "5", typeInfo, "add");
 
       expect(result.code).toBe("cnx_clamp_add_u32(__old, 5)");
-      expect(result.effects).toHaveLength(1);
-      expect(result.effects[0]).toEqual({
-        type: "helper",
-        operation: "add",
-        cnxType: "u32",
-      });
+      // 2.2 planned the helper; 2.3 reports nothing (#1991)
+      expect(result.effects).toEqual([]);
     });
 
     it("generates clamp helper for -= with clamp behavior", () => {
@@ -67,11 +54,8 @@ describe("AtomicGenerator", () => {
       const result = generateInnerAtomicOp("-=", "value", typeInfo, "sub");
 
       expect(result.code).toBe("cnx_clamp_sub_u16(__old, value)");
-      expect(result.effects[0]).toEqual({
-        type: "helper",
-        operation: "sub",
-        cnxType: "u16",
-      });
+      // 2.2 planned the helper; 2.3 reports nothing (#1991)
+      expect(result.effects).toEqual([]);
     });
 
     it("generates clamp helper for *= with clamp behavior", () => {
@@ -79,11 +63,8 @@ describe("AtomicGenerator", () => {
       const result = generateInnerAtomicOp("*=", "2", typeInfo, "mul");
 
       expect(result.code).toBe("cnx_clamp_mul_i8(__old, 2)");
-      expect(result.effects[0]).toEqual({
-        type: "helper",
-        operation: "mul",
-        cnxType: "i8",
-      });
+      // 2.2 planned the helper; 2.3 reports nothing (#1991)
+      expect(result.effects).toEqual([]);
     });
 
     it("generates natural arithmetic when no clamp helper is chosen", () => {
@@ -169,10 +150,8 @@ describe("AtomicGenerator", () => {
       // cppcheck by a test stub that declared the intrinsics (#1668)
       expect(result.code).not.toMatch(/\)\s*break;/);
       expect(result.code).toContain("} while (1);");
-      expect(result.effects).toContainEqual({
-        type: "include",
-        header: "cmsis",
-      });
+      // 2.2 requires CMSIS and the loop's C type before 2.3 writes it (#1991)
+      expect(result.effects).toEqual([]);
     });
 
     it("generates LDREX/STREX loop for u16", () => {
@@ -212,7 +191,7 @@ describe("AtomicGenerator", () => {
     it("preserves inner effects", () => {
       const typeInfo = createTypeInfo("u32");
       const innerEffects = [
-        { type: "helper" as const, operation: "add", cnxType: "u32" },
+        { type: "set-array-init-count" as const, count: 1 },
       ];
       const result = generateLdrexStrexLoop(
         "counter",
@@ -222,13 +201,8 @@ describe("AtomicGenerator", () => {
       );
 
       expect(result.effects).toContainEqual({
-        type: "helper",
-        operation: "add",
-        cnxType: "u32",
-      });
-      expect(result.effects).toContainEqual({
-        type: "include",
-        header: "cmsis",
+        type: "set-array-init-count",
+        count: 1,
       });
     });
   });
@@ -256,14 +230,6 @@ describe("AtomicGenerator", () => {
       expect(result.code).toContain("__cnx_disable_irq();");
       expect(result.code).toContain("counter += 1;");
       expect(result.code).toContain("__cnx_set_PRIMASK(__primask);");
-      expect(result.effects).toContainEqual({
-        type: "include",
-        header: "irq_wrappers",
-        line: undefined,
-      });
-      expect(result.effects).not.toContainEqual(
-        expect.objectContaining({ header: "cmsis" }),
-      );
     });
 
     it("generates PRIMASK wrapper with clamp helper for +=", () => {
@@ -277,11 +243,6 @@ describe("AtomicGenerator", () => {
       );
 
       expect(result.code).toContain("counter = cnx_clamp_add_u32(counter, 5);");
-      expect(result.effects).toContainEqual({
-        type: "helper",
-        operation: "add",
-        cnxType: "u32",
-      });
     });
 
     it("generates PRIMASK wrapper with clamp helper for -=", () => {
@@ -315,8 +276,6 @@ describe("AtomicGenerator", () => {
       const result = generatePrimaskWrapper("value", "/=", "2", typeInfo, null);
 
       expect(result.code).toContain("value /= 2;");
-      // Should not have helper effect for division
-      expect(result.effects.filter((e) => e.type === "helper")).toHaveLength(0);
     });
 
     it("generates PRIMASK wrapper without clamp for floats", () => {
@@ -330,8 +289,6 @@ describe("AtomicGenerator", () => {
       );
 
       expect(result.code).toContain("value += 1.0f;");
-      // Floats don't use clamp helpers
-      expect(result.effects.filter((e) => e.type === "helper")).toHaveLength(0);
     });
   });
 
@@ -340,89 +297,38 @@ describe("AtomicGenerator", () => {
   // ============================================================================
 
   describe("generateAtomicRMW", () => {
-    it("uses LDREX/STREX when available for supported type", () => {
-      const typeInfo = createTypeInfo("u32");
-      const caps = createCapabilities(true);
-      const result = generateAtomicRMW(
+    const rmw = (baseType: string, form: "ldrex-strex" | "interrupt-mask") =>
+      generateAtomicRMW(
         "counter",
         "+=",
         "1",
-        typeInfo,
+        createTypeInfo(baseType, "clamp"),
         "add",
-        caps,
+        form,
       );
+
+    it("writes the LDREX/STREX loop 2.2 planned", () => {
+      const result = rmw("u32", "ldrex-strex");
 
       expect(result.code).toContain("__LDREXW");
       expect(result.code).toContain("__STREXW");
     });
 
-    it("falls back to PRIMASK when LDREX/STREX not available", () => {
-      const typeInfo = createTypeInfo("u32");
-      const caps = createCapabilities(false);
-      const result = generateAtomicRMW(
-        "counter",
-        "+=",
-        "1",
-        typeInfo,
-        "add",
-        caps,
-      );
+    it("writes the masked region 2.2 planned", () => {
+      const result = rmw("u32", "interrupt-mask");
 
       expect(result.code).toContain("__cnx_get_PRIMASK()");
       expect(result.code).toContain("__cnx_disable_irq()");
     });
 
-    it("falls back to PRIMASK for u64 (no LDREX support)", () => {
-      const typeInfo = createTypeInfo("u64");
-      const caps = createCapabilities(true);
-      const result = generateAtomicRMW(
-        "counter",
-        "+=",
-        "1",
-        typeInfo,
-        "add",
-        caps,
+    it("fails when 2.2 planned a loop for a type with no exclusive access", () => {
+      expect(() => rmw("u64", "ldrex-strex")).toThrow(
+        /exclusive-access type \(got u64\)/,
       );
-
-      // u64 doesn't have LDREX support, should mask interrupts
-      expect(result.code).toContain("__cnx_get_PRIMASK()");
     });
 
-    it("includes clamp helper effect when using clamp behavior", () => {
-      const typeInfo = createTypeInfo("u32", "clamp");
-      const caps = createCapabilities(true);
-      const result = generateAtomicRMW(
-        "counter",
-        "+=",
-        "5",
-        typeInfo,
-        "add",
-        caps,
-      );
-
-      expect(result.effects).toContainEqual({
-        type: "helper",
-        operation: "add",
-        cnxType: "u32",
-      });
-    });
-
-    it("includes cmsis header effect", () => {
-      const typeInfo = createTypeInfo("u32");
-      const caps = createCapabilities(true);
-      const result = generateAtomicRMW(
-        "counter",
-        "+=",
-        "1",
-        typeInfo,
-        "add",
-        caps,
-      );
-
-      expect(result.effects).toContainEqual({
-        type: "include",
-        header: "cmsis",
-      });
+    it("calls the clamp helper 2.2 planned", () => {
+      expect(rmw("u32", "ldrex-strex").code).toContain("cnx_clamp_add_u32(");
     });
   });
 });

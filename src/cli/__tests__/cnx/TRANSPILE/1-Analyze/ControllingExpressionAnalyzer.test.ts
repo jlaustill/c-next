@@ -14,8 +14,10 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  * the parser actually builds.
  */
 const errors = (source: string) => {
-  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
-  return new ControllingExpressionAnalyzer(context).analyze(tree);
+  const { syntax, context } = testAnalysisContextFor(source, {
+    cppMode: false,
+  });
+  return new ControllingExpressionAnalyzer(context).analyze(syntax);
 };
 
 const inIf = (condition: string): string =>
@@ -47,8 +49,8 @@ describe("ControllingExpressionAnalyzer", () => {
     // declaration, and offered `!(n<5) > 0` -- which is E0807 on a bool. A
     // negated bracketed group is written out from what it holds.
     it.each([
-      ["!(n > 0)", "(n>0) = false"],
-      ["!((n > 0) && (n < 5))", "((n>0)&&(n<5)) = false"],
+      ["!(n > 0)", "(n > 0) = false"],
+      ["!((n > 0) && (n < 5))", "((n > 0) && (n < 5)) = false"],
       ["!(flag)", "flag = false"],
       ["!((flag))", "flag = false"],
     ])("suggests a form that compiles for %s", (condition, suggestion) => {

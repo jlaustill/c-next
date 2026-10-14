@@ -3,18 +3,8 @@
  * Tests array assignment handler functions.
  */
 
+import SliceSource from "../../../../../2-Plan/SliceSource";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
-// Mock TypeValidator before imports (use vi.hoisted for hoisted mock reference)
-const { mockCheckArrayBounds } = vi.hoisted(() => ({
-  mockCheckArrayBounds: vi.fn(),
-}));
-
-vi.mock("../../../TypeValidator", () => ({
-  default: {
-    checkArrayBounds: mockCheckArrayBounds,
-  },
-}));
 
 // Slice codegen reads the source value's type off the context (Issue #1081
 // review) — these stand in for it, so slice tests control the source type
@@ -66,6 +56,7 @@ function createMockContext(
     // True so slice codegen resolves the source type via the mocked
     // TypeResolver.getExpressionType (Issue #1081 review).
     hasValue: true,
+    floatBits: null,
     valueExpressionType: () => mockGetExpressionType(null),
     valueIntegerType: () => mockGetIntegerExpressionType(null),
     valueHasFloatingOperand: () => false,
@@ -91,9 +82,19 @@ function createMockContext(
     ...overrides,
   } as IAssignmentContext;
   // #1668 (C7): what the target writes, as the binder would bind it
+  // #1991: 2.2's slice-source decision, made by the call 2.2 makes, once 2.3
+  // has folded the length the way 2.2 did
+  const folds: Array<number | undefined> = [];
   return {
     ...ctx,
     target: overrides.target ?? HandlerTestUtils.targetOf(state, ctx),
+    foldSubscript: (index) => (folds[index] = ctx.foldSubscript(index)),
+    get plannedSliceSource() {
+      const length = folds[1];
+      return length === undefined
+        ? null
+        : SliceSource.of(ctx, ctx.identifiers[0], length);
+    },
   };
 }
 
@@ -310,8 +311,7 @@ describe("ArrayHandlers", () => {
           "buffer[2] = (uint8_t)(cnx_tmp0 >> 16U);\n" +
           "buffer[3] = (uint8_t)(cnx_tmp0 >> 24U);",
       );
-      // No memcpy means <string.h> is not required.
-      expect(state.needsString).toBe(false);
+      // No memcpy, so nothing here needs <string.h>, which 2.2 decides.
     });
 
     it("writes at element granularity for a u16 slice (offset = element index)", () => {

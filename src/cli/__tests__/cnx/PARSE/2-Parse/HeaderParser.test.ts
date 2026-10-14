@@ -16,7 +16,7 @@ describe("HeaderParser", () => {
 
       const result = HeaderParser.parseC(content);
 
-      expect(result.tree).not.toBeNull();
+      expect(result.syntax).not.toBeNull();
     });
 
     it("parses C structs", () => {
@@ -29,7 +29,7 @@ describe("HeaderParser", () => {
 
       const result = HeaderParser.parseC(content);
 
-      expect(result.tree).not.toBeNull();
+      expect(result.syntax).not.toBeNull();
     });
 
     it("parses C enums", () => {
@@ -43,7 +43,7 @@ describe("HeaderParser", () => {
 
       const result = HeaderParser.parseC(content);
 
-      expect(result.tree).not.toBeNull();
+      expect(result.syntax).not.toBeNull();
     });
 
     it("handles invalid C syntax with error recovery", () => {
@@ -54,13 +54,13 @@ describe("HeaderParser", () => {
       const result = HeaderParser.parseC(content);
 
       // Tree is returned (with error nodes) due to error recovery
-      expect(result.tree).not.toBeNull();
+      expect(result.syntax).not.toBeNull();
     });
 
     it("handles empty content", () => {
       const result = HeaderParser.parseC("");
 
-      expect(result.tree).not.toBeNull();
+      expect(result.syntax).not.toBeNull();
     });
   });
 
@@ -75,7 +75,7 @@ describe("HeaderParser", () => {
 
       const result = HeaderParser.parseCpp(content);
 
-      expect(result.tree).not.toBeNull();
+      expect(result.syntax).not.toBeNull();
     });
 
     it("parses C++ typed enums", () => {
@@ -89,7 +89,7 @@ describe("HeaderParser", () => {
 
       const result = HeaderParser.parseCpp(content);
 
-      expect(result.tree).not.toBeNull();
+      expect(result.syntax).not.toBeNull();
     });
 
     it("parses C++ namespaces", () => {
@@ -104,7 +104,7 @@ describe("HeaderParser", () => {
 
       const result = HeaderParser.parseCpp(content);
 
-      expect(result.tree).not.toBeNull();
+      expect(result.syntax).not.toBeNull();
     });
 
     it("parses C++ templates", () => {
@@ -117,7 +117,7 @@ describe("HeaderParser", () => {
 
       const result = HeaderParser.parseCpp(content);
 
-      expect(result.tree).not.toBeNull();
+      expect(result.syntax).not.toBeNull();
     });
 
     it("handles invalid C++ syntax with error recovery", () => {
@@ -128,13 +128,13 @@ describe("HeaderParser", () => {
       const result = HeaderParser.parseCpp(content);
 
       // Tree is returned (with error nodes) due to error recovery
-      expect(result.tree).not.toBeNull();
+      expect(result.syntax).not.toBeNull();
     });
 
     it("handles empty content", () => {
       const result = HeaderParser.parseCpp("");
 
-      expect(result.tree).not.toBeNull();
+      expect(result.syntax).not.toBeNull();
     });
   });
 
@@ -162,7 +162,7 @@ describe("HeaderParser", () => {
 
       const result = HeaderParser.parseC(rejectedByLexer);
 
-      expect(result.tree).not.toBeNull();
+      expect(result.syntax).not.toBeNull();
       expect(spy).not.toHaveBeenCalled();
     });
 

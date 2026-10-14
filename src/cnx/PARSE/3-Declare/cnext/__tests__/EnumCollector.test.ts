@@ -1,5 +1,6 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import parse from "./testHelpers";
+import FirstDeclaration from "./FirstDeclaration";
 import TestScopeUtils from "./testUtils";
 import EnumCollector from "../collectors/EnumCollector";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
@@ -20,7 +21,7 @@ describe("EnumCollector", () => {
         }
       `;
       const tree = parse(code);
-      const enumCtx = tree.declaration(0)!.enumDeclaration()!;
+      const enumCtx = FirstDeclaration.enum(tree);
       const symbol = EnumCollector.collect(enumCtx, "test.cnx", "", "public");
 
       expect(symbol.kind).toBe("enum");
@@ -46,7 +47,7 @@ describe("EnumCollector", () => {
         }
       `;
       const tree = parse(code);
-      const enumCtx = tree.declaration(0)!.enumDeclaration()!;
+      const enumCtx = FirstDeclaration.enum(tree);
       const symbol = EnumCollector.collect(enumCtx, "test.cnx", "", "public");
 
       // 1.3 records each value as written; 1.4 settles it (#1669)
@@ -65,7 +66,7 @@ describe("EnumCollector", () => {
         }
       `;
       const tree = parse(code);
-      const enumCtx = tree.declaration(0)!.enumDeclaration()!;
+      const enumCtx = FirstDeclaration.enum(tree);
       const symbol = EnumCollector.collect(enumCtx, "test.cnx", "", "public");
 
       // 1.3 records each value as written; 1.4 settles it (#1669)
@@ -84,7 +85,7 @@ describe("EnumCollector", () => {
         }
       `;
       const tree = parse(code);
-      const enumCtx = tree.declaration(0)!.enumDeclaration()!;
+      const enumCtx = FirstDeclaration.enum(tree);
       const symbol = EnumCollector.collect(enumCtx, "test.cnx", "", "public");
 
       // 1.3 records each value as written; 1.4 settles it (#1669)
@@ -102,7 +103,7 @@ describe("EnumCollector", () => {
         }
       `;
       const tree = parse(code);
-      const enumCtx = tree.declaration(0)!.enumDeclaration()!;
+      const enumCtx = FirstDeclaration.enum(tree);
       const symbol = EnumCollector.collect(enumCtx, "test.cnx", "", "public");
 
       // 1.3 records each value as written; 1.4 settles it (#1669)
@@ -120,7 +121,7 @@ describe("EnumCollector", () => {
         }
       `;
       const tree = parse(code);
-      const enumCtx = tree.declaration(0)!.enumDeclaration()!;
+      const enumCtx = FirstDeclaration.enum(tree);
       const symbol = EnumCollector.collect(
         enumCtx,
         "motor.cnx",
@@ -146,7 +147,7 @@ describe("EnumCollector", () => {
         }
       `;
       const tree = parse(code);
-      const enumCtx = tree.declaration(0)!.enumDeclaration()!;
+      const enumCtx = FirstDeclaration.enum(tree);
 
       const symbol = EnumCollector.collect(enumCtx, "test.cnx", "", "public");
 
@@ -165,7 +166,7 @@ describe("EnumCollector", () => {
         }
       `;
       const tree = parse(code);
-      const enumCtx = tree.declaration(0)!.enumDeclaration()!;
+      const enumCtx = FirstDeclaration.enum(tree);
       const symbol = EnumCollector.collect(enumCtx, "test.cnx", "", "public");
 
       expect(symbol.span.line).toBe(3);
@@ -184,7 +185,7 @@ describe("EnumCollector", () => {
         }
       `);
       const symbol = EnumCollector.collect(
-        tree.declaration(0)!.enumDeclaration()!,
+        FirstDeclaration.enum(tree),
         "test.cnx",
         "",
         "private",
@@ -211,7 +212,7 @@ describe("EnumCollector", () => {
       `;
       const tree = parse(code);
       const symbol = EnumCollector.collect(
-        tree.declaration(0)!.enumDeclaration()!,
+        FirstDeclaration.enum(tree),
         "test.cnx",
         "",
         "public",
@@ -232,7 +233,7 @@ describe("EnumCollector", () => {
       `;
       const tree = parse(code);
       const symbol = EnumCollector.collect(
-        tree.declaration(0)!.enumDeclaration()!,
+        FirstDeclaration.enum(tree),
         "test.cnx",
         "",
         "public",
@@ -251,7 +252,7 @@ describe("EnumCollector", () => {
       // which is the thing worth asserting.
       const tree = parse(`enum EColor { RED }`);
       const global = EnumCollector.collect(
-        tree.declaration(0)!.enumDeclaration()!,
+        FirstDeclaration.enum(tree),
         "test.cnx",
         "",
         "public",
@@ -262,7 +263,7 @@ describe("EnumCollector", () => {
       expect(global.members.get("RED")!.cnxScopedName).toBe("EColor.RED");
 
       const scoped = EnumCollector.collect(
-        parse(`enum EMode { HIGH }`).declaration(0)!.enumDeclaration()!,
+        FirstDeclaration.enum(parse(`enum EMode { HIGH }`)),
         "test.cnx",
         "Motor",
         "public",
@@ -277,7 +278,7 @@ describe("EnumCollector", () => {
       // recorded the real answer, and every private type reached the header.
       const tree = parse(`enum EHidden { A }`);
       const symbol = EnumCollector.collect(
-        tree.declaration(0)!.enumDeclaration()!,
+        FirstDeclaration.enum(tree),
         "test.cnx",
         "",
         "private",

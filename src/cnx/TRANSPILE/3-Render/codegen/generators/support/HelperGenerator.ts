@@ -8,10 +8,11 @@
  *
  * Issue #707: Refactored to use OverflowHelperTemplates for reduced duplication.
  */
-import TYPE_MAP from "../../types/TYPE_MAP";
+import TYPE_MAP from "../../../../2-Plan/types/TYPE_MAP";
+import SafeDivisionTypes from "../../../../2-Plan/SafeDivisionTypes";
 import OverflowHelperTemplates from "./OverflowHelperTemplates";
 import SaturatingCast from "../../helpers/SaturatingCast";
-import CppModeHelper from "../../helpers/CppModeHelper";
+import CppModeHelper from "../../../../2-Plan/CppModeHelper";
 import ReservedCnxName from "../../../../../utils/ReservedCnxName";
 
 /**
@@ -24,7 +25,7 @@ const generateSafeArithmeticHelper = (
   cnxType: string,
   cType: string,
 ): string[] => [
-  `static inline bool cnx_safe_${opName}_${cnxType}(${cType}* output, ${cType} numerator, ${cType} divisor, ${cType} defaultValue) {`,
+  `static inline ${SafeDivisionTypes.RESULT_C_TYPE} cnx_safe_${opName}_${cnxType}(${cType}* output, ${cType} numerator, ${cType} divisor, ${cType} defaultValue) {`,
   `    if (divisor == 0) {`,
   `        *output = defaultValue;`,
   `        return true;  // Error occurred`,
@@ -123,7 +124,7 @@ const generateSafeDivHelpers = (
       continue; // Skip types that aren't used
     }
 
-    const cType = TYPE_MAP[cnxType];
+    const cType = SafeDivisionTypes.operandOf(cnxType);
 
     // Generate safe_div helper if needed
     if (needsDiv) {

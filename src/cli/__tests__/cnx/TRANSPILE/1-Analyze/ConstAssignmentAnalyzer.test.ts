@@ -14,8 +14,10 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  * fixtures assert the program arms end to end.
  */
 const errors = (source: string) => {
-  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
-  return new ConstAssignmentAnalyzer(context).analyze(tree);
+  const { syntax, context } = testAnalysisContextFor(source, {
+    cppMode: false,
+  });
+  return new ConstAssignmentAnalyzer(context).analyze(syntax);
 };
 
 describe("ConstAssignmentAnalyzer (E0877)", () => {
@@ -90,5 +92,42 @@ describe("ConstAssignmentAnalyzer (E0877)", () => {
       "}",
     ].join("\n");
     expect(errors(source)).toEqual([]);
+  });
+});
+
+describe("ConstAssignmentAnalyzer on 1.2's syntax (#1991)", () => {
+  const source = [
+    "struct C { u8 x; }",
+    "void take(u8 v) {",
+    "}",
+    "scope S {",
+    "    const C CFG <- { x: 1 };",
+    "    const u8 K <- 1;",
+    "    public void go() {",
+    "        take(this.K);",
+    "        take(this.CFG.x);",
+    "        this.K <- 2;",
+    "    }",
+    "}",
+  ].join("\n");
+
+  it("names a rooted const argument, and only the binding itself", () => {
+    expect(
+      errors(source)
+        .filter((e) => e.code === "E0878")
+        .map((e) => [e.line, e.message]),
+    ).toEqual([
+      [
+        8,
+        "cannot pass const 'this.K' to non-const parameter 'v' of function 'take'",
+      ],
+    ]);
+  });
+
+  it("reports calls and assignments in source order", () => {
+    expect(errors(source).map((e) => `${e.code}@${e.line}`)).toEqual([
+      "E0878@8",
+      "E0877@10",
+    ]);
   });
 });

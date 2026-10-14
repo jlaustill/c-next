@@ -7,6 +7,7 @@ interface IParameterSyntax extends ISyntaxNode {
   readonly const: boolean;
   readonly type: TTypeSyntax;
   readonly name: string;
+  readonly nameSpan: ISyntaxNode["span"];
   readonly dimensions: ReadonlyArray<TExpression | null>;
 }
 

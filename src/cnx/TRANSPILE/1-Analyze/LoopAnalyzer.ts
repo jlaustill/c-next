@@ -30,19 +30,20 @@
  * string or slice is E0857's, which runs earlier and halts.
  */
 
-import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
-
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import REJECTED_KEYWORDS from "./REJECTED_KEYWORDS";
-import ExpressionUnwrapper from "../../utils/ExpressionUnwrapper";
 import LiteralUtils from "../../utils/LiteralUtils";
-import ParserUtils from "../../utils/ParserUtils";
 import ForHeaderAssignment from "../../utils/ForHeaderAssignment";
+import DeclarationParts from "../../utils/DeclarationParts";
+import ExpressionNodes from "../../utils/ExpressionNodes";
+import StatementNodes from "../../utils/StatementNodes";
 import ILoopError from "./types/ILoopError";
 import type IAnalysisContext from "./types/IAnalysisContext";
-import type TAssignmentSite from "../../types/TAssignmentSite";
-import StatementLowering from "../../PARSE/2-Parse/StatementLowering";
+import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type ISyntaxNode from "../../types/syntax/ISyntaxNode";
+import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
+import type TExpression from "../../types/syntax/TExpression";
+import type TStatement from "../../types/syntax/TStatement";
 
 const FOREVER_HELP = "write 'forever { ... }' for an intentional infinite loop";
 
@@ -58,74 +59,91 @@ interface ILiteralComparison {
   readonly right: number;
 }
 
-class LoopListener extends CNextListener {
+class LoopCheck {
   private readonly found: ILoopError[] = [];
 
-  public constructor(private readonly context: IAnalysisContext) {
-    super();
-  }
+  public constructor(private readonly context: IAnalysisContext) {}
 
   public errors(): ILoopError[] {
     return this.found;
   }
 
+  /** Every function, a scope's included, with the type it returns */
+  public declaration(declaration: TDeclarationSyntax): void {
+    if (declaration.kind === "scope") {
+      for (const member of declaration.members) {
+        this.declaration(member.declaration);
+      }
+      return;
+    }
+    if (declaration.kind !== "function") return;
+    for (const statement of StatementNodes.of(declaration.body.statements)) {
+      this.statement(statement, declaration.returnType.text);
+    }
+  }
+
   /** E0703: `break;` and `continue;` parse as a bare identifier expression. */
-  override enterPrimaryExpression = (
-    ctx: Parser.PrimaryExpressionContext,
-  ): void => {
-    const id = ctx.IDENTIFIER()?.getText();
-    if (id === undefined || !REJECTED_KEYWORDS.has(id)) return;
+  public checkExpression(expr: TExpression): void {
+    if (expr.kind !== "identifier" || !REJECTED_KEYWORDS.has(expr.name)) {
+      return;
+    }
     this.report(
-      ctx,
+      expr,
       "E0703",
-      `'${id}' is not supported in C-Next - use structured conditions instead`,
+      `'${expr.name}' is not supported in C-Next - use structured conditions instead`,
       "ADR-026 rejects `break` and `continue`: an early exit hides the loop's real condition. Fold the exit into the loop condition, or split the body into a function that returns.",
     );
-  };
+  }
 
-  /** E0705: `forever` never yields a value, so only a void function may hold one. */
-  override enterForeverStatement = (
-    ctx: Parser.ForeverStatementContext,
-  ): void => {
-    const returnType = LoopListener.enclosingFunctionType(ctx);
-    if (returnType === null || returnType === "void") return;
-    this.report(
-      ctx,
-      "E0705",
-      "forever loop in non-void function",
-      "a forever loop never returns a value; make the function return void, or use a while loop with an exit condition",
-    );
-  };
+  private statement(statement: TStatement, returnType: string): void {
+    switch (statement.kind) {
+      case "forever":
+        // E0705: `forever` never yields a value, so only a void function may hold one.
+        if (returnType === "void") return;
+        this.report(
+          statement,
+          "E0705",
+          "forever loop in non-void function",
+          "a forever loop never returns a value; make the function return void, or use a while loop with an exit condition",
+        );
+        return;
+      case "for":
+        this.forStatement(statement);
+        return;
+      case "while":
+      case "doWhile":
+        this.checkAlwaysTrue(statement.condition);
+        return;
+      default:
+        return;
+    }
+  }
 
-  /** E0707: `for (;;)` is an infinite loop with the wrong spelling. */
-  override enterForStatement = (ctx: Parser.ForStatementContext): void => {
-    const condition = ctx.expression();
-    if (condition === null) {
+  private forStatement(
+    statement: Extract<TStatement, { readonly kind: "for" }>,
+  ): void {
+    if (statement.init?.kind === "assignment") {
+      this.checkHeaderAssignment(statement.init, INIT_HELP);
+    }
+    if (statement.update !== null) {
+      this.checkHeaderAssignment(statement.update, UPDATE_HELP);
+    }
+    // E0707: `for (;;)` is an infinite loop with the wrong spelling.
+    if (statement.condition === null) {
       this.report(
-        ctx,
+        statement,
         "E0707",
         "for-loop has no controlling expression (infinite loop)",
         FOREVER_HELP,
       );
       return;
     }
-    this.checkAlwaysTrue(condition);
-  };
-
-  override enterForAssignment = (ctx: Parser.ForAssignmentContext): void => {
-    this.checkHeaderAssignment(ctx, INIT_HELP);
-  };
-
-  override enterForUpdate = (ctx: Parser.ForUpdateContext): void => {
-    this.checkHeaderAssignment(ctx, UPDATE_HELP);
-  };
+    this.checkAlwaysTrue(statement.condition);
+  }
 
   /** E0715: a header clause holds one expression; these forms lower to more. */
-  private checkHeaderAssignment(site: TAssignmentSite, help: string): void {
-    const form = ForHeaderAssignment.multiStatementForm(
-      StatementLowering.assignment(site),
-      this.context,
-    );
+  private checkHeaderAssignment(site: IAssignmentSyntax, help: string): void {
+    const form = ForHeaderAssignment.multiStatementForm(site, this.context);
     if (form === null) return;
     this.report(
       site,
@@ -135,42 +153,20 @@ class LoopListener extends CNextListener {
     );
   }
 
-  override enterWhileStatement = (ctx: Parser.WhileStatementContext): void => {
-    this.checkAlwaysTrue(ctx.expression());
-  };
-
-  override enterDoWhileStatement = (
-    ctx: Parser.DoWhileStatementContext,
-  ): void => {
-    this.checkAlwaysTrue(ctx.expression());
-  };
-
   /** E0707: an always-true literal comparison as a loop condition. */
-  private checkAlwaysTrue(condition: Parser.ExpressionContext): void {
-    const comparison = LoopListener.asSingleLiteralComparison(condition);
-    if (comparison === null || !LoopListener.isAlwaysTrue(comparison)) return;
+  private checkAlwaysTrue(condition: TExpression): void {
+    const comparison = LoopCheck.asSingleLiteralComparison(condition);
+    if (comparison === null || !LoopCheck.isAlwaysTrue(comparison)) return;
     this.report(
       condition,
       "E0707",
-      `loop condition '${condition.getText()}' is always true`,
+      `loop condition '${condition.written}' is always true`,
       FOREVER_HELP,
     );
   }
 
-  /** The declared type of the function a statement sits in, or null outside one. */
-  private static enclosingFunctionType(node: ParserRuleContext): string | null {
-    let cursor: ParserRuleContext | null = node.parent;
-    while (cursor) {
-      if (cursor instanceof Parser.FunctionDeclarationContext) {
-        return cursor.type().getText();
-      }
-      cursor = cursor.parent;
-    }
-    return null;
-  }
-
   /**
-   * `ctx` as a single comparison of two literal operands -- no `||`/`&&`, no
+   * `expr` as a single comparison of two literal operands -- no `||`/`&&`, no
    * ternary, no chaining -- or null. Anything involving identifiers or floats
    * is left to #1076, and a constant sub-expression -- `1 + 1 = 2`, or a
    * bracketed operand such as `(1) < (2)` -- to #1879.
@@ -179,50 +175,16 @@ class LoopListener extends CNextListener {
    * (#1195): `while ((1 = 1))` is the same always-true loop as `while (1 = 1)`.
    */
   private static asSingleLiteralComparison(
-    ctx: Parser.ExpressionContext,
+    expr: TExpression,
   ): ILiteralComparison | null {
-    const orExprs = ctx.ternaryExpression().orExpression();
-    if (orExprs.length !== 1) return null;
-    const andExprs = orExprs[0].andExpression();
-    if (andExprs.length !== 1) return null;
-    const equalityExprs = andExprs[0].equalityExpression();
-    if (equalityExprs.length !== 1) return null;
-    const equality = equalityExprs[0];
-
-    const relationalExprs = equality.relationalExpression();
-    if (relationalExprs.length === 2) {
-      // relExpr ('=' | '!=') relExpr
-      return LoopListener.literalComparison(
-        equality.getChild(1)?.getText(),
-        relationalExprs[0].getText(),
-        relationalExprs[1].getText(),
-      );
+    if (expr.kind === "parenthesized") {
+      return LoopCheck.asSingleLiteralComparison(expr.expression);
     }
-    if (relationalExprs.length === 1) {
-      const operands = relationalExprs[0].bitwiseOrExpression();
-      if (operands.length === 2) {
-        // orExpr ('<' | '>' | '<=' | '>=') orExpr
-        return LoopListener.literalComparison(
-          relationalExprs[0].getChild(1)?.getText(),
-          operands[0].getText(),
-          operands[1].getText(),
-        );
-      }
-      const inner = ExpressionUnwrapper.bracketedInner(relationalExprs[0]);
-      if (inner) return LoopListener.asSingleLiteralComparison(inner);
-    }
-    return null;
-  }
-
-  private static literalComparison(
-    operator: string | undefined,
-    leftText: string,
-    rightText: string,
-  ): ILiteralComparison | null {
-    const left = LoopListener.literalValue(leftText);
-    const right = LoopListener.literalValue(rightText);
-    if (operator === undefined || left === null || right === null) return null;
-    return { operator, left, right };
+    if (expr.kind !== "binary" || expr.operands.length !== 2) return null;
+    const left = LoopCheck.literalValue(expr.operands[0]);
+    const right = LoopCheck.literalValue(expr.operands[1]);
+    if (left === null || right === null) return null;
+    return { operator: expr.operators[0], left, right };
   }
 
   /**
@@ -230,14 +192,15 @@ class LoopListener extends CNextListener {
    * optional type suffix) and `true`/`false`. Everything else is not
    * compile-time-known here.
    */
-  private static literalValue(text: string): number | null {
-    if (text === "true") return 1;
-    if (text === "false") return 0;
-    return LiteralUtils.integerValue(text);
+  private static literalValue(expr: TExpression): number | null {
+    if (expr.written === "true") return 1;
+    if (expr.written === "false") return 0;
+    return LiteralUtils.integerValue(expr.written);
   }
 
   private static isAlwaysTrue(comparison: ILiteralComparison): boolean {
-    const { left, right } = comparison;
+    const left = comparison.left;
+    const right = comparison.right;
     switch (comparison.operator) {
       case "=":
         return left === right;
@@ -257,23 +220,37 @@ class LoopListener extends CNextListener {
   }
 
   private report(
-    at: ParserRuleContext,
+    at: ISyntaxNode,
     code: string,
     message: string,
     helpText: string,
   ): void {
-    const { line, column } = ParserUtils.getPosition(at);
-    this.found.push({ code, line, column, message, helpText });
+    this.found.push({
+      code,
+      line: at.span.line,
+      column: at.span.column,
+      message,
+      helpText,
+    });
   }
 }
 
 class LoopAnalyzer {
   constructor(private readonly context: IAnalysisContext) {}
 
-  public analyze(tree: Parser.ProgramContext): ILoopError[] {
-    const listener = new LoopListener(this.context);
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
-    return listener.errors();
+  public analyze(program: IProgramSyntax): ILoopError[] {
+    const check = new LoopCheck(this.context);
+    for (const member of program.declarations) {
+      check.declaration(member.declaration);
+      for (const part of DeclarationParts.of(member.declaration)) {
+        for (const expr of ExpressionNodes.of(part))
+          check.checkExpression(expr);
+      }
+    }
+    // Read off 1.2's syntax (#1991); reported in source order
+    return check
+      .errors()
+      .sort((a, b) => a.line - b.line || a.column - b.column);
   }
 }
 

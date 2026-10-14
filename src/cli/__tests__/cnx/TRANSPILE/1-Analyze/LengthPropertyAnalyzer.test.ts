@@ -14,8 +14,10 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  * symbol view is the one 1.3 and 1.4 build in production.
  */
 const errors = (source: string) => {
-  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
-  return new LengthPropertyAnalyzer(context).analyze(tree);
+  const { syntax, context } = testAnalysisContextFor(source, {
+    cppMode: false,
+  });
+  return new LengthPropertyAnalyzer(context).analyze(syntax);
 };
 
 const inMain = (decls: string, expr: string): string =>
@@ -120,5 +122,20 @@ describe("LengthPropertyAnalyzer", () => {
     expect(errors(inMain(decls, "b.length")).map((e) => e.code)).toEqual([
       "E0886",
     ]);
+  });
+
+  it("does not judge a chain being written, in a function, a scope or a for header (#1991)", () => {
+    const writes = [
+      "void f() {\n    u8 x <- 0;\n    x.length <- 1;\n}",
+      "scope S {\n    public void f() {\n        u8 x <- 0;\n        x.length <- 1;\n    }\n}",
+      "void f() {\n    u8 x <- 0;\n    for (u8 i <- 0; i < 2; x.length <- 1) {\n    }\n}",
+    ];
+    for (const source of writes) expect(errors(source)).toEqual([]);
+    // The control: the same chain read is judged
+    expect(
+      errors("void f() {\n    u8 x <- 0;\n    u8 y <- x.length;\n}").map(
+        (e) => e.code,
+      ),
+    ).toEqual(["E0886"]);
   });
 });

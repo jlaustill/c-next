@@ -4,7 +4,7 @@
  * IHeaderEmissionFacts into header text, reading no state.
  */
 
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import HeaderRenderer from "../HeaderRenderer";
 import HeaderGenerator from "../HeaderGenerator";
 import IHeaderEmissionFacts from "../types/IHeaderEmissionFacts";
@@ -15,6 +15,10 @@ import IHeaderOptions from "../../codegen/types/IHeaderOptions";
 const C_RUN = { cppMode: () => false };
 
 describe("HeaderRenderer", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   function makeVarSymbol(name: string, type: string): IHeaderSymbol {
     return {
       name,
@@ -44,6 +48,7 @@ describe("HeaderRenderer", () => {
       passByValueParams: new Map(),
       allKnownEnums: new Set(),
       basename: filename,
+      program: C_RUN,
     };
   }
 
@@ -60,13 +65,13 @@ describe("HeaderRenderer", () => {
       ],
     ]);
     // No state is set up, and none can be: `HeaderRenderer.render` takes the
-    // captured facts and a generator, and nothing else. At BASE this line wrote
+    // captured facts, and nothing else. At BASE this line wrote
     // the GLOBAL `CodeGenState`, so it was a real negative control -- live and
     // captured values disagreed on state the renderer could in principle reach.
     // #1452 made the state an instance the renderer has no handle on, so the
     // invariant now holds by the signature, and a line writing a module-local
     // object would be dead setup wearing a control's comment.
-    const plan = HeaderRenderer.render(facts, new HeaderGenerator(C_RUN));
+    const plan = HeaderRenderer.render(facts);
 
     const header = plan.headersBySourcePath.get("/src/hw.cnx") ?? "";
     expect(header).toContain("/* Registers (ADR-004) */");
@@ -74,7 +79,7 @@ describe("HeaderRenderer", () => {
   });
 
   it("returns empty maps for an empty facts input", () => {
-    const plan = HeaderRenderer.render(new Map(), new HeaderGenerator(C_RUN));
+    const plan = HeaderRenderer.render(new Map());
 
     expect(plan.headersBySourcePath.size).toBe(0);
     expect(plan.errorsBySourcePath.size).toBe(0);
@@ -85,7 +90,7 @@ describe("HeaderRenderer", () => {
       ["/src/foo.cnx", makeFacts("foo.h", undefined, {})],
     ]);
 
-    const plan = HeaderRenderer.render(facts, new HeaderGenerator(C_RUN));
+    const plan = HeaderRenderer.render(facts);
 
     expect(plan.headersBySourcePath.size).toBe(1);
     expect(plan.errorsBySourcePath.size).toBe(0);
@@ -99,7 +104,7 @@ describe("HeaderRenderer", () => {
       ["/src/bar.cnx", makeFacts("bar.h", [makeVarSymbol("b", "u16")], {})],
     ]);
 
-    const plan = HeaderRenderer.render(facts, new HeaderGenerator(C_RUN));
+    const plan = HeaderRenderer.render(facts);
 
     expect(plan.headersBySourcePath.size).toBe(2);
     expect(plan.headersBySourcePath.get("/src/foo.cnx")).toContain(
@@ -111,36 +116,39 @@ describe("HeaderRenderer", () => {
   });
 
   it("isolates one file's render failure into errorsBySourcePath, not headersBySourcePath", () => {
-    const generator = new HeaderGenerator(C_RUN);
-    vi.spyOn(generator, "generate").mockImplementationOnce(() => {
-      throw new Error("boom");
-    });
+    vi.spyOn(HeaderGenerator.prototype, "generate").mockImplementationOnce(
+      () => {
+        throw new Error("boom");
+      },
+    );
     const facts = new Map([
       ["/src/bad.cnx", makeFacts("bad.h", undefined, {})],
     ]);
 
-    const plan = HeaderRenderer.render(facts, generator);
+    const plan = HeaderRenderer.render(facts);
 
     expect(plan.headersBySourcePath.has("/src/bad.cnx")).toBe(false);
     expect(plan.errorsBySourcePath.get("/src/bad.cnx")).toBe("boom");
   });
 
   it("does not let one file's render failure abort another file's render", () => {
-    const generator = new HeaderGenerator(C_RUN);
-    vi.spyOn(generator, "generate")
+    const original = HeaderGenerator.prototype.generate;
+    vi.spyOn(HeaderGenerator.prototype, "generate")
       .mockImplementationOnce(() => {
         throw new Error("boom");
       })
-      .mockImplementationOnce(
-        (...args: Parameters<typeof generator.generate>) =>
-          HeaderGenerator.prototype.generate.apply(generator, args),
-      );
+      .mockImplementationOnce(function (
+        this: HeaderGenerator,
+        ...args: Parameters<HeaderGenerator["generate"]>
+      ) {
+        return original.apply(this, args);
+      });
     const facts = new Map([
       ["/src/bad.cnx", makeFacts("bad.h", undefined, {})],
       ["/src/good.cnx", makeFacts("good.h", [makeVarSymbol("c", "u32")], {})],
     ]);
 
-    const plan = HeaderRenderer.render(facts, generator);
+    const plan = HeaderRenderer.render(facts);
 
     expect(plan.errorsBySourcePath.get("/src/bad.cnx")).toBe("boom");
     expect(plan.headersBySourcePath.get("/src/good.cnx")).toContain(
@@ -164,7 +172,7 @@ describe("HeaderRenderer", () => {
     // #1452: the flag lives on `TranspileState` now; the renderer reads it
     // from the facts it is handed, which is what this case exercises.
 
-    const plan = HeaderRenderer.render(facts, new HeaderGenerator(C_RUN));
+    const plan = HeaderRenderer.render(facts);
 
     // If plan() (or the generate() call path it uses) ever read live
     // state.needsISR instead of the captured facts.options value,
@@ -177,15 +185,16 @@ describe("HeaderRenderer", () => {
   });
 
   it("stringifies a non-Error throw instead of losing it", () => {
-    const generator = new HeaderGenerator(C_RUN);
-    vi.spyOn(generator, "generate").mockImplementationOnce(() => {
-      throw "not an Error instance";
-    });
+    vi.spyOn(HeaderGenerator.prototype, "generate").mockImplementationOnce(
+      () => {
+        throw "not an Error instance";
+      },
+    );
     const facts = new Map([
       ["/src/weird.cnx", makeFacts("weird.h", undefined, {})],
     ]);
 
-    const plan = HeaderRenderer.render(facts, generator);
+    const plan = HeaderRenderer.render(facts);
 
     expect(plan.errorsBySourcePath.get("/src/weird.cnx")).toBe(
       "not an Error instance",

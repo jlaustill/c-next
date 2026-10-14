@@ -26,163 +26,37 @@
  * bug this rule prevents. They are ordinary non-void functions here.
  */
 
-import { ParseTreeWalker } from "antlr4ng";
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
+import type TExpression from "../../types/syntax/TExpression";
+import StatementNodes from "../../utils/StatementNodes";
 import StdlibFunctions from "./StdlibFunctions";
 import CalleeNameResolver from "./helpers/CalleeNameResolver";
 import EnclosingScope from "./helpers/EnclosingScope";
 import IReturnValueUseError from "./types/IReturnValueUseError";
-import type SymbolTable from "../../PARSE/3-Declare/SymbolTable";
+import type IResolvedSymbols from "../../types/IResolvedSymbols";
 import DeclaredTypeFacts from "../../utils/DeclaredTypeFacts";
 import type IAnalysisContext from "./types/IAnalysisContext";
-
-class ReturnValueUseListener extends CNextListener {
-  public readonly errors: IReturnValueUseError[] = [];
-
-  /** Enclosing `scope`, so `this.member()` resolves to Scope__member (#1357). */
-  private readonly enclosing = new EnclosingScope();
-
-  /** Scope names in this file, for resolving `global.Scope.member()`. */
-  private readonly knownScopes: ReadonlySet<string>;
-
-  constructor(
-    knownScopes: ReadonlySet<string>,
-    private readonly context: IAnalysisContext,
-  ) {
-    super();
-    this.knownScopes = knownScopes;
-  }
-
-  override enterScopeDeclaration = (
-    ctx: Parser.ScopeDeclarationContext,
-  ): void => {
-    this.enclosing.enter(ctx.IDENTIFIER()?.getText() ?? "");
-  };
-
-  override exitScopeDeclaration = (): void => {
-    this.enclosing.exit();
-  };
-
-  override enterExpressionStatement = (
-    ctx: Parser.ExpressionStatementContext,
-  ): void => {
-    const expr = ctx.expression();
-    if (!expr) return;
-
-    // An explicit `(void)` discard satisfies the rule outright.
-    if (ReturnValueUseAnalyzer.isVoidCast(expr)) return;
-
-    const postfix = ReturnValueUseAnalyzer.asBareCall(expr);
-    if (!postfix) return;
-
-    const resolved = CalleeNameResolver.resolveDetailed(
-      postfix,
-      this.enclosing.current(),
-      // Scopes reached through an included .cnx are not in this file's
-      // declarations; CodeGenState.knownScopes is merged across includes.
-      (name) =>
-        this.knownScopes.has(name) ||
-        DeclaredTypeFacts.isScope(this.context.symbols, name),
-    );
-    if (!resolved) return;
-
-    const funcName = ReturnValueUseAnalyzer.nonVoidCallee(
-      resolved,
-      this.enclosing.current(),
-      this.context,
-    );
-    if (!funcName) return;
-
-    this.errors.push({
-      line: ctx.start?.line ?? 0,
-      column: ctx.start?.column ?? 0,
-      code: "E0708",
-      message: `Return value of non-void function '${funcName}' is discarded`,
-      helpText: `Use the value, or discard it explicitly: (void) ${funcName}(...);`,
-    });
-  };
-}
 
 class ReturnValueUseAnalyzer {
   /**
    * True when the statement's expression is a cast to void wrapping anything.
    * Uses the existing ADR-017 cast expression -- no new syntax (ADR-070).
    */
-  static isVoidCast(expr: Parser.ExpressionContext): boolean {
-    const cast = ReturnValueUseAnalyzer.findCast(expr);
-    return cast?.type()?.getText() === "void";
-  }
-
-  /** Descend single-child wrappers looking for a castExpression. */
-  private static findCast(
-    node: Parser.ExpressionContext | null,
-  ): Parser.CastExpressionContext | null {
-    let current: unknown = node;
-    while (current && typeof current === "object") {
-      if (current instanceof Parser.CastExpressionContext) return current;
-      const ctx = current as {
-        getChildCount?: () => number;
-        getChild?: (i: number) => unknown;
-      };
-      if (
-        typeof ctx.getChildCount !== "function" ||
-        ctx.getChildCount() !== 1
-      ) {
-        return null;
-      }
-      current = ctx.getChild!(0);
-    }
-    return null;
+  static isVoidCast(expr: TExpression): boolean {
+    return expr.kind === "cast" && expr.type.kind === "void";
   }
 
   /**
-   * Return the postfix expression when the whole statement is exactly one call.
-   * `foo().field;` is deliberately not a bare call -- ADR-070 puts that form
-   * out of scope.
+   * The call an expression statement is, looking through a non-void cast:
+   * `(u8)f();` still discards. A parenthesized call or an operator is not one.
    */
-  static asBareCall(
-    expr: Parser.ExpressionContext,
-  ): Parser.PostfixExpressionContext | null {
-    let current: unknown = expr;
-    while (current && typeof current === "object") {
-      if (current instanceof Parser.PostfixExpressionContext) {
-        const ops = current.postfixOp();
-
-        // A cast wraps the call one level deeper: `(void) f()` and `(u32) f()`
-        // both parse as a postfix whose primary IS the cast. Descend rather
-        // than stop -- stopping here would accept every cast-shaped discard
-        // without ever consulting the cast's type, which is what makes the
-        // `(void)` form special.
-        const cast = current.primaryExpression().castExpression();
-        if (ops.length === 0 && cast) {
-          current = cast.unaryExpression();
-          continue;
-        }
-
-        const last = ops.at(-1);
-        // The final op must be the call itself, or the statement's value is a
-        // member/subscript of a call result rather than the call.
-        if (!last || !ReturnValueUseAnalyzer.isCallOp(last)) return null;
-        return current;
-      }
-      const ctx = current as {
-        getChildCount?: () => number;
-        getChild?: (i: number) => unknown;
-      };
-      if (
-        typeof ctx.getChildCount !== "function" ||
-        ctx.getChildCount() !== 1
-      ) {
-        return null;
-      }
-      current = ctx.getChild!(0);
+  static asBareCall(expr: TExpression): TExpression | null {
+    if (expr.kind === "cast") {
+      return ReturnValueUseAnalyzer.asBareCall(expr.operand);
     }
-    return null;
-  }
-
-  private static isCallOp(op: Parser.PostfixOpContext): boolean {
-    return op.argumentList() !== null || op.getText().startsWith("(");
+    if (expr.kind !== "postfix") return null;
+    return expr.ops.at(-1)?.kind === "call" ? expr : null;
   }
 
   /**
@@ -261,13 +135,13 @@ class ReturnValueUseAnalyzer {
    */
   static externalReturnType(
     name: string,
-    symbolTable: SymbolTable,
+    symbolTable: IResolvedSymbols,
   ): string | null {
     // .hpp symbols land in a separate index from .h ones; ICppFunctionSymbol
     // is structurally identical, so one lookup covers both.
     //
     // #1456: the `?.` on the table AND on both methods is gone. Neither can be
-    // absent -- `SymbolTable` declares both -- so the optional call was a guard
+    // absent -- `IResolvedSymbols` declares both -- so the optional call was a guard
     // that could not fire, and it would have turned a genuinely missing method
     // into `null`, which reads here as "this function returns nothing" rather
     // than as an error.
@@ -276,31 +150,57 @@ class ReturnValueUseAnalyzer {
     return sym.type ?? null;
   }
 
-  /** Scope names declared in this file. */
-  private static collectScopes(
-    tree: Parser.ProgramContext,
-  ): ReadonlySet<string> {
-    const scopes = new Set<string>();
-    for (const decl of tree.declaration()) {
-      const scopeDecl = decl.scopeDeclaration();
-      if (scopeDecl) {
-        scopes.add(scopeDecl.IDENTIFIER().getText());
-      }
-    }
-    return scopes;
+  /** The non-void function an expression statement discards, if any */
+  private static discardedCallee(
+    expr: TExpression,
+    scopePath: string,
+    context: IAnalysisContext,
+  ): string | null {
+    if (ReturnValueUseAnalyzer.isVoidCast(expr)) return null;
+    const call = ReturnValueUseAnalyzer.asBareCall(expr);
+    if (call === null) return null;
+    const resolved = CalleeNameResolver.resolveDetailed(
+      call,
+      scopePath,
+      (name) => DeclaredTypeFacts.isScope(context.symbols, name),
+    );
+    if (!resolved) return null;
+    return ReturnValueUseAnalyzer.nonVoidCallee(resolved, scopePath, context);
   }
 
-  /** Run the analysis over a parsed program. */
+  /** #1991: reads 1.2's syntax, not the parse tree */
   static analyze(
-    tree: Parser.ProgramContext,
+    program: IProgramSyntax,
     context: IAnalysisContext,
   ): IReturnValueUseError[] {
-    const listener = new ReturnValueUseListener(
-      ReturnValueUseAnalyzer.collectScopes(tree),
-      context,
-    );
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
-    return listener.errors;
+    const errors: IReturnValueUseError[] = [];
+    const enclosing = new EnclosingScope();
+    const visit = (declaration: TDeclarationSyntax): void => {
+      if (declaration.kind === "scope") {
+        enclosing.enter(declaration.name);
+        for (const member of declaration.members) visit(member.declaration);
+        enclosing.exit();
+        return;
+      }
+      for (const statement of StatementNodes.in(declaration)) {
+        if (statement.kind !== "expression") continue;
+        const funcName = ReturnValueUseAnalyzer.discardedCallee(
+          statement.expression,
+          enclosing.current(),
+          context,
+        );
+        if (funcName === null) continue;
+        errors.push({
+          line: statement.span.line,
+          column: statement.span.column,
+          code: "E0708",
+          message: `Return value of non-void function '${funcName}' is discarded`,
+          helpText: `Use the value, or discard it explicitly: (void) ${funcName}(...);`,
+        });
+      }
+    };
+    for (const member of program.declarations) visit(member.declaration);
+    return errors;
   }
 }
 

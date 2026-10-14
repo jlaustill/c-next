@@ -18,10 +18,7 @@ import TGeneratorEffect from "../TGeneratorEffect";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
-import CallExprUtils from "./CallExprUtils";
-import C_TYPE_WIDTH from "../../types/C_TYPE_WIDTH";
-import CPointerParameter from "../../../../../utils/CPointerParameter";
-import CNEXT_TO_C_TYPE_MAP from "../../../../../utils/constants/TypeMappings";
+import CallArgumentPassing from "../../../../2-Plan/CallArgumentPassing";
 import type IPlannedCallArgument from "../../types/IPlannedCallArgument";
 
 /**
@@ -29,308 +26,35 @@ import type IPlannedCallArgument from "../../types/IPlannedCallArgument";
  * being passed to an integer parameter.
  *
  * @param argCode - The generated argument code
- * @param arg - The planned argument (for its type)
- * @param targetParamBaseType - The target parameter's base type (if known)
- * @param orchestrator - Orchestrator for type checking methods
+ * @param arg - The planned argument, which carries 2.2's cast (#1991)
  * @returns The argument code, possibly wrapped with static_cast
  */
 const wrapWithCppEnumCast = (
   argCode: string,
   arg: IPlannedCallArgument,
-  targetParamBaseType: string | undefined,
-  orchestrator: IOrchestrator,
 ): string => {
-  if (!orchestrator.isCppMode() || !targetParamBaseType) {
-    return argCode;
-  }
-
-  const argType = arg.expressionType();
-  if (argType && orchestrator.isCppEnumClass(argType)) {
-    if (orchestrator.isIntegerType(targetParamBaseType)) {
-      const cType = CallExprUtils.mapTypeToCType(targetParamBaseType);
-      orchestrator.state.emittedCTypes.add(cType);
-      return `static_cast<${cType}>(${argCode})`;
-    }
-  }
-
-  return argCode;
+  const cType = arg.planned.enumCast;
+  if (cType === null) return argCode;
+  return `static_cast<${cType}>(${argCode})`;
 };
 
 /**
- * Resolved parameter info from local signature or cross-file lookup
+ * Write an argument to a C or C++ function the way 2.2 planned it (#1991):
+ * a callback-promoted parameter as its name (#937), else as it renders, with
+ * `&` where the pointer parameter takes its address (#322, #832, #895)
  */
-interface IResolvedParam {
-  param: { baseType: string; isArray?: boolean } | undefined;
-  isCrossFile: boolean;
-}
-
-/**
- * Issue #832: Check if parameter expects address-of for typedef'd pointer types.
- *
- * When a parameter type is `T*` and the argument type is `T`, we need to add `&`.
- * This handles cases like `handle_t` (typedef'd pointer) passed to `handle_t*`.
- *
- * IMPORTANT: This should NOT match primitive types like uint8_t, because arrays
- * of primitives decay to pointers naturally (uint8_t[] → uint8_t*).
- * It SHOULD match typedef'd pointer types like handle_t → handle_t*.
- *
- * @param paramType - The parameter's base type (e.g., "handle_t*")
- * @param argType - The argument's type (e.g., "handle_t")
- * @param orchestrator - For type checking (isIntegerType, isFloatType)
- * @returns true if parameter expects `argType*` (address-of needed)
- */
-const _parameterExpectsAddressOf = (
-  paramType: string,
-  argType: string,
-  declaredScalar: boolean,
-  orchestrator: IOrchestrator,
-): boolean => {
-  // An array of primitives decays to a pointer by itself (uint8_t[] to
-  // uint8_t*); a declared scalar of the pointee's type is passed by its
-  // address (#1978: `const u8 b` to `const uint8_t*` was `b`, a pointer made
-  // from an integer).
-  if (
-    orchestrator.isIntegerType(argType) ||
-    orchestrator.isFloatType(argType) ||
-    CallExprUtils.isKnownPrimitiveType(argType)
-  ) {
-    return (
-      declaredScalar &&
-      CNEXT_TO_C_TYPE_MAP[argType] === CPointerParameter.pointee(paramType)
-    );
+const _generateCFunctionArg = (arg: IPlannedCallArgument): string => {
+  const cForm = arg.planned.cForm;
+  invariant(
+    cForm !== null,
+    "2.2 planned how 2.3 writes every argument to a C function",
+  );
+  if (cForm === "promoted-handle") {
+    invariant(arg.simpleIdentifier !== null, "a promoted handle is a name");
+    return wrapWithCppEnumCast(arg.simpleIdentifier, arg);
   }
-
-  // Check C standard types (uint8_t, int32_t, etc.)
-  if (argType in C_TYPE_WIDTH) {
-    return false;
-  }
-
-  // paramType should end with * (already checked by caller)
-  // Remove trailing pointer markers to get the base type
-  // Use indexOf/slice instead of regex to avoid ReDoS concerns (SonarCloud S5852)
-  const starIndex = paramType.indexOf("*");
-  const paramBaseType =
-    starIndex >= 0 ? paramType.slice(0, starIndex).trim() : paramType.trim();
-  return paramBaseType === argType;
-};
-
-/**
- * Resolve an argument expression's C-Next type for the address-of decision.
- * Prefers the expression type, then the codegen variable registry, then the C
- * symbol table — the last covers extern C globals (e.g. an lvgl font
- * `lv_font_montserrat_32` of type `lv_font_t`, Issue #985) whose type only
- * header symbol collection knows. Returns null when the type can't be resolved
- * or the argument is already an address-of expression.
- */
-const _resolveArgType = (
-  arg: IPlannedCallArgument,
-  argCode: string,
-  typeInfoBaseType: string | undefined,
-  orchestrator: IOrchestrator,
-): string | null => {
-  const exprType = arg.expressionType();
-  if (exprType) return exprType;
-  if (argCode.startsWith("&")) return null;
-  if (typeInfoBaseType) return typeInfoBaseType;
-  const cSymbol = orchestrator.state.symbolTable?.getCSymbol(argCode);
-  if (cSymbol?.kind === "variable" && !cSymbol.isArray) return cSymbol.type;
-  return null;
-};
-
-/** How many levels of pointer a C type spells: `Dev**` is 2, `const Dev*` 1. */
-const _pointerDepth = (cType: string): number => cType.split("*").length - 1;
-
-/**
- * How many pointers deep an argument's VALUE already is.
- *
- * A C variable says so in its declared type: `Dev**` is 2. Issue #895 Bug B:
- * a variable inferred as a pointer is one; so is an opaque handle (ADR-030),
- * held in a scope variable (#948) or as an element of an array of handles
- * (#996). Anything else is a value, 0.
- */
-const _argPointerDepth = (
-  argType: string | null,
-  isRegisteredPointer: boolean,
-  isHandleArrayElement: boolean,
-): number => {
-  if (argType?.endsWith("*")) {
-    return _pointerDepth(argType);
-  }
-  return isRegisteredPointer || isHandleArrayElement ? 1 : 0;
-};
-
-/**
- * Generate argument code for a C/C++ function call.
- * Handles automatic address-of (&) for struct arguments passed to pointer params.
- * Issue #872: Sets expectedType for MISRA 7.2 U suffix on unsigned literals.
- */
-const _generateCFunctionArg = (
-  arg: IPlannedCallArgument,
-  targetParam: IResolvedParam["param"],
-  orchestrator: IOrchestrator,
-): string => {
-  // Issue #937: Check if argument is a callback-promoted parameter (already a pointer)
-  // BEFORE generating the expression. If target expects a pointer and we have a
-  // callback-promoted param, use the identifier directly instead of dereferencing.
-  const callbackPromotedParam = arg.parameter?.forcePointerSemantics
-    ? arg.simpleIdentifier
-    : null;
-
-  // If target expects a pointer and argument is a callback-promoted param,
-  // use the identifier directly (it's already a pointer matching the typedef)
-  if (targetParam?.baseType?.endsWith("*") && callbackPromotedParam !== null) {
-    return wrapWithCppEnumCast(
-      callbackPromotedParam,
-      arg,
-      targetParam?.baseType,
-      orchestrator,
-    );
-  }
-
-  // Issue #872: Set expectedType for MISRA 7.2 compliance, but suppress bare enum resolution
-  // (bare enums in function args was never allowed - changing that requires ADR approval)
-  const argCode = orchestrator.state.withExpectedType(
-    targetParam?.baseType,
-    arg.render,
-    true, // suppressEnumResolution
-  );
-
-  // Issue #322: Check if parameter expects a pointer and argument is a struct
-  if (!targetParam?.baseType?.endsWith("*")) {
-    return wrapWithCppEnumCast(
-      argCode,
-      arg,
-      targetParam?.baseType,
-      orchestrator,
-    );
-  }
-
-  // Resolve the argument's type (expression type → variable registry → C symbol
-  // table for extern globals) to decide whether it needs address-of.
-  const typeInfo = arg.declared;
-  const argType = _resolveArgType(
-    arg,
-    argCode,
-    typeInfo?.baseType,
-    orchestrator,
-  );
-
-  const argPointerDepth = _argPointerDepth(
-    argType,
-    typeInfo?.isPointer ?? false,
-    arg.isHandleArrayElement(),
-  );
-
-  // Add & if argument needs address-of to match parameter type.
-  // Issue #322: struct types passed to pointer params.
-  // Issue #832: typedef'd pointer types (e.g., handle_t passed to handle_t*).
-  //
-  // A value that is already a pointer takes `&` only for a parameter exactly
-  // one pointer deeper: a handle IS the argument for a `Dev*`, and its address
-  // is the argument for a `Dev**`, an out-parameter the callee writes a new
-  // handle through. "Already a pointer, pass it directly" asked no depth and
-  // passed `Board__held` to `dev_create_into(Dev** out)`.
-  //
-  // A whole array never takes `&`. C decays it to a pointer to its first
-  // element, which is what a pointer parameter takes; its address is a pointer
-  // to the ARRAY -- `CPoint (*)[2]`, or `CPoint**` for a parameter.
-  const needsAddressOf =
-    argType !== null &&
-    !argCode.startsWith("&") &&
-    !targetParam.isArray &&
-    !arg.isArray() &&
-    (argPointerDepth > 0
-      ? _pointerDepth(targetParam.baseType) === argPointerDepth + 1
-      : orchestrator.isKnownStruct(argType) ||
-        _parameterExpectsAddressOf(
-          targetParam.baseType,
-          argType,
-          typeInfo !== undefined && !typeInfo.isArray,
-          orchestrator,
-        ));
-
-  const finalArgCode = needsAddressOf ? `&${argCode}` : argCode;
-
-  return wrapWithCppEnumCast(
-    finalArgCode,
-    arg,
-    targetParam?.baseType,
-    orchestrator,
-  );
-};
-
-/**
- * Determine if a C-Next parameter should be passed by value.
- */
-const _shouldPassByValue = (
-  funcExpr: string,
-  idx: number,
-  targetParam: IResolvedParam["param"],
-  isCrossFile: boolean,
-  orchestrator: IOrchestrator,
-): boolean => {
-  if (!targetParam) return false;
-
-  const isFloatParam = orchestrator.isFloatType(targetParam.baseType);
-  const isEnumParam = orchestrator.getKnownEnums().has(targetParam.baseType);
-  const isPrimitivePassByValue = orchestrator.isParameterPassByValue(
-    funcExpr,
-    idx,
-  );
-
-  // Issue #786: For cross-file calls, check if parameter is a known primitive type.
-  // Known primitives (u8-u64, i8-i64, bool) should always be pass-by-value.
-  // This handles the case where local passByValueParams isn't populated for cross-file functions.
-  const isCrossFilePrimitive =
-    isCrossFile &&
-    CallExprUtils.isKnownPrimitiveType(targetParam.baseType) &&
-    !orchestrator.isKnownStruct(targetParam.baseType) &&
-    !CallExprUtils.isStringType(targetParam.baseType);
-
-  // Issue #551: Unknown types (external enums, typedefs) use pass-by-value
-  //
-  // ADR-030 / #1722: an opaque handle lands here too, and that is the right
-  // route rather than a lucky one -- the handle's C value IS the pointer the
-  // callee's `T*` parameter takes. Rendering an opaque PARAMETER as that value
-  // is the parameter registry's decision (`TParameterInfo.isOpaqueHandle`),
-  // not this function's. The by-reference route would take `&` of every opaque
-  // scope variable and array element (`&UI__held`), which #996's and #1722's
-  // fixtures pin.
-  const isUnknownType =
-    !orchestrator.isKnownStruct(targetParam.baseType) &&
-    !CallExprUtils.isKnownPrimitiveType(targetParam.baseType) &&
-    !CallExprUtils.isStringType(targetParam.baseType) &&
-    !isFloatParam &&
-    !isEnumParam &&
-    !isCrossFilePrimitive;
-
-  return (
-    isFloatParam ||
-    isEnumParam ||
-    isPrimitivePassByValue ||
-    isCrossFilePrimitive ||
-    isUnknownType
-  );
-};
-
-/**
- * The name a call's parameters are looked up by.
- *
- * ADR-029: a value of a callback type -- a struct field, a variable, a
- * parameter -- holds a function with the parameters of the function that IS
- * the type. A call through it takes exactly the arguments a direct call to
- * that function takes, so every question about them is asked of that
- * function's name. Asked of `h.onPeek`, which names no function, they found no
- * parameters, and a struct argument went by value into a `const Point*`.
- */
-const _signatureName = (
-  funcExpr: string,
-  calleeType: string | null,
-  input: IGeneratorInput,
-): string => {
-  const callbackType =
-    calleeType === null ? undefined : input.callbackTypes.get(calleeType);
-  return callbackType?.functionName ?? funcExpr;
+  const code = arg.render();
+  return wrapWithCppEnumCast(cForm === "address-of" ? `&${code}` : code, arg);
 };
 
 /**
@@ -352,6 +76,7 @@ const generateFunctionCall = (
   _state: IGeneratorState,
   orchestrator: IOrchestrator,
   calleeType: string | null = null,
+  safeDivisionHelper: string | null = null,
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
 
@@ -362,14 +87,15 @@ const generateFunctionCall = (
     return { code: `${funcExpr}()`, effects };
   }
 
-  const signatureName = _signatureName(funcExpr, calleeType, input);
+  const signatureName =
+    CallArgumentPassing.callbackFunction(calleeType, input) ?? funcExpr;
 
   // Check if this is a C-Next function (uses pass-by-reference)
   const isCNextFunc = orchestrator.isCNextFunction(signatureName);
 
-  // ADR-051: Handle safe_div() and safe_mod() built-in functions
-  if (funcExpr === "safe_div" || funcExpr === "safe_mod") {
-    return generateSafeDivMod(funcExpr, args, effects);
+  // ADR-051: 2.2 planned this call as a safe_div()/safe_mod() helper
+  if (safeDivisionHelper !== null) {
+    return generateSafeDivMod(funcExpr, safeDivisionHelper, args, effects);
   }
 
   // Regular function call handling
@@ -382,56 +108,31 @@ const generateFunctionCall = (
   }
 
   // Get function signature once for all arguments
-  const sig = input.functionSignatures.get(signatureName);
 
-  // Issue #992: Clear inDeclarationInit for function call arguments — struct
-  // initializers inside function args need compound literals, not plain designated initializers.
-  const rendered = orchestrator.state.withoutDeclarationInit(() =>
-    args
-      .map((arg, idx) => {
-        // Get parameter type info from local signature or cross-file SymbolTable
-        const resolved = CallExprUtils.resolveTargetParam(
-          sig,
-          idx,
-          signatureName,
-          input.symbolTable,
-        );
-        const targetParam = resolved.param;
+  // Issue #992: 2.2 plans a struct initializer in an argument as a compound
+  // literal (#1991).
+  const rendered = args
+    .map((arg) => {
+      // 2.2 decided how the argument binds and is passed (#1991)
+      const passing = arg.planned.passing;
 
-        // C/C++ function: use pass-by-value semantics
-        if (!isCNextFunc) {
-          return _generateCFunctionArg(arg, targetParam, orchestrator);
-        }
+      // C/C++ function: use pass-by-value semantics
+      if (passing.mode === "c") {
+        return _generateCFunctionArg(arg);
+      }
 
-        // C-Next function: check if target parameter should be passed by value
-        if (
-          _shouldPassByValue(
-            signatureName,
-            idx,
-            targetParam,
-            resolved.isCrossFile,
-            orchestrator,
-          )
-        ) {
-          // Issue #872: Set expectedType for MISRA 7.2 compliance, but suppress bare enum resolution
-          const argCode = orchestrator.state.withExpectedType(
-            targetParam?.baseType,
-            arg.render,
-            true, // suppressEnumResolution
-          );
-          return wrapWithCppEnumCast(
-            argCode,
-            arg,
-            targetParam?.baseType,
-            orchestrator,
-          );
-        }
+      // C-Next function: check if target parameter should be passed by value
+      if (passing.mode === "value") {
+        // Issue #872: 2.2 plans it against the parameter's type, with bare
+        // enum resolution suppressed (#1991)
+        const argCode = arg.render();
+        return wrapWithCppEnumCast(argCode, arg);
+      }
 
-        // Target parameter is pass-by-reference: use & logic
-        return arg.renderByReference(targetParam?.baseType);
-      })
-      .join(", "),
-  );
+      // Target parameter is pass-by-reference: use & logic
+      return arg.renderByReference();
+    })
+    .join(", ");
 
   return { code: `${funcExpr}(${rendered})`, effects };
 };
@@ -447,6 +148,7 @@ const generateFunctionCall = (
  */
 const generateSafeDivMod = (
   funcName: string,
+  helperName: string,
   args: readonly IPlannedCallArgument[],
   effects: TGeneratorEffect[],
 ): IGeneratorOutput => {
@@ -459,43 +161,11 @@ const generateSafeDivMod = (
     `${funcName} takes four arguments -- E0884 rejects this in pass 2.1, before this runs`,
   );
 
-  // Get the output parameter (first argument) to determine type
-  const outputArgId = args[0].simpleIdentifier;
-  invariant(
-    outputArgId,
-    `${funcName}'s first argument is a variable -- E0885 rejects this in pass 2.1, before this runs`,
-  );
-
-  // Look up the type of the output parameter
-  const typeInfo = args[0].declared;
-  invariant(
-    typeInfo,
-    `${funcName}'s output parameter is a declared variable with a type -- E0885 rejects this in pass 2.1, before this runs`,
-  );
-
-  // Map C-Next type to helper function suffix
-  const cnxType = typeInfo.baseType;
-  invariant(
-    cnxType,
-    `a registered variable always has a non-empty baseType (output parameter '${outputArgId}' of ${funcName})`,
-  );
-
   // Generate arguments: &output, numerator, divisor, defaultValue
-  // These four render OUTSIDE `withoutDeclarationInit`, because the early
-  // return above precedes that scope. Every other route renders inside it.
   const outputArg = `&${args[0].render()}`;
   const numeratorArg = args[1].render();
   const divisorArg = args[2].render();
   const defaultArg = args[3].render();
-
-  const helperName = CallExprUtils.generateSafeDivModHelperName(
-    funcName as "safe_div" | "safe_mod",
-    cnxType,
-  );
-
-  // Track that this operation is used for helper generation
-  const opType: "div" | "mod" = funcName === "safe_div" ? "div" : "mod";
-  effects.push({ type: "safe-div", operation: opType, cnxType });
 
   return {
     code: `${helperName}(${outputArg}, ${numeratorArg}, ${divisorArg}, ${defaultArg})`,

@@ -18,6 +18,7 @@ import JsonCodec from "./JsonCodec";
 import CachedSymbolReader from "./CachedSymbolReader";
 import IStructFieldInfo from "../../cnx/types/symbols/IStructFieldInfo";
 import SymbolTable from "../../cnx/PARSE/3-Declare/SymbolTable";
+import type IHeaderDeclarationRecord from "../../cnx/PARSE/1-Discover/types/IHeaderDeclarationRecord";
 import ICacheConfig from "../types/ICacheConfig";
 import ICachedFileEntry from "../types/ICachedFileEntry";
 import IStructSymbolState from "../../cnx/types/symbols/IStructSymbolState";
@@ -25,7 +26,6 @@ import TJsonSafe from "../../cnx/utils/types/TJsonSafe";
 import TJsonValue from "../../cnx/utils/types/TJsonValue";
 import IFileSystem from "../../cnx/types/IFileSystem";
 import packageJson from "../../../package.json" with { type: "json" };
-import ESourceLanguage from "../../cnx/utils/types/ESourceLanguage";
 import Write from "../../cnx/WRITE/1-Write/Write";
 
 /** Current cache format version - increment when serialization format changes */
@@ -276,117 +276,37 @@ class CacheManager {
     this.dirty = true;
   }
 
-  /**
-   * Issue #590: Store symbols from a SymbolTable for a specific file.
-   * Extracts all necessary data (symbols, struct fields, enum bit widths)
-   * from the SymbolTable and caches it.
-   *
-   * This method encapsulates the serialization logic that was previously
-   * scattered in Transpiler, providing a cleaner API for callers.
-   *
-   * @param filePath - Path to the file being cached
-   * @param symbolTable - SymbolTable containing all parsed symbols
-   */
-  setSymbolsFromTable(filePath: string, symbolTable: SymbolTable): void {
-    // Issue #1225: encode the real typed symbols. JsonCodec copies every
-    // field rather than naming any, so a field added to the symbol model is
-    // cached without anyone editing this method -- which is what the old
-    // field-by-field serializer could not do.
-    //
-    // C-Next symbols are re-parsed from source every run and are never cached;
-    // filtering them states that invariant instead of relying on no .cnx file
-    // ever reaching this call site.
-    const symbols = symbolTable
-      .getSymbolsByFile(filePath)
-      .filter((symbol) => symbol.sourceLanguage !== ESourceLanguage.CNext)
-      .map((symbol) => JsonCodec.encode(symbol));
-
-    // Extract struct fields for structs defined in this file
-    const structFields = this.extractStructFieldsForFile(filePath, symbolTable);
-
-    // Extract struct names that need 'struct' keyword
-    const needsStructKeyword = this.extractNeedsStructKeywordForFile(
+  /** #1991: cache what 1.3 declared for the header at `filePath` */
+  setHeaderDeclarations(
+    filePath: string,
+    record: IHeaderDeclarationRecord,
+  ): void {
+    this.setSymbols(
       filePath,
-      symbolTable,
+      record.symbols.map((symbol) => JsonCodec.encode(symbol)),
+      record.structFields,
+      {
+        structState: record.structState,
+        needsStructKeyword: record.needsStructKeyword,
+        enumBitWidth: record.enumBitWidth,
+      },
     );
-
-    // Extract enum bit widths for enums defined in this file
-    const enumBitWidth = this.extractEnumBitWidthsForFile(
-      filePath,
-      symbolTable,
-    );
-
-    this.setSymbols(filePath, symbols, structFields, {
-      structState: symbolTable.serializeStructState(),
-      needsStructKeyword,
-      enumBitWidth,
-    });
   }
 
   /**
-   * Issue #590: Extract struct fields for structs defined in a specific file.
+   * #1991: what an earlier run recorded for the header at `filePath`, or null
+   * on a miss. Validated (#1225), so an entry of the wrong shape is a miss.
    */
-  private extractStructFieldsForFile(
-    filePath: string,
-    symbolTable: SymbolTable,
-  ): Map<string, Map<string, IStructFieldInfo>> {
-    const result = new Map<string, Map<string, IStructFieldInfo>>();
-
-    // Get struct names defined in this file
-    const structNames = symbolTable.getStructNamesByFile(filePath);
-
-    // Get fields for each struct
-    const allStructFields = symbolTable.getAllStructFields();
-    for (const structName of structNames) {
-      const fields = allStructFields.get(structName);
-      if (fields) {
-        result.set(structName, fields);
-      }
+  headerDeclarations(filePath: string): IHeaderDeclarationRecord | null {
+    if (!this.isValid(filePath)) {
+      return null;
     }
-
-    return result;
-  }
-
-  /**
-   * Issue #590: Extract struct names requiring 'struct' keyword for a specific file.
-   */
-  private extractNeedsStructKeywordForFile(
-    filePath: string,
-    symbolTable: SymbolTable,
-  ): string[] {
-    // Get struct names defined in this file
-    const structNames = symbolTable.getStructNamesByFile(filePath);
-
-    // Filter to only those that need struct keyword
-    const allNeedsKeyword = symbolTable.getAllNeedsStructKeyword();
-    return structNames.filter((name) => allNeedsKeyword.includes(name));
-  }
-
-  /**
-   * Issue #590: Extract enum bit widths for enums defined in a specific file.
-   */
-  private extractEnumBitWidthsForFile(
-    filePath: string,
-    symbolTable: SymbolTable,
-  ): Map<string, number> {
-    const result = new Map<string, number>();
-
-    // Get enum names defined in this file
-    const fileSymbols = symbolTable.getSymbolsByFile(filePath);
-    const enumNames = fileSymbols
-      .filter((s) => s.kind === "enum")
-      .map((s) => s.name);
-
-    // Get bit widths for each enum
-    const allBitWidths = symbolTable.getAllEnumBitWidths();
-    for (const enumName of enumNames) {
-      const width = allBitWidths.get(enumName);
-      if (width !== undefined) {
-        result.set(enumName, width);
-      }
+    const entry = this.getSymbols(filePath);
+    if (!entry) {
+      return null;
     }
-
-    return result;
+    const symbols = CachedSymbolReader.read(entry.symbols);
+    return symbols === null ? null : { ...entry, symbols };
   }
 
   /**

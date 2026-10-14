@@ -1,0 +1,18 @@
+// Tests: a comment inside a const initializer never reaches the C (#1991 review)
+// A block comment, and a line comment that splits the initializer over lines
+scope Board {
+    const u32 BASE <- (0x40000000 /* GPIO block */);
+    const u32 SPLIT <- (0x40000000 + // GPIO block
+        0x100);
+    register Gpio @ BASE {
+        DATA: u32 rw @ 0x00,
+    }
+    register Pins @ SPLIT {
+        DATA: u32 rw @ 0x00,
+    }
+}
+
+void main() {
+    Board.Gpio.DATA <- 1;
+    Board.Pins.DATA <- 2;
+}

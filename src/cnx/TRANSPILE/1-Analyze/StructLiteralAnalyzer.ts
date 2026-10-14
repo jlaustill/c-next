@@ -46,35 +46,37 @@
  * context and one was missing a line.
  */
 
-import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
-
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import ParserUtils from "../../utils/ParserUtils";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type TExpression from "../../types/syntax/TExpression";
+import DeclarationParts from "../../utils/DeclarationParts";
+import ExpressionNodes from "../../utils/ExpressionNodes";
 import StructInitializerType from "./helpers/StructInitializerType";
+import ValuePositions from "./helpers/ValuePositions";
+import type IValuePosition from "../../types/IValuePosition";
 import IStructLiteralError from "./types/IStructLiteralError";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
-class StructLiteralListener extends CNextListener {
+class StructLiteralCheck {
   private readonly found: IStructLiteralError[] = [];
 
-  public constructor(private readonly context: IAnalysisContext) {
-    super();
-  }
+  public constructor(
+    private readonly context: IAnalysisContext,
+    private readonly positions: ReadonlyMap<TExpression, IValuePosition>,
+  ) {}
 
   public errors(): IStructLiteralError[] {
     return this.found;
   }
 
-  override enterStructInitializer = (
-    ctx: Parser.StructInitializerContext,
-  ): void => {
+  public checkExpression(init: TExpression): void {
+    if (init.kind !== "structInitializer") return;
+    const at = ValuePositions.at(this.positions, init);
     // The STRUCTURAL question -- "does some enclosing position supply a type?"
     // -- and deliberately not "which type", which a C-header struct's field
-    // cannot answer in this pass. See `hasEstablishingPosition`.
-    if (!StructInitializerType.hasEstablishingPosition(ctx)) {
+    // cannot answer in this pass. See `IValuePosition.supplied`.
+    if (!at.supplied) {
       this.report(
-        ctx,
+        init,
         "E0357",
         "Cannot infer struct type: nothing here says which struct this is",
         "Put the initializer where a type is declared -- a variable, an assignment target, a field, an argument, or a return (ADR-014).",
@@ -87,11 +89,11 @@ class StructLiteralListener extends CNextListener {
     // or a parameter that is an array is checked here (#1760 second review:
     // each typed the element, so the struct form passed for an array of
     // structs and was E0358's for an array of scalars).
-    if (StructInitializerType.takesWholeArray(ctx, this.context)) {
+    if (StructInitializerType.takesWholeArrayAt(at)) {
       this.report(
-        ctx,
+        init,
         "E0866",
-        `An array must be given a list, not '${ctx.getText()}'`,
+        `An array must be given a list, not '${init.written}'`,
         "Write the elements out in brackets, or set them one at a time (ADR-035).",
       );
       return;
@@ -101,25 +103,30 @@ class StructLiteralListener extends CNextListener {
     // integer wherever it is written, inside a struct or not (owner ruling
     // 2026-09-28), and a scalar's field list became a designated initializer
     // C rejects.
-    const target = StructInitializerType.nonStructTarget(ctx, this.context);
+    const target = StructInitializerType.nonStructTypeOf(
+      at,
+      init.span,
+      this.context,
+    );
     if (target === null) return;
     this.report(
-      ctx,
+      init,
       "E0358",
       `A struct initializer cannot be a value of '${target.typeName}', which is not a struct`,
       target.isBitmap
         ? `A bitmap's value is its backing integer, set field by field after: '${target.typeName} v <- 0; v.<field> <- true;' (ADR-034).`
         : `Give a value of type '${target.typeName}'; only a struct takes '{ field: value }' (ADR-014).`,
     );
-  };
+  }
 
   private report(
-    at: ParserRuleContext,
+    at: TExpression,
     code: string,
     message: string,
     helpText: string,
   ): void {
-    const { line, column } = ParserUtils.getPosition(at);
+    const line = at.span.line;
+    const column = at.span.column;
     this.found.push({ code, line, column, message, helpText });
   }
 }
@@ -127,10 +134,22 @@ class StructLiteralListener extends CNextListener {
 class StructLiteralAnalyzer {
   public constructor(private readonly context: IAnalysisContext) {}
 
-  public analyze(tree: Parser.ProgramContext): IStructLiteralError[] {
-    const listener = new StructLiteralListener(this.context);
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
-    return listener.errors();
+  /** #1991: reads 1.2's syntax, not the parse tree */
+  public analyze(
+    program: IProgramSyntax,
+    positions: ReadonlyMap<TExpression, IValuePosition>,
+  ): IStructLiteralError[] {
+    const check = new StructLiteralCheck(this.context, positions);
+    for (const member of program.declarations) {
+      for (const expr of DeclarationParts.of(member.declaration).flatMap(
+        ExpressionNodes.of,
+      )) {
+        check.checkExpression(expr);
+      }
+    }
+    return check
+      .errors()
+      .sort((a, b) => a.line - b.line || a.column - b.column);
   }
 }
 

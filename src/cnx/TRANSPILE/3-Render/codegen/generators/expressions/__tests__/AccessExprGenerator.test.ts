@@ -51,6 +51,7 @@ describe("AccessExprGenerator", () => {
           offset: 0,
           width: 1,
         },
+        null,
         new TranspileState(),
       );
       expect(result.code).toBe("((status >> 0) & 1)");
@@ -64,6 +65,7 @@ describe("AccessExprGenerator", () => {
           offset: 7,
           width: 1,
         },
+        null,
         new TranspileState(),
       );
       expect(result.code).toBe("((flags >> 7) & 1)");
@@ -76,6 +78,7 @@ describe("AccessExprGenerator", () => {
           offset: 4,
           width: 4,
         },
+        null,
         new TranspileState(),
       );
       // 4-bit mask: (1 << 4) - 1 = 15 = 0xF
@@ -89,6 +92,7 @@ describe("AccessExprGenerator", () => {
           offset: 2,
           width: 2,
         },
+        null,
         new TranspileState(),
       );
       // 2-bit mask: (1 << 2) - 1 = 3
@@ -102,6 +106,7 @@ describe("AccessExprGenerator", () => {
           offset: 8,
           width: 8,
         },
+        null,
         new TranspileState(),
       );
       // 8-bit mask: (1 << 8) - 1 = 255 = 0xFF
@@ -115,6 +120,7 @@ describe("AccessExprGenerator", () => {
           offset: 0,
           width: 3,
         },
+        null,
         new TranspileState(),
       );
       // 3-bit mask: (1 << 3) - 1 = 7
@@ -128,6 +134,7 @@ describe("AccessExprGenerator", () => {
           offset: 0,
           width: 16,
         },
+        null,
         new TranspileState(),
       );
       // 16-bit mask: (1 << 16) - 1 = 65535 = 0xFFFF

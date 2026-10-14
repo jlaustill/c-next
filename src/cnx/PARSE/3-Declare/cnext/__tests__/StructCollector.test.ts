@@ -1,5 +1,6 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import parse from "./testHelpers";
+import FirstDeclaration from "./FirstDeclaration";
 import TestScopeUtils from "./testUtils";
 import StructCollector from "../collectors/StructCollector";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
@@ -21,9 +22,8 @@ describe("StructCollector", () => {
         }
       `;
       const tree = parse(code);
-      const structCtx = tree.declaration(0)!.structDeclaration()!;
       const symbol = StructCollector.collect(
-        structCtx,
+        FirstDeclaration.struct(tree),
         "test.cnx",
         "",
         "public",
@@ -63,9 +63,8 @@ describe("StructCollector", () => {
         }
       `;
       const tree = parse(code);
-      const structCtx = tree.declaration(0)!.structDeclaration()!;
       const symbol = StructCollector.collect(
-        structCtx,
+        FirstDeclaration.struct(tree),
         "test.cnx",
         "",
         "public",
@@ -100,9 +99,8 @@ describe("StructCollector", () => {
         }
       `;
       const tree = parse(code);
-      const structCtx = tree.declaration(0)!.structDeclaration()!;
       const symbol = StructCollector.collect(
-        structCtx,
+        FirstDeclaration.struct(tree),
         "test.cnx",
         "",
         "public",
@@ -121,9 +119,8 @@ describe("StructCollector", () => {
         }
       `;
       const tree = parse(code);
-      const structCtx = tree.declaration(0)!.structDeclaration()!;
       const symbol = StructCollector.collect(
-        structCtx,
+        FirstDeclaration.struct(tree),
         "test.cnx",
         "",
         "public",
@@ -142,9 +139,8 @@ describe("StructCollector", () => {
         }
       `;
       const tree = parse(code);
-      const structCtx = tree.declaration(0)!.structDeclaration()!;
       const symbol = StructCollector.collect(
-        structCtx,
+        FirstDeclaration.struct(tree),
         "test.cnx",
         "",
         "public",
@@ -165,9 +161,8 @@ describe("StructCollector", () => {
         }
       `;
       const tree = parse(code);
-      const structCtx = tree.declaration(0)!.structDeclaration()!;
       const symbol = StructCollector.collect(
-        structCtx,
+        FirstDeclaration.struct(tree),
         "test.cnx",
         "",
         "public",
@@ -192,9 +187,8 @@ describe("StructCollector", () => {
         }
       `;
       const tree = parse(code);
-      const structCtx = tree.declaration(0)!.structDeclaration()!;
       const symbol = StructCollector.collect(
-        structCtx,
+        FirstDeclaration.struct(tree),
         "test.cnx",
         "",
         "public",
@@ -215,9 +209,8 @@ describe("StructCollector", () => {
         }
       `;
       const tree = parse(code);
-      const structCtx = tree.declaration(0)!.structDeclaration()!;
       const symbol = StructCollector.collect(
-        structCtx,
+        FirstDeclaration.struct(tree),
         "test.cnx",
         "",
         "public",
@@ -237,9 +230,8 @@ describe("StructCollector", () => {
         }
       `;
       const tree = parse(code);
-      const structCtx = tree.declaration(0)!.structDeclaration()!;
       const symbol = StructCollector.collect(
-        structCtx,
+        FirstDeclaration.struct(tree),
         "test.cnx",
         "",
         "public",
@@ -260,9 +252,8 @@ describe("StructCollector", () => {
         }
       `;
       const tree = parse(code);
-      const structCtx = tree.declaration(0)!.structDeclaration()!;
       const symbol = StructCollector.collect(
-        structCtx,
+        FirstDeclaration.struct(tree),
         "test.cnx",
         "",
         "public",
@@ -279,9 +270,8 @@ describe("StructCollector", () => {
         }
       `;
       const tree = parse(code);
-      const structCtx = tree.declaration(0)!.structDeclaration()!;
       const symbol = StructCollector.collect(
-        structCtx,
+        FirstDeclaration.struct(tree),
         "test.cnx",
         "",
         "public",
@@ -310,9 +300,8 @@ describe("StructCollector", () => {
         }
       `;
       const tree = parse(code);
-      const structCtx = tree.declaration(0)!.structDeclaration()!;
       const symbol = StructCollector.collect(
-        structCtx,
+        FirstDeclaration.struct(tree),
         "test.cnx",
         "",
         "public",
@@ -332,9 +321,8 @@ describe("StructCollector", () => {
         }
       `;
       const tree = parse(code);
-      const structCtx = tree.declaration(0)!.structDeclaration()!;
       const symbol = StructCollector.collect(
-        structCtx,
+        FirstDeclaration.struct(tree),
         "test.cnx",
         "",
         "public",
@@ -357,9 +345,8 @@ describe("StructCollector", () => {
         }
       `;
       const tree = parse(code);
-      const structCtx = tree.declaration(0)!.structDeclaration()!;
       const symbol = StructCollector.collect(
-        structCtx,
+        FirstDeclaration.struct(tree),
         "motor.cnx",
         "Motor",
         "public",
@@ -379,9 +366,8 @@ describe("StructCollector", () => {
         }
       `;
       const tree = parse(code);
-      const structCtx = tree.declaration(0)!.structDeclaration()!;
       const symbol = StructCollector.collect(
-        structCtx,
+        FirstDeclaration.struct(tree),
         "motor.cnx",
         "Motor",
         "public",
@@ -401,9 +387,8 @@ describe("StructCollector", () => {
         }
       `;
       const tree = parse(code);
-      const structCtx = tree.declaration(0)!.structDeclaration()!;
       const symbol = StructCollector.collect(
-        structCtx,
+        FirstDeclaration.struct(tree),
         "test.cnx",
         "",
         "public",
@@ -424,7 +409,7 @@ describe("StructCollector", () => {
         }
       `);
       const symbol = StructCollector.collect(
-        tree.declaration(0)!.structDeclaration()!,
+        FirstDeclaration.struct(tree),
         "test.cnx",
         "",
         "private",
@@ -437,7 +422,7 @@ describe("StructCollector", () => {
   describe("fields carry their own position and identity (#1318)", () => {
     const collect = (code: string, scopePath = "", visibility = "public") =>
       StructCollector.collect(
-        parse(code).declaration(0)!.structDeclaration()!,
+        FirstDeclaration.struct(parse(code)),
         "test.cnx",
         scopePath,
         visibility as "public" | "private",

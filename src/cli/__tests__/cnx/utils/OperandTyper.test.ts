@@ -20,7 +20,7 @@ import testAnalysisContextFor from "../TRANSPILE/1-Analyze/testAnalysisContextFo
 import type IOperandType from "../../../../cnx/types/IOperandType";
 import type ITypingContext from "../../../../cnx/types/ITypingContext";
 import type TSubscriptKind from "../../../../cnx/types/TSubscriptKind";
-import ExpressionUnwrapper from "../../../../cnx/utils/ExpressionUnwrapper";
+import ExpressionUnwrapper from "../../../../cnx/PARSE/2-Parse/ExpressionUnwrapper";
 
 /** Register a C symbol, as Stage 2 would from a header */
 function withC(
@@ -43,10 +43,10 @@ function withC(
 function header(source: string, cpp = false): SymbolTable {
   const table = new SymbolTable();
   if (cpp) {
-    const tree = HeaderParser.parseCpp(source).tree;
+    const tree = HeaderParser.parseCpp(source).syntax;
     table.addCppSymbols(CppResolver.resolve(tree!, "api.hpp", table).symbols);
   } else {
-    const tree = HeaderParser.parseC(source).tree;
+    const tree = HeaderParser.parseC(source).syntax;
     table.addCSymbols(CResolver.resolve(tree!, "api.h", table).symbols);
   }
   return table;

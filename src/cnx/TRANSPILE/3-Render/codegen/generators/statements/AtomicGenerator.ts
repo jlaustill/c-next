@@ -11,37 +11,12 @@
 import TTypeInfo from "../../../../../types/TTypeInfo";
 import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
-import type ITargetDescription from "../../../../../types/ITargetDescription";
-import COMPOUND_TO_BINARY from "../../types/COMPOUND_TO_BINARY";
+import type TAtomicForm from "../../../../types/TAtomicForm";
+import LDREX_MAP from "../../../../2-Plan/types/LDREX_MAP";
+import TYPE_MAP from "../../../../2-Plan/types/TYPE_MAP";
 import invariant from "../../../../../utils/invariant";
+import COMPOUND_TO_BINARY from "../../../../2-Plan/types/COMPOUND_TO_BINARY";
 import InterruptMask from "../../helpers/InterruptMask";
-
-/**
- * Maps C-Next types to C types (for atomic operations)
- */
-const TYPE_MAP: Record<string, string> = {
-  u8: "uint8_t",
-  u16: "uint16_t",
-  u32: "uint32_t",
-  u64: "uint64_t",
-  i8: "int8_t",
-  i16: "int16_t",
-  i32: "int32_t",
-  i64: "int64_t",
-};
-
-/**
- * ADR-049: LDREX intrinsic map for atomic operations
- * Maps C-Next types to ARM LDREX (Load-Exclusive) instructions
- */
-const LDREX_MAP: Record<string, string> = {
-  u8: "__LDREXB",
-  i8: "__LDREXB",
-  u16: "__LDREXH",
-  i16: "__LDREXH",
-  u32: "__LDREXW",
-  i32: "__LDREXW",
-};
 
 /**
  * ADR-049: STREX intrinsic map for atomic operations
@@ -60,7 +35,7 @@ const STREX_MAP: Record<string, string> = {
  * Generate the inner operation for atomic RMW.
  * Handles clamp/wrap behavior for arithmetic operations.
  *
- * @returns Object with code and effects (may include helper effects for clamp)
+ * @returns Object with code and effects
  */
 function generateInnerAtomicOp(
   cOp: string,
@@ -77,11 +52,6 @@ function generateInnerAtomicOp(
 
   // Saturate when the classifier chose a clamp helper
   if (helperOp) {
-    effects.push({
-      type: "helper",
-      operation: helperOp,
-      cnxType: typeInfo.baseType,
-    });
     return {
       code: `cnx_clamp_${helperOp}_${typeInfo.baseType}(__old, ${value})`,
       effects,
@@ -96,7 +66,7 @@ function generateInnerAtomicOp(
  * Generate LDREX/STREX retry loop for atomic RMW.
  * Uses ARM exclusive access instructions for lock-free atomics.
  *
- * @returns Object with code and effects (includes cmsis header)
+ * @returns Object with code and effects
  */
 function generateLdrexStrexLoop(
   target: string,
@@ -108,16 +78,6 @@ function generateLdrexStrexLoop(
   const ldrex = LDREX_MAP[typeInfo.baseType];
   const strex = STREX_MAP[typeInfo.baseType];
   const cType = TYPE_MAP[typeInfo.baseType];
-
-  // Mark that we need CMSIS headers, and report the form this branch emits.
-  // Issue #1143: reported here, in the branch that emits __LDREX*/__STREX*,
-  // so its cost cannot be attributed to a file that took the other branch.
-  // 2.2 decides that cost (#1997).
-  effects.push(
-    { type: "include", header: "cmsis" },
-    { type: "ldrex-strex-loop" },
-    { type: "c-type", cType },
-  );
 
   // Generate LDREX/STREX retry loop
   // Uses do-while because we always need at least one attempt
@@ -138,7 +98,7 @@ function generateLdrexStrexLoop(
  * (#1146: this emitted raw CMSIS with no platform guard, so AVR got CMSIS
  * calls where `critical` got SREG).
  *
- * @returns Object with code and effects (the IRQ wrappers, may include helper)
+ * @returns Object with code and effects
  */
 function generatePrimaskWrapper(
   target: string,
@@ -154,23 +114,18 @@ function generatePrimaskWrapper(
 
   // Saturate when the classifier chose a clamp helper
   if (helperOp) {
-    effects.push({
-      type: "helper",
-      operation: helperOp,
-      cnxType: typeInfo.baseType,
-    });
     assignment = `${target} = cnx_clamp_${helperOp}_${typeInfo.baseType}(${target}, ${value});`;
   } else {
     assignment = `${target} ${cOp} ${value};`;
   }
 
-  const masked = InterruptMask.wrap(assignment, undefined);
+  const masked = InterruptMask.wrap(assignment);
   return { code: masked.code, effects: [...effects, ...masked.effects] };
 }
 
 /**
  * ADR-049: Generate atomic Read-Modify-Write operation.
- * Uses LDREX/STREX on platforms that support it, otherwise PRIMASK.
+ * Written in the form 2.2 decided: LDREX/STREX, or the masked region.
  *
  * @param target - The target variable expression
  * @param cOp - The C compound assignment operator (+=, -=, etc.)
@@ -178,7 +133,7 @@ function generatePrimaskWrapper(
  * @param typeInfo - Type information for the target
  * @param clampOp - ADR-044 helper operation from
  *   `AssignmentClassifier.compoundClamp`, or null for plain arithmetic
- * @param targetDescription - The target this file is generated for
+ * @param form - The form 2.2 planned for this write
  * @returns Generated code and effects
  */
 function generateAtomicRMW(
@@ -187,15 +142,18 @@ function generateAtomicRMW(
   value: string,
   typeInfo: TTypeInfo,
   clampOp: string | null,
-  targetDescription: ITargetDescription,
+  form: TAtomicForm,
 ): IGeneratorOutput {
   const baseType = typeInfo.baseType;
 
   // Generate the inner operation (handles clamp/wrap)
   const innerResult = generateInnerAtomicOp(cOp, value, typeInfo, clampOp);
 
-  // Use LDREX/STREX if available for this type, otherwise PRIMASK fallback
-  if (targetDescription.ldrex_strex && LDREX_MAP[baseType]) {
+  if (form === "ldrex-strex") {
+    invariant(
+      LDREX_MAP[baseType] !== undefined,
+      `2.2 plans an LDREX/STREX loop only for an exclusive-access type (got ${baseType})`,
+    );
     return generateLdrexStrexLoop(
       target,
       innerResult.code,

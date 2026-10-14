@@ -1,7 +1,7 @@
 /**
- * #1997: the requests whose sites `ToolchainRequirements` defers to the 2.2
+ * #1997: the requests whose sites `PlannedRequirements` defers to the 2.2
  * plan. The note side (`TranspileState`) and the take side
- * (`captureEmissionFacts`) name the same key, so a misspelling on either is a
+ * (`CodeGenWalker.planEmissionFacts`) name the same key, so a misspelling on either is a
  * `tsc` error rather than a requirement that silently loses its sites.
  */
 type TDeferredSiteKey =

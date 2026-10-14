@@ -37,8 +37,8 @@ codes that already have a fixture.
 
 | Code  | Message                                                                      | Help                                                              | Source                                            |
 | ----- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------- |
-| E0201 | Identifier ends with, or contains consecutive, underscores                   | Remove the trailing underscore, or collapse `__` to `_`           | `TRANSPILE/1-Analyze/IdentifierSyntaxAnalyzer.ts` |
-| E0202 | Identifier begins with the reserved prefix `cnx_`                            | Drop the reserved prefix                                          | `TRANSPILE/1-Analyze/IdentifierSyntaxAnalyzer.ts` |
+| E0201 | Identifier ends with, or contains consecutive, underscores                   | Remove the trailing underscore, or collapse `__` to `_`           | `PARSE/2-Parse/IdentifierForm.ts`                 |
+| E0202 | Identifier begins with the reserved prefix `cnx_`                            | Drop the reserved prefix                                          | `PARSE/2-Parse/IdentifierForm.ts`                 |
 | E0203 | Two source files produce the same include guard                              | Rename one so the generated headers stay distinguishable          | `Transpiler.ts`                                   |
 | E0204 | External identifiers not distinct within the target's significant characters | Shorten the scope name or the member names                        | `Transpiler.ts`, `PARSE/3-Declare/SymbolTable.ts` |
 | E0227 | Parameter cannot start with function name prefix                             | Consider renaming to a name that doesn't start with function name | `TRANSPILE/1-Analyze/ParameterNamingAnalyzer.ts`  |
@@ -250,9 +250,9 @@ include-visibility is not derivable for a C or C++ name.
 
 ### Critical Section Safety
 
-| Code  | Message                                     | Help                                              | Source                                        |
-| ----- | ------------------------------------------- | ------------------------------------------------- | --------------------------------------------- |
-| E0853 | Cannot use `return` inside critical section | Would leave interrupts disabled; restructure flow | `TRANSPILE/3-Render/codegen/TypeValidator.ts` |
+| Code  | Message                                     | Help                                              | Source                              |
+| ----- | ------------------------------------------- | ------------------------------------------------- | ----------------------------------- |
+| E0853 | Cannot use `return` inside critical section | Would leave interrupts disabled; restructure flow | `TRANSPILE/2-Plan/TypeValidator.ts` |
 
 ### Array Index Bounds (ADR-036; E0855 reserved for ADR-054)
 
@@ -394,7 +394,7 @@ base: bare, `this.` and `global.`.
 
 | Code  | Message                                                                                    | Help                                                                      | Source                                             |
 | ----- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- | -------------------------------------------------- |
-| E0912 | A decimal integer literal has a leading zero; C-Next has no octal literal (ADR-044)        | Write the value in decimal without the leading zero, or as `0x…` or `0b…` | `TRANSPILE/1-Analyze/LiteralFormAnalyzer.ts`       |
+| E0912 | A decimal integer literal has a leading zero; C-Next has no octal literal (ADR-044)        | Write the value in decimal without the leading zero, or as `0x…` or `0b…` | `PARSE/2-Parse/LiteralForm.ts`                     |
 | E0913 | Array dimension is zero or negative (a literal, a folded const, or a header macro's value) | An array holds one element or more (C99 6.7.5.2, ADR-036)                 | `TRANSPILE/1-Analyze/ConstantDimensionAnalyzer.ts` |
 
 ## E0914 — A String Into a Scalar (ADR-024)

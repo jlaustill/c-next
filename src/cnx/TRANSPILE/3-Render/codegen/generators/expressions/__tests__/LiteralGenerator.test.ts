@@ -7,6 +7,7 @@
  * - Integer suffixes: u64 → ULL, i64 → LL, 8/16/32-bit → stripped
  */
 
+import TestSymbolTable from "../../../../../__tests__/TestSymbolTable";
 import { describe, it, expect, beforeEach } from "vitest";
 import generateLiteral from "../LiteralGenerator";
 import type IGeneratorState from "../../IGeneratorState";
@@ -22,34 +23,35 @@ let state = new TranspileState();
 describe("LiteralGenerator", () => {
   beforeEach(() => {
     state = new TranspileState();
+    TestSymbolTable.install(state);
   });
 
   describe("boolean literals", () => {
-    it("should pass through boolean true with the bool c-type effect", () => {
-      const result = generateLiteral("true", mockState, state);
+    it("should pass through boolean true with no effect", () => {
+      const result = generateLiteral("true", mockState, state, null);
 
       expect(result.code).toBe("true");
-      expect(result.effects).toEqual([{ type: "c-type", cType: "bool" }]);
+      expect(result.effects).toEqual([]);
     });
 
-    it("should pass through boolean false with the bool c-type effect", () => {
-      const result = generateLiteral("false", mockState, state);
+    it("should pass through boolean false with no effect", () => {
+      const result = generateLiteral("false", mockState, state, null);
 
       expect(result.code).toBe("false");
-      expect(result.effects).toEqual([{ type: "c-type", cType: "bool" }]);
+      expect(result.effects).toEqual([]);
     });
   });
 
   describe("float suffixes (ADR-024)", () => {
     it("should transform f32 suffix to C float suffix", () => {
-      const result = generateLiteral("3.14f32", mockState, state);
+      const result = generateLiteral("3.14f32", mockState, state, null);
 
       expect(result.code).toBe("3.14f");
       expect(result.effects).toEqual([]);
     });
 
     it("should transform f64 suffix by removing it", () => {
-      const result = generateLiteral("3.14f64", mockState, state);
+      const result = generateLiteral("3.14f64", mockState, state, null);
 
       expect(result.code).toBe("3.14");
       expect(result.effects).toEqual([]);
@@ -68,6 +70,7 @@ describe("LiteralGenerator", () => {
         text,
         { expectedType } as IGeneratorState,
         state,
+        null,
       );
 
       expect(result.code).toBe(code);
@@ -81,7 +84,7 @@ describe("LiteralGenerator", () => {
       ["should strip 8/16/32-bit integer suffixes", "42u8", "42"],
       ["should transform uppercase U64 suffix to ULL", "0xFFU64", "0xFFULL"],
     ])("%s", (_label, source, source2) => {
-      const result = generateLiteral(source, mockState, state);
+      const result = generateLiteral(source, mockState, state, null);
 
       expect(result.code).toBe(source2);
       expect(result.effects).toEqual([]);
@@ -90,14 +93,14 @@ describe("LiteralGenerator", () => {
 
   describe("passthrough literals", () => {
     it("should pass through plain integer without effects", () => {
-      const result = generateLiteral("42", mockState, state);
+      const result = generateLiteral("42", mockState, state, null);
 
       expect(result.code).toBe("42");
       expect(result.effects).toEqual([]);
     });
 
     it("should pass through string literal without effects", () => {
-      const result = generateLiteral('"hello"', mockState, state);
+      const result = generateLiteral('"hello"', mockState, state, null);
 
       expect(result.code).toBe('"hello"');
       expect(result.effects).toEqual([]);
@@ -185,7 +188,7 @@ describe("LiteralGenerator", () => {
       ],
     ])("%s", (_label, source, argument2, expected) => {
       const generatorState = createStateWithExpectedType(argument2);
-      const result = generateLiteral(source, generatorState, state);
+      const result = generateLiteral(source, generatorState, state, null);
 
       expect(result.code).toBe(expected);
     });

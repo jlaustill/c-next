@@ -155,7 +155,7 @@ and the header writes the same size the `.c` does.
   lacks (`S.NOPE`) and a divisor that is zero only once computed
   (`4 / (2 - 2)`) are reported by nothing else, so E0909 says them (#1863
   review: they reached the header as `f[0]`, or render's invariant).
-- `LiteralFormAnalyzer` reports a leading-zero decimal literal (E0912), in a
+- 1.2's `LiteralForm` reports a leading-zero decimal literal (E0912), in a
   stage before any of these: ADR-044 has no octal literal, so no reading gives
   `010` a value.
 - The dimension stage runs right after E0427's and E0800's, before anything

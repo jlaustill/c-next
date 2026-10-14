@@ -44,23 +44,23 @@
  *
  * Every type -- a value's, a target's, a declaration's written type -- comes
  * from the one operand typer (#1668), and every assignment site is read, `for`
- * headers included (#1726).
+ * headers included (#1726) -- a `for` header's declaration too. Every site is
+ * read off 1.2's syntax (#1991).
  */
 
-import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
-import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
-
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
+import DeclarationParts from "../../utils/DeclarationParts";
+import ExpressionNodes from "../../utils/ExpressionNodes";
+import StatementNodes from "../../utils/StatementNodes";
 import EnumValueResolver from "./EnumValueResolver";
-import BinaryOperatorLevelListener from "./BinaryOperatorLevelListener";
-import AssignmentSiteListener from "./AssignmentSiteListener";
 import IEnumTypeSafetyError from "./types/IEnumTypeSafetyError";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import type IOperandType from "../../types/IOperandType";
-import type TAssignmentSite from "../../types/TAssignmentSite";
+import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type IVariableDeclarationSyntax from "../../types/syntax/IVariableDeclarationSyntax";
+import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
+import type TExpression from "../../types/syntax/TExpression";
 import SourceOrder from "../../utils/SourceOrder";
 
 const ASSIGN_HELP =
@@ -68,48 +68,59 @@ const ASSIGN_HELP =
 const COMPARE_HELP =
   "ADR-017: an enum is its own type, not an integer. Compare it with a member of the same enum, or cast explicitly.";
 
-class EnumTypeSafetyListener extends CNextListener {
+class EnumTypeSafetyCheck {
   private readonly found: IEnumTypeSafetyError[] = [];
 
   public constructor(
     private readonly values: EnumValueResolver,
     private readonly context: IAnalysisContext,
-  ) {
-    super();
-  }
+  ) {}
 
   public errors(): IEnumTypeSafetyError[] {
     return this.found;
   }
 
+  /** Every variable declaration: global, scope member, local, `for` header */
+  public declarations(declaration: TDeclarationSyntax): void {
+    if (declaration.kind === "scope") {
+      for (const member of declaration.members) {
+        this.declarations(member.declaration);
+      }
+      return;
+    }
+    if (declaration.kind === "variableDeclaration") {
+      this.checkDeclaration(declaration);
+      return;
+    }
+    for (const statement of StatementNodes.in(declaration)) {
+      if (statement.kind === "variableDeclaration") {
+        this.checkDeclaration(statement);
+      }
+    }
+  }
+
   /** `State s <- value;` -- the declared type names the target. */
-  override enterVariableDeclaration = (
-    ctx: Parser.VariableDeclarationContext,
-  ): void => {
-    const expression = ctx.expression();
-    if (!expression) return;
+  private checkDeclaration(declaration: IVariableDeclarationSyntax): void {
+    if (declaration.initializer === null) return;
     this.checkAssignment(
       OperandTyper.typeOfWritten(
-        SyntaxLowering.type(ctx.type()),
+        declaration.type,
         this.context,
-        ParserUtils.getPosition(ctx),
+        declaration.span,
       ),
-      expression,
+      declaration.initializer,
     );
-  };
+  }
 
   /** `s <- value;`, in a statement or a `for` header */
-  public checkSite(site: TAssignmentSite): void {
+  public checkSite(site: IAssignmentSyntax): void {
     // Only a plain `<-` assigns a whole value. A compound operator on an enum
     // is E0857's business, and reporting both would be two diagnostics for one
     // mistake.
-    if (!site.assignmentOperator().ASSIGN()) return;
+    if (site.operator !== "<-") return;
     this.checkAssignment(
-      OperandTyper.typeOfTarget(
-        SyntaxLowering.assignmentTarget(site.assignmentTarget()),
-        this.context,
-      ),
-      site.expression(),
+      OperandTyper.typeOfTarget(site.target, this.context),
+      site.value,
     );
   }
 
@@ -130,39 +141,37 @@ class EnumTypeSafetyListener extends CNextListener {
 
   private checkAssignment(
     target: IOperandType | null,
-    expression: Parser.ExpressionContext,
+    value: TExpression,
   ): void {
     const targetKind = EnumValueResolver.kindOf(target);
     if (targetKind.kind !== "enum") return;
     const targetType = targetKind.typeName;
 
-    const verdict = this.values.classify(expression);
+    const verdict = this.values.classify(value);
     if (
       verdict.kind === "unresolved" &&
-      !this.values.isPureMemberPath(expression)
+      !EnumValueResolver.isPureMemberPath(value)
     ) {
       return;
     }
     if (verdict.kind === "enum" && verdict.typeName === targetType) return;
 
-    const what = EnumTypeSafetyListener.describe(verdict);
-
-    const { line, column } = ParserUtils.getPosition(expression);
     this.found.push({
       code: "E0428",
-      line,
-      column,
-      message: `Cannot assign ${what} to ${targetType} enum`,
+      line: value.span.line,
+      column: value.span.column,
+      message: `Cannot assign ${EnumTypeSafetyCheck.describe(verdict)} to ${targetType} enum`,
       helpText: ASSIGN_HELP,
     });
   }
 
   /** `a = b`, `a != b` and the relational operators */
-  public checkComparison(operands: readonly ParserRuleContext[]): void {
-    if (operands.length < 2) return;
+  public checkComparison(expr: TExpression): void {
+    if (expr.kind !== "binary") return;
+    if (expr.level !== "equality" && expr.level !== "relational") return;
 
-    const left = this.values.classify(operands[0]);
-    const right = this.values.classify(operands[1]);
+    const left = this.values.classify(expr.operands[0]);
+    const right = this.values.classify(expr.operands[1]);
     if (left.kind === "unresolved" || right.kind === "unresolved") return;
     if (left.kind !== "enum" && right.kind !== "enum") return;
     if (
@@ -173,12 +182,11 @@ class EnumTypeSafetyListener extends CNextListener {
       return;
     }
 
-    const { line, column } = ParserUtils.getPosition(operands[1]);
     this.found.push({
       code: "E0434",
-      line,
-      column,
-      message: `Cannot compare ${EnumTypeSafetyListener.describe(left)} to ${EnumTypeSafetyListener.describe(right)}`,
+      line: expr.operands[1].span.line,
+      column: expr.operands[1].span.column,
+      message: `Cannot compare ${EnumTypeSafetyCheck.describe(left)} to ${EnumTypeSafetyCheck.describe(right)}`,
       helpText: COMPARE_HELP,
     });
   }
@@ -188,27 +196,23 @@ class EnumTypeSafetyAnalyzer {
   /** #1456: handed in rather than read off shared state. */
   constructor(private readonly context: IAnalysisContext) {}
 
-  public analyze(tree: Parser.ProgramContext): IEnumTypeSafetyError[] {
-    const listener = new EnumTypeSafetyListener(
+  public analyze(program: IProgramSyntax): IEnumTypeSafetyError[] {
+    const check = new EnumTypeSafetyCheck(
       new EnumValueResolver(this.context),
       this.context,
     );
-    // One walk for declarations, one per shared listener; reported in source
-    // order, as the one walk these replace did
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
-    ParseTreeWalker.DEFAULT.walk(
-      new BinaryOperatorLevelListener((operands, level) => {
-        if (level === "equality" || level === "relational") {
-          listener.checkComparison(operands);
+    for (const member of program.declarations) {
+      check.declarations(member.declaration);
+      for (const part of DeclarationParts.of(member.declaration)) {
+        for (const expr of ExpressionNodes.of(part)) {
+          check.checkComparison(expr);
         }
-      }),
-      tree,
-    );
-    ParseTreeWalker.DEFAULT.walk(
-      new AssignmentSiteListener((site) => listener.checkSite(site)),
-      tree,
-    );
-    return listener.errors().sort(SourceOrder.compare);
+      }
+      for (const site of StatementNodes.assignments(member.declaration)) {
+        check.checkSite(site);
+      }
+    }
+    return check.errors().sort(SourceOrder.compare);
   }
 }
 

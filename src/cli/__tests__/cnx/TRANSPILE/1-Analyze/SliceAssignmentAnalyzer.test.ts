@@ -14,10 +14,10 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  * `tests/slice-assignment/` exercises end to end.
  */
 const errors = (body: string) => {
-  const { tree, context } = testAnalysisContextFor(`void f() {\n${body}\n}`, {
+  const { syntax, context } = testAnalysisContextFor(`void f() {\n${body}\n}`, {
     cppMode: false,
   });
-  return new SliceAssignmentAnalyzer(context).analyze(tree);
+  return new SliceAssignmentAnalyzer(context).analyze(syntax);
 };
 
 const codes = (body: string) => errors(body).map((e) => e.code);
@@ -157,6 +157,41 @@ describe("SliceAssignmentAnalyzer", () => {
           "    s[0, 4] <- 65;",
         ].join("\n"),
       ),
+    ).toEqual([]);
+  });
+});
+
+// #1991: read off 1.2's syntax, so which sites are slices and where each
+// report lands are asserted directly.
+describe("SliceAssignmentAnalyzer -- sites and positions", () => {
+  const where = (source: string) => {
+    const { syntax, context } = testAnalysisContextFor(source, {
+      cppMode: false,
+    });
+    return new SliceAssignmentAnalyzer(context)
+      .analyze(syntax)
+      .map((e) => [e.code, e.line, e.column]);
+  };
+
+  it("reports at the offset", () => {
+    expect(
+      where(
+        "void f() {\n    u8[8] buf;\n    u64 v <- 1;\n    buf[4, 8] <- v;\n}",
+      ),
+    ).toEqual([["E0860", 4, 8]]);
+  });
+
+  it("checks a slice named through `this.`", () => {
+    expect(
+      where(
+        "scope P {\n    u8[8] buf;\n    public void f() {\n        u64 v <- 1;\n        this.buf[4, 8] <- v;\n    }\n}",
+      ),
+    ).toEqual([["E0860", 5, 17]]);
+  });
+
+  it("leaves a compound slice to E0857", () => {
+    expect(
+      where("void f() {\n    u8[8] buf;\n    buf[4, 8] +<- 1;\n}"),
     ).toEqual([]);
   });
 });

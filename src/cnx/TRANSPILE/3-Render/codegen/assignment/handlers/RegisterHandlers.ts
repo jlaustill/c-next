@@ -13,7 +13,7 @@ import IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
 import BitUtils from "../../../../../utils/BitUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import RegisterUtils from "./RegisterUtils";
-import AssignmentHandlerUtils from "./AssignmentHandlerUtils";
+import AssignmentHandlerUtils from "../../../../2-Plan/AssignmentHandlerUtils";
 import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
 
 /**
@@ -77,10 +77,11 @@ function writeRegisterBitRange(
     const mmio = RegisterUtils.tryGenerateMMIO(
       memberName,
       regName,
+      ctx.plannedRegisterAccess,
       ctx.foldSubscript(0),
-      width.folded,
       ctx.generatedValue,
       ctx.state,
+      ctx.renderExpression,
     );
     if (mmio.success) {
       return mmio.statement!;

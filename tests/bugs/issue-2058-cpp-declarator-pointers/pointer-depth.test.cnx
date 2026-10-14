@@ -1,0 +1,26 @@
+// test-cpp-only
+// test-execution
+// #2058: a C++ header's declarator keeps its pointer depth, as a C header's
+// does. `Sensor* sensor_get()` returns a pointer, `int *p` is a pointer, and
+// `open_it(int **out)` takes a pointer to one -- each read as one level less
+// made C++ that g++ rejects.
+#include "cpp_pointers.hpp"
+
+u32 main() {
+    // The return type keeps its `*`: `s` is a `Sensor*`.
+    Sensor s <- sensor_get();
+    if (s.v != 42) {
+        return 1;
+    }
+    // A definition's return type keeps its `*` too.
+    Sensor t <- sensor_direct();
+    if (t.v != 42) {
+        return 3;
+    }
+    // `p` is an `int*` and the parameter an `int**`: the call takes `&p`.
+    open_it(p);
+    if (counter != 9) {
+        return 2;
+    }
+    return 0;
+}

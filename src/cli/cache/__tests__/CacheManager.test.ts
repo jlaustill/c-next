@@ -29,6 +29,7 @@ import type IFunctionSymbol from "../../../cnx/types/symbols/IFunctionSymbol";
 import TestSymbolUtils from "../../../cnx/PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
 import TestSourceSpan from "../../../cnx/types/__testUtils__/testSourceSpan";
 import NodeFileSystem from "../../../cnx/PARSE/1-Discover/NodeFileSystem";
+import HeaderDeclarationRecord from "../../../cnx/PARSE/3-Declare/HeaderDeclarationRecord";
 
 describe("CacheManager", () => {
   let testDir: string;
@@ -60,7 +61,7 @@ describe("CacheManager", () => {
 
   /**
    * Store symbols the way production does: encoded, carrying struct state.
-   * Keeps these tests on the same path `setSymbolsFromTable` uses, so they
+   * Keeps these tests on the same path `HeaderDeclarationRecord.of` uses, so they
    * cannot pass on a shape the transpiler never writes.
    */
   function storeSymbols(
@@ -304,7 +305,7 @@ describe("CacheManager", () => {
       // asserted that signature/parent/accessModifier/size round-trip --
       // fields the production serializer never wrote, and that the C symbol
       // model does not even have. It proved the storage layer was lossless,
-      // never that the cache was. It now goes through setSymbolsFromTable,
+      // never that the cache was. It now goes through setHeaderDeclarations,
       // which is the path the transpiler actually takes.
       const symbolTable = new SymbolTable();
       symbolTable.addCSymbol({
@@ -322,7 +323,10 @@ describe("CacheManager", () => {
         ],
       });
 
-      cacheManager.setSymbolsFromTable(testFile, symbolTable);
+      cacheManager.setHeaderDeclarations(
+        testFile,
+        HeaderDeclarationRecord.of(testFile, symbolTable),
+      );
 
       const restored = readSymbols(cacheManager.getSymbols(testFile)!.symbols);
       const restoredFunction = restored[0] as Extract<
@@ -925,7 +929,7 @@ describe("CacheManager", () => {
     });
   });
 
-  describe("setSymbolsFromTable (Issue #590)", () => {
+  describe("setHeaderDeclarations (Issue #590)", () => {
     let symbolTable: SymbolTable;
 
     beforeEach(() => {
@@ -947,7 +951,10 @@ describe("CacheManager", () => {
         visibility: "public",
       });
 
-      cacheManager.setSymbolsFromTable(testFile, symbolTable);
+      cacheManager.setHeaderDeclarations(
+        testFile,
+        HeaderDeclarationRecord.of(testFile, symbolTable),
+      );
 
       const cached = cacheManager.getSymbols(testFile);
       expect(cached).not.toBeNull();
@@ -964,7 +971,7 @@ describe("CacheManager", () => {
     });
 
     it("does not cache C-Next symbols (#1225)", () => {
-      // setSymbolsFromTable only ever runs on a .h/.hpp, and the restore path
+      // setHeaderDeclarations only ever runs on a .h/.hpp, and the restore path
       // always skipped C-Next symbols anyway -- so writing them was work whose
       // result was guaranteed to be discarded. The filter makes that invariant
       // explicit, and CachedSymbolReader now rejects an entry containing one.
@@ -993,7 +1000,10 @@ describe("CacheManager", () => {
         visibility: "public",
       } as IFunctionSymbol);
 
-      cacheManager.setSymbolsFromTable(headerFile, symbolTable);
+      cacheManager.setHeaderDeclarations(
+        headerFile,
+        HeaderDeclarationRecord.of(headerFile, symbolTable),
+      );
 
       const restored = readSymbols(
         cacheManager.getSymbols(headerFile)!.symbols,
@@ -1021,8 +1031,11 @@ describe("CacheManager", () => {
       symbolTable.addStructField("Point", "y", "int32_t");
       symbolTable.addStructField("Point", "data", "uint8_t", [10]);
 
-      // Cache via setSymbolsFromTable
-      cacheManager.setSymbolsFromTable(testFile, symbolTable);
+      // Cache via setHeaderDeclarations
+      cacheManager.setHeaderDeclarations(
+        testFile,
+        HeaderDeclarationRecord.of(testFile, symbolTable),
+      );
 
       // Verify cached data
       const cached = cacheManager.getSymbols(testFile);
@@ -1069,7 +1082,10 @@ describe("CacheManager", () => {
       symbolTable.addStructField("PointB", "y", "int32_t");
 
       // Cache file1 only
-      cacheManager.setSymbolsFromTable(file1, symbolTable);
+      cacheManager.setHeaderDeclarations(
+        file1,
+        HeaderDeclarationRecord.of(file1, symbolTable),
+      );
 
       // Verify only file1's struct fields are cached
       const cached = cacheManager.getSymbols(file1);
@@ -1109,8 +1125,11 @@ describe("CacheManager", () => {
       // Mark one struct as needing 'struct' keyword
       symbolTable.markNeedsStructKeyword("NamedStruct");
 
-      // Cache via setSymbolsFromTable
-      cacheManager.setSymbolsFromTable(testFile, symbolTable);
+      // Cache via setHeaderDeclarations
+      cacheManager.setHeaderDeclarations(
+        testFile,
+        HeaderDeclarationRecord.of(testFile, symbolTable),
+      );
 
       // Verify cached data
       const cached = cacheManager.getSymbols(testFile);
@@ -1153,7 +1172,10 @@ describe("CacheManager", () => {
       symbolTable.markNeedsStructKeyword("StructB");
 
       // Cache file1 only
-      cacheManager.setSymbolsFromTable(file1, symbolTable);
+      cacheManager.setHeaderDeclarations(
+        file1,
+        HeaderDeclarationRecord.of(file1, symbolTable),
+      );
 
       // Verify only file1's needsStructKeyword is cached
       const cached = cacheManager.getSymbols(file1);
@@ -1190,8 +1212,11 @@ describe("CacheManager", () => {
       symbolTable.addEnumBitWidth("Status", 8);
       symbolTable.addEnumBitWidth("Priority", 16);
 
-      // Cache via setSymbolsFromTable
-      cacheManager.setSymbolsFromTable(testFile, symbolTable);
+      // Cache via setHeaderDeclarations
+      cacheManager.setHeaderDeclarations(
+        testFile,
+        HeaderDeclarationRecord.of(testFile, symbolTable),
+      );
 
       // Verify cached data
       const cached = cacheManager.getSymbols(testFile);
@@ -1231,7 +1256,10 @@ describe("CacheManager", () => {
       symbolTable.addEnumBitWidth("EnumB", 32);
 
       // Cache file1 only
-      cacheManager.setSymbolsFromTable(file1, symbolTable);
+      cacheManager.setHeaderDeclarations(
+        file1,
+        HeaderDeclarationRecord.of(file1, symbolTable),
+      );
 
       // Verify only file1's enum bit widths are cached
       const cached = cacheManager.getSymbols(file1);
@@ -1281,8 +1309,11 @@ describe("CacheManager", () => {
       });
       symbolTable.addEnumBitWidth("DataType", 8);
 
-      // Cache via setSymbolsFromTable
-      cacheManager.setSymbolsFromTable(testFile, symbolTable);
+      // Cache via setHeaderDeclarations
+      cacheManager.setHeaderDeclarations(
+        testFile,
+        HeaderDeclarationRecord.of(testFile, symbolTable),
+      );
 
       // Verify all data is cached correctly
       const cached = cacheManager.getSymbols(testFile);
@@ -1312,7 +1343,7 @@ describe("CacheManager", () => {
       expect(cached!.enumBitWidth.get("DataType")).toBe(8);
     });
 
-    it("should persist data from setSymbolsFromTable across flush and reload", () => {
+    it("should persist data from setHeaderDeclarations across flush and reload", () => {
       const testFile = join(testDir, "persist.h");
       writeFileSync(testFile, "// test");
 
@@ -1341,7 +1372,10 @@ describe("CacheManager", () => {
       symbolTable.addEnumBitWidth("MyEnum", 16);
 
       // Cache and flush
-      cacheManager.setSymbolsFromTable(testFile, symbolTable);
+      cacheManager.setHeaderDeclarations(
+        testFile,
+        HeaderDeclarationRecord.of(testFile, symbolTable),
+      );
       cacheManager.flush();
 
       // Reload with new manager
@@ -1374,7 +1408,10 @@ describe("CacheManager", () => {
       });
 
       // Should not throw, but should not cache
-      cacheManager.setSymbolsFromTable(nonExistent, symbolTable);
+      cacheManager.setHeaderDeclarations(
+        nonExistent,
+        HeaderDeclarationRecord.of(nonExistent, symbolTable),
+      );
 
       expect(cacheManager.getSymbols(nonExistent)).toBeNull();
     });
@@ -1384,7 +1421,10 @@ describe("CacheManager", () => {
       writeFileSync(testFile, "// empty file");
 
       // Empty SymbolTable
-      cacheManager.setSymbolsFromTable(testFile, symbolTable);
+      cacheManager.setHeaderDeclarations(
+        testFile,
+        HeaderDeclarationRecord.of(testFile, symbolTable),
+      );
 
       // Should cache with empty data
       const cached = cacheManager.getSymbols(testFile);
@@ -1411,7 +1451,10 @@ describe("CacheManager", () => {
       });
       // Note: not adding fields, so getStructNamesByFile won't include it
 
-      cacheManager.setSymbolsFromTable(testFile, symbolTable);
+      cacheManager.setHeaderDeclarations(
+        testFile,
+        HeaderDeclarationRecord.of(testFile, symbolTable),
+      );
 
       const cached = cacheManager.getSymbols(testFile);
       expect(cached).not.toBeNull();
@@ -1436,7 +1479,10 @@ describe("CacheManager", () => {
         members: [],
       });
 
-      cacheManager.setSymbolsFromTable(testFile, symbolTable);
+      cacheManager.setHeaderDeclarations(
+        testFile,
+        HeaderDeclarationRecord.of(testFile, symbolTable),
+      );
 
       const cached = cacheManager.getSymbols(testFile);
       expect(cached).not.toBeNull();
@@ -1478,7 +1524,10 @@ describe("CacheManager", () => {
         visibility: "public",
       });
 
-      cacheManager.setSymbolsFromTable(testFile, symbolTable);
+      cacheManager.setHeaderDeclarations(
+        testFile,
+        HeaderDeclarationRecord.of(testFile, symbolTable),
+      );
 
       const cached = cacheManager.getSymbols(testFile);
       expect(cached).not.toBeNull();

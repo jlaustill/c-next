@@ -85,7 +85,7 @@ class ConstLiteral {
   /** A literal initializer keeps its notation (`0xAB`); the rest are digits */
   private static integerText(symbol: IVariableSymbol, digits: string): string {
     const expr = symbol.initialValueExpr!;
-    return expr.kind === "literal" ? symbol.initialValue! : digits;
+    return expr.kind === "literal" ? expr.text : digits;
   }
 
   /**

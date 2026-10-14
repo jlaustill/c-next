@@ -11,97 +11,93 @@
  * divides by its value the same way (#1770).
  */
 
-import { ParseTreeWalker, ParserRuleContext } from "antlr4ng";
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
+import type TExpression from "../../types/syntax/TExpression";
+import type TStatement from "../../types/syntax/TStatement";
+import type TBinaryExpression from "../../types/syntax/TBinaryExpression";
+import DeclarationParts from "../../utils/DeclarationParts";
+import ExpressionNodes from "../../utils/ExpressionNodes";
+import StatementNodes from "../../utils/StatementNodes";
+import CompoundOperator from "../../utils/CompoundOperator";
+import SourceOrder from "../../utils/SourceOrder";
 import IDivisionByZeroError from "./types/IDivisionByZeroError";
-import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
 import ConstantFold from "../../utils/ConstantFold";
 import ConstExprLowering from "../../utils/ConstExprLowering";
-import CompoundOperator from "../../utils/CompoundOperator";
-import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
-import AssignmentSiteListener from "./AssignmentSiteListener";
 import type IAnalysisContext from "./types/IAnalysisContext";
-import type TAssignmentSite from "../../types/TAssignmentSite";
-import SourceOrder from "../../utils/SourceOrder";
 
-/**
- * Detect division by zero (including const identifiers)
- */
-class DivisionByZeroListener extends CNextListener {
-  private readonly analyzer: DivisionByZeroAnalyzer;
+/** #1991: reads 1.2's syntax, not the parse tree */
+class DivisionByZeroAnalyzer {
+  constructor(private readonly context: IAnalysisContext) {}
 
-  constructor(
-    analyzer: DivisionByZeroAnalyzer,
-    private readonly context: IAnalysisContext,
-  ) {
-    super();
-    this.analyzer = analyzer;
+  private errors: IDivisionByZeroError[] = [];
+
+  public analyze(program: IProgramSyntax): IDivisionByZeroError[] {
+    this.errors = [];
+    for (const member of program.declarations) {
+      this.declaration(member.declaration);
+    }
+    // Binary levels, then compound writes; report in source order
+    return this.errors.sort(SourceOrder.compare);
   }
 
-  /**
-   * Check multiplicative expressions for division/modulo by zero
-   * multiplicativeExpression: unaryExpression (('*' | '/' | '%') unaryExpression)*
-   */
-  override enterMultiplicativeExpression = (
-    ctx: Parser.MultiplicativeExpressionContext,
-  ): void => {
-    // Get all unary expressions
-    const operands = ctx.unaryExpression();
-    if (operands.length < 2) {
-      return; // No operator, just a single operand
+  private declaration(declaration: TDeclarationSyntax): void {
+    if (declaration.kind === "scope") {
+      for (const member of declaration.members) {
+        this.declaration(member.declaration);
+      }
+      return;
     }
-
-    // Check each operator and its right operand
-    for (let i = 0; i < operands.length - 1; i++) {
-      const operatorToken = ctx.getChild(i * 2 + 1); // Operators are at odd indices
-      if (!operatorToken) continue;
-
-      this.checkDivision(operatorToken.getText(), operands[i + 1]);
+    const atRunTime = new Set(
+      declaration.kind === "function"
+        ? DivisionByZeroAnalyzer.runTimeRoots(
+            declaration.body.statements,
+          ).flatMap(ExpressionNodes.direct)
+        : [],
+    );
+    for (const part of DeclarationParts.of(declaration)) {
+      for (const expr of ExpressionNodes.of(part)) {
+        if (expr.kind === "binary") this.check(expr, atRunTime.has(expr));
+      }
     }
-  };
+    this.compoundDivisions(declaration);
+  }
 
   /**
    * `x /<- d` and `x %<- d` divide `x` by `d`, in a statement or a `for`
-   * header
+   * header (#1770)
    */
-  public checkAssignment(site: TAssignmentSite): void {
-    const operator = CompoundOperator.binaryOf(
-      site.assignmentOperator().getText(),
-    );
-    if (operator !== null) this.checkDivision(operator, site.expression());
+  private compoundDivisions(declaration: TDeclarationSyntax): void {
+    for (const site of StatementNodes.assignments(declaration)) {
+      const operator = CompoundOperator.binaryOf(site.operator);
+      if (operator !== "/" && operator !== "%") continue;
+      if (site.value.kind === "missing" || !this.isZero(site.value)) continue;
+      this.addError(
+        operator,
+        site.value.span.line,
+        site.value.span.column,
+        true,
+      );
+    }
   }
 
-  /** `/` or `%` by a compile-time zero, at the divisor */
-  private checkDivision(
-    operator: string,
-    divisor: Parser.UnaryExpressionContext | Parser.ExpressionContext,
-  ): void {
-    if (operator !== "/" && operator !== "%") return;
-    if (!this.isZero(divisor)) return;
-    const { line, column } = ParserUtils.getPosition(divisor);
-    this.analyzer.addError(
-      operator,
-      line,
-      column,
-      DivisionByZeroListener.atRunTime(divisor),
-    );
+  private check(expr: TBinaryExpression, atRunTime: boolean): void {
+    expr.operators.forEach((operator, i) => {
+      if (operator !== "/" && operator !== "%") return;
+      const divisor = expr.operands[i + 1];
+      if (this.isZero(divisor)) {
+        this.addError(
+          operator,
+          divisor.span.line,
+          divisor.span.column,
+          atRunTime,
+        );
+      }
+    });
   }
 
-  /**
-   * Whether a divisor is a compile-time zero, integer or float alike (ADR-051
-   * §4). An enum or Boolean operand is not a number at all -- E0810/E0811 say
-   * so -- so it is not this rule's. A leaf with no C-Next type is still a
-   * number when it folds to one: a length property has no source type but a
-   * compile-time value (ADR-058). A cast to an undeclared type folds to no
-   * value, so `(Nope)0` stays the undefined type's error, E0426 (#1268
-   * review).
-   */
-  private isZero(
-    ctx: Parser.UnaryExpressionContext | Parser.ExpressionContext,
-  ): boolean {
-    const divisor = SyntaxLowering.expressionNode(ctx);
+  private isZero(divisor: TExpression): boolean {
     const numeric = OperandTyper.valueLeaves(divisor, this.context).every(
       (leaf) =>
         leaf === null ||
@@ -122,53 +118,35 @@ class DivisionByZeroListener extends CNextListener {
    * not in what must be known at compile time there -- an array dimension, an
    * enum member's value, a const's initializer (#1268 review)
    */
-  private static atRunTime(ctx: ParserRuleContext): boolean {
-    for (let node = ctx.parent; node !== null; node = node.parent) {
-      if (
-        node instanceof Parser.ArrayDimensionContext ||
-        node instanceof Parser.ArrayTypeDimensionContext ||
-        node instanceof Parser.EnumMemberContext ||
-        (node instanceof Parser.VariableDeclarationContext &&
-          node.constModifier() !== null)
-      ) {
-        return false;
-      }
-      if (node instanceof Parser.StatementContext) return true;
-    }
-    return false;
-  }
-}
-
-/**
- * Analyzer that detects division by zero
- */
-class DivisionByZeroAnalyzer {
-  /** #1456: handed in rather than read off shared state. */
-  constructor(private readonly context: IAnalysisContext) {}
-
-  private errors: IDivisionByZeroError[] = [];
-
-  /**
-   * Analyze the parse tree for division/modulo by a compile-time zero
-   */
-  public analyze(tree: Parser.ProgramContext): IDivisionByZeroError[] {
-    this.errors = [];
-    const listener = new DivisionByZeroListener(this, this.context);
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
-    // Compound arm (#1770); #2049 replaces the per-analyzer arms with one
-    ParseTreeWalker.DEFAULT.walk(
-      new AssignmentSiteListener((site) => listener.checkAssignment(site)),
-      tree,
+  private static runTimeRoots(
+    statements: readonly TStatement[],
+  ): readonly TExpression[] {
+    const compileTime = new Set(
+      StatementNodes.of(statements).flatMap(
+        DivisionByZeroAnalyzer.compileTimeRoots,
+      ),
     );
-
-    // Two walks; report in source order
-    return this.errors.sort(SourceOrder.compare);
+    return DeclarationParts.statements(statements).flatMap((part) =>
+      part.kind === "expression" && !compileTime.has(part.expression)
+        ? [part.expression]
+        : [],
+    );
   }
 
-  /**
-   * Add a division by zero error
-   */
-  public addError(
+  /** A local's dimensions, and a const local's value */
+  private static compileTimeRoots(
+    statement: TStatement,
+  ): readonly TExpression[] {
+    if (statement.kind !== "variableDeclaration") return [];
+    return [
+      ...statement.dimensions.filter((d): d is TExpression => d !== null),
+      ...(statement.modifiers.const && statement.initializer !== null
+        ? [statement.initializer]
+        : []),
+    ];
+  }
+
+  private addError(
     operator: string,
     line: number,
     column: number,

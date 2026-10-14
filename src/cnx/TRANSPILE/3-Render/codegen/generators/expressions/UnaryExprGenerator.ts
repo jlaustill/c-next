@@ -7,22 +7,29 @@
  * - Delegates to postfix for base case
  */
 import IGeneratorOutput from "../IGeneratorOutput";
-import TGeneratorEffect from "../TGeneratorEffect";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
 import TGeneratorFn from "../TGeneratorFn";
-import TYPE_MAP from "../../types/TYPE_MAP";
-import CppModeHelper from "../../helpers/CppModeHelper";
-import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
+import CppModeHelper from "../../../../2-Plan/CppModeHelper";
+import invariant from "../../../../../utils/invariant";
+import type TNegativeMinimum from "../../../../2-Plan/types/TNegativeMinimum";
 
 /**
- * Problematic negative literals that overflow their signed types in C.
- * -2147483648 is parsed as -(2147483648) where 2147483648 > INT32_MAX.
- * These need to be rewritten to avoid the overflow issue.
+ * The literals whose negation overflows in C: -2147483648 is -(2147483648),
+ * and 2147483648 > INT32_MAX. 2.2 plans each one as a minimum macro, so 2.3
+ * writing one plainly means 2.2 missed it.
  */
-const INT32_MIN_LITERAL = "2147483648";
-const INT64_MIN_LITERAL = "9223372036854775808";
+const OVERFLOWING_LITERALS: ReadonlySet<string> = new Set([
+  "2147483648",
+  "9223372036854775808",
+  "9223372036854775808LL",
+]);
+
+const MINIMUM_MACRO: Readonly<Record<TNegativeMinimum, string>> = {
+  int32_t: "INT32_MIN",
+  int64_t: "INT64_MIN",
+};
 
 /**
  * Generate C code for a unary expression.
@@ -50,11 +57,11 @@ interface IPlannedUnary {
   /** The operand's generated C. */
   readonly operandCode: string;
 
-  /**
-   * The operand's resolved type. LAZY: only `~` consults it, and resolving it
-   * eagerly would do strictly more work than the node-taking version did.
-   */
-  readonly operandType: () => string | null;
+  /** 2.2's decision: the type whose minimum macro this `-` literal is written as (MISRA 10.3) */
+  readonly minimum: TNegativeMinimum | null;
+
+  /** 2.2's decision: the unsigned C type this `~` is cast back to (MISRA 10.1) */
+  readonly complementCast: string | null;
 }
 
 const generateUnaryExpr: TGeneratorFn<IPlannedUnary> = (
@@ -67,34 +74,25 @@ const generateUnaryExpr: TGeneratorFn<IPlannedUnary> = (
 
   if (unary.operator === "!") return { code: `!${inner}`, effects: [] };
   if (unary.operator === "-") {
-    // MISRA 10.3: Handle problematic negative literals that overflow in C
-    // -2147483648 is parsed as -(2147483648) where 2147483648 > INT32_MAX
-    // Must use INT32_MIN or INT64_MIN to avoid the overflow
-    // Cast is needed because INT32_MIN has type 'int', not 'int32_t'
-    const effects: TGeneratorEffect[] = [];
-    if (inner === INT32_MIN_LITERAL) {
-      effects.push(
-        { type: "include", header: "limits" },
-        { type: "c-type", cType: "int32_t" },
-      );
-      return { code: "(int32_t)INT32_MIN", effects };
+    // MISRA 10.3: the cast is needed because INT32_MIN has type `int`
+    if (unary.minimum !== null) {
+      return {
+        code: `(${unary.minimum})${MINIMUM_MACRO[unary.minimum]}`,
+        effects: [],
+      };
     }
-    if (inner === INT64_MIN_LITERAL || inner === INT64_MIN_LITERAL + "LL") {
-      effects.push(
-        { type: "include", header: "limits" },
-        { type: "c-type", cType: "int64_t" },
-      );
-      return { code: "(int64_t)INT64_MIN", effects };
-    }
-    return { code: `-${inner}`, effects };
+    invariant(
+      !OVERFLOWING_LITERALS.has(inner),
+      `2.2 planned every negative minimum 2.3 renders (got -${inner})`,
+    );
+    return { code: `-${inner}`, effects: [] };
   }
   if (unary.operator === "~") {
-    const innerType = unary.operandType();
-    if (innerType && TypeCheckUtils.isUnsigned(innerType)) {
-      const cType = TYPE_MAP[innerType] ?? innerType;
+    const cType = unary.complementCast;
+    if (cType !== null) {
       return {
         code: CppModeHelper.cast(cType, `~${inner}`, orchestrator.state),
-        effects: [{ type: "c-type", cType }],
+        effects: [],
       };
     }
     return { code: `~${inner}`, effects: [] };

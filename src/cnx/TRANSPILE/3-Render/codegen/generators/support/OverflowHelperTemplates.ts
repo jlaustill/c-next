@@ -8,64 +8,19 @@
  * Issue #707: Extracted from HelperGenerator.ts to reduce code duplication.
  */
 
-import TYPE_MAP from "../../types/TYPE_MAP";
+import ClampTypes from "../../../../2-Plan/ClampTypes";
+import type IClampTypeInfo from "../../../../2-Plan/types/IClampTypeInfo";
 import ReservedCnxName from "../../../../../utils/ReservedCnxName";
-import WIDER_TYPE_MAP from "../../types/WIDER_TYPE_MAP";
-import TYPE_LIMITS from "../../types/TYPE_LIMITS";
-
-const { TYPE_MAX, TYPE_MIN } = TYPE_LIMITS;
 
 // C newline escape for generated fprintf statements (S7780: use raw string)
 const C_NEWLINE = String.raw`\n`;
-
-/**
- * Type information needed for helper generation
- */
-interface ITypeInfo {
-  cType: string;
-  widerType: string;
-  maxValue: string;
-  minValue: string;
-  cnxType: string;
-  isUnsigned: boolean;
-  useWiderArithmetic: boolean;
-}
-
-/**
- * Resolve type information for a C-Next type
- */
-function resolveTypeInfo(cnxType: string): ITypeInfo | null {
-  const cType = TYPE_MAP[cnxType];
-  const widerType = WIDER_TYPE_MAP[cnxType] || cType;
-  const maxValue = TYPE_MAX[cnxType];
-  const minValue = TYPE_MIN[cnxType];
-
-  if (!cType || !maxValue) {
-    return null;
-  }
-
-  const isUnsigned = cnxType.startsWith("u");
-  // For signed types narrower than i64, use wider arithmetic to avoid UB (Issue #94)
-  const useWiderArithmetic =
-    !isUnsigned && widerType !== cType && cnxType !== "i64";
-
-  return {
-    cType,
-    widerType,
-    maxValue,
-    minValue,
-    cnxType,
-    isUnsigned,
-    useWiderArithmetic,
-  };
-}
 
 /**
  * Generate function signature
  */
 function generateSignature(
   operation: string,
-  info: ITypeInfo,
+  info: IClampTypeInfo,
   bParamType?: string,
 ): string {
   const paramB = bParamType ?? info.cType;
@@ -106,7 +61,7 @@ const OPERATION_NAMES: Record<string, string> = {
  * C99, and shrinks these helpers by ~30% at -Os on Cortex-M4.
  */
 class UnsignedClampTemplates {
-  static add(info: ITypeInfo, debugMode: boolean): string {
+  static add(info: IClampTypeInfo, debugMode: boolean): string {
     const sig = generateSignature("add", info, info.widerType);
     const opName = OPERATION_NAMES.add;
 
@@ -125,7 +80,7 @@ ${generatePanicBlock(info.cnxType, opName)}
 }`;
   }
 
-  static sub(info: ITypeInfo, debugMode: boolean): string {
+  static sub(info: IClampTypeInfo, debugMode: boolean): string {
     const sig = generateSignature("sub", info, info.widerType);
     const opName = OPERATION_NAMES.sub;
     // Use "underflow" message for unsigned subtraction
@@ -148,7 +103,7 @@ ${generatePanicBlock(info.cnxType, opName)}
 }`;
   }
 
-  static mul(info: ITypeInfo, debugMode: boolean): string {
+  static mul(info: IClampTypeInfo, debugMode: boolean): string {
     const sig = generateSignature("mul", info, info.widerType);
     const opName = OPERATION_NAMES.mul;
 
@@ -173,7 +128,7 @@ ${generatePanicBlock(info.cnxType, opName)}
  * Issue #94: Compute in wider type, then clamp to avoid UB
  */
 class SignedWiderTemplates {
-  static add(info: ITypeInfo, debugMode: boolean): string {
+  static add(info: IClampTypeInfo, debugMode: boolean): string {
     const sig = generateSignature("add", info, info.widerType);
     const opName = OPERATION_NAMES.add;
 
@@ -195,7 +150,7 @@ ${generatePanicBlock(info.cnxType, opName)}
 }`;
   }
 
-  static sub(info: ITypeInfo, debugMode: boolean): string {
+  static sub(info: IClampTypeInfo, debugMode: boolean): string {
     const sig = generateSignature("sub", info, info.widerType);
     const opName = OPERATION_NAMES.sub;
 
@@ -217,7 +172,7 @@ ${generatePanicBlock(info.cnxType, opName)}
 }`;
   }
 
-  static mul(info: ITypeInfo, debugMode: boolean): string {
+  static mul(info: IClampTypeInfo, debugMode: boolean): string {
     const sig = generateSignature("mul", info, info.widerType);
     const opName = OPERATION_NAMES.mul;
 
@@ -244,7 +199,7 @@ ${generatePanicBlock(info.cnxType, opName)}
  * Templates for i64 (widest type) using manual overflow checks
  */
 class SignedWidestTemplates {
-  static add(info: ITypeInfo, debugMode: boolean): string {
+  static add(info: IClampTypeInfo, debugMode: boolean): string {
     const sig = generateSignature("add", info);
     const opName = OPERATION_NAMES.add;
 
@@ -264,7 +219,7 @@ ${generatePanicBlock(info.cnxType, opName)}
 }`;
   }
 
-  static sub(info: ITypeInfo, debugMode: boolean): string {
+  static sub(info: IClampTypeInfo, debugMode: boolean): string {
     const sig = generateSignature("sub", info);
     const opName = OPERATION_NAMES.sub;
 
@@ -284,7 +239,7 @@ ${generatePanicBlock(info.cnxType, opName)}
 }`;
   }
 
-  static mul(info: ITypeInfo, debugMode: boolean): string {
+  static mul(info: IClampTypeInfo, debugMode: boolean): string {
     const sig = generateSignature("mul", info);
     const opName = OPERATION_NAMES.mul;
 
@@ -326,7 +281,7 @@ function generateHelper(
   cnxType: string,
   debugMode: boolean,
 ): string | null {
-  const info = resolveTypeInfo(cnxType);
+  const info = ClampTypes.resolve(cnxType);
   if (!info) {
     return null;
   }
@@ -391,23 +346,6 @@ class OverflowHelperTemplates {
     cnxType: string,
   ): string | null {
     return generateHelper(operation, cnxType, true);
-  }
-
-  /**
-   * The C types a clamp helper for `cnxType` spells -- its own and its wider
-   * arithmetic type -- so the plan can decide their header (#1927)
-   */
-  static cTypesOf(cnxType: string): string[] {
-    const info = resolveTypeInfo(cnxType);
-    return info === null ? [] : [info.cType, info.widerType];
-  }
-
-  /**
-   * Resolve type information (exposed for testing)
-   * @public test seam: OverflowHelperTemplates.test.ts drives this module function directly
-   */
-  static resolveTypeInfo(cnxType: string): ITypeInfo | null {
-    return resolveTypeInfo(cnxType);
   }
 }
 

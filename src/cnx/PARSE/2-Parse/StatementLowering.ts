@@ -1,9 +1,8 @@
-import type { ParserRuleContext, TerminalNode } from "antlr4ng";
+import { type ParserRuleContext, type ParseTree, TerminalNode } from "antlr4ng";
 import * as Parser from "./grammar/CNextParser";
 import SyntaxLowering from "./SyntaxLowering";
 import ParserUtils from "../../utils/ParserUtils";
-import ChainRoot from "../../utils/ChainRoot";
-import invariant from "../../utils/invariant";
+import ChainRoot from "./ChainRoot";
 import type ISourceSpan from "../../types/ISourceSpan";
 import ASSIGNMENT_OPERATORS from "../../types/syntax/ASSIGNMENT_OPERATORS";
 import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
@@ -55,20 +54,6 @@ class StatementLowering {
       };
     }
     return StatementLowering.control(ctx) ?? StatementLowering.nested(ctx);
-  }
-
-  static assignment(
-    ctx:
-      | Parser.AssignmentStatementContext
-      | Parser.ForAssignmentContext
-      | Parser.ForUpdateContext,
-  ): IAssignmentSyntax {
-    const lowered = StatementLowering.assignmentOrNull(ctx);
-    invariant(
-      lowered !== null,
-      `'${ctx.getText()}' has a target and one of the grammar's assignment operators -- only a repaired parse lacks them`,
-    );
-    return lowered;
   }
 
   /** The assignment, or null when the parser repaired its target or operator */
@@ -127,11 +112,57 @@ class StatementLowering {
     });
   }
 
+  /**
+   * #1643 (ADR-030): whether a declaration spells its own name, written bare,
+   * past its declarator -- in an initializer or constructor arguments. The
+   * declaration is not defined until it closes, so that spelling binds the
+   * declaration it shadows; `this.x`, `global.x` and `.x` follow a `.`, and a
+   * struct initializer's `x:` names a field.
+   */
+  private static spellsOwnName(
+    ctx: Parser.VariableDeclarationContext | Parser.ForVarDeclContext,
+  ): boolean {
+    const declarator = ctx.IDENTIFIER();
+    const name = declarator.getText();
+    let isPastDeclarator = false;
+    let previous = "";
+    let spells = false;
+    const visit = (node: ParseTree): void => {
+      if (node instanceof TerminalNode) {
+        spells ||=
+          isPastDeclarator &&
+          node.symbol.type === Parser.CNextParser.IDENTIFIER &&
+          node.getText() === name &&
+          previous !== "." &&
+          !StatementLowering.isFieldKey(node);
+        isPastDeclarator ||= node === declarator;
+        previous = node.getText();
+        return;
+      }
+      for (let i = 0; i < node.getChildCount(); i++) {
+        const child = node.getChild(i);
+        if (child) {
+          visit(child);
+        }
+      }
+    };
+    visit(ctx);
+    return spells;
+  }
+
+  /** Whether a terminal is the field name of a struct initializer's `x: v` */
+  private static isFieldKey(node: TerminalNode): boolean {
+    const parent = node.parent;
+    return (
+      parent instanceof Parser.FieldInitializerContext &&
+      parent.IDENTIFIER() === node
+    );
+  }
+
   static variableDeclaration(
     ctx: Parser.VariableDeclarationContext | Parser.ForVarDeclContext,
   ): IVariableDeclarationSyntax {
     const identifier = ctx.IDENTIFIER();
-    const overflow = ctx.overflowModifier()?.getText() ?? null;
     return {
       modifiers: {
         atomic: ctx.atomicModifier() !== null,
@@ -139,7 +170,7 @@ class StatementLowering {
         const:
           ctx instanceof Parser.VariableDeclarationContext &&
           ctx.constModifier() !== null,
-        overflow: overflow === "clamp" || overflow === "wrap" ? overflow : null,
+        overflow: SyntaxLowering.overflow(ctx.overflowModifier()),
       },
       type: SyntaxLowering.type(ctx.type()),
       name: identifier.getText(),
@@ -149,6 +180,7 @@ class StatementLowering {
         return size ? SyntaxLowering.expression(size) : null;
       }),
       initializer: StatementLowering.optionalExpression(ctx.expression()),
+      spellsOwnName: StatementLowering.spellsOwnName(ctx),
       ...SyntaxLowering.node(ctx),
     };
   }
@@ -179,6 +211,7 @@ class StatementLowering {
         }),
         written: argument.getText(),
       })),
+      spellsOwnName: StatementLowering.spellsOwnName(ctx),
       ...SyntaxLowering.node(ctx),
     };
   }

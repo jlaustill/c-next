@@ -30,13 +30,15 @@ function analyze(source: string) {
   const tree = parse(source);
   state.symbols = TSymbolInfoAdapter.convert(
     CNextResolver.resolve(
-      tree,
       ProgramLowering.program(tree, null),
       "test.cnx",
       registry,
     ).symbols,
   );
-  return ReturnValueUseAnalyzer.analyze(tree, testAnalysisContext(state));
+  return ReturnValueUseAnalyzer.analyze(
+    ProgramLowering.program(tree, null),
+    testAnalysisContext(state),
+  );
 }
 
 let registry = new SymbolRegistry();

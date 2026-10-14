@@ -7,7 +7,7 @@ interface IPreprocessCacheEntry {
   readonly stderr: string;
   /** Why the run failed, or null when it succeeded */
   readonly error: string | null;
-  /** The compiler's dependency output (`-MD`), as `[path, mtimeMs]` pairs */
+  /** The compiler's dependency list (`-M`), as `[path, mtimeMs]` pairs */
   readonly deps: readonly (readonly [string, number])[];
   /**
    * Where a file added would be found ahead of one in `deps` -- the same name

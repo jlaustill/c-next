@@ -30,28 +30,61 @@
  * diagnostics for one name is worse than one.
  */
 
-import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
+import type ISourcePosition from "../../utils/types/ISourcePosition";
 import BUILTIN_TYPE_NAMES from "./BUILTIN_TYPE_NAMES";
+import DeclarationParts from "../../utils/DeclarationParts";
+import StatementNodes from "../../utils/StatementNodes";
+import type TCaseLabelSyntax from "../../types/syntax/TCaseLabelSyntax";
+import ExpressionChildren from "../../utils/ExpressionChildren";
+import TypeParts from "../../utils/TypeParts";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type ISourceSpan from "../../types/ISourceSpan";
+import type TExpression from "../../types/syntax/TExpression";
+import type TSyntaxPart from "../../types/syntax/TSyntaxPart";
 import ExpressionShape from "../../utils/ExpressionShape";
 import type IChainHead from "../../types/IChainHead";
-import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
-import StatementLowering from "../../PARSE/2-Parse/StatementLowering";
 import IUndeclaredValueError from "./types/IUndeclaredValueError";
 import NameExistence from "../../PARSE/3-Declare/NameExistence";
-import ParserUtils from "../../utils/ParserUtils";
 import REJECTED_KEYWORDS from "./REJECTED_KEYWORDS";
 import ScopeUtils from "../../utils/ScopeUtils";
 import PositionFreeScopeMember from "../../utils/PositionFreeScopeMember";
 import OperandTyper from "../../utils/OperandTyper";
 import TChainRoot from "../../types/TChainRoot";
 import type IAnalysisContext from "./types/IAnalysisContext";
-import type ISourcePosition from "../../utils/types/ISourcePosition";
 
-class UndeclaredValueListener extends CNextListener {
-  constructor(private readonly analyzer: UndeclaredValueAnalyzer) {
-    super();
+/**
+ * #1991: walks 1.2's syntax, not the parse tree. A name is read at the head of
+ * every chain -- a bare `x`, `x.y[i]`, `this.x`, `global.x` -- and written at
+ * the head of every assignment target. 1.2 lists each target among its
+ * statement's expressions, so one walk reaches both positions (#1582: the
+ * target is its own grammar rule, and a tree walk over reads alone missed it).
+ */
+class UndeclaredValueWalk {
+  constructor(private readonly analyzer: UndeclaredValueAnalyzer) {}
+
+  part(part: TSyntaxPart): void {
+    if (part.kind === "type") {
+      for (const inner of TypeParts.of(part.type)) this.part(inner);
+      return;
+    }
+    this.expression(part.expression);
+  }
+
+  private expression(expr: TExpression): void {
+    if (expr.kind === "postfix" || expr.kind === "identifier") {
+      this.chain(expr);
+    }
+    for (const child of ExpressionChildren.of(expr)) {
+      // A chain's head name was asked above, as the chain's
+      if (
+        expr.kind === "postfix" &&
+        child === expr.primary &&
+        ExpressionShape.headOf(expr).identifier !== null
+      ) {
+        continue;
+      }
+      this.expression(child);
+    }
   }
 
   /**
@@ -66,37 +99,20 @@ class UndeclaredValueListener extends CNextListener {
    * #1582's own defect one grammar rule over, and it is the case the write
    * position's fixture calls "the only witness to the split".
    */
-  override enterPostfixExpression = (
-    ctx: Parser.PostfixExpressionContext,
-  ): void => {
-    const head = ExpressionShape.headOf(SyntaxLowering.expressionNode(ctx));
+  private chain(expr: TExpression): void {
+    const head = ExpressionShape.headOf(expr);
 
     // `name(...)` is a call. E0422 owns undefined calls, with ADR-030/040/057
     // rules this analyzer deliberately does not reimplement. The root keyword
     // consumes the primary, so the parentheses sit `opsConsumed` further along
     // -- the offset travels with the root instead of being re-derived here.
+    // An assignment target is never a call, so this skips no write.
     if (head.ops[head.opsConsumed]?.kind === "call") {
       return;
     }
 
-    this.check(head.identifier, head.root, ctx);
-  };
-
-  /**
-   * The WRITE position. `assignmentTarget` is its own grammar rule, not a
-   * `postfixExpression`, so no target ever reached the listener above and
-   * `witness <- 5` against a name in no scope transpiled at exit 0 (#1582).
-   *
-   * One hook covers all three rules that reference the target -- the assignment
-   * statement and a `for` loop's init and update clauses -- because they share
-   * the node, not because the check is repeated for each.
-   */
-  override enterAssignmentTarget = (
-    ctx: Parser.AssignmentTargetContext,
-  ): void => {
-    const head = ExpressionShape.headOf(SyntaxLowering.expressionNode(ctx));
-    this.check(head.identifier, head.root, ctx);
-  };
+    this.check(head.identifier, head.root, expr.span);
+  }
 
   /**
    * The CASE LABEL position (#1629). `caseLabel` is its own grammar rule too,
@@ -108,36 +124,38 @@ class UndeclaredValueListener extends CNextListener {
    * of `EMode` is the chain's question, not this one's. A bare enum member
    * (`case IDLE`) is visible, and whether it may stand bare is E0424's.
    */
-  override enterCaseLabel = (ctx: Parser.CaseLabelContext): void => {
-    const label = StatementLowering.caseLabel(ctx);
+  caseLabel(label: TCaseLabelSyntax): void {
     if (label.kind === "identifier") {
-      this.check({ name: label.name, span: label.nameSpan }, label.root, ctx);
+      this.check(
+        { name: label.name, span: label.nameSpan },
+        label.root,
+        label.span,
+      );
     } else if (label.kind === "qualified") {
       this.check(
         { name: label.path[0], span: label.headSpan },
         label.root,
-        ctx,
+        label.span,
       );
     }
-  };
+  }
 
   /**
    * One name, one question, for every position.
    *
-   * The two hooks differ only in how they read `(root, identifier)` off their
-   * node -- the pair `ChainRoot` already separates. Everything after that is
+   * A read and a write differ only in where their chain sits -- the
+   * `(root, identifier)` pair `ChainRoot` separates is read off both alike. Everything after that is
    * the same policy, so it is written once: a second copy would be free to
    * gain an exempt spelling the other did not, which is the read/write
    * divergence #1582 is about.
    *
-   * `identifier` is nullable because the read hook's primary may be a literal
-   * or a parenthesised expression, and because the generated accessor for an
-   * assignment target asserts non-null over a `getToken` that can return null.
+   * `identifier` is nullable because a chain's primary may be a literal or a
+   * parenthesised expression.
    */
   private check(
     identifier: IChainHead["identifier"],
     root: TChainRoot,
-    ctx: ParserRuleContext,
+    at: ISourceSpan,
   ): void {
     if (!identifier) {
       return;
@@ -160,7 +178,9 @@ class UndeclaredValueListener extends CNextListener {
       return;
     }
 
-    if (this.analyzer.isVisible(name, root, ctx)) {
+    if (
+      this.analyzer.isVisible(name, root, { line: at.line, column: at.column })
+    ) {
       return;
     }
 
@@ -177,13 +197,24 @@ class UndeclaredValueAnalyzer {
   /**
    * #1456: what the program declares, handed in rather than read off
    * `CodeGenState`. Constructor rather than a parameter on `analyze`, because
-   * the predicates below are reached from the listener's walk.
+   * the predicates below are reached from the walk.
    */
   constructor(private readonly context: IAnalysisContext) {}
 
-  analyze(tree: Parser.ProgramContext): IUndeclaredValueError[] {
+  analyze(program: IProgramSyntax): IUndeclaredValueError[] {
     this.errors.length = 0;
-    ParseTreeWalker.DEFAULT.walk(new UndeclaredValueListener(this), tree);
+
+    const walk = new UndeclaredValueWalk(this);
+    for (const member of program.declarations) {
+      for (const part of DeclarationParts.of(member.declaration))
+        walk.part(part);
+      for (const statement of StatementNodes.in(member.declaration)) {
+        if (statement.kind !== "switch") continue;
+        for (const switchCase of statement.cases) {
+          for (const label of switchCase.labels) walk.caseLabel(label);
+        }
+      }
+    }
     return this.errors;
   }
 
@@ -209,7 +240,7 @@ class UndeclaredValueAnalyzer {
    * `Scope__gx` at exit 0. Two predicates that agree by inspection are the
    * divergence this analyzer exists to prevent.
    */
-  isVisible(name: string, root: TChainRoot, at: ParserRuleContext): boolean {
+  isVisible(name: string, root: TChainRoot, at: ISourcePosition): boolean {
     if (this.isNamed(name, root, at)) {
       return true;
     }
@@ -219,7 +250,7 @@ class UndeclaredValueAnalyzer {
       this.context.sourceFile,
       root,
       name,
-      ParserUtils.getPosition(at),
+      at,
     );
   }
 
@@ -227,11 +258,10 @@ class UndeclaredValueAnalyzer {
   private isNamed(
     name: string,
     root: TChainRoot,
-    at: ParserRuleContext,
+    at: ISourcePosition,
   ): boolean {
     const symbols = this.context.symbols;
-    const position = ParserUtils.getPosition(at);
-    const scopePath = OperandTyper.scopePathAt(position, this.context);
+    const scopePath = OperandTyper.scopePathAt(at, this.context);
 
     if (root === null) {
       return (
@@ -248,7 +278,7 @@ class UndeclaredValueAnalyzer {
     // brought: the include-filtered predicate answers both.
     if (root === "global") {
       return (
-        UndeclaredValueAnalyzer.binds(root, name, position, this.context) ||
+        UndeclaredValueAnalyzer.binds(root, name, at, this.context) ||
         NameExistence.isValueName(name, symbols, this.context.symbolTable)
       );
     }
@@ -260,7 +290,7 @@ class UndeclaredValueAnalyzer {
     }
 
     return (
-      UndeclaredValueAnalyzer.binds(root, name, position, this.context) ||
+      UndeclaredValueAnalyzer.binds(root, name, at, this.context) ||
       UndeclaredValueAnalyzer.isScopeMemberValue(name, scopePath, this.context)
     );
   }
@@ -327,7 +357,7 @@ class UndeclaredValueAnalyzer {
    */
   static isDeclaredValue(
     name: string,
-    at: ParserRuleContext,
+    at: ISourcePosition,
     scopePath: string,
     context: IAnalysisContext,
   ): boolean {
@@ -335,14 +365,7 @@ class UndeclaredValueAnalyzer {
     // A local, parameter, `for` variable, file-scope variable or scope member
     // that is defined at `at` (#1668, #1643). #1398: binding sees only files
     // this one includes, so a sibling's const never answers here.
-    if (
-      UndeclaredValueAnalyzer.binds(
-        null,
-        name,
-        ParserUtils.getPosition(at),
-        context,
-      )
-    ) {
+    if (UndeclaredValueAnalyzer.binds(null, name, at, context)) {
       return true;
     }
 

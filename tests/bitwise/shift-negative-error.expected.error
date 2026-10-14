@@ -1,2 +1,2 @@
-12:26 error[E0873]: Negative shift amount (-1) is undefined behavior (type: u32, expression: a<<-1)
+12:26 error[E0873]: Negative shift amount (-1) is undefined behavior (type: u32, expression: a << -1)
        help: Shift amounts must be non-negative (MISRA C:2012 Rule 12.2).

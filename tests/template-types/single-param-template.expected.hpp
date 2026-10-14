@@ -6,6 +6,8 @@
  * Header file for cross-language interoperability
  */
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

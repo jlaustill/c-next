@@ -56,7 +56,7 @@ const generateReturn = (
   plan: TPlannedReturn,
   _input: IGeneratorInput,
   _state: IGeneratorState,
-  orchestrator: IOrchestrator,
+  _orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
 
@@ -64,26 +64,11 @@ const generateReturn = (
     return { code: "return;", effects };
   }
 
-  // Issue #477 / #1277: a `return` expression is expected to be the function's
-  // declared return type, and that is the whole rule -- the type is threaded
-  // for EVERY return, not only an enum one.
-  //
-  // #1277: the enum-only condition that stood here is why
-  // `return { x: 1, y: 2 };` was rejected as "Cannot infer struct type" while
-  // the identical literal assigned to a local first compiled. A struct literal
-  // takes its type from the position it stands in, and a return statement is
-  // such a position; restricting the mechanism to enums made it one for enums
-  // only.
-  //
-  // The return type is asked for HERE rather than captured in the plan: it
-  // belongs to the enclosing function, not to this node, and the generator is
-  // what holds that context.
-  //
-  // The measured consequence is wider than #1277: `return 1;` from a function
-  // returning `u8` emits `return 1U;`, the MISRA C:2012 Rule 7.2 suffix that
-  // the identical literal already received in `u8 x <- 1;`. The rule did not
-  // reach a return statement only because the type did not.
-  const expr = plan.render(orchestrator.getCurrentFunctionReturnType());
+  // Issue #477 / #1277: a `return` expression is written against the
+  // function's declared return type, for EVERY return, not only an enum one.
+  // 2.2 planned it (#1991), so `return { x: 1, y: 2 };` takes its struct and
+  // `return 1;` from a `u8` function gets MISRA C:2012 Rule 7.2's suffix.
+  const expr = plan.render();
 
   return { code: `return ${expr};`, effects };
 };
@@ -239,7 +224,7 @@ const generateForVarDecl = (
     // initializer is typed by the declared type through the same mechanism a
     // block-level declaration uses. Without it a struct literal here was
     // rejected as "Cannot infer struct type".
-    result += ` = ${plan.renderInitializer(plan.typeName)}`;
+    result += ` = ${plan.renderInitializer()}`;
   }
 
   return { code: result, effects };

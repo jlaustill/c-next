@@ -177,14 +177,7 @@ describe("OutputExtensions (#1319)", () => {
     // partial object claim C, and one that is required is still a second
     // copy of 1.1's answer. Codegen and headers read the mode from Program.
     const optionTypes = [
-      join(
-        "cnx",
-        "TRANSPILE",
-        "3-Render",
-        "codegen",
-        "types",
-        "ICodeGeneratorOptions.ts",
-      ),
+      join("cnx", "TRANSPILE", "types", "ICodeGeneratorOptions.ts"),
       join(
         "cnx",
         "TRANSPILE",

@@ -10,7 +10,7 @@ import DeclaredPointer from "../DeclaredPointer";
 
 function header(source: string): SymbolTable {
   const table = new SymbolTable();
-  const tree = HeaderParser.parseC(source).tree;
+  const tree = HeaderParser.parseC(source).syntax;
   table.addCSymbols(CResolver.resolve(tree!, "api.h", table).symbols);
   return table;
 }
@@ -73,6 +73,19 @@ handle_t *handle_create(void);`);
     expect(
       DeclaredPointer.of(
         facts({ cType: "FILE", name: "c_f", initialValue: 'fopen("a","r")' }),
+        c,
+      ),
+    ).toBe(true);
+  });
+
+  it("is a pointer when the call is written with a space before its arguments", () => {
+    expect(
+      DeclaredPointer.of(
+        facts({
+          cType: "FILE",
+          name: "c_f",
+          initialValue: 'fopen ("a", "r")',
+        }),
         c,
       ),
     ).toBe(true);

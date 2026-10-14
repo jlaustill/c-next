@@ -1,4 +1,4 @@
-import type IPlannedFunctionParameter from "./IPlannedFunctionParameter";
+import type IPlannedFunctionParameter from "../../../2-Plan/types/IPlannedFunctionParameter";
 
 /**
  * A C-Next function declaration, decided.
@@ -20,15 +20,6 @@ interface IPlannedFunction {
 
   /** The rendered C return type. */
   readonly returnType: string;
-
-  /**
-   * The return type as WRITTEN.
-   *
-   * Distinct from `returnType`: the context records this one, because typing
-   * a `return` expression is a C-Next question (#477) and the C spelling has
-   * already lost the distinctions it needs.
-   */
-  readonly returnTypeText: string;
 
   /** ADR-016: `main(u8 args[][])` or `main(string args[])`. */
   readonly isMainWithArgs: boolean;

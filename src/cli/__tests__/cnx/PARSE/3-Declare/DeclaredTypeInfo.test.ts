@@ -157,7 +157,7 @@ extern int n;
 #define BUF_SIZE 4`;
   function foreignAt(name: string) {
     const table = new SymbolTable();
-    const tree = HeaderParser.parseC(header).tree;
+    const tree = HeaderParser.parseC(header).syntax;
     table.addCSymbols(CResolver.resolve(tree!, "api.h", table).symbols);
     const { context } = testAnalysisContextFor("void f() {\nu8 r <- 1;\n}", {
       cppMode: false,
@@ -185,7 +185,7 @@ extern int n;
   // scope member of the same name answered for the header's variable
   it("types a header global by the header, not a same-named scope member", () => {
     const table = new SymbolTable();
-    const tree = HeaderParser.parseC("extern double level;").tree;
+    const tree = HeaderParser.parseC("extern double level;").syntax;
     table.addCSymbols(CResolver.resolve(tree!, "api.h", table).symbols);
     const { context } = testAnalysisContextFor(
       "scope Tank {\nu8 level <- 1;\n}\nvoid f() {\nu8 r <- 1;\n}",
@@ -205,7 +205,7 @@ extern int n;
   // operand typer's answer, where this read the spelling and said f64
   it("types a header double by the target's data model", () => {
     const table = new SymbolTable();
-    const tree = HeaderParser.parseC("extern double level;").tree;
+    const tree = HeaderParser.parseC("extern double level;").syntax;
     table.addCSymbols(CResolver.resolve(tree!, "api.h", table).symbols);
     const { context } = testAnalysisContextFor("void f() {\nu8 r <- 1;\n}", {
       cppMode: false,
@@ -243,7 +243,7 @@ extern cfg_t **cfgTable;
 extern Dev cDevice;`;
   function typeAt(name: string) {
     const table = new SymbolTable();
-    const tree = HeaderParser.parseC(header).tree;
+    const tree = HeaderParser.parseC(header).syntax;
     table.addCSymbols(CResolver.resolve(tree!, "api.h", table).symbols);
     const { context } = testAnalysisContextFor(
       "Dev shared;\nvoid f() {\nu8 r <- 1;\n}",

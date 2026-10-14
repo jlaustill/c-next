@@ -1,4 +1,5 @@
 import type IBitmapFieldLayout from "./IBitmapFieldLayout";
+import type TExpression from "./syntax/TExpression";
 /**
  * Read-only symbol collections for code generation.
  * Provides generators with access to type declarations without mutation.
@@ -97,7 +98,7 @@ interface ICodeGenSymbols {
   // === Register Information (ADR-004) ===
 
   /** Scoped registers: "scopeName.registerName" -> address expression */
-  readonly scopedRegisters: ReadonlyMap<string, string>;
+  readonly scopedRegisters: ReadonlyMap<string, TExpression>;
 
   /** Register member access patterns: "scope.reg.field" -> access code */
   readonly registerMemberAccess: ReadonlyMap<string, string>;
@@ -107,10 +108,10 @@ interface ICodeGenSymbols {
 
   // Issue #187: Register address info for width-appropriate memory access
   /** Register base addresses: registerName -> base address expression */
-  readonly registerBaseAddresses: ReadonlyMap<string, string>;
+  readonly registerBaseAddresses: ReadonlyMap<string, TExpression>;
 
   /** Register member offsets: "reg_member" -> offset expression */
-  readonly registerMemberOffsets: ReadonlyMap<string, string>;
+  readonly registerMemberOffsets: ReadonlyMap<string, TExpression>;
 
   /** Register member C types: "reg_member" -> C type (e.g., "uint32_t") */
   readonly registerMemberCTypes: ReadonlyMap<string, string>;

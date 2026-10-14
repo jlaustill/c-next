@@ -12,7 +12,11 @@ import { CNextLexer } from "./grammar/CNextLexer";
 import { CNextParser } from "./grammar/CNextParser";
 import CommentScanner from "./CommentScanner";
 import ProgramLowering from "./ProgramLowering";
-import IParsedFile from "../../types/IParsedFile";
+import IdentifierForm from "./IdentifierForm";
+import ArrayForm from "./ArrayForm";
+import StringForm from "./StringForm";
+import LiteralForm from "./LiteralForm";
+import IParsedFile from "./types/IParsedFile";
 import ITranspileError from "../../types/ITranspileError";
 import CodedErrorText from "../../utils/CodedErrorText";
 
@@ -208,6 +212,17 @@ class CNextSourceParser {
     parser.addErrorListener(errorListener);
 
     const tree = parser.program();
+    // A recovery tree's spelling is not the source's, so form is checked only
+    // on a tree that parsed.
+    const formErrors =
+      errors.length > 0
+        ? []
+        : [
+            ...LiteralForm.errorsIn(tokenStream),
+            ...IdentifierForm.errorsIn(tree),
+            ...ArrayForm.errorsIn(tree),
+            ...StringForm.errorsIn(tree),
+          ];
     const declarationCount = tree.declaration().length;
 
     // Scanned off THIS token stream, which the parse has already filled, so
@@ -239,6 +254,7 @@ class CNextSourceParser {
       program: ProgramLowering.program(tree, scanner),
       targetDirectives: TargetDirectives.read(tree),
       parseErrors: errors,
+      formErrors,
     };
   }
 }

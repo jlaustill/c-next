@@ -27,7 +27,7 @@
  * prefer over a text scan that could only ever over-include.
  */
 
-import type SymbolTable from "../../PARSE/3-Declare/SymbolTable";
+import type IResolvedSymbols from "../../types/IResolvedSymbols";
 import type TSymbol from "../../types/symbols/TSymbol";
 import headerCType from "../../utils/headerCType";
 import CTypeIncludes from "./CTypeIncludes";
@@ -46,7 +46,7 @@ class HeaderIncludes {
    */
   static decide(
     exportedSymbols: readonly TSymbol[],
-    symbolTable: SymbolTable | undefined,
+    symbolTable: IResolvedSymbols | undefined,
   ): string[] {
     return CTypeIncludes.decide(
       [...HeaderTypeNames.collect(exportedSymbols)].map((named) =>

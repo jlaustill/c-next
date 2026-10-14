@@ -1,3 +1,4 @@
+import type ISourceSpan from "../ISourceSpan";
 import type IComment from "../IComment";
 import type ISyntaxNode from "./ISyntaxNode";
 import type TDeclarationSyntax from "./TDeclarationSyntax";
@@ -8,6 +9,8 @@ type TCommented = { readonly leadingComments: readonly IComment[] };
 
 /** A `.cnx` file: its includes, directives and declarations, each in source order */
 interface IProgramSyntax {
+  /** The whole file, where its lexical frames begin */
+  readonly span: ISourceSpan;
   readonly includes: ReadonlyArray<ISyntaxNode & TCommented>;
   readonly directives: ReadonlyArray<
     ISyntaxNode &

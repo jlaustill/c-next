@@ -41,6 +41,8 @@ function createMockContext(
       HandlerTestUtils.planner().analyzeMemberChainForBitAccess(null as never),
     targetLine: 1,
     hasValue: true,
+    floatBits: null,
+    atomicForm: "ldrex-strex",
     valueExpressionType: () => null,
     valueIntegerType: () => null,
     valueHasFloatingOperand: () => false,
@@ -66,10 +68,20 @@ function createMockContext(
     ...overrides,
   } as IAssignmentContext;
   // #1668 (C7): what the target writes, as the binder would bind it
-  return {
-    ...ctx,
-    target: overrides.target ?? HandlerTestUtils.targetOf(state, ctx),
-  };
+  const target = overrides.target ?? HandlerTestUtils.targetOf(state, ctx);
+  // #1991: 2.2's clamp decision, made by the call 2.2 makes
+  const plannedClamp =
+    overrides.plannedClamp === undefined
+      ? AssignmentClassifier.clampOfWrite(
+          target,
+          ctx.isSimpleIdentifier ||
+            ctx.isSimpleThisAccess ||
+            ctx.isSimpleGlobalAccess,
+          ctx.cnextOp,
+          ctx.valueHasFloatingOperand,
+        )
+      : overrides.plannedClamp;
+  return { ...ctx, target, plannedClamp };
 }
 
 let state = new TranspileState();
@@ -121,6 +133,7 @@ describe("SpecialHandlers", () => {
           isAtomic: true,
         }),
         null,
+        "ldrex-strex",
       );
       expect(result).toBe("LDREX/STREX pattern");
     });
@@ -154,6 +167,7 @@ describe("SpecialHandlers", () => {
           isAtomic: true,
         }),
         null,
+        "ldrex-strex",
       );
       expect(result).toBe("atomic result");
     });
@@ -199,6 +213,7 @@ describe("SpecialHandlers", () => {
         "1",
         expect.objectContaining({ baseType: "u32", isAtomic: true }),
         null,
+        "ldrex-strex",
       );
     });
 
@@ -246,6 +261,7 @@ describe("SpecialHandlers", () => {
         "1",
         expect.anything(),
         null,
+        "ldrex-strex",
       );
     });
   });
@@ -271,7 +287,6 @@ describe("SpecialHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(state.usedClampOps.has("add_u8")).toBe(true);
       expect(result).toBe("saturated = cnx_clamp_add_u8(saturated, 200);");
     });
 
@@ -292,7 +307,6 @@ describe("SpecialHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(state.usedClampOps.has("sub_u16")).toBe(true);
       expect(result).toBe("value = cnx_clamp_sub_u16(value, 100);");
     });
 
@@ -313,7 +327,6 @@ describe("SpecialHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(state.usedClampOps.has("mul_u32")).toBe(true);
       expect(result).toBe("result = cnx_clamp_mul_u32(result, 2);");
     });
 
@@ -388,7 +401,6 @@ describe("SpecialHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(state.usedClampOps.has("add_u8")).toBe(true);
       expect(result).toBe("Motor__speed = cnx_clamp_add_u8(Motor__speed, 10);");
     });
 
@@ -409,7 +421,6 @@ describe("SpecialHandlers", () => {
 
       const result = getHandler()!(ctx);
 
-      expect(state.usedClampOps.has("add_i16")).toBe(true);
       expect(result).toBe("globalValue = cnx_clamp_add_i16(globalValue, 50);");
     });
 
@@ -468,6 +479,7 @@ describe("SpecialHandlers", () => {
           "1",
           expect.anything(),
           expected,
+          "ldrex-strex",
         );
       },
     );

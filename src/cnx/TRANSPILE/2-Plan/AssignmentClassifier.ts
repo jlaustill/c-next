@@ -798,13 +798,8 @@ class AssignmentClassifier {
       return null;
     }
 
-    // Atomic RMW - for global atomic variables (simple identifiers or global.member)
-    // Scoped atomics (this.member) use overflow behavior, not LDREX/STREX
-    const typeInfo = AssignmentClassifier.targetTypeInfo(ctx);
-    const isGlobalAtomic =
-      typeInfo?.isAtomic === true &&
-      (ctx.isSimpleIdentifier || ctx.isSimpleGlobalAccess);
-    if (isGlobalAtomic) {
+    // ADR-049: 2.2 planned which writes are atomic read-modify-writes
+    if (ctx.atomicForm !== null) {
       return AssignmentKind.ATOMIC_RMW;
     }
 
@@ -835,14 +830,43 @@ class AssignmentClassifier {
   static compoundClamp(
     ctx: IAssignmentContext,
   ): { operation: string; cnxType: string } | null {
-    const written = AssignmentClassifier.writtenValue(ctx);
-    if (written?.overflowBehavior !== "clamp") return null;
-    if (!TypeCheckUtils.isInteger(written.baseType)) return null;
-    if (ctx.valueHasFloatingOperand()) return null;
-    const operator = CompoundOperator.binaryOf(ctx.cnextOp);
+    return ctx.plannedClamp;
+  }
+
+  /**
+   * 2.2's one decision behind `compoundClamp`: the helper a compound `cOp`
+   * write to `target` calls, from the type the write stores
+   */
+  static clampOfWrite(
+    target: IChainBase,
+    isSimple: boolean,
+    cnextOp: string,
+    hasFloatingOperand: () => boolean,
+  ): { operation: string; cnxType: string } | null {
+    const written = AssignmentClassifier.writtenValue(target, isSimple);
+    if (written === null) return null;
+    return AssignmentClassifier.clampOf(
+      written.baseType,
+      written.overflowBehavior,
+      cnextOp,
+      hasFloatingOperand,
+    );
+  }
+
+  /** ADR-044: the clamp helper a compound `cnextOp` write of this type calls, or null */
+  static clampOf(
+    baseType: string,
+    overflowBehavior: TOverflowBehavior | null,
+    cnextOp: string,
+    hasFloatingOperand: () => boolean,
+  ): { operation: string; cnxType: string } | null {
+    if (overflowBehavior !== "clamp") return null;
+    if (!TypeCheckUtils.isInteger(baseType)) return null;
+    if (hasFloatingOperand()) return null;
+    const operator = CompoundOperator.binaryOf(cnextOp);
     const operation =
       operator === null ? undefined : CLAMP_HELPER_FOR_OPERATOR[operator];
-    return operation ? { operation, cnxType: written.baseType } : null;
+    return operation ? { operation, cnxType: baseType } : null;
   }
 
   /**
@@ -853,11 +877,12 @@ class AssignmentClassifier {
    * the variable itself.
    */
   private static writtenValue(
-    ctx: IAssignmentContext,
+    target: IChainBase,
+    isSimple: boolean,
   ): { baseType: string; overflowBehavior: TOverflowBehavior | null } | null {
-    const last = ctx.target.last;
+    const last = target.last;
     if (last === undefined) {
-      const typeInfo = AssignmentClassifier.targetTypeInfo(ctx);
+      const typeInfo = isSimple ? target.typeInfo : undefined;
       if (!typeInfo) return null;
       return {
         baseType: typeInfo.baseType,

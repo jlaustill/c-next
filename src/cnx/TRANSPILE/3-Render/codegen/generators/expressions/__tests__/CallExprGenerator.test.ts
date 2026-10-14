@@ -1,4 +1,9 @@
+import type IArgumentPassing from "../../../../../2-Plan/types/IArgumentPassing";
+import CArgumentAddress from "../../../../../2-Plan/CArgumentAddress";
+import type ICArgumentFacts from "../../../../../2-Plan/types/ICArgumentFacts";
+import ForeignTypeFacts from "../../../../../../utils/ForeignTypeFacts";
 import type TParameterInfo from "../../../../../../types/TParameterInfo";
+import TestSymbolTable from "../../../../../__tests__/TestSymbolTable";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import generateFunctionCall from "../CallExprGenerator";
 import IGeneratorInput from "../../IGeneratorInput";
@@ -9,6 +14,8 @@ import TranspileState from "../../../../../TranspileState";
 import TTypeInfo from "../../../../../../types/TTypeInfo";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
 import type IPlannedCallArgument from "../../../types/IPlannedCallArgument";
+import type IPlannedArgument from "../../../../../2-Plan/types/IPlannedArgument";
+import CallArgumentPassing from "../../../../../2-Plan/CallArgumentPassing";
 
 // ========================================================================
 // Test Helpers
@@ -39,28 +46,90 @@ function createMockExpressionContext(text: string): Parser.ExpressionContext {
  * may happen per argument.
  */
 function planArguments(
-  orchestrator: IArgumentPlannerStub,
+  orchestrator: IArgumentPlannerStub &
+    Parameters<typeof CallArgumentPassing.of>[3],
   expressions: Parser.ExpressionContext[],
+  callee: string,
+  input: IGeneratorInput,
 ): readonly IPlannedCallArgument[] {
-  return expressions.map((expression) => ({
+  return expressions.map((expression, index) => {
+    // 2.2's decision, made the way `FilePlanner.planArguments` makes it
+    const passing = CallArgumentPassing.of(callee, index, input, orchestrator);
+    const base = passing.param?.baseType;
+    return planArgument(
+      orchestrator,
+      expression,
+      {
+        passing,
+        form: null,
+        cForm:
+          passing.mode === "c"
+            ? CArgumentAddress.formOf(
+                cArgumentFacts(orchestrator, expression, passing.param),
+                orchestrator,
+              )
+            : null,
+        enumCast:
+          passing.mode === "reference"
+            ? null
+            : CallArgumentPassing.cppEnumCast(
+                orchestrator.getExpressionType(expression),
+                base,
+                orchestrator,
+              ),
+      },
+      base,
+    );
+  });
+}
+
+/** The facts `FilePlanner.cArgumentForm` gathers, read off the case's stubs */
+function cArgumentFacts(
+  orchestrator: IArgumentPlannerStub,
+  expression: Parser.ExpressionContext,
+  param: IArgumentPassing["param"],
+): ICArgumentFacts {
+  const text = expression.getText();
+  const declared = declaredTypes.get(text);
+  const symbolTable = (orchestrator as unknown as IOrchestrator).state
+    ?.symbolTable;
+  const foreign = symbolTable
+    ? ForeignTypeFacts.foreignSymbol(symbolTable, text)
+    : undefined;
+  const bracket = text.indexOf("[");
+  const array =
+    bracket > 0 ? declaredTypes.get(text.slice(0, bracket)) : undefined;
+  return {
+    param,
+    addressWritten: text.startsWith("&"),
+    promotedHandle:
+      orchestrator.getParameter(expression)?.forcePointerSemantics ?? false,
+    argType:
+      orchestrator.getExpressionType(expression) ??
+      declared?.baseType ??
+      (foreign?.kind === "variable" && !foreign.isArray ? foreign.type : null),
+    declared,
+    isArray: orchestrator.isArrayExpression(expression),
+    isHandleArrayElement:
+      (array?.isArray ?? false) && (array?.isPointer ?? false),
+  };
+}
+
+function planArgument(
+  orchestrator: IArgumentPlannerStub,
+  expression: Parser.ExpressionContext,
+  planned: IPlannedArgument,
+  base: string | undefined,
+): IPlannedCallArgument {
+  return {
+    planned,
     simpleIdentifier: orchestrator.getSimpleIdentifier(expression),
     parameter: orchestrator.getParameter(expression),
-    declared: declaredTypes.get(expression.getText()),
-    expressionType: () => orchestrator.getExpressionType(expression),
-    isArray: () => orchestrator.isArrayExpression(expression),
     // The planner decides this from the array's declaration; the stub reads
     // the case's declared array the way `declared` reads a name
-    isHandleArrayElement: () => {
-      const text = expression.getText();
-      const bracket = text.indexOf("[");
-      const array =
-        bracket > 0 ? declaredTypes.get(text.slice(0, bracket)) : undefined;
-      return (array?.isArray ?? false) && (array?.isPointer ?? false);
-    },
     render: () => orchestrator.generateExpression(expression),
-    renderByReference: (targetParamBaseType: string | undefined) =>
-      orchestrator.generateFunctionArg(expression, targetParamBaseType),
-  }));
+    renderByReference: () => orchestrator.generateFunctionArg(expression, base),
+  };
 }
 
 /** What each case declares, by name -- see `createMockInput` */
@@ -176,6 +245,7 @@ describe("CallExprGenerator", () => {
   // Reset TranspileState before each test to avoid state pollution
   beforeEach(() => {
     sharedState = new TranspileState();
+    TestSymbolTable.install(sharedState);
   });
 
   describe("empty function call", () => {
@@ -211,7 +281,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "printf",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "printf", input),
         input,
         state,
         orchestrator,
@@ -248,7 +318,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "c_func",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "c_func", input),
         input,
         state,
         orchestrator,
@@ -258,7 +328,7 @@ describe("CallExprGenerator", () => {
     });
 
     it("does not add & if argument already has & prefix", () => {
-      const argExpressions = [createMockExpressionContext("myStruct")];
+      const argExpressions = [createMockExpressionContext("&myStruct")];
       const sigs = new Map([
         [
           "c_func",
@@ -286,7 +356,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "c_func",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "c_func", input),
         input,
         state,
         orchestrator,
@@ -318,7 +388,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "c_func",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "c_func", input),
         input,
         state,
         orchestrator,
@@ -355,7 +425,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "c_func",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "c_func", input),
         input,
         state,
         orchestrator,
@@ -400,7 +470,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "c_func",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "c_func", input),
         input,
         state,
         orchestrator,
@@ -436,7 +506,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "c_func",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "c_func", input),
         input,
         state,
         orchestrator,
@@ -492,7 +562,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "draw_bitmap",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "draw_bitmap", input),
         input,
         generatorState,
         orchestrator,
@@ -532,7 +602,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "c_func",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "c_func", input),
         input,
         state,
         orchestrator,
@@ -563,7 +633,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "c_func",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "c_func", input),
         input,
         state,
         orchestrator,
@@ -596,7 +666,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "c_func",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "c_func", input),
         input,
         state,
         orchestrator,
@@ -635,7 +705,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "c_func",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "c_func", input),
         input,
         state,
         orchestrator,
@@ -667,7 +737,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "c_func",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "c_func", input),
         input,
         state,
         orchestrator,
@@ -701,7 +771,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "doWork",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "doWork", input),
         input,
         state,
         orchestrator,
@@ -733,7 +803,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "setTemp",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "setTemp", input),
         input,
         state,
         orchestrator,
@@ -767,7 +837,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "setState",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "setState", input),
         input,
         state,
         orchestrator,
@@ -799,7 +869,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "setFlag",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "setFlag", input),
         input,
         state,
         orchestrator,
@@ -837,7 +907,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "process",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "process", input),
         input,
         state,
         orchestrator,
@@ -873,7 +943,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "doWork",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "doWork", input),
         input,
         state,
         orchestrator,
@@ -903,13 +973,13 @@ describe("CallExprGenerator", () => {
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn(() => true),
         isFloatType: vi.fn(() => false),
-        isParameterPassByValue: vi.fn(() => false),
+        isParameterPassByValue: vi.fn(() => true),
         isKnownStruct: vi.fn(() => false),
       });
 
       const result = generateFunctionCall(
         "crossFileFunc",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "crossFileFunc", input),
         input,
         state,
         orchestrator,
@@ -920,11 +990,12 @@ describe("CallExprGenerator", () => {
       expect(symbolTable.getOverloadsByCName).toHaveBeenCalledWith(
         "crossFileFunc",
       );
-      // Issue #786: Primitive types like u32 are now passed by value for cross-file calls
+      // #1991: 1.4's whole-program eligibility says the callee leaves it
+      // unmodified, so it is passed by value, from any file
       expect(result.code).toBe("crossFileFunc(myVal)");
     });
 
-    it("passes small primitive by value for cross-file functions", () => {
+    it("passes a cross-file primitive its callee modifies by reference", () => {
       const argExpressions = [createMockExpressionContext("flag")];
       const symbolTable = {
         getOverloadsByCName: vi.fn(() => [
@@ -949,13 +1020,15 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "crossFileFunc",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "crossFileFunc", input),
         input,
         state,
         orchestrator,
       );
 
-      expect(result.code).toBe("crossFileFunc(flag)");
+      // #1991: a primitive is not forced by value for coming from another
+      // file (#786); 1.4 says the callee modifies it
+      expect(result.code).toBe("crossFileFunc(&flag)");
     });
 
     it("skips non-function symbols in SymbolTable overloads", () => {
@@ -978,7 +1051,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "unknownFunc",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "unknownFunc", input),
         input,
         state,
         orchestrator,
@@ -990,7 +1063,7 @@ describe("CallExprGenerator", () => {
   });
 
   describe("safe_div and safe_mod (ADR-051)", () => {
-    it("generates safe_div call with correct helper name and effects", () => {
+    it("generates safe_div call with the helper 2.2 planned", () => {
       const argExpressions = [
         createMockExpressionContext("result"),
         createMockExpressionContext("a"),
@@ -1014,19 +1087,19 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "safe_div",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "safe_div", input),
         input,
         state,
         orchestrator,
+        null,
+        "cnx_safe_div_u32",
       );
 
       expect(result.code).toBe("cnx_safe_div_u32(&result, a, b, 0)");
-      expect(result.effects).toEqual([
-        { type: "safe-div", operation: "div", cnxType: "u32" },
-      ]);
+      expect(result.effects).toEqual([]);
     });
 
-    it("generates safe_mod call with correct helper name and effects", () => {
+    it("generates safe_mod call with the helper 2.2 planned", () => {
       const argExpressions = [
         createMockExpressionContext("out"),
         createMockExpressionContext("x"),
@@ -1050,16 +1123,16 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "safe_mod",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "safe_mod", input),
         input,
         state,
         orchestrator,
+        null,
+        "cnx_safe_mod_i64",
       );
 
       expect(result.code).toBe("cnx_safe_mod_i64(&out, x, y, 1)");
-      expect(result.effects).toEqual([
-        { type: "safe-div", operation: "mod", cnxType: "i64" },
-      ]);
+      expect(result.effects).toEqual([]);
     });
 
     // #1322: these four asserted the user-facing throws. ADR-051's call shape
@@ -1080,10 +1153,12 @@ describe("CallExprGenerator", () => {
       expect(() =>
         generateFunctionCall(
           "safe_div",
-          planArguments(orchestrator, argExpressions),
+          planArguments(orchestrator, argExpressions, "safe_div", input),
           input,
           state,
           orchestrator,
+          null,
+          "cnx_safe_div_u32",
         ),
       ).toThrow("E0884 rejects this in pass 2.1");
     });
@@ -1099,93 +1174,41 @@ describe("CallExprGenerator", () => {
       expect(() =>
         generateFunctionCall(
           "safe_mod",
-          planArguments(orchestrator, argExpressions),
+          planArguments(orchestrator, argExpressions, "safe_mod", input),
           input,
           state,
           orchestrator,
+          null,
+          "cnx_safe_mod_i64",
         ),
       ).toThrow("E0884 rejects this in pass 2.1");
     });
 
-    it("asserts the invariant when the first argument is not an identifier", () => {
+    it("writes an unplanned call by its name: 2.3 does not decide it is ADR-051's", () => {
       const argExpressions = [
-        createMockExpressionContext("a + b"),
-        createMockExpressionContext("x"),
-        createMockExpressionContext("y"),
-        createMockExpressionContext("0"),
-      ];
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        isCNextFunction: vi.fn(() => false),
-        getSimpleIdentifier: vi.fn(() => null),
-      });
-
-      expect(() =>
-        generateFunctionCall(
-          "safe_div",
-          planArguments(orchestrator, argExpressions),
-          input,
-          state,
-          orchestrator,
-        ),
-      ).toThrow("E0885 rejects this in pass 2.1");
-    });
-
-    it("asserts the invariant when the output parameter has no type", () => {
-      const argExpressions = [
-        createMockExpressionContext("unknownVar"),
+        createMockExpressionContext("result"),
         createMockExpressionContext("a"),
         createMockExpressionContext("b"),
         createMockExpressionContext("0"),
       ];
-      const input = createMockInput(); // empty typeRegistry
-      const state = createMockState();
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn(() => false),
-        getSimpleIdentifier: vi.fn(() => "unknownVar"),
       });
 
-      expect(() =>
-        generateFunctionCall(
-          "safe_div",
-          planArguments(orchestrator, argExpressions),
-          input,
-          state,
+      const result = generateFunctionCall(
+        "safe_div",
+        planArguments(
           orchestrator,
-        ),
-      ).toThrow("E0885 rejects this in pass 2.1");
-    });
-
-    it("throws error when output parameter has no baseType", () => {
-      const argExpressions = [
-        createMockExpressionContext("noType"),
-        createMockExpressionContext("a"),
-        createMockExpressionContext("b"),
-        createMockExpressionContext("0"),
-      ];
-      const typeRegistry = new Map([
-        [
-          "noType",
-          { baseType: "", bitWidth: 0, isArray: false, isConst: false },
-        ],
-      ]);
-      const input = createMockInput({ typeRegistry });
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        isCNextFunction: vi.fn(() => false),
-        getSimpleIdentifier: vi.fn(() => "noType"),
-      });
-
-      expect(() =>
-        generateFunctionCall(
+          argExpressions,
           "safe_div",
-          planArguments(orchestrator, argExpressions),
-          input,
-          state,
-          orchestrator,
+          createMockInput(),
         ),
-      ).toThrow("a registered variable always has a non-empty baseType");
+        createMockInput(),
+        createMockState(),
+        orchestrator,
+      );
+
+      expect(result.code).toBe("safe_div(result, a, b, 0)");
     });
   });
 
@@ -1214,7 +1237,7 @@ describe("CallExprGenerator", () => {
       // Should not throw
       const result = generateFunctionCall(
         "readOnly",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "readOnly", input),
         input,
         state,
         orchestrator,
@@ -1237,7 +1260,7 @@ describe("CallExprGenerator", () => {
       // Should not throw
       const result = generateFunctionCall(
         "unknownFunc",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "unknownFunc", input),
         input,
         state,
         orchestrator,
@@ -1275,7 +1298,7 @@ describe("CallExprGenerator", () => {
 
       generateFunctionCall(
         "callee",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "callee", input),
         input,
         state,
         orchestrator,
@@ -1310,7 +1333,7 @@ describe("CallExprGenerator", () => {
 
       generateFunctionCall(
         "callee",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "callee", input),
         input,
         state,
         orchestrator,
@@ -1346,7 +1369,7 @@ describe("CallExprGenerator", () => {
 
       generateFunctionCall(
         "callee",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "callee", input),
         input,
         state,
         orchestrator,
@@ -1382,7 +1405,7 @@ describe("CallExprGenerator", () => {
 
       generateFunctionCall(
         "callee",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "callee", input),
         input,
         state,
         orchestrator,
@@ -1458,7 +1481,7 @@ describe("CallExprGenerator", () => {
 
         const result = generateFunctionCall(
           "take",
-          planArguments(orchestrator, argExpressions),
+          planArguments(orchestrator, argExpressions, "take", input),
           input,
           createMockState(),
           orchestrator,
@@ -1499,7 +1522,12 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "take",
-        planArguments(orchestrator, [createMockExpressionContext("pts")]),
+        planArguments(
+          orchestrator,
+          [createMockExpressionContext("pts")],
+          "take",
+          createMockInput({ functionSignatures: takeSignature("CPoint*") }),
+        ),
         createMockInput({ functionSignatures: takeSignature("CPoint*") }),
         createMockState(),
         orchestrator,
@@ -1550,7 +1578,12 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "take",
-        planArguments(orchestrator, [createMockExpressionContext("d")]),
+        planArguments(
+          orchestrator,
+          [createMockExpressionContext("d")],
+          "take",
+          input,
+        ),
         input,
         createMockState(),
         orchestrator,
@@ -1598,7 +1631,15 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "h.onPeek",
-        planArguments(orchestrator, [createMockExpressionContext("p")]),
+        planArguments(
+          orchestrator,
+          [createMockExpressionContext("p")],
+          CallArgumentPassing.callbackFunction(
+            calleeType,
+            createMockInput({ functionSignatures, callbackTypes }),
+          ) ?? "h.onPeek",
+          createMockInput({ functionSignatures, callbackTypes }),
+        ),
         createMockInput({ functionSignatures, callbackTypes }),
         createMockState(),
         orchestrator,
@@ -1647,7 +1688,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "create_handle",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "create_handle", input),
         input,
         state,
         orchestrator,
@@ -1693,7 +1734,7 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "send_data",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "send_data", input),
         input,
         state,
         orchestrator,
@@ -1740,71 +1781,13 @@ describe("CallExprGenerator", () => {
 
       const result = generateFunctionCall(
         "use_handle",
-        planArguments(orchestrator, argExpressions),
+        planArguments(orchestrator, argExpressions, "use_handle", input),
         input,
         state,
         orchestrator,
       );
 
       expect(result.code).toBe("use_handle(my_handle)");
-    });
-  });
-
-  describe("inDeclarationInit clearing (Issue #992)", () => {
-    beforeEach(() => {
-      sharedState = new TranspileState();
-    });
-
-    it("clears inDeclarationInit during function argument generation", () => {
-      sharedState.inDeclarationInit = true;
-
-      const argExpressions = [createMockExpressionContext("myArg")];
-      const input = createMockInput();
-      const state = createMockState();
-
-      let flagDuringArg = true;
-      const orchestrator = createMockOrchestrator({
-        isCNextFunction: vi.fn(() => false),
-        generateExpression: vi.fn((ctx: Parser.ExpressionContext) => {
-          flagDuringArg = sharedState.inDeclarationInit;
-          return ctx.getText();
-        }),
-      });
-
-      generateFunctionCall(
-        "myFunc",
-        planArguments(orchestrator, argExpressions),
-        input,
-        state,
-        orchestrator,
-      );
-
-      expect(flagDuringArg).toBe(false);
-      expect(sharedState.inDeclarationInit).toBe(true);
-    });
-
-    it("restores inDeclarationInit after argument generation", () => {
-      sharedState.inDeclarationInit = true;
-
-      const argExpressions = [
-        createMockExpressionContext("a"),
-        createMockExpressionContext("b"),
-      ];
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        isCNextFunction: vi.fn(() => false),
-      });
-
-      generateFunctionCall(
-        "myFunc",
-        planArguments(orchestrator, argExpressions),
-        input,
-        state,
-        orchestrator,
-      );
-
-      expect(sharedState.inDeclarationInit).toBe(true);
     });
   });
 });

@@ -34,10 +34,8 @@
  * deleted as subsumed.
  */
 
-import { ParseTreeWalker } from "antlr4ng";
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import ParserUtils from "../../utils/ParserUtils";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type ISyntaxNode from "../../types/syntax/ISyntaxNode";
 import invariant from "../../utils/invariant";
 import IncludeDirectiveText from "../../utils/IncludeDirectiveText";
 import EFileType from "../../PARSE/1-Discover/types/EFileType";
@@ -58,20 +56,16 @@ const IMPLEMENTATION_KINDS: ReadonlySet<EFileType> = new Set([
   EFileType.CppSource,
 ]);
 
-class IncludeDirectiveListener extends CNextListener {
+class IncludeDirectiveChecks {
   private readonly found: IIncludeDirectiveError[] = [];
 
-  public constructor(private readonly context: IIncludeContext) {
-    super();
-  }
+  public constructor(private readonly context: IIncludeContext) {}
 
   public errors(): IIncludeDirectiveError[] {
     return this.found;
   }
 
-  override enterIncludeDirective = (
-    ctx: Parser.IncludeDirectiveContext,
-  ): void => {
+  public check(ctx: ISyntaxNode): void {
     const spec = IncludeDirective.of(ctx);
     if (spec === null) return;
 
@@ -89,7 +83,7 @@ class IncludeDirectiveListener extends CNextListener {
       spec,
       this.context.cnextAlternatives.get(directive),
     );
-  };
+  }
 
   /**
    * Discovery's answer for this directive. It reads a `.cnx` file's
@@ -120,7 +114,7 @@ class IncludeDirectiveListener extends CNextListener {
    * C-Next source (#1833, owner ruling), in either form of include.
    */
   private checkMiscasedCnextFile(
-    ctx: Parser.IncludeDirectiveContext,
+    ctx: ISyntaxNode,
     spec: { path: string; isLocal: boolean },
     kind: EFileType,
   ): boolean {
@@ -136,7 +130,7 @@ class IncludeDirectiveListener extends CNextListener {
 
   /** E0503: `#include "helper.c"` -- a definition, not an interface. */
   private checkImplementationFile(
-    ctx: Parser.IncludeDirectiveContext,
+    ctx: ISyntaxNode,
     spec: { path: string; isLocal: boolean },
     kind: EFileType,
   ): boolean {
@@ -158,7 +152,7 @@ class IncludeDirectiveListener extends CNextListener {
    * along the run's paths and its absence is discovery's warning to give.
    */
   private checkMissingCnextFile(
-    ctx: Parser.IncludeDirectiveContext,
+    ctx: ISyntaxNode,
     spec: { path: string; isLocal: boolean },
     kind: EFileType,
     resolved: string | null,
@@ -187,7 +181,7 @@ class IncludeDirectiveListener extends CNextListener {
    * the `.cnx` carries what the transpiler needs to check the call.
    */
   private checkCnextAlternative(
-    ctx: Parser.IncludeDirectiveContext,
+    ctx: ISyntaxNode,
     spec: { path: string; isLocal: boolean },
     cnxPath: string | undefined,
   ): void {
@@ -206,24 +200,29 @@ class IncludeDirectiveListener extends CNextListener {
   }
 
   private report(
-    at: Parser.IncludeDirectiveContext,
+    at: ISyntaxNode,
     code: string,
     message: string,
     helpText: string,
   ): void {
-    const { line, column } = ParserUtils.getPosition(at);
-    this.found.push({ code, line, column, message, helpText });
+    this.found.push({
+      code,
+      line: at.span.line,
+      column: at.span.column,
+      message,
+      helpText,
+    });
   }
 }
 
 class IncludeDirectiveAnalyzer {
   public analyze(
-    tree: Parser.ProgramContext,
+    program: IProgramSyntax,
     context: IIncludeContext,
   ): IIncludeDirectiveError[] {
-    const listener = new IncludeDirectiveListener(context);
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
-    return listener.errors();
+    const checks = new IncludeDirectiveChecks(context);
+    for (const include of program.includes) checks.check(include);
+    return checks.errors();
   }
 }
 

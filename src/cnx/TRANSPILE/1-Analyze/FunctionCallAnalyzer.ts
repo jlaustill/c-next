@@ -7,16 +7,21 @@
  * the C compiler or runtime.
  */
 
-import { ParseTreeWalker } from "antlr4ng";
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type TExpression from "../../types/syntax/TExpression";
+import type IFunctionDeclarationSyntax from "../../types/syntax/IFunctionDeclarationSyntax";
+import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
+import type TStatement from "../../types/syntax/TStatement";
+import type TSyntaxPart from "../../types/syntax/TSyntaxPart";
+import DeclarationParts from "../../utils/DeclarationParts";
+import ExpressionNodes from "../../utils/ExpressionNodes";
+import StatementChildren from "../../utils/StatementChildren";
+import TypeParts from "../../utils/TypeParts";
 import IFunctionCallError from "./types/IFunctionCallError";
-import ParserUtils from "../../utils/ParserUtils";
 import AdrProvenance from "../../instrumentation/AdrProvenance";
 import DynamicAllocation from "./DynamicAllocation";
 import StdlibFunctions from "./StdlibFunctions";
 import CalleeNameResolver from "./helpers/CalleeNameResolver";
-import EnclosingScope from "./helpers/EnclosingScope";
 import ScopeUtils from "../../utils/ScopeUtils";
 import IncludeDirective from "./helpers/IncludeDirective";
 import type IAnalysisContext from "./types/IAnalysisContext";
@@ -28,195 +33,118 @@ import type IAnalysisContext from "./types/IAnalysisContext";
 const CNEXT_BUILTINS: Set<string> = new Set(StdlibFunctions.builtinNames());
 
 /**
- * Listener that walks the parse tree and checks function calls
+ * #1991: walks 1.2's syntax, not the parse tree, in source order -- a function
+ * is defined from its own declaration onward (ADR-030), and a callable
+ * variable from its declaration onward (ADR-040), so each call is checked
+ * against only what precedes it.
  */
-class FunctionCallListener extends CNextListener {
-  private readonly analyzer: FunctionCallAnalyzer;
+class FunctionCallWalk {
+  constructor(private readonly analyzer: FunctionCallAnalyzer) {}
 
-  /** The `scope` currently open, as a reference (#1357). */
-  private readonly enclosing = new EnclosingScope();
-
-  constructor(analyzer: FunctionCallAnalyzer) {
-    super();
-    this.analyzer = analyzer;
+  declaration(declaration: TDeclarationSyntax, scope: string): void {
+    switch (declaration.kind) {
+      case "scope":
+        for (const member of declaration.members) {
+          this.declaration(member.declaration, declaration.name);
+        }
+        return;
+      case "function":
+        this.function(declaration, scope);
+        return;
+      case "variableDeclaration":
+      case "constructorDeclaration":
+        this.statements([declaration], scope);
+        return;
+      default:
+        for (const part of DeclarationParts.of(declaration)) {
+          this.part(part, scope);
+        }
+    }
   }
 
-  // ========================================================================
-  // ISR/Callback Variable Tracking (ADR-040)
-  // ========================================================================
-
-  /**
-   * Check if a type name represents a callable type (ISR, callback, or C function pointer typedef).
-   */
-  private isCallableType(typeName: string): boolean {
-    return (
-      typeName === "ISR" ||
-      this.isCallbackTypeHere(typeName) ||
-      this.analyzer.isCFunctionPointerTypedef(typeName)
-    );
-  }
-
-  /**
-   * ADR-029 + ADR-057: is `typeName`, written HERE, a function-as-type?
-   *
-   * The scope-qualified reading is asked first and the bare one second, which is
-   * ADR-057's local -> scope -> global order. Asking only the bare name is what
-   * #1472 fixed: inside `scope Motor`, a field or variable typed `onTick` names
-   * `Motor.onTick`, and the analyzer -- which walked only top-level declarations
-   * -- concluded it was not callable and reported the call through it as E0422
-   * "called before definition". Codegen registered scope functions as callback
-   * types all along, so the two derivations of one ADR-029 fact disagreed.
-   *
-   * `qualifyInScope` handles all three spellings without a branch, because
-   * `QualifiedCName.fromParts` expands a dotted part: bare-in-scope `onTick`
-   * becomes `Motor__onTick`, qualified `Motor.onTick` at file scope becomes the
-   * same key, and a top-level `onTick` stays itself.
-   */
-  private isCallbackTypeHere(typeName: string): boolean {
-    return (
-      this.analyzer.isCallbackType(
-        ScopeUtils.qualifyInScope(typeName, this.enclosing.current()),
-      ) || this.analyzer.isCallbackType(typeName)
-    );
-  }
-
-  /**
-   * Track ISR-typed variables from variable declarations
-   * e.g., `ISR handler <- myFunction;`
-   */
-  override enterVariableDeclaration = (
-    ctx: Parser.VariableDeclarationContext,
-  ): void => {
-    const typeName = ctx.type().getText();
-    if (this.isCallableType(typeName)) {
-      this.analyzer.defineCallableVariable(ctx.IDENTIFIER().getText());
-    }
-  };
-
-  /**
-   * Track ISR-typed parameters in function declarations
-   * e.g., `void execute(ISR handler) { handler(); }`
-   */
-  override enterParameter = (ctx: Parser.ParameterContext): void => {
-    const typeName = ctx.type().getText();
-    if (this.isCallableType(typeName)) {
-      this.analyzer.defineCallableVariable(ctx.IDENTIFIER().getText());
-    }
-  };
-
-  /**
-   * A `for` init declares a variable too, and `forVarDecl` is its own grammar
-   * rule -- `enterVariableDeclaration` above never fires for one (#1484). Left
-   * out, `for (onTick f <- onTick; ...) { f(1); }` was rejected with
-   * `E0422: function 'f' called before definition`, while the identical
-   * declaration one line earlier was accepted.
-   */
-  override enterForVarDecl = (ctx: Parser.ForVarDeclContext): void => {
-    const typeName = ctx.type().getText();
-    if (this.isCallableType(typeName)) {
-      this.analyzer.defineCallableVariable(ctx.IDENTIFIER().getText());
-    }
-  };
-
-  // ========================================================================
-  // Function Definitions
-  // ========================================================================
-
-  override enterFunctionDeclaration = (
-    ctx: Parser.FunctionDeclarationContext,
-  ): void => {
-    const name = ctx.IDENTIFIER().getText();
-
-    // If inside a scope, the full name is Scope_functionName
-    const fullName = ScopeUtils.qualifyInScope(name, this.enclosing.current());
-
-    // Track that we're currently inside this function (for self-recursion detection)
+  private function(fn: IFunctionDeclarationSyntax, scope: string): void {
+    const fullName = ScopeUtils.qualifyInScope(fn.name, scope);
     this.analyzer.enterFunction(fullName);
     this.analyzer.defineFunction(fullName);
-  };
-
-  override exitFunctionDeclaration = (
-    _ctx: Parser.FunctionDeclarationContext,
-  ): void => {
-    // We're leaving the function definition
+    this.part({ kind: "type", type: fn.returnType }, scope);
+    for (const parameter of fn.parameters ?? []) {
+      this.defineIfCallable(parameter.type.text, parameter.name, scope);
+      this.part({ kind: "type", type: parameter.type }, scope);
+      for (const part of TypeParts.dimensions(parameter.dimensions)) {
+        this.part(part, scope);
+      }
+    }
+    this.statements(fn.body.statements, scope);
     this.analyzer.exitFunction();
-  };
-
-  // ========================================================================
-  // Scope Handling
-  // ========================================================================
-
-  override enterScopeDeclaration = (
-    ctx: Parser.ScopeDeclarationContext,
-  ): void => {
-    this.enclosing.enter(ctx.IDENTIFIER().getText());
-  };
-
-  override exitScopeDeclaration = (
-    _ctx: Parser.ScopeDeclarationContext,
-  ): void => {
-    this.enclosing.exit();
-  };
-
-  // ========================================================================
-  // Function Calls
-  // ========================================================================
-
-  /**
-   * SonarCloud S3776: Refactored to use helper method.
-   */
-  override enterPostfixExpression = (
-    ctx: Parser.PostfixExpressionContext,
-  ): void => {
-    const ops = ctx.postfixOp();
-    const primary = ctx.primaryExpression();
-
-    // Determine the base name: could be an identifier or 'this'
-    const baseName = this.extractBaseName(primary);
-    if (!baseName) return;
-
-    // Walk through postfix ops to find the call and resolve the name
-    const { resolvedName, foundCall, isGlobalCall } = this.resolveCallTarget(
-      ops,
-      baseName,
-    );
-    if (!foundCall) return;
-
-    // Check if the function is defined
-    const { line, column } = ParserUtils.getPosition(ctx);
-    this.analyzer.checkFunctionCall(
-      resolvedName,
-      line,
-      column,
-      this.enclosing.current(),
-      isGlobalCall,
-    );
-  };
-
-  /**
-   * Extract base name from primary expression.
-   */
-  private extractBaseName(
-    primary: Parser.PrimaryExpressionContext,
-  ): string | null {
-    return CalleeNameResolver.baseName(primary);
   }
 
-  /**
-   * Resolve call target by walking postfix operations.
-   * Returns the resolved function name and whether a call was found.
-   * SonarCloud S3776: Extracted from enterPostfixExpression().
-   */
-  private resolveCallTarget(
-    ops: Parser.PostfixOpContext[],
-    baseName: string,
-  ): { resolvedName: string; foundCall: boolean; isGlobalCall: boolean } {
-    return CalleeNameResolver.resolveCallTarget(
-      ops,
+  /** Each declaration defines its callable name before its own initializer */
+  private statements(statements: readonly TStatement[], scope: string): void {
+    for (const statement of statements) {
+      if (statement.kind === "variableDeclaration") {
+        this.defineIfCallable(statement.type.text, statement.name, scope);
+      }
+      if (
+        statement.kind === "for" &&
+        statement.init?.kind === "variableDeclaration"
+      ) {
+        this.defineIfCallable(
+          statement.init.type.text,
+          statement.init.name,
+          scope,
+        );
+      }
+      for (const part of DeclarationParts.statement(statement)) {
+        this.part(part, scope);
+      }
+      this.statements(StatementChildren.of(statement), scope);
+    }
+  }
+
+  private part(part: TSyntaxPart, scope: string): void {
+    for (const node of ExpressionNodes.of(part)) {
+      if (node.kind === "postfix") this.call(node, scope);
+    }
+  }
+
+  private call(
+    expr: Extract<TExpression, { kind: "postfix" }>,
+    scope: string,
+  ): void {
+    const baseName = CalleeNameResolver.baseName(expr.primary);
+    if (!baseName) return;
+    const target = CalleeNameResolver.resolveCallTarget(
+      expr.ops,
       baseName,
-      this.enclosing.current(),
+      scope,
       (name) => this.analyzer.isScope(name),
     );
+    if (!target.foundCall) return;
+    this.analyzer.checkFunctionCall(
+      target.resolvedName,
+      expr.span.line,
+      expr.span.column,
+      scope,
+      target.isGlobalCall,
+    );
+  }
+
+  /** ADR-040: a variable of a callback, ISR or C function-pointer type */
+  private defineIfCallable(
+    typeName: string,
+    name: string,
+    scope: string,
+  ): void {
+    if (
+      typeName === "ISR" ||
+      this.analyzer.isCallbackType(
+        ScopeUtils.qualifyInScope(typeName, scope),
+      ) ||
+      this.analyzer.isCallbackType(typeName) ||
+      this.analyzer.isCFunctionPointerTypedef(typeName)
+    ) {
+      this.analyzer.defineCallableVariable(name);
+    }
   }
 }
 
@@ -250,9 +178,10 @@ class FunctionCallAnalyzer {
   /**
    * Analyze a parsed program for function call errors
    * @param tree The parsed program AST
+   * @param program 1.2's syntax for the same file
    * @returns Array of function call errors
    */
-  public analyze(tree: Parser.ProgramContext): IFunctionCallError[] {
+  public analyze(program: IProgramSyntax): IFunctionCallError[] {
     this.errors = [];
     this.definedFunctions = new Set();
     this.allLocalFunctions = new Set();
@@ -263,25 +192,23 @@ class FunctionCallAnalyzer {
 
     // First pass: collect scope names, includes, and all local functions --
     // which ADR-029 also makes the set of callback types (see isCallbackType).
-    this.collectScopes(tree);
-    this.collectIncludes(tree);
-    this.collectAllLocalFunctions(tree);
-
-    // Second pass: walk tree in order, tracking definitions and checking calls
-    const listener = new FunctionCallListener(this);
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
-
+    this.collectScopes(program);
+    this.collectIncludes(program);
+    this.collectAllLocalFunctions(program);
+    const walk = new FunctionCallWalk(this);
+    for (const member of program.declarations) {
+      walk.declaration(member.declaration, "");
+    }
     return this.errors;
   }
 
   /**
    * Collect scope names for member function resolution
    */
-  private collectScopes(tree: Parser.ProgramContext): void {
-    for (const decl of tree.declaration()) {
-      if (decl.scopeDeclaration()) {
-        const name = decl.scopeDeclaration()!.IDENTIFIER().getText();
-        this.knownScopes.add(name);
+  private collectScopes(program: IProgramSyntax): void {
+    for (const member of program.declarations) {
+      if (member.declaration.kind === "scope") {
+        this.knownScopes.add(member.declaration.name);
       }
     }
   }
@@ -289,11 +216,11 @@ class FunctionCallAnalyzer {
   /**
    * Collect included headers for stdlib function lookup
    */
-  private collectIncludes(tree: Parser.ProgramContext): void {
+  private collectIncludes(program: IProgramSyntax): void {
     // #1322: one parse, shared with ADR-010's own rules. The spelling that
     // stood here matched the two delimiters independently, so `<foo.h"` read
     // as an include.
-    for (const path of IncludeDirective.pathsIn(tree)) {
+    for (const path of IncludeDirective.pathsIn(program)) {
       this.includedHeaders.add(path);
     }
   }
@@ -332,26 +259,18 @@ class FunctionCallAnalyzer {
    * preceded this one walked `tree.declaration()` alone and silently omitted
    * every scope member.
    */
-  private collectAllLocalFunctions(tree: Parser.ProgramContext): void {
-    for (const decl of tree.declaration()) {
-      // Standalone functions
-      if (decl.functionDeclaration()) {
-        this.allLocalFunctions.add(
-          decl.functionDeclaration()!.IDENTIFIER().getText(),
-        );
+  private collectAllLocalFunctions(program: IProgramSyntax): void {
+    for (const member of program.declarations) {
+      const declaration = member.declaration;
+      if (declaration.kind === "function") {
+        this.allLocalFunctions.add(declaration.name);
       }
-      // Scope member functions
-      if (decl.scopeDeclaration()) {
-        const scopeDecl = decl.scopeDeclaration()!;
-        const scopePath = this.scopePathOf(scopeDecl.IDENTIFIER().getText());
-        for (const member of scopeDecl.scopeMember()) {
-          if (member.functionDeclaration()) {
-            const funcName = member
-              .functionDeclaration()!
-              .IDENTIFIER()
-              .getText();
+      if (declaration.kind === "scope") {
+        const scopePath = this.scopePathOf(declaration.name);
+        for (const scoped of declaration.members) {
+          if (scoped.declaration.kind === "function") {
             this.allLocalFunctions.add(
-              ScopeUtils.qualifyInScope(funcName, scopePath),
+              ScopeUtils.qualifyInScope(scoped.declaration.name, scopePath),
             );
           }
         }

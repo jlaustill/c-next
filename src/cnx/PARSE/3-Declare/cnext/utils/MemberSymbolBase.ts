@@ -2,7 +2,6 @@ import type ISourceSpan from "../../../../types/ISourceSpan";
 import type TSymbolKindCNext from "../../../../types/symbol-kinds/TSymbolKindCNext";
 import type TVisibility from "../../../../types/TVisibility";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
-import ParserUtils from "../../../../utils/ParserUtils";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 
 interface IMemberSymbolInput<K extends TSymbolKindCNext> {
@@ -18,23 +17,8 @@ interface IMemberSymbolInput<K extends TSymbolKindCNext> {
    */
   readonly parentScopedName: string;
 
-  /** The member's own parse context, so it gets its own span. */
-  readonly memberCtx: {
-    start?: { line?: number; column?: number } | null;
-    stop?: {
-      line?: number;
-      column?: number;
-      text?: string | null;
-      start?: number;
-      stop?: number;
-    } | null;
-  };
-
-  /**
-   * The declaring type's span, used only when the member context has no start
-   * token. See `ParserUtils.getSpanOr` for why inheriting beats `0:0`.
-   */
-  readonly parentSpan: ISourceSpan;
+  /** The member's own span, so it does not share its type's. */
+  readonly memberSpan: ISourceSpan;
 
   readonly sourceFile: string;
 
@@ -92,7 +76,7 @@ class MemberSymbolBase {
       // with no start token inherits its parent's span rather than
       // reporting 0:0, which is both the top of the file and
       // indistinguishable from UNSET_SOURCE_SPAN (#1318 review).
-      span: ParserUtils.getSpanOr(input.memberCtx, input.parentSpan),
+      span: input.memberSpan,
       sourceLanguage: ESourceLanguage.CNext,
       visibility: input.visibility,
     };

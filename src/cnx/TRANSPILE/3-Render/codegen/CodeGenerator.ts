@@ -3,8 +3,7 @@
  * Transforms C-Next AST to clean, readable C code
  */
 
-import TYPE_MAP from "./types/TYPE_MAP";
-import OverflowHelperTemplates from "./generators/support/OverflowHelperTemplates";
+import PlanQueries from "../../2-Plan/PlanQueries";
 import type IFloatBitWrite from "../../../types/IFloatBitWrite";
 import ReservedCnxName from "../../../utils/ReservedCnxName";
 
@@ -17,9 +16,9 @@ import TGeneratorEffect from "./generators/TGeneratorEffect";
 // Expression generators
 // Statement generators
 import atomicGenerators from "./generators/statements/AtomicGenerator";
+import type TAtomicForm from "../../types/TAtomicForm";
 // Declaration generators
 // ADR-065: Extracted utilities
-import CppNamespaceUtils from "../../../utils/CppNamespaceUtils";
 import FormatUtils from "../../../utils/FormatUtils";
 import StringUtils from "../../../utils/StringUtils";
 import invariant from "../../../utils/invariant";
@@ -47,7 +46,7 @@ import FloatBitHelper from "./helpers/FloatBitHelper";
 // PR #715: C++ constructor detection helper for improved testability
 // PR #715: Set/Map utilities for improved testability
 // PR #715: Symbol lookup utilities for improved testability
-import SymbolLookupHelper from "./helpers/SymbolLookupHelper";
+import SymbolLookupHelper from "../../2-Plan/SymbolLookupHelper";
 // Issue #644: Assignment validation coordinator helper
 // Issue #696: Variable modifier extraction helper
 // Note: VariableModifierBuilder is now used via VariableDeclHelper
@@ -58,16 +57,13 @@ import SymbolLookupHelper from "./helpers/SymbolLookupHelper";
 // Issue #707: Expression unwrapping utility for reducing duplication
 // Stateless parser utilities extracted from CodeGenerator
 // Phase 3: Type generation helper for improved testability
-import type IPlannedFunctionParameter from "./types/IPlannedFunctionParameter";
+import type IPlannedFunctionParameter from "../../2-Plan/types/IPlannedFunctionParameter";
 // Phase 5: Cast validation helper for improved testability
 // Issue #793: Function context lifecycle and parameter processing helper
 import FunctionContextManager from "./helpers/FunctionContextManager";
-import IFunctionContextCallbacks from "./types/IFunctionContextCallbacks";
 // Global state for code generation (simplifies debugging, eliminates DI complexity)
-import TypeCheckUtils from "../../../utils/TypeCheckUtils";
 import CallbackTypedefFormatter from "./helpers/CallbackTypedefFormatter";
 // Issue #269: Pass-by-value analysis extracted from CodeGenerator
-import PassByValueAnalyzer from "../../2-Plan/PassByValueAnalyzer";
 // Unified parameter generation (Phase 1)
 // Issue #895: Parse typedef signatures to determine pointer vs value params
 // Extracted resolvers that use CodeGenState
@@ -92,6 +88,8 @@ export default class CodeGenerator implements IOrchestrator {
    * without a global between them.
    */
   readonly state = new TranspileState();
+
+  private readonly planQueries = new PlanQueries(this.state);
 
   // ===========================================================================
   // IOrchestrator Implementation
@@ -143,46 +141,6 @@ export default class CodeGenerator implements IOrchestrator {
   applyEffects(effects: readonly TGeneratorEffect[]): void {
     for (const effect of effects) {
       switch (effect.type) {
-        // Include effects - delegate to requireInclude()
-        case "include":
-          this.state.requireInclude(effect.header, effect.line ?? null);
-          break;
-        case "isr":
-          this.state.requireInclude("isr");
-          break;
-        case "c-type":
-          this.state.emittedCTypes.add(effect.cType);
-          break;
-
-        // Emitted-form effects (Issue #1143): the form is a fact for the
-        // plan, which decides what it costs (#1997).
-        case "ldrex-strex-loop":
-          this.state.noteLdrexStrexLoop();
-          break;
-
-        // Helper function effects
-        case "helper":
-          // Route through the single marker rather than writing the set
-          // directly, so helper-op bookkeeping has one entry point (#1143).
-          this.state.markClampOpUsed(effect.operation, effect.cnxType);
-          for (const cType of OverflowHelperTemplates.cTypesOf(
-            effect.cnxType,
-          )) {
-            this.state.emittedCTypes.add(cType);
-          }
-          break;
-        case "safe-div":
-          // Internal helper-op key, not a scope-qualified C name
-          this.state.usedSafeDivOps.add(
-            `${effect.operation}_${effect.cnxType}`,
-          );
-          // ADR-051 safe-div helpers return a bool error flag. Record the
-          // type, and the plan decides the header (#1108, #1927) rather than
-          // the helper emitting its own #include <stdbool.h>.
-          this.state.emittedCTypes.add("bool");
-          this.state.emittedCTypes.add(TYPE_MAP[effect.cnxType]);
-          break;
-
         // #1452 box 2: three "type registration" effects stood here --
         // `register-type`, `register-local`, `register-const-value` -- and NO
         // generator emitted any of them (`grep` for each literal outside this
@@ -211,9 +169,6 @@ export default class CodeGenerator implements IOrchestrator {
           break;
 
         // Callback effects
-        case "register-callback-field":
-          this.state.callbackFieldTypes.set(effect.key, effect.typeName);
-          break;
         case "register-struct-init":
           this.state.generatedStructInits.add(effect.structName);
           break;
@@ -259,7 +214,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   isKnownStruct(typeName: string): boolean {
-    return this.state.isKnownStruct(typeName);
+    return this.planQueries.isKnownStruct(typeName);
   }
 
   /**
@@ -267,7 +222,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface - delegates to TypeCheckUtils.
    */
   isFloatType(typeName: string): boolean {
-    return TypeCheckUtils.isFloat(typeName);
+    return this.planQueries.isFloatType(typeName);
   }
 
   /**
@@ -275,7 +230,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface - delegates to TypeCheckUtils.
    */
   isIntegerType(typeName: string): boolean {
-    return TypeCheckUtils.isInteger(typeName);
+    return this.planQueries.isIntegerType(typeName);
   }
 
   /**
@@ -283,11 +238,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   isCNextFunction(name: string): boolean {
-    return SymbolLookupHelper.isCNextFunctionCombined(
-      this.state.knownFunctions,
-      this.state.symbolTable,
-      name,
-    );
+    return this.planQueries.isCNextFunction(name);
   }
 
   // === Expression Analysis ===
@@ -301,7 +252,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   getKnownEnums(): ReadonlySet<string> {
-    return this.state.symbols!.knownEnums;
+    return this.planQueries.getKnownEnums();
   }
 
   /**
@@ -309,7 +260,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   isCppMode(): boolean {
-    return this.state.cppMode;
+    return this.planQueries.isCppMode();
   }
 
   /**
@@ -361,7 +312,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   isCppEnumClass(typeName: string): boolean {
-    return SymbolLookupHelper.isCppEnumClass(this.state.symbolTable, typeName);
+    return this.planQueries.isCppEnumClass(typeName);
   }
 
   /**
@@ -448,11 +399,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   /** Set current function parameters */
   setParameters(parameters: readonly IPlannedFunctionParameter[] | null): void {
-    FunctionContextManager.processParameterList(
-      parameters,
-      this._getFunctionContextCallbacks(),
-      this.state,
-    );
+    FunctionContextManager.processParameterList(parameters, this.state);
   }
 
   /** Clear current function parameters */
@@ -466,7 +413,7 @@ export default class CodeGenerator implements IOrchestrator {
    * convention that `CodeGenWalker.callbackTypedefName` owns.
    */
   getCallbackTypedefName(typeName: string): string | null {
-    return this.state.callbackTypes.get(typeName)?.typedefName ?? null;
+    return this.planQueries.getCallbackTypedefName(typeName);
   }
 
   /**
@@ -522,32 +469,15 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Issue #477: Get the current function's return type for enum inference.
-   * Used by return statement generation to set expectedType.
-   */
-  getCurrentFunctionReturnType(): string | null {
-    return this.state.currentFunctionReturnType;
-  }
-
-  /**
-   * Issue #477: Set the current function's return type for enum inference.
-   */
-  setCurrentFunctionReturnType(returnType: string | null): void {
-    this.state.currentFunctionReturnType = returnType;
-  }
-
-  /**
-   * #1277: the four facts a function body is generated against, set and
+   * #1277: the facts a function body is generated against, set and
    * cleared as one. See `IOrchestrator` for why this is a pair rather than
-   * four calls repeated at each site.
+   * calls repeated at each site.
    */
   enterFunctionContext(
     name: string,
-    returnTypeText: string,
     parameters: readonly IPlannedFunctionParameter[] | null,
   ): void {
     this.setCurrentFunctionName(name);
-    this.setCurrentFunctionReturnType(returnTypeText);
     this.setParameters(parameters);
     this.enterFunctionBody();
   }
@@ -559,7 +489,6 @@ export default class CodeGenerator implements IOrchestrator {
   exitFunctionContext(): void {
     this.exitFunctionBody();
     this.setCurrentFunctionName(null);
-    this.setCurrentFunctionReturnType(null);
     this.clearParameters();
   }
 
@@ -675,10 +604,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   isCppScopeSymbol(name: string): boolean {
-    return CppNamespaceUtils.isCppNamespace(
-      name,
-      this.state.symbolTable ?? undefined,
-    );
+    return this.planQueries.isCppScopeSymbol(name);
   }
 
   /**
@@ -695,6 +621,14 @@ export default class CodeGenerator implements IOrchestrator {
    */
   addPendingTempDeclaration(declaration: string): void {
     this.state.pendingTempDeclarations.push(declaration);
+  }
+
+  /**
+   * A name no other temporary in the file has.
+   * Part of IOrchestrator interface.
+   */
+  nextTempName(): string {
+    return this.state.getNextTempVarName();
   }
 
   /**
@@ -756,11 +690,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Delegates to PassByValueAnalyzer.
    */
   isParameterPassByValue(funcName: string, paramIndex: number): boolean {
-    return PassByValueAnalyzer.isParameterPassByValue(
-      funcName,
-      paramIndex,
-      this.state,
-    );
+    return this.planQueries.isParameterPassByValue(funcName, paramIndex);
   }
 
   /**
@@ -802,15 +732,6 @@ export default class CodeGenerator implements IOrchestrator {
   // Functions
   // ========================================================================
 
-  /**
-   * Issue #793: Create callbacks for FunctionContextManager.
-   */
-  private _getFunctionContextCallbacks(): IFunctionContextCallbacks {
-    return {
-      isKnownStruct: (typeName: string) => this.isKnownStruct(typeName),
-    };
-  }
-
   // ========================================================================
   // Variables
   // ========================================================================
@@ -851,14 +772,7 @@ export default class CodeGenerator implements IOrchestrator {
    * @public
    */
   generateFloatBitWrite(bitWrite: IFloatBitWrite): string {
-    // Issue #644: FloatBitHelper is now static, pass callbacks
-    return FloatBitHelper.generateFloatBitWrite(
-      bitWrite,
-      {
-        requireInclude: (header) => this.state.requireInclude(header),
-      },
-      this.state,
-    );
+    return FloatBitHelper.generateFloatBitWrite(bitWrite, this.state);
   }
 
   // ADR-001: <- becomes = in C, with compound assignment operators
@@ -879,18 +793,15 @@ export default class CodeGenerator implements IOrchestrator {
     value: string,
     typeInfo: TTypeInfo,
     clampOp: string | null,
+    form: TAtomicForm,
   ): string {
-    invariant(
-      this.state.targetDescription,
-      "generate() sets the target before any statement is rendered",
-    );
     const result = atomicGenerators.generateAtomicRMW(
       target,
       cOp,
       value,
       typeInfo,
       clampOp,
-      this.state.targetDescription,
+      form,
     );
     this.applyEffects(result.effects);
     return result.code;

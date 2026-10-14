@@ -36,7 +36,6 @@ function build(
   return Program.build(
     [
       CNextResolver.resolve(
-        parse(source),
         ProgramLowering.program(parse(source), null),
         FILE,
         registry,

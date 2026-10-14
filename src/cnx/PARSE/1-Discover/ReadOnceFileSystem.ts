@@ -14,8 +14,7 @@ import invariant from "../../utils/invariant";
  *
  * Read-only, because 1.1 changes nothing on disk: 3.1 Write owns every change
  * (#1653). A view that forwarded the mutating methods would be one more module
- * able to write, so each refuses instead, and so does the preprocessor's
- * scratch file, which 1.1 never needs.
+ * able to write, so each refuses instead.
  */
 class ReadOnceFileSystem implements IFileSystem {
   private readonly texts = new Map<string, string>();
@@ -68,10 +67,6 @@ class ReadOnceFileSystem implements IFileSystem {
 
   rename(from: string): void {
     ReadOnceFileSystem.refuse("rename", from);
-  }
-
-  withTempFile<T>(name: string): Promise<T> {
-    return ReadOnceFileSystem.refuse("create the scratch file", name);
   }
 
   private static refuse(what: string, path: string): never {

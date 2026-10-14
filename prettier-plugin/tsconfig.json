@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
+    "target": "ES2022",
     "module": "CommonJS",
-    "lib": ["ES2020"],
+    "lib": ["ES2022"],
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -10,6 +10,8 @@
     "resolveJsonModule": true,
     "moduleResolution": "node",
 
+    // Matches the root tsconfig: the plugin typechecks 1.2's sources from
+    // ../../src, and one file must not be held to two library levels.
     // esbuild produces dist/, not tsc. This config exists only to typecheck.
     // `rootDir` is deliberately unset: the plugin imports the generated parser
     // from ../../src, which no rootDir under prettier-plugin/ can contain.

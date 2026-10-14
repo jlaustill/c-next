@@ -31,7 +31,6 @@ describe("DeferredTypes.settle", () => {
     // stay `Point`, and that case is byte-identical here.
     const code = `scope Spanned { public Point origin() { return this.stored; } }`;
     const declared = CNextResolver.resolve(
-      parse(code),
       ProgramLowering.program(parse(code), null),
       "test.cnx",
       registry,

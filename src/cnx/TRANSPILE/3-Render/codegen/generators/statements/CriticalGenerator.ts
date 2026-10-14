@@ -48,8 +48,6 @@ import IOrchestrator from "../IOrchestrator";
 interface ICriticalStatement {
   /** The block's generated C, braces included. */
   readonly blockCode: string;
-  /** Source line of the `critical` construct, for the #1143 deferred emitter. */
-  readonly line: number | undefined;
 }
 
 const generateCriticalStatement = (
@@ -63,12 +61,11 @@ const generateCriticalStatement = (
   // `switch`, which the recursion it replaces did not descend into.
 
   // The IRQ wrappers, not cmsis_gcc.h: this avoids macro collisions with
-  // platform headers like Teensy's imxrt.h. Issue #1143: the line is carried
-  // so the deferred emitter can tell the user *which* critical block made
-  // their project depend on CMSIS or avr-libc. The masked region is the one
+  // platform headers like Teensy's imxrt.h. 2.2 required them, with this
+  // block's line for the #1143 report (#1991). The masked region is the one
   // an atomic read-modify-write takes too (#1146).
   const innerCode = critical.blockCode.slice(1, -1).trim();
-  return InterruptMask.wrap(innerCode, critical.line);
+  return InterruptMask.wrap(innerCode);
 };
 
 export default generateCriticalStatement;

@@ -10,30 +10,24 @@
  * in the other.
  */
 import type IGeneratorOutput from "../generators/IGeneratorOutput";
+import PRIMASK_C_TYPE from "../../../2-Plan/types/PRIMASK_C_TYPE";
 
 class InterruptMask {
   /**
    * `inner` bracketed by saving the mask, disabling interrupts, and
-   * restoring the mask; its effect asks for the wrappers.
+   * restoring the mask. 2.2 required the wrappers for every region (#1991).
    *
    * @param inner - The statements run masked, without braces
-   * @param line - The construct's source line, for the deferred toolchain
-   *   report (Issue #1143), when there is one
    */
-  static wrap(inner: string, line: number | undefined): IGeneratorOutput {
+  static wrap(inner: string): IGeneratorOutput {
     return {
       code: `{
-    uint32_t __primask = __cnx_get_PRIMASK();
+    ${PRIMASK_C_TYPE} __primask = __cnx_get_PRIMASK();
     __cnx_disable_irq();
     ${inner}
     __cnx_set_PRIMASK(__primask);
 }`,
-      // `uint32_t` is also every `__cnx_` wrapper's mask type: the wrappers are
-      // emitted only when this effect asks for them (#1927)
-      effects: [
-        { type: "include", header: "irq_wrappers", line },
-        { type: "c-type", cType: "uint32_t" },
-      ],
+      effects: [],
     };
   }
 }

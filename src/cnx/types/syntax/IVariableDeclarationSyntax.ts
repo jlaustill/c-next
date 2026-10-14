@@ -17,6 +17,8 @@ interface IVariableDeclarationSyntax extends ISyntaxNode {
   /** Dimensions after the name, `[]` written as null */
   readonly dimensions: ReadonlyArray<TExpression | null>;
   readonly initializer: TExpression | null;
+  /** #1643 (ADR-030): its own name is written bare past the declarator */
+  readonly spellsOwnName: boolean;
 }
 
 export default IVariableDeclarationSyntax;

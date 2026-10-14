@@ -16,12 +16,12 @@
  * | view                              | scope     | sibling case says |
  * | --------------------------------- | --------- | ----------------- |
  * | `ICodeGenSymbols` `known*` sets    | per FILE  | `Mode` unknown    |
- * | `SymbolTable.getOverloadsByCName`  | whole RUN | `Mode` known      |
+ * | `IResolvedSymbols.getOverloadsByCName`  | whole RUN | `Mode` known      |
  *
  * `ICodeGenSymbols` is built by 1.4's `Program.deriveVisibleSymbols`, over the
  * include graph discovery resolved, so it holds exactly what this file can see
  * (#1435; it cited a `_declareFile` signature #1472 removed). The
- * `SymbolTable` accumulates every file in the run and is cleared once, so a
+ * `IResolvedSymbols` accumulates every file in the run and is cleared once, so a
  * sibling that was never included is still in it. Asking the run-wide table
  * whether a C-Next type exists would answer "yes" in the file that cannot see
  * it, and the diagnostic would never fire where it is needed -- the trap #1312
@@ -45,15 +45,15 @@
 
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
 import ICodeGenSymbols from "../../types/ICodeGenSymbols";
-import SymbolTable from "./SymbolTable";
+import type IResolvedSymbols from "../../types/IResolvedSymbols";
 
 class NameExistence {
   /**
    * Whether a bare type name denotes a type this file can see.
    *
    * `TranspileState.callbackTypes` is deliberately NOT consulted. It is codegen
-   * state -- filled by `CodeGenWalker.registerCallbackTypes` and cleared at the
-   * start of `generate()`, both of which run after the analyzers -- so at
+   * state -- planned by `FilePlanner.planCallbackTypes` and replaced at the
+   * start of each file's 2.2 Plan, both of which run after the analyzers -- so at
    * analysis time it is empty for the first file and holds file N-1's function
    * names for every file after. Reading it made E0426 order-dependent: the same
    * two files with their `#include` lines swapped either diagnosed the undefined
@@ -87,7 +87,7 @@ class NameExistence {
   static isTypeName(
     typeName: string,
     symbols: ICodeGenSymbols,
-    symbolTable: SymbolTable,
+    symbolTable: IResolvedSymbols,
   ): boolean {
     return (
       NameExistence._isKnownCNextType(typeName, symbols, symbolTable) ||
@@ -119,7 +119,7 @@ class NameExistence {
   static isValueName(
     name: string,
     symbols: ICodeGenSymbols,
-    symbolTable: SymbolTable,
+    symbolTable: IResolvedSymbols,
   ): boolean {
     return (
       NameExistence.isTypeName(name, symbols, symbolTable) ||
@@ -160,7 +160,7 @@ class NameExistence {
   private static _isKnownCNextType(
     typeName: string,
     symbols: ICodeGenSymbols,
-    symbolTable: SymbolTable,
+    symbolTable: IResolvedSymbols,
   ): boolean {
     return (
       symbols.knownEnums.has(typeName) ||
@@ -186,7 +186,7 @@ class NameExistence {
    */
   private static _isKnownForeignName(
     name: string,
-    symbolTable: SymbolTable,
+    symbolTable: IResolvedSymbols,
   ): boolean {
     return symbolTable
       .getOverloadsByCName(name)

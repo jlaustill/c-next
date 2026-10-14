@@ -1,4 +1,4 @@
-import type SymbolTable from "../../PARSE/3-Declare/SymbolTable";
+import type IResolvedSymbols from "../../types/IResolvedSymbols";
 import type TSymbol from "../../types/symbols/TSymbol";
 import type TType from "../../types/TType";
 import ScopeUtils from "../../utils/ScopeUtils";
@@ -25,7 +25,7 @@ class PublicInterface {
   /**
    * The symbols that make up this file's generated header, in collection order.
    */
-  static forFile(symbolTable: SymbolTable, sourcePath: string): TSymbol[] {
+  static forFile(symbolTable: IResolvedSymbols, sourcePath: string): TSymbol[] {
     const fileSymbols = symbolTable.getTSymbolsByFile(sourcePath);
     const reachable = PublicInterface.typeClosure(fileSymbols);
 
@@ -47,7 +47,7 @@ class PublicInterface {
    * type is defined in BOTH files and the C compiler rejects the redefinition.
    */
   static definesTypeInHeader(
-    symbolTable: SymbolTable,
+    symbolTable: IResolvedSymbols,
     sourcePath: string,
     transpiledCName: string,
   ): boolean {

@@ -16,53 +16,62 @@
  * asked here too rather than being assumed unreachable.
  */
 
-import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
-
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import ParserUtils from "../../utils/ParserUtils";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type IVariableDeclarationSyntax from "../../types/syntax/IVariableDeclarationSyntax";
+import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
+import type TStatement from "../../types/syntax/TStatement";
+import StatementChildren from "../../utils/StatementChildren";
 import IDeclarationModifierError from "./types/IDeclarationModifierError";
 
-class DeclarationModifierListener extends CNextListener {
+/** Every variable declaration 1.2 returns: global, scope member, local, `for` header */
+class DeclarationModifierAnalyzer {
   private readonly found: IDeclarationModifierError[] = [];
 
-  public errors(): IDeclarationModifierError[] {
+  public analyze(program: IProgramSyntax): IDeclarationModifierError[] {
+    for (const member of program.declarations) {
+      this.declaration(member.declaration);
+    }
     return this.found;
   }
 
-  override enterVariableDeclaration = (
-    ctx: Parser.VariableDeclarationContext,
-  ): void => {
-    this.check(ctx, ctx.atomicModifier(), ctx.volatileModifier());
-  };
+  private declaration(declaration: TDeclarationSyntax): void {
+    if (declaration.kind === "scope") {
+      for (const member of declaration.members) {
+        this.declaration(member.declaration);
+      }
+    } else if (declaration.kind === "variableDeclaration") {
+      this.check(declaration);
+    } else if (declaration.kind === "function") {
+      this.statements(declaration.body.statements);
+    }
+  }
 
-  override enterForVarDecl = (ctx: Parser.ForVarDeclContext): void => {
-    this.check(ctx, ctx.atomicModifier(), ctx.volatileModifier());
-  };
+  private statements(statements: readonly TStatement[]): void {
+    for (const statement of statements) {
+      if (statement.kind === "variableDeclaration") {
+        this.check(statement);
+      } else if (
+        statement.kind === "for" &&
+        statement.init?.kind === "variableDeclaration"
+      ) {
+        this.check(statement.init);
+      }
+      this.statements(StatementChildren.of(statement));
+    }
+  }
 
-  private check(
-    at: ParserRuleContext,
-    atomic: Parser.AtomicModifierContext | null,
-    volatileMod: Parser.VolatileModifierContext | null,
-  ): void {
-    if (atomic === null || volatileMod === null) return;
-    const { line, column } = ParserUtils.getPosition(at);
+  private check(declaration: IVariableDeclarationSyntax): void {
+    if (!declaration.modifiers.atomic || !declaration.modifiers.volatile) {
+      return;
+    }
     this.found.push({
       code: "E0889",
-      line,
-      column,
+      line: declaration.span.line,
+      column: declaration.span.column,
       message: "Cannot use both 'atomic' and 'volatile' on one declaration",
       helpText:
         "`atomic` already implies `volatile`, and adds that a read or write cannot be torn. Use `atomic` for a variable an ISR shares, or `volatile` alone for a hardware register or a delay loop (ADR-049).",
     });
-  }
-}
-
-class DeclarationModifierAnalyzer {
-  public analyze(tree: Parser.ProgramContext): IDeclarationModifierError[] {
-    const listener = new DeclarationModifierListener();
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
-    return listener.errors();
   }
 }
 

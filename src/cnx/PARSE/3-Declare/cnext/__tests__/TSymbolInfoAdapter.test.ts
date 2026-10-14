@@ -23,6 +23,7 @@ import TestEnumMembers from "../../../../types/__testUtils__/testEnumMembers";
 import TestMembers from "../../../../types/__testUtils__/testMembers";
 import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 import TVisibility from "../../../../types/TVisibility";
+import TestExpression from "../../../../types/__testUtils__/testExpression";
 
 describe("TSymbolInfoAdapter", () => {
   // Reset global scope between tests to avoid state pollution
@@ -412,10 +413,19 @@ describe("TSymbolInfoAdapter", () => {
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
-        baseAddress: "0x40000000",
+        baseAddress: TestExpression.hex("0x40000000"),
         members: TestMembers.asRegisterMembers(
           "GPIO",
-          new Map([["DATA", { offset: "0x00", cType: "u32", access: "rw" }]]),
+          new Map([
+            [
+              "DATA",
+              {
+                offset: TestExpression.hex("0x00"),
+                cType: "u32",
+                access: "rw",
+              },
+            ],
+          ]),
         ),
       };
 
@@ -435,16 +445,27 @@ describe("TSymbolInfoAdapter", () => {
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
-        baseAddress: "0x40001000",
+        baseAddress: TestExpression.hex("0x40001000"),
         members: TestMembers.asRegisterMembers(
           "UART",
-          new Map([["TX", { offset: "0x00", cType: "u32", access: "wo" }]]),
+          new Map([
+            [
+              "TX",
+              {
+                offset: TestExpression.hex("0x00"),
+                cType: "u32",
+                access: "wo",
+              },
+            ],
+          ]),
         ),
       };
 
       const info = TSymbolInfoAdapter.convert([register]);
 
-      expect(info.registerBaseAddresses.get("UART")).toBe("0x40001000");
+      expect(info.registerBaseAddresses.get("UART")).toMatchObject({
+        text: "0x40001000",
+      });
     });
 
     it("should populate register member info maps", () => {
@@ -458,12 +479,22 @@ describe("TSymbolInfoAdapter", () => {
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
-        baseAddress: "0x40002000",
+        baseAddress: TestExpression.hex("0x40002000"),
         members: TestMembers.asRegisterMembers(
           "SPI",
           new Map([
-            ["DATA", { offset: "0x00", cType: "u32", access: "rw" }],
-            ["STATUS", { offset: "0x04", cType: "u8", access: "ro" }],
+            [
+              "DATA",
+              {
+                offset: TestExpression.hex("0x00"),
+                cType: "u32",
+                access: "rw",
+              },
+            ],
+            [
+              "STATUS",
+              { offset: TestExpression.hex("0x04"), cType: "u8", access: "ro" },
+            ],
           ]),
         ),
       };
@@ -472,8 +503,12 @@ describe("TSymbolInfoAdapter", () => {
 
       expect(info.registerMemberAccess.get("SPI__DATA")).toBe("rw");
       expect(info.registerMemberAccess.get("SPI__STATUS")).toBe("ro");
-      expect(info.registerMemberOffsets.get("SPI__DATA")).toBe("0x00");
-      expect(info.registerMemberOffsets.get("SPI__STATUS")).toBe("0x04");
+      expect(info.registerMemberOffsets.get("SPI__DATA")).toMatchObject({
+        text: "0x00",
+      });
+      expect(info.registerMemberOffsets.get("SPI__STATUS")).toMatchObject({
+        text: "0x04",
+      });
       expect(info.registerMemberCTypes.get("SPI__DATA")).toBe("uint32_t");
       expect(info.registerMemberCTypes.get("SPI__STATUS")).toBe("uint8_t");
     });
@@ -507,14 +542,14 @@ describe("TSymbolInfoAdapter", () => {
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
-        baseAddress: "0x40003000",
+        baseAddress: TestExpression.hex("0x40003000"),
         members: TestMembers.asRegisterMembers(
           "CTRL",
           new Map([
             [
               "FLAGS",
               {
-                offset: "0x00",
+                offset: TestExpression.hex("0x00"),
                 cType: "StatusFlags",
                 access: "rw",
                 bitmapType: "StatusFlags",

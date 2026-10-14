@@ -1,0 +1,31 @@
+// test-execution
+// #1991: 2.2 decides whether an argument to a C function takes `&` for the
+// pointer parameter the header declares, and 2.3 writes that answer.
+
+#include "counter.h"
+
+i32 main() {
+    // THE ASSERTIONS
+    u32 a <- 1;
+    bump(a);
+    if (a != 2) {
+        return 1;
+    }
+    Tally t <- { total: 0 };
+    add_to(t, 5);
+    if (t.total != 5) {
+        return 2;
+    }
+    // NEGATIVE CONTROL -- an address already written takes no second `&`
+    bump(&a);
+    if (a != 3) {
+        return 3;
+    }
+    // NEGATIVE CONTROL -- an array decays by itself, no address taken
+    u32[3] values <- [1, 2, 3];
+    u32 all <- sum_all(values, values.element_count);
+    if (all != 6) {
+        return 4;
+    }
+    return 0;
+}

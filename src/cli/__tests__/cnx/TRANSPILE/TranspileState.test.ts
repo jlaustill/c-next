@@ -2,9 +2,8 @@
  * Tests for TranspileState - centralized code generation state management
  */
 
+import TestSymbolTable from "../../../../cnx/TRANSPILE/__tests__/TestSymbolTable";
 import ProgramLowering from "../../../../cnx/PARSE/2-Parse/ProgramLowering";
-import TargetResolver from "../../../TargetResolver";
-import SymbolTable from "../../../../cnx/PARSE/3-Declare/SymbolTable";
 import type IScopeSymbol from "../../../../cnx/types/symbols/IScopeSymbol";
 import { describe, it, expect, beforeEach } from "vitest";
 import type IProgram from "../../../../cnx/types/IProgram";
@@ -19,8 +18,6 @@ import parse from "../../../../cnx/PARSE/3-Declare/cnext/__tests__/testHelpers";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
-import enterScope from "../../../../cnx/TRANSPILE/__tests__/enterScope";
-import NodeFileSystem from "../../../../cnx/PARSE/1-Discover/NodeFileSystem";
 
 /** Repo root, for the source-scanning guard in `scopeTypePredicate`. */
 const repoRootForGuard = join(
@@ -56,49 +53,7 @@ let state = new TranspileState();
 describe("TranspileState", () => {
   beforeEach(() => {
     state = new TranspileState();
-    state.symbolTable = new SymbolTable();
-  });
-
-  describe("reset()", () => {
-    it("resets all state to initial values", () => {
-      // Dirty ONE instance and call `reset()` on it. #1452 merged two classes
-      // into this one, and for a while this test swapped in a
-      // `new TranspileState()` and asserted that object's INITIALIZERS -- which
-      // is true of any fresh object and says nothing about `reset()`. Under
-      // that shape, deleting `currentScopePath`, `currentFunctionName` and
-      // `generator` from `reset()` left the whole suite green.
-      enterScope(state, "TestScope");
-      state.currentFunctionName = "testFunc";
-      state.indentLevel = 5;
-      state.emittedCTypes.add("uint8_t");
-
-      state.reset();
-
-      expect(state.currentScopePath).toBe("");
-      expect(state.currentFunctionName).toBeNull();
-      expect(state.indentLevel).toBe(0);
-      expect(state.emittedCTypes.size).toBe(0);
-    });
-
-    it("resets generator reference", () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      state.generator = {} as any;
-
-      state.reset();
-
-      expect(state.generator).toBeNull();
-    });
-
-    it("holds the target description it is reset with", () => {
-      const target = TargetResolver.byName(
-        "cortex-m7",
-        NodeFileSystem.instance,
-      )!;
-
-      state.reset(target);
-
-      expect(state.targetDescription).toBe(target);
-    });
+    TestSymbolTable.install(state);
   });
 
   describe("Scope Member Helpers", () => {
@@ -228,7 +183,7 @@ describe("TranspileState", () => {
       "isHeldThroughPointer answers for %s",
       (_label, isTypedefStruct, expected) => {
         if (isTypedefStruct) {
-          state.symbolTable.markOpaqueType("Dev");
+          TestSymbolTable.of(state).markOpaqueType("Dev");
         }
 
         expect(state.isHeldThroughPointer("Dev")).toBe(expected);
@@ -247,9 +202,6 @@ describe("TranspileState", () => {
       // bare name in `sibling.cnx` qualified to a type its generated C cannot
       // see, while 1.4 had settled the header's copy the same wrong way.
       const declares = CNextResolver.resolve(
-        parse(
-          `scope A { public enum B { X } public struct S { u8 f; } public bitmap8 Flags { Ready, Mode[3], Reserved[4] } }`,
-        ),
         ProgramLowering.program(
           parse(
             `scope A { public enum B { X } public struct S { u8 f; } public bitmap8 Flags { Ready, Mode[3], Reserved[4] } }`,
@@ -260,13 +212,11 @@ describe("TranspileState", () => {
         registry,
       );
       const includer = CNextResolver.resolve(
-        parse(`u32 x <- 1;`),
         ProgramLowering.program(parse(`u32 x <- 1;`), null),
         "includer.cnx",
         registry,
       );
       const sibling = CNextResolver.resolve(
-        parse(`u32 y <- 1;`),
         ProgramLowering.program(parse(`u32 y <- 1;`), null),
         "sibling.cnx",
         registry,
@@ -339,7 +289,7 @@ describe("TranspileState", () => {
       structFields.set("Point", pointFields);
 
       // Use restoreStructFields to populate the symbol table
-      state.symbolTable.restoreStructFields(structFields);
+      TestSymbolTable.of(state).restoreStructFields(structFields);
 
       state.program = Program.build([], {
         cppMode: false,
@@ -366,7 +316,7 @@ describe("TranspileState", () => {
       bufferFields.set("data", { type: "u8", arrayDimensions: [256] }); // Array
 
       structFields.set("Buffer", bufferFields);
-      state.symbolTable.restoreStructFields(structFields);
+      TestSymbolTable.of(state).restoreStructFields(structFields);
 
       state.program = Program.build([], {
         cppMode: false,
@@ -393,7 +343,7 @@ describe("TranspileState", () => {
       arrayOnlyFields.set("values", { type: "i32", arrayDimensions: [5] });
 
       structFields.set("ArrayOnly", arrayOnlyFields);
-      state.symbolTable.restoreStructFields(structFields);
+      TestSymbolTable.of(state).restoreStructFields(structFields);
 
       state.program = Program.build([], {
         cppMode: false,
@@ -429,7 +379,7 @@ describe("TranspileState", () => {
 
       structFields.set("Mixed", mixedFields);
       structFields.set("Simple", simpleFields);
-      state.symbolTable.restoreStructFields(structFields);
+      TestSymbolTable.of(state).restoreStructFields(structFields);
 
       state.program = Program.build([], {
         cppMode: false,
@@ -528,7 +478,7 @@ describe("TranspileState", () => {
    * Two sites hand-rolled the save/restore with the restore as a plain trailing
    * statement, so a throw anywhere in the body left `currentScopePath` pointing
    * at the wrong scope. That is the same defect #872 extracted
-   * `withExpectedType` to fix -- its doc says "add exception safety" -- and
+   * `withExpectedType` (now `withPlannedExpectedType`) to fix -- its doc says "add exception safety" -- and
    * scope path never got the same treatment.
    *
    * The happy path is already covered by 1247 fixtures; it is the THROWING path
@@ -536,44 +486,6 @@ describe("TranspileState", () => {
    * what this pins. Mutation: replacing the `finally` with a trailing
    * assignment reddens exactly this test.
    */
-  describe("withScopePath", () => {
-    it("restores the previous scope path when fn throws", () => {
-      // #1304 landed while this branch was open: the registry is now the
-      // authority on which scopes exist, so both paths must be registered
-      // before they can be entered. `enterScope` is main's helper for exactly
-      // this; `Inner` is registered directly because `withScopePath` is what
-      // enters it.
-      enterScope(state, "Outer");
-      registerScope("Inner");
-      const before = state.currentScopePath;
-
-      expect(() =>
-        state.withScopePath("Inner", () => {
-          expect(state.currentScopePath).toBe("Inner");
-          throw new Error("boom");
-        }),
-      ).toThrow("boom");
-
-      expect(state.currentScopePath).toBe(before);
-    });
-
-    it("restores the previous scope path on the ordinary path too", () => {
-      // #1304 landed while this branch was open: the registry is now the
-      // authority on which scopes exist, so both paths must be registered
-      // before they can be entered. `enterScope` is main's helper for exactly
-      // this; `Inner` is registered directly because `withScopePath` is what
-      // enters it.
-      enterScope(state, "Outer");
-      registerScope("Inner");
-      const before = state.currentScopePath;
-
-      const seen = state.withScopePath("Inner", () => state.currentScopePath);
-
-      expect(seen).toBe("Inner");
-      expect(state.currentScopePath).toBe(before);
-    });
-  });
-
   describe("scopeTypePredicate", () => {
     it("survives being passed unbound, which is why it exists", () => {
       const predicate: (name: string) => boolean = state.scopeTypePredicate;

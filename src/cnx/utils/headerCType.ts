@@ -1,5 +1,5 @@
 import CppNamespaceUtils from "./CppNamespaceUtils";
-import SymbolTable from "../PARSE/3-Declare/SymbolTable";
+import type IResolvedSymbols from "../types/IResolvedSymbols";
 import TypeMapping from "./mapType";
 
 /**
@@ -25,7 +25,7 @@ import TypeMapping from "./mapType";
  */
 function headerCType(
   typeName: string,
-  symbolTable: SymbolTable | undefined,
+  symbolTable: IResolvedSymbols | undefined,
 ): string {
   return TypeMapping.mapType(
     CppNamespaceUtils.convertToCppNamespace(typeName, symbolTable),

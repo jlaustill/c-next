@@ -11,11 +11,11 @@ import TestSourceSpan from "../../../../../cnx/types/__testUtils__/testSourceSpa
 import ESourceLanguage from "../../../../../cnx/utils/types/ESourceLanguage";
 
 function analyze(source: string, symbolTable?: SymbolTable) {
-  const { tree, context } = testAnalysisContextFor(source, {
+  const { syntax, context } = testAnalysisContextFor(source, {
     cppMode: false,
     symbolTable,
   });
-  return new MixedTypeCategoryAnalyzer(context).analyze(tree);
+  return new MixedTypeCategoryAnalyzer(context).analyze(syntax);
 }
 
 describe("MixedTypeCategoryAnalyzer", () => {
@@ -634,5 +634,32 @@ describe("MixedTypeCategoryAnalyzer", () => {
       expect(errors).toHaveLength(1);
       expect(errors[0].message).toContain("(unsigned and enum c_color_t)");
     });
+  });
+});
+
+// #1991: read off 1.2's syntax, so where each report lands, which operator
+// joins each pair, and an inner level's folded category are asserted directly.
+describe("MixedTypeCategoryAnalyzer -- positions, operators, inner levels", () => {
+  const where = (body: string) =>
+    analyze(`void main() {\n${body}\n}`).map((e) => [e.code, e.line, e.column]);
+
+  it.each([
+    ["at a binary level's right operand", "    u8 r <- u + s;", 4, 16],
+    ["at a ternary's false arm", "    u8 r <- (s > 0) ? s : u;", 4, 26],
+    ["at a compound assignment's value", "    u +<- s;", 4, 10],
+  ])("reports %s", (_where, line, row, column) => {
+    expect(where(`    i8 s <- 1;\n    u8 u <- 2;\n${line}`)).toEqual([
+      ["E0810", row, column],
+    ]);
+  });
+
+  it("exempts a character only beside the '+' that joins it", () => {
+    expect(where("    u32 a <- 1;\n    u32 r <- a - a + 'A';")).toEqual([]);
+  });
+
+  it("reads an inner level as the category it folded to", () => {
+    expect(where("    u32 a <- 1;\n    u32 r <- (a + 'A') * a;")).toEqual([
+      ["E0810", 3, 25],
+    ]);
   });
 });

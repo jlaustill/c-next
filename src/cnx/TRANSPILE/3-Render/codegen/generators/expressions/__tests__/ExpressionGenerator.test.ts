@@ -11,7 +11,7 @@
  * reaching for through a `callCount === 2` branch.
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import generateTernaryExpr from "../ExpressionGenerator";
 import IGeneratorInput from "../../IGeneratorInput";
 import IGeneratorState from "../../IGeneratorState";
@@ -124,41 +124,6 @@ describe("generateTernaryExpr", () => {
       });
 
       expect(result.code).toBe("(a + b > c * d) ? x + y : z - w");
-    });
-  });
-
-  describe("inDeclarationInit clearing (Issue #992)", () => {
-    beforeEach(() => {
-      transpileState = new TranspileState();
-    });
-
-    it("clears the flag in both arms and restores it after", () => {
-      transpileState.inDeclarationInit = true;
-      const seen: Record<string, boolean> = {};
-
-      generate({
-        kind: "ternary",
-        renderCondition: () => {
-          seen.condition = transpileState.inDeclarationInit;
-          return "x > 0";
-        },
-        renderTrue: () => {
-          seen.trueArm = transpileState.inDeclarationInit;
-          return "a";
-        },
-        renderFalse: () => {
-          seen.falseArm = transpileState.inDeclarationInit;
-          return "b";
-        },
-      });
-
-      // The condition keeps the flag as it stands; only the arms clear it.
-      expect(seen).toEqual({
-        condition: true,
-        trueArm: false,
-        falseArm: false,
-      });
-      expect(transpileState.inDeclarationInit).toBe(true);
     });
   });
 

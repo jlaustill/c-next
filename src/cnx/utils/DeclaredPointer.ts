@@ -13,7 +13,8 @@
  * 3. ADR-046: a `c_`-prefixed variable initialized from one of the C library
  *    functions that return a struct pointer.
  */
-import type SymbolTable from "../PARSE/3-Declare/SymbolTable";
+import type IResolvedSymbols from "../types/IResolvedSymbols";
+import ForeignTypeFacts from "./ForeignTypeFacts";
 import STRUCT_POINTER_C_FUNCTIONS from "./constants/STRUCT_POINTER_C_FUNCTIONS";
 
 /** What the three arms read of a declaration */
@@ -46,7 +47,7 @@ class DeclaredPointer {
    */
   static isHandleType(
     cType: string,
-    foreign: Pick<SymbolTable, "isOpaqueType">,
+    foreign: Pick<IResolvedSymbols, "isOpaqueType">,
   ): boolean {
     return foreign.isOpaqueType(cType);
   }
@@ -54,14 +55,21 @@ class DeclaredPointer {
   /** Whether the declaration is a pointer, by the three arms above */
   static of(
     facts: IPointerFacts,
-    foreign: Pick<SymbolTable, "isOpaqueType" | "getCSymbol">,
+    foreign: Pick<
+      IResolvedSymbols,
+      "isOpaqueType" | "getCSymbol" | "getCppSymbol"
+    >,
   ): boolean {
     if (facts.cType.endsWith("*")) return true;
     if (DeclaredPointer.isHandleType(facts.cType, foreign)) return true;
     if (facts.initialValue === null) return false;
 
     if (facts.initializerCallee !== null) {
-      const callee = foreign.getCSymbol(facts.initializerCallee);
+      // #2058: a C++ prototype says so as a C one does
+      const callee = ForeignTypeFacts.foreignSymbol(
+        foreign,
+        facts.initializerCallee,
+      );
       // `widget_t *` or `widget_t*` for a declared `widget_t`
       if (
         callee?.kind === "function" &&
@@ -76,7 +84,8 @@ class DeclaredPointer {
     return (
       facts.name.startsWith("c_") &&
       [...STRUCT_POINTER_C_FUNCTIONS].some((fn) =>
-        initialValue.includes(`${fn}(`),
+        // As written: `fopen ("f", "r")` calls `fopen` too
+        new RegExp(String.raw`${fn}\s*\(`).test(initialValue),
       )
     );
   }

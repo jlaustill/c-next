@@ -15,12 +15,11 @@
  * gated.
  */
 
-import type IParsedFile from "../../types/IParsedFile";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type IComment from "../../types/IComment";
 import CodedErrorText from "../../utils/CodedErrorText";
 import CppClassInitializerAnalyzer from "./CppClassInitializerAnalyzer";
 import DefineDirectiveAnalyzer from "./DefineDirectiveAnalyzer";
-import IdentifierSyntaxAnalyzer from "./IdentifierSyntaxAnalyzer";
-import LiteralFormAnalyzer from "./LiteralFormAnalyzer";
 import ParameterNamingAnalyzer from "./ParameterNamingAnalyzer";
 import StructFieldAnalyzer from "./StructFieldAnalyzer";
 import TypeDeclarationAnalyzer from "./TypeDeclarationAnalyzer";
@@ -62,6 +61,9 @@ import LoopAnalyzer from "./LoopAnalyzer";
 import SliceAssignmentAnalyzer from "./SliceAssignmentAnalyzer";
 import ControllingExpressionAnalyzer from "./ControllingExpressionAnalyzer";
 import IntegerConversionAnalyzer from "./IntegerConversionAnalyzer";
+import ValuePositions from "./helpers/ValuePositions";
+import type IFileAnalysis from "./types/IFileAnalysis";
+import type IValuePositions from "../../types/IValuePositions";
 import LengthPropertyAnalyzer from "./LengthPropertyAnalyzer";
 import StringDeclarationAnalyzer from "./StringDeclarationAnalyzer";
 import SwitchStatementAnalyzer from "./SwitchStatementAnalyzer";
@@ -159,21 +161,33 @@ type TAnalyzerStep = ICodedAnalyzerStep | IFormattedAnalyzerStep;
 /**
  * Run all semantic analyzers on a parsed program.
  *
- * @param parsed - 1.2 Parse's tree, its comments (MISRA 3.1/3.2) and its syntax
+ * @param parsed - 1.2 Parse's comments (MISRA 3.1/3.2) and its syntax
  * @param options - Optional configuration including external struct info
  * @returns Array of errors (empty if all pass)
  */
 function runAnalyzers(
-  parsed: Pick<IParsedFile, "tree" | "comments" | "program">,
+  parsed: {
+    readonly comments: readonly IComment[];
+    readonly program: IProgramSyntax;
+  },
   options: IAnalyzerOptions,
-): ITranspileError[] {
-  const { tree, comments } = parsed;
+): IFileAnalysis {
+  const comments = parsed.comments;
   const errors: ITranspileError[] = [];
   const formatWithCode = (e: TCodedAnalyzerError) =>
     CodedErrorText.of(e.code, e.message, e.severity);
 
   // #1456: the caller's, always. No fallback to shared state -- see the field.
   const context = options.context;
+  // #1991: one walk, shared by every step that types a value by its
+  // position, and handed on to 2.2. Walked when the first such step runs, as
+  // each step walked it itself before; an earlier step's error stops the run
+  // first.
+  let walked: IValuePositions | null = null;
+  const positions = (): IValuePositions => {
+    walked ??= ValuePositions.of(parsed.program, context);
+    return walked;
+  };
 
   const steps: readonly TAnalyzerStep[] = [
     {
@@ -185,11 +199,15 @@ function runAnalyzers(
       // every later step would be answering about a program the author did not
       // write.
       label: "#include targets (ADR-010: headers only, .cnx over .h)",
-      run: () => new IncludeDirectiveAnalyzer().analyze(tree, options.includes),
+      run: () =>
+        new IncludeDirectiveAnalyzer().analyze(
+          parsed.program,
+          options.includes,
+        ),
     },
     {
       label: "#define shape (ADR-037: flag-only defines)",
-      run: () => new DefineDirectiveAnalyzer().analyze(tree),
+      run: () => new DefineDirectiveAnalyzer().analyze(parsed.program),
     },
     {
       // #1322: a C++ class initializer that has nowhere to put its
@@ -197,18 +215,11 @@ function runAnalyzers(
       // settled before this pass.
       label:
         "C++ class initializers (Issue #517: no statement position at file scope)",
-      run: () => new CppClassInitializerAnalyzer(context).analyze(tree),
-    },
-    {
-      // A malformed identifier feeds a bad name into every later analysis.
-      label: "identifier syntax (ADR-063: no trailing or consecutive '_')",
-      run: () => new IdentifierSyntaxAnalyzer().analyze(tree),
-    },
-    {
-      // ADR-044: a malformed literal, like a malformed name, feeds every later
-      // analysis -- a dimension or an enum value would report a consequence
-      label: "integer literal form (ADR-044: no octal literal, E0912)",
-      run: () => new LiteralFormAnalyzer().analyze(tree),
+      run: () =>
+        new CppClassInitializerAnalyzer(context).analyze(
+          parsed.program,
+          positions().positions,
+        ),
     },
     {
       // #1090: a body's braces decide its scope. An unbraced declaration kept
@@ -226,18 +237,18 @@ function runAnalyzers(
     },
     {
       label: "parameter naming (Issue #227: reserved naming patterns)",
-      run: () => new ParameterNamingAnalyzer().analyze(tree),
+      run: () => new ParameterNamingAnalyzer().analyze(parsed.program),
     },
     {
       label: "struct fields (reserved field names like 'length')",
-      run: () => new StructFieldAnalyzer().analyze(tree),
+      run: () => new StructFieldAnalyzer().analyze(parsed.program),
     },
     {
       // ADR-051: a compile-time zero divisor is E0800/E0802 wherever it is
       // written, so before the enum values and the array dimensions that
       // would each report it as a value with no size (E0909, #1268 review)
       label: "division by zero (ADR-051: compile-time detection)",
-      run: () => new DivisionByZeroAnalyzer(context).analyze(tree),
+      run: () => new DivisionByZeroAnalyzer(context).analyze(parsed.program),
     },
     {
       // #1531: before anything reads a bitmap's fields or an enum's values.
@@ -249,29 +260,28 @@ function runAnalyzers(
     },
     {
       label: "initialization (Rust-style use-before-init)",
-      run: () =>
-        new InitializationAnalyzer(context).analyze(tree, parsed.program),
+      run: () => new InitializationAnalyzer(context).analyze(parsed.program),
     },
     {
       // Before the call and essential-type analyses: a type that denotes
       // nothing feeds an unknown type into every later question, so the
       // diagnostics after it would name a consequence rather than the cause.
       label: "undefined type references (#1312)",
-      run: () => new UndeclaredTypeAnalyzer(context).analyze(tree),
+      run: () => new UndeclaredTypeAnalyzer(context).analyze(parsed.program),
     },
     {
       // After the type check, so a file whose type is undefined reports the
       // type rather than every use of it.
       label: "undefined value references (#1353)",
-      run: () => new UndeclaredValueAnalyzer(context).analyze(tree),
+      run: () => new UndeclaredValueAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "call analysis (ADR-030: define-before-use)",
-      run: () => new FunctionCallAnalyzer(context).analyze(tree),
+      run: () => new FunctionCallAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "NULL checks (ADR-047: C library interop)",
-      run: () => new NullCheckAnalyzer().analyze(tree, parsed.program),
+      run: () => new NullCheckAnalyzer().analyze(parsed.program),
     },
     {
       // #1175: before anything that reads a dimension's size -- a slice's
@@ -281,32 +291,32 @@ function runAnalyzers(
       // a divisor that is a compile-time zero.
       label:
         "constant array dimensions (ADR-023 no VLAs, ADR-044, E0909/E0910)",
-      run: () => new ConstantDimensionAnalyzer(context).analyze(tree),
+      run: () => new ConstantDimensionAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "float modulo (% with f32/f64)",
-      run: () => new FloatModuloAnalyzer(context).analyze(tree),
+      run: () => new FloatModuloAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "array index type (ADR-054: unsigned indexes only)",
-      run: () => new ArrayIndexTypeAnalyzer(context).analyze(tree),
+      run: () => new ArrayIndexTypeAnalyzer(context).analyze(parsed.program),
     },
     {
       label:
         "shift operands and amounts (MISRA C:2012 Rules 10.1 and 12.2, E0805/E0873)",
-      run: () => new ShiftAnalyzer(context).analyze(tree),
+      run: () => new ShiftAnalyzer(context).analyze(parsed.program),
     },
     {
       // Before the Rule 10.4 check, so a bool in an arithmetic expression is
       // reported as "not a number" rather than as a category mismatch with
       // whatever it was combined with.
       label: "boolean operands (MISRA C:2012 Rule 10.1, Issue #1183)",
-      run: () => new BooleanOperandAnalyzer(context).analyze(tree),
+      run: () => new BooleanOperandAnalyzer(context).analyze(parsed.program),
     },
     {
       label:
         "mixed essential type category (MISRA C:2012 Rule 10.4, ADR-024 / Issue #1091)",
-      run: () => new MixedTypeCategoryAnalyzer(context).analyze(tree),
+      run: () => new MixedTypeCategoryAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "return paths (ADR-067: non-void must return on all paths)",
@@ -315,7 +325,7 @@ function runAnalyzers(
     {
       label:
         "return-value use (ADR-070 / MISRA C:2012 Rule 17.7 at source level)",
-      run: () => ReturnValueUseAnalyzer.analyze(tree, context),
+      run: () => ReturnValueUseAnalyzer.analyze(parsed.program, context),
     },
     // ---------------------------------------------------------------------
     // #1322 relocations: appended as a BLOCK, never inserted among the steps
@@ -335,24 +345,26 @@ function runAnalyzers(
     // ---------------------------------------------------------------------
     {
       label: "nested ternary in a condition or branch (ADR-022, E0710)",
-      run: () => new NestedTernaryAnalyzer().analyze(tree),
+      run: () => new NestedTernaryAnalyzer().analyze(parsed.program),
     },
     {
       label:
         "compound assignment needs a whole storage location (ADR-007, E0857)",
-      run: () => new CompoundAssignmentAnalyzer(context).analyze(tree),
+      run: () =>
+        new CompoundAssignmentAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "C++ constructor arguments must be declared const (ADR-013, #375)",
-      run: () => new ConstructorArgumentAnalyzer(context).analyze(tree),
+      run: () =>
+        new ConstructorArgumentAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "`return` inside a critical section (ADR-050, E0853)",
-      run: () => new CriticalSectionAnalyzer().analyze(tree),
+      run: () => new CriticalSectionAnalyzer().analyze(parsed.program),
     },
     {
       label: "`this` outside a scope (ADR-016)",
-      run: () => new ThisOutsideScopeAnalyzer().analyze(tree),
+      run: () => new ThisOutsideScopeAnalyzer().analyze(parsed.program),
     },
     {
       // Before the enum type-safety step: `Color c <- YELLOW` with YELLOW
@@ -360,95 +372,111 @@ function runAnalyzers(
       // "did you mean 'Status.YELLOW'" is the useful answer; the type-safety
       // step would call the same line a non-enum value.
       label: "bare enum members (ADR-017, E0424)",
-      run: () => new BareEnumMemberAnalyzer(context).analyze(tree),
+      run: () =>
+        new BareEnumMemberAnalyzer(context).analyze(
+          parsed.program,
+          positions(),
+        ),
     },
     {
       label: "enum type safety (ADR-017, E0428/E0434)",
-      run: () => new EnumTypeSafetyAnalyzer(context).analyze(tree),
+      run: () => new EnumTypeSafetyAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "slice assignment (ADR-007, E0858-E0861)",
-      run: () => new SliceAssignmentAnalyzer(context).analyze(tree),
+      run: () => new SliceAssignmentAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "switch statements (ADR-025, E0711-E0714)",
-      run: () => new SwitchStatementAnalyzer(context).analyze(tree),
+      run: () => new SwitchStatementAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "controlling expressions (ADR-022, MISRA 14.4/13.5, E0701/E0702)",
-      run: () => new ControllingExpressionAnalyzer(context).analyze(tree),
+      run: () =>
+        new ControllingExpressionAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "string declarations (ADR-045, E0862-E0866)",
-      run: () => new StringDeclarationAnalyzer(context).analyze(tree),
+      run: () => new StringDeclarationAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "length properties (ADR-058, E0867)",
-      run: () => new LengthPropertyAnalyzer(context).analyze(tree),
+      run: () => new LengthPropertyAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "integer conversions (ADR-024, E0868/E0869)",
-      run: () => new IntegerConversionAnalyzer(context).analyze(tree),
+      run: () =>
+        new IntegerConversionAnalyzer(context).analyze(
+          parsed.program,
+          positions().positions,
+        ),
     },
     {
       label: "scope access (ADR-016, E0435-E0437)",
-      run: () => new ScopeAccessAnalyzer(context).analyze(tree),
+      run: () => new ScopeAccessAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "register access modifiers (ADR-004, E0870-E0872)",
-      run: () => new RegisterAccessAnalyzer(context).analyze(tree),
+      run: () => new RegisterAccessAnalyzer(context).analyze(parsed.program),
     },
     {
       // After controlling expressions: the always-true check assumes E0701
       // already guaranteed a comparison, as it did in codegen.
       label:
         "loops and break/continue (ADR-068/ADR-026, E0703/E0705/E0707/E0715)",
-      run: () => new LoopAnalyzer(context).analyze(tree),
+      run: () => new LoopAnalyzer(context).analyze(parsed.program),
     },
     {
-      label:
-        "array declarations and initializers (ADR-035/036, E0866/E0874-E0876/E0892)",
-      run: () => new ArrayDeclarationAnalyzer(context).analyze(tree),
+      label: "array initializer element counts (ADR-035, E0866)",
+      run: () => new ArrayDeclarationAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "constant array index bounds (ADR-036, E0854)",
-      run: () => new ArrayIndexBoundsAnalyzer(context).analyze(tree),
+      run: () => new ArrayIndexBoundsAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "const enforcement (ADR-013, E0877/E0878)",
-      run: () => new ConstAssignmentAnalyzer(context).analyze(tree),
+      run: () => new ConstAssignmentAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "callback typing (ADR-029, E0879/E0880)",
-      run: () => new CallbackAssignmentAnalyzer(context).analyze(tree),
+      run: () =>
+        new CallbackAssignmentAnalyzer(context).analyze(
+          parsed.program,
+          positions().positions,
+        ),
     },
     {
       label: "struct initializers (ADR-014, E0357/E0358)",
-      run: () => new StructLiteralAnalyzer(context).analyze(tree),
+      run: () =>
+        new StructLiteralAnalyzer(context).analyze(
+          parsed.program,
+          positions().positions,
+        ),
     },
     {
       label: "bitmap access (ADR-034, E0881-E0883)",
-      run: () => new BitmapAccessAnalyzer(context).analyze(tree),
+      run: () => new BitmapAccessAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "safe_div/safe_mod call shape (ADR-051, E0884/E0885)",
-      run: () => new SafeDivisionAnalyzer(context).analyze(tree),
+      run: () => new SafeDivisionAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "C pointer parameter arguments (#1977, E0895)",
-      run: () => new CPointerArgumentAnalyzer(context).analyze(tree),
+      run: () => new CPointerArgumentAnalyzer(context).analyze(parsed.program),
     },
     {
       label: "sizeof operands (ADR-023, E0601/E0602)",
-      run: () => new SizeofAnalyzer().analyze(tree),
+      run: () => new SizeofAnalyzer().analyze(parsed.program),
     },
     {
       label: "declaration modifiers (ADR-049, E0889)",
-      run: () => new DeclarationModifierAnalyzer().analyze(tree),
+      run: () => new DeclarationModifierAnalyzer().analyze(parsed.program),
     },
     {
       label: "bit indexing depth and scope (ADR-007/036, E0856/E0888)",
-      run: () => new BitAccessAnalyzer(context).analyze(tree),
+      run: () => new BitAccessAnalyzer(context).analyze(parsed.program),
     },
     {
       // Last, and does not halt: comment findings are reported alongside
@@ -460,6 +488,7 @@ function runAnalyzers(
     },
   ];
 
+  let halted = false;
   for (const step of steps) {
     const found =
       step.format === undefined
@@ -470,11 +499,12 @@ function runAnalyzers(
     // value (S3516) when it is really one exit and a stopping condition. What
     // varies is what `errors` CONTAINS, which no return statement expresses.
     if (found && !step.advisory) {
+      halted = true;
       break;
     }
   }
 
-  return errors;
+  return { errors, valuePositions: halted ? null : positions() };
 }
 
 export default runAnalyzers;

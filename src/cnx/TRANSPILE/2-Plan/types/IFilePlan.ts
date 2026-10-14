@@ -1,0 +1,139 @@
+import type IPlannedArgument from "./IPlannedArgument";
+import type IPlannedFunctionParameter from "./IPlannedFunctionParameter";
+import type IParameterSyntax from "../../../types/syntax/IParameterSyntax";
+import type IPlannedFloatBits from "./IPlannedFloatBits";
+import type IEmissionPlan from "../../../types/IEmissionPlan";
+import type TPlannedNarrowing from "./TPlannedNarrowing";
+import type TAtomicForm from "../../types/TAtomicForm";
+import type IAssignmentSyntax from "../../../types/syntax/IAssignmentSyntax";
+import type IProgramSyntax from "../../../types/syntax/IProgramSyntax";
+import type TDeclarationSyntax from "../../../types/syntax/TDeclarationSyntax";
+import type TExpression from "../../../types/syntax/TExpression";
+import type TExpressionOf from "../../../types/syntax/TExpressionOf";
+import type TPostfixOpSyntax from "../../../types/syntax/TPostfixOpSyntax";
+import type TTypeSyntax from "../../../types/syntax/TTypeSyntax";
+import type TValueBinding from "../../../types/TValueBinding";
+import type IPlannedCast from "./IPlannedCast";
+import type IPlannedClamp from "./IPlannedClamp";
+import type IPlannedSliceSource from "./IPlannedSliceSource";
+import type IPlannedExpectedType from "./IPlannedExpectedType";
+import type IPlannedType from "./IPlannedType";
+import type TNegativeMinimum from "./TNegativeMinimum";
+import type TStructInitializerForm from "./TStructInitializerForm";
+import type IFileSetup from "../../types/IFileSetup";
+import type IHeaderSetup from "../../types/IHeaderSetup";
+
+/**
+ * 2.2 Plan's artifact for one file: every decision 2.3 Render reads, made
+ * before any of the file is written. Render takes this and nothing else from
+ * Plan (#1991).
+ */
+interface IFilePlan {
+  /** 1.2's plain data for the file, which Render writes out */
+  readonly program: IProgramSyntax;
+
+  /** The file's own header, included first for its public interface, or null (#1164) */
+  readonly selfInclude: string | null;
+
+  /** Each of the file's own `#include`s as the C writes it */
+  readonly includeDirectives: readonly string[];
+
+  /** Which private scope consts are inlined, not declared (#282) */
+  readonly inlinedConsts: ReadonlySet<TDeclarationSyntax>;
+
+  /** What each `sizeof(Name)` operand's name binds to (#1974) */
+  readonly sizeofBindings: ReadonlyMap<
+    TExpressionOf<"sizeof">,
+    TValueBinding | null
+  >;
+
+  /** Which `sizeof(a.b)` operands are member accesses (#1972) */
+  readonly sizeofMemberAccesses: ReadonlySet<TExpressionOf<"sizeof">>;
+
+  /** The plan for each type the file writes */
+  readonly types: ReadonlyMap<TTypeSyntax, IPlannedType>;
+
+  /** How each call argument is passed and written */
+  readonly arguments: ReadonlyMap<TExpression, IPlannedArgument>;
+
+  /** Each function parameter of the file, as its function's context reads it */
+  readonly functionParameters: ReadonlyMap<
+    IParameterSyntax,
+    IPlannedFunctionParameter
+  >;
+
+  /** For each written `=`/`!=` comparison, whether it compares strings (ADR-045) */
+  readonly comparisons: ReadonlyMap<TExpression, boolean>;
+
+  /** For each written cast, the type it converts from and whether and how it saturates (ADR-024) */
+  readonly casts: ReadonlyMap<
+    TExpressionOf<"cast">,
+    Pick<IPlannedCast, "operandType" | "clampForm">
+  >;
+
+  /** Each written `-` literal 2.3 spells as its type's minimum macro (MISRA 10.3) */
+  readonly negativeMinimums: ReadonlyMap<
+    TExpressionOf<"unary">,
+    TNegativeMinimum
+  >;
+  /** MISRA 10.1: each written `~` of an unsigned operand, and the C type it is cast back to */
+  readonly complementCasts: ReadonlyMap<TExpressionOf<"unary">, string>;
+  /** ADR-007: each written range read of a float's bits, and its union */
+  readonly floatBitReads: ReadonlyMap<TPostfixOpSyntax, IPlannedFloatBits>;
+  /** ADR-007: each assignment target, and the union it writes a float's bits through (null: none) */
+  readonly floatBitWrites: ReadonlyMap<TExpression, IPlannedFloatBits | null>;
+  /** ADR-049: each assignment, and how it is written atomically (null: it is not atomic) */
+  readonly atomicForms: ReadonlyMap<IAssignmentSyntax, TAtomicForm | null>;
+  /** ADR-051: each written `safe_div`/`safe_mod` call, and the helper it is written as */
+  readonly safeDivisions: ReadonlyMap<TExpression, string>;
+  /** ADR-044: each written `+ - *` chain, and the clamp helpers it calls (null: none) */
+  readonly clampChains: ReadonlyMap<TExpression, IPlannedClamp | null>;
+  /** ADR-044: each assignment, and the clamp helper it calls (null: none) */
+  readonly compoundClamps: ReadonlyMap<
+    IAssignmentSyntax,
+    { operation: string; cnxType: string } | null
+  >;
+  /** #1081: how each slice write reads its source */
+  readonly sliceSources: ReadonlyMap<IAssignmentSyntax, IPlannedSliceSource>;
+
+  /**
+   * MISRA 10.3 (#845): the C type a compound write to a narrow variable is
+   * cast back to, for each write that is cast
+   */
+  readonly compoundCasts: ReadonlyMap<IAssignmentSyntax, string>;
+
+  /**
+   * ADR-004: the `uintN_t` each byte-aligned write to a write-only register
+   * member is written through, for each write that is one memory access
+   */
+  readonly registerAccesses: ReadonlyMap<IAssignmentSyntax, string>;
+  /** ADR-044: every `<operation>_<cnxType>` helper the file calls */
+  readonly clampOps: ReadonlySet<string>;
+  /** #1927: the C types the file's text uses, which decide `<stdint.h>`/`<stdbool.h>` */
+  readonly cTypes: ReadonlySet<string>;
+  /** The type each value is rendered against; a value not listed has none */
+  readonly expectedTypes: ReadonlyMap<TExpression, IPlannedExpectedType>;
+  /**
+   * MISRA 10.3: each written postfix or literal value, and the promoted
+   * reads in it 2.3 casts or compares, by the index of its typer step (a
+   * character literal is step 0) -- empty when it has none
+   */
+  readonly narrowings: ReadonlyMap<
+    TExpression,
+    ReadonlyMap<number, TPlannedNarrowing>
+  >;
+  /** ADR-014: how each written struct initializer is written */
+  readonly structInitializers: ReadonlyMap<
+    TExpressionOf<"structInitializer">,
+    TStructInitializerForm
+  >;
+
+  /** What the file's text costs: its system includes, helpers and requirements */
+  readonly emission: IEmissionPlan;
+  /** What 2.2 set up for the file, which 2.3 starts from instead of 2.2's leftovers */
+  readonly setup: IFileSetup;
+  /** What 2.3 captures the file's header from, or null for no header */
+  readonly header: IHeaderSetup | null;
+}
+
+export default IFilePlan;

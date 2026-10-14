@@ -3,10 +3,11 @@
  * Issue #794: Extract Argument Generator from CodeGenerator
  */
 
+import ArgumentForm from "../../../../2-Plan/ArgumentForm";
 import { describe, it, expect, beforeEach } from "vitest";
 import ArgumentGenerator from "../ArgumentGenerator";
 import TranspileState from "../../../../TranspileState";
-import IArgumentGeneratorCallbacks from "../types/IArgumentGeneratorCallbacks";
+import IArgumentGeneratorCallbacks from "../../../../2-Plan/types/IArgumentGeneratorCallbacks";
 import type TTypeInfo from "../../../../../types/TTypeInfo";
 
 let state = new TranspileState();
@@ -211,61 +212,100 @@ describe("ArgumentGenerator", () => {
     });
   });
 
+  describe("formOf", () => {
+    it("is identifier for a bare name", () => {
+      expect(ArgumentForm.of(true, "u8", createMockCallbacks(), false)).toEqual(
+        { kind: "identifier" },
+      );
+    });
+
+    it.each([
+      ["no target type", undefined, false, null],
+      ["a void target type", "void", false, null],
+      ["C++, where an rvalue binds to const T&", "u8", true, null],
+      ["C, a compound literal of the parameter's type", "u8", false, "uint8_t"],
+      ["C, an i32 parameter", "i32", false, "int32_t"],
+    ])("rvalue: %s", (_label, target, cppMode, compoundLiteral) => {
+      expect(
+        ArgumentForm.of(false, target, createMockCallbacks(), cppMode),
+      ).toEqual({ kind: "rvalue", compoundLiteral });
+    });
+
+    it("is array-member for a member that is an array", () => {
+      const shape = createMockCallbacks({
+        getLvalueType: () => "member",
+        getMemberAccessArrayStatus: () => "array",
+      });
+      expect(ArgumentForm.of(false, "u8", shape, false)).toEqual({
+        kind: "array-member",
+      });
+    });
+
+    it.each([
+      ["a C++ conversion", "not-array", true, "i16", "member-temp"],
+      ["no conversion", "not-array", false, "u8", "lvalue"],
+      ["an unknown array status", "unknown", true, "u8", "lvalue"],
+    ] as const)(
+      "member with %s",
+      (_label, arrayStatus, converts, target, kind) => {
+        const shape = createMockCallbacks({
+          getLvalueType: () => "member",
+          getMemberAccessArrayStatus: () => arrayStatus,
+          isCppMemberConversionRequired: () => converts,
+        });
+        expect(ArgumentForm.of(false, target, shape, true)).toEqual(
+          kind === "member-temp"
+            ? { kind, cType: "int16_t" }
+            : { kind, cast: null },
+        );
+      },
+    );
+
+    it.each([
+      ["a string's element to a u8 pointer", true, "u8", "uint8_t"],
+      ["no target type", true, undefined, null],
+      ["an element that is not a string's", false, "u8", null],
+      ["a float parameter", true, "f32", null],
+      ["a bool parameter", true, "bool", null],
+    ])("array element: %s", (_label, isString, target, cast) => {
+      const shape = createMockCallbacks({
+        getLvalueType: () => "array",
+        isStringSubscriptAccess: () => isString,
+      });
+      expect(ArgumentForm.of(false, target, shape, false)).toEqual({
+        kind: "lvalue",
+        cast,
+      });
+    });
+  });
+
+  describe("cTypeOf", () => {
+    it.each([
+      [{ kind: "identifier" }, null],
+      [{ kind: "array-member" }, null],
+      [{ kind: "member-temp", cType: "uint8_t" }, "uint8_t"],
+      [{ kind: "lvalue", cast: "uint16_t" }, "uint16_t"],
+      [{ kind: "lvalue", cast: null }, null],
+      [{ kind: "rvalue", compoundLiteral: "int32_t" }, "int32_t"],
+      [{ kind: "rvalue", compoundLiteral: null }, null],
+    ] as const)("%o writes %s", (form, cType) => {
+      expect(ArgumentForm.cTypeOf(form)).toBe(cType);
+    });
+  });
+
   describe("handleRvalueArg", () => {
-    it("returns expression unchanged when no target type", () => {
-      const callbacks = createMockCallbacks({
-        generateExpression: () => "42",
-      });
-
-      const result = ArgumentGenerator.handleRvalueArg(
-        undefined,
-        callbacks,
-        state,
-      );
-      expect(result).toBe("42");
+    it("returns the value when there is no compound literal", () => {
+      const callbacks = createMockCallbacks({ generateExpression: () => "42" });
+      expect(ArgumentGenerator.handleRvalueArg(null, callbacks)).toBe("42");
     });
 
-    it("returns expression unchanged for void target type", () => {
-      const callbacks = createMockCallbacks({
-        generateExpression: () => "doSomething()",
-      });
-
-      const result = ArgumentGenerator.handleRvalueArg(
-        "void",
-        callbacks,
-        state,
-      );
-      expect(result).toBe("doSomething()");
-    });
-
-    it("returns expression unchanged in C++ mode (rvalues bind to const T&)", () => {
-      state.cppMode = true;
-      const callbacks = createMockCallbacks({
-        generateExpression: () => "42",
-      });
-
-      const result = ArgumentGenerator.handleRvalueArg("u8", callbacks, state);
-      expect(result).toBe("42");
-    });
-
-    it("wraps in compound literal for C mode", () => {
-      state.cppMode = false;
-      const callbacks = createMockCallbacks({
-        generateExpression: () => "42",
-      });
-
-      const result = ArgumentGenerator.handleRvalueArg("u8", callbacks, state);
-      expect(result).toBe("&(uint8_t){42}");
-    });
-
-    it("uses correct C type for compound literal", () => {
-      state.cppMode = false;
+    it("wraps the value in its compound literal", () => {
       const callbacks = createMockCallbacks({
         generateExpression: () => "1000",
       });
-
-      const result = ArgumentGenerator.handleRvalueArg("i32", callbacks, state);
-      expect(result).toBe("&(int32_t){1000}");
+      expect(ArgumentGenerator.handleRvalueArg("int32_t", callbacks)).toBe(
+        "&(int32_t){1000}",
+      );
     });
   });
 
@@ -277,7 +317,7 @@ describe("ArgumentGenerator", () => {
       });
 
       const result = ArgumentGenerator.createCppMemberConversionTemp(
-        "u8",
+        "uint8_t",
         callbacks,
         state,
       );
@@ -297,7 +337,7 @@ describe("ArgumentGenerator", () => {
       });
 
       const result = ArgumentGenerator.createCppMemberConversionTemp(
-        "i16",
+        "int16_t",
         callbacks,
         state,
       );
@@ -307,191 +347,24 @@ describe("ArgumentGenerator", () => {
     });
   });
 
-  describe("maybeCastStringSubscript", () => {
-    it("returns expr unchanged when no target type", () => {
-      const callbacks = createMockCallbacks({
-        isStringSubscriptAccess: () => true,
-      });
-
-      const result = ArgumentGenerator.maybeCastStringSubscript(
-        "&buf[0]",
-        undefined,
-        callbacks,
-        state,
-      );
-      expect(result).toBe("&buf[0]");
-    });
-
-    it("returns expr unchanged when not string subscript", () => {
-      const callbacks = createMockCallbacks({
-        isStringSubscriptAccess: () => false,
-      });
-
-      const result = ArgumentGenerator.maybeCastStringSubscript(
-        "&arr[0]",
-        "u8",
-        callbacks,
-        state,
-      );
-      expect(result).toBe("&arr[0]");
-    });
-
-    it.each([
-      [
-        "casts string subscript to integer pointer type in C mode",
-        false,
-        "u8",
-        "(uint8_t*)&buf[0]",
-      ],
-      [
-        "casts string subscript with reinterpret_cast in C++ mode",
-        true,
-        "u8",
-        "reinterpret_cast<uint8_t*>(&buf[0])",
-      ],
-      ["does not cast for float types", false, "f32", "&buf[0]"],
-      ["does not cast for bool type", false, "bool", "&buf[0]"],
-    ])("%s", (_label, source, argument2, expected) => {
-      state.cppMode = source;
-      const callbacks = createMockCallbacks({
-        isStringSubscriptAccess: () => true,
-      });
-
-      const result = ArgumentGenerator.maybeCastStringSubscript(
-        "&buf[0]",
-        argument2,
-        callbacks,
-        state,
-      );
-      expect(result).toBe(expected);
-    });
-  });
-
-  describe("handleMemberAccessArg", () => {
-    it("returns expression unchanged for array member (no & needed)", () => {
-      const callbacks = createMockCallbacks({
-        getMemberAccessArrayStatus: () => "array",
-        generateExpression: () => "result.data",
-      });
-
-      const result = ArgumentGenerator.handleMemberAccessArg(
-        "u8",
-        callbacks,
-        state,
-      );
-      expect(result).toBe("result.data");
-    });
-
-    it("creates temp for C++ conversion when needed", () => {
-      state.cppMode = true;
-      const callbacks = createMockCallbacks({
-        getMemberAccessArrayStatus: () => "not-array",
-        isCppMemberConversionRequired: () => true,
-        generateExpression: () => "cfg.enabled",
-      });
-
-      const result = ArgumentGenerator.handleMemberAccessArg(
-        "u8",
-        callbacks,
-        state,
-      );
-
-      expect(result).toBe("cnx_tmp0");
-      expect(state.pendingTempDeclarations).toHaveLength(1);
-    });
-
-    it("returns null for default lvalue handling", () => {
-      const callbacks = createMockCallbacks({
-        getMemberAccessArrayStatus: () => "not-array",
-        isCppMemberConversionRequired: () => false,
-      });
-
-      const result = ArgumentGenerator.handleMemberAccessArg(
-        "u8",
-        callbacks,
-        state,
-      );
-      expect(result).toBeNull();
-    });
-
-    it("returns null when array status is unknown", () => {
-      const callbacks = createMockCallbacks({
-        getMemberAccessArrayStatus: () => "unknown",
-        isCppMemberConversionRequired: () => false,
-      });
-
-      const result = ArgumentGenerator.handleMemberAccessArg(
-        "u8",
-        callbacks,
-        state,
-      );
-      expect(result).toBeNull();
-    });
-  });
-
   describe("handleLvalueArg", () => {
-    it("delegates to handleMemberAccessArg for member access", () => {
-      const callbacks = createMockCallbacks({
-        getMemberAccessArrayStatus: () => "array",
-        generateExpression: () => "result.buffer",
-      });
-
-      const result = ArgumentGenerator.handleLvalueArg(
-        "member",
-        "u8",
-        callbacks,
-        state,
-      );
-      expect(result).toBe("result.buffer");
-    });
-
-    it("generates expression with & for member when not array", () => {
-      state.cppMode = false;
-      const callbacks = createMockCallbacks({
-        getMemberAccessArrayStatus: () => "not-array",
-        isCppMemberConversionRequired: () => false,
-        generateExpression: () => "obj.field",
-      });
-
-      const result = ArgumentGenerator.handleLvalueArg(
-        "member",
-        "u8",
-        callbacks,
-        state,
-      );
-      expect(result).toBe("&obj.field");
-    });
-
-    it("handles array access with & and string subscript cast", () => {
-      state.cppMode = false;
+    it.each([
+      ["by address with no cast", false, null, "&buf[0]"],
+      ["cast in C", false, "uint8_t", "(uint8_t*)&buf[0]"],
+      [
+        "cast with reinterpret_cast in C++",
+        true,
+        "uint8_t",
+        "reinterpret_cast<uint8_t*>(buf[0])",
+      ],
+    ])("writes the lvalue %s", (_label, cppMode, cast, expected) => {
+      state.cppMode = cppMode;
       const callbacks = createMockCallbacks({
         generateExpression: () => "buf[0]",
-        isStringSubscriptAccess: () => true,
       });
-
-      const result = ArgumentGenerator.handleLvalueArg(
-        "array",
-        "u8",
-        callbacks,
-        state,
+      expect(ArgumentGenerator.handleLvalueArg(cast, callbacks, state)).toBe(
+        expected,
       );
-      expect(result).toBe("(uint8_t*)&buf[0]");
-    });
-
-    it("returns expression with & for array without string cast", () => {
-      state.cppMode = false;
-      const callbacks = createMockCallbacks({
-        generateExpression: () => "arr[i]",
-        isStringSubscriptAccess: () => false,
-      });
-
-      const result = ArgumentGenerator.handleLvalueArg(
-        "array",
-        "u8",
-        callbacks,
-        state,
-      );
-      expect(result).toBe("&arr[i]");
     });
   });
 
@@ -508,7 +381,7 @@ describe("ArgumentGenerator", () => {
           parameter: state.currentParameters.get("value"),
         },
         declared.get("value"),
-        "u8",
+        { kind: "identifier" },
         callbacks,
         state,
       );
@@ -535,7 +408,7 @@ describe("ArgumentGenerator", () => {
           parameter: state.currentParameters.get("cfg"),
         },
         declared.get("cfg"),
-        "Config",
+        { kind: "identifier" },
         callbacks,
         state,
       );
@@ -555,7 +428,7 @@ describe("ArgumentGenerator", () => {
         null,
         undefined,
         // no simple identifier
-        "u8",
+        { kind: "lvalue", cast: null },
         callbacks,
         state,
       );
@@ -573,7 +446,7 @@ describe("ArgumentGenerator", () => {
         null,
         undefined,
         // no simple identifier
-        "u8",
+        { kind: "rvalue", compoundLiteral: "uint8_t" },
         callbacks,
         state,
       );

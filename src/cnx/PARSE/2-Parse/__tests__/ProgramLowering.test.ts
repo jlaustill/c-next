@@ -116,14 +116,14 @@ describe("ProgramLowering", () => {
 
   it("records a struct's fields with their dimensions", () => {
     const [{ declaration }] = lower(
-      "struct Point { i32 x; u8 tags[4]; }",
+      "struct Point { i32 x; wrap u8 tags[4]; }",
     ).declarations;
     expect(declaration).toMatchObject({
       kind: "struct",
       name: "Point",
       fields: [
-        { name: "x", dimensions: [] },
-        { name: "tags", dimensions: [{ written: "4" }] },
+        { name: "x", dimensions: [], overflow: null },
+        { name: "tags", dimensions: [{ written: "4" }], overflow: "wrap" },
       ],
     });
   });
@@ -242,5 +242,21 @@ describe("ProgramLowering on recovered files", () => {
     ],
   ])("lowers %s as missing", (_, source) => {
     expect(missingCount(source)).toBeGreaterThan(0);
+  });
+});
+
+describe("ProgramLowering name spans", () => {
+  // #1991: 2.1 reports a parameter or field at its name, not at its type
+  it("spans a parameter and a struct field at the name", () => {
+    const program = lower(
+      "struct Point { u8 tags[4]; }\nvoid f(const u8 value) { }\n",
+    );
+    const struct = program.declarations[0].declaration;
+    const fn = program.declarations[1].declaration;
+    if (struct.kind !== "struct" || fn.kind !== "function") {
+      throw new Error("expected a struct then a function");
+    }
+    expect(struct.fields[0].nameSpan).toMatchObject({ line: 1, column: 18 });
+    expect(fn.parameters?.[0].nameSpan).toMatchObject({ line: 2, column: 16 });
   });
 });

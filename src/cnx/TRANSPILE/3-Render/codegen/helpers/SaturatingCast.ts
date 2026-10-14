@@ -11,7 +11,7 @@
  * to the target type before use (the naive form assigns an `int` expression
  * to a narrower essential type).
  */
-import TYPE_LIMITS from "../types/TYPE_LIMITS";
+import TYPE_LIMITS from "../../../2-Plan/types/TYPE_LIMITS";
 import CNEXT_TO_C_TYPE_MAP from "../../../../utils/constants/TypeMappings";
 import invariant from "../../../../utils/invariant";
 import SaturationRule from "../../../../utils/SaturationRule";

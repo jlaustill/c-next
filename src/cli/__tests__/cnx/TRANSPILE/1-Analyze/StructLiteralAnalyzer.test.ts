@@ -4,6 +4,7 @@ import HeaderParser from "../../../../../cnx/PARSE/2-Parse/HeaderParser";
 import CResolver from "../../../../../cnx/PARSE/3-Declare/c/index";
 import SymbolTable from "../../../../../cnx/PARSE/3-Declare/SymbolTable";
 import StructLiteralAnalyzer from "../../../../../cnx/TRANSPILE/1-Analyze/StructLiteralAnalyzer";
+import ValuePositions from "../../../../../cnx/TRANSPILE/1-Analyze/helpers/ValuePositions";
 import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /**
@@ -15,8 +16,8 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  * longer parses -- so the cases below are the parse-error fixture's business
  * now, not this analyzer's.
  *
- * E0357 is decided from the parse tree alone: whether a position supplies a
- * type is a question about the initializer's own ancestors. E0358 (#1802)
+ * E0357 is decided from 1.2's syntax alone: whether a position supplies a
+ * type is a question about where the initializer stands (#1991). E0358 (#1802)
  * asks WHICH type, so the cases run on a real program.
  */
 const errors = (source: string, symbolTable?: SymbolTable) => {
@@ -24,13 +25,16 @@ const errors = (source: string, symbolTable?: SymbolTable) => {
     symbolTable,
     cppMode: false,
   });
-  return new StructLiteralAnalyzer(built.context).analyze(built.tree);
+  return new StructLiteralAnalyzer(built.context).analyze(
+    built.syntax,
+    ValuePositions.of(built.syntax, built.context).positions,
+  );
 };
 
 /** A C header's symbols, as Stage 2 declares them */
 function header(source: string): SymbolTable {
   const table = new SymbolTable();
-  const tree = HeaderParser.parseC(source).tree;
+  const tree = HeaderParser.parseC(source).syntax;
   table.addCSymbols(CResolver.resolve(tree!, "api.h", table).symbols);
   return table;
 }
@@ -215,5 +219,32 @@ describe("StructLiteralAnalyzer (E0866 at a whole-array position)", () => {
     ["a declaration, which ADR-035's rule checks", "    S[2] sa <- { a: 1 };"],
   ])("stays silent on %s", (_label, body) => {
     expect(codes(body)).toEqual([]);
+  });
+});
+
+// #1991: positions are carried down 1.2's syntax, so each place the walk
+// passes a position through, or deliberately does not, is asserted directly.
+describe("StructLiteralAnalyzer -- positions on 1.2's syntax", () => {
+  const codes = (body: string) =>
+    errors(`${struct}void f(bool c) {\n${body}\n}`).map((e) => e.code);
+
+  it("types both arms of a ternary from the declaration", () => {
+    expect(
+      codes("    Point p <- (c) ? { x: 1, y: 2 } : { x: 3, y: 4 };"),
+    ).toEqual([]);
+  });
+
+  it("gives a subscript no type, even under a typed position", () => {
+    expect(codes("    u8[2] a;\n    u8 v <- a[{ x: 1, y: 2 }];")).toEqual([
+      "E0357",
+    ]);
+  });
+
+  it("gives a for loop's init and update assignments no type", () => {
+    expect(
+      codes(
+        "    Point p;\n    for (p <- { x: 1, y: 2 }; c; p <- { x: 3, y: 4 }) { }",
+      ),
+    ).toEqual(["E0357", "E0357"]);
   });
 });

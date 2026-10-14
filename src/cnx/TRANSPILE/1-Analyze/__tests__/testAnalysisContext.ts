@@ -1,4 +1,5 @@
 import TranspileState from "../../TranspileState";
+import TestSymbolTable from "../../__tests__/TestSymbolTable";
 import Program from "../../../PARSE/4-Resolve/Program";
 import type IAnalysisContext from "../types/IAnalysisContext";
 import createMockSymbols from "../../../types/__testUtils__/codeGenSymbolsHelpers";
@@ -29,7 +30,7 @@ const testAnalysisContext = (
   symbols: state.symbols ?? createMockSymbols(),
   // #1428: the mode the test put on the state, as `generate()` puts it there
   program: state.program ?? Program.build([], { cppMode: state.cppMode }),
-  symbolTable: state.symbolTable,
+  symbolTable: TestSymbolTable.of(state),
   // #1456 owns this fact; #1452 deleted the write-only copy that used to
   // sit on the state, so the DEFAULT is stated here. `true` is the declining
   // direction -- a false positive stops valid interop code compiling, a false

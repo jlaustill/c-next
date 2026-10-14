@@ -83,7 +83,8 @@ const PASS_ROOTS = ["src/cnx/PARSE", "src/cnx/TRANSPILE", "src/cnx/WRITE"];
  * Adding the root does not forbid them: `docs/architecture/README.md` admits
  * instrumentation as the one root that may hold mutable state, and that
  * decision stands. It makes the exemption a LIST rather than a geography. A
- * comment in `ToolchainRequirements` already said "do not read its presence in
+ * comment in `ToolchainRequirements` (deleted under #1991, its sites now a
+ * 2.2 value) already said "do not read its presence in
  * this root as a precedent"; a comment is not a gate, and a fifth static added
  * here now fails this file instead of relying on the next reader having read
  * that sentence.
@@ -100,7 +101,6 @@ const INSTRUMENTATION_ROOT = "src/cnx/instrumentation";
 const INSTRUMENTATION_HOLDERS = [
   "src/cnx/instrumentation/AdrProvenance.ts:58",
   "src/cnx/instrumentation/AdrProvenance.ts:59",
-  "src/cnx/instrumentation/ToolchainRequirements.ts:49",
 ];
 
 /**

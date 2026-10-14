@@ -7,7 +7,7 @@
 
 import DeclaredPointer from "../../../utils/DeclaredPointer";
 import IHeaderSymbol from "./types/IHeaderSymbol";
-import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
+import type IResolvedSymbols from "../../../types/IResolvedSymbols";
 import CppNamespaceUtils from "../../../utils/CppNamespaceUtils";
 import typeUtils from "../../../utils/mapType";
 import IGroupedSymbols from "./types/IGroupedSymbols";
@@ -181,7 +181,7 @@ class HeaderGeneratorUtils {
   static filterCCompatibleTypes(
     externalTypes: Set<string>,
     typesWithHeaders: Set<string>,
-    symbolTable?: SymbolTable,
+    symbolTable?: IResolvedSymbols,
   ): string[] {
     return [...externalTypes].filter(
       (t) =>
@@ -200,7 +200,7 @@ class HeaderGeneratorUtils {
    */
   static filterCCompatibleVariables(
     variables: IHeaderSymbol[],
-    symbolTable?: SymbolTable,
+    symbolTable?: IResolvedSymbols,
   ): IHeaderSymbol[] {
     return variables.filter(
       (v) =>

@@ -2,7 +2,7 @@
  * 2.2 Plan -- which system headers declare the C types a file emits.
  *
  * The one predicate for `<stdint.h>` and `<stdbool.h>` (#1927). The `.c` asks
- * it about the C types render recorded (`IEmissionFacts.emittedCTypes`), and
+ * it about the C types 2.2 planned (`IEmissionFacts.cTypes`), and
  * the `.h` about the C types its exported symbols map to (`HeaderIncludes`).
  * Different inputs, one question: "does this text use a name that header
  * declares?".
@@ -27,7 +27,10 @@ class CTypeIncludes {
   static decide(cTypes: Iterable<string>): string[] {
     const bases = new Set<string>();
     for (const cType of cTypes) {
-      bases.add(CTypeIncludes.baseTypeOf(cType));
+      // A template's arguments are types it spells too (`Vector<uint32_t>`)
+      for (const part of cType.split(/[<>,]/)) {
+        bases.add(CTypeIncludes.baseTypeOf(part));
+      }
     }
 
     const decided: string[] = [];

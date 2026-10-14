@@ -66,12 +66,10 @@ const STATE: IGeneratorState = TestGeneratorState.create({
 });
 
 function createMockOrchestrator(options?: {
-  returnType?: string | null;
   tempDeclarations?: string;
   lengthCacheDecls?: string;
 }): IOrchestrator {
   return strictStub<IOrchestrator>({
-    getCurrentFunctionReturnType: vi.fn(() => options?.returnType ?? null),
     // ADR-057: registration hands back the emitted name; identity here means
     // "nothing shadowed, keep the source name".
     flushPendingTempDeclarations: vi.fn(() => options?.tempDeclarations ?? ""),
@@ -165,33 +163,20 @@ describe("ControlFlowGenerator", () => {
       expect(result.code).toBe("return value;");
     });
 
-    // Issue #477 / #1277: the expected type is the ENCLOSING FUNCTION's, which
-    // is why it is asked for at render time and handed to the plan rather than
-    // captured when the plan was built.
-    it("hands the enclosing function's return type to the renderer", () => {
+    // Issue #477 / #1277: 2.2 planned what the value is written against
+    // (#1991), so the renderer takes nothing from the enclosing function.
+    it("renders the value as planned", () => {
       const render = vi.fn(() => "RED");
 
-      generateReturn(
+      const result = generateReturn(
         { kind: "value", render },
         INPUT,
         STATE,
-        createMockOrchestrator({ returnType: "EColor" }),
+        createMockOrchestrator(),
       );
 
-      expect(render).toHaveBeenCalledWith("EColor");
-    });
-
-    it("hands null when the function declares no return type", () => {
-      const render = vi.fn(() => "x");
-
-      generateReturn(
-        { kind: "value", render },
-        INPUT,
-        STATE,
-        createMockOrchestrator({ returnType: null }),
-      );
-
-      expect(render).toHaveBeenCalledWith(null);
+      expect(render).toHaveBeenCalledWith();
+      expect(result.code).toBe("return RED;");
     });
   });
 
@@ -430,8 +415,9 @@ describe("ControlFlowGenerator", () => {
     });
 
     // #1277: the declared type IS the initializer's expected type, which is
-    // what types a struct literal that no declaration names.
-    it("renders the initializer with the declared type as its expected type", () => {
+    // what types a struct literal that no declaration names. 2.2 plans it
+    // (#1991), so the renderer hands the initializer nothing.
+    it("renders the initializer as planned", () => {
       const renderInitializer = vi.fn(() => "{ 1, 2 }");
 
       generateForVarDecl(
@@ -441,7 +427,7 @@ describe("ControlFlowGenerator", () => {
         createMockOrchestrator(),
       );
 
-      expect(renderInitializer).toHaveBeenCalledWith("Point");
+      expect(renderInitializer).toHaveBeenCalledWith();
     });
 
     it.each([

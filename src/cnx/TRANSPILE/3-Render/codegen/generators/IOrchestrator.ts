@@ -1,3 +1,4 @@
+import type IPlanQueries from "../../../2-Plan/types/IPlanQueries";
 /**
  * Interface that CodeGenerator implements to orchestrate generators.
  *
@@ -11,13 +12,13 @@
  * - Testing generators with mock orchestrators
  * - Gradual migration via "strangler fig" pattern
  */
-import type IPlannedFunctionParameter from "../types/IPlannedFunctionParameter";
+import type IPlannedFunctionParameter from "../../../2-Plan/types/IPlannedFunctionParameter";
 import IGeneratorInput from "./IGeneratorInput";
 import IGeneratorState from "./IGeneratorState";
 import TGeneratorEffect from "./TGeneratorEffect";
 import type TranspileState from "../../../TranspileState";
 
-interface IOrchestrator {
+interface IOrchestrator extends IPlanQueries {
   /**
    * 2.3 Render's per-file working state (#1452 box 4).
    *
@@ -169,15 +170,9 @@ interface IOrchestrator {
   /** Issue #269: Set the current function name for pass-by-value lookup */
   setCurrentFunctionName(name: string | null): void;
 
-  /** Issue #477: Get the current function's return type for enum inference */
-  getCurrentFunctionReturnType(): string | null;
-
-  /** Issue #477: Set the current function's return type for enum inference */
-  setCurrentFunctionReturnType(returnType: string | null): void;
-
   /**
    * #1277: enter/leave the context a function body is generated in -- its
-   * name, its declared return type, and its parameters.
+   * name and its parameters (2.2 plans what a `return` is written against, #1991).
    *
    * One pair rather than four calls at each site. `FunctionGenerator` and
    * `ScopeGenerator` each open-coded the same four steps in the same order,
@@ -188,7 +183,6 @@ interface IOrchestrator {
    */
   enterFunctionContext(
     name: string,
-    returnTypeText: string,
     parameters: readonly IPlannedFunctionParameter[] | null,
   ): void;
 
@@ -242,6 +236,9 @@ interface IOrchestrator {
 
   /** Add a pending temp variable declaration (for float bit indexing) */
   addPendingTempDeclaration(declaration: string): void;
+
+  /** A name no other temporary in the file has */
+  nextTempName(): string;
 
   /** Register a float bit shadow variable */
   registerFloatBitShadow(shadowName: string): void;

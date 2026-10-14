@@ -12,7 +12,7 @@
  * MEMBER_CHAIN's, which writes it the same way.
  */
 import AssignmentKind from "../../../../../types/AssignmentKind";
-import AssignmentHandlerUtils from "./AssignmentHandlerUtils";
+import AssignmentHandlerUtils from "../../../../2-Plan/AssignmentHandlerUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 
 // #1322: `validateNotCompound` is gone -- E0857 in pass 2.1. It was defined

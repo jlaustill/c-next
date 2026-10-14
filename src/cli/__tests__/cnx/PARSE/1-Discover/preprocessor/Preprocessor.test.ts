@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import Installation from "../../../../../../cnx/PARSE/1-Discover/Installation";
 import IToolchain from "../../../../../../cnx/PARSE/1-Discover/preprocessor/types/IToolchain";
 
 // We need to define our mock functions before vi.mock calls
@@ -10,43 +11,25 @@ const mockExec = vi.fn();
 const mockDetect = vi.fn().mockReturnValue(null);
 const mockGetDefaultIncludePaths = vi.fn().mockReturnValue([]);
 
-// Type for exec callback
-type ExecCallback = (
-  err: Error | null,
-  result: { stdout: string; stderr: string },
-) => void;
-
-// Mock child_process - execFile is promisified, so we mock it to work with
-// promisify. execFile is called as (file, args, options, callback).
+// #1991: execFile is called as (file, args, options, callback) with the
+// callback's (error, stdout, stderr), and returns the child, whose stdin
+// receives a string's content.
+const mockStdin = vi.fn();
 vi.mock("node:child_process", () => ({
   execFile: (
     file: string,
     args: string[],
     opts: unknown,
-    cb?: ExecCallback,
+    cb: (err: Error | null, stdout: string, stderr: string) => void,
   ) => {
-    // promisify converts callback-based to promise-based
-    let callback: ExecCallback | undefined = cb;
-    if (typeof opts === "function") {
-      callback = opts as ExecCallback;
-    }
     const result = mockExec(file, args, opts);
-    if (result instanceof Promise) {
-      result
-        .then((r: { stdout: string; stderr: string }) => callback?.(null, r))
-        .catch((e: Error) => callback?.(e, { stdout: "", stderr: "" }));
-    } else if (result && typeof result.then === "function") {
-      result
-        .then((r: { stdout: string; stderr: string }) => callback?.(null, r))
-        .catch((e: Error) => callback?.(e, { stdout: "", stderr: "" }));
-    } else {
-      // Immediate value
-      if (result instanceof Error) {
-        callback?.(result, { stdout: "", stderr: "" });
-      } else {
-        callback?.(null, result || { stdout: "", stderr: "" });
-      }
-    }
+    Promise.resolve(result)
+      .then((r: { stdout: string; stderr: string } | Error | undefined) => {
+        if (r instanceof Error) cb(r, "", "");
+        else cb(null, r?.stdout ?? "", r?.stderr ?? "");
+      })
+      .catch((e: Error) => cb(e, "", ""));
+    return { stdin: { end: (content: string) => mockStdin(content) } };
   },
 }));
 
@@ -65,7 +48,6 @@ vi.mock(
 import Preprocessor from "../../../../../../cnx/PARSE/1-Discover/preprocessor/Preprocessor";
 import NodeFileSystem from "../../../../../../cnx/PARSE/1-Discover/NodeFileSystem";
 import MockFileSystem from "../../../../MockFileSystem";
-import { basename, dirname } from "node:path";
 
 describe("Preprocessor", () => {
   const mockToolchain: IToolchain = {
@@ -367,26 +349,18 @@ int y = 10;
   });
 
   describe("preprocessString", () => {
-    // #1653: the temporary file is the port's, so these use a MockFileSystem
-    // and look at what cpp is handed rather than at node:fs calls.
-    function handedToCpp(fs: MockFileSystem) {
-      const seen: { input: string; content: string; neighbors: string[] }[] =
-        [];
-      mockExec.mockImplementation((_file: string, args: string[]) => {
-        const input = args.at(-1) ?? "";
-        seen.push({
-          input,
-          content: fs.readFile(input),
-          neighbors: fs.readdir(dirname(input)),
-        });
-        return { stdout: "processed", stderr: "" };
-      });
-      return seen;
-    }
-
-    it("hands cpp a file holding the content, alone in its directory", async () => {
+    // #1991: 1.1 creates no file. The string goes to cpp on standard input,
+    // from a directory that holds no header: on stdin cpp searches its
+    // working directory first for a quoted include (#1653).
+    it("hands cpp the content on stdin, from a directory with no header", async () => {
       const fs = new MockFileSystem();
-      const seen = handedToCpp(fs);
+      const seen: { args: string[]; cwd: unknown }[] = [];
+      mockExec.mockImplementation(
+        (_file: string, args: string[], opts: { cwd?: string }) => {
+          seen.push({ args, cwd: opts.cwd });
+          return { stdout: "processed", stderr: "" };
+        },
+      );
       const preprocessor = new Preprocessor(fs, mockToolchain);
 
       const result = await preprocessor.preprocessString(
@@ -395,38 +369,41 @@ int y = 10;
       );
 
       expect(seen).toHaveLength(1);
-      expect(basename(seen[0].input)).toBe("test.h");
-      expect(seen[0].content).toBe("#define FOO 1\nint x = FOO;");
-      // Nothing else in the directory: cpp searches it first for a quoted
-      // include, and on stdin it would search the working directory instead.
-      expect(seen[0].neighbors).toEqual(["test.h"]);
+      expect(seen[0].args.slice(-3)).toEqual(["-x", "c-header", "-"]);
+      expect(seen[0].cwd).toBe(Installation.headerFreeDirectory(fs));
+      expect(mockStdin).toHaveBeenLastCalledWith("#define FOO 1\nint x = FOO;");
+      expect(fs.getWriteLog()).toEqual([]);
+      expect(fs.getMkdirLog()).toEqual([]);
+      expect(result.success).toBe(true);
       expect(result.originalFile).toBe("test.h");
     });
 
-    it("removes the temporary directory after success", async () => {
-      const fs = new MockFileSystem();
-      const seen = handedToCpp(fs);
-      const preprocessor = new Preprocessor(fs, mockToolchain);
+    it("names a C++ header's language", async () => {
+      const seen: string[][] = [];
+      mockExec.mockImplementation((_file: string, args: string[]) => {
+        seen.push(args);
+        return { stdout: "", stderr: "" };
+      });
+      const preprocessor = new Preprocessor(
+        new MockFileSystem(),
+        mockToolchain,
+      );
 
-      await preprocessor.preprocessString("content", "test.h");
+      await preprocessor.preprocessString("int x;", "cnext-include.hpp");
 
-      expect(fs.exists(dirname(seen[0].input))).toBe(false);
+      expect(seen[0].slice(-3)).toEqual(["-x", "c++-header", "-"]);
     });
 
-    it("removes the temporary directory after failure", async () => {
-      const fs = new MockFileSystem();
-      let input = "";
-      mockExec.mockImplementation((_file: string, args: string[]) => {
-        input = args.at(-1) ?? "";
-        return Promise.reject(new Error("failed"));
-      });
-      const preprocessor = new Preprocessor(fs, mockToolchain);
+    it("fails a string whose extension names no language, without running cpp", async () => {
+      const preprocessor = new Preprocessor(
+        new MockFileSystem(),
+        mockToolchain,
+      );
 
-      const result = await preprocessor.preprocessString("content", "test.h");
+      const result = await preprocessor.preprocessString("int x;", "test.txt");
 
       expect(result.success).toBe(false);
-      expect(input).not.toBe("");
-      expect(fs.exists(dirname(input))).toBe(false);
+      expect(mockExec).not.toHaveBeenCalled();
     });
   });
 

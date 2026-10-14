@@ -15,7 +15,7 @@ import { describe, it, expect, afterEach, beforeEach } from "vitest";
 import generateCast from "../CastExprGenerator";
 import TranspileState from "../../../../../TranspileState";
 import CastRequirement from "../../../../../2-Plan/CastRequirement";
-import type IPlannedCast from "../../../types/IPlannedCast";
+import type IPlannedCast from "../../../../../2-Plan/types/IPlannedCast";
 
 /** The plan's saturation decision, asked of the one function that makes it */
 const clampFormOf = (
@@ -116,16 +116,6 @@ describe("CastExprGenerator", () => {
       expect(f32).toContain("< 0.0f ?");
     });
 
-    it("requires limits.h only when it actually clamps", () => {
-      generateCast(plan("uint8_t", "u8", "x", "u32"), state);
-      const afterPlain = state.needsLimits;
-
-      generateCast(plan("uint8_t", "u8", "f", "f32"), state);
-
-      expect(afterPlain).toBe(false);
-      expect(state.needsLimits).toBe(true);
-    });
-
     it("casts plainly into a target the plan does not saturate", () => {
       // Issue #644: `bool` is not a C-Next integer target, so the plan does
       // not saturate a float into it and the plain cast is the answer.
@@ -136,20 +126,17 @@ describe("CastExprGenerator", () => {
   });
 
   describe("a side-effecting operand (#1668)", () => {
-    it("calls the single-evaluation helper, and records it", () => {
+    it("calls the single-evaluation helper", () => {
       const code = generateCast(
         plan("uint8_t", "u8", "produce()", "f32", true),
         state,
       );
       expect(code).toBe("cnx_cast_sat_f32_u8(produce())");
-      expect([...state.usedCastHelpers]).toEqual(["f32_u8"]);
-      expect(state.needsLimits).toBe(true);
     });
 
-    it("inlines the bounded ternary for a pure operand, recording nothing", () => {
+    it("inlines the bounded ternary for a pure operand", () => {
       const code = generateCast(plan("uint8_t", "u8", "x", "f32"), state);
       expect(code.startsWith("((x) >= ")).toBe(true);
-      expect(state.usedCastHelpers.size).toBe(0);
     });
   });
 });

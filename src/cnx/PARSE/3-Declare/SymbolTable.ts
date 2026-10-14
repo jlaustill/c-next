@@ -24,6 +24,7 @@ import IStructSymbol from "../../types/symbols/IStructSymbol";
 import TypeResolver from "../../utils/TypeResolver";
 import type ITargetDescription from "../../types/ITargetDescription";
 import invariant from "../../utils/invariant";
+import type IResolvedSymbols from "../../types/IResolvedSymbols";
 
 // Enable immer support for Map and Set (must be called once at module scope)
 enableMapSet();
@@ -46,7 +47,7 @@ function createInitialStructState(): IStructSymbolState {
  * - OK: Multiple `extern` declarations in C (declaration, not definition)
  * - OK: Function overloads in C++ (different signatures)
  */
-class SymbolTable {
+class SymbolTable implements IResolvedSymbols {
   // ========================================================================
   // C-Next Symbol Storage (TSymbol)
   // ========================================================================

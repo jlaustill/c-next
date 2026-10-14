@@ -7,40 +7,6 @@ import SymbolUtils from "../SymbolUtils";
 
 describe("SymbolUtils", () => {
   // ========================================================================
-  // parseArrayDimensions
-  // ========================================================================
-
-  describe("parseArrayDimensions", () => {
-    it("should parse single dimension", () => {
-      expect(SymbolUtils.parseArrayDimensions("data[8]")).toEqual([8]);
-      expect(SymbolUtils.parseArrayDimensions("buffer[256]")).toEqual([256]);
-      expect(SymbolUtils.parseArrayDimensions("[32]")).toEqual([32]);
-    });
-
-    it("should parse multiple dimensions", () => {
-      expect(SymbolUtils.parseArrayDimensions("matrix[4][4]")).toEqual([4, 4]);
-      expect(SymbolUtils.parseArrayDimensions("cube[2][3][4]")).toEqual([
-        2, 3, 4,
-      ]);
-    });
-
-    it("should return empty array for non-array", () => {
-      expect(SymbolUtils.parseArrayDimensions("value")).toEqual([]);
-      expect(SymbolUtils.parseArrayDimensions("int x")).toEqual([]);
-    });
-
-    it("should handle text with other content", () => {
-      expect(SymbolUtils.parseArrayDimensions("uint8_t data[10];")).toEqual([
-        10,
-      ]);
-      // Issue #981: macro-sized arrays are captured as strings
-      expect(
-        SymbolUtils.parseArrayDimensions("char buffer[BUFFER_SIZE]"),
-      ).toEqual(["BUFFER_SIZE"]);
-    });
-  });
-
-  // ========================================================================
   // getTypeWidth
   // ========================================================================
 

@@ -16,6 +16,7 @@
  * input those decisions are actually made from.
  */
 
+import TestSymbolTable from "../../../../../__tests__/TestSymbolTable";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import generateScope from "../ScopeGenerator";
 import IGeneratorInput from "../../IGeneratorInput";
@@ -499,7 +500,6 @@ describe("ScopeGenerator", () => {
         adrLine: 5,
         fullName: "Driver__init",
         isPrivate,
-        declaredTypeText: "void",
         renderReturnType: () => "void",
         planParameters: () => null,
         renderBody: () => "{ }",
@@ -550,7 +550,6 @@ describe("ScopeGenerator", () => {
       expect(order).toEqual(["returnType", "body", "params"]);
       expect(orchestrator.enterFunctionContext).toHaveBeenCalledWith(
         "Driver__init",
-        "void",
         null,
       );
       expect(orchestrator.updateFunctionParamsAutoConst).toHaveBeenCalledWith(
@@ -577,7 +576,6 @@ describe("ScopeGenerator", () => {
 
       expect(orchestrator.enterFunctionContext).toHaveBeenCalledWith(
         "Driver__init",
-        "void",
         parameters,
       );
     });
@@ -585,7 +583,7 @@ describe("ScopeGenerator", () => {
 
   describe("type definitions (#1300)", () => {
     it("emits each planned definition through its kind's emitter, in plan order", () => {
-      const symbolTable = state.symbolTable;
+      const symbolTable = TestSymbolTable.of(state);
       const result = generateScope(
         scope({
           typeDefinitions: [

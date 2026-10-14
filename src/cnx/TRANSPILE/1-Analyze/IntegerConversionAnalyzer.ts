@@ -1,6 +1,5 @@
 /**
- * ADR-024 integer conversions: E0868, E0869 and E0891; and E0914, a string
- * at the same positions.
+ * ADR-024 integer conversions: E0868, E0869 and E0891.
  *
  * #1322. Six rules across `TypeResolver` and `CodeGenerator`, reached through
  * three entry points -- a declaration's initializer, an assignment, a cast --
@@ -54,116 +53,106 @@
  * and a C or C++ header's integer -- a source, or the field a value lands in
  * -- has its width on this target. Every assignment site is read, `for`
  * headers included (#1726).
- *
- * ## A string lands in no scalar (#1739)
- *
- * ADR-024's positions are where a value meets a typed target, and a string --
- * a literal or a `string<N>` value (ADR-045) -- is not an integer, a float or
- * a bool, so it lands in none of them: E0914. Each was accepted at exit 0 and
- * emitted as C's pointer-to-integer conversion (`uint32_t g = "hello";`). The
- * target is the one `StructInitializerType.valueType` gives, which is no
- * whole array, so ADR-035's `u8[] buf <- "abc"` stands.
  */
 
-import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
 import type TExpression from "../../types/syntax/TExpression";
-import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
-
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
+import DeclarationParts from "../../utils/DeclarationParts";
+import ExpressionNodes from "../../utils/ExpressionNodes";
+import StatementNodes from "../../utils/StatementNodes";
+import OperandTyper from "../../utils/OperandTyper";
+import ExpressionShape from "../../utils/ExpressionShape";
+import type IVariableDeclarationSyntax from "../../types/syntax/IVariableDeclarationSyntax";
+import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
 import TYPE_WIDTH from "../../types/TYPE_WIDTH";
 import invariant from "../../utils/invariant";
-import ParserUtils from "../../utils/ParserUtils";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
-import OperandTyper from "../../utils/OperandTyper";
 import CompositeType from "../../utils/CompositeType";
-import ExpressionShape from "../../utils/ExpressionShape";
-import AssignmentSiteListener from "./AssignmentSiteListener";
 import StructInitializerType from "./helpers/StructInitializerType";
+import ValuePositions from "./helpers/ValuePositions";
 import IIntegerConversionError from "./types/IIntegerConversionError";
 import type IAnalysisContext from "./types/IAnalysisContext";
+import type IValuePosition from "../../types/IValuePosition";
 import type IOperandType from "../../types/IOperandType";
-import type TAssignmentSite from "../../types/TAssignmentSite";
 import SourceOrder from "../../utils/SourceOrder";
 
 const INTEGER_LITERAL = /^-?(?:\d+|0[xX][0-9a-fA-F]+|0[bB][01]+)$/;
 
-class IntegerConversionListener extends CNextListener {
+class IntegerConversionCheck {
   private readonly found: IIntegerConversionError[] = [];
 
-  public constructor(private readonly context: IAnalysisContext) {
-    super();
-  }
+  public constructor(
+    private readonly context: IAnalysisContext,
+    private readonly positions: ReadonlyMap<TExpression, IValuePosition>,
+  ) {}
 
   public errors(): IIntegerConversionError[] {
     return this.found;
   }
 
-  // --- The spellings that reach the one rule -------------------------------
-
-  override enterVariableDeclaration = (
-    ctx: Parser.VariableDeclarationContext,
-  ): void => {
-    if (this.checkStringAt(ctx.expression())) return;
-    this.checkDeclaration(ctx.type().getText(), ctx.expression());
-  };
-
-  /**
-   * A `for` header's declaration is a declaration (#1760 second review:
-   * `for (u8 j <- 300; ...)` and `for (u32 i <- k; ...)` were accepted).
-   */
-  override enterForVarDecl = (ctx: Parser.ForVarDeclContext): void => {
-    if (this.checkStringAt(ctx.expression())) return;
-    this.checkDeclaration(ctx.type().getText(), ctx.expression());
-  };
-
-  private checkDeclaration(
-    target: string,
-    value: Parser.ExpressionContext | null,
-  ): void {
-    if (!value || !TypeCheckUtils.isInteger(target)) return;
-    this.check(target, value, "assign", true);
+  public checkDeclaration(declaration: IVariableDeclarationSyntax): void {
+    if (!declaration.initializer) return;
+    if (this.checkStringAt(declaration.initializer)) return;
+    const target = declaration.type.text;
+    if (!TypeCheckUtils.isInteger(target)) return;
+    this.check(target, declaration.initializer, "assign", true);
   }
 
-  // --- E0891 at every other position a value lands in ------------------------
-  //
-  // #1760 second review, owner ruling "all positions now": a float reaches an
-  // integer argument, return, field or element only through a cast, as it
-  // reaches a declaration or an assignment. Narrowing and sign change at these
-  // positions are #1618's.
-
-  override enterArgumentList = (ctx: Parser.ArgumentListContext): void => {
-    for (const argument of ctx.expression()) this.checkFloatingAt(argument);
-  };
-
-  override enterReturnStatement = (
-    ctx: Parser.ReturnStatementContext,
-  ): void => {
-    this.checkFloatingAt(ctx.expression());
-  };
-
-  override enterFieldInitializer = (
-    ctx: Parser.FieldInitializerContext,
-  ): void => {
-    this.checkFloatingAt(ctx.expression());
-  };
-
-  override enterArrayInitializer = (
-    ctx: Parser.ArrayInitializerContext,
-  ): void => {
-    this.checkFloatingAt(ctx.expression());
-    for (const element of ctx.arrayInitializerElement()) {
-      this.checkFloatingAt(element.expression());
+  /** The values E0891 types from their position: arguments, fields, elements */
+  public checkExpression(expr: TExpression): void {
+    switch (expr.kind) {
+      case "postfix":
+        for (const op of expr.ops) {
+          if (op.kind !== "call") continue;
+          for (const argument of op.arguments) this.checkFloatingAt(argument);
+        }
+        return;
+      case "structInitializer":
+        for (const field of expr.fields) this.checkFloatingAt(field.value);
+        return;
+      case "arrayInitializer":
+        if (expr.fill) this.checkFloatingAt(expr.fill);
+        for (const element of expr.elements) this.checkFloatingAt(element);
+        return;
+      case "cast":
+        this.checkCast(expr);
+        return;
+      default:
+        return;
     }
-  };
+  }
 
   /** E0914, then E0891, for a value at the type its position gives it */
-  private checkFloatingAt(value: Parser.ExpressionContext | null): void {
-    if (!value || this.checkStringAt(value)) return;
-    const target = StructInitializerType.valueType(value, this.context);
+  public checkFloatingAt(value: TExpression): void {
+    if (this.checkStringAt(value)) return;
+    const target = StructInitializerType.valueTypeAt(
+      ValuePositions.at(this.positions, value),
+    );
     if (target !== null && TypeCheckUtils.isInteger(target)) {
       this.checkFloating(target, value);
     }
+  }
+
+  /** An assignment statement, or a `for` loop's init or update */
+  public checkSite(site: IAssignmentSyntax): void {
+    if (this.checkStringAt(site.value)) return;
+    // A compound operator is arithmetic at the operands' width, which ADR-044
+    // governs; only a plain `<-` is a conversion.
+    if (site.operator !== "<-") return;
+    const target = site.target;
+    if (
+      target.kind === "postfix" &&
+      target.ops.some(
+        (op) => op.kind === "subscript" && op.indexes.length === 2,
+      )
+    ) {
+      return;
+    }
+    const targetType =
+      OperandTyper.typeOfTarget(target, this.context)?.typeName ?? "";
+    if (!TypeCheckUtils.isInteger(targetType)) return;
+    this.check(targetType, site.value, "assign", true);
   }
 
   /**
@@ -171,15 +160,16 @@ class IntegerConversionListener extends CNextListener {
    * integer, a float, a bool, an enum or a bitmap. True when reported, so the
    * value is not judged again as a number.
    */
-  private checkStringAt(value: Parser.ExpressionContext | null): boolean {
-    if (!value) return false;
-    const target = StructInitializerType.valueType(value, this.context);
+  private checkStringAt(value: TExpression): boolean {
+    const target = StructInitializerType.valueTypeAt(
+      ValuePositions.at(this.positions, value),
+    );
     if (target === null || !this.isScalar(target, value)) return false;
-    if (!this.landsString(SyntaxLowering.expressionNode(value))) return false;
+    if (!this.landsString(value)) return false;
     this.report(
       value,
       "E0914",
-      `A string value cannot be assigned to ${target}: '${value.getText()}'`,
+      `A string value cannot be assigned to ${target}: '${value.written}'`,
       "A string lands only in a string<N> (ADR-045); a u8 array may be initialized by a string literal (ADR-035)",
     );
     return true;
@@ -190,7 +180,7 @@ class IntegerConversionListener extends CNextListener {
    * is the one its spelling names where the value is (ADR-057): `ELocal` in
    * `scope S` is `S__ELocal`.
    */
-  private isScalar(target: string, value: ParserRuleContext): boolean {
+  private isScalar(target: string, value: TExpression): boolean {
     if (
       TypeCheckUtils.isInteger(target) ||
       TypeCheckUtils.isFloat(target) ||
@@ -201,7 +191,7 @@ class IntegerConversionListener extends CNextListener {
     const cName = this.context.program.cTypeNameAt(
       this.context.sourceFile,
       target,
-      { line: value.start?.line ?? 0, column: value.start?.column ?? 0 },
+      { line: value.span.line, column: value.span.column },
     );
     const symbols = this.context.symbols;
     return symbols.knownEnums.has(cName) || symbols.knownBitmaps.has(cName);
@@ -226,62 +216,21 @@ class IntegerConversionListener extends CNextListener {
     );
   }
 
-  /** An assignment, in a statement or a `for` header (#1726) */
-  public checkSite(site: TAssignmentSite): void {
-    if (this.checkStringAt(site.expression())) return;
-    // A compound operator is arithmetic at the operands' width, which ADR-044
-    // governs; only a plain `<-` is a conversion.
-    if (!site.assignmentOperator().ASSIGN()) return;
-    const value = site.expression();
-    const target = site.assignmentTarget();
-    // A two-expression subscript is a slice or a bit range (ADR-007): a SPAN of
-    // the buffer, not an element, with rules of its own.
-    if (target.postfixTargetOp().some((op) => op.expression().length === 2)) {
-      return;
-    }
-    // The type the value actually lands in -- following the chain to the
-    // field or element, not the root variable's own type. See the class
-    // comment for what reading the root instead let through.
-    const targetType =
-      OperandTyper.typeOfTarget(
-        SyntaxLowering.assignmentTarget(target),
-        this.context,
-      )?.typeName ?? "";
-    if (!TypeCheckUtils.isInteger(targetType)) return;
-    this.check(targetType, value, "assign", true);
+  private checkCast(cast: Extract<TExpression, { kind: "cast" }>): void {
+    const target = cast.type.text;
+    if (!TypeCheckUtils.isInteger(target)) return;
+    const source = this.conversionSource(cast.operand, false);
+    if (source !== null) this.checkConversion(target, source, cast, "cast");
   }
 
-  override enterCastExpression = (ctx: Parser.CastExpressionContext): void => {
-    const target = ctx.type().getText();
-    if (!TypeCheckUtils.isInteger(target)) return;
-    // Composites are not typed for a cast: `(u8)(a + b)` is the author saying
-    // which width they mean.
-    const source = this.conversionSource(ctx.unaryExpression(), false);
-    if (source !== null) this.checkConversion(target, source, ctx, "cast");
-  };
-
-  // --- The one rule --------------------------------------------------------
-
-  /**
-   * `typeComposites` is `true` everywhere now, and the parameter survives only
-   * because a CAST still declines: `(u8)(a + b)` is the author saying which
-   * width they mean.
-   *
-   * It existed to reproduce a divergence codegen had. A composite source
-   * (`a + b` -- category from the first integer operand, width from the widest)
-   * was typed on a DECLARATION's initializer and never on an assignment
-   * statement, so `u8 s <- large + 1;` was rejected while
-   * `matrix2d[i][j] <- i * 10 + j;` was accepted. #1322 preserved that and
-   * raised it; the language owner ruled it a bug, and it is closed.
-   */
   private check(
     target: string,
-    value: Parser.ExpressionContext,
+    value: TExpression,
     kind: "assign" | "cast",
     typeComposites: boolean,
   ): void {
-    const text = value.getText().trim();
-    if (INTEGER_LITERAL.test(text)) {
+    const text = IntegerConversionCheck.integerLiteralText(value);
+    if (text !== null) {
       this.checkLiteral(target, text, value);
       return;
     }
@@ -290,22 +239,18 @@ class IntegerConversionListener extends CNextListener {
     if (source !== null) this.checkConversion(target, source, value, kind);
   }
 
-  /**
-   * E0891: a floating value reaches an integer target only through a cast,
-   * which saturates. #1800, owner ruling 2026-09-28: "this should be a
-   * compiler error with an explicit cast". The implicit form had been
-   * accepted, and emitted as C's conversion, which is undefined for NaN and
-   * for a value past the target's range. Asked of every value leaf, so a
-   * floating composite or ternary counts. A cast, which is not this path,
-   * and a float's bit range (ADR-007), which the typer types as an integer,
-   * do not.
-   */
-  private checkFloating(target: string, value: ParserRuleContext): boolean {
+  /** An integer literal, or a minus over one, as one token: `-1`, `0xFF` */
+  private static integerLiteralText(value: TExpression): string | null {
+    const negated = value.kind === "unary" && value.operator === "-";
+    const literal = negated ? value.operand : value;
+    if (literal.kind !== "literal") return null;
+    const text = negated ? `-${literal.text}` : literal.text;
+    return INTEGER_LITERAL.test(text) ? text : null;
+  }
+
+  private checkFloating(target: string, value: TExpression): boolean {
     const floating = CompositeType.floatingOf(
-      OperandTyper.valueLeaves(
-        SyntaxLowering.expressionNode(value),
-        this.context,
-      ),
+      OperandTyper.valueLeaves(value, this.context),
     );
     if (floating === null) return false;
     this.report(
@@ -317,11 +262,7 @@ class IntegerConversionListener extends CNextListener {
     return true;
   }
 
-  private checkLiteral(
-    target: string,
-    text: string,
-    at: ParserRuleContext,
-  ): void {
+  private checkLiteral(target: string, text: string, at: TExpression): void {
     // BigInt, not parseInt: a u64 bound is past 2^53, where a double stops
     // being exact and `0xFFFFFFFFFFFFFFFF` would round into range.
     const value = text.startsWith("-") ? -BigInt(text.slice(1)) : BigInt(text);
@@ -351,7 +292,7 @@ class IntegerConversionListener extends CNextListener {
   private checkConversion(
     target: string,
     source: string,
-    at: ParserRuleContext,
+    at: TExpression,
     kind: "assign" | "cast",
   ): void {
     if (source === target || !TypeCheckUtils.isInteger(source)) return;
@@ -395,24 +336,21 @@ class IntegerConversionListener extends CNextListener {
    * - anything else: the typer's type, a C or C++ integer included, at its
    *   width on this target; a suffixed literal is its suffix's type.
    */
+  /** A ternary is ADR-022's, whose arms are each checked where they stand */
   private conversionSource(
-    expr: ParserRuleContext,
+    expr: TExpression,
     composites: boolean,
   ): string | null {
-    if (IntegerConversionListener.isTernary(expr)) return null;
-    const t = OperandTyper.typeOf(
-      SyntaxLowering.expressionNode(expr),
-      this.context,
-    );
+    if (expr.kind === "ternary") return null;
+    const t = OperandTyper.typeOf(expr, this.context);
     if (t === null) return null;
     if (t.form.kind === "composite") {
       return composites && t.bitWidth !== null ? t.typeName : null;
     }
     if (t.form.kind === "bitRange" || t.form.kind === "bitIndex") return null;
-    return IntegerConversionListener.integerName(t);
+    return IntegerConversionCheck.integerName(t);
   }
 
-  /** `u8`/`i32`... for an integer of known width, else null */
   private static integerName(t: IOperandType): string | null {
     if (t.dimensions.length > 0 || t.bitWidth === null) return null;
     if (t.category === "signed") return `i${t.bitWidth}`;
@@ -421,42 +359,59 @@ class IntegerConversionListener extends CNextListener {
   }
 
   /** Whether the expression, past its single-child levels, is a real ternary. */
-  private static isTernary(expr: ParserRuleContext): boolean {
-    let node: ParserRuleContext = expr;
-    while (node.getChildCount() === 1) {
-      const child = node.getChild(0);
-      if (!(child instanceof ParserRuleContext)) break;
-      node = child;
-    }
-    return (
-      node instanceof Parser.TernaryExpressionContext && node.COLON() !== null
-    );
-  }
-
   private report(
-    at: ParserRuleContext,
+    at: TExpression,
     code: string,
     message: string,
     helpText: string,
   ): void {
-    const { line, column } = ParserUtils.getPosition(at);
-    this.found.push({ code, line, column, message, helpText });
+    this.found.push({
+      code,
+      line: at.span.line,
+      column: at.span.column,
+      message,
+      helpText,
+    });
   }
 }
 
 class IntegerConversionAnalyzer {
-  /** #1456: handed in rather than read off shared state. */
   constructor(private readonly context: IAnalysisContext) {}
 
-  public analyze(tree: Parser.ProgramContext): IIntegerConversionError[] {
-    const listener = new IntegerConversionListener(this.context);
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
-    ParseTreeWalker.DEFAULT.walk(
-      new AssignmentSiteListener((site) => listener.checkSite(site)),
-      tree,
-    );
-    // Reported in source order, as the one walk these replace did
-    return listener.errors().sort(SourceOrder.compare);
+  /** #1991: reads 1.2's syntax, not the parse tree */
+  public analyze(
+    program: IProgramSyntax,
+    positions: ReadonlyMap<TExpression, IValuePosition>,
+  ): IIntegerConversionError[] {
+    const check = new IntegerConversionCheck(this.context, positions);
+    const visit = (declaration: TDeclarationSyntax): void => {
+      if (declaration.kind === "scope") {
+        for (const member of declaration.members) visit(member.declaration);
+        return;
+      }
+      if (declaration.kind === "variableDeclaration") {
+        check.checkDeclaration(declaration);
+      }
+      for (const statement of StatementNodes.in(declaration)) {
+        if (statement.kind === "variableDeclaration") {
+          check.checkDeclaration(statement);
+        } else if (statement.kind === "return" && statement.value) {
+          check.checkFloatingAt(statement.value);
+        }
+      }
+      for (const site of StatementNodes.assignments(declaration)) {
+        check.checkSite(site);
+      }
+    };
+    for (const member of program.declarations) {
+      visit(member.declaration);
+      for (const expr of DeclarationParts.of(member.declaration).flatMap(
+        ExpressionNodes.of,
+      )) {
+        check.checkExpression(expr);
+      }
+    }
+    return check.errors().sort(SourceOrder.compare);
   }
 }
 

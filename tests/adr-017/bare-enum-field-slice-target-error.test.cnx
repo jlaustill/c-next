@@ -1,0 +1,14 @@
+// test-error
+// Tests: a bare enum member written to a struct field's slice is E0424 (#1991 review)
+enum State {
+    IDLE,
+    RUNNING
+}
+struct Box {
+    State[4] states;
+}
+
+void main() {
+    Box b <- { states: [State.IDLE*] };
+    b.states[1, 2] <- RUNNING;
+}

@@ -35,163 +35,123 @@
  * evaluated once and is not restricted.
  */
 
-import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
-import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
-
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
+import ExpressionShape from "../../utils/ExpressionShape";
+import FloatBits from "../../utils/FloatBits";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
+import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
+import type TExpression from "../../types/syntax/TExpression";
+import type TPostfixOpSyntax from "../../types/syntax/TPostfixOpSyntax";
+import DeclarationParts from "../../utils/DeclarationParts";
+import ExpressionNodes from "../../utils/ExpressionNodes";
+import StatementNodes from "../../utils/StatementNodes";
 import TYPE_WIDTH from "../../types/TYPE_WIDTH";
-import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
-import ChainRoot from "../../utils/ChainRoot";
-import EnclosingFunction from "./helpers/EnclosingFunction";
-import AssignmentSiteListener from "./AssignmentSiteListener";
 import IBitAccessError from "./types/IBitAccessError";
 import TChainRoot from "../../types/TChainRoot";
 import RegisterAccessMode from "../../utils/RegisterAccessMode";
 import RegisterMemberReference from "./helpers/RegisterMemberReference";
-import type TAssignmentSite from "../../types/TAssignmentSite";
-import SHARED_FLOAT_TYPES from "../../types/FLOAT_TYPES";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import SourceOrder from "../../utils/SourceOrder";
 
-/**
- * The floats a bit range is lowered through a union for.
- *
- * #1450: built from ADR-024's shared list rather than respelling it. The two
- * agreed, which is exactly why nothing would have failed when a new float width
- * was added to one of them.
- */
-const FLOAT_TYPES = new Set<string>(SHARED_FLOAT_TYPES);
-
-class BitAccessListener extends CNextListener {
+class BitAccessCheck {
   private readonly found: IBitAccessError[] = [];
 
-  public constructor(private readonly context: IAnalysisContext) {
-    super();
-  }
+  public constructor(private readonly context: IAnalysisContext) {}
 
   public errors(): IBitAccessError[] {
     return this.found;
   }
 
-  override enterPostfixExpression = (
-    ctx: Parser.PostfixExpressionContext,
-  ): void => {
-    const primary = ctx.primaryExpression();
-    if (!primary) return;
-
-    // `this.x[…]` names the declaration in its first op; a bare `x[…]` in the
-    // primary. Anything else is not a name this rule can measure.
-    const ops = ctx.postfixOp();
-    const root = ChainRoot.ofPrimary(primary);
-    const name = BitAccessListener.nameOf(primary, ops, root);
-    if (name === undefined) return;
-
-    this.checkChain(name, ops.slice(root === null ? 0 : 1), ctx, root);
-  };
-
   /**
-   * The declared name a postfix chain leads with. A rooted chain spends its
-   * primary on the keyword and puts the name in the first op, so the two
-   * shapes read from different offsets -- and a rooted chain whose first op is
-   * a subscript rather than a `.name` names nothing this rule can measure.
+   * The chain's declared name, its root, and the subscripts after that name:
+   * `this.x[3]` is `x` under `this`, with `[3]` after it.
    */
-  private static nameOf(
-    primary: Parser.PrimaryExpressionContext,
-    ops: readonly Parser.PostfixOpContext[],
-    root: TChainRoot,
-  ): string | undefined {
-    if (root === null) return primary.IDENTIFIER()?.getText();
-    const first = ops[0];
-    if (first === undefined || first.DOT() === null) return undefined;
-    return first.IDENTIFIER()?.getText();
+  private static partsOf(expr: TExpression): {
+    name: string;
+    root: TChainRoot;
+    subscripts: readonly TPostfixOpSyntax[];
+  } | null {
+    if (expr.kind !== "postfix") return null;
+    const primary = expr.primary;
+    if (primary.kind === "identifier") {
+      return { name: primary.name, root: null, subscripts: expr.ops };
+    }
+    if (primary.kind !== "root") return null;
+    const first = expr.ops[0];
+    if (first?.kind !== "member") return null;
+    return {
+      name: first.name,
+      root: primary.root,
+      subscripts: expr.ops.slice(1),
+    };
   }
 
-  /**
-   * A target is not an expression. `flags[4][3] <- 5` is an
-   * `assignmentTarget`, whose ops are `postfixTargetOp` -- a different node
-   * type that `enterPostfixExpression` never sees. Both fixtures for E0856 are
-   * writes, so a rule reading only expressions caught neither of them.
-   */
-  public checkSite(site: TAssignmentSite): void {
-    const target = site.assignmentTarget();
-    const name = target.IDENTIFIER()?.getText();
-    if (name === undefined) return;
-    // A target carries its root as its own token, so the name is always the
-    // target's IDENTIFIER and no op is consumed.
-    this.checkChain(
-      name,
-      target.postfixTargetOp(),
-      target,
-      ChainRoot.ofTarget(target),
-    );
+  public checkExpression(expr: TExpression, inFunction: boolean): void {
+    const parts = BitAccessCheck.partsOf(expr);
+    if (parts === null) return;
+    this.checkChain(parts, expr, inFunction);
+  }
+
+  public checkSite(site: IAssignmentSyntax): void {
+    const parts = BitAccessCheck.partsOf(site.target);
+    if (parts === null) return;
+    this.checkChain(parts, site.target, true);
     this.checkSingleEvaluation(site);
   }
 
-  /** E0890: each subscript of a read-modify-write target with a side effect */
-  private checkSingleEvaluation(site: TAssignmentSite): void {
-    // A compound operator on a bit is E0857's; on a whole location it is one
-    // C compound assignment, which evaluates its target once
-    if (site.assignmentOperator().getText() !== "<-") return;
-    const target = site.assignmentTarget();
-    if (!this.isReadModifyWrite(target)) return;
-    const indices = target.postfixTargetOp().flatMap((op) => op.expression());
+  /**
+   * ADR-007: a bit, bit-range or bitmap-field write reads its target and
+   * stores it back, so a subscript with a side effect would run twice.
+   */
+  private checkSingleEvaluation(site: IAssignmentSyntax): void {
+    if (site.operator !== "<-") return;
+    const target = site.target;
+    if (target.kind !== "postfix" || !this.isReadModifyWrite(target)) return;
+    const indices = target.ops.flatMap((op) =>
+      op.kind === "subscript" ? op.indexes : [],
+    );
     for (const index of indices) {
-      if (
-        !OperandTyper.hasSideEffect(
-          SyntaxLowering.expressionNode(index),
-          this.context,
-        )
-      )
-        continue;
+      if (!OperandTyper.hasSideEffect(index, this.context)) continue;
       this.report(
         index,
         "E0890",
-        `'${index.getText()}' would be evaluated twice: '${target.getText()}' is read and then written back`,
+        `'${index.written}' would be evaluated twice: '${target.written}' is read and then written back`,
         "A bit, bit-range or bitmap-field write keeps the other bits, so it reads its target and stores it back, and every subscript in the target runs twice. Store the index in a variable first (ADR-007).",
       );
     }
   }
 
-  /** Whether writing `target` reads it back first to keep the other bits */
-  private isReadModifyWrite(target: Parser.AssignmentTargetContext): boolean {
-    const last = OperandTyper.chainOf(
-      SyntaxLowering.assignmentTarget(target),
-      this.context,
-    ).steps.at(-1);
+  private isReadModifyWrite(target: TExpression): boolean {
+    const last = OperandTyper.chainOf(target, this.context).steps.at(-1);
     if (last === undefined) return false;
     const writesBits =
       last.subscript === "bit_single" || last.subscript === "bit_range";
     const writesBitmapField =
       last.subscript === null && (last.before?.bitmapTypeName ?? null) !== null;
     if (!writesBits && !writesBitmapField) return false;
-    const register = RegisterMemberReference.ofTarget(target, this.context);
+    const register = RegisterMemberReference.ofChain(target, this.context);
     return !RegisterAccessMode.isWriteOne(register?.access);
   }
 
   private checkChain(
-    name: string,
-    subscripts: readonly (
-      | Parser.PostfixOpContext
-      | Parser.PostfixTargetOpContext
-    )[],
-    at: Parser.PostfixExpressionContext | Parser.AssignmentTargetContext,
-    root: TChainRoot,
+    parts: {
+      name: string;
+      root: TChainRoot;
+      subscripts: readonly TPostfixOpSyntax[];
+    },
+    at: TExpression,
+    inFunction: boolean,
   ): void {
-    // The declaration the spelling names, as the typer binds it: the type
-    // its first subscript applies to (#1668). A `this.` root has spent its
-    // `.name`, so the typer's steps begin at the subscripts in both shapes.
     const declared =
-      OperandTyper.chainOf(SyntaxLowering.expressionNode(at), this.context)
-        .steps[0]?.before ?? null;
+      OperandTyper.chainOf(at, this.context).steps[0]?.before ?? null;
     if (declared === null) return; // not a declaration this pass can measure
-
-    const spelling = root === null ? name : `${root}.${name}`;
+    const spelling =
+      parts.root === null ? parts.name : `${parts.root}.${parts.name}`;
     const baseType = declared.typeName ?? "";
-    this.checkFloatRangeScope(subscripts, baseType, spelling, at);
+    if (!inFunction) this.checkFloatRangeScope(spelling, at);
     this.checkDepth(
-      subscripts,
+      parts.subscripts,
       declared.dimensions.length,
       baseType,
       spelling,
@@ -203,26 +163,33 @@ class BitAccessListener extends CNextListener {
    * E0888: a float bit RANGE read outside a function body. A single bit index
    * is not lowered through a union, so it is not restricted.
    */
-  private checkFloatRangeScope(
-    subscripts: readonly (
-      | Parser.PostfixOpContext
-      | Parser.PostfixTargetOpContext
-    )[],
-    baseType: string,
-    name: string,
-    at: ParserRuleContext,
-  ): void {
-    if (!FLOAT_TYPES.has(baseType)) return;
-    if (EnclosingFunction.of(at) !== null) return;
-    const range = subscripts.find(
-      (op) => op.LBRACKET() !== null && op.expression().length === 2,
+  private checkFloatRangeScope(name: string, at: TExpression): void {
+    const head = ExpressionShape.headOf(at);
+    const steps = OperandTyper.chainOf(at, this.context).steps;
+    const index = head.ops.findIndex(
+      (op, i) =>
+        op.kind === "subscript" &&
+        FloatBits.rangeTypeOf(steps[i - head.opsConsumed]) !== null,
     );
+    const range = head.ops[index];
     if (range === undefined) return;
-    const bounds = range.expression().map((e) => e.getText());
+    // The float ranged, not the chain's root (#1099): `r.field`, not `r`
+    const reached = head.ops
+      .slice(head.opsConsumed, index)
+      .map((op) => {
+        if (op.kind === "member") return `.${op.name}`;
+        if (op.kind === "subscript") {
+          return `[${op.indexes.map((e) => e.written).join(", ")}]`;
+        }
+        return "(...)";
+      })
+      .join("");
+    const bounds =
+      range.kind === "subscript" ? range.indexes.map((e) => e.written) : [];
     this.report(
       at,
       "E0888",
-      `Float bit range '${name}[${bounds.join(", ")}]' cannot be read at file scope`,
+      `Float bit range '${name}${reached}[${bounds.join(", ")}]' cannot be read at file scope`,
       "Reading a float's bits copies it through a union (MISRA C:2012 Rule 21.15 forbids the pointer cast), and a copy is a statement -- there is none at file scope. Read it inside a function.",
     );
   }
@@ -233,19 +200,16 @@ class BitAccessListener extends CNextListener {
    * one, which is why the base type decides.
    */
   private checkDepth(
-    subscripts: readonly (
-      | Parser.PostfixOpContext
-      | Parser.PostfixTargetOpContext
-    )[],
+    subscripts: readonly TPostfixOpSyntax[],
     dimensions: number,
     baseType: string,
     name: string,
-    at: ParserRuleContext,
+    at: TExpression,
   ): void {
     if (TYPE_WIDTH[baseType] === undefined) return; // not a bit-indexable scalar
     let leading = 0;
     for (const op of subscripts) {
-      if (op.LBRACKET() === null) break;
+      if (op.kind !== "subscript") break;
       leading += 1;
     }
     const allowed = dimensions + 1;
@@ -264,13 +228,18 @@ class BitAccessListener extends CNextListener {
   }
 
   private report(
-    at: ParserRuleContext,
+    at: TExpression,
     code: string,
     message: string,
     helpText: string,
   ): void {
-    const { line, column } = ParserUtils.getPosition(at);
-    this.found.push({ code, line, column, message, helpText });
+    this.found.push({
+      code,
+      line: at.span.line,
+      column: at.span.column,
+      message,
+      helpText,
+    });
   }
 }
 
@@ -278,15 +247,30 @@ class BitAccessAnalyzer {
   /** #1456: handed in rather than read off shared state. */
   constructor(private readonly context: IAnalysisContext) {}
 
-  public analyze(tree: Parser.ProgramContext): IBitAccessError[] {
-    const listener = new BitAccessListener(this.context);
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
-    ParseTreeWalker.DEFAULT.walk(
-      new AssignmentSiteListener((site) => listener.checkSite(site)),
-      tree,
-    );
-    // Reported in source order, as the one walk these replace did
-    return listener.errors().sort(SourceOrder.compare);
+  /**
+   * #1991: reads 1.2's syntax, not the parse tree. A target is checked as a
+   * site and not again as an expression, and only a function body is inside
+   * a function -- a scope's members are at file scope.
+   */
+  public analyze(program: IProgramSyntax): IBitAccessError[] {
+    const check = new BitAccessCheck(this.context);
+    const visit = (declaration: TDeclarationSyntax): void => {
+      if (declaration.kind === "scope") {
+        for (const member of declaration.members) visit(member.declaration);
+        return;
+      }
+      const inFunction = declaration.kind === "function";
+      const sites = StatementNodes.assignments(declaration);
+      const targets = new Set<TExpression>(sites.map((site) => site.target));
+      for (const expr of DeclarationParts.of(declaration).flatMap(
+        ExpressionNodes.of,
+      )) {
+        if (!targets.has(expr)) check.checkExpression(expr, inFunction);
+      }
+      for (const site of sites) check.checkSite(site);
+    };
+    for (const member of program.declarations) visit(member.declaration);
+    return check.errors().sort(SourceOrder.compare);
   }
 }
 

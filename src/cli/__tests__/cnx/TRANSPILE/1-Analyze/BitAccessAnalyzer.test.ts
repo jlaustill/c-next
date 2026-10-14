@@ -11,8 +11,10 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  * source.
  */
 const errors = (source: string) => {
-  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
-  return new BitAccessAnalyzer(context).analyze(tree);
+  const { syntax, context } = testAnalysisContextFor(source, {
+    cppMode: false,
+  });
+  return new BitAccessAnalyzer(context).analyze(syntax);
 };
 
 describe("BitAccessAnalyzer (E0856)", () => {
@@ -137,8 +139,47 @@ describe("BitAccessAnalyzer (E0890)", () => {
     ).toEqual([]);
   });
 
+  // #1991: a compound write is E0857's, so this rule does not report it too
+  it("leaves a compound write to E0857", () => {
+    expect(e0890(["    word[idx()] +<- 1;"])).toEqual([]);
+  });
+
   it("reports every subscript with a side effect", () => {
     const found = e0890(["    arr[idx()][volatileIndex] <- true;"]);
     expect(found.map((e) => e.column)).toEqual([8, 15]);
+  });
+});
+
+// #1991: read off 1.2's syntax, so a chain rooted at `this.` and a property
+// after the subscripts are asserted directly.
+describe("BitAccessAnalyzer -- rooted chains and leading subscripts (E0856)", () => {
+  const e0856 = (source: string) =>
+    errors(source)
+      .filter((e) => e.code === "E0856")
+      .map((e) => [e.line, e.column]);
+
+  it("counts the subscripts after `this.x`, not the member", () => {
+    expect(
+      e0856(
+        [
+          "scope S {",
+          "    u8 x;",
+          "    public void f() {",
+          "        bool b <- this.x[1][2];",
+          "    }",
+          "}",
+        ].join("\n"),
+      ),
+    ).toEqual([[4, 18]]);
+  });
+
+  it("stops counting at the first operation that is not a subscript", () => {
+    expect(
+      e0856(
+        ["u8[4] a;", "void f() {", "    u32 n <- a[0][1].length;", "}"].join(
+          "\n",
+        ),
+      ),
+    ).toEqual([]);
   });
 });

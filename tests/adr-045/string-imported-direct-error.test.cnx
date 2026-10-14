@@ -9,10 +9,9 @@
 
 #include "string-declarations.cnx"
 
-// ASSERTION -- the file-scope rule (E0863) reaching an IMPORTED source. At
-// file scope only a literal is allowed, so this is the rule that fires here;
-// the capacity rule below needs a function to be reachable at all.
-string<8> narrowGlobal <- wideShared;
+// The file-scope rule (E0863) is syntax: it halts before this file's capacity
+// rule and needs no imported capacity, so `string-imported-global-error`
+// asserts it (#1991). The capacity rule below needs a function to be reachable.
 
 u32 main() {
     // NEGATIVE CONTROL -- a destination wide enough for the imported source.

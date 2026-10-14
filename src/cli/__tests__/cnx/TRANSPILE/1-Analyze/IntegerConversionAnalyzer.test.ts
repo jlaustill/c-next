@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import IntegerConversionAnalyzer from "../../../../../cnx/TRANSPILE/1-Analyze/IntegerConversionAnalyzer";
+import ValuePositions from "../../../../../cnx/TRANSPILE/1-Analyze/helpers/ValuePositions";
 import testAnalysisContextFor from "./testAnalysisContextFor";
 
 /**
@@ -15,8 +16,13 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  * type `p.col` and stays silent, which looks exactly like the rule not firing.
  */
 const errors = (source: string) => {
-  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
-  return new IntegerConversionAnalyzer(context).analyze(tree);
+  const { syntax, context } = testAnalysisContextFor(source, {
+    cppMode: false,
+  });
+  return new IntegerConversionAnalyzer(context).analyze(
+    syntax,
+    ValuePositions.of(syntax, context).positions,
+  );
 };
 
 const inMain = (body: string): string =>
@@ -198,6 +204,20 @@ describe("IntegerConversionAnalyzer", () => {
         ),
       ).toEqual([]);
     });
+
+    it("rejects a string assigned, passed, returned and in a field", () => {
+      const found = errors(
+        "struct P {\n    u32 v;\n}\nu32 take(u32 v) {\n    return v;\n}\n" +
+          'u32 give() {\n    return "r";\n}\n' +
+          inMain('    wide <- "a";\n    take("b");\n    P p <- { v: "c" };'),
+      );
+      expect(found.map((e) => [e.code, e.line, e.column])).toEqual([
+        ["E0914", 8, 11],
+        ["E0914", 14, 12],
+        ["E0914", 15, 9],
+        ["E0914", 16, 16],
+      ]);
+    });
   });
 
   describe("E0891 -- a float reaches an integer only through a cast", () => {
@@ -275,5 +295,22 @@ describe("IntegerConversionAnalyzer", () => {
     ])("reports %s in a for header", (code, line) => {
       expect(codes(line)).toEqual([code]);
     });
+  });
+});
+
+// #1991: the rule reads 1.2's syntax, so how a value is written and which
+// shapes it skips are asserted directly.
+describe("IntegerConversionAnalyzer -- on 1.2's syntax", () => {
+  it("reads a literal spelled with spaces, as the parse tree's text did", () => {
+    const found = errors("void f() {\n    u8 x <- - 5;\n}");
+    expect(found.map((e) => e.code)).toEqual(["E0868"]);
+    expect(found[0].message).toContain("-5");
+  });
+
+  it("leaves a ternary's conversion to its arms", () => {
+    const found = errors(
+      "u16 a;\nu16 b;\nvoid f(bool c) {\n    u8 x <- (c) ? a : b;\n}",
+    );
+    expect(found.map((e) => e.code)).not.toContain("E0869");
   });
 });

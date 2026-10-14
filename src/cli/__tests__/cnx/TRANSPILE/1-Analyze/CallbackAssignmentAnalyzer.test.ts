@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../../../cnx/PARSE/2-Parse/CNextSourceParser";
 import CallbackAssignmentAnalyzer from "../../../../../cnx/TRANSPILE/1-Analyze/CallbackAssignmentAnalyzer";
+import ValuePositions from "../../../../../cnx/TRANSPILE/1-Analyze/helpers/ValuePositions";
 import TranspileState from "../../../../../cnx/TRANSPILE/TranspileState";
 import testAnalysisContext from "../../../../../cnx/TRANSPILE/1-Analyze/__tests__/testAnalysisContext";
 import testAnalysisContextFor from "./testAnalysisContextFor";
@@ -26,17 +27,22 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  * rules actually fire, with a control beside each.
  */
 const build = (source: string) => {
-  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
-  return new CallbackAssignmentAnalyzer(context).analyze(tree);
+  const { syntax, context } = testAnalysisContextFor(source, {
+    cppMode: false,
+  });
+  return new CallbackAssignmentAnalyzer(context).analyze(
+    syntax,
+    ValuePositions.of(syntax, context).positions,
+  );
 };
 
 // Only the empty-program case below: it asserts what an EMPTY program does,
 // which a real declared program cannot stand in for.
 const findings = (source: string) => {
-  const { tree } = CNextSourceParser.parse(source);
+  const syntax = CNextSourceParser.parse(source).program;
   return new CallbackAssignmentAnalyzer(
     testAnalysisContext(new TranspileState()),
-  ).analyze(tree);
+  ).analyze(syntax, new Map());
 };
 
 describe("CallbackAssignmentAnalyzer", () => {
@@ -196,6 +202,22 @@ describe("CallbackAssignmentAnalyzer", () => {
       );
       expect(found.map((e) => e.code)).toEqual(["E0880"]);
       expect(found[0].message).toContain("nominal typing");
+    });
+
+    it("names a `this.` target as the variable it is (#1991)", () => {
+      const found = build(
+        [
+          preamble,
+          "void other(const P p) { }",
+          "struct G { other cb; }",
+          "scope S {",
+          "    onDown handler;",
+          "    void t() { this.handler <- other; }",
+          "}",
+        ].join("\n"),
+      );
+      expect(found.map((e) => e.code)).toEqual(["E0880"]);
+      expect(found[0].message).toContain("callback variable 'this.handler'");
     });
 
     it("accepts a matching function that is NOT a field type", () => {

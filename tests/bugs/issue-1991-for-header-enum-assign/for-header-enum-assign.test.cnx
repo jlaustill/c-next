@@ -1,0 +1,19 @@
+// test-error
+// test-adr: 017
+// ADR-017, E0428: assigning an integer to an enum is an error in a `for`
+// header's declaration too. The parse-tree check hooked `variableDeclaration`
+// alone, so `for (State s <- 1; ...)` compiled; read off 1.2's syntax, a
+// `for` header's declaration is one more declaration (#1991).
+
+enum State {
+    IDLE,
+    RUNNING
+}
+
+void main(u8 limit) {
+    u8 i <- 0;
+    for (State s <- 1; i < limit; i +<- 1) {}
+
+    // NEGATIVE CONTROL -- a member of the declared enum stays accepted.
+    for (State t <- State.IDLE; i < limit; i +<- 1) {}
+}

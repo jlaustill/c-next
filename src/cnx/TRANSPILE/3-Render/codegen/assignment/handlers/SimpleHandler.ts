@@ -8,12 +8,11 @@
  * u8, u16), expands to explicit cast: `target = (type)(target OP value);`
  * Also handles int-to-float conversions with explicit casts.
  */
-import IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
-import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
-import TYPE_MAP from "../../types/TYPE_MAP";
-import CppModeHelper from "../../helpers/CppModeHelper";
-import COMPOUND_TO_BINARY from "../../types/COMPOUND_TO_BINARY";
 import invariant from "../../../../../utils/invariant";
+import IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
+import NarrowingCastHelper from "../../../../2-Plan/NarrowingCastHelper";
+import CppModeHelper from "../../../../2-Plan/CppModeHelper";
+import COMPOUND_TO_BINARY from "../../../../2-Plan/types/COMPOUND_TO_BINARY";
 
 /**
  * Try to handle compound assignment on narrow types (MISRA 10.3).
@@ -23,26 +22,18 @@ function tryHandleCompoundNarrowingCast(
   ctx: IAssignmentContext,
   target: string,
 ): string | null {
-  if (!ctx.isCompound || !ctx.target.typeInfo) {
-    return null;
-  }
-
-  const baseType = ctx.target.typeInfo.baseType;
-  const promotedType = NarrowingCastHelper.getPromotedType(baseType);
-
-  if (promotedType !== "int" || baseType === "int") {
+  // 2.2 decided which compound writes are cast, and to what (#1991)
+  const cType = ctx.plannedCompoundCast;
+  if (cType === null) {
     return null;
   }
 
   const binaryOp = COMPOUND_TO_BINARY[ctx.cOp];
   invariant(
     binaryOp !== undefined,
-    `a compound assignment applies a binary operator (got '${ctx.cOp}')`,
+    `2.2 casts only a compound write with a binary form (${ctx.cOp})`,
   );
-
-  const cType = TYPE_MAP[baseType] ?? baseType;
   const expr = `(${target} ${binaryOp} ${ctx.generatedValue})`;
-  ctx.state.emittedCTypes.add(cType);
   const castExpr = CppModeHelper.cast(cType, expr, ctx.state);
   return `${target} = ${castExpr};`;
 }

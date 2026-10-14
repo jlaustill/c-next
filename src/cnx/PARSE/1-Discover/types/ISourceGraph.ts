@@ -1,9 +1,13 @@
+import type IHeaderMacroDump from "./IHeaderMacroDump";
+import type ITargetCatalogFile from "./ITargetCatalogFile";
 import type IDiscoveredFile from "./IDiscoveredFile";
 import type IPipelineFile from "./IPipelineFile";
 import type IPlatformIOProject from "../../../types/IPlatformIOProject";
 import type IAnchorFacts from "./IAnchorFacts";
 import type IFileIncludes from "./IFileIncludes";
 import type IHeaderSource from "./IHeaderSource";
+import type TCachedHeaderRead from "./TCachedHeaderRead";
+import type IOutputPaths from "./IOutputPaths";
 import type IRecoveredDeclarations from "./IRecoveredDeclarations";
 
 /**
@@ -41,6 +45,13 @@ interface ISourceGraph {
    * preprocessed lines. Nothing after 1.1 reads a header or judges one again.
    */
   readonly headerSources: ReadonlyMap<string, IHeaderSource>;
+
+  /**
+   * #1991: per header (by `path`) the symbol cache holds a valid record for,
+   * that record, or what reading it threw. Every one is read before 1.3
+   * declares any header (#1817). A header not here is parsed.
+   */
+  readonly cachedHeaders: ReadonlyMap<string, TCachedHeaderRead>;
 
   /**
    * Issue #985: the run's C includes preprocessed as one translation unit,
@@ -98,6 +109,22 @@ interface ISourceGraph {
 
   /** Whether to write generated output to disk: a files run, not a source run. */
   readonly writeOutputToDisk: boolean;
+
+  /**
+   * #1991: each C-Next file's output paths, by its path. Named here, once the
+   * run's mode has settled the extensions, so no later stage asks
+   * `PathResolver`.
+   */
+  readonly outputs: ReadonlyMap<string, IOutputPaths>;
+
+  /**
+   * #1991: the target catalog (ADR-049), read here so that no later pass
+   * reads the filesystem for it.
+   */
+  readonly targetCatalog: ITargetCatalogFile;
+
+  /** #1688: each C-Next file with a C include, to its header macro dump */
+  readonly headerMacroDumps: ReadonlyMap<string, IHeaderMacroDump>;
 }
 
 export default ISourceGraph;

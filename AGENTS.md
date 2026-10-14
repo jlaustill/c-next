@@ -89,7 +89,7 @@ the order they run. `src/cli/` and `src/lib/` sit beside it and consume it (#199
 
 **Use the composable collectors** in `src/cnx/PARSE/3-Declare/cnext/`:
 
-- `CNextResolver.resolve(tree, file, registry)` → `IFileSymbols` (its `.symbols` is the `TSymbol[]`)
+- `CNextResolver.resolve(program, file, registry)` → `IFileSymbols` (its `.symbols` is the `TSymbol[]`)
 - `TSymbolInfoAdapter.convert(tSymbols)` → `ICodeGenSymbols` (for codegen)
 
 **Do NOT use** the deleted legacy collectors:

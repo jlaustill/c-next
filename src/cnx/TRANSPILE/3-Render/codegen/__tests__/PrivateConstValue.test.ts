@@ -63,9 +63,11 @@ const inline = (
 const literal = (
   digits: string,
   typeName: string | null = null,
+  text: string = digits,
 ): TConstExpr => ({
   kind: "literal",
   digits,
+  text,
   typeName,
 });
 
@@ -100,16 +102,31 @@ describe("PrivateConstValue.inlined", () => {
   it("keeps a literal's notation and renders its suffix as C's", () => {
     expect(
       inline(
-        { initialValue: "0xAB", initialValueExpr: literal("171") },
+        {
+          initialValue: "0xAB",
+          initialValueExpr: literal("171", null, "0xAB"),
+        },
         value("171", "u8"),
       ),
     ).toBe("0xABU");
     expect(
       inline(
-        { initialValue: "9u8", initialValueExpr: literal("9", "u8") },
+        { initialValue: "9u8", initialValueExpr: literal("9", "u8", "9u8") },
         value("9", "u8"),
       ),
     ).toBe("9U");
+  });
+
+  it("writes a literal's token, not the initializer's source text", () => {
+    expect(
+      inline(
+        {
+          initialValue: "(0xAB /* mask */)",
+          initialValueExpr: literal("171", null, "0xAB"),
+        },
+        value("171", "u8"),
+      ),
+    ).toBe("0xABU");
   });
 
   it("spells a u64 past INT64_MAX as an unsigned long long", () => {

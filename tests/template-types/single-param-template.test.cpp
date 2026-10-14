@@ -10,6 +10,8 @@
 // Tests template with a single type parameter like Vector<u32>
 #include "template-stubs.h"
 
+#include <stdint.h>
+
 // Single template parameter with identifier
 Container<Element> singleParam = {};
 

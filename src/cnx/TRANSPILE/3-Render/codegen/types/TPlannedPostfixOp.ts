@@ -1,3 +1,5 @@
+import type IPlannedFloatBits from "../../../2-Plan/types/IPlannedFloatBits";
+import type TPlannedNarrowing from "../../../2-Plan/types/TPlannedNarrowing";
 import type IPlannedCallArgument from "./IPlannedCallArgument";
 import type TSubscriptKind from "../../../../types/TSubscriptKind";
 import type IChainStep from "../../../../types/IChainStep";
@@ -22,6 +24,8 @@ type TPlannedPostfixOp =
       readonly appliesToRoot: boolean;
       /** #1668 (C12): the typer's step, or null where its root consumed it */
       readonly step: IChainStep | null;
+      /** 2.2's decision for a bitmap field read (MISRA 10.3), or null */
+      readonly narrowing: TPlannedNarrowing | null;
     }
   /**
    * `[i]` or `[start, width]`.
@@ -31,10 +35,9 @@ type TPlannedPostfixOp =
    * expressions is what keeps `flags[4, 3]` (one op, two expressions) distinct
    * from `flags[4][3]` (two ops, one each).
    *
-   * `renderIndexes` returns them together, in order, because the generator
-   * invokes it inside a single `withExpectedType("size_t", ...)` window --
-   * MISRA C:2012 Rule 7.2's `U` suffix on an index literal comes from that
-   * window, so a value rendered outside it silently loses the suffix.
+   * `renderIndexes` returns them together, in order. Each is written against
+   * `size_t`, which 2.2 planned for it, so an index literal takes MISRA
+   * C:2012 Rule 7.2's `U` suffix (#1991).
    */
   | {
       readonly kind: "subscript";
@@ -57,8 +60,12 @@ type TPlannedPostfixOp =
        * integer is subscripted as bits (ADR-024) in both passes.
        */
       readonly typedAs: TSubscriptKind;
+      /** 2.2's decision: how this range reads a float's bits (ADR-007), or null */
+      readonly floatBits: IPlannedFloatBits | null;
       /** #1668 (C12): the typer's step, or null for an untyped chain */
       readonly step: IChainStep | null;
+      /** 2.2's decision for a bit or bit-range read (MISRA 10.3), or null */
+      readonly narrowing: TPlannedNarrowing | null;
     }
   /**
    * `(args)`
@@ -86,6 +93,8 @@ type TPlannedPostfixOp =
        */
       readonly calleeType: () => string | null;
       readonly planArguments: () => readonly IPlannedCallArgument[] | null;
+      /** ADR-051: the helper 2.2 planned this `safe_div`/`safe_mod` call as, else null */
+      readonly safeDivisionHelper: string | null;
     };
 
 export default TPlannedPostfixOp;

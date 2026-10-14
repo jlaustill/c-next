@@ -7,29 +7,24 @@
  * `Color.RED`) stands where something names its enum. Two of them reported
  * `1:0`; the other two computed a position and spent it on the message.
  *
- * ## The rule is about POSITION, and codegen decided it by control flow
+ * ## The rule is about POSITION, read off 2.1's one walk of positions
  *
- * Codegen carried an `expectedType` set by whichever generator was running --
- * a declaration's type, an assignment target's type, a function's return type,
- * a struct field's type, an array's element type -- cleared by a comparison,
- * and suppressed inside a call's arguments. A bare member resolved when that
- * type was an enum declaring it, and was rejected otherwise. The same decision
- * is made here from the parse tree: walk up from the identifier to the nearest
- * node that ESTABLISHES a type, and stop early at the nodes that cleared or
- * suppressed one. The table is the one CLAUDE.md records under "Enum
- * `expectedType` Contexts", reproduced rather than redrawn:
+ * Codegen carried an `expectedType` set by whichever generator was running,
+ * cleared by a comparison and suppressed inside a call's arguments. That
+ * position is now recorded once, by `ValuePositions` (#1991): each value's
+ * innermost site and the site enclosing it. 2.2 plans the type each value is
+ * written against from the same sites, and this check reads the enum from them:
  *
- *   establishes   variable initializer, plain and compound assignment, return,
- *                 struct-initializer field, array-initializer element,
- *                 ternary arm (inherits)
- *   clears        `=`/`!=`/`<`/`>`/`<=`/`>=` operands, a subscript, an array
- *                 dimension, a `for` header's declaration or update
- *   suppresses    a call's arguments
+ *   names its enum   a variable initializer, a plain or compound assignment,
+ *                    a return, a struct-initializer field (even one passed as
+ *                    an argument, or declared in a `for` header)
+ *   names none       a comparison operand, a subscript, a call argument, an
+ *                    assignment's target, a slice or bit range written to,
+ *                    and a `for` header's own declaration and assignments
  *
- * The `for` header and a `forUpdate` are listed as codegen had them -- those
- * generators never set an expected type, so `for (Color c <- RED; …)` was
- * rejected. Reproduced, not closed: closing it is a behavior change on a
- * position the corpus never exercises.
+ * The `for` header's own value is the one row that differs from a statement
+ * outside it: #1537 waits on ADR-017 saying whether it names an enum. A field
+ * inside it does, as it did before #1991.
  *
  * ## One hole closed, probed
  *
@@ -45,245 +40,166 @@
  * predicate is E0427's, shared rather than restated.
  */
 
-import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
-import StructInitializerType from "./helpers/StructInitializerType";
-import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
-
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import ParserUtils from "../../utils/ParserUtils";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type TExpression from "../../types/syntax/TExpression";
+import type TTypeSyntax from "../../types/syntax/TTypeSyntax";
+import type ISourcePosition from "../../utils/types/ISourcePosition";
+import DeclarationParts from "../../utils/DeclarationParts";
+import ExpressionNodes from "../../utils/ExpressionNodes";
+import StatementNodes from "../../utils/StatementNodes";
 import OperandTyper from "../../utils/OperandTyper";
 import EnumMemberSuggestion from "./helpers/EnumMemberSuggestion";
+import ValuePositions from "./helpers/ValuePositions";
 import IBareEnumMemberError from "./types/IBareEnumMemberError";
 import UndeclaredValueAnalyzer from "./UndeclaredValueAnalyzer";
 import type IAnalysisContext from "./types/IAnalysisContext";
+import type IValuePositions from "../../types/IValuePositions";
+import type TValueSite from "../../types/TValueSite";
 
-/** A type name as written at the position that establishes it, or null. */
+/** The enum a position names, or null when it names none */
 type TExpected = string | null;
 
-class BareEnumMemberListener extends CNextListener {
-  private readonly found: IBareEnumMemberError[] = [];
+type TIdentifier = Extract<TExpression, { kind: "identifier" }>;
 
-  public constructor(private readonly context: IAnalysisContext) {
-    super();
+/** The enum each value's site names (#1991), from 2.1's one walk of sites */
+class ExpectedEnums {
+  private constructor(
+    private readonly context: IAnalysisContext,
+    private readonly valuePositions: IValuePositions,
+    private readonly forClauses: ReadonlySet<object>,
+  ) {}
+
+  static of(
+    program: IProgramSyntax,
+    context: IAnalysisContext,
+    valuePositions: IValuePositions,
+  ): ExpectedEnums {
+    const forClauses = new Set<object>();
+    for (const member of program.declarations) {
+      for (const statement of StatementNodes.in(member.declaration)) {
+        if (statement.kind !== "for") continue;
+        if (statement.init) forClauses.add(statement.init);
+        if (statement.update) forClauses.add(statement.update);
+      }
+    }
+    return new ExpectedEnums(context, valuePositions, forClauses);
   }
 
-  public errors(): IBareEnumMemberError[] {
-    return this.found;
+  at(expr: TExpression): TExpected {
+    const at = this.valuePositions.sites.get(expr);
+    return at === undefined ? null : this.ofSite(at.site, expr);
   }
 
-  override enterPostfixExpression = (
-    ctx: Parser.PostfixExpressionContext,
-  ): void => {
-    const symbols = this.context.symbols;
-    const primary = ctx.primaryExpression();
-    const name = primary?.IDENTIFIER()?.getText();
-    if (!primary || name === undefined) return;
-    // `name(...)` is a call, and `name.x` / `name[i]` is a chain rooted in a
-    // declared value; a bare member has no operations.
-    if (ctx.postfixOp().length > 0) return;
-
-    const declaring = EnumMemberSuggestion.enumsDeclaring(name, symbols);
-    if (declaring.length === 0) return;
-
-    const scopePath = OperandTyper.scopePathAt(
-      ParserUtils.getPosition(ctx),
-      this.context,
-    );
-    if (
-      UndeclaredValueAnalyzer.isDeclaredValue(
-        name,
-        ctx,
-        scopePath,
-        this.context,
-      )
-    ) {
-      return;
+  private ofSite(site: TValueSite, expr: TExpression): TExpected {
+    switch (site.kind) {
+      case "declaration":
+        return this.forClauses.has(site.declaration)
+          ? null
+          : this.enumOfWritten(site.declaration.type, site.declaration.span);
+      case "assignment":
+        return this.forClauses.has(site.assignment)
+          ? null
+          : this.targetEnum(site.assignment.target);
+      case "return":
+        return this.enumOfWritten(site.function.returnType, site.function.span);
+      case "field":
+        return this.fieldEnum(expr);
+      default:
+        return null;
     }
-
-    const expected = this.expectedEnum(ctx, scopePath);
-    if (expected !== null && symbols.enumMembers.get(expected)?.has(name)) {
-      return;
-    }
-    const { line, column } = ParserUtils.getPosition(primary);
-    this.found.push({
-      code: "E0424",
-      line,
-      column,
-      message: EnumMemberSuggestion.message(name, declaring),
-      helpText:
-        "A bare enum member is accepted only where its enum is already named -- a declaration or assignment of that type, a return from a function of that type, a field of that type. Elsewhere, qualify it (ADR-017).",
-    });
-  };
-
-  /**
-   * The enum a bare member at `node` is resolved against, or null when the
-   * position names none. Walks up to the nearest establishing node, stopping
-   * early at the nodes that clear or suppress the expected type.
-   */
-  private expectedEnum(node: ParserRuleContext, scopePath: string): TExpected {
-    let cursor: ParserRuleContext | null = node.parent;
-    while (cursor) {
-      const answer = this.establishedBy(cursor, scopePath);
-      if (answer !== undefined) return answer;
-      cursor = cursor.parent;
-    }
-    return null;
   }
 
-  /**
-   * What `cursor` says about the expected type of its child, or undefined when
-   * it says nothing and the walk continues upward.
-   *
-   * Deliberately does NOT take the child it is answering about. Every arm here
-   * establishes or clears a type for the whole node -- a comparison clears for
-   * both operands, an array element establishes for all of them -- so no arm
-   * has ever needed to know WHICH child asked. The parameter was threaded
-   * anyway and silenced with a `void`, which is a signal turned off rather
-   * than acted on. If an arm ever does need it (an argument's index would),
-   * thread it then, to that arm.
-   */
-  private establishedBy(
-    cursor: ParserRuleContext,
-    scopePath: string,
-  ): TExpected | undefined {
-    if (BareEnumMemberListener.clearsExpected(cursor)) return null;
-
-    // --- establishing nodes -----------------------------------------------------
-    // #1668 review: each answers with the enum the typer gives the position's
-    // type. The positions used to answer with the type as WRITTEN, qualified
-    // here by hand -- `this.`, `global.`, then the enclosing scope -- beside
-    // the typer's `TypeNameLadder`, which every other rule reads for the same
-    // spelling.
-    if (cursor instanceof Parser.VariableDeclarationContext) {
-      return this.enumOfWritten(cursor.type(), cursor);
-    }
-    if (cursor instanceof Parser.AssignmentStatementContext) {
-      return this.assignmentTargetEnum(cursor.assignmentTarget());
-    }
-    if (cursor instanceof Parser.ReturnStatementContext) {
-      const fn = BareEnumMemberListener.enclosingFunction(cursor);
-      return fn === null ? null : this.enumOfWritten(fn.type(), fn);
-    }
-    if (cursor instanceof Parser.FieldInitializerContext) {
-      // #1668: the one field typing struct initializers share; a field's
-      // type is recorded by its C name
-      const field = StructInitializerType.fieldType(cursor, this.context);
-      return field !== null && this.context.symbols.knownEnums.has(field)
-        ? field
-        : null;
-    }
-    if (cursor instanceof Parser.ArrayInitializerContext) {
-      // An element is generated under the array's ELEMENT type: the enum the
-      // walk above this node answers, which an array of it names too.
-      return this.expectedEnum(cursor, scopePath);
-    }
-    if (cursor instanceof Parser.StructInitializerContext) {
-      // Reached from a field: the struct's type, explicit or inherited.
-      return this.structTypeOf(cursor, scopePath);
-    }
-    return undefined;
+  private fieldEnum(value: TExpression): TExpected {
+    const field = ValuePositions.at(
+      this.valuePositions.positions,
+      value,
+    ).typeText;
+    return field !== null && this.context.symbols.knownEnums.has(field)
+      ? field
+      : null;
   }
 
-  /**
-   * Whether `cursor` clears the expected type of everything under it. Every
-   * context class extends the rule context directly, so none of these is also
-   * an establishing node, and which is tested first cannot matter.
-   */
-  private static clearsExpected(cursor: ParserRuleContext): boolean {
+  /** A slice or bit range writes elements or bits, and names no enum */
+  private targetEnum(target: TExpression): TExpected {
+    const writesRange =
+      target.kind === "postfix" &&
+      target.ops.some(
+        (op) => op.kind === "subscript" && op.indexes.length === 2,
+      );
+    if (writesRange) return null;
     return (
-      // A postfix operation: a subscript index (`size_t`) or a call's
-      // argument list (suppressed, #872). One test covers both -- an argument
-      // list is always inside the `(...)` op, so a separate check never ran.
-      cursor instanceof Parser.PostfixOpContext ||
-      cursor instanceof Parser.ArrayDimensionContext ||
-      cursor instanceof Parser.ArrayTypeDimensionContext ||
-      BareEnumMemberListener.isComparison(cursor) ||
-      cursor instanceof Parser.ForVarDeclContext ||
-      cursor instanceof Parser.ForAssignmentContext ||
-      cursor instanceof Parser.ForUpdateContext ||
-      // A boundary no expected type crosses
-      cursor instanceof Parser.StatementContext ||
-      cursor instanceof Parser.BlockContext ||
-      cursor instanceof Parser.FunctionDeclarationContext ||
-      cursor instanceof Parser.ScopeDeclarationContext ||
-      cursor instanceof Parser.ProgramContext
+      OperandTyper.typeOfTarget(target, this.context)?.enumTypeName ?? null
     );
   }
 
-  /** An equality or relational level that compares, rather than passes one through */
-  private static isComparison(cursor: ParserRuleContext): boolean {
+  private enumOfWritten(type: TTypeSyntax, at: ISourcePosition): TExpected {
     return (
-      (cursor instanceof Parser.EqualityExpressionContext &&
-        cursor.relationalExpression().length > 1) ||
-      (cursor instanceof Parser.RelationalExpressionContext &&
-        cursor.bitwiseOrExpression().length > 1)
+      OperandTyper.typeOfWritten(type, this.context, at)?.enumTypeName ?? null
     );
-  }
-
-  /** The enum an assignment's target holds, or null. */
-  private assignmentTargetEnum(
-    target: Parser.AssignmentTargetContext,
-  ): TExpected {
-    // A slice or bit-range write (`arr[off, len] <- v`) has no element
-    // expected type; codegen's resolver answered null for it.
-    if (target.postfixTargetOp().some((op) => op.expression().length === 2)) {
-      return null;
-    }
-    return (
-      OperandTyper.typeOfTarget(
-        SyntaxLowering.assignmentTarget(target),
-        this.context,
-      )?.enumTypeName ?? null
-    );
-  }
-
-  /** The enum a written type names, as the typer binds it where it is written */
-  private enumOfWritten(
-    type: Parser.TypeContext,
-    at: ParserRuleContext,
-  ): TExpected {
-    return (
-      OperandTyper.typeOfWritten(
-        SyntaxLowering.type(type),
-        this.context,
-        ParserUtils.getPosition(at),
-      )?.enumTypeName ?? null
-    );
-  }
-
-  /**
-   * The struct type an initializer builds, which is always the one its
-   * position declares -- #1322 removed the written-type alternative, so there
-   * is no second source to prefer over it.
-   */
-  private structTypeOf(
-    initializer: Parser.StructInitializerContext,
-    scopePath: string,
-  ): TExpected {
-    return this.expectedEnum(initializer, scopePath);
-  }
-
-  private static enclosingFunction(
-    node: ParserRuleContext,
-  ): Parser.FunctionDeclarationContext | null {
-    let cursor: ParserRuleContext | null = node.parent;
-    while (cursor) {
-      if (cursor instanceof Parser.FunctionDeclarationContext) return cursor;
-      cursor = cursor.parent;
-    }
-    return null;
   }
 }
 
 class BareEnumMemberAnalyzer {
-  /** #1456: handed in rather than read off shared state. */
   constructor(private readonly context: IAnalysisContext) {}
 
-  public analyze(tree: Parser.ProgramContext): IBareEnumMemberError[] {
-    const listener = new BareEnumMemberListener(this.context);
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
-    return listener.errors();
+  /** #1991: reads 1.2's syntax, not the parse tree */
+  public analyze(
+    program: IProgramSyntax,
+    valuePositions: IValuePositions,
+  ): IBareEnumMemberError[] {
+    const expected = ExpectedEnums.of(program, this.context, valuePositions);
+    const expressions = program.declarations
+      .flatMap((member) => DeclarationParts.of(member.declaration))
+      .flatMap(ExpressionNodes.of);
+    // A chain's head and an assignment's target name a value; they are not one.
+    const notValues = new Set<TExpression>();
+    for (const expr of expressions) {
+      if (expr.kind === "postfix") notValues.add(expr.primary);
+    }
+    for (const member of program.declarations) {
+      for (const site of StatementNodes.assignments(member.declaration)) {
+        notValues.add(site.target);
+      }
+    }
+    const found: IBareEnumMemberError[] = [];
+    for (const expr of expressions) {
+      if (expr.kind !== "identifier" || notValues.has(expr)) continue;
+      const error = this.check(expr, expected.at(expr));
+      if (error !== null) found.push(error);
+    }
+    return found.sort((a, b) => a.line - b.line || a.column - b.column);
+  }
+
+  private check(
+    identifier: TIdentifier,
+    expected: TExpected,
+  ): IBareEnumMemberError | null {
+    const symbols = this.context.symbols;
+    const name = identifier.name;
+    const declaring = EnumMemberSuggestion.enumsDeclaring(name, symbols);
+    if (declaring.length === 0) return null;
+    const scopePath = OperandTyper.scopePathAt(identifier.span, this.context);
+    if (
+      UndeclaredValueAnalyzer.isDeclaredValue(
+        name,
+        identifier.span,
+        scopePath,
+        this.context,
+      )
+    ) {
+      return null;
+    }
+    if (expected !== null && symbols.enumMembers.get(expected)?.has(name)) {
+      return null;
+    }
+    return {
+      code: "E0424",
+      line: identifier.span.line,
+      column: identifier.span.column,
+      message: EnumMemberSuggestion.message(name, declaring),
+      helpText:
+        "A bare enum member is accepted only where its enum is already named -- a declaration or assignment of that type, a return from a function of that type, a field of that type. Elsewhere, qualify it (ADR-017).",
+    };
   }
 }
 

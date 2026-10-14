@@ -21,7 +21,6 @@ class TestFileSystem {
       mkdir: TestFileSystem.notStubbed("mkdir"),
       unlink: TestFileSystem.notStubbed("unlink"),
       rename: TestFileSystem.notStubbed("rename"),
-      withTempFile: TestFileSystem.notStubbed("withTempFile"),
       readdir: TestFileSystem.notStubbed("readdir"),
       stat: TestFileSystem.notStubbed("stat"),
       ...overrides,

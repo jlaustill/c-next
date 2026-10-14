@@ -5,7 +5,7 @@
  * run is keyed by everything on its command line -- the toolchain, defines,
  * include path, `-imacros` predecessors -- and, for a string, its text (a
  * #985 unit's directives). Each entry is valid while every file the compiler
- * read (its `-MD` dependency output) keeps the mtime it had: a header's
+ * read (its `-M` dependency list) keeps the mtime it had: a header's
  * preprocessed text inlines what it includes, so its own mtime is not enough.
  * The dependency list names only the files found, so each entry also names
  * where a file added would be found ahead of one of those, earlier on the

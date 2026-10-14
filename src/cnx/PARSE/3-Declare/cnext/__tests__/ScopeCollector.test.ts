@@ -1,6 +1,7 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import DeclarationSite from "../../../../utils/DeclarationSite";
 import parse from "./testHelpers";
+import FirstDeclaration from "./FirstDeclaration";
 import ScopeCollector from "../collectors/ScopeCollector";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import SymbolGuards from "../../../../types/symbols/SymbolGuards";
@@ -31,8 +32,12 @@ describe("ScopeCollector", () => {
       sourceFile: string,
     ): ReturnType<typeof ScopeCollector.collect> => {
       const tree = parse(code);
-      const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
-      return ScopeCollector.collect(registry, scopeCtx, sourceFile, new Set());
+      return ScopeCollector.collect(
+        registry,
+        FirstDeclaration.scope(tree),
+        sourceFile,
+        new Set(),
+      );
     };
 
     it("records every block of a scope spanning four files", () => {
@@ -78,10 +83,9 @@ describe("ScopeCollector", () => {
         }
       `;
       const tree = parse(code);
-      const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
       const result = ScopeCollector.collect(
         registry,
-        scopeCtx,
+        FirstDeclaration.scope(tree),
         "test.cnx",
         new Set(),
       );
@@ -107,10 +111,9 @@ describe("ScopeCollector", () => {
         }
       `;
       const tree = parse(code);
-      const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
       const result = ScopeCollector.collect(
         registry,
-        scopeCtx,
+        FirstDeclaration.scope(tree),
         "test.cnx",
         new Set(),
       );
@@ -149,10 +152,9 @@ describe("ScopeCollector", () => {
         }
       `;
       const tree = parse(code);
-      const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
       const result = ScopeCollector.collect(
         registry,
-        scopeCtx,
+        FirstDeclaration.scope(tree),
         "test.cnx",
         new Set(),
       );
@@ -189,10 +191,9 @@ describe("ScopeCollector", () => {
         }
       `;
       const tree = parse(code);
-      const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
       const result = ScopeCollector.collect(
         registry,
-        scopeCtx,
+        FirstDeclaration.scope(tree),
         "test.cnx",
         new Set(),
       );
@@ -221,10 +222,9 @@ describe("ScopeCollector", () => {
         }
       `;
       const tree = parse(code);
-      const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
       const result = ScopeCollector.collect(
         registry,
-        scopeCtx,
+        FirstDeclaration.scope(tree),
         "test.cnx",
         new Set(),
       );
@@ -255,10 +255,9 @@ describe("ScopeCollector", () => {
         }
       `;
       const tree = parse(code);
-      const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
       const result = ScopeCollector.collect(
         registry,
-        scopeCtx,
+        FirstDeclaration.scope(tree),
         "test.cnx",
         new Set(),
       );
@@ -289,10 +288,9 @@ describe("ScopeCollector", () => {
         }
       `;
       const tree = parse(code);
-      const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
       const result = ScopeCollector.collect(
         registry,
-        scopeCtx,
+        FirstDeclaration.scope(tree),
         "test.cnx",
         new Set(),
       );
@@ -302,7 +300,10 @@ describe("ScopeCollector", () => {
       expect(regSymbol).toBeDefined();
       expect(SymbolGuards.isRegister(regSymbol!)).toBe(true);
       if (SymbolGuards.isRegister(regSymbol!)) {
-        expect(regSymbol.baseAddress).toBe("0x40001000");
+        expect(regSymbol.baseAddress).toMatchObject({
+          kind: "literal",
+          text: "0x40001000",
+        });
         expect(regSymbol.members.get("STATUS")?.access).toBe("rw");
         expect(regSymbol.members.get("COMMAND")?.access).toBe("wo");
         expect(regSymbol.scopePath).toBe("Motor");
@@ -326,10 +327,9 @@ describe("ScopeCollector", () => {
         }
       `;
       const tree = parse(code);
-      const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
       const result = ScopeCollector.collect(
         registry,
-        scopeCtx,
+        FirstDeclaration.scope(tree),
         "test.cnx",
         new Set(),
       );
@@ -362,7 +362,6 @@ describe("ScopeCollector", () => {
         }
       `;
       const tree = parse(code);
-      const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
       // Simulate bitmap being collected in pass 1
       const knownBitmaps = new Set(["Motor__MotorFlags"]);
       // Production always threads this predicate down from CNextResolver's
@@ -372,7 +371,7 @@ describe("ScopeCollector", () => {
         knownBitmaps.has(qualifiedName);
       const result = ScopeCollector.collect(
         registry,
-        scopeCtx,
+        FirstDeclaration.scope(tree),
         "test.cnx",
         knownBitmaps,
         isScopeType,
@@ -396,7 +395,6 @@ describe("ScopeCollector", () => {
         }
       `;
       const tree = parse(code);
-      const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
       // Both names are known bitmaps, so only ADR-057's `global.` opt-out
       // distinguishes them. Re-qualifying the resolved name would bind the
       // scoped one and emit a register typed with the wrong bit layout.
@@ -405,7 +403,7 @@ describe("ScopeCollector", () => {
         knownBitmaps.has(qualifiedName);
       const result = ScopeCollector.collect(
         registry,
-        scopeCtx,
+        FirstDeclaration.scope(tree),
         "test.cnx",
         knownBitmaps,
         isScopeType,
@@ -427,10 +425,9 @@ describe("ScopeCollector", () => {
         }
       `;
       const tree = parse(code);
-      const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
       const result = ScopeCollector.collect(
         registry,
-        scopeCtx,
+        FirstDeclaration.scope(tree),
         "test.cnx",
         new Set(),
       );

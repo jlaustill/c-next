@@ -1,6 +1,6 @@
 import type EFileType from "../PARSE/1-Discover/types/EFileType";
 import type ITargetDescription from "../types/ITargetDescription";
-import SymbolTable from "../PARSE/3-Declare/SymbolTable";
+import type IResolvedSymbols from "../types/IResolvedSymbols";
 import ReservedCnxName from "../utils/ReservedCnxName";
 import ICodeGenSymbols from "../types/ICodeGenSymbols";
 import TTypeInfo from "../types/TTypeInfo";
@@ -28,8 +28,9 @@ import AdrProvenance from "../instrumentation/AdrProvenance";
 import type ILocalDeclaration from "../types/ILocalDeclaration";
 import type IVariableDeclarationSyntax from "../types/syntax/IVariableDeclarationSyntax";
 import type IBoundParameter from "./types/IBoundParameter";
-import ToolchainRequirements from "../instrumentation/ToolchainRequirements";
-import type TIncludeHeader from "../types/TIncludeHeader";
+import type IFileSetup from "./types/IFileSetup";
+import type IFunctionCatalog from "./types/IFunctionCatalog";
+import type TPlanInputs from "./types/TPlanInputs";
 
 /**
  * 2.3 Render's per-file working state, as an INSTANCE.
@@ -61,8 +62,6 @@ class TranspileState {
    * this answer and classifies nothing itself.
    */
   includeKinds: ReadonlyMap<string, EFileType> = new Map<string, EFileType>();
-  /** Issue #477: Current function return type for enum inference */
-  currentFunctionReturnType: string | null = null;
   /** Debug mode generates panic-on-overflow helpers (ADR-044) */
   debugMode: boolean = false;
   /**
@@ -89,184 +88,8 @@ class TranspileState {
    * and before the first function.
    */
   pendingCallbackTypedefs: string[] = [];
-  /** Issue #369: Whether self-include was added */
-  selfIncludeAdded: boolean = false;
-
-  /**
-   * The C types render recorded spelling into this file (`uint8_t`, `bool`),
-   * from which the plan decides `<stdint.h>` / `<stdbool.h>` (#1927). Holds
-   * only what the recording sites add: every render site that spells a
-   * `<stdint.h>` / `<stdbool.h>` name records it, or says in a comment which
-   * record necessarily comes with it.
-   */
-  emittedCTypes: Set<string> = new Set();
-  /** ADR-045: For strlen, strncpy, etc. */
-  needsString: boolean = false;
-  /** ADR-049/050: For atomic intrinsics and critical sections */
-  needsCMSIS: boolean = false;
-  /** Issue #632: For float-to-int clamp casts */
-  needsLimits: boolean = false;
   /** ADR-040: For ISR function pointer type */
   needsISR: boolean = false;
-  /** For float bit indexing size verification */
-  needsFloatStaticAssert: boolean = false;
-  /** Issue #473: IRQ wrappers for critical sections */
-  needsIrqWrappers: boolean = false;
-  /**
-   * #1997: the forms Render emitted, in both modes; 2.2 decides what each
-   * costs. Written only through the `note*` methods below, which refuse a
-   * write once the emission plan is built: the plan has already read these,
-   * so a late one would drop its cost from the banner and the file result
-   * without failing.
-   */
-  private designatedInitializerEmitted: boolean = false;
-  private compoundLiteralEmitted: boolean = false;
-  private ldrexStrexLoopEmitted: boolean = false;
-  /** Track which overflow helper types/operations are needed: "add_u8", etc. */
-  usedClampOps: Set<string> = new Set();
-  /** Track which safe division helpers are needed: "div_u32", "mod_i16" */
-  usedSafeDivOps: Set<string> = new Set();
-  /** #1668: single-evaluation saturating casts, as `"f32_u8"` keys */
-  usedCastHelpers: Set<string> = new Set();
-
-  /** #1997: Render emitted a `.field = value` initializer. */
-  get emittedDesignatedInitializer(): boolean {
-    return this.designatedInitializerEmitted;
-  }
-
-  /** #1997: Render emitted a compound literal. */
-  get emittedCompoundLiteral(): boolean {
-    return this.compoundLiteralEmitted;
-  }
-
-  /** #1997: Render emitted an LDREX/STREX loop. */
-  get emittedLdrexStrexLoop(): boolean {
-    return this.ldrexStrexLoopEmitted;
-  }
-
-  noteDesignatedInitializer(): void {
-    this.assertFormBeforePlan("designated initializer");
-    this.designatedInitializerEmitted = true;
-  }
-
-  noteCompoundLiteral(): void {
-    this.assertFormBeforePlan("compound literal");
-    this.compoundLiteralEmitted = true;
-  }
-
-  /**
-   * The form decides the requirement; the site is attribution only, so the
-   * plan keeps the key even if no site arrives.
-   */
-  noteLdrexStrexLoop(): void {
-    this.assertFormBeforePlan("LDREX/STREX loop");
-    this.ldrexStrexLoopEmitted = true;
-    ToolchainRequirements.noteDeferredSite(
-      "ldrex_strex_loop",
-      this.sourcePath ?? "",
-      null,
-    );
-  }
-
-  private assertFormBeforePlan(form: string): void {
-    invariant(
-      this.emissionPlanOrNull === null,
-      `a ${form} was emitted after 2.2 Plan built the emission plan, so its cost would be lost`,
-    );
-  }
-
-  /**
-   * THE sink for include and deferred-emission requests.
-   *
-   * Every transport lands here -- generator effects via
-   * `CodeGenerator.applyEffects`, the `requireInclude` callbacks injected into
-   * the static helpers, and direct calls from assignment handlers. One sink so
-   * that the question "does this file need <string.h>?" gets exactly one
-   * recorded answer, so changing how that answer is REPRESENTED is one edit
-   * rather than one per writer.
-   *
-   * #1452 moved the requirement half to `instrumentation/`, so the two no
-   * longer sit beside each other. They are still one decision made once --
-   * this class is the only caller of `noteDeferredSite`: this method for the
-   * two deferral keys below, and `noteLdrexStrexLoop` for `ldrex_strex_loop`
-   * (#1997). Those three are the only keys it can produce.
-   * It was a private method on `CodeGenerator` until #1449, which is why five
-   * sites in `StringHandlers` set `needsString` raw instead -- a handler could
-   * not reach the funnel, so it wrote the flag. That made the include decision
-   * six edits wide, and #1449 turns these flags into an `EmissionPlan` entry.
-   * Every line of the body writes this class and reads nothing from the
-   * generator, so `state/` is where it already lived in all but name.
-   *
-   * @param header - The header to require (string, cmsis, limits, ...)
-   * @param line - The `.cnx` line that asked, for deferred attribution
-   */
-  requireInclude(header: TIncludeHeader, line: number | null = null): void {
-    // Issue #1143: three of these "headers" are really deferred code-emission
-    // requests. Record where they were asked for, so the 2.2 plan block that
-    // decides the emission carries them as its requirements' sites (#1928). No
-    // requirement is recorded here -- the code does not exist yet, and
-    // recording a requirement for text that may never be emitted is exactly
-    // the mistake that made #1141's guard fire on files without the construct.
-    // Only the two headers whose sites a plan block carries. "isr" was noted here
-    // and never read: ToolchainRequirements.takeDeferredSites is called for
-    // float_static_assert and irq_wrappers alone, and the ISR typedef carries
-    // no requirement. Keeping
-    // the deferred keys equal to the set that gets claimed is the property the
-    // rest of this design leans on.
-    // #1452: the path comes off THIS object, the way it did when the two halves
-    // shared a class. It was briefly a defaulted third parameter, which no
-    // caller ever supplied -- so every site recorded `sourcePath: ""`, and
-    // `ResultPrinter.printSites` filters those out and falls back to the
-    // generic `from <incurredBy>` line. A defaulted parameter for a fact the
-    // receiver already holds is a channel nobody uses, and the default is the
-    // wrong answer rather than a missing one.
-    if (header === "irq_wrappers" || header === "float_static_assert") {
-      ToolchainRequirements.noteDeferredSite(
-        header,
-        this.sourcePath ?? "",
-        line,
-      );
-    }
-
-    switch (header) {
-      case "string":
-        this.needsString = true;
-        break;
-      case "cmsis":
-        this.needsCMSIS = true;
-        break;
-      case "limits":
-        this.needsLimits = true;
-        break;
-      case "isr":
-        this.needsISR = true;
-        break;
-      case "float_static_assert":
-        this.needsFloatStaticAssert = true;
-        break;
-      case "irq_wrappers":
-        this.needsIrqWrappers = true;
-        break;
-    }
-  }
-  /**
-   * Mark a clamp operation as used.
-   */
-  markClampOpUsed(operation: string, cnxType: string): void {
-    // Internal helper-op key (e.g. "add_u32"), not a scope-qualified C name.
-    // HelperGenerator splits this on a single underscore.
-    this.usedClampOps.add(`${operation}_${cnxType}`);
-  }
-
-  /**
-   * #1668: mark a single-evaluation saturating cast as used -- the helper a
-   * clamped cast calls when its operand has a side effect. The helper uses
-   * the limit macros, so it needs `<limits.h>` exactly as the inline form does.
-   */
-  markCastHelperUsed(sourceType: string, targetType: string): void {
-    this.usedCastHelpers.add(`${sourceType}_${targetType}`);
-    this.requireInclude("limits");
-  }
 
   /**
    * #1668: the operand typer's context for this file, over the facts 1.4
@@ -372,18 +195,24 @@ class TranspileState {
   }
 
   /**
-   * #1969: the current function's parameter a name means where it is used.
-   * Bound at `at`, so a block-local that shadows a parameter is the local
-   * inside its block, and the parameter again after it.
+   * #1969: the current function's parameter a name means where it is used,
+   * answered from `parameters` (2.2's, #1991). Bound at `at`, so a
+   * block-local that shadows a parameter is the local inside its block, and
+   * the parameter again after it.
    */
-  parameterAt(name: string, at: ISourcePosition): TParameterInfo | undefined {
-    return this.parameterDeclarationAt(name, at) === null
+  parameterIn(
+    parameters: ReadonlyMap<string, TParameterInfo>,
+    name: string,
+    at: ISourcePosition,
+  ): TParameterInfo | undefined {
+    const declaration = this.parameterDeclarationAt(name, at);
+    return declaration === null
       ? undefined
-      : this.currentParameters.get(name);
+      : TranspileState.plannedParameterIn(parameters, declaration.span);
   }
 
   /**
-   * `parameterAt`'s parameter with the C name it is emitted under there, for
+   * `parameterIn`'s parameter with the C name it is emitted under there, for
    * a site that writes it (#1290 review)
    */
   parameterBindingAt(
@@ -392,11 +221,35 @@ class TranspileState {
   ): IBoundParameter | undefined {
     const declaration = this.parameterDeclarationAt(name, at);
     const info =
-      declaration === null ? undefined : this.currentParameters.get(name);
+      declaration === null
+        ? undefined
+        : this.plannedParameterAt(declaration.span);
     if (declaration === null || info === undefined) {
       return undefined;
     }
     return { info, emittedName: this.localCName(declaration, at) };
+  }
+
+  /** The key of 2.2's answer for the parameter declared at `nameSpan` */
+  static parameterKey(nameSpan: ISourcePosition): string {
+    return `${nameSpan.line}:${nameSpan.column}`;
+  }
+
+  /** 2.2's answer for the parameter declared at `nameSpan` (#1991) */
+  plannedParameterAt(nameSpan: ISourcePosition): TParameterInfo {
+    return TranspileState.plannedParameterIn(this.plannedParameters, nameSpan);
+  }
+
+  private static plannedParameterIn(
+    parameters: ReadonlyMap<string, TParameterInfo>,
+    nameSpan: ISourcePosition,
+  ): TParameterInfo {
+    const info = parameters.get(TranspileState.parameterKey(nameSpan));
+    invariant(
+      info !== undefined,
+      `2.2 planned the parameter declared on line ${nameSpan.line}`,
+    );
+    return info;
   }
 
   private parameterDeclarationAt(
@@ -449,7 +302,7 @@ class TranspileState {
    *
    * Held for the rest of the file's turn so the requirements its planned
    * blocks carry are read off the plan, never copied into
-   * `ToolchainRequirements` (#1928). Null until the declarations have rendered.
+   * `PlannedRequirements` (#1928, #1991). Null until 2.3 takes the file's plan.
    */
   emissionPlanOrNull: IEmissionPlan | null = null;
   /** ADR-013: Track function parameter const-ness for call-site validation */
@@ -554,17 +407,6 @@ class TranspileState {
     return result;
   }
   /**
-   * Record a callback type named by a declaration that APPEARS IN THE HEADER.
-   *
-   * The single writer for that decision, so "does the public interface name
-   * this type" is decided in one place rather than by remembering to update a
-   * second set at each of the three declaration sites.
-   */
-  notePublicCallbackTypeReference(functionName: string): void {
-    this.callbackTypeReferences.add(functionName);
-    this.publicCallbackTypeReferences.add(functionName);
-  }
-  /**
    * Issue #1164: does the generated header own this callback's typedef?
    *
    * When the `.c` includes its own header, whichever typedefs the header emits
@@ -582,11 +424,6 @@ class TranspileState {
 
   /** Expected type for struct initializers and enum inference */
   expectedType: string | null = null;
-  /** Whether we're generating the RHS of a variable declaration initializer.
-   *  When true, struct literals use { .field = value } instead of (Type){ .field = value }
-   *  because plain designated initializers are valid C99 at any scope, while compound
-   *  literals are not constant expressions and fail at file scope on GCC < 13. */
-  inDeclarationInit: boolean = false;
   /**
    * Suppress bare enum resolution even when expectedType is set.
    * Issue #872: MISRA 7.2 requires expectedType for U suffix on function args,
@@ -596,73 +433,24 @@ class TranspileState {
   suppressBareEnumResolution: boolean = false;
 
   /**
-   * Execute a function with a temporary expectedType, restoring on completion.
-   * Issue #872: Extracted to eliminate duplicate save/restore pattern and add exception safety.
-   *
-   * @param type - The expected type to set (if falsy, no change is made)
-   * @param fn - The function to execute
-   * @param suppressEnumResolution - If true, suppress bare enum resolution (for MISRA-only contexts)
-   * @returns The result of the function
+   * Execute fn writing a value against the type 2.2 planned for it, restoring
+   * the outer value's on exit (#1991). 2.2 already resolved what a value
+   * inherits from the site around it, so this sets both fields exactly.
    */
-  withExpectedType<T>(
-    type: string | undefined | null,
+  withPlannedExpectedType<T>(
+    type: string | null,
+    suppressBareEnumResolution: boolean,
     fn: () => T,
-    suppressEnumResolution: boolean = false,
   ): T {
-    if (!type) {
-      return fn();
-    }
     const savedType = this.expectedType;
     const savedSuppress = this.suppressBareEnumResolution;
     this.expectedType = type;
-    if (suppressEnumResolution) {
-      this.suppressBareEnumResolution = true;
-    }
+    this.suppressBareEnumResolution = suppressBareEnumResolution;
     try {
       return fn();
     } finally {
       this.expectedType = savedType;
       this.suppressBareEnumResolution = savedSuppress;
-    }
-  }
-  /**
-   * Execute fn with expectedType=null, restoring prior value on exit.
-   * Issue #1032: Used in comparison contexts (relational/equality expressions)
-   * where MISRA 7.2 U suffix should NOT be applied - comparing `i32 < 0`
-   * should not generate `signedIdx < 0U` which changes comparison semantics.
-   */
-  withoutExpectedType<T>(fn: () => T): T {
-    const savedType = this.expectedType;
-    const savedSuppress = this.suppressBareEnumResolution;
-    this.expectedType = null;
-    this.suppressBareEnumResolution = false;
-    try {
-      return fn();
-    } finally {
-      this.expectedType = savedType;
-      this.suppressBareEnumResolution = savedSuppress;
-    }
-  }
-  /** Execute fn with inDeclarationInit=true, restoring prior value on exit. */
-  withDeclarationInit<T>(fn: () => T): T {
-    const saved = this.inDeclarationInit;
-    this.inDeclarationInit = true;
-    try {
-      return fn();
-    } finally {
-      this.inDeclarationInit = saved;
-    }
-  }
-  /** Execute fn with inDeclarationInit=false, restoring prior value on exit.
-   *  Used in sub-expression contexts (function args, ternary arms) where
-   *  plain designated initializers are not valid C. */
-  withoutDeclarationInit<T>(fn: () => T): T {
-    const saved = this.inDeclarationInit;
-    this.inDeclarationInit = false;
-    try {
-      return fn();
-    } finally {
-      this.inDeclarationInit = saved;
     }
   }
   // ===========================================================================
@@ -723,7 +511,17 @@ class TranspileState {
    */
   program: IProgram | null = null;
 
-  symbolTable: SymbolTable = new SymbolTable();
+  /**
+   * The run's symbol table, read off 1.4's `Program` -- the only place a pass
+   * after 1.4 may take it from (#1991).
+   */
+  get symbolTable(): IResolvedSymbols {
+    invariant(
+      this.program !== null,
+      "1.4 Resolve built Program before a pass read its symbol table",
+    );
+    return this.program.symbolTable();
+  }
 
   // ===========================================================================
   // TYPE TRACKING
@@ -805,6 +603,9 @@ class TranspileState {
 
   /** ADR-006: Current function parameters for pointer semantics */
   currentParameters: Map<string, TParameterInfo> = new Map();
+
+  /** 2.2's answer for every parameter of the file being rendered (#1991) */
+  plannedParameters: ReadonlyMap<string, TParameterInfo> = new Map();
 
   /** Scope member names: scope -> Set of member names */
   private scopeMembers: Map<string, Set<string>> = new Map();
@@ -944,34 +745,6 @@ class TranspileState {
   private clearFunctionLocals(): void {
     this.floatBitShadows.clear();
     this.floatShadowCurrent.clear();
-  }
-
-  /**
-   * Execute fn with the current scope set to `scopeName`'s path, restoring the
-   * previous path on exit.
-   *
-   * The sibling these four helpers were missing. Two sites hand-rolled it --
-   * `const savedScope = ...; setCurrentScopeByPath(...); ...; currentScopePath
-   * = savedScope;` -- with the restore as a plain trailing statement rather
-   * than a `finally`, which is the precise defect #872 extracted
-   * `withExpectedType` to fix: its own doc says "eliminate duplicate
-   * save/restore pattern and ADD EXCEPTION SAFETY". Scope path never got the
-   * same treatment.
-   *
-   * Latent rather than live today: a throw inside either body is caught per
-   * file by `Transpiler`, and `reset()` clears the path before the next file,
-   * so the stale value has nothing left to reach. That is a property of two
-   * unrelated mechanisms rather than of this code, which is why it is fixed
-   * here instead of relied upon.
-   */
-  withScopePath<T>(scopeName: string, fn: () => T): T {
-    const saved = this.currentScopePath;
-    this.setCurrentScopeByPath(scopeName);
-    try {
-      return fn();
-    } finally {
-      this.currentScopePath = saved;
-    }
   }
 
   // ===========================================================================
@@ -1273,16 +1046,20 @@ class TranspileState {
    * scope's `cnxScopedName`, not two strings that happen to match.
    */
   setCurrentScopeByPath(name: string | null): void {
+    this.currentScopePath = this.scopePathOf(name);
+  }
+
+  /** The path of the scope named `name`, or "" for none */
+  scopePathOf(name: string | null): string {
     if (name === null) {
-      this.currentScopePath = "";
-      return;
+      return "";
     }
     const scope = this.program?.scope(name) ?? null;
     invariant(
       scope !== null,
       `a scope entered during generation was registered by the symbols pass (got "${name}")`,
     );
-    this.currentScopePath = ScopeUtils.pathOf(scope);
+    return ScopeUtils.pathOf(scope);
   }
 
   // ===========================================================================
@@ -1301,7 +1078,103 @@ class TranspileState {
   }
 
   /** Cleared per file, at the top of `generate()`. */
-  reset(targetDescription: ITargetDescription | null = null): void {
+  /**
+   * #1991: 2.2 starts a file from what it read off the options; the walker
+   * calls this, so 2.2 itself writes nothing here.
+   */
+  beginPlan(inputs: TPlanInputs, generator: ICodeGenApi): void {
+    this.clearFileData(inputs.targetDescription);
+    this.useInputs(inputs);
+    this.generator = generator;
+  }
+
+  private useInputs(inputs: TPlanInputs): void {
+    this.program = inputs.program;
+    this.symbols = inputs.symbols;
+    this.sourcePath = inputs.sourcePath;
+    this.debugMode = inputs.debugMode;
+    this.cppMode = inputs.cppMode;
+    this.cnxIncludeRewrites = inputs.cnxIncludeRewrites;
+    this.includeKinds = inputs.includeKinds;
+    for (const [scope, members] of inputs.scopeMembers) {
+      this.setScopeMembers(scope, new Set(members));
+    }
+  }
+
+  /** ADR-029: the callback types 2.2 planned for the file */
+  useCallbackTypes(
+    callbackTypes: ReadonlyMap<string, ICallbackTypeInfo>,
+  ): void {
+    this.callbackTypes = new Map(callbackTypes);
+  }
+
+  /** The functions and callback references 2.2's pre-pass found */
+  useFunctionCatalog(catalog: IFunctionCatalog): void {
+    this.knownFunctions = new Set(catalog.knownFunctions);
+    this.functionSignatures = new Map(catalog.functionSignatures);
+    this.callbackFieldTypes = new Map(catalog.callbackFieldTypes);
+    this.callbackTypeReferences = new Set(catalog.callbackTypeReferences);
+    this.publicCallbackTypeReferences = new Set(
+      catalog.publicCallbackTypeReferences,
+    );
+  }
+
+  /**
+   * 2.2's setup for this file, copied so the plan carries it and 2.3 can
+   * start from it alone (#1991).
+   */
+  fileSetup(
+    decided: Pick<
+      IFileSetup,
+      "parameters" | "selfIncludeAdded" | "needsISR" | "declarationPlan"
+    >,
+  ): IFileSetup {
+    invariant(this.program, "2.1 hands 2.2 the program");
+    invariant(this.symbols, "2.2 sets the file's symbols before planning it");
+    return {
+      program: this.program,
+      symbols: this.symbols,
+      sourcePath: this.sourcePath,
+      debugMode: this.debugMode,
+      cppMode: this.cppMode,
+      targetDescription: this.targetDescription,
+      cnxIncludeRewrites: this.cnxIncludeRewrites,
+      includeKinds: this.includeKinds,
+      selfIncludeAdded: decided.selfIncludeAdded,
+      needsISR: decided.needsISR,
+      declarationPlan: decided.declarationPlan,
+      knownFunctions: new Set(this.knownFunctions),
+      functionSignatures: new Map(this.functionSignatures),
+      callbackTypes: new Map(this.callbackTypes),
+      callbackFieldTypes: new Map(this.callbackFieldTypes),
+      callbackTypeReferences: new Set(this.callbackTypeReferences),
+      publicCallbackTypeReferences: new Set(this.publicCallbackTypeReferences),
+      scopeMembers: new Map(
+        [...this.scopeMembers].map(([scope, members]) => [
+          scope,
+          new Set(members),
+        ]),
+      ),
+      parameters: decided.parameters,
+    };
+  }
+
+  /**
+   * 2.3 starts each file from the plan alone: everything 2.2 left here is
+   * cleared, then the plan's setup and emission are installed (#1991).
+   */
+  beginRender(setup: IFileSetup, emission: IEmissionPlan): void {
+    this.clearFileData(setup.targetDescription);
+    this.useInputs(setup);
+    this.useCallbackTypes(setup.callbackTypes);
+    this.useFunctionCatalog(setup);
+    this.needsISR = setup.needsISR;
+    this.declarationPlanOrNull = setup.declarationPlan;
+    this.plannedParameters = setup.parameters;
+    this.emissionPlanOrNull = emission;
+  }
+
+  private clearFileData(targetDescription: ITargetDescription | null): void {
     // Generator reference
     this.generator = null;
 
@@ -1319,14 +1192,11 @@ class TranspileState {
     this.generatedStructInits = new Set();
     this.exportedRegisterBlocks = [];
 
-    // Issue #1143, #1452: the per-file requirement sites live in
-    // src/cnx/instrumentation/ToolchainRequirements, which owns its own clearing.
-    ToolchainRequirements.reset();
-
     // Current context
     this.currentScopePath = "";
     this.currentFunctionName = null;
     this.currentParameters = new Map();
+    this.plannedParameters = new Map();
     this.scopeMembers = new Map();
     this.floatBitShadows = new Set();
     this.floatShadowCurrent = new Set();
@@ -1350,7 +1220,6 @@ class TranspileState {
 
     // Source paths
     this.sourcePath = null;
-    this.inDeclarationInit = false;
     this.expectedType = null;
     this.suppressBareEnumResolution = false;
     this.functionSignatures = new Map();
@@ -1359,26 +1228,12 @@ class TranspileState {
     this.publicCallbackTypeReferences = new Set();
     this.declarationPlanOrNull = null;
     this.emissionPlanOrNull = null;
-    this.usedClampOps = new Set();
-    this.usedSafeDivOps = new Set();
-    this.usedCastHelpers = new Set();
-    this.emittedCTypes = new Set();
-    this.needsString = false;
-    this.needsFloatStaticAssert = false;
     this.needsISR = false;
-    this.needsCMSIS = false;
-    this.needsLimits = false;
-    this.needsIrqWrappers = false;
-    this.designatedInitializerEmitted = false;
-    this.compoundLiteralEmitted = false;
-    this.ldrexStrexLoopEmitted = false;
     this.emittedCallbackTypedefs = new Set();
     this.pendingCallbackTypedefs = [];
-    this.currentFunctionReturnType = null;
     this.indentLevel = 0;
     this.lengthCache = null;
     this.debugMode = false;
-    this.selfIncludeAdded = false;
     this.cnxIncludeRewrites = new Map<string, string>();
     this.includeKinds = new Map<string, EFileType>();
   }

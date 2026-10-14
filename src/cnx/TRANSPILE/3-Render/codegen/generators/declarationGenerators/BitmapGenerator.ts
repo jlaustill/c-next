@@ -56,9 +56,6 @@ const generateBitmap: TGeneratorFn<string> = (
     `every bitmap declaration codegen visits was collected by the resolver, so its qualified name is in bitmapBackingType (missing '${fullName}')`,
   );
 
-  // The typedef's backing type (`uint8_t`, ...); the plan decides its header.
-  effects.push({ type: "c-type", cType: backingType });
-
   const lines: string[] = [];
 
   // Generate comment with field layout

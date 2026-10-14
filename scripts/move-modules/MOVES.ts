@@ -20,7 +20,18 @@ import IMove from "../types/IMove";
  * express the move being made is how the wrong row gets written and then
  * defended (#1449).
  */
+/** #1991 review (item 43): why a module 2.2 decides with moves to 2-Plan/. */
+const PLAN_DECIDES =
+  "#1991 review: 2.2 Plan makes this decision (or names this table or " +
+  "contract) before 2.3 Render runs, and `2-2-plan-reads-no-later-pass` " +
+  "forbids 2-Plan/ reaching 3-Render/. Render reads it from the earlier " +
+  "pass, which the pass order allows, so the decision has one owner.";
+
 /** #1992 box 4: why a test that composes passes moves to the host. */
+const ONE_PREDICATE =
+  "#1991 review: 2.1, 2.2 and 2.3 each asked this question with their own " +
+  "test. It moves to src/cnx/utils/ so every pass asks the one predicate.";
+
 const HOST_TEST =
   "#1992 box 4: owner direction 2026-10-11: nothing in `src/cnx/`, tests " +
   "included, imports `src/cli/` or `src/lib/`. This test reaches the host " +
@@ -1943,6 +1954,166 @@ const MOVES: readonly IMove[] = [
     from: "src/cnx/utils/__tests__/TargetToolchain.test.ts",
     to: "src/cli/__tests__/cnx/utils/TargetToolchain.test.ts",
     because: HOST_TEST,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/types/COMPOUND_TO_BINARY.ts",
+    to: "src/cnx/TRANSPILE/2-Plan/types/COMPOUND_TO_BINARY.ts",
+    because: PLAN_DECIDES,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/types/LDREX_MAP.ts",
+    to: "src/cnx/TRANSPILE/2-Plan/types/LDREX_MAP.ts",
+    because: PLAN_DECIDES,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/types/TYPE_MAP.ts",
+    to: "src/cnx/TRANSPILE/2-Plan/types/TYPE_MAP.ts",
+    because: PLAN_DECIDES,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/types/WIDER_TYPE_MAP.ts",
+    to: "src/cnx/TRANSPILE/2-Plan/types/WIDER_TYPE_MAP.ts",
+    because: PLAN_DECIDES,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/types/TYPE_LIMITS.ts",
+    to: "src/cnx/TRANSPILE/2-Plan/types/TYPE_LIMITS.ts",
+    because: PLAN_DECIDES,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/types/IArgumentPassing.ts",
+    to: "src/cnx/TRANSPILE/2-Plan/types/IArgumentPassing.ts",
+    because: PLAN_DECIDES,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/types/IPlannedDirective.ts",
+    to: "src/cnx/TRANSPILE/2-Plan/types/IPlannedDirective.ts",
+    because: PLAN_DECIDES,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/helpers/types/TArgumentForm.ts",
+    to: "src/cnx/TRANSPILE/2-Plan/types/TArgumentForm.ts",
+    because: PLAN_DECIDES,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/helpers/types/IArgumentGeneratorCallbacks.ts",
+    to: "src/cnx/TRANSPILE/2-Plan/types/IArgumentGeneratorCallbacks.ts",
+    because: PLAN_DECIDES,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/assignment/handlers/IRegisterNameResult.ts",
+    to: "src/cnx/TRANSPILE/2-Plan/types/IRegisterNameResult.ts",
+    because: PLAN_DECIDES,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/helpers/NarrowingCastHelper.ts",
+    to: "src/cnx/TRANSPILE/2-Plan/NarrowingCastHelper.ts",
+    because: PLAN_DECIDES,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/helpers/__tests__/NarrowingCastHelper.test.ts",
+    to: "src/cnx/TRANSPILE/2-Plan/__tests__/NarrowingCastHelper.test.ts",
+    because: PLAN_DECIDES,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/helpers/CppModeHelper.ts",
+    to: "src/cnx/TRANSPILE/2-Plan/CppModeHelper.ts",
+    because: PLAN_DECIDES,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/helpers/__tests__/CppModeHelper.test.ts",
+    to: "src/cnx/TRANSPILE/2-Plan/__tests__/CppModeHelper.test.ts",
+    because: PLAN_DECIDES,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/helpers/AssignmentOperatorMapper.ts",
+    to: "src/cnx/TRANSPILE/2-Plan/AssignmentOperatorMapper.ts",
+    because: PLAN_DECIDES,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/helpers/__tests__/AssignmentOperatorMapper.test.ts",
+    to: "src/cnx/TRANSPILE/2-Plan/__tests__/AssignmentOperatorMapper.test.ts",
+    because: PLAN_DECIDES,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/helpers/TypeGenerationHelper.ts",
+    to: "src/cnx/TRANSPILE/2-Plan/TypeGenerationHelper.ts",
+    because: PLAN_DECIDES,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/helpers/__tests__/TypeGenerationHelper.test.ts",
+    to: "src/cnx/TRANSPILE/2-Plan/__tests__/TypeGenerationHelper.test.ts",
+    because: PLAN_DECIDES,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/helpers/SymbolLookupHelper.ts",
+    to: "src/cnx/TRANSPILE/2-Plan/SymbolLookupHelper.ts",
+    because: PLAN_DECIDES,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/helpers/__tests__/SymbolLookupHelper.test.ts",
+    to: "src/cnx/TRANSPILE/2-Plan/__tests__/SymbolLookupHelper.test.ts",
+    because: PLAN_DECIDES,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/TypeValidator.ts",
+    to: "src/cnx/TRANSPILE/2-Plan/TypeValidator.ts",
+    because: PLAN_DECIDES,
+  },
+  {
+    from: "src/cli/__tests__/cnx/TRANSPILE/3-Render/codegen/TypeValidator.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/2-Plan/TypeValidator.test.ts",
+    because: PLAN_DECIDES,
+  },
+  {
+    from: "src/cli/__tests__/cnx/TRANSPILE/3-Render/codegen/TypeValidator.resolution.test.ts",
+    to: "src/cli/__tests__/cnx/TRANSPILE/2-Plan/TypeValidator.resolution.test.ts",
+    because: PLAN_DECIDES,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/assignment/handlers/AssignmentHandlerUtils.ts",
+    to: "src/cnx/TRANSPILE/2-Plan/AssignmentHandlerUtils.ts",
+    because: PLAN_DECIDES,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/assignment/handlers/__tests__/AssignmentHandlerUtils.test.ts",
+    to: "src/cnx/TRANSPILE/2-Plan/__tests__/AssignmentHandlerUtils.test.ts",
+    because: PLAN_DECIDES,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/generators/support/IncludeGenerator.ts",
+    to: "src/cnx/TRANSPILE/2-Plan/IncludeGenerator.ts",
+    because: PLAN_DECIDES,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/generators/support/__tests__/IncludeGenerator.test.ts",
+    to: "src/cnx/TRANSPILE/2-Plan/__tests__/IncludeGenerator.test.ts",
+    because: PLAN_DECIDES,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/generators/expressions/CallExprUtils.ts",
+    to: "src/cnx/TRANSPILE/2-Plan/CallExprUtils.ts",
+    because: PLAN_DECIDES,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/generators/expressions/__tests__/CallExprUtils.test.ts",
+    to: "src/cnx/TRANSPILE/2-Plan/__tests__/CallExprUtils.test.ts",
+    because: PLAN_DECIDES,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/generators/expressions/CallArgumentPassing.ts",
+    to: "src/cnx/TRANSPILE/2-Plan/CallArgumentPassing.ts",
+    because: PLAN_DECIDES,
+  },
+  {
+    from: "src/cnx/TRANSPILE/3-Render/codegen/types/ICodeGeneratorOptions.ts",
+    to: "src/cnx/TRANSPILE/types/ICodeGeneratorOptions.ts",
+    because: PLAN_DECIDES,
+  },
+  {
+    from: "src/cnx/TRANSPILE/1-Analyze/helpers/SafeDivision.ts",
+    to: "src/cnx/utils/SafeDivision.ts",
+    because: ONE_PREDICATE,
   },
 ];
 

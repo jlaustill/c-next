@@ -4,8 +4,9 @@
  * #1445 box 3: `StructGenerator` read a `StructMemberContext` for a name, a
  * type name, and three renders -- the C type, the dimensions written on the
  * type (`u8[16] data`) and the dimensions written after the name
- * (`u8 data[16]`). Everything it DECIDES from those comes from
- * `input.callbackTypes`, `input.symbols` and the generator's own rules.
+ * (`u8 data[16]`). Whether a field is a callback is 2.2's decision
+ * (`isCallback`); everything else it decides comes from `input.symbols` and
+ * the generator's own rules.
  *
  * ## Four of the seven are thunks, and that is not ceremony
  *
@@ -35,6 +36,13 @@ interface IPlannedStructField {
    * both.
    */
   readonly typeName: string;
+
+  /**
+   * ADR-029: the field's type is a callback, spelled with its typedef name.
+   * 2.2 decides it before 2.3 renders, as the same `callbackFieldTypes` entry
+   * that callback-field assignments are checked against.
+   */
+  readonly isCallback: boolean;
 
   /** `u8 data[16]` -- dimensions written after the NAME. */
   readonly hasNameDimensions: boolean;

@@ -2,11 +2,10 @@
  * VariableCollector - Collects variable symbols from C parse trees.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import type ICVariableSymbol from "../../../../types/symbols/c/ICVariableSymbol";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
-import DeclaratorUtils from "../utils/DeclaratorUtils";
+import DeclaratorTypes from "../../../2-Parse/shared/DeclaratorTypes";
+import type IHeaderDeclaratorSyntax from "../../../2-Parse/types/IHeaderDeclaratorSyntax";
 import type ISourceSpan from "../../../../types/ISourceSpan";
 
 class VariableCollector {
@@ -23,19 +22,17 @@ class VariableCollector {
   static collect(
     name: string,
     baseType: string,
-    declarator: any,
+    declarator: IHeaderDeclaratorSyntax,
     sourceFile: string,
     span: ISourceSpan,
     isExtern: boolean,
   ): ICVariableSymbol {
     // Extract array dimensions if present
-    const arrayDimensions = declarator
-      ? DeclaratorUtils.extractArrayDimensions(declarator)
-      : [];
+    const arrayDimensions = declarator.arrayDimensions;
 
     // Issue #978: Detect pointer variables (e.g., `font_t *ptr`).
     // C grammar puts `*` in the declarator, not the type specifier.
-    const resolvedType = DeclaratorUtils.pointerType(baseType, declarator);
+    const resolvedType = DeclaratorTypes.pointerType(baseType, declarator);
 
     return {
       kind: "variable",

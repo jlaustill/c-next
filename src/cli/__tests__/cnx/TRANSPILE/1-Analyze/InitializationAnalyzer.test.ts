@@ -3,6 +3,7 @@
  * Issue #503: Tests for C++ class initialization handling
  */
 
+import TestSymbolTable from "../../../../../cnx/TRANSPILE/__tests__/TestSymbolTable";
 import { CharStream, CommonTokenStream } from "antlr4ng";
 import { describe, expect, it, beforeEach } from "vitest";
 import { CNextLexer } from "../../../../../cnx/PARSE/2-Parse/grammar/CNextLexer";
@@ -33,7 +34,7 @@ let state = new TranspileState();
 /** #2004: the analyzer binds through the program 1.4 built from `code` */
 function contextFor(
   code: string,
-  symbolTable: SymbolTable = state.symbolTable,
+  symbolTable: SymbolTable = TestSymbolTable.of(state),
 ) {
   return testAnalysisContextFor(code, { cppMode: false, symbolTable }).context;
 }
@@ -42,7 +43,7 @@ describe("InitializationAnalyzer", () => {
   // Reset TranspileState before each test
   beforeEach(() => {
     state = new TranspileState();
-    state.symbolTable = new SymbolTable();
+    TestSymbolTable.install(state);
   });
 
   // ========================================================================
@@ -60,7 +61,7 @@ describe("InitializationAnalyzer", () => {
       const tree = parse(code);
 
       // Set up TranspileState with C++ class
-      state.symbolTable.addCppSymbol({
+      TestSymbolTable.of(state).addCppSymbol({
         name: "CppMessage",
         kind: "class",
         sourceLanguage: ESourceLanguage.Cpp,
@@ -69,7 +70,7 @@ describe("InitializationAnalyzer", () => {
         visibility: "public",
       });
       // Add the field so the analyzer knows about it
-      state.symbolTable.addStructField("CppMessage", "pgn", "u16");
+      TestSymbolTable.of(state).addStructField("CppMessage", "pgn", "u16");
 
       // Build external struct fields from symbol table
       state.program = Program.build([], {
@@ -78,10 +79,7 @@ describe("InitializationAnalyzer", () => {
       });
 
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       // Should have NO errors - C++ class is initialized by constructor
       expect(errors).toHaveLength(0);
@@ -105,10 +103,7 @@ describe("InitializationAnalyzer", () => {
       const analyzer = new InitializationAnalyzer(
         contextFor(code, symbolTable),
       );
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       // SHOULD have an error - C-Next struct is NOT initialized
       expect(errors.length).toBeGreaterThan(0);
@@ -126,7 +121,7 @@ describe("InitializationAnalyzer", () => {
       const tree = parse(code);
 
       // Set up TranspileState with C++ struct (not class)
-      state.symbolTable.addCppSymbol({
+      TestSymbolTable.of(state).addCppSymbol({
         name: "CppStruct",
         kind: "struct",
         sourceLanguage: ESourceLanguage.Cpp,
@@ -134,7 +129,7 @@ describe("InitializationAnalyzer", () => {
         span: TestSourceSpan.at(1),
         visibility: "public",
       });
-      state.symbolTable.addStructField("CppStruct", "value", "u32");
+      TestSymbolTable.of(state).addStructField("CppStruct", "value", "u32");
 
       // Build external struct fields from symbol table
       state.program = Program.build([], {
@@ -143,10 +138,7 @@ describe("InitializationAnalyzer", () => {
       });
 
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       // Should have NO errors - C++ structs also have default constructors
       expect(errors).toHaveLength(0);
@@ -162,7 +154,7 @@ describe("InitializationAnalyzer", () => {
       const tree = parse(code);
 
       // Set up TranspileState with C struct (not C++)
-      state.symbolTable.addCSymbol({
+      TestSymbolTable.of(state).addCSymbol({
         name: "CStruct",
         kind: "struct",
         sourceLanguage: ESourceLanguage.C,
@@ -171,7 +163,7 @@ describe("InitializationAnalyzer", () => {
         visibility: "public",
         isUnion: false,
       });
-      state.symbolTable.addStructField("CStruct", "value", "u32");
+      TestSymbolTable.of(state).addStructField("CStruct", "value", "u32");
 
       // Build external struct fields from symbol table (as pipeline does)
       state.program = Program.build([], {
@@ -180,10 +172,7 @@ describe("InitializationAnalyzer", () => {
       });
 
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       // SHOULD have an error - C structs don't have constructors
       expect(errors.length).toBeGreaterThan(0);
@@ -204,10 +193,7 @@ describe("InitializationAnalyzer", () => {
 
       // No symbol table passed - should still work
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       // Should have an error for uninitialized local struct
       expect(errors.length).toBeGreaterThan(0);
@@ -229,10 +215,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       expect(errors).toHaveLength(0);
     });
@@ -246,10 +229,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       expect(errors.length).toBeGreaterThan(0);
       expect(errors[0].code).toBe("E0381");
@@ -265,10 +245,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       expect(errors).toHaveLength(0);
     });
@@ -281,10 +258,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       expect(errors).toHaveLength(0);
     });
@@ -310,10 +284,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       // Both branches initialize x, so using x after if-else is safe
       expect(errors).toHaveLength(0);
@@ -332,10 +303,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       // Without else, x might not be initialized
       expect(errors.length).toBeGreaterThan(0);
@@ -361,10 +329,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       // Deterministic for-loop (0 to 4) will definitely run
       // so sum is guaranteed initialized
@@ -389,10 +354,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       // p.x initialized before loop, p.y initialized in deterministic loop
       // mergeInitializationState merges p.x from beforeState
@@ -415,13 +377,108 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       // x is assigned (write context) then read - no error
       expect(errors).toHaveLength(0);
+    });
+  });
+
+  // #1991: each place the walk of 1.2's syntax reads, in the order it runs
+  describe("every position 1.2 records", () => {
+    const found = (code: string) =>
+      new InitializationAnalyzer(contextFor(code))
+        .analyze(ProgramLowering.program(parse(code), null))
+        .map((e) => [e.code, e.variable, e.line]);
+
+    it("reads a do-while's condition after its body", () => {
+      expect(
+        found(
+          `void main() {\n  u32 x;\n  do {\n    x <- 1;\n  } while (x < 3);\n}`,
+        ),
+      ).toEqual([]);
+    });
+
+    it("counts a global as initialized", () => {
+      expect(found(`u32 g;\nvoid main() {\n  u32 y <- g;\n}`)).toEqual([]);
+    });
+
+    it("counts a write through a subscript for the whole variable", () => {
+      expect(
+        found(
+          `struct P {\n  u8 x;\n  u8 y;\n}\nvoid main() {\n  P p;\n  p.x[0] <- true;\n  u8 v <- p.y;\n}`,
+        ),
+      ).toEqual([]);
+    });
+
+    it("does not read an array for its .length", () => {
+      expect(
+        found(`void main() {\n  u8 arr[4];\n  u32 n <- arr.length;\n}`),
+      ).toEqual([]);
+    });
+
+    it("does not read an array for an element's .length", () => {
+      expect(
+        found(`void main() {\n  u8 grid[2][3];\n  u32 n <- grid[0].length;\n}`),
+      ).toEqual([]);
+    });
+
+    it("reads an assignment target's subscript", () => {
+      expect(
+        found(`void main() {\n  u8 x <- 0;\n  u8 i;\n  x[i] <- true;\n}`),
+      ).toEqual([["E0381", "i", 4]]);
+    });
+
+    it("reads a for loop's update", () => {
+      expect(
+        found(
+          `void main() {\n  u32 n;\n  for (u32 i <- 0; i < 3; i <- i + n) {\n  }\n}`,
+        ),
+      ).toEqual([["E0381", "n", 3]]);
+    });
+
+    it("reads a for loop's declaring init", () => {
+      expect(
+        found(
+          `void main() {\n  u32 n;\n  for (u32 i <- n; i < 3; i +<- 1) {\n  }\n}`,
+        ),
+      ).toEqual([["E0381", "n", 3]]);
+    });
+
+    it("reads a for loop's assigning init", () => {
+      expect(
+        found(
+          `void main() {\n  u32 n;\n  u32 i <- 0;\n  for (i <- n; i < 3; i +<- 1) {\n  }\n}`,
+        ),
+      ).toEqual([["E0381", "n", 4]]);
+    });
+
+    it("reads a scope member's initializer", () => {
+      expect(found(`scope S {\n  u8 count;\n  u8 limit <- count;\n}`)).toEqual([
+        ["E0381", "count", 3],
+      ]);
+    });
+
+    it("reads inside a parenthesized primary with ops", () => {
+      expect(
+        found(`void main() {\n  u8 x;\n  bool b <- (x + 1)[0];\n}`),
+      ).toEqual([["E0381", "x", 3]]);
+    });
+
+    it("reads a subscript's index", () => {
+      expect(
+        found(
+          `void main() {\n  u8 arr[4];\n  u8 i;\n  arr[0] <- 1;\n  u8 v <- arr[i];\n}`,
+        ),
+      ).toEqual([["E0381", "i", 5]]);
+    });
+
+    it("reads an else branch", () => {
+      expect(
+        found(
+          `void main() {\n  u8 x;\n  if (true) {\n  } else {\n    u8 y <- x;\n  }\n}`,
+        ),
+      ).toEqual([["E0381", "x", 5]]);
     });
   });
 
@@ -447,25 +504,9 @@ describe("InitializationAnalyzer", () => {
       const context = { ...real, program };
       expect(() =>
         new InitializationAnalyzer(context).analyze(
-          parse(code),
           ProgramLowering.program(parse(code), null),
         ),
       ).toThrow("1.4 frames every declaration in a function body ('x')");
-    });
-
-    it("fails loudly when the lowered program has no scope the tree declares", () => {
-      const code = `
-        scope S {
-          u32 count;
-        }
-      `;
-      const lowered = ProgramLowering.program(parse(code), null);
-      expect(() =>
-        new InitializationAnalyzer(contextFor(code)).analyze(parse(code), {
-          ...lowered,
-          declarations: [],
-        }),
-      ).toThrow("1.2 lowers every scope ('S')");
     });
   });
 
@@ -478,10 +519,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
       expect(errors).toHaveLength(0);
     });
   });
@@ -507,10 +545,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       expect(errors).toHaveLength(0);
     });
@@ -529,10 +564,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0381");
@@ -552,10 +584,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       expect(errors).toHaveLength(0);
     });
@@ -576,10 +605,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       expect(errors).toHaveLength(0);
     });
@@ -600,10 +626,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0381");
@@ -627,10 +650,7 @@ describe("InitializationAnalyzer", () => {
         cppMode: false,
       });
       const analyzer = new InitializationAnalyzer(context);
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       expect(errors).toHaveLength(0);
     });
@@ -655,10 +675,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0381");
@@ -683,10 +700,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0381");
@@ -706,10 +720,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       // forAssignment path: i already initialized, loop is deterministic (0 < 4)
       expect(errors).toHaveLength(0);
@@ -727,10 +738,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0381");
@@ -749,10 +757,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       // bound is 0, so loop never runs — non-deterministic
       expect(errors).toHaveLength(1);
@@ -773,10 +778,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       // forAssignment with non-zero init is non-deterministic, sum may not be set
       expect(errors).toHaveLength(1);
@@ -803,10 +805,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       expect(errors).toHaveLength(0);
     });
@@ -824,10 +823,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       expect(errors).toHaveLength(0);
     });
@@ -849,10 +845,7 @@ describe("InitializationAnalyzer", () => {
         cppMode: false,
       });
       const analyzer = new InitializationAnalyzer(context);
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       expect(errors).toHaveLength(0);
     });
@@ -872,10 +865,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0381");
@@ -891,10 +881,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       expect(errors).toHaveLength(0);
     });
@@ -921,10 +908,7 @@ describe("InitializationAnalyzer", () => {
         cppMode: false,
       });
       const analyzer = new InitializationAnalyzer(context);
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       expect(errors).toHaveLength(0);
     });
@@ -948,10 +932,7 @@ describe("InitializationAnalyzer", () => {
         cppMode: false,
       });
       const analyzer = new InitializationAnalyzer(context);
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       expect(errors).toHaveLength(0);
     });
@@ -968,10 +949,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       expect(errors).toHaveLength(0);
     });
@@ -991,10 +969,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0381");
@@ -1010,10 +985,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       expect(errors).toHaveLength(0);
     });
@@ -1031,10 +1003,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0381");
@@ -1054,10 +1023,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       expect(errors).toHaveLength(0);
     });
@@ -1085,10 +1051,7 @@ describe("InitializationAnalyzer", () => {
         `;
         const tree = parse(code);
         const analyzer = new InitializationAnalyzer(contextFor(code));
-        const errors = analyzer.analyze(
-          tree,
-          ProgramLowering.program(tree, null),
-        );
+        const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
         expect(errors.length).toBeGreaterThan(0);
         expect(errors[0].code).toBe("E0381");
@@ -1106,10 +1069,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       // Simple assignment initializes the variable, so no error
       expect(errors).toHaveLength(0);
@@ -1126,10 +1086,7 @@ describe("InitializationAnalyzer", () => {
         cppMode: false,
       });
       const analyzer = new InitializationAnalyzer(context);
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       // Array is uninitialized, reading arr[0] for compound assignment is an error
       expect(errors).toHaveLength(1);
@@ -1148,10 +1105,7 @@ describe("InitializationAnalyzer", () => {
         cppMode: false,
       });
       const analyzer = new InitializationAnalyzer(context);
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       expect(errors).toHaveLength(0);
     });
@@ -1184,10 +1138,7 @@ describe("InitializationAnalyzer", () => {
       const analyzer = new InitializationAnalyzer(
         contextFor(code, symbolTable),
       );
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       // C++ enums don't have constructors - should flag as uninitialized
       expect(errors).toHaveLength(1);
@@ -1213,10 +1164,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       expect(errors).toHaveLength(0);
     });
@@ -1237,10 +1185,7 @@ describe("InitializationAnalyzer", () => {
         cppMode: false,
       });
       const analyzer = new InitializationAnalyzer(context);
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       // value is assigned in init(), so get() can read it
       expect(errors).toHaveLength(0);
@@ -1258,10 +1203,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       // value is never assigned - should error
       expect(errors.length).toBeGreaterThan(0);
@@ -1291,10 +1233,7 @@ describe("InitializationAnalyzer", () => {
         cppMode: false,
       });
       const analyzer = new InitializationAnalyzer(context);
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       // count is assigned inside do-while in init()
       expect(errors).toHaveLength(0);
@@ -1320,10 +1259,7 @@ describe("InitializationAnalyzer", () => {
         cppMode: false,
       });
       const analyzer = new InitializationAnalyzer(context);
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       // value is assigned in if branch
       expect(errors).toHaveLength(0);
@@ -1349,10 +1285,7 @@ describe("InitializationAnalyzer", () => {
         cppMode: false,
       });
       const analyzer = new InitializationAnalyzer(context);
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       // total is assigned in for loop
       expect(errors).toHaveLength(0);
@@ -1372,10 +1305,7 @@ describe("InitializationAnalyzer", () => {
       `;
       const tree = parse(code);
       const analyzer = new InitializationAnalyzer(contextFor(code));
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       // data is assigned via this.data
       expect(errors).toHaveLength(0);
@@ -1402,10 +1332,7 @@ describe("InitializationAnalyzer", () => {
         cppMode: false,
       });
       const analyzer = new InitializationAnalyzer(context);
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       // result is assigned in switch cases
       expect(errors).toHaveLength(0);
@@ -1433,10 +1360,7 @@ describe("InitializationAnalyzer", () => {
         cppMode: false,
       });
       const analyzer = new InitializationAnalyzer(context);
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       // counter is assigned in while loop
       expect(errors).toHaveLength(0);
@@ -1463,10 +1387,7 @@ describe("InitializationAnalyzer", () => {
         cppMode: false,
       });
       const analyzer = new InitializationAnalyzer(context);
-      const errors = analyzer.analyze(
-        tree,
-        ProgramLowering.program(tree, null),
-      );
+      const errors = analyzer.analyze(ProgramLowering.program(tree, null));
 
       // result is assigned in default case
       expect(errors).toHaveLength(0);
@@ -1478,10 +1399,10 @@ describe("InitializationAnalyzer", () => {
 
   describe("ADR-029 defaults are not initialization (#1283, #1980)", () => {
     const errorsOf = (code: string) => {
-      const { tree, syntax, context } = testAnalysisContextFor(code, {
+      const { syntax, context } = testAnalysisContextFor(code, {
         cppMode: false,
       });
-      return new InitializationAnalyzer(context).analyze(tree, syntax);
+      return new InitializationAnalyzer(context).analyze(syntax);
     };
 
     const STAGE = `

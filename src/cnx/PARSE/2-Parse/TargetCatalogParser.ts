@@ -14,7 +14,7 @@
  */
 import CNextSourceParser from "./CNextSourceParser";
 import type * as Parser from "./grammar/CNextParser";
-import ExpressionUnwrapper from "../../utils/ExpressionUnwrapper";
+import ExpressionUnwrapper from "./ExpressionUnwrapper";
 import type ITargetCatalogEntry from "../../types/ITargetCatalogEntry";
 import type ITargetCatalogSource from "../../types/ITargetCatalogSource";
 import type TTargetFieldValue from "../../types/TTargetFieldValue";

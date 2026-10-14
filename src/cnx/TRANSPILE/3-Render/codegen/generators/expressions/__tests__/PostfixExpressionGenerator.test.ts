@@ -9,6 +9,9 @@
  * - Property access (.length, .capacity, .size)
  */
 
+import type IPlannedFloatBits from "../../../../../2-Plan/types/IPlannedFloatBits";
+import type IPlannedArgument from "../../../../../2-Plan/types/IPlannedArgument";
+import SymbolTable from "../../../../../../PARSE/3-Declare/SymbolTable";
 import type IProgram from "../../../../../../types/IProgram";
 import type IChainBase from "../../../../../../types/IChainBase";
 import type IOperandType from "../../../../../../types/IOperandType";
@@ -156,9 +159,6 @@ function createMockOrchestrator(overrides?: {
       (ctx: { expression: () => { getText: () => string }[] } | null) =>
         ctx?.expression().map((expression) => ({
           simpleIdentifier: expression.getText(),
-          expressionType: () => null,
-          isArray: () => false,
-          isHandleArrayElement: () => false,
           render: () => expression.getText(),
           renderByReference: () => `&${expression.getText()}`,
         })) ?? null,
@@ -193,8 +193,6 @@ function createMockOrchestrator(overrides?: {
     clearParameters: vi.fn(),
     setCurrentScope: vi.fn(),
     setCurrentFunctionName: vi.fn(),
-    getCurrentFunctionReturnType: vi.fn(),
-    setCurrentFunctionReturnType: vi.fn(),
     enterFunctionBody: vi.fn(),
     exitFunctionBody: vi.fn(),
     isMainFunctionWithArgs: vi.fn(),
@@ -260,7 +258,7 @@ function memberStep(
   after: IOperandType | null,
   property: string | null = null,
 ) {
-  return { before, subscript: null, after, property };
+  return { before, subscript: null, after, property, callee: null };
 }
 
 function createMockPostfixOp(options?: {
@@ -275,6 +273,9 @@ function createMockPostfixOp(options?: {
   argumentList?: { expression: () => { getText: () => string }[] } | null;
   /** The type of the value a call op calls -- `peek` for `h.onPeek(...)`. */
   calleeType?: string;
+  plannedArgument?: IPlannedArgument;
+  /** 2.2's decision for a float bit range read (ADR-007) */
+  floatBits?: IPlannedFloatBits;
 }): TPlannedPostfixOp {
   if (options?.identifier) {
     return {
@@ -282,6 +283,7 @@ function createMockPostfixOp(options?: {
       name: options.identifier,
       appliesToRoot: options.appliesToRoot ?? false,
       step: options.step ?? null,
+      narrowing: null,
     };
   }
 
@@ -298,7 +300,9 @@ function createMockPostfixOp(options?: {
         options?.typedAs ??
         (expressions.length === 2 ? "bit_range" : "array_element"),
       widthText: expressions[expressions.length - 1]?.getText(),
+      floatBits: options?.floatBits ?? null,
       step: null,
+      narrowing: null,
     } as TPlannedPostfixOp & { widthText?: string };
   }
 
@@ -313,13 +317,16 @@ function createMockPostfixOp(options?: {
       options?.argumentList?.expression().map((expression) => ({
         simpleIdentifier: expression.getText(),
         parameter: undefined,
-        declared: undefined,
-        expressionType: () => null,
-        isArray: () => false,
-        isHandleArrayElement: () => false,
         render: () => expression.getText(),
         renderByReference: () => `&${expression.getText()}`,
+        planned: options?.plannedArgument ?? {
+          passing: { param: undefined, mode: "c" as const },
+          form: null,
+          cForm: "as-written" as const,
+          enumCast: null,
+        },
       })) ?? null,
+    safeDivisionHelper: null,
   };
 }
 
@@ -444,6 +451,7 @@ function withPropertySteps(
               subscript: op.typedAs,
               after: current,
               property: null,
+              callee: null,
             },
           };
     }
@@ -513,6 +521,7 @@ describe("PostfixExpressionGenerator", () => {
     // Render runs against a program (#1668); `this.member` asks it whether
     // the member is a private const (#1739)
     sharedState.program = {
+      symbolTable: () => new SymbolTable(),
       symbolByCName: () => undefined,
       settledConstOf: () => null,
     } as unknown as IProgram;
@@ -766,6 +775,7 @@ describe("PostfixExpressionGenerator", () => {
         initialValueExpr: { kind: "binary" },
       };
       const program = {
+        symbolTable: () => new SymbolTable(),
         symbolByCName: (cName: string) =>
           cName === "Motor__MAX_SPEED" ? constSymbol : undefined,
         settledConstOf: (cName: string) =>
@@ -1535,6 +1545,7 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const ctx = createMockPostfixExpressionContext("f", [
         createMockPostfixOp({
+          floatBits: { floatType: "f32", shared: true },
           expressions: [createMockExpression("0"), createMockExpression("8")],
         }),
       ]);
@@ -1551,15 +1562,6 @@ describe("PostfixExpressionGenerator", () => {
       // Uses union member .u for bit access, not memcpy
       expect(result.code).toContain("__bits_f.u");
       expect(result.code).not.toContain("memcpy");
-      // No string.h needed for MISRA 21.15 compliance
-      expect(result.effects).not.toContainEqual({
-        type: "include",
-        header: "string",
-      });
-      expect(result.effects).toContainEqual({
-        type: "include",
-        header: "float_static_assert",
-      });
     });
 
     it("throws for float bit indexing at global scope", () => {
@@ -1576,6 +1578,7 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const ctx = createMockPostfixExpressionContext("f", [
         createMockPostfixOp({
+          floatBits: { floatType: "f32", shared: true },
           expressions: [createMockExpression("0"), createMockExpression("8")],
         }),
       ]);
@@ -1605,6 +1608,7 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const ctx = createMockPostfixExpressionContext("f", [
         createMockPostfixOp({
+          floatBits: { floatType: "f32", shared: true },
           expressions: [createMockExpression("0"), createMockExpression("8")],
         }),
       ]);
@@ -1633,6 +1637,7 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const ctx = createMockPostfixExpressionContext("d", [
         createMockPostfixOp({
+          floatBits: { floatType: "f64", shared: true },
           expressions: [
             createMockExpression("0"),
             createMockExpression("WIDTH"),
@@ -1676,18 +1681,17 @@ describe("PostfixExpressionGenerator", () => {
     });
 
     /**
-     * ADR-029: the call op carries the type of the value it calls, and a
-     * value of a callback type is called with that type's parameters -- here
-     * `peek`'s, whose struct parameter takes the argument by reference.
-     * Without the type the call has no parameters in view and the struct goes
-     * by value.
+     * ADR-029: a value of a callback type is called with that type's
+     * parameters -- here `peek`'s, whose struct parameter takes the argument
+     * by reference. 2.2 decides that (#1991); 2.3 writes the argument the way
+     * 2.2 planned it.
      */
-    it.each<[string, string | undefined, string]>([
-      ["a callback-typed field", "peek", "h.onPeek(&p)"],
-      ["an untyped callee", undefined, "h.onPeek(p)"],
+    it.each<[string, string | undefined, "c" | "reference", string]>([
+      ["a callback-typed field", "peek", "reference", "h.onPeek(&p)"],
+      ["an untyped callee", undefined, "c", "h.onPeek(p)"],
     ])(
       "calls %s with the parameters its type names",
-      (_l, calleeType, code) => {
+      (_l, calleeType, mode, code) => {
         const ctx = createMockPostfixExpressionContext("h", [
           createMockPostfixOp({ identifier: "onPeek" }),
           createMockPostfixOp({
@@ -1695,6 +1699,15 @@ describe("PostfixExpressionGenerator", () => {
               expression: () => [createMockExpression("p")],
             } as unknown as Parser.ArgumentListContext,
             calleeType,
+            plannedArgument: {
+              passing: {
+                param: mode === "c" ? undefined : { baseType: "Point" },
+                mode,
+              },
+              form: mode === "c" ? null : { kind: "identifier" },
+              cForm: mode === "c" ? "as-written" : null,
+              enumCast: null,
+            },
           }),
         ]);
         const input = {
@@ -2350,10 +2363,6 @@ describe("PostfixExpressionGenerator", () => {
 
       const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("strlen(str)");
-      expect(result.effects).toContainEqual({
-        type: "include",
-        header: "string",
-      });
     });
 
     it("throws error for non-string type", () => {

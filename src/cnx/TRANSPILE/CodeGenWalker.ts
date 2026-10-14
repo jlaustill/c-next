@@ -1,3 +1,8 @@
+import type IPlannedArgument from "./2-Plan/types/IPlannedArgument";
+import type TPlannedNarrowing from "./2-Plan/types/TPlannedNarrowing";
+import HeaderEmissionCapture from "./3-Render/headers/HeaderEmissionCapture";
+import type IHeaderEmissionFacts from "./3-Render/headers/types/IHeaderEmissionFacts";
+import type IRenderedSource from "./3-Render/codegen/types/IRenderedSource";
 /**
  * CodeGenWalker -- the walk over one file's plain-data `IProgramSyntax`
  * that drives code generation.
@@ -28,36 +33,23 @@
  */
 import type ISubstringOps from "./3-Render/codegen/types/ISubstringOps";
 import type IChainStep from "../types/IChainStep";
-import type EFileType from "../PARSE/1-Discover/types/EFileType";
 import type IStringConcatOps from "./3-Render/codegen/types/IStringConcatOps";
 import { basename } from "node:path";
-import CNextSourcePath from "../utils/CNextSourcePath";
 import CommentFormatter from "./3-Render/codegen/CommentFormatter";
 import PrivateConstValue from "./3-Render/codegen/PrivateConstValue";
 import type TChainRoot from "../types/TChainRoot";
 import type TValueBinding from "../types/TValueBinding";
 import IComment from "../types/IComment";
-import TYPE_MAP from "./3-Render/codegen/types/TYPE_MAP";
+import TYPE_MAP from "./2-Plan/types/TYPE_MAP";
 import TParameterInfo from "../types/TParameterInfo";
 import type IBoundParameter from "./types/IBoundParameter";
-import ICodeGeneratorOptions from "./3-Render/codegen/types/ICodeGeneratorOptions";
-import TypeValidator from "./3-Render/codegen/TypeValidator";
+import ICodeGeneratorOptions from "./types/ICodeGeneratorOptions";
+import TypeValidator from "./2-Plan/TypeValidator";
 import IGeneratorOutput from "./3-Render/codegen/generators/IGeneratorOutput";
-import EmissionPlan from "./2-Plan/EmissionPlan";
 import ComplianceAnnotations from "./2-Plan/ComplianceAnnotations";
 import emittedLocalName from "../utils/emittedLocalName";
-import DeclarationPlan from "./2-Plan/DeclarationPlan";
-import CastRequirement from "./2-Plan/CastRequirement";
 import OperandTyper from "../utils/OperandTyper";
-import CppNamespaceUtils from "../utils/CppNamespaceUtils";
-import headerCType from "../utils/headerCType";
-import PlanTyping from "./2-Plan/PlanTyping";
-import CompositeType from "../utils/CompositeType";
-import type IOperandType from "../types/IOperandType";
-import type TOverflowBehavior from "../types/TOverflowBehavior";
-import type TDeclarationKind from "../types/TDeclarationKind";
 import type IEmissionPlan from "../types/IEmissionPlan";
-import type IEmissionFacts from "../types/IEmissionFacts";
 import TGeneratorFn from "./3-Render/codegen/generators/TGeneratorFn";
 import generateLiteral from "./3-Render/codegen/generators/expressions/LiteralGenerator";
 import generateBinaryExpr from "./3-Render/codegen/generators/expressions/BinaryExprGenerator";
@@ -120,39 +112,34 @@ import scopeGenerator from "./3-Render/codegen/generators/declarationGenerators/
 import FormatUtils from "../utils/FormatUtils";
 import TypeCheckUtils from "../utils/TypeCheckUtils";
 import ExpressionShape from "../utils/ExpressionShape";
-import StatementChildren from "../utils/StatementChildren";
+import SafeDivision from "../utils/SafeDivision";
 import type IChainHead from "../types/IChainHead";
 import ExpressionCalls from "../utils/ExpressionCalls";
 import helperGenerators from "./3-Render/codegen/generators/support/HelperGenerator";
-import includeGenerators from "./3-Render/codegen/generators/support/IncludeGenerator";
+import includeGenerators from "./2-Plan/IncludeGenerator";
 import DeclaredTypeInfo from "../PARSE/3-Declare/DeclaredTypeInfo";
 import DeclaredPointer from "../utils/DeclaredPointer";
-import type IChainBase from "../types/IChainBase";
 import type TTypeInfo from "../types/TTypeInfo";
 import memberAccessChain from "./3-Render/codegen/memberAccessChain";
 import type IRootHolding from "./3-Render/codegen/types/IRootHolding";
 import AssignmentHandlerRegistry from "./3-Render/codegen/assignment/index";
 import AssignmentClassifier from "./2-Plan/AssignmentClassifier";
 import ForHeaderAssignment from "../utils/ForHeaderAssignment";
-import AssignmentOperatorMapper from "./3-Render/codegen/helpers/AssignmentOperatorMapper";
+import AssignmentOperatorMapper from "./2-Plan/AssignmentOperatorMapper";
 import buildAssignmentContext from "./2-Plan/AssignmentContextBuilder";
 import StringLengthCounter from "./2-Plan/StringLengthCounter";
-import CppModeHelper from "./3-Render/codegen/helpers/CppModeHelper";
+import CppModeHelper from "./2-Plan/CppModeHelper";
 import generateCast from "./3-Render/codegen/generators/expressions/CastExprGenerator";
-import type IPlannedCast from "./3-Render/codegen/types/IPlannedCast";
+import type IPlannedCast from "./2-Plan/types/IPlannedCast";
 import ConstExprLowering from "../utils/ConstExprLowering";
 import ElementCount from "../utils/ElementCount";
 import ConstantEvaluator from "../utils/ConstantEvaluator";
 import ConstantFold from "../utils/ConstantFold";
-import UNRESOLVED_DIMENSION from "../types/UNRESOLVED_DIMENSION";
 import dimensionEvalOptions from "./2-Plan/dimensionEvalOptions";
 import MemberChainAnalyzer from "./3-Render/codegen/analysis/MemberChainAnalyzer";
 import type IBitAccessAnalysis from "../types/IBitAccessAnalysis";
 import type TPlannedTargetOp from "../types/TPlannedTargetOp";
 import ArgumentGenerator from "./3-Render/codegen/helpers/ArgumentGenerator";
-import CppMemberHelper from "./2-Plan/CppMemberHelper";
-import IPostfixOp from "../types/IPostfixOp";
-import CppConstructorHelper from "../utils/CppConstructorHelper";
 import VariableDeclHelper from "./3-Render/codegen/helpers/VariableDeclHelper";
 import StringOperationsHelper from "./3-Render/codegen/helpers/StringOperationsHelper";
 import MemberSeparatorResolver from "./3-Render/codegen/helpers/MemberSeparatorResolver";
@@ -171,12 +158,17 @@ import type ISourcePosition from "../utils/types/ISourcePosition";
 import IMemberSeparatorDeps from "./3-Render/codegen/types/IMemberSeparatorDeps";
 import IParameterDereferenceDeps from "./3-Render/codegen/types/IParameterDereferenceDeps";
 import ISeparatorContext from "./3-Render/codegen/types/ISeparatorContext";
-import TypeGenerationHelper from "./3-Render/codegen/helpers/TypeGenerationHelper";
-import type IPlannedType from "./3-Render/codegen/types/IPlannedType";
+import TypeGenerationHelper from "./2-Plan/TypeGenerationHelper";
+import type IAnalyzedFile from "../types/IAnalyzedFile";
+import type IFilePlan from "./2-Plan/types/IFilePlan";
+import type IRenderLedger from "./3-Render/types/IRenderLedger";
 import type IPlannedParameter from "./3-Render/codegen/types/IPlannedParameter";
-import type IPlannedFunctionParameter from "./3-Render/codegen/types/IPlannedFunctionParameter";
+import type IPlannedFunctionParameter from "./2-Plan/types/IPlannedFunctionParameter";
 import FunctionContextManager from "./3-Render/codegen/helpers/FunctionContextManager";
 import BitRangeHelper from "./3-Render/codegen/helpers/BitRangeHelper";
+import type IPlannedType from "./2-Plan/types/IPlannedType";
+import CTypeIncludes from "./2-Plan/CTypeIncludes";
+import WrittenCTypes from "./3-Render/codegen/helpers/WrittenCTypes";
 import invariant from "../utils/invariant";
 import AdrProvenance from "../instrumentation/AdrProvenance";
 import PassByValueAnalyzer from "./2-Plan/PassByValueAnalyzer";
@@ -192,40 +184,20 @@ import QualifiedCName from "../utils/QualifiedCName";
 import ToolchainRequirementUtils from "../utils/ToolchainRequirementUtils";
 import MainSignature from "../utils/MainSignature";
 import ScopeUtils from "../utils/ScopeUtils";
-import TypeNameLadder from "../utils/TypeNameLadder";
-import type ITargetDescription from "../types/ITargetDescription";
-import SymbolTypeResolver from "../utils/TypeResolver";
-import ESourceLanguage from "../utils/types/ESourceLanguage";
-import SymbolGuards from "../types/symbols/SymbolGuards";
-import type IFunctionSymbol from "../types/symbols/IFunctionSymbol";
-import type TSymbol from "../types/symbols/TSymbol";
-import type ICallbackTypeInfo from "../types/ICallbackTypeInfo";
-
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
   generateSafeDivHelpers: helperGenerateSafeDivHelpers,
 } = helperGenerators;
 
-const {
-  transformIncludeDirective: includeTransformIncludeDirective,
-  processPreprocessorDirective: includeProcessPreprocessorDirective,
-} = includeGenerators;
-
-interface FunctionSignature {
-  name: string;
-  parameters: Array<{
-    name: string;
-    baseType: string; // The C-Next type (e.g., 'u32', 'f32')
-    isConst: boolean;
-    isArray: boolean;
-  }>;
-}
+const { processPreprocessorDirective: includeProcessPreprocessorDirective } =
+  includeGenerators;
 import CodeGenerator from "./3-Render/codegen/CodeGenerator";
-import ToolchainRequirements from "../instrumentation/ToolchainRequirements";
-import type TranspileState from "./TranspileState";
-
+import FilePlanner from "./2-Plan/FilePlanner";
 /** What render folds a constant chain at: wide enough to hold any i64 */
 const WIDEST_SIGNED = "i64";
+
+/** A syntax node a render-time check can name the line of */
+type TSpanned = { readonly span: { readonly line: number } };
 
 class CodeGenWalker {
   /**
@@ -238,24 +210,51 @@ class CodeGenWalker {
    */
   private readonly host: CodeGenerator;
 
-  /**
-   * 2.3 Render's per-file state, for callers that hold the WALKER (#1452 box 4).
-   *
-   * An accessor rather than widening `host`, so `Transpiler` reaches the state
-   * without reaching `CodeGenerator`. It was described as narrow on the grounds
-   * that `Transpiler` needed one flag off it (ADR-040's ISR typedef); it names
-   * `transpileState` 45 times, so what it is narrow about is the OBJECT
-   * exposed, not the number of reads.
-   *
-   * The walk itself does not go through here -- it holds `this.host` directly
-   * and spells the state `this.host.state`.
-   */
-  get transpileState(): TranspileState {
-    return this.host.state;
+  /** The render in progress, set only while `render` runs */
+  private renderingOrNull: IRenderLedger | null = null;
+
+  /** The plan 2.3 renders from; asking outside `render` is a bug */
+  private get filePlan(): IFilePlan {
+    return this.rendering.plan;
   }
+
+  /** What 2.3 has rendered of the plan so far; asking outside `render` is a bug */
+  private get rendering(): IRenderLedger {
+    invariant(
+      this.renderingOrNull,
+      "2.3 reads 2.2's plan only while rendering the file it was made for",
+    );
+    return this.renderingOrNull;
+  }
+
+  private readonly planner: FilePlanner;
 
   constructor(host: CodeGenerator = new CodeGenerator()) {
     this.host = host;
+    this.planner = new FilePlanner(host.state);
+  }
+
+  /**
+   * 2.2 Plan: every decision 2.3 Render reads for this file, made before any
+   * of it is written. `render` takes what this returns (#1991).
+   */
+  plan(file: IAnalyzedFile, options: ICodeGeneratorOptions): IFilePlan {
+    const state = this.host.state;
+    const inputs = FilePlanner.planInputs(options);
+    state.beginPlan(inputs, this.host);
+    AdrProvenance.beginFile(inputs.sourcePath);
+    // ADR-029: every function-as-type this file can see, before anything can
+    // reference one
+    const callbackTypes = this.planner.planCallbackTypes();
+    state.useCallbackTypes(callbackTypes);
+    state.useFunctionCatalog(
+      this.planner.functionCatalog(file.program, callbackTypes),
+    );
+    return this.planner.plan(file, options);
+  }
+
+  private typeNameOf(type: TTypeSyntax): string {
+    return this.plannedType(type).writtenName;
   }
 
   /**
@@ -367,60 +366,19 @@ class CodeGenWalker {
     };
   }
 
-  private renderType(type: TTypeSyntax): string {
-    const plan = this.planType(type);
-
-    // Track required includes based on type usage
-    const requiredInclude = TypeGenerationHelper.getRequiredInclude(plan);
-    if (requiredInclude) {
-      this.host.state.requireInclude(requiredInclude);
-    }
-
-    const cType = TypeGenerationHelper.generate(plan, {
-      checkNeedsStructKeyword: (name) =>
-        this.host.state.symbolTable.checkNeedsStructKeyword(name),
-      isCrossFileDeclaration: (name) =>
-        this.host.state.isCrossFileDeclaration(name),
-    });
-    // #1927: the plan decides `<stdint.h>` / `<stdbool.h>` from this spelling.
-    this.host.state.emittedCTypes.add(cType);
-    return cType;
+  private plannedType(type: TTypeSyntax): IPlannedType {
+    const plan = this.filePlan.types.get(type);
+    invariant(
+      plan !== undefined,
+      `2.2 planned every type 2.3 renders (got "${type.text}" at line ${type.span.line})`,
+    );
+    return plan;
   }
 
-  /**
-   * A type context reduced to what the renderer asks of it (#1445).
-   *
-   * The named branches come from `TypeNameLadder` -- the one ladder --
-   * rather than from a second walk here, which is what `TypeGenerationHelper`
-   * used to do. `typeBindingDeps` supplies the same two predicates that helper
-   * was handed: ADR-057's scope-type test, and this generator's C++-aware
-   * `Scope.Type` resolver.
-   *
-   * An array's alternatives describe its ELEMENT, so the classification is
-   * taken from `arrayType()` when there is one. `primitiveName` and `isString`
-   * follow the same accessors, and `isArray` is carried because
-   * `getRequiredInclude` asks a narrower question than `generate` does -- see
-   * its comment.
-   */
-  private planType(type: TTypeSyntax): IPlannedType {
-    const element = type.kind === "array" ? type.element : type;
-    const deps = this.host.state.typeBindingDeps((identifiers) =>
-      this.resolveQualifiedType(identifiers),
-    );
-
-    return {
-      named: TypeNameLadder.classifyNamed(
-        element,
-        this.host.state.currentScopePath,
-        deps,
-      ),
-      isString: element.kind === "string",
-      stringTypeText: element.kind === "string" ? element.text : undefined,
-      primitiveName: element.kind === "primitive" ? element.text : null,
-      isArray: type.kind === "array",
-      userTypeLine: element.kind === "user" ? element.span.line : undefined,
-      text: type.text,
-    };
+  private renderType(type: TTypeSyntax): string {
+    const cType = this.planner.cTypeOf(this.plannedType(type));
+    this.rendering.types.add(type);
+    return cType;
   }
 
   /**
@@ -433,16 +391,21 @@ class CodeGenWalker {
       return this.invokeGenerator(generateUnaryExpr, {
         operator: null,
         operandCode: this.renderPostfix(expr),
-        operandType: () => null,
+        minimum: null,
+        complementCast: null,
       });
     }
 
     const operand = expr.operand;
+    const minimum = this.filePlan.negativeMinimums.get(expr) ?? null;
+    if (minimum !== null) this.rendering.minimums.add(expr);
+    const complementCast = this.filePlan.complementCasts.get(expr) ?? null;
+    if (complementCast !== null) this.rendering.complementCasts.add(expr);
     return this.invokeGenerator(generateUnaryExpr, {
       operator: expr.operator,
       operandCode: this.renderUnary(operand),
-      // lazy: only `~` consults it
-      operandType: () => this.directTypeOf(operand),
+      minimum,
+      complementCast,
     });
   }
 
@@ -525,14 +488,20 @@ class CodeGenWalker {
     const steps = chain.steps;
     const offset = head.opsConsumed;
     const plannedOps = ops.map((op, i) =>
-      this.planPostfixOp(op, steps[i - offset] ?? null, head.rootOp),
+      this.planPostfixOp(
+        op,
+        steps[i - offset] ?? null,
+        head.rootOp,
+        this.plannedNarrowings(expr).get(i - offset) ?? null,
+        this.filePlan.safeDivisions.get(expr) ?? null,
+      ),
     );
 
     return {
       rootIdentifier,
       rootParameter:
         rootIdentifier && head.identifier
-          ? this.host.state.parameterAt(rootIdentifier, {
+          ? this.planner.parameterAt(rootIdentifier, {
               line: head.identifier.span.line,
               column: head.identifier.span.column,
             })
@@ -569,6 +538,8 @@ class CodeGenWalker {
     op: TPostfixOpSyntax,
     step: IChainStep | null,
     rootOp: TPostfixOpSyntax | null,
+    narrowing: TPlannedNarrowing | null,
+    safeDivisionHelper: string | null,
   ): TPlannedPostfixOp {
     const typedAs = step?.subscript ?? null;
     switch (op.kind) {
@@ -578,6 +549,7 @@ class CodeGenWalker {
           name: op.name,
           appliesToRoot: op === rootOp,
           step,
+          narrowing,
         };
       case "subscript": {
         const indexes = op.indexes;
@@ -594,9 +566,13 @@ class CodeGenWalker {
           renderIndexes: () =>
             indexes.map((index) => this.renderExpression(index)),
           foldWidth: () =>
-            widthExpr === undefined ? undefined : this.constantOf(widthExpr),
+            widthExpr === undefined
+              ? undefined
+              : this.planner.constantOf(widthExpr),
           typedAs,
           step,
+          floatBits: this.filePlan.floatBitReads.get(op) ?? null,
+          narrowing,
         };
       }
       case "call": {
@@ -613,6 +589,7 @@ class CodeGenWalker {
           calleeType: () => step?.before?.typeName ?? null,
           planArguments: () =>
             this.planCallArguments(args.length === 0 ? null : args),
+          safeDivisionHelper,
         };
       }
       case "missing":
@@ -624,6 +601,15 @@ class CodeGenWalker {
   }
 
   private renderPostfix(expr: TExpression): string {
+    return this.againstPlannedType(expr, () => this.writePostfix(expr));
+  }
+
+  private writePostfix(expr: TExpression): string {
+    invariant(
+      SafeDivision.callOf(expr) === null ||
+        this.filePlan.safeDivisions.has(expr),
+      "2.2 planned every safe-division helper 2.3 calls (ADR-051)",
+    );
     const result = generatePostfixExpression(
       this.planPostfixExpression(expr),
       this.host.getInput(),
@@ -641,12 +627,9 @@ class CodeGenWalker {
    * operator run (#1932), so a plan is only as deep as the expression's
    * operator nesting, and a non-binary operand is a leaf.
    *
-   * Every operand is a thunk that re-enters the planner one level down. That
-   * laziness is in the PLANNER and not merely in a top-level thunk, because
-   * `withoutExpectedType` is a dynamic scope over the whole operand subtree:
-   * an operand nested any distance under a comparison must render inside the
-   * window the renderer opens, and anything rendered at plan time renders
-   * outside it (#1032).
+   * Every operand is a thunk that re-enters the planner one level down, so
+   * each renders when the renderer writes it, against the type 2.2 planned
+   * for it -- none, under a comparison (#1032, #1991).
    */
   private planBinaryExpr(expr: TExpression): TPlannedBinaryExpr {
     if (expr.kind !== "binary") {
@@ -669,9 +652,12 @@ class CodeGenWalker {
       case "bitwiseAnd":
         return { kind: "join", separator: " & ", renderOperands };
       case "equality": {
-        const isStrcmp =
-          this.isStringExpression(operands[0]) ||
-          this.isStringExpression(operands[1]);
+        const isStrcmp = this.filePlan.comparisons.get(expr);
+        invariant(
+          isStrcmp !== undefined,
+          `2.2 planned every comparison 2.3 renders (got line ${expr.span.line})`,
+        );
+        this.rendering.comparisons.add(expr);
         return {
           kind: "comparison",
           defaultOperator: "=",
@@ -701,8 +687,12 @@ class CodeGenWalker {
           constantValue: this.constantValue(expr),
           defaultOperator: expr.level === "additive" ? "+" : "*",
           operators,
-          clampType: () => this.compositeClampType(expr),
-          clampBehavior: () => this.compositeClampBehavior(expr),
+          clamp: CodeGenWalker.plannedAt(
+            this.filePlan.clampChains,
+            expr,
+            this.rendering.clampChains,
+            "`+ - *` chain",
+          ),
           adrLine: expr.span.line,
           renderOperands,
         };
@@ -741,7 +731,7 @@ class CodeGenWalker {
   private constantValue(expr: TExpression): string | null {
     const result = ConstantEvaluator.evaluate(
       ConstExprLowering.lower(expr),
-      dimensionEvalOptions(this.transpileState),
+      dimensionEvalOptions(this.planner.transpileState),
       WIDEST_SIGNED,
     );
     const value =
@@ -749,23 +739,6 @@ class CodeGenWalker {
         ? ConstantEvaluator.toNumber(result.value)
         : undefined;
     return value === undefined ? null : String(value);
-  }
-
-  /**
-   * #1668 (C6b): a composite's integer type, as the typer settled it -- the
-   * answer 2.1's E0869 reads too -- so the clamp helper's width and the
-   * conversion check cannot count a different set of operands
-   */
-  private compositeClampType(expr: TExpression): string | null {
-    const t = OperandTyper.typeOf(expr, this.host.state.typingContext());
-    return t?.bitWidth === null ? null : (t?.typeName ?? null);
-  }
-
-  /** #1668 (C6b): ADR-044's behavior for a composite, PlanTyping's row */
-  private compositeClampBehavior(expr: TExpression): TOverflowBehavior | null {
-    return PlanTyping.overflowOf(
-      OperandTyper.valueLeaves(expr, this.host.state.typingContext()),
-    );
   }
 
   private renderBinary(expr: TExpression): string {
@@ -778,35 +751,19 @@ class CodeGenWalker {
   }
 
   /**
-   * Check if an expression is a string type.
-   * ADR-045: Used to detect string comparisons and generate strcmp().
-   * Issue #137: Extended to handle array element access (e.g., names[0])
-   * Issue #1030: Extended to handle struct member access (e.g., person.name)
-   */
-  private isStringExpression(expr: TExpression): boolean {
-    if (ExpressionShape.isStringLiteral(expr)) {
-      return true;
-    }
-
-    return OperandTyper.isString(
-      OperandTyper.typeOf(expr, this.host.state.typingContext()),
-    );
-  }
-
-  private static positionOf(expr: TExpression): ISourcePosition {
-    return { line: expr.span.line, column: expr.span.column };
-  }
-
-  /**
    * Generate function argument with pass-by-reference handling.
    * Part of IOrchestrator interface - delegates to ArgumentGenerator.
    */
   private generateFunctionArg(
     expr: TExpression,
-    targetParamBaseType?: string,
+    planned: IPlannedArgument,
   ): string {
-    const simpleId = this.boundArgumentName(expr);
-    const declared = this.nameTypeOf(expr);
+    invariant(
+      planned.form !== null,
+      "2.2 planned the form of every argument 2.3 passes by reference",
+    );
+    const simpleId = this.planner.boundArgumentName(expr);
+    const declared = this.planner.nameTypeOf(expr);
     // #1445: thunks closing over `ctx`. `ArgumentGenerator` never read a
     // member off the node -- it threaded it through five callbacks and four
     // private helpers only to hand it back -- so the node stays here, where
@@ -814,37 +771,10 @@ class CodeGenWalker {
     return ArgumentGenerator.generateArg(
       simpleId,
       declared,
-      targetParamBaseType,
-      {
-        generateExpression: () => this.renderExpression(expr),
-        getLvalueType: () => this.getLvalueType(expr),
-        getMemberAccessArrayStatus: () => this.getMemberAccessArrayStatus(expr),
-        isCppMemberConversionRequired: (t) =>
-          this.isCppMemberConversionRequired(expr, t),
-        isStringSubscriptAccess: () => this.isStringSubscriptAccess(expr),
-      },
+      planned.form,
+      { generateExpression: () => this.renderExpression(expr) },
       this.host.state,
     );
-  }
-
-  /**
-   * A bare-name argument as written, and the C name the one binder gives it
-   * (#1760 review): the same answer a read and an assignment target take,
-   * through `TypeValidator.resolveBareIdentifier`.
-   */
-  private boundArgumentName(expr: TExpression): {
-    readonly emitted: string;
-    readonly parameter: TParameterInfo | undefined;
-  } | null {
-    const id = ExpressionShape.simpleIdentifier(expr);
-    if (id === null) return null;
-    return {
-      emitted: this.boundName(id, CodeGenWalker.positionOf(expr)),
-      parameter: this.host.state.parameterAt(
-        id,
-        CodeGenWalker.positionOf(expr),
-      ),
-    };
   }
 
   /** #1969: the parameter a bare-name expression binds to, where it is */
@@ -852,85 +782,7 @@ class CodeGenWalker {
     const id = ExpressionShape.simpleIdentifier(expr);
     return id === null
       ? undefined
-      : this.host.state.parameterAt(id, CodeGenWalker.positionOf(expr));
-  }
-
-  /** The C name a bare identifier at `at` is emitted under (ADR-057) */
-  private boundName(id: string, at: ISourcePosition): string {
-    return (
-      TypeValidator.resolveBareIdentifier(
-        id,
-        at,
-        (name: string) => this.host.isKnownStruct(name),
-        this.host.state,
-      ) ?? id
-    );
-  }
-
-  /**
-   * #1668 (C7): the declared type of what an expression NAMES -- a variable
-   * spelled bare, `this.x`, `global.x` or `Scope.x`, with nothing applied to
-   * it -- and undefined for anything else. The registry reads this replaces
-   * were keyed by an argument's rendered text, which only ever matched a
-   * name's.
-   */
-  private nameTypeOf(expr: TExpression): TTypeInfo | undefined {
-    const typing = this.host.state.typingContext();
-    if (ExpressionShape.postfixView(expr) === null) return undefined;
-    const chain = OperandTyper.chainOf(expr, typing);
-    if (chain.steps.length !== DeclaredTypeInfo.nameSteps(chain)) {
-      return undefined;
-    }
-    return DeclaredTypeInfo.ofChain(
-      chain,
-      typing.symbols,
-      this.host.state.symbolTable,
-      this.host.state.targetDescription,
-    ).typeInfo;
-  }
-
-  /**
-   * ADR-030 / #996: whether an argument is one element of an array held
-   * through pointers -- `handles[i]` of a `Dev[4] handles`, however the array
-   * is named: bare, `this.`, `global.`, or `Scope.` from outside the scope.
-   * The array's own declaration says so (`isPointer` on an array of handles,
-   * from `DeclaredPointer`), for a parameter, a file-scope, local or scope
-   * variable, and one declared in an included file alike.
-   */
-  private isHandleArrayElement(expr: TExpression): boolean {
-    const typing = this.host.state.typingContext();
-    if (ExpressionShape.postfixView(expr) === null) return false;
-    const chain = OperandTyper.chainOf(expr, typing);
-    const subscript = chain.steps[DeclaredTypeInfo.nameSteps(chain)];
-    if (subscript?.subscript !== "array_element") return false;
-    const array = DeclaredTypeInfo.ofChain(
-      chain,
-      typing.symbols,
-      this.host.state.symbolTable,
-      this.host.state.targetDescription,
-    ).typeInfo;
-    return (array?.isArray ?? false) && (array?.isPointer ?? false);
-  }
-
-  /** #1668 (C6c): an expression's one type for 2.2, PlanTyping's row */
-  private directTypeOf(expr: TExpression): string | null {
-    return PlanTyping.directTypeName(
-      OperandTyper.typeOf(expr, this.host.state.typingContext()),
-    );
-  }
-
-  /**
-   * The integer type an expression converts from: its one type, or a
-   * composite's integer type -- the answer 2.1's E0869 reads
-   */
-  private integerTypeOf(expr: TExpression): string | null {
-    return this.directTypeOf(expr) ?? this.compositeClampType(expr);
-  }
-
-  /** Whether any value leaf is floating, or indeterminate (CompositeType) */
-  private hasFloatingLeaf(expr: TExpression): boolean {
-    const typing = this.host.state.typingContext();
-    return CompositeType.anyFloating(OperandTyper.valueLeaves(expr, typing));
+      : this.planner.parameterAt(id, FilePlanner.positionOf(expr));
   }
 
   private renderBlock(block: Pick<TBlockSyntax, "statements">): string {
@@ -1036,7 +888,6 @@ class CodeGenWalker {
         // applied, and effect order is unchanged.
         return this.invokeGenerator(generateCriticalStatement, {
           blockCode: this.renderBlock(statement.body),
-          line: statement.span.line,
         });
       case "block":
         return this.renderBlock(statement);
@@ -1144,7 +995,7 @@ class CodeGenWalker {
       parameter?.info,
       hasGlobal,
       hasThis,
-      this.targetDeclaration(ctx).rootTypeInfo,
+      this.planner.targetDeclaration(ctx).rootTypeInfo,
     );
 
     return PostfixChainBuilder.build(
@@ -1162,34 +1013,6 @@ class CodeGenWalker {
       .join(", ");
   }
 
-  private typeNameOf(type: TTypeSyntax): string {
-    // #1285: one ladder. This was the largest of seven copies, and the only one
-    // that handled `arrayType` by peeking at two of its six element
-    // alternatives -- TypeNameLadder recurses into all of them.
-    const resolved = TypeNameLadder.resolveWrittenName(
-      type,
-      this.host.state.currentScopePath,
-      this.host.state.typeBindingDeps((identifiers) =>
-        this.resolveQualifiedType(identifiers),
-      ),
-    );
-    // #1508: the other half of ADR-010's promise. A cross-file declaration is
-    // reached two ways -- it is CALLED, which the postfix generator records, or
-    // its TYPE is named, which is this. A global variable cannot call anything
-    // at file scope, so without this site the `global variable` contexts would
-    // be permanently unoccupiable and would have had to be declared `off` --
-    // recording a claim that an included type cannot be used for a global,
-    // which is false.
-    //
-    // Both sites are one mechanism (provenance at the point of resolution), not
-    // the two the matrix guidance warns against mixing: neither depends on a
-    // diagnostic, and a fixture is credited once per position either way.
-    if (resolved !== null && this.host.state.isCrossFileDeclaration(resolved)) {
-      AdrProvenance.record("010", type.span.line);
-    }
-    return resolved ?? type.text;
-  }
-
   /**
    * #1283: the ADR-029 default of a declaration of a struct (or an array of
    * one), or null when that struct's default is all zero. The dimensions are
@@ -1200,8 +1023,7 @@ class CodeGenWalker {
     type: TTypeSyntax,
     nameDimensions: ReadonlyArray<TExpression | null>,
   ): string | null {
-    const element = type.kind === "array" ? type.element : type;
-    const resolved = this.namedTypeOf(element);
+    const resolved = this.namedTypeOf(type, true);
     if (!resolved) {
       return null;
     }
@@ -1209,12 +1031,12 @@ class CodeGenWalker {
       ...(type.kind === "array" ? type.dimensions : []),
       ...nameDimensions,
     ];
-    const typing = this.transpileState.typingContext();
+    const typing = this.planner.transpileState.typingContext();
     return this.host.renderStructDefault(
       resolved.name,
       written.map((size) =>
         size
-          ? (this.constantOf(size) ??
+          ? (this.planner.constantOf(size) ??
             ElementCount.of(
               ConstExprLowering.lower(size),
               typing.program,
@@ -1223,15 +1045,6 @@ class CodeGenWalker {
           : null,
       ),
     );
-  }
-
-  /** Try to evaluate a constant expression at compile time */
-  tryEvaluateConstant(expr: TExpression): number | undefined {
-    // Issue #1127: the shared builder, not a fourth inline copy of the same
-    // three lookups. This is the orchestrator entry point that
-    // ArrayDimensionUtils uses to emit declaration dimensions, so it is on the
-    // hot path for exactly the divergences this work closes.
-    return this.constantOf(expr);
   }
 
   /**
@@ -1299,7 +1112,17 @@ class CodeGenWalker {
   planFunctionParameters(
     params: readonly IParameterSyntax[] | null,
   ): readonly IPlannedFunctionParameter[] | null {
-    return params?.map((param) => this.planFunctionParameter(param)) ?? null;
+    return params?.map((param) => this.plannedParameter(param)) ?? null;
+  }
+
+  /** 2.2's plan for a parameter (#1991 review: never re-planned at render) */
+  private plannedParameter(param: IParameterSyntax): IPlannedFunctionParameter {
+    const planned = this.filePlan.functionParameters.get(param);
+    invariant(
+      planned !== undefined,
+      `2.2 planned every parameter 2.3 renders ('${param.name}' at line ${param.nameSpan.line})`,
+    );
+    return planned;
   }
 
   /**
@@ -1394,7 +1217,26 @@ class CodeGenWalker {
    * Generate a primary expression.
    * Part of IOrchestrator interface for PostfixExpressionGenerator.
    */
+
+  /** 2.3 writes each value against the type 2.2 planned for it (#1991) */
+  private againstPlannedType<T>(expr: TExpression, write: () => T): T {
+    const planned = this.filePlan.expectedTypes.get(expr);
+    invariant(
+      planned !== undefined,
+      `2.2 planned the type of the value on line ${expr.span.line} that 2.3 writes`,
+    );
+    return this.host.state.withPlannedExpectedType(
+      planned.type,
+      planned.suppressBareEnumResolution,
+      write,
+    );
+  }
+
   private renderPrimary(expr: TExpression): string {
+    return this.againstPlannedType(expr, () => this.writePrimary(expr));
+  }
+
+  private writePrimary(expr: TExpression): string {
     switch (expr.kind) {
       case "sizeof":
         return this.generateSizeofExpr(expr);
@@ -1411,10 +1253,13 @@ class CodeGenWalker {
       case "identifier":
         return this._resolveIdentifierExpression(
           expr.name,
-          CodeGenWalker.positionOf(expr),
+          FilePlanner.positionOf(expr),
         );
       case "literal":
-        return this._generateLiteralExpression(expr.text);
+        return this._generateLiteralExpression(
+          expr.text,
+          this.plannedNarrowings(expr).get(0) ?? null,
+        );
       case "parenthesized":
         return `(${this.renderExpression(expr.expression)})`;
       default:
@@ -1466,214 +1311,216 @@ class CodeGenWalker {
     };
   }
 
+  /** 2.3 Render: the file's C, written from 2.2's plan (#1991) */
+  render(plan: IFilePlan): IRenderedSource {
+    this.renderingOrNull = {
+      plan,
+      types: new Set(),
+      comparisons: new Set(),
+      casts: new Set(),
+      minimums: new Set(),
+      complementCasts: new Set(),
+      structInitializers: new Set(),
+      narrowings: new Set(),
+      clampChains: new Set(),
+      floatBitWrites: new Set(),
+      compoundClamps: new Set(),
+      atomicForms: new Set(),
+    };
+    this.planner.useParameters(plan.setup.parameters);
+    // #1928: the banner and the file result read the planned blocks'
+    // requirements off the plan itself, so nothing copies them anywhere. Held
+    // from here, so anything 2.3 asks to require is a decision 2.2 missed.
+    this.host.state.beginRender(plan.setup, plan.emission);
+    this.host.state.generator = this.host;
+    try {
+      const code = this.assembleGeneratedOutput(plan);
+      CodeGenWalker.assertHeadersPlanned(code, plan.cTypes);
+      return {
+        code,
+        headerFacts: this.captureHeader(plan),
+        requirements: this.host.getToolchainRequirements(),
+      };
+    } finally {
+      this.renderingOrNull = null;
+    }
+  }
+
   /**
-   * Issue #517: Check if a type is a C++ class with a user-defined constructor.
-   * C++ classes with user-defined constructors are NOT aggregate types,
-   * so designated initializers { .field = value } don't work with them.
-   * We check for the existence of a constructor symbol (TypeName::ClassName).
+   * Every `<stdint.h>`/`<stdbool.h>` type the file's C spells needs only the
+   * headers 2.2 planned from its C types (#1991)
    */
-  private _isCppClassWithConstructor(typeName: string): boolean {
-    return CppConstructorHelper.hasConstructor(
-      typeName,
-      this.host.state.symbolTable,
+  private static assertHeadersPlanned(
+    code: string,
+    planned: ReadonlySet<string>,
+  ): void {
+    const plannedHeaders = new Set(CTypeIncludes.decide(planned));
+    const missing = CTypeIncludes.decide(WrittenCTypes.of(code)).filter(
+      (header) => !plannedHeaders.has(header),
+    );
+    invariant(
+      missing.length === 0,
+      `2.2 planned the headers of every C type 2.3 writes (missing ${missing.join(", ")})`,
     );
   }
 
   /**
-   * Issue #388: Resolve a qualified type from dot notation to the correct output format.
-   * For C++ namespace types (like MockLib.Parse.ParseResult), uses :: separator.
-   * For C-Next scope types (like Motor.State), uses _ separator.
-   *
-   * @param identifiers Array of identifier names forming the qualified type
-   * @returns The resolved type name with appropriate separator
+   * 2.2's decision at a site 2.3 renders, null where it decided there is
+   * nothing to write: a site 2.2's walk never reached fails here instead of
+   * losing its cast or clamp
    */
-  private resolveQualifiedType(identifiers: string[]): string {
-    if (identifiers.length === 0) {
-      return "";
-    }
-
-    const firstName = identifiers[0];
-
-    // Check if the first identifier is a C++ scope symbol (namespace, class, enum)
-    if (this.host.isCppScopeSymbol(firstName)) {
-      // C++ namespace type: join all parts with ::
-      return identifiers.join("::");
-    }
-
-    // C-Next scope type: join all parts with _
-    return QualifiedCName.fromParts(identifiers);
+  private static plannedAt<K extends TSpanned, V>(
+    planned: ReadonlyMap<K, V | null>,
+    site: K,
+    rendered: Set<K>,
+    what: string,
+  ): V | null {
+    const decision = planned.get(site);
+    invariant(
+      decision !== undefined,
+      `2.2 considered every ${what} 2.3 renders (got line ${site.span.line})`,
+    );
+    rendered.add(site);
+    return decision;
   }
 
-  /**
-   * Generate C code from a C-Next program
-   * @param program The file as plain data, lowered by 1.2 (#1932)
-   * @param options Code generator options; `symbolInfo` and the target are required
-   */
-  generate(program: IProgramSyntax, options: ICodeGeneratorOptions): string {
-    // ADR-049: the target is decided before codegen, by the orchestrator;
-    // this walk only reads it.
-
-    // Reset state for fresh generation (must be before any state assignments)
-    this.resetGeneratorState(options.targetDescription);
-
-    // Initialize options and configuration (after reset)
-    this.initializeGenerateOptions(options);
-
-    // ADR-055: Use pre-collected symbolInfo from Pipeline (TSymbolInfoAdapter)
-    this.host.state.symbols = options.symbolInfo;
-
-    // ADR-029: register every function-as-type this file can see BEFORE
-    // anything can reference one. Must run after `symbols` is set.
-    this.registerCallbackTypes();
-
-    // Initialize symbol data
-    this.initializeSymbolData();
-
-    // Initialize all helper objects
-    this.initializeHelperObjects(program);
-
-    // Assemble and return the output
-    return this.assembleGeneratedOutput(program, options);
+  /** MISRA 10.3: the promoted reads 2.2 planned in a value 2.3 renders */
+  private plannedNarrowings(
+    expr: TExpression,
+  ): ReadonlyMap<number, TPlannedNarrowing> {
+    const steps = CodeGenWalker.plannedAt(
+      this.filePlan.narrowings,
+      expr,
+      this.rendering.narrowings,
+      "postfix or literal value",
+    );
+    invariant(steps !== null, "2.2 plans a value's reads, empty for none");
+    return steps;
   }
 
-  /**
-   * Initialize options and configuration for generate().
-   */
-  private initializeGenerateOptions(options: ICodeGeneratorOptions): void {
-    this.host.state.debugMode = options.debugMode ?? false;
-    this.host.state.sourcePath = options.sourcePath ?? null;
-    // #1241: Transpiler._analysisInputs sets the provenance file before analyzers
-    // run; re-assert it here for API callers that drive the generator directly
-    // and never go through that path. (Said `_transpileFile` until #1320
-    // hoisted analysis out of it into its own pass -- by the time
-    // `_transpileFile` runs, every file's analyzers are already done.)
-    AdrProvenance.beginFile(this.host.state.sourcePath);
-    this.host.state.cnxIncludeRewrites =
-      options.cnxIncludeRewrites ?? new Map<string, string>();
-    this.host.state.includeKinds =
-      options.includeKinds ?? new Map<string, EFileType>();
-    // #1428: the run's mode is 1.1's answer, carried by the program. A caller
-    // cannot supply one, so none can claim C by leaving it out.
-    const program = this.host.state.program;
-    invariant(program, "1.4 Resolve built Program before codegen");
-    this.host.state.cppMode = program.cppMode();
-    this.host.state.pendingTempDeclarations = [];
-    this.host.state.pendingCppClassAssignments = [];
+  /** The sites where 2.2 decided something to write */
+  private static decidedSites<K, V>(
+    planned: ReadonlyMap<K, V | null>,
+    writes: (decision: V) => boolean = () => true,
+  ): K[] {
+    return [...planned]
+      .filter(([, decision]) => decision !== null && writes(decision))
+      .map(([site]) => site);
   }
 
-  /**
-   * Reset all generator state for a fresh generation pass.
-   */
-  private resetGeneratorState(targetDescription: ITargetDescription): void {
-    // One reset, because there is one state. Two classes stood here --
-    // `CodeGenState.reset(targetCapabilities)` and `TranspilerState.reset()` --
-    // and merging them under #1452 left the second call clobbering the first's
-    // argument, so `--target` silently fell back to the default capabilities.
-    this.host.state.reset(targetDescription);
-
-    // Set generator reference for handlers to use
-    // #1652 removed `ICodeGenApi`'s four parse-node members, and every one that
-    // remains is implemented on the host. The walker used to be assigned here
-    // and forward all five, which made a sixth member two places to write.
-    this.host.state.generator = this.host;
-  }
-
-  /**
-   * Initialize symbol data and const values from symbol table.
-   */
-  private initializeSymbolData(): void {
-    const symbols = this.host.state.symbols!;
-
-    // Copy symbol data to this.host.state.scopeMembers
-    for (const [scopeName, members] of symbols.scopeMembers) {
-      this.host.state.setScopeMembers(scopeName, new Set(members));
-    }
-
-    // #1664 box 7: const values are not seeded here. A dimension folds with
-    // `dimensionEvalOptions(state, position)`, what 1.4 settled as visible
-    // there.
-  }
-
-  /**
-   * Initialize all helper objects needed for code generation.
-   */
-  private initializeHelperObjects(program: IProgramSyntax): void {
-    // Collect function/callback information
-    this.collectFunctionsAndCallbacks(program);
+  /** The reverse of each render-time "2.2 planned this" check: 2.2 planned nothing 2.3 skipped */
+  private static assertAllRendered<K extends TSpanned>(
+    planned: Iterable<K>,
+    rendered: ReadonlySet<K>,
+    what: string,
+  ): void {
+    const missed = [...planned].find((expression) => !rendered.has(expression));
+    invariant(
+      missed === undefined,
+      `2.3 rendered every ${what} 2.2 planned (missed line ${missed?.span.line})`,
+    );
   }
 
   /**
    * Assemble the final generated output.
    */
-  private assembleGeneratedOutput(
-    program: IProgramSyntax,
-    options: ICodeGeneratorOptions,
-  ): string {
+  /** 2.2's decisions for the file, in the order each needs the ones before it */
+  /** #1323: the header's input, captured while this file's render state is warm */
+  private captureHeader(plan: IFilePlan): IHeaderEmissionFacts | null {
+    if (plan.header === null) return null;
+    const sourcePath = plan.setup.sourcePath;
+    invariant(sourcePath !== null, "a file with a header has a source path");
+    return HeaderEmissionCapture.capture({
+      ...plan.header,
+      sourcePath,
+      program: plan.setup.program,
+      typeInput: plan.setup.symbols,
+      state: this.host.state,
+      unmodifiedParams: this.host.getFunctionUnmodifiedParams(),
+    });
+  }
+
+  private assembleGeneratedOutput(plan: IFilePlan): string {
+    const { program } = plan;
     const output: string[] = [];
 
-    // 2.2 Plan's fact, recorded where it is KNOWN rather than recovered from
-    // text. `captureEmissionFacts` used to regex `#include` lines back out of
-    // the rendered `output` array, so a fact the parse tree carries was
-    // serialized to text and re-derived from it -- the pass boundary running
-    // backwards inside one method. Both producers append here instead.
-    const sourceIncludeTargets: string[] = [];
-
-    // Self-include for extern "C" linkage
-    // Issue #1164: this used to ask a second predicate that saw only scope
-    // members, so a file exporting types, consts or top-level functions got a
-    // header nothing included. Same question, same answer source as the header
-    // itself.
-    // #1515: supplied by the caller, which asked `PublicInterface`. Not read
-    // off `ICodeGenSymbols`, where 1.3 Declare used to put it.
-    if (options.hasPublicInterface && this.host.state.sourcePath) {
-      const pathToUse =
-        options.sourceRelativePath ||
-        this.host.state.sourcePath.replace(/^.*[\\/]/, "");
-      // Issue #933: Use .hpp extension in C++ mode to match header file
-      // Issue #1319: read the run's extension; do not re-derive it from the mode
-      const ext = this.host.state.outputExtensions.header;
-      const headerName = CNextSourcePath.withExtension(pathToUse, ext);
-      output.push(`#include "${headerName}"`, "");
-      sourceIncludeTargets.push(`"${headerName}"`);
-      this.host.state.selfIncludeAdded = true;
+    if (plan.selfInclude !== null) {
+      output.push(`#include "${plan.selfInclude}"`, "");
     }
 
-    // Process include directives
-    sourceIncludeTargets.push(
-      ...this.processIncludeDirectives(program, output),
-    );
+    this.processIncludeDirectives(plan, output);
 
     // Process preprocessor directives
     this.processPreprocessorDirectives(program, output);
 
-    // 2.2 Plan: the declaration decisions, settled BEFORE anything is rendered.
-    // Unlike the emission plan below, neither answer depends on what rendering
-    // turns out to produce, so Render reads them rather than interpreting the
-    // state they came from.
-    this.host.state.declarationPlanOrNull = DeclarationPlan.build(
-      program.declarations.map((entry) =>
-        CodeGenWalker.declarationKindOf(entry.declaration),
-      ),
-      this.host.state.selfIncludeAdded,
-    );
-
     // Generate declarations
     const declarations = this.generateAllDeclarations(program);
-
-    // 2.2 Plan: every "does this file need X?" question the declarations above
-    // raised is answered ONCE, here, from state that is warm for exactly this
-    // long. Nothing below reads a `needs*` flag.
-    const plan = EmissionPlan.build(
-      this.captureEmissionFacts(sourceIncludeTargets),
+    const unrendered = [...this.filePlan.types.keys()].find(
+      (type) => !this.rendering.types.has(type),
+    );
+    invariant(
+      unrendered === undefined,
+      `2.3 rendered every type 2.2 planned (missed "${unrendered?.text}" at line ${unrendered?.span.line})`,
+    );
+    CodeGenWalker.assertAllRendered(
+      this.filePlan.comparisons.keys(),
+      this.rendering.comparisons,
+      "comparison",
+    );
+    CodeGenWalker.assertAllRendered(
+      this.filePlan.casts.keys(),
+      this.rendering.casts,
+      "cast",
+    );
+    CodeGenWalker.assertAllRendered(
+      this.filePlan.negativeMinimums.keys(),
+      this.rendering.minimums,
+      "negative minimum",
+    );
+    CodeGenWalker.assertAllRendered(
+      this.filePlan.complementCasts.keys(),
+      this.rendering.complementCasts,
+      "complement cast",
+    );
+    CodeGenWalker.assertAllRendered(
+      this.filePlan.structInitializers.keys(),
+      this.rendering.structInitializers,
+      "struct initializer",
+    );
+    CodeGenWalker.assertAllRendered(
+      CodeGenWalker.decidedSites(
+        this.filePlan.narrowings,
+        (steps) => steps.size > 0,
+      ),
+      this.rendering.narrowings,
+      "promoted read",
+    );
+    CodeGenWalker.assertAllRendered(
+      CodeGenWalker.decidedSites(this.filePlan.clampChains),
+      this.rendering.clampChains,
+      "clamp chain",
+    );
+    CodeGenWalker.assertAllRendered(
+      CodeGenWalker.decidedSites(this.filePlan.floatBitWrites),
+      this.rendering.floatBitWrites,
+      "float bit write",
+    );
+    CodeGenWalker.assertAllRendered(
+      CodeGenWalker.decidedSites(this.filePlan.compoundClamps),
+      this.rendering.compoundClamps,
+      "compound clamp",
+    );
+    CodeGenWalker.assertAllRendered(
+      CodeGenWalker.decidedSites(this.filePlan.atomicForms),
+      this.rendering.atomicForms,
+      "atomic write",
     );
 
-    // #1928: the banner and the file result read the planned blocks'
-    // requirements off the plan itself, so nothing copies them anywhere.
-    this.host.state.emissionPlanOrNull = plan;
+    const emissionPlan = plan.emission;
 
     // 2.3 Render: format the plan. These two decide nothing.
-    this.addAutoIncludes(output, plan);
-    this.addGeneratedHelpers(output, plan);
+    this.addAutoIncludes(output, emissionPlan);
+    this.addGeneratedHelpers(output, emissionPlan);
 
     // Add the declarations
     output.push(...declarations);
@@ -1721,12 +1568,9 @@ class CodeGenWalker {
   /**
    * Process all include directives and add to output.
    */
-  private processIncludeDirectives(
-    program: IProgramSyntax,
-    output: string[],
-  ): string[] {
-    const targets: string[] = [];
-    for (const include of program.includes) {
+  private processIncludeDirectives(plan: IFilePlan, output: string[]): void {
+    const { program } = plan;
+    for (const [index, include] of program.includes.entries()) {
       output.push(...this.formatLeadingComments(include.leadingComments));
       const includeText = include.written;
       // Issue #850: a MISRA suppression for banned headers
@@ -1735,17 +1579,11 @@ class CodeGenWalker {
       if (suppression) {
         output.push(suppression);
       }
-      const line = this.transformIncludeDirective(includeText);
-      output.push(line);
-      const target = CodeGenWalker.extractIncludeTarget(line);
-      if (target !== null) {
-        targets.push(target);
-      }
+      output.push(plan.includeDirectives[index]);
     }
     if (program.includes.length > 0) {
       output.push("");
     }
-    return targets;
   }
 
   /**
@@ -1768,24 +1606,6 @@ class CodeGenWalker {
     if (program.directives.length > 0) {
       output.push("");
     }
-  }
-
-  /**
-   * Generate all declarations from the tree.
-   */
-  /**
-   * What a declaration is, in the terms 2.2 Plan's ordering asks about.
-   *
-   * The parse tree stops here: `DeclarationPlan` takes kinds, not contexts,
-   * so a pass outside the parse layer does not grow a dependency on ANTLR to
-   * answer a question about order (#1317).
-   */
-  private static declarationKindOf(
-    declaration: TDeclarationSyntax,
-  ): TDeclarationKind {
-    if (declaration.kind === "function") return "function";
-    if (declaration.kind === "scope") return "scope";
-    return "other";
   }
 
   private generateAllDeclarations(program: IProgramSyntax): string[] {
@@ -1854,62 +1674,6 @@ class CodeGenWalker {
   }
 
   /**
-   * Freeze this file's emission questions while `CodeGenState` still holds
-   * them.
-   *
-   * The `.c` counterpart of `Transpiler._captureHeaderEmissionFacts`, and
-   * captured at the same kind of moment: `this.host.state.reset()` runs per file,
-   * so every field below is correct for exactly the window between this file's
-   * declarations being generated and the next file's `generate()`.
-   *
-   * Nothing here reads rendered text. `existingIncludeTargets` arrives from the
-   * two places that KNOW it -- the self-include, and `processIncludeDirectives`
-   * as it walks the tree -- so the plan decides the final set rather than a
-   * renderer subtracting one list from another, and no fact is recovered from
-   * the output it was rendered into. This comment described the opposite until
-   * `02df0e77`, which is the same commit that stopped it being true.
-   */
-  private captureEmissionFacts(
-    existingIncludeTargets: readonly string[],
-  ): IEmissionFacts {
-    return {
-      cppMode: this.host.isCppMode(),
-      emittedCTypes: this.host.state.emittedCTypes,
-      needsString: this.host.state.needsString,
-      needsCMSIS: this.host.state.needsCMSIS,
-      needsLimits: this.host.state.needsLimits,
-      needsFloatStaticAssert: this.host.state.needsFloatStaticAssert,
-      needsIrqWrappers: this.host.state.needsIrqWrappers,
-      needsISR: this.host.state.needsISR,
-      selfIncludeAdded: this.host.state.selfIncludeAdded,
-      existingIncludeTargets,
-      clampOps: this.host.state.usedClampOps,
-      castHelpers: this.host.state.usedCastHelpers,
-      safeDivOps: this.host.state.usedSafeDivOps,
-      floatAssertSites: ToolchainRequirements.takeDeferredSites(
-        "float_static_assert",
-      ),
-      irqWrapperSites: ToolchainRequirements.takeDeferredSites("irq_wrappers"),
-      debugMode: this.host.state.debugMode,
-      emittedDesignatedInitializer:
-        this.host.state.emittedDesignatedInitializer,
-      emittedCompoundLiteral: this.host.state.emittedCompoundLiteral,
-      emittedLdrexStrexLoop: this.host.state.emittedLdrexStrexLoop,
-      ldrexStrexSites:
-        ToolchainRequirements.takeDeferredSites("ldrex_strex_loop"),
-    };
-  }
-
-  /**
-   * Extract the include target (`<header.h>` or `"header.h"`) from a line,
-   * or null if the line is not a plain `#include` directive.
-   */
-  private static extractIncludeTarget(line: string): string | null {
-    const match = /^#include\s+(<[^>]+>|"[^"]+")\s*$/.exec(line.trim());
-    return match ? match[1] : null;
-  }
-
-  /**
    * Print the deferred blocks and helpers the plan decided on.
    *
    * Every `if` below tests a decision the plan already made, never a question.
@@ -1957,544 +1721,6 @@ class CodeGenWalker {
         this.host.isCppMode(),
       ),
     );
-  }
-
-  /**
-   * ADR-010: Transform #include directives, converting .cnx to .h or .hpp
-   * Delegates to IncludeGenerator
-   * Issue #941: Now passes cppMode for .hpp extension in C++ mode
-   * Issue #1467: passes the resolved include paths. Codegen does not decide
-   * which header an include names -- PathResolver did, during discovery.
-   */
-  private transformIncludeDirective(includeText: string): string {
-    return includeTransformIncludeDirective(includeText, {
-      sourcePath: this.host.state.sourcePath,
-      rewrites: this.host.state.cnxIncludeRewrites,
-      kinds: this.host.state.includeKinds,
-      headerExtension: this.host.state.outputExtensions.header,
-    });
-  }
-
-  /**
-   * Collect function and callback information.
-   * Issue #60: Symbol collection extracted to SymbolCollector.
-   * This method handles function signatures and callback types (not yet extracted).
-   */
-  private collectFunctionsAndCallbacks(program: IProgramSyntax): void {
-    for (const { declaration } of program.declarations) {
-      if (declaration.kind === "scope") {
-        this._collectScopeFunctions(declaration);
-      } else if (declaration.kind === "struct") {
-        this._collectStructCallbackFields(declaration);
-      } else if (declaration.kind === "function") {
-        this._collectTopLevelFunction(declaration);
-      } else if (
-        declaration.kind === "variableDeclaration" ||
-        declaration.kind === "constructorDeclaration"
-      ) {
-        // #1562: a file-scope variable is declared `extern` in the header,
-        // so the header owns the typedef its type names
-        this.host.state.notePublicCallbackTypeReference(
-          this.typeNameOf(declaration.type),
-        );
-      }
-    }
-  }
-
-  /**
-   * Collect scoped functions and their callback types
-   */
-  private _collectScopeFunctions(
-    scopeDecl: Extract<TDeclarationSyntax, { kind: "scope" }>,
-  ): void {
-    const scopeName = scopeDecl.name;
-    this.host.state.withScopePath(scopeName, () => {
-      for (const { declaration } of scopeDecl.members) {
-        if (declaration.kind === "function") {
-          this._registerScopeFunction(
-            this.host.state.program?.scopePathOf(scopeName) ?? scopeName,
-            declaration,
-          );
-        }
-      }
-      for (const { declaration } of scopeDecl.members) {
-        if (declaration.kind === "struct") {
-          this._collectStructCallbackFields(declaration);
-        } else if (
-          declaration.kind === "variableDeclaration" ||
-          declaration.kind === "constructorDeclaration"
-        ) {
-          this.host.state.notePublicCallbackTypeReference(
-            this.typeNameOf(declaration.type),
-          );
-        }
-      }
-    });
-  }
-
-  /**
-   * Register one scope function: its qualified name, signature, and ADR-029
-   * callback type. Extracted so the pre-pass above and nothing else owns the
-   * registration -- it must complete for every function in the scope before any
-   * reference to one is resolved.
-   */
-  private _registerScopeFunction(
-    declaringScopePath: string,
-    funcDecl: IFunctionDeclarationSyntax,
-  ): void {
-    const fullName = QualifiedNameGenerator.forFunctionInScope(
-      declaringScopePath,
-      funcDecl.name,
-      this.host.state.program,
-    );
-    this.host.state.knownFunctions.add(fullName);
-    const sig = this.extractFunctionSignature(fullName, funcDecl.parameters);
-    this.host.state.functionSignatures.set(fullName, sig);
-    // #1484: locals in the body name callback types too.
-    this._collectLocalCallbackTypeReferences(funcDecl.body);
-  }
-
-  /**
-   * Collect callback field types from struct declaration
-   */
-  private _collectStructCallbackFields(
-    structDecl: IStructDeclarationSyntax,
-  ): void {
-    for (const field of structDecl.fields) {
-      const fieldType = this.typeNameOf(field.type);
-      if (this.host.state.callbackTypes.has(fieldType)) {
-        this.host.state.callbackFieldTypes.set(
-          `${structDecl.name}.${field.name}`,
-          fieldType,
-        );
-      }
-      this.host.state.notePublicCallbackTypeReference(fieldType);
-    }
-  }
-
-  /**
-   * Collect top-level function and register as callback type
-   */
-  private _collectTopLevelFunction(funcDecl: IFunctionDeclarationSyntax): void {
-    this.host.state.knownFunctions.add(funcDecl.name);
-    const sig = this.extractFunctionSignature(
-      funcDecl.name,
-      funcDecl.parameters,
-    );
-    this.host.state.functionSignatures.set(funcDecl.name, sig);
-    // #1484: locals in the body name callback types too.
-    this._collectLocalCallbackTypeReferences(funcDecl.body);
-  }
-
-  /**
-   * A parameter as the function CONTEXT needs it (#1445).
-   *
-   * Distinct from `planParameter`, which serves the signature adapter, and the
-   * two disagree on purpose -- see `IPlannedFunctionParameter` for the two
-   * places and why. This one's `isArray` admits either spelling, and its
-   * dimensions are folded to VALUES for ADR-036 bounds checking rather than
-   * rendered as C text.
-   */
-  private planFunctionParameter(
-    param: IParameterSyntax,
-  ): IPlannedFunctionParameter {
-    const arrayType = param.type.kind === "array" ? param.type : null;
-    const isArray = param.dimensions.length > 0 || arrayType !== null;
-    return {
-      name: param.name,
-      isConst: param.const,
-      isArray,
-      arrayDimensions: this.foldParameterDimensions(
-        param.dimensions,
-        arrayType?.dimensions ?? null,
-        isArray,
-      ),
-      stringCapacity: CodeGenWalker.stringCapacityOf(param.type) ?? undefined,
-      type: this.planType(param.type),
-    };
-  }
-
-  /**
-   * A parameter's dimensions as VALUES, for ADR-036 bounds checking.
-   *
-   * Issue #1159: fold through the shared evaluator, and keep the slot when the
-   * size does not fold so dimension i still matches subscript i.
-   * `parseIntegerLiteral` alone folds literals only, so a const-sized
-   * parameter recorded `UNRESOLVED_DIMENSION` and lost ADR-036 bounds checking
-   * while the signature folded the same const -- `void fill(u8[SIZE] buf)`
-   * emitted `uint8_t buf[6]` and still accepted `buf[9]`.
-   */
-  private foldParameterDimensions(
-    cStyleDimensions: ReadonlyArray<TExpression | null>,
-    typeDimensions: ReadonlyArray<TExpression | null> | null,
-    isArray: boolean,
-  ): readonly number[] {
-    if (!isArray) return [];
-    if (cStyleDimensions.length > 0) {
-      return cStyleDimensions.map(
-        (dimension) =>
-          (dimension && this.constantOf(dimension)) ?? UNRESOLVED_DIMENSION,
-      );
-    }
-    if (!typeDimensions) return [];
-    return typeDimensions.flatMap((dimension) =>
-      dimension ? [this.constantOf(dimension) ?? UNRESOLVED_DIMENSION] : [],
-    );
-  }
-
-  /**
-   * ADR-013: Extract function signature from parameter list
-   */
-  private extractFunctionSignature(
-    name: string,
-    params: readonly IParameterSyntax[] | null,
-  ): FunctionSignature {
-    const parameters: Array<{
-      name: string;
-      baseType: string;
-      isConst: boolean;
-      isArray: boolean;
-    }> = [];
-
-    if (params) {
-      for (const param of params) {
-        const paramName = param.name;
-        const isConst = param.const;
-        const isArray =
-          param.dimensions.length > 0 || param.type.kind === "array";
-        const baseType = this.typeNameOf(param.type);
-        // Issue #1201: a parameter naming a callback type needs that type's
-        // typedef emitted, exactly as a struct field does.
-        this.host.state.notePublicCallbackTypeReference(baseType);
-        parameters.push({ name: paramName, baseType, isConst, isArray });
-      }
-    }
-
-    return { name, parameters };
-  }
-
-  /**
-   * ADR-029 / #1484: record the callback types named by LOCAL variable
-   * declarations in a function body.
-   *
-   * The three sites that already record a reference -- struct fields, scope
-   * member variables, and parameters via `extractFunctionSignature` -- all walk
-   * DECLARATIONS. A local variable lives inside a statement, so none of them
-   * reach it, and a callback type named only by a local had its `_fp` typedef
-   * omitted from the very output that used it: correct type name, no typedef,
-   * `unknown type name 'onTick_fp'`.
-   *
-   * Runs in the pre-pass rather than during generation because
-   * `recordCallbackTypedef` consumes this set as each function is emitted; a
-   * reference discovered while generating a later body would arrive after the
-   * decision it exists to inform.
-   */
-  private _collectLocalCallbackTypeReferences(body: TBlockSyntax): void {
-    for (const statement of body.statements) {
-      this.collectCallbackTypeReferencesIn(statement);
-    }
-  }
-
-  private collectCallbackTypeReferencesIn(statement: TStatement): void {
-    const visit = (child: TStatement): void =>
-      this.collectCallbackTypeReferencesIn(child);
-    switch (statement.kind) {
-      case "variableDeclaration":
-      case "constructorDeclaration":
-        this.host.state.callbackTypeReferences.add(
-          this.typeNameOf(statement.type),
-        );
-        return;
-      case "for":
-        if (statement.init?.kind === "variableDeclaration")
-          visit(statement.init);
-        StatementChildren.of(statement).forEach(visit);
-        return;
-      case "if":
-      case "while":
-      case "doWhile":
-      case "forever":
-      case "critical":
-      case "switch":
-      case "block":
-        StatementChildren.of(statement).forEach(visit);
-        return;
-      case "assignment":
-      case "expression":
-      case "return":
-      case "missing":
-        return;
-      default:
-        statement satisfies never;
-    }
-  }
-
-  /**
-   * ADR-029: the typedef name for a function-as-type. One encoder, so the
-   * declaration site and every reference cannot spell it differently.
-   */
-  private static callbackTypedefName(functionName: string): string {
-    return `${functionName}_fp`;
-  }
-
-  /**
-   * ADR-029 + ADR-006: what one parameter of a callback typedef MEANS -- its
-   * rendered type and its pointer semantics.
-   *
-   * Kept as one decision since two builders shared it (#1491, #1552); one
-   * builder is left (#1929).
-   */
-  private callbackParamShape(
-    typeName: string,
-    isArray: boolean,
-    functionsAsTypes: ReadonlyMap<string, IFunctionSymbol>,
-  ): {
-    type: string;
-    isStruct: boolean;
-    isString: boolean;
-    isOpaqueHandle: boolean;
-  } {
-    // ADR-006: struct-ness drives reference semantics. A C++ namespaced
-    // struct is known by its `::` spelling, which is how the prototype that
-    // takes it by reference names it; the C join (`hw__Dev`) is not.
-    const isStruct = this.host.isKnownStruct(
-      CppNamespaceUtils.convertToCppNamespace(
-        typeName,
-        this.host.state.symbolTable,
-      ),
-    );
-
-    // ADR-029: a parameter whose type is itself a function-as-type.
-    if (functionsAsTypes.has(typeName)) {
-      // Function pointers are already pointers.
-      return {
-        type: CodeGenWalker.callbackTypedefName(typeName),
-        isStruct,
-        isString: false,
-        isOpaqueHandle: false,
-      };
-    }
-
-    // ADR-045: a `string<N>` parameter is `char*` in C. Decided HERE, not in
-    // either caller's renderer, because that is where the two disagreed: the
-    // parse-tree renderer answered `char` (the ELEMENT type) and the symbol
-    // renderer answered `string<8>` (C-Next surface syntax, not C at all, and
-    // rejected by cc while the transpiler exited 0). Both are now wrong in one
-    // place instead of differently wrong in two -- which is the property this
-    // method exists to hold, and the one its comment already claimed.
-    if (!isArray && TypeCheckUtils.isSizedStringName(typeName)) {
-      return {
-        type: "char*",
-        isStruct: false,
-        isString: true,
-        isOpaqueHandle: false,
-      };
-    }
-
-    // ADR-030: an opaque handle is a pointer in the typedef exactly as it is in
-    // the prototype -- `Dev*` in C and C++ alike, and an array of them an array
-    // of pointers (#996). The typedef IS the function's type, so it reads the
-    // decision the prototype reads rather than asking struct-ness, which never
-    // answered for an incomplete type: `typedef void (*aPoke_fp)(Dev)` stood
-    // beside `void aPoke(Dev* d)`. Not ADR-006 reference semantics, so not
-    // `isStruct` -- which is also what keeps an unmodified handle free of the
-    // auto-const its prototype never takes.
-    if (this.host.state.isHeldThroughPointer(typeName)) {
-      return {
-        type: this.callbackCType(typeName),
-        isStruct: false,
-        isString: false,
-        isOpaqueHandle: true,
-      };
-    }
-
-    // ADR-006: a struct parameter is a pointer in C and a reference in C++,
-    // which the formatter spells from `isStruct`.
-    return {
-      type: this.callbackCType(typeName),
-      isStruct,
-      isString: false,
-      isOpaqueHandle: false,
-    };
-  }
-
-  /**
-   * ADR-029: every function this file can see is a type here too, whether it
-   * is declared in this file or reached through an include (#1491).
-   *
-   * One builder for both (#1929). The signature is READ FROM THE SYMBOL, not
-   * re-derived from a parse tree -- "after 1.3, nothing may compute a symbol's
-   * name." A symbol's `arrayDimensions` are already const-folded, which is the
-   * property MISRA Rule 18.8 needs (#1127). A second, parse-tree builder for
-   * local functions used to run afterwards and overwrite this one's result;
-   * the two had to share `callbackParamShape` and `typedefParamIsConst`
-   * because they disagreed twice (#1529, #1552).
-   *
-   * Registration is unconditional; EMISSION stays gated by
-   * `headerOwnsCallbackTypedef`, which intersects with `callbackTypeReferences`.
-   * So a visible function nobody uses as a type still yields no typedef and
-   * cannot trip MISRA Rule 2.3 (unused type declarations).
-   */
-  private registerCallbackTypes(): void {
-    const symbols = this.host.state.symbols;
-    if (!symbols) {
-      return;
-    }
-
-    // The per-file VISIBLE set: what this file declares, plus what its includes
-    // contribute via mergeExternalSymbols. Keyed by transpiled C name.
-    // Every function-as-type is found BEFORE any is built: a parameter may name
-    // one declared later, and building in one pass made `callIt_fp`'s
-    // parameter `tickSource` rather than `tickSource_fp` when `callIt` came
-    // first (#1929).
-    const functions = new Map<string, IFunctionSymbol>();
-    for (const cName of symbols.functionReturnTypes.keys()) {
-      // Run-wide identity lookup -- the exact-name index, never the bare-name
-      // one, which returns empty for every scoped symbol (#1139).
-      const symbol = this.host.state.symbolTable
-        .getOverloadsByCName(cName)
-        .find(
-          (candidate) =>
-            candidate.sourceLanguage === ESourceLanguage.CNext &&
-            SymbolGuards.isFunction(candidate as TSymbol),
-        ) as IFunctionSymbol | undefined;
-
-      // #1283 review: StructDefault reads `functionReturnTypes` as the set of
-      // function-as-types; it must be exactly the set registered here, or a
-      // field's C shape and its default disagree (#1984 types them properly)
-      invariant(
-        symbol !== undefined,
-        `functionReturnTypes holds C-Next functions only, but '${cName}' is not one`,
-      );
-      functions.set(cName, symbol);
-    }
-
-    // Registered dependencies-first: every reader that walks `callbackTypes`
-    // emits in its order, and C needs `tickSource_fp` declared before a
-    // typedef whose parameter names it. A cycle cannot be written in C at
-    // all; `seen` also stops the walk from looping on one.
-    const seen = new Set<string>();
-    const register = (cName: string): void => {
-      const symbol = functions.get(cName);
-      if (!symbol || seen.has(cName)) {
-        return;
-      }
-      seen.add(cName);
-      for (const param of symbol.parameters) {
-        register(SymbolTypeResolver.getTypeName(param.type));
-      }
-      this.host.state.callbackTypes.set(
-        cName,
-        this.callbackInfoFromSymbol(cName, symbol, functions),
-      );
-    };
-    for (const cName of functions.keys()) {
-      register(cName);
-    }
-  }
-
-  /**
-   * Build an `ICallbackTypeInfo` from a resolved function symbol.
-   *
-   * The symbol carries the resolved return type and parameters, so nothing here
-   * re-resolves a name. Parameter meaning is delegated to `callbackParamShape`.
-   */
-  private callbackInfoFromSymbol(
-    cName: string,
-    symbol: IFunctionSymbol,
-    functionsAsTypes: ReadonlyMap<string, IFunctionSymbol>,
-  ): ICallbackTypeInfo {
-    return {
-      functionName: cName,
-      returnType: this.callbackCType(
-        SymbolTypeResolver.getTypeName(symbol.returnType),
-      ),
-      parameters: symbol.parameters.map((param) => {
-        const typeName = SymbolTypeResolver.getTypeName(param.type);
-        // Spread, not re-listed: a field the shape gains reaches the typedef
-        // (#1552 was a builder dropping one).
-        const shape = this.callbackParamShape(
-          typeName,
-          param.isArray,
-          functionsAsTypes,
-        );
-        // #1290 review: the typedef names a parameter as its prototype does
-        invariant(
-          param.emittedName !== null,
-          `1.4 settled the C name of ${cName}'s parameter ${param.name}`,
-        );
-        return {
-          name: param.emittedName,
-          ...shape,
-          isConst: CodeGenWalker.typedefParamIsConst(
-            cName,
-            param.name,
-            param.isConst,
-            shape.isStruct,
-            shape.isString,
-            this.host.state,
-          ),
-          isArray: param.isArray,
-          // Already folded to literals by the symbols layer, which is exactly
-          // what MISRA Rule 18.8 needs -- a dimension that is still an
-          // identifier makes the typedef a variably-modified type.
-          arrayDims: (param.arrayDimensions ?? [])
-            .map((dimension) => `[${dimension}]`)
-            .join(""),
-        };
-      }),
-      typedefName: CodeGenWalker.callbackTypedefName(cName),
-    };
-  }
-
-  /**
-   * ADR-029: a resolved C-Next type name, spelled in a `_fp` typedef the way
-   * the function's own prototype spells it -- `headerCType` for the C++
-   * namespace (`hw::Dev`, not the C join `hw__Dev`) and the primitive map,
-   * then `generateUserType` for the `struct` keyword a C tag with no typedef
-   * needs. A bare primitive lookup lost both (#1942 review).
-   */
-  private callbackCType(typeName: string): string {
-    const symbolTable = this.host.state.symbolTable;
-    return TypeGenerationHelper.generateUserType(
-      headerCType(typeName, symbolTable),
-      symbolTable.checkNeedsStructKeyword(typeName),
-    );
-  }
-
-  /**
-   * ADR-029: is this `_fp` typedef parameter const?
-   *
-   * The const the prototype carries. Two typedef builders once each re-derived
-   * it and disagreed with the prototype, and with each other, at the same time:
-   *
-   * - the local path asked the per-file accumulator during the declaration
-   *   walk, before any body had filled it, so a modifying body read as
-   *   unmodified and the typedef gained a `const` the prototype lacked (#1529)
-   * - the included path asked the symbol's `isAutoConst`, which only ever gets
-   *   set on the header's own copy of a parameter, so it was absent and the
-   *   typedef LOST a `const` the declaring file had emitted (#1552). Both files
-   *   then defined one typedef name incompatibly -- a hard `error: conflicting
-   *   types`, not a warning, at transpile exit 0
-   *
-   * Auto-const (#268) qualifies only what the prototype renders as a pointer,
-   * which for a typedef parameter is a struct or a string.
-   */
-  private static typedefParamIsConst(
-    funcName: string,
-    paramName: string,
-    isExplicitConst: boolean,
-    isStruct: boolean,
-    isString: boolean,
-    state: TranspileState,
-  ): boolean {
-    if (isExplicitConst) {
-      return true;
-    }
-    if (!isStruct && !isString) {
-      return false;
-    }
-    return !state.isParameterModifiedAnywhere(funcName, paramName);
   }
 
   /**
@@ -2548,185 +1774,6 @@ class CodeGenWalker {
 
   private _isFloatType(typeName: string): boolean {
     return TypeCheckUtils.isFloat(typeName);
-  }
-
-  /**
-   * Check if an expression is an lvalue that needs & when passed to functions.
-   * This includes member access (cursor.x) and array access (arr[i]).
-   * Returns the type of lvalue or null if not an lvalue.
-   */
-  private getLvalueType(expr: TExpression): "member" | "array" | null {
-    const view = ExpressionShape.postfixView(expr);
-    if (!view) return null;
-
-    const result = CppMemberHelper.getLastPostfixOpType(
-      CodeGenWalker.toPostfixOps(view.ops),
-    );
-
-    if (result === "function") return null;
-    return result;
-  }
-
-  /**
-   * Does this member access need a temp variable in C++ mode?
-   *
-   * Issue #251/#252/#256. True when passing a struct member to a function would
-   * fail C++ compilation:
-   * 1. Const struct parameter member -> non-const parameter (const T* -> T* invalid)
-   * 2. External C struct members of bool/enum type -> u8 parameter (type mismatch)
-   * 3. Array element member access (arr[i].member) with external struct elements
-   *
-   * #1450: this REPORTS `CppMemberHelper`'s answer, which is 2.2 Plan's. All
-   * that happens here is parse-tree navigation -- unwrap the postfix, find the
-   * base identifier, and pick WHICH of the two Plan questions applies. Named
-   * `isCppMemberConversionRequired` until the #1589 review, which is the spelling
-   * that says this module decides it.
-   */
-  private isCppMemberConversionRequired(
-    expr: TExpression,
-    targetParamBaseType?: string,
-  ): boolean {
-    if (!this.host.state.cppMode) return false;
-    if (!targetParamBaseType) return false;
-
-    const view = ExpressionShape.postfixView(expr);
-    const baseId = ExpressionShape.rootName(expr);
-    if (!view || !baseId) return false;
-
-    const ops = view.ops;
-
-    // Case 1: Direct parameter member access (cfg.value)
-    const paramInfo = this.host.state.parameterAt(
-      baseId,
-      CodeGenWalker.positionOf(expr),
-    );
-    if (paramInfo) {
-      return CppMemberHelper.needsParamMemberConversion(
-        paramInfo,
-        targetParamBaseType,
-      );
-    }
-
-    // Case 2: Array element or function return member access
-    return this.isComplexMemberConversionRequired(
-      ops,
-      baseId,
-      targetParamBaseType,
-      CodeGenWalker.positionOf(expr),
-    );
-  }
-
-  /**
-   * Convert parser PostfixOpContext to IPostfixOp interface for CppMemberHelper.
-   */
-  private static toPostfixOps(ops: readonly TPostfixOpSyntax[]): IPostfixOp[] {
-    return ops.map((op) => ({
-      hasExpression: op.kind === "subscript",
-      hasIdentifier: op.kind === "member",
-      hasArgumentList: op.kind === "call" && op.arguments.length > 0,
-      textEndsWithParen: op.kind === "call",
-    }));
-  }
-
-  /**
-   * Case 2: array element or function return member access -- arr[i].member,
-   * getConfig().member (issue #256).
-   *
-   * Gathers the inputs `CppMemberHelper` needs (the variable's type info, the
-   * postfix ops adapted to `IPostfixOp`) and reports its answer.
-   */
-  private isComplexMemberConversionRequired(
-    ops: readonly TPostfixOpSyntax[],
-    baseId: string,
-    targetParamBaseType: string,
-    at: ISourcePosition,
-  ): boolean {
-    const typeInfo = this.host.state.declarationTypeInfo(null, baseId, at);
-    return CppMemberHelper.needsComplexMemberConversion(
-      CodeGenWalker.toPostfixOps(ops),
-      typeInfo,
-      targetParamBaseType,
-    );
-  }
-
-  /**
-   * Issue #246: Check if an expression is a subscript access on a string variable.
-   * For example, buf[0] where buf is a string<N>.
-   * Used to determine when to cast char* to uint8_t* etc.
-   */
-  private isStringSubscriptAccess(expr: TExpression): boolean {
-    const view = ExpressionShape.postfixView(expr);
-    if (!view) return false;
-
-    const ops = view.ops;
-    const hasPostfixOps = ops.length > 0;
-    const lastOpHasExpression =
-      hasPostfixOps && ops.at(-1)!.kind === "subscript";
-
-    const baseId = ExpressionShape.rootName(expr);
-    if (!baseId) return false;
-
-    const typeInfo = this.host.state.declarationTypeInfo(
-      null,
-      baseId,
-      CodeGenWalker.positionOf(expr),
-    );
-    const paramInfo = this.host.state.parameterAt(
-      baseId,
-      CodeGenWalker.positionOf(expr),
-    );
-
-    return CppMemberHelper.isStringSubscriptPattern(
-      hasPostfixOps,
-      lastOpHasExpression,
-      typeInfo,
-      paramInfo?.isString ?? false,
-    );
-  }
-
-  /**
-   * Issue #308: whether a member access argument (`result.data`, at any
-   * depth) is stored as a C array, which decays to a pointer when passed, so
-   * it takes no `&`. The member's type is the one operand typer's (#1737).
-   *
-   * Issue #355: "unknown" when there is no struct field info for the member,
-   * for defensive code generation that skips potentially dangerous conversions.
-   *
-   * @returns "array" if definitely an array, "not-array" if definitely not,
-   *          "unknown" if struct field info is not available
-   */
-  private getMemberAccessArrayStatus(
-    expr: TExpression,
-  ): "array" | "not-array" | "unknown" {
-    const view = ExpressionShape.postfixView(expr);
-    if (!view) return "not-array";
-
-    if (view.ops.at(-1)?.kind !== "member") return "not-array";
-
-    const baseId = ExpressionShape.rootName(expr);
-    if (!baseId || !this.rootBindsToVariable(baseId, expr)) {
-      return "not-array";
-    }
-
-    const member = OperandTyper.typeOf(expr, this.host.state.typingContext());
-    if (member === null) {
-      return "unknown";
-    }
-
-    return OperandTyper.decaysToPointer(member) ? "array" : "not-array";
-  }
-
-  /** Whether a chain's root names a declaration (#1668) or a parameter */
-  private rootBindsToVariable(baseId: string, at: TExpression): boolean {
-    return (
-      this.host.state.declarationTypeInfo(
-        null,
-        baseId,
-        CodeGenWalker.positionOf(at),
-      ) !== undefined ||
-      this.host.state.parameterAt(baseId, CodeGenWalker.positionOf(at)) !==
-        undefined
-    );
   }
 
   private generateDeclaration(declaration: TDeclarationSyntax): string {
@@ -2891,7 +1938,6 @@ class CodeGenWalker {
             declaration.name,
             this.host.state.program,
           ),
-          declaredTypeText: declaration.returnType.text,
           renderReturnType: () => this.renderType(declaration.returnType),
           planParameters: () => this.planFunctionParameters(params),
           renderBody: () => this.renderBlock(declaration.body),
@@ -2947,17 +1993,8 @@ class CodeGenWalker {
     const arrayType = decl.type.kind === "array" ? decl.type : null;
     const isArray = CodeGenWalker.isArrayDeclaration(decl);
 
-    // Issue #282: a private const scalar is inlined at its uses, not emitted at
-    // file scope. Issue #500 exempts arrays, which cannot be inlined, and #1739
-    // one with no value to inline. Decided before any render, so a skipped
-    // declaration registers no include.
-    if (
-      PrivateConstValue.inlined(
-        this.host.getState(),
-        this.transpileState,
-        fullName,
-      ) !== null
-    ) {
+    // Issue #282: 2.2 decided which private consts are inlined at their uses
+    if (this.filePlan.inlinedConsts.has(decl)) {
       return { kind: "skipped" };
     }
     // Issue #998: the one modifier builder, which validates the atomic/volatile
@@ -2991,7 +2028,7 @@ class CodeGenWalker {
           : null,
       renderStringCapacityDimension: () =>
         ArrayDimensionUtils.renderStringCapacityDimension(
-          CodeGenWalker.stringCapacityOf(decl.type),
+          FilePlanner.stringCapacityOf(decl.type),
         ),
       renderInitializer: () => this.renderScopeInitializer(decl, isArray),
     };
@@ -3001,8 +2038,8 @@ class CodeGenWalker {
    * A scope variable's initializer.
    *
    * Issue #872: `expectedType` is what puts the MISRA C:2012 Rule 7.2 `U`
-   * suffix on an unsigned literal. Issue #992: `withDeclarationInit` suppresses
-   * compound literals at file scope, for GCC 9-12 compatibility.
+   * suffix on an unsigned literal. Issue #992: 2.2 plans its struct initializers
+   * plain, for GCC 9-12 compatibility (#1991).
    *
    * The type is rendered again here rather than reused from the declaration:
    * the caller's copy may have become a callback typedef or gained a `*`, and
@@ -3015,14 +2052,9 @@ class CodeGenWalker {
   ): string {
     const initializer = decl.initializer;
     if (initializer) {
-      const typeName = this.renderType(decl.type);
       const state = this.host.state;
       state.resetArrayInitTracking();
-      const rendered = state.withExpectedType(typeName, () =>
-        state.withDeclarationInit(
-          () => ` = ${this.renderExpression(initializer)}`,
-        ),
-      );
+      const rendered = ` = ${this.renderExpression(initializer)}`;
       // #1824 review: an omitted size is emitted from 1.3's count (the
       // planner), so the list rendered here must have exactly that many
       // elements -- the same check the statement renderer makes.
@@ -3092,9 +2124,15 @@ class CodeGenWalker {
       name: struct.name,
       fields: struct.fields.map((field) => {
         const arrayType = field.type.kind === "array" ? field.type : null;
+        // a callback field is written through its typedef, so 2.2 names it
+        // in its callback field types rather than in the written types
+        const callbackType = this.host.state.callbackFieldTypes.get(
+          `${struct.name}.${field.name}`,
+        );
         return {
           name: field.name,
-          typeName: this.typeNameOf(field.type),
+          typeName: callbackType ?? this.typeNameOf(field.type),
+          isCallback: callbackType !== undefined,
           hasNameDimensions: field.dimensions.length > 0,
           hasTypeDimensions: arrayType !== null,
           renderCType: () => this.renderType(field.type),
@@ -3141,31 +2179,22 @@ class CodeGenWalker {
   ): readonly IPlannedCallArgument[] | null {
     if (args === null) return null;
 
-    return args.map((expression) => ({
-      simpleIdentifier: ExpressionShape.simpleIdentifier(expression),
-      parameter: this.parameterNamed(expression),
-      declared: this.nameTypeOf(expression),
-      expressionType: () => this.directTypeOf(expression),
-      isArray: () =>
-        OperandTyper.decaysToPointer(
-          OperandTyper.typeOf(expression, this.host.state.typingContext()),
-        ),
-      isHandleArrayElement: () => this.isHandleArrayElement(expression),
-      render: () => this.renderExpression(expression),
-      renderByReference: (targetParamBaseType: string | undefined) =>
-        this.generateFunctionArg(expression, targetParamBaseType),
-    }));
+    return args.map((expression) => this.planCallArgument(expression));
   }
 
-  /**
-   * A bounded string type's declared capacity, or null (#1445) -- of the
-   * element for an array of them, `string<N>[M]` (#1569).
-   */
-  private static stringCapacityOf(type: TTypeSyntax): number | null {
-    const element = type.kind === "array" ? type.element : type;
-    return element.kind === "string" && element.capacity !== null
-      ? Number.parseInt(element.capacity, 10)
-      : null;
+  private planCallArgument(expression: TExpression): IPlannedCallArgument {
+    const planned = this.filePlan.arguments.get(expression);
+    invariant(
+      planned !== undefined,
+      `2.2 planned every argument 2.3 writes (line ${expression.span.line})`,
+    );
+    return {
+      planned,
+      simpleIdentifier: ExpressionShape.simpleIdentifier(expression),
+      parameter: this.parameterNamed(expression),
+      render: () => this.renderExpression(expression),
+      renderByReference: () => this.generateFunctionArg(expression, planned),
+    };
   }
 
   /**
@@ -3202,8 +2231,13 @@ class CodeGenWalker {
     // C++ classes with user-defined constructors are NOT aggregate types,
     // so designated initializers { .field = value } don't work with them.
     // We check the SymbolTable for a constructor symbol (TypeName::TypeName).
-    const isCppClass =
-      this.host.state.cppMode && this._isCppClassWithConstructor(typeName);
+    const form = this.filePlan.structInitializers.get(expr);
+    invariant(
+      form !== undefined,
+      `2.2 planned the struct initializer on line ${expr.span.line} that 2.3 writes`,
+    );
+    this.rendering.structInitializers.add(expr);
+    const isCppClass = form === "cppClass";
 
     // Issue #834: For named struct tags (no typedef), we need 'struct' prefix in C mode
     const needsStructKeyword =
@@ -3220,18 +2254,9 @@ class CodeGenWalker {
     // non-nullable in the generated parser and `{}` is a parse error. The
     // branch went with it rather than being left as a shape nothing can build.
 
-    // Get field type info for nested initializers
-    // Issue #831: SymbolTable is the single source of truth for struct fields
-    // (both C-Next and C/C++ header structs)
-    const structFieldTypes =
-      this.host.state.symbolTable?.getStructFieldTypes(typeName);
-
     const fields = expr.fields.map((field) => {
       const fieldName = field.name;
-      const fieldType = this._resolveFieldType(fieldName, structFieldTypes);
-      const value = this.host.state.withExpectedType(fieldType, () =>
-        this.renderExpression(field.value),
-      );
+      const value = this.renderExpression(field.value);
       return { fieldName, value };
     });
 
@@ -3250,63 +2275,10 @@ class CodeGenWalker {
     // C, C++20 in C++) is 2.2's decision, made from this fact and the mode.
     // The text is identical in both modes, so no probe over the output could
     // recover it; the fact has to come from here.
-    this.host.state.noteDesignatedInitializer();
     const fieldInits = fields.map((f) => `.${f.fieldName} = ${f.value}`);
 
-    return this.formatStructInitializer(typeName, castType, fieldInits);
-  }
-
-  private formatStructInitializer(
-    typeName: string,
-    castType: string,
-    fieldInits: string[],
-  ): string {
-    const initializer: string = `{ ${fieldInits.join(", ")} }`;
-
-    // In a declaration initializer context, use plain designated initializer — no type cast
-    // prefix needed, and compound literals are not C99 constant expressions so they fail
-    // at file scope on GCC < 13.
-    if (this.host.state.inDeclarationInit) {
-      return initializer;
-    }
-
-    // Issue #882: In C++ mode, anonymous structs/unions must use plain brace init.
-    // Compound literals like (struct { ... }){ ... } create incompatible types in C++
-    // because each struct { ... } definition creates a distinct nominal type.
-    if (
-      this.host.state.cppMode &&
-      (typeName.startsWith("struct {") || typeName.startsWith("union {"))
-    ) {
-      return initializer;
-    }
-
-    if (!this.host.state.inFunctionBody) {
-      return initializer;
-    }
-
-    // #1997: reported as the form emitted. A compound literal is C99, but is
-    // not ISO C++ at any version, and 2.2 decides what that costs.
-    this.host.state.noteCompoundLiteral();
-    return `(${castType})${initializer}`;
-  }
-
-  /**
-   * Resolve the C type string for a named struct field, converting C++ underscore-separated
-   * names to :: notation. Returns undefined if the field is not in the type map.
-   * Issue #502: C-Next stores C++ types with _ separator; codegen needs ::.
-   */
-  private _resolveFieldType(
-    fieldName: string,
-    structFieldTypes: Map<string, string> | undefined,
-  ): string | undefined {
-    if (!structFieldTypes?.has(fieldName)) return undefined;
-    const fieldType = structFieldTypes.get(fieldName)!;
-    if (!QualifiedCName.isQualified(fieldType)) return fieldType;
-    const parts = QualifiedCName.split(fieldType);
-    if (parts.length > 1 && this.host.isCppScopeSymbol(parts[0])) {
-      return parts.join("::");
-    }
-    return fieldType;
+    const initializer = `{ ${fieldInits.join(", ")} }`;
+    return form === "compound" ? `(${castType})${initializer}` : initializer;
   }
 
   /**
@@ -3360,7 +2332,6 @@ class CodeGenWalker {
     return {
       name: fn.name,
       returnType: this.renderType(fn.returnType),
-      returnTypeText: fn.returnType.text,
       isMainWithArgs: this.isMainFunctionWithArgs(fn.name, params),
       firstParameterName: params?.[0]?.name,
       parameters: this.planFunctionParameters(params),
@@ -3379,7 +2350,7 @@ class CodeGenWalker {
     param: IParameterSyntax,
     paramIndex: number,
   ): string {
-    const typeName = this.typeNameOf(param.type);
+    const typeName = this.plannedParameter(param).typeName;
     const name = param.name;
 
     // #1322: a C-style or unbounded array parameter is E0874/E0875 in pass
@@ -3495,7 +2466,7 @@ class CodeGenWalker {
     return {
       name: emittedName,
       isConst: param.const,
-      typeName: this.typeNameOf(param.type),
+      typeName: this.plannedParameter(param).typeName,
       mappedType: this.renderType(param.type),
       renderDimensions: arrayType
         ? () =>
@@ -3504,7 +2475,7 @@ class CodeGenWalker {
             )
         : null,
       isString: stringType !== null,
-      stringCapacity: CodeGenWalker.stringCapacityOf(param.type) ?? undefined,
+      stringCapacity: FilePlanner.stringCapacityOf(param.type) ?? undefined,
       line: param.span.line,
       stringTypeLine: stringType?.span.line,
       arrayTypeLine: arrayType?.span.line,
@@ -3527,7 +2498,7 @@ class CodeGenWalker {
     AdrProvenance.record("036", expression.span.line);
     const dimension = ConstantFold.settled(
       ConstExprLowering.lower(expression),
-      dimensionEvalOptions(this.transpileState),
+      dimensionEvalOptions(this.planner.transpileState),
     );
     invariant(
       dimension !== null,
@@ -3549,13 +2520,6 @@ class CodeGenWalker {
         dimension ? `[${this.renderLoweredDimension(dimension)}]` : "[]",
       )
       .join("");
-  }
-
-  private constantOf(expr: TExpression): number | undefined {
-    return ConstExprLowering.valueOf(
-      expr,
-      dimensionEvalOptions(this.transpileState),
-    );
   }
 
   /**
@@ -3703,7 +2667,7 @@ class CodeGenWalker {
   ): TPlannedVariableDecl {
     const type = this.renderType(decl.type);
     const args = decl.arguments.map((argument) =>
-      this.boundName(argument.name, {
+      this.planner.boundName(argument.name, {
         line: argument.span.line,
         column: argument.span.column,
       }),
@@ -3787,7 +2751,6 @@ class CodeGenWalker {
       init: initializer
         ? {
             renderExpression: () => this.renderExpression(initializer),
-            renderTypeName: () => this.typeNameOf(decl.type),
             renderDimensions: () => this.renderLoweredDimensions(arrayDims),
           }
         : null,
@@ -3856,7 +2819,7 @@ class CodeGenWalker {
     dims: ReadonlyArray<TExpression | null>,
   ): number | null {
     const size = dims[0];
-    return size ? (this.constantOf(size) ?? null) : null;
+    return size ? (this.planner.constantOf(size) ?? null) : null;
   }
 
   /**
@@ -3877,7 +2840,7 @@ class CodeGenWalker {
       kind: "expression",
       renderTypeName: () => this.typeNameOf(decl.type),
       renderExpression: () => this.renderExpression(initializer),
-      resolveExpressionType: () => this.directTypeOf(initializer),
+      resolveExpressionType: () => this.planner.directTypeOf(initializer),
     };
   }
 
@@ -3900,7 +2863,6 @@ class CodeGenWalker {
   ): TPlannedStringDecl | null {
     const type = decl.type;
     if (type.kind === "array" && type.element.kind === "string") {
-      this.host.state.requireInclude("string");
       return this.planStringArray(decl, type.dimensions, type.element.capacity);
     }
     if (type.kind !== "string") {
@@ -3914,7 +2876,6 @@ class CodeGenWalker {
         declaredCapacity: this.declaredHere(decl)?.stringCapacity ?? null,
       };
     }
-    this.host.state.requireInclude("string");
     return {
       kind: "bounded",
       capacity: Number.parseInt(type.capacity, 10),
@@ -4024,19 +2985,19 @@ class CodeGenWalker {
    */
   private namedTypeOf(
     type: TTypeSyntax,
+    ofElement = false,
   ): { name: string; separator: string } | null {
     // #1285: ask for named types by name. Everything else -- string, array,
     // template, primitive, `void` -- returns null and is handled by the
     // caller's own chain, which is where it was always handled. An enumerated
     // list of alternatives to SKIP would have to be kept in step with the
     // grammar from ~3000 lines away, and getting it wrong fails open.
-    const name = TypeNameLadder.classifyNamed(
-      type,
-      this.host.state.currentScopePath,
-      this.host.state.typeBindingDeps((parts) =>
-        this.resolveQualifiedType(parts),
-      ),
-    )?.name;
+    // #1991: 2.2 classified it in the scope that writes it; for an array the
+    // plan describes the element, which only an element's caller asks about
+    const name =
+      type.kind === "array" && !ofElement
+        ? undefined
+        : this.plannedType(type).named?.name;
     if (name === undefined) {
       return null;
     }
@@ -4095,48 +3056,8 @@ class CodeGenWalker {
       indexCount: indexes.length,
       renderIndexes: () => indexes.map((index) => this.renderExpression(index)),
       foldWidth: () =>
-        indexes.length === 2 ? this.constantOf(indexes[1]) : undefined,
+        indexes.length === 2 ? this.planner.constantOf(indexes[1]) : undefined,
     };
-  }
-
-  /** #1668 (C7): what an assignment target writes, by the one binder */
-  private targetDeclaration(target: TExpression): IChainBase {
-    const typing = this.host.state.typingContext();
-    return DeclaredTypeInfo.ofChain(
-      OperandTyper.chainOf(target, typing),
-      typing.symbols,
-      this.host.state.symbolTable,
-      this.host.state.targetDescription,
-    );
-  }
-
-  /**
-   * The type an assignment's value is rendered against: what the target
-   * holds, as the typer types it -- its C-Next name, or, where C-Next does
-   * not fix the width (a header `size_t`), the header's spelling, so the
-   * output is the same on every target -- with `::` for a C++ namespace's
-   * type. #1760 review: three walkers derived it from the target's shape,
-   * and a header `uint8_t` field came back as that spelling, which the
-   * MISRA C:2012 Rule 10.3 cast does not read, while a scalar's bit range
-   * and a bitmap field had none at all. A slice's value is serialized at
-   * its own width, so it has none (#1085).
-   */
-  private assignedValueType(
-    targetExpr: TExpression,
-    target: IChainBase,
-  ): string | null {
-    if (target.last?.subscript === "array_slice") return null;
-    const written = OperandTyper.typeOfTarget(
-      targetExpr,
-      this.host.state.typingContext(),
-    );
-    const name = written?.cType ?? written?.typeName ?? null;
-    return name === null
-      ? null
-      : CppNamespaceUtils.convertToCppNamespace(
-          name,
-          this.host.state.symbolTable,
-        );
   }
 
   private generateAssignment(site: IAssignmentSyntax): string {
@@ -4144,12 +3065,8 @@ class CodeGenWalker {
 
     // #1668 (C7): what the target writes, bound once -- the expected type
     // below and every classifier rule and handler read this
-    const target = this.targetDeclaration(targetExpr);
-    const expectedType = this.assignedValueType(targetExpr, target);
-    // withExpectedType restores expectedType however the render exits
-    const value = this.host.state.withExpectedType(expectedType, () =>
-      this.renderExpression(site.value),
-    );
+    const target = this.planner.targetDeclaration(targetExpr);
+    const value = this.renderExpression(site.value);
 
     // #1322: the operator was mapped to its C form here and used for nothing
     // but the `isCompound` flag that `AssignmentValidator` took. ADR-065's
@@ -4181,18 +3098,39 @@ class CodeGenWalker {
     // Build context, classify, and dispatch - all patterns handled by handlers
     const assignCtx = buildAssignmentContext(site, {
       target,
+      floatBits: CodeGenWalker.plannedAt(
+        this.filePlan.floatBitWrites,
+        targetExpr,
+        this.rendering.floatBitWrites,
+        "assignment target",
+      ),
+      atomicForm: CodeGenWalker.plannedAt(
+        this.filePlan.atomicForms,
+        site,
+        this.rendering.atomicForms,
+        "assignment",
+      ),
+      plannedClamp: CodeGenWalker.plannedAt(
+        this.filePlan.compoundClamps,
+        site,
+        this.rendering.compoundClamps,
+        "assignment",
+      ),
+      plannedSliceSource: this.filePlan.sliceSources.get(site) ?? null,
+      plannedCompoundCast: this.filePlan.compoundCasts.get(site) ?? null,
+      plannedRegisterAccess: this.filePlan.registerAccesses.get(site) ?? null,
       state: this.host.state,
-      // Already rendered, inside the expectedType window above -- never again.
+      // Already rendered once, above -- never again.
       generatedValue: () => value,
       generateAssignmentTarget: (target, opCount) =>
         this.generateAssignmentTarget(target, opCount),
       analyzeMemberChainForBitAccess: (target, lastStep) =>
         this.analyzeMemberChainForBitAccess(target, lastStep),
       generateExpression: (expr) => this.renderExpression(expr),
-      tryEvaluateConstant: (expr) => this.tryEvaluateConstant(expr),
-      expressionType: (expr) => this.directTypeOf(expr),
-      integerExpressionType: (expr) => this.integerTypeOf(expr),
-      hasFloatingOperand: (expr) => this.hasFloatingLeaf(expr),
+      tryEvaluateConstant: (expr) => this.planner.tryEvaluateConstant(expr),
+      expressionType: (expr) => this.planner.directTypeOf(expr),
+      integerExpressionType: (expr) => this.planner.integerTypeOf(expr),
+      hasFloatingOperand: (expr) => this.planner.hasFloatingLeaf(expr),
       toCOperator: (cnextOp, line) =>
         AssignmentOperatorMapper.toCOperator(cnextOp, line),
     });
@@ -4310,12 +3248,7 @@ class CodeGenWalker {
     }
     return {
       kind: "value",
-      render: (expectedType) =>
-        expectedType
-          ? this.host.state.withExpectedType(expectedType, () =>
-              this.renderExpression(value),
-            )
-          : this.renderExpression(value),
+      render: () => this.renderExpression(value),
     };
   }
 
@@ -4412,10 +3345,7 @@ class CodeGenWalker {
           ? () => this.renderLoweredDimensions(decl.dimensions)
           : null,
       renderInitializer: initializer
-        ? (expectedType) =>
-            this.host.state.withExpectedType(expectedType, () =>
-              this.renderExpression(initializer),
-            )
+        ? () => this.renderExpression(initializer)
         : null,
     };
   }
@@ -4580,7 +3510,7 @@ class CodeGenWalker {
         ? null
         : PrivateConstValue.constant(
             this.host.getState(),
-            this.transpileState,
+            this.planner.transpileState,
             declared,
           );
     if (constant !== null) {
@@ -4617,7 +3547,7 @@ class CodeGenWalker {
   private constOrName(resolved: string): string {
     const inlined = PrivateConstValue.inlined(
       this.host.getState(),
-      this.transpileState,
+      this.planner.transpileState,
       resolved,
     );
     if (inlined === null) return resolved;
@@ -4730,11 +3660,15 @@ class CodeGenWalker {
    * Generate a literal expression with C++ mode handling
    * Uses extracted literal generator
    */
-  private _generateLiteralExpression(text: string): string {
+  private _generateLiteralExpression(
+    text: string,
+    narrowing: TPlannedNarrowing | null,
+  ): string {
     const result = generateLiteral(
       text,
       this.host.getState(),
-      this.transpileState,
+      this.planner.transpileState,
+      narrowing,
     );
     this.host.applyEffects(result.effects);
 
@@ -4762,43 +3696,19 @@ class CodeGenWalker {
    * pass 2.1. They stood here as two throws that reached the user as `1:0`.
    */
   private planCast(expr: TExpressionOf<"cast">): IPlannedCast {
-    const targetType = this.renderType(expr.type);
-    const targetTypeName = expr.type.text;
-    const operandCode = this.renderUnary(expr.operand);
-    const operand = OperandTyper.typeOf(
-      expr.operand,
-      this.host.state.typingContext(),
+    const planned = this.filePlan.casts.get(expr);
+    invariant(
+      planned !== undefined,
+      `2.2 planned every cast 2.3 renders (got line ${expr.span.line})`,
     );
-    const operandType = PlanTyping.castSourceType(operand);
-
+    this.rendering.casts.add(expr);
+    const targetType = this.renderType(expr.type);
     return {
       targetType,
-      targetTypeName,
-      operandCode,
-      operandType,
-      clampForm: CodeGenWalker.clampFormOf(
-        operand,
-        operandType,
-        targetTypeName,
-      ),
+      targetTypeName: expr.type.text,
+      operandCode: this.renderUnary(expr.operand),
+      ...planned,
     };
-  }
-
-  /**
-   * ADR-024's saturation, and #1668's single-evaluation form of it: a cast
-   * whose operand has a side effect -- a call, or a volatile or atomic read,
-   * as the one operand typer reports -- calls a helper, so the operand is
-   * evaluated once. A pure operand keeps the bounded ternary.
-   */
-  private static clampFormOf(
-    operand: IOperandType | null,
-    operandType: string | null,
-    targetTypeName: string,
-  ): IPlannedCast["clampForm"] {
-    if (!CastRequirement.requiresClamping(operandType, targetTypeName)) {
-      return null;
-    }
-    return operand?.hasSideEffect ? "helper" : "inline";
   }
 
   /**
@@ -4829,7 +3739,7 @@ class CodeGenWalker {
         invariant(chain !== null, "a qualified operand is also a member chain");
         // #1972: a chain that types is a member access, spelled as every
         // member access is
-        if (OperandTyper.typeOf(chain, this.host.state.typingContext())) {
+        if (this.filePlan.sizeofMemberAccesses.has(expr)) {
           return {
             kind: "expression",
             simpleIdentifier: null,
@@ -4846,9 +3756,15 @@ class CodeGenWalker {
         };
       }
       if (type.kind === "user") {
+        const binding = this.filePlan.sizeofBindings.get(expr);
+        invariant(
+          binding !== undefined,
+          `2.2 decided what every sizeof name binds to (got "${type.text}" at line ${type.span.line})`,
+        );
         const textBinding = this.sizeofName(
           type.text,
-          CodeGenWalker.positionOf(expr),
+          FilePlanner.positionOf(expr),
+          binding,
         );
         // #1974: a name that binds to no value is a type, named as every
         // type position names it
@@ -4876,8 +3792,11 @@ class CodeGenWalker {
    * #1967), and the binding is the one at the `sizeof`, so a block's local
    * ends with its block (#1966).
    */
-  private sizeofName(name: string, at: ISourcePosition): TSizeofName {
-    const binding = this.host.state.bindingAt(null, name, at);
+  private sizeofName(
+    name: string,
+    at: ISourcePosition,
+    binding: TValueBinding | null,
+  ): TSizeofName {
     if (binding === null || binding.kind === "scope") {
       return { kind: "none" };
     }
@@ -4985,27 +3904,6 @@ class CodeGenWalker {
    */
   private generateSafeDivHelpers(safeDivOps: readonly string[]): string[] {
     return helperGenerateSafeDivHelpers(new Set(safeDivOps));
-  }
-
-  // === Pipeline surface ===
-  //
-  // `Transpiler` holds the walker, because the entry point it calls --
-  // `generate(tree, …)` -- takes the parse tree and therefore lives here. The
-  // two facts it reads afterwards are accumulated on the render side, so they
-  // are delegated rather than moved: they are answers ABOUT what was emitted,
-  // which is the host's business. Pass-by-value used to be a third, and is not
-  // (#1671): 1.4 Resolve decides it, and `Transpiler` reads `Program`.
-
-  getToolchainRequirements(
-    ...args: Parameters<CodeGenerator["getToolchainRequirements"]>
-  ): ReturnType<CodeGenerator["getToolchainRequirements"]> {
-    return this.host.getToolchainRequirements(...args);
-  }
-
-  getFunctionUnmodifiedParams(
-    ...args: Parameters<CodeGenerator["getFunctionUnmodifiedParams"]>
-  ): ReturnType<CodeGenerator["getFunctionUnmodifiedParams"]> {
-    return this.host.getFunctionUnmodifiedParams(...args);
   }
 }
 

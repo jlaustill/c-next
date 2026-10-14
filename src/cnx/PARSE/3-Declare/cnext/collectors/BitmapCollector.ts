@@ -5,7 +5,7 @@
  * Produces TType-based IBitmapSymbol with proper IScopeSymbol references.
  */
 
-import * as Parser from "../../../2-Parse/grammar/CNextParser";
+import type TDeclarationSyntax from "../../../../types/syntax/TDeclarationSyntax";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import IBitmapSymbol from "../../../../types/symbols/IBitmapSymbol";
 import type IBitmapFieldSymbol from "../../../../types/symbols/IBitmapFieldSymbol";
@@ -13,14 +13,13 @@ import BITMAP_SIZE from "./BITMAP_SIZE";
 import BITMAP_BACKING_TYPE from "./BITMAP_BACKING_TYPE";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 import TVisibility from "../../../../types/TVisibility";
-import ParserUtils from "../../../../utils/ParserUtils";
 import MemberSymbolBase from "../utils/MemberSymbolBase";
 
 class BitmapCollector {
   /**
    * Collect a bitmap declaration and return an IBitmapSymbol.
    *
-   * @param ctx The bitmap declaration context
+   * @param syntax The bitmap declaration as 1.2 lowered it (#1991)
    * @param sourceFile Source file path
    * @param scopePath The path of the scope this bitmap belongs to (dotted path, "" at file scope)
    * @param visibility ADR-016 visibility as declared (#1300)
@@ -29,16 +28,16 @@ class BitmapCollector {
    *          ADR-034's rule, and 2.1 Analyze reports it as E0893 (#1531).
    */
   static collect(
-    ctx: Parser.BitmapDeclarationContext,
+    syntax: Extract<TDeclarationSyntax, { kind: "bitmap" }>,
     sourceFile: string,
     scopePath: string,
     visibility: TVisibility,
   ): IBitmapSymbol {
-    const name = ctx.IDENTIFIER().getText();
-    const bitmapType = ctx.bitmapType().getText();
+    const name = syntax.name;
+    const bitmapType = syntax.bitmapType;
     const expectedBits = BITMAP_SIZE[bitmapType];
     const backingType = BITMAP_BACKING_TYPE[bitmapType];
-    const span = ParserUtils.getSpan(ctx);
+    const span = syntax.span;
 
     // Collect fields with running bit offset
     const fields = new Map<string, IBitmapFieldSymbol>();
@@ -48,20 +47,17 @@ class BitmapCollector {
     const ownerScopedName = identity.cnxScopedName;
     let totalBits = 0;
 
-    for (const member of ctx.bitmapMember()) {
-      const fieldName = member.IDENTIFIER().getText();
-      const widthLiteral = member.INTEGER_LITERAL();
-      const width = widthLiteral
-        ? Number.parseInt(widthLiteral.getText(), 10)
-        : 1;
+    for (const member of syntax.members) {
+      const fieldName = member.name;
+      const width =
+        member.width === null ? 1 : Number.parseInt(member.width, 10);
 
       fields.set(fieldName, {
         ...MemberSymbolBase.of({
           kind: "bitmap_field" as const,
           name: fieldName,
           parentScopedName: ownerScopedName,
-          memberCtx: member,
-          parentSpan: span,
+          memberSpan: member.span,
           sourceFile,
           visibility,
         }),

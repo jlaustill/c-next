@@ -12,6 +12,7 @@
  * wrong before the diff shifted `CodeGenWalker.ts`, and nothing could ever
  * have reported that.
  */
+import TestSymbolTable from "../../../../cnx/TRANSPILE/__tests__/TestSymbolTable";
 import ProgramLowering from "../../../../cnx/PARSE/2-Parse/ProgramLowering";
 import ProgramGeneration from "./ProgramGeneration";
 import { describe, it, expect, beforeEach } from "vitest";
@@ -56,7 +57,6 @@ function setupGenerator(
     ...Program.build(
       [
         CNextResolver.resolve(
-          tree,
           ProgramLowering.program(tree, null),
           "test.cnx",
           registry,
@@ -77,7 +77,7 @@ function setupGenerator(
   // the walk accumulates read the SAME instance the walk drove.
   const host = new CodeGenerator();
   const generator = new CodeGenWalker(host);
-  host.state.symbolTable = symbolTable;
+  TestSymbolTable.install(host.state, symbolTable);
   const code = generateWithProgram(generator, tree, program, {
     symbolInfo: symbols,
     sourcePath: "test.cnx",
@@ -93,7 +93,7 @@ const generateWithProgram = (
   tree: Parser.ProgramContext,
   program: Parameters<typeof ProgramGeneration.generate>[2],
   options: Parameters<typeof ProgramGeneration.generate>[3],
-): ReturnType<CodeGenWalker["generate"]> =>
+): string =>
   ProgramGeneration.generate(generator, tree, program, options, registry);
 
 let registry = new SymbolRegistry();
@@ -645,7 +645,6 @@ describe("CodeGenWalker Coverage Tests", () => {
         ...Program.build(
           [
             CNextResolver.resolve(
-              tree,
               ProgramLowering.program(tree, null),
               "test.cnx",
               registry,
@@ -664,7 +663,7 @@ describe("CodeGenWalker Coverage Tests", () => {
       // the walk accumulates read the SAME instance the walk drove.
       const host = new CodeGenerator();
       const generator = new CodeGenWalker(host);
-      host.state.symbolTable = symbolTable;
+      TestSymbolTable.install(host.state, symbolTable);
       const code = generateWithProgram(generator, tree, program, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -703,7 +702,6 @@ describe("CodeGenWalker Coverage Tests", () => {
         ...Program.build(
           [
             CNextResolver.resolve(
-              tree,
               ProgramLowering.program(tree, null),
               "test.cnx",
               registry,
@@ -722,7 +720,7 @@ describe("CodeGenWalker Coverage Tests", () => {
       // the walk accumulates read the SAME instance the walk drove.
       const host = new CodeGenerator();
       const generator = new CodeGenWalker(host);
-      host.state.symbolTable = symbolTable;
+      TestSymbolTable.install(host.state, symbolTable);
       const code = generateWithProgram(generator, tree, program, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -752,7 +750,6 @@ describe("CodeGenWalker Coverage Tests", () => {
         ...Program.build(
           [
             CNextResolver.resolve(
-              tree,
               ProgramLowering.program(tree, null),
               "test.cnx",
               registry,
@@ -771,7 +768,7 @@ describe("CodeGenWalker Coverage Tests", () => {
       // the walk accumulates read the SAME instance the walk drove.
       const host = new CodeGenerator();
       const generator = new CodeGenWalker(host);
-      host.state.symbolTable = symbolTable;
+      TestSymbolTable.install(host.state, symbolTable);
       const code = generateWithProgram(generator, tree, program, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1174,7 +1171,6 @@ describe("CodeGenWalker Coverage Tests", () => {
           ...Program.build(
             [
               CNextResolver.resolve(
-                tree,
                 ProgramLowering.program(tree, null),
                 "test.cnx",
                 registry,
@@ -1186,7 +1182,7 @@ describe("CodeGenWalker Coverage Tests", () => {
         symbolTable.addTSymbols(tSymbols);
         const host = new CodeGenerator();
         const generator = new CodeGenWalker(host);
-        host.state.symbolTable = symbolTable;
+        TestSymbolTable.install(host.state, symbolTable);
         generateWithProgram(generator, tree, program, {
           symbolInfo: TSymbolInfoAdapter.convert(tSymbols),
           sourcePath: "test.cnx",
@@ -1321,7 +1317,6 @@ describe("CodeGenWalker Coverage Tests", () => {
         ...Program.build(
           [
             CNextResolver.resolve(
-              tree,
               ProgramLowering.program(tree, null),
               "test.cnx",
               registry,
@@ -1355,7 +1350,7 @@ describe("CodeGenWalker Coverage Tests", () => {
       // the walk accumulates read the SAME instance the walk drove.
       const host = new CodeGenerator();
       const generator = new CodeGenWalker(host);
-      host.state.symbolTable = symbolTable;
+      TestSymbolTable.install(host.state, symbolTable);
 
       return generateWithProgram(generator, tree, program, {
         symbolInfo: symbols,
@@ -1531,7 +1526,6 @@ describe("CodeGenWalker Coverage Tests", () => {
         ...Program.build(
           [
             CNextResolver.resolve(
-              tree,
               ProgramLowering.program(tree, null),
               "test.cnx",
               registry,
@@ -1564,7 +1558,7 @@ describe("CodeGenWalker Coverage Tests", () => {
       // the walk accumulates read the SAME instance the walk drove.
       const host = new CodeGenerator();
       const generator = new CodeGenWalker(host);
-      host.state.symbolTable = symbolTable;
+      TestSymbolTable.install(host.state, symbolTable);
       const code = generateWithProgram(generator, tree, program, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1590,7 +1584,6 @@ describe("CodeGenWalker Coverage Tests", () => {
         ...Program.build(
           [
             CNextResolver.resolve(
-              tree,
               ProgramLowering.program(tree, null),
               "test.cnx",
               registry,
@@ -1613,7 +1606,7 @@ describe("CodeGenWalker Coverage Tests", () => {
       // the walk accumulates read the SAME instance the walk drove.
       const host = new CodeGenerator();
       const generator = new CodeGenWalker(host);
-      host.state.symbolTable = symbolTable;
+      TestSymbolTable.install(host.state, symbolTable);
       const code = generateWithProgram(generator, tree, program, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",

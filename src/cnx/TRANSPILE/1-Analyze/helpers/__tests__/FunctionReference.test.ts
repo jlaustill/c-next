@@ -25,7 +25,6 @@ const build = (source: string) => {
   state.program = Program.build(
     [
       CNextResolver.resolve(
-        tree,
         ProgramLowering.program(tree, null),
         "a.cnx",
         registry,

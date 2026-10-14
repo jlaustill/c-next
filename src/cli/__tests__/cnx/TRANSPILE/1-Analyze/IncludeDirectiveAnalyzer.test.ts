@@ -35,7 +35,7 @@ const analyze = (
     "/project/src",
   ).resolve(source);
   return new IncludeDirectiveAnalyzer().analyze(
-    CNextSourceParser.parse(source).tree,
+    CNextSourceParser.parse(source).program,
     discovered,
   );
 };
@@ -196,11 +196,11 @@ describe("IncludeDirectiveAnalyzer (1.1's answer)", () => {
     // An answer missing here means 1.1 and 1.2 disagree on which lines are
     // directives (#1745). Re-deriving it would hide that behind a second
     // decision, which is what #1672 removed.
-    const { tree } = CNextSourceParser.parse(
+    const { program } = CNextSourceParser.parse(
       '#include "helper.h"\n\nu8 main() {\n    return 0;\n}',
     );
     expect(() =>
-      new IncludeDirectiveAnalyzer().analyze(tree, {
+      new IncludeDirectiveAnalyzer().analyze(program, {
         resolutions: new Map(),
         cnextAlternatives: new Map(),
         kinds: new Map([['#include "helper.h"', EFileType.CHeader]]),
@@ -209,11 +209,11 @@ describe("IncludeDirectiveAnalyzer (1.1's answer)", () => {
   });
 
   it("never classifies a directive discovery did not classify (#1444)", () => {
-    const { tree } = CNextSourceParser.parse(
+    const { program } = CNextSourceParser.parse(
       '#include "helper.h"\n\nu8 main() {\n    return 0;\n}',
     );
     expect(() =>
-      new IncludeDirectiveAnalyzer().analyze(tree, {
+      new IncludeDirectiveAnalyzer().analyze(program, {
         resolutions: new Map([['#include "helper.h"', null]]),
         cnextAlternatives: new Map(),
         kinds: new Map(),
@@ -233,7 +233,7 @@ describe("IncludeDirectiveAnalyzer (1.1's answer)", () => {
     new IncludeDirectiveAnalyzer()
       .analyze(
         CNextSourceParser.parse(`${directive}\n\nu8 main() {\n    return 0;\n}`)
-          .tree,
+          .program,
         answer(directive, kind),
       )
       .map((e) => e.code);

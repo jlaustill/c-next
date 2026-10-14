@@ -1,4 +1,3 @@
-import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
 import type TOverflowBehavior from "../types/TOverflowBehavior";
 
 /**
@@ -19,17 +18,10 @@ import type TOverflowBehavior from "../types/TOverflowBehavior";
 class OverflowBehaviorUtils {
   /**
    * `clamp` is ADR-044's default: absent modifier means clamp, never wrap.
-   *
-   * Reads the CLAMP/WRAP tokens rather than comparing `getText()`, so a future
-   * spelling change cannot silently turn every declaration into a clamp.
+   * The modifier arrives as 1.2 lowered it (`SyntaxLowering.overflow`, #1991).
    */
-  static fromModifier(
-    modifier: Parser.OverflowModifierContext | null,
-  ): TOverflowBehavior {
-    if (modifier === null) {
-      return "clamp";
-    }
-    return modifier.WRAP() === null ? "clamp" : "wrap";
+  static fromModifier(modifier: TOverflowBehavior | null): TOverflowBehavior {
+    return modifier ?? "clamp";
   }
 }
 

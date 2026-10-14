@@ -19,10 +19,10 @@
  * asserts directly. Rendering stays with the walker; this decides shape only.
  */
 import invariant from "../../../../../utils/invariant";
-import CppModeHelper from "../../helpers/CppModeHelper";
+import CppModeHelper from "../../../../2-Plan/CppModeHelper";
 import SaturatingCast from "../../helpers/SaturatingCast";
 import ReservedCnxName from "../../../../../utils/ReservedCnxName";
-import type IPlannedCast from "../../types/IPlannedCast";
+import type IPlannedCast from "../../../../2-Plan/types/IPlannedCast";
 import type TranspileState from "../../../../TranspileState";
 
 /**
@@ -49,10 +49,8 @@ function generateCast(plan: IPlannedCast, state: TranspileState): string {
   const sourceType = plan.operandType;
   invariant(sourceType !== null, "the plan saturates a typed float source");
 
-  // The limit macros come from <limits.h>
-  state.requireInclude("limits");
+  // 2.2 required <limits.h>, and the helper, when it planned this cast (#1991)
   if (plan.clampForm === "helper") {
-    state.markCastHelperUsed(sourceType, plan.targetTypeName);
     return `${ReservedCnxName.castHelper(sourceType, plan.targetTypeName)}(${plan.operandCode})`;
   }
   const expression = SaturatingCast.expression(

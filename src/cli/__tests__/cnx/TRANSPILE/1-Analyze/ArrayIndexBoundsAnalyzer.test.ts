@@ -13,8 +13,10 @@ import testAnalysisContextFor from "./testAnalysisContextFor";
  * struct the source declares, through the program 1.4 built for it.
  */
 const errors = (source: string) => {
-  const { tree, context } = testAnalysisContextFor(source, { cppMode: false });
-  return new ArrayIndexBoundsAnalyzer(context).analyze(tree);
+  const { syntax, context } = testAnalysisContextFor(source, {
+    cppMode: false,
+  });
+  return new ArrayIndexBoundsAnalyzer(context).analyze(syntax);
 };
 
 describe("ArrayIndexBoundsAnalyzer (E0854)", () => {
@@ -98,5 +100,64 @@ describe("ArrayIndexBoundsAnalyzer (E0854)", () => {
       "}",
     ].join("\n");
     expect(errors(source)).toEqual([]);
+  });
+});
+
+describe("ArrayIndexBoundsAnalyzer on 1.2's syntax (#1991)", () => {
+  const macros = {
+    N: {
+      kind: "integer",
+      valueByIntBits: new Map([
+        [16, 3],
+        [32, 3],
+      ]),
+    },
+  } as const;
+  const withMacro = (source: string) => {
+    const { syntax, context } = testAnalysisContextFor(source, {
+      cppMode: false,
+      macros,
+    });
+    return new ArrayIndexBoundsAnalyzer(context).analyze(syntax);
+  };
+
+  it("bounds a header-macro dimension through a root, a field and this.", () => {
+    const source = [
+      "struct S {",
+      "    u8[N] d;",
+      "}",
+      "u8[N] buf;",
+      "S s;",
+      "scope M {",
+      "    u8[N] slots;",
+      "    public void f() {",
+      "        buf[5] <- 1;",
+      "        s.d[5] <- 1;",
+      "        this.slots[5] <- 1;",
+      "    }",
+      "}",
+    ].join("\n");
+    expect(withMacro(source).map((e) => [e.line, e.message])).toEqual([
+      [9, "Array index out of bounds: 5 >= 3 for 'buf' dimension 1"],
+      [10, "Array index out of bounds: 5 >= 3 for 's.d' dimension 1"],
+      [11, "Array index out of bounds: 5 >= 3 for 'this.slots' dimension 1"],
+    ]);
+  });
+
+  it("counts dimensions from the last member step", () => {
+    const source =
+      "struct S {\n    u8[4] d;\n}\nS[2] arr;\nvoid f() {\n    arr[0].d[9] <- 1;\n}";
+    expect(errors(source).map((e) => e.message)).toEqual([
+      "Array index out of bounds: 9 >= 4 for 'arr[0].d' dimension 1",
+    ]);
+  });
+
+  it("reports in source order, a sizeof's dimension included", () => {
+    const source =
+      "u8[4] buf;\nvoid f() {\n    u32 s <- sizeof(u8[buf[9]]) + buf[8];\n}";
+    expect(errors(source).map((e) => e.message)).toEqual([
+      "Array index out of bounds: 9 >= 4 for 'buf' dimension 1",
+      "Array index out of bounds: 8 >= 4 for 'buf' dimension 1",
+    ]);
   });
 });

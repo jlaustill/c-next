@@ -5,6 +5,7 @@ import type CommentScanner from "./CommentScanner";
 import SyntaxLowering from "./SyntaxLowering";
 import StatementLowering from "./StatementLowering";
 import type IComment from "../../types/IComment";
+import type ISourceSpan from "../../types/ISourceSpan";
 import type TRegisterAccessMode from "../../types/TRegisterAccessMode";
 import type IFunctionDeclarationSyntax from "../../types/syntax/IFunctionDeclarationSyntax";
 import type IParameterSyntax from "../../types/syntax/IParameterSyntax";
@@ -32,6 +33,7 @@ class ProgramLowering {
         ? comments.getCommentsBefore(ctx.start.tokenIndex)
         : [];
     return {
+      span: ParserUtils.getSpan(tree),
       includes: tree.includeDirective().map((include) => ({
         ...SyntaxLowering.node(include),
         leadingComments: leadingComments(include),
@@ -91,16 +93,45 @@ class ProgramLowering {
     }
     const struct = ctx.structDeclaration();
     if (struct) return { kind: "struct", ...ProgramLowering.struct(struct) };
-    const named = ctx.enumDeclaration() ?? ctx.bitmapDeclaration();
-    if (named) {
-      return {
-        kind:
-          named instanceof Parser.EnumDeclarationContext ? "enum" : "bitmap",
-        name: named.IDENTIFIER().getText(),
-        ...SyntaxLowering.node(named),
-      };
-    }
+    const enumDecl = ctx.enumDeclaration();
+    if (enumDecl) return ProgramLowering.enum(enumDecl);
+    const bitmap = ctx.bitmapDeclaration();
+    if (bitmap) return ProgramLowering.bitmap(bitmap);
     return { kind: "missing", ...SyntaxLowering.node(ctx) };
+  }
+
+  private static enum(
+    ctx: Parser.EnumDeclarationContext,
+  ): Extract<TMemberDeclaration, { kind: "enum" }> {
+    return {
+      kind: "enum",
+      name: ctx.IDENTIFIER().getText(),
+      members: ctx.enumMember().map((member) => {
+        const value = member.expression();
+        return {
+          name: member.IDENTIFIER().getText(),
+          value: value ? SyntaxLowering.expression(value) : null,
+          ...SyntaxLowering.node(member),
+        };
+      }),
+      ...SyntaxLowering.node(ctx),
+    };
+  }
+
+  private static bitmap(
+    ctx: Parser.BitmapDeclarationContext,
+  ): Extract<TMemberDeclaration, { kind: "bitmap" }> {
+    return {
+      kind: "bitmap",
+      name: ctx.IDENTIFIER().getText(),
+      bitmapType: ctx.bitmapType().getText(),
+      members: ctx.bitmapMember().map((member) => ({
+        name: member.IDENTIFIER().getText(),
+        width: member.INTEGER_LITERAL()?.getText() ?? null,
+        ...SyntaxLowering.node(member),
+      })),
+      ...SyntaxLowering.node(ctx),
+    };
   }
 
   /**
@@ -155,8 +186,23 @@ class ProgramLowering {
           )
       );
     }
-    const named = ctx.enumDeclaration() ?? ctx.bitmapDeclaration();
-    return named !== null && ProgramLowering.isRepaired(named.IDENTIFIER());
+    const enumDecl = ctx.enumDeclaration();
+    if (enumDecl) {
+      return (
+        ProgramLowering.isRepaired(enumDecl.IDENTIFIER()) ||
+        enumDecl
+          .enumMember()
+          .some((member) => ProgramLowering.isRepaired(member.IDENTIFIER()))
+      );
+    }
+    const bitmap = ctx.bitmapDeclaration();
+    return (
+      bitmap !== null &&
+      (ProgramLowering.isRepaired(bitmap.IDENTIFIER(), bitmap.bitmapType()) ||
+        bitmap
+          .bitmapMember()
+          .some((member) => ProgramLowering.isRepaired(member.IDENTIFIER())))
+    );
   }
 
   /** Recovery dropped a required part, or invented the name */
@@ -201,6 +247,7 @@ class ProgramLowering {
       const: ctx.constModifier() !== null,
       type: SyntaxLowering.type(ctx.type()),
       name: ctx.IDENTIFIER().getText(),
+      nameSpan: ProgramLowering.spanOf(ctx.IDENTIFIER()),
       dimensions: ctx.arrayDimension().map(ProgramLowering.dimensionOf),
       ...SyntaxLowering.node(ctx),
     };
@@ -231,11 +278,20 @@ class ProgramLowering {
       fields: ctx.structMember().map((member) => ({
         type: SyntaxLowering.type(member.type()),
         name: member.IDENTIFIER().getText(),
+        nameSpan: ProgramLowering.spanOf(member.IDENTIFIER()),
         dimensions: member.arrayDimension().map(ProgramLowering.dimensionOf),
+        overflow: SyntaxLowering.overflow(member.overflowModifier()),
         ...SyntaxLowering.node(member),
       })),
       ...SyntaxLowering.node(ctx),
     };
+  }
+
+  private static spanOf(identifier: TerminalNode): ISourceSpan {
+    return ParserUtils.getSpan({
+      start: identifier.symbol,
+      stop: identifier.symbol,
+    });
   }
 
   private static dimensionOf(

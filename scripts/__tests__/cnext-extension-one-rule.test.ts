@@ -40,8 +40,14 @@ const NOT_A_MATCH: ReadonlyArray<readonly [string, string]> = [
 const EXTNAME_NOT_A_STEM: ReadonlyArray<readonly [string, string]> = [
   // A C/C++ entry point's extension (#2050), and the rejection's text.
   ["src/cnx/PARSE/1-Discover/InputExpansion.ts", "const ext = extname(path);"],
-  // The temporary file keeps the source's extension for the compiler.
+  // An included header's string keeps the header's extension (#1991)...
   ["src/cnx/PARSE/1-Discover/preprocessor/Preprocessor.ts", "cnext-include"],
+  // ...because standard input has no name, so cpp is told its language with
+  // `-x` from that extension (#1991 replaced the temporary file).
+  [
+    "src/cnx/PARSE/1-Discover/preprocessor/Preprocessor.ts",
+    "extname(text.filename)",
+  ],
   // Every other kind's table key (#2043); C-Next is asked of the owner.
   ["src/cnx/PARSE/1-Discover/FileDiscovery.ts", "extname(filePath)"],
 ];

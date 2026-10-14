@@ -43,6 +43,7 @@ import DefinitionPoint from "../../utils/DefinitionPoint";
 import type IScopeSymbol from "../../types/symbols/IScopeSymbol";
 import type IFileSymbols from "../../types/IFileSymbols";
 import type IStructFieldInfo from "../../types/symbols/IStructFieldInfo";
+import type IResolvedSymbols from "../../types/IResolvedSymbols";
 import type IProgram from "../../types/IProgram";
 import type TSymbol from "../../types/symbols/TSymbol";
 import type IParameterInfo from "../../types/symbols/IParameterInfo";
@@ -225,8 +226,15 @@ class Program {
     // The query surface. Every collection above stays in this closure and is
     // reachable only through the functions below, which is what makes
     // `IProgram` impossible to bypass rather than merely discouraging it.
+    // 1.4 publishes what it resolved into the table 1.3 declared the headers
+    // into, so the table a later pass reads is this artifact's (#1991).
+    for (const resolved of symbolsByFile.values()) {
+      symbolTable.addTSymbols(resolved);
+    }
+
     return Object.freeze({
       isScopeTypeVisibleFrom,
+      symbolTable: (): IResolvedSymbols => symbolTable,
       symbolByCName: (cName: string): TSymbol | undefined =>
         symbolsByCName.get(cName),
       symbolsInFile: (sourceFile: string): ReadonlyArray<TSymbol> =>

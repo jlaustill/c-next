@@ -44,23 +44,21 @@
  */
 
 import type TExpression from "../../types/syntax/TExpression";
-import SyntaxLowering from "../../PARSE/2-Parse/SyntaxLowering";
-import { ParseTreeWalker, ParserRuleContext } from "antlr4ng";
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import IMixedTypeCategoryError from "./types/IMixedTypeCategoryError";
-import BinaryOperatorLevelListener from "./BinaryOperatorLevelListener";
-import AssignmentSiteListener from "./AssignmentSiteListener";
 import BooleanOperandAnalyzer from "./BooleanOperandAnalyzer";
 import EnumValueResolver from "./EnumValueResolver";
-import ParserUtils from "../../utils/ParserUtils";
 import OperandTyper from "../../utils/OperandTyper";
 import CompoundOperator from "../../utils/CompoundOperator";
 import CLAMP_HELPER_FOR_OPERATOR from "../../types/CLAMP_HELPER_FOR_OPERATOR";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import type TBinaryOperatorLevel from "./types/TBinaryOperatorLevel";
-import type TAssignmentSite from "../../types/TAssignmentSite";
 import type IOperandType from "../../types/IOperandType";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
+import type TBinaryExpression from "../../types/syntax/TBinaryExpression";
+import DeclarationParts from "../../utils/DeclarationParts";
+import ExpressionNodes from "../../utils/ExpressionNodes";
+import StatementNodes from "../../utils/StatementNodes";
 import SourceOrder from "../../utils/SourceOrder";
 
 /**
@@ -139,8 +137,7 @@ class MixedCategoryCheck {
    * value leaves share, or null when they have none -- or disagree, which is
    * reported at the inner operator, once.
    */
-  private operandCategory(ctx: ParserRuleContext): Category {
-    const operand = SyntaxLowering.expressionNode(ctx);
+  private operandCategory(operand: TExpression): Category {
     const level = OperandTyper.compositeLevelOf(operand);
     const key = level === null ? null : MixedCategoryCheck.writtenAt(level);
     if (key !== null && this.levelCategories.has(key)) {
@@ -168,21 +165,20 @@ class MixedCategoryCheck {
    * that differs -- reported there -- the right operand's category runs on.
    */
   public checkLevel(
-    operands: ParserRuleContext[],
+    expr: TBinaryExpression,
     level: TBinaryOperatorLevel,
   ): void {
-    const parent = operands[0]?.parent;
+    const operands = expr.operands;
     let running = this.operandCategory(operands[0]);
     let mixed = false;
     for (let i = 1; i < operands.length; i += 1) {
       const right = this.operandCategory(operands[i]);
-      const operator = parent?.getChild(i * 2 - 1)?.getText() ?? "";
+      const operator = expr.operators[i - 1];
       if (this.reportsPair(operands[i - 1], operands[i], level)) {
         if (MixedCategoryCheck.differ(running, right, operator)) {
-          const { line, column } = ParserUtils.getPosition(operands[i]);
           this.analyzer.addError(
-            line,
-            column,
+            operands[i].span.line,
+            operands[i].span.column,
             running!,
             right!,
             "binary",
@@ -193,18 +189,16 @@ class MixedCategoryCheck {
       }
       running = MixedCategoryCheck.fold(running, right, operator);
     }
-    if (parent) {
-      this.levelCategories.set(
-        MixedCategoryCheck.writtenAt(SyntaxLowering.expressionNode(parent)),
-        mixed ? null : running,
-      );
-    }
+    this.levelCategories.set(
+      MixedCategoryCheck.writtenAt(expr),
+      mixed ? null : running,
+    );
   }
 
   /** Whether this rule, not another, reports a mix between two operands */
   private reportsPair(
-    left: ParserRuleContext,
-    right: ParserRuleContext,
+    left: TExpression,
+    right: TExpression,
     level: TBinaryOperatorLevel,
   ): boolean {
     if (this.enumComparison(left, right, level)) return false;
@@ -245,8 +239,8 @@ class MixedCategoryCheck {
    * and its comparison with an integer is this rule's mix.
    */
   private enumComparison(
-    left: ParserRuleContext,
-    right: ParserRuleContext,
+    left: TExpression,
+    right: TExpression,
     level: TBinaryOperatorLevel,
   ): boolean {
     if (level !== "equality" && level !== "relational") return false;
@@ -277,11 +271,10 @@ class MixedCategoryCheck {
    * are mixed has no category, so that defect is reported once, at its own
    * operator, and never again here.
    */
-  public checkTernary(ctx: Parser.TernaryExpressionContext): void {
-    const arms = ParserUtils.ternaryValueArms(ctx);
-    if (arms === null) return;
-    const left = this.operandCategory(arms[0]);
-    const right = this.operandCategory(arms[1]);
+  public checkTernary(expr: TExpression): void {
+    if (expr.kind !== "ternary") return;
+    const left = this.operandCategory(expr.whenTrue);
+    const right = this.operandCategory(expr.whenFalse);
     if (left === null || right === null || left === right) return;
     if (
       (left === UNREADABLE_MACRO || right === UNREADABLE_MACRO) &&
@@ -289,8 +282,13 @@ class MixedCategoryCheck {
     ) {
       return;
     }
-    const { line, column } = ParserUtils.getPosition(arms[1]);
-    this.analyzer.addError(line, column, left, right, "conditional");
+    this.analyzer.addError(
+      expr.whenFalse.span.line,
+      expr.whenFalse.span.column,
+      left,
+      right,
+      "conditional",
+    );
   }
 
   /** Whether two categories may not be combined by `operator` */
@@ -313,39 +311,27 @@ class MixedCategoryCheck {
     return !characterExempt;
   }
 
-  public checkCompound(site: TAssignmentSite): void {
-    const operator = CompoundOperator.binaryOf(
-      site.assignmentOperator().getText(),
-    );
+  public checkCompound(site: IAssignmentSyntax): void {
+    const operator = CompoundOperator.binaryOf(site.operator);
     if (operator === null || NOT_RULE_10_4_OPERATORS.has(operator)) return;
 
-    const value = site.expression();
+    const value = site.value;
     const left = MixedCategoryCheck.rule104Category(
-      OperandTyper.typeOfTarget(
-        SyntaxLowering.assignmentTarget(site.assignmentTarget()),
-        this.context,
-      ),
+      OperandTyper.typeOfTarget(site.target, this.context),
     );
     const right = this.operandCategory(value);
     if (MixedCategoryCheck.ownedElsewhere(left, right, "compound")) return;
     if (MixedCategoryCheck.differ(left, right, operator)) {
-      const { line, column } = ParserUtils.getPosition(value);
-      this.analyzer.addError(line, column, left!, right!, "compound", operator);
+      this.analyzer.addError(
+        value.span.line,
+        value.span.column,
+        left!,
+        right!,
+        "compound",
+        operator,
+      );
     }
   }
-}
-
-/** Hands each conditional expression to the check */
-class TernaryListener extends CNextListener {
-  constructor(private readonly check: MixedCategoryCheck) {
-    super();
-  }
-
-  override enterTernaryExpression = (
-    ctx: Parser.TernaryExpressionContext,
-  ): void => {
-    this.check.checkTernary(ctx);
-  };
 }
 
 class MixedTypeCategoryAnalyzer {
@@ -353,33 +339,35 @@ class MixedTypeCategoryAnalyzer {
 
   private errors: IMixedTypeCategoryError[] = [];
 
-  public analyze(tree: Parser.ProgramContext): IMixedTypeCategoryError[] {
+  public analyze(program: IProgramSyntax): IMixedTypeCategoryError[] {
     this.errors = [];
     const check = new MixedCategoryCheck(this, this.context);
+    const expressions = program.declarations.flatMap((member) =>
+      DeclarationParts.of(member.declaration).flatMap(ExpressionNodes.of),
+    );
 
     // Levels are met outermost first; checked innermost first, so a level
     // that is an operand of another has its category when that one asks
-    const levels: Array<[ParserRuleContext[], TBinaryOperatorLevel]> = [];
-    ParseTreeWalker.DEFAULT.walk(
-      new BinaryOperatorLevelListener((operands, level) => {
-        if (level === "shift") return;
-        levels.push([operands, level]);
-      }),
-      tree,
-    );
+    const levels: Array<[TBinaryExpression, TBinaryOperatorLevel]> = [];
+    for (const expr of expressions) {
+      if (expr.kind !== "binary") continue;
+      const level = expr.level;
+      if (level === "or" || level === "and" || level === "shift") continue;
+      levels.push([expr, level]);
+    }
     levels.reverse();
-    for (const [operands, level] of levels) {
-      check.checkLevel(operands, level);
+    for (const [expr, level] of levels) {
+      check.checkLevel(expr, level);
     }
 
-    // Compound arm; #2049 replaces the per-analyzer arms with one
-    ParseTreeWalker.DEFAULT.walk(
-      new AssignmentSiteListener((site) => check.checkCompound(site)),
-      tree,
-    );
-    ParseTreeWalker.DEFAULT.walk(new TernaryListener(check), tree);
+    for (const member of program.declarations) {
+      for (const site of StatementNodes.assignments(member.declaration)) {
+        check.checkCompound(site);
+      }
+    }
+    for (const expr of expressions) check.checkTernary(expr);
 
-    // Three walks; reported in source order
+    // Read off 1.2's syntax (#1991); reported in source order
     return this.errors.sort(SourceOrder.compare);
   }
 

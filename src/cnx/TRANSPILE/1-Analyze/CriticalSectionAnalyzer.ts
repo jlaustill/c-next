@@ -25,62 +25,62 @@
  * `__cnx_set_PRIMASK()`. That is the exact hazard the rule exists to prevent,
  * shipped past the guard that prevents it.
  *
- * A walk cannot have that hole, because it does not enumerate -- it visits.
- * Any statement the grammar can nest inside a critical block is reached,
- * including ones added later, without this file being edited.
+ * This walk cannot have that hole. It descends through `StatementChildren`,
+ * which names every statement kind and stops compiling when one is added, so
+ * every statement that can nest in a critical block is reached. It reads 1.2's
+ * syntax, not the tree (#1991).
  */
 
-import { ParseTreeWalker } from "antlr4ng";
-
-import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import ParserUtils from "../../utils/ParserUtils";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
+import type TStatement from "../../types/syntax/TStatement";
+import StatementChildren from "../../utils/StatementChildren";
 import ICriticalSectionError from "./types/ICriticalSectionError";
 
-class CriticalSectionListener extends CNextListener {
-  /**
-   * How many `critical` blocks are open. A counter rather than a boolean
-   * because `critical` nests, and a boolean cleared by the inner block's exit
-   * would stop applying while still inside the outer one.
-   */
-  private depth = 0;
-
+class CriticalSectionAnalyzer {
   private readonly found: ICriticalSectionError[] = [];
 
-  public errors(): ICriticalSectionError[] {
+  public analyze(program: IProgramSyntax): ICriticalSectionError[] {
+    for (const member of program.declarations) {
+      this.declaration(member.declaration);
+    }
     return this.found;
   }
 
-  override enterCriticalStatement = (): void => {
-    this.depth += 1;
-  };
+  private declaration(declaration: TDeclarationSyntax): void {
+    if (declaration.kind === "scope") {
+      for (const member of declaration.members) {
+        this.declaration(member.declaration);
+      }
+    } else if (declaration.kind === "function") {
+      this.statements(declaration.body.statements, false);
+    }
+  }
 
-  override exitCriticalStatement = (): void => {
-    this.depth -= 1;
-  };
+  private statements(
+    statements: readonly TStatement[],
+    inCritical: boolean,
+  ): void {
+    for (const statement of statements) this.statement(statement, inCritical);
+  }
 
-  override enterReturnStatement = (
-    ctx: Parser.ReturnStatementContext,
-  ): void => {
-    if (this.depth === 0) return;
-    const { line, column } = ParserUtils.getPosition(ctx);
-    this.found.push({
-      code: "E0853",
-      line,
-      column,
-      message:
-        "Cannot use 'return' inside critical section - would leave interrupts disabled",
-      helpText:
-        "The interrupt state is restored after the block; a `return` jumps past that restore. Assign the value to a variable inside the block and return it after the block closes.",
-    });
-  };
-}
-
-class CriticalSectionAnalyzer {
-  public analyze(tree: Parser.ProgramContext): ICriticalSectionError[] {
-    const listener = new CriticalSectionListener();
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
-    return listener.errors();
+  /** `inCritical`: some enclosing statement is a `critical` block */
+  private statement(statement: TStatement, inCritical: boolean): void {
+    if (statement.kind === "return" && inCritical) {
+      this.found.push({
+        code: "E0853",
+        line: statement.span.line,
+        column: statement.span.column,
+        message:
+          "Cannot use 'return' inside critical section - would leave interrupts disabled",
+        helpText:
+          "The interrupt state is restored after the block; a `return` jumps past that restore. Assign the value to a variable inside the block and return it after the block closes.",
+      });
+    }
+    this.statements(
+      StatementChildren.of(statement),
+      inCritical || statement.kind === "critical",
+    );
   }
 }
 

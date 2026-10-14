@@ -1,0 +1,21 @@
+// test-execution
+// Tests: a primitive parameter that a function in another file modifies is passed by reference
+
+#include "counter.cnx"
+
+u32 main() {
+    u32 a <- 1;
+    bump(a);
+    if (a != 2) {
+        return 1;
+    }
+    u32 doubled <- twice(a);
+    if (doubled != 4) {
+        return 2;
+    }
+    Counter.add(a, 3);
+    if (a != 5) {
+        return 3;
+    }
+    return 0;
+}
