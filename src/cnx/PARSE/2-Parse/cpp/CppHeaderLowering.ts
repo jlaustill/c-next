@@ -319,34 +319,39 @@ class CppHeaderLowering {
 
   /**
    * As many `*`s as the declarator spells, as the C lowering keeps (#2058).
-   * A reference, or a pointer only the text shows, is one.
+   * A reference adds none (#2062): its argument is passed as itself, where a
+   * pointer takes its address. A pointer only the text shows is one.
    */
   private static parameter(
-    paramDecl: ParameterDeclarationContext,
+    parameterDeclaration: ParameterDeclarationContext,
   ): IExtractedParameter {
-    const declSpecSeq = paramDecl.declSpecifierSeq();
-    const baseType = CppHeaderLowering.baseType(declSpecSeq);
-    const declarator = paramDecl.declarator();
-    const abstractDecl = paramDecl.abstractDeclarator();
+    const declarationSpecifiers = parameterDeclaration.declSpecifierSeq();
+    const baseType = CppHeaderLowering.baseType(declarationSpecifiers);
+    const declarator = parameterDeclaration.declarator();
+    const abstractDeclarator = parameterDeclaration.abstractDeclarator();
+    const operators =
+      declarator?.pointerDeclarator()?.pointerOperator() ??
+      abstractDeclarator?.pointerAbstractDeclarator()?.pointerOperator() ??
+      [];
+    const isReference = operators.some((operator) =>
+      operator.getText().startsWith("&"),
+    );
     const isPointer =
       (declarator !== null &&
         CppHeaderLowering.hasPointer(declarator.pointerDeclarator())) ||
-      (abstractDecl !== null &&
-        CppHeaderLowering.abstractHasPointer(abstractDecl));
-    const operators =
-      declarator?.pointerDeclarator()?.pointerOperator() ??
-      abstractDecl?.pointerAbstractDeclarator()?.pointerOperator() ??
-      [];
+      (abstractDeclarator !== null &&
+        CppHeaderLowering.abstractHasPointer(abstractDeclarator));
     const depth = Math.max(
       CppHeaderLowering.starCount(operators),
-      isPointer ? 1 : 0,
+      isPointer && !isReference ? 1 : 0,
     );
     return ParameterExtractorUtils.buildParameterInfo(
       declarator,
       DeclaratorTypes.withPointers(baseType, depth),
-      declSpecSeq.getText().includes("const"),
+      declarationSpecifiers.getText().includes("const"),
       false,
-      (decl: DeclaratorContext) => CppHeaderLowering.declaratorName(decl),
+      (candidate: DeclaratorContext) =>
+        CppHeaderLowering.declaratorName(candidate),
     );
   }
 

@@ -22,7 +22,7 @@ int main(void) {
     if (t->v != 42) {
         return 3U;
     }
-    open_it(p);
+    open_it(&p);
     if (counter != 9) {
         return 2U;
     }
