@@ -249,7 +249,11 @@ class CodeGenWalker {
     );
   }
 
-  /** 2.2 over options already read off 2.1's artifact; `plan` is the pass */
+  /**
+   * 2.2 over options already read off 2.1's artifact. `plan` is the pass; this
+   * is public only for the test helper `ProgramGeneration.plan`, which hands
+   * 2.2 options without a whole run. The host calls `plan`.
+   */
   planWith(file: IAnalyzedFile, options: ICodeGeneratorOptions): IFilePlan {
     const state = this.host.state;
     const inputs = FilePlanner.planInputs(options);

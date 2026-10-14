@@ -35,7 +35,8 @@ WRITE       3.1 Write     --> disk
 
 **An error in 1.2 stops the run before 1.3, for every file** (#2020, kept under
 #1991). A file with a syntax error or a form error (each code whose Source in
-[`docs/error-codes.md`](../error-codes.md) is under `PARSE/2-Parse/`) is not in
+[`docs/error-codes.md`](../error-codes.md) names `PARSE/2-Parse/`; for E0866, only
+its form case) is not in
 1.2's artifact, so 1.3
 cannot declare it. Going on would analyze every file that includes it against
 declarations that are missing, and report errors that are not real. So a form

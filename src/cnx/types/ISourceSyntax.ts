@@ -51,7 +51,9 @@ interface ISourceSyntax {
   /**
    * 1.2's errors on a tree that DID parse: how a literal or a declared name is
    * written, and the form of a string or array declaration: each code whose
-   * Source in `docs/error-codes.md` is under `PARSE/2-Parse/`. Kept apart from `parseErrors` because the
+   * Source in `docs/error-codes.md` names `PARSE/2-Parse/` (for E0866, only its
+   * form case; its count and struct-literal cases are 2.1's). Kept apart from
+   * `parseErrors` because the
    * tree is sound -- the prettier plugin and `format-fidelity` format such a
    * file, and only the transpile run stops on them (#1991). Empty whenever
    * `parseErrors` is not.

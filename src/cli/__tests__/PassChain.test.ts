@@ -24,19 +24,16 @@ import Write from "../../cnx/WRITE/1-Write/Write";
  * step must also give one run's answers again, on fresh objects, after a
  * second run whose included file changes what the first file's C must be.
  *
- * Not checked: 2.1's fourth argument, the host function 2.1 calls to build
- * each file's analysis inputs. What it reads is not watched.
- *
  * Arguments that are not artifacts are named per entry: the filesystem port,
- * 1.1's run inputs, and the walker's per-file options. The symbol table and
+ * 1.1's run inputs, and 2.2's file key. The symbol table and
  * registry are 1.3's artifact data (#1991 part B): 1.3 builds them from the
  * headers 1.2 parsed, and 1.4 reads them off 1.3's result.
  *
  * Mutation-checked: handing each of 1.2 through 2.3 a copy of its artifact,
  * or 3.1 text 2.3 did not render, fails one test here per boundary. So does
  * a host that keeps run 1's program, a 2.2 cache keyed by path, a static the
- * host sets and 2.2 reads, a write to a path 1.1 didn't name, and a 2.2
- * option the host rebuilt.
+ * host sets and 2.2 reads, a write to a path 1.1 didn't name, and a copy of
+ * 2.1's artifact (`{ ...analysis }`) handed to 2.2.
  */
 interface ICall {
   readonly pass: string;

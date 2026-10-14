@@ -44,7 +44,7 @@ import NodeFileSystem from "../../../../cnx/PARSE/1-Discover/NodeFileSystem";
  * `cppMode` is required here, and nothing falls back to "C".
  */
 /**
- * What a test hands `plan()`, plus the mode a run's 1.1 would have settled.
+ * What a test hands `planWith()`, plus the mode a run's 1.1 would have settled.
  * The target may be left out: this helper then supplies the build machine's,
  * as an orchestrator that names none would.
  */
