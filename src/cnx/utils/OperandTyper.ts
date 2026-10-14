@@ -1062,8 +1062,20 @@ class OperandTyper {
         ops,
       };
     }
-    const macro = OperandTyper.macroStart(binding, name, ops, ctx);
-    if (macro) return macro;
+    return (
+      OperandTyper.macroStart(binding, name, ops, ctx) ??
+      OperandTyper.typeOrForeignStart(binding, name, scopePath, ops, ctx)
+    );
+  }
+
+  /** A type named at a chain's head, else a header's name */
+  private static typeOrForeignStart(
+    binding: TValueBinding | null,
+    name: string,
+    scopePath: string,
+    ops: TChainOps,
+    ctx: ITypingContext,
+  ): IChainStart {
     // A header's type binds as its name does, but names no value: `Cfg`
     const value =
       binding === null ? null : OperandTyper.boundValue(binding, ctx);
