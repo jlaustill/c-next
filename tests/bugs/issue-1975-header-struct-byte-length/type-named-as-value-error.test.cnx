@@ -4,7 +4,8 @@
 // these reached the C as written at exit 0, and gcc rejected it: a type's
 // missing field, a member that is no length property, a header struct's
 // missing field, an element of a type's array field, and a field read and
-// written as if it were a value.
+// written as if it were a value. ADR-040's `ISR` names no value either
+// (#1975 review: `ISR.foo` reached the C as written).
 //
 // NEGATIVE CONTROL: `p.x` reads a value's field, and `Point.y.byte_length`
 // a length of a field's type.
@@ -30,5 +31,6 @@ u32 main() {
     u32 e <- A.d[0].byte_length;
     u32 f <- Point.x;
     Point.x <- 5;
-    return ok + a + b + c + d + e + f;
+    u32 g <- ISR.foo;
+    return ok + a + b + c + d + e + f + g;
 }

@@ -34,6 +34,7 @@ import type TValueBinding from "../../types/TValueBinding";
 import RunTarget from "./RunTarget";
 import ForeignTypeFacts from "../../utils/ForeignTypeFacts";
 import ResolvedTarget from "../../utils/ResolvedTarget";
+import TypeHead from "../../utils/TypeHead";
 import ScopeFunctions from "./ScopeFunctions";
 import type TRunTarget from "../../types/TRunTarget";
 import invariant from "../../utils/invariant";
@@ -444,6 +445,10 @@ class Program {
               headers,
               ResolvedTarget.of(target),
             ),
+      headerTypeHead: (name) =>
+        headers === null
+          ? null
+          : TypeHead.header(name, headers, ResolvedTarget.of(target)),
     };
     const settledByFile = Program.settleEveryFile(
       files,
@@ -1068,6 +1073,7 @@ class Program {
       headerStructFields: (structName) =>
         options.files.headerStructFields(structName),
       headerTypeBits: (cType) => options.files.headerTypeBits(cType),
+      headerTypeHead: (name) => options.files.headerTypeHead(name),
       constValue: (symbol) => {
         const value = constants.consts.get(symbol.fullyQualifiedCName);
         if (value === undefined)

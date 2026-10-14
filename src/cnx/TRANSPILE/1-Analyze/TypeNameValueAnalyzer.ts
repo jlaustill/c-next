@@ -15,56 +15,75 @@ import OperandTyper from "../../utils/OperandTyper";
 import type ITypeNameValueError from "./types/ITypeNameValueError";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
-import type IOperandType from "../../types/IOperandType";
 import type TExpression from "../../types/syntax/TExpression";
+import type TPostfixOpSyntax from "../../types/syntax/TPostfixOpSyntax";
+
+const HELP =
+  "A type is measured, not read: it answers ADR-058's length properties, its own and its fields' (Point.byte_length, Point.x.bit_length). A value is read from a variable of the type.";
 
 class TypeNameValueAnalyzer {
   constructor(private readonly context: IAnalysisContext) {}
 
   /** Every chain, read or written; a chain's head is asked as the chain */
   public analyze(program: IProgramSyntax): ITypeNameValueError[] {
-    const found: ITypeNameValueError[] = [];
-    for (const member of program.declarations) {
-      for (const part of DeclarationParts.of(member.declaration)) {
-        const nodes = ExpressionNodes.of(part);
-        const heads = new Set(
-          nodes.flatMap((node) =>
-            node.kind === "postfix" ? [node.primary] : [],
-          ),
-        );
-        for (const expr of nodes) {
-          if (heads.has(expr)) continue;
-          if (expr.kind !== "postfix" && expr.kind !== "identifier") continue;
-          const error = this.check(expr);
-          if (error !== null) found.push(error);
-        }
-      }
-    }
-    return found;
+    return program.declarations.flatMap((member) =>
+      DeclarationParts.of(member.declaration).flatMap((part) =>
+        this.checkPart(part),
+      ),
+    );
+  }
+
+  private checkPart(
+    part: Parameters<typeof ExpressionNodes.of>[0],
+  ): ITypeNameValueError[] {
+    const nodes = ExpressionNodes.of(part);
+    const heads = new Set(
+      nodes.flatMap((node) => (node.kind === "postfix" ? [node.primary] : [])),
+    );
+    return nodes.flatMap((expr) => {
+      const isChain = expr.kind === "postfix" || expr.kind === "identifier";
+      const error = isChain && !heads.has(expr) ? this.check(expr) : null;
+      return error === null ? [] : [error];
+    });
   }
 
   private check(chain: TExpression): ITypeNameValueError | null {
     const misnamed = OperandTyper.typeNamedAsValue(chain, this.context);
     if (misnamed === null) return null;
-    const { at, type } = misnamed;
-    const subject = TypeNameValueAnalyzer.spelling(type);
+    const at = misnamed.at;
     const span = at?.span ?? chain.span;
     return {
       code: "E0897",
       line: span.line,
       column: span.column,
-      message:
-        at?.kind === "member"
-          ? `Type '${subject}' has no field or length property '${at.name}'`
-          : `'${subject}' names a type, not a value`,
-      helpText:
-        "A type answers its length properties and its fields' types do (Point.byte_length, Point.x.bit_length, ADR-058); a value is read from a variable of the type.",
+      message: TypeNameValueAnalyzer.message(chain, at),
+      helpText: HELP,
     };
   }
 
-  private static spelling(type: IOperandType): string {
-    const dimensions = type.dimensions.map((d) => `[${d}]`).join("");
-    return `${type.typeName ?? type.cType ?? type.category}${dimensions}`;
+  /** The chain as its source spells it, up to the op where it stops */
+  private static message(
+    chain: TExpression,
+    at: TPostfixOpSyntax | null,
+  ): string {
+    const ops = chain.kind === "postfix" ? chain.ops : [];
+    const before = (end: number): string =>
+      chain.kind === "postfix"
+        ? chain.primary.written +
+          ops
+            .slice(0, end)
+            .map((op) => op.written)
+            .join("")
+        : chain.written;
+    if (at?.kind === "member") {
+      return `Type '${before(ops.indexOf(at))}' has no field or length property '${at.name}'`;
+    }
+    if (at !== null) {
+      return `'${before(ops.indexOf(at))}' names a type, not a value`;
+    }
+    return ops.at(-1)?.kind === "member"
+      ? `'${chain.written}' is a field of type '${before(ops.length - 1)}', not a value`
+      : `'${chain.written}' names a type, not a value`;
   }
 }
 

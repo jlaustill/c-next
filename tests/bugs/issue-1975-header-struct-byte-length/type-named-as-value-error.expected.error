@@ -1,14 +1,16 @@
-26:16 error[E0897]: Type 'u32' has no field or length property 'foo'
-       help: A type answers its length properties and its fields' types do (Point.byte_length, Point.x.bit_length, ADR-058); a value is read from a variable of the type.
-27:18 error[E0897]: Type 'Point' has no field or length property 'z'
-       help: A type answers its length properties and its fields' types do (Point.byte_length, Point.x.bit_length, ADR-058); a value is read from a variable of the type.
-28:20 error[E0897]: Type 'u8' has no field or length property 'foo'
-       help: A type answers its length properties and its fields' types do (Point.byte_length, Point.x.bit_length, ADR-058); a value is read from a variable of the type.
-29:16 error[E0897]: Type 'Cfg' has no field or length property 'zz'
-       help: A type answers its length properties and its fields' types do (Point.byte_length, Point.x.bit_length, ADR-058); a value is read from a variable of the type.
-30:16 error[E0897]: 'u8[3]' names a type, not a value
-       help: A type answers its length properties and its fields' types do (Point.byte_length, Point.x.bit_length, ADR-058); a value is read from a variable of the type.
-31:13 error[E0897]: 'u32' names a type, not a value
-       help: A type answers its length properties and its fields' types do (Point.byte_length, Point.x.bit_length, ADR-058); a value is read from a variable of the type.
-32:4 error[E0897]: 'u32' names a type, not a value
-       help: A type answers its length properties and its fields' types do (Point.byte_length, Point.x.bit_length, ADR-058); a value is read from a variable of the type.
+27:16 error[E0897]: Type 'u32' has no field or length property 'foo'
+       help: A type is measured, not read: it answers ADR-058's length properties, its own and its fields' (Point.byte_length, Point.x.bit_length). A value is read from a variable of the type.
+28:18 error[E0897]: Type 'Point' has no field or length property 'z'
+       help: A type is measured, not read: it answers ADR-058's length properties, its own and its fields' (Point.byte_length, Point.x.bit_length). A value is read from a variable of the type.
+29:20 error[E0897]: Type 'Point.y' has no field or length property 'foo'
+       help: A type is measured, not read: it answers ADR-058's length properties, its own and its fields' (Point.byte_length, Point.x.bit_length). A value is read from a variable of the type.
+30:16 error[E0897]: Type 'Cfg' has no field or length property 'zz'
+       help: A type is measured, not read: it answers ADR-058's length properties, its own and its fields' (Point.byte_length, Point.x.bit_length). A value is read from a variable of the type.
+31:16 error[E0897]: 'A.d' names a type, not a value
+       help: A type is measured, not read: it answers ADR-058's length properties, its own and its fields' (Point.byte_length, Point.x.bit_length). A value is read from a variable of the type.
+32:13 error[E0897]: 'Point.x' is a field of type 'Point', not a value
+       help: A type is measured, not read: it answers ADR-058's length properties, its own and its fields' (Point.byte_length, Point.x.bit_length). A value is read from a variable of the type.
+33:4 error[E0897]: 'Point.x' is a field of type 'Point', not a value
+       help: A type is measured, not read: it answers ADR-058's length properties, its own and its fields' (Point.byte_length, Point.x.bit_length). A value is read from a variable of the type.
+34:16 error[E0897]: Type 'ISR' has no field or length property 'foo'
+       help: A type is measured, not read: it answers ADR-058's length properties, its own and its fields' (Point.byte_length, Point.x.bit_length). A value is read from a variable of the type.

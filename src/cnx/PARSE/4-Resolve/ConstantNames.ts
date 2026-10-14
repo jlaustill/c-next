@@ -317,13 +317,10 @@ class ConstantNames {
       if (rest.length === 0) {
         return { kind: "foreign", spelling: walk.spelling, why: "header" };
       }
-      return walk.facts.headerStructFields(name) === undefined
+      const type = walk.facts.headerTypeHead(name);
+      return type === null
         ? ConstantNames.without("member", walk)
-        : ConstantNames.ofMember(
-            { type: { kind: "external", name }, dimensions: [] },
-            rest,
-            walk,
-          );
+        : ConstantNames.ofMember({ type, dimensions: [] }, rest, walk);
     }
     if (rest.length === 0) return ConstantNames.without("variable", walk);
     return ConstantNames.ofMember(
@@ -485,11 +482,9 @@ class ConstantNames {
       (root === null ? TypeHead.primitive(head) : null) ??
       TypeHead.ofSymbol(symbol, cName);
     if (named !== null) return named;
-    // #2076: a header's struct, which no C-Next symbol names
-    return root !== "this" &&
-      symbol === undefined &&
-      walk.facts.headerStructFields(head) !== undefined
-      ? { kind: "external", name: head }
+    // #2076: a header's type, which no C-Next symbol names
+    return root !== "this" && symbol === undefined
+      ? walk.facts.headerTypeHead(head)
       : null;
   }
 

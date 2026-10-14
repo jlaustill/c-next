@@ -40,7 +40,7 @@ describe("TypeNameValueAnalyzer", () => {
         "Point.z.byte_length",
         "Type 'Point' has no field or length property 'z'",
       ],
-      ["Point.y.foo", "Type 'u8' has no field or length property 'foo'"],
+      ["Point.y.foo", "Type 'Point.y' has no field or length property 'foo'"],
     ]) {
       const found = errors(inMain(expr));
       expect(found).toHaveLength(1);
@@ -52,10 +52,10 @@ describe("TypeNameValueAnalyzer", () => {
 
   it("rejects a type's field read or written as a value", () => {
     expect(errors(inMain("Point.x"))[0]?.message).toBe(
-      "'u32' names a type, not a value",
+      "'Point.x' is a field of type 'Point', not a value",
     );
     expect(errors(inMain("A.d[0].byte_length"))[0]?.message).toBe(
-      "'u8[3]' names a type, not a value",
+      "'A.d' names a type, not a value",
     );
     const write = `${DECLS}\nvoid main() {\n    Point.x <- 5;\n}`;
     expect(errors(write).map((e) => e.code)).toEqual(["E0897"]);
@@ -76,7 +76,7 @@ u32 main() {
 }`;
     const found = errors(source);
     expect(found.map((e) => e.message)).toEqual([
-      "Type 'Geo__Box' has no field or length property 'zz'",
+      "Type 'Geo.Box' has no field or length property 'zz'",
     ]);
   });
 

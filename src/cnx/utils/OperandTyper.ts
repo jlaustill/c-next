@@ -359,13 +359,10 @@ class OperandTyper {
     );
     const named = OperandTyper.namedTypeOf(cName, ctx);
     if (named !== null) return named;
-    return ctx.symbolTable.getStructFields(name) === undefined
+    const target = OperandTyper.target(ctx);
+    return TypeHead.header(name, ctx.symbolTable, target) === null
       ? null
-      : ForeignTypeFacts.operandType(
-          name,
-          ctx.symbolTable,
-          OperandTyper.target(ctx),
-        );
+      : ForeignTypeFacts.operandType(name, ctx.symbolTable, target);
   }
 
   /** A C-Next struct or bitmap the C name names; null for any other symbol */

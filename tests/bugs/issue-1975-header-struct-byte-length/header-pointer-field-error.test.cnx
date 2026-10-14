@@ -8,6 +8,9 @@
 // to pack, so neither fields' sum is a size: E0867 too (`Un` was summed to 6,
 // where C stores 4, and `BF.byte_length` reached the C unchanged).
 //
+// ADR-040's `ISR` is a function pointer, so it has no length either (#1975
+// review: `ISR.byte_length` reached the C as written).
+//
 // NEGATIVE CONTROL: `o.i`, the struct's other field, still has a length.
 #include "shapes.h"
 
@@ -19,5 +22,6 @@ u32 main() {
     u32 value <- o.byte_length;
     u32 shared <- Un.byte_length;
     u32 packed <- BF.byte_length;
-    return ok + field + whole + value + shared + packed;
+    u32 isr <- ISR.byte_length;
+    return ok + field + whole + value + shared + packed + isr;
 }

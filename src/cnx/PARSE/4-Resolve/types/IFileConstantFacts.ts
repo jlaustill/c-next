@@ -1,4 +1,5 @@
 import type IStructFieldInfo from "../../../types/symbols/IStructFieldInfo";
+import type TType from "../../../types/TType";
 
 /**
  * What a constant name's facts read of the program's files, beside the binder
@@ -15,6 +16,8 @@ interface IFileConstantFacts {
   ): ReadonlyMap<string, IStructFieldInfo> | undefined;
   /** #2076: `ForeignTypeFacts.typeBits` of a header's C type, for the run's target */
   headerTypeBits(cType: string): number | null;
+  /** #1975 review: `TypeHead.header` over the run's headers */
+  headerTypeHead(name: string): TType | null;
 }
 
 export default IFileConstantFacts;
