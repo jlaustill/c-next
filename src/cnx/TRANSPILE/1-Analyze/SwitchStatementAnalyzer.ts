@@ -1,5 +1,5 @@
 /**
- * ADR-025 switch statements: E0711-E0714.
+ * ADR-025 switch statements: E0711-E0714, and E0717.
  *
  * #1322. Five throws in `TypeValidator.validateSwitchStatement`, every one of
  * them reaching the user as `1:0` -- seven fixtures under `tests/switch/` all
@@ -23,6 +23,10 @@
  * differs; it does not.
  */
 
+import QualifiedCName from "../../utils/QualifiedCName";
+import ScopeUtils from "../../utils/ScopeUtils";
+import ConstLiteral from "../../utils/ConstLiteral";
+import type TValueBinding from "../../types/TValueBinding";
 import OperandTyper from "../../utils/OperandTyper";
 import StatementNodes from "../../utils/StatementNodes";
 import EnumValueResolver from "./EnumValueResolver";
@@ -41,6 +45,14 @@ type TDefaultCase = NonNullable<TSwitch["defaultCase"]>;
 
 /** MISRA C:2012 Rule 16.6: a switch needs at least two clauses. */
 const MINIMUM_CLAUSES = 2;
+
+/** Symbols that name a type, which a case label cannot be (#2051, #2069) */
+const TYPE_KINDS: ReadonlySet<string> = new Set([
+  "enum",
+  "struct",
+  "bitmap",
+  "register",
+]);
 
 class SwitchStatementCheck {
   private readonly found: ISwitchStatementError[] = [];
@@ -93,6 +105,7 @@ class SwitchStatementCheck {
       return;
     }
 
+    if (this.reportNonConstantLabels(cases)) return;
     if (this.reportDuplicateCase(cases)) return;
 
     const verdict = this.values.classify(switchExpr);
@@ -119,7 +132,9 @@ class SwitchStatementCheck {
     switchEnum: string | null,
   ): boolean {
     const symbols = this.context.symbols;
-    if (label.kind !== "identifier") return false;
+    // `this.X` and `global.X` name a const by where it lives (ADR-057), so
+    // they are never a bare member (#1629)
+    if (label.kind !== "identifier" || label.root !== null) return false;
     const name = label.name;
     if (switchEnum !== null && symbols.enumMembers.get(switchEnum)?.has(name)) {
       return false;
@@ -153,13 +168,149 @@ class SwitchStatementCheck {
     return reported;
   }
 
+  /**
+   * E0717 (ADR-025 rule 6, #2051): a label is a literal, an enum member or a
+   * const with a value. A variable, a function or a scope has no value C can
+   * switch on, so each reached the C as a name gcc rejects, at exit 0.
+   *
+   * Asked of what the label BINDS, so one check covers every spelling the
+   * grammar admits: `level`, `this.level`, `global.level`, `Panel.level`.
+   * A label binding no value is a type (E0717 too: `EMode`, `this.State`,
+   * #2069), an enum member, or E0427's.
+   */
+  private reportNonConstantLabels(cases: readonly TSwitchCase[]): boolean {
+    let reported = false;
+    for (const caseCtx of cases) {
+      for (const label of caseCtx.labels) {
+        if (this.isConstantLabel(label)) continue;
+        const { line, column } = label.span;
+        this.found.push({
+          code: "E0717",
+          line,
+          column,
+          message: `Case label '${SwitchStatementCheck.caseLabelValue(label)}' is not a constant`,
+          helpText:
+            "A case label must be a literal, an enum member or a const with a value (ADR-025); compare a variable with if/else.",
+        });
+        reported = true;
+      }
+    }
+    return reported;
+  }
+
+  /** What a label's name -- or a member chain's head -- binds, if it has one */
+  private labelBinding(label: TCaseLabelSyntax): TValueBinding | null {
+    const { program, sourceFile } = this.context;
+    switch (label.kind) {
+      case "identifier":
+        return program.bindValue(
+          sourceFile,
+          label.root,
+          label.name,
+          label.nameSpan,
+        );
+      case "qualified":
+        return program.bindValue(
+          sourceFile,
+          label.root,
+          label.path[0],
+          label.headSpan,
+        );
+      default:
+        return null;
+    }
+  }
+
+  private isConstantLabel(label: TCaseLabelSyntax): boolean {
+    const binding = this.labelBinding(label);
+    if (binding !== null) return this.isConstant(binding, label);
+    return label.kind !== "identifier" || !this.namesType(label);
+  }
+
+  /**
+   * A label spelled as a type -- `EMode`, `this.State`, `global.Pt` -- binds
+   * no value, so it is looked up where a member chain's head would be. Not
+   * `isTypeNameAt`: in a file that includes a header it calls a name it
+   * cannot find a type, which a bare enum member (`IDLE`) is.
+   */
+  private namesType(
+    label: Extract<TCaseLabelSyntax, { kind: "identifier" }>,
+  ): boolean {
+    const { program, sourceFile } = this.context;
+    const cName = ScopeUtils.typeHeadCName(
+      label.root,
+      label.name,
+      OperandTyper.scopePathAt(label.span, this.context),
+      (name) => program.isScopeTypeVisibleFrom(sourceFile, name),
+    );
+    const kind = program.symbolByCName(cName)?.kind;
+    return kind !== undefined && TYPE_KINDS.has(kind);
+  }
+
+  /** Whether a bound label is a constant, asked of the one const-value answer */
+  private isConstant(binding: TValueBinding, label: TCaseLabelSyntax): boolean {
+    const { program } = this.context;
+    switch (binding.kind) {
+      case "foreign":
+        return true;
+      case "variable":
+        return (
+          label.kind === "identifier" &&
+          ConstLiteral.textOf(program, binding.symbol) !== null
+        );
+      case "local":
+        return (
+          label.kind === "identifier" && program.constantOf(binding) !== null
+        );
+      case "function":
+        return false;
+      case "scope": {
+        // `Panel.LIMIT`: the scope names where to look, the member decides
+        if (label.kind !== "qualified") return false;
+        const member = program.symbolByCName(
+          ScopeUtils.qualifyPathInScope(label.path.slice(1), binding.scopePath),
+        );
+        // No symbol: an enum member chain (`Panel.State.IDLE`), or #1630's
+        if (member === undefined) return true;
+        return (
+          member.kind === "variable" &&
+          ConstLiteral.textOf(program, member) !== null
+        );
+      }
+    }
+  }
+
+  /**
+   * Which declaration or enum member a named label is, so two spellings of
+   * one -- `LIMIT` and `this.LIMIT` in its scope, `State.IDLE` and
+   * `this.State.IDLE` -- are one value. Null for a label keyed on its value.
+   */
+  private labelIdentity(label: TCaseLabelSyntax): string | null {
+    const { program, sourceFile } = this.context;
+    if (label.kind === "identifier") {
+      const binding = this.labelBinding(label);
+      return binding?.kind === "variable"
+        ? binding.symbol.fullyQualifiedCName
+        : null;
+    }
+    if (label.kind !== "qualified") return null;
+    const head = ScopeUtils.typeHeadCName(
+      label.root,
+      label.path[0],
+      OperandTyper.scopePathAt(label.span, this.context),
+      (name) => program.isScopeTypeVisibleFrom(sourceFile, name),
+    );
+    return QualifiedCName.fromParts([head, ...label.path.slice(1)]);
+  }
+
   /** True when a duplicate was reported, so the later checks are skipped. */
   private reportDuplicateCase(cases: readonly TSwitchCase[]): boolean {
     const seen = new Set<string>();
     for (const caseCtx of cases) {
       for (const label of caseCtx.labels) {
         const value = SwitchStatementCheck.caseLabelValue(label);
-        if (seen.has(value)) {
+        const key = this.labelIdentity(label) ?? value;
+        if (seen.has(key)) {
           this.found.push({
             code: "E0713",
             line: label.span.line,
@@ -170,7 +321,7 @@ class SwitchStatementCheck {
           });
           return true;
         }
-        seen.add(value);
+        seen.add(key);
       }
     }
     return false;
@@ -235,9 +386,11 @@ class SwitchStatementCheck {
   private static caseLabelValue(label: TCaseLabelSyntax): string {
     switch (label.kind) {
       case "qualified":
-        return label.path.join(".");
+        return (
+          label.root === null ? label.path : [label.root, ...label.path]
+        ).join(".");
       case "identifier":
-        return label.name;
+        return label.root === null ? label.name : `${label.root}.${label.name}`;
       case "integer":
       case "hex": {
         const value = BigInt(label.text);
@@ -247,7 +400,7 @@ class SwitchStatementCheck {
         return String(BigInt(label.text));
       case "char":
         return label.text;
-      default:
+      case "missing":
         return "";
     }
   }

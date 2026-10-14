@@ -33,12 +33,14 @@ import TypeCheckUtils from "../../utils/TypeCheckUtils";
 import DeclarationParts from "../../utils/DeclarationParts";
 import ExpressionNodes from "../../utils/ExpressionNodes";
 import StatementNodes from "../../utils/StatementNodes";
+import CompoundOperator from "../../utils/CompoundOperator";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
 import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
 import type TExpression from "../../types/syntax/TExpression";
 import type TBinaryExpression from "../../types/syntax/TBinaryExpression";
 import type IOperandType from "../../types/IOperandType";
+import SourceOrder from "../../utils/SourceOrder";
 
 class ShiftCheck {
   constructor(
@@ -77,7 +79,8 @@ class ShiftCheck {
    * on a u8 emitted `a = (uint8_t)(a << 9U)` at exit 0.
    */
   public checkAssignment(site: IAssignmentSyntax): void {
-    if (site.operator !== "<<<-" && site.operator !== ">><-") return;
+    const operator = CompoundOperator.binaryOf(site.operator);
+    if (operator !== "<<" && operator !== ">>") return;
 
     const targetType = OperandTyper.typeOfTarget(site.target, this.context);
     if (targetType?.category === "signed") {
@@ -190,7 +193,7 @@ class ShiftAnalyzer {
     }
 
     // Levels, then assignments; report in source order
-    return this.errors.sort((a, b) => a.line - b.line || a.column - b.column);
+    return this.errors.sort(SourceOrder.compare);
   }
 
   /**

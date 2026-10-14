@@ -668,7 +668,7 @@ module.exports = {
       severity: "error",
       from: {
         path: "^src/",
-        pathNot: ["\\.test\\.ts$", "__tests__/"],
+        pathNot: ["\\.test\\.ts$", "__tests__/", "__testUtils__/"],
       },
       to: { dependencyTypes: ["npm-dev"] },
     },

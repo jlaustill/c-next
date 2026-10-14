@@ -52,6 +52,7 @@ import TChainRoot from "../../types/TChainRoot";
 import RegisterAccessMode from "../../utils/RegisterAccessMode";
 import RegisterMemberReference from "./helpers/RegisterMemberReference";
 import type IAnalysisContext from "./types/IAnalysisContext";
+import SourceOrder from "../../utils/SourceOrder";
 
 class BitAccessCheck {
   private readonly found: IBitAccessError[] = [];
@@ -269,9 +270,7 @@ class BitAccessAnalyzer {
       for (const site of sites) check.checkSite(site);
     };
     for (const member of program.declarations) visit(member.declaration);
-    return check
-      .errors()
-      .sort((a, b) => a.line - b.line || a.column - b.column);
+    return check.errors().sort(SourceOrder.compare);
   }
 }
 

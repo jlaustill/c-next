@@ -77,7 +77,7 @@ function createMockContext(
           ctx.isSimpleIdentifier ||
             ctx.isSimpleThisAccess ||
             ctx.isSimpleGlobalAccess,
-          ctx.cOp,
+          ctx.cnextOp,
           ctx.valueHasFloatingOperand,
         )
       : overrides.plannedClamp;
@@ -356,6 +356,7 @@ describe("SpecialHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["d"],
+        cnextOp: "-<-",
         cOp: "-=",
         generatedValue: "0.5",
       });

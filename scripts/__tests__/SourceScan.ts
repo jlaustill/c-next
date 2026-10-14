@@ -1,12 +1,11 @@
 import { readFileSync } from "node:fs";
-import { dirname, join, relative, sep } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
 import FileScanner from "../utils/FileScanner";
+import SourceModule from "../utils/SourceModule";
 import ISourceHit from "./ISourceHit";
 
-const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const srcDir = join(rootDir, "src");
+const srcDir = join(SourceModule.rootDir, "src");
 
 /**
  * Pattern scans over the non-test modules under `src/`, for guards that hold a
@@ -15,27 +14,10 @@ const srcDir = join(rootDir, "src");
  * `write-confined-to-3-1.test.ts` (#1653 moved it here rather than copy it).
  */
 class SourceScan {
-  /**
-   * The one definition of "a non-test module under `src/`" (#1826 review), for
-   * a repository-relative path with `/` separators: TypeScript under `src/`,
-   * outside `__tests__/` and `__testUtils__/`, and not a `*.test.ts`. The same
-   * split `.dependency-cruiser.cjs` makes, and the scans here read their
-   * population through it.
-   */
-  static isModule(path: string): boolean {
-    return (
-      path.startsWith("src/") &&
-      path.endsWith(".ts") &&
-      !path.includes("/__tests__/") &&
-      !path.includes("/__testUtils__/") &&
-      !path.endsWith(".test.ts")
-    );
-  }
-
   /** Every non-test module under `src/`, as absolute paths. */
   static sourceFiles(): string[] {
     return FileScanner.findFiles(srcDir, ".ts").filter((full) =>
-      SourceScan.isModule(relative(rootDir, full).split(sep).join("/")),
+      SourceModule.isModule(full),
     );
   }
 
@@ -49,12 +31,20 @@ class SourceScan {
    * style is JSDoc, so it was latent rather than live, but this function's reach
    * widened from `output/` to all of `src/`, where the population it screens is
    * much less uniform.
+   *
+   * A block comment that closes before the match leaves the match in code, so
+   * `/* note *\/ execSync(cmd)` and a `*\/ execSync(cmd)` that ends a JSDoc
+   * block are scanned (#1827 review).
    */
   static inComment(source: string, index: number): boolean {
     const lineStart = source.lastIndexOf("\n", index) + 1;
     const lineEnd = source.indexOf("\n", index);
     const line = source.slice(lineStart, lineEnd === -1 ? undefined : lineEnd);
-    return /^\s*(\*|\/\/|\/\*)/.test(line);
+    const opener = /^\s*(\*|\/\/|\/\*)/.exec(line);
+    if (!opener) return false;
+    if (opener[1] === "//") return true;
+    const close = line.indexOf("*/");
+    return close === -1 || close > index - lineStart;
   }
 
   /**
@@ -68,7 +58,7 @@ class SourceScan {
       for (const match of source.matchAll(pattern)) {
         if (SourceScan.inComment(source, match.index)) continue;
         hits.push({
-          file: full.slice(rootDir.length + 1),
+          file: SourceModule.relativePath(full),
           offset: match.index,
           text: match[0],
         });

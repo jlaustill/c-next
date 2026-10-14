@@ -116,11 +116,12 @@ describe("AtomicGenerator", () => {
       expect(result.effects).toHaveLength(0);
     });
 
-    it("handles unknown operator with default +", () => {
+    it("refuses an operator that is not a compound assignment", () => {
       const typeInfo = createTypeInfo("u32", "wrap");
-      const result = generateInnerAtomicOp("??=", "5", typeInfo, null);
 
-      expect(result.code).toBe("__old + 5");
+      expect(() => generateInnerAtomicOp("??=", "5", typeInfo, null)).toThrow(
+        "an atomic read-modify-write is a compound assignment (got '??=')",
+      );
     });
   });
 

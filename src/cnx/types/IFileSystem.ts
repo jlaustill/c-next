@@ -41,6 +41,12 @@ interface IFileSystem {
   isFile(path: string): boolean;
 
   /**
+   * Check if a path is a file this process may execute.
+   * @returns false if path doesn't exist, is a directory, or lacks execute permission
+   */
+  isExecutable(path: string): boolean;
+
+  /**
    * Create a directory (and parent directories if recursive is true).
    */
   mkdir(path: string, options?: { recursive?: boolean }): void;

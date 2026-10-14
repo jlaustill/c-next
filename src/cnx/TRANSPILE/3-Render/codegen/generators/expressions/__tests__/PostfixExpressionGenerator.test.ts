@@ -771,6 +771,7 @@ describe("PostfixExpressionGenerator", () => {
       // #1739: the value 1.4 settled, not the initializer's text
       const constSymbol = {
         kind: "variable",
+        fullyQualifiedCName: "Motor__MAX_SPEED",
         scopePath: "Motor",
         visibility: "private",
         isConst: true,

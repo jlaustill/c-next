@@ -958,6 +958,12 @@ class FilePlanner {
       ...foreignRegisterValues.flatMap((value) =>
         ExpressionNodes.direct(value),
       ),
+      // #1972: `sizeof(d.values)` is written as the member access it types as
+      ...[...sizeofMemberAccesses].flatMap((sizeof) =>
+        sizeof.memberChain === null
+          ? []
+          : ExpressionNodes.direct(sizeof.memberChain),
+      ),
     ]);
     invariant(valuePositions !== null, "2.1 hands 2.2 where each value stands");
     const argumentPlans = this.planArguments(valuePositions, decidedCTypes);
@@ -1486,10 +1492,7 @@ class FilePlanner {
       const clamp = AssignmentClassifier.clampOfWrite(
         this.targetDeclaration(site.target),
         AssignmentTarget.parts(site.target).ops.length === 0,
-        AssignmentOperatorMapper.toCOperator(
-          site.operator,
-          site.operatorSpan.line,
-        ),
+        site.operator,
         () => site.value.kind !== "missing" && this.hasFloatingLeaf(site.value),
       );
       if (clamp === null) continue;

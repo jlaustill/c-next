@@ -6,6 +6,8 @@
  */
 
 import {
+  accessSync,
+  constants,
   readFileSync,
   writeFileSync,
   existsSync,
@@ -46,6 +48,18 @@ class NodeFileSystem implements IFileSystem {
       return false;
     }
     return statSync(path).isFile();
+  }
+
+  isExecutable(path: string): boolean {
+    if (!this.isFile(path)) {
+      return false;
+    }
+    try {
+      accessSync(path, constants.X_OK);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   mkdir(path: string, options?: { recursive?: boolean }): void {

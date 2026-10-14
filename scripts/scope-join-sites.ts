@@ -9,32 +9,30 @@
  */
 
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
-import { dirname, join, sep } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
 import chalk from "chalk";
 
 import ScopeJoinSites from "./scope-joins/ScopeJoinSites";
 import FileScanner from "./utils/FileScanner";
 import GeneratedMarkdown from "./utils/GeneratedMarkdown";
+import SourceModule from "./utils/SourceModule";
 
-const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..");
-const docPath = join(rootDir, "docs", "architecture", "scope-join-sites.md");
-const srcDir = join(rootDir, "src");
+const docPath = join(
+  SourceModule.rootDir,
+  "docs",
+  "architecture",
+  "scope-join-sites.md",
+);
+const srcDir = join(SourceModule.rootDir, "src");
 
 function collectSources(): Map<string, string> {
   const sources = new Map<string, string>();
   for (const full of FileScanner.findFiles(srcDir, ".ts")) {
-    if (full.includes(`${sep}__tests__${sep}`) || full.endsWith(".test.ts")) {
+    if (!SourceModule.isModule(full)) {
       continue;
     }
-    sources.set(
-      full
-        .slice(rootDir.length + 1)
-        .split(sep)
-        .join("/"),
-      readFileSync(full, "utf-8"),
-    );
+    sources.set(SourceModule.relativePath(full), readFileSync(full, "utf-8"));
   }
   return sources;
 }

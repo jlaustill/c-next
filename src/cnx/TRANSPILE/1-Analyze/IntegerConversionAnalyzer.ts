@@ -75,6 +75,7 @@ import IIntegerConversionError from "./types/IIntegerConversionError";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import type IValuePosition from "../../types/IValuePosition";
 import type IOperandType from "../../types/IOperandType";
+import SourceOrder from "../../utils/SourceOrder";
 
 const INTEGER_LITERAL = /^-?(?:\d+|0[xX][0-9a-fA-F]+|0[bB][01]+)$/;
 
@@ -410,9 +411,7 @@ class IntegerConversionAnalyzer {
         check.checkExpression(expr);
       }
     }
-    return check
-      .errors()
-      .sort((a, b) => a.line - b.line || a.column - b.column);
+    return check.errors().sort(SourceOrder.compare);
   }
 }
 

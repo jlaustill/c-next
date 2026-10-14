@@ -3,6 +3,7 @@
  *
  * Provides utilities for creating and inspecting C-Next scopes.
  */
+import type TChainRoot from "../types/TChainRoot";
 import type IScopeSymbol from "../types/symbols/IScopeSymbol";
 import type TVisibility from "../types/TVisibility";
 import ESourceLanguage from "./types/ESourceLanguage";
@@ -254,6 +255,36 @@ class ScopeUtils {
    */
   static qualifyInScope(name: string, scopePath: string): string {
     return ScopeUtils.qualifyPathInScope([name], scopePath);
+  }
+
+  /**
+   * The C name of the type a member chain starts from, in each of ADR-016's
+   * spellings: `this.State` is the enclosing scope's, `global.EMode` the
+   * file's, and a bare head the scope's own when it declares one (ADR-057),
+   * else the file's.
+   *
+   * One decision for every chain that names an enum member by its type: a
+   * const expression's `EColor.COUNT` and a case label's `State.STOPPED`
+   * asked it separately, and the label's copy dropped the scope (#2052).
+   */
+  static typeHeadCName(
+    root: TChainRoot,
+    head: string,
+    scopePath: string,
+    isScopeTypeVisible: (qualifiedName: string) => boolean,
+  ): string {
+    if (root === "this") {
+      return ScopeUtils.getTranspiledCName({ name: head, scopePath });
+    }
+    if (root === "global") {
+      return head;
+    }
+    const qualified = ScopeUtils.qualifyScopeType(
+      head,
+      scopePath,
+      isScopeTypeVisible,
+    );
+    return QualifiedCName.fromParts(qualified.split("."));
   }
 
   /**

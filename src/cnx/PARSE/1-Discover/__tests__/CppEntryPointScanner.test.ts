@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { dirname } from "node:path";
 import CppEntryPointScanner from "../CppEntryPointScanner";
 import IFileSystem from "../../../types/IFileSystem";
+import TestFileSystem from "../../../types/__testUtils__/TestFileSystem";
 
 /** A discovered .cnx file searched along its own directory, then the project. */
 const alongProject = (cnxPath: string): readonly string[] => [
@@ -15,7 +16,7 @@ describe("CppEntryPointScanner", () => {
 
   beforeEach(() => {
     files = new Map();
-    mockFs = {
+    mockFs = TestFileSystem.with({
       readFile: (path: string) => {
         const content = files.get(path);
         if (!content) throw new Error(`File not found: ${path}`);
@@ -24,13 +25,9 @@ describe("CppEntryPointScanner", () => {
       exists: (path: string) => files.has(path),
       isDirectory: () => false,
       isFile: (path: string) => files.has(path),
-      writeFile: () => {},
-      mkdir: () => {},
-      unlink: () => {},
-      rename: () => {},
       readdir: () => [],
       stat: () => ({ mtimeMs: Date.now() }),
-    };
+    });
   });
 
   describe("scan", () => {

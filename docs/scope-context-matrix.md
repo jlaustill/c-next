@@ -209,7 +209,11 @@ cell is declared by the ADR that owns it.
 | global variable    | -         | -      | -          | n/a         | n/a        |
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | -         | -      | -          | n/a         | n/a        |
-| scope method       | ok        | -      | -          | n/a         | n/a        |
+| scope method       | ok        | ok     | ok         | n/a         | n/a        |
+
+1 linked fixture with no derivable context:
+
+- `bugs/issue-2052-scope-enum-case-label/scope-enum-case-label.test.cnx`
 
 ## ADR-026
 
@@ -401,12 +405,14 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
-13 linked fixtures with no derivable context:
+15 linked fixtures with no derivable context:
 
 - `adr-057/local-shadows-scope.test.cnx`
 - `adr-057/scope-variable-does-not-capture-type.test.cnx`
 - `adr-057/shadowing-all-levels.test.cnx`
 - `bugs/issue-1472-global-qualifier-register-capture/global-vs-scoped-bitmap.test.cnx`
+- `bugs/issue-1629-case-label-undeclared/case-label-imported-direct.test.cnx`
+- `bugs/issue-1629-case-label-undeclared/case-label-rooted-resolves.test.cnx`
 - `bugs/issue-1643-self-referential-initializer/member-above-global.test.cnx`
 - `bugs/issue-1650-strlen-cache-scope-member/strlen-cache-array-element.test.cnx`
 - `bugs/issue-1724-sibling-scope-type-not-included/frames-see-own-closure-error.test.cnx`

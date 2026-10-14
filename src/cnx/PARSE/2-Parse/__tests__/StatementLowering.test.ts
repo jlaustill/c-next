@@ -99,12 +99,14 @@ describe("StatementLowering", () => {
 
   it("records each case label as written, and a default's count", () => {
     const sw = only(
-      "switch (x) { case EState.IDLE || OTHER || -5 || -0x80 || 0b1 || 'c' { } default(3) { } }",
+      "switch (x) { case EState.IDLE || OTHER || this.MINE || global.FAR || -5 || -0x80 || 0b1 || 'c' { } default(3) { } }",
     );
     if (sw.kind !== "switch") throw new Error("kind");
     expect(sw.cases[0].labels).toMatchObject([
       { kind: "qualified", path: ["EState", "IDLE"] },
-      { kind: "identifier", name: "OTHER" },
+      { kind: "identifier", root: null, name: "OTHER" },
+      { kind: "identifier", root: "this", name: "MINE" },
+      { kind: "identifier", root: "global", name: "FAR" },
       { kind: "integer", text: "5", negative: true },
       { kind: "hex", text: "0x80", negative: true },
       { kind: "binary", text: "0b1" },

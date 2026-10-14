@@ -22,6 +22,7 @@ import type ISourceSpan from "../../types/ISourceSpan";
 import type TDefinedAt from "../../utils/types/TDefinedAt";
 import QualifiedCName from "../../utils/QualifiedCName";
 import type TNameMove from "../../types/TNameMove";
+import SourceOrder from "../../utils/SourceOrder";
 
 /** A use's position */
 type TPosition = Pick<ISourceSpan, "line" | "column">;
@@ -175,7 +176,7 @@ class LexicalFrames {
     let candidate: ILexicalFrame | undefined;
     while (low <= high) {
       const middle = (low + high) >> 1;
-      if (LexicalFrames.compare(children[middle].span, at) <= 0) {
+      if (SourceOrder.compare(children[middle].span, at) <= 0) {
         candidate = children[middle];
         low = middle + 1;
       } else {
@@ -200,7 +201,7 @@ class LexicalFrames {
     const items = [
       ...frame.declarations.map((d) => ({ span: d.span, declaration: d })),
       ...frame.children.map((f) => ({ span: f.span, child: f })),
-    ].sort((a, b) => LexicalFrames.compare(a.span, b.span));
+    ].sort((a, b) => SourceOrder.compare(a.span, b.span));
 
     for (const item of items) {
       if ("child" in item) {
@@ -335,15 +336,11 @@ class LexicalFrames {
     };
   }
 
-  private static compare(a: TPosition, b: TPosition): number {
-    return a.line === b.line ? a.column - b.column : a.line - b.line;
-  }
-
   /** Whether a position lies in a span, whose end is exclusive (ISourceSpan) */
   private static contains(span: ISourceSpan, at: TPosition): boolean {
     return (
-      LexicalFrames.compare(span, at) <= 0 &&
-      LexicalFrames.compare(at, {
+      SourceOrder.compare(span, at) <= 0 &&
+      SourceOrder.compare(at, {
         line: span.endLine,
         column: span.endColumn,
       }) < 0

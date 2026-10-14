@@ -86,7 +86,7 @@ function createMockContext(
           ctx.isSimpleIdentifier ||
             ctx.isSimpleThisAccess ||
             ctx.isSimpleGlobalAccess,
-          ctx.cOp,
+          ctx.cnextOp,
           ctx.valueHasFloatingOperand,
         )
       : overrides.plannedClamp;
@@ -501,6 +501,7 @@ describe("AssignmentClassifier - Special Compound", () => {
       isCompound: true,
       cOp: "+=",
       atomicForm: "ldrex-strex",
+      cnextOp: "+<-",
     });
 
     expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.ATOMIC_RMW);
@@ -520,6 +521,7 @@ describe("AssignmentClassifier - Special Compound", () => {
       isSimpleIdentifier: true,
       isCompound: true,
       cOp: "+=",
+      cnextOp: "+<-",
     });
 
     expect(AssignmentClassifier.classify(ctx)).toBe(
@@ -541,6 +543,7 @@ describe("AssignmentClassifier - Special Compound", () => {
       isSimpleIdentifier: true,
       isCompound: true,
       cOp: "+=",
+      cnextOp: "+<-",
     });
 
     // Floats use native arithmetic, so not OVERFLOW_CLAMP
@@ -560,6 +563,7 @@ describe("AssignmentClassifier - Special Compound", () => {
       isSimpleIdentifier: true,
       isCompound: true,
       cOp: "*=",
+      cnextOp: "*<-",
       valueHasFloatingOperand: () => true,
     });
 
@@ -569,34 +573,37 @@ describe("AssignmentClassifier - Special Compound", () => {
 
 describe("AssignmentClassifier.compoundClamp (#1668)", () => {
   it.each([
-    ["clamp u32 +=", "u32", "clamp", "+=", false, "add"],
-    ["clamp i8 -=", "i8", "clamp", "-=", false, "sub"],
-    ["clamp u16 *=", "u16", "clamp", "*=", false, "mul"],
-    ["a floating value", "u32", "clamp", "*=", true, null],
-    ["a wrap target", "u32", "wrap", "+=", false, null],
-    ["a float target", "f32", "clamp", "+=", false, null],
-    ["division, which has no helper", "u32", "clamp", "/=", false, null],
-    ["a bitwise operator", "u32", "clamp", "&=", false, null],
-  ])("%s", (_label, baseType, overflowBehavior, cOp, floating, expected) => {
-    const typeInfo = createTypeInfo({
-      baseType,
-      overflowBehavior: overflowBehavior as "clamp" | "wrap",
-    });
-    const ctx = createMockContext(new TranspileState(), {
-      cOp,
-      valueHasFloatingOperand: () => floating,
-      target: {
-        root: null,
-        rootTypeInfo: typeInfo,
-        typeInfo,
-        last: undefined,
-      },
-    });
+    ["clamp u32 +<-", "u32", "clamp", "+<-", false, "add"],
+    ["clamp i8 -<-", "i8", "clamp", "-<-", false, "sub"],
+    ["clamp u16 *<-", "u16", "clamp", "*<-", false, "mul"],
+    ["a floating value", "u32", "clamp", "*<-", true, null],
+    ["a wrap target", "u32", "wrap", "+<-", false, null],
+    ["a float target", "f32", "clamp", "+<-", false, null],
+    ["division, which has no helper", "u32", "clamp", "/<-", false, null],
+    ["a bitwise operator", "u32", "clamp", "&<-", false, null],
+  ])(
+    "%s",
+    (_label, baseType, overflowBehavior, cnextOp, floating, expected) => {
+      const typeInfo = createTypeInfo({
+        baseType,
+        overflowBehavior: overflowBehavior as "clamp" | "wrap",
+      });
+      const ctx = createMockContext(new TranspileState(), {
+        cnextOp,
+        valueHasFloatingOperand: () => floating,
+        target: {
+          root: null,
+          rootTypeInfo: typeInfo,
+          typeInfo,
+          last: undefined,
+        },
+      });
 
-    expect(AssignmentClassifier.compoundClamp(ctx)?.operation ?? null).toBe(
-      expected,
-    );
-  });
+      expect(AssignmentClassifier.compoundClamp(ctx)?.operation ?? null).toBe(
+        expected,
+      );
+    },
+  );
 });
 
 // ========================================================================

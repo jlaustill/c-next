@@ -2,6 +2,7 @@ import { type ParserRuleContext, type ParseTree, TerminalNode } from "antlr4ng";
 import * as Parser from "./grammar/CNextParser";
 import SyntaxLowering from "./SyntaxLowering";
 import ParserUtils from "../../utils/ParserUtils";
+import ChainRoot from "./ChainRoot";
 import type ISourceSpan from "../../types/ISourceSpan";
 import ASSIGNMENT_OPERATORS from "../../types/syntax/ASSIGNMENT_OPERATORS";
 import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
@@ -375,15 +376,30 @@ class StatementLowering {
     const negative = ctx.children?.[0]?.getText() === "-";
     const qualified = ctx.qualifiedType();
     if (qualified) {
+      const names = qualified.IDENTIFIER();
       return {
         kind: "qualified",
-        path: qualified.IDENTIFIER().map((id) => id.getText()),
+        root: ChainRoot.ofCaseLabel(ctx),
+        path: names.map((id) => id.getText()),
+        headSpan: ParserUtils.getSpan({
+          start: names[0].symbol,
+          stop: names[0].symbol,
+        }),
         ...node,
       };
     }
     const identifier = ctx.IDENTIFIER();
     if (identifier) {
-      return { kind: "identifier", name: identifier.getText(), ...node };
+      return {
+        kind: "identifier",
+        root: ChainRoot.ofCaseLabel(ctx),
+        name: identifier.getText(),
+        nameSpan: ParserUtils.getSpan({
+          start: identifier.symbol,
+          stop: identifier.symbol,
+        }),
+        ...node,
+      };
     }
     const integer = ctx.INTEGER_LITERAL();
     if (integer) {

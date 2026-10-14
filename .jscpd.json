@@ -7,6 +7,7 @@
     "**/grammar/**",
     "**/*.test.ts",
     "**/__tests__/**",
+    "**/__testUtils__/**",
     "**/coverage/**",
     "**/docs/**"
   ],

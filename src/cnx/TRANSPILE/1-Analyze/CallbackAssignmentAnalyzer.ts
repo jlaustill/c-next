@@ -57,6 +57,7 @@ import ValuePositions from "./helpers/ValuePositions";
 import ICallbackAssignmentError from "./types/ICallbackAssignmentError";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import type IValuePosition from "../../types/IValuePosition";
+import SourceOrder from "../../utils/SourceOrder";
 
 /** The slot a value fills, for E0880's wording */
 interface ISlot {
@@ -299,9 +300,7 @@ class CallbackAssignmentAnalyzer {
         check.checkExpression(expr);
       }
     }
-    return check
-      .errors()
-      .sort((a, b) => a.line - b.line || a.column - b.column);
+    return check.errors().sort(SourceOrder.compare);
   }
 }
 

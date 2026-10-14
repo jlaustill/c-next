@@ -241,6 +241,7 @@ describe("ArrayHandlers", () => {
           { mockValue: "1", start: { line: 1 } } as never,
         ]),
         isCompound: true,
+        cnextOp: "-<-",
         cOp: "-=",
         resolvedTarget: "grid[0][1]",
         resolvedBaseIdentifier: "grid",

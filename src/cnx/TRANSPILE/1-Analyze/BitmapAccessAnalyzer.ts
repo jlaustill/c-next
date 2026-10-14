@@ -36,6 +36,7 @@ import ConstantExpression from "./helpers/ConstantExpression";
 import IBitmapAccessError from "./types/IBitmapAccessError";
 import TChainRoot from "../../types/TChainRoot";
 import type IAnalysisContext from "./types/IAnalysisContext";
+import SourceOrder from "../../utils/SourceOrder";
 
 class BitmapAccessCheck {
   private readonly found: IBitmapAccessError[] = [];
@@ -215,9 +216,7 @@ class BitmapAccessAnalyzer {
       }
       for (const site of sites) check.checkSite(site);
     }
-    return check
-      .errors()
-      .sort((a, b) => a.line - b.line || a.column - b.column);
+    return check.errors().sort(SourceOrder.compare);
   }
 }
 

@@ -52,6 +52,7 @@ import IRegisterAccessError from "./types/IRegisterAccessError";
 import ConstantExpression from "./helpers/ConstantExpression";
 import RegisterAccessMode from "../../utils/RegisterAccessMode";
 import type IAnalysisContext from "./types/IAnalysisContext";
+import SourceOrder from "../../utils/SourceOrder";
 
 class RegisterAccessCheck {
   private readonly found: IRegisterAccessError[] = [];
@@ -194,9 +195,7 @@ class RegisterAccessAnalyzer {
       }
       for (const site of sites) check.checkSite(site);
     }
-    return check
-      .errors()
-      .sort((a, b) => a.line - b.line || a.column - b.column);
+    return check.errors().sort(SourceOrder.compare);
   }
 }
 

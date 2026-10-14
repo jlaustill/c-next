@@ -42,6 +42,7 @@ import RunAnchor from "./RunAnchor";
 import type IFileIncludes from "./types/IFileIncludes";
 import type ISourceGraph from "./types/ISourceGraph";
 import CNextSourcePath from "../../utils/CNextSourcePath";
+import SourceOrder from "../../utils/SourceOrder";
 
 /** The configuration a run's discovery reads. */
 type TDiscoverySettings = Pick<
@@ -432,8 +433,7 @@ class Discover {
         (a.site.sourcePath < b.site.sourcePath
           ? -1
           : Number(a.site.sourcePath > b.site.sourcePath)) ||
-        a.site.line - b.site.line ||
-        a.site.column - b.site.column,
+        SourceOrder.compare(a.site, b.site),
     );
   }
 

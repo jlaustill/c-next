@@ -22,6 +22,12 @@ type TPlannedCaseLabel =
       /** The name as a use of it is written, when a binding resolves it */
       readonly resolved: string | null;
     }
+  /**
+   * `this.LIMIT` or `global.LIMIT` (#1629): the const its root binds, as
+   * written by the planner. Never the switch enum's member, which a bare
+   * label may be -- the root already said where the name lives.
+   */
+  | { readonly kind: "rooted"; readonly code: string }
   /** An integer or hex literal, with the minus that may precede it. */
   | {
       readonly kind: "numeric";

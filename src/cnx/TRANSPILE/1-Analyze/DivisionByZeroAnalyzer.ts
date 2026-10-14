@@ -7,7 +7,8 @@
  * a constant expression (`2 - 2`, `-0.0`, `(f32)0`), by the one constant
  * fold, so a name means the declaration ADR-057 names wherever the division
  * is written -- a statement, a member or file initializer, an array dimension,
- * an enum member's value (#1664 box 7, #1268).
+ * an enum member's value (#1664 box 7, #1268). A compound `/<-` or `%<-`
+ * divides by its value the same way (#1770).
  */
 
 import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
@@ -18,6 +19,8 @@ import type TBinaryExpression from "../../types/syntax/TBinaryExpression";
 import DeclarationParts from "../../utils/DeclarationParts";
 import ExpressionNodes from "../../utils/ExpressionNodes";
 import StatementNodes from "../../utils/StatementNodes";
+import CompoundOperator from "../../utils/CompoundOperator";
+import SourceOrder from "../../utils/SourceOrder";
 import IDivisionByZeroError from "./types/IDivisionByZeroError";
 import OperandTyper from "../../utils/OperandTyper";
 import ConstantFold from "../../utils/ConstantFold";
@@ -35,7 +38,8 @@ class DivisionByZeroAnalyzer {
     for (const member of program.declarations) {
       this.declaration(member.declaration);
     }
-    return this.errors;
+    // Binary levels, then compound writes; report in source order
+    return this.errors.sort(SourceOrder.compare);
   }
 
   private declaration(declaration: TDeclarationSyntax): void {
@@ -56,6 +60,19 @@ class DivisionByZeroAnalyzer {
       for (const expr of ExpressionNodes.of(part)) {
         if (expr.kind === "binary") this.check(expr, atRunTime.has(expr));
       }
+    }
+    // `x /<- d` and `x %<- d` divide `x` by `d`, in a statement or a `for`
+    // header (#1770)
+    for (const site of StatementNodes.assignments(declaration)) {
+      const operator = CompoundOperator.binaryOf(site.operator);
+      if (operator !== "/" && operator !== "%") continue;
+      if (site.value.kind === "missing" || !this.isZero(site.value)) continue;
+      this.addError(
+        operator,
+        site.value.span.line,
+        site.value.span.column,
+        true,
+      );
     }
   }
 

@@ -33,6 +33,8 @@
 import type ISourcePosition from "../../utils/types/ISourcePosition";
 import BUILTIN_TYPE_NAMES from "./BUILTIN_TYPE_NAMES";
 import DeclarationParts from "../../utils/DeclarationParts";
+import StatementNodes from "../../utils/StatementNodes";
+import type TCaseLabelSyntax from "../../types/syntax/TCaseLabelSyntax";
 import ExpressionChildren from "../../utils/ExpressionChildren";
 import TypeParts from "../../utils/TypeParts";
 import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
@@ -113,7 +115,33 @@ class UndeclaredValueWalk {
   }
 
   /**
-   * One name, one question, for both positions.
+   * The CASE LABEL position (#1629). `caseLabel` is its own grammar rule too,
+   * reachable from neither hook above, so `case NOPE { }` reached the C as a
+   * name nothing declares, at exit 0.
+   *
+   * A qualified label is asked about the name it starts from, as a qualified
+   * read is: `NOPE.RUN` names nothing, while whether `EMode.NOPE` is a member
+   * of `EMode` is the chain's question, not this one's. A bare enum member
+   * (`case IDLE`) is visible, and whether it may stand bare is E0424's.
+   */
+  caseLabel(label: TCaseLabelSyntax): void {
+    if (label.kind === "identifier") {
+      this.check(
+        { name: label.name, span: label.nameSpan },
+        label.root,
+        label.span,
+      );
+    } else if (label.kind === "qualified") {
+      this.check(
+        { name: label.path[0], span: label.headSpan },
+        label.root,
+        label.span,
+      );
+    }
+  }
+
+  /**
+   * One name, one question, for every position.
    *
    * A read and a write differ only in where their chain sits -- the
    * `(root, identifier)` pair `ChainRoot` separates is read off both alike. Everything after that is
@@ -180,6 +208,12 @@ class UndeclaredValueAnalyzer {
     for (const member of program.declarations) {
       for (const part of DeclarationParts.of(member.declaration))
         walk.part(part);
+      for (const statement of StatementNodes.in(member.declaration)) {
+        if (statement.kind !== "switch") continue;
+        for (const switchCase of statement.cases) {
+          for (const label of switchCase.labels) walk.caseLabel(label);
+        }
+      }
     }
     return this.errors;
   }

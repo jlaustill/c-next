@@ -18,13 +18,8 @@ import OperandTyper from "../../utils/OperandTyper";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeUtils from "../../utils/ScopeUtils";
-
-/** ADR-044: the clamp helper each overflowing compound operator lowers to. */
-const CLAMP_HELPER_FOR_COMPOUND: Readonly<Partial<Record<string, string>>> = {
-  "+=": "add",
-  "-=": "sub",
-  "*=": "mul",
-};
+import CompoundOperator from "../../utils/CompoundOperator";
+import CLAMP_HELPER_FOR_OPERATOR from "../../types/CLAMP_HELPER_FOR_OPERATOR";
 
 /**
  * Classifies assignment statements by analyzing their structure.
@@ -845,7 +840,7 @@ class AssignmentClassifier {
   static clampOfWrite(
     target: IChainBase,
     isSimple: boolean,
-    cOp: string,
+    cnextOp: string,
     hasFloatingOperand: () => boolean,
   ): { operation: string; cnxType: string } | null {
     const written = AssignmentClassifier.writtenValue(target, isSimple);
@@ -853,22 +848,24 @@ class AssignmentClassifier {
     return AssignmentClassifier.clampOf(
       written.baseType,
       written.overflowBehavior,
-      cOp,
+      cnextOp,
       hasFloatingOperand,
     );
   }
 
-  /** ADR-044: the clamp helper a compound `cOp` write of this type calls, or null */
+  /** ADR-044: the clamp helper a compound `cnextOp` write of this type calls, or null */
   static clampOf(
     baseType: string,
     overflowBehavior: TOverflowBehavior | null,
-    cOp: string,
+    cnextOp: string,
     hasFloatingOperand: () => boolean,
   ): { operation: string; cnxType: string } | null {
     if (overflowBehavior !== "clamp") return null;
     if (!TypeCheckUtils.isInteger(baseType)) return null;
     if (hasFloatingOperand()) return null;
-    const operation = CLAMP_HELPER_FOR_COMPOUND[cOp];
+    const operator = CompoundOperator.binaryOf(cnextOp);
+    const operation =
+      operator === null ? undefined : CLAMP_HELPER_FOR_OPERATOR[operator];
     return operation ? { operation, cnxType: baseType } : null;
   }
 

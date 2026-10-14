@@ -1,0 +1,33 @@
+// test-adr: 051
+// test-error
+// #1770 review: a compound division or modulo by a const zero declared in an
+// included file is the same divisor as a same-file one, bare and qualified.
+//
+// NEGATIVE CONTROLS: IMPORTED_ONE and Limits.ONE are nonzero and stay silent.
+#include "compound-zero-limits.cnx"
+
+u32 bare(u32 n) {
+    u32 x <- n;
+    x /<- IMPORTED_ZERO;
+    x %<- IMPORTED_ZERO;
+    x /<- IMPORTED_ONE;
+    return x;
+}
+
+u32 viaScopeName(u32 n) {
+    u32 x <- n;
+    x /<- Limits.ZERO;
+    x %<- Limits.ZERO;
+    x %<- Limits.ONE;
+    return x;
+}
+
+scope Reader {
+    public u32 viaGlobal(u32 n) {
+        u32 x <- n;
+        x /<- global.IMPORTED_ZERO;
+        x %<- global.Limits.ZERO;
+        x /<- global.Limits.ONE;
+        return x;
+    }
+}

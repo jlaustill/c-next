@@ -41,6 +41,10 @@ class ReadOnceFileSystem implements IFileSystem {
     return this.host.isFile(path);
   }
 
+  isExecutable(path: string): boolean {
+    return this.host.isExecutable(path);
+  }
+
   readdir(path: string): string[] {
     return this.host.readdir(path);
   }

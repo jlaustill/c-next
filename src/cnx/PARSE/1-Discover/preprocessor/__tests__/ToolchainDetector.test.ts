@@ -3,57 +3,71 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { delimiter } from "node:path";
 import ToolchainDetector from "../ToolchainDetector";
 
 // Mock child_process
 vi.mock("node:child_process", () => ({
-  execSync: vi.fn(),
+  execFileSync: vi.fn(),
+  spawnSync: vi.fn(),
 }));
 
-// Mock fs
-vi.mock("node:fs", () => ({
-  existsSync: vi.fn(),
-}));
+import { execFileSync, spawnSync } from "node:child_process";
+import TestFileSystem from "../../../../types/__testUtils__/TestFileSystem";
 
-import { execSync } from "node:child_process";
-import { existsSync } from "node:fs";
-import NodeFileSystem from "../../NodeFileSystem";
+const installed = TestFileSystem.installedExecutables;
+
+/**
+ * Answer the mocked `execFileSync` by the command it would run, written as one
+ * string (`/usr/bin/gcc --version`) so a case reads as the invocation it stubs.
+ */
+function whenRun(answer: (command: string) => string): void {
+  vi.mocked(execFileSync).mockImplementation(((
+    file: string,
+    args?: readonly string[],
+  ) => answer([file, ...(args ?? [])].join(" "))) as typeof execFileSync);
+}
 
 describe("ToolchainDetector", () => {
+  const originalPath = process.env.PATH;
+  const originalOverride = process.env.CNEXT_CROSS_COMPILER;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.PATH = "/usr/bin";
+    // detect() tries CNEXT_CROSS_COMPILER first; a developer's export must not
+    // decide which paths these cases see.
+    delete process.env.CNEXT_CROSS_COMPILER;
+    whenRun(() => {
+      throw new Error("not run");
+    });
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    process.env.PATH = originalPath;
+    if (originalOverride !== undefined) {
+      process.env.CNEXT_CROSS_COMPILER = originalOverride;
+    }
   });
 
   describe("detect", () => {
     it("returns null when no toolchain is available", () => {
-      vi.mocked(execSync).mockImplementation(() => {
-        throw new Error("not found");
-      });
-
-      const result = ToolchainDetector.detect(NodeFileSystem.instance);
+      const result = ToolchainDetector.detect(installed());
       expect(result).toBeNull();
     });
 
     it("detects ARM toolchain with highest priority", () => {
-      vi.mocked(execSync).mockImplementation((cmd: string) => {
-        if (cmd === "which arm-none-eabi-gcc") {
-          return "/usr/bin/arm-none-eabi-gcc";
-        }
-        if (cmd === "which arm-none-eabi-g++") {
-          return "/usr/bin/arm-none-eabi-g++";
-        }
-        if (cmd.includes("--version")) {
-          return "arm-none-eabi-gcc (GNU Arm) 10.3.1\n";
-        }
-        throw new Error("not found");
-      });
-      vi.mocked(existsSync).mockReturnValue(true);
+      whenRun(() => "arm-none-eabi-gcc (GNU Arm) 10.3.1\n");
 
-      const result = ToolchainDetector.detect(NodeFileSystem.instance);
+      const result = ToolchainDetector.detect(
+        installed(
+          "/usr/bin/arm-none-eabi-gcc",
+          "/usr/bin/arm-none-eabi-g++",
+          "/usr/bin/clang",
+          "/usr/bin/gcc",
+        ),
+      );
 
       expect(result).not.toBeNull();
       expect(result!.name).toBe("arm-none-eabi-gcc");
@@ -64,24 +78,11 @@ describe("ToolchainDetector", () => {
     });
 
     it("detects clang when ARM is not available", () => {
-      vi.mocked(execSync).mockImplementation((cmd: string) => {
-        if (cmd.includes("arm-none-eabi")) {
-          throw new Error("not found");
-        }
-        if (cmd === "which clang") {
-          return "/usr/bin/clang";
-        }
-        if (cmd === "which clang++") {
-          return "/usr/bin/clang++";
-        }
-        if (cmd.includes("--version")) {
-          return "clang version 14.0.0\n";
-        }
-        throw new Error("not found");
-      });
-      vi.mocked(existsSync).mockReturnValue(true);
+      whenRun(() => "clang version 14.0.0\n");
 
-      const result = ToolchainDetector.detect(NodeFileSystem.instance);
+      const result = ToolchainDetector.detect(
+        installed("/usr/bin/clang", "/usr/bin/clang++", "/usr/bin/gcc"),
+      );
 
       expect(result).not.toBeNull();
       expect(result!.name).toBe("clang");
@@ -91,24 +92,11 @@ describe("ToolchainDetector", () => {
     });
 
     it("detects gcc when ARM and clang are not available", () => {
-      vi.mocked(execSync).mockImplementation((cmd: string) => {
-        if (cmd.includes("arm-none-eabi") || cmd.includes("clang")) {
-          throw new Error("not found");
-        }
-        if (cmd === "which gcc") {
-          return "/usr/bin/gcc";
-        }
-        if (cmd === "which g++") {
-          return "/usr/bin/g++";
-        }
-        if (cmd.includes("--version")) {
-          return "gcc (Ubuntu 11.4.0) 11.4.0\n";
-        }
-        throw new Error("not found");
-      });
-      vi.mocked(existsSync).mockReturnValue(true);
+      whenRun(() => "gcc (Ubuntu 11.4.0) 11.4.0\n");
 
-      const result = ToolchainDetector.detect(NodeFileSystem.instance);
+      const result = ToolchainDetector.detect(
+        installed("/usr/bin/gcc", "/usr/bin/g++"),
+      );
 
       expect(result).not.toBeNull();
       expect(result!.name).toBe("gcc");
@@ -118,39 +106,48 @@ describe("ToolchainDetector", () => {
     });
 
     it("uses cc for cxx when c++ compiler not found", () => {
-      vi.mocked(execSync).mockImplementation((cmd: string) => {
-        if (cmd.includes("arm-none-eabi") || cmd.includes("clang")) {
-          throw new Error("not found");
-        }
-        if (cmd === "which gcc") {
-          return "/usr/bin/gcc";
-        }
-        if (cmd === "which g++") {
-          throw new Error("not found");
-        }
-        if (cmd.includes("--version")) {
-          return "gcc 11.4.0\n";
-        }
-        throw new Error("not found");
-      });
-      vi.mocked(existsSync).mockReturnValue(true);
+      whenRun(() => "gcc 11.4.0\n");
 
-      const result = ToolchainDetector.detect(NodeFileSystem.instance);
+      const result = ToolchainDetector.detect(installed("/usr/bin/gcc"));
 
       expect(result!.cxx).toBe("/usr/bin/gcc");
     });
 
-    it("returns null when executable path does not exist", () => {
-      vi.mocked(execSync).mockImplementation((cmd: string) => {
-        if (cmd === "which gcc") {
-          return "/usr/bin/gcc";
-        }
-        throw new Error("not found");
-      });
-      vi.mocked(existsSync).mockReturnValue(false);
-
-      const result = ToolchainDetector.detect(NodeFileSystem.instance);
+    it("returns null when no PATH directory holds a compiler", () => {
+      const result = ToolchainDetector.detect(installed("/opt/elsewhere/gcc"));
       expect(result).toBeNull();
+    });
+  });
+
+  describe("PATH search", () => {
+    it("takes the first PATH directory that holds the executable", () => {
+      process.env.PATH = ["/opt/a", "/usr/bin"].join(delimiter);
+      whenRun(() => "gcc 13\n");
+
+      const result = ToolchainDetector.detect(
+        installed("/opt/a/gcc", "/usr/bin/gcc"),
+      );
+
+      expect(result!.cc).toBe("/opt/a/gcc");
+    });
+
+    it("skips an empty PATH entry instead of searching the current directory", () => {
+      process.env.PATH = ["", "/usr/bin"].join(delimiter);
+      const fs = installed();
+      const asked = vi.spyOn(fs, "isExecutable");
+
+      ToolchainDetector.detect(fs);
+
+      expect(asked).toHaveBeenCalled();
+      for (const call of asked.mock.calls) {
+        expect(call[0]).toMatch(/^\/usr\/bin\//);
+      }
+    });
+
+    it("finds nothing when PATH is unset", () => {
+      delete process.env.PATH;
+
+      expect(ToolchainDetector.detect(installed("/usr/bin/gcc"))).toBeNull();
     });
   });
 
@@ -165,7 +162,10 @@ describe("ToolchainDetector", () => {
  /usr/include
 End of search list.
 `;
-      vi.mocked(execSync).mockReturnValue(compilerOutput);
+      vi.mocked(spawnSync).mockReturnValue({
+        status: 0,
+        stderr: compilerOutput,
+      } as ReturnType<typeof spawnSync>);
 
       const toolchain = {
         name: "gcc",
@@ -185,10 +185,10 @@ End of search list.
       ]);
     });
 
-    it("returns empty array when command fails", () => {
-      vi.mocked(execSync).mockImplementation(() => {
-        throw new Error("command failed");
-      });
+    it("returns empty array when the compiler cannot be started", () => {
+      vi.mocked(spawnSync).mockReturnValue({
+        error: new Error("spawn /usr/bin/gcc ENOENT"),
+      } as ReturnType<typeof spawnSync>);
 
       const toolchain = {
         name: "gcc",
@@ -202,8 +202,29 @@ End of search list.
       expect(paths).toEqual([]);
     });
 
+    it("returns empty array when the compiler exits non-zero", () => {
+      vi.mocked(spawnSync).mockReturnValue({
+        status: 1,
+        stderr:
+          "#include <...> search starts here:\n /partial/include\nEnd of search list.\n",
+      } as ReturnType<typeof spawnSync>);
+
+      const toolchain = {
+        name: "gcc",
+        cc: "/usr/bin/gcc",
+        cxx: "/usr/bin/g++",
+        cpp: "/usr/bin/gcc",
+        isCrossCompiler: false,
+      };
+
+      expect(ToolchainDetector.getDefaultIncludePaths(toolchain)).toEqual([]);
+    });
+
     it("returns empty array when no include section found", () => {
-      vi.mocked(execSync).mockReturnValue("Some other output\n");
+      vi.mocked(spawnSync).mockReturnValue({
+        status: 0,
+        stderr: "Some other output\n",
+      } as ReturnType<typeof spawnSync>);
 
       const toolchain = {
         name: "gcc",
@@ -220,35 +241,24 @@ End of search list.
 
   describe("version extraction", () => {
     it("extracts version from first line of output", () => {
-      vi.mocked(execSync).mockImplementation((cmd: string) => {
-        if (cmd === "which gcc") {
-          return "/usr/bin/gcc";
-        }
-        if (cmd.includes("--version")) {
+      whenRun((cmd) => {
+        if (cmd === "/usr/bin/gcc --version") {
           return "gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0\nCopyright (C) 2021\nMore lines...\n";
         }
         throw new Error("not found");
       });
-      vi.mocked(existsSync).mockReturnValue(true);
 
-      const result = ToolchainDetector.detect(NodeFileSystem.instance);
+      const result = ToolchainDetector.detect(installed("/usr/bin/gcc"));
 
       expect(result!.version).toBe("gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0");
     });
 
     it("handles missing version gracefully", () => {
-      vi.mocked(execSync).mockImplementation((cmd: string) => {
-        if (cmd === "which gcc") {
-          return "/usr/bin/gcc";
-        }
-        if (cmd.includes("--version")) {
-          throw new Error("version failed");
-        }
-        throw new Error("not found");
+      whenRun(() => {
+        throw new Error("version failed");
       });
-      vi.mocked(existsSync).mockReturnValue(true);
 
-      const result = ToolchainDetector.detect(NodeFileSystem.instance);
+      const result = ToolchainDetector.detect(installed("/usr/bin/gcc"));
 
       expect(result!.version).toBeUndefined();
     });

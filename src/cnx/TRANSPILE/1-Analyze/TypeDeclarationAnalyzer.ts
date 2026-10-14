@@ -25,6 +25,7 @@ import type IEnumSymbol from "../../types/symbols/IEnumSymbol";
 import type TEnumMemberValue from "../../types/TEnumMemberValue";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import type ITypeDeclarationError from "./types/ITypeDeclarationError";
+import SourceOrder from "../../utils/SourceOrder";
 
 class TypeDeclarationAnalyzer {
   public constructor(private readonly context: IAnalysisContext) {}
@@ -42,7 +43,7 @@ class TypeDeclarationAnalyzer {
       }
     }
     // The table's order is registration order, not the source's.
-    return found.sort((a, b) => a.line - b.line || a.column - b.column);
+    return found.sort(SourceOrder.compare);
   }
 
   private static bitmapWidth(bitmap: IBitmapSymbol): ITypeDeclarationError[] {

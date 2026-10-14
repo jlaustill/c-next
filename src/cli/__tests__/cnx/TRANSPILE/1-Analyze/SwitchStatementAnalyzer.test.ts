@@ -131,6 +131,67 @@ describe("SwitchStatementAnalyzer", () => {
     ).toEqual([]);
   });
 
+  describe("rooted labels (#1629)", () => {
+    const labels = (a: string, b: string) =>
+      [
+        "const u8 LIMIT <- 1;",
+        "scope Panel {",
+        "    const u8 LIMIT <- 3;",
+        "    public u32 pick(u8 s) {",
+        "        switch (s) {",
+        `            case ${a} { return 1; }`,
+        `            case ${b} { return 2; }`,
+        "            default { return 0; }",
+        "        }",
+        "    }",
+        "}",
+      ].join("\n");
+
+    it("rejects the same rooted label twice", () => {
+      const found = errors(labels("this.LIMIT", "this.LIMIT"));
+      expect(found).toHaveLength(1);
+      expect(found[0].code).toBe("E0713");
+      expect(found[0].message).toContain("'this.LIMIT'");
+    });
+
+    it("keeps `this.LIMIT` and `global.LIMIT` apart: they are two consts", () => {
+      expect(errors(labels("this.LIMIT", "global.LIMIT"))).toEqual([]);
+    });
+
+    it("rejects `LIMIT` beside `this.LIMIT`: one const, two spellings", () => {
+      const found = errors(labels("this.LIMIT", "LIMIT"));
+      expect(found).toHaveLength(1);
+      expect(found[0].code).toBe("E0713");
+      expect(found[0].message).toContain("'LIMIT'");
+    });
+
+    it("rejects `this.State.RUN` beside `State.RUN` in its scope (#147)", () => {
+      const found = errors(
+        [
+          "scope Motor {",
+          "    enum State { IDLE, RUN }",
+          "    public u32 pick(State s) {",
+          "        switch (s) {",
+          "            case State.IDLE { return 1; }",
+          "            case State.RUN || this.State.RUN { return 2; }",
+          "        }",
+          "        return 0;",
+          "    }",
+          "}",
+        ].join("\n"),
+      );
+      expect(found).toHaveLength(1);
+      expect(found[0].code).toBe("E0713");
+      expect(found[0].message).toContain("'this.State.RUN'");
+    });
+
+    it("rejects the same character label twice", () => {
+      const found = errors(labels("'a'", "'a'"));
+      expect(found).toHaveLength(1);
+      expect(found[0].code).toBe("E0713");
+    });
+  });
+
   describe("enum exhaustiveness (E0714)", () => {
     const source = (cases: string): string =>
       [
@@ -249,6 +310,79 @@ describe("SwitchStatementAnalyzer", () => {
         "scope S {\n    public void f(bool b) {\n        switch (b) {\n            default {\n            }\n        }\n    }\n}",
       );
       expect(found.map((e) => e.code)).toEqual(["E0711"]);
+    });
+  });
+
+  describe("a label must be a constant (E0717, #2051)", () => {
+    const pick = (label: string) =>
+      errors(
+        [
+          "u8 counter <- 2;",
+          "const u8 REAL <- 1;",
+          "enum EMode { IDLE, RUN }",
+          "struct Pt { u8 x; }",
+          "scope Panel {",
+          "    u8 level <- 1;",
+          "    const u8 OWN <- 3;",
+          '    public const string<4> S <- "ab";',
+          "    public enum State { STOPPED, GOING }",
+          "    bitmap8 Flags { a, b, c, d, e, f, g, h }",
+          "    public u8 helper() { return 1; }",
+          "    public u32 pick(u8 s, u8 p) {",
+          "        const u8 K <- 5;",
+          '        const string<4> L <- "x";',
+          "        switch (s) {",
+          `            case ${label} { return 1; }`,
+          "            default { return 0; }",
+          "        }",
+          "    }",
+          "}",
+        ].join("\n"),
+      );
+
+    it.each([
+      "level",
+      "this.level",
+      "global.counter",
+      "counter",
+      "helper",
+      "this.helper",
+      "global.Panel",
+      "Panel.level",
+      "Panel.helper",
+      "p",
+      "this.State",
+      "State",
+      "Panel.State",
+      "global.EMode",
+      "EMode",
+      "global.Pt",
+      "Pt",
+      "this.Flags",
+      "this.S",
+      "S",
+      "Panel.S",
+      "L",
+    ])("rejects `%s`", (label) => {
+      const found = pick(label);
+      expect(found).toHaveLength(1);
+      expect(found[0].code).toBe("E0717");
+      expect(found[0].message).toBe(`Case label '${label}' is not a constant`);
+    });
+
+    it.each([
+      "OWN",
+      "this.OWN",
+      "global.REAL",
+      "REAL",
+      "Panel.OWN",
+      "K",
+      "9",
+      "this.State.STOPPED",
+      "Panel.State.GOING",
+      "global.EMode.RUN",
+    ])("accepts `%s`", (label) => {
+      expect(pick(label)).toEqual([]);
     });
   });
 });
