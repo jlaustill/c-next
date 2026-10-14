@@ -2737,10 +2737,10 @@ class CodeGenWalker {
     const initializer = decl.initializer;
     // #1822: the inferred path emits its one counted size as the whole suffix,
     // which is right only for a one-dimensional array. E0892 rejects every
-    // other empty dimension in pass 2.1.
+    // other empty dimension in pass 1.2.
     invariant(
       !hasEmptyDimension || CodeGenWalker.arrayRank(decl) === 1,
-      `an array that omits a size is one-dimensional -- E0892 rejects '${decl.name}' in pass 2.1, before this runs`,
+      `an array that omits a size is one-dimensional -- E0892 rejects '${decl.name}' in pass 1.2, before this runs`,
     );
     return {
       isArray: true,
@@ -2811,7 +2811,7 @@ class CodeGenWalker {
     const size = declaration === null ? null : this.countedSize(declaration);
     invariant(
       size !== null,
-      `an omitted array size is counted from a one-dimensional declaration's list or string literal -- E0892 rejects '${declaration?.name ?? "a struct field"}' in pass 2.1, before this runs`,
+      `an omitted array size is counted from a one-dimensional declaration's list or string literal -- E0892 rejects '${declaration?.name ?? "a struct field"}' in pass 1.2, before this runs`,
     );
     return size;
   }
@@ -2937,7 +2937,7 @@ class CodeGenWalker {
     if (elementCapacity === null) {
       invariant(
         false,
-        "a string array states its element capacity -- E0862 rejects an unsized one in pass 2.1",
+        "a string array states its element capacity -- E0862 rejects an unsized one in pass 1.2",
       );
     }
     let dimensions = ArrayDimensionUtils.renderArrayTypeDimensions(

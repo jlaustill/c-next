@@ -396,7 +396,7 @@ function runAnalyzers(
         new ControllingExpressionAnalyzer(context).analyze(parsed.program),
     },
     {
-      label: "string declarations (ADR-045, E0862-E0866)",
+      label: "string declarations (ADR-045, E0864-E0865)",
       run: () => new StringDeclarationAnalyzer(context).analyze(parsed.program),
     },
     {

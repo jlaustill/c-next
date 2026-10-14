@@ -1,0 +1,10 @@
+// test-error
+// #1632: `break` written as an assignment target is still `break`, and
+// C-Next has none. Before, nothing owned this position, and `break = 5;`
+// reached the C compiler.
+void main(u8 n) {
+    u8 i <- 0;
+    while (i < n) {
+        break <- 5;
+    }
+}

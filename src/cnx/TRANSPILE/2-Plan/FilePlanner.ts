@@ -1954,9 +1954,10 @@ class FilePlanner {
 
   /**
    * ADR-049: a compound write to a variable declared `atomic`, named bare or
-   * through `global.` (a `this.` member saturates or wraps instead), is an
-   * LDREX/STREX loop where the target and the type allow one, otherwise the
-   * masked region. Null when the write is not atomic.
+   * through `global.`, is an LDREX/STREX loop where the target and the type
+   * allow one, otherwise the masked region. Null when the write is not atomic.
+   * An `atomic` scope member written through `this.` is not seen here, and
+   * saturates or wraps without the guard: bug #1179.
    */
   private atomicFormOf(
     site: IAssignmentSyntax,

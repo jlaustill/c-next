@@ -50,7 +50,9 @@ interface ISourceSyntax {
 
   /**
    * 1.2's errors on a tree that DID parse: how a literal or a declared name is
-   * written (E0912, E0201, E0202). Kept apart from `parseErrors` because the
+   * written (E0912, E0201, E0202), and the form of a string or array
+   * declaration (`StringForm`: E0862, E0863; `ArrayForm`: E0866, E0874-E0876,
+   * E0892). Kept apart from `parseErrors` because the
    * tree is sound -- the prettier plugin and `format-fidelity` format such a
    * file, and only the transpile run stops on them (#1991). Empty whenever
    * `parseErrors` is not.

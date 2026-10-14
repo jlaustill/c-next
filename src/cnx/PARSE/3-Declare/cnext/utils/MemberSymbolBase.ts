@@ -72,10 +72,9 @@ class MemberSymbolBase {
         scopePath: input.parentScopedName,
       }),
       sourceFile: input.sourceFile,
-      // Same fallback the C path uses, through the same function: a member
-      // with no start token inherits its parent's span rather than
-      // reporting 0:0, which is both the top of the file and
-      // indistinguishable from UNSET_SOURCE_SPAN (#1318 review).
+      // 1.2 lowered it with the C path's fallback (`ParserUtils.getSpanOr`,
+      // through `SyntaxLowering.memberNode`): a member with no start token
+      // has its declaration's span, not 0:0 (#1318 review).
       span: input.memberSpan,
       sourceLanguage: ESourceLanguage.CNext,
       visibility: input.visibility,

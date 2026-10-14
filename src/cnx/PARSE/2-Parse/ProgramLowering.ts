@@ -111,7 +111,7 @@ class ProgramLowering {
         return {
           name: member.IDENTIFIER().getText(),
           value: value ? SyntaxLowering.expression(value) : null,
-          ...SyntaxLowering.node(member),
+          ...SyntaxLowering.memberNode(member, ctx),
         };
       }),
       ...SyntaxLowering.node(ctx),
@@ -128,7 +128,7 @@ class ProgramLowering {
       members: ctx.bitmapMember().map((member) => ({
         name: member.IDENTIFIER().getText(),
         width: member.INTEGER_LITERAL()?.getText() ?? null,
-        ...SyntaxLowering.node(member),
+        ...SyntaxLowering.memberNode(member, ctx),
       })),
       ...SyntaxLowering.node(ctx),
     };
@@ -264,7 +264,7 @@ class ProgramLowering {
         type: SyntaxLowering.type(member.type()),
         access: member.accessModifier().getText() as TRegisterAccessMode,
         offset: SyntaxLowering.expression(member.expression()),
-        ...SyntaxLowering.node(member),
+        ...SyntaxLowering.memberNode(member, ctx),
       })),
       ...SyntaxLowering.node(ctx),
     };
@@ -281,7 +281,7 @@ class ProgramLowering {
         nameSpan: ProgramLowering.spanOf(member.IDENTIFIER()),
         dimensions: member.arrayDimension().map(ProgramLowering.dimensionOf),
         overflow: SyntaxLowering.overflow(member.overflowModifier()),
-        ...SyntaxLowering.node(member),
+        ...SyntaxLowering.memberNode(member, ctx),
       })),
       ...SyntaxLowering.node(ctx),
     };

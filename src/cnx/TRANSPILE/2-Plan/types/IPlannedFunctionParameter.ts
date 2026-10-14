@@ -17,7 +17,7 @@ import type ISourceSpan from "../../../types/ISourceSpan";
  *
  * - **`isArray`.** Here it means either spelling. The signature adapter means
  *   only `u8[4] p`, because that is the only spelling it ever sees: a C-style
- *   `u8 p[4]` is E0874 in pass 2.1, with one exemption -- `main(string args[])`
+ *   `u8 p[4]` is E0874 in pass 1.2, with one exemption -- `main(string args[])`
  *   -- and the main-with-args path emits `int argc, char *argv[]` outright
  *   without consulting the adapter. So the two notions differ on exactly one
  *   parameter in the language, and both are right for their reader.
