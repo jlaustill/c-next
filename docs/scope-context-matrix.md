@@ -171,9 +171,9 @@ cell is declared by the ADR that owns it.
 
 | Context            | same file | direct | transitive | from 1 away | thru chain |
 | ------------------ | --------- | ------ | ---------- | ----------- | ---------- |
-| global variable    | -         | -      | -          | n/a         | n/a        |
+| global variable    | warn      | -      | -          | n/a         | n/a        |
 | top-level function | ok        | -      | -          | n/a         | n/a        |
-| scope member       | -         | -      | -          | n/a         | n/a        |
+| scope member       | warn      | -      | -          | n/a         | n/a        |
 | scope method       | warn      | -      | -          | n/a         | n/a        |
 
 ## ADR-024

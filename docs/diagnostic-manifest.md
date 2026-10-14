@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-593 fixture(s) assert a diagnostic; 583 carry a code.
+594 fixture(s) assert a diagnostic; 584 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -507,6 +507,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1975-header-struct-byte-length/header-layout-error.test.cnx                     | E0867               |
 | tests/bugs/issue-1975-header-struct-byte-length/header-pointer-field-error.test.cnx              | E0867               |
 | tests/bugs/issue-1975-header-struct-byte-length/type-named-as-value-error.test.cnx               | E0897               |
+| tests/bugs/issue-1975-type-length-across-includes/type-length-across-includes-error.test.cnx     | E0897               |
 | tests/bugs/issue-1977-struct-to-c-byte-pointer/struct-to-c-byte-pointer-error.test.cnx           | E0895, E0896        |
 | tests/bugs/issue-1980-enum-read-before-assign/enum-read-before-assign.test.cnx                   | E0381               |
 | tests/bugs/issue-1981-struct-cycle/direct.test.cnx                                               | E0426               |

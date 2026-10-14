@@ -11,14 +11,17 @@
 // where it is declared, as a value of it does: a struct, a field of it, an
 // enum, and a scope's struct. `Geo.Box`, `global.Point` and `this.P` name a
 // type as a bare `Point` does; they reached the C as `Geo__Box.byte_length`,
-// which gcc rejects. An array is sized by one alike.
+// which gcc rejects. An array is sized by one alike, an enum's too.
 //
-// NEGATIVE CONTROL: each length is checked against a value of the type.
+// NEGATIVE CONTROL: each length is checked against its number, so a rule
+// that moved both a type's length and a value's would still be caught.
 #include "geo-mid.h"
 
 #include <stdint.h>
 
 uint8_t boxBytes[3] = {0};
+
+uint8_t modeBytes[4] = {0};
 
 /* Scope: Shapes */
 
@@ -27,11 +30,9 @@ typedef struct Shapes__P {
 } Shapes__P;
 
 uint32_t Shapes__own(void) {
-    Shapes__P local = { .q = 0U };
     if (4 != 4) {
         return 1U;
     }
-    Point p = { .x = 0U, .y = 0U };
     if (5 != 5) {
         return 2U;
     }
@@ -39,9 +40,6 @@ uint32_t Shapes__own(void) {
 }
 
 int main(void) {
-    Point p = { .x = 0U, .y = 0U };
-    Mode m = Mode__RUN;
-    Geo__Box b = { .w = 0U, .h = 0U };
     if (5 != 5) {
         return 10U;
     }
@@ -59,6 +57,9 @@ int main(void) {
     }
     if (3 != 3) {
         return 15U;
+    }
+    if (4 != 4) {
+        return 16U;
     }
     return Shapes__own();
 }
