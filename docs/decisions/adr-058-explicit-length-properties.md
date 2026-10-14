@@ -612,6 +612,9 @@ error: `.length` is not a built-in property. Use explicit properties instead.
   at runtime: `5` is 1, `255` is 3, and `-5` is 2.
 - `.value_*` on a type name is a compile error whose help names `.type_*`: a
   type has no value (`Cfg.value_byte_length`, `u8.value_char_count`).
+- `.element_count` gets kind names too: `.value_element_count`,
+  `.type_element_count` and `.memory_element_count`. `.element_count` is
+  removed with a help message, as `.bit_length` is.
 
 ---
 
