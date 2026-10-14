@@ -1,3 +1,7 @@
+import type IArgumentPassing from "../../../../../2-Plan/types/IArgumentPassing";
+import CArgumentAddress from "../../../../../2-Plan/CArgumentAddress";
+import type ICArgumentFacts from "../../../../../2-Plan/types/ICArgumentFacts";
+import ForeignTypeFacts from "../../../../../../utils/ForeignTypeFacts";
 import type TParameterInfo from "../../../../../../types/TParameterInfo";
 import TestSymbolTable from "../../../../../__tests__/TestSymbolTable";
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -58,6 +62,13 @@ function planArguments(
       {
         passing,
         form: null,
+        cForm:
+          passing.mode === "c"
+            ? CArgumentAddress.formOf(
+                cArgumentFacts(orchestrator, expression, passing.param),
+                orchestrator,
+              )
+            : null,
         enumCast:
           passing.mode === "reference"
             ? null
@@ -72,6 +83,38 @@ function planArguments(
   });
 }
 
+/** The facts `FilePlanner.cArgumentForm` gathers, read off the case's stubs */
+function cArgumentFacts(
+  orchestrator: IArgumentPlannerStub,
+  expression: Parser.ExpressionContext,
+  param: IArgumentPassing["param"],
+): ICArgumentFacts {
+  const text = expression.getText();
+  const declared = declaredTypes.get(text);
+  const symbolTable = (orchestrator as unknown as IOrchestrator).state
+    ?.symbolTable;
+  const foreign = symbolTable
+    ? ForeignTypeFacts.foreignSymbol(symbolTable, text)
+    : undefined;
+  const bracket = text.indexOf("[");
+  const array =
+    bracket > 0 ? declaredTypes.get(text.slice(0, bracket)) : undefined;
+  return {
+    param,
+    addressWritten: text.startsWith("&"),
+    promotedHandle:
+      orchestrator.getParameter(expression)?.forcePointerSemantics ?? false,
+    argType:
+      orchestrator.getExpressionType(expression) ??
+      declared?.baseType ??
+      (foreign?.kind === "variable" && !foreign.isArray ? foreign.type : null),
+    declared,
+    isArray: orchestrator.isArrayExpression(expression),
+    isHandleArrayElement:
+      (array?.isArray ?? false) && (array?.isPointer ?? false),
+  };
+}
+
 function planArgument(
   orchestrator: IArgumentPlannerStub,
   expression: Parser.ExpressionContext,
@@ -82,18 +125,8 @@ function planArgument(
     planned,
     simpleIdentifier: orchestrator.getSimpleIdentifier(expression),
     parameter: orchestrator.getParameter(expression),
-    declared: declaredTypes.get(expression.getText()),
-    expressionType: () => orchestrator.getExpressionType(expression),
-    isArray: () => orchestrator.isArrayExpression(expression),
     // The planner decides this from the array's declaration; the stub reads
     // the case's declared array the way `declared` reads a name
-    isHandleArrayElement: () => {
-      const text = expression.getText();
-      const bracket = text.indexOf("[");
-      const array =
-        bracket > 0 ? declaredTypes.get(text.slice(0, bracket)) : undefined;
-      return (array?.isArray ?? false) && (array?.isPointer ?? false);
-    },
     render: () => orchestrator.generateExpression(expression),
     renderByReference: () => orchestrator.generateFunctionArg(expression, base),
   };
@@ -295,7 +328,7 @@ describe("CallExprGenerator", () => {
     });
 
     it("does not add & if argument already has & prefix", () => {
-      const argExpressions = [createMockExpressionContext("myStruct")];
+      const argExpressions = [createMockExpressionContext("&myStruct")];
       const sigs = new Map([
         [
           "c_func",

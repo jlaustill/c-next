@@ -763,7 +763,7 @@ class CodeGenWalker {
       "2.2 planned the form of every argument 2.3 passes by reference",
     );
     const simpleId = this.planner.boundArgumentName(expr);
-    const declared = this.nameTypeOf(expr);
+    const declared = this.planner.nameTypeOf(expr);
     // #1445: thunks closing over `ctx`. `ArgumentGenerator` never read a
     // member off the node -- it threaded it through five callbacks and four
     // private helpers only to hand it back -- so the node stays here, where
@@ -783,51 +783,6 @@ class CodeGenWalker {
     return id === null
       ? undefined
       : this.planner.parameterAt(id, FilePlanner.positionOf(expr));
-  }
-
-  /**
-   * #1668 (C7): the declared type of what an expression NAMES -- a variable
-   * spelled bare, `this.x`, `global.x` or `Scope.x`, with nothing applied to
-   * it -- and undefined for anything else. The registry reads this replaces
-   * were keyed by an argument's rendered text, which only ever matched a
-   * name's.
-   */
-  private nameTypeOf(expr: TExpression): TTypeInfo | undefined {
-    const typing = this.host.state.typingContext();
-    if (ExpressionShape.postfixView(expr) === null) return undefined;
-    const chain = OperandTyper.chainOf(expr, typing);
-    if (chain.steps.length !== DeclaredTypeInfo.nameSteps(chain)) {
-      return undefined;
-    }
-    return DeclaredTypeInfo.ofChain(
-      chain,
-      typing.symbols,
-      this.host.state.symbolTable,
-      this.host.state.targetDescription,
-    ).typeInfo;
-  }
-
-  /**
-   * ADR-030 / #996: whether an argument is one element of an array held
-   * through pointers -- `handles[i]` of a `Dev[4] handles`, however the array
-   * is named: bare, `this.`, `global.`, or `Scope.` from outside the scope.
-   * The array's own declaration says so (`isPointer` on an array of handles,
-   * from `DeclaredPointer`), for a parameter, a file-scope, local or scope
-   * variable, and one declared in an included file alike.
-   */
-  private isHandleArrayElement(expr: TExpression): boolean {
-    const typing = this.host.state.typingContext();
-    if (ExpressionShape.postfixView(expr) === null) return false;
-    const chain = OperandTyper.chainOf(expr, typing);
-    const subscript = chain.steps[DeclaredTypeInfo.nameSteps(chain)];
-    if (subscript?.subscript !== "array_element") return false;
-    const array = DeclaredTypeInfo.ofChain(
-      chain,
-      typing.symbols,
-      this.host.state.symbolTable,
-      this.host.state.targetDescription,
-    ).typeInfo;
-    return (array?.isArray ?? false) && (array?.isPointer ?? false);
   }
 
   private renderBlock(block: Pick<TBlockSyntax, "statements">): string {
@@ -2237,13 +2192,6 @@ class CodeGenWalker {
       planned,
       simpleIdentifier: ExpressionShape.simpleIdentifier(expression),
       parameter: this.parameterNamed(expression),
-      declared: this.nameTypeOf(expression),
-      expressionType: () => this.planner.directTypeOf(expression),
-      isArray: () =>
-        OperandTyper.decaysToPointer(
-          OperandTyper.typeOf(expression, this.host.state.typingContext()),
-        ),
-      isHandleArrayElement: () => this.isHandleArrayElement(expression),
       render: () => this.renderExpression(expression),
       renderByReference: () => this.generateFunctionArg(expression, planned),
     };

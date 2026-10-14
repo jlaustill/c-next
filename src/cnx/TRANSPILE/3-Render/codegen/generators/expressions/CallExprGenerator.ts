@@ -18,13 +18,7 @@ import TGeneratorEffect from "../TGeneratorEffect";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
-import CallExprUtils from "../../../../2-Plan/CallExprUtils";
 import CallArgumentPassing from "../../../../2-Plan/CallArgumentPassing";
-import type IArgumentPassing from "../../../../2-Plan/types/IArgumentPassing";
-import C_TYPE_WIDTH from "../../types/C_TYPE_WIDTH";
-import ForeignTypeFacts from "../../../../../utils/ForeignTypeFacts";
-import CPointerParameter from "../../../../../utils/CPointerParameter";
-import CNEXT_TO_C_TYPE_MAP from "../../../../../utils/constants/TypeMappings";
 import type IPlannedCallArgument from "../../types/IPlannedCallArgument";
 
 /**
@@ -32,9 +26,7 @@ import type IPlannedCallArgument from "../../types/IPlannedCallArgument";
  * being passed to an integer parameter.
  *
  * @param argCode - The generated argument code
- * @param arg - The planned argument (for its type)
- * @param targetParamBaseType - The target parameter's base type (if known)
- * @param orchestrator - Orchestrator for type checking methods
+ * @param arg - The planned argument, which carries 2.2's cast (#1991)
  * @returns The argument code, possibly wrapped with static_cast
  */
 const wrapWithCppEnumCast = (
@@ -47,184 +39,22 @@ const wrapWithCppEnumCast = (
 };
 
 /**
- * Issue #832: Check if parameter expects address-of for typedef'd pointer types.
- *
- * When a parameter type is `T*` and the argument type is `T`, we need to add `&`.
- * This handles cases like `handle_t` (typedef'd pointer) passed to `handle_t*`.
- *
- * IMPORTANT: This should NOT match primitive types like uint8_t, because arrays
- * of primitives decay to pointers naturally (uint8_t[] → uint8_t*).
- * It SHOULD match typedef'd pointer types like handle_t → handle_t*.
- *
- * @param paramType - The parameter's base type (e.g., "handle_t*")
- * @param argType - The argument's type (e.g., "handle_t")
- * @param orchestrator - For type checking (isIntegerType, isFloatType)
- * @returns true if parameter expects `argType*` (address-of needed)
+ * Write an argument to a C or C++ function the way 2.2 planned it (#1991):
+ * a callback-promoted parameter as its name (#937), else as it renders, with
+ * `&` where the pointer parameter takes its address (#322, #832, #895)
  */
-const _parameterExpectsAddressOf = (
-  paramType: string,
-  argType: string,
-  declaredScalar: boolean,
-  orchestrator: IOrchestrator,
-): boolean => {
-  // An array of primitives decays to a pointer by itself (uint8_t[] to
-  // uint8_t*); a declared scalar of the pointee's type is passed by its
-  // address (#1978: `const u8 b` to `const uint8_t*` was `b`, a pointer made
-  // from an integer).
-  if (
-    orchestrator.isIntegerType(argType) ||
-    orchestrator.isFloatType(argType) ||
-    CallExprUtils.isKnownPrimitiveType(argType)
-  ) {
-    return (
-      declaredScalar &&
-      CNEXT_TO_C_TYPE_MAP[argType] === CPointerParameter.pointee(paramType)
-    );
-  }
-
-  // Check C standard types (uint8_t, int32_t, etc.)
-  if (argType in C_TYPE_WIDTH) {
-    return false;
-  }
-
-  // paramType should end with * (already checked by caller)
-  // Remove trailing pointer markers to get the base type
-  // Use indexOf/slice instead of regex to avoid ReDoS concerns (SonarCloud S5852)
-  const starIndex = paramType.indexOf("*");
-  const paramBaseType =
-    starIndex >= 0 ? paramType.slice(0, starIndex).trim() : paramType.trim();
-  return paramBaseType === argType;
-};
-
-/**
- * Resolve an argument expression's C-Next type for the address-of decision.
- * Prefers the expression type, then the codegen variable registry, then the C
- * symbol table — the last covers extern C and C++ globals (e.g. an lvgl font
- * `lv_font_montserrat_32` of type `lv_font_t`, Issue #985) whose type only
- * header symbol collection knows. Returns null when the type can't be resolved
- * or the argument is already an address-of expression.
- */
-const _resolveArgType = (
-  arg: IPlannedCallArgument,
-  argCode: string,
-  typeInfoBaseType: string | undefined,
-  orchestrator: IOrchestrator,
-): string | null => {
-  const exprType = arg.expressionType();
-  if (exprType) return exprType;
-  if (argCode.startsWith("&")) return null;
-  if (typeInfoBaseType) return typeInfoBaseType;
-  const symbolTable = orchestrator.state.symbolTable;
-  // #2058: an extern C++ global says its type as a C one does
-  const symbol = symbolTable
-    ? ForeignTypeFacts.foreignSymbol(symbolTable, argCode)
-    : undefined;
-  if (symbol?.kind === "variable" && !symbol.isArray) return symbol.type;
-  return null;
-};
-
-/** How many levels of pointer a C type spells: `Dev**` is 2, `const Dev*` 1. */
-const _pointerDepth = (cType: string): number => cType.split("*").length - 1;
-
-/**
- * How many pointers deep an argument's VALUE already is.
- *
- * A C variable says so in its declared type: `Dev**` is 2. Issue #895 Bug B:
- * a variable inferred as a pointer is one; so is an opaque handle (ADR-030),
- * held in a scope variable (#948) or as an element of an array of handles
- * (#996). Anything else is a value, 0.
- */
-const _argPointerDepth = (
-  argType: string | null,
-  isRegisteredPointer: boolean,
-  isHandleArrayElement: boolean,
-): number => {
-  if (argType?.endsWith("*")) {
-    return _pointerDepth(argType);
-  }
-  return isRegisteredPointer || isHandleArrayElement ? 1 : 0;
-};
-
-/**
- * Generate argument code for a C/C++ function call.
- * Handles automatic address-of (&) for struct arguments passed to pointer params.
- * Issue #872: the MISRA 7.2 U suffix comes from the type 2.2 planned (#1991).
- */
-const _generateCFunctionArg = (
-  arg: IPlannedCallArgument,
-  targetParam: IArgumentPassing["param"],
-  orchestrator: IOrchestrator,
-): string => {
-  // Issue #937: Check if argument is a callback-promoted parameter (already a pointer)
-  // BEFORE generating the expression. If target expects a pointer and we have a
-  // callback-promoted param, use the identifier directly instead of dereferencing.
-  const callbackPromotedParam = arg.parameter?.forcePointerSemantics
-    ? arg.simpleIdentifier
-    : null;
-
-  // If target expects a pointer and argument is a callback-promoted param,
-  // use the identifier directly (it's already a pointer matching the typedef)
-  if (targetParam?.baseType?.endsWith("*") && callbackPromotedParam !== null) {
-    return wrapWithCppEnumCast(callbackPromotedParam, arg);
-  }
-
-  // Issue #872: 2.2 plans it against the parameter's type for MISRA 7.2, with
-  // bare enum resolution suppressed (bare enums in function args were never
-  // allowed - changing that requires ADR approval) (#1991)
-  const argCode = arg.render();
-
-  // Issue #322: Check if parameter expects a pointer and argument is a struct
-  if (!targetParam?.baseType?.endsWith("*")) {
-    return wrapWithCppEnumCast(argCode, arg);
-  }
-
-  // Resolve the argument's type (expression type → variable registry → C symbol
-  // table for extern globals) to decide whether it needs address-of.
-  const typeInfo = arg.declared;
-  const argType = _resolveArgType(
-    arg,
-    argCode,
-    typeInfo?.baseType,
-    orchestrator,
+const _generateCFunctionArg = (arg: IPlannedCallArgument): string => {
+  const cForm = arg.planned.cForm;
+  invariant(
+    cForm !== null,
+    "2.2 planned how 2.3 writes every argument to a C function",
   );
-
-  const argPointerDepth = _argPointerDepth(
-    argType,
-    typeInfo?.isPointer ?? false,
-    arg.isHandleArrayElement(),
-  );
-
-  // Add & if argument needs address-of to match parameter type.
-  // Issue #322: struct types passed to pointer params.
-  // Issue #832: typedef'd pointer types (e.g., handle_t passed to handle_t*).
-  //
-  // A value that is already a pointer takes `&` only for a parameter exactly
-  // one pointer deeper: a handle IS the argument for a `Dev*`, and its address
-  // is the argument for a `Dev**`, an out-parameter the callee writes a new
-  // handle through. "Already a pointer, pass it directly" asked no depth and
-  // passed `Board__held` to `dev_create_into(Dev** out)`.
-  //
-  // A whole array never takes `&`. C decays it to a pointer to its first
-  // element, which is what a pointer parameter takes; its address is a pointer
-  // to the ARRAY -- `CPoint (*)[2]`, or `CPoint**` for a parameter.
-  const needsAddressOf =
-    argType !== null &&
-    !argCode.startsWith("&") &&
-    !targetParam.isArray &&
-    !arg.isArray() &&
-    (argPointerDepth > 0
-      ? _pointerDepth(targetParam.baseType) === argPointerDepth + 1
-      : orchestrator.isKnownStruct(argType) ||
-        _parameterExpectsAddressOf(
-          targetParam.baseType,
-          argType,
-          typeInfo !== undefined && !typeInfo.isArray,
-          orchestrator,
-        ));
-
-  const finalArgCode = needsAddressOf ? `&${argCode}` : argCode;
-
-  return wrapWithCppEnumCast(finalArgCode, arg);
+  if (cForm === "promoted-handle") {
+    invariant(arg.simpleIdentifier !== null, "a promoted handle is a name");
+    return wrapWithCppEnumCast(arg.simpleIdentifier, arg);
+  }
+  const code = arg.render();
+  return wrapWithCppEnumCast(cForm === "address-of" ? `&${code}` : code, arg);
 };
 
 /**
@@ -285,11 +115,10 @@ const generateFunctionCall = (
     .map((arg) => {
       // 2.2 decided how the argument binds and is passed (#1991)
       const passing = arg.planned.passing;
-      const targetParam = passing.param;
 
       // C/C++ function: use pass-by-value semantics
       if (passing.mode === "c") {
-        return _generateCFunctionArg(arg, targetParam, orchestrator);
+        return _generateCFunctionArg(arg);
       }
 
       // C-Next function: check if target parameter should be passed by value

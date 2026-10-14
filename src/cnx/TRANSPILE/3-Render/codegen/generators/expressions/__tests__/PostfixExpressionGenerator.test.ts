@@ -159,9 +159,6 @@ function createMockOrchestrator(overrides?: {
       (ctx: { expression: () => { getText: () => string }[] } | null) =>
         ctx?.expression().map((expression) => ({
           simpleIdentifier: expression.getText(),
-          expressionType: () => null,
-          isArray: () => false,
-          isHandleArrayElement: () => false,
           render: () => expression.getText(),
           renderByReference: () => `&${expression.getText()}`,
         })) ?? null,
@@ -320,15 +317,12 @@ function createMockPostfixOp(options?: {
       options?.argumentList?.expression().map((expression) => ({
         simpleIdentifier: expression.getText(),
         parameter: undefined,
-        declared: undefined,
-        expressionType: () => null,
-        isArray: () => false,
-        isHandleArrayElement: () => false,
         render: () => expression.getText(),
         renderByReference: () => `&${expression.getText()}`,
         planned: options?.plannedArgument ?? {
           passing: { param: undefined, mode: "c" as const },
           form: null,
+          cForm: "as-written" as const,
           enumCast: null,
         },
       })) ?? null,
@@ -1711,6 +1705,7 @@ describe("PostfixExpressionGenerator", () => {
                 mode,
               },
               form: mode === "c" ? null : { kind: "identifier" },
+              cForm: mode === "c" ? "as-written" : null,
               enumCast: null,
             },
           }),

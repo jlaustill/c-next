@@ -35,7 +35,7 @@ import NarrowingCastHelper from "../../../../2-Plan/NarrowingCastHelper";
 import BitUtils from "../../../../../utils/BitUtils";
 import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
 import SubscriptDepthValidator from "../../../../2-Plan/SubscriptDepthValidator";
-import C_TYPE_WIDTH from "../../types/C_TYPE_WIDTH";
+import C_TYPE_WIDTH from "../../../../2-Plan/types/C_TYPE_WIDTH";
 import LengthProperty from "../../../../../utils/LengthProperty";
 import type IStructSymbol from "../../../../../types/symbols/IStructSymbol";
 import QualifiedCName from "../../../../../utils/QualifiedCName";

@@ -1,3 +1,7 @@
+import ForeignTypeFacts from "../../utils/ForeignTypeFacts";
+import type TTypeInfo from "../../types/TTypeInfo";
+import type TCArgumentForm from "./types/TCArgumentForm";
+import CArgumentAddress from "./CArgumentAddress";
 import type IPlannedArgument from "./types/IPlannedArgument";
 import LengthProperty from "../../utils/LengthProperty";
 import PRIMASK_C_TYPE from "./types/PRIMASK_C_TYPE";
@@ -1087,6 +1091,96 @@ class FilePlanner {
   }
 
   /**
+   * How an argument to a C or C++ function is written: as is, by its address
+   * for a pointer parameter, or as the pointer a callback-promoted parameter
+   * already holds (#1991)
+   */
+  private cArgumentForm(
+    expression: TExpression,
+    param: IArgumentPassing["param"],
+  ): TCArgumentForm {
+    const id = ExpressionShape.simpleIdentifier(expression);
+    const declared = this.nameTypeOf(expression);
+    const parameter =
+      id === null
+        ? undefined
+        : this.parameterAt(id, FilePlanner.positionOf(expression));
+    return CArgumentAddress.formOf(
+      {
+        param,
+        addressWritten:
+          expression.kind === "unary" && expression.operator === "&",
+        promotedHandle: parameter?.forcePointerSemantics ?? false,
+        argType:
+          this.directTypeOf(expression) ??
+          declared?.baseType ??
+          this.foreignVariableType(id),
+        declared,
+        isArray: OperandTyper.decaysToPointer(
+          OperandTyper.typeOf(expression, this.state.typingContext()),
+        ),
+        isHandleArrayElement: this.isHandleArrayElement(expression),
+      },
+      this.queries,
+    );
+  }
+
+  /**
+   * The type of an extern C or C++ global a bare name refers to, which only
+   * header symbol collection knows (e.g. an lvgl font `lv_font_montserrat_32`
+   * of type `lv_font_t`, Issue #985; #2058 for C++)
+   */
+  private foreignVariableType(id: string | null): string | null {
+    const symbolTable = this.state.symbolTable;
+    if (id === null || symbolTable === null) return null;
+    const symbol = ForeignTypeFacts.foreignSymbol(symbolTable, id);
+    return symbol?.kind === "variable" && !symbol.isArray ? symbol.type : null;
+  }
+
+  /**
+   * #1668 (C7): the declared type of what an expression NAMES -- a variable
+   * spelled bare, `this.x`, `global.x` or `Scope.x`, with nothing applied to
+   * it -- and undefined for anything else.
+   */
+  nameTypeOf(expr: TExpression): TTypeInfo | undefined {
+    const typing = this.state.typingContext();
+    if (ExpressionShape.postfixView(expr) === null) return undefined;
+    const chain = OperandTyper.chainOf(expr, typing);
+    if (chain.steps.length !== DeclaredTypeInfo.nameSteps(chain)) {
+      return undefined;
+    }
+    return DeclaredTypeInfo.ofChain(
+      chain,
+      typing.symbols,
+      this.state.symbolTable,
+      this.state.targetDescription,
+    ).typeInfo;
+  }
+
+  /**
+   * ADR-030 / #996: whether an argument is one element of an array held
+   * through pointers -- `handles[i]` of a `Dev[4] handles`, however the array
+   * is named: bare, `this.`, `global.`, or `Scope.` from outside the scope.
+   * The array's own declaration says so (`isPointer` on an array of handles,
+   * from `DeclaredPointer`), for a parameter, a file-scope, local or scope
+   * variable, and one declared in an included file alike.
+   */
+  private isHandleArrayElement(expr: TExpression): boolean {
+    const typing = this.state.typingContext();
+    if (ExpressionShape.postfixView(expr) === null) return false;
+    const chain = OperandTyper.chainOf(expr, typing);
+    const subscript = chain.steps[DeclaredTypeInfo.nameSteps(chain)];
+    if (subscript?.subscript !== "array_element") return false;
+    const array = DeclaredTypeInfo.ofChain(
+      chain,
+      typing.symbols,
+      this.state.symbolTable,
+      this.state.targetDescription,
+    ).typeInfo;
+    return (array?.isArray ?? false) && (array?.isPointer ?? false);
+  }
+
+  /**
    * How each call argument is passed and written (#1991), and the C type its
    * form writes: a by-reference argument's temporary, cast or compound
    * literal, or a C++ enum class value's cast to its integer parameter (#304)
@@ -1122,7 +1216,11 @@ class FilePlanner {
               base,
               this.queries,
             );
-      planned.set(expression, { passing, form, enumCast });
+      const cForm =
+        passing.mode === "c"
+          ? this.cArgumentForm(expression, passing.param)
+          : null;
+      planned.set(expression, { passing, form, cForm, enumCast });
       const cType = form === null ? enumCast : ArgumentForm.cTypeOf(form);
       if (cType !== null) cTypes.add(cType);
     }
