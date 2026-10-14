@@ -7,6 +7,7 @@ import type IVariableSymbol from "../../../types/symbols/IVariableSymbol";
 import type ISourcePosition from "../../../utils/types/ISourcePosition";
 import type IForeignValue from "./IForeignValue";
 import type TSettledConst from "../../../types/TSettledConst";
+import type IFileConstantFacts from "./IFileConstantFacts";
 
 /**
  * What `ConstantNames` asks while it walks a name's chain (#1175, #1669), as
@@ -40,6 +41,10 @@ interface IConstantNameFacts {
   mayBeHeaderName(root: TChainRoot, name: string, at: ISourcePosition): boolean;
   /** A header's variable or function the binder bound `name` to; null otherwise */
   foreignValue(name: string): IForeignValue | null;
+  /** #2076: `IFileConstantFacts.headerStructFields` */
+  headerStructFields: IFileConstantFacts["headerStructFields"];
+  /** #2076: `IFileConstantFacts.headerTypeBits` */
+  headerTypeBits: IFileConstantFacts["headerTypeBits"];
   /** A member of the enum with C name `enumCName` */
   enumMember(
     enumCName: string,

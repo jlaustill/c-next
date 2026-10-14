@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import ConstantDimensionAnalyzer from "../../../../../cnx/TRANSPILE/1-Analyze/ConstantDimensionAnalyzer";
 import testAnalysisContextFor from "./testAnalysisContextFor";
+import SymbolTable from "../../../../../cnx/PARSE/3-Declare/SymbolTable";
 
 function errors(
   source: string,
@@ -76,6 +77,48 @@ describe("ConstantDimensionAnalyzer (#1175: E0909, E0910)", () => {
         "lib.cnx": "const u32 LIB_N <- 4;\n",
       }),
     ).toEqual([]);
+  });
+
+  describe("a C header's struct (#2076)", () => {
+    /** `typedef struct { uint32_t a; uint8_t b; } Cfg;` and a pointer holder */
+    const headerErrors = (source: string) => {
+      const symbolTable = new SymbolTable();
+      symbolTable.addStructField("Cfg", "a", "uint32_t");
+      symbolTable.addStructField("Cfg", "b", "uint8_t");
+      symbolTable.addStructField("Odd", "i", "int32_t");
+      symbolTable.addStructField("Odd", "p", "char*");
+      const { syntax, context } = testAnalysisContextFor(source, {
+        cppMode: false,
+        symbolTable,
+      });
+      return {
+        errors: new ConstantDimensionAnalyzer(context).analyze(syntax),
+        program: context.program,
+      };
+    };
+
+    it.each([
+      ["the type", "u8[Cfg.byte_length] a;", 5],
+      ["a field of the type", "u8[Cfg.a.bit_length] a;", 32],
+      ["a value", "Cfg c;\nu8[c.byte_length] a;", 5],
+      ["a field of a value", "Cfg c;\nu8[c.b.byte_length] a;", 1],
+    ])("sizes an array by %s's fields summed", (_label, source, length) => {
+      const { errors: found, program } = headerErrors(source);
+      expect(found).toEqual([]);
+      const array = program.symbolByCName("a");
+      expect(array?.kind === "variable" && array.arrayDimensions).toEqual([
+        length,
+      ]);
+    });
+
+    it("has no size for a struct holding a pointer (C-Next has none)", () => {
+      const { errors: found } = headerErrors(
+        "u8[Odd.i.byte_length] ok;\nu8[Odd.byte_length] a;",
+      );
+      expect(found).toHaveLength(1);
+      expect(found[0]).toMatchObject({ code: "E0909", line: 2 });
+      expect(found[0].message).toContain("'Odd.byte_length'");
+    });
   });
 });
 

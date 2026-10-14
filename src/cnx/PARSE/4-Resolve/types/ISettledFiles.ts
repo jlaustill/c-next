@@ -18,6 +18,7 @@ import type IForeignSymbols from "./IForeignSymbols";
 import type IForeignValue from "./IForeignValue";
 import type ISettledConstants from "./ISettledConstants";
 import type IVisibilityInput from "./IVisibilityInput";
+import type TRunTarget from "../../../types/TRunTarget";
 
 interface ISettledFiles {
   /** Each file's symbols: types, const-folded dimensions, parameter names */
@@ -45,6 +46,8 @@ interface ISettledFiles {
   readonly foreign: IForeignSymbols;
   /** Which C-Next files each file includes, or none */
   readonly visibility: IVisibilityInput;
+  /** The run's target, which a header's length properties are folded for; null with none */
+  readonly target: TRunTarget | null;
 }
 
 export default ISettledFiles;

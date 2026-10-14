@@ -32,6 +32,7 @@ import type ISourceSpan from "../../types/ISourceSpan";
 import type TChainRoot from "../../types/TChainRoot";
 import type TValueBinding from "../../types/TValueBinding";
 import RunTarget from "./RunTarget";
+import ForeignTypeFacts from "../../utils/ForeignTypeFacts";
 import ScopeFunctions from "./ScopeFunctions";
 import type TRunTarget from "../../types/TRunTarget";
 import invariant from "../../utils/invariant";
@@ -127,10 +128,19 @@ const NO_VISIBILITY: IVisibilityInput = {
 /** A use's position */
 type TPosition = Pick<ISourceSpan, "line" | "column">;
 
-/** What settling reads of the inputs: none of the run's mode or target */
+/**
+ * What settling reads of the inputs: not the run's mode. The headers' symbol
+ * table and the target size a header's struct (#2076), and a caller with
+ * neither has no header struct to size.
+ */
 type TSettleInputs = Pick<
   IProgramInputs,
-  "foreign" | "visibility" | "registry" | "filesReachingForeignHeaders"
+  | "foreign"
+  | "visibility"
+  | "registry"
+  | "filesReachingForeignHeaders"
+  | "symbolTable"
+  | "target"
 >;
 
 /** No symbol views, for a closure walk that reads only the paths it visits. */
@@ -214,8 +224,8 @@ class Program {
       symbolsByFile,
       modifications.modifiedParameters,
     );
-    // Settled once, with the program, so every pass reads one answer.
-    const target = inputs.target ? RunTarget.resolve(inputs.target) : null;
+    // Settled once, with the files, so every pass reads one answer.
+    const target = settled.target;
     const conflicts = ConflictDetector.detect(
       registry,
       [...symbolsByFile.values()].flat(),
@@ -388,9 +398,9 @@ class Program {
    * `lib/parseWithSymbols` has one file and no mode or target, so it cannot
    * build a program, and it settled 1.3's symbols itself: the type names and
    * nothing else, so a const-sized array kept 1.3's placeholder `0` and no
-   * parameter received its emitted name. Nothing here reads the run's mode,
-   * target, header struct fields or symbol table, so a caller without them
-   * settles exactly as a run does.
+   * parameter received its emitted name. Nothing here reads the run's mode;
+   * the symbol table and target only size a header's struct (#2076), which a
+   * caller without them has none of, so it settles exactly as a run does.
    *
    * @param files one `IFileSymbols` per file, in declaration order
    */
@@ -417,11 +427,22 @@ class Program {
     // Opacity is a fact of the headers alone, so it is ready before the settle,
     // which stamps each opaque parameter with it (#1722).
     const opaqueTypes = Program.deriveOpaqueTypes(foreign);
+    const target = inputs.target ? RunTarget.resolve(inputs.target) : null;
+    const headers = inputs.symbolTable ?? null;
     // #1175: what a constant name's facts read of the files, beside the binder
     const fileFacts: IFileConstantFacts = {
       isScopeTypeVisibleFrom,
       reachesForeignHeader: (sourceFile) =>
         (inputs.filesReachingForeignHeaders ?? EMPTY_NAMES).has(sourceFile),
+      headerStructFields: (structName) => headers?.getStructFields(structName),
+      headerTypeBits: (cType) =>
+        headers === null
+          ? null
+          : ForeignTypeFacts.typeBits(
+              cType,
+              headers,
+              target?.kind === "resolved" ? target.description : null,
+            ),
     };
     const settledByFile = Program.settleEveryFile(
       files,
@@ -520,6 +541,7 @@ class Program {
       foreignValues,
       foreign,
       visibility,
+      target,
     };
   }
 
@@ -1042,6 +1064,9 @@ class Program {
       mayBeHeaderName: (root, name, at) =>
         Program.mayBeHeaderName(facts, options.files, file(), root, name, at),
       foreignValue: (name) => facts.foreignValues.get(name) ?? null,
+      headerStructFields: (structName) =>
+        options.files.headerStructFields(structName),
+      headerTypeBits: (cType) => options.files.headerTypeBits(cType),
       constValue: (symbol) => {
         const value = constants.consts.get(symbol.fullyQualifiedCName);
         if (value === undefined)

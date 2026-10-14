@@ -275,10 +275,16 @@ class ConstantNames {
             lookup,
           )
         : undefined;
+    // #2076: a header's type is measured as render measures it
+    const header = ConstantNames.headerType(current.type, walk);
+    const element =
+      header === null
+        ? LengthProperty.elementBitsOfType(current.type, lookup)
+        : walk.facts.headerTypeBits(header);
     const value = LengthProperty.of(
       property,
       current.dimensions,
-      LengthProperty.elementBitsOfType(current.type, lookup),
+      element,
       struct?.fields.size ?? null,
     );
     return value === null
@@ -290,10 +296,11 @@ class ConstantNames {
    * A name a header declares. A variable -- even an `extern const` -- or a
    * function is not a constant expression in C, so it has no value, and as a
    * dimension it would be a VLA (#1768, #1863 review); a length property of an
-   * array is measured from its declared dimensions (`cArr.element_count`),
-   * though the element's width is the target's to decide, so a `bit_length`
-   * has none. Anything else bare -- a C enum constant -- is C's to evaluate as
-   * written; C has no spelling of `X.y` C-Next could write for the rest.
+   * array is measured from its declared dimensions (`cArr.element_count`)
+   * and its element's width on the run's target. A header's struct type is
+   * measured as its values are (#2076): `Cfg.byte_length`, `Cfg.a.bit_length`.
+   * Anything else bare -- a C enum constant -- is C's to evaluate as written;
+   * C has no spelling of `X.y` C-Next could write for the rest.
    */
   private static ofForeign(
     name: string,
@@ -305,9 +312,16 @@ class ConstantNames {
       return ConstantNames.without("function", walk);
     }
     if (value === null) {
-      return rest.length === 0
-        ? { kind: "foreign", spelling: walk.spelling, why: "header" }
-        : ConstantNames.without("member", walk);
+      if (rest.length === 0) {
+        return { kind: "foreign", spelling: walk.spelling, why: "header" };
+      }
+      return walk.facts.headerStructFields(name) === undefined
+        ? ConstantNames.without("member", walk)
+        : ConstantNames.ofMember(
+            { type: { kind: "external", name }, dimensions: [] },
+            rest,
+            walk,
+          );
     }
     if (rest.length === 0) return ConstantNames.without("variable", walk);
     return ConstantNames.ofMember(
@@ -318,6 +332,22 @@ class ConstantNames {
       rest,
       walk,
     );
+  }
+
+  /**
+   * The C type a header gave a measured value; null for a C-Next type. 1.3
+   * types a name it does not know as a struct (`Cfg c;`), a header's too.
+   */
+  private static headerType(type: TType, walk: IWalk): string | null {
+    if (type.kind === "external") return type.name;
+    if (type.kind !== "struct") return null;
+    const isCNext =
+      walk.facts.visibleSymbol(
+        QualifiedCName.fromParts(type.name.split(".")),
+      ) !== undefined;
+    return !isCNext && walk.facts.headerStructFields(type.name) !== undefined
+      ? type.name
+      : null;
   }
 
   /** One step of a measured walk: into an element, or into a field */
@@ -339,9 +369,18 @@ class ConstantNames {
     field: string,
     walk: IWalk,
   ): IMeasured | null {
-    if (current.dimensions.length > 0 || current.type.kind !== "struct") {
-      return null;
+    if (current.dimensions.length > 0) return null;
+    const headerType = ConstantNames.headerType(current.type, walk);
+    if (headerType !== null) {
+      const header = walk.facts.headerStructFields(headerType)?.get(field);
+      return header
+        ? {
+            type: { kind: "external", name: header.type },
+            dimensions: header.arrayDimensions ?? [],
+          }
+        : null;
     }
+    if (current.type.kind !== "struct") return null;
     const struct = walk.facts.visibleSymbol(
       QualifiedCName.fromParts(current.type.name.split(".")),
     );
@@ -414,17 +453,18 @@ class ConstantNames {
     // #1975: a type answers the length properties its values do --
     // `u32.byte_length`, `Point.y.byte_length`, `EMode.bit_length`
     const type =
-      root === null ? ConstantNames.typeNamed(head, cName, symbol) : null;
+      root === null ? ConstantNames.typeNamed(head, cName, symbol, walk) : null;
     return type === null
       ? ConstantNames.unbound(root, head, rest, walk)
       : ConstantNames.ofMember({ type, dimensions: [] }, rest, walk);
   }
 
-  /** The C-Next type a chain's head names; null for a name that is none */
+  /** The type a chain's head names, a header's struct too; null for none */
   private static typeNamed(
     head: string,
     cName: string,
     symbol: TSymbol | undefined,
+    walk: IWalk,
   ): TType | null {
     if (PrimitiveKindUtils.isPrimitive(head) && head !== "void") {
       return { kind: "primitive", primitive: head };
@@ -436,7 +476,11 @@ class ConstantNames {
       case "bitmap":
         return { kind: "bitmap", name: cName, bitWidth: symbol.bitWidth };
       default:
-        return null;
+        // #2076: a header's struct, which no C-Next symbol names
+        return symbol === undefined &&
+          walk.facts.headerStructFields(head) !== undefined
+          ? { kind: "external", name: head }
+          : null;
     }
   }
 

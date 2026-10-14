@@ -1,0 +1,43 @@
+// test-execution
+// Issue #2076: a C header struct's length property sizes an array, as it
+// reads in an expression (#1975): `Cfg` is its fields summed, 4 + 1 = 5, so
+// `u8[Cfg.byte_length]` holds 5. It was E0909 ("is a member access"): 1.4,
+// which folds dimensions, could not see a header's structs.
+//
+// NEGATIVE CONTROL: `Point`, a C-Next struct, sized by the same rule.
+#include "dims.h"
+
+struct Point {
+    u32 x;
+    u8 y;
+}
+
+u8[Cfg.byte_length] raw;
+u8[Outer.byte_length] outer;
+u8[Outer.arr.byte_length] arrBytes;
+u8[Outer.inner.a.bit_length] bits;
+u8[Point.byte_length] point;
+
+u32 main() {
+    Cfg c;
+    u8[c.byte_length] local;
+    if (raw.element_count != 5) {
+        return 1;
+    }
+    if (outer.element_count != 11) {
+        return 2;
+    }
+    if (arrBytes.element_count != 6) {
+        return 3;
+    }
+    if (bits.element_count != 32) {
+        return 4;
+    }
+    if (local.element_count != 5) {
+        return 5;
+    }
+    if (point.element_count != 5) {
+        return 6;
+    }
+    return 0;
+}

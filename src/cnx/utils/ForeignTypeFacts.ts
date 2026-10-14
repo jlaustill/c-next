@@ -317,22 +317,52 @@ class ForeignTypeFacts {
         target,
         info.arrayDimensions ?? [],
       );
-      if (field === null) return null;
-      const element =
-        field.bitWidth ??
-        (field.typeName === null
+      const fieldBits =
+        field === null
           ? null
-          : (TYPE_WIDTH[field.typeName] ??
-            ForeignTypeFacts.structBits(field.typeName, lookup, target)));
-      const fieldBits = LengthProperty.of(
-        "bit_length",
-        field.dimensions,
-        element,
-      );
+          : LengthProperty.of(
+              "bit_length",
+              field.dimensions,
+              ForeignTypeFacts.elementBits(field, lookup, target),
+            );
       if (fieldBits === null) return null;
       bits += fieldBits;
     }
     return bits;
+  }
+
+  /**
+   * One element's bits of a header's C type, `uint16_t` or a header struct
+   * (`structBits`); null for a type C-Next fixes no width of. 1.4 folds a
+   * header's length properties with this, as render measures them (#2076).
+   */
+  static typeBits(
+    cType: string,
+    lookup: IForeignSymbolLookup,
+    target: ITargetDescription | null,
+  ): number | null {
+    const typed = ForeignTypeFacts.operandType(cType, lookup, target);
+    return typed === null
+      ? null
+      : LengthProperty.of(
+          "bit_length",
+          typed.dimensions,
+          ForeignTypeFacts.elementBits(typed, lookup, target),
+        );
+  }
+
+  /** The bits of one element of a typed header value */
+  private static elementBits(
+    typed: IOperandType,
+    lookup: IForeignSymbolLookup,
+    target: ITargetDescription | null,
+  ): number | null {
+    if (typed.bitWidth !== null) return typed.bitWidth;
+    if (typed.typeName === null) return null;
+    return (
+      TYPE_WIDTH[typed.typeName] ??
+      ForeignTypeFacts.structBits(typed.typeName, lookup, target)
+    );
   }
 
   /**
