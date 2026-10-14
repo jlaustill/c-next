@@ -679,19 +679,35 @@ class FilePlanner {
           ? declaration.members.map((member) => member.declaration)
           : [declaration];
       for (const member of members) {
-        if (member.kind === "variableDeclaration" && member.initializer) {
-          declarationInits.add(member.initializer);
-        }
-        if (member.kind !== "function") continue;
-        FilePlanner.statementInitializers(member).forEach((init) =>
+        FilePlanner.memberInitializers(member).forEach((init) =>
           declarationInits.add(init),
         );
-        for (const part of DeclarationParts.of(member)) {
-          if (part.kind === "expression") inFunctions.add(part.expression);
-        }
+        FilePlanner.functionExpressions(member).forEach((expr) =>
+          inFunctions.add(expr),
+        );
       }
     }
     return { declarationInits, inFunctions };
+  }
+
+  /** A declaration's initializer, or its body's declarations' */
+  private static memberInitializers(member: TDeclarationSyntax): TExpression[] {
+    if (member.kind === "function") {
+      return FilePlanner.statementInitializers(member);
+    }
+    return member.kind === "variableDeclaration" && member.initializer
+      ? [member.initializer]
+      : [];
+  }
+
+  /** Every expression written in a function, or none for anything else */
+  private static functionExpressions(
+    member: TDeclarationSyntax,
+  ): TExpression[] {
+    if (member.kind !== "function") return [];
+    return DeclarationParts.of(member).flatMap((part) =>
+      part.kind === "expression" ? [part.expression] : [],
+    );
   }
 
   /** A function's declaration statements' initializers, outside `for` headers */

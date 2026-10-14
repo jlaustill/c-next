@@ -11,7 +11,7 @@ class WrittenCTypes {
     /\b(?:u?int(?:8|16|32|64|ptr|max)_t|bool|true|false)\b/g;
 
   private static readonly NOT_CODE =
-    /\/\*[\s\S]*?\*\/|\/\/[^\n]*|"(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'/g;
+    /\/\*[\s\S]*?\*\/|\/\/.*|"(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'/g;
 
   /** Each type name `code` spells; `true`/`false` spell `bool` */
   static of(code: string): ReadonlySet<string> {
