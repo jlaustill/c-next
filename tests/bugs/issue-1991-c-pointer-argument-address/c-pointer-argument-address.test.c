@@ -12,12 +12,12 @@
 
 int main(void) {
     uint32_t a = 1U;
-    bump(a);
+    bump(&a);
     if (a != 2) {
         return 1;
     }
     Tally t = { .total = 0U };
-    add_to(t, 5U);
+    add_to(&t, 5U);
     if (t.total != 5) {
         return 2;
     }
