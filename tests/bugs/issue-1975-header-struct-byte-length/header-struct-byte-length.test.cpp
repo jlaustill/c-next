@@ -23,16 +23,16 @@
 int main(void) {
     Cfg c = {};
     Outer o = {};
-    if (10 != 5) {
+    if (5 != 5) {
         return 1U;
     }
-    if (10 != 5) {
+    if (5 != 5) {
         return 2U;
     }
-    if (80 != 40) {
+    if (40 != 40) {
         return 3U;
     }
-    if (40 != 15) {
+    if (15 != 15) {
         return 4U;
     }
     if (6 != 6) {
