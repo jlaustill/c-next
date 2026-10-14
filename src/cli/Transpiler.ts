@@ -234,8 +234,9 @@ class Transpiler {
    *
    * transpile() delegates here with the `SourceGraph` 1.1 Discover emitted.
    *
-   * Stages 3 to 4d: 1.2 Parse, 1.3 Declare, 1.4 Resolve and its
-   *          whole-program checks, then 2.1 Analyze over every file
+   * Stages 2 to 4d: 1.2 Parse, 1.3 Declare (Stage 2 is its C/C++ headers),
+   *          1.4 Resolve (Stage 3) and its whole-program checks (3b to 4c),
+   *          then 2.1 Analyze over every file (4d)
    * Stage 5: 2.2 Plan and 2.3 Render each file, capturing its header input
    * Stage 5.5: Render every captured header, once, whole-program (#1323)
    * Stage 6: 3.1 Write every implementation and header, once, after the run
@@ -245,7 +246,7 @@ class Transpiler {
     input: ISourceGraph,
     result: ITranspilerResult,
   ): void {
-    // Stages 3 to 4d: 1.2 Parse, 1.3 Declare, then (through `resolve`) 1.4
+    // Stages 2 to 4d: 1.2 Parse, 1.3 Declare, then (through `resolve`) 1.4
     // Resolve and the whole-program checks, then 2.1 Analyze -- EVERY file,
     // before ANY file is planned (#1320). Analysis used to run inside the loop
     // below, so file N was analyzed after files 1..N-1 had already been
@@ -255,9 +256,9 @@ class Transpiler {
     // #1991: 1.2, 1.3, 1.4 and 2.1, each taking what the one before returned.
     // Every tree is a local of 1.2; what comes back is plain data.
     //
-    // Parse-only mode analyzes nothing, exactly as before: `_transpileFile`
-    // returned its parse-only result before reaching the analyzers, so running
-    // them would be new work on a path that asked for none.
+    // Parse-only mode analyzes nothing: 2.1 keeps only declaration counts
+    // (`IRunSettings.parseOnly`), and `_transpileFile` returns the parse-only
+    // result before 2.2.
     const front = this._runParseThroughAnalyze(input, result);
     if (front.kind === "stopped") {
       if (front.errors.length > 0) {
@@ -365,7 +366,7 @@ class Transpiler {
   }
 
   /**
-   * Stages 3 to 4d, one pass at a time (#1991): 1.2 `Parse`, 1.3 `Declare`,
+   * Stages 2 to 4d, one pass at a time (#1991): 1.2 `Parse`, 1.3 `Declare`,
    * 1.4 Resolve with the whole-program checks, then 2.1 `Analyze`.
    */
   private _runParseThroughAnalyze(
@@ -523,18 +524,18 @@ class Transpiler {
   }
 
   /**
-   * Stage 3: 1.4 Resolve over every declared C-Next file, then publish each
-   * file's resolved symbols.
+   * Stage 3: 1.4 Resolve over every declared C-Next file; `Program.build`
+   * publishes each file's resolved symbols into 1.3's table.
    * @returns 1.4's artifact, or null if errors occurred
    */
   private _resolveProgram(
     declared: IDeclaredSources,
     result: ITranspilerResult,
   ): IResolvedProgram | null {
-    // 1.4 Resolve. The whole program exists only now that every file has been
-    // declared, which is the entire reason the two loops are separate: a file's
-    // bare type reference may name a scope type declared in a file that had not
-    // been read when the first loop reached it, and no ordering fixes that.
+    // 1.4 Resolve. The whole program exists only once every file has been
+    // declared, which is why 1.3 `Declare.sources` and 1.4 `Resolve.program`
+    // are separate passes: a file's bare type reference may name a scope type
+    // declared in a file 1.3 had not reached yet, and no ordering fixes that.
     //
     // Building `Program` settles every deferred type, so nothing below this
     // line can observe an unsettled one.
