@@ -615,6 +615,9 @@ error: `.length` is not a built-in property. Use explicit properties instead.
 - `.element_count` gets kind names too: `.value_element_count`,
   `.type_element_count` and `.memory_element_count`. `.element_count` is
   removed with a help message, as `.bit_length` is.
+- A bit-field member has no memory of its own, so its `.memory_*` is a compile
+  error (`sizeof` cannot take a C bit-field either); the struct that holds it
+  still answers `.memory_*`. A C-Next bitmap field is the same.
 
 ---
 
