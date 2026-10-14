@@ -579,9 +579,12 @@ error: `.length` is not a built-in property. Use explicit properties instead.
 - The memory row exists: "I mainly rejected C's sizeof because I wasn't
   focusing on these 3 different types, after spelling them out, it seems like
   it couldn't hurt, even if it only ever gets used for displaying memory used
-  to a user". This reopens ADR-023.
+  to a user". ADR-023 stays Rejected: "this does NOT re-open adr023, it's
+  still rejected!" -- C-Next has no `sizeof`; memory size is one of these
+  properties.
 - `.type_char_count` is the number of letters in the type's name (`u8` is 2,
-  `u32` is 3); the owner sees no use case for it yet.
+  `u32` is 3). All three `_char_count` names exist, `.memory_char_count`
+  included.
 
 ---
 
