@@ -99,7 +99,8 @@ an unwritten parameter, local, global and scope member as not written.
 
 ## Decision
 
-**Accepted by the owner on 2026-10-15** (#2099): adopt, before v1, for every binding.
+**Accepted by the owner on 2026-10-15** (#2099): adopt, before v1, for every binding, and
+`const` is no longer written.
 
 1. Every binding is **read-only by default**: parameters, locals, `for` variables, globals and
    scope members.
@@ -122,6 +123,7 @@ an unwritten parameter, local, global and scope member as not written.
 
 3. A parameter's generated signature follows its declaration, not the body.
 4. This is `0xx` work: it ships before v1.
+5. `const` on a declaration is a compile error ("`const` is the default; remove it").
 
 Rejected:
 
@@ -136,17 +138,10 @@ Rejected:
 
 Each is from #2099 and is the owner's to answer. A recommendation is not a decision.
 
-### Q1: `const`, once it is the default
+### Q1: `const`, once it is the default — decided
 
-```cnx
-const u32 LIMIT <- 5;   // what does this do now?
-```
-
-Options: an error, a warning, or accepted for a migration window.
-
-**Recommendation: an error** ("`const` is the default; remove it"). The rewrite in Q8 removes
-all 534 mechanically, so a window would protect no code, and a keyword that means nothing is a
-second spelling of the same declaration.
+An error (Decision 5). The rewrite in Q8 removes all 534 mechanically, so a warning or a
+migration window would protect no code.
 
 ### Q2: Writing a binding that is not `mut`, and a `mut` that is never needed
 
@@ -271,7 +266,7 @@ fixture can occupy a cell. The implementation issue promotes each to `error` wit
 ## Consequences
 
 - **Breaking, everywhere.** Every program that writes any binding stops compiling until the
-  binding says `mut`, and every `const` stops compiling until it is removed (if Q1 is an error).
+  binding says `mut`, and every `const` stops compiling until it is removed (Decision 5).
   In the corpus that is 2284 and 534 declarations (Context).
 - **The common case gets shorter.** 5694 corpus bindings are already read-only and unmarked; they
   keep their spelling and gain a guarantee they did not have.
