@@ -23,6 +23,7 @@
 
 import OperandTyper from "../../utils/OperandTyper";
 import CCallee from "./helpers/CCallee";
+import WrittenBinding from "./helpers/WrittenBinding";
 import CPointerParameter from "../../utils/CPointerParameter";
 import DeclarationParts from "../../utils/DeclarationParts";
 import ExpressionNodes from "../../utils/ExpressionNodes";
@@ -83,7 +84,7 @@ class CPointerArgumentCheck {
     if (
       !CPointerParameter.writesThrough(parameter) ||
       CPointerArgumentAnalyzer.isConstRoot(
-        OperandTyper.chainOf(arg, this.context).root,
+        WrittenBinding.ofExpression(arg, this.context)?.binding ?? null,
       ) !== true
     ) {
       return;
@@ -117,7 +118,7 @@ class CPointerArgumentCheck {
       return true;
     }
     const isConst = CPointerArgumentAnalyzer.isConstRoot(
-      OperandTyper.chainOf(arg, this.context).root,
+      WrittenBinding.ofExpression(arg, this.context)?.binding ?? null,
     );
     if (isConst !== true || CPointerParameter.pointsToConst(parameter)) {
       return false;

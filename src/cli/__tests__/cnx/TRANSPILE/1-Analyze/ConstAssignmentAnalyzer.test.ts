@@ -82,6 +82,24 @@ describe("ConstAssignmentAnalyzer (E0900)", () => {
     ]);
   });
 
+  it("reaches the member a scope-qualified write names, not the scope", () => {
+    // `S.arr[0]` binds its head to the scope `S`; the write is to `S__arr`.
+    // Missed, the member stayed read-only and rendered C `const`, which the
+    // generated assignment then failed to compile against.
+    const found = errors(
+      "scope S {\n    public u8[4] arr;\n    public u8 x;\n}\nvoid f() {\n    S.arr[0] <- 1;\n    global.S.x <- 2;\n}",
+    );
+    expect(found.map((e) => [e.code, e.line, e.message])).toEqual([
+      ["E0900", 6, "cannot assign to read-only variable 'arr' (array element)"],
+      ["E0900", 7, "cannot assign to read-only variable 'x'"],
+    ]);
+    expect(
+      errors(
+        "scope S {\n    public mut u8[4] arr;\n}\nvoid f() {\n    S.arr[0] <- 1;\n}",
+      ),
+    ).toEqual([]);
+  });
+
   it("accepts a `mut` binding in every form, and a shadowing local", () => {
     const source = [
       "u8 K <- 1;",

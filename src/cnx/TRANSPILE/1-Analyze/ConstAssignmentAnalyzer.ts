@@ -27,7 +27,6 @@
  * statement and are checked here on the same terms.
  */
 
-import ExpressionShape from "../../utils/ExpressionShape";
 import OperandTyper from "../../utils/OperandTyper";
 import DeclarationParts from "../../utils/DeclarationParts";
 import ExpressionNodes from "../../utils/ExpressionNodes";
@@ -36,13 +35,15 @@ import FunctionReference from "./helpers/FunctionReference";
 import CCallee from "./helpers/CCallee";
 import type ICCallee from "./types/ICCallee";
 import BoundDeclaration from "./helpers/BoundDeclaration";
+import WrittenBinding from "./helpers/WrittenBinding";
+import type IWrittenBinding from "./types/IWrittenBinding";
+import type TValueBinding from "../../types/TValueBinding";
 import SafeDivision from "../../utils/SafeDivision";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
 import CPointerParameter from "../../utils/CPointerParameter";
 import type ILexicalFrame from "../../types/ILexicalFrame";
 import type TSymbol from "../../types/symbols/TSymbol";
 import IConstAssignmentError from "./types/IConstAssignmentError";
-import TChainRoot from "../../types/TChainRoot";
 import type ISourceSpan from "../../types/ISourceSpan";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
@@ -54,13 +55,6 @@ import type TPostfixOpSyntax from "../../types/syntax/TPostfixOpSyntax";
 type TConstKind = "parameter" | "variable" | null;
 
 type TPosition = Pick<ISourceSpan, "line" | "column">;
-
-/** An assignment target as a declared name and what is written through it */
-interface ITargetName {
-  readonly root: TChainRoot;
-  readonly name: string;
-  readonly ops: readonly TPostfixOpSyntax[];
-}
 
 class ConstAssignmentCheck {
   private readonly found: IConstAssignmentError[] = [];
@@ -75,10 +69,10 @@ class ConstAssignmentCheck {
 
   /** Every assignment form -- a statement, a `for` init, a `for` update. */
   public checkSite(site: IAssignmentSyntax): void {
-    const target = ConstAssignmentCheck.targetName(site.target);
+    const target = WrittenBinding.ofExpression(site.target, this.context);
     if (target === null) return;
-    this.noteWrite(target.root, target.name, site.target.span);
-    const kind = this.constKind(target.root, target.name, site.target.span);
+    this.noteWrite(target.binding);
+    const kind = ConstAssignmentCheck.constKind(target.binding);
     if (kind === null) return;
 
     const suffix = ConstAssignmentCheck.targetSuffix(target.ops);
@@ -90,24 +84,6 @@ class ConstAssignmentCheck {
         ? "A parameter is read-only unless declared `mut` (ADR-071); declare it `mut` if the function must change it."
         : "A binding is read-only unless declared `mut` (ADR-071); declare it `mut` if the value must change.",
     );
-  }
-
-  /** `K`, `table[0]`, `this.K`, `global.cfg.x`: the name the target is reached through */
-  private static targetName(target: TExpression): ITargetName | null {
-    if (target.kind === "identifier") {
-      return { root: null, name: target.name, ops: [] };
-    }
-    if (target.kind !== "postfix") return null;
-    if (target.primary.kind === "identifier") {
-      return { root: null, name: target.primary.name, ops: target.ops };
-    }
-    const first = target.ops[0];
-    if (target.primary.kind !== "root" || first.kind !== "member") return null;
-    return {
-      root: target.primary.root,
-      name: first.name,
-      ops: target.ops.slice(1),
-    };
   }
 
   /** How the target's shape is named in E0900's message. */
@@ -134,10 +110,17 @@ class ConstAssignmentCheck {
     if (call === null) return;
     const output = SafeDivision.outputName(call.args);
     if (output === null) return; // not a variable at all -- E0885's to report
-    this.noteWrite(null, output, expr.span);
+    const written = WrittenBinding.of(
+      null,
+      output,
+      [],
+      expr.span,
+      this.context,
+    );
+    this.noteWrite(written.binding);
     // Always a BARE name: `outputName` accepts only a plain identifier, so a
     // `this.`-rooted first argument returns null above and is E0885's to report.
-    const kind = this.constKind(null, output, expr.span);
+    const kind = ConstAssignmentCheck.constKind(written.binding);
     if (kind === null) return;
     this.report(
       call.args[0].span,
@@ -170,9 +153,9 @@ class ConstAssignmentCheck {
     call.arguments.forEach((arg, index) => {
       const param = callee.parameters[index];
       if (param === undefined || param.isConst) return;
-      const target = ConstAssignmentCheck.targetName(arg);
-      if (target !== null) this.noteWrite(target.root, target.name, arg.span);
-      const argName = this.constArgumentName(arg);
+      const target = WrittenBinding.ofExpression(arg, this.context);
+      this.noteWrite(target?.binding ?? null);
+      const argName = ConstAssignmentCheck.constArgumentName(arg, target);
       if (argName === null) return;
       this.report(
         arg.span,
@@ -252,18 +235,12 @@ class ConstAssignmentCheck {
       ) {
         return;
       }
-      const target = ConstAssignmentCheck.targetName(arg);
-      if (target !== null) this.noteWrite(target.root, target.name, arg.span);
+      const target = WrittenBinding.ofExpression(arg, this.context);
+      this.noteWrite(target?.binding ?? null);
     });
   }
 
-  private noteWrite(root: TChainRoot, name: string, at: TPosition): void {
-    const binding = this.context.program.bindValue(
-      this.context.sourceFile,
-      root,
-      name,
-      at,
-    );
+  private noteWrite(binding: TValueBinding | null): void {
     if (binding?.kind === "local") this.written.add(binding.declaration);
     else if (binding?.kind === "variable") this.written.add(binding.symbol);
   }
@@ -271,28 +248,25 @@ class ConstAssignmentCheck {
   // --- The facts -----------------------------------------------------------
 
   /**
-   * The name of a const binding an argument IS -- `K`, `this.K`, `global.K`
-   * -- or null for anything else (an expression has no binding to protect).
+   * The name of a read-only binding an argument IS -- `K`, `this.K`, `S.K`,
+   * `global.K` -- or null for anything else (an expression has no binding to
+   * protect).
    */
-  private constArgumentName(arg: TExpression): string | null {
-    const bare = ExpressionShape.simpleIdentifier(arg);
-    if (bare !== null) {
-      return this.constKind(null, bare, arg.span) === null ? null : bare;
-    }
-    if (arg.kind !== "postfix" || arg.primary.kind !== "root") return null;
-    const member = arg.ops[0];
-    if (arg.ops.length !== 1 || member.kind !== "member") return null;
-    const root = arg.primary.root;
-    return this.constKind(root, member.name, arg.span) === null
+  private static constArgumentName(
+    arg: TExpression,
+    target: IWrittenBinding | null,
+  ): string | null {
+    if (target === null || target.ops.length !== 0) return null;
+    return ConstAssignmentCheck.constKind(target.binding) === null
       ? null
-      : `${root}.${member.name}`;
+      : arg.written;
   }
 
   /**
-   * Whether the spelling `root.name`, as seen from `at`, is a const parameter,
-   * a const variable, or neither.
+   * Whether a binding is a read-only parameter, a read-only variable, or
+   * neither.
    *
-   * Which declaration the spelling binds to is Program's one binder's
+   * Which declaration a spelling binds to is Program's one binder's
    * decision (#1668), not this rule's: a local, a parameter, a scope member
    * or a global, this file's or an included one's, in ADR-057's order with
    * `this.` and `global.` stating where. #1322 review: this file once had its
@@ -300,13 +274,7 @@ class ConstAssignmentCheck {
    * local `STEP` shadowing the const member resolved to the local, lost its error,
    * and emitted `Board__STEP = 5U;` at exit 0.
    */
-  private constKind(root: TChainRoot, name: string, at: TPosition): TConstKind {
-    const binding = this.context.program.bindValue(
-      this.context.sourceFile,
-      root,
-      name,
-      at,
-    );
+  private static constKind(binding: TValueBinding | null): TConstKind {
     const declared = BoundDeclaration.of(binding);
     if (!declared?.isConst) return null;
     return declared.isParameter ? "parameter" : "variable";
