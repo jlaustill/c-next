@@ -22,28 +22,31 @@ const inMain = (body: string) => `void f() {\n${body}\n}`;
 
 describe("StringForm", () => {
   describe("E0862 -- a capacity has to be stated, or inferable", () => {
-    it("requires an explicit capacity on a string ARRAY", () => {
-      const [found] = errors("string[4] names;");
+    it.each([
+      [
+        "a string ARRAY",
+        "string[4] names;",
+        "string array requires an explicit",
+      ],
+      [
+        "a `mut` string, which cannot infer",
+        inMain('    mut string s <- "hi";'),
+        "A `mut` string",
+      ],
+      [
+        "a read-only string with no capacity or initializer",
+        "string s;",
+        "requires an initializer",
+      ],
+      [
+        "a read-only string initialized from another string, not a LITERAL",
+        'string<8> other <- "hi";\nstring s <- other;',
+        "requires a string literal",
+      ],
+    ])("requires an explicit capacity on %s", (_, source, message) => {
+      const [found] = errors(source);
       expect(found.code).toBe("E0862");
-      expect(found.message).toContain("string array requires an explicit");
-    });
-
-    it("requires one on a `mut` string, which cannot infer", () => {
-      const [found] = errors(inMain('    mut string s <- "hi";'));
-      expect(found.code).toBe("E0862");
-      expect(found.message).toContain("A `mut` string");
-    });
-
-    it("requires an initializer on a read-only string with no capacity", () => {
-      const [found] = errors("string s;");
-      expect(found.code).toBe("E0862");
-      expect(found.message).toContain("requires an initializer");
-    });
-
-    it("requires that initializer to be a LITERAL, not another string", () => {
-      const [found] = errors('string<8> other <- "hi";\nstring s <- other;');
-      expect(found.code).toBe("E0862");
-      expect(found.message).toContain("requires a string literal");
+      expect(found.message).toContain(message);
     });
 
     it("accepts a read-only string whose capacity comes from its literal", () => {

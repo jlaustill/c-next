@@ -290,7 +290,7 @@ class ConstAssignmentCheck {
     arg: TExpression,
     target: IWrittenBinding | null,
   ): string | null {
-    if (target === null || target.ops.length !== 0) return null;
+    if (target?.ops.length !== 0) return null;
     return ConstAssignmentCheck.constKind(target.binding) === null
       ? null
       : arg.written;
