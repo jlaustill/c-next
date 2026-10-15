@@ -137,6 +137,8 @@ describe("ThisOutsideScopeAnalyzer", () => {
 
   it("says what to write instead", () => {
     const [found] = errors("u32 count <- 0;\nu32 shadow <- this.count;");
-    expect(found.helpText).toContain("global.");
+    expect(found.helpText).toContain("bare name");
+    // `global.` is a scope's spelling too, so it is no advice outside one
+    expect(found.helpText).not.toContain("global.");
   });
 });
