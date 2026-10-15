@@ -502,7 +502,7 @@ describe("Transpiler", () => {
       it.each(["", "."])(
         "writes a sideways include's header relative to the cwd when headerOutDir is %j",
         async (headerOutDir) => {
-          // With no project root the base is the cwd (#2101); pinned so the
+          // With no project root the base is the cwd (#1467); pinned so the
           // file is outside it wherever the suite runs.
           vi.spyOn(process, "cwd").mockReturnValue("/elsewhere");
           mockFs.addFile(
