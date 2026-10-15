@@ -26,8 +26,8 @@ static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
 // Test: Compound assignment with cross-scope access
 // Tests global.OtherScope.var +<- value pattern (ADR-016)
 /* Scope: Counter */
-const int32_t Counter__value = 100;
-const int32_t Counter__data[3] = {};
+int32_t Counter__value = 100;
+int32_t Counter__data[3] = {};
 
 /* Scope: Manager */
 

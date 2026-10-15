@@ -40,9 +40,9 @@ uint8_t globalFlags = 0U;
 // subscripts. That spelling needs the `identifiers.length - 1` offset when
 // counting subscripts; the other three spellings need no offset.
 /* Scope: Other */
-const uint8_t Other__buffer[16] = {0};
-const uint8_t Other__slice[16] = {0};
-const uint8_t Other__flags = 0U;
+uint8_t Other__buffer[16] = {0};
+uint8_t Other__slice[16] = {0};
+uint8_t Other__flags = 0U;
 
 /* Scope: Reg */
 static uint8_t Reg__buffer[16] = {0};

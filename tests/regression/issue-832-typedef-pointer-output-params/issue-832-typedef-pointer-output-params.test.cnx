@@ -12,7 +12,7 @@
 
 #include "issue-832-typedef-pointer-output-params.hpp"
 
-handle_t my_handle;
+mut handle_t my_handle;
 
 u32 main() {
     // create_handle expects handle_t* (out param), my_handle is handle_t

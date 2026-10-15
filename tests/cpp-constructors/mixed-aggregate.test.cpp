@@ -15,7 +15,7 @@
 #include <stdint.h>
 
 int main(void) {
-    const DefaultConstructible nonAgg = {};
+    DefaultConstructible nonAgg = {};
     nonAgg.value = 42;
     nonAgg.name = "test";
     const AggregateType agg = { .value = 99, .label = "agg" };

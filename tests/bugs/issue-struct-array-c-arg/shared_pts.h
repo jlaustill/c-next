@@ -14,7 +14,7 @@ extern "C" {
 
 /* External variables */
 extern CPoint sharedPts[2];
-extern const CPoint Rack__slots[2];
+extern CPoint Rack__slots[2];
 
 #ifdef __cplusplus
 }

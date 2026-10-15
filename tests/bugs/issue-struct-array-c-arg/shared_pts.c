@@ -13,4 +13,4 @@
 CPoint sharedPts[2] = {0};
 
 /* Scope: Rack */
-const CPoint Rack__slots[2] = {0};
+CPoint Rack__slots[2] = {0};

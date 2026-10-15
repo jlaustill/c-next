@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern const handle_t my_handle;
+extern handle_t my_handle;
 
 #ifdef __cplusplus
 }

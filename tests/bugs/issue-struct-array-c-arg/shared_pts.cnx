@@ -6,5 +6,5 @@
 mut CPoint[2] sharedPts;
 
 scope Rack {
-    public CPoint[2] slots;
+    public mut CPoint[2] slots;
 }

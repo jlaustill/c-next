@@ -14,7 +14,7 @@ extern "C" {
 
 /* External variables */
 extern Dev* shared;
-extern const Dev* Rack__unit;
+extern Dev* Rack__unit;
 
 #ifdef __cplusplus
 }

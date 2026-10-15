@@ -11,7 +11,7 @@
 #include "NamespacedCppClass.hpp"
 
 void test(void) {
-    const TestNS::MyClass obj = {};
+    TestNS::MyClass obj = {};
     obj.id = 123;
     obj.data = "test";
 }

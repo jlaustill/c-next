@@ -12,7 +12,7 @@
 #include <stdint.h>
 
 int main(void) {
-    const Sensor local = {};
+    Sensor local = {};
     touch(local);
     if (local.v != 7) {
         return 1U;
@@ -21,7 +21,7 @@ int main(void) {
     if (seen != 7) {
         return 2U;
     }
-    const int32_t n = 1;
+    int32_t n = 1;
     bump(n);
     if (n != 2) {
         return 3U;

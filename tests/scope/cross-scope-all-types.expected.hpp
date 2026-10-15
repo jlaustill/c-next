@@ -15,20 +15,20 @@ extern "C" {
 
 /* External variables */
 extern uint8_t Provider__valU8;
-extern const uint16_t Provider__valU16;
+extern uint16_t Provider__valU16;
 extern const uint32_t Provider__valU32;
 extern const uint64_t Provider__valU64;
 extern const int8_t Provider__valI8;
 extern const int16_t Provider__valI16;
 extern int32_t Provider__valI32;
 extern const int64_t Provider__valI64;
-extern const float Provider__valF32;
-extern const double Provider__valF64;
+extern float Provider__valF32;
+extern double Provider__valF64;
 extern bool Provider__valBool;
-extern const uint32_t Provider__arrayU32[3];
+extern uint32_t Provider__arrayU32[3];
 extern const int16_t Provider__arrayI16[3];
-extern const uint8_t Provider__clampVal;
-extern const uint8_t Provider__wrapVal;
+extern uint8_t Provider__clampVal;
+extern uint8_t Provider__wrapVal;
 extern uint32_t Consumer__result;
 extern int32_t Consumer__signedResult;
 extern const bool Consumer__boolResult;

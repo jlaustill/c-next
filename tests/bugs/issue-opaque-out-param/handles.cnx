@@ -6,5 +6,5 @@
 mut Dev shared;
 
 scope Rack {
-    public Dev unit;
+    public mut Dev unit;
 }

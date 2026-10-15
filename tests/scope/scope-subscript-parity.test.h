@@ -16,9 +16,9 @@ extern "C" {
 extern uint8_t globalBuffer[16];
 extern uint8_t globalSlice[16];
 extern uint8_t globalFlags;
-extern const uint8_t Other__buffer[16];
-extern const uint8_t Other__slice[16];
-extern const uint8_t Other__flags;
+extern uint8_t Other__buffer[16];
+extern uint8_t Other__slice[16];
+extern uint8_t Other__flags;
 
 /* Function prototypes */
 uint8_t Reg__elementBit(void);

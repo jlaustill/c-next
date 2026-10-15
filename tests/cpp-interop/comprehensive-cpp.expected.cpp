@@ -187,7 +187,7 @@ void testSingleton(void) {
 // ============================================================================
 // Test reference and pointer passing
 void testRefsAndPtrs(void) {
-    const int32_t val = 42;
+    int32_t val = 42;
     modifyRef(val);
     readRef(val);
     modifyPtr(&val);

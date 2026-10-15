@@ -28,9 +28,9 @@ typedef enum {
     Motor__State__RUN = 1,
     Motor__State__COUNT = 2
 } Motor__State;
-const uint8_t Motor__fromScope[2] = {};
-const uint8_t Motor__fromGlobal[2] = {};
-const uint8_t Motor__viaThis[2] = {};
+uint8_t Motor__fromScope[2] = {};
+uint8_t Motor__fromGlobal[2] = {};
+uint8_t Motor__viaThis[2] = {};
 
 int main(void) {
     Motor__fromScope[0] = 11U;

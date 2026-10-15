@@ -13,8 +13,8 @@ extern "C" {
 #endif
 
 /* External variables */
-extern const int32_t Counter__value;
-extern const int32_t Counter__data[3];
+extern int32_t Counter__value;
+extern int32_t Counter__data[3];
 
 /* Function prototypes */
 void Manager__incrementCounter(void);

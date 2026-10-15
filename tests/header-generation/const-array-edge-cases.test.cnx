@@ -18,7 +18,7 @@ u8 BUFFER_SIZE <- 8;
 
 scope Device {
     // Scoped array using global constant
-    public u8 buffer[BUFFER_SIZE];
+    public mut u8 buffer[BUFFER_SIZE];
 }
 
 void main() {

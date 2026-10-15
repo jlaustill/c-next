@@ -10,7 +10,7 @@
 scope Provider {
     // Unsigned integers - public for cross-scope access
     public mut u8 valU8 <- 255;
-    public u16 valU16 <- 65535;
+    public mut u16 valU16 <- 65535;
     public u32 valU32 <- 4294967295;
     public u64 valU64 <- 18446744073709551615;
 
@@ -21,19 +21,19 @@ scope Provider {
     public i64 valI64 <- -9223372036854775808;
 
     // Floating point
-    public f32 valF32 <- 3.14;
-    public f64 valF64 <- 3.141592653589793;
+    public mut f32 valF32 <- 3.14;
+    public mut f64 valF64 <- 3.141592653589793;
 
     // Boolean
     public mut bool valBool <- true;
 
     // Arrays
-    public u32 arrayU32[3];
+    public mut u32 arrayU32[3];
     public i16 arrayI16[3];
 
     // Modifiers
-    public clamp u8 clampVal <- 200;
-    public wrap u8 wrapVal <- 250;
+    public mut clamp u8 clampVal <- 200;
+    public mut wrap u8 wrapVal <- 250;
 
     // Public getter methods for validation
     public u8 getU8() {

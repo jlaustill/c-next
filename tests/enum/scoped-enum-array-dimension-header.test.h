@@ -20,9 +20,9 @@ typedef enum {
 } Global;
 
 /* External variables */
-extern const uint8_t Motor__fromScope[2];
-extern const uint8_t Motor__fromGlobal[2];
-extern const uint8_t Motor__viaThis[2];
+extern uint8_t Motor__fromScope[2];
+extern uint8_t Motor__fromGlobal[2];
+extern uint8_t Motor__viaThis[2];
 
 #ifdef __cplusplus
 }

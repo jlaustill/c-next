@@ -12,7 +12,7 @@
 #include <stdint.h>
 
 int main(void) {
-    const CopyConstructible src = {};
+    CopyConstructible src = {};
     src.id = 100;
     src.data = 200;
     CopyConstructible copy = src;

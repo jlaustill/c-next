@@ -29,9 +29,9 @@ mut u8 globalFlags <- 0;
 // subscripts. That spelling needs the `identifiers.length - 1` offset when
 // counting subscripts; the other three spellings need no offset.
 scope Other {
-    public u8[16] buffer;
-    public u8[16] slice;
-    public u8 flags <- 0;
+    public mut u8[16] buffer;
+    public mut u8[16] slice;
+    public mut u8 flags <- 0;
 }
 
 scope Reg {

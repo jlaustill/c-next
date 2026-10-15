@@ -26,7 +26,7 @@ const int16_t bin_arr[10] = {0};
 const uint8_t BUFFER_SIZE = 8U;
 
 /* Scope: Device */
-const uint8_t Device__buffer[8] = {0};
+uint8_t Device__buffer[8] = {0};
 
 int main(void) {
     Device__buffer[0] = 1U;

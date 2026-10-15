@@ -20,7 +20,7 @@
 
 #include <stdint.h>
 
-extern const handle_t my_handle = {};
+handle_t my_handle = {};
 
 int main(void) {
     create_handle(&my_handle);

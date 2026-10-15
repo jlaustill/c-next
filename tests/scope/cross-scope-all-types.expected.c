@@ -34,20 +34,20 @@ static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
 // ==========================================
 /* Scope: Provider */
 uint8_t Provider__valU8 = 255U;
-const uint16_t Provider__valU16 = 65535U;
+uint16_t Provider__valU16 = 65535U;
 const uint32_t Provider__valU32 = 4294967295U;
 const uint64_t Provider__valU64 = 18446744073709551615ULL;
 const int8_t Provider__valI8 = -128;
 const int16_t Provider__valI16 = -32768;
 int32_t Provider__valI32 = (int32_t)INT32_MIN;
 const int64_t Provider__valI64 = (int64_t)INT64_MIN;
-const float Provider__valF32 = 3.14;
-const double Provider__valF64 = 3.141592653589793;
+float Provider__valF32 = 3.14;
+double Provider__valF64 = 3.141592653589793;
 bool Provider__valBool = true;
-const uint32_t Provider__arrayU32[3] = {0};
+uint32_t Provider__arrayU32[3] = {0};
 const int16_t Provider__arrayI16[3] = {0};
-const uint8_t Provider__clampVal = 200U;
-const uint8_t Provider__wrapVal = 250U;
+uint8_t Provider__clampVal = 200U;
+uint8_t Provider__wrapVal = 250U;
 
 uint8_t Provider__getU8(void) {
     return Provider__valU8;
