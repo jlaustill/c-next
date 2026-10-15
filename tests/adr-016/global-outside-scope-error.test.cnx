@@ -51,8 +51,12 @@ u32 inPlainFunction(u8 s, u32 total) {
 }
 
 // THE ASSERTIONS -- each file-level position once: an initializer's value, a
-// variable's type, an array dimension, a struct field's type.
+// call in an initializer, a variable's type, an array dimension, a struct
+// field's type. File level has no statements, so no assignment target or case
+// label sits there.
 u32 atFileScope <- global.total;
+
+u32 atFileCall <- global.helper();
 
 global.Pt atFileType <- { x: 3 };
 
