@@ -30,6 +30,7 @@ import ConstLiteral from "../../utils/ConstLiteral";
 import type TChainRoot from "../../types/TChainRoot";
 import type TValueBinding from "../../types/TValueBinding";
 import type TSymbol from "../../types/symbols/TSymbol";
+import type IVariableSymbol from "../../types/symbols/IVariableSymbol";
 import OperandTyper from "../../utils/OperandTyper";
 import StatementNodes from "../../utils/StatementNodes";
 import EnumValueResolver from "./EnumValueResolver";
@@ -332,8 +333,10 @@ class SwitchStatementCheck {
    * macro on its name.
    */
   private labelKey(label: TCaseLabelSyntax): string {
-    const folded = this.lengthValue(label) ?? this.foldedValue(label);
-    if (folded !== null) return `value:${folded}`;
+    const length = this.lengthValue(label);
+    if (length !== null) return `value:${length}`;
+    const constant = this.constKey(label);
+    if (constant !== null) return constant;
     const binding = this.labelBinding(label);
     // `HDR_K` and `global.HDR_K`: one header macro, written by its name
     if (
@@ -350,22 +353,47 @@ class SwitchStatementCheck {
     return `value:${SwitchStatementCheck.caseLabelValue(label)}`;
   }
 
-  /** A const label's value, from the declaration its spelling binds */
-  private foldedValue(label: TCaseLabelSyntax): string | null {
+  /**
+   * A const label's key, from the declaration its spelling binds and the
+   * answer render writes for it (`ConstLiteral`, `settledConstOf`): an integer
+   * its value, an enum-typed const its member, a char literal its literal and
+   * a lone header macro its name. Null for a label that names no const.
+   */
+  private constKey(label: TCaseLabelSyntax): string | null {
     const { program } = this.context;
     const binding = this.labelBinding(label);
     if (binding === null) return null;
     if (label.kind === "identifier") {
-      return program.constantOf(binding)?.value.toString() ?? null;
+      if (binding.kind === "local") {
+        const local = program.constantOf(binding);
+        return local === null ? null : `value:${local.value}`;
+      }
+      return binding.kind === "variable"
+        ? this.settledKey(binding.symbol)
+        : null;
     }
     if (label.kind !== "qualified" || binding.kind !== "scope") return null;
     const member = this.scopeMember(label, binding.scopePath);
-    if (member?.kind !== "variable") return null;
-    return (
-      program
-        .constantOf({ kind: "variable", symbol: member })
-        ?.value.toString() ?? null
-    );
+    return member?.kind === "variable" ? this.settledKey(member) : null;
+  }
+
+  private settledKey(symbol: IVariableSymbol): string | null {
+    const { program } = this.context;
+    const settled = program.settledConstOf(symbol.fullyQualifiedCName);
+    if (settled?.kind === "value") return `value:${BigInt(settled.digits)}`;
+    const text = ConstLiteral.textOf(program, symbol);
+    if (text === null) return null;
+    switch (settled?.kind) {
+      case "named":
+        return `member:${text}`;
+      case "foreign": {
+        // `ConstLiteral` writes only a macro named alone, as `(HDR)`
+        const expr = symbol.initialValueExpr;
+        return expr?.kind === "name" ? `name:${expr.path[0]}` : null;
+      }
+      default:
+        return `value:${text}`;
+    }
   }
 
   /** True when a duplicate was reported, so the later checks are skipped. */

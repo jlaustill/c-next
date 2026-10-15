@@ -236,6 +236,58 @@ describe("SwitchStatementAnalyzer", () => {
       expect(found.map((e) => e.code)).toEqual(["E0713"]);
     });
 
+    it("keys an enum-typed const label on its member, without a crash", () => {
+      const found = errors(
+        [
+          "enum EMode { IDLE, RUN }",
+          "const EMode M <- EMode.IDLE;",
+          "u32 pick(EMode s) {",
+          "    switch (s) {",
+          "        case M { return 1; }",
+          "        case EMode.RUN { return 2; }",
+          "    }",
+          "    return 0;",
+          "}",
+        ].join("\n"),
+      );
+      expect(found).toEqual([]);
+    });
+
+    it("rejects an enum-typed const beside its member (#2046)", () => {
+      const found = errors(
+        [
+          "enum EMode { IDLE, RUN }",
+          "const EMode M <- EMode.IDLE;",
+          "u32 pick(EMode s) {",
+          "    switch (s) {",
+          "        case M { return 1; }",
+          "        case EMode.IDLE { return 2; }",
+          "        case EMode.RUN { return 3; }",
+          "    }",
+          "    return 0;",
+          "}",
+        ].join("\n"),
+      );
+      expect(found.map((e) => e.code)).toEqual(["E0713"]);
+    });
+
+    it("rejects a char-initialized const in two spellings (#2046)", () => {
+      const found = errors(
+        [
+          "const u8 K <- 'A';",
+          "u32 pick(u8 s) {",
+          "    switch (s) {",
+          "        case K { return 1; }",
+          "        case global.K { return 2; }",
+          "        default { return 0; }",
+          "    }",
+          "    return 0;",
+          "}",
+        ].join("\n"),
+      );
+      expect(found.map((e) => e.code)).toEqual(["E0713"]);
+    });
+
     it("rejects the same character label twice", () => {
       const found = errors(labels("'a'", "'a'"));
       expect(found).toHaveLength(1);

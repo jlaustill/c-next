@@ -187,6 +187,13 @@ describe("ThisOutsideScopeAnalyzer", () => {
     ]);
   });
 
+  it("in a function, says `global.` reaches past a shadowing parameter (#2087)", () => {
+    const [found] = errors(
+      "u32 count <- 0;\nu32 f(u32 count) {\n    return this.count;\n}",
+    );
+    expect(found.helpText).toContain("`global.Name`");
+  });
+
   it("says what to write instead", () => {
     const [found] = errors("u32 count <- 0;\nu32 shadow <- this.count;");
     expect(found.helpText).toContain("bare name");

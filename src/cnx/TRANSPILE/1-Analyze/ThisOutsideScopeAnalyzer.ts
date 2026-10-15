@@ -54,17 +54,20 @@ import StatementNodes from "../../utils/StatementNodes";
 import TypeParts from "../../utils/TypeParts";
 import IThisOutsideScopeError from "./types/IThisOutsideScopeError";
 
-const OUTSIDE = {
-  this: {
-    message: "'this' can only be used inside a scope",
-    helpText:
-      "`this` names the enclosing scope's own member. Outside a scope, write a file-scope declaration by its bare name, or move the code into the scope it belongs to.",
-  },
-  global: {
-    message: "'global' can only be used inside a scope or a function",
-    helpText:
-      "`global` reaches a file-scope declaration past a name that shadows it inside a scope or a function. At file level nothing shadows it, so write its bare name.",
-  },
+const THIS_MESSAGE = "'this' can only be used inside a scope";
+
+/** `this`'s advice depends on where it is: in a function a bare name may be a local */
+const THIS_HELP = {
+  atFileLevel:
+    "`this` names the enclosing scope's own member. At file level, write a file-scope declaration by its bare name, or move the code into the scope it belongs to.",
+  inFunction:
+    "`this` names the enclosing scope's own member. In a function, write `global.Name` to reach a file-scope declaration past a local or parameter of that name, or move the code into the scope it belongs to.",
+} as const;
+
+const GLOBAL_OUTSIDE = {
+  message: "'global' can only be used inside a scope or a function",
+  helpText:
+    "`global` reaches a file-scope declaration past a name that shadows it inside a scope or a function. At file level nothing shadows it, so write its bare name.",
 } as const;
 
 /**
@@ -100,16 +103,16 @@ class ThisOutsideScopeAnalyzer {
   }
 
   private type(type: TTypeSyntax, globalAllowed: boolean): void {
-    if (type.kind === "scoped") this.report(type.span, "this");
+    if (type.kind === "scoped") this.report(type.span, "this", globalAllowed);
     if (type.kind === "global" && !globalAllowed) {
-      this.report(type.span, "global");
+      this.report(type.span, "global", globalAllowed);
     }
     for (const part of TypeParts.of(type)) this.part(part, globalAllowed);
   }
 
   private expression(expr: TExpression, globalAllowed: boolean): void {
     if (expr.kind === "root" && (expr.root === "this" || !globalAllowed)) {
-      this.report(expr.span, expr.root);
+      this.report(expr.span, expr.root, globalAllowed);
     }
     if (expr.kind === "cast") this.type(expr.type, globalAllowed);
     for (const child of ExpressionChildren.of(expr)) {
@@ -123,16 +126,28 @@ class ThisOutsideScopeAnalyzer {
       (label.kind === "identifier" || label.kind === "qualified") &&
       label.root === "this"
     ) {
-      this.report(label.span, label.root);
+      // A case label is always in a function body
+      this.report(label.span, label.root, true);
     }
   }
 
-  private report(span: ISourceSpan, root: "this" | "global"): void {
+  private report(
+    span: ISourceSpan,
+    root: "this" | "global",
+    inFunction: boolean,
+  ): void {
+    const text =
+      root === "global"
+        ? GLOBAL_OUTSIDE
+        : {
+            message: THIS_MESSAGE,
+            helpText: THIS_HELP[inFunction ? "inFunction" : "atFileLevel"],
+          };
     this.found.push({
       code: "E0431",
       line: span.line,
       column: span.column,
-      ...OUTSIDE[root],
+      ...text,
     });
   }
 }
