@@ -5,7 +5,6 @@
 
 #include "string-length-repeated.test.hpp"
 
-#include <stdint.h>
 #include <string.h>
 
 // ADR-045: Test repeated .value_char_count usage

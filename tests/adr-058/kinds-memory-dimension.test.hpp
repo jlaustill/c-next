@@ -21,11 +21,11 @@ typedef struct Cfg {
 
 /* External variables */
 extern char names[2][9];
-extern uint8_t raw[Cfg.memory_byte_length];
-extern uint8_t headerRaw[KCfg.memory_byte_length];
-extern uint8_t pointerRaw[KOdd.memory_byte_length];
-extern uint8_t nameBytes[names.memory_byte_length];
-extern uint8_t cfgBits[(Cfg.memory_bit_length) + 1];
+extern uint8_t raw[((uint32_t)sizeof(Cfg))];
+extern uint8_t headerRaw[((uint32_t)sizeof(KCfg))];
+extern uint8_t pointerRaw[((uint32_t)sizeof(KOdd))];
+extern uint8_t nameBytes[((uint32_t)9U * 2U)];
+extern uint8_t cfgBits[(((uint32_t)sizeof(Cfg) * 8U)) + 1];
 
 #ifdef __cplusplus
 }

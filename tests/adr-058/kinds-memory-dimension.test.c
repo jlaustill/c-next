@@ -19,39 +19,39 @@
 
 char names[2][9] = {0};
 
-uint8_t raw[Cfg.memory_byte_length] = {0};
+uint8_t raw[((uint32_t)sizeof(Cfg))] = {0};
 
-uint8_t headerRaw[KCfg.memory_byte_length] = {0};
+uint8_t headerRaw[((uint32_t)sizeof(KCfg))] = {0};
 
-uint8_t pointerRaw[KOdd.memory_byte_length] = {0};
+uint8_t pointerRaw[((uint32_t)sizeof(KOdd))] = {0};
 
-uint8_t nameBytes[names.memory_byte_length] = {0};
+uint8_t nameBytes[((uint32_t)9U * 2U)] = {0};
 
-uint8_t cfgBits[(Cfg.memory_bit_length) + 1] = {0};
+uint8_t cfgBits[(((uint32_t)sizeof(Cfg) * 8U)) + 1] = {0};
 
 int main(void) {
-    uint8_t local[Cfg.memory_byte_length] = {0};
+    uint8_t local[((uint32_t)sizeof(Cfg))] = {0};
     local[0] = 7U;
     raw[0] = local[0U];
     if (raw[0U] != 7) {
         return 1U;
     }
-    if (Cfg.memory_byte_length != ((uint32_t)sizeof(Cfg))) {
+    if (((uint32_t)sizeof(Cfg)) != ((uint32_t)sizeof(Cfg))) {
         return 2U;
     }
-    if (Cfg.memory_byte_length != ((uint32_t)sizeof(Cfg))) {
+    if (((uint32_t)sizeof(Cfg)) != ((uint32_t)sizeof(Cfg))) {
         return 3U;
     }
-    if (KCfg.memory_byte_length != ((uint32_t)sizeof(KCfg))) {
+    if (((uint32_t)sizeof(KCfg)) != ((uint32_t)sizeof(KCfg))) {
         return 4U;
     }
-    if (KOdd.memory_byte_length != ((uint32_t)sizeof(KOdd))) {
+    if (((uint32_t)sizeof(KOdd)) != ((uint32_t)sizeof(KOdd))) {
         return 5U;
     }
-    if (names.memory_byte_length != 18) {
+    if (((uint32_t)9U * 2U) != 18) {
         return 6U;
     }
-    if ((Cfg.memory_bit_length) + 1 != ((uint32_t)sizeof(Cfg) * 8U) + 1) {
+    if ((((uint32_t)sizeof(Cfg) * 8U)) + 1 != ((uint32_t)sizeof(Cfg) * 8U) + 1) {
         return 7U;
     }
     return 0U;
