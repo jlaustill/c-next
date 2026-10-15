@@ -2,13 +2,15 @@
 // #1760 review: `.type_bit_length` and `.type_byte_length` of an array whose dimension
 // is a C macro were emitted as a literal 0, behind a comment naming the
 // dimension; `.type_element_count` already kept the macro. The product is C's to
-// fold now, in every dimension. The fixed-size array is the control, whose
+// fold now, in every dimension. A `bool` array's bits are no whole bytes, so
+// its bytes round up (ADR-058). The fixed-size array is the control, whose
 // lengths were already folded.
 #include "sizes.h"
 
 u8[BUF_SIZE] buf;
 u16[2][BUF_SIZE] grid;
 u8[4] fixed;
+bool[BUF_SIZE] flags;
 
 u32 main() {
     u32 bits <- buf.type_bit_length;
@@ -18,6 +20,8 @@ u32 main() {
     u32 rowBits <- grid[0].type_bit_length;
     u32 count <- buf.type_element_count;
     u32 fixedBits <- fixed.type_bit_length;
+    u32 flagBits <- flags.type_bit_length;
+    u32 flagBytes <- flags.type_byte_length;
     if (bits != 48) {
         return 1;
     }
@@ -38,6 +42,12 @@ u32 main() {
     }
     if (fixedBits != 32) {
         return 7;
+    }
+    if (flagBits != 6) {
+        return 8;
+    }
+    if (flagBytes != 1) {
+        return 9;
     }
     return 0;
 }
