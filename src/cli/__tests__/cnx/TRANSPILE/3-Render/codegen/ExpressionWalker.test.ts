@@ -313,7 +313,7 @@ describe("ExpressionWalker - const inference integration", () => {
       }
     `;
     const transpiler = new Transpiler(
-      { input: "", target: "host" },
+      { input: "", outDir: "", target: "host" },
       NodeFileSystem.instance,
     );
     const transpileResult = (
@@ -346,7 +346,7 @@ describe("ExpressionWalker - const inference integration", () => {
       }
     `;
     const transpiler = new Transpiler(
-      { input: "", target: "host" },
+      { input: "", outDir: "", target: "host" },
       NodeFileSystem.instance,
     );
     const transpileResult = (
@@ -378,7 +378,7 @@ describe("ExpressionWalker - const inference integration", () => {
       }
     `;
     const transpiler = new Transpiler(
-      { input: "", target: "host" },
+      { input: "", outDir: "", target: "host" },
       NodeFileSystem.instance,
     );
     const transpileResult = (

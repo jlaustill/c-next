@@ -22,7 +22,12 @@ async function transpile(withDependency: boolean) {
     `#include "can/config.cnx"\nu32 main() { return 0; }\n`,
   );
   const transpiler = new Transpiler(
-    { input: "/project/src/app.cnx", noCache: true, target: "host" },
+    {
+      input: "/project/src/app.cnx",
+      outDir: "/project/build",
+      noCache: true,
+      target: "host",
+    },
     fs,
   );
   return transpiler.transpile({ kind: "files" });

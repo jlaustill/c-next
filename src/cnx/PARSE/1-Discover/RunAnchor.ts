@@ -14,8 +14,10 @@ import type ITranspilerConfig from "../../types/ITranspilerConfig";
 /** The configuration an anchor is decided from. */
 type TAnchorSettings = Pick<
   Required<ITranspilerConfig>,
-  "includeDirs" | "defines" | "outDir" | "headerOutDir"
->;
+  "includeDirs" | "defines" | "outDir"
+> &
+  // #2104: unset is outDir; "" is the cwd.
+  Pick<ITranspilerConfig, "headerOutDir">;
 
 /**
  * Where a run is anchored (#1719): the one decision of everything that follows

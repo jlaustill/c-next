@@ -137,6 +137,7 @@ async function transpile(
   const transpiler = new Transpiler(
     {
       input: sourcePath,
+      outDir: dirname(sourcePath),
       includeDirs: [includeDir, dirname(sourcePath)],
       target: TestUtils.harnessTarget(source),
     },

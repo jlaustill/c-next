@@ -2,7 +2,7 @@
  * Unit tests for Transpiler
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import Transpiler from "../Transpiler";
@@ -18,13 +18,17 @@ describe("Transpiler", () => {
       mockFs = new MockFileSystem();
     });
 
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
     describe("transpile source mode (primary unit testing target)", () => {
       // transpile({ kind: 'source' }) is the main API that benefits from MockFileSystem
       // because it doesn't rely on FileDiscovery for the main code path
 
       it("transpiles source string without file I/O", async () => {
         const transpiler = new Transpiler(
-          { input: "", noCache: true, target: "host" },
+          { input: "", outDir: "", noCache: true, target: "host" },
           mockFs,
         );
 
@@ -42,7 +46,7 @@ describe("Transpiler", () => {
 
       it("returns parse errors for invalid source", async () => {
         const transpiler = new Transpiler(
-          { input: "", noCache: true, target: "host" },
+          { input: "", outDir: "", noCache: true, target: "host" },
           mockFs,
         );
 
@@ -57,7 +61,7 @@ describe("Transpiler", () => {
 
       it("generates header code for exported functions", async () => {
         const transpiler = new Transpiler(
-          { input: "", noCache: true, target: "host" },
+          { input: "", outDir: "", noCache: true, target: "host" },
           mockFs,
         );
 
@@ -79,7 +83,7 @@ describe("Transpiler", () => {
 
       it("returns undefined headerCode when no exports", async () => {
         const transpiler = new Transpiler(
-          { input: "", noCache: true, target: "host" },
+          { input: "", outDir: "", noCache: true, target: "host" },
           mockFs,
         );
 
@@ -98,7 +102,13 @@ describe("Transpiler", () => {
 
       it("respects parseOnly mode", async () => {
         const transpiler = new Transpiler(
-          { input: "", parseOnly: true, noCache: true, target: "host" },
+          {
+            input: "",
+            outDir: "",
+            parseOnly: true,
+            noCache: true,
+            target: "host",
+          },
           mockFs,
         );
 
@@ -115,7 +125,7 @@ describe("Transpiler", () => {
 
       it("rejects a write to an undefined name, and reports rather than throws", async () => {
         const transpiler = new Transpiler(
-          { input: "", noCache: true, target: "host" },
+          { input: "", outDir: "", noCache: true, target: "host" },
           mockFs,
         );
 
@@ -143,7 +153,7 @@ describe("Transpiler", () => {
 
       it("reports narrowing error at the correct line", async () => {
         const transpiler = new Transpiler(
-          { input: "", noCache: true, target: "host" },
+          { input: "", outDir: "", noCache: true, target: "host" },
           mockFs,
         );
 
@@ -203,7 +213,7 @@ describe("Transpiler", () => {
 
       it("transpiles various C-Next types correctly", async () => {
         const transpiler = new Transpiler(
-          { input: "", noCache: true, target: "host" },
+          { input: "", outDir: "", noCache: true, target: "host" },
           mockFs,
         );
 
@@ -236,7 +246,7 @@ describe("Transpiler", () => {
 
       it("handles assignment operator correctly", async () => {
         const transpiler = new Transpiler(
-          { input: "", noCache: true, target: "host" },
+          { input: "", outDir: "", noCache: true, target: "host" },
           mockFs,
         );
 
@@ -258,7 +268,7 @@ describe("Transpiler", () => {
 
       it("handles equality operator correctly", async () => {
         const transpiler = new Transpiler(
-          { input: "", noCache: true, target: "host" },
+          { input: "", outDir: "", noCache: true, target: "host" },
           mockFs,
         );
 
@@ -279,7 +289,7 @@ describe("Transpiler", () => {
 
       it("generates struct definitions", async () => {
         const transpiler = new Transpiler(
-          { input: "", noCache: true, target: "host" },
+          { input: "", outDir: "", noCache: true, target: "host" },
           mockFs,
         );
 
@@ -306,7 +316,7 @@ describe("Transpiler", () => {
 
       it("generates enum definitions", async () => {
         const transpiler = new Transpiler(
-          { input: "", noCache: true, target: "host" },
+          { input: "", outDir: "", noCache: true, target: "host" },
           mockFs,
         );
 
@@ -334,7 +344,7 @@ describe("Transpiler", () => {
 
       it("handles scope definitions", async () => {
         const transpiler = new Transpiler(
-          { input: "", noCache: true, target: "host" },
+          { input: "", outDir: "", noCache: true, target: "host" },
           mockFs,
         );
 
@@ -384,6 +394,60 @@ describe("Transpiler", () => {
         expect(writeCalls.some((w) => w.path.endsWith(".c"))).toBe(true);
       });
 
+      // #2086: where output goes is the caller's decision, and whether a file
+      // is written is decided by the run, never by outDir's value.
+      it("writes both the .c and the .h into the outDir it was given (#2086)", async () => {
+        mockFs.addFile(
+          "/project/src/main.cnx",
+          "scope Led { public u8 level() { return 3; } }",
+        );
+
+        const transpiler = new Transpiler(
+          {
+            input: "/project/src/main.cnx",
+            outDir: "/project/build",
+            noCache: true,
+            target: "host",
+          },
+          mockFs,
+        );
+
+        const result = await transpiler.transpile({ kind: "files" });
+
+        expect(result.success).toBe(true);
+        expect(mockFs.getWrittenContent("/project/build/main.c")).toContain(
+          "Led__level",
+        );
+        expect(mockFs.getWrittenContent("/project/build/main.h")).toContain(
+          "Led__level",
+        );
+      });
+
+      it("writes the .c whenever it writes the .h, whatever outDir is (#2086)", async () => {
+        mockFs.addFile(
+          "/project/src/main.cnx",
+          "scope Led { public u8 level() { return 3; } }",
+        );
+
+        const transpiler = new Transpiler(
+          {
+            input: "/project/src/main.cnx",
+            outDir: "",
+            noCache: true,
+            target: "host",
+          },
+          mockFs,
+        );
+
+        const result = await transpiler.transpile({ kind: "files" });
+
+        expect(result.success).toBe(true);
+        expect(mockFs.getWriteLog().map((w) => w.path)).toEqual(
+          expect.arrayContaining(["main.c", "main.h"]),
+        );
+        expect(mockFs.getWrittenContent("main.c")).toContain("Led__level");
+      });
+
       it("creates output directory when it does not exist", async () => {
         mockFs.addFile("/project/src/main.cnx", "void main() { }");
 
@@ -403,8 +467,102 @@ describe("Transpiler", () => {
         expect(mkdirCalls.some((c) => c.path === "/project/build")).toBe(true);
       });
 
-      it("creates header output directory when specified separately", async () => {
-        mockFs.addFile("/project/src/main.cnx", "void main() { }");
+      // #2104: "" is the current working directory, like any relative path
+      // (".", the control); only a missing headerOutDir falls back to outDir.
+      it.each(["", "."])(
+        "writes the header relative to the cwd when headerOutDir is %j",
+        async (headerOutDir) => {
+          mockFs.addFile(
+            "/project/src/main.cnx",
+            "scope Led { public u8 level() { return 3; } }",
+          );
+
+          const transpiler = new Transpiler(
+            {
+              input: "/project/src/main.cnx",
+              outDir: "/project/build",
+              headerOutDir,
+              noCache: true,
+              target: "host",
+            },
+            mockFs,
+          );
+
+          await transpiler.transpile({ kind: "files" });
+
+          expect(mockFs.getWriteLog().map((w) => w.path)).toEqual(
+            expect.arrayContaining(["/project/build/main.c", "main.h"]),
+          );
+          expect(mockFs.getWrittenContent("main.h")).toContain("Led__level");
+        },
+      );
+
+      // #2104: the same rule for a file outside every input directory, and
+      // for the #include that names its header.
+      it.each(["", "."])(
+        "writes a sideways include's header relative to the cwd when headerOutDir is %j",
+        async (headerOutDir) => {
+          // With no project root the base is the cwd (#1467); pinned so the
+          // file is outside it wherever the suite runs.
+          vi.spyOn(process, "cwd").mockReturnValue("/elsewhere");
+          mockFs.addFile(
+            "/project/src/main.cnx",
+            '#include "../lib/util.cnx"\n\nvoid main() { }\n',
+          );
+          mockFs.addFile(
+            "/project/lib/util.cnx",
+            "scope Util { public u8 one() { return 1; } }",
+          );
+
+          const transpiler = new Transpiler(
+            {
+              input: "/project/src/main.cnx",
+              outDir: "/project/build",
+              headerOutDir,
+              noCache: true,
+              target: "host",
+            },
+            mockFs,
+          );
+
+          await transpiler.transpile({ kind: "files" });
+
+          expect(mockFs.getWriteLog().map((w) => w.path)).toContain("util.h");
+          expect(mockFs.getWrittenContent("/project/build/main.c")).toContain(
+            '#include "util.h"',
+          );
+        },
+      );
+
+      it("creates no output directory when the run fails", async () => {
+        mockFs.addFile(
+          "/project/src/main.cnx",
+          "void main() { undeclared <- 1; }",
+        );
+
+        const transpiler = new Transpiler(
+          {
+            input: "/project/src/main.cnx",
+            outDir: "/project/build",
+            headerOutDir: "/project/include",
+            noCache: true,
+            target: "host",
+          },
+          mockFs,
+        );
+
+        const result = await transpiler.transpile({ kind: "files" });
+
+        expect(result.success).toBe(false);
+        expect(mockFs.getMkdirLog()).toEqual([]);
+        expect(mockFs.getWriteLog()).toEqual([]);
+      });
+
+      it("writes the header into a separately specified header output directory", async () => {
+        mockFs.addFile(
+          "/project/src/main.cnx",
+          "scope Led { public u8 level() { return 3; } }",
+        );
 
         const transpiler = new Transpiler(
           {
@@ -419,9 +577,11 @@ describe("Transpiler", () => {
 
         await transpiler.transpile({ kind: "files" });
 
-        const mkdirCalls = mockFs.getMkdirLog();
-        expect(mkdirCalls.some((c) => c.path === "/project/include")).toBe(
-          true,
+        expect(mockFs.getWrittenContent("/project/include/main.h")).toContain(
+          "Led__level",
+        );
+        expect(mockFs.getWrittenContent("/project/build/main.c")).toContain(
+          "Led__level",
         );
       });
 
@@ -459,6 +619,7 @@ describe("Transpiler", () => {
         const transpiler = new Transpiler(
           {
             input: "/nonexistent/file.cnx",
+            outDir: "/project/build",
             noCache: true,
             target: "host",
           },
@@ -476,6 +637,7 @@ describe("Transpiler", () => {
         const transpiler = new Transpiler(
           {
             input: "/project/empty",
+            outDir: "/project/build",
             noCache: true,
             target: "host",
           },
@@ -493,6 +655,7 @@ describe("Transpiler", () => {
         const transpiler = new Transpiler(
           {
             input: "/project/src/invalid.cnx",
+            outDir: "/project/build",
             noCache: true,
             target: "host",
           },
@@ -582,7 +745,12 @@ describe("Transpiler", () => {
         );
 
         const transpiler = new Transpiler(
-          { input: "/project/src/app.cnx", noCache: true, target: "host" },
+          {
+            input: "/project/src/app.cnx",
+            outDir: "/project/build",
+            noCache: true,
+            target: "host",
+          },
           mockFs,
         );
 
@@ -614,7 +782,12 @@ describe("Transpiler", () => {
         );
 
         const transpiler = new Transpiler(
-          { input: "/project/src/app.cnx", noCache: true, target: "host" },
+          {
+            input: "/project/src/app.cnx",
+            outDir: "/project/build",
+            noCache: true,
+            target: "host",
+          },
           mockFs,
         );
 
@@ -669,6 +842,7 @@ describe("Transpiler", () => {
         const transpiler = new Transpiler(
           {
             input: testFile,
+            outDir: testDir,
             noCache: true,
             target: "host",
           },
@@ -689,6 +863,7 @@ describe("Transpiler", () => {
         const transpiler = new Transpiler(
           {
             input: testFile,
+            outDir: testDir,
             noCache: true,
             target: "host",
           },
@@ -710,6 +885,7 @@ describe("Transpiler", () => {
         const transpiler = new Transpiler(
           {
             input: testFile,
+            outDir: testDir,
             noCache: true,
             target: "host",
           },
@@ -783,7 +959,7 @@ describe("Transpiler", () => {
 
     it("transpile({ kind: 'source' }) returns ITranspilerResult with files[]", async () => {
       const transpiler = new Transpiler(
-        { input: "", noCache: true, target: "host" },
+        { input: "", outDir: "", noCache: true, target: "host" },
         mockFs,
       );
 
@@ -798,7 +974,7 @@ describe("Transpiler", () => {
 
     it("transpile({ kind: 'source' }) returns header in files[0].headerCode", async () => {
       const transpiler = new Transpiler(
-        { input: "", noCache: true, target: "host" },
+        { input: "", outDir: "", noCache: true, target: "host" },
         mockFs,
       );
 
@@ -816,7 +992,7 @@ describe("Transpiler", () => {
 
     it("transpile({ kind: 'source' }) returns errors in result", async () => {
       const transpiler = new Transpiler(
-        { input: "", noCache: true, target: "host" },
+        { input: "", outDir: "", noCache: true, target: "host" },
         mockFs,
       );
 

@@ -16,7 +16,7 @@ import MockFileSystem from "../../../../MockFileSystem";
 
 async function transpile(source: string) {
   const transpiler = new Transpiler(
-    { input: "", noCache: true, target: "host" },
+    { input: "", outDir: "", noCache: true, target: "host" },
     new MockFileSystem(),
   );
   return transpiler.transpile({ kind: "source", source });

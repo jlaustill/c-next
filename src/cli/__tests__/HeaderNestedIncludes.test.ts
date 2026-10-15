@@ -71,6 +71,7 @@ describe("a C header's own includes (#1723)", () => {
     const source = await new Transpiler(
       {
         input: "",
+        outDir: "",
         noCache: true,
       },
       NodeFileSystem.instance,

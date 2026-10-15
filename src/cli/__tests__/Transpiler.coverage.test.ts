@@ -85,7 +85,13 @@ describe("Transpiler coverage tests", () => {
 
     it("transpileSource respects cppRequired config", async () => {
       const transpiler = new Transpiler(
-        { input: "", cppRequired: true, noCache: true, target: "host" },
+        {
+          input: "",
+          outDir: "",
+          cppRequired: true,
+          noCache: true,
+          target: "host",
+        },
         mockFs,
       );
 
@@ -489,7 +495,7 @@ describe("Transpiler coverage tests", () => {
     it("buildCatchResult handles Error objects", async () => {
       // Create a transpiler that will fail during generation
       const transpiler = new Transpiler(
-        { input: "", noCache: true, target: "host" },
+        { input: "", outDir: "", noCache: true, target: "host" },
         mockFs,
       );
 
@@ -510,7 +516,7 @@ describe("Transpiler coverage tests", () => {
     it("buildCatchResult handles non-Error objects", async () => {
       // Use transpileSource with a scenario that might throw
       const transpiler = new Transpiler(
-        { input: "", noCache: true, target: "host" },
+        { input: "", outDir: "", noCache: true, target: "host" },
         mockFs,
       );
 
@@ -542,6 +548,7 @@ describe("Transpiler coverage tests", () => {
       const transpiler = new Transpiler(
         {
           input: "/project/src/main.cnx",
+          outDir: "/project/build",
           noCache: true,
           target: "host",
         },
@@ -771,7 +778,7 @@ describe("Transpiler coverage tests", () => {
   describe("Target configuration", () => {
     it("passes target to code generator", async () => {
       const transpiler = new Transpiler(
-        { input: "", target: "esp32", noCache: true },
+        { input: "", outDir: "", target: "esp32", noCache: true },
         mockFs,
       );
 
@@ -796,6 +803,7 @@ describe("Transpiler coverage tests", () => {
       const transpiler = new Transpiler(
         {
           input: "",
+          outDir: "",
           cppRequired: true,
           noCache: true,
           target: "host",
@@ -869,6 +877,7 @@ describe("Transpiler coverage tests", () => {
       const transpiler = new Transpiler(
         {
           input: "/project/main.cnx", // Needed for project root detection
+          outDir: "",
           noCache: false, // Enable cache
           target: "host",
         },
@@ -931,7 +940,7 @@ describe("Transpiler coverage tests", () => {
   describe("Analyzer errors", () => {
     it("returns error result for MISRA violations", async () => {
       const transpiler = new Transpiler(
-        { input: "", noCache: true, target: "host" },
+        { input: "", outDir: "", noCache: true, target: "host" },
         mockFs,
       );
 
@@ -956,7 +965,7 @@ describe("Transpiler coverage tests", () => {
 
     it("returns error result for analyzer errors via transpileSource", async () => {
       const transpiler = new Transpiler(
-        { input: "", noCache: true, target: "host" },
+        { input: "", outDir: "", noCache: true, target: "host" },
         mockFs,
       );
 

@@ -73,7 +73,6 @@ describe("the type registry does not survive a run (#1432)", () => {
         input: "",
         includeDirs: [dir],
         outDir: "",
-        headerOutDir: "",
         target: "host",
       },
       NodeFileSystem.instance,
