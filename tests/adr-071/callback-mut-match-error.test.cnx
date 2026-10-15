@@ -1,0 +1,32 @@
+// test-error
+// test-adr: 071
+// ADR-071 Q5: a callback type takes `mut` from its declaration, and a function
+// placed in it must match exactly. E0879 both ways: a read-only parameter where
+// the type says `mut`, and `mut` where the type says read-only. CONTROL: the
+// two functions whose parameters match are silent.
+
+void onWrite(mut u32 v) {}
+
+void onRead(u32 v) {}
+
+void writes(mut u32 v) {
+    v <- 1;
+}
+
+void reads(u32 v) {
+    u32 a <- v;
+}
+
+struct Handler {
+    onWrite w;
+    onRead r;
+}
+
+mut Handler h;
+
+void wire() {
+    h.w <- writes;
+    h.r <- reads;
+    h.w <- reads;
+    h.r <- writes;
+}
