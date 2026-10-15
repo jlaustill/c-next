@@ -100,7 +100,7 @@ an unwritten parameter, local, global and scope member as not written.
 ## Decision
 
 **Accepted by the owner on 2026-10-15** (#2099): adopt, before v1, for every binding, and
-`const` is no longer written.
+`const` is no longer written. Implementation is tracked in #2103.
 
 1. Every binding is **read-only by default**: parameters, locals, `for` variables, globals and
    scope members.
