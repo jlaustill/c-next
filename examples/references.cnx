@@ -38,7 +38,7 @@ void divmod(const i32 dividend, const i32 divisor, i32 quotient, i32 remainder) 
 // have an explicit size; the element count comes from the array itself.
 void zeroArray(u8[16] buffer) {
     u32 i <- 0;
-    while (i < buffer.element_count) {
+    while (i < buffer.type_element_count) {
         buffer[i] <- 0;
         i <- i + 1;
     }

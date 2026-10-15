@@ -62,7 +62,7 @@ SIZE:      usize               → size_t
 STRING:    string<N>           → char[N+1]
 ```
 
-Scalar values also expose **`.bit_length`** — the compile-time bit width: `u32 x; x.bit_length` → 32, `f64 d; d.bit_length` → 64, `bool b; b.bit_length` → 8. (Arrays additionally expose `.byte_length`/`.element_count` — see Arrays.)
+Scalar values also expose **`.type_bit_length`** — the compile-time bit width: `u32 x; x.type_bit_length` → 32, `f64 d; d.type_bit_length` → 64, `bool b; b.type_bit_length` → 1 (its memory, `b.memory_bit_length`, is the C compiler's `sizeof(bool) * 8`). (Arrays additionally expose `.type_byte_length`/`.type_element_count` — see Arrays.)
 
 ## Literals
 
@@ -122,9 +122,9 @@ u8[5] data <- [1, 2, 3, 4, 5];  // literal init with []
 u8[100] zeros <- [0*];           // fill all elements
 u8[4][8] matrix;                 // multi-dimensional
 
-usize len <- buffer.element_count;  // 256 (compile-time)
-u32 bits <- buffer.bit_length;      // 2048 (compile-time)
-u32 bytes <- buffer.byte_length;    // 256 (compile-time)
+usize len <- buffer.type_element_count;  // 256 (compile-time)
+u32 bits <- buffer.type_bit_length;      // 2048 (compile-time)
+u32 bytes <- buffer.type_byte_length;    // 256 (compile-time)
 ```
 
 **Rules:**
@@ -140,7 +140,7 @@ u32 bytes <- buffer.byte_length;    // 256 (compile-time)
 
 ```cnx
 string<64> name <- "Hello";         // 64-char max capacity
-u32 len <- name.char_count;         // runtime: strlen → 5
+u32 len <- name.value_char_count;         // runtime: strlen → 5
 u32 cap <- name.capacity;           // compile-time: 64
 u32 sz <- name.size;                // compile-time: 65 (capacity + null terminator)
 string<5> sub <- name[0, 5];        // substring
@@ -300,20 +300,35 @@ POINTER CAST (NOT SUPPORTED):  use register keyword for MMIO
 
 ## sizeof (ADR-023)
 
-C-Next has no `sizeof` (#1975): writing `sizeof(...)` is `E0603`. A type's or a value's size in bytes is its `.byte_length` (ADR-058), a compile-time constant:
+C-Next has no `sizeof` (#1975): writing `sizeof(...)` is `E0603`. ADR-058 names each kind of length instead — `value_` (what it holds now), `type_` (its declared, logical width) and `memory_` (C's layout) — each in bits, bytes, chars and elements:
 
 ```cnx
-u32 a <- u32.byte_length;      // 4   (bool = 1, f64 = 8, ...)
-u32 b <- myVar.byte_length;    // size of a variable
-u32 c <- Point.byte_length;    // size of a struct type (or instance: p.byte_length)
-u32 d <- Point.x.byte_length;  // size of a struct member (or p.x.byte_length)
-u32 e <- buffer.byte_length;   // total bytes of an array  (u32[8] → 32)
-u8[u32.byte_length] buf;       // usable as an array dimension
+struct Cfg { u32 a; u8 b; }
+u32 n <- 5;
+string<8> s <- "ab";
+u32 v1 <- n.value_bit_length;        // 3: runtime, 5 is 101 (unsigned only)
+u32 v2 <- n.value_char_count;        // 1: runtime, "5"
+u32 v3 <- s.value_char_count;        // 2: runtime, strlen
+u32 t1 <- Cfg.type_byte_length;      // 5: fields summed, no padding
+u32 t2 <- s.type_byte_length;        // 8: the capacity, no '\0'
+u32 m1 <- Cfg.memory_byte_length;    // sizeof(Cfg): the C compiler's answer, 8 on host
+u32 m2 <- s.memory_char_count;       // 9: the buffer, its '\0' included
 ```
 
-- A struct's size is its fields' sizes summed, with no C padding — also for a struct from a C header (`typedef struct { uint32_t a; uint8_t b; } Cfg;` → `Cfg.byte_length` is 5).
-- C-Next has no pointers, so a header struct's pointer field, or a struct holding one, has no `.byte_length` → `E0867`.
-- An array parameter's `.byte_length` is the array's, not a pointer's.
+The removed `.bit_length`, `.byte_length`, `.char_count` and `.element_count` are `E0886`, whose help names the replacement. The `type_` row is a compile-time constant:
+
+```cnx
+u32 a <- u32.type_byte_length;      // 4   (bool = 1, f64 = 8, ...)
+u32 b <- myVar.type_byte_length;    // size of a variable
+u32 c <- Point.type_byte_length;    // size of a struct type (or instance: p.type_byte_length)
+u32 d <- Point.x.type_byte_length;  // size of a struct member (or p.x.type_byte_length)
+u32 e <- buffer.type_byte_length;   // total bytes of an array  (u32[8] → 32)
+u8[u32.type_byte_length] buf;       // usable as an array dimension
+```
+
+- A struct's size is its fields' sizes summed, with no C padding — also for a struct from a C header (`typedef struct { uint32_t a; uint8_t b; } Cfg;` → `Cfg.type_byte_length` is 5).
+- C-Next has no pointers, so a header struct's pointer field, or a struct holding one, has no `.type_byte_length` → `E0867`.
+- An array parameter's `.type_byte_length` is the array's, not a pointer's.
 
 ## Functions
 
@@ -1248,7 +1263,7 @@ void encode(Msg m, u8[8] out) { }        // -> void encode(const Msg* m, uint8_t
 | `S.f()`                           | `S_f()`                                                   |
 | `u8[5] a <- [1,2,3,4,5]`          | `uint8_t a[5] = {1,2,3,4,5}`                              |
 | `string<64> s <- "hi"`            | `char s[65] = "hi"`                                       |
-| `s.char_count`                    | `strlen(s)`                                               |
+| `s.value_char_count`              | `strlen(s)`                                               |
 | `s.capacity`                      | `64`                                                      |
 | `flags[3] <- true`                | bit-set expression                                        |
 | `val[0, 8]`                       | `(val >> 0) & 0xFF`                                       |

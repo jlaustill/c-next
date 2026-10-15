@@ -110,7 +110,7 @@ cleanly, for locals and globals alike:
 ```cnx
 u32 counter <- 0;
 void t() {
-    u32 x <- counter.bit_length;   // .bit_length is compile-time (32); counter's value never read
+    u32 x <- counter.type_bit_length;   // .type_bit_length is compile-time (32); counter's value never read
 }
 ```
 
@@ -142,7 +142,7 @@ header, so the check is "does any discovered translation unit reference this nam
 any `.cnx` reference it?".
 
 **Compile-time property access is NOT a use** (resolved — see _Resolved Questions_). A variable
-read only through `.bit_length` / `.element_count` (ADR-058) is dead: those read a property of
+read only through `.type_bit_length` / `.type_element_count` (ADR-058) is dead: those read a property of
 the _type_, resolved at compile time, and never touch the object's storage.
 
 **Explicitly out of scope for this rule's first version** (each already has its own MISRA row and can be sequenced
@@ -280,7 +280,7 @@ review; nothing here is implemented.
 
 ### 1. Does compile-time property access count as a use? — **No**
 
-A variable read only through `.bit_length` / `.element_count` (ADR-058) is **dead**. Those
+A variable read only through `.type_bit_length` / `.type_element_count` (ADR-058) is **dead**. Those
 properties are resolved at compile time from the _type_ and never touch the object's storage, so
 strict storage liveness says the object is unused. This also matches ADR-070's stance that there
 is no opt-out and no curated exception — exceptions to rules are where bugs come from.

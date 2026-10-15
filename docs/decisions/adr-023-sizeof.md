@@ -4,7 +4,8 @@
 
 **Rejected**
 
-C-Next has no `sizeof` (#1975, below): a size is ADR-058's `.byte_length`. The
+C-Next has no `sizeof` (#1975, below): a size is one of ADR-058's kind-named
+lengths, `.type_byte_length` or `.memory_byte_length`. The
 problem, options and research are kept as the record of how that was decided;
 "Recommended Decision" is kept as the recommendation it was, and is superseded
 by the ruling.
@@ -12,26 +13,33 @@ by the ruling.
 ## Owner Ruling (#1975)
 
 C-Next has no `sizeof`. The size of a type or of a value is ADR-058's
-`.byte_length` (and `.bit_length`), which C-Next decides itself rather than the
+`.type_byte_length` (and `.type_bit_length`), which C-Next decides itself rather than the
 C compiler:
 
 ```cnx
-u32 a <- u32.byte_length;        // 4: a type answers its length properties
-u32 b <- Point.byte_length;      // a C-Next struct: its fields' sizes, summed
-u32 c <- Point.x.byte_length;    // a field of a type
-u32 d <- reading.byte_length;    // a value: the same answer as its type
-u32 e <- Cfg.byte_length;        // a C header's struct: also its fields summed
+u32 a <- u32.type_byte_length;        // 4: a type answers its length properties
+u32 b <- Point.type_byte_length;      // a C-Next struct: its fields' sizes, summed
+u32 c <- Point.x.type_byte_length;    // a field of a type
+u32 d <- reading.type_byte_length;    // a value: the same answer as its type
+u32 e <- Cfg.type_byte_length;        // a C header's struct: also its fields summed
 ```
 
 - A struct's size is the sum of its fields' sizes, without C padding, wherever
   the struct is declared. For `typedef struct { uint32_t a; uint8_t b; } Cfg;`
-  from a header, `Cfg.byte_length` is 5, not gcc's 8: a memory-safe language
+  from a header, `Cfg.type_byte_length` is 5, not gcc's 8: a memory-safe language
   has no use for C's own size.
 - C-Next has no pointers, so it cannot size one. A header struct's pointer
-  field, and a header struct holding one, has no `.byte_length`: E0867.
+  field, and a header struct holding one, has no `.type_byte_length`: E0867.
 - Writing `sizeof(...)` is a compile error, E0603, whose help names
-  `.byte_length`. It is parsed only so that it is rejected with a code.
+  `.type_byte_length`. It is parsed only so that it is rejected with a code.
 - E0601 and E0602 judged `sizeof`'s operand; with no `sizeof` they are retired.
+
+Later (#1975 review 2, ADR-058's Decision) the owner split the length into
+three kinds, each named: `.value_*`, `.type_*` and `.memory_*`. The `type_`
+row is the one above. `.memory_byte_length` is C's layout, emitted as
+`sizeof(T)` in the generated C for the C compiler to answer (`Cfg` is 8 there,
+and a pointer has one). This is not a C-Next `sizeof`: the operator stays
+rejected, and this ADR stays Rejected.
 
 The sections below that describe `sizeof` syntax and its rules are the
 research the ruling replaced.
@@ -303,7 +311,7 @@ size_t arrSize = sizeof(buffer);
 
 ## Resolved Questions
 
-1. **sizeof on expressions vs types?** - Neither: C-Next has no `sizeof` (#1975). Both a type and a value answer `.byte_length`.
+1. **sizeof on expressions vs types?** - Neither: C-Next has no `sizeof` (#1975). Both a type and a value answer `.type_byte_length`.
 2. **Compile-time only?** - Yes, a length property is always compile-time (no VLAs).
 3. **A C header struct's size?** - Its fields' sizes summed, no padding; a pointer field has none (E0867) (#1975).
 
@@ -315,7 +323,7 @@ size_t arrSize = sizeof(buffer);
 
 E0601 (`sizeof` of an array parameter measured a pointer) and E0602 (an operand
 with a side effect, MISRA C:2012 Rule 13.6) are retired by #1975 and not
-reassigned: `.byte_length` of an array parameter is the array's, and a length
+reassigned: `.type_byte_length` of an array parameter is the array's, and a length
 property reads no value, so it has no operand to evaluate.
 
 ## Scope-Context Matrix (#1219)

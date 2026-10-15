@@ -12,7 +12,7 @@ Implement `string<N>` bounded string type with compile-time safety guarantees:
 
 - `string<64>` → `char[65]` (capacity + null terminator)
 - No heap allocation, no buffer overflows
-- Properties: `.char_count` (strlen), `.capacity` (compile-time N); length properties: ADR-058
+- Properties: `.value_char_count` (strlen), `.capacity` (compile-time N); length properties: ADR-058
 
 ---
 
@@ -139,7 +139,7 @@ private validateStringLiteral(literal: string, capacity: number): void {
 
 ## Phase 2: Properties
 
-**Goal:** `.char_count` and `.capacity` property access (length properties: [ADR-058](../decisions/adr-058-explicit-length-properties.md))
+**Goal:** `.value_char_count` and `.capacity` property access (length properties: [ADR-058](../decisions/adr-058-explicit-length-properties.md))
 
 ### CodeGenerator Changes
 
@@ -166,13 +166,13 @@ if (memberName === "capacity") {
 
 ### Tests
 
-| File                    | Description                         |
-| ----------------------- | ----------------------------------- |
-| `string-properties.cnx` | `.char_count` and `.capacity` usage |
+| File                    | Description                               |
+| ----------------------- | ----------------------------------------- |
+| `string-properties.cnx` | `.value_char_count` and `.capacity` usage |
 
 ### Success Criteria
 
-- [ ] `msg.char_count` → `strlen(msg)`
+- [ ] `msg.value_char_count` → `strlen(msg)`
 - [ ] `msg.capacity` → compile-time constant N
 
 ---
@@ -329,7 +329,7 @@ char buffer[65] = "";
 ### Properties
 
 ```cnx
-u32 len <- message.char_count;
+u32 len <- message.value_char_count;
 u32 cap <- message.capacity;
 ```
 

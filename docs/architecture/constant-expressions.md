@@ -22,7 +22,7 @@ disagreed:
 What did not fold was copied into the C as `getText()`, which ANTLR builds by
 joining tokens with no separator. So `u8[1 - -1]` was `neg[2]` in the `.c`
 (render's fold) and `neg[1--1]` in the `.h`, which C reads as a decrement; and
-`(LOCAL)`, `u32` and `src.element_count` reached headers as names C cannot see.
+`(LOCAL)`, `u32` and `src.type_element_count` reached headers as names C cannot see.
 
 ## The design
 
@@ -122,7 +122,7 @@ u8").
 
 `Program.settleValues` runs the consts and the dimensions in rounds, because a
 const may read a dimension through a length property
-(`const u32 K <- arr.element_count`). The consts settle again only while one has
+(`const u32 K <- arr.type_element_count`). The consts settle again only while one has
 no value and a dimension moved, so a program that converges in one round costs
 one.
 
@@ -138,7 +138,7 @@ both by `ConstantFold.dimension`: its value; for a `foreign` one, its C from
 `ConstExprPrinter`; otherwise `UNRESOLVED_DIMENSION`, which 2.1 reports before
 anything emits it. A function's parameter dimensions are settled once more
 through the frames' own settled declarations (`settledOf`), so a parameter
-sized by an earlier one (`u8[a.element_count] b`) reads what its frame settled,
+sized by an earlier one (`u8[a.type_element_count] b`) reads what its frame settled,
 and the header writes the same size the `.c` does.
 
 ### Reporting in 2.1
@@ -201,10 +201,10 @@ A size 1.3 can know alone (a literal, arithmetic over literals) is a number with
 
 ### ADR-058 length properties
 
-`.element_count`, `.bit_length` and `.byte_length` are constants, so
-`u8[src.element_count]` is a constant dimension. `ConstantNames` measures the
-value they are taken of -- through struct fields, `cfg.data.element_count`;
-through elements, `m[0].element_count`, where the lowering records the
+`.type_element_count`, `.type_bit_length` and `.type_byte_length` are constants, so
+`u8[src.type_element_count]` is a constant dimension. `ConstantNames` measures the
+value they are taken of -- through struct fields, `cfg.data.type_element_count`;
+through elements, `m[0].type_element_count`, where the lowering records the
 subscript as a step (`ELEMENT_STEP`) because the property is the same for every
 element; and on a header's array, from the dimensions its header declares --
 and `LengthProperty` (`src/cnx/utils`) decides the number from its settled

@@ -126,8 +126,8 @@ u8 classify(bool ready) {
 struct Point { i32 x; i32 y; }
 
 // A type answers its length properties, and its fields' (ADR-058)
-u32 pointBytes <- Point.byte_length;    // 8: fields summed, no C padding
-u32 xBytes <- Point.x.byte_length;      // 4
+u32 pointBytes <- Point.type_byte_length;    // 8: fields summed, no C padding
+u32 xBytes <- Point.x.type_byte_length;      // 4
 
 void movePoint(Point p, i32 dx, i32 dy) {
     p.x +<- dx;     // Modifies original!
@@ -256,8 +256,8 @@ while (done = false) {
 u8[256] buffer;
 buffer[0] <- 0xFF;
 
-// .element_count property (ADR-058)
-usize len <- buffer.element_count;  // 256
+// .type_element_count property (ADR-058)
+usize len <- buffer.type_element_count;  // 256
 
 // Array initialization uses [] not {}
 u8[5] data <- [1, 2, 3, 4, 5];   // Size 5
@@ -270,8 +270,8 @@ u8[50] ones <- [1*];            // All 50 elements = 1
 // Multi-dimensional arrays
 u8[4][8] matrix;
 matrix[0][0] <- 1;
-u32 rows <- matrix.element_count;   // 4
-u32 cols <- matrix[0].element_count; // 8
+u32 rows <- matrix.type_element_count;   // 4
+u32 cols <- matrix[0].type_element_count; // 8
 
 // =============================================================================
 // 6. STRINGS
@@ -282,7 +282,7 @@ string<64> name <- "Hello";     // 64 chars max, transpiles to char[65]
 string<128> buffer;             // Empty string
 
 // Properties
-u32 len <- name.char_count;     // Runtime: strlen(name) = 5
+u32 len <- name.value_char_count;     // Runtime: strlen(name) = 5
 u32 cap <- name.capacity;       // Compile-time: 64
 
 // Comparison uses =
@@ -367,12 +367,12 @@ bool isSet <- flags[0];         // Read bit 0
 flags[4, 3] <- 5;               // Set 3 bits starting at bit 4
 u8 field <- flags[4, 3];        // Read 3-bit field
 
-// .bit_length on integers gives bit width
-u8 w8 <- flags.bit_length;          // 8
-u32 w32 <- counter.bit_length;      // 32
+// .type_bit_length on integers gives bit width
+u8 w8 <- flags.type_bit_length;          // 8
+u32 w32 <- counter.type_bit_length;      // 32
 
 // A type answers the same length properties; C-Next has no sizeof (ADR-023)
-u32 wordBytes <- u32.byte_length;   // 4
+u32 wordBytes <- u32.type_byte_length;   // 4
 
 // =============================================================================
 // 10. STRUCTS

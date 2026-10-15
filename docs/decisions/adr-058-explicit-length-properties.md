@@ -604,7 +604,10 @@ error: `.length` is not a built-in property. Use explicit properties instead.
 - The C compiler answers the memory row: `Cfg.memory_byte_length` emits
   `sizeof(Cfg)`, exact for every build, including header unions and
   bit-fields. C-Next itself does not know the number, so it cannot check
-  anything sized by it.
+  anything sized by it. An array may still be sized by it
+  (`u8[Cfg.memory_byte_length] raw;` emits `uint8_t raw[sizeof(Cfg)]`), as a
+  header macro may; where C-Next needs the number itself, as an enum member's
+  value, it is E0909.
 - The type row is the declared, logical width, so a `bool` and a 1-bit
   bitmap field have `.type_bit_length` 1 and `.memory_bit_length` 8.
 - A `_byte_length` rounds up to the whole bytes that hold its bits: a 3-bit
@@ -670,6 +673,7 @@ Rejected: C-Next has no `sizeof` operator.
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
 | E0867 | A shape property is asked of a subject that cannot answer it (a pointer, a header union, bit-field or other layout C-Next cannot sum), or of a literal | `tests/explicit-length/`, `tests/adr-058/`                                           |
 | E0886 | `.length` is used at all                                                                                                                               | `tests/adr-058/`                                                                     |
+| E0909 | A memory size is where C-Next needs the number itself, as an enum member's value (the C compiler decides it for the target)                            | `tests/adr-058/kinds-memory-dimension-error.test.cnx`                                |
 | E0897 | A chain that names a type does not end in a length property                                                                                            | `tests/bugs/issue-1975-header-struct-byte-length/type-named-as-value-error.test.cnx` |
 
 `.length` is rejected by NAME and needs no subject: naming a different thing on

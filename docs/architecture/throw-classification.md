@@ -473,15 +473,15 @@ from variables not supported` was misleading: a LIST whose elements are
   diagnostics.** `Cannot determine .X for '<name>' - type not found in
 registry` appears once per property, and the audit classed all four as
   user-facing. An undeclared name is E0427 in pass 2.1 before codegen runs --
-  probed: `undeclaredName.bit_length` reports E0427 at a real position -- so what
+  probed: `undeclaredName.type_bit_length` reports E0427 at a real position -- so what
   is left is a DECLARED name whose type codegen cannot find, which is the
   transpiler being wrong, not the program. They are invariants, which is what
   the plan's tier-C note predicted for the "wrong diagnosis" sites.
 - **ADR-058 is `Implemented` and the transpiler rejects what it documents.** The
-  ADR's property table gives structs `.bit_length`, `.byte_length` and
-  `.element_count`, with a worked `SensorReading` example. Codegen rejected all
+  ADR's property table gives structs `.type_bit_length`, `.type_byte_length` and
+  `.type_element_count`, with a worked `SensorReading` example. Codegen rejected all
   three, and the relocation preserves that -- closing the divergence means
-  choosing what `.byte_length` on a struct MEANS, and the ADR says "with
+  choosing what `.type_byte_length` on a struct MEANS, and the ADR says "with
   padding" without saying whose. That is an ABI question the ADR does not
   answer, so it is raised rather than decided here.
 - **ADR-024 was one rule reached three ways, and two of the ways carried a
