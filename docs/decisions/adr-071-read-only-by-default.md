@@ -128,6 +128,9 @@ an unwritten parameter, local, global and scope member as not written.
    except where the `mut` is fixed by something outside the body: a function used as a
    callback type (ADR-029), whose `mut` is part of the type its implementations match, and a
    global that C code writes.
+7. A read-only binding is generated with C's `const` (`const uint32_t LIMIT = 5U;`,
+   `void show(const uint32_t v)`), so the generated C and the header a C file includes say
+   what the C-Next says (MISRA C:2012 Rule 8.13).
 
 Rejected:
 
@@ -138,9 +141,9 @@ Rejected:
 - **Ada-style `in` / `out` / `inout` modes.** ADR-013 Alternative 2 already weighed them;
   `mut` adds one keyword where modes add three and an `out` rule C has no way to express.
 
-## Open Questions
+## Questions
 
-Each is from #2099 and is the owner's to answer. A recommendation is not a decision.
+Every question #2099 asked is answered; each heading names the Decision that answers it.
 
 ### Q1: `const`, once it is the default — decided
 
@@ -149,7 +152,7 @@ migration window would protect no code.
 
 ### Q2: Writing a binding that is not `mut`, and a `mut` that is never needed — decided
 
-**Recommendation: a new diagnostic for the write**, not E0877. E0877's help is "remove `const`",
+**The write gets a new diagnostic**, not E0877. E0877's help is "remove `const`",
 which is the wrong advice when there is no `const` to remove:
 
 ```text
@@ -165,7 +168,7 @@ more than the code needs — with two exemptions:
 - a global another language writes: a C-Next global a C file or an interrupt handler written
   in C assigns is written in no C-Next code, so the analysis would call its `mut` unused.
 
-### Q3 and Q4: Passing a binding to a parameter that writes
+### Q3 and Q4: Passing a binding to a parameter that writes — decided (Decision 2)
 
 ```cnx
 const u32 LIMIT <- 5;                // today's spelling
@@ -173,7 +176,7 @@ void sink(mut u32 v) { v <- 1; }
 void forward(u32 v) { sink(v); }     // forward's v is read-only
 ```
 
-**Recommendation: one rule.** Passing a binding to a `mut` parameter writes it, so the binding
+**One rule.** Passing a binding to a `mut` parameter writes it, so the binding
 must be `mut`, with Q2's diagnostic. E0878 ("cannot pass const ... to non-const parameter")
 becomes that diagnostic: there is no longer a "non-const" parameter that is not `mut`, so the
 `LIMIT` call in Context compiles and `sink(LIMIT)` is the error. The same applies to a C/C++
@@ -188,16 +191,16 @@ ADR-062 (Proposed, not established) answers the array half of this by inference,
 "mutable" with a note. With a declared `mut` there is nothing to infer, so ADR-062 is revisited
 rather than implemented as written.
 
-### Q5: Callbacks (ADR-029)
+### Q5: Callbacks (ADR-029) — decided (Decisions 3 and 6)
 
-**Recommendation:** `mut` is part of the function-as-type signature and comes from the
+`mut` is part of the function-as-type signature and comes from the
 declaration only. A function assigned to a callback type matches its parameters' `mut` exactly,
 the same way it already matches type and `const` (E0879). This removes #1529's class of defect:
 two identical declarations always have one pointer type.
 
-### Q6: Generated C
+### Q6: Generated C — decided (Decisions 3 and 7)
 
-**Recommendation for parameters**, decided by the declaration alone:
+Parameters, decided by the declaration alone:
 
 | Parameter    | Read-only (default)     | `mut`             |
 | ------------ | ----------------------- | ----------------- |
@@ -206,19 +209,18 @@ two identical declarations always have one pointer type.
 | struct (C++) | `const Point& p`        | `Point& p`        |
 | array        | `const uint8_t data[4]` | `uint8_t data[4]` |
 
-Still open, for parameters and every other binding alike: whether a read-only binding is
-emitted with C's `const` (`const uint32_t LIMIT = 5U;`, `const uint32_t v`). For a global it is
+Every other read-only binding is generated with C's `const` too (Decision 7): for a global it is
 what a C file including the header sees, and MISRA C:2012 Rule 8.13 asks for it on pointed-to
-types. Emitting it everywhere changes the generated C of every unmarked read-only binding —
-5694 in the corpus.
+types. This changes the generated C of every unmarked read-only binding (5694 in the corpus),
+so their snapshots are regenerated with the implementation.
 
 ### Q7: Which bindings — decided
 
 All of them (Decision 1).
 
-### Q8: Can the migration be automated?
+### Q8: Can the migration be automated? — yes
 
-**Recommendation: yes, and it was measured.** The rewrite is: add `mut` to every written binding
+Yes, and it was measured. The rewrite is: add `mut` to every written binding
 (2284 in the corpus) and delete `const` from every binding that has it (534). The analysis that
 produced those counts is the one that would drive the rewrite. The 97 bindings passed only to
 C/C++ or builtin parameters need that parameter's signature first. The written bindings in
