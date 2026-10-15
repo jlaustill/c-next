@@ -16,7 +16,7 @@ char line[257] = "";
 void readFile(void) {
     FILE* c_file = fopen("data.txt", "r");
     if (c_file != NULL) {
-        const char* c_result = fgets(line, 257, c_file);
+        char* c_result = fgets(line, 257, c_file);
         while (c_result != NULL) {
             (void)printf("%s", line);
             c_result = fgets(line, 257, c_file);
