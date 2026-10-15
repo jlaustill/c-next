@@ -124,6 +124,10 @@ an unwritten parameter, local, global and scope member as not written.
 3. A parameter's generated signature follows its declaration, not the body.
 4. This is `0xx` work: it ships before v1.
 5. `const` on a declaration is a compile error ("`const` is the default; remove it").
+6. A `mut` that nothing writes is a compile error ("'v' is never written; remove `mut`"),
+   except where the `mut` is fixed by something outside the body: a function used as a
+   callback type (ADR-029), whose `mut` is part of the type its implementations match, and a
+   global that C code writes.
 
 Rejected:
 
@@ -143,7 +147,7 @@ Each is from #2099 and is the owner's to answer. A recommendation is not a decis
 An error (Decision 5). The rewrite in Q8 removes all 534 mechanically, so a warning or a
 migration window would protect no code.
 
-### Q2: Writing a binding that is not `mut`, and a `mut` that is never needed
+### Q2: Writing a binding that is not `mut`, and a `mut` that is never needed — decided
 
 **Recommendation: a new diagnostic for the write**, not E0877. E0877's help is "remove `const`",
 which is the wrong advice when there is no `const` to remove:
@@ -153,9 +157,9 @@ error[E08xx]: cannot assign to 'count': bindings are read-only unless declared `
        help: declare it `mut u32 count` if it must change
 ```
 
-**A `mut` that nothing writes is also an error**, mirroring ADR-013's "missing `const` is an
+**A `mut` that nothing writes is also an error** (Decision 6), mirroring ADR-013's "missing `const` is an
 error when it could be used", so a declaration never claims more than the code needs — with
-two exemptions to decide:
+two exemptions:
 
 - a function used as a callback type (ADR-029): its body is the default and is often empty,
   while the functions assigned to it may write; its `mut` is part of the type;
