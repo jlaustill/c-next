@@ -54,6 +54,7 @@ v2 (so "Research (v2 Roadmap)" holds `1xx` ADRs).
 | --------------------------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------- |
 | [ADR-051](decisions/adr-051-division-by-zero.md)                | Division by Zero      | Compile-time and runtime division-by-zero detection                                |
 | [ADR-052](decisions/adr-052-safe-numeric-literal-generation.md) | Safe Numeric Literals | `type_MIN`/`type_MAX` constants + safe hex conversion                              |
+| [ADR-071](decisions/adr-071-read-only-by-default.md)            | Read-Only by Default  | Every binding read-only unless declared `mut`                                      |
 | [ADR-070](decisions/adr-070-return-value-use.md)                | Return-Value Use      | Reject discarded non-void returns (MISRA 17.7, E0708)                              |
 | [ADR-063](decisions/adr-063-identifier-syntax.md)               | Identifier Syntax     | No trailing/consecutive `_`; `__` reserved as the qualified-name separator (E0201) |
 | [ADR-061](decisions/adr-061-c-library-interop.md)               | C Library Interop     | C is the escape hatch: unsafe C stays in a `.h`/`.c` boundary layer                |
@@ -86,7 +87,6 @@ v2 (so "Research (v2 Roadmap)" holds `1xx` ADRs).
 | [ADR-056](decisions/adr-056-cast-overflow-behavior.md)  | Cast Overflow Behavior        | Consistent overflow semantics for type casts     |
 | [ADR-066](decisions/adr-066-do178c-compliance.md)       | DO-178C Compliance            | Safety-critical software certification framework |
 | [ADR-069](decisions/adr-069-dead-code-reachability.md)  | Dead-Code / Reachability      | Reject unreachable code (MISRA 2.1/2.2, DO-178C) |
-| [ADR-071](decisions/adr-071-read-only-parameters.md)    | Read-Only Parameters          | Parameters read-only by default; `mut` to write  |
 
 ## Research (v2 Roadmap)
 
