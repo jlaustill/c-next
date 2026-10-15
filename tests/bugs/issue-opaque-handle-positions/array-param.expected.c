@@ -44,7 +44,7 @@ void forward(Dev* arr[2]) {
 }
 
 // A whole-value use of one element.
-int32_t firstPokes(const Dev* arr[2]) {
+int32_t firstPokes(Dev* arr[2]) {
     Dev* first = arr[0U];
     const int32_t n = dev_pokes(first);
     return n;

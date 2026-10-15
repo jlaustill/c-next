@@ -11,12 +11,12 @@
 
 #include <string.h>
 
-extern const char line[257] = "";
+char line[257] = "";
 
 void readFile(void) {
-    const FILE* c_file = fopen("data.txt", "r");
+    FILE* c_file = fopen("data.txt", "r");
     if (c_file != nullptr) {
-        char* c_result = fgets(line, 257, c_file);
+        const char* c_result = fgets(line, 257, c_file);
         while (c_result != nullptr) {
             static_cast<void>(printf("%s", line));
             c_result = fgets(line, 257, c_file);

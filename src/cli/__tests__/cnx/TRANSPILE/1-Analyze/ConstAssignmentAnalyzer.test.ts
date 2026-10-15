@@ -224,6 +224,16 @@ describe("ConstAssignmentAnalyzer (E0899, ADR-071 Decision 6)", () => {
     expect(errors(source)).toEqual([]);
   });
 
+  it("counts an argument to a function it cannot see as written", () => {
+    const source = [
+      "void f() {",
+      "    mut u8[4] buf;",
+      "    fgets(buf, 4, stdin);",
+      "}",
+    ].join("\n");
+    expect(at(source)).not.toContain("E0899@2");
+  });
+
   it("exempts a global and a public scope member, which C can write", () => {
     expect(
       errors("mut u32 G <- 0;\nscope S {\n    public mut u8 shown <- 0;\n}"),

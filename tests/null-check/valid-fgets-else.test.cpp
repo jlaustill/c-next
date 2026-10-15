@@ -11,10 +11,10 @@
 
 #include <string.h>
 
-extern const char line[129] = "";
+char line[129] = "";
 
 void processLine(void) {
-    const char* c_result = fgets(line, 129, stdin);
+    const const char* c_result = fgets(line, 129, stdin);
     if (c_result != nullptr) {
         static_cast<void>(printf("Read: %s", line));
     } else {

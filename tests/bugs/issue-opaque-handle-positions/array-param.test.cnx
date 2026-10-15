@@ -35,7 +35,7 @@ void forward(mut Dev[2] arr) {
 }
 
 // A whole-value use of one element.
-i32 firstPokes(Dev[2] arr) {
+i32 firstPokes(mut Dev[2] arr) {
     mut Dev first <- arr[0];
     i32 n <- dev_pokes(first);
     return n;

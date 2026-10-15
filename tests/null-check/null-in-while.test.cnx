@@ -2,7 +2,7 @@
 // Tests: NULL check in while loop condition using c_ prefix pattern
 #include <stdio.h>
 
-string<64> buffer;
+mut string<64> buffer;
 
 // Read lines until fgets returns NULL (EOF)
 void readAllLines() {

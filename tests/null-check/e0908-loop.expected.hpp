@@ -11,7 +11,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern const char buffer[257];
+extern char buffer[257];
 
 /* Function prototypes */
 void testLoopPattern(void);

@@ -24,7 +24,7 @@ scope UI {
     }
 
     // A whole-value use of the parameter: `UI__held = (*w);` before the fix.
-    public void hold(Dev w) {
+    public void hold(mut Dev w) {
         this.held <- w;
     }
 

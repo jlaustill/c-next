@@ -18,7 +18,7 @@ extern "C" {
 void aPoke(Dev* d);
 void pokeAll(Dev* arr[2]);
 void forward(Dev* arr[2]);
-int32_t firstPokes(const Dev* arr[2]);
+int32_t firstPokes(Dev* arr[2]);
 void bumpFirst(Full fulls[2]);
 
 #ifdef __cplusplus

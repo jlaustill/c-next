@@ -11,7 +11,7 @@
 
 #include <string.h>
 
-extern const char buffer[65] = "";
+char buffer[65] = "";
 
 void readInput(void) {
     const char* c_result = fgets(buffer, 65, stdin);

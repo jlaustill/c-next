@@ -11,12 +11,12 @@
 
 #include <string.h>
 
-const char buffer[257] = "";
+char buffer[257] = "";
 
 void testNested(void) {
-    const FILE* c_file = fopen("test.txt", "r");
+    FILE* c_file = fopen("test.txt", "r");
     if (c_file != NULL) {
-        const char* c_line = fgets(buffer, 257, c_file);
+        const const char* c_line = fgets(buffer, 257, c_file);
         if (c_line != NULL) {
             (void)printf("%s", c_line);
         }

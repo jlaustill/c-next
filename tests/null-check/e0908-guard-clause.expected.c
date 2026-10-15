@@ -10,7 +10,7 @@
 #include <stdio.h>
 
 void testGuardClause(void) {
-    const FILE* c_file = fopen("test.txt", "r");
+    FILE* c_file = fopen("test.txt", "r");
     if (c_file == NULL) {
         return;
     }

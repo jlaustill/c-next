@@ -12,7 +12,7 @@
 // cppcheck-suppress misra-c2012-21.6
 #include <stdio.h>
 
-const char haystack[65] = "hello hello hello";
+char haystack[65] = "hello hello hello";
 
 void testWhileLoop(void) {
     char* c_pos = strstr(haystack, "hello");

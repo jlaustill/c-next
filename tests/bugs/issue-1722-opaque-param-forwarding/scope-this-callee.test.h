@@ -15,7 +15,7 @@ extern "C" {
 /* Function prototypes */
 void UI__inner(Dev* w);
 void UI__outer(Dev* w);
-void UI__hold(const Dev* w);
+void UI__hold(Dev* w);
 void UI__pokeHeld(void);
 
 #ifdef __cplusplus

@@ -31,7 +31,7 @@ void UI__outer(Dev* w) {
     UI__inner(w);
 }
 
-void UI__hold(const Dev* w) {
+void UI__hold(Dev* w) {
     UI__held = w;
 }
 

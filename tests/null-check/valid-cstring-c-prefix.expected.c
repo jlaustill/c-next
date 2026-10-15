@@ -12,7 +12,7 @@
 
 #include <string.h>
 
-const char buffer[65] = "";
+char buffer[65] = "";
 
 void test(void) {
     const char* c_result = fgets(buffer, 65, stdin);

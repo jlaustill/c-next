@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 
-string<64> haystack <- "hello world";
+mut string<64> haystack <- "hello world";
 
 void testReassignment() {
     // First assignment - use cstring for C pointer returns

@@ -12,7 +12,7 @@
 // cppcheck-suppress misra-c2012-21.6
 #include <stdio.h>
 
-const char haystack[65] = "hello world";
+char haystack[65] = "hello world";
 
 void testReassignment(void) {
     char* c_found = strstr(haystack, "hello");

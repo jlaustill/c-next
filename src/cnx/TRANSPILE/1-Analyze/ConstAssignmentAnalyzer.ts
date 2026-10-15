@@ -73,7 +73,11 @@ class ConstAssignmentCheck {
     if (target === null) return;
     this.noteWrite(target.binding);
     const kind = ConstAssignmentCheck.constKind(target.binding);
-    if (kind === null) return;
+    if (kind === null) {
+      if (site.operator === "<-")
+        this.checkHandleStore(site.value, target.name);
+      return;
+    }
 
     const suffix = ConstAssignmentCheck.targetSuffix(target.ops);
     this.report(
@@ -83,6 +87,27 @@ class ConstAssignmentCheck {
       kind === "parameter"
         ? "A parameter is read-only unless declared `mut` (ADR-071); declare it `mut` if the function must change it."
         : "A binding is read-only unless declared `mut` (ADR-071); declare it `mut` if the value must change.",
+    );
+  }
+
+  /**
+   * ADR-030 holds an opaque handle through a pointer, so storing one in a
+   * `mut` binding hands that binding the object: `this.held <- w` lets
+   * `held` write what `w` refers to, which is writing `w`.
+   */
+  public checkHandleStore(value: TExpression, into: string): void {
+    const typeName = OperandTyper.typeOf(value, this.context)?.typeName;
+    if (!typeName || !this.context.program.isOpaqueType(typeName)) return;
+    const source = WrittenBinding.ofExpression(value, this.context);
+    if (source === null) return;
+    this.noteWrite(source.binding);
+    const kind = ConstAssignmentCheck.constKind(source.binding);
+    if (kind === null) return;
+    this.report(
+      value.span,
+      "E0900",
+      `cannot store read-only ${kind} '${value.written}' in \`mut\` '${into}': a ${typeName} handle refers to its object`,
+      "Through the copy, the object may be written (ADR-030); declare the source `mut` (ADR-071).",
     );
   }
 
@@ -147,9 +172,18 @@ class ConstAssignmentCheck {
       OperandTyper.scopePathAt(expr.span, this.context),
       this.context,
     );
-    if (callee === null || callee.sourceLanguage !== ESourceLanguage.CNext) {
+    if (callee === null) {
+      // A function nothing declares to the transpiler -- `fgets` from a
+      // `<stdio.h>` it cannot resolve -- may write any argument, so none of
+      // their `mut`s is unused (Decision 6). The C compiler checks the rest.
+      for (const arg of call.arguments) {
+        this.noteWrite(
+          WrittenBinding.ofExpression(arg, this.context)?.binding ?? null,
+        );
+      }
       return;
     }
+    if (callee.sourceLanguage !== ESourceLanguage.CNext) return;
     call.arguments.forEach((arg, index) => {
       const param = callee.parameters[index];
       if (param === undefined || param.isConst) return;
@@ -305,6 +339,15 @@ class ConstAssignmentAnalyzer {
     for (const member of program.declarations) {
       for (const site of StatementNodes.assignments(member.declaration)) {
         check.checkSite(site);
+      }
+      for (const statement of StatementNodes.in(member.declaration)) {
+        if (
+          statement.kind === "variableDeclaration" &&
+          statement.modifiers.mut &&
+          statement.initializer !== null
+        ) {
+          check.checkHandleStore(statement.initializer, statement.name);
+        }
       }
       for (const part of DeclarationParts.of(member.declaration)) {
         for (const expr of ExpressionNodes.of(part))

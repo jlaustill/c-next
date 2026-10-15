@@ -1,10 +1,10 @@
 // E0908: Nested if blocks with NULL checks
 #include <stdio.h>
 
-string<256> buffer;
+mut string<256> buffer;
 
 void testNested() {
-    FILE c_file <- fopen("test.txt", "r");
+    mut FILE c_file <- fopen("test.txt", "r");
     if (c_file != NULL) {
         cstring c_line <- fgets(buffer, buffer.size, c_file);
         if (c_line != NULL) {
