@@ -54,8 +54,8 @@ class ConstLiteral {
       case "char":
         return literal.text;
       default: {
-        const unspelled: never = literal;
-        return unspelled;
+        const unhandled: never = literal;
+        return unhandled;
       }
     }
   }

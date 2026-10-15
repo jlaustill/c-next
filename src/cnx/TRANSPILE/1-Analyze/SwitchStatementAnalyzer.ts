@@ -409,8 +409,8 @@ class SwitchStatementCheck {
       case "char":
         return `value:${literal.text}`;
       default: {
-        const unkeyed: never = literal;
-        return unkeyed;
+        const unhandled: never = literal;
+        return unhandled;
       }
     }
   }
