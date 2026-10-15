@@ -1,6 +1,6 @@
 /**
  * An `if` statement: a condition, a then branch, an optional else, and the
- * repeated-`.char_count` counts the strlen cache is built from.
+ * repeated-`.value_char_count` counts the strlen cache is built from.
  *
  * ## Why the counts are eager and the renders are not
  *
@@ -19,7 +19,7 @@
  * declaration does not dominate.
  */
 interface IPlannedIf {
-  /** Variable name to number of `.char_count` reads, condition + then block. */
+  /** Variable name to number of `.value_char_count` reads, condition + then block. */
   readonly lengthCounts: Map<string, number>;
   /**
    * #1946: a counted name rendered as a read of it renders, at this statement,

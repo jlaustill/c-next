@@ -46,6 +46,7 @@ type TConstResult =
         | "undeclaredMember"
         | "leadingZero"
         | "sizeofExpression"
+        | "lengthRule"
         | "divisionByZero"
         | "negativeShift";
       /** The offending part as the source spells it, for a message */
@@ -73,9 +74,12 @@ type TConstResult =
       /**
        * A name a header declares; a name no C-Next declaration binds, in a
        * file that includes a header, which may be a macro (a `#define` never
-       * reaches the symbol model); or a size the target decides
+       * reaches the symbol model); or a memory size the C compiler decides
+       * for the target (ADR-058 `.memory_*`)
        */
-      readonly why: "header" | "maybeHeader";
+      readonly why: "header" | "maybeHeader" | "target";
+      /** For a memory size: the C that measures it, `sizeof` (ADR-058) */
+      readonly c?: string;
     };
 
 export default TConstResult;

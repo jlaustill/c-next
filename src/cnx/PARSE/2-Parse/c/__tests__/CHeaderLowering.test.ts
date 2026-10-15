@@ -69,7 +69,7 @@ describe("CHeaderLowering", () => {
       ]);
     });
 
-    // #1975 review (owner ruling): `.bit_length` is the declared width
+    // #1975 review (owner ruling): `.type_bit_length` is the declared width
     it("records a bit-field's declared width, or its text", () => {
       const fields = struct(
         `typedef struct { uint32_t a : 3, b : W; uint8_t c; } BF;`,

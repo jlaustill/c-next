@@ -49,6 +49,8 @@ interface IConstantNameFacts {
   headerTypeHead: IFileConstantFacts["headerTypeHead"];
   /** #1975 review: `IFileConstantFacts.headerFieldCount` */
   headerFieldCount: IFileConstantFacts["headerFieldCount"];
+  /** `IFileConstantFacts.headerNeedsStructKeyword` */
+  headerNeedsStructKeyword: IFileConstantFacts["headerNeedsStructKeyword"];
   /** A member of the enum with C name `enumCName` */
   enumMember(
     enumCName: string,

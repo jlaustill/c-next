@@ -107,15 +107,15 @@ describe("CodeGenWalker Coverage Tests", () => {
   // NEW CODE IN PR: _isArrayAccessStringExpression (lines 811-852)
   // ==========================================================================
   describe("_isArrayAccessStringExpression() - PR new code", () => {
-    it("should return false for string property access (.char_count)", () => {
+    it("should return false for string property access (.value_char_count)", () => {
       const source = `
         string<32> name <- "test";
         void main() {
-          u32 len <- name.char_count;
+          u32 len <- name.value_char_count;
         }
       `;
       const { code } = setupGenerator(source, { cppMode: false });
-      // .char_count returns a number, not a string
+      // .value_char_count returns a number, not a string
       expect(code).toContain("strlen(name)");
     });
 
@@ -1709,8 +1709,8 @@ describe("CodeGenWalker Coverage Tests", () => {
         u8 main() {
           string<16> s <- "hi";
           u32 n <- 0;
-          if (s.char_count > 1) {
-            n <- s.char_count;
+          if (s.value_char_count > 1) {
+            n <- s.value_char_count;
           }
           return 0;
         }

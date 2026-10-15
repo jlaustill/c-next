@@ -327,6 +327,22 @@ describe("LengthProperty (ADR-058, #1175, #1975 review 2)", () => {
       expect(LengthProperty.helperOf({ kind: "string" })).toBeNull();
     });
 
+    it("reads at runtime only a value's length now: a helper's or strlen's", () => {
+      expect(LengthProperty.readsAtRuntime({ kind: "bits" })).toBe(true);
+      expect(
+        LengthProperty.readsAtRuntime({ kind: "decimal", signed: false }),
+      ).toBe(true);
+      expect(LengthProperty.readsAtRuntime({ kind: "string" })).toBe(true);
+      for (const kind of [
+        "logical",
+        "spelling",
+        "stringBuffer",
+        "memory",
+      ] as const) {
+        expect(LengthProperty.readsAtRuntime({ kind })).toBe(false);
+      }
+    });
+
     it("reads a string's characters now only for its value lengths", () => {
       expect(LengthProperty.readsStringNow("value_char_count")).toBe(true);
       expect(LengthProperty.readsStringNow("value_byte_length")).toBe(true);

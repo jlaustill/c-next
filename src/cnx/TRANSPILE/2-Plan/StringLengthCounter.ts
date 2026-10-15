@@ -1,12 +1,12 @@
 /**
- * StringLengthCounter - Counts .char_count accesses on string variables
+ * StringLengthCounter - Counts .value_char_count accesses on string variables
  *
  * Issue #644: Extracted from CodeGenerator to reduce code duplication.
- * Used for strlen caching optimization - when a string's .char_count is accessed
+ * Used for strlen caching optimization - when a string's .value_char_count is accessed
  * multiple times, we cache the strlen result in a temp variable.
  *
  * Migrated to use CodeGenState instead of constructor DI.
- * Updated for ADR-058: .length replaced with .char_count
+ * Updated for ADR-058: .length replaced with .value_char_count
  */
 
 import type TExpression from "../../types/syntax/TExpression";
@@ -17,12 +17,12 @@ import type TranspileState from "../TranspileState";
 import LengthProperty from "../../utils/LengthProperty";
 
 /**
- * Counts .char_count accesses on string variables in an expression tree.
+ * Counts .value_char_count accesses on string variables in an expression tree.
  * This enables strlen caching optimization.
  */
 class StringLengthCounter {
   /**
-   * Count .char_count accesses in an expression.
+   * Count .value_char_count accesses in an expression.
    */
   static countExpression(
     expr: TExpression,
@@ -34,7 +34,7 @@ class StringLengthCounter {
   }
 
   /**
-   * Count .char_count accesses in a block, adding to existing counts.
+   * Count .value_char_count accesses in a block, adding to existing counts.
    */
   static countBlockInto(
     block: Pick<TBlockSyntax, "statements">,
@@ -47,7 +47,7 @@ class StringLengthCounter {
   }
 
   /**
-   * Walk an expression, counting `.char_count` reads on string identifiers.
+   * Walk an expression, counting `.value_char_count` reads on string identifiers.
    * Only identifier-rooted chains count, and only their subscript indexes are
    * searched further; call arguments are not.
    */
@@ -82,8 +82,8 @@ class StringLengthCounter {
   }
 
   /**
-   * #1650: only `name.char_count` counts -- the length of the variable itself,
-   * the operand the cache measures. `names[0].char_count` measures an element,
+   * #1650: only `name.value_char_count` counts -- the length of the variable itself,
+   * the operand the cache measures. `names[0].value_char_count` measures an element,
    * which a cache of `names` cannot serve.
    */
   private static walkPostfix(
@@ -144,7 +144,7 @@ class StringLengthCounter {
   }
 
   /**
-   * Walk a statement, counting .char_count accesses.
+   * Walk a statement, counting .value_char_count accesses.
    */
   private static walkStatement(
     statement: TStatement,

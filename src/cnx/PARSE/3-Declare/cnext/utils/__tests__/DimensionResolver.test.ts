@@ -57,10 +57,10 @@ describe("DimensionResolver", () => {
     });
 
     it("keeps a type's length as written, which 1.4 settles", () => {
-      // #1975: `u32.byte_length` is a name chain, as `EColor.COUNT` is
-      expect(resolve("u32.byte_length").expr).toMatchObject({
+      // #1975: `u32.type_byte_length` is a name chain, as `EColor.COUNT` is
+      expect(resolve("u32.type_byte_length").expr).toMatchObject({
         kind: "name",
-        path: ["u32", "byte_length"],
+        path: ["u32", "type_byte_length"],
       });
     });
 
@@ -84,7 +84,13 @@ describe("DimensionResolver", () => {
       // Dropping a dimension loses the field's array-ness and shifts every
       // dimension after it -- the failure behind #1157 and #1158. Keeping
       // its text is how C-Next names reached the header (#1175).
-      const cases = ["10", "SIZE", "EColor.COUNT", "u32.byte_length", "a + b"];
+      const cases = [
+        "10",
+        "SIZE",
+        "EColor.COUNT",
+        "u32.type_byte_length",
+        "a + b",
+      ];
       for (const source of cases) {
         const resolved = resolve(source);
         expect(typeof resolved.size).toBe("number");

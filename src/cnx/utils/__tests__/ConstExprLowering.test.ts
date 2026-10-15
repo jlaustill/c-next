@@ -37,7 +37,7 @@ describe("ConstExprLowering", () => {
     ["(u32)EColor.COUNT + 1", "((u32)EColor.COUNT + 1)"],
     ["this.N", "this.N"],
     ["global.S.N", "global.S.N"],
-    ["src.element_count", "src.element_count"],
+    ["src.type_element_count", "src.type_element_count"],
     ["(A < B) ? 1 : 2", "((A < B) ? 1 : 2)"],
     ["a << 2 | b & c", "((a << 2) | (b & c))"],
     ["A = B && C != D || !E", "(((A = B) && (C != D)) || !E)"],
@@ -47,11 +47,11 @@ describe("ConstExprLowering", () => {
     ["arr[0]", "<subscript arr[0]>"],
     // ADR-058: a length property is the same for every element, so before
     // one a subscript is a step into the element, whatever its index
-    ["m[0].element_count", "m[].element_count"],
-    ["m[i][j].bit_length", "m[][].bit_length"],
+    ["m[0].type_element_count", "m[].type_element_count"],
+    ["m[i][j].type_bit_length", "m[][].type_bit_length"],
     ["m[0].data", "<subscript m[0].data>"],
-    ["m[0, 4].element_count", "<subscript m[0, 4].element_count>"],
-    ["pick().element_count", "<call pick().element_count>"],
+    ["m[0, 4].type_element_count", "<subscript m[0, 4].type_element_count>"],
+    ["pick().type_element_count", "<call pick().type_element_count>"],
     // #1863 review: its text joined tokens (`word--1`); no value, spelt as written
     ["sizeof(word - -1)", "<sizeofExpression sizeof(word - -1)>"],
     ["1.5", "<float 1.5>"],
@@ -74,7 +74,7 @@ describe("ConstExprLowering", () => {
 
   it("is plain data: it survives a JSON round trip unchanged (#1298)", () => {
     const lowered = lowerOf(
-      "(u32)EColor.COUNT + 0xFFFFFFFFFFFFFFFFu64 * u8.byte_length",
+      "(u32)EColor.COUNT + 0xFFFFFFFFFFFFFFFFu64 * u8.type_byte_length",
     );
     expect(JSON.parse(JSON.stringify(lowered))).toEqual(lowered);
   });

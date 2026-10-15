@@ -25,6 +25,9 @@ import ExpressionNodes from "../../utils/ExpressionNodes";
 import CastRequirement from "./CastRequirement";
 import type TNegativeMinimum from "./types/TNegativeMinimum";
 import LengthProperty from "../../utils/LengthProperty";
+import type IChainStep from "../../types/IChainStep";
+import type ILengthName from "../../utils/types/ILengthName";
+import type TLengthRule from "../../utils/types/TLengthRule";
 import LengthSubject from "../../utils/LengthSubject";
 import OperandTyper from "../../utils/OperandTyper";
 import CppNamespaceUtils from "../../utils/CppNamespaceUtils";
@@ -773,13 +776,25 @@ class FilePlanner {
   /**
    * ADR-058: what 2.3's length reads need, by `LengthProperty.rule` -- a
    * string's chars now are strlen, from <string.h>, and a runtime integer
-   * length is a helper. The typer's step names the property.
+   * length is a helper.
    */
   private planLengths(
     program: IProgramSyntax,
     inlinedConsts: ReadonlySet<TDeclarationSyntax>,
     requirements: PlannedRequirements,
   ): void {
+    for (const { rule } of this.lengthReads(program, inlinedConsts)) {
+      if (rule.kind === "string") requirements.require("string");
+      const helper = LengthProperty.helperOf(rule);
+      if (helper !== null) requirements.lengthHelper(helper);
+    }
+  }
+
+  /** Every length 2.3 writes, with the rule it is written by: the typer's step names the property */
+  private *lengthReads(
+    program: IProgramSyntax,
+    inlinedConsts: ReadonlySet<TDeclarationSyntax>,
+  ): Generator<{ step: IChainStep; name: ILengthName; rule: TLengthRule }> {
     const typing = this.state.typingContext();
     const isStruct = LengthSubject.structTest(
       (cName) => typing.program.symbolByCName(cName),
@@ -794,10 +809,7 @@ class FilePlanner {
         const name = LengthProperty.parse(step.property ?? "");
         const subject = name && LengthSubject.of(step, isStruct);
         if (name === null || !subject) continue;
-        const rule = LengthProperty.rule(name, subject);
-        if (rule.kind === "string") requirements.require("string");
-        const helper = LengthProperty.helperOf(rule);
-        if (helper !== null) requirements.lengthHelper(helper);
+        yield { step, name, rule: LengthProperty.rule(name, subject) };
       }
     }
   }
@@ -1431,27 +1443,41 @@ class FilePlanner {
   }
 
   /**
-   * `.bit_length`/`.byte_length` of an array with a dimension that does not
-   * fold (a C macro) is a product 2.3 writes in `uint32_t` (#1760)
+   * The `uint32_t` 2.3 writes a length in (#1760): a logical bit or byte
+   * length of an array with a dimension that does not fold (a C macro) is a
+   * product, a memory length a cast `sizeof`, a runtime one a helper's, and
+   * strlen's only when it is widened for its bits.
    */
   private planLengthCTypes(
     program: IProgramSyntax,
     inlinedConsts: ReadonlySet<TDeclarationSyntax>,
     cTypes: Set<string>,
   ): void {
-    const typing = this.state.typingContext();
-    for (const expression of FilePlanner.writtenExpressions(
+    for (const { step, name, rule } of this.lengthReads(
       program,
       inlinedConsts,
     )) {
-      if (expression.kind !== "postfix") continue;
-      const steps = OperandTyper.chainOf(expression, typing).steps;
-      const unfolded = steps.some(
-        (step) =>
-          (step.property === "bit_length" || step.property === "byte_length") &&
-          step.before?.dimensions.some((dim) => typeof dim !== "number"),
-      );
-      if (unfolded) cTypes.add(LengthProperty.PRODUCT_C_TYPE);
+      const unfolded =
+        rule.kind === "logical" &&
+        name.unit !== "element_count" &&
+        step.before?.dimensions.some((dim) => typeof dim !== "number");
+      const helper = LengthProperty.helperOf(rule) !== null;
+      if (
+        unfolded ||
+        rule.kind === "memory" ||
+        (rule.kind === "string" && name.unit === "bit_length") ||
+        helper
+      ) {
+        cTypes.add(LengthProperty.PRODUCT_C_TYPE);
+      }
+      // `sizeof(bool)`: the C type a memory length measures (2.3's memoryCType)
+      const primitive = TYPE_MAP[step.before?.typeName ?? ""];
+      if (rule.kind === "memory" && primitive !== undefined) {
+        cTypes.add(primitive);
+      }
+      // a runtime integer length's helper takes the value widened to 64 bits
+      if (helper) cTypes.add("uint64_t");
+      if (rule.kind === "decimal" && rule.signed) cTypes.add("int64_t");
     }
   }
 

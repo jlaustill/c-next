@@ -7,8 +7,8 @@
  *
  * Also provides helper for bitmap field access.
  *
- * Note: Explicit length properties (.bit_length, .byte_length, .element_count,
- * .char_count) are handled in PostfixExpressionGenerator.ts, not here.
+ * Note: Explicit length properties (.type_bit_length, .type_byte_length, .type_element_count,
+ * .value_char_count) are handled in PostfixExpressionGenerator.ts, not here.
  * The deprecated .length property was removed per ADR-058.
  */
 import type TPlannedNarrowing from "../../../../2-Plan/types/TPlannedNarrowing";

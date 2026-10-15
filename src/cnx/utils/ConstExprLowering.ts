@@ -107,7 +107,7 @@ class ConstExprLowering {
           at: ConstExprLowering.at(expr),
         };
       case "sizeof":
-        // ADR-023: E0603 rejects it; a size is ADR-058's `.byte_length`
+        // ADR-023: E0603 rejects it; a size is ADR-058's `.type_byte_length`
         return ConstExprLowering.other("sizeofExpression", expr);
       case "structInitializer":
       case "arrayInitializer":
@@ -139,7 +139,7 @@ class ConstExprLowering {
 
   /**
    * A name, possibly qualified (`this.N`, `Scope.N`, `EColor.COUNT`,
-   * `buf.element_count`). A subscript or a call anywhere in the chain makes it
+   * `buf.type_element_count`). A subscript or a call anywhere in the chain makes it
    * something no constant contains.
    */
   private static postfix(expr: TExpressionOf<"postfix">): TConstExpr {

@@ -75,7 +75,7 @@ describe("dimensionEvalOptions", () => {
   it("folds a type's length through the shared TYPE_WIDTH table", () => {
     // Codegen and symbol collection must fold a length against the same widths;
     // supplying a different table is how the two layers came to disagree.
-    const { state, arrays } = setUp("u8[u32.byte_length] word;");
+    const { state, arrays } = setUp("u8[u32.type_byte_length] word;");
     expect(sizeOf(state, arrays[0])).toBe(4);
   });
 

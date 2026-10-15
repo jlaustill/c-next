@@ -404,6 +404,14 @@ function operandOfDeclared(info: TTypeInfo): IOperandType {
   if (/^u\d+$/.test(info.baseType)) category = "unsigned";
   else if (/^i\d+$/.test(info.baseType)) category = "signed";
   else if (/^f\d+$/.test(info.baseType)) category = "floating";
+  // a C-Next enum, as the typer types one (OperandTyper.namedFacts)
+  if (info.isEnum) {
+    return typed(info.baseType, {
+      dimensions,
+      category: "enum",
+      enumTypeName: info.baseType,
+    });
+  }
   return typed(info.baseType, {
     dimensions,
     bitWidth: info.bitWidth || null,
@@ -891,7 +899,7 @@ describe("PostfixExpressionGenerator", () => {
 
   // Note: .length property tests removed (ADR-058)
   // .length is deprecated - use explicit properties instead:
-  // .bit_length, .byte_length, .element_count, .char_count
+  // .type_bit_length, .type_byte_length, .type_element_count, .value_char_count
 
   describe(".length property deprecation", () => {
     it("throws deprecation error for .length property access", () => {
@@ -2090,7 +2098,7 @@ describe("PostfixExpressionGenerator", () => {
   // ADR-058: Explicit Length Properties
   // ========================================================================
 
-  describe(".bit_length property (ADR-058)", () => {
+  describe(".type_bit_length property (ADR-058)", () => {
     it("returns bit width for integer type", () => {
       const typeRegistry = new Map<string, TTypeInfo>([
         [
@@ -2104,7 +2112,7 @@ describe("PostfixExpressionGenerator", () => {
         ],
       ]);
       const ctx = createMockPostfixExpressionContext("val", [
-        createMockPostfixOp({ identifier: "bit_length" }),
+        createMockPostfixOp({ identifier: "type_bit_length" }),
       ]);
       const input = createMockInput({ typeRegistry });
       const state = createMockState();
@@ -2116,9 +2124,19 @@ describe("PostfixExpressionGenerator", () => {
       expect(result.code).toBe("32");
     });
 
-    it("returns 32 for enum type", () => {
+    it("returns the fewest bits that hold every member for an enum type", () => {
       const symbols = createMockSymbols({
         knownEnums: new Set(["Color"]),
+        enumMembers: new Map([
+          [
+            "Color",
+            new Map([
+              ["Red", 0],
+              ["Green", 1],
+              ["Blue", 2],
+            ]),
+          ],
+        ]),
       });
       const typeRegistry = new Map<string, TTypeInfo>([
         [
@@ -2133,7 +2151,7 @@ describe("PostfixExpressionGenerator", () => {
         ],
       ]);
       const ctx = createMockPostfixExpressionContext("color", [
-        createMockPostfixOp({ identifier: "bit_length" }),
+        createMockPostfixOp({ identifier: "type_bit_length" }),
       ]);
       const input = createMockInput({ symbols, typeRegistry });
       const state = createMockState();
@@ -2142,7 +2160,7 @@ describe("PostfixExpressionGenerator", () => {
       });
 
       const result = runPostfix(ctx, input, state, orchestrator);
-      expect(result.code).toBe("32");
+      expect(result.code).toBe("2");
     });
 
     it("returns total bits for array type", () => {
@@ -2159,7 +2177,7 @@ describe("PostfixExpressionGenerator", () => {
         ],
       ]);
       const ctx = createMockPostfixExpressionContext("arr", [
-        createMockPostfixOp({ identifier: "bit_length" }),
+        createMockPostfixOp({ identifier: "type_bit_length" }),
       ]);
       const input = createMockInput({ typeRegistry });
       const state = createMockState();
@@ -2186,7 +2204,7 @@ describe("PostfixExpressionGenerator", () => {
         ],
       ]);
       const ctx = createMockPostfixExpressionContext("str", [
-        createMockPostfixOp({ identifier: "bit_length" }),
+        createMockPostfixOp({ identifier: "type_bit_length" }),
       ]);
       const input = createMockInput({ typeRegistry });
       const state = createMockState();
@@ -2195,11 +2213,11 @@ describe("PostfixExpressionGenerator", () => {
       });
 
       const result = runPostfix(ctx, input, state, orchestrator);
-      expect(result.code).toBe("520"); // (64 + 1) * 8 = 520
+      expect(result.code).toBe("512"); // (64 + 1) * 8 = 520
     });
   });
 
-  describe(".byte_length property (ADR-058)", () => {
+  describe(".type_byte_length property (ADR-058)", () => {
     it("returns byte size for integer type", () => {
       const typeRegistry = new Map<string, TTypeInfo>([
         [
@@ -2213,7 +2231,7 @@ describe("PostfixExpressionGenerator", () => {
         ],
       ]);
       const ctx = createMockPostfixExpressionContext("val", [
-        createMockPostfixOp({ identifier: "byte_length" }),
+        createMockPostfixOp({ identifier: "type_byte_length" }),
       ]);
       const input = createMockInput({ typeRegistry });
       const state = createMockState();
@@ -2239,7 +2257,7 @@ describe("PostfixExpressionGenerator", () => {
         ],
       ]);
       const ctx = createMockPostfixExpressionContext("arr", [
-        createMockPostfixOp({ identifier: "byte_length" }),
+        createMockPostfixOp({ identifier: "type_byte_length" }),
       ]);
       const input = createMockInput({ typeRegistry });
       const state = createMockState();
@@ -2266,7 +2284,7 @@ describe("PostfixExpressionGenerator", () => {
         ],
       ]);
       const ctx = createMockPostfixExpressionContext("str", [
-        createMockPostfixOp({ identifier: "byte_length" }),
+        createMockPostfixOp({ identifier: "type_byte_length" }),
       ]);
       const input = createMockInput({ typeRegistry });
       const state = createMockState();
@@ -2275,11 +2293,11 @@ describe("PostfixExpressionGenerator", () => {
       });
 
       const result = runPostfix(ctx, input, state, orchestrator);
-      expect(result.code).toBe("65"); // 64 + 1 = 65
+      expect(result.code).toBe("64"); // the 64 chars, no terminator
     });
   });
 
-  describe(".element_count property (ADR-058)", () => {
+  describe(".type_element_count property (ADR-058)", () => {
     it("returns element count for array type", () => {
       const typeRegistry = new Map<string, TTypeInfo>([
         [
@@ -2294,7 +2312,7 @@ describe("PostfixExpressionGenerator", () => {
         ],
       ]);
       const ctx = createMockPostfixExpressionContext("arr", [
-        createMockPostfixOp({ identifier: "element_count" }),
+        createMockPostfixOp({ identifier: "type_element_count" }),
       ]);
       const input = createMockInput({ typeRegistry });
       const state = createMockState();
@@ -2308,7 +2326,7 @@ describe("PostfixExpressionGenerator", () => {
 
     it("returns argc for main args", () => {
       const ctx = createMockPostfixExpressionContext("args", [
-        createMockPostfixOp({ identifier: "element_count" }),
+        createMockPostfixOp({ identifier: "type_element_count" }),
       ]);
       const input = createMockInput();
       const state = createMockState({ mainArgsName: "args" });
@@ -2333,7 +2351,7 @@ describe("PostfixExpressionGenerator", () => {
         ],
       ]);
       const ctx = createMockPostfixExpressionContext("val", [
-        createMockPostfixOp({ identifier: "element_count" }),
+        createMockPostfixOp({ identifier: "type_element_count" }),
       ]);
       const input = createMockInput({ typeRegistry });
       const state = createMockState();
@@ -2342,12 +2360,12 @@ describe("PostfixExpressionGenerator", () => {
       });
 
       expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
-        ".element_count is only available on arrays",
+        "E0867 rejects this in pass 2.1",
       );
     });
   });
 
-  describe(".char_count property (ADR-058)", () => {
+  describe(".value_char_count property (ADR-058)", () => {
     it("returns strlen for string type", () => {
       const typeRegistry = new Map<string, TTypeInfo>([
         [
@@ -2363,7 +2381,7 @@ describe("PostfixExpressionGenerator", () => {
         ],
       ]);
       const ctx = createMockPostfixExpressionContext("str", [
-        createMockPostfixOp({ identifier: "char_count" }),
+        createMockPostfixOp({ identifier: "value_char_count" }),
       ]);
       const input = createMockInput({ typeRegistry });
       const state = createMockState();
@@ -2375,12 +2393,12 @@ describe("PostfixExpressionGenerator", () => {
       expect(result.code).toBe("strlen(str)");
     });
 
-    it("throws error for non-string type", () => {
+    it("throws error for a float, which prints in more than one way", () => {
       const typeRegistry = new Map<string, TTypeInfo>([
         [
           "val",
           {
-            baseType: "u32",
+            baseType: "f32",
             bitWidth: 32,
             isArray: false,
             isConst: false,
@@ -2388,7 +2406,7 @@ describe("PostfixExpressionGenerator", () => {
         ],
       ]);
       const ctx = createMockPostfixExpressionContext("val", [
-        createMockPostfixOp({ identifier: "char_count" }),
+        createMockPostfixOp({ identifier: "value_char_count" }),
       ]);
       const input = createMockInput({ typeRegistry });
       const state = createMockState();
@@ -2397,13 +2415,13 @@ describe("PostfixExpressionGenerator", () => {
       });
 
       expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
-        ".char_count is only available on strings",
+        ".value_char_count is not available on the float 'f32'",
       );
     });
 
     it("throws error for args", () => {
       const ctx = createMockPostfixExpressionContext("args", [
-        createMockPostfixOp({ identifier: "char_count" }),
+        createMockPostfixOp({ identifier: "value_char_count" }),
       ]);
       const input = createMockInput();
       const state = createMockState({ mainArgsName: "args" });
@@ -2412,7 +2430,7 @@ describe("PostfixExpressionGenerator", () => {
       });
 
       expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
-        ".char_count is only available on strings",
+        ".value_char_count is not available on 'args'",
       );
     });
   });
@@ -2421,9 +2439,9 @@ describe("PostfixExpressionGenerator", () => {
     // #1760 review: this returned a literal 0 behind a comment naming the
     // dimension; the product is now C's to fold, in uint32_t
     it.each([
-      ["bit_length", ["BUFFER_SIZE"], "((uint32_t)(BUFFER_SIZE) * 32U)"],
-      ["byte_length", ["BUFFER_SIZE"], "((uint32_t)(BUFFER_SIZE) * 4U)"],
-      ["bit_length", [2, "N"], "((uint32_t)2U * (N) * 32U)"],
+      ["type_bit_length", ["BUFFER_SIZE"], "((uint32_t)(BUFFER_SIZE) * 32U)"],
+      ["type_byte_length", ["BUFFER_SIZE"], "((uint32_t)(BUFFER_SIZE) * 4U)"],
+      ["type_bit_length", [2, "N"], "((uint32_t)2U * (N) * 32U)"],
     ])(
       "returns the C product for .%s of an array sized %j",
       (property, dimensions, expected) => {
@@ -2467,7 +2485,7 @@ describe("PostfixExpressionGenerator", () => {
         ],
       ]);
       const ctx = createMockPostfixExpressionContext("arr", [
-        createMockPostfixOp({ identifier: "element_count" }),
+        createMockPostfixOp({ identifier: "type_element_count" }),
       ]);
       const input = createMockInput({ typeRegistry });
       const state = createMockState();
@@ -2481,7 +2499,7 @@ describe("PostfixExpressionGenerator", () => {
 
     it("throws error for bit_length on args", () => {
       const ctx = createMockPostfixExpressionContext("args", [
-        createMockPostfixOp({ identifier: "bit_length" }),
+        createMockPostfixOp({ identifier: "type_bit_length" }),
       ]);
       const input = createMockInput();
       const state = createMockState({ mainArgsName: "args" });
@@ -2490,13 +2508,13 @@ describe("PostfixExpressionGenerator", () => {
       });
 
       expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
-        ".bit_length is not supported on 'args'",
+        ".type_bit_length is not available on 'args'",
       );
     });
 
     it("throws error for byte_length on args", () => {
       const ctx = createMockPostfixExpressionContext("args", [
-        createMockPostfixOp({ identifier: "byte_length" }),
+        createMockPostfixOp({ identifier: "type_byte_length" }),
       ]);
       const input = createMockInput();
       const state = createMockState({ mainArgsName: "args" });
@@ -2505,14 +2523,17 @@ describe("PostfixExpressionGenerator", () => {
       });
 
       expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
-        ".byte_length is not supported on 'args'",
+        ".type_byte_length is not available on 'args'",
       );
     });
 
     it.each([
-      ["throws error for unknown type bit_length", "bit_length"],
-      ["throws error for unknown type byte_length", "byte_length"],
-      ["throws error for unknown type element_count", "element_count"],
+      ["throws error for unknown type type_bit_length", "type_bit_length"],
+      ["throws error for unknown type type_byte_length", "type_byte_length"],
+      [
+        "throws error for unknown type type_element_count",
+        "type_element_count",
+      ],
     ])("%s", (_label, expected) => {
       const ctx = createMockPostfixExpressionContext("val", [
         createMockPostfixOp({ identifier: expected }),
@@ -2544,7 +2565,7 @@ describe("PostfixExpressionGenerator", () => {
         ],
       ]);
       const ctx = createMockPostfixExpressionContext("str", [
-        createMockPostfixOp({ identifier: "bit_length" }),
+        createMockPostfixOp({ identifier: "type_bit_length" }),
       ]);
       const input = createMockInput({ typeRegistry });
       const state = createMockState();
@@ -2581,7 +2602,7 @@ describe("PostfixExpressionGenerator", () => {
             typed("string<32>", { stringCapacity: 32 }),
           ),
         }),
-        createMockPostfixOp({ identifier: "bit_length" }),
+        createMockPostfixOp({ identifier: "type_bit_length" }),
       ]);
       const input = createMockInput({ symbols, typeRegistry });
       const state = createMockState();
@@ -2591,7 +2612,7 @@ describe("PostfixExpressionGenerator", () => {
       });
 
       const result = runPostfix(ctx, input, state, orchestrator);
-      expect(result.code).toBe("264"); // (32 + 1) * 8 = 264
+      expect(result.code).toBe("256"); // (32 + 1) * 8 = 264
     });
 
     it("handles struct field byte_length", () => {
@@ -2615,7 +2636,7 @@ describe("PostfixExpressionGenerator", () => {
           identifier: "value",
           step: memberStep(typed("MyStruct"), typed("u16")),
         }),
-        createMockPostfixOp({ identifier: "byte_length" }),
+        createMockPostfixOp({ identifier: "type_byte_length" }),
       ]);
       const input = createMockInput({ symbols, typeRegistry });
       const state = createMockState();
@@ -2652,7 +2673,7 @@ describe("PostfixExpressionGenerator", () => {
             typed("u8", { dimensions: [64] }),
           ),
         }),
-        createMockPostfixOp({ identifier: "element_count" }),
+        createMockPostfixOp({ identifier: "type_element_count" }),
       ]);
       const input = createMockInput({ symbols, typeRegistry });
       const state = createMockState();
@@ -2683,7 +2704,7 @@ describe("PostfixExpressionGenerator", () => {
       });
       const ctx = createMockPostfixExpressionContext("obj", [
         createMockPostfixOp({ identifier: "value" }),
-        createMockPostfixOp({ identifier: "element_count" }),
+        createMockPostfixOp({ identifier: "type_element_count" }),
       ]);
       const input = createMockInput({ symbols, typeRegistry });
       const state = createMockState();
@@ -2693,7 +2714,7 @@ describe("PostfixExpressionGenerator", () => {
       });
 
       expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
-        ".element_count is only available on arrays",
+        "E0867 rejects this in pass 2.1",
       );
     });
 
@@ -2721,7 +2742,7 @@ describe("PostfixExpressionGenerator", () => {
             typed("string<32>", { stringCapacity: 32 }),
           ),
         }),
-        createMockPostfixOp({ identifier: "char_count" }),
+        createMockPostfixOp({ identifier: "value_char_count" }),
       ]);
       const input = createMockInput({ symbols, typeRegistry });
       const state = createMockState();
@@ -2752,7 +2773,7 @@ describe("PostfixExpressionGenerator", () => {
       });
       const ctx = createMockPostfixExpressionContext("obj", [
         createMockPostfixOp({ identifier: "value" }),
-        createMockPostfixOp({ identifier: "char_count" }),
+        createMockPostfixOp({ identifier: "value_char_count" }),
       ]);
       const input = createMockInput({ symbols, typeRegistry });
       const state = createMockState();
@@ -2762,13 +2783,13 @@ describe("PostfixExpressionGenerator", () => {
       });
 
       expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
-        ".char_count is only available on strings",
+        "E0867 rejects this in pass 2.1",
       );
     });
 
     it("throws error for unknown type char_count", () => {
       const ctx = createMockPostfixExpressionContext("val", [
-        createMockPostfixOp({ identifier: "char_count" }),
+        createMockPostfixOp({ identifier: "value_char_count" }),
       ]);
       const input = createMockInput({ typeRegistry: new Map() });
       const state = createMockState();
@@ -2796,7 +2817,7 @@ describe("PostfixExpressionGenerator", () => {
         ],
       ]);
       const ctx = createMockPostfixExpressionContext("arr", [
-        createMockPostfixOp({ identifier: "element_count" }),
+        createMockPostfixOp({ identifier: "type_element_count" }),
       ]);
       const input = createMockInput({ typeRegistry });
       const state = createMockState();
@@ -2805,7 +2826,7 @@ describe("PostfixExpressionGenerator", () => {
       });
 
       expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
-        ".element_count is only available on arrays",
+        "E0867 rejects this in pass 2.1",
       );
     });
 
@@ -2828,7 +2849,7 @@ describe("PostfixExpressionGenerator", () => {
         ],
       ]);
       const ctx = createMockPostfixExpressionContext("names", [
-        createMockPostfixOp({ identifier: "bit_length" }),
+        createMockPostfixOp({ identifier: "type_bit_length" }),
       ]);
       const input = createMockInput({ typeRegistry });
       const state = createMockState();
@@ -2838,12 +2859,22 @@ describe("PostfixExpressionGenerator", () => {
 
       // Three elements of (8 + 1) x 8 bits: one element's was the old answer
       const result = runPostfix(ctx, input, state, orchestrator);
-      expect(result.code).toBe("216");
+      expect(result.code).toBe("192");
     });
 
     it("handles enum array bit_length", () => {
       const symbols = createMockSymbols({
         knownEnums: new Set(["Color"]),
+        enumMembers: new Map([
+          [
+            "Color",
+            new Map([
+              ["Red", 0],
+              ["Green", 1],
+              ["Blue", 2],
+            ]),
+          ],
+        ]),
       });
       const typeRegistry = new Map<string, TTypeInfo>([
         [
@@ -2859,7 +2890,7 @@ describe("PostfixExpressionGenerator", () => {
         ],
       ]);
       const ctx = createMockPostfixExpressionContext("colors", [
-        createMockPostfixOp({ identifier: "bit_length" }),
+        createMockPostfixOp({ identifier: "type_bit_length" }),
       ]);
       const input = createMockInput({ symbols, typeRegistry });
       const state = createMockState();
@@ -2868,7 +2899,7 @@ describe("PostfixExpressionGenerator", () => {
       });
 
       const result = runPostfix(ctx, input, state, orchestrator);
-      expect(result.code).toBe("128"); // 4 * 32 = 128
+      expect(result.code).toBe("8"); // 4 * 2: three members need 2 bits
     });
 
     it("throws error for unsupported element type in array", () => {
@@ -2885,7 +2916,7 @@ describe("PostfixExpressionGenerator", () => {
         ],
       ]);
       const ctx = createMockPostfixExpressionContext("arr", [
-        createMockPostfixOp({ identifier: "bit_length" }),
+        createMockPostfixOp({ identifier: "type_bit_length" }),
       ]);
       const input = createMockInput({ typeRegistry });
       const state = createMockState();

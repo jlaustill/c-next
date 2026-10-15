@@ -11,7 +11,7 @@
  * `Cannot determine .X for '<name>' - type not found in registry` appears four
  * times, once per property. The audit read them as user-facing; they are not.
  * An undeclared name is rejected by E0427 in this same pass, before codegen
- * runs -- probed: `undeclaredName.bit_length` reports E0427 at a real position.
+ * runs -- probed: `undeclaredName.type_bit_length` reports E0427 at a real position.
  * What is left is a name that IS declared and whose type codegen cannot find,
  * which is the transpiler being wrong rather than the program. They are
  * `invariant()` calls now, not relocations.
@@ -24,14 +24,14 @@
  * struct, `.memory_char_count` a string -- and a logical bit or byte length
  * still needs a type whose width is known, which this pass checks.
  * The question is asked of the chain WITHOUT the property step -- for
- * `frame.data[0].element_count` the subject is `frame.data[0]` -- which is the
+ * `frame.data[0].type_element_count` the subject is `frame.data[0]` -- which is the
  * one operand typer's chain step before the property (#1668), not a second
  * walk of this analyzer's own.
  *
  * ## Structs (#1535)
  *
- * A struct answers `.element_count` with its field count, and `.bit_length` /
- * `.byte_length` with its fields' sizes together, without C padding -- the
+ * A struct answers `.type_element_count` with its field count, and `.type_bit_length` /
+ * `.type_byte_length` with its fields' sizes together, without C padding -- the
  * owner's ruling, ADR-058 resolved question 7. `LengthProperty` decides the
  * number, for this pass, render and 1.4's constants alike.
  */
@@ -54,7 +54,7 @@ import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
 import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
 import type IOperandType from "../../types/IOperandType";
 
-/** The CLI argument vector, which answers only `.element_count`. */
+/** The CLI argument vector, which answers only `.type_element_count`. */
 const ARGS_PARAMETER = "args";
 
 class LengthPropertyCheck {
@@ -66,7 +66,8 @@ class LengthPropertyCheck {
     return this.found;
   }
 
-  public expression(chain: TExpression): void {
+  /** `inFunction`: only a function body runs, so only there can a length be read at runtime */
+  public expression(chain: TExpression, inFunction: boolean): void {
     if (chain.kind !== "postfix") return;
     const ops = chain.ops;
     const last = ops.at(-1);
@@ -77,7 +78,7 @@ class LengthPropertyCheck {
     // #1976: a literal has no fields, so the name reads the property, and a
     // length property measures a declared value -- owner ruling: never a
     // literal. The typer leaves a string literal untyped, so without this the
-    // chain had no subject and its C was `"Hello".char_count`.
+    // chain had no subject and its C was `"Hello".value_char_count`.
     if (LengthPropertyCheck.rootsAtLiteral(chain)) {
       if (name === "length") {
         this.reportDeprecatedLength(last);
@@ -95,6 +96,14 @@ class LengthPropertyCheck {
     const step = OperandTyper.chainOf(chain, this.context).steps.at(-1);
     const property = step?.property ?? null;
     if (property === null) return;
+
+    // ADR-058 (#1975 review 2): the unprefixed lengths are removed, each
+    // named one kind of length without saying which
+    const replacement = LengthProperty.removedHelp(property);
+    if (replacement !== null) {
+      this.report(last, `'.${property}' is removed`, replacement, "E0886");
+      return;
+    }
 
     if (LengthPropertyCheck.subjectIsArgs(chain)) {
       if (LengthProperty.parse(property)?.unit !== "element_count") {
@@ -114,13 +123,14 @@ class LengthPropertyCheck {
     // subject, and no property rule applies.
     if (step?.before == null) return; // unresolved -- another diagnostic's to report
 
-    this.check(last, property, step);
+    this.check(last, property, step, inFunction);
   }
 
   private check(
     at: TPostfixOpSyntax,
     property: string,
     step: IChainStep,
+    inFunction: boolean,
   ): void {
     const typed = step.before!;
     const subject = LengthSubject.spelling(typed);
@@ -133,13 +143,6 @@ class LengthPropertyCheck {
     // subject to judge.
     if (property === "length") {
       this.reportDeprecatedLength(at);
-      return;
-    }
-    // ADR-058 (#1975 review 2): the unprefixed lengths are removed, each
-    // named one kind of length without saying which
-    const replacement = LengthProperty.removedHelp(property);
-    if (replacement !== null) {
-      this.report(at, `'.${property}' is removed`, replacement, "E0886");
       return;
     }
 
@@ -170,6 +173,17 @@ class LengthPropertyCheck {
     );
     if (rule.kind === "error") {
       this.report(at, rule.message, rule.helpText);
+      return;
+    }
+    // C initializes a file-scope object with a constant, and a value's
+    // length now is not one: the C was `uint32_t n = strlen(s);`, which gcc
+    // rejects
+    if (!inFunction && LengthProperty.readsAtRuntime(rule)) {
+      this.report(
+        at,
+        `.${property} is read at runtime, and a file-scope initializer must be constant`,
+        "Read it inside a function, or use the .type_ length, which is constant (ADR-058).",
+      );
       return;
     }
     // A logical bit or byte length needs a width: a string, a struct whose
@@ -317,14 +331,22 @@ class LengthPropertyAnalyzer {
   /** Every chain 1.2 returned that is read, not written (#1991) */
   public analyze(program: IProgramSyntax): ILengthPropertyError[] {
     const check = new LengthPropertyCheck(this.context);
-    for (const member of program.declarations) {
-      const targets = LengthPropertyCheck.targetsIn(member.declaration);
-      for (const part of DeclarationParts.of(member.declaration)) {
+    // only a function body is inside a function -- a scope's members are at
+    // file scope
+    const visit = (declaration: TDeclarationSyntax): void => {
+      if (declaration.kind === "scope") {
+        for (const member of declaration.members) visit(member.declaration);
+        return;
+      }
+      const targets = LengthPropertyCheck.targetsIn(declaration);
+      const inFunction = declaration.kind === "function";
+      for (const part of DeclarationParts.of(declaration)) {
         for (const expr of ExpressionNodes.of(part)) {
-          if (!targets.has(expr)) check.expression(expr);
+          if (!targets.has(expr)) check.expression(expr, inFunction);
         }
       }
-    }
+    };
+    for (const member of program.declarations) visit(member.declaration);
     return check.errors();
   }
 }

@@ -15,7 +15,7 @@ class TypeHead {
   /**
    * A primitive type keyword; `void` names no type a value has. ADR-040's
    * `ISR` is a function pointer, a type with no width C-Next fixes (#1975
-   * review: `ISR.byte_length` reached the C as written).
+   * review: `ISR.type_byte_length` reached the C as written).
    */
   static primitive(name: string): TType | null {
     if (name === "ISR") return { kind: "external", name };

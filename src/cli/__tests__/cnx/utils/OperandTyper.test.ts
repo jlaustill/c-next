@@ -1008,9 +1008,9 @@ extern ring_t ring;`);
 
   it("reads the property of a value that declares no such field", () => {
     const step = lastStep(
-      'string<8> name <- "ab";\nu32 r <- name.char_count;',
+      'string<8> name <- "ab";\nu32 r <- name.value_char_count;',
       new SymbolTable(),
     );
-    expect(step?.property).toBe("char_count");
+    expect(step?.property).toBe("value_char_count");
   });
 });

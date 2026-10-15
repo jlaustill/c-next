@@ -378,7 +378,7 @@ class InitializationWalk {
 
   /**
    * `arr.length` or `arr[i].length` is a compile-time size, not a read; so is
-   * ADR-058's length property of anything, `cfg.a.byte_length` (#1867): it
+   * ADR-058's length property of anything, `cfg.a.type_byte_length` (#1867): it
    * reads the declared shape, never the value
    */
   private isCompileTimeLength(

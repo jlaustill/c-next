@@ -20,14 +20,14 @@ describe("TypeSites", () => {
   });
 
   it("plans a cast's type inside an expression", () => {
-    expect(sites("u32 n <- (u32)i16.byte_length;\n").sort()).toEqual([
+    expect(sites("u32 n <- (u32)i16.type_byte_length;\n").sort()).toEqual([
       "-:u32",
       "-:u32",
     ]);
   });
 
   it("plans no type for a type's length property, which names no value", () => {
-    expect(sites("u32 n <- i16.byte_length;\n")).toEqual(["-:u32"]);
+    expect(sites("u32 n <- i16.type_byte_length;\n")).toEqual(["-:u32"]);
   });
 
   it("plans no parameter type for main's args, which 2.3 writes as argc and argv", () => {
@@ -38,8 +38,8 @@ describe("TypeSites", () => {
 
   it("plans no type inside a dimension or enum value, which 1.4 spells", () => {
     expect(
-      sites("u8[u64.byte_length] buffer;\nenum E { A <- (u32)2.5 }\n"),
-    ).toEqual(["-:u8[u64.byte_length]"]);
+      sites("u8[u64.type_byte_length] buffer;\nenum E { A <- (u32)2.5 }\n"),
+    ).toEqual(["-:u8[u64.type_byte_length]"]);
   });
 
   it("plans no type inside a scope's struct, which the .c takes from the header", () => {

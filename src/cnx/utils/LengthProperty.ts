@@ -5,8 +5,8 @@
  * answered for its subject; `of` gives the logical answers.
  *
  * Render writes them into expressions and the constant evaluator folds them
- * into dimensions; both ask here, so `u8[src.element_count]` sizes an array
- * by the number `src.element_count` reads as. Render alone adds a C header
+ * into dimensions; both ask here, so `u8[src.type_element_count]` sizes an array
+ * by the number `src.type_element_count` reads as. Render alone adds a C header
  * type's width, from a table 1.4 may not read; for one of those a property is
  * not a constant.
  */
@@ -71,6 +71,36 @@ class LengthProperty {
   static readonly VALUE_CHAR_COUNT_SIGNED = "cnx_value_char_count_signed";
 
   /** The helper a runtime integer length needs, if any: 2.2 plans it, 2.3 emits it */
+  /**
+   * ADR-058: C's memory of `dimensions` elements, each `element` -- a
+   * `sizeof`, or a string buffer's chars -- in uint32_t, for the C compiler
+   * to answer for its target. The one C a read (3 Render) and a dimension
+   * (`ConstantNames`) write.
+   */
+  static memoryC(
+    element: string,
+    dimensions: ReadonlyArray<number | string>,
+    bits: boolean,
+  ): string {
+    const factors = dimensions.map((dim) =>
+      typeof dim === "number" ? `${dim}U` : `(${dim})`,
+    );
+    const product = [element, ...factors, ...(bits ? ["8U"] : [])].join(" * ");
+    return `((${LengthProperty.PRODUCT_C_TYPE})${product})`;
+  }
+
+  /** A string buffer's chars, its `\0` included (ADR-045 `.size`) */
+  static stringBufferChars(capacity: number): number {
+    return capacity + 1;
+  }
+
+  /** A value's length now: a helper's or strlen's, so no constant */
+  static readsAtRuntime(rule: TLengthRule): boolean {
+    return (
+      rule.kind === "bits" || rule.kind === "decimal" || rule.kind === "string"
+    );
+  }
+
   static helperOf(rule: TLengthRule): string | null {
     if (rule.kind === "bits") return LengthProperty.VALUE_BIT_LENGTH;
     if (rule.kind !== "decimal") return null;
@@ -80,7 +110,7 @@ class LengthProperty {
   }
 
   /**
-   * A case label that reads a length, `case Point.byte_length`, as the name a
+   * A case label that reads a length, `case Point.type_byte_length`, as the name a
    * constant fold asks about; null for any other label. 2.1 judges it and 2.3
    * writes it by the one fold (#1975 review: it reached the C as
    * `case Point__byte_length:`).

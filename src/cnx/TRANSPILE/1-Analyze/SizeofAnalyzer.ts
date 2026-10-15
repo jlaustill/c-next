@@ -2,7 +2,7 @@
  * ADR-023: C-Next has no `sizeof` -- E0603.
  *
  * Owner ruling (#1975): the size of a type or of a value is ADR-058's
- * `.byte_length`, which C-Next decides itself: a struct's is its fields'
+ * `.type_byte_length`, which C-Next decides itself: a struct's is its fields'
  * sizes together, without C padding, wherever the struct is declared. C's
  * `sizeof` answers with the C compiler's layout instead, so the same struct
  * had two sizes. The C spelling is parsed only so that it is rejected with a
@@ -30,7 +30,7 @@ class SizeofAnalyzer {
             column: expr.span.column,
             message: "C-Next has no 'sizeof'",
             helpText:
-              "A type's or a value's size in bytes is its .byte_length (ADR-058): u32.byte_length, buf.byte_length, Point.byte_length.",
+              "Name the length you mean (ADR-058): .memory_byte_length is C's layout, padding included (Point.memory_byte_length); .type_byte_length is the logical size, fields summed (Point.type_byte_length).",
           })),
       ),
     );

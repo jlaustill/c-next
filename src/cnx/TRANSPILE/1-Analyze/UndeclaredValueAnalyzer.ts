@@ -178,7 +178,7 @@ class UndeclaredValueWalk {
     if (REJECTED_KEYWORDS.has(name) || BUILTIN_TYPE_NAMES.has(name)) {
       return;
     }
-    // `u32.byte_length` (#1975): the type keyword names a type, not a value
+    // `u32.type_byte_length` (#1975): the type keyword names a type, not a value
     if (PrimitiveKindUtils.isPrimitive(name)) return;
 
     if (

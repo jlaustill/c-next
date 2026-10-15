@@ -449,6 +449,8 @@ class Program {
         headers === null
           ? null
           : ForeignTypeFacts.fieldCount(structName, headers),
+      headerNeedsStructKeyword: (structName) =>
+        headers?.checkNeedsStructKeyword(structName) ?? false,
       headerTypeHead: (name) =>
         headers === null
           ? null
@@ -479,7 +481,7 @@ class Program {
     const values = Program.settleValues(settledByFile, declared, fileFacts);
     const constants = values.constants;
     // What a spelling means once every array is sized: a local sized by a
-    // global's property (`u8[table.element_count]`) measures the settled global
+    // global's property (`u8[table.type_element_count]`) measures the settled global
     // (#1863 review: the frames read 1.3's unsized one)
     const dimensioned: IBindingFacts = {
       ...declared,
@@ -529,7 +531,7 @@ class Program {
         ),
       ]),
     );
-    // A parameter sized by an earlier one (`u8[a.element_count] b`) is the
+    // A parameter sized by an earlier one (`u8[a.type_element_count] b`) is the
     // frame's to settle: the header writes the same answer the .c does
     const symbolsByFile = Program.withSettledParameters(
       values.symbolsByFile,
@@ -1080,6 +1082,8 @@ class Program {
       headerTypeHead: (name) => options.files.headerTypeHead(name),
       headerFieldCount: (structName) =>
         options.files.headerFieldCount(structName),
+      headerNeedsStructKeyword: (structName) =>
+        options.files.headerNeedsStructKeyword(structName),
       constValue: (symbol) => {
         const value = constants.consts.get(symbol.fullyQualifiedCName);
         if (value === undefined)
@@ -1159,7 +1163,7 @@ class Program {
   /**
    * #1175: consts, enum values and dimensions settle together, because each
    * may need another: a dimension names a const, and a const may read a
-   * dimension through a length property (`const u32 K <- arr.element_count`).
+   * dimension through a length property (`const u32 K <- arr.type_element_count`).
    * Consts settle again only while one has no value and a dimension moved,
    * so a program that converges in one round costs one round (#1863 review:
    * consts settled once, before any dimension, and K had no value). Values
@@ -1315,7 +1319,7 @@ class Program {
     files: IFileConstantFacts,
   ): Map<string, ReadonlyArray<TSymbol>> {
     // #1175: an array may be sized by another's property
-    // (`u8[src.element_count]`), whose own size may need settling first. So
+    // (`u8[src.type_element_count]`), whose own size may need settling first. So
     // dimensions settle to a fixpoint: each pass binds names over the previous
     // pass's symbols. A size only ever goes from unresolved to a value, so the
     // passes are bounded by the number of symbols; the bound is asserted, so a

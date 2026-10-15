@@ -300,9 +300,9 @@ class SyntaxLowering {
   }
 
   /**
-   * ADR-058: `u32.byte_length`, a primitive type's length property. The type
+   * ADR-058: `u32.type_byte_length`, a primitive type's length property. The type
    * keyword is the chain's head name, as a C-Next type's name is in
-   * `Point.byte_length`; no value can be named `u32`.
+   * `Point.type_byte_length`; no value can be named `u32`.
    */
   private static typeProperty(
     ctx: Parser.PostfixExpressionContext,

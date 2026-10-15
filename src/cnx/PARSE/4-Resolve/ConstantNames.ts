@@ -160,7 +160,7 @@ class ConstantNames {
     return TYPE_KINDS.has(symbol.kind);
   }
 
-  /** `this.N`, `global.N`, `Scope.N`, `m[].element_count` */
+  /** `this.N`, `global.N`, `Scope.N`, `m[].type_element_count` */
   static spell(name: TConstName): string {
     return [...(name.root === null ? [] : [name.root]), ...name.path]
       .join(".")
@@ -254,8 +254,8 @@ class ConstantNames {
   }
 
   /**
-   * #1175: ADR-058's length properties are constants -- `src.element_count`,
-   * `cfg.data.bit_length` -- worth what `LengthProperty` says of the measured
+   * #1175: ADR-058's length properties are constants -- `src.type_element_count`,
+   * `cfg.data.type_bit_length` -- worth what `LengthProperty` says of the measured
    * value's settled dimensions and element width, reached through struct
    * fields. Render reads the same rule, so a dimension sized by a property is
    * the number the property reads as. Any other member has no value.
@@ -282,6 +282,22 @@ class ConstantNames {
     // ADR-058: only a logical length is C-Next's to fold; a runtime one and
     // C's memory are written for the program and the C compiler to answer
     const rule = LengthProperty.rule(name, ConstantNames.subjectOf(current));
+    if (rule.kind === "memory") {
+      const element = ConstantNames.memoryElementC(current, walk);
+      return element === null
+        ? ConstantNames.without("unfolded", walk)
+        : {
+            kind: "foreign",
+            spelling: walk.spelling,
+            why: "target",
+            c: LengthProperty.memoryC(
+              element,
+              current.dimensions,
+              name.unit === "bit_length",
+            ),
+          };
+    }
+    if (rule.kind === "error") return ConstantNames.without("lengthRule", walk);
     if (rule.kind !== "logical") return ConstantNames.without("unfolded", walk);
     const lookup = (cName: string) => walk.facts.visibleSymbol(cName);
     const struct =
@@ -309,9 +325,9 @@ class ConstantNames {
    * A name a header declares. A variable -- even an `extern const` -- or a
    * function is not a constant expression in C, so it has no value, and as a
    * dimension it would be a VLA (#1768, #1863 review); a length property of an
-   * array is measured from its declared dimensions (`cArr.element_count`)
+   * array is measured from its declared dimensions (`cArr.type_element_count`)
    * and its element's width on the run's target. A header's struct type is
-   * measured as its values are (#2076): `Cfg.byte_length`, `Cfg.a.bit_length`.
+   * measured as its values are (#2076): `Cfg.type_byte_length`, `Cfg.a.type_bit_length`.
    * Anything else bare -- a C enum constant -- is C's to evaluate as written;
    * C has no spelling of `X.y` C-Next could write for the rest.
    */
@@ -342,6 +358,37 @@ class ConstantNames {
       rest,
       walk,
     );
+  }
+
+  /** One element's memory as C measures it; null for a type C-Next cannot name */
+  private static memoryElementC(
+    current: IMeasured,
+    walk: IWalk,
+  ): string | null {
+    const type = current.type;
+    switch (type.kind) {
+      case "string":
+        return `${LengthProperty.stringBufferChars(type.capacity)}U`;
+      case "primitive": {
+        const cType = CNEXT_TO_C_TYPE_MAP[type.primitive];
+        return cType === undefined ? null : `sizeof(${cType})`;
+      }
+      case "struct":
+      case "enum":
+      case "bitmap": {
+        const cName = QualifiedCName.fromParts(type.name.split("."));
+        const tag = walk.facts.headerNeedsStructKeyword(cName) ? "struct " : "";
+        return `sizeof(${tag}${cName})`;
+      }
+      case "external": {
+        const tag = walk.facts.headerNeedsStructKeyword(type.name)
+          ? "struct "
+          : "";
+        return `sizeof(${tag}${type.name})`;
+      }
+      default:
+        return null;
+    }
   }
 
   /** A measured value as ADR-058's length rule asks about it */
@@ -465,7 +512,7 @@ class ConstantNames {
     if (symbol === undefined) {
       return ConstantNames.without("undeclaredMember", walk);
     }
-    // #1975 review: `Geo.Box.byte_length`, as a bare `Point.byte_length`
+    // #1975 review: `Geo.Box.type_byte_length`, as a bare `Point.type_byte_length`
     const type = more.length === 0 ? null : TypeHead.ofSymbol(symbol, cName);
     if (type !== null) {
       return ConstantNames.ofMember({ type, dimensions: [] }, more, walk);
@@ -500,8 +547,8 @@ class ConstantNames {
       return walk.facts.enumMember(cName, rest[0], walk.spelling, walk.at);
     }
     // #1975: a type answers the length properties its values do --
-    // `u32.byte_length`, `Point.y.byte_length`, `EMode.bit_length`, and
-    // `this.P.byte_length`, `global.Point.byte_length` (#1975 review)
+    // `u32.type_byte_length`, `Point.y.type_byte_length`, `EMode.type_bit_length`, and
+    // `this.P.type_byte_length`, `global.Point.type_byte_length` (#1975 review)
     const type = ConstantNames.typeNamed(root, head, cName, symbol, walk);
     return type === null
       ? ConstantNames.unbound(root, head, rest, walk)

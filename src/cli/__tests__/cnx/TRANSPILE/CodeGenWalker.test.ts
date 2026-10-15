@@ -4828,7 +4828,7 @@ describe("CodeGenWalker", () => {
     it("should generate array element_count using sizeof", () => {
       const source = `
         u32[10] data;
-        u32 len <- data.element_count;
+        u32 len <- data.type_element_count;
       `;
       const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
@@ -4845,7 +4845,7 @@ describe("CodeGenWalker", () => {
         sourcePath: "test.cnx",
       });
 
-      // .element_count compiles to sizeof(arr)/sizeof(arr[0]) or constant
+      // .type_element_count compiles to sizeof(arr)/sizeof(arr[0]) or constant
       expect(code).toContain("len =");
     });
   });
@@ -10479,7 +10479,7 @@ describe("CodeGenWalker", () => {
       it("should resolve string parameter", () => {
         const source = `
           void test(string<32> name) {
-            u32 len <- name.char_count;
+            u32 len <- name.value_char_count;
           }
         `;
         const { tree, program } = CNextSourceParser.parse(source);
@@ -11066,7 +11066,7 @@ describe("CodeGenWalker", () => {
         const source = `
           string<64> message <- "Hello World";
           void test() {
-            u32 cap <- message.char_count;
+            u32 cap <- message.value_char_count;
           }
         `;
         const { tree, program } = CNextSourceParser.parse(source);
@@ -11092,7 +11092,7 @@ describe("CodeGenWalker", () => {
           scope Logger {
             string<128> buffer;
             public u32 getCapacity() {
-              return this.buffer.char_count;
+              return this.buffer.value_char_count;
             }
           }
         `;
@@ -14097,13 +14097,13 @@ describe("CodeGenWalker", () => {
     });
 
     describe("strlen optimization (_setupLengthCache)", () => {
-      it("should optimize multiple .char_count accesses on same string", () => {
+      it("should optimize multiple .value_char_count accesses on same string", () => {
         const source = `
           void test() {
             string<32> name <- "hello";
-            u32 a <- name.char_count;
-            u32 b <- name.char_count;
-            u32 c <- name.char_count;
+            u32 a <- name.value_char_count;
+            u32 b <- name.value_char_count;
+            u32 c <- name.value_char_count;
           }
         `;
         const { tree, program } = CNextSourceParser.parse(source);
@@ -14121,7 +14121,7 @@ describe("CodeGenWalker", () => {
           sourcePath: "test.cnx",
         });
 
-        // Multiple .char_count accesses should be present
+        // Multiple .value_char_count accesses should be present
         expect(code).toContain("strlen");
       });
 
@@ -14129,7 +14129,7 @@ describe("CodeGenWalker", () => {
         const source = `
           void test() {
             string<32> msg <- "test";
-            u32 len <- msg.char_count;
+            u32 len <- msg.value_char_count;
           }
         `;
         const { tree, program } = CNextSourceParser.parse(source);
@@ -14285,7 +14285,7 @@ describe("CodeGenWalker", () => {
       it("should handle string parameter with capacity", () => {
         const source = `
           void greet(string<64> name) {
-            u32 len <- name.char_count;
+            u32 len <- name.value_char_count;
           }
         `;
         const { tree, program } = CNextSourceParser.parse(source);
@@ -14804,8 +14804,8 @@ describe("CodeGenWalker", () => {
         const source = `
           void test() {
             string<64> msg <- "hello world";
-            u32 len1 <- msg.char_count;
-            u32 len2 <- msg.char_count;
+            u32 len1 <- msg.value_char_count;
+            u32 len2 <- msg.value_char_count;
           }
         `;
         const { tree, program } = CNextSourceParser.parse(source);
@@ -14826,12 +14826,12 @@ describe("CodeGenWalker", () => {
         expect(code).toContain("strlen");
       });
 
-      it("should generate cache for multiple .char_count accesses", () => {
+      it("should generate cache for multiple .value_char_count accesses", () => {
         const source = `
           void test() {
             string<32> s <- "hello";
-            if (s.char_count > 0) {
-              u32 x <- s.char_count;
+            if (s.value_char_count > 0) {
+              u32 x <- s.value_char_count;
             }
           }
         `;
@@ -14850,15 +14850,15 @@ describe("CodeGenWalker", () => {
           sourcePath: "test.cnx",
         });
 
-        // Should generate cache variable for repeated .char_count access
+        // Should generate cache variable for repeated .value_char_count access
         expect(code).toContain("strlen");
       });
 
-      it("should not cache for single .char_count access", () => {
+      it("should not cache for single .value_char_count access", () => {
         const source = `
           void test() {
             string<32> s <- "hello";
-            u32 len <- s.char_count;
+            u32 len <- s.value_char_count;
           }
         `;
         const { tree, program } = CNextSourceParser.parse(source);

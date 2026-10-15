@@ -14,7 +14,7 @@ import LengthProperty from "../LengthProperty";
  *   them). Leaving them out would make them look like ordinary members and be
  *   reported as unknown ones, not with the help that names the replacement.
  * - ADR-034's unknown-field rule reads the same list to know what is NOT a
- *   bitmap field. Before it was shared, `flags.bit_length` reported
+ *   bitmap field. Before it was shared, `flags.type_bit_length` reported
  *   "Unknown bitmap field 'bit_length'" while ADR-058 defined it; with
  *   `capacity` added and this list not, `flags.capacity` would have reported
  *   the same thing INSTEAD of "only available on strings", which is the

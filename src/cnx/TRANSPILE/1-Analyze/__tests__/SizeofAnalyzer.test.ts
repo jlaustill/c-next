@@ -5,7 +5,7 @@ import SizeofAnalyzer from "../SizeofAnalyzer";
 
 /**
  * ADR-023 / #1975: C-Next has no `sizeof`; a size is ADR-058's
- * `.byte_length`. Every `sizeof` is E0603, wherever it is written.
+ * `.type_byte_length`. Every `sizeof` is E0603, wherever it is written.
  */
 const errors = (source: string) => {
   return new SizeofAnalyzer().analyze(CNextSourceParser.parse(source).program);
@@ -20,7 +20,7 @@ describe("SizeofAnalyzer (E0603)", () => {
       ["E0603", 3, 13],
       ["E0603", 4, 13],
     ]);
-    expect(found[0].helpText).toContain(".byte_length");
+    expect(found[0].helpText).toContain(".type_byte_length");
   });
 
   it("rejects sizeof in a dimension and inside a scope", () => {
@@ -33,9 +33,9 @@ describe("SizeofAnalyzer (E0603)", () => {
     ]);
   });
 
-  it("accepts .byte_length, the spelling that replaces it", () => {
+  it("accepts .type_byte_length, the spelling that replaces it", () => {
     expect(
-      errors("u8[4] buf;\nvoid f() {\n    u32 n <- buf.byte_length;\n}"),
+      errors("u8[4] buf;\nvoid f() {\n    u32 n <- buf.type_byte_length;\n}"),
     ).toEqual([]);
   });
 });

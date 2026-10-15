@@ -149,22 +149,30 @@ u16[3] words;
 u8 lone;`;
 
     it.each([
-      ["an array variable's element_count", ["words", "element_count"], 3],
-      ["an array variable's bit_length", ["words", "bit_length"], 48],
-      ["a struct field's element_count", ["pkt", "data", "element_count"], 6],
+      [
+        "an array variable's type_element_count",
+        ["words", "type_element_count"],
+        3,
+      ],
+      ["an array variable's type_bit_length", ["words", "type_bit_length"], 48],
+      [
+        "a struct field's type_element_count",
+        ["pkt", "data", "type_element_count"],
+        6,
+      ],
       [
         "a property of a field of an array",
-        ["words", "data", "element_count"],
+        ["words", "data", "type_element_count"],
         "member",
       ],
       [
         "a field of a scalar field",
-        ["pkt", "flag", "x", "element_count"],
+        ["pkt", "flag", "x", "type_element_count"],
         "member",
       ],
       [
         "a field the struct does not have",
-        ["pkt", "nope", "element_count"],
+        ["pkt", "nope", "type_element_count"],
         "member",
       ],
       ["a member that is not a length property", ["pkt", "data"], "member"],
@@ -180,13 +188,64 @@ void f() {
 }`);
       const inFunction = { line: 4, column: 4 };
       expect(
-        answer(ask(program, ["local", "element_count"], { at: inFunction })),
+        answer(
+          ask(program, ["local", "type_element_count"], { at: inFunction }),
+        ),
       ).toBe(5);
+    });
+
+    it.each([
+      [
+        "a struct's",
+        ["pkt", "memory_byte_length"],
+        "((uint32_t)sizeof(Packet))",
+      ],
+      [
+        "a field's",
+        ["pkt", "data", "memory_byte_length"],
+        "((uint32_t)sizeof(uint8_t) * 6U)",
+      ],
+      [
+        "an array's, in bits",
+        ["words", "memory_bit_length"],
+        "((uint32_t)sizeof(uint16_t) * 3U * 8U)",
+      ],
+      [
+        "a primitive's",
+        ["lone", "memory_byte_length"],
+        "((uint32_t)sizeof(uint8_t))",
+      ],
+      [
+        "a string buffer's, its \\0 included",
+        ["names", "memory_byte_length"],
+        "((uint32_t)9U * 2U)",
+      ],
+    ])(
+      "leaves %s memory to the C compiler, as sizeof (ADR-058)",
+      (_label, path, c) => {
+        const result = ask(build(`${SOURCE}\nstring<8>[2] names;`), path);
+        expect(result).toEqual({
+          kind: "foreign",
+          spelling: path.join("."),
+          why: "target",
+          c,
+        });
+      },
+    );
+
+    it.each([
+      ["chars of a u8's memory", ["lone", "memory_char_count"]],
+      ["elements of a u8", ["lone", "type_element_count"]],
+    ])("leaves %s, which has no length, to E0867", (_label, path) => {
+      const program = build(SOURCE);
+      expect(answer(ask(program, path))).toBe("lengthRule");
     });
 
     it("has no value for an array a header macro sizes, which C alone knows", () => {
       const program = build(`u8[SOME_MACRO] buf;`, true);
-      expect(answer(ask(program, ["buf", "element_count"]))).toBe("unfolded");
+      expect(answer(ask(program, ["buf", "type_element_count"]))).toBe(
+        "unfolded",
+      );
     });
   });
 
@@ -260,23 +319,23 @@ u8 after;`;
     });
 
     it.each([
-      ["an array's element_count", ["table", "element_count"], 10],
+      ["an array's type_element_count", ["table", "type_element_count"], 10],
       [
         "an element's element_count",
-        ["table", ELEMENT_STEP, "element_count"],
+        ["table", ELEMENT_STEP, "type_element_count"],
         4,
       ],
       [
         "a property a header macro sizes",
-        ["macroSized", "element_count"],
+        ["macroSized", "type_element_count"],
         "unfolded",
       ],
       // The element's width is the target's to decide
-      ["an array's bit_length", ["table", "bit_length"], "unfolded"],
+      ["an array's type_bit_length", ["table", "type_bit_length"], "unfolded"],
       [
         "a header scalar's element_count",
-        ["runtime_count", "element_count"],
-        "unfolded",
+        ["runtime_count", "type_element_count"],
+        "lengthRule",
       ],
     ])("measures %s from its declared dimensions", (_label, path, expected) => {
       expect(answer(ask(program(), path))).toBe(expected);

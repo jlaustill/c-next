@@ -27,7 +27,7 @@ describe("2.3 spells each type from 2.2's plan", () => {
 
   it("spells a function's types and a cast's", async () => {
     const code = await generate(
-      `u16 f(u8 a) { u32 n <- (u32)i16.byte_length; return a; }\n`,
+      `u16 f(u8 a) { u32 n <- (u32)i16.type_byte_length; return a; }\n`,
     );
     expect(code).toContain("uint16_t f(uint8_t a)");
     expect(code).toContain("uint32_t n = (uint32_t)2;");

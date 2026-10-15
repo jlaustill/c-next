@@ -64,9 +64,9 @@ describe("ConstantDimensionAnalyzer (#1175: E0909, E0910)", () => {
     ["a literal", "u8[4] a;"],
     ["a const, and arithmetic over it", "const u8 N <- 4;\nu8[N * 2 + 1] a;"],
     ["a wider cast", "const u8 A <- 200;\nu8[(u16)A + (u16)A] a;"],
-    ["a primitive's length", "u8[u32.byte_length] a;"],
+    ["a primitive's length", "u8[u32.type_byte_length] a;"],
     ["an enum member", "enum E { A, B, COUNT }\nu8[E.COUNT] a;"],
-    ["a property", "u8[3] src;\nu8[src.element_count] a;"],
+    ["a property", "u8[3] src;\nu8[src.type_element_count] a;"],
     // not this analyzer's: E0427 reports an undeclared bare name
     ["an undeclared name", "u8[NOT_DECLARED] a;"],
   ])("accepts %s", (_label, source) => {
@@ -104,10 +104,10 @@ describe("ConstantDimensionAnalyzer (#1175: E0909, E0910)", () => {
     };
 
     it.each([
-      ["the type", "u8[Cfg.byte_length] a;", 5],
-      ["a field of the type", "u8[Cfg.a.bit_length] a;", 32],
-      ["a value", "Cfg c;\nu8[c.byte_length] a;", 5],
-      ["a field of a value", "Cfg c;\nu8[c.b.byte_length] a;", 1],
+      ["the type", "u8[Cfg.type_byte_length] a;", 5],
+      ["a field of the type", "u8[Cfg.a.type_bit_length] a;", 32],
+      ["a value", "Cfg c;\nu8[c.type_byte_length] a;", 5],
+      ["a field of a value", "Cfg c;\nu8[c.b.type_byte_length] a;", 1],
     ])("sizes an array by %s's fields summed", (_label, source, length) => {
       const { errors: found, program } = headerErrors(source);
       expect(found).toEqual([]);
@@ -119,11 +119,11 @@ describe("ConstantDimensionAnalyzer (#1175: E0909, E0910)", () => {
 
     it("has no size for a struct holding a pointer (C-Next has none)", () => {
       const { errors: found } = headerErrors(
-        "u8[Odd.i.byte_length] ok;\nu8[Odd.byte_length] a;",
+        "u8[Odd.i.type_byte_length] ok;\nu8[Odd.type_byte_length] a;",
       );
       expect(found).toHaveLength(1);
       expect(found[0]).toMatchObject({ code: "E0909", line: 2 });
-      expect(found[0].message).toContain("'Odd.byte_length'");
+      expect(found[0].message).toContain("'Odd.type_byte_length'");
     });
   });
 });
@@ -145,7 +145,7 @@ describe("ConstantDimensionAnalyzer on 1.2's syntax (#1991)", () => {
   it("leaves a length of a subscript to the expression it is", () => {
     expect(
       errors(
-        "u8[4] arr;\nvoid f(u32 i) {\n    u32 s <- arr[i].byte_length;\n}",
+        "u8[4] arr;\nvoid f(u32 i) {\n    u32 s <- arr[i].type_byte_length;\n}",
       ),
     ).toEqual([]);
   });

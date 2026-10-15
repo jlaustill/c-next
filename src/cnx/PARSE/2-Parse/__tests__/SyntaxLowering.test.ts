@@ -162,7 +162,7 @@ describe("SyntaxLowering", () => {
 
   it("is plain data: it survives a JSON round trip unchanged", () => {
     const lowered = expressionOf(
-      "(u32)EColor.COUNT + f(a[1], { x: 1 }) * u8.byte_length - ((b) ? 1 : 2)",
+      "(u32)EColor.COUNT + f(a[1], { x: 1 }) * u8.type_byte_length - ((b) ? 1 : 2)",
     );
     expect(JSON.parse(JSON.stringify(lowered))).toEqual(lowered);
   });

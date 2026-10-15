@@ -857,7 +857,7 @@ describe("InitializationAnalyzer", () => {
         struct Pair { u32 a; u8[4] b; }
         void main() {
           Pair p;
-          u32 n <- p.a.byte_length + p.b.element_count + p.b.bit_length;
+          u32 n <- p.a.type_byte_length + p.b.type_element_count + p.b.type_bit_length;
         }
       `;
       const { tree, context } = testAnalysisContextFor(code, {

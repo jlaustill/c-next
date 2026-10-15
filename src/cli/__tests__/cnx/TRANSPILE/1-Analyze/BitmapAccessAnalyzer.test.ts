@@ -99,11 +99,11 @@ describe("BitmapAccessAnalyzer (E0882)", () => {
 
   it("does not report ADR-058's shape properties as unknown fields", () => {
     // They describe the type rather than name a field. Both analyzers read one
-    // shared list so this cannot drift; before it was shared, `f.bit_length`
+    // shared list so this cannot drift; before it was shared, `f.type_bit_length`
     // reported "Unknown bitmap field" while ADR-058 defined it.
     expect(
       errors(
-        `${FLAGS}\nFlags f;\nvoid t() {\n    u8 a <- f.bit_length;\n    u8 b <- f.byte_length;\n}`,
+        `${FLAGS}\nFlags f;\nvoid t() {\n    u8 a <- f.type_bit_length;\n    u8 b <- f.type_byte_length;\n}`,
       ),
     ).toEqual([]);
   });

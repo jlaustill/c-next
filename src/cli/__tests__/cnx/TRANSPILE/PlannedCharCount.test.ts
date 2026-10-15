@@ -1,5 +1,5 @@
 /**
- * #1991: 2.2 requires <string.h> for every `.char_count` read 2.3 writes as
+ * #1991: 2.2 requires <string.h> for every `.value_char_count` read 2.3 writes as
  * strlen (ADR-058). The string here is declared in another file, so no type
  * this file writes asks for <string.h>: only the planned read does.
  */
@@ -27,10 +27,10 @@ async function consumerOf(body: string): Promise<string> {
   return fs.readFile("/project/out/consumer.c");
 }
 
-describe("2.2 plans each .char_count read 2.3 writes", () => {
-  it("requires <string.h> for a .char_count of a string declared in another file", async () => {
+describe("2.2 plans each .value_char_count read 2.3 writes", () => {
+  it("requires <string.h> for a .value_char_count of a string declared in another file", async () => {
     const code = await consumerOf(
-      `u32 count() {\n  return Names.first.char_count;\n}\n`,
+      `u32 count() {\n  return Names.first.value_char_count;\n}\n`,
     );
     expect(code).toContain("#include <string.h>");
     expect(code).toContain("strlen(Names__first)");

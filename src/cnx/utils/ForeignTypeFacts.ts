@@ -363,9 +363,9 @@ class ForeignTypeFacts {
   }
 
   /**
-   * ADR-058's `.element_count` of a header's struct, its field count as a
+   * ADR-058's `.type_element_count` of a header's struct, its field count as a
    * C-Next struct's is (#1535); null where its layout has no length either
-   * (#1975 review: `Cfg.element_count` was E0867, `Point.element_count` 2).
+   * (#1975 review: `Cfg.type_element_count` was E0867, `Point.type_element_count` 2).
    */
   static fieldCount(
     structName: string,

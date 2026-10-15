@@ -318,7 +318,7 @@ const handleMemberOp = (
     return;
   }
 
-  // Property access (.bit_length, .capacity, ...). #1760 review: whether the
+  // Property access (.type_bit_length, .capacity, ...). #1760 review: whether the
   // name reads the property or a field named like it is the typer's, on the
   // step -- so `this.length` naming a scope member (#212) and a struct's
   // `length` field are members, with no special case for either
@@ -416,14 +416,14 @@ const stringCapacityOf = (measured: IOperandType | null): number | null =>
     : null;
 
 /**
- * Try handling property access (.capacity, .size, .bit_length, .byte_length,
- * .element_count, .char_count). Returns true if handled.
+ * Try handling property access (.capacity, .size, .type_bit_length, .type_byte_length,
+ * .type_element_count, .value_char_count). Returns true if handled.
  *
  * #1668 review: what a property measures is the typer's type for the value
  * it is taken of -- the property step's `before` -- for a root and a member
  * alike, which is what 2.1's E0867/E0887 decide from too. Render read a
  * root's declared type info and a member's typed step: two answers, so a
- * header `double`'s `.bit_length` was 64 as a variable and 32 as a field on
+ * header `double`'s `.type_bit_length` was 64 as a variable and 32 as a field on
  * a target whose `double` is 32 bits, a header `long` root was an internal
  * error, and a member reached through a subscripted array of structs was
  * measured at the wrong depth.
@@ -547,11 +547,14 @@ const elementBitWidth = (
     // ADR-058: a string's buffer, `.size x 8`
     invariant(
       measured.stringCapacity !== null,
-      `E0867 rejects this in pass 2.1 -- Cannot determine .bit_length for string with unknown capacity.`,
+      `E0867 rejects this in pass 2.1 -- Cannot determine .type_bit_length for string with unknown capacity.`,
     );
     return LengthProperty.stringElementBits(measured.stringCapacity);
   }
-  if (measured.bitWidth !== null) return measured.bitWidth;
+  // an enum's logical width is its members', not the C int it is stored in
+  if (measured.bitWidth !== null && measured.category !== "enum") {
+    return measured.bitWidth;
+  }
   // #1535: its fields' sizes together, without C padding (ADR-058 q7); a
   // header's struct by the same rule, and a C-Next field of one (#1975)
   const program = input.program;
@@ -682,8 +685,13 @@ const measuredLength = (
   const factors = dimensions.map((dim) =>
     typeof dim === "number" ? `${dim}U` : `(${dim})`,
   );
-  const product = `(${LengthProperty.PRODUCT_C_TYPE})${[...factors, `${element}U`].join(" * ")}`;
-  return unit === "bit_length" ? `(${product})` : `((${product} + 7U) / 8U)`;
+  // a whole-byte element's bytes multiply out; any other rounds up the bits
+  const wholeBytes = unit === "byte_length" && element % 8 === 0;
+  const factor = wholeBytes ? element / 8 : element;
+  const product = `(${LengthProperty.PRODUCT_C_TYPE})${[...factors, `${factor}U`].join(" * ")}`;
+  return unit === "bit_length" || wholeBytes
+    ? `(${product})`
+    : `((${product} + 7U) / 8U)`;
 };
 
 /**
@@ -696,14 +704,10 @@ const memoryLength = (
   input: IGeneratorInput,
   bits: boolean,
 ): string => {
-  const factors = measured.dimensions.map((dim) =>
-    typeof dim === "number" ? `${dim}U` : `(${dim})`,
-  );
   const element = OperandTyper.isString(measured)
     ? `${stringBufferChars(measured)}U`
     : `sizeof(${memoryCType(measured, input)})`;
-  const product = [element, ...factors, ...(bits ? ["8U"] : [])].join(" * ");
-  return `((${LengthProperty.PRODUCT_C_TYPE})${product})`;
+  return LengthProperty.memoryC(element, measured.dimensions, bits);
 };
 
 /** The C type `sizeof` measures: a C-Next type as 2.3 declares it, a header's as C spells it */
@@ -732,7 +736,7 @@ const stringBufferChars = (measured: IOperandType): number => {
     measured.stringCapacity !== null,
     "E0867 rejects this in pass 2.1 -- a string with unknown capacity has no buffer length.",
   );
-  return measured.stringCapacity + 1;
+  return LengthProperty.stringBufferChars(measured.stringCapacity);
 };
 
 /** The first dimension no subscript has taken, or a struct's field count (#1535) */

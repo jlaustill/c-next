@@ -15,7 +15,7 @@ const REASON: Readonly<
   Record<
     Exclude<
       Extract<TConstResult, { kind: "notConstant" }>["reason"],
-      "unknown" | "sizeofExpression"
+      "unknown" | "sizeofExpression" | "lengthRule"
     >,
     string
   >
@@ -47,20 +47,26 @@ class ConstantDiagnostics {
   /**
    * Why `result` has no value, as E0909 says it; null when another code owns
    * the reason -- a division by zero is E0800's, an undeclared name E0427's,
-   * a `sizeof` E0603's -- so a program is told once.
+   * a `sizeof` E0603's, a length property its subject has not E0867's -- so
+   * a program is told once.
    */
   static why(result: TWithoutValue): string | null {
     if (result.kind === "foreign") {
       return {
         header: `'${result.spelling}' is defined by a C or C++ header`,
         maybeHeader: `'${result.spelling}' is not declared in C-Next, so only an included C or C++ header can define it`,
+        target: `'${result.spelling}' is a memory size, which the C compiler decides for the target`,
       }[result.why];
     }
     // A bare name nothing declares is E0427's, and a compile-time zero
     // divisor E0800's, which run first (#1268 review). A member a scope or an
     // enum does not have is reported by nothing else (#1863 review), so E0909
     // says it
-    if (result.reason === "unknown" || result.reason === "sizeofExpression") {
+    if (
+      result.reason === "unknown" ||
+      result.reason === "sizeofExpression" ||
+      result.reason === "lengthRule"
+    ) {
       return null;
     }
     const subject = result.spelling === "" ? "it" : `'${result.spelling}'`;

@@ -308,7 +308,7 @@ class OperandTyper {
 
   /**
    * What an op applies to: a value's type, or a named type's shape -- which
-   * only a length property reads (#1975: `u32.byte_length`, `Mode.byte_length`)
+   * only a length property reads (#1975: `u32.type_byte_length`, `Mode.type_byte_length`)
    */
   private static measuredBy(
     current: TChainValue,
@@ -329,7 +329,7 @@ class OperandTyper {
     return null;
   }
 
-  /** `Mode.byte_length`: a property name the enum declares no member of */
+  /** `Mode.type_byte_length`: a property name the enum declares no member of */
   private static enumReadsProperty(
     cName: string,
     member: string,
@@ -398,7 +398,7 @@ class OperandTyper {
   /**
    * #1975 review, #2078: the op at which a chain that names a type stops
    * naming one it may. A type answers ADR-058's length properties, its own
-   * and its fields' types' (`Point.y.byte_length`), and names no value. The
+   * and its fields' types' (`Point.y.type_byte_length`), and names no value. The
    * op that leaves that shape -- a missing field, `u32.foo`, a subscript --
    * or `at: null` for a chain that ends on the type (`Point.x`). Null for a
    * chain whose head is no type, or one that ends reading a length of one.
@@ -1450,7 +1450,9 @@ class OperandTyper {
     op: TPostfixOpSyntax,
     ctx: ITypingContext,
   ): boolean {
-    if (op.kind !== "member" || current.k !== "value") return false;
+    // `g.mode` or `KBF.a`: a value's field, or a type's (#1975)
+    if (op.kind !== "member") return false;
+    if (current.k !== "value" && current.k !== "type") return false;
     const t = current.t;
     if (t.dimensions.length > 0) return false;
     if (t.bitmapTypeName !== null) {

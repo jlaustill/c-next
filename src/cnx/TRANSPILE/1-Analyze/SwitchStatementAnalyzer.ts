@@ -324,7 +324,7 @@ class SwitchStatementCheck {
     for (const caseCtx of cases) {
       for (const label of caseCtx.labels) {
         const value = SwitchStatementCheck.caseLabelValue(label);
-        // `case Point.byte_length` is its number: `case 5` claims it too
+        // `case Point.type_byte_length` is its number: `case 5` claims it too
         const key =
           this.lengthValue(label) ?? this.labelIdentity(label) ?? value;
         if (seen.has(key)) {

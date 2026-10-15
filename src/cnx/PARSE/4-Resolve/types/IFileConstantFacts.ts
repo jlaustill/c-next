@@ -20,6 +20,8 @@ interface IFileConstantFacts {
   headerTypeHead(name: string): TType | null;
   /** #1975 review: `ForeignTypeFacts.fieldCount` over the run's headers */
   headerFieldCount(structName: string): number | null;
+  /** A header struct declared without a typedef, which C names `struct X` */
+  headerNeedsStructKeyword(structName: string): boolean;
 }
 
 export default IFileConstantFacts;

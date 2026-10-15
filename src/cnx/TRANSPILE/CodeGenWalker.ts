@@ -1236,7 +1236,7 @@ class CodeGenWalker {
   private writePrimary(expr: TExpression): string {
     invariant(
       expr.kind !== "sizeof",
-      "E0603 rejects sizeof in pass 2.1; a size is ADR-058's .byte_length",
+      "E0603 rejects sizeof in pass 2.1; a size is ADR-058's .type_byte_length",
     );
     switch (expr.kind) {
       case "cast":

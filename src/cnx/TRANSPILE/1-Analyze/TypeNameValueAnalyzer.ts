@@ -3,7 +3,7 @@
  *
  * A chain that starts at a type -- `u32`, `Point`, `Geo.Box`, a header's
  * `Cfg` -- answers ADR-058's length properties of it and of its fields' types
- * (`Point.y.byte_length`), and names no value. `Point.x`, `Point.z.byte_length`
+ * (`Point.y.type_byte_length`), and names no value. `Point.x`, `Point.z.type_byte_length`
  * and `u32.foo` reached the C as written, at exit 0, and gcc rejected them.
  *
  * Error code:
@@ -19,7 +19,7 @@ import type TExpression from "../../types/syntax/TExpression";
 import type TPostfixOpSyntax from "../../types/syntax/TPostfixOpSyntax";
 
 const HELP =
-  "A type is measured, not read: it answers ADR-058's length properties, its own and its fields' (Point.byte_length, Point.x.bit_length). A value is read from a variable of the type.";
+  "A type is measured, not read: it answers ADR-058's length properties, its own and its fields' (Point.type_byte_length, Point.x.type_bit_length). A value is read from a variable of the type.";
 
 class TypeNameValueAnalyzer {
   constructor(private readonly context: IAnalysisContext) {}

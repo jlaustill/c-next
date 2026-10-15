@@ -31,7 +31,7 @@
  * over unevaluated renders rather than strings.
  *
  * The one eager field is `IPlannedIf.lengthCounts`: counting repeated
- * `.char_count` reads walks the tree and emits nothing, so asking at plan time
+ * `.value_char_count` reads walks the tree and emits nothing, so asking at plan time
  * costs what asking at render time cost.
  */
 import ComplianceAnnotations from "../../../../2-Plan/ComplianceAnnotations";
@@ -75,7 +75,7 @@ const generateReturn = (
 
 /**
  * Generate C code for an if statement.
- * Includes strlen optimization for repeated .char_count accesses.
+ * Includes strlen optimization for repeated .value_char_count accesses.
  */
 const generateIf = (
   plan: IPlannedIf,

@@ -25,12 +25,12 @@ const inMain = (expr: string): string =>
 describe("TypeNameValueAnalyzer", () => {
   it("accepts a type's lengths and a value's fields", () => {
     for (const expr of [
-      "u32.byte_length",
-      "Point.byte_length",
-      "Point.y.bit_length",
-      "A.d.element_count",
+      "u32.type_byte_length",
+      "Point.type_byte_length",
+      "Point.y.type_bit_length",
+      "A.d.type_element_count",
       "p.x",
-      "p.y.byte_length",
+      "p.y.type_byte_length",
     ]) {
       expect(errors(inMain(expr))).toEqual([]);
     }
@@ -40,7 +40,7 @@ describe("TypeNameValueAnalyzer", () => {
     for (const [expr, message] of [
       ["u32.foo", "Type 'u32' has no field or length property 'foo'"],
       [
-        "Point.z.byte_length",
+        "Point.z.type_byte_length",
         "Type 'Point' has no field or length property 'z'",
       ],
       ["Point.y.foo", "Type 'Point.y' has no field or length property 'foo'"],
@@ -57,7 +57,7 @@ describe("TypeNameValueAnalyzer", () => {
     expect(errors(inMain("Point.x"))[0]?.message).toBe(
       "'Point.x' is a field of type 'Point', not a value",
     );
-    expect(errors(inMain("A.d[0].byte_length"))[0]?.message).toBe(
+    expect(errors(inMain("A.d[0].type_byte_length"))[0]?.message).toBe(
       "'A.d' names a type, not a value",
     );
     const write = `${DECLS}\nvoid main() {\n    Point.x <- 5;\n}`;
@@ -68,12 +68,12 @@ describe("TypeNameValueAnalyzer", () => {
     const source = `scope Geo {
     public struct Box { u8 w; }
     public u32 own() {
-        return this.Box.byte_length + global.Point.byte_length;
+        return this.Box.type_byte_length + global.Point.type_byte_length;
     }
 }
 ${DECLS}
 u32 main() {
-    u32 a <- Geo.Box.w.byte_length;
+    u32 a <- Geo.Box.w.type_byte_length;
     u32 b <- Geo.Box.zz;
     return a + b;
 }`;
@@ -115,6 +115,6 @@ scope Shadow {
       return new TypeNameValueAnalyzer(context).analyze(syntax);
     };
     expect(headerErrors("HE.HB")).toEqual([]);
-    expect(headerErrors("HE.byte_length")).toEqual([]);
+    expect(headerErrors("HE.type_byte_length")).toEqual([]);
   });
 });
