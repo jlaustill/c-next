@@ -1,0 +1,43 @@
+// test-error
+// test-adr: 071
+// E0899: a `mut` nothing writes -- a parameter, a local, a `for` variable and
+// a private scope member. CONTROLS, all silent: the written twin of each; a
+// global and a public scope member, which C can write through the header; and
+// the parameter of a function used as a callback type, whose `mut` is part of
+// the type (ADR-071 Decision 6).
+
+mut u32 gUnwritten <- 0;
+
+scope Board {
+    mut u32 hidden <- 0;
+    public mut u32 shown <- 0;
+    mut u32 used <- 0;
+
+    public void touch() {
+        this.used <- 1;
+    }
+}
+
+void onTick(mut u32 v) {}
+
+struct Handler {
+    onTick tick;
+}
+
+void show(mut u32 v) {
+    u32 a <- v;
+}
+
+void bump(mut u32 v) {
+    v <- v + 1;
+}
+
+void locals() {
+    mut u32 never <- 0;
+    mut u32 once <- 0;
+    once <- 1;
+    for (mut u32 i <- 0; i < 3;) {
+    }
+    for (mut u32 j <- 0; j < 3; j +<- 1) {
+    }
+}

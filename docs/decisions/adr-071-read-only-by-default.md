@@ -233,12 +233,11 @@ error-expecting fixtures (130) need review rather than the rewrite: the 35 that 
 
 ## Diagnostics
 
-None allocated yet. Q1 needs one code (`const` on a declaration), Q2 needs two (a write to a
-binding that is not `mut`, including passing it to a `mut` parameter; a `mut` nothing writes),
-and Q3 retires or redefines E0878. The implementation issue allocates each code with its fixture.
-
-| Code | Meaning | Asserted by |
-| ---- | ------- | ----------- |
+| Code  | Meaning                                                                                                                                                                                                                                              | Asserted by                                                                                                                                          |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E0898 | `const` written on a declaration (Decision 5)                                                                                                                                                                                                        | `tests/adr-071/`                                                                                                                                     |
+| E0899 | A `mut` binding nothing writes, outside the two exemptions (Decision 6)                                                                                                                                                                              | `tests/adr-071/`                                                                                                                                     |
+| E0900 | A write to a binding not declared `mut`: an assignment to or through it, a `safe_div`/`safe_mod` output, or an argument to a `mut` C-Next parameter or a C/C++ pointer or array parameter that is not const (Decision 2). It retires E0877 and E0878 | `tests/adr-013/const-*-error.test.cnx`, `tests/adr-051/safe-division-const-output-error.test.cnx`, `tests/bugs/issue-1977-struct-to-c-byte-pointer/` |
 
 ## Scope-Context Matrix (#1219)
 
@@ -248,25 +247,27 @@ includes it transitively; its `mut` sits in the declaring file. A call into a `m
 also happens in a global or scope-member initializer: today's E0878 fires there
 (`u32 g <- twice(LIMIT);` at file scope and inside a scope both report it), and Q3 changes it.
 
-Every cell is `warn` until the implementation lands: nothing enforces this ADR yet and no
-fixture can occupy a cell. The implementation issue promotes each to `error` with its fixture.
+Every cell is `error`. E0900 is asserted in each: an assignment occupies the two function
+contexts, a call into a `mut` parameter from an initializer the other two, across zero, one
+and two include hops (`tests/adr-013/const-uncovered-arms-error`, `const-imported-direct-error`,
+`const-imported-transitive-error`).
 
 <!-- MATRIX-SEVERITY -->
 
 | Context            | Relationship        | Severity |
 | ------------------ | ------------------- | -------- |
-| global variable    | same file           | warn     |
-| top-level function | same file           | warn     |
-| scope member       | same file           | warn     |
-| scope method       | same file           | warn     |
-| global variable    | imported direct     | warn     |
-| top-level function | imported direct     | warn     |
-| scope member       | imported direct     | warn     |
-| scope method       | imported direct     | warn     |
-| global variable    | imported transitive | warn     |
-| top-level function | imported transitive | warn     |
-| scope member       | imported transitive | warn     |
-| scope method       | imported transitive | warn     |
+| global variable    | same file           | error    |
+| top-level function | same file           | error    |
+| scope member       | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | imported direct     | error    |
+| top-level function | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported transitive | error    |
+| top-level function | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| scope method       | imported transitive | error    |
 
 ## Consequences
 

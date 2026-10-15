@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-602 fixture(s) assert a diagnostic; 592 carry a code.
+605 fixture(s) assert a diagnostic; 595 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -40,35 +40,35 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-007/slice-zero-length.test.cnx                                                         | E0860               |
 | tests/adr-007/subscript-depth-scalar-error.test.cnx                                              | E0856               |
 | tests/adr-007/subscript-depth-this-error.test.cnx                                                | E0856               |
-| tests/adr-013/const-assign-error.test.cnx                                                        | E0877               |
-| tests/adr-013/const-bool-assign-error.test.cnx                                                   | E0877               |
-| tests/adr-013/const-bool-param-assign-error.test.cnx                                             | E0877               |
-| tests/adr-013/const-compound-assign-error.test.cnx                                               | E0877               |
-| tests/adr-013/const-compound-f32-error.test.cnx                                                  | E0877               |
-| tests/adr-013/const-compound-f64-error.test.cnx                                                  | E0877               |
-| tests/adr-013/const-compound-i16-error.test.cnx                                                  | E0877               |
-| tests/adr-013/const-compound-i64-error.test.cnx                                                  | E0877               |
-| tests/adr-013/const-compound-i8-error.test.cnx                                                   | E0877               |
-| tests/adr-013/const-compound-u16-error.test.cnx                                                  | E0877               |
-| tests/adr-013/const-compound-u64-error.test.cnx                                                  | E0877               |
-| tests/adr-013/const-f32-assign-error.test.cnx                                                    | E0877               |
-| tests/adr-013/const-f32-param-assign-error.test.cnx                                              | E0877               |
-| tests/adr-013/const-f64-assign-error.test.cnx                                                    | E0877               |
-| tests/adr-013/const-f64-param-assign-error.test.cnx                                              | E0877               |
-| tests/adr-013/const-i16-assign-error.test.cnx                                                    | E0877               |
-| tests/adr-013/const-i16-param-assign-error.test.cnx                                              | E0877               |
-| tests/adr-013/const-i64-assign-error.test.cnx                                                    | E0877               |
-| tests/adr-013/const-i64-param-assign-error.test.cnx                                              | E0877               |
-| tests/adr-013/const-i8-assign-error.test.cnx                                                     | E0877               |
-| tests/adr-013/const-i8-param-assign-error.test.cnx                                               | E0877               |
-| tests/adr-013/const-imported-direct-error.test.cnx                                               | E0877, E0878        |
-| tests/adr-013/const-imported-transitive-error.test.cnx                                           | E0877, E0878        |
-| tests/adr-013/const-param-assign-error.test.cnx                                                  | E0877               |
-| tests/adr-013/const-u16-assign-error.test.cnx                                                    | E0877               |
-| tests/adr-013/const-u16-param-assign-error.test.cnx                                              | E0877               |
-| tests/adr-013/const-u64-assign-error.test.cnx                                                    | E0877               |
-| tests/adr-013/const-u64-param-assign-error.test.cnx                                              | E0877               |
-| tests/adr-013/const-uncovered-arms-error.test.cnx                                                | E0877, E0878        |
+| tests/adr-013/const-assign-error.test.cnx                                                        | E0900               |
+| tests/adr-013/const-bool-assign-error.test.cnx                                                   | E0900               |
+| tests/adr-013/const-bool-param-assign-error.test.cnx                                             | E0900               |
+| tests/adr-013/const-compound-assign-error.test.cnx                                               | E0900               |
+| tests/adr-013/const-compound-f32-error.test.cnx                                                  | E0900               |
+| tests/adr-013/const-compound-f64-error.test.cnx                                                  | E0900               |
+| tests/adr-013/const-compound-i16-error.test.cnx                                                  | E0900               |
+| tests/adr-013/const-compound-i64-error.test.cnx                                                  | E0900               |
+| tests/adr-013/const-compound-i8-error.test.cnx                                                   | E0900               |
+| tests/adr-013/const-compound-u16-error.test.cnx                                                  | E0900               |
+| tests/adr-013/const-compound-u64-error.test.cnx                                                  | E0900               |
+| tests/adr-013/const-f32-assign-error.test.cnx                                                    | E0900               |
+| tests/adr-013/const-f32-param-assign-error.test.cnx                                              | E0900               |
+| tests/adr-013/const-f64-assign-error.test.cnx                                                    | E0900               |
+| tests/adr-013/const-f64-param-assign-error.test.cnx                                              | E0900               |
+| tests/adr-013/const-i16-assign-error.test.cnx                                                    | E0900               |
+| tests/adr-013/const-i16-param-assign-error.test.cnx                                              | E0900               |
+| tests/adr-013/const-i64-assign-error.test.cnx                                                    | E0900               |
+| tests/adr-013/const-i64-param-assign-error.test.cnx                                              | E0900               |
+| tests/adr-013/const-i8-assign-error.test.cnx                                                     | E0900               |
+| tests/adr-013/const-i8-param-assign-error.test.cnx                                               | E0900               |
+| tests/adr-013/const-imported-direct-error.test.cnx                                               | E0900               |
+| tests/adr-013/const-imported-transitive-error.test.cnx                                           | E0900               |
+| tests/adr-013/const-param-assign-error.test.cnx                                                  | E0900               |
+| tests/adr-013/const-u16-assign-error.test.cnx                                                    | E0900               |
+| tests/adr-013/const-u16-param-assign-error.test.cnx                                              | E0900               |
+| tests/adr-013/const-u64-assign-error.test.cnx                                                    | E0900               |
+| tests/adr-013/const-u64-param-assign-error.test.cnx                                              | E0900               |
+| tests/adr-013/const-uncovered-arms-error.test.cnx                                                | E0900               |
 | tests/adr-014/struct-init-non-struct-direct-error.test.cnx                                       | E0358               |
 | tests/adr-014/struct-init-non-struct-transitive-error.test.cnx                                   | E0358               |
 | tests/adr-014/struct-no-type-error.test.cnx                                                      | E0357               |
@@ -203,7 +203,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-050/return-in-critical-error.test.cnx                                                  | E0853               |
 | tests/adr-050/return-in-critical-scope-method-error.test.cnx                                     | E0853               |
 | tests/adr-050/return-in-critical-switch-error.test.cnx                                           | E0853               |
-| tests/adr-051/safe-division-const-output-error.test.cnx                                          | E0877               |
+| tests/adr-051/safe-division-const-output-error.test.cnx                                          | E0900               |
 | tests/adr-051/safe-division-shape-error.test.cnx                                                 | E0884, E0885        |
 | tests/adr-058/kinds-errors-error.test.cnx                                                        | E0867               |
 | tests/adr-058/kinds-header-error.test.cnx                                                        | E0867               |
@@ -232,6 +232,9 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-068/forever-disguised-while-rel.test.cnx                                               | E0707               |
 | tests/adr-068/forever-non-void-error.test.cnx                                                    | E0705               |
 | tests/adr-068/loops-in-scope-error.test.cnx                                                      | E0705, E0707        |
+| tests/adr-071/const-keyword-error.test.cnx                                                       | E0898               |
+| tests/adr-071/unused-mut-error.test.cnx                                                          | E0899               |
+| tests/adr-071/write-every-kind-error.test.cnx                                                    | E0900               |
 | tests/analysis/division-by-const-zero.test.cnx                                                   | E0800               |
 | tests/analysis/division-by-zero.test.cnx                                                         | E0800               |
 | tests/analysis/float-array-index.test.cnx                                                        | E0851               |
@@ -375,7 +378,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1322-shadowed-rooted-spellings/global-shadowed-bounds.test.cnx                  | E0854               |
 | tests/bugs/issue-1322-shadowed-rooted-spellings/global-shadowed-string.test.cnx                  | E0857               |
 | tests/bugs/issue-1322-shadowed-rooted-spellings/this-shadowed-bit-access.test.cnx                | E0856               |
-| tests/bugs/issue-1322-shadowed-rooted-spellings/this-shadowed-const.test.cnx                     | E0877               |
+| tests/bugs/issue-1322-shadowed-rooted-spellings/this-shadowed-const.test.cnx                     | E0900               |
 | tests/bugs/issue-1333-scope-reopening/duplicate-member-reopened.test.cnx                         | E0425               |
 | tests/bugs/issue-1334-scope-declaration-sites/conflict-across-files.test.cnx                     | E0425               |
 | tests/bugs/issue-1334-scope-declaration-sites/cross-language-conflict.test.cnx                   | E0425               |
@@ -514,7 +517,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1975-header-struct-byte-length/header-pointer-field-error.test.cnx              | E0867               |
 | tests/bugs/issue-1975-header-struct-byte-length/type-named-as-value-error.test.cnx               | E0897               |
 | tests/bugs/issue-1975-type-length-across-includes/type-length-across-includes-error.test.cnx     | E0897               |
-| tests/bugs/issue-1977-struct-to-c-byte-pointer/struct-to-c-byte-pointer-error.test.cnx           | E0895, E0896        |
+| tests/bugs/issue-1977-struct-to-c-byte-pointer/struct-to-c-byte-pointer-error.test.cnx           | E0895, E0896, E0900 |
 | tests/bugs/issue-1980-enum-read-before-assign/enum-read-before-assign.test.cnx                   | E0381               |
 | tests/bugs/issue-1981-struct-cycle/direct.test.cnx                                               | E0426               |
 | tests/bugs/issue-1981-struct-cycle/mutual.test.cnx                                               | E0426               |

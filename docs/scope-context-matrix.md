@@ -473,7 +473,11 @@ cell is declared by the ADR that owns it.
 
 | Context            | same file | direct | transitive | from 1 away | thru chain |
 | ------------------ | --------- | ------ | ---------- | ----------- | ---------- |
-| global variable    | warn      | warn   | warn       | n/a         | n/a        |
-| top-level function | warn      | warn   | warn       | n/a         | n/a        |
-| scope member       | warn      | warn   | warn       | n/a         | n/a        |
-| scope method       | warn      | warn   | warn       | n/a         | n/a        |
+| global variable    | ok        | ok     | ok         | n/a         | n/a        |
+| top-level function | ok        | ok     | ok         | n/a         | n/a        |
+| scope member       | ok        | ok     | ok         | n/a         | n/a        |
+| scope method       | ok        | ok     | ok         | n/a         | n/a        |
+
+1 linked fixture with no derivable context:
+
+- `adr-071/read-only-by-default.test.cnx`

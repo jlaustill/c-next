@@ -1,0 +1,44 @@
+// test-error
+// test-adr: 071
+// E0900: a write to a binding that is not `mut`, for each binding kind -- a
+// global, a scope member, a parameter, a local, a `for` variable, a safe_div
+// output and an argument to a `mut` parameter. CONTROL: each `mut` twin is
+// written the same way and is silent.
+
+u32 G <- 0;
+mut u32 gm <- 0;
+
+scope Board {
+    u32 M <- 0;
+    mut u32 mm <- 0;
+
+    public void set() {
+        this.M <- 1;
+        this.mm <- 1;
+    }
+}
+
+void sink(mut u32 v) {
+    v <- 1;
+}
+
+void f(u32 p, mut u32 pm) {
+    p <- 1;
+    pm <- 1;
+    u32 l <- 0;
+    l <- 1;
+    mut u32 lm <- 0;
+    lm <- 1;
+    for (u32 i <- 0; i < 3; i +<- 1) {
+    }
+    for (mut u32 j <- 0; j < 3; j +<- 1) {
+    }
+    G <- 1;
+    gm <- 1;
+    u32 q <- 0;
+    bool okQ <- safe_div(q, 10, 2, 0);
+    mut u32 qm <- 0;
+    bool okQm <- safe_div(qm, 10, 2, 0);
+    sink(l);
+    sink(lm);
+}

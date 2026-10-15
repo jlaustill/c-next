@@ -1,5 +1,5 @@
 // test-error
-// test-adr: 013
+// test-adr: 013, 071
 // ADR-013 in the arms the single-purpose fixtures do not reach: a scope
 // member through `this.` and `global.`, a const array parameter's element, a
 // const struct parameter's field, a const struct variable's field, the `for`

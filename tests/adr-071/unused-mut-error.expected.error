@@ -1,0 +1,8 @@
+12:4 error[E0899]: 'hidden' is never written; remove `mut`
+       help: A binding is declared `mut` only when something writes it (ADR-071).
+27:18 error[E0899]: 'v' is never written; remove `mut`
+       help: A binding is declared `mut` only when something writes it (ADR-071).
+36:12 error[E0899]: 'never' is never written; remove `mut`
+       help: A binding is declared `mut` only when something writes it (ADR-071).
+39:17 error[E0899]: 'i' is never written; remove `mut`
+       help: A binding is declared `mut` only when something writes it (ADR-071).
