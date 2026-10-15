@@ -49,6 +49,41 @@ describe("ThisOutsideScopeAnalyzer", () => {
     expect(found).toHaveLength(1);
   });
 
+  it("rejects `this` in a case label outside a scope (#1629)", () => {
+    const found = errors(
+      [
+        "const u8 LIMIT <- 1;",
+        "u32 pick(u8 s) {",
+        "    switch (s) {",
+        "        case this.LIMIT { return 1; }",
+        "        case this.State.IDLE { return 2; }",
+        "        default { return 0; }",
+        "    }",
+        "    return 0;",
+        "}",
+      ].join("\n"),
+    );
+    expect(found.map((e) => [e.code, e.line, e.column])).toEqual([
+      ["E0431", 4, 13],
+      ["E0431", 5, 13],
+    ]);
+  });
+
+  it("accepts `this` in a case label inside a scope", () => {
+    const source = [
+      "scope Panel {",
+      "    const u8 LIMIT <- 1;",
+      "    public u32 pick(u8 s) {",
+      "        switch (s) {",
+      "            case this.LIMIT { return 1; }",
+      "            default { return 0; }",
+      "        }",
+      "    }",
+      "}",
+    ].join("\n");
+    expect(errors(source)).toEqual([]);
+  });
+
   it("accepts `this` inside a scope method", () => {
     const source = [
       "scope Motor {",
