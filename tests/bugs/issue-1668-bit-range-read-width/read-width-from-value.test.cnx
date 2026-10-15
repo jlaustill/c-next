@@ -30,13 +30,13 @@ u32 main() {
     u32 n <- 40;
     gs.w <- 0x12345678;
     gs.big <- 0x123456789A;
-    u64 a <- global.g[0, n];
+    u64 a <- g[0, n];
     u64 b <- Sc.v[0, n];
     u64 c <- gs.big[0, n];
     u64 d <- g[0, n];
     u64 s <- Sc.low(n);
     u8 e <- gs.w[0, 8];
-    u8 f <- global.h[0, 8];
+    u8 f <- h[0, 8];
     u32 word <- 0;
     word[0, WIDTH] <- 0xFFFFFFFF;
     if (a != 0x123456789A) {

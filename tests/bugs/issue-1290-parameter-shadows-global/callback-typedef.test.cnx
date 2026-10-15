@@ -21,7 +21,7 @@ u32 main() {
     if (seen != 7) {
         return 1;
     }
-    if (global.buf[1] != 80) {
+    if (buf[1] != 80) {
         return 2;
     }
     return 0;
