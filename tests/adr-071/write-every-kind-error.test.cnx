@@ -29,10 +29,8 @@ void f(u32 p, mut u32 pm) {
     l <- 1;
     mut u32 lm <- 0;
     lm <- 1;
-    for (u32 i <- 0; i < 3; i +<- 1) {
-    }
-    for (mut u32 j <- 0; j < 3; j +<- 1) {
-    }
+    for (u32 i <- 0; i < 3; i +<- 1) {}
+    for (mut u32 j <- 0; j < 3; j +<- 1) {}
     G <- 1;
     gm <- 1;
     u32 q <- 0;

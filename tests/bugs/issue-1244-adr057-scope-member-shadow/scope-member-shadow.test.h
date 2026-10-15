@@ -18,7 +18,7 @@ typedef struct Holder {
 } Holder;
 
 /* External variables */
-extern const uint8_t Other__member[16];
+extern uint8_t Other__member[16];
 
 /* Function prototypes */
 uint8_t Reg__useShadowed(void);

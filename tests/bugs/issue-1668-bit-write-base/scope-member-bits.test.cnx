@@ -32,7 +32,7 @@ scope Sc {
 }
 
 scope Cfg {
-    public P cfg;
+    public mut P cfg;
 }
 
 void viaParameter(mut P p) {

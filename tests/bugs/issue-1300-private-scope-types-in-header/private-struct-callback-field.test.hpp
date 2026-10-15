@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* Callback typedefs */
-typedef void (*onTick_fp)(uint32_t);
+typedef void (*onTick_fp)(const uint32_t);
 
 /* Struct definitions */
 typedef struct Sched__PubHolder {

@@ -11,7 +11,7 @@
 void test(void) {
     const char first[33] = "Hello";
     const char second[33] = " World";
-    const char result[65] = "";
+    char result[65] = "";
     (void) strncpy(result, first, 64);
     (void) strncat(result, second, 64 - strlen(result));
     result[64] = '\0';

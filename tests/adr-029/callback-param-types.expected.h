@@ -16,9 +16,9 @@ extern "C" {
 typedef struct CallbackParamType__Point CallbackParamType__Point;
 
 /* Callback typedefs */
-typedef uint32_t (*processU8_fp)(uint8_t);
-typedef uint32_t (*processU32_fp)(uint32_t);
-typedef uint32_t (*processBool_fp)(bool);
+typedef uint32_t (*processU8_fp)(const uint8_t);
+typedef uint32_t (*processU32_fp)(const uint32_t);
+typedef uint32_t (*processBool_fp)(const bool);
 typedef uint32_t (*processPoint_fp)(const CallbackParamType__Point*);
 
 /* Struct definitions */

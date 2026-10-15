@@ -20,7 +20,7 @@ typedef struct P {
 } P;
 
 /* External variables */
-extern const P Cfg__cfg;
+extern P Cfg__cfg;
 
 /* Function prototypes */
 void Sc__viaThis(void);

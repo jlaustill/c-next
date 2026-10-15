@@ -11,7 +11,7 @@
 int main(void) {
     const char first[33] = "Hello";
     const char second[33] = " World";
-    const char result[65] = "";
+    char result[65] = "";
     (void) strncpy(result, first, 64);
     (void) strncat(result, second, 64 - strlen(result));
     result[64] = '\0';
@@ -24,7 +24,7 @@ int main(void) {
     if (64 != 64) {
         return 3;
     }
-    const char withLit[65] = "";
+    char withLit[65] = "";
     (void) strncpy(withLit, first, 64);
     (void) strncat(withLit, "!", 64 - strlen(withLit));
     withLit[64] = '\0';
@@ -36,7 +36,7 @@ int main(void) {
     }
     const char a[9] = "AB";
     const char b[9] = "CD";
-    const char ab[17] = "";
+    char ab[17] = "";
     (void) strncpy(ab, a, 16);
     (void) strncat(ab, b, 16 - strlen(ab));
     ab[16] = '\0';
@@ -48,7 +48,7 @@ int main(void) {
     }
     const char part1[33] = "The quick ";
     const char part2[33] = "brown fox";
-    const char sentence[65] = "";
+    char sentence[65] = "";
     (void) strncpy(sentence, part1, 64);
     (void) strncat(sentence, part2, 64 - strlen(sentence));
     sentence[64] = '\0';
@@ -60,7 +60,7 @@ int main(void) {
     }
     const char nonEmpty[33] = "Text";
     const char empty[33] = "";
-    const char withEmpty[65] = "";
+    char withEmpty[65] = "";
     (void) strncpy(withEmpty, nonEmpty, 64);
     (void) strncat(withEmpty, empty, 64 - strlen(withEmpty));
     withEmpty[64] = '\0';
@@ -70,14 +70,14 @@ int main(void) {
     if (strcmp(withEmpty, "Text") != 0) {
         return 11;
     }
-    const char emptyFirst[65] = "";
+    char emptyFirst[65] = "";
     (void) strncpy(emptyFirst, empty, 64);
     (void) strncat(emptyFirst, nonEmpty, 64 - strlen(emptyFirst));
     emptyFirst[64] = '\0';
     if (strcmp(emptyFirst, "Text") != 0) {
         return 12;
     }
-    const char litConcat[12] = "";
+    char litConcat[12] = "";
     (void) strncpy(litConcat, "Hello", 11);
     (void) strncat(litConcat, " World", 11 - strlen(litConcat));
     litConcat[11] = '\0';

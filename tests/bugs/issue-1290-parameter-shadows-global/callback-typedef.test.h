@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* Callback typedefs */
-typedef void (*handler_fp)(uint32_t, const uint32_t handler__buf[2]);
+typedef void (*handler_fp)(const uint32_t, const uint32_t handler__buf[2]);
 
 /* External variables */
 extern const uint32_t buf[2];

@@ -13,9 +13,9 @@ extern "C" {
 #endif
 
 /* Callback typedefs */
-typedef uint32_t (*sink32_fp)(uint32_t);
-typedef void (*sinkVoid_fp)(uint32_t);
-typedef int32_t (*sinkI_fp)(int32_t);
+typedef uint32_t (*sink32_fp)(const uint32_t);
+typedef void (*sinkVoid_fp)(const uint32_t);
+typedef int32_t (*sinkI_fp)(const int32_t);
 
 /* Struct definitions */
 typedef struct Handlers {

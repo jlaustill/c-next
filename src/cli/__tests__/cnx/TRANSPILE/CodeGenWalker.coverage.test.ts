@@ -1201,7 +1201,7 @@ describe("CodeGenWalker Coverage Tests", () => {
           );
         };
         expect(typedefOf("aPoke")).toBe(
-          "typedef void (*aPoke_fp)(const Dev*, uint32_t);",
+          "typedef void (*aPoke_fp)(const Dev*, const uint32_t);",
         );
         expect(typedefOf("pokeBoth")).toBe(
           "typedef void (*pokeBoth_fp)(const Dev* ds[2]);",

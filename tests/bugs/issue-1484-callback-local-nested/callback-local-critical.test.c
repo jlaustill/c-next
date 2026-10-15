@@ -67,7 +67,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 uint32_t total = 0U;
 
 
-typedef void (*onCritical_fp)(uint32_t);
+typedef void (*onCritical_fp)(const uint32_t);
 
 void onCritical(const uint32_t n) {
     total = cnx_clamp_add_u32(total, n);

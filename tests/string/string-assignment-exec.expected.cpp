@@ -10,7 +10,7 @@
 // ADR-045: Validate string assignment between different capacities at runtime
 int main(void) {
     const char small[33] = "Test";
-    const char big[65] = "";
+    char big[65] = "";
     (void) strncpy(big, small, 64); big[64] = '\0';
     if (strlen(big) != 4) {
         return 1;
@@ -22,7 +22,7 @@ int main(void) {
         return 3;
     }
     const char source[17] = "Hello World";
-    const char dest[33] = "";
+    char dest[33] = "";
     (void) strncpy(dest, source, 32); dest[32] = '\0';
     if (strlen(dest) != 11) {
         return 4;
@@ -31,7 +31,7 @@ int main(void) {
         return 5;
     }
     const char emptySource[33] = "";
-    const char emptyDest[65] = "";
+    char emptyDest[65] = "";
     (void) strncpy(emptyDest, emptySource, 64); emptyDest[64] = '\0';
     if (strlen(emptyDest) != 0) {
         return 6;

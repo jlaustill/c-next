@@ -32,7 +32,7 @@ mut u8 witness <- 0;
 
 // A. Callback-compatible, parameter never modified, typedef takes `char *`.
 //    MUST NOT get auto-const.
-void onLog(string<32> msg) {
+void onLog(mut string<32> msg) {
     // Indexed rather than compared, which also pins #1600: a string parameter
     // of a callback-compatible function was treated as pass-by-reference, so
     // EVERY whole-value use emitted `(*msg)` -- here `(*msg)[0U]`, which gcc

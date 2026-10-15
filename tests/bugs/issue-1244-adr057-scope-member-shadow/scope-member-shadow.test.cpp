@@ -20,7 +20,7 @@
 //
 // Both tiers must keep the nearer variable, so `Reg.Other` wins over `Other`.
 /* Scope: Other */
-const uint8_t Other__member[16] = {};
+uint8_t Other__member[16] = {};
 
 /* Scope: Reg */
 static Holder Reg__Other = {};

@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* Callback typedefs */
-typedef uint32_t (*computeValue_fp)(uint32_t);
+typedef uint32_t (*computeValue_fp)(const uint32_t);
 
 /* Struct definitions */
 typedef struct Processor {

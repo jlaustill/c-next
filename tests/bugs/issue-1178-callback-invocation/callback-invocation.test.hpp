@@ -13,8 +13,8 @@ extern "C" {
 #endif
 
 /* Callback typedefs */
-typedef void (*record_fp)(uint8_t);
-typedef void (*inspect_fp)(uint8_t);
+typedef void (*record_fp)(const uint8_t);
+typedef void (*inspect_fp)(const uint8_t);
 
 /* Struct definitions */
 typedef struct Sample {

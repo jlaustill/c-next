@@ -12,7 +12,7 @@
 int main(void) {
     const char a[33] = "Hello";
     const char b[33] = " World";
-    const char concat[65] = "";
+    char concat[65] = "";
     (void) strncpy(concat, a, 64);
     (void) strncat(concat, b, 64 - strlen(concat));
     concat[64] = '\0';
@@ -26,7 +26,7 @@ int main(void) {
         return 3;
     }
     const char source[65] = "Hello, World!";
-    const char sub[6] = "";
+    char sub[6] = "";
     (void) strncpy(sub, source + 0, 5);
     sub[5] = '\0';
     if (strlen(sub) != 5) {
@@ -40,7 +40,7 @@ int main(void) {
     }
     const char first[33] = "AB";
     const char second[33] = "CD";
-    const char combined[65] = "";
+    char combined[65] = "";
     (void) strncpy(combined, first, 64);
     (void) strncat(combined, second, 64 - strlen(combined));
     combined[64] = '\0';
@@ -51,13 +51,13 @@ int main(void) {
         return 8;
     }
     const char text[21] = "Testing123";
-    const char letters[8] = "";
+    char letters[8] = "";
     (void) strncpy(letters, text + 0, 7);
     letters[7] = '\0';
     if (strcmp(letters, "Testing") != 0) {
         return 9;
     }
-    const char numbers[4] = "";
+    char numbers[4] = "";
     (void) strncpy(numbers, text + 7, 3);
     numbers[3] = '\0';
     if (strcmp(numbers, "123") != 0) {
@@ -78,7 +78,7 @@ int main(void) {
     }
     const char prefix[17] = "pre";
     const char suffix[17] = "fix";
-    const char word[33] = "";
+    char word[33] = "";
     (void) strncpy(word, prefix, 32);
     (void) strncat(word, suffix, 32 - strlen(word));
     word[32] = '\0';

@@ -16,7 +16,7 @@ extern "C" {
 extern uint8_t xwitness;
 
 /* Function prototypes */
-void xOnLog(const char* msg);
+void xOnLog(char* msg);
 void xPlainRead(const char* text);
 
 #ifdef __cplusplus

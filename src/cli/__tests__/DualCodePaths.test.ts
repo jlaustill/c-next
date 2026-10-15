@@ -383,7 +383,7 @@ void main() {
       // File 1: Define scope with public variable
       const storageSource = `
 scope Storage {
-    public u8 value <- 0;
+    public mut u8 value <- 0;
 }
 `;
       const storagePath = join(tempDir, "storage.cnx");

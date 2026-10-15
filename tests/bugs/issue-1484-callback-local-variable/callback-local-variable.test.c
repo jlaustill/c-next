@@ -49,8 +49,8 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 uint32_t total = 0U;
 
 
-typedef void (*onTick_fp)(uint32_t);
-typedef void (*Motor__onBeat_fp)(uint32_t);
+typedef void (*onTick_fp)(const uint32_t);
+typedef void (*Motor__onBeat_fp)(const uint32_t);
 
 void onTick(const uint32_t ms) {
     total = cnx_clamp_add_u32(total, ms);

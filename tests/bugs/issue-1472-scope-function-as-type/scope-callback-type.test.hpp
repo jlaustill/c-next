@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* Callback typedefs */
-typedef void (*Motor__onTick_fp)(uint32_t);
+typedef void (*Motor__onTick_fp)(const uint32_t);
 
 /* External variables */
 extern uint32_t Motor__ticks;

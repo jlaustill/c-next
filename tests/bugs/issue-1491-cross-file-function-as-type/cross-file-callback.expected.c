@@ -66,7 +66,7 @@ typedef uint32_t (*localHelper_fp)(void);
 typedef uint32_t (*localWithText_fp)(const char*);
 typedef uint32_t (*sharedHelper_fp)(void);
 typedef void (*sharedNotify_fp)(void);
-typedef uint32_t (*sharedWithCount_fp)(uint32_t);
+typedef uint32_t (*sharedWithCount_fp)(const uint32_t);
 
 uint32_t localHelper(void) {
     return 5U;

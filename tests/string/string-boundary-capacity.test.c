@@ -51,13 +51,13 @@ int main(void) {
         return 12;
     }
     const char source[11] = "0123456789";
-    const char firstHalf[6] = "";
+    char firstHalf[6] = "";
     (void) strncpy(firstHalf, source + 0, 5);
     firstHalf[5] = '\0';
     if (strcmp(firstHalf, "01234") != 0) {
         return 13;
     }
-    const char lastHalf[6] = "";
+    char lastHalf[6] = "";
     (void) strncpy(lastHalf, source + 5, 5);
     lastHalf[5] = '\0';
     if (strcmp(lastHalf, "56789") != 0) {
@@ -65,7 +65,7 @@ int main(void) {
     }
     const char part1[4] = "ABC";
     const char part2[4] = "DEF";
-    const char combined[7] = "";
+    char combined[7] = "";
     (void) strncpy(combined, part1, 6);
     (void) strncat(combined, part2, 6 - strlen(combined));
     combined[6] = '\0';

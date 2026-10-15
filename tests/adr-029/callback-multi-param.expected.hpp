@@ -14,9 +14,9 @@ extern "C" {
 #endif
 
 /* Callback typedefs */
-typedef uint32_t (*addTwo_fp)(uint32_t, uint32_t);
-typedef uint32_t (*addThree_fp)(uint32_t, uint32_t, uint32_t);
-typedef uint32_t (*mixedParams_fp)(uint32_t, bool);
+typedef uint32_t (*addTwo_fp)(const uint32_t, const uint32_t);
+typedef uint32_t (*addThree_fp)(const uint32_t, const uint32_t, const uint32_t);
+typedef uint32_t (*mixedParams_fp)(const uint32_t, const bool);
 
 /* Struct definitions */
 typedef struct TwoParamHandler {

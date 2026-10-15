@@ -12,7 +12,7 @@
 // flawfinder MS-banned). This must match the reassignment code path exactly.
 int main(void) {
     const char small[33] = "Test";
-    const char big[65] = "";
+    char big[65] = "";
     (void) strncpy(big, small, 64); big[64] = '\0';
     if (strcmp(big, "Test") != 0) {
         return 1;

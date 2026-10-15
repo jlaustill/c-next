@@ -16,13 +16,13 @@ int main(void) {
     const bool gate = true;
     if (gate == true) {
         const char base[17] = "Hello";
-        const char copied[33] = "";
+        char copied[33] = "";
         (void) strncpy(copied, base, 32); copied[32] = '\0';
-        const char joined[33] = "";
+        char joined[33] = "";
         (void) strncpy(joined, base, 32);
         (void) strncat(joined, base, 32 - strlen(joined));
         joined[32] = '\0';
-        const char part[9] = "";
+        char part[9] = "";
         (void) strncpy(part, base + 0, 3);
         part[3] = '\0';
         if (strcmp(copied, "Hello") != 0) {

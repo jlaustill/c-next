@@ -15,7 +15,7 @@ struct Holder {
 }
 
 scope Other {
-    public u8[16] member;
+    public mut u8[16] member;
 }
 
 scope Reg {

@@ -14,10 +14,10 @@ extern "C" {
 #endif
 
 /* Callback typedefs */
-typedef uint32_t (*getU32Value_fp)(uint32_t);
-typedef uint8_t (*getU8Value_fp)(uint32_t);
-typedef bool (*checkThreshold_fp)(uint32_t);
-typedef int32_t (*getSignedValue_fp)(int32_t);
+typedef uint32_t (*getU32Value_fp)(const uint32_t);
+typedef uint8_t (*getU8Value_fp)(const uint32_t);
+typedef bool (*checkThreshold_fp)(const uint32_t);
+typedef int32_t (*getSignedValue_fp)(const int32_t);
 
 /* Struct definitions */
 typedef struct U32Returner {

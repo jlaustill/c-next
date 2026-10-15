@@ -34,7 +34,7 @@ int main(void) {
         return 7;
     }
     const char text[33] = "Hello";
-    const char concatEmpty[97] = "";
+    char concatEmpty[97] = "";
     (void) strncpy(concatEmpty, text, 96);
     (void) strncat(concatEmpty, empty, 96 - strlen(concatEmpty));
     concatEmpty[96] = '\0';
@@ -44,7 +44,7 @@ int main(void) {
     if (strcmp(concatEmpty, "Hello") != 0) {
         return 9;
     }
-    const char emptyPlusText[97] = "";
+    char emptyPlusText[97] = "";
     (void) strncpy(emptyPlusText, empty, 96);
     (void) strncat(emptyPlusText, text, 96 - strlen(emptyPlusText));
     emptyPlusText[96] = '\0';

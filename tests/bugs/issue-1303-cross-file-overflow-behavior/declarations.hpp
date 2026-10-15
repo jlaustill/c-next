@@ -16,11 +16,11 @@ extern "C" {
 extern uint8_t defaultedCounter;
 extern uint8_t explicitClampCounter;
 extern uint8_t explicitWrapCounter;
-extern const uint8_t Counter__value;
-extern const uint8_t Counter__wrappingValue;
+extern uint8_t Counter__value;
+extern uint8_t Counter__wrappingValue;
 extern uint8_t Counter__viaThis;
-extern const uint8_t Counter__viaGlobal;
-extern const uint8_t Counter__wrappingViaGlobal;
+extern uint8_t Counter__viaGlobal;
+extern uint8_t Counter__wrappingViaGlobal;
 
 /* Function prototypes */
 void Counter__bumpViaThis(void);

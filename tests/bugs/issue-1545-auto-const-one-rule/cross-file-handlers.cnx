@@ -6,7 +6,7 @@
 mut u8 xwitness <- 0;
 
 // Callback-compatible via the OTHER file. Must NOT get auto-const.
-void xOnLog(string<32> msg) {
+void xOnLog(mut string<32> msg) {
     xwitness <- msg[0];
 }
 

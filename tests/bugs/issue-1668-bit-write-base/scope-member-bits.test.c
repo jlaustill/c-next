@@ -35,7 +35,7 @@ uint8_t Sc__arr(const uint32_t i) {
 }
 
 /* Scope: Cfg */
-const P Cfg__cfg = {0};
+P Cfg__cfg = {0};
 
 void viaParameter(P* p) {
     p->arr[0] = (uint8_t)((p->arr[0] & ~(1U << 1)) | (1U << 1));

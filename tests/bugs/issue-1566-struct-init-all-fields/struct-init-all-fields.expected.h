@@ -19,7 +19,7 @@ typedef enum {
 } Mode;
 
 /* Callback typedefs */
-typedef uint32_t (*onSample_fp)(uint32_t);
+typedef uint32_t (*onSample_fp)(const uint32_t);
 
 /* Struct definitions */
 typedef struct Device {

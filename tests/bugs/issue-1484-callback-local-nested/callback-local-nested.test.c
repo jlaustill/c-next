@@ -29,13 +29,13 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 uint32_t total = 0U;
 
 
-typedef void (*onIf_fp)(uint32_t);
-typedef void (*onWhile_fp)(uint32_t);
-typedef void (*onDo_fp)(uint32_t);
-typedef void (*onFor_fp)(uint32_t);
-typedef void (*onCase_fp)(uint32_t);
-typedef void (*onDefault_fp)(uint32_t);
-typedef void (*onForever_fp)(uint32_t);
+typedef void (*onIf_fp)(const uint32_t);
+typedef void (*onWhile_fp)(const uint32_t);
+typedef void (*onDo_fp)(const uint32_t);
+typedef void (*onFor_fp)(const uint32_t);
+typedef void (*onCase_fp)(const uint32_t);
+typedef void (*onDefault_fp)(const uint32_t);
+typedef void (*onForever_fp)(const uint32_t);
 
 void onIf(const uint32_t n) {
     total = cnx_clamp_add_u32(total, n);

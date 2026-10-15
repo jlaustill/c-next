@@ -27,13 +27,13 @@ uint16_t global_witness = 0U;
 // THE DEFECT: wired in the entry file, so #1544 does not recognise it here and
 // #268 auto-const gives `const SensorReading*` -- which does not match
 // ReadingHandler.
-void onEventCrossFile(const SensorReading* reading) {
+void onEventCrossFile(SensorReading* reading) {
     global_witness = reading->value;
 }
 
 // PAIRED CASE: identical body, wired in THIS file, so it is recognised today
 // and keeps `SensorReading*`. A fix that recognises nothing fails here.
-void onEventSameFile(const SensorReading* reading) {
+void onEventSameFile(SensorReading* reading) {
     global_witness = reading->value;
 }
 

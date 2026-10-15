@@ -36,8 +36,6 @@ void locals() {
     mut u32 never <- 0;
     mut u32 once <- 0;
     once <- 1;
-    for (mut u32 i <- 0; i < 3;) {
-    }
-    for (mut u32 j <- 0; j < 3; j +<- 1) {
-    }
+    for (mut u32 i <- 0; i < 3; ) {}
+    for (mut u32 j <- 0; j < 3; j +<- 1) {}
 }
