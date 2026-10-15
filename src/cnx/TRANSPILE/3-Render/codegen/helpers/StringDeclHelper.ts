@@ -212,7 +212,6 @@ class StringDeclHelper {
         name,
         capacity,
         init.concat,
-        constMod,
         qualifiers,
         state,
       );
@@ -224,7 +223,6 @@ class StringDeclHelper {
         name,
         capacity,
         substringOps,
-        constMod,
         qualifiers,
         state,
       );
@@ -243,7 +241,9 @@ class StringDeclHelper {
     }
 
     // String variable: cannot use C array initialization, so declare empty and
-    // copy. Issue #1044: use the same bounded copy as the reassignment path
+    // copy. The copy writes the buffer, so it is never a C `const` array, here
+    // or in the concatenation and substring arms; C-Next still rejects a write
+    // to it (ADR-071). Issue #1044: use the same bounded copy as the reassignment path
     // (strncpy + explicit null terminator via StringUtils.copyWithNull) rather
     // than an unbounded strcpy, which flawfinder flags as CWE-120.
     // Issue #1030: string-to-string initialization
@@ -259,7 +259,7 @@ class StringDeclHelper {
     // emitter (CodeGenerator.generateBlock) prefixes every line.
     const lines: string[] = [];
     lines.push(
-      `${constMod}${qualifiers}char ${name}[${capacity + 1}] = "";`,
+      `${qualifiers}char ${name}[${capacity + 1}] = "";`,
       StringUtils.copyWithNull(name, srcExpr, capacity),
     );
     return lines.join("\n");
@@ -304,7 +304,6 @@ class StringDeclHelper {
     name: string,
     capacity: number,
     concatOps: IStringConcatOps,
-    constMod: string,
     qualifiers: string,
     state: TranspileState,
   ): string {
@@ -333,7 +332,7 @@ class StringDeclHelper {
     // second path that has to be kept in step by hand.
     const lines: string[] = [];
     lines.push(
-      `${constMod}${qualifiers}char ${name}[${capacity + 1}] = "";`,
+      `${qualifiers}char ${name}[${capacity + 1}] = "";`,
       ...StringUtils.concat(name, concatOps.left, concatOps.right, capacity),
     );
     return lines.join("\n");
@@ -346,7 +345,6 @@ class StringDeclHelper {
     name: string,
     capacity: number,
     substringOps: ISubstringOps,
-    constMod: string,
     qualifiers: string,
     state: TranspileState,
   ): string {
@@ -387,7 +385,7 @@ class StringDeclHelper {
     // Extraction sequence owned by StringUtils.substring (see _generateConcatDecl).
     const lines: string[] = [];
     lines.push(
-      `${constMod}${qualifiers}char ${name}[${capacity + 1}] = "";`,
+      `${qualifiers}char ${name}[${capacity + 1}] = "";`,
       ...StringUtils.substring(
         name,
         substringOps.source,

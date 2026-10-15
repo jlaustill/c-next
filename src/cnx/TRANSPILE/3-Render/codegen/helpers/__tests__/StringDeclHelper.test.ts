@@ -192,6 +192,28 @@ describe("StringDeclHelper", () => {
       expect(code.split("\n")[0]).toBe('volatile char s[17] = "";');
     });
 
+    it("never makes a read-only copy a C const array (ADR-071)", () => {
+      sourcesDeclared.set("src", {
+        baseType: "char",
+        bitWidth: 8,
+        isArray: true,
+        isConst: false,
+        isString: true,
+        stringCapacity: 8,
+      });
+
+      const code = StringDeclHelper.generateStringDecl(
+        bounded(16, init({ text: "src", render: () => "src" })),
+        "s",
+        { ...NO_MODS, const: "const " },
+        false,
+        state,
+      );
+
+      // strncpy fills it, so a `const` here does not compile.
+      expect(code.split("\n")[0]).toBe('char s[17] = "";');
+    });
+
     it("carries them on the concat arm", () => {
       const code = StringDeclHelper.generateStringDecl(
         bounded(
@@ -439,7 +461,7 @@ describe("StringDeclHelper", () => {
       ).toThrow("a concatenation fits its destination");
     });
 
-    it("generates const concatenation declaration", () => {
+    it("never makes a read-only concatenation a C const array (ADR-071)", () => {
       const code = StringDeclHelper.generateStringDecl(
         bounded(50, init({ concat: CONCAT })),
         "full",
@@ -448,7 +470,8 @@ describe("StringDeclHelper", () => {
         state,
       );
 
-      expect(code).toContain('const char full[51] = "";');
+      // strncpy/strncat fill it, so a `const` here does not compile.
+      expect(code.split("\n")[0]).toBe('char full[51] = "";');
     });
   });
 
@@ -561,7 +584,7 @@ describe("StringDeclHelper", () => {
       expect(code).toContain('char part[6] = "";');
     });
 
-    it("generates const substring declaration", () => {
+    it("never makes a read-only substring a C const array (ADR-071)", () => {
       const code = StringDeclHelper.generateStringDecl(
         bounded(10, substring()),
         "part",
@@ -570,7 +593,7 @@ describe("StringDeclHelper", () => {
         state,
       );
 
-      expect(code).toContain('const char part[11] = "";');
+      expect(code.split("\n")[0]).toBe('char part[11] = "";');
     });
   });
 
