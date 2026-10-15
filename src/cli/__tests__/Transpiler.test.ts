@@ -2,7 +2,7 @@
  * Unit tests for Transpiler
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import Transpiler from "../Transpiler";
@@ -16,6 +16,10 @@ describe("Transpiler", () => {
 
     beforeEach(() => {
       mockFs = new MockFileSystem();
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
     });
 
     describe("transpile source mode (primary unit testing target)", () => {
@@ -498,6 +502,9 @@ describe("Transpiler", () => {
       it.each(["", "."])(
         "writes a sideways include's header relative to the cwd when headerOutDir is %j",
         async (headerOutDir) => {
+          // With no project root the base is the cwd (#2101); pinned so the
+          // file is outside it wherever the suite runs.
+          vi.spyOn(process, "cwd").mockReturnValue("/elsewhere");
           mockFs.addFile(
             "/project/src/main.cnx",
             '#include "../lib/util.cnx"\n\nvoid main() { }\n',
