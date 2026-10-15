@@ -8,8 +8,8 @@
 // test-execution
 // test-adr: 058
 // The runtime value row in every context (#1975 review 2): a global
-// initializer, a top-level function, a scope's method and member, and a
-// subject two include hops away. Each needs its helper planned for the file
+// initializer, a top-level function, a scope's method and member, a subject
+// one include hop away and one two hops away. Each needs its helper planned for the file
 // that reads it.
 #include "length-relay.hpp"
 
@@ -39,6 +39,13 @@ static inline uint32_t cnx_value_char_count(uint64_t value) {
     return chars;
 }
 
+/* A negative value's '-' is a character too. Its magnitude is taken in
+ * uint64_t, so negating INT64_MIN is defined (C99 6.2.5p9) */
+static inline uint32_t cnx_value_char_count_signed(int64_t value) {
+    uint64_t magnitude = (value < 0) ? (0U - (uint64_t)value) : (uint64_t)value;
+    return cnx_value_char_count(magnitude) + ((value < 0) ? 1U : 0U);
+}
+
 uint32_t counter = 300U;
 
 uint32_t globalBits = 32;
@@ -54,8 +61,21 @@ uint32_t Meter__bits(void) {
     return cnx_value_bit_length(Meter__reading);
 }
 
+uint32_t Meter__signedDigits(void) {
+    int32_t offset = -42;
+    return cnx_value_char_count_signed(offset);
+}
+
+uint32_t Meter__memory(void) {
+    return ((uint32_t)sizeof(uint32_t));
+}
+
 uint32_t topLevel(uint32_t x) {
     return cnx_value_char_count(x);
+}
+
+uint32_t topLevelBytes(uint32_t x) {
+    return ((cnx_value_bit_length(x) + 7U) / 8U);
 }
 
 int main(void) {
@@ -79,6 +99,30 @@ int main(void) {
     }
     if (4 != 4) {
         return 6U;
+    }
+    uint32_t signedDigits = Meter__signedDigits();
+    if (signedDigits != 3) {
+        return 7U;
+    }
+    uint32_t memory = Meter__memory();
+    if (memory != 4) {
+        return 8U;
+    }
+    uint32_t bytes = topLevelBytes(300U);
+    if (bytes != 2) {
+        return 9U;
+    }
+    if (cnx_value_char_count(LENGTH_RELAY_MARKER) != 1) {
+        return 10U;
+    }
+    if (4 != 4) {
+        return 11U;
+    }
+    if (3 != 3) {
+        return 12U;
+    }
+    if (16 != 16) {
+        return 13U;
     }
     return 0U;
 }

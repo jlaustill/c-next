@@ -1,8 +1,8 @@
 // test-execution
 // test-adr: 058
 // The runtime value row in every context (#1975 review 2): a global
-// initializer, a top-level function, a scope's method and member, and a
-// subject two include hops away. Each needs its helper planned for the file
+// initializer, a top-level function, a scope's method and member, a subject
+// one include hop away and one two hops away. Each needs its helper planned for the file
 // that reads it.
 
 #include "length-relay.cnx"
@@ -20,10 +20,23 @@ scope Meter {
     public u32 bits() {
         return this.reading.value_bit_length;
     }
+
+    public u32 signedDigits() {
+        i32 offset <- -42;
+        return offset.value_char_count;
+    }
+
+    public u32 memory() {
+        return this.reading.memory_byte_length;
+    }
 }
 
 u32 topLevel(u32 x) {
     return x.value_char_count;
+}
+
+u32 topLevelBytes(u32 x) {
+    return x.value_byte_length;
 }
 
 u32 main() {
@@ -48,6 +61,31 @@ u32 main() {
     }
     if (sharedArray.memory_element_count != 4) {
         return 6;
+    }
+    u32 signedDigits <- Meter.signedDigits();
+    if (signedDigits != 3) {
+        return 7;
+    }
+    u32 memory <- Meter.memory();
+    if (memory != 4) {
+        return 8;
+    }
+    u32 bytes <- topLevelBytes(300);
+    if (bytes != 2) {
+        return 9;
+    }
+    // imported direct: length-relay.cnx's own const
+    if (LENGTH_RELAY_MARKER.value_char_count != 1) {
+        return 10;
+    }
+    if (LENGTH_RELAY_MARKER.type_byte_length != 4) {
+        return 11;
+    }
+    if (sharedScalar.type_char_count != 3) {
+        return 12;
+    }
+    if (sharedArray.value_byte_length != 16) {
+        return 13;
     }
     return 0;
 }

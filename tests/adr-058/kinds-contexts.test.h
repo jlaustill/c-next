@@ -20,7 +20,10 @@ extern uint32_t globalBits;
 /* Function prototypes */
 uint32_t Meter__digits(void);
 uint32_t Meter__bits(void);
+uint32_t Meter__signedDigits(void);
+uint32_t Meter__memory(void);
 uint32_t topLevel(uint32_t x);
+uint32_t topLevelBytes(uint32_t x);
 
 #ifdef __cplusplus
 }
