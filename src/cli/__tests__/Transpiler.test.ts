@@ -463,8 +463,11 @@ describe("Transpiler", () => {
         expect(mkdirCalls.some((c) => c.path === "/project/build")).toBe(true);
       });
 
-      it("creates header output directory when specified separately", async () => {
-        mockFs.addFile("/project/src/main.cnx", "void main() { }");
+      it("writes the header into a separately specified header output directory", async () => {
+        mockFs.addFile(
+          "/project/src/main.cnx",
+          "scope Led { public u8 level() { return 3; } }",
+        );
 
         const transpiler = new Transpiler(
           {
@@ -479,9 +482,11 @@ describe("Transpiler", () => {
 
         await transpiler.transpile({ kind: "files" });
 
-        const mkdirCalls = mockFs.getMkdirLog();
-        expect(mkdirCalls.some((c) => c.path === "/project/include")).toBe(
-          true,
+        expect(mockFs.getWrittenContent("/project/include/main.h")).toContain(
+          "Led__level",
+        );
+        expect(mockFs.getWrittenContent("/project/build/main.c")).toContain(
+          "Led__level",
         );
       });
 

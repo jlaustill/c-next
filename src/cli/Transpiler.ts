@@ -214,10 +214,6 @@ class Transpiler {
         return this._finalizeResult(result, "No C-Next source files found");
       }
 
-      if (input.kind === "files") {
-        this._ensureHeaderOutputDirectory();
-      }
-
       this._executePipeline(pipelineInput, result);
       return this._finalizeResult(result);
     } catch (err) {
@@ -722,17 +718,6 @@ class Transpiler {
     // shape #1323's header-content leak had.
     // Issue #1241: the previous run's ADR provenance is not this run's evidence
     AdrProvenance.reset();
-  }
-
-  /**
-   * Create a separately configured header directory. `outDir` is not created
-   * here: writing a file creates its directory, so whether `outDir` exists
-   * never depends on its value (#2086).
-   */
-  private _ensureHeaderOutputDirectory(): void {
-    if (this.config.headerOutDir) {
-      Write.directory(this.fs, this.config.headerOutDir);
-    }
   }
 
   /**
