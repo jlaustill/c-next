@@ -19,11 +19,11 @@ import type IResolvedSymbols from "../../../types/IResolvedSymbols";
  *
  * ## Why `program` is not nullable here
  *
- * `CodeGenState.program` is `IProgram | null`, so all thirteen analyzer reads
+ * `CodeGenState.program` was `IProgram | null`, so all thirteen analyzer reads
  * spelled `CodeGenState.program?.x() ?? fallback`. Every one of those was a
- * guard that could not fire and a wrong answer if it ever did: `Transpiler`
- * asserts the artifact with `invariant` before it calls `runAnalyzers`, so by
- * 2.1 it always exists -- and a `?? []` for "what consts does this scope have"
+ * guard that could not fire and a wrong answer if it ever did: `Analyze.run`
+ * takes the program from 1.4's artifact, where it is never null, so by 2.1 it
+ * always exists -- and a `?? []` for "what consts does this scope have"
  * is a REAL answer meaning "none", not a missing one.
  */
 interface IAnalysisContext {
@@ -31,7 +31,7 @@ interface IAnalysisContext {
    * What THIS file can see: its own declarations plus its `.cnx` includes.
    *
    * Non-null, like `program`. There is one producer --
-   * `Transpiler._requireSymbolInfo` -- and it returns `ICodeGenSymbols` or
+   * `Analyze._inputsOf` -- and it returns `ICodeGenSymbols` or
    * throws, so 2.1 never runs without a view.
    *
    * Six analyzers used to guard on `if (!symbols)` with "no evidence is not

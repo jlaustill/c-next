@@ -33,15 +33,26 @@ TRANSPILE   2.1 Analyze   --> Diagnostics
 WRITE       3.1 Write     --> disk
 ```
 
+**An error in 1.2 stops the run before 1.4, for every file** (#2020, kept under
+#1991). A file with a syntax error or a form error (each code whose Source in
+[`docs/error-codes.md`](../error-codes.md) names `PARSE/2-Parse/`; for E0866, only
+its form case) is not in 1.2's artifact, so 1.3 cannot declare it. 1.3 still
+declares every other file, so its errors appear in the same run, but nothing is
+resolved or analyzed. Going on would analyze every file that includes the
+rejected one against declarations that are missing, and report errors that are
+not real. So a form error in one file hides the other files' 2.1 diagnostics;
+fixture `tests/bugs/issue-1991-form-error-halts-run`. One file's form errors
+print in source order.
+
 ### Ownership
 
 | #   | Pass         | Owns -- is sole author of                                                                                      | Emits          |
 | --- | ------------ | -------------------------------------------------------------------------------------------------------------- | -------------- |
 | 1.1 | **Discover** | which files exist, their kind, the include graph, topological order, every resolved absolute path              | `SourceGraph`  |
-| 1.2 | **Parse**    | syntax -- AST, tokens, comments, parse errors                                                                  | `ParsedFile`   |
+| 1.2 | **Parse**    | syntax -- AST, tokens, comments, parse errors and form errors                                                  | `ParsedFile`   |
 | 1.3 | **Declare**  | **identity and declaration** -- every symbol a file declares                                                   | `FileSymbols`  |
 | 1.4 | **Resolve**  | **every fact requiring more than one file**, and the query surface                                             | `Program`      |
-| 2.1 | **Analyze**  | _is this program legal?_ -- all diagnostics, codes, positions                                                  | `Diagnostics`  |
+| 2.1 | **Analyze**  | _is this program legal?_ -- every diagnostic except 1.2's, with codes and positions                            | `Diagnostics`  |
 | 2.2 | **Plan**     | _what C should exist?_ -- declarations and order, includes, helpers, MISRA annotations, toolchain requirements | `EmissionPlan` |
 | 2.3 | **Render**   | text. Formatting only -- **no decisions**                                                                      | `RenderedFile` |
 | 3.1 | **Write**    | the filesystem, exclusively                                                                                    | side effects   |
@@ -100,11 +111,10 @@ The digit is not decoration. When the transpiler runs, each pass takes only the 
 the pass just before it returned, and nothing else (#1991, owner ruling). Whatever a later
 pass needs, every pass in between carries forward, and the host calls the eight entries in
 order. `src/cli/__tests__/PassChain.test.ts` checks each hand-off at run time: every entry
-takes objects its predecessor returned, or reached from them; 3.1 writes only to paths 1.1
+takes objects its predecessor returned, or reached from them, and no other argument; 3.1 writes only to paths 1.1
 named; and 2.2, 2.3 and the header step give one run's answers again, on fresh objects,
 after a second run with other sources. That last check is what catches a value kept in a
-static or on the host, which identity alone cannot. It does not watch 2.1's fourth
-argument, the host function 2.1 calls to build each file's analysis inputs. A module may import code or types from a lower-numbered pass in its own layer, or
+static or on the host, which identity alone cannot. A module may import code or types from a lower-numbered pass in its own layer, or
 from any earlier layer, and nothing else. So "which pass owns this module?"
 and "may it read that?" are both answerable from the path -- by a reader, and by a gate --
 without opening the file.

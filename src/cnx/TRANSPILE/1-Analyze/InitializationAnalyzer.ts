@@ -131,7 +131,9 @@ class InitializationWalk {
           // No else: the branch may not run, so its assignments don't count
           this.analyzer.restoreFromState(stateBefore);
         } else {
-          // Both branches ran one way or the other; what either assigned is kept
+          // Optimistic, and unsound (#2059): what EITHER arm assigned is kept,
+          // so a variable assigned in one arm only reads as initialized. A
+          // precise analysis would keep what both arms assigned.
           this.statement(statement.whenFalse);
         }
         return;

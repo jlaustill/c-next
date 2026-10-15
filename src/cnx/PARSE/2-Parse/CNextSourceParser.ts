@@ -214,6 +214,7 @@ class CNextSourceParser {
     const tree = parser.program();
     // A recovery tree's spelling is not the source's, so form is checked only
     // on a tree that parsed.
+    // In source order, as one file's diagnostics read, not checker by checker
     const formErrors =
       errors.length > 0
         ? []
@@ -222,7 +223,7 @@ class CNextSourceParser {
             ...IdentifierForm.errorsIn(tree),
             ...ArrayForm.errorsIn(tree),
             ...StringForm.errorsIn(tree),
-          ];
+          ].sort((a, b) => a.line - b.line || a.column - b.column);
     const declarationCount = tree.declaration().length;
 
     // Scanned off THIS token stream, which the parse has already filled, so

@@ -120,7 +120,7 @@ class StringDeclHelper {
     if (!state.wasArrayInit()) {
       invariant(
         false,
-        `a string array is initialized from literals -- E0866 rejects a variable initializer in pass 2.1`,
+        `a string array is initialized from literals -- E0866 rejects a variable initializer in pass 1.2`,
       );
     }
 
@@ -250,7 +250,7 @@ class StringDeclHelper {
     if (!state.inFunctionBody) {
       invariant(
         false,
-        `a string at file scope is initialized by a literal -- E0863 rejects a copy from a variable in pass 2.1`,
+        `a string at file scope is initialized by a literal -- E0863 rejects a copy from a variable in pass 1.2`,
       );
     }
 
@@ -313,7 +313,7 @@ class StringDeclHelper {
     if (!state.inFunctionBody) {
       invariant(
         false,
-        `a string at file scope is initialized by a literal -- E0863 rejects a concatenation in pass 2.1`,
+        `a string at file scope is initialized by a literal -- E0863 rejects a concatenation in pass 1.2`,
       );
     }
 
@@ -355,7 +355,7 @@ class StringDeclHelper {
     if (!state.inFunctionBody) {
       invariant(
         false,
-        `a string at file scope is initialized by a literal -- E0863 rejects a substring in pass 2.1`,
+        `a string at file scope is initialized by a literal -- E0863 rejects a substring in pass 1.2`,
       );
     }
 
@@ -411,21 +411,21 @@ class StringDeclHelper {
     if (!isConst) {
       invariant(
         false,
-        "a non-const string states its capacity -- E0862 rejects an unsized one in pass 2.1",
+        "a non-const string states its capacity -- E0862 rejects an unsized one in pass 1.2",
       );
     }
 
     if (initText === null) {
       invariant(
         false,
-        "an unsized const string has an initializer to infer from -- E0862 rejects one without in pass 2.1",
+        "an unsized const string has an initializer to infer from -- E0862 rejects one without in pass 1.2",
       );
     }
 
     if (!initText.startsWith('"') || !initText.endsWith('"')) {
       invariant(
         false,
-        "an unsized const string infers from a LITERAL -- E0862 rejects any other initializer in pass 2.1",
+        "an unsized const string infers from a LITERAL -- E0862 rejects any other initializer in pass 1.2",
       );
     }
 
@@ -459,7 +459,7 @@ class StringDeclHelper {
     // declaration in the header.
     invariant(
       modifiers.const !== "",
-      "an unsized string is const -- E0862 rejects a non-const one in pass 2.1, before this runs",
+      "an unsized string is const -- E0862 rejects a non-const one in pass 1.2, before this runs",
     );
 
     const prefix = VariableModifierBuilder.toPrefix(modifiers);

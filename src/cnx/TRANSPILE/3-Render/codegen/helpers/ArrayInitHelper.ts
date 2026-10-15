@@ -97,7 +97,7 @@ class ArrayInitHelper {
    * #1664 box 3: this used to count the elements it had just rendered -- a
    * second derivation of one fact, which agreed with the header only while
    * nothing else shaped the suffix. For `u8[][3] n` it emitted `n[2]` against
-   * the header's `n[2][3]` (#1822, now E0892 in pass 2.1). The rendered count
+   * the header's `n[2][3]` (#1822, now E0892 in pass 1.2). The rendered count
    * survives as the check that the two still agree.
    */
   private static _processSizeInference(
@@ -105,12 +105,12 @@ class ArrayInitHelper {
     declaredSize: number | null,
     state: TranspileState,
   ): string {
-    // #1322: E0876 rejects the fill-all form on an inferred size in pass 2.1
+    // #1322: E0876 rejects the fill-all form on an inferred size in pass 1.2
     // (ADR-035); an inferred size is counted from a list.
     invariant(
       state.lastArrayFillValue === undefined,
       `an inferred array size comes from a list -- E0876 rejects the fill-all ` +
-        `form [${state.lastArrayFillValue}*] on '${name}' in pass 2.1, before this runs`,
+        `form [${state.lastArrayFillValue}*] on '${name}' in pass 1.2, before this runs`,
     );
     ArrayInitHelper.assertInferredSize(name, declaredSize, state);
     return `[${declaredSize}]`;

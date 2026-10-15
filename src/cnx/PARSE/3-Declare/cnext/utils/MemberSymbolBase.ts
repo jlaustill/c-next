@@ -72,10 +72,8 @@ class MemberSymbolBase {
         scopePath: input.parentScopedName,
       }),
       sourceFile: input.sourceFile,
-      // Same fallback the C path uses, through the same function: a member
-      // with no start token inherits its parent's span rather than
-      // reporting 0:0, which is both the top of the file and
-      // indistinguishable from UNSET_SOURCE_SPAN (#1318 review).
+      // 1.2's span for the member. A member always has a start token:
+      // antlr4ng's `enterRule` sets it to `LT(1)`, EOF at worst (#2074 review).
       span: input.memberSpan,
       sourceLanguage: ESourceLanguage.CNext,
       visibility: input.visibility,

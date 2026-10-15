@@ -11,29 +11,10 @@ import HeaderMacros from "./HeaderMacros";
 import Program from "./Program";
 import type THeaderMacro from "../../types/THeaderMacro";
 import TargetDescriptions from "./TargetDescriptions";
-import type IProgramInputs from "./types/IProgramInputs";
 import type IResolvedProgram from "./types/IResolvedProgram";
-import type IRunTargetInputs from "./types/IRunTargetInputs";
-
-type TResolveInputs = Omit<
-  IProgramInputs,
-  | "filesReachingForeignHeaders"
-  | "visibility"
-  | "target"
-  | "cppMode"
-  | "foreign"
-  | "headerStructFields"
-  | "symbolTable"
-  | "registry"
-> & {
-  readonly target: Omit<IRunTargetInputs, "files" | "catalog" | "platformio">;
-};
 
 class Resolve {
-  static program(
-    input: IDeclaredSources,
-    inputs: TResolveInputs,
-  ): IResolvedProgram {
+  static program(input: IDeclaredSources): IResolvedProgram {
     const declared = input.declared;
     const table = input.symbolTable;
     // #1688: each file's header macros, typed (ADR-024) from the macro dump
@@ -47,11 +28,13 @@ class Resolve {
     const program = Program.build(
       declared.map((entry) => entry.fileSymbols),
       {
-        ...inputs,
         // #1511: everything the C/C++ headers contributed, from 1.3's table.
         // The opacity inputs are the raw bookkeeping, not the verdict --
         // `Program` resolves which typedefs never received a body. #985's
-        // phantom-body recovery ran in 1.3, so the state is final.
+        // phantom-body recovery ran in 1.3, so the state is final: a struct
+        // known only through it has its fields here, and a read before 1.3
+        // would drop it from `externalStructFields`, exempting it from
+        // ADR-016's init-completeness check, the fact's one consumer.
         headerStructFields: table.getAllStructFields(),
         foreign: {
           c: table.getAllCSymbols(),
@@ -85,7 +68,9 @@ class Resolve {
           ),
         },
         target: {
-          ...inputs.target,
+          // ADR-049's command-line rungs, which 1.1 returned with the run
+          option: input.discovery.run.target.option,
+          pioEnv: input.discovery.run.target.pioEnv,
           catalog: TargetDescriptions.catalog(
             input.targetCatalog.source,
             input.targetCatalog.path,

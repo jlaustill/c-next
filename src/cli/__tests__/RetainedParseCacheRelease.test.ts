@@ -9,7 +9,7 @@ import NodeFileSystem from "../../cnx/PARSE/1-Discover/NodeFileSystem";
 import Analyze from "../../cnx/TRANSPILE/1-Analyze/Analyze";
 import type IAnalyzedFile from "../../cnx/types/IAnalyzedFile";
 import CodeGenWalker from "../../cnx/TRANSPILE/CodeGenWalker";
-import type ICodeGeneratorOptions from "../../cnx/TRANSPILE/types/ICodeGeneratorOptions";
+import type IAnalysis from "../../cnx/TRANSPILE/1-Analyze/types/IAnalysis";
 
 /**
  * #1301 review: the run's per-file artifacts must be released when a run ENDS, not
@@ -38,11 +38,11 @@ describe("#1301: the per-file cache is released at end of run", () => {
     const plan = CodeGenWalker.prototype.plan;
     vi.spyOn(CodeGenWalker.prototype, "plan").mockImplementation(function (
       this: CodeGenWalker,
-      file: IAnalyzedFile,
-      options: ICodeGeneratorOptions,
+      sourcePath: string,
+      analysis: IAnalysis,
     ) {
-      programs.push(options.program);
-      return plan.call(this, file, options);
+      programs.push(analysis.program);
+      return plan.call(this, sourcePath, analysis);
     });
     const run = Analyze.run.bind(Analyze);
     vi.spyOn(Analyze, "run").mockImplementation((...args) => {

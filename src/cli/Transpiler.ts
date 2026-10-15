@@ -10,22 +10,19 @@
  */
 
 import type THeaderDeclarationCache from "../cnx/PARSE/1-Discover/types/THeaderDeclarationCache";
-import type TRunTarget from "../cnx/types/TRunTarget";
 
 import IFileSystem from "../cnx/types/IFileSystem";
 
 import CodeGenWalker from "../cnx/TRANSPILE/CodeGenWalker";
 import invariant from "../cnx/utils/invariant";
+import FileFacts from "../cnx/utils/FileFacts";
 import AdrProvenance from "../cnx/instrumentation/AdrProvenance";
-import PublicInterface from "../cnx/TRANSPILE/2-Plan/PublicInterface";
 import HeaderRenderer from "../cnx/TRANSPILE/3-Render/headers/HeaderRenderer";
 import IHeaderEmissionFacts from "../cnx/TRANSPILE/3-Render/headers/types/IHeaderEmissionFacts";
 import type IProgram from "../cnx/types/IProgram";
-import type IAnalyzedFile from "../cnx/types/IAnalyzedFile";
 
 import IDiscoveredFile from "../cnx/PARSE/1-Discover/types/IDiscoveredFile";
 import EHeaderLanguage from "../cnx/PARSE/1-Discover/types/EHeaderLanguage";
-import OutputExtensions from "../cnx/utils/OutputExtensions";
 
 import ErrorLocation from "../cnx/utils/ErrorLocation";
 import ITranspilerConfig from "../cnx/types/ITranspilerConfig";
@@ -34,8 +31,6 @@ import IFileResult from "../cnx/types/IFileResult";
 import type IRunAnchor from "../cnx/PARSE/1-Discover/types/IRunAnchor";
 import IPipelineFile from "../cnx/PARSE/1-Discover/types/IPipelineFile";
 import type ISourceGraph from "../cnx/PARSE/1-Discover/types/ISourceGraph";
-import type IOutputPaths from "../cnx/PARSE/1-Discover/types/IOutputPaths";
-import type IFileIncludes from "../cnx/PARSE/1-Discover/types/IFileIncludes";
 import Discover from "../cnx/PARSE/1-Discover/Discover";
 import RunAnchor from "../cnx/PARSE/1-Discover/RunAnchor";
 import TTranspileInput from "../cnx/types/TTranspileInput";
@@ -47,12 +42,12 @@ import type TDiscoveryFacts from "../cnx/PARSE/1-Discover/types/TDiscoveryFacts"
 import Parse from "../cnx/PARSE/2-Parse/Parse";
 import Declare from "../cnx/PARSE/3-Declare/Declare";
 import Analyze from "../cnx/TRANSPILE/1-Analyze/Analyze";
+import AnalyzedFiles from "../cnx/TRANSPILE/1-Analyze/AnalyzedFiles";
 import Resolve from "../cnx/PARSE/4-Resolve/Resolve";
 import type IResolvedProgram from "../cnx/PARSE/4-Resolve/types/IResolvedProgram";
-import type IAnalyzerOptions from "../cnx/TRANSPILE/1-Analyze/types/IAnalyzerOptions";
 import type TFrontEndResult from "./types/TFrontEndResult";
+import type IAnalysis from "../cnx/TRANSPILE/1-Analyze/types/IAnalysis";
 import type IDiagnostics from "../cnx/types/IDiagnostics";
-import type ICodeGenSymbols from "../cnx/types/ICodeGenSymbols";
 import CacheManager from "./cache/CacheManager";
 import PreprocessCache from "../cnx/PARSE/1-Discover/preprocessor/PreprocessCache";
 import type IRecordedRequirement from "../cnx/types/IRecordedRequirement";
@@ -74,9 +69,6 @@ type TRunConfig = Required<Omit<ITranspilerConfig, "cppRequired">> &
 /**
  * Unified transpiler
  */
-/** 2.1 Analyze's artifact, which Stage 5 takes (#1991) */
-type TAnalyzedFront = Extract<TFrontEndResult, { kind: "analyzed" }>;
-
 class Transpiler {
   private readonly config: TRunConfig;
   private readonly warnings: string[];
@@ -242,24 +234,19 @@ class Transpiler {
    *
    * transpile() delegates here with the `SourceGraph` 1.1 Discover emitted.
    *
-   * Stage 2: Collect symbols from C/C++ headers (includes building analyzer context)
-   * Stage 3: 1.3 Declare each C-Next file, then 1.4 Resolve the whole program --
-   *          the stage spans both passes because a bare type reference cannot be
-   *          settled until every file has been declared
-   * Stage 4: Check for symbol conflicts
-   * Stage 5: Generate code, and capture each file's header-render input
-   *          (per-file, while that file's state is warm)
+   * Stages 2 to 4d: 1.2 Parse, 1.3 Declare (Stage 2 is its C/C++ headers),
+   *          1.4 Resolve (Stage 3) and its whole-program checks (3b to 4c),
+   *          then 2.1 Analyze over every file (4d)
+   * Stage 5: 2.2 Plan and 2.3 Render each file, capturing its header input
    * Stage 5.5: Render every captured header, once, whole-program (#1323)
-   * Stage 6: Write the Stage 5.5 headers to disk (per-file)
+   * Stage 6: 3.1 Write every implementation and header, once, after the run
+   *          succeeded (#1233)
    */
   private _executePipeline(
     input: ISourceGraph,
     result: ITranspilerResult,
   ): void {
-    // Stage 2: Collect symbols from C/C++ headers and build analyzer context
-    // Issue #945: Now async for preprocessing support
-
-    // Stages 3 to 4d: 1.2 Parse, 1.3 Declare, then (through `resolve`) 1.4
+    // Stages 2 to 4d: 1.2 Parse, 1.3 Declare, then (through `resolve`) 1.4
     // Resolve and the whole-program checks, then 2.1 Analyze -- EVERY file,
     // before ANY file is planned (#1320). Analysis used to run inside the loop
     // below, so file N was analyzed after files 1..N-1 had already been
@@ -269,9 +256,9 @@ class Transpiler {
     // #1991: 1.2, 1.3, 1.4 and 2.1, each taking what the one before returned.
     // Every tree is a local of 1.2; what comes back is plain data.
     //
-    // Parse-only mode analyzes nothing, exactly as before: `_transpileFile`
-    // returned its parse-only result before reaching the analyzers, so running
-    // them would be new work on a path that asked for none.
+    // Parse-only mode analyzes nothing: 2.1 keeps only declaration counts
+    // (`IRunSettings.parseOnly`), and `_transpileFile` returns the parse-only
+    // result before 2.2.
     const front = this._runParseThroughAnalyze(input, result);
     if (front.kind === "stopped") {
       if (front.errors.length > 0) {
@@ -280,8 +267,9 @@ class Transpiler {
       }
       return;
     }
+    const analysis = front.analysis;
     const headerFactsByPath = new Map<string, IHeaderEmissionFacts>();
-    const diagnostics = front.diagnostics;
+    const diagnostics = analysis.diagnostics;
 
     // Stage 5: Plan and Render each C-Next file
     //
@@ -306,11 +294,11 @@ class Transpiler {
       }
 
       const fileResult = rejected
-        ? this._rejectedFileResult(file, front)
-        : this._transpileFile(file, front, headerFactsByPath);
+        ? this._rejectedFileResult(file, analysis)
+        : this._transpileFile(file, analysis, headerFactsByPath);
       this._recordFileResult(
         file.discoveredFile,
-        front.discovery,
+        analysis.discovery,
         fileResult,
         result,
         input.writeOutputToDisk,
@@ -335,7 +323,7 @@ class Transpiler {
     // header is (#1233)
     if (result.success && input.writeOutputToDisk) {
       const headers = Transpiler._headerOutputs(
-        front.discovery,
+        analysis.discovery,
         input.cnextFiles,
         renderedFiles,
       );
@@ -365,7 +353,7 @@ class Transpiler {
     result.symbolsCollected = declared.symbolTable.size;
     this.warnings.push(...headers.warnings);
     for (const header of headers.declared) {
-      if (this.config.debugMode) {
+      if (declared.discovery.run.debugMode) {
         console.log(
           `[DEBUG]   Parsing ${Transpiler._languageName(header.language)} header: ${header.path}`,
         );
@@ -378,7 +366,7 @@ class Transpiler {
   }
 
   /**
-   * Stages 3 to 4d, one pass at a time (#1991): 1.2 `Parse`, 1.3 `Declare`,
+   * Stages 2 to 4d, one pass at a time (#1991): 1.2 `Parse`, 1.3 `Declare`,
    * 1.4 Resolve with the whole-program checks, then 2.1 `Analyze`.
    */
   private _runParseThroughAnalyze(
@@ -400,14 +388,10 @@ class Transpiler {
     }
     return {
       kind: "analyzed",
-      ...Analyze.run(
+      analysis: Analyze.run(
         resolved.program,
         resolved.sources,
         resolved.discovery,
-        this.config.parseOnly
-          ? null
-          : (file, program, discovery) =>
-              this._analysisInputs(file, program, discovery),
       ),
     };
   }
@@ -425,17 +409,26 @@ class Transpiler {
     if (resolved === null) {
       return null;
     }
-    const { program } = resolved;
+    const program = resolved.program;
     const passes =
       // Stage 3b: the program's one target (ADR-049), settled by 1.4. Nothing
       // below may run for a program whose target is unknown or contested.
-      this._checkRunTarget(program, resolved.sources, result) &&
+      this._checkRunTarget(
+        program,
+        resolved.sources,
+        resolved.discovery.run.parseOnly,
+        result,
+      ) &&
       // Stage 4: symbol conflicts
       Transpiler._recordChecked(result, ProgramChecks.conflicts(program)) &&
       // Stage 4b: include guard collisions (ADR-063, issue #1133)
       this._checkIncludeGuardCollisions(resolved, result) &&
       // Stage 4c: external identifier significance (MISRA 5.1, issue #1307)
-      this._checkExternalIdentifierSignificance(program, result);
+      this._checkExternalIdentifierSignificance(
+        program,
+        resolved.discovery.run.parseOnly,
+        result,
+      );
     return passes ? resolved : null;
   }
 
@@ -531,38 +524,23 @@ class Transpiler {
   }
 
   /**
-   * Stage 3: 1.4 Resolve over every declared C-Next file, then publish each
-   * file's resolved symbols.
+   * Stage 3: 1.4 Resolve over every declared C-Next file; `Program.build`
+   * publishes each file's resolved symbols into 1.3's table.
    * @returns 1.4's artifact, or null if errors occurred
    */
   private _resolveProgram(
     declared: IDeclaredSources,
     result: ITranspilerResult,
   ): IResolvedProgram | null {
-    // 1.4 Resolve. The whole program exists only now that every file has been
-    // declared, which is the entire reason the two loops are separate: a file's
-    // bare type reference may name a scope type declared in a file that had not
-    // been read when the first loop reached it, and no ordering fixes that.
+    // 1.4 Resolve. The whole program exists only once every file has been
+    // declared, which is why 1.3 `Declare.sources` and 1.4 `Resolve.program`
+    // are separate passes: a file's bare type reference may name a scope type
+    // declared in a file 1.3 had not reached yet, and no ordering fixes that.
     //
     // Building `Program` settles every deferred type, so nothing below this
     // line can observe an unsettled one.
     try {
-      // The symbol table holds only C/C++ header symbols at this point --
-      // `Program.build` adds this run's C-Next symbols to it -- so this IS
-      // the external set, which is what the fact is about.
-      //
-      // It is also read AFTER `_collectExternalDeclarations`, and that ordering
-      // is load-bearing rather than incidental: a struct that becomes known only
-      // through #985 recovery has its fields added to the symbol table there, and
-      // reading the set any earlier would drop it from `externalStructFields` --
-      // silently exempting it from ADR-016 init-completeness checking, which is
-      // the one consumer of the fact.
-      const resolved = Resolve.program(declared, {
-        target: {
-          option: this.config.target,
-          pioEnv: this.config.pioEnv || undefined,
-        },
-      });
+      const resolved = Resolve.program(declared);
       // 1.4 completed 1.3's table with every file's symbols
       result.symbolsCollected = declared.symbolTable.size;
       return result.success ? resolved : null;
@@ -571,64 +549,6 @@ class Transpiler {
       result.success = false;
       return null;
     }
-  }
-
-  /**
-   * One file's 2.1 inputs, which `Analyze` hands its analyzers.
-   *
-   * Stage 4d, over the WHOLE program (#1320): every file is analyzed before
-   * Stage 5 plans any of them. That order is the pass boundary
-   * `docs/architecture/README.md` specifies -- "After **1.4**, nothing may
-   * compute a cross-file fact. A pass that needs one reads it from `Program`,
-   * which is complete before 2.1 begins."
-   *
-   * The per-file `CodeGenState` an analyzer reads is established here, the same
-   * way and from the same source as before the hoist -- `symbols` is a view of
-   * `Program`, which 1.4 completed, so it does not depend on any file having
-   * been emitted.
-   */
-  private _analysisInputs(
-    file: IPipelineFile,
-    program: IProgram,
-    discovery: TDiscoveryFacts,
-  ): IAnalyzerOptions {
-    const sourcePath = file.path;
-
-    // #1241: attribute ADR provenance to the file being analyzed. Analysis runs
-    // before the generator exists, so a rule firing in `runAnalyzers` would
-    // otherwise be credited to whichever file was begun last -- or dropped on
-    // the first, which reads identically to "this rule never fires".
-    AdrProvenance.beginFile(sourcePath);
-
-    const symbols = this._establishPerFileCodeGenState(sourcePath, program);
-    const includes = Transpiler._includesOf(discovery, sourcePath);
-
-    // #1322: the ADR-010 include facts are handed in rather than read off
-    // CodeGenState, whose `sourcePath` is not written until `generate()` and
-    // so holds another file's value here.
-    // #1452: asserted, not defaulted. Stage 3 builds `Program` and returns
-    // false on failure before this runs, so a null here is a broken stage
-    // order -- and a default would only move the failure: ADR-010's rules
-    // read discovery's per-directive answers through `Program` (#1672), and
-    // an empty set of answers is not "this file includes nothing". Same
-    // reasoning as the conflict check.
-    return {
-      // #1456: handed over rather than reached for. Nineteen analyzer sites
-      // used to read these off `CodeGenState` themselves, for facts this
-      // caller is already holding.
-      context: {
-        symbols,
-        program,
-        symbolTable: program.symbolTable(),
-        reachesForeignHeader: file.reachesForeignHeader,
-        sourceFile: sourcePath,
-      },
-      includes: {
-        resolutions: includes.resolutions,
-        cnextAlternatives: includes.cnextAlternatives,
-        kinds: includes.kinds,
-      },
-    };
   }
 
   /**
@@ -641,13 +561,16 @@ class Transpiler {
    */
   private _rejectedFileResult(
     file: IPipelineFile,
-    front: TAnalyzedFront,
+    analysis: IAnalysis,
   ): IFileResult {
     const sourcePath = file.path;
-    const errors = front.diagnostics
+    const errors = analysis.diagnostics
       .forFile(sourcePath)
       .filter((e) => e.severity === "error");
-    const declarationCount = front.files.get(sourcePath)?.declarationCount ?? 0;
+    const declarationCount = AnalyzedFiles.fileOf(
+      analysis,
+      sourcePath,
+    ).declarationCount;
 
     return errors.length > 0
       ? this.buildErrorResult(sourcePath, [...errors], declarationCount)
@@ -674,76 +597,6 @@ class Transpiler {
     }
   }
 
-  /** Stage 5's input for this file, from 2.1's `Analyze` (#1991) */
-  private static _requireAnalyzedFile(
-    front: TAnalyzedFront,
-    sourcePath: string,
-  ): IAnalyzedFile {
-    const analyzed = front.files.get(sourcePath);
-    invariant(
-      analyzed,
-      `every file that reaches code generation was analyzed and its plain data kept, ${sourcePath} included`,
-    );
-    return analyzed;
-  }
-
-  /**
-   * This file's view of the resolved program.
-   *
-   * #1511: composed once, when the whole program was in hand. This used to walk
-   * the include closure and merge per file, over a map the publish loop was
-   * still filling -- so the same file saw more or less depending on when it was
-   * rendered.
-   *
-   * Asserted rather than defaulted. A per-file view would be the pre-#1301
-   * shape -- no cross-file enums, no #1333 struct qualification, no #1398 const
-   * names -- and codegen would emit subtly wrong C with no diagnostic. The
-   * guarantee that this is present is a key-provenance argument two call sites
-   * apart (`Program.build` keys on `IFileSymbols.sourceFile`, set from
-   * `file.path`, and this reads the same `file.path`), so it is the kind of
-   * invariant that should fail loudly if it ever stops holding. Same treatment
-   * as `Program.settleEveryFile`'s deferred-type check.
-   */
-  private _requireSymbolInfo(
-    sourcePath: string,
-    program: IProgram,
-  ): ICodeGenSymbols {
-    const symbolInfo = program.codeGenSymbolsFor(sourcePath);
-    invariant(
-      symbolInfo,
-      `1.4 Resolve built every file's visible symbol view before stage 5 read one, ${sourcePath}'s included`,
-    );
-    return symbolInfo;
-  }
-
-  /**
-   * The per-file symbol view, required present.
-   *
-   * This used to PUBLISH the view onto the state as well, and that write is now
-   * dead in both directions. `_analysisInputs`'s readers are the analyzers, which
-   * take `IAnalysisContext.symbols` since #1456 and are barred from the state by
-   * `2-1-analyze-reads-no-later-pass`. `_transpileFile`'s next state access
-   * is `generate()`, whose `reset()` sets `symbols = null` before the walker
-   * assigns `options.symbolInfo` -- so the value written here was overwritten
-   * before anything could read it. Verified by removing the write: 7435 unit
-   * tests and 1263 fixtures stay green.
-   *
-   * It set `currentFileReachesForeignHeader` too, and that went the same way for
-   * the same reason: #1456 moved its one reader onto `IAnalysisContext`, which
-   * `_analysisInputs` fills from the same expression, and `reset()` restored the
-   * declining default over it at the top of `generate()`.
-   *
-   * What is left is the requirement itself, which is why the method stays: both
-   * callers need the view to exist, and `_requireSymbolInfo` throws rather than
-   * returning a nullable that every caller would then guard.
-   */
-  private _establishPerFileCodeGenState(
-    sourcePath: string,
-    program: IProgram,
-  ): ICodeGenSymbols {
-    return this._requireSymbolInfo(sourcePath, program);
-  }
-
   /**
    * Stage 5: Plan and Render a single C-Next file.
    *
@@ -754,11 +607,10 @@ class Transpiler {
    */
   private _transpileFile(
     file: IPipelineFile,
-    front: TAnalyzedFront,
+    analysis: IAnalysis,
     headerFactsByPath: Map<string, IHeaderEmissionFacts>,
   ): IFileResult {
     const sourcePath = file.path;
-    const { program, discovery } = front;
 
     // #1241: attribute ADR provenance from here, not from codegen. A rule firing
     // during header capture below would otherwise be credited to whichever file
@@ -768,49 +620,23 @@ class Transpiler {
     AdrProvenance.beginFile(sourcePath);
 
     try {
-      const analyzed = Transpiler._requireAnalyzedFile(front, sourcePath);
-      const { declarationCount } = analyzed;
+      const declarationCount = AnalyzedFiles.fileOf(
+        analysis,
+        sourcePath,
+      ).declarationCount;
 
       // Parse only mode
-      if (this.config.parseOnly) {
+      if (analysis.discovery.run.parseOnly) {
         return this.buildParseOnlyResult(sourcePath, declarationCount);
       }
 
       // #1320: 2.1 Analyze already ran, whole-program, in Stage 4d. What is left
-      // here is 2.2 Plan and 2.3 Render. The per-file state codegen reads is
-      // still established per file -- it is `generate()`'s input, not analysis's.
-      const symbolInfo = this._establishPerFileCodeGenState(
-        sourcePath,
-        program,
-      );
+      // here is 2.2 Plan and 2.3 Render.
 
       // #1991: one walker per file, so nothing 2.2 or 2.3 set up outlives
       // the file -- the instance holds no walker between files or runs.
       const walker = new CodeGenWalker();
-      const plan = walker.plan(analyzed, {
-        program,
-        debugMode: this.config.debugMode,
-        targetDescription: Transpiler._runTarget(program).description,
-        sourcePath,
-        symbolInfo,
-        sourceRelativePath: Transpiler._outputsOf(discovery, sourcePath)
-          .sourceRelativePath,
-        cnxIncludeRewrites: Transpiler._includesOf(discovery, sourcePath)
-          .cnxIncludeRewrites,
-        includeKinds: Transpiler._includesOf(discovery, sourcePath).kinds,
-        // #1515: decided here, from the rule's owner. 1.3 Declare used to
-        // answer this, which put an emission decision in the parse layer.
-        hasPublicInterface: PublicInterface.existsIn(
-          program.symbolTable().getTSymbolsByFile(sourcePath),
-        ),
-        header: {
-          anchor: discovery.anchor,
-          headerExtension: OutputExtensions.forCppMode(discovery.cppMode)
-            .header,
-          includes: discovery.includes,
-          ownIncludes: Transpiler._includesOf(discovery, sourcePath),
-        },
-      });
+      const plan = walker.plan(sourcePath, analysis);
       // #1323: 2.3 returns the header's input; HeaderRenderer renders every
       // file's header in one step, after this per-file loop finishes.
       const rendered = walker.render(plan);
@@ -954,11 +780,12 @@ class Transpiler {
   private _checkRunTarget(
     program: IProgram,
     sources: readonly IDeclaredSource[],
+    parseOnly: boolean,
     result: ITranspilerResult,
   ): boolean {
     const checked = ProgramChecks.runTarget(
       program,
-      this.config.parseOnly === true,
+      parseOnly,
       sources.at(-1)?.file.path,
     );
     if (checked.target !== null) {
@@ -972,18 +799,6 @@ class Transpiler {
     return false;
   }
 
-  /** The run's target; valid once Stage 3b has passed */
-  private static _runTarget(
-    program: IProgram,
-  ): Extract<TRunTarget, { kind: "resolved" }> {
-    const target = program.target();
-    invariant(
-      target?.kind === "resolved",
-      "Stage 3b halts a run whose target did not resolve",
-    );
-    return target;
-  }
-
   /**
    * Stage 4c: Reject external identifiers that are not distinct within the
    * target's significant-character limit (MISRA C:2012 Rule 5.1, issue #1307).
@@ -993,12 +808,13 @@ class Transpiler {
    */
   private _checkExternalIdentifierSignificance(
     program: IProgram,
+    parseOnly: boolean,
     result: ITranspilerResult,
   ): boolean {
     const target = program.target();
     // ADR-049: a parse-only run needs no target, and without one there is no
     // budget to check against. Every other run reaches here with one (3b).
-    if (this.config.parseOnly && target.kind !== "resolved") {
+    if (parseOnly && target.kind !== "resolved") {
       return true;
     }
     invariant(
@@ -1032,7 +848,7 @@ class Transpiler {
       fileResult.success &&
       fileResult.code
     ) {
-      outputPath = Transpiler._outputsOf(discovery, file.path).source;
+      outputPath = FileFacts.outputsOf(discovery, file.path).source;
       // #1233: queued, not written -- the caller flushes only if the whole run
       // succeeds, matching how Stage 6 already gates headers.
       pendingWrites.push({ path: outputPath, content: fileResult.code });
@@ -1078,7 +894,7 @@ class Transpiler {
       return content
         ? [
             {
-              path: Transpiler._outputsOf(discovery, file.path).header,
+              path: FileFacts.outputsOf(discovery, file.path).header,
               content,
             },
           ]
@@ -1152,32 +968,6 @@ class Transpiler {
   // ===========================================================================
   // Code Generation Helpers
   // ===========================================================================
-
-  /** What 1.1 Discover learned about one file's includes (#1444). */
-  private static _includesOf(
-    discovery: TDiscoveryFacts,
-    sourcePath: string,
-  ): IFileIncludes {
-    const includes = discovery.includes.get(sourcePath);
-    invariant(
-      includes !== undefined,
-      `1.1 Discover records the includes of every file it discovers (missing ${sourcePath})`,
-    );
-    return includes;
-  }
-
-  /** Where 1.1 Discover named one file's output (#1991) */
-  private static _outputsOf(
-    discovery: TDiscoveryFacts,
-    sourcePath: string,
-  ): IOutputPaths {
-    const outputs = discovery.outputs.get(sourcePath);
-    invariant(
-      outputs !== undefined,
-      `1.1 Discover names the output of every file it discovers (missing ${sourcePath})`,
-    );
-    return outputs;
-  }
 
   /**
    * Run pass 1.3 Declare for one file: its own symbols, from its own tree.

@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-594 fixture(s) assert a diagnostic; 584 carry a code.
+602 fixture(s) assert a diagnostic; 592 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -205,6 +205,11 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-050/return-in-critical-switch-error.test.cnx                                           | E0853               |
 | tests/adr-051/safe-division-const-output-error.test.cnx                                          | E0877               |
 | tests/adr-051/safe-division-shape-error.test.cnx                                                 | E0884, E0885        |
+| tests/adr-058/kinds-errors-error.test.cnx                                                        | E0867               |
+| tests/adr-058/kinds-header-error.test.cnx                                                        | E0867               |
+| tests/adr-058/kinds-memory-dimension-bitfield-error.test.cnx                                     | E0867               |
+| tests/adr-058/kinds-memory-dimension-error.test.cnx                                              | E0909               |
+| tests/adr-058/kinds-removed-names-error.test.cnx                                                 | E0867, E0886        |
 | tests/adr-058/length-property-deprecated.test.cnx                                                | E0886               |
 | tests/adr-058/length-property-imported-direct-error.test.cnx                                     | E0867               |
 | tests/adr-058/length-property-imported-transitive-error.test.cnx                                 | E0867               |
@@ -397,6 +402,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1624-variable-above-declaration/variable-above-declaration.test.cnx             | E0427               |
 | tests/bugs/issue-1629-case-label-undeclared/case-label-duplicate-spelling.test.cnx               | E0713               |
 | tests/bugs/issue-1629-case-label-undeclared/case-label-undeclared.test.cnx                       | E0427               |
+| tests/bugs/issue-1632-break-assignment/break-assignment.test.cnx                                 | E0703               |
 | tests/bugs/issue-1643-self-referential-initializer/concatenation-local.test.cnx                  | E0427               |
 | tests/bugs/issue-1643-self-referential-initializer/constructor-arg-below.test.cnx                | E0433               |
 | tests/bugs/issue-1643-self-referential-initializer/constructor-undeclared-self.test.cnx          | E0433               |
@@ -513,6 +519,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1981-struct-cycle/direct.test.cnx                                               | E0426               |
 | tests/bugs/issue-1981-struct-cycle/mutual.test.cnx                                               | E0426               |
 | tests/bugs/issue-1991-for-header-enum-assign/for-header-enum-assign.test.cnx                     | E0428               |
+| tests/bugs/issue-1991-form-error-halts-run/form-error-halts-run.test.cnx                         | E0201               |
+| tests/bugs/issue-1991-form-error-halts-run/form-errors-source-order.test.cnx                     | E0202, E0912        |
 | tests/bugs/issue-2001-qualified-write-initializes-local/global-write-local-shadow.test.cnx       | E0381               |
 | tests/bugs/issue-2001-qualified-write-initializes-local/global-write-scope-member.test.cnx       | E0381               |
 | tests/bugs/issue-2001-qualified-write-initializes-local/local-write-scope-member.test.cnx        | E0381               |

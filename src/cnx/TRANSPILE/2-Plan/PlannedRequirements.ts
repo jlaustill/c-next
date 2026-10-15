@@ -21,8 +21,8 @@ class PlannedRequirements {
   private ldrexStrexLoop = false;
   private readonly sourcePath: string;
 
-  constructor(sourcePath: string | null) {
-    this.sourcePath = sourcePath ?? "";
+  constructor(sourcePath: string) {
+    this.sourcePath = sourcePath;
   }
 
   /**

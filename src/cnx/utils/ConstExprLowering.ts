@@ -187,7 +187,7 @@ class ConstExprLowering {
         typeName: "bool",
       };
     }
-    // ADR-044: there is no octal literal, so a leading zero is E0912 in 2.1;
+    // ADR-044: there is no octal literal, so a leading zero is E0912 in 1.2;
     // until then it has no value, suffixed (`010u8`) or not
     if (
       (literalKind === "integer" || literalKind === "suffixedDecimal") &&

@@ -197,7 +197,7 @@ describe("UndeclaredTypeAnalyzer", () => {
     // construct this state".
     //
     // That is the tell. A test cannot document intentional behavior of a
-    // state the program cannot enter: `Transpiler._requireSymbolInfo` is the
+    // state the program cannot enter: `Analyze._inputsOf` is the
     // single producer and it returns `ICodeGenSymbols` or throws, so 2.1 never
     // runs without a view. What the test actually held up was a defensive
     // guard in `isVisibleType`, reachable only from the test itself -- the

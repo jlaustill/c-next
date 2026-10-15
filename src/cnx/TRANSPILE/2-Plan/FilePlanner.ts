@@ -9,7 +9,6 @@ import type IPlannedFloatBits from "./types/IPlannedFloatBits";
 import type TPlannedNarrowing from "./types/TPlannedNarrowing";
 import COMPOUND_TO_BINARY from "./types/COMPOUND_TO_BINARY";
 import NarrowingCastHelper from "./NarrowingCastHelper";
-import type EFileType from "../../PARSE/1-Discover/types/EFileType";
 import CNextSourcePath from "../../utils/CNextSourcePath";
 import TYPE_MAP from "./types/TYPE_MAP";
 import SafeDivisionTypes from "./SafeDivisionTypes";
@@ -164,13 +163,12 @@ class FilePlanner {
     return {
       program: options.program,
       symbols,
-      sourcePath: options.sourcePath ?? null,
-      debugMode: options.debugMode ?? false,
+      sourcePath: options.sourcePath,
+      debugMode: options.debugMode,
       cppMode: options.program.cppMode(),
       targetDescription: options.targetDescription,
-      cnxIncludeRewrites:
-        options.cnxIncludeRewrites ?? new Map<string, string>(),
-      includeKinds: options.includeKinds ?? new Map<string, EFileType>(),
+      cnxIncludeRewrites: options.cnxIncludeRewrites,
+      includeKinds: options.includeKinds,
       scopeMembers: symbols.scopeMembers,
     };
   }
@@ -400,8 +398,7 @@ class FilePlanner {
    */
   plan(file: IAnalyzedFile, options: ICodeGeneratorOptions): IFilePlan {
     const program = file.program;
-    // ADR-049: the target is decided before codegen, by the orchestrator;
-    // this walk only reads it.
+    // ADR-049: 1.4 settled the target; 2.2 reads it off the program
 
     const parameters = this.planParameterInfos(program);
     this.parametersOrNull = parameters.infos;
@@ -884,7 +881,7 @@ class FilePlanner {
   ): IFilePlan {
     const selfInclude = this.planSelfInclude(options);
     const selfIncludeAdded = selfInclude !== null;
-    const requirements = new PlannedRequirements(this.state.sourcePath);
+    const requirements = new PlannedRequirements(options.sourcePath);
 
     // Neither answer depends on what rendering turns out to produce, so
     // Render reads them rather than interpreting the state they came from.
@@ -1036,7 +1033,7 @@ class FilePlanner {
         needsISR: requirements.requires("isr"),
         declarationPlan,
       }),
-      header: options.header ?? null,
+      header: options.header,
     };
   }
 
@@ -1904,9 +1901,10 @@ class FilePlanner {
 
   /**
    * ADR-049: a compound write to a variable declared `atomic`, named bare or
-   * through `global.` (a `this.` member saturates or wraps instead), is an
-   * LDREX/STREX loop where the target and the type allow one, otherwise the
-   * masked region. Null when the write is not atomic.
+   * through `global.`, is an LDREX/STREX loop where the target and the type
+   * allow one, otherwise the masked region. Null when the write is not atomic.
+   * An `atomic` scope member written through `this.` is not seen here, and
+   * saturates or wraps without the guard: bug #1179.
    */
   private atomicFormOf(
     site: IAssignmentSyntax,
@@ -1937,18 +1935,15 @@ class FilePlanner {
    * Issue #1164: this used to ask a second predicate that saw only scope
    * members, so a file exporting types, consts or top-level functions got a
    * header nothing included. Same question, same answer source as the header
-   * itself. #1515: supplied by the caller, which asked `PublicInterface`.
+   * itself. #1515: `PlanOptions.of` asked `PublicInterface`.
    */
   private planSelfInclude(options: ICodeGeneratorOptions): string | null {
-    const sourcePath = this.state.sourcePath;
-    if (!options.hasPublicInterface || !sourcePath) {
+    if (!options.hasPublicInterface) {
       return null;
     }
-    const pathToUse =
-      options.sourceRelativePath || sourcePath.replace(/^.*[\\/]/, "");
     // Issue #933/#1319: the run's header extension, not re-derived from the mode
     return CNextSourcePath.withExtension(
-      pathToUse,
+      options.sourceRelativePath,
       this.state.outputExtensions.header,
     );
   }
