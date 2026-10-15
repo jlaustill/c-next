@@ -13,7 +13,7 @@ import NodeFileSystem from "../../../../../../cnx/PARSE/1-Discover/NodeFileSyste
  */
 async function transpileSource(source: string): Promise<string> {
   const transpiler = new Transpiler(
-    { input: "", target: "host" },
+    { input: "", outDir: "", target: "host" },
     NodeFileSystem.instance,
   );
   const result = (

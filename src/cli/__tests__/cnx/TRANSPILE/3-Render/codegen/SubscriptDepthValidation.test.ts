@@ -92,7 +92,7 @@ describe("subscript depth validation (#1106)", () => {
 
   const transpileSource = async (source: string) => {
     const transpiler = new Transpiler(
-      { input: "", noCache: true, target: "host" },
+      { input: "", outDir: "", noCache: true, target: "host" },
       mockFs,
     );
     return (await transpiler.transpile({ kind: "source", source })).files[0];

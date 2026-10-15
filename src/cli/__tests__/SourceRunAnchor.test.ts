@@ -69,6 +69,7 @@ u8 preferred() {
         {
           target: "host",
           input: "",
+          outDir: "",
           noCache: true,
         },
         NodeFileSystem.instance,
@@ -213,6 +214,7 @@ void main() {
         {
           target: "host",
           input: "",
+          outDir: "",
           noCache: true,
         },
         NodeFileSystem.instance,

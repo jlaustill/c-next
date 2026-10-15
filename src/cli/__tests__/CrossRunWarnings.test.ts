@@ -28,7 +28,7 @@ i32 main() {
 describe("run-scoped warnings (#1662)", () => {
   it("reports each run's own warnings, not every earlier run's too", async () => {
     const transpiler = new Transpiler(
-      { input: "", noCache: true },
+      { input: "", outDir: "", noCache: true },
       NodeFileSystem.instance,
     );
     const run = async () =>
@@ -52,7 +52,7 @@ describe("run-scoped warnings (#1662)", () => {
 /** The warning count a transpiler that has never run anything else reports. */
 async function freshCount(): Promise<number> {
   const result = await new Transpiler(
-    { input: "", noCache: true },
+    { input: "", outDir: "", noCache: true },
     NodeFileSystem.instance,
   ).transpile({
     kind: "source",

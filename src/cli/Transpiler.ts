@@ -58,6 +58,7 @@ import Write from "../cnx/WRITE/1-Write/Write";
 import CaughtError from "../cnx/utils/CaughtError";
 import ProgramChecks from "../cnx/PARSE/4-Resolve/ProgramChecks";
 import IncludeGuards from "../cnx/TRANSPILE/3-Render/headers/IncludeGuards";
+import { resolve } from "node:path";
 
 /**
  * The config with every default filled in, except `cppRequired`: unset is
@@ -129,7 +130,7 @@ class Transpiler {
     this.config = {
       input: config.input,
       includeDirs: config.includeDirs ?? [],
-      outDir: config.outDir ?? "",
+      outDir: config.outDir,
       headerOutDir: config.headerOutDir ?? "",
       defines: config.defines ?? {},
       cppRequired: config.cppRequired,
@@ -725,12 +726,13 @@ class Transpiler {
   }
 
   /**
-   * Ensure output directories exist
+   * Create the output directories, whether or not any file is written into
+   * them. `outDir` is always created: whether output is written is never
+   * decided by its value (#2086). `resolve` names an empty `outDir` as the
+   * directory it means, the current one.
    */
   private _ensureOutputDirectories(): void {
-    if (this.config.outDir) {
-      Write.directory(this.fs, this.config.outDir);
-    }
+    Write.directory(this.fs, resolve(this.config.outDir));
     if (this.config.headerOutDir) {
       Write.directory(this.fs, this.config.headerOutDir);
     }
@@ -842,12 +844,7 @@ class Transpiler {
     pendingWrites: IRenderedOutput[],
   ): void {
     let outputPath: string | undefined;
-    if (
-      writeOutputToDisk &&
-      this.config.outDir &&
-      fileResult.success &&
-      fileResult.code
-    ) {
+    if (writeOutputToDisk && fileResult.success && fileResult.code) {
       outputPath = FileFacts.outputsOf(discovery, file.path).source;
       // #1233: queued, not written -- the caller flushes only if the whole run
       // succeeds, matching how Stage 6 already gates headers.

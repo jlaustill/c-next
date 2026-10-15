@@ -267,6 +267,7 @@ class ServeCommand {
     ServeCommand.transpiler = new Transpiler(
       {
         input: "",
+        outDir: "",
         includeDirs: config.include ?? [],
         cppRequired: config.cppRequired,
         target: config.target ?? "",

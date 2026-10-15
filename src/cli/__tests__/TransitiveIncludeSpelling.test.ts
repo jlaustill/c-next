@@ -88,6 +88,7 @@ describe("a header reached through another file's include (#1725)", () => {
       {
         target: "host",
         input: "",
+        outDir: "",
         noCache: true,
       },
       NodeFileSystem.instance,
