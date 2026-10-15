@@ -61,10 +61,13 @@ import IncludeGuards from "../cnx/TRANSPILE/3-Render/headers/IncludeGuards";
 
 /**
  * The config with every default filled in, except `cppRequired`: unset is
- * not false (#1844). Unset, 1.1 detects the run's mode from its headers.
+ * not false (#1844). Unset, 1.1 detects the run's mode from its headers. And
+ * `headerOutDir`: unset is `outDir`, while `""` is the cwd (#2104).
  */
-type TRunConfig = Required<Omit<ITranspilerConfig, "cppRequired">> &
-  Pick<ITranspilerConfig, "cppRequired">;
+type TRunConfig = Required<
+  Omit<ITranspilerConfig, "cppRequired" | "headerOutDir">
+> &
+  Pick<ITranspilerConfig, "cppRequired" | "headerOutDir">;
 
 /**
  * Unified transpiler
@@ -130,7 +133,7 @@ class Transpiler {
       input: config.input,
       includeDirs: config.includeDirs ?? [],
       outDir: config.outDir,
-      headerOutDir: config.headerOutDir ?? "",
+      headerOutDir: config.headerOutDir,
       defines: config.defines ?? {},
       cppRequired: config.cppRequired,
       parseOnly: config.parseOnly ?? false,

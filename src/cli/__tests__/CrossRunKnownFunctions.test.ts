@@ -67,7 +67,6 @@ describe("knownFunctions does not survive a run (#1430)", () => {
         input: "",
         includeDirs: [dir],
         outDir: "",
-        headerOutDir: "",
         target: "host",
       },
       NodeFileSystem.instance,

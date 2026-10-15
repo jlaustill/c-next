@@ -18,7 +18,10 @@ interface ITranspilerConfig {
    */
   outDir: string;
 
-  /** Separate output directory for header files (defaults to outDir) */
+  /**
+   * Separate output directory for header files. Missing means `outDir`;
+   * `""` is the current working directory, as for `outDir` (#2104).
+   */
   headerOutDir?: string;
 
   /** Preprocessor defines for C/C++ headers */

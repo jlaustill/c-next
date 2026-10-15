@@ -493,6 +493,40 @@ describe("Transpiler", () => {
         },
       );
 
+      // #2104: the same rule for a file outside every input directory, and
+      // for the #include that names its header.
+      it.each(["", "."])(
+        "writes a sideways include's header relative to the cwd when headerOutDir is %j",
+        async (headerOutDir) => {
+          mockFs.addFile(
+            "/project/src/main.cnx",
+            '#include "../lib/util.cnx"\n\nvoid main() { }\n',
+          );
+          mockFs.addFile(
+            "/project/lib/util.cnx",
+            "scope Util { public u8 one() { return 1; } }",
+          );
+
+          const transpiler = new Transpiler(
+            {
+              input: "/project/src/main.cnx",
+              outDir: "/project/build",
+              headerOutDir,
+              noCache: true,
+              target: "host",
+            },
+            mockFs,
+          );
+
+          await transpiler.transpile({ kind: "files" });
+
+          expect(mockFs.getWriteLog().map((w) => w.path)).toContain("util.h");
+          expect(mockFs.getWrittenContent("/project/build/main.c")).toContain(
+            '#include "util.h"',
+          );
+        },
+      );
+
       it("creates no output directory when the run fails", async () => {
         mockFs.addFile(
           "/project/src/main.cnx",
