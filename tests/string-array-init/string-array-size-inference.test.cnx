@@ -26,18 +26,18 @@ u32 test() {
 
 u32 main() {
     // Test 1: DAYS array size should be inferred as 3
-    if (DAYS.type_element_count != 3) {
+    if (global.DAYS.type_element_count != 3) {
         return 1;
     }
 
     // Test 2: Check DAYS string lengths
-    if (DAYS[0].value_char_count != 6) {
+    if (global.DAYS[0].value_char_count != 6) {
         return 2; // "Monday"
     }
-    if (DAYS[1].value_char_count != 7) {
+    if (global.DAYS[1].value_char_count != 7) {
         return 3; // "Tuesday"
     }
-    if (DAYS[2].value_char_count != 9) {
+    if (global.DAYS[2].value_char_count != 9) {
         return 4; // "Wednesday"
     }
 

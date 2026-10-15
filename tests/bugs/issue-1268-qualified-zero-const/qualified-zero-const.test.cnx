@@ -40,8 +40,8 @@ scope Widget {
 }
 
 u32 viaScopeName(u32 n) {
-    u32 divided <- n / Widget.SHARED_ZERO;
-    u32 remainder <- n % Widget.SHARED_ZERO;
+    u32 divided <- n / global.Widget.SHARED_ZERO;
+    u32 remainder <- n % global.Widget.SHARED_ZERO;
     u32 bare <- n / Widget.SHARED_ZERO;
     return divided + remainder + bare;
 }

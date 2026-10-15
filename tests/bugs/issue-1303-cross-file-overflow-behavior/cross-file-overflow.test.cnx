@@ -81,15 +81,15 @@ i32 main() {
         return 9;
     }
 
-    Counter.viaGlobal <- Counter.viaGlobal + 10;
-    if (Counter.viaGlobal != 255) {
+    global.Counter.viaGlobal <- global.Counter.viaGlobal + 10;
+    if (global.Counter.viaGlobal != 255) {
         return 10;
     }
 
     // Negative control on the `global.` spelling specifically: the fix must not
     // clamp its way past a declared `wrap` just because it now resolves.
-    Counter.wrappingViaGlobal <- Counter.wrappingViaGlobal + 10;
-    if (Counter.wrappingViaGlobal != 4) {
+    global.Counter.wrappingViaGlobal <- global.Counter.wrappingViaGlobal + 10;
+    if (global.Counter.wrappingViaGlobal != 4) {
         return 11;
     }
 

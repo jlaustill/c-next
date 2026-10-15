@@ -1,11 +1,11 @@
 // test-error
 // test-adr: 016
-// ADR-016: `global.` reaches a file-scope name from inside a scope, past a
-// scope member that shadows it. Outside a scope nothing shadows a file-scope
-// name but a local, and the bare name is the file's, so `global.` there is
-// E0431, as `this.` is (#2087).
+// ADR-016, #2087: `global.` reaches a file-scope name past a name that shadows
+// it, so it needs a scope or a function around it -- a function body is a
+// scope for `global.`. At file level nothing shadows a file-scope name, so
+// `global.` there is E0431, as `this.` is.
 
-const u8 LIMIT <- 1;
+const u8 LIMIT <- 4;
 u32 total <- 0;
 
 struct Pt {
@@ -16,11 +16,11 @@ u32 helper() {
     return 7;
 }
 
+// NEGATIVE CONTROLS -- `global.` in every position, all silent: inside a
+// scope, and inside a top-level function, past a parameter of the same name.
 scope Panel {
     u32 total <- 9;
 
-    // NEGATIVE CONTROLS -- `global.` in every position inside a scope, all
-    // silent: value, call, assignment target, type, case label.
     public u32 pick(u8 s) {
         global.Pt p <- { x: 1 };
         global.total <- global.helper() + p.x;
@@ -36,15 +36,9 @@ scope Panel {
     }
 }
 
-// THE ASSERTIONS -- each position once at file scope or in a top-level
-// function: initializer, value, call, assignment target, type, case label.
-u32 atFileScope <- global.total;
-
-u32 inPlainFunction(u8 s) {
-    u32 got <- global.total;
-    got <- got + global.helper();
-    global.total <- got;
+u32 inPlainFunction(u8 s, u32 total) {
     global.Pt q <- { x: 2 };
+    global.total <- total + global.helper();
     switch (s) {
         case global.LIMIT {
             return q.x;
@@ -56,7 +50,19 @@ u32 inPlainFunction(u8 s) {
     return 0;
 }
 
+// THE ASSERTIONS -- each file-level position once: an initializer's value, a
+// variable's type, an array dimension, a struct field's type.
+u32 atFileScope <- global.total;
+
+global.Pt atFileType <- { x: 3 };
+
+u8[global.LIMIT] atDimension;
+
+struct Holder {
+    global.Pt inner;
+}
+
 u32 main() {
-    u32 r <- inPlainFunction(1);
+    u32 r <- inPlainFunction(1, 2);
     return r;
 }

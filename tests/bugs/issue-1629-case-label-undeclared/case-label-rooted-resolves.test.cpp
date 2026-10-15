@@ -12,9 +12,8 @@
 // `this.LIMIT` and bare `LIMIT` are the scope's 3 and `global.LIMIT` is the
 // file's 1; `global.FAR` arrives through an include and `FARTHER` through
 // that include's include. A bare `LIMIT` at file scope is the file's, and
-// folds as `global.LIMIT` does inside `Panel`; `global.` is a scope's
-// spelling. A header's macro is a label in both bare and `global.`
-// spellings, written by its name as in any value position.
+// folds as `global.LIMIT` does. A header's macro is a label in both bare and
+// `global.` spellings, written by its name as in any value position.
 #include <case-label-far.hpp>
 #include "case_label_macro.h"
 

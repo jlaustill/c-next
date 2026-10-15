@@ -33,19 +33,16 @@ scope Sensor {
     }
 }
 
-// `global.` is a scope's spelling (ADR-016, #2087), so its read sits in one
-scope Probe {
-    public u8 globalTopByte() {
-        u8 b <- global.g[24, 8];
-        return b;
-    }
+u8 globalTopByte() {
+    u8 b <- global.g[24, 8];
+    return b;
 }
 
 u32 main() {
     Reading r <- { value: 1.0 };
     f32[2] values <- [2.0, 1.0];
 
-    u8 viaGlobal <- Probe.globalTopByte();
+    u8 viaGlobal <- globalTopByte();
     if (viaGlobal != 0x3F) {
         return 1;
     }

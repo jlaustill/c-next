@@ -18,9 +18,9 @@
 // ============================================================================
 void testClassStaticMethods() {
     // ConfigStorage is a CLASS - should use :: for static method access
-    ConfigStorage.load();
-    ConfigStorage.save();
-    i32 val <- ConfigStorage.getValue("key");
+    global.ConfigStorage.load();
+    global.ConfigStorage.save();
+    i32 val <- global.ConfigStorage.getValue("key");
 }
 
 // ============================================================================
@@ -28,8 +28,8 @@ void testClassStaticMethods() {
 // ============================================================================
 void testNamespace() {
     // SystemUtils is a NAMESPACE - should use :: syntax
-    SystemUtils.initialize();
-    i32 status <- SystemUtils.getStatus();
+    global.SystemUtils.initialize();
+    i32 status <- global.SystemUtils.getStatus();
 }
 
 // ============================================================================
@@ -39,14 +39,14 @@ void testObjectInstances() {
     // Serial is an OBJECT INSTANCE (extern HardwareSerial Serial;)
     // Should generate: Serial.begin(9600)
     // BUG generates: Serial::begin(9600)
-    Serial.begin(9600);
-    Serial.println("Hello");
+    global.Serial.begin(9600);
+    global.Serial.println("Hello");
 
     // Wire is also an OBJECT INSTANCE (extern TwoWire Wire;)
     // Should generate: Wire.begin()
     // BUG generates: Wire::begin()
-    Wire.begin();
-    Wire.beginTransmission(0x50);
+    global.Wire.begin();
+    global.Wire.beginTransmission(0x50);
 }
 
 // ============================================================================
@@ -54,16 +54,16 @@ void testObjectInstances() {
 // ============================================================================
 void testMixedUsage() {
     // Class - uses ::
-    ConfigStorage.load();
+    global.ConfigStorage.load();
 
     // Object instance - should use . (BUG: uses ::)
-    Serial.begin(115200);
+    global.Serial.begin(115200);
 
     // Namespace - uses ::
-    SystemUtils.initialize();
+    global.SystemUtils.initialize();
 
     // Object instance - should use . (BUG: uses ::)
-    Wire.begin();
+    global.Wire.begin();
 }
 
 // ============================================================================

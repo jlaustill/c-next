@@ -15,7 +15,7 @@ void f(u32 i) {
     f32 c <- i * NS.nf;
     u32 d <- i + NS.ns;
     f32 e <- i * NS.nps.pf;
-    f32 g <- i * NS.nf;
+    f32 g <- i * global.NS.nf;
     // NEGATIVE CONTROL: floating arithmetic on the same names
     f32 ok <- dev.read() * NS.nps.pf;
 }

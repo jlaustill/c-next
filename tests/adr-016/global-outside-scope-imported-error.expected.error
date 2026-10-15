@@ -1,4 +1,2 @@
-tests/adr-016/global-outside-scope-lib.cnx:5:14 error[E0431]: 'global' can only be used inside a scope
-       help: `global` reaches a file-scope declaration past a scope member that shadows it. Outside a scope no member shadows it, so write its bare name.
-tests/adr-016/global-outside-scope-lib.cnx:7:13 error[E0431]: 'global' can only be used inside a scope
-       help: `global` reaches a file-scope declaration past a scope member that shadows it. Outside a scope no member shadows it, so write its bare name.
+tests/adr-016/global-outside-scope-lib.cnx:4:13 error[E0431]: 'global' can only be used inside a scope or a function
+       help: `global` reaches a file-scope declaration past a name that shadows it inside a scope or a function. At file level nothing shadows it, so write its bare name.

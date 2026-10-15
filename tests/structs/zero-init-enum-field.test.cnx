@@ -22,16 +22,16 @@ TInput[2] inputs;
 
 u32 main() {
     // Zero-initialization makes the first (enum) field VALUE_A (value 0).
-    if (input.assignedValue != EValueId.VALUE_A) {
+    if (global.input.assignedValue != EValueId.VALUE_A) {
         return 1;
     }
-    if (input.count != 0) {
+    if (global.input.count != 0) {
         return 2;
     }
-    if (inputs[0].assignedValue != EValueId.VALUE_A) {
+    if (global.inputs[0].assignedValue != EValueId.VALUE_A) {
         return 3;
     }
-    if (inputs[1].assignedValue != EValueId.VALUE_A) {
+    if (global.inputs[1].assignedValue != EValueId.VALUE_A) {
         return 4;
     }
     return 0;

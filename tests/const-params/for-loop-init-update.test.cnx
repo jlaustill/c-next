@@ -20,7 +20,7 @@ scope Handler {
 
 // For loop with modifying call in the UPDATE part
 void handleForUpdate(Config config) {
-    for (u32 i <- 0; i < 1; i <- Handler.getNext(config, i)) {
+    for (u32 i <- 0; i < 1; i <- global.Handler.getNext(config, i)) {
         // Body is empty - the modification happens in the update
     }
 }
@@ -30,7 +30,7 @@ void handleForInit(Config config) {
     u32 start <- 0;
     // Note: forInit can be forVarDecl or forAssignment
     // forAssignment: start <- modifyingCall(config)
-    for (start <- Handler.setValue(config, 10); start < 1; start <- start + 1) {
+    for (start <- global.Handler.setValue(config, 10); start < 1; start <- start + 1) {
         // Body is empty - modification happened in init
     }
 }

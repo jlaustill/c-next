@@ -16,42 +16,42 @@ scope Test {
 
 u32 main() {
     // Test 1: LABELS array should have 3 elements
-    if (LABELS.type_element_count != 3) {
+    if (global.LABELS.type_element_count != 3) {
         return 1;
     }
 
     // Test 2: Check LABELS string lengths
-    if (LABELS[0].value_char_count != 3) {
+    if (global.LABELS[0].value_char_count != 3) {
         return 2; // "One"
     }
-    if (LABELS[1].value_char_count != 3) {
+    if (global.LABELS[1].value_char_count != 3) {
         return 3; // "Two"
     }
-    if (LABELS[2].value_char_count != 5) {
+    if (global.LABELS[2].value_char_count != 5) {
         return 4; // "Three"
     }
 
     // Test 3: colors array should have 4 elements
-    if (colors.type_element_count != 4) {
+    if (global.colors.type_element_count != 4) {
         return 5;
     }
 
     // Test 4: Check colors string lengths
-    if (colors[0].value_char_count != 3) {
+    if (global.colors[0].value_char_count != 3) {
         return 6; // "Red"
     }
-    if (colors[1].value_char_count != 5) {
+    if (global.colors[1].value_char_count != 5) {
         return 7; // "Green"
     }
-    if (colors[2].value_char_count != 4) {
+    if (global.colors[2].value_char_count != 4) {
         return 8; // "Blue"
     }
-    if (colors[3].value_char_count != 6) {
+    if (global.colors[3].value_char_count != 6) {
         return 9; // "Yellow"
     }
 
     // Test 5: Exercise scope function
-    Test.init();
+    global.Test.init();
 
     return 0;
 }

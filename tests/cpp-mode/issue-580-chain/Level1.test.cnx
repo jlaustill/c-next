@@ -14,5 +14,5 @@ scope Level1 {
 
 void main() {
     Config c <- { value: 0 };
-    Level1.entry(c);
+    global.Level1.entry(c);
 }

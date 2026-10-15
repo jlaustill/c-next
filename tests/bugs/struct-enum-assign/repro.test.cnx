@@ -13,5 +13,5 @@ struct TInput {
 TInput input;
 
 void main() {
-    EValueId val <- input.assignedValue;
+    EValueId val <- global.input.assignedValue;
 }

@@ -14,5 +14,5 @@ scope AHandler {
 
 void main() {
     Config c <- { value: 0 };
-    AHandler.passThrough(c);
+    global.AHandler.passThrough(c);
 }

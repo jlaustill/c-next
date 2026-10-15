@@ -20,8 +20,8 @@ i32 main() {
     pair[0] <- dev_create();
     pair[1] <- dev_create();
 
-    dev_pair_register(onPair);
-    dev_pair_invoke(pair);
+    global.dev_pair_register(onPair);
+    global.dev_pair_invoke(pair);
 
     i32 first <- dev_pokes(pair[0]);
     if (first != 1) {

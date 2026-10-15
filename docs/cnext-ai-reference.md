@@ -749,14 +749,14 @@ u16 result <- wide << 8;            // OK: 8 < 16
 
 ## Calling C Functions
 
-C functions from included headers are called by their bare name. `global.` is a scope's spelling: inside a `scope` it reaches one past a scope member of the same name, and outside a scope it is E0431 (ADR-016, #2087):
+C functions from included headers are called with `global.` prefix (or bare if unambiguous):
 
 ```cnx
 #include <Arduino.h>
 
 void setup() {
     Serial.begin(115200);            // implicit global resolution
-    pinMode(LED_PIN, OUTPUT);        // bare: no scope here
+    global.pinMode(LED_PIN, OUTPUT); // explicit global
     delay(100);                      // implicit global
 }
 ```
@@ -784,7 +784,7 @@ Locally initialized C structs are passed by reference automatically (ADR-006):
 
 ```cnx
 // twai_driver_install expects pointers — transpiler adds & automatically
-esp_err_t err <- twai_driver_install(g_config, t_config, f_config);
+esp_err_t err <- global.twai_driver_install(g_config, t_config, f_config);
 // generates: twai_driver_install(&g_config, &t_config, &f_config);
 ```
 

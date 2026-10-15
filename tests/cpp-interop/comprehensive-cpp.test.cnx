@@ -14,16 +14,16 @@
 
 void testNamespaces() {
     // Direct namespace function call
-    hw.init();
-    hw.shutdown();
+    global.hw.init();
+    global.hw.shutdown();
 
     // Namespace constant access
-    i32 ver <- hw.VERSION;
-    i32 maxDev <- hw.MAX_DEVICES;
+    i32 ver <- global.hw.VERSION;
+    i32 maxDev <- global.hw.MAX_DEVICES;
 
     // Nested namespace
-    hw.nested.configure();
-    i32 bufSize <- hw.nested.BUFFER_SIZE;
+    global.hw.nested.configure();
+    i32 bufSize <- global.hw.nested.BUFFER_SIZE;
 }
 
 // ============================================================================
@@ -33,15 +33,15 @@ void testNamespaces() {
 
 void testEnumClasses() {
     // Enum class with underlying type - use global.EnumName.VALUE syntax
-    EMode mode1 <- EMode.OFF;
-    EMode mode2 <- EMode.ON;
-    EMode mode3 <- EMode.AUTO;
-    EMode mode4 <- EMode.MANUAL;
+    EMode mode1 <- global.EMode.OFF;
+    EMode mode2 <- global.EMode.ON;
+    EMode mode3 <- global.EMode.AUTO;
+    EMode mode4 <- global.EMode.MANUAL;
 
     // Enum class without explicit type
-    EColor color1 <- EColor.RED;
-    EColor color2 <- EColor.GREEN;
-    EColor color3 <- EColor.BLUE;
+    EColor color1 <- global.EColor.RED;
+    EColor color2 <- global.EColor.GREEN;
+    EColor color3 <- global.EColor.BLUE;
 }
 
 // ============================================================================
@@ -67,20 +67,20 @@ void testTypedEnums() {
 
 void testStaticMethods() {
     // Static method calls
-    bool ok <- CommandHandler.execute(1);
-    i32 status <- CommandHandler.getStatus();
-    CommandHandler.reset();
+    bool ok <- global.CommandHandler.execute(1);
+    i32 status <- global.CommandHandler.getStatus();
+    global.CommandHandler.reset();
 
     // MathUtils static methods
-    i32 absVal <- MathUtils.abs(-5);
-    i32 minVal <- MathUtils.min(10, 20);
-    i32 maxVal <- MathUtils.max(10, 20);
+    i32 absVal <- global.MathUtils.abs(-5);
+    i32 minVal <- global.MathUtils.min(10, 20);
+    i32 maxVal <- global.MathUtils.max(10, 20);
 
     // Static constexpr member
-    i32 pi <- MathUtils.PI_INT;
+    i32 pi <- global.MathUtils.PI_INT;
 
     // Static method with enum return
-    EMode computed <- MathUtils.computeMode(0x05);
+    EMode computed <- global.MathUtils.computeMode(0x05);
 }
 
 // ============================================================================
@@ -93,8 +93,8 @@ void testStructInit() {
     Result r1;
 
     // Static factory methods
-    Result success <- Result.success();
-    Result error <- Result.error(404);
+    Result success <- global.Result.success();
+    Result error <- global.Result.error(404);
 
     // POD struct
     Point p;
@@ -105,7 +105,7 @@ void testStructInit() {
     Settings s;
     s.enabled <- false;
     s.timeout <- 1000;
-    s.mode <- EMode.OFF;
+    s.mode <- global.EMode.OFF;
     bool enabled <- s.enabled;
     i32 timeout <- s.timeout;
     EMode mode <- s.mode;
@@ -117,14 +117,14 @@ void testStructInit() {
 // Test constexpr access
 
 void testConstexpr() {
-    i32 maxSize <- MAX_SIZE;
-    i32 minSize <- MIN_SIZE;
-    i32 timeout <- DEFAULT_TIMEOUT;
-    u32 magic <- MAGIC_NUMBER;
+    i32 maxSize <- global.MAX_SIZE;
+    i32 minSize <- global.MIN_SIZE;
+    i32 timeout <- global.DEFAULT_TIMEOUT;
+    u32 magic <- global.MAGIC_NUMBER;
 
     // Constexpr functions
-    i32 sq <- square(5);
-    i32 fact <- factorial(5);
+    i32 sq <- global.square(5);
+    i32 fact <- global.factorial(5);
 }
 
 // ============================================================================
@@ -134,15 +134,15 @@ void testConstexpr() {
 
 void testOverloads() {
     // Integer overloads
-    i32 r1 <- process(10);
-    i32 r2 <- process(10, 20);
+    i32 r1 <- global.process(10);
+    i32 r2 <- global.process(10, 20);
 
     // Float/double overloads
-    f32 r3 <- process(3.14);
-    f64 r4 <- process(3.14159);
+    f32 r3 <- global.process(3.14);
+    f64 r4 <- global.process(3.14159);
 
     // String overload
-    Result r5 <- process("test");
+    Result r5 <- global.process("test");
 }
 
 // ============================================================================
@@ -157,7 +157,7 @@ u32 processByte(u32 crc, u8 byte) {
 void testTypeConversions() {
     SensorConfig cfg;
     cfg.enabled <- true;
-    cfg.mode <- EMode.ON;
+    cfg.mode <- global.EMode.ON;
     cfg.flags <- 0x0F;
     cfg.permissions <- FLAG_READ;
 
@@ -186,10 +186,10 @@ void testArrayMembers() {
 
     // Initialize array elements (C-Next requires explicit init)
     device.sensors[0].enabled <- true;
-    device.sensors[0].mode <- EMode.ON;
+    device.sensors[0].mode <- global.EMode.ON;
     device.sensors[0].flags <- 0x01;
     device.sensors[1].enabled <- false;
-    device.sensors[1].mode <- EMode.OFF;
+    device.sensors[1].mode <- global.EMode.OFF;
     device.sensors[2].flags <- 0x0F;
 
     // Array of structs member access
@@ -234,8 +234,8 @@ void testComplexStructs() {
 // Test singleton pattern and static registries
 
 void testSingleton() {
-    Registry.callHandler(1);
-    i32 count <- Registry.getHandlerCount();
+    global.Registry.callHandler(1);
+    i32 count <- global.Registry.getHandlerCount();
 }
 
 // ============================================================================
@@ -247,12 +247,12 @@ void testRefsAndPtrs() {
     i32 val <- 42;
 
     // Pass by reference
-    modifyRef(val);
-    readRef(val);
+    global.modifyRef(val);
+    global.readRef(val);
 
     // Pass by pointer (using address-of)
-    modifyPtr(&val);
-    readPtr(&val);
+    global.modifyPtr(&val);
+    global.readPtr(&val);
 }
 
 // ============================================================================
@@ -265,15 +265,15 @@ void testStrictInit() {
     // StrictResult has explicit constructor - {0} would fail
     StrictResult sr1;
     sr1.code <- 0;
-    StrictResult sr2 <- StrictResult.success();
-    StrictResult sr3 <- StrictResult.error(404);
+    StrictResult sr2 <- global.StrictResult.success();
+    StrictResult sr3 <- global.StrictResult.error(404);
 
     // CommandResult default constructor - {0} would fail
     CommandResult cr1;
     cr1.errorCode <- 0;
     cr1.responseLen <- 0;
-    CommandResult cr2 <- CommandResult.ok();
-    CommandResult cr3 <- CommandResult.fail(500, "error");
+    CommandResult cr2 <- global.CommandResult.ok();
+    CommandResult cr3 <- global.CommandResult.fail(500, "error");
 
     // Access members to verify initialization works
     i32 code1 <- sr1.code;
@@ -293,7 +293,7 @@ void testArrayParams() {
     packet.payload[1] <- 0x02;
 
     // Pass array member to function - should be packet.payload, NOT &packet.payload
-    sendData(1, packet.statusCode, packet.payload, packet.payloadLen);
+    global.sendData(1, packet.statusCode, packet.payload, packet.payloadLen);
 
     // Also test with Result struct from earlier
     Result res;
@@ -302,7 +302,7 @@ void testArrayParams() {
     res.data[0] <- 0xAB;
 
     // Pass result.data - should NOT have & prefix
-    sendData(2, res.code, res.data, res.dataLen);
+    global.sendData(2, res.code, res.data, res.dataLen);
 }
 
 // ============================================================================
@@ -328,21 +328,21 @@ void resultCallback(const Result result) {
 void testCallbackInterop() {
     // Pass C-Next functions to C++ callback registration functions
     // C++ expects: void(*)() - C-Next function should decay to function pointer
-    registerCallback(simpleCallback);
+    global.registerCallback(simpleCallback);
 
     // C++ expects: void(*)(int) - matches our i32 callback
-    registerIntCallback(intCallback);
+    global.registerIntCallback(intCallback);
 
     // Issue #409: C-Next now generates references (const T&) in C++ mode,
     // so we can use the standard registerResultCallback that expects const Result&
-    registerResultCallback(resultCallback);
+    global.registerResultCallback(resultCallback);
 
     // Also test with Registry::registerHandler which takes void(*)()
-    Registry.registerHandler(1, simpleCallback);
-    Registry.registerHandler(2, simpleCallback);
+    global.Registry.registerHandler(1, simpleCallback);
+    global.Registry.registerHandler(2, simpleCallback);
 
     // Verify registration worked
-    i32 count <- Registry.getHandlerCount();
+    i32 count <- global.Registry.getHandlerCount();
 }
 
 // ============================================================================

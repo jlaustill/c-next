@@ -10,7 +10,7 @@ u32 main() {
     if (x != 30) {
         return 1;
     }
-    u8 y <- get_buf()[3];
+    u8 y <- global.get_buf()[3];
     if (y != 40) {
         return 2;
     }

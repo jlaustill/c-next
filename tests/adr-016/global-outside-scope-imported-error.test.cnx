@@ -1,8 +1,7 @@
 // test-error
 // test-adr: 016
-// E0431 for `global.` across one include hop: a top-level function in an
-// included file, as a value and as a case label (#2087). Matrix cell:
-// top-level function / imported direct.
+// E0431 for `global.` at file level across one include hop (#2087), beside a
+// top-level function in the same included file whose `global.` stays silent.
 #include "global-outside-scope-lib.cnx"
 
 u8 main() {

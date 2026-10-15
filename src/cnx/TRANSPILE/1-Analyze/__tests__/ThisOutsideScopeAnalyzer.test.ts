@@ -135,33 +135,29 @@ describe("ThisOutsideScopeAnalyzer", () => {
     expect(found.map((e) => e.line)).toEqual([2, 3]);
   });
 
-  it("rejects `global` outside a scope in every position (#2087)", () => {
+  it("rejects `global` at file level (#2087)", () => {
     const found = errors(
       [
         "u32 count <- 0;",
         "const u8 LIMIT <- 1;",
         "struct Pt { u8 x; }",
         "u32 atFile <- global.count;",
-        "u32 pick(u8 s) {",
-        "    u32 got <- global.count;",
-        "    global.count <- got;",
-        "    global.Pt p <- { x: 1 };",
-        "    switch (s) {",
-        "        case global.LIMIT { return p.x; }",
-        "        default { return 0; }",
-        "    }",
-        "    return 0;",
-        "}",
+        "global.Pt atType <- { x: 1 };",
+        "u8[global.LIMIT] atDimension;",
+        "struct Holder { global.Pt inner; }",
       ].join("\n"),
     );
-    expect(found.map((e) => e.line)).toEqual([4, 6, 7, 8, 10]);
-    expect(found[0].message).toBe("'global' can only be used inside a scope");
+    expect(found.map((e) => e.line)).toEqual([4, 5, 6, 7]);
+    expect(found[0].message).toBe(
+      "'global' can only be used inside a scope or a function",
+    );
   });
 
-  it("accepts `global` inside a scope (#2087)", () => {
+  it("accepts `global` inside a scope or a function (#2087)", () => {
     const found = errors(
       [
         "u32 count <- 0;",
+        "const u8 LIMIT <- 1;",
         "struct Pt { u8 x; }",
         "scope S {",
         "    public u32 f() {",
@@ -170,15 +166,31 @@ describe("ThisOutsideScopeAnalyzer", () => {
         "        return global.count;",
         "    }",
         "}",
+        "u32 pick(u8 s, u32 count) {",
+        "    global.Pt q <- { x: 1 };",
+        "    global.count <- count;",
+        "    switch (s) {",
+        "        case global.LIMIT { return q.x; }",
+        "        default { return 0; }",
+        "    }",
+        "    return 0;",
+        "}",
       ].join("\n"),
     );
     expect(found).toEqual([]);
   });
 
+  it("still rejects `this` in a top-level function", () => {
+    const found = errors("u32 count <- 0;\nu32 f() { return this.count; }");
+    expect(found.map((e) => e.message)).toEqual([
+      "'this' can only be used inside a scope",
+    ]);
+  });
+
   it("says what to write instead", () => {
     const [found] = errors("u32 count <- 0;\nu32 shadow <- this.count;");
     expect(found.helpText).toContain("bare name");
-    // `global.` is a scope's spelling too, so it is no advice outside one
+    // `global.` is no advice at file level either (#2087)
     expect(found.helpText).not.toContain("global.");
   });
 });

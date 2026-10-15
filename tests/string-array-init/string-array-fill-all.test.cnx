@@ -9,31 +9,31 @@ string<8>[2] empty <- [""*];
 
 u32 main() {
     // Test 1: greetings array should have 3 elements
-    if (greetings.type_element_count != 3) {
+    if (global.greetings.type_element_count != 3) {
         return 1;
     }
 
     // Test 2: Each greeting should have length 5 ("Hello")
-    if (greetings[0].value_char_count != 5) {
+    if (global.greetings[0].value_char_count != 5) {
         return 2;
     }
-    if (greetings[1].value_char_count != 5) {
+    if (global.greetings[1].value_char_count != 5) {
         return 3;
     }
-    if (greetings[2].value_char_count != 5) {
+    if (global.greetings[2].value_char_count != 5) {
         return 4;
     }
 
     // Test 3: empty array should have 2 elements
-    if (empty.type_element_count != 2) {
+    if (global.empty.type_element_count != 2) {
         return 5;
     }
 
     // Test 4: Each empty string should have length 0
-    if (empty[0].value_char_count != 0) {
+    if (global.empty[0].value_char_count != 0) {
         return 6;
     }
-    if (empty[1].value_char_count != 0) {
+    if (global.empty[1].value_char_count != 0) {
         return 7;
     }
 

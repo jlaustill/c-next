@@ -1,9 +1,10 @@
 /**
- * `this` and `global` are only meaningful inside a `scope` (ADR-016).
+ * `this` is only meaningful inside a `scope`, and `global` inside a scope or a
+ * function (ADR-016).
  *
  * `this` names the enclosing scope's own member; `global` reaches a file-scope
- * name past a scope member that shadows it. Outside a scope there is neither
- * an enclosing scope nor a member to see past, so both are E0431 (#2087).
+ * name past a scope member, local or parameter that shadows it. At file level
+ * nothing shadows a file-scope name, so `global` there is E0431 too (#2087).
  *
  * #1322, the first family relocated out of `output/`. This rule was enforced
  * from FOUR places -- `CodeGenerator`, `BaseIdentifierBuilder`, and
@@ -53,21 +54,35 @@ import StatementNodes from "../../utils/StatementNodes";
 import TypeParts from "../../utils/TypeParts";
 import IThisOutsideScopeError from "./types/IThisOutsideScopeError";
 
-const HELP = {
-  this: "`this` names the enclosing scope's own member. Outside a scope, write a file-scope declaration by its bare name, or move the code into the scope it belongs to.",
-  global:
-    "`global` reaches a file-scope declaration past a scope member that shadows it. Outside a scope no member shadows it, so write its bare name.",
+const OUTSIDE = {
+  this: {
+    message: "'this' can only be used inside a scope",
+    helpText:
+      "`this` names the enclosing scope's own member. Outside a scope, write a file-scope declaration by its bare name, or move the code into the scope it belongs to.",
+  },
+  global: {
+    message: "'global' can only be used inside a scope or a function",
+    helpText:
+      "`global` reaches a file-scope declaration past a name that shadows it inside a scope or a function. At file level nothing shadows it, so write its bare name.",
+  },
 } as const;
 
-/** `this` or `global` as a value, an assignment target's root, a type's qualifier or a case label's root, anywhere outside a top-level scope */
+/**
+ * `this` as a value, an assignment target's root, a type's qualifier or a case
+ * label's root anywhere outside a top-level scope; `global` as a value or a
+ * type's qualifier at file level. A case label sits in a function body, where
+ * `global` is legal.
+ */
 class ThisOutsideScopeAnalyzer {
   private readonly found: IThisOutsideScopeError[] = [];
 
   public analyze(program: IProgramSyntax): IThisOutsideScopeError[] {
     for (const member of program.declarations) {
       if (member.declaration.kind === "scope") continue;
+      // A function body is a scope for `global` (#2087), not for `this`
+      const globalAllowed = member.declaration.kind === "function";
       for (const part of DeclarationParts.of(member.declaration)) {
-        this.part(part);
+        this.part(part, globalAllowed);
       }
       for (const label of StatementNodes.caseLabels(member.declaration)) {
         this.caseLabel(label);
@@ -76,31 +91,37 @@ class ThisOutsideScopeAnalyzer {
     return this.found;
   }
 
-  private part(part: TSyntaxPart): void {
+  private part(part: TSyntaxPart, globalAllowed: boolean): void {
     if (part.kind === "type") {
-      this.type(part.type);
+      this.type(part.type, globalAllowed);
     } else {
-      this.expression(part.expression);
+      this.expression(part.expression, globalAllowed);
     }
   }
 
-  private type(type: TTypeSyntax): void {
+  private type(type: TTypeSyntax, globalAllowed: boolean): void {
     if (type.kind === "scoped") this.report(type.span, "this");
-    if (type.kind === "global") this.report(type.span, "global");
-    for (const part of TypeParts.of(type)) this.part(part);
+    if (type.kind === "global" && !globalAllowed) {
+      this.report(type.span, "global");
+    }
+    for (const part of TypeParts.of(type)) this.part(part, globalAllowed);
   }
 
-  private expression(expr: TExpression): void {
-    if (expr.kind === "root") this.report(expr.span, expr.root);
-    if (expr.kind === "cast") this.type(expr.type);
-    for (const child of ExpressionChildren.of(expr)) this.expression(child);
+  private expression(expr: TExpression, globalAllowed: boolean): void {
+    if (expr.kind === "root" && (expr.root === "this" || !globalAllowed)) {
+      this.report(expr.span, expr.root);
+    }
+    if (expr.kind === "cast") this.type(expr.type, globalAllowed);
+    for (const child of ExpressionChildren.of(expr)) {
+      this.expression(child, globalAllowed);
+    }
   }
 
-  /** `case this.X` (#1629), `case global.X` (#2087): a case label is not an expression */
+  /** `case this.X` (#1629): a case label is not an expression */
   private caseLabel(label: TCaseLabelSyntax): void {
     if (
       (label.kind === "identifier" || label.kind === "qualified") &&
-      label.root !== null
+      label.root === "this"
     ) {
       this.report(label.span, label.root);
     }
@@ -111,8 +132,7 @@ class ThisOutsideScopeAnalyzer {
       code: "E0431",
       line: span.line,
       column: span.column,
-      message: `'${root}' can only be used inside a scope`,
-      helpText: HELP[root],
+      ...OUTSIDE[root],
     });
   }
 }

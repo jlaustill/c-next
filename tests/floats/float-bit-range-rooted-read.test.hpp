@@ -23,7 +23,7 @@ extern float g;
 /* Function prototypes */
 uint8_t Sensor__topByte(void);
 uint32_t Sensor__rewrite(void);
-uint8_t Probe__globalTopByte(void);
+uint8_t globalTopByte(void);
 
 #ifdef __cplusplus
 }

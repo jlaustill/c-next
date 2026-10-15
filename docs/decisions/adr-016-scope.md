@@ -375,12 +375,13 @@ Inside a scope, you MUST use:
 - **`global.X`** — for ANY global (variables, functions, registers, types)
 - **Bare `X`** — ONLY for function-local variables and parameters
 
-**Outside a scope, neither qualifier exists (#2087).** `this.X` names the
-enclosing scope's member and `global.X` reaches a file-scope name past a scope
-member that shadows it. At file scope and in a top-level function there is no
-enclosing scope and no scope member, so a file-scope declaration is written by
-its bare name, and `this.` or `global.` there is E0431, in every position: value,
-call, assignment target, type and case label.
+**`global.` needs a scope or a function around it (#2087).** `global.X` reaches a
+file-scope name past a scope member, local or parameter that shadows it, so a
+function body is a scope for it: in a top-level function `global.total` writes
+the file-scope `total` even when a parameter is named `total` (ADR-057). At file
+level, in a file-scope declaration's initializer or type, nothing can shadow a
+file-scope name, so the bare name is written and `global.` there is E0431.
+`this.` still needs a `scope` block: it names that scope's member.
 
 #### Example
 
@@ -668,14 +669,14 @@ they cannot exist.
 
 ## Diagnostics
 
-| Code  | Reported when                                                                                                                                            | Asserted by                                                                                                                                                                                                            |
-| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| E0425 | Two definitions of the same member name in one scope, or a C-Next symbol colliding with a C/C++ one                                                      | `tests/bugs/issue-1333-scope-reopening/duplicate-member-reopened`, `tests/bugs/issue-1334-scope-declaration-sites/conflict-across-files`, `.../cross-language-conflict`                                                |
-| E0430 | A scope is declared inside another scope, in the entry file or in an included one                                                                        | `tests/scope/nested-scope-error`, `tests/bugs/issue-1306-nested-scope-diagnostic/cross-file-nested`                                                                                                                    |
-| E0431 | `this` or `global` used outside a scope, as a value, call, assignment target, type or case label (#2075, #2087), in the entry file or in an included one | `tests/adr-016/this-outside-scope-error`, `tests/adr-016/this-outside-scope-imported-error`, `tests/adr-016/global-outside-scope-error`, `tests/adr-016/global-outside-scope-imported-error`                           |
-| E0435 | A scope's own member reached through the scope's name                                                                                                    | `tests/adr-016/self-scope-bare-error`, `tests/adr-016/mixed-access-ultimate-error`, `tests/adr-016/scope-access-uncovered-arms-error`                                                                                  |
-| E0436 | A private member reached from outside its scope, in the same file or across an include                                                                   | `tests/adr-016/private-var-access-error`, `tests/adr-016/private-imported-direct-error`, `tests/adr-016/private-imported-transitive-error`, `tests/bugs/issue-1190-cross-file-private-member/cross-file-private-const` |
-| E0437 | A global enum or register shadowed inside a scope and reached bare                                                                                       | `tests/adr-016/cross-scope-register-bare-error`, `tests/adr-016/scope-enum-naming-conflict`                                                                                                                            |
+| Code  | Reported when                                                                                                                                                                               | Asserted by                                                                                                                                                                                                            |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E0425 | Two definitions of the same member name in one scope, or a C-Next symbol colliding with a C/C++ one                                                                                         | `tests/bugs/issue-1333-scope-reopening/duplicate-member-reopened`, `tests/bugs/issue-1334-scope-declaration-sites/conflict-across-files`, `.../cross-language-conflict`                                                |
+| E0430 | A scope is declared inside another scope, in the entry file or in an included one                                                                                                           | `tests/scope/nested-scope-error`, `tests/bugs/issue-1306-nested-scope-diagnostic/cross-file-nested`                                                                                                                    |
+| E0431 | `this` used outside a scope, as a value or as a case label (#2075), or `global` used at file level, outside a scope and outside a function (#2087), in the entry file or in an included one | `tests/adr-016/this-outside-scope-error`, `tests/adr-016/this-outside-scope-imported-error`, `tests/adr-016/global-outside-scope-error`, `tests/adr-016/global-outside-scope-imported-error`                           |
+| E0435 | A scope's own member reached through the scope's name                                                                                                                                       | `tests/adr-016/self-scope-bare-error`, `tests/adr-016/mixed-access-ultimate-error`, `tests/adr-016/scope-access-uncovered-arms-error`                                                                                  |
+| E0436 | A private member reached from outside its scope, in the same file or across an include                                                                                                      | `tests/adr-016/private-var-access-error`, `tests/adr-016/private-imported-direct-error`, `tests/adr-016/private-imported-transitive-error`, `tests/bugs/issue-1190-cross-file-private-member/cross-file-private-const` |
+| E0437 | A global enum or register shadowed inside a scope and reached bare                                                                                                                          | `tests/adr-016/cross-scope-register-bare-error`, `tests/adr-016/scope-enum-naming-conflict`                                                                                                                            |
 
 A scope **composes**: reopening it in another file adds members rather than
 redefining it (see Scope Composition above). Member names stay unique across every
