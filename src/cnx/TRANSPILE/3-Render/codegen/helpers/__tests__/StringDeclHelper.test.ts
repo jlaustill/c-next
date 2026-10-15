@@ -576,7 +576,7 @@ describe("StringDeclHelper", () => {
 
   describe("unsized const strings", () => {
     it("generates unsized const string with literal initializer", () => {
-      // #1642: `NO_MODS` cannot reach this arm -- an unsized string is const,
+      // #1642: `NO_MODS` cannot reach this arm -- an unsized string is read-only,
       // which E0862 enforces in 2.1 -- and passing it here is what let the arm
       // hardcode `const ` and drop `atomic`/`volatile` for years without a
       // test noticing. The realistic input carries the const the caller
@@ -607,7 +607,7 @@ describe("StringDeclHelper", () => {
       expect(code).toBe('const volatile char flag[2] = "v";');
     });
 
-    it("refuses a non-const unsized string rather than emitting one", () => {
+    it("refuses a `mut` unsized string rather than emitting one", () => {
       expect(() =>
         StringDeclHelper.generateStringDecl(
           { kind: "unsized", initText: '"x"', declaredCapacity: 1 },
@@ -616,10 +616,10 @@ describe("StringDeclHelper", () => {
           true,
           state,
         ),
-      ).toThrow(/unsized string is const/);
+      ).toThrow(/unsized string is read-only/);
     });
 
-    it("asserts the invariant for non-const unsized string", () => {
+    it("asserts the invariant for a `mut` unsized string", () => {
       expect(() =>
         StringDeclHelper.generateStringDecl(
           { kind: "unsized", initText: '"x"', declaredCapacity: 1 },
@@ -628,7 +628,7 @@ describe("StringDeclHelper", () => {
           false,
           state,
         ),
-      ).toThrow("a non-const string states its capacity");
+      ).toThrow("a `mut` string states its capacity");
     });
 
     it("takes the capacity from the declaration, and asserts the literal agrees (#1664 box 3)", () => {
