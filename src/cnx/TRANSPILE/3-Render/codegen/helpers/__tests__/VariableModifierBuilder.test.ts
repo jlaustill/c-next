@@ -9,7 +9,7 @@ describe("VariableModifierBuilder", () => {
   describe("build", () => {
     it("returns empty modifiers when no modifiers present", () => {
       const ctx = {
-        const: false,
+        mut: true,
         atomic: false,
         volatile: false,
       };
@@ -24,7 +24,7 @@ describe("VariableModifierBuilder", () => {
 
     it("returns const modifier when present", () => {
       const ctx = {
-        const: true,
+        mut: false,
         atomic: false,
         volatile: false,
       };
@@ -36,7 +36,7 @@ describe("VariableModifierBuilder", () => {
 
     it("returns atomic as volatile when present", () => {
       const ctx = {
-        const: false,
+        mut: true,
         atomic: true,
         volatile: false,
       };
@@ -48,7 +48,7 @@ describe("VariableModifierBuilder", () => {
 
     it("returns volatile modifier when present", () => {
       const ctx = {
-        const: false,
+        mut: true,
         atomic: false,
         volatile: true,
       };
@@ -60,7 +60,7 @@ describe("VariableModifierBuilder", () => {
 
     it("returns extern for const at file scope (declaration without initializer, C mode)", () => {
       const ctx = {
-        const: true,
+        mut: false,
         atomic: false,
         volatile: false,
       };
@@ -76,7 +76,7 @@ describe("VariableModifierBuilder", () => {
       // When a variable has an initializer, it's a DEFINITION, not a declaration.
       // The extern declaration comes from the header; the .c file should not duplicate it.
       const ctx = {
-        const: true,
+        mut: false,
         atomic: false,
         volatile: false,
       };
@@ -91,7 +91,7 @@ describe("VariableModifierBuilder", () => {
       // In C++, const at file scope has internal linkage by default.
       // extern is needed for cross-file access, even for definitions.
       const ctx = {
-        const: true,
+        mut: false,
         atomic: false,
         volatile: false,
       };
@@ -104,7 +104,7 @@ describe("VariableModifierBuilder", () => {
 
     it("does not return extern for const inside function body", () => {
       const ctx = {
-        const: true,
+        mut: false,
         atomic: false,
         volatile: false,
       };
@@ -116,7 +116,7 @@ describe("VariableModifierBuilder", () => {
 
     it("throws error when both atomic and volatile are specified", () => {
       const ctx = {
-        const: false,
+        mut: true,
         atomic: true,
         volatile: true,
       };
@@ -138,19 +138,30 @@ describe("VariableModifierBuilder", () => {
   });
 
   describe("buildSimple", () => {
-    it("returns only atomic and volatile modifiers", () => {
+    it("returns const, atomic and volatile modifiers, never extern", () => {
       const ctx = {
-        const: true,
+        mut: false,
         atomic: true,
         volatile: false,
       };
 
       const result = VariableModifierBuilder.buildSimple(ctx);
 
+      // ADR-071: a read-only binding is C's `const`
+      expect(result.const).toBe("const ");
       expect(result.atomic).toBe("volatile ");
       expect(result.volatile).toBe("");
-      expect(result).not.toHaveProperty("const");
       expect(result).not.toHaveProperty("extern");
+    });
+
+    it("gives a `mut` binding no const", () => {
+      const result = VariableModifierBuilder.buildSimple({
+        mut: true,
+        atomic: false,
+        volatile: false,
+      });
+
+      expect(result.const).toBe("");
     });
   });
 

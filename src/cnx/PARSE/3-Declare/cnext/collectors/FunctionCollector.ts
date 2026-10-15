@@ -127,7 +127,8 @@ class FunctionCollector {
     return params.map((p) => {
       const name = p.name;
       const type = TypeUtils.resolveType(p.type, scopePath, isScopeType);
-      const isConst = p.const;
+      // ADR-071: read-only unless declared `mut`
+      const isConst = !p.mut;
 
       // Check for C-Next style array type (u8[8] param, u8[4][4] param, u8[] param)
       const arrayTypeDimensions =

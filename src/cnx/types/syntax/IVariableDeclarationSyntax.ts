@@ -2,13 +2,15 @@ import type ISyntaxNode from "./ISyntaxNode";
 import type TExpression from "./TExpression";
 import type TTypeSyntax from "./TTypeSyntax";
 
-/** `[atomic] [volatile] [const] [clamp|wrap] Type name[dims] [<- value]` */
+/** `[atomic] [volatile] [const] [mut] [clamp|wrap] Type name[dims] [<- value]` */
 interface IVariableDeclarationSyntax extends ISyntaxNode {
   readonly modifiers: {
     readonly atomic: boolean;
     readonly volatile: boolean;
-    /** Always false in a for header, whose grammar has no `const` */
+    /** ADR-071: parsed only so it can be rejected; always false in a for header */
     readonly const: boolean;
+    /** ADR-071: the binding may be written */
+    readonly mut: boolean;
     readonly overflow: "clamp" | "wrap" | null;
   };
   readonly type: TTypeSyntax;

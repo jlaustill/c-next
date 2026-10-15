@@ -82,8 +82,10 @@ class TargetCatalogParser {
     const line = variable.start!.line;
     const name = variable.IDENTIFIER().getText();
     const expression = variable.expression();
-    if (!variable.constModifier() || !expression) {
-      errors.push(`line ${line}: '${name}' must be a const with a value`);
+    if (variable.constModifier() || variable.mutModifier() || !expression) {
+      errors.push(
+        `line ${line}: '${name}' must be a read-only value (no \`mut\`, no \`const\`)`,
+      );
       return null;
     }
     const typeName = variable.type()!.getText();

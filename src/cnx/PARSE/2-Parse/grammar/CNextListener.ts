@@ -27,6 +27,7 @@ import { FunctionDeclarationContext } from "./CNextParser.js";
 import { ParameterListContext } from "./CNextParser.js";
 import { ParameterContext } from "./CNextParser.js";
 import { ConstModifierContext } from "./CNextParser.js";
+import { MutModifierContext } from "./CNextParser.js";
 import { VolatileModifierContext } from "./CNextParser.js";
 import { OverflowModifierContext } from "./CNextParser.js";
 import { AtomicModifierContext } from "./CNextParser.js";
@@ -339,6 +340,16 @@ export class CNextListener implements ParseTreeListener {
      * @param ctx the parse tree
      */
     exitConstModifier?: (ctx: ConstModifierContext) => void;
+    /**
+     * Enter a parse tree produced by `CNextParser.mutModifier`.
+     * @param ctx the parse tree
+     */
+    enterMutModifier?: (ctx: MutModifierContext) => void;
+    /**
+     * Exit a parse tree produced by `CNextParser.mutModifier`.
+     * @param ctx the parse tree
+     */
+    exitMutModifier?: (ctx: MutModifierContext) => void;
     /**
      * Enter a parse tree produced by `CNextParser.volatileModifier`.
      * @param ctx the parse tree

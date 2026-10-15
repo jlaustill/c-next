@@ -9,12 +9,18 @@
  * needs every file's declarations (#1544) -- so 1.4 decides
  * (`CallbackCompatibility`), and this records only what the file spells.
  *
+ * ADR-071 adds two more, which only say a function is used as a callback at
+ * all: an assignment whose value names one, and a declared type that names
+ * one (ADR-029's function-as-type). A callback's `mut` parameters are part of
+ * the type its implementations match, so E0899 does not ask them to be written.
+ *
  * This walk sat in 2.1 Analyze inside `FunctionCallAnalyzer`, and the
  * orchestrator ran the whole analyzer over every tree, diagnostics discarded,
  * for the map it filled as a side effect.
  */
 
 import type TCallbackUse from "../../../../types/TCallbackUse";
+import type TDeclarationSyntax from "../../../../types/syntax/TDeclarationSyntax";
 import type IFunctionDeclarationSyntax from "../../../../types/syntax/IFunctionDeclarationSyntax";
 import type IProgramSyntax from "../../../../types/syntax/IProgramSyntax";
 import type TExpression from "../../../../types/syntax/TExpression";
@@ -34,26 +40,69 @@ class CallbackUseCollector {
   ): TCallbackUse[] {
     const uses: TCallbackUse[] = [];
     for (const { declaration } of program.declarations) {
-      if (declaration.kind === "function") {
-        CallbackUseCollector.scanFunction(uses, declaration, "");
-        continue;
-      }
       // Issue #895: every member function of a scope, which may name its
       // siblings as `this.member`.
       if (declaration.kind === "scope") {
         const scopePath = scopePathOf(declaration.name);
         for (const member of declaration.members) {
-          if (member.declaration.kind === "function") {
-            CallbackUseCollector.scanFunction(
-              uses,
-              member.declaration,
-              scopePath,
-            );
-          }
+          CallbackUseCollector.scanDeclaration(
+            uses,
+            member.declaration,
+            scopePath,
+          );
         }
+      } else {
+        CallbackUseCollector.scanDeclaration(uses, declaration, "");
       }
     }
     return uses;
+  }
+
+  private static scanDeclaration(
+    uses: TCallbackUse[],
+    declaration: Exclude<TDeclarationSyntax, { kind: "scope" }>,
+    scopePath: string,
+  ): void {
+    if (declaration.kind === "function") {
+      for (const parameter of declaration.parameters ?? []) {
+        CallbackUseCollector.recordType(uses, parameter.type.text, scopePath);
+      }
+      CallbackUseCollector.scanFunction(uses, declaration, scopePath);
+    } else if (declaration.kind === "struct") {
+      for (const field of declaration.fields) {
+        CallbackUseCollector.recordType(uses, field.type.text, scopePath);
+      }
+    } else if (declaration.kind === "variableDeclaration") {
+      CallbackUseCollector.recordType(uses, declaration.type.text, scopePath);
+    }
+  }
+
+  /**
+   * ADR-029: a declared type that may name a function. A bare name inside a
+   * scope may be the scope's own function or a global one (ADR-057), so both
+   * are recorded; 1.4 keeps only names a function has.
+   */
+  private static recordType(
+    uses: TCallbackUse[],
+    typeText: string,
+    scopePath: string,
+  ): void {
+    const path = typeText.split(".");
+    if (path.some((part) => !/^[A-Za-z_]\w*$/.test(part))) return;
+    if (path.length > 1) {
+      uses.push({
+        kind: "type",
+        functionName: ScopeUtils.qualifyPathInScope(path, ""),
+      });
+      return;
+    }
+    uses.push({ kind: "type", functionName: typeText });
+    if (scopePath) {
+      uses.push({
+        kind: "type",
+        functionName: ScopeUtils.qualifyInScope(typeText, scopePath),
+      });
+    }
   }
 
   /**
@@ -84,6 +133,13 @@ class CallbackUseCollector {
       if (statement.kind === "variableDeclaration") {
         // Check variable declarations for callback assignments
         CallbackUseCollector.recordInitializer(uses, statement, scopePath);
+        CallbackUseCollector.recordType(uses, statement.type.text, scopePath);
+      } else if (statement.kind === "assignment") {
+        const functionName = CallbackUseCollector.functionReference(
+          statement.value,
+          scopePath,
+        );
+        if (functionName) uses.push({ kind: "assignment", functionName });
       } else if (statement.kind === "expression") {
         // Check expression statements for function calls with callback
         // arguments

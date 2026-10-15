@@ -566,7 +566,7 @@ describe("Program", () => {
     });
 
     it("is null for a non-const and for an unknown name", () => {
-      const lib = declare(`u32 mutable <- 4;\nu32 after <- 1;`, "lib.cnx");
+      const lib = declare(`mut u32 mutable <- 4;\nu32 after <- 1;`, "lib.cnx");
       const program = Program.build([lib], { cppMode: false });
       const at = { line: 2, column: 0 };
 
@@ -697,14 +697,14 @@ describe("Program", () => {
       // is 3. #1175: it folds now, to the scope's own 3.
       expect(
         dimensionsOf(
-          `const u32 N <- 1;\nscope S {\nconst u32 N <- 7 % 4;\npublic u8[N] buf;\n}`,
+          `u32 N <- 1;\nscope S {\nu32 N <- 7 % 4;\npublic u8[N] buf;\n}`,
           "buf",
         ),
       ).toEqual([3]);
       // And a scope `N` that has no value still shadows: never the global's 1
       expect(
         dimensionsOf(
-          `const u32 N <- 1;\nu32 seed <- 7;\nscope S {\nconst u32 N <- seed;\npublic u8[N] buf;\n}`,
+          `u32 N <- 1;\nmut u32 seed <- 7;\nscope S {\nu32 N <- seed;\npublic u8[N] buf;\n}`,
           "buf",
         ),
       ).toEqual([UNRESOLVED_DIMENSION]);
@@ -1229,6 +1229,7 @@ scope Gauge {
         "bindValue",
         "cTypeNameAt",
         "callbackCompatibleFunctions",
+        "callbackFunctions",
         "codeGenSymbolsFor",
         "conflicts",
         "constantOf",

@@ -1986,7 +1986,8 @@ class CodeGenWalker {
 
     // Issue #500: check for an array BEFORE skipping -- arrays must be emitted.
     // Both spellings count: C-style trailing dimensions and the C-Next arrayType.
-    const isConst = decl.modifiers.const;
+    // ADR-071: read-only unless declared `mut`
+    const isConst = !decl.modifiers.mut;
     const arrayDims = decl.dimensions;
     const arrayType = decl.type.kind === "array" ? decl.type : null;
     const isArray = CodeGenWalker.isArrayDeclaration(decl);
@@ -2463,7 +2464,7 @@ class CodeGenWalker {
     const stringType = element.kind === "string" ? element : null;
     return {
       name: emittedName,
-      isConst: param.const,
+      isConst: !param.mut,
       typeName: this.plannedParameter(param).typeName,
       mappedType: this.renderType(param.type),
       renderDimensions: arrayType
@@ -2628,7 +2629,7 @@ class CodeGenWalker {
         string: stringPlan,
         emittedName,
         modifiers,
-        isConst: decl.modifiers.const,
+        isConst: !decl.modifiers.mut,
       };
     }
     // Statements rather than an object literal, because the ORDER matters and
@@ -3333,6 +3334,7 @@ class CodeGenWalker {
     const typeName = this.renderDeclaredType(decl.type);
     const initializer = decl.initializer;
     return {
+      const: modifiers.const,
       atomic: modifiers.atomic,
       volatile: modifiers.volatile,
       typeName,

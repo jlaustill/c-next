@@ -201,6 +201,13 @@ interface IProgram {
   callbackCompatibleFunctions(): ReadonlyMap<string, string>;
 
   /**
+   * ADR-071: every C-Next function used as a callback at all (a type, or a
+   * value placed in a slot), by C name. Its `mut` parameters are part of the
+   * callback type, so E0899 does not ask them to be written.
+   */
+  callbackFunctions(): ReadonlySet<string>;
+
+  /**
    * #1668 / #1664: the innermost lexical frame of `sourceFile` containing
    * `at`, or its file frame. Settled and frozen with the program.
    */

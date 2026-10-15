@@ -46,7 +46,7 @@ class StringFormListener extends CNextListener {
       this.checkInferred(
         stringCtx,
         isArray,
-        ctx.constModifier() !== null,
+        ctx.mutModifier() === null,
         expression,
         initializer,
       );
@@ -67,7 +67,7 @@ class StringFormListener extends CNextListener {
   private checkInferred(
     stringCtx: Parser.StringTypeContext,
     isArray: boolean,
-    isConst: boolean,
+    isReadOnly: boolean,
     expression: Parser.ExpressionContext | null,
     initializer: TExpression | null,
   ): void {
@@ -80,12 +80,12 @@ class StringFormListener extends CNextListener {
       );
       return;
     }
-    if (!isConst) {
+    if (!isReadOnly) {
       this.report(
         stringCtx,
         "E0862",
-        "A non-const string requires an explicit capacity",
-        "Write the capacity, e.g. string<64>. Only a `const` can have one inferred.",
+        "A `mut` string requires an explicit capacity",
+        "Write the capacity, e.g. string<64>. Only a read-only string can have one inferred.",
       );
       return;
     }
@@ -93,7 +93,7 @@ class StringFormListener extends CNextListener {
       this.report(
         stringCtx,
         "E0862",
-        "A const string without a capacity requires an initializer to infer it from",
+        "A read-only string without a capacity requires an initializer to infer it from",
         "Write the capacity, e.g. string<64>, or initialize it with a literal.",
       );
       return;
@@ -102,7 +102,7 @@ class StringFormListener extends CNextListener {
       this.report(
         expression,
         "E0862",
-        "A const string without a capacity requires a string literal to infer it from",
+        "A read-only string without a capacity requires a string literal to infer it from",
         "Write the capacity, e.g. string<64>. A capacity can only be inferred from a literal.",
       );
     }

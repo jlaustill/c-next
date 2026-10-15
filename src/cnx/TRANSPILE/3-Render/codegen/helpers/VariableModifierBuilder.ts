@@ -18,7 +18,7 @@ import type IVariableDeclarationSyntax from "../../../../types/syntax/IVariableD
 /** The written modifiers, as 1.2 lowered them (#1932) */
 type TModifierFlags = Pick<
   IVariableDeclarationSyntax["modifiers"],
-  "atomic" | "volatile" | "const"
+  "atomic" | "volatile" | "mut"
 >;
 
 /**
@@ -41,7 +41,8 @@ class VariableModifierBuilder {
     hasInitializer: boolean,
     mode: Pick<TranspileState, "cppMode">,
   ): IRenderedModifiers {
-    const hasConst = modifiers.const;
+    // ADR-071: a read-only binding is C's `const`
+    const hasConst = !modifiers.mut;
     const constMod = hasConst ? "const " : "";
     const atomicMod = modifiers.atomic ? "volatile " : "";
     const volatileMod = modifiers.volatile ? "volatile " : "";
@@ -84,9 +85,11 @@ class VariableModifierBuilder {
    * @returns Modifier strings (just atomic and volatile)
    */
   static buildSimple(
-    modifiers: Pick<TModifierFlags, "atomic" | "volatile">,
-  ): Pick<IRenderedModifiers, "atomic" | "volatile"> {
+    modifiers: Pick<TModifierFlags, "atomic" | "volatile" | "mut">,
+  ): Pick<IRenderedModifiers, "const" | "atomic" | "volatile"> {
     return {
+      // ADR-071: a read-only binding is C's `const`
+      const: modifiers.mut ? "" : "const ",
       atomic: modifiers.atomic ? "volatile " : "",
       volatile: modifiers.volatile ? "volatile " : "",
     };

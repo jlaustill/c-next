@@ -1,5 +1,6 @@
 /**
- * ADR-013 const enforcement: E0877, E0878.
+ * ADR-071 read-only enforcement (was ADR-013's const): E0877, E0878, and
+ * E0899 for a `mut` that nothing in the file writes.
  *
  * #1322. Four throws in `output/` -- three in `AssignmentValidator` (a
  * simple target, an array element, a member access, each asking
@@ -33,6 +34,10 @@ import StatementNodes from "../../utils/StatementNodes";
 import FunctionReference from "./helpers/FunctionReference";
 import BoundDeclaration from "./helpers/BoundDeclaration";
 import SafeDivision from "../../utils/SafeDivision";
+import ESourceLanguage from "../../utils/types/ESourceLanguage";
+import CPointerParameter from "../../utils/CPointerParameter";
+import type ILexicalFrame from "../../types/ILexicalFrame";
+import type TSymbol from "../../types/symbols/TSymbol";
 import IConstAssignmentError from "./types/IConstAssignmentError";
 import TChainRoot from "../../types/TChainRoot";
 import type ISourceSpan from "../../types/ISourceSpan";
@@ -56,6 +61,8 @@ interface ITargetName {
 
 class ConstAssignmentCheck {
   private readonly found: IConstAssignmentError[] = [];
+  /** The declarations this file writes: an ILocalDeclaration or a symbol */
+  private readonly written = new Set<object>();
 
   public constructor(private readonly context: IAnalysisContext) {}
 
@@ -67,6 +74,7 @@ class ConstAssignmentCheck {
   public checkSite(site: IAssignmentSyntax): void {
     const target = ConstAssignmentCheck.targetName(site.target);
     if (target === null) return;
+    this.noteWrite(target.root, target.name, site.target.span);
     const kind = this.constKind(target.root, target.name, site.target.span);
     if (kind === null) return;
 
@@ -74,10 +82,10 @@ class ConstAssignmentCheck {
     this.report(
       site.target.span,
       "E0877",
-      `cannot assign to const ${kind} '${target.name}'${suffix}`,
+      `cannot assign to read-only ${kind} '${target.name}'${suffix}`,
       kind === "parameter"
-        ? "A const parameter is read-only for the whole function (ADR-013); remove `const` from the parameter if the function must change it."
-        : "A const binding is read-only after its declaration (ADR-013); remove `const` if the value must change.",
+        ? "A parameter is read-only unless declared `mut` (ADR-071); declare it `mut` if the function must change it."
+        : "A binding is read-only unless declared `mut` (ADR-071); declare it `mut` if the value must change.",
     );
   }
 
@@ -123,6 +131,7 @@ class ConstAssignmentCheck {
     if (call === null) return;
     const output = SafeDivision.outputName(call.args);
     if (output === null) return; // not a variable at all -- E0885's to report
+    this.noteWrite(null, output, expr.span);
     // Always a BARE name: `outputName` accepts only a plain identifier, so a
     // `this.`-rooted first argument returns null above and is E0885's to report.
     const kind = this.constKind(null, output, expr.span);
@@ -130,12 +139,12 @@ class ConstAssignmentCheck {
     this.report(
       call.args[0].span,
       "E0877",
-      `cannot assign to const ${kind} '${output}' (${call.name} output)`,
-      `${call.name} writes its result through its first argument, so a const cannot receive it; remove \`const\`, or pass a mutable variable (ADR-013).`,
+      `cannot assign to read-only ${kind} '${output}' (${call.name} output)`,
+      `${call.name} writes its result through its first argument, so it must be declared \`mut\` (ADR-071).`,
     );
   }
 
-  /** E0878: a const value passed where the callee may write. */
+  /** E0878: a read-only binding passed to a C-Next `mut` parameter. */
   public checkExpression(expr: TExpression): void {
     if (expr.kind !== "postfix") return;
     const call = expr.ops.find((op) => op.kind === "call");
@@ -147,18 +156,112 @@ class ConstAssignmentCheck {
       this.context,
     );
     if (callee === null) return;
+    const isCNext = callee.sourceLanguage === ESourceLanguage.CNext;
     call.arguments.forEach((arg, index) => {
       const param = callee.parameters[index];
-      if (param === undefined || param.isConst) return;
+      if (param === undefined) return;
+      const writes = isCNext
+        ? !param.isConst
+        : this.cWritesThrough(callee.name, index);
+      if (!writes) return;
+      const target = ConstAssignmentCheck.targetName(arg);
+      if (target !== null) this.noteWrite(target.root, target.name, arg.span);
+      // A C callee's pointer parameters are E0895's (CPointerArgumentAnalyzer)
+      if (!isCNext) return;
       const argName = this.constArgumentName(arg);
       if (argName === null) return;
       this.report(
         arg.span,
         "E0878",
-        `cannot pass const '${argName}' to non-const parameter '${param.name}' of function '${callee.name}'`,
-        "The callee may write through that parameter; declare it `const` in the callee, or pass a mutable copy (ADR-013).",
+        `cannot pass read-only '${argName}' to \`mut\` parameter '${param.name}' of function '${callee.name}'`,
+        "The callee writes through that parameter, so the argument must be declared `mut` (ADR-071).",
       );
     });
+  }
+
+  /**
+   * E0899 (ADR-071 Decision 6): a `mut` binding nothing in this file writes.
+   * Two are exempt because what fixes their `mut` is outside the body: a
+   * parameter of a function used as a callback type, whose signature the
+   * type decides, and a binding C can see -- a global or a public scope
+   * member, which the header exports for C code to write.
+   */
+  public checkUnusedMut(): void {
+    const program = this.context.program;
+    const typedefCallbacks = program.callbackCompatibleFunctions();
+    const callbacks = program.callbackFunctions();
+    const visit = (frame: ILexicalFrame, functionName: string | null): void => {
+      const fn = frame.functionCName ?? functionName;
+      for (const declaration of frame.declarations) {
+        if (declaration.isConst || declaration.kind === "constructor") continue;
+        if (this.written.has(declaration)) continue;
+        const isCallbackParameter =
+          declaration.kind === "parameter" &&
+          fn !== null &&
+          (callbacks.has(fn) || typedefCallbacks.has(fn));
+        if (isCallbackParameter) continue;
+        this.reportUnusedMut(declaration.span, declaration.name);
+      }
+      for (const child of frame.children) visit(child, fn);
+    };
+    visit(
+      program.lexicalFrameAt(this.context.sourceFile, { line: 0, column: 0 }),
+      null,
+    );
+    for (const symbol of program.symbolsInFile(this.context.sourceFile)) {
+      if (ConstAssignmentCheck.isUnwrittenPrivateMember(symbol, this.written)) {
+        this.reportUnusedMut(symbol.span, symbol.name);
+      }
+    }
+  }
+
+  private static isUnwrittenPrivateMember(
+    symbol: TSymbol,
+    written: ReadonlySet<object>,
+  ): boolean {
+    return (
+      symbol.kind === "variable" &&
+      symbol.sourceLanguage === ESourceLanguage.CNext &&
+      !symbol.isConst &&
+      symbol.scopePath !== "" &&
+      symbol.visibility === "private" &&
+      !written.has(symbol)
+    );
+  }
+
+  private reportUnusedMut(at: TPosition, name: string): void {
+    this.report(
+      at,
+      "E0899",
+      `'${name}' is never written; remove \`mut\``,
+      "A binding is declared `mut` only when something writes it (ADR-071).",
+    );
+  }
+
+  /** A C callee's non-const pointer parameter can write what it is passed */
+  private cWritesThrough(name: string, index: number): boolean {
+    for (const symbol of this.context.symbolTable.getCOverloads(name)) {
+      if (symbol.kind === "function" && symbol.parameters) {
+        const parameter = symbol.parameters[index];
+        return (
+          parameter !== undefined &&
+          CPointerParameter.pointee(parameter.type) !== null &&
+          !CPointerParameter.pointsToConst(parameter)
+        );
+      }
+    }
+    return false;
+  }
+
+  private noteWrite(root: TChainRoot, name: string, at: TPosition): void {
+    const binding = this.context.program.bindValue(
+      this.context.sourceFile,
+      root,
+      name,
+      at,
+    );
+    if (binding?.kind === "local") this.written.add(binding.declaration);
+    else if (binding?.kind === "variable") this.written.add(binding.symbol);
   }
 
   // --- The facts -----------------------------------------------------------
@@ -236,6 +339,7 @@ class ConstAssignmentAnalyzer {
           check.checkExpression(expr);
       }
     }
+    check.checkUnusedMut();
     // Read off 1.2's syntax (#1991); reported in source order
     return check
       .errors()

@@ -184,6 +184,7 @@ class Program {
       files,
       symbolTable,
     );
+    const callbackFunctions = CallbackCompatibility.usedAsCallback(files);
 
     // #2036: settling is its own step, which a caller with no run reads
     // alone. Everything below reads the files' settled symbols and the inputs
@@ -222,10 +223,7 @@ class Program {
       symbolsByFile,
       visibility,
     );
-    const passByValueParams = Program.derivePassByValue(
-      symbolsByFile,
-      modifications.modifiedParameters,
-    );
+    const passByValueParams = Program.derivePassByValue(symbolsByFile);
     // Settled once, with the files, so every pass reads one answer.
     const target = settled.target;
     const conflicts = ConflictDetector.detect(
@@ -290,6 +288,7 @@ class Program {
         passByValueParams,
       callbackCompatibleFunctions: (): ReadonlyMap<string, string> =>
         callbackCompatibleFunctions,
+      callbackFunctions: (): ReadonlySet<string> => callbackFunctions,
       lexicalFrameAt: (sourceFile: string, at: TPosition): ILexicalFrame => {
         const root = framesByFile.get(sourceFile);
         invariant(root, `${sourceFile} is a file of this program`);
@@ -696,7 +695,6 @@ class Program {
    */
   private static derivePassByValue(
     symbolsByFile: ReadonlyMap<string, ReadonlyArray<TSymbol>>,
-    modifiedParameters: ReadonlyMap<string, ReadonlySet<string>>,
   ): ReadonlyMap<string, ReadonlySet<string>> {
     const byFunction = new Map<string, ReadonlySet<string>>();
     for (const symbols of symbolsByFile.values()) {
@@ -704,10 +702,7 @@ class Program {
         if (!SymbolGuards.isFunction(symbol)) continue;
         byFunction.set(
           symbol.fullyQualifiedCName,
-          Program.eligibleParameters(
-            symbol.parameters,
-            modifiedParameters.get(symbol.fullyQualifiedCName),
-          ),
+          Program.eligibleParameters(symbol.parameters),
         );
       }
     }
@@ -723,7 +718,6 @@ class Program {
    */
   private static eligibleParameters(
     parameters: ReadonlyArray<IParameterInfo>,
-    modified: ReadonlySet<string> | undefined,
   ): ReadonlySet<string> {
     const eligible = new Set<string>();
     for (const parameter of parameters) {
@@ -732,7 +726,8 @@ class Program {
       const isEligible =
         !parameter.isArray &&
         SMALL_PRIMITIVES.has(TypeResolver.getTypeName(parameter.type)) &&
-        !(modified?.has(parameter.name) ?? false);
+        // ADR-071: the declaration decides, not what the body does
+        parameter.isConst;
       if (isEligible) {
         eligible.add(parameter.name);
       }

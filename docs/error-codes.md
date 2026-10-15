@@ -19,9 +19,9 @@ codes that already have a fixture.
 | E05xx     | Include/Preprocessor                                               | 18      |
 | E06xx     | Sizeof Expressions                                                 | 3       |
 | E07xx     | Control Flow                                                       | 15      |
-| E08xx     | Arithmetic/Array Safety                                            | 59      |
+| E08xx     | Arithmetic/Array Safety                                            | 61      |
 | E09xx     | NULL Safety, Compile-Time Values, Literal Form, String Conversions | 14      |
-| **Total** |                                                                    | **137** |
+| **Total** |                                                                    | **139** |
 
 ---
 
@@ -310,12 +310,12 @@ base: bare, `this.` and `global.`.
 | E0875 | Unbounded array parameter                                          | Write every dimension's size; the callee can trust only what is declared | `PARSE/2-Parse/ArrayForm.ts` |
 | E0876 | Fill-all initializer on an array whose size is inferred            | An inferred size is counted from a list; write the dimension for `[v*]`  | `PARSE/2-Parse/ArrayForm.ts` |
 
-### Const Enforcement (ADR-013)
+### Read-Only Enforcement (ADR-071, was ADR-013)
 
-| Code  | Message                                                                             | Help                                                         | Source                                           |
-| ----- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------ |
-| E0877 | Assignment to a `const` variable or parameter, whole or through an element or field | Remove `const` from the declaration if the value must change | `TRANSPILE/1-Analyze/ConstAssignmentAnalyzer.ts` |
-| E0878 | A `const` value passed to a function's non-const parameter                          | Declare the parameter `const`, or pass a mutable copy        | `TRANSPILE/1-Analyze/ConstAssignmentAnalyzer.ts` |
+| Code  | Message                                                                                          | Help                                                                           | Source                                           |
+| ----- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ | ------------------------------------------------ |
+| E0877 | Assignment to a read-only binding (one not declared `mut`), whole or through an element or field | Declare the binding `mut` if the value must change (ADR-071)                   | `TRANSPILE/1-Analyze/ConstAssignmentAnalyzer.ts` |
+| E0878 | A read-only binding passed to a C-Next function's `mut` parameter                                | Declare the argument `mut`; the callee writes through that parameter (ADR-071) | `TRANSPILE/1-Analyze/ConstAssignmentAnalyzer.ts` |
 
 ### Callback Typing (ADR-029)
 
@@ -375,6 +375,13 @@ base: bare, `this.` and `global.`.
 | Code  | Message                                                                              | Help                                                                                                                 | Source                                         |
 | ----- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
 | E0897 | A type named where a value goes: a type answers only its length properties (ADR-058) | Ask the type a length property (`Point.type_byte_length`, `Point.x.type_bit_length`), or read a variable of the type | `TRANSPILE/1-Analyze/TypeNameValueAnalyzer.ts` |
+
+### Read-Only Declarations (ADR-071)
+
+| Code  | Message                                                                                                                 | Help                     | Source                                           |
+| ----- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------ | ------------------------------------------------ |
+| E0898 | `const` written on a declaration: every binding is already read-only                                                    | Delete `const` (ADR-071) | `PARSE/2-Parse/MutabilityForm.ts`                |
+| E0899 | A `mut` binding nothing writes (a parameter of a callback-type function, a global and a public scope member are exempt) | Remove `mut` (ADR-071)   | `TRANSPILE/1-Analyze/ConstAssignmentAnalyzer.ts` |
 
 ## E09xx — NULL Safety (ADR-046)
 

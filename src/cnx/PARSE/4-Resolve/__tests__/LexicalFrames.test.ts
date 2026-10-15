@@ -145,8 +145,8 @@ void f(u8 p) {
 
   it("records the modifiers a local declares", () => {
     const source = `void f() {
-    atomic wrap u8 a <- 1;
-    volatile const u16 b <- 2;
+    atomic mut wrap u8 a <- 1;
+    volatile u16 b <- 2;
 }`;
     const program = build({ "a.cnx": source });
     const use = at(source, "}");
@@ -526,11 +526,11 @@ void f() {
   it("gives a local that is not a folded const no value, and lets it shadow (#1664 review)", () => {
     // The const views added folded consts only, so each of these read the
     // file-scope const of the same name instead.
-    const source = `const u32 N <- 10;
-const u32 D <- 0;
+    const source = `u32 N <- 10;
+u32 D <- 0;
 void f(u32 a) {
-    u32 N <- 1;
-    const u32 D <- a + 1;
+    mut u32 N <- 1;
+    u32 D <- a + 1;
     u8 last <- 0;
 }`;
     const program = build({ "a.cnx": source });

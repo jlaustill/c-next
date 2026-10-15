@@ -99,6 +99,9 @@ class VariableCollector {
         atomic: false,
         volatile: false,
         const: false,
+        // The constructor form has no modifier slot; a C++ object built this
+        // way is written through its own methods, so it stays writable.
+        mut: true,
         overflow: null,
       },
       type: declaration.type,
@@ -152,7 +155,8 @@ class VariableCollector {
       initializer,
       TypeUtils.resolveType(declaration.type, scopePath, isScopeType),
     );
-    const isConst = declaration.modifiers.const;
+    // ADR-071: read-only unless declared `mut`
+    const isConst = !declaration.modifiers.mut;
 
     // Both spellings: C-Next's `u16[4][4] arr` first, then C's `arr[4]`
     const sizes = [

@@ -2187,7 +2187,7 @@ class FilePlanner {
     return {
       name: param.name,
       nameSpan: param.nameSpan,
-      isConst: param.const,
+      isConst: !param.mut,
       isArray,
       arrayDimensions: this.foldParameterDimensions(
         param.dimensions,
@@ -2319,7 +2319,7 @@ class FilePlanner {
     if (params) {
       for (const param of params) {
         const paramName = param.name;
-        const isConst = param.const;
+        const isConst = !param.mut;
         const isArray =
           param.dimensions.length > 0 || param.type.kind === "array";
         const baseType = this.typeNameIn(param.type, scopePath);

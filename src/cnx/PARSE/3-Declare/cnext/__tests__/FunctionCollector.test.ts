@@ -81,7 +81,8 @@ describe("FunctionCollector", () => {
       expect(symbol.parameters).toHaveLength(2);
       expect(symbol.parameters[0].name).toBe("a");
       expect(TypeResolver.getTypeName(symbol.parameters[0].type)).toBe("i32");
-      expect(symbol.parameters[0].isConst).toBe(false);
+      // ADR-071: read-only unless declared `mut`
+      expect(symbol.parameters[0].isConst).toBe(true);
       expect(symbol.parameters[0].isArray).toBe(false);
       expect(symbol.parameters[1].name).toBe("b");
       expect(TypeResolver.getTypeName(symbol.parameters[1].type)).toBe("i32");
