@@ -91,7 +91,7 @@ class CPointerArgumentCheck {
     }
     this.report(
       arg,
-      `'${arg.written}' is read-only, and parameter ${index + 1} of '${name}' is an array '${name}' may write through`,
+      `'${arg.written}' is read-only, and parameter ${index + 1} of '${name}' is ${parameter.isArray ? "an array" : "a reference"} '${name}' may write through`,
       `Declare '${arg.written}' \`mut\`, or declare the C parameter const.`,
       "E0900",
     );
@@ -108,8 +108,10 @@ class CPointerArgumentCheck {
     const argType = CPointerArgumentAnalyzer.cTypeOf(
       OperandTyper.typeOf(arg, this.context),
     );
-    if (argType === null) return false;
-    if (this.structIdentity(argType) !== this.structIdentity(pointee)) {
+    if (
+      argType !== null &&
+      this.structIdentity(argType) !== this.structIdentity(pointee)
+    ) {
       this.report(
         arg,
         `'${arg.written}' is ${argType}, and parameter ${index + 1} of '${name}' points to ${pointee}`,
@@ -117,6 +119,15 @@ class CPointerArgumentCheck {
       );
       return true;
     }
+    // `&x` hands the callee x itself, so x is what the pointer may write.
+    const objectType =
+      argType ??
+      (arg.kind === "unary" && arg.operator === "&"
+        ? CPointerArgumentAnalyzer.cTypeOf(
+            OperandTyper.typeOf(arg.operand, this.context),
+          )
+        : null);
+    if (objectType === null) return false;
     const isConst = CPointerArgumentAnalyzer.isConstRoot(
       WrittenBinding.ofExpression(arg, this.context)?.binding ?? null,
     );
@@ -125,7 +136,7 @@ class CPointerArgumentCheck {
     }
     this.report(
       arg,
-      `'${arg.written}' is read-only ${argType}, and parameter ${index + 1} of '${name}' is a pointer '${name}' may write through`,
+      `'${arg.written}' is read-only ${objectType}, and parameter ${index + 1} of '${name}' is a pointer '${name}' may write through`,
       `Declare '${arg.written}' \`mut\`, or declare the C parameter const ${pointee}*.`,
       "E0900",
     );

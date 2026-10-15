@@ -13,6 +13,9 @@ interface IExtractedParameter {
 
   /** Whether the parameter is an array */
   readonly isArray: boolean;
+
+  /** #2062: a C++ `T&`, which the callee may write through unless const */
+  readonly isReference?: boolean;
 }
 
 export default IExtractedParameter;

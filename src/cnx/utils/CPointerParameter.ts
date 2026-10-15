@@ -1,4 +1,5 @@
 import type ICParameterInfo from "../types/symbols/c/ICParameterInfo";
+import type ICppParameterInfo from "../types/symbols/cpp/ICppParameterInfo";
 
 /**
  * What a C function's pointer parameter takes (#1977): 2.1's E0895 and the
@@ -29,10 +30,18 @@ class CPointerParameter {
     );
   }
 
-  /** #986: `uint8_t data[8]` is a `uint8_t *` the callee may write through too */
-  static writesThrough(parameter: ICParameterInfo): boolean {
+  /**
+   * #986: `uint8_t data[8]` is a `uint8_t *` the callee may write through too,
+   * and #2062: so is a C++ `Sensor&` that is not `const`.
+   */
+  static writesThrough(
+    parameter: ICParameterInfo | ICppParameterInfo,
+  ): boolean {
     if (CPointerParameter.pointee(parameter.type) !== null) {
       return !CPointerParameter.pointsToConst(parameter);
+    }
+    if ("isReference" in parameter && parameter.isReference === true) {
+      return !parameter.isConst;
     }
     return (
       parameter.isArray &&

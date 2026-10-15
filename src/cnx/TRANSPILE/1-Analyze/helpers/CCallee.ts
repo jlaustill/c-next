@@ -3,7 +3,7 @@ import type IAnalysisContext from "../types/IAnalysisContext";
 import type ICCallee from "../types/ICCallee";
 
 /**
- * The C function a call names: `f(a)` or `global.f(a)`, and nothing after the
+ * The C (or C++) function a call names: `f(a)` or `global.f(a)`, and nothing after the
  * call. A C-Next function of that name is C-Next's own, so it is not one.
  * E0895's pointer check and ADR-071's write tracking ask this one question.
  */
@@ -23,6 +23,15 @@ class CCallee {
           parameters: symbol.parameters,
         };
       }
+    }
+    // A C++ name taken by more than one function is an overload set, and which
+    // one a call reaches is the C++ compiler's choice, not one to guess here.
+    const cppFunctions = context.symbolTable
+      .getCppOverloads(name)
+      .filter((symbol) => symbol.kind === "function");
+    const only = cppFunctions.length === 1 ? cppFunctions[0] : undefined;
+    if (only?.kind === "function" && only.parameters) {
+      return { name, arguments: call.arguments, parameters: only.parameters };
     }
     return null;
   }

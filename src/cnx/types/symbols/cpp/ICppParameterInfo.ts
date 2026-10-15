@@ -14,6 +14,9 @@ interface ICppParameterInfo {
 
   /** Whether this parameter is an array */
   readonly isArray: boolean;
+
+  /** #2062: a `T&`, which the callee may write through unless const */
+  readonly isReference?: boolean;
 }
 
 export default ICppParameterInfo;

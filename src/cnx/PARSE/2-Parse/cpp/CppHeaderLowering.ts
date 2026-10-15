@@ -401,7 +401,7 @@ class CppHeaderLowering {
       CppHeaderLowering.starCount(operators),
       isPointer && !isReference ? 1 : 0,
     );
-    return ParameterExtractorUtils.buildParameterInfo(
+    const parameter = ParameterExtractorUtils.buildParameterInfo(
       declarator,
       DeclaratorTypes.withPointers(baseType, depth),
       declarationSpecifiers.getText().includes("const"),
@@ -409,6 +409,7 @@ class CppHeaderLowering {
       (candidate: DeclaratorContext) =>
         CppHeaderLowering.declaratorName(candidate),
     );
+    return isReference ? { ...parameter, isReference } : parameter;
   }
 
   private static abstractHasPointer(

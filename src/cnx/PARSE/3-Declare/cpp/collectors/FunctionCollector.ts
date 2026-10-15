@@ -21,6 +21,7 @@ class FunctionCollector {
       type: p.type,
       isConst: p.isConst,
       isArray: p.isArray,
+      ...(p.isReference === true && { isReference: true }),
     }));
   }
 

@@ -19,6 +19,9 @@ class WrittenBinding {
     expr: TExpression,
     context: IAnalysisContext,
   ): IWrittenBinding | null {
+    if (expr.kind === "unary" && expr.operator === "&") {
+      return WrittenBinding.ofExpression(expr.operand, context);
+    }
     if (expr.kind === "identifier") {
       return WrittenBinding.of(null, expr.name, [], expr.span, context);
     }
