@@ -1,0 +1,91 @@
+// test-error
+// test-adr: 025
+// #2046: E0713 compares what a label claims in C, not how it is written. A
+// const is written as its value, so a const beside the literal it folds to,
+// `this.X` beside the bare `X` it names, `Panel.X` beside `this.X`, and two
+// consts with one value are each one C case twice, as is a header macro in
+// its bare and `global.` spellings, written by its name. NEGATIVE CONTROL:
+// `distinct`, two consts with two values, stays silent.
+#include "dup_macro.h"
+
+const u8 REAL <- 1;
+const u8 ONE <- 1;
+
+scope Panel {
+    const u8 LIMIT <- 3;
+
+    public u32 literal(u8 s) {
+        switch (s) {
+            case LIMIT {
+                return 1;
+            }
+            case 3 {
+                return 2;
+            }
+            default {
+                return 0;
+            }
+        }
+    }
+
+    public u32 spelled(u8 s) {
+        switch (s) {
+            case this.LIMIT {
+                return 1;
+            }
+            case Panel.LIMIT {
+                return 2;
+            }
+            default {
+                return 0;
+            }
+        }
+    }
+
+    public u32 distinct(u8 s) {
+        switch (s) {
+            case this.LIMIT {
+                return 1;
+            }
+            case global.REAL {
+                return 2;
+            }
+            default {
+                return 0;
+            }
+        }
+    }
+}
+
+u32 twoConsts(u8 s) {
+    switch (s) {
+        case REAL {
+            return 1;
+        }
+        case ONE {
+            return 2;
+        }
+        default {
+            return 0;
+        }
+    }
+}
+
+u32 macro(u8 s) {
+    switch (s) {
+        case HDR_K {
+            return 1;
+        }
+        case global.HDR_K {
+            return 2;
+        }
+        default {
+            return 0;
+        }
+    }
+}
+
+u32 main() {
+    u32 r <- twoConsts(1);
+    return r;
+}

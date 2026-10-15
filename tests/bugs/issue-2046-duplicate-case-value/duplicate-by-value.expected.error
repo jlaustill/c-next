@@ -1,0 +1,8 @@
+22:17 error[E0713]: Duplicate case value '3' in switch statement
+       help: Two clauses cannot claim the same value; one of them is unreachable.
+36:17 error[E0713]: Duplicate case value 'Panel.LIMIT' in switch statement
+       help: Two clauses cannot claim the same value; one of them is unreachable.
+65:13 error[E0713]: Duplicate case value 'ONE' in switch statement
+       help: Two clauses cannot claim the same value; one of them is unreachable.
+79:13 error[E0713]: Duplicate case value 'global.HDR_K' in switch statement
+       help: Two clauses cannot claim the same value; one of them is unreachable.

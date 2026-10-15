@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-605 fixture(s) assert a diagnostic; 595 carry a code.
+606 fixture(s) assert a diagnostic; 596 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -538,6 +538,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-2019-header-unclosed-name/concatenation-self.test.cnx                           | E0427               |
 | tests/bugs/issue-2019-header-unclosed-name/self-local.test.cnx                                   | E0427               |
 | tests/bugs/issue-2019-header-unclosed-name/substring-self.test.cnx                               | E0427               |
+| tests/bugs/issue-2046-duplicate-case-value/duplicate-by-value.test.cnx                           | E0713               |
 | tests/bugs/issue-2051-case-label-not-constant/case-label-not-constant.test.cnx                   | E0717               |
 | tests/bugs/issue-2076-header-struct-dimension/header-pointer-dimension-error.test.cnx            | E0909               |
 | tests/bugs/issue-847-misra-17-7-lowering/bare-intra-scope-discard.test.cnx                       | E0708               |

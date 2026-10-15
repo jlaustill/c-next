@@ -29,6 +29,7 @@ import ScopeUtils from "../../utils/ScopeUtils";
 import ConstLiteral from "../../utils/ConstLiteral";
 import type TChainRoot from "../../types/TChainRoot";
 import type TValueBinding from "../../types/TValueBinding";
+import type TSymbol from "../../types/symbols/TSymbol";
 import OperandTyper from "../../utils/OperandTyper";
 import StatementNodes from "../../utils/StatementNodes";
 import EnumValueResolver from "./EnumValueResolver";
@@ -263,15 +264,30 @@ class SwitchStatementCheck {
     root: TChainRoot,
     name: string,
     at: ISourceSpan,
-  ): string | undefined {
+  ): TSymbol["kind"] | undefined {
+    return this.context.program.symbolByCName(this.headCName(root, name, at))
+      ?.kind;
+  }
+
+  /** The C name a type-position head -- `State`, `this.State` -- names at `at` */
+  private headCName(root: TChainRoot, name: string, at: ISourceSpan): string {
     const { program, sourceFile } = this.context;
-    const cName = ScopeUtils.typeHeadCName(
+    return ScopeUtils.typeHeadCName(
       root,
       name,
       OperandTyper.scopePathAt(at, this.context),
       (qualified) => program.isScopeTypeVisibleFrom(sourceFile, qualified),
     );
-    return program.symbolByCName(cName)?.kind;
+  }
+
+  /** The member `Panel.LIMIT` names, in the scope its head binds */
+  private scopeMember(
+    label: Extract<TCaseLabelSyntax, { kind: "qualified" }>,
+    scopePath: string,
+  ): TSymbol | undefined {
+    return this.context.program.symbolByCName(
+      ScopeUtils.qualifyPathInScope(label.path.slice(1), scopePath),
+    );
   }
 
   /** Whether a bound label is a constant, asked of the one const-value answer */
@@ -294,9 +310,7 @@ class SwitchStatementCheck {
       case "scope": {
         // `Panel.LIMIT`: the scope names where to look, the member decides
         if (label.kind !== "qualified") return false;
-        const member = program.symbolByCName(
-          ScopeUtils.qualifyPathInScope(label.path.slice(1), binding.scopePath),
-        );
+        const member = this.scopeMember(label, binding.scopePath);
         // No symbol: an enum member chain (`Panel.State.IDLE`), or #1630's
         if (member === undefined) return true;
         return (
@@ -308,26 +322,50 @@ class SwitchStatementCheck {
   }
 
   /**
-   * Which declaration or enum member a named label is, so two spellings of
-   * one -- `LIMIT` and `this.LIMIT` in its scope, `State.IDLE` and
-   * `this.State.IDLE` -- are one value. Null for a label keyed on its value.
+   * What a label claims in C, so two labels that are one C case are one key
+   * whatever their spelling (#2046). A const is written as its value
+   * (`resolveCaseConst`), so `LIMIT`, `this.LIMIT`, `Panel.LIMIT` and `3`
+   * all claim 3, and two consts with one value claim it twice;
+   * `case Point.type_byte_length` is its number too. A label that does not
+   * fold is keyed on what it names: an enum member on the member, so
+   * `State.IDLE` and `this.State.IDLE` in its scope are one, and a header
+   * macro on its name.
    */
-  private labelIdentity(label: TCaseLabelSyntax): string | null {
-    const { program, sourceFile } = this.context;
-    if (label.kind === "identifier") {
-      const binding = this.labelBinding(label);
-      return binding?.kind === "variable"
-        ? binding.symbol.fullyQualifiedCName
-        : null;
+  private labelKey(label: TCaseLabelSyntax): string {
+    const folded = this.lengthValue(label) ?? this.foldedValue(label);
+    if (folded !== null) return `value:${folded}`;
+    const binding = this.labelBinding(label);
+    // `HDR_K` and `global.HDR_K`: one header macro, written by its name
+    if (
+      label.kind === "identifier" &&
+      label.root !== "this" &&
+      (binding === null || binding.kind === "foreign")
+    ) {
+      return `name:${binding?.name ?? label.name}`;
     }
-    if (label.kind !== "qualified") return null;
-    const head = ScopeUtils.typeHeadCName(
-      label.root,
-      label.path[0],
-      OperandTyper.scopePathAt(label.span, this.context),
-      (name) => program.isScopeTypeVisibleFrom(sourceFile, name),
+    if (label.kind === "qualified") {
+      const head = this.headCName(label.root, label.path[0], label.span);
+      return `member:${QualifiedCName.fromParts([head, ...label.path.slice(1)])}`;
+    }
+    return `value:${SwitchStatementCheck.caseLabelValue(label)}`;
+  }
+
+  /** A const label's value, from the declaration its spelling binds */
+  private foldedValue(label: TCaseLabelSyntax): string | null {
+    const { program } = this.context;
+    const binding = this.labelBinding(label);
+    if (binding === null) return null;
+    if (label.kind === "identifier") {
+      return program.constantOf(binding)?.value.toString() ?? null;
+    }
+    if (label.kind !== "qualified" || binding.kind !== "scope") return null;
+    const member = this.scopeMember(label, binding.scopePath);
+    if (member?.kind !== "variable") return null;
+    return (
+      program
+        .constantOf({ kind: "variable", symbol: member })
+        ?.value.toString() ?? null
     );
-    return QualifiedCName.fromParts([head, ...label.path.slice(1)]);
   }
 
   /** True when a duplicate was reported, so the later checks are skipped. */
@@ -336,13 +374,7 @@ class SwitchStatementCheck {
     for (const caseCtx of cases) {
       for (const label of caseCtx.labels) {
         const value = SwitchStatementCheck.caseLabelValue(label);
-        // `case Point.type_byte_length` is its number: `case 5` claims it too.
-        // A declaration and a spelling are different keys: a local `LIMIT`
-        // is not the file's, which `global.LIMIT` binds
-        const length = this.lengthValue(label);
-        const identity = length === null ? this.labelIdentity(label) : null;
-        const key =
-          identity === null ? `value:${length ?? value}` : `decl:${identity}`;
+        const key = this.labelKey(label);
         if (seen.has(key)) {
           this.found.push({
             code: "E0713",

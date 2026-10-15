@@ -188,6 +188,12 @@ the file's (#147, #2052). The label is the constant the binding names, so
 `LIMIT` and `global.LIMIT` naming one const are one value -- and E0713 when
 both are written.
 
+E0713 compares what two labels claim in C, not how they are written (#2046). A
+const is written as its value, so `LIMIT` beside `3`, two consts with one
+value, and a local `LIMIT` beside a `global.LIMIT` of the same value are each
+one C case twice. A label that does not fold is compared by what it names: an
+enum member by its member, a header macro by its name in either spelling.
+
 ### Exhaustive Enum Matching (No Default)
 
 ```cnx
@@ -441,13 +447,13 @@ C-Next's `default(n)` syntax goes beyond MISRA by providing **compile-time valid
 
 ## Diagnostics
 
-| Code  | Meaning                                                                                                                                           | Fixture                                                                     |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| E0711 | Switch on a `bool` (MISRA C:2012 Rule 16.7)                                                                                                       | `tests/switch/`                                                             |
-| E0712 | Fewer than two clauses (MISRA C:2012 Rule 16.6)                                                                                                   | `tests/switch/`                                                             |
-| E0713 | Duplicate case value, keyed on the declaration a label binds                                                                                      | `tests/bugs/issue-1629-case-label-undeclared/case-label-duplicate-spelling` |
-| E0714 | The clauses do not account for the enum's variants exactly                                                                                        | `tests/switch/`                                                             |
-| E0717 | A case label is a variable, a function, a scope, a type, a struct or bitmap field, or a const with no C constant value (a string), not a constant | `tests/bugs/issue-2051-case-label-not-constant/case-label-not-constant`     |
+| Code  | Meaning                                                                                                                                           | Fixture                                                                                                                                      |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| E0711 | Switch on a `bool` (MISRA C:2012 Rule 16.7)                                                                                                       | `tests/switch/`                                                                                                                              |
+| E0712 | Fewer than two clauses (MISRA C:2012 Rule 16.6)                                                                                                   | `tests/switch/`                                                                                                                              |
+| E0713 | Duplicate case value, keyed on the value a label claims in C                                                                                      | `tests/bugs/issue-1629-case-label-undeclared/case-label-duplicate-spelling`, `tests/bugs/issue-2046-duplicate-case-value/duplicate-by-value` |
+| E0714 | The clauses do not account for the enum's variants exactly                                                                                        | `tests/switch/`                                                                                                                              |
+| E0717 | A case label is a variable, a function, a scope, a type, a struct or bitmap field, or a const with no C constant value (a string), not a constant | `tests/bugs/issue-2051-case-label-not-constant/case-label-not-constant`                                                                      |
 
 ## Scope-context matrix
 

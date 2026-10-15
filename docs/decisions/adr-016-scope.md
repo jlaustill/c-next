@@ -377,11 +377,13 @@ Inside a scope, you MUST use:
 
 **`global.` needs a scope or a function around it (#2087).** `global.X` reaches a
 file-scope name past a scope member, local or parameter that shadows it, so a
-function body is a scope for it: in a top-level function `global.total` writes
-the file-scope `total` even when a parameter is named `total` (ADR-057). At file
-level, in a file-scope declaration's initializer or type, nothing can shadow a
-file-scope name, so the bare name is written and `global.` there is E0431.
-`this.` still needs a `scope` block: it names that scope's member.
+function is a scope for it, its signature (return and parameter types) as well
+as its body: in a top-level function `global.total` writes the file-scope
+`total` even when a parameter is named `total` (ADR-057). At file level, in a
+file-scope variable's initializer or type, an array dimension or a struct
+field's type, nothing can shadow a file-scope name, so the bare name is written
+and `global.` there is E0431. `this.` still needs a `scope`: it names that
+scope's member, in the scope's own declarations and in its methods.
 
 #### Example
 

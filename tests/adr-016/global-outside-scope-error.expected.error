@@ -1,10 +1,10 @@
-57:19 error[E0431]: 'global' can only be used inside a scope or a function
+63:19 error[E0431]: 'global' can only be used inside a scope or a function
        help: `global` reaches a file-scope declaration past a name that shadows it inside a scope or a function. At file level nothing shadows it, so write its bare name.
-59:18 error[E0431]: 'global' can only be used inside a scope or a function
+65:18 error[E0431]: 'global' can only be used inside a scope or a function
        help: `global` reaches a file-scope declaration past a name that shadows it inside a scope or a function. At file level nothing shadows it, so write its bare name.
-61:0 error[E0431]: 'global' can only be used inside a scope or a function
+67:0 error[E0431]: 'global' can only be used inside a scope or a function
        help: `global` reaches a file-scope declaration past a name that shadows it inside a scope or a function. At file level nothing shadows it, so write its bare name.
-63:3 error[E0431]: 'global' can only be used inside a scope or a function
+69:3 error[E0431]: 'global' can only be used inside a scope or a function
        help: `global` reaches a file-scope declaration past a name that shadows it inside a scope or a function. At file level nothing shadows it, so write its bare name.
-66:4 error[E0431]: 'global' can only be used inside a scope or a function
+72:4 error[E0431]: 'global' can only be used inside a scope or a function
        help: `global` reaches a file-scope declaration past a name that shadows it inside a scope or a function. At file level nothing shadows it, so write its bare name.

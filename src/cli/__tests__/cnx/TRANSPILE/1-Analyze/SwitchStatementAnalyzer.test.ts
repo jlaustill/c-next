@@ -203,6 +203,39 @@ describe("SwitchStatementAnalyzer", () => {
       expect(found).toEqual([]);
     });
 
+    it("rejects a local `LIMIT` beside `global.LIMIT` of one value: one C case (#2046)", () => {
+      const found = errors(
+        [
+          "const u8 LIMIT <- 1;",
+          "u32 pick(u8 s) {",
+          "    const u8 LIMIT <- 1;",
+          "    switch (s) {",
+          "        case LIMIT { return 1; }",
+          "        case global.LIMIT { return 2; }",
+          "        default { return 0; }",
+          "    }",
+          "    return 0;",
+          "}",
+        ].join("\n"),
+      );
+      expect(found.map((e) => [e.code, e.line])).toEqual([["E0713", 6]]);
+    });
+
+    it("rejects a const beside the literal it folds to (#2046)", () => {
+      const found = errors(labels("LIMIT", "3"));
+      expect(found.map((e) => e.code)).toEqual(["E0713"]);
+    });
+
+    it("rejects `Panel.LIMIT` beside `this.LIMIT`: one const (#2046)", () => {
+      const found = errors(labels("this.LIMIT", "Panel.LIMIT"));
+      expect(found.map((e) => e.code)).toEqual(["E0713"]);
+    });
+
+    it("rejects two consts with one value (#2046)", () => {
+      const found = errors(labels("global.LIMIT", "1"));
+      expect(found.map((e) => e.code)).toEqual(["E0713"]);
+    });
+
     it("rejects the same character label twice", () => {
       const found = errors(labels("'a'", "'a'"));
       expect(found).toHaveLength(1);

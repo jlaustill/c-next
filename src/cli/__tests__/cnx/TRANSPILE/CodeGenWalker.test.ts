@@ -16901,8 +16901,9 @@ describe("CodeGenWalker", () => {
     });
 
     it("writes a global. label that binds nothing, a header's macro, by its name (#2075)", () => {
-      // 2.1 accepted `global.HDR_K` because an include declares it; the value
-      // position writes it as `HDR_K` too
+      // `generate` runs no 2.1, so nothing binds `global.HDR_K`: an unbound
+      // `global.` label is written by its name, as the value position writes
+      // a header's macro. `case-label-rooted-resolves` covers the real macro
       const code = generate(`
         u32 pick(u8 v) {
           switch (v) {

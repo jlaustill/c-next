@@ -17,7 +17,8 @@ u32 helper() {
 }
 
 // NEGATIVE CONTROLS -- `global.` in every position, all silent: inside a
-// scope, and inside a top-level function, past a parameter of the same name.
+// scope, and inside a top-level function, past a parameter of the same name,
+// and in a top-level function's signature.
 scope Panel {
     u32 total <- 9;
 
@@ -48,6 +49,11 @@ u32 inPlainFunction(u8 s, u32 total) {
         }
     }
     return 0;
+}
+
+// A top-level function's signature is its scope too: silent.
+global.Pt make(global.Pt p) {
+    return p;
 }
 
 // THE ASSERTIONS -- each file-level position once: an initializer's value, a
