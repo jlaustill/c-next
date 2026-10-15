@@ -909,44 +909,12 @@ class TranspileState {
    */
   isParameterModified(funcName: string, paramName: string): boolean {
     // #1452: reads the artifact. This used to read a per-file accumulator on
-    // this class -- the one `isParameterModifiedAnywhere` below documents as
-    // the bug in #1529 and #1552, EMPTY while declarations are still walked and
-    // absent entirely for a function reached through an include. The
-    // accumulator is gone, so the two methods now answer from one place and the
-    // sibling's fallback is no longer a second source.
+    // this class -- the bug in #1529 and #1552, EMPTY while declarations are
+    // still walked and absent entirely for a function reached through an
+    // include. The accumulator is gone, so there is one source.
     return (
       this.program?.modifiedParameters().get(funcName)?.has(paramName) ?? false
     );
-  }
-
-  /**
-   * #1552/#1529: does this parameter get modified ANYWHERE in the program?
-   *
-   * The name auto-const reads this fact under, kept because it says WHY the
-   * answer is program-wide at the call site that cares. It is an alias, and the
-   * aliasing is the point: `Program` owns the fact, 1.4 Resolve settles it for
-   * the whole run before any file is planned, so there is nothing for a
-   * per-scope variant to differ about.
-   *
-   * Both of the bugs behind it were a SECOND source disagreeing with this one:
-   *
-   * - A per-file accumulator was EMPTY while declarations were still being
-   *   walked, so a typedef built at that moment saw a modifying body as
-   *   unmodified and emitted `const` where the prototype emitted none (#1529).
-   * - A function reached through an include was never walked, so the fact was
-   *   absent rather than false, and an included function-as-type lost the const
-   *   its declaring file computed (#1552). Two files then defined one typedef
-   *   name incompatibly, which gcc rejects outright.
-   *
-   * That accumulator is gone. This docblock described its fallback as still
-   * present for one revision after it was deleted, which is the comment half of
-   * the same duplication.
-   *
-   * Polarity is `isParameterModified`'s: an absent entry means NOT modified, so
-   * auto-const applies.
-   */
-  isParameterModifiedAnywhere(funcName: string, paramName: string): boolean {
-    return this.isParameterModified(funcName, paramName);
   }
 
   /**

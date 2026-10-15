@@ -83,8 +83,9 @@ class CallbackTypedefFormatter {
       return `${constModifier}${parameter.type}${pointerOrReference}`;
     }
 
-    // ADR-029: callback parameters are already function pointers.
-    return parameter.type;
+    // ADR-071: a read-only by-value parameter is `const`, as in its prototype;
+    // a callback parameter, already a function pointer, never is.
+    return `${constModifier}${parameter.type}`;
   }
 }
 

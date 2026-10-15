@@ -2592,12 +2592,8 @@ class FilePlanner {
           name: param.emittedName,
           ...shape,
           isConst: FilePlanner.typedefParamIsConst(
-            cName,
-            param.name,
             param.isConst,
-            shape.isStruct,
-            shape.isString,
-            this.state,
+            functionsAsTypes.has(typeName),
           ),
           isArray: param.isArray,
           // Already folded to literals by the symbols layer, which is exactly
@@ -2642,24 +2638,16 @@ class FilePlanner {
    *   then defined one typedef name incompatibly -- a hard `error: conflicting
    *   types`, not a warning, at transpile exit 0
    *
-   * Auto-const (#268) qualifies only what the prototype renders as a pointer,
-   * which for a typedef parameter is a struct or a string.
+   * ADR-071 decides it from the declaration alone: a parameter not declared
+   * `mut` is `const`, whatever the body does, exactly as the prototype reads
+   * it. A function-pointer parameter is the exception the prototype also
+   * makes: it is spelled by its own `_fp` typedef and takes no `const`.
    */
   private static typedefParamIsConst(
-    funcName: string,
-    paramName: string,
-    isExplicitConst: boolean,
-    isStruct: boolean,
-    isString: boolean,
-    state: TranspileState,
+    isDeclaredReadOnly: boolean,
+    isCallback: boolean,
   ): boolean {
-    if (isExplicitConst) {
-      return true;
-    }
-    if (!isStruct && !isString) {
-      return false;
-    }
-    return !state.isParameterModifiedAnywhere(funcName, paramName);
+    return isDeclaredReadOnly && !isCallback;
   }
 
   /**
