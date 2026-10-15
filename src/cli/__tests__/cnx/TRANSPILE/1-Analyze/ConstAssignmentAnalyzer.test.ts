@@ -7,9 +7,9 @@ import ESourceLanguage from "../../../../../cnx/utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../../../cnx/types/__testUtils__/testSourceSpan";
 
 /**
- * #1322, ADR-071. Every binding is read-only unless declared `mut`: E0877 (an
- * assignment to or through a read-only binding, any form), E0878 (a read-only
- * value passed to a `mut` parameter) and E0899 (a `mut` nothing writes).
+ * #1322, ADR-071. Every binding is read-only unless declared `mut`: E0900 (an
+ * assignment to or through a read-only binding, any form, or a read-only value
+ * passed to a `mut` parameter) and E0899 (a `mut` nothing writes).
  *
  * Mutability comes from the lexical frames; a callee's parameters and a binding
  * from an include come from the program's symbols. The cases here assert only
@@ -25,15 +25,15 @@ const errors = (source: string) => {
 
 const at = (source: string) => errors(source).map((e) => `${e.code}@${e.line}`);
 
-describe("ConstAssignmentAnalyzer (E0877)", () => {
+describe("ConstAssignmentAnalyzer (E0900)", () => {
   it("rejects every assignment operator on a read-only variable, at the target", () => {
     const found = errors(
       "u32 K <- 1;\nvoid f() {\n    K <- 2;\n    K +<- 1;\n    K <<<- 1;\n}",
     );
     expect(found.map((e) => [e.code, e.line])).toEqual([
-      ["E0877", 3],
-      ["E0877", 4],
-      ["E0877", 5],
+      ["E0900", 3],
+      ["E0900", 4],
+      ["E0900", 5],
     ]);
     expect(found[0].message).toBe("cannot assign to read-only variable 'K'");
     expect(found[0].column).toBeGreaterThan(0);
@@ -120,7 +120,7 @@ describe("ConstAssignmentAnalyzer on 1.2's syntax (#1991)", () => {
   it("names a rooted read-only argument, and only the binding itself", () => {
     expect(
       errors(source)
-        .filter((e) => e.code === "E0878")
+        .filter((e) => e.message.startsWith("cannot pass"))
         .map((e) => [e.line, e.message]),
     ).toEqual([
       [
@@ -131,7 +131,7 @@ describe("ConstAssignmentAnalyzer on 1.2's syntax (#1991)", () => {
   });
 
   it("reports calls and assignments in source order", () => {
-    expect(at(source)).toEqual(["E0878@9", "E0877@11"]);
+    expect(at(source)).toEqual(["E0900@9", "E0900@11"]);
   });
 
   it("passes a read-only binding to a read-only parameter", () => {

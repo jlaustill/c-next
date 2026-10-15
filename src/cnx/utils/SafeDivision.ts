@@ -3,9 +3,9 @@
  *
  * #1322: two rules ask the same thing of these calls and they are not the same
  * rule. ADR-051 governs their SHAPE -- four arguments, the first a variable to
- * receive the quotient (E0884/E0885). ADR-013 governs const-ness, and the
- * first argument is written through, so a `const` there is an assignment to a
- * const exactly as `K <- 1` is (E0877).
+ * receive the quotient (E0884/E0885). ADR-071 governs mutability, and the
+ * first argument is written through, so a read-only binding there is written
+ * exactly as `K <- 1` writes it (E0900).
  *
  * The fact both need -- "argument 0 of this call is an output parameter" -- is
  * a property of these two builtins and belongs in one place. Before it was

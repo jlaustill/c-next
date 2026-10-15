@@ -99,7 +99,7 @@ const generateFunctionCall = (
   }
 
   // Regular function call handling
-  // #1322: a const argument to a non-const parameter is E0878 in pass 2.1.
+  // #1322: a read-only argument to a `mut` parameter is E0900 in pass 2.1.
   if (isCNextFunc) {
     // Issue #268: Track pass-through modifications for auto-const. Runs BEFORE
     // any argument renders, and mutates auto-const state -- it must not be
@@ -153,8 +153,8 @@ const generateSafeDivMod = (
   effects: TGeneratorEffect[],
 ): IGeneratorOutput => {
   // #1322: ADR-051's call shape is E0884 (four arguments) and E0885 (the first
-  // is a variable to receive the result) in pass 2.1, and a `const` output is
-  // E0877 there -- that last one was accepted here and emitted `&K` into a
+  // is a variable to receive the result) in pass 2.1, and a read-only output is
+  // E0900 there -- that last one was accepted here and emitted `&K` into a
   // non-const pointer parameter.
   invariant(
     args.length === 4,

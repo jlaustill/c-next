@@ -20,8 +20,8 @@
  *
  * ## Not asked here
  *
- * Whether the OUTPUT is `const` is ADR-013's rule, not ADR-051's, and it is
- * reported as E0877 by the const analyzer, which reads the same
+ * Whether the OUTPUT is read-only is ADR-071's rule, not ADR-051's, and it is
+ * reported as E0900 by the const analyzer, which reads the same
  * `SafeDivision.outputName`. A const output was accepted before #1322 and
  * emitted `&K` into a non-const pointer parameter.
  */

@@ -58,7 +58,7 @@ describe("CPointerArgumentAnalyzer on 1.2's syntax (#1991)", () => {
 
   it("rejects a const argument only where the C pointer is not const", () => {
     expect(at(["u8 c <- 1;", "take(c);", "peek(c);"])).toEqual([
-      "E0895@3:9 'c' is read-only uint8_t, and parameter 1 of 'take' is a pointer 'take' may write through",
+      "E0900@3:9 'c' is read-only uint8_t, and parameter 1 of 'take' is a pointer 'take' may write through",
       "E0896@4:9 C-Next cannot see how 'peek' uses parameter 1, so passing 'c' to it is not memory safe",
     ]);
   });
@@ -73,7 +73,7 @@ describe("CPointerArgumentAnalyzer on 1.2's syntax (#1991)", () => {
         "scan(r);",
       ]),
     ).toEqual([
-      "E0895@4:9 'r' is read-only, and parameter 1 of 'fill' is an array 'fill' may write through",
+      "E0900@4:9 'r' is read-only, and parameter 1 of 'fill' is an array 'fill' may write through",
     ]);
   });
 
@@ -109,7 +109,7 @@ describe("CPointerArgumentAnalyzer through `global.` (#2103)", () => {
 
   it("checks `global.f(a)` as it checks `f(a)`", () => {
     expect(at(["u8 c <- 1;", "global.take(c);"])).toEqual([
-      "E0895@3:16 'c' is read-only uint8_t, and parameter 1 of 'take' is a pointer 'take' may write through",
+      "E0900@3:16 'c' is read-only uint8_t, and parameter 1 of 'take' is a pointer 'take' may write through",
     ]);
   });
 });

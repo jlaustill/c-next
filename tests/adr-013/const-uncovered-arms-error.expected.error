@@ -1,24 +1,24 @@
-30:24 error[E0878]: cannot pass read-only 'K' to `mut` parameter 'v' of function 'echo'
+30:24 error[E0900]: cannot pass read-only 'K' to `mut` parameter 'v' of function 'echo'
        help: The callee writes through that parameter, so the argument must be declared `mut` (ADR-071).
-50:4 error[E0877]: cannot assign to read-only parameter 'table' (array element)
+50:4 error[E0900]: cannot assign to read-only parameter 'table' (array element)
        help: A parameter is read-only unless declared `mut` (ADR-071); declare it `mut` if the function must change it.
-51:4 error[E0877]: cannot assign to read-only parameter 'cfg' (member access)
+51:4 error[E0900]: cannot assign to read-only parameter 'cfg' (member access)
        help: A parameter is read-only unless declared `mut` (ADR-071); declare it `mut` if the function must change it.
-57:4 error[E0877]: cannot assign to read-only variable 'cfg' (member access)
+57:4 error[E0900]: cannot assign to read-only variable 'cfg' (member access)
        help: A binding is read-only unless declared `mut` (ADR-071); declare it `mut` if the value must change.
-59:9 error[E0877]: cannot assign to read-only variable 'K'
+59:9 error[E0900]: cannot assign to read-only variable 'K'
        help: A binding is read-only unless declared `mut` (ADR-071); declare it `mut` if the value must change.
-59:24 error[E0877]: cannot assign to read-only variable 'K'
+59:24 error[E0900]: cannot assign to read-only variable 'K'
        help: A binding is read-only unless declared `mut` (ADR-071); declare it `mut` if the value must change.
-61:9 error[E0878]: cannot pass read-only 'K' to `mut` parameter 'v' of function 'take'
+61:9 error[E0900]: cannot pass read-only 'K' to `mut` parameter 'v' of function 'take'
        help: The callee writes through that parameter, so the argument must be declared `mut` (ADR-071).
-69:22 error[E0878]: cannot pass read-only 'K' to `mut` parameter 'v' of function 'echo'
+69:22 error[E0900]: cannot pass read-only 'K' to `mut` parameter 'v' of function 'echo'
        help: The callee writes through that parameter, so the argument must be declared `mut` (ADR-071).
-79:8 error[E0877]: cannot assign to read-only variable 'STEP'
+79:8 error[E0900]: cannot assign to read-only variable 'STEP'
        help: A binding is read-only unless declared `mut` (ADR-071); declare it `mut` if the value must change.
-80:8 error[E0877]: cannot assign to read-only variable 'K'
+80:8 error[E0900]: cannot assign to read-only variable 'K'
        help: A binding is read-only unless declared `mut` (ADR-071); declare it `mut` if the value must change.
-81:18 error[E0878]: cannot pass read-only 'this.STEP' to `mut` parameter 'v' of function 'bump'
+81:18 error[E0900]: cannot pass read-only 'this.STEP' to `mut` parameter 'v' of function 'bump'
        help: The callee writes through that parameter, so the argument must be declared `mut` (ADR-071).
-89:13 error[E0878]: cannot pass read-only 'this.STEP' to `mut` parameter 'v' of function 'bump'
+89:13 error[E0900]: cannot pass read-only 'this.STEP' to `mut` parameter 'v' of function 'bump'
        help: The callee writes through that parameter, so the argument must be declared `mut` (ADR-071).

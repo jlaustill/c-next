@@ -44,7 +44,7 @@ mut u32 x <- 42;
 u32 limit <- 10;            // read-only: const uint32_t limit = 10U;
 mut u32 total <- 0;         // written below, so it is declared mut
 total +<- limit;
-// limit <- 11;             // ERROR E0877: limit is read-only
+// limit <- 11;             // ERROR E0900: limit is read-only
 // const u32 k <- 1;        // ERROR E0898: `const` is the default; remove it
 // mut u32 spare <- 0;      // ERROR E0899: never written; remove `mut`
 

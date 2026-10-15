@@ -3070,7 +3070,7 @@ class CodeGenWalker {
     // handlers do their own mapping from `ctx`, so both are gone with it.
 
     // #1322: `AssignmentValidator.validate` was called here, and by the end of
-    // the relocation it validated nothing -- ADR-013's const rule is E0877,
+    // the relocation it validated nothing -- ADR-071's read-only rule is E0900,
     // ADR-017's enum rule E0428, ADR-024's conversions E0868/E0869, ADR-036's
     // bounds E0854, ADR-004's `ro` write E0871 and ADR-029's callback typing
     // E0879/E0880, every one of them authored in pass 2.1 at the target's own

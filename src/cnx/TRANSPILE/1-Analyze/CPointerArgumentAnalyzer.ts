@@ -7,8 +7,9 @@
  * incompatible-pointer conversion gcc 14 rejects -- with a byte count nobody
  * checks against the object. A `u32` handed to the same parameter was passed
  * as `w`, a pointer made from an integer. One rule covers both: the argument's
- * C type is the pointee's, or the parameter is `void*`. A `const` argument
- * also needs a parameter that points to const, or C could write to it.
+ * C type is the pointee's, or the parameter is `void*`. A read-only argument
+ * also needs a parameter that points to const, or C could write to it: that
+ * is a write, so it is ADR-071's E0900.
  *
  * E0896, owner ruling: C-Next cannot see how a C function uses its pointer --
  * one `u8` or `n` of them -- so it accepts both, and warns that the call is not
@@ -72,7 +73,7 @@ class CPointerArgumentCheck {
     });
   }
 
-  /** E0895, when a read-only array meets a C array parameter that is not const */
+  /** E0900, when a read-only array meets a C array parameter that is not const */
   private rejectsReadOnlyArray(
     arg: TExpression,
     name: string,
@@ -91,6 +92,7 @@ class CPointerArgumentCheck {
       arg,
       `'${arg.written}' is read-only, and parameter ${index + 1} of '${name}' is an array '${name}' may write through`,
       `Declare '${arg.written}' \`mut\`, or declare the C parameter const.`,
+      "E0900",
     );
   }
 
@@ -124,6 +126,7 @@ class CPointerArgumentCheck {
       arg,
       `'${arg.written}' is read-only ${argType}, and parameter ${index + 1} of '${name}' is a pointer '${name}' may write through`,
       `Declare '${arg.written}' \`mut\`, or declare the C parameter const ${pointee}*.`,
+      "E0900",
     );
     return true;
   }

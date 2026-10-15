@@ -1234,7 +1234,7 @@ included. A read-only param is `const` in C; the body may write only a `mut` one
 a `mut` param the body never writes is an error too (E0899).
 
 ```cnx
-// WRONG — writes a read-only param (E0877)
+// WRONG — writes a read-only param (E0900)
 void decode(u8[8] data, Msg m) { m.id <- data[0]; }
 
 // RIGHT — mut on exactly what the body writes

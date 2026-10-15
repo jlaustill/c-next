@@ -1,6 +1,7 @@
 /**
- * ADR-071 read-only enforcement (was ADR-013's const): E0877, E0878, and
- * E0899 for a `mut` that nothing in the file writes.
+ * ADR-071 read-only enforcement (was ADR-013's const): E0900 for a write to a
+ * binding not declared `mut` (it retired ADR-013's E0877 and E0878), and E0899
+ * for a `mut` that nothing in the file writes.
  *
  * #1322. Four throws in `output/` -- three in `AssignmentValidator` (a
  * simple target, an array element, a member access, each asking
@@ -83,7 +84,7 @@ class ConstAssignmentCheck {
     const suffix = ConstAssignmentCheck.targetSuffix(target.ops);
     this.report(
       site.target.span,
-      "E0877",
+      "E0900",
       `cannot assign to read-only ${kind} '${target.name}'${suffix}`,
       kind === "parameter"
         ? "A parameter is read-only unless declared `mut` (ADR-071); declare it `mut` if the function must change it."
@@ -109,7 +110,7 @@ class ConstAssignmentCheck {
     };
   }
 
-  /** How the target's shape is named in E0877's message. */
+  /** How the target's shape is named in E0900's message. */
   private static targetSuffix(ops: readonly TPostfixOpSyntax[]): string {
     if (ops.some((op) => op.kind === "subscript")) return " (array element)";
     if (ops.some((op) => op.kind === "member")) return " (member access)";
@@ -117,7 +118,7 @@ class ConstAssignmentCheck {
   }
 
   /**
-   * E0877 at a site that is not an assignment: ADR-051's `safe_div`/`safe_mod`
+   * E0900 at a site that is not an assignment: ADR-051's `safe_div`/`safe_mod`
    * write their result through the FIRST argument, so a const there is written
    * to exactly as `K <- 1` writes to one.
    *
@@ -140,13 +141,13 @@ class ConstAssignmentCheck {
     if (kind === null) return;
     this.report(
       call.args[0].span,
-      "E0877",
+      "E0900",
       `cannot assign to read-only ${kind} '${output}' (${call.name} output)`,
       `${call.name} writes its result through its first argument, so it must be declared \`mut\` (ADR-071).`,
     );
   }
 
-  /** E0878: a read-only binding passed to a C-Next `mut` parameter. */
+  /** E0900, too: a read-only binding passed to a C-Next `mut` parameter. */
   public checkExpression(expr: TExpression): void {
     if (expr.kind !== "postfix") return;
     const call = expr.ops.find((op) => op.kind === "call");
@@ -154,7 +155,7 @@ class ConstAssignmentCheck {
     this.checkSafeDivisionOutput(expr);
     const cCallee = CCallee.of(expr, this.context);
     if (cCallee !== null) {
-      // Its read-only arguments are E0895's (CPointerArgumentAnalyzer)
+      // Its read-only arguments are E0900's too, which CPointerArgumentAnalyzer reports
       this.noteCPointerWrites(cCallee);
       return;
     }
@@ -175,7 +176,7 @@ class ConstAssignmentCheck {
       if (argName === null) return;
       this.report(
         arg.span,
-        "E0878",
+        "E0900",
         `cannot pass read-only '${argName}' to \`mut\` parameter '${param.name}' of function '${callee.name}'`,
         "The callee writes through that parameter, so the argument must be declared `mut` (ADR-071).",
       );
@@ -296,7 +297,7 @@ class ConstAssignmentCheck {
    * or a global, this file's or an included one's, in ADR-057's order with
    * `this.` and `global.` stating where. #1322 review: this file once had its
    * own, with a `global.` arm and no `this.` arm -- so `this.STEP <- 5` with a
-   * local `STEP` shadowing the const member resolved to the local, lost E0877,
+   * local `STEP` shadowing the const member resolved to the local, lost its error,
    * and emitted `Board__STEP = 5U;` at exit 0.
    */
   private constKind(root: TChainRoot, name: string, at: TPosition): TConstKind {

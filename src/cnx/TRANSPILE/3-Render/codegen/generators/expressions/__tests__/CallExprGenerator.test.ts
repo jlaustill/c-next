@@ -1136,7 +1136,7 @@ describe("CallExprGenerator", () => {
     });
 
     // #1322: these four asserted the user-facing throws. ADR-051's call shape
-    // is E0884/E0885 in pass 2.1, and a `const` output is E0877 there -- a case
+    // is E0884/E0885 in pass 2.1, and a read-only output is E0900 there -- a case
     // this file never had, because it was accepted. What remains here is the
     // invariant, which these now assert: the guards still narrow.
     it("asserts the invariant when safe_div has the wrong number of arguments", () => {

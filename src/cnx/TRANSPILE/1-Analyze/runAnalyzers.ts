@@ -443,7 +443,7 @@ function runAnalyzers(
       run: () => new ArrayIndexBoundsAnalyzer(context).analyze(parsed.program),
     },
     {
-      label: "const enforcement (ADR-013, E0877/E0878)",
+      label: "read-only enforcement (ADR-071, E0900/E0899)",
       run: () => new ConstAssignmentAnalyzer(context).analyze(parsed.program),
     },
     {

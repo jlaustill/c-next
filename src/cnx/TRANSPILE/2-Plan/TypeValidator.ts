@@ -68,8 +68,8 @@ class TypeValidator {
   // Const Assignment Validation (ADR-013)
   // ========================================================================
 
-  // #1322: ADR-013's `checkConstAssignment` and `isConstValue` are E0877 and
-  // E0878 in pass 2.1, decided once from the frames and the program's symbols
+  // #1322: ADR-013's `checkConstAssignment` and `isConstValue` are E0900
+  // in pass 2.1, decided once from the frames and the program's symbols
   // rather than from `currentParameters` and the type registry.
   /**
    * The C name a bare identifier emits under, or null to leave it as written.

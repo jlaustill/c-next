@@ -2,7 +2,7 @@
  * Which C-Next function a spelling denotes.
  *
  * #1322. Three questions in pass 2.1 end at the program's symbol for one
- * function: "what does this call target?" (E0878's callee, E0708's), "which
+ * function: "what does this call target?" (E0900's callee, E0708's), "which
  * function is this VALUE?" (a function placed into a callback-typed slot,
  * ADR-029) and "which function does this TYPE name?" (the slot itself, whose
  * declared type is a function under ADR-029's function-as-type rule). All
