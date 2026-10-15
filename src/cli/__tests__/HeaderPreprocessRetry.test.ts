@@ -143,7 +143,7 @@ describe("a header that fails in Stage 2 (#1817)", () => {
 #include "after.h"
 
 void run() {
-    i32 r <- global.after_fn(1);
+    i32 r <- after_fn(1);
 }
 `,
     );

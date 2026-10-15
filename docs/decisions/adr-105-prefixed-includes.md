@@ -22,7 +22,7 @@ const int North = 0;  // Error: redefinition
 #include <SomeSerialLib.h>
 
 void main() {
-    global.Serial.begin(115200);  // Which Serial? Ambiguous!
+    Serial.begin(115200);  // Which Serial? Ambiguous!
 }
 ```
 

@@ -57,8 +57,8 @@ const MAIN_CNX = `#include "external.hpp"
 handle_t myHandle;
 
 u32 main() {
-    global.create_handle(myHandle);
-    i32 value <- global.use_handle(myHandle);
+    create_handle(myHandle);
+    i32 value <- use_handle(myHandle);
     if (value != 42) { return 1; }
     return 0;
 }
