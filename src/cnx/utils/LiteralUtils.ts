@@ -160,6 +160,16 @@ class LiteralUtils {
     if (match === null) return null;
     return LiteralUtils.parseIntegerLiteral(match[1]) ?? null;
   }
+
+  /**
+   * ADR-052: a slice source with no fixed essential category of its own -- a
+   * bare literal (`int`), or one with no direct type (a negative literal, a
+   * composite, a ternary) -- is typed to the slice it is written into. A
+   * source with a fixed-width type, a named binding's included, keeps it.
+   */
+  static isContextuallyTyped(directTypeName: string | null): boolean {
+    return directTypeName === "int" || directTypeName === null;
+  }
 }
 
 export default LiteralUtils;

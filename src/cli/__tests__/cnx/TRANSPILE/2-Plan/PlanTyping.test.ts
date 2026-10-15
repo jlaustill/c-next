@@ -76,13 +76,13 @@ describe("PlanTyping.castSourceType (ADR-024)", () => {
   });
 });
 
-describe("PlanTyping.directTypeName", () => {
+describe("OperandTyper.directTypeName", () => {
   const globals = "u16 a <- 1;\nu16 b <- 2;\nu8 half() {\nreturn 1;\n}\n";
   const directTypeOf = (body: string): string | null => {
     const { expression, context } = initializerOf(
       `${globals}void main() {\n${body}\n}`,
     );
-    return PlanTyping.directTypeName(
+    return OperandTyper.directTypeName(
       OperandTyper.typeOf(SyntaxLowering.expressionNode(expression), context),
     );
   };

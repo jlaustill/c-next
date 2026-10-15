@@ -298,7 +298,7 @@ class FilePlanner {
 
   /** #1668 (C6c): an expression's one type for 2.2, PlanTyping's row */
   directTypeOf(expr: TExpression): string | null {
-    return PlanTyping.directTypeName(
+    return OperandTyper.directTypeName(
       OperandTyper.typeOf(expr, this.state.typingContext()),
     );
   }

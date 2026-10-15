@@ -65,3 +65,11 @@ describe("CPointerArgumentAnalyzer on 1.2's syntax (#1991)", () => {
     expect(at(["u8 b <- 1;", "u8 r <- take(b)[0];"])).toEqual([]);
   });
 });
+
+describe("CPointerArgumentAnalyzer through `global.` (#2103)", () => {
+  it("checks `global.f(a)` as it checks `f(a)`", () => {
+    expect(at(["u8 c <- 1;", "global.take(c);"])).toEqual([
+      "E0895@3:16 'c' is read-only uint8_t, and parameter 1 of 'take' is a pointer 'take' may write through",
+    ]);
+  });
+});

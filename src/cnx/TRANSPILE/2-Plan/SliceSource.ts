@@ -4,6 +4,7 @@
  * decides it once per slice (#1991) and 2.3 writes it.
  */
 import CNEXT_TO_C_TYPE_MAP from "../../utils/constants/TypeMappings";
+import LiteralUtils from "../../utils/LiteralUtils";
 import invariant from "../../utils/invariant";
 import type TTypeInfo from "../../types/TTypeInfo";
 import type IPlannedSliceSource from "./types/IPlannedSliceSource";
@@ -48,8 +49,7 @@ function foldContextuallyTypedLiteral(
   directType: string | null,
   value: ISliceValue,
 ): number | undefined {
-  const isContextuallyTyped = directType === "int" || directType === null;
-  if (!isContextuallyTyped || !value.hasValue) {
+  if (!LiteralUtils.isContextuallyTyped(directType) || !value.hasValue) {
     return undefined;
   }
   return value.foldValue();

@@ -32,6 +32,8 @@ import DeclarationParts from "../../utils/DeclarationParts";
 import ExpressionNodes from "../../utils/ExpressionNodes";
 import StatementNodes from "../../utils/StatementNodes";
 import FunctionReference from "./helpers/FunctionReference";
+import CCallee from "./helpers/CCallee";
+import type ICCallee from "./types/ICCallee";
 import BoundDeclaration from "./helpers/BoundDeclaration";
 import SafeDivision from "../../utils/SafeDivision";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
@@ -150,24 +152,25 @@ class ConstAssignmentCheck {
     const call = expr.ops.find((op) => op.kind === "call");
     if (call?.kind !== "call") return;
     this.checkSafeDivisionOutput(expr);
+    const cCallee = CCallee.of(expr, this.context);
+    if (cCallee !== null) {
+      // Its read-only arguments are E0895's (CPointerArgumentAnalyzer)
+      this.noteCPointerWrites(cCallee);
+      return;
+    }
     const callee = FunctionReference.ofCallChain(
       expr,
       OperandTyper.scopePathAt(expr.span, this.context),
       this.context,
     );
-    if (callee === null) return;
-    const isCNext = callee.sourceLanguage === ESourceLanguage.CNext;
+    if (callee === null || callee.sourceLanguage !== ESourceLanguage.CNext) {
+      return;
+    }
     call.arguments.forEach((arg, index) => {
       const param = callee.parameters[index];
-      if (param === undefined) return;
-      const writes = isCNext
-        ? !param.isConst
-        : this.cWritesThrough(callee.name, index);
-      if (!writes) return;
+      if (param === undefined || param.isConst) return;
       const target = ConstAssignmentCheck.targetName(arg);
       if (target !== null) this.noteWrite(target.root, target.name, arg.span);
-      // A C callee's pointer parameters are E0895's (CPointerArgumentAnalyzer)
-      if (!isCNext) return;
       const argName = this.constArgumentName(arg);
       if (argName === null) return;
       this.report(
@@ -239,18 +242,19 @@ class ConstAssignmentCheck {
   }
 
   /** A C callee's non-const pointer parameter can write what it is passed */
-  private cWritesThrough(name: string, index: number): boolean {
-    for (const symbol of this.context.symbolTable.getCOverloads(name)) {
-      if (symbol.kind === "function" && symbol.parameters) {
-        const parameter = symbol.parameters[index];
-        return (
-          parameter !== undefined &&
-          CPointerParameter.pointee(parameter.type) !== null &&
-          !CPointerParameter.pointsToConst(parameter)
-        );
+  private noteCPointerWrites(callee: ICCallee): void {
+    callee.arguments.forEach((arg, index) => {
+      const parameter = callee.parameters[index];
+      if (
+        parameter === undefined ||
+        CPointerParameter.pointee(parameter.type) === null ||
+        CPointerParameter.pointsToConst(parameter)
+      ) {
+        return;
       }
-    }
-    return false;
+      const target = ConstAssignmentCheck.targetName(arg);
+      if (target !== null) this.noteWrite(target.root, target.name, arg.span);
+    });
   }
 
   private noteWrite(root: TChainRoot, name: string, at: TPosition): void {

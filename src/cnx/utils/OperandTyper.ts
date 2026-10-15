@@ -128,6 +128,21 @@ class OperandTyper {
   }
 
   /**
+   * The type 2.2 reads an expression AS, for the sites that take one type for
+   * the whole of it: the MISRA 10.3 cast on an initializer, a simple
+   * assignment, a slice source, a call argument, `~`'s width. A composite or a
+   * ternary has no one type there -- its operands are typed one by one, by
+   * CompositeType -- so it is null, as it always was; anything else is the
+   * typer's type: `int` for an unsuffixed literal, the suffix's for a
+   * suffixed one, `bool` for a Boolean.
+   */
+  static directTypeName(t: IOperandType | null): string | null {
+    if (t === null) return null;
+    if (t.form.kind === "composite" || t.form.kind === "ternary") return null;
+    return t.typeName;
+  }
+
+  /**
    * The value type of any expression-level node: it descends through
    * single-child levels, parentheses, unary operators, ternaries and
    * composites. Null when the operand has no type this can settle.

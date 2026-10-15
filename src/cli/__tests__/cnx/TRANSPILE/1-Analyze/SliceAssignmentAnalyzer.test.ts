@@ -122,6 +122,19 @@ describe("SliceAssignmentAnalyzer", () => {
       expect(codes("    u8[8] buf;\n    buf[0, 1] <- -128;")).toEqual([]);
     });
 
+    it("checks a read-only binding by its type's width, not its folded value", () => {
+      // ADR-071 makes this binding read-only, so it folds to 0x11223344 -- a
+      // value that fits 8 bytes. 2.2 still types it u32 (SliceSource), so the
+      // 8-byte slice over-reads it; the check has to say so here, in 2.1.
+      const [found] = errors(
+        "    u8[16] buf;\n    u32 v <- 0x11223344;\n    buf[0, 8] <- v;",
+      );
+      expect(found.code).toBe("E0861");
+      expect(found.message).toContain(
+        "exceeds the source value width (4 bytes)",
+      );
+    });
+
     it("rejects a non-integer source value", () => {
       const [found] = errors(
         "    u8[8] buf;\n    f32 x <- 1.5;\n    buf[0, 4] <- x;",

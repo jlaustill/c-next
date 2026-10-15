@@ -21,6 +21,7 @@
  */
 
 import OperandTyper from "../../utils/OperandTyper";
+import CCallee from "./helpers/CCallee";
 import CPointerParameter from "../../utils/CPointerParameter";
 import DeclarationParts from "../../utils/DeclarationParts";
 import ExpressionNodes from "../../utils/ExpressionNodes";
@@ -42,17 +43,13 @@ class CPointerArgumentCheck {
     return this.found;
   }
 
-  /** `f(a, b)`: a call by name, and nothing after it */
+  /** `f(a, b)` or `global.f(a, b)`: a call by name, and nothing after it */
   public checkExpression(expr: TExpression): void {
-    if (expr.kind !== "postfix") return;
-    const call = expr.ops[0];
-    if (expr.ops.length !== 1 || call.kind !== "call") return;
-    if (expr.primary.kind !== "identifier") return;
-    const name = expr.primary.name;
-    const parameters = this.cParameters(name);
-    if (parameters === null) return;
-    call.arguments.forEach((arg, index) => {
-      const parameter = parameters[index];
+    const callee = CCallee.of(expr, this.context);
+    if (callee === null) return;
+    const name = callee.name;
+    callee.arguments.forEach((arg, index) => {
+      const parameter = callee.parameters[index];
       const pointee = CPointerParameter.pointee(parameter?.type);
       if (pointee === null) return;
       if (
@@ -103,19 +100,6 @@ class CPointerArgumentCheck {
       `Declare '${arg.written}' \`mut\`, or declare the C parameter const ${pointee}*.`,
     );
     return true;
-  }
-
-  /** A C function's parameters, or null when the name calls something else */
-  private cParameters(name: string): ReadonlyArray<ICParameterInfo> | null {
-    if (this.context.program.symbolByCName(name)?.kind === "function") {
-      return null;
-    }
-    for (const symbol of this.context.symbolTable.getCOverloads(name)) {
-      if (symbol.kind === "function" && symbol.parameters) {
-        return symbol.parameters;
-      }
-    }
-    return null;
   }
 
   private report(

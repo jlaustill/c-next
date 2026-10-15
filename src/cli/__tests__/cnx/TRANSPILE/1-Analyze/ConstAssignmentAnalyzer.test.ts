@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import ConstAssignmentAnalyzer from "../../../../../cnx/TRANSPILE/1-Analyze/ConstAssignmentAnalyzer";
 import testAnalysisContextFor from "./testAnalysisContextFor";
+import SymbolTable from "../../../../../cnx/PARSE/3-Declare/SymbolTable";
+import ESourceLanguage from "../../../../../cnx/utils/types/ESourceLanguage";
+import TestSourceSpan from "../../../../../cnx/types/__testUtils__/testSourceSpan";
 
 /**
  * #1322, ADR-071. Every binding is read-only unless declared `mut`: E0877 (an
@@ -192,5 +195,41 @@ describe("ConstAssignmentAnalyzer (E0899, ADR-071 Decision 6)", () => {
       "}",
     ].join("\n");
     expect(errors(source)).toEqual([]);
+  });
+});
+
+describe("ConstAssignmentAnalyzer, a C callee's pointer (#2103)", () => {
+  const withC = (source: string): string[] => {
+    const symbolTable = new SymbolTable();
+    for (const [name, type] of [
+      ["c_bump", "uint8_t *"],
+      ["c_read", "const uint8_t *"],
+    ]) {
+      symbolTable.addCSymbol({
+        name,
+        kind: "function",
+        sourceLanguage: ESourceLanguage.C,
+        sourceFile: "c.h",
+        span: TestSourceSpan.at(1),
+        visibility: "public",
+        type: "void",
+        parameters: [{ name: "p", type, isConst: false, isArray: false }],
+      });
+    }
+    const { syntax, context } = testAnalysisContextFor(source, {
+      symbolTable,
+      cppMode: false,
+    });
+    return new ConstAssignmentAnalyzer(context)
+      .analyze(syntax)
+      .map((e) => `${e.code}@${e.line} ${e.message}`);
+  };
+
+  it("counts a non-const C pointer argument as a write, bare or `global.`", () => {
+    expect(
+      withC(
+        "void f(mut u8 a, mut u8 b, mut u8 c) {\n    c_bump(a);\n    global.c_bump(b);\n    c_read(c);\n}",
+      ),
+    ).toEqual(["E0899@1 'c' is never written; remove `mut`"]);
   });
 });
