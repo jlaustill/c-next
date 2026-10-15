@@ -25,23 +25,23 @@ Sensor.Reading reading <- {
 
 u32 main() {
     // Test 1: Verify initial values
-    if (global.reading.value != 42) {
+    if (reading.value != 42) {
         return 1;
     }
-    if (global.reading.motorState.position != 0) {
+    if (reading.motorState.position != 0) {
         return 2;
     }
-    if (global.reading.motorState.running != false) {
+    if (reading.motorState.running != false) {
         return 3;
     }
 
     // Test 2: Modify nested struct
-    global.reading.motorState.position <- 100;
-    global.reading.motorState.running <- true;
-    if (global.reading.motorState.position != 100) {
+    reading.motorState.position <- 100;
+    reading.motorState.running <- true;
+    if (reading.motorState.position != 100) {
         return 4;
     }
-    if (global.reading.motorState.running != true) {
+    if (reading.motorState.running != true) {
         return 5;
     }
 

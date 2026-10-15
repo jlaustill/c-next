@@ -1,5 +1,9 @@
 /**
- * `this` is only meaningful inside a `scope` (ADR-016).
+ * `this` and `global` are only meaningful inside a `scope` (ADR-016).
+ *
+ * `this` names the enclosing scope's own member; `global` reaches a file-scope
+ * name past a scope member that shadows it. Outside a scope there is neither
+ * an enclosing scope nor a member to see past, so both are E0431 (#2087).
  *
  * #1322, the first family relocated out of `output/`. This rule was enforced
  * from FOUR places -- `CodeGenerator`, `BaseIdentifierBuilder`, and
@@ -49,7 +53,13 @@ import StatementNodes from "../../utils/StatementNodes";
 import TypeParts from "../../utils/TypeParts";
 import IThisOutsideScopeError from "./types/IThisOutsideScopeError";
 
-/** `this` as a value, an assignment target's root, or `this.Type`, anywhere outside a top-level scope */
+const HELP = {
+  this: "`this` names the enclosing scope's own member. Outside a scope, write a file-scope declaration by its bare name, or move the code into the scope it belongs to.",
+  global:
+    "`global` reaches a file-scope declaration past a scope member that shadows it. Outside a scope no member shadows it, so write its bare name.",
+} as const;
+
+/** `this` or `global` as a value, an assignment target's root, a type's qualifier or a case label's root, anywhere outside a top-level scope */
 class ThisOutsideScopeAnalyzer {
   private readonly found: IThisOutsideScopeError[] = [];
 
@@ -75,34 +85,34 @@ class ThisOutsideScopeAnalyzer {
   }
 
   private type(type: TTypeSyntax): void {
-    if (type.kind === "scoped") this.report(type.span);
+    if (type.kind === "scoped") this.report(type.span, "this");
+    if (type.kind === "global") this.report(type.span, "global");
     for (const part of TypeParts.of(type)) this.part(part);
   }
 
   private expression(expr: TExpression): void {
-    if (expr.kind === "root" && expr.root === "this") this.report(expr.span);
+    if (expr.kind === "root") this.report(expr.span, expr.root);
     if (expr.kind === "cast") this.type(expr.type);
     for (const child of ExpressionChildren.of(expr)) this.expression(child);
   }
 
-  /** `case this.X` (#1629): a case label is not an expression */
+  /** `case this.X` (#1629), `case global.X` (#2087): a case label is not an expression */
   private caseLabel(label: TCaseLabelSyntax): void {
     if (
       (label.kind === "identifier" || label.kind === "qualified") &&
-      label.root === "this"
+      label.root !== null
     ) {
-      this.report(label.span);
+      this.report(label.span, label.root);
     }
   }
 
-  private report(span: ISourceSpan): void {
+  private report(span: ISourceSpan, root: "this" | "global"): void {
     this.found.push({
       code: "E0431",
       line: span.line,
       column: span.column,
-      message: "'this' can only be used inside a scope",
-      helpText:
-        "`this` names the enclosing scope's own member. Outside a scope, write a file-scope declaration by its bare name, or move the code into the scope it belongs to.",
+      message: `'${root}' can only be used inside a scope`,
+      helpText: HELP[root],
     });
   }
 }

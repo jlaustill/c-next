@@ -3,12 +3,12 @@
 #include "../issue-895-callback-pointer-params/widget.h"
 
 void my_flush(widget_t w, rect_t area, u8 buf) {
-    global.widget_flush_area_x <- area.x;
+    widget_flush_area_x <- area.x;
 }
 
 void run() {
-    widget_t w <- global.widget_create();
+    widget_t w <- widget_create();
     forever {
-        global.widget_set_flush_cb(w, my_flush);
+        widget_set_flush_cb(w, my_flush);
     }
 }

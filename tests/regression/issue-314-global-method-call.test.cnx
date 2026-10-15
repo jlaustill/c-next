@@ -12,12 +12,12 @@
 // ============================================================================
 void testDeclaredClasses() {
     // These should generate :: syntax (already works)
-    global.DeclaredClass.init();
-    i32 val <- global.DeclaredClass.getValue();
+    DeclaredClass.init();
+    i32 val <- DeclaredClass.getValue();
 
     // Declared namespace (already works)
-    global.DeclaredNS.setup();
-    i32 readVal <- global.DeclaredNS.read();
+    DeclaredNS.setup();
+    i32 readVal <- DeclaredNS.read();
 }
 
 // ============================================================================
@@ -30,20 +30,20 @@ void testDeclaredClasses() {
 void testUndeclaredExternalClasses() {
     // Arduino-style Serial class (not declared in our header)
     // Bug: generates "Serial.begin(9600)" instead of "Serial::begin(9600)"
-    global.Serial.begin(9600);
-    global.Serial.println("Hello");
+    Serial.begin(9600);
+    Serial.println("Hello");
 
     // Arduino-style Wire class (not declared in our header)
-    global.Wire.begin();
-    global.Wire.beginTransmission(0x50);
+    Wire.begin();
+    Wire.beginTransmission(0x50);
 
     // Arduino-style SPI class (not declared in our header)
-    global.SPI.begin();
-    global.SPI.transfer(0xFF);
+    SPI.begin();
+    SPI.transfer(0xFF);
 
     // Generic external class pattern
-    global.ExternalLib.initialize();
-    i32 result <- global.ExternalLib.compute(42);
+    ExternalLib.initialize();
+    i32 result <- ExternalLib.compute(42);
 }
 
 // ============================================================================
@@ -51,16 +51,16 @@ void testUndeclaredExternalClasses() {
 // ============================================================================
 void testMixedUsage() {
     // Declared class
-    global.DeclaredClass.init();
+    DeclaredClass.init();
 
     // Undeclared external class
-    global.Serial.begin(115200);
+    Serial.begin(115200);
 
     // Declared namespace
-    global.DeclaredNS.setup();
+    DeclaredNS.setup();
 
     // Another undeclared class
-    global.ExternalSensor.calibrate();
+    ExternalSensor.calibrate();
 }
 
 // ============================================================================

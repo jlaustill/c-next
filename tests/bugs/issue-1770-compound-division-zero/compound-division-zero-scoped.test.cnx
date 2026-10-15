@@ -35,7 +35,7 @@ scope Counter {
 u32 viaScopeName(u32 n) {
     u32 x <- n;
     x /<- Counter.SHARED_ZERO;
-    x %<- global.Counter.SHARED_ZERO;
+    x %<- Counter.SHARED_ZERO;
     x /<- Z;
     return x;
 }

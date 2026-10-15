@@ -27,7 +27,7 @@ u32 main() {
     }
 
     // Call loadData which delegates to fillData
-    global.Test.loadData(d);
+    Test.loadData(d);
 
     // Verify value was mutated through delegation
     if (d.value != 42) {

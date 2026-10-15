@@ -17,20 +17,20 @@ TInput input;
 
 u32 main() {
     // Setup: assign a known enum value to struct field
-    input.assignedValue <- global.EValueId.VALUE_B;
+    input.assignedValue <- EValueId.VALUE_B;
 
     // Bug fix: this used to throw "Cannot assign non-enum value to EValueId enum"
-    EValueId val <- global.input.assignedValue;
+    EValueId val <- input.assignedValue;
 
     // Validate: the value should match
-    if (val != global.EValueId.VALUE_B) {
+    if (val != EValueId.VALUE_B) {
         return 1;
     }
 
     // Test with another value
-    input.assignedValue <- global.EValueId.VALUE_A;
-    EValueId val2 <- global.input.assignedValue;
-    if (val2 != global.EValueId.VALUE_A) {
+    input.assignedValue <- EValueId.VALUE_A;
+    EValueId val2 <- input.assignedValue;
+    if (val2 != EValueId.VALUE_A) {
         return 2;
     }
 

@@ -29,9 +29,9 @@ void handleEnableSpn(ConstCond.Config config) {
     bool enable <- true;
     u8 errorCode <- 0; // Declaration
     if (enable = true) {
-        errorCode <- global.CommandHandler.setValue(config, 42); // Reassignment in conditional
+        errorCode <- CommandHandler.setValue(config, 42); // Reassignment in conditional
     } else {
-        errorCode <- global.CommandHandler.setValue(config, 0);
+        errorCode <- CommandHandler.setValue(config, 0);
     }
 }
 
@@ -42,7 +42,7 @@ void handleElseBranch(ConstCond.Config config) {
     if (enable = true) {
         errorCode <- 1; // No modifying call here
     } else {
-        errorCode <- global.CommandHandler.enable(config); // Modifying call in else
+        errorCode <- CommandHandler.enable(config); // Modifying call in else
     }
 }
 
@@ -51,7 +51,7 @@ void handleWhileLoop(ConstCond.Config config) {
     u8 errorCode <- 0;
     u32 count <- 0;
     while (count < 1) {
-        errorCode <- global.CommandHandler.setValue(config, 100);
+        errorCode <- CommandHandler.setValue(config, 100);
         count <- count + 1;
     }
 }
@@ -60,7 +60,7 @@ void handleWhileLoop(ConstCond.Config config) {
 void handleForLoop(ConstCond.Config config) {
     u8 errorCode <- 0;
     for (u32 i <- 0; i < 1; i <- i + 1) {
-        errorCode <- global.CommandHandler.setValue(config, 200);
+        errorCode <- CommandHandler.setValue(config, 200);
     }
 }
 
@@ -68,14 +68,14 @@ void handleForLoop(ConstCond.Config config) {
 void handleDeclaration(ConstCond.Config config) {
     bool enable <- true;
     if (enable = true) {
-        u8 errorCode <- global.CommandHandler.setValue(config, 42); // Declaration
+        u8 errorCode <- CommandHandler.setValue(config, 42); // Declaration
     }
 }
 
 // Control case: top-level reassignment (outside conditional)
 void handleTopLevel(ConstCond.Config config) {
     u8 errorCode <- 0;
-    errorCode <- global.CommandHandler.setValue(config, 300); // Top-level reassignment
+    errorCode <- CommandHandler.setValue(config, 300); // Top-level reassignment
 }
 
 u32 main() {

@@ -25,8 +25,8 @@ u32 plainSnapshot(Full f) {
 
 i32 main() {
     Full f <- { pokes: 1 };
-    global.full_register(onFull);
-    global.full_invoke(f);
+    full_register(onFull);
+    full_invoke(f);
     if (f.pokes != 11) {
         return 1;
     }

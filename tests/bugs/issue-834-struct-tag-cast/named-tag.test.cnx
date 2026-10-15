@@ -11,5 +11,5 @@ void test() {
     // Bug: generates: struct my_type_t val = (my_type_t){ .value = 42, .extra = 0 };
     my_type_t val <- { value: 42, extra: 0 };
 
-    global.consume(val);
+    consume(val);
 }

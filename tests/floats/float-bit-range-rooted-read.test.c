@@ -58,7 +58,10 @@ uint32_t Sensor__rewrite(void) {
     return bits;
 }
 
-uint8_t globalTopByte(void) {
+// `global.` is a scope's spelling (ADR-016, #2087), so its read sits in one
+/* Scope: Probe */
+
+uint8_t Probe__globalTopByte(void) {
     /* MISRA C:2012 Rule 21.15: float bits accessed through a union (memcpy would pass incompatible pointer types: float* vs uint32_t*). */
     union { float f; uint32_t u; } cnx_tmp1;
     cnx_tmp1.f = g;
@@ -69,7 +72,7 @@ uint8_t globalTopByte(void) {
 int main(void) {
     Reading r = { .value = 1.0 };
     float values[2] = {2.0, 1.0};
-    uint8_t viaGlobal = globalTopByte();
+    uint8_t viaGlobal = Probe__globalTopByte();
     if (viaGlobal != 0x3F) {
         return 1U;
     }

@@ -24,7 +24,7 @@ u32 main() {
     App.init();
 
     // Verify set_font received a pointer to big_font (not a copy)
-    i32 ok <- global.was_font_set_correctly();
+    i32 ok <- was_font_set_correctly();
     if (ok != 1) {
         return 1;
     }
