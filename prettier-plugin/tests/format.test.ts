@@ -23,9 +23,21 @@ describe("C-Next Prettier Plugin", () => {
       expect(await format(input)).toBe(expected);
     });
 
-    it("should handle const and volatile modifiers", async () => {
-      const input = "const u8 MAX<-255;";
-      const expected = "const u8 MAX <- 255;\n";
+    it("should handle the mut modifier", async () => {
+      const input = "volatile mut u8 count<-0;";
+      const expected = "volatile mut u8 count <- 0;\n";
+      expect(await format(input)).toBe(expected);
+    });
+
+    it("should keep mut on a parameter and a for variable", async () => {
+      const input =
+        "void bump(mut u32 v){for(mut u32 i<-0;i<2;i+<-1){v<-v+1;}}";
+      const expected = `void bump(mut u32 v) {
+    for (mut u32 i <- 0; i < 2; i +<- 1) {
+        v <- v + 1;
+    }
+}
+`;
       expect(await format(input)).toBe(expected);
     });
   });
@@ -92,9 +104,9 @@ describe("C-Next Prettier Plugin", () => {
   describe("Scopes", () => {
     it("should format scope declarations", async () => {
       const input =
-        "scope Motor{u8 speed<-0;public void setSpeed(u8 s){this.speed<-s;}}";
+        "scope Motor{mut u8 speed<-0;public void setSpeed(u8 s){this.speed<-s;}}";
       const expected = `scope Motor {
-    u8 speed <- 0;
+    mut u8 speed <- 0;
     public void setSpeed(u8 s) {
         this.speed <- s;
     }

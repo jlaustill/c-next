@@ -358,7 +358,7 @@ function runAnalyzers(
         new CompoundAssignmentAnalyzer(context).analyze(parsed.program),
     },
     {
-      label: "C++ constructor arguments must be declared const (ADR-013, #375)",
+      label: "C++ constructor arguments must be read-only (ADR-071, #375)",
       run: () =>
         new ConstructorArgumentAnalyzer(context).analyze(parsed.program),
     },

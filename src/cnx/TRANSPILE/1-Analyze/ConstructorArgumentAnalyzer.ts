@@ -68,7 +68,7 @@ class ConstructorArgumentCheck {
           line,
           column,
           message: `Constructor argument '${name}' is not declared`,
-          helpText: `Declare '${name}' as a const before the constructor, or pass a literal.`,
+          helpText: `Declare '${name}' before the constructor, or pass a literal.`,
         });
         continue;
       }
@@ -77,9 +77,9 @@ class ConstructorArgumentCheck {
           code: "E0432",
           line,
           column,
-          message: `Constructor argument '${name}' must be const`,
+          message: `Constructor argument '${name}' must be read-only`,
           helpText:
-            "A C++ constructor runs during static initialization, before main, so it may only read a value fixed at compile time. Declare the argument `const`.",
+            "A C++ constructor runs during static initialization, before main, so it may only read a value fixed at compile time. Remove `mut` from the argument's declaration.",
         });
       }
     }

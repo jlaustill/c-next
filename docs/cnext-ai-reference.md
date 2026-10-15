@@ -31,7 +31,7 @@ LOGICAL:       && || !          (same as C)
 
 **Division and modulo guard against divide-by-zero** (unlike C):
 
-- A **compile-time-zero** divisor — a literal `0`, or a `const` known to be `0` — is a **compile error** (`E0800: Division by zero`): e.g. `10 / 0`, or `const u32 ZERO <- 0; x / ZERO`.
+- A **compile-time-zero** divisor — a literal `0`, or a read-only binding known to be `0` — is a **compile error** (`E0800: Division by zero`): e.g. `10 / 0`, or `const u32 ZERO <- 0; x / ZERO`.
 - A **runtime** divisor compiles to plain C division with no implicit guard (`10 / divisor` → `10U / divisor`).
 - **Floats:** `%` is **forbidden** on floats (`E0804` — `%` is integer-only).
 - For guarded runtime division/modulo, use the `safe_div` / `safe_mod` built-ins (ADR-051):
@@ -98,7 +98,7 @@ Standard char escape sequences work in `'...'` literals: newline (10), tab (9), 
 ```cnx
 u32 x <- 42;                    // initialized
 u32 y;                           // zero-initialized (NOT garbage)
-const u32 MAX <- 100;            // compile-time constant
+u32 MAX <- 100;                  // read-only: a compile-time constant
 clamp u8 brightness <- 200;      // saturating arithmetic (DEFAULT behavior)
 wrap u32 counter <- 0;           // wrapping arithmetic (opt-in)
 atomic u32 shared <- 0;          // ISR-safe
@@ -145,12 +145,12 @@ u32 cap <- name.capacity;           // compile-time: 64
 u32 sz <- name.size;                // compile-time: 65 (capacity + null terminator)
 string<5> sub <- name[0, 5];        // substring
 string<96> joined <- name + " World"; // concat (capacity >= sum of operand capacities)
-const string VERSION <- "1.0.0";    // auto-sized
+string VERSION <- "1.0.0";          // read-only, auto-sized
 ```
 
 **Rules:**
 
-- Non-`const` strings must be sized (`string<64> s;`); only `const string` auto-sizes from its initializer.
+- A `mut` string must be sized (`mut string<64> s;`); only a read-only `string` auto-sizes from its initializer.
 - A literal or concat that exceeds the destination capacity is a compile error.
 - Compare strings with `=` / `!=`; **compound operators are not supported** (`s +<- x` ✗ — use `s <- s + x`).
 - String literals accept the same escape sequences as char literals (newline, tab, carriage return, backslash, quote).
@@ -348,42 +348,43 @@ u32 add(u32 a, u32 b) {
 
 ## Pass-by-Reference (ADR-006)
 
-**Pass-by-reference semantics, no pointer syntax** — modify a parameter and the caller's variable changes (e.g. `swap` works). The transpiler picks the C form automatically (auto-const): a parameter you **modify** becomes a pointer (`uint32_t* x`; caller passes `&var`); one you only **read** is passed **by value** (scalars) or const (structs). Literals still can't be passed (see below).
+**Pass-by-reference semantics, no pointer syntax** — write a `mut` parameter and the caller's variable changes (e.g. `swap` works). Every parameter is read-only unless declared `mut` (ADR-071), and the declaration decides the C form: a `mut` parameter becomes a pointer (`uint32_t* x`; caller passes `&var`); a read-only one is passed **by `const` value** (scalars), as a `const` pointer (structs) or as a `const` array. Literals still can't be passed (see below).
 
 ```cnx
-void increment(u32 x) {     // transpiles to: void increment(uint32_t *x)
+void increment(mut u32 x) { // transpiles to: void increment(uint32_t *x)
     x +<- 1;                // transpiles to: *x += 1;
 }
 
 increment(myVar);            // transpiles to: increment(&myVar);
 ```
 
-**Arrays are the exception — never auto-const** (ADR-006, c-next #986). A read-only array param stays a plain **mutable** pointer, so it can pass straight through to C APIs that expect `uint8_t*` (auto-const used to break that with a `const` mismatch error). For const-correctness (MISRA C:2012 Rule 8.13, or to accept read-only/flash buffers) write **explicit** `const`:
+**Arrays follow the same rule** (ADR-071 replaced c-next #986's never-const exception). A read-only array param is `const` in C (MISRA C:2012 Rule 8.13); declare it `mut` to write it, or to pass it to a C API that takes a non-const pointer:
 
 ```cnx
-void copy(const u8[8] src, u8[8] dst) {   // src read-only → EXPLICIT const required
-    for (u8 i <- 0; i < 8; i +<- 1) { dst[i] <- src[i]; }
+void copy(u8[8] src, mut u8[8] dst) {     // src read-only, dst written
+    for (mut u8 i <- 0; i < 8; i +<- 1) { dst[i] <- src[i]; }
 }
 // -> void copy(const uint8_t src[8], uint8_t dst[8])
-// A read-only STRUCT param DOES auto-const:  void f(Msg m) -> void f(const Msg* m)
+// A read-only STRUCT param is a const pointer:  void f(Msg m) -> void f(const Msg* m)
 ```
 
-**Consequence:** Cannot pass literals to functions (no addressable location).
+**Literals:** a read-only parameter takes a literal as-is; a `mut` one takes it as a
+temporary (`reset(5)` -> `reset(&(uint32_t){5U})`), so the write is lost.
 
 ```cnx
-const u32 LED_PIN <- 13;
-init(LED_PIN);                // OK: LED_PIN has an address
-// init(13);                  // ERROR: literal has no address
+u32 LED_PIN <- 13;
+init(LED_PIN);                // init's pin is read-only: init(LED_PIN)
+init(13);                     // a literal works too
 ```
 
-**Exposing a scope constant to C/C++:** a `public const` inside a `scope` becomes an
-`extern const` header symbol named `Scope__NAME` (a private const stays file-local). Use
+**Exposing a scope constant to C/C++:** a read-only `public` member of a `scope` becomes an
+`extern const` header symbol named `Scope__NAME` (a private one stays file-local). Use
 it to publish module constants (a PGN, a size, an interval):
 
 ```cnx
 scope Protocol {
-    public const u16 PGN <- 0xFFDC;      // -> extern const uint16_t Protocol__PGN;  (in .h)
-    const u8 RETRIES <- 3;               // private -> not exported
+    public u16 PGN <- 0xFFDC;            // -> extern const uint16_t Protocol__PGN;  (in .h)
+    u8 RETRIES <- 3;                     // private -> not exported
 }
 // C++ / C consumer:  uint16_t p = Protocol__PGN;
 ```
@@ -404,7 +405,7 @@ if (x > 0) {
 while (running) { process(); }
 
 // For
-for (u32 i <- 0; i < 10; i +<- 1) { buffer[i] <- 0; }
+for (mut u32 i <- 0; i < 10; i +<- 1) { buffer[i] <- 0; }
 
 // Do-while (condition MUST be boolean comparison)
 do {
@@ -557,11 +558,11 @@ Scopes **cannot be nested** (`scope A { scope B { } }` is a compile error, ADR-0
 // platform-specific code
 #endif
 
-// #define MAX_SIZE 100              // FORBIDDEN: use const instead
-const u32 MAX_SIZE <- 100;          // correct
+// #define MAX_SIZE 100              // FORBIDDEN: use a read-only binding instead
+u32 MAX_SIZE <- 100;                // correct
 ```
 
-`#define` with a value is forbidden (`E0502`) — use `const`. **Function-like macros** are forbidden too (`E0501`) — use an inline function. `#define` is only for bare flags; `#ifdef`/`#ifndef`/`#else`/`#endif` (including nested) pass through to the C preprocessor.
+`#define` with a value is forbidden (`E0502`) — use a read-only binding. **Function-like macros** are forbidden too (`E0501`) — use an inline function. `#define` is only for bare flags; `#ifdef`/`#ifndef`/`#else`/`#endif` (including nested) pass through to the C preprocessor.
 
 ## Comments
 
@@ -575,9 +576,9 @@ const u32 MAX_SIZE <- 100;          // correct
 ## Constants
 
 ```cnx
-const u32 BUFFER_SIZE <- 256;
-const f32 PI <- 3.14159;
-const string VERSION <- "1.0.0";     // auto-sized string
+u32 BUFFER_SIZE <- 256;
+f32 PI <- 3.14159;
+string VERSION <- "1.0.0";           // auto-sized string
 ```
 
 Constants are compile-time values with fixed addresses (can be passed to functions).
@@ -588,7 +589,7 @@ A function definition creates both a callable function AND a type. Callbacks are
 
 ```cnx
 // Define callback type + default implementation
-void onReceive(const CAN_Message msg) {
+void onReceive(CAN_Message msg) {
     // no-op default
 }
 
@@ -598,7 +599,7 @@ struct Controller {
 }
 
 // User provides implementation
-void myHandler(const CAN_Message msg) {
+void myHandler(CAN_Message msg) {
     Serial.println(msg.id);
 }
 
@@ -612,7 +613,7 @@ controller.handler(msg);             // always safe to call
 
 ```cnx
 scope LvglPort {
-    private void disp_flush(lv_display_t disp, const lv_area_t area, u8 px_map) {
+    private void disp_flush(lv_display_t disp, lv_area_t area, u8 px_map) {
         // ...
     }
 
@@ -797,8 +798,8 @@ C enum types from headers work as variable types and constant values:
 #include <driver/gpio.h>
 
 // Use C enum type directly with its constants
-const gpio_num_t TX_PIN <- GPIO_NUM_19;
-const gpio_num_t RX_PIN <- GPIO_NUM_20;
+gpio_num_t TX_PIN <- GPIO_NUM_19;
+gpio_num_t RX_PIN <- GPIO_NUM_20;
 
 // In struct initialization
 twai_general_config_t cfg <- {
@@ -815,8 +816,8 @@ twai_general_config_t cfg <- {
 In C++ mode you can instantiate C++ library classes (e.g. Adafruit drivers) two ways:
 
 ```cnx
-// Constructor arguments — args must be const variables, NOT literals
-const u8 csPin <- 10;
+// Constructor arguments — args must be read-only variables (not `mut`), NOT literals
+u8 csPin <- 10;
 Adafruit_MAX31856 tc(csPin);              // → Adafruit_MAX31856 tc(csPin);
 
 // Aggregate / field initialization
@@ -826,7 +827,7 @@ DefaultConstructible obj <- { value: 42, name: "label" };
 DefaultConstructible[3] sensors;
 ```
 
-A bare literal constructor argument (`tc(10)`) is a parse error — bind a `const` first. Works inside scopes too. The `obj(constArgs)` form is valid at global scope (the usual pattern for driver objects), but the **`<- { field: val }` field-init form for a class that has a constructor is function-only** — it lowers to field assignments, so it can't run at global/initializer scope (put it in `setup()` or another function).
+A bare literal constructor argument (`tc(10)`) is a parse error — bind a read-only variable first. Works inside scopes too. The `obj(constArgs)` form is valid at global scope (the usual pattern for driver objects), but the **`<- { field: val }` field-init form for a class that has a constructor is function-only** — it lowers to field assignments, so it can't run at global/initializer scope (put it in `setup()` or another function).
 
 ## C++ Template Types
 
@@ -1226,21 +1227,20 @@ i32 wide <- raw;                        // ERROR: sign change (unsigned → sign
 i32 wide <- raw[0, 16];                 // explicit 16-bit extraction → i32
 ```
 
-### 18. Expecting read-only array params to be const
+### 18. Writing a parameter that is not `mut`
 
-Read-only **struct** params auto-const, but read-only **array** params do NOT
-(ADR-006 / c-next #986 — kept mutable for C-API passthrough). Write `const` yourself
-for const-correctness (MISRA C:2012 Rule 8.13, read-only/flash buffers).
+Every parameter is read-only unless declared `mut` (ADR-071), arrays and structs
+included. A read-only param is `const` in C; the body may write only a `mut` one, and
+a `mut` param the body never writes is an error too (E0899).
 
 ```cnx
-// WRONG — expecting const; it's a plain mutable pointer
-void decode(u8[8] data, Msg m) { }       // -> void decode(uint8_t data[8], Msg* m)
+// WRONG — writes a read-only param (E0877)
+void decode(u8[8] data, Msg m) { m.id <- data[0]; }
 
-// RIGHT — explicit const for a read-only array input
-void decode(const u8[8] data, Msg m) { } // -> void decode(const uint8_t data[8], Msg* m)
-
-// (a read-only STRUCT param auto-consts on its own:)
-void encode(Msg m, u8[8] out) { }        // -> void encode(const Msg* m, uint8_t out[8])
+// RIGHT — mut on exactly what the body writes
+void decode(u8[8] data, mut Msg m) { m.id <- data[0]; } // -> void decode(const uint8_t data[8], Msg* m)
+void fill(mut u8[8] out) { out[0] <- 1; }               // -> void fill(uint8_t out[8])
+void encode(Msg m) { u8 id <- m.id; }                   // -> void encode(const Msg* m)
 ```
 
 ---
@@ -1254,9 +1254,10 @@ void encode(Msg m, u8[8] out) { }        // -> void encode(const Msg* m, uint8_t
 | `x <- 5`                          | `x = 5`                                                   |
 | `if (x = 5)`                      | `if (x == 5)`                                             |
 | `x +<- 1`                         | `x += 1`                                                  |
-| `void f(u32 x)` (x modified)      | `void f(uint32_t *x)` — or `uint32_t x` if read-only      |
-| `void f(u8[8] data)` (read-only)  | `void f(uint8_t data[8])` — arrays need EXPLICIT `const`  |
-| `void f(const u8[8] data)`        | `void f(const uint8_t data[8])`                           |
+| `void f(mut u32 x)`               | `void f(uint32_t *x)`                                     |
+| `void f(u32 x)`                   | `void f(const uint32_t x)`                                |
+| `void f(u8[8] data)`              | `void f(const uint8_t data[8])`                           |
+| `void f(mut u8[8] data)`          | `void f(uint8_t data[8])`                                 |
 | `f(myVar)`                        | `f(&myVar)`                                               |
 | `scope S { private void f() {} }` | `static void S_f(void) {}`                                |
 | `scope S { void f() {} }`         | `void S_f(void) {}` + header (public by default)          |

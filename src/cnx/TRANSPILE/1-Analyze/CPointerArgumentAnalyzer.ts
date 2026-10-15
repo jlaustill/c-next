@@ -99,8 +99,8 @@ class CPointerArgumentCheck {
     }
     this.report(
       arg,
-      `'${arg.written}' is const ${argType}, and parameter ${index + 1} of '${name}' is a pointer '${name}' may write through`,
-      `Pass a non-const ${argType}, or declare the C parameter const ${pointee}*.`,
+      `'${arg.written}' is read-only ${argType}, and parameter ${index + 1} of '${name}' is a pointer '${name}' may write through`,
+      `Declare '${arg.written}' \`mut\`, or declare the C parameter const ${pointee}*.`,
     );
     return true;
   }

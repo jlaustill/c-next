@@ -52,6 +52,7 @@ const DECLARATION_MODIFIERS: readonly number[] = [
   CNextParser.RULE_atomicModifier,
   CNextParser.RULE_volatileModifier,
   CNextParser.RULE_constModifier,
+  CNextParser.RULE_mutModifier,
   CNextParser.RULE_overflowModifier,
 ];
 
@@ -69,6 +70,7 @@ const CONCATENATED_RULES: ReadonlySet<number> = new Set([
   CNextParser.RULE_accessModifier,
   CNextParser.RULE_bitmapType,
   CNextParser.RULE_constModifier,
+  CNextParser.RULE_mutModifier,
   CNextParser.RULE_volatileModifier,
   CNextParser.RULE_overflowModifier,
   CNextParser.RULE_atomicModifier,
@@ -497,6 +499,8 @@ function printParameter(cursor: ChildCursor): Doc {
   const parts: Doc[] = [];
   const constModifier = cursor.takeIfRule(CNextParser.RULE_constModifier);
   if (constModifier !== null) parts.push(constModifier, " ");
+  const mutModifier = cursor.takeIfRule(CNextParser.RULE_mutModifier);
+  if (mutModifier !== null) parts.push(mutModifier, " ");
   parts.push(cursor.take(), " ", cursor.take());
   parts.push(...printDimensions(cursor, CNextParser.RULE_arrayDimension));
   return parts;

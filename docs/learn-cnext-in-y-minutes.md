@@ -34,10 +34,19 @@ i32 sdword;     // int32_t
 i64 sqword;     // int64_t
 f32 single;     // float
 f64 dbl;        // double
-bool flag;      // bool
+mut bool flag;  // bool
 
 // Assignment uses <- (not =)
-u32 x <- 42;
+mut u32 x <- 42;
+
+// Every binding is read-only unless declared mut (ADR-071). The generated C
+// marks a read-only binding `const`; a binding the code writes says `mut`.
+u32 limit <- 10;            // read-only: const uint32_t limit = 10U;
+mut u32 total <- 0;         // written below, so it is declared mut
+total +<- limit;
+// limit <- 11;             // ERROR E0877: limit is read-only
+// const u32 k <- 1;        // ERROR E0898: `const` is the default; remove it
+// mut u32 spare <- 0;      // ERROR E0899: never written; remove `mut`
 
 // A bool is not a number. It takes plain assignment, the logical operators,
 // and equality - never arithmetic, bitwise, shift or relational operators.
@@ -106,9 +115,13 @@ u32 max <- (a > b) ? a : b;     // OK
 void doNothing() {
 }
 
-// Parameters and return
+// Parameters and return. Parameters are read-only too; mut lets the body
+// write one, and the signature says so
 u32 add(u32 a, u32 b) {
     return a + b;
+}
+void bump(mut u32 v) {
+    v +<- 1;
 }
 
 // A non-void function must return a value on EVERY path (E0704), or it's a
@@ -129,8 +142,8 @@ struct Point { i32 x; i32 y; }
 u32 pointBytes <- Point.type_byte_length;    // 8: fields summed, no C padding
 u32 xBytes <- Point.x.type_byte_length;      // 4
 
-void movePoint(Point p, i32 dx, i32 dy) {
-    p.x +<- dx;     // Modifies original!
+void movePoint(mut Point p, i32 dx, i32 dy) {
+    p.x +<- dx;     // Modifies original! (mut: the body writes p)
     p.y +<- dy;
 }
 
@@ -164,7 +177,7 @@ while (running = true) {
 }
 
 // For loop
-for (u32 i <- 0; i < 10; i +<- 1) {
+for (mut u32 i <- 0; i < 10; i +<- 1) {
     buffer[i] <- 0;
 }
 // A header clause is one expression, so it cannot hold an assignment that is
@@ -174,7 +187,7 @@ for (u32 i <- 0; i < 10; i +<- 1) {
 // for (name <- "x"; i < 10; i +<- 1) { }   // ERROR E0715: a string copy
 
 // Do-while (condition must be boolean comparison)
-u8 byte;
+mut u8 byte;
 do {
     byte <- readByte();
 } while (byte != END_MARKER);   // OK: comparison
@@ -219,7 +232,7 @@ switch (cmd) {
     }
 }
 
-// A const label may be written bare, this.X or global.X, resolving as
+// A constant label may be written bare, this.X or global.X, resolving as
 // anywhere else; a label naming nothing is an error (E0427), and one naming
 // a variable, a function or a type is not a constant (E0717)
 switch (level) {
@@ -253,7 +266,7 @@ while (done = false) {
 // =============================================================================
 
 // Fixed-size arrays
-u8[256] buffer;
+mut u8[256] buffer;
 buffer[0] <- 0xFF;
 
 // .type_element_count property (ADR-058)
@@ -268,7 +281,7 @@ u8[50] ones <- [1*];            // All 50 elements = 1
 // u8[5] bad <- [1, 2, 3];      // ERROR: 3 elements for size-5
 
 // Multi-dimensional arrays
-u8[4][8] matrix;
+mut u8[4][8] matrix;
 matrix[0][0] <- 1;
 u32 rows <- matrix.type_element_count;   // 4
 u32 cols <- matrix[0].type_element_count; // 8
@@ -331,15 +344,15 @@ u32 whole <- (u32)total;        // OK: 7 (the fraction is truncated)
 // =============================================================================
 
 // clamp - saturating arithmetic (safe default)
-clamp u8 brightness <- 200;
+mut clamp u8 brightness <- 200;
 brightness +<- 100;             // Clamps to 255, not 44!
 
 // wrap - two's complement wrapping (opt-in)
-wrap u32 counter <- 0;
+mut wrap u32 counter <- 0;
 counter +<- 1;                  // Wraps at UINT32_MAX
 
 // No modifier = clamp (safe default)
-u16 temperature <- 0;
+mut u16 temperature <- 0;
 temperature -<- 100;            // Clamps to 0, not 65436!
 
 // Struct fields carry their own modifier; array elements follow their array
@@ -347,10 +360,10 @@ struct Packet {
     u8 level;                   // clamp (default)
     wrap u8 checksum;           // wrap
 }
-Packet pkt <- { level: 250, checksum: 250 };
+mut Packet pkt <- { level: 250, checksum: 250 };
 pkt.level +<- 10;               // 255
 pkt.checksum +<- 10;            // 4
-u8[2] levels <- [250, 250];
+mut u8[2] levels <- [250, 250];
 levels[0] +<- 10;               // 255
 
 // =============================================================================
@@ -358,7 +371,7 @@ levels[0] +<- 10;               // 255
 // =============================================================================
 
 // Type-aware bit indexing
-u8 flags <- 0;
+mut u8 flags <- 0;
 flags[0] <- true;               // Set bit 0
 flags[3] <- true;               // Set bit 3
 bool isSet <- flags[0];         // Read bit 0
@@ -388,7 +401,7 @@ struct Point {
 Point origin;                   // x=0, y=0
 
 // Named field initializer (type inferred)
-Point p <- { x: 10, y: 20 };
+mut Point p <- { x: 10, y: 20 };
 
 // Member access
 p.x <- 100;
@@ -435,7 +448,7 @@ bitmap8 MotorFlags {
 }
 // Total: 1+1+1+3+2 = 8 bits (must match bitmap8)
 
-MotorFlags flags <- 0;
+mut MotorFlags flags <- 0;
 flags.Running <- true;          // Set single bit
 flags.Mode <- 5;                // Set multi-bit field (0-7)
 bool isRunning <- flags.Running;
@@ -448,9 +461,9 @@ u8 mode <- flags.Mode;
 // Organize code with automatic name prefixing
 // scopes are purely optional in c-next
 scope LED {
-    u8 brightness;             // private by default (variable)
-    public u8 maxBrightness;   // public (explicit)
-    const u32 BIT <- 3;        // private const (inlined)
+    mut u8 brightness;         // private by default (variable)
+    public u8 maxBrightness;   // public (explicit), C code may write it
+    u32 BIT <- 3;              // private, read-only (inlined)
 
     enum Mode { OFF, ON }      // private by default (type)
     public struct Reading {    // public (explicit) - part of the API
@@ -524,15 +537,15 @@ GPIO7.DR_SET[3] <- true;        // Set bit 3 (atomic)
 // =============================================================================
 
 // Atomic variables - ISR-safe
-atomic u32 counter <- 0;
+atomic mut u32 counter <- 0;
 
 void increment() {
     counter +<- 1;              // Lock-free on Cortex-M3+
 }
 
 // Critical sections for multi-variable operations
-u8[64] buffer;
-u32 writeIdx <- 0;
+mut u8[64] buffer;
+mut u32 writeIdx <- 0;
 
 void enqueue(u8 data) {
     critical {
@@ -545,9 +558,9 @@ void enqueue(u8 data) {
 // 16. CONSTANTS & PREPROCESSOR
 // =============================================================================
 
-// Use const instead of #define for values
-const u32 BUFFER_SIZE <- 256;
-const f32 PI <- 3.14159;
+// Use a read-only binding instead of #define for values
+u32 BUFFER_SIZE <- 256;
+f32 PI <- 3.14159;
 
 // #define only for flags (conditional compilation)
 #define ARDUINO
@@ -561,7 +574,7 @@ const f32 PI <- 3.14159;
 #endif
 
 // #define with values is FORBIDDEN
-// #define MAX_SIZE 100       // ERROR: use const
+// #define MAX_SIZE 100       // ERROR: use a read-only binding
 
 // =============================================================================
 // 17. COMPLETE EXAMPLE
@@ -575,8 +588,8 @@ register GPIO7 @ 0x42004000 {
     DR_TOGGLE:  u32 wo @ 0x8C,
 }
 
-const u32 LED_PIN <- 13;
-const u32 LED_BIT <- 3;
+u32 LED_PIN <- 13;
+u32 LED_BIT <- 3;
 
 scope LED {
     void toggle() {            // public by default

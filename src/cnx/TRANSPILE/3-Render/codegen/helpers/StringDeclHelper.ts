@@ -411,7 +411,7 @@ class StringDeclHelper {
     if (!isConst) {
       invariant(
         false,
-        "a non-const string states its capacity -- E0862 rejects an unsized one in pass 1.2",
+        "a `mut` string states its capacity -- E0862 rejects an unsized one in pass 1.2",
       );
     }
 
@@ -459,7 +459,7 @@ class StringDeclHelper {
     // declaration in the header.
     invariant(
       modifiers.const !== "",
-      "an unsized string is const -- E0862 rejects a non-const one in pass 1.2, before this runs",
+      "an unsized string is read-only -- E0862 rejects a `mut` one in pass 1.2, before this runs",
     );
 
     const prefix = VariableModifierBuilder.toPrefix(modifiers);

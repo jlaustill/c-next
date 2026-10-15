@@ -2650,7 +2650,7 @@ class CodeGenWalker {
   /**
    * Issue #375: `Type name(arg, arg);` -- C++ constructor syntax.
    *
-   * #1322: the "is not declared" (E0433) and "must be const" (E0432)
+   * #1322: the "is not declared" (E0433) and "must be read-only" (E0432)
    * rejections that stood here are authored in pass 2.1, which halts before
    * codegen -- so an argument reaching this line is declared and const. The two
    * copies of that rule also decided const-ness two different ways;
