@@ -463,6 +463,36 @@ describe("Transpiler", () => {
         expect(mkdirCalls.some((c) => c.path === "/project/build")).toBe(true);
       });
 
+      // #2104: "" is the current working directory, like any relative path
+      // (".", the control); only a missing headerOutDir falls back to outDir.
+      it.each(["", "."])(
+        "writes the header relative to the cwd when headerOutDir is %j",
+        async (headerOutDir) => {
+          mockFs.addFile(
+            "/project/src/main.cnx",
+            "scope Led { public u8 level() { return 3; } }",
+          );
+
+          const transpiler = new Transpiler(
+            {
+              input: "/project/src/main.cnx",
+              outDir: "/project/build",
+              headerOutDir,
+              noCache: true,
+              target: "host",
+            },
+            mockFs,
+          );
+
+          await transpiler.transpile({ kind: "files" });
+
+          expect(mockFs.getWriteLog().map((w) => w.path)).toEqual(
+            expect.arrayContaining(["/project/build/main.c", "main.h"]),
+          );
+          expect(mockFs.getWrittenContent("main.h")).toContain("Led__level");
+        },
+      );
+
       it("creates no output directory when the run fails", async () => {
         mockFs.addFile(
           "/project/src/main.cnx",
