@@ -2606,9 +2606,13 @@ class CodeGenWalker {
     if (decl.kind === "constructorDeclaration") {
       return this.planConstructorDecl(decl);
     }
-    // Issue #696: Use shared modifier builder
+    // Issue #696: Use shared modifier builder. #517's C++ class initializer
+    // assigns the fields after the declaration, so its object is never C `const`.
+    const fillsAfterDeclaring =
+      decl.initializer?.kind === "structInitializer" &&
+      this.filePlan.structInitializers.get(decl.initializer) === "cppClass";
     const modifiers = VariableModifierBuilder.build(
-      decl.modifiers,
+      fillsAfterDeclaring ? { ...decl.modifiers, mut: true } : decl.modifiers,
       this.host.state.inFunctionBody,
       this.host.state,
     );
