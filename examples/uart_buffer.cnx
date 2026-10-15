@@ -18,17 +18,17 @@ struct RingBuffer {
 }
 
 // Ring buffer size constant
-const u16 RING_BUFFER_SIZE <- 256;
+u16 RING_BUFFER_SIZE <- 256;
 
 // Initialize a ring buffer
-void RingBuffer_init(RingBuffer self) {
+void RingBuffer_init(mut RingBuffer self) {
     self.head <- 0;
     self.tail <- 0;
     self.count <- 0;
 }
 
 // Push a value to the buffer, returns true on success
-bool RingBuffer_push(RingBuffer self, const u8 value) {
+bool RingBuffer_push(mut RingBuffer self, u8 value) {
     if (self.count = RING_BUFFER_SIZE) {
         return false; // Buffer full
     }
@@ -39,7 +39,7 @@ bool RingBuffer_push(RingBuffer self, const u8 value) {
 }
 
 // Pop a value from the buffer, returns true on success
-bool RingBuffer_pop(RingBuffer self, u8 result) {
+bool RingBuffer_pop(mut RingBuffer self, mut u8 result) {
     if (self.count = 0) {
         return false; // Buffer empty
     }
@@ -50,17 +50,17 @@ bool RingBuffer_pop(RingBuffer self, u8 result) {
 }
 
 // Get current buffer size
-u16 RingBuffer_size(const RingBuffer self) {
+u16 RingBuffer_size(RingBuffer self) {
     return self.count;
 }
 
 // Check if buffer is empty
-bool RingBuffer_isEmpty(const RingBuffer self) {
+bool RingBuffer_isEmpty(RingBuffer self) {
     return self.count = 0;
 }
 
 // Check if buffer is full
-bool RingBuffer_isFull(const RingBuffer self) {
+bool RingBuffer_isFull(RingBuffer self) {
     return self.count = RING_BUFFER_SIZE;
 }
 
@@ -75,7 +75,7 @@ struct UART {
 }
 
 // Initialize a UART with base address
-void UART_init(UART self, const u32 base) {
+void UART_init(mut UART self, u32 base) {
     self.baseAddress <- base;
     self.baudRate <- 115200;
     RingBuffer_init(self.rxBuffer);
@@ -83,32 +83,32 @@ void UART_init(UART self, const u32 base) {
 }
 
 // Configure baud rate
-void UART_begin(UART self, const u32 baud) {
+void UART_begin(mut UART self, u32 baud) {
     self.baudRate <- baud;
     // Configure hardware registers...
 }
 
 // Write a byte to TX buffer
-void UART_write(UART self, const u8 data) {
+void UART_write(UART self, u8 data) {
     (void)RingBuffer_push(self.txBuffer, data);
     // Trigger TX interrupt...
 }
 
 // Check if data is available
-bool UART_available(const UART self) {
+bool UART_available(UART self) {
     return !RingBuffer_isEmpty(self.rxBuffer);
 }
 
 // Read a byte from RX buffer
 u8 UART_read(UART self) {
-    u8 data;
+    mut u8 data;
     (void)RingBuffer_pop(self.rxBuffer, data);
     return data;
 }
 
 // Print a string, character by character
-void UART_print(UART self, const string<64> msg) {
-    u32 i <- 0;
+void UART_print(UART self, string<64> msg) {
+    mut u32 i <- 0;
     while (i < msg.value_char_count) {
         UART_write(self, msg[i]);
         i <- i + 1;
@@ -118,20 +118,20 @@ void UART_print(UART self, const string<64> msg) {
 // ============================================================================
 // Hardware base addresses
 // ============================================================================
-const u32 USART1_BASE <- 0x40011000;
+u32 USART1_BASE <- 0x40011000;
 
-const u32 USART2_BASE <- 0x40004400;
+u32 USART2_BASE <- 0x40004400;
 
-const u32 DEFAULT_BAUD <- 115200;
+u32 DEFAULT_BAUD <- 115200;
 
-const u32 SLOW_BAUD <- 9600;
+u32 SLOW_BAUD <- 9600;
 
 // ============================================================================
 // Global UART instances (static allocation, ADR-003)
 // ============================================================================
-UART Serial1; // Zero-initialized by default (ADR-015)
+mut UART Serial1; // Zero-initialized by default (ADR-015)
 
-UART Serial2;
+mut UART Serial2;
 
 // ============================================================================
 // Arduino entry points

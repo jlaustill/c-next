@@ -1,7 +1,7 @@
 // The C-Next target catalog (ADR-049, "Named targets").
 //
-// Every named target is one `const TargetDescription` here, and every other
-// name for the same platform is one `const TargetAlias`. This file is a C-Next
+// Every named target is one read-only `TargetDescription` here, and every other
+// name for the same platform is one read-only `TargetAlias`. This file is a C-Next
 // program, and it is the only list of targets: the compiler reads it, so adding
 // a target means adding one initializer below.
 //
@@ -15,7 +15,7 @@
 //   - Names are unique, and an alias names a description, never another alias.
 //   - Names match exactly, with no case folding.
 
-const u8 TARGET_SCHEMA_VERSION <- 1;
+u8 TARGET_SCHEMA_VERSION <- 1;
 
 struct TargetDescription {
     string<24> name;
@@ -46,7 +46,7 @@ struct TargetAlias {
 }
 
 // ARMv7E-M
-const TargetDescription CORTEX_M7 <- {
+TargetDescription CORTEX_M7 <- {
     name: "cortex-m7",
     word_size: 32,
     ldrex_strex: true,
@@ -69,11 +69,11 @@ const TargetDescription CORTEX_M7 <- {
     toolchain_cpu: "cortex-m7"
 };
 
-const TargetAlias TEENSY41 <- { name: "teensy41", target: "cortex-m7" };
-const TargetAlias TEENSY40 <- { name: "teensy40", target: "cortex-m7" };
+TargetAlias TEENSY41 <- { name: "teensy41", target: "cortex-m7" };
+TargetAlias TEENSY40 <- { name: "teensy40", target: "cortex-m7" };
 
 // ARMv7E-M
-const TargetDescription CORTEX_M4 <- {
+TargetDescription CORTEX_M4 <- {
     name: "cortex-m4",
     word_size: 32,
     ldrex_strex: true,
@@ -96,10 +96,10 @@ const TargetDescription CORTEX_M4 <- {
     toolchain_cpu: "cortex-m4"
 };
 
-const TargetAlias STM32F4 <- { name: "stm32f4", target: "cortex-m4" };
+TargetAlias STM32F4 <- { name: "stm32f4", target: "cortex-m4" };
 
 // ARMv7-M
-const TargetDescription CORTEX_M3 <- {
+TargetDescription CORTEX_M3 <- {
     name: "cortex-m3",
     word_size: 32,
     ldrex_strex: true,
@@ -123,7 +123,7 @@ const TargetDescription CORTEX_M3 <- {
 };
 
 // ARMv6-M: no exclusive monitor, so no LDREX/STREX, and no BASEPRI
-const TargetDescription CORTEX_M0_PLUS <- {
+TargetDescription CORTEX_M0_PLUS <- {
     name: "cortex-m0+",
     word_size: 32,
     ldrex_strex: false,
@@ -147,7 +147,7 @@ const TargetDescription CORTEX_M0_PLUS <- {
 };
 
 // ARMv6-M
-const TargetDescription CORTEX_M0 <- {
+TargetDescription CORTEX_M0 <- {
     name: "cortex-m0",
     word_size: 32,
     ldrex_strex: false,
@@ -171,7 +171,7 @@ const TargetDescription CORTEX_M0 <- {
 };
 
 // 8-bit AVR: 16-bit int, 32-bit double
-const TargetDescription ATMEGA328P <- {
+TargetDescription ATMEGA328P <- {
     name: "atmega328p",
     word_size: 8,
     ldrex_strex: false,
@@ -194,12 +194,12 @@ const TargetDescription ATMEGA328P <- {
     toolchain_cpu: "atmega328p"
 };
 
-const TargetAlias AVR <- { name: "avr", target: "atmega328p" };
-const TargetAlias ARDUINO_UNO <- { name: "arduino-uno", target: "atmega328p" };
+TargetAlias AVR <- { name: "avr", target: "atmega328p" };
+TargetAlias ARDUINO_UNO <- { name: "arduino-uno", target: "atmega328p" };
 
 // Xtensa LX6, ILP32. From GCC's xtensa.h and LLVM's Xtensa target; no
 // compiler in the test matrix checks it, so it names no toolchain.
-const TargetDescription ESP32 <- {
+TargetDescription ESP32 <- {
     name: "esp32",
     word_size: 32,
     ldrex_strex: false,
@@ -221,7 +221,7 @@ const TargetDescription ESP32 <- {
 };
 
 // The build machine: x86-64 Linux, LP64
-const TargetDescription HOST <- {
+TargetDescription HOST <- {
     name: "host",
     word_size: 64,
     ldrex_strex: false,
