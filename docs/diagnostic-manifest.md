@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-603 fixture(s) assert a diagnostic; 593 carry a code.
+605 fixture(s) assert a diagnostic; 595 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -77,6 +77,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-014/whole-array-field-transitive-error.test.cnx                                        | E0866               |
 | tests/adr-016/cross-scope-bare-error.test.cnx                                                    | E0436               |
 | tests/adr-016/cross-scope-register-bare-error.test.cnx                                           | E0437               |
+| tests/adr-016/global-outside-scope-error.test.cnx                                                | E0431               |
+| tests/adr-016/global-outside-scope-imported-error.test.cnx                                       | E0431               |
 | tests/adr-016/mixed-access-ultimate-error.test.cnx                                               | E0435, E0436        |
 | tests/adr-016/private-cross-scope-error.test.cnx                                                 | E0436               |
 | tests/adr-016/private-func-access-error.test.cnx                                                 | E0436               |
