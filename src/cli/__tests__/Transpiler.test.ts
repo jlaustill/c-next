@@ -384,6 +384,60 @@ describe("Transpiler", () => {
         expect(writeCalls.some((w) => w.path.endsWith(".c"))).toBe(true);
       });
 
+      // #2086: where output goes is the caller's decision, and whether a file
+      // is written is decided by the run, never by outDir's value.
+      it("writes both the .c and the .h into the outDir it was given (#2086)", async () => {
+        mockFs.addFile(
+          "/project/src/main.cnx",
+          "scope Led { public u8 level() { return 3; } }",
+        );
+
+        const transpiler = new Transpiler(
+          {
+            input: "/project/src/main.cnx",
+            outDir: "/project/build",
+            noCache: true,
+            target: "host",
+          },
+          mockFs,
+        );
+
+        const result = await transpiler.transpile({ kind: "files" });
+
+        expect(result.success).toBe(true);
+        expect(mockFs.getWrittenContent("/project/build/main.c")).toContain(
+          "Led__level",
+        );
+        expect(mockFs.getWrittenContent("/project/build/main.h")).toContain(
+          "Led__level",
+        );
+      });
+
+      it("writes the .c whenever it writes the .h, whatever outDir is (#2086)", async () => {
+        mockFs.addFile(
+          "/project/src/main.cnx",
+          "scope Led { public u8 level() { return 3; } }",
+        );
+
+        const transpiler = new Transpiler(
+          {
+            input: "/project/src/main.cnx",
+            outDir: "",
+            noCache: true,
+            target: "host",
+          },
+          mockFs,
+        );
+
+        const result = await transpiler.transpile({ kind: "files" });
+
+        expect(result.success).toBe(true);
+        expect(mockFs.getWriteLog().map((w) => w.path)).toEqual(
+          expect.arrayContaining(["main.c", "main.h"]),
+        );
+        expect(mockFs.getWrittenContent("main.c")).toContain("Led__level");
+      });
+
       it("creates output directory when it does not exist", async () => {
         mockFs.addFile("/project/src/main.cnx", "void main() { }");
 
