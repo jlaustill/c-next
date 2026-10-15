@@ -273,7 +273,7 @@ typedef struct Reading { int32_t raw; } Reading;
 
         const { files, source } = await bothModes(
           "main.cnx",
-          `#include "${wrapper}"\n\nu32 baudOf(const uart_config_t cfg) {\n    return cfg.baud;\n}\n`,
+          `#include "${wrapper}"\n\nu32 baudOf(uart_config_t cfg) {\n    return cfg.baud;\n}\n`,
         );
 
         for (const result of [files, source]) {

@@ -30,7 +30,7 @@ const errors = (source: string) => {
 describe("ConstructorArgumentAnalyzer", () => {
   it("rejects a mutable argument, with a real position", () => {
     const found = errors(
-      "u8 mutablePin <- 10;\nAdafruit_MAX31856 probe(mutablePin);",
+      "mut u8 mutablePin <- 10;\nAdafruit_MAX31856 probe(mutablePin);",
     );
     expect(found).toHaveLength(1);
     expect(found[0].code).toBe("E0432");
@@ -68,7 +68,7 @@ describe("ConstructorArgumentAnalyzer", () => {
   it("rejects a mutable scope member, the case ScopeGenerator owned", () => {
     const source = [
       "scope Board {",
-      "    u8 pin <- 10;",
+      "    mut u8 pin <- 10;",
       "    Adafruit_MAX31856 probe(pin);",
       "}",
     ].join("\n");
@@ -79,7 +79,7 @@ describe("ConstructorArgumentAnalyzer", () => {
 
   it("reports every offending argument, not just the first", () => {
     const found = errors(
-      "u8 a <- 1;\nu8 b <- 2;\nAdafruit_MAX31856 probe(a, b);",
+      "mut u8 a <- 1;\nmut u8 b <- 2;\nAdafruit_MAX31856 probe(a, b);",
     );
     expect(found).toHaveLength(2);
   });

@@ -255,7 +255,7 @@ describe("DivisionByZeroAnalyzer", () => {
 
     it("should not flag division by non-const variable", () => {
       const code = `
-        u32 divisor <- 0;
+        mut u32 divisor <- 0;
         void main() {
           u32 x <- 10 / divisor;
         }
@@ -327,7 +327,7 @@ describe("DivisionByZeroAnalyzer", () => {
     it("should provide helpful text for division by zero", () => {
       const code = `
         void main() {
-          u32 x <- 10 / 0;
+          mut u32 x <- 10 / 0;
         }
       `;
       const { syntax, context } = testAnalysisContextFor(code, {
@@ -342,7 +342,7 @@ describe("DivisionByZeroAnalyzer", () => {
     it("should provide helpful text for modulo by zero", () => {
       const code = `
         void main() {
-          u32 x <- 10 % 0;
+          mut u32 x <- 10 % 0;
         }
       `;
       const { syntax, context } = testAnalysisContextFor(code, {
@@ -521,7 +521,7 @@ describe("DivisionByZeroAnalyzer", () => {
     it("suggests safe_div for a runtime division in a function", () => {
       const code = `
         void main() {
-          u32 x <- 10 / (2 - 2);
+          mut u32 x <- 10 / (2 - 2);
         }
       `;
       const { syntax, context } = testAnalysisContextFor(code, {

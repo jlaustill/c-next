@@ -154,7 +154,7 @@ describe("ConstantDimensionAnalyzer on 1.2's syntax (#1991)", () => {
   });
 
   it("reports a declaration's dimensions in source order", () => {
-    const found = errors("u8 n <- 3;\nu8[n] g[n];");
+    const found = errors("mut u8 n <- 3;\nu8[n] g[n];");
     expect(found.map((e) => [e.line, e.column])).toEqual([
       [2, 3],
       [2, 8],

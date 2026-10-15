@@ -234,7 +234,7 @@ enum Status {
       const mainSource = `
 #include "status.cnx"
 
-Status current <- Status.Idle;
+mut Status current <- Status.Idle;
 
 void start() {
     current <- Status.Running;
@@ -303,7 +303,7 @@ u8 MAX_SIZE <- 100;
       const mainSource = `
 #include "constants.cnx"
 
-u8[MAX_SIZE] buffer;
+mut u8[MAX_SIZE] buffer;
 
 void main() {
     buffer[0] <- 42;
@@ -440,7 +440,7 @@ void main() {
   describe("Target resolution parity (ADR-049, #1668)", () => {
     const atomicMain = `#include "helper.cnx"
 
-atomic u32 counter <- 0;
+atomic mut u32 counter <- 0;
 
 void increment() {
     counter +<- 1;

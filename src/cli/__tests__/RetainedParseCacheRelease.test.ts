@@ -96,7 +96,7 @@ describe("#1301: the per-file cache is released at end of run", () => {
     const entry = join(tempDir, "app.cnx");
     writeFileSync(
       entry,
-      `#include "lib.cnx"\n\nu32 total <- 0;\n\nvoid main() {\n    total <- Lib.double(21);\n}\n`,
+      `#include "lib.cnx"\n\nmut u32 total <- 0;\n\nvoid main() {\n    total <- Lib.double(21);\n}\n`,
     );
     return entry;
   }
@@ -140,7 +140,7 @@ describe("#1301: the per-file cache is released at end of run", () => {
     const entry = join(tempDir, "division-by-zero.cnx");
     writeFileSync(
       entry,
-      `u32 total <- 0;\n\nvoid main() {\n    total <- 10 / 0;\n}\n`,
+      `mut u32 total <- 0;\n\nvoid main() {\n    total <- 10 / 0;\n}\n`,
     );
     const transpiler = createTranspiler(entry);
 

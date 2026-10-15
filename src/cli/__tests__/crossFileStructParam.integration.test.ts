@@ -18,10 +18,9 @@ import { describe, it, expect, beforeAll } from "vitest";
 import Transpiler from "../Transpiler";
 import MockFileSystem from "./MockFileSystem";
 
-// readValue never writes its parameter, so ADR-006 auto-const applies to it.
-// bump does write it, so it must stay non-const — together they prove the
-// auto-const decision stays per-parameter rather than becoming a blanket
-// qualifier.
+// readValue's parameter is read-only (ADR-071), so it is const in C. bump
+// declares its parameter `mut`, so it stays non-const — together they prove
+// the decision stays per-parameter rather than becoming a blanket qualifier.
 const SENSORS_CNX = `struct Sample { u8 value; }
 
 scope Sensors {
@@ -38,7 +37,7 @@ scope Sensors {
 const CONSUMER_CNX = `#include "sensors.cnx"
 
 u32 main() {
-    Sample sample <- {value: 42};
+    mut Sample sample <- {value: 42};
     u8 v <- Sensors.readValue(sample);
     if (v != 42) { return 1; }
     Sensors.bump(sample);

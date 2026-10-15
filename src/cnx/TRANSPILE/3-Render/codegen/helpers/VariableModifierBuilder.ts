@@ -30,7 +30,6 @@ class VariableModifierBuilder {
    *
    * @param modifiers - The written modifiers
    * @param inFunctionBody - Whether we're inside a function body (affects extern)
-   * @param hasInitializer - Whether the variable has an initializer (affects extern in C mode)
    * @param mode - The run's mode, as `TranspileState` holds it from `Program` (#1428)
    * @returns Modifier strings ready for use in generated code
    * @throws Error if both atomic and volatile are specified
@@ -38,7 +37,6 @@ class VariableModifierBuilder {
   static build(
     modifiers: TModifierFlags,
     inFunctionBody: boolean,
-    hasInitializer: boolean,
     mode: Pick<TranspileState, "cppMode">,
   ): IRenderedModifiers {
     // ADR-071: a read-only binding is C's `const`
@@ -50,15 +48,11 @@ class VariableModifierBuilder {
     // Issue #525: Add extern for top-level const in C++ for external linkage
     // In C++, const at file scope has internal linkage by default, so extern is needed.
     //
-    // Issue #852 (MISRA Rule 8.5): In C mode, do NOT add extern to definitions
-    // (variables with initializers). The extern declaration comes from the header.
-    //
-    // Summary:
-    // - C mode + no initializer: extern (declaration)
-    // - C mode + initializer: NO extern (definition - MISRA 8.5)
-    // - C++ mode: ALWAYS extern for external linkage (both declarations and definitions)
-    const needsExtern =
-      hasConst && !inFunctionBody && (mode.cppMode || !hasInitializer);
+    // Issue #852 (MISRA Rule 8.5): In C mode, do NOT add extern to definitions.
+    // A file-scope declaration is always a definition -- one with no
+    // initializer is zero-initialized -- and the extern declaration comes from
+    // the header. In C++, extern gives the definition external linkage.
+    const needsExtern = hasConst && !inFunctionBody && mode.cppMode;
     const externMod = needsExtern ? "extern " : "";
 
     // #1322: ADR-049's `atomic` + `volatile` rule is E0889 in pass 2.1. It is

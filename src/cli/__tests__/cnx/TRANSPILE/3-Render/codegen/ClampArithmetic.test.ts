@@ -115,9 +115,9 @@ describe("clamp arithmetic in expressions", () => {
     // wrapped to a small number, the guard passed, and the write went out of
     // bounds. Saturating the sum makes the natural guard correct.
     const code = await generate(
-      `u8[513] buffer;\n` +
+      `mut u8[513] buffer;\n` +
         `void writeChunk(u32 start, u32 step, u32 length, u8 value) {\n` +
-        `    u32 offset <- start;\n` +
+        `    mut u32 offset <- start;\n` +
         `    offset +<- step;\n` +
         `    if (offset + length <= 513) { buffer[offset] <- value; }\n` +
         `}\n` +

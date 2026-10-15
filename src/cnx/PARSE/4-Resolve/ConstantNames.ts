@@ -181,13 +181,14 @@ class ConstantNames {
         walk,
       );
     }
+    // A parameter is read-only (ADR-071) but its value is the caller's
+    if (declaration.kind === "parameter") {
+      return ConstantNames.without("parameter", walk);
+    }
     if (declaration.isConst) {
       return ConstantNames.ofSettled(settled?.constValue ?? undefined, walk);
     }
-    return ConstantNames.without(
-      declaration.kind === "parameter" ? "parameter" : "variable",
-      walk,
-    );
+    return ConstantNames.without("variable", walk);
   }
 
   private static ofVariable(

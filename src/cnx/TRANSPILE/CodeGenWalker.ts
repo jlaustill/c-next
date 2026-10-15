@@ -2002,7 +2002,6 @@ class CodeGenWalker {
     const modifiers = VariableModifierBuilder.build(
       decl.modifiers,
       false,
-      false,
       this.host.state,
     );
     return {
@@ -2611,7 +2610,6 @@ class CodeGenWalker {
     const modifiers = VariableModifierBuilder.build(
       decl.modifiers,
       this.host.state.inFunctionBody,
-      decl.initializer !== null,
       this.host.state,
     );
     const name = decl.name;

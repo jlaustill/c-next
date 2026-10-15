@@ -1825,7 +1825,7 @@ describe("Transpiler coverage integration tests", () => {
       `
       #include "types.cnx"
       Config cfg <- { port: 8080, flags: 0 };
-      Status state <- Status.Idle;
+      mut Status state <- Status.Idle;
       void main() { state <- Status.Running; }
     `,
     );

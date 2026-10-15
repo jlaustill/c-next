@@ -117,7 +117,7 @@ describe("CallbackAssignmentAnalyzer", () => {
       "struct P { u32 x; }",
       "void onDown(P p) { }",
       "void matching(P p) { }",
-      "void wrongConst(P p) { }",
+      "void wrongConst(mut P p) { }",
       "struct H { onDown down; }",
       "void takesDown(onDown cb) { }",
     ].join("\n");
@@ -175,9 +175,9 @@ describe("CallbackAssignmentAnalyzer", () => {
           [
             "struct P { u32 x; }",
             "scope Motor {",
-            "    public void onStop(const P p) { }",
+            "    public void onStop(P p) { }",
             "    void matchingStop(P p) { }",
-            "    void wrongStop(P p) { }",
+            "    void wrongStop(mut P p) { }",
             `    public void f() { onStop cb <- ${value}; }`,
             "}",
           ].join("\n"),

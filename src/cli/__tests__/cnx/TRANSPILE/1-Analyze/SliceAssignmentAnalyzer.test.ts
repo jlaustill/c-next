@@ -64,13 +64,13 @@ describe("SliceAssignmentAnalyzer", () => {
   describe("E0859 -- the span must fold at compile time", () => {
     it("rejects a runtime offset and a runtime length, at the right subscript", () => {
       const offset = errors(
-        "    u8[8] buf;\n    u8 i <- 0;\n    buf[i, 4] <- 1;",
+        "    u8[8] buf;\n    mut u8 i <- 0;\n    buf[i, 4] <- 1;",
       );
       expect(offset.map((e) => e.code)).toEqual(["E0859"]);
       expect(offset[0].message).toContain("offset must be a compile-time");
 
       const length = errors(
-        "    u8[8] buf;\n    u8 n <- 4;\n    buf[0, n] <- 1;",
+        "    u8[8] buf;\n    mut u8 n <- 4;\n    buf[0, n] <- 1;",
       );
       expect(length.map((e) => e.code)).toEqual(["E0859"]);
       expect(length[0].message).toContain("length must be a compile-time");
@@ -132,7 +132,7 @@ describe("SliceAssignmentAnalyzer", () => {
 
     it("rejects copying more bytes than the source holds", () => {
       const [found] = errors(
-        "    u8[8] buf;\n    u16 small <- 1;\n    buf[0, 4] <- small;",
+        "    u8[8] buf;\n    mut u16 small <- 1;\n    buf[0, 4] <- small;",
       );
       expect(found.code).toBe("E0861");
       expect(found.message).toContain("exceeds the source value width");

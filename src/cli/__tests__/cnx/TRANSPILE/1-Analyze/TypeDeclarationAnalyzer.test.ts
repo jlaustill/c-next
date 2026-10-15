@@ -83,7 +83,9 @@ describe("TypeDeclarationAnalyzer", () => {
       errors(source, helpers).map((e) => [e.code, e.line, e.column, e.message]);
 
     it("reports a value with no value at the member, saying why", () => {
-      expect(codes("u32 limit <- 3;\nenum E {\n    A <- limit\n}\n")).toEqual([
+      expect(
+        codes("mut u32 limit <- 3;\nenum E {\n    A <- limit\n}\n"),
+      ).toEqual([
         [
           "E0909",
           3,
@@ -96,7 +98,7 @@ describe("TypeDeclarationAnalyzer", () => {
     it("reports a member continuing from one without a value only once", () => {
       // B is A plus one; A's own report is the cause, B's would be a consequence
       expect(
-        codes("u32 limit <- 3;\nenum E {\n    A <- limit,\n    B\n}\n").map(
+        codes("mut u32 limit <- 3;\nenum E {\n    A <- limit,\n    B\n}\n").map(
           (c) => c[1],
         ),
       ).toEqual([3]);

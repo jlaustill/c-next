@@ -443,7 +443,7 @@ u32 testVar;
 #include <stdint.h>
 
 // test-c-only
-uint32_t testVar = 0;
+const uint32_t testVar = 0;
 `;
     writeFileSync(join(tempDir, "hdrchk.expected.c"), expectedC);
 
@@ -535,7 +535,7 @@ u32 goodVar;
 #include <stdint.h>
 
 // test-c-only
-uint32_t goodVar = 0;
+const uint32_t goodVar = 0;
 `;
     writeFileSync(join(tempDir, "hdrmatch.expected.c"), expectedC);
 
@@ -555,7 +555,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint32_t goodVar;
+extern const uint32_t goodVar;
 
 #ifdef __cplusplus
 }
@@ -834,7 +834,7 @@ describe("runTest on an error fixture that stopped erroring (#1316)", () => {
     const cnxFile = join(tempDir, "kept.test.cnx");
     writeFileSync(
       cnxFile,
-      "// test-error\nvoid shiftTooFar() {\n  u8 value <- 1;\n  value <- value << 8;\n}\n",
+      "// test-error\nvoid shiftTooFar() {\n  mut u8 value <- 1;\n  value <- value << 8;\n}\n",
     );
     const expectedErrorFile = join(tempDir, "kept.expected.error");
     writeFileSync(expectedErrorFile, "0:0 stale text to be refreshed\n");

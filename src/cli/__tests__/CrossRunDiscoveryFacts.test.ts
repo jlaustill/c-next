@@ -80,7 +80,7 @@ describe("#1452: discovery's include facts are released at end of run", () => {
     const entry = join(tempDir, "app.cnx");
     writeFileSync(
       entry,
-      `#include "lib.cnx"\n\nu32 total <- 0;\n\nvoid main() {\n    total <- Lib.double(21);\n}\n`,
+      `#include "lib.cnx"\n\nmut u32 total <- 0;\n\nvoid main() {\n    total <- Lib.double(21);\n}\n`,
     );
     return entry;
   }

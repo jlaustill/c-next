@@ -317,14 +317,14 @@ describe("SwitchStatementAnalyzer", () => {
     const pick = (label: string) =>
       errors(
         [
-          "u8 counter <- 2;",
+          "mut u8 counter <- 2;",
           "u8 REAL <- 1;",
           "enum EMode { IDLE, RUN }",
           "struct Pt { u8 x; }",
           "scope Panel {",
-          "    u8 level <- 1;",
+          "    mut u8 level <- 1;",
           "    u8 OWN <- 3;",
-          '    public const string<4> S <- "ab";',
+          '    public string<4> S <- "ab";',
           "    public enum State { STOPPED, GOING }",
           "    bitmap8 Flags { a, b, c, d, e, f, g, h }",
           "    public u8 helper() { return 1; }",

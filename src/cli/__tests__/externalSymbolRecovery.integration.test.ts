@@ -66,7 +66,7 @@ const MAIN_CNX = `#include "guard.h"
 #include "widget.h"
 
 scope Demo {
-  widget_t handle;
+  mut widget_t handle;
 
   void build() {
     widget_cfg_t cfg <- {mode: 1};

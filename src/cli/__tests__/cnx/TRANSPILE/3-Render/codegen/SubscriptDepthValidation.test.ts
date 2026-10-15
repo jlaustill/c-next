@@ -15,13 +15,13 @@ import { describe, it, expect, beforeEach } from "vitest";
 import Transpiler from "../../../../../Transpiler";
 import MockFileSystem from "../../../../MockFileSystem";
 
-/** Wrap a body in a scope that owns a scalar and an array member. */
+/** Wrap a body in a scope that owns a writable scalar and array member. */
 const scoped = (body: string): string =>
-  `scope Reg {\n  u8 flags <- 0;\n  u8[16] buffer;\n  ${body}\n}`;
+  `scope Reg {\n  mut u8 flags <- 0;\n  mut u8[16] buffer;\n  public void reset() { flags <- 0; buffer[0] <- 0; }\n  ${body}\n}`;
 
-/** A global scalar/array plus a scope to reference them from. */
+/** A writable global scalar/array plus a scope to reference them from. */
 const withGlobals = (body: string): string =>
-  `u8 globalFlags <- 0;\nu8[16] globalBuffer;\nscope Reg {\n  ${body}\n}`;
+  `mut u8 globalFlags <- 0;\nmut u8[16] globalBuffer;\nvoid reset() { globalFlags <- 0; globalBuffer[0] <- 0; }\nscope Reg {\n  ${body}\n}`;
 
 const REJECTED = [
   {

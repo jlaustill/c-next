@@ -66,7 +66,7 @@ describe("FixtureOccupancy.build", () => {
       "bare-member.test.cnx",
       "// test-adr: 057\n" +
         "scope Counter {\n" +
-        "    u32 value <- 0;\n" +
+        "    mut u32 value <- 0;\n" +
         "    public void bump() {\n" +
         "        value <- value + 1;\n" +
         "    }\n" +
