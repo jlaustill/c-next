@@ -86,6 +86,7 @@ v2 (so "Research (v2 Roadmap)" holds `1xx` ADRs).
 | [ADR-056](decisions/adr-056-cast-overflow-behavior.md)  | Cast Overflow Behavior        | Consistent overflow semantics for type casts     |
 | [ADR-066](decisions/adr-066-do178c-compliance.md)       | DO-178C Compliance            | Safety-critical software certification framework |
 | [ADR-069](decisions/adr-069-dead-code-reachability.md)  | Dead-Code / Reachability      | Reject unreachable code (MISRA 2.1/2.2, DO-178C) |
+| [ADR-071](decisions/adr-071-read-only-parameters.md)    | Read-Only Parameters          | Parameters read-only by default; `mut` to write  |
 
 ## Research (v2 Roadmap)
 
