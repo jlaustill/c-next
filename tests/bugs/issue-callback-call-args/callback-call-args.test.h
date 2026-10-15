@@ -17,7 +17,7 @@ typedef struct Point Point;
 /* Callback typedefs */
 typedef uint32_t (*peek_fp)(const Point*);
 typedef void (*poke_fp)(Point*);
-typedef uint32_t (*twice_fp)(uint32_t);
+typedef uint32_t (*twice_fp)(const uint32_t);
 typedef Point (*shifted_fp)(const Point*);
 
 /* Struct definitions */

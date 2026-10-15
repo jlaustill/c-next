@@ -116,6 +116,32 @@ describe("ConstAssignmentAnalyzer (E0900)", () => {
     ].join("\n");
     expect(errors(source)).toEqual([]);
   });
+
+  it("reaches the function a callback call goes through", () => {
+    // `h.onPoke(p)` names no function; its field's type `poke` does, and
+    // poke's `mut` parameter writes `p`. Missed, `p` rendered `const` and
+    // the call did not compile.
+    const source = (decl: string) =>
+      "struct P { u8 x; }\n" +
+      "void poke(mut P p) { p.x <- 1; }\n" +
+      "struct H { poke onPoke; }\n" +
+      "void f() {\n" +
+      "    mut H h;\n" +
+      "    h.onPoke <- poke;\n" +
+      `    ${decl} q <- { x: 0 };\n` +
+      "    h.onPoke(q);\n" +
+      "}";
+    expect(errors(source("P")).map((e) => [e.code, e.line, e.message])).toEqual(
+      [
+        [
+          "E0900",
+          8,
+          "cannot pass read-only 'q' to `mut` parameter 'p' of function 'poke'",
+        ],
+      ],
+    );
+    expect(errors(source("mut P"))).toEqual([]);
+  });
 });
 
 describe("ConstAssignmentAnalyzer on 1.2's syntax (#1991)", () => {

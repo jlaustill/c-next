@@ -142,7 +142,7 @@ class ConstAssignmentCheck {
       this.noteCPointerWrites(cCallee);
       return;
     }
-    const callee = FunctionReference.ofCallChain(
+    const callee = FunctionReference.ofCall(
       expr,
       OperandTyper.scopePathAt(expr.span, this.context),
       this.context,

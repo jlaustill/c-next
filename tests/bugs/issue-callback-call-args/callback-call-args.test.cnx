@@ -64,7 +64,7 @@ i32 main() {
     h.onTwice <- twice;
     h.onShift <- shifted;
 
-    Point p <- { x: 7 };
+    mut Point p <- { x: 7 };
 
     // The defect: a struct argument through a struct field.
     u32 viaField <- h.onPeek(p);

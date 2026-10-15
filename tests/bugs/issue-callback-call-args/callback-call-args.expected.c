@@ -83,7 +83,7 @@ int main(void) {
     h.onPoke = poke;
     h.onTwice = twice;
     h.onShift = shifted;
-    const Point p = { .x = 7U };
+    Point p = { .x = 7U };
     const uint32_t viaField = h.onPeek(&p);
     if (viaField != 7) {
         return 1;
