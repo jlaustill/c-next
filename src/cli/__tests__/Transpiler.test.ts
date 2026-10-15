@@ -463,6 +463,30 @@ describe("Transpiler", () => {
         expect(mkdirCalls.some((c) => c.path === "/project/build")).toBe(true);
       });
 
+      it("creates no output directory when the run fails", async () => {
+        mockFs.addFile(
+          "/project/src/main.cnx",
+          "void main() { undeclared <- 1; }",
+        );
+
+        const transpiler = new Transpiler(
+          {
+            input: "/project/src/main.cnx",
+            outDir: "/project/build",
+            headerOutDir: "/project/include",
+            noCache: true,
+            target: "host",
+          },
+          mockFs,
+        );
+
+        const result = await transpiler.transpile({ kind: "files" });
+
+        expect(result.success).toBe(false);
+        expect(mockFs.getMkdirLog()).toEqual([]);
+        expect(mockFs.getWriteLog()).toEqual([]);
+      });
+
       it("writes the header into a separately specified header output directory", async () => {
         mockFs.addFile(
           "/project/src/main.cnx",
