@@ -135,6 +135,46 @@ describe("ThisOutsideScopeAnalyzer", () => {
     expect(found.map((e) => e.line)).toEqual([2, 3]);
   });
 
+  it("rejects `global` outside a scope in every position (#2087)", () => {
+    const found = errors(
+      [
+        "u32 count <- 0;",
+        "const u8 LIMIT <- 1;",
+        "struct Pt { u8 x; }",
+        "u32 atFile <- global.count;",
+        "u32 pick(u8 s) {",
+        "    u32 got <- global.count;",
+        "    global.count <- got;",
+        "    global.Pt p <- { x: 1 };",
+        "    switch (s) {",
+        "        case global.LIMIT { return p.x; }",
+        "        default { return 0; }",
+        "    }",
+        "    return 0;",
+        "}",
+      ].join("\n"),
+    );
+    expect(found.map((e) => e.line)).toEqual([4, 6, 7, 8, 10]);
+    expect(found[0].message).toBe("'global' can only be used inside a scope");
+  });
+
+  it("accepts `global` inside a scope (#2087)", () => {
+    const found = errors(
+      [
+        "u32 count <- 0;",
+        "struct Pt { u8 x; }",
+        "scope S {",
+        "    public u32 f() {",
+        "        global.Pt p <- { x: 1 };",
+        "        global.count <- p.x;",
+        "        return global.count;",
+        "    }",
+        "}",
+      ].join("\n"),
+    );
+    expect(found).toEqual([]);
+  });
+
   it("says what to write instead", () => {
     const [found] = errors("u32 count <- 0;\nu32 shadow <- this.count;");
     expect(found.helpText).toContain("bare name");

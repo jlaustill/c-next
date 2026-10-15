@@ -1,0 +1,62 @@
+// test-error
+// test-adr: 016
+// ADR-016: `global.` reaches a file-scope name from inside a scope, past a
+// scope member that shadows it. Outside a scope nothing shadows a file-scope
+// name but a local, and the bare name is the file's, so `global.` there is
+// E0431, as `this.` is (#2087).
+
+const u8 LIMIT <- 1;
+u32 total <- 0;
+
+struct Pt {
+    u8 x;
+}
+
+u32 helper() {
+    return 7;
+}
+
+scope Panel {
+    u32 total <- 9;
+
+    // NEGATIVE CONTROLS -- `global.` in every position inside a scope, all
+    // silent: value, call, assignment target, type, case label.
+    public u32 pick(u8 s) {
+        global.Pt p <- { x: 1 };
+        global.total <- global.helper() + p.x;
+        switch (s) {
+            case global.LIMIT {
+                return global.total;
+            }
+            default {
+                return 0;
+            }
+        }
+        return 0;
+    }
+}
+
+// THE ASSERTIONS -- each position once at file scope or in a top-level
+// function: initializer, value, call, assignment target, type, case label.
+u32 atFileScope <- global.total;
+
+u32 inPlainFunction(u8 s) {
+    u32 got <- global.total;
+    got <- got + global.helper();
+    global.total <- got;
+    global.Pt q <- { x: 2 };
+    switch (s) {
+        case global.LIMIT {
+            return q.x;
+        }
+        default {
+            return 0;
+        }
+    }
+    return 0;
+}
+
+u32 main() {
+    u32 r <- inPlainFunction(1);
+    return r;
+}

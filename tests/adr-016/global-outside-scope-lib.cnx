@@ -1,0 +1,14 @@
+// Included by global-outside-scope-imported-error.test.cnx
+const u8 G_LIMIT <- 1;
+
+u8 fromGlobalLib(u8 v) {
+    u8 got <- global.G_LIMIT;
+    switch (v) {
+        case global.G_LIMIT {
+            return got;
+        }
+        default {
+            return 0;
+        }
+    }
+}
