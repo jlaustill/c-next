@@ -135,7 +135,7 @@ describe("CodeGenerator requireInclude", () => {
       const result = (
         await transpiler.transpile({
           kind: "source",
-          source: 'const string message <- "hello";',
+          source: 'string message <- "hello";',
         })
       ).files[0];
 
@@ -185,7 +185,7 @@ describe("CodeGenerator requireInclude", () => {
           kind: "source",
           source: `
         f32 setByte(u8 b) {
-          f32 value <- 0.0;
+          mut f32 value <- 0.0;
           value[0, 8] <- b;
           return value;
         }
@@ -317,7 +317,7 @@ describe("CodeGenerator requireInclude", () => {
         route: "safe-div helper needing stdbool.h",
         header: "#include <stdbool.h>",
         source:
-          "void t() { u32 r <- 0; bool err <- false; err <- safe_div(r, 10, 2, 0); }",
+          "void t() { mut u32 r <- 0; mut bool err <- false; err <- safe_div(r, 10, 2, 0); }",
       },
     ];
 

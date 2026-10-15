@@ -107,9 +107,9 @@ describe("#1991: each pass takes only what the pass before it returned", () => {
     rmSync(tempDir, { recursive: true, force: true });
   });
 
-  /** `Lib.echo` takes `v` by value until its body writes to it */
-  const ECHO_READS = "return v;";
-  const ECHO_WRITES = "v <- v + 1;\n        return v;";
+  /** `Lib.echo` takes `v` by value until it declares it `mut` (ADR-071) */
+  const ECHO_READS = { mut: "", body: "return v;" };
+  const ECHO_WRITES = { mut: "mut ", body: "v <- v + 1;\n        return v;" };
 
   function newTranspiler(): Transpiler {
     return new Transpiler(
@@ -125,16 +125,16 @@ describe("#1991: each pass takes only what the pass before it returned", () => {
   }
 
   async function run(
-    echoBody = ECHO_READS,
+    echo = ECHO_READS,
     transpiler = newTranspiler(),
   ): Promise<void> {
     writeFileSync(
       join(tempDir, "lib.cnx"),
-      `struct Point {\n    u32 x;\n}\n\nscope Lib {\n    public u32 double(u32 v) { return v * 2; }\n    public u32 xOf(Point p) { return p.x; }\n    public u32 echo(u32 v) {\n        ${echoBody}\n    }\n}\n`,
+      `struct Point {\n    u32 x;\n}\n\nscope Lib {\n    public u32 double(u32 v) { return v * 2; }\n    public u32 xOf(Point p) { return p.x; }\n    public u32 echo(${echo.mut}u32 v) {\n        ${echo.body}\n    }\n}\n`,
     );
     writeFileSync(
       join(tempDir, "app.cnx"),
-      `#include "lib.cnx"\n\nu32 total <- 0;\n\nu32 readX(Point p) {\n    return p.x;\n}\n\nvoid main() {\n    Point pt <- { x: 3 };\n    u32 n <- 4;\n    total <- Lib.double(21) + readX(pt) + Lib.xOf(pt) + Lib.echo(n);\n}\n`,
+      `#include "lib.cnx"\n\nmut u32 total <- 0;\n\nu32 readX(Point p) {\n    return p.x;\n}\n\nvoid main() {\n    Point pt <- { x: 3 };\n    ${echo.mut}u32 n <- 4;\n    total <- Lib.double(21) + readX(pt) + Lib.xOf(pt) + Lib.echo(n);\n}\n`,
     );
     const result = await transpiler.transpile({ kind: "files" });
     expect(result.success).toBe(true);

@@ -41,7 +41,7 @@ describe("Dual Code Paths (Issue #634)", () => {
   describe("Single file transpilation", () => {
     it("produces identical code via run() and transpileSource()", async () => {
       const source = `
-u8 counter <- 0;
+mut u8 counter <- 0;
 
 void increment() {
     counter <- counter + 1;
@@ -112,7 +112,7 @@ void main() {
 
     it("produces identical code for const arrays with inferred size", async () => {
       const source = `
-const u8[] VALUES <- [1, 2, 3, 4, 5];
+u8[] VALUES <- [1, 2, 3, 4, 5];
 
 void main() {
     u8 x <- VALUES[0];
@@ -148,7 +148,7 @@ enum Color {
     Blue
 }
 
-Color current <- Color.Red;
+mut Color current <- Color.Red;
 
 void main() {
     current <- Color.Blue;
@@ -179,7 +179,7 @@ void main() {
     it("produces identical code for scopes", async () => {
       const source = `
 scope Counter {
-    u8 value <- 0;
+    mut u8 value <- 0;
 
     public void increment() {
         value <- value + 1;
@@ -294,7 +294,7 @@ void main() {
     it("run() handles cross-file const references", async () => {
       // File 1: Define const
       const constSource = `
-const u8 MAX_SIZE <- 100;
+u8 MAX_SIZE <- 100;
 `;
       const constPath = join(tempDir, "constants.cnx");
       writeFileSync(constPath, constSource);
@@ -623,7 +623,7 @@ struct Config {
     u8 flags;
 }
 
-Config settings <- { port: 8080, flags: 0 };
+mut Config settings <- { port: 8080, flags: 0 };
 
 void updatePort(Config config) {
     settings.port <- config.port;
@@ -668,7 +668,7 @@ enum State {
     Done
 }
 
-State current <- State.Init;
+mut State current <- State.Init;
 
 void setState(State s) {
     current <- s;

@@ -130,7 +130,7 @@ describe("DeclaredTypeInfo.of", () => {
   it("types a `for` variable by its declaration (#1667)", () => {
     expect(
       declaredAtR(
-        "void f() {\nfor (u8 i <- 0; i < 3; i +<- 1) {\nu8 r <- i;\n}\n}",
+        "void f() {\nfor (mut u8 i <- 0; i < 3; i +<- 1) {\nu8 r <- i;\n}\n}",
         "i",
       ),
     ).toMatchObject({ baseType: "u8", overflowBehavior: "clamp" });
@@ -299,7 +299,7 @@ describe("DeclaredTypeInfo.of, dimensions", () => {
 
 describe("DeclaredTypeInfo.ofChain", () => {
   it("binds a bare target's root and writes it", () => {
-    const t = targetOf("void f() {\nu16 x <- 0;\nx <- 1;\n}");
+    const t = targetOf("void f() {\nmut u16 x <- 0;\nx <- 1;\n}");
     expect(t.root?.kind).toBe("local");
     expect(t.typeInfo).toMatchObject({ baseType: "u16" });
     expect(t.rootTypeInfo).toBe(t.typeInfo);
@@ -307,7 +307,7 @@ describe("DeclaredTypeInfo.ofChain", () => {
 
   it("binds `this.x` to the member, not a same-named local", () => {
     const t = targetOf(
-      "scope S {\nu16 x <- 0;\npublic void f() {\nu8 x <- 0;\nthis.x <- 1;\n}\n}",
+      "scope S {\nmut u16 x <- 0;\npublic void f() {\nu8 x <- 0;\nthis.x <- 1;\n}\n}",
     );
     expect(t.root?.kind).toBe("variable");
     expect(t.typeInfo).toMatchObject({ baseType: "u16" });
@@ -315,7 +315,7 @@ describe("DeclaredTypeInfo.ofChain", () => {
 
   it("binds `global.x` past a shadowing local (#1701)", () => {
     const t = targetOf(
-      "u32 x <- 0;\nvoid f() {\nu8 x <- 0;\nglobal.x <- 1;\n}",
+      "mut u32 x <- 0;\nvoid f() {\nu8 x <- 0;\nglobal.x <- 1;\n}",
     );
     expect(t.typeInfo).toMatchObject({ baseType: "u32" });
   });

@@ -320,8 +320,8 @@ describe("InitializationAnalyzer", () => {
     it("should preserve initialization in deterministic for loop", () => {
       const code = `
         void main() {
-          u32 sum;
-          for (u32 i <- 0; i < 4; i <- i + 1) {
+          mut u32 sum;
+          for (mut u32 i <- 0; i < 4; i <- i + 1) {
             sum <- 42;
           }
           u32 result <- sum;
@@ -343,9 +343,9 @@ describe("InitializationAnalyzer", () => {
           u32 y;
         }
         void main() {
-          Point p;
+          mut Point p;
           p.x <- 1;
-          for (u32 i <- 0; i < 3; i <- i + 1) {
+          for (mut u32 i <- 0; i < 3; i <- i + 1) {
             p.y <- i;
           }
           u32 a <- p.x;
@@ -370,7 +370,7 @@ describe("InitializationAnalyzer", () => {
     it("should not flag assignment target as uninitialized use", () => {
       const code = `
         void main() {
-          u32 x;
+          mut u32 x;
           x <- 5;
           u32 y <- x;
         }
@@ -394,7 +394,7 @@ describe("InitializationAnalyzer", () => {
     it("reads a do-while's condition after its body", () => {
       expect(
         found(
-          `void main() {\n  u32 x;\n  do {\n    x <- 1;\n  } while (x < 3);\n}`,
+          `void main() {\n  mut u32 x;\n  do {\n    x <- 1;\n  } while (x < 3);\n}`,
         ),
       ).toEqual([]);
     });
@@ -406,7 +406,7 @@ describe("InitializationAnalyzer", () => {
     it("counts a write through a subscript for the whole variable", () => {
       expect(
         found(
-          `struct P {\n  u8 x;\n  u8 y;\n}\nvoid main() {\n  P p;\n  p.x[0] <- true;\n  u8 v <- p.y;\n}`,
+          `struct P {\n  u8 x;\n  u8 y;\n}\nvoid main() {\n  mut P p;\n  p.x[0] <- true;\n  u8 v <- p.y;\n}`,
         ),
       ).toEqual([]);
     });
@@ -536,7 +536,7 @@ describe("InitializationAnalyzer", () => {
           u32 y;
         }
         void main() {
-          Point p;
+          mut Point p;
           p.x <- 10;
           p.y <- 20;
           u32 a <- p.x;
@@ -597,7 +597,7 @@ describe("InitializationAnalyzer", () => {
         }
         void main() {
           Point a <- {x: 1, y: 2};
-          Point b;
+          mut Point b;
           b <- a;
           u32 v <- b.x;
           u32 w <- b.y;
@@ -710,8 +710,8 @@ describe("InitializationAnalyzer", () => {
     it("should handle deterministic for loop with pre-declared variable (forAssignment)", () => {
       const code = `
         void main() {
-          u32 sum;
-          u32 i <- 0;
+          mut u32 sum;
+          mut u32 i <- 0;
           for (i <- 0; i < 4; i <- i + 1) {
             sum <- 42;
           }
@@ -794,11 +794,11 @@ describe("InitializationAnalyzer", () => {
   describe("function call arguments", () => {
     it("should mark variables passed as function arguments as initialized", () => {
       const code = `
-        void fill(u32 result) {
+        void fill(mut u32 result) {
           result <- 42;
         }
         void main() {
-          u32 x;
+          mut u32 x;
           fill(x);
           u32 y <- x;
         }
@@ -931,7 +931,7 @@ describe("InitializationAnalyzer", () => {
     it("should handle scope member variables as globally initialized", () => {
       const code = `
         scope LED {
-          u32 brightness;
+          mut u32 brightness;
           public void on() {
             brightness <- 100;
           }
@@ -955,7 +955,7 @@ describe("InitializationAnalyzer", () => {
           u32 timeout;
         }
         scope System {
-          Config settings;
+          mut Config settings;
           public void init() {
             settings.timeout <- 100;
           }
@@ -1015,7 +1015,7 @@ describe("InitializationAnalyzer", () => {
     it("should not flag compound assignment on initialized variable", () => {
       const code = `
         void main() {
-          u32 sum <- 0;
+          mut u32 sum <- 0;
           sum +<- 5;
         }
       `;
@@ -1053,7 +1053,7 @@ describe("InitializationAnalyzer", () => {
           u32 y;
         }
         void main() {
-          Point p <- {x: 10, y: 20};
+          mut Point p <- {x: 10, y: 20};
           p.x +<- 5;
         }
       `;
@@ -1098,7 +1098,7 @@ describe("InitializationAnalyzer", () => {
     it("should not flag simple assignment on uninitialized variable", () => {
       const code = `
         void main() {
-          u32 x;
+          mut u32 x;
           x <- 5;
           u32 y <- x;
         }
@@ -1133,7 +1133,7 @@ describe("InitializationAnalyzer", () => {
     it("should not flag compound assignment on array element with initialized array", () => {
       const code = `
         void main() {
-          u32[4] arr <- [1, 2, 3, 4];
+          mut u32[4] arr <- [1, 2, 3, 4];
           arr[0] +<- 5;
         }
       `;
@@ -1208,7 +1208,7 @@ describe("InitializationAnalyzer", () => {
     it("should allow reading scope member assigned in another function", () => {
       const code = `
         scope S {
-          u32 value;
+          mut u32 value;
           public void init() { value <- 10; }
           public u32 get() { return value; }
         }
@@ -1250,9 +1250,9 @@ describe("InitializationAnalyzer", () => {
     it("should detect assignment in do-while body", () => {
       const code = `
         scope S {
-          u32 count;
+          mut u32 count;
           public void init() {
-            u32 i <- 0;
+            mut u32 i <- 0;
             do {
               count <- i;
               i <- i + 1;
@@ -1278,7 +1278,7 @@ describe("InitializationAnalyzer", () => {
     it("should detect assignment in if statement", () => {
       const code = `
         scope S {
-          u32 value;
+          mut u32 value;
           public void set(bool flag) {
             if (flag = true) {
               value <- 1;
@@ -1304,9 +1304,9 @@ describe("InitializationAnalyzer", () => {
     it("should detect assignment in for loop", () => {
       const code = `
         scope S {
-          u32 total;
+          mut u32 total;
           public void calc() {
-            for (u32 i <- 0; i < 5; i <- i + 1) {
+            for (mut u32 i <- 0; i < 5; i <- i + 1) {
               total <- i;
             }
           }
@@ -1330,7 +1330,7 @@ describe("InitializationAnalyzer", () => {
     it("should detect assignment via this.member", () => {
       const code = `
         scope S {
-          u32 data;
+          mut u32 data;
           public void set() { this.data <- 100; }
           public u32 get() { return data; }
         }
@@ -1350,7 +1350,7 @@ describe("InitializationAnalyzer", () => {
     it("should detect assignment in switch case", () => {
       const code = `
         scope S {
-          u32 result;
+          mut u32 result;
           public void choose(u32 opt) {
             switch (opt) {
               case 1 { result <- 10; }
@@ -1377,9 +1377,9 @@ describe("InitializationAnalyzer", () => {
     it("should detect assignment in while loop", () => {
       const code = `
         scope S {
-          u32 counter;
+          mut u32 counter;
           public void loop() {
-            u32 i <- 0;
+            mut u32 i <- 0;
             while (i < 3) {
               counter <- i;
               i <- i + 1;
@@ -1405,7 +1405,7 @@ describe("InitializationAnalyzer", () => {
     it("should detect assignment in switch default case", () => {
       const code = `
         scope S {
-          u32 result;
+          mut u32 result;
           public void choose(u32 opt) {
             switch (opt) {
               case 1 { result <- 10; }

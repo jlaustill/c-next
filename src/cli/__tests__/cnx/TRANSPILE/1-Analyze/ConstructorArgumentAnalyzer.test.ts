@@ -39,9 +39,7 @@ describe("ConstructorArgumentAnalyzer", () => {
   });
 
   it("accepts a const argument", () => {
-    expect(
-      errors("const u8 PIN <- 10;\nAdafruit_MAX31856 probe(PIN);"),
-    ).toEqual([]);
+    expect(errors("u8 PIN <- 10;\nAdafruit_MAX31856 probe(PIN);")).toEqual([]);
   });
 
   it("rejects an argument nothing declares", () => {
@@ -60,7 +58,7 @@ describe("ConstructorArgumentAnalyzer", () => {
     // question rather than two implementations.
     const source = [
       "scope Board {",
-      "    const u8 PIN <- 10;",
+      "    u8 PIN <- 10;",
       "    Adafruit_MAX31856 probe(PIN);",
       "}",
     ].join("\n");

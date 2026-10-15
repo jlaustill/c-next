@@ -36,7 +36,7 @@ describe("ArrayDeclarationAnalyzer", () => {
       // The control: without it, "resolves to nothing" would pass this suite
       // exactly as "resolves correctly" does.
       const found = errors(
-        "scope Small { private const u8 SIZE <- 2; public u8[SIZE] table <- [1, 2, 3]; }",
+        "scope Small { private u8 SIZE <- 2; public u8[SIZE] table <- [1, 2, 3]; }",
       );
       expect(found.map((e) => e.code)).toEqual(["E0866"]);
       expect(found[0].message).toContain("declared [2]");

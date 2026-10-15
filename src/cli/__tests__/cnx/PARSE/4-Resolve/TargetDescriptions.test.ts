@@ -144,14 +144,14 @@ describe("TargetDescriptions.catalog", () => {
     ],
     [
       "a constant of another type",
-      "const u8 TARGET_SCHEMA_VERSION <- 1;",
-      "const u8 TARGET_SCHEMA_VERSION <- 1;\nconst u8 EXTRA <- 2;",
+      "u8 TARGET_SCHEMA_VERSION <- 1;",
+      "u8 TARGET_SCHEMA_VERSION <- 1;\nu8 EXTRA <- 2;",
       /'EXTRA' is neither a TargetDescription nor a TargetAlias/,
     ],
     [
       "a function",
-      "const u8 TARGET_SCHEMA_VERSION <- 1;",
-      "const u8 TARGET_SCHEMA_VERSION <- 1;\nvoid f() { }",
+      "u8 TARGET_SCHEMA_VERSION <- 1;",
+      "u8 TARGET_SCHEMA_VERSION <- 1;\nvoid f() { }",
       /only structs and constants are allowed/,
     ],
   ])("refuses %s", (_why, from, to, message) => {

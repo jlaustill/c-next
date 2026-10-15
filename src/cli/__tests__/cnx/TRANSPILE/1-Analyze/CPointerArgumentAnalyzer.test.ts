@@ -55,7 +55,7 @@ describe("CPointerArgumentAnalyzer on 1.2's syntax (#1991)", () => {
   });
 
   it("rejects a const argument only where the C pointer is not const", () => {
-    expect(at(["const u8 c <- 1;", "take(c);", "peek(c);"])).toEqual([
+    expect(at(["u8 c <- 1;", "take(c);", "peek(c);"])).toEqual([
       "E0895@3:9 'c' is const uint8_t, and parameter 1 of 'take' is a pointer 'take' may write through",
       "E0896@4:9 C-Next cannot see how 'peek' uses parameter 1, so passing 'c' to it is not memory safe",
     ]);

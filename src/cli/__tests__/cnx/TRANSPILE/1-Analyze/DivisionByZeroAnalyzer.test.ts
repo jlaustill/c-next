@@ -119,7 +119,7 @@ describe("DivisionByZeroAnalyzer", () => {
   describe("const zero detection", () => {
     it("should detect division by const zero variable", () => {
       const code = `
-        const u32 ZERO <- 0;
+        u32 ZERO <- 0;
         void main() {
           u32 x <- 10 / ZERO;
         }
@@ -136,7 +136,7 @@ describe("DivisionByZeroAnalyzer", () => {
 
     it("should detect modulo by const zero variable", () => {
       const code = `
-        const u32 ZERO <- 0;
+        u32 ZERO <- 0;
         void main() {
           u32 x <- 10 % ZERO;
         }
@@ -153,7 +153,7 @@ describe("DivisionByZeroAnalyzer", () => {
 
     it("should not flag division by non-zero const", () => {
       const code = `
-        const u32 DIVISOR <- 5;
+        u32 DIVISOR <- 5;
         void main() {
           u32 x <- 10 / DIVISOR;
         }
@@ -171,78 +171,78 @@ describe("DivisionByZeroAnalyzer", () => {
     it.each([
       [
         "a const folded from an expression",
-        "const u32 V <- 5 - 5;\nvoid main() {\n  u32 x <- 10 / V;\n}",
+        "u32 V <- 5 - 5;\nvoid main() {\n  u32 x <- 10 / V;\n}",
         1,
       ],
       [
         "a local zero does not reach another function's global",
-        "const u32 D <- 4;\nvoid first() {\n  const u32 D <- 0;\n  u32 y <- D;\n}\nvoid second() {\n  u32 x <- 10 / D;\n}",
+        "u32 D <- 4;\nvoid first() {\n  u32 D <- 0;\n  u32 y <- D;\n}\nvoid second() {\n  u32 x <- 10 / D;\n}",
         0,
       ],
       [
         "an inner block's zero does not outlive the block",
-        "const u32 D <- 4;\nvoid main() {\n  u32 y <- 0;\n  {\n    const u32 D <- 0;\n    y <- D;\n  }\n  u32 x <- 10 / D;\n}",
+        "u32 D <- 4;\nvoid main() {\n  mut u32 y <- 0;\n  {\n    u32 D <- 0;\n    y <- D;\n  }\n  u32 x <- 10 / D;\n}",
         0,
       ],
       [
         "a float const zero (#1010)",
-        "const f32 Z <- 0.0;\nvoid main() {\n  f32 x <- 10.0 / Z;\n}",
+        "f32 Z <- 0.0;\nvoid main() {\n  f32 x <- 10.0 / Z;\n}",
         1,
       ],
       [
         "a suffixed const zero",
-        "const u32 Z <- 0u32;\nvoid main() {\n  u32 x <- 10 / Z;\n}",
+        "u32 Z <- 0u32;\nvoid main() {\n  u32 x <- 10 / Z;\n}",
         1,
       ],
       [
         "a local zero is zero where it is visible",
-        "const u32 D <- 4;\nvoid main() {\n  const u32 D <- 0;\n  u32 x <- 10 / D;\n}",
+        "u32 D <- 4;\nvoid main() {\n  u32 D <- 0;\n  u32 x <- 10 / D;\n}",
         1,
       ],
       // #1268: every spelling of a name binds where the bare one does
       [
         "a this.-qualified const zero",
-        "scope S {\n  const u32 Z <- 0;\n  public u32 go(u32 n) {\n    return n / this.Z;\n  }\n}",
+        "scope S {\n  u32 Z <- 0;\n  public u32 go(u32 n) {\n    return n / this.Z;\n  }\n}",
         1,
       ],
       [
         "a global.-qualified const zero",
-        "const u32 Z <- 0;\nscope S {\n  public u32 go(u32 n) {\n    return n % global.Z;\n  }\n}",
+        "u32 Z <- 0;\nscope S {\n  public u32 go(u32 n) {\n    return n % global.Z;\n  }\n}",
         1,
       ],
       [
         "a Scope.-qualified const zero",
-        "scope S {\n  public const u32 Z <- 0;\n}\nu32 go(u32 n) {\n  return n / S.Z;\n}",
+        "scope S {\n  public u32 Z <- 0;\n}\nu32 go(u32 n) {\n  return n / S.Z;\n}",
         1,
       ],
       [
         "a global.Scope.-qualified const zero",
-        "scope S {\n  public const u32 Z <- 0;\n}\nu32 go(u32 n) {\n  return n / global.S.Z;\n}",
+        "scope S {\n  public u32 Z <- 0;\n}\nu32 go(u32 n) {\n  return n / global.S.Z;\n}",
         1,
       ],
       [
         "a this.-qualified float const zero",
-        "scope S {\n  const f32 Z <- 0.0;\n  public f32 go(f32 k) {\n    return k / this.Z;\n  }\n}",
+        "scope S {\n  f32 Z <- 0.0;\n  public f32 go(f32 k) {\n    return k / this.Z;\n  }\n}",
         1,
       ],
       [
         "a Scope.-qualified float const zero",
-        "scope S {\n  public const f32 Z <- 0.0;\n}\nf32 go(f32 k) {\n  return k / S.Z;\n}",
+        "scope S {\n  public f32 Z <- 0.0;\n}\nf32 go(f32 k) {\n  return k / S.Z;\n}",
         1,
       ],
       [
         "global. names the file's nonzero const, not the scope's zero",
-        "const u32 Z <- 7;\nscope S {\n  const u32 Z <- 0;\n  public u32 go(u32 n) {\n    return n / global.Z;\n  }\n}",
+        "u32 Z <- 7;\nscope S {\n  u32 Z <- 0;\n  public u32 go(u32 n) {\n    return n / global.Z;\n  }\n}",
         0,
       ],
       [
         "this. names the scope's nonzero const, not the file's zero",
-        "const u32 Z <- 0;\nscope S {\n  const u32 Z <- 7;\n  public u32 go(u32 n) {\n    return n / this.Z;\n  }\n}",
+        "u32 Z <- 0;\nscope S {\n  u32 Z <- 7;\n  public u32 go(u32 n) {\n    return n / this.Z;\n  }\n}",
         0,
       ],
       [
         "a qualified float const that is not zero",
-        "scope S {\n  public const f32 Z <- 0.5;\n}\nf32 go(f32 k) {\n  return k / S.Z;\n}",
+        "scope S {\n  public f32 Z <- 0.5;\n}\nf32 go(f32 k) {\n  return k / S.Z;\n}",
         0,
       ],
     ])("%s", (_why, code, expected) => {
@@ -496,7 +496,7 @@ describe("DivisionByZeroAnalyzer", () => {
   describe("help outside a statement", () => {
     it.each([
       ["an array dimension", "u8[4 / (2 - 2)] buf;\n          buf[0] <- 1;"],
-      ["a const's initializer", "const u32 X <- 10 / (2 - 2);"],
+      ["a const's initializer", "u32 X <- 10 / (2 - 2);"],
       ["an array type's dimension", "u8[4 / (2 - 2)] buf <- [0*];"],
     ])(
       "says the divisor must not be zero in %s in a function",
@@ -630,7 +630,7 @@ describe("DivisionByZeroAnalyzer: compile-time contexts in a body", () => {
   it.each([
     ["a local's trailing dimension", "    u8 buffer[8 / 0];"],
     ["a local's array type", "    u8[8 / 0] buffer;"],
-    ["a const local's value", "    const u32 k <- 8 / 0;"],
+    ["a const local's value", "    u32 k <- 8 / 0;"],
   ])("%s is not a safe_div site", (_why, line) => {
     const { syntax, context } = testAnalysisContextFor(
       `void main() {\n${line}\n}`,

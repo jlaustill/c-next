@@ -87,7 +87,7 @@ describe("EnumTypeSafetyAnalyzer", () => {
       // One mistake must not yield two diagnostics.
       expect(
         errors(
-          "enum State { IDLE }\nvoid main() {\n    State s <- State.IDLE;\n    s +<- 1;\n}",
+          "enum State { IDLE }\nvoid main() {\n    mut State s <- State.IDLE;\n    s +<- 1;\n}",
         ).filter((e) => e.code === "E0428"),
       ).toEqual([]);
     });

@@ -106,7 +106,7 @@ describe("LoopAnalyzer", () => {
       // Always-false, a named constant, a compound condition, a float, and a
       // leading-zero (octal to C) integer: the literal slice stays silent.
       const source = [
-        "const u8 ONE <- 1;",
+        "u8 ONE <- 1;",
         "void run() {",
         "    u8 state <- 0;",
         "    while (1 = 2) {",

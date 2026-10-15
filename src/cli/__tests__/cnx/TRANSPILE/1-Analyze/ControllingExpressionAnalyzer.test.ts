@@ -242,7 +242,7 @@ describe("ControllingExpressionAnalyzer", () => {
       // A rule that invented one would reject the language's own idiom.
       expect(
         errors(
-          "u32 n <- 1;\nvoid t() {\n    forever {\n        n <- 1;\n    }\n}",
+          "mut u32 n <- 1;\nvoid t() {\n    forever {\n        n <- 1;\n    }\n}",
         ),
       ).toEqual([]);
     });

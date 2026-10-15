@@ -129,7 +129,7 @@ describe("PlanTyping.overflowOf (ADR-044)", () => {
   it("counts a `for` variable by its declaration (#1667)", () => {
     expect(
       overflowOf(
-        "void main() {\nfor (u32 i <- 0; i < 3; i +<- 1) {\nu32 r <- i + 1;\n}\n}",
+        "void main() {\nfor (mut u32 i <- 0; i < 3; i +<- 1) {\nu32 r <- i + 1;\n}\n}",
       ),
     ).toBe("clamp");
   });

@@ -143,7 +143,7 @@ describe("TypeDeclarationAnalyzer", () => {
     it("folds a const declared in an included file", () => {
       expect(
         codes('#include "lib.cnx"\nenum E {\n    A <- BASE + 1\n}\n', {
-          "lib.cnx": "const u32 BASE <- 4;\n",
+          "lib.cnx": "u32 BASE <- 4;\n",
         }),
       ).toEqual([]);
     });

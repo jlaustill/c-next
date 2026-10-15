@@ -20,7 +20,7 @@ async function generate(source: string): Promise<string> {
 describe("2.2 plans every clamp helper 2.3 calls", () => {
   it("a clamp chain calls one helper per operator, in order", async () => {
     const code = await generate(
-      "clamp u8 a <- 1;\nclamp u8 b <- 2;\nclamp u8 r;\nvoid f() { r <- a + b - a; }\n",
+      "clamp u8 a <- 1;\nclamp u8 b <- 2;\nmut clamp u8 r;\nvoid f() { r <- a + b - a; }\n",
     );
     expect(code).toContain("r = cnx_clamp_sub_u8(cnx_clamp_add_u8(a, b), a);");
     expect(code).toContain("static inline uint8_t cnx_clamp_add_u8(");
@@ -29,20 +29,22 @@ describe("2.2 plans every clamp helper 2.3 calls", () => {
 
   it("a chain with an operator that has no helper stays plain C", async () => {
     const code = await generate(
-      "clamp u8 a <- 1;\nclamp u8 b <- 2;\nclamp u8 r;\nvoid f() { r <- a * b / a; }\n",
+      "clamp u8 a <- 1;\nclamp u8 b <- 2;\nmut clamp u8 r;\nvoid f() { r <- a * b / a; }\n",
     );
     expect(code).not.toContain("cnx_clamp_");
   });
 
   it("a compound write to a clamp target calls its helper", async () => {
-    const code = await generate("clamp u16 c <- 0;\nvoid f() { c *<- 3; }\n");
+    const code = await generate(
+      "mut clamp u16 c <- 0;\nvoid f() { c *<- 3; }\n",
+    );
     expect(code).toContain("c = cnx_clamp_mul_u16(c, 3");
     expect(code).toContain("static inline uint16_t cnx_clamp_mul_u16(");
   });
 
   it("a compound write to a struct field calls its helper", async () => {
     const code = await generate(
-      "struct S { clamp i16 v; }\nS s;\nvoid f() { s.v -<- 3; }\n",
+      "struct S { clamp i16 v; }\nmut S s;\nvoid f() { s.v -<- 3; }\n",
     );
     expect(code).toContain("s.v = cnx_clamp_sub_i16(s.v, 3");
     expect(code).toContain("static inline int16_t cnx_clamp_sub_i16(");
@@ -50,7 +52,7 @@ describe("2.2 plans every clamp helper 2.3 calls", () => {
 
   it("a wrap target calls no helper", async () => {
     const code = await generate(
-      "wrap u8 c <- 0;\nwrap u8 d <- 0;\nvoid f() { c +<- 1; d <- c + d; }\n",
+      "mut wrap u8 c <- 0;\nmut wrap u8 d <- 0;\nvoid f() { c +<- 1; d <- c + d; }\n",
     );
     expect(code).not.toContain("cnx_clamp_");
   });

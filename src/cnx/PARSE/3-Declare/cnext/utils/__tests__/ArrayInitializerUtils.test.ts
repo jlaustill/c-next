@@ -57,7 +57,7 @@ describe("ArrayInitializerUtils", () => {
     it("handles const struct array initializer (issue #636)", () => {
       const source = `
 struct TItem { u32 id; u16 value; }
-const TItem ITEMS[] <- [{ id: 1, value: 100 }, { id: 2, value: 200 }, { id: 3, value: 300 }];
+TItem ITEMS[] <- [{ id: 1, value: 100 }, { id: 2, value: 200 }, { id: 3, value: 300 }];
 `;
       expect(
         ArrayInitializerUtils.getInferredSize(initializerOf(source, 1)),

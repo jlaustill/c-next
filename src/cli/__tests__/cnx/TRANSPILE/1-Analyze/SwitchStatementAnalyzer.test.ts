@@ -134,9 +134,9 @@ describe("SwitchStatementAnalyzer", () => {
   describe("rooted labels (#1629)", () => {
     const labels = (a: string, b: string) =>
       [
-        "const u8 LIMIT <- 1;",
+        "u8 LIMIT <- 1;",
         "scope Panel {",
-        "    const u8 LIMIT <- 3;",
+        "    u8 LIMIT <- 3;",
         "    public u32 pick(u8 s) {",
         "        switch (s) {",
         `            case ${a} { return 1; }`,
@@ -318,19 +318,19 @@ describe("SwitchStatementAnalyzer", () => {
       errors(
         [
           "u8 counter <- 2;",
-          "const u8 REAL <- 1;",
+          "u8 REAL <- 1;",
           "enum EMode { IDLE, RUN }",
           "struct Pt { u8 x; }",
           "scope Panel {",
           "    u8 level <- 1;",
-          "    const u8 OWN <- 3;",
+          "    u8 OWN <- 3;",
           '    public const string<4> S <- "ab";',
           "    public enum State { STOPPED, GOING }",
           "    bitmap8 Flags { a, b, c, d, e, f, g, h }",
           "    public u8 helper() { return 1; }",
           "    public u32 pick(u8 s, u8 p) {",
-          "        const u8 K <- 5;",
-          '        const string<4> L <- "x";',
+          "        u8 K <- 5;",
+          '        string<4> L <- "x";',
           "        switch (s) {",
           `            case ${label} { return 1; }`,
           "            default { return 0; }",

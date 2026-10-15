@@ -32,7 +32,7 @@ describe("ModificationCollector", () => {
 
   it("records a write to a parameter nested in other statements", () => {
     const code = `
-      void f(u32 a, u32 b) {
+      void f(mut u32 a, mut u32 b) {
         while (b > 0) {
           if (b = 1) { a <- 2; }
           b -<- 1;
@@ -44,7 +44,7 @@ describe("ModificationCollector", () => {
 
   it("does not record a `global.` write to a same-spelled name (#1290)", () => {
     const code = `
-      u32 a <- 0;
+      mut u32 a <- 0;
       void f(u32 a) { global.a <- 2; }
     `;
     expect(modified(code, "f")).toEqual([]);
@@ -66,7 +66,7 @@ describe("ModificationCollector", () => {
     const code = `
       u32 g(u32 x) { return x; }
       void f(u32 a) {
-        for (u32 i <- 0; i < 3; i <- g(a)) { }
+        for (mut u32 i <- 0; i < 3; i <- g(a)) { }
       }
     `;
     expect(calls(code, "f").map((c) => c.callee)).toEqual(["g"]);
@@ -75,11 +75,11 @@ describe("ModificationCollector", () => {
   it("records scope-qualified, this- and cast-wrapped calls by C name", () => {
     const code = `
       scope S {
-        public void set(u32 x) { x <- 1; }
-        public void viaThis(u32 a) { this.set(a); }
+        public void set(mut u32 x) { x <- 1; }
+        public void viaThis(mut u32 a) { this.set(a); }
       }
-      void viaScope(u32 a) { S.set(a); }
-      void viaCast(u32 a) { (void) S.set(a); }
+      void viaScope(mut u32 a) { S.set(a); }
+      void viaCast(mut u32 a) { (void) S.set(a); }
     `;
     expect(calls(code, "S__viaThis").map((c) => c.callee)).toEqual(["S__set"]);
     expect(calls(code, "viaScope")).toEqual([

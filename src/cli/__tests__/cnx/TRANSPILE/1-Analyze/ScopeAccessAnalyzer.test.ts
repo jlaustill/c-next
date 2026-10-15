@@ -100,7 +100,7 @@ describe("ScopeAccessAnalyzer", () => {
     it("rejects a register shadowed by a LOCAL variable", () => {
       const [found] = errors(
         GPIO +
-          "scope M {\n    void t() {\n        u32 GPIO <- 1;\n        GPIO.DR <- 1;\n    }\n}",
+          "scope M {\n    void t() {\n        mut u32 GPIO <- 1;\n        GPIO.DR <- 1;\n    }\n}",
       );
       expect(found.code).toBe("E0437");
       expect(found.message).toContain("local variable");
@@ -123,7 +123,7 @@ describe("ScopeAccessAnalyzer", () => {
       expect(
         errors(
           GPIO +
-            "u32 main() {\n    u32 GPIO <- 1;\n    GPIO.DR <- 1;\n    return 0;\n}",
+            "u32 main() {\n    mut u32 GPIO <- 1;\n    GPIO.DR <- 1;\n    return 0;\n}",
         ),
       ).toEqual([]);
     });

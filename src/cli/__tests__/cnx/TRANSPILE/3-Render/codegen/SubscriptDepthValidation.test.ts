@@ -26,7 +26,7 @@ const withGlobals = (body: string): string =>
 const REJECTED = [
   {
     name: "a second subscript on a scalar (write)",
-    source: "u8 flags <- 0;\nvoid t() { flags[4][3] <- 5; }",
+    source: "mut u8 flags <- 0;\nvoid t() { flags[4][3] <- 5; }",
   },
   {
     name: "a second subscript on a scalar (read)",
@@ -54,16 +54,16 @@ const ACCEPTED = [
   {
     name: "a bit index on an array element: buffer[i][bit]",
     source:
-      "u8[16] buffer;\nvoid t() { buffer[2][3] <- true; bool b <- buffer[2][3]; }",
+      "mut u8[16] buffer;\nvoid t() { buffer[2][3] <- true; bool b <- buffer[2][3]; }",
   },
   {
     name: "a bit range on a scalar: flags[start, width]",
-    source: "u8 flags <- 0;\nvoid t() { flags[4, 3] <- 5; }",
+    source: "mut u8 flags <- 0;\nvoid t() { flags[4, 3] <- 5; }",
   },
   {
     name: "a plain bit index on a scalar: flags[bit]",
     source:
-      "u8 flags <- 0;\nvoid t() { flags[3] <- true; bool b <- flags[3]; }",
+      "mut u8 flags <- 0;\nvoid t() { flags[3] <- true; bool b <- flags[3]; }",
   },
   {
     name: "a bit range on a this. scalar",

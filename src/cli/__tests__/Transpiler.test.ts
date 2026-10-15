@@ -245,7 +245,7 @@ describe("Transpiler", () => {
             kind: "source",
             source: `
           void test() {
-            u32 x;
+            mut u32 x;
             x <- 42;
           }
         `,

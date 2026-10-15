@@ -286,9 +286,9 @@ describe("MixedTypeCategoryAnalyzer", () => {
       const errors = analyze(`
         void main() {
           u32 i <- 1;
-          u32 a <- 2;
+          mut u32 a <- 2;
           u32 r <- i + a;
-          for (i32 i <- 0; i < 4; i <- i + 1) {
+          for (mut i32 i <- 0; i < 4; i <- i + 1) {
             a <- a + 1;
           }
         }

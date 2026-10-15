@@ -639,8 +639,8 @@ describe("Transpiler coverage tests", () => {
       mockFs.addFile(
         "/project/src/main.cnx",
         `
-        const u8 SIZE <- 10;
-        u8[SIZE] buffer;
+        u8 SIZE <- 10;
+        mut u8[SIZE] buffer;
         void main() { buffer[0] <- 1; }
       `,
       );

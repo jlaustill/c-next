@@ -50,7 +50,7 @@ describe("ExpressionWalker - collectExpressionsFromStatement", () => {
     it("should collect expression from assignmentStatement", () => {
       const source = `
         u32 getValue() { return 1; }
-        u32 x;
+        mut u32 x;
         void main() {
           x <- getValue();
         }
@@ -131,7 +131,7 @@ describe("ExpressionWalker - collectExpressionsFromStatement", () => {
     it("should collect all expressions from forStatement with assignment init", () => {
       const source = `
         u32 getStart() { return 0; }
-        u32 i;
+        mut u32 i;
         void main() {
           for (i <- getStart(); i < 10; i <- i + 1) { }
         }
@@ -227,7 +227,7 @@ describe("ExpressionWalker - getChildStatements", () => {
       const source = `
         void foo() { }
         void main() {
-          for (u32 i <- 0; i < 10; i <- i + 1) {
+          for (mut u32 i <- 0; i < 10; i <- i + 1) {
             foo();
           }
         }
@@ -297,18 +297,18 @@ describe("ExpressionWalker - const inference integration", () => {
   it("should detect modification through function call in assignment RHS", async () => {
     // This was the bug in issue #565
     const source = `
-      void modifyParam(u32 param) {
+      void modifyParam(mut u32 param) {
         param <- 42;
       }
 
-      u32 result;
+      mut u32 result;
 
-      void caller(u32 x) {
+      void caller(mut u32 x) {
         result <- modifyParam(x);
       }
 
       void main() {
-        u32 val <- 1;
+        mut u32 val <- 1;
         caller(val);
       }
     `;
@@ -327,21 +327,21 @@ describe("ExpressionWalker - const inference integration", () => {
 
   it("should detect modification through function call in for-loop init", async () => {
     const source = `
-      void modifyParam(u32 param) {
+      void modifyParam(mut u32 param) {
         param <- 42;
       }
 
-      u32 getInitAndModify(u32 p) {
+      u32 getInitAndModify(mut u32 p) {
         modifyParam(p);
         return 0;
       }
 
-      void caller(u32 x) {
-        for (u32 i <- getInitAndModify(x); i < 10; i <- i + 1) { }
+      void caller(mut u32 x) {
+        for (mut u32 i <- getInitAndModify(x); i < 10; i <- i + 1) { }
       }
 
       void main() {
-        u32 val <- 1;
+        mut u32 val <- 1;
         caller(val);
       }
     `;
@@ -359,21 +359,21 @@ describe("ExpressionWalker - const inference integration", () => {
 
   it("should detect modification through function call in for-loop update", async () => {
     const source = `
-      void modifyParam(u32 param) {
+      void modifyParam(mut u32 param) {
         param <- 42;
       }
 
-      u32 getNextAndModify(u32 p) {
+      u32 getNextAndModify(mut u32 p) {
         modifyParam(p);
         return p + 1;
       }
 
-      void caller(u32 x) {
-        for (u32 i <- 0; i < 10; i <- getNextAndModify(x)) { }
+      void caller(mut u32 x) {
+        for (mut u32 i <- 0; i < 10; i <- getNextAndModify(x)) { }
       }
 
       void main() {
-        u32 val <- 1;
+        mut u32 val <- 1;
         caller(val);
       }
     `;

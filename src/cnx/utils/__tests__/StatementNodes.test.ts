@@ -10,7 +10,7 @@ const kinds = (source: string): string[] =>
 describe("StatementNodes", () => {
   it("lists every assignment site, a for loop's init and update included", () => {
     const sites = CNextSourceParser.parse(
-      `void f() { u8 a <- 0; for (a <- 1; a < 3; a +<- 1) { a -<- 0; } }`,
+      `void f() { mut u8 a <- 0; for (a <- 1; a < 3; a +<- 1) { a -<- 0; } }`,
     ).program.declarations.flatMap((member) =>
       StatementNodes.assignments(member.declaration).map((s) => s.operator),
     );
@@ -20,7 +20,7 @@ describe("StatementNodes", () => {
   it("reaches nested statements in source order", () => {
     expect(
       kinds(
-        `void f() { u8 a <- 1; if (a = 1) { a <- 2; } while (a < 3) { a +<- 1; } }`,
+        `void f() { mut u8 a <- 1; if (a = 1) { a <- 2; } while (a < 3) { a +<- 1; } }`,
       ),
     ).toEqual([
       "variableDeclaration",
@@ -34,16 +34,16 @@ describe("StatementNodes", () => {
   });
 
   it("includes a for loop's init", () => {
-    expect(kinds(`void f() { for (u8 i <- 0; i < 3; i +<- 1) { } }`)).toEqual([
-      "for",
-      "variableDeclaration",
-      "block",
-    ]);
+    expect(
+      kinds(`void f() { for (mut u8 i <- 0; i < 3; i +<- 1) { } }`),
+    ).toEqual(["for", "variableDeclaration", "block"]);
   });
 
   it("reaches functions inside a scope, and nothing outside a body", () => {
     expect(
-      kinds(`u8 g <- 1; scope S { u8 m <- 2; public void f() { g <- 3; } }`),
+      kinds(
+        `mut u8 g <- 1; scope S { u8 m <- 2; public void f() { g <- 3; } }`,
+      ),
     ).toEqual(["assignment"]);
   });
 });

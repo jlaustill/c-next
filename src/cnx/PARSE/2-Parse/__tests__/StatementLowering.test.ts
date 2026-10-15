@@ -50,7 +50,7 @@ describe("StatementLowering", () => {
   });
 
   it("records a declaration's modifiers, name, dimensions and initializer", () => {
-    const decl = only("atomic const clamp u8 buf[4][] <- [1, 2];");
+    const decl = only("atomic clamp u8 buf[4][] <- [1, 2];");
     expect(decl).toMatchObject({
       kind: "variableDeclaration",
       modifiers: {

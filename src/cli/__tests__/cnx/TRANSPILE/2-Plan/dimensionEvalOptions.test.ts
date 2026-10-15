@@ -40,9 +40,9 @@ function setUp(source: string): {
   return { state, arrays };
 }
 
-const SHADOWED = `const u32 N <- 8;
+const SHADOWED = `u32 N <- 8;
 u32 first() {
-    const u32 N <- 2;
+    u32 N <- 2;
     u8[N] near;
     return N;
 }
@@ -51,9 +51,9 @@ u32 second() {
     return N;
 }
 u32 third() {
-    u32 x <- 0;
+    mut u32 x <- 0;
     {
-        const u32 N <- 3;
+        u32 N <- 3;
         x <- N;
     }
     u8[N] after;

@@ -122,20 +122,20 @@ describe("UndeclaredValueAnalyzer", () => {
     });
 
     it.each([
-      ["a local", `u32 main() { u32 here <- 0; here <- 1; return 0; }`],
+      ["a local", `u32 main() { mut u32 here <- 0; here <- 1; return 0; }`],
       [
         "a file-scope variable named bare",
-        `u32 shared <- 0;
+        `mut u32 shared <- 0;
          u32 main() { shared <- 1; return 0; }`,
       ],
       [
         "a file-scope variable named through `global.`",
-        `u32 shared <- 0;
+        `mut u32 shared <- 0;
          u32 main() { global.shared <- 1; return 0; }`,
       ],
       [
         "a scope member named through `this.`",
-        `scope Motor { u32 speed <- 0;
+        `scope Motor { mut u32 speed <- 0;
            public u32 spin() { this.speed <- 1; return 0; } }`,
       ],
     ])("accepts %s", (_label, source) => {

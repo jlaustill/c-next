@@ -41,19 +41,19 @@ const CASES: readonly ICase[] = [
   },
   {
     name: "signed-only clamp (the #1141 over-firing case)",
-    source: `u32 main() { clamp i32 v <- 1; v +<- 1; if (v != 2) { return 1; } return 0; }`,
+    source: `u32 main() { mut clamp i32 v <- 1; v +<- 1; if (v != 2) { return 1; } return 0; }`,
   },
   {
     name: "unsigned clamp",
-    source: `u32 main() { clamp u8 v <- 250; v +<- 10; if (v != 255) { return 1; } return 0; }`,
+    source: `u32 main() { mut clamp u8 v <- 250; v +<- 10; if (v != 255) { return 1; } return 0; }`,
   },
   {
     name: "critical block",
-    source: `u32 c <- 0;\nvoid bump() { critical { c <- c + 1; } }\nu32 main() { bump(); return 0; }`,
+    source: `mut u32 c <- 0;\nvoid bump() { critical { c <- c + 1; } }\nu32 main() { bump(); return 0; }`,
   },
   {
     name: "atomic read-modify-write, no critical block",
-    source: `atomic u32 n <- 0;\nvoid main() { n +<- 1; }`,
+    source: `atomic mut u32 n <- 0;\nvoid main() { n +<- 1; }`,
   },
   {
     name: "float bit indexing",
@@ -159,7 +159,7 @@ describe("generated file banner", () => {
 
   it("states the cost, so the requirement travels with the artifact", async () => {
     const { text } = await generate(
-      `u32 c <- 0;\nvoid bump() { critical { c <- c + 1; } }\nu32 main() { bump(); return 0; }`,
+      `mut u32 c <- 0;\nvoid bump() { critical { c <- c + 1; } }\nu32 main() { bump(); return 0; }`,
       "c",
     );
     expect(text).toContain(" * Requires: C99.");

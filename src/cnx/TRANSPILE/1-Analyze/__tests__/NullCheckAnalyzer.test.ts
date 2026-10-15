@@ -694,7 +694,7 @@ describe("NullCheckAnalyzer", () => {
     it("should handle while without null check condition", () => {
       const code = `
         void main() {
-          u32 i <- 0;
+          mut u32 i <- 0;
           while (i < 10) {
             i <- i + 1;
           }
@@ -818,7 +818,7 @@ describe("NullCheckAnalyzer", () => {
     it("should handle nested if without null check", () => {
       const code = `
         void main() {
-          u32 x <- 5;
+          mut u32 x <- 5;
           if (x > 3) {
             if (x < 10) {
               x <- x + 1;

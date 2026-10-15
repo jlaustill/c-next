@@ -248,7 +248,7 @@ u32 main() { return 0; }
       const { code } = await transpileSource(
         `
 struct Point { i32 x; }
-const Point ORIGIN <- {x: 0};
+Point ORIGIN <- {x: 0};
 `,
         "consts.cnx",
       );
@@ -259,7 +259,7 @@ const Point ORIGIN <- {x: 0};
       const { code } = await transpileSource(
         `
 struct Point { i32 x; }
-const Point ORIGIN <- {x: 0};
+Point ORIGIN <- {x: 0};
 `,
         "consts.cnx",
       );
@@ -338,7 +338,7 @@ const Point ORIGIN <- {x: 0};
       },
       {
         name: "struct and const, no scope",
-        source: "struct Point { i32 x; }\nconst Point ORIGIN <- {x: 0};",
+        source: "struct Point { i32 x; }\nPoint ORIGIN <- {x: 0};",
       },
       { name: "enum only", source: "enum EColor { RED, GREEN }" },
       {

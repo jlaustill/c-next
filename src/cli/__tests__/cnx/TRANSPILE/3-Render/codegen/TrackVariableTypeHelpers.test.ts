@@ -31,7 +31,7 @@ describe("trackVariableTypeWithName helpers", () => {
   describe("extractArrayDimensionsSimple", () => {
     it("handles string array with single dimension", async () => {
       const source = `
-        string<32>[4] messages;
+        mut string<32>[4] messages;
         void main() {
           messages[0] <- "Hello";
         }
@@ -43,7 +43,7 @@ describe("trackVariableTypeWithName helpers", () => {
 
     it("handles string array with multiple dimensions", async () => {
       const source = `
-        string<16>[2][3] grid;
+        mut string<16>[2][3] grid;
         void main() {
           grid[0][0] <- "test";
         }
@@ -55,7 +55,7 @@ describe("trackVariableTypeWithName helpers", () => {
 
     it("handles string without array dimensions", async () => {
       const source = `
-        string<64> message;
+        mut string<64> message;
         void main() {
           message <- "Hello";
         }
@@ -69,7 +69,7 @@ describe("trackVariableTypeWithName helpers", () => {
   describe("tryRegisterStringType", () => {
     it("registers string type with correct capacity", async () => {
       const source = `
-        string<100> buffer;
+        mut string<100> buffer;
         void main() {
           buffer <- "test";
         }
@@ -81,7 +81,7 @@ describe("trackVariableTypeWithName helpers", () => {
 
     it("registers const string type", async () => {
       const source = `
-        const string<32> greeting <- "Hello";
+        string<32> greeting <- "Hello";
         void main() {
           return;
         }
@@ -92,8 +92,8 @@ describe("trackVariableTypeWithName helpers", () => {
 
     it("enables string helpers when string type is used", async () => {
       const source = `
-        string<32> a;
-        string<32> b;
+        mut string<32> a;
+        mut string<32> b;
         void main() {
           a <- "Hello";
           b <- a;
@@ -109,7 +109,7 @@ describe("trackVariableTypeWithName helpers", () => {
   describe("resolveBaseTypeFromContext", () => {
     it("resolves primitive types", async () => {
       const source = `
-        u32 counter;
+        mut u32 counter;
         void main() {
           counter <- 42;
         }
@@ -122,7 +122,7 @@ describe("trackVariableTypeWithName helpers", () => {
       const source = `
         scope Motor {
           enum State { OFF, ON }
-          this.State currentState;
+          mut this.State currentState;
 
           public void setState(this.State newState) {
             currentState <- newState;
@@ -143,7 +143,7 @@ describe("trackVariableTypeWithName helpers", () => {
         enum Status { OK, ERROR }
 
         scope Handler {
-          global.Status result;
+          mut global.Status result;
 
           public void setResult(global.Status s) {
             result <- s;
@@ -165,7 +165,7 @@ describe("trackVariableTypeWithName helpers", () => {
           public enum State { OFF, ON }
         }
 
-        Motor.State globalMotorState;
+        mut Motor.State globalMotorState;
 
         void main() {
           globalMotorState <- Motor__State.OFF;
@@ -183,7 +183,7 @@ describe("trackVariableTypeWithName helpers", () => {
           i32 y;
         }
 
-        Point origin;
+        mut Point origin;
 
         void main() {
           origin.x <- 0;
@@ -198,7 +198,7 @@ describe("trackVariableTypeWithName helpers", () => {
   describe("trackVariableTypeWithName integration", () => {
     it("handles array type syntax", async () => {
       const source = `
-        u8[10] buffer;
+        mut u8[10] buffer;
         void main() {
           buffer[0] <- 255;
         }
@@ -210,7 +210,7 @@ describe("trackVariableTypeWithName helpers", () => {
     it("handles enum type registration", async () => {
       const source = `
         enum Color { RED, GREEN, BLUE }
-        Color selected;
+        mut Color selected;
 
         void main() {
           selected <- Color.GREEN;
@@ -233,7 +233,7 @@ describe("trackVariableTypeWithName helpers", () => {
           reserved3,
           reserved4
         }
-        Flags settings;
+        mut Flags settings;
 
         void main() {
           settings.enabled <- 1;
@@ -245,7 +245,7 @@ describe("trackVariableTypeWithName helpers", () => {
 
     it("handles atomic string type", async () => {
       const source = `
-        atomic string<64> sharedMessage;
+        atomic mut string<64> sharedMessage;
 
         void main() {
           sharedMessage <- "Hello";
@@ -258,7 +258,7 @@ describe("trackVariableTypeWithName helpers", () => {
 
     it("handles wrap overflow behavior", async () => {
       const source = `
-        wrap u8 counter;
+        mut wrap u8 counter;
 
         void main() {
           counter <- 255;

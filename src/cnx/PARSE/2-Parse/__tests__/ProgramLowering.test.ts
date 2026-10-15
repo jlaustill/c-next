@@ -20,7 +20,7 @@ describe("ProgramLowering", () => {
       struct Point { i32 x; u8 tags[4]; }
       enum Color { RED, GREEN }
       bitmap8 Flags { a, b[7] }
-      u32 add(const u32 a, u8 buf[]) { return a; }
+      u32 add(u32 a, u8 buf[]) { return a; }
       u32 total <- 0;
       Widget w(total);
     `);
@@ -45,7 +45,7 @@ describe("ProgramLowering", () => {
       struct Point { i32 x; u8 tags[4]; }
       enum Color { RED, GREEN }
       bitmap8 Flags { a, b[7] }
-      u32 add(const u32 a, u8 buf[]) { while (a > 0) { { return a; } } return 0; }
+      u32 add(u32 a, u8 buf[]) { while (a > 0) { { return a; } } return 0; }
       u32 total <- 0;
       Widget w(total);
     `);
@@ -80,7 +80,7 @@ describe("ProgramLowering", () => {
 
   it("records a function's return type, parameters and body", () => {
     const [{ declaration }] = lower(
-      "u32 add(const u32 a, u8 buf[]) { return a; }",
+      "u32 add(u32 a, u8 buf[]) { return a; }",
     ).declarations;
     expect(declaration).toMatchObject({
       kind: "function",
@@ -249,7 +249,7 @@ describe("ProgramLowering name spans", () => {
   // #1991: 2.1 reports a parameter or field at its name, not at its type
   it("spans a parameter and a struct field at the name", () => {
     const program = lower(
-      "struct Point { u8 tags[4]; }\nvoid f(const u8 value) { }\n",
+      "struct Point { u8 tags[4]; }\nvoid f(u8 value) { }\n",
     );
     const struct = program.declarations[0].declaration;
     const fn = program.declarations[1].declaration;

@@ -156,7 +156,7 @@ describe("IntegerConversionAnalyzer", () => {
       // CONTROL: the same chain into a field wide enough for the value.
       expect(
         errors(
-          "struct P { u8 col; u32 data; }\nu32 wide <- 9;\nu32 main() {\n    P p;\n    p.data <- wide + 1;\n    return 0;\n}",
+          "struct P { u8 col; u32 data; }\nu32 wide <- 9;\nu32 main() {\n    mut P p;\n    p.data <- wide + 1;\n    return 0;\n}",
         ),
       ).toEqual([]);
     });

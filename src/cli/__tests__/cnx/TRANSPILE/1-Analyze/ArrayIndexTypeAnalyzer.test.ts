@@ -14,7 +14,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
   describe("allowed unsigned types", () => {
     it("should allow u8 variable as array index", () => {
       const { syntax, context } = testAnalysisContextFor(
-        `void main() { u8[10] arr; u8 idx <- 0; arr[idx] <- 1; }`,
+        `void main() { mut u8[10] arr; u8 idx <- 0; arr[idx] <- 1; }`,
         { cppMode: false },
       );
       const analyzer = new ArrayIndexTypeAnalyzer(context);
@@ -24,7 +24,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
 
     it("should allow u16 variable as array index", () => {
       const { syntax, context } = testAnalysisContextFor(
-        `void main() { u8[10] arr; u16 idx <- 0; arr[idx] <- 1; }`,
+        `void main() { mut u8[10] arr; u16 idx <- 0; arr[idx] <- 1; }`,
         { cppMode: false },
       );
       const analyzer = new ArrayIndexTypeAnalyzer(context);
@@ -34,7 +34,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
 
     it("should allow u32 variable as array index", () => {
       const { syntax, context } = testAnalysisContextFor(
-        `void main() { u8[10] arr; u32 idx <- 0; arr[idx] <- 1; }`,
+        `void main() { mut u8[10] arr; u32 idx <- 0; arr[idx] <- 1; }`,
         { cppMode: false },
       );
       const analyzer = new ArrayIndexTypeAnalyzer(context);
@@ -44,7 +44,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
 
     it("should allow u64 variable as array index", () => {
       const { syntax, context } = testAnalysisContextFor(
-        `void main() { u8[10] arr; u64 idx <- 0; arr[idx] <- 1; }`,
+        `void main() { mut u8[10] arr; u64 idx <- 0; arr[idx] <- 1; }`,
         { cppMode: false },
       );
       const analyzer = new ArrayIndexTypeAnalyzer(context);
@@ -54,7 +54,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
 
     it("should allow bool variable as array index", () => {
       const { syntax, context } = testAnalysisContextFor(
-        `void main() { u8[2] arr; bool idx <- 0; arr[idx] <- 1; }`,
+        `void main() { mut u8[2] arr; bool idx <- 0; arr[idx] <- 1; }`,
         { cppMode: false },
       );
       const analyzer = new ArrayIndexTypeAnalyzer(context);
@@ -64,7 +64,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
 
     it("should allow integer literal as array index", () => {
       const { syntax, context } = testAnalysisContextFor(
-        `void main() { u8[10] arr; arr[3] <- 1; }`,
+        `void main() { mut u8[10] arr; arr[3] <- 1; }`,
         { cppMode: false },
       );
       const analyzer = new ArrayIndexTypeAnalyzer(context);
@@ -76,7 +76,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
       const { syntax, context } = testAnalysisContextFor(
         `
         enum EColor { RED, GREEN, BLUE, COUNT }
-        void main() { u8[4] arr; arr[EColor.RED] <- 1; }
+        void main() { mut u8[4] arr; arr[EColor.RED] <- 1; }
       `,
         { cppMode: false },
       );
@@ -90,7 +90,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
         `
         enum EColor { RED, GREEN, BLUE, COUNT }
         void getValue(EColor color) {
-          u8[4] arr;
+          mut u8[4] arr;
           arr[color] <- 1;
         }
       `,
@@ -105,7 +105,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
       const { syntax, context } = testAnalysisContextFor(
         `
         enum EState { IDLE, RUNNING, STOPPED }
-        u32[3] stateCounts;
+        mut u32[3] stateCounts;
         void incrementState(EState state) {
           stateCounts[state] <- stateCounts[state] + 1;
         }
@@ -121,8 +121,8 @@ describe("ArrayIndexTypeAnalyzer", () => {
       const { syntax, context } = testAnalysisContextFor(
         `
         void main() {
-          u8[10] arr;
-          for (u32 i <- 0; i < 10; i <- i + 1) {
+          mut u8[10] arr;
+          for (mut u32 i <- 0; i < 10; i <- i + 1) {
             arr[i] <- 0;
           }
         }
@@ -137,7 +137,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
     it("should allow unsigned function parameter as index", () => {
       const { syntax, context } = testAnalysisContextFor(
         `
-        void setElement(u8[10] arr, u32 idx) {
+        void setElement(mut u8[10] arr, u32 idx) {
           arr[idx] <- 1;
         }
       `,
@@ -386,7 +386,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
       const { syntax, context } = testAnalysisContextFor(
         `
         void main() {
-          u8[10] arr;
+          mut u8[10] arr;
           u32 x <- 2;
           arr[x + 1] <- 5;
         }
@@ -479,7 +479,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
         `
         u32 getIndex() { return 0; }
         void main() {
-          u8[10] arr;
+          mut u8[10] arr;
           arr[getIndex()] <- 1;
         }
       `,
@@ -496,7 +496,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
         `
         enum EColor { RED, GREEN, BLUE }
         void main() {
-          u8[4] arr;
+          mut u8[4] arr;
           arr[EColor.RED] <- 1;
         }
       `,
@@ -562,7 +562,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
       const { syntax, context } = testAnalysisContextFor(
         `
         void main() {
-          u8[10] arr;
+          mut u8[10] arr;
           u8[8] data <- [0, 0, 3, 0, 0, 0, 0, 0];
           arr[data[2]] <- 5;
         }
@@ -578,7 +578,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
       const { syntax, context } = testAnalysisContextFor(
         `
         void main() {
-          u8[10] arr;
+          mut u8[10] arr;
           u8[8] data <- [0, 0, 3, 0, 0, 0, 0, 0];
           arr[data[2] - 1] <- 5;
         }
@@ -593,8 +593,8 @@ describe("ArrayIndexTypeAnalyzer", () => {
     it("should allow nested subscript with const array param (Issue #950)", () => {
       const { syntax, context } = testAnalysisContextFor(
         `
-        void process(const u8[8] data) {
-          u8[10] inputs;
+        void process(u8[8] data) {
+          mut u8[10] inputs;
           inputs[data[2] - 1] <- data[1];
         }
       `,
@@ -703,7 +703,7 @@ describe("ArrayIndexTypeAnalyzer", () => {
       const { syntax, context } = testAnalysisContextFor(
         `
         void main() {
-          u8[2] arr;
+          mut u8[2] arr;
           i32 signedFlags <- 1;
           arr[signedFlags[0]] <- 5;
         }
