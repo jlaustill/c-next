@@ -58,8 +58,9 @@ global.Pt make(global.Pt p) {
 
 // THE ASSERTIONS -- each file-level position once: an initializer's value, a
 // call in an initializer, a variable's type, an array dimension, a struct
-// field's type. File level has no statements, so no assignment target or case
-// label sits there.
+// field's type, an enum member's value, a register's address and a register
+// member's offset. File level has no statements, so no assignment target or
+// case label sits there.
 u32 atFileScope <- global.total;
 
 u32 atFileCall <- global.helper();
@@ -70,6 +71,18 @@ u8[global.LIMIT] atDimension;
 
 struct Holder {
     global.Pt inner;
+}
+
+const u32 PORT_BASE <- 0x40000000;
+const u32 DR_OFFSET <- 0x04;
+
+enum EKind {
+    A <- global.LIMIT,
+    B
+}
+
+register Port @ global.PORT_BASE {
+    DR: u32 rw @ global.DR_OFFSET,
 }
 
 u32 main() {

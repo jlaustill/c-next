@@ -191,8 +191,10 @@ both are written.
 E0713 compares what two labels claim in C, not how they are written (#2046). A
 const is written as its value, so `LIMIT` beside `3`, two consts with one
 value, and a local `LIMIT` beside a `global.LIMIT` of the same value are each
-one C case twice. A label that does not fold is compared by what it names: an
-enum member by its member, a header macro by its name in either spelling.
+one C case twice. A label that does not fold is compared by what it names: a
+qualified enum member by its member, a header macro by its name in either
+spelling. A bare enum member (`IDLE`) is still compared by its spelling, so
+beside `EMode.IDLE` it is not yet E0713 (#2067).
 
 ### Exhaustive Enum Matching (No Default)
 

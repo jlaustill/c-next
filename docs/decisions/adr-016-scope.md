@@ -380,8 +380,10 @@ file-scope name past a scope member, local or parameter that shadows it, so a
 function is a scope for it, its signature (return and parameter types) as well
 as its body: in a top-level function `global.total` writes the file-scope
 `total` even when a parameter is named `total` (ADR-057). At file level, in a
-file-scope variable's initializer or type, an array dimension or a struct
-field's type, nothing can shadow a file-scope name, so the bare name is written
+file-scope variable's initializer or type, an array dimension, a struct
+field's type, an enum member's value, or a register's address, member offsets
+and member types, nothing can shadow a file-scope name (an enum body shadows
+nothing either: `B <- A` there reads the file-scope `A`), so the bare name is written
 and `global.` there is E0431. `this.` still needs a `scope`: it names that
 scope's member, in the scope's own declarations and in its methods.
 

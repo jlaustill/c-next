@@ -5,6 +5,8 @@ import type TStatement from "../types/syntax/TStatement";
 import StatementChildren from "./StatementChildren";
 import StatementWrites from "./StatementWrites";
 
+type TSwitch = Extract<TStatement, { kind: "switch" }>;
+
 /**
  * Every lowered statement in a declaration, in source order (#1991): the
  * nested ones, and a `for`'s init, which 1.2 lowers as a statement but
@@ -26,14 +28,19 @@ class StatementNodes {
     return declaration.kind === "function" ? declaration.body.statements : [];
   }
 
+  /** Every switch in a declaration, nested ones and a scope member's too */
+  static switches(declaration: TDeclarationSyntax): readonly TSwitch[] {
+    return StatementNodes.in(declaration).filter(
+      (statement): statement is TSwitch => statement.kind === "switch",
+    );
+  }
+
   /** Every `case` label in a declaration's switches, in source order */
   static caseLabels(
     declaration: TDeclarationSyntax,
   ): readonly TCaseLabelSyntax[] {
-    return StatementNodes.in(declaration).flatMap((statement) =>
-      statement.kind === "switch"
-        ? statement.cases.flatMap((switchCase) => switchCase.labels)
-        : [],
+    return StatementNodes.switches(declaration).flatMap((statement) =>
+      statement.cases.flatMap((switchCase) => switchCase.labels),
     );
   }
 

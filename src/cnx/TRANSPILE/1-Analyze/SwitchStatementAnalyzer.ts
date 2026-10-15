@@ -72,15 +72,8 @@ class SwitchStatementCheck {
 
   /** Every switch in a function, a scope's included (#1991) */
   public declaration(declaration: TDeclarationSyntax): void {
-    if (declaration.kind === "scope") {
-      for (const member of declaration.members) {
-        this.declaration(member.declaration);
-      }
-      return;
-    }
-    if (declaration.kind !== "function") return;
-    for (const statement of StatementNodes.of(declaration.body.statements)) {
-      if (statement.kind === "switch") this.statement(statement);
+    for (const statement of StatementNodes.switches(declaration)) {
+      this.statement(statement);
     }
   }
 
@@ -328,9 +321,10 @@ class SwitchStatementCheck {
    * (`resolveCaseConst`), so `LIMIT`, `this.LIMIT`, `Panel.LIMIT` and `3`
    * all claim 3, and two consts with one value claim it twice;
    * `case Point.type_byte_length` is its number too. A label that does not
-   * fold is keyed on what it names: an enum member on the member, so
+   * fold is keyed on what it names: a qualified enum member on the member, so
    * `State.IDLE` and `this.State.IDLE` in its scope are one, and a header
-   * macro on its name.
+   * macro on its name. A bare enum member (`IDLE`) is keyed on its spelling,
+   * so beside `EMode.IDLE` it is not E0713 yet (#2067).
    */
   private labelKey(label: TCaseLabelSyntax): string {
     const length = this.lengthValue(label);
@@ -338,7 +332,9 @@ class SwitchStatementCheck {
     const constant = this.constKey(label);
     if (constant !== null) return constant;
     const binding = this.labelBinding(label);
-    // `HDR_K` and `global.HDR_K`: one header macro, written by its name
+    // `HDR_K` and `global.HDR_K`: one header macro, written by its name.
+    // #2067: a bare enum member binds nothing either, so it lands here keyed
+    // on its spelling, not on the member it names
     if (
       label.kind === "identifier" &&
       label.root !== "this" &&
@@ -377,22 +373,19 @@ class SwitchStatementCheck {
     return member?.kind === "variable" ? this.settledKey(member) : null;
   }
 
+  /** The key of the answer render writes for a const (`ConstLiteral.of`) */
   private settledKey(symbol: IVariableSymbol): string | null {
-    const { program } = this.context;
-    const settled = program.settledConstOf(symbol.fullyQualifiedCName);
-    if (settled?.kind === "value") return `value:${BigInt(settled.digits)}`;
-    const text = ConstLiteral.textOf(program, symbol);
-    if (text === null) return null;
-    switch (settled?.kind) {
-      case "named":
-        return `member:${text}`;
-      case "foreign": {
-        // `ConstLiteral` writes only a macro named alone, as `(HDR)`
-        const expr = symbol.initialValueExpr;
-        return expr?.kind === "name" ? `name:${expr.path[0]}` : null;
-      }
+    const literal = ConstLiteral.of(this.context.program, symbol);
+    if (literal === null) return null;
+    switch (literal.kind) {
+      case "integer":
+        return `value:${BigInt(literal.digits)}`;
+      case "member":
+        return `member:${literal.cName}`;
+      case "macro":
+        return `name:${literal.name}`;
       default:
-        return `value:${text}`;
+        return `value:${literal.text}`;
     }
   }
 
