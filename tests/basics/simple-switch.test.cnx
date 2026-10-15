@@ -9,7 +9,7 @@ enum Color {
 }
 
 u32 colorToValue(Color c) {
-    u32 result <- 0;
+    mut u32 result <- 0;
     switch (c) {
         case Color.RED {
             result <- 1;
@@ -25,7 +25,7 @@ u32 colorToValue(Color c) {
 }
 
 u32 dayType(u32 day) {
-    u32 result <- 0;
+    mut u32 result <- 0;
     switch (day) {
         case 0 {
             result <- 1; // Sunday - weekend
@@ -42,8 +42,8 @@ u32 dayType(u32 day) {
 
 u32 main() {
     // Switch with enum
-    Color c <- Color.RED;
-    u32 val <- colorToValue(c);
+    mut Color c <- Color.RED;
+    mut u32 val <- colorToValue(c);
     if (val != 1) {
         return 1;
     }
@@ -61,7 +61,7 @@ u32 main() {
     }
 
     // Switch with integers and default
-    u32 result <- dayType(0);
+    mut u32 result <- dayType(0);
     if (result != 1) {
         return 4;
     }

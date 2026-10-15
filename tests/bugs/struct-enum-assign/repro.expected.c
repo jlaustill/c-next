@@ -11,8 +11,8 @@ TInput TInput_init(void) {
     return value;
 }
 
-TInput input = { .assignedValue = EValueId__VALUE_A };
+const TInput input = { .assignedValue = EValueId__VALUE_A };
 
 int main(void) {
-    EValueId val = input.assignedValue;
+    const EValueId val = input.assignedValue;
 }

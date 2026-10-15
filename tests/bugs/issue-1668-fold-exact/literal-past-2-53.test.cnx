@@ -4,17 +4,17 @@
 // that read it as one gave 2^53: D folded to 0 (a false E0800), and s was
 // emitted as 0. C computes both as 1. The safe-range lines are controls
 // that still fold: E sizes `one`, and small is emitted as 1.
-const u64 BIG <- 9007199254740993;
-const u64 SMALL <- 9007199254740991;
+u64 BIG <- 9007199254740993;
+u64 SMALL <- 9007199254740991;
 
 u64 divide(u64 x) {
-    const u64 D <- BIG - 9007199254740992;
+    u64 D <- BIG - 9007199254740992;
     return x / D;
 }
 
 u64 divideSmall(u64 x) {
-    const u64 E <- SMALL - 9007199254740990;
-    u8[E] one <- [0*];
+    u64 E <- SMALL - 9007199254740990;
+    mut u8[E] one <- [0*];
     one[0] <- 1;
     return x / E * one[0];
 }

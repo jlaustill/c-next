@@ -15,12 +15,11 @@
 #include <stdint.h>
 
 /* Scope: Logger */
-static Sensor__EUnit Logger__unit = Sensor__EUnit__CELSIUS;
 
 uint32_t Logger__count(void) {
     return 7U;
 }
 
 uint32_t Logger__reportedUnit(void) {
-    return Logger__unit;
+    return Sensor__EUnit__CELSIUS;
 }

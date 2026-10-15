@@ -20,9 +20,9 @@ typedef enum {
 } Status;
 
 /* Function prototypes */
-uint32_t getStatusCode(Status s);
-uint32_t mapValue(uint32_t val);
-uint32_t withDefault(uint32_t val);
+uint32_t getStatusCode(const Status s);
+uint32_t mapValue(const uint32_t val);
+uint32_t withDefault(const uint32_t val);
 
 #ifdef __cplusplus
 }

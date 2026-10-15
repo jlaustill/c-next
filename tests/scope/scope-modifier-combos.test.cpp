@@ -38,11 +38,10 @@ static inline uint16_t cnx_clamp_sub_u16(uint16_t a, uint32_t b) {
 // work correctly with scope variables accessed via this. accessor
 /* Scope: Combos */
 uint8_t Combos__publicClampByte = 200U;
-uint16_t Combos__publicClampWord = 60000U;
+const uint16_t Combos__publicClampWord = 60000U;
 int8_t Combos__publicClampSigned = 100;
 static uint8_t Combos__privateClampByte = 50U;
 static uint16_t Combos__privateClampWord = 10000U;
-static int8_t Combos__privateClampSigned = -50;
 uint8_t Combos__publicWrapByte = 250U;
 uint16_t Combos__publicWrapWord = 65530U;
 static uint8_t Combos__privateWrapByte = 5U;
@@ -91,7 +90,7 @@ uint16_t Combos__getPrivateClampWord(void) {
 }
 
 int8_t Combos__getPrivateClampSigned(void) {
-    return Combos__privateClampSigned;
+    return (-50);
 }
 
 uint8_t Combos__getPublicWrapByte(void) {
@@ -196,13 +195,13 @@ int main(void) {
     Combos__incrementPublicWrapWord();
     Combos__adjustAllClamp();
     Combos__adjustAllWrap();
-    uint8_t testClampByte = Combos__publicClampByte;
-    uint16_t testClampWord = Combos__publicClampWord;
-    int8_t testClampSigned = Combos__publicClampSigned;
-    uint8_t testWrapByte = Combos__publicWrapByte;
-    uint16_t testWrapWord = Combos__publicWrapWord;
-    uint8_t testConst = Combos__PUBLIC_CONST;
-    bool testConstFlag = Combos__PUBLIC_FLAG;
+    const uint8_t testClampByte = Combos__publicClampByte;
+    const uint16_t testClampWord = Combos__publicClampWord;
+    const int8_t testClampSigned = Combos__publicClampSigned;
+    const uint8_t testWrapByte = Combos__publicWrapByte;
+    const uint16_t testWrapWord = Combos__publicWrapWord;
+    const uint8_t testConst = Combos__PUBLIC_CONST;
+    const bool testConstFlag = Combos__PUBLIC_FLAG;
     if (testClampByte == 0 && testClampWord == 0 && testClampSigned == 0 && testWrapByte == 0 && testWrapWord == 0 && testConst == 0 && testConstFlag == false) {
     }
 }

@@ -23,8 +23,8 @@ typedef enum {
 /* External variables */
 extern const bool FLAG;
 extern const EMode MODE;
-extern uint8_t flagged[1];
-extern uint8_t moded[2];
+extern const uint8_t flagged[1];
+extern const uint8_t moded[2];
 
 #ifdef __cplusplus
 }

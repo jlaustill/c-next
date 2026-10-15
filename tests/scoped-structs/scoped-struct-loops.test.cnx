@@ -7,8 +7,8 @@ scope Sensor {
         u8 channel;
     }
 
-    public this.Reading buffer[4];
-    public u8 count <- 0;
+    public mut this.Reading buffer[4];
+    public mut u8 count <- 0;
 
     public void addReading(u16 val, u8 ch) {
         if (this.count < 4) {
@@ -19,8 +19,8 @@ scope Sensor {
     }
 
     public u16 sumValues() {
-        u16 total <- 0;
-        u8 i <- 0;
+        mut u16 total <- 0;
+        mut u8 i <- 0;
         while (i < this.count) {
             total <- total + this.buffer[i].value;
             i <- i + 1;
@@ -29,7 +29,7 @@ scope Sensor {
     }
 
     public void clear() {
-        u8 i <- 0;
+        mut u8 i <- 0;
         while (i < 4) {
             this.buffer[i].value <- 0;
             this.buffer[i].channel <- 0;
@@ -46,7 +46,7 @@ u32 main() {
     }
 
     // Test 2: Add readings in a loop
-    u8 i <- 0;
+    mut u8 i <- 0;
     while (i < 3) {
         u16 val <- (u16)(100 + i * 10);
         Sensor.addReading(val, i);

@@ -18,7 +18,7 @@ u8 mul(u8 a, u8 b) {
     return x;
 }
 
-u8 addInto(u8 a, u8 b) {
+u8 addInto(mut u8 a, u8 b) {
     a +<- b;
     return a;
 }
@@ -26,14 +26,14 @@ u8 addInto(u8 a, u8 b) {
 // A compound into a local of the parameter's type. Its target is a local, so
 // it clamped at the parent too; the parameter target above is what did not.
 u8 addToLocal(u8 a) {
-    u8 x <- 200;
+    mut u8 x <- 200;
     x +<- a;
     return x;
 }
 
 // NEGATIVE CONTROL: a compound follows its target, and this one wraps
 u8 wrapped(u8 b) {
-    wrap u8 w <- 200;
+    mut wrap u8 w <- 200;
     w +<- b;
     return w;
 }
@@ -51,7 +51,7 @@ u32 main() {
     if (m != 255) {
         return 3;
     }
-    u8 p <- 200;
+    mut u8 p <- 200;
     u8 c <- addInto(p, 100);
     if (c != 255) {
         return 4;

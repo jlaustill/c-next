@@ -14,7 +14,7 @@ struct Point {
     u8 y;
 }
 
-const u8 THREE <- 3;
+u8 THREE <- 3;
 
 // NEGATIVE CONTROLS -- every accepted form: exact counts, nested exact
 // counts, fill-all with a size (outer and inner), an inferred size from a

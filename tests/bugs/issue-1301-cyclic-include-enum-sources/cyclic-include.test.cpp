@@ -31,11 +31,11 @@ uint32_t Sensor__read(void) {
 }
 
 int main(void) {
-    uint32_t reading = Sensor__read();
+    const uint32_t reading = Sensor__read();
     if (reading != 7) {
         return 1;
     }
-    uint32_t unit = Logger__reportedUnit();
+    const uint32_t unit = Logger__reportedUnit();
     if (unit != 0) {
         return 2;
     }

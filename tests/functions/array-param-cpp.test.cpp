@@ -54,13 +54,13 @@ int main(void) {
     }
     uint8_t data[8] = {};
     data[0] = 42U;
-    uint8_t val = readFirst(data);
+    const uint8_t val = readFirst(data);
     if (val != 42) {
         return 3U;
     }
     uint8_t small[4] = {};
     small[1] = 99U;
-    uint8_t val2 = readSecond(small);
+    const uint8_t val2 = readSecond(small);
     if (val2 != 99) {
         return 4U;
     }
@@ -68,7 +68,7 @@ int main(void) {
     ref[0] = 10U;
     ref[1] = 20U;
     uint8_t dest[8] = {};
-    uint8_t sum = sumFirstTwo(dest, ref);
+    const uint8_t sum = sumFirstTwo(dest, ref);
     if (sum != 30) {
         return 5U;
     }

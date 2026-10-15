@@ -12,7 +12,7 @@ void main() {
     Sample p <- { v: 4, small: 2 };
     u8 a <- 1;
     u32 w <- 1;
-    const u8 NINE <- 9;
+    u8 NINE <- 9;
 
     // NEGATIVE CONTROLS -- in range. (A leading-zero amount was one too, under
     // #1728's interim rule; it is E0912 now, as ADR-044 has no octal literal.)

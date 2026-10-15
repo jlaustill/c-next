@@ -9,4 +9,4 @@
 
 #include <stdint.h>
 
-uint32_t pinnedValue = 3U;
+const uint32_t pinnedValue = 3U;

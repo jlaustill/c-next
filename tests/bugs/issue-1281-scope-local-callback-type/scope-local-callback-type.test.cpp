@@ -99,27 +99,26 @@ uint32_t Shadow__run(void) {
 // defect on main (#1332), unrelated to kind-awareness -- routing
 // around it keeps this fixture pinning the rule it is here for.
 /* Scope: NoCapture */
-static uint32_t NoCapture__Mode = 5U;
 
 uint32_t NoCapture__run(void) {
-    NoCapture__Holder h = { .m = Mode__BETA };
-    return cnx_clamp_add_u32(static_cast<uint32_t>(h.m), NoCapture__Mode);
+    const NoCapture__Holder h = { .m = Mode__BETA };
+    return cnx_clamp_add_u32(static_cast<uint32_t>(h.m), 5U);
 }
 
 int main(void) {
-    uint32_t timing = Timing__run();
+    const uint32_t timing = Timing__run();
     if (timing != 44) {
         return 1U;
     }
-    uint32_t later = Later__run();
+    const uint32_t later = Later__run();
     if (later != 2) {
         return 2U;
     }
-    uint32_t shadowed = Shadow__run();
+    const uint32_t shadowed = Shadow__run();
     if (shadowed != 9) {
         return 3U;
     }
-    uint32_t uncaptured = NoCapture__run();
+    const uint32_t uncaptured = NoCapture__run();
     if (uncaptured != 7) {
         return 4U;
     }

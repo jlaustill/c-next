@@ -13,12 +13,12 @@
 // Fill all 3 elements with "Hello" (C-style allowed for string arrays)
 // cppcheck-suppress misra-c2012-9.3
 // cppcheck-suppress misra-c2012-9.4
-char greetings[3][11] = {"Hello", "Hello", "Hello"};
+const char greetings[3][11] = {"Hello", "Hello", "Hello"};
 
 // Fill with empty string (should use {""} which C handles)
 // cppcheck-suppress misra-c2012-9.3
 // cppcheck-suppress misra-c2012-9.4
-char empty[2][9] = {""};
+const char empty[2][9] = {""};
 
 int main(void) {
     if (3 != 3) {

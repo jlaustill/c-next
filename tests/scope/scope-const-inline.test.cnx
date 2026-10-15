@@ -4,19 +4,19 @@
 
 scope ConstTest {
     // Private const values - should be inlined when accessed via this.
-    const u8 MAX_VALUE <- 255;
-    const u16 BUFFER_SIZE <- 1024;
-    const i32 OFFSET <- -100;
-    const bool ENABLED <- true;
+    u8 MAX_VALUE <- 255;
+    u16 BUFFER_SIZE <- 1024;
+    i32 OFFSET <- -100;
+    bool ENABLED <- true;
 
     // Edge case: hex and binary literal formats (should inline preserving format)
-    const u8 HEX_FLAGS <- 0xAB;
-    const u8 BIN_MASK <- 0b11001010;
-    const u32 HEX_ADDR <- 0x40001000;
+    u8 HEX_FLAGS <- 0xAB;
+    u8 BIN_MASK <- 0b11001010;
+    u32 HEX_ADDR <- 0x40001000;
 
     // Public const values - should be declared as 'const' at file scope
-    public const u8 PUBLIC_MAX <- 200;
-    public const u32 PUBLIC_ID <- 42;
+    public u8 PUBLIC_MAX <- 200;
+    public u32 PUBLIC_ID <- 42;
 
     // Non-const private variable (used in one function) - OK to be local
     private u8 counter <- 0;

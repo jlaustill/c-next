@@ -37,7 +37,7 @@ void bumpUpdate(uint32_t* n) {
 }
 
 // Control: a parameter only read in a `for` header stays unmodified.
-uint32_t readOnly(uint32_t n) {
+uint32_t readOnly(const uint32_t n) {
     uint32_t count = 0U;
     for (uint32_t i = 0U; i < n; i = cnx_clamp_add_u32(i, 1U)) {
         count = cnx_clamp_add_u32(count, 1U);
@@ -56,8 +56,8 @@ int main(void) {
     if (v != 8) {
         return 2U;
     }
-    uint32_t r = 4U;
-    uint32_t counted = readOnly(r);
+    const uint32_t r = 4U;
+    const uint32_t counted = readOnly(r);
     if (counted != 4) {
         return 3U;
     }

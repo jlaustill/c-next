@@ -18,13 +18,13 @@
 //
 // #1164 fixed the same drop on the WITHOUT-initializer branch, and that branch
 // is the negative control below: it was already correct and must stay so.
-volatile char atomicWithInit[17] = "a";
+extern const volatile char atomicWithInit[17] = "a";
 
-volatile char atomicNoInit[17] = "";
+extern const volatile char atomicNoInit[17] = "";
 
-volatile char volatileWithInit[17] = "v";
+extern const volatile char volatileWithInit[17] = "v";
 
-volatile char volatileNoInit[17] = "";
+extern const volatile char volatileNoInit[17] = "";
 
 // The UNSIZED arm, which is the box #1642 left open. Two bugs stacked here:
 // `isConstDeclaration` asked `getText().startsWith("const")`, and the grammar
@@ -38,9 +38,9 @@ extern const volatile char unsizedAtomic[2] = "a";
 
 // Negative control: a non-string atomic was never affected, and an unqualified
 // string must not gain a qualifier.
-volatile uint32_t plainAtomic = 1U;
+extern const volatile uint32_t plainAtomic = 1U;
 
-char unqualified[17] = "u";
+extern const char unqualified[17] = "u";
 
 int main(void) {
     return 0U;

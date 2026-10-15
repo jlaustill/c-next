@@ -27,7 +27,7 @@ static inline int32_t cnx_clamp_mul_i32(int32_t a, int64_t b) {
     return (int32_t)result;
 }
 
-uint32_t data[4] = {};
+extern const uint32_t data[4] = {};
 
 uint32_t sum(void) {
     uint32_t total = 0U;
@@ -37,6 +37,6 @@ uint32_t sum(void) {
     return total;
 }
 
-int32_t twice(int32_t i) {
+int32_t twice(const int32_t i) {
     return cnx_clamp_mul_i32(i, 2);
 }

@@ -8,10 +8,10 @@
 #include <string.h>
 
 u32 main() {
-    Point p;
+    mut Point p;
     p.x <- 10;
 
-    HelperTypes.Color c;
+    mut HelperTypes.Color c;
     c.red <- 255;
 
     return 0;

@@ -16,7 +16,7 @@ extern "C" {
 extern char level[33];
 
 /* Function prototypes */
-void setLevel(uint32_t code);
+void setLevel(const uint32_t code);
 
 #ifdef __cplusplus
 }

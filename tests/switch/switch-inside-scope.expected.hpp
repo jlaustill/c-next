@@ -16,10 +16,10 @@ extern "C" {
 extern uint32_t globalResult;
 
 /* Function prototypes */
-void CommandProcessor__execute(uint32_t command);
+void CommandProcessor__execute(const uint32_t command);
 uint32_t CommandProcessor__getResult(void);
-void Calculator__setOperands(uint32_t x, uint32_t y);
-void Calculator__compute(uint32_t operation);
+void Calculator__setOperands(const uint32_t x, const uint32_t y);
+void Calculator__compute(const uint32_t operation);
 uint32_t Calculator__getOutput(void);
 
 #ifdef __cplusplus

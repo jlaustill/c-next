@@ -32,16 +32,16 @@ typedef struct SensorReading {
 } SensorReading;
 
 /* External variables */
-extern SensorReading reading;
-extern uint32_t bits;
-extern uint32_t bytes;
-extern uint32_t fields;
-extern SensorReading readings[100];
-extern P p;
-extern P ps[3];
-extern Nested n;
-extern uint8_t sized[5];
-extern uint8_t sizedByString[7];
+extern const SensorReading reading;
+extern const uint32_t bits;
+extern const uint32_t bytes;
+extern const uint32_t fields;
+extern const SensorReading readings[100];
+extern const P p;
+extern const P ps[3];
+extern const Nested n;
+extern const uint8_t sized[5];
+extern const uint8_t sizedByString[7];
 
 #ifdef __cplusplus
 }

@@ -6,7 +6,7 @@
 // the C writes and reads the global too. Returns a distinct code if the C
 // touches the member instead.
 
-u32 y <- 5;
+mut u32 y <- 5;
 
 scope S {
     public void set() {

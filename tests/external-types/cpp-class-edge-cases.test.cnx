@@ -12,7 +12,7 @@ void test() {
     CppTestClass localSingle <- { value: 42 };
 
     // Edge case 3: Re-assignment of field after init
-    CppTestClass obj <- { value: 10 };
+    mut CppTestClass obj <- { value: 10 };
     obj.name <- "updated";
 }
 

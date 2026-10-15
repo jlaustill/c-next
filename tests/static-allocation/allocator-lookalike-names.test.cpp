@@ -43,42 +43,42 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // It compiles on purpose. A control that sits beside a diagnostic cannot be
 // evaluated, because the first analyzer to report halts the step loop; this
 // fixture has no diagnostic to halt it, which is what makes it able to fail.
-uint32_t myfree(uint32_t slot) {
+uint32_t myfree(const uint32_t slot) {
     return cnx_clamp_add_u32(slot, 1U);
 }
 
-uint32_t saferealloc(uint32_t size) {
+uint32_t saferealloc(const uint32_t size) {
     return cnx_clamp_add_u32(size, 2U);
 }
 
-uint32_t free_list_init(uint32_t count) {
+uint32_t free_list_init(const uint32_t count) {
     return cnx_clamp_add_u32(count, 3U);
 }
 
-uint32_t mallocation(uint32_t n) {
+uint32_t mallocation(const uint32_t n) {
     return cnx_clamp_add_u32(n, 4U);
 }
 
 uint8_t pool[8] = {};
 
 // Matches `_free` and is a C-Next definition, not an import.
-uint32_t pool_free(uint32_t slot) {
+uint32_t pool_free(const uint32_t slot) {
     pool[slot] = 0U;
     return cnx_clamp_add_u32(slot, 5U);
 }
 
 // Matches `_free` and does not release anything at all -- a predicate.
-bool slot_is_free(uint32_t slot) {
+bool slot_is_free(const uint32_t slot) {
     return pool[slot] == 0;
 }
 
 int main(void) {
-    uint32_t a = myfree(1U);
-    uint32_t b = saferealloc(1U);
-    uint32_t c = free_list_init(1U);
-    uint32_t d = mallocation(1U);
-    uint32_t e = pool_free(1U);
-    bool f = slot_is_free(1U);
+    const uint32_t a = myfree(1U);
+    const uint32_t b = saferealloc(1U);
+    const uint32_t c = free_list_init(1U);
+    const uint32_t d = mallocation(1U);
+    const uint32_t e = pool_free(1U);
+    const bool f = slot_is_free(1U);
     if (a != 2) {
         return 1U;
     }

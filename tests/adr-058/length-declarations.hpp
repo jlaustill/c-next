@@ -13,8 +13,8 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint32_t sharedScalar;
-extern uint32_t sharedArray[4];
+extern const uint32_t sharedScalar;
+extern const uint32_t sharedArray[4];
 extern const uint32_t LENGTH_MARKER;
 
 #ifdef __cplusplus

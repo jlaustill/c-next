@@ -29,19 +29,19 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
     return (uint8_t)(a + (uint8_t)b);
 }
 
-uint32_t process(uint32_t crc, uint8_t byte) {
+uint32_t process(const uint32_t crc, const uint8_t byte) {
     return crc ^ byte;
 }
 
 int main(void) {
-    uint32_t value = 0x12345678U;
+    const uint32_t value = 0x12345678U;
     uint32_t crc = 0U;
     crc = process(crc, value & 0xFFU);
     if (crc != 0x78) {
         return 1U;
     }
-    uint8_t a = 10U;
-    uint8_t b = 5U;
+    const uint8_t a = 10U;
+    const uint8_t b = 5U;
     crc = 0U;
     crc = process(crc, cnx_clamp_add_u8(a, b));
     if (crc != 15) {

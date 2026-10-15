@@ -13,10 +13,10 @@
 
 // Nested template: outer template with inner template as argument
 // Space before > > required to avoid >> being parsed as right-shift
-Container<Pair<Element,Element>> nestedPair = {};
+extern const Container<Pair<Element,Element>> nestedPair = {};
 
 // Multiple levels of nesting
-Vector<Container<Element>> vectorOfContainers = {};
+extern const Vector<Container<Element>> vectorOfContainers = {};
 
 int main(void) {
 }

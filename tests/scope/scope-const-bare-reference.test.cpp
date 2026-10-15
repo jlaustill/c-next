@@ -30,16 +30,16 @@ uint32_t Foo__getConstant(void) {
 }
 
 uint8_t Foo__useInExpression(void) {
-    uint8_t result = cnx_clamp_add_u8(10U, 5U);
+    const uint8_t result = cnx_clamp_add_u8(10U, 5U);
     return result;
 }
 
 int main(void) {
-    uint32_t val = Foo__getConstant();
+    const uint32_t val = Foo__getConstant();
     if (val != 42) {
         return 1U;
     }
-    uint8_t expr = Foo__useInExpression();
+    const uint8_t expr = Foo__useInExpression();
     if (expr != 15) {
         return 2U;
     }

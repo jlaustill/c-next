@@ -17,8 +17,8 @@ extern "C" {
 extern uint16_t global_witness;
 
 /* Function prototypes */
-void onEventCrossFile(SensorReading* reading);
-void onEventSameFile(SensorReading* reading);
+void onEventCrossFile(const SensorReading* reading);
+void onEventSameFile(const SensorReading* reading);
 void neverWired(const SensorReading& reading);
 void wireLocally(void);
 

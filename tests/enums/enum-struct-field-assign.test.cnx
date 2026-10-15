@@ -13,7 +13,7 @@ struct TInput {
     EValueId assignedValue;
 }
 
-TInput input;
+mut TInput input;
 
 u32 main() {
     // Setup: assign a known enum value to struct field

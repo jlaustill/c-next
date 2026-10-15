@@ -14,8 +14,8 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-bool getTrue(uint32_t x);
-bool getFalse(uint32_t x);
+bool getTrue(const uint32_t x);
+bool getFalse(const uint32_t x);
 
 #ifdef __cplusplus
 }

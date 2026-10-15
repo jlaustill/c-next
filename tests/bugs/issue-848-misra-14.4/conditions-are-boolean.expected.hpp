@@ -14,10 +14,10 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint32_t countDownWhile(uint32_t start);
-uint32_t sumForLoop(uint32_t limit);
-uint32_t firstMultiple(uint32_t step);
-bool bothPositive(int32_t a, int32_t b);
+uint32_t countDownWhile(const uint32_t start);
+uint32_t sumForLoop(const uint32_t limit);
+uint32_t firstMultiple(const uint32_t step);
+bool bothPositive(const int32_t a, const int32_t b);
 
 #ifdef __cplusplus
 }

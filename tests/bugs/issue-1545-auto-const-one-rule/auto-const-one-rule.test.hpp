@@ -16,7 +16,7 @@ extern "C" {
 extern uint8_t witness;
 
 /* Function prototypes */
-void onLog(char* msg);
+void onLog(const char* msg);
 void plainRead(const char* text);
 void onLogConst(const char* msg);
 

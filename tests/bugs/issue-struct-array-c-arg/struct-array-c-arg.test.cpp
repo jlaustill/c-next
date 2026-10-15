@@ -82,7 +82,7 @@ int main(void) {
         return 6;
     }
     Keeper__bump();
-    uint32_t kept = Keeper__total();
+    const uint32_t kept = Keeper__total();
     if (kept != 3) {
         return 7;
     }

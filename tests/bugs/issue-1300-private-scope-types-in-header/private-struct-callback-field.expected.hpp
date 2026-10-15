@@ -22,7 +22,7 @@ typedef struct Sched__PubHolder {
 } Sched__PubHolder;
 
 /* Function prototypes */
-void onTick(uint32_t v);
+void onTick(const uint32_t v);
 uint32_t Sched__countPrivate(void);
 
 #ifdef __cplusplus

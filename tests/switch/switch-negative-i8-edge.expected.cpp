@@ -13,7 +13,7 @@
 int32_t result = 0;
 
 // Test all critical i8 boundary values
-void testI8Boundaries(int8_t val) {
+void testI8Boundaries(const int8_t val) {
     switch (val) {
         case -128: {
             result = 1;
@@ -59,7 +59,7 @@ void testI8Boundaries(int8_t val) {
 }
 
 // Test consecutive negative values
-void testConsecutiveNegatives(int8_t val) {
+void testConsecutiveNegatives(const int8_t val) {
     switch (val) {
         case -5: {
             result = 10;
@@ -89,16 +89,16 @@ void testConsecutiveNegatives(int8_t val) {
 }
 
 int main(void) {
-    int8_t minVal = -128;
-    int8_t minPlus1 = -127;
-    int8_t midNeg = -64;
-    int8_t negOne = -1;
-    int8_t zero = 0;
-    int8_t one = 1;
-    int8_t midPos = 64;
-    int8_t maxMinus1 = 126;
-    int8_t maxVal = 127;
-    int8_t other = 50;
+    const int8_t minVal = -128;
+    const int8_t minPlus1 = -127;
+    const int8_t midNeg = -64;
+    const int8_t negOne = -1;
+    const int8_t zero = 0;
+    const int8_t one = 1;
+    const int8_t midPos = 64;
+    const int8_t maxMinus1 = 126;
+    const int8_t maxVal = 127;
+    const int8_t other = 50;
     testI8Boundaries(minVal);
     if (result != 1) {
         return 1U;
@@ -139,11 +139,11 @@ int main(void) {
     if (result != 99) {
         return 10U;
     }
-    int8_t neg5 = -5;
-    int8_t neg4 = -4;
-    int8_t neg3 = -3;
-    int8_t neg2 = -2;
-    int8_t neg1 = -1;
+    const int8_t neg5 = -5;
+    const int8_t neg4 = -4;
+    const int8_t neg3 = -3;
+    const int8_t neg2 = -2;
+    const int8_t neg1 = -1;
     testConsecutiveNegatives(neg5);
     if (result != 10) {
         return 11U;

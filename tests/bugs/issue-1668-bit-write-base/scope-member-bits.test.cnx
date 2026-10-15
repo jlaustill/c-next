@@ -11,7 +11,7 @@ struct P {
 }
 
 scope Sc {
-    P pv;
+    mut P pv;
 
     public void viaThis() {
         this.pv.ws[1][2] <- true;
@@ -35,7 +35,7 @@ scope Cfg {
     public P cfg;
 }
 
-void viaParameter(P p) {
+void viaParameter(mut P p) {
     p.arr[0][1] <- true;
 }
 
@@ -62,7 +62,7 @@ u32 main() {
     if (Cfg.cfg.arr[1] != 1) {
         return 5;
     }
-    P local;
+    mut P local;
     viaParameter(local);
     if (local.arr[0] != 2) {
         return 6;

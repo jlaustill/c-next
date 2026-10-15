@@ -2,15 +2,15 @@
 // #1664 box 7: the same shadow reached from inside one function. The inner
 // block's `const N <- 2` is out of scope after the block, where `N` is the
 // global 8 again.
-const u32 N <- 8;
+u32 N <- 8;
 
 u32 probe() {
-    u32 x <- 0;
+    mut u32 x <- 0;
     {
-        const u32 N <- 2;
+        u32 N <- 2;
         x <- N;
     }
-    u8[N] buf;
+    mut u8[N] buf;
     buf[7] <- 7;
     u32 n <- buf.type_element_count;
     u32 last <- buf[7];

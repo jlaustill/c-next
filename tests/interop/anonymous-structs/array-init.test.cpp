@@ -14,7 +14,7 @@
 #include <stdint.h>
 
 int main(void) {
-    SimpleConfig configs[3] = {{ .value = 1, .flags = { .flag_a = 1 } }, { .value = 2, .flags = { .flag_b = 1 } }, { .value = 3, .flags = { .flag_a = 1, .flag_b = 1 } }};
+    const SimpleConfig configs[3] = {{ .value = 1, .flags = { .flag_a = 1 } }, { .value = 2, .flags = { .flag_b = 1 } }, { .value = 3, .flags = { .flag_a = 1, .flag_b = 1 } }};
     if (configs[0U].value != 1) {
         return 1;
     }
@@ -36,7 +36,7 @@ int main(void) {
     if (configs[2U].flags.flag_b != 1) {
         return 7;
     }
-    DisplayConfig displays[2] = {{ .resolution = { .width = 800, .height = 600 }, .settings = { .brightness = 50 } }, { .resolution = { .width = 1920, .height = 1080 }, .settings = { .brightness = 100 } }};
+    const DisplayConfig displays[2] = {{ .resolution = { .width = 800, .height = 600 }, .settings = { .brightness = 50 } }, { .resolution = { .width = 1920, .height = 1080 }, .settings = { .brightness = 100 } }};
     if (displays[0U].resolution.width != 800) {
         return 8;
     }

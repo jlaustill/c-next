@@ -24,7 +24,7 @@ typedef enum {
 extern const uint8_t DATA[3];
 
 /* Function prototypes */
-uint8_t Test__get(uint8_t idx);
+uint8_t Test__get(const uint8_t idx);
 
 #ifdef __cplusplus
 }

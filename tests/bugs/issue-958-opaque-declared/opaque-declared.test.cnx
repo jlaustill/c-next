@@ -6,10 +6,10 @@
 // so the non-pointer declaration is one C rejects.
 #include "opaque.h"
 
-widget_t gw;
+mut widget_t gw;
 
 void f() {
-    widget_t w;
+    mut widget_t w;
     w <- widget_create();
     widget_use(w);
     gw <- w;

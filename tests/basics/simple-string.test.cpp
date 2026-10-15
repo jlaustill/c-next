@@ -10,31 +10,31 @@
 // Tests: Fixed-size string type
 // Demonstrates: string<N> declaration, assignment, properties
 int main(void) {
-    char greeting[11] = "Hello";
+    const char greeting[11] = "Hello";
     if (strlen(greeting) != 5) {
         return 1U;
     }
     if (11 != 11) {
         return 2U;
     }
-    char empty[21] = "";
+    const char empty[21] = "";
     if (strlen(empty) != 0) {
         return 3U;
     }
-    char message[21] = "Hi there";
+    const char message[21] = "Hi there";
     if (strlen(message) != 8) {
         return 4U;
     }
-    char longer[51] = "The quick brown fox";
+    const char longer[51] = "The quick brown fox";
     if (strlen(longer) != 19) {
         return 5U;
     }
-    char hello1[11] = "Hello";
-    char hello2[11] = "Hello";
+    const char hello1[11] = "Hello";
+    const char hello2[11] = "Hello";
     if (strcmp(hello1, hello2) != 0) {
         return 6U;
     }
-    char world[11] = "World";
+    const char world[11] = "World";
     if (strcmp(hello1, world) == 0) {
         return 7U;
     }

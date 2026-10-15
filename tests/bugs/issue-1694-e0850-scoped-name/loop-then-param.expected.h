@@ -13,11 +13,11 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint32_t data[4];
+extern const uint32_t data[4];
 
 /* Function prototypes */
 uint32_t sum(void);
-int32_t twice(int32_t i);
+int32_t twice(const int32_t i);
 
 #ifdef __cplusplus
 }

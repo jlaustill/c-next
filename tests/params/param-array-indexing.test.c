@@ -18,64 +18,64 @@
 // (Issue #1100 replaced #579's prior heuristic, which treated ANY subscripted
 // parameter without array brackets as array access; that heuristic silently broke
 // ADR-007 bit-indexing for scalar parameters.)
-uint32_t result = 0U;
+const uint32_t result = 0U;
 
 // Test 1: Write to parameter with variable index
-void writeToParam(uint8_t buf[8], uint32_t idx) {
+void writeToParam(uint8_t buf[8], const uint32_t idx) {
     buf[idx] = 42U;
 }
 
 // Test 2: Read from parameter with variable index
-uint8_t readFromParam(uint8_t buf[4], uint32_t idx) {
+uint8_t readFromParam(const uint8_t buf[4], const uint32_t idx) {
     return buf[idx];
 }
 
 // Test 3: Both read and write in same function
-void copyElement(uint8_t src[4], uint8_t dst[4], uint32_t idx) {
+void copyElement(const uint8_t src[4], uint8_t dst[4], const uint32_t idx) {
     dst[idx] = src[idx];
 }
 
 // Test 4: Constant index on parameter
-uint8_t readFirst(uint8_t buf[4]) {
+uint8_t readFirst(const uint8_t buf[4]) {
     return buf[0U];
 }
 
 // Test 5: Multiple index operations
-void swapElements(uint8_t buf[8], uint32_t i, uint32_t j) {
-    uint8_t temp = buf[i];
+void swapElements(uint8_t buf[8], const uint32_t i, const uint32_t j) {
+    const uint8_t temp = buf[i];
     buf[i] = buf[j];
     buf[j] = temp;
 }
 
 // Test 6: With explicit array syntax (should still work)
-void writeExplicit(uint8_t buf[8], uint32_t idx) {
+void writeExplicit(uint8_t buf[8], const uint32_t idx) {
     buf[idx] = 99U;
 }
 
 // Test 7: Bit range on parameter should still be bit extraction (NOT array access)
 // This ensures we don't over-correct and treat value[0, 8] as array access
-uint8_t getLowByte(uint16_t value) {
+uint8_t getLowByte(const uint16_t value) {
     return (uint8_t)((value) & 0xFFU);
 }
 
-uint8_t getHighByte(uint16_t value) {
+uint8_t getHighByte(const uint16_t value) {
     return (uint8_t)((value >> 8U) & 0xFFU);
 }
 
 // Test 8: Local array with bit access after consuming all dimensions
 // This tests the currentStructType fix for primitive array elements
 // matrix[i][j] is array access, then [BIT] should be bit access
-uint8_t getArrayBit(uint8_t matrix[2][2], uint32_t row, uint32_t col, uint32_t bit) {
+uint8_t getArrayBit(const uint8_t matrix[2][2], const uint32_t row, const uint32_t col, const uint32_t bit) {
     return (uint8_t)((matrix[row][col] >> bit) & 1);
 }
 
-void setArrayBit(uint8_t matrix[2][2], uint32_t row, uint32_t col, uint32_t bit, bool val) {
+void setArrayBit(uint8_t matrix[2][2], const uint32_t row, const uint32_t col, const uint32_t bit, const bool val) {
     matrix[row][col] = (uint8_t)((matrix[row][col] & ~(1U << bit)) | ((val ? 1U : 0U) << bit));
 }
 
 int main(void) {
     uint8_t buffer[8] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
-    uint8_t source[4] = {10U, 20U, 30U, 40U};
+    const uint8_t source[4] = {10U, 20U, 30U, 40U};
     uint8_t dest[4] = {0U, 0U, 0U, 0U};
     writeToParam(buffer, 3U);
     if (buffer[3U] != 42) {
@@ -106,21 +106,21 @@ int main(void) {
     if (buffer[4U] != 99) {
         return 7U;
     }
-    uint16_t testWord = 0x1234U;
-    uint8_t low = getLowByte(testWord);
+    const uint16_t testWord = 0x1234U;
+    const uint8_t low = getLowByte(testWord);
     if (low != 0x34) {
         return 8U;
     }
-    uint8_t high = getHighByte(testWord);
+    const uint8_t high = getHighByte(testWord);
     if (high != 0x12) {
         return 9U;
     }
     uint8_t matrix[2][2] = {{0xFFU, 0x00U}, {0xAAU, 0x55U}};
-    uint8_t bit0 = getArrayBit(matrix, 0U, 0U, 0U);
+    const uint8_t bit0 = getArrayBit(matrix, 0U, 0U, 0U);
     if (bit0 != 1) {
         return 10U;
     }
-    uint8_t bit1 = getArrayBit(matrix, 0U, 1U, 0U);
+    const uint8_t bit1 = getArrayBit(matrix, 0U, 1U, 0U);
     if (bit1 != 0) {
         return 11U;
     }

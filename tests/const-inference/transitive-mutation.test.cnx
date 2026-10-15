@@ -8,18 +8,18 @@ scope TransMutation {
 
 scope Test {
     // Directly mutates — transpiler correctly generates non-const
-    void fillData(TransMutation.Data d) {
+    void fillData(mut TransMutation.Data d) {
         d.value <- 42;
     }
 
     // Delegates mutation — transpiler should generate non-const
-    public void loadData(TransMutation.Data d) {
+    public void loadData(mut TransMutation.Data d) {
         fillData(d); // passes to non-const function, so d must be non-const
     }
 }
 
 u32 main() {
-    TransMutation.Data d <- { value: 0 };
+    mut TransMutation.Data d <- { value: 0 };
 
     // Verify initial value
     if (d.value != 0) {

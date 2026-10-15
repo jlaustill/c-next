@@ -25,24 +25,24 @@ bool invert(bool flag) {
 
 // --- Modified parameters: should still pass by pointer ---
 
-void increment(u32 x) {
+void increment(mut u32 x) {
     x <- x + 1;
 }
 
-void doubleValue(u16 val) {
+void doubleValue(mut u16 val) {
     val <- val * 2;
 }
 
 // --- Transitively modified: passed to function that modifies ---
 // These should pass by pointer because increment() modifies its param
 
-void incrementWrapper(u32 x) {
+void incrementWrapper(mut u32 x) {
     increment(x);
 }
 
 // --- Mixed: some params modified, some not ---
 
-u32 addAndIncrement(u32 a, u32 b) {
+u32 addAndIncrement(mut u32 a, u32 b) {
     a <- a + 1;
     return a + b;
 }
@@ -50,7 +50,7 @@ u32 addAndIncrement(u32 a, u32 b) {
 // --- Modification in switch statement (Issue #269 bug fix) ---
 // Parameters modified inside switch cases must still pass by pointer
 
-void modifyInSwitch(u32 x, u32 mode) {
+void modifyInSwitch(mut u32 x, u32 mode) {
     switch (mode) {
         case 1 {
             x <- x + 10;
@@ -66,7 +66,7 @@ void modifyInSwitch(u32 x, u32 mode) {
 
 // --- Modification in critical section (ADR-050) ---
 
-void modifyInCritical(u32 x) {
+void modifyInCritical(mut u32 x) {
     critical {
         x <- x * 2;
     }
@@ -93,7 +93,7 @@ u32 main() {
         return 3;
     }
 
-    bool result <- invert(true);
+    mut bool result <- invert(true);
     if (result != false) {
         return 4;
     }
@@ -104,27 +104,27 @@ u32 main() {
     }
 
     // Test modified by-pointer functions
-    u32 counter <- 10;
+    mut u32 counter <- 10;
     increment(counter);
     if (counter != 11) {
         return 6;
     }
 
-    u16 doubled <- 50;
+    mut u16 doubled <- 50;
     doubleValue(doubled);
     if (doubled != 100) {
         return 7;
     }
 
     // Test transitively modified
-    u32 wrapped <- 20;
+    mut u32 wrapped <- 20;
     incrementWrapper(wrapped);
     if (wrapped != 21) {
         return 8;
     }
 
     // Test mixed
-    u32 mixedA <- 5;
+    mut u32 mixedA <- 5;
     u32 mixedB <- 10;
     u32 mixedResult <- addAndIncrement(mixedA, mixedB);
     if (mixedResult != 16) {
@@ -135,7 +135,7 @@ u32 main() {
     }
 
     // Test modification in switch (Issue #269 bug fix)
-    u32 switchVal <- 100;
+    mut u32 switchVal <- 100;
     modifyInSwitch(switchVal, 1);
     if (switchVal != 110) {
         return 11; // case 1: +10
@@ -154,7 +154,7 @@ u32 main() {
     }
 
     // Test modification in critical section (ADR-050)
-    u32 criticalVal <- 50;
+    mut u32 criticalVal <- 50;
     modifyInCritical(criticalVal);
     if (criticalVal != 100) {
         return 14; // *2

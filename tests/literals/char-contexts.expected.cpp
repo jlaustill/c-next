@@ -28,23 +28,23 @@ static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
 // Tests: Character literal usage in various contexts
 // Character literals work with u8 type (which maps to uint8_t in C)
 int main(void) {
-    uint8_t letter = static_cast<uint8_t>('A');
+    const uint8_t letter = static_cast<uint8_t>('A');
     if (letter != 65) {
         return 1U;
     }
-    uint8_t lower = static_cast<uint8_t>('z');
+    const uint8_t lower = static_cast<uint8_t>('z');
     if (lower != 122) {
         return 2U;
     }
-    uint8_t digit = static_cast<uint8_t>('0');
+    const uint8_t digit = static_cast<uint8_t>('0');
     if (digit != 48) {
         return 3U;
     }
-    uint8_t space = static_cast<uint8_t>(' ');
+    const uint8_t space = static_cast<uint8_t>(' ');
     if (space != 32) {
         return 4U;
     }
-    uint8_t c = static_cast<uint8_t>('X');
+    const uint8_t c = static_cast<uint8_t>('X');
     if (c != static_cast<uint8_t>('X')) {
         return 5U;
     }
@@ -57,12 +57,12 @@ int main(void) {
     if ('Z' <= 'A') {
         return 8U;
     }
-    uint8_t first = static_cast<uint8_t>('a');
-    uint8_t second = static_cast<uint8_t>('b');
+    const uint8_t first = static_cast<uint8_t>('a');
+    const uint8_t second = static_cast<uint8_t>('b');
     if (first >= second) {
         return 9U;
     }
-    uint8_t vowels[5] = {static_cast<uint8_t>('a'), static_cast<uint8_t>('e'), static_cast<uint8_t>('i'), static_cast<uint8_t>('o'), static_cast<uint8_t>('u')};
+    const uint8_t vowels[5] = {static_cast<uint8_t>('a'), static_cast<uint8_t>('e'), static_cast<uint8_t>('i'), static_cast<uint8_t>('o'), static_cast<uint8_t>('u')};
     if (vowels[0U] != static_cast<uint8_t>('a')) {
         return 10U;
     }
@@ -92,7 +92,7 @@ int main(void) {
     if (buffer[2U] != 33) {
         return 17U;
     }
-    uint8_t grade = static_cast<uint8_t>('B');
+    const uint8_t grade = static_cast<uint8_t>('B');
     uint32_t points = 0U;
     switch (grade) {
         case 'A': {
@@ -168,13 +168,13 @@ int main(void) {
     if (heading != 180) {
         return 20U;
     }
-    uint8_t upperA = static_cast<uint8_t>('A');
-    uint8_t lowerA = cnx_clamp_add_u8(upperA, 32U);
+    const uint8_t upperA = static_cast<uint8_t>('A');
+    const uint8_t lowerA = cnx_clamp_add_u8(upperA, 32U);
     if (lowerA != static_cast<uint8_t>('a')) {
         return 21U;
     }
-    uint8_t lowerZ = static_cast<uint8_t>('z');
-    uint8_t upperZ = cnx_clamp_sub_u8(lowerZ, 32U);
+    const uint8_t lowerZ = static_cast<uint8_t>('z');
+    const uint8_t upperZ = cnx_clamp_sub_u8(lowerZ, 32U);
     if (upperZ != static_cast<uint8_t>('Z')) {
         return 22U;
     }

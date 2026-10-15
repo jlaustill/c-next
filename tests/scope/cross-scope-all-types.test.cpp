@@ -34,20 +34,20 @@ static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
 // ==========================================
 /* Scope: Provider */
 uint8_t Provider__valU8 = 255U;
-uint16_t Provider__valU16 = 65535U;
-uint32_t Provider__valU32 = 4294967295U;
-uint64_t Provider__valU64 = 18446744073709551615ULL;
-int8_t Provider__valI8 = -128;
-int16_t Provider__valI16 = -32768;
+const uint16_t Provider__valU16 = 65535U;
+const uint32_t Provider__valU32 = 4294967295U;
+const uint64_t Provider__valU64 = 18446744073709551615ULL;
+const int8_t Provider__valI8 = -128;
+const int16_t Provider__valI16 = -32768;
 int32_t Provider__valI32 = (int32_t)INT32_MIN;
-int64_t Provider__valI64 = (int64_t)INT64_MIN;
-float Provider__valF32 = 3.14;
-double Provider__valF64 = 3.141592653589793;
+const int64_t Provider__valI64 = (int64_t)INT64_MIN;
+const float Provider__valF32 = 3.14;
+const double Provider__valF64 = 3.141592653589793;
 bool Provider__valBool = true;
-uint32_t Provider__arrayU32[3] = {};
-int16_t Provider__arrayI16[3] = {};
-uint8_t Provider__clampVal = 200U;
-uint8_t Provider__wrapVal = 250U;
+const uint32_t Provider__arrayU32[3] = {};
+const int16_t Provider__arrayI16[3] = {};
+const uint8_t Provider__clampVal = 200U;
+const uint8_t Provider__wrapVal = 250U;
 
 uint8_t Provider__getU8(void) {
     return Provider__valU8;
@@ -61,15 +61,15 @@ bool Provider__getBool(void) {
     return Provider__valBool;
 }
 
-void Provider__setU8(uint8_t val) {
+void Provider__setU8(const uint8_t val) {
     Provider__valU8 = val;
 }
 
-void Provider__setI32(int32_t val) {
+void Provider__setI32(const int32_t val) {
     Provider__valI32 = val;
 }
 
-void Provider__setBool(bool val) {
+void Provider__setBool(const bool val) {
     Provider__valBool = val;
 }
 
@@ -79,7 +79,7 @@ void Provider__setBool(bool val) {
 /* Scope: Consumer */
 uint32_t Consumer__result = 0U;
 int32_t Consumer__signedResult = 0;
-bool Consumer__boolResult = false;
+const bool Consumer__boolResult = false;
 
 uint8_t Consumer__readProviderU8(void) {
     return Provider__valU8;
@@ -125,15 +125,15 @@ bool Consumer__readProviderBool(void) {
     return Provider__valBool;
 }
 
-void Consumer__writeProviderU8(uint8_t val) {
+void Consumer__writeProviderU8(const uint8_t val) {
     Provider__valU8 = val;
 }
 
-void Consumer__writeProviderI32(int32_t val) {
+void Consumer__writeProviderI32(const int32_t val) {
     Provider__valI32 = val;
 }
 
-void Consumer__writeProviderBool(bool val) {
+void Consumer__writeProviderBool(const bool val) {
     Provider__valBool = val;
 }
 
@@ -149,11 +149,11 @@ bool Consumer__callProviderGetBool(void) {
     return Provider__getBool();
 }
 
-void Consumer__writeProviderArray(uint32_t index, uint32_t val) {
+void Consumer__writeProviderArray(const uint32_t index, const uint32_t val) {
     Provider__arrayU32[index] = val;
 }
 
-uint32_t Consumer__readProviderArray(uint32_t index) {
+uint32_t Consumer__readProviderArray(const uint32_t index) {
     return Provider__arrayU32[index];
 }
 
@@ -165,11 +165,11 @@ uint8_t Consumer__readProviderWrap(void) {
     return Provider__wrapVal;
 }
 
-void Consumer__setProviderClamp(uint8_t val) {
+void Consumer__setProviderClamp(const uint8_t val) {
     Provider__clampVal = val;
 }
 
-void Consumer__setProviderWrap(uint8_t val) {
+void Consumer__setProviderWrap(const uint8_t val) {
     Provider__wrapVal = val;
 }
 
@@ -182,51 +182,51 @@ void Consumer__computeSignedSum(void) {
 }
 
 int main(void) {
-    uint8_t resultU8 = Consumer__readProviderU8();
+    const uint8_t resultU8 = Consumer__readProviderU8();
     if (resultU8 != 255) {
         return 1U;
     }
-    uint16_t resultU16 = Consumer__readProviderU16();
+    const uint16_t resultU16 = Consumer__readProviderU16();
     if (resultU16 != 65535) {
         return 2U;
     }
-    uint32_t resultU32 = Consumer__readProviderU32();
+    const uint32_t resultU32 = Consumer__readProviderU32();
     if (resultU32 != 4294967295) {
         return 3U;
     }
-    uint64_t resultU64 = Consumer__readProviderU64();
+    const uint64_t resultU64 = Consumer__readProviderU64();
     if (resultU64 != 18446744073709551615) {
         return 4U;
     }
-    int8_t resultI8 = Consumer__readProviderI8();
+    const int8_t resultI8 = Consumer__readProviderI8();
     if (resultI8 != -128) {
         return 5U;
     }
-    int16_t resultI16 = Consumer__readProviderI16();
+    const int16_t resultI16 = Consumer__readProviderI16();
     if (resultI16 != -32768) {
         return 6U;
     }
-    int32_t resultI32 = Consumer__readProviderI32();
+    const int32_t resultI32 = Consumer__readProviderI32();
     if (resultI32 != (int32_t)INT32_MIN) {
         return 7U;
     }
-    int64_t resultI64 = Consumer__readProviderI64();
+    const int64_t resultI64 = Consumer__readProviderI64();
     if (resultI64 != (int64_t)INT64_MIN) {
         return 8U;
     }
-    float expectedF32 = 3.14;
+    const float expectedF32 = 3.14;
     Provider__valF32 = expectedF32;
-    float resultF32 = Consumer__readProviderF32();
+    const float resultF32 = Consumer__readProviderF32();
     if (resultF32 != expectedF32) {
         return 9U;
     }
-    double expectedF64 = 3.141592653589793;
+    const double expectedF64 = 3.141592653589793;
     Provider__valF64 = expectedF64;
-    double resultF64 = Consumer__readProviderF64();
+    const double resultF64 = Consumer__readProviderF64();
     if (resultF64 != expectedF64) {
         return 10U;
     }
-    bool resultBool = Consumer__readProviderBool();
+    const bool resultBool = Consumer__readProviderBool();
     if (resultBool != true) {
         return 11U;
     }
@@ -245,48 +245,48 @@ int main(void) {
     Provider__valU8 = 100U;
     Provider__valI32 = -500;
     Provider__valBool = true;
-    uint8_t resultU8_2 = Consumer__callProviderGetU8();
+    const uint8_t resultU8_2 = Consumer__callProviderGetU8();
     if (resultU8_2 != 100) {
         return 15U;
     }
-    int32_t resultI32_2 = Consumer__callProviderGetI32();
+    const int32_t resultI32_2 = Consumer__callProviderGetI32();
     if (resultI32_2 != -500) {
         return 16U;
     }
-    bool resultBool2 = Consumer__callProviderGetBool();
+    const bool resultBool2 = Consumer__callProviderGetBool();
     if (resultBool2 != true) {
         return 17U;
     }
     Consumer__writeProviderArray(0U, 1000U);
     Consumer__writeProviderArray(1U, 2000U);
     Consumer__writeProviderArray(2U, 3000U);
-    uint32_t arrResult0 = Consumer__readProviderArray(0U);
+    const uint32_t arrResult0 = Consumer__readProviderArray(0U);
     if (arrResult0 != 1000) {
         return 19U;
     }
-    uint32_t arrResult1 = Consumer__readProviderArray(1U);
+    const uint32_t arrResult1 = Consumer__readProviderArray(1U);
     if (arrResult1 != 2000) {
         return 20U;
     }
-    uint32_t arrResult2 = Consumer__readProviderArray(2U);
+    const uint32_t arrResult2 = Consumer__readProviderArray(2U);
     if (arrResult2 != 3000) {
         return 21U;
     }
-    uint8_t clampResult = Consumer__readProviderClamp();
+    const uint8_t clampResult = Consumer__readProviderClamp();
     if (clampResult != 200) {
         return 22U;
     }
-    uint8_t wrapResult = Consumer__readProviderWrap();
+    const uint8_t wrapResult = Consumer__readProviderWrap();
     if (wrapResult != 250) {
         return 23U;
     }
     Consumer__setProviderClamp(100U);
-    uint8_t clampResult2 = Consumer__readProviderClamp();
+    const uint8_t clampResult2 = Consumer__readProviderClamp();
     if (clampResult2 != 100) {
         return 24U;
     }
     Consumer__setProviderWrap(50U);
-    uint8_t wrapResult2 = Consumer__readProviderWrap();
+    const uint8_t wrapResult2 = Consumer__readProviderWrap();
     if (wrapResult2 != 50) {
         return 25U;
     }
@@ -306,7 +306,7 @@ int main(void) {
         return 29U;
     }
     Consumer__writeProviderU8(77U);
-    uint8_t finalResult = Provider__getU8();
+    const uint8_t finalResult = Provider__getU8();
     if (finalResult != 77) {
         return 30U;
     }

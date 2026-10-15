@@ -26,19 +26,19 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Tests: multiple operators with same precedence (left-to-right associativity)
 // Coverage: Section 33.1 - Nested/Complex Expressions
 // Helper functions to get boolean values (prevents static analysis false positives)
-bool getTrue(uint32_t x) {
+bool getTrue(const uint32_t x) {
     return x > 0;
 }
 
-bool getFalse(uint32_t x) {
+bool getFalse(const uint32_t x) {
     return x > 1000;
 }
 
 int main(void) {
-    uint32_t a = 10U;
-    uint32_t b = 20U;
-    uint32_t c = 30U;
-    uint32_t d = 40U;
+    const uint32_t a = 10U;
+    const uint32_t b = 20U;
+    const uint32_t c = 30U;
+    const uint32_t d = 40U;
     uint32_t result = cnx_clamp_add_u32(cnx_clamp_add_u32(cnx_clamp_add_u32(a, b), c), d);
     if (result != 100) {
         return 1U;
@@ -67,9 +67,9 @@ int main(void) {
     if (result != 3) {
         return 7U;
     }
-    uint32_t x = 0xFFU;
-    uint32_t y = 0x0FU;
-    uint32_t z = 0x07U;
+    const uint32_t x = 0xFFU;
+    const uint32_t y = 0x0FU;
+    const uint32_t z = 0x07U;
     result = x & y & z;
     if (result != 0x07) {
         return 8U;
@@ -90,15 +90,15 @@ int main(void) {
     if (result != 8) {
         return 12U;
     }
-    bool cmp1 = 5 < 10;
-    bool cmp2 = 10 < 15;
-    bool both = cmp1 && cmp2;
+    const bool cmp1 = 5 < 10;
+    const bool cmp2 = 10 < 15;
+    const bool both = cmp1 && cmp2;
     if (both != true) {
         return 13U;
     }
-    bool eq1 = 10 == 10;
-    bool eq2 = 20 == 20;
-    bool eq3 = 30 == 30;
+    const bool eq1 = 10 == 10;
+    const bool eq2 = 20 == 20;
+    const bool eq3 = 30 == 30;
     if (eq1 != true) {
         return 14U;
     }
@@ -108,22 +108,22 @@ int main(void) {
     if (eq3 != true) {
         return 16U;
     }
-    bool t1 = getTrue(1U);
-    bool t2 = getTrue(2U);
-    bool t3 = getTrue(3U);
-    bool t4 = getTrue(4U);
+    const bool t1 = getTrue(1U);
+    const bool t2 = getTrue(2U);
+    const bool t3 = getTrue(3U);
+    const bool t4 = getTrue(4U);
     bool andResult = t1 && t2 && t3 && t4;
     if (andResult != true) {
         return 17U;
     }
-    bool f1 = getFalse(0U);
+    const bool f1 = getFalse(0U);
     andResult = t1 && t2 && f1 && t4;
     if (andResult != false) {
         return 18U;
     }
-    bool f2 = getFalse(0U);
-    bool f3 = getFalse(0U);
-    bool f4 = getFalse(0U);
+    const bool f2 = getFalse(0U);
+    const bool f3 = getFalse(0U);
+    const bool f4 = getFalse(0U);
     bool orResult = f1 || f2 || f3 || t1;
     if (orResult != true) {
         return 19U;

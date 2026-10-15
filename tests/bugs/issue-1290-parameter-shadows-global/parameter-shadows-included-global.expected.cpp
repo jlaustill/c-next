@@ -30,12 +30,12 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 /* Scope: Gate */
 
 /* C11 6.2.1p4, C++ [basic.scope.hiding]: `limit` emitted as `Gate__check__limit` (a plain `limit` would hide the file-scope `limit` for the rest of its scope, so `global.limit` would reach the local). */
-uint32_t Gate__check(uint32_t Gate__check__limit) {
+uint32_t Gate__check(const uint32_t Gate__check__limit) {
     return cnx_clamp_add_u32(Gate__check__limit, limit);
 }
 
 int main(void) {
-    uint32_t r1 = Gate__check(100U);
+    const uint32_t r1 = Gate__check(100U);
     if (r1 != 111) {
         return 1U;
     }

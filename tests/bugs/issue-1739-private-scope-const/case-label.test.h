@@ -17,7 +17,7 @@ extern const uint32_t G;
 extern const uint32_t S__P;
 
 /* Function prototypes */
-uint32_t S__pick(uint32_t v);
+uint32_t S__pick(const uint32_t v);
 
 #ifdef __cplusplus
 }

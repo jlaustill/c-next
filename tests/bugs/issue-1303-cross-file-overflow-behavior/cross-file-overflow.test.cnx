@@ -22,9 +22,9 @@
 #include "declarations.cnx"
 
 i32 main() {
-    u8 localDefaulted <- 250;
-    clamp u8 localExplicitClamp <- 250;
-    wrap u8 localExplicitWrap <- 250;
+    mut u8 localDefaulted <- 250;
+    mut clamp u8 localExplicitClamp <- 250;
+    mut wrap u8 localExplicitWrap <- 250;
 
     // --- Controls: the local path was always correct. ---
     localDefaulted <- localDefaulted + 10;

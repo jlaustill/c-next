@@ -5,7 +5,7 @@
 // second is E0713. `this.LIMIT` and `global.LIMIT` bind two consts and stay
 // silent, as do `State.IDLE` and `global.State.IDLE`; `this.State.RUN`
 // repeats `State.RUN`.
-const u8 LIMIT <- 1;
+u8 LIMIT <- 1;
 
 enum State {
     IDLE,
@@ -13,7 +13,7 @@ enum State {
 }
 
 scope Panel {
-    const u8 LIMIT <- 3;
+    u8 LIMIT <- 3;
 
     enum State {
         IDLE,

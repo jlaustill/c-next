@@ -3,9 +3,9 @@
 // inlined as a literal of its type -- `true`, `0.5f`, `9U` -- not emitted
 
 scope S {
-    const bool READY <- true;
-    const f32 HALF <- 1.0 / 2.0;
-    const u8 NINE <- 9u8;
+    bool READY <- true;
+    f32 HALF <- 1.0 / 2.0;
+    u8 NINE <- 9u8;
 
     public bool ready() {
         return READY;

@@ -32,10 +32,10 @@ scope Shapes {
 }
 
 void controls() {
-    Point local <- { x: 4, y: 4 };
+    mut Point local <- { x: 4, y: 4 };
     local <- { x: 5, y: 5 };
     takes({ x: 6, y: 6 });
-    for (Point p <- { x: 7, y: 7 }; p.x < 8; p.x +<- 1) {}
+    for (mut Point p <- { x: 7, y: 7 }; p.x < 8; p.x +<- 1) {}
     // #1322: two controls stood here, both written as `Point { ... }` and
     // `Box { c: { ... } }`. That grammar alternative is removed, so neither
     // shape exists any more -- a bare statement can no longer be made legal by

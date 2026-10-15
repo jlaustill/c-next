@@ -24,6 +24,6 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 // This file defines a scope with u8 parameters to test SMALL_PRIMITIVE_TYPES path
 /* Scope: TestFuncSmall */
 
-uint8_t TestFuncSmall__addBytes(uint8_t a, uint8_t b) {
+uint8_t TestFuncSmall__addBytes(const uint8_t a, const uint8_t b) {
     return cnx_clamp_add_u8(a, b);
 }

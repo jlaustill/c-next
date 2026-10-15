@@ -8,7 +8,7 @@
 u32 main() {
 
     // Test 1: Use SimpleRecord (anonymous struct with typedef)
-    SimpleRecord sr;
+    mut SimpleRecord sr;
     sr.id <- 99999;
     sr.flags <- 0x1234;
     if (sr.id != 99999) {
@@ -19,7 +19,7 @@ u32 main() {
     }
 
     // Test 2: Use DataBuffer with array field
-    DataBuffer buf;
+    mut DataBuffer buf;
     buf.len <- 5;
     buf.data[0] <- 0x11;
     buf.data[1] <- 0x22;
@@ -38,7 +38,7 @@ u32 main() {
     }
 
     // Test 3: Use MixedTypes struct
-    MixedTypes mt;
+    mut MixedTypes mt;
     mt.active <- true;
     mt.byte_val <- 255;
     mt.word_val <- 1000;

@@ -25,12 +25,12 @@ static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
 // Tests: Callbacks as struct members with invocation and validation
 // Validates: default callback, assignment, invocation via struct field
 // Callback that returns a computed value (used as a type)
-uint32_t computeValue(uint32_t input) {
+uint32_t computeValue(const uint32_t input) {
     return cnx_clamp_mul_u32(input, 2U);
 }
 
 // Alternative implementation with same signature
-uint32_t tripleValue(uint32_t input) {
+uint32_t tripleValue(const uint32_t input) {
     return cnx_clamp_mul_u32(input, 3U);
 }
 

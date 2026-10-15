@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint32_t checkValue(uint8_t x);
+uint32_t checkValue(const uint8_t x);
 
 #ifdef __cplusplus
 }

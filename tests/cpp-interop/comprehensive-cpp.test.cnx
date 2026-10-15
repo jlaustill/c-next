@@ -97,12 +97,12 @@ void testStructInit() {
     Result error <- global.Result.error(404);
 
     // POD struct
-    Point p;
+    mut Point p;
     p.x <- 10;
     p.y <- 20;
 
     // Struct with default initializers (C++ has defaults, but C-Next needs explicit init)
-    Settings s;
+    mut Settings s;
     s.enabled <- false;
     s.timeout <- 1000;
     s.mode <- global.EMode.OFF;
@@ -155,13 +155,13 @@ u32 processByte(u32 crc, u8 byte) {
 }
 
 void testTypeConversions() {
-    SensorConfig cfg;
+    mut SensorConfig cfg;
     cfg.enabled <- true;
     cfg.mode <- global.EMode.ON;
     cfg.flags <- 0x0F;
     cfg.permissions <- FLAG_READ;
 
-    u32 crc <- 0;
+    mut u32 crc <- 0;
 
     // bool → u8 conversion (implicit in C++)
     crc <- processByte(crc, cfg.enabled);
@@ -182,7 +182,7 @@ void testTypeConversions() {
 // Test array of structs member access
 
 void testArrayMembers() {
-    DeviceConfig device;
+    mut DeviceConfig device;
 
     // Initialize array elements (C-Next requires explicit init)
     device.sensors[0].enabled <- true;
@@ -198,7 +198,7 @@ void testArrayMembers() {
     u8 flags <- device.sensors[2].flags;
 
     // Passing array element member to function
-    u32 crc <- 0;
+    mut u32 crc <- 0;
     crc <- processByte(crc, device.sensors[0].enabled);
     // enum class → u8 requires static_cast (Issue #252)
     crc <- processByte(crc, device.sensors[0].mode);
@@ -211,7 +211,7 @@ void testArrayMembers() {
 // Test nested struct member access
 
 void testComplexStructs() {
-    Message msg;
+    mut Message msg;
     msg.id <- 0x100;
     msg.length <- 8;
     msg.flags <- FLAG_READ;
@@ -263,13 +263,13 @@ void testRefsAndPtrs() {
 
 void testStrictInit() {
     // StrictResult has explicit constructor - {0} would fail
-    StrictResult sr1;
+    mut StrictResult sr1;
     sr1.code <- 0;
     StrictResult sr2 <- global.StrictResult.success();
     StrictResult sr3 <- global.StrictResult.error(404);
 
     // CommandResult default constructor - {0} would fail
-    CommandResult cr1;
+    mut CommandResult cr1;
     cr1.errorCode <- 0;
     cr1.responseLen <- 0;
     CommandResult cr2 <- global.CommandResult.ok();
@@ -286,7 +286,7 @@ void testStrictInit() {
 // Test passing array members to functions - should NOT add spurious &
 
 void testArrayParams() {
-    ResponsePacket packet;
+    mut ResponsePacket packet;
     packet.statusCode <- 200;
     packet.payloadLen <- 8;
     packet.payload[0] <- 0x01;
@@ -296,7 +296,7 @@ void testArrayParams() {
     global.sendData(1, packet.statusCode, packet.payload, packet.payloadLen);
 
     // Also test with Result struct from earlier
-    Result res;
+    mut Result res;
     res.code <- 0;
     res.dataLen <- 4;
     res.data[0] <- 0xAB;
@@ -321,7 +321,7 @@ void intCallback(i32 value) {
 }
 
 // Define callback matching C++ ResultCallback typedef: void(*)(const Result&)
-void resultCallback(const Result result) {
+void resultCallback(Result result) {
     // no-op - just testing registration
 }
 

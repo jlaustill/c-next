@@ -12,10 +12,10 @@
 #include <stdint.h>
 #include <string.h>
 
-char message[33] = "Hello, World!";
+extern const char message[33] = "Hello, World!";
 
 void writeOutput(void) {
-    int32_t c_result = fputs(message, stdout);
+    const int32_t c_result = fputs(message, stdout);
     if (c_result != EOF) {
     }
 }

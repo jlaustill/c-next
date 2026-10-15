@@ -32,8 +32,8 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 // now shares.
 uint8_t wrapPasses(void) {
     uint8_t n = 0U;
-    uint32_t start = 4294967290U;
-    uint32_t step = 10U;
+    const uint32_t start = 4294967290U;
+    const uint32_t step = 10U;
     uint32_t w = 0U;
     for (w = start; w > 4294967200; w += step) {
         n = cnx_clamp_add_u8(n, 1U);
@@ -46,9 +46,9 @@ uint8_t wrapPasses(void) {
 
 uint8_t floatPasses(void) {
     uint8_t n = 0U;
-    float start = 0.5;
-    float one = 1.0;
-    float limit = 3.0;
+    const float start = 0.5;
+    const float one = 1.0;
+    const float limit = 3.0;
     float x = 0.0;
     for (x = start; x < limit; x += one) {
         n = cnx_clamp_add_u8(n, 1U);
@@ -60,11 +60,11 @@ uint8_t floatPasses(void) {
 }
 
 int main(void) {
-    uint8_t wraps = wrapPasses();
+    const uint8_t wraps = wrapPasses();
     if (wraps != 1) {
         return 1U;
     }
-    uint8_t floats = floatPasses();
+    const uint8_t floats = floatPasses();
     if (floats != 3) {
         return 2U;
     }

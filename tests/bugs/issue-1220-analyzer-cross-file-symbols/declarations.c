@@ -15,12 +15,12 @@ const uint32_t ZERO = 0U;
 
 const uint32_t NONZERO = 4U;
 
-float floatValue = 5.0;
+const float floatValue = 5.0;
 
-int32_t signedValue = -8;
+const int32_t signedValue = -8;
 
-int32_t otherSignedValue = -2;
+const int32_t otherSignedValue = -2;
 
-uint32_t importedUnsignedValue = 8U;
+const uint32_t importedUnsignedValue = 8U;
 
-bool flagValue = true;
+const bool flagValue = true;

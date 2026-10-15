@@ -19,15 +19,15 @@ typedef struct Vector {
 
 /* External variables */
 extern double global_d;
-extern double global_uninit;
+extern const double global_uninit;
 extern double measurements[8];
 
 /* Function prototypes */
-double multiply(double a, double b);
+double multiply(const double a, const double b);
 void calculate(void);
 void arithmetic(void);
 void compare(void);
-double min(double a, double b);
+double min(const double a, const double b);
 
 #ifdef __cplusplus
 }

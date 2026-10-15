@@ -4,7 +4,7 @@
 // writes the 4 bytes little-endian. Previously rejected with a self-contradictory
 // "source must be an integer value, but ... is assigned a 'int'" message.
 u32 main() {
-    u8[8] buf;
+    mut u8[8] buf;
     buf[0, 4] <- 0x12345678;
 
     if (buf[0] != 0x78) {

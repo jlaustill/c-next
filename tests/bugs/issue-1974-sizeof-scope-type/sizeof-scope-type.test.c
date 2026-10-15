@@ -40,7 +40,7 @@ uint32_t S__cfgSize(void) {
 }
 
 uint32_t S__cfgValueSize(void) {
-    S__Cfg c = {0};
+    const S__Cfg c = {0};
     return 5;
 }
 
@@ -49,7 +49,7 @@ uint32_t S__modeSize(void) {
 }
 
 uint32_t S__modeValueSize(void) {
-    S__Mode m = S__Mode__A;
+    const S__Mode m = S__Mode__A;
     return 1;
 }
 
@@ -62,21 +62,21 @@ uint32_t S__pairSize(void) {
 }
 
 int main(void) {
-    uint32_t cfg = S__cfgSize();
-    uint32_t cfgValue = S__cfgValueSize();
+    const uint32_t cfg = S__cfgSize();
+    const uint32_t cfgValue = S__cfgValueSize();
     if (cfg != cfgValue) {
         return 1U;
     }
-    uint32_t mode = S__modeSize();
-    uint32_t modeValue = S__modeValueSize();
+    const uint32_t mode = S__modeSize();
+    const uint32_t modeValue = S__modeValueSize();
     if (mode != modeValue) {
         return 2U;
     }
-    uint32_t flags = S__flagsSize();
+    const uint32_t flags = S__flagsSize();
     if (flags != 1) {
         return 3U;
     }
-    uint32_t pair = S__pairSize();
+    const uint32_t pair = S__pairSize();
     if (pair != 5) {
         return 4U;
     }

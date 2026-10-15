@@ -4,7 +4,7 @@
 // Pattern: Start with all 1s, write 0s to a range, verify only target bits change
 
 u32 main() {
-    u32 value <- 0;
+    mut u32 value <- 0;
 
     // ========================================================
     // Part 1: 8-bit writes at all byte boundaries on u32
@@ -198,7 +198,7 @@ u32 main() {
     // Part 6: u64 bit-range tests (bug #187 fixed)
     // ========================================================
 
-    u64 val64 <- 0xFFFFFFFFFFFFFFFF;
+    mut u64 val64 <- 0xFFFFFFFFFFFFFFFF;
 
     // Clear lower 16 bits on u64
     val64[0, 16] <- 0;

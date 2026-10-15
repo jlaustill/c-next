@@ -9,9 +9,9 @@
 // test-execution
 // Tests: f32 to u16 cast should clamp values to 0-65535 range
 int main(void) {
-    float over = 70000.0;
-    float negative = -100.0;
-    float in_range = 30000.0;
+    const float over = 70000.0;
+    const float negative = -100.0;
+    const float in_range = 30000.0;
     uint16_t result = ((over) >= ((float)UINT16_MAX) ? (uint16_t)UINT16_MAX : (over) < 0.0f ? (uint16_t)0 : (uint16_t)(over));
     if (result != 65535) {
         return 1U;

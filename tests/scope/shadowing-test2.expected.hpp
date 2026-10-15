@@ -13,8 +13,8 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint8_t globalFlags;
-extern uint8_t flags;
+extern const uint8_t globalFlags;
+extern const uint8_t flags;
 
 /* Function prototypes */
 void Control__setFlag(void);

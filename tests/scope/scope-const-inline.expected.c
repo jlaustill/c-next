@@ -37,7 +37,6 @@ static inline uint8_t cnx_clamp_mul_u8(uint8_t a, uint32_t b) {
 /* Scope: ConstTest */
 const uint8_t ConstTest__PUBLIC_MAX = 200U;
 const uint32_t ConstTest__PUBLIC_ID = 42U;
-static uint8_t ConstTest__counter = 0U;
 
 uint8_t ConstTest__getMaxValue(void) {
     return 255U;
@@ -64,7 +63,7 @@ uint32_t ConstTest__getPublicId(void) {
 }
 
 uint8_t ConstTest__getCounter(void) {
-    return ConstTest__counter;
+    return 0U;
 }
 
 uint8_t ConstTest__getHexFlags(void) {
@@ -80,34 +79,34 @@ uint32_t ConstTest__getHexAddr(void) {
 }
 
 uint16_t ConstTest__multipleRefs(void) {
-    uint16_t a = 255U;
-    uint16_t b = cnx_clamp_add_u8(255U, 1U);
-    uint16_t c = cnx_clamp_mul_u8(255U, 2U);
+    const uint16_t a = 255U;
+    const uint16_t b = cnx_clamp_add_u8(255U, 1U);
+    const uint16_t c = cnx_clamp_mul_u8(255U, 2U);
     return cnx_clamp_add_u16(cnx_clamp_add_u16(a, b), c);
 }
 
 int main(void) {
-    uint8_t maxVal = ConstTest__getMaxValue();
+    const uint8_t maxVal = ConstTest__getMaxValue();
     if (maxVal != 255) {
         return 1U;
     }
-    uint16_t bufSize = ConstTest__getBufferSize();
+    const uint16_t bufSize = ConstTest__getBufferSize();
     if (bufSize != 1024) {
         return 2U;
     }
-    int32_t offset = ConstTest__getOffset();
+    const int32_t offset = ConstTest__getOffset();
     if (offset != -100) {
         return 3U;
     }
-    bool enabled = ConstTest__getEnabled();
+    const bool enabled = ConstTest__getEnabled();
     if (enabled != true) {
         return 4U;
     }
-    uint8_t pubMax = ConstTest__getPublicMax();
+    const uint8_t pubMax = ConstTest__getPublicMax();
     if (pubMax != 200) {
         return 5U;
     }
-    uint32_t pubId = ConstTest__getPublicId();
+    const uint32_t pubId = ConstTest__getPublicId();
     if (pubId != 42) {
         return 6U;
     }
@@ -117,23 +116,23 @@ int main(void) {
     if (ConstTest__PUBLIC_ID != 42) {
         return 8U;
     }
-    uint8_t cnt = ConstTest__getCounter();
+    const uint8_t cnt = ConstTest__getCounter();
     if (cnt != 0) {
         return 9U;
     }
-    uint8_t hexFlags = ConstTest__getHexFlags();
+    const uint8_t hexFlags = ConstTest__getHexFlags();
     if (hexFlags != 171) {
         return 10U;
     }
-    uint8_t binMask = ConstTest__getBinMask();
+    const uint8_t binMask = ConstTest__getBinMask();
     if (binMask != 202) {
         return 11U;
     }
-    uint32_t hexAddr = ConstTest__getHexAddr();
+    const uint32_t hexAddr = ConstTest__getHexAddr();
     if (hexAddr != 1073745920) {
         return 12U;
     }
-    uint16_t multiResult = ConstTest__multipleRefs();
+    const uint16_t multiResult = ConstTest__multipleRefs();
     if (multiResult != 765) {
         return 13U;
     }

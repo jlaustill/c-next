@@ -15,10 +15,10 @@
 #include <stdint.h>
 
 int main(void) {
-    DefaultConstructible nonAgg = {};
+    const DefaultConstructible nonAgg = {};
     nonAgg.value = 42;
     nonAgg.name = "test";
-    AggregateType agg = { .value = 99, .label = "agg" };
+    const AggregateType agg = { .value = 99, .label = "agg" };
     if (nonAgg.value != 42) {
         return 1;
     }

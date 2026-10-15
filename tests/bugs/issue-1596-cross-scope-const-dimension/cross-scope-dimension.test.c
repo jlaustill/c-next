@@ -32,7 +32,7 @@ int main(void) {
     if (4 != 4) {
         return 1U;
     }
-    uint32_t n = Motor__insideCount();
+    const uint32_t n = Motor__insideCount();
     if (n != 4) {
         return 2U;
     }

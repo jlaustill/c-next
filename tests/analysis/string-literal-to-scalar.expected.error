@@ -1,4 +1,4 @@
-6:19 error[E0914]: A string value cannot be assigned to u32: '"abc"'
+6:13 error[E0914]: A string value cannot be assigned to u32: '"abc"'
        help: A string lands only in a string<N> (ADR-045); a u8 array may be initialized by a string literal (ADR-035)
 14:14 error[E0914]: A string value cannot be assigned to bool: '"flag"'
        help: A string lands only in a string<N> (ADR-045); a u8 array may be initialized by a string literal (ADR-035)

@@ -17,7 +17,7 @@ extern "C" {
 /* Function prototypes */
 int32_t viaInitializer(Dev* d);
 int32_t viaAssignment(Dev* d);
-bool sameHandle(Dev* a, Dev* b);
+bool sameHandle(const Dev* a, const Dev* b);
 
 #ifdef __cplusplus
 }

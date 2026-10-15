@@ -17,9 +17,9 @@ uint8_t buffer[100] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0
 // Fill with other values
 uint8_t ones[50] = {1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U, 1U};
 
-uint16_t magic[10] = {0xDEADU, 0xDEADU, 0xDEADU, 0xDEADU, 0xDEADU, 0xDEADU, 0xDEADU, 0xDEADU, 0xDEADU, 0xDEADU};
+extern const uint16_t magic[10] = {0xDEADU, 0xDEADU, 0xDEADU, 0xDEADU, 0xDEADU, 0xDEADU, 0xDEADU, 0xDEADU, 0xDEADU, 0xDEADU};
 
-int32_t negatives[5] = {-1, -1, -1, -1, -1};
+extern const int32_t negatives[5] = {-1, -1, -1, -1, -1};
 
 int main(void) {
     if (buffer[0U] != 0) {

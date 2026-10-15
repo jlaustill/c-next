@@ -31,11 +31,11 @@ uint32_t x = 0U;
 
 uint32_t f(void) {
     /* C11 6.2.1p4, C++ [basic.scope.hiding]: `x` emitted as `f__x` (a plain `x` would hide the file-scope `x` for the rest of its scope, so `global.x` would reach the local). */
-    uint8_t f__x = 1U;
-    uint32_t r = cnx_clamp_add_u32(x, 1000U);
+    const uint8_t f__x = 1U;
+    const uint32_t r = cnx_clamp_add_u32(x, 1000U);
     x = cnx_clamp_add_u32(x, 1000U);
-    uint32_t n = 32;
-    uint32_t local = f__x;
+    const uint32_t n = 32;
+    const uint32_t local = f__x;
     if (r != 1000) {
         return 2U;
     }
@@ -49,7 +49,7 @@ uint32_t f(void) {
 }
 
 int main(void) {
-    uint32_t checks = f();
+    const uint32_t checks = f();
     if (x != 1000) {
         return 1U;
     }

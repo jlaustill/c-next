@@ -22,8 +22,8 @@ scope User {
     }
 }
 
-Container.Collection collection;
-User.Data userData;
+mut Container.Collection collection;
+mut User.Data userData;
 
 void main() {
     // Access through scoped type arrays (this.Type[N])

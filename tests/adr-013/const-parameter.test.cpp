@@ -10,12 +10,12 @@
 // ADR-013: Const function parameter
 // Tests: const parameter can be read but not modified
 void printValue(const int32_t value, const uint8_t flags) {
-    int32_t copy = value;
-    uint8_t flagCopy = flags;
+    const int32_t copy = value;
+    const uint8_t flagCopy = flags;
 }
 
 int main(void) {
-    int32_t x = 42;
-    uint8_t f = 0xFFU;
+    const int32_t x = 42;
+    const uint8_t f = 0xFFU;
     printValue(x, f);
 }

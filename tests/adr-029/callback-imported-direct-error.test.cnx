@@ -12,7 +12,7 @@
 onDown okGlobal <- plain;
 
 void okCalls() {
-    Handler h;
+    mut Handler h;
     h.down <- plain;
     takesDown(plain);
 }
@@ -22,7 +22,7 @@ onDown badGlobal <- onUp;
 
 // ASSERTION 2 -- top-level function: assignment and argument.
 void main() {
-    Handler h;
+    mut Handler h;
     h.down <- onUp;
     takesDown(onUp);
     h.down <- mismatched;
@@ -34,7 +34,7 @@ scope Board {
 
     // ASSERTION 4 -- scope method.
     public void go() {
-        Handler h;
+        mut Handler h;
         h.down <- onUp;
     }
 }

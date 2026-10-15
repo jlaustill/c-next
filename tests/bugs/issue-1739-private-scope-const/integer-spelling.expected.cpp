@@ -21,8 +21,8 @@ int32_t S__negated(void) {
 }
 
 int main(void) {
-    uint64_t big = S__big();
-    int32_t negated = S__negated();
+    const uint64_t big = S__big();
+    const int32_t negated = S__negated();
     if (big != 0xFFFFFFFFFFFFFFFFULL) {
         return 1U;
     }

@@ -9,7 +9,7 @@ scope Motor {
         STOPPED
     }
 
-    public this.State current <- this.State.IDLE;
+    public mut this.State current <- this.State.IDLE;
 
     public u8 start() {
         this.current <- this.State.RUNNING;

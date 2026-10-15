@@ -14,8 +14,8 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint32_t Handler__processBuffer(const uint8_t data[8], uint8_t len);
-uint32_t Handler__processData(const uint8_t data[16], uint8_t len);
+uint32_t Handler__processBuffer(const uint8_t data[8], const uint8_t len);
+uint32_t Handler__processData(const uint8_t data[16], const uint8_t len);
 uint32_t Handler__handleMessage(const CAN_message_t& msg);
 uint32_t Handler__processMultiArray(const MultiArray_t& multi);
 uint32_t Handler__handleMutableMessage(const CAN_message_t& msg);

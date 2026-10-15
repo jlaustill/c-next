@@ -2,9 +2,9 @@
 // ADR-040: ISR direct invocation
 // Tests: invoking ISR through variables (global and local)
 // Global to track handler execution
-u32 invokeCallCount <- 0;
+mut u32 invokeCallCount <- 0;
 
-u32 invokeLastHandler <- 0;
+mut u32 invokeLastHandler <- 0;
 
 // Handler functions
 void invokeHandler1() {
@@ -23,7 +23,7 @@ void invokeHandler3() {
 }
 
 // Global ISR variable
-ISR globalHandler <- invokeHandler1;
+mut ISR globalHandler <- invokeHandler1;
 
 u32 main() {
 
@@ -53,7 +53,7 @@ u32 main() {
     // Test 3: Local ISR variable
     invokeCallCount <- 0;
     invokeLastHandler <- 0;
-    ISR localHandler <- invokeHandler3;
+    mut ISR localHandler <- invokeHandler3;
     localHandler();
     if (invokeCallCount != 1) {
         return 5;

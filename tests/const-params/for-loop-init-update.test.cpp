@@ -25,12 +25,12 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // This tests that function calls in for-init and for-update are detected
 /* Scope: Handler */
 
-uint8_t Handler__setValue(Config& cfg, uint32_t val) {
+uint8_t Handler__setValue(Config& cfg, const uint32_t val) {
     cfg.value = val;
     return 0U;
 }
 
-uint32_t Handler__getNext(Config& cfg, uint32_t current) {
+uint32_t Handler__getNext(Config& cfg, const uint32_t current) {
     cfg.value = cnx_clamp_add_u32(current, 1U);
     return cnx_clamp_add_u32(current, 1U);
 }

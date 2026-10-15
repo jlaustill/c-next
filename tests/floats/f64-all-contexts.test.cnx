@@ -1,6 +1,6 @@
 // Test f64 in all language contexts
 // Global variable declarations
-f64 global_d <- 3.141592653589793;
+mut f64 global_d <- 3.141592653589793;
 
 f64 global_uninit;
 
@@ -12,7 +12,7 @@ struct Vector {
 }
 
 // Array element type
-f64[8] measurements;
+mut f64[8] measurements;
 
 // Function with f64 parameter and return
 f64 multiply(f64 a, f64 b) {

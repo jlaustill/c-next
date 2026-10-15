@@ -1,18 +1,18 @@
 // Coverage: Section 7.2 - while loop inside scope
 // Tests: while loops inside scope declarations
-u32 globalResult <- 0;
+mut u32 globalResult <- 0;
 
 scope Counter {
-    u32 value <- 0;
+    mut u32 value <- 0;
     public void countToFive() {
-        u32 i <- 0;
+        mut u32 i <- 0;
         while (i < 5) {
             this.value +<- 1;
             i +<- 1;
         }
     }
     public void countWhileCondition(bool shouldCount) {
-        u32 i <- 0;
+        mut u32 i <- 0;
         while (i < 3 && shouldCount = true) {
             this.value +<- 10;
             i +<- 1;
@@ -27,9 +27,9 @@ scope Counter {
 }
 
 scope Accumulator {
-    u32 sum <- 0;
+    mut u32 sum <- 0;
     public void sumRange(u32 limit) {
-        u32 i <- 1;
+        mut u32 i <- 1;
         while (i <= limit) {
             this.sum +<- i;
             i +<- 1;

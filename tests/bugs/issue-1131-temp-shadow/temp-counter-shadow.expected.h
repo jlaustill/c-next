@@ -14,7 +14,7 @@ extern "C" {
 
 /* External variables */
 extern uint8_t buffer[4];
-extern uint8_t _tmp0;
+extern const uint8_t _tmp0;
 
 #ifdef __cplusplus
 }

@@ -8,7 +8,7 @@ u32 main() {
     // Test 1: u8 subtraction with operand > 255
     // Without fix: 300 truncates to 44, result = 200 - 44 = 156
     // With fix: 300 > 200, should clamp to 0
-    clamp u8 val8 <- 200;
+    mut clamp u8 val8 <- 200;
     val8 -<- 300;
     if (val8 != 0) {
         return 1;
@@ -43,7 +43,7 @@ u32 main() {
     // === U16 TESTS (operands > 65535) ===
 
     // Test 5: u16 subtraction with operand > 65535
-    clamp u16 val16 <- 1000;
+    mut clamp u16 val16 <- 1000;
     val16 -<- 70000;
     if (val16 != 0) {
         return 5;
@@ -59,7 +59,7 @@ u32 main() {
     // === U32 TESTS (operands > UINT32_MAX) ===
 
     // Test 7: u32 subtraction with operand > 4294967295
-    clamp u32 val32 <- 1000;
+    mut clamp u32 val32 <- 1000;
     val32 -<- 5000000000; // 5 billion > 4.29 billion
     if (val32 != 0) {
         return 7;
@@ -77,7 +77,7 @@ u32 main() {
     // Test 9: i8 subtraction with operand > 127
     // Without fix: 200 truncates to -56, result = 50 - (-56) = 106
     // With fix: 50 - 200 = -150 < -128, should clamp to -128
-    clamp i8 vali8 <- 50;
+    mut clamp i8 vali8 <- 50;
     vali8 -<- 200;
     if (vali8 != -128) {
         return 9;
@@ -93,7 +93,7 @@ u32 main() {
     }
 
     // Test 11: i16 subtraction with operand > 32767
-    clamp i16 vali16 <- 1000;
+    mut clamp i16 vali16 <- 1000;
     vali16 -<- 40000; // Would underflow
     if (vali16 != -32768) {
         return 11;

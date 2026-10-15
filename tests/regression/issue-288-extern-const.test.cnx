@@ -8,9 +8,9 @@
 
 scope ExternConstTest {
     // Public const values - must be declared as "extern const" in header
-    public const u8 STATUS_OK <- 0;
-    public const u8 STATUS_ERROR <- 1;
-    public const u32 MAGIC_NUMBER <- 0xCAFEBABE;
+    public u8 STATUS_OK <- 0;
+    public u8 STATUS_ERROR <- 1;
+    public u32 MAGIC_NUMBER <- 0xCAFEBABE;
 
     public bool isSuccess(u8 status) {
         if (status = this.STATUS_OK) {

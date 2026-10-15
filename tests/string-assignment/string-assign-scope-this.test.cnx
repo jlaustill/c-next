@@ -1,7 +1,7 @@
 // test-execution
 // Issue #139: Test this.member string assignment in scopes (ADR-016)
 scope Logger {
-    public string<64> message <- "";
+    public mut string<64> message <- "";
     public void setMessage() {
         this.message <- "Hello from scope";
     }

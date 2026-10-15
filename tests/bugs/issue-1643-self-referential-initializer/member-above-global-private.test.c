@@ -20,10 +20,9 @@ uint32_t y = 5U;
 void S__set(void) {
     y = 300U;
 }
-static uint8_t S__y = 1U;
 
 uint8_t S__member(void) {
-    return S__y;
+    return 1U;
 }
 
 int main(void) {
@@ -31,7 +30,7 @@ int main(void) {
     if (y != 300) {
         return 1U;
     }
-    uint8_t member = S__member();
+    const uint8_t member = S__member();
     if (member != 1) {
         return 2U;
     }

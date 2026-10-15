@@ -1,8 +1,8 @@
 // Helper for float-cast-imported.test.cnx
 
-const u32 N <- (u32)2.5;
-const f32 F <- 2.5;
+u32 N <- (u32)2.5;
+f32 F <- 2.5;
 
 scope Lim {
-    public const u32 M <- (u32)3.99;
+    public u32 M <- (u32)3.99;
 }

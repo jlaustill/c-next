@@ -29,7 +29,7 @@ extern uint32_t structLastHandler;
 void structHandler1(void);
 void structHandler2(void);
 void structHandler3(void);
-void initStructHolder(IsrHolder* hld, ISR prim, ISR sec);
+void initStructHolder(IsrHolder* hld, const ISR prim, const ISR sec);
 void invokeStructHolder(const IsrHolder* hld);
 
 #ifdef __cplusplus

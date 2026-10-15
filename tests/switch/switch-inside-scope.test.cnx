@@ -1,10 +1,10 @@
 // Coverage: Section 7.5 - switch statement inside scope
 // Tests: switch statements inside scope method declarations
-u32 globalResult <- 0;
+mut u32 globalResult <- 0;
 
 scope CommandProcessor {
-    u32 lastCommand <- 0;
-    u32 result <- 0;
+    mut u32 lastCommand <- 0;
+    mut u32 result <- 0;
     public void execute(u32 command) {
         this.lastCommand <- command;
 
@@ -29,10 +29,10 @@ scope CommandProcessor {
 }
 
 scope Calculator {
-    u32 mode <- 0;
-    u32 a <- 0;
-    u32 b <- 0;
-    u32 output <- 0;
+    mut u32 mode <- 0;
+    mut u32 a <- 0;
+    mut u32 b <- 0;
+    mut u32 output <- 0;
     public void setOperands(u32 x, u32 y) {
         this.a <- x;
         this.b <- y;

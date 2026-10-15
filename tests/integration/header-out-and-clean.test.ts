@@ -20,7 +20,7 @@ import CleanCommand from "../../src/commands/CleanCommand";
 // Test source file content
 const testSource = `
 // Test file for --header-out and --clean options
-u32 globalCounter <- 0;
+mut u32 globalCounter <- 0;
 
 u32 add(u32 a, u32 b) {
     return a + b;

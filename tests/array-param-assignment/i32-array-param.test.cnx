@@ -3,7 +3,7 @@
 // Coverage: Signed integer array parameters with negative values
 
 // Write to sized array
-void writeI32(i32[4] arr, u32 index, i32 value) {
+void writeI32(mut i32[4] arr, u32 index, i32 value) {
     arr[index] <- value;
 }
 
@@ -13,18 +13,18 @@ i32 readI32(i32[4] arr, u32 index) {
 }
 
 // Negate array element
-void negateI32(i32[4] arr, u32 index) {
+void negateI32(mut i32[4] arr, u32 index) {
     arr[index] <- -arr[index];
 }
 
 // Add to array element
-void addToI32(i32[4] arr, u32 index, i32 delta) {
+void addToI32(mut i32[4] arr, u32 index, i32 delta) {
     arr[index] +<- delta;
 }
 
 u32 main() {
     // Test positive values
-    i32[4] buffer;
+    mut i32[4] buffer;
     buffer[0] <- 0;
     buffer[1] <- 0;
     buffer[2] <- 0;
@@ -54,7 +54,7 @@ u32 main() {
     }
 
     // Test read through parameter
-    i32 result <- readI32(buffer, 1);
+    mut i32 result <- readI32(buffer, 1);
     if (result != -9999) {
         return 5;
     }

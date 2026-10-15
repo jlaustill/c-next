@@ -13,9 +13,9 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint16_t myArray[8];
-extern uint8_t initialized[4];
-extern int32_t signedArray[3];
+extern const uint16_t myArray[8];
+extern const uint8_t initialized[4];
+extern const int32_t signedArray[3];
 
 /* Function prototypes */
 void useArrays(void);

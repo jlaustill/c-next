@@ -23,11 +23,11 @@ extern uint32_t total;
 extern Point pt;
 
 /* Function prototypes */
-uint32_t shadowWritesGlobal(uint32_t shadowWritesGlobal__total);
-uint32_t controlWritesGlobal(uint32_t other);
+uint32_t shadowWritesGlobal(const uint32_t shadowWritesGlobal__total);
+uint32_t controlWritesGlobal(const uint32_t other);
 uint32_t shadowWritesGlobalMember(const Point& shadowWritesGlobalMember__pt);
 uint32_t controlWritesGlobalMember(const Point& other);
-uint32_t S__viaThis(uint32_t count);
+uint32_t S__viaThis(const uint32_t count);
 
 #ifdef __cplusplus
 }

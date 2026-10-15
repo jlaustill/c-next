@@ -14,8 +14,8 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint32_t getValue(uint32_t x);
-bool isZero(int32_t n);
+uint32_t getValue(const uint32_t x);
+bool isZero(const int32_t n);
 void test(void);
 
 #ifdef __cplusplus

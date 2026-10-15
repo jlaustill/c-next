@@ -3,11 +3,11 @@
 // Tests: Global volatile variable declaration and access
 // ADR-064: Volatile keyword for optimization prevention
 // Global volatile variable - prevents compiler from caching value
-volatile u32 status_flag <- 0;
+volatile mut u32 status_flag <- 0;
 
-volatile u8 byte_flag <- 0;
+volatile mut u8 byte_flag <- 0;
 
-volatile bool ready_flag <- false;
+volatile mut bool ready_flag <- false;
 
 u32 main() {
 

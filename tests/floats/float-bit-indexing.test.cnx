@@ -4,7 +4,7 @@
 
 // Helper to build f32 from LE bytes (like the user's use case)
 f32 fromBytesLE(u8 b0, u8 b1, u8 b2, u8 b3) {
-    f32 result <- 0.0;
+    mut f32 result <- 0.0;
     result[0, 8] <- b0;
     result[8, 8] <- b1;
     result[16, 8] <- b2;
@@ -60,7 +60,7 @@ u32 main() {
     }
 
     // Test 5: Inline bit write
-    f32 val <- 0.0;
+    mut f32 val <- 0.0;
     val[24, 8] <- 0x3F;
     val[16, 8] <- 0x80;
     // Should now be 1.0

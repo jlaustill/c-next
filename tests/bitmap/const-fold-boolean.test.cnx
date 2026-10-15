@@ -12,7 +12,7 @@ bitmap8 Flags {
 }
 
 u32 main() {
-    Flags f;
+    mut Flags f;
 
     // Literal true - should generate: | (1 << 0)
     f.bit0 <- true;

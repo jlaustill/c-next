@@ -10,7 +10,7 @@ scope BoundaryTest {
     }
 }
 
-BoundaryTest.Data[16] items; // Max reasonable array size for testing
+mut BoundaryTest.Data[16] items; // Max reasonable array size for testing
 
 void main() {
 
@@ -55,22 +55,22 @@ void main() {
     // Multi-bit ranges at boundaries
 
     // u8: maximum width = 8 bits
-    u8 test8 <- 0;
+    mut u8 test8 <- 0;
     test8[0, 8] <- 0xFF; // All 8 bits
     u8 all8 <- test8[0, 8];
 
     // u16: maximum width = 16 bits
-    u16 test16 <- 0;
+    mut u16 test16 <- 0;
     test16[0, 16] <- 0xFFFF; // All 16 bits
     u16 all16 <- test16[0, 16];
 
     // u32: maximum width = 32 bits
-    u32 test32 <- 0;
+    mut u32 test32 <- 0;
     test32[0, 32] <- 0xFFFFFFFF; // All 32 bits
     u32 all32 <- test32[0, 32];
 
     // Edge case: Single bit at maximum position
-    u32 maxBitTest <- 0;
+    mut u32 maxBitTest <- 0;
     maxBitTest[31] <- true;
     bool maxBit <- maxBitTest[31];
 
@@ -84,7 +84,7 @@ void main() {
     bool zeroIdx <- items[0].byte[0];
 
     // Consecutive bit access
-    u8 consecutive <- 0xFF;
+    mut u8 consecutive <- 0xFF;
     consecutive[0] <- false;
     consecutive[1] <- false;
     consecutive[2] <- false;

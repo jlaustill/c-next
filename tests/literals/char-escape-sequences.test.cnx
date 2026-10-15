@@ -76,7 +76,7 @@ u32 main() {
     // ===== Escape sequences in comparisons =====
 
     // Test newline comparison
-    u8 c <- '\n';
+    mut u8 c <- '\n';
     if (c != (u8)'\n') {
         return 15;
     }
@@ -94,8 +94,8 @@ u32 main() {
     }
 
     // ===== Escape sequences in switch =====
-    u8 whitespace <- '\t';
-    u32 wsType <- 0;
+    mut u8 whitespace <- '\t';
+    mut u32 wsType <- 0;
 
     switch (whitespace) {
         case ' ' {

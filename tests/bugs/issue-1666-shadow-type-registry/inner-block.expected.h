@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint32_t probe(bool c);
+uint32_t probe(const bool c);
 
 #ifdef __cplusplus
 }

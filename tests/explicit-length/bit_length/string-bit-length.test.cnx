@@ -30,7 +30,7 @@ i32 main() {
     }
 
     // Test struct member string<32> = 256 bits
-    TestStruct ts;
+    mut TestStruct ts;
     ts.name <- "Test";
     if (ts.name.type_bit_length != 256) {
         return 4;

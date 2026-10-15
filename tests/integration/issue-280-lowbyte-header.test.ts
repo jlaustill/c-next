@@ -41,7 +41,7 @@ scope j1939_encode {
     }
 
     // Function that modifies its parameter - should remain pointer
-    public void setValue(u16 target) {
+    public void setValue(mut u16 target) {
         target <- 0x1234;
     }
 }

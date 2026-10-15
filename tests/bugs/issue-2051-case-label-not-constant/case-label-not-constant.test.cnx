@@ -6,7 +6,7 @@
 // member and a literal in the same switch, which stay silent. A label naming
 // a type (#2069) or a const with no C constant value (a string) is E0717 too.
 u8 counter <- 2;
-const u8 REAL <- 1;
+u8 REAL <- 1;
 
 enum EMode {
     IDLE,
@@ -19,8 +19,8 @@ struct Pt {
 
 scope Panel {
     u8 level <- 1;
-    const u8 OWN <- 3;
-    public const string<4> S <- "ab";
+    u8 OWN <- 3;
+    public string<4> S <- "ab";
 
     public enum State {
         STOPPED,

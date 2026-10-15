@@ -14,7 +14,7 @@
 const uint8_t ConstArrayTest__LOOKUP_TABLE[4] = {10U, 20U, 30U, 40U};
 const uint8_t ConstArrayTest__TABLE_SIZE = 4U;
 
-uint8_t ConstArrayTest__lookup(uint8_t index) {
+uint8_t ConstArrayTest__lookup(const uint8_t index) {
     if (index < ConstArrayTest__TABLE_SIZE) {
         return ConstArrayTest__LOOKUP_TABLE[index];
     }
@@ -34,15 +34,15 @@ int main(void) {
     if (ConstArrayTest__LOOKUP_TABLE[3U] != 40) {
         return 4U;
     }
-    uint8_t val0 = ConstArrayTest__lookup(0U);
+    const uint8_t val0 = ConstArrayTest__lookup(0U);
     if (val0 != 10) {
         return 5U;
     }
-    uint8_t val2 = ConstArrayTest__lookup(2U);
+    const uint8_t val2 = ConstArrayTest__lookup(2U);
     if (val2 != 30) {
         return 6U;
     }
-    uint8_t outOfBounds = ConstArrayTest__lookup(10U);
+    const uint8_t outOfBounds = ConstArrayTest__lookup(10U);
     if (outOfBounds != 0) {
         return 7U;
     }

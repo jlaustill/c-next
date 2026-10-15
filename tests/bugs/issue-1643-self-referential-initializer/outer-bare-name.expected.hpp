@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint32_t g;
+extern const uint32_t g;
 
 /* Function prototypes */
 uint32_t S__bump(void);

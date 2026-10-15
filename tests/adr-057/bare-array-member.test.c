@@ -31,8 +31,8 @@ bool ArrayBug__getFlag(void) {
 
 int main(void) {
     ArrayBug__callback();
-    uint8_t data0 = ArrayBug__getData0();
-    bool flag = ArrayBug__getFlag();
+    const uint8_t data0 = ArrayBug__getData0();
+    const bool flag = ArrayBug__getFlag();
     if (data0 != 42) {
         return 1U;
     }

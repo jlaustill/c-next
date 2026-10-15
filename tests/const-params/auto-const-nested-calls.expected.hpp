@@ -14,13 +14,13 @@ extern "C" {
 
 /* Function prototypes */
 void level3Modify(uint32_t& val);
-uint32_t level3Read(uint32_t val);
+uint32_t level3Read(const uint32_t val);
 void level2PassToModify(uint32_t& val);
-uint32_t level2PassToRead(uint32_t val);
-void level2Mixed(uint32_t readVal, uint32_t& modVal);
+uint32_t level2PassToRead(const uint32_t val);
+void level2Mixed(const uint32_t readVal, uint32_t& modVal);
 void level1DeepModify(uint32_t& val);
-uint32_t level1DeepRead(uint32_t val);
-uint32_t complexChain(uint32_t a, uint32_t& b, uint32_t c);
+uint32_t level1DeepRead(const uint32_t val);
+uint32_t complexChain(const uint32_t a, uint32_t& b, const uint32_t c);
 
 #ifdef __cplusplus
 }

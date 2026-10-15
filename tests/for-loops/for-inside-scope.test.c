@@ -32,14 +32,14 @@ uint32_t globalSum = 0U;
 /* Scope: Calculator */
 static uint32_t Calculator__result = 0U;
 
-void Calculator__sumToN(uint32_t n) {
+void Calculator__sumToN(const uint32_t n) {
     Calculator__result = 0U;
     for (uint32_t i = 1U; i <= n; i = cnx_clamp_add_u32(i, 1U)) {
         Calculator__result = cnx_clamp_add_u32(Calculator__result, i);
     }
 }
 
-void Calculator__factorial(uint32_t n) {
+void Calculator__factorial(const uint32_t n) {
     Calculator__result = 1U;
     for (uint32_t i = 2U; i <= n; i = cnx_clamp_add_u32(i, 1U)) {
         Calculator__result = cnx_clamp_mul_u32(Calculator__result, i);

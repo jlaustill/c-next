@@ -14,13 +14,13 @@ scope ArrayStructMember {
 }
 
 // Test arrays
-Point[3] points;
+mut Point[3] points;
 
-ArrayStructMember.Sensor[4] sensors;
+mut ArrayStructMember.Sensor[4] sensors;
 
 // Test function to verify array-of-struct assignment
 i32 main() {
-    i32 errors <- 0;
+    mut i32 errors <- 0;
 
     // === Test 1: Basic array-of-struct member write ===
     points[0].x <- 10;

@@ -15,6 +15,6 @@
 typedef uint32_t (*sharedWork_fp)(void);
 
 uint32_t useB(void) {
-    sharedWork_fp viaB = sharedWork;
+    const sharedWork_fp viaB = sharedWork;
     return viaB();
 }

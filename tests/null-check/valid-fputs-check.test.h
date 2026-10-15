@@ -11,7 +11,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern char message[33];
+extern const char message[33];
 
 /* Function prototypes */
 void writeOutput(void);

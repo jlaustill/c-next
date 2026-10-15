@@ -15,11 +15,11 @@ const uint16_t MAX_ADC = 4095U;
 const uint16_t THRESHOLD = 2048U;
 
 int main(void) {
-    uint16_t maxAdc = MAX_ADC;
+    const uint16_t maxAdc = MAX_ADC;
     if (maxAdc != 4095) {
         return 1U;
     }
-    uint16_t thresh = THRESHOLD;
+    const uint16_t thresh = THRESHOLD;
     if (thresh != 2048) {
         return 2U;
     }

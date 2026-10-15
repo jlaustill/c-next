@@ -17,9 +17,9 @@ scope DataManager {
         this.Size dimensions;
     }
 
-    public this.Point cursor;
-    public this.Size screenSize;
-    public this.Rect viewport;
+    public mut this.Point cursor;
+    public mut this.Size screenSize;
+    public mut this.Rect viewport;
 
     public void setCursor(i16 x, i16 y) {
         this.cursor.x <- x;

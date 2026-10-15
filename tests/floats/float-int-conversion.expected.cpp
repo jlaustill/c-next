@@ -10,9 +10,9 @@
 
 // Test conversions between float and integer types
 void test_int_to_float(void) {
-    int32_t int_val = 42;
+    const int32_t int_val = 42;
     float float_val = static_cast<float>(int_val);
-    uint32_t uint_val = 100U;
+    const uint32_t uint_val = 100U;
     float_val = static_cast<float>(uint_val);
     double double_val = static_cast<double>(int_val);
     double_val = static_cast<double>(uint_val);
@@ -21,17 +21,17 @@ void test_int_to_float(void) {
 }
 
 void test_f32_to_f64(void) {
-    float single = 3.14;
-    double precise = single;
+    const float single = 3.14;
+    const double precise = single;
 }
 
 void test_explicit_cast(void) {
-    float a = 3.14;
-    int32_t truncated = ((a) >= ((float)INT32_MAX) ? static_cast<int32_t>(INT32_MAX) : (a) < ((float)INT32_MIN) ? static_cast<int32_t>(INT32_MIN) : static_cast<int32_t>((a)));
-    double b = 99.99;
-    uint32_t unsigned_val = ((b) >= ((double)UINT32_MAX) ? static_cast<uint32_t>(UINT32_MAX) : (b) < 0.0 ? static_cast<uint32_t>(0) : static_cast<uint32_t>((b)));
-    double big = 3.141592653589793;
-    float small = static_cast<float>(big);
+    const float a = 3.14;
+    const int32_t truncated = ((a) >= ((float)INT32_MAX) ? static_cast<int32_t>(INT32_MAX) : (a) < ((float)INT32_MIN) ? static_cast<int32_t>(INT32_MIN) : static_cast<int32_t>((a)));
+    const double b = 99.99;
+    const uint32_t unsigned_val = ((b) >= ((double)UINT32_MAX) ? static_cast<uint32_t>(UINT32_MAX) : (b) < 0.0 ? static_cast<uint32_t>(0) : static_cast<uint32_t>((b)));
+    const double big = 3.141592653589793;
+    const float small = static_cast<float>(big);
 }
 
 int main(void) {

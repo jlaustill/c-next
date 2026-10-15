@@ -16,19 +16,19 @@
 
 #include <stdint.h>
 
-uint8_t raw[5] = {0};
+const uint8_t raw[5] = {0};
 
-uint8_t outer[11] = {0};
+const uint8_t outer[11] = {0};
 
-uint8_t arrBytes[6] = {0};
+const uint8_t arrBytes[6] = {0};
 
-uint8_t bits[32] = {0};
+const uint8_t bits[32] = {0};
 
-uint8_t point[5] = {0};
+const uint8_t point[5] = {0};
 
 int main(void) {
-    Cfg c = {0};
-    uint8_t local[5] = {0};
+    const Cfg c = {0};
+    const uint8_t local[5] = {0};
     if (5 != 5) {
         return 1U;
     }

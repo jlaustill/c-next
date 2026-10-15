@@ -24,7 +24,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Tests: Pass-by-value in nested function calls
 // Coverage: Values passed through call chains
 // Level 3: deepest functions
-uint32_t addOne(uint32_t val) {
+uint32_t addOne(const uint32_t val) {
     return cnx_clamp_add_u32(val, 1U);
 }
 
@@ -33,8 +33,8 @@ void modifyAddOne(uint32_t& val) {
 }
 
 // Level 2: middle functions
-uint32_t addTwo(uint32_t val) {
-    uint32_t temp = addOne(val);
+uint32_t addTwo(const uint32_t val) {
+    const uint32_t temp = addOne(val);
     return addOne(temp);
 }
 
@@ -44,14 +44,14 @@ void modifyAddTwo(uint32_t& val) {
 }
 
 uint32_t mixedChain(uint32_t& val) {
-    uint32_t result = addOne(val);
+    const uint32_t result = addOne(val);
     modifyAddOne(val);
     return cnx_clamp_add_u32(result, val);
 }
 
 // Level 1: top functions
-uint32_t addFour(uint32_t val) {
-    uint32_t temp = addTwo(val);
+uint32_t addFour(const uint32_t val) {
+    const uint32_t temp = addTwo(val);
     return addTwo(temp);
 }
 
@@ -61,13 +61,13 @@ void modifyAddFour(uint32_t& val) {
 }
 
 // Multiple parameters through chain
-uint32_t sumThree(uint32_t a, uint32_t b, uint32_t c) {
+uint32_t sumThree(const uint32_t a, const uint32_t b, const uint32_t c) {
     return cnx_clamp_add_u32(cnx_clamp_add_u32(a, b), c);
 }
 
-uint32_t sumSix(uint32_t a, uint32_t b, uint32_t c, uint32_t d, uint32_t e, uint32_t f) {
-    uint32_t first = sumThree(a, b, c);
-    uint32_t second = sumThree(d, e, f);
+uint32_t sumSix(const uint32_t a, const uint32_t b, const uint32_t c, const uint32_t d, const uint32_t e, const uint32_t f) {
+    const uint32_t first = sumThree(a, b, c);
+    const uint32_t second = sumThree(d, e, f);
     return cnx_clamp_add_u32(first, second);
 }
 
@@ -78,7 +78,7 @@ void incrementBoth(uint32_t& x, uint32_t& y) {
 }
 
 int main(void) {
-    uint32_t val = 10U;
+    const uint32_t val = 10U;
     uint32_t result = addOne(val);
     if (val != 10) {
         return 1U;

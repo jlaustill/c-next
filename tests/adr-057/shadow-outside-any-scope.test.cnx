@@ -21,7 +21,7 @@ u32 main() {
     // appears anywhere below, so every bare reference must resolve to the
     // LOCAL, and the generated C must not carry a bare `counter`/`limit`
     // inside this function.
-    u32 counter <- 1;
+    mut u32 counter <- 1;
     u32 limit <- 2;
 
     counter <- counter + limit;

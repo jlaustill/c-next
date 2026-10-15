@@ -33,17 +33,17 @@ static inline int32_t cnx_clamp_sub_i32(int32_t a, int64_t b) {
 // Tests: Callbacks with different return types
 // Validates: u32, u8, bool, and i32 return types work correctly
 // Callback returning u32
-uint32_t getU32Value(uint32_t input) {
+uint32_t getU32Value(const uint32_t input) {
     return cnx_clamp_add_u32(input, 1000U);
 }
 
 // Callback returning u8
-uint8_t getU8Value(uint32_t input) {
+uint8_t getU8Value(const uint32_t input) {
     return 100U;
 }
 
 // Callback returning bool
-bool checkThreshold(uint32_t value) {
+bool checkThreshold(const uint32_t value) {
     if (value > 50) {
         return true;
     }
@@ -54,7 +54,7 @@ bool checkThreshold(uint32_t value) {
 // `0 - input` gave -10 only because arithmetic on parameters wrapped and a
 // u32 return into an i32 is not yet checked (#1618). As u32 arithmetic it
 // saturates at 0; a signed input is what a negative result needs.
-int32_t getSignedValue(int32_t input) {
+int32_t getSignedValue(const int32_t input) {
     return cnx_clamp_sub_i32(0, input);
 }
 
@@ -92,7 +92,7 @@ int main(void) {
     }
     U8Returner u8r = { getU8Value };
     u8r.handler = getU8Value;
-    uint8_t smallResult = u8r.handler(0U);
+    const uint8_t smallResult = u8r.handler(0U);
     if (smallResult != 100) {
         return 3U;
     }

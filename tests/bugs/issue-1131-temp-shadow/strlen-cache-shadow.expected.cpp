@@ -34,10 +34,10 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 //
 // ADR-063 part 2 renames the cache to `cnx_len_<var>`, in a namespace E0202
 // forbids the user from declaring, so the collision is unrepresentable.
-uint8_t _msg_len = 42U;
+extern const uint8_t _msg_len = 42U;
 
 uint8_t count(void) {
-    char msg[17] = "hello";
+    const char msg[17] = "hello";
     uint8_t total = 0U;
     size_t cnx_len_msg = strlen(msg);
     if (cnx_len_msg > 2) {
@@ -47,7 +47,7 @@ uint8_t count(void) {
 }
 
 int main(void) {
-    uint8_t total = count();
+    const uint8_t total = count();
     if (total != 47) {
         return 1U;
     }

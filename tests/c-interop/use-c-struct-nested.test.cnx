@@ -8,7 +8,7 @@
 u32 main() {
 
     // Test 1: Use Rectangle with nested NamedPoint
-    Rectangle rect;
+    mut Rectangle rect;
     rect.origin.x <- 10;
     rect.origin.y <- 20;
     rect.width <- 100;
@@ -42,7 +42,7 @@ u32 main() {
     }
 
     // Test 4: Copy nested struct values
-    Rectangle rect2;
+    mut Rectangle rect2;
     rect2.origin.x <- rect.origin.x;
     rect2.origin.y <- rect.origin.y;
     rect2.width <- rect.width;

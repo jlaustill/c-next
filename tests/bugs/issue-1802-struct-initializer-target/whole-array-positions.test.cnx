@@ -22,9 +22,9 @@ void take(u8[4] buf) {}
 void positions() {
     D d <- { items: { a: 1 }, n: 1 };
     B b <- { data: { a: 1 } };
-    S[2] sa;
+    mut S[2] sa;
     sa <- { a: 3 };
-    u8[4] x;
+    mut u8[4] x;
     x <- { a: 1 };
     take({ a: 1 });
     D listed <- { items: [{ a: 1 }, { a: 2 }], n: 2 };

@@ -36,7 +36,7 @@ bitmap8 LocalFlags {
     Spare[4]
 }
 
-LocalFlags local <- 0;
+mut LocalFlags local <- 0;
 
 u32 main() {
     // Cross-file bitmap: the case that emitted a struct member write.

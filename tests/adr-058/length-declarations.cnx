@@ -3,4 +3,4 @@
 u32 sharedScalar <- 5;
 u32[4] sharedArray;
 
-const u32 LENGTH_MARKER <- 1;
+u32 LENGTH_MARKER <- 1;

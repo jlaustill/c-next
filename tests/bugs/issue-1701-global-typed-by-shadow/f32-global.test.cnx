@@ -1,7 +1,7 @@
 // test-execution
 // #1701: an `f32` global behind a `u8` local takes float arithmetic. It was
 // emitted `x = (uint8_t)(x + 1.5);`.
-f32 x <- 0.0;
+mut f32 x <- 0.0;
 
 u8 f() {
     u8 x <- 1;

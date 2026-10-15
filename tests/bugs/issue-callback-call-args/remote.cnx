@@ -9,6 +9,6 @@ u32 readSample(Sample s) {
     return s.value;
 }
 
-void bumpSample(Sample s) {
+void bumpSample(mut Sample s) {
     s.value <- s.value + 3;
 }

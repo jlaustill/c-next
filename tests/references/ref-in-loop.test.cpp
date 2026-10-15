@@ -29,7 +29,7 @@ static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
 // test-execution
 // Tests: Modifying reference parameter inside loops
 // Increments value N times
-void incrementN(uint32_t& value, uint32_t times) {
+void incrementN(uint32_t& value, const uint32_t times) {
     uint32_t i = 0U;
     while (i < times) {
         value = cnx_clamp_add_u32(value, 1U);
@@ -38,7 +38,7 @@ void incrementN(uint32_t& value, uint32_t times) {
 }
 
 // Doubles value N times
-void doubleN(uint32_t& value, uint32_t times) {
+void doubleN(uint32_t& value, const uint32_t times) {
     uint32_t i = 0U;
     while (i < times) {
         value = cnx_clamp_mul_u32(value, 2U);
@@ -47,7 +47,7 @@ void doubleN(uint32_t& value, uint32_t times) {
 }
 
 // Accumulates sum using a loop
-void accumulate(uint32_t start, uint32_t end, uint32_t& result) {
+void accumulate(const uint32_t start, const uint32_t end, uint32_t& result) {
     result = 0U;
     uint32_t i = start;
     while (i <= end) {
@@ -57,7 +57,7 @@ void accumulate(uint32_t start, uint32_t end, uint32_t& result) {
 }
 
 // Factorial via loop
-void factorial(uint32_t n, uint32_t& result) {
+void factorial(const uint32_t n, uint32_t& result) {
     result = 1U;
     uint32_t i = 1U;
     while (i <= n) {
@@ -67,7 +67,7 @@ void factorial(uint32_t n, uint32_t& result) {
 }
 
 // Modifies multiple refs in same loop
-void parallelIncrement(uint32_t& a, uint32_t& b, uint32_t times) {
+void parallelIncrement(uint32_t& a, uint32_t& b, const uint32_t times) {
     uint32_t i = 0U;
     while (i < times) {
         a = cnx_clamp_add_u32(a, 1U);

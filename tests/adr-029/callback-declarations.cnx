@@ -7,15 +7,15 @@ struct Pixel {
     u32 v;
 }
 
-void onDown(const Pixel p) {}
+void onDown(Pixel p) {}
 
-void onUp(const Pixel p) {}
+void onUp(Pixel p) {}
 
 // Not used as anyone's field type -- the imported negative control.
-void plain(const Pixel p) {}
+void plain(Pixel p) {}
 
 // Differs in return type -- the imported E0879 control.
-u32 mismatched(const Pixel p) {
+u32 mismatched(Pixel p) {
     return 0;
 }
 

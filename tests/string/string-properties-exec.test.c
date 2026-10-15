@@ -9,7 +9,7 @@
 // test-execution
 // ADR-045: Validate .length, .capacity, .size return correct values at runtime
 int main(void) {
-    char msg[65] = "Hello";
+    const char msg[65] = "Hello";
     if (strlen(msg) != 5) {
         return 1;
     }
@@ -19,7 +19,7 @@ int main(void) {
     if (65 != 65) {
         return 3;
     }
-    char longer[129] = "This is a longer string for testing";
+    const char longer[129] = "This is a longer string for testing";
     if (strlen(longer) != 35) {
         return 4;
     }
@@ -29,7 +29,7 @@ int main(void) {
     if (129 != 129) {
         return 6;
     }
-    char empty[33] = "";
+    const char empty[33] = "";
     if (strlen(empty) != 0) {
         return 7;
     }
@@ -39,7 +39,7 @@ int main(void) {
     if (33 != 33) {
         return 9;
     }
-    char exact[6] = "Hello";
+    const char exact[6] = "Hello";
     if (strlen(exact) != 5) {
         return 10;
     }
@@ -49,7 +49,7 @@ int main(void) {
     if (6 != 6) {
         return 12;
     }
-    char single[17] = "X";
+    const char single[17] = "X";
     if (strlen(single) != 1) {
         return 13;
     }

@@ -1,36 +1,36 @@
 41:19 error[E0800]: Division by zero
        help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
 46:17 error[E0800]: Division by zero
-       help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
+       help: A divisor known at compile time must not be zero
 47:17 error[E0800]: Division by zero
-       help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
+       help: A divisor known at compile time must not be zero
 48:17 error[E0800]: Division by zero
-       help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
+       help: A divisor known at compile time must not be zero
 49:17 error[E0800]: Division by zero
-       help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
+       help: A divisor known at compile time must not be zero
 50:17 error[E0800]: Division by zero
-       help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
+       help: A divisor known at compile time must not be zero
 51:17 error[E0800]: Division by zero
-       help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
+       help: A divisor known at compile time must not be zero
 52:17 error[E0800]: Division by zero
-       help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
+       help: A divisor known at compile time must not be zero
 56:17 error[E0800]: Division by zero
-       help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
+       help: A divisor known at compile time must not be zero
 57:17 error[E0800]: Division by zero
-       help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
+       help: A divisor known at compile time must not be zero
 58:17 error[E0800]: Division by zero
-       help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
+       help: A divisor known at compile time must not be zero
 62:17 error[E0800]: Division by zero
-       help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
+       help: A divisor known at compile time must not be zero
 63:17 error[E0800]: Division by zero
-       help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
+       help: A divisor known at compile time must not be zero
 65:17 error[E0800]: Division by zero
-       help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
+       help: A divisor known at compile time must not be zero
 67:17 error[E0800]: Division by zero
-       help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
+       help: A divisor known at compile time must not be zero
 69:18 error[E0800]: Division by zero
-       help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
+       help: A divisor known at compile time must not be zero
 70:17 error[E0800]: Division by zero
-       help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
+       help: A divisor known at compile time must not be zero
 72:17 error[E0800]: Division by zero
-       help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
+       help: A divisor known at compile time must not be zero

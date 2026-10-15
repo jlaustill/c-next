@@ -15,4 +15,4 @@
 #include <stdbool.h>
 
 // This should trigger nested struct field lookup
-Wrapper w = { .result = { .data = {0}, .count = 0, .success = false } };
+extern const Wrapper w = { .result = { .data = {0}, .count = 0, .success = false } };

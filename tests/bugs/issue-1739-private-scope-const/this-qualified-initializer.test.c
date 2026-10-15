@@ -30,7 +30,7 @@ uint32_t S__size(void) {
 }
 
 int main(void) {
-    uint32_t size = S__size();
+    const uint32_t size = S__size();
     if (size != 31) {
         return 1U;
     }

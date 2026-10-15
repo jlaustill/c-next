@@ -21,7 +21,7 @@ struct Sample {
     u8 value;
 }
 
-u8 witness <- 0;
+mut u8 witness <- 0;
 
 void record(u8 v) {
     witness <- v;

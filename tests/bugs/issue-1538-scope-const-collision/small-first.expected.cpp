@@ -13,18 +13,18 @@
 // `Small.t` was sized by `Big.N`. Declared Small first: it emitted [10].
 /* Scope: Small */
 const uint8_t Small__N = 2U;
-uint8_t Small__t[2] = {};
+const uint8_t Small__t[2] = {};
 
 /* Scope: Big */
 const uint8_t Big__N = 10U;
-uint8_t Big__b[10] = {};
+const uint8_t Big__b[10] = {};
 
 int main(void) {
-    uint32_t small = 2;
+    const uint32_t small = 2;
     if (small != 2) {
         return 1U;
     }
-    uint32_t big = 10;
+    const uint32_t big = 10;
     if (big != 10) {
         return 2U;
     }

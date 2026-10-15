@@ -18,12 +18,12 @@ uint32_t tickDefault(void) {
     return 10U;
 }
 
-tickDefault_fp globalOne = tickDefault;
+const tickDefault_fp globalOne = tickDefault;
 
-tickDefault_fp globalArr[2] = { tickDefault, tickDefault };
+const tickDefault_fp globalArr[2] = { tickDefault, tickDefault };
 
 /* Scope: E */
-tickDefault_fp E__member = tickDefault;
+const tickDefault_fp E__member = tickDefault;
 
 int main(void) {
     tickDefault_fp loc[2] = { tickDefault, tickDefault };

@@ -4,18 +4,18 @@
 
 scope ArrayTest {
     // Private const arrays - should emit as static const, NOT inline
-    const u16[4] VALUES <- [10, 20, 30, 40];
-    const u8[3] BYTES <- [1, 2, 3];
-    const i32[2] OFFSETS <- [-10, 10];
+    u16[4] VALUES <- [10, 20, 30, 40];
+    u8[3] BYTES <- [1, 2, 3];
+    i32[2] OFFSETS <- [-10, 10];
 
     // Public const array - should emit as const (not static)
-    public const u8 PUBLIC_LOOKUP[4] <- [100, 101, 102, 103];
+    public u8 PUBLIC_LOOKUP[4] <- [100, 101, 102, 103];
 
     // Multi-dimensional private const array
-    const u8[2] MATRIX[3] <- [[1, 2, 3], [4, 5, 6]];
+    u8[2] MATRIX[3] <- [[1, 2, 3], [4, 5, 6]];
 
     // Non-const state for testing dynamic index access
-    u8 currentIndex <- 0;
+    mut u8 currentIndex <- 0;
 
     // Access private const array with literal index
     public u16 getValueAt(u8 index) {

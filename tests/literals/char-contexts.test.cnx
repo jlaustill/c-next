@@ -80,7 +80,7 @@ u32 main() {
     }
 
     // Test array element assignment with char literal
-    u8[4] buffer;
+    mut u8[4] buffer;
     buffer[0] <- 'H';
     buffer[1] <- 'i';
     buffer[2] <- '!';
@@ -99,7 +99,7 @@ u32 main() {
 
     // Test switch with char literal cases
     u8 grade <- 'B';
-    u32 points <- 0;
+    mut u32 points <- 0;
 
     switch (grade) {
         case 'A' {
@@ -120,8 +120,8 @@ u32 main() {
     }
 
     // Test another switch case
-    u8 dir <- 'N';
-    u32 heading <- 0;
+    mut u8 dir <- 'N';
+    mut u32 heading <- 0;
 
     switch (dir) {
         case 'N' {

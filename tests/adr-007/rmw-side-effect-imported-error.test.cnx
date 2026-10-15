@@ -5,7 +5,7 @@
 // silent control.
 #include "rmw-side-effect-decls.cnx"
 
-u8[4] table <- [0*];
+mut u8[4] table <- [0*];
 
 void update() {
     table[sharedIndex][1] <- true;

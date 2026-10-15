@@ -2,7 +2,7 @@
 // test-transpile-only
 // test-adr: 068
 void loopForever() {
-    u8 state <- 0;
+    mut u8 state <- 0;
     forever {
         state <- 1;
     }

@@ -14,14 +14,14 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint32_t getValue(uint32_t code);
-uint32_t computeWithSwitch(uint32_t base, uint32_t operation);
-int8_t getSignedValue(int8_t selector);
-bool isSpecialValue(uint16_t val);
-uint64_t getLargeValue(uint8_t index);
-uint32_t sumWithSwitchInLoop(uint32_t count, uint32_t mode);
-uint32_t factorial(uint32_t n);
-int16_t categorize(int16_t value);
+uint32_t getValue(const uint32_t code);
+uint32_t computeWithSwitch(const uint32_t base, const uint32_t operation);
+int8_t getSignedValue(const int8_t selector);
+bool isSpecialValue(const uint16_t val);
+uint64_t getLargeValue(const uint8_t index);
+uint32_t sumWithSwitchInLoop(const uint32_t count, const uint32_t mode);
+uint32_t factorial(const uint32_t n);
+int16_t categorize(const int16_t value);
 
 #ifdef __cplusplus
 }

@@ -1,2 +1,2 @@
 15:4 error[E0433]: Constructor argument 'seed' is not declared
-       help: Declare 'seed' as a const before the constructor, or pass a literal.
+       help: Declare 'seed' before the constructor, or pass a literal.

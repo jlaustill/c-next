@@ -17,7 +17,7 @@
 // This function will be assigned to flush_cb_t typedef
 // The typedef expects: void (*)(widget_t *, const rect_t *, uint8_t *)
 // So all params should be pointers, not values
-void my_flush(widget_t* w, const rect_t* area, uint8_t* buf) {
+void my_flush(const widget_t* w, const rect_t* area, const uint8_t* buf) {
     widget_flush_was_called = true;
     widget_flush_area_x = area->x;
     widget_flush_area_y = area->y;
@@ -34,19 +34,19 @@ int main(void) {
     area.height = 50U;
     uint8_t buffer[4] = {0xABU, 0xCDU, 0xEFU, 0x12U};
     widget_trigger_flush(w, &area, buffer);
-    bool called = widget_flush_was_called;
+    const bool called = widget_flush_was_called;
     if (called == false) {
         return 1U;
     }
-    uint16_t ax = widget_flush_area_x;
+    const uint16_t ax = widget_flush_area_x;
     if (ax != 10) {
         return 2U;
     }
-    uint16_t ay = widget_flush_area_y;
+    const uint16_t ay = widget_flush_area_y;
     if (ay != 20) {
         return 3U;
     }
-    uint8_t first = widget_flush_buf_first_byte;
+    const uint8_t first = widget_flush_buf_first_byte;
     if (first != 0xAB) {
         return 4U;
     }

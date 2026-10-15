@@ -26,9 +26,9 @@ TypedefTypes__Sensor Reader__read(void) {
 }
 
 int main(void) {
-    TypedefTypes__Sensor s = { .id = 42U, .value = 100U };
+    const TypedefTypes__Sensor s = { .id = 42U, .value = 100U };
     Reader__update(&s);
-    TypedefTypes__Sensor result = Reader__read();
+    const TypedefTypes__Sensor result = Reader__read();
     if (result.id != 42) {
         return 1U;
     }

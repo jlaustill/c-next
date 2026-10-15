@@ -19,8 +19,8 @@ typedef struct Pair {
 } Pair;
 
 /* External variables */
-extern Pair cfg;
-extern uint8_t i;
+extern const Pair cfg;
+extern const uint8_t i;
 
 #ifdef __cplusplus
 }

@@ -13,10 +13,10 @@ scope SliceFields {
 }
 
 u32 main() {
-    u8[256] buffer;
+    mut u8[256] buffer;
 
     // Create a config struct
-    SliceFields.Config config;
+    mut SliceFields.Config config;
     config.magic <- 0x43534E58;
     config.version <- 0x0101;
     config.flags <- 0x0F;

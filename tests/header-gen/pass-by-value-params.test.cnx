@@ -18,7 +18,7 @@ scope Api {
     }
 
     // Modified integer params should be pass-by-pointer (uint32_t*)
-    public void updateValue(u32 value) {
+    public void updateValue(mut u32 value) {
         value +<- 1;
     }
 
@@ -50,7 +50,7 @@ u32 main() {
     }
 
     // Test 4: Value modification
-    u32 val <- 10;
+    mut u32 val <- 10;
     global.Api.updateValue(val);
     if (val != 11) {
         return 4;

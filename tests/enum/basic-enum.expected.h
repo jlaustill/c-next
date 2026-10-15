@@ -32,7 +32,7 @@ typedef enum {
 
 /* External variables */
 extern State currentState;
-extern Command lastCmd;
+extern const Command lastCmd;
 
 #ifdef __cplusplus
 }

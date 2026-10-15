@@ -8,6 +8,6 @@
 #include <string.h>
 
 // ADR-045: Test empty string declaration
-char buffer[65] = "";
+extern const char buffer[65] = "";
 
-char largeBuffer[257] = "";
+extern const char largeBuffer[257] = "";

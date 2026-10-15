@@ -8,7 +8,7 @@ scope StructWithArray {
 }
 
 void main() {
-    StructWithArray.Buffer buf;
+    mut StructWithArray.Buffer buf;
     buf.len <- 0;
     buf.data[0] <- 0x41;
     buf.data[1] <- 0x42;

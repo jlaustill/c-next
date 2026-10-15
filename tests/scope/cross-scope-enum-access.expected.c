@@ -13,12 +13,12 @@
 /* Scope: Motor */
 
 GlobalState Motor__test(void) {
-    GlobalState current = GlobalState__IDLE;
+    const GlobalState current = GlobalState__IDLE;
     return current;
 }
 
 int main(void) {
-    GlobalState result = Motor__test();
+    const GlobalState result = Motor__test();
     if (result != GlobalState__IDLE) {
         return 1U;
     }

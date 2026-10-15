@@ -2,9 +2,9 @@
 // ADR-040: ISR as struct field
 // Tests: storing ISR in struct, retrieving and invoking
 // Global to track which handler was called
-u32 structCallCount <- 0;
+mut u32 structCallCount <- 0;
 
-u32 structLastHandler <- 0;
+mut u32 structLastHandler <- 0;
 
 // Handler functions
 void structHandler1() {
@@ -29,7 +29,7 @@ struct IsrHolder {
 }
 
 // Initialize struct with ISR values
-void initStructHolder(IsrHolder hld, ISR prim, ISR sec) {
+void initStructHolder(mut IsrHolder hld, ISR prim, ISR sec) {
     hld.primary <- prim;
     hld.secondary <- sec;
 }
@@ -41,7 +41,7 @@ void invokeStructHolder(IsrHolder hld) {
 }
 
 u32 main() {
-    IsrHolder holder;
+    mut IsrHolder holder;
 
     // Initialize both fields before use
     holder.primary <- structHandler1;

@@ -5,8 +5,8 @@
 u32 main() {
 
     // Test 1: Volatile loop counter - basic pattern
-    u32 sum <- 0;
-    for (volatile u32 i <- 0; i < 5; i +<- 1) {
+    mut u32 sum <- 0;
+    for (volatile mut u32 i <- 0; i < 5; i +<- 1) {
         sum +<- i;
     }
 
@@ -16,8 +16,8 @@ u32 main() {
     }
 
     // Test 2: Volatile loop with body operations
-    volatile u32 iterations <- 0;
-    for (volatile u32 j <- 10; j > 0; j -<- 1) {
+    volatile mut u32 iterations <- 0;
+    for (volatile mut u32 j <- 10; j > 0; j -<- 1) {
         iterations +<- 1;
     }
     if (iterations != 10) {
@@ -25,9 +25,9 @@ u32 main() {
     }
 
     // Test 3: Nested loops with volatile counters
-    u32 total <- 0;
-    for (volatile u32 outer <- 0; outer < 3; outer +<- 1) {
-        for (volatile u32 inner <- 0; inner < 4; inner +<- 1) {
+    mut u32 total <- 0;
+    for (volatile mut u32 outer <- 0; outer < 3; outer +<- 1) {
+        for (volatile mut u32 inner <- 0; inner < 4; inner +<- 1) {
             total +<- 1;
         }
     }
@@ -39,8 +39,8 @@ u32 main() {
 
     // Test 4: Volatile step variable
     volatile u32 step <- 2;
-    u32 count <- 0;
-    for (volatile u32 k <- 0; k < 10; k +<- step) {
+    mut u32 count <- 0;
+    for (volatile mut u32 k <- 0; k < 10; k +<- step) {
         count +<- 1;
     }
 

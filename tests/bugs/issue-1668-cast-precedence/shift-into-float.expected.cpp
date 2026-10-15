@@ -12,31 +12,31 @@
 // converted to float as `(float)x << 1` shifted a float, which C rejects.
 // The cast converts the whole shift, as static_cast does in C++. A value
 // needs no parentheses (the control in `plain`).
-float doubled(uint32_t x) {
-    float r = static_cast<float>(x << 1);
+float doubled(const uint32_t x) {
+    const float r = static_cast<float>(x << 1);
     return r;
 }
 
-float halved(uint32_t x) {
-    float r = static_cast<float>(x >> 1);
+float halved(const uint32_t x) {
+    const float r = static_cast<float>(x >> 1);
     return r;
 }
 
-float plain(uint32_t x) {
-    float r = static_cast<float>(x);
+float plain(const uint32_t x) {
+    const float r = static_cast<float>(x);
     return r;
 }
 
 int main(void) {
-    float d = doubled(3U);
+    const float d = doubled(3U);
     if (d != 6.0) {
         return 1U;
     }
-    float h = halved(9U);
+    const float h = halved(9U);
     if (h != 4.0) {
         return 2U;
     }
-    float p = plain(5U);
+    const float p = plain(5U);
     if (p != 5.0) {
         return 3U;
     }

@@ -38,8 +38,8 @@ u32 sumFourBytes(u8 b0, u8 b1, u8 b2, u8 b3) {
 // Array should decay to pointer, NOT have & added
 // ============================================================
 u8 sumArray(u8[6] arr, u8 len) {
-    u8 sum <- 0;
-    u8 i <- 0;
+    mut u8 sum <- 0;
+    mut u8 i <- 0;
     while (i < len) {
         sum <- sum + arr[i];
         i <- i + 1;
@@ -52,7 +52,7 @@ u32 main() {
     // Test Scenario 1: Array element access
     // data[i] should pass the VALUE at index i, not &data[i]
     // ============================================================
-    u8[8] data;
+    mut u8[8] data;
     data[0] <- 0x12;
     data[1] <- 0x34;
     data[2] <- 0x56;
@@ -71,7 +71,7 @@ u32 main() {
     // Test Scenario 2: Struct member array
     // result.data should decay to pointer, not have & added
     // ============================================================
-    DataResult result;
+    mut DataResult result;
     result.errorCode <- 0;
     result.data[0] <- 10;
     result.data[1] <- 20;

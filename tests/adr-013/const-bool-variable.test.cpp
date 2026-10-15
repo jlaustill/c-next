@@ -16,11 +16,11 @@ extern const bool FEATURE_ENABLED = true;
 extern const bool DEBUG_MODE = false;
 
 int main(void) {
-    bool enabled = FEATURE_ENABLED;
+    const bool enabled = FEATURE_ENABLED;
     if (enabled == false) {
         return 1U;
     }
-    bool debug = DEBUG_MODE;
+    const bool debug = DEBUG_MODE;
     if (debug == true) {
         return 2U;
     }
@@ -30,15 +30,15 @@ int main(void) {
     if (DEBUG_MODE == true) {
         return 4U;
     }
-    bool result = FEATURE_ENABLED && !DEBUG_MODE;
+    const bool result = FEATURE_ENABLED && !DEBUG_MODE;
     if (result == false) {
         return 5U;
     }
-    uint32_t value = (FEATURE_ENABLED == true) ? 100U : 0U;
+    const uint32_t value = (FEATURE_ENABLED == true) ? 100U : 0U;
     if (value != 100) {
         return 6U;
     }
-    uint32_t debugVal = (DEBUG_MODE == true) ? 1U : 0U;
+    const uint32_t debugVal = (DEBUG_MODE == true) ? 1U : 0U;
     if (debugVal != 0) {
         return 7U;
     }

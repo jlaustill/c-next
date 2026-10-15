@@ -10,8 +10,8 @@
 // ADR-045: Validate substring extraction at runtime
 // Issue #140 fixed: Single-character substring source[i] now generates valid C
 int main(void) {
-    char source[65] = "Hello, World!";
-    char hello[6] = "";
+    const char source[65] = "Hello, World!";
+    const char hello[6] = "";
     (void) strncpy(hello, source + 0, 5);
     hello[5] = '\0';
     if (strlen(hello) != 5) {
@@ -23,7 +23,7 @@ int main(void) {
     if (5 != 5) {
         return 3;
     }
-    char world[7] = "";
+    const char world[7] = "";
     (void) strncpy(world, source + 7, 6);
     world[6] = '\0';
     if (strlen(world) != 6) {
@@ -32,7 +32,7 @@ int main(void) {
     if (strcmp(world, "World!") != 0) {
         return 5;
     }
-    char h[2] = "";
+    const char h[2] = "";
     (void) strncpy(h, source + 0, 1);
     h[1] = '\0';
     if (strlen(h) != 1) {
@@ -41,13 +41,13 @@ int main(void) {
     if (strcmp(h, "H") != 0) {
         return 7;
     }
-    char comma[2] = "";
+    const char comma[2] = "";
     (void) strncpy(comma, source + 5, 1);
     comma[1] = '\0';
     if (strcmp(comma, ",") != 0) {
         return 8;
     }
-    char middle[6] = "";
+    const char middle[6] = "";
     (void) strncpy(middle, source + 3, 5);
     middle[5] = '\0';
     if (strlen(middle) != 5) {
@@ -56,7 +56,7 @@ int main(void) {
     if (strcmp(middle, "lo, W") != 0) {
         return 10;
     }
-    char full[14] = "";
+    const char full[14] = "";
     (void) strncpy(full, source + 0, 13);
     full[13] = '\0';
     if (strlen(full) != 13) {
@@ -65,7 +65,7 @@ int main(void) {
     if (strcmp(full, "Hello, World!") != 0) {
         return 12;
     }
-    char two[3] = "";
+    const char two[3] = "";
     (void) strncpy(two, source + 0, 2);
     two[2] = '\0';
     if (strlen(two) != 2) {
@@ -74,7 +74,7 @@ int main(void) {
     if (strcmp(two, "He") != 0) {
         return 14;
     }
-    char last[2] = "";
+    const char last[2] = "";
     (void) strncpy(last, source + 12, 1);
     last[1] = '\0';
     if (strcmp(last, "!") != 0) {

@@ -36,12 +36,12 @@ typedef struct Modes {
 } Modes;
 
 /* External variables */
-extern Inner standalone;
-extern Mode bare;
-extern Mode globalModes[3];
-extern Holder h;
-extern Modes modes;
-extern Mode localModes[2];
+extern const Inner standalone;
+extern const Mode bare;
+extern const Mode globalModes[3];
+extern const Holder h;
+extern const Modes modes;
+extern const Mode localModes[2];
 
 /* Function prototypes */
 uint32_t tickDefault(void);

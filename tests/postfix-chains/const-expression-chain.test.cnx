@@ -1,12 +1,12 @@
 // Postfix Chain Test: Const Expressions in Chains
 // Tests: Using const values and expressions as indices in chains
 
-const u32 INDEX_0 <- 0;
-const u32 INDEX_1 <- 1;
-const u32 INDEX_2 <- 2;
-const u32 SENSOR_COUNT <- 4;
-const u32 LED_BIT <- 3;
-const u32 STATUS_BIT <- 7;
+u32 INDEX_0 <- 0;
+u32 INDEX_1 <- 1;
+u32 INDEX_2 <- 2;
+u32 SENSOR_COUNT <- 4;
+u32 LED_BIT <- 3;
+u32 STATUS_BIT <- 7;
 
 scope ConstExprChain {
     public struct Sensor {
@@ -15,7 +15,7 @@ scope ConstExprChain {
     }
 }
 
-ConstExprChain.Sensor[SENSOR_COUNT] sensors;
+mut ConstExprChain.Sensor[SENSOR_COUNT] sensors;
 
 register GPIO @ 0x40000000 {
     DR: u32 rw @ 0x00,
@@ -45,7 +45,7 @@ void main() {
     GPIO.DR_SET[LED_BIT] <- true;
 
     // Const expression as index (computed at compile time)
-    const u32 COMPUTED_IDX <- INDEX_1 + INDEX_1; // Should be 2
+    u32 COMPUTED_IDX <- INDEX_1 + INDEX_1; // Should be 2
     sensors[COMPUTED_IDX].id <- 500;
     u32 computedId <- sensors[COMPUTED_IDX].id;
 
@@ -59,12 +59,12 @@ void main() {
     }
 
     // Const used in multiple levels
-    const u32 ROW <- 0;
-    const u32 COL <- 1;
-    const u32 FIELD_BIT <- 5;
+    u32 ROW <- 0;
+    u32 COL <- 1;
+    u32 FIELD_BIT <- 5;
 
     // Nested array with const indices
-    u8[4][4] matrix;
+    mut u8[4][4] matrix;
     matrix[ROW][COL] <- 0xFF;
     matrix[ROW][COL][FIELD_BIT] <- false;
 

@@ -30,7 +30,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Tests: i32 as array element type
 // Coverage: Section 1.2 i32 array element type
 int main(void) {
-    int32_t values[5] = {(int32_t)INT32_MIN, -100000, 0, 100000, 2147483647};
+    const int32_t values[5] = {(int32_t)INT32_MIN, -100000, 0, 100000, 2147483647};
     if (values[0U] != (int32_t)INT32_MIN) {
         return 1U;
     }
@@ -63,7 +63,7 @@ int main(void) {
     if (data[3U] != 1000000) {
         return 9U;
     }
-    int32_t inferred[3] = {10000, 20000, 30000};
+    const int32_t inferred[3] = {10000, 20000, 30000};
     if (inferred[0U] != 10000) {
         return 10U;
     }
@@ -73,7 +73,7 @@ int main(void) {
     if (inferred[2U] != 30000) {
         return 12U;
     }
-    int32_t loop_arr[3] = {1000, 2000, 3000};
+    const int32_t loop_arr[3] = {1000, 2000, 3000};
     int32_t sum = 0;
     for (uint32_t i = 0U; i < 3; i = cnx_clamp_add_u32(i, 1U)) {
         sum = cnx_clamp_add_i32(sum, loop_arr[i]);

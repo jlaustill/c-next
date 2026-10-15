@@ -10,14 +10,14 @@
 scope handler {
     // Call the included scope's function from within another scope
     // ADR-016: Must use global. prefix when accessing another scope from inside a scope
-    public u16 processData(const u8[8] data) {
+    public u16 processData(u8[8] data) {
         // This should generate: decoder_getSpn(data)
         // NOT: decoder.getSpn(data)
         u16 spn <- global.decoder.getSpn(data);
         return spn;
     }
 
-    public u8 extractByte(const u8[8] data, u8 idx) {
+    public u8 extractByte(u8[8] data, u8 idx) {
         // Another cross-file scope call using global. prefix
         return global.decoder.getByte(data, idx);
     }
@@ -25,7 +25,7 @@ scope handler {
 
 u32 main() {
     // Create test data
-    u8[8] testData;
+    mut u8[8] testData;
     testData[0] <- 0x34; // Low byte
     testData[1] <- 0x12; // High byte (0x1234 = 4660)
     testData[2] <- 0xAB;

@@ -6,7 +6,7 @@
 // Range: -128 to 127
 u32 main() {
     // ===== ADDITION (+<-) =====
-    i8 val <- 50;
+    mut i8 val <- 50;
     val +<- 25; // pos + pos
     if (val != 75) {
         return 1;
@@ -43,7 +43,7 @@ u32 main() {
     }
 
     // ===== SUBTRACTION (-<-) =====
-    i8 sub <- 75;
+    mut i8 sub <- 75;
     sub -<- 25; // pos - pos = pos
     if (sub != 50) {
         return 10;
@@ -80,7 +80,7 @@ u32 main() {
     }
 
     // ===== MULTIPLICATION (*<-) =====
-    i8 mul <- 10;
+    mut i8 mul <- 10;
     mul *<- 10; // pos * pos = 100
     if (mul != 100) {
         return 20;
@@ -117,7 +117,7 @@ u32 main() {
     }
 
     // ===== DIVISION (/<-) =====
-    i8 div <- 100;
+    mut i8 div <- 100;
     div /<- 10; // pos / pos
     if (div != 10) {
         return 30;
@@ -154,7 +154,7 @@ u32 main() {
     }
 
     // ===== MODULO (%<-) =====
-    i8 mod <- 107;
+    mut i8 mod <- 107;
     mod %<- 10; // pos % pos
     if (mod != 7) {
         return 40;
@@ -185,7 +185,7 @@ u32 main() {
     }
 
     // ===== BITWISE AND (&<-) =====
-    i8 andVal <- 0x7F; // Max positive (127)
+    mut i8 andVal <- 0x7F; // Max positive (127)
     andVal &<- 0x0F; // Keep low nibble
     if (andVal != 0x0F) {
         return 50;
@@ -210,7 +210,7 @@ u32 main() {
     }
 
     // ===== BITWISE OR (|<-) =====
-    i8 orVal <- 0x0F;
+    mut i8 orVal <- 0x0F;
     orVal |<- 0x70; // Combine nibbles (keeping sign clear)
     if (orVal != 0x7F) {
         return 60;
@@ -229,7 +229,7 @@ u32 main() {
     }
 
     // ===== BITWISE XOR (^<-) =====
-    i8 xorVal <- 0x55;
+    mut i8 xorVal <- 0x55;
     xorVal ^<- 0x55; // XOR with self = 0
     if (xorVal != 0) {
         return 70;

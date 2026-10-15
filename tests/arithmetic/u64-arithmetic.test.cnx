@@ -7,9 +7,9 @@
 u32 main() {
 
     // Test addition
-    u64 a <- 1000000000000; // 1 trillion
-    u64 b <- 500000000000; // 500 billion
-    u64 result <- a + b;
+    mut u64 a <- 1000000000000; // 1 trillion
+    mut u64 b <- 500000000000; // 500 billion
+    mut u64 result <- a + b;
     if (result != 1500000000000) {
         return 1;
     }

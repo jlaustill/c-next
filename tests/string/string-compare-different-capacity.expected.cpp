@@ -10,9 +10,9 @@
 // ADR-045: Test comparison between strings with different capacities
 // Validates: capacity doesn't affect content comparison
 int main(void) {
-    char small[17] = "Hello";
-    char medium[65] = "Hello";
-    char large[257] = "Hello";
+    const char small[17] = "Hello";
+    const char medium[65] = "Hello";
+    const char large[257] = "Hello";
     if (strcmp(small, medium) != 0) {
         return 1;
     }
@@ -31,8 +31,8 @@ int main(void) {
     if (strcmp(large, "Hello") != 0) {
         return 6;
     }
-    char emptySmall[9] = "";
-    char emptyLarge[129] = "";
+    const char emptySmall[9] = "";
+    const char emptyLarge[129] = "";
     if (strcmp(emptySmall, emptyLarge) != 0) {
         return 7;
     }
@@ -42,16 +42,16 @@ int main(void) {
     if (strcmp(emptyLarge, "") != 0) {
         return 9;
     }
-    char alice[33] = "Alice";
-    char bob[65] = "Bob";
+    const char alice[33] = "Alice";
+    const char bob[65] = "Bob";
     if (strcmp(alice, bob) == 0) {
         return 10;
     }
     if (strcmp(alice, bob) == 0) {
         return 11;
     }
-    char longSmall[33] = "The quick brown fox";
-    char longLarge[129] = "The quick brown fox";
+    const char longSmall[33] = "The quick brown fox";
+    const char longLarge[129] = "The quick brown fox";
     if (strcmp(longSmall, longLarge) != 0) {
         return 12;
     }

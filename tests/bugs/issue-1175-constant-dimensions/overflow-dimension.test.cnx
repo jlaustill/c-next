@@ -7,7 +7,7 @@
 //
 // NEGATIVE CONTROL: `wide` adds at u16, where 400 fits, and must stay silent.
 
-const u8 A <- 200;
+u8 A <- 200;
 
 u8[A + A] buf;
 u8[(u16)A + (u16)A] wide;

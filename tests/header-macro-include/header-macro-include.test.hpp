@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint32_t devices[DEVICE_COUNT];
+extern const uint32_t devices[DEVICE_COUNT];
 
 #ifdef __cplusplus
 }

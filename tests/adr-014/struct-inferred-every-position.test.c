@@ -37,21 +37,21 @@ void takes(const Point* p) {
 
 const Point ORIGIN = { .x = 0, .y = 0 };
 
-Point atFileScope = { .x = 1, .y = 1 };
+const Point atFileScope = { .x = 1, .y = 1 };
 
 Point returned(void) {
     return (Point){ .x = 8, .y = 8 };
 }
 
 /* Scope: Shapes */
-static Point Shapes__okMember = { .x = 0, .y = 0 };
+static const Point Shapes__okMember = { .x = 0, .y = 0 };
 
 void Shapes__wire(void) {
-    Point ok = { .x = 1, .y = 1 };
+    const Point ok = { .x = 1, .y = 1 };
 }
 
 void controls(void) {
     Point local = { .x = 2, .y = 2 };
     local = (Point){ .x = 3, .y = 3 };
-    Box b = { .corner = { .x = 4, .y = 4 } };
+    const Box b = { .corner = { .x = 4, .y = 4 } };
 }

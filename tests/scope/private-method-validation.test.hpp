@@ -14,9 +14,9 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint32_t globalCounter;
-extern bool globalFlag;
-extern int32_t globalOffset;
+extern const uint32_t globalCounter;
+extern const bool globalFlag;
+extern const int32_t globalOffset;
 extern uint32_t PrivateMethods__publicResult;
 extern bool PrivateMethods__publicFlag;
 extern int32_t PrivateMethods__publicAccumulator;
@@ -34,13 +34,13 @@ uint32_t PrivateMethods__combineStateAndGlobal(void);
 bool PrivateMethods__checkBothFlags(void);
 uint32_t PrivateMethods__getStateViaHelper(void);
 void PrivateMethods__performPrivateChain(void);
-void PrivateMethods__addValue(int32_t amount);
+void PrivateMethods__addValue(const int32_t amount);
 uint32_t PrivateMethods__exposePrivateState(void);
-void PrivateMethods__setPrivateState(uint32_t val);
+void PrivateMethods__setPrivateState(const uint32_t val);
 bool PrivateMethods__exposePrivateFlag(void);
-void PrivateMethods__setPrivateFlag(bool val);
+void PrivateMethods__setPrivateFlag(const bool val);
 int32_t PrivateMethods__exposePrivateAccumulator(void);
-void PrivateMethods__addToAccumulator(int32_t val);
+void PrivateMethods__addToAccumulator(const int32_t val);
 uint32_t PrivateMethods__exposeGlobalCounter(void);
 uint32_t PrivateMethods__exposeCombinedStateAndGlobal(void);
 bool PrivateMethods__exposeBothFlagsCheck(void);

@@ -8,7 +8,7 @@
 #include "func-return-member-cpp.h"
 
 // Global config for the getter to return
-DeviceConfig globalConfig;
+mut DeviceConfig globalConfig;
 
 // Function that returns a struct by value
 DeviceConfig getConfig() {
@@ -20,7 +20,7 @@ u32 process(u32 crc, u8 byte) {
 }
 
 u32 testFuncReturnMember() {
-    u32 crc <- 0;
+    mut u32 crc <- 0;
 
     // Initialize global config
     globalConfig.enabled <- true;

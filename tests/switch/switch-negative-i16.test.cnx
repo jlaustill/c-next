@@ -1,7 +1,7 @@
 // test-execution
 // Issue #107: Negative Case Labels - i16 Type
 // Tests: negative literals with i16 switch expressions
-i32 result;
+mut i32 result;
 
 // Test i16 boundary values
 void testI16Boundaries(i16 val) {

@@ -13,10 +13,10 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint32_t total;
+extern const uint32_t total;
 
 /* Function prototypes */
-uint32_t shadowing(uint32_t shadowing__total);
+uint32_t shadowing(const uint32_t shadowing__total);
 
 #ifdef __cplusplus
 }

@@ -26,7 +26,7 @@ int main(void) {
     if (strcmp(cfg.name, "remote") != 0) {
         return 1;
     }
-    uint32_t length = lengthOf(cfg.name);
+    const uint32_t length = lengthOf(cfg.name);
     if (length != 6) {
         return 2;
     }

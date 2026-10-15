@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void configure(uint32_t mode);
+void configure(const uint32_t mode);
 uint32_t poll(void);
 
 #ifdef __cplusplus

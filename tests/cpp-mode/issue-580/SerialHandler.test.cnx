@@ -10,14 +10,14 @@ scope SerialHandler {
     // BUG: This was incorrectly marked const in v0.1.51
     // Has minimal control flow - only passes through to mutating function
     // with other non-modifying calls (Serial.println)
-    public void handleReset(Config config) {
+    public void handleReset(mut Config config) {
         global.Serial.println(1);
         global.CommandHandler.reset(config); // reset() mutates config
         global.Serial.println(2);
     }
 
     // This correctly avoided const - has more code
-    public void handlePreset(Config config) {
+    public void handlePreset(mut Config config) {
         if (config.value < 10) {
             global.Serial.println(3);
             return;
@@ -28,12 +28,12 @@ scope SerialHandler {
     }
 
     // Another minimal function - should NOT get const
-    public void handleSave(Config config) {
+    public void handleSave(mut Config config) {
         global.CommandHandler.reset(config);
     }
 }
 
 void main() {
-    Config c <- { value: 0 };
+    mut Config c <- { value: 0 };
     global.SerialHandler.handleReset(c);
 }

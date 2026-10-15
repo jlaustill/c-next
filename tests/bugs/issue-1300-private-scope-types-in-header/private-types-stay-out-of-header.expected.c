@@ -34,8 +34,8 @@ typedef struct Internal__Hidden {
 } Internal__Hidden;
 
 uint32_t Internal__useHidden(void) {
-    Internal__Hidden h = { .a = 1U };
-    Internal__HiddenMode m = Internal__HiddenMode__ON;
+    const Internal__Hidden h = { .a = 1U };
+    const Internal__HiddenMode m = Internal__HiddenMode__ON;
     Internal__HiddenFlags f = 0;
     f = (uint8_t)((f & ~(1U << 0)) | (1U << 0));
     if (m == Internal__HiddenMode__ON) {
@@ -45,13 +45,13 @@ uint32_t Internal__useHidden(void) {
 }
 
 uint32_t Internal__useShown(void) {
-    Internal__Shown s = { .b = 2U };
+    const Internal__Shown s = { .b = 2U };
     return s.b;
 }
 
 int main(void) {
-    uint32_t h = Internal__useHidden();
-    uint32_t s = Internal__useShown();
+    const uint32_t h = Internal__useHidden();
+    const uint32_t s = Internal__useShown();
     if (h != 1) {
         return 1;
     }

@@ -29,7 +29,7 @@ scope S {
 
     // A write through the shadowing parameter lands on the argument, and the
     // global stays as it was
-    public u32 writeCase(u32 total) {
+    public u32 writeCase(mut u32 total) {
         total <- 5;
         return global.total;
     }
@@ -63,7 +63,7 @@ u32 main() {
     if (r3 != 49) {
         return 3;
     }
-    u32 arg <- 42;
+    mut u32 arg <- 42;
     u32 r4 <- S.writeCase(arg);
     if (r4 != 7) {
         return 4;

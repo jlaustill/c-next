@@ -19,11 +19,11 @@
 #include "dev.h"
 #include "full.h"
 
-void aPoke(Dev d) {
+void aPoke(mut Dev d) {
     dev_poke(d);
 }
 
-void pokeBoth(Dev[2] ds) {
+void pokeBoth(mut Dev[2] ds) {
     dev_poke(ds[0]);
     dev_poke(ds[1]);
 }
@@ -39,19 +39,19 @@ struct Handlers {
 }
 
 i32 main() {
-    Handlers h;
+    mut Handlers h;
     h.onDev <- aPoke;
     h.onBoth <- pokeBoth;
     h.onFull <- fullPeek;
 
-    Dev d <- dev_create();
+    mut Dev d <- dev_create();
     h.onDev(d);
     i32 viaHandle <- dev_pokes(d);
     if (viaHandle != 1) {
         return 1;
     }
 
-    Dev[2] pair;
+    mut Dev[2] pair;
     pair[0] <- dev_create();
     pair[1] <- dev_create();
     h.onBoth(pair);

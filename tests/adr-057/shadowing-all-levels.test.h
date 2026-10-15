@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint32_t globalCount;
+extern const uint32_t globalCount;
 
 /* Function prototypes */
 uint32_t Counter__testAllLevels(void);

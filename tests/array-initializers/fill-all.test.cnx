@@ -3,10 +3,10 @@
 // Tests: [value*] fills all elements with the specified value
 // Validates that all array elements are properly initialized
 // Zero fill
-u8[100] buffer <- [0*];
+mut u8[100] buffer <- [0*];
 
 // Fill with other values
-u8[50] ones <- [1*];
+mut u8[50] ones <- [1*];
 
 u16[10] magic <- [0xDEAD*];
 

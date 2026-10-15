@@ -5,4 +5,4 @@ bitmap8 Flags {
     Reserved[3]
 }
 
-Flags shared <- 0;
+mut Flags shared <- 0;

@@ -6,16 +6,16 @@
 //
 // NEGATIVE CONTROL: `direct`, sized by a literal.
 
-const u32 N <- 4;
+u32 N <- 4;
 u8[N] garr;
-const u32 FILE_K <- garr.type_element_count;
-u8[FILE_K] other;
+u32 FILE_K <- garr.type_element_count;
+mut u8[FILE_K] other;
 
 u32 main() {
-    u8[garr.type_element_count] loc;
-    const u32 K <- loc.type_element_count;
-    u8[K + 1] after;
-    u8[2] direct;
+    mut u8[garr.type_element_count] loc;
+    u32 K <- loc.type_element_count;
+    mut u8[K + 1] after;
+    mut u8[2] direct;
     loc[0] <- 1;
     after[0] <- 1;
     other[0] <- 1;

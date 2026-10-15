@@ -11,7 +11,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern char haystack[65];
+extern const char haystack[65];
 
 /* Function prototypes */
 void testReassignment(void);

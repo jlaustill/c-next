@@ -60,7 +60,7 @@ uint8_t buffer[513] = {0};
 // clamp saturates offset to UINT32_MAX, the sum wraps to a small number, the
 // guard passes, and buffer[UINT32_MAX] is written. GCC diagnoses that
 // correctly -- it is a true positive, not the false positive this test guards.
-void writeChunk(uint32_t start, uint32_t step, uint8_t value) {
+void writeChunk(const uint32_t start, const uint32_t step, const uint8_t value) {
     uint32_t offset = start;
     offset = cnx_clamp_add_u32(offset, step);
     if (offset <= 509) {

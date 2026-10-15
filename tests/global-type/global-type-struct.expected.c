@@ -29,7 +29,7 @@ static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
 /* Scope: PointManager */
 static Point2D PointManager__point = {0};
 
-void PointManager__setPoint(int32_t px, int32_t py) {
+void PointManager__setPoint(const int32_t px, const int32_t py) {
     PointManager__point.x = px;
     PointManager__point.y = py;
 }
@@ -52,22 +52,22 @@ int32_t PointManager__sum(const Point2D* p) {
 
 int main(void) {
     PointManager__setPoint(10, 20);
-    int32_t x = PointManager__getX();
-    int32_t y = PointManager__getY();
+    const int32_t x = PointManager__getX();
+    const int32_t y = PointManager__getY();
     if (x != 10) {
         return 1U;
     }
     if (y != 20) {
         return 2U;
     }
-    Point2D p = PointManager__getPoint();
+    const Point2D p = PointManager__getPoint();
     if (p.x != 10) {
         return 3U;
     }
     if (p.y != 20) {
         return 4U;
     }
-    int32_t total = PointManager__sum(&p);
+    const int32_t total = PointManager__sum(&p);
     if (total != 30) {
         return 5U;
     }

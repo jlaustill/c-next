@@ -15,7 +15,7 @@ scope Renderer {
     }
 
     public void init() {
-        widget_t w <- global.widget_create();
+        mut widget_t w <- global.widget_create();
         global.widget_set_flush_cb(w, this.my_flush);
     }
 }

@@ -24,11 +24,11 @@ int main(void) {
     if (flag_val != false) {
         return 2U;
     }
-    int32_t constant = get_constant_42();
+    const int32_t constant = get_constant_42();
     if (constant != 42) {
         return 3U;
     }
-    uint32_t magic = get_magic_number();
+    const uint32_t magic = get_magic_number();
     if (magic != 0xDEADBEEF) {
         return 4U;
     }

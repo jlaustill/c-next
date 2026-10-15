@@ -16,11 +16,11 @@ extern "C" {
 extern uint32_t result;
 
 /* Function prototypes */
-void testMultiCase(uint32_t val);
-void testMultiCaseHex(uint8_t val);
-void testMultiCaseBinary(uint8_t val);
-void testMultiCaseSigned(int8_t val);
-void testManyMultiCases(uint16_t val);
+void testMultiCase(const uint32_t val);
+void testMultiCaseHex(const uint8_t val);
+void testMultiCaseBinary(const uint8_t val);
+void testMultiCaseSigned(const int8_t val);
+void testManyMultiCases(const uint16_t val);
 
 #ifdef __cplusplus
 }

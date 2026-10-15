@@ -1,2 +1,2 @@
-20:4 error[E0877]: cannot assign to const variable 'ALTITUDE'
-       help: A const binding is read-only after its declaration (ADR-013); remove `const` if the value must change.
+20:4 error[E0877]: cannot assign to read-only variable 'ALTITUDE'
+       help: A binding is read-only unless declared `mut` (ADR-071); declare it `mut` if the value must change.

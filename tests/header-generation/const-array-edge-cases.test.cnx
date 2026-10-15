@@ -2,10 +2,10 @@
 // Verifies comprehensive coverage for issue #455
 
 // Hex constant - should resolve to 16
-const u8 HEX_SIZE <- 0x10;
+u8 HEX_SIZE <- 0x10;
 
 // Binary constant - should resolve to 10
-const u8 BIN_SIZE <- 0b1010;
+u8 BIN_SIZE <- 0b1010;
 
 // Array using hex constant
 bool[HEX_SIZE] hex_arr;
@@ -14,7 +14,7 @@ bool[HEX_SIZE] hex_arr;
 i16[BIN_SIZE] bin_arr;
 
 // Array inside a scope using top-level constant
-const u8 BUFFER_SIZE <- 8;
+u8 BUFFER_SIZE <- 8;
 
 scope Device {
     // Scoped array using global constant

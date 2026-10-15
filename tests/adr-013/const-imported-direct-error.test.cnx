@@ -10,7 +10,7 @@
 // NEGATIVE CONTROL -- the imported const read, and passed to the const
 // parameter that may take it.
 u8 okRead <- LIMIT;
-u8 okPassed <- 0;
+mut u8 okPassed <- 0;
 void okCalls() {
     keep(LIMIT);
     okPassed <- TABLE[0];

@@ -17,16 +17,16 @@ const uint8_t HEX_SIZE = 0x10U;
 const uint8_t BIN_SIZE = 0b1010U;
 
 // Array using hex constant
-bool hex_arr[16] = {0};
+const bool hex_arr[16] = {0};
 
 // Array using binary constant
-int16_t bin_arr[10] = {0};
+const int16_t bin_arr[10] = {0};
 
 // Array inside a scope using top-level constant
 const uint8_t BUFFER_SIZE = 8U;
 
 /* Scope: Device */
-uint8_t Device__buffer[8] = {0};
+const uint8_t Device__buffer[8] = {0};
 
 int main(void) {
     Device__buffer[0] = 1U;

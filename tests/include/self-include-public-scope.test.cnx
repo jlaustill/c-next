@@ -22,7 +22,7 @@ scope Calculator {
 }
 
 u32 main() {
-    u32 result <- Calculator.add(5, 3);
+    mut u32 result <- Calculator.add(5, 3);
     if (result != 8) {
         return 1;
     }

@@ -26,16 +26,16 @@ Ticker Ticker_init(void) {
 }
 
 // File-scope variable and array.
-Ticker globalTicker = { tickDefault, {} };
+extern const Ticker globalTicker = { tickDefault, {} };
 
-Ticker globalTickers[2] = { { tickDefault, {} }, { tickDefault, {} } };
+extern const Ticker globalTickers[2] = { { tickDefault, {} }, { tickDefault, {} } };
 
 // Cross-file struct.
-Remote globalRemote = { remoteDefault };
+extern const Remote globalRemote = { remoteDefault };
 
 /* Scope: Outer */
-static Ticker Outer__member = { tickDefault, {} };
-static Outer__Nested Outer__nestedMember = { tickDefault };
+static const Ticker Outer__member = { tickDefault, {} };
+static const Outer__Nested Outer__nestedMember = { tickDefault };
 
 uint32_t Outer__viaMember(void) {
     return Outer__member.handler();

@@ -13,7 +13,7 @@
 
 #include <stdint.h>
 
-uint8_t macroBuf[BUF_SIZE + 1] = {0};
+const uint8_t macroBuf[BUF_SIZE + 1] = {0};
 
 int main(void) {
 }

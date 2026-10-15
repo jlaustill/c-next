@@ -39,7 +39,7 @@ scope MathUtils {
     }
 
     // This function modifies its parameter - should be pointer
-    public void increment(u32 counter) {
+    public void increment(mut u32 counter) {
         counter <- counter + 1;
     }
 }
@@ -58,7 +58,7 @@ scope VectorUtils {
     }
 
     // This function modifies its parameter - should be pointer
-    public void decrement(u32 counter) {
+    public void decrement(mut u32 counter) {
         counter <- counter - 1;
     }
 }

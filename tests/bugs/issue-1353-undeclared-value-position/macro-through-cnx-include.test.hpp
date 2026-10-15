@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern shared_point_t sharedOrigin;
+extern const shared_point_t sharedOrigin;
 
 #ifdef __cplusplus
 }

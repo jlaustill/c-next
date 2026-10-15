@@ -46,9 +46,9 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // keep working, so a fix that broke the decimal path to satisfy the hex one
 // fails here.
 int main(void) {
-    uint8_t hexFill[8] = {7U, 7U, 7U, 7U, 7U, 7U, 7U, 7U};
-    uint8_t binFill[8] = {7U, 7U, 7U, 7U, 7U, 7U, 7U, 7U};
-    uint8_t decFill[8] = {7U, 7U, 7U, 7U, 7U, 7U, 7U, 7U};
+    const uint8_t hexFill[8] = {7U, 7U, 7U, 7U, 7U, 7U, 7U, 7U};
+    const uint8_t binFill[8] = {7U, 7U, 7U, 7U, 7U, 7U, 7U, 7U};
+    const uint8_t decFill[8] = {7U, 7U, 7U, 7U, 7U, 7U, 7U, 7U};
     for (uint32_t i = 0U; i < 8; i = cnx_clamp_add_u32(i, 1U)) {
         if (hexFill[i] != 7) {
             return 1U;

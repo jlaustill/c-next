@@ -6,7 +6,7 @@ u32 main() {
     // Bitwise AND
     u8 a <- 0b11110000;
     u8 b <- 0b10101010;
-    u8 result <- a & b;
+    mut u8 result <- a & b;
     if (result != 0b10100000) {
         return 1; // 160
     }
@@ -32,7 +32,7 @@ u32 main() {
 
     // Left shift
     u8 d <- 0b00000001;
-    u8 shifted <- d << 4;
+    mut u8 shifted <- d << 4;
     if (shifted != 0b00010000) {
         return 5; // 16
     }
@@ -45,7 +45,7 @@ u32 main() {
     }
 
     // Combined operations
-    u8 flags <- 0b00000000;
+    mut u8 flags <- 0b00000000;
     flags <- flags | 0b00000001; // Set bit 0
     flags <- flags | 0b00000100; // Set bit 2
     if (flags != 0b00000101) {

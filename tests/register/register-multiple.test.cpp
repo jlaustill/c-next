@@ -13,6 +13,6 @@ int main(void) {
     GPIOA__GDIR = 0xFFU;
     GPIOA__DR = 0x01U;
     GPIOB__GDIR = 0x00U;
-    uint32_t input = GPIOB__DR;
-    uint32_t count = TIMER__CNT;
+    const uint32_t input = GPIOB__DR;
+    const uint32_t count = TIMER__CNT;
 }

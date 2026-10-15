@@ -27,7 +27,7 @@
 DeepReading gDeep = {};
 
 /* Scope: DeepConsumer */
-static DeepReading DeepConsumer__cached = {};
+static const DeepReading DeepConsumer__cached = {};
 
 uint32_t DeepConsumer__read(void) {
     return deepValue();
@@ -38,7 +38,7 @@ int main(void) {
     if (gDeep.value != 9) {
         return 1U;
     }
-    uint32_t direct = DeepConsumer__read();
+    const uint32_t direct = DeepConsumer__read();
     if (direct != 9) {
         return 2U;
     }

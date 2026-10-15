@@ -24,13 +24,13 @@ void TestCaller__init(void) {
 float TestCaller__test(void) {
     TestCaller__data.value1 = 1.5;
     TestCaller__data.value2 = 2.5;
-    float result = TestFunc__addFloats(TestCaller__data.value1, TestCaller__data.value2);
+    const float result = TestFunc__addFloats(TestCaller__data.value1, TestCaller__data.value2);
     return result;
 }
 
 int main(void) {
     TestCaller__init();
-    float result = TestCaller__test();
+    const float result = TestCaller__test();
     if (result != 4.0) {
         return 1U;
     }

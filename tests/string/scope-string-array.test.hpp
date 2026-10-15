@@ -13,8 +13,8 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint32_t Lab__codeLength(uint32_t i);
-uint32_t Lab__lengthOf(uint32_t i);
+uint32_t Lab__codeLength(const uint32_t i);
+uint32_t Lab__lengthOf(const uint32_t i);
 
 #ifdef __cplusplus
 }

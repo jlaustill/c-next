@@ -47,11 +47,11 @@ int main(void) {
     if (3 != 3) {
         return 11U;
     }
-    Mode m = Mode__B;
+    const Mode m = Mode__B;
     if (1 != 1) {
         return 12U;
     }
-    Fl g = {};
+    const Fl g = {};
     if (1 != 1) {
         return 13U;
     }
@@ -64,14 +64,14 @@ int main(void) {
     if (8 != 8) {
         return 16U;
     }
-    char s[9] = "ab";
+    const char s[9] = "ab";
     if (8 != 8) {
         return 17U;
     }
     if (64 != 64) {
         return 18U;
     }
-    uint16_t grid[3][2] = {};
+    const uint16_t grid[3][2] = {};
     if (12 != 12) {
         return 19U;
     }
@@ -93,7 +93,7 @@ int main(void) {
     if (9 != 9) {
         return 25U;
     }
-    uint8_t raw[2] = {};
+    const uint8_t raw[2] = {};
     if (2 != 2) {
         return 26U;
     }

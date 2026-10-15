@@ -48,13 +48,13 @@ scope Lib {
     // asymmetry one level down, since enumMembers travels with knownEnums and is why
     // enums were the only kind that ever worked.
     public u8 useFlags() {
-        Flags f <- 0;
+        mut Flags f <- 0;
         f.Ready <- true;
         return f.Mode;
     }
 
     public u32 runAll() {
-        u32 total <- useBoth();
+        mut u32 total <- useBoth();
 
         Point p <- { x: 1, y: 2 };
         total <- total + sumThrough(p);

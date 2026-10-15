@@ -16,7 +16,7 @@ extern const uint8_t W = 32U;
 
 extern const uint8_t H = 16U;
 
-void configure(uint32_t v) {
+void configure(const uint32_t v) {
     PERIPH__CTRL = (PERIPH__CTRL & ~((uint32_t)0xFFFFFFFFU << 0)) | ((v & (uint32_t)0xFFFFFFFFU) << 0);
     *((volatile uint32_t*)(0x40000000 + 0x04)) = (v);
     PERIPH__SET = ((v & (uint32_t)0xFFFFU) << 4);

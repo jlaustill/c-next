@@ -16,10 +16,10 @@ extern "C" {
 extern uint32_t result;
 
 /* Function prototypes */
-void testNestedBasic(uint32_t outer, uint32_t inner);
-void testNestedMixedTypes(uint8_t outer, uint16_t inner);
-void testTripleNested(uint8_t a, uint8_t b, uint8_t c);
-void testNestedSigned(int8_t outer, int8_t inner);
+void testNestedBasic(const uint32_t outer, const uint32_t inner);
+void testNestedMixedTypes(const uint8_t outer, const uint16_t inner);
+void testTripleNested(const uint8_t a, const uint8_t b, const uint8_t c);
+void testNestedSigned(const int8_t outer, const int8_t inner);
 
 #ifdef __cplusplus
 }

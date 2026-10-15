@@ -116,7 +116,7 @@ void criticalInBothBranches(void) {
 }
 
 void criticalInNestedIf(void) {
-    bool condition = true;
+    const bool condition = true;
     if (condition == true) {
         if (sharedValue < 100) {
             {
@@ -130,7 +130,7 @@ void criticalInNestedIf(void) {
 }
 
 void criticalInIfElseChain(void) {
-    uint32_t mode = 2U;
+    const uint32_t mode = 2U;
     if (mode == 1) {
         {
             uint32_t __primask = __cnx_get_PRIMASK();

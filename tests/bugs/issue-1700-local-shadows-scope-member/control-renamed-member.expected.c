@@ -24,16 +24,15 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 // #1700 NEGATIVE CONTROL: the same method with the member renamed -- nothing
 // is shadowed, and the helper was always u8's.
 /* Scope: S */
-static uint32_t S__z = 0U;
 
 uint8_t S__f(void) {
-    uint8_t x = 200U;
-    uint8_t y = cnx_clamp_add_u8(x, x);
+    const uint8_t x = 200U;
+    const uint8_t y = cnx_clamp_add_u8(x, x);
     return y;
 }
 
 int main(void) {
-    uint8_t r = S__f();
+    const uint8_t r = S__f();
     if (r != 255) {
         return 1U;
     }

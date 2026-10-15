@@ -28,23 +28,23 @@ tick_fp sink = tick;
 tick_fp sinks[2] = { tick, tick };
 
 int main(void) {
-    uint32_t got1 = sink();
+    const uint32_t got1 = sink();
     if (got1 != 3) {
         return 1U;
     }
     sink = tock;
-    uint32_t got2 = sink();
+    const uint32_t got2 = sink();
     if (got2 != 4) {
         return 2U;
     }
     sinks[1] = tock;
-    tick_fp chosen = sinks[1U];
-    uint32_t got3 = chosen();
+    const tick_fp chosen = sinks[1U];
+    const uint32_t got3 = chosen();
     if (got3 != 4) {
         return 3U;
     }
-    tick_fp local = tock;
-    uint32_t got4 = local();
+    const tick_fp local = tock;
+    const uint32_t got4 = local();
     if (got4 != 4) {
         return 4U;
     }

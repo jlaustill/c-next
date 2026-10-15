@@ -45,7 +45,7 @@ u32 main() {
     }
 
     // Test 4: Permissions typedef enum with flags
-    Permissions perm <- FLAG_READ;
+    mut Permissions perm <- FLAG_READ;
     perm <- perm | FLAG_WRITE;
     if (perm != 3) {
         return 8;

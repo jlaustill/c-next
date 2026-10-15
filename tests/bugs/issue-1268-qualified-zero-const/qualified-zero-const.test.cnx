@@ -5,15 +5,15 @@
 // binds to the declaration ADR-057 names, so a nonzero const of the same name
 // in the other scope must stay silent.
 
-const u32 OUTER_ZERO <- 0;
-const u32 SHADOWED <- 7;
+u32 OUTER_ZERO <- 0;
+u32 SHADOWED <- 7;
 
 scope Widget {
-    const u32 ZERO <- 0;
-    const u32 ONE <- 1;
-    const u32 SHADOWED <- 0;
-    const f32 FLOAT_ZERO <- 0.0;
-    public const u32 SHARED_ZERO <- 0;
+    u32 ZERO <- 0;
+    u32 ONE <- 1;
+    u32 SHADOWED <- 0;
+    f32 FLOAT_ZERO <- 0.0;
+    public u32 SHARED_ZERO <- 0;
 
     u32 memberDivide <- 10 / this.ZERO;
     u32 memberModulo <- 10 % this.ZERO;

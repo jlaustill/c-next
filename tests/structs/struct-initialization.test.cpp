@@ -12,6 +12,6 @@
 // ADR-014: Named field initialization
 // Tests: struct initialization with named fields
 int main(void) {
-    Point origin = { .x = 0, .y = 0 };
-    Point p = { .x = 100, .y = 200 };
+    const Point origin = { .x = 0, .y = 0 };
+    const Point p = { .x = 100, .y = 200 };
 }

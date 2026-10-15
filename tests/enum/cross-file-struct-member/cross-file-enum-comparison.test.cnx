@@ -18,8 +18,8 @@ u32 main() {
     }
 
     // Comparison in loop
-    u8 noneCount <- 0;
-    for (u8 i <- 0; i < 2; i +<- 1) {
+    mut u8 noneCount <- 0;
+    for (mut u8 i <- 0; i < 2; i +<- 1) {
         if (config.items[i].assigned = MyEnum.NONE) {
             noneCount +<- 1;
         }

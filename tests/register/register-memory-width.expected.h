@@ -17,13 +17,13 @@ extern "C" {
 #define REG32__DR (*(volatile uint32_t*)(0x40000000 + 0x00))
 
 /* Function prototypes */
-void write32(uint32_t data);
-void write16_at_0(uint16_t data);
-void write16_at_16(uint16_t data);
-void write8_at_0(uint8_t data);
-void write8_at_8(uint8_t data);
-void write8_at_16(uint8_t data);
-void write8_at_24(uint8_t data);
+void write32(const uint32_t data);
+void write16_at_0(const uint16_t data);
+void write16_at_16(const uint16_t data);
+void write8_at_0(const uint8_t data);
+void write8_at_8(const uint8_t data);
+void write8_at_16(const uint8_t data);
+void write8_at_24(const uint8_t data);
 
 #ifdef __cplusplus
 }

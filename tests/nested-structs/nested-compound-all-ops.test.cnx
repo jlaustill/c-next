@@ -25,7 +25,7 @@ scope NestedOps {
     }
 }
 
-NestedOps.Outer o;
+mut NestedOps.Outer o;
 
 i32 main() {
     // Initialize deeply nested struct members

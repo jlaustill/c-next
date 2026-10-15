@@ -17,25 +17,25 @@ extern const double E = 2.71828182845905;
 extern const double ZERO = 0.0;
 
 int main(void) {
-    double pi = PI_PRECISE;
+    const double pi = PI_PRECISE;
     if (pi < 3.141592) {
         return 1U;
     }
     if (pi > 3.141593) {
         return 2U;
     }
-    double e = E;
+    const double e = E;
     if (e < 2.718281) {
         return 3U;
     }
     if (e > 2.718282) {
         return 4U;
     }
-    double zero = ZERO;
+    const double zero = ZERO;
     if (zero != 0.0) {
         return 5U;
     }
-    double area = PI_PRECISE * 5.0 * 5.0;
+    const double area = PI_PRECISE * 5.0 * 5.0;
     if (area < 78.5) {
         return 6U;
     }

@@ -16,9 +16,9 @@ extern "C" {
 typedef uint32_t (*tickDefault_fp)(void);
 
 /* External variables */
-extern tickDefault_fp globalOne;
-extern tickDefault_fp globalArr[2];
-extern tickDefault_fp E__member;
+extern const tickDefault_fp globalOne;
+extern const tickDefault_fp globalArr[2];
+extern const tickDefault_fp E__member;
 
 /* Function prototypes */
 uint32_t tickDefault(void);

@@ -16,11 +16,11 @@ extern "C" {
 /* External variables */
 extern const uint32_t ZERO;
 extern const uint32_t NONZERO;
-extern float floatValue;
-extern int32_t signedValue;
-extern int32_t otherSignedValue;
-extern uint32_t importedUnsignedValue;
-extern bool flagValue;
+extern const float floatValue;
+extern const int32_t signedValue;
+extern const int32_t otherSignedValue;
+extern const uint32_t importedUnsignedValue;
+extern const bool flagValue;
 
 #ifdef __cplusplus
 }

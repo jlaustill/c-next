@@ -16,7 +16,7 @@ void handleCreated(void) {
 void handleOther(void) {
 }
 
-void handleStatus(EHttpStatus status) {
+void handleStatus(const EHttpStatus status) {
     switch (status) {
         case EHttpStatus__OK: {
             handleSuccess();

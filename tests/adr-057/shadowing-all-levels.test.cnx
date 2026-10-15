@@ -9,7 +9,7 @@ scope Counter {
 
     public u32 testAllLevels() {
         u32 count <- 10; // Local
-        u32 sum <- 0;
+        mut u32 sum <- 0;
 
         sum +<- count; // Local (10)
         sum +<- this.count; // Scope (100)

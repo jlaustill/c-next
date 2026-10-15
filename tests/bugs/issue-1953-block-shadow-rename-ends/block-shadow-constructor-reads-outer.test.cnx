@@ -10,8 +10,8 @@
 #include "Tally.hpp"
 
 u32 main() {
-    const u8 seed <- 3;
-    u8 result <- 0;
+    u8 seed <- 3;
+    mut u8 result <- 0;
     if (seed = 3) {
         Tally seed(seed);
         result <- seed.start;

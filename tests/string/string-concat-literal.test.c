@@ -9,8 +9,8 @@
 
 // ADR-045: Test string concatenation with literal
 void test(void) {
-    char greeting[33] = "Hello";
-    char result[65] = "";
+    const char greeting[33] = "Hello";
+    const char result[65] = "";
     (void) strncpy(result, greeting, 64);
     (void) strncat(result, " World", 64 - strlen(result));
     result[64] = '\0';

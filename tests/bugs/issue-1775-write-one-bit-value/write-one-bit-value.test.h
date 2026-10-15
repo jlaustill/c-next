@@ -19,8 +19,8 @@ extern "C" {
 #define GPIO__CMD (*(volatile uint8_t*)(0x40000000 + 0x0C))
 
 /* Function prototypes */
-void Led__show(bool on);
-void apply(bool flag, bool ack, bool go);
+void Led__show(const bool on);
+void apply(const bool flag, const bool ack, const bool go);
 
 #ifdef __cplusplus
 }

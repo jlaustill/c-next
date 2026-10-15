@@ -23,15 +23,15 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 }
 
 // Global variable with comment
-uint32_t counter = 0U;
+extern const uint32_t counter = 0U;
 
 /* Block comment
  * spanning multiple lines
  * should be preserved
  */
-uint32_t maxValue = 100U;
+extern const uint32_t maxValue = 100U;
 
 // Function with inline comment
-uint32_t increment(uint32_t value) {
+uint32_t increment(const uint32_t value) {
     return cnx_clamp_add_u32(value, 1U);
 }

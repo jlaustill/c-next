@@ -53,7 +53,7 @@ u32 run(Handlers h, sinkI cb) {
 }
 
 u32 main() {
-    Handlers h;
+    mut Handlers h;
     h.f <- sink32;
     h.w <- sinkVoid;
     return run(h, sinkI);

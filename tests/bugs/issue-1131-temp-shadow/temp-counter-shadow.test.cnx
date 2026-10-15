@@ -9,7 +9,7 @@
 // argument temporary that spelled itself `_cnx_tmp_<N>`. Both families already
 // drew from one counter, so unifying the spelling cannot collide.
 
-u8[4] buffer;
+mut u8[4] buffer;
 u8 _tmp0 <- 7;
 
 u32 main() {

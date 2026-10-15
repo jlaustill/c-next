@@ -16,7 +16,7 @@ extern "C" {
 extern uint32_t result;
 
 /* Function prototypes */
-void handleByArray(uint8_t data[4], uint8_t idx);
+void handleByArray(const uint8_t data[4], const uint8_t idx);
 
 #ifdef __cplusplus
 }

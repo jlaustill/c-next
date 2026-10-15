@@ -24,13 +24,13 @@ struct StatusConfig {
     Status status;
 }
 
-void setColorRed(ColorConfig cfg) {
+void setColorRed(mut ColorConfig cfg) {
     // RED is in both enums, but cfg.color is type Color
     // Should resolve to Color_RED (value 0)
     cfg.color <- RED;
 }
 
-void setStatusRed(StatusConfig cfg) {
+void setStatusRed(mut StatusConfig cfg) {
     // RED is in both enums, but cfg.status is type Status
     // Should resolve to Status_RED (value 10)
     cfg.status <- RED;
@@ -38,14 +38,14 @@ void setStatusRed(StatusConfig cfg) {
 
 u32 main() {
     // Test 1: Color.RED via type-aware resolution
-    ColorConfig colorCfg <- { color: Color.BLUE };
+    mut ColorConfig colorCfg <- { color: Color.BLUE };
     setColorRed(colorCfg);
     if ((u32)colorCfg.color != 0) {
         return 1; // Color_RED = 0
     }
 
     // Test 2: Status.RED via type-aware resolution
-    StatusConfig statusCfg <- { status: Status.YELLOW };
+    mut StatusConfig statusCfg <- { status: Status.YELLOW };
     setStatusRed(statusCfg);
     if ((u32)statusCfg.status != 10) {
         return 2; // Status_RED = 10

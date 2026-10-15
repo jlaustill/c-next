@@ -15,9 +15,9 @@
 // E0909 "'2.5' is a floating-point value".
 //
 // CONTROL: `(u32)3.99` is 3 -- the cast truncates, it does not round.
-uint8_t two[2] = {0};
+const uint8_t two[2] = {0};
 
-uint8_t three[3] = {0};
+const uint8_t three[3] = {0};
 
 int main(void) {
     if (2 != 2) {

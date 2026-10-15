@@ -21,8 +21,8 @@ volatile string<16> volatileNoInit;
 // with E0862 before reaching codegen. That rejection is what hid the second
 // bug -- the unsized arm emits a hardcoded `const char`, dropping the
 // qualifier the .h still derives from the symbol.
-volatile const string unsizedVolatile <- "v";
-atomic const string unsizedAtomic <- "a";
+volatile string unsizedVolatile <- "v";
+atomic string unsizedAtomic <- "a";
 
 // Negative control: a non-string atomic was never affected, and an unqualified
 // string must not gain a qualifier.

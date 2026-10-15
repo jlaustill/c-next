@@ -15,8 +15,8 @@ struct Buf {
     u32 bit_length;
 }
 
-Buf b;
-Buf[2] pair;
+mut Buf b;
+mut Buf[2] pair;
 
 u32 main() {
     b.length <- 3;

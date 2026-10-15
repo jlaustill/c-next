@@ -7,4 +7,4 @@
 
 #include "enum-declarations.cnx"
 
-const u32 RELAY_MARKER <- 2;
+u32 RELAY_MARKER <- 2;

@@ -24,7 +24,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // test-adr: 029
 // #1570: a field whose type is a struct with an ADR-029 default holds that
 // default -- for a scalar field and every element of an array field.
-uint32_t onSample(uint32_t input) {
+uint32_t onSample(const uint32_t input) {
     return cnx_clamp_add_u32(input, 1U);
 }
 
@@ -38,11 +38,11 @@ Outer Outer_init(void) {
     return value;
 }
 
-Outer globalOuter = { { onSample, {} }, { { onSample, {} }, { onSample, {} } } };
+extern const Outer globalOuter = { { onSample, {} }, { { onSample, {} }, { onSample, {} } } };
 
 // Read through a global: a local's default cannot be read before it is
 // assigned (ADR-015, #1980); the local forms are asserted by the snapshots.
-Outer o = { { onSample, {} }, { { onSample, {} }, { onSample, {} } } };
+extern const Outer o = { { onSample, {} }, { { onSample, {} }, { onSample, {} } } };
 
 int main(void) {
     uint32_t r = 0U;

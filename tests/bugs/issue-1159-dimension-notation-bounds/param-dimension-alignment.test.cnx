@@ -6,15 +6,15 @@
 // literal and was dropped rather than held. TypeValidator.checkArrayBounds then
 // validated subscript 0 against dimension 2's bound and rejected `grid[5][0]`
 // on a [6][4] array at compile time, reporting "5 >= 4 for dimension 1".
-const u8 SIZE <- 6;
+u8 SIZE <- 6;
 
-void fill(u8[SIZE][4] grid) {
+void fill(mut u8[SIZE][4] grid) {
     grid[5][0] <- 42;
     grid[0][3] <- 7;
 }
 
 i32 main() {
-    u8[SIZE][4] grid;
+    mut u8[SIZE][4] grid;
     fill(grid);
     if (grid[5][0] != 42) {
         return 1;

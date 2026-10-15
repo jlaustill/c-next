@@ -18,7 +18,7 @@ u32 multiply(u32 x, u32 y) {
 }
 
 // Void function that modifies state
-u32 counter;
+mut u32 counter;
 
 void incrementCounter() {
     counter <- counter + 1;
@@ -32,7 +32,7 @@ u32 addThenDouble(u32 a, u32 b) {
 
 u32 main() {
     // Test simple return
-    u32 result <- getFortyTwo();
+    mut u32 result <- getFortyTwo();
     if (result != 42) {
         return 1;
     }

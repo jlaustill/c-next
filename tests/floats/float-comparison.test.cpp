@@ -11,9 +11,9 @@
 bool result = false;
 
 void test_f32_comparison(void) {
-    float a = 10.5;
-    float b = 5.5;
-    float c = 10.5;
+    const float a = 10.5;
+    const float b = 5.5;
+    const float c = 10.5;
     result = (a == c);
     result = (a == b);
     result = (a != b);
@@ -31,9 +31,9 @@ void test_f32_comparison(void) {
 }
 
 void test_f64_comparison(void) {
-    double x = 100.25;
-    double y = 50.75;
-    double z = 100.25;
+    const double x = 100.25;
+    const double y = 50.75;
+    const double z = 100.25;
     result = (x == z);
     result = (x == y);
     result = (x != y);
@@ -49,7 +49,7 @@ void test_f64_comparison(void) {
 }
 
 void test_literal_comparison(void) {
-    float a = 3.14;
+    const float a = 3.14;
     result = (a == 3.14);
     result = (a != 3.14);
     result = (a < 10.0);

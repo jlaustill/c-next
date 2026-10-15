@@ -26,12 +26,12 @@ uint8_t Motor__useShadowed(const Motor__Config& c) {
 }
 
 int main(void) {
-    Motor__Config mine = { .x = 11U };
-    uint8_t fromMine = Motor__useShadowed(mine);
+    const Motor__Config mine = { .x = 11U };
+    const uint8_t fromMine = Motor__useShadowed(mine);
     if (fromMine != 11) {
         return 1;
     }
-    Config theirs = { .a = 2, .b = 3 };
+    const Config theirs = { .a = 2, .b = 3 };
     if (theirs.a != 2) {
         return 2;
     }

@@ -8,14 +8,14 @@
 #include "array-struct-member-cpp.h"
 
 // Array of external C structs with bool/enum members
-SensorReading[4] sensors;
+mut SensorReading[4] sensors;
 
 u32 process(u32 crc, u8 byte) {
     return crc ^ byte;
 }
 
 u32 testArrayStructMembers() {
-    u32 crc <- 0;
+    mut u32 crc <- 0;
 
     // Initialize array element
     sensors[0].active <- true;
@@ -35,7 +35,7 @@ u32 testArrayStructMembers() {
 }
 
 u32 testMultipleIndices() {
-    u32 crc <- 0;
+    mut u32 crc <- 0;
 
     // Test with different array indices
     sensors[1].active <- false;

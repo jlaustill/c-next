@@ -7,7 +7,7 @@
 // NEGATIVE CONTROL: `ok`, sized by a member the scope has.
 
 scope S {
-    public const u8 MAX <- 4;
+    public u8 MAX <- 4;
 }
 
 struct T {

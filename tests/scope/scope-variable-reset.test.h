@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint32_t Calculator__addAndCount(uint32_t value);
+uint32_t Calculator__addAndCount(const uint32_t value);
 uint32_t Calculator__getOperationCount(void);
 
 #ifdef __cplusplus

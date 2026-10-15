@@ -7,18 +7,18 @@ void readOnly(u32 value) {
 }
 
 // Modified parameter - should NOT get const
-void modified(u32 value) {
+void modified(mut u32 value) {
     value <- 42; // Direct assignment
 }
 
 // Multiple params - mixed const/non-const
-u32 mixedParams(u32 readVal, u32 writeVal) {
+u32 mixedParams(u32 readVal, mut u32 writeVal) {
     writeVal <- readVal + 10; // readVal read-only, writeVal modified
     return writeVal;
 }
 
 // Array parameter modification via index
-void arrayMod(u8[4] arr) {
+void arrayMod(mut u8[4] arr) {
     arr[0] <- 99; // Array element modified - no const on arr
 }
 
@@ -29,7 +29,7 @@ u8 arrayReadOnly(u8[4] arr) {
 }
 
 u32 main() {
-    u32 x <- 10;
+    mut u32 x <- 10;
     readOnly(x);
     if (x != 10) {
         return 1; // x unchanged
@@ -40,13 +40,13 @@ u32 main() {
     // The function modifies its local copy (the parameter)
 
     u32 a <- 5;
-    u32 b <- 0;
+    mut u32 b <- 0;
     u32 result <- mixedParams(a, b);
     if (result != 15) {
         return 2;
     }
 
-    u8[4] data <- [1, 2, 3, 4];
+    mut u8[4] data <- [1, 2, 3, 4];
     arrayMod(data);
     if (data[0] != 99) {
         return 3;

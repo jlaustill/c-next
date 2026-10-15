@@ -30,24 +30,24 @@ extern const uint32_t N = 8U;
 uint32_t first(void) {
     /* C11 6.2.1p4, C++ [basic.scope.hiding]: `N` emitted as `first__N` (a plain `N` would hide the file-scope `N` for the rest of its scope, so `global.N` would reach the local). */
     const uint32_t first__N = 2U;
-    uint32_t x = first__N;
+    const uint32_t x = first__N;
     return x;
 }
 
 uint32_t second(void) {
     uint8_t buf[8] = {};
     buf[7] = 7U;
-    uint32_t n = 8;
-    uint32_t last = buf[7U];
+    const uint32_t n = 8;
+    const uint32_t last = buf[7U];
     return cnx_clamp_add_u32(n, last);
 }
 
 int main(void) {
-    uint32_t local = first();
+    const uint32_t local = first();
     if (local != 2) {
         return 1U;
     }
-    uint32_t n = second();
+    const uint32_t n = second();
     if (n != 15) {
         return 2U;
     }

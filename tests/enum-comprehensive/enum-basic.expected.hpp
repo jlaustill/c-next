@@ -26,7 +26,7 @@ typedef enum {
 
 /* Function prototypes */
 Motor__EMode Motor__getMode(void);
-void Motor__setMode(Motor__EMode newMode);
+void Motor__setMode(const Motor__EMode newMode);
 bool Motor__isOff(void);
 
 #ifdef __cplusplus

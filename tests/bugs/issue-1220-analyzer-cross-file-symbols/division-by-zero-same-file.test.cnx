@@ -2,7 +2,7 @@
 // test-error
 // E0800/E0802: division and modulo by a const zero -- matrix cell: same file
 
-const u32 ZERO <- 0;
+u32 ZERO <- 0;
 
 u32 globalDivide <- 10 / ZERO;
 u32 globalModulo <- 10 % ZERO;

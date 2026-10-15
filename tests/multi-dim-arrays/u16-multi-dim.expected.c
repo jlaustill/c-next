@@ -193,7 +193,7 @@ int main(void) {
     }
     data[0][0] = 30000U;
     data[0][1] = 35000U;
-    uint32_t largeSum = cnx_clamp_add_u16(data[0U][0U], data[0U][1U]);
+    const uint32_t largeSum = cnx_clamp_add_u16(data[0U][0U], data[0U][1U]);
     if (largeSum != 65000) {
         return 34U;
     }

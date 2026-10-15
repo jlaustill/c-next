@@ -1,8 +1,8 @@
 // ADR-051: Basic safe division tests
 // Tests the safe_div() built-in function with valid and zero divisors
 void testSafeDivBasic() {
-    u32 result <- 0;
-    bool err <- false;
+    mut u32 result <- 0;
+    mut bool err <- false;
 
     // Case 1: Valid division (10 / 2 = 5)
     err <- safe_div(result, 10, 2, 0);
@@ -20,8 +20,8 @@ void testSafeDivBasic() {
 }
 
 void testSafeDivEdgeCases() {
-    u32 result <- 0;
-    bool err <- false;
+    mut u32 result <- 0;
+    mut bool err <- false;
 
     // Case 1: Zero divided by non-zero
     err <- safe_div(result, 0, 5, 999);

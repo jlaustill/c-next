@@ -2,10 +2,10 @@
 // Tests: i32 as loop counter
 // Coverage: Section 1.2 i32 as loop counter
 u32 main() {
-    u32 sum <- 0;
+    mut u32 sum <- 0;
 
     // Basic i32 counter incrementing
-    for (i32 i <- 0; i < 10; i +<- 1) {
+    for (mut i32 i <- 0; i < 10; i +<- 1) {
         sum +<- 1;
     }
     if (sum != 10) {
@@ -14,7 +14,7 @@ u32 main() {
 
     // i32 counter with larger values
     sum <- 0;
-    for (i32 j <- 100; j < 110; j +<- 1) {
+    for (mut i32 j <- 100; j < 110; j +<- 1) {
         sum +<- 1;
     }
     if (sum != 10) {
@@ -23,7 +23,7 @@ u32 main() {
 
     // i32 counter decrementing
     sum <- 0;
-    for (i32 k <- 10; k > 0; k -<- 1) {
+    for (mut i32 k <- 10; k > 0; k -<- 1) {
         sum +<- 1;
     }
     if (sum != 10) {
@@ -32,7 +32,7 @@ u32 main() {
 
     // i32 counter with negative start
     sum <- 0;
-    for (i32 m <- -5; m < 5; m +<- 1) {
+    for (mut i32 m <- -5; m < 5; m +<- 1) {
         sum +<- 1;
     }
     if (sum != 10) {
@@ -40,8 +40,8 @@ u32 main() {
     }
 
     // i32 counter crossing zero
-    i32 cross_count <- 0;
-    for (i32 n <- -3; n <= 3; n +<- 1) {
+    mut i32 cross_count <- 0;
+    for (mut i32 n <- -3; n <= 3; n +<- 1) {
         cross_count +<- 1;
     }
     if (cross_count != 7) {
@@ -50,7 +50,7 @@ u32 main() {
 
     // i32 counter with step > 1
     sum <- 0;
-    for (i32 p <- 0; p < 20; p +<- 2) {
+    for (mut i32 p <- 0; p < 20; p +<- 2) {
         sum +<- 1;
     }
     if (sum != 10) {
@@ -59,8 +59,8 @@ u32 main() {
 
     // Nested loops with i32 counters
     sum <- 0;
-    for (i32 outer <- 0; outer < 3; outer +<- 1) {
-        for (i32 inner <- 0; inner < 4; inner +<- 1) {
+    for (mut i32 outer <- 0; outer < 3; outer +<- 1) {
+        for (mut i32 inner <- 0; inner < 4; inner +<- 1) {
             sum +<- 1;
         }
     }
@@ -69,8 +69,8 @@ u32 main() {
     }
 
     // i32 counter used in calculations
-    i32 calc_sum <- 0;
-    for (i32 q <- 1; q <= 5; q +<- 1) {
+    mut i32 calc_sum <- 0;
+    for (mut i32 q <- 1; q <= 5; q +<- 1) {
         calc_sum +<- q;
     }
     if (calc_sum != 15) {

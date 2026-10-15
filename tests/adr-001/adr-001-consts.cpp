@@ -15,7 +15,7 @@
 // which needs to KNOW the operand is a string. That knowledge is what degrades
 // across a file boundary, so it is the half whose cross-file cells can fail for
 // a reason the same-file cells cannot.
-char GREETING[17] = "hello";
+extern const char GREETING[17] = "hello";
 
 extern const uint8_t FIVE = 5U;
 

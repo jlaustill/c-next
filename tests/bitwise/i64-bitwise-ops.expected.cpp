@@ -11,23 +11,23 @@
 // Test i64 bitwise operations: AND, OR, XOR, NOT
 // Coverage: Section 5.1-5.4 for i64 type
 int main(void) {
-    int64_t a = 0x7FFFFFFF00000000;
-    int64_t b = 0x5555555555555555;
-    int64_t and_result = a & b;
-    int64_t neg_a = -4294967296;
-    int64_t neg_b = -1;
-    int64_t neg_and = neg_a & neg_b;
-    int64_t or_result = a | b;
-    int64_t xor_result = a ^ b;
-    int64_t c = 9223372036854775807;
-    int64_t not_pos = ~c;
-    int64_t d = (int64_t)INT64_MIN;
-    int64_t not_neg = ~d;
-    int64_t minus_one = -1;
-    int64_t not_minus_one = ~minus_one;
-    int64_t small_a = 0xFFA0;
-    int64_t small_b = 0xAA;
-    int64_t small_and = small_a & small_b;
+    const int64_t a = 0x7FFFFFFF00000000;
+    const int64_t b = 0x5555555555555555;
+    const int64_t and_result = a & b;
+    const int64_t neg_a = -4294967296;
+    const int64_t neg_b = -1;
+    const int64_t neg_and = neg_a & neg_b;
+    const int64_t or_result = a | b;
+    const int64_t xor_result = a ^ b;
+    const int64_t c = 9223372036854775807;
+    const int64_t not_pos = ~c;
+    const int64_t d = (int64_t)INT64_MIN;
+    const int64_t not_neg = ~d;
+    const int64_t minus_one = -1;
+    const int64_t not_minus_one = ~minus_one;
+    const int64_t small_a = 0xFFA0;
+    const int64_t small_b = 0xAA;
+    const int64_t small_and = small_a & small_b;
     if (small_and == 160 && not_minus_one == 0) {
         if (neg_and == -4294967296) {
             return 0U;

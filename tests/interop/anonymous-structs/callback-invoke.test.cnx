@@ -7,7 +7,7 @@
 #include "anon_types.h"
 
 // Global to track callback was called with correct value
-i32 g_callback_value <- 0;
+mut i32 g_callback_value <- 0;
 
 void my_config_handler(SimpleConfig cfg) {
     // flag_a is a 1-bit field, so it can only be 0 or 1

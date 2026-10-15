@@ -29,7 +29,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Tests: i8 as array element type
 // Coverage: Section 1.2 i8 array element type
 int main(void) {
-    int8_t values[5] = {-128, -1, 0, 1, 127};
+    const int8_t values[5] = {-128, -1, 0, 1, 127};
     if (values[0U] != -128) {
         return 1U;
     }
@@ -62,7 +62,7 @@ int main(void) {
     if (data[3U] != 100) {
         return 9U;
     }
-    int8_t inferred[3] = {10, 20, 30};
+    const int8_t inferred[3] = {10, 20, 30};
     if (inferred[0U] != 10) {
         return 10U;
     }
@@ -72,7 +72,7 @@ int main(void) {
     if (inferred[2U] != 30) {
         return 12U;
     }
-    int8_t loop_arr[3] = {1, 2, 3};
+    const int8_t loop_arr[3] = {1, 2, 3};
     int8_t sum = 0;
     for (uint32_t i = 0U; i < 3; i = cnx_clamp_add_u32(i, 1U)) {
         sum = cnx_clamp_add_i8(sum, loop_arr[i]);

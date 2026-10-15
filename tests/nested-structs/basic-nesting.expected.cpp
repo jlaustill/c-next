@@ -27,16 +27,16 @@ static inline int32_t cnx_clamp_sub_i32(int32_t a, int64_t b) {
 // ADR-032: Basic Nested Struct Test
 // Tests: struct member with struct type, chained member access
 // Global nested struct instance
-Line segment = { .start = { .x = 0, .y = 0 }, .end = { .x = 100, .y = 100 } };
+extern const Line segment = { .start = { .x = 0, .y = 0 }, .end = { .x = 100, .y = 100 } };
 
-Rectangle bounds = { .topLeft = { .x = 10, .y = 20 }, .bottomRight = { .x = 110, .y = 120 } };
+extern const Rectangle bounds = { .topLeft = { .x = 10, .y = 20 }, .bottomRight = { .x = 110, .y = 120 } };
 
 int main(void) {
-    int32_t startX = segment.start.x;
-    int32_t startY = segment.start.y;
-    int32_t endX = segment.end.x;
-    int32_t endY = segment.end.y;
-    int32_t width = cnx_clamp_sub_i32(bounds.bottomRight.x, bounds.topLeft.x);
-    int32_t height = cnx_clamp_sub_i32(bounds.bottomRight.y, bounds.topLeft.y);
+    const int32_t startX = segment.start.x;
+    const int32_t startY = segment.start.y;
+    const int32_t endX = segment.end.x;
+    const int32_t endY = segment.end.y;
+    const int32_t width = cnx_clamp_sub_i32(bounds.bottomRight.x, bounds.topLeft.x);
+    const int32_t height = cnx_clamp_sub_i32(bounds.bottomRight.y, bounds.topLeft.y);
     return 0;
 }

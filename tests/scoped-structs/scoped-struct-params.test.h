@@ -21,7 +21,7 @@ typedef struct Math__Vec2 {
 
 /* Function prototypes */
 void Math__add(Math__Vec2* result, const Math__Vec2* a, const Math__Vec2* b);
-void Math__scale(Math__Vec2* v, int32_t factor);
+void Math__scale(Math__Vec2* v, const int32_t factor);
 int32_t Math__dot(const Math__Vec2* a, const Math__Vec2* b);
 bool Math__equals(const Math__Vec2* a, const Math__Vec2* b);
 void Math__copy(Math__Vec2* dest, const Math__Vec2* src);

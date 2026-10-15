@@ -19,11 +19,11 @@ typedef struct Point {
 } Point;
 
 /* External variables */
-extern uint8_t raw[5];
-extern uint8_t outer[11];
-extern uint8_t arrBytes[6];
-extern uint8_t bits[32];
-extern uint8_t point[5];
+extern const uint8_t raw[5];
+extern const uint8_t outer[11];
+extern const uint8_t arrBytes[6];
+extern const uint8_t bits[32];
+extern const uint8_t point[5];
 
 #ifdef __cplusplus
 }

@@ -8,9 +8,9 @@
 
 scope Handler {
     // Method that takes an array parameter (target of the call)
-    public u32 processBuffer(const u8[8] data, u8 len) {
-        u32 sum <- 0;
-        u8 i <- 0;
+    public u32 processBuffer(u8[8] data, u8 len) {
+        mut u32 sum <- 0;
+        mut u8 i <- 0;
         while (i < len) {
             sum <- sum + data[i];
             i <- i + 1;
@@ -19,9 +19,9 @@ scope Handler {
     }
 
     // Method that takes a larger array
-    public u32 processData(const u8[16] data, u8 len) {
-        u32 sum <- 0;
-        u8 i <- 0;
+    public u32 processData(u8[16] data, u8 len) {
+        mut u32 sum <- 0;
+        mut u8 i <- 0;
         while (i < len) {
             sum <- sum + data[i];
             i <- i + 1;
@@ -36,12 +36,12 @@ scope Handler {
     // NOT:
     //   uint8_t _cnx_tmp = static_cast<uint8_t>(msg->buf);
     //   Handler_processBuffer(&_cnx_tmp, msg->len);
-    public u32 handleMessage(const CAN_message_t msg) {
+    public u32 handleMessage(CAN_message_t msg) {
         return this.processBuffer(msg.buf, msg.len);
     }
 
     // TEST 2: Multiple array members
-    public u32 processMultiArray(const MultiArray_t multi) {
+    public u32 processMultiArray(MultiArray_t multi) {
         u32 headerSum <- this.processBuffer(multi.header, 4);
         u32 bodySum <- this.processData(multi.body, multi.sizes[1]);
         return headerSum + bodySum;
@@ -54,7 +54,7 @@ scope Handler {
 }
 
 u32 testNamedTypedefConstArrayMember() {
-    CAN_message_t msg;
+    mut CAN_message_t msg;
     msg.id <- 1234;
     msg.buf[0] <- 10;
     msg.buf[1] <- 20;
@@ -71,7 +71,7 @@ u32 testNamedTypedefConstArrayMember() {
 }
 
 u32 testMultipleArrayMembers() {
-    MultiArray_t multi;
+    mut MultiArray_t multi;
 
     multi.header[0] <- 1;
     multi.header[1] <- 2;
@@ -90,7 +90,7 @@ u32 testMultipleArrayMembers() {
 }
 
 u32 testNonConstArrayMember() {
-    CAN_message_t msg;
+    mut CAN_message_t msg;
     msg.id <- 999;
     msg.buf[0] <- 100;
     msg.buf[1] <- 50;

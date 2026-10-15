@@ -18,8 +18,7 @@
 // This is an execution test on purpose: #1130 is "transpiler exits 0, but the
 // generated C does not compile", so the C compiler itself must be the guard.
 /* Scope: A */
-A__B A__current = A__B__c;
-static uint8_t A__Config = 7U;
+const A__B A__current = A__B__c;
 
 A__B A__pick(void) {
     return A__B__d;
@@ -33,8 +32,8 @@ uint8_t A__wrapperValue(const A__Wrapper& w) {
     return w.v;
 }
 
-uint8_t A__isBusy(A__B value) {
-    A__B local = value;
+uint8_t A__isBusy(const A__B value) {
+    const A__B local = value;
     if (local == A__B__d) {
         return 1U;
     }
@@ -46,38 +45,38 @@ uint8_t A__useGlobalConfig(const Config& cfg) {
 }
 
 uint8_t A__configValue(void) {
-    return A__Config;
+    return 7U;
 }
 
 int main(void) {
-    A__S s = { .x = 42U, .kind = A__B__d };
-    uint8_t structX = A__readStruct(s);
+    const A__S s = { .x = 42U, .kind = A__B__d };
+    const uint8_t structX = A__readStruct(s);
     if (structX != 42) {
         return 1U;
     }
-    A__B picked = A__pick();
+    const A__B picked = A__pick();
     if (picked != A__B__d) {
         return 2U;
     }
-    uint8_t isBusyResult = A__isBusy(A__B__d);
+    const uint8_t isBusyResult = A__isBusy(A__B__d);
     if (isBusyResult != 1) {
         return 3U;
     }
-    uint8_t isNotBusyResult = A__isBusy(A__B__c);
+    const uint8_t isNotBusyResult = A__isBusy(A__B__c);
     if (isNotBusyResult != 0) {
         return 4U;
     }
-    A__Wrapper w = { .mode = Mode__busy, .v = 9U };
-    uint8_t wrapped = A__wrapperValue(w);
+    const A__Wrapper w = { .mode = Mode__busy, .v = 9U };
+    const uint8_t wrapped = A__wrapperValue(w);
     if (wrapped != 9) {
         return 5U;
     }
-    Config globalConfig = { .x = 5U };
-    uint8_t configX = A__useGlobalConfig(globalConfig);
+    const Config globalConfig = { .x = 5U };
+    const uint8_t configX = A__useGlobalConfig(globalConfig);
     if (configX != 5) {
         return 6U;
     }
-    uint8_t scopeConfig = A__configValue();
+    const uint8_t scopeConfig = A__configValue();
     if (scopeConfig != 7) {
         return 7U;
     }

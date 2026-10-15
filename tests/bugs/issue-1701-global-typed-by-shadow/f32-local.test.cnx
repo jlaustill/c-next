@@ -1,7 +1,7 @@
 // test-execution
 // #1701: a `u32` global behind an `f32` local is still clamped as a u32. It
 // was emitted `x += 1000;` and wrapped to 999.
-u32 x <- 4294967295;
+mut u32 x <- 4294967295;
 
 f32 f() {
     f32 x <- 1.0;

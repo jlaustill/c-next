@@ -6,7 +6,7 @@ string<256> line;
 void readFile() {
     FILE c_file <- fopen("data.txt", "r");
     if (c_file != NULL) {
-        cstring c_result <- fgets(line, line.size, c_file);
+        mut cstring c_result <- fgets(line, line.size, c_file);
         while (c_result != NULL) {
             (void)printf("%s", line);
             c_result <- fgets(line, line.size, c_file);

@@ -9,8 +9,8 @@
 // test-execution
 // ADR-045: Validate string comparison operators at runtime
 int main(void) {
-    char a[33] = "Hello";
-    char b[33] = "Hello";
+    const char a[33] = "Hello";
+    const char b[33] = "Hello";
     if (strcmp(a, b) != 0) {
         return 1;
     }
@@ -20,7 +20,7 @@ int main(void) {
     if (strcmp(a, "Hello") != 0) {
         return 3;
     }
-    char c[33] = "World";
+    const char c[33] = "World";
     if (strcmp(a, c) == 0) {
         return 4;
     }
@@ -30,30 +30,30 @@ int main(void) {
     if (strcmp(c, "World") != 0) {
         return 6;
     }
-    char upper[33] = "HELLO";
+    const char upper[33] = "HELLO";
     if (strcmp(a, upper) == 0) {
         return 7;
     }
     if (strcmp(a, upper) == 0) {
         return 8;
     }
-    char prefix[33] = "Hell";
-    char suffix[33] = "ello";
+    const char prefix[33] = "Hell";
+    const char suffix[33] = "ello";
     if (strcmp(a, prefix) == 0) {
         return 9;
     }
     if (strcmp(a, suffix) == 0) {
         return 10;
     }
-    char empty1[33] = "";
-    char empty2[33] = "";
+    const char empty1[33] = "";
+    const char empty2[33] = "";
     if (strcmp(empty1, empty2) != 0) {
         return 11;
     }
     if (strcmp(empty1, a) == 0) {
         return 12;
     }
-    char bigHello[65] = "Hello";
+    const char bigHello[65] = "Hello";
     if (strcmp(a, bigHello) != 0) {
         return 13;
     }

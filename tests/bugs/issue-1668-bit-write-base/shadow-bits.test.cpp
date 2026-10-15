@@ -48,7 +48,7 @@ void g(void) {
 }
 
 int main(void) {
-    uint32_t result = f();
+    const uint32_t result = f();
     g();
     if (gs.flags != 2) {
         return 10U;

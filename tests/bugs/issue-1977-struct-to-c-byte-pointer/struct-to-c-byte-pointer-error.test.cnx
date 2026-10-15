@@ -14,8 +14,8 @@ struct R {
 
 R r;
 R[2] rs;
-u8[16] buf;
-const u8[4] table <- [1, 2, 3, 4];
+mut u8[16] buf;
+u8[4] table <- [1, 2, 3, 4];
 u8 b;
 u32 w;
 

@@ -15,12 +15,12 @@
 // (was generating char* instead of uint8_t*)
 /* Scope: ByteProcessor */
 
-uint32_t ByteProcessor__processByte(uint32_t crc, uint8_t byte) {
+uint32_t ByteProcessor__processByte(const uint32_t crc, const uint8_t byte) {
     return crc ^ byte;
 }
 
 uint32_t ByteProcessor__processBuffer(void) {
-    char buf[5] = "ABCD";
+    const char buf[5] = "ABCD";
     uint32_t crc = 0U;
     crc = ByteProcessor__processByte(crc, buf[0U]);
     crc = ByteProcessor__processByte(crc, buf[1U]);
@@ -30,7 +30,7 @@ uint32_t ByteProcessor__processBuffer(void) {
 }
 
 int main(void) {
-    uint32_t result = ByteProcessor__processBuffer();
+    const uint32_t result = ByteProcessor__processBuffer();
     if (result != 0x04) {
         return 1U;
     }

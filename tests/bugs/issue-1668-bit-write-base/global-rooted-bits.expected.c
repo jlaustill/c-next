@@ -30,7 +30,7 @@ int main(void) {
     if (gp.bits != 0x38) {
         return 1U;
     }
-    uint8_t own = S__gp.bits;
+    const uint8_t own = S__gp.bits;
     if (own != 2) {
         return 2U;
     }

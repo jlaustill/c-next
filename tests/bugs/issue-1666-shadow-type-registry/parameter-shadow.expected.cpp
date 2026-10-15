@@ -10,25 +10,25 @@
 // test-execution
 // #1666 CONTROL: a parameter `u8 x` shadowing the global `u32 x` leaves the
 // global's type alone in a later function. This held before the fix too.
-uint32_t x = 0U;
+extern const uint32_t x = 0U;
 
 /* C11 6.2.1p4, C++ [basic.scope.hiding]: `x` emitted as `first__x` (a plain `x` would hide the file-scope `x` for the rest of its scope, so `global.x` would reach the local). */
-uint32_t first(uint8_t first__x) {
-    uint32_t v = first__x;
+uint32_t first(const uint8_t first__x) {
+    const uint32_t v = first__x;
     return v;
 }
 
 uint32_t second(void) {
-    uint32_t n = 32;
+    const uint32_t n = 32;
     return n;
 }
 
 int main(void) {
-    uint32_t local = first(7U);
+    const uint32_t local = first(7U);
     if (local != 7) {
         return 1U;
     }
-    uint32_t width = second();
+    const uint32_t width = second();
     if (width != 32) {
         return 2U;
     }

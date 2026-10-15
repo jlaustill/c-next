@@ -15,4 +15,4 @@
 #include <stdbool.h>
 
 // Variable with struct initializer using named fields
-SeaDash::Parse::ParseResult parsed = { .data = {0}, .count = 0, .success = false };
+extern const SeaDash::Parse::ParseResult parsed = { .data = {0}, .count = 0, .success = false };

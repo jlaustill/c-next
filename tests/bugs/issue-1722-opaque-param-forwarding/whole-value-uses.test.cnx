@@ -8,15 +8,15 @@
 // dereference of an incomplete type. Each is the handle itself.
 #include "dev.h"
 
-i32 viaInitializer(Dev d) {
-    Dev e <- d;
+i32 viaInitializer(mut Dev d) {
+    mut Dev e <- d;
     dev_poke(e);
     i32 n <- dev_pokes(d);
     return n;
 }
 
-i32 viaAssignment(Dev d) {
-    Dev e <- dev_create();
+i32 viaAssignment(mut Dev d) {
+    mut Dev e <- dev_create();
     e <- d;
     dev_poke(e);
     i32 n <- dev_pokes(d);
@@ -28,7 +28,7 @@ bool sameHandle(Dev a, Dev b) {
 }
 
 i32 main() {
-    Dev d <- dev_create();
+    mut Dev d <- dev_create();
     Dev other <- dev_create();
 
     i32 initialized <- viaInitializer(d);

@@ -29,9 +29,9 @@ void test_f32_array(void) {
     samples_f32[0] = 1.1;
     samples_f32[1] = 2.2;
     samples_f32[2] = 3.3;
-    float first = samples_f32[0U];
-    float second = samples_f32[1U];
-    float sum = samples_f32[0U] + samples_f32[1U];
+    const float first = samples_f32[0U];
+    const float second = samples_f32[1U];
+    const float sum = samples_f32[0U] + samples_f32[1U];
     samples_f32[3] = sum;
     for (uint32_t i = 0U; i < 10; i = cnx_clamp_add_u32(i, 1U)) {
         samples_f32[i] = (float)i * 1.5;
@@ -41,17 +41,17 @@ void test_f32_array(void) {
 void test_f64_array(void) {
     measurements_f64[0] = 10.5;
     measurements_f64[1] = 20.75;
-    double val = measurements_f64[0U];
+    const double val = measurements_f64[0U];
     if (measurements_f64[0U] < measurements_f64[1U]) {
         measurements_f64[2] = measurements_f64[1U];
     }
 }
 
 void test_array_init(void) {
-    float coords[3] = {0.0, 1.0, 2.0};
-    double precise[2] = {3.14159, 2.71828};
-    float x = coords[0U];
-    double pi = precise[0U];
+    const float coords[3] = {0.0, 1.0, 2.0};
+    const double precise[2] = {3.14159, 2.71828};
+    const float x = coords[0U];
+    const double pi = precise[0U];
 }
 
 int main(void) {

@@ -6,13 +6,13 @@
 #include "MockLib.hpp"
 
 // Test 1: Two-level namespace type (MockLib::Parse::ParseResult)
-MockLib.Parse.ParseResult parsed;
+mut MockLib.Parse.ParseResult parsed;
 
 // Test 2: Single-level namespace type (MockLib::Config)
-MockLib.Config config;
+mut MockLib.Config config;
 
 // Test 3: Triple-level namespace type (Deep::Level1::Level2::DeepType)
-Deep.Level1.Level2.DeepType deep;
+mut Deep.Level1.Level2.DeepType deep;
 
 scope Test {
     public void init() {

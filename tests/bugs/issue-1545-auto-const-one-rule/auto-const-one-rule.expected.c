@@ -42,7 +42,7 @@ uint8_t witness = 0U;
 
 // A. Callback-compatible, parameter never modified, typedef takes `char *`.
 //    MUST NOT get auto-const.
-void onLog(char* msg) {
+void onLog(const char* msg) {
     if (msg[0U] == 'h') {
         witness = 1U;
     }

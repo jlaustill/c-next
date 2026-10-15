@@ -6,7 +6,7 @@ u32 main() {
     // === OVERFLOW WRAPPING (wraps to 0) ===
 
     // Test 1: Basic overflow - add past max
-    wrap u8 val <- 255;
+    mut wrap u8 val <- 255;
     val +<- 1; // 255 + 1 = 256, should wrap to 0
     if (val != 0) {
         return 1;

@@ -17,30 +17,30 @@
 
 #include <stdint.h>
 
-uint8_t shared[5] = {0};
+const uint8_t shared[5] = {0};
 
 /* Scope: Store */
-static uint8_t Store__slots[3] = {0};
+static const uint8_t Store__slots[3] = {0};
 
 uint32_t Store__slotCount(void) {
     return 3;
 }
 
 uint32_t Store__scratchCount(void) {
-    uint8_t scratch[12] = {0};
+    const uint8_t scratch[12] = {0};
     return 12;
 }
 
 int main(void) {
-    uint8_t local[8] = {0};
+    const uint8_t local[8] = {0};
     if (5 != 5) {
         return 1U;
     }
     if (8 != 8) {
         return 2U;
     }
-    uint32_t slots = Store__slotCount();
-    uint32_t scratch = Store__scratchCount();
+    const uint32_t slots = Store__slotCount();
+    const uint32_t scratch = Store__scratchCount();
     if (slots != 3) {
         return 3U;
     }

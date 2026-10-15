@@ -2,9 +2,9 @@
 // Tests: multi-dimensional f32 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: sensor readings, graphics coordinates, physics simulations
-f32[4][8] matrix2d;
+mut f32[4][8] matrix2d;
 
-f32[2][3][4] cube3d;
+mut f32[2][3][4] cube3d;
 
 u32 main() {
     // 2D array: Write operations with f32-exact values (powers of 2 fractions)
@@ -78,8 +78,8 @@ u32 main() {
     }
 
     // Nested loop iteration - populate 2D array with decimal pattern
-    for (u32 i <- 0; i < 4; i +<- 1) {
-        for (u32 j <- 0; j < 8; j +<- 1) {
+    for (mut u32 i <- 0; i < 4; i +<- 1) {
+        for (mut u32 j <- 0; j < 8; j +<- 1) {
             matrix2d[i][j] <- (f32)i * 2.5 + (f32)j * 0.5;
         }
     }
@@ -99,10 +99,10 @@ u32 main() {
     }
 
     // Nested loop iteration - populate and sum 3D array
-    f32 sum <- 0.0;
-    for (u32 i <- 0; i < 2; i +<- 1) {
-        for (u32 j <- 0; j < 3; j +<- 1) {
-            for (u32 k <- 0; k < 4; k +<- 1) {
+    mut f32 sum <- 0.0;
+    for (mut u32 i <- 0; i < 2; i +<- 1) {
+        for (mut u32 j <- 0; j < 3; j +<- 1) {
+            for (mut u32 k <- 0; k < 4; k +<- 1) {
                 cube3d[i][j][k] <- (f32)i * 10.5 + (f32)j * 2.25 + (f32)k * 0.5;
                 sum +<- cube3d[i][j][k];
             }
@@ -127,11 +127,11 @@ u32 main() {
     }
 
     // Test f32 specific edge cases
-    f32[4][2] testArray;
+    mut f32[4][2] testArray;
 
     // Initialize all elements first
-    for (u32 ti <- 0; ti < 4; ti +<- 1) {
-        for (u32 tj <- 0; tj < 2; tj +<- 1) {
+    for (mut u32 ti <- 0; ti < 4; ti +<- 1) {
+        for (mut u32 tj <- 0; tj < 2; tj +<- 1) {
             testArray[ti][tj] <- 0.0;
         }
     }
@@ -162,11 +162,11 @@ u32 main() {
     }
 
     // Test 2D array with temperature pattern (Celsius)
-    f32[3][3] temps;
+    mut f32[3][3] temps;
 
     // Initialize all elements first
-    for (u32 tei <- 0; tei < 3; tei +<- 1) {
-        for (u32 tej <- 0; tej < 3; tej +<- 1) {
+    for (mut u32 tei <- 0; tei < 3; tei +<- 1) {
+        for (mut u32 tej <- 0; tej < 3; tej +<- 1) {
             temps[tei][tej] <- 0.0;
         }
     }
@@ -195,11 +195,11 @@ u32 main() {
     }
 
     // Test decimal precision
-    f32[2][2] precise;
+    mut f32[2][2] precise;
 
     // Initialize all elements first
-    for (u32 pi <- 0; pi < 2; pi +<- 1) {
-        for (u32 pj <- 0; pj < 2; pj +<- 1) {
+    for (mut u32 pi <- 0; pi < 2; pi +<- 1) {
+        for (mut u32 pj <- 0; pj < 2; pj +<- 1) {
             precise[pi][pj] <- 0.0;
         }
     }
@@ -222,11 +222,11 @@ u32 main() {
     }
 
     // Test floating point arithmetic
-    f32[2][2] calc;
+    mut f32[2][2] calc;
 
     // Initialize all elements first
-    for (u32 ci <- 0; ci < 2; ci +<- 1) {
-        for (u32 cj <- 0; cj < 2; cj +<- 1) {
+    for (mut u32 ci <- 0; ci < 2; ci +<- 1) {
+        for (mut u32 cj <- 0; cj < 2; cj +<- 1) {
             calc[ci][cj] <- 0.0;
         }
     }
@@ -238,11 +238,11 @@ u32 main() {
     }
 
     // Test with graphics coordinates (normalized 0.0-1.0)
-    f32[2][4] coords;
+    mut f32[2][4] coords;
 
     // Initialize all elements first
-    for (u32 coi <- 0; coi < 2; coi +<- 1) {
-        for (u32 coj <- 0; coj < 4; coj +<- 1) {
+    for (mut u32 coi <- 0; coi < 2; coi +<- 1) {
+        for (mut u32 coj <- 0; coj < 4; coj +<- 1) {
             coords[coi][coj] <- 0.0;
         }
     }

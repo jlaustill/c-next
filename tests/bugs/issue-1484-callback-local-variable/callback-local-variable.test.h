@@ -17,8 +17,8 @@ extern uint32_t total;
 extern uint32_t Motor__ticks;
 
 /* Function prototypes */
-void onTick(uint32_t ms);
-void Motor__onBeat(uint32_t n);
+void onTick(const uint32_t ms);
+void Motor__onBeat(const uint32_t n);
 void Motor__runLocal(void);
 
 #ifdef __cplusplus

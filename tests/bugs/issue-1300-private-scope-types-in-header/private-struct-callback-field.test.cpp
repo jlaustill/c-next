@@ -19,7 +19,7 @@
 //
 // Negative control: the public twin below it must still reach the header with
 // the same typedef, so this fails if the two files diverge in either direction.
-void onTick(uint32_t v) {
+void onTick(const uint32_t v) {
 }
 
 /* Scope: Sched */
@@ -30,12 +30,12 @@ typedef struct Sched__PrivHolder {
 } Sched__PrivHolder;
 
 uint32_t Sched__countPrivate(void) {
-    Sched__PrivHolder p = { .cb = onTick, .n = 2U };
+    const Sched__PrivHolder p = { .cb = onTick, .n = 2U };
     return p.n;
 }
 
 int main(void) {
-    uint32_t got = Sched__countPrivate();
+    const uint32_t got = Sched__countPrivate();
     if (got != 2) {
         return 1;
     }

@@ -16,8 +16,8 @@ extern "C" {
 extern int32_t result;
 
 /* Function prototypes */
-void testI8Boundaries(int8_t val);
-void testConsecutiveNegatives(int8_t val);
+void testI8Boundaries(const int8_t val);
+void testConsecutiveNegatives(const int8_t val);
 
 #ifdef __cplusplus
 }

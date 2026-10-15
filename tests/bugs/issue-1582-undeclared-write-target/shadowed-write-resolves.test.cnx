@@ -10,10 +10,10 @@
 // term with `return false` reddens nothing, read or written.
 #include <write-target-source.cnx>
 
-u32 shared <- 1;
+mut u32 shared <- 1;
 
 u32 main() {
-    u32 shared <- 2;
+    mut u32 shared <- 2;
     shared <- 3;
     global.shared <- 4;
     crossCounter <- 9;

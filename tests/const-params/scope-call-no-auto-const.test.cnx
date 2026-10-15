@@ -10,7 +10,7 @@ struct AppConfig {
 
 // Simulates a storage manager that modifies the config it receives
 scope Storage {
-    public void load(AppConfig config) {
+    public void load(mut AppConfig config) {
         // This modifies the config parameter
         config.value <- 42;
         config.enabled <- true;
@@ -24,7 +24,7 @@ scope Storage {
 
 // Function that passes its parameter to Storage.load()
 // Since Storage.load() modifies its param, this param should NOT get const
-void loadConfig(AppConfig config) {
+void loadConfig(mut AppConfig config) {
     global.Storage.load(config);
 }
 
@@ -35,12 +35,12 @@ void saveConfig(AppConfig config) {
 }
 
 // Direct call to scope method that modifies - should NOT get const
-void directLoad(AppConfig config) {
+void directLoad(mut AppConfig config) {
     Storage.load(config);
 }
 
 u32 main() {
-    AppConfig cfg;
+    mut AppConfig cfg;
     cfg.value <- 0;
     cfg.enabled <- false;
 

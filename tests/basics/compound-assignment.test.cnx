@@ -4,7 +4,7 @@
 
 u32 main() {
     // Addition assignment
-    u32 a <- 10;
+    mut u32 a <- 10;
     a +<- 5;
     if (a != 15) {
         return 1;
@@ -36,7 +36,7 @@ u32 main() {
     }
 
     // Bitwise AND assignment
-    u8 flags <- 0b11111111;
+    mut u8 flags <- 0b11111111;
     flags &<- 0b00001111;
     if (flags != 0b00001111) {
         return 6;
@@ -56,7 +56,7 @@ u32 main() {
     }
 
     // Left shift assignment
-    u8 val <- 0b00000001;
+    mut u8 val <- 0b00000001;
     val <<<- 4;
     if (val != 0b00010000) {
         return 9;

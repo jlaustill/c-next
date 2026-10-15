@@ -2,7 +2,7 @@
 // ADR-025: Nested switch statement tests
 // Tests: switch statements nested inside other switch statements
 // Coverage: Section 7 (Control Flow) - nested switch
-u32 result;
+mut u32 result;
 
 // Basic nested switch: outer and inner both u32
 void testNestedBasic(u32 outer, u32 inner) {

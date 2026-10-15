@@ -1,9 +1,9 @@
 // test-execution
 // ADR-013: Const u16 variable
 // Tests: const u16 declaration and read access
-const u16 MAX_PORT <- 65535;
+u16 MAX_PORT <- 65535;
 
-const u16 DEFAULT_PORT <- 8080;
+u16 DEFAULT_PORT <- 8080;
 
 u32 main() {
 
@@ -32,8 +32,8 @@ u32 main() {
 
     // Test 5: Use const as array index bound
     u16[3] values <- [100, 200, 300];
-    u16 sum <- 0;
-    for (u16 i <- 0; i < 3; i <- i + 1) {
+    mut u16 sum <- 0;
+    for (mut u16 i <- 0; i < 3; i <- i + 1) {
         sum <- sum + values[i];
     }
     if (sum != 600) {

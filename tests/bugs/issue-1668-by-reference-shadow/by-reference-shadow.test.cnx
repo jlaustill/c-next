@@ -4,10 +4,10 @@
 // name, without asking which declaration the name binds -- so a local that
 // shadows a global or a scope member passed the global or the member, and
 // the call wrote it. Each shadowed call is beside the same call unshadowed.
-u32 x <- 100;
+mut u32 x <- 100;
 u8[4] buf <- [1, 2, 3, 4];
 
-void bump(u32 v) {
+void bump(mut u32 v) {
     v <- v + 1;
 }
 
@@ -16,11 +16,11 @@ u8 first(u8[4] b) {
 }
 
 scope Sc {
-    u32 m <- 500;
+    mut u32 m <- 500;
     u8[4] mb <- [5, 6, 7, 8];
 
     public u32 shadowed() {
-        u32 m <- 5;
+        mut u32 m <- 5;
         global.bump(m);
         return m;
     }
@@ -41,7 +41,7 @@ scope Sc {
 }
 
 u32 local() {
-    u32 x <- 7;
+    mut u32 x <- 7;
     bump(x);
     return x;
 }

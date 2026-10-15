@@ -23,7 +23,7 @@ typedef enum {
 void doRead(void);
 void doWrite(void);
 void doOther(void);
-void handleCommand(ECommand cmd);
+void handleCommand(const ECommand cmd);
 
 #ifdef __cplusplus
 }

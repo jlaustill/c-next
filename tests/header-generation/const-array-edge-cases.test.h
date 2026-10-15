@@ -16,10 +16,10 @@ extern "C" {
 /* External variables */
 extern const uint8_t HEX_SIZE;
 extern const uint8_t BIN_SIZE;
-extern bool hex_arr[16];
-extern int16_t bin_arr[10];
+extern const bool hex_arr[16];
+extern const int16_t bin_arr[10];
 extern const uint8_t BUFFER_SIZE;
-extern uint8_t Device__buffer[8];
+extern const uint8_t Device__buffer[8];
 
 #ifdef __cplusplus
 }

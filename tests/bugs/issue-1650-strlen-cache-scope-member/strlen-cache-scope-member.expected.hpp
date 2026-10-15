@@ -13,8 +13,8 @@ extern "C" {
 #endif
 
 /* External variables */
-extern char title[9];
-extern char Cfg__label[9];
+extern const char title[9];
+extern const char Cfg__label[9];
 
 /* Function prototypes */
 uint32_t Cfg__check(void);

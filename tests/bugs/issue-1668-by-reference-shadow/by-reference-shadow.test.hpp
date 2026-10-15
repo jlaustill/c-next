@@ -14,11 +14,11 @@ extern "C" {
 
 /* External variables */
 extern uint32_t x;
-extern uint8_t buf[4];
+extern const uint8_t buf[4];
 
 /* Function prototypes */
 void bump(uint32_t& v);
-uint8_t first(uint8_t b[4]);
+uint8_t first(const uint8_t b[4]);
 uint32_t Sc__shadowed(void);
 uint32_t Sc__control(void);
 uint8_t Sc__shadowedArray(void);

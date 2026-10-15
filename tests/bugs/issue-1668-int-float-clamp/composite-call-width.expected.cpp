@@ -31,17 +31,17 @@ uint32_t Meter__reading(void) {
     return 100U;
 }
 
-uint32_t Meter__doubled(uint8_t small) {
+uint32_t Meter__doubled(const uint8_t small) {
     return cnx_clamp_add_u32(small, Meter__reading());
 }
 
 int main(void) {
-    uint8_t small = 200U;
-    uint32_t r = cnx_clamp_add_u32(small, Meter__reading());
+    const uint8_t small = 200U;
+    const uint32_t r = cnx_clamp_add_u32(small, Meter__reading());
     if (r != 300) {
         return 1U;
     }
-    uint32_t d = Meter__doubled(small);
+    const uint32_t d = Meter__doubled(small);
     if (d != 300) {
         return 2U;
     }

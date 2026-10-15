@@ -13,14 +13,14 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint8_t global_u8;
-extern uint16_t global_u16;
-extern uint32_t global_u32;
-extern uint64_t global_u64;
-extern int8_t global_i8;
-extern int16_t global_i16;
-extern int32_t global_i32;
-extern int64_t global_i64;
+extern const uint8_t global_u8;
+extern const uint16_t global_u16;
+extern const uint32_t global_u32;
+extern const uint64_t global_u64;
+extern const int8_t global_i8;
+extern const int16_t global_i16;
+extern const int32_t global_i32;
+extern const int64_t global_i64;
 
 #ifdef __cplusplus
 }

@@ -15,8 +15,8 @@ extern "C" {
 /* External variables */
 extern const uint32_t N;
 extern const uint32_t M;
-extern uint8_t two[2];
-extern uint8_t three[3];
+extern const uint8_t two[2];
+extern const uint8_t three[3];
 
 #ifdef __cplusplus
 }

@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint8_t _msg_len;
+extern const uint8_t _msg_len;
 
 /* Function prototypes */
 uint8_t count(void);

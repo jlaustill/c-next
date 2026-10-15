@@ -5,7 +5,7 @@
 // confusing near-miss: without it, `Cnx_state` would be legal, would read as
 // transpiler output to every reviewer, and would be neither.
 
-const u8 CNX_LIMIT <- 4;
+u8 CNX_LIMIT <- 4;
 
 u32 main() {
     return 0;

@@ -20,10 +20,10 @@ typedef enum {
 } Status;
 
 /* Function prototypes */
-float Api__addFloats(float a, float b);
-bool Api__isOk(Status status);
+float Api__addFloats(const float a, const float b);
+bool Api__isOk(const Status status);
 void Api__updateValue(uint32_t* value);
-uint32_t Api__readValue(uint32_t value);
+uint32_t Api__readValue(const uint32_t value);
 
 #ifdef __cplusplus
 }

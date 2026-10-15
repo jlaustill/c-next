@@ -21,8 +21,8 @@ typedef enum {
 } Status;
 
 /* Function prototypes */
-uint32_t getStatusCode(Status s);
-uint32_t getStatusPriority(Status s);
+uint32_t getStatusCode(const Status s);
+uint32_t getStatusPriority(const Status s);
 
 #ifdef __cplusplus
 }

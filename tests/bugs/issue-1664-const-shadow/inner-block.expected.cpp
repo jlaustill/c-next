@@ -35,13 +35,13 @@ uint32_t probe(void) {
     }
     uint8_t buf[8] = {};
     buf[7] = 7U;
-    uint32_t n = 8;
-    uint32_t last = buf[7U];
+    const uint32_t n = 8;
+    const uint32_t last = buf[7U];
     return cnx_clamp_add_u32(cnx_clamp_add_u32(n, last), x);
 }
 
 int main(void) {
-    uint32_t n = probe();
+    const uint32_t n = probe();
     if (n != 17) {
         return 1U;
     }

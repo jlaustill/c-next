@@ -5,7 +5,7 @@
 // that shadows a file-scope name is written in the typedef under the C name
 // its prototype and definition use (`handler__buf`), not the global's.
 u32[2] buf <- [70, 80];
-u32 seen <- 0;
+mut u32 seen <- 0;
 
 void handler(u32 total, u32[2] buf) {
     seen <- total + buf[1];

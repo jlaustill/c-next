@@ -34,9 +34,9 @@ typedef struct Point {
 
 /* External variables */
 extern Point pt;
-extern Flags flags;
-extern char label[17];
-extern uint32_t count;
+extern const Flags flags;
+extern const char label[17];
+extern const uint32_t count;
 
 /* Function prototypes */
 int32_t sumPoint(const Point& p);

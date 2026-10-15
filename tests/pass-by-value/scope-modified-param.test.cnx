@@ -5,23 +5,23 @@
 // - Unmodified scalars: passed by value (optimization over const pointer)
 
 scope TestScope {
-    public void increment(u32 x) {
+    public void increment(mut u32 x) {
         x <- x + 1; // x is modified, should NOT have const
     }
 
-    public u32 accumulate(u32 sum, u32 value) {
+    public u32 accumulate(mut u32 sum, u32 value) {
         sum <- sum + value; // sum is modified
         return sum;
     }
 
     // Test with multiple modifications
-    public void doubleIncrement(u32 x) {
+    public void doubleIncrement(mut u32 x) {
         x <- x + 1;
         x <- x + 1;
     }
 
     // Test modification in switch
-    public void switchIncrement(u32 x, u32 mode) {
+    public void switchIncrement(mut u32 x, u32 mode) {
         switch (mode) {
             case 1 {
                 x <- x + 10;
@@ -41,7 +41,7 @@ scope TestScope {
     }
 
     // Mixed: first param modified, second param read-only
-    public u32 mixedParams(u32 counter, u32 multiplier) {
+    public u32 mixedParams(mut u32 counter, u32 multiplier) {
         counter <- counter + 1; // modified, no const
         return counter * multiplier; // multiplier only read
     }
@@ -49,14 +49,14 @@ scope TestScope {
 
 u32 main() {
     // Test basic increment in scope
-    u32 counter <- 10;
+    mut u32 counter <- 10;
     TestScope.increment(counter);
     if (counter != 11) {
         return 1;
     }
 
     // Test accumulate - sum is modified, value is not
-    u32 total <- 100;
+    mut u32 total <- 100;
     u32 result <- TestScope.accumulate(total, 50);
     if (total != 150) {
         return 2;
@@ -66,14 +66,14 @@ u32 main() {
     }
 
     // Test double increment
-    u32 doubled <- 5;
+    mut u32 doubled <- 5;
     TestScope.doubleIncrement(doubled);
     if (doubled != 7) {
         return 4;
     }
 
     // Test modification in switch (mode 1)
-    u32 switchVal <- 100;
+    mut u32 switchVal <- 100;
     TestScope.switchIncrement(switchVal, 1);
     if (switchVal != 110) {
         return 5;
@@ -104,7 +104,7 @@ u32 main() {
     }
 
     // Mixed params: counter modified, multiplier const
-    u32 mixedCounter <- 10;
+    mut u32 mixedCounter <- 10;
     u32 mixedMult <- 3;
     u32 mixedResult <- TestScope.mixedParams(mixedCounter, mixedMult);
     if (mixedCounter != 11) {

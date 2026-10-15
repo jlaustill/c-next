@@ -6,12 +6,12 @@
 
 i32 main() {
     // THE ASSERTIONS
-    u32 a <- 1;
+    mut u32 a <- 1;
     bump(a);
     if (a != 2) {
         return 1;
     }
-    Tally t <- { total: 0 };
+    mut Tally t <- { total: 0 };
     add_to(t, 5);
     if (t.total != 5) {
         return 2;

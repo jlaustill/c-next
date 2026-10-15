@@ -8,16 +8,16 @@
 scope StringSliceTest {
     // Private helper that performs slice assignment on string parameter
     // Using compile-time constant offset and length
-    void copyToBuffer(string<64> buffer, u16 value) {
+    void copyToBuffer(mut string<64> buffer, u16 value) {
         buffer[0, 2] <- value;
     }
 
-    void copyToBufferAt2(string<64> buffer, u16 value) {
+    void copyToBufferAt2(mut string<64> buffer, u16 value) {
         buffer[2, 2] <- value;
     }
 
     public u32 testSliceAssignment() {
-        string<64> buffer <- "";
+        mut string<64> buffer <- "";
 
         // Copy 0x1234 into buffer at offset 0
         this.copyToBuffer(buffer, 0x1234);

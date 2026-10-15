@@ -3,11 +3,11 @@
 // Demonstrates: const primitives, const in expressions
 
 // Module-level constants
-const u32 MAX_VALUE <- 100;
-const u8 VERSION_MAJOR <- 1;
-const u8 VERSION_MINOR <- 2;
-const f32 PI <- 3.14159;
-const bool ENABLED <- true;
+u32 MAX_VALUE <- 100;
+u8 VERSION_MAJOR <- 1;
+u8 VERSION_MINOR <- 2;
+f32 PI <- 3.14159;
+bool ENABLED <- true;
 
 u32 main() {
     // Use module-level constants
@@ -25,7 +25,7 @@ u32 main() {
     }
 
     // Local constants
-    const u32 LOCAL_LIMIT <- 50;
+    u32 LOCAL_LIMIT <- 50;
     if (LOCAL_LIMIT != 50) {
         return 5;
     }
@@ -38,15 +38,15 @@ u32 main() {
 
     // Constant used in array operations
     u32[3] data <- [1, 2, 3];
-    const u32 EXPECTED_LENGTH <- 3;
+    u32 EXPECTED_LENGTH <- 3;
     if (data.type_element_count != EXPECTED_LENGTH) {
         return 7;
     }
 
     // Constant in loop bound
-    u32 sum <- 0;
-    const u32 ITERATIONS <- 5;
-    for (u32 i <- 0; i < ITERATIONS; i <- i + 1) {
+    mut u32 sum <- 0;
+    u32 ITERATIONS <- 5;
+    for (mut u32 i <- 0; i < ITERATIONS; i <- i + 1) {
         sum <- sum + 1;
     }
     if (sum != 5) {

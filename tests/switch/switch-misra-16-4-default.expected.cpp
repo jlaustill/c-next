@@ -13,7 +13,7 @@
 // Verifies: Switches without explicit default get an auto-generated one
 // Exhaustive enum switch - no explicit default in source
 // MISRA 16.4 requires a default case anyway
-uint32_t getStatusCode(Status s) {
+uint32_t getStatusCode(const Status s) {
     uint32_t code = 0U;
     switch (s) {
         case Status__OK: {
@@ -37,7 +37,7 @@ uint32_t getStatusCode(Status s) {
 
 // Integer switch without default
 // MISRA 16.4 requires a default case
-uint32_t mapValue(uint32_t val) {
+uint32_t mapValue(const uint32_t val) {
     uint32_t result = 99U;
     switch (val) {
         case 1: {
@@ -60,7 +60,7 @@ uint32_t mapValue(uint32_t val) {
 }
 
 // Switch WITH explicit default - should work as before
-uint32_t withDefault(uint32_t val) {
+uint32_t withDefault(const uint32_t val) {
     uint32_t result = 0U;
     switch (val) {
         case 1: {

@@ -16,14 +16,14 @@ extern "C" {
 extern uint32_t result;
 
 /* Function prototypes */
-void testSwitchU8(uint8_t val);
-void testSwitchU16(uint16_t val);
-void testSwitchU32(uint32_t val);
-void testSwitchU64(uint64_t val);
-void testSwitchI8(int8_t val);
-void testSwitchI16(int16_t val);
-void testSwitchI32(int32_t val);
-void testSwitchI64(int64_t val);
+void testSwitchU8(const uint8_t val);
+void testSwitchU16(const uint16_t val);
+void testSwitchU32(const uint32_t val);
+void testSwitchU64(const uint64_t val);
+void testSwitchI8(const int8_t val);
+void testSwitchI16(const int16_t val);
+void testSwitchI32(const int32_t val);
+void testSwitchI64(const int64_t val);
 
 #ifdef __cplusplus
 }

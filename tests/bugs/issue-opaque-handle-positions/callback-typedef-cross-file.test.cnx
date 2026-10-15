@@ -18,18 +18,18 @@ struct RemoteHandlers {
 }
 
 i32 main() {
-    RemoteHandlers h;
+    mut RemoteHandlers h;
     h.onDev <- remotePoke;
     h.onBoth <- remotePokeBoth;
 
-    Dev d <- dev_create();
+    mut Dev d <- dev_create();
     h.onDev(d);
     i32 viaHandle <- dev_pokes(d);
     if (viaHandle != 1) {
         return 1;
     }
 
-    Dev[2] pair;
+    mut Dev[2] pair;
     pair[0] <- dev_create();
     pair[1] <- dev_create();
     h.onBoth(pair);

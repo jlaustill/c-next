@@ -5,7 +5,7 @@
 // per element. Materializing the source into a single temp fixes that: all
 // bytes come from one call, and the counter advances by exactly one.
 
-u8 sliceSourceCallCount <- 0;
+mut u8 sliceSourceCallCount <- 0;
 
 u32 nextSliceValue() {
     sliceSourceCallCount <- sliceSourceCallCount + 1;
@@ -13,7 +13,7 @@ u32 nextSliceValue() {
 }
 
 u32 main() {
-    u8[8] buffer;
+    mut u8[8] buffer;
     buffer[0, 4] <- nextSliceValue();
 
     // All four little-endian bytes must come from a single evaluation.

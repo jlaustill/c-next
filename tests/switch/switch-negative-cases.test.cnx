@@ -1,7 +1,7 @@
 // test-execution
 // Issue #107: Negative Literals in Switch Case Labels
 // Tests: switch statement with negative integer literals
-i32 result;
+mut i32 result;
 
 void handleValue(i8 val) {
     switch (val) {

@@ -8,6 +8,6 @@
 #include <string.h>
 
 // ADR-045: Test basic string declaration with initializer
-char message[65] = "Hello, World!";
+extern const char message[65] = "Hello, World!";
 
-char name[6] = "Hello";
+extern const char name[6] = "Hello";

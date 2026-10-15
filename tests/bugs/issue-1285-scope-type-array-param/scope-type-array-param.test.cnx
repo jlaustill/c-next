@@ -28,7 +28,7 @@ scope S {
         return points[0].x + points[1].y;
     }
 
-    u32 writeThroughArrayParam(Point[2] points) {
+    u32 writeThroughArrayParam(mut Point[2] points) {
         points[0].x <- 40;
         points[1].y <- 2;
         return points[0].x + points[1].y;
@@ -42,8 +42,8 @@ scope S {
     }
 
     u32 countBeta(Mode[3] modes) {
-        u32 total <- 0;
-        for (u32 i <- 0; i < 3; i <- i + 1) {
+        mut u32 total <- 0;
+        for (mut u32 i <- 0; i < 3; i <- i + 1) {
             if (modes[i] = Mode.BETA) {
                 total <- total + 1;
             }
@@ -55,7 +55,7 @@ scope S {
     // is itself why the array-parameter form has to qualify -- an unqualified
     // `Point` would name nothing at file scope.
     u32 runAll() {
-        Point[2] pair <- [{ x: 10, y: 20 }, { x: 30, y: 40 }];
+        mut Point[2] pair <- [{ x: 10, y: 20 }, { x: 30, y: 40 }];
         u32 sum <- sumThroughArrayParam(pair);
         if (sum != 50) {
             return 1;

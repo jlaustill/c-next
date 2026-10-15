@@ -14,7 +14,7 @@
 uint32_t result = 0;
 
 // === UNSIGNED TYPE HELPERS ===
-void testSwitchU8(uint8_t val) {
+void testSwitchU8(const uint8_t val) {
     switch (val) {
         case 0: {
             result = 100U;
@@ -35,7 +35,7 @@ void testSwitchU8(uint8_t val) {
     }
 }
 
-void testSwitchU16(uint16_t val) {
+void testSwitchU16(const uint16_t val) {
     switch (val) {
         case 0: {
             result = 200U;
@@ -56,7 +56,7 @@ void testSwitchU16(uint16_t val) {
     }
 }
 
-void testSwitchU32(uint32_t val) {
+void testSwitchU32(const uint32_t val) {
     switch (val) {
         case 0: {
             result = 300U;
@@ -73,7 +73,7 @@ void testSwitchU32(uint32_t val) {
     }
 }
 
-void testSwitchU64(uint64_t val) {
+void testSwitchU64(const uint64_t val) {
     switch (val) {
         case 0: {
             result = 400U;
@@ -93,7 +93,7 @@ void testSwitchU64(uint64_t val) {
 // === SIGNED TYPE HELPERS ===
 // Note: Case labels must use positive literals (grammar limitation).
 // Signed types are still tested - negative values fall to default.
-void testSwitchI8(int8_t val) {
+void testSwitchI8(const int8_t val) {
     switch (val) {
         case 0: {
             result = 500U;
@@ -114,7 +114,7 @@ void testSwitchI8(int8_t val) {
     }
 }
 
-void testSwitchI16(int16_t val) {
+void testSwitchI16(const int16_t val) {
     switch (val) {
         case 0: {
             result = 600U;
@@ -135,7 +135,7 @@ void testSwitchI16(int16_t val) {
     }
 }
 
-void testSwitchI32(int32_t val) {
+void testSwitchI32(const int32_t val) {
     switch (val) {
         case 0: {
             result = 700U;
@@ -156,7 +156,7 @@ void testSwitchI32(int32_t val) {
     }
 }
 
-void testSwitchI64(int64_t val) {
+void testSwitchI64(const int64_t val) {
     switch (val) {
         case 0: {
             result = 800U;
@@ -178,10 +178,10 @@ void testSwitchI64(int64_t val) {
 }
 
 int main(void) {
-    uint8_t u8_zero = 0U;
-    uint8_t u8_ten = 10U;
-    uint8_t u8_max = 255U;
-    uint8_t u8_other = 50U;
+    const uint8_t u8_zero = 0U;
+    const uint8_t u8_ten = 10U;
+    const uint8_t u8_max = 255U;
+    const uint8_t u8_other = 50U;
     testSwitchU8(u8_zero);
     if (result != 100) {
         return 1U;
@@ -198,10 +198,10 @@ int main(void) {
     if (result != 999) {
         return 4U;
     }
-    uint16_t u16_zero = 0U;
-    uint16_t u16_mid = 1000U;
-    uint16_t u16_max = 65535U;
-    uint16_t u16_other = 5000U;
+    const uint16_t u16_zero = 0U;
+    const uint16_t u16_mid = 1000U;
+    const uint16_t u16_max = 65535U;
+    const uint16_t u16_other = 5000U;
     testSwitchU16(u16_zero);
     if (result != 200) {
         return 5U;
@@ -218,9 +218,9 @@ int main(void) {
     if (result != 999) {
         return 8U;
     }
-    uint32_t u32_zero = 0U;
-    uint32_t u32_mid = 1000000U;
-    uint32_t u32_other = 12345U;
+    const uint32_t u32_zero = 0U;
+    const uint32_t u32_mid = 1000000U;
+    const uint32_t u32_other = 12345U;
     testSwitchU32(u32_zero);
     if (result != 300) {
         return 9U;
@@ -233,9 +233,9 @@ int main(void) {
     if (result != 999) {
         return 11U;
     }
-    uint64_t u64_zero = 0ULL;
-    uint64_t u64_large = 1000000000000ULL;
-    uint64_t u64_other = 9999ULL;
+    const uint64_t u64_zero = 0ULL;
+    const uint64_t u64_large = 1000000000000ULL;
+    const uint64_t u64_other = 9999ULL;
     testSwitchU64(u64_zero);
     if (result != 400) {
         return 12U;
@@ -248,10 +248,10 @@ int main(void) {
     if (result != 999) {
         return 14U;
     }
-    int8_t i8_zero = 0;
-    int8_t i8_mid = 50;
-    int8_t i8_max = 127;
-    int8_t i8_neg = -50;
+    const int8_t i8_zero = 0;
+    const int8_t i8_mid = 50;
+    const int8_t i8_max = 127;
+    const int8_t i8_neg = -50;
     testSwitchI8(i8_zero);
     if (result != 500) {
         return 15U;
@@ -268,10 +268,10 @@ int main(void) {
     if (result != 999) {
         return 18U;
     }
-    int16_t i16_zero = 0;
-    int16_t i16_mid = 5000;
-    int16_t i16_max = 32767;
-    int16_t i16_neg = -5000;
+    const int16_t i16_zero = 0;
+    const int16_t i16_mid = 5000;
+    const int16_t i16_max = 32767;
+    const int16_t i16_neg = -5000;
     testSwitchI16(i16_zero);
     if (result != 600) {
         return 19U;
@@ -288,10 +288,10 @@ int main(void) {
     if (result != 999) {
         return 22U;
     }
-    int32_t i32_zero = 0;
-    int32_t i32_mid = 1000000;
-    int32_t i32_high = 2000000;
-    int32_t i32_neg = -1000000;
+    const int32_t i32_zero = 0;
+    const int32_t i32_mid = 1000000;
+    const int32_t i32_high = 2000000;
+    const int32_t i32_neg = -1000000;
     testSwitchI32(i32_zero);
     if (result != 700) {
         return 23U;
@@ -308,10 +308,10 @@ int main(void) {
     if (result != 999) {
         return 26U;
     }
-    int64_t i64_zero = 0;
-    int64_t i64_mid = 5000000000;
-    int64_t i64_high = 9000000000;
-    int64_t i64_neg = -5000000000;
+    const int64_t i64_zero = 0;
+    const int64_t i64_mid = 5000000000;
+    const int64_t i64_high = 9000000000;
+    const int64_t i64_neg = -5000000000;
     testSwitchI64(i64_zero);
     if (result != 800) {
         return 27U;

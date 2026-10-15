@@ -6,4 +6,4 @@
 
 #include "dim-lib.cnx"
 
-const u32 MID_UNUSED <- 0;
+u32 MID_UNUSED <- 0;

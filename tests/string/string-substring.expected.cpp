@@ -9,8 +9,8 @@
 
 // ADR-045: Test substring extraction
 void test(void) {
-    char source[65] = "Hello, World!";
-    char greeting[6] = "";
+    const char source[65] = "Hello, World!";
+    const char greeting[6] = "";
     (void) strncpy(greeting, source + 0, 5);
     greeting[5] = '\0';
 }

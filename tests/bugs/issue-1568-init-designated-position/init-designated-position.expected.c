@@ -32,7 +32,7 @@
 
 #include <stdint.h>
 
-uint32_t onSample(uint32_t input) {
+uint32_t onSample(const uint32_t input) {
     return input;
 }
 

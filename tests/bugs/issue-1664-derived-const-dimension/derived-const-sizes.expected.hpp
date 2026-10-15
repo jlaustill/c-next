@@ -20,12 +20,12 @@ typedef struct Packet {
 /* External variables */
 extern const uint32_t A;
 extern const uint32_t B;
-extern uint8_t table[4];
-extern Packet packet;
+extern const uint8_t table[4];
+extern const Packet packet;
 extern const uint32_t Buffer__C;
-extern uint8_t Buffer__bytes[4];
+extern const uint8_t Buffer__bytes[4];
 extern const uint32_t L;
-extern uint8_t literal[3];
+extern const uint8_t literal[3];
 
 #ifdef __cplusplus
 }

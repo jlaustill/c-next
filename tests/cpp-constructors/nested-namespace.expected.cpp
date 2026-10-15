@@ -12,7 +12,7 @@
 #include <stdint.h>
 
 int main(void) {
-    Outer::Inner::Widget w = {};
+    const Outer::Inner::Widget w = {};
     w.x = 10;
     w.y = 20;
     if (w.x != 10) {
@@ -21,7 +21,7 @@ int main(void) {
     if (w.y != 20) {
         return 2;
     }
-    Outer::Inner::Widget w2 = {};
+    const Outer::Inner::Widget w2 = {};
     w2.x = 100;
     w2.y = 200;
     if (w2.x != 100) {

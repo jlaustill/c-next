@@ -15,13 +15,6 @@
 // Verifies that this. works correctly with every C-Next primitive type inside scope methods
 /* Scope: AllTypesTest */
 static uint8_t AllTypesTest__valU8 = 255U;
-static uint16_t AllTypesTest__valU16 = 65535U;
-static uint32_t AllTypesTest__valU32 = 4294967295U;
-static uint64_t AllTypesTest__valU64 = 18446744073709551615ULL;
-static int8_t AllTypesTest__valI8 = -128;
-static int16_t AllTypesTest__valI16 = -32768;
-static int32_t AllTypesTest__valI32 = (int32_t)INT32_MIN;
-static int64_t AllTypesTest__valI64 = (int64_t)INT64_MIN;
 static float AllTypesTest__valF32 = 3.14;
 static double AllTypesTest__valF64 = 3.141592653589793;
 static bool AllTypesTest__valBool = true;
@@ -31,31 +24,31 @@ uint8_t AllTypesTest__getU8(void) {
 }
 
 uint16_t AllTypesTest__getU16(void) {
-    return AllTypesTest__valU16;
+    return 65535U;
 }
 
 uint32_t AllTypesTest__getU32(void) {
-    return AllTypesTest__valU32;
+    return 4294967295U;
 }
 
 uint64_t AllTypesTest__getU64(void) {
-    return AllTypesTest__valU64;
+    return 18446744073709551615ULL;
 }
 
 int8_t AllTypesTest__getI8(void) {
-    return AllTypesTest__valI8;
+    return (-128);
 }
 
 int16_t AllTypesTest__getI16(void) {
-    return AllTypesTest__valI16;
+    return (-32768);
 }
 
 int32_t AllTypesTest__getI32(void) {
-    return AllTypesTest__valI32;
+    return (-2147483648);
 }
 
 int64_t AllTypesTest__getI64(void) {
-    return AllTypesTest__valI64;
+    return (-9223372036854775807LL - 1);
 }
 
 float AllTypesTest__getF32(void) {
@@ -70,19 +63,19 @@ bool AllTypesTest__getBool(void) {
     return AllTypesTest__valBool;
 }
 
-void AllTypesTest__setU8(uint8_t val) {
+void AllTypesTest__setU8(const uint8_t val) {
     AllTypesTest__valU8 = val;
 }
 
-void AllTypesTest__setBool(bool val) {
+void AllTypesTest__setBool(const bool val) {
     AllTypesTest__valBool = val;
 }
 
-void AllTypesTest__setF32(float val) {
+void AllTypesTest__setF32(const float val) {
     AllTypesTest__valF32 = val;
 }
 
-void AllTypesTest__setF64(double val) {
+void AllTypesTest__setF64(const double val) {
     AllTypesTest__valF64 = val;
 }
 
@@ -91,43 +84,43 @@ int main(void) {
     if (resultU8 != 255) {
         return 1;
     }
-    uint16_t resultU16 = AllTypesTest__getU16();
+    const uint16_t resultU16 = AllTypesTest__getU16();
     if (resultU16 != 65535) {
         return 2;
     }
-    uint32_t resultU32 = AllTypesTest__getU32();
+    const uint32_t resultU32 = AllTypesTest__getU32();
     if (resultU32 != 4294967295) {
         return 3;
     }
-    uint64_t resultU64 = AllTypesTest__getU64();
+    const uint64_t resultU64 = AllTypesTest__getU64();
     if (resultU64 != 18446744073709551615) {
         return 4;
     }
-    int8_t resultI8 = AllTypesTest__getI8();
+    const int8_t resultI8 = AllTypesTest__getI8();
     if (resultI8 != -128) {
         return 5;
     }
-    int16_t resultI16 = AllTypesTest__getI16();
+    const int16_t resultI16 = AllTypesTest__getI16();
     if (resultI16 != -32768) {
         return 6;
     }
-    int32_t resultI32 = AllTypesTest__getI32();
+    const int32_t resultI32 = AllTypesTest__getI32();
     if (resultI32 != (int32_t)INT32_MIN) {
         return 7;
     }
-    int64_t resultI64 = AllTypesTest__getI64();
+    const int64_t resultI64 = AllTypesTest__getI64();
     if (resultI64 != (int64_t)INT64_MIN) {
         return 8;
     }
-    float testF32 = 99.5;
+    const float testF32 = 99.5;
     AllTypesTest__setF32(testF32);
-    float resultF32 = AllTypesTest__getF32();
+    const float resultF32 = AllTypesTest__getF32();
     if (resultF32 != testF32) {
         return 9;
     }
-    double testF64 = 123.456789012345;
+    const double testF64 = 123.456789012345;
     AllTypesTest__setF64(testF64);
-    double resultF64 = AllTypesTest__getF64();
+    const double resultF64 = AllTypesTest__getF64();
     if (resultF64 != testF64) {
         return 10;
     }
@@ -135,13 +128,13 @@ int main(void) {
     if (resultBool != true) {
         return 11;
     }
-    uint8_t newU8Value = 100U;
+    const uint8_t newU8Value = 100U;
     AllTypesTest__setU8(newU8Value);
     resultU8 = AllTypesTest__getU8();
     if (resultU8 != 100) {
         return 12;
     }
-    bool newBoolValue = false;
+    const bool newBoolValue = false;
     AllTypesTest__setBool(newBoolValue);
     resultBool = AllTypesTest__getBool();
     if (resultBool != false) {

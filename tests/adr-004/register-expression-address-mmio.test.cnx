@@ -5,7 +5,7 @@
 // (#1991 review). Transpile only: on a 64-bit host the uint32_t sum is cast
 // to a pointer of another size, in the macro and the access alike, as on main.
 
-const u32 GPIO_BASE <- 0x40000000;
+u32 GPIO_BASE <- 0x40000000;
 
 register GPIO @ GPIO_BASE + 0x100 {
     SET: u32 wo @ 0x04,

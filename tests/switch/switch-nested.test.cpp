@@ -14,7 +14,7 @@
 uint32_t result = 0;
 
 // Basic nested switch: outer and inner both u32
-void testNestedBasic(uint32_t outer, uint32_t inner) {
+void testNestedBasic(const uint32_t outer, const uint32_t inner) {
     switch (outer) {
         case 0: {
             switch (inner) {
@@ -71,7 +71,7 @@ void testNestedBasic(uint32_t outer, uint32_t inner) {
 }
 
 // Nested with different types: outer u8, inner u16
-void testNestedMixedTypes(uint8_t outer, uint16_t inner) {
+void testNestedMixedTypes(const uint8_t outer, const uint16_t inner) {
     switch (outer) {
         case 0: {
             switch (inner) {
@@ -111,7 +111,7 @@ void testNestedMixedTypes(uint8_t outer, uint16_t inner) {
 }
 
 // Triple nested: all u8 for manageable test cases
-void testTripleNested(uint8_t a, uint8_t b, uint8_t c) {
+void testTripleNested(const uint8_t a, const uint8_t b, const uint8_t c) {
     switch (a) {
         case 0: {
             switch (b) {
@@ -173,7 +173,7 @@ void testTripleNested(uint8_t a, uint8_t b, uint8_t c) {
 }
 
 // Nested with signed types (positive case labels only)
-void testNestedSigned(int8_t outer, int8_t inner) {
+void testNestedSigned(const int8_t outer, const int8_t inner) {
     switch (outer) {
         case 0: {
             switch (inner) {
@@ -246,12 +246,12 @@ void testNestedSigned(int8_t outer, int8_t inner) {
 }
 
 int main(void) {
-    uint32_t o0 = 0U;
-    uint32_t o1 = 1U;
-    uint32_t o99 = 99U;
-    uint32_t i0 = 0U;
-    uint32_t i1 = 1U;
-    uint32_t i99 = 99U;
+    const uint32_t o0 = 0U;
+    const uint32_t o1 = 1U;
+    const uint32_t o99 = 99U;
+    const uint32_t i0 = 0U;
+    const uint32_t i1 = 1U;
+    const uint32_t i99 = 99U;
     testNestedBasic(o0, i0);
     if (result != 100) {
         return 1U;
@@ -288,13 +288,13 @@ int main(void) {
     if (result != 999) {
         return 9U;
     }
-    uint8_t m0 = 0U;
-    uint8_t m255 = 255U;
-    uint8_t mOther = 100U;
-    uint16_t n0 = 0U;
-    uint16_t n1000 = 1000U;
-    uint16_t nMax = 65535U;
-    uint16_t nOther = 5000U;
+    const uint8_t m0 = 0U;
+    const uint8_t m255 = 255U;
+    const uint8_t mOther = 100U;
+    const uint16_t n0 = 0U;
+    const uint16_t n1000 = 1000U;
+    const uint16_t nMax = 65535U;
+    const uint16_t nOther = 5000U;
     testNestedMixedTypes(m0, n0);
     if (result != 1000) {
         return 10U;
@@ -319,9 +319,9 @@ int main(void) {
     if (result != 9999) {
         return 15U;
     }
-    uint8_t t0 = 0U;
-    uint8_t t1 = 1U;
-    uint8_t t99 = 99U;
+    const uint8_t t0 = 0U;
+    const uint8_t t1 = 1U;
+    const uint8_t t99 = 99U;
     testTripleNested(t0, t0, t0);
     if (result != 111) {
         return 16U;
@@ -358,10 +358,10 @@ int main(void) {
     if (result != 900) {
         return 24U;
     }
-    int8_t sZero = 0;
-    int8_t sOne = 1;
-    int8_t sFifty = 50;
-    int8_t sNeg = -50;
+    const int8_t sZero = 0;
+    const int8_t sOne = 1;
+    const int8_t sFifty = 50;
+    const int8_t sNeg = -50;
     testNestedSigned(sZero, sZero);
     if (result != 11) {
         return 25U;

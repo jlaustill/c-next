@@ -25,10 +25,10 @@ typedef struct S__Point {
 } S__Point;
 
 /* Function prototypes */
-uint32_t S__sumThroughArrayParam(S__Point points[2]);
+uint32_t S__sumThroughArrayParam(const S__Point points[2]);
 uint32_t S__writeThroughArrayParam(S__Point points[2]);
 uint32_t S__sumThroughScalarParam(const S__Point& point);
-uint32_t S__countBeta(S__Mode modes[3]);
+uint32_t S__countBeta(const S__Mode modes[3]);
 uint32_t S__runAll(void);
 
 #ifdef __cplusplus

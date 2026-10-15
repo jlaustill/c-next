@@ -18,7 +18,7 @@ typedef struct Wrapper {
 } Wrapper;
 
 /* External variables */
-extern Wrapper w;
+extern const Wrapper w;
 
 #ifdef __cplusplus
 }

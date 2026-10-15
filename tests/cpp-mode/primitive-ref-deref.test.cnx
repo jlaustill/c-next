@@ -8,14 +8,14 @@ scope Test {
         return x + 1;
     }
 
-    public u32 process(u32 val) {
+    public u32 process(mut u32 val) {
         val <- this.helper(val);
         return val;
     }
 }
 
 u32 main() {
-    u32 input <- 5;
+    mut u32 input <- 5;
     u32 result <- global.Test.process(input);
     // process calls helper(5) which returns 6, then assigns to val
     if (result != 6) {

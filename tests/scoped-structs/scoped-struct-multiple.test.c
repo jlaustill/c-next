@@ -14,17 +14,17 @@ DataManager__Point DataManager__cursor = {0};
 DataManager__Size DataManager__screenSize = {0};
 DataManager__Rect DataManager__viewport = {0};
 
-void DataManager__setCursor(int16_t x, int16_t y) {
+void DataManager__setCursor(const int16_t x, const int16_t y) {
     DataManager__cursor.x = x;
     DataManager__cursor.y = y;
 }
 
-void DataManager__setScreen(uint16_t w, uint16_t h) {
+void DataManager__setScreen(const uint16_t w, const uint16_t h) {
     DataManager__screenSize.width = w;
     DataManager__screenSize.height = h;
 }
 
-void DataManager__setViewport(int16_t x, int16_t y, uint16_t w, uint16_t h) {
+void DataManager__setViewport(const int16_t x, const int16_t y, const uint16_t w, const uint16_t h) {
     DataManager__viewport.origin.x = x;
     DataManager__viewport.origin.y = y;
     DataManager__viewport.dimensions.width = w;
@@ -63,7 +63,7 @@ int main(void) {
     if (DataManager__viewport.dimensions.height != 150) {
         return 8U;
     }
-    uint32_t area = DataManager__getViewportArea();
+    const uint32_t area = DataManager__getViewportArea();
     if (area != 30000) {
         return 9U;
     }

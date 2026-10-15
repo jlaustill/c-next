@@ -10,7 +10,7 @@
 // test-execution
 // Tests: Unqualified enum values work correctly when type context is enum
 // Valid: assignment to enum type
-Priority globalPriority = Priority__LOW;
+const Priority globalPriority = Priority__LOW;
 
 // Valid: return type is Priority (enum)
 Priority getPriority(void) {
@@ -19,7 +19,7 @@ Priority getPriority(void) {
 
 // Valid: parameter has enum type - use qualified comparison for now
 // (Unqualified in comparison requires type inference from left operand - future enhancement)
-uint32_t priorityToValue(Priority p) {
+uint32_t priorityToValue(const Priority p) {
     if (p == Priority__LOW) {
         return 1U;
     }
@@ -33,7 +33,7 @@ uint32_t priorityToValue(Priority p) {
 }
 
 // Valid: switch on enum type with unqualified case labels
-uint32_t switchPriority(Priority p) {
+uint32_t switchPriority(const Priority p) {
     switch (p) {
         case Priority__LOW: {
             return 10U;
@@ -58,31 +58,31 @@ int main(void) {
     if (globalPriority != Priority__LOW) {
         return 1U;
     }
-    Priority p = getPriority();
+    const Priority p = getPriority();
     if (p != Priority__HIGH) {
         return 2U;
     }
-    uint32_t lowVal = priorityToValue(Priority__LOW);
+    const uint32_t lowVal = priorityToValue(Priority__LOW);
     if (lowVal != 1) {
         return 3U;
     }
-    uint32_t medVal = priorityToValue(Priority__MEDIUM);
+    const uint32_t medVal = priorityToValue(Priority__MEDIUM);
     if (medVal != 2) {
         return 4U;
     }
-    uint32_t highVal = priorityToValue(Priority__HIGH);
+    const uint32_t highVal = priorityToValue(Priority__HIGH);
     if (highVal != 3) {
         return 5U;
     }
-    uint32_t switchLow = switchPriority(Priority__LOW);
+    const uint32_t switchLow = switchPriority(Priority__LOW);
     if (switchLow != 10) {
         return 6U;
     }
-    uint32_t switchMed = switchPriority(Priority__MEDIUM);
+    const uint32_t switchMed = switchPriority(Priority__MEDIUM);
     if (switchMed != 20) {
         return 7U;
     }
-    uint32_t switchHigh = switchPriority(Priority__HIGH);
+    const uint32_t switchHigh = switchPriority(Priority__HIGH);
     if (switchHigh != 30) {
         return 8U;
     }

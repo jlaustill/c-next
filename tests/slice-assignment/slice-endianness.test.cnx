@@ -4,7 +4,7 @@
 // construction on every target — the unrolled shifts make this deterministic.
 
 u32 main() {
-    u8[128] buffer;
+    mut u8[128] buffer;
 
     // Test 1: u32 endianness - 0x12345678
     u32 value32 <- 0x12345678;

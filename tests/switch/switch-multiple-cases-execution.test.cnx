@@ -2,7 +2,7 @@
 // ADR-025: Multiple cases execution test
 // Tests: case A || B syntax with result validation
 // Coverage: Section 7 (Control Flow) - multiple cases per block
-u32 result;
+mut u32 result;
 
 // Basic multiple case syntax
 void testMultiCase(u32 val) {

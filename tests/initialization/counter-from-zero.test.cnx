@@ -1,7 +1,7 @@
 // test-execution
 // ADR-015: Counter pattern with zero initialization
 // Tests: counters can be incremented from their zero-initialized state
-u32 eventCount;
+mut u32 eventCount;
 
 u32 maxEvents <- 5;
 
@@ -11,7 +11,7 @@ void recordEvent() {
 
 u32 main() {
     // eventCount starts at 0 due to zero-init
-    u32 i <- 0;
+    mut u32 i <- 0;
     while (i < maxEvents) {
         recordEvent();
         i +<- 1;

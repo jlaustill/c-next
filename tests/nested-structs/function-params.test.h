@@ -23,13 +23,13 @@ typedef struct Rectangle {
 } Rectangle;
 
 /* External variables */
-extern Rectangle bounds;
+extern const Rectangle bounds;
 
 /* Function prototypes */
 int32_t getWidth(const Rectangle* rect);
 int32_t getHeight(const Rectangle* rect);
 int32_t getArea(const Rectangle* rect);
-void moveRect(Rectangle* rect, int32_t dx, int32_t dy);
+void moveRect(Rectangle* rect, const int32_t dx, const int32_t dy);
 
 #ifdef __cplusplus
 }

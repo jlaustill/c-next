@@ -14,7 +14,7 @@ struct Dataset {
 }
 
 u32 main() {
-    Dataset data;
+    mut Dataset data;
     data.id <- 12345;
     data.count <- 5;
 

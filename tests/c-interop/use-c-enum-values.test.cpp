@@ -12,10 +12,10 @@
 #include <stdint.h>
 
 int main(void) {
-    int32_t ok = STATUS_OK;
-    int32_t err = STATUS_ERROR;
-    int32_t pending = STATUS_PENDING;
-    int32_t complete = STATUS_COMPLETE;
+    const int32_t ok = STATUS_OK;
+    const int32_t err = STATUS_ERROR;
+    const int32_t pending = STATUS_PENDING;
+    const int32_t complete = STATUS_COMPLETE;
     if (ok != 0) {
         return 1U;
     }
@@ -28,19 +28,19 @@ int main(void) {
     if (complete != 200) {
         return 4U;
     }
-    int32_t baud1 = BAUD_9600;
-    int32_t baud2 = BAUD_115200;
+    const int32_t baud1 = BAUD_9600;
+    const int32_t baud2 = BAUD_115200;
     if (baud1 != 9600) {
         return 5U;
     }
     if (baud2 != 115200) {
         return 6U;
     }
-    int32_t none = FLAG_NONE;
-    int32_t read = FLAG_READ;
-    int32_t write = FLAG_WRITE;
-    int32_t exec = FLAG_EXECUTE;
-    int32_t all = FLAG_ALL;
+    const int32_t none = FLAG_NONE;
+    const int32_t read = FLAG_READ;
+    const int32_t write = FLAG_WRITE;
+    const int32_t exec = FLAG_EXECUTE;
+    const int32_t all = FLAG_ALL;
     if (none != 0) {
         return 7U;
     }
@@ -56,7 +56,7 @@ int main(void) {
     if (all != 7) {
         return 11U;
     }
-    int32_t readWrite = read | write;
+    const int32_t readWrite = read | write;
     if (readWrite != 3) {
         return 12U;
     }

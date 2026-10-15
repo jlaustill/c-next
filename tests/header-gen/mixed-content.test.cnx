@@ -15,7 +15,7 @@ scope HeaderMixed {
     }
 }
 
-HeaderMixed.Config globalConfig <- {
+mut HeaderMixed.Config globalConfig <- {
     timeout: 1000,
     retries: 3,
     status: STATUS_IDLE

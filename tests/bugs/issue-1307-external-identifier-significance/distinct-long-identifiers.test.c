@@ -26,18 +26,18 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 // transpile, compile and run. Without this, the Rule 5.1 check could pass its
 // error fixture by rejecting every qualified name over 31 characters.
 /* Scope: TemperatureSensorController */
-uint8_t TemperatureSensorController__calibrationOffsetValue = 7U;
-uint8_t TemperatureSensorController__diagnosticOffsetValue = 9U;
+const uint8_t TemperatureSensorController__calibrationOffsetValue = 7U;
+const uint8_t TemperatureSensorController__diagnosticOffsetValue = 9U;
 
 uint8_t TemperatureSensorController__sumOffsets(void) {
     return cnx_clamp_add_u8(TemperatureSensorController__calibrationOffsetValue, TemperatureSensorController__diagnosticOffsetValue);
 }
 
 // A global whose name shares its first 31 characters with nothing.
-uint8_t ambientTemperatureCorrectionFactor = 3U;
+const uint8_t ambientTemperatureCorrectionFactor = 3U;
 
 int main(void) {
-    uint8_t total = TemperatureSensorController__sumOffsets();
+    const uint8_t total = TemperatureSensorController__sumOffsets();
     if (total != 16) {
         return 1;
     }

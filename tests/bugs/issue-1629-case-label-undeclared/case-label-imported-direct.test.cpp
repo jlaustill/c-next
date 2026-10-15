@@ -18,7 +18,7 @@
 
 /* Scope: Gauge */
 
-uint32_t Gauge__read(uint8_t s) {
+uint32_t Gauge__read(const uint8_t s) {
     switch (s) {
         case 11U: {
             return 1U;
@@ -35,7 +35,7 @@ uint32_t Gauge__read(uint8_t s) {
     }
 }
 
-uint32_t bare(uint8_t s) {
+uint32_t bare(const uint8_t s) {
     switch (s) {
         case 11U: {
             return 3U;

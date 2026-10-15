@@ -29,7 +29,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Tests: i16 as array element type
 // Coverage: Section 1.2 i16 array element type
 int main(void) {
-    int16_t values[5] = {-32768, -1000, 0, 1000, 32767};
+    const int16_t values[5] = {-32768, -1000, 0, 1000, 32767};
     if (values[0U] != -32768) {
         return 1U;
     }
@@ -62,7 +62,7 @@ int main(void) {
     if (data[3U] != 10000) {
         return 9U;
     }
-    int16_t inferred[3] = {100, 200, 300};
+    const int16_t inferred[3] = {100, 200, 300};
     if (inferred[0U] != 100) {
         return 10U;
     }
@@ -72,7 +72,7 @@ int main(void) {
     if (inferred[2U] != 300) {
         return 12U;
     }
-    int16_t loop_arr[3] = {100, 200, 300};
+    const int16_t loop_arr[3] = {100, 200, 300};
     int16_t sum = 0;
     for (uint32_t i = 0U; i < 3; i = cnx_clamp_add_u32(i, 1U)) {
         sum = cnx_clamp_add_i16(sum, loop_arr[i]);

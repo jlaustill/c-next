@@ -34,12 +34,12 @@ void modifyData(PtrCast__Data& d) {
     d.flags = 0xFFU;
 }
 
-PtrCast__Data createData(uint32_t val, uint8_t flg) {
-    PtrCast__Data result = { .value = val, .flags = flg };
+PtrCast__Data createData(const uint32_t val, const uint8_t flg) {
+    const PtrCast__Data result = { .value = val, .flags = flg };
     return result;
 }
 
-void updateContainer(PtrCast__Container& c, uint32_t newCount) {
+void updateContainer(PtrCast__Container& c, const uint32_t newCount) {
     c.count = newCount;
     c.inner.value = cnx_clamp_mul_u32(newCount, 10U);
 }
@@ -53,7 +53,7 @@ int main(void) {
     if (d.flags != 0xFF) {
         return 2U;
     }
-    PtrCast__Data created = createData(42U, 0xABU);
+    const PtrCast__Data created = createData(42U, 0xABU);
     if (created.value != 42) {
         return 3U;
     }

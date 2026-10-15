@@ -42,7 +42,7 @@ void Counter__increment(void) {
     Counter__value = cnx_clamp_add_u32(Counter__value, 1U);
 }
 
-void Counter__add(uint32_t amount) {
+void Counter__add(const uint32_t amount) {
     Counter__value = cnx_clamp_add_u32(Counter__value, amount);
 }
 
@@ -54,7 +54,7 @@ uint32_t Counter__get(void) {
 /* Scope: Temperature */
 static int32_t Temperature__celsius = 0;
 
-void Temperature__set(int32_t temp) {
+void Temperature__set(const int32_t temp) {
     Temperature__celsius = temp;
 }
 
@@ -94,7 +94,7 @@ int main(void) {
         return 5U;
     }
     Temperature__set(25);
-    int32_t celsius = Temperature__getCelsius();
+    const int32_t celsius = Temperature__getCelsius();
     if (celsius != 25) {
         return 6U;
     }

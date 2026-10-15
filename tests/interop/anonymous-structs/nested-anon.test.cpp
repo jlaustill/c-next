@@ -13,7 +13,7 @@
 #include <stdint.h>
 
 int main(void) {
-    ThemeConfig theme = { .colors = { .foreground = { .r = 255, .g = 128, .b = 64 }, .background = { .r = 0, .g = 32, .b = 16 } } };
+    const ThemeConfig theme = { .colors = { .foreground = { .r = 255, .g = 128, .b = 64 }, .background = { .r = 0, .g = 32, .b = 16 } } };
     if (theme.colors.foreground.r != 255) {
         return 1;
     }
@@ -32,7 +32,7 @@ int main(void) {
     if (theme.colors.background.b != 16) {
         return 6;
     }
-    ThemeConfig theme2 = { .colors = { .foreground = { .r = 200, .g = 200, .b = 200 } } };
+    const ThemeConfig theme2 = { .colors = { .foreground = { .r = 200, .g = 200, .b = 200 } } };
     if (theme2.colors.foreground.r != 200) {
         return 7;
     }

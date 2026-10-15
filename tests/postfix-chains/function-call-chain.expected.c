@@ -29,28 +29,28 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 FuncCallChain__Transform transforms[4] = {0};
 
 // Functions with various parameter types
-uint32_t addU32(uint32_t a, uint32_t b) {
+uint32_t addU32(const uint32_t a, const uint32_t b) {
     return cnx_clamp_add_u32(a, b);
 }
 
-float addF32(float a, float b) {
+float addF32(const float a, const float b) {
     return a + b;
 }
 
-float multiplyF32(float a, float b) {
+float multiplyF32(const float a, const float b) {
     return a * b;
 }
 
-FuncCallChain__Vec3 scaleVec3(const FuncCallChain__Vec3* v, float scale) {
-    FuncCallChain__Vec3 result = { .x = v->x * scale, .y = v->y * scale, .z = v->z * scale };
+FuncCallChain__Vec3 scaleVec3(const FuncCallChain__Vec3* v, const float scale) {
+    const FuncCallChain__Vec3 result = { .x = v->x * scale, .y = v->y * scale, .z = v->z * scale };
     return result;
 }
 
-bool isGreater(float a, float b) {
+bool isGreater(const float a, const float b) {
     return a > b;
 }
 
-void setTransform(const FuncCallChain__Transform* t, uint32_t index) {
+void setTransform(const FuncCallChain__Transform* t, const uint32_t index) {
     transforms[index] = (*t);
 }
 
@@ -61,19 +61,19 @@ int main(void) {
     transforms[0].scale.x = 1.0;
     transforms[0].scale.y = 1.0;
     transforms[0].scale.z = 1.0;
-    float sumX = addF32(transforms[0U].position.x, transforms[0U].scale.x);
-    float sumY = addF32(transforms[0U].position.y, transforms[0U].scale.y);
-    float sumZ = addF32(transforms[0U].position.z, transforms[0U].scale.z);
-    float product = multiplyF32(transforms[1U].position.x, transforms[1U].scale.x);
-    float nestedSum = addF32(multiplyF32(transforms[0U].position.x, 2.0), transforms[0U].position.y);
-    FuncCallChain__Vec3 scaled = scaleVec3(&transforms[0U].position, 2.0);
-    float scaledX = scaled.x;
-    bool result = isGreater(transforms[0U].position.x, transforms[1U].position.x);
+    const float sumX = addF32(transforms[0U].position.x, transforms[0U].scale.x);
+    const float sumY = addF32(transforms[0U].position.y, transforms[0U].scale.y);
+    const float sumZ = addF32(transforms[0U].position.z, transforms[0U].scale.z);
+    const float product = multiplyF32(transforms[1U].position.x, transforms[1U].scale.x);
+    const float nestedSum = addF32(multiplyF32(transforms[0U].position.x, 2.0), transforms[0U].position.y);
+    const FuncCallChain__Vec3 scaled = scaleVec3(&transforms[0U].position, 2.0);
+    const float scaledX = scaled.x;
+    const bool result = isGreater(transforms[0U].position.x, transforms[1U].position.x);
     FuncCallChain__Transform temp = {0};
     temp.position = transforms[0U].position;
     temp.scale = transforms[0U].scale;
     setTransform(&temp, 2U);
     transforms[2].position = scaleVec3(&transforms[0U].position, 3.0);
-    uint32_t idx = addU32(1U, 1U);
+    const uint32_t idx = addU32(1U, 1U);
     transforms[idx].position.x = 5.0;
 }

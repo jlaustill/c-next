@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void PioArrayTest__processBuffer(const uint8_t data[8], uint8_t len);
+void PioArrayTest__processBuffer(const uint8_t data[8], const uint8_t len);
 void PioArrayTest__handleMessage(const MockCanMessage& msg);
 
 #ifdef __cplusplus

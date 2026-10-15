@@ -8,37 +8,37 @@
 // test-target-xfail: atmega328p #1766 "floating constant truncated to zero"
 // Test various float literal formats
 void test_decimal_literals(void) {
-    float a = 3.14;
-    float b = 0.5;
-    float c = 100.0;
-    float d = 0.0;
-    double x = 3.141592653589793;
-    double y = 0.123456789;
-    double z = 999.999;
+    const float a = 3.14;
+    const float b = 0.5;
+    const float c = 100.0;
+    const float d = 0.0;
+    const double x = 3.141592653589793;
+    const double y = 0.123456789;
+    const double z = 999.999;
 }
 
 void test_scientific_notation(void) {
-    float small = 1.5e-10;
-    float large = 3.0e8;
-    float tiny = 1e-38;
-    float huge = 1e38;
-    double very_small = 2.5e-100;
-    double very_large = 1.7e100;
-    double precise = 6.022e23;
+    const float small = 1.5e-10;
+    const float large = 3.0e8;
+    const float tiny = 1e-38;
+    const float huge = 1e38;
+    const double very_small = 2.5e-100;
+    const double very_large = 1.7e100;
+    const double precise = 6.022e23;
 }
 
 void test_negative_literals(void) {
-    float neg_dec = -3.14;
-    float neg_sci = -1.5e10;
-    double neg_dec_d = -99.99;
-    double neg_sci_d = -2.5e-50;
+    const float neg_dec = -3.14;
+    const float neg_sci = -1.5e10;
+    const double neg_dec_d = -99.99;
+    const double neg_sci_d = -2.5e-50;
 }
 
 void test_edge_case_literals(void) {
-    float zero = 0.0;
-    float neg_zero = -0.0;
-    float epsilon = 1.192092896e-7;
-    float max_float = 3.402823466e38;
+    const float zero = 0.0;
+    const float neg_zero = -0.0;
+    const float epsilon = 1.192092896e-7;
+    const float max_float = 3.402823466e38;
 }
 
 int main(void) {

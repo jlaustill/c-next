@@ -33,15 +33,15 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 
 /* Scope: Gauge */
 static uint32_t Gauge__total = 0U;
-static uint32_t Gauge__step = 2U;
 static uint32_t Gauge__primed = 3U;
 
 uint32_t Gauge__bump(void) {
-    return Gauge__step;
+    return 2U;
 }
 
 void Gauge__accumulate(void) {
     Gauge__total = cnx_clamp_add_u32(Gauge__total, Gauge__bump());
+    Gauge__primed = Gauge__total;
 }
 
 uint32_t Gauge__readTotal(void) {
@@ -51,27 +51,27 @@ uint32_t Gauge__readTotal(void) {
 // A top-level function with a shadowing local: ADR-057 with no enclosing scope,
 // in a fixture that reaches another file. `shadow-outside-any-scope` covers this
 // same-file; the include boundary is a separate matrix column.
-uint32_t spare = 40U;
+const uint32_t spare = 40U;
 
 uint32_t detached(void) {
     /* C11 6.2.1p4, C++ [basic.scope.hiding]: `spare` emitted as `detached__spare` (a plain `spare` would hide the file-scope `spare` for the rest of its scope, so `global.spare` would reach the local). */
-    uint32_t detached__spare = 6U;
+    const uint32_t detached__spare = 6U;
     return detached__spare;
 }
 
 int main(void) {
     Sensor__refresh();
-    uint32_t sensorValue = Sensor__value();
+    const uint32_t sensorValue = Sensor__value();
     if (sensorValue != 10) {
         return 1U;
     }
     Gauge__accumulate();
     Gauge__accumulate();
-    uint32_t gaugeTotal = Gauge__readTotal();
+    const uint32_t gaugeTotal = Gauge__readTotal();
     if (gaugeTotal != 4) {
         return 2U;
     }
-    uint32_t detachedValue = detached();
+    const uint32_t detachedValue = detached();
     if (detachedValue != 6) {
         return 3U;
     }

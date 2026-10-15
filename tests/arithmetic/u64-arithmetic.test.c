@@ -49,8 +49,8 @@ int main(void) {
     if (result != 1000000005000) {
         return 3U;
     }
-    uint64_t large1 = 9000000000000000000ULL;
-    uint64_t large2 = 1000000000000000000ULL;
+    const uint64_t large1 = 9000000000000000000ULL;
+    const uint64_t large2 = 1000000000000000000ULL;
     result = cnx_clamp_add_u64(large1, large2);
     if (result != 10000000000000000000) {
         return 4U;
@@ -69,14 +69,14 @@ int main(void) {
     if (result != 1000000000000) {
         return 7U;
     }
-    uint64_t c = 1000ULL;
-    uint64_t d = 999ULL;
+    const uint64_t c = 1000ULL;
+    const uint64_t d = 999ULL;
     result = cnx_clamp_sub_u64(c, d);
     if (result != 1) {
         return 8U;
     }
-    uint64_t m1 = 1000000ULL;
-    uint64_t m2 = 1000000ULL;
+    const uint64_t m1 = 1000000ULL;
+    const uint64_t m2 = 1000000ULL;
     result = cnx_clamp_mul_u64(m1, m2);
     if (result != 1000000000000) {
         return 9U;
@@ -89,14 +89,14 @@ int main(void) {
     if (result != 1000000000) {
         return 11U;
     }
-    uint64_t m3 = 100000000ULL;
-    uint64_t m4 = 10000ULL;
+    const uint64_t m3 = 100000000ULL;
+    const uint64_t m4 = 10000ULL;
     result = cnx_clamp_mul_u64(m3, m4);
     if (result != 1000000000000) {
         return 12U;
     }
-    uint64_t div1 = 1000000000000ULL;
-    uint64_t div2 = 1000ULL;
+    const uint64_t div1 = 1000000000000ULL;
+    const uint64_t div2 = 1000ULL;
     result = div1 / div2;
     if (result != 1000000000) {
         return 13U;
@@ -109,14 +109,14 @@ int main(void) {
     if (result != 2000000000) {
         return 15U;
     }
-    uint64_t div3 = 9000000000000000000ULL;
-    uint64_t div4 = 1000000ULL;
+    const uint64_t div3 = 9000000000000000000ULL;
+    const uint64_t div4 = 1000000ULL;
     result = div3 / div4;
     if (result != 9000000000000) {
         return 16U;
     }
-    uint64_t mod1 = 1000000000007ULL;
-    uint64_t mod2 = 1000000ULL;
+    const uint64_t mod1 = 1000000000007ULL;
+    const uint64_t mod2 = 1000000ULL;
     result = mod1 % mod2;
     if (result != 7) {
         return 17U;
@@ -129,14 +129,14 @@ int main(void) {
     if (result != 4) {
         return 19U;
     }
-    uint64_t timestamp = 1609459200000ULL;
+    const uint64_t timestamp = 1609459200000ULL;
     result = timestamp % 1000ULL;
     if (result != 0) {
         return 20U;
     }
-    uint64_t e1 = 10000ULL;
-    uint64_t e2 = 5000ULL;
-    uint64_t e3 = 2000ULL;
+    const uint64_t e1 = 10000ULL;
+    const uint64_t e2 = 5000ULL;
+    const uint64_t e3 = 2000ULL;
     result = cnx_clamp_add_u64(e1, cnx_clamp_mul_u64(e2, e3));
     if (result != 10010000) {
         return 21U;
@@ -161,8 +161,8 @@ int main(void) {
     if (result != 15) {
         return 26U;
     }
-    uint64_t zero = 0ULL;
-    uint64_t val = 1000000ULL;
+    const uint64_t zero = 0ULL;
+    const uint64_t val = 1000000ULL;
     result = cnx_clamp_add_u64(zero, val);
     if (result != 1000000) {
         return 27U;
@@ -191,8 +191,8 @@ int main(void) {
     if (result != 1000000) {
         return 33U;
     }
-    uint64_t timestamp1 = 1609459200000ULL;
-    uint64_t timestamp2 = 1609545600000ULL;
+    const uint64_t timestamp1 = 1609459200000ULL;
+    const uint64_t timestamp2 = 1609545600000ULL;
     result = cnx_clamp_sub_u64(timestamp2, timestamp1);
     if (result != 86400000) {
         return 34U;

@@ -217,7 +217,7 @@ int main(void) {
     }
     calc[0][0] = 10.123456789;
     calc[0][1] = 5.987654321;
-    double calcSum = calc[0U][0U] + calc[0U][1U];
+    const double calcSum = calc[0U][0U] + calc[0U][1U];
     if (calcSum != 16.11111111) {
         return 41U;
     }

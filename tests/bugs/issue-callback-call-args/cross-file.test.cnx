@@ -15,11 +15,11 @@ struct Readers {
 }
 
 i32 main() {
-    Readers r;
+    mut Readers r;
     r.onRead <- readSample;
     r.onBump <- bumpSample;
 
-    Sample s <- { value: 4 };
+    mut Sample s <- { value: 4 };
 
     u32 viaField <- r.onRead(s);
     if (viaField != 4) {

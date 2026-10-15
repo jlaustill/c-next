@@ -11,8 +11,8 @@
 // Validates: Same-type comparisons are warning-free
 // Coverage: Unsigned comparisons, signed comparisons, equality
 int main(void) {
-    uint32_t ua = 100U;
-    uint32_t ub = 200U;
+    const uint32_t ua = 100U;
+    const uint32_t ub = 200U;
     if (ua > ub) {
         return 1U;
     }
@@ -31,8 +31,8 @@ int main(void) {
     if (ua == ub) {
         return 6U;
     }
-    int32_t sa = -50;
-    int32_t sb = 50;
+    const int32_t sa = -50;
+    const int32_t sb = 50;
     if (sa > sb) {
         return 7U;
     }
@@ -45,8 +45,8 @@ int main(void) {
     if (sa > sb) {
         return 10U;
     }
-    uint8_t ba = 0U;
-    uint8_t bb = 255U;
+    const uint8_t ba = 0U;
+    const uint8_t bb = 255U;
     if (ba > bb) {
         return 11U;
     }
@@ -56,15 +56,15 @@ int main(void) {
     if (ba == bb) {
         return 13U;
     }
-    uint32_t zero = 0U;
+    const uint32_t zero = 0U;
     if (zero != 0) {
         return 14U;
     }
     if (zero != 0) {
         return 15U;
     }
-    int8_t neg = -1;
-    int8_t pos = 1;
+    const int8_t neg = -1;
+    const int8_t pos = 1;
     if (neg > pos) {
         return 16U;
     }

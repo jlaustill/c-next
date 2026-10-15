@@ -24,13 +24,13 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 // property, so `flags[0, u8.type_bit_length]` had no width, the composite had no integer
 // type, and the ADR-044 clamp was dropped: 200 + 255 wrapped to 199.
 int main(void) {
-    uint8_t a = 200U;
-    uint32_t flags = 0xFFU;
-    uint8_t r = cnx_clamp_add_u8(a, (uint8_t)((flags) & 0xFFU));
+    const uint8_t a = 200U;
+    const uint32_t flags = 0xFFU;
+    const uint8_t r = cnx_clamp_add_u8(a, (uint8_t)((flags) & 0xFFU));
     if (r != 255) {
         return 1U;
     }
-    uint8_t r2 = cnx_clamp_add_u8(a, (uint8_t)((flags) & 0xFFU));
+    const uint8_t r2 = cnx_clamp_add_u8(a, (uint8_t)((flags) & 0xFFU));
     if (r2 != 255) {
         return 2U;
     }

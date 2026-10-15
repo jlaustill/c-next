@@ -18,25 +18,24 @@
 // This also pins issue #1117's second defect: the bare name `Reg_flags` written
 // INSIDE scope Reg must reach the global, not the member. It previously reached
 // the member, because the symbol table was keyed by the generated name.
-uint8_t Reg_flags = 99U;
+const uint8_t Reg_flags = 99U;
 
 /* Scope: Reg */
-static uint8_t Reg__flags = 7U;
 
 uint8_t Reg__readBare(void) {
     return Reg_flags;
 }
 
 uint8_t Reg__readMember(void) {
-    return Reg__flags;
+    return 7U;
 }
 
 int main(void) {
-    uint8_t fromGlobal = Reg__readBare();
+    const uint8_t fromGlobal = Reg__readBare();
     if (fromGlobal != 99) {
         return 1U;
     }
-    uint8_t fromMember = Reg__readMember();
+    const uint8_t fromMember = Reg__readMember();
     if (fromMember != 7) {
         return 2U;
     }

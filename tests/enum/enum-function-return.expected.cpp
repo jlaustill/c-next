@@ -11,7 +11,7 @@
 // test-execution
 // Tests: Enum as function return type
 // Function that returns enum based on input
-Color getColorByIndex(uint32_t index) {
+Color getColorByIndex(const uint32_t index) {
     if (index == 0) {
         return Color__RED;
     }
@@ -25,7 +25,7 @@ Color getColorByIndex(uint32_t index) {
 }
 
 // Function that returns enum based on condition
-TrafficLight getNextLight(TrafficLight current) {
+TrafficLight getNextLight(const TrafficLight current) {
     if (current == TrafficLight__STOP) {
         return TrafficLight__GO;
     }
@@ -36,7 +36,7 @@ TrafficLight getNextLight(TrafficLight current) {
 }
 
 // Function that maps one enum to another
-TrafficLight colorToLight(Color c) {
+TrafficLight colorToLight(const Color c) {
     if (c == Color__RED) {
         return TrafficLight__STOP;
     }

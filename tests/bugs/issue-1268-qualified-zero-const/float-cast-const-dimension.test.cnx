@@ -7,8 +7,8 @@
 //
 // CONTROL: M, from `(u32)3.99`, is 3 -- the cast truncates, it does not round.
 
-const u32 N <- (u32)2.5;
-const u32 M <- (u32)3.99;
+u32 N <- (u32)2.5;
+u32 M <- (u32)3.99;
 
 u8[N] two;
 u8[M] three;

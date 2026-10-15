@@ -4,7 +4,7 @@
 // Ensures no truncation or overflow in memory operations
 
 u32 main() {
-    u8[256] buffer;
+    mut u8[256] buffer;
 
     // Test 1: u64 maximum value
     u64 maxU64 <- 0xFFFFFFFFFFFFFFFF;

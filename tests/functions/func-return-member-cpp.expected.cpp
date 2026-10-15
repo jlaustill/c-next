@@ -24,7 +24,7 @@ DeviceConfig getConfig(void) {
     return globalConfig;
 }
 
-uint32_t process(uint32_t crc, uint8_t byte) {
+uint32_t process(const uint32_t crc, const uint8_t byte) {
     return crc ^ byte;
 }
 
@@ -40,7 +40,7 @@ uint32_t testFuncReturnMember(void) {
 }
 
 int main(void) {
-    uint32_t result = testFuncReturnMember();
+    const uint32_t result = testFuncReturnMember();
     if (result != 41) {
         return 1U;
     }

@@ -25,7 +25,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // #2004: a `for`-header variable that shadows a scope member is initialized
 // by its header, so reading and writing it is not E0381
 /* Scope: S */
-static uint32_t S__count = 0;
+static const uint32_t S__count = 0;
 
 uint32_t S__f(void) {
     uint32_t sum = 0U;
@@ -36,7 +36,7 @@ uint32_t S__f(void) {
 }
 
 int main(void) {
-    uint32_t sum = S__f();
+    const uint32_t sum = S__f();
     if (sum != 3) {
         return 1U;
     }

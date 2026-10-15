@@ -200,11 +200,11 @@ int main(void) {
     if (timestamps[1U][2U] != 2524608000000) {
         return 35U;
     }
-    int64_t diff = cnx_clamp_sub_i64(timestamps[0U][2U], timestamps[0U][1U]);
+    const int64_t diff = cnx_clamp_sub_i64(timestamps[0U][2U], timestamps[0U][1U]);
     if (diff != 1609459200000) {
         return 36U;
     }
-    int64_t negDiff = cnx_clamp_sub_i64(timestamps[0U][0U], timestamps[0U][1U]);
+    const int64_t negDiff = cnx_clamp_sub_i64(timestamps[0U][0U], timestamps[0U][1U]);
     if (negDiff != -2208988800000) {
         return 37U;
     }
@@ -238,7 +238,7 @@ int main(void) {
     }
     balances[0][0] = 2100000000000000;
     balances[0][1] = -100000000;
-    int64_t netBalance = cnx_clamp_add_i64(balances[0U][0U], balances[0U][1U]);
+    const int64_t netBalance = cnx_clamp_add_i64(balances[0U][0U], balances[0U][1U]);
     if (netBalance != 2099999900000000) {
         return 42U;
     }

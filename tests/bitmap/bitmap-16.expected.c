@@ -16,7 +16,7 @@ int main(void) {
     status = (uint16_t)((status & ~(1U << 0)) | (1U << 0));
     status = (uint16_t)((status & ~(1U << 1)) | (0U << 1));
     status = (uint16_t)((status & ~(0xFFU << 8)) | ((255U & 0xFFU) << 8));
-    bool isReady = ((((status >> 0) & 1)) != 0U);
-    uint8_t count = (uint8_t)((status >> 8) & 0xFF);
+    const bool isReady = ((((status >> 0) & 1)) != 0U);
+    const uint8_t count = (uint8_t)((status >> 8) & 0xFF);
     status = (uint16_t)((status & ~(0xFFU << 8)) | ((128U & 0xFFU) << 8));
 }

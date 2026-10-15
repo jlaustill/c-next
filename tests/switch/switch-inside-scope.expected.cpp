@@ -38,7 +38,7 @@ uint32_t globalResult = 0U;
 static uint32_t CommandProcessor__lastCommand = 0U;
 static uint32_t CommandProcessor__result = 0U;
 
-void CommandProcessor__execute(uint32_t command) {
+void CommandProcessor__execute(const uint32_t command) {
     CommandProcessor__lastCommand = command;
     switch (command) {
         case 1: {
@@ -70,12 +70,12 @@ static uint32_t Calculator__a = 0U;
 static uint32_t Calculator__b = 0U;
 static uint32_t Calculator__output = 0U;
 
-void Calculator__setOperands(uint32_t x, uint32_t y) {
+void Calculator__setOperands(const uint32_t x, const uint32_t y) {
     Calculator__a = x;
     Calculator__b = y;
 }
 
-void Calculator__compute(uint32_t operation) {
+void Calculator__compute(const uint32_t operation) {
     Calculator__mode = operation;
     switch (operation) {
         case 0: {

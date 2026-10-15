@@ -15,10 +15,10 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint8_t buf[BUF_SIZE];
-extern uint16_t grid[2][BUF_SIZE];
-extern uint8_t fixed[4];
-extern bool flags[BUF_SIZE];
+extern const uint8_t buf[BUF_SIZE];
+extern const uint16_t grid[2][BUF_SIZE];
+extern const uint8_t fixed[4];
+extern const bool flags[BUF_SIZE];
 
 #ifdef __cplusplus
 }

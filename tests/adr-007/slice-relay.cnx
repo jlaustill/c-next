@@ -4,4 +4,4 @@
 
 #include "slice-declarations.cnx"
 
-const u32 SLICE_RELAY_MARKER <- 2;
+u32 SLICE_RELAY_MARKER <- 2;

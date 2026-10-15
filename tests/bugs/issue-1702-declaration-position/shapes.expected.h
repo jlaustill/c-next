@@ -14,9 +14,9 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint8_t suBug(bool c);
-uint8_t cvBug(bool c);
-uint8_t bug(bool c);
+uint8_t suBug(const bool c);
+uint8_t cvBug(const bool c);
+uint8_t bug(const bool c);
 
 #ifdef __cplusplus
 }

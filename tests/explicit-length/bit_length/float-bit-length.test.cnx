@@ -35,7 +35,7 @@ i32 main() {
     }
 
     // Test struct members
-    FloatBitLen.TestStruct ts;
+    mut FloatBitLen.TestStruct ts;
     ts.x <- 1.0;
     ts.y <- 2.0;
     if (ts.x.type_bit_length != 32) {

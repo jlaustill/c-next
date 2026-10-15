@@ -29,7 +29,7 @@ u32 categoryToValue(ESpnCategory cat) {
 
 u32 main() {
     // Test return from enum function
-    ESpnCategory cat <- getCategory(100);
+    mut ESpnCategory cat <- getCategory(100);
     if (cat != ESpnCategory.SPN_CAT_PRESSURE) {
         return 1;
     }

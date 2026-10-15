@@ -26,7 +26,7 @@ i32 main() {
     }
 
     // Test struct member
-    BoolBitLen.TestStruct ts;
+    mut BoolBitLen.TestStruct ts;
     ts.flag <- true;
     if (ts.flag.type_bit_length != 1) {
         return 3;

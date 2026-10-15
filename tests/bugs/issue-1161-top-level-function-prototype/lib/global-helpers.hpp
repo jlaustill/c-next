@@ -19,7 +19,7 @@ typedef struct Point {
 
 /* Function prototypes */
 uint8_t readStructField(const Point& point);
-uint8_t addOne(uint8_t x);
+uint8_t addOne(const uint8_t x);
 
 #ifdef __cplusplus
 }

@@ -12,7 +12,7 @@
 /* Scope: S */
 
 uint32_t S__check(void) {
-    float v = 0.1f;
+    const float v = 0.1f;
     if (v != 0.1f) {
         return 1U;
     }
@@ -20,6 +20,6 @@ uint32_t S__check(void) {
 }
 
 int main(void) {
-    uint32_t r = S__check();
+    const uint32_t r = S__check();
     return r;
 }

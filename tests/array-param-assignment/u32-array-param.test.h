@@ -13,10 +13,10 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void writeU32(uint32_t arr[4], uint32_t index, uint32_t value);
-uint32_t readU32(uint32_t arr[4], uint32_t index);
-void incrementU32(uint32_t arr[4], uint32_t index);
-void copyU32(uint32_t src[4], uint32_t dst[4], uint32_t index);
+void writeU32(uint32_t arr[4], const uint32_t index, const uint32_t value);
+uint32_t readU32(const uint32_t arr[4], const uint32_t index);
+void incrementU32(uint32_t arr[4], const uint32_t index);
+void copyU32(const uint32_t src[4], uint32_t dst[4], const uint32_t index);
 
 #ifdef __cplusplus
 }

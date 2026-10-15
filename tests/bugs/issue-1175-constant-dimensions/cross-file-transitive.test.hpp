@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint8_t shared[5];
+extern const uint8_t shared[5];
 
 /* Function prototypes */
 uint32_t Store__slotCount(void);

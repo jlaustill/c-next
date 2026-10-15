@@ -16,11 +16,11 @@
 
 #include <stdint.h>
 
-uint8_t two[2] = {0};
+const uint8_t two[2] = {0};
 
-uint8_t three[3] = {0};
+const uint8_t three[3] = {0};
 
-uint8_t fromFloat[2] = {0};
+const uint8_t fromFloat[2] = {0};
 
 int main(void) {
     if (2 != 2) {

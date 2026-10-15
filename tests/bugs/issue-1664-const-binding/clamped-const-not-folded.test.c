@@ -35,31 +35,31 @@ int main(void) {
     const uint8_t A = 2U;
     const uint8_t B = cnx_clamp_sub_u8(A, 3U);
     const uint8_t C = cnx_clamp_add_u8(B, 1U);
-    uint32_t q = 12U / C;
+    const uint32_t q = 12U / C;
     if (q != 12) {
         return 1U;
     }
-    uint32_t s = 1U << B;
+    const uint32_t s = 1U << B;
     if (s != 1) {
         return 2U;
     }
-    uint8_t arr[4] = {5U, 6U, 7U, 8U};
-    uint8_t first = arr[B];
+    const uint8_t arr[4] = {5U, 6U, 7U, 8U};
+    const uint8_t first = arr[B];
     if (first != 5) {
         return 3U;
     }
     const uint8_t E = 200U;
     const uint8_t F = cnx_clamp_add_u8(E, E);
-    uint8_t last = arr[cnx_clamp_sub_u8(F, 252U)];
+    const uint8_t last = arr[cnx_clamp_sub_u8(F, 252U)];
     if (last != 8) {
         return 4U;
     }
-    uint8_t direct = arr[cnx_clamp_sub_u8(A, 3U)];
+    const uint8_t direct = arr[cnx_clamp_sub_u8(A, 3U)];
     if (direct != 5) {
         return 6U;
     }
     const uint8_t G = cnx_clamp_add_u8(A, 3U);
-    uint8_t five[5] = {0};
+    const uint8_t five[5] = {0};
     if (5 != 5) {
         return 5U;
     }

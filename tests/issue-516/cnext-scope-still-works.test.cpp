@@ -25,7 +25,7 @@ void Motor__stop(void) {
 void Controller__run(void) {
     Motor__start();
     Motor__stop();
-    uint8_t s = Motor__speed;
+    const uint8_t s = Motor__speed;
 }
 
 int main(void) {

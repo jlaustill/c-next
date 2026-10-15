@@ -10,18 +10,18 @@ enum EMode {
 }
 
 scope S {
-    const bool EN <- true;
+    bool EN <- true;
     bool flag <- EN;
-    const f32 HALF <- 1.0 / 2.0;
+    f32 HALF <- 1.0 / 2.0;
     f32 twice <- HALF * 2.0;
-    const EMode D <- EMode.RUN;
+    EMode D <- EMode.RUN;
     EMode mode <- D;
-    const bool A <- true;
-    const bool B <- A;
+    bool A <- true;
+    bool B <- A;
     bool copied <- B;
-    const u8 CH <- 'A';
+    u8 CH <- 'A';
     u8 first <- CH;
-    const u32 FROM_MACRO <- LIMIT;
+    u32 FROM_MACRO <- LIMIT;
     u32 fromMacro <- FROM_MACRO;
 
     public u32 check() {

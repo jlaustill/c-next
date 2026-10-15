@@ -18,15 +18,15 @@ typedef struct F32AllCtx__Point {
 
 /* External variables */
 extern float global_f;
-extern float global_uninit;
+extern const float global_uninit;
 extern float samples[4];
 
 /* Function prototypes */
-float add(float a, float b);
+float add(const float a, const float b);
 void process(void);
 void arithmetic(void);
 void compare(void);
-float max(float a, float b);
+float max(const float a, const float b);
 
 #ifdef __cplusplus
 }

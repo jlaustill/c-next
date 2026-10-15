@@ -8,6 +8,6 @@ scope NestedExtEnum {
     }
 }
 
-void setMedium(NestedExtEnum.Config cfg) {
+void setMedium(mut NestedExtEnum.Config cfg) {
     cfg.level <- ELevel.LEVEL_MEDIUM;
 }

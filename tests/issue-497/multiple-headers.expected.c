@@ -12,16 +12,16 @@
 /* Scope: Graphics */
 
 Color Graphics__getDefaultColor(void) {
-    Color c = { .r = 255U, .g = 255U, .b = 255U };
+    const Color c = { .r = 255U, .g = 255U, .b = 255U };
     return c;
 }
 
 Size Graphics__getDefaultSize(void) {
-    Size s = { .width = 100, .height = 100 };
+    const Size s = { .width = 100, .height = 100 };
     return s;
 }
 
 int main(void) {
-    Color c = Graphics__getDefaultColor();
-    Size s = Graphics__getDefaultSize();
+    const Color c = Graphics__getDefaultColor();
+    const Size s = Graphics__getDefaultSize();
 }

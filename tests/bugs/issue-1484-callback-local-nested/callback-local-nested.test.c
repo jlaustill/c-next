@@ -37,31 +37,31 @@ typedef void (*onCase_fp)(uint32_t);
 typedef void (*onDefault_fp)(uint32_t);
 typedef void (*onForever_fp)(uint32_t);
 
-void onIf(uint32_t n) {
+void onIf(const uint32_t n) {
     total = cnx_clamp_add_u32(total, n);
 }
 
-void onWhile(uint32_t n) {
+void onWhile(const uint32_t n) {
     total = cnx_clamp_add_u32(total, n);
 }
 
-void onDo(uint32_t n) {
+void onDo(const uint32_t n) {
     total = cnx_clamp_add_u32(total, n);
 }
 
-void onFor(uint32_t n) {
+void onFor(const uint32_t n) {
     total = cnx_clamp_add_u32(total, n);
 }
 
-void onCase(uint32_t n) {
+void onCase(const uint32_t n) {
     total = cnx_clamp_add_u32(total, n);
 }
 
-void onDefault(uint32_t n) {
+void onDefault(const uint32_t n) {
     total = cnx_clamp_add_u32(total, n);
 }
 
-void onForever(uint32_t n) {
+void onForever(const uint32_t n) {
     total = cnx_clamp_add_u32(total, n);
 }
 
@@ -69,7 +69,7 @@ void onForever(uint32_t n) {
 void spinOnce(void) {
     /* MISRA C:2012 Rule 14.3: infinite loop written as `for (;;)` for C-Next `forever` (`while (1)` has a controlling expression with an invariant value, which the rule forbids). */
     for (;;) {
-        onForever_fp spin = onForever;
+        const onForever_fp spin = onForever;
         spin(1U);
         return;
     }
@@ -77,7 +77,7 @@ void spinOnce(void) {
 
 int main(void) {
     if (total == 0) {
-        onIf_fp handler = onIf;
+        const onIf_fp handler = onIf;
         handler(5U);
     }
     if (total != 5) {
@@ -85,7 +85,7 @@ int main(void) {
     }
     uint32_t i = 0U;
     while (i < 1) {
-        onWhile_fp beat = onWhile;
+        const onWhile_fp beat = onWhile;
         beat(2U);
         i = cnx_clamp_add_u32(i, 1U);
     }
@@ -93,14 +93,14 @@ int main(void) {
         return 2U;
     }
     do {
-        onDo_fp step = onDo;
+        const onDo_fp step = onDo;
         step(1U);
     } while (total < 8);
     if (total != 8) {
         return 3U;
     }
     for (uint32_t j = 0U; j < 1; j = cnx_clamp_add_u32(j, 1U)) {
-        onFor_fp tick = onFor;
+        const onFor_fp tick = onFor;
         tick(2U);
     }
     if (total != 10) {
@@ -108,12 +108,12 @@ int main(void) {
     }
     switch (total) {
         case 10: {
-            onCase_fp matched = onCase;
+            const onCase_fp matched = onCase;
             matched(1U);
             break;
         }
         default: {
-            onDefault_fp unmatched = onDefault;
+            const onDefault_fp unmatched = onDefault;
             unmatched(100U);
             break;
         }
@@ -123,12 +123,12 @@ int main(void) {
     }
     switch (total) {
         case 0: {
-            onCase_fp never = onCase;
+            const onCase_fp never = onCase;
             never(100U);
             break;
         }
         default: {
-            onDefault_fp fallback = onDefault;
+            const onDefault_fp fallback = onDefault;
             fallback(1U);
             break;
         }

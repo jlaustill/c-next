@@ -6,7 +6,7 @@
 // Range: -32768 to 32767
 u32 main() {
     // ===== ADDITION (+<-) =====
-    i16 val <- 10000;
+    mut i16 val <- 10000;
     val +<- 5000; // pos + pos
     if (val != 15000) {
         return 1;
@@ -43,7 +43,7 @@ u32 main() {
     }
 
     // ===== SUBTRACTION (-<-) =====
-    i16 sub <- 15000;
+    mut i16 sub <- 15000;
     sub -<- 5000; // pos - pos = pos
     if (sub != 10000) {
         return 10;
@@ -80,7 +80,7 @@ u32 main() {
     }
 
     // ===== MULTIPLICATION (*<-) =====
-    i16 mul <- 100;
+    mut i16 mul <- 100;
     mul *<- 100; // pos * pos = 10000
     if (mul != 10000) {
         return 20;
@@ -117,7 +117,7 @@ u32 main() {
     }
 
     // ===== DIVISION (/<-) =====
-    i16 div <- 10000;
+    mut i16 div <- 10000;
     div /<- 100; // pos / pos
     if (div != 100) {
         return 30;
@@ -154,7 +154,7 @@ u32 main() {
     }
 
     // ===== MODULO (%<-) =====
-    i16 mod <- 10007;
+    mut i16 mod <- 10007;
     mod %<- 1000; // pos % pos
     if (mod != 7) {
         return 40;
@@ -185,7 +185,7 @@ u32 main() {
     }
 
     // ===== BITWISE AND (&<-) =====
-    i16 andVal <- 0x7FFF; // Max positive
+    mut i16 andVal <- 0x7FFF; // Max positive
     andVal &<- 0x00FF; // Keep low byte
     if (andVal != 0x00FF) {
         return 50;
@@ -210,7 +210,7 @@ u32 main() {
     }
 
     // ===== BITWISE OR (|<-) =====
-    i16 orVal <- 0x00FF;
+    mut i16 orVal <- 0x00FF;
     orVal |<- 0x7F00; // Combine (keep sign clear)
     if (orVal != 0x7FFF) {
         return 60;
@@ -229,7 +229,7 @@ u32 main() {
     }
 
     // ===== BITWISE XOR (^<-) =====
-    i16 xorVal <- 0x5555;
+    mut i16 xorVal <- 0x5555;
     xorVal ^<- 0x5555; // XOR with self = 0
     if (xorVal != 0) {
         return 70;

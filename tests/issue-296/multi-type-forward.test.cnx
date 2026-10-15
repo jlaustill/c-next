@@ -6,8 +6,8 @@
 #include <multi-type-forward-types.cnx>
 
 scope DeviceManager {
-    DeviceConfig config;
-    DeviceStatus status;
+    mut DeviceConfig config;
+    mut DeviceStatus status;
 
     public void configure(DeviceConfig newConfig) {
         this.config <- newConfig;

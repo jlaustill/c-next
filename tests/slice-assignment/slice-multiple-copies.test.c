@@ -11,30 +11,30 @@
 // Simulates real-world buffer building with explicit layout
 int main(void) {
     uint8_t buffer[256] = {0};
-    uint32_t magic = 0x50415255U;
+    const uint32_t magic = 0x50415255U;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
     const uint32_t cnx_tmp0 = (uint32_t)(magic);
     buffer[0] = (uint8_t)(cnx_tmp0);
     buffer[1] = (uint8_t)(cnx_tmp0 >> 8U);
     buffer[2] = (uint8_t)(cnx_tmp0 >> 16U);
     buffer[3] = (uint8_t)(cnx_tmp0 >> 24U);
-    uint16_t version = 0x0100U;
+    const uint16_t version = 0x0100U;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint16_t*). */
     const uint16_t cnx_tmp1 = (uint16_t)(version);
     buffer[4] = (uint8_t)(cnx_tmp1);
     buffer[5] = (uint8_t)(cnx_tmp1 >> 8U);
-    uint16_t length = 20U;
+    const uint16_t length = 20U;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint16_t*). */
     const uint16_t cnx_tmp2 = (uint16_t)(length);
     buffer[6] = (uint8_t)(cnx_tmp2);
     buffer[7] = (uint8_t)(cnx_tmp2 >> 8U);
-    uint8_t flags = 0x0FU;
+    const uint8_t flags = 0x0FU;
     buffer[8] = (uint8_t)(flags);
-    uint8_t reserved = 0U;
+    const uint8_t reserved = 0U;
     buffer[9] = (uint8_t)(reserved);
     buffer[10] = (uint8_t)(reserved);
     buffer[11] = (uint8_t)(reserved);
-    uint64_t data = 0x0102030405060708ULL;
+    const uint64_t data = 0x0102030405060708ULL;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint64_t*). */
     const uint64_t cnx_tmp3 = (uint64_t)(data);
     buffer[12] = (uint8_t)(cnx_tmp3);
@@ -105,7 +105,7 @@ int main(void) {
     if (buffer[19U] != 0x01) {
         return 20U;
     }
-    uint32_t newMagic = 0x44434241U;
+    const uint32_t newMagic = 0x44434241U;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
     const uint32_t cnx_tmp4 = (uint32_t)(newMagic);
     buffer[0] = (uint8_t)(cnx_tmp4);

@@ -17,14 +17,14 @@ uint32_t globalArr[16] = {0};
 uint32_t TestScope__getGlobalArrayElementCount(void) {
     return 16;
 }
-static uint32_t TestScope__scopeArr[16] = {0};
+static const uint32_t TestScope__scopeArr[16] = {0};
 
 uint32_t TestScope__getScopeArrayElementCount(void) {
     return 16;
 }
-uint32_t TestScope__publicArr[16] = {0};
+const uint32_t TestScope__publicArr[16] = {0};
 
-uint32_t checkArrayElementCount(uint32_t arr[16]) {
+uint32_t checkArrayElementCount(const uint32_t arr[16]) {
     return 16;
 }
 

@@ -7,14 +7,14 @@ u32 main() {
     // === OVERFLOW WRAPPING (wraps to 0) ===
 
     // Test 1: Basic overflow - add past max
-    wrap u64 val <- 18446744073709551615; // U64_MAX
+    mut wrap u64 val <- 18446744073709551615; // U64_MAX
     val +<- 1; // Should wrap to 0
     if (val != 0) {
         return 1;
     }
 
     // Test 2: Overflow with larger addition
-    wrap u64 val2 <- 18446744073709551610; // U64_MAX - 5
+    mut wrap u64 val2 <- 18446744073709551610; // U64_MAX - 5
     val2 +<- 10; // Should wrap to 4
     if (val2 != 4) {
         return 2;

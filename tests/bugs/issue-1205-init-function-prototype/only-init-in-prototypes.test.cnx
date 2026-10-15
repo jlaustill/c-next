@@ -12,7 +12,7 @@ struct Message {
 }
 
 scope S {
-    private void onTick(const Message m) {}
+    private void onTick(Message m) {}
 }
 
 struct Controller {

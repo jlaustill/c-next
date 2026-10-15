@@ -12,7 +12,7 @@ enum Status {
 // Exhaustive enum switch - no explicit default in source
 // MISRA 16.4 requires a default case anyway
 u32 getStatusCode(Status s) {
-    u32 code <- 0;
+    mut u32 code <- 0;
     switch (s) {
         case Status.OK {
             code <- 1;
@@ -30,7 +30,7 @@ u32 getStatusCode(Status s) {
 // Integer switch without default
 // MISRA 16.4 requires a default case
 u32 mapValue(u32 val) {
-    u32 result <- 99;
+    mut u32 result <- 99;
     switch (val) {
         case 1 {
             result <- 10;
@@ -47,7 +47,7 @@ u32 mapValue(u32 val) {
 
 // Switch WITH explicit default - should work as before
 u32 withDefault(u32 val) {
-    u32 result <- 0;
+    mut u32 result <- 0;
     switch (val) {
         case 1 {
             result <- 100;
@@ -60,7 +60,7 @@ u32 withDefault(u32 val) {
 }
 
 u32 main() {
-    u32 result <- 0;
+    mut u32 result <- 0;
 
     // Test exhaustive enum switch
     result <- getStatusCode(Status.OK);

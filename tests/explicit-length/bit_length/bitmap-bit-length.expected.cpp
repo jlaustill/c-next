@@ -10,11 +10,11 @@
 // test-execution
 // Tests .type_bit_length property for bitmap types (ADR-058)
 // bitmap8 = 8 bits, bitmap16 = 16 bits, bitmap32 = 32 bits
-Flags8 global8 = 0;
+extern const Flags8 global8 = 0;
 
-Flags16 global16 = 0;
+extern const Flags16 global16 = 0;
 
-Flags32 global32 = 0;
+extern const Flags32 global32 = 0;
 
 int main(void) {
     if (8 != 8) {
@@ -26,15 +26,15 @@ int main(void) {
     if (32 != 32) {
         return 3;
     }
-    Flags8 local8 = 0;
+    const Flags8 local8 = 0;
     if (8 != 8) {
         return 4;
     }
-    Flags16 local16 = 0;
+    const Flags16 local16 = 0;
     if (16 != 16) {
         return 5;
     }
-    Flags32 local32 = 0;
+    const Flags32 local32 = 0;
     if (32 != 32) {
         return 6;
     }

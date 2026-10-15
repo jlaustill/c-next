@@ -2,9 +2,9 @@
 // Tests: multi-dimensional i64 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: timestamps, large counters, high-precision measurements
-i64[4][8] matrix2d;
+mut i64[4][8] matrix2d;
 
-i64[2][3][4] cube3d;
+mut i64[2][3][4] cube3d;
 
 u32 main() {
     // 2D array: Write operations with large positive and negative values
@@ -78,8 +78,8 @@ u32 main() {
     }
 
     // Nested loop iteration - populate 2D array
-    for (u32 i <- 0; i < 4; i +<- 1) {
-        for (u32 j <- 0; j < 8; j +<- 1) {
+    for (mut u32 i <- 0; i < 4; i +<- 1) {
+        for (mut u32 j <- 0; j < 8; j +<- 1) {
             matrix2d[i][j] <- (i * 100 + j)[0, 64];
         }
     }
@@ -99,10 +99,10 @@ u32 main() {
     }
 
     // Nested loop iteration - populate and sum 3D array
-    i64 sum <- 0;
-    for (u32 i <- 0; i < 2; i +<- 1) {
-        for (u32 j <- 0; j < 3; j +<- 1) {
-            for (u32 k <- 0; k < 4; k +<- 1) {
+    mut i64 sum <- 0;
+    for (mut u32 i <- 0; i < 2; i +<- 1) {
+        for (mut u32 j <- 0; j < 3; j +<- 1) {
+            for (mut u32 k <- 0; k < 4; k +<- 1) {
                 cube3d[i][j][k] <- (i * 100 + j * 10 + k)[0, 64];
                 sum +<- cube3d[i][j][k];
             }
@@ -127,11 +127,11 @@ u32 main() {
     }
 
     // Test i64 specific edge cases with very large values
-    i64[4][2] testArray;
+    mut i64[4][2] testArray;
 
     // Initialize all elements first
-    for (u32 ti <- 0; ti < 4; ti +<- 1) {
-        for (u32 tj <- 0; tj < 2; tj +<- 1) {
+    for (mut u32 ti <- 0; ti < 4; ti +<- 1) {
+        for (mut u32 tj <- 0; tj < 2; tj +<- 1) {
             testArray[ti][tj] <- 0;
         }
     }
@@ -162,11 +162,11 @@ u32 main() {
     }
 
     // Test 2D array with timestamp pattern (milliseconds since epoch)
-    i64[3][3] timestamps;
+    mut i64[3][3] timestamps;
 
     // Initialize all elements first
-    for (u32 tsi <- 0; tsi < 3; tsi +<- 1) {
-        for (u32 tsj <- 0; tsj < 3; tsj +<- 1) {
+    for (mut u32 tsi <- 0; tsi < 3; tsi +<- 1) {
+        for (mut u32 tsj <- 0; tsj < 3; tsj +<- 1) {
             timestamps[tsi][tsj] <- 0;
         }
     }
@@ -209,11 +209,11 @@ u32 main() {
     }
 
     // Test with nano-precision timestamps (nanoseconds)
-    i64[2][2] nanos;
+    mut i64[2][2] nanos;
 
     // Initialize all elements first
-    for (u32 ni <- 0; ni < 2; ni +<- 1) {
-        for (u32 nj <- 0; nj < 2; nj +<- 1) {
+    for (mut u32 ni <- 0; ni < 2; ni +<- 1) {
+        for (mut u32 nj <- 0; nj < 2; nj +<- 1) {
             nanos[ni][nj] <- 0;
         }
     }
@@ -236,11 +236,11 @@ u32 main() {
     }
 
     // Test large financial calculations (atomic units, e.g., satoshis)
-    i64[2][2] balances;
+    mut i64[2][2] balances;
 
     // Initialize all elements first
-    for (u32 bi <- 0; bi < 2; bi +<- 1) {
-        for (u32 bj <- 0; bj < 2; bj +<- 1) {
+    for (mut u32 bi <- 0; bi < 2; bi +<- 1) {
+        for (mut u32 bj <- 0; bj < 2; bj +<- 1) {
             balances[bi][bj] <- 0;
         }
     }

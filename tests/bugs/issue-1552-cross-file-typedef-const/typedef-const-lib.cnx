@@ -14,7 +14,7 @@ struct Sample {
     u8 value;
 }
 
-u8 witness <- 0;
+mut u8 witness <- 0;
 
 // Body READS but never modifies `s`, so #268 auto-const gives `const Sample*`.
 void record(Sample s) {
@@ -24,7 +24,7 @@ void record(Sample s) {
 // NEGATIVE CONTROL: body DOES modify `s`, so auto-const must NOT apply and
 // both files must emit the non-const form. A fix that simply made every
 // typedef parameter const would pass `record` and fail this one.
-void mutate(Sample s) {
+void mutate(mut Sample s) {
     s.value <- 7;
 }
 

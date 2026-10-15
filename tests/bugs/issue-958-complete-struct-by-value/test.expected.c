@@ -11,10 +11,10 @@
 #include <stdint.h>
 
 /* Scope: App */
-static widget_t App__root = {0};
+static const widget_t App__root = {0};
 
 void App__on_change(widget_t* w) {
-    int32_t val = widget_get_value(w);
+    const int32_t val = widget_get_value(w);
 }
 
 void App__init(void) {

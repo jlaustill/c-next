@@ -30,7 +30,7 @@ scope Timing {
     }
 
     public u32 run() {
-        Config cfg;
+        mut Config cfg;
         cfg.tick <- tickSource;
         cfg.divisor <- 4;
         return cfg.tick() + cfg.divisor;
@@ -47,7 +47,7 @@ scope Later {
     }
 
     public u32 run() {
-        Holder h;
+        mut Holder h;
         h.make <- producer;
         return h.make();
     }
@@ -82,7 +82,7 @@ scope Shadow {
     }
 
     public u32 run() {
-        Wrapper w;
+        mut Wrapper w;
         w.c <- Config;
         return w.c();
     }

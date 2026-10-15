@@ -6,7 +6,7 @@ u32 main() {
     f32 under <- -40000.0;
     f32 in_range <- 10000.0;
 
-    i16 result <- (i16)over;
+    mut i16 result <- (i16)over;
     if (result != 32767) {
         return 1;
     }

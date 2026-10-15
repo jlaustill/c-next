@@ -35,7 +35,7 @@ int main(void) {
     if (32 != 32) {
         return 6U;
     }
-    uint32_t area = rect.width * rect.height;
+    const uint32_t area = rect.width * rect.height;
     if (area != 5000) {
         return 7U;
     }

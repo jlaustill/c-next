@@ -9,7 +9,7 @@ u32 shared <- 4;
 
 u32 main() {
     u32 flag <- 1;
-    const u8 seed <- 3;
+    u8 seed <- 3;
     if (flag = 1) {
         Tally shared(seed);
         if (shared.start != 3) {

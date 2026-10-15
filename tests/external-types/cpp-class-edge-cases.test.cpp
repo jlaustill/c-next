@@ -11,10 +11,10 @@
 #include "CppTestClass.hpp"
 
 void test(void) {
-    CppTestClass localMulti = {};
+    const CppTestClass localMulti = {};
     localMulti.value = 50;
     localMulti.name = "local";
-    CppTestClass localSingle = {};
+    const CppTestClass localSingle = {};
     localSingle.value = 42;
     CppTestClass obj = {};
     obj.value = 10;

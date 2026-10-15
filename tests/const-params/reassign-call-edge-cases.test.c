@@ -69,12 +69,12 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 
 /* Scope: Handler */
 
-uint8_t Handler__setValue(ConstEdge__Config* cfg, uint32_t val) {
+uint8_t Handler__setValue(ConstEdge__Config* cfg, const uint32_t val) {
     cfg->value = val;
     return 0U;
 }
 
-uint8_t Handler__setSecond(uint32_t dummy, ConstEdge__Config* cfg) {
+uint8_t Handler__setSecond(const uint32_t dummy, ConstEdge__Config* cfg) {
     cfg->value = 999U;
     return 0U;
 }
@@ -83,15 +83,15 @@ uint32_t Handler__getValue(const ConstEdge__Config* cfg) {
     return cfg->value;
 }
 
-uint8_t Handler__wrapSetValue(ConstEdge__Config* cfg, uint32_t val) {
+uint8_t Handler__wrapSetValue(ConstEdge__Config* cfg, const uint32_t val) {
     return Handler__setValue(cfg, val);
 }
 
 // Edge case 1: Nested conditionals
 void handleNestedIf(ConstEdge__Config* config) {
     uint8_t errorCode = 0U;
-    bool a = true;
-    bool b = true;
+    const bool a = true;
+    const bool b = true;
     if (a == true) {
         if (b == true) {
             errorCode = Handler__setValue(config, 10U);
@@ -102,7 +102,7 @@ void handleNestedIf(ConstEdge__Config* config) {
 // Edge case 2: Switch statement
 void handleSwitch(ConstEdge__Config* config) {
     uint8_t errorCode = 0U;
-    uint32_t choice = 1U;
+    const uint32_t choice = 1U;
     switch (choice) {
         case 0: {
             errorCode = 0U;
@@ -156,7 +156,7 @@ void Processor__process(ConstEdge__Config* config) {
 // Edge case 6: Second parameter is modified (not first)
 void handleSecondParam(ConstEdge__Config* config) {
     uint8_t errorCode = 0U;
-    uint32_t dummy = 0U;
+    const uint32_t dummy = 0U;
     errorCode = Handler__setSecond(dummy, config);
 }
 
@@ -191,7 +191,7 @@ void handleCompoundAssign(const ConstEdge__Config* config) {
 // Edge case 11: Compound assignment where the call modifies
 void handleCompoundModify(ConstEdge__Config* config) {
     uint32_t total = 0U;
-    uint8_t code = Handler__setValue(config, 80U);
+    const uint8_t code = Handler__setValue(config, 80U);
     total = cnx_clamp_add_u32(total, code);
 }
 

@@ -8,7 +8,7 @@
 
 #include "Tally.hpp"
 
-const u8 EARLY <- 3;
+u8 EARLY <- 3;
 
 u32 main() {
     Tally ok(EARLY); // control
@@ -16,4 +16,4 @@ u32 main() {
     return 0;
 }
 
-const u8 LATER <- 3;
+u8 LATER <- 3;

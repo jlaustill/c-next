@@ -64,7 +64,7 @@ int32_t manhattanDistance(const Point& p) {
 }
 
 int main(void) {
-    Point origin = { .x = 0, .y = 0 };
+    const Point origin = { .x = 0, .y = 0 };
     if (origin.x != 0) {
         return 1U;
     }
@@ -80,14 +80,14 @@ int main(void) {
     if (p1.y != 20) {
         return 4U;
     }
-    Point p2 = { .x = 5, .y = -3 };
+    const Point p2 = { .x = 5, .y = -3 };
     if (p2.x != 5) {
         return 5U;
     }
     if (p2.y != -3) {
         return 6U;
     }
-    int32_t xVal = getPointX(p2);
+    const int32_t xVal = getPointX(p2);
     if (xVal != 5) {
         return 7U;
     }
@@ -99,12 +99,12 @@ int main(void) {
     if (p3.y != 0) {
         return 9U;
     }
-    Point p4 = { .x = -3, .y = 4 };
-    int32_t dist = manhattanDistance(p4);
+    const Point p4 = { .x = -3, .y = 4 };
+    const int32_t dist = manhattanDistance(p4);
     if (dist != 7) {
         return 10U;
     }
-    SimpleStruct__Sensor s1 = { .id = 42U, .temperature = 23.5, .active = true };
+    const SimpleStruct__Sensor s1 = { .id = 42U, .temperature = 23.5, .active = true };
     if (s1.id != 42) {
         return 11U;
     }

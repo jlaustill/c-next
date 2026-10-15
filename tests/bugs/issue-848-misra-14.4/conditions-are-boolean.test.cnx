@@ -13,8 +13,8 @@
 // tests/bugs/issue-1042-bare-bool-condition.
 
 u32 countDownWhile(u32 start) {
-    u32 n <- start;
-    u32 iterations <- 0;
+    mut u32 n <- start;
+    mut u32 iterations <- 0;
     while (n > 0) {
         n <- n - 1;
         iterations <- iterations + 1;
@@ -23,15 +23,15 @@ u32 countDownWhile(u32 start) {
 }
 
 u32 sumForLoop(u32 limit) {
-    u32 total <- 0;
-    for (u32 i <- 0; i < limit; i <- i + 1) {
+    mut u32 total <- 0;
+    for (mut u32 i <- 0; i < limit; i <- i + 1) {
         total <- total + i;
     }
     return total;
 }
 
 u32 firstMultiple(u32 step) {
-    u32 value <- 0;
+    mut u32 value <- 0;
     do {
         value <- value + step;
     } while (value < step);
@@ -39,7 +39,7 @@ u32 firstMultiple(u32 step) {
 }
 
 bool bothPositive(i32 a, i32 b) {
-    bool result <- false;
+    mut bool result <- false;
     if (a > 0 && b > 0) {
         result <- true;
     }

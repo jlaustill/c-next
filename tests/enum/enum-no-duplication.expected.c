@@ -31,7 +31,7 @@ int main(void) {
     if (Motor__current != Motor__State__RUNNING) {
         return 1U;
     }
-    bool running = Motor__isRunning();
+    const bool running = Motor__isRunning();
     if (running != true) {
         return 2U;
     }

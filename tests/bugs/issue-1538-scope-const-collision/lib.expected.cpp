@@ -9,4 +9,4 @@
 
 /* Scope: Small */
 const uint8_t Small__N = 2U;
-uint8_t Small__t[2] = {};
+const uint8_t Small__t[2] = {};

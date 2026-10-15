@@ -14,4 +14,4 @@
 /* API endpoint: https://api.example.com/v1
  * Protocol: https://
  */
-uint32_t apiVersion = 1U;
+const uint32_t apiVersion = 1U;

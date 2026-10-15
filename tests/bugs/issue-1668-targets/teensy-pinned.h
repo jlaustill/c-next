@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint32_t pinnedValue;
+extern const uint32_t pinnedValue;
 
 #ifdef __cplusplus
 }

@@ -17,21 +17,21 @@ const uint32_t D = 4U;
 uint32_t first(void) {
     /* C11 6.2.1p4, C++ [basic.scope.hiding]: `D` emitted as `first__D` (a plain `D` would hide the file-scope `D` for the rest of its scope, so `global.D` would reach the local). */
     const uint32_t first__D = 0U;
-    uint32_t y = first__D;
+    const uint32_t y = first__D;
     return y;
 }
 
 uint32_t second(void) {
-    uint32_t x = 10U / D;
+    const uint32_t x = 10U / D;
     return x;
 }
 
 int main(void) {
-    uint32_t zero = first();
+    const uint32_t zero = first();
     if (zero != 0) {
         return 1U;
     }
-    uint32_t q = second();
+    const uint32_t q = second();
     if (q != 2) {
         return 2U;
     }

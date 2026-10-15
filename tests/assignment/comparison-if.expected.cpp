@@ -11,7 +11,7 @@
 // test-execution
 // ADR-001: Comparison in if statements
 // Tests: = operator transpiles to == in conditions
-uint32_t checkValue(uint32_t x) {
+uint32_t checkValue(const uint32_t x) {
     if (x == 0) {
         return 0U;
     }
@@ -21,7 +21,7 @@ uint32_t checkValue(uint32_t x) {
     return x;
 }
 
-bool isPositive(int32_t n) {
+bool isPositive(const int32_t n) {
     if (n > 0) {
         return true;
     }
@@ -29,28 +29,28 @@ bool isPositive(int32_t n) {
 }
 
 int main(void) {
-    uint32_t zero = 0U;
-    uint32_t hundred = 100U;
-    uint32_t fifty = 50U;
-    int32_t positive = 5;
-    int32_t negative = -5;
-    uint32_t result1 = checkValue(zero);
+    const uint32_t zero = 0U;
+    const uint32_t hundred = 100U;
+    const uint32_t fifty = 50U;
+    const int32_t positive = 5;
+    const int32_t negative = -5;
+    const uint32_t result1 = checkValue(zero);
     if (result1 != 0) {
         return 1U;
     }
-    uint32_t result2 = checkValue(hundred);
+    const uint32_t result2 = checkValue(hundred);
     if (result2 != 100) {
         return 1U;
     }
-    uint32_t result3 = checkValue(fifty);
+    const uint32_t result3 = checkValue(fifty);
     if (result3 != 50) {
         return 1U;
     }
-    bool result4 = isPositive(positive);
+    const bool result4 = isPositive(positive);
     if (result4 != true) {
         return 1U;
     }
-    bool result5 = isPositive(negative);
+    const bool result5 = isPositive(negative);
     if (result5 != false) {
         return 1U;
     }

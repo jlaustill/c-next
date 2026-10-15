@@ -33,15 +33,15 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 
 /* Scope: Report */
 static uint32_t Report__tally = 0U;
-static uint32_t Report__weight = 5U;
 static uint32_t Report__primed = 3U;
 
 uint32_t Report__factor(void) {
-    return Report__weight;
+    return 5U;
 }
 
-void Report__add(uint32_t sample) {
+void Report__add(const uint32_t sample) {
     Report__tally = cnx_clamp_add_u32(cnx_clamp_add_u32(Report__tally, Report__factor()), sample);
+    Report__primed = Report__tally;
 }
 
 uint32_t Report__readTally(void) {
@@ -51,25 +51,25 @@ uint32_t Report__readTally(void) {
 // A top-level function with a shadowing local: ADR-057 with no enclosing scope,
 // in a fixture that reaches another file. `shadow-outside-any-scope` covers this
 // same-file; the include boundary is a separate matrix column.
-uint32_t spare = 40U;
+const uint32_t spare = 40U;
 
 uint32_t detached(void) {
     /* C11 6.2.1p4, C++ [basic.scope.hiding]: `spare` emitted as `detached__spare` (a plain `spare` would hide the file-scope `spare` for the rest of its scope, so `global.spare` would reach the local). */
-    uint32_t detached__spare = 6U;
+    const uint32_t detached__spare = 6U;
     return detached__spare;
 }
 
 int main(void) {
-    uint32_t smoothed = Filter__smooth(1U);
+    const uint32_t smoothed = Filter__smooth(1U);
     if (smoothed != 3) {
         return 1U;
     }
     Report__add(2U);
-    uint32_t tally = Report__readTally();
+    const uint32_t tally = Report__readTally();
     if (tally != 7) {
         return 2U;
     }
-    uint32_t detachedValue = detached();
+    const uint32_t detachedValue = detached();
     if (detachedValue != 6) {
         return 3U;
     }

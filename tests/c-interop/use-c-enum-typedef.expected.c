@@ -13,10 +13,10 @@
 #include <stdint.h>
 
 int main(void) {
-    Priority low = PRIORITY_LOW;
-    Priority med = PRIORITY_MEDIUM;
-    Priority high = PRIORITY_HIGH;
-    Priority crit = PRIORITY_CRITICAL;
+    const Priority low = PRIORITY_LOW;
+    const Priority med = PRIORITY_MEDIUM;
+    const Priority high = PRIORITY_HIGH;
+    const Priority crit = PRIORITY_CRITICAL;
     if (low != 0) {
         return 1U;
     }
@@ -29,14 +29,14 @@ int main(void) {
     if (crit != 255) {
         return 4U;
     }
-    Priority p = PRIORITY_HIGH;
+    const Priority p = PRIORITY_HIGH;
     if (p != PRIORITY_HIGH) {
         return 5U;
     }
     if (p < PRIORITY_MEDIUM) {
         return 6U;
     }
-    Priority threshold = PRIORITY_MEDIUM;
+    const Priority threshold = PRIORITY_MEDIUM;
     if (high > threshold) {
     } else {
         return 7U;

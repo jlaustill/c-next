@@ -23,7 +23,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // test-execution
 // ADR-001: Comparison in while loops
 // Tests: = operator transpiles to == in while conditions
-uint32_t sumUntilLimit(uint32_t limit) {
+uint32_t sumUntilLimit(const uint32_t limit) {
     uint32_t sum = 0U;
     uint32_t i = 0U;
     while (i != limit) {
@@ -34,18 +34,18 @@ uint32_t sumUntilLimit(uint32_t limit) {
 }
 
 int main(void) {
-    uint32_t five = 5U;
-    uint32_t zero = 0U;
-    uint32_t three = 3U;
-    uint32_t result1 = sumUntilLimit(five);
+    const uint32_t five = 5U;
+    const uint32_t zero = 0U;
+    const uint32_t three = 3U;
+    const uint32_t result1 = sumUntilLimit(five);
     if (result1 != 10) {
         return 1U;
     }
-    uint32_t result2 = sumUntilLimit(zero);
+    const uint32_t result2 = sumUntilLimit(zero);
     if (result2 != 0) {
         return 1U;
     }
-    uint32_t result3 = sumUntilLimit(three);
+    const uint32_t result3 = sumUntilLimit(three);
     if (result3 != 3) {
         return 1U;
     }

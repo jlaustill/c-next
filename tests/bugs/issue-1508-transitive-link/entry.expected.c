@@ -26,7 +26,7 @@
 #include <stdint.h>
 
 int main(void) {
-    uint32_t v = viaMid();
+    const uint32_t v = viaMid();
     if (v != 5) {
         return 1U;
     }

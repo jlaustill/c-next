@@ -20,7 +20,7 @@ int main(void) {
     if (DWORD_CONST != 100000) {
         return 3U;
     }
-    uint8_t firstChar = STRING_CONST[0U];
+    const uint8_t firstChar = STRING_CONST[0U];
     if (firstChar != 72) {
         return 4U;
     }
@@ -30,7 +30,7 @@ int main(void) {
     if (BYTE_ARRAY[3U] != 4) {
         return 6U;
     }
-    uint8_t oneFirst = STRING_ARRAY[0U][0U];
+    const uint8_t oneFirst = STRING_ARRAY[0U][0U];
     if (oneFirst != 111) {
         return 7U;
     }

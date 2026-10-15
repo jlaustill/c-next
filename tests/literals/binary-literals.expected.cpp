@@ -10,75 +10,75 @@
 // Tests: Unsuffixed binary literals with type inference
 // Validates that 0b... literals work correctly when type is inferred from context
 int main(void) {
-    uint8_t byte = 0b11111111U;
+    const uint8_t byte = 0b11111111U;
     if (byte != 255) {
         return 1U;
     }
-    uint16_t word = 0b1010101010101010U;
+    const uint16_t word = 0b1010101010101010U;
     if (word != 43690) {
         return 2U;
     }
-    uint32_t dword = 0b11111111000000001111111100000000U;
+    const uint32_t dword = 0b11111111000000001111111100000000U;
     if (dword != 4278255360) {
         return 3U;
     }
-    uint8_t lower = 0b1010U;
+    const uint8_t lower = 0b1010U;
     if (lower != 10) {
         return 4U;
     }
-    uint8_t upper = 0B1010U;
+    const uint8_t upper = 0B1010U;
     if (upper != 10) {
         return 5U;
     }
-    uint8_t zeros = 0b00000000U;
+    const uint8_t zeros = 0b00000000U;
     if (zeros != 0) {
         return 6U;
     }
-    uint8_t ones8 = 0b11111111U;
+    const uint8_t ones8 = 0b11111111U;
     if (ones8 != 255) {
         return 7U;
     }
-    uint8_t alt1 = 0b10101010U;
+    const uint8_t alt1 = 0b10101010U;
     if (alt1 != 170) {
         return 8U;
     }
-    uint8_t alt2 = 0b01010101U;
+    const uint8_t alt2 = 0b01010101U;
     if (alt2 != 85) {
         return 9U;
     }
-    uint8_t highNibble = 0b11110000U;
+    const uint8_t highNibble = 0b11110000U;
     if (highNibble != 240) {
         return 10U;
     }
-    uint8_t lowNibble = 0b00001111U;
+    const uint8_t lowNibble = 0b00001111U;
     if (lowNibble != 15) {
         return 11U;
     }
-    uint8_t bit0 = 0b00000001U;
+    const uint8_t bit0 = 0b00000001U;
     if (bit0 != 1) {
         return 12U;
     }
-    uint8_t bit7 = 0b10000000U;
+    const uint8_t bit7 = 0b10000000U;
     if (bit7 != 128) {
         return 13U;
     }
-    uint8_t orResult = 0b11110000U | 0b00001111U;
+    const uint8_t orResult = 0b11110000U | 0b00001111U;
     if (orResult != 255) {
         return 14U;
     }
-    uint8_t andResult = 0b11111111U & 0b00001111U;
+    const uint8_t andResult = 0b11111111U & 0b00001111U;
     if (andResult != 15) {
         return 15U;
     }
-    uint8_t xorResult = 0b11110000U ^ 0b10101010U;
+    const uint8_t xorResult = 0b11110000U ^ 0b10101010U;
     if (xorResult != 90) {
         return 16U;
     }
-    uint8_t sum = 0b0001U + 0b0010U;
+    const uint8_t sum = 0b0001U + 0b0010U;
     if (sum != 3) {
         return 17U;
     }
-    uint8_t flags[4] = {0b0001U, 0b0010U, 0b0100U, 0b1000U};
+    const uint8_t flags[4] = {0b0001U, 0b0010U, 0b0100U, 0b1000U};
     if (flags[0U] != 1) {
         return 18U;
     }
@@ -91,7 +91,7 @@ int main(void) {
     if (flags[3U] != 8) {
         return 21U;
     }
-    uint8_t val = 0b11001100U;
+    const uint8_t val = 0b11001100U;
     if (val != 0b11001100) {
         return 22U;
     }

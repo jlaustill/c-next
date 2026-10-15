@@ -15,7 +15,7 @@ extern "C" {
 /* Function prototypes */
 uint32_t sharedHelper(void);
 void sharedNotify(void);
-uint32_t sharedWithCount(uint32_t n);
+uint32_t sharedWithCount(const uint32_t n);
 
 #ifdef __cplusplus
 }

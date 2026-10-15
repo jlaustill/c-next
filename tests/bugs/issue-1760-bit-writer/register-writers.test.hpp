@@ -22,7 +22,7 @@ extern const uint8_t W;
 extern const uint8_t H;
 
 /* Function prototypes */
-void configure(uint32_t v);
+void configure(const uint32_t v);
 
 #ifdef __cplusplus
 }

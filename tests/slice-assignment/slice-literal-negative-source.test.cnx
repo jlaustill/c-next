@@ -3,7 +3,7 @@
 // contextually typed to the slice byte-width (ADR-052) and serialized as
 // two's-complement little-endian bytes. buf[0,4] <- -1 writes 0xFF in all 4 bytes.
 u32 main() {
-    u8[8] buf;
+    mut u8[8] buf;
     buf[0, 4] <- -1;
 
     if (buf[0] != 0xFF) {

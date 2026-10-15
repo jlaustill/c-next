@@ -18,13 +18,13 @@
 // .h against `uint8_t msg[] = "Hi";` in the .c (gcc: conflicting types), and
 // `msg[1]` read BIT 1 of that scalar. A scope member's .c left `[]` for the C
 // compiler to count, against the .h's stated size.
-uint8_t msg[3] = "Hi";
+const uint8_t msg[3] = "Hi";
 
-uint8_t counted[3] = {10U, 20U, 30U};
+const uint8_t counted[3] = {10U, 20U, 30U};
 
 /* Scope: Table */
-uint8_t Table__row[4] = {1U, 2U, 3U, 4U};
-uint8_t Table__text[4] = "abc";
+const uint8_t Table__row[4] = {1U, 2U, 3U, 4U};
+const uint8_t Table__text[4] = "abc";
 
 int main(void) {
     if (msg[1U] != 105) {

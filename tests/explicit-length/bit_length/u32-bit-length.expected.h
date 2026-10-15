@@ -18,13 +18,13 @@ typedef struct U32BitLen__TestStruct {
 } U32BitLen__TestStruct;
 
 /* External variables */
-extern uint32_t globalVar;
-extern uint32_t TestScope__publicMember;
+extern const uint32_t globalVar;
+extern const uint32_t TestScope__publicMember;
 
 /* Function prototypes */
 uint32_t TestScope__getGlobalBitLength(void);
 uint32_t TestScope__getMemberBitLength(void);
-uint32_t checkParamBitLength(uint32_t param);
+uint32_t checkParamBitLength(const uint32_t param);
 
 #ifdef __cplusplus
 }

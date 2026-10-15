@@ -33,22 +33,22 @@ extern const uint16_t MAX_PORT = 65535U;
 extern const uint16_t DEFAULT_PORT = 8080U;
 
 int main(void) {
-    uint16_t port = MAX_PORT;
+    const uint16_t port = MAX_PORT;
     if (port != 65535) {
         return 1U;
     }
-    uint16_t defPort = DEFAULT_PORT;
+    const uint16_t defPort = DEFAULT_PORT;
     if (defPort != 8080) {
         return 2U;
     }
-    uint16_t result = cnx_clamp_sub_u16(MAX_PORT, DEFAULT_PORT);
+    const uint16_t result = cnx_clamp_sub_u16(MAX_PORT, DEFAULT_PORT);
     if (result != 57455) {
         return 3U;
     }
     if (DEFAULT_PORT >= MAX_PORT) {
         return 4U;
     }
-    uint16_t values[3] = {100U, 200U, 300U};
+    const uint16_t values[3] = {100U, 200U, 300U};
     uint16_t sum = 0U;
     for (uint16_t i = 0U; i < 3; i = cnx_clamp_add_u16(i, 1U)) {
         sum = cnx_clamp_add_u16(sum, values[i]);

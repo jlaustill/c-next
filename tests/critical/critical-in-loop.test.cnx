@@ -3,12 +3,12 @@
 // test-target-xfail: host #1147 "implicit declaration of function"
 // Coverage: Section 7.7, 33.2 - Critical section inside loops
 // Tests: critical sections inside for, while, and do-while loops
-u32[10] sharedData;
+mut u32[10] sharedData;
 
-u32 counter <- 0;
+mut u32 counter <- 0;
 
 void criticalInFor() {
-    for (u32 i <- 0; i < 10; i <- i + 1) {
+    for (mut u32 i <- 0; i < 10; i <- i + 1) {
         critical {
             sharedData[i] <- i * 2;
             counter +<- 1;
@@ -17,7 +17,7 @@ void criticalInFor() {
 }
 
 void criticalInWhile() {
-    u32 i <- 0;
+    mut u32 i <- 0;
     while (i < 5) {
         critical {
             sharedData[i] +<- 1;
@@ -27,7 +27,7 @@ void criticalInWhile() {
 }
 
 void criticalInDoWhile() {
-    u32 i <- 0;
+    mut u32 i <- 0;
     do {
         critical {
             counter +<- 1;
@@ -37,8 +37,8 @@ void criticalInDoWhile() {
 }
 
 void criticalInNestedLoop() {
-    for (u32 i <- 0; i < 3; i <- i + 1) {
-        for (u32 j <- 0; j < 3; j <- j + 1) {
+    for (mut u32 i <- 0; i < 3; i <- i + 1) {
+        for (mut u32 j <- 0; j < 3; j <- j + 1) {
             critical {
                 sharedData[i] +<- j;
             }

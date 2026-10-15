@@ -13,8 +13,8 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint8_t buf[4];
-extern uint8_t count;
+extern const uint8_t buf[4];
+extern const uint8_t count;
 
 #ifdef __cplusplus
 }

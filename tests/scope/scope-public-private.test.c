@@ -55,7 +55,7 @@ uint8_t Visibility__getPublicCounter(void) {
     return Visibility__publicCounter;
 }
 
-void Visibility__setPublicCounter(uint8_t value) {
+void Visibility__setPublicCounter(const uint8_t value) {
     Visibility__publicCounter = value;
 }
 
@@ -71,15 +71,15 @@ bool Visibility__getBothFlags(void) {
     return Visibility__privateFlag && Visibility__publicFlag;
 }
 
-void Visibility__setPrivateFlag(bool value) {
+void Visibility__setPrivateFlag(const bool value) {
     Visibility__privateFlag = value;
 }
 
-void Visibility__setPublicFlag(bool value) {
+void Visibility__setPublicFlag(const bool value) {
     Visibility__publicFlag = value;
 }
 
-void Visibility__setPrivateCounter(uint8_t value) {
+void Visibility__setPrivateCounter(const uint8_t value) {
     Visibility__privateCounter = value;
 }
 
@@ -90,15 +90,15 @@ int main(void) {
     if (Visibility__publicFlag != true) {
         return 2U;
     }
-    uint8_t result3 = Visibility__getPrivateCounter();
+    const uint8_t result3 = Visibility__getPrivateCounter();
     if (result3 != 0) {
         return 3U;
     }
-    uint8_t result4 = Visibility__getPrivateCounterViaInternal();
+    const uint8_t result4 = Visibility__getPrivateCounterViaInternal();
     if (result4 != 0) {
         return 4U;
     }
-    uint8_t result5 = Visibility__getPublicCounter();
+    const uint8_t result5 = Visibility__getPublicCounter();
     if (result5 != 10) {
         return 5U;
     }
@@ -107,31 +107,31 @@ int main(void) {
         return 6U;
     }
     Visibility__setPublicCounter(30U);
-    uint8_t result7 = Visibility__getPublicCounter();
+    const uint8_t result7 = Visibility__getPublicCounter();
     if (result7 != 30) {
         return 7U;
     }
     Visibility__incrementPrivate();
-    uint8_t result8 = Visibility__getPrivateCounter();
+    const uint8_t result8 = Visibility__getPrivateCounter();
     if (result8 != 1) {
         return 8U;
     }
-    uint8_t result9 = Visibility__getSum();
+    const uint8_t result9 = Visibility__getSum();
     if (result9 != 31) {
         return 9U;
     }
     Visibility__setPrivateFlag(true);
-    bool result10 = Visibility__getBothFlags();
+    const bool result10 = Visibility__getBothFlags();
     if (result10 != true) {
         return 10U;
     }
     Visibility__setPublicFlag(false);
-    bool result11 = Visibility__getBothFlags();
+    const bool result11 = Visibility__getBothFlags();
     if (result11 != false) {
         return 11U;
     }
     Visibility__setPrivateCounter(100U);
-    uint8_t result12 = Visibility__getPrivateCounter();
+    const uint8_t result12 = Visibility__getPrivateCounter();
     if (result12 != 100) {
         return 12U;
     }

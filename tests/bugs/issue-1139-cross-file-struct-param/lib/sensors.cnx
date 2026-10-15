@@ -14,7 +14,7 @@ scope Sensors {
         return sample.value;
     }
 
-    public void bump(Sample sample) {
+    public void bump(mut Sample sample) {
         sample.value <- sample.value + 1;
     }
 }

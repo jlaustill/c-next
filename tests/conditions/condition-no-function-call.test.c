@@ -39,7 +39,7 @@ bool checkValue(void) {
 
 int main(void) {
     uint32_t value = getValue();
-    bool valid = checkValue();
+    const bool valid = checkValue();
     if (value > 0) {
         value = 1U;
     }
@@ -54,7 +54,7 @@ int main(void) {
         return 2U;
     }
     uint32_t sum = 0U;
-    uint32_t limit = 5U;
+    const uint32_t limit = 5U;
     for (uint32_t i = 0U; i < limit; i = cnx_clamp_add_u32(i, 1U)) {
         sum = cnx_clamp_add_u32(sum, 1U);
     }
@@ -68,7 +68,7 @@ int main(void) {
     if (x != 0) {
         return 4U;
     }
-    uint32_t result = (valid == true) ? 100U : 0U;
+    const uint32_t result = (valid == true) ? 100U : 0U;
     if (result != 100) {
         return 5U;
     }

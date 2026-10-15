@@ -6,7 +6,7 @@ u32 main() {
     f32 under <- -3000000000.0; // < INT32_MIN
     f32 in_range <- 1000000.0;
 
-    i32 result <- (i32)over;
+    mut i32 result <- (i32)over;
     if (result != 2147483647) {
         return 1;
     }

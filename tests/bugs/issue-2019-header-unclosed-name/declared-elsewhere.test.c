@@ -17,10 +17,10 @@
 #include <stdint.h>
 
 /* Scope: S */
-uint32_t S__LIMIT = 1U;
+const uint32_t S__LIMIT = 1U;
 
 int main(void) {
-    uint32_t fromHeader = LIMIT;
+    const uint32_t fromHeader = LIMIT;
     if (fromHeader != 7) {
         return 1U;
     }

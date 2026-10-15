@@ -2,7 +2,7 @@
 // Tests that public scope functions are exported in the header.
 
 scope LED {
-    u8 brightness <- 0;
+    mut u8 brightness <- 0;
 
     public void on() {
         brightness <- 255;

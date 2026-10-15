@@ -26,9 +26,9 @@ uint8_t S__nine(void) {
 }
 
 int main(void) {
-    bool ready = S__ready();
-    float half = S__half();
-    uint8_t nine = S__nine();
+    const bool ready = S__ready();
+    const float half = S__half();
+    const uint8_t nine = S__nine();
     if (ready != true) {
         return 1U;
     }

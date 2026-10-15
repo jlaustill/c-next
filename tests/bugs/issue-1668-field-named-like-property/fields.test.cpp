@@ -41,25 +41,25 @@ int main(void) {
     b.capacity = 7U;
     b.bit_length = 8U;
     pair[1].size = 9U;
-    uint32_t total = cnx_clamp_add_u32(cnx_clamp_add_u32(cnx_clamp_add_u32(b.length, b.size), b.capacity), b.bit_length);
+    const uint32_t total = cnx_clamp_add_u32(cnx_clamp_add_u32(cnx_clamp_add_u32(b.length, b.size), b.capacity), b.bit_length);
     if (total != 22) {
         return 1U;
     }
     if (pair[1U].size != 9) {
         return 2U;
     }
-    uint32_t hs = cbuf.size;
-    uint32_t hl = cbuf.length;
+    const uint32_t hs = cbuf.size;
+    const uint32_t hl = cbuf.length;
     if (hs != 5) {
         return 3U;
     }
     if (hl != 6) {
         return 4U;
     }
-    char name[9] = "abc";
-    uint32_t chars = strlen(name);
-    uint32_t room = 8;
-    uint32_t slots = 2;
+    const char name[9] = "abc";
+    const uint32_t chars = strlen(name);
+    const uint32_t room = 8;
+    const uint32_t slots = 2;
     if (chars != 3) {
         return 5U;
     }

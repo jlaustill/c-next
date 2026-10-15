@@ -21,13 +21,13 @@ extern bool Visibility__publicFlag;
 uint8_t Visibility__getPrivateCounter(void);
 uint8_t Visibility__getPrivateCounterViaInternal(void);
 uint8_t Visibility__getPublicCounter(void);
-void Visibility__setPublicCounter(uint8_t value);
+void Visibility__setPublicCounter(const uint8_t value);
 void Visibility__incrementPrivate(void);
 uint8_t Visibility__getSum(void);
 bool Visibility__getBothFlags(void);
-void Visibility__setPrivateFlag(bool value);
-void Visibility__setPublicFlag(bool value);
-void Visibility__setPrivateCounter(uint8_t value);
+void Visibility__setPrivateFlag(const bool value);
+void Visibility__setPublicFlag(const bool value);
+void Visibility__setPrivateCounter(const uint8_t value);
 
 #ifdef __cplusplus
 }

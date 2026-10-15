@@ -14,7 +14,7 @@ scope Handler {
 }
 
 u32 main() {
-    MyData data;
+    mut MyData data;
     data.value <- 42;
     data.count <- 1;
 

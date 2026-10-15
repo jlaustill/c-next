@@ -18,7 +18,7 @@ typedef struct Reading {
 } Reading;
 
 /* External variables */
-extern float g;
+extern const float g;
 
 /* Function prototypes */
 uint8_t Sensor__topByte(void);

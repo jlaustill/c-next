@@ -23,18 +23,18 @@ i32 getPointX(Point p) {
 }
 
 // Function that modifies struct (pass-by-reference modifies original)
-void setPointOrigin(Point p) {
+void setPointOrigin(mut Point p) {
     p.x <- 0;
     p.y <- 0;
 }
 
 // Function that uses struct values
 i32 manhattanDistance(Point p) {
-    i32 absX <- p.x;
+    mut i32 absX <- p.x;
     if (absX < 0) {
         absX <- 0 - absX;
     }
-    i32 absY <- p.y;
+    mut i32 absY <- p.y;
     if (absY < 0) {
         absY <- 0 - absY;
     }
@@ -52,7 +52,7 @@ u32 main() {
     }
 
     // Field assignment
-    Point p1;
+    mut Point p1;
     p1.x <- 10;
     p1.y <- 20;
     if (p1.x != 10) {
@@ -78,7 +78,7 @@ u32 main() {
     }
 
     // Pass-by-reference modification (ADR-006)
-    Point p3 <- { x: 100, y: 200 };
+    mut Point p3 <- { x: 100, y: 200 };
     setPointOrigin(p3);
     if (p3.x != 0) {
         return 8;

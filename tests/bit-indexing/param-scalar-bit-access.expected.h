@@ -14,10 +14,10 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-bool bitOfParam(uint32_t v);
+bool bitOfParam(const uint32_t v);
 uint32_t setBitOfParam(uint32_t* v);
 uint32_t clearBitOfParam(uint32_t* v);
-uint8_t lowByteOfParam(uint16_t v);
+uint8_t lowByteOfParam(const uint16_t v);
 uint16_t setLowByteOfParam(uint16_t* v);
 
 #ifdef __cplusplus

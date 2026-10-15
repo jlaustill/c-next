@@ -10,58 +10,58 @@
 // test-execution
 // ADR-022: Ternary operator test for u16
 // Tests: ternary with u16 in conditions and branches
-uint16_t getMax(uint16_t a, uint16_t b) {
+uint16_t getMax(const uint16_t a, const uint16_t b) {
     return (a > b) ? a : b;
 }
 
-uint16_t getMin(uint16_t a, uint16_t b) {
+uint16_t getMin(const uint16_t a, const uint16_t b) {
     return (a < b) ? a : b;
 }
 
 int main(void) {
-    uint16_t a = 100U;
-    uint16_t b = 200U;
-    uint16_t c = 300U;
-    uint16_t d = 50U;
-    uint16_t maxResult1 = getMax(a, b);
+    const uint16_t a = 100U;
+    const uint16_t b = 200U;
+    const uint16_t c = 300U;
+    const uint16_t d = 50U;
+    const uint16_t maxResult1 = getMax(a, b);
     if (maxResult1 != 200) {
         return 1U;
     }
-    uint16_t maxResult2 = getMax(c, d);
+    const uint16_t maxResult2 = getMax(c, d);
     if (maxResult2 != 300) {
         return 2U;
     }
-    uint16_t minResult1 = getMin(a, b);
+    const uint16_t minResult1 = getMin(a, b);
     if (minResult1 != 100) {
         return 3U;
     }
-    uint16_t minResult2 = getMin(c, d);
+    const uint16_t minResult2 = getMin(c, d);
     if (minResult2 != 50) {
         return 4U;
     }
-    uint16_t result = (a > b) ? a : b;
+    const uint16_t result = (a > b) ? a : b;
     if (result != 200) {
         return 5U;
     }
-    uint16_t max_val = 65535U;
-    uint16_t mid_val = 32767U;
-    uint16_t edge_result = (max_val > mid_val) ? max_val : mid_val;
+    const uint16_t max_val = 65535U;
+    const uint16_t mid_val = 32767U;
+    const uint16_t edge_result = (max_val > mid_val) ? max_val : mid_val;
     if (edge_result != 65535) {
         return 6U;
     }
-    uint16_t zero = 0U;
-    uint16_t one = 1U;
-    uint16_t zero_result = (zero < one) ? zero : one;
+    const uint16_t zero = 0U;
+    const uint16_t one = 1U;
+    const uint16_t zero_result = (zero < one) ? zero : one;
     if (zero_result != 0) {
         return 7U;
     }
-    uint16_t equal_test = (a == 100) ? 1000U : 2000U;
+    const uint16_t equal_test = (a == 100) ? 1000U : 2000U;
     if (equal_test != 1000) {
         return 8U;
     }
-    uint16_t large_a = 50000U;
-    uint16_t large_b = 60000U;
-    uint16_t large_result = (large_a < large_b) ? large_a : large_b;
+    const uint16_t large_a = 50000U;
+    const uint16_t large_b = 60000U;
+    const uint16_t large_result = (large_a < large_b) ? large_a : large_b;
     if (large_result != 50000) {
         return 9U;
     }

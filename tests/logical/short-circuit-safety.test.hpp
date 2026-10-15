@@ -25,8 +25,8 @@ extern uint32_t dangerousValue;
 extern TStatusRegister status;
 
 /* Function prototypes */
-bool isIndexSafe(uint32_t index);
-uint32_t performDangerousOperation(uint32_t index);
+bool isIndexSafe(const uint32_t index);
+uint32_t performDangerousOperation(const uint32_t index);
 void testSafeGuardPattern(void);
 void testSafeGuardPatternValid(void);
 void testOrSafetyPattern(void);

@@ -10,13 +10,13 @@
 // an incomplete type, and a declaration contradicting its definition.
 #include "dev.h"
 
-void onPair(Dev[2] pair) {
+void onPair(mut Dev[2] pair) {
     dev_poke(pair[0]);
     dev_poke(pair[1]);
 }
 
 i32 main() {
-    Dev[2] pair;
+    mut Dev[2] pair;
     pair[0] <- dev_create();
     pair[1] <- dev_create();
 

@@ -21,7 +21,7 @@ _Static_assert(sizeof(double) == 8, "Float bit indexing requires 64-bit double")
 // A `this.` member's bit WRITE shared a shadow that its whole-variable write
 // did not invalidate -- the two named it differently -- so the second bit
 // write below wrote into 1.0's stale bits instead of 2.0's (0x40000000).
-float g = 1.0;
+const float g = 1.0;
 
 /* Scope: Sensor */
 static float Sensor__reading = 1.0;
@@ -30,7 +30,7 @@ uint8_t Sensor__topByte(void) {
     /* MISRA C:2012 Rule 21.15: float bits accessed through a union (memcpy would pass incompatible pointer types: float* vs uint32_t*). */
     union { float f; uint32_t u; } cnx_tmp0;
     cnx_tmp0.f = Sensor__reading;
-    uint8_t b = ((cnx_tmp0.u >> 24U) & 0xFFU);
+    const uint8_t b = ((cnx_tmp0.u >> 24U) & 0xFFU);
     return b;
 }
 
@@ -50,11 +50,11 @@ uint32_t Sensor__rewrite(void) {
         __bits.u = (__bits.u & ~((uint32_t)0xFFU << 8)) | ((0x22U & (uint32_t)0xFFU) << 8);
         Sensor__reading = __bits.f;
     }
-    float copy = Sensor__reading;
+    const float copy = Sensor__reading;
     /* MISRA C:2012 Rule 21.15: float bits accessed through a union (memcpy would pass incompatible pointer types: float* vs uint32_t*). */
     union { float f; uint32_t u; } __bits_copy;
     __bits_copy.f = copy;
-    uint32_t bits = (__bits_copy.u & 0xFFFFFFFFU);
+    const uint32_t bits = (__bits_copy.u & 0xFFFFFFFFU);
     return bits;
 }
 
@@ -62,43 +62,43 @@ uint8_t globalTopByte(void) {
     /* MISRA C:2012 Rule 21.15: float bits accessed through a union (memcpy would pass incompatible pointer types: float* vs uint32_t*). */
     union { float f; uint32_t u; } cnx_tmp1;
     cnx_tmp1.f = g;
-    uint8_t b = ((cnx_tmp1.u >> 24U) & 0xFFU);
+    const uint8_t b = ((cnx_tmp1.u >> 24U) & 0xFFU);
     return b;
 }
 
 int main(void) {
-    Reading r = { .value = 1.0 };
-    float values[2] = {2.0, 1.0};
-    uint8_t viaGlobal = globalTopByte();
+    const Reading r = { .value = 1.0 };
+    const float values[2] = {2.0, 1.0};
+    const uint8_t viaGlobal = globalTopByte();
     if (viaGlobal != 0x3F) {
         return 1U;
     }
-    uint8_t viaThis = Sensor__topByte();
+    const uint8_t viaThis = Sensor__topByte();
     if (viaThis != 0x3F) {
         return 2U;
     }
     /* MISRA C:2012 Rule 21.15: float bits accessed through a union (memcpy would pass incompatible pointer types: float* vs uint32_t*). */
     union { float f; uint32_t u; } cnx_tmp2;
     cnx_tmp2.f = r.value;
-    uint8_t field = ((cnx_tmp2.u >> 24U) & 0xFFU);
+    const uint8_t field = ((cnx_tmp2.u >> 24U) & 0xFFU);
     if (field != 0x3F) {
         return 3U;
     }
     /* MISRA C:2012 Rule 21.15: float bits accessed through a union (memcpy would pass incompatible pointer types: float* vs uint32_t*). */
     union { float f; uint32_t u; } cnx_tmp3;
     cnx_tmp3.f = values[1U];
-    uint8_t element = ((cnx_tmp3.u >> 24U) & 0xFFU);
+    const uint8_t element = ((cnx_tmp3.u >> 24U) & 0xFFU);
     if (element != 0x3F) {
         return 4U;
     }
-    uint32_t rewritten = Sensor__rewrite();
+    const uint32_t rewritten = Sensor__rewrite();
     if (rewritten != 0x40002200) {
         return 6U;
     }
     /* MISRA C:2012 Rule 21.15: float bits accessed through a union (memcpy would pass incompatible pointer types: float* vs uint32_t*). */
     union { float f; uint32_t u; } __bits_g;
     __bits_g.f = g;
-    uint8_t bare = ((__bits_g.u >> 24U) & 0xFFU);
+    const uint8_t bare = ((__bits_g.u >> 24U) & 0xFFU);
     if (bare != 0x3F) {
         return 5U;
     }

@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void Serial__println(uint32_t msg);
+void Serial__println(const uint32_t msg);
 
 #ifdef __cplusplus
 }

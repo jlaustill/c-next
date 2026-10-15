@@ -13,17 +13,17 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint32_t total;
-extern uint32_t buf[2];
+extern const uint32_t total;
+extern const uint32_t buf[2];
 
 /* Function prototypes */
-uint32_t S__paramCase(uint32_t S__paramCase__total);
-uint32_t S__bareCase(uint32_t S__bareCase__total);
-uint32_t S__bothCase(uint32_t S__bothCase__total);
+uint32_t S__paramCase(const uint32_t S__paramCase__total);
+uint32_t S__bareCase(const uint32_t S__bareCase__total);
+uint32_t S__bothCase(const uint32_t S__bothCase__total);
 uint32_t S__writeCase(uint32_t* S__writeCase__total);
-uint32_t S__arrayCase(uint32_t S__arrayCase__buf[2]);
-uint32_t S__plainCase(uint32_t fresh);
-uint32_t freeCase(uint32_t freeCase__total);
+uint32_t S__arrayCase(const uint32_t S__arrayCase__buf[2]);
+uint32_t S__plainCase(const uint32_t fresh);
+uint32_t freeCase(const uint32_t freeCase__total);
 
 #ifdef __cplusplus
 }

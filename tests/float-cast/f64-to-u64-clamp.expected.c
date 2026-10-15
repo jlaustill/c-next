@@ -10,8 +10,8 @@
 // Tests: f64 to u64 cast should clamp negative values to 0
 // Note: f64 can't represent values > UINT64_MAX precisely, so we test negative clamping
 int main(void) {
-    double negative = -100.0;
-    double in_range = 1000000000000.0;
+    const double negative = -100.0;
+    const double in_range = 1000000000000.0;
     uint64_t result = ((negative) >= ((double)UINT64_MAX) ? (uint64_t)UINT64_MAX : (negative) < 0.0 ? (uint64_t)0 : (uint64_t)(negative));
     if (result != 0) {
         return 1U;

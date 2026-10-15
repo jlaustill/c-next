@@ -6,7 +6,7 @@
 //
 // NEGATIVE CONTROLS: x /<- 2, x %<- 3, y /<- 2.0, x /<- (2 - 1) stay silent.
 
-const u32 ZERO <- 0;
+u32 ZERO <- 0;
 
 u32 literal() {
     u32 x <- 10;

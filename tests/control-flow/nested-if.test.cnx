@@ -6,7 +6,7 @@ u32 main() {
     u32 a <- 10;
     u32 b <- 20;
     u32 c <- 30;
-    u32 result <- 0;
+    mut u32 result <- 0;
 
     // Test 1: Simple nested if
     if (a < b) {

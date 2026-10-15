@@ -26,6 +26,6 @@ uint32_t Timing__read(const Timing__Config& timer) {
 }
 
 void demo(void) {
-    Timing__Config timer = { .base = 0U, .tick = platformClock };
-    uint32_t value = Timing__read(timer);
+    const Timing__Config timer = { .base = 0U, .tick = platformClock };
+    const uint32_t value = Timing__read(timer);
 }

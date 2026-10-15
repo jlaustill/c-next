@@ -39,7 +39,7 @@ static inline uint8_t cnx_cast_sat_f32_u8(float value) {
 // index calls -- ran its side effect three times for an in-range value.
 uint32_t calls = 0U;
 
-float readings[4] = {100.0, 1.0, 2.0, 3.0};
+extern const float readings[4] = {100.0, 1.0, 2.0, 3.0};
 
 uint32_t nextIndex(void) {
     calls = cnx_clamp_add_u32(calls, 1U);
@@ -57,23 +57,23 @@ Sensor Sensor_init(void) {
 }
 
 int main(void) {
-    Sensor s = { .read = measure };
-    uint8_t a = cnx_cast_sat_f32_u8(s.read());
+    const Sensor s = { .read = measure };
+    const uint8_t a = cnx_cast_sat_f32_u8(s.read());
     if (a != 100) {
         return 1U;
     }
     if (calls != 1) {
         return 2U;
     }
-    uint8_t b = cnx_cast_sat_f32_u8(readings[nextIndex()]);
+    const uint8_t b = cnx_cast_sat_f32_u8(readings[nextIndex()]);
     if (b != 100) {
         return 3U;
     }
     if (calls != 2) {
         return 4U;
     }
-    float k = 300.0;
-    uint8_t c = ((k) >= ((float)UINT8_MAX) ? static_cast<uint8_t>(UINT8_MAX) : (k) < 0.0f ? static_cast<uint8_t>(0) : static_cast<uint8_t>((k)));
+    const float k = 300.0;
+    const uint8_t c = ((k) >= ((float)UINT8_MAX) ? static_cast<uint8_t>(UINT8_MAX) : (k) < 0.0f ? static_cast<uint8_t>(0) : static_cast<uint8_t>((k)));
     if (c != 255) {
         return 5U;
     }

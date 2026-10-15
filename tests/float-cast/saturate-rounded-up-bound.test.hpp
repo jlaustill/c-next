@@ -11,11 +11,11 @@ extern "C" {
 #endif
 
 /* External variables */
-extern float edgeU32;
-extern float edgeI32;
-extern float belowU32;
-extern float belowI32;
-extern float f255;
+extern const float edgeU32;
+extern const float edgeI32;
+extern const float belowU32;
+extern const float belowI32;
+extern const float f255;
 
 /* Function prototypes */
 float edge(void);

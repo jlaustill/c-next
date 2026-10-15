@@ -211,7 +211,7 @@ int main(void) {
     }
     calc[0][0] = 10.5;
     calc[0][1] = 5.25;
-    float calcSum = calc[0U][0U] + calc[0U][1U];
+    const float calcSum = calc[0U][0U] + calc[0U][1U];
     if (calcSum != 15.75) {
         return 39U;
     }

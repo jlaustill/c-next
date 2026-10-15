@@ -26,8 +26,8 @@ Bank globalBank;
 Bank b;
 
 u32 main() {
-    u32 r <- 0;
-    u32 input <- 0;
+    mut u32 r <- 0;
+    mut u32 input <- 0;
     input <- 1;
     r <- b.handlers[2](input);
     if (r != 2) {

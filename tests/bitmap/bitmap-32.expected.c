@@ -77,11 +77,11 @@ int main(void) {
     if (((config >> 24) & 0xFF) != 0xAB) {
         return 14U;
     }
-    uint8_t oct1 = (uint8_t)((ip >> 0) & 0xFF);
+    const uint8_t oct1 = (uint8_t)((ip >> 0) & 0xFF);
     if (oct1 != 192) {
         return 15U;
     }
-    uint16_t addr = (uint16_t)((config >> 8) & 0xFFFF);
+    const uint16_t addr = (uint16_t)((config >> 8) & 0xFFFF);
     if (addr != 0x1234) {
         return 16U;
     }

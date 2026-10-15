@@ -38,11 +38,11 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // another function is one more path.
 Point pt = { .x = 1, .y = 2 };
 
-Flags flags = 0;
+const Flags flags = 0;
 
-char label[17] = "global-label";
+const char label[17] = "global-label";
 
-uint32_t count = 3U;
+const uint32_t count = 3U;
 
 int32_t sumPoint(const Point* p) {
     return cnx_clamp_add_i32(p->x, p->y);
@@ -67,7 +67,7 @@ int32_t S__structCase(Point* S__structCase__pt) {
 
 /* C11 6.2.1p4, C++ [basic.scope.hiding]: `pt` emitted as `S__structCopy__pt` (a plain `pt` would hide the file-scope `pt` for the rest of its scope, so `global.pt` would reach the local). */
 int32_t S__structCopy(const Point* S__structCopy__pt) {
-    Point copy = (*S__structCopy__pt);
+    const Point copy = (*S__structCopy__pt);
     return copy.x;
 }
 
@@ -83,7 +83,7 @@ uint32_t stringPass(const char* stringPass__label) {
 
 /* C11 6.2.1p4, C++ [basic.scope.hiding]: `flags` emitted as `readFlag__flags` (a plain `flags` would hide the file-scope `flags` for the rest of its scope, so `global.flags` would reach the local). */
 bool readFlag(const Flags* readFlag__flags) {
-    bool r = (((((*readFlag__flags) >> 2) & 1)) != 0U);
+    const bool r = (((((*readFlag__flags) >> 2) & 1)) != 0U);
     return r;
 }
 
@@ -99,7 +99,7 @@ void passOn(uint32_t* passOn__count) {
 
 int main(void) {
     Point a = { .x = 10, .y = 40 };
-    int32_t r1 = S__structCase(&a);
+    const int32_t r1 = S__structCase(&a);
     if (r1 != 41) {
         return 1U;
     }
@@ -109,21 +109,21 @@ int main(void) {
     if (pt.x != 1) {
         return 3U;
     }
-    int32_t r2 = S__structCopy(&a);
+    const int32_t r2 = S__structCopy(&a);
     if (r2 != 30) {
         return 4U;
     }
-    int32_t r3 = S__structPass(&a);
+    const int32_t r3 = S__structPass(&a);
     if (r3 != 70) {
         return 5U;
     }
-    uint32_t n = stringPass("ab");
+    const uint32_t n = stringPass("ab");
     if (n != 2) {
         return 6U;
     }
     Flags fl = 0;
     fl = (uint8_t)((fl & ~(1U << 2)) | (1U << 2));
-    bool got = readFlag(&fl);
+    const bool got = readFlag(&fl);
     if (got != true) {
         return 7U;
     }

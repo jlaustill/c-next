@@ -3,7 +3,7 @@
 // a string<N> and a whole u8 array still take one
 
 scope S {
-    const u32 N <- "abc";
+    u32 N <- "abc";
 
     public u32 get() {
         return N;

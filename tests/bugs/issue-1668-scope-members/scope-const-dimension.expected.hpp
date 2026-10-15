@@ -14,7 +14,7 @@ extern "C" {
 
 /* External variables */
 extern const uint32_t K;
-extern uint8_t S__table[4];
+extern const uint8_t S__table[4];
 
 /* Function prototypes */
 uint32_t S__count(void);

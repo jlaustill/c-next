@@ -5,8 +5,8 @@
 #include <chain-types-mid.cnx>
 
 scope Navigator {
-    Waypoint current;
-    Waypoint destination;
+    mut Waypoint current;
+    mut Waypoint destination;
 
     public void setDestination(Waypoint wp) {
         this.destination <- wp;

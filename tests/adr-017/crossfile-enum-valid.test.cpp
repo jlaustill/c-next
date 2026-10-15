@@ -12,7 +12,7 @@
 #include <stdint.h>
 
 // Valid: return type IS ESpnCategory - unqualified enum should work
-ESpnCategory getCategory(uint16_t spn) {
+ESpnCategory getCategory(const uint16_t spn) {
     if (spn == 100) {
         return ESpnCategory__SPN_CAT_PRESSURE;
     }
@@ -20,7 +20,7 @@ ESpnCategory getCategory(uint16_t spn) {
 }
 
 // Valid: switch on enum type with unqualified case labels
-uint32_t categoryToValue(ESpnCategory cat) {
+uint32_t categoryToValue(const ESpnCategory cat) {
     switch (cat) {
         case ESpnCategory__SPN_CAT_TEMPERATURE: {
             return 0U;
@@ -50,15 +50,15 @@ int main(void) {
     if (cat != ESpnCategory__SPN_CAT_UNKNOWN) {
         return 2U;
     }
-    uint32_t val1 = categoryToValue(ESpnCategory__SPN_CAT_TEMPERATURE);
+    const uint32_t val1 = categoryToValue(ESpnCategory__SPN_CAT_TEMPERATURE);
     if (val1 != 0) {
         return 3U;
     }
-    uint32_t val2 = categoryToValue(ESpnCategory__SPN_CAT_PRESSURE);
+    const uint32_t val2 = categoryToValue(ESpnCategory__SPN_CAT_PRESSURE);
     if (val2 != 1) {
         return 4U;
     }
-    uint32_t val3 = categoryToValue(ESpnCategory__SPN_CAT_UNKNOWN);
+    const uint32_t val3 = categoryToValue(ESpnCategory__SPN_CAT_UNKNOWN);
     if (val3 != 2) {
         return 5U;
     }

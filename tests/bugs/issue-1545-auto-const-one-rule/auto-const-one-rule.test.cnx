@@ -28,7 +28,7 @@
 // live in a fixture that must compile. `onLogConst` covers the const output.
 #include "log_api.h"
 
-u8 witness <- 0;
+mut u8 witness <- 0;
 
 // A. Callback-compatible, parameter never modified, typedef takes `char *`.
 //    MUST NOT get auto-const.

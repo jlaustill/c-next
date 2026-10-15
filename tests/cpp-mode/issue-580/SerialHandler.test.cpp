@@ -29,8 +29,8 @@ void SerialHandler__handlePreset(Config& config) {
         Serial__println(3U);
         return;
     }
-    uint8_t input = 1U;
-    uint8_t preset = 2U;
+    const uint8_t input = 1U;
+    const uint8_t preset = 2U;
     CommandHandler__applyPreset(config, input, preset);
 }
 

@@ -11,24 +11,24 @@
 // test-execution
 // #1666 NEGATIVE CONTROL: sibling blocks each declaring `v` report their own
 // width. This was right before the fix, and a per-function key breaks it.
-uint32_t probe(bool c) {
+uint32_t probe(const bool c) {
     uint32_t w = 0U;
     if (c == true) {
-        uint8_t v = 1U;
+        const uint8_t v = 1U;
         w = 8;
     } else {
-        uint32_t v = 1U;
+        const uint32_t v = 1U;
         w = 32;
     }
     return w;
 }
 
 int main(void) {
-    uint32_t a = probe(true);
+    const uint32_t a = probe(true);
     if (a != 8) {
         return 1U;
     }
-    uint32_t b = probe(false);
+    const uint32_t b = probe(false);
     if (b != 32) {
         return 2U;
     }

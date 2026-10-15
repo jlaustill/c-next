@@ -21,7 +21,7 @@ typedef struct Outer {
 } Outer;
 
 /* External variables */
-extern Outer o;
+extern const Outer o;
 
 #ifdef __cplusplus
 }

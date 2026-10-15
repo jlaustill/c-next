@@ -20,7 +20,7 @@
 //
 // Both tiers must keep the nearer variable, so `Reg.Other` wins over `Other`.
 /* Scope: Other */
-uint8_t Other__member[16] = {0};
+const uint8_t Other__member[16] = {0};
 
 /* Scope: Reg */
 static Holder Reg__Other = {0};
@@ -33,7 +33,7 @@ uint8_t Reg__useShadowed(void) {
 
 int main(void) {
     Other__member[0] = 1U;
-    uint8_t shadowed = Reg__useShadowed();
+    const uint8_t shadowed = Reg__useShadowed();
     if (shadowed != 80) {
         return 1U;
     }

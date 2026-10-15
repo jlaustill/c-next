@@ -16,8 +16,8 @@ extern "C" {
 extern char nested[33];
 
 /* Function prototypes */
-void deepNest(uint32_t depth);
-void mixedNest(uint32_t count);
+void deepNest(const uint32_t depth);
+void mixedNest(const uint32_t count);
 
 #ifdef __cplusplus
 }

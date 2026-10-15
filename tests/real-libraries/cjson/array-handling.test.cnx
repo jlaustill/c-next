@@ -8,7 +8,7 @@
 u32 main() {
     string<64> payload <- "[10,20,30]";
 
-    cJSON root <- global.cnext_cjson_parse(payload);
+    mut cJSON root <- global.cnext_cjson_parse(payload);
     i32 itemCount <- global.cnext_cjson_get_array_size(root);
     if (itemCount != 3) {
         global.cnext_cjson_delete(root);

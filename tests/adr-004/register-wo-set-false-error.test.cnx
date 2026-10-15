@@ -15,8 +15,8 @@ register GPIO @ 0x42000000 {
     INTSTAT: u32 w1c @ 0x10,
 }
 
-const u32 OFF <- 0;
-const bool DOWN <- false;
+u32 OFF <- 0;
+bool DOWN <- false;
 
 // NEGATIVE CONTROL -- true, a non-zero range value, a runtime value, a zero to
 // the WHOLE member, a zero to an rw bit, and the CLEAR register itself.

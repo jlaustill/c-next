@@ -34,10 +34,10 @@ ChainTypesBase__Coordinate Navigator__getCurrentPosition(void) {
 }
 
 int main(void) {
-    ChainTypesBase__Coordinate dest = { .x = 100, .y = 200, .z = 50 };
-    Waypoint wp = { .position = dest, .id = 42U };
+    const ChainTypesBase__Coordinate dest = { .x = 100, .y = 200, .z = 50 };
+    const Waypoint wp = { .position = dest, .id = 42U };
     Navigator__setDestination(&wp);
-    Waypoint retrieved = Navigator__getDestination();
+    const Waypoint retrieved = Navigator__getDestination();
     if (retrieved.id != 42) {
         return 1U;
     }
@@ -50,9 +50,9 @@ int main(void) {
     if (retrieved.position.z != 50) {
         return 4U;
     }
-    ChainTypesBase__Coordinate newPos = { .x = 10, .y = 20, .z = 5 };
+    const ChainTypesBase__Coordinate newPos = { .x = 10, .y = 20, .z = 5 };
     Navigator__moveTo(&newPos);
-    ChainTypesBase__Coordinate currentPos = Navigator__getCurrentPosition();
+    const ChainTypesBase__Coordinate currentPos = Navigator__getCurrentPosition();
     if (currentPos.x != 10) {
         return 5U;
     }

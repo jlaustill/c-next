@@ -2,8 +2,8 @@
 // For loop tests: Basic for loop
 // Tests: standard for loop with all three parts
 u32 main() {
-    u32 sum <- 0;
-    for (u32 i <- 0; i < 10; i <- i + 1) {
+    mut u32 sum <- 0;
+    for (mut u32 i <- 0; i < 10; i <- i + 1) {
         sum +<- i;
     }
 

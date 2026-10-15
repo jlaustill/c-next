@@ -32,15 +32,15 @@ static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
 // Without this, functions get C++ mangling while the header promises C linkage.
 /* Scope: Calculator */
 
-uint32_t Calculator__square(uint32_t x) {
+uint32_t Calculator__square(const uint32_t x) {
     return cnx_clamp_mul_u32(x, x);
 }
 
-uint32_t Calculator__add(uint32_t a, uint32_t b) {
+uint32_t Calculator__add(const uint32_t a, const uint32_t b) {
     return cnx_clamp_add_u32(a, b);
 }
 
-uint32_t Calculator__multiply(uint32_t a, uint32_t b) {
+uint32_t Calculator__multiply(const uint32_t a, const uint32_t b) {
     return Calculator__square(a) + Calculator__square(b);
 }
 

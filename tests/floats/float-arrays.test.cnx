@@ -1,7 +1,7 @@
 // Test float arrays
-f32[10] samples_f32;
+mut f32[10] samples_f32;
 
-f64[5] measurements_f64;
+mut f64[5] measurements_f64;
 
 void test_f32_array() {
     // Initialization
@@ -18,7 +18,7 @@ void test_f32_array() {
     samples_f32[3] <- sum;
 
     // Loop iteration
-    for (u32 i <- 0; i < 10; i +<- 1) {
+    for (mut u32 i <- 0; i < 10; i +<- 1) {
         samples_f32[i] <- (f32)i * 1.5;
     }
 }

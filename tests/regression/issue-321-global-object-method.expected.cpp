@@ -27,7 +27,7 @@
 void testClassStaticMethods(void) {
     ConfigStorage::load();
     ConfigStorage::save();
-    int32_t val = ConfigStorage::getValue("key");
+    const int32_t val = ConfigStorage::getValue("key");
 }
 
 // ============================================================================
@@ -35,7 +35,7 @@ void testClassStaticMethods(void) {
 // ============================================================================
 void testNamespace(void) {
     SystemUtils::initialize();
-    int32_t status = SystemUtils::getStatus();
+    const int32_t status = SystemUtils::getStatus();
 }
 
 // ============================================================================

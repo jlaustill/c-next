@@ -13,9 +13,9 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint32_t processBuffer(const uint8_t data[8], uint8_t len);
+uint32_t processBuffer(const uint8_t data[8], const uint8_t len);
 uint32_t processHeader(const uint8_t header[4]);
-uint32_t processPayload(const uint8_t payload[16], uint8_t len);
+uint32_t processPayload(const uint8_t payload[16], const uint8_t len);
 uint32_t testBasicArrayMemberPassing(void);
 uint32_t testMultipleArrayMembers(void);
 uint32_t testArrayMemberInCondition(void);

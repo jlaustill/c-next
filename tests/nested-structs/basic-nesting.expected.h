@@ -27,8 +27,8 @@ typedef struct Rectangle {
 } Rectangle;
 
 /* External variables */
-extern Line segment;
-extern Rectangle bounds;
+extern const Line segment;
+extern const Rectangle bounds;
 
 #ifdef __cplusplus
 }

@@ -2,7 +2,7 @@
 // Tests: a private const with no value to inline -- a string -- is emitted as
 // its object and named where it is used
 scope S {
-    const string<8> NAME <- "abc";
+    string<8> NAME <- "abc";
 
     public u32 length() {
         return NAME.value_char_count;

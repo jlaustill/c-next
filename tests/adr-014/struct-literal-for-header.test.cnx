@@ -23,8 +23,8 @@ struct Point {
 }
 
 u32 main() {
-    u32 total <- 0;
-    for (Point p <- { x: 0, y: 3 }; p.x < 4; p.x +<- 1) {
+    mut u32 total <- 0;
+    for (mut Point p <- { x: 0, y: 3 }; p.x < 4; p.x +<- 1) {
         total <- total + p.y;
     }
     if (total != 12) {

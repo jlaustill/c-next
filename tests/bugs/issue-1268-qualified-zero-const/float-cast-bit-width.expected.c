@@ -14,12 +14,12 @@
 //
 // CONTROL: `(u32)3.99` is 3 bits -- the cast truncates, it does not round.
 int main(void) {
-    uint8_t x = 0xFFU;
-    uint8_t four = (uint8_t)((x) & 0xFU);
+    const uint8_t x = 0xFFU;
+    const uint8_t four = (uint8_t)((x) & 0xFU);
     if (four != 15) {
         return 1U;
     }
-    uint8_t three = (uint8_t)((x) & 0x7U);
+    const uint8_t three = (uint8_t)((x) & 0x7U);
     if (three != 7) {
         return 2U;
     }

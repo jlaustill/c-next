@@ -11,11 +11,11 @@
 // fixture.
 #include "full.h"
 
-void fullPoke(Full f) {
+void fullPoke(mut Full f) {
     f.pokes <- f.pokes + 1;
 }
 
-void fullForward(Full f) {
+void fullForward(mut Full f) {
     fullPoke(f);
 }
 
@@ -25,7 +25,7 @@ u32 fullSnapshot(Full f) {
 }
 
 i32 main() {
-    Full f <- { pokes: 0 };
+    mut Full f <- { pokes: 0 };
 
     fullForward(f);
     if (f.pokes != 1) {

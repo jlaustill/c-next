@@ -57,39 +57,39 @@ static inline uint8_t cnx_clamp_mul_u8(uint8_t a, uint32_t b) {
 // Tests: Pass-by-value for all primitive types
 // Coverage: u8, u16, u32, u64, i8, i16, i32, i64, bool
 // Unmodified functions - should pass by value
-uint8_t doubleU8(uint8_t val) {
+uint8_t doubleU8(const uint8_t val) {
     return cnx_clamp_mul_u8(val, 2U);
 }
 
-uint16_t doubleU16(uint16_t val) {
+uint16_t doubleU16(const uint16_t val) {
     return cnx_clamp_mul_u16(val, 2U);
 }
 
-uint32_t doubleU32(uint32_t val) {
+uint32_t doubleU32(const uint32_t val) {
     return cnx_clamp_mul_u32(val, 2U);
 }
 
-uint64_t doubleU64(uint64_t val) {
+uint64_t doubleU64(const uint64_t val) {
     return cnx_clamp_mul_u64(val, 2ULL);
 }
 
-int8_t negateI8(int8_t val) {
+int8_t negateI8(const int8_t val) {
     return -val;
 }
 
-int16_t negateI16(int16_t val) {
+int16_t negateI16(const int16_t val) {
     return -val;
 }
 
-int32_t negateI32(int32_t val) {
+int32_t negateI32(const int32_t val) {
     return -val;
 }
 
-int64_t negateI64(int64_t val) {
+int64_t negateI64(const int64_t val) {
     return -val;
 }
 
-bool flipBool(bool val) {
+bool flipBool(const bool val) {
     return !val;
 }
 
@@ -111,72 +111,72 @@ void toggleBool(bool* val) {
 }
 
 int main(void) {
-    uint8_t u8Val = 10U;
-    uint8_t u8Result = doubleU8(u8Val);
+    const uint8_t u8Val = 10U;
+    const uint8_t u8Result = doubleU8(u8Val);
     if (u8Val != 10) {
         return 1U;
     }
     if (u8Result != 20) {
         return 2U;
     }
-    uint16_t u16Val = 1000U;
-    uint16_t u16Result = doubleU16(u16Val);
+    const uint16_t u16Val = 1000U;
+    const uint16_t u16Result = doubleU16(u16Val);
     if (u16Val != 1000) {
         return 3U;
     }
     if (u16Result != 2000) {
         return 4U;
     }
-    uint32_t u32Val = 100000U;
-    uint32_t u32Result = doubleU32(u32Val);
+    const uint32_t u32Val = 100000U;
+    const uint32_t u32Result = doubleU32(u32Val);
     if (u32Val != 100000) {
         return 5U;
     }
     if (u32Result != 200000) {
         return 6U;
     }
-    uint64_t u64Val = 1000000000ULL;
-    uint64_t u64Result = doubleU64(u64Val);
+    const uint64_t u64Val = 1000000000ULL;
+    const uint64_t u64Result = doubleU64(u64Val);
     if (u64Val != 1000000000) {
         return 7U;
     }
     if (u64Result != 2000000000) {
         return 8U;
     }
-    int8_t i8Val = 50;
-    int8_t i8Result = negateI8(i8Val);
+    const int8_t i8Val = 50;
+    const int8_t i8Result = negateI8(i8Val);
     if (i8Val != 50) {
         return 9U;
     }
     if (i8Result != -50) {
         return 10U;
     }
-    int16_t i16Val = 1000;
-    int16_t i16Result = negateI16(i16Val);
+    const int16_t i16Val = 1000;
+    const int16_t i16Result = negateI16(i16Val);
     if (i16Val != 1000) {
         return 11U;
     }
     if (i16Result != -1000) {
         return 12U;
     }
-    int32_t i32Val = 100000;
-    int32_t i32Result = negateI32(i32Val);
+    const int32_t i32Val = 100000;
+    const int32_t i32Result = negateI32(i32Val);
     if (i32Val != 100000) {
         return 13U;
     }
     if (i32Result != -100000) {
         return 14U;
     }
-    int64_t i64Val = 1000000000;
-    int64_t i64Result = negateI64(i64Val);
+    const int64_t i64Val = 1000000000;
+    const int64_t i64Result = negateI64(i64Val);
     if (i64Val != 1000000000) {
         return 15U;
     }
     if (i64Result != -1000000000) {
         return 16U;
     }
-    bool boolVal = true;
-    bool boolResult = flipBool(boolVal);
+    const bool boolVal = true;
+    const bool boolResult = flipBool(boolVal);
     if (boolVal != true) {
         return 17U;
     }

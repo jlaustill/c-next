@@ -24,21 +24,21 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Tests: Multi-dimensional array parameters
 // Coverage: 2D array parameters passed to functions
 // All dimensions must be specified for memory safety
-void write2D(uint32_t arr[2][3], uint32_t row, uint32_t col, uint32_t value) {
+void write2D(uint32_t arr[2][3], const uint32_t row, const uint32_t col, const uint32_t value) {
     arr[row][col] = value;
 }
 
-uint32_t read2D(uint32_t arr[2][3], uint32_t row, uint32_t col) {
+uint32_t read2D(const uint32_t arr[2][3], const uint32_t row, const uint32_t col) {
     return arr[row][col];
 }
 
-void fillRow(uint32_t arr[2][3], uint32_t row, uint32_t val0, uint32_t val1, uint32_t val2) {
+void fillRow(uint32_t arr[2][3], const uint32_t row, const uint32_t val0, const uint32_t val1, const uint32_t val2) {
     arr[row][0] = val0;
     arr[row][1] = val1;
     arr[row][2] = val2;
 }
 
-uint32_t sumRow(uint32_t arr[2][3], uint32_t row) {
+uint32_t sumRow(const uint32_t arr[2][3], const uint32_t row) {
     return cnx_clamp_add_u32(cnx_clamp_add_u32(arr[row][0U], arr[row][1U]), arr[row][2U]);
 }
 

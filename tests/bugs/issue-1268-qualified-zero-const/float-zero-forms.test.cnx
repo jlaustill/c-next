@@ -21,21 +21,21 @@
 // bottom, 2^-150 exactly (row n) ties to even, to zero; a literal just above
 // it (row p) rounds up to 2^-149, the smallest subnormal, which is not zero.
 
-const f32 FZ <- 0.0;
-const f32 FZ2 <- FZ;
-const f32 FZ3 <- 1.0 - 1.0;
-const f32 FZ4 <- -0.0;
-const f32 ONE_F <- 1.0;
-const f32 HALF_F2 <- 0.5 - 0.25;
-const f32 SUM_F <- 0.1f32 + 0.2f32;
-const f32 ROUNDED_F <- SUM_F - 0.3f32;
-const f32 BIG_F <- 1152921504606846977u64;
-const f32 BIG2_F <- 1152921573326323713u64;
-const f32 BIG <- 340282356779733651637539395458142568448.0f32;
-const f32 TOP <- 340282346638528859811704183484516925440.0f32;
+f32 FZ <- 0.0;
+f32 FZ2 <- FZ;
+f32 FZ3 <- 1.0 - 1.0;
+f32 FZ4 <- -0.0;
+f32 ONE_F <- 1.0;
+f32 HALF_F2 <- 0.5 - 0.25;
+f32 SUM_F <- 0.1f32 + 0.2f32;
+f32 ROUNDED_F <- SUM_F - 0.3f32;
+f32 BIG_F <- 1152921504606846977u64;
+f32 BIG2_F <- 1152921573326323713u64;
+f32 BIG <- 340282356779733651637539395458142568448.0f32;
+f32 TOP <- 340282346638528859811704183484516925440.0f32;
 
 scope Gauge {
-    const f32 FZ <- 0.0;
+    f32 FZ <- 0.0;
 
     public f32 qualified(f32 k) {
         return k / (this.FZ);

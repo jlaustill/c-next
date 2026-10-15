@@ -13,16 +13,16 @@
 // declaration line. This is the recursive-indent case the multi-line emitter
 // is most fragile at — generateBlock prefixes every line per nesting level.
 int main(void) {
-    bool gate = true;
+    const bool gate = true;
     if (gate == true) {
-        char base[17] = "Hello";
-        char copied[33] = "";
+        const char base[17] = "Hello";
+        const char copied[33] = "";
         (void) strncpy(copied, base, 32); copied[32] = '\0';
-        char joined[33] = "";
+        const char joined[33] = "";
         (void) strncpy(joined, base, 32);
         (void) strncat(joined, base, 32 - strlen(joined));
         joined[32] = '\0';
-        char part[9] = "";
+        const char part[9] = "";
         (void) strncpy(part, base + 0, 3);
         part[3] = '\0';
         if (strcmp(copied, "Hello") != 0) {

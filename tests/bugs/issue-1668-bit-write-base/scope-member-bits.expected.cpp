@@ -26,16 +26,16 @@ void Sc__viaBareMember(void) {
     Sc__pv.arr[1] = (uint8_t)((Sc__pv.arr[1] & ~(1U << 2)) | (1U << 2));
 }
 
-uint16_t Sc__ws(uint32_t i) {
+uint16_t Sc__ws(const uint32_t i) {
     return Sc__pv.ws[i];
 }
 
-uint8_t Sc__arr(uint32_t i) {
+uint8_t Sc__arr(const uint32_t i) {
     return Sc__pv.arr[i];
 }
 
 /* Scope: Cfg */
-P Cfg__cfg = {};
+const P Cfg__cfg = {};
 
 void viaParameter(P& p) {
     p.arr[0] = (uint8_t)((p.arr[0] & ~(1U << 1)) | (1U << 1));
@@ -43,16 +43,16 @@ void viaParameter(P& p) {
 
 int main(void) {
     Sc__viaThis();
-    uint16_t w1 = Sc__ws(1U);
+    const uint16_t w1 = Sc__ws(1U);
     if (w1 != 4) {
         return 1U;
     }
-    uint16_t w0 = Sc__ws(0U);
+    const uint16_t w0 = Sc__ws(0U);
     if (w0 != 9) {
         return 2U;
     }
     Sc__viaBareMember();
-    uint8_t a1 = Sc__arr(1U);
+    const uint8_t a1 = Sc__arr(1U);
     if (a1 != 4) {
         return 3U;
     }

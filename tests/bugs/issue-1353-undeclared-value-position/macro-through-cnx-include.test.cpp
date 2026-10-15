@@ -21,10 +21,10 @@
 
 #include <stdint.h>
 
-shared_point_t sharedOrigin = {};
+extern const shared_point_t sharedOrigin = {};
 
 int main(void) {
-    uint32_t limit = SHARED_LIMIT_MACRO;
+    const uint32_t limit = SHARED_LIMIT_MACRO;
     if (limit != 42) {
         return 1U;
     }

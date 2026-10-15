@@ -12,7 +12,7 @@
 u32 result <- 0;
 
 // Test 1: Write to parameter with variable index
-void writeToParam(u8[8] buf, u32 idx) {
+void writeToParam(mut u8[8] buf, u32 idx) {
     buf[idx] <- 42;
 }
 
@@ -22,7 +22,7 @@ u8 readFromParam(u8[4] buf, u32 idx) {
 }
 
 // Test 3: Both read and write in same function
-void copyElement(u8[4] src, u8[4] dst, u32 idx) {
+void copyElement(u8[4] src, mut u8[4] dst, u32 idx) {
     dst[idx] <- src[idx];
 }
 
@@ -32,14 +32,14 @@ u8 readFirst(u8[4] buf) {
 }
 
 // Test 5: Multiple index operations
-void swapElements(u8[8] buf, u32 i, u32 j) {
+void swapElements(mut u8[8] buf, u32 i, u32 j) {
     u8 temp <- buf[i];
     buf[i] <- buf[j];
     buf[j] <- temp;
 }
 
 // Test 6: With explicit array syntax (should still work)
-void writeExplicit(u8[8] buf, u32 idx) {
+void writeExplicit(mut u8[8] buf, u32 idx) {
     buf[idx] <- 99;
 }
 
@@ -60,14 +60,14 @@ u8 getArrayBit(u8[2][2] matrix, u32 row, u32 col, u32 bit) {
     return matrix[row][col][bit];
 }
 
-void setArrayBit(u8[2][2] matrix, u32 row, u32 col, u32 bit, bool val) {
+void setArrayBit(mut u8[2][2] matrix, u32 row, u32 col, u32 bit, bool val) {
     matrix[row][col][bit] <- val;
 }
 
 u32 main() {
-    u8[8] buffer <- [0, 0, 0, 0, 0, 0, 0, 0];
+    mut u8[8] buffer <- [0, 0, 0, 0, 0, 0, 0, 0];
     u8[4] source <- [10, 20, 30, 40];
-    u8[4] dest <- [0, 0, 0, 0];
+    mut u8[4] dest <- [0, 0, 0, 0];
 
     // Test 1: Write with variable index
     writeToParam(buffer, 3);
@@ -76,7 +76,7 @@ u32 main() {
     }
 
     // Test 2: Read with variable index
-    u8 val <- readFromParam(source, 2);
+    mut u8 val <- readFromParam(source, 2);
     if (val != 30) {
         return 2;
     }
@@ -122,7 +122,7 @@ u32 main() {
     }
 
     // Test 8: Local array bit access (tests currentStructType fix)
-    u8[2][2] matrix <- [[0xFF, 0x00], [0xAA, 0x55]];
+    mut u8[2][2] matrix <- [[0xFF, 0x00], [0xAA, 0x55]];
 
     // Read bit 0 of matrix[0][0] (0xFF) - should be 1
     u8 bit0 <- getArrayBit(matrix, 0, 0, 0);

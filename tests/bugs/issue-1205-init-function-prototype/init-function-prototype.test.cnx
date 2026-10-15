@@ -5,7 +5,7 @@ struct Reading {
     u32 value;
 }
 
-void onSample(const Reading r) {}
+void onSample(Reading r) {}
 
 // Sampler has a callback field, so it gets a generated Sampler_init().
 struct Sampler {
@@ -19,6 +19,6 @@ struct PlainCounter {
     u32 count;
 }
 
-u32 readCount(const PlainCounter c) {
+u32 readCount(PlainCounter c) {
     return c.count;
 }

@@ -13,7 +13,7 @@
 int32_t result = 0;
 
 // Test i16 boundary values
-void testI16Boundaries(int16_t val) {
+void testI16Boundaries(const int16_t val) {
     switch (val) {
         case -32768: {
             result = 1;
@@ -67,7 +67,7 @@ void testI16Boundaries(int16_t val) {
 }
 
 // Test negative hex with i16 values
-void testI16Hex(int16_t val) {
+void testI16Hex(const int16_t val) {
     switch (val) {
         case -0x8000: {
             result = 20;
@@ -101,18 +101,18 @@ void testI16Hex(int16_t val) {
 }
 
 int main(void) {
-    int16_t minVal = -32768;
-    int16_t minPlus1 = -32767;
-    int16_t neg256 = -256;
-    int16_t neg129 = -129;
-    int16_t neg128 = -128;
-    int16_t negOne = -1;
-    int16_t zero = 0;
-    int16_t pos127 = 127;
-    int16_t pos128 = 128;
-    int16_t maxMinus1 = 32766;
-    int16_t maxVal = 32767;
-    int16_t other = 1000;
+    const int16_t minVal = -32768;
+    const int16_t minPlus1 = -32767;
+    const int16_t neg256 = -256;
+    const int16_t neg129 = -129;
+    const int16_t neg128 = -128;
+    const int16_t negOne = -1;
+    const int16_t zero = 0;
+    const int16_t pos127 = 127;
+    const int16_t pos128 = 128;
+    const int16_t maxMinus1 = 32766;
+    const int16_t maxVal = 32767;
+    const int16_t other = 1000;
     testI16Boundaries(minVal);
     if (result != 1) {
         return 1U;

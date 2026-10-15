@@ -27,7 +27,7 @@ struct Station {
 
 i32 main() {
     // --- Same-file struct: expression assignment. ---
-    Reading r <- { level: 250, explicitLevel: 250, checksum: 250 };
+    mut Reading r <- { level: 250, explicitLevel: 250, checksum: 250 };
     r.level <- r.level + 10;
     if (r.level != 255) {
         return 1;
@@ -42,7 +42,7 @@ i32 main() {
     }
 
     // --- Same-file struct: compound assignment. ---
-    Reading c <- { level: 250, explicitLevel: 250, checksum: 250 };
+    mut Reading c <- { level: 250, explicitLevel: 250, checksum: 250 };
     c.level +<- 10;
     if (c.level != 255) {
         return 4;
@@ -57,7 +57,7 @@ i32 main() {
     }
 
     // --- Subtraction saturates at the other end. ---
-    Reading low <- { level: 5, explicitLevel: 5, checksum: 5 };
+    mut Reading low <- { level: 5, explicitLevel: 5, checksum: 5 };
     low.level <- low.level - 10;
     if (low.level != 0) {
         return 7;
@@ -68,7 +68,9 @@ i32 main() {
     }
 
     // --- A field reached through a nested struct. ---
-    Station s <- { inner: { level: 250, explicitLevel: 250, checksum: 250 } };
+    mut Station s <- {
+        inner: { level: 250, explicitLevel: 250, checksum: 250 }
+    };
     s.inner.level <- s.inner.level + 10;
     if (s.inner.level != 255) {
         return 9;
@@ -79,7 +81,7 @@ i32 main() {
     }
 
     // --- Cross-file: the same statements on a struct from an include. ---
-    ImportedReading i <- { level: 250, explicitLevel: 250, checksum: 250 };
+    mut ImportedReading i <- { level: 250, explicitLevel: 250, checksum: 250 };
     i.level <- i.level + 10;
     if (i.level != 255) {
         return 11;

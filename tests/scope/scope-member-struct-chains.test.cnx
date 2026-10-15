@@ -19,14 +19,14 @@ struct Cfg {
 }
 
 scope S {
-    public Cfg cfg;
+    public mut Cfg cfg;
 
     public void init() {
         // The string field and the flag are set on a local and assigned
         // whole: writing them through `this.cfg` is #1731 part (2) and
         // #1801. The array and the word are then written through
         // `this.cfg`, where a subscripted field was #1731 part (1).
-        Cfg c;
+        mut Cfg c;
         c.arr[0] <- 0;
         c.word <- 0;
         c.name <- "abc";

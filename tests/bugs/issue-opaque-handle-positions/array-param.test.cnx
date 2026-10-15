@@ -19,35 +19,35 @@
 #include "dev.h"
 #include "full.h"
 
-void aPoke(Dev d) {
+void aPoke(mut Dev d) {
     dev_poke(d);
 }
 
 // The defect: `Dev arr[2]` and `dev_poke(&arr[0U])`.
-void pokeAll(Dev[2] arr) {
+void pokeAll(mut Dev[2] arr) {
     dev_poke(arr[0]);
     aPoke(arr[1]);
 }
 
 // The whole array, forwarded: `pokeAll((*arr))` before the fix.
-void forward(Dev[2] arr) {
+void forward(mut Dev[2] arr) {
     pokeAll(arr);
 }
 
 // A whole-value use of one element.
 i32 firstPokes(Dev[2] arr) {
-    Dev first <- arr[0];
+    mut Dev first <- arr[0];
     i32 n <- dev_pokes(first);
     return n;
 }
 
 // Control: a complete struct's element is a value, so it is passed by address.
-void bumpFirst(Full[2] fulls) {
+void bumpFirst(mut Full[2] fulls) {
     full_bump(fulls[0]);
 }
 
 i32 main() {
-    Dev[2] ds;
+    mut Dev[2] ds;
     ds[0] <- dev_create();
     ds[1] <- dev_create();
 
@@ -66,7 +66,7 @@ i32 main() {
         return 3;
     }
 
-    Full[2] fulls;
+    mut Full[2] fulls;
     bumpFirst(fulls);
     if (fulls[0].pokes != 1) {
         return 4;

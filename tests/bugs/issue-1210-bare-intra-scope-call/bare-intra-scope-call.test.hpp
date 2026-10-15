@@ -13,9 +13,9 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint8_t Counter__readOnly(uint8_t value);
-uint8_t Counter__viaBare(uint8_t value);
-uint8_t Counter__viaThis(uint8_t value);
+uint8_t Counter__readOnly(const uint8_t value);
+uint8_t Counter__viaBare(const uint8_t value);
+uint8_t Counter__viaThis(const uint8_t value);
 
 #ifdef __cplusplus
 }

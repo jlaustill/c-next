@@ -18,10 +18,10 @@ extern const uint32_t i;
 extern const uint32_t D;
 
 /* Function prototypes */
-uint8_t viaParameter(uint32_t viaParameter__N);
+uint8_t viaParameter(const uint32_t viaParameter__N);
 uint8_t viaLocal(void);
 uint8_t viaFor(void);
-uint32_t viaRuntimeConst(uint32_t a);
+uint32_t viaRuntimeConst(const uint32_t a);
 float viaFloatConst(void);
 
 #ifdef __cplusplus

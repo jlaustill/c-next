@@ -11,8 +11,8 @@
 //
 // NEGATIVE CONTROL: `plain` is a single literal, which was always right.
 
-const u8 LOCAL <- 8;
-const u8 BIG <- 200;
+u8 LOCAL <- 8;
+u8 BIG <- 200;
 
 enum EColor {
     RED,

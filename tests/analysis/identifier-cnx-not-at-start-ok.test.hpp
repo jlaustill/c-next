@@ -13,8 +13,8 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint8_t my_cnx_buffer;
-extern uint8_t buffer_cnx;
+extern const uint8_t my_cnx_buffer;
+extern const uint8_t buffer_cnx;
 
 #ifdef __cplusplus
 }

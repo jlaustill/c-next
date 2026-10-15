@@ -7,7 +7,7 @@
 //
 // NEGATIVE CONTROL: PLAIN keeps a single literal, which every reading agrees on.
 
-const u32 FOO <- 3;
+u32 FOO <- 3;
 
 enum ESum {
     A <- 1 + 2,

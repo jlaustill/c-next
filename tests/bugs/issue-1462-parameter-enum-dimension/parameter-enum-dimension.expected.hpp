@@ -23,8 +23,8 @@ typedef enum {
 extern const uint8_t Motor__SIZE;
 
 /* Function prototypes */
-uint32_t Motor__sum(uint8_t data[2]);
-uint32_t Motor__first(uint8_t data[3]);
+uint32_t Motor__sum(const uint8_t data[2]);
+uint32_t Motor__first(const uint8_t data[3]);
 
 #ifdef __cplusplus
 }

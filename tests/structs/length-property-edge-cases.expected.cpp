@@ -76,17 +76,17 @@ int main(void) {
     if (result != 0) {
         return result;
     }
-    uint32_t totalBits = 56;
+    const uint32_t totalBits = 56;
     if (totalBits != 56) {
         return 100U;
     }
-    uint32_t totalBytes = (48) / 8U;
+    const uint32_t totalBytes = (48) / 8U;
     if (totalBytes != 6) {
         return 101U;
     }
-    uint32_t len1 = 32;
-    uint32_t len2 = 16;
-    uint32_t len3 = 8;
+    const uint32_t len1 = 32;
+    const uint32_t len2 = 16;
+    const uint32_t len3 = 8;
     if (len1 != 32) {
         return 110U;
     }

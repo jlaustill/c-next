@@ -21,8 +21,8 @@
 #include <stdint.h>
 
 int main(void) {
-    Config theirs = { .a = 3, .b = 4 };
-    int32_t fromTheirs = Motor__useTheirs(theirs);
+    const Config theirs = { .a = 3, .b = 4 };
+    const int32_t fromTheirs = Motor__useTheirs(theirs);
     if (fromTheirs != 3) {
         return 1;
     }

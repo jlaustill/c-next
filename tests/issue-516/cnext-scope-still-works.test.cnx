@@ -2,7 +2,7 @@
 // Ensures we didn't break existing C-Next scope functionality
 
 scope Motor {
-    public u8 speed;
+    public mut u8 speed;
 
     public void start() {
         this.speed <- 100;

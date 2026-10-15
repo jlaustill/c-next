@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint32_t apiVersion;
+extern const uint32_t apiVersion;
 
 #ifdef __cplusplus
 }

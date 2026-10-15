@@ -12,7 +12,7 @@ struct TValue {
     u32 data;
 }
 
-TValue[4] values;
+mut TValue[4] values;
 
 scope Test {
     public u32 getValue(EColor color) {

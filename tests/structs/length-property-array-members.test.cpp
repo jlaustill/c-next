@@ -35,7 +35,7 @@ int main(void) {
     if (8 != 8) {
         return 6U;
     }
-    uint32_t bytes = 32 / 8U;
+    const uint32_t bytes = 32 / 8U;
     if (bytes != 4) {
         return 7U;
     }

@@ -27,9 +27,9 @@ typedef struct Motor__Info {
 } Motor__Info;
 
 /* External variables */
-extern uint8_t Motor__varBare[2];
-extern uint8_t Motor__varThis[2];
-extern uint8_t Motor__varGlobal[2];
+extern const uint8_t Motor__varBare[2];
+extern const uint8_t Motor__varThis[2];
+extern const uint8_t Motor__varGlobal[2];
 
 #ifdef __cplusplus
 }

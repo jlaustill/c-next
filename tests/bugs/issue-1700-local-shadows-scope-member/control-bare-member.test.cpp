@@ -24,15 +24,14 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 // #1700 NEGATIVE CONTROL: a bare member reference with no shadowing local
 // binds the member (ADR-057), and saturates at the member's u8.
 /* Scope: S */
-static uint8_t S__x = 200U;
 
 uint8_t S__f(void) {
-    uint8_t y = cnx_clamp_add_u8(S__x, S__x);
+    const uint8_t y = cnx_clamp_add_u8(200U, 200U);
     return y;
 }
 
 int main(void) {
-    uint8_t r = S__f();
+    const uint8_t r = S__f();
     if (r != 255) {
         return 1U;
     }

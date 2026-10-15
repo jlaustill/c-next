@@ -112,8 +112,8 @@ int main(void) {
         return 4U;
     }
     cond = true;
-    uint32_t selA = 1U;
-    uint32_t selB = 2U;
+    const uint32_t selA = 1U;
+    const uint32_t selB = 2U;
     if (cond == true) {
         switch (selA) {
                 case 0: {
@@ -263,8 +263,8 @@ int main(void) {
         return 9U;
     }
     cond = true;
-    uint32_t first = 0U;
-    uint32_t second = 1U;
+    const uint32_t first = 0U;
+    const uint32_t second = 1U;
     uint32_t resultA = 0U;
     uint32_t resultB = 0U;
     if (cond == true) {
@@ -303,7 +303,7 @@ int main(void) {
     if (resultB != 21) {
         return 11U;
     }
-    int8_t signedSel = 1;
+    const int8_t signedSel = 1;
     cond = true;
     if (cond == true) {
         switch (signedSel) {

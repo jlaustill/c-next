@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint32_t doubled(uint32_t value);
+uint32_t doubled(const uint32_t value);
 
 #ifdef __cplusplus
 }

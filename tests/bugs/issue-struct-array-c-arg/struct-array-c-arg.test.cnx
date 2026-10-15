@@ -14,14 +14,14 @@
 // array never took an `&` (`u32s_bump2(n)`).
 #include "pts.h"
 
-CPoint[2] gpts;
+mut CPoint[2] gpts;
 
 struct Bag {
     CPoint[2] inner;
 }
 
 scope Keeper {
-    CPoint[2] kept;
+    mut CPoint[2] kept;
 
     public void bump() {
         global.pts_bump2(this.kept);
@@ -33,28 +33,28 @@ scope Keeper {
 }
 
 // The defect: a struct-array parameter passed whole.
-void bumpParam(CPoint[2] p) {
+void bumpParam(mut CPoint[2] p) {
     pts_bump2(p);
 }
 
 // Control: one element is a value, passed by address.
-void bumpSecond(CPoint[2] p) {
+void bumpSecond(mut CPoint[2] p) {
     pts_bump1(p[1]);
 }
 
 // Control: a single struct parameter is passed by address.
-void bumpOne(CPoint one) {
+void bumpOne(mut CPoint one) {
     pts_bump1(one);
 }
 
 // Control: a primitive array never took an `&`.
-void bumpNums(u32[2] n) {
+void bumpNums(mut u32[2] n) {
     u32s_bump2(n);
 }
 
 i32 main() {
     // A local, passed whole.
-    CPoint[2] l;
+    mut CPoint[2] l;
     pts_bump2(l);
     if (l[0].x != 1) {
         return 1;
@@ -89,7 +89,7 @@ i32 main() {
     }
 
     // A struct member, passed whole.
-    Bag bag;
+    mut Bag bag;
     bag.inner[0].x <- 10;
     bag.inner[1].x <- 20;
     pts_bump2(bag.inner);
@@ -109,13 +109,13 @@ i32 main() {
         return 11;
     }
 
-    CPoint single <- { x: 7 };
+    mut CPoint single <- { x: 7 };
     bumpOne(single);
     if (single.x != 8) {
         return 12;
     }
 
-    u32[2] nums;
+    mut u32[2] nums;
     bumpNums(nums);
     if (nums[0] != 1) {
         return 13;

@@ -13,9 +13,9 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-float doubled(uint32_t x);
-float halved(uint32_t x);
-float plain(uint32_t x);
+float doubled(const uint32_t x);
+float halved(const uint32_t x);
+float plain(const uint32_t x);
 
 #ifdef __cplusplus
 }

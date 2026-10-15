@@ -2,12 +2,12 @@
 // Issue #1768 NEGATIVE CONTROL: variable-dimension.test.cnx's two shapes with a
 // const in place of the variable transpile, compile and keep their size.
 
-const u32 GY <- 2;
-u8[GY] gok;
+u32 GY <- 2;
+mut u8[GY] gok;
 
 u32 main() {
-    const u32 y <- 2;
-    u8[y] ok <- [0*];
+    u32 y <- 2;
+    mut u8[y] ok <- [0*];
     ok[1] <- 7;
     gok[1] <- 9;
     if (ok[1] != 7) {

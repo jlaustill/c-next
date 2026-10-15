@@ -8,9 +8,9 @@
 #include <stdint.h>
 
 // ADR-036: .length on first dimension
-uint8_t matrix[4][8] = {0};
+const uint8_t matrix[4][8] = {0};
 
 int main(void) {
-    uint32_t rows = 4;
+    const uint32_t rows = 4;
     return 0;
 }

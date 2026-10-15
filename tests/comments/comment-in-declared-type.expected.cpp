@@ -17,7 +17,7 @@ Pt Pt_init(void) {
 }
 
 int main(void) {
-    Pt pts[2] = {{ .c = Color__RED, .x = 1U }, { .c = Color__GREEN, .x = 2U }};
+    const Pt pts[2] = {{ .c = Color__RED, .x = 1U }, { .c = Color__GREEN, .x = 2U }};
     if (pts[0U].c != Color__RED) {
         return 1U;
     }

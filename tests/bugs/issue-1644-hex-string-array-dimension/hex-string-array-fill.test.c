@@ -67,18 +67,18 @@ int main(void) {
     const uint32_t COUNT = 4U;
     // cppcheck-suppress misra-c2012-9.3
     // cppcheck-suppress misra-c2012-9.4
-    char hex[4][9] = {"ab", "ab", "ab", "ab"};
+    const char hex[4][9] = {"ab", "ab", "ab", "ab"};
     // cppcheck-suppress misra-c2012-9.3
     // cppcheck-suppress misra-c2012-9.4
-    char bin[4][9] = {"ab", "ab", "ab", "ab"};
+    const char bin[4][9] = {"ab", "ab", "ab", "ab"};
     // cppcheck-suppress misra-c2012-9.3
     // cppcheck-suppress misra-c2012-9.4
-    char con[4][9] = {"ab", "ab", "ab", "ab"};
+    const char con[4][9] = {"ab", "ab", "ab", "ab"};
     // cppcheck-suppress misra-c2012-9.3
     // cppcheck-suppress misra-c2012-9.4
-    char dec[4][9] = {"ab", "ab", "ab", "ab"};
-    uint8_t conPlain[4] = {7U, 7U, 7U, 7U};
-    uint8_t decPlain[4] = {7U, 7U, 7U, 7U};
+    const char dec[4][9] = {"ab", "ab", "ab", "ab"};
+    const uint8_t conPlain[4] = {7U, 7U, 7U, 7U};
+    const uint8_t decPlain[4] = {7U, 7U, 7U, 7U};
     for (uint32_t i = 0U; i < 4; i = cnx_clamp_add_u32(i, 1U)) {
         if (strcmp(hex[i], "ab") != 0) {
             return 1U;

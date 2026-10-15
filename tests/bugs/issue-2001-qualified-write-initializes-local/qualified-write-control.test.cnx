@@ -8,7 +8,7 @@ struct Point {
     u32 y;
 }
 
-Point pt <- { x: 1, y: 2 };
+mut Point pt <- { x: 1, y: 2 };
 u32 total <- 7;
 
 u32 shadowInit() {
@@ -18,8 +18,8 @@ u32 shadowInit() {
 }
 
 scope S {
-    u32 count;
-    u32 other;
+    mut u32 count;
+    mut u32 other;
 
     public void setViaThis() {
         u32 count <- 9;

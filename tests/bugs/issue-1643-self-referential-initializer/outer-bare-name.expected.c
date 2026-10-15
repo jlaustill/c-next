@@ -26,28 +26,27 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // #1643 review: a local whose initializer spells an outer global or member
 // bare reads the outer one, in C-Next and in the C. Each case returns a
 // distinct code if the C reads the new, uninitialized local instead.
-uint32_t g = 10U;
+const uint32_t g = 10U;
 
 /* Scope: S */
-static uint32_t S__a = 20U;
 
 uint32_t S__bump(void) {
-    uint32_t a = cnx_clamp_add_u32(S__a, 1U);
+    const uint32_t a = cnx_clamp_add_u32(20U, 1U);
     return a;
 }
 
 uint32_t fromGlobal(void) {
     /* C11 6.2.1p4, C++ [basic.scope.hiding]: `g` emitted as `fromGlobal__g` (a plain `g` would hide the file-scope `g` for the rest of its scope, so `global.g` would reach the local). */
-    uint32_t fromGlobal__g = cnx_clamp_add_u32(g, 1U);
+    const uint32_t fromGlobal__g = cnx_clamp_add_u32(g, 1U);
     return fromGlobal__g;
 }
 
 int main(void) {
-    uint32_t fromG = fromGlobal();
+    const uint32_t fromG = fromGlobal();
     if (fromG != 11) {
         return 1U;
     }
-    uint32_t fromA = S__bump();
+    const uint32_t fromA = S__bump();
     if (fromA != 21) {
         return 2U;
     }

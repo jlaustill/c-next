@@ -12,7 +12,7 @@ bitmap16 CANStatus {
     MessageCounter[8] // bits 8-15 (8 bits)
 }
 
-CANStatus status <- 0;
+mut CANStatus status <- 0;
 
 void main() {
     // Write flag bits

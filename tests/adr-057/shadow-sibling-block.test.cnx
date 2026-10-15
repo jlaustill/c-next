@@ -5,11 +5,11 @@
 // asked a per-function set of local names, so every later use in the
 // function took the block local's renamed C name -- `main__x = 3U;` outside
 // the block that declared it, which C rejects, with the transpile exiting 0.
-u32 x <- 5;
+mut u32 x <- 5;
 
 u32 main() {
     {
-        u8 x <- 1;
+        mut u8 x <- 1;
         x <- 2;
         if (x != 2) {
             return 1;

@@ -10,7 +10,7 @@ i32 main() {
     CopyConstructible src <- { id: 100, data: 200 };
 
     // Copy to another instance
-    CopyConstructible copy <- src;
+    mut CopyConstructible copy <- src;
 
     // Verify copy has correct values
     if (copy.id != 100) {

@@ -81,30 +81,30 @@ uint32_t localWithText(const char* label) {
 }
 
 int main(void) {
-    localHelper_fp ownRef = localHelper;
-    uint32_t ownResult = ownRef();
+    const localHelper_fp ownRef = localHelper;
+    const uint32_t ownResult = ownRef();
     if (ownResult != 5) {
         return 1U;
     }
-    sharedHelper_fp viaInclude = sharedHelper;
-    uint32_t includedResult = viaInclude();
+    const sharedHelper_fp viaInclude = sharedHelper;
+    const uint32_t includedResult = viaInclude();
     if (includedResult != 7) {
         return 2U;
     }
-    uint32_t combined = cnx_clamp_add_u32(ownResult, includedResult);
+    const uint32_t combined = cnx_clamp_add_u32(ownResult, includedResult);
     if (combined != 12) {
         return 3U;
     }
-    sharedNotify_fp viaVoid = sharedNotify;
+    const sharedNotify_fp viaVoid = sharedNotify;
     viaVoid();
-    char text[9] = "abcd";
-    localWithText_fp ownText = localWithText;
-    uint32_t ownLength = ownText(text);
+    const char text[9] = "abcd";
+    const localWithText_fp ownText = localWithText;
+    const uint32_t ownLength = ownText(text);
     if (ownLength != 4) {
         return 4U;
     }
-    sharedWithCount_fp viaCount = sharedWithCount;
-    uint32_t counted = viaCount(41U);
+    const sharedWithCount_fp viaCount = sharedWithCount;
+    const uint32_t counted = viaCount(41U);
     if (counted != 42) {
         return 5U;
     }

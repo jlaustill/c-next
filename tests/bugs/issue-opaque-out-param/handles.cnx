@@ -3,7 +3,7 @@
 // a handle -- a `Dev*` -- whose address an out-parameter takes.
 #include "devout.h"
 
-Dev shared;
+mut Dev shared;
 
 scope Rack {
     public Dev unit;

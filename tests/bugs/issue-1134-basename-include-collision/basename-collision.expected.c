@@ -22,8 +22,8 @@
 #include <stdint.h>
 
 int main(void) {
-    uint8_t canRate = CanConfig__bitRate();
-    uint8_t uartRate = UartConfig__baudRate();
+    const uint8_t canRate = CanConfig__bitRate();
+    const uint8_t uartRate = UartConfig__baudRate();
     if (canRate != 5) {
         return 1U;
     }

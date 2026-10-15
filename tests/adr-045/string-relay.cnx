@@ -4,4 +4,4 @@
 
 #include "string-declarations.cnx"
 
-const u32 STRING_RELAY_MARKER <- 2;
+u32 STRING_RELAY_MARKER <- 2;

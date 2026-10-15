@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern ExternalStruct globalExt;
+extern const ExternalStruct globalExt;
 
 /* Function prototypes */
 uint8_t Test__getFromGlobal(void);

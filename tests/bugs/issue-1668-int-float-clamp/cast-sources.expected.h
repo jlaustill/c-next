@@ -13,8 +13,8 @@ extern "C" {
 #endif
 
 /* External variables */
-extern float grid[2];
-extern cs_float_t cS;
+extern const float grid[2];
+extern const cs_float_t cS;
 
 /* Function prototypes */
 float half(void);

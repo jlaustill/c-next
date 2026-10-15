@@ -10,7 +10,7 @@ scope Motor {
         Reserved[4]
     }
 
-    this.Flags f <- 0;
+    mut this.Flags f <- 0;
 
     public void run() {
         // NEGATIVE CONTROL -- a value that fits the field
@@ -26,16 +26,16 @@ bitmap8 Global {
     Reserved[4]
 }
 
-Global g <- 0;
+mut Global g <- 0;
 
 void main() {
     Motor.run();
     // NEGATIVE CONTROL
-    for (u32 i <- 0; i < 3; g.Mode <- 7) {
+    for (mut u32 i <- 0; i < 3; g.Mode <- 7) {
         i +<- 1;
     }
     // ASSERTION
-    for (u32 j <- 0; j < 3; g.Mode <- 8) {
+    for (mut u32 j <- 0; j < 3; g.Mode <- 8) {
         j +<- 1;
     }
 }

@@ -33,14 +33,14 @@ typedef struct Slots {
 } Slots;
 
 /* External variables */
-extern uint8_t wrapBytes[6];
-extern uint8_t wordBytes[2];
-extern uint8_t gearBytes[1];
-extern uint8_t bfBits[5];
+extern const uint8_t wrapBytes[6];
+extern const uint8_t wordBytes[2];
+extern const uint8_t gearBytes[1];
+extern const uint8_t bfBits[5];
 
 /* Function prototypes */
 uint32_t Box__count(void);
-uint32_t sizeName(uint32_t n);
+uint32_t sizeName(const uint32_t n);
 
 #ifdef __cplusplus
 }

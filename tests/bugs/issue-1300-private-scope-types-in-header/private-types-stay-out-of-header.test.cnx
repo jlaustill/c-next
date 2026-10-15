@@ -41,7 +41,7 @@ scope Internal {
     public u32 useHidden() {
         Hidden h <- { a: 1 };
         HiddenMode m <- HiddenMode.ON;
-        HiddenFlags f <- 0;
+        mut HiddenFlags f <- 0;
         f.Alpha <- true;
 
         if (m = HiddenMode.ON) {

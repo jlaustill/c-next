@@ -2,15 +2,15 @@
 // Tests that all const type variants get extern in generated .c
 
 // Basic integer const
-const u8 BYTE_CONST <- 42;
-const u16 WORD_CONST <- 1000;
-const u32 DWORD_CONST <- 100000;
+u8 BYTE_CONST <- 42;
+u16 WORD_CONST <- 1000;
+u32 DWORD_CONST <- 100000;
 
 // Bounded string const
-const string<16> STRING_CONST <- "Hello";
+string<16> STRING_CONST <- "Hello";
 
 // Const array
-const u8[4] BYTE_ARRAY <- [1, 2, 3, 4];
+u8[4] BYTE_ARRAY <- [1, 2, 3, 4];
 
 // Const string array
-const string<8>[3] STRING_ARRAY <- ["one", "two", "three"];
+string<8>[3] STRING_ARRAY <- ["one", "two", "three"];

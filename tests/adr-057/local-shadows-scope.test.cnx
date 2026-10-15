@@ -3,7 +3,7 @@
 // test-adr: 057
 
 scope State {
-    u32 value <- 100;
+    mut u32 value <- 100;
 
     public u32 shadowTest() {
         u32 value <- 5; // Local shadows scope

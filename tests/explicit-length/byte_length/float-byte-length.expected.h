@@ -17,8 +17,8 @@ typedef struct FloatByteLen__TestStruct {
 } FloatByteLen__TestStruct;
 
 /* External variables */
-extern float globalF32;
-extern double globalF64;
+extern const float globalF32;
+extern const double globalF64;
 
 #ifdef __cplusplus
 }

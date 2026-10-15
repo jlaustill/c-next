@@ -12,7 +12,7 @@
 
 #include <string.h>
 
-char buffer[65] = "";
+const char buffer[65] = "";
 
 // Read lines until fgets returns NULL (EOF)
 void readAllLines(void) {

@@ -30,7 +30,7 @@ typedef struct Mesh {
 } Mesh;
 
 /* External variables */
-extern Mesh cube;
+extern const Mesh cube;
 
 #ifdef __cplusplus
 }

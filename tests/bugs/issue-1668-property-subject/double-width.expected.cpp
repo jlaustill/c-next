@@ -15,6 +15,6 @@
 #include <stdint.h>
 
 void measure(void) {
-    uint32_t variable = 32;
-    uint32_t field = 32;
+    const uint32_t variable = 32;
+    const uint32_t field = 32;
 }

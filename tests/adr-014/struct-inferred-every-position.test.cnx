@@ -35,7 +35,7 @@ struct Box {
 
 void takes(Point p) {}
 
-const Point ORIGIN <- { x: 0, y: 0 };
+Point ORIGIN <- { x: 0, y: 0 };
 Point atFileScope <- { x: 1, y: 1 };
 
 Point returned() {
@@ -51,7 +51,7 @@ scope Shapes {
 }
 
 void controls() {
-    Point local <- { x: 2, y: 2 };
+    mut Point local <- { x: 2, y: 2 };
     local <- { x: 3, y: 3 };
     Box b <- { corner: { x: 4, y: 4 } };
 }

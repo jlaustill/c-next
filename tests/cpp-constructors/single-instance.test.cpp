@@ -12,7 +12,7 @@
 #include <stdint.h>
 
 int main(void) {
-    DefaultConstructible obj = {};
+    const DefaultConstructible obj = {};
     obj.value = 42;
     obj.name = "test";
     if (obj.value != 42) {

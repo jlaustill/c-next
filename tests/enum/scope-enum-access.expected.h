@@ -20,7 +20,7 @@ typedef enum {
 } EColor;
 
 /* Function prototypes */
-uint32_t Test__checkRed(EColor c);
+uint32_t Test__checkRed(const EColor c);
 
 #ifdef __cplusplus
 }

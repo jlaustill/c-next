@@ -32,24 +32,24 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 /* Scope: Motor */
 const uint8_t Motor__SIZE = 3U;
 
-uint32_t Motor__sum(uint8_t data[2]) {
+uint32_t Motor__sum(const uint8_t data[2]) {
     uint32_t total = data[0U];
     total = cnx_clamp_add_u32(total, data[1U]);
     return total;
 }
 
-uint32_t Motor__first(uint8_t data[3]) {
+uint32_t Motor__first(const uint8_t data[3]) {
     return data[0U];
 }
 
 int main(void) {
-    uint8_t two[2] = {1U, 2U};
-    uint8_t three[3] = {5U, 6U, 7U};
-    uint32_t s = Motor__sum(two);
+    const uint8_t two[2] = {1U, 2U};
+    const uint8_t three[3] = {5U, 6U, 7U};
+    const uint32_t s = Motor__sum(two);
     if (s != 3) {
         return 1U;
     }
-    uint32_t f = Motor__first(three);
+    const uint32_t f = Motor__first(three);
     if (f != 5) {
         return 2U;
     }

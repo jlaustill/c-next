@@ -14,7 +14,7 @@
 #include <stdbool.h>
 
 void read(void) {
-    uint8_t v = cops.buf[2U];
-    uint8_t e = cops.arr[2U];
-    bool b = ((((cops.flags >> 2U) & 1)) != 0U);
+    const uint8_t v = cops.buf[2U];
+    const uint8_t e = cops.arr[2U];
+    const bool b = ((((cops.flags >> 2U) & 1)) != 0U);
 }

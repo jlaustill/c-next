@@ -6,8 +6,8 @@ scope S {
     u32 count;
 
     public u32 f() {
-        u32 sum <- 0;
-        for (u32 count <- 0; count < 3; count +<- 1) {
+        mut u32 sum <- 0;
+        for (mut u32 count <- 0; count < 3; count +<- 1) {
             sum +<- count;
         }
         return sum;

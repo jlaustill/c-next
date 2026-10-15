@@ -80,7 +80,7 @@ u32 main() {
     // === Modifying a single channel ===
 
     // Start with our original color and boost green to max
-    u16 modified <- 0x7BEF;
+    mut u16 modified <- 0x7BEF;
     modified[5, 6] <- 63;
 
     // Red and blue should be unchanged
@@ -96,7 +96,7 @@ u32 main() {
 
     // === Building a color from scratch ===
 
-    u16 custom <- 0;
+    mut u16 custom <- 0;
     custom[11, 5] <- 31; // Red = max (31)
     custom[5, 6] <- 32; // Green = half (32 of 63)
     custom[0, 5] <- 16; // Blue = half (16 of 31)

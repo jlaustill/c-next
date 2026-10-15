@@ -151,7 +151,7 @@ int main(void) {
     if (timestamps[2U][1U] != 1622505600000) {
         return 25U;
     }
-    uint64_t diff = cnx_clamp_sub_u64(timestamps[0U][1U], timestamps[0U][0U]);
+    const uint64_t diff = cnx_clamp_sub_u64(timestamps[0U][1U], timestamps[0U][0U]);
     if (diff != 2678400000) {
         return 26U;
     }

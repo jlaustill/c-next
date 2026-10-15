@@ -23,10 +23,10 @@
 void testNamespaces(void) {
     hw::init();
     hw::shutdown();
-    int32_t ver = hw::VERSION;
-    int32_t maxDev = hw::MAX_DEVICES;
+    const int32_t ver = hw::VERSION;
+    const int32_t maxDev = hw::MAX_DEVICES;
     hw::nested::configure();
-    int32_t bufSize = hw::nested::BUFFER_SIZE;
+    const int32_t bufSize = hw::nested::BUFFER_SIZE;
 }
 
 // ============================================================================
@@ -34,13 +34,13 @@ void testNamespaces(void) {
 // ============================================================================
 // Test enum class values (C++11 scoped enums)
 void testEnumClasses(void) {
-    EMode mode1 = EMode::OFF;
-    EMode mode2 = EMode::ON;
-    EMode mode3 = EMode::AUTO;
-    EMode mode4 = EMode::MANUAL;
-    EColor color1 = EColor::RED;
-    EColor color2 = EColor::GREEN;
-    EColor color3 = EColor::BLUE;
+    const EMode mode1 = EMode::OFF;
+    const EMode mode2 = EMode::ON;
+    const EMode mode3 = EMode::AUTO;
+    const EMode mode4 = EMode::MANUAL;
+    const EColor color1 = EColor::RED;
+    const EColor color2 = EColor::GREEN;
+    const EColor color3 = EColor::BLUE;
 }
 
 // ============================================================================
@@ -48,11 +48,11 @@ void testEnumClasses(void) {
 // ============================================================================
 // Test typed enums (C++11) and C-style enums
 void testTypedEnums(void) {
-    EFlags flags1 = FLAG_NONE;
-    EFlags flags2 = FLAG_READ;
-    uint16_t flags3 = FLAG_WRITE | FLAG_EXEC;
-    ELegacy leg1 = LEGACY_A;
-    ELegacy leg2 = LEGACY_B;
+    const EFlags flags1 = FLAG_NONE;
+    const EFlags flags2 = FLAG_READ;
+    const uint16_t flags3 = FLAG_WRITE | FLAG_EXEC;
+    const ELegacy leg1 = LEGACY_A;
+    const ELegacy leg2 = LEGACY_B;
 }
 
 // ============================================================================
@@ -60,14 +60,14 @@ void testTypedEnums(void) {
 // ============================================================================
 // Test class static method calls
 void testStaticMethods(void) {
-    bool ok = CommandHandler::execute(1U);
-    int32_t status = CommandHandler::getStatus();
+    const bool ok = CommandHandler::execute(1U);
+    const int32_t status = CommandHandler::getStatus();
     CommandHandler::reset();
-    int32_t absVal = MathUtils::abs(-5);
-    int32_t minVal = MathUtils::min(10, 20);
-    int32_t maxVal = MathUtils::max(10, 20);
-    int32_t pi = MathUtils::PI_INT;
-    EMode computed = MathUtils::computeMode(0x05U);
+    const int32_t absVal = MathUtils::abs(-5);
+    const int32_t minVal = MathUtils::min(10, 20);
+    const int32_t maxVal = MathUtils::max(10, 20);
+    const int32_t pi = MathUtils::PI_INT;
+    const EMode computed = MathUtils::computeMode(0x05U);
 }
 
 // ============================================================================
@@ -75,9 +75,9 @@ void testStaticMethods(void) {
 // ============================================================================
 // Test struct with constructors and factory methods
 void testStructInit(void) {
-    Result r1 = {};
-    Result success = Result::success();
-    Result error = Result::error(404);
+    const Result r1 = {};
+    const Result success = Result::success();
+    const Result error = Result::error(404);
     Point p = {};
     p.x = 10;
     p.y = 20;
@@ -85,9 +85,9 @@ void testStructInit(void) {
     s.enabled = false;
     s.timeout = 1000;
     s.mode = EMode::OFF;
-    bool enabled = s.enabled;
-    int32_t timeout = s.timeout;
-    EMode mode = s.mode;
+    const bool enabled = s.enabled;
+    const int32_t timeout = s.timeout;
+    const EMode mode = s.mode;
 }
 
 // ============================================================================
@@ -95,12 +95,12 @@ void testStructInit(void) {
 // ============================================================================
 // Test constexpr access
 void testConstexpr(void) {
-    int32_t maxSize = MAX_SIZE;
-    int32_t minSize = MIN_SIZE;
-    int32_t timeout = DEFAULT_TIMEOUT;
-    uint32_t magic = MAGIC_NUMBER;
-    int32_t sq = square(5);
-    int32_t fact = factorial(5);
+    const int32_t maxSize = MAX_SIZE;
+    const int32_t minSize = MIN_SIZE;
+    const int32_t timeout = DEFAULT_TIMEOUT;
+    const uint32_t magic = MAGIC_NUMBER;
+    const int32_t sq = square(5);
+    const int32_t fact = factorial(5);
 }
 
 // ============================================================================
@@ -108,18 +108,18 @@ void testConstexpr(void) {
 // ============================================================================
 // Test function overload resolution
 void testOverloads(void) {
-    int32_t r1 = process(10);
-    int32_t r2 = process(10, 20);
-    float r3 = process(3.14);
-    double r4 = process(3.14159);
-    Result r5 = process("test");
+    const int32_t r1 = process(10);
+    const int32_t r2 = process(10, 20);
+    const float r3 = process(3.14);
+    const double r4 = process(3.14159);
+    const Result r5 = process("test");
 }
 
 // ============================================================================
 // SECTION 8: TYPE CONVERSIONS (Issue #252)
 // ============================================================================
 // Test enum and bool to u8 conversions
-uint32_t processByte(uint32_t crc, uint8_t byte) {
+uint32_t processByte(const uint32_t crc, const uint8_t byte) {
     return crc ^ byte;
 }
 
@@ -148,9 +148,9 @@ void testArrayMembers(void) {
     device.sensors[1].enabled = false;
     device.sensors[1].mode = EMode::OFF;
     device.sensors[2].flags = 0x0FU;
-    bool enabled = device.sensors[0U].enabled;
-    EMode mode = device.sensors[1U].mode;
-    uint8_t flags = device.sensors[2U].flags;
+    const bool enabled = device.sensors[0U].enabled;
+    const EMode mode = device.sensors[1U].mode;
+    const uint8_t flags = device.sensors[2U].flags;
     uint32_t crc = 0U;
     crc = processByte(crc, device.sensors[0U].enabled);
     crc = processByte(crc, static_cast<uint8_t>(device.sensors[0U].mode));
@@ -169,8 +169,8 @@ void testComplexStructs(void) {
     msg.result.code = 0;
     msg.result.dataLen = 0U;
     msg.result.data[0] = 0x42U;
-    int32_t code = msg.result.code;
-    uint8_t firstByte = msg.result.data[0U];
+    const int32_t code = msg.result.code;
+    const uint8_t firstByte = msg.result.data[0U];
 }
 
 // ============================================================================
@@ -179,7 +179,7 @@ void testComplexStructs(void) {
 // Test singleton pattern and static registries
 void testSingleton(void) {
     Registry::callHandler(1);
-    int32_t count = Registry::getHandlerCount();
+    const int32_t count = Registry::getHandlerCount();
 }
 
 // ============================================================================
@@ -187,7 +187,7 @@ void testSingleton(void) {
 // ============================================================================
 // Test reference and pointer passing
 void testRefsAndPtrs(void) {
-    int32_t val = 42;
+    const int32_t val = 42;
     modifyRef(val);
     readRef(val);
     modifyPtr(&val);
@@ -202,15 +202,15 @@ void testRefsAndPtrs(void) {
 void testStrictInit(void) {
     StrictResult sr1 = {};
     sr1.code = 0;
-    StrictResult sr2 = StrictResult::success();
-    StrictResult sr3 = StrictResult::error(404);
+    const StrictResult sr2 = StrictResult::success();
+    const StrictResult sr3 = StrictResult::error(404);
     CommandResult cr1 = {};
     cr1.errorCode = 0;
     cr1.responseLen = 0U;
-    CommandResult cr2 = CommandResult::ok();
-    CommandResult cr3 = CommandResult::fail(500, "error");
-    int32_t code1 = sr1.code;
-    int32_t code2 = cr1.errorCode;
+    const CommandResult cr2 = CommandResult::ok();
+    const CommandResult cr3 = CommandResult::fail(500, "error");
+    const int32_t code1 = sr1.code;
+    const int32_t code2 = cr1.errorCode;
 }
 
 // ============================================================================
@@ -240,7 +240,7 @@ void simpleCallback(void) {
 }
 
 // Define callback matching C++ IntCallback typedef: void(*)(int)
-void intCallback(int32_t value) {
+void intCallback(const int32_t value) {
 }
 
 // Define callback matching C++ ResultCallback typedef: void(*)(const Result&)
@@ -253,7 +253,7 @@ void testCallbackInterop(void) {
     registerResultCallback(resultCallback);
     Registry::registerHandler(1, simpleCallback);
     Registry::registerHandler(2, simpleCallback);
-    int32_t count = Registry::getHandlerCount();
+    const int32_t count = Registry::getHandlerCount();
 }
 
 // ============================================================================

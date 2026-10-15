@@ -21,12 +21,12 @@ struct Processor {
 u32 main() {
 
     // Test 1: Struct initialization with default callback
-    Processor p;
+    mut Processor p;
     p.baseValue <- 10;
     p.handler <- computeValue;
 
     // Invoke default callback (computeValue: input * 2)
-    u32 result <- p.handler(5);
+    mut u32 result <- p.handler(5);
     if (result != 10) {
         return 1;
     }

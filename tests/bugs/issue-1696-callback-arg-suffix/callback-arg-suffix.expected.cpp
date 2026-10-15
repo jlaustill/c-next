@@ -11,18 +11,18 @@
 // Issue #1696: a call through a callback-typed value gives each integer literal
 // argument its PARAMETER's suffix, as a named call does (#872) -- never the
 // suffix of whatever expression encloses the call.
-uint32_t sink32(uint32_t v) {
+uint32_t sink32(const uint32_t v) {
     return v;
 }
 
-void sinkVoid(uint32_t v) {
+void sinkVoid(const uint32_t v) {
 }
 
-int32_t sinkI(int32_t v) {
+int32_t sinkI(const int32_t v) {
     return v;
 }
 
-uint64_t wide(uint64_t v) {
+uint64_t wide(const uint64_t v) {
     return v;
 }
 
@@ -32,14 +32,14 @@ Handlers Handlers_init(void) {
 }
 
 uint32_t run(const Handlers& h, sinkI_fp cb) {
-    float x = static_cast<float>(h.f(5U));
+    const float x = static_cast<float>(h.f(5U));
     h.w(5U);
-    uint64_t big = h.f(12U);
-    uint64_t b = wide(cb(6));
-    uint32_t same = h.f(7U);
-    float y = static_cast<float>(sink32(8U));
+    const uint64_t big = h.f(12U);
+    const uint64_t b = wide(cb(6));
+    const uint32_t same = h.f(7U);
+    const float y = static_cast<float>(sink32(8U));
     sinkVoid(9U);
-    uint64_t c = wide(sinkI(6));
+    const uint64_t c = wide(sinkI(6));
     if (x < 4.5) {
         return 1U;
     }

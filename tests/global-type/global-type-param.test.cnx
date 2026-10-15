@@ -23,7 +23,7 @@ scope Processor {
 }
 
 u32 main() {
-    i32 result <- Processor.process(global.EPriority.LOW);
+    mut i32 result <- Processor.process(global.EPriority.LOW);
     if (result != 10) {
         return 1;
     }

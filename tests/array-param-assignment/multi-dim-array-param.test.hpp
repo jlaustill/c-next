@@ -13,10 +13,10 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void write2D(uint32_t arr[2][3], uint32_t row, uint32_t col, uint32_t value);
-uint32_t read2D(uint32_t arr[2][3], uint32_t row, uint32_t col);
-void fillRow(uint32_t arr[2][3], uint32_t row, uint32_t val0, uint32_t val1, uint32_t val2);
-uint32_t sumRow(uint32_t arr[2][3], uint32_t row);
+void write2D(uint32_t arr[2][3], const uint32_t row, const uint32_t col, const uint32_t value);
+uint32_t read2D(const uint32_t arr[2][3], const uint32_t row, const uint32_t col);
+void fillRow(uint32_t arr[2][3], const uint32_t row, const uint32_t val0, const uint32_t val1, const uint32_t val2);
+uint32_t sumRow(const uint32_t arr[2][3], const uint32_t row);
 
 #ifdef __cplusplus
 }

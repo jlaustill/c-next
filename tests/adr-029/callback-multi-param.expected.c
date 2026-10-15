@@ -31,22 +31,22 @@ static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
 // Tests: Callbacks with multiple parameters
 // Validates: two-param and three-param callbacks work correctly
 // Two-parameter callback
-uint32_t addTwo(uint32_t a, uint32_t b) {
+uint32_t addTwo(const uint32_t a, const uint32_t b) {
     return cnx_clamp_add_u32(a, b);
 }
 
 // Alternative two-param callback
-uint32_t multiplyTwo(uint32_t a, uint32_t b) {
+uint32_t multiplyTwo(const uint32_t a, const uint32_t b) {
     return cnx_clamp_mul_u32(a, b);
 }
 
 // Three-parameter callback
-uint32_t addThree(uint32_t a, uint32_t b, uint32_t c) {
+uint32_t addThree(const uint32_t a, const uint32_t b, const uint32_t c) {
     return cnx_clamp_add_u32(cnx_clamp_add_u32(a, b), c);
 }
 
 // Mixed type two-parameter callback
-uint32_t mixedParams(uint32_t val, bool flag) {
+uint32_t mixedParams(const uint32_t val, const bool flag) {
     if (flag == true) {
         return cnx_clamp_mul_u32(val, 2U);
     }

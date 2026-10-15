@@ -28,7 +28,7 @@ u32 main() {
     }
 
     // i64 array with explicit size
-    i64[4] data;
+    mut i64[4] data;
     data[0] <- -5000000000000;
     data[1] <- 5000000000000;
     data[2] <- -10000000000000;
@@ -61,8 +61,8 @@ u32 main() {
 
     // i64 array in loop
     i64[3] loop_arr <- [1000000000, 2000000000, 3000000000];
-    i64 sum <- 0;
-    for (u32 i <- 0; i < 3; i +<- 1) {
+    mut i64 sum <- 0;
+    for (mut u32 i <- 0; i < 3; i +<- 1) {
         sum +<- loop_arr[i];
     }
     if (sum != 6000000000) {
@@ -70,7 +70,7 @@ u32 main() {
     }
 
     // i64 array modification
-    i64[2] modify <- [10000000000, 20000000000];
+    mut i64[2] modify <- [10000000000, 20000000000];
     modify[0] <- -10000000000;
     modify[1] <- -20000000000;
     if (modify[0] != -10000000000) {

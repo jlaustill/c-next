@@ -30,7 +30,7 @@ f32 divide(f32 x, f32 y) {
 // symbol table was keyed by the qualified name, leaking generated naming
 // into the source namespace. `Math.add(...)` is the correct C-Next syntax.
 void main() {
-    f32 result <- Math.add(1.0, 2.0);
+    mut f32 result <- Math.add(1.0, 2.0);
     result <- Math.multiply(3.0, 4.0);
     result <- Math.subtract(5.0, 2.0);
     result <- divide(10.0, 2.0);

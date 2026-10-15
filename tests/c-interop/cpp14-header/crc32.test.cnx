@@ -12,7 +12,7 @@
 
 #include "AppConfig.h"
 
-u32 calculateChecksum(const AppConfig config) {
+u32 calculateChecksum(AppConfig config) {
     string<512> buffer <- "";
     u32 offset <- 0;
     u8 length <- 0;

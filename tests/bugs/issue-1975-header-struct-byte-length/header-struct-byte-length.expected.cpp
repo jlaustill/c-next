@@ -33,22 +33,22 @@
 
 // #1975 review: a C-Next struct with a header struct's field is sized by the
 // one rule, its fields' sizes together: 5 + 1
-uint8_t wrapBytes[6] = {};
+extern const uint8_t wrapBytes[6] = {};
 
-uint8_t wordBytes[2] = {};
+extern const uint8_t wordBytes[2] = {};
 
-uint8_t gearBytes[1] = {};
+extern const uint8_t gearBytes[1] = {};
 
-uint8_t bfBits[5] = {};
+extern const uint8_t bfBits[5] = {};
 
 /* Scope: Box */
 
 uint32_t Box__count(void) {
-    Slots s = {};
+    const Slots s = {};
     return 3;
 }
 
-uint32_t sizeName(uint32_t n) {
+uint32_t sizeName(const uint32_t n) {
     switch (n) {
         case 5: {
             return 1U;
@@ -70,8 +70,8 @@ uint32_t sizeName(uint32_t n) {
 }
 
 int main(void) {
-    Cfg c = {};
-    Outer o = {};
+    const Cfg c = {};
+    const Outer o = {};
     if (5 != 5) {
         return 1U;
     }
@@ -117,22 +117,22 @@ int main(void) {
     if (1 != 1) {
         return 15U;
     }
-    Slots s = {};
+    const Slots s = {};
     if (3 != 3) {
         return 16U;
     }
-    uint32_t counted = Box__count();
+    const uint32_t counted = Box__count();
     if (counted != 3) {
         return 17U;
     }
-    uint32_t named = sizeName(5U);
+    const uint32_t named = sizeName(5U);
     if (named != 1) {
         return 18U;
     }
     if (2 != 2) {
         return 19U;
     }
-    BF bf = {};
+    const BF bf = {};
     if (3 != 3) {
         return 20U;
     }
@@ -142,7 +142,7 @@ int main(void) {
     if (5 != 5) {
         return 22U;
     }
-    uint32_t bitNamed = sizeName(3U);
+    const uint32_t bitNamed = sizeName(3U);
     if (bitNamed != 3) {
         return 23U;
     }

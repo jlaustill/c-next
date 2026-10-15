@@ -4,14 +4,14 @@
 // to receive the result. Until #1322 these were codegen throws reporting `1:0`
 // and no fixture asserted either of them.
 
-const u32 K <- 5;
+u32 K <- 5;
 
 void helper() {}
 
 void main() {
-    u32 q <- 0;
-    u32 r <- 0;
-    bool err <- false;
+    mut u32 q <- 0;
+    mut u32 r <- 0;
+    mut bool err <- false;
 
     // NEGATIVE CONTROLS -- declared before the assertions. The correct shape
     // for both builtins, and a divisor that is a variable rather than a

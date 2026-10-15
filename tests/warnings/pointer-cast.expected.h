@@ -24,8 +24,8 @@ typedef struct PtrCast__Container {
 
 /* Function prototypes */
 void modifyData(PtrCast__Data* d);
-PtrCast__Data createData(uint32_t val, uint8_t flg);
-void updateContainer(PtrCast__Container* c, uint32_t newCount);
+PtrCast__Data createData(const uint32_t val, const uint8_t flg);
+void updateContainer(PtrCast__Container* c, const uint32_t newCount);
 
 #ifdef __cplusplus
 }

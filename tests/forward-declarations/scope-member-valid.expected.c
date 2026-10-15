@@ -12,11 +12,11 @@
 /* Scope: LED */
 
 void LED__on(void) {
-    uint32_t x = 1U;
+    const uint32_t x = 1U;
 }
 
 void LED__off(void) {
-    uint32_t x = 0U;
+    const uint32_t x = 0U;
 }
 
 int main(void) {

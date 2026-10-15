@@ -24,7 +24,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Both can coexist - scope becomes prefix, variable stays as-is
 // test-execution
 // test-adr: 057
-uint8_t LED = 5U;
+const uint8_t LED = 5U;
 
 // Global variable named same as scope
 /* Scope: LED */
@@ -37,16 +37,16 @@ void LED__on(void) {
 /* Scope: Motor */
 
 uint32_t Motor__test(void) {
-    uint8_t val = LED;
+    const uint8_t val = LED;
     LED__on();
-    uint8_t bright = LED__brightness;
+    const uint8_t bright = LED__brightness;
     uint32_t result = val;
     result = cnx_clamp_add_u32(result, bright);
     return result;
 }
 
 int main(void) {
-    uint32_t result = Motor__test();
+    const uint32_t result = Motor__test();
     if (result != 260) {
         return 1U;
     }

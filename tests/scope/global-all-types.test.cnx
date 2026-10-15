@@ -4,7 +4,7 @@
 // Verifies that global. works correctly with every C-Next primitive type inside scope methods
 
 // Unsigned integer globals
-u8 globalU8 <- 255;
+mut u8 globalU8 <- 255;
 u16 globalU16 <- 65535;
 u32 globalU32 <- 4294967295;
 u64 globalU64 <- 18446744073709551615;
@@ -16,11 +16,11 @@ i32 globalI32 <- -2147483648;
 i64 globalI64 <- -9223372036854775808;
 
 // Floating point globals
-f32 globalF32 <- 3.14;
-f64 globalF64 <- 3.141592653589793;
+mut f32 globalF32 <- 3.14;
+mut f64 globalF64 <- 3.141592653589793;
 
 // Boolean global
-bool globalBool <- true;
+mut bool globalBool <- true;
 
 scope GlobalAccessTest {
     // Getters using global. accessor - Unsigned integers

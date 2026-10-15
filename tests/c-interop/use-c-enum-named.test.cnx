@@ -23,7 +23,7 @@ u32 main() {
     }
 
     // Test 2: Compare with enum values
-    i32 color <- COLOR_GREEN;
+    mut i32 color <- COLOR_GREEN;
     if (color != COLOR_GREEN) {
         return 4;
     }

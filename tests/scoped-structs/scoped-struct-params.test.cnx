@@ -7,12 +7,12 @@ scope Math {
         i32 y;
     }
 
-    public void add(this.Vec2 result, this.Vec2 a, this.Vec2 b) {
+    public void add(mut this.Vec2 result, this.Vec2 a, this.Vec2 b) {
         result.x <- a.x + b.x;
         result.y <- a.y + b.y;
     }
 
-    public void scale(this.Vec2 v, i32 factor) {
+    public void scale(mut this.Vec2 v, i32 factor) {
         v.x <- v.x * factor;
         v.y <- v.y * factor;
     }
@@ -28,16 +28,16 @@ scope Math {
         return false;
     }
 
-    public void copy(this.Vec2 dest, this.Vec2 src) {
+    public void copy(mut this.Vec2 dest, this.Vec2 src) {
         dest.x <- src.x;
         dest.y <- src.y;
     }
 }
 
 u32 main() {
-    Math.Vec2 v1;
-    Math.Vec2 v2;
-    Math.Vec2 result;
+    mut Math.Vec2 v1;
+    mut Math.Vec2 v2;
+    mut Math.Vec2 result;
 
     // Test 1: Initialize vectors
     v1.x <- 3;
@@ -78,7 +78,7 @@ u32 main() {
     v1.y <- 20;
     v2.x <- 10;
     v2.y <- 20;
-    bool eq <- Math.equals(v1, v2);
+    mut bool eq <- Math.equals(v1, v2);
     if (eq != true) {
         return 6;
     }

@@ -16,7 +16,7 @@ extern "C" {
 extern uint32_t total;
 
 /* Function prototypes */
-void onCritical(uint32_t n);
+void onCritical(const uint32_t n);
 
 #ifdef __cplusplus
 }

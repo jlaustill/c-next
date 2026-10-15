@@ -2,9 +2,9 @@
 // test-target-xfail: host #1147 "implicit declaration of function"
 // ADR-050: Critical section with conditional
 // Tests: if/else inside critical section
-u32 counter <- 0;
+mut u32 counter <- 0;
 
-u32 overflows <- 0;
+mut u32 overflows <- 0;
 
 void safeIncrement() {
     critical {

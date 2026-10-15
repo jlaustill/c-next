@@ -13,11 +13,11 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void incrementN(uint32_t* value, uint32_t times);
-void doubleN(uint32_t* value, uint32_t times);
-void accumulate(uint32_t start, uint32_t end, uint32_t* result);
-void factorial(uint32_t n, uint32_t* result);
-void parallelIncrement(uint32_t* a, uint32_t* b, uint32_t times);
+void incrementN(uint32_t* value, const uint32_t times);
+void doubleN(uint32_t* value, const uint32_t times);
+void accumulate(const uint32_t start, const uint32_t end, uint32_t* result);
+void factorial(const uint32_t n, uint32_t* result);
+void parallelIncrement(uint32_t* a, uint32_t* b, const uint32_t times);
 
 #ifdef __cplusplus
 }

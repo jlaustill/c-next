@@ -26,8 +26,8 @@ typedef struct TInput {
 } TInput;
 
 /* External variables */
-extern TInput input;
-extern TInput inputs[2];
+extern const TInput input;
+extern const TInput inputs[2];
 
 /* Function prototypes */
 /* MISRA C:2012 Rule 8.4: declaration for the ADR-029 generated init function (the definition has external linkage and would otherwise be undeclared). */

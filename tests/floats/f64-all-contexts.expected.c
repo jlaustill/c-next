@@ -9,41 +9,41 @@
 // Global variable declarations
 double global_d = 3.141592653589793;
 
-double global_uninit = 0.0;
+const double global_uninit = 0.0;
 
 // Struct member
 // Array element type
 double measurements[8] = {0};
 
 // Function with f64 parameter and return
-double multiply(double a, double b) {
+double multiply(const double a, const double b) {
     return a * b;
 }
 
 // Local variables in function
 void calculate(void) {
-    double local = 2.718281828;
-    double result = multiply(local, 2.0);
+    const double local = 2.718281828;
+    const double result = multiply(local, 2.0);
     measurements[0] = result;
 }
 
 // In arithmetic expression
 void arithmetic(void) {
-    double x = 100.0;
-    double y = x * 2.5 / 5.0;
+    const double x = 100.0;
+    const double y = x * 2.5 / 5.0;
 }
 
 // In comparison
 void compare(void) {
-    double a = 1.5;
-    double b = 2.5;
+    const double a = 1.5;
+    const double b = 2.5;
     if (a <= b) {
         global_d = a;
     }
 }
 
 // In ternary expression
-double min(double a, double b) {
+double min(const double a, const double b) {
     return (a < b) ? a : b;
 }
 
@@ -51,5 +51,5 @@ int main(void) {
     calculate();
     arithmetic();
     compare();
-    double result = min(3.14159, 2.71828);
+    const double result = min(3.14159, 2.71828);
 }

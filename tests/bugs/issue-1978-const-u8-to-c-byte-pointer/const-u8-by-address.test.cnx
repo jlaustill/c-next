@@ -5,8 +5,8 @@
 
 #include "const-byte-sum.h"
 
-const u8 one <- 7;
-const u8[3] table <- [1, 2, 3];
+u8 one <- 7;
+u8[3] table <- [1, 2, 3];
 
 i32 main() {
     // NEGATIVE CONTROL -- an array decays by itself, no address taken
@@ -19,7 +19,7 @@ i32 main() {
     if (fromGlobal != 7) {
         return 2;
     }
-    const u8 local <- 9;
+    u8 local <- 9;
     u32 own <- sum_u8(local, 1);
     if (own != 9) {
         return 3;

@@ -2,7 +2,7 @@
 // Tests: bit indexing example for Reddit post
 
 u32 main() {
-    u8 header <- 0;
+    mut u8 header <- 0;
 
     // Writing bits
     header[0, 4] <- 5; // bits 0-3: message type

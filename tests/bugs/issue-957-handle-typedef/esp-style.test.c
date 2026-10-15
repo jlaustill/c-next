@@ -21,7 +21,7 @@ void SPI__init(void) {
     (void)spi_device_init(&SPI__device);
 }
 
-void SPI__write(uint8_t data) {
+void SPI__write(const uint8_t data) {
     spi_device_write(SPI__device, data);
 }
 

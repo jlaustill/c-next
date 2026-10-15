@@ -27,7 +27,7 @@ extern Line segment;
 
 /* Function prototypes */
 void moveEndPoint(void);
-void setStartPoint(int32_t newX, int32_t newY);
+void setStartPoint(const int32_t newX, const int32_t newY);
 
 #ifdef __cplusplus
 }

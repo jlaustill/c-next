@@ -19,7 +19,7 @@ typedef enum {
 } A__B;
 
 /* External variables */
-extern uint8_t A__B_c;
+extern const uint8_t A__B_c;
 
 /* Function prototypes */
 uint8_t A__readVariable(void);

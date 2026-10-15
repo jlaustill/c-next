@@ -3,7 +3,7 @@
 // Tests: scope variable LHS single bit write should use read-modify-write pattern
 
 scope Flags {
-    u8 status;
+    mut u8 status;
 
     public void setReady() {
         this.status[0] <- true;
@@ -27,7 +27,7 @@ scope Flags {
 }
 
 u32 main() {
-    u8 result;
+    mut u8 result;
 
     // Test 1: Set bit 0
     Flags.reset();

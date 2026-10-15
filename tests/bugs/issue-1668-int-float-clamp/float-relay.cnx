@@ -4,4 +4,4 @@
 
 #include "float-declarations.cnx"
 
-const u32 FLOAT_RELAY_MARKER <- 2;
+u32 FLOAT_RELAY_MARKER <- 2;

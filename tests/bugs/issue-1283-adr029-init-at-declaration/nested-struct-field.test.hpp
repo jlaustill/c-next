@@ -26,11 +26,11 @@ typedef struct Outer {
 } Outer;
 
 /* External variables */
-extern Outer globalOuter;
-extern Outer o;
+extern const Outer globalOuter;
+extern const Outer o;
 
 /* Function prototypes */
-uint32_t onSample(uint32_t input);
+uint32_t onSample(const uint32_t input);
 /* MISRA C:2012 Rule 8.4: declaration for the ADR-029 generated init function (the definition has external linkage and would otherwise be undeclared). */
 Inner Inner_init(void);
 Outer Outer_init(void);

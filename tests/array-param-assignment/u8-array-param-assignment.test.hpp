@@ -13,9 +13,9 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void writeAt(uint8_t arr[8], uint32_t index, uint8_t value);
-void writeFirst(uint8_t data[8], uint8_t value);
-void copyElement(uint8_t src[4], uint8_t dst[4], uint32_t index);
+void writeAt(uint8_t arr[8], const uint32_t index, const uint8_t value);
+void writeFirst(uint8_t data[8], const uint8_t value);
+void copyElement(const uint8_t src[4], uint8_t dst[4], const uint32_t index);
 
 #ifdef __cplusplus
 }

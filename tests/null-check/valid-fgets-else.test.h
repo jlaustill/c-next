@@ -11,7 +11,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern char line[129];
+extern const char line[129];
 
 /* Function prototypes */
 void processLine(void);

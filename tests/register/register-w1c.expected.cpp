@@ -11,19 +11,19 @@
 // test-coverage: 12-w1c-access-modifier
 // Tests: Write-1-to-Clear register access modifier
 // Writing 1 to a bit clears it, writing 0 has no effect
-void clearInterrupt(uint32_t mask) {
+void clearInterrupt(const uint32_t mask) {
     INT__STATUS = mask;
 }
 
-void clearPendingIRQ(uint8_t irqNum) {
+void clearPendingIRQ(const uint8_t irqNum) {
     INT__PENDING = ((uint32_t)1U << irqNum);
 }
 
-void clearGpioInterrupt(uint32_t bitMask) {
+void clearGpioInterrupt(const uint32_t bitMask) {
     GPIO__INTSTAT = bitMask;
 }
 
-void clearSingleBit(uint8_t bit) {
+void clearSingleBit(const uint8_t bit) {
     INT__STATUS = ((uint32_t)1U << bit);
 }
 

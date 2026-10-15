@@ -27,52 +27,52 @@ static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
 // Coverage: Section 13.2 this.Type as return, 13.3 Scope.Type as return/parameter
 /* Scope: Geometry */
 
-Geometry__Point Geometry__makePoint(int32_t x, int32_t y) {
-    Geometry__Point p = { .x = x, .y = y };
+Geometry__Point Geometry__makePoint(const int32_t x, const int32_t y) {
+    const Geometry__Point p = { .x = x, .y = y };
     return p;
 }
 
 Geometry__Point Geometry__origin(void) {
-    Geometry__Point p = { .x = 0, .y = 0 };
+    const Geometry__Point p = { .x = 0, .y = 0 };
     return p;
 }
 
 Geometry__Point Geometry__midpoint(const Geometry__Point* a, const Geometry__Point* b) {
-    int32_t mx = (cnx_clamp_add_i32(a->x, b->x)) / 2;
-    int32_t my = (cnx_clamp_add_i32(a->y, b->y)) / 2;
-    Geometry__Point m = { .x = mx, .y = my };
+    const int32_t mx = (cnx_clamp_add_i32(a->x, b->x)) / 2;
+    const int32_t my = (cnx_clamp_add_i32(a->y, b->y)) / 2;
+    const Geometry__Point m = { .x = mx, .y = my };
     return m;
 }
 
 // Function outside scope taking Scope.Type as parameter
-void movePoint(Geometry__Point* p, int32_t dx, int32_t dy) {
+void movePoint(Geometry__Point* p, const int32_t dx, const int32_t dy) {
     p->x = cnx_clamp_add_i32(p->x, dx);
     p->y = cnx_clamp_add_i32(p->y, dy);
 }
 
 // Function outside scope returning Scope.Type
-Geometry__Point createPoint(int32_t x, int32_t y) {
-    Geometry__Point result = { .x = x, .y = y };
+Geometry__Point createPoint(const int32_t x, const int32_t y) {
+    const Geometry__Point result = { .x = x, .y = y };
     return result;
 }
 
 int main(void) {
-    Geometry__Point p1 = Geometry__makePoint(10, 20);
+    const Geometry__Point p1 = Geometry__makePoint(10, 20);
     if (p1.x != 10) {
         return 1U;
     }
     if (p1.y != 20) {
         return 2U;
     }
-    Geometry__Point o = Geometry__origin();
+    const Geometry__Point o = Geometry__origin();
     if (o.x != 0) {
         return 3U;
     }
     if (o.y != 0) {
         return 4U;
     }
-    Geometry__Point p2 = Geometry__makePoint(20, 40);
-    Geometry__Point mid = Geometry__midpoint(&p1, &p2);
+    const Geometry__Point p2 = Geometry__makePoint(20, 40);
+    const Geometry__Point mid = Geometry__midpoint(&p1, &p2);
     if (mid.x != 15) {
         return 5U;
     }
@@ -87,7 +87,7 @@ int main(void) {
     if (p3.y != 25) {
         return 8U;
     }
-    Geometry__Point p4 = createPoint(100, 200);
+    const Geometry__Point p4 = createPoint(100, 200);
     if (p4.x != 100) {
         return 9U;
     }

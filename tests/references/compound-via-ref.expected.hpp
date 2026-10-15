@@ -13,9 +13,9 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void addToValue(int32_t& value, int32_t amount);
-void subtractFromValue(int32_t& value, int32_t amount);
-void multiplyValue(int32_t& value, int32_t factor);
+void addToValue(int32_t& value, const int32_t amount);
+void subtractFromValue(int32_t& value, const int32_t amount);
+void multiplyValue(int32_t& value, const int32_t factor);
 
 #ifdef __cplusplus
 }

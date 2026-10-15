@@ -6,11 +6,11 @@
 // over what is defined at the use (owner ruling, 2026-10-12). So `M` is the
 // global `N`, 4, and `buf` has 4 elements rather than S's own `N`, 10.
 
-const u32 N <- 4;
+u32 N <- 4;
 
 scope S {
-    const u32 M <- N;
-    const u32 N <- 10;
+    u32 M <- N;
+    u32 N <- 10;
     public u8[M] buf;
 
     public u32 own() {

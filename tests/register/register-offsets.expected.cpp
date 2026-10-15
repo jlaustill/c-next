@@ -14,5 +14,5 @@ int main(void) {
     UART__DR = 0x55U;
     UART__BRR = 9600U;
     UART__CR1 = 0x80U;
-    uint32_t status = UART__SR;
+    const uint32_t status = UART__SR;
 }

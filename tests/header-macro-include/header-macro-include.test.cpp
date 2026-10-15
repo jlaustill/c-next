@@ -15,7 +15,7 @@
 
 #include <stdint.h>
 
-uint32_t devices[DEVICE_COUNT] = {};
+extern const uint32_t devices[DEVICE_COUNT] = {};
 
 int main(void) {
     return 0U;

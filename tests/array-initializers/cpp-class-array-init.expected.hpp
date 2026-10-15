@@ -14,8 +14,8 @@ extern "C" {
 #endif
 
 /* External variables */
-extern CppTestClass items[4];
-extern uint32_t counters[8];
+extern const CppTestClass items[4];
+extern const uint32_t counters[8];
 
 #ifdef __cplusplus
 }

@@ -20,9 +20,9 @@
 // ============================================================================
 void testDeclaredClasses(void) {
     DeclaredClass::init();
-    int32_t val = DeclaredClass::getValue();
+    const int32_t val = DeclaredClass::getValue();
     DeclaredNS::setup();
-    int32_t readVal = DeclaredNS::read();
+    const int32_t readVal = DeclaredNS::read();
 }
 
 // ============================================================================
@@ -39,7 +39,7 @@ void testUndeclaredExternalClasses(void) {
     SPI::begin();
     SPI::transfer(0xFFU);
     ExternalLib::initialize();
-    int32_t result = ExternalLib::compute(42);
+    const int32_t result = ExternalLib::compute(42);
 }
 
 // ============================================================================

@@ -8,7 +8,7 @@ u32 getVal() {
 }
 
 u32 main() {
-    u32[8] arr;
+    mut u32[8] arr;
     arr[0, 4] <- getVal();
 
     if (arr[0] != 0xAABBCCDD) {

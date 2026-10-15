@@ -16,7 +16,7 @@ void onActive(void) {
 void onStopped(void) {
 }
 
-void handleState(EState state) {
+void handleState(const EState state) {
     switch (state) {
         case EState__IDLE: {
             onIdle();

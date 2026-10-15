@@ -15,7 +15,7 @@
 // error code has a 2+hop fixture (#1219); this is one structural reason why.
 #include "deep-mid.cnx"
 
-DeepReading gDeep;
+mut DeepReading gDeep;
 
 scope DeepConsumer {
     private DeepReading cached;

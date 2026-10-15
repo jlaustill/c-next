@@ -18,7 +18,7 @@ scope StrCapacity {
 
 i32 main() {
     // Test 1: .capacity on struct member
-    Person alice;
+    mut Person alice;
     alice.name <- "Alice";
     alice.bio <- "Software engineer";
     alice.age <- 30;
@@ -39,7 +39,7 @@ i32 main() {
     }
 
     // Test 3: Different struct, different capacities
-    StrCapacity.Config cfg;
+    mut StrCapacity.Config cfg;
     cfg.key <- "api_url";
     cfg.value <- "https://example.com";
 

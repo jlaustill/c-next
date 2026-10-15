@@ -6,14 +6,14 @@ u32 main() {
     // === OVERFLOW WRAPPING (wraps to 0) ===
 
     // Test 1: Basic overflow - add past max
-    wrap u16 val <- 65535;
+    mut wrap u16 val <- 65535;
     val +<- 1; // 65535 + 1 = 65536, should wrap to 0
     if (val != 0) {
         return 1;
     }
 
     // Test 2: Overflow with larger addition
-    wrap u16 val2 <- 65530;
+    mut wrap u16 val2 <- 65530;
     val2 +<- 10; // 65530 + 10 = 65540, should wrap to 4
     if (val2 != 4) {
         return 2;

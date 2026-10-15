@@ -8,7 +8,7 @@
 u32 main() {
 
     // Test 1: Declare Point2D variable
-    Point2D p;
+    mut Point2D p;
     p.x <- 10;
     p.y <- 20;
     if (p.x != 10) {
@@ -19,7 +19,7 @@ u32 main() {
     }
 
     // Test 2: Use Record typedef
-    Record r;
+    mut Record r;
     r.id <- 12345;
     r.flags <- 0xFF;
     r.status <- 1;
@@ -31,7 +31,7 @@ u32 main() {
     }
 
     // Test 3: Use SizedFields typedef (.length property)
-    SizedFields sf;
+    mut SizedFields sf;
     sf.byte_field <- 255;
     sf.word_field <- 65535;
     sf.dword_field <- 0xFFFFFFFF;

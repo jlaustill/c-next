@@ -14,10 +14,10 @@ scope Motor {
         RUN,
         COUNT
     }
-    public const u8 SIZE <- 3;
+    public u8 SIZE <- 3;
 
     public u32 sum(u8[State.COUNT] data) {
-        u32 total <- data[0];
+        mut u32 total <- data[0];
         total +<- data[1];
         return total;
     }

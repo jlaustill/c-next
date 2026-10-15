@@ -26,8 +26,8 @@ int main(void) {
     Person p = {0};
     (void) strncpy(p.name, "bob", 8); p.name[8] = '\0';
     p.age = 7U;
-    uint32_t length = lengthOf(p.name);
-    bool bob = isBob(p.name);
+    const uint32_t length = lengthOf(p.name);
+    const bool bob = isBob(p.name);
     if (length != 3) {
         return 1;
     }

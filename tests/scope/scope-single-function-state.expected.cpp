@@ -34,15 +34,15 @@ uint32_t SingleFunctionState__countCalls(void) {
 }
 
 int main(void) {
-    uint32_t first = SingleFunctionState__countCalls();
+    const uint32_t first = SingleFunctionState__countCalls();
     if (first != 1) {
         return 1U;
     }
-    uint32_t second = SingleFunctionState__countCalls();
+    const uint32_t second = SingleFunctionState__countCalls();
     if (second != 2) {
         return 2U;
     }
-    uint32_t third = SingleFunctionState__countCalls();
+    const uint32_t third = SingleFunctionState__countCalls();
     if (third != 3) {
         return 3U;
     }

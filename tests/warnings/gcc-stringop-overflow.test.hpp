@@ -16,7 +16,7 @@ extern "C" {
 extern uint8_t buffer[513];
 
 /* Function prototypes */
-void writeChunk(uint32_t start, uint32_t step, uint8_t value);
+void writeChunk(const uint32_t start, const uint32_t step, const uint8_t value);
 
 #ifdef __cplusplus
 }

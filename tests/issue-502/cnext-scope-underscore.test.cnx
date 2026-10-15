@@ -18,7 +18,7 @@ scope Sensor {
 }
 
 // Test: C-Next nested types must use _ not ::
-Sensor.Reading reading <- {
+mut Sensor.Reading reading <- {
     motorState: { position: 0, running: false },
     value: 42
 };

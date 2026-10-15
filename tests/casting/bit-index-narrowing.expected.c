@@ -8,8 +8,8 @@
 // ADR-024: Test that bit indexing allows safe narrowing
 // Using [start, width] syntax to explicitly extract bits
 int main(void) {
-    uint32_t large = 0xDEADBEEFU;
-    uint8_t low_byte = (uint8_t)((large) & 0xFFU);
-    uint8_t high_byte = (uint8_t)((large >> 24U) & 0xFFU);
-    uint16_t low_word = (uint16_t)((large) & 0xFFFFU);
+    const uint32_t large = 0xDEADBEEFU;
+    const uint8_t low_byte = (uint8_t)((large) & 0xFFU);
+    const uint8_t high_byte = (uint8_t)((large >> 24U) & 0xFFU);
+    const uint16_t low_word = (uint16_t)((large) & 0xFFFFU);
 }

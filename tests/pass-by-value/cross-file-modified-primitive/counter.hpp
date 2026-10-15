@@ -14,8 +14,8 @@ extern "C" {
 
 /* Function prototypes */
 void bump(uint32_t& x);
-uint32_t twice(uint32_t x);
-void Counter__add(uint32_t& n, uint32_t by);
+uint32_t twice(const uint32_t x);
+void Counter__add(uint32_t& n, const uint32_t by);
 
 #ifdef __cplusplus
 }

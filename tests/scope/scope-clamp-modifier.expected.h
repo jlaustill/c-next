@@ -27,8 +27,8 @@ void ClampTest__decreaseAltitude(void);
 void ClampTest__decreasePosition(void);
 void ClampTest__dimBrightness(void);
 void ClampTest__resetSensor(void);
-void ClampTest__setBrightness(uint8_t val);
-void ClampTest__setSensorValue(uint16_t val);
+void ClampTest__setBrightness(const uint8_t val);
+void ClampTest__setSensorValue(const uint16_t val);
 
 #ifdef __cplusplus
 }

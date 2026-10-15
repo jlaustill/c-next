@@ -6,7 +6,7 @@ u32 main() {
     // === OVERFLOW TESTS (clamp to 127) ===
 
     // Test 1: Basic overflow - add past max
-    clamp i8 val <- 100;
+    mut clamp i8 val <- 100;
     val +<- 50; // 150, should clamp to 127
     if (val != 127) {
         return 1;

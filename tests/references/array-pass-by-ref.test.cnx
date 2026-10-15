@@ -2,14 +2,14 @@
 // test-execution
 // Tests: Array passed to function (pass-by-reference behavior)
 // Function that modifies an array element
-void setElement(u32[10] arr, u32 index, u32 value) {
+void setElement(mut u32[10] arr, u32 index, u32 value) {
     arr[index] <- value;
 }
 
 // Function that sums array elements
 u32 sumArray(u32[5] arr, u32 count) {
-    u32 sum <- 0;
-    u32 i <- 0;
+    mut u32 sum <- 0;
+    mut u32 i <- 0;
     while (i < count) {
         sum <- sum + arr[i];
         i <- i + 1;
@@ -18,8 +18,8 @@ u32 sumArray(u32[5] arr, u32 count) {
 }
 
 // Function that zeroes an array
-void zeroArray(u32[8] arr, u32 count) {
-    u32 i <- 0;
+void zeroArray(mut u32[8] arr, u32 count) {
+    mut u32 i <- 0;
     while (i < count) {
         arr[i] <- 0;
         i <- i + 1;
@@ -27,8 +27,8 @@ void zeroArray(u32[8] arr, u32 count) {
 }
 
 // Function that copies arrays
-void copyArray(u32[4] src, u32[4] dst, u32 count) {
-    u32 i <- 0;
+void copyArray(u32[4] src, mut u32[4] dst, u32 count) {
+    mut u32 i <- 0;
     while (i < count) {
         dst[i] <- src[i];
         i <- i + 1;
@@ -38,7 +38,7 @@ void copyArray(u32[4] src, u32[4] dst, u32 count) {
 u32 main() {
 
     // Test setElement
-    u32[10] data;
+    mut u32[10] data;
     data[0] <- 100;
     data[5] <- 200;
 
@@ -53,14 +53,14 @@ u32 main() {
     }
 
     // Test sumArray
-    u32[5] nums;
+    mut u32[5] nums;
     nums[0] <- 10;
     nums[1] <- 20;
     nums[2] <- 30;
     nums[3] <- 40;
     nums[4] <- 50;
 
-    u32 total <- sumArray(nums, 5);
+    mut u32 total <- sumArray(nums, 5);
     if (total != 150) {
         return 3;
     }
@@ -72,7 +72,7 @@ u32 main() {
     }
 
     // Test zeroArray
-    u32[8] toZero;
+    mut u32[8] toZero;
     toZero[0] <- 1;
     toZero[1] <- 2;
     toZero[2] <- 3;
@@ -93,8 +93,8 @@ u32 main() {
     }
 
     // Test copyArray
-    u32[4] source;
-    u32[4] dest;
+    mut u32[4] source;
+    mut u32[4] dest;
     source[0] <- 11;
     source[1] <- 22;
     source[2] <- 33;

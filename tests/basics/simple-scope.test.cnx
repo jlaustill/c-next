@@ -4,7 +4,7 @@
 
 // Simple counter scope
 scope Counter {
-    u32 value;
+    mut u32 value;
 
     public void reset() {
         value <- 0;
@@ -25,7 +25,7 @@ scope Counter {
 
 // Scope with initialization
 scope Temperature {
-    i32 celsius;
+    mut i32 celsius;
 
     public void set(i32 temp) {
         celsius <- temp;
@@ -43,7 +43,7 @@ scope Temperature {
 u32 main() {
     // Use Counter scope
     Counter.reset();
-    u32 val <- Counter.get();
+    mut u32 val <- Counter.get();
     if (val != 0) {
         return 1;
     }
@@ -80,7 +80,7 @@ u32 main() {
         return 6;
     }
 
-    i32 fahrenheit <- Temperature.getFahrenheit();
+    mut i32 fahrenheit <- Temperature.getFahrenheit();
     if (fahrenheit != 77) {
         return 7;
     }

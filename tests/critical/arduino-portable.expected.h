@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void CriticalTest__safeWrite(uint8_t newValue);
+void CriticalTest__safeWrite(const uint8_t newValue);
 
 #ifdef __cplusplus
 }

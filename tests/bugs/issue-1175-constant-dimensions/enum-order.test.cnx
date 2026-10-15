@@ -8,7 +8,7 @@
 //
 // NEGATIVE CONTROL: `E.X`, which names nothing.
 
-const i32 N <- (i32)E.X;
+i32 N <- (i32)E.X;
 enum E {
     X <- 1,
     Y <- (i32)N + 1

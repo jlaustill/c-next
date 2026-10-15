@@ -17,7 +17,7 @@ scope E {
 }
 
 u32 main() {
-    tickDefault[2] loc;
+    mut tickDefault[2] loc;
     loc[0] <- tickDefault;
     return 0;
 }

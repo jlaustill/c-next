@@ -13,7 +13,7 @@
 // mixed a byte length with an element capacity).
 int main(void) {
     uint64_t arr64[8] = {};
-    uint64_t v64 = 0x0102030405060708ULL;
+    const uint64_t v64 = 0x0102030405060708ULL;
     arr64[4] = (uint64_t)(v64);
     if (arr64[3U] != 0x0000000000000000) {
         return 1U;
@@ -25,7 +25,7 @@ int main(void) {
         return 3U;
     }
     uint32_t arr32[8] = {};
-    uint32_t v32 = 0xAABBCCDDU;
+    const uint32_t v32 = 0xAABBCCDDU;
     arr32[5] = (uint32_t)(v32);
     if (arr32[4U] != 0x00000000) {
         return 4U;
@@ -34,7 +34,7 @@ int main(void) {
         return 5U;
     }
     uint16_t arr16[8] = {};
-    uint32_t v16 = 0x11223344U;
+    const uint32_t v16 = 0x11223344U;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint16_t* vs uint32_t*). */
     const uint32_t cnx_tmp0 = (uint32_t)(v16);
     arr16[2] = (uint16_t)(cnx_tmp0);

@@ -20,8 +20,8 @@ extern uint32_t writeIdx;
 
 /* Function prototypes */
 void criticalUpdate(void);
-void enqueueWithCount(uint8_t data);
-void batchUpdate(uint32_t delta);
+void enqueueWithCount(const uint8_t data);
+void batchUpdate(const uint32_t delta);
 void conditionalIncrement(void);
 
 #ifdef __cplusplus

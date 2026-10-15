@@ -26,7 +26,7 @@ static inline uint8_t cnx_cast_sat_f32_u8(float value) {
     return ((value) >= ((float)UINT8_MAX) ? (uint8_t)UINT8_MAX : (value) < 0.0f ? (uint8_t)0 : (uint8_t)(value));
 }
 
-float grid[2] = {300.0, 7.0};
+const float grid[2] = {300.0, 7.0};
 
 float half(void) {
     return 300.5;
@@ -38,22 +38,22 @@ float Gauge__fn(void) {
     return 2.5;
 }
 
-cs_float_t cS = { .v = -40.0 };
+const cs_float_t cS = { .v = -40.0 };
 
 int main(void) {
-    uint8_t a = cnx_cast_sat_f32_u8(half());
+    const uint8_t a = cnx_cast_sat_f32_u8(half());
     if (a != 255) {
         return 1U;
     }
-    uint8_t b = cnx_cast_sat_f32_u8(Gauge__fn());
+    const uint8_t b = cnx_cast_sat_f32_u8(Gauge__fn());
     if (b != 2) {
         return 2U;
     }
-    uint8_t c = ((cS.v) >= ((float)UINT8_MAX) ? (uint8_t)UINT8_MAX : (cS.v) < 0.0f ? (uint8_t)0 : (uint8_t)(cS.v));
+    const uint8_t c = ((cS.v) >= ((float)UINT8_MAX) ? (uint8_t)UINT8_MAX : (cS.v) < 0.0f ? (uint8_t)0 : (uint8_t)(cS.v));
     if (c != 0) {
         return 3U;
     }
-    uint8_t e = ((grid[0U]) >= ((float)UINT8_MAX) ? (uint8_t)UINT8_MAX : (grid[0U]) < 0.0f ? (uint8_t)0 : (uint8_t)(grid[0U]));
+    const uint8_t e = ((grid[0U]) >= ((float)UINT8_MAX) ? (uint8_t)UINT8_MAX : (grid[0U]) < 0.0f ? (uint8_t)0 : (uint8_t)(grid[0U]));
     if (e != 255) {
         return 4U;
     }

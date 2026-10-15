@@ -14,8 +14,8 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint32_t checkValue(uint32_t x);
-bool isPositive(int32_t n);
+uint32_t checkValue(const uint32_t x);
+bool isPositive(const int32_t n);
 
 #ifdef __cplusplus
 }

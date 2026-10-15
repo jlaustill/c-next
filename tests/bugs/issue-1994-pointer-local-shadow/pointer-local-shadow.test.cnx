@@ -10,7 +10,7 @@
 Full held <- { x: 100, y: 200 };
 
 i32 readThrough() {
-    Full held <- full_get();
+    mut Full held <- full_get();
     held.x <- 4;
     return held.y;
 }

@@ -20,7 +20,7 @@ int main(void) {
     if (s != Status__RUNNING) {
         return 2U;
     }
-    Priority p = Priority__HIGH;
+    const Priority p = Priority__HIGH;
     if (p != Priority__HIGH) {
         return 3U;
     }
@@ -31,12 +31,12 @@ int main(void) {
         return 5U;
     }
     s = Status__PAUSED;
-    bool isPaused = (s == Status__PAUSED);
+    const bool isPaused = (s == Status__PAUSED);
     if (isPaused != true) {
         return 6U;
     }
-    Status s1 = Status__IDLE;
-    Status s2 = Status__STOPPED;
+    const Status s1 = Status__IDLE;
+    const Status s2 = Status__STOPPED;
     if (s1 == s2) {
         return 7U;
     }

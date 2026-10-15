@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern Full held;
+extern const Full held;
 
 /* Function prototypes */
 int32_t readThrough(void);

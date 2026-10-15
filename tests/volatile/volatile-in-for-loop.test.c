@@ -51,7 +51,7 @@ int main(void) {
     if (total != 12) {
         return 3U;
     }
-    volatile uint32_t step = 2U;
+    const volatile uint32_t step = 2U;
     uint32_t count = 0U;
     for (volatile uint32_t k = 0U; k < 10; k = cnx_clamp_add_u32(k, step)) {
         count = cnx_clamp_add_u32(count, 1U);

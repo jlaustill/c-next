@@ -6,7 +6,7 @@
 #include <issue-296-types.cnx>
 
 scope DataHandler {
-    AppData storedData;
+    mut AppData storedData;
 
     // Public function using external struct type - triggers forward declaration
     public void initialize(AppData data) {

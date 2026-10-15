@@ -19,12 +19,12 @@
 // would assert C that is known wrong. An error fixture generates none.
 
 scope Big {
-    private const u8 N <- 10;
+    private u8 N <- 10;
     private u8 unused <- 0;
 }
 
 scope Small {
-    private const u8 N <- 2;
+    private u8 N <- 2;
     private u8[N] t;
 
     public u8 read() {

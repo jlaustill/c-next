@@ -21,7 +21,7 @@
 int32_t viaInitializer(Dev* d) {
     Dev* e = d;
     dev_poke(e);
-    int32_t n = dev_pokes(d);
+    const int32_t n = dev_pokes(d);
     return n;
 }
 
@@ -29,30 +29,30 @@ int32_t viaAssignment(Dev* d) {
     Dev* e = dev_create();
     e = d;
     dev_poke(e);
-    int32_t n = dev_pokes(d);
+    const int32_t n = dev_pokes(d);
     return n;
 }
 
-bool sameHandle(Dev* a, Dev* b) {
+bool sameHandle(const Dev* a, const Dev* b) {
     return a == b;
 }
 
 int main(void) {
     Dev* d = dev_create();
-    Dev* other = dev_create();
-    int32_t initialized = viaInitializer(d);
+    const Dev* other = dev_create();
+    const int32_t initialized = viaInitializer(d);
     if (initialized != 1) {
         return 1;
     }
-    int32_t assigned = viaAssignment(d);
+    const int32_t assigned = viaAssignment(d);
     if (assigned != 2) {
         return 2;
     }
-    bool same = sameHandle(d, d);
+    const bool same = sameHandle(d, d);
     if (same != true) {
         return 3;
     }
-    bool different = sameHandle(d, other);
+    const bool different = sameHandle(d, other);
     if (different != false) {
         return 4;
     }

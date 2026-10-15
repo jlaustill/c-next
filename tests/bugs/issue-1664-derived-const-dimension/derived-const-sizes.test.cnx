@@ -8,8 +8,8 @@
 // `Buffer__bytes[Buffer__C]`: variably modified at file scope, which C rejects
 // and MISRA C:2012 Rule 18.8 forbids. The consts are aliases, not arithmetic:
 // arithmetic in a file-scope const initializer is #1735.
-const u32 A <- 4;
-const u32 B <- A;
+u32 A <- 4;
+u32 B <- A;
 
 struct Packet {
     u8[B] data;
@@ -19,12 +19,12 @@ u8[B] table;
 Packet packet;
 
 scope Buffer {
-    public const u32 C <- B;
+    public u32 C <- B;
     public u8[C] bytes;
 }
 
 // NEGATIVE CONTROL: a literal const sized arrays before this change too
-const u32 L <- 3;
+u32 L <- 3;
 u8[L] literal;
 
 u32 main() {
@@ -40,7 +40,7 @@ u32 main() {
     if (c != 4) {
         return 3;
     }
-    u8[B] local;
+    mut u8[B] local;
     local[3] <- 1;
     u32 last <- local[3];
     if (last != 1) {

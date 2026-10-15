@@ -6,16 +6,16 @@ struct Point {
     u32 y;
 }
 
-u32 sink <- 0;
+mut u32 sink <- 0;
 
-void walkField(Point p) {
+void walkField(mut Point p) {
     for (p.x <- 0; p.x < 3; p.x +<- 1) {
         sink +<- 1;
     }
 }
 
 // Control: the same writes as statements.
-void walkFieldStatement(Point p) {
+void walkFieldStatement(mut Point p) {
     p.x <- 0;
     while (p.x < 3) {
         p.x +<- 1;
@@ -23,12 +23,12 @@ void walkFieldStatement(Point p) {
 }
 
 u32 main() {
-    Point a <- { x: 9, y: 1 };
+    mut Point a <- { x: 9, y: 1 };
     walkField(a);
     if (a.x != 3) {
         return 1;
     }
-    Point b <- { x: 9, y: 1 };
+    mut Point b <- { x: 9, y: 1 };
     walkFieldStatement(b);
     if (b.x != 3) {
         return 2;

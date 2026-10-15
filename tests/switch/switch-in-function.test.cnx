@@ -22,7 +22,7 @@ u32 getValue(u32 code) {
 
 // Multiple operations in switch before return
 u32 computeWithSwitch(u32 base, u32 operation) {
-    u32 result <- base;
+    mut u32 result <- base;
     switch (operation) {
         case 0 {
             result +<- 10;
@@ -60,7 +60,7 @@ i8 getSignedValue(i8 selector) {
 
 // Switch returning bool
 bool isSpecialValue(u16 val) {
-    bool special <- false;
+    mut bool special <- false;
     switch (val) {
         case 0 {
             special <- true;
@@ -98,8 +98,8 @@ u64 getLargeValue(u8 index) {
 
 // Switch inside loop body
 u32 sumWithSwitchInLoop(u32 count, u32 mode) {
-    u32 sum <- 0;
-    for (u32 i <- 0; i < count; i +<- 1) {
+    mut u32 sum <- 0;
+    for (mut u32 i <- 0; i < count; i +<- 1) {
         switch (mode) {
             case 0 {
                 sum +<- 1;
@@ -117,8 +117,8 @@ u32 sumWithSwitchInLoop(u32 count, u32 mode) {
 
 // Iterative factorial using switch (recursive calls forbidden by MISRA 17.2)
 u32 factorial(u32 n) {
-    u32 result <- 1;
-    u32 current <- n;
+    mut u32 result <- 1;
+    mut u32 current <- n;
     while (current > 1) {
         result *<- current;
         current -<- 1;

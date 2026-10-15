@@ -14,7 +14,7 @@ extern "C" {
 
 /* Function prototypes */
 uint32_t Meter__reading(void);
-uint32_t Meter__doubled(uint8_t small);
+uint32_t Meter__doubled(const uint8_t small);
 
 #ifdef __cplusplus
 }

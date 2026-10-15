@@ -11,7 +11,7 @@ enum EState {
 
 scope StateMachine {
     // Variable declaration uses global.EState
-    global.EState currentState;
+    mut global.EState currentState;
 
     public void setState(global.EState state) {
         this.currentState <- state;
@@ -24,7 +24,7 @@ scope StateMachine {
 
 u32 main() {
     StateMachine.setState(global.EState.RUNNING);
-    i32 result <- (i32)StateMachine.getState();
+    mut i32 result <- (i32)StateMachine.getState();
 
     // RUNNING has value 1
     if (result != 1) {

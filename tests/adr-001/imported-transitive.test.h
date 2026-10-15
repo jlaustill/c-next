@@ -17,8 +17,8 @@ extern "C" {
 /* External variables */
 extern const uint8_t LOCAL_FIVE;
 extern const uint8_t LOCAL_ALSO_FIVE;
-extern bool gEqual;
-extern bool Cfg__mEqual;
+extern const bool gEqual;
+extern const bool Cfg__mEqual;
 
 /* Function prototypes */
 uint32_t Cfg__check(void);

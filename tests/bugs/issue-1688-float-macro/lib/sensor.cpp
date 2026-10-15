@@ -24,6 +24,6 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 
 /* Scope: Sensor */
 
-uint32_t Sensor__scaled(uint32_t raw) {
+uint32_t Sensor__scaled(const uint32_t raw) {
     return cnx_clamp_add_u32(raw, OFFSET);
 }

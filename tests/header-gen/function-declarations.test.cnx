@@ -2,7 +2,7 @@
 // Tests that top-level functions generate prototypes in the header.
 // Note: In C-Next, 'public' is only used inside scopes.
 
-u32 globalCounter <- 0;
+mut u32 globalCounter <- 0;
 
 void incrementCounter() {
     globalCounter +<- 1;

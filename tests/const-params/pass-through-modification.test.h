@@ -15,8 +15,8 @@ extern "C" {
 /* Function prototypes */
 void modifiesParam(uint32_t* value);
 void passesThroughToModifier(uint32_t* value);
-uint32_t readOnly(uint32_t value);
-uint32_t passesThroughToReader(uint32_t value);
+uint32_t readOnly(const uint32_t value);
+uint32_t passesThroughToReader(const uint32_t value);
 void mixedPassThrough(uint32_t* value);
 
 #ifdef __cplusplus

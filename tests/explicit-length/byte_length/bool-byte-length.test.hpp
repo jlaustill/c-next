@@ -18,7 +18,7 @@ typedef struct BoolByteLen__TestStruct {
 } BoolByteLen__TestStruct;
 
 /* External variables */
-extern bool globalBool;
+extern const bool globalBool;
 
 #ifdef __cplusplus
 }

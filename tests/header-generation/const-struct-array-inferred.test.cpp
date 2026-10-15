@@ -38,7 +38,7 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 extern const ConstInferred__TItem ITEMS[3] = {{ .id = 1U, .value = 100U }, { .id = 2U, .value = 200U }, { .id = 3U, .value = 300U }};
 
 // Also test: non-const struct array with inferred size
-ConstInferred__TItem mutableItems[2] = {{ .id = 10U, .value = 1000U }, { .id = 20U, .value = 2000U }};
+extern const ConstInferred__TItem mutableItems[2] = {{ .id = 10U, .value = 1000U }, { .id = 20U, .value = 2000U }};
 
 // Also test: const primitive array with inferred size
 extern const uint8_t SIZES[4] = {10U, 20U, 30U, 40U};
@@ -51,7 +51,7 @@ extern const uint8_t ITEM_COUNT = 3U;
 int main(void) {
     uint32_t total = 0U;
     for (uint8_t i = 0U; i < ITEM_COUNT; i = cnx_clamp_add_u8(i, 1U)) {
-        ConstInferred__TItem item = ITEMS[i];
+        const ConstInferred__TItem item = ITEMS[i];
         total = cnx_clamp_add_u32(total, item.value);
     }
 }

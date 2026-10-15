@@ -24,13 +24,13 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // test-execution
 // Tests: Function with multiple output parameters
 // Divides a by b, returns quotient and remainder via output params
-void divmod(uint32_t a, uint32_t b, uint32_t* quotient, uint32_t* remainder) {
+void divmod(const uint32_t a, const uint32_t b, uint32_t* quotient, uint32_t* remainder) {
     (*quotient) = a / b;
     (*remainder) = a % b;
 }
 
 // Returns min and max of two values
-void minmax(int32_t a, int32_t b, int32_t* minVal, int32_t* maxVal) {
+void minmax(const int32_t a, const int32_t b, int32_t* minVal, int32_t* maxVal) {
     if (a < b) {
         (*minVal) = a;
         (*maxVal) = b;
@@ -41,7 +41,7 @@ void minmax(int32_t a, int32_t b, int32_t* minVal, int32_t* maxVal) {
 }
 
 // Calculates statistics: sum, count, and average
-void stats(uint32_t a, uint32_t b, uint32_t c, uint32_t* sum, uint32_t* count, uint32_t* avg) {
+void stats(const uint32_t a, const uint32_t b, const uint32_t c, uint32_t* sum, uint32_t* count, uint32_t* avg) {
     (*sum) = cnx_clamp_add_u32(cnx_clamp_add_u32(a, b), c);
     (*count) = 3U;
     (*avg) = (*sum) / (*count);
@@ -49,7 +49,7 @@ void stats(uint32_t a, uint32_t b, uint32_t c, uint32_t* sum, uint32_t* count, u
 
 // Swaps three values in rotation: a->b, b->c, c->a
 void rotate3(uint32_t* a, uint32_t* b, uint32_t* c) {
-    uint32_t temp = (*a);
+    const uint32_t temp = (*a);
     (*a) = (*b);
     (*b) = (*c);
     (*c) = temp;

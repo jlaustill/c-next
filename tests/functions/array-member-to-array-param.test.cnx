@@ -9,9 +9,9 @@
 #include "array-member-to-array-param.h"
 
 // Function that takes an array parameter
-u32 processBuffer(const u8[8] data, u8 len) {
-    u32 sum <- 0;
-    u8 i <- 0;
+u32 processBuffer(u8[8] data, u8 len) {
+    mut u32 sum <- 0;
+    mut u8 i <- 0;
     while (i < len) {
         sum <- sum + data[i];
         i <- i + 1;
@@ -20,14 +20,14 @@ u32 processBuffer(const u8[8] data, u8 len) {
 }
 
 // Function with different array size
-u32 processHeader(const u8[4] header) {
+u32 processHeader(u8[4] header) {
     return header[0] + header[1] + header[2] + header[3];
 }
 
 // Function with larger array
-u32 processPayload(const u8[16] payload, u8 len) {
-    u32 sum <- 0;
-    u8 i <- 0;
+u32 processPayload(u8[16] payload, u8 len) {
+    mut u32 sum <- 0;
+    mut u8 i <- 0;
     while (i < len) {
         sum <- sum + payload[i];
         i <- i + 1;
@@ -36,7 +36,7 @@ u32 processPayload(const u8[16] payload, u8 len) {
 }
 
 u32 testBasicArrayMemberPassing() {
-    CanMessage msg;
+    mut CanMessage msg;
 
     // Initialize the array member
     msg.buf[0] <- 10;
@@ -58,7 +58,7 @@ u32 testBasicArrayMemberPassing() {
 }
 
 u32 testMultipleArrayMembers() {
-    PacketData packet;
+    mut PacketData packet;
 
     // Initialize header
     packet.header[0] <- 1;
@@ -81,7 +81,7 @@ u32 testMultipleArrayMembers() {
 }
 
 u32 testArrayMemberInCondition() {
-    CanMessage msg;
+    mut CanMessage msg;
     msg.id <- 65280; // 0xFF00
 
     msg.buf[0] <- 5;
@@ -90,7 +90,7 @@ u32 testArrayMemberInCondition() {
     msg.buf[3] <- 20;
     msg.len <- 4;
 
-    u32 result <- 0;
+    mut u32 result <- 0;
 
     // Test array member passing inside a conditional (like the original bug report)
     if (msg.id = 65280) {

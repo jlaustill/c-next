@@ -24,22 +24,22 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Tests: u32 array parameter assignment
 // Coverage: Sized u32 array parameters
 // Sized array parameter
-void writeU32(uint32_t arr[4], uint32_t index, uint32_t value) {
+void writeU32(uint32_t arr[4], const uint32_t index, const uint32_t value) {
     arr[index] = value;
 }
 
 // Read and return from array parameter
-uint32_t readU32(uint32_t arr[4], uint32_t index) {
+uint32_t readU32(const uint32_t arr[4], const uint32_t index) {
     return arr[index];
 }
 
 // Modify array element with compound assignment
-void incrementU32(uint32_t arr[4], uint32_t index) {
+void incrementU32(uint32_t arr[4], const uint32_t index) {
     arr[index] = cnx_clamp_add_u32(arr[index], 1U);
 }
 
 // Copy between arrays
-void copyU32(uint32_t src[4], uint32_t dst[4], uint32_t index) {
+void copyU32(const uint32_t src[4], uint32_t dst[4], const uint32_t index) {
     dst[index] = src[index];
 }
 

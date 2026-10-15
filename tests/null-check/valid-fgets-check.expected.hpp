@@ -11,7 +11,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern char buffer[65];
+extern const char buffer[65];
 
 /* Function prototypes */
 void readInput(void);

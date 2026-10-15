@@ -36,7 +36,7 @@ u32 main() {
     }
 
     // Compound expressions
-    u32 result <- (a + b) * 2;
+    mut u32 result <- (a + b) * 2;
     if (result != 60) {
         return 6;
     }

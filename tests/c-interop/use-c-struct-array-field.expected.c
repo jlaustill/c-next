@@ -33,7 +33,7 @@ int main(void) {
     DataBuffer buf = {0};
     buf.len = 4U;
     for (uint32_t i = 0U; i < buf.len; i = cnx_clamp_add_u32(i, 1U)) {
-        uint32_t value = cnx_clamp_mul_u32(i, 10U);
+        const uint32_t value = cnx_clamp_mul_u32(i, 10U);
         buf.data[i] = (uint8_t)((value) & 0xFFU);
     }
     if (buf.data[0U] != 0) {

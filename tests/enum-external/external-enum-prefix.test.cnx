@@ -10,17 +10,17 @@ scope ExtEnumPrefix {
     }
 }
 
-void setDefault(ExtEnumPrefix.Config config) {
+void setDefault(mut ExtEnumPrefix.Config config) {
     config.pType <- PRESSURE_TYPE_PSIG;
 }
 
-void setExplicit(ExtEnumPrefix.Config config) {
+void setExplicit(mut ExtEnumPrefix.Config config) {
     // Qualified access should also work
     config.pType <- EPressureType.PRESSURE_TYPE_PSIA;
 }
 
 u32 main() {
-    ExtEnumPrefix.Config cfg <- { pType: PRESSURE_TYPE_PSIA };
+    mut ExtEnumPrefix.Config cfg <- { pType: PRESSURE_TYPE_PSIA };
 
     // Test 1: Initial value via struct initializer
     if (cfg.pType != EPressureType.PRESSURE_TYPE_PSIA) {

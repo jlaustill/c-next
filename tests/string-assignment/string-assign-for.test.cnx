@@ -1,9 +1,9 @@
 // test-execution
 // Issue #139: Test string assignment inside for loop body
-string<16> result <- "";
+mut string<16> result <- "";
 
 u32 main() {
-    u32 i <- 0;
+    mut u32 i <- 0;
 
     // Assignment in for loop body
     for (i <- 0; i < 3; i +<- 1) {

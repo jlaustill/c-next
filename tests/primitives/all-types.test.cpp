@@ -15,29 +15,29 @@
 // test-coverage: 1.2-i32-global-variable-declaration, 1.2-i64-global-variable-declaration
 // ADR-044: Test all primitive types transpile correctly
 // Unsigned integers
-uint8_t byte = 255U;
+extern const uint8_t byte = 255U;
 
-uint16_t word = 65535U;
+extern const uint16_t word = 65535U;
 
-uint32_t dword = 4294967295U;
+extern const uint32_t dword = 4294967295U;
 
-uint64_t qword = 0ULL;
+extern const uint64_t qword = 0ULL;
 
 // Signed integers
-int8_t sbyte = -128;
+extern const int8_t sbyte = -128;
 
-int16_t sword = -32768;
+extern const int16_t sword = -32768;
 
-int32_t sdword = (int32_t)INT32_MIN;
+extern const int32_t sdword = (int32_t)INT32_MIN;
 
-int64_t sqword = 0;
+extern const int64_t sqword = 0;
 
 // Floating point
-float single = 3.14;
+extern const float single = 3.14;
 
-double precise = 3.141592653589793;
+extern const double precise = 3.141592653589793;
 
 // Boolean
-bool flag = true;
+extern const bool flag = true;
 
-bool ready = false;
+extern const bool ready = false;

@@ -21,7 +21,7 @@
 /* Scope: SerialHandler */
 
 void SerialHandler__handleSet(Config& config) {
-    uint8_t result = CommandHandler__setValue(config, 42U);
+    const uint8_t result = CommandHandler__setValue(config, 42U);
 }
 
 void SerialHandler__process(Config& config) {

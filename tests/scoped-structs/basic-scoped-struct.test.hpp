@@ -24,9 +24,9 @@ typedef struct Motor__Config {
 extern Motor__Config Motor__current;
 
 /* Function prototypes */
-void Motor__setSpeed(uint8_t s);
+void Motor__setSpeed(const uint8_t s);
 uint8_t Motor__getSpeed(void);
-void Motor__setDirection(uint8_t d);
+void Motor__setDirection(const uint8_t d);
 void Motor__enable(void);
 void Motor__disable(void);
 bool Motor__isEnabled(void);

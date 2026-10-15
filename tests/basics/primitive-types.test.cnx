@@ -58,7 +58,7 @@ u32 main() {
     }
 
     // Boolean
-    bool flag <- true;
+    mut bool flag <- true;
     if (flag != true) {
         return 11;
     }

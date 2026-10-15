@@ -9,14 +9,14 @@
 
 // test-execution
 // Tests: Global function returning enum
-EState globalState = EState__OFF;
+extern const EState globalState = EState__OFF;
 
 EState getState(void) {
     return globalState;
 }
 
 int main(void) {
-    EState current = getState();
+    const EState current = getState();
     if (current != EState__OFF) {
         return 1U;
     }

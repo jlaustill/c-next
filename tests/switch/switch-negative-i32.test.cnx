@@ -2,7 +2,7 @@
 // test-execution
 // Issue #107: Negative Case Labels - i32 Type
 // Tests: negative literals with i32 switch expressions
-i32 result;
+mut i32 result;
 
 // Test i32 with various negative values
 void testI32Values(i32 val) {

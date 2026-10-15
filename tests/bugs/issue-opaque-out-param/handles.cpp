@@ -13,4 +13,4 @@
 Dev* shared = {};
 
 /* Scope: Rack */
-Dev* Rack__unit = NULL;
+const Dev* Rack__unit = NULL;

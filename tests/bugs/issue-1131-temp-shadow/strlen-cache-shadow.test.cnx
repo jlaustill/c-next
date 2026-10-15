@@ -16,7 +16,7 @@ u8 _msg_len <- 42;
 
 u8 count() {
     string<16> msg <- "hello";
-    u8 total <- 0;
+    mut u8 total <- 0;
 
     if (msg.value_char_count > 2) {
         total <- msg.value_char_count + _msg_len;

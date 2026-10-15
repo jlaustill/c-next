@@ -17,24 +17,24 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-uint8_t buf[BUF_SIZE] = {0};
+const uint8_t buf[BUF_SIZE] = {0};
 
-uint16_t grid[2][BUF_SIZE] = {0};
+const uint16_t grid[2][BUF_SIZE] = {0};
 
-uint8_t fixed[4] = {0};
+const uint8_t fixed[4] = {0};
 
-bool flags[BUF_SIZE] = {0};
+const bool flags[BUF_SIZE] = {0};
 
 int main(void) {
-    uint32_t bits = ((uint32_t)(BUF_SIZE) * 8U);
-    uint32_t bytes = ((uint32_t)(BUF_SIZE) * 1U);
-    uint32_t gridBits = ((uint32_t)2U * (BUF_SIZE) * 16U);
-    uint32_t gridBytes = ((uint32_t)2U * (BUF_SIZE) * 2U);
-    uint32_t rowBits = ((uint32_t)(BUF_SIZE) * 16U);
-    uint32_t count = BUF_SIZE;
-    uint32_t fixedBits = 32;
-    uint32_t flagBits = ((uint32_t)(BUF_SIZE) * 1U);
-    uint32_t flagBytes = (((uint32_t)(BUF_SIZE) * 1U + 7U) / 8U);
+    const uint32_t bits = ((uint32_t)(BUF_SIZE) * 8U);
+    const uint32_t bytes = ((uint32_t)(BUF_SIZE) * 1U);
+    const uint32_t gridBits = ((uint32_t)2U * (BUF_SIZE) * 16U);
+    const uint32_t gridBytes = ((uint32_t)2U * (BUF_SIZE) * 2U);
+    const uint32_t rowBits = ((uint32_t)(BUF_SIZE) * 16U);
+    const uint32_t count = BUF_SIZE;
+    const uint32_t fixedBits = 32;
+    const uint32_t flagBits = ((uint32_t)(BUF_SIZE) * 1U);
+    const uint32_t flagBytes = (((uint32_t)(BUF_SIZE) * 1U + 7U) / 8U);
     if (bits != 48) {
         return 1U;
     }

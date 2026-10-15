@@ -9,12 +9,12 @@
 // ADR-024: Test that valid literal values work correctly
 // This should compile successfully
 int main(void) {
-    uint8_t byte = 255U;
-    uint8_t zero = 0U;
-    uint16_t word = 65535U;
-    uint32_t dword = 4294967295U;
-    int8_t sbyte = -128;
-    int8_t sbyte_max = 127;
-    int16_t sword = -32768;
-    int32_t sdword = (int32_t)INT32_MIN;
+    const uint8_t byte = 255U;
+    const uint8_t zero = 0U;
+    const uint16_t word = 65535U;
+    const uint32_t dword = 4294967295U;
+    const int8_t sbyte = -128;
+    const int8_t sbyte_max = 127;
+    const int16_t sword = -32768;
+    const int32_t sdword = (int32_t)INT32_MIN;
 }

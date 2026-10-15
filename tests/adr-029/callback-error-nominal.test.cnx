@@ -11,11 +11,11 @@ scope CallbackErrNom {
     }
 }
 
-void onMouseDown(const CallbackErrNom.Point p) {
+void onMouseDown(CallbackErrNom.Point p) {
     // default for mouse down
 }
 
-void onMouseUp(const CallbackErrNom.Point p) {
+void onMouseUp(CallbackErrNom.Point p) {
     // default for mouse up
 }
 
@@ -23,7 +23,7 @@ void onMouseUp(const CallbackErrNom.Point p) {
 // so it is a plain function and may stand in. A rule that keyed on "the
 // signatures match" rather than on "the value is itself a type" would reject
 // this line too.
-void plainHandler(const CallbackErrNom.Point p) {}
+void plainHandler(CallbackErrNom.Point p) {}
 
 struct Handler {
     onMouseDown down;
@@ -31,7 +31,7 @@ struct Handler {
 }
 
 void test() {
-    Handler h;
+    mut Handler h;
 
     // CONTROL, continued: accepted.
     h.down <- plainHandler;

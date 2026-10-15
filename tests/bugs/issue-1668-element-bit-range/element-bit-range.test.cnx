@@ -3,8 +3,8 @@
 // operand typer says and 2.1 already accepts. The assignment classifier asked
 // the ROOT's type instead, saw an array with a two-index subscript, and
 // called it a slice, so a valid program failed with an internal error at 1:0.
-u8[4] row;
-u8[3][3] matrix;
+mut u8[4] row;
+mut u8[3][3] matrix;
 
 u32 main() {
     // ASSERTION: the low nibble of a 1-D array's element
@@ -23,7 +23,7 @@ u32 main() {
     }
 
     // CONTROL: a scalar's bit range
-    u8 v <- 0;
+    mut u8 v <- 0;
     v[0, 4] <- 9;
     if (v != 9) {
         return 3;

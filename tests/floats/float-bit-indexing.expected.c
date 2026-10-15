@@ -15,7 +15,7 @@ _Static_assert(sizeof(double) == 8, "Float bit indexing requires 64-bit double")
 // test-target-xfail: atmega328p #1709 "Float bit indexing requires 64-bit double"
 // Tests: f32/f64 bit indexing read/write operations
 // Helper to build f32 from LE bytes (like the user's use case)
-float fromBytesLE(uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3) {
+float fromBytesLE(const uint8_t b0, const uint8_t b1, const uint8_t b2, const uint8_t b3) {
     float result = 0.0;
     /* MISRA C:2012 Rule 21.15: float bits accessed through a union (memcpy would pass incompatible pointer types: float* vs uint32_t*). */
     union { float f; uint32_t u; } __bits_result;
@@ -32,35 +32,35 @@ float fromBytesLE(uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3) {
 }
 
 int main(void) {
-    float one = fromBytesLE(0x00U, 0x00U, 0x80U, 0x3FU);
+    const float one = fromBytesLE(0x00U, 0x00U, 0x80U, 0x3FU);
     if (one != 1.0) {
         return 1U;
     }
-    float negOne = fromBytesLE(0x00U, 0x00U, 0x80U, 0xBFU);
+    const float negOne = fromBytesLE(0x00U, 0x00U, 0x80U, 0xBFU);
     if (negOne != -1.0) {
         return 2U;
     }
-    float two = fromBytesLE(0x00U, 0x00U, 0x00U, 0x40U);
+    const float two = fromBytesLE(0x00U, 0x00U, 0x00U, 0x40U);
     if (two != 2.0) {
         return 3U;
     }
-    float testVal = 1.0;
+    const float testVal = 1.0;
     /* MISRA C:2012 Rule 21.15: float bits accessed through a union (memcpy would pass incompatible pointer types: float* vs uint32_t*). */
     union { float f; uint32_t u; } __bits_testVal;
     __bits_testVal.f = testVal;
-    uint8_t byte3 = ((__bits_testVal.u >> 24U) & 0xFFU);
+    const uint8_t byte3 = ((__bits_testVal.u >> 24U) & 0xFFU);
     if (byte3 != 0x3F) {
         return 4U;
     }
-    uint8_t byte2 = ((__bits_testVal.u >> 16U) & 0xFFU);
+    const uint8_t byte2 = ((__bits_testVal.u >> 16U) & 0xFFU);
     if (byte2 != 0x80) {
         return 5U;
     }
-    uint8_t byte1 = ((__bits_testVal.u >> 8U) & 0xFFU);
+    const uint8_t byte1 = ((__bits_testVal.u >> 8U) & 0xFFU);
     if (byte1 != 0x00) {
         return 6U;
     }
-    uint8_t byte0 = (__bits_testVal.u & 0xFFU);
+    const uint8_t byte0 = (__bits_testVal.u & 0xFFU);
     if (byte0 != 0x00) {
         return 7U;
     }

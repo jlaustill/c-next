@@ -3,7 +3,7 @@
 // Tests: setting individual bits in integer
 
 u32 main() {
-    u8 flags <- 0;
+    mut u8 flags <- 0;
     flags[0] <- true; // flags = 0x01
     flags[3] <- true; // flags = 0x09
     flags[7] <- true; // flags = 0x89

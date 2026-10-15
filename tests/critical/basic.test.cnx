@@ -1,8 +1,8 @@
 // test-c-only
 // test-target-xfail: host #1147 "implicit declaration of function"
-u8[64] buffer;
+mut u8[64] buffer;
 
-u32 writeIdx <- 0;
+mut u32 writeIdx <- 0;
 
 void enqueue(u8 data) {
     critical {

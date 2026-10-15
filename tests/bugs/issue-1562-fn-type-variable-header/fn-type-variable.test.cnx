@@ -14,8 +14,8 @@ u32 tock() {
     return 4;
 }
 
-tick sink;
-tick[2] sinks;
+mut tick sink;
+mut tick[2] sinks;
 
 u32 main() {
     u32 got1 <- sink();

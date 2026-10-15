@@ -14,7 +14,7 @@ extern "C" {
 
 /* Function prototypes */
 void SPI__init(void);
-void SPI__write(uint8_t data);
+void SPI__write(const uint8_t data);
 
 #ifdef __cplusplus
 }

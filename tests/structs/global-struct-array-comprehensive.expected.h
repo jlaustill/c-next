@@ -24,9 +24,9 @@ typedef struct CNextStruct {
 } CNextStruct;
 
 /* External variables */
-extern ExternalStruct globalExternal;
-extern CNextStruct globalCNext;
-extern GlobalStruct__Outer globalOuter;
+extern const ExternalStruct globalExternal;
+extern const CNextStruct globalCNext;
+extern const GlobalStruct__Outer globalOuter;
 
 /* Function prototypes */
 uint8_t ArrayTests__testGlobalExternal(void);

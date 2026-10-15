@@ -9,7 +9,7 @@
 // test-execution
 // ADR-045: Validate empty string behavior at runtime
 int main(void) {
-    char empty[65] = "";
+    const char empty[65] = "";
     if (strlen(empty) != 0) {
         return 1;
     }
@@ -22,19 +22,19 @@ int main(void) {
     if (strcmp(empty, "") != 0) {
         return 4;
     }
-    char alsoEmpty[33] = "";
+    const char alsoEmpty[33] = "";
     if (strcmp(empty, alsoEmpty) != 0) {
         return 5;
     }
-    char explicitEmpty[33] = "";
+    const char explicitEmpty[33] = "";
     if (strlen(explicitEmpty) != 0) {
         return 6;
     }
     if (strcmp(explicitEmpty, "") != 0) {
         return 7;
     }
-    char text[33] = "Hello";
-    char concatEmpty[97] = "";
+    const char text[33] = "Hello";
+    const char concatEmpty[97] = "";
     (void) strncpy(concatEmpty, text, 96);
     (void) strncat(concatEmpty, empty, 96 - strlen(concatEmpty));
     concatEmpty[96] = '\0';
@@ -44,7 +44,7 @@ int main(void) {
     if (strcmp(concatEmpty, "Hello") != 0) {
         return 9;
     }
-    char emptyPlusText[97] = "";
+    const char emptyPlusText[97] = "";
     (void) strncpy(emptyPlusText, empty, 96);
     (void) strncat(emptyPlusText, text, 96 - strlen(emptyPlusText));
     emptyPlusText[96] = '\0';
@@ -54,8 +54,8 @@ int main(void) {
     if (strcmp(emptyPlusText, "Hello") != 0) {
         return 11;
     }
-    char smallEmpty[17] = "";
-    char bigEmpty[129] = "";
+    const char smallEmpty[17] = "";
+    const char bigEmpty[129] = "";
     if (strcmp(smallEmpty, bigEmpty) != 0) {
         return 12;
     }

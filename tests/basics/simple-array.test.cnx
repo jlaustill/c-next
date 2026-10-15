@@ -4,7 +4,7 @@
 
 u32 main() {
     // Array declaration with size
-    u32[5] numbers;
+    mut u32[5] numbers;
     numbers[0] <- 10;
     numbers[1] <- 20;
     numbers[2] <- 30;
@@ -39,8 +39,8 @@ u32 main() {
     }
 
     // Iterate over array
-    u32 sum <- 0;
-    for (u32 i <- 0; i < numbers.type_element_count; i <- i + 1) {
+    mut u32 sum <- 0;
+    for (mut u32 i <- 0; i < numbers.type_element_count; i <- i + 1) {
         sum <- sum + numbers[i];
     }
     if (sum != 150) {

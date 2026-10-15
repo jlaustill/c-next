@@ -20,7 +20,7 @@ const uint8_t ExternConstTest__STATUS_OK = 0U;
 const uint8_t ExternConstTest__STATUS_ERROR = 1U;
 const uint32_t ExternConstTest__MAGIC_NUMBER = 0xCAFEBABEU;
 
-bool ExternConstTest__isSuccess(uint8_t status) {
+bool ExternConstTest__isSuccess(const uint8_t status) {
     if (status == ExternConstTest__STATUS_OK) {
         return true;
     }
@@ -45,15 +45,15 @@ int main(void) {
     if (ExternConstTest__MAGIC_NUMBER != 0xCAFEBABE) {
         return 3U;
     }
-    bool success = ExternConstTest__isSuccess(0U);
+    const bool success = ExternConstTest__isSuccess(0U);
     if (success != true) {
         return 4U;
     }
-    uint8_t errCode = ExternConstTest__getErrorCode();
+    const uint8_t errCode = ExternConstTest__getErrorCode();
     if (errCode != 1) {
         return 5U;
     }
-    uint32_t magic = ExternConstTest__getMagic();
+    const uint32_t magic = ExternConstTest__getMagic();
     if (magic != 0xCAFEBABE) {
         return 6U;
     }

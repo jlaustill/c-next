@@ -38,7 +38,7 @@ extern const uint8_t LEN_FLAGS = 1U;
 
 int main(void) {
     uint8_t buffer[64] = {};
-    uint32_t magic = 0x12345678U;
+    const uint32_t magic = 0x12345678U;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
     const uint32_t cnx_tmp0 = (uint32_t)(magic);
     buffer[0] = (uint8_t)(cnx_tmp0);
@@ -57,7 +57,7 @@ int main(void) {
     if (buffer[3U] != 0x12) {
         return 4U;
     }
-    uint16_t version = 0xABCDU;
+    const uint16_t version = 0xABCDU;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint16_t*). */
     const uint16_t cnx_tmp1 = (uint16_t)(version);
     buffer[4] = (uint8_t)(cnx_tmp1);
@@ -68,12 +68,12 @@ int main(void) {
     if (buffer[5U] != 0xAB) {
         return 6U;
     }
-    uint8_t flags = 0xFFU;
+    const uint8_t flags = 0xFFU;
     buffer[6] = (uint8_t)(flags);
     if (buffer[6U] != 0xFF) {
         return 7U;
     }
-    uint32_t value = 0x11223344U;
+    const uint32_t value = 0x11223344U;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
     const uint32_t cnx_tmp2 = (uint32_t)(value);
     buffer[6] = (uint8_t)(cnx_tmp2);

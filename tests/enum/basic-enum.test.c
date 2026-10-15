@@ -16,7 +16,7 @@
 // Enum with bit flag pattern
 State currentState = State__IDLE;
 
-Command lastCmd = Command__READ;
+const Command lastCmd = Command__READ;
 
 int main(void) {
     if ((uint32_t)State__IDLE != 0) {

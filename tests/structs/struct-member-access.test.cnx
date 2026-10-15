@@ -7,7 +7,7 @@ struct Point {
 }
 
 u32 main() {
-    Point p <- { x: 10, y: 20 };
+    mut Point p <- { x: 10, y: 20 };
 
     // Test initial values
     if (p.x != 10) {

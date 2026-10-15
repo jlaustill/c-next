@@ -22,49 +22,49 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 // Tests: Implicit type widening (safe conversions)
 // Demonstrates: smaller types implicitly widen to larger types
 int main(void) {
-    uint8_t byte = 255U;
-    uint16_t word = byte;
+    const uint8_t byte = 255U;
+    const uint16_t word = byte;
     if (word != 255) {
         return 1U;
     }
-    uint32_t dword = word;
+    const uint32_t dword = word;
     if (dword != 255) {
         return 2U;
     }
-    uint64_t qword = dword;
+    const uint64_t qword = dword;
     if (qword != 255) {
         return 3U;
     }
-    int8_t sbyte = -128;
-    int16_t sword = sbyte;
+    const int8_t sbyte = -128;
+    const int16_t sword = sbyte;
     if (sword != -128) {
         return 4U;
     }
-    int32_t sdword = sword;
+    const int32_t sdword = sword;
     if (sdword != -128) {
         return 5U;
     }
-    int64_t sqword = sdword;
+    const int64_t sqword = sdword;
     if (sqword != -128) {
         return 6U;
     }
-    int8_t posByte = 127;
-    int32_t posWord = posByte;
+    const int8_t posByte = 127;
+    const int32_t posWord = posByte;
     if (posWord != 127) {
         return 7U;
     }
-    float single = 3.14;
-    double precise = single;
+    const float single = 3.14;
+    const double precise = single;
     if (precise < 3.13 || precise > 3.15) {
         return 8U;
     }
-    uint8_t a = 200U;
-    uint8_t b = 200U;
-    uint16_t clamped = cnx_clamp_add_u8(a, b);
+    const uint8_t a = 200U;
+    const uint8_t b = 200U;
+    const uint16_t clamped = cnx_clamp_add_u8(a, b);
     if (clamped != 255) {
         return 9U;
     }
-    uint16_t sum = (uint16_t)a + (uint16_t)b;
+    const uint16_t sum = (uint16_t)a + (uint16_t)b;
     if (sum != 400) {
         return 10U;
     }

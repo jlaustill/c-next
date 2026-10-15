@@ -26,11 +26,11 @@ typedef struct Bank {
 } Bank;
 
 /* External variables */
-extern Bank globalBank;
-extern Bank b;
+extern const Bank globalBank;
+extern const Bank b;
 
 /* Function prototypes */
-uint32_t onSample(uint32_t input);
+uint32_t onSample(const uint32_t input);
 /* MISRA C:2012 Rule 8.4: declaration for the ADR-029 generated init function (the definition has external linkage and would otherwise be undeclared). */
 Inner Inner_init(void);
 Bank Bank_init(void);

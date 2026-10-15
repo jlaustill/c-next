@@ -3,7 +3,7 @@
 // test-adr: 057
 
 scope Calculator {
-    u32 result <- 0;
+    mut u32 result <- 0;
 
     void reset() {
         result <- 0;

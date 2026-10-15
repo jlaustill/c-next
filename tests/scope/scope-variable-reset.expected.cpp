@@ -28,7 +28,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 /* Scope: Calculator */
 static uint32_t Calculator__operationCount = 0U;
 
-uint32_t Calculator__addAndCount(uint32_t value) {
+uint32_t Calculator__addAndCount(const uint32_t value) {
     uint32_t accumulator = 0U;
     accumulator = cnx_clamp_add_u32(accumulator, value);
     Calculator__operationCount = cnx_clamp_add_u32(Calculator__operationCount, 1U);
@@ -40,27 +40,27 @@ uint32_t Calculator__getOperationCount(void) {
 }
 
 int main(void) {
-    uint32_t result1 = Calculator__addAndCount(10U);
+    const uint32_t result1 = Calculator__addAndCount(10U);
     if (result1 != 10) {
         return 1U;
     }
-    uint32_t count1 = Calculator__getOperationCount();
+    const uint32_t count1 = Calculator__getOperationCount();
     if (count1 != 1) {
         return 2U;
     }
-    uint32_t result2 = Calculator__addAndCount(5U);
+    const uint32_t result2 = Calculator__addAndCount(5U);
     if (result2 != 5) {
         return 3U;
     }
-    uint32_t count2 = Calculator__getOperationCount();
+    const uint32_t count2 = Calculator__getOperationCount();
     if (count2 != 2) {
         return 4U;
     }
-    uint32_t result3 = Calculator__addAndCount(7U);
+    const uint32_t result3 = Calculator__addAndCount(7U);
     if (result3 != 7) {
         return 5U;
     }
-    uint32_t count3 = Calculator__getOperationCount();
+    const uint32_t count3 = Calculator__getOperationCount();
     if (count3 != 3) {
         return 6U;
     }

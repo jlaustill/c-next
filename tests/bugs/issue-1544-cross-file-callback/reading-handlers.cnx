@@ -13,7 +13,7 @@
 // everything strips the `const` neverWired must keep.
 #include "sensor_api.h"
 
-u16 global_witness <- 0;
+mut u16 global_witness <- 0;
 
 // THE DEFECT: wired in the entry file, so #1544 does not recognise it here and
 // #268 auto-const gives `const SensorReading*` -- which does not match

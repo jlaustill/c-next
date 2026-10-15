@@ -21,6 +21,6 @@
 #include <stdint.h>
 
 void test(void) {
-    uint32_t x = always_available();
-    widget_t* label = create_label(null);
+    const uint32_t x = always_available();
+    const widget_t* label = create_label(null);
 }

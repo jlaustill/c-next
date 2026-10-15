@@ -26,14 +26,14 @@ static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
 
 // ADR-014 + ADR-006: Struct as function parameter
 // Tests: pass-by-reference for struct parameters
-void movePoint(Point& p, int32_t dx, int32_t dy) {
+void movePoint(Point& p, const int32_t dx, const int32_t dy) {
     p.x = cnx_clamp_add_i32(p.x, dx);
     p.y = cnx_clamp_add_i32(p.y, dy);
 }
 
 int main(void) {
     Point origin = { .x = 0, .y = 0 };
-    int32_t deltaX = 10;
-    int32_t deltaY = 20;
+    const int32_t deltaX = 10;
+    const int32_t deltaY = 20;
     movePoint(origin, deltaX, deltaY);
 }

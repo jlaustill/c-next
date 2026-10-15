@@ -46,23 +46,22 @@ static inline uint32_t cnx_value_char_count_signed(int64_t value) {
     return cnx_value_char_count(magnitude) + ((value < 0) ? 1U : 0U);
 }
 
-uint32_t counter = 300U;
+extern const uint32_t counter = 300U;
 
-uint32_t globalBits = 32;
+extern const uint32_t globalBits = 32;
 
 /* Scope: Meter */
-static uint32_t Meter__reading = 12345U;
 
 uint32_t Meter__digits(void) {
-    return cnx_value_char_count(Meter__reading);
+    return cnx_value_char_count(12345U);
 }
 
 uint32_t Meter__bits(void) {
-    return cnx_value_bit_length(Meter__reading);
+    return cnx_value_bit_length(12345U);
 }
 
 uint32_t Meter__signedDigits(void) {
-    int32_t offset = -42;
+    const int32_t offset = -42;
     return cnx_value_char_count_signed(offset);
 }
 
@@ -70,11 +69,11 @@ uint32_t Meter__memory(void) {
     return ((uint32_t)sizeof(uint32_t));
 }
 
-uint32_t topLevel(uint32_t x) {
+uint32_t topLevel(const uint32_t x) {
     return cnx_value_char_count(x);
 }
 
-uint32_t topLevelBytes(uint32_t x) {
+uint32_t topLevelBytes(const uint32_t x) {
     return ((cnx_value_bit_length(x) + 7U) / 8U);
 }
 
@@ -82,15 +81,15 @@ int main(void) {
     if (globalBits != 32) {
         return 1U;
     }
-    uint32_t digits = Meter__digits();
+    const uint32_t digits = Meter__digits();
     if (digits != 5) {
         return 2U;
     }
-    uint32_t bits = Meter__bits();
+    const uint32_t bits = Meter__bits();
     if (bits != 14) {
         return 3U;
     }
-    uint32_t seven = topLevel(7U);
+    const uint32_t seven = topLevel(7U);
     if (seven != 1) {
         return 4U;
     }
@@ -100,15 +99,15 @@ int main(void) {
     if (4 != 4) {
         return 6U;
     }
-    uint32_t signedDigits = Meter__signedDigits();
+    const uint32_t signedDigits = Meter__signedDigits();
     if (signedDigits != 3) {
         return 7U;
     }
-    uint32_t memory = Meter__memory();
+    const uint32_t memory = Meter__memory();
     if (memory != 4) {
         return 8U;
     }
-    uint32_t bytes = topLevelBytes(300U);
+    const uint32_t bytes = topLevelBytes(300U);
     if (bytes != 2) {
         return 9U;
     }

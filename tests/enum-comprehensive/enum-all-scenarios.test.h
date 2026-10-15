@@ -29,16 +29,16 @@ typedef enum {
 } Controller__EStatus;
 
 /* External variables */
-extern EGlobalState globalState;
+extern const EGlobalState globalState;
 
 /* Function prototypes */
 Motor__EMode Motor__getMode(void);
 Motor__EMode Motor__getAtomicMode(void);
-void Motor__setMode(Motor__EMode newMode);
-void Motor__setAtomicMode(Motor__EMode newMode);
+void Motor__setMode(const Motor__EMode newMode);
+void Motor__setAtomicMode(const Motor__EMode newMode);
 bool Motor__testThisMethodEnum(void);
 bool Motor__isOff(void);
-bool Motor__isMode(Motor__EMode checkMode);
+bool Motor__isMode(const Motor__EMode checkMode);
 EGlobalState Motor__getGlobalState(void);
 void Motor__criticalEnumUpdate(void);
 void Controller__setMotorMode(void);

@@ -31,12 +31,12 @@ void Test__setInput(const uint8_t data[8]) {
 }
 
 void Test__setInputExtracted(const uint8_t data[8]) {
-    uint8_t idx = cnx_clamp_sub_u8(data[2U], 1U);
+    const uint8_t idx = cnx_clamp_sub_u8(data[2U], 1U);
     inputs[idx].assignedValue = data[1U];
 }
 
 int main(void) {
-    uint8_t testData[8] = {0U, 99U, 3U, 0U, 0U, 0U, 0U, 0U};
+    const uint8_t testData[8] = {0U, 99U, 3U, 0U, 0U, 0U, 0U, 0U};
     Test__setInputExtracted(testData);
     if (inputs[2U].assignedValue != 99) {
         return 1;

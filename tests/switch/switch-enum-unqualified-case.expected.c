@@ -10,7 +10,7 @@
 // Issue #471: Unqualified enum values in case labels
 // Tests that enum values without type prefix get resolved correctly
 // in both if conditions and case labels
-uint32_t categorize(ECategory cat) {
+uint32_t categorize(const ECategory cat) {
     if (cat == ECategory__CAT_A) {
         return 100U;
     }

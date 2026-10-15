@@ -17,6 +17,6 @@ scope CrossFileEnum {
     }
 }
 
-const u8 COUNT <- 4;
+u8 COUNT <- 4;
 
-CrossFileEnum.Config config;
+mut CrossFileEnum.Config config;

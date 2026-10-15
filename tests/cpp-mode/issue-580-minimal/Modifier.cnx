@@ -2,7 +2,7 @@
 #include "Config.cnx"
 
 scope Modifier {
-    public void reset(Config c) {
+    public void reset(mut Config c) {
         c.value <- 42;
     }
 }

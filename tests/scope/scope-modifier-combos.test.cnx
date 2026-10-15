@@ -4,39 +4,39 @@
 
 scope Combos {
     // const + clamp combination - immutable with clamp semantics
-    const clamp u8 MAX_BRIGHTNESS <- 255;
-    const clamp u16 MAX_SENSOR <- 65535;
-    const clamp i8 MIN_TEMP <- -128;
+    clamp u8 MAX_BRIGHTNESS <- 255;
+    clamp u16 MAX_SENSOR <- 65535;
+    clamp i8 MIN_TEMP <- -128;
 
     // const + wrap combination - immutable with wrap semantics
-    const wrap u8 COUNTER_START <- 0;
-    const wrap u16 TICK_START <- 1000;
+    wrap u8 COUNTER_START <- 0;
+    wrap u16 TICK_START <- 1000;
 
     // public + clamp combination - visible with clamp overflow
-    public clamp u8 publicClampByte <- 200;
+    public mut clamp u8 publicClampByte <- 200;
     public clamp u16 publicClampWord <- 60000;
-    public clamp i8 publicClampSigned <- 100;
+    public mut clamp i8 publicClampSigned <- 100;
 
     // private + clamp combination - hidden with clamp overflow
-    clamp u8 privateClampByte <- 50;
-    clamp u16 privateClampWord <- 10000;
+    mut clamp u8 privateClampByte <- 50;
+    mut clamp u16 privateClampWord <- 10000;
     clamp i8 privateClampSigned <- -50;
 
     // public + wrap combination - visible with wrap overflow
-    public wrap u8 publicWrapByte <- 250;
-    public wrap u16 publicWrapWord <- 65530;
+    public mut wrap u8 publicWrapByte <- 250;
+    public mut wrap u16 publicWrapWord <- 65530;
 
     // private + wrap combination - hidden with wrap overflow
-    wrap u8 privateWrapByte <- 5;
-    wrap u16 privateWrapWord <- 100;
+    mut wrap u8 privateWrapByte <- 5;
+    mut wrap u16 privateWrapWord <- 100;
 
     // public + const combination - visible constant
-    public const u8 PUBLIC_CONST <- 42;
-    public const bool PUBLIC_FLAG <- true;
+    public u8 PUBLIC_CONST <- 42;
+    public bool PUBLIC_FLAG <- true;
 
     // private + const combination - hidden constant
-    const u8 PRIVATE_CONST <- 99;
-    const bool PRIVATE_FLAG <- false;
+    u8 PRIVATE_CONST <- 99;
+    bool PRIVATE_FLAG <- false;
 
     // Getter methods for const clamp variables
     public u8 getMaxBrightness() {

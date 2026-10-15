@@ -5,16 +5,16 @@ struct Point {
     u32 y;
 }
 
-u32 sink <- 0;
+mut u32 sink <- 0;
 
-void spin(Point p) {
+void spin(mut Point p) {
     forever {
         p.x <- 3;
         sink <- p.x;
     }
 }
 
-void spinScalar(u32 n) {
+void spinScalar(mut u32 n) {
     forever {
         n <- n + 1;
         sink <- n;

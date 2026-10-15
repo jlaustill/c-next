@@ -7,7 +7,7 @@ void my_flush(widget_t w, rect_t area, u8 buf) {
 }
 
 void run() {
-    widget_t w <- global.widget_create();
+    mut widget_t w <- global.widget_create();
     forever {
         global.widget_set_flush_cb(w, my_flush);
     }

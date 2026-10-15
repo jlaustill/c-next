@@ -37,7 +37,7 @@ uint32_t Counter__getValue(void) {
 int main(void) {
     Counter__increment();
     Counter__increment();
-    uint32_t result = Counter__getValue();
+    const uint32_t result = Counter__getValue();
     if (result != 2) {
         return 1U;
     }

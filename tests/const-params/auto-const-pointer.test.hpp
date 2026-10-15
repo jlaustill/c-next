@@ -13,11 +13,11 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void readOnly(uint32_t value);
+void readOnly(const uint32_t value);
 void modified(uint32_t& value);
-uint32_t mixedParams(uint32_t readVal, uint32_t& writeVal);
+uint32_t mixedParams(const uint32_t readVal, uint32_t& writeVal);
 void arrayMod(uint8_t arr[4]);
-uint8_t arrayReadOnly(uint8_t arr[4]);
+uint8_t arrayReadOnly(const uint8_t arr[4]);
 
 #ifdef __cplusplus
 }

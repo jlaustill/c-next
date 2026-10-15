@@ -1,18 +1,18 @@
 // Coverage: Section 7.4 - for loop inside scope
 // Tests: for loops inside scope declarations
-u32 globalSum <- 0;
+mut u32 globalSum <- 0;
 
 scope Calculator {
-    u32 result <- 0;
+    mut u32 result <- 0;
     public void sumToN(u32 n) {
         this.result <- 0;
-        for (u32 i <- 1; i <= n; i <- i + 1) {
+        for (mut u32 i <- 1; i <= n; i <- i + 1) {
             this.result +<- i;
         }
     }
     public void factorial(u32 n) {
         this.result <- 1;
-        for (u32 i <- 2; i <= n; i <- i + 1) {
+        for (mut u32 i <- 2; i <= n; i <- i + 1) {
             this.result *<- i;
         }
     }
@@ -22,16 +22,16 @@ scope Calculator {
 }
 
 scope ArrayOps {
-    u32[10] data;
-    u32 sum <- 0;
+    mut u32[10] data;
+    mut u32 sum <- 0;
     public void initialize() {
-        for (u32 i <- 0; i < 10; i <- i + 1) {
+        for (mut u32 i <- 0; i < 10; i <- i + 1) {
             this.data[i] <- i * 2;
         }
     }
     public void computeSum() {
         this.sum <- 0;
-        for (u32 i <- 0; i < 10; i <- i + 1) {
+        for (mut u32 i <- 0; i < 10; i <- i + 1) {
             this.sum +<- this.data[i];
         }
     }

@@ -3,8 +3,8 @@
 // For loop tests: u8 as loop counter
 // Tests: u8 type can be used as for-loop counter
 u8 main() {
-    u8 sum <- 0;
-    for (u8 i <- 0; i < 10; i +<- 1) {
+    mut u8 sum <- 0;
+    for (mut u8 i <- 0; i < 10; i +<- 1) {
         sum +<- i;
     }
 

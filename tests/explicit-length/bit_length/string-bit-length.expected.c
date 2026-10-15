@@ -12,7 +12,7 @@
 // Tests .type_bit_length property for strings (ADR-058)
 // type_bit_length = capacity x 8, no terminator (ADR-058); the buffer with its
 // terminator is the memory row: string<64> = 512 type bits, 520 memory bits
-char globalStr[65] = "Hello";
+const char globalStr[65] = "Hello";
 
 int main(void) {
     if (((uint32_t)65U * 8U) != 520) {
@@ -21,11 +21,11 @@ int main(void) {
     if (512 != 512) {
         return 1;
     }
-    char localStr[33] = "World";
+    const char localStr[33] = "World";
     if (256 != 256) {
         return 2;
     }
-    char smallStr[17] = "";
+    const char smallStr[17] = "";
     if (128 != 128) {
         return 3;
     }

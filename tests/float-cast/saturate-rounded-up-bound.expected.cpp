@@ -22,16 +22,16 @@ static inline uint32_t cnx_cast_sat_f32_u32(float value) {
 // with `>=`. `(float)UINT32_MAX` rounds up to exactly 2^32, so under `>` a
 // value of 2^32 passed the test and reached the raw cast, which is undefined
 // behaviour; at an exactly representable maximum both branches give MAX.
-float edgeU32 = 4294967296.0;
+extern const float edgeU32 = 4294967296.0;
 
-float edgeI32 = 2147483648.0;
+extern const float edgeI32 = 2147483648.0;
 
 // Negative controls: the largest f32 below each bound converts exactly
-float belowU32 = 4294967040.0;
+extern const float belowU32 = 4294967040.0;
 
-float belowI32 = 2147483520.0;
+extern const float belowI32 = 2147483520.0;
 
-float f255 = 255.0;
+extern const float f255 = 255.0;
 
 // A call is evaluated once, through the helper form of the same rule
 float edge(void) {
@@ -39,27 +39,27 @@ float edge(void) {
 }
 
 int main(void) {
-    uint32_t a = ((edgeU32) >= ((float)UINT32_MAX) ? static_cast<uint32_t>(UINT32_MAX) : (edgeU32) < 0.0f ? static_cast<uint32_t>(0) : static_cast<uint32_t>((edgeU32)));
+    const uint32_t a = ((edgeU32) >= ((float)UINT32_MAX) ? static_cast<uint32_t>(UINT32_MAX) : (edgeU32) < 0.0f ? static_cast<uint32_t>(0) : static_cast<uint32_t>((edgeU32)));
     if (a != 0xFFFFFFFF) {
         return 1U;
     }
-    int32_t b = ((edgeI32) >= ((float)INT32_MAX) ? static_cast<int32_t>(INT32_MAX) : (edgeI32) < ((float)INT32_MIN) ? static_cast<int32_t>(INT32_MIN) : static_cast<int32_t>((edgeI32)));
+    const int32_t b = ((edgeI32) >= ((float)INT32_MAX) ? static_cast<int32_t>(INT32_MAX) : (edgeI32) < ((float)INT32_MIN) ? static_cast<int32_t>(INT32_MIN) : static_cast<int32_t>((edgeI32)));
     if (b != 2147483647) {
         return 2U;
     }
-    uint32_t c = ((belowU32) >= ((float)UINT32_MAX) ? static_cast<uint32_t>(UINT32_MAX) : (belowU32) < 0.0f ? static_cast<uint32_t>(0) : static_cast<uint32_t>((belowU32)));
+    const uint32_t c = ((belowU32) >= ((float)UINT32_MAX) ? static_cast<uint32_t>(UINT32_MAX) : (belowU32) < 0.0f ? static_cast<uint32_t>(0) : static_cast<uint32_t>((belowU32)));
     if (c != 4294967040) {
         return 3U;
     }
-    int32_t d = ((belowI32) >= ((float)INT32_MAX) ? static_cast<int32_t>(INT32_MAX) : (belowI32) < ((float)INT32_MIN) ? static_cast<int32_t>(INT32_MIN) : static_cast<int32_t>((belowI32)));
+    const int32_t d = ((belowI32) >= ((float)INT32_MAX) ? static_cast<int32_t>(INT32_MAX) : (belowI32) < ((float)INT32_MIN) ? static_cast<int32_t>(INT32_MIN) : static_cast<int32_t>((belowI32)));
     if (d != 2147483520) {
         return 4U;
     }
-    uint8_t e = ((f255) >= ((float)UINT8_MAX) ? static_cast<uint8_t>(UINT8_MAX) : (f255) < 0.0f ? static_cast<uint8_t>(0) : static_cast<uint8_t>((f255)));
+    const uint8_t e = ((f255) >= ((float)UINT8_MAX) ? static_cast<uint8_t>(UINT8_MAX) : (f255) < 0.0f ? static_cast<uint8_t>(0) : static_cast<uint8_t>((f255)));
     if (e != 255) {
         return 5U;
     }
-    uint32_t h = cnx_cast_sat_f32_u32(edge());
+    const uint32_t h = cnx_cast_sat_f32_u32(edge());
     if (h != 0xFFFFFFFF) {
         return 6U;
     }

@@ -23,7 +23,7 @@ typedef struct Box {
 
 /* External variables */
 extern const Point ORIGIN;
-extern Point atFileScope;
+extern const Point atFileScope;
 
 /* Function prototypes */
 void takes(const Point* p);

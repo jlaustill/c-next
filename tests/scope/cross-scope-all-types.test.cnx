@@ -9,7 +9,7 @@
 // ==========================================
 scope Provider {
     // Unsigned integers - public for cross-scope access
-    public u8 valU8 <- 255;
+    public mut u8 valU8 <- 255;
     public u16 valU16 <- 65535;
     public u32 valU32 <- 4294967295;
     public u64 valU64 <- 18446744073709551615;
@@ -17,7 +17,7 @@ scope Provider {
     // Signed integers
     public i8 valI8 <- -128;
     public i16 valI16 <- -32768;
-    public i32 valI32 <- -2147483648;
+    public mut i32 valI32 <- -2147483648;
     public i64 valI64 <- -9223372036854775808;
 
     // Floating point
@@ -25,7 +25,7 @@ scope Provider {
     public f64 valF64 <- 3.141592653589793;
 
     // Boolean
-    public bool valBool <- true;
+    public mut bool valBool <- true;
 
     // Arrays
     public u32 arrayU32[3];
@@ -67,8 +67,8 @@ scope Provider {
 // ==========================================
 scope Consumer {
     // Internal state
-    public u32 result <- 0;
-    public i32 signedResult <- 0;
+    public mut u32 result <- 0;
+    public mut i32 signedResult <- 0;
     public bool boolResult <- false;
 
     // Cross-scope read: unsigned integers via global.Provider.member

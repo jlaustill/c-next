@@ -21,12 +21,12 @@ uint32_t localTick(void) {
 libTick_fp sink = libTick;
 
 int main(void) {
-    uint32_t got1 = sink();
+    const uint32_t got1 = sink();
     if (got1 != 7) {
         return 1U;
     }
     sink = localTick;
-    uint32_t got2 = sink();
+    const uint32_t got2 = sink();
     if (got2 != 9) {
         return 2U;
     }

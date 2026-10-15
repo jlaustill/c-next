@@ -5,7 +5,7 @@
 
 scope AllTypesTest {
     // Unsigned integers
-    u8 valU8 <- 255;
+    mut u8 valU8 <- 255;
     u16 valU16 <- 65535;
     u32 valU32 <- 4294967295;
     u64 valU64 <- 18446744073709551615;
@@ -17,11 +17,11 @@ scope AllTypesTest {
     i64 valI64 <- -9223372036854775808;
 
     // Floating point
-    f32 valF32 <- 3.14;
-    f64 valF64 <- 3.141592653589793;
+    mut f32 valF32 <- 3.14;
+    mut f64 valF64 <- 3.141592653589793;
 
     // Boolean
-    bool valBool <- true;
+    mut bool valBool <- true;
 
     // Getters using this. accessor - Unsigned integers
     public u8 getU8() {
@@ -95,7 +95,7 @@ i32 main() {
     // Each validation uses a unique error code for debugging
 
     // Unsigned integers
-    u8 resultU8 <- AllTypesTest.getU8();
+    mut u8 resultU8 <- AllTypesTest.getU8();
     if (resultU8 != 255) {
         return 1;
     }
@@ -147,7 +147,7 @@ i32 main() {
     }
 
     // Boolean
-    bool resultBool <- AllTypesTest.getBool();
+    mut bool resultBool <- AllTypesTest.getBool();
     if (resultBool != true) {
         return 11;
     }

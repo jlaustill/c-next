@@ -25,10 +25,10 @@ typedef struct Sample {
 extern uint8_t witness;
 
 /* Function prototypes */
-void record(uint8_t v);
-void inspect(uint8_t v);
-void viaParameter(record_fp cb, uint8_t value);
-uint8_t Bus__publish(uint8_t value);
+void record(const uint8_t v);
+void inspect(const uint8_t v);
+void viaParameter(record_fp cb, const uint8_t value);
+uint8_t Bus__publish(const uint8_t value);
 
 #ifdef __cplusplus
 }

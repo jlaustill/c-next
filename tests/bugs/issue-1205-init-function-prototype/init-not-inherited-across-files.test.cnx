@@ -10,6 +10,6 @@ struct Plain {
     u32 count;
 }
 
-u32 readPlain(const Plain p) {
+u32 readPlain(Plain p) {
     return p.count;
 }

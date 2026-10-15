@@ -12,20 +12,20 @@
 // Tests: Boolean type in all language contexts
 // Covers: function params, return types, struct members, arrays
 // 1. Global variables
-bool globalTrue = true;
+const bool globalTrue = true;
 
-bool globalFalse = false;
+const bool globalFalse = false;
 
 // 2. Struct with bool members
 // 3. Bool arrays
 bool flagArray[4] = {0};
 
 // 4. Function with bool param and return
-bool negate(bool value) {
+bool negate(const bool value) {
     return !value;
 }
 
-bool identity(bool value) {
+bool identity(const bool value) {
     return value;
 }
 
@@ -37,21 +37,21 @@ int main(void) {
     if (globalFalse != false) {
         return 2U;
     }
-    bool localTrue = true;
-    bool localFalse = false;
-    bool negResult1 = negate(localTrue);
+    const bool localTrue = true;
+    const bool localFalse = false;
+    const bool negResult1 = negate(localTrue);
     if (negResult1 != false) {
         return 3U;
     }
-    bool negResult2 = negate(localFalse);
+    const bool negResult2 = negate(localFalse);
     if (negResult2 != true) {
         return 4U;
     }
-    bool idResult = identity(localTrue);
+    const bool idResult = identity(localTrue);
     if (idResult != true) {
         return 5U;
     }
-    bool localBool = true;
+    const bool localBool = true;
     if (localBool != true) {
         return 6U;
     }
@@ -72,11 +72,11 @@ int main(void) {
     if (flagArray[1U] != false) {
         return 10U;
     }
-    bool combined = globalTrue && localBool;
+    const bool combined = globalTrue && localBool;
     if (combined != true) {
         return 11U;
     }
-    bool orResult = globalFalse || localBool;
+    const bool orResult = globalFalse || localBool;
     if (orResult != true) {
         return 12U;
     }

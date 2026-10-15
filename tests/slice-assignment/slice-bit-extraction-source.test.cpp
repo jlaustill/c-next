@@ -13,7 +13,7 @@
 // byte (78 00 00 00). The full 32 bits must be written little-endian.
 int main(void) {
     uint8_t buf[8] = {};
-    uint32_t b = 0x12345678U;
+    const uint32_t b = 0x12345678U;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
     const uint32_t cnx_tmp0 = (uint32_t)(((b) & 0xFFFFFFFFU));
     buf[0] = (uint8_t)(cnx_tmp0);

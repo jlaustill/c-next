@@ -8,8 +8,8 @@ u32 main() {
     // Test ternary with equality comparison
     u32 a <- 10;
     u32 b <- 20;
-    u32 flag <- 1;
-    u32 result <- (flag = 1) ? a : b;
+    mut u32 flag <- 1;
+    mut u32 result <- (flag = 1) ? a : b;
     if (result != 10) {
         return 1;
     }

@@ -1,4 +1,4 @@
-void bump(u32 x) {
+void bump(mut u32 x) {
     x <- x + 1;
 }
 
@@ -7,7 +7,7 @@ u32 twice(u32 x) {
 }
 
 scope Counter {
-    public void add(u32 n, u32 by) {
+    public void add(mut u32 n, u32 by) {
         n <- n + by;
     }
 }

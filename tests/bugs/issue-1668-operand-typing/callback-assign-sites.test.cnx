@@ -6,9 +6,9 @@ struct Point {
     u32 x;
 }
 
-void onDown(const Point p) {}
+void onDown(Point p) {}
 
-u32 wrongSignature(const Point p) {
+u32 wrongSignature(Point p) {
     return p.x;
 }
 
@@ -17,15 +17,15 @@ struct Handler {
 }
 
 void main() {
-    Handler h <- { down: onDown };
+    mut Handler h <- { down: onDown };
 
     // NEGATIVE CONTROL -- a function of the callback's own signature.
-    for (u32 i <- 0; i < 3; h.down <- onDown) {
+    for (mut u32 i <- 0; i < 3; h.down <- onDown) {
         i +<- 1;
     }
 
     // ASSERTION
-    for (u32 j <- 0; j < 3; h.down <- wrongSignature) {
+    for (mut u32 j <- 0; j < 3; h.down <- wrongSignature) {
         j +<- 1;
     }
 }

@@ -22,7 +22,7 @@ u32 main() {
     }
 
     // i16 array with explicit size
-    i16[4] data;
+    mut i16[4] data;
     data[0] <- -5000;
     data[1] <- 5000;
     data[2] <- -10000;
@@ -55,8 +55,8 @@ u32 main() {
 
     // i16 array in loop
     i16[3] loop_arr <- [100, 200, 300];
-    i16 sum <- 0;
-    for (u32 i <- 0; i < 3; i +<- 1) {
+    mut i16 sum <- 0;
+    for (mut u32 i <- 0; i < 3; i +<- 1) {
         sum +<- loop_arr[i];
     }
     if (sum != 600) {
@@ -64,7 +64,7 @@ u32 main() {
     }
 
     // i16 array modification
-    i16[2] modify <- [1000, 2000];
+    mut i16[2] modify <- [1000, 2000];
     modify[0] <- -1000;
     modify[1] <- -2000;
     if (modify[0] != -1000) {

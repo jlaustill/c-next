@@ -9,7 +9,7 @@ struct Packet {
     u8[BUF_SIZE] data;
 }
 
-Packet packet;
+mut Packet packet;
 
 u32 main() {
     packet.data[0] <- 1;

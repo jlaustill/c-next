@@ -11,13 +11,15 @@
 #include "cross-file-middle.cnx"
 
 scope Report {
-    u32 tally <- 0;
+    mut u32 tally <- 0;
     u32 weight <- 5;
 
     // #1241: a scope MEMBER declaration whose initializer resolves a bare name
     // (scope-member context, as distinct from the scope-method cases above).
-    const u32 SEED <- 3;
-    u32 primed <- SEED;
+    u32 SEED <- 3;
+    // `mut` and written below, so it is emitted and its initializer rendered
+    // (ADR-071): a read-only member nothing reads is not.
+    mut u32 primed <- SEED;
 
     u32 factor() {
         return weight;
@@ -27,6 +29,7 @@ scope Report {
         // Bare `tally`, `weight` and `factor()` resolving scope-first, in a
         // fixture two includes away from where `Sensor` is declared.
         tally <- tally + factor() + sample;
+        primed <- tally;
     }
 
     public u32 readTally() {

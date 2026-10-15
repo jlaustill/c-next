@@ -18,7 +18,7 @@ uint32_t S__size(void) {
 }
 
 int main(void) {
-    uint32_t n = S__size();
+    const uint32_t n = S__size();
     if (n != 7) {
         return 1U;
     }

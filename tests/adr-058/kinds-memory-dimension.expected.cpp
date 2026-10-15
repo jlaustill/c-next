@@ -17,17 +17,17 @@
 #include <stdint.h>
 #include <string.h>
 
-char names[2][9] = {0};
+extern const char names[2][9] = {0};
 
 uint8_t raw[((uint32_t)sizeof(Cfg))] = {};
 
-uint8_t headerRaw[((uint32_t)sizeof(KCfg))] = {};
+extern const uint8_t headerRaw[((uint32_t)sizeof(KCfg))] = {};
 
-uint8_t pointerRaw[((uint32_t)sizeof(KOdd))] = {};
+extern const uint8_t pointerRaw[((uint32_t)sizeof(KOdd))] = {};
 
-uint8_t nameBytes[((uint32_t)9U * 2U)] = {};
+extern const uint8_t nameBytes[((uint32_t)9U * 2U)] = {};
 
-uint8_t cfgBits[(((uint32_t)sizeof(Cfg) * 8U)) + 1] = {};
+extern const uint8_t cfgBits[(((uint32_t)sizeof(Cfg) * 8U)) + 1] = {};
 
 int main(void) {
     uint8_t local[((uint32_t)sizeof(Cfg))] = {};

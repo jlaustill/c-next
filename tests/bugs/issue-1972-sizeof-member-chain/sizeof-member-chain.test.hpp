@@ -31,8 +31,8 @@ typedef struct Pair {
 #define GPIO__DR (*(volatile uint32_t*)(0x40000000 + 0x00))
 
 /* External variables */
-extern Pair S__cfg;
-extern Outer shared;
+extern const Pair S__cfg;
+extern const Outer shared;
 
 #ifdef __cplusplus
 }

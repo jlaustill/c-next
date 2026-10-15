@@ -39,11 +39,11 @@ uint8_t explicitClampCounter = 250U;
 uint8_t explicitWrapCounter = 250U;
 
 /* Scope: Counter */
-uint8_t Counter__value = 250U;
-uint8_t Counter__wrappingValue = 250U;
+const uint8_t Counter__value = 250U;
+const uint8_t Counter__wrappingValue = 250U;
 uint8_t Counter__viaThis = 250U;
-uint8_t Counter__viaGlobal = 250U;
-uint8_t Counter__wrappingViaGlobal = 250U;
+const uint8_t Counter__viaGlobal = 250U;
+const uint8_t Counter__wrappingViaGlobal = 250U;
 
 void Counter__bumpViaThis(void) {
     Counter__viaThis = cnx_clamp_add_u8(Counter__viaThis, 10U);

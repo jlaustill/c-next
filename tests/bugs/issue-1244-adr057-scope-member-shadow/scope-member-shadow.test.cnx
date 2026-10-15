@@ -19,7 +19,7 @@ scope Other {
 }
 
 scope Reg {
-    Holder Other;
+    mut Holder Other;
 
     public u8 useShadowed() {
         Other.member <- 0;

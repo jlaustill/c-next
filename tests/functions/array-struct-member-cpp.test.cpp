@@ -19,7 +19,7 @@
 // Array of external C structs with bool/enum members
 SensorReading sensors[4] = {};
 
-uint32_t process(uint32_t crc, uint8_t byte) {
+uint32_t process(const uint32_t crc, const uint8_t byte) {
     return crc ^ byte;
 }
 
@@ -50,11 +50,11 @@ uint32_t testMultipleIndices(void) {
 }
 
 int main(void) {
-    uint32_t result1 = testArrayStructMembers();
+    const uint32_t result1 = testArrayStructMembers();
     if (result1 != 43) {
         return 1U;
     }
-    uint32_t result2 = testMultipleIndices();
+    const uint32_t result2 = testMultipleIndices();
     if (result2 != 100) {
         return 2U;
     }

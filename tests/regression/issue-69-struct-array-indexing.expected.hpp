@@ -22,11 +22,11 @@ typedef struct Configuration {
 } Configuration;
 
 /* Function prototypes */
-uint16_t getSpn(const Configuration& conf, uint32_t idx);
-float getCoeff(const Configuration& data, uint32_t pos);
-void setSpn(Configuration& conf, uint32_t idx, uint16_t value);
-void setCoeff(Configuration& data, uint32_t pos, float value);
-void initializeAll(Configuration& conf, uint16_t spnValue, float coeffValue);
+uint16_t getSpn(const Configuration& conf, const uint32_t idx);
+float getCoeff(const Configuration& data, const uint32_t pos);
+void setSpn(Configuration& conf, const uint32_t idx, const uint16_t value);
+void setCoeff(Configuration& data, const uint32_t pos, const float value);
+void initializeAll(Configuration& conf, const uint16_t spnValue, const float coeffValue);
 
 #ifdef __cplusplus
 }

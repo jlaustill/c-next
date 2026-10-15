@@ -14,7 +14,7 @@
 // rejected both; four fixtures caught it. This one is here so that cannot
 // silently return: it EXECUTES, and asserts the widths.
 int main(void) {
-    Color c = Color__RED;
+    const Color c = Color__RED;
     if (1 != 1) {
         return 1U;
     }

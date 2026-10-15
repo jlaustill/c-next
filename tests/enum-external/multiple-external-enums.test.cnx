@@ -9,13 +9,16 @@ struct DeviceState {
     EStatus status;
 }
 
-void configure(DeviceState state) {
+void configure(mut DeviceState state) {
     state.pressure <- PRESSURE_TYPE_PSIG;
     state.status <- STATUS_ACTIVE;
 }
 
 u32 main() {
-    DeviceState dev <- { pressure: PRESSURE_TYPE_PSIA, status: STATUS_IDLE };
+    mut DeviceState dev <- {
+        pressure: PRESSURE_TYPE_PSIA,
+        status: STATUS_IDLE
+    };
 
     // Test 1: Initial values from different external enums
     if (dev.pressure != EPressureType.PRESSURE_TYPE_PSIA) {

@@ -15,7 +15,7 @@ extern const uint32_t G = 40U;
 /* Scope: S */
 const uint32_t S__P = 30U;
 
-uint32_t S__pick(uint32_t v) {
+uint32_t S__pick(const uint32_t v) {
     switch (v) {
         case 20U: {
             return 1U;
@@ -37,9 +37,9 @@ uint32_t S__pick(uint32_t v) {
 }
 
 int main(void) {
-    uint32_t a = S__pick(20U);
-    uint32_t b = S__pick(30U);
-    uint32_t c = S__pick(40U);
+    const uint32_t a = S__pick(20U);
+    const uint32_t b = S__pick(30U);
+    const uint32_t c = S__pick(40U);
     if (a != 1) {
         return 1U;
     }

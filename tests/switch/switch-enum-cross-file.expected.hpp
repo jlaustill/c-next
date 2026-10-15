@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint32_t classify(EStatus status);
+uint32_t classify(const EStatus status);
 
 #ifdef __cplusplus
 }

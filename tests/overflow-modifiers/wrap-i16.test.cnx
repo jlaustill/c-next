@@ -6,14 +6,14 @@ u32 main() {
     // === OVERFLOW WRAPPING (wraps to negative) ===
 
     // Test 1: Basic overflow - add past max
-    wrap i16 val <- 32767;
+    mut wrap i16 val <- 32767;
     val +<- 1; // 32767 + 1 = 32768, should wrap to -32768
     if (val != -32768) {
         return 1;
     }
 
     // Test 2: Overflow with larger addition
-    wrap i16 val2 <- 32760;
+    mut wrap i16 val2 <- 32760;
     val2 +<- 10; // 32760 + 10 = 32770, should wrap to -32766
     if (val2 != -32766) {
         return 2;

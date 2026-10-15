@@ -32,26 +32,26 @@ const int16_t MAX_ALTITUDE = 10000;
 const int16_t SEA_LEVEL = 0;
 
 int main(void) {
-    int16_t minAlt = MIN_ALTITUDE;
+    const int16_t minAlt = MIN_ALTITUDE;
     if (minAlt != -500) {
         return 1U;
     }
-    int16_t maxAlt = MAX_ALTITUDE;
+    const int16_t maxAlt = MAX_ALTITUDE;
     if (maxAlt != 10000) {
         return 2U;
     }
-    int16_t sea = SEA_LEVEL;
+    const int16_t sea = SEA_LEVEL;
     if (sea != 0) {
         return 3U;
     }
-    int16_t range = cnx_clamp_sub_i16(MAX_ALTITUDE, MIN_ALTITUDE);
+    const int16_t range = cnx_clamp_sub_i16(MAX_ALTITUDE, MIN_ALTITUDE);
     if (range != 10500) {
         return 4U;
     }
     if (MIN_ALTITUDE >= SEA_LEVEL) {
         return 5U;
     }
-    int16_t altitude = 5000;
+    const int16_t altitude = 5000;
     if (altitude < MIN_ALTITUDE) {
         return 6U;
     }

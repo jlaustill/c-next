@@ -15,9 +15,9 @@ struct Gauge {
     u32 flags;
 }
 
-f32[2] fa <- [1.5, 2.0];
-Gauge gs;
-f32 lone <- 4.0;
+mut f32[2] fa <- [1.5, 2.0];
+mut Gauge gs;
+mut f32 lone <- 4.0;
 
 u32 main() {
     fa[1][31] <- true;

@@ -45,19 +45,19 @@ void paramHandler3(void) {
 }
 
 // Function that accepts ISR as parameter and invokes it
-void executeParamHandler(ISR cb) {
+void executeParamHandler(const ISR cb) {
     (*cb)();
 }
 
 // Function that accepts ISR and invokes it multiple times
-void executeParamMultiple(ISR fn, uint32_t times) {
+void executeParamMultiple(const ISR fn, const uint32_t times) {
     for (uint32_t i = 0U; i < times; i = cnx_clamp_add_u32(i, 1U)) {
         (*fn)();
     }
 }
 
 // Function that accepts two ISRs and invokes both
-void executeParamBoth(ISR first, ISR second) {
+void executeParamBoth(const ISR first, const ISR second) {
     (*first)();
     (*second)();
 }

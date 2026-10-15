@@ -20,13 +20,13 @@ extern uint32_t globalReadIndex;
 extern bool globalBufferLock;
 
 /* Function prototypes */
-void CriticalTest__internalEnqueue(uint8_t data);
+void CriticalTest__internalEnqueue(const uint8_t data);
 uint8_t CriticalTest__internalDequeue(void);
 void CriticalTest__internalUpdateGlobal(void);
 void CriticalTest__internalTransfer(void);
 bool CriticalTest__internalTryLock(void);
 void CriticalTest__internalUnlock(void);
-void CriticalTest__enqueue(uint8_t data);
+void CriticalTest__enqueue(const uint8_t data);
 uint8_t CriticalTest__dequeue(void);
 void CriticalTest__updateGlobalIndex(void);
 void CriticalTest__transferToGlobal(void);
@@ -36,9 +36,9 @@ void CriticalTest__unlock(void);
 bool CriticalTest__isLocked(void);
 void CriticalTest__resetAll(void);
 bool CriticalTest__isInSync(void);
-void CriticalTest__safeEnqueue(uint8_t data);
+void CriticalTest__safeEnqueue(const uint8_t data);
 uint8_t CriticalTest__safeDequeue(void);
-void CriticalTest__lockedEnqueue(uint8_t data);
+void CriticalTest__lockedEnqueue(const uint8_t data);
 
 #ifdef __cplusplus
 }

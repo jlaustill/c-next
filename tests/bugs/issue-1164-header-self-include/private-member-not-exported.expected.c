@@ -30,7 +30,7 @@ uint8_t Internal__callHelper(void) {
 }
 
 int main(void) {
-    uint8_t result = Internal__callHelper();
+    const uint8_t result = Internal__callHelper();
     if (result != 7) {
         return 1U;
     }

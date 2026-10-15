@@ -13,7 +13,7 @@
 #include <stdint.h>
 
 int main(void) {
-    SimpleConfig cfg = { .value = 42, .flags = { .flag_a = 1, .flag_b = 0, .reserved = 0 } };
+    const SimpleConfig cfg = { .value = 42, .flags = { .flag_a = 1, .flag_b = 0, .reserved = 0 } };
     if (cfg.value != 42) {
         return 1;
     }
@@ -23,7 +23,7 @@ int main(void) {
     if (cfg.flags.flag_b != 0) {
         return 3;
     }
-    SimpleConfig cfg2 = { .value = 100, .flags = { .flag_a = 1 } };
+    const SimpleConfig cfg2 = { .value = 100, .flags = { .flag_a = 1 } };
     if (cfg2.value != 100) {
         return 4;
     }

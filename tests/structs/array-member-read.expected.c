@@ -25,9 +25,9 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Verifies postfix chain ordering: cfg.items[i].value
 int main(void) {
     Container cfg = {0};
-    Item item0 = { .value = 100U, .flags = 0U };
-    Item item1 = { .value = 200U, .flags = 0U };
-    Item item2 = { .value = 300U, .flags = 0U };
+    const Item item0 = { .value = 100U, .flags = 0U };
+    const Item item1 = { .value = 200U, .flags = 0U };
+    const Item item2 = { .value = 300U, .flags = 0U };
     cfg.items[0] = item0;
     cfg.items[1] = item1;
     cfg.items[2] = item2;

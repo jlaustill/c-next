@@ -10,8 +10,8 @@ struct Pt {
 }
 
 u32 main() {
-    u8 i <- 0;
-    u8 seen <- 0;
+    mut u8 i <- 0;
+    mut u8 seen <- 0;
     for (Pt p <- { c: GREEN, x: 1 }; i < 2; i +<- 1) {
         if (p.c = Color.GREEN) {
             seen +<- p.x;

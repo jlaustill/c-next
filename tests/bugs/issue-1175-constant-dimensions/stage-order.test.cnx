@@ -5,9 +5,9 @@
 //
 // NEGATIVE CONTROL: `fixed`, sized by a literal.
 
-u32 n <- 4;
-u8[n] buf;
-u8[4] fixed;
+mut u32 n <- 4;
+mut u8[n] buf;
+mut u8[4] fixed;
 
 void f(u32 v) {
     buf[0, 4] <- v;

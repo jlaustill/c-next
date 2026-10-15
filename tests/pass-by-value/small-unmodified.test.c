@@ -76,19 +76,19 @@ static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
 // Tests that unmodified small primitive types pass by value,
 // while modified parameters still pass by pointer.
 // --- Unmodified parameters: should pass by value ---
-uint8_t getLowByte(uint16_t value) {
+uint8_t getLowByte(const uint16_t value) {
     return (uint8_t)((value) & 0xFFU);
 }
 
-uint8_t getHighByte(uint16_t value) {
+uint8_t getHighByte(const uint16_t value) {
     return (uint8_t)((value >> 8U) & 0xFFU);
 }
 
-uint32_t addTwo(uint32_t a, uint32_t b) {
+uint32_t addTwo(const uint32_t a, const uint32_t b) {
     return cnx_clamp_add_u32(a, b);
 }
 
-bool invert(bool flag) {
+bool invert(const bool flag) {
     return !flag;
 }
 
@@ -108,14 +108,14 @@ void incrementWrapper(uint32_t* x) {
 }
 
 // --- Mixed: some params modified, some not ---
-uint32_t addAndIncrement(uint32_t* a, uint32_t b) {
+uint32_t addAndIncrement(uint32_t* a, const uint32_t b) {
     (*a) = cnx_clamp_add_u32((*a), 1U);
     return cnx_clamp_add_u32((*a), b);
 }
 
 // --- Modification in switch statement (Issue #269 bug fix) ---
 // Parameters modified inside switch cases must still pass by pointer
-void modifyInSwitch(uint32_t* x, uint32_t mode) {
+void modifyInSwitch(uint32_t* x, const uint32_t mode) {
     switch (mode) {
         case 1: {
             (*x) = cnx_clamp_add_u32((*x), 10U);
@@ -144,16 +144,16 @@ void modifyInCritical(uint32_t* x) {
 
 // --- Main test ---
 int main(void) {
-    uint16_t testVal = 0x1234U;
-    uint8_t low = getLowByte(testVal);
+    const uint16_t testVal = 0x1234U;
+    const uint8_t low = getLowByte(testVal);
     if (low != 0x34) {
         return 1U;
     }
-    uint8_t high = getHighByte(testVal);
+    const uint8_t high = getHighByte(testVal);
     if (high != 0x12) {
         return 2U;
     }
-    uint32_t sum = addTwo(100U, 200U);
+    const uint32_t sum = addTwo(100U, 200U);
     if (sum != 300) {
         return 3U;
     }
@@ -181,8 +181,8 @@ int main(void) {
         return 8U;
     }
     uint32_t mixedA = 5U;
-    uint32_t mixedB = 10U;
-    uint32_t mixedResult = addAndIncrement(&mixedA, mixedB);
+    const uint32_t mixedB = 10U;
+    const uint32_t mixedResult = addAndIncrement(&mixedA, mixedB);
     if (mixedResult != 16) {
         return 9U;
     }

@@ -16,8 +16,8 @@ extern "C" {
 extern char globalNames[5][33];
 
 /* Function prototypes */
-uint32_t getArrayLength(char arr[5][33]);
-uint32_t getElementLength(char arr[5][33], uint32_t index);
+uint32_t getArrayLength(const char arr[5][33]);
+uint32_t getElementLength(const char arr[5][33], const uint32_t index);
 
 #ifdef __cplusplus
 }

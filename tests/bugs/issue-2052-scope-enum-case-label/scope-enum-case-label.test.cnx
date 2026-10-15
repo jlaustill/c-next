@@ -16,7 +16,7 @@ scope Motor {
         RUNNING
     }
 
-    State current <- State.STOPPED;
+    mut State current <- State.STOPPED;
 
     public u32 step() {
         switch (current) {
@@ -45,7 +45,7 @@ scope Motor {
 }
 
 u32 main() {
-    u32 got <- 0;
+    mut u32 got <- 0;
     got <- Motor.step();
     if (got != 1) {
         return 1;

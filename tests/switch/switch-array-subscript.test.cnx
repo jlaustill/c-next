@@ -2,7 +2,7 @@
 // Tests: switch on array element subscript (bug fix)
 // Verifies that switch(array[index]) correctly resolves as element type, not bool
 
-u32 result;
+mut u32 result;
 
 void handleByArray(u8[4] data, u8 idx) {
     switch (data[idx]) {

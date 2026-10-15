@@ -20,8 +20,8 @@ uint32_t big = 0;
 
 uint8_t buf[8] = {};
 
-uint8_t mbuf[BUF_COUNT] = {};
+extern const uint8_t mbuf[BUF_COUNT] = {};
 
 // A u8 parameter, which a C++ enum class argument is cast to (#304)
-void paint(uint8_t c) {
+void paint(const uint8_t c) {
 }

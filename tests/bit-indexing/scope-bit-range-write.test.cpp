@@ -13,11 +13,11 @@
 /* Scope: Sensor */
 static uint16_t Sensor__value = 0;
 
-void Sensor__setLowByte(uint8_t byte) {
+void Sensor__setLowByte(const uint8_t byte) {
     Sensor__value = (uint16_t)((Sensor__value & ~(0xFFU << 0)) | ((byte & 0xFFU) << 0));
 }
 
-void Sensor__setHighNibble(uint8_t nibble) {
+void Sensor__setHighNibble(const uint8_t nibble) {
     Sensor__value = (uint16_t)((Sensor__value & ~(0xFU << 12)) | ((nibble & 0xFU) << 12));
 }
 
@@ -25,7 +25,7 @@ uint16_t Sensor__getValue(void) {
     return Sensor__value;
 }
 
-void Sensor__reset(uint16_t v) {
+void Sensor__reset(const uint16_t v) {
     Sensor__value = v;
 }
 

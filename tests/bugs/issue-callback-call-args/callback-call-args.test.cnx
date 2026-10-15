@@ -19,7 +19,7 @@ u32 peek(Point p) {
     return p.x;
 }
 
-void poke(Point p) {
+void poke(mut Point p) {
     p.x <- p.x + 5;
 }
 
@@ -58,7 +58,7 @@ u32 twiceVia(twice cb, u32 v) {
 }
 
 i32 main() {
-    Handlers h;
+    mut Handlers h;
     h.onPeek <- peek;
     h.onPoke <- poke;
     h.onTwice <- twice;

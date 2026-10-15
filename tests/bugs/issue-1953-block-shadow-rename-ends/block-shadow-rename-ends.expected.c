@@ -10,15 +10,15 @@
 // test-execution
 // Issue #1953: a block-local that shadows a global is renamed only inside its block
 // The .type_byte_length after the block measures the global, and a sibling block renames its own local
-uint8_t buf[4] = {0U, 0U, 0U, 0U};
+const uint8_t buf[4] = {0U, 0U, 0U, 0U};
 
-uint8_t count = 7U;
+const uint8_t count = 7U;
 
 int main(void) {
-    uint32_t flag = 1U;
+    const uint32_t flag = 1U;
     if (flag == 1) {
         /* C11 6.2.1p4, C++ [basic.scope.hiding]: `buf` emitted as `main__buf` (a plain `buf` would hide the file-scope `buf` for the rest of its scope, so `global.buf` would reach the local). */
-        uint8_t main__buf[8] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
+        const uint8_t main__buf[8] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
         if (8 != 8) {
             return 1U;
         }
@@ -28,7 +28,7 @@ int main(void) {
     }
     if (flag == 1) {
         /* C11 6.2.1p4, C++ [basic.scope.hiding]: `buf` emitted as `main__buf` (a plain `buf` would hide the file-scope `buf` for the rest of its scope, so `global.buf` would reach the local). */
-        uint8_t main__buf[2] = {0U, 0U};
+        const uint8_t main__buf[2] = {0U, 0U};
         if (2 != 2) {
             return 3U;
         }
@@ -38,7 +38,7 @@ int main(void) {
     }
     if (flag == 1) {
         /* C11 6.2.1p4, C++ [basic.scope.hiding]: `count` emitted as `main__count` (a plain `count` would hide the file-scope `count` for the rest of its scope, so `global.count` would reach the local). */
-        uint8_t main__count = 3U;
+        const uint8_t main__count = 3U;
         if (main__count != 3) {
             return 5U;
         }
@@ -46,7 +46,7 @@ int main(void) {
     if (count != 7) {
         return 6U;
     }
-    uint32_t fresh = 5U;
+    const uint32_t fresh = 5U;
     if (fresh != 5) {
         return 7U;
     }

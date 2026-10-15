@@ -5,13 +5,13 @@ struct Message {
     u32 id;
 }
 
-void onReceive(const Message msg) {}
+void onReceive(Message msg) {}
 
 struct Controller {
     onReceive handler;
 }
 
 void demo() {
-    Controller controller;
+    mut Controller controller;
     controller.handler <- onReceive;
 }

@@ -28,7 +28,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return (uint32_t)(a + (uint32_t)b);
 }
 
-uint32_t onSample(uint32_t input) {
+uint32_t onSample(const uint32_t input) {
     return cnx_clamp_add_u32(input, 1U);
 }
 
@@ -42,11 +42,11 @@ Bank Bank_init(void) {
     return value;
 }
 
-Bank globalBank = { { onSample, onSample, onSample }, { { onSample }, { onSample } } };
+extern const Bank globalBank = { { onSample, onSample, onSample }, { { onSample }, { onSample } } };
 
 // Read through a global: a local's default cannot be read before it is
 // assigned (ADR-015, #1980); the local forms are asserted by the snapshots.
-Bank b = { { onSample, onSample, onSample }, { { onSample }, { onSample } } };
+extern const Bank b = { { onSample, onSample, onSample }, { { onSample }, { onSample } } };
 
 int main(void) {
     uint32_t r = 0U;

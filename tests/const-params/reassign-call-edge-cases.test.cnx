@@ -14,13 +14,13 @@ scope ConstEdge {
 
 scope Handler {
     // Modifies first param
-    public u8 setValue(ConstEdge.Config cfg, u32 val) {
+    public u8 setValue(mut ConstEdge.Config cfg, u32 val) {
         cfg.value <- val;
         return 0;
     }
 
     // Modifies second param only
-    public u8 setSecond(u32 dummy, ConstEdge.Config cfg) {
+    public u8 setSecond(u32 dummy, mut ConstEdge.Config cfg) {
         cfg.value <- 999;
         return 0;
     }
@@ -31,14 +31,14 @@ scope Handler {
     }
 
     // Wrapper that calls setValue - transitive modification
-    public u8 wrapSetValue(ConstEdge.Config cfg, u32 val) {
+    public u8 wrapSetValue(mut ConstEdge.Config cfg, u32 val) {
         return this.setValue(cfg, val);
     }
 }
 
 // Edge case 1: Nested conditionals
-void handleNestedIf(ConstEdge.Config config) {
-    u8 errorCode <- 0;
+void handleNestedIf(mut ConstEdge.Config config) {
+    mut u8 errorCode <- 0;
     bool a <- true;
     bool b <- true;
     if (a = true) {
@@ -49,8 +49,8 @@ void handleNestedIf(ConstEdge.Config config) {
 }
 
 // Edge case 2: Switch statement
-void handleSwitch(ConstEdge.Config config) {
-    u8 errorCode <- 0;
+void handleSwitch(mut ConstEdge.Config config) {
+    mut u8 errorCode <- 0;
     u32 choice <- 1;
     switch (choice) {
         case 0 {
@@ -66,9 +66,9 @@ void handleSwitch(ConstEdge.Config config) {
 }
 
 // Edge case 3: do-while loop
-void handleDoWhile(ConstEdge.Config config) {
-    u8 errorCode <- 0;
-    u32 count <- 0;
+void handleDoWhile(mut ConstEdge.Config config) {
+    mut u8 errorCode <- 0;
+    mut u32 count <- 0;
     do {
         errorCode <- global.Handler.setValue(config, 30);
         count <- count + 1;
@@ -76,8 +76,8 @@ void handleDoWhile(ConstEdge.Config config) {
 }
 
 // Edge case 4: Critical block
-void handleCritical(ConstEdge.Config config) {
-    u8 errorCode <- 0;
+void handleCritical(mut ConstEdge.Config config) {
+    mut u8 errorCode <- 0;
     critical {
         errorCode <- global.Handler.setValue(config, 40); // Inside critical
     }
@@ -86,42 +86,42 @@ void handleCritical(ConstEdge.Config config) {
 // Edge case 5: this.method() call in reassignment (within a scope)
 scope Processor {
     // Helper defined first to avoid forward reference
-    u8 helper(ConstEdge.Config cfg) {
+    u8 helper(mut ConstEdge.Config cfg) {
         cfg.value <- 50;
         return 0;
     }
 
-    public void process(ConstEdge.Config config) {
-        u8 errorCode <- 0;
+    public void process(mut ConstEdge.Config config) {
+        mut u8 errorCode <- 0;
         errorCode <- this.helper(config); // this.method call in reassignment
     }
 }
 
 // Edge case 6: Second parameter is modified (not first)
-void handleSecondParam(ConstEdge.Config config) {
-    u8 errorCode <- 0;
+void handleSecondParam(mut ConstEdge.Config config) {
+    mut u8 errorCode <- 0;
     u32 dummy <- 0;
     errorCode <- global.Handler.setSecond(dummy, config); // config is 2nd param
 }
 
 // Edge case 7: Nested function call in RHS
 void handleNestedCall(ConstEdge.Config config) {
-    u32 result <- 0;
+    mut u32 result <- 0;
     // getValue returns u32, which we assign - but config passed to modifying inner call first
     // Actually this tests that we walk ALL expressions in the RHS
     result <- global.Handler.getValue(config); // This should be const since getValue only reads
 }
 
 // Edge case 8: Transitive modification via wrapper
-void handleTransitive(ConstEdge.Config config) {
-    u8 errorCode <- 0;
+void handleTransitive(mut ConstEdge.Config config) {
+    mut u8 errorCode <- 0;
     errorCode <- global.Handler.wrapSetValue(config, 60); // Calls setValue internally
 }
 
 // Edge case 9: Multiple reassignments, only one modifies
-void handleMultipleReassign(ConstEdge.Config config) {
-    u8 errorCode <- 0;
-    u32 readVal <- 0;
+void handleMultipleReassign(mut ConstEdge.Config config) {
+    mut u8 errorCode <- 0;
+    mut u32 readVal <- 0;
 
     readVal <- global.Handler.getValue(config); // Read-only call
     errorCode <- global.Handler.setValue(config, 70); // Modifying call
@@ -131,19 +131,19 @@ void handleMultipleReassign(ConstEdge.Config config) {
 // Note: compound assignment like a +<- b is equivalent to a <- a + b
 // The RHS here is an expression, so we need to ensure it's walked
 void handleCompoundAssign(ConstEdge.Config config) {
-    u32 total <- 0;
+    mut u32 total <- 0;
     total +<- global.Handler.getValue(config); // RHS is a call - though this one is read-only
 }
 
 // Edge case 11: Compound assignment where the call modifies
-void handleCompoundModify(ConstEdge.Config config) {
-    u32 total <- 0;
+void handleCompoundModify(mut ConstEdge.Config config) {
+    mut u32 total <- 0;
     u8 code <- global.Handler.setValue(config, 80); // First modification
     total +<- code; // This is safe, but the line above should mark config as modified
 }
 
 // Edge case 12: Bare function call (expression statement, no assignment)
-void handleBareCall(ConstEdge.Config config) {
+void handleBareCall(mut ConstEdge.Config config) {
     (void)global.Handler.setValue(config, 90); // No assignment, just call
 }
 
@@ -153,7 +153,7 @@ void handleBareReadOnly(ConstEdge.Config config) {
 }
 
 u32 main() {
-    ConstEdge.Config cfg;
+    mut ConstEdge.Config cfg;
 
     // Test 1: Nested if
     cfg.value <- 0;

@@ -10,7 +10,7 @@ struct Cfg {
 }
 
 u32 main() {
-    u32 n <- 5;
+    mut u32 n <- 5;
     // unsigned: bits up to the highest 1, bytes rounded up, decimal chars
     if (n.value_bit_length != 3) {
         return 1;
@@ -47,7 +47,7 @@ u32 main() {
     }
 
     // signed: the '-' is a character too
-    i8 k <- -5;
+    mut i8 k <- -5;
     if (k.value_char_count != 2) {
         return 11;
     }
@@ -61,7 +61,7 @@ u32 main() {
     }
 
     // a string: the characters and bytes it holds now
-    string<8> s <- "ab";
+    mut string<8> s <- "ab";
     if (s.value_char_count != 2) {
         return 14;
     }

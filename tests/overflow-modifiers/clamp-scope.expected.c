@@ -44,7 +44,7 @@ uint8_t ClampScope__getBrightness(void) {
     return ClampScope__brightness;
 }
 
-void ClampScope__reset(uint8_t value) {
+void ClampScope__reset(const uint8_t value) {
     ClampScope__brightness = value;
 }
 

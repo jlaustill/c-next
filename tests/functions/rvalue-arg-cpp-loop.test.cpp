@@ -31,15 +31,15 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
     return (uint8_t)(a + (uint8_t)b);
 }
 
-uint32_t checkValue(uint8_t x) {
+uint32_t checkValue(const uint8_t x) {
     return x;
 }
 
 int main(void) {
-    uint8_t a = 5U;
-    uint8_t b = 3U;
+    const uint8_t a = 5U;
+    const uint8_t b = 3U;
     uint32_t result = 0U;
-    uint32_t check1 = checkValue(cnx_clamp_add_u8(a, b));
+    const uint32_t check1 = checkValue(cnx_clamp_add_u8(a, b));
     if (check1 > 5) {
         result = 1U;
     }
@@ -47,8 +47,8 @@ int main(void) {
         return 1U;
     }
     uint8_t iterations = 0U;
-    uint8_t limit = 2U;
-    uint32_t check2 = checkValue(cnx_clamp_add_u8(limit, 1U));
+    const uint8_t limit = 2U;
+    const uint32_t check2 = checkValue(cnx_clamp_add_u8(limit, 1U));
     while (check2 > iterations) {
         iterations = cnx_clamp_add_u8(iterations, 1U);
         if (iterations > 10) {
@@ -59,8 +59,8 @@ int main(void) {
         return 3U;
     }
     uint32_t sum = 0U;
-    uint8_t maxVal = 3U;
-    uint32_t check3 = checkValue(cnx_clamp_add_u8(maxVal, 1U));
+    const uint8_t maxVal = 3U;
+    const uint32_t check3 = checkValue(cnx_clamp_add_u8(maxVal, 1U));
     for (uint8_t i = 0U; i < check3; i = cnx_clamp_add_u8(i, 1U)) {
         sum = cnx_clamp_add_u32(sum, 1U);
     }

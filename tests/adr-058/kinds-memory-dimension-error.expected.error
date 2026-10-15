@@ -1,2 +1,2 @@
 13:4 error[E0909]: Enum member value must be known at compile time (Mode.A): 'Cfg.memory_byte_length' is a memory size, which the C compiler decides for the target
-       help: A member's value is built from literals, consts, length properties, casts and the members of its enum declared above it (ADR-017)
+       help: A member's value is built from literals, read-only bindings, length properties, casts and the members of its enum declared above it (ADR-017)

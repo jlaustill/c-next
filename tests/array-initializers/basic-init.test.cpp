@@ -10,9 +10,9 @@
 // ADR-035: Basic Array Initialization Test
 // Tests: explicit size with values
 // Fixed size array with values
-uint8_t data[5] = {1U, 2U, 3U, 4U, 5U};
+extern const uint8_t data[5] = {1U, 2U, 3U, 4U, 5U};
 
 // Different types
-uint16_t words[3] = {100U, 200U, 300U};
+extern const uint16_t words[3] = {100U, 200U, 300U};
 
-int32_t signedNums[4] = {-1, 0, 1, 2};
+extern const int32_t signedNums[4] = {-1, 0, 1, 2};

@@ -64,7 +64,7 @@ int main(void) {
     if (arr[0U] != 2) {
         return 14U;
     }
-    uint8_t idx = 1U;
+    const uint8_t idx = 1U;
     arr[idx] = (uint8_t)((arr[idx] & ~(1U << 2)) | (1U << 2));
     if (((arr[idx] >> 2) & 1) != true) {
         return 15U;

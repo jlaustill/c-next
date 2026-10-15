@@ -11,16 +11,16 @@ extern "C" {
 #endif
 
 /* External variables */
-extern char withNewline[65];
-extern char withTab[65];
-extern char withCarriageReturn[65];
-extern char withBackslash[65];
-extern char withQuote[65];
-extern char multipleEscapes[65];
-extern char justNewline[9];
-extern char justTab[9];
-extern char escapeAtStart[33];
-extern char escapeAtEnd[33];
+extern const char withNewline[65];
+extern const char withTab[65];
+extern const char withCarriageReturn[65];
+extern const char withBackslash[65];
+extern const char withQuote[65];
+extern const char multipleEscapes[65];
+extern const char justNewline[9];
+extern const char justTab[9];
+extern const char escapeAtStart[33];
+extern const char escapeAtEnd[33];
 extern const char VERSION_INFO[25];
 
 #ifdef __cplusplus

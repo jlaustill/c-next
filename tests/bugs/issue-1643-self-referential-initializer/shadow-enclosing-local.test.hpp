@@ -19,9 +19,9 @@ typedef struct Point {
 } Point;
 
 /* Function prototypes */
-uint32_t point(uint32_t p);
-uint32_t bump(uint32_t p);
-uint32_t replace(uint32_t q);
+uint32_t point(const uint32_t p);
+uint32_t bump(const uint32_t p);
+uint32_t replace(const uint32_t q);
 
 #ifdef __cplusplus
 }

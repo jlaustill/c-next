@@ -14,7 +14,7 @@ extern "C" {
 
 /* External variables */
 extern uint8_t rxBuffer[256];
-extern uint8_t txBuffer[128];
+extern const uint8_t txBuffer[128];
 
 /* Function prototypes */
 void fillBuffer(void);

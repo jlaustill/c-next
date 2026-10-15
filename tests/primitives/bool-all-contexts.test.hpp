@@ -19,13 +19,13 @@ typedef struct Flags {
 } Flags;
 
 /* External variables */
-extern bool globalTrue;
-extern bool globalFalse;
+extern const bool globalTrue;
+extern const bool globalFalse;
 extern bool flagArray[4];
 
 /* Function prototypes */
-bool negate(bool value);
-bool identity(bool value);
+bool negate(const bool value);
+bool identity(const bool value);
 
 #ifdef __cplusplus
 }

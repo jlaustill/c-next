@@ -10,4 +10,4 @@ u32 doubleValue(u32 value) {
 }
 
 /// Maximum buffer size constant
-const u32 MAX_BUFFER <- 256;
+u32 MAX_BUFFER <- 256;

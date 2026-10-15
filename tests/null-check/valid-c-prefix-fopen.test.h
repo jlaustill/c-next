@@ -11,7 +11,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern char line[257];
+extern const char line[257];
 
 /* Function prototypes */
 void readFile(void);

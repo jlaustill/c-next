@@ -8,6 +8,6 @@
 #include <stdint.h>
 
 // ADR-051: Runtime variable division should compile (no static check)
-void testRuntimeDivision(uint32_t divisor) {
-    uint32_t result = 10U / divisor;
+void testRuntimeDivision(const uint32_t divisor) {
+    const uint32_t result = 10U / divisor;
 }

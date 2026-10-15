@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint8_t shared[4];
+extern const uint8_t shared[4];
 
 #ifdef __cplusplus
 }

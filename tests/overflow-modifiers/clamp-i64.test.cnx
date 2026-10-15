@@ -6,7 +6,7 @@ u32 main() {
     // === OVERFLOW TESTS (clamp to INT64_MAX) ===
 
     // Test 1: Basic overflow - add past max
-    clamp i64 val <- 9223372036854775800; // INT64_MAX - 7
+    mut clamp i64 val <- 9223372036854775800; // INT64_MAX - 7
     val +<- 10; // Would overflow, should clamp to INT64_MAX
     if (val != 9223372036854775807) {
         return 1;
@@ -40,7 +40,7 @@ u32 main() {
     // === UNDERFLOW TESTS (clamp to INT64_MIN) ===
 
     // Test 6: Basic underflow - subtract below min
-    clamp i64 val2 <- -9223372036854775800; // Near INT64_MIN
+    mut clamp i64 val2 <- -9223372036854775800; // Near INT64_MIN
     val2 -<- 100; // Would underflow, should clamp to INT64_MIN
     if (val2 != -9223372036854775808) {
         return 6;

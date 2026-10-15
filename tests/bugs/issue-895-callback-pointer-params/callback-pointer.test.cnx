@@ -18,17 +18,17 @@ void my_flush(widget_t w, rect_t area, u8 buf) {
 
 u32 main() {
     // Create widget and set our callback
-    widget_t w <- global.widget_create();
+    mut widget_t w <- global.widget_create();
     global.widget_set_flush_cb(w, my_flush);
 
     // Prepare test data
-    rect_t area;
+    mut rect_t area;
     area.x <- 10;
     area.y <- 20;
     area.width <- 100;
     area.height <- 50;
 
-    u8[4] buffer <- [0xAB, 0xCD, 0xEF, 0x12];
+    mut u8[4] buffer <- [0xAB, 0xCD, 0xEF, 0x12];
 
     // Trigger flush - this calls our callback
     global.widget_trigger_flush(w, area, buffer);

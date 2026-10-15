@@ -5,7 +5,7 @@
 // expression, generating (uint8_t)((b) & 0xFFFFFFFFU) and writing only the low
 // byte (78 00 00 00). The full 32 bits must be written little-endian.
 u32 main() {
-    u8[8] buf;
+    mut u8[8] buf;
     u32 b <- 0x12345678;
     buf[0, 4] <- b[0, 32];
 

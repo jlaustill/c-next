@@ -14,7 +14,7 @@ scope Timing {
         tickSource tick;
     }
 
-    public u32 read(const Config timer) {
+    public u32 read(Config timer) {
         return timer.tick();
     }
 }

@@ -24,10 +24,10 @@ extern "C" {
 #define CTRL__FLAGS (*(volatile uint32_t*)(0x40001000 + 0x04))
 
 /* Function prototypes */
-void setGpioBit(uint8_t pin);
-void setGpioMask(uint32_t mask);
-void enableFeature(uint8_t feature);
-void setFlags(uint32_t flagMask);
+void setGpioBit(const uint8_t pin);
+void setGpioMask(const uint32_t mask);
+void enableFeature(const uint8_t feature);
+void setFlags(const uint32_t flagMask);
 
 #ifdef __cplusplus
 }

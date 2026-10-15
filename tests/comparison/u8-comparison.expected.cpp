@@ -10,11 +10,11 @@
 // Tests: u8 comparison operations (<, >, <=, >=, =, !=)
 // Coverage: Section 3.3-3.6 for u8 type
 int main(void) {
-    uint8_t a = 100U;
-    uint8_t b = 50U;
-    uint8_t c = 100U;
-    uint8_t zero = 0U;
-    uint8_t max_val = 255U;
+    const uint8_t a = 100U;
+    const uint8_t b = 50U;
+    const uint8_t c = 100U;
+    const uint8_t zero = 0U;
+    const uint8_t max_val = 255U;
     if ((a == c) != true) {
         return 1U;
     }
@@ -93,7 +93,7 @@ int main(void) {
     if ((max_val >= max_val) != true) {
         return 26U;
     }
-    uint8_t almost_max = 254U;
+    const uint8_t almost_max = 254U;
     if ((max_val > almost_max) != true) {
         return 27U;
     }

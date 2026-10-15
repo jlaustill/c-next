@@ -15,13 +15,13 @@ const bool FLAG = true;
 
 const EMode MODE = EMode__STOP;
 
-uint8_t flagged[1] = {0};
+const uint8_t flagged[1] = {0};
 
-uint8_t moded[2] = {0};
+const uint8_t moded[2] = {0};
 
 int main(void) {
-    uint32_t a = 1;
-    uint32_t b = 2;
+    const uint32_t a = 1;
+    const uint32_t b = 2;
     if (a != 1) {
         return 1U;
     }

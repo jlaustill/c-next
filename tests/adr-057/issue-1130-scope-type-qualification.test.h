@@ -40,13 +40,13 @@ typedef struct Config {
 } Config;
 
 /* External variables */
-extern A__B A__current;
+extern const A__B A__current;
 
 /* Function prototypes */
 A__B A__pick(void);
 uint8_t A__readStruct(const A__S* value);
 uint8_t A__wrapperValue(const A__Wrapper* w);
-uint8_t A__isBusy(A__B value);
+uint8_t A__isBusy(const A__B value);
 uint8_t A__useGlobalConfig(const Config* cfg);
 uint8_t A__configValue(void);
 

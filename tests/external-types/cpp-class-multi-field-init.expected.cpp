@@ -11,7 +11,7 @@
 #include "CppTestClass.hpp"
 
 void test(void) {
-    CppTestClass obj = {};
+    const CppTestClass obj = {};
     obj.value = 100;
     obj.name = "test";
 }

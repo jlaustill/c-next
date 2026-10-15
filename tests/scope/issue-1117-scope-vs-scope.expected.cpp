@@ -19,25 +19,23 @@
 // They are now `A_B__c` and `A__B_c`. This test fails on the VALUES, so it
 // catches the silent-miscompile form, not just the non-compiling form.
 /* Scope: A_B */
-static uint8_t A_B__c = 11U;
 
 uint8_t A_B__readIt(void) {
-    return A_B__c;
+    return 11U;
 }
 
 /* Scope: A */
-static uint8_t A__B_c = 22U;
 
 uint8_t A__readIt(void) {
-    return A__B_c;
+    return 22U;
 }
 
 int main(void) {
-    uint8_t fromA_B = A_B__readIt();
+    const uint8_t fromA_B = A_B__readIt();
     if (fromA_B != 11) {
         return 1U;
     }
-    uint8_t fromA = A__readIt();
+    const uint8_t fromA = A__readIt();
     if (fromA != 22) {
         return 2U;
     }

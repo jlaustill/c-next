@@ -25,7 +25,7 @@ scope DeepThreeLevel {
     }
 }
 
-DeepThreeLevel.Scene[2] scenes;
+mut DeepThreeLevel.Scene[2] scenes;
 
 void main() {
     // 4-level deep write: scenes[i].objects[j].material.ambient.r

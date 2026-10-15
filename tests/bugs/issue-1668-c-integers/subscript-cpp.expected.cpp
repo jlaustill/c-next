@@ -16,15 +16,15 @@
 #include <stdbool.h>
 
 int main(void) {
-    uint8_t a = sbuf[2U];
+    const uint8_t a = sbuf[2U];
     if (a != 7) {
         return 1U;
     }
-    uint8_t c = sbuf.data[3U];
+    const uint8_t c = sbuf.data[3U];
     if (c != 8) {
         return 2U;
     }
-    bool d = ((((cWord >> 4U) & 1)) != 0U);
+    const bool d = ((((cWord >> 4U) & 1)) != 0U);
     if (d != true) {
         return 3U;
     }

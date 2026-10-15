@@ -15,7 +15,7 @@ extern "C" {
 
 /* Function prototypes */
 EPriority TaskManager__getPriority(void);
-int32_t TaskManager__priorityToInt(EPriority p);
+int32_t TaskManager__priorityToInt(const EPriority p);
 Vec2 TaskManager__getPosition(void);
 int32_t TaskManager__sumVec(const Vec2* v);
 

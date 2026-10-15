@@ -96,7 +96,7 @@ void criticalUpdate(void) {
 }
 
 // Mixed atomic and non-atomic in critical
-void enqueueWithCount(uint8_t data) {
+void enqueueWithCount(const uint8_t data) {
     {
         uint32_t __primask = __cnx_get_PRIMASK();
         __cnx_disable_irq();
@@ -114,7 +114,7 @@ void enqueueWithCount(uint8_t data) {
 }
 
 // Multiple atomic operations in critical
-void batchUpdate(uint32_t delta) {
+void batchUpdate(const uint32_t delta) {
     {
         uint32_t __primask = __cnx_get_PRIMASK();
         __cnx_disable_irq();

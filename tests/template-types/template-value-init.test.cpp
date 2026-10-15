@@ -12,11 +12,11 @@
 #include "template-stubs.h"
 
 // Global template variable - should initialize with {}
-TemplateType<Param1,Param2,Param3> globalTemplate = {};
+extern const TemplateType<Param1,Param2,Param3> globalTemplate = {};
 
 // Single parameter template
-Buffer<256,16> globalBuffer = {};
+extern const Buffer<256,16> globalBuffer = {};
 
 int main(void) {
-    Array<Element,100> localArray = {};
+    const Array<Element,100> localArray = {};
 }

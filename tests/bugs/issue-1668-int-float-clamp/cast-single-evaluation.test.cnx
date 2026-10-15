@@ -3,7 +3,7 @@
 // The bounded ternary ADR-024 lowers a cast to reads its operand up to three
 // times, so a side-effecting operand -- a call, a callback, an element whose
 // index calls -- ran its side effect three times for an in-range value.
-u32 calls <- 0;
+mut u32 calls <- 0;
 f32[4] readings <- [100.0, 1.0, 2.0, 3.0];
 
 u32 nextIndex() {

@@ -18,7 +18,7 @@
 const uint8_t Big__N = 10U;
 
 int main(void) {
-    uint32_t small = 2;
+    const uint32_t small = 2;
     if (small != 2) {
         return 1U;
     }

@@ -6,10 +6,10 @@
 // failure code instead of hanging.
 
 scope Ramp {
-    u8 level <- 0;
+    mut u8 level <- 0;
 
     public u8 passes() {
-        u8 n <- 0;
+        mut u8 n <- 0;
         for (this.level <- 250; this.level < 255; this.level +<- 10) {
             n <- n + 1;
             if (n > 3) {

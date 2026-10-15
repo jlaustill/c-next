@@ -1,5 +1,5 @@
 // Test all float comparison operations
-bool result;
+mut bool result;
 
 void test_f32_comparison() {
     f32 a <- 10.5;
@@ -75,7 +75,7 @@ void test_literal_comparison() {
 }
 
 void test_in_control_flow() {
-    f32 temp <- 25.5;
+    mut f32 temp <- 25.5;
 
     if (temp > 30.0) {
         result <- true;

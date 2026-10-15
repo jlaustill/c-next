@@ -30,7 +30,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // A scope with a method that modifies its config parameter
 /* Scope: CommandHandler */
 
-uint8_t CommandHandler__setValue(ConstCond__Config& cfg, uint32_t val) {
+uint8_t CommandHandler__setValue(ConstCond__Config& cfg, const uint32_t val) {
     cfg.value = val;
     return 0U;
 }
@@ -43,7 +43,7 @@ uint8_t CommandHandler__enable(ConstCond__Config& cfg) {
 // BUG: Declaration first, reassignment with modifying call inside if
 // This pattern triggers issue #565 - the reassignment's RHS isn't walked for calls
 void handleEnableSpn(ConstCond__Config& config) {
-    bool enable = true;
+    const bool enable = true;
     uint8_t errorCode = 0U;
     if (enable == true) {
         errorCode = CommandHandler__setValue(config, 42U);
@@ -54,7 +54,7 @@ void handleEnableSpn(ConstCond__Config& config) {
 
 // Variant: reassignment inside else branch
 void handleElseBranch(ConstCond__Config& config) {
-    bool enable = false;
+    const bool enable = false;
     uint8_t errorCode = 0U;
     if (enable == true) {
         errorCode = 1U;
@@ -83,9 +83,9 @@ void handleForLoop(ConstCond__Config& config) {
 
 // Control case: declaration with modifying call (this already works)
 void handleDeclaration(ConstCond__Config& config) {
-    bool enable = true;
+    const bool enable = true;
     if (enable == true) {
-        uint8_t errorCode = CommandHandler__setValue(config, 42U);
+        const uint8_t errorCode = CommandHandler__setValue(config, 42U);
     }
 }
 

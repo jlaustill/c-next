@@ -26,9 +26,9 @@ const uint64_t MASK = 0xFFFFFFFFFFFFFFFFULL;
 int main(void) {
     const uint64_t TOP = MASK >> 60ULL;
     uint8_t fifteen[15] = {0};
-    int64_t big = 2147483648;
-    int64_t prod = 4294967296;
-    int32_t small = 5;
+    const int64_t big = 2147483648;
+    const int64_t prod = 4294967296;
+    const int32_t small = 5;
     if (big != 2147483648) {
         return 1U;
     }

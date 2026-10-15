@@ -31,10 +31,10 @@ void WrapTest__decrementPosition(void);
 void WrapTest__decrementByteCounter(void);
 void WrapTest__decrementTickCount(void);
 void WrapTest__decrementCycleCounter(void);
-void WrapTest__setByteCounter(uint8_t val);
-void WrapTest__setBrightness(uint8_t val);
-void WrapTest__setSensorValue(uint16_t val);
-void WrapTest__setPosition(uint32_t val);
+void WrapTest__setByteCounter(const uint8_t val);
+void WrapTest__setBrightness(const uint8_t val);
+void WrapTest__setSensorValue(const uint16_t val);
+void WrapTest__setPosition(const uint32_t val);
 
 #ifdef __cplusplus
 }

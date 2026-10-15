@@ -28,10 +28,10 @@ static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
 // Helper file: math utilities for cross-file function test
 /* Scope: MathUtils */
 
-uint32_t MathUtils__add(uint32_t a, uint32_t b) {
+uint32_t MathUtils__add(const uint32_t a, const uint32_t b) {
     return cnx_clamp_add_u32(a, b);
 }
 
-uint32_t MathUtils__multiply(uint32_t a, uint32_t b) {
+uint32_t MathUtils__multiply(const uint32_t a, const uint32_t b) {
     return cnx_clamp_mul_u32(a, b);
 }

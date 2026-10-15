@@ -22,7 +22,7 @@ u32 main() {
     }
 
     // i32 array with explicit size
-    i32[4] data;
+    mut i32[4] data;
     data[0] <- -500000;
     data[1] <- 500000;
     data[2] <- -1000000;
@@ -55,8 +55,8 @@ u32 main() {
 
     // i32 array in loop
     i32[3] loop_arr <- [1000, 2000, 3000];
-    i32 sum <- 0;
-    for (u32 i <- 0; i < 3; i +<- 1) {
+    mut i32 sum <- 0;
+    for (mut u32 i <- 0; i < 3; i +<- 1) {
         sum +<- loop_arr[i];
     }
     if (sum != 6000) {
@@ -64,7 +64,7 @@ u32 main() {
     }
 
     // i32 array modification
-    i32[2] modify <- [10000, 20000];
+    mut i32[2] modify <- [10000, 20000];
     modify[0] <- -10000;
     modify[1] <- -20000;
     if (modify[0] != -10000) {

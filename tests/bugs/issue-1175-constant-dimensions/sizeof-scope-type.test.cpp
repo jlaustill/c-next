@@ -21,13 +21,13 @@
 typedef struct S__P {
     uint32_t a;
 } S__P;
-static uint8_t S__buf[MACRO_N + 4] = {};
+static const uint8_t S__buf[MACRO_N + 4] = {};
 
 uint8_t S__first(void) {
     return S__buf[0U];
 }
 
-uint8_t plain[MACRO_N + 4] = {};
+extern const uint8_t plain[MACRO_N + 4] = {};
 
 int main(void) {
 }

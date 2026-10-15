@@ -9,14 +9,14 @@
 // #1668, ruling R3: the remedy E0810 names for mixed arms -- a cast of the
 // integer arm -- computes the floating value.
 int main(void) {
-    uint32_t a = 3U;
-    float k = 2.5;
-    uint32_t c = 1U;
-    float r = (c > 0) ? static_cast<float>(a) : k;
+    const uint32_t a = 3U;
+    const float k = 2.5;
+    const uint32_t c = 1U;
+    const float r = (c > 0) ? static_cast<float>(a) : k;
     if (r != 3.0) {
         return 1U;
     }
-    float q = (c == 0) ? static_cast<float>(a) : k;
+    const float q = (c == 0) ? static_cast<float>(a) : k;
     if (q != 2.5) {
         return 2U;
     }

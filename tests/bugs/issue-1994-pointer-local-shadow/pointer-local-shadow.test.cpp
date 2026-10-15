@@ -18,7 +18,7 @@
 
 #include <stdint.h>
 
-Full held = { .x = 100, .y = 200 };
+extern const Full held = { .x = 100, .y = 200 };
 
 int32_t readThrough(void) {
     /* C11 6.2.1p4, C++ [basic.scope.hiding]: `held` emitted as `readThrough__held` (a plain `held` would hide the file-scope `held` for the rest of its scope, so `global.held` would reach the local). */
@@ -28,7 +28,7 @@ int32_t readThrough(void) {
 }
 
 int main(void) {
-    int32_t r = readThrough();
+    const int32_t r = readThrough();
     if (r != 2) {
         return 1U;
     }

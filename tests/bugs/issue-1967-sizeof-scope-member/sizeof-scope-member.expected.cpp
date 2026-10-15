@@ -14,8 +14,8 @@
 // the `this.` form, and a local that shadows the member, which measures the
 // local.
 /* Scope: S */
-static uint8_t S__buf[16] = {};
-static Pair S__cfg = {};
+static const uint8_t S__buf[16] = {};
+static const Pair S__cfg = {};
 
 uint32_t S__measureBuf(void) {
     return 16;
@@ -30,24 +30,24 @@ uint32_t S__measureThis(void) {
 }
 
 uint32_t S__measureShadow(void) {
-    uint8_t buf[4] = {0U, 0U, 0U, 0U};
+    const uint8_t buf[4] = {0U, 0U, 0U, 0U};
     return 4;
 }
 
 int main(void) {
-    uint32_t whole = S__measureBuf();
+    const uint32_t whole = S__measureBuf();
     if (whole != 16) {
         return 1U;
     }
-    uint32_t field = S__measureField();
+    const uint32_t field = S__measureField();
     if (field != 4) {
         return 2U;
     }
-    uint32_t viaThis = S__measureThis();
+    const uint32_t viaThis = S__measureThis();
     if (viaThis != 16) {
         return 3U;
     }
-    uint32_t shadowed = S__measureShadow();
+    const uint32_t shadowed = S__measureShadow();
     if (shadowed != 4) {
         return 4U;
     }

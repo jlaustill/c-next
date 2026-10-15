@@ -11,7 +11,7 @@
 // construction on every target — the unrolled shifts make this deterministic.
 int main(void) {
     uint8_t buffer[128] = {0};
-    uint32_t value32 = 0x12345678U;
+    const uint32_t value32 = 0x12345678U;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
     const uint32_t cnx_tmp0 = (uint32_t)(value32);
     buffer[0] = (uint8_t)(cnx_tmp0);
@@ -30,7 +30,7 @@ int main(void) {
     if (buffer[3U] != 0x12) {
         return 4U;
     }
-    uint64_t value64 = 0x0102030405060708ULL;
+    const uint64_t value64 = 0x0102030405060708ULL;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint64_t*). */
     const uint64_t cnx_tmp1 = (uint64_t)(value64);
     buffer[10] = (uint8_t)(cnx_tmp1);
@@ -65,7 +65,7 @@ int main(void) {
     if (buffer[17U] != 0x01) {
         return 12U;
     }
-    uint16_t value16 = 0xABCDU;
+    const uint16_t value16 = 0xABCDU;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint16_t*). */
     const uint16_t cnx_tmp2 = (uint16_t)(value16);
     buffer[20] = (uint8_t)(cnx_tmp2);
@@ -76,7 +76,7 @@ int main(void) {
     if (buffer[21U] != 0xAB) {
         return 14U;
     }
-    uint32_t bits = 0x80000001U;
+    const uint32_t bits = 0x80000001U;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
     const uint32_t cnx_tmp3 = (uint32_t)(bits);
     buffer[30] = (uint8_t)(cnx_tmp3);

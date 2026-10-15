@@ -5,7 +5,7 @@
 #include "helper-types.cnx"
 
 u32 main() {
-    Point p;
+    mut Point p;
     p.x <- 5;
     return 0;
 }

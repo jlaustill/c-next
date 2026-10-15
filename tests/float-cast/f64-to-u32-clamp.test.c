@@ -9,9 +9,9 @@
 // test-execution
 // Tests: f64 to u32 cast should clamp values to 0-4294967295 range
 int main(void) {
-    double over = 5000000000.0;
-    double negative = -100.0;
-    double in_range = 3000000000.0;
+    const double over = 5000000000.0;
+    const double negative = -100.0;
+    const double in_range = 3000000000.0;
     uint32_t result = ((over) >= ((double)UINT32_MAX) ? (uint32_t)UINT32_MAX : (over) < 0.0 ? (uint32_t)0 : (uint32_t)(over));
     if (result != 4294967295) {
         return 1U;

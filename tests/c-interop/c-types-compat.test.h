@@ -14,15 +14,15 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint8_t byte;
-extern uint16_t word;
-extern uint32_t dword;
-extern int8_t sbyte;
-extern int16_t sword;
-extern int32_t sdword;
-extern float single;
-extern double double_val;
-extern bool flag;
+extern const uint8_t byte;
+extern const uint16_t word;
+extern const uint32_t dword;
+extern const int8_t sbyte;
+extern const int16_t sword;
+extern const int32_t sdword;
+extern const float single;
+extern const double double_val;
+extern const bool flag;
 
 #ifdef __cplusplus
 }

@@ -3,11 +3,11 @@
 // where it is referenced. M's initializer N * 2 reads the scope's N (10), not
 // the file-scope N (4), at both places.
 
-const u32 N <- 4;
+u32 N <- 4;
 
 scope S {
-    const u32 N <- 10;
-    const u32 M <- N * 2;
+    u32 N <- 10;
+    u32 M <- N * 2;
     u8[M] buf;
 
     public u32 size() {

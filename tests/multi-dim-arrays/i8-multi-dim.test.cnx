@@ -2,9 +2,9 @@
 // Tests: multi-dimensional i8 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: temperature sensors, small signed offsets, delta values
-i8[4][8] matrix2d;
+mut i8[4][8] matrix2d;
 
-i8[2][3][4] cube3d;
+mut i8[2][3][4] cube3d;
 
 u32 main() {
     // 2D array: Write operations with positive and negative values
@@ -78,8 +78,8 @@ u32 main() {
     }
 
     // Nested loop iteration - populate 2D array with small values
-    for (u32 i <- 0; i < 4; i +<- 1) {
-        for (u32 j <- 0; j < 8; j +<- 1) {
+    for (mut u32 i <- 0; i < 4; i +<- 1) {
+        for (mut u32 j <- 0; j < 8; j +<- 1) {
             matrix2d[i][j] <- (i * 5 + j)[0, 8];
         }
     }
@@ -99,10 +99,10 @@ u32 main() {
     }
 
     // Nested loop iteration - populate and sum 3D array
-    i16 sum <- 0; // Use i16 for sum accumulator
-    for (u32 i <- 0; i < 2; i +<- 1) {
-        for (u32 j <- 0; j < 3; j +<- 1) {
-            for (u32 k <- 0; k < 4; k +<- 1) {
+    mut i16 sum <- 0; // Use i16 for sum accumulator
+    for (mut u32 i <- 0; i < 2; i +<- 1) {
+        for (mut u32 j <- 0; j < 3; j +<- 1) {
+            for (mut u32 k <- 0; k < 4; k +<- 1) {
                 cube3d[i][j][k] <- (i * 5 + j * 2 + k)[0, 8];
                 sum +<- cube3d[i][j][k];
             }
@@ -127,11 +127,11 @@ u32 main() {
     }
 
     // Test i8 specific edge cases
-    i8[4][2] testArray;
+    mut i8[4][2] testArray;
 
     // Initialize all elements first
-    for (u32 ti <- 0; ti < 4; ti +<- 1) {
-        for (u32 tj <- 0; tj < 2; tj +<- 1) {
+    for (mut u32 ti <- 0; ti < 4; ti +<- 1) {
+        for (mut u32 tj <- 0; tj < 2; tj +<- 1) {
             testArray[ti][tj] <- 0;
         }
     }
@@ -162,11 +162,11 @@ u32 main() {
     }
 
     // Test 2D array with temperature sensor pattern (in Celsius)
-    i8[3][3] temps;
+    mut i8[3][3] temps;
 
     // Initialize all elements first
-    for (u32 tei <- 0; tei < 3; tei +<- 1) {
-        for (u32 tej <- 0; tej < 3; tej +<- 1) {
+    for (mut u32 tei <- 0; tei < 3; tei +<- 1) {
+        for (mut u32 tej <- 0; tej < 3; tej +<- 1) {
             temps[tei][tej] <- 0;
         }
     }
@@ -197,11 +197,11 @@ u32 main() {
     }
 
     // Test negative value calculations
-    i8[2][2] deltas;
+    mut i8[2][2] deltas;
 
     // Initialize all elements first
-    for (u32 di <- 0; di < 2; di +<- 1) {
-        for (u32 dj <- 0; dj < 2; dj +<- 1) {
+    for (mut u32 di <- 0; di < 2; di +<- 1) {
+        for (mut u32 dj <- 0; dj < 2; dj +<- 1) {
             deltas[di][dj] <- 0;
         }
     }

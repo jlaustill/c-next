@@ -33,7 +33,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Coverage: Struct modification visible to caller
 // Struct params are ALWAYS pass-by-reference in C-Next
 // Modifications are visible to caller
-void movePoint(Point* p, int32_t dx, int32_t dy) {
+void movePoint(Point* p, const int32_t dx, const int32_t dy) {
     p->x = cnx_clamp_add_i32(p->x, dx);
     p->y = cnx_clamp_add_i32(p->y, dy);
 }
@@ -49,7 +49,7 @@ void incrementCounter(Counter* c) {
     }
 }
 
-void setCounterMax(Counter* c, uint32_t newMax) {
+void setCounterMax(Counter* c, const uint32_t newMax) {
     c->maxValue = newMax;
 }
 
@@ -105,8 +105,8 @@ int main(void) {
     if (cnt.value != 6) {
         return 9U;
     }
-    Point readPt = { .x = 100, .y = 200 };
-    int32_t sum = getPointSum(&readPt);
+    const Point readPt = { .x = 100, .y = 200 };
+    const int32_t sum = getPointSum(&readPt);
     if (sum != 300) {
         return 10U;
     }
@@ -117,7 +117,7 @@ int main(void) {
         return 12U;
     }
     Counter readCnt = { .value = 42U, .maxValue = 100U };
-    uint32_t val = getCounterValue(&readCnt);
+    const uint32_t val = getCounterValue(&readCnt);
     if (val != 42) {
         return 13U;
     }

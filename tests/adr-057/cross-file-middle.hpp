@@ -15,7 +15,7 @@ extern "C" {
 
 /* Function prototypes */
 uint32_t Filter__half(void);
-uint32_t Filter__smooth(uint32_t sample);
+uint32_t Filter__smooth(const uint32_t sample);
 
 #ifdef __cplusplus
 }

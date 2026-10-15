@@ -28,11 +28,11 @@ bitmap32 Configuration {
     Checksum[8] // bits 24-31
 }
 
-IPv4Address ip <- 0;
+mut IPv4Address ip <- 0;
 
-DeviceStatus status <- 0;
+mut DeviceStatus status <- 0;
 
-Configuration config <- 0;
+mut Configuration config <- 0;
 
 u32 main() {
 

@@ -1,7 +1,7 @@
 // #2003: `this.count` written inside `forever` initializes the member (#1019),
 // so a read in a function declared before the writer is not E0381
 scope S {
-    u32 count;
+    mut u32 count;
 
     public u32 get() {
         return count;

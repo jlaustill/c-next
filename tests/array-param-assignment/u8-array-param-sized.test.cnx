@@ -2,12 +2,12 @@
 // Tests: Issue #368 variant - u8 array with explicit size
 
 // Function with explicit array size (like the working u32 test)
-void writeToSized(u8[8] arr, u32 index, u8 value) {
+void writeToSized(mut u8[8] arr, u32 index, u8 value) {
     arr[index] <- value;
 }
 
 u32 main() {
-    u8[8] buffer;
+    mut u8[8] buffer;
     buffer[0] <- 0;
 
     writeToSized(buffer, 0, 42);

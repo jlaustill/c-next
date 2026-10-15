@@ -7,7 +7,7 @@ scope StrAssign {
     }
 }
 
-StrAssign.Config config;
+mut StrAssign.Config config;
 
 void setConfigName() {
     config.name <- "TestConfig";

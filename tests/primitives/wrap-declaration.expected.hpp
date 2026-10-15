@@ -13,10 +13,10 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint8_t byteCounter;
-extern uint16_t tickCount;
-extern uint32_t cycleCounter;
-extern uint64_t systemTicks;
+extern const uint8_t byteCounter;
+extern const uint16_t tickCount;
+extern const uint32_t cycleCounter;
+extern const uint64_t systemTicks;
 
 #ifdef __cplusplus
 }

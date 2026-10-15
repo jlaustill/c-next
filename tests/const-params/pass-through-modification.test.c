@@ -37,20 +37,20 @@ void passesThroughToModifier(uint32_t* value) {
 }
 
 // Function that only reads its parameter - SHOULD get const
-uint32_t readOnly(uint32_t value) {
+uint32_t readOnly(const uint32_t value) {
     return cnx_clamp_add_u32(value, 1U);
 }
 
 // Function that passes to readOnly - parameter is NOT modified
 // SHOULD get const since readOnly doesn't modify it
-uint32_t passesThroughToReader(uint32_t value) {
+uint32_t passesThroughToReader(const uint32_t value) {
     return readOnly(value);
 }
 
 // Mixed case: reads and passes to modifier
 // Should NOT get const because of pass-through to modifier
 void mixedPassThrough(uint32_t* value) {
-    uint32_t local = cnx_clamp_add_u32((*value), 1U);
+    const uint32_t local = cnx_clamp_add_u32((*value), 1U);
     modifiesParam(value);
 }
 

@@ -4,7 +4,7 @@
 #include "counter.cnx"
 
 u32 main() {
-    u32 a <- 1;
+    mut u32 a <- 1;
     bump(a);
     if (a != 2) {
         return 1;

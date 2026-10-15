@@ -12,16 +12,16 @@
 #include <stdint.h>
 
 int main(void) {
-    Sensor local = {};
+    const Sensor local = {};
     touch(local);
     if (local.v != 7) {
         return 1U;
     }
-    int32_t seen = peek(local);
+    const int32_t seen = peek(local);
     if (seen != 7) {
         return 2U;
     }
-    int32_t n = 1;
+    const int32_t n = 1;
     bump(n);
     if (n != 2) {
         return 3U;

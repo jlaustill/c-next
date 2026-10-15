@@ -26,13 +26,13 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 }
 
 int main(void) {
-    uint32_t i = 3U;
-    float k = 1.0;
-    float a = k * SCALE_F;
+    const uint32_t i = 3U;
+    const float k = 1.0;
+    const float a = k * SCALE_F;
     if (a != 2.5) {
         return 1U;
     }
-    uint32_t b = cnx_clamp_add_u32(i, LIMIT);
+    const uint32_t b = cnx_clamp_add_u32(i, LIMIT);
     if (b != 13) {
         return 2U;
     }

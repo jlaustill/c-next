@@ -11,15 +11,15 @@ i32 globalOffset <- -50;
 
 scope PrivateMethods {
     // Private state (default visibility)
-    u32 privateState <- 0;
-    bool privateFlag <- false;
-    i32 privateAccumulator <- 0;
-    u8 callCount <- 0;
+    mut u32 privateState <- 0;
+    mut bool privateFlag <- false;
+    mut i32 privateAccumulator <- 0;
+    mut u8 callCount <- 0;
 
     // Public state for verification
-    public u32 publicResult <- 0;
-    public bool publicFlag <- false;
-    public i32 publicAccumulator <- 0;
+    public mut u32 publicResult <- 0;
+    public mut bool publicFlag <- false;
+    public mut i32 publicAccumulator <- 0;
 
     // ==========================================
     // PRIVATE METHODS - Basic this. access
@@ -179,7 +179,7 @@ u32 main() {
     // ==========================================
 
     // Test 1: Initial private state is 0
-    u32 resultState <- PrivateMethods.exposePrivateState();
+    mut u32 resultState <- PrivateMethods.exposePrivateState();
     if (resultState != 0) {
         return 1;
     }
@@ -192,7 +192,7 @@ u32 main() {
     }
 
     // Test 3: Initial private flag is false
-    bool resultFlag <- PrivateMethods.exposePrivateFlag();
+    mut bool resultFlag <- PrivateMethods.exposePrivateFlag();
     if (resultFlag != false) {
         return 3;
     }
@@ -205,7 +205,7 @@ u32 main() {
     }
 
     // Test 5: Initial private accumulator is 0
-    i32 resultAccum <- PrivateMethods.exposePrivateAccumulator();
+    mut i32 resultAccum <- PrivateMethods.exposePrivateAccumulator();
     if (resultAccum != 0) {
         return 5;
     }
@@ -245,7 +245,7 @@ u32 main() {
 
     // Test 10: Private method checks both flags
     // privateFlag(true) && globalFlag(true) = true
-    bool resultBothFlags <- PrivateMethods.exposeBothFlagsCheck();
+    mut bool resultBothFlags <- PrivateMethods.exposeBothFlagsCheck();
     if (resultBothFlags != true) {
         return 10;
     }
@@ -277,7 +277,7 @@ u32 main() {
     }
 
     // Test 14: Call count persists (2 calls from tests 6 and 7)
-    u8 resultCallCount <- PrivateMethods.exposeCallCount();
+    mut u8 resultCallCount <- PrivateMethods.exposeCallCount();
     if (resultCallCount != 2) {
         return 14;
     }

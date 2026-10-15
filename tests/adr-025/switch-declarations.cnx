@@ -7,4 +7,4 @@ enum EShared {
     C
 }
 
-const u32 SWITCH_MARKER <- 1;
+u32 SWITCH_MARKER <- 1;

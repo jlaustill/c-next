@@ -21,7 +21,7 @@ void Storage__load(AppConfig* config) {
 }
 
 void Storage__save(const AppConfig* config) {
-    uint32_t temp = config->value;
+    const uint32_t temp = config->value;
 }
 
 // Function that passes its parameter to Storage.load()

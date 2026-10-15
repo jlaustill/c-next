@@ -9,27 +9,27 @@
 
 // ADR-045: Test escape sequences in string literals
 // Tests: \n, \t, \r, \\, \"
-char withNewline[65] = "Hello\nWorld";
+extern const char withNewline[65] = "Hello\nWorld";
 
-char withTab[65] = "Hello\tWorld";
+extern const char withTab[65] = "Hello\tWorld";
 
-char withCarriageReturn[65] = "Hello\rWorld";
+extern const char withCarriageReturn[65] = "Hello\rWorld";
 
-char withBackslash[65] = "Hello\\World";
+extern const char withBackslash[65] = "Hello\\World";
 
-char withQuote[65] = "Hello\"World";
+extern const char withQuote[65] = "Hello\"World";
 
-char multipleEscapes[65] = "Line1\nLine2\tTabbed\\Path";
+extern const char multipleEscapes[65] = "Line1\nLine2\tTabbed\\Path";
 
 // Test empty with just escape
-char justNewline[9] = "\n";
+extern const char justNewline[9] = "\n";
 
-char justTab[9] = "\t";
+extern const char justTab[9] = "\t";
 
 // Test at beginning and end
-char escapeAtStart[33] = "\nStartsWithNewline";
+extern const char escapeAtStart[33] = "\nStartsWithNewline";
 
-char escapeAtEnd[33] = "EndsWithNewline\n";
+extern const char escapeAtEnd[33] = "EndsWithNewline\n";
 
 // Combined in const string
 extern const char VERSION_INFO[25] = "v1.0.0\nBuild: 2024-01-01";

@@ -25,11 +25,11 @@ struct TDeviceStatus {
 }
 
 void main() {
-    TPressureInputConfig config;
+    mut TPressureInputConfig config;
     config.assignedSpn <- 100;
     config.pressureType <- EPressureType.PRESSURE_TYPE_PSIA;
 
-    TDeviceStatus status;
+    mut TDeviceStatus status;
     status.deviceId <- 1;
     status.state <- EDeviceState.STATE_IDLE;
 }

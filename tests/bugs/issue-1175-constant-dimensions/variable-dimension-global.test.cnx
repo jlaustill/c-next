@@ -4,10 +4,10 @@
 // exit 0 to `uint8_t grid[count]`, which C rejects ("variably modified at file
 // scope").
 //
-// NEGATIVE CONTROL: `fine` is sized by a const and must stay silent.
+// NEGATIVE CONTROL: `fine` is sized by a read-only binding and must stay silent.
 
-u8 count <- 3;
-const u8 K <- 3;
+mut u8 count <- 3;
+u8 K <- 3;
 
 u8[count] grid;
 u8[K] fine;

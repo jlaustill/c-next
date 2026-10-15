@@ -11,19 +11,19 @@
 // test-coverage: 12-w1s-access-modifier
 // Tests: Write-1-to-Set register access modifier
 // Writing 1 to a bit sets it, writing 0 has no effect
-void setGpioBit(uint8_t pin) {
+void setGpioBit(const uint8_t pin) {
     GPIO__DR_SET = ((uint32_t)1U << pin);
 }
 
-void setGpioMask(uint32_t mask) {
+void setGpioMask(const uint32_t mask) {
     GPIO__DR_SET = mask;
 }
 
-void enableFeature(uint8_t feature) {
+void enableFeature(const uint8_t feature) {
     CTRL__ENABLE = ((uint32_t)1U << feature);
 }
 
-void setFlags(uint32_t flagMask) {
+void setFlags(const uint32_t flagMask) {
     CTRL__FLAGS = flagMask;
 }
 

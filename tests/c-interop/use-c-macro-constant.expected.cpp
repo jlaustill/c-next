@@ -12,21 +12,21 @@
 #include <stdint.h>
 
 int main(void) {
-    uint32_t max = MAX_SIZE;
+    const uint32_t max = MAX_SIZE;
     if (max != 256) {
         return 1U;
     }
-    uint32_t min = MIN_SIZE;
+    const uint32_t min = MIN_SIZE;
     if (min != 1) {
         return 2U;
     }
-    uint32_t buf = BUFFER_SIZE;
+    const uint32_t buf = BUFFER_SIZE;
     if (buf != 64) {
         return 3U;
     }
-    uint32_t major = VERSION_MAJOR;
-    uint32_t minor = VERSION_MINOR;
-    uint32_t patch = VERSION_PATCH;
+    const uint32_t major = VERSION_MAJOR;
+    const uint32_t minor = VERSION_MINOR;
+    const uint32_t patch = VERSION_PATCH;
     if (major != 1) {
         return 4U;
     }
@@ -36,32 +36,32 @@ int main(void) {
     if (patch != 3) {
         return 6U;
     }
-    uint32_t total = TOTAL_VERSION;
+    const uint32_t total = TOTAL_VERSION;
     if (total != 10203) {
         return 7U;
     }
-    uint32_t magic = MAGIC_VALUE;
+    const uint32_t magic = MAGIC_VALUE;
     if (magic != 0xDEADBEEF) {
         return 8U;
     }
-    uint32_t mask = STATUS_MASK;
+    const uint32_t mask = STATUS_MASK;
     if (mask != 0xFF00) {
         return 9U;
     }
-    uint32_t flags = FLAG_BITS;
+    const uint32_t flags = FLAG_BITS;
     if (flags != 0x0F) {
         return 10U;
     }
-    uint32_t double_buf = BUFFER_SIZE * 2U;
+    const uint32_t double_buf = BUFFER_SIZE * 2U;
     if (double_buf != 128) {
         return 11U;
     }
-    uint32_t masked = 0x1234U & STATUS_MASK;
+    const uint32_t masked = 0x1234U & STATUS_MASK;
     if (masked != 0x1200) {
         return 12U;
     }
-    uint32_t enabled = FEATURE_ENABLED;
-    uint32_t disabled = FEATURE_DISABLED;
+    const uint32_t enabled = FEATURE_ENABLED;
+    const uint32_t disabled = FEATURE_DISABLED;
     if (enabled != 1) {
         return 13U;
     }

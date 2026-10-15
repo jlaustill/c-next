@@ -38,7 +38,7 @@ uint8_t Motor__getSum(void) {
     return cnx_clamp_add_u8(5U, globalValue);
 }
 
-void Motor__setState(uint8_t val) {
+void Motor__setState(const uint8_t val) {
     Motor__state = val;
 }
 

@@ -8,13 +8,13 @@
 u32 main() {
 
     // Test 1: DataBuffer with uint8_t array
-    DataBuffer buf;
+    mut DataBuffer buf;
     buf.len <- 4;
 
     // Write to array elements
     // A header's uint8_t element is a typed target (ADR-024, #1668), so the
     // u32 product is narrowed explicitly, as the rule asks
-    for (u32 i <- 0; i < buf.len; i +<- 1) {
+    for (mut u32 i <- 0; i < buf.len; i +<- 1) {
         u32 value <- i * 10;
         buf.data[i] <- value[0, 8];
     }
@@ -34,11 +34,11 @@ u32 main() {
     }
 
     // Test 2: ValueArray with uint32_t array
-    ValueArray va;
+    mut ValueArray va;
     va.count <- 8;
 
     // Initialize all values
-    for (u32 i <- 0; i < va.count; i +<- 1) {
+    for (mut u32 i <- 0; i < va.count; i +<- 1) {
         va.values[i] <- i * 100;
     }
 
@@ -54,8 +54,8 @@ u32 main() {
     }
 
     // Test 3: Sum array elements
-    u32 sum <- 0;
-    for (u32 i <- 0; i < va.count; i +<- 1) {
+    mut u32 sum <- 0;
+    for (mut u32 i <- 0; i < va.count; i +<- 1) {
         sum +<- va.values[i];
     }
     // 0 + 100 + 200 + 300 + 400 + 500 + 600 + 700 = 2800

@@ -30,7 +30,7 @@
 Reading gReading = {0};
 
 /* Scope: Consumer */
-static Reading Consumer__cached = {0};
+static const Reading Consumer__cached = {0};
 
 uint32_t Consumer__read(void) {
     return readSensor();
@@ -41,7 +41,7 @@ int main(void) {
     if (gReading.value != 42) {
         return 1U;
     }
-    uint32_t viaScope = Consumer__read();
+    const uint32_t viaScope = Consumer__read();
     if (viaScope != 42) {
         return 2U;
     }

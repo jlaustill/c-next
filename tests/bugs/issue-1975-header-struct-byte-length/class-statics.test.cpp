@@ -18,14 +18,14 @@ int main(void) {
     if (5 != 5) {
         return 1U;
     }
-    uint32_t made = Dev::make(3U);
+    const uint32_t made = Dev::make(3U);
     if (made != 4) {
         return 2U;
     }
     if (Dev::LIMIT != 7) {
         return 3U;
     }
-    int32_t total = Pod::total();
+    const int32_t total = Pod::total();
     if (total != 3) {
         return 4U;
     }

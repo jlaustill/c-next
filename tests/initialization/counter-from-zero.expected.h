@@ -14,7 +14,7 @@ extern "C" {
 
 /* External variables */
 extern uint32_t eventCount;
-extern uint32_t maxEvents;
+extern const uint32_t maxEvents;
 
 /* Function prototypes */
 void recordEvent(void);

@@ -16,8 +16,8 @@ extern "C" {
 extern uint32_t result;
 
 /* Function prototypes */
-void testLargeBinaryPrecision(uint64_t val);
-void testVeryLargeBinary(uint64_t val);
+void testLargeBinaryPrecision(const uint64_t val);
+void testVeryLargeBinary(const uint64_t val);
 
 #ifdef __cplusplus
 }

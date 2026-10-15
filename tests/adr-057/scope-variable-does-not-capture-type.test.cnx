@@ -20,10 +20,10 @@ struct Config {
 }
 
 scope Motor {
-    u32 Config;
+    mut u32 Config;
 
     public u32 run() {
-        Config settings;
+        mut Config settings;
         settings.speed <- 7;
         this.Config <- 2;
         return settings.speed + this.Config;

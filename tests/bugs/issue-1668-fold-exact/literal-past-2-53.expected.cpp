@@ -30,12 +30,12 @@ extern const uint64_t BIG = 9007199254740993ULL;
 
 extern const uint64_t SMALL = 9007199254740991ULL;
 
-uint64_t divide(uint64_t x) {
+uint64_t divide(const uint64_t x) {
     const uint64_t D = cnx_clamp_sub_u64(BIG, 9007199254740992ULL);
     return x / D;
 }
 
-uint64_t divideSmall(uint64_t x) {
+uint64_t divideSmall(const uint64_t x) {
     const uint64_t E = cnx_clamp_sub_u64(SMALL, 9007199254740990ULL);
     uint8_t one[1] = {0U};
     one[0] = 1U;
@@ -43,10 +43,10 @@ uint64_t divideSmall(uint64_t x) {
 }
 
 int main(void) {
-    int64_t s = 9007199254740993 - 9007199254740992;
-    int64_t small = 1;
-    uint64_t q = divide(7ULL);
-    uint64_t qs = divideSmall(9ULL);
+    const int64_t s = 9007199254740993 - 9007199254740992;
+    const int64_t small = 1;
+    const uint64_t q = divide(7ULL);
+    const uint64_t qs = divideSmall(9ULL);
     if (q != 7) {
         return 1;
     }

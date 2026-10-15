@@ -11,7 +11,7 @@ bitmap8 Flags {
     Reserved[3]
 }
 
-Flags f <- 0;
+mut Flags f <- 0;
 
 // CONTEXT: a global variable's initializer, control then assertion.
 u8 okGlobal <- f.Level;

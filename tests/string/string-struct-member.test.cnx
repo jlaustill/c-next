@@ -18,14 +18,14 @@ u32 getNameLength(Person p) {
     return p.name.value_char_count;
 }
 
-bool compareName(Person p, const string<64> expected) {
+bool compareName(Person p, string<64> expected) {
     return p.name = expected;
 }
 
 i32 main() {
 
     // Test 1: Basic struct member initialization
-    Person alice;
+    mut Person alice;
     alice.name <- "Alice";
     alice.bio <- "Software engineer";
     alice.age <- 30;
@@ -62,7 +62,7 @@ i32 main() {
     }
 
     // Test 5: Second struct instance
-    Person bob;
+    mut Person bob;
     bob.name <- "Bob";
     bob.bio <- "Data scientist";
     bob.age <- 25;
@@ -80,7 +80,7 @@ i32 main() {
     }
 
     // Test 7: Assign same value, compare
-    Person charlie;
+    mut Person charlie;
     charlie.name <- "Alice"; // Same as alice
     if (alice.name != charlie.name) {
         return 12; // Should be equal
@@ -107,7 +107,7 @@ i32 main() {
     }
 
     // Test 10: StrMember.Config struct (different capacities)
-    StrMember.Config cfg;
+    mut StrMember.Config cfg;
     cfg.key <- "api_url";
     cfg.value <- "https://example.com/api/v1";
 
@@ -125,7 +125,7 @@ i32 main() {
     }
 
     // Test 11: Empty string member
-    Person emptyPerson;
+    mut Person emptyPerson;
     emptyPerson.name <- "";
     if (emptyPerson.name.value_char_count != 0) {
         return 21;

@@ -52,11 +52,11 @@ int main(void) {
     if (LOCAL_LIMIT != 50) {
         return 5U;
     }
-    uint32_t result = cnx_clamp_add_u32(MAX_VALUE, LOCAL_LIMIT);
+    const uint32_t result = cnx_clamp_add_u32(MAX_VALUE, LOCAL_LIMIT);
     if (result != 150) {
         return 6U;
     }
-    uint32_t data[3] = {1U, 2U, 3U};
+    const uint32_t data[3] = {1U, 2U, 3U};
     const uint32_t EXPECTED_LENGTH = 3U;
     if (3 != EXPECTED_LENGTH) {
         return 7U;
@@ -69,8 +69,8 @@ int main(void) {
     if (sum != 5) {
         return 8U;
     }
-    float radius = 2.0;
-    float circumference = 2.0 * PI * radius;
+    const float radius = 2.0;
+    const float circumference = 2.0 * PI * radius;
     if (circumference < 12.5 || circumference > 12.6) {
         return 9U;
     }

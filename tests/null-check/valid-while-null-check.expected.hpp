@@ -13,8 +13,8 @@ extern "C" {
 #endif
 
 /* External variables */
-extern char line[257];
-extern bool keepReading;
+extern const char line[257];
+extern const bool keepReading;
 
 /* Function prototypes */
 void testWhileNullCheck(void);
