@@ -49,7 +49,7 @@ int main(void) {
     b.constRef[5] = 4U;
     b.addLiteral[8] = 5U;
     b.addConst[7] = 6U;
-    b.sizeofDim[3] = 7U;
+    b.byteLengthDim[3] = 7U;
     if (b.plain[7U] != 1) {
         return 1;
     }
@@ -68,7 +68,7 @@ int main(void) {
     if (b.addConst[7U] != 6) {
         return 6;
     }
-    if (b.sizeofDim[3U] != 7) {
+    if (b.byteLengthDim[3U] != 7) {
         return 7;
     }
     return 0;

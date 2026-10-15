@@ -11,12 +11,12 @@
 string<32>[5] globalNames;
 
 u32 getArrayLength(string<32>[5] arr) {
-    return arr.element_count;
+    return arr.type_element_count;
 }
 
-// Issue #136 fixed: arr[index].char_count now correctly returns strlen
+// Issue #136 fixed: arr[index].value_char_count now correctly returns strlen
 u32 getElementLength(string<32>[5] arr, u32 index) {
-    return arr[index].char_count;
+    return arr[index].value_char_count;
 }
 
 i32 main() {
@@ -28,25 +28,25 @@ i32 main() {
     globalNames[3] <- "Diana";
     globalNames[4] <- "Eve";
 
-    // Test 2: Array .element_count returns element count
-    if (globalNames.element_count != 5) {
+    // Test 2: Array .type_element_count returns element count
+    if (globalNames.type_element_count != 5) {
         return 1;
     }
 
     // Test 3: Element .length returns string length (strlen)
-    if (globalNames[0].char_count != 5) {
+    if (globalNames[0].value_char_count != 5) {
         return 2; // "Alice"
     }
-    if (globalNames[1].char_count != 3) {
+    if (globalNames[1].value_char_count != 3) {
         return 3; // "Bob"
     }
-    if (globalNames[2].char_count != 7) {
+    if (globalNames[2].value_char_count != 7) {
         return 4; // "Charlie"
     }
-    if (globalNames[3].char_count != 5) {
+    if (globalNames[3].value_char_count != 5) {
         return 5; // "Diana"
     }
-    if (globalNames[4].char_count != 3) {
+    if (globalNames[4].value_char_count != 3) {
         return 6; // "Eve"
     }
 
@@ -86,16 +86,16 @@ i32 main() {
     colors[1] <- "Green";
     colors[2] <- "Blue";
 
-    if (colors.element_count != 3) {
+    if (colors.type_element_count != 3) {
         return 13;
     }
-    if (colors[0].char_count != 3) {
+    if (colors[0].value_char_count != 3) {
         return 14;
     }
-    if (colors[1].char_count != 5) {
+    if (colors[1].value_char_count != 5) {
         return 15;
     }
-    if (colors[2].char_count != 4) {
+    if (colors[2].value_char_count != 4) {
         return 16;
     }
 
@@ -130,8 +130,8 @@ i32 main() {
     // Test 11: Loop through array with index
     u32 totalLength <- 0;
     u32 i <- 0;
-    while (i < globalNames.element_count) {
-        totalLength <- totalLength + globalNames[i].char_count;
+    while (i < globalNames.type_element_count) {
+        totalLength <- totalLength + globalNames[i].value_char_count;
         i <- i + 1;
     }
 
@@ -142,7 +142,7 @@ i32 main() {
 
     // Test 12: Reassign array element
     globalNames[1] <- "Benjamin";
-    if (globalNames[1].char_count != 8) {
+    if (globalNames[1].value_char_count != 8) {
         return 24;
     }
     if (globalNames[1] != "Benjamin") {
@@ -156,13 +156,13 @@ i32 main() {
     sparse[1] <- "Middle";
 
     // sparse[2] is empty by default
-    if (sparse[0].char_count != 0) {
+    if (sparse[0].value_char_count != 0) {
         return 26;
     }
-    if (sparse[1].char_count != 6) {
+    if (sparse[1].value_char_count != 6) {
         return 27;
     }
-    if (sparse[2].char_count != 0) {
+    if (sparse[2].value_char_count != 0) {
         return 28;
     }
 

@@ -4,88 +4,38 @@ import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import SizeofAnalyzer from "../SizeofAnalyzer";
 
 /**
- * #1322. ADR-023's operand rules: E0601 (an array parameter measures a
- * pointer) and E0602 (MISRA C:2012 Rule 13.6, no side effects).
- *
- * Both are decided from the parse tree alone -- which parameter list encloses
- * the `sizeof`, and whether the operand contains a call -- so unlike most of
- * this card's analyzers these are fully testable without a `Program`.
+ * ADR-023 / #1975: C-Next has no `sizeof`; a size is ADR-058's
+ * `.type_byte_length`. Every `sizeof` is E0603, wherever it is written.
  */
 const errors = (source: string) => {
   return new SizeofAnalyzer().analyze(CNextSourceParser.parse(source).program);
 };
 
-describe("SizeofAnalyzer (E0601)", () => {
-  it("rejects an array parameter", () => {
-    // Only the prefix form is tested, because only it can reach this rule:
-    // E0874 rejects `u8 other[8]` for every parameter and runs first. A case
-    // for the trailing spelling would pass here -- a unit test bypasses the
-    // ordering -- while being unreachable in any program.
+describe("SizeofAnalyzer (E0603)", () => {
+  it("rejects sizeof of a type and of a value, each where it is written", () => {
     const found = errors(
-      "void prefix(u8[8] data) {\n    u32 n <- sizeof(data);\n}",
-    );
-    expect(found.map((e) => [e.code, e.line])).toEqual([["E0601", 2]]);
-    expect(found[0].message).toContain("measures a pointer");
-  });
-
-  it("accepts a LOCAL array of the same shape -- the rule is about where it is declared", () => {
-    expect(
-      errors("void f() {\n    u8[8] data;\n    u32 n <- sizeof(data);\n}"),
-    ).toEqual([]);
-  });
-
-  it("accepts a scalar parameter and a type", () => {
-    expect(
-      errors(
-        "void f(u8 count) {\n    u32 a <- sizeof(count);\n    u32 b <- sizeof(u32);\n}",
-      ),
-    ).toEqual([]);
-  });
-});
-
-describe("SizeofAnalyzer (E0602)", () => {
-  it("rejects a call, alone and nested in arithmetic", () => {
-    const found = errors(
-      [
-        "u32 next() { return 1; }",
-        "void f() {",
-        "    u32 a <- sizeof(next());",
-        "    u32 b <- sizeof(1 + next());",
-        "}",
-      ].join("\n"),
-    );
-    expect(found.map((e) => [e.code, e.line])).toEqual([
-      ["E0602", 3],
-      ["E0602", 4],
-    ]);
-  });
-
-  it("accepts operands that evaluate to nothing", () => {
-    // Arithmetic and a subscript are what the rule must NOT reject. Codegen
-    // also tested the operand's text for eleven assignment operators; none can
-    // appear in an expression, because assignment is a statement.
-    expect(
-      errors(
-        "void f() {\n    u32 v <- 1;\n    u8[4] arr;\n    u32 a <- sizeof(v + 1);\n    u32 b <- sizeof(arr[0]);\n}",
-      ),
-    ).toEqual([]);
-  });
-});
-
-describe("SizeofAnalyzer reads 1.2's syntax (#1991)", () => {
-  it("checks a function declared inside a scope", () => {
-    const found = errors(
-      "scope Buffers {\n    void fill(u8[8] data) {\n        u32 n <- sizeof(data);\n    }\n}",
-    );
-    expect(found.map((e) => [e.code, e.line])).toEqual([["E0601", 3]]);
-  });
-
-  it("reports E0602 at the operand, not at the sizeof", () => {
-    const found = errors(
-      "u32 f() {\n    return 1;\n}\nu32 n <- sizeof(f());\n",
+      "u32 a <- 3;\nvoid f() {\n    u32 n <- sizeof(u32);\n    u32 m <- sizeof(a);\n}",
     );
     expect(found.map((e) => [e.code, e.line, e.column])).toEqual([
-      ["E0602", 4, 16],
+      ["E0603", 3, 13],
+      ["E0603", 4, 13],
     ]);
+    expect(found[0].helpText).toContain(".type_byte_length");
+  });
+
+  it("rejects sizeof in a dimension and inside a scope", () => {
+    const found = errors(
+      "u8[sizeof(u32)] buf;\nscope S {\n    u32 n <- sizeof(buf);\n}",
+    );
+    expect(found.map((e) => [e.code, e.line])).toEqual([
+      ["E0603", 1],
+      ["E0603", 3],
+    ]);
+  });
+
+  it("accepts .type_byte_length, the spelling that replaces it", () => {
+    expect(
+      errors("u8[4] buf;\nvoid f() {\n    u32 n <- buf.type_byte_length;\n}"),
+    ).toEqual([]);
   });
 });

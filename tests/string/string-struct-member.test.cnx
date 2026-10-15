@@ -15,7 +15,7 @@ scope StrMember {
 }
 
 u32 getNameLength(Person p) {
-    return p.name.char_count;
+    return p.name.value_char_count;
 }
 
 bool compareName(Person p, const string<64> expected) {
@@ -30,10 +30,10 @@ i32 main() {
     alice.bio <- "Software engineer";
     alice.age <- 30;
 
-    if (alice.name.char_count != 5) {
+    if (alice.name.value_char_count != 5) {
         return 1;
     }
-    if (alice.bio.char_count != 17) {
+    if (alice.bio.value_char_count != 17) {
         return 2;
     }
 
@@ -67,7 +67,7 @@ i32 main() {
     bob.bio <- "Data scientist";
     bob.age <- 25;
 
-    if (bob.name.char_count != 3) {
+    if (bob.name.value_char_count != 3) {
         return 9;
     }
     if (bob.name != "Bob") {
@@ -111,10 +111,10 @@ i32 main() {
     cfg.key <- "api_url";
     cfg.value <- "https://example.com/api/v1";
 
-    if (cfg.key.char_count != 7) {
+    if (cfg.key.value_char_count != 7) {
         return 17;
     }
-    if (cfg.value.char_count != 26) {
+    if (cfg.value.value_char_count != 26) {
         return 18;
     }
     if (cfg.key.capacity != 32) {
@@ -127,13 +127,13 @@ i32 main() {
     // Test 11: Empty string member
     Person emptyPerson;
     emptyPerson.name <- "";
-    if (emptyPerson.name.char_count != 0) {
+    if (emptyPerson.name.value_char_count != 0) {
         return 21;
     }
 
     // Test 12: Reassign struct member
     alice.name <- "Alicia";
-    if (alice.name.char_count != 6) {
+    if (alice.name.value_char_count != 6) {
         return 22;
     }
     if (alice.name != "Alicia") {

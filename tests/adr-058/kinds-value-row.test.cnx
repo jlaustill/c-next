@@ -1,0 +1,106 @@
+// test-execution
+// test-adr: 058
+// The value row (#1975 review 2): what the value holds NOW. Each read is of a
+// value set at runtime, then set again, so a fold of the declared type -- or
+// of the first value -- fails here.
+
+struct Cfg {
+    u32 a;
+    u8 b;
+}
+
+u32 main() {
+    u32 n <- 5;
+    // unsigned: bits up to the highest 1, bytes rounded up, decimal chars
+    if (n.value_bit_length != 3) {
+        return 1;
+    }
+    if (n.value_byte_length != 1) {
+        return 2;
+    }
+    if (n.value_char_count != 1) {
+        return 3;
+    }
+    n <- 300;
+    if (n.value_bit_length != 9) {
+        return 4;
+    }
+    if (n.value_byte_length != 2) {
+        return 5;
+    }
+    if (n.value_char_count != 3) {
+        return 6;
+    }
+    n <- 0;
+    if (n.value_bit_length != 0) {
+        return 7;
+    }
+    if (n.value_char_count != 1) {
+        return 8;
+    }
+    u64 big <- 18446744073709551615;
+    if (big.value_bit_length != 64) {
+        return 9;
+    }
+    if (big.value_char_count != 20) {
+        return 10;
+    }
+
+    // signed: the '-' is a character too
+    i8 k <- -5;
+    if (k.value_char_count != 2) {
+        return 11;
+    }
+    i64 low <- -9223372036854775807;
+    if (low.value_char_count != 20) {
+        return 12;
+    }
+    k <- 42;
+    if (k.value_char_count != 2) {
+        return 13;
+    }
+
+    // a string: the characters and bytes it holds now
+    string<8> s <- "ab";
+    if (s.value_char_count != 2) {
+        return 14;
+    }
+    if (s.value_byte_length != 2) {
+        return 15;
+    }
+    if (s.value_bit_length != 16) {
+        return 16;
+    }
+    s <- "abcde";
+    if (s.value_char_count != 5) {
+        return 17;
+    }
+
+    // what cannot vary answers its type's length
+    f32 t <- 1.5;
+    if (t.value_bit_length != 32) {
+        return 18;
+    }
+    bool b <- true;
+    if (b.value_bit_length != 1) {
+        return 19;
+    }
+    if (b.value_char_count != 4) {
+        return 20;
+    }
+    Cfg c;
+    if (c.value_byte_length != 5) {
+        return 21;
+    }
+    if (c.value_char_count != 3) {
+        return 22;
+    }
+    u8[4] buf;
+    if (buf.value_element_count != 4) {
+        return 23;
+    }
+    if (c.value_element_count != 2) {
+        return 24;
+    }
+    return 0;
+}

@@ -14,6 +14,7 @@ import OverflowHelperTemplates from "./OverflowHelperTemplates";
 import SaturatingCast from "../../helpers/SaturatingCast";
 import CppModeHelper from "../../../../2-Plan/CppModeHelper";
 import ReservedCnxName from "../../../../../utils/ReservedCnxName";
+import LengthProperty from "../../../../../utils/LengthProperty";
 
 /**
  * Generate a safe arithmetic helper function (div or mod).
@@ -182,7 +183,64 @@ const generateCastHelpers = (
 };
 
 // Export as an object for consistent module pattern
+/**
+ * ADR-058: the runtime integer lengths. Each is a loop over the value, not a
+ * compiler builtin (`__builtin_clz`) or `snprintf`: C99 has no bit-width
+ * operation (C23's `stdc_bit_width` is not on C99 targets), and counting
+ * decimal digits by division needs no buffer, format or <stdio.h>. The
+ * value is widened to 64 bits, so one helper serves every integer width.
+ */
+const generateLengthHelpers = (used: readonly string[]): string[] => {
+  if (used.length === 0) return [];
+  const needs = new Set(used);
+  const lines: string[] = ["// ADR-058: runtime length helpers", ""];
+  if (needs.has(LengthProperty.VALUE_BIT_LENGTH)) {
+    lines.push(
+      "/* .value_bit_length: an unsigned value's bits up to its highest 1 */",
+      `static inline uint32_t ${LengthProperty.VALUE_BIT_LENGTH}(uint64_t value) {`,
+      "    uint32_t bits = 0U;",
+      "    uint64_t rest = value;",
+      "    while (rest != 0U) {",
+      "        bits++;",
+      "        rest >>= 1U;",
+      "    }",
+      "    return bits;",
+      "}",
+      "",
+    );
+  }
+  const signed = needs.has(LengthProperty.VALUE_CHAR_COUNT_SIGNED);
+  if (signed || needs.has(LengthProperty.VALUE_CHAR_COUNT)) {
+    lines.push(
+      "/* .value_char_count: an integer's characters in decimal */",
+      `static inline uint32_t ${LengthProperty.VALUE_CHAR_COUNT}(uint64_t value) {`,
+      "    uint32_t chars = 1U;",
+      "    uint64_t rest = value;",
+      "    while (rest >= 10U) {",
+      "        chars++;",
+      "        rest /= 10U;",
+      "    }",
+      "    return chars;",
+      "}",
+      "",
+    );
+  }
+  if (signed) {
+    lines.push(
+      "/* A negative value's '-' is a character too. Its magnitude is taken in",
+      " * uint64_t, so negating INT64_MIN is defined (C99 6.2.5p9) */",
+      `static inline uint32_t ${LengthProperty.VALUE_CHAR_COUNT_SIGNED}(int64_t value) {`,
+      "    uint64_t magnitude = (value < 0) ? (0U - (uint64_t)value) : (uint64_t)value;",
+      `    return ${LengthProperty.VALUE_CHAR_COUNT}(magnitude) + ((value < 0) ? 1U : 0U);`,
+      "}",
+      "",
+    );
+  }
+  return lines;
+};
+
 const helperGenerators = {
+  generateLengthHelpers,
   generateOverflowHelpers,
   generateSafeDivHelpers,
   generateCastHelpers,

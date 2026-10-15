@@ -8,11 +8,11 @@ const string<10>[3] LABELS <- ["One", "Two", "Three"];
 string<8>[4] colors <- ["Red", "Green", "Blue", "Yellow"];
 
 u32 main() {
-    // Test 1: Array .element_count returns element count
-    if (LABELS.element_count != 3) {
+    // Test 1: Array .type_element_count returns element count
+    if (LABELS.type_element_count != 3) {
         return 1;
     }
-    if (colors.element_count != 4) {
+    if (colors.type_element_count != 4) {
         return 2;
     }
 
@@ -27,14 +27,14 @@ u32 main() {
         return 5;
     }
 
-    // Test 3: Element .char_count returns string length (strlen)
-    if (LABELS[0].char_count != 3) {
+    // Test 3: Element .value_char_count returns string length (strlen)
+    if (LABELS[0].value_char_count != 3) {
         return 6; // "One"
     }
-    if (LABELS[1].char_count != 3) {
+    if (LABELS[1].value_char_count != 3) {
         return 7; // "Two"
     }
-    if (LABELS[2].char_count != 5) {
+    if (LABELS[2].value_char_count != 5) {
         return 8; // "Three"
     }
 
@@ -53,16 +53,16 @@ u32 main() {
     }
 
     // Test 5: Colors element lengths
-    if (colors[0].char_count != 3) {
+    if (colors[0].value_char_count != 3) {
         return 13; // "Red"
     }
-    if (colors[1].char_count != 5) {
+    if (colors[1].value_char_count != 5) {
         return 14; // "Green"
     }
-    if (colors[2].char_count != 4) {
+    if (colors[2].value_char_count != 4) {
         return 15; // "Blue"
     }
-    if (colors[3].char_count != 6) {
+    if (colors[3].value_char_count != 6) {
         return 16; // "Yellow"
     }
 
@@ -77,8 +77,8 @@ u32 main() {
     // Test 7: Loop through initialized array
     u32 totalLen <- 0;
     u32 i <- 0;
-    while (i < LABELS.element_count) {
-        totalLen <- totalLen + LABELS[i].char_count;
+    while (i < LABELS.type_element_count) {
+        totalLen <- totalLen + LABELS[i].value_char_count;
         i <- i + 1;
     }
     // 3 + 3 + 5 = 11

@@ -11,7 +11,7 @@
 // test-adr: 057
 // Issue #1650 (part 2): the strlen cache measured a whole array of strings.
 //
-// `names[0].char_count` read twice was counted under `names`, so the cache was
+// `names[0].value_char_count` read twice was counted under `names`, so the cache was
 // declared as `strlen(names)` -- a char[4][9] passed as a char *, which gcc
 // only warned about -- and no read used it, since each read measures the
 // element. An element's length is not the variable's, so it is not cached.

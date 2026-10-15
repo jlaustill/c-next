@@ -109,6 +109,7 @@ function testAnalysisContextFor(
       },
       filesReachingForeignHeaders: new Set(options.macros ? [TEST_SOURCE] : []),
       headerStructFields: symbolTable.getAllStructFields(),
+      symbolTable,
       target: {
         option: "host",
         catalog: TargetCatalogFile.targets(NodeFileSystem.instance),
@@ -123,10 +124,6 @@ function testAnalysisContextFor(
     program.target().kind === "resolved",
     "a test's program names a known target",
   );
-
-  for (const file of files) {
-    symbolTable.addTSymbols(program.symbolsInFile(file.path));
-  }
 
   // Every function the test declares has its lexical frame, so an analyzer
   // reading locals from Program cannot pass by finding none.

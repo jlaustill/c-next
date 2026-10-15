@@ -204,14 +204,6 @@ describe("ConstantEvaluator", () => {
         "foreign",
       );
     });
-    it("sizeof a type whose size the target decides is foreign", () => {
-      expect(valueOf({ kind: "sizeof", typeName: "Point", at: AT })).toBe(
-        "foreign",
-      );
-    });
-    it("sizeof a primitive is its width in bytes", () => {
-      expect(valueOf({ kind: "sizeof", typeName: "u32", at: AT })).toBe(4n);
-    });
     it("a missing value still wins over a foreign name", () => {
       const expr = bin("+", name("BUF_SIZE"), name("limit"));
       expect(valueOf(expr, withMacro)).toBe("notConstant");

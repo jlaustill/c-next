@@ -4,7 +4,7 @@ i32 main() {
 
     // Test 1-3: Default empty string
     string<64> empty <- "";
-    if (empty.char_count != 0) {
+    if (empty.value_char_count != 0) {
         return 1;
     }
     if (empty.capacity != 64) {
@@ -25,7 +25,7 @@ i32 main() {
 
     // Test 6-7: Empty string with explicit empty literal
     string<32> explicitEmpty <- "";
-    if (explicitEmpty.char_count != 0) {
+    if (explicitEmpty.value_char_count != 0) {
         return 6;
     }
     if (explicitEmpty != "") {
@@ -35,7 +35,7 @@ i32 main() {
     // Test 8-9: Concatenation with empty
     string<32> text <- "Hello";
     string<96> concatEmpty <- text + empty;
-    if (concatEmpty.char_count != 5) {
+    if (concatEmpty.value_char_count != 5) {
         return 8;
     }
     if (concatEmpty != "Hello") {
@@ -44,7 +44,7 @@ i32 main() {
 
     // Test 10-11: Empty + text
     string<96> emptyPlusText <- empty + text;
-    if (emptyPlusText.char_count != 5) {
+    if (emptyPlusText.value_char_count != 5) {
         return 10;
     }
     if (emptyPlusText != "Hello") {

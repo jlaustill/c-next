@@ -2,7 +2,7 @@
 // #1667 probe 2: a `for` counter is typed by its own declaration, not by an
 // earlier function's variable of the same name. `first()` declares `u32 k`,
 // which the lookup by bare name used to find, so the `u8` counter took the
-// `u32` clamp and a `.bit_length` of 32.
+// `u32` clamp and a `.type_bit_length` of 32.
 void first() {
     u32 k <- 0;
     k <- k + 1;
@@ -11,7 +11,7 @@ void first() {
 u32 probe() {
     u32 w <- 0;
     for (u8 k <- 0; k < 3; k <- k + 1) {
-        w <- k.bit_length;
+        w <- k.type_bit_length;
     }
     return w;
 }

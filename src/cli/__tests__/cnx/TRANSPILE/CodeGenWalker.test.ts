@@ -2537,33 +2537,6 @@ describe("CodeGenWalker", () => {
     });
   });
 
-  describe("Sizeof expression", () => {
-    it("should generate sizeof expression", () => {
-      const source = `
-        wrap u32 size;
-        void main() {
-          size <- sizeof(u32);
-        }
-      `;
-      const { tree, program } = CNextSourceParser.parse(source);
-      // #1445 box 3: the walk and the render-side services are two objects now.
-      // The host is constructed here and injected, so assertions about the state
-      // the walk accumulates read the SAME instance the walk drove.
-      const host = new CodeGenerator();
-      const generator = new CodeGenWalker(host);
-      const tSymbols = declareAndResolve(tree);
-      const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-      const code = generateWithProgram(generator, tree, program, {
-        cppMode: false,
-        symbolInfo: symbols,
-        sourcePath: "test.cnx",
-      });
-
-      expect(code).toContain("sizeof");
-    });
-  });
-
   describe("Null literal", () => {
     it("should generate NULL literal", () => {
       const source = `
@@ -4844,58 +4817,11 @@ describe("CodeGenWalker", () => {
     });
   });
 
-  describe("Sizeof expression", () => {
-    it("should generate sizeof for type", () => {
-      const source = `
-        u32 size <- sizeof(u32);
-      `;
-      const { tree, program } = CNextSourceParser.parse(source);
-      // #1445 box 3: the walk and the render-side services are two objects now.
-      // The host is constructed here and injected, so assertions about the state
-      // the walk accumulates read the SAME instance the walk drove.
-      const host = new CodeGenerator();
-      const generator = new CodeGenWalker(host);
-      const tSymbols = declareAndResolve(tree);
-      const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-      const code = generateWithProgram(generator, tree, program, {
-        cppMode: false,
-        symbolInfo: symbols,
-        sourcePath: "test.cnx",
-      });
-
-      expect(code).toContain("sizeof(uint32_t)");
-    });
-
-    it("should generate sizeof for struct", () => {
-      const source = `
-        struct Point { i32 x; i32 y; }
-        u32 size <- sizeof(Point);
-      `;
-      const { tree, program } = CNextSourceParser.parse(source);
-      // #1445 box 3: the walk and the render-side services are two objects now.
-      // The host is constructed here and injected, so assertions about the state
-      // the walk accumulates read the SAME instance the walk drove.
-      const host = new CodeGenerator();
-      const generator = new CodeGenWalker(host);
-      const tSymbols = declareAndResolve(tree);
-      const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-      const code = generateWithProgram(generator, tree, program, {
-        cppMode: false,
-        symbolInfo: symbols,
-        sourcePath: "test.cnx",
-      });
-
-      expect(code).toContain("sizeof(Point)");
-    });
-  });
-
   describe("Array element_count", () => {
     it("should generate array element_count using sizeof", () => {
       const source = `
         u32[10] data;
-        u32 len <- data.element_count;
+        u32 len <- data.type_element_count;
       `;
       const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
@@ -4912,7 +4838,7 @@ describe("CodeGenWalker", () => {
         sourcePath: "test.cnx",
       });
 
-      // .element_count compiles to sizeof(arr)/sizeof(arr[0]) or constant
+      // .type_element_count compiles to sizeof(arr)/sizeof(arr[0]) or constant
       expect(code).toContain("len =");
     });
   });
@@ -5938,31 +5864,6 @@ describe("CodeGenWalker", () => {
       });
 
       expect(code).toContain("State__Mode__ON");
-    });
-  });
-
-  describe("Sizeof variable", () => {
-    it("should generate sizeof for variable", () => {
-      const source = `
-        u32[10] arr;
-        u32 size <- sizeof(arr);
-      `;
-      const { tree, program } = CNextSourceParser.parse(source);
-      // #1445 box 3: the walk and the render-side services are two objects now.
-      // The host is constructed here and injected, so assertions about the state
-      // the walk accumulates read the SAME instance the walk drove.
-      const host = new CodeGenerator();
-      const generator = new CodeGenWalker(host);
-      const tSymbols = declareAndResolve(tree);
-      const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-      const code = generateWithProgram(generator, tree, program, {
-        cppMode: false,
-        symbolInfo: symbols,
-        sourcePath: "test.cnx",
-      });
-
-      expect(code).toContain("sizeof(arr)");
     });
   });
 
@@ -8899,132 +8800,6 @@ describe("CodeGenWalker", () => {
       });
     });
 
-    describe("sizeof helpers", () => {
-      it("should handle sizeof on primitive type", () => {
-        const source = `
-          void test() {
-            u32 size <- sizeof(u32);
-          }
-        `;
-        const { tree, program } = CNextSourceParser.parse(source);
-        // #1445 box 3: the walk and the render-side services are two objects now.
-        // The host is constructed here and injected, so assertions about the state
-        // the walk accumulates read the SAME instance the walk drove.
-        const host = new CodeGenerator();
-        const generator = new CodeGenWalker(host);
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        const code = generateWithProgram(generator, tree, program, {
-          cppMode: false,
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        });
-
-        expect(code).toContain("sizeof(uint32_t)");
-      });
-
-      it("should handle sizeof on struct type", () => {
-        const source = `
-          struct Point { u32 x; u32 y; }
-          void test() {
-            u32 size <- sizeof(Point);
-          }
-        `;
-        const { tree, program } = CNextSourceParser.parse(source);
-        // #1445 box 3: the walk and the render-side services are two objects now.
-        // The host is constructed here and injected, so assertions about the state
-        // the walk accumulates read the SAME instance the walk drove.
-        const host = new CodeGenerator();
-        const generator = new CodeGenWalker(host);
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        const code = generateWithProgram(generator, tree, program, {
-          cppMode: false,
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        });
-
-        expect(code).toContain("sizeof(Point)");
-      });
-
-      it("should handle sizeof on variable", () => {
-        const source = `
-          void test() {
-            u32[10] arr;
-            u32 size <- sizeof(arr);
-          }
-        `;
-        const { tree, program } = CNextSourceParser.parse(source);
-        // #1445 box 3: the walk and the render-side services are two objects now.
-        // The host is constructed here and injected, so assertions about the state
-        // the walk accumulates read the SAME instance the walk drove.
-        const host = new CodeGenerator();
-        const generator = new CodeGenWalker(host);
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        const code = generateWithProgram(generator, tree, program, {
-          cppMode: false,
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        });
-
-        expect(code).toContain("sizeof(arr)");
-      });
-
-      it("should error on sizeof of array parameter", () => {
-        const source = `
-          void test(u32[10] arr) {
-            u32 size <- sizeof(arr);
-          }
-        `;
-        const { tree, program } = CNextSourceParser.parse(source);
-        // #1445 box 3: the walk and the render-side services are two objects now.
-        // The host is constructed here and injected, so assertions about the state
-        // the walk accumulates read the SAME instance the walk drove.
-        const host = new CodeGenerator();
-        const generator = new CodeGenWalker(host);
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        expect(() =>
-          generateWithProgram(generator, tree, program, {
-            cppMode: false,
-            symbolInfo: symbols,
-            sourcePath: "test.cnx",
-          }),
-        ).toThrow("E0601 rejects this in pass 2.1");
-      });
-
-      it("should handle sizeof on struct member", () => {
-        const source = `
-          struct Data { u32 values[10]; }
-          void test() {
-            Data d;
-            u32 size <- sizeof(d.values);
-          }
-        `;
-        const { tree, program } = CNextSourceParser.parse(source);
-        // #1445 box 3: the walk and the render-side services are two objects now.
-        // The host is constructed here and injected, so assertions about the state
-        // the walk accumulates read the SAME instance the walk drove.
-        const host = new CodeGenerator();
-        const generator = new CodeGenWalker(host);
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        const code = generateWithProgram(generator, tree, program, {
-          cppMode: false,
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        });
-
-        expect(code).toContain("sizeof(d.values)");
-      });
-    });
-
     describe("array access helpers", () => {
       it("should handle single index array access", () => {
         const source = `
@@ -10697,7 +10472,7 @@ describe("CodeGenWalker", () => {
       it("should resolve string parameter", () => {
         const source = `
           void test(string<32> name) {
-            u32 len <- name.char_count;
+            u32 len <- name.value_char_count;
           }
         `;
         const { tree, program } = CNextSourceParser.parse(source);
@@ -10857,60 +10632,6 @@ describe("CodeGenWalker", () => {
         });
 
         expect(code).toContain("Motor__State__RUNNING");
-      });
-    });
-
-    describe("sizeof helpers", () => {
-      it("should handle sizeof on qualified type", () => {
-        const source = `
-          scope Motor {
-            public struct Config { u32 speed; u32 torque; }
-          }
-          void test() {
-            u32 size <- sizeof(Motor.Config);
-          }
-        `;
-        const { tree, program } = CNextSourceParser.parse(source);
-        // #1445 box 3: the walk and the render-side services are two objects now.
-        // The host is constructed here and injected, so assertions about the state
-        // the walk accumulates read the SAME instance the walk drove.
-        const host = new CodeGenerator();
-        const generator = new CodeGenWalker(host);
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        const code = generateWithProgram(generator, tree, program, {
-          cppMode: false,
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        });
-
-        expect(code).toContain("sizeof(Motor__Config)");
-      });
-
-      it("should handle sizeof on expression", () => {
-        const source = `
-          void test() {
-            u32 x <- 42;
-            u32 size <- sizeof(x + 1);
-          }
-        `;
-        const { tree, program } = CNextSourceParser.parse(source);
-        // #1445 box 3: the walk and the render-side services are two objects now.
-        // The host is constructed here and injected, so assertions about the state
-        // the walk accumulates read the SAME instance the walk drove.
-        const host = new CodeGenerator();
-        const generator = new CodeGenWalker(host);
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        const code = generateWithProgram(generator, tree, program, {
-          cppMode: false,
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        });
-
-        expect(code).toContain("sizeof(cnx_clamp_add_u32(x, 1U))"); // #1152
       });
     });
 
@@ -11338,7 +11059,7 @@ describe("CodeGenWalker", () => {
         const source = `
           string<64> message <- "Hello World";
           void test() {
-            u32 cap <- message.char_count;
+            u32 cap <- message.value_char_count;
           }
         `;
         const { tree, program } = CNextSourceParser.parse(source);
@@ -11364,7 +11085,7 @@ describe("CodeGenWalker", () => {
           scope Logger {
             string<128> buffer;
             public u32 getCapacity() {
-              return this.buffer.char_count;
+              return this.buffer.value_char_count;
             }
           }
         `;
@@ -11714,137 +11435,6 @@ describe("CodeGenWalker", () => {
         });
 
         expect(code).toContain('"test"');
-      });
-    });
-
-    describe("sizeof helpers", () => {
-      it("should handle sizeof on local variable", () => {
-        const source = `
-          void test() {
-            u32 value <- 42;
-            u32 size <- sizeof(value);
-          }
-        `;
-        const { tree, program } = CNextSourceParser.parse(source);
-        // #1445 box 3: the walk and the render-side services are two objects now.
-        // The host is constructed here and injected, so assertions about the state
-        // the walk accumulates read the SAME instance the walk drove.
-        const host = new CodeGenerator();
-        const generator = new CodeGenWalker(host);
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        const code = generateWithProgram(generator, tree, program, {
-          cppMode: false,
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        });
-
-        expect(code).toContain("sizeof(value)");
-      });
-
-      it("should handle sizeof on struct type parameter", () => {
-        const source = `
-          struct Data { u32 x; u32 y; }
-          u32 getSize(Data d) {
-            return sizeof(d);
-          }
-        `;
-        const { tree, program } = CNextSourceParser.parse(source);
-        // #1445 box 3: the walk and the render-side services are two objects now.
-        // The host is constructed here and injected, so assertions about the state
-        // the walk accumulates read the SAME instance the walk drove.
-        const host = new CodeGenerator();
-        const generator = new CodeGenWalker(host);
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        const code = generateWithProgram(generator, tree, program, {
-          cppMode: false,
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        });
-
-        expect(code).toContain("sizeof(d)");
-      });
-
-      it("should handle sizeof on primitive parameter with dereference", () => {
-        const source = `
-          u32 getSize(u32 val) {
-            return sizeof(val);
-          }
-        `;
-        const { tree, program } = CNextSourceParser.parse(source);
-        // #1445 box 3: the walk and the render-side services are two objects now.
-        // The host is constructed here and injected, so assertions about the state
-        // the walk accumulates read the SAME instance the walk drove.
-        const host = new CodeGenerator();
-        const generator = new CodeGenWalker(host);
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        const code = generateWithProgram(generator, tree, program, {
-          cppMode: false,
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        });
-
-        // Primitive params are pointers, need dereference for sizeof
-        expect(code).toContain("sizeof(*val)");
-      });
-
-      it("should throw error for sizeof on array parameter", () => {
-        const source = `
-          u32 getSize(u32 arr[10]) {
-            return sizeof(arr);
-          }
-        `;
-        const { tree, program } = CNextSourceParser.parse(source);
-        // #1445 box 3: the walk and the render-side services are two objects now.
-        // The host is constructed here and injected, so assertions about the state
-        // the walk accumulates read the SAME instance the walk drove.
-        const host = new CodeGenerator();
-        const generator = new CodeGenWalker(host);
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        expect(() =>
-          generateWithProgram(generator, tree, program, {
-            cppMode: false,
-            symbolInfo: symbols,
-            sourcePath: "test.cnx",
-          }),
-        ).toThrow(/E0601 rejects this in pass 2\.1/);
-      });
-
-      it("should handle sizeof on callback parameter", () => {
-        const source = `
-          void handler() { }
-          u32 getSize(handler cb) {
-            return sizeof(cb);
-          }
-        `;
-        const { tree, program } = CNextSourceParser.parse(source);
-        // #1445 box 3: the walk and the render-side services are two objects now.
-        // The host is constructed here and injected, so assertions about the state
-        // the walk accumulates read the SAME instance the walk drove.
-        const host = new CodeGenerator();
-        const generator = new CodeGenWalker(host);
-        const tSymbols = declareAndResolve(tree);
-        // #1929: the symbol table is where the callback typedef is built from,
-        // so it is populated here exactly as the Pipeline populates it.
-        const symbolTable = new SymbolTable();
-        symbolTable.addTSymbols(tSymbols);
-        TestSymbolTable.install(host.state, symbolTable);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        const code = generateWithProgram(generator, tree, program, {
-          cppMode: false,
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        });
-
-        expect(code).toContain("sizeof(cb)");
       });
     });
 
@@ -13469,134 +13059,6 @@ describe("CodeGenWalker", () => {
       });
     });
 
-    describe("sizeof helpers", () => {
-      it("should handle sizeof on primitive type", () => {
-        const source = `
-          void test() {
-            u32 size <- sizeof(u32);
-          }
-        `;
-        const { tree, program } = CNextSourceParser.parse(source);
-        // #1445 box 3: the walk and the render-side services are two objects now.
-        // The host is constructed here and injected, so assertions about the state
-        // the walk accumulates read the SAME instance the walk drove.
-        const host = new CodeGenerator();
-        const generator = new CodeGenWalker(host);
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        const code = generateWithProgram(generator, tree, program, {
-          cppMode: false,
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        });
-
-        expect(code).toContain("sizeof(uint32_t)");
-      });
-
-      it("should handle sizeof on struct type", () => {
-        const source = `
-          struct Data { u32 value; u8 flags; }
-          void test() {
-            u32 size <- sizeof(Data);
-          }
-        `;
-        const { tree, program } = CNextSourceParser.parse(source);
-        // #1445 box 3: the walk and the render-side services are two objects now.
-        // The host is constructed here and injected, so assertions about the state
-        // the walk accumulates read the SAME instance the walk drove.
-        const host = new CodeGenerator();
-        const generator = new CodeGenWalker(host);
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        const code = generateWithProgram(generator, tree, program, {
-          cppMode: false,
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        });
-
-        expect(code).toContain("sizeof(Data)");
-      });
-
-      it("should handle sizeof on qualified type (Scope.Type)", () => {
-        const source = `
-          scope IO {
-            public struct Buffer { u8 data[64]; }
-          }
-          void test() {
-            u32 size <- sizeof(IO.Buffer);
-          }
-        `;
-        const { tree, program } = CNextSourceParser.parse(source);
-        // #1445 box 3: the walk and the render-side services are two objects now.
-        // The host is constructed here and injected, so assertions about the state
-        // the walk accumulates read the SAME instance the walk drove.
-        const host = new CodeGenerator();
-        const generator = new CodeGenWalker(host);
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        const code = generateWithProgram(generator, tree, program, {
-          cppMode: false,
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        });
-
-        expect(code).toContain("sizeof(IO__Buffer)");
-      });
-
-      it("should handle sizeof on variable", () => {
-        const source = `
-          void test() {
-            u32 value <- 0;
-            u32 size <- sizeof(value);
-          }
-        `;
-        const { tree, program } = CNextSourceParser.parse(source);
-        // #1445 box 3: the walk and the render-side services are two objects now.
-        // The host is constructed here and injected, so assertions about the state
-        // the walk accumulates read the SAME instance the walk drove.
-        const host = new CodeGenerator();
-        const generator = new CodeGenWalker(host);
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        const code = generateWithProgram(generator, tree, program, {
-          cppMode: false,
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        });
-
-        expect(code).toContain("sizeof(value)");
-      });
-
-      it("should handle sizeof on local array", () => {
-        const source = `
-          void test() {
-            u8[16] buffer;
-            u32 size <- sizeof(buffer);
-          }
-        `;
-        const { tree, program } = CNextSourceParser.parse(source);
-        // #1445 box 3: the walk and the render-side services are two objects now.
-        // The host is constructed here and injected, so assertions about the state
-        // the walk accumulates read the SAME instance the walk drove.
-        const host = new CodeGenerator();
-        const generator = new CodeGenWalker(host);
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        const code = generateWithProgram(generator, tree, program, {
-          cppMode: false,
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        });
-
-        expect(code).toContain("sizeof(buffer)");
-      });
-    });
-
     describe("bit range access helpers", () => {
       it("should generate integer bit range read", () => {
         const source = `
@@ -14628,13 +14090,13 @@ describe("CodeGenWalker", () => {
     });
 
     describe("strlen optimization (_setupLengthCache)", () => {
-      it("should optimize multiple .char_count accesses on same string", () => {
+      it("should optimize multiple .value_char_count accesses on same string", () => {
         const source = `
           void test() {
             string<32> name <- "hello";
-            u32 a <- name.char_count;
-            u32 b <- name.char_count;
-            u32 c <- name.char_count;
+            u32 a <- name.value_char_count;
+            u32 b <- name.value_char_count;
+            u32 c <- name.value_char_count;
           }
         `;
         const { tree, program } = CNextSourceParser.parse(source);
@@ -14652,7 +14114,7 @@ describe("CodeGenWalker", () => {
           sourcePath: "test.cnx",
         });
 
-        // Multiple .char_count accesses should be present
+        // Multiple .value_char_count accesses should be present
         expect(code).toContain("strlen");
       });
 
@@ -14660,7 +14122,7 @@ describe("CodeGenWalker", () => {
         const source = `
           void test() {
             string<32> msg <- "test";
-            u32 len <- msg.char_count;
+            u32 len <- msg.value_char_count;
           }
         `;
         const { tree, program } = CNextSourceParser.parse(source);
@@ -14816,7 +14278,7 @@ describe("CodeGenWalker", () => {
       it("should handle string parameter with capacity", () => {
         const source = `
           void greet(string<64> name) {
-            u32 len <- name.char_count;
+            u32 len <- name.value_char_count;
           }
         `;
         const { tree, program } = CNextSourceParser.parse(source);
@@ -15129,82 +14591,6 @@ describe("CodeGenWalker", () => {
       });
     });
 
-    describe("sizeof expression helpers", () => {
-      it("should generate sizeof for primitive type", () => {
-        const source = `
-          void test() {
-            u32 size <- sizeof(u32);
-          }
-        `;
-        const { tree, program } = CNextSourceParser.parse(source);
-        // #1445 box 3: the walk and the render-side services are two objects now.
-        // The host is constructed here and injected, so assertions about the state
-        // the walk accumulates read the SAME instance the walk drove.
-        const host = new CodeGenerator();
-        const generator = new CodeGenWalker(host);
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        const code = generateWithProgram(generator, tree, program, {
-          cppMode: false,
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        });
-
-        expect(code).toContain("sizeof(uint32_t)");
-      });
-
-      it("should generate sizeof for user-defined struct", () => {
-        const source = `
-          struct Data { u32 a; u32 b; }
-          void test() {
-            u32 size <- sizeof(Data);
-          }
-        `;
-        const { tree, program } = CNextSourceParser.parse(source);
-        // #1445 box 3: the walk and the render-side services are two objects now.
-        // The host is constructed here and injected, so assertions about the state
-        // the walk accumulates read the SAME instance the walk drove.
-        const host = new CodeGenerator();
-        const generator = new CodeGenWalker(host);
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        const code = generateWithProgram(generator, tree, program, {
-          cppMode: false,
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        });
-
-        expect(code).toContain("sizeof(Data)");
-      });
-
-      it("should generate sizeof for variable expression", () => {
-        const source = `
-          void test() {
-            u32 value <- 42;
-            u32 size <- sizeof(value);
-          }
-        `;
-        const { tree, program } = CNextSourceParser.parse(source);
-        // #1445 box 3: the walk and the render-side services are two objects now.
-        // The host is constructed here and injected, so assertions about the state
-        // the walk accumulates read the SAME instance the walk drove.
-        const host = new CodeGenerator();
-        const generator = new CodeGenWalker(host);
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        const code = generateWithProgram(generator, tree, program, {
-          cppMode: false,
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        });
-
-        expect(code).toContain("sizeof(value)");
-      });
-    });
-
     describe("array access resolution helpers", () => {
       it("should resolve simple array access", () => {
         const source = `
@@ -15411,8 +14797,8 @@ describe("CodeGenWalker", () => {
         const source = `
           void test() {
             string<64> msg <- "hello world";
-            u32 len1 <- msg.char_count;
-            u32 len2 <- msg.char_count;
+            u32 len1 <- msg.value_char_count;
+            u32 len2 <- msg.value_char_count;
           }
         `;
         const { tree, program } = CNextSourceParser.parse(source);
@@ -15433,12 +14819,12 @@ describe("CodeGenWalker", () => {
         expect(code).toContain("strlen");
       });
 
-      it("should generate cache for multiple .char_count accesses", () => {
+      it("should generate cache for multiple .value_char_count accesses", () => {
         const source = `
           void test() {
             string<32> s <- "hello";
-            if (s.char_count > 0) {
-              u32 x <- s.char_count;
+            if (s.value_char_count > 0) {
+              u32 x <- s.value_char_count;
             }
           }
         `;
@@ -15457,15 +14843,15 @@ describe("CodeGenWalker", () => {
           sourcePath: "test.cnx",
         });
 
-        // Should generate cache variable for repeated .char_count access
+        // Should generate cache variable for repeated .value_char_count access
         expect(code).toContain("strlen");
       });
 
-      it("should not cache for single .char_count access", () => {
+      it("should not cache for single .value_char_count access", () => {
         const source = `
           void test() {
             string<32> s <- "hello";
-            u32 len <- s.char_count;
+            u32 len <- s.value_char_count;
           }
         `;
         const { tree, program } = CNextSourceParser.parse(source);

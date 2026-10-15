@@ -21,10 +21,10 @@ void main() {
     u32 x <- 5;
 
     // NEGATIVE CONTROLS -- the four properties that replaced it.
-    u32 chars <- s.char_count;
-    u32 count <- arr.element_count;
-    u32 bits <- x.bit_length;
-    u32 bytes <- x.byte_length;
+    u32 chars <- s.value_char_count;
+    u32 count <- arr.type_element_count;
+    u32 bits <- x.type_bit_length;
+    u32 bytes <- x.type_byte_length;
 
     // ASSERTIONS -- `.length` on each kind it used to mean something different
     // for. No subject is resolved: the name is rejected wherever it appears.

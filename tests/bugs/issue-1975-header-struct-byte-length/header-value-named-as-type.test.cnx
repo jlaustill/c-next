@@ -1,0 +1,18 @@
+// test-execution
+// #1975 review: a header name that is a value and a tag is a value. C keeps
+// tags apart, so `probe(1)` calls the function and `tick.sec` reads the
+// variable; on the PR head both were E0897 ("names a type"), and `tick` was
+// never declared at all.
+#include "values.h"
+
+u32 main() {
+    i32 r <- probe(1);
+    if (r != 2) {
+        return 1;
+    }
+    i32 s <- tick.sec;
+    if (s != 7) {
+        return 2;
+    }
+    return 0;
+}

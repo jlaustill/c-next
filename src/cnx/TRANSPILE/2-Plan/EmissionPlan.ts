@@ -103,6 +103,9 @@ class EmissionPlan {
       panicOverflowHelpers: EmissionPlan.decidePanicOverflowHelpers(facts),
       safeDivOps: [...facts.safeDivOps],
       castHelpers: [...facts.castHelpers].sort((a, b) => a.localeCompare(b)),
+      lengthHelpers: [...facts.lengthHelpers].sort((a, b) =>
+        a.localeCompare(b),
+      ),
       formRequirements: EmissionPlan.decideFormRequirements(facts),
     };
 

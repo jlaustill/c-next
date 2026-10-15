@@ -11,14 +11,14 @@
 L.Cfg shared;
 
 // NEGATIVE CONTROL -- the right property on the imported field stays silent.
-u32 okGlobal <- shared.data.element_count;
+u32 okGlobal <- shared.data.type_element_count;
 
 // ASSERTION -- global variable context.
 u32 badGlobal <- shared.data.length;
 
 // NEGATIVE CONTROL -- top-level function context.
 u32 okFunction() {
-    return shared.data.element_count;
+    return shared.data.type_element_count;
 }
 
 // ASSERTION -- top-level function context.
@@ -30,10 +30,10 @@ scope S {
     L.Cfg cfg;
 
     // NEGATIVE CONTROLS.
-    u32 okMember <- this.cfg.data.element_count;
+    u32 okMember <- this.cfg.data.type_element_count;
 
     public u32 ok() {
-        return this.cfg.data.element_count;
+        return this.cfg.data.type_element_count;
     }
 
     // ASSERTIONS -- scope member, then scope method.
@@ -45,9 +45,9 @@ scope S {
 
     // ASSERTIONS -- E0867, which needs the subject's TYPE, not only its
     // presence: scope member, then scope method.
-    u32 badShapeMember <- this.cfg.data.char_count;
+    u32 badShapeMember <- this.cfg.data.memory_char_count;
 
     public u32 badShape() {
-        return this.cfg.data.char_count;
+        return this.cfg.data.memory_char_count;
     }
 }

@@ -10,7 +10,7 @@ scope S {
     }
 
     public u8 len() {
-        return buf.char_count;
+        return buf.value_char_count;
     }
 }
 

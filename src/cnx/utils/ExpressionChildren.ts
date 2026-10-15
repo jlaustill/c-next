@@ -24,8 +24,6 @@ class ExpressionChildren {
         ];
       case "parenthesized":
         return [expr.expression];
-      case "sizeof":
-        return expr.expression === null ? [] : [expr.expression];
       case "structInitializer":
         return expr.fields.map((field) => field.value);
       case "arrayInitializer":
@@ -33,6 +31,7 @@ class ExpressionChildren {
           ? expr.elements
           : [...expr.elements, expr.fill];
       case "identifier":
+      case "sizeof":
       case "root":
       case "literal":
       case "missing":

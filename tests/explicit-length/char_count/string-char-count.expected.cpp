@@ -9,7 +9,7 @@
 #include <string.h>
 
 // test-execution
-// Tests .char_count property for strings (ADR-058)
+// Tests .value_char_count property for strings (ADR-058)
 // char_count returns the current character count (strlen)
 char globalStr[65] = "Hello";
 

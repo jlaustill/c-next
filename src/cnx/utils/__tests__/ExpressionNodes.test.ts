@@ -18,10 +18,6 @@ describe("ExpressionNodes", () => {
     expect(names("u32 n <- a + f(b);\n").sort()).toEqual(["a", "b", "f"]);
   });
 
-  it("reaches a dimension inside a sizeof's type", () => {
-    expect(names("u32 n <- sizeof(u8[a]);\n")).toEqual(["a"]);
-  });
-
   it("reaches a dimension inside a cast's type", () => {
     expect(names("u32 n <- (u8[a]) b;\n").sort()).toEqual(["a", "b"]);
   });

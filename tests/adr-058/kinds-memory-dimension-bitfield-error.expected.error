@@ -1,0 +1,2 @@
+7:8 error[E0867]: .memory_byte_length is not available on the bit-field 'u32'
+       help: A bit-field shares its storage with its neighbors, so it has no memory of its own; ask the struct or bitmap that holds it.

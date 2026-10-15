@@ -12,7 +12,13 @@ type TWithoutValue = Extract<
 
 /** Each reason's sentence, after the offending part's spelling */
 const REASON: Readonly<
-  Record<Extract<TConstResult, { kind: "notConstant" }>["reason"], string>
+  Record<
+    Exclude<
+      Extract<TConstResult, { kind: "notConstant" }>["reason"],
+      "unknown" | "sizeofExpression" | "lengthRule"
+    >,
+    string
+  >
 > = {
   variable: "is a variable",
   parameter: "is a parameter",
@@ -22,7 +28,6 @@ const REASON: Readonly<
   unfolded: "has no value known at compile time",
   laterMember: "is declared below it",
   selfMember: "is the member itself",
-  unknown: "is not declared",
   subscript: "is an array element",
   float: "is a floating-point value",
   string: "is a string",
@@ -34,8 +39,6 @@ const REASON: Readonly<
   leadingZero:
     "is a leading-zero literal, which has no value: C-Next has no octal literal (E0912)",
   divisionByZero: "divides by zero",
-  sizeofExpression:
-    "is the size of an expression, which C-Next does not write for C: use sizeof of its type",
   negativeShift:
     "shifts by a negative amount, or shifts a negative value right",
 };
@@ -43,22 +46,29 @@ const REASON: Readonly<
 class ConstantDiagnostics {
   /**
    * Why `result` has no value, as E0909 says it; null when another code owns
-   * the reason -- a division by zero is E0800's, an undeclared name E0427's --
-   * so a program is told once.
+   * the reason -- a division by zero is E0800's, an undeclared name E0427's,
+   * a `sizeof` E0603's, a length property its subject has not E0867's -- so
+   * a program is told once.
    */
   static why(result: TWithoutValue): string | null {
     if (result.kind === "foreign") {
       return {
         header: `'${result.spelling}' is defined by a C or C++ header`,
         maybeHeader: `'${result.spelling}' is not declared in C-Next, so only an included C or C++ header can define it`,
-        targetSize: `'${result.spelling}' is decided by the target`,
+        target: `'${result.spelling}' is a memory size, which the C compiler decides for the target`,
       }[result.why];
     }
     // A bare name nothing declares is E0427's, and a compile-time zero
     // divisor E0800's, which run first (#1268 review). A member a scope or an
     // enum does not have is reported by nothing else (#1863 review), so E0909
     // says it
-    if (result.reason === "unknown") return null;
+    if (
+      result.reason === "unknown" ||
+      result.reason === "sizeofExpression" ||
+      result.reason === "lengthRule"
+    ) {
+      return null;
+    }
     const subject = result.spelling === "" ? "it" : `'${result.spelling}'`;
     if (result.reason === "unfolded" && result.because) {
       return `${subject} has no value known at compile time: ${ConstantDiagnostics.cause(result.because)}`;

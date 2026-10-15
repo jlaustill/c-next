@@ -23,6 +23,7 @@ const NOTHING: IEmissionFacts = {
   existingIncludeTargets: [],
   clampOps: new Set<string>(),
   castHelpers: new Set<string>(),
+  lengthHelpers: new Set<string>(),
   safeDivOps: new Set<string>(),
   floatAssertSites: [],
   irqWrapperSites: [],

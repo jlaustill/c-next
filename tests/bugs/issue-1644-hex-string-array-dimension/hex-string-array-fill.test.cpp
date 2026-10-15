@@ -36,7 +36,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // with THREE different evaluators:
 //
 //   * the declarator render          ArrayDimensionParser.parseSingleDimension
-//                                    (literals + consts + sizeof)
+//                                    (literals + consts + lengths)
 //   * TypeRegistrationEngine's
 //     _collectArrayDimensions        the same, moved there by #1159
 //   * TypeRegistrationEngine's

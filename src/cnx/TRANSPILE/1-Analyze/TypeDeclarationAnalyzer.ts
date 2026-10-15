@@ -115,7 +115,7 @@ class TypeDeclarationAnalyzer {
               ...at,
               message: `Enum member value must be known at compile time (${named}): ${why}`,
               helpText:
-                "A member's value is built from literals, consts, sizeof, casts and the members of its enum declared above it (ADR-017)",
+                "A member's value is built from literals, consts, length properties, casts and the members of its enum declared above it (ADR-017)",
             };
       }
       case "overflow":

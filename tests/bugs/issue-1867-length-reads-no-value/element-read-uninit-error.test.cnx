@@ -1,0 +1,15 @@
+// test-error
+// #1867: a length property reads no value, so `s.f.type_element_count` on a local
+// that was never written is fine; reading an element of it is a read.
+//
+// NEGATIVE CONTROL: `s.f.type_element_count` gives no error.
+struct Slots {
+    u8[3] f;
+}
+
+u32 main() {
+    Slots s;
+    u32 n <- s.f.type_element_count;
+    u8 v <- s.f[0];
+    return n + v;
+}

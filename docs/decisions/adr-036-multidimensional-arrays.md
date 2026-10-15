@@ -514,4 +514,4 @@ positions — tracked as #1168.
 - ADR-007: bit indexing
 - ADR-058: length properties
 - ADR-035: Array initializers (syntax applies to multi-dimensional)
-- ADR-023: sizeof safety (forbids sizeof on array parameters)
+- ADR-023: C-Next has no sizeof; an array parameter's `.type_byte_length` is the array's (#1975)

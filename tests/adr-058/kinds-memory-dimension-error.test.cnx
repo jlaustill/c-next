@@ -1,0 +1,15 @@
+// test-error
+// test-adr: 058
+// Where C-Next itself needs the number, the memory row has none: the C
+// compiler decides it for the target (#1975). An enum member's value is
+// C-Next's to know.
+
+struct Cfg {
+    u32 a;
+    u8 b;
+}
+
+enum Mode {
+    A <- Cfg.memory_byte_length,
+    B
+}

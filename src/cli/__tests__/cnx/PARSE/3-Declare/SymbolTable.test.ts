@@ -562,6 +562,29 @@ describe("SymbolTable", () => {
 
       expect(symbolTable.isPointerTypedef("handle_t")).toBe(true);
     });
+
+    it("carries a struct's layout across the cache round trip (#1975 review)", () => {
+      // A warm-cache build that forgot `Un` is a union would sum its fields
+      const source = new SymbolTable();
+      source.setStructLayout("Un", "union");
+
+      symbolTable.restoreStructState(source.serializeStructState());
+
+      expect(symbolTable.getStructLayout("Un")).toBe("union");
+      expect(symbolTable.getStructLayout("Cfg")).toBeNull();
+    });
+
+    it("drops a cached layout it does not know", () => {
+      const state = new SymbolTable().serializeStructState();
+
+      symbolTable.restoreStructState({
+        ...state,
+        // A cache written by a build that knew a layout this one does not
+        structLayouts: JSON.parse('[["Un", "padded"]]'),
+      });
+
+      expect(symbolTable.getStructLayout("Un")).toBeNull();
+    });
   });
 
   // ========================================================================

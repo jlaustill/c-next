@@ -12,13 +12,13 @@ u8[Lim.M] three;
 u8[(u32)F] fromFloat;
 
 u32 main() {
-    if (two.element_count != 2) {
+    if (two.type_element_count != 2) {
         return 1;
     }
-    if (three.element_count != 3) {
+    if (three.type_element_count != 3) {
         return 2;
     }
-    if (fromFloat.element_count != 2) {
+    if (fromFloat.type_element_count != 2) {
         return 3;
     }
     return 0;

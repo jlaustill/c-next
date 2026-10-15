@@ -14,8 +14,8 @@ u8[FLAG] flagged;
 u8[MODE] moded;
 
 u32 main() {
-    u32 a <- flagged.element_count;
-    u32 b <- moded.element_count;
+    u32 a <- flagged.type_element_count;
+    u32 b <- moded.type_element_count;
     if (a != 1) {
         return 1;
     }

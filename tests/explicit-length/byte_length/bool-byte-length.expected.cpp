@@ -9,7 +9,7 @@
 #include <stdbool.h>
 
 // test-execution
-// Tests .byte_length property for bool type (ADR-058)
+// Tests .type_byte_length property for bool type (ADR-058)
 // Bool storage size is 1 byte
 bool globalBool = true;
 

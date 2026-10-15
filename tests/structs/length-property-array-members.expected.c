@@ -9,7 +9,7 @@
 
 // test-execution
 // Regression test: .length on struct members that are arrays
-// Tests both array.length (element count) and array[i].field.bit_length
+// Tests both array.length (element count) and array[i].field.type_bit_length
 int main(void) {
     Dataset data = {0};
     data.id = 12345U;

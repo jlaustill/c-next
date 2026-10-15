@@ -37,6 +37,7 @@ import type ISourceSpan from "../../../types/ISourceSpan";
 import DeclaratorTypes from "../shared/DeclaratorTypes";
 import ParameterExtractorUtils from "../shared/ParameterExtractorUtils";
 import ArrayDimensionText from "../../../utils/ArrayDimensionText";
+import LiteralUtils from "../../../utils/LiteralUtils";
 import ParserUtils from "../../../utils/ParserUtils";
 
 class CppHeaderLowering {
@@ -161,18 +162,64 @@ class CppHeaderLowering {
     classSpec: ClassSpecifierContext,
   ): ICppClassSyntax {
     const memberSpec = classSpec.memberSpecification();
+    const head = classSpec.classHead();
+    const decls = memberSpec?.memberdeclaration() ?? [];
     return {
-      name:
-        classSpec
-          .classHead()
-          .classHeadName()
-          ?.className()
-          .Identifier()
-          ?.getText() ?? null,
-      members: memberSpec
-        ? CppHeaderLowering.members(memberSpec.memberdeclaration())
-        : null,
+      name: head.classHeadName()?.className().Identifier()?.getText() ?? null,
+      members: memberSpec ? CppHeaderLowering.members(decls) : null,
+      isUnion: head.Union() !== null,
+      hasBase: head.baseClause() !== null,
+      hasVirtual: decls.some(
+        (decl) =>
+          CppHeaderLowering.isVirtual(decl.declSpecifierSeq()) ||
+          CppHeaderLowering.isVirtual(
+            decl.functionDefinition()?.declSpecifierSeq() ?? null,
+          ),
+      ),
+      hasBitField: decls.some((decl) =>
+        (decl.memberDeclaratorList()?.memberDeclarator() ?? []).some(
+          (member) => member.Colon() !== null,
+        ),
+      ),
+      hasUnnamedMember: decls.some(
+        (decl) =>
+          decl.memberDeclaratorList() === null &&
+          (decl.declSpecifierSeq()?.declSpecifier() ?? []).some(
+            (spec) => spec.typeSpecifier()?.classSpecifier() != null,
+          ),
+      ),
     };
+  }
+
+  /** #1975 review: `uint32_t a : 3;`, whose name and width the class records */
+  private static bitFieldDeclarator(
+    name: string,
+    width: string,
+  ): IHeaderDeclaratorSyntax {
+    return {
+      name,
+      isFunction: false,
+      hasPointer: false,
+      pointerDepth: 0,
+      functionPointerParams: null,
+      parameters: [],
+      arrayDimensions: [],
+      bitWidth: LiteralUtils.exactIntegerLiteral(width) ?? width,
+    };
+  }
+
+  private static isVirtual(
+    declSpecSeq: DeclSpecifierSeqContext | null,
+  ): boolean {
+    return (declSpecSeq?.declSpecifier() ?? []).some(
+      (spec) => spec.functionSpecifier()?.Virtual() != null,
+    );
+  }
+
+  private static isStatic(declSpecSeq: DeclSpecifierSeqContext): boolean {
+    return declSpecSeq
+      .declSpecifier()
+      .some((spec) => spec.storageClassSpecifier()?.Static() != null);
   }
 
   /**
@@ -197,14 +244,23 @@ class CppHeaderLowering {
       const declarators: IHeaderDeclaratorSyntax[] = [];
       for (const member of list.memberDeclarator()) {
         const declarator = member.declarator();
+        const bitFieldName = member.Identifier()?.getText() ?? null;
         if (declarator) {
           declarators.push(CppHeaderLowering.declarator(declarator));
+        } else if (bitFieldName !== null) {
+          declarators.push(
+            CppHeaderLowering.bitFieldDeclarator(
+              bitFieldName,
+              member.constantExpression()?.getText() ?? "",
+            ),
+          );
         }
       }
       members.push({
         kind: "declaration",
         span,
         fieldType: CppHeaderLowering.baseType(declSpecSeq),
+        isStatic: CppHeaderLowering.isStatic(declSpecSeq),
         declarators,
       });
     }

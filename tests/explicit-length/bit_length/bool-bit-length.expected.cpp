@@ -9,23 +9,26 @@
 #include <stdbool.h>
 
 // test-execution
-// Tests .bit_length property for bool type (ADR-058)
+// Tests .type_bit_length property for bool type (ADR-058)
 // Bool storage size is 8 bits (1 byte)
 bool globalBool = true;
 
 /* Scope: BoolBitLen */
 
 int main(void) {
-    if (8 != 8) {
+    if (((uint32_t)sizeof(bool) * 8U) != 8) {
+        return 10;
+    }
+    if (1 != 1) {
         return 1;
     }
     bool localBool = false;
-    if (8 != 8) {
+    if (1 != 1) {
         return 2;
     }
     BoolBitLen__TestStruct ts = {};
     ts.flag = true;
-    if (8 != 8) {
+    if (1 != 1) {
         return 3;
     }
     return 0;

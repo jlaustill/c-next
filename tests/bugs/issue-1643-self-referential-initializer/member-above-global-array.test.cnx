@@ -19,7 +19,7 @@ scope S {
 }
 
 u32 main() {
-    if (S.buf.element_count != 4) {
+    if (S.buf.type_element_count != 4) {
         return 1;
     }
     u32 own <- S.own();

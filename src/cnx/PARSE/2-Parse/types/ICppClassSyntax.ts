@@ -6,6 +6,14 @@ interface ICppClassSyntax {
   readonly name: string | null;
   /** Null when the specifier has no member specification */
   readonly members: readonly TCppMemberSyntax[] | null;
+  /** #1975 review: the layout facts a length needs, `union`, `: Base`, ... */
+  readonly isUnion: boolean;
+  readonly hasBase: boolean;
+  /** A virtual member function, so C++ adds a vtable pointer */
+  readonly hasVirtual: boolean;
+  readonly hasBitField: boolean;
+  /** `union { ... };`, a member whose fields `members` does not list */
+  readonly hasUnnamedMember: boolean;
 }
 
 export default ICppClassSyntax;

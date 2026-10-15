@@ -58,6 +58,45 @@ describe("CHeaderLowering", () => {
     });
   });
 
+  describe("bit-fields (#1975 review)", () => {
+    it("names a bit-field the grammar reads as a second type", () => {
+      const fields = struct(
+        `typedef struct { uint32_t a : 3, b : 5; } BF;`,
+      ).fields;
+      expect(fields.map((f) => [f.declarator.name, f.type])).toEqual([
+        ["a", "uint32_t"],
+        ["b", "uint32_t"],
+      ]);
+    });
+
+    // #1975 review (owner ruling): `.type_bit_length` is the declared width
+    it("records a bit-field's declared width, or its text", () => {
+      const fields = struct(
+        `typedef struct { uint32_t a : 3, b : W; uint8_t c; } BF;`,
+      ).fields;
+      expect(fields.map((f) => f.declarator.bitWidth)).toEqual([
+        3,
+        "W",
+        undefined,
+      ]);
+    });
+
+    it("marks a struct that has a bit-field, named or not", () => {
+      expect(struct(`struct S { uint8_t x; uint8_t : 3; };`).hasBitField).toBe(
+        true,
+      );
+      expect(struct(`struct S { uint8_t x; uint8_t y; };`).hasBitField).toBe(
+        false,
+      );
+    });
+
+    // NEGATIVE CONTROL: a lone typedef name is the field's type, not its name
+    it("keeps a field's typedef name as its type", () => {
+      const field = struct(`struct S { uint32_t a; };`).fields[0];
+      expect([field.declarator.name, field.type]).toEqual(["a", "uint32_t"]);
+    });
+  });
+
   describe("declarators", () => {
     it("counts pointer depth and keeps the name", () => {
       const decl = declarations(`int **pp;`)[0];

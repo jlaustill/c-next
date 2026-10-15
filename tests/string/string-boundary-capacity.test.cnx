@@ -5,7 +5,7 @@ i32 main() {
 
     // Test 1-3: String at exact capacity
     string<5> exact <- "Hello";
-    if (exact.char_count != 5) {
+    if (exact.value_char_count != 5) {
         return 1;
     }
     if (exact.capacity != 5) {
@@ -17,7 +17,7 @@ i32 main() {
 
     // Test 4-6: Single character capacity
     string<1> single <- "X";
-    if (single.char_count != 1) {
+    if (single.value_char_count != 1) {
         return 4;
     }
     if (single.capacity != 1) {
@@ -29,7 +29,7 @@ i32 main() {
 
     // Test 7-9: Empty string (zero length, non-zero capacity)
     string<10> emptyWithCap <- "";
-    if (emptyWithCap.char_count != 0) {
+    if (emptyWithCap.value_char_count != 0) {
         return 7;
     }
     if (emptyWithCap.capacity != 10) {
@@ -41,7 +41,7 @@ i32 main() {
 
     // Test 10-12: Large capacity with small content
     string<1024> largeBuffer <- "Tiny";
-    if (largeBuffer.char_count != 4) {
+    if (largeBuffer.value_char_count != 4) {
         return 10;
     }
     if (largeBuffer.capacity != 1024) {
@@ -66,7 +66,7 @@ i32 main() {
     string<3> part1 <- "ABC";
     string<3> part2 <- "DEF";
     string<6> combined <- part1 + part2;
-    if (combined.char_count != 6) {
+    if (combined.value_char_count != 6) {
         return 15;
     }
     if (combined != "ABCDEF") {
@@ -77,13 +77,13 @@ i32 main() {
     string<2> a <- "AB";
     string<2> b <- "CD";
     string<2> c <- "EF";
-    if (a.char_count != 2) {
+    if (a.value_char_count != 2) {
         return 17;
     }
-    if (b.char_count != 2) {
+    if (b.value_char_count != 2) {
         return 18;
     }
-    if (c.char_count != 2) {
+    if (c.value_char_count != 2) {
         return 19;
     }
 

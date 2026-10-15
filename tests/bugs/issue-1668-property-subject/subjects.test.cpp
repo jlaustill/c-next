@@ -11,10 +11,10 @@
 // #1668 review: a property measures the typer's type for the value it is
 // taken of, root or member alike -- what E0867 in 2.1 decides from too.
 // Render read a root's declared type info and a member's typed step, and:
-// a header `long`'s `.bit_length` was an internal error; a header array's
-// `.element_count` crashed; a field reached through a subscripted array of
+// a header `long`'s `.type_bit_length` was an internal error; a header array's
+// `.type_element_count` crashed; a field reached through a subscripted array of
 // structs crashed or was measured at the wrong depth (2 bytes for a 6-byte
-// array); and a string array's `.bit_length` was one element's (ADR-058: an
+// array); and a string array's `.type_bit_length` was one element's (ADR-058: an
 // array's is its whole storage).
 // Pinned: a C header integer's width is the target's (ADR-049), and a header `long` is 64 bits here.
 
@@ -42,8 +42,8 @@ int main(void) {
     if (by != 6) {
         return 4U;
     }
-    uint32_t nb = 216;
-    if (nb != 216) {
+    uint32_t nb = 192;
+    if (nb != 192) {
         return 5U;
     }
     uint32_t x = 0U;

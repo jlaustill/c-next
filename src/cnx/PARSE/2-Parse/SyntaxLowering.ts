@@ -286,13 +286,58 @@ class SyntaxLowering {
   }
 
   private static postfix(ctx: Parser.PostfixExpressionContext): TExpression {
-    const primary = SyntaxLowering.primary(ctx.primaryExpression());
+    const primaryCtx = ctx.primaryExpression();
+    if (primaryCtx === null) return SyntaxLowering.typeProperty(ctx);
+    const primary = SyntaxLowering.primary(primaryCtx);
     const ops = ctx.postfixOp();
     if (ops.length === 0) return primary;
     return {
       kind: "postfix",
       primary,
       ops: ops.map((op) => SyntaxLowering.postfixOp(op)),
+      ...SyntaxLowering.node(ctx),
+    };
+  }
+
+  /**
+   * ADR-058: `u32.type_byte_length`, a primitive type's length property. The type
+   * keyword is the chain's head name, as a C-Next type's name is in
+   * `Point.type_byte_length`; no value can be named `u32`.
+   */
+  private static typeProperty(
+    ctx: Parser.PostfixExpressionContext,
+  ): TExpression {
+    const type = ctx.primitiveType();
+    const dot = ctx.DOT();
+    const name = ctx.IDENTIFIER();
+    if (type === null || dot === null || name === null) {
+      return SyntaxLowering.missing(ctx);
+    }
+    const typeToken = type.start;
+    invariant(typeToken !== null, "a primitive type is one token");
+    return {
+      kind: "postfix",
+      primary: {
+        kind: "identifier",
+        name: type.getText(),
+        ...SyntaxLowering.tokenNode(typeToken, typeToken),
+      },
+      ops: [
+        name.symbol.tokenIndex < 0
+          ? {
+              kind: "missing",
+              ...SyntaxLowering.tokenNode(dot.symbol, dot.symbol),
+            }
+          : {
+              kind: "member",
+              name: name.getText(),
+              nameSpan: ParserUtils.getSpan({
+                start: name.symbol,
+                stop: name.symbol,
+              }),
+              ...SyntaxLowering.tokenNode(dot.symbol, name.symbol),
+            },
+      ],
       ...SyntaxLowering.node(ctx),
     };
   }
@@ -369,51 +414,9 @@ class SyntaxLowering {
     };
   }
 
+  /** ADR-023: written only to be rejected (E0603), so nothing inside is read */
   private static sizeOf(ctx: Parser.SizeofExpressionContext): TExpression {
-    const type = ctx.type();
-    const expression = ctx.expression();
-    const qualified = type?.qualifiedType() ?? null;
-    return {
-      kind: "sizeof",
-      type: type ? SyntaxLowering.type(type) : null,
-      expression: expression ? SyntaxLowering.expression(expression) : null,
-      memberChain: qualified ? SyntaxLowering.memberChain(qualified) : null,
-      ...SyntaxLowering.node(ctx),
-    };
-  }
-
-  /**
-   * #1972: `a.b.c` read as the member access it may be. The grammar's
-   * `qualifiedType` and a postfix chain of members are the same tokens, so
-   * this is the chain the expression `a.b.c` lowers to.
-   */
-  private static memberChain(ctx: Parser.QualifiedTypeContext): TExpression {
-    const [root, ...members] = ctx.IDENTIFIER();
-    return {
-      kind: "postfix",
-      primary: {
-        kind: "identifier",
-        name: root.getText(),
-        ...SyntaxLowering.tokenNode(root.symbol, root.symbol),
-      },
-      ops: members.map((member) => {
-        const dot = ctx.getChild(ctx.children.indexOf(member) - 1);
-        invariant(
-          dot instanceof TerminalNode,
-          "a qualified type's names are separated by '.'",
-        );
-        return {
-          kind: "member",
-          name: member.getText(),
-          nameSpan: ParserUtils.getSpan({
-            start: member.symbol,
-            stop: member.symbol,
-          }),
-          ...SyntaxLowering.tokenNode(dot.symbol, member.symbol),
-        };
-      }),
-      ...SyntaxLowering.node(ctx),
-    };
+    return { kind: "sizeof", ...SyntaxLowering.node(ctx) };
   }
 
   /** A node spanning `start` to `stop`, as written */

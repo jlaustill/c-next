@@ -56,12 +56,12 @@ describe("DimensionResolver", () => {
       expect(resolved.expr?.kind).toBe(kind);
     });
 
-    it("folds sizeof through the shared TYPE_WIDTH table", () => {
-      // The reason TYPE_WIDTH moved to a shared root (transpiler/constants,
-      // and the shared `types/` root since #1853): without it here,
-      // collection folded fewer forms than codegen and `u8[sizeof(u32)] sz`
-      // reached the header as `sz[sizeof(u32)]`, which is not valid C.
-      expect(resolve("sizeof(u32)")).toEqual({ size: 4, expr: null });
+    it("keeps a type's length as written, which 1.4 settles", () => {
+      // #1975: `u32.type_byte_length` is a name chain, as `EColor.COUNT` is
+      expect(resolve("u32.type_byte_length").expr).toMatchObject({
+        kind: "name",
+        path: ["u32", "type_byte_length"],
+      });
     });
 
     it("keeps an enum-qualified count as written, not dropped", () => {
@@ -84,7 +84,13 @@ describe("DimensionResolver", () => {
       // Dropping a dimension loses the field's array-ness and shifts every
       // dimension after it -- the failure behind #1157 and #1158. Keeping
       // its text is how C-Next names reached the header (#1175).
-      const cases = ["10", "SIZE", "EColor.COUNT", "sizeof(u32)", "a + b"];
+      const cases = [
+        "10",
+        "SIZE",
+        "EColor.COUNT",
+        "u32.type_byte_length",
+        "a + b",
+      ];
       for (const source of cases) {
         const resolved = resolve(source);
         expect(typeof resolved.size).toBe("number");

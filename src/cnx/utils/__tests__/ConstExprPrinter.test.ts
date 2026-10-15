@@ -26,10 +26,19 @@ const bin = (
 
 /** BUF_SIZE is a header macro; LOCAL a C-Next const C cannot see */
 const ENV: IConstantEnvironment = {
-  valueOf: (n) =>
-    n.path[0] === "LOCAL"
-      ? { kind: "value", value: 8n, typeName: "u8" }
-      : { kind: "foreign", spelling: n.path[0], why: "header" },
+  valueOf: (n) => {
+    if (n.path[0] === "LOCAL")
+      return { kind: "value", value: 8n, typeName: "u8" };
+    if (n.path[0] === "Cfg") {
+      return {
+        kind: "foreign",
+        spelling: n.path.join("."),
+        why: "target",
+        c: "((uint32_t)sizeof(Cfg))",
+      };
+    }
+    return { kind: "foreign", spelling: n.path[0], why: "header" };
+  },
   // The printer writes what the environment names; ConstantNames.cTypeName
   // is the rule (ConstantNames.test.ts)
   isTypeName: () => true,
@@ -40,6 +49,20 @@ const ENV: IConstantEnvironment = {
 describe("ConstExprPrinter (#1175)", () => {
   it.each<[string, TConstExpr, string]>([
     ["a value is its number", bin("+", lit("1"), lit("2")), "3"],
+    [
+      "a memory size is C's sizeof, never its C-Next name (ADR-058)",
+      bin(
+        "+",
+        {
+          kind: "name",
+          root: null,
+          path: ["Cfg", "memory_byte_length"],
+          at: AT,
+        },
+        lit("1"),
+      ),
+      "(((uint32_t)sizeof(Cfg))) + 1",
+    ],
     [
       "a macro stays for C",
       bin("+", name("BUF_SIZE"), lit("1")),
@@ -74,11 +97,6 @@ describe("ConstExprPrinter (#1175)", () => {
       "a cast is to the C type",
       { kind: "cast", typeName: "u32", operand: name("BUF_SIZE"), at: AT },
       "(uint32_t)BUF_SIZE",
-    ],
-    [
-      "sizeof a scope's type is its C name",
-      { kind: "sizeof", typeName: "Motor.Config", at: AT },
-      "sizeof(Motor__Config)",
     ],
   ])("%s", (_label, expr, expected) => {
     expect(ConstExprPrinter.toC(expr, ENV)).toBe(expected);

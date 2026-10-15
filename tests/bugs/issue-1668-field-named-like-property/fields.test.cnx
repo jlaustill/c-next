@@ -40,9 +40,9 @@ u32 main() {
         return 4;
     }
     string<8> name <- "abc";
-    u32 chars <- name.char_count;
+    u32 chars <- name.value_char_count;
     u32 room <- name.capacity;
-    u32 slots <- pair.element_count;
+    u32 slots <- pair.type_element_count;
     if (chars != 3) {
         return 5;
     }

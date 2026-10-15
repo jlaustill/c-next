@@ -9,26 +9,29 @@
 #include <string.h>
 
 // test-execution
-// Tests .bit_length property for strings (ADR-058)
-// bit_length = (capacity + 1) x 8 (buffer size in bits including null terminator)
-// string<64> = 65 x 8 = 520 bits
+// Tests .type_bit_length property for strings (ADR-058)
+// type_bit_length = capacity x 8, no terminator (ADR-058); the buffer with its
+// terminator is the memory row: string<64> = 512 type bits, 520 memory bits
 char globalStr[65] = "Hello";
 
 int main(void) {
-    if (520 != 520) {
+    if (((uint32_t)65U * 8U) != 520) {
+        return 10;
+    }
+    if (512 != 512) {
         return 1;
     }
     char localStr[33] = "World";
-    if (264 != 264) {
+    if (256 != 256) {
         return 2;
     }
     char smallStr[17] = "";
-    if (136 != 136) {
+    if (128 != 128) {
         return 3;
     }
     TestStruct ts = {};
     (void) strncpy(ts.name, "Test", 32); ts.name[32] = '\0';
-    if (264 != 264) {
+    if (256 != 256) {
         return 4;
     }
     return 0;

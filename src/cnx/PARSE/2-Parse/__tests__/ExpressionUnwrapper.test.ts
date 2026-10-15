@@ -47,7 +47,7 @@ describe("ExpressionUnwrapper", () => {
       const postfix = ExpressionUnwrapper.getPostfixExpression(expr);
 
       expect(postfix).not.toBeNull();
-      expect(postfix?.primaryExpression().IDENTIFIER()?.getText()).toBe(
+      expect(postfix?.primaryExpression()?.IDENTIFIER()?.getText()).toBe(
         "myVar",
       );
     });
@@ -57,7 +57,7 @@ describe("ExpressionUnwrapper", () => {
       const postfix = ExpressionUnwrapper.getPostfixExpression(expr);
 
       expect(postfix).not.toBeNull();
-      expect(postfix?.primaryExpression().literal()).not.toBeNull();
+      expect(postfix?.primaryExpression()?.literal()).not.toBeNull();
     });
 
     it.each([

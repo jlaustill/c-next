@@ -20,7 +20,7 @@ typedef struct Buffer {
     uint8_t constRef[6];
     uint8_t addLiteral[9];
     uint8_t addConst[8];
-    uint8_t sizeofDim[4];
+    uint8_t byteLengthDim[4];
 } Buffer;
 
 /* External variables */

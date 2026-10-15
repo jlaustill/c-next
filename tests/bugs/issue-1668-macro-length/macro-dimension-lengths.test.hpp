@@ -7,6 +7,7 @@
  */
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "sizes.h"
 
 #ifdef __cplusplus
@@ -17,6 +18,7 @@ extern "C" {
 extern uint8_t buf[BUF_SIZE];
 extern uint16_t grid[2][BUF_SIZE];
 extern uint8_t fixed[4];
+extern bool flags[BUF_SIZE];
 
 #ifdef __cplusplus
 }

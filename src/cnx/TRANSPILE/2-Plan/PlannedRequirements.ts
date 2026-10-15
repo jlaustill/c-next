@@ -17,6 +17,7 @@ class PlannedRequirements {
   private readonly sites = new Map<TDeferredSiteKey, IRequirementSite[]>();
   private readonly castHelperKeys = new Set<string>();
   private readonly safeDivisionKeys = new Set<string>();
+  private readonly lengthHelperNames = new Set<string>();
   private ldrexStrexLoop = false;
   private readonly sourcePath: string;
 
@@ -53,6 +54,11 @@ class PlannedRequirements {
     this.safeDivisionKeys.add(`${operation}_${cnxType}`);
   }
 
+  /** ADR-058: a runtime integer length's helper, `"cnx_value_bit_length"` */
+  lengthHelper(name: string): void {
+    this.lengthHelperNames.add(name);
+  }
+
   /** #1997: an LDREX/STREX loop, whose site the requirement carries */
   noteLdrexStrexLoop(): void {
     this.ldrexStrexLoop = true;
@@ -61,6 +67,10 @@ class PlannedRequirements {
 
   get castHelpers(): ReadonlySet<string> {
     return this.castHelperKeys;
+  }
+
+  get lengthHelpers(): ReadonlySet<string> {
+    return this.lengthHelperNames;
   }
 
   get safeDivisions(): ReadonlySet<string> {

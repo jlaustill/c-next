@@ -5,8 +5,8 @@
 
 #include <stdint.h>
 
-// Tests args.element_count property (ADR-058)
-// args.element_count returns argc
+// Tests args.type_element_count property (ADR-058)
+// args.type_element_count returns argc
 int main(int argc, char *argv[]) {
     uint32_t count = argc;
     if (count < 1) {

@@ -8,7 +8,7 @@
 #include <stdint.h>
 
 // test-execution
-// Tests .bit_length property for bitmap types (ADR-058)
+// Tests .type_bit_length property for bitmap types (ADR-058)
 // bitmap8 = 8 bits, bitmap16 = 16 bits, bitmap32 = 32 bits
 Flags8 global8 = 0;
 

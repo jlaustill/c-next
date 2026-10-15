@@ -2,6 +2,7 @@
  * StructCollector - Collects struct and union symbols from C parse trees.
  */
 
+import type TStructLayout from "../../../../types/TStructLayout";
 import type ICFieldSyntax from "../../../2-Parse/types/ICFieldSyntax";
 import type ICStructSyntax from "../../../2-Parse/types/ICStructSyntax";
 import type ICStructSymbol from "../../../../types/symbols/c/ICStructSymbol";
@@ -168,7 +169,18 @@ class StructCollector {
         warnings,
       );
     }
+    const layout = StructCollector.layoutOf(structSpec);
+    if (symbolTable && layout !== null) {
+      symbolTable.setStructLayout(structName, layout);
+    }
     return fields;
+  }
+
+  /** Why a struct's fields do not sum to its length, or null when they do */
+  private static layoutOf(structSpec: ICStructSyntax): TStructLayout | null {
+    if (structSpec.isUnion) return "union";
+    if (structSpec.hasBitField) return "bit-packed";
+    return structSpec.hasUnnamedMember ? "unrecorded-member" : null;
   }
 
   private static processField(
@@ -191,13 +203,21 @@ class StructCollector {
       field.declarator,
     );
     const dims = arrayDimensions.length > 0 ? [...arrayDimensions] : undefined;
+    const bitWidth = field.declarator.bitWidth;
     fields.set(fieldName, {
       name: fieldName,
       type: declaredType,
       arrayDimensions: dims,
+      ...(bitWidth !== undefined && { bitWidth }),
     });
     if (symbolTable) {
-      symbolTable.addStructField(structName, fieldName, declaredType, dims);
+      symbolTable.addStructField(
+        structName,
+        fieldName,
+        declaredType,
+        dims,
+        bitWidth,
+      );
     }
   }
 }

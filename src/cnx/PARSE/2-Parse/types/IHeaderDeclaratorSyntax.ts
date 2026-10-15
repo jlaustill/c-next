@@ -16,6 +16,11 @@ interface IHeaderDeclaratorSyntax {
   readonly functionPointerParams: string | null;
   readonly parameters: readonly IExtractedParameter[];
   readonly arrayDimensions: readonly (number | string)[];
+  /**
+   * A bit-field's declared width, `uint32_t a : 3`: a number, or the
+   * expression as written when it is no integer literal (#1975 review)
+   */
+  readonly bitWidth?: number | string;
 }
 
 export default IHeaderDeclaratorSyntax;

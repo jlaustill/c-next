@@ -36,7 +36,13 @@ import BitUtils from "../../../../../utils/BitUtils";
 import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
 import SubscriptDepthValidator from "../../../../2-Plan/SubscriptDepthValidator";
 import C_TYPE_WIDTH from "../../../../2-Plan/types/C_TYPE_WIDTH";
+import ForeignTypeFacts from "../../../../../utils/ForeignTypeFacts";
+import ResolvedTarget from "../../../../../utils/ResolvedTarget";
 import LengthProperty from "../../../../../utils/LengthProperty";
+import LengthSubject from "../../../../../utils/LengthSubject";
+import type ILengthName from "../../../../../utils/types/ILengthName";
+import type IChainStep from "../../../../../types/IChainStep";
+import TYPE_MAP from "../../../../2-Plan/types/TYPE_MAP";
 import type IStructSymbol from "../../../../../types/symbols/IStructSymbol";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
 import OperandTyper from "../../../../../utils/OperandTyper";
@@ -312,7 +318,7 @@ const handleMemberOp = (
     return;
   }
 
-  // Property access (.bit_length, .capacity, ...). #1760 review: whether the
+  // Property access (.type_bit_length, .capacity, ...). #1760 review: whether the
   // name reads the property or a field named like it is the typer's, on the
   // step -- so `this.length` naming a scope member (#212) and a struct's
   // `length` field are members, with no special case for either
@@ -321,7 +327,7 @@ const handleMemberOp = (
     property !== null &&
     tryPropertyAccess(
       property,
-      step?.before ?? null,
+      step,
       tracking,
       ctx.rootIdentifier,
       ctx.input,
@@ -410,14 +416,14 @@ const stringCapacityOf = (measured: IOperandType | null): number | null =>
     : null;
 
 /**
- * Try handling property access (.capacity, .size, .bit_length, .byte_length,
- * .element_count, .char_count). Returns true if handled.
+ * Try handling property access (.capacity, .size, .type_bit_length, .type_byte_length,
+ * .type_element_count, .value_char_count). Returns true if handled.
  *
  * #1668 review: what a property measures is the typer's type for the value
  * it is taken of -- the property step's `before` -- for a root and a member
  * alike, which is what 2.1's E0867/E0887 decide from too. Render read a
  * root's declared type info and a member's typed step: two answers, so a
- * header `double`'s `.bit_length` was 64 as a variable and 32 as a field on
+ * header `double`'s `.type_bit_length` was 64 as a variable and 32 as a field on
  * a target whose `double` is 32 bits, a header `long` root was an internal
  * error, and a member reached through a subscripted array of structs was
  * measured at the wrong depth.
@@ -426,7 +432,7 @@ const stringCapacityOf = (measured: IOperandType | null): number | null =>
  */
 const tryPropertyAccess = (
   memberName: string,
-  measured: IOperandType | null,
+  step: IChainStep | null,
   tracking: ITrackingState,
   rootIdentifier: string | undefined,
   input: IGeneratorInput,
@@ -441,27 +447,20 @@ const tryPropertyAccess = (
     "`.length` is deprecated -- E0886 rejects this in pass 2.1, before this runs",
   );
 
+  const measured = step?.before ?? null;
   const ctx: IPropertyContext = {
     measured,
     result: tracking.result,
     rootIdentifier,
     resolvedIdentifier: tracking.resolvedIdentifier,
   };
+  const length = LengthProperty.parse(memberName);
+  if (length !== null) {
+    tracking.result = generateLengthProperty(length, step, ctx, input, state);
+    return true;
+  }
   let result: string;
   switch (memberName) {
-    // ADR-058: explicit length properties
-    case "bit_length":
-      result = generateBitLengthProperty(ctx, input, state);
-      break;
-    case "byte_length":
-      result = generateByteLengthProperty(ctx, input, state);
-      break;
-    case "element_count":
-      result = generateElementCountProperty(ctx, input, state);
-      break;
-    case "char_count":
-      result = generateCharCountProperty(ctx, state);
-      break;
     // ADR-045: string storage
     case "capacity":
     case "size": {
@@ -506,7 +505,12 @@ const getNumericBitWidth = (typeName: string, input: IGeneratorInput): number =>
   // too; a C header type's width, from a table 1.4 may not read, is render's
   LengthProperty.elementBits(typeName, {
     enumBitWidth: (name) => input.symbolTable?.getEnumBitWidth(name) || null,
-    isEnum: (name) => input.symbols?.knownEnums?.has(name) ?? false,
+    enumBits: (name) => {
+      const members = input.symbols?.enumMembers?.get(name);
+      return members === undefined
+        ? null
+        : LengthProperty.enumBits(members.values());
+    },
     bitmapBitWidth: (name) => input.symbols?.bitmapBitWidth?.get(name) || null,
   }) ??
   C_TYPE_WIDTH[typeName] ??
@@ -524,6 +528,16 @@ const measuredStruct = (
   );
 };
 
+/** #1975 review: a header struct's field count, as 1.4 folds it */
+const measuredHeaderFields = (
+  measured: IOperandType | null,
+  input: IGeneratorInput,
+): number | undefined => {
+  const symbols = input.symbolTable;
+  if (measured?.typeName == null || symbols === null) return undefined;
+  return ForeignTypeFacts.fieldCount(measured.typeName, symbols) ?? undefined;
+};
+
 /** The bits one element of the measured value holds; 0 if not known */
 const elementBitWidth = (
   measured: IOperandType,
@@ -533,142 +547,217 @@ const elementBitWidth = (
     // ADR-058: a string's buffer, `.size x 8`
     invariant(
       measured.stringCapacity !== null,
-      `E0867 rejects this in pass 2.1 -- Cannot determine .bit_length for string with unknown capacity.`,
+      `E0867 rejects this in pass 2.1 -- Cannot determine .type_bit_length for string with unknown capacity.`,
     );
     return LengthProperty.stringElementBits(measured.stringCapacity);
   }
-  if (measured.bitWidth !== null) return measured.bitWidth;
-  // #1535: its fields' sizes together, without C padding (ADR-058 q7)
-  const struct = measuredStruct(measured, input);
-  if (struct !== undefined && input.program !== null) {
-    const program = input.program;
-    return (
-      LengthProperty.structBits(struct, (cName) =>
-        program.symbolByCName(cName),
-      ) ?? 0
-    );
+  // an enum's logical width is its members', not the C int it is stored in
+  if (measured.bitWidth !== null && measured.category !== "enum") {
+    return measured.bitWidth;
   }
-  return measured.typeName === null
-    ? 0
-    : getNumericBitWidth(measured.typeName, input);
+  // #1535: its fields' sizes together, without C padding (ADR-058 q7); a
+  // header's struct by the same rule, and a C-Next field of one (#1975)
+  const program = input.program;
+  const headers = input.symbolTable;
+  const headerBits =
+    headers === null || headers === undefined
+      ? undefined
+      : ForeignTypeFacts.headerBits(
+          headers,
+          ResolvedTarget.of(program?.target()),
+        );
+  const struct = measuredStruct(measured, input);
+  if (struct !== undefined && program !== null) {
+    const bits = LengthProperty.structBits(
+      struct,
+      (cName) => program.symbolByCName(cName),
+      headerBits,
+    );
+    invariant(
+      bits !== null,
+      `E0867 rejects this in pass 2.1 -- Cannot determine the length of struct '${measured.typeName}'.`,
+    );
+    return bits;
+  }
+  if (measured.typeName === null) return 0;
+  if (headers?.getStructFields(measured.typeName) !== undefined) {
+    const bits = headerBits?.(measured.typeName) ?? null;
+    invariant(
+      bits !== null,
+      `E0867 rejects this in pass 2.1 -- Cannot determine the length of header struct '${measured.typeName}'.`,
+    );
+    return bits;
+  }
+  return getNumericBitWidth(measured.typeName, input);
 };
 
 /**
- * The measured value's length in units of `unitBits` -- 1 for `.bit_length`,
- * 8 for `.byte_length`: every element's bits, together. A dimension that
- * does not fold (a C macro) leaves the product for the C compiler to fold,
- * as `.element_count` leaves the macro (#1760 review: this emitted a
- * literal 0 behind a comment naming the dimension). The product is taken in
+ * ADR-058 (#1975 review 2): a length property, as `LengthProperty.rule`
+ * decides it for the subject -- the one table 2.1 judged it by and 1.4 folds
+ * it by.
+ */
+const generateLengthProperty = (
+  name: ILengthName,
+  step: IChainStep | null,
+  ctx: IPropertyContext,
+  input: IGeneratorInput,
+  state: IGeneratorState,
+): string => {
+  const property = `.${name.kind}_${name.unit}`;
+  // `args` answers only an element count: argc
+  const isArgs = Boolean(
+    state.mainArgsName && ctx.rootIdentifier === state.mainArgsName,
+  );
+  invariant(
+    !isArgs || name.unit === "element_count",
+    `E0867 rejects this in pass 2.1 -- ${property} is not available on 'args'.`,
+  );
+  if (isArgs) return "argc";
+  const program = input.program;
+  const subject =
+    step === null
+      ? null
+      : LengthSubject.of(
+          step,
+          LengthSubject.structTest(
+            (cName) => program?.symbolByCName(cName),
+            input.symbolTable ?? null,
+          ),
+        );
+  invariant(
+    subject !== null && ctx.measured !== null,
+    `E0867 rejects this in pass 2.1 -- Cannot determine ${property} for '${ctx.result}'.`,
+  );
+  const measured = ctx.measured;
+  const rule = LengthProperty.rule(name, subject);
+  const bits = name.unit === "bit_length";
+  switch (rule.kind) {
+    case "error":
+      invariant(false, `E0867 rejects this in pass 2.1 -- ${rule.message}.`);
+    case "logical":
+      return name.unit === "element_count"
+        ? generateElementCount(ctx, input)
+        : measuredLength(ctx, input, name.unit as "bit_length" | "byte_length");
+    case "spelling":
+      return String(subject.spelling.length);
+    case "stringBuffer":
+      return String(stringBufferChars(measured));
+    case "memory":
+      return memoryLength(measured, input, bits);
+    case "bits": {
+      // 2.2 planned the helper with the read (HelperGenerator)
+      const valueBits = `${LengthProperty.VALUE_BIT_LENGTH}(${ctx.result})`;
+      return bits ? valueBits : `((${valueBits} + 7U) / 8U)`;
+    }
+    case "decimal":
+      return `${rule.signed ? LengthProperty.VALUE_CHAR_COUNT_SIGNED : LengthProperty.VALUE_CHAR_COUNT}(${ctx.result})`;
+    case "string": {
+      const chars = stringChars(ctx, state);
+      return bits ? `((${LengthProperty.PRODUCT_C_TYPE})${chars} * 8U)` : chars;
+    }
+  }
+};
+
+/**
+ * The measured value's logical length in bits or in bytes: every element's
+ * bits, together, and bytes rounded up (ADR-058). A dimension that does not
+ * fold (a C macro) leaves the product for the C compiler to fold, as
+ * `_element_count` leaves the macro (#1760 review: this emitted a literal 0
+ * behind a comment naming the dimension). The product is taken in
  * `uint32_t`, as a folded one is read: in `unsigned int` it would wrap past
  * 65535 where that is 16 bits (AVR).
  */
 const measuredLength = (
   ctx: IPropertyContext,
   input: IGeneratorInput,
-  unitBits: 1 | 8,
+  unit: "bit_length" | "byte_length",
 ): string => {
-  const measured = ctx.measured;
-  invariant(
-    measured !== null,
-    `E0867 rejects this in pass 2.1 -- Cannot determine .bit_length for '${ctx.result}'.`,
-  );
+  const measured = ctx.measured!;
   const element = elementBitWidth(measured, input);
   invariant(
     element > 0,
-    `E0867 rejects this in pass 2.1 -- Cannot determine .bit_length for unsupported type '${measured.typeName ?? "unknown"}'.`,
+    `E0867 rejects this in pass 2.1 -- Cannot determine the length of unsupported type '${measured.typeName ?? "unknown"}'.`,
   );
-  const perElement = element / unitBits;
   const dimensions = measured.dimensions;
   // #1175: the one rule the constant evaluator folds a dimension by, too
-  const folded = LengthProperty.of(
-    unitBits === 1 ? "bit_length" : "byte_length",
-    dimensions,
-    element,
-  );
+  const folded = LengthProperty.of(unit, dimensions, element);
   if (folded !== null) return String(folded);
   const factors = dimensions.map((dim) =>
     typeof dim === "number" ? `${dim}U` : `(${dim})`,
   );
-  const unit = `${perElement}U`;
-  return `((${LengthProperty.PRODUCT_C_TYPE})${[...factors, unit].join(" * ")})`;
+  // a whole-byte element's bytes multiply out; any other rounds up the bits
+  const wholeBytes = unit === "byte_length" && element % 8 === 0;
+  const factor = wholeBytes ? element / 8 : element;
+  const product = `(${LengthProperty.PRODUCT_C_TYPE})${[...factors, `${factor}U`].join(" * ")}`;
+  return unit === "bit_length" || wholeBytes
+    ? `(${product})`
+    : `((${product} + 7U) / 8U)`;
 };
 
 /**
- * Generate .bit_length property access (ADR-058).
- * Returns the bit width of any type.
+ * ADR-058: C's memory, `sizeof` of the subject's C type -- never of the
+ * expression, which in a parameter is a pointer -- for the C compiler to
+ * answer for its target. A string's buffer holds its `\0` too.
  */
-const generateBitLengthProperty = (
-  ctx: IPropertyContext,
+const memoryLength = (
+  measured: IOperandType,
   input: IGeneratorInput,
-  state: IGeneratorState,
+  bits: boolean,
 ): string => {
-  // Special case: main function's args.bit_length -> not supported
-  invariant(
-    !(state.mainArgsName && ctx.rootIdentifier === state.mainArgsName),
-    `E0867 rejects this in pass 2.1 -- .bit_length is not supported on 'args' parameter. Use .element_count for argc.`,
-  );
-  return measuredLength(ctx, input, 1);
+  const element = OperandTyper.isString(measured)
+    ? `${stringBufferChars(measured)}U`
+    : `sizeof(${memoryCType(measured, input)})`;
+  return LengthProperty.memoryC(element, measured.dimensions, bits);
 };
 
-/**
- * Generate .byte_length property access (ADR-058).
- * Returns the byte size of any type (bit_length / 8).
- */
-const generateByteLengthProperty = (
-  ctx: IPropertyContext,
+/** The C type `sizeof` measures: a C-Next type as 2.3 declares it, a header's as C spells it */
+const memoryCType = (
+  measured: IOperandType,
   input: IGeneratorInput,
-  state: IGeneratorState,
 ): string => {
-  // Special case: main function's args
-  invariant(
-    !(state.mainArgsName && ctx.rootIdentifier === state.mainArgsName),
-    `E0867 rejects this in pass 2.1 -- .byte_length is not supported on 'args' parameter. Use .element_count for argc.`,
-  );
-  return measuredLength(ctx, input, 8);
-};
-
-/**
- * Generate .element_count property access (ADR-058).
- * Returns the first dimension no subscript has taken, or argc for args.
- */
-const generateElementCountProperty = (
-  ctx: IPropertyContext,
-  input: IGeneratorInput,
-  state: IGeneratorState,
-): string => {
-  // Special case: main function's args.element_count -> argc
-  if (state.mainArgsName && ctx.rootIdentifier === state.mainArgsName) {
-    return "argc";
+  const typeName = measured.typeName;
+  if (typeName === null) {
+    invariant(
+      measured.cType !== null,
+      "E0867 rejects this in pass 2.1 -- a length's subject has no C type.",
+    );
+    return measured.cType;
   }
+  const primitive = TYPE_MAP[typeName];
+  if (primitive !== undefined) return primitive;
+  return input.symbolTable?.checkNeedsStructKeyword(typeName)
+    ? `struct ${typeName}`
+    : typeName;
+};
+
+/** A string's buffer in chars, its terminator included (ADR-045's `.size`) */
+const stringBufferChars = (measured: IOperandType): number => {
+  invariant(
+    measured.stringCapacity !== null,
+    "E0867 rejects this in pass 2.1 -- a string with unknown capacity has no buffer length.",
+  );
+  return LengthProperty.stringBufferChars(measured.stringCapacity);
+};
+
+/** The first dimension no subscript has taken, or a struct's field count (#1535) */
+const generateElementCount = (
+  ctx: IPropertyContext,
+  input: IGeneratorInput,
+): string => {
   const first =
     ctx.measured?.dimensions[0] ??
-    // #1535: a struct's element count is its field count
-    measuredStruct(ctx.measured, input)?.fields.size;
+    // #1535: a struct's element count is its field count, a header's too
+    measuredStruct(ctx.measured, input)?.fields.size ??
+    measuredHeaderFields(ctx.measured, input);
   invariant(
     first !== undefined,
-    `E0867 rejects this in pass 2.1 -- .element_count is only available on arrays, not on '${ctx.result}'.`,
+    `E0867 rejects this in pass 2.1 -- an element count is only available on arrays and structs, not on '${ctx.result}'.`,
   );
   return String(first);
 };
 
-/**
- * Generate .char_count property access (ADR-058).
- * Returns strlen() for strings.
- */
-const generateCharCountProperty = (
-  ctx: IPropertyContext,
-  state: IGeneratorState,
-): string => {
-  // Special case: main function's args
-  invariant(
-    !(state.mainArgsName && ctx.rootIdentifier === state.mainArgsName),
-    `E0867 rejects this in pass 2.1 -- .char_count is only available on strings, not on 'args'. Use .element_count for argc.`,
-  );
-  invariant(
-    ctx.measured !== null && OperandTyper.isString(ctx.measured),
-    `E0867 rejects this in pass 2.1 -- .char_count is only available on strings, not on '${ctx.result}'.`,
-  );
-
+/** The chars a string holds now: `strlen`, from 2.2's cache when it planned one */
+const stringChars = (ctx: IPropertyContext, state: IGeneratorState): string => {
   // 2.2 required <string.h> when it planned the read (#1991)
 
   // #1946/#1650: the cache is keyed by the operand it measured, rendered as
@@ -679,7 +768,7 @@ const generateCharCountProperty = (
   }
 
   // Use ctx.result which contains the full expression including any subscripts
-  // e.g., for arr[0].char_count, ctx.result is "arr[0]" not "arr"
+  // e.g., for arr[0].value_char_count, ctx.result is "arr[0]" not "arr"
   return `strlen(${ctx.result})`;
 };
 

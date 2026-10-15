@@ -1,7 +1,7 @@
 // test-execution
-// Tests .byte_length property for strings (ADR-058)
-// byte_length = capacity + 1 (buffer size in bytes including null terminator)
-// string<64> = 65 bytes
+// Tests .type_byte_length property for strings (ADR-058)
+// type_byte_length = capacity, no terminator (ADR-058); the buffer with its
+// terminator is the memory row: string<64> = 64 type bytes, 65 memory bytes
 
 string<64> globalStr <- "Hello";
 
@@ -10,27 +10,29 @@ struct TestStruct {
 }
 
 i32 main() {
-    // Test global string byte_length = 65 (64+1)
-    if (globalStr.byte_length != 65) {
+    if (globalStr.memory_byte_length != 65) {
+        return 10;
+    }
+    if (globalStr.type_byte_length != 64) {
         return 1;
     }
 
-    // Test local string<32> = 33 bytes
+    // string<32> = 32 bytes
     string<32> localStr <- "World";
-    if (localStr.byte_length != 33) {
+    if (localStr.type_byte_length != 32) {
         return 2;
     }
 
-    // Test string<16> = 17 bytes
+    // string<16> = 16 bytes
     string<16> smallStr <- "";
-    if (smallStr.byte_length != 17) {
+    if (smallStr.type_byte_length != 16) {
         return 3;
     }
 
-    // Test struct member string<32> = 33 bytes
+    // Test struct member string<32> = 32 bytes
     TestStruct ts;
     ts.name <- "Test";
-    if (ts.name.byte_length != 33) {
+    if (ts.name.type_byte_length != 32) {
         return 4;
     }
 

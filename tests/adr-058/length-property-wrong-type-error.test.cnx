@@ -13,23 +13,23 @@ string<8> text <- "hi";
 // NEGATIVE CONTROLS -- each property on a type that answers it. An over-broad
 // rule fails here before the assertions are reached.
 u32 okElementCount() {
-    return array.element_count;
+    return array.type_element_count;
 }
 
 u32 okCharCount() {
-    return text.char_count;
+    return text.value_char_count;
 }
 
 u32 okBitLengthOnScalar() {
-    return scalar.bit_length;
+    return scalar.type_bit_length;
 }
 
 u32 okBitLengthOnArray() {
-    return array.bit_length;
+    return array.type_bit_length;
 }
 
 u32 okByteLengthOnString() {
-    return text.byte_length;
+    return text.type_byte_length;
 }
 
 // NEGATIVE CONTROL -- an ARRAY FIELD of a struct. The field's type is stored
@@ -47,26 +47,26 @@ struct Batch {
 u32 okArrayField() {
     Batch b;
     b.samples[0].t <- 1;
-    return b.samples.element_count;
+    return b.samples.type_element_count;
 }
 
 // THE ASSERTIONS -- the first in a global-variable initializer, since a length
 // property is an expression and reaches one.
-u32 badGlobal <- scalar.element_count;
+u32 badGlobal <- scalar.type_element_count;
 
 u32 elementCountOnScalar() {
-    return scalar.element_count;
+    return scalar.type_element_count;
 }
 
 u32 charCountOnScalar() {
-    return scalar.char_count;
+    return scalar.memory_char_count;
 }
 
 u32 charCountOnArray() {
-    return array.char_count;
+    return array.memory_char_count;
 }
 
 u32 elementCountOnElement() {
     array[0] <- 1;
-    return array[0].element_count;
+    return array[0].type_element_count;
 }

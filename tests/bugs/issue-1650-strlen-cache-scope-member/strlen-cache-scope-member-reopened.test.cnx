@@ -13,10 +13,10 @@
 
 scope Cfg {
     public u32 check() {
-        if (label.char_count != 2 || label.char_count < 1) {
+        if (label.value_char_count != 2 || label.value_char_count < 1) {
             return 1;
         }
-        if (label.char_count != 2) {
+        if (label.value_char_count != 2) {
             return 2;
         }
         return 0;

@@ -318,14 +318,14 @@ struct tags that are 94 characters and byte-identical for 63 — transpiling exi
 
 ## Rule 13 - Side Effects
 
-| Rule | Description                             | Status        | Reference                 |
-| ---- | --------------------------------------- | ------------- | ------------------------- |
-| 13.1 | Initializer lists no side effects       | Not Enforced  |                           |
-| 13.2 | Value of expression with side effects   | Not Enforced  |                           |
-| 13.3 | Full expression with increment          | Not Enforced  | Could add detection       |
-| 13.4 | No assignment in condition              | **By Design** | ADR-001: `<-` vs `=`      |
-| 13.5 | No function calls in boolean conditions | **Enforced**  | E0702 (Issue #254)        |
-| 13.6 | sizeof operand no side effects          | **By Design** | ADR-023: sizeof validated |
+| Rule | Description                             | Status        | Reference                             |
+| ---- | --------------------------------------- | ------------- | ------------------------------------- |
+| 13.1 | Initializer lists no side effects       | Not Enforced  |                                       |
+| 13.2 | Value of expression with side effects   | Not Enforced  |                                       |
+| 13.3 | Full expression with increment          | Not Enforced  | Could add detection                   |
+| 13.4 | No assignment in condition              | **By Design** | ADR-001: `<-` vs `=`                  |
+| 13.5 | No function calls in boolean conditions | **Enforced**  | E0702 (Issue #254)                    |
+| 13.6 | sizeof operand no side effects          | **By Design** | ADR-023: C-Next has no sizeof (E0603) |
 
 ---
 

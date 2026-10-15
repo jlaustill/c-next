@@ -6,6 +6,6 @@
 scope S {
     public u32 count() {
         u8[N] held <- [0*];
-        return held.element_count;
+        return held.type_element_count;
     }
 }

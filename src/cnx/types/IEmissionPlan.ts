@@ -80,6 +80,9 @@ interface IEmissionPlan {
   /** #1668: single-evaluation saturating cast keys (`"f32_u8"`), in emission order. */
   readonly castHelpers: readonly string[];
 
+  /** ADR-058: runtime integer length helpers, in emission order */
+  readonly lengthHelpers: readonly string[];
+
   /**
    * #1997: the requirements no planned block carries -- the mode baseline, the
    * C++ initializer forms, LDREX/STREX atomics.

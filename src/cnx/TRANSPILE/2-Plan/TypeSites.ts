@@ -10,7 +10,7 @@ import type ITypeSite from "./types/ITypeSite";
 /**
  * Every type 2.3 writes in one file, with the scope it is written in: what
  * 2.2 plans before 2.3 renders any of the file (#1991). A written part's own
- * type, or one a `cast` or `sizeof` names inside an expression, except a
+ * type, or one a `cast` names inside an expression, except a
  * dimension or enum value, which 1.4 spells.
  */
 class TypeSites {
@@ -31,14 +31,9 @@ class TypeSites {
       : ExpressionNodes.direct(part.expression).flatMap(TypeSites.namedBy);
   }
 
-  /** The type a `cast` or a type-operand `sizeof` names */
+  /** The type a `cast` names */
   private static namedBy(expression: TExpression): TTypeSyntax[] {
-    if (expression.kind === "cast") {
-      return [expression.type];
-    }
-    return expression.kind === "sizeof" && expression.type !== null
-      ? [expression.type]
-      : [];
+    return expression.kind === "cast" ? [expression.type] : [];
   }
 }
 

@@ -7,7 +7,7 @@ i32 main() {
     string<32> a <- "Hello";
     string<32> b <- " World";
     string<64> concat <- a + b;
-    if (concat.char_count != 11) {
+    if (concat.value_char_count != 11) {
         return 1;
     }
     if (concat.capacity != 64) {
@@ -20,7 +20,7 @@ i32 main() {
     // Test 4-6: Length of substring result
     string<64> source <- "Hello, World!";
     string<5> sub <- source[0, 5];
-    if (sub.char_count != 5) {
+    if (sub.value_char_count != 5) {
         return 4;
     }
     if (sub.capacity != 5) {
@@ -37,7 +37,7 @@ i32 main() {
     if (combined != "ABCD") {
         return 7;
     }
-    if (combined.char_count != 4) {
+    if (combined.value_char_count != 4) {
         return 8;
     }
 
@@ -54,7 +54,7 @@ i32 main() {
 
     // Test 13-15: Multiple property accesses
     string<64> msg <- "Example";
-    u32 len <- msg.char_count;
+    u32 len <- msg.value_char_count;
     u32 cap <- msg.capacity;
     u32 sz <- msg.size;
     if (len != 7) {
@@ -74,7 +74,7 @@ i32 main() {
     if (word != "prefix") {
         return 14;
     }
-    if (word.char_count != 6) {
+    if (word.value_char_count != 6) {
         return 15;
     }
 

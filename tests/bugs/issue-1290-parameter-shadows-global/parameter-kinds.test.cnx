@@ -31,7 +31,7 @@ i32 sumPoint(Point p) {
 }
 
 u32 measure(string<16> s) {
-    return s.char_count;
+    return s.value_char_count;
 }
 
 void bump(u32 v) {

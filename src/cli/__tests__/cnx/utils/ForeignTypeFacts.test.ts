@@ -148,4 +148,80 @@ describe("ForeignTypeFacts", () => {
       ).toBeUndefined();
     });
   });
+
+  describe("structBits (#1975)", () => {
+    beforeEach(() => {
+      symbolTable.addStructField("Cfg", "a", "uint32_t");
+      symbolTable.addStructField("Cfg", "b", "uint8_t");
+      symbolTable.addStructField("Outer", "inner", "Cfg");
+      symbolTable.addStructField("Outer", "arr", "uint16_t", [3]);
+      symbolTable.addStructField("Odd", "i", "int32_t");
+      symbolTable.addStructField("Odd", "p", "char*");
+      symbolTable.addStructField("Holder", "odd", "Odd");
+      symbolTable.addStructField("Un", "a", "uint32_t");
+      symbolTable.addStructField("Un", "b", "uint8_t", [2]);
+      symbolTable.setStructLayout("Un", "union");
+      symbolTable.addStructField("BF", "a", "uint32_t");
+      symbolTable.setStructLayout("BF", "bit-packed");
+      symbolTable.addStructField("Loop", "inner", "Loop");
+      symbolTable.addStructField("Loop", "z", "uint8_t");
+    });
+
+    it("counts a header struct's fields as element_count (#1975 review)", () => {
+      expect(ForeignTypeFacts.fieldCount("Cfg", symbolTable)).toBe(2);
+      expect(ForeignTypeFacts.fieldCount("Un", symbolTable)).toBeNull();
+      expect(ForeignTypeFacts.fieldCount("Nope", symbolTable)).toBeNull();
+    });
+
+    it("sums the fields' sizes, without C padding", () => {
+      expect(ForeignTypeFacts.structBits("Cfg", symbolTable, null)).toBe(40);
+    });
+
+    it("measures a nested header struct and an array field", () => {
+      expect(ForeignTypeFacts.structBits("Outer", symbolTable, null)).toBe(
+        40 + 48,
+      );
+    });
+
+    it("has no size for a pointer field, or a struct holding one", () => {
+      expect(ForeignTypeFacts.structBits("Odd", symbolTable, null)).toBeNull();
+      expect(
+        ForeignTypeFacts.structBits("Holder", symbolTable, null),
+      ).toBeNull();
+    });
+
+    // #1975 review: `Un` was summed to 48 bits, where C stores 32
+    it("has no size for a union or a struct C packs bit-fields into", () => {
+      expect(ForeignTypeFacts.structBits("Un", symbolTable, null)).toBeNull();
+      expect(ForeignTypeFacts.structBits("BF", symbolTable, null)).toBeNull();
+    });
+
+    // #1975 review (owner ruling): a bit-field is its declared width, as a
+    // C-Next bitmap field is -- it was its storage type's 32
+    it("types a bit-field by its declared width", () => {
+      symbolTable.addStructField("Bits", "a", "uint32_t", undefined, 3);
+      symbolTable.addStructField("Bits", "m", "uint32_t", undefined, "W");
+      expect(
+        ForeignTypeFacts.fieldOperand("Bits", "a", symbolTable, null)?.bitWidth,
+      ).toBe(3);
+      expect(
+        ForeignTypeFacts.fieldOperand("Bits", "m", symbolTable, null),
+      ).toBeNull();
+      // NEGATIVE CONTROL: a field that is no bit-field keeps its type's width
+      expect(
+        ForeignTypeFacts.fieldOperand("Cfg", "a", symbolTable, null)?.bitWidth,
+      ).toBe(32);
+    });
+
+    // #1975 review: `struct bar { bar inner; }` overflowed the stack
+    it("has no size for a struct that holds itself", () => {
+      expect(ForeignTypeFacts.structBits("Loop", symbolTable, null)).toBeNull();
+    });
+
+    it("has no size for a struct it was not given", () => {
+      expect(
+        ForeignTypeFacts.structBits("Missing", symbolTable, null),
+      ).toBeNull();
+    });
+  });
 });

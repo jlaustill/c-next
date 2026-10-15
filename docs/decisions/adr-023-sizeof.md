@@ -2,9 +2,47 @@
 
 ## Status
 
-**Research**
+**Rejected**
 
-No decision has been made. This record holds the problem, the options and the research; "Recommended Decision" below is a recommendation, not a decision. The compiler accepts `sizeof` ahead of a decision (#1975).
+C-Next has no `sizeof` (#1975, below): a size is one of ADR-058's kind-named
+lengths, `.type_byte_length` or `.memory_byte_length`. The
+problem, options and research are kept as the record of how that was decided;
+"Recommended Decision" is kept as the recommendation it was, and is superseded
+by the ruling.
+
+## Owner Ruling (#1975)
+
+C-Next has no `sizeof`. The size of a type or of a value is ADR-058's
+`.type_byte_length` (and `.type_bit_length`), which C-Next decides itself rather than the
+C compiler:
+
+```cnx
+u32 a <- u32.type_byte_length;        // 4: a type answers its length properties
+u32 b <- Point.type_byte_length;      // a C-Next struct: its fields' sizes, summed
+u32 c <- Point.x.type_byte_length;    // a field of a type
+u32 d <- reading.type_byte_length;    // a value: the same answer as its type
+u32 e <- Cfg.type_byte_length;        // a C header's struct: also its fields summed
+```
+
+- A struct's size is the sum of its fields' sizes, without C padding, wherever
+  the struct is declared. For `typedef struct { uint32_t a; uint8_t b; } Cfg;`
+  from a header, `Cfg.type_byte_length` is 5, not gcc's 8: a memory-safe language
+  has no use for C's own size.
+- C-Next has no pointers, so it cannot size one. A header struct's pointer
+  field, and a header struct holding one, has no `.type_byte_length`: E0867.
+- Writing `sizeof(...)` is a compile error, E0603, whose help names
+  `.type_byte_length`. It is parsed only so that it is rejected with a code.
+- E0601 and E0602 judged `sizeof`'s operand; with no `sizeof` they are retired.
+
+Later (#1975 review 2, ADR-058's Decision) the owner split the length into
+three kinds, each named: `.value_*`, `.type_*` and `.memory_*`. The `type_`
+row is the one above. `.memory_byte_length` is C's layout, emitted as
+`sizeof(T)` in the generated C for the C compiler to answer (`Cfg` is 8 there,
+and a pointer has one). This is not a C-Next `sizeof`: the operator stays
+rejected, and this ADR stays Rejected.
+
+The sections below that describe `sizeof` syntax and its rules are the
+research the ruling replaced.
 
 ## Context
 
@@ -117,7 +155,9 @@ usize pointBytes <- sizeof(Point) * points.length;  // Safe pattern
 
 ## Safety Rules
 
-C-Next enforces three safety rules to prevent common sizeof bugs.
+These are the research's rules, kept as the record of what was weighed. C-Next
+has no `sizeof` (#1975), so E0601 and E0602 are retired; the VLA rule below
+stands, under E0909.
 
 ### E0601: sizeof on Array Parameter
 
@@ -180,7 +220,7 @@ x++;
 usize s <- sizeof(x);  // OK - no side effects
 ```
 
-### E0603: Variable-Length Arrays Forbidden (ADR-003)
+### Variable-Length Arrays Forbidden (ADR-003, E0909)
 
 Variable-length arrays (VLAs) are not allowed in C-Next. This aligns with ADR-003 (static allocation) and avoids:
 
@@ -191,20 +231,14 @@ Variable-length arrays (VLAs) are not allowed in C-Next. This aligns with ADR-00
 
 ```cnx
 void process(u32 n) {
-    u8[n] buffer;  // ERROR E0603
+    u8[n] buffer;  // ERROR E0909
 }
 ```
 
 **Error message:**
 
 ```
-error[E0603]: variable-length arrays are not allowed (ADR-003: static allocation)
-  --> file.cnx:2:5
-   |
-2  |     u8[n] buffer;
-   |        ^^^^^^^^^ array size must be compile-time constant
-   |
-   = help: use a fixed-size buffer or allocate at startup
+error[E0909]: Array dimension must be known at compile time: 'n' is a parameter
 ```
 
 **Safe alternatives:**
@@ -277,22 +311,20 @@ size_t arrSize = sizeof(buffer);
 
 ## Resolved Questions
 
-1. **sizeof on expressions vs types?** - Both supported, same as C.
-2. **Compile-time only?** - Yes, sizeof is always compile-time (no VLAs).
+1. **sizeof on expressions vs types?** - Neither: C-Next has no `sizeof` (#1975). Both a type and a value answer `.type_byte_length`.
+2. **Compile-time only?** - Yes, a length property is always compile-time (no VLAs).
+3. **A C header struct's size?** - Its fields' sizes summed, no padding; a pointer field has none (E0867) (#1975).
 
 ## Diagnostics
 
-| Code  | Reported when                                        | Asserted by                                           |
-| ----- | ---------------------------------------------------- | ----------------------------------------------------- |
-| E0601 | `sizeof` is applied to an array PARAMETER            | `tests/adr-023/sizeof-array-parameter-error.test.cnx` |
-| E0602 | The operand contains a call (MISRA C:2012 Rule 13.6) | `tests/adr-023/sizeof-side-effects-error.test.cnx`    |
+| Code  | Reported when                         | Asserted by                                    |
+| ----- | ------------------------------------- | ---------------------------------------------- |
+| E0603 | `sizeof(...)` is written, in any form | `tests/adr-023/sizeof-rejected-error.test.cnx` |
 
-An array parameter is passed by reference (ADR-006), so its size is a
-pointer's. The identical spelling on a LOCAL array measures the array, which is
-why the rule asks where the name is declared rather than what its type is.
-
-`sizeof` never evaluates its operand, so a call inside one does not run. That
-is the only side effect an expression can have here: assignment is a statement.
+E0601 (`sizeof` of an array parameter measured a pointer) and E0602 (an operand
+with a side effect, MISRA C:2012 Rule 13.6) are retired by #1975 and not
+reassigned: `.type_byte_length` of an array parameter is the array's, and a length
+property reads no value, so it has no operand to evaluate.
 
 ## Scope-Context Matrix (#1219)
 
@@ -305,8 +337,8 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 | ------------------ | ------------------- | -------- |
 | top-level function | same file           | error    |
 | scope method       | same file           | warn     |
-| global variable    | same file           | off      |
-| scope member       | same file           | off      |
+| global variable    | same file           | warn     |
+| scope member       | same file           | warn     |
 | top-level function | imported direct     | off      |
 | scope method       | imported direct     | off      |
 | global variable    | imported direct     | off      |
@@ -316,10 +348,10 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 | global variable    | imported transitive | off      |
 | scope member       | imported transitive | off      |
 
-Both rules are decided inside the function that writes the `sizeof`: E0601 asks
-that function's own parameter list, and E0602 asks the operand's own shape.
-Nothing crosses an include, and a parameter cannot exist at file scope, so the
-variable contexts and every imported cell record that they cannot exist.
+E0603 is decided by the syntax alone, where `sizeof` is written: a global
+variable's or a scope member's initializer can write it as a function can, so
+those cells exist, and no fixture covers them yet. Nothing about it crosses an
+include, so every imported cell records that it cannot exist.
 
 ## References
 

@@ -36,8 +36,8 @@ class ExpressionShape {
 
   /**
    * The name an expression IS -- a bare identifier, no member, subscript or
-   * call -- or null. Render's `sizeof` plan and E0601, the call-argument plan
-   * and SafeDivision/ConstAssignment ask this one function (#1445, #1932).
+   * call -- or null. The call-argument plan and SafeDivision/ConstAssignment
+   * ask this one function (#1445, #1932).
    */
   static simpleIdentifier(expr: TExpression): string | null {
     const view = ExpressionShape.postfixView(expr);

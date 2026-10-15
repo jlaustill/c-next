@@ -32,7 +32,7 @@ static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint64_t b) {
 //
 // A local's identifier reaches the generated C through several independent
 // emitters -- declarations, expression references, assignment targets, and the
-// resolvers for `sizeof` and the length properties. Each applies the shadow
+// resolvers for the length properties (once `sizeof` too). Each applies the shadow
 // rename separately, so each is a place the rename can be missed. Three
 // successive reviews of #1289 each found one more (declarations, then writes,
 // then `sizeof`), because coverage was written from bugs already found.
@@ -95,12 +95,12 @@ uint32_t S__positions(uint32_t flag) {
     acc = cnx_clamp_add_u32(acc, S__positions__parr[1U]);
     acc = cnx_clamp_add_u32(acc, S__positions__parr[S__positions__pidx]);
     acc = cnx_clamp_add_u32(acc, 4);
-    acc = cnx_clamp_add_u32(acc, sizeof(S__positions__parr));
+    acc = cnx_clamp_add_u32(acc, 16);
     S__positions__pbits = (uint8_t)((S__positions__pbits & ~(0xFU << 0)) | ((3U & 0xFU) << 0));
     acc = cnx_clamp_add_u32(acc, S__positions__pbits);
     S__positions__pcfg.x = 7U;
     acc = cnx_clamp_add_u32(acc, S__positions__pcfg.x);
-    acc = cnx_clamp_add_u32(acc, sizeof(S__positions__pcfg.x));
+    acc = cnx_clamp_add_u32(acc, 4);
     (void) strncpy(S__positions__pstr, "cd", 8); S__positions__pstr[8] = '\0';
     acc = cnx_clamp_add_u32(acc, strlen(S__positions__pstr));
     Holder made = { .x = S__positions__probe };

@@ -200,24 +200,4 @@ describe("2.2 plans the type each value is written against", () => {
       suppressBareEnumResolution: false,
     });
   });
-
-  it("plans sizeof's member access against the outer type (#1972)", () => {
-    const planned = [
-      ...plannedExpectedTypes(
-        [
-          "struct Data { u32[10] values; }",
-          "void f() {",
-          "  Data d;",
-          "  u32 size <- sizeof(d.values);",
-          "}",
-          "",
-        ].join("\n"),
-      ),
-    ].filter(
-      (entry) => entry[0].span.line === 4 && entry[0].kind === "postfix",
-    );
-    expect(planned.map((entry) => entry[1])).toEqual([
-      { type: "u32", suppressBareEnumResolution: false },
-    ]);
-  });
 });

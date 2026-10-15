@@ -9,7 +9,7 @@
 
 // test-execution
 // #1863 review: a const read a length property before 1.4 had sized the
-// array (`K <- loc.element_count`), and a local was sized against 1.3's
+// array (`K <- loc.type_element_count`), and a local was sized against 1.3's
 // unsized global, so each had no value -- a false E0909. Consts and
 // dimensions now settle together, and the frames read the sized symbols.
 //

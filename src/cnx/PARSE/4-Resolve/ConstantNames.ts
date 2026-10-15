@@ -19,6 +19,12 @@ import QualifiedCName from "../../utils/QualifiedCName";
 import CNEXT_TO_C_TYPE_MAP from "../../utils/constants/TypeMappings";
 import ScopeUtils from "../../utils/ScopeUtils";
 import LengthProperty from "../../utils/LengthProperty";
+import TypeCheckUtils from "../../utils/TypeCheckUtils";
+import type ILengthSubject from "../../utils/types/ILengthSubject";
+import type TEssentialCategory from "../../types/TEssentialCategory";
+import TypeHead from "../../utils/TypeHead";
+import ForeignTypeFacts from "../../utils/ForeignTypeFacts";
+import type TSymbol from "../../types/symbols/TSymbol";
 import type TType from "../../types/TType";
 import type IConstantNameFacts from "./types/IConstantNameFacts";
 import type ILocalDeclaration from "../../types/ILocalDeclaration";
@@ -38,6 +44,8 @@ type TReason = Extract<TConstResult, { kind: "notConstant" }>["reason"];
 interface IMeasured {
   readonly type: TType;
   readonly dimensions: ReadonlyArray<number | string>;
+  /** A header bit-field's declared width, `ForeignTypeFacts.bitFieldWidth` */
+  readonly bitField?: number | null;
 }
 
 /** Where the walk is, for a reason's message */
@@ -107,7 +115,7 @@ class ConstantNames {
   /**
    * #1863 review: a C-Next type name as C spells it where it is written -- a
    * primitive's C type, or the scope type ADR-057 qualifies a bare name to
-   * (`sizeof(P)` inside scope S is `sizeof(S__P)`). Through
+   * (`(P)x` inside scope S is `(S__P)x`). Through
    * `ScopeUtils.qualifyScopeType`, the rule every type position uses.
    */
   static cTypeName(
@@ -152,7 +160,7 @@ class ConstantNames {
     return TYPE_KINDS.has(symbol.kind);
   }
 
-  /** `this.N`, `global.N`, `Scope.N`, `m[].element_count` */
+  /** `this.N`, `global.N`, `Scope.N`, `m[].type_element_count` */
   static spell(name: TConstName): string {
     return [...(name.root === null ? [] : [name.root]), ...name.path]
       .join(".")
@@ -246,8 +254,8 @@ class ConstantNames {
   }
 
   /**
-   * #1175: ADR-058's length properties are constants -- `src.element_count`,
-   * `cfg.data.bit_length` -- worth what `LengthProperty` says of the measured
+   * #1175: ADR-058's length properties are constants -- `src.type_element_count`,
+   * `cfg.data.type_bit_length` -- worth what `LengthProperty` says of the measured
    * value's settled dimensions and element width, reached through struct
    * fields. Render reads the same rule, so a dimension sized by a property is
    * the number the property reads as. Any other member has no value.
@@ -262,9 +270,35 @@ class ConstantNames {
       current = current && ConstantNames.stepInto(current, step, walk);
     }
     const property = rest.at(-1)!;
-    if (current === null || !LengthProperty.isLength(property)) {
-      return ConstantNames.without("member", walk);
+    const name = LengthProperty.parse(property);
+    if (current === null || name === null) {
+      return ConstantNames.without(
+        current !== null && LengthProperty.isLength(property)
+          ? "unfolded"
+          : "member",
+        walk,
+      );
     }
+    // ADR-058: only a logical length is C-Next's to fold; a runtime one and
+    // C's memory are written for the program and the C compiler to answer
+    const rule = LengthProperty.rule(name, ConstantNames.subjectOf(current));
+    if (rule.kind === "memory") {
+      const element = ConstantNames.memoryElementC(current, walk);
+      return element === null
+        ? ConstantNames.without("unfolded", walk)
+        : {
+            kind: "foreign",
+            spelling: walk.spelling,
+            why: "target",
+            c: LengthProperty.memoryC(
+              element,
+              current.dimensions,
+              name.unit === "bit_length",
+            ),
+          };
+    }
+    if (rule.kind === "error") return ConstantNames.without("lengthRule", walk);
+    if (rule.kind !== "logical") return ConstantNames.without("unfolded", walk);
     const lookup = (cName: string) => walk.facts.visibleSymbol(cName);
     const struct =
       current.type.kind === "struct"
@@ -273,11 +307,14 @@ class ConstantNames {
             lookup,
           )
         : undefined;
+    const header = ConstantNames.headerType(current.type, walk);
+    const element = ConstantNames.elementBits(current, header, walk);
     const value = LengthProperty.of(
-      property,
+      name.unit,
       current.dimensions,
-      LengthProperty.elementBitsOfType(current.type, lookup),
-      struct?.fields.size ?? null,
+      element,
+      struct?.fields.size ??
+        (header === null ? null : walk.facts.headerFieldCount(header)),
     );
     return value === null
       ? ConstantNames.without("unfolded", walk)
@@ -288,10 +325,11 @@ class ConstantNames {
    * A name a header declares. A variable -- even an `extern const` -- or a
    * function is not a constant expression in C, so it has no value, and as a
    * dimension it would be a VLA (#1768, #1863 review); a length property of an
-   * array is measured from its declared dimensions (`cArr.element_count`),
-   * though the element's width is the target's to decide, so a `bit_length`
-   * has none. Anything else bare -- a C enum constant -- is C's to evaluate as
-   * written; C has no spelling of `X.y` C-Next could write for the rest.
+   * array is measured from its declared dimensions (`cArr.type_element_count`)
+   * and its element's width on the run's target. A header's struct type is
+   * measured as its values are (#2076): `Cfg.type_byte_length`, `Cfg.a.type_bit_length`.
+   * Anything else bare -- a C enum constant -- is C's to evaluate as written;
+   * C has no spelling of `X.y` C-Next could write for the rest.
    */
   private static ofForeign(
     name: string,
@@ -303,9 +341,13 @@ class ConstantNames {
       return ConstantNames.without("function", walk);
     }
     if (value === null) {
-      return rest.length === 0
-        ? { kind: "foreign", spelling: walk.spelling, why: "header" }
-        : ConstantNames.without("member", walk);
+      if (rest.length === 0) {
+        return { kind: "foreign", spelling: walk.spelling, why: "header" };
+      }
+      const type = walk.facts.headerTypeHead(name);
+      return type === null
+        ? ConstantNames.without("member", walk)
+        : ConstantNames.ofMember({ type, dimensions: [] }, rest, walk);
     }
     if (rest.length === 0) return ConstantNames.without("variable", walk);
     return ConstantNames.ofMember(
@@ -316,6 +358,90 @@ class ConstantNames {
       rest,
       walk,
     );
+  }
+
+  /** One element's memory as C measures it; null for a type C-Next cannot name */
+  private static memoryElementC(
+    current: IMeasured,
+    walk: IWalk,
+  ): string | null {
+    const type = current.type;
+    switch (type.kind) {
+      case "string":
+        return `${LengthProperty.stringBufferChars(type.capacity)}U`;
+      case "primitive": {
+        const cType = CNEXT_TO_C_TYPE_MAP[type.primitive];
+        return cType === undefined ? null : `sizeof(${cType})`;
+      }
+      case "struct":
+      case "enum":
+      case "bitmap": {
+        const cName = QualifiedCName.fromParts(type.name.split("."));
+        const tag = walk.facts.headerNeedsStructKeyword(cName) ? "struct " : "";
+        return `sizeof(${tag}${cName})`;
+      }
+      case "external": {
+        const tag = walk.facts.headerNeedsStructKeyword(type.name)
+          ? "struct "
+          : "";
+        return `sizeof(${tag}${type.name})`;
+      }
+      default:
+        return null;
+    }
+  }
+
+  /** A measured value as ADR-058's length rule asks about it */
+  private static subjectOf(current: IMeasured): ILengthSubject {
+    const type = current.type;
+    const primitive = type.kind === "primitive" ? type.primitive : "";
+    let category: TEssentialCategory = "none";
+    if (TypeCheckUtils.isUnsigned(primitive)) category = "unsigned";
+    else if (TypeCheckUtils.isSigned(primitive)) category = "signed";
+    else if (TypeCheckUtils.isFloat(primitive)) category = "floating";
+    else if (primitive === "bool") category = "boolean";
+    else if (type.kind === "enum") category = "enum";
+    return {
+      namesType: false,
+      category,
+      isString: type.kind === "string" && current.dimensions.length === 0,
+      isArray: current.dimensions.length > 0,
+      isStruct: type.kind === "struct",
+      isBitField: current.bitField !== undefined,
+      spelling: "",
+    };
+  }
+
+  /** One element's bits of a measured value; null when not known here */
+  private static elementBits(
+    current: IMeasured,
+    header: string | null,
+    walk: IWalk,
+  ): number | null {
+    if (current.bitField !== undefined) return current.bitField;
+    // #2076: a header's type is measured as render measures it
+    if (header !== null) return walk.facts.headerTypeBits(header);
+    return LengthProperty.elementBitsOfType(
+      current.type,
+      (cName) => walk.facts.visibleSymbol(cName),
+      (name) => walk.facts.headerTypeBits(name),
+    );
+  }
+
+  /**
+   * The C type a header gave a measured value; null for a C-Next type. 1.3
+   * types a name it does not know as a struct (`Cfg c;`), a header's too.
+   */
+  private static headerType(type: TType, walk: IWalk): string | null {
+    if (type.kind === "external") return type.name;
+    if (type.kind !== "struct") return null;
+    const isCNext =
+      walk.facts.visibleSymbol(
+        QualifiedCName.fromParts(type.name.split(".")),
+      ) !== undefined;
+    return !isCNext && walk.facts.headerStructFields(type.name) !== undefined
+      ? type.name
+      : null;
   }
 
   /** One step of a measured walk: into an element, or into a field */
@@ -337,9 +463,19 @@ class ConstantNames {
     field: string,
     walk: IWalk,
   ): IMeasured | null {
-    if (current.dimensions.length > 0 || current.type.kind !== "struct") {
-      return null;
+    if (current.dimensions.length > 0) return null;
+    const headerType = ConstantNames.headerType(current.type, walk);
+    if (headerType !== null) {
+      const header = walk.facts.headerStructFields(headerType)?.get(field);
+      if (!header) return null;
+      const bitField = ForeignTypeFacts.bitFieldWidth(header);
+      return {
+        type: { kind: "external", name: header.type },
+        dimensions: header.arrayDimensions ?? [],
+        ...(bitField !== undefined && { bitField }),
+      };
     }
+    if (current.type.kind !== "struct") return null;
     const struct = walk.facts.visibleSymbol(
       QualifiedCName.fromParts(current.type.name.split(".")),
     );
@@ -370,11 +506,16 @@ class ConstantNames {
     if (symbol?.kind === "variable") {
       return ConstantNames.ofVariable(symbol, more, walk);
     }
-    if (symbol?.kind === "enum" && more.length === 1) {
+    if (symbol?.kind === "enum" && ConstantNames.namesMember(symbol, more)) {
       return walk.facts.enumMember(cName, more[0], walk.spelling, walk.at);
     }
     if (symbol === undefined) {
       return ConstantNames.without("undeclaredMember", walk);
+    }
+    // #1975 review: `Geo.Box.type_byte_length`, as a bare `Point.type_byte_length`
+    const type = more.length === 0 ? null : TypeHead.ofSymbol(symbol, cName);
+    if (type !== null) {
+      return ConstantNames.ofMember({ type, dimensions: [] }, more, walk);
     }
     // A function or a type the scope declares has no value
     return ConstantNames.without(
@@ -394,17 +535,53 @@ class ConstantNames {
     rest: ReadonlyArray<string>,
     walk: IWalk,
   ): TConstResult {
-    if (rest.length !== 1) return ConstantNames.unbound(root, head, rest, walk);
+    if (rest.length === 0) return ConstantNames.unbound(root, head, rest, walk);
     const cName = ScopeUtils.typeHeadCName(
       root,
       head,
       walk.facts.scopePathAt(walk.at),
       (name) => walk.facts.isScopeTypeVisible(name),
     );
-    if (walk.facts.visibleSymbol(cName)?.kind === "enum") {
+    const symbol = walk.facts.visibleSymbol(cName);
+    if (symbol?.kind === "enum" && ConstantNames.namesMember(symbol, rest)) {
       return walk.facts.enumMember(cName, rest[0], walk.spelling, walk.at);
     }
-    return ConstantNames.unbound(root, head, rest, walk);
+    // #1975: a type answers the length properties its values do --
+    // `u32.type_byte_length`, `Point.y.type_byte_length`, `EMode.type_bit_length`, and
+    // `this.P.type_byte_length`, `global.Point.type_byte_length` (#1975 review)
+    const type = ConstantNames.typeNamed(root, head, cName, symbol, walk);
+    return type === null
+      ? ConstantNames.unbound(root, head, rest, walk)
+      : ConstantNames.ofMember({ type, dimensions: [] }, rest, walk);
+  }
+
+  /** `EMode.RUN`: one name after the enum, a member and not a length of it */
+  private static namesMember(
+    symbol: TSymbol & { kind: "enum" },
+    rest: ReadonlyArray<string>,
+  ): boolean {
+    return (
+      rest.length === 1 &&
+      !(LengthProperty.isLength(rest[0]) && !symbol.members.has(rest[0]))
+    );
+  }
+
+  /** The type a chain's head names, a header's struct too; null for none */
+  private static typeNamed(
+    root: TChainRoot,
+    head: string,
+    cName: string,
+    symbol: TSymbol | undefined,
+    walk: IWalk,
+  ): TType | null {
+    const named =
+      (root === null ? TypeHead.primitive(head) : null) ??
+      TypeHead.ofSymbol(symbol, cName);
+    if (named !== null) return named;
+    // #2076: a header's type, which no C-Next symbol names
+    return root !== "this" && symbol === undefined
+      ? walk.facts.headerTypeHead(head)
+      : null;
   }
 
   /**

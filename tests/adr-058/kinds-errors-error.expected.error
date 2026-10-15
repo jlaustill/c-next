@@ -1,0 +1,30 @@
+32:15 error[E0867]: .value_bit_length is not available on the signed 'i8'
+       help: A signed value's top bit is its sign; cast it to an unsigned type first, e.g. ((u32)x).value_bit_length.
+33:15 error[E0867]: .value_byte_length is not available on the signed 'i8'
+       help: A signed value's top bit is its sign; cast it to an unsigned type first, e.g. ((u32)x).value_byte_length.
+35:15 error[E0867]: .value_char_count is not available on the float 'f32'
+       help: A float prints in more than one correct way (0.1, 0.100000), and C-Next fixes no format, so it has no character count.
+37:17 error[E0867]: .value_byte_length measures a value, and 'Cfg' is a type
+       help: Use .type_byte_length for the type's length.
+38:16 error[E0867]: .value_char_count measures a value, and 'u8' is a type
+       help: Use .type_char_count for the type's length.
+39:17 error[E0867]: .value_element_count measures a value, and 'Cfg' is a type
+       help: Use .type_element_count for the type's length.
+41:15 error[E0867]: .memory_char_count is only available on strings, not on 'u8'
+       help: Use .memory_byte_length for the memory a value takes.
+42:17 error[E0867]: .memory_char_count is only available on strings, not on 'Cfg'
+       help: Use .memory_byte_length for the memory a value takes.
+44:20 error[E0867]: .memory_byte_length is not available on the bit-field 'u8'
+       help: A bit-field shares its storage with its neighbors, so it has no memory of its own; ask the struct or bitmap that holds it.
+45:19 error[E0867]: .memory_bit_length is not available on the bit-field 'bool'
+       help: A bit-field shares its storage with its neighbors, so it has no memory of its own; ask the struct or bitmap that holds it.
+47:16 error[E0867]: .type_element_count is only available on arrays and structs, not on 'u8'
+       help: A scalar has one value; use .type_bit_length or .type_byte_length for its width, or .value_char_count for a string's characters.
+48:16 error[E0867]: .memory_element_count is only available on arrays and structs, not on 'string<8>'
+       help: A scalar has one value; use .type_bit_length or .type_byte_length for its width, or .value_char_count for a string's characters.
+49:16 error[E0867]: .value_element_count is only available on arrays and structs, not on 'f32'
+       help: A scalar has one value; use .type_bit_length or .type_byte_length for its width, or .value_char_count for a string's characters.
+54:12 error[E0867]: .value_bit_length is read at runtime, and a file-scope initializer must be constant
+       help: Read it inside a function, or use the .type_ length, which is constant (ADR-058).
+55:12 error[E0867]: .value_char_count is read at runtime, and a file-scope initializer must be constant
+       help: Read it inside a function, or use the .type_ length, which is constant (ADR-058).

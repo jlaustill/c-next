@@ -1,6 +1,6 @@
 // test-execution
 // Issue #1953: a block-local that shadows a global is renamed only inside its block
-// The sizeof after the block measures the global, and a sibling block renames its own local
+// The .type_byte_length after the block measures the global, and a sibling block renames its own local
 
 u8[4] buf <- [0, 0, 0, 0];
 u8 count <- 7;
@@ -9,20 +9,20 @@ u32 main() {
     u32 flag <- 1;
     if (flag = 1) {
         u8[8] buf <- [0, 0, 0, 0, 0, 0, 0, 0];
-        if (sizeof(buf) != 8) {
+        if (buf.type_byte_length != 8) {
             return 1;
         }
     }
-    if (sizeof(buf) != 4) {
+    if (buf.type_byte_length != 4) {
         return 2;
     }
     if (flag = 1) {
         u8[2] buf <- [0, 0];
-        if (sizeof(buf) != 2) {
+        if (buf.type_byte_length != 2) {
             return 3;
         }
     }
-    if (sizeof(buf) != 4) {
+    if (buf.type_byte_length != 4) {
         return 4;
     }
 

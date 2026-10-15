@@ -48,7 +48,7 @@ u32 localHelper() {
 // incompatible pointer types and assigning the function to a variable of its own
 // type warns.
 u32 localWithText(string<8> label) {
-    return label.char_count;
+    return label.value_char_count;
 }
 
 u32 main() {

@@ -10,7 +10,7 @@ u32 main() {
         current <- "Loop";
         count +<- 1;
     }
-    if (current.char_count != 4) {
+    if (current.value_char_count != 4) {
         return 1;
     }
 
@@ -24,7 +24,7 @@ u32 main() {
         }
         count +<- 1;
     }
-    if (current.char_count != 6) {
+    if (current.value_char_count != 6) {
         return 2;
     }
 

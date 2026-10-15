@@ -2,11 +2,13 @@ import type IResolvedSymbols from "../types/IResolvedSymbols";
 import CppNamespaceUtils from "./CppNamespaceUtils";
 import type TTypeInfo from "../types/TTypeInfo";
 import TYPE_WIDTH from "../types/TYPE_WIDTH";
+import LengthProperty from "./LengthProperty";
 import type TCSymbol from "../types/symbols/c/TCSymbol";
 import type TCppSymbol from "../types/symbols/cpp/TCppSymbol";
 import type IForeignSymbolLookup from "../types/IForeignSymbolLookup";
 import type IOperandType from "../types/IOperandType";
 import type ITargetDescription from "../types/ITargetDescription";
+import type IStructFieldInfo from "../types/symbols/IStructFieldInfo";
 
 /** What a C spelling says of an operand: its name, category and width */
 type TForeignElement = Pick<IOperandType, "typeName" | "category" | "bitWidth">;
@@ -287,11 +289,126 @@ class ForeignTypeFacts {
   ): IOperandType | null {
     const info = lookup.getStructFieldInfo(structName, field);
     if (!info?.type) return null;
-    return ForeignTypeFacts.operandType(
+    const typed = ForeignTypeFacts.operandType(
       info.type,
       lookup,
       target,
       info.arrayDimensions ?? [],
+    );
+    const width = ForeignTypeFacts.bitFieldWidth(info);
+    if (typed === null || width === undefined) return typed;
+    return width === null ? null : { ...typed, bitWidth: width };
+  }
+
+  /**
+   * #1975 review (owner ruling): a bit-field holds its declared width, as a
+   * C-Next bitmap field does -- `uint32_t a : 3` is 3 bits, not its storage
+   * type's 32. Null for a width that is no integer literal; undefined for a
+   * field that is no bit-field.
+   */
+  static bitFieldWidth(info: IStructFieldInfo): number | null | undefined {
+    if (info.bitWidth === undefined) return undefined;
+    return typeof info.bitWidth === "number" ? info.bitWidth : null;
+  }
+
+  /** #1975 review: a header type's width, as a C-Next struct's field reads it */
+  static headerBits(
+    lookup: IForeignSymbolLookup,
+    target: ITargetDescription | null,
+  ): (typeName: string) => number | null {
+    return (typeName) => ForeignTypeFacts.typeBits(typeName, lookup, target);
+  }
+
+  /**
+   * ADR-058 for a header's struct (#1975, owner ruling): its fields' bits
+   * together, without C padding, as a C-Next struct's are -- `struct { uint32_t
+   * a; uint8_t b; }` is 40 bits where C stores 64. Null when a field has no
+   * width C-Next fixes: a pointer (C-Next has none), or a type it does not read;
+   * and for a union or a struct with a bit-field, whose fields do not each
+   * hold their own bits (#1975 review).
+   */
+  static structBits(
+    structName: string,
+    lookup: IForeignSymbolLookup,
+    target: ITargetDescription | null,
+    visiting: ReadonlySet<string> = new Set(),
+  ): number | null {
+    const fields = lookup.getStructFields(structName);
+    if (fields === undefined) return null;
+    // A union's fields share their bits, a bit-field's are C's to pack, and a
+    // struct that holds itself (a tag and typedef sharing a name) has no end
+    if (lookup.getStructLayout(structName) !== null) return null;
+    if (visiting.has(structName)) return null;
+    const inside = new Set(visiting).add(structName);
+    let bits = 0;
+    for (const info of fields.values()) {
+      const field = ForeignTypeFacts.operandType(
+        info.type,
+        lookup,
+        target,
+        info.arrayDimensions ?? [],
+      );
+      const fieldBits =
+        field === null
+          ? null
+          : LengthProperty.of(
+              "bit_length",
+              field.dimensions,
+              ForeignTypeFacts.elementBits(field, lookup, target, inside),
+            );
+      if (fieldBits === null) return null;
+      bits += fieldBits;
+    }
+    return bits;
+  }
+
+  /**
+   * ADR-058's `.type_element_count` of a header's struct, its field count as a
+   * C-Next struct's is (#1535); null where its layout has no length either
+   * (#1975 review: `Cfg.type_element_count` was E0867, `Point.type_element_count` 2).
+   */
+  static fieldCount(
+    structName: string,
+    lookup: IForeignSymbolLookup,
+  ): number | null {
+    const fields = lookup.getStructFields(structName);
+    return fields === undefined || lookup.getStructLayout(structName) !== null
+      ? null
+      : fields.size;
+  }
+
+  /**
+   * One element's bits of a header's C type, `uint16_t` or a header struct
+   * (`structBits`); null for a type C-Next fixes no width of. 1.4 folds a
+   * header's length properties with this, as render measures them (#2076).
+   */
+  static typeBits(
+    cType: string,
+    lookup: IForeignSymbolLookup,
+    target: ITargetDescription | null,
+  ): number | null {
+    const typed = ForeignTypeFacts.operandType(cType, lookup, target);
+    return typed === null
+      ? null
+      : LengthProperty.of(
+          "bit_length",
+          typed.dimensions,
+          ForeignTypeFacts.elementBits(typed, lookup, target),
+        );
+  }
+
+  /** The bits of one element of a typed header value */
+  private static elementBits(
+    typed: IOperandType,
+    lookup: IForeignSymbolLookup,
+    target: ITargetDescription | null,
+    visiting: ReadonlySet<string> = new Set(),
+  ): number | null {
+    if (typed.bitWidth !== null) return typed.bitWidth;
+    if (typed.typeName === null) return null;
+    return (
+      TYPE_WIDTH[typed.typeName] ??
+      ForeignTypeFacts.structBits(typed.typeName, lookup, target, visiting)
     );
   }
 

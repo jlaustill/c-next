@@ -80,17 +80,17 @@ Based on "Learn X in Y Minutes" analysis for C, Rust, Go, and Zig.
 
 ## 6. Operators
 
-| Feature                     | C-Next Status     | ADR     | Notes                                |
-| --------------------------- | ----------------- | ------- | ------------------------------------ |
-| Arithmetic `+ - * / %`      | ✅ Implemented    | —       | —                                    |
-| Comparison `= != < > <= >=` | ✅ Implemented    | ADR-001 | `=` for equality                     |
-| Logical `&& \|\| !`         | ✅ Implemented    | —       | —                                    |
-| Bitwise `& \| ^ ~ << >>`    | ✅ Implemented    | —       | —                                    |
-| Compound assignment         | ✅ Implemented    | ADR-001 | `+<-`, `-<-`, etc.                   |
-| Increment/decrement `++ --` | 🚫 Rejected       | ADR-021 | Compound assignment is clearer       |
-| Ternary `? :`               | ✅ Implemented    | ADR-022 | Required parentheses for clarity     |
-| Sizeof                      | ❓ Needs Decision | ADR-023 | ADR-023 is Research; no decision yet |
-| Address-of `&`              | ✅ Implemented    | ADR-006 | Read-only address                    |
+| Feature                     | C-Next Status  | ADR     | Notes                             |
+| --------------------------- | -------------- | ------- | --------------------------------- |
+| Arithmetic `+ - * / %`      | ✅ Implemented | —       | —                                 |
+| Comparison `= != < > <= >=` | ✅ Implemented | ADR-001 | `=` for equality                  |
+| Logical `&& \|\| !`         | ✅ Implemented | —       | —                                 |
+| Bitwise `& \| ^ ~ << >>`    | ✅ Implemented | —       | —                                 |
+| Compound assignment         | ✅ Implemented | ADR-001 | `+<-`, `-<-`, etc.                |
+| Increment/decrement `++ --` | 🚫 Rejected    | ADR-021 | Compound assignment is clearer    |
+| Ternary `? :`               | ✅ Implemented | ADR-022 | Required parentheses for clarity  |
+| Sizeof                      | 🚫 Rejected    | ADR-023 | Use `.type_byte_length` (ADR-058) |
+| Address-of `&`              | ✅ Implemented | ADR-006 | Read-only address                 |
 
 ---
 

@@ -23,7 +23,7 @@ i32 main() {
     }
     // NEGATIVE CONTROL -- an array decays by itself, no address taken
     u32[3] values <- [1, 2, 3];
-    u32 all <- sum_all(values, values.element_count);
+    u32 all <- sum_all(values, values.type_element_count);
     if (all != 6) {
         return 4;
     }

@@ -1,0 +1,70 @@
+// test-execution
+// test-adr: 058
+// The memory row (#1975 review 2): C's layout, sizeof in the generated C for
+// the C compiler to answer. Its numbers are the target's, so this asserts
+// what every target agrees on: memory holds the type, bits are bytes * 8, and
+// a string's buffer holds its '\0'.
+
+struct Cfg {
+    u32 a;
+    u8 b;
+}
+
+enum Mode {
+    A,
+    B,
+    C
+}
+
+bitmap8 Fl {
+    on,
+    mode[3],
+    rest[4]
+}
+
+u32 main() {
+    if (Cfg.memory_byte_length < Cfg.type_byte_length) {
+        return 1;
+    }
+    if (Cfg.memory_bit_length != Cfg.memory_byte_length * 8) {
+        return 2;
+    }
+    if (bool.memory_byte_length != 1) {
+        return 3;
+    }
+    if (bool.memory_bit_length != 8) {
+        return 4;
+    }
+    if (u32.memory_byte_length != 4) {
+        return 5;
+    }
+    if (Mode.memory_byte_length < Mode.type_byte_length) {
+        return 6;
+    }
+    Fl g;
+    if (g.memory_byte_length != 1) {
+        return 7;
+    }
+    string<8> s <- "ab";
+    if (s.memory_byte_length != 9) {
+        return 8;
+    }
+    if (s.memory_char_count != 9) {
+        return 9;
+    }
+    u16[3] arr;
+    if (arr.memory_byte_length != 6) {
+        return 10;
+    }
+    if (arr.memory_element_count != 3) {
+        return 11;
+    }
+    Cfg[2] two;
+    if (two.memory_byte_length != Cfg.memory_byte_length * 2) {
+        return 12;
+    }
+    if (Cfg.memory_element_count != 2) {
+        return 13;
+    }
+    return 0;
+}

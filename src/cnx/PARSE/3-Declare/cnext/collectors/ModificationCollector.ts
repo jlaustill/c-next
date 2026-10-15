@@ -215,7 +215,7 @@ class ModificationCollector {
 
   /**
    * Walk an expression tree to find function calls where parameters are
-   * passed. Initializers and `sizeof` are not searched.
+   * passed. Initializers are not searched.
    */
   private static walkExpressionForCalls(walk: IWalk, expr: TExpression): void {
     switch (expr.kind) {

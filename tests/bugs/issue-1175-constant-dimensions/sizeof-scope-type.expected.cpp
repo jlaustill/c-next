@@ -6,11 +6,12 @@
 #include "sizeof-scope-type.test.hpp"
 
 // #1863 review: a type in a constant expression only C can evaluate was
-// written by its source spelling. Inside scope S, `sizeof(P)` reached C as
-// `sizeof(P)`, but the struct is `S__P`: gcc reported 'P' undeclared, at exit
-// 0. A type in `sizeof` or a cast is named by ADR-057, as every type is.
+// written by its source spelling. Inside scope S, `P.type_byte_length` reached C as
+// `P.type_byte_length`, but the struct is `S__P`: gcc reported 'P' undeclared, at exit
+// 0. Since #1975 the size is `P.type_byte_length`, a type named by ADR-057 as every
+// type is, folded beside the macro C evaluates.
 //
-// NEGATIVE CONTROL: `plain`, sizeof of a primitive, which folds to 4.
+// NEGATIVE CONTROL: `plain`, a primitive's length, which folds to 4.
 #include "mac.h"
 
 #include <stdint.h>
@@ -20,7 +21,7 @@
 typedef struct S__P {
     uint32_t a;
 } S__P;
-static uint8_t S__buf[MACRO_N + (sizeof(S__P))] = {};
+static uint8_t S__buf[MACRO_N + 4] = {};
 
 uint8_t S__first(void) {
     return S__buf[0U];

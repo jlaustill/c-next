@@ -16,8 +16,6 @@ class ConstExprShape {
         return [...(expr.root === null ? [] : [expr.root]), ...expr.path]
           .join(".")
           .replaceAll(`.${ELEMENT_STEP}`, ELEMENT_STEP);
-      case "sizeof":
-        return `sizeof(${expr.typeName})`;
       case "cast":
         return `(${expr.typeName})${ConstExprShape.of(expr.operand)}`;
       case "unary":

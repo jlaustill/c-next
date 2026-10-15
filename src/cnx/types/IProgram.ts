@@ -269,7 +269,7 @@ interface IProgram {
 
   /**
    * A C-Next type name as C spells it at `at` in `sourceFile` (ADR-057), for a
-   * constant expression C evaluates (`sizeof`, a cast) -- the same answer 1.4
+   * constant expression C evaluates (a cast) -- the same answer 1.4
    * wrote into the header (#1863 review)
    */
   cTypeNameAt(

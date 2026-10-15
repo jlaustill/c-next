@@ -3,7 +3,6 @@ import type TTypeInfo from "../../types/TTypeInfo";
 import type TCArgumentForm from "./types/TCArgumentForm";
 import CArgumentAddress from "./CArgumentAddress";
 import type IPlannedArgument from "./types/IPlannedArgument";
-import LengthProperty from "../../utils/LengthProperty";
 import PRIMASK_C_TYPE from "./types/PRIMASK_C_TYPE";
 import FloatBits from "../../utils/FloatBits";
 import type IPlannedFloatBits from "./types/IPlannedFloatBits";
@@ -22,9 +21,13 @@ import TypeSites from "./TypeSites";
 import WrittenParts from "./WrittenParts";
 import DeclarationParts from "../../utils/DeclarationParts";
 import ExpressionNodes from "../../utils/ExpressionNodes";
-import type TValueBinding from "../../types/TValueBinding";
 import CastRequirement from "./CastRequirement";
 import type TNegativeMinimum from "./types/TNegativeMinimum";
+import LengthProperty from "../../utils/LengthProperty";
+import type IChainStep from "../../types/IChainStep";
+import type ILengthName from "../../utils/types/ILengthName";
+import type TLengthRule from "../../utils/types/TLengthRule";
+import LengthSubject from "../../utils/LengthSubject";
 import OperandTyper from "../../utils/OperandTyper";
 import CppNamespaceUtils from "../../utils/CppNamespaceUtils";
 import headerCType from "../../utils/headerCType";
@@ -415,14 +418,8 @@ class FilePlanner {
   private planTypeSites(
     program: IProgramSyntax,
     inlinedConsts: ReadonlySet<TDeclarationSyntax>,
-    sizeofBindings: IFilePlan["sizeofBindings"],
-    sizeofMemberAccesses: IFilePlan["sizeofMemberAccesses"],
   ): ReadonlyMap<TTypeSyntax, IPlannedType> {
-    const unwritten = this.unwrittenTypes(
-      program,
-      sizeofBindings,
-      sizeofMemberAccesses,
-    );
+    const unwritten = this.unwrittenTypes(program);
     const planned = new Map<TTypeSyntax, IPlannedType>();
     for (const { type, scope } of TypeSites.of(program, inlinedConsts)) {
       if (unwritten.has(type)) continue;
@@ -773,19 +770,45 @@ class FilePlanner {
     return children;
   }
 
-  /** Whether 2.3 writes a `.char_count` read: the typer's step names the property */
-  private readsCharCount(
+  /**
+   * ADR-058: what 2.3's length reads need, by `LengthProperty.rule` -- a
+   * string's chars now are strlen, from <string.h>, and a runtime integer
+   * length is a helper.
+   */
+  private planLengths(
     program: IProgramSyntax,
     inlinedConsts: ReadonlySet<TDeclarationSyntax>,
-  ): boolean {
+    requirements: PlannedRequirements,
+  ): void {
+    for (const { rule } of this.lengthReads(program, inlinedConsts)) {
+      if (rule.kind === "string") requirements.require("string");
+      const helper = LengthProperty.helperOf(rule);
+      if (helper !== null) requirements.lengthHelper(helper);
+    }
+  }
+
+  /** Every length 2.3 writes, with the rule it is written by: the typer's step names the property */
+  private *lengthReads(
+    program: IProgramSyntax,
+    inlinedConsts: ReadonlySet<TDeclarationSyntax>,
+  ): Generator<{ step: IChainStep; name: ILengthName; rule: TLengthRule }> {
     const typing = this.state.typingContext();
-    return FilePlanner.writtenExpressions(program, inlinedConsts).some(
-      (expression) =>
-        expression.kind === "postfix" &&
-        OperandTyper.chainOf(expression, typing).steps.some(
-          (step) => step.property === "char_count",
-        ),
+    const isStruct = LengthSubject.structTest(
+      (cName) => typing.program.symbolByCName(cName),
+      typing.symbolTable,
     );
+    for (const expression of FilePlanner.writtenExpressions(
+      program,
+      inlinedConsts,
+    )) {
+      if (expression.kind !== "postfix") continue;
+      for (const step of OperandTyper.chainOf(expression, typing).steps) {
+        const name = LengthProperty.parse(step.property ?? "");
+        const subject = name && LengthSubject.of(step, isStruct);
+        if (name === null || !subject) continue;
+        yield { step, name, rule: LengthProperty.rule(name, subject) };
+      }
+    }
   }
 
   /** Every expression 2.3 writes, except inside a dimension or enum value, which 1.4 spells */
@@ -802,23 +825,10 @@ class FilePlanner {
 
   /**
    * Types in a written declaration that 2.3 spells some other way: a callback
-   * field by its typedef (ADR-029), and a `sizeof(Name)` whose name binds to a
-   * value (#1974).
+   * field by its typedef (ADR-029).
    */
-  private unwrittenTypes(
-    program: IProgramSyntax,
-    sizeofBindings: IFilePlan["sizeofBindings"],
-    sizeofMemberAccesses: IFilePlan["sizeofMemberAccesses"],
-  ): ReadonlySet<TTypeSyntax> {
+  private unwrittenTypes(program: IProgramSyntax): ReadonlySet<TTypeSyntax> {
     const unwritten = new Set<TTypeSyntax>();
-    for (const expression of sizeofMemberAccesses) {
-      if (expression.type) unwritten.add(expression.type);
-    }
-    for (const [expression, binding] of sizeofBindings) {
-      if (binding !== null && binding.kind !== "scope" && expression.type) {
-        unwritten.add(expression.type);
-      }
-    }
     for (const { declaration } of program.declarations) {
       if (declaration.kind !== "struct") continue;
       for (const field of declaration.fields) {
@@ -830,62 +840,6 @@ class FilePlanner {
       }
     }
     return unwritten;
-  }
-
-  /**
-   * #1974: whether `sizeof(Name)` sizes a value or a type depends on what
-   * `Name` binds to at that point. 2.2 decides it for every such operand
-   * before 2.3 spells any of them.
-   */
-  private planSizeofBindings(
-    program: IProgramSyntax,
-  ): ReadonlyMap<TExpressionOf<"sizeof">, TValueBinding | null> {
-    const planned = new Map<TExpressionOf<"sizeof">, TValueBinding | null>();
-    for (const expression of FilePlanner.sizeofExpressionsIn(program)) {
-      if (expression.type?.kind === "user") {
-        planned.set(
-          expression,
-          this.state.bindingAt(
-            null,
-            expression.type.text,
-            FilePlanner.positionOf(expression),
-          ),
-        );
-      }
-    }
-    return planned;
-  }
-
-  /**
-   * #1972: `sizeof(a.b)` is spelled like `sizeof(Scope.Type)`, and is a member
-   * access when the chain has a value type. 2.2 decides which before 2.3
-   * spells either.
-   */
-  private planSizeofMemberAccesses(
-    program: IProgramSyntax,
-  ): ReadonlySet<TExpressionOf<"sizeof">> {
-    const typing = this.state.typingContext();
-    return new Set(
-      FilePlanner.sizeofExpressionsIn(program).filter(
-        (expression) =>
-          expression.type?.kind === "qualified" &&
-          expression.memberChain !== null &&
-          OperandTyper.typeOf(expression.memberChain, typing) !== null,
-      ),
-    );
-  }
-
-  private static sizeofExpressionsIn(
-    program: IProgramSyntax,
-  ): TExpressionOf<"sizeof">[] {
-    return program.declarations.flatMap(({ declaration }) =>
-      DeclarationParts.of(declaration).flatMap((part) =>
-        ExpressionNodes.of(part).filter(
-          (expression): expression is TExpressionOf<"sizeof"> =>
-            expression.kind === "sizeof",
-        ),
-      ),
-    );
   }
 
   /**
@@ -939,14 +893,7 @@ class FilePlanner {
     );
     const decidedCTypes = new Set<string>();
     const inlinedConsts = this.planInlinedConsts(program, decidedCTypes);
-    const sizeofBindings = this.planSizeofBindings(program);
-    const sizeofMemberAccesses = this.planSizeofMemberAccesses(program);
-    const types = this.planTypeSites(
-      program,
-      inlinedConsts,
-      sizeofBindings,
-      sizeofMemberAccesses,
-    );
+    const types = this.planTypeSites(program, inlinedConsts);
     // Each planned type is written once 2.3 is done, so its include is decided here
     for (const plan of types.values()) {
       const requiredInclude = TypeGenerationHelper.getRequiredInclude(plan);
@@ -959,10 +906,7 @@ class FilePlanner {
     if ([...comparisons.values()].includes(true)) {
       requirements.require("string");
     }
-    // ADR-058: `.char_count` is written as strlen, from <string.h>
-    if (this.readsCharCount(program, inlinedConsts)) {
-      requirements.require("string");
-    }
+    this.planLengths(program, inlinedConsts, requirements);
     const safeDivisions = this.planSafeDivisions(
       program,
       inlinedConsts,
@@ -1020,12 +964,6 @@ class FilePlanner {
       ...foreignRegisterValues.flatMap((value) =>
         ExpressionNodes.direct(value),
       ),
-      // #1972: `sizeof(d.values)` is written as the member access it types as
-      ...[...sizeofMemberAccesses].flatMap((sizeof) =>
-        sizeof.memberChain === null
-          ? []
-          : ExpressionNodes.direct(sizeof.memberChain),
-      ),
     ]);
     invariant(valuePositions !== null, "2.1 hands 2.2 where each value stands");
     const argumentPlans = this.planArguments(valuePositions, decidedCTypes);
@@ -1056,8 +994,6 @@ class FilePlanner {
       selfInclude,
       includeDirectives,
       inlinedConsts,
-      sizeofBindings,
-      sizeofMemberAccesses,
       types,
       comparisons,
       casts,
@@ -1504,27 +1440,41 @@ class FilePlanner {
   }
 
   /**
-   * `.bit_length`/`.byte_length` of an array with a dimension that does not
-   * fold (a C macro) is a product 2.3 writes in `uint32_t` (#1760)
+   * The `uint32_t` 2.3 writes a length in (#1760): a logical bit or byte
+   * length of an array with a dimension that does not fold (a C macro) is a
+   * product, a memory length a cast `sizeof`, a runtime one a helper's, and
+   * strlen's only when it is widened for its bits.
    */
   private planLengthCTypes(
     program: IProgramSyntax,
     inlinedConsts: ReadonlySet<TDeclarationSyntax>,
     cTypes: Set<string>,
   ): void {
-    const typing = this.state.typingContext();
-    for (const expression of FilePlanner.writtenExpressions(
+    for (const { step, name, rule } of this.lengthReads(
       program,
       inlinedConsts,
     )) {
-      if (expression.kind !== "postfix") continue;
-      const steps = OperandTyper.chainOf(expression, typing).steps;
-      const unfolded = steps.some(
-        (step) =>
-          (step.property === "bit_length" || step.property === "byte_length") &&
-          step.before?.dimensions.some((dim) => typeof dim !== "number"),
-      );
-      if (unfolded) cTypes.add(LengthProperty.PRODUCT_C_TYPE);
+      const unfolded =
+        rule.kind === "logical" &&
+        name.unit !== "element_count" &&
+        step.before?.dimensions.some((dim) => typeof dim !== "number");
+      const helper = LengthProperty.helperOf(rule) !== null;
+      if (
+        unfolded ||
+        rule.kind === "memory" ||
+        (rule.kind === "string" && name.unit === "bit_length") ||
+        helper
+      ) {
+        cTypes.add(LengthProperty.PRODUCT_C_TYPE);
+      }
+      // `sizeof(bool)`: the C type a memory length measures (2.3's memoryCType)
+      const primitive = TYPE_MAP[step.before?.typeName ?? ""];
+      if (rule.kind === "memory" && primitive !== undefined) {
+        cTypes.add(primitive);
+      }
+      // a runtime integer length's helper takes the value widened to 64 bits
+      if (helper) cTypes.add("uint64_t");
+      if (rule.kind === "decimal" && rule.signed) cTypes.add("int64_t");
     }
   }
 
@@ -2047,6 +1997,7 @@ class FilePlanner {
       existingIncludeTargets,
       clampOps: plan.clampOps,
       castHelpers: requirements.castHelpers,
+      lengthHelpers: requirements.lengthHelpers,
       safeDivOps: requirements.safeDivisions,
       floatAssertSites: requirements.sitesOf("float_static_assert"),
       irqWrapperSites: requirements.sitesOf("irq_wrappers"),

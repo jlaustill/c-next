@@ -22,7 +22,7 @@ void test_bits() {
     u8 field <- flags[4, 3];
 
     // Explicit length properties (ADR-058)
-    u32 arrLen <- buffer.element_count; // Should be 16 (array element count)
-    u32 flagBits <- flags.bit_length; // Should be 8 (u8 bit width)
-    u32 counterBits <- counter.bit_length; // Should be 32 (u32 bit width)
+    u32 arrLen <- buffer.type_element_count; // Should be 16 (array element count)
+    u32 flagBits <- flags.type_bit_length; // Should be 8 (u8 bit width)
+    u32 counterBits <- counter.type_bit_length; // Should be 32 (u32 bit width)
 }

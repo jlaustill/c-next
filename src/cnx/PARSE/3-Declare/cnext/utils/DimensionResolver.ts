@@ -41,8 +41,8 @@ class DimensionResolver {
   /**
    * Resolve one array dimension expression.
    *
-   * A dimension that needs no name (a literal, arithmetic over literals,
-   * `sizeof` of a primitive) folds here, by the one evaluator. Anything else
+   * A dimension that needs no name (a literal, arithmetic over literals)
+   * folds here, by the one evaluator. Anything else
    * is kept as written for 1.4, which binds its names where the declaration
    * is written (#1664 box 7).
    */

@@ -386,6 +386,8 @@ describe("BitAccessHandlers", () => {
             after: null,
             property: null,
             callee: null,
+            beforeNamesType: false,
+            beforeIsBitField: false,
           },
         },
       };

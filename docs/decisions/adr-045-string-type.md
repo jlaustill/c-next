@@ -578,8 +578,8 @@ type
 
 `.capacity` is the declared `N` and `.size` is that plus the null terminator.
 Both describe the BUFFER a string is, so neither has an answer for a scalar or
-an array -- an array's length is `.element_count`, and a value's size in bytes
-is `.byte_length` (ADR-058).
+an array -- an array's length is `.type_element_count`, and a value's size in bytes
+is `.type_byte_length` (ADR-058).
 
 As with those, the name is only a property when it names nothing else: a scope
 variable may be called `capacity`.

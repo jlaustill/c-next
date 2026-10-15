@@ -22,7 +22,7 @@ u32 main() {
     if (large != 8) {
         return 2;
     }
-    u32 count <- Small.table.element_count;
+    u32 count <- Small.table.type_element_count;
     if (count != 2) {
         return 3;
     }

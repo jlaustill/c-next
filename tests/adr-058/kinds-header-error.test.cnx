@@ -1,0 +1,15 @@
+// test-error
+// test-adr: 058
+// A C header's layouts the type row cannot sum (E0867), beside the memory
+// row that answers them; and a header bit-field has no memory (#1975 review 2).
+
+#include "kinds-layouts.h"
+
+// NEGATIVE CONTROLS
+u32 ok1 <- KOdd.memory_byte_length + KUn.memory_byte_length + KBF.memory_byte_length;
+u32 ok2 <- KBF.a.type_bit_length;
+
+u32 e1 <- KOdd.type_byte_length;
+u32 e2 <- KUn.type_bit_length;
+u32 e3 <- KBF.type_byte_length;
+u32 e4 <- KBF.a.memory_byte_length;

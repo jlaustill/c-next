@@ -12,7 +12,7 @@ u32 probe() {
     }
     u8[N] buf;
     buf[7] <- 7;
-    u32 n <- buf.element_count;
+    u32 n <- buf.type_element_count;
     u32 last <- buf[7];
     return n + last + x;
 }

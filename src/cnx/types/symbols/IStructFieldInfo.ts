@@ -7,6 +7,11 @@ interface IStructFieldInfo {
   type: string;
   /** Array dimensions if field is an array - numbers for resolved dimensions, strings for macros */
   arrayDimensions?: (number | string)[];
+  /**
+   * A bit-field's declared width, `uint32_t a : 3`: a number, or the
+   * expression as written when it is no integer literal (#1975 review)
+   */
+  bitWidth?: number | string;
 }
 
 export default IStructFieldInfo;

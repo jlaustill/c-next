@@ -10,7 +10,7 @@ i32 main() {
     if (big != "Test") {
         return 1;
     }
-    if (big.char_count != 4) {
+    if (big.value_char_count != 4) {
         return 2;
     }
     return 0;

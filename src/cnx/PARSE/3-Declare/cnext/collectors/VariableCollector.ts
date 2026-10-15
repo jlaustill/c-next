@@ -117,8 +117,8 @@ class VariableCollector {
    *
    * #1668: shared by a global or scope member (`collect`, below) and a local
    * or `for` variable (`LexicalScopeCollector`), so a declaration means the
-   * same thing wherever it is written. No const folds here: a literal or
-   * `sizeof` dimension folds, and every name stays its text for 1.4 Resolve
+   * same thing wherever it is written. No const folds here: a literal
+   * dimension folds, and every name stays its text for 1.4 Resolve
    * to fold in the declaration's lexical environment (#1664 box 7).
    */
   static declaredFacts(

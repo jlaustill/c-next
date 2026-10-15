@@ -2124,60 +2124,6 @@ describe("Transpiler coverage integration tests", () => {
     expect(result.errors[0].helpText).toContain("nonexistent_config.h");
   });
 
-  // ==========================================================================
-  // E0602: side effects in sizeof (ADR-023, MISRA C:2012 Rule 13.6)
-  //
-  // Covered by .cnx fixtures, but those run outside vitest, so the scanner that
-  // decides "is there a call in here?" had no unit coverage. Its edge cases are
-  // the reason it replaced /[a-zA-Z_]\w*\s*\(/ (S8786), so they are asserted
-  // here against the real pipeline rather than a copy of the scan.
-  // ==========================================================================
-
-  describe("sizeof side effects (E0602)", () => {
-    const transpileSource = async (body: string) => {
-      const transpiler = new Transpiler(
-        { input: "", noCache: true, target: "host" },
-        new MockFileSystem(),
-      );
-      return await transpiler.transpile({
-        kind: "source",
-        source: `u32 getValue() {
-  return 42;
-}
-
-void main() {
-  u32 counter <- 1;
-  ${body}
-}
-`,
-      });
-    };
-
-    it.each([
-      ["a direct call", "u32 bad <- sizeof(getValue());"],
-      ["a call within an expression", "u32 bad <- sizeof(getValue() + 1);"],
-    ])("rejects %s as a sizeof operand", async (_label, body) => {
-      const result = await transpileSource(body);
-
-      expect(result.success).toBe(false);
-      expect(result.errors.map((error) => error.message).join("\n")).toContain(
-        "E0602",
-      );
-    });
-
-    it.each([
-      ["a plain variable", "u32 size <- sizeof(counter);"],
-      ["a parenthesized variable", "u32 size <- sizeof((counter));"],
-    ])("accepts %s as a sizeof operand", async (_label, body) => {
-      const result = await transpileSource(body);
-
-      expect(
-        result.errors.map((error) => error.message).join("\n"),
-      ).not.toContain("E0602");
-      expect(result.success).toBe(true);
-    });
-  });
-
   /**
    * #1541: a generated header naming a `.cnx` source that is not there.
    *

@@ -1,6 +1,6 @@
 // test-execution
 // Regression test: .length property on struct member access
-// Verifies cfg.magic.bit_length correctly returns 32 (was returning 0)
+// Verifies cfg.magic.type_bit_length correctly returns 32 (was returning 0)
 scope LengthPropMembers {
     public struct Config {
         u32 magic;
@@ -16,15 +16,15 @@ i32 main() {
     cfg.flags <- 0xFF;
 
     // Test .length on struct members
-    if (cfg.magic.bit_length != 32) {
+    if (cfg.magic.type_bit_length != 32) {
         return 1;
     }
 
-    if (cfg.version.bit_length != 16) {
+    if (cfg.version.type_bit_length != 16) {
         return 1;
     }
 
-    if (cfg.flags.bit_length != 8) {
+    if (cfg.flags.type_bit_length != 8) {
         return 1;
     }
 

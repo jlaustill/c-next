@@ -1,5 +1,5 @@
 // test-execution
-// Tests .byte_length property for float types (ADR-058)
+// Tests .type_byte_length property for float types (ADR-058)
 // f32 = 4 bytes, f64 = 8 bytes
 
 f32 globalF32 <- 3.14;
@@ -14,23 +14,23 @@ scope FloatByteLen {
 
 i32 main() {
     // Test f32 byte_length = 4
-    if (globalF32.byte_length != 4) {
+    if (globalF32.type_byte_length != 4) {
         return 1;
     }
 
     // Test f64 byte_length = 8
-    if (globalF64.byte_length != 8) {
+    if (globalF64.type_byte_length != 8) {
         return 2;
     }
 
     // Test local floats
     f32 localF32 <- 1.5;
-    if (localF32.byte_length != 4) {
+    if (localF32.type_byte_length != 4) {
         return 3;
     }
 
     f64 localF64 <- 2.5;
-    if (localF64.byte_length != 8) {
+    if (localF64.type_byte_length != 8) {
         return 4;
     }
 
@@ -38,10 +38,10 @@ i32 main() {
     FloatByteLen.TestStruct ts;
     ts.x <- 1.0;
     ts.y <- 2.0;
-    if (ts.x.byte_length != 4) {
+    if (ts.x.type_byte_length != 4) {
         return 5;
     }
-    if (ts.y.byte_length != 8) {
+    if (ts.y.type_byte_length != 8) {
         return 6;
     }
 

@@ -8,29 +8,30 @@
 #include <stdint.h>
 
 // test-execution
-// Issue #1967: a scope member named bare in `sizeof` is emitted under its
-// scope-qualified C name, whole and through a member, as every other bare
-// identifier is. Controls: the `this.` form, and a local that shadows the
-// member, which measures the local.
+// Issue #1967: a scope member named bare is measured under its scope-qualified
+// C name, whole and through a member, as every other bare identifier is.
+// Written with `sizeof` then; ADR-058's `.type_byte_length` since #1975. Controls:
+// the `this.` form, and a local that shadows the member, which measures the
+// local.
 /* Scope: S */
 static uint8_t S__buf[16] = {0};
 static Pair S__cfg = {0};
 
 uint32_t S__measureBuf(void) {
-    return sizeof(S__buf);
+    return 16;
 }
 
 uint32_t S__measureField(void) {
-    return sizeof(S__cfg.b);
+    return 4;
 }
 
 uint32_t S__measureThis(void) {
-    return sizeof(S__buf);
+    return 16;
 }
 
 uint32_t S__measureShadow(void) {
     uint8_t buf[4] = {0U, 0U, 0U, 0U};
-    return sizeof(buf);
+    return 4;
 }
 
 int main(void) {

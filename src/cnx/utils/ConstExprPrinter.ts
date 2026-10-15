@@ -23,10 +23,10 @@ class ConstExprPrinter {
     if (result.kind === "value") return result.value.toString();
     switch (expr.kind) {
       case "name":
-        // Only a header's name is left unvalued here, and C spells it as is
-        return expr.path.join(".");
-      case "sizeof":
-        return `sizeof(${env.cTypeName(expr.typeName, expr.at)})`;
+        // A memory size is C's `sizeof` (ADR-058); a header's name C spells as is
+        return result.kind === "foreign" && result.c !== undefined
+          ? result.c
+          : expr.path.join(".");
       case "cast":
         return `(${env.cTypeName(expr.typeName, expr.at)})${ConstExprPrinter.operand(expr.operand, env)}`;
       case "unary":

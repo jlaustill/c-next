@@ -17,7 +17,7 @@
  * enum element its zero enumerator (#1971), and each element of an array of a
  * struct with a default that struct's default, so the count must be one
  * C-Next reads (`ElementCount`). A header macro of plain
- * integer arithmetic is; a `sizeof`, a cast or a macro it cannot see is not.
+ * integer arithmetic is; a cast or a macro it cannot see is not.
  */
 import ConstExprLowering from "../../utils/ConstExprLowering";
 import ConstantEvaluator from "../../utils/ConstantEvaluator";
@@ -81,15 +81,11 @@ class Dimensions {
     }
   }
 
-  /** `u8[4]`: a written type's, a cast's, a `sizeof`'s */
+  /** `u8[4]`: a written type's, a cast's */
   private static inTypes(part: TSyntaxPart): ReadonlyArray<TExpression | null> {
-    const named = ExpressionNodes.of(part).flatMap((expr) => {
-      if (expr.kind === "cast") return Dimensions.ofType(expr.type);
-      if (expr.kind !== "sizeof" || expr.type === null) return [];
-      return Dimensions.isSizeofSubscript(expr.type)
-        ? []
-        : Dimensions.ofType(expr.type);
-    });
+    const named = ExpressionNodes.of(part).flatMap((expr) =>
+      expr.kind === "cast" ? Dimensions.ofType(expr.type) : [],
+    );
     return part.kind === "type"
       ? [...Dimensions.ofType(part.type), ...named]
       : named;
@@ -98,16 +94,6 @@ class Dimensions {
   /** An array type's element is never an array, nor a template argument one */
   private static ofType(type: TTypeSyntax): ReadonlyArray<TExpression | null> {
     return type.kind === "array" ? type.dimensions : [];
-  }
-
-  /**
-   * ADR-023: `sizeof ( type | expression )` is ambiguous for `arr[0]` and
-   * ANTLR takes the `type` branch, so a subscript of a variable arrives as a
-   * user-type array (UndeclaredTypeAnalyzer's ruling). A primitive base,
-   * `sizeof(u8[4])`, is a type and its dimension is checked.
-   */
-  private static isSizeofSubscript(type: TTypeSyntax): boolean {
-    return type.kind === "array" && type.element.kind === "user";
   }
 }
 
@@ -160,7 +146,7 @@ class ConstantDimensionCheck {
       ...at,
       message: `Array dimension must be known at compile time: ${why}`,
       helpText:
-        "An array's size is built from literals, consts, sizeof and casts (ADR-023). C-Next has no variable-length arrays",
+        "An array's size is built from literals, consts, length properties (.type_byte_length) and casts (ADR-058). C-Next has no variable-length arrays",
     });
   }
 }

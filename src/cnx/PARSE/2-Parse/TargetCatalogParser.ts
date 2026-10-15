@@ -91,7 +91,7 @@ class TargetCatalogParser {
     const initializer =
       ExpressionUnwrapper.getPostfixExpression(expression)
         ?.primaryExpression()
-        .structInitializer() ?? null;
+        ?.structInitializer() ?? null;
     if (!initializer) {
       const value = TargetCatalogParser.literal(expression);
       if (value === null) {
@@ -129,7 +129,7 @@ class TargetCatalogParser {
     if (!postfix || postfix.postfixOp().length > 0) {
       return null;
     }
-    const literal = postfix.primaryExpression().literal();
+    const literal = postfix.primaryExpression()?.literal();
     if (!literal) {
       return null;
     }

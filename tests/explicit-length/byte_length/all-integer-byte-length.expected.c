@@ -8,7 +8,7 @@
 #include <stdint.h>
 
 // test-execution
-// Tests .byte_length property for all integer types (ADR-058)
+// Tests .type_byte_length property for all integer types (ADR-058)
 // Each integer type should return its byte size
 uint8_t global_u8 = 255U;
 

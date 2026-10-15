@@ -5,7 +5,7 @@ scope S {
     const string<8> NAME <- "abc";
 
     public u32 length() {
-        return NAME.char_count;
+        return NAME.value_char_count;
     }
 }
 

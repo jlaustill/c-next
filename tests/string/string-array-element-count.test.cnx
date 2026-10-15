@@ -1,5 +1,5 @@
 // test-execution
-// Issue #1029: .element_count should work on string arrays inside functions
+// Issue #1029: .type_element_count should work on string arrays inside functions
 
 i32 main() {
     string<32>[4] items;
@@ -8,15 +8,15 @@ i32 main() {
     items[2] <- "Three";
     items[3] <- "Four";
 
-    // Test .element_count on string array
-    if (items.element_count != 4) {
+    // Test .type_element_count on string array
+    if (items.type_element_count != 4) {
         return 1;
     }
 
-    // Test using .element_count in a loop
+    // Test using .type_element_count in a loop
     u32 count <- 0;
     u32 i <- 0;
-    while (i < items.element_count) {
+    while (i < items.type_element_count) {
         count <- count + 1;
         i <- i + 1;
     }

@@ -16,7 +16,7 @@
 // `label` is emitted qualified (`Cfg__label`, ADR-016), but the length cache
 // was declared from the source name, as `strlen(label)` -- an undeclared
 // identifier, so gcc rejected the program the transpiler reported as fine.
-// The cache needs two `.char_count` reads; one read was already right.
+// The cache needs two `.value_char_count` reads; one read was already right.
 //
 // Negative controls: the member read ONCE (no cache, correct before the fix)
 // and a file-scope string read twice (cached as `strlen(title)`, which worked

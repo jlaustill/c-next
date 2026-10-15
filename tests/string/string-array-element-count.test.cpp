@@ -20,7 +20,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 }
 
 // test-execution
-// Issue #1029: .element_count should work on string arrays inside functions
+// Issue #1029: .type_element_count should work on string arrays inside functions
 int main(void) {
     char items[4][33] = {0};
     (void) strncpy(items[0], "One", 32);

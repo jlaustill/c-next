@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
+import CResolver from "../../../../../cnx/PARSE/3-Declare/c/index";
+import HeaderParser from "../../../../../cnx/PARSE/2-Parse/HeaderParser";
 import ConstantDimensionAnalyzer from "../../../../../cnx/TRANSPILE/1-Analyze/ConstantDimensionAnalyzer";
 import testAnalysisContextFor from "./testAnalysisContextFor";
+import SymbolTable from "../../../../../cnx/PARSE/3-Declare/SymbolTable";
 
 function errors(
   source: string,
@@ -61,9 +64,9 @@ describe("ConstantDimensionAnalyzer (#1175: E0909, E0910)", () => {
     ["a literal", "u8[4] a;"],
     ["a const, and arithmetic over it", "const u8 N <- 4;\nu8[N * 2 + 1] a;"],
     ["a wider cast", "const u8 A <- 200;\nu8[(u16)A + (u16)A] a;"],
-    ["sizeof of a primitive", "u8[sizeof(u32)] a;"],
+    ["a primitive's length", "u8[u32.type_byte_length] a;"],
     ["an enum member", "enum E { A, B, COUNT }\nu8[E.COUNT] a;"],
-    ["a property", "u8[3] src;\nu8[src.element_count] a;"],
+    ["a property", "u8[3] src;\nu8[src.type_element_count] a;"],
     // not this analyzer's: E0427 reports an undeclared bare name
     ["an undeclared name", "u8[NOT_DECLARED] a;"],
   ])("accepts %s", (_label, source) => {
@@ -77,10 +80,56 @@ describe("ConstantDimensionAnalyzer (#1175: E0909, E0910)", () => {
       }),
     ).toEqual([]);
   });
+
+  describe("a C header's struct (#2076)", () => {
+    /** `typedef struct { uint32_t a; uint8_t b; } Cfg;` and a pointer holder */
+    const headerErrors = (source: string) => {
+      // A header's struct is a declared type, as Stage 2 declares it
+      const symbolTable = new SymbolTable();
+      const tree = HeaderParser.parseC(
+        "typedef struct { uint32_t a; uint8_t b; } Cfg;\n" +
+          "typedef struct { int32_t i; char *p; } Odd;\n",
+      ).syntax;
+      symbolTable.addCSymbols(
+        CResolver.resolve(tree!, "shapes.h", symbolTable).symbols,
+      );
+      const { syntax, context } = testAnalysisContextFor(source, {
+        cppMode: false,
+        symbolTable,
+      });
+      return {
+        errors: new ConstantDimensionAnalyzer(context).analyze(syntax),
+        program: context.program,
+      };
+    };
+
+    it.each([
+      ["the type", "u8[Cfg.type_byte_length] a;", 5],
+      ["a field of the type", "u8[Cfg.a.type_bit_length] a;", 32],
+      ["a value", "Cfg c;\nu8[c.type_byte_length] a;", 5],
+      ["a field of a value", "Cfg c;\nu8[c.b.type_byte_length] a;", 1],
+    ])("sizes an array by %s's fields summed", (_label, source, length) => {
+      const { errors: found, program } = headerErrors(source);
+      expect(found).toEqual([]);
+      const array = program.symbolByCName("a");
+      expect(array?.kind === "variable" && array.arrayDimensions).toEqual([
+        length,
+      ]);
+    });
+
+    it("has no size for a struct holding a pointer (C-Next has none)", () => {
+      const { errors: found } = headerErrors(
+        "u8[Odd.i.type_byte_length] ok;\nu8[Odd.type_byte_length] a;",
+      );
+      expect(found).toHaveLength(1);
+      expect(found[0]).toMatchObject({ code: "E0909", line: 2 });
+      expect(found[0].message).toContain("'Odd.type_byte_length'");
+    });
+  });
 });
 
 describe("ConstantDimensionAnalyzer on 1.2's syntax (#1991)", () => {
-  // A dimension after the name, a cast's and a sizeof's are each their own
+  // A dimension after the name and a cast's are each their own
   // place in 1.2's syntax, so each is asked on its own
   it.each([
     ["a global", "u8 n <- 3;\nu8 g[n];"],
@@ -89,14 +138,15 @@ describe("ConstantDimensionAnalyzer on 1.2's syntax (#1991)", () => {
     ["a struct field", "u8 n <- 3;\nstruct S {\n    u8 data[n];\n}"],
     ["a scope member", "u8 n <- 3;\nscope M {\n    u8 slots[n];\n}"],
     ["a cast's type", "u8 n <- 3;\nvoid f(u8 x) {\n    u32 y <- (u8[n])x;\n}"],
-    ["a sizeof's type", "u8 n <- 3;\nu32 s <- sizeof(u8[n]);"],
   ])("rejects a dimension with no value: %s", (_label, source) => {
     expect(errors(source).map((e) => e.code)).toEqual(["E0909"]);
   });
 
-  it("leaves a sizeof of a subscript to the expression it is", () => {
+  it("leaves a length of a subscript to the expression it is", () => {
     expect(
-      errors("u8[4] arr;\nvoid f(u32 i) {\n    u32 s <- sizeof(arr[i]);\n}"),
+      errors(
+        "u8[4] arr;\nvoid f(u32 i) {\n    u32 s <- arr[i].type_byte_length;\n}",
+      ),
     ).toEqual([]);
   });
 

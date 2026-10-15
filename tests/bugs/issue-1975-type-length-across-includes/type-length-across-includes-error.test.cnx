@@ -1,0 +1,16 @@
+// test-error
+// test-adr: 058
+// #1975 review: a type two include hops away names no field it does not
+// declare, as a type declared here does not (E0897): `Point.z` and `Geo.Box.q`
+// are no fields, so their lengths are no numbers.
+//
+// NEGATIVE CONTROL: `Point.x.type_byte_length` and `Geo.Box.h.type_byte_length` are
+// fields the included types declare.
+#include "geo-mid.cnx"
+
+u32 main() {
+    u32 good <- Point.x.type_byte_length + Geo.Box.h.type_byte_length;
+    u32 bad <- Point.z.type_byte_length;
+    u32 worse <- Geo.Box.q.type_byte_length;
+    return good + bad + worse;
+}

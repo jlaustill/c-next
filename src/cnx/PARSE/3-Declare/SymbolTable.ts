@@ -14,6 +14,7 @@ import { produce, enableMapSet } from "immer";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
 import IConflict from "../../types/IConflict";
 import IStructFieldInfo from "../../types/symbols/IStructFieldInfo";
+import type TStructLayout from "../../types/TStructLayout";
 import IStructSymbolState from "../../types/symbols/IStructSymbolState";
 import TJsonSafe from "../../utils/types/TJsonSafe";
 import TSymbol from "../../types/symbols/TSymbol";
@@ -29,6 +30,14 @@ import type IResolvedSymbols from "../../types/IResolvedSymbols";
 // Enable immer support for Map and Set (must be called once at module scope)
 enableMapSet();
 
+const STRUCT_LAYOUTS: ReadonlySet<string> = new Set<TStructLayout>([
+  "union",
+  "bit-packed",
+  "unrecorded-member",
+  "derived",
+  "virtual",
+]);
+
 /** Create a fresh initial struct symbol state */
 function createInitialStructState(): IStructSymbolState {
   return {
@@ -36,6 +45,7 @@ function createInitialStructState(): IStructSymbolState {
     typedefToTag: new Map(),
     structTagsWithBodies: new Set(),
     pointerTypedefs: new Set(),
+    structLayouts: new Map(),
   };
 }
 
@@ -290,6 +300,7 @@ class SymbolTable implements IResolvedSymbols {
         fieldName,
         fieldInfo.type,
         fieldInfo.arrayDimensions,
+        fieldInfo.bitWidth,
       );
     }
   }
@@ -694,12 +705,14 @@ class SymbolTable implements IResolvedSymbols {
    * @param fieldName Name of the field
    * @param fieldType Type of the field (e.g., "uint32_t")
    * @param arrayDimensions Optional array dimensions - numbers for resolved, strings for macros
+   * @param bitWidth A bit-field's declared width (#1975 review)
    */
   addStructField(
     structName: string,
     fieldName: string,
     fieldType: string,
     arrayDimensions?: readonly (number | string)[],
+    bitWidth?: number | string,
   ): void {
     let fields = this.structFields.get(structName);
     if (!fields) {
@@ -711,6 +724,7 @@ class SymbolTable implements IResolvedSymbols {
     fields.set(fieldName, {
       type: fieldType,
       arrayDimensions: arrayDimensions ? [...arrayDimensions] : undefined,
+      ...(bitWidth !== undefined && { bitWidth }),
     });
   }
 
@@ -856,6 +870,7 @@ class SymbolTable implements IResolvedSymbols {
       typedefToTag: Array.from(this.structState.typedefToTag),
       structTagsWithBodies: Array.from(this.structState.structTagsWithBodies),
       pointerTypedefs: Array.from(this.structState.pointerTypedefs),
+      structLayouts: Array.from(this.structState.structLayouts),
     };
   }
 
@@ -887,11 +902,21 @@ class SymbolTable implements IResolvedSymbols {
       typedefToTag: new Map(state.typedefToTag),
       structTagsWithBodies: new Set(state.structTagsWithBodies),
       pointerTypedefs: new Set(state.pointerTypedefs),
+      structLayouts: new Map(
+        state.structLayouts.filter(SymbolTable.isLayoutEntry),
+      ),
     };
 
     this.structState = produce(this.structState, (draft) => {
       SymbolTable.mergeStructState(draft, revived);
     });
+  }
+
+  /** #1975: a cached layout entry, read back from JSON */
+  private static isLayoutEntry(
+    entry: readonly [string, string],
+  ): entry is [string, TStructLayout] {
+    return STRUCT_LAYOUTS.has(entry[1]);
   }
 
   /**
@@ -919,8 +944,10 @@ class SymbolTable implements IResolvedSymbols {
           target.add(member);
         }
       } else if (target instanceof Map && source instanceof Map) {
+        // Each key's Map holds one value type, the one `source`'s holds
+        const into = target as Map<string, unknown>;
         for (const [entryKey, entryValue] of source) {
-          target.set(entryKey, entryValue);
+          into.set(entryKey, entryValue);
         }
       } else {
         // A field with no merge rule would be skipped in silence, which is how
@@ -1042,6 +1069,18 @@ class SymbolTable implements IResolvedSymbols {
     this.structState = produce(this.structState, (draft) => {
       draft.structTagsWithBodies.delete(structTag);
     });
+  }
+
+  /** #1975: record why `structName`'s members do not sum to its length */
+  setStructLayout(structName: string, layout: TStructLayout): void {
+    this.structState = produce(this.structState, (draft) => {
+      draft.structLayouts.set(structName, layout);
+    });
+  }
+
+  /** #1975: why `structName` has no length, or null when its fields sum */
+  getStructLayout(structName: string): TStructLayout | null {
+    return this.structState.structLayouts.get(structName) ?? null;
   }
 
   /** Issue #985: The struct tag a typedef aliases, if any (e.g. lv_obj_t -> _lv_obj_t). */

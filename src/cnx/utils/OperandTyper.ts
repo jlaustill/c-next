@@ -28,6 +28,8 @@ import LiteralUtils from "./LiteralUtils";
 import CompositeType from "./CompositeType";
 import QualifiedCName from "./QualifiedCName";
 import LengthProperty from "./LengthProperty";
+import TypeHead from "./TypeHead";
+import ResolvedTarget from "./ResolvedTarget";
 import PROPERTY_NAMES from "./constants/PROPERTY_NAMES";
 import ScopeUtils from "./ScopeUtils";
 import SubscriptClassifier from "./SubscriptClassifier";
@@ -57,6 +59,11 @@ type TChainValue =
       readonly register: boolean;
     }
   | { readonly k: "scope"; readonly scopePath: string }
+  /**
+   * A type named where a value would be, `u32` or `Point.y` (#1975): no
+   * value, but the shape ADR-058's length properties measure
+   */
+  | { readonly k: "type"; readonly t: IOperandType }
   | { readonly k: "enumType"; readonly name: string }
   | { readonly k: "register"; readonly name: string }
   | {
@@ -271,12 +278,15 @@ class OperandTyper {
     const start = OperandTyper.chainStart(chain, ctx);
     const steps: IChainStep[] = [];
     let current = start.value;
+    let bitField = false;
     for (const op of start.ops) {
-      const before = current.k === "value" ? current.t : null;
+      const before = OperandTyper.measuredBy(current, op, ctx);
       const { next, subscript } = OperandTyper.applyOp(current, op, ctx);
       const member = op.kind === "member" ? op.name : null;
       steps.push({
         before,
+        beforeNamesType: current.k === "type" || current.k === "enumType",
+        beforeIsBitField: bitField,
         subscript,
         after: next.k === "value" ? next.t : null,
         callee: op.kind === "call" ? OperandTyper.calleeOf(current) : null,
@@ -287,12 +297,140 @@ class OperandTyper {
             ? member
             : null,
       });
+      bitField = OperandTyper.isBitField(current, op, ctx);
       current = next;
     }
     return {
       typing: { root: start.binding, steps },
       last: current.k === "value" ? current.t : null,
     };
+  }
+
+  /**
+   * What an op applies to: a value's type, or a named type's shape -- which
+   * only a length property reads (#1975: `u32.type_byte_length`, `Mode.type_byte_length`)
+   */
+  private static measuredBy(
+    current: TChainValue,
+    op: TPostfixOpSyntax,
+    ctx: ITypingContext,
+  ): IOperandType | null {
+    if (current.k === "value" || current.k === "type") return current.t;
+    if (
+      current.k === "enumType" &&
+      op.kind === "member" &&
+      OperandTyper.enumReadsProperty(current.name, op.name, ctx)
+    ) {
+      return {
+        ...OperandTyper.plain(current.name),
+        ...OperandTyper.namedFacts(current.name, ctx),
+      };
+    }
+    return null;
+  }
+
+  /** `Mode.type_byte_length`: a property name the enum declares no member of */
+  private static enumReadsProperty(
+    cName: string,
+    member: string,
+    ctx: ITypingContext,
+  ): boolean {
+    const symbol = ctx.program.symbolByCName(cName);
+    return (
+      PROPERTY_NAMES.has(member) &&
+      !(symbol?.kind === "enum" && symbol.members.has(member))
+    );
+  }
+
+  /**
+   * #1975: a type named at the head of a chain -- a primitive, a C-Next
+   * struct or bitmap (ADR-057's qualification, as every type position), or a
+   * header's struct. Null for a name that is no such type.
+   */
+  private static typeHead(
+    name: string,
+    scopePath: string,
+    ctx: ITypingContext,
+  ): IOperandType | null {
+    const primitive = TypeHead.primitive(name);
+    if (primitive !== null) return OperandTyper.fromType(primitive, [], ctx);
+    const cName = OperandTyper.cNameOf(
+      ScopeUtils.qualifyScopeType(
+        name,
+        scopePath,
+        OperandTyper.scopeTypesSeenBy(ctx),
+      ),
+    );
+    const named = OperandTyper.namedTypeOf(cName, ctx);
+    if (named !== null) return named;
+    const target = OperandTyper.target(ctx);
+    return TypeHead.header(name, ctx.symbolTable, target) === null
+      ? null
+      : ForeignTypeFacts.operandType(name, ctx.symbolTable, target);
+  }
+
+  /** A member of the enum the name names */
+  private static enumMember(enumName: string): TChainValue {
+    return {
+      k: "value",
+      register: false,
+      t: {
+        ...OperandTyper.plain(enumName),
+        category: "enum",
+        enumTypeName: enumName,
+        form: { kind: "enumMember" },
+      },
+    };
+  }
+
+  /** A C-Next struct or bitmap the C name names; null for any other symbol */
+  private static namedTypeOf(
+    cName: string,
+    ctx: ITypingContext,
+  ): IOperandType | null {
+    // An enum names its members first (`EMode.RUN`): `enumType` types it
+    const type = TypeHead.ofSymbol(ctx.program.symbolByCName(cName), cName);
+    return type === null || type.kind === "enum"
+      ? null
+      : OperandTyper.fromType(type, [], ctx);
+  }
+
+  /**
+   * #1975 review, #2078: the op at which a chain that names a type stops
+   * naming one it may. A type answers ADR-058's length properties, its own
+   * and its fields' types' (`Point.y.type_byte_length`), and names no value. The
+   * op that leaves that shape -- a missing field, `u32.foo`, a subscript --
+   * or `at: null` for a chain that ends on the type (`Point.x`). Null for a
+   * chain whose head is no type, or one that ends reading a length of one.
+   */
+  static typeNamedAsValue(
+    chain: TExpression,
+    ctx: ITypingContext,
+  ): { at: TPostfixOpSyntax | null; type: IOperandType } | null {
+    const start = OperandTyper.chainStart(chain, ctx);
+    let current = start.value;
+    for (const [i, op] of start.ops.entries()) {
+      if (current.k !== "type") {
+        current = OperandTyper.applyOp(current, op, ctx).next;
+        continue;
+      }
+      const next = OperandTyper.applyOp(current, op, ctx).next;
+      if (
+        next.k === "type" ||
+        (next.k === "value" && next.t.form.kind === "enumMember")
+      ) {
+        current = next;
+        continue;
+      }
+      // A field of the name typed above; a length property ends the chain,
+      // and LengthPropertyAnalyzer holds it to the type it is asked of
+      if (op.kind === "member" && LengthProperty.isLength(op.name)) {
+        const after = start.ops[i + 1];
+        return after === undefined ? null : { at: after, type: current.t };
+      }
+      return { at: op, type: current.t };
+    }
+    return current.k === "type" ? { at: null, type: current.t } : null;
   }
 
   /**
@@ -977,12 +1115,62 @@ class OperandTyper {
         ops,
       };
     }
-    const macro = OperandTyper.macroStart(binding, name, ops, ctx);
-    if (macro) return macro;
+    return (
+      OperandTyper.macroStart(binding, name, ops, ctx) ??
+      OperandTyper.typeOrForeignStart(binding, name, scopePath, ops, ctx)
+    );
+  }
+
+  /** A type named at a chain's head, else a header's name */
+  private static typeOrForeignStart(
+    binding: TValueBinding | null,
+    name: string,
+    scopePath: string,
+    ops: TChainOps,
+    ctx: ITypingContext,
+  ): IChainStart {
+    // A header's type binds as its name does, but names no value: `Cfg`. A
+    // value wins a name it shares with a type: a scope's function shadows a
+    // global type (ADR-057, #1281), a header's `stat()` its `struct stat` (C
+    // keeps tags apart), and a class's static member is no field (`Dev.make`)
+    const namesType =
+      (binding === null || binding.kind === "foreign") &&
+      !OperandTyper.headerNamesValue(name, ctx) &&
+      !OperandTyper.namesStaticMember(name, ops, ctx);
+    const type = namesType ? OperandTyper.typeHead(name, scopePath, ctx) : null;
+    if (type !== null) {
+      return { binding: null, value: { k: "type", t: type }, ops };
+    }
     if (binding?.kind === "foreign") {
       return OperandTyper.foreignStart(binding, name, ops, ctx);
     }
     return { binding: null, value: { k: "foreignPath", parts: [name] }, ops };
+  }
+
+  /** #1975 review: whether a header declares a function or variable `name` */
+  private static headerNamesValue(name: string, ctx: ITypingContext): boolean {
+    return [
+      ...ctx.symbolTable.getCOverloads(name),
+      ...ctx.symbolTable.getCppOverloads(name),
+    ].some(
+      (symbol) => symbol.kind === "function" || symbol.kind === "variable",
+    );
+  }
+
+  /** #1975 review: `Dev.make(3)`, `Dev.LIMIT` -- a C++ class's static member */
+  private static namesStaticMember(
+    name: string,
+    ops: TChainOps,
+    ctx: ITypingContext,
+  ): boolean {
+    const first = ops[0];
+    return (
+      first?.kind === "member" &&
+      OperandTyper.headerNamesValue(
+        CppNamespaceUtils.fromParts([name, first.name]),
+        ctx,
+      )
+    );
   }
 
   /** A chain that is a floating or unreadable header macro named alone */
@@ -1082,7 +1270,10 @@ class OperandTyper {
       default:
         break;
     }
-    return UNKNOWN;
+    // #1975 review: `Geo.Box`, `this.P`, `global.Point` name a type as a bare
+    // `Point` does, so they answer its length properties alike
+    const type = OperandTyper.namedTypeOf(cName, ctx);
+    return type === null ? UNKNOWN : { k: "type", t: type };
   }
 
   private static applyOp(
@@ -1109,6 +1300,27 @@ class OperandTyper {
     return op.kind === "call";
   }
 
+  /** A member named of a type: its field's type, or a header enum's member */
+  private static memberOfType(
+    t: IOperandType,
+    member: string,
+    ctx: ITypingContext,
+  ): TChainValue {
+    // A header enum names its members first (`Color.Red`), as a C-Next enum
+    // does; only a length property measures it. It stays the header's enum,
+    // which ADR-017 does not type (no `enumTypeName`)
+    if (t.category === "enum" && !LengthProperty.isLength(member)) {
+      return {
+        k: "value",
+        register: false,
+        t: { ...t, form: { kind: "enumMember" } },
+      };
+    }
+    // `Point.y` names the field's type, still no value
+    const field = OperandTyper.fieldOf(t, member, ctx);
+    return field.k === "value" ? { k: "type", t: field.t } : field;
+  }
+
   private static memberOf(
     current: TChainValue,
     member: string,
@@ -1117,17 +1329,13 @@ class OperandTyper {
     switch (current.k) {
       case "scope":
         return OperandTyper.memberOfScope(current.scopePath, member, ctx);
+      case "type":
+        return OperandTyper.memberOfType(current.t, member, ctx);
       case "enumType":
-        return {
-          k: "value",
-          register: false,
-          t: {
-            ...OperandTyper.plain(current.name),
-            category: "enum",
-            enumTypeName: current.name,
-            form: { kind: "enumMember" },
-          },
-        };
+        if (OperandTyper.enumReadsProperty(current.name, member, ctx)) {
+          return UNKNOWN;
+        }
+        return OperandTyper.enumMember(current.name);
       case "register": {
         // The register symbol is the one source; the per-file map only
         // records bitmap-typed members
@@ -1236,6 +1444,28 @@ class OperandTyper {
     return OperandTyper.foreignFieldOf(t, t.typeName, member, ctx);
   }
 
+  /** Whether `op` reads a bitmap field or a header bit-field of `current` (ADR-058) */
+  private static isBitField(
+    current: TChainValue,
+    op: TPostfixOpSyntax,
+    ctx: ITypingContext,
+  ): boolean {
+    // `g.mode` or `KBF.a`: a value's field, or a type's (#1975)
+    if (op.kind !== "member") return false;
+    if (current.k !== "value" && current.k !== "type") return false;
+    const t = current.t;
+    if (t.dimensions.length > 0) return false;
+    if (t.bitmapTypeName !== null) {
+      return (
+        ctx.symbols.bitmapFields.get(t.bitmapTypeName)?.has(op.name) ?? false
+      );
+    }
+    const typeName = t.typeName ?? t.cType;
+    if (typeName === null) return false;
+    const info = ctx.symbolTable.getStructFieldInfo(typeName, op.name);
+    return info?.bitWidth !== undefined;
+  }
+
   /** A bitmap field: a Boolean bit, or an unsigned run of bits */
   private static bitmapFieldOf(
     t: IOperandType,
@@ -1292,6 +1522,21 @@ class OperandTyper {
         t: {
           ...foreign,
           hasSideEffect: t.hasSideEffect || foreign.hasSideEffect,
+        },
+      };
+    }
+    // A field whose type C-Next does not read, `char *p`: a value still, so
+    // a length property of it is one, and E0867's to reject (#1975)
+    const info = ctx.symbolTable.getStructFieldInfo(typeName, member);
+    if (info !== undefined) {
+      return {
+        k: "value",
+        register: false,
+        t: {
+          ...OperandTyper.plain(null),
+          cType: info.type,
+          hasSideEffect: t.hasSideEffect,
+          form: { kind: "foreign", indeterminate: false },
         },
       };
     }
@@ -1578,8 +1823,7 @@ class OperandTyper {
 
   /** The run's target description, or null while 1.4 has not resolved it */
   static target(ctx: ITypingContext): ITargetDescription | null {
-    const target = ctx.program.target();
-    return target.kind === "resolved" ? target.description : null;
+    return ResolvedTarget.of(ctx.program.target());
   }
 }
 

@@ -15,9 +15,8 @@ import type ISourcePosition from "./ISourcePosition";
 interface IConstantEnvironment {
   valueOf(name: Extract<TConstExpr, { kind: "name" }>): TConstResult;
   /**
-   * A C-Next type name as C spells it where it is written (`sizeof`, a cast):
-   * ADR-057 qualifies a bare name to the scope type it means there (#1863
-   * review: `sizeof(P)` inside scope S reached C as `P`, not `S__P`)
+   * A C-Next type name as C spells it where it is written (a cast): ADR-057
+   * qualifies a bare name to the scope type it means there (#1863 review)
    */
   cTypeName(typeName: string, at: ISourcePosition): string;
   /**

@@ -1,0 +1,29 @@
+// test-error
+// Issue #1975 (owner ruling): C-Next has no pointers, so it cannot size one.
+// A header struct's pointer field has no length, and neither has a struct
+// holding one -- E0867, never the target's pointer size. On main
+// `o.p.type_byte_length` reached the C unchanged, at exit 0, and gcc rejected it.
+//
+// #1975 review: a union's fields share their bits and a bit-field's are C's
+// to pack, so neither fields' sum is a size: E0867 too (`Un` was summed to 6,
+// where C stores 4, and `BF.type_byte_length` reached the C unchanged).
+//
+// A header enum's width is the C compiler's to pick, so `HE` has none either.
+// ADR-040's `ISR` is a function pointer, so it has no length either (#1975
+// review: `ISR.type_byte_length` reached the C as written).
+//
+// NEGATIVE CONTROL: `o.i`, the struct's other field, still has a length.
+#include "shapes.h"
+
+u32 main() {
+    Odd o;
+    u32 ok <- o.i.type_byte_length;
+    u32 field <- o.p.type_byte_length;
+    u32 whole <- Odd.type_byte_length;
+    u32 value <- o.type_byte_length;
+    u32 shared <- Un.type_byte_length;
+    u32 packed <- BF.type_byte_length;
+    u32 isr <- ISR.type_byte_length;
+    u32 en <- HE.type_byte_length;
+    return ok + field + whole + value + shared + packed + isr + en;
+}

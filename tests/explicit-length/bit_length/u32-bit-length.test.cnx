@@ -1,21 +1,21 @@
 // test-execution
-// Comprehensive .bit_length test for u32 type across all contexts (ADR-058)
-// Tests: .bit_length returns 32 for u32 in every possible scope and access pattern
+// Comprehensive .type_bit_length test for u32 type across all contexts (ADR-058)
+// Tests: .type_bit_length returns 32 for u32 in every possible scope and access pattern
 u32 globalVar <- 100000;
 
 scope TestScope {
     public u32 getGlobalBitLength() {
-        return global.globalVar.bit_length;
+        return global.globalVar.type_bit_length;
     }
     u32 scopeMember <- 100000;
     public u32 getMemberBitLength() {
-        return this.scopeMember.bit_length;
+        return this.scopeMember.type_bit_length;
     }
     public u32 publicMember <- 100000;
 }
 
 u32 checkParamBitLength(u32 param) {
-    return param.bit_length;
+    return param.type_bit_length;
 }
 
 scope U32BitLen {
@@ -25,7 +25,7 @@ scope U32BitLen {
 }
 
 i32 main() {
-    if (globalVar.bit_length != 32) {
+    if (globalVar.type_bit_length != 32) {
         return 1;
     }
 
@@ -39,12 +39,12 @@ i32 main() {
         return 3;
     }
 
-    if (TestScope.publicMember.bit_length != 32) {
+    if (TestScope.publicMember.type_bit_length != 32) {
         return 4;
     }
 
     u32 localVar <- 100000;
-    if (localVar.bit_length != 32) {
+    if (localVar.type_bit_length != 32) {
         return 5;
     }
 
@@ -56,13 +56,13 @@ i32 main() {
 
     U32BitLen.TestStruct ts;
     ts.member <- 100000;
-    if (ts.member.bit_length != 32) {
+    if (ts.member.type_bit_length != 32) {
         return 7;
     }
 
     u32[4] arr;
     arr[0] <- 100000;
-    if (arr[0].bit_length != 32) {
+    if (arr[0].type_bit_length != 32) {
         return 8;
     }
 

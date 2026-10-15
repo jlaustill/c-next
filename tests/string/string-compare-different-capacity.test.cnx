@@ -58,15 +58,15 @@ i32 main() {
     if (longSmall != longLarge) {
         return 12;
     }
-    if (longSmall.char_count != longLarge.char_count) {
+    if (longSmall.value_char_count != longLarge.value_char_count) {
         return 13;
     }
 
     // Test 15: Verify lengths match
-    if (small.char_count != medium.char_count) {
+    if (small.value_char_count != medium.value_char_count) {
         return 14;
     }
-    if (medium.char_count != large.char_count) {
+    if (medium.value_char_count != large.value_char_count) {
         return 15;
     }
 

@@ -14,8 +14,8 @@ import type ISourcePosition from "../utils/types/ISourcePosition";
  *   C's, with `FLT_EVAL_METHOD` 0 (ADR-051 §4). Not an integer constant, so
  *   `evaluate` reports it as `notConstant` "float"; `fold` and `numberValue`
  *   see it.
- * - `foreign`: it depends on a name only C knows the value of -- a macro, or
- *   `sizeof` of a type whose size the target decides. C can evaluate it where C
+ * - `foreign`: it depends on a name only C knows the value of -- a macro. C can
+ *   evaluate it where C
  *   allows (an array dimension); C-Next cannot use it where it needs the value.
  */
 type TConstResult =
@@ -46,6 +46,7 @@ type TConstResult =
         | "undeclaredMember"
         | "leadingZero"
         | "sizeofExpression"
+        | "lengthRule"
         | "divisionByZero"
         | "negativeShift";
       /** The offending part as the source spells it, for a message */
@@ -73,9 +74,12 @@ type TConstResult =
       /**
        * A name a header declares; a name no C-Next declaration binds, in a
        * file that includes a header, which may be a macro (a `#define` never
-       * reaches the symbol model); or a size the target decides
+       * reaches the symbol model); or a memory size the C compiler decides
+       * for the target (ADR-058 `.memory_*`)
        */
-      readonly why: "header" | "maybeHeader" | "targetSize";
+      readonly why: "header" | "maybeHeader" | "target";
+      /** For a memory size: the C that measures it, `sizeof` (ADR-058) */
+      readonly c?: string;
     };
 
 export default TConstResult;

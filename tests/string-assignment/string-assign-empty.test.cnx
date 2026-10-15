@@ -7,23 +7,23 @@ void clearMessage() {
 }
 
 u32 main() {
-    if (msg.char_count != 7) {
+    if (msg.value_char_count != 7) {
         return 1;
     }
 
     clearMessage();
-    if (msg.char_count != 0) {
+    if (msg.value_char_count != 0) {
         return 2;
     }
 
     // Assign empty then non-empty
     msg <- "";
-    if (msg.char_count != 0) {
+    if (msg.value_char_count != 0) {
         return 3;
     }
 
     msg <- "Back";
-    if (msg.char_count != 4) {
+    if (msg.value_char_count != 4) {
         return 4;
     }
 
@@ -31,7 +31,7 @@ u32 main() {
     msg <- "";
     msg <- "";
     msg <- "";
-    if (msg.char_count != 0) {
+    if (msg.value_char_count != 0) {
         return 5;
     }
 

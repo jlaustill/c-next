@@ -28,10 +28,10 @@ u32 main() {
     }
 
     // Test 2: Access nested struct field sizes
-    if (rect.origin.x.bit_length != 32) {
+    if (rect.origin.x.type_bit_length != 32) {
         return 5;
     }
-    if (rect.width.bit_length != 32) {
+    if (rect.width.type_bit_length != 32) {
         return 6;
     }
 

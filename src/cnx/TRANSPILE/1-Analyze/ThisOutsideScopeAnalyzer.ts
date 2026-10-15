@@ -76,7 +76,6 @@ class ThisOutsideScopeAnalyzer {
   private expression(expr: TExpression): void {
     if (expr.kind === "root" && expr.root === "this") this.report(expr.span);
     if (expr.kind === "cast") this.type(expr.type);
-    if (expr.kind === "sizeof" && expr.type !== null) this.type(expr.type);
     for (const child of ExpressionChildren.of(expr)) this.expression(child);
   }
 

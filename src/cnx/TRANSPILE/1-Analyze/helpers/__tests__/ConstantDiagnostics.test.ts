@@ -30,11 +30,6 @@ describe("ConstantDiagnostics (#1175, #1669)", () => {
       { kind: "foreign", spelling: "MODE_FAST", why: "maybeHeader" },
       "'MODE_FAST' is not declared in C-Next, so only an included C or C++ header can define it",
     ],
-    [
-      "a size the target decides",
-      { kind: "foreign", spelling: "sizeof(Point)", why: "targetSize" },
-      "'sizeof(Point)' is decided by the target",
-    ],
   ])("says why %s has no value", (_label, result, expected) => {
     expect(ConstantDiagnostics.why(result)).toBe(expected);
   });

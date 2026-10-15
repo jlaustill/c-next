@@ -11,25 +11,27 @@
  * `Cannot determine .X for '<name>' - type not found in registry` appears four
  * times, once per property. The audit read them as user-facing; they are not.
  * An undeclared name is rejected by E0427 in this same pass, before codegen
- * runs -- probed: `undeclaredName.bit_length` reports E0427 at a real position.
+ * runs -- probed: `undeclaredName.type_bit_length` reports E0427 at a real position.
  * What is left is a name that IS declared and whose type codegen cannot find,
  * which is the transpiler being wrong rather than the program. They are
  * `invariant()` calls now, not relocations.
  *
  * ## What the rule is
  *
- * A length property asks a question of the type it is applied to, and not every
- * type can answer: `.element_count` needs an array, `.char_count` needs a
- * string, `.bit_length` and `.byte_length` need a type whose width is known.
+ * A length property names its kind and unit (#1975 review 2), and asks it of
+ * the subject it is applied to. `LengthProperty.rule` decides whether the
+ * subject can answer -- `.value_*` needs a value, `_element_count` an array or
+ * struct, `.memory_char_count` a string -- and a logical bit or byte length
+ * still needs a type whose width is known, which this pass checks.
  * The question is asked of the chain WITHOUT the property step -- for
- * `frame.data[0].element_count` the subject is `frame.data[0]` -- which is the
+ * `frame.data[0].type_element_count` the subject is `frame.data[0]` -- which is the
  * one operand typer's chain step before the property (#1668), not a second
  * walk of this analyzer's own.
  *
  * ## Structs (#1535)
  *
- * A struct answers `.element_count` with its field count, and `.bit_length` /
- * `.byte_length` with its fields' sizes together, without C padding -- the
+ * A struct answers `.type_element_count` with its field count, and `.type_bit_length` /
+ * `.type_byte_length` with its fields' sizes together, without C padding -- the
  * owner's ruling, ADR-058 resolved question 7. `LengthProperty` decides the
  * number, for this pass, render and 1.4's constants alike.
  */
@@ -40,6 +42,9 @@ import ExpressionNodes from "../../utils/ExpressionNodes";
 import StatementNodes from "../../utils/StatementNodes";
 import OperandTyper from "../../utils/OperandTyper";
 import LengthProperty from "../../utils/LengthProperty";
+import ForeignTypeFacts from "../../utils/ForeignTypeFacts";
+import LengthSubject from "../../utils/LengthSubject";
+import type IChainStep from "../../types/IChainStep";
 import PROPERTY_NAMES from "../../utils/constants/PROPERTY_NAMES";
 import ILengthPropertyError from "./types/ILengthPropertyError";
 import type IAnalysisContext from "./types/IAnalysisContext";
@@ -49,7 +54,7 @@ import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
 import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
 import type IOperandType from "../../types/IOperandType";
 
-/** The CLI argument vector, which answers only `.element_count`. */
+/** The CLI argument vector, which answers only `.type_element_count`. */
 const ARGS_PARAMETER = "args";
 
 class LengthPropertyCheck {
@@ -61,7 +66,8 @@ class LengthPropertyCheck {
     return this.found;
   }
 
-  public expression(chain: TExpression): void {
+  /** `inFunction`: only a function body runs, so only there can a length be read at runtime */
+  public expression(chain: TExpression, inFunction: boolean): void {
     if (chain.kind !== "postfix") return;
     const ops = chain.ops;
     const last = ops.at(-1);
@@ -72,7 +78,7 @@ class LengthPropertyCheck {
     // #1976: a literal has no fields, so the name reads the property, and a
     // length property measures a declared value -- owner ruling: never a
     // literal. The typer leaves a string literal untyped, so without this the
-    // chain had no subject and its C was `"Hello".char_count`.
+    // chain had no subject and its C was `"Hello".value_char_count`.
     if (LengthPropertyCheck.rootsAtLiteral(chain)) {
       if (name === "length") {
         this.reportDeprecatedLength(last);
@@ -91,12 +97,20 @@ class LengthPropertyCheck {
     const property = step?.property ?? null;
     if (property === null) return;
 
+    // ADR-058 (#1975 review 2): the unprefixed lengths are removed, each
+    // named one kind of length without saying which
+    const replacement = LengthProperty.removedHelp(property);
+    if (replacement !== null) {
+      this.report(last, `'.${property}' is removed`, replacement, "E0886");
+      return;
+    }
+
     if (LengthPropertyCheck.subjectIsArgs(chain)) {
-      if (property !== "element_count") {
+      if (LengthProperty.parse(property)?.unit !== "element_count") {
         this.report(
           last,
           `.${property} is not available on 'args'`,
-          "Use .element_count for the argument count.",
+          "Use .type_element_count for the argument count.",
         );
       }
       return;
@@ -107,20 +121,19 @@ class LengthPropertyCheck {
     // A scope variable may be called `length` (#212): `this.length` binds
     // the member at the chain's root, so there is no property step and no
     // subject, and no property rule applies.
-    const subject = step?.before ?? null;
-    if (subject === null) return; // unresolved -- another diagnostic's to report
+    if (step?.before == null) return; // unresolved -- another diagnostic's to report
 
-    this.check(last, property, subject);
+    this.check(last, property, step, inFunction);
   }
 
   private check(
     at: TPostfixOpSyntax,
     property: string,
-    typed: IOperandType,
+    step: IChainStep,
+    inFunction: boolean,
   ): void {
-    const subject = LengthPropertyCheck.spelling(typed);
-    const dimensions = typed.dimensions.length;
-    const element = typed.typeName ?? "";
+    const typed = step.before!;
+    const subject = LengthSubject.spelling(typed);
     // `string<N>` and the unsized `const string`, whose capacity is inferred.
     const isString = OperandTyper.isString(typed);
 
@@ -141,43 +154,49 @@ class LengthPropertyCheck {
         this.report(
           at,
           `.${property} is only available on strings, not on '${subject}'`,
-          "Use .element_count for an array's length, or .byte_length for a value's size in bytes (ADR-045).",
+          "Use .type_element_count for an array's length, or .type_byte_length for a value's size in bytes (ADR-045).",
           "E0887",
         );
       }
       return;
     }
 
-    // #1535: a struct answers all three -- its field count, and its fields'
-    // sizes together, without C padding (ADR-058 resolved question 7)
+    const name = LengthProperty.parse(property);
+    if (name === null) return;
     const lookup = (cName: string) => this.context.program.symbolByCName(cName);
-    const struct = LengthProperty.struct(element, lookup);
-
-    if (property === "element_count") {
-      if (dimensions === 0 && struct === undefined) {
-        this.report(
-          at,
-          `.element_count is only available on arrays, not on '${subject}'`,
-          "A scalar has one value; use .bit_length or .byte_length for its width.",
-        );
-      }
+    const rule = LengthProperty.rule(
+      name,
+      LengthSubject.of(
+        step,
+        LengthSubject.structTest(lookup, this.context.symbolTable),
+      )!,
+    );
+    if (rule.kind === "error") {
+      this.report(at, rule.message, rule.helpText);
       return;
     }
-
-    if (property === "char_count") {
-      if (!isString) {
-        this.report(
-          at,
-          `.char_count is only available on strings, not on '${subject}'`,
-          "Use .element_count for an array's length, or .bit_length for a scalar's width.",
-        );
-      }
+    // C initializes a file-scope object with a constant, and a value's
+    // length now is not one: the C was `uint32_t n = strlen(s);`, which gcc
+    // rejects
+    if (!inFunction && LengthProperty.readsAtRuntime(rule)) {
+      this.report(
+        at,
+        `.${property} is read at runtime, and a file-scope initializer must be constant`,
+        "Read it inside a function, or use the .type_ length, which is constant (ADR-058).",
+      );
       return;
     }
-
-    // `.bit_length` and `.byte_length` need a width. A string, a struct whose
-    // fields all have one, and an array of either have one.
-    if (!isString) this.checkWidth(at, property, typed, struct, lookup);
+    // A logical bit or byte length needs a width: a string, a struct whose
+    // fields all have one, and an array of either have one
+    if (rule.kind === "logical" && name.unit !== "element_count" && !isString) {
+      this.checkWidth(
+        at,
+        property,
+        typed,
+        LengthProperty.struct(typed.typeName ?? "", lookup),
+        lookup,
+      );
+    }
   }
 
   private checkWidth(
@@ -187,14 +206,27 @@ class LengthPropertyCheck {
     struct: ReturnType<typeof LengthProperty.struct>,
     lookup: Parameters<typeof LengthProperty.struct>[1],
   ): void {
-    const subject = LengthPropertyCheck.spelling(typed);
+    const subject = LengthSubject.spelling(typed);
     const element = typed.typeName ?? "";
-    if (struct !== undefined) {
-      if (LengthProperty.structBits(struct, lookup) === null) {
+    // #1975 (owner ruling): a C-Next struct and a header's are each their
+    // fields' sizes together, one rule, a header struct's field too; a
+    // pointer field has none -- C-Next has no pointers
+    const headerBits = ForeignTypeFacts.headerBits(
+      this.context.symbolTable,
+      OperandTyper.target(this.context),
+    );
+    const isHeaderStruct =
+      this.context.symbolTable.getStructFields(element) !== undefined;
+    if (struct !== undefined || isHeaderStruct) {
+      const bits =
+        struct === undefined
+          ? headerBits(element)
+          : LengthProperty.structBits(struct, lookup, headerBits);
+      if (bits === null) {
         this.report(
           at,
           `Cannot determine .${property} for type '${subject}'`,
-          "A struct's length is its fields' sizes together; a field from a C header has no size C-Next fixes.",
+          "A struct's length is its fields' sizes together; a pointer field, a field of a type C-Next does not read, a union's shared fields, a bit-field, an unnamed member, and a C++ base or vtable have no size C-Next fixes.",
         );
       }
       return;
@@ -209,7 +241,9 @@ class LengthPropertyCheck {
       this.report(
         at,
         `Cannot determine .${property} for type '${subject}'`,
-        "A length in bits is only defined for a primitive, a string, or an array of them.",
+        typed.typeName === null && typed.cType !== null
+          ? "C-Next has no pointers, so a header's pointer, or a type C-Next does not read, has no size."
+          : "A length in bits is only defined for a primitive, a string, or an array of them.",
       );
     }
   }
@@ -218,7 +252,7 @@ class LengthPropertyCheck {
     this.report(
       at,
       `'.length' is deprecated`,
-      "Use .char_count for a string's length, .element_count for an array's, or .bit_length / .byte_length for a width (ADR-058).",
+      "Use .value_char_count for a string's length, .type_element_count for an array's, or .type_bit_length / .type_byte_length for a width (ADR-058).",
       "E0886",
     );
   }
@@ -267,12 +301,6 @@ class LengthPropertyCheck {
     );
   }
 
-  /** A subject as a message names it: `u32`, `u8[4]` */
-  private static spelling(typed: IOperandType): string {
-    const dimensions = typed.dimensions.map((d) => `[${d}]`).join("");
-    return `${typed.typeName ?? typed.category}${dimensions}`;
-  }
-
   /**
    * #1322: the code is a parameter now. This file owns three rules -- a shape
    * property used where the subject has none (E0867), the deprecated `.length`
@@ -303,14 +331,22 @@ class LengthPropertyAnalyzer {
   /** Every chain 1.2 returned that is read, not written (#1991) */
   public analyze(program: IProgramSyntax): ILengthPropertyError[] {
     const check = new LengthPropertyCheck(this.context);
-    for (const member of program.declarations) {
-      const targets = LengthPropertyCheck.targetsIn(member.declaration);
-      for (const part of DeclarationParts.of(member.declaration)) {
+    // only a function body is inside a function -- a scope's members are at
+    // file scope
+    const visit = (declaration: TDeclarationSyntax): void => {
+      if (declaration.kind === "scope") {
+        for (const member of declaration.members) visit(member.declaration);
+        return;
+      }
+      const targets = LengthPropertyCheck.targetsIn(declaration);
+      const inFunction = declaration.kind === "function";
+      for (const part of DeclarationParts.of(declaration)) {
         for (const expr of ExpressionNodes.of(part)) {
-          if (!targets.has(expr)) check.expression(expr);
+          if (!targets.has(expr)) check.expression(expr, inFunction);
         }
       }
-    }
+    };
+    for (const member of program.declarations) visit(member.declaration);
     return check.errors();
   }
 }

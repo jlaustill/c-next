@@ -232,9 +232,13 @@ class CResolver {
     if (lastIndex < 0) return;
     const name = decl.typeSpecifiers[lastIndex].typedefName;
     if (!name) return;
+    // A declaration that defines the tag repeats it (`struct P { ... } P;`);
+    // `extern struct tm tm;` is a variable named as its tag is, which C keeps
+    // apart (#1975 review)
     if (
       !ctx.isTypedef &&
-      (decl.struct?.tag === name || decl.enum?.name === name)
+      ((decl.struct?.tag === name && decl.struct.hasBody) ||
+        decl.enum?.name === name)
     ) {
       return;
     }

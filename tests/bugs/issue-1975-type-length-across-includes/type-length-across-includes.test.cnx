@@ -1,0 +1,55 @@
+// test-execution
+// test-adr: 058
+// #1975 review: a type answers its length properties two include hops from
+// where it is declared, as a value of it does: a struct, a field of it, an
+// enum, and a scope's struct. `Geo.Box`, `global.Point` and `this.P` name a
+// type as a bare `Point` does; they reached the C as `Geo__Box.type_byte_length`,
+// which gcc rejects. An array is sized by one alike, an enum's too.
+//
+// NEGATIVE CONTROL: each length is checked against its number, so a rule
+// that moved both a type's length and a value's would still be caught.
+#include "geo-mid.cnx"
+
+u8[Geo.Box.type_byte_length] boxBytes;
+u8[Mode.type_byte_length] modeBytes;
+
+scope Shapes {
+    struct P {
+        u32 q;
+    }
+
+    public u32 own() {
+        if (this.P.type_byte_length != 4) {
+            return 1;
+        }
+        if (global.Point.type_byte_length != 5) {
+            return 2;
+        }
+        return 0;
+    }
+}
+
+u32 main() {
+    if (Point.type_byte_length != 5) {
+        return 10;
+    }
+    if (Point.y.type_bit_length != 8) {
+        return 11;
+    }
+    if (Mode.type_byte_length != 1) {
+        return 12;
+    }
+    if (Geo.Box.type_byte_length != 3) {
+        return 13;
+    }
+    if (Geo.Box.h.type_byte_length != 2) {
+        return 14;
+    }
+    if (boxBytes.type_element_count != 3) {
+        return 15;
+    }
+    if (modeBytes.type_element_count != 1) {
+        return 16;
+    }
+    return Shapes.own();
+}

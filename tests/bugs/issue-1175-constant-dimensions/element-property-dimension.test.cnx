@@ -11,10 +11,10 @@
 #include "table.h"
 
 u8[4][8] m;
-u8[m.element_count] whole;
-u8[m[0].element_count] row;
-u8[table.element_count] x;
-u8[table[0].element_count] cols;
+u8[m.type_element_count] whole;
+u8[m[0].type_element_count] row;
+u8[table.type_element_count] x;
+u8[table[0].type_element_count] cols;
 
 void main() {
     m[0][0] <- 1;

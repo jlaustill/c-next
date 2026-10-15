@@ -9,7 +9,7 @@ u32 first(u8 x) {
 }
 
 u32 second() {
-    u32 n <- x.bit_length;
+    u32 n <- x.type_bit_length;
     return n;
 }
 

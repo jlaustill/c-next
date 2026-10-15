@@ -10,7 +10,7 @@ const u8[3] table <- [1, 2, 3];
 
 i32 main() {
     // NEGATIVE CONTROL -- an array decays by itself, no address taken
-    u32 all <- sum_u8(table, table.element_count);
+    u32 all <- sum_u8(table, table.type_element_count);
     if (all != 6) {
         return 1;
     }

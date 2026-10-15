@@ -5,7 +5,7 @@
 
 #include "double-width.test.h"
 
-// #1668 review: a header `double`'s `.bit_length` is the target's width,
+// #1668 review: a header `double`'s `.type_bit_length` is the target's width,
 // the same for the variable and for a field. On a target whose `double` is
 // 32 bits the variable said 64 (a width from the C spelling) and the field
 // said 32 (the typer's, from the target).

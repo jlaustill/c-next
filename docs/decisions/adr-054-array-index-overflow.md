@@ -177,7 +177,7 @@ result <- name[10];  // result stays 'X' (read discarded)
 #### Rationale
 
 1. **Accessing uninitialized memory is a bug** — Even if index 10 is within capacity, it contains garbage
-2. **Consistency with string semantics** — `.char_count` returns content length, indexing should respect it
+2. **Consistency with string semantics** — `.value_char_count` returns content length, indexing should respect it
 3. **Safer default** — Prevents reading uninitialized data in the capacity buffer
 
 #### Write Behavior
@@ -679,14 +679,14 @@ Rationale: Accessing past the current char_count reads uninitialized memory, whi
 
 ```cnx
 clamp String<64> name <- "Hello";  // char_count=5
-name[10] <- 'X';  // name → "Hello     X", .char_count becomes 11
-name[3] <- 'X';   // name → "HelXo", .char_count stays 5
+name[10] <- 'X';  // name → "Hello     X", .value_char_count becomes 11
+name[3] <- 'X';   // name → "HelXo", .value_char_count stays 5
 ```
 
 When writing past the current char_count but within capacity:
 
 - The gap is filled with space characters (` `)
-- `.char_count` is updated to include the new character
+- `.value_char_count` is updated to include the new character
 - The null terminator moves to the new `char_count` position (C string invariant maintained)
 - Clamping applies against capacity (not char_count) for writes
 

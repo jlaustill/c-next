@@ -15,7 +15,7 @@
 // (`main__label`), but the length cache was declared from the source name, as
 // `strlen(label)` -- the u32 global, not the local. gcc only warned
 // (-Wint-conversion) and the program segfaulted, with the transpiler exiting 0.
-// The cache needs two `.char_count` reads; one read was already right.
+// The cache needs two `.value_char_count` reads; one read was already right.
 uint32_t label = 0U;
 
 int main(void) {

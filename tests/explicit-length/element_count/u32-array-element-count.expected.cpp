@@ -8,7 +8,7 @@
 #include <stdint.h>
 
 // test-execution
-// Tests .element_count property for arrays (ADR-058)
+// Tests .type_element_count property for arrays (ADR-058)
 // element_count returns the number of elements in an array
 uint32_t globalArr[16] = {};
 

@@ -52,10 +52,10 @@ u32 main() {
     }
 
     // Test .length property on first dimension
-    if (matrix2d.element_count != 4) {
+    if (matrix2d.type_element_count != 4) {
         return 10; // 2D first dimension
     }
-    if (cube3d.element_count != 2) {
+    if (cube3d.type_element_count != 2) {
         return 11; // 3D first dimension
     }
 
@@ -103,7 +103,7 @@ u32 main() {
     }
 
     // Test boundary access
-    matrix2d[matrix2d.element_count - 1][matrix2d[0].element_count - 1] <- 111;
+    matrix2d[matrix2d.type_element_count - 1][matrix2d[0].type_element_count - 1] <- 111;
     if (matrix2d[3][7] != 111) {
         return 23;
     }
