@@ -36,6 +36,28 @@ describe("2.2 plans the C types a file uses", () => {
     ]);
   });
 
+  it("counts the signed decimal helper's `int64_t` for an `i32`'s .value_char_count (ADR-058)", () => {
+    expect(
+      plannedCTypes([
+        "i32 k;",
+        "u32 f() {",
+        "  return k.value_char_count;",
+        "}",
+      ]),
+    ).toEqual(["int32_t", "int64_t", "uint32_t", "uint64_t"]);
+  });
+
+  it("counts no `int64_t` for a `u32`'s .value_char_count", () => {
+    expect(
+      plannedCTypes([
+        "u32 k;",
+        "u32 f() {",
+        "  return k.value_char_count;",
+        "}",
+      ]),
+    ).toEqual(["uint32_t", "uint64_t"]);
+  });
+
   it("casts a `~` of an unsigned operand back to its C type, not a signed one", () => {
     const plan = ProgramGeneration.planSource(
       ["u16 v;", "i16 w;", "void f() {", "  v <- ~v;", "  w <- ~w;", "}"].join(
