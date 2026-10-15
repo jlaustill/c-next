@@ -54,7 +54,7 @@ int use_handle(handle_t h) {
 
 const MAIN_CNX = `#include "external.hpp"
 
-handle_t myHandle;
+mut handle_t myHandle;
 
 u32 main() {
     global.create_handle(myHandle);
