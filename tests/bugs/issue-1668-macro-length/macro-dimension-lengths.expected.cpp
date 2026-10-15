@@ -23,9 +23,9 @@ uint8_t fixed[4] = {};
 
 int main(void) {
     uint32_t bits = ((uint32_t)(BUF_SIZE) * 8U);
-    uint32_t bytes = (((uint32_t)(BUF_SIZE) * 8U + 7U) / 8U);
+    uint32_t bytes = ((uint32_t)(BUF_SIZE) * 1U);
     uint32_t gridBits = ((uint32_t)2U * (BUF_SIZE) * 16U);
-    uint32_t gridBytes = (((uint32_t)2U * (BUF_SIZE) * 16U + 7U) / 8U);
+    uint32_t gridBytes = ((uint32_t)2U * (BUF_SIZE) * 2U);
     uint32_t rowBits = ((uint32_t)(BUF_SIZE) * 16U);
     uint32_t count = BUF_SIZE;
     uint32_t fixedBits = 32;

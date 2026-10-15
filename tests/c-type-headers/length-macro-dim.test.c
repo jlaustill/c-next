@@ -15,5 +15,5 @@
 #include <stdint.h>
 
 void bytes(void) {
-    big = (((uint32_t)(BUF_COUNT) * 8U + 7U) / 8U);
+    big = ((uint32_t)(BUF_COUNT) * 1U);
 }
