@@ -48,8 +48,15 @@ class ConstLiteral {
       case "macro":
         // parenthesized, as its expansion may not be one operand
         return `(${literal.name})`;
-      default:
+      case "integer":
+      case "float":
+      case "bool":
+      case "char":
         return literal.text;
+      default: {
+        const unspelled: never = literal;
+        return unspelled;
+      }
     }
   }
 

@@ -65,6 +65,7 @@ import IPlannedForAssignment from "./3-Render/codegen/types/IPlannedForAssignmen
 import type IAssignmentSyntax from "../types/syntax/IAssignmentSyntax";
 import type IVariableDeclarationSyntax from "../types/syntax/IVariableDeclarationSyntax";
 import type TStatement from "../types/syntax/TStatement";
+import type TSwitchStatement from "../types/syntax/TSwitchStatement";
 import type IStructDeclarationSyntax from "../types/syntax/IStructDeclarationSyntax";
 import type IRegisterDeclarationSyntax from "../types/syntax/IRegisterDeclarationSyntax";
 import type IParameterSyntax from "../types/syntax/IParameterSyntax";
@@ -3418,9 +3419,7 @@ class CodeGenWalker {
    * rendering a statement registers effects, and the generator decides how
    * deep each line indents.
    */
-  private planSwitch(
-    statement: Extract<TStatement, { kind: "switch" }>,
-  ): IPlannedSwitch {
+  private planSwitch(statement: TSwitchStatement): IPlannedSwitch {
     const subject = this.renderExpression(statement.subject);
     const subjectEnumType = this.enumTypeOf(statement.subject) ?? undefined;
     const defaultCase = statement.defaultCase;

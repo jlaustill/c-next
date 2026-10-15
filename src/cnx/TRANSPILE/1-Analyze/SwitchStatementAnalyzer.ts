@@ -40,12 +40,11 @@ import type IAnalysisContext from "./types/IAnalysisContext";
 import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
 import type ISourceSpan from "../../types/ISourceSpan";
 import type TCaseLabelSyntax from "../../types/syntax/TCaseLabelSyntax";
+import type TSwitchStatement from "../../types/syntax/TSwitchStatement";
 import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
-import type TStatement from "../../types/syntax/TStatement";
 
-type TSwitch = Extract<TStatement, { kind: "switch" }>;
-type TSwitchCase = TSwitch["cases"][number];
-type TDefaultCase = NonNullable<TSwitch["defaultCase"]>;
+type TSwitchCase = TSwitchStatement["cases"][number];
+type TDefaultCase = NonNullable<TSwitchStatement["defaultCase"]>;
 
 /** MISRA C:2012 Rule 16.6: a switch needs at least two clauses. */
 const MINIMUM_CLAUSES = 2;
@@ -77,7 +76,7 @@ class SwitchStatementCheck {
     }
   }
 
-  private statement(statement: TSwitch): void {
+  private statement(statement: TSwitchStatement): void {
     const switchExpr = statement.subject;
     const cases = statement.cases;
     const defaultCase = statement.defaultCase;
@@ -243,7 +242,17 @@ class SwitchStatementCheck {
     if (label.kind !== "qualified") return true;
     // A chain through an enum names its member; through a struct or a bitmap
     // a field, which is no constant (#2072). No symbol at all is E0427's.
-    const kind = this.typeKindOf(label.root, label.path[0], label.span);
+    return SwitchStatementCheck.isConstantThrough(
+      this.typeKindOf(label.root, label.path[0], label.span),
+    );
+  }
+
+  /**
+   * A chain's head type decides whether the chain is a constant: through an
+   * enum it names a member; through a struct, a bitmap or a register a field,
+   * which is no constant (#2072, #2108). No symbol at all is E0427's.
+   */
+  private static isConstantThrough(kind: TSymbol["kind"] | undefined): boolean {
     return kind === undefined || kind === "enum";
   }
 
@@ -305,8 +314,19 @@ class SwitchStatementCheck {
         // `Panel.LIMIT`: the scope names where to look, the member decides
         if (label.kind !== "qualified") return false;
         const member = this.scopeMember(label, binding.scopePath);
-        // No symbol: an enum member chain (`Panel.State.IDLE`), or #1630's
-        if (member === undefined) return true;
+        // No symbol: a chain through a scope's type (`Panel.State.IDLE`,
+        // `Panel.Pt.x`), decided by that type as a file-scope head is (#2108);
+        // or #1630's
+        if (member === undefined) {
+          return SwitchStatementCheck.isConstantThrough(
+            program.symbolByCName(
+              ScopeUtils.qualifyPathInScope(
+                label.path.slice(1, 2),
+                binding.scopePath,
+              ),
+            )?.kind,
+          );
+        }
         return (
           member.kind === "variable" &&
           ConstLiteral.textOf(program, member) !== null
@@ -384,8 +404,14 @@ class SwitchStatementCheck {
         return `member:${literal.cName}`;
       case "macro":
         return `name:${literal.name}`;
-      default:
+      case "float":
+      case "bool":
+      case "char":
         return `value:${literal.text}`;
+      default: {
+        const unkeyed: never = literal;
+        return unkeyed;
+      }
     }
   }
 

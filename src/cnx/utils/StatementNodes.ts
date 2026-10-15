@@ -2,10 +2,9 @@ import type TDeclarationSyntax from "../types/syntax/TDeclarationSyntax";
 import type IAssignmentSyntax from "../types/syntax/IAssignmentSyntax";
 import type TCaseLabelSyntax from "../types/syntax/TCaseLabelSyntax";
 import type TStatement from "../types/syntax/TStatement";
+import type TSwitchStatement from "../types/syntax/TSwitchStatement";
 import StatementChildren from "./StatementChildren";
 import StatementWrites from "./StatementWrites";
-
-type TSwitch = Extract<TStatement, { kind: "switch" }>;
 
 /**
  * Every lowered statement in a declaration, in source order (#1991): the
@@ -29,9 +28,11 @@ class StatementNodes {
   }
 
   /** Every switch in a declaration, nested ones and a scope member's too */
-  static switches(declaration: TDeclarationSyntax): readonly TSwitch[] {
+  static switches(
+    declaration: TDeclarationSyntax,
+  ): readonly TSwitchStatement[] {
     return StatementNodes.in(declaration).filter(
-      (statement): statement is TSwitch => statement.kind === "switch",
+      (statement): statement is TSwitchStatement => statement.kind === "switch",
     );
   }
 
