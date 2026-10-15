@@ -1,5 +1,6 @@
 import type TDeclarationSyntax from "../types/syntax/TDeclarationSyntax";
 import type IAssignmentSyntax from "../types/syntax/IAssignmentSyntax";
+import type TCaseLabelSyntax from "../types/syntax/TCaseLabelSyntax";
 import type TStatement from "../types/syntax/TStatement";
 import StatementChildren from "./StatementChildren";
 import StatementWrites from "./StatementWrites";
@@ -23,6 +24,17 @@ class StatementNodes {
       );
     }
     return declaration.kind === "function" ? declaration.body.statements : [];
+  }
+
+  /** Every `case` label in a declaration's switches, in source order */
+  static caseLabels(
+    declaration: TDeclarationSyntax,
+  ): readonly TCaseLabelSyntax[] {
+    return StatementNodes.in(declaration).flatMap((statement) =>
+      statement.kind === "switch"
+        ? statement.cases.flatMap((switchCase) => switchCase.labels)
+        : [],
+    );
   }
 
   /**

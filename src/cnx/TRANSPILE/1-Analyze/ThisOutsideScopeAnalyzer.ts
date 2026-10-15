@@ -24,7 +24,8 @@
  * ## All three contexts, not just the obvious one
  *
  * `THIS` appears in `PrimaryExpressionContext` (a read), `AssignmentTargetContext`
- * (a write) and `ScopedTypeContext` (`this.Type` in a type position). A walk
+ * (a write), `ScopedTypeContext` (`this.Type` in a type position) and
+ * `CaseLabelContext` (`case this.LIMIT`, #1629). A walk
  * that visited only expressions would silently stop rejecting the other two,
  * which is how a rule with a hole becomes more dangerous than no rule: people
  * trust it.
@@ -38,11 +39,13 @@
 
 import type ISourceSpan from "../../types/ISourceSpan";
 import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type TCaseLabelSyntax from "../../types/syntax/TCaseLabelSyntax";
 import type TExpression from "../../types/syntax/TExpression";
 import type TSyntaxPart from "../../types/syntax/TSyntaxPart";
 import type TTypeSyntax from "../../types/syntax/TTypeSyntax";
 import DeclarationParts from "../../utils/DeclarationParts";
 import ExpressionChildren from "../../utils/ExpressionChildren";
+import StatementNodes from "../../utils/StatementNodes";
 import TypeParts from "../../utils/TypeParts";
 import IThisOutsideScopeError from "./types/IThisOutsideScopeError";
 
@@ -55,6 +58,9 @@ class ThisOutsideScopeAnalyzer {
       if (member.declaration.kind === "scope") continue;
       for (const part of DeclarationParts.of(member.declaration)) {
         this.part(part);
+      }
+      for (const label of StatementNodes.caseLabels(member.declaration)) {
+        this.caseLabel(label);
       }
     }
     return this.found;
@@ -77,6 +83,16 @@ class ThisOutsideScopeAnalyzer {
     if (expr.kind === "root" && expr.root === "this") this.report(expr.span);
     if (expr.kind === "cast") this.type(expr.type);
     for (const child of ExpressionChildren.of(expr)) this.expression(child);
+  }
+
+  /** `case this.X` (#1629): a case label is not an expression */
+  private caseLabel(label: TCaseLabelSyntax): void {
+    if (
+      (label.kind === "identifier" || label.kind === "qualified") &&
+      label.root === "this"
+    ) {
+      this.report(label.span);
+    }
   }
 
   private report(span: ISourceSpan): void {

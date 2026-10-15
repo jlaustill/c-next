@@ -27,6 +27,7 @@ import LengthProperty from "../../utils/LengthProperty";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeUtils from "../../utils/ScopeUtils";
 import ConstLiteral from "../../utils/ConstLiteral";
+import type TChainRoot from "../../types/TChainRoot";
 import type TValueBinding from "../../types/TValueBinding";
 import OperandTyper from "../../utils/OperandTyper";
 import StatementNodes from "../../utils/StatementNodes";
@@ -176,8 +177,9 @@ class SwitchStatementCheck {
    *
    * Asked of what the label BINDS, so one check covers every spelling the
    * grammar admits: `level`, `this.level`, `global.level`, `Panel.level`.
-   * A label binding no value is a type (E0717 too: `EMode`, `this.State`,
-   * #2069), an enum member, or E0427's.
+   * A label binding no value is a type or a chain through a struct or a
+   * bitmap (E0717 too: `EMode`, `this.State`, `global.Pt.x`; #2069, #2072),
+   * an enum member, a header's macro, or E0427's.
    */
   private reportNonConstantLabels(cases: readonly TSwitchCase[]): boolean {
     let reported = false;
@@ -239,27 +241,37 @@ class SwitchStatementCheck {
     }
     const binding = this.labelBinding(label);
     if (binding !== null) return this.isConstant(binding, label);
-    return label.kind !== "identifier" || !this.namesType(label);
+    if (label.kind === "identifier") {
+      const kind = this.typeKindOf(label.root, label.name, label.span);
+      return kind === undefined || !TYPE_KINDS.has(kind);
+    }
+    if (label.kind !== "qualified") return true;
+    // A chain through an enum names its member; through a struct or a bitmap
+    // a field, which is no constant (#2072). No symbol at all is E0427's.
+    const kind = this.typeKindOf(label.root, label.path[0], label.span);
+    return kind === undefined || kind === "enum";
   }
 
   /**
-   * A label spelled as a type -- `EMode`, `this.State`, `global.Pt` -- binds
-   * no value, so it is looked up where a member chain's head would be. Not
-   * `isTypeNameAt`: in a file that includes a header it calls a name it
-   * cannot find a type, which a bare enum member (`IDLE`) is.
+   * The kind of type a name that binds no value names -- `EMode`,
+   * `this.State`, `global.Pt`, or a chain's head -- looked up where a member
+   * chain's head would be. Not `isTypeNameAt`: in a file that includes a
+   * header it calls a name it cannot find a type, which a bare enum member
+   * (`IDLE`) is.
    */
-  private namesType(
-    label: Extract<TCaseLabelSyntax, { kind: "identifier" }>,
-  ): boolean {
+  private typeKindOf(
+    root: TChainRoot,
+    name: string,
+    at: ISourceSpan,
+  ): string | undefined {
     const { program, sourceFile } = this.context;
     const cName = ScopeUtils.typeHeadCName(
-      label.root,
-      label.name,
-      OperandTyper.scopePathAt(label.span, this.context),
-      (name) => program.isScopeTypeVisibleFrom(sourceFile, name),
+      root,
+      name,
+      OperandTyper.scopePathAt(at, this.context),
+      (qualified) => program.isScopeTypeVisibleFrom(sourceFile, qualified),
     );
-    const kind = program.symbolByCName(cName)?.kind;
-    return kind !== undefined && TYPE_KINDS.has(kind);
+    return program.symbolByCName(cName)?.kind;
   }
 
   /** Whether a bound label is a constant, asked of the one const-value answer */
@@ -324,9 +336,13 @@ class SwitchStatementCheck {
     for (const caseCtx of cases) {
       for (const label of caseCtx.labels) {
         const value = SwitchStatementCheck.caseLabelValue(label);
-        // `case Point.type_byte_length` is its number: `case 5` claims it too
+        // `case Point.type_byte_length` is its number: `case 5` claims it too.
+        // A declaration and a spelling are different keys: a local `LIMIT`
+        // is not the file's, which `global.LIMIT` binds
+        const length = this.lengthValue(label);
+        const identity = length === null ? this.labelIdentity(label) : null;
         const key =
-          this.lengthValue(label) ?? this.labelIdentity(label) ?? value;
+          identity === null ? `value:${length ?? value}` : `decl:${identity}`;
         if (seen.has(key)) {
           this.found.push({
             code: "E0713",

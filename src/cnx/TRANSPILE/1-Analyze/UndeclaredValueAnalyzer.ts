@@ -206,11 +206,8 @@ class UndeclaredValueAnalyzer {
     for (const member of program.declarations) {
       for (const part of DeclarationParts.of(member.declaration))
         walk.part(part);
-      for (const statement of StatementNodes.in(member.declaration)) {
-        if (statement.kind !== "switch") continue;
-        for (const switchCase of statement.cases) {
-          for (const label of switchCase.labels) walk.caseLabel(label);
-        }
+      for (const label of StatementNodes.caseLabels(member.declaration)) {
+        walk.caseLabel(label);
       }
     }
     return this.errors;

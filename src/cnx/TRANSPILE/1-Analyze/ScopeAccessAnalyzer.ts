@@ -92,11 +92,8 @@ class ScopeAccessCheck {
   private caseLabels(
     func: Extract<TDeclarationSyntax, { kind: "function" }>,
   ): void {
-    for (const statement of StatementNodes.of(func.body.statements)) {
-      if (statement.kind !== "switch") continue;
-      for (const label of statement.cases.flatMap((c) => c.labels)) {
-        if (label.kind === "qualified") this.qualified(label.path, label.span);
-      }
+    for (const label of StatementNodes.caseLabels(func)) {
+      if (label.kind === "qualified") this.qualified(label.path, label.span);
     }
   }
 
