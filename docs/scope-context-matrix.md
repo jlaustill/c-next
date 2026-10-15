@@ -432,8 +432,15 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
-4 linked fixtures with no derivable context:
+11 linked fixtures with no derivable context:
 
+- `adr-058/kinds-contexts.test.cnx`
+- `adr-058/kinds-header.test.cnx`
+- `adr-058/kinds-memory-dimension-error.test.cnx`
+- `adr-058/kinds-memory-dimension.test.cnx`
+- `adr-058/kinds-memory-row.test.cnx`
+- `adr-058/kinds-type-row.test.cnx`
+- `adr-058/kinds-value-row.test.cnx`
 - `adr-058/length-property-enum-and-bitmap.test.cnx`
 - `adr-058/length-property-struct.test.cnx`
 - `adr-058/slice-length-byte-length.test.cnx`

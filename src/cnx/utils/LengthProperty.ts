@@ -189,7 +189,7 @@ class LengthProperty {
       return subject.isBitField
         ? LengthProperty.error(
             `${property} is not available on the bit-field '${on}'`,
-            "A bit-field shares its storage with its neighbours, so it has no memory of its own; ask the struct or bitmap that holds it.",
+            "A bit-field shares its storage with its neighbors, so it has no memory of its own; ask the struct or bitmap that holds it.",
           )
         : { kind: "memory" };
     }
