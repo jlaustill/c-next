@@ -769,6 +769,17 @@ describe("CResolver - Opaque Type Detection (Issue #948)", () => {
     expect(symbolTable.isOpaqueType("point_t")).toBe(false);
   });
 
+  it("aliases a typedef to its struct tag whether or not it has a body (#2103)", () => {
+    const tree = TestHelpers.parseC(
+      `typedef struct _point { int x; int y; } point_t;\ntypedef struct _foo foo_t;`,
+    );
+    const symbolTable = new SymbolTable();
+    CResolver.resolve(tree!, "test.h", symbolTable);
+
+    expect(symbolTable.getStructTagForTypedef("point_t")).toBe("_point");
+    expect(symbolTable.getStructTagForTypedef("foo_t")).toBe("_foo");
+  });
+
   it("does not mark typedef struct with anonymous body as opaque", () => {
     const tree = TestHelpers.parseC(`typedef struct { int x; } point_t;`);
     const symbolTable = new SymbolTable();

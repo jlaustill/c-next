@@ -51,7 +51,11 @@ class CPointerArgumentCheck {
     callee.arguments.forEach((arg, index) => {
       const parameter = callee.parameters[index];
       const pointee = CPointerParameter.pointee(parameter?.type);
-      if (pointee === null) return;
+      if (pointee === null) {
+        if (parameter !== undefined)
+          this.rejectsReadOnlyArray(arg, name, index, parameter);
+        return;
+      }
       if (
         pointee !== "void" &&
         this.rejects(arg, name, index, parameter, pointee)
@@ -68,6 +72,28 @@ class CPointerArgumentCheck {
     });
   }
 
+  /** E0895, when a read-only array meets a C array parameter that is not const */
+  private rejectsReadOnlyArray(
+    arg: TExpression,
+    name: string,
+    index: number,
+    parameter: ICParameterInfo,
+  ): void {
+    if (
+      !CPointerParameter.writesThrough(parameter) ||
+      CPointerArgumentAnalyzer.isConstRoot(
+        OperandTyper.chainOf(arg, this.context).root,
+      ) !== true
+    ) {
+      return;
+    }
+    this.report(
+      arg,
+      `'${arg.written}' is read-only, and parameter ${index + 1} of '${name}' is an array '${name}' may write through`,
+      `Declare '${arg.written}' \`mut\`, or declare the C parameter const.`,
+    );
+  }
+
   /** E0895, when the argument is not what the pointer points to */
   private rejects(
     arg: TExpression,
@@ -80,7 +106,7 @@ class CPointerArgumentCheck {
       OperandTyper.typeOf(arg, this.context),
     );
     if (argType === null) return false;
-    if (argType !== pointee) {
+    if (this.structIdentity(argType) !== this.structIdentity(pointee)) {
       this.report(
         arg,
         `'${arg.written}' is ${argType}, and parameter ${index + 1} of '${name}' points to ${pointee}`,
@@ -100,6 +126,11 @@ class CPointerArgumentCheck {
       `Declare '${arg.written}' \`mut\`, or declare the C parameter const ${pointee}*.`,
     );
     return true;
+  }
+
+  /** `widget_t` and the `_widget_t` it aliases are one type (#958) */
+  private structIdentity(cType: string): string {
+    return this.context.symbolTable.getStructTagForTypedef(cType) ?? cType;
   }
 
   private report(

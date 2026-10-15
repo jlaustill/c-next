@@ -247,8 +247,7 @@ class ConstAssignmentCheck {
       const parameter = callee.parameters[index];
       if (
         parameter === undefined ||
-        CPointerParameter.pointee(parameter.type) === null ||
-        CPointerParameter.pointsToConst(parameter)
+        !CPointerParameter.writesThrough(parameter)
       ) {
         return;
       }

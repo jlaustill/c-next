@@ -28,6 +28,18 @@ class CPointerParameter {
       parameter.type.slice(0, Math.max(star, 0)).split(/\s+/).includes("const")
     );
   }
+
+  /** #986: `uint8_t data[8]` is a `uint8_t *` the callee may write through too */
+  static writesThrough(parameter: ICParameterInfo): boolean {
+    if (CPointerParameter.pointee(parameter.type) !== null) {
+      return !CPointerParameter.pointsToConst(parameter);
+    }
+    return (
+      parameter.isArray &&
+      !parameter.isConst &&
+      !parameter.type.split(/\s+/).includes("const")
+    );
+  }
 }
 
 export default CPointerParameter;

@@ -55,7 +55,10 @@ import Write from "../../cnx/WRITE/1-Write/Write";
 // 19: #1975 review (owner ruling) -- a C/C++ struct field records a
 // bit-field's declared width, so an entry written before measures
 // `uint32_t a : 3` as its storage type's 32 bits.
-const CACHE_VERSION = 19;
+// 20: #2103 -- `typedef struct _w {...} w;` records w's tag as it does for a
+// forward-declared tag, so an entry written before reads `w` and `_w` as two
+// types under an unchanged shape, and E0895 rejects one passed for the other.
+const CACHE_VERSION = 20;
 
 const TRANSPILER_VERSION = packageJson.version;
 

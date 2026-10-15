@@ -201,10 +201,12 @@ describe("ConstAssignmentAnalyzer (E0899, ADR-071 Decision 6)", () => {
 describe("ConstAssignmentAnalyzer, a C callee's pointer (#2103)", () => {
   const withC = (source: string): string[] => {
     const symbolTable = new SymbolTable();
-    for (const [name, type] of [
-      ["c_bump", "uint8_t *"],
-      ["c_read", "const uint8_t *"],
-    ]) {
+    for (const [name, type, isConst, isArray] of [
+      ["c_bump", "uint8_t *", false, false],
+      ["c_read", "const uint8_t *", false, false],
+      ["c_fill", "uint8_t", false, true],
+      ["c_scan", "uint8_t", true, true],
+    ] as const) {
       symbolTable.addCSymbol({
         name,
         kind: "function",
@@ -213,7 +215,7 @@ describe("ConstAssignmentAnalyzer, a C callee's pointer (#2103)", () => {
         span: TestSourceSpan.at(1),
         visibility: "public",
         type: "void",
-        parameters: [{ name: "p", type, isConst: false, isArray: false }],
+        parameters: [{ name: "p", type, isConst, isArray }],
       });
     }
     const { syntax, context } = testAnalysisContextFor(source, {
@@ -231,5 +233,13 @@ describe("ConstAssignmentAnalyzer, a C callee's pointer (#2103)", () => {
         "void f(mut u8 a, mut u8 b, mut u8 c) {\n    c_bump(a);\n    global.c_bump(b);\n    c_read(c);\n}",
       ),
     ).toEqual(["E0899@1 'c' is never written; remove `mut`"]);
+  });
+
+  it("counts a non-const C array parameter as a write (#986)", () => {
+    expect(
+      withC(
+        "void f(mut u8[8] a, mut u8[8] b) {\n    c_fill(a);\n    c_scan(b);\n}",
+      ),
+    ).toEqual(["E0899@1 'b' is never written; remove `mut`"]);
   });
 });
