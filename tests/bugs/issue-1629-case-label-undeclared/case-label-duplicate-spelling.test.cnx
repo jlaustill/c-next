@@ -4,8 +4,8 @@
 // is spelled. Inside `Panel`, `LIMIT` and `this.LIMIT` are one const, so the
 // second is E0713. `this.LIMIT` and `global.LIMIT` bind two consts and stay
 // silent, as do `State.IDLE` and `global.State.IDLE`; `this.State.RUN`
-// repeats `State.RUN`. In `shadowed`, the local `LIMIT` and `global.LIMIT`
-// are two consts too, and stay silent.
+// repeats `State.RUN`. In `Shadow.pick`, the local `LIMIT` and
+// `global.LIMIT` are two consts too, and stay silent.
 const u8 LIMIT <- 1;
 
 enum State {
@@ -48,20 +48,22 @@ scope Panel {
     }
 }
 
-u32 shadowed(u8 s) {
-    const u8 LIMIT <- 5;
-    switch (s) {
-        case LIMIT {
-            return 1;
+scope Shadow {
+    public u32 pick(u8 s) {
+        const u8 LIMIT <- 5;
+        switch (s) {
+            case LIMIT {
+                return 1;
+            }
+            case global.LIMIT {
+                return 2;
+            }
+            default {
+                return 0;
+            }
         }
-        case global.LIMIT {
-            return 2;
-        }
-        default {
-            return 0;
-        }
+        return 0;
     }
-    return 0;
 }
 
 u32 main() {

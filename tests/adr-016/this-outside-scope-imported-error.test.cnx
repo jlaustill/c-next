@@ -1,0 +1,11 @@
+// test-error
+// test-adr: 016
+// E0431 across one include hop: `this.` in a top-level function of an
+// included file, as a value and as a case label (#2075). Matrix cell:
+// top-level function / imported direct.
+#include "this-outside-scope-lib.cnx"
+
+u8 main() {
+    u8 r <- fromLib(1);
+    return r;
+}

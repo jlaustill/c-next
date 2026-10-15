@@ -1,0 +1,4 @@
+tests/adr-016/this-outside-scope-lib.cnx:5:14 error[E0431]: 'this' can only be used inside a scope
+       help: `this` names the enclosing scope's own member. Outside a scope, write a file-scope declaration by its bare name, or move the code into the scope it belongs to.
+tests/adr-016/this-outside-scope-lib.cnx:7:13 error[E0431]: 'this' can only be used inside a scope
+       help: `this` names the enclosing scope's own member. Outside a scope, write a file-scope declaration by its bare name, or move the code into the scope it belongs to.

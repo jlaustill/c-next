@@ -102,7 +102,7 @@ class ThisOutsideScopeAnalyzer {
       column: span.column,
       message: "'this' can only be used inside a scope",
       helpText:
-        "`this` names the enclosing scope's own member. Outside a scope, write `global.Name` for a file-scope declaration, or move the code into the scope it belongs to.",
+        "`this` names the enclosing scope's own member. Outside a scope, write a file-scope declaration by its bare name, or move the code into the scope it belongs to.",
     });
   }
 }

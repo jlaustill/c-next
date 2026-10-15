@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-602 fixture(s) assert a diagnostic; 592 carry a code.
+603 fixture(s) assert a diagnostic; 593 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -88,6 +88,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-016/scope-enum-naming-conflict.test.cnx                                                | E0437               |
 | tests/adr-016/self-scope-bare-error.test.cnx                                                     | E0435               |
 | tests/adr-016/this-outside-scope-error.test.cnx                                                  | E0431               |
+| tests/adr-016/this-outside-scope-imported-error.test.cnx                                         | E0431               |
 | tests/adr-017/bare-enum-field-slice-target-error.test.cnx                                        | E0424               |
 | tests/adr-017/bare-enum-slice-target-error.test.cnx                                              | E0424               |
 | tests/adr-017/bare-enum-uncovered-arms-error.test.cnx                                            | E0424               |

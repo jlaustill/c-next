@@ -16904,10 +16904,12 @@ describe("CodeGenWalker", () => {
       // 2.1 accepted `global.HDR_K` because an include declares it; the value
       // position writes it as `HDR_K` too
       const code = generate(`
-        u32 pick(u8 v) {
-          switch (v) {
-            case global.HDR_K { return 1; }
-            default { return 3; }
+        scope Panel {
+          public u32 pick(u8 v) {
+            switch (v) {
+              case global.HDR_K { return 1; }
+              default { return 3; }
+            }
           }
         }
       `);
