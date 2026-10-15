@@ -14,7 +14,7 @@ void uartHandler(void) {
 }
 
 // Use ISR as parameter type
-void registerHandler(const ISR handler) {
+void registerHandler(ISR handler) {
 }
 
 // Use ISR as struct field

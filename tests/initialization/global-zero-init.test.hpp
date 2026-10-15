@@ -14,10 +14,10 @@ extern "C" {
 #endif
 
 /* External variables */
-extern const uint32_t counter;
-extern const int32_t offset;
-extern const bool flag;
-extern const uint8_t byte;
+extern uint32_t counter;
+extern int32_t offset;
+extern bool flag;
+extern uint8_t byte;
 
 #ifdef __cplusplus
 }

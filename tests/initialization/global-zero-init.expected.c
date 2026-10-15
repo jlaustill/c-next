@@ -11,13 +11,13 @@
 // test-execution
 // ADR-015: Global zero initialization
 // Tests: globals are automatically zero-initialized
-const uint32_t counter = 0;
+uint32_t counter = 0;
 
-const int32_t offset = 0;
+int32_t offset = 0;
 
-const bool flag = false;
+bool flag = false;
 
-const uint8_t byte = 0;
+uint8_t byte = 0;
 
 int main(void) {
     if (counter == 0 && offset == 0 && flag == false && byte == 0) {

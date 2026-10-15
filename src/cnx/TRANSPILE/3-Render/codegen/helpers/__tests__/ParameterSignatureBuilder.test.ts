@@ -156,6 +156,23 @@ describe("ParameterSignatureBuilder", () => {
       expect(result).toBe("float value");
     });
 
+    it("writes a read-only ISR without const, like a callback (ADR-071)", () => {
+      const readOnly = (baseType: string, mappedType: string) =>
+        ParameterSignatureBuilder.build(
+          createInput({
+            name: "p",
+            baseType,
+            mappedType,
+            isConst: true,
+            isPassByValue: true,
+          }),
+          "*",
+        );
+
+      expect(readOnly("ISR", "ISR")).toBe("ISR p");
+      expect(readOnly("f32", "float")).toBe("const float p");
+    });
+
     it("generates enum parameter", () => {
       const input = createInput({
         name: "status",

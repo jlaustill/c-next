@@ -98,7 +98,10 @@ class ParameterSignatureBuilder {
    * Example: float value, ISR handler, Status s
    */
   private static _buildPassByValueParam(param: IParameterInput): string {
-    const constMod = param.isConst ? "const " : "";
+    // An ISR is a function pointer, written like a callback parameter: with
+    // no `const` on the copy. cppcheck 2.13's MISRA addon misreports a
+    // `const ISR` parameter as Rule 8.2.
+    const constMod = param.isConst && param.baseType !== "ISR" ? "const " : "";
     return `${constMod}${param.mappedType} ${param.name}`;
   }
 

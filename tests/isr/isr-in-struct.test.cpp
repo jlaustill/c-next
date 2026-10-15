@@ -46,7 +46,7 @@ void structHandler3(void) {
 
 // Struct with ISR fields
 // Initialize struct with ISR values
-void initStructHolder(IsrHolder& hld, const ISR prim, const ISR sec) {
+void initStructHolder(IsrHolder& hld, ISR prim, ISR sec) {
     hld.primary = prim;
     hld.secondary = sec;
 }

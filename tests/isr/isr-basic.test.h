@@ -22,7 +22,7 @@ typedef struct InterruptController {
 /* Function prototypes */
 void timerHandler(void);
 void uartHandler(void);
-void registerHandler(const ISR handler);
+void registerHandler(ISR handler);
 
 #ifdef __cplusplus
 }
