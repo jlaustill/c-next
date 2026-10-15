@@ -58,7 +58,6 @@ import Write from "../cnx/WRITE/1-Write/Write";
 import CaughtError from "../cnx/utils/CaughtError";
 import ProgramChecks from "../cnx/PARSE/4-Resolve/ProgramChecks";
 import IncludeGuards from "../cnx/TRANSPILE/3-Render/headers/IncludeGuards";
-import { resolve } from "node:path";
 
 /**
  * The config with every default filled in, except `cppRequired`: unset is
@@ -216,7 +215,7 @@ class Transpiler {
       }
 
       if (input.kind === "files") {
-        this._ensureOutputDirectories();
+        this._ensureHeaderOutputDirectory();
       }
 
       this._executePipeline(pipelineInput, result);
@@ -726,13 +725,11 @@ class Transpiler {
   }
 
   /**
-   * Create the output directories, whether or not any file is written into
-   * them. `outDir` is always created: whether output is written is never
-   * decided by its value (#2086). `resolve` names an empty `outDir` as the
-   * directory it means, the current one.
+   * Create a separately configured header directory. `outDir` is not created
+   * here: writing a file creates its directory, so whether `outDir` exists
+   * never depends on its value (#2086).
    */
-  private _ensureOutputDirectories(): void {
-    Write.directory(this.fs, resolve(this.config.outDir));
+  private _ensureHeaderOutputDirectory(): void {
     if (this.config.headerOutDir) {
       Write.directory(this.fs, this.config.headerOutDir);
     }

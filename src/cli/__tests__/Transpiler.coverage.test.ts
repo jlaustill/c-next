@@ -876,8 +876,8 @@ describe("Transpiler coverage tests", () => {
 
       const transpiler = new Transpiler(
         {
-          input: "/project/main.cnx",
-          outDir: "", // Needed for project root detection
+          input: "/project/main.cnx", // Needed for project root detection
+          outDir: "",
           noCache: false, // Enable cache
           target: "host",
         },

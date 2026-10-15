@@ -13,7 +13,8 @@ interface ITranspilerConfig {
 
   /**
    * Output directory for generated files. Required: where output goes is the
-   * caller's decision, and the class has no default for it (#2086).
+   * caller's decision, and the class has no default for it (#2086). `""`
+   * is the current working directory, as for any relative path.
    */
   outDir: string;
 
