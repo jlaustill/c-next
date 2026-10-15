@@ -1,5 +1,5 @@
 // test-execution
-// Tests .bit_length property for arrays (ADR-058)
+// Tests .type_bit_length property for arrays (ADR-058)
 // bit_length returns total bits of storage (elements x element bit width)
 // u32[16] = 16 elements x 32 bits = 512 bits
 
@@ -7,17 +7,17 @@ u32[16] globalArr;
 
 scope TestScope {
     public u32 getGlobalArrayBitLength() {
-        return global.globalArr.bit_length;
+        return global.globalArr.type_bit_length;
     }
     u32[16] scopeArr;
     public u32 getScopeArrayBitLength() {
-        return this.scopeArr.bit_length;
+        return this.scopeArr.type_bit_length;
     }
     public u32 publicArr[16];
 }
 
 u32 checkArrayBitLength(u32[16] arr) {
-    return arr.bit_length;
+    return arr.type_bit_length;
 }
 
 scope U32ArrayBitLength {
@@ -30,7 +30,7 @@ i32 main() {
     globalArr[0] <- 100000;
 
     // Test global array bit_length = 512 (16 x 32)
-    if (globalArr.bit_length != 512) {
+    if (globalArr.type_bit_length != 512) {
         return 1;
     }
 
@@ -46,14 +46,14 @@ i32 main() {
     }
 
     // Test public scope array
-    if (TestScope.publicArr.bit_length != 512) {
+    if (TestScope.publicArr.type_bit_length != 512) {
         return 4;
     }
 
     // Test local array
     u32[16] localArr;
     localArr[0] <- 100000;
-    if (localArr.bit_length != 512) {
+    if (localArr.type_bit_length != 512) {
         return 5;
     }
 
@@ -68,12 +68,12 @@ i32 main() {
     // Test struct member array
     U32ArrayBitLength.TestStruct ts;
     ts.arr[0] <- 100000;
-    if (ts.arr.bit_length != 512) {
+    if (ts.arr.type_bit_length != 512) {
         return 7;
     }
 
     // Test element bit_length (single element = 32 bits)
-    if (globalArr[0].bit_length != 32) {
+    if (globalArr[0].type_bit_length != 32) {
         return 8;
     }
 

@@ -7,11 +7,11 @@ scope Lab {
     const string<4>[] codes <- ["ab", "xyz"];
 
     public u32 codeLength(u32 i) {
-        return codes[i].char_count;
+        return codes[i].value_char_count;
     }
 
     public u32 lengthOf(u32 i) {
-        return this.tags[i].char_count;
+        return this.tags[i].value_char_count;
     }
 }
 

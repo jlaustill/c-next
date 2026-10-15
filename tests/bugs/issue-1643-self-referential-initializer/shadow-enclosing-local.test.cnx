@@ -51,7 +51,7 @@ u8 main() {
     if (N = 2) {
         const u32 N <- N + 1;
         u8[N] buf <- [7*];
-        if (buf.element_count != 3) {
+        if (buf.type_element_count != 3) {
             return 3;
         }
         if (N != 3) {

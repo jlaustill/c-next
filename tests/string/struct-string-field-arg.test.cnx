@@ -9,7 +9,7 @@ struct Person {
 }
 
 u32 lengthOf(string<8> s) {
-    return s.char_count;
+    return s.value_char_count;
 }
 
 bool isBob(string<8> s) {

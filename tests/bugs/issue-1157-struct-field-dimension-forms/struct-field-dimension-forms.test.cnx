@@ -39,7 +39,7 @@ struct Buffer {
     u8[SIZE] constRef;
     u8[8 + 1] addLiteral;
     u8[SIZE + 2] addConst;
-    u8[u32.byte_length] byteLengthDim;
+    u8[u32.type_byte_length] byteLengthDim;
 }
 
 i32 main() {

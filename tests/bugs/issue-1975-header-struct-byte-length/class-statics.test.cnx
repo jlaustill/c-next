@@ -8,7 +8,7 @@
 #include "statics.hpp"
 
 u32 main() {
-    if (Dev.byte_length != 5) {
+    if (Dev.type_byte_length != 5) {
         return 1;
     }
     u32 made <- Dev.make(3);
@@ -22,10 +22,10 @@ u32 main() {
     if (total != 3) {
         return 4;
     }
-    if (Bits.a.bit_length != 3) {
+    if (Bits.a.type_bit_length != 3) {
         return 5;
     }
-    if (Bits.b.bit_length != 5) {
+    if (Bits.b.type_bit_length != 5) {
         return 6;
     }
     return 0;

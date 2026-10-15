@@ -8,8 +8,8 @@
 #include <stdint.h>
 
 // test-execution
-// Comprehensive .bit_length test for u32 type across all contexts (ADR-058)
-// Tests: .bit_length returns 32 for u32 in every possible scope and access pattern
+// Comprehensive .type_bit_length test for u32 type across all contexts (ADR-058)
+// Tests: .type_bit_length returns 32 for u32 in every possible scope and access pattern
 uint32_t globalVar = 100000U;
 
 /* Scope: TestScope */

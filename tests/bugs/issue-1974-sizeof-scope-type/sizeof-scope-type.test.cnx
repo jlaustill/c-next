@@ -2,8 +2,8 @@
 // Issue #1974: a scope's own struct, enum or bitmap is measured as the type
 // its C name declares -- `S__Cfg`, `S__Mode`, `S__Flags` -- as every other
 // type position reads it. Before, `sizeof` emitted the source spelling, which
-// C does not declare; since #1975 the size is ADR-058's `.byte_length`. A
-// global type is the control: `Pair.byte_length`.
+// C does not declare; since #1975 the size is ADR-058's `.type_byte_length`. A
+// global type is the control: `Pair.type_byte_length`.
 
 struct Pair {
     u8 a;
@@ -33,29 +33,29 @@ scope S {
     }
 
     public u32 cfgSize() {
-        return Cfg.byte_length;
+        return Cfg.type_byte_length;
     }
 
     public u32 cfgValueSize() {
         Cfg c;
-        return c.byte_length;
+        return c.type_byte_length;
     }
 
     public u32 modeSize() {
-        return Mode.byte_length;
+        return Mode.type_byte_length;
     }
 
     public u32 modeValueSize() {
         Mode m <- Mode.A;
-        return m.byte_length;
+        return m.type_byte_length;
     }
 
     public u32 flagsSize() {
-        return Flags.byte_length;
+        return Flags.type_byte_length;
     }
 
     public u32 pairSize() {
-        return Pair.byte_length;
+        return Pair.type_byte_length;
     }
 }
 
@@ -75,7 +75,7 @@ u32 main() {
         return 3;
     }
     u32 pair <- S.pairSize();
-    if (pair != Pair.byte_length) {
+    if (pair != Pair.type_byte_length) {
         return 4;
     }
     return 0;

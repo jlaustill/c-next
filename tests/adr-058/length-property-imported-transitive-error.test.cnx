@@ -9,13 +9,13 @@
 #include "length-relay.cnx"
 
 // NEGATIVE CONTROL -- the right property on the imported array.
-u32 okGlobal <- sharedArray.element_count;
+u32 okGlobal <- sharedArray.type_element_count;
 
 // ASSERTION -- global variable context.
-u32 badGlobal <- sharedScalar.element_count;
+u32 badGlobal <- sharedScalar.type_element_count;
 
 u32 main() {
     // ASSERTION -- top-level function context.
-    u32 n <- sharedArray.char_count;
+    u32 n <- sharedArray.memory_char_count;
     return n;
 }

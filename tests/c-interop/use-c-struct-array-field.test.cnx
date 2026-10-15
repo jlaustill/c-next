@@ -63,11 +63,11 @@ u32 main() {
         return 8;
     }
 
-    // Test 4: Array element .bit_length property
-    if (buf.data[0].bit_length != 8) {
+    // Test 4: Array element .type_bit_length property
+    if (buf.data[0].type_bit_length != 8) {
         return 9;
     }
-    if (va.values[0].bit_length != 32) {
+    if (va.values[0].type_bit_length != 32) {
         return 10;
     }
 

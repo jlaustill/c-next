@@ -8,7 +8,7 @@
 #include <stdint.h>
 
 // test-execution
-// Tests .byte_length property for arrays (ADR-058)
+// Tests .type_byte_length property for arrays (ADR-058)
 // byte_length returns total bytes of storage
 // u32[16] = 16 elements x 4 bytes = 64 bytes
 uint32_t globalArr[16] = {};

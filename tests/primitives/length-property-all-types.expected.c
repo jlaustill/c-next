@@ -51,7 +51,7 @@ int main(void) {
         return 1;
     }
     bool flag = true;
-    if (8 != 8) {
+    if (1 != 1) {
         return 1;
     }
     return 0;

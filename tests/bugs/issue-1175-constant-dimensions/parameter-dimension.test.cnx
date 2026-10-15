@@ -8,7 +8,7 @@
 
 const u32 N <- 4;
 
-u32 sum(u8[N] a, u8[a.element_count] b) {
+u32 sum(u8[N] a, u8[a.type_element_count] b) {
     u32 total <- a[0];
     total +<- b[3];
     return total;

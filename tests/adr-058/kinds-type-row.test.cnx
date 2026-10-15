@@ -1,0 +1,128 @@
+// test-execution
+// test-adr: 058
+// The type row (#1975 review 2): the declared, logical width -- no padding,
+// no terminator, no storage unit -- and the letters of the type's name.
+
+struct Cfg {
+    u32 a;
+    u8 b;
+}
+
+struct Flagged {
+    bool f;
+    u8 g;
+}
+
+enum Mode {
+    A,
+    B,
+    C
+}
+
+enum Five {
+    V0,
+    V1,
+    V2,
+    V3,
+    V4
+}
+
+bitmap8 Fl {
+    on,
+    mode[3],
+    rest[4]
+}
+
+u32 main() {
+    if (u32.type_bit_length != 32) {
+        return 1;
+    }
+    if (u32.type_byte_length != 4) {
+        return 2;
+    }
+    if (bool.type_bit_length != 1) {
+        return 3;
+    }
+    if (bool.type_byte_length != 1) {
+        return 4;
+    }
+    if (f64.type_byte_length != 8) {
+        return 5;
+    }
+    // a struct's fields summed, and a 9-bit one rounded up
+    if (Cfg.type_byte_length != 5) {
+        return 6;
+    }
+    if (Flagged.type_bit_length != 9) {
+        return 7;
+    }
+    if (Flagged.type_byte_length != 2) {
+        return 8;
+    }
+    if (Cfg.type_element_count != 2) {
+        return 9;
+    }
+    // an enum: the fewest bits for its members
+    if (Mode.type_bit_length != 2) {
+        return 10;
+    }
+    if (Five.type_bit_length != 3) {
+        return 11;
+    }
+    Mode m <- Mode.B;
+    if (m.type_byte_length != 1) {
+        return 12;
+    }
+    // a bitmap field: its declared width, bytes rounded up
+    Fl g;
+    if (g.on.type_bit_length != 1) {
+        return 13;
+    }
+    if (g.mode.type_bit_length != 3) {
+        return 14;
+    }
+    if (g.mode.type_byte_length != 1) {
+        return 15;
+    }
+    if (Fl.type_bit_length != 8) {
+        return 16;
+    }
+    // a string: its capacity, no terminator
+    string<8> s <- "ab";
+    if (s.type_byte_length != 8) {
+        return 17;
+    }
+    if (s.type_bit_length != 64) {
+        return 18;
+    }
+    // an array: every element, the first dimension's count
+    u16[3][2] grid;
+    if (grid.type_byte_length != 12) {
+        return 19;
+    }
+    if (grid.type_element_count != 3) {
+        return 20;
+    }
+    if (grid[0].type_element_count != 2) {
+        return 21;
+    }
+    // the letters of the type's name
+    if (u8.type_char_count != 2) {
+        return 22;
+    }
+    if (u32.type_char_count != 3) {
+        return 23;
+    }
+    if (Cfg.type_char_count != 3) {
+        return 24;
+    }
+    if (s.type_char_count != 9) {
+        return 25;
+    }
+    // a type length folds into an array dimension
+    u8[Flagged.type_byte_length] raw;
+    if (raw.type_element_count != 2) {
+        return 26;
+    }
+    return 0;
+}

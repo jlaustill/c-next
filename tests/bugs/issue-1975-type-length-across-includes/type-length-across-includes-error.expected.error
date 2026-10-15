@@ -1,4 +1,4 @@
 13:20 error[E0897]: Type 'Point' has no field or length property 'z'
-       help: A type is measured, not read: it answers ADR-058's length properties, its own and its fields' (Point.byte_length, Point.x.bit_length). A value is read from a variable of the type.
+       help: A type is measured, not read: it answers ADR-058's length properties, its own and its fields' (Point.type_byte_length, Point.x.type_bit_length). A value is read from a variable of the type.
 14:24 error[E0897]: Type 'Geo.Box' has no field or length property 'q'
-       help: A type is measured, not read: it answers ADR-058's length properties, its own and its fields' (Point.byte_length, Point.x.bit_length). A value is read from a variable of the type.
+       help: A type is measured, not read: it answers ADR-058's length properties, its own and its fields' (Point.type_byte_length, Point.x.type_bit_length). A value is read from a variable of the type.

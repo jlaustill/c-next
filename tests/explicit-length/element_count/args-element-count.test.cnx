@@ -1,9 +1,9 @@
-// Tests args.element_count property (ADR-058)
-// args.element_count returns argc
+// Tests args.type_element_count property (ADR-058)
+// args.type_element_count returns argc
 
 i32 main(string args[]) {
     // element_count maps to argc
-    u32 count <- args.element_count;
+    u32 count <- args.type_element_count;
 
     // Use count to avoid unused variable warning
     if (count < 1) {

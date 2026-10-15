@@ -27,7 +27,7 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 
 // test-execution
 // Issue #1953: the other readers of a shadowing local's name end with its block too:
-// a for-loop variable, and .byte_length of a struct member through the shadowing name
+// a for-loop variable, and .type_byte_length of a struct member through the shadowing name
 Pair cfg = {0};
 
 uint8_t i = 9U;

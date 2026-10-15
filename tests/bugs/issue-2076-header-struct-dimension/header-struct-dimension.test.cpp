@@ -8,7 +8,7 @@
 // test-execution
 // Issue #2076: a C header struct's length property sizes an array, as it
 // reads in an expression (#1975): `Cfg` is its fields summed, 4 + 1 = 5, so
-// `u8[Cfg.byte_length]` holds 5. It was E0909 ("is a member access"): 1.4,
+// `u8[Cfg.type_byte_length]` holds 5. It was E0909 ("is a member access"): 1.4,
 // which folds dimensions, could not see a header's structs.
 //
 // NEGATIVE CONTROL: `Point`, a C-Next struct, sized by the same rule.

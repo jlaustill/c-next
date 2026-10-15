@@ -36,7 +36,7 @@ uint8_t plain[4] = {0};
 uint8_t wide[400] = {0};
 
 // File scope, not a local: a local struct's field reads as uninitialized
-// even for `.element_count`, which is a constant (#1867).
+// even for `.type_element_count`, which is a constant (#1867).
 Info info = {0};
 
 int main(void) {

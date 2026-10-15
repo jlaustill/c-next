@@ -1,0 +1,39 @@
+// test-execution
+// test-adr: 058
+// A C header's layouts (#1975 review 2): the memory row is the C compiler's,
+// so it answers where C-Next cannot sum -- a pointer, a union, bit-fields --
+// and a bit-field member's type length is its declared width.
+
+#include "kinds-layouts.h"
+
+u32 main() {
+    if (KCfg.type_byte_length != 5) {
+        return 1;
+    }
+    if (KCfg.memory_byte_length < 5) {
+        return 2;
+    }
+    if (KOdd.memory_byte_length < 5) {
+        return 3;
+    }
+    if (KUn.memory_byte_length < 4) {
+        return 4;
+    }
+    if (KBF.memory_byte_length < 1) {
+        return 5;
+    }
+    if (KBF.a.type_bit_length != 3) {
+        return 6;
+    }
+    if (KBF.b.type_byte_length != 1) {
+        return 7;
+    }
+    if (KCfg.type_element_count != 2) {
+        return 8;
+    }
+    KOdd o;
+    if (o.memory_bit_length != KOdd.memory_byte_length * 8) {
+        return 9;
+    }
+    return 0;
+}

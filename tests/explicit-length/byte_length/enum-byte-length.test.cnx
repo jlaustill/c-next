@@ -1,6 +1,6 @@
 // test-execution
 // test-c-only
-// Tests .byte_length property for enum type (ADR-058)
+// Tests .type_byte_length property for enum type (ADR-058)
 // Enums are 4 bytes (32 bits) by default
 
 enum Color {
@@ -23,21 +23,21 @@ scope EnumByteLen {
 }
 
 i32 main() {
-    // Test enum byte_length = 4
-    if (globalColor.byte_length != 4) {
+    // A three-member enum's 2 bits, rounded up to a byte (ADR-058)
+    if (globalColor.type_byte_length != 1) {
         return 1;
     }
 
     // Test local enum
     State localState <- State.IDLE;
-    if (localState.byte_length != 4) {
+    if (localState.type_byte_length != 1) {
         return 2;
     }
 
     // Test struct member enum
     EnumByteLen.TestStruct ts;
     ts.state <- State.RUNNING;
-    if (ts.state.byte_length != 4) {
+    if (ts.state.type_byte_length != 1) {
         return 3;
     }
 

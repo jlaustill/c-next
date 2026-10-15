@@ -29,7 +29,7 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 // #1667 probe 2: a `for` counter is typed by its own declaration, not by an
 // earlier function's variable of the same name. `first()` declares `u32 k`,
 // which the lookup by bare name used to find, so the `u8` counter took the
-// `u32` clamp and a `.bit_length` of 32.
+// `u32` clamp and a `.type_bit_length` of 32.
 void first(void) {
     uint32_t k = 0U;
     k = cnx_clamp_add_u32(k, 1U);

@@ -30,11 +30,11 @@ u32 main() {
         return 3;
     }
     b[0] <- 1;
-    if (b.element_count != 3) {
+    if (b.type_element_count != 3) {
         return 4;
     }
     fifteen[0] <- 1;
-    if (fifteen.element_count != 15) {
+    if (fifteen.type_element_count != 15) {
         return 5;
     }
     return 0;

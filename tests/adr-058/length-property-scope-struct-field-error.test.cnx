@@ -13,10 +13,10 @@ scope S {
     Cfg cfg;
 
     // NEGATIVE CONTROLS -- the right property on the same field stays silent.
-    u32 okMember <- this.cfg.data.element_count;
+    u32 okMember <- this.cfg.data.type_element_count;
 
     public u32 ok() {
-        return this.cfg.data.element_count;
+        return this.cfg.data.type_element_count;
     }
 
     // THE ASSERTIONS -- scope member, then scope method.

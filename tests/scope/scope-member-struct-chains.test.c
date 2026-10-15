@@ -27,7 +27,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // scope and `Scope.` outside it -- an element of a field array, a bit of a
 // field integer, a string field's length and a bitmap field. The member's
 // struct type is what makes each the right access, and no fixture read one
-// through either spelling: without it, `.char_count` on the string field
+// through either spelling: without it, `.value_char_count` on the string field
 // failed in codegen though 2.1 had accepted it.
 /* Scope: S */
 Cfg S__cfg = {0};

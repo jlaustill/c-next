@@ -15,17 +15,17 @@ scope Logger {
 
 u32 main() {
     Logger.setMessage();
-    if (Logger.message.char_count != 16) {
+    if (Logger.message.value_char_count != 16) {
         return 1;
     }
 
     Logger.clear();
-    if (Logger.message.char_count != 0) {
+    if (Logger.message.value_char_count != 0) {
         return 2;
     }
 
     Logger.setCustom();
-    if (Logger.message.char_count != 6) {
+    if (Logger.message.value_char_count != 6) {
         return 3;
     }
 

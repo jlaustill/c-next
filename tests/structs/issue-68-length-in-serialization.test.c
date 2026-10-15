@@ -9,7 +9,7 @@
 
 // test-execution
 // Regression test for issue #68: Real-world serialization pattern
-// Verifies config.magic.bit_length correctly returns 32 (was returning 0)
+// Verifies config.magic.type_bit_length correctly returns 32 (was returning 0)
 /* Scope: SerialLength */
 
 int main(void) {

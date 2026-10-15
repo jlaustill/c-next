@@ -1,0 +1,53 @@
+// test-execution
+// test-adr: 058
+// The runtime value row in every context (#1975 review 2): a global
+// initializer, a top-level function, a scope's method and member, and a
+// subject two include hops away. Each needs its helper planned for the file
+// that reads it.
+
+#include "length-relay.cnx"
+
+u32 counter <- 300;
+u32 globalBits <- counter.type_bit_length;
+
+scope Meter {
+    u32 reading <- 12345;
+
+    public u32 digits() {
+        return this.reading.value_char_count;
+    }
+
+    public u32 bits() {
+        return this.reading.value_bit_length;
+    }
+}
+
+u32 topLevel(u32 x) {
+    return x.value_char_count;
+}
+
+u32 main() {
+    if (globalBits != 32) {
+        return 1;
+    }
+    u32 digits <- Meter.digits();
+    if (digits != 5) {
+        return 2;
+    }
+    u32 bits <- Meter.bits();
+    if (bits != 14) {
+        return 3;
+    }
+    u32 seven <- topLevel(7);
+    if (seven != 1) {
+        return 4;
+    }
+    // imported transitive: length-declarations.cnx's sharedScalar is 5
+    if (sharedScalar.value_bit_length != 3) {
+        return 5;
+    }
+    if (sharedArray.memory_element_count != 4) {
+        return 6;
+    }
+    return 0;
+}

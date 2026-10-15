@@ -9,13 +9,13 @@
 
 // test-execution
 // test-adr: 058
-// #1093: ADR-058's slice example -- `.byte_length` as the slice length. It
+// #1093: ADR-058's slice example -- `.type_byte_length` as the slice length. It
 // writes magic's 4 bytes, little-endian, and no more.
 uint8_t bufArray[8] = {};
 
 uint32_t magic = 0x12345678U;
 
-// .bit_length folds where a constant is expected too
+// .type_bit_length folds where a constant is expected too
 uint8_t bitsSized[32] = {};
 
 int main(void) {

@@ -11,8 +11,8 @@
 // Issue #1974: a scope's own struct, enum or bitmap is measured as the type
 // its C name declares -- `S__Cfg`, `S__Mode`, `S__Flags` -- as every other
 // type position reads it. Before, `sizeof` emitted the source spelling, which
-// C does not declare; since #1975 the size is ADR-058's `.byte_length`. A
-// global type is the control: `Pair.byte_length`.
+// C does not declare; since #1975 the size is ADR-058's `.type_byte_length`. A
+// global type is the control: `Pair.type_byte_length`.
 /* Scope: S */
 
 typedef enum {
@@ -45,12 +45,12 @@ uint32_t S__cfgValueSize(void) {
 }
 
 uint32_t S__modeSize(void) {
-    return 4;
+    return 1;
 }
 
 uint32_t S__modeValueSize(void) {
     S__Mode m = S__Mode__A;
-    return 4;
+    return 1;
 }
 
 uint32_t S__flagsSize(void) {

@@ -3,13 +3,13 @@
 // #1975 review: a C++ class is sized by its fields only when its fields are
 // all its storage. A union shares them, a bit-field packs them, a base and a
 // vtable add storage of their own: E0867 for each, never a fields' sum (on
-// the PR head `Un` was 6 and `Der` 1; `Bf.byte_length` reached the C++).
+// the PR head `Un` was 6 and `Der` 1; `Bf.type_byte_length` reached the C++).
 #include "classes.hpp"
 
 u32 main() {
-    u32 shared <- Un.byte_length;
-    u32 derived <- Der.byte_length;
-    u32 packed <- Bf.byte_length;
-    u32 virt <- Virt.byte_length;
+    u32 shared <- Un.type_byte_length;
+    u32 derived <- Der.type_byte_length;
+    u32 packed <- Bf.type_byte_length;
+    u32 virt <- Virt.type_byte_length;
     return shared + derived + packed + virt;
 }

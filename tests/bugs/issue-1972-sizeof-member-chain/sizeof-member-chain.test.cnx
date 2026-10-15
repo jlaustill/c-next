@@ -2,7 +2,7 @@
 // Issue #1972: a dotted member access is measured the way the same expression
 // reads everywhere else. `sizeof`'s resolver once rebuilt it from its first
 // two names (`shared.inner` for `shared.inner.x`, `w.v` for a pointer local,
-// `S__cfg__b`, `GPIO.DR`); since #1975 the size is ADR-058's `.byte_length`,
+// `S__cfg__b`, `GPIO.DR`); since #1975 the size is ADR-058's `.type_byte_length`,
 // read from the same chain as the value. Each is checked against the width
 // of the type the ordinary expression reads.
 #include "widget.h"
@@ -33,8 +33,8 @@ scope S {
 Outer shared;
 
 u32 main() {
-    u32 nested <- shared.inner.x.byte_length;
-    if (nested != u8.byte_length) {
+    u32 nested <- shared.inner.x.type_byte_length;
+    if (nested != u8.type_byte_length) {
         return 1;
     }
     u8 nestedValue <- shared.inner.x;
@@ -43,8 +43,8 @@ u32 main() {
     }
 
     widget_t w <- widget_get();
-    u32 pointed <- w.v.byte_length;
-    if (pointed != u32.byte_length) {
+    u32 pointed <- w.v.type_byte_length;
+    if (pointed != u32.type_byte_length) {
         return 3;
     }
     u32 pointedValue <- w.v;
@@ -52,8 +52,8 @@ u32 main() {
         return 4;
     }
 
-    u32 scoped <- S.cfg.b.byte_length;
-    if (scoped != u32.byte_length) {
+    u32 scoped <- S.cfg.b.type_byte_length;
+    if (scoped != u32.type_byte_length) {
         return 5;
     }
     u32 scopedValue <- S.cfg.b;
@@ -61,8 +61,8 @@ u32 main() {
         return 6;
     }
 
-    u32 registerSize <- GPIO.DR.byte_length;
-    if (registerSize != u32.byte_length) {
+    u32 registerSize <- GPIO.DR.type_byte_length;
+    if (registerSize != u32.type_byte_length) {
         return 7;
     }
     return 0;

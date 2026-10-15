@@ -31,16 +31,16 @@ u32 main() {
     }
 
     // Array length property
-    if (bytes.element_count != 4) {
+    if (bytes.type_element_count != 4) {
         return 6;
     }
-    if (numbers.element_count != 5) {
+    if (numbers.type_element_count != 5) {
         return 7;
     }
 
     // Iterate over array
     u32 sum <- 0;
-    for (u32 i <- 0; i < numbers.element_count; i <- i + 1) {
+    for (u32 i <- 0; i < numbers.type_element_count; i <- i + 1) {
         sum <- sum + numbers[i];
     }
     if (sum != 150) {

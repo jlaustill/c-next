@@ -38,7 +38,7 @@ u32 main() {
     // NEGATIVE CONTROL: a fold every operand's type holds still folds
     const u8 G <- A + 3;
     u8[G] five;
-    if (five.element_count != 5) {
+    if (five.type_element_count != 5) {
         return 5;
     }
     return 0;

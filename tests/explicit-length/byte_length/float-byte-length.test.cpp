@@ -8,7 +8,7 @@
 #include <stdint.h>
 
 // test-execution
-// Tests .byte_length property for float types (ADR-058)
+// Tests .type_byte_length property for float types (ADR-058)
 // f32 = 4 bytes, f64 = 8 bytes
 float globalF32 = 3.14;
 

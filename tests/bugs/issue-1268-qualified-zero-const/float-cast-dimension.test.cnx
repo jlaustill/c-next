@@ -11,10 +11,10 @@ u8[(u32)2.5] two;
 u8[(u32)3.99] three;
 
 u32 main() {
-    if (two.element_count != 2) {
+    if (two.type_element_count != 2) {
         return 1;
     }
-    if (three.element_count != 3) {
+    if (three.type_element_count != 3) {
         return 2;
     }
     return 0;

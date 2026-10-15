@@ -1,11 +1,11 @@
 // test-execution
 // #1667 probe 1: a `for` counter's width is its own declaration. It was never
-// recorded, so `.bit_length` on it found no type and code generation failed
+// recorded, so `.type_bit_length` on it found no type and code generation failed
 // at 1:0 with an internal error.
 u32 probe() {
     u32 w <- 0;
     for (u8 k <- 0; k < 3; k <- k + 1) {
-        w <- k.bit_length;
+        w <- k.type_bit_length;
     }
     return w;
 }

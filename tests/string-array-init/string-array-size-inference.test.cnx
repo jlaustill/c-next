@@ -8,16 +8,16 @@ const string<16>[] DAYS <- ["Monday", "Tuesday", "Wednesday"];
 // Local array with size inference (C-style for string arrays)
 u32 test() {
     string<8>[] items <- ["A", "B", "C", "D"];
-    u8 count <- items.element_count;
+    u8 count <- items.type_element_count;
 
     // Verify local array size inference
     if (count != 4) {
         return 1;
     }
-    if (items[0].char_count != 1) {
+    if (items[0].value_char_count != 1) {
         return 2; // "A"
     }
-    if (items[3].char_count != 1) {
+    if (items[3].value_char_count != 1) {
         return 3; // "D"
     }
 
@@ -26,18 +26,18 @@ u32 test() {
 
 u32 main() {
     // Test 1: DAYS array size should be inferred as 3
-    if (global.DAYS.element_count != 3) {
+    if (global.DAYS.type_element_count != 3) {
         return 1;
     }
 
     // Test 2: Check DAYS string lengths
-    if (global.DAYS[0].char_count != 6) {
+    if (global.DAYS[0].value_char_count != 6) {
         return 2; // "Monday"
     }
-    if (global.DAYS[1].char_count != 7) {
+    if (global.DAYS[1].value_char_count != 7) {
         return 3; // "Tuesday"
     }
-    if (global.DAYS[2].char_count != 9) {
+    if (global.DAYS[2].value_char_count != 9) {
         return 4; // "Wednesday"
     }
 

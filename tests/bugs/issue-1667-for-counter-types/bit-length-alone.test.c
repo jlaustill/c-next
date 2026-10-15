@@ -22,7 +22,7 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 
 // test-execution
 // #1667 probe 1: a `for` counter's width is its own declaration. It was never
-// recorded, so `.bit_length` on it found no type and code generation failed
+// recorded, so `.type_bit_length` on it found no type and code generation failed
 // at 1:0 with an internal error.
 uint32_t probe(void) {
     uint32_t w = 0U;

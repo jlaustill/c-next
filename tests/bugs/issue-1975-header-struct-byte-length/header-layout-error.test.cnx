@@ -7,8 +7,8 @@
 #include "layouts.h"
 
 u32 main() {
-    u32 shared <- AnonUnion.byte_length;
-    u32 hidden <- AnonStruct.byte_length;
-    u32 cycle <- bar.byte_length;
+    u32 shared <- AnonUnion.type_byte_length;
+    u32 hidden <- AnonStruct.type_byte_length;
+    u32 cycle <- bar.type_byte_length;
     return shared + hidden + cycle;
 }

@@ -7,8 +7,8 @@
 #include "length-limits.cnx"
 
 u32 divide(u32 n) {
-    u32 a <- n / (SHARED.element_count - 4);
-    u32 b <- n / (Lim.buf.byte_length - 4);
-    u32 c <- n / (SHARED.element_count - 3);
+    u32 a <- n / (SHARED.type_element_count - 4);
+    u32 b <- n / (Lim.buf.type_byte_length - 4);
+    u32 c <- n / (SHARED.type_element_count - 3);
     return a + b + c;
 }

@@ -10,7 +10,7 @@
 // test-execution
 // Issue #1967: a scope member named bare is measured under its scope-qualified
 // C name, whole and through a member, as every other bare identifier is.
-// Written with `sizeof` then; ADR-058's `.byte_length` since #1975. Controls:
+// Written with `sizeof` then; ADR-058's `.type_byte_length` since #1975. Controls:
 // the `this.` form, and a local that shadows the member, which measures the
 // local.
 /* Scope: S */

@@ -15,21 +15,21 @@ scope Store {
     u8[LIB_N - 2 + 1] slots;
 
     public u32 slotCount() {
-        return this.slots.element_count;
+        return this.slots.type_element_count;
     }
 
     public u32 scratchCount() {
         u8[LIB_N * 3] scratch;
-        return scratch.element_count;
+        return scratch.type_element_count;
     }
 }
 
 u32 main() {
     u8[LIB_N << 1] local;
-    if (shared.element_count != 5) {
+    if (shared.type_element_count != 5) {
         return 1;
     }
-    if (local.element_count != 8) {
+    if (local.type_element_count != 8) {
         return 2;
     }
     u32 slots <- Store.slotCount();

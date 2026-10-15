@@ -1,0 +1,16 @@
+// test-error
+// test-adr: 058
+// E0886: the four unprefixed lengths are removed (#1975 review 2), each named
+// a length without saying which kind. Each error's help names its replacement.
+
+u32 n <- 0;
+u8[4] buf;
+string<8> s <- "ab";
+
+// NEGATIVE CONTROL -- the replacements compile.
+u32 ok <- n.type_bit_length + n.type_byte_length + s.value_char_count + buf.type_element_count;
+
+u32 a <- n.bit_length;
+u32 b <- n.byte_length;
+u32 c <- s.char_count;
+u32 d <- buf.element_count;

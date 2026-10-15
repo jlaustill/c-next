@@ -37,7 +37,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // unchanged -- reading the local back cannot tell the two apart.
 //
 // Every value is distinct so a wrong binding cannot pass by coincidence.
-// `.byte_length` cases need the local and the global to differ in SIZE, or the
+// `.type_byte_length` cases need the local and the global to differ in SIZE, or the
 // assertion cannot fail. Same field name, different field width.
 uint32_t count = 1000U;
 

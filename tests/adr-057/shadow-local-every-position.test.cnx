@@ -71,21 +71,21 @@ scope S {
         acc +<- parr[pidx];
 
         // array length properties
-        acc +<- parr.element_count;
-        acc +<- parr.byte_length;
+        acc +<- parr.type_element_count;
+        acc +<- parr.type_byte_length;
 
         // bit write, whole-value read
         pbits[0, 4] <- 3;
         acc +<- pbits;
 
-        // struct member write, read, and a member's .byte_length
+        // struct member write, read, and a member's .type_byte_length
         pcfg.x <- 7;
         acc +<- pcfg.x;
-        acc +<- pcfg.x.byte_length;
+        acc +<- pcfg.x.type_byte_length;
 
         // string assignment and length property
         pstr <- "cd";
-        acc +<- pstr.char_count;
+        acc +<- pstr.value_char_count;
 
         // struct initializer value and array initializer element
         Holder made <- { x: probe };

@@ -25,7 +25,7 @@ u32 main() {
     if (msg[2] != 0) {
         return 2;
     }
-    if (msg.element_count != 3) {
+    if (msg.type_element_count != 3) {
         return 3;
     }
     if (counted[2] != 30) {
@@ -34,13 +34,13 @@ u32 main() {
     if (Table.row[3] != 4) {
         return 5;
     }
-    if (Table.row.element_count != 4) {
+    if (Table.row.type_element_count != 4) {
         return 6;
     }
     if (Table.text[2] != 99) {
         return 7;
     }
-    if (Table.text.element_count != 4) {
+    if (Table.text.type_element_count != 4) {
         return 8;
     }
     return 0;

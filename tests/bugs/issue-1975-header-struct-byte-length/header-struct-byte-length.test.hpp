@@ -35,7 +35,7 @@ typedef struct Slots {
 /* External variables */
 extern uint8_t wrapBytes[6];
 extern uint8_t wordBytes[2];
-extern uint8_t gearBytes[4];
+extern uint8_t gearBytes[1];
 extern uint8_t bfBits[5];
 
 /* Function prototypes */

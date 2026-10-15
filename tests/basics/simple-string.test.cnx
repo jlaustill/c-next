@@ -7,7 +7,7 @@ u32 main() {
     string<10> greeting <- "Hello";
 
     // String char_count property (ADR-058)
-    if (greeting.char_count != 5) {
+    if (greeting.value_char_count != 5) {
         return 1;
     }
 
@@ -18,19 +18,19 @@ u32 main() {
 
     // Empty string
     string<20> empty <- "";
-    if (empty.char_count != 0) {
+    if (empty.value_char_count != 0) {
         return 3;
     }
 
     // String with spaces
     string<20> message <- "Hi there";
-    if (message.char_count != 8) {
+    if (message.value_char_count != 8) {
         return 4;
     }
 
     // Longer string
     string<50> longer <- "The quick brown fox";
-    if (longer.char_count != 19) {
+    if (longer.value_char_count != 19) {
         return 5;
     }
 

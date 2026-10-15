@@ -1,7 +1,7 @@
 // test-execution
-// Tests .bit_length property for strings (ADR-058)
-// bit_length = (capacity + 1) x 8 (buffer size in bits including null terminator)
-// string<64> = 65 x 8 = 520 bits
+// Tests .type_bit_length property for strings (ADR-058)
+// type_bit_length = capacity x 8, no terminator (ADR-058); the buffer with its
+// terminator is the memory row: string<64> = 512 type bits, 520 memory bits
 
 string<64> globalStr <- "Hello";
 
@@ -10,27 +10,29 @@ struct TestStruct {
 }
 
 i32 main() {
-    // Test global string bit_length = 520 ((64+1) x 8)
-    if (globalStr.bit_length != 520) {
+    if (globalStr.memory_bit_length != 520) {
+        return 10;
+    }
+    if (globalStr.type_bit_length != 512) {
         return 1;
     }
 
-    // Test local string<32> = 264 bits ((32+1) x 8)
+    // string<32> = 256 bits
     string<32> localStr <- "World";
-    if (localStr.bit_length != 264) {
+    if (localStr.type_bit_length != 256) {
         return 2;
     }
 
-    // Test string<16> = 136 bits ((16+1) x 8)
+    // string<16> = 128 bits
     string<16> smallStr <- "";
-    if (smallStr.bit_length != 136) {
+    if (smallStr.type_bit_length != 128) {
         return 3;
     }
 
-    // Test struct member string<32> = 264 bits
+    // Test struct member string<32> = 256 bits
     TestStruct ts;
     ts.name <- "Test";
-    if (ts.name.bit_length != 264) {
+    if (ts.name.type_bit_length != 256) {
         return 4;
     }
 

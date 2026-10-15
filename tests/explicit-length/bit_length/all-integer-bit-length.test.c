@@ -8,7 +8,7 @@
 #include <stdint.h>
 
 // test-execution
-// Tests .bit_length property for all integer types (ADR-058)
+// Tests .type_bit_length property for all integer types (ADR-058)
 // Each integer type should return its bit width
 uint8_t global_u8 = 255U;
 

@@ -1,0 +1,7 @@
+// test-error
+// test-adr: 058
+// A bit-field has no memory of its own, so it sizes no array: E0867 says so,
+// not E0909 (#1975). The struct that holds it does (kinds-memory-dimension).
+#include "kinds-layouts.h"
+
+u8[KBF.a.memory_byte_length] bitFieldRaw;

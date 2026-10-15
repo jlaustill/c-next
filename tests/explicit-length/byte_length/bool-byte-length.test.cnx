@@ -1,5 +1,5 @@
 // test-execution
-// Tests .byte_length property for bool type (ADR-058)
+// Tests .type_byte_length property for bool type (ADR-058)
 // Bool storage size is 1 byte
 
 bool globalBool <- true;
@@ -12,20 +12,20 @@ scope BoolByteLen {
 
 i32 main() {
     // Test global bool byte_length = 1
-    if (globalBool.byte_length != 1) {
+    if (globalBool.type_byte_length != 1) {
         return 1;
     }
 
     // Test local bool
     bool localBool <- false;
-    if (localBool.byte_length != 1) {
+    if (localBool.type_byte_length != 1) {
         return 2;
     }
 
     // Test struct member
     BoolByteLen.TestStruct ts;
     ts.flag <- true;
-    if (ts.flag.byte_length != 1) {
+    if (ts.flag.type_byte_length != 1) {
         return 3;
     }
 

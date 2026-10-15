@@ -11,9 +11,9 @@
 
 // test-execution
 // test-adr: 058
-// #1535: a struct's .element_count is its field count, and its .bit_length /
-// .byte_length are its fields' sizes together, without C padding (ADR-058
-// resolved question 7). C stores P in 8 bytes on x86-64; its .byte_length is 5.
+// #1535: a struct's .type_element_count is its field count, and its .type_bit_length /
+// .type_byte_length are its fields' sizes together, without C padding (ADR-058
+// resolved question 7). C stores P in 8 bytes on x86-64; its .type_byte_length is 5.
 // ADR-058's ### Struct Examples block, as written there
 SensorReading reading = {0};
 
@@ -35,8 +35,8 @@ Nested n = {0};
 uint8_t sized[5] = {0};
 
 // A string field's symbol carries its C buffer as a last dimension; read
-// as the typer reads it, its .byte_length is 8 here too, not 8 x 8
-uint8_t sizedByString[8] = {0};
+// as the typer reads it, its .type_byte_length is 8 here too, not 8 x 8
+uint8_t sizedByString[7] = {0};
 
 int main(void) {
     if (40 != 40) {
@@ -48,10 +48,10 @@ int main(void) {
     if (2 != 2) {
         return 3;
     }
-    if (160 != 160) {
+    if (145 != 145) {
         return 4;
     }
-    if (20 != 20) {
+    if (19 != 19) {
         return 5;
     }
     if (4 != 4) {
@@ -72,7 +72,7 @@ int main(void) {
     if (5 != 5) {
         return 11;
     }
-    if (8 != 8) {
+    if (7 != 7) {
         return 12;
     }
     if (bits != 88) {

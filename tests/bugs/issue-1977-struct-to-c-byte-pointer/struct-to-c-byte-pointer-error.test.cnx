@@ -23,10 +23,10 @@ void f() {
     // NEGATIVE CONTROL -- no pointer parameter: no warning, no error
     send_count(4);
     // ACCEPTED, each with E0896
-    send_u8(buf, buf.element_count);
+    send_u8(buf, buf.type_element_count);
     send_u8(b, 1);
-    send_u8(table, table.element_count);
-    fill_u8(buf, buf.element_count);
+    send_u8(table, table.type_element_count);
+    fill_u8(buf, buf.type_element_count);
     send_any(r, 5);
     // THE ASSERTIONS -- E0895
     send_u8(r, 12);

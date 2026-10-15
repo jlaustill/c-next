@@ -9,7 +9,7 @@
 // Issue #1972: a dotted member access is measured the way the same expression
 // reads everywhere else. `sizeof`'s resolver once rebuilt it from its first
 // two names (`shared.inner` for `shared.inner.x`, `w.v` for a pointer local,
-// `S__cfg__b`, `GPIO.DR`); since #1975 the size is ADR-058's `.byte_length`,
+// `S__cfg__b`, `GPIO.DR`); since #1975 the size is ADR-058's `.type_byte_length`,
 // read from the same chain as the value. Each is checked against the width
 // of the type the ordinary expression reads.
 #include "widget.h"

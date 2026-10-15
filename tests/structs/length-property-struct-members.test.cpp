@@ -9,7 +9,7 @@
 
 // test-execution
 // Regression test: .length property on struct member access
-// Verifies cfg.magic.bit_length correctly returns 32 (was returning 0)
+// Verifies cfg.magic.type_bit_length correctly returns 32 (was returning 0)
 /* Scope: LengthPropMembers */
 
 int main(void) {

@@ -24,8 +24,8 @@ u8 main() {
     f.Active <- 1;
     f.Level <- 5;
     u8 lvl <- f.Level;
-    u8 bits <- f.bit_length;
-    u8 bytes <- f.byte_length;
+    u8 bits <- f.type_bit_length;
+    u8 bytes <- f.type_byte_length;
     if (lvl != 5) {
         return 1;
     }

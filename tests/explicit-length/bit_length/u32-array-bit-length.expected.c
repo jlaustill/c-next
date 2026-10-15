@@ -8,7 +8,7 @@
 #include <stdint.h>
 
 // test-execution
-// Tests .bit_length property for arrays (ADR-058)
+// Tests .type_bit_length property for arrays (ADR-058)
 // bit_length returns total bits of storage (elements x element bit width)
 // u32[16] = 16 elements x 32 bits = 512 bits
 uint32_t globalArr[16] = {0};

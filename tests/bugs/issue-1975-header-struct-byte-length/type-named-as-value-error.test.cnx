@@ -7,7 +7,7 @@
 // written as if it were a value. ADR-040's `ISR` names no value either
 // (#1975 review: `ISR.foo` reached the C as written).
 //
-// NEGATIVE CONTROL: `p.x` reads a value's field, and `Point.y.byte_length`
+// NEGATIVE CONTROL: `p.x` reads a value's field, and `Point.y.type_byte_length`
 // a length of a field's type.
 #include "shapes.h"
 
@@ -23,12 +23,12 @@ struct A {
 Point p;
 
 u32 main() {
-    u32 ok <- p.x + Point.y.byte_length;
+    u32 ok <- p.x + Point.y.type_byte_length;
     u32 a <- u32.foo;
-    u32 b <- Point.z.byte_length;
+    u32 b <- Point.z.type_byte_length;
     u32 c <- Point.y.foo;
-    u32 d <- Cfg.zz.byte_length;
-    u32 e <- A.d[0].byte_length;
+    u32 d <- Cfg.zz.type_byte_length;
+    u32 e <- A.d[0].type_byte_length;
     u32 f <- Point.x;
     Point.x <- 5;
     u32 g <- ISR.foo;

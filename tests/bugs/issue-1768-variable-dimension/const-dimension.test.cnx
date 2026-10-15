@@ -13,13 +13,13 @@ u32 main() {
     if (ok[1] != 7) {
         return 1;
     }
-    if (ok.element_count != 2) {
+    if (ok.type_element_count != 2) {
         return 2;
     }
     if (gok[1] != 9) {
         return 3;
     }
-    if (gok.element_count != 2) {
+    if (gok.type_element_count != 2) {
         return 4;
     }
     return 0;

@@ -10,7 +10,7 @@
 // #1975 review: a type answers its length properties two include hops from
 // where it is declared, as a value of it does: a struct, a field of it, an
 // enum, and a scope's struct. `Geo.Box`, `global.Point` and `this.P` name a
-// type as a bare `Point` does; they reached the C as `Geo__Box.byte_length`,
+// type as a bare `Point` does; they reached the C as `Geo__Box.type_byte_length`,
 // which gcc rejects. An array is sized by one alike, an enum's too.
 //
 // NEGATIVE CONTROL: each length is checked against its number, so a rule
@@ -21,7 +21,7 @@
 
 uint8_t boxBytes[3] = {};
 
-uint8_t modeBytes[4] = {};
+uint8_t modeBytes[1] = {};
 
 /* Scope: Shapes */
 
@@ -46,7 +46,7 @@ int main(void) {
     if (8 != 8) {
         return 11U;
     }
-    if (4 != 4) {
+    if (1 != 1) {
         return 12U;
     }
     if (3 != 3) {
@@ -58,7 +58,7 @@ int main(void) {
     if (3 != 3) {
         return 15U;
     }
-    if (4 != 4) {
+    if (1 != 1) {
         return 16U;
     }
     return Shapes__own();

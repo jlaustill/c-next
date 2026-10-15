@@ -23,23 +23,23 @@ void clearConfigName() {
 
 u32 main() {
     setConfigName();
-    if (config.name.char_count != 10) {
+    if (config.name.value_char_count != 10) {
         return 1;
     }
 
     updateConfigName();
-    if (config.name.char_count != 7) {
+    if (config.name.value_char_count != 7) {
         return 2;
     }
 
     clearConfigName();
-    if (config.name.char_count != 0) {
+    if (config.name.value_char_count != 0) {
         return 3;
     }
 
     // Direct assignment in main
     config.name <- "DirectAssign";
-    if (config.name.char_count != 12) {
+    if (config.name.value_char_count != 12) {
         return 4;
     }
 

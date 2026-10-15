@@ -1,0 +1,10 @@
+11:52 error[E0867]: .value_char_count is read at runtime, and a file-scope initializer must be constant
+       help: Read it inside a function, or use the .type_ length, which is constant (ADR-058).
+13:10 error[E0886]: '.bit_length' is removed
+       help: Use .type_bit_length (ADR-058: each length names its kind -- value_, type_ or memory_).
+14:10 error[E0886]: '.byte_length' is removed
+       help: Use .type_byte_length (ADR-058: each length names its kind -- value_, type_ or memory_).
+15:10 error[E0886]: '.char_count' is removed
+       help: Use .value_char_count (ADR-058: each length names its kind -- value_, type_ or memory_).
+16:12 error[E0886]: '.element_count' is removed
+       help: Use .type_element_count (ADR-058: each length names its kind -- value_, type_ or memory_).

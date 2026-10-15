@@ -6,9 +6,9 @@ u32 probe(bool c) {
     u32 inner <- 0;
     if (c = true) {
         u8 v <- 1;
-        inner <- v.bit_length;
+        inner <- v.type_bit_length;
     }
-    u32 b <- v.bit_length;
+    u32 b <- v.type_bit_length;
     return b + inner;
 }
 

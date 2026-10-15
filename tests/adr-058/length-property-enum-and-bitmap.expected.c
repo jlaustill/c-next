@@ -9,16 +9,16 @@
 
 // test-execution
 // test-adr: 058
-// An enum and a bitmap both have a fixed width, so .bit_length and .byte_length
+// An enum (two members: 1 bit, 1 byte rounded up) and a bitmap both have a fixed width, so .type_bit_length and .type_byte_length
 // answer on them. The first version of the 2.1 rule sized only primitives and
 // rejected both; four fixtures caught it. This one is here so that cannot
 // silently return: it EXECUTES, and asserts the widths.
 int main(void) {
     Color c = Color__RED;
-    if (32 != 32) {
+    if (1 != 1) {
         return 1U;
     }
-    if (4 != 4) {
+    if (1 != 1) {
         return 2U;
     }
     Flags f = {0};

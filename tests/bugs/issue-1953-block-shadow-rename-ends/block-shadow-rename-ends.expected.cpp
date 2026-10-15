@@ -9,7 +9,7 @@
 
 // test-execution
 // Issue #1953: a block-local that shadows a global is renamed only inside its block
-// The .byte_length after the block measures the global, and a sibling block renames its own local
+// The .type_byte_length after the block measures the global, and a sibling block renames its own local
 uint8_t buf[4] = {0U, 0U, 0U, 0U};
 
 uint8_t count = 7U;

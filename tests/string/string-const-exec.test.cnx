@@ -11,7 +11,7 @@ const string LONG_CONST <- "This is a longer constant string for testing";
 i32 main() {
 
     // Test 1-3: Basic const string
-    if (VERSION.char_count != 5) {
+    if (VERSION.value_char_count != 5) {
         return 1;
     }
     if (VERSION != "1.0.0") {
@@ -22,7 +22,7 @@ i32 main() {
     }
 
     // Test 4-6: Another const string
-    if (APP_NAME.char_count != 7) {
+    if (APP_NAME.value_char_count != 7) {
         return 4;
     }
     if (APP_NAME != "TestApp") {
@@ -33,7 +33,7 @@ i32 main() {
     }
 
     // Test 7-9: Empty const string
-    if (EMPTY_CONST.char_count != 0) {
+    if (EMPTY_CONST.value_char_count != 0) {
         return 7;
     }
     if (EMPTY_CONST != "") {
@@ -44,7 +44,7 @@ i32 main() {
     }
 
     // Test 10-12: Longer const string
-    if (LONG_CONST.char_count != 44) {
+    if (LONG_CONST.value_char_count != 44) {
         return 10;
     }
     if (LONG_CONST.capacity != 44) {

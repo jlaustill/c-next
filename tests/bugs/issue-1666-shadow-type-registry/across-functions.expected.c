@@ -10,7 +10,7 @@
 // test-execution
 // #1666: a local that shadows a global does not change the global's type.
 // `first()`'s `u8 x` overwrote the flat type registry's `x`, so
-// `x.bit_length` in `second()` -- the global `u32 x` -- emitted 8. The local
+// `x.type_bit_length` in `second()` -- the global `u32 x` -- emitted 8. The local
 // is still emitted as `first__x`.
 uint32_t x = 0U;
 

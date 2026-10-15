@@ -18,11 +18,11 @@
 // #1975 review: a header typedef (`word_t`) and a C primitive spelling
 // (`uint32_t`) are types too, and size an array dimension the same; and the
 // #1867 rule holds for a C-Next struct's array field, in `main` and in a
-// scope's function. A header struct's `.element_count` is its field count, as
+// scope's function. A header struct's `.type_element_count` is its field count, as
 // a C-Next struct's is, and a length is a case label's number.
 //
 // #1975 review (owner ruling): a header bit-field is its declared width, as a
-// C-Next bitmap field is -- `BF.a.bit_length` is 3, not its `uint32_t`'s 32 --
+// C-Next bitmap field is -- `BF.a.type_bit_length` is 3, not its `uint32_t`'s 32 --
 // as a value, a dimension and a case label.
 //
 // NEGATIVE CONTROL: `Point`, a C-Next struct, sized by the same rule; and
@@ -37,7 +37,7 @@ uint8_t wrapBytes[6] = {0};
 
 uint8_t wordBytes[2] = {0};
 
-uint8_t gearBytes[4] = {0};
+uint8_t gearBytes[1] = {0};
 
 uint8_t bfBits[5] = {0};
 
@@ -54,7 +54,7 @@ uint32_t sizeName(uint32_t n) {
             return 1U;
             break;
         }
-        case 4: {
+        case 1: {
             return 2U;
             break;
         }
@@ -114,7 +114,7 @@ int main(void) {
     if (4 != 4) {
         return 14U;
     }
-    if (4 != 4) {
+    if (1 != 1) {
         return 15U;
     }
     Slots s = {0};

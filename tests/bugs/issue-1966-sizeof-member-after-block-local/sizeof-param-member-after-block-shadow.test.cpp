@@ -10,7 +10,7 @@
 // test-execution
 // Issue #1966: `cfg.b`'s size after a block-local `cfg` ended reads the struct
 // parameter `cfg`, not the block-local the function-wide local set still
-// remembered. Written `sizeof(cfg.b)` then; ADR-058's `.byte_length` since
+// remembered. Written `sizeof(cfg.b)` then; ADR-058's `.type_byte_length` since
 // #1975. Controls: the same parameter with no block, and a struct block-local's
 // own member inside its block.
 uint32_t measure(const Pair& cfg) {

@@ -1,10 +1,10 @@
 // test-error
 // #1975 review: a length is a case label's number, so two lengths that are
 // one number are one value (E0713), and a length C-Next has none of is no
-// constant (E0717). `case Point.byte_length` reached the C as
+// constant (E0717). `case Point.type_byte_length` reached the C as
 // `case Point__byte_length:`.
 //
-// NEGATIVE CONTROL: `case Gear.byte_length` beside `case Point.byte_length`,
+// NEGATIVE CONTROL: `case Gear.type_byte_length` beside `case Point.type_byte_length`,
 // 4 and 5.
 #include "shapes.h"
 
@@ -20,13 +20,13 @@ enum Gear {
 
 u32 twice(u32 n) {
     switch (n) {
-        case Point.byte_length {
+        case Point.type_byte_length {
             return 1;
         }
-        case Gear.byte_length {
+        case Gear.type_byte_length {
             return 2;
         }
-        case Cfg.byte_length {
+        case Cfg.type_byte_length {
             return 3;
         }
         default {
@@ -37,7 +37,7 @@ u32 twice(u32 n) {
 
 u32 unsized(u32 n) {
     switch (n) {
-        case Odd.byte_length {
+        case Odd.type_byte_length {
             return 1;
         }
         default {

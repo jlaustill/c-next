@@ -5,7 +5,7 @@
 
 #include "length-macro-dim.test.hpp"
 
-// #1991: `.byte_length` of an array sized by a C macro is a product 2.3
+// #1991: `.type_byte_length` of an array sized by a C macro is a product 2.3
 // writes in uint32_t (#1760). The array and its type are included, so the
 // product's cast is the file's only fixed-width type, and 2.2 must plan it
 // for the file to include <stdint.h>.
@@ -15,5 +15,5 @@
 #include <stdint.h>
 
 void bytes(void) {
-    big = ((uint32_t)(BUF_COUNT) * 1U);
+    big = (((uint32_t)(BUF_COUNT) * 8U + 7U) / 8U);
 }

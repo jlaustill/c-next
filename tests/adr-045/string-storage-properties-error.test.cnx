@@ -35,7 +35,7 @@ void main() {
     u32 cap <- s.capacity;
     u32 size <- s.size;
     u32 fieldCap <- h.name.capacity;
-    u32 count <- arr.element_count;
+    u32 count <- arr.type_element_count;
 
     // ASSERTIONS -- both properties on the two kinds that have no buffer.
     u32 a <- x.capacity;

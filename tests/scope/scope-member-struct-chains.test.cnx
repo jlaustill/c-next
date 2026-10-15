@@ -3,7 +3,7 @@
 // scope and `Scope.` outside it -- an element of a field array, a bit of a
 // field integer, a string field's length and a bitmap field. The member's
 // struct type is what makes each the right access, and no fixture read one
-// through either spelling: without it, `.char_count` on the string field
+// through either spelling: without it, `.value_char_count` on the string field
 // failed in codegen though 2.1 had accepted it.
 bitmap8 Flags {
     A,
@@ -45,7 +45,7 @@ scope S {
         if (b != true) {
             return 2;
         }
-        u32 n <- this.cfg.name.char_count;
+        u32 n <- this.cfg.name.value_char_count;
         if (n != 3) {
             return 3;
         }
@@ -78,7 +78,7 @@ u32 main() {
     if (b != true) {
         return 3;
     }
-    u32 n <- S.cfg.name.char_count;
+    u32 n <- S.cfg.name.value_char_count;
     if (n != 3) {
         return 4;
     }

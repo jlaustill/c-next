@@ -10,7 +10,7 @@ scope Big {
 }
 
 u32 main() {
-    u32 small <- Small.t.element_count;
+    u32 small <- Small.t.type_element_count;
     if (small != 2) {
         return 1;
     }

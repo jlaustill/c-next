@@ -3,7 +3,7 @@
 // string literal whole, and a character literal is a u8
 
 u32 lengthOf(string<16> s) {
-    return s.char_count;
+    return s.value_char_count;
 }
 
 u32 main() {
@@ -13,10 +13,10 @@ u32 main() {
     u8[] bytes <- "abc";
     u8 c <- 'A';
     u32 n <- lengthOf("four");
-    if (b.char_count != 2) {
+    if (b.value_char_count != 2) {
         return 1;
     }
-    if (bytes.element_count != 4) {
+    if (bytes.type_element_count != 4) {
         return 2;
     }
     if (c != 65) {

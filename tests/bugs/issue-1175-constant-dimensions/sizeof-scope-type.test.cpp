@@ -6,9 +6,9 @@
 #include "sizeof-scope-type.test.hpp"
 
 // #1863 review: a type in a constant expression only C can evaluate was
-// written by its source spelling. Inside scope S, `P.byte_length` reached C as
-// `P.byte_length`, but the struct is `S__P`: gcc reported 'P' undeclared, at exit
-// 0. Since #1975 the size is `P.byte_length`, a type named by ADR-057 as every
+// written by its source spelling. Inside scope S, `P.type_byte_length` reached C as
+// `P.type_byte_length`, but the struct is `S__P`: gcc reported 'P' undeclared, at exit
+// 0. Since #1975 the size is `P.type_byte_length`, a type named by ADR-057 as every
 // type is, folded beside the macro C evaluates.
 //
 // NEGATIVE CONTROL: `plain`, a primitive's length, which folds to 4.

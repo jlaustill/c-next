@@ -1,7 +1,7 @@
 // test-error
 // test-adr: 023
 // ADR-023 (#1975, owner ruling): C-Next has no `sizeof`. A type's or a
-// value's size in bytes is its ADR-058 `.byte_length`, the sum of its fields'
+// value's size in bytes is its ADR-058 `.type_byte_length`, the sum of its fields'
 // sizes with no padding, so `sizeof` is rejected with that spelling as help --
 // whatever its operand: a type, a value, or a call (once E0601/E0602's).
 
@@ -18,13 +18,13 @@ u32 increment() {
 }
 
 void takesArray(u8[8] data) {
-    // NEGATIVE CONTROLS -- every size sizeof used to give, as .byte_length
+    // NEGATIVE CONTROLS -- every size sizeof used to give, as .type_byte_length
     u8[8] local;
-    u32 okLocal <- local.byte_length;
-    u32 okParameter <- data.byte_length;
-    u32 okType <- u32.byte_length;
-    u32 okStruct <- Frame.byte_length;
-    u32 okField <- Frame.stamp.byte_length;
+    u32 okLocal <- local.type_byte_length;
+    u32 okParameter <- data.type_byte_length;
+    u32 okType <- u32.type_byte_length;
+    u32 okStruct <- Frame.type_byte_length;
+    u32 okField <- Frame.stamp.type_byte_length;
 
     // ASSERTIONS -- a type, a value, and a call
     u32 badType <- sizeof(u32);

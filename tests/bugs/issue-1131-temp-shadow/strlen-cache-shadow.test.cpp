@@ -26,7 +26,7 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 //
 // The cache was named `_<var>_len`, a shape a user is allowed to declare. With a
 // global `_msg_len` in scope, the generated `size_t _msg_len = strlen(msg);`
-// shadowed it, and BOTH operands of `msg.char_count + _msg_len` resolved to the
+// shadowed it, and BOTH operands of `msg.value_char_count + _msg_len` resolved to the
 // shadowing local — the sum became 5 + 5 rather than 5 + 42.
 //
 // It produced a wrong value with gcc -std=c99 -Wall -Wextra completely clean and

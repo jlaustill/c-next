@@ -15,7 +15,7 @@ scope S {
     }
 
     public u32 elements() {
-        return this.buf.element_count;
+        return this.buf.type_element_count;
     }
 }
 

@@ -11,11 +11,11 @@
 // #1975 review: a header typedef (`word_t`) and a C primitive spelling
 // (`uint32_t`) are types too, and size an array dimension the same; and the
 // #1867 rule holds for a C-Next struct's array field, in `main` and in a
-// scope's function. A header struct's `.element_count` is its field count, as
+// scope's function. A header struct's `.type_element_count` is its field count, as
 // a C-Next struct's is, and a length is a case label's number.
 //
 // #1975 review (owner ruling): a header bit-field is its declared width, as a
-// C-Next bitmap field is -- `BF.a.bit_length` is 3, not its `uint32_t`'s 32 --
+// C-Next bitmap field is -- `BF.a.type_bit_length` is 3, not its `uint32_t`'s 32 --
 // as a value, a dimension and a case label.
 //
 // NEGATIVE CONTROL: `Point`, a C-Next struct, sized by the same rule; and
@@ -34,7 +34,7 @@ struct Wrap {
     u8 b;
 }
 
-u8[Wrap.byte_length] wrapBytes;
+u8[Wrap.type_byte_length] wrapBytes;
 
 enum Gear {
     LOW,
@@ -45,26 +45,26 @@ struct Slots {
     u8[3] f;
 }
 
-u8[word_t.byte_length] wordBytes;
-u8[Gear.byte_length] gearBytes;
-u8[BF.b.bit_length] bfBits;
+u8[word_t.type_byte_length] wordBytes;
+u8[Gear.type_byte_length] gearBytes;
+u8[BF.b.type_bit_length] bfBits;
 
 scope Box {
     public u32 count() {
         Slots s;
-        return s.f.element_count;
+        return s.f.type_element_count;
     }
 }
 
 u32 sizeName(u32 n) {
     switch (n) {
-        case Point.byte_length {
+        case Point.type_byte_length {
             return 1;
         }
-        case Gear.byte_length {
+        case Gear.type_byte_length {
             return 2;
         }
-        case BF.a.bit_length {
+        case BF.a.type_bit_length {
             return 3;
         }
         default {
@@ -76,53 +76,53 @@ u32 sizeName(u32 n) {
 u32 main() {
     Cfg c;
     Outer o;
-    if (Cfg.byte_length != 5) {
+    if (Cfg.type_byte_length != 5) {
         return 1;
     }
-    if (c.byte_length != 5) {
+    if (c.type_byte_length != 5) {
         return 2;
     }
-    if (Cfg.bit_length != 40) {
+    if (Cfg.type_bit_length != 40) {
         return 3;
     }
-    if (Outer.byte_length != 15) {
+    if (Outer.type_byte_length != 15) {
         return 4;
     }
-    if (o.arr.byte_length != 6) {
+    if (o.arr.type_byte_length != 6) {
         return 5;
     }
-    if (o.inner.b.byte_length != 1) {
+    if (o.inner.b.type_byte_length != 1) {
         return 6;
     }
-    if (c.a.byte_length != u32.byte_length) {
+    if (c.a.type_byte_length != u32.type_byte_length) {
         return 7;
     }
-    if (Point.byte_length != 5) {
+    if (Point.type_byte_length != 5) {
         return 8;
     }
-    if (Point.x.byte_length != 4) {
+    if (Point.x.type_byte_length != 4) {
         return 9;
     }
-    if (Wrap.byte_length != Cfg.byte_length + 1) {
+    if (Wrap.type_byte_length != Cfg.type_byte_length + 1) {
         return 10;
     }
-    if (wrapBytes.element_count != 6) {
+    if (wrapBytes.type_element_count != 6) {
         return 11;
     }
-    if (word_t.byte_length != 2) {
+    if (word_t.type_byte_length != 2) {
         return 12;
     }
-    if (wordBytes.element_count != 2) {
+    if (wordBytes.type_element_count != 2) {
         return 13;
     }
-    if (uint32_t.byte_length != 4) {
+    if (uint32_t.type_byte_length != 4) {
         return 14;
     }
-    if (gearBytes.element_count != 4) {
+    if (gearBytes.type_element_count != 1) {
         return 15;
     }
     Slots s;
-    if (s.f.element_count != 3) {
+    if (s.f.type_element_count != 3) {
         return 16;
     }
     u32 counted <- Box.count();
@@ -133,17 +133,17 @@ u32 main() {
     if (named != 1) {
         return 18;
     }
-    if (Cfg.element_count != 2) {
+    if (Cfg.type_element_count != 2) {
         return 19;
     }
     BF bf;
-    if (BF.a.bit_length != 3) {
+    if (BF.a.type_bit_length != 3) {
         return 20;
     }
-    if (bf.b.bit_length != 5) {
+    if (bf.b.type_bit_length != 5) {
         return 21;
     }
-    if (bfBits.element_count != 5) {
+    if (bfBits.type_element_count != 5) {
         return 22;
     }
     u32 bitNamed <- sizeName(3);

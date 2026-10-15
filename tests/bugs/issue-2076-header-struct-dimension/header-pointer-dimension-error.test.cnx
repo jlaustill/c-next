@@ -5,9 +5,9 @@
 // NEGATIVE CONTROL: `Odd.i`, the struct's other field, sizes one.
 #include "dims.h"
 
-u8[Odd.i.byte_length] ok;
-u8[Odd.byte_length] bad;
+u8[Odd.i.type_byte_length] ok;
+u8[Odd.type_byte_length] bad;
 
 u32 main() {
-    return ok.element_count + bad.element_count;
+    return ok.type_element_count + bad.type_element_count;
 }

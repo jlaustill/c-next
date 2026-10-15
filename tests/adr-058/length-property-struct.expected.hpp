@@ -41,7 +41,7 @@ extern P p;
 extern P ps[3];
 extern Nested n;
 extern uint8_t sized[5];
-extern uint8_t sizedByString[8];
+extern uint8_t sizedByString[7];
 
 #ifdef __cplusplus
 }

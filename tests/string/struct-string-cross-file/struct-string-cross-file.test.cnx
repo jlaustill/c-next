@@ -6,7 +6,7 @@
 #include "config.cnx"
 
 u32 lengthOf(string<8> s) {
-    return s.char_count;
+    return s.value_char_count;
 }
 
 i32 main() {
@@ -24,7 +24,7 @@ i32 main() {
     if (cfg.tags[1] != "ab") {
         return 3;
     }
-    if (cfg.tags[1].char_count != 2) {
+    if (cfg.tags[1].value_char_count != 2) {
         return 4;
     }
 

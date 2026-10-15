@@ -1,0 +1,55 @@
+// test-error
+// test-adr: 058
+// E0867: each cell of the kind-named lengths that has no answer (#1975
+// review 2). One assertion per rule, each beside the negative control that
+// the same property answers on a subject that can.
+
+struct Cfg {
+    u32 a;
+    u8 b;
+}
+
+bitmap8 Fl {
+    on,
+    mode[3],
+    rest[4]
+}
+
+i8 k <- -5;
+u8 u <- 5;
+f32 t <- 1.5;
+string<8> s <- "ab";
+Fl g;
+
+// NEGATIVE CONTROLS
+void probe() {
+    u32 ok1 <- u.value_bit_length + u.value_byte_length + u.value_char_count;
+    u32 ok2 <- k.value_char_count + t.value_bit_length;
+    u32 ok3 <- Cfg.type_byte_length + s.memory_char_count + g.memory_byte_length;
+    u32 ok4 <- Cfg.type_element_count + Cfg.memory_element_count;
+
+    // a signed value's bits: cast it first
+    u32 e1 <- k.value_bit_length;
+    u32 e2 <- k.value_byte_length;
+    // a float prints in more than one way
+    u32 e3 <- t.value_char_count;
+    // a type has no value
+    u32 e4 <- Cfg.value_byte_length;
+    u32 e5 <- u8.value_char_count;
+    u32 e6 <- Cfg.value_element_count;
+    // only a string has chars of memory
+    u32 e7 <- u.memory_char_count;
+    u32 e8 <- Cfg.memory_char_count;
+    // a bit-field has no memory of its own
+    u32 e9 <- g.mode.memory_byte_length;
+    u32 e10 <- g.on.memory_bit_length;
+    // only an array or a struct has elements
+    u32 e11 <- u.type_element_count;
+    u32 e12 <- s.memory_element_count;
+    u32 e13 <- t.value_element_count;
+}
+
+// a value's length now is not a constant, and a file-scope initializer must be
+u32 ok5 <- u.type_bit_length + s.type_char_count;
+u32 e14 <- u.value_bit_length;
+u32 e15 <- s.value_char_count;

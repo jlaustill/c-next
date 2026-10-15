@@ -9,7 +9,7 @@ const u32 N <- 4;
 u8[N] garr;
 
 void main() {
-    u8[garr.element_count] loc;
+    u8[garr.type_element_count] loc;
     loc[3] <- 1;
     loc[9] <- 1;
 }

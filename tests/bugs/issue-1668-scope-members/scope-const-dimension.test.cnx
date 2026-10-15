@@ -12,7 +12,7 @@ scope S {
     public u8[N + 1] table;
 
     public u32 count() {
-        return this.table.element_count;
+        return this.table.type_element_count;
     }
 }
 

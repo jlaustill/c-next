@@ -14,7 +14,7 @@ scope Motor {
 
     public u32 insideCount() {
         this.inside[0] <- 1;
-        return this.inside.element_count;
+        return this.inside.type_element_count;
     }
 }
 
@@ -22,7 +22,7 @@ u8[Motor.MAX] outside;
 
 u32 main() {
     outside[0] <- 1;
-    if (outside.element_count != 4) {
+    if (outside.type_element_count != 4) {
         return 1;
     }
     u32 n <- Motor.insideCount();

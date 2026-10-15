@@ -1,6 +1,6 @@
 // test-execution
 // test-c-only
-// Tests .bit_length property for enum type (ADR-058)
+// Tests .type_bit_length property for enum type (ADR-058)
 // Enums are 32 bits by default (ADR-017)
 
 enum Color {
@@ -23,21 +23,21 @@ scope EnumBitLen {
 }
 
 i32 main() {
-    // Test enum bit_length = 32
-    if (globalColor.bit_length != 32) {
+    // A three-member enum's type length: the fewest bits for 0..2 (ADR-058)
+    if (globalColor.type_bit_length != 2) {
         return 1;
     }
 
     // Test local enum
     State localState <- State.IDLE;
-    if (localState.bit_length != 32) {
+    if (localState.type_bit_length != 2) {
         return 2;
     }
 
     // Test struct member enum
     EnumBitLen.TestStruct ts;
     ts.state <- State.RUNNING;
-    if (ts.state.bit_length != 32) {
+    if (ts.state.type_bit_length != 2) {
         return 3;
     }
 
