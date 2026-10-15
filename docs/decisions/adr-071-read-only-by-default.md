@@ -157,9 +157,8 @@ error[E08xx]: cannot assign to 'count': bindings are read-only unless declared `
        help: declare it `mut u32 count` if it must change
 ```
 
-**A `mut` that nothing writes is also an error** (Decision 6), mirroring ADR-013's "missing `const` is an
-error when it could be used", so a declaration never claims more than the code needs — with
-two exemptions:
+**A `mut` that nothing writes is also an error** (Decision 6), so a declaration never claims
+more than the code needs — with two exemptions:
 
 - a function used as a callback type (ADR-029): its body is the default and is often empty,
   while the functions assigned to it may write; its `mut` is part of the type;
@@ -181,9 +180,9 @@ becomes that diagnostic: there is no longer a "non-const" parameter that is not 
 parameter that is a non-`const` pointer (ADR-061): 20 parameters are writable today only for
 that reason, and up to 97 other bindings are passed to C/C++ or builtin parameters.
 
-Still open: a callee nothing declares (no C-Next definition, no header). Today it is assumed to
-write. Under this ADR the choice is an error ("cannot tell whether 'f' writes 'v'") or
-requiring `mut`.
+A callee nothing declares does not reach this rule: calling a function with no C-Next
+definition and no header declaration is already an error (E0422, "function 'g' called before
+definition"), so every call has a signature to check.
 
 ADR-062 (Proposed, not established) answers the array half of this by inference, falling back to
 "mutable" with a note. With a declared `mut` there is nothing to infer, so ADR-062 is revisited
