@@ -127,6 +127,21 @@ class CCallee {
   }
 
   /**
+   * `const uint8_t*` from a typedef parameter's text, which the grammar may
+   * merge (`constuint8_t*buf`): its words up to the last `*`, `const` apart
+   */
+  private static pointerType(text: string): string {
+    const head = text.slice(0, text.lastIndexOf("*") + 1);
+    const stars = (head.match(/\*/g) ?? []).length;
+    const isConst = /^const(?=\s|[A-Z_a-z])/.test(head);
+    const base = head
+      .replace(/^const\s*/, "")
+      .replaceAll("*", "")
+      .trim();
+    return `${isConst ? "const " : ""}${base}${"*".repeat(stars)}`;
+  }
+
+  /**
    * A C struct field's declared type, for `h.fill(...)`: a function-pointer
    * field is typed as what it returns, not as its typedef
    */
@@ -181,7 +196,7 @@ class CCallee {
           // The text up to the last `*` (`uint8_t*buf` is how the grammar
           // spells `uint8_t *buf`), so a parameter's name is never its type
           type: param.isPointer
-            ? param.type.slice(0, param.type.lastIndexOf("*") + 1).trim()
+            ? CCallee.pointerType(param.type)
             : param.baseType,
           isConst: false,
           isArray: false,
