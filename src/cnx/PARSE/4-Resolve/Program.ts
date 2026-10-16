@@ -31,7 +31,6 @@ import type ILocalDeclaration from "../../types/ILocalDeclaration";
 import type ISourceSpan from "../../types/ISourceSpan";
 import type TChainRoot from "../../types/TChainRoot";
 import type TValueBinding from "../../types/TValueBinding";
-import RunTarget from "./RunTarget";
 import ForeignTypeFacts from "../../utils/ForeignTypeFacts";
 import ResolvedTarget from "../../utils/ResolvedTarget";
 import TypeHead from "../../utils/TypeHead";
@@ -428,7 +427,7 @@ class Program {
     // Opacity is a fact of the headers alone, so it is ready before the settle,
     // which stamps each opaque parameter with it (#1722).
     const opaqueTypes = Program.deriveOpaqueTypes(foreign);
-    const target = inputs.target ? RunTarget.resolve(inputs.target) : null;
+    const target = inputs.target ?? null;
     const headers = inputs.symbolTable ?? null;
     // #1175: what a constant name's facts read of the files, beside the binder
     const fileFacts: IFileConstantFacts = {

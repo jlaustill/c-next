@@ -1,5 +1,5 @@
 import type TDiscoveryFacts from "../../1-Discover/types/TDiscoveryFacts";
-import type IParsedTargetCatalog from "../../2-Parse/types/IParsedTargetCatalog";
+import type TRunTarget from "../../../types/TRunTarget";
 import type ITranspileError from "../../../types/ITranspileError";
 import type SymbolRegistry from "../SymbolRegistry";
 import type SymbolTable from "../SymbolTable";
@@ -10,7 +10,7 @@ import type IDeclaredSource from "./IDeclaredSource";
 interface IDeclaredSources {
   readonly declared: readonly IDeclaredSource[];
   readonly errors: readonly ITranspileError[];
-  readonly targetCatalog: IParsedTargetCatalog;
+  readonly target: TRunTarget;
   readonly discovery: TDiscoveryFacts;
   /**
    * #1991: the run's table, built here from the headers and every file 1.3

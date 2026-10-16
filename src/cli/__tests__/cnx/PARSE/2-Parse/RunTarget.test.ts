@@ -3,7 +3,7 @@
  * fallback -- and the two ways a program can fail to have one.
  */
 import { describe, it, expect } from "vitest";
-import RunTarget from "../../../../../cnx/PARSE/4-Resolve/RunTarget";
+import RunTarget from "../../../../../cnx/PARSE/2-Parse/RunTarget";
 import TargetCatalogFile from "../../../../TargetCatalogFile";
 import type ITargetDirective from "../../../../../cnx/types/ITargetDirective";
 import type ITargetDescription from "../../../../../cnx/types/ITargetDescription";

@@ -3,7 +3,7 @@ import type TParsedHeaderEntry from "./TParsedHeaderEntry";
 import type TDiscoveryFacts from "../../1-Discover/types/TDiscoveryFacts";
 import type ITranspileError from "../../../types/ITranspileError";
 import type IParsedSource from "./IParsedSource";
-import type IParsedTargetCatalog from "./IParsedTargetCatalog";
+import type TRunTarget from "../../../types/TRunTarget";
 
 /** 1.2's artifact (#1991): each file that parsed, the others' errors, and 1.1's facts carried on */
 interface IParsedSources {
@@ -13,7 +13,7 @@ interface IParsedSources {
   readonly recovered: IParsedRecovery | null;
   readonly sources: readonly IParsedSource[];
   readonly errors: readonly ITranspileError[];
-  readonly targetCatalog: IParsedTargetCatalog;
+  readonly target: TRunTarget;
   readonly discovery: TDiscoveryFacts;
 }
 

@@ -7,7 +7,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 
-import TargetDescriptions from "../../../../../cnx/PARSE/4-Resolve/TargetDescriptions";
+import TargetDescriptions from "../../../../../cnx/PARSE/2-Parse/TargetDescriptions";
 import TargetCatalogParser from "../../../../../cnx/PARSE/2-Parse/TargetCatalogParser";
 import TargetCatalogFile from "../../../../TargetCatalogFile";
 import NodeFileSystem from "../../../../../cnx/PARSE/1-Discover/NodeFileSystem";

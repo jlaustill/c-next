@@ -7,6 +7,7 @@ import SymbolRegistry from "../../../../../cnx/PARSE/3-Declare/SymbolRegistry";
 import SymbolTable from "../../../../../cnx/PARSE/3-Declare/SymbolTable";
 import Program from "../../../../../cnx/PARSE/4-Resolve/Program";
 import TargetCatalogFile from "../../../../TargetCatalogFile";
+import RunTarget from "../../../../../cnx/PARSE/2-Parse/RunTarget";
 import invariant from "../../../../../cnx/utils/invariant";
 import type IAnalysisContext from "../../../../../cnx/TRANSPILE/1-Analyze/types/IAnalysisContext";
 import type ILexicalFrame from "../../../../../cnx/types/ILexicalFrame";
@@ -110,14 +111,14 @@ function testAnalysisContextFor(
       filesReachingForeignHeaders: new Set(options.macros ? [TEST_SOURCE] : []),
       headerStructFields: symbolTable.getAllStructFields(),
       symbolTable,
-      target: {
+      target: RunTarget.resolve({
         option: "host",
         catalog: TargetCatalogFile.targets(NodeFileSystem.instance),
         files: files.map((file) => ({
           sourcePath: file.path,
           directives: file.parsed.targetDirectives,
         })),
-      },
+      }),
     },
   );
   invariant(

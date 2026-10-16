@@ -12,6 +12,9 @@ import SourceSyntax from "./SourceSyntax";
 import type IParsedRecovery from "./types/IParsedRecovery";
 import type TParsedHeaderEntry from "./types/TParsedHeaderEntry";
 import TargetCatalogParser from "./TargetCatalogParser";
+import RunTarget from "./RunTarget";
+import TargetDescriptions from "./TargetDescriptions";
+import type TRunTarget from "../../types/TRunTarget";
 import type IParsedSource from "./types/IParsedSource";
 import type IParsedSources from "./types/IParsedSources";
 
@@ -52,10 +55,7 @@ class Parse {
       recovered: Parse._recovered(graph.recoveredDeclarations),
       sources,
       errors,
-      targetCatalog: {
-        path: graph.targetCatalog.path,
-        source: TargetCatalogParser.parse(graph.targetCatalog.text),
-      },
+      target: Parse._target(graph, sources),
       discovery: {
         cppMode: graph.cppMode,
         anchor: graph.anchor,
@@ -65,6 +65,31 @@ class Parse {
         run: graph.run,
       },
     };
+  }
+
+  /**
+   * #1713: ADR-049's one target, chosen here from the catalog and the
+   * `#pragma` lines 1.2 parses, so each header can be read with its compiler
+   */
+  private static _target(
+    graph: Pick<ISourceGraph, "targetCatalog"> & TDiscoveryFacts,
+    sources: readonly IParsedSource[],
+  ): TRunTarget {
+    return RunTarget.resolve({
+      // ADR-049's command-line rungs, which 1.1 returned with the run
+      option: graph.run.target.option,
+      pioEnv: graph.run.target.pioEnv,
+      catalog: TargetDescriptions.catalog(
+        TargetCatalogParser.parse(graph.targetCatalog.text),
+        graph.targetCatalog.path,
+      ),
+      // ADR-049's build-system rung, read once by 1.1 (#1444, owner ruling 3)
+      platformio: graph.anchor.platformio,
+      files: sources.map(({ file, syntax }) => ({
+        sourcePath: file.path,
+        directives: syntax.targetDirectives,
+      })),
+    });
   }
 
   /** #1991: each header 1.1 settled, in its order: its cache record, or its syntax */

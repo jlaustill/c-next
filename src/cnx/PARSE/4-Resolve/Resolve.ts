@@ -10,7 +10,6 @@ import type IDeclaredSources from "../3-Declare/types/IDeclaredSources";
 import HeaderMacros from "./HeaderMacros";
 import Program from "./Program";
 import type THeaderMacro from "../../types/THeaderMacro";
-import TargetDescriptions from "./TargetDescriptions";
 import type IResolvedProgram from "./types/IResolvedProgram";
 
 class Resolve {
@@ -67,22 +66,8 @@ class Resolve {
             ]),
           ),
         },
-        target: {
-          // ADR-049's command-line rungs, which 1.1 returned with the run
-          option: input.discovery.run.target.option,
-          pioEnv: input.discovery.run.target.pioEnv,
-          catalog: TargetDescriptions.catalog(
-            input.targetCatalog.source,
-            input.targetCatalog.path,
-          ),
-          // ADR-049's build-system rung, read once by 1.1 from the text its
-          // include discovery used (#1444, owner ruling 3)
-          platformio: input.discovery.anchor.platformio,
-          files: declared.map((entry) => ({
-            sourcePath: entry.file.path,
-            directives: entry.syntax.targetDirectives,
-          })),
-        },
+        // #1713: ADR-049's one target, which 1.2 chose
+        target: input.target,
       },
     );
     return { program, sources: declared, discovery: input.discovery };

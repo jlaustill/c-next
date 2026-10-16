@@ -43,7 +43,7 @@ class Declare {
     return {
       declared,
       errors,
-      targetCatalog: parsed.targetCatalog,
+      target: parsed.target,
       discovery: parsed.discovery,
       symbolTable,
       registry,

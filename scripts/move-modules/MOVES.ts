@@ -20,6 +20,13 @@ import IMove from "../types/IMove";
  * express the move being made is how the wrong row gets written and then
  * defended (#1449).
  */
+/** #1713: why ADR-049's target resolution moves from 1.4 Resolve to 1.2 Parse. */
+const TARGET_BEFORE_HEADERS =
+  "#1713, owner ruling 2026-10-16: the run's target is chosen in 1.2, from " +
+  "the `#pragma` lines and the catalog 1.2 parses, because 1.2 then reads " +
+  "each header with that target's own compiler. 1.4 reads the target 1.2 " +
+  "chose instead of choosing it.";
+
 /** #1991 review (item 43): why a module 2.2 decides with moves to 2-Plan/. */
 const PLAN_DECIDES =
   "#1991 review: 2.2 Plan makes this decision (or names this table or " +
@@ -2114,6 +2121,41 @@ const MOVES: readonly IMove[] = [
     from: "src/cnx/TRANSPILE/1-Analyze/helpers/SafeDivision.ts",
     to: "src/cnx/utils/SafeDivision.ts",
     because: ONE_PREDICATE,
+  },
+  {
+    from: "src/cnx/PARSE/4-Resolve/RunTarget.ts",
+    to: "src/cnx/PARSE/2-Parse/RunTarget.ts",
+    because: TARGET_BEFORE_HEADERS,
+  },
+  {
+    from: "src/cnx/PARSE/4-Resolve/TargetDescriptions.ts",
+    to: "src/cnx/PARSE/2-Parse/TargetDescriptions.ts",
+    because: TARGET_BEFORE_HEADERS,
+  },
+  {
+    from: "src/cnx/PARSE/4-Resolve/TARGET_DESCRIPTION_FIELDS.ts",
+    to: "src/cnx/PARSE/2-Parse/TARGET_DESCRIPTION_FIELDS.ts",
+    because: TARGET_BEFORE_HEADERS,
+  },
+  {
+    from: "src/cnx/PARSE/4-Resolve/types/ITargetFieldSpec.ts",
+    to: "src/cnx/PARSE/2-Parse/types/ITargetFieldSpec.ts",
+    because: TARGET_BEFORE_HEADERS,
+  },
+  {
+    from: "src/cnx/PARSE/4-Resolve/types/IRunTargetInputs.ts",
+    to: "src/cnx/PARSE/2-Parse/types/IRunTargetInputs.ts",
+    because: TARGET_BEFORE_HEADERS,
+  },
+  {
+    from: "src/cli/__tests__/cnx/PARSE/4-Resolve/RunTarget.test.ts",
+    to: "src/cli/__tests__/cnx/PARSE/2-Parse/RunTarget.test.ts",
+    because: TARGET_BEFORE_HEADERS,
+  },
+  {
+    from: "src/cli/__tests__/cnx/PARSE/4-Resolve/TargetDescriptions.test.ts",
+    to: "src/cli/__tests__/cnx/PARSE/2-Parse/TargetDescriptions.test.ts",
+    because: TARGET_BEFORE_HEADERS,
   },
 ];
 

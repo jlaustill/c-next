@@ -44,8 +44,7 @@ describe("Declare.sources", () => {
       testSourceGraph([Discover.inMemoryFile("u32 counter <- 0;", "/p/a.cnx")]),
     );
     const { sources } = parsed;
-    const { declared, errors, discovery, targetCatalog } =
-      Declare.sources(parsed);
+    const { declared, errors, discovery, target } = Declare.sources(parsed);
 
     expect(errors).toEqual([]);
     expect(
@@ -54,7 +53,7 @@ describe("Declare.sources", () => {
     expect(declared[0].syntax).toBe(sources[0].syntax);
     expect(declared[0].file).toBe(sources[0].file);
     expect(discovery).toBe(parsed.discovery);
-    expect(targetCatalog).toBe(parsed.targetCatalog);
+    expect(target).toBe(parsed.target);
   });
 });
 

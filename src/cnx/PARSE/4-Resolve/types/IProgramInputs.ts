@@ -19,7 +19,7 @@
  * Every field is optional and carries the same empty default the positional
  * form did, so a caller that supplied nothing still supplies nothing.
  */
-import type IRunTargetInputs from "./IRunTargetInputs";
+import type TRunTarget from "../../../types/TRunTarget";
 import type IForeignSymbols from "./IForeignSymbols";
 import type IStructFieldInfo from "../../../types/symbols/IStructFieldInfo";
 import type IVisibilityInput from "./IVisibilityInput";
@@ -57,10 +57,10 @@ interface IProgramInputs {
   readonly registry?: SymbolRegistry;
 
   /**
-   * ADR-049: what the run's one target is settled from. Absent only where a
-   * test builds a program that never asks for its target.
+   * ADR-049: the run's one target, which 1.2 chose (#1713). Absent only
+   * where a test builds a program that never asks for its target.
    */
-  readonly target?: IRunTargetInputs;
+  readonly target?: TRunTarget;
 
   /**
    * #1428: does the run emit C++? 1.1 Discover's answer (`ISourceGraph.cppMode`,
