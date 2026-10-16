@@ -319,10 +319,10 @@ base: bare, `this.` and `global.`.
 
 ### Callback Typing (ADR-029)
 
-| Code  | Message                                                                         | Help                                                                                                    | Source                                              |
-| ----- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| E0879 | A function's declared signature does not match the callback type it is given to | Match the type exactly: return type, parameter count, and each parameter's type, `const` and array-ness | `TRANSPILE/1-Analyze/CallbackAssignmentAnalyzer.ts` |
-| E0880 | A function that is itself a callback type given to a slot of another type       | Nominal typing: only a function that is not a type may stand in for one                                 | `TRANSPILE/1-Analyze/CallbackAssignmentAnalyzer.ts` |
+| Code  | Message                                                                         | Help                                                                                                                                                                                                | Source                                              |
+| ----- | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| E0879 | A function's declared signature does not match the callback type it is given to | Match the type exactly: return type, parameter count, and each parameter's type, `mut` and array-ness; against a C typedef, a parameter is `mut` exactly where its pointer is not `const` (ADR-071) | `TRANSPILE/1-Analyze/CallbackAssignmentAnalyzer.ts` |
+| E0880 | A function that is itself a callback type given to a slot of another type       | Nominal typing: only a function that is not a type may stand in for one                                                                                                                             | `TRANSPILE/1-Analyze/CallbackAssignmentAnalyzer.ts` |
 
 ### Bitmap Access (ADR-034)
 

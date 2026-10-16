@@ -238,6 +238,28 @@ C/C++ or builtin parameters need that parameter's signature first. The written b
 error-expecting fixtures (130) need review rather than the rewrite: the 35 that assert E0877 on a
 `const` binding become fixtures for Q2's diagnostic (drop `const`, add nothing).
 
+`scripts/migrate-adr-071.ts` is that rewrite (#2103). Each round transpiles every file and
+applies what the diagnostics say: delete the `const` E0898 points at, and add `mut` where E0900
+(or E0879, for a callback whose C typedef writes through a pointer) says the binding is declared.
+Run on main's corpus from before this ADR, with the harness's `--include tests/include`, it
+converges in six rounds and rewrites 885 of 1990 files. Compared with the committed corpus, 1856
+files come out identical and the 112 `// test-error` fixtures are left for review, as above. The
+other 22 differ for reasons the analysis does not decide:
+
+- 12 `tests/null-check/` fixtures hand a read-only string or `FILE` to `fgets`/`fclose` from
+  `<stdio.h>`, which the transpiler does not read, so nothing reports the write; their `mut` was
+  added from the C compiler's "discards const" warning.
+- 5 keep a test's intent: `tests/adr-057/cross-file-*` write a member so it is emitted,
+  `issue-1175-constant-dimensions/var-lib.cnx` and `issue-1760-bit-writer` need a runtime value
+  rather than a constant, and `initialization/global-zero-init` tests writable zero-initialized
+  globals.
+- 5 differ only in comments, Prettier wrapping, or the `#1764` xfail markers the C boundary
+  wrapper made obsolete.
+
+Writing the script found two writes the corpus missed: a member or element passed to a `mut`
+parameter (`fill(o.inner.data)`) reported no E0900, and a callback was not checked against its C
+typedef's pointer constness. Both are fixed, and the script's `mut` for them is committed.
+
 ### Q9: Which release — decided
 
 `0xx`: before v1 (Decision 4).
