@@ -222,9 +222,15 @@ class Program {
       symbolsByFile,
       visibility,
     );
-    const passByValueParams = Program.derivePassByValue(
+    const passByValueParams = Program.deriveScalarParams(
       symbolsByFile,
       knownEnums,
+      true,
+    );
+    const passByPointerParams = Program.deriveScalarParams(
+      symbolsByFile,
+      knownEnums,
+      false,
     );
     // Settled once, with the files, so every pass reads one answer.
     const target = settled.target;
@@ -286,6 +292,8 @@ class Program {
         visibleByFile.get(sourceFile),
       passByValueParams: (): ReadonlyMap<string, ReadonlySet<string>> =>
         passByValueParams,
+      passByPointerParams: (): ReadonlyMap<string, ReadonlySet<string>> =>
+        passByPointerParams,
       callbackCompatibleFunctions: (): ReadonlyMap<string, string> =>
         callbackCompatibleFunctions,
       callbackFunctions: (): ReadonlySet<string> => callbackFunctions,
@@ -693,9 +701,10 @@ class Program {
    * agrees with the modification facts by construction rather than by spelling
    * the qualification a second time (#1139).
    */
-  private static derivePassByValue(
+  private static deriveScalarParams(
     symbolsByFile: ReadonlyMap<string, ReadonlyArray<TSymbol>>,
     knownEnums: ReadonlySet<string>,
+    isReadOnly: boolean,
   ): ReadonlyMap<string, ReadonlySet<string>> {
     const byFunction = new Map<string, ReadonlySet<string>>();
     for (const symbols of symbolsByFile.values()) {
@@ -703,7 +712,7 @@ class Program {
         if (!SymbolGuards.isFunction(symbol)) continue;
         byFunction.set(
           symbol.fullyQualifiedCName,
-          Program.eligibleParameters(symbol.parameters, knownEnums),
+          Program.scalarParameters(symbol.parameters, knownEnums, isReadOnly),
         );
       }
     }
@@ -711,15 +720,17 @@ class Program {
   }
 
   /**
-   * The parameters of one function that ADR-006 lets pass by value.
+   * The scalar parameters of one function that are read-only (ADR-006 passes
+   * them by value) or `mut` (ADR-071 Q6 passes them by pointer).
    *
    * Split from the walk above rather than nested inside it: three levels of loop
-   * put `derivePassByValue` over SonarCloud's cognitive-complexity limit, and the
-   * per-parameter rule is the part worth reading on its own.
+   * put `deriveScalarParams` over SonarCloud's cognitive-complexity limit, and
+   * the per-parameter rule is the part worth reading on its own.
    */
-  private static eligibleParameters(
+  private static scalarParameters(
     parameters: ReadonlyArray<IParameterInfo>,
     knownEnums: ReadonlySet<string>,
+    isReadOnly: boolean,
   ): ReadonlySet<string> {
     const eligible = new Set<string>();
     for (const parameter of parameters) {
@@ -734,7 +745,7 @@ class Program {
         (SMALL_PRIMITIVES.has(typeName) ||
           BY_VALUE_SCALARS.has(typeName) ||
           knownEnums.has(typeName)) &&
-        parameter.isConst;
+        parameter.isConst === isReadOnly;
       if (isEligible) {
         eligible.add(parameter.name);
       }

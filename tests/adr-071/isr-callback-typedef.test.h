@@ -14,7 +14,7 @@ extern "C" {
 typedef void (*ISR)(void);
 
 /* Callback typedefs */
-typedef void (*run_fp)(const ISR);
+typedef void (*run_fp)(ISR);
 
 /* Struct definitions */
 typedef struct Holder {
@@ -23,7 +23,7 @@ typedef struct Holder {
 
 /* Function prototypes */
 void tick(void);
-void run(const ISR cb);
+void run(ISR cb);
 /* MISRA C:2012 Rule 8.4: declaration for the ADR-029 generated init function (the definition has external linkage and would otherwise be undeclared). */
 Holder Holder_init(void);
 

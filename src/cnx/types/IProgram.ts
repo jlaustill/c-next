@@ -171,13 +171,17 @@ interface IProgram {
   codeGenSymbolsFor(sourceFile: string): ICodeGenSymbols | undefined;
 
   /**
-   * Which parameters of each function may be passed by value (ADR-006).
-   *
-   * A fact with a truth value — is this parameter modified anywhere downstream?
-   * — and answering it needs the whole call chain, which crosses files. Keyed by
-   * transpiled C name (#1511).
+   * Which parameters of each function are passed by value (ADR-006): a
+   * read-only scalar. Keyed by transpiled C name (#1511).
    */
   passByValueParams(): ReadonlyMap<string, ReadonlySet<string>>;
+
+  /**
+   * Which parameters of each function are passed by pointer because they are
+   * a `mut` scalar (ADR-071 Q6), so the callee's write reaches the caller.
+   * The `_fp` typedef reads it, as the prototype reads `passByValueParams`.
+   */
+  passByPointerParams(): ReadonlyMap<string, ReadonlySet<string>>;
 
   /**
    * Functions used as an ADR-029 callback, to the typedef they are used as.

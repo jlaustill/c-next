@@ -1248,6 +1248,7 @@ scope Gauge {
         "lexicalFrameAt",
         "mayBeHeaderName",
         "opaqueTypes",
+        "passByPointerParams",
         "passByValueParams",
         "resolveFunction",
         "scope",

@@ -14,7 +14,7 @@
 void tick(void) {
 }
 
-void run(const ISR cb) {
+void run(ISR cb) {
     cb();
 }
 

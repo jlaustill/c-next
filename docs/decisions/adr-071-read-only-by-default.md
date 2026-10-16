@@ -327,6 +327,8 @@ Every cell is `error`, and each diagnostic is asserted in every cell it can occu
 - **Breaking, everywhere.** Every program that writes any binding stops compiling until the
   binding says `mut`, and every `const` stops compiling until it is removed (Decision 5).
   In the corpus that is 2284 and 534 declarations (Context).
+- **`mut` is a reserved word.** A C field or function named `mut` (`l.mut`, `global.mut()`)
+  can no longer be named from C-Next: it is a parse error, where before this ADR it compiled.
 - **The common case gets shorter.** 5694 corpus bindings are already read-only and unmarked; they
   keep their spelling and gain a guarantee they did not have.
 - **A constant can be passed to a read-only function** without the callee writing `const`.
