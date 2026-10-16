@@ -98,6 +98,29 @@ class HeaderReading {
         new Map(),
       );
     }
+    const configured = graph.anchor.configuredCompiler;
+    if (
+      needed &&
+      target.kind === "resolved" &&
+      preprocessor !== null &&
+      configured !== null
+    ) {
+      const disagreement = await HeaderCompiler.disagreement(
+        preprocessor,
+        target.description,
+      );
+      if (disagreement !== null) {
+        reading._disagrees(graph, target, configured, disagreement);
+        // E0517 ends the run before any header is read for the wrong target
+        return reading._result(
+          [],
+          NOTHING_SETTLED,
+          { cppMode: false, reader: HeaderCompiler.identity(null) },
+          new Map(),
+          new Map(),
+        );
+      }
+    }
     const settled =
       needed && preprocessor !== null
         ? await HeaderSources.settle(
@@ -181,19 +204,8 @@ class HeaderReading {
     target: TRunTarget & { readonly kind: "resolved" },
     compiler: Exclude<ReturnType<typeof HeaderCompiler.of>, string> | string,
   ): void {
-    const unit = graph.headerUnit;
-    const first = HeaderReading._inSourceOrder([
-      ...graph.headerIncludes,
-      ...unit.unresolvedSystem.flatMap((spec) =>
-        (unit.sites.get(spec) ?? []).map((site) => ({ site })),
-      ),
-    ])[0];
-    invariant(
-      first !== undefined,
-      "a run with headers has a `.cnx` include that reached them",
-    );
     this.errors.push({
-      ...first.site,
+      ...HeaderReading._firstSite(graph),
       message: CodedErrorText.of(
         "E0516",
         "this run includes C headers, and no C preprocessor was found to read them",
@@ -206,6 +218,46 @@ class HeaderReading {
             `'${compiler.driver}', which is not installed. Install it.`,
       severity: "error",
     });
+  }
+
+  /**
+   * E0517, #1542 ruling 10: the compiler the project names builds for another
+   * platform than the run's target. Reported at the run's first header include.
+   */
+  private _disagrees(
+    graph: THeaderGraph,
+    target: TRunTarget & { readonly kind: "resolved" },
+    configured: string,
+    disagreement: string,
+  ): void {
+    this.errors.push({
+      ...HeaderReading._firstSite(graph),
+      message: CodedErrorText.of(
+        "E0517",
+        `this run names the compiler '${configured}', which builds for a ` +
+          `different platform than target '${target.name}'`,
+      ),
+      helpText:
+        `${disagreement}. Set CNEXT_CROSS_COMPILER (or compile_commands.json) ` +
+        `to a compiler for '${target.name}', or remove it to use the target's own.`,
+      severity: "error",
+    });
+  }
+
+  /** The run's first `.cnx` include that reached a header, in source order */
+  private static _firstSite(graph: THeaderGraph): ISourceSite {
+    const unit = graph.headerUnit;
+    const first = HeaderReading._inSourceOrder([
+      ...graph.headerIncludes,
+      ...unit.unresolvedSystem.flatMap((spec) =>
+        (unit.sites.get(spec) ?? []).map((site) => ({ site })),
+      ),
+    ])[0];
+    invariant(
+      first !== undefined,
+      "a run with headers has a `.cnx` include that reached them",
+    );
+    return first.site;
   }
 
   /**

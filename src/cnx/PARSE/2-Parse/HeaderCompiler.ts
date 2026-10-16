@@ -1,26 +1,79 @@
 import TargetToolchain from "../../utils/TargetToolchain";
 import type ITargetDescription from "../../types/ITargetDescription";
 import type IHeaderCompiler from "./preprocessor/types/IHeaderCompiler";
+import type IHeaderPreprocessor from "./preprocessor/types/IHeaderPreprocessor";
 
 class HeaderCompiler {
   /**
-   * #1713, owner ruling 2026-10-16: a run's headers are read by its target's
-   * own compiler, chosen by the rule the target matrix compiles by
-   * (`TargetToolchain`): `gcc` for `host`, `avr-gcc` for AVR,
-   * `arm-none-eabi-gcc` for Cortex-M. A compiler the project names
-   * (`configured`) reads them only for a target that names none; otherwise,
-   * why there is no compiler.
+   * #1713: a run's headers are read by its target's own compiler, chosen by
+   * the rule the target matrix compiles by (`TargetToolchain`): `gcc` for
+   * `host`, `avr-gcc` for AVR, `arm-none-eabi-gcc` for Cortex-M, with the
+   * target's flags. A compiler the project names (`configured`) reads them
+   * instead, with the same flags, once `disagreement` finds it builds for the
+   * target (#1542 ruling 10). Otherwise, why there is no compiler.
    */
   static of(
     description: ITargetDescription,
     configured: string | null,
   ): IHeaderCompiler | string {
     const gcc = TargetToolchain.gccFor(description);
-    if (typeof gcc !== "string") {
-      return { driver: `${gcc.driverPrefix}gcc`, flags: gcc.archFlags };
-    }
-    return configured === null ? gcc : { driver: configured, flags: [] };
+    const flags = typeof gcc === "string" ? [] : gcc.archFlags;
+    if (configured !== null) return { driver: configured, flags };
+    return typeof gcc === "string"
+      ? gcc
+      : { driver: `${gcc.driverPrefix}gcc`, flags };
   }
+
+  /**
+   * #1542 ruling 10: a compiler the project names must build for the run's
+   * target, and its own data-model macros say what it builds for. Null when
+   * they agree; otherwise, the first way they differ.
+   */
+  static async disagreement(
+    preprocessor: IHeaderPreprocessor,
+    description: ITargetDescription,
+  ): Promise<string | null> {
+    const probe = await preprocessor.preprocessString("", "data-model.c", {
+      dumpMacros: true,
+    });
+    if (!probe.success) {
+      return probe.error ?? "the compiler could not be run";
+    }
+    const macros = new Map(
+      [...probe.content.matchAll(/^#define (\w+) (.*)$/gm)].map((match) => [
+        match[1],
+        match[2].trim(),
+      ]),
+    );
+    const charBits = Number(macros.get("__CHAR_BIT__"));
+    if (charBits !== description.char_bits) {
+      return `target '${description.name}' has ${description.char_bits}-bit char, and this compiler's __CHAR_BIT__ is ${macros.get("__CHAR_BIT__") ?? "undefined"}`;
+    }
+    for (const [field, macro, what] of HeaderCompiler.DATA_MODEL) {
+      const bits = Number(macros.get(macro)) * charBits;
+      if (bits !== description[field]) {
+        return `target '${description.name}' has ${description[field]}-bit ${what}, and this compiler's ${macro} gives ${Number.isNaN(bits) ? "none" : `${bits}-bit`}`;
+      }
+    }
+    const bigEndian = macros.get("__BYTE_ORDER__") === "__ORDER_BIG_ENDIAN__";
+    if (bigEndian !== description.big_endian) {
+      return `target '${description.name}' is ${description.big_endian ? "big" : "little"}-endian, and this compiler is not`;
+    }
+    return null;
+  }
+
+  private static readonly DATA_MODEL: ReadonlyArray<
+    readonly [
+      "pointer_bits" | "int_bits" | "long_bits" | "long_long_bits",
+      string,
+      string,
+    ]
+  > = [
+    ["pointer_bits", "__SIZEOF_POINTER__", "pointers"],
+    ["int_bits", "__SIZEOF_INT__", "int"],
+    ["long_bits", "__SIZEOF_LONG__", "long"],
+    ["long_long_bits", "__SIZEOF_LONG_LONG__", "long long"],
+  ];
 
   /**
    * Who read a run's headers, as a cache names it: what one compiler declares
