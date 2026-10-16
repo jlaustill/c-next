@@ -18,6 +18,7 @@ describe("SourceSyntax.of (#1991)", () => {
       "formErrors",
       "parseErrors",
       "program",
+      "targetDirectives",
     ]);
   });
 });

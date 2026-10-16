@@ -5,6 +5,7 @@
  * Extracted from Pipeline.ts to reduce duplication and improve testability.
  */
 
+import TargetDirectives from "./TargetDirectives";
 import { CharStream, CommonTokenStream, Parser, Token } from "antlr4ng";
 
 import { CNextLexer } from "./grammar/CNextLexer";
@@ -254,6 +255,7 @@ class CNextSourceParser {
       // Lowered here, on parse (#1932): 1.2 authors the plain-data file, so
       // the tree can be released once 2.1 is done with it.
       program: ProgramLowering.program(tree, scanner),
+      targetDirectives: TargetDirectives.read(tree),
       parseErrors: errors,
       formErrors,
     };

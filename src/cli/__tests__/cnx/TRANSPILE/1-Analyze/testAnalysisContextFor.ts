@@ -1,6 +1,5 @@
 import ProgramLowering from "../../../../../cnx/PARSE/2-Parse/ProgramLowering";
 import type IProgramSyntax from "../../../../../cnx/types/syntax/IProgramSyntax";
-import TargetDirectives from "../../../../../cnx/PARSE/1-Discover/TargetDirectives";
 import CNextSourceParser from "../../../../../cnx/PARSE/2-Parse/CNextSourceParser";
 import type * as Parser from "../../../../../cnx/PARSE/2-Parse/grammar/CNextParser";
 import CNextResolver from "../../../../../cnx/PARSE/3-Declare/cnext/index";
@@ -73,7 +72,6 @@ function testAnalysisContextFor(
     const parsed = CNextSourceParser.parse(text);
     return {
       path,
-      text,
       parsed,
       declared: CNextResolver.resolve(
         ProgramLowering.program(parsed.tree, null),
@@ -117,7 +115,7 @@ function testAnalysisContextFor(
         catalog: TargetCatalogFile.targets(NodeFileSystem.instance),
         files: files.map((file) => ({
           sourcePath: file.path,
-          directives: TargetDirectives.read(file.text),
+          directives: file.parsed.targetDirectives,
         })),
       },
     },

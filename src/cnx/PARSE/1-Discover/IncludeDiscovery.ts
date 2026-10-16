@@ -476,23 +476,6 @@ class IncludeDiscovery {
   static directivesWithPositionsOf(
     source: string,
   ): Array<{ text: string; line: number; column: number }> {
-    return IncludeDiscovery._tokensOf(source, CNextLexer.INCLUDE_DIRECTIVE);
-  }
-
-  /**
-   * A `.cnx` file's `#pragma` tokens, as the grammar lexes them, for
-   * `TargetDirectives` to split (ADR-049, #1713).
-   */
-  static pragmasWithPositionsOf(
-    source: string,
-  ): Array<{ text: string; line: number; column: number }> {
-    return IncludeDiscovery._tokensOf(source, CNextLexer.PRAGMA_DIRECTIVE);
-  }
-
-  private static _tokensOf(
-    source: string,
-    tokenType: number,
-  ): Array<{ text: string; line: number; column: number }> {
     const lexer = new CNextLexer(CharStream.fromString(source));
     // 1.2 Parse reports a lexical error once, with its position. Here it
     // would only print ANTLR's console default a second time.
@@ -500,13 +483,13 @@ class IncludeDiscovery {
 
     return lexer
       .getAllTokens()
-      .filter((token) => token.type === tokenType)
+      .filter((token) => token.type === CNextLexer.INCLUDE_DIRECTIVE)
       .map((token) => {
         // A token the lexer produced always carries its text. The type allows
         // none, and an empty default would drop the directive without a trace.
         invariant(
           token.text !== undefined,
-          "a directive token carries its text",
+          "an INCLUDE_DIRECTIVE token carries its text",
         );
         return { text: token.text, line: token.line, column: token.column };
       });

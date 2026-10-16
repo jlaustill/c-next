@@ -38,7 +38,6 @@ import IncludeDirectiveText from "../../utils/IncludeDirectiveText";
 import OutputExtensions from "../../utils/OutputExtensions";
 import type IOutputPaths from "./types/IOutputPaths";
 import ReadOnceFileSystem from "./ReadOnceFileSystem";
-import TargetDirectives from "./TargetDirectives";
 import RunAnchor from "./RunAnchor";
 import type IFileIncludes from "./types/IFileIncludes";
 import type ISourceGraph from "./types/ISourceGraph";
@@ -138,7 +137,6 @@ class Discover {
       discoveredFile: { path, type: EFileType.CNext },
       cnextIncludes: [],
       reachesForeignHeader: false,
-      targetDirectives: TargetDirectives.read(source),
     };
   }
 
@@ -966,7 +964,6 @@ class Discover {
         discoveredFile: f,
         cnextIncludes,
         reachesForeignHeader: reachesForeign.has(resolve(f.path)),
-        targetDirectives: TargetDirectives.read(source),
       };
     });
 

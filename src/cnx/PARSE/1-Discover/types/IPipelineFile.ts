@@ -1,5 +1,4 @@
 import IDiscoveredFile from "./IDiscoveredFile";
-import type ITargetDirective from "../../../types/ITargetDirective";
 
 /**
  * One C-Next file of the `SourceGraph` 1.1 Discover emits.
@@ -48,12 +47,6 @@ interface IPipelineFile {
    * include?" and that spelling missed `.cnext`.
    */
   readonly reachesForeignHeader: boolean;
-
-  /**
-   * The file's `#pragma` lines as plain data (ADR-049). 1.1 settles the run's
-   * one target from them before it reads a header (#1713).
-   */
-  readonly targetDirectives: readonly ITargetDirective[];
 }
 
 export default IPipelineFile;

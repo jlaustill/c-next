@@ -1,4 +1,5 @@
 import type IComment from "./IComment";
+import type ITargetDirective from "./ITargetDirective";
 import type ITranspileError from "./ITranspileError";
 import type IProgramSyntax from "./syntax/IProgramSyntax";
 
@@ -31,6 +32,12 @@ interface ISourceSyntax {
    * parse error before anything reads this.
    */
   readonly program: IProgramSyntax;
+
+  /**
+   * The file's `#pragma` lines as plain data (ADR-049), for 1.4 to settle the
+   * program's one target.
+   */
+  readonly targetDirectives: readonly ITargetDirective[];
 
   /**
    * Syntax errors from the lexer and parser, in the order reported.

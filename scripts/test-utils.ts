@@ -29,11 +29,11 @@ import type TTestMode from "./types/TTestMode";
 import type IModeResult from "./types/ITestMode";
 import detectCppSyntax from "../src/cnx/PARSE/1-Discover/detectCppSyntax";
 import TestMarkers from "./TestMarkers";
+import CNextSourceParser from "../src/cnx/PARSE/2-Parse/CNextSourceParser";
 import ExecFailure from "../src/cnx/utils/ExecFailure";
 import TargetResolver from "../src/cli/TargetResolver";
 import type IGccToolchain from "../src/cnx/utils/types/IGccToolchain";
 import TargetMatrix from "./TargetMatrix";
-import TargetDirectives from "../src/cnx/PARSE/1-Discover/TargetDirectives";
 import RunTarget from "../src/cnx/PARSE/4-Resolve/RunTarget";
 import type ITargetCell from "./types/ITargetCell";
 import type ITargetXfail from "./types/ITargetXfail";
@@ -434,7 +434,7 @@ class TestUtils {
     if (!target) {
       return "the CLI printed no Target: line (ADR-049)";
     }
-    const pin = TargetDirectives.read(source).find(
+    const pin = CNextSourceParser.parse(source).targetDirectives.find(
       (directive) => directive.key === "target",
     )?.values[0];
     // The run reports the ENTRY's declaration by name (#1760 review), and the
