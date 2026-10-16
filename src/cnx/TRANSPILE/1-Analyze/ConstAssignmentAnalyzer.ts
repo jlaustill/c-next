@@ -28,6 +28,7 @@
  */
 
 import OperandTyper from "../../utils/OperandTyper";
+import CppNamespaceUtils from "../../utils/CppNamespaceUtils";
 import DeclarationParts from "../../utils/DeclarationParts";
 import ExpressionNodes from "../../utils/ExpressionNodes";
 import StatementNodes from "../../utils/StatementNodes";
@@ -166,6 +167,7 @@ class ConstAssignmentCheck {
     const call = expr.ops.find((op) => op.kind === "call");
     if (call?.kind !== "call") return;
     this.checkSafeDivisionOutput(expr);
+    this.checkMethodReceiver(expr);
     const cCallee = CCallee.of(expr, this.context);
     if (cCallee !== null) {
       // Its read-only arguments are E0900's too, which CPointerArgumentAnalyzer reports
@@ -262,6 +264,43 @@ class ConstAssignmentCheck {
       "E0899",
       `'${name}' is never written; remove \`mut\``,
       "A binding is declared `mut` only when something writes it (ADR-071).",
+    );
+  }
+
+  /**
+   * E0900, too: a C++ method not declared `const` may write the object it is
+   * called on, so `c.bump()` writes `c`. A `const` overload is the one a
+   * read-only object calls, so its existence leaves the object read-only.
+   */
+  private checkMethodReceiver(
+    expr: Extract<TExpression, { kind: "postfix" }>,
+  ): void {
+    const callAt = expr.ops.findIndex((op) => op.kind === "call");
+    const method = expr.ops[callAt - 1];
+    if (method?.kind !== "member") return;
+    const receiver: TExpression = {
+      ...expr,
+      ops: expr.ops.slice(0, callAt - 1),
+    };
+    const typeName = OperandTyper.directTypeName(
+      OperandTyper.typeOf(receiver, this.context),
+    );
+    if (typeName === null) return;
+    const methods = this.context.symbolTable
+      .getCppOverloads(CppNamespaceUtils.qualify(typeName, method.name))
+      .filter((symbol) => symbol.kind === "function");
+    if (methods.length === 0) return;
+    if (methods.some((m) => m.kind === "function" && m.isConstMember)) return;
+    const target = WrittenBinding.ofExpression(receiver, this.context);
+    this.noteWrite(target?.binding ?? null);
+    const kind = ConstAssignmentCheck.constKind(target?.binding ?? null);
+    if (kind === null || target === null) return;
+    this.report(
+      expr.span,
+      "E0900",
+      `cannot call non-\`const\` method '${method.name}' on read-only ${kind} '${target.name}'`,
+      "A C++ method not declared `const` may write its object, so the object must be declared `mut` (ADR-071).",
+      MutSite.of(target.binding, this.context),
     );
   }
 

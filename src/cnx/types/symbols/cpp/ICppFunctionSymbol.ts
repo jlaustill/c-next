@@ -19,6 +19,9 @@ interface ICppFunctionSymbol extends ICppBaseSymbol {
 
   /** Whether this is a declaration vs definition */
   readonly isDeclaration?: boolean;
+
+  /** A member function declared `const`, which leaves its object unwritten */
+  readonly isConstMember?: boolean;
 }
 
 export default ICppFunctionSymbol;

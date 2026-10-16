@@ -313,3 +313,48 @@ describe("ConstAssignmentAnalyzer, a C callee's pointer (#2103)", () => {
     ).toEqual(["E0899@1 'b' is never written; remove `mut`"]);
   });
 });
+
+describe("ConstAssignmentAnalyzer, a C++ method's object (#2102 review)", () => {
+  const withCounter = (source: string): string[] => {
+    const symbolTable = new SymbolTable();
+    for (const [name, isConstMember] of [
+      ["Counter::bump", false],
+      ["Counter::get", true],
+    ] as const) {
+      symbolTable.addCppSymbol({
+        name,
+        kind: "function",
+        sourceLanguage: ESourceLanguage.Cpp,
+        sourceFile: "counter.hpp",
+        span: TestSourceSpan.at(1),
+        visibility: "public",
+        type: "uint8_t",
+        parent: "Counter",
+        isConstMember,
+      });
+    }
+    const { syntax, context } = testAnalysisContextFor(source, {
+      symbolTable,
+      cppMode: true,
+    });
+    return new ConstAssignmentAnalyzer(context)
+      .analyze(syntax)
+      .map((e) => `${e.code}@${e.line} ${e.message}`);
+  };
+
+  it("counts a method that is not `const` as a write of its object", () => {
+    const source = [
+      "void f() {",
+      "    Counter c;",
+      "    c.bump();",
+      "    Counter r;",
+      "    u8 v <- r.get();",
+      "    mut Counter m;",
+      "    m.bump();",
+      "}",
+    ].join("\n");
+    expect(withCounter(source)).toEqual([
+      "E0900@3 cannot call non-`const` method 'bump' on read-only variable 'c'",
+    ]);
+  });
+});

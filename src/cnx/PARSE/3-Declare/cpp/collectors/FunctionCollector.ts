@@ -101,6 +101,7 @@ class FunctionCollector {
       parameters: params.length > 0 ? params : undefined,
       isVariadic: declarator.isVariadic || undefined,
       isDeclaration: isDeclaration || undefined,
+      isConstMember: declarator.isConstMember || undefined,
     };
   }
 }

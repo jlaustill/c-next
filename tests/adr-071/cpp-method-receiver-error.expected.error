@@ -1,0 +1,4 @@
+14:4 error[E0900]: cannot call non-`const` method 'bump' on read-only variable 'c'
+       help: A C++ method not declared `const` may write its object, so the object must be declared `mut` (ADR-071).
+15:4 error[E0900]: cannot call non-`const` method 'bump' on read-only variable 'g'
+       help: A C++ method not declared `const` may write its object, so the object must be declared `mut` (ADR-071).

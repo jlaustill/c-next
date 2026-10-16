@@ -200,6 +200,7 @@ class CppHeaderLowering {
       name,
       isFunction: false,
       isVariadic: false,
+      isConstMember: false,
       hasPointer: false,
       pointerDepth: 0,
       functionPointerParams: null,
@@ -297,6 +298,8 @@ class CppHeaderLowering {
       isVariadic:
         (paramsAndQuals?.parameterDeclarationClause()?.Ellipsis() ?? null) !==
         null,
+      isConstMember:
+        paramsAndQuals?.cvqualifierseq()?.getText().includes("const") ?? false,
       arrayDimensions: noPointer
         ? ArrayDimensionText.parse(noPointer.getText())
         : [],

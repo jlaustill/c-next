@@ -1,0 +1,29 @@
+// test-execution
+// test-cpp-only
+// test-adr: 071
+// A `mut` C++ object calls a method that is not `const` and the write is
+// seen; a read-only one calls a `const` method. Both compile as C++.
+#include "cpp-counter.hpp"
+
+mut Counter total;
+
+u32 main() {
+    mut Counter local;
+    local.bump();
+    local.bump();
+    total.bump();
+    Counter fresh;
+    u8 counted <- local.get();
+    u8 seen <- total.get();
+    u8 untouched <- fresh.get();
+    if (counted != 2) {
+        return 1;
+    }
+    if (seen != 1) {
+        return 2;
+    }
+    if (untouched != 0) {
+        return 3;
+    }
+    return 0;
+}
