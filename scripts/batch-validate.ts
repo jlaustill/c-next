@@ -45,6 +45,28 @@ function cortexArgs(file: string): string[] {
     : [];
 }
 
+/**
+ * #1713: a header can pick its types from the compiler's data-model macros
+ * (`#if __SIZEOF_POINTER__ == 8`), and the transpiler reads it with the
+ * target's compiler, which defines them. cppcheck defines none, so it read
+ * such a header for a 32-bit model while checking the code against the
+ * host's 64-bit one (`uword_t` became `uint32_t`, and `255ULL` a Rule 10.3
+ * narrowing). Both passes check the host model (other models are #1714), so
+ * they get the host compiler's macros for it.
+ */
+function hostDataModelArgs(): string[] {
+  const macros = execFileSync("gcc", ["-dM", "-E", "-x", "c", "/dev/null"], {
+    encoding: "utf-8",
+    stdio: "pipe",
+    timeout: 5000,
+  });
+  return [
+    ...macros.matchAll(/^#define (__SIZEOF_\w+__|__\w+_WIDTH__) (\d+)$/gm),
+  ].map((match) => `-D${match[1]}=${match[2]}`);
+}
+
+const HOST_DATA_MODEL_ARGS = hostDataModelArgs();
+
 // ============================================================================
 // CLI argument parsing
 // ============================================================================
@@ -213,6 +235,7 @@ function runCppcheck() {
     // Float clamp macros use ternary guards that cppcheck can't reason through
     "--suppress=floatConversionOverflow",
     "--quiet",
+    ...HOST_DATA_MODEL_ARGS,
   ];
 
   // Batch C files (excluding those that need C++ mode)
@@ -351,7 +374,10 @@ function runMisra() {
     try {
       execFileSync(
         "cppcheck",
-        MisraBaseline.buildArgs(file, INCLUDE_DIR, cortexArgs(file)),
+        MisraBaseline.buildArgs(file, INCLUDE_DIR, [
+          ...HOST_DATA_MODEL_ARGS,
+          ...cortexArgs(file),
+        ]),
         {
           encoding: "utf-8",
           timeout: 60000,
