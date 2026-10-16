@@ -26,6 +26,7 @@ class Declare {
       symbolTable,
     );
     Declare._recover(parsed.recovered, symbolTable);
+    HeaderDeclarations.aliasTypedefChains(symbolTable);
     const registry = new SymbolRegistry();
     const declared: IDeclaredSource[] = [];
     const errors: ITranspileError[] = [];

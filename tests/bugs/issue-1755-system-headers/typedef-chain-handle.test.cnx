@@ -1,0 +1,9 @@
+// #1755: newlib names FILE through a second typedef
+// (typedef struct __sFILE __FILE; typedef __FILE FILE;). A handle from
+// handle_open is a handle_t, and handle_close takes one (and may write it).
+#include "handle-chain.h"
+
+void run() {
+    mut handle_t h <- handle_open();
+    i32 r <- handle_close(h);
+}

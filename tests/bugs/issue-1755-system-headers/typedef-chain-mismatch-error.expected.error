@@ -1,0 +1,2 @@
+7:25 error[E0895]: 'h' is handle_raw_t, and parameter 1 of 'other_close' points to other_t
+       help: A C pointer parameter takes an object of the type it points to; pass a other_t, or an array of them.
