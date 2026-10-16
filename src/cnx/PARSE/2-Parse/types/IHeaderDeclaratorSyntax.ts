@@ -15,6 +15,8 @@ interface IHeaderDeclaratorSyntax {
   /** A function pointer's parameter list as written, else null */
   readonly functionPointerParams: string | null;
   readonly parameters: readonly IExtractedParameter[];
+  /** Its parameter list ends in `...` */
+  readonly isVariadic: boolean;
   readonly arrayDimensions: readonly (number | string)[];
   /**
    * A bit-field's declared width, `uint32_t a : 3`: a number, or the

@@ -72,7 +72,6 @@ class HeaderSymbolAdapter {
         isConst: p.isConst,
         isArray: p.isArray,
         arrayDimensions: HeaderSymbolAdapter.headerArrayDimensions(p),
-        isAutoConst: p.isAutoConst,
         // ADR-030 / #1722: the stamp 1.4 set on the parameter, which the `.c`
         // prototype and its call sites read too. This asked
         // `isHeldThroughPointer` itself, a second decision that agreed with the

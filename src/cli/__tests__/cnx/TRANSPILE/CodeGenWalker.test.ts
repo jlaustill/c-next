@@ -728,49 +728,6 @@ describe("CodeGenWalker", () => {
       });
     });
 
-    describe("markParameterModified() / isCalleeParameterModified()", () => {
-      it("should track parameter modifications", () => {
-        const { host } = createMinimalGenerator(
-          `
-          void modify(mut u32 param) {
-            param <- 42;
-          }
-          void caller(mut u32 x) {
-            modify(x);
-          }
-        `,
-          false,
-        );
-
-        // Modification tracking is done during generation
-        expect(host.isCalleeParameterModified("modify", 0)).toBe(true);
-      });
-
-      it("should return false for unmodified parameters", () => {
-        const { host } = createMinimalGenerator(
-          `
-          void noModify(u32 param) { }
-        `,
-          false,
-        );
-
-        expect(host.isCalleeParameterModified("noModify", 0)).toBe(false);
-      });
-    });
-
-    describe("getFunctionUnmodifiedParams()", () => {
-      it("should return map of unmodified parameters", () => {
-        const { host } = createMinimalGenerator(
-          `
-          void noModify(u32 param) { }
-        `,
-          false,
-        );
-
-        const unmodifiedParams = host.getFunctionUnmodifiedParams();
-        expect(unmodifiedParams).toBeInstanceOf(Map);
-      });
-    });
   });
 
   describe("Type generation", () => {

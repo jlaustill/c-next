@@ -73,10 +73,7 @@ const generateFunction: TGeneratorFn<IPlannedFunction> = (
   // reasoning presence-is-not-proof warns about. Filed, not acted on.
   const body = planned.renderBody();
 
-  // Issue #268: Update symbol's parameter info with auto-const before clearing
-  orchestrator.updateFunctionParamsAutoConst(name);
-
-  // Now generate parameter list (can use modifiedParameters for auto-const)
+  // Now generate parameter list
   if (!isMainWithArgs) {
     params = planned.renderParameterList
       ? planned.renderParameterList()

@@ -42,9 +42,6 @@ interface IPlannedFunction {
   /**
    * Render the parameter list, or null when the function declares none (which
    * renders as `void`).
-   *
-   * Runs after `updateFunctionParamsAutoConst`, so it can see which
-   * parameters the body modified.
    */
   readonly renderParameterList: (() => string) | null;
 }

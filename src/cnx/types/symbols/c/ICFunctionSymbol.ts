@@ -14,6 +14,9 @@ interface ICFunctionSymbol extends ICBaseSymbol {
   /** Function parameters */
   readonly parameters?: ReadonlyArray<ICParameterInfo>;
 
+  /** Its parameter list ends in `...` */
+  readonly isVariadic?: boolean;
+
   /** Whether this is a declaration (prototype) vs definition */
   readonly isDeclaration?: boolean;
 }

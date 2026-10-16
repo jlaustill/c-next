@@ -25,7 +25,6 @@ import IParameterInput from "../types/IParameterInput";
 import type IPlannedParameter from "../types/IPlannedParameter";
 import IParameterSymbol from "../../../../utils/types/IParameterSymbol";
 import ICallbackTypeInfo from "../../../../types/ICallbackTypeInfo";
-import AutoConstRule from "../../../../utils/AutoConstRule";
 
 /**
  * Dependencies required by fromAST() to resolve types and state.
@@ -42,28 +41,14 @@ interface IFromASTDeps {
   /** TYPE_MAP for primitive detection */
   typeMap: Record<string, string>;
 
-  /** Whether the parameter is modified in the current function */
-  isModified: boolean;
-
   /** Whether the parameter should use pass-by-value (pre-computed) */
   isPassByValue: boolean;
-
-  /** Issue #895: Whether the current function is callback-compatible */
-  isCallbackCompatible: boolean;
 
   /**
    * Issue #895: Force pass-by-reference for callback-compatible functions
    * When the typedef signature requires a pointer, this overrides normal logic.
    */
   forcePassByReference?: boolean;
-
-  /**
-   * #1545: Whether a type name is a known enum. ADR-013 passes enums by value,
-   * so they take no auto-const. The header path already excluded them and this
-   * path did not; AutoConstRule now holds that decision for both, which is why
-   * the fact has to reach here.
-   */
-  isKnownEnum: (typeName: string) => boolean;
 
   /**
    * Issue #895: Force const qualifier from callback typedef signature.
@@ -76,8 +61,7 @@ interface IFromASTDeps {
    * incomplete struct typedef). Pre-computed, like `isPassByValue`: it is the
    * parameter registry's answer (`TParameterInfo.isOpaqueHandle`), so the
    * signature and every whole-value use of the parameter read one decision.
-   * An opaque handle takes pointer syntax and no auto-const, because the C
-   * APIs it is passed to expect a mutable pointer.
+   * An opaque handle takes pointer syntax.
    */
   isOpaqueHandle: boolean;
 }
@@ -175,14 +159,6 @@ class ParameterInputAdapter {
       // once by the planner instead of here.
       AdrProvenance.record("030", planned.line);
     }
-    const isAutoConst = this._autoConst(
-      typeName,
-      isConst,
-      false,
-      deps,
-      planned.line,
-    );
-
     // Issue #895/#958: Force pass-by-reference for callback or typedef struct types
     const isPassByReference =
       deps.forcePassByReference ||
@@ -195,7 +171,6 @@ class ParameterInputAdapter {
       baseType: typeName,
       mappedType,
       isConst,
-      isAutoConst,
       isArray: false,
       isCallback: false,
       isString: false,
@@ -249,7 +224,7 @@ class ParameterInputAdapter {
         baseType: param.type,
         mappedType: "char",
         isConst: param.isConst,
-        isAutoConst: param.isAutoConst ?? false,
+  
         isArray: false,
         isCallback: false,
         isString: true,
@@ -274,7 +249,7 @@ class ParameterInputAdapter {
         baseType: param.type,
         mappedType,
         isConst: param.isConst,
-        isAutoConst: false,
+  
         isArray: false,
         isCallback: true,
         callbackTypedefName: param.callbackTypedefName,
@@ -299,7 +274,6 @@ class ParameterInputAdapter {
       baseType: param.type,
       mappedType,
       isConst: param.isConst,
-      isAutoConst: param.isAutoConst ?? false,
       isArray: false,
       isCallback: false,
       isString: false,
@@ -330,7 +304,6 @@ class ParameterInputAdapter {
       baseType: typeName,
       mappedType,
       isConst: false,
-      isAutoConst: false,
       isArray: false,
       isCallback: true,
       callbackTypedefName: typedefName,
@@ -370,23 +343,11 @@ class ParameterInputAdapter {
       dims.push(String(planned.stringCapacity + 1));
     }
 
-    // ADR-006: Arrays are pass-by-reference and mutable by default, so the rule
-    // returns false for every array. It is asked rather than hardcoded so the
-    // array policy has ONE spelling: #1602 is open on ADR-013 still listing
-    // arrays as receiving auto-const, and whoever resolves it must not have to
-    // find this branch as well.
     return {
       name,
       baseType: typeName,
       mappedType,
       isConst,
-      isAutoConst: this._autoConst(
-        typeName,
-        isConst,
-        true,
-        deps,
-        planned.arrayTypeLine,
-      ),
       isArray: true,
       arrayDimensions: dims,
       isCallback: false,
@@ -425,7 +386,6 @@ class ParameterInputAdapter {
       baseType: param.type,
       mappedType: actualMappedType,
       isConst: param.isConst,
-      isAutoConst: param.isAutoConst ?? false,
       isArray: true,
       arrayDimensions: param.arrayDimensions,
       isCallback: false,
@@ -442,47 +402,6 @@ class ParameterInputAdapter {
     };
   }
 
-  /**
-   * #1545: ADR-013 auto-const for a parse-tree parameter.
-   *
-   * One place that translates this file's vocabulary into IAutoConstFacts, so
-   * a fact added to the rule cannot reach two of the three branches and miss
-   * the third -- which is how the general path, the string path and the header
-   * path came to hold three different rules in the first place.
-   */
-  private static _autoConst(
-    typeName: string,
-    isConst: boolean,
-    isArray: boolean,
-    deps: IFromASTDeps,
-    line: number | undefined,
-  ): boolean {
-    const applies = AutoConstRule.applies({
-      baseType: typeName,
-      isModified: deps.isModified,
-      isExplicitlyConst: isConst,
-      isCallbackCompatible: deps.isCallbackCompatible,
-      isArray,
-      isKnownEnum: deps.isKnownEnum(typeName),
-      // #995: supplied here rather than at the three call sites, so the string,
-      // array and general branches cannot disagree about it the way they
-      // disagreed about the callback term. #1722: the parameter's one answer,
-      // which is false for an array -- where the rule has already refused.
-      isOpaqueHandle: deps.isOpaqueHandle,
-    });
-
-    // Recorded where the rule FIRED, which is what #1241 derives occupancy
-    // from, and the shape ADR-030 uses eleven lines up (`if (isOpaque)`). An
-    // unguarded record at the top of fromAST credited ADR-013 for every
-    // parameter of every function -- two of the three positions it produced
-    // for this branch's own fixture were callback parameters the rule had just
-    // refused. ADR-013's codegen half raises no diagnostic, so a provenance
-    // site is the only thing its occupancy can be derived from.
-    if (applies) {
-      AdrProvenance.record("013", line);
-    }
-    return applies;
-  }
 
   /**
    * Build IParameterInput for a non-array string parameter.
@@ -497,20 +416,11 @@ class ParameterInputAdapter {
     // the callback term, so a callback-compatible function's unmodified string
     // parameter took `const char*` in the .c while the .h kept `char*` -- the
     // definition contradicting its own prototype.
-    const isAutoConst = this._autoConst(
-      typeName,
-      isConst,
-      false,
-      deps,
-      planned.stringTypeLine,
-    );
-
     return {
       name,
       baseType: typeName,
       mappedType: "char",
       isConst,
-      isAutoConst,
       isArray: false,
       isCallback: false,
       isString: true,

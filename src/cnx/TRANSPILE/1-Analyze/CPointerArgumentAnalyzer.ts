@@ -23,6 +23,7 @@
 
 import OperandTyper from "../../utils/OperandTyper";
 import CCallee from "./helpers/CCallee";
+import CArgumentWrite from "./helpers/CArgumentWrite";
 import WrittenBinding from "./helpers/WrittenBinding";
 import MutSite from "./helpers/MutSite";
 import CPointerParameter from "../../utils/CPointerParameter";
@@ -36,6 +37,7 @@ import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
 import type TExpression from "../../types/syntax/TExpression";
 import type IBaseAnalysisError from "./types/IBaseAnalysisError";
 import type IAnalysisContext from "./types/IAnalysisContext";
+import type ICCallee from "./types/ICCallee";
 
 class CPointerArgumentCheck {
   private readonly found: IBaseAnalysisError[] = [];
@@ -53,10 +55,13 @@ class CPointerArgumentCheck {
     const name = callee.name;
     callee.arguments.forEach((arg, index) => {
       const parameter = callee.parameters[index];
-      const pointee = CPointerParameter.pointee(parameter?.type);
+      if (parameter === undefined) {
+        this.rejectsReadOnlyVariadic(callee, index);
+        return;
+      }
+      const pointee = CPointerParameter.pointee(parameter.type);
       if (pointee === null) {
-        if (parameter !== undefined)
-          this.rejectsReadOnlyArray(arg, name, index, parameter);
+        this.rejectsReadOnlyArray(arg, name, index, parameter);
         return;
       }
       if (
@@ -73,6 +78,26 @@ class CPointerArgumentCheck {
         "warning",
       );
     });
+  }
+
+  /** E0900, when a read-only binding's address fills a C callee's `...` */
+  private rejectsReadOnlyVariadic(callee: ICCallee, index: number): void {
+    const arg = callee.arguments[index];
+    if (
+      !CArgumentWrite.mayWrite(callee, index, this.context) ||
+      CPointerArgumentAnalyzer.isConstRoot(
+        WrittenBinding.ofExpression(arg, this.context)?.binding ?? null,
+      ) !== true
+    ) {
+      return;
+    }
+    const object = arg.kind === "unary" ? arg.operand : arg;
+    this.report(
+      arg,
+      `'${object.written}' is read-only, and argument ${index + 1} of '${callee.name}' fills its '...', which '${callee.name}' may write through`,
+      `Declare '${object.written}' \`mut\`.`,
+      "E0900",
+    );
   }
 
   /** E0900, when a read-only array meets a C array parameter that is not const */

@@ -21,6 +21,7 @@ class CCallee {
           name,
           arguments: call.arguments,
           parameters: symbol.parameters,
+          isVariadic: symbol.isVariadic === true,
         };
       }
     }
@@ -31,7 +32,12 @@ class CCallee {
       .filter((symbol) => symbol.kind === "function");
     const only = cppFunctions.length === 1 ? cppFunctions[0] : undefined;
     if (only?.kind === "function" && only.parameters) {
-      return { name, arguments: call.arguments, parameters: only.parameters };
+      return {
+        name,
+        arguments: call.arguments,
+        parameters: only.parameters,
+        isVariadic: only.isVariadic === true,
+      };
     }
     return null;
   }
@@ -39,7 +45,7 @@ class CCallee {
   private static nameOf(
     expr: Extract<TExpression, { kind: "postfix" }>,
   ): string | null {
-    const [first] = expr.ops;
+    const first = expr.ops[0];
     if (expr.primary.kind === "identifier" && expr.ops.length === 1) {
       return expr.primary.name;
     }

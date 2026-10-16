@@ -199,6 +199,7 @@ class CppHeaderLowering {
     return {
       name,
       isFunction: false,
+      isVariadic: false,
       hasPointer: false,
       pointerDepth: 0,
       functionPointerParams: null,
@@ -293,6 +294,9 @@ class CppHeaderLowering {
           ? paramsAndQuals.getText().slice(1, -1)
           : null,
       parameters: CppHeaderLowering.parameters(paramsAndQuals),
+      isVariadic:
+        (paramsAndQuals?.parameterDeclarationClause()?.Ellipsis() ?? null) !==
+        null,
       arrayDimensions: noPointer
         ? ArrayDimensionText.parse(noPointer.getText())
         : [],

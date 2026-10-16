@@ -17,7 +17,6 @@ function createFunctionSymbol(
     name: string;
     type: string;
     isConst?: boolean;
-    isAutoConst?: boolean;
     isArray?: boolean;
     arrayDimensions?: string[];
     isCallbackPointer?: boolean;
@@ -35,7 +34,6 @@ function createFunctionSymbol(
       emittedName: p.name,
       type: p.type,
       isConst: p.isConst ?? false,
-      isAutoConst: p.isAutoConst ?? false,
       isArray: p.isArray ?? false,
       arrayDimensions: p.arrayDimensions,
       isCallbackPointer: p.isCallbackPointer,
@@ -230,11 +228,11 @@ describe("BaseHeaderGenerator", () => {
       expect(cppResult).toContain("void registerHandler(ISR handler);");
     });
 
-    it("should handle autoConst parameter modifier", () => {
+    it("should handle read-only parameter modifier", () => {
       const cGenerator = new CHeaderGenerator();
       const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("processData", "void", [
-          { name: "data", type: "MyStruct", isAutoConst: true },
+          { name: "data", type: "MyStruct", isConst: true },
         ]),
       ];
 

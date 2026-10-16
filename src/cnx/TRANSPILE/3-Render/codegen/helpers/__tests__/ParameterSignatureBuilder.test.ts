@@ -18,7 +18,6 @@ function createInput(overrides: Partial<IParameterInput>): IParameterInput {
     baseType: "u32",
     mappedType: "uint32_t",
     isConst: false,
-    isAutoConst: false,
     isArray: false,
     isCallback: false,
     isString: false,
@@ -44,20 +43,15 @@ describe("ParameterSignatureBuilder", () => {
     });
   });
 
-  // Note: These tests verify the builder respects isAutoConst when explicitly set.
-  // Per ADR-006 and issue #986, ParameterInputAdapter now sets isAutoConst=false
-  // for arrays (arrays are mutable by default). These tests still pass because
-  // they test the builder's behavior when isAutoConst IS requested (e.g., for
-  // explicit const arrays or legacy code paths).
   describe("array parameters", () => {
-    it("generates const array when isAutoConst is true", () => {
+    it("generates const array for a read-only parameter", () => {
       const input = createInput({
         name: "arr",
         baseType: "u32",
         mappedType: "uint32_t",
         isArray: true,
         arrayDimensions: ["10"],
-        isAutoConst: true, // Explicit request for const
+        isConst: true,
       });
 
       const result = ParameterSignatureBuilder.build(input, "*");
@@ -72,7 +66,7 @@ describe("ParameterSignatureBuilder", () => {
         mappedType: "uint8_t",
         isArray: true,
         arrayDimensions: ["4", "4"],
-        isAutoConst: true,
+        isConst: true,
       });
 
       const result = ParameterSignatureBuilder.build(input, "*");
@@ -88,7 +82,7 @@ describe("ParameterSignatureBuilder", () => {
         isArray: true,
         arrayDimensions: ["5", "33"],
         isString: true,
-        isAutoConst: true,
+        isConst: true,
       });
 
       const result = ParameterSignatureBuilder.build(input, "*");
@@ -105,7 +99,7 @@ describe("ParameterSignatureBuilder", () => {
         arrayDimensions: ["5"],
         isString: true,
         isUnboundedString: true,
-        isAutoConst: true,
+        isConst: true,
       });
 
       const result = ParameterSignatureBuilder.build(input, "*");
@@ -113,14 +107,13 @@ describe("ParameterSignatureBuilder", () => {
       expect(result).toBe("const char* strings[5]");
     });
 
-    it("omits auto-const for modified array parameter", () => {
+    it("emits no const for a mut array parameter", () => {
       const input = createInput({
         name: "arr",
         baseType: "u32",
         mappedType: "uint32_t",
         isArray: true,
         arrayDimensions: ["10"],
-        isAutoConst: false, // parameter is modified
       });
 
       const result = ParameterSignatureBuilder.build(input, "*");
@@ -208,7 +201,7 @@ describe("ParameterSignatureBuilder", () => {
         baseType: "string<32>",
         mappedType: "char",
         isString: true,
-        isAutoConst: true,
+        isConst: true,
       });
 
       const result = ParameterSignatureBuilder.build(input, "*");
@@ -216,13 +209,12 @@ describe("ParameterSignatureBuilder", () => {
       expect(result).toBe("const char* name");
     });
 
-    it("omits auto-const for modified string parameter", () => {
+    it("emits no const for a mut string parameter", () => {
       const input = createInput({
         name: "buffer",
         baseType: "string<64>",
         mappedType: "char",
         isString: true,
-        isAutoConst: false, // parameter is modified
       });
 
       const result = ParameterSignatureBuilder.build(input, "*");
@@ -238,7 +230,7 @@ describe("ParameterSignatureBuilder", () => {
         baseType: "Point",
         mappedType: "Point",
         isPassByReference: true,
-        isAutoConst: true,
+        isConst: true,
       });
 
       const result = ParameterSignatureBuilder.build(input, "*");
@@ -252,7 +244,7 @@ describe("ParameterSignatureBuilder", () => {
         baseType: "Point",
         mappedType: "Point",
         isPassByReference: true,
-        isAutoConst: true,
+        isConst: true,
       });
 
       const result = ParameterSignatureBuilder.build(input, "&");
@@ -260,13 +252,12 @@ describe("ParameterSignatureBuilder", () => {
       expect(result).toBe("const Point& point");
     });
 
-    it("omits auto-const for modified struct parameter", () => {
+    it("emits no const for a mut struct parameter", () => {
       const input = createInput({
         name: "point",
         baseType: "Point",
         mappedType: "Point",
         isPassByReference: true,
-        isAutoConst: false, // parameter is modified
       });
 
       const result = ParameterSignatureBuilder.build(input, "*");
@@ -280,7 +271,7 @@ describe("ParameterSignatureBuilder", () => {
         baseType: "u32",
         mappedType: "uint32_t",
         isPassByReference: true,
-        isAutoConst: true,
+        isConst: true,
       });
 
       const result = ParameterSignatureBuilder.build(input, "*");
@@ -288,13 +279,12 @@ describe("ParameterSignatureBuilder", () => {
       expect(result).toBe("const uint32_t* value");
     });
 
-    it("preserves explicit const with auto-const", () => {
+    it("preserves const on a read-only parameter", () => {
       const input = createInput({
         name: "point",
         baseType: "Point",
         mappedType: "Point",
         isConst: true,
-        isAutoConst: false, // explicit const already set
         isPassByReference: true,
       });
 
@@ -336,24 +326,6 @@ describe("ParameterSignatureBuilder", () => {
   });
 
   describe("opaque handle parameters (Issue #995)", () => {
-    it("suppresses auto-const for opaque handles", () => {
-      // Opaque handles should not get const because they must be passed
-      // to C APIs expecting non-const pointers (like LVGL's lv_obj_t)
-      const input = createInput({
-        name: "widget",
-        baseType: "widget_t",
-        mappedType: "widget_t",
-        isPassByReference: true,
-        isAutoConst: true, // Would normally add const
-        isOpaqueHandle: true, // But opaque overrides
-      });
-
-      const result = ParameterSignatureBuilder.build(input, "*");
-
-      // auto-const should be suppressed
-      expect(result).toBe("widget_t* widget");
-    });
-
     it("uses pointer syntax for opaque handles in C++ mode", () => {
       // Opaque handles must use pointer syntax even in C++ mode
       // because C APIs expect pointers to incomplete struct types
@@ -450,47 +422,6 @@ describe("ParameterSignatureBuilder", () => {
         );
       },
     );
-  });
-
-  describe("ADR-013 escape hatch: explicit const on a callback parameter", () => {
-    // #1545 review: AutoConstRule's docblock and its unit test both used to
-    // claim guard ORDER preserved this -- that an explicitly const parameter
-    // was "refused by the first guard" so the callback guard never decided
-    // otherwise. It does not. Every guard in that rule returns false, so the
-    // rule is identical under any permutation and cannot preserve anything.
-    //
-    // The hatch lives HERE: _getConstPrefix ORs `isConst` in independently of
-    // `isAutoConst`. Asserted in this file because this is the only place the
-    // claim can fail -- swap the guards in AutoConstRule and nothing reddens.
-    it("keeps const when the rule refused auto-const (callback parameter)", () => {
-      const input = createInput({
-        name: "msg",
-        baseType: "string<32>",
-        mappedType: "char",
-        isConst: true, // written by the developer
-        isAutoConst: false, // AutoConstRule refused: callback-compatible
-        isString: true,
-      });
-
-      expect(ParameterSignatureBuilder.build(input, "*")).toBe(
-        "const char* msg",
-      );
-    });
-
-    it("emits no const when neither source supplies one", () => {
-      // Negative control. Without it the assertion above would also pass for a
-      // builder that const-qualified every string parameter.
-      const input = createInput({
-        name: "msg",
-        baseType: "string<32>",
-        mappedType: "char",
-        isConst: false,
-        isAutoConst: false,
-        isString: true,
-      });
-
-      expect(ParameterSignatureBuilder.build(input, "*")).toBe("char* msg");
-    });
   });
 
   describe("callback-compatible parameters (Issue #895)", () => {

@@ -84,7 +84,6 @@ function createParam(
     emittedName: name,
     type,
     isConst: false,
-    isAutoConst: false,
     isArray: false,
     ...options,
   };
@@ -200,11 +199,11 @@ describe("CHeaderGenerator", () => {
       expect(result).toContain("void process(const uint32_t* value);");
     });
 
-    it("generates function with auto-const parameter", () => {
+    it("generates function with read-only parameter", () => {
       const generator = new CHeaderGenerator();
       const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("process", "void", [
-          createParam("value", "u32", { isAutoConst: true }),
+          createParam("value", "u32", { isConst: true }),
         ]),
       ];
 
@@ -333,12 +332,12 @@ describe("CHeaderGenerator", () => {
       expect(result).toContain("void readArray(const uint8_t data[10]);");
     });
 
-    it("generates auto-const array parameter", () => {
+    it("generates read-only array parameter", () => {
       const generator = new CHeaderGenerator();
       const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("readArray", "void", [
           createParam("data", "u8", {
-            isAutoConst: true,
+            isConst: true,
             isArray: true,
             arrayDimensions: ["10"],
           }),

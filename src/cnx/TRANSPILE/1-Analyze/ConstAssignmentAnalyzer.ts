@@ -33,6 +33,7 @@ import ExpressionNodes from "../../utils/ExpressionNodes";
 import StatementNodes from "../../utils/StatementNodes";
 import FunctionReference from "./helpers/FunctionReference";
 import CCallee from "./helpers/CCallee";
+import CArgumentWrite from "./helpers/CArgumentWrite";
 import type ICCallee from "./types/ICCallee";
 import BoundDeclaration from "./helpers/BoundDeclaration";
 import WrittenBinding from "./helpers/WrittenBinding";
@@ -265,16 +266,10 @@ class ConstAssignmentCheck {
     );
   }
 
-  /** A C callee's non-const pointer parameter can write what it is passed */
+  /** What a C callee may write through, it may write (CArgumentWrite) */
   private noteCPointerWrites(callee: ICCallee): void {
     callee.arguments.forEach((arg, index) => {
-      const parameter = callee.parameters[index];
-      if (
-        parameter === undefined ||
-        !CPointerParameter.writesThrough(parameter)
-      ) {
-        return;
-      }
+      if (!CArgumentWrite.mayWrite(callee, index, this.context)) return;
       const target = WrittenBinding.ofExpression(arg, this.context);
       this.noteWrite(target?.binding ?? null);
     });

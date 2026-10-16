@@ -1203,19 +1203,6 @@ class CodeGenWalker {
   }
 
   /**
-   * Issue #558: Check if a parameter is modified using analysis-phase results.
-   * This is the unified source of truth for modification tracking.
-   */
-  private _isCurrentParameterModified(paramName: string): boolean {
-    const funcName = this.host.state.currentFunctionName;
-    if (!funcName) return false;
-    // Through the state's predicate rather than inlining its body a fourth
-    // time. The absent-artifact polarity is #1529/#1552's decision and belongs
-    // in one place.
-    return this.host.state.isParameterModified(funcName, paramName);
-  }
-
-  /**
    * Generate a primary expression.
    * Part of IOrchestrator interface for PostfixExpressionGenerator.
    */
@@ -1433,7 +1420,6 @@ class CodeGenWalker {
       program: plan.setup.program,
       typeInput: plan.setup.symbols,
       state: this.host.state,
-      unmodifiedParams: this.host.getFunctionUnmodifiedParams(),
     });
   }
 
@@ -2355,9 +2341,6 @@ class CodeGenWalker {
     // #1322: a C-style or unbounded array parameter is E0874/E0875 in pass
     // 2.1 (ADR-036).
 
-    // Pre-compute CodeGenState-dependent values
-    const isModified = this._isCurrentParameterModified(name);
-
     // Issue #895: For callback-compatible functions, determine pointer/value
     // from the typedef signature, not from normal C-Next pass-by-value rules
     const callbackInfo =
@@ -2370,15 +2353,6 @@ class CodeGenWalker {
     const isPassByValue = callbackInfo
       ? !callbackInfo.isParamPointer
       : this._isPassByValueType(typeName, name);
-    // #1545: the FUNCTION-level question, which is the one the header asks.
-    // Reading `callbackInfo !== null` here asked a per-PARAMETER question, so a
-    // parameter the typedef does not describe (past its arity, or of a shape
-    // TypedefParamParser cannot read) took auto-const in the .c while the .h
-    // suppressed it for every parameter of the function -- `error: conflicting
-    // types`, the same defect one parameter over.
-    const isCallbackCompatible =
-      FunctionContextManager.callbackTypedefType(this.host.state) !== undefined;
-
     // Build normalized input using adapter
     // Issue #895: Force pass-by-reference and const from typedef signature
     const forcePassByReference = callbackInfo?.isParamPointer ?? false;
@@ -2418,18 +2392,9 @@ class CodeGenWalker {
           return this.host.state.symbols?.knownStructs.has(qualified) ?? false;
         },
         typeMap: TYPE_MAP,
-        isModified,
         isPassByValue,
-        isCallbackCompatible,
         forcePassByReference,
         forceConst,
-        // #1545: the one named accessor, which is also what _isPassByValueType
-        // asks, so the auto-const rule and the pass-by-value decision cannot
-        // disagree about what an enum is. `t` arrives from getTypeName, which
-        // resolves through the ADR-057 isScopeType predicate, so this is already
-        // the qualified lookup the scope rule calls for.
-        isKnownEnum: (t) => this.host.state.isKnownEnum(t),
-        // Issue #995: Opaque handles should not get auto-const
         isOpaqueHandle: registered.isOpaqueHandle ?? false,
       },
     );
@@ -2566,9 +2531,8 @@ class CodeGenWalker {
     // `this.host.state.callbackTypedefTypeFor` so that "is this function
     // callback-compatible" had ONE spelling. Reverted here on the reasoning
     // directly above: requiring the typedef type to resolve would make this
-    // branch unreachable in precisely the case it exists to serve. The
-    // divergence from the auto-const decision is deliberate, not an oversight,
-    // and #1603 is where whether an unresolvable typedef should fail open is
+    // branch unreachable in precisely the case it exists to serve. #1603 is
+    // where whether an unresolvable typedef should fail open is
     // decided -- for both, in one place, rather than by quietly aligning the
     // spellings here.
     if (

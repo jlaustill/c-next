@@ -100,13 +100,6 @@ const generateFunctionCall = (
 
   // Regular function call handling
   // #1322: a read-only argument to a `mut` parameter is E0900 in pass 2.1.
-  if (isCNextFunc) {
-    // Issue #268: Track pass-through modifications for auto-const. Runs BEFORE
-    // any argument renders, and mutates auto-const state -- it must not be
-    // folded into the map below.
-    trackPassThroughModifications(signatureName, args, orchestrator);
-  }
-
   // Get function signature once for all arguments
 
   // Issue #992: 2.2 plans a struct initializer in an argument as a compound
@@ -171,40 +164,6 @@ const generateSafeDivMod = (
     code: `${helperName}(${outputArg}, ${numeratorArg}, ${divisorArg}, ${defaultArg})`,
     effects,
   };
-};
-
-/**
- * Issue #268: Track pass-through modifications for auto-const inference.
- *
- * When a parameter of the current function is passed to another function
- * that modifies its corresponding parameter, we must mark our parameter
- * as modified too (since it's pass-by-reference).
- *
- * Example:
- *   void modifies(u32 val) { val <- 42; }
- *   void passesThrough(u32 val) { modifies(val); }  // val is effectively modified
- *
- * Note: This only works when the callee is defined before the caller.
- * If the callee is defined later, we can't know if it modifies the param,
- * and the C compiler will catch any const-mismatch errors.
- */
-const trackPassThroughModifications = (
-  funcName: string,
-  args: readonly IPlannedCallArgument[],
-  orchestrator: IOrchestrator,
-): void => {
-  for (let argIdx = 0; argIdx < args.length; argIdx++) {
-    const argId = args[argIdx].simpleIdentifier;
-    // Check if this argument is a parameter of the current function (#1969:
-    // the one its name binds to where it is passed)
-    if (!argId || !args[argIdx].parameter) continue;
-
-    // Check if the callee's parameter at this index is modified
-    if (orchestrator.isCalleeParameterModified(funcName, argIdx)) {
-      // The callee modifies this parameter, so our parameter is also modified
-      orchestrator.markParameterModified(argId);
-    }
-  }
 };
 
 export default generateFunctionCall;

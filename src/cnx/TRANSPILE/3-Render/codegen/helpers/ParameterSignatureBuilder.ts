@@ -151,11 +151,8 @@ class ParameterSignatureBuilder {
    * C APIs that expect non-const pointers).
    */
   private static _getConstPrefix(param: IParameterInput): string {
-    // Issue #995: Opaque handles never get auto-const — they're passed to C APIs
-    // expecting mutable pointers (e.g., LVGL's lv_obj_t)
-    const effectiveAutoConst = param.isOpaqueHandle ? false : param.isAutoConst;
     // Any source of const results in "const " prefix
-    if (param.forceConst || param.isConst || effectiveAutoConst) {
+    if (param.forceConst || param.isConst) {
       return "const ";
     }
     return "";

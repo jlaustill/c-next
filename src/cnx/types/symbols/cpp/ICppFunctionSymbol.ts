@@ -14,6 +14,9 @@ interface ICppFunctionSymbol extends ICppBaseSymbol {
   /** Function parameters */
   readonly parameters?: ReadonlyArray<ICppParameterInfo>;
 
+  /** Its parameter list ends in `...` */
+  readonly isVariadic?: boolean;
+
   /** Whether this is a declaration vs definition */
   readonly isDeclaration?: boolean;
 }

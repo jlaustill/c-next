@@ -74,7 +74,6 @@ function createMockOrchestrator(options?: {
     // The one ADR-030 decision: one handle mark, one rule (#1668)
     isHeldThroughPointer: vi.fn(() => options?.isOpaque ?? false),
     enterFunctionContext: vi.fn(),
-    updateFunctionParamsAutoConst: vi.fn(),
     movedParameterComments: vi.fn(() => ""),
     exitFunctionContext: vi.fn(),
     recordCallbackTypedef: vi.fn(),
@@ -551,9 +550,6 @@ describe("ScopeGenerator", () => {
       expect(orchestrator.enterFunctionContext).toHaveBeenCalledWith(
         "Driver__init",
         null,
-      );
-      expect(orchestrator.updateFunctionParamsAutoConst).toHaveBeenCalledWith(
-        "Driver__init",
       );
       expect(orchestrator.exitFunctionContext).toHaveBeenCalledTimes(1);
       expect(orchestrator.recordCallbackTypedef).toHaveBeenCalledWith(

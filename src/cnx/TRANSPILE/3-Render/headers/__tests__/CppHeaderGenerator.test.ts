@@ -39,7 +39,6 @@ function createParam(
     emittedName: name,
     type,
     isConst: false,
-    isAutoConst: false,
     isArray: false,
     ...options,
   };
@@ -155,11 +154,11 @@ describe("CppHeaderGenerator", () => {
       expect(result).toContain("void process(const uint32_t& value);");
     });
 
-    it("generates function with auto-const parameter", () => {
+    it("generates function with read-only parameter", () => {
       const generator = new CppHeaderGenerator();
       const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("process", "void", [
-          createParam("value", "u32", { isAutoConst: true }),
+          createParam("value", "u32", { isConst: true }),
         ]),
       ];
 

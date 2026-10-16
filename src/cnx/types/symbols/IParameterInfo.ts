@@ -36,9 +36,6 @@ interface IParameterInfo {
    */
   readonly arrayDimensionExprs?: ReadonlyArray<TConstExpr | null>;
 
-  /** Issue #268: true if parameter should get auto-const (unmodified pointer) */
-  readonly isAutoConst?: boolean;
-
   /**
    * ADR-030 / #1722: the parameter's type is an opaque (incomplete) C type, so
    * it is held through a pointer -- for an array, each element is. Decided

@@ -161,6 +161,9 @@ class CHeaderLowering {
         ? (directDeclarator.parameterTypeList()?.getText() ?? "")
         : null,
       parameters: CHeaderLowering.parameters(declarator),
+      // `parameterList ',' '...'`: the ellipsis has no accessor of its own
+      isVariadic:
+        (directDeclarator.parameterTypeList()?.getChildCount() ?? 0) > 1,
       arrayDimensions: ArrayDimensionText.parse(directDeclarator.getText()),
     };
   }
@@ -338,6 +341,7 @@ class CHeaderLowering {
     return {
       name,
       isFunction: false,
+      isVariadic: false,
       hasPointer: false,
       pointerDepth: 0,
       functionPointerParams: null,

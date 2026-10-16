@@ -7,6 +7,8 @@ interface ICCallee {
   readonly name: string;
   readonly arguments: readonly TExpression[];
   readonly parameters: ReadonlyArray<ICParameterInfo | ICppParameterInfo>;
+  /** Arguments past `parameters` fill the callee's `...` */
+  readonly isVariadic: boolean;
 }
 
 export default ICCallee;
