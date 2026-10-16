@@ -29,10 +29,12 @@ class HeaderMacroDumps {
   ): Promise<ReadonlyMap<string, IHeaderMacroDump>> {
     const withIncludes = files.flatMap((file) => {
       const own = includes.get(file.path);
-      return own?.cHeaderSpecs.length ? [{ file, own }] : [];
+      return own === undefined || own.cHeaderSpecs.length === 0
+        ? []
+        : [{ file, own }];
     });
     // Without a preprocessor a macro has no type, as before #1688
-    if (preprocessor === null || !preprocessor.isAvailable()) {
+    if (!preprocessor?.isAvailable()) {
       return new Map(
         withIncludes.map(({ file }) => [
           file.path,
