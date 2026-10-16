@@ -156,7 +156,7 @@ class MigrateAdr071 {
    */
   private static async errorsOf(
     file: string,
-    includeDirs: string[],
+    includeDirs: readonly string[],
     outDir: string,
   ): Promise<Array<{ error: ITranspileError; file: string }>> {
     const transpiler = new Transpiler(
