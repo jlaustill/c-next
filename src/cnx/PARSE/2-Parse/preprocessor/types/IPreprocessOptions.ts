@@ -34,6 +34,13 @@ interface IPreprocessOptions {
   dumpMacros?: boolean;
 
   /**
+   * #2096: evaluate the conditionals and expand no macro (gcc
+   * `-fdirectives-only`), so a header's text keeps its spelling and loses
+   * only the branches a compile skips.
+   */
+  directivesOnly?: boolean;
+
+  /**
    * #1844: preprocess the file as a build meets a header -- `#include`d from a
    * one-line main file, not as the main file itself -- so `#pragma once` and
    * `#include_next` behave as they do in a compile.

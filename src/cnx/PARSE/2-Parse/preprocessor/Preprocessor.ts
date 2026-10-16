@@ -386,6 +386,9 @@ class Preprocessor implements IHeaderPreprocessor {
     if (options.dumpMacros) {
       args.push("-dM");
     }
+    if (options.directivesOnly) {
+      args.push("-fdirectives-only");
+    }
 
     for (const path of this.searchPath(ownDirectory, options)) {
       args.push(`-I${path}`);

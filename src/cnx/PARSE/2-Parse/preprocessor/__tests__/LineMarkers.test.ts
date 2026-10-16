@@ -73,3 +73,30 @@ describe("LineMarkers.byFile (#1844)", () => {
     );
   });
 });
+
+describe("LineMarkers.ownLinesInPlace (#2096)", () => {
+  it("keeps each of the header's own lines on its line, and blanks what the compile dropped", () => {
+    const content = [
+      '# 0 "lib.h"',
+      '# 0 "<built-in>"',
+      '# 1 "lib.h"',
+      "#define LIVE",
+      '# 1 "impl.h" 1',
+      "int impl;",
+      '# 3 "lib.h" 2',
+      "",
+      '# 7 "lib.h"',
+      "int live(void);",
+    ].join("\n");
+
+    expect(LineMarkers.ownLinesInPlace(content, "lib.h")).toBe(
+      ["#define LIVE", "", "", "", "", "", "int live(void);"].join("\n"),
+    );
+  });
+
+  it("is null for a compile that never entered the header", () => {
+    expect(
+      LineMarkers.ownLinesInPlace('# 1 "other.h"\nint x;', "lib.h"),
+    ).toBeNull();
+  });
+});

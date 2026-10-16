@@ -1,0 +1,9 @@
+// test-error
+// #2096: a declaration in an inactive branch of an included header is not a
+// symbol, so calling it is the error calling an undeclared name is
+#include "branches.h"
+
+void run() {
+    a_func();
+    b_func();
+}

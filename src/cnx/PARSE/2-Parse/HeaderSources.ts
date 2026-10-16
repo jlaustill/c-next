@@ -5,6 +5,7 @@ import detectAssemblySyntax from "./detectAssemblySyntax";
 import detectCppSyntax from "./detectCppSyntax";
 import ExternalDeclarationOracle from "./preprocessor/ExternalDeclarationOracle";
 import LineMarkers from "./preprocessor/LineMarkers";
+import type IPreprocessOptions from "./preprocessor/types/IPreprocessOptions";
 import type IHeaderPreprocessor from "./preprocessor/types/IHeaderPreprocessor";
 import FileKinds from "../../utils/FileKinds";
 import EFileType from "../1-Discover/types/EFileType";
@@ -173,7 +174,12 @@ class HeaderSources {
       }
       sources.set(
         file.path,
-        HeaderSources._sourceOf(file, header.raw, slice, slice),
+        HeaderSources._sourceOf(file, {
+          raw: header.raw,
+          unexpanded: header.raw,
+          preprocessed: slice,
+          own: slice,
+        }),
       );
     });
     const opened = new Map<string, ReadonlySet<string>>();
@@ -306,7 +312,12 @@ class HeaderSources {
       settings.preprocessor.preprocess(file.path, options),
     );
     if (result.success) {
-      return HeaderSources._settled(file, raw, result.content);
+      return HeaderSources._settled(
+        file,
+        raw,
+        result.content,
+        await HeaderSources._directives(file, options, settings),
+      );
     }
 
     // Some headers cannot be preprocessed standalone: they require a
@@ -325,7 +336,16 @@ class HeaderSources {
         settings.preprocessor.preprocess(file.path, { ...options, imacros }),
       );
       if (retry.success) {
-        return HeaderSources._settled(file, raw, retry.content);
+        return HeaderSources._settled(
+          file,
+          raw,
+          retry.content,
+          await HeaderSources._directives(
+            file,
+            { ...options, imacros },
+            settings,
+          ),
+        );
       }
     }
     return {
@@ -335,10 +355,31 @@ class HeaderSources {
     };
   }
 
+  /**
+   * #2096: the header's own lines with its conditionals evaluated and no
+   * macro expanded, each on its own line; null when that compile fails
+   */
+  private static async _directives(
+    file: IDiscoveredFile,
+    options: IPreprocessOptions,
+    settings: IHeaderSourceSettings & { readonly limit: TPreprocessLimit },
+  ): Promise<string | null> {
+    const result = await settings.limit(() =>
+      settings.preprocessor.preprocess(file.path, {
+        ...options,
+        directivesOnly: true,
+      }),
+    );
+    return result.success
+      ? LineMarkers.ownLinesInPlace(result.content, file.path)
+      : null;
+  }
+
   private static _settled(
     file: IDiscoveredFile,
     raw: string,
     preprocessed: string,
+    directives: string | null,
   ): TAlone {
     const own = LineMarkers.ownText(preprocessed, file.path);
     invariant(
@@ -346,12 +387,12 @@ class HeaderSources {
       `a header's preprocessed text holds its own lines (${file.path})`,
     );
     return {
-      source: HeaderSources._sourceOf(
-        file,
+      source: HeaderSources._sourceOf(file, {
         raw,
-        LineMarkers.strip(preprocessed),
+        unexpanded: directives,
+        preprocessed: LineMarkers.strip(preprocessed),
         own,
-      ),
+      }),
       raw,
       entered: LineMarkers.entered(preprocessed, file.path),
       preprocessed,
@@ -363,19 +404,25 @@ class HeaderSources {
    * meets them, so C++ under `#ifdef __cplusplus` is gone and C++ a macro
    * writes is there. Issue #945: the text parsed is the preprocessed one only
    * when the header's `#if`s need an expression evaluated, to avoid the side
-   * effects of full expansion; the parser handles `#ifdef` and friends itself.
+   * effects of full expansion. Otherwise it is the header with its
+   * conditionals evaluated and nothing expanded (#2096: the parser does not
+   * skip an `#if 0` or `#ifdef` branch itself), or the preprocessed text when
+   * that compile failed.
    */
   private static _sourceOf(
     file: IDiscoveredFile,
-    raw: string,
-    preprocessed: string,
-    own: string,
+    text: {
+      readonly raw: string;
+      readonly unexpanded: string | null;
+      readonly preprocessed: string;
+      readonly own: string;
+    },
   ): IHeaderSource {
     return Object.freeze({
-      text: HeaderSources._needsConditionalPreprocessing(raw)
-        ? preprocessed
-        : raw,
-      language: HeaderSources._languageOf(file.type, own),
+      text: HeaderSources._needsConditionalPreprocessing(text.raw)
+        ? text.preprocessed
+        : (text.unexpanded ?? text.preprocessed),
+      language: HeaderSources._languageOf(file.type, text.own),
     });
   }
 

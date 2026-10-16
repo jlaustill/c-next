@@ -31,6 +31,37 @@ class LineMarkers {
   }
 
   /**
+   * #2096: `file`'s own lines from `content`, each on the line it has in
+   * `file`, so a declaration keeps its position; a line the compile dropped,
+   * such as one in an inactive `#if` branch, is blank. Null when the compile
+   * never entered `file`.
+   */
+  static ownLinesInPlace(content: string, file: string): string | null {
+    const target = resolve(file);
+    const lines: string[] = [];
+    let inFile = false;
+    let entered = false;
+    let next = 0;
+    for (const line of content.split("\n")) {
+      const marker = MARKER.exec(line);
+      if (marker) {
+        const name = LineMarkers._nameOf(marker);
+        inFile = !name.startsWith("<") && resolve(name) === target;
+        if (inFile) {
+          entered = true;
+          next = Number(LINE.exec(line)?.[1] ?? 1) - 1;
+        }
+        continue;
+      }
+      if (!inFile) continue;
+      // A line past the end leaves holes, which `join` writes as blank lines
+      lines[next] = line;
+      next++;
+    }
+    return entered ? lines.join("\n") : null;
+  }
+
+  /**
    * #1844: each file `content` entered, by resolved path, with its own lines
    * there -- "" for one entered that kept none.
    */
