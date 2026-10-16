@@ -233,35 +233,6 @@ class SymbolRegistry {
   // ============================================================================
   // Bridge Methods (for gradual migration from string-based lookups)
   // ============================================================================
-
-  /**
-   * Find a function by its transpiled C name (e.g., "Test_fillData").
-   *
-   * This is a bridge method for gradual migration. New code should use
-   * resolveFunction() with bare names and scope references instead.
-   *
-   * @param cName Transpiled C function name (e.g., "Test_fillData", "main")
-   * @returns The function symbol, or null if not found
-   */
-  findByCName(cName: string): IFunctionSymbol | null {
-    // Check global scope first (no underscore = global function)
-    for (const func of this.globalScope.functions) {
-      if (func.name === cName) {
-        return func;
-      }
-    }
-
-    // Check all scopes - the C name should match scope_name pattern
-    for (const scope of this.scopes.values()) {
-      for (const func of scope.functions) {
-        if (ScopeUtils.getTranspiledCName(func) === cName) {
-          return func;
-        }
-      }
-    }
-
-    return null;
-  }
 }
 
 export default SymbolRegistry;
