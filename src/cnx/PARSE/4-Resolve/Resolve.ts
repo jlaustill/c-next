@@ -80,7 +80,7 @@ class Resolve {
           platformio: input.discovery.anchor.platformio,
           files: declared.map((entry) => ({
             sourcePath: entry.file.path,
-            directives: entry.syntax.targetDirectives,
+            directives: entry.file.targetDirectives,
           })),
         },
       },

@@ -6,7 +6,7 @@ import type ISourceSyntax from "../../../types/ISourceSyntax";
 interface IDeclaredSource {
   readonly file: IPipelineFile;
   readonly fileSymbols: IFileSymbols;
-  /** 1.2's syntax, carried through 1.3 to 1.4 (`targetDirectives`) and 2.1 (#1991) */
+  /** 1.2's syntax, carried through 1.3 to 2.1 (#1991) */
   readonly syntax: ISourceSyntax;
 }
 

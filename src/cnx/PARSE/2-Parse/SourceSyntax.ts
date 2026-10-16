@@ -19,7 +19,6 @@ class SourceSyntax {
       declarationCount: parsed.declarationCount,
       comments: parsed.comments,
       program: parsed.program,
-      targetDirectives: parsed.targetDirectives,
       parseErrors: parsed.parseErrors,
       formErrors: parsed.formErrors,
     };

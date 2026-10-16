@@ -28,9 +28,9 @@ import { join } from "node:path";
 import TargetResolver from "../src/cli/TargetResolver";
 import TargetToolchain from "../src/cnx/utils/TargetToolchain";
 import TargetCatalogFile from "../src/cli/TargetCatalogFile";
+import TargetDirectives from "../src/cnx/PARSE/1-Discover/TargetDirectives";
 import RunTarget from "../src/cnx/PARSE/4-Resolve/RunTarget";
 import TargetDescriptions from "../src/cnx/PARSE/4-Resolve/TargetDescriptions";
-import CNextSourceParser from "../src/cnx/PARSE/2-Parse/CNextSourceParser";
 import type IGccToolchain from "../src/cnx/utils/types/IGccToolchain";
 import type ITargetDescription from "../src/cnx/types/ITargetDescription";
 import type IValidationResult from "./types/IValidationResult";
@@ -94,7 +94,7 @@ class TargetMatrix {
       catalog,
       files: files.map((file) => ({
         sourcePath: file.sourcePath,
-        directives: CNextSourceParser.parse(file.source).targetDirectives,
+        directives: TargetDirectives.read(file.source),
       })),
     });
     if (target.kind !== "resolved") {

@@ -2,12 +2,12 @@
  * ADR-049: the one reader of a file's pragma lines.
  */
 import { describe, it, expect } from "vitest";
-import CNextSourceParser from "../../../../../cnx/PARSE/2-Parse/CNextSourceParser";
+import TargetDirectives from "../../../../../cnx/PARSE/1-Discover/TargetDirectives";
 import TargetCatalogFile from "../../../../TargetCatalogFile";
 import NodeFileSystem from "../../../../../cnx/PARSE/1-Discover/NodeFileSystem";
 
 function directivesOf(source: string) {
-  return CNextSourceParser.parse(source).targetDirectives;
+  return TargetDirectives.read(source);
 }
 
 describe("TargetDirectives", () => {
@@ -52,9 +52,9 @@ describe("TargetDirectives", () => {
   it.each([...TargetCatalogFile.targets(NodeFileSystem.instance).keys()])(
     "lexes the catalog name %s as one pragma",
     (name) => {
-      const parsed = CNextSourceParser.parse(`#pragma target ${name}\n`);
-      expect(parsed.parseErrors).toEqual([]);
-      expect(parsed.targetDirectives.map((d) => d.values)).toEqual([[name]]);
+      expect(
+        directivesOf(`#pragma target ${name}\n`).map((d) => d.values),
+      ).toEqual([[name]]);
     },
   );
 });
