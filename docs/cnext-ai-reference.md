@@ -31,7 +31,7 @@ LOGICAL:       && || !          (same as C)
 
 **Division and modulo guard against divide-by-zero** (unlike C):
 
-- A **compile-time-zero** divisor — a literal `0`, or a read-only binding known to be `0` — is a **compile error** (`E0800: Division by zero`): e.g. `10 / 0`, or `const u32 ZERO <- 0; x / ZERO`.
+- A **compile-time-zero** divisor — a literal `0`, or a read-only binding known to be `0` — is a **compile error** (`E0800: Division by zero`): e.g. `10 / 0`, or `u32 ZERO <- 0; x / ZERO`.
 - A **runtime** divisor compiles to plain C division with no implicit guard (`10 / divisor` → `10U / divisor`).
 - **Floats:** `%` is **forbidden** on floats (`E0804` — `%` is integer-only).
 - For guarded runtime division/modulo, use the `safe_div` / `safe_mod` built-ins (ADR-051):
@@ -157,7 +157,7 @@ string VERSION <- "1.0.0";          // read-only, auto-sized
 - **Concat (`+`) and substring (`s[off, len]`) emit runtime code (`strncpy`/`strncat`)** — they may only appear **inside a function**, never at global/initializer scope (a global string initializes from a literal).
 - Substring `s[off, len]` is bounds-checked at compile time: `off + len` must fit the source's capacity, and the destination string must be large enough to hold `len`.
 
-**Slice assignment into byte buffers:** `buf[byteOffset, byteCount] <- value` copies `byteCount` **little-endian** bytes of an integer `value` into any integer array (`u8[]`/`u16[]`/`u32[]`/`u64[]`) or string buffer. Offset and length must be **compile-time constants** — literals, `const` variables, or `const` expressions (a runtime offset/length, or a zero length, is a compile error); the write is bounds-checked at compile time. On a byte _array_, `[off, len]` means BYTES; on a scalar/float, `[start, width]` means BITS. A **single** subscript `s[i]` accesses one element: a `u8` byte value in numeric context (`u8 b <- s[0]`, or passed to a `u8` parameter) and the target of a byte write (`s[i] <- 'X'`); assigned to a `string<1>` it instead yields a one-character substring.
+**Slice assignment into byte buffers:** `buf[byteOffset, byteCount] <- value` copies `byteCount` **little-endian** bytes of an integer `value` into any integer array (`u8[]`/`u16[]`/`u32[]`/`u64[]`) or string buffer. Offset and length must be **compile-time constants** — literals, read-only bindings with a literal value, or expressions of them (a runtime offset/length, or a zero length, is a compile error); the write is bounds-checked at compile time. On a byte _array_, `[off, len]` means BYTES; on a scalar/float, `[start, width]` means BITS. A **single** subscript `s[i]` accesses one element: a `u8` byte value in numeric context (`u8 b <- s[0]`, or passed to a `u8` parameter) and the target of a byte write (`s[i] <- 'X'`); assigned to a `string<1>` it instead yields a one-character substring.
 
 ```cnx
 u8[64] buf;

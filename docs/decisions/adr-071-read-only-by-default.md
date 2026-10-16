@@ -130,7 +130,8 @@ an unwritten parameter, local, global and scope member as not written.
    global that C code writes.
 7. A read-only binding is generated with C's `const` (`const uint32_t LIMIT = 5U;`,
    `void show(const uint32_t v)`), so the generated C and the header a C file includes say
-   what the C-Next says (MISRA C:2012 Rule 8.13).
+   what the C-Next says. For a struct or array parameter, passed by pointer, that is also
+   MISRA C:2012 Rule 8.13's `const` on the pointed-to type.
 
 Rejected:
 
@@ -152,12 +153,12 @@ migration window would protect no code.
 
 ### Q2: Writing a binding that is not `mut`, and a `mut` that is never needed — decided
 
-**The write gets a new diagnostic**, not E0877. E0877's help is "remove `const`",
+**The write gets a new diagnostic, E0900**, not E0877. E0877's help is "remove `const`",
 which is the wrong advice when there is no `const` to remove:
 
 ```text
-error[E08xx]: cannot assign to 'count': bindings are read-only unless declared `mut`
-       help: declare it `mut u32 count` if it must change
+error[E0900]: cannot assign to read-only variable 'count'
+       help: A binding is read-only unless declared `mut` (ADR-071); declare it `mut` if the value must change.
 ```
 
 **A `mut` that nothing writes is also an error** (Decision 6), so a declaration never claims
@@ -171,7 +172,7 @@ more than the code needs — with two exemptions:
 ### Q3 and Q4: Passing a binding to a parameter that writes — decided (Decision 2)
 
 ```cnx
-const u32 LIMIT <- 5;                // today's spelling
+u32 LIMIT <- 5;                      // read-only by default
 void sink(mut u32 v) { v <- 1; }
 void forward(u32 v) { sink(v); }     // forward's v is read-only
 ```

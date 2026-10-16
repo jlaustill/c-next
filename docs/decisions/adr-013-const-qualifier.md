@@ -493,7 +493,7 @@ void increment(mut i32 value) {
 - Too aggressive for embedded C developers transitioning to C-Next
 
 **Future Consideration**: May revisit as C-Next matures and community provides feedback.
-Adopted for every binding by ADR-071 (Accepted), which supersedes this ADR once implemented.
+Adopted for every binding by ADR-071, which supersedes this ADR.
 
 ### Alternative 2: Ada-style Parameter Modes
 
@@ -719,7 +719,7 @@ modifyFlags(flags);  // ERROR: cannot pass const 'flags' to non-const parameter 
 
 As C-Next matures, consider making parameters `const` by default (like Swift/Rust) and requiring explicit `mut` for mutable parameters. This would be a major breaking change requiring community consensus.
 
-Adopted by ADR-071 (Accepted): every binding is read-only unless declared `mut`.
+Adopted by ADR-071: every binding is read-only unless declared `mut`.
 
 ---
 

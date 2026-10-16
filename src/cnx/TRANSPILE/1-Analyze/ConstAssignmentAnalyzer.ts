@@ -180,8 +180,8 @@ class ConstAssignmentCheck {
       this.context,
     );
     if (callee === null) {
-      // A function nothing declares to the transpiler -- `fgets` from a
-      // `<stdio.h>` it cannot resolve -- may write any argument, so none of
+      // A function no header the transpiler read declares may write any
+      // argument, so none of
       // their `mut`s is unused (Decision 6). The C compiler checks the rest.
       for (const arg of call.arguments) {
         this.noteWrite(
