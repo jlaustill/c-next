@@ -1,0 +1,2 @@
+9:13 error[E0905]: Missing 'c_' prefix for nullable C type 'cstring'
+       help: Variable 'line' stores nullable pointer from 'fgets'. Use: cstring c_line <- fgets(...)

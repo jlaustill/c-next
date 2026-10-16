@@ -1,0 +1,2 @@
+11:11 error[E0869]: Cannot assign u64 to u16 (narrowing)
+       help: Use bit indexing to say which bits you mean: value[0, 16]

@@ -1,0 +1,12 @@
+// test-error
+// #1755: strlen comes from <string.h>, read with the target's compiler, so
+// it returns size_t and comparing it with a signed value is E0810.
+#include <string.h>
+
+string<16> s <- "abc";
+i32 neg <- -5;
+mut bool b <- false;
+
+void f() {
+    b <- strlen(s) > neg;
+}
