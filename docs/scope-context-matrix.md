@@ -480,10 +480,13 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
-5 linked fixtures with no derivable context:
+8 linked fixtures with no derivable context:
 
 - `adr-071/const-keyword-imported-error.test.cnx`
+- `adr-071/cpp-constructed-member.test.cnx`
 - `adr-071/cpp-method-receiver.test.cnx`
+- `adr-071/cpp-opaque-handle-global.test.cnx`
 - `adr-071/mut-scalar-parameters.test.cnx`
 - `adr-071/mut-signature-follows-declaration.test.cnx`
+- `adr-071/opaque-handle-copy.test.cnx`
 - `adr-071/read-only-by-default.test.cnx`

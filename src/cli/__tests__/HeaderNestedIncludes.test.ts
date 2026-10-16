@@ -112,10 +112,15 @@ describe("a C header's own includes (#1723)", () => {
     vi.spyOn(Preprocessor.prototype, "preprocess").mockImplementation(
       async (
         file: string,
-        options?: { includePaths?: string[]; dumpMacros?: boolean },
+        options?: {
+          includePaths?: string[];
+          dumpMacros?: boolean;
+          directivesOnly?: boolean;
+        },
       ) => {
-        // #1688's macro dump of the file's includes is not a header's run
-        if (!options?.dumpMacros) {
+        // #1688's macro dump of the file's includes is not a header's run,
+        // and #2096's directives-only pass re-reads a header already counted
+        if (!options?.dumpMacros && !options?.directivesOnly) {
           handed.push([...(options?.includePaths ?? [])]);
         }
         // #1844: with the line markers a compiler writes, which say that A.h

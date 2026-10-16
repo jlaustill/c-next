@@ -262,19 +262,6 @@ class SymbolRegistry {
 
     return null;
   }
-
-  /**
-   * Get the scope of a function given its transpiled C name.
-   *
-   * This is a bridge method for gradual migration.
-   *
-   * @param cName Transpiled C function name
-   * @returns The scope the function belongs to, or null if not found
-   */
-  getScopeByCFunctionName(cName: string): IScopeSymbol | null {
-    const func = this.findByCName(cName);
-    return func === null ? null : this.getScope(func.scopePath);
-  }
 }
 
 export default SymbolRegistry;

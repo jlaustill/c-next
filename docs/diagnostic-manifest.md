@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-627 fixture(s) assert a diagnostic; 617 carry a code.
+631 fixture(s) assert a diagnostic; 621 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -236,7 +236,9 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-068/forever-non-void-error.test.cnx                                                    | E0705               |
 | tests/adr-068/loops-in-scope-error.test.cnx                                                      | E0705, E0707        |
 | tests/adr-071/c-callback-mut-match-error.test.cnx                                                | E0879               |
+| tests/adr-071/c-fnptr-field-write-error.test.cnx                                                 | E0896, E0900        |
 | tests/adr-071/c-variadic-write-error.test.cnx                                                    | E0896, E0900        |
+| tests/adr-071/c-void-pointer-write-error.test.cnx                                                | E0896, E0900        |
 | tests/adr-071/c-write-imported-direct-error.test.cnx                                             | E0896, E0900        |
 | tests/adr-071/c-write-imported-transitive-error.test.cnx                                         | E0896, E0900        |
 | tests/adr-071/c-write-scope-method-error.test.cnx                                                | E0896, E0900        |
@@ -245,7 +247,9 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-071/callback-mut-match-error.test.cnx                                                  | E0879               |
 | tests/adr-071/const-keyword-error.test.cnx                                                       | E0898               |
 | tests/adr-071/const-keyword-imported-error.test.cnx                                              | E0898               |
+| tests/adr-071/cpp-callee-write-error.test.cnx                                                    | E0900               |
 | tests/adr-071/cpp-method-receiver-error.test.cnx                                                 | E0900               |
+| tests/adr-071/opaque-handle-copy-error.test.cnx                                                  | E0900               |
 | tests/adr-071/unused-mut-error.test.cnx                                                          | E0899               |
 | tests/adr-071/write-every-kind-error.test.cnx                                                    | E0900               |
 | tests/adr-071/write-imported-direct-error.test.cnx                                               | E0900               |

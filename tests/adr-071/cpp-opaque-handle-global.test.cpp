@@ -15,7 +15,7 @@
 
 #include <stdint.h>
 
-extern const Dev* G = {};
+const Dev* G = {};
 
 int main(void) {
     const uint8_t v = dev_read(G);

@@ -299,45 +299,4 @@ describe("SymbolRegistry", () => {
       expect(found).toBeNull();
     });
   });
-
-  describe("getScopeByCFunctionName", () => {
-    it("returns scope for scoped function", () => {
-      const scope = registry.getOrCreateScope("Motor");
-      const func = FunctionUtils.create({
-        name: "init",
-        scopePath: "Motor",
-        parameters: [],
-        returnType: TTypeUtils.createPrimitive("void"),
-        visibility: "public",
-        sourceFile: "motor.cnx",
-        span: TestSourceSpan.at(5),
-      });
-      registry.registerFunction(func);
-
-      const foundScope = registry.getScopeByCFunctionName("Motor__init");
-      expect(foundScope).toBe(scope);
-    });
-
-    it("returns global scope for global function", () => {
-      const global = registry.getGlobalScope();
-      const func = FunctionUtils.create({
-        name: "helper",
-        scopePath: "",
-        parameters: [],
-        returnType: TTypeUtils.createPrimitive("void"),
-        visibility: "public",
-        sourceFile: "helpers.cnx",
-        span: TestSourceSpan.at(1),
-      });
-      registry.registerFunction(func);
-
-      const foundScope = registry.getScopeByCFunctionName("helper");
-      expect(foundScope).toBe(global);
-    });
-
-    it("returns null for unknown function", () => {
-      const foundScope = registry.getScopeByCFunctionName("Unknown__func");
-      expect(foundScope).toBeNull();
-    });
-  });
 });

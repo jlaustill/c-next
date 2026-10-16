@@ -128,7 +128,7 @@ class CCallee {
 
   /**
    * `const uint8_t*` from a typedef parameter's text, which the grammar may
-   * merge (`constuint8_t*buf`): its words up to the last `*`, `const` apart
+   * run together, `const` with no space after it: its words up to the last `*`, `const` apart
    */
   private static pointerType(text: string): string {
     const head = text.slice(0, text.lastIndexOf("*") + 1);
