@@ -47,6 +47,8 @@ total +<- limit;
 // limit <- 11;             // ERROR E0900: limit is read-only
 // const u32 k <- 1;        // ERROR E0898: `const` is the default; remove it
 // mut u32 spare <- 0;      // ERROR E0899: never written; remove `mut`
+// Code from before ADR-071: `npm run migrate:adr-071 -- <dir>` deletes each
+// `const` and adds each `mut` the analysis asks for.
 
 // A bool is not a number. It takes plain assignment, the logical operators,
 // and equality - never arithmetic, bitwise, shift or relational operators.

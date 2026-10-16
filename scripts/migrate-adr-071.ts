@@ -14,6 +14,10 @@
  * Rounds repeat until neither fires: a binding made `mut` can expose a write
  * an earlier error stopped. A `// test-error` fixture asserts diagnostics on
  * purpose, so it is listed for review and left alone.
+ *
+ * It exits 1 when the rewrite did not finish: the rounds ran out before the
+ * diagnostics stopped, or a file still has an error once they did -- one the
+ * rewrite cannot fix, which may hide a write it would have.
  */
 
 import {
@@ -25,6 +29,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import Transpiler from "../src/cli/Transpiler";
 import NodeFileSystem from "../src/cnx/PARSE/1-Discover/NodeFileSystem";
@@ -37,6 +42,21 @@ type TEdit = {
   kind: "deleteConst" | "insertMut";
 };
 
+/** What a migration did, and what it could not finish */
+type TMigration = {
+  readonly rewritten: readonly string[];
+  readonly review: readonly string[];
+  /** Files with an edit still to make when the rounds ran out */
+  readonly unconverged: readonly string[];
+  /** Files that still fail, with their first error */
+  readonly failing: ReadonlyArray<{ file: string; error: string }>;
+};
+
+const MAX_ROUNDS = 10;
+
+/** The codes whose `declaredAt` is a binding that must be `mut` */
+const NEEDS_MUT = /\b(?:E0900|E0879)\b/;
+
 /** The words the grammar allows before `mut`; `mut` goes after them */
 const BEFORE_MUT = /^(?:(?:public|private|atomic|volatile)\s+)*/;
 
@@ -45,39 +65,77 @@ class MigrateAdr071 {
     const includeDirs: string[] = [];
     const paths: string[] = [];
     for (let i = 0; i < args.length; i++) {
-      if (args[i] === "--include") includeDirs.push(resolve(args[++i]));
-      else paths.push(args[i]);
+      if (args[i] !== "--include") {
+        paths.push(args[i]);
+        continue;
+      }
+      const dir = args[++i];
+      if (dir === undefined) {
+        console.error("--include needs a directory");
+        return 2;
+      }
+      includeDirs.push(resolve(dir));
     }
+    if (paths.length === 0) {
+      console.error(
+        "usage: migrate-adr-071 [--include <dir>]... <file-or-dir>...",
+      );
+      return 2;
+    }
+    const result = await MigrateAdr071.migrate(paths, includeDirs);
+    for (const file of result.rewritten) console.log(`rewritten ${file}`);
+    for (const file of result.review)
+      console.log(`review (test-error) ${file}`);
+    for (const file of result.unconverged) {
+      console.log(`not converged after ${MAX_ROUNDS} rounds: ${file}`);
+    }
+    for (const { file, error } of result.failing) {
+      console.log(`still failing ${file}: ${error}`);
+    }
+    const total = result.rewritten.length;
+    console.log(`${total} file(s) rewritten`);
+    return result.unconverged.length > 0 || result.failing.length > 0 ? 1 : 0;
+  }
+
+  static async migrate(
+    paths: readonly string[],
+    includeDirs: readonly string[],
+  ): Promise<TMigration> {
     const files = paths.flatMap((p) => MigrateAdr071.cnxFiles(resolve(p)));
     const migrated = files.filter((f) => !MigrateAdr071.assertsErrors(f));
     const changed = new Set<string>();
     const outDir = mkdtempSync(join(tmpdir(), "migrate-adr-071-"));
+    let pending: string[] = [];
+    const failing: Array<{ file: string; error: string }> = [];
     try {
-      for (let round = 1; round <= 10; round++) {
+      for (let round = 1; round <= MAX_ROUNDS; round++) {
         const edits = new Map<string, TEdit[]>();
+        failing.length = 0;
         for (const file of migrated) {
-          for (const found of await MigrateAdr071.errorsOf(
-            file,
-            includeDirs,
-            outDir,
-          )) {
-            MigrateAdr071.collect(found.error, found.file, edits);
+          const found = await MigrateAdr071.errorsOf(file, includeDirs, outDir);
+          for (const { error, file: inFile } of found) {
+            MigrateAdr071.collect(error, inFile, edits);
+          }
+          if (found.length > 0) {
+            failing.push({ file, error: found[0].error.message });
           }
         }
         const applied = MigrateAdr071.apply(edits);
         for (const file of applied) changed.add(file);
         console.log(`round ${round}: ${applied.length} file(s) rewritten`);
+        pending = applied;
         if (applied.length === 0) break;
       }
     } finally {
       rmSync(outDir, { recursive: true, force: true });
     }
-    for (const file of [...changed].sort()) console.log(`rewritten ${file}`);
-    for (const file of files.filter((f) => !migrated.includes(f))) {
-      console.log(`review (test-error) ${file}`);
-    }
-    console.log(`${changed.size} of ${files.length} file(s) rewritten`);
-    return 0;
+    return {
+      rewritten: [...changed].sort(),
+      review: files.filter((f) => !migrated.includes(f)),
+      unconverged: pending,
+      // A file the last round changed is reported as unconverged instead
+      failing: pending.length > 0 ? [] : failing,
+    };
   }
 
   private static cnxFiles(path: string): string[] {
@@ -135,7 +193,7 @@ class MigrateAdr071 {
         column: error.column,
         kind: "deleteConst",
       });
-    } else if (error.declaredAt) {
+    } else if (error.declaredAt && NEEDS_MUT.test(error.message)) {
       MigrateAdr071.add(edits, resolve(error.declaredAt.sourcePath), {
         line: error.declaredAt.line,
         column: error.declaredAt.column,
@@ -191,4 +249,11 @@ class MigrateAdr071 {
   }
 }
 
-MigrateAdr071.run(process.argv.slice(2)).then((code) => process.exit(code));
+if (
+  process.argv[1] &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
+  MigrateAdr071.run(process.argv.slice(2)).then((code) => process.exit(code));
+}
+
+export default MigrateAdr071;
