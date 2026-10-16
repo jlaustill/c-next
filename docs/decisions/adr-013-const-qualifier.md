@@ -1,8 +1,9 @@
 # ADR-013: Const Qualifier for Immutable Values
 
-**Status:** Implemented
+**Status:** Superseded
 **Date:** 2025-12-28
 **Decision Makers:** C-Next Language Design Team
+**Superseded By:** ADR-071 (Read-Only by Default)
 
 ## Context
 

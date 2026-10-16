@@ -290,7 +290,7 @@ and two include hops (`tests/adr-013/const-uncovered-arms-error`, `const-importe
 - **A constant can be passed to a read-only function** without the callee writing `const`.
 - **Signatures stop depending on bodies**, so a change inside a function body can no longer
   change its C prototype, its header, or its callback type.
-- **ADR-013 is superseded once this is implemented.** Its Alternative 1 — default immutability,
+- **ADR-013 is superseded by this ADR.** Its Alternative 1 — default immutability,
   rejected then as too aggressive for C developers — is what this adopts; its opt-in `const`
   is what this replaces.
 - **ADR-062** is revisited (Q3 and Q4).
