@@ -1,14 +1,12 @@
-import type ICParameterInfo from "../../../types/symbols/c/ICParameterInfo";
-import type ICppParameterInfo from "../../../types/symbols/cpp/ICppParameterInfo";
 import type TExpression from "../../../types/syntax/TExpression";
+import type ICCalleeSignature from "./ICCalleeSignature";
 
-/** A call to a C (or C++) function by name: what it is passed, and what it takes */
+/** A call to a C (or C++) function: what it is passed, and what it may reach */
 interface ICCallee {
   readonly name: string;
   readonly arguments: readonly TExpression[];
-  readonly parameters: ReadonlyArray<ICParameterInfo | ICppParameterInfo>;
-  /** Arguments past `parameters` fill the callee's `...` */
-  readonly isVariadic: boolean;
+  /** Each declaration the call may reach: one, or a C++ overload set */
+  readonly signatures: readonly ICCalleeSignature[];
 }
 
 export default ICCallee;

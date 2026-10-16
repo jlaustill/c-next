@@ -1,0 +1,15 @@
+// test-error
+// test-cpp-only
+// test-adr: 071
+// A namespaced C++ function and an overload set write through a reference
+// that is not const, so a read-only argument is E0900; an overload set
+// whose every overload takes it const only reads it.
+#include "cpp-writes.hpp"
+
+void run() {
+    u32 c <- 1;
+    show(c);
+    hw.bump_ns(c);
+    u32 a <- 1;
+    put(a);
+}

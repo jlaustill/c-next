@@ -1,0 +1,4 @@
+12:15 error[E0900]: 'c' is read-only, and parameter 1 of 'hw::bump_ns' is a reference 'hw::bump_ns' may write through
+       help: Declare 'c' `mut`, or declare the C parameter const.
+14:8 error[E0900]: 'a' is read-only, and every overload of 'put' this call can reach may write through argument 1
+       help: Declare 'a' `mut`, or give 'put' an overload that takes it const.

@@ -2,6 +2,7 @@ import OperandTyper from "../../../utils/OperandTyper";
 import CPointerParameter from "../../../utils/CPointerParameter";
 import type TExpression from "../../../types/syntax/TExpression";
 import type IAnalysisContext from "../types/IAnalysisContext";
+import CCallee from "./CCallee";
 import type ICCallee from "../types/ICCallee";
 
 /**
@@ -9,8 +10,10 @@ import type ICCallee from "../types/ICCallee";
  * 2): a parameter it can write through, or -- past a variadic callee's
  * declared parameters, where C says nothing -- an argument passed as an
  * address: `&x`, or an array or string, which C passes as a pointer to its
- * first element. `sscanf("5", "%d", &x)` writes `x`. E0899's write tracking
- * and E0900's check read this one answer.
+ * first element. `sscanf("5", "%d", &x)` writes `x`. A C++ overload set
+ * writes it when every overload the call can reach does: a `const` one is
+ * the one a read-only argument calls. E0899's write tracking and E0900's
+ * check read this one answer.
  */
 class CArgumentWrite {
   static mayWrite(
@@ -18,13 +21,19 @@ class CArgumentWrite {
     index: number,
     context: IAnalysisContext,
   ): boolean {
-    const parameter = callee.parameters[index];
-    if (parameter !== undefined) {
-      return CPointerParameter.writesThrough(parameter);
-    }
+    const reached = CCallee.reachable(callee);
+    const arg = callee.arguments[index];
     return (
-      callee.isVariadic &&
-      CArgumentWrite.isPassedByAddress(callee.arguments[index], context)
+      reached.length > 0 &&
+      reached.every((signature) => {
+        const parameter = signature.parameters[index];
+        if (parameter !== undefined) {
+          return CPointerParameter.writesThrough(parameter);
+        }
+        return (
+          signature.isVariadic && CArgumentWrite.isPassedByAddress(arg, context)
+        );
+      })
     );
   }
 

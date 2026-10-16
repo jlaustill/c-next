@@ -1,0 +1,11 @@
+// test-error
+// test-adr: 071
+// A C `void*` parameter that is not const may write what it is handed, so a
+// read-only array passed to it is E0900; a `const void*` one only reads it.
+#include "c-void-writes.h"
+
+void run() {
+    u8[4] buf <- [0, 0, 0, 0];
+    read_bytes(buf, 4);
+    zero_bytes(buf, 4);
+}

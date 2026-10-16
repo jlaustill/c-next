@@ -28,7 +28,6 @@
  */
 
 import OperandTyper from "../../utils/OperandTyper";
-import CppNamespaceUtils from "../../utils/CppNamespaceUtils";
 import DeclarationParts from "../../utils/DeclarationParts";
 import ExpressionNodes from "../../utils/ExpressionNodes";
 import StatementNodes from "../../utils/StatementNodes";
@@ -283,12 +282,10 @@ class ConstAssignmentCheck {
       ...expr,
       ops: expr.ops.slice(0, callAt - 1),
     };
-    const typeName = OperandTyper.directTypeName(
-      OperandTyper.typeOf(receiver, this.context),
-    );
-    if (typeName === null) return;
+    const methodName = CCallee.methodName(receiver, method.name, this.context);
+    if (methodName === null) return;
     const methods = this.context.symbolTable
-      .getCppOverloads(CppNamespaceUtils.qualify(typeName, method.name))
+      .getCppOverloads(methodName)
       .filter((symbol) => symbol.kind === "function");
     if (methods.length === 0) return;
     if (methods.some((m) => m.kind === "function" && m.isConstMember)) return;
