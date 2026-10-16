@@ -18,11 +18,11 @@ int main(int argc, char *argv[]) {
     const char* c_result = fgets(userName, 51, stdin);
     if (c_result != NULL) {
         size_t cnx_len_userName = strlen(userName);
-        if (cnx_len_userName > 0 && userName[cnx_len_userName - 1] == '\n') {
+        if (cnx_len_userName > 0 && userName[cnx_len_userName - 1U] == '\n') {
             userName[cnx_len_userName - 1] = '\0';
         }
     }
-    const uint8_t whoAmIByte = argv[0][0];
-    (void)printf("Hello from %s %s! Your special character is %c\n", argv[0], userName, whoAmIByte);
+    const uint8_t whoAmIByte = argv[0U][0U];
+    (void)printf("Hello from %s %s! Your special character is %c\n", argv[0U], userName, whoAmIByte);
     return 0U;
 }

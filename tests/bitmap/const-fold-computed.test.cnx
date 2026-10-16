@@ -28,10 +28,10 @@ u32 main(string args[]) {
     mut u8 threshold <- 3;
 
     if (args.type_element_count > 1) {
-        iterations <- atoi(args[1]);
+        iterations <- atoi(args[1])[0, 8];
     }
     if (args.type_element_count > 2) {
-        threshold <- atoi(args[2]);
+        threshold <- atoi(args[2])[0, 8];
     }
 
     // Loop with computed bitmap assignments

@@ -31,13 +31,33 @@ const UNSIGNED_TYPES = new Set([
   "size_t", // Array indices (MISRA 7.2)
 ]);
 
+/** C's own unsigned integer spellings, as a header's typedef names them */
+const C_UNSIGNED_SPELLING =
+  /^(?:unsigned|unsigned\s+(?:char|short|int|long)(?:\s+(?:int|long))*)$/;
+
 /**
- * Resolve typedef aliases to their underlying type.
- * For C typedef'd types (e.g., "byte_t" -> "uint8_t"), look up the symbol table.
+ * The unsigned suffix a type gives an integer literal, if any (MISRA 7.2).
+ *
+ * Every name on the typedef chain is asked, not only its end: once a header
+ * declares `size_t` or `uint32_t` (#1755), the chain ends in the compiler's
+ * own spelling (`unsigned long`, `__uint32_t`), and the type is unsigned all
+ * the same.
  */
-function resolveTypedef(typeName: string, state: TranspileState): string {
-  const underlyingType = state.getTypedefType(typeName);
-  return underlyingType ?? typeName;
+function unsignedSuffixOf(
+  typeName: string,
+  state: TranspileState,
+): "U" | "ULL" | null {
+  const seen = new Set<string>();
+  let name: string | undefined = typeName.trim();
+  while (name !== undefined && !seen.has(name)) {
+    seen.add(name);
+    if (UNSIGNED_64_TYPES.has(name)) return "ULL";
+    if (UNSIGNED_TYPES.has(name) || C_UNSIGNED_SPELLING.test(name)) {
+      return "U";
+    }
+    name = state.getTypedefType(name)?.trim();
+  }
+  return null;
 }
 
 /**
@@ -141,13 +161,7 @@ const generateLiteral = (
     isNumericIntegerLiteral(literalText) &&
     !hasUnsignedSuffix(literalText)
   ) {
-    // Resolve typedef aliases (e.g., "byte_t" -> "uint8_t")
-    const resolvedType = resolveTypedef(expectedType, transpileState);
-    if (UNSIGNED_64_TYPES.has(resolvedType)) {
-      literalText = literalText + "ULL";
-    } else if (UNSIGNED_TYPES.has(resolvedType)) {
-      literalText = literalText + "U";
-    }
+    literalText += unsignedSuffixOf(expectedType, transpileState) ?? "";
   }
 
   return { code: literalText, effects };
