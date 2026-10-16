@@ -2576,6 +2576,7 @@ class CodeGenWalker {
       fillsAfterDeclaring ? { ...decl.modifiers, mut: true } : decl.modifiers,
       this.host.state.inFunctionBody,
       this.host.state,
+      this.host.state.ownTypeInfo(decl)?.isPointer ?? false,
     );
     const name = decl.name;
     const type = this._inferVariableType(decl);

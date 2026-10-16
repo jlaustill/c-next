@@ -89,6 +89,15 @@ describe("VariableModifierBuilder", () => {
       expect(result.extern).toBe("extern ");
     });
 
+    it("does not return extern for a read-only pointer, whose const is the pointee's (ADR-071)", () => {
+      const ctx = { mut: false, atomic: false, volatile: false };
+
+      const result = VariableModifierBuilder.build(ctx, false, CPP_RUN, true);
+
+      expect(result.const).toBe("const ");
+      expect(result.extern).toBe("");
+    });
+
     it("does not return extern for const inside function body", () => {
       const ctx = {
         mut: false,

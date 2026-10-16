@@ -1,0 +1,17 @@
+// test-execution
+// test-cpp-only
+// test-adr: 071
+// A read-only opaque handle is `const Dev*`: its `const` is the pointee's,
+// so the object already has external linkage and takes no `extern`, which
+// g++ rejects beside an initializer ("initialized and declared 'extern'").
+#include "opaque-dev.h"
+
+Dev G;
+
+u32 main() {
+    u8 v <- dev_read(G);
+    if (v != 1) {
+        return 1;
+    }
+    return 0;
+}
