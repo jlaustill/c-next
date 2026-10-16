@@ -214,6 +214,17 @@ what a C file including the header sees, and MISRA C:2012 Rule 8.13 asks for it 
 types. This changes the generated C of every unmarked read-only binding (5694 in the corpus),
 so their snapshots are regenerated with the implementation.
 
+Three read-only bindings are generated without `const`, with the owner's approval:
+
+- A string filled at runtime: the generated `strncpy`/`strncat` and null terminator write it.
+- A C++ class object filled after it is declared (`{}`, then one assignment per field).
+- An `ISR` parameter, `void run(ISR cb);`, which is generated the same way a callback parameter is.
+  `const ISR cb` is valid C, but cppcheck 2.13's MISRA addon reports Rule 8.2 on a `const`
+  function-pointer parameter in a declaration. `ISR const cb` and `void (* const cb)(void)` are
+  reported too.
+
+The C-Next rule does not change for any of them: writing one is still E0900.
+
 ### Q7: Which bindings — decided
 
 All of them (Decision 1).
