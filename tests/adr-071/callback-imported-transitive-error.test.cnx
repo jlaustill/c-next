@@ -1,0 +1,17 @@
+// test-error
+// test-adr: 071
+// E0879 across TWO include hop(s): the callback type `onWrite` takes `mut`
+// from its declaration in an included file, so a function whose parameter is
+// read-only does not match it. CONTROL: the function that declares `mut` is
+// silent.
+
+#include "imported-relay.cnx"
+
+void reads(u32 v) {}
+
+void writes(mut u32 v) {
+    v <- 1;
+}
+
+Slot wrong <- { handler: reads };
+Slot right <- { handler: writes };

@@ -480,6 +480,7 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
-1 linked fixture with no derivable context:
+2 linked fixtures with no derivable context:
 
+- `adr-071/const-keyword-imported-error.test.cnx`
 - `adr-071/read-only-by-default.test.cnx`

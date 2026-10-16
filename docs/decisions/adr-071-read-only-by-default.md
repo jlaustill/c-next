@@ -280,10 +280,29 @@ includes it transitively; its `mut` sits in the declaring file. A call into a `m
 also happens in a global or scope-member initializer: today's E0878 fires there
 (`u32 g <- twice(LIMIT);` at file scope and inside a scope both report it), and Q3 changes it.
 
-Every cell is `error`. E0900 is asserted in each: an assignment occupies the two function
-contexts, a call into a `mut` parameter from an initializer the other two, across zero, one
-and two include hops (`tests/adr-013/const-uncovered-arms-error`, `const-imported-direct-error`,
-`const-imported-transitive-error`).
+Every cell is `error`, and each diagnostic is asserted in every cell it can occur in:
+
+- **E0900:** an assignment in the two function contexts and a call into a `mut` parameter from
+  the two initializers, across zero, one and two include hops
+  (`tests/adr-013/const-uncovered-arms-error`, `const-imported-direct-error`,
+  `const-imported-transitive-error`). A compound assignment, a `safe_div` output and a qualified
+  scope member one and two hops away, from a function and from a scope method
+  (`tests/adr-071/write-imported-direct-error`, `write-imported-transitive-error`). A C pointer,
+  a C array and an opaque handle the same way (`c-write-imported-direct-error`,
+  `c-write-imported-transitive-error`), and a scope method's own locals and parameters passed to
+  them (`c-write-scope-method-error`).
+- **E0898:** on each kind of declaration, in a top-level function and in a scope method
+  (`const-keyword-error`), and in a file one and two includes away
+  (`const-keyword-imported-error`). The matrix cannot place that last one, because a diagnostic
+  naming another file is not resolved against it (#1408), so it is listed below as a fixture
+  with no derivable context.
+- **E0899:** in a top-level function, a scope method and a private scope member
+  (`unused-mut-error`). It cannot occur across an include: what it checks (locals, parameters,
+  `for` variables and private members) is visible only in its own file, and a global or public
+  member is exempt (Decision 6).
+- **E0879:** a callback type from the same file and from one and two includes away
+  (`callback-mut-match-error`, `c-callback-mut-match-error`, `callback-imported-direct-error`,
+  `callback-imported-transitive-error`).
 
 <!-- MATRIX-SEVERITY -->
 

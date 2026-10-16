@@ -1,0 +1,24 @@
+// Declarations ADR-071's imported fixtures write: each read-only binding
+// has a `mut` twin that the same write leaves silent.
+
+#include "c-writer.h"
+
+u32 LIBG <- 0;
+mut u32 LIBG_M <- 0;
+string<16> LIBS <- "";
+mut string<16> LIBS_M <- "";
+u8[4] LIBA;
+mut u8[4] LIBA_M;
+Dev LIBH <- dev_open();
+mut Dev LIBH_M <- dev_open();
+
+scope Lib {
+    public u32 V <- 0;
+    public mut u32 V_M <- 0;
+}
+
+void onWrite(mut u32 v) {}
+
+struct Slot {
+    onWrite handler;
+}

@@ -1,0 +1,26 @@
+// test-error
+// test-adr: 071
+// E0900 across ONE include hop(s): a compound assignment, a safe_div output and
+// a qualified scope member write an imported read-only binding, from a
+// top-level function and from a scope method. CONTROL: each `mut` twin,
+// written the same way, is silent.
+
+#include "imported-lib.cnx"
+
+void f() {
+    LIBG +<- 1;
+    LIBG_M +<- 1;
+    bool ok <- safe_div(LIBG, 10, 2, 0);
+    bool okM <- safe_div(LIBG_M, 10, 2, 0);
+    Lib.V <- 1;
+    Lib.V_M <- 1;
+}
+
+scope User {
+    public void g() {
+        global.LIBG +<- 1;
+        global.LIBG_M +<- 1;
+        global.Lib.V +<- 1;
+        global.Lib.V_M +<- 1;
+    }
+}

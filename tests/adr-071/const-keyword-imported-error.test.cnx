@@ -1,0 +1,11 @@
+#include "const-keyword-lib.cnx"
+#include "const-keyword-relay.cnx"
+// test-error
+// test-adr: 071
+// E0898 in an included file, one and two include hops away: the file that
+// writes `const` is reported wherever it is reached from. The includes come
+// first so the reported lines of the other files land on these comments.
+// CONTROL: this file's own read-only bindings, without `const`, are silent.
+
+u32 OWN <- 1;
+u32 USES <- LIB_OK;
