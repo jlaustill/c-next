@@ -247,6 +247,22 @@ describe("ParameterDereferenceResolver", () => {
       expect(result).toBe("(*s)");
     });
 
+    it("should not dereference an enum array, which is already a pointer", () => {
+      const deps = createMockDeps({
+        knownEnums: new Set(["State"]),
+        isParameterPassByValue: vi.fn(() => false),
+        currentFunctionName: "myFunc",
+      });
+      const param = createParamInfo({ baseType: "State", isArray: true });
+
+      const result = ParameterDereferenceResolver.resolve(
+        { info: param, emittedName: "states" },
+        deps,
+      );
+
+      expect(result).toBe("states");
+    });
+
     it("should not dereference struct parameters", () => {
       const deps = createMockDeps();
       const param = createParamInfo({ isStruct: true, baseType: "Point" });

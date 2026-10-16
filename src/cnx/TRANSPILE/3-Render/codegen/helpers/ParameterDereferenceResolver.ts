@@ -55,8 +55,9 @@ class ParameterDereferenceResolver {
       return true;
     }
 
-    // ...and a `mut` one is a pointer, an enum too, so its value is `(*p)`
-    if (deps.knownEnums.has(paramInfo.baseType)) {
+    // ...and a `mut` one is a pointer, an enum too, so its value is `(*p)`.
+    // An enum array is already a pointer, like any array.
+    if (!paramInfo.isArray && deps.knownEnums.has(paramInfo.baseType)) {
       return false;
     }
 
