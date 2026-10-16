@@ -20,11 +20,8 @@ class PassByValueAnalyzer {
     paramName: string,
     state: TranspileState,
   ): boolean {
-    // #1511: read, not recomputed. This used to consult a map that
-    // `analyze(tree)` rebuilt PER FILE -- clearing it first, so the whole-program
-    // answer was discarded and re-derived from one file plus whatever had been
-    // injected. Eligibility depends on whether anything downstream modifies the
-    // parameter, which is a property of the call chain and not of a file.
+    // #1511: read, not recomputed -- `Program` decides it once, from the
+    // parameter's declaration (ADR-071 Q6).
     const passByValue = state.program?.passByValueParams().get(funcName);
     return passByValue?.has(paramName) ?? false;
   }
