@@ -31,9 +31,21 @@ const UNSIGNED_TYPES = new Set([
   "size_t", // Array indices (MISRA 7.2)
 ]);
 
-/** C's own unsigned integer spellings, as a header's typedef names them */
-const C_UNSIGNED_SPELLING =
-  /^(?:unsigned|unsigned\s+(?:char|short|int|long)(?:\s+(?:int|long))*)$/;
+/** The words C's own integer type spellings are made of */
+const C_INTEGER_WORDS = new Set(["char", "short", "int", "long"]);
+
+/**
+ * C's own unsigned integer spellings, as a header's typedef names them, in any
+ * word order: GCC itself writes `long unsigned int` (`__SIZE_TYPE__`, newlib's
+ * `__UINT32_TYPE__`) where a header author writes `unsigned long`
+ */
+function isCUnsignedSpelling(name: string): boolean {
+  const words = name.split(/\s+/);
+  return (
+    words.filter((word) => word === "unsigned").length === 1 &&
+    words.every((word) => word === "unsigned" || C_INTEGER_WORDS.has(word))
+  );
+}
 
 /**
  * The unsigned suffix a type gives an integer literal, if any (MISRA 7.2).
@@ -52,7 +64,7 @@ function unsignedSuffixOf(
   while (name !== undefined && !seen.has(name)) {
     seen.add(name);
     if (UNSIGNED_64_TYPES.has(name)) return "ULL";
-    if (UNSIGNED_TYPES.has(name) || C_UNSIGNED_SPELLING.test(name)) {
+    if (UNSIGNED_TYPES.has(name) || isCUnsignedSpelling(name)) {
       return "U";
     }
     name = state.getTypedefType(name)?.trim();

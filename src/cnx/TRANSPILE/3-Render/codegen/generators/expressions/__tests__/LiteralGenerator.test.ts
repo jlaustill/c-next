@@ -228,6 +228,13 @@ describe("LiteralGenerator", () => {
       ["uint64_t, through `__uint64_t`", "uint64_t", "0ULL"],
       ["a project typedef of uint8_t", "byte_t", "0U"],
       ["`unsigned long long` itself", "unsigned long long", "0U"],
+      ["GCC's `long unsigned int`", "long unsigned int", "0U"],
+      ["GCC's `short unsigned int`", "short unsigned int", "0U"],
+      ["GCC's `long long unsigned int`", "long long unsigned int", "0U"],
+      ["`unsigned`, alone", "unsigned", "0U"],
+      ["`long int`, which is signed", "long int", "0"],
+      ["`unsigned unsigned`, which is no type", "unsigned unsigned", "0"],
+      ["`unsigned float`, which is no integer", "unsigned float", "0"],
       ["int32_t, which ends in `int`", "int32_t", "0"],
       ["a typedef cycle", "loop_a", "0"],
     ])("%s", (_label, expectedType, expected) => {
