@@ -82,7 +82,13 @@ const MODES: readonly TOutputMode[] = ["c", "cpp"];
 
 async function generate(source: string, mode: TOutputMode) {
   const transpiler = new Transpiler(
-    { input: "", noCache: true, cppRequired: mode === "cpp", target: "host" },
+    {
+      input: "",
+      outDir: "",
+      noCache: true,
+      cppRequired: mode === "cpp",
+      target: "host",
+    },
     new MockFileSystem(),
   );
   const result = await transpiler.transpile({ kind: "source", source });

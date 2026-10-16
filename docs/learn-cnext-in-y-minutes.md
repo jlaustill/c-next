@@ -505,6 +505,8 @@ scope LED {
 // Name resolution: bare names resolve local -> scope -> global automatically.
 // Use this. / global. ONLY to break a real naming conflict (e.g. a local
 // shadowing a scope member) -- qualifying everything by default is just noise.
+// At file level nothing can shadow a file-scope name, so global. there is
+// E0431: write the bare name (ADR-016).
 
 // Usage: dot syntax
 LED.on();                      // OK - public by default

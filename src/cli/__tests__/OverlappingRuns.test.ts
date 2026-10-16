@@ -72,6 +72,7 @@ describe("overlapping runs on one Transpiler (#1721)", () => {
       {
         target: "host",
         input: "",
+        outDir: "",
         noCache: true,
       },
       NodeFileSystem.instance,
@@ -103,6 +104,7 @@ describe("overlapping runs on one Transpiler (#1721)", () => {
       {
         target: "host",
         input: "",
+        outDir: "",
         noCache: true,
       },
       NodeFileSystem.instance,
@@ -153,6 +155,7 @@ describe("overlapping runs on one Transpiler (#1721)", () => {
     };
     const config = {
       input: "",
+      outDir: "",
       noCache: true,
       target: "host",
       headerOutDir: join(tempDir, "include"),
@@ -185,6 +188,7 @@ describe("overlapping runs on one Transpiler (#1721)", () => {
       {
         target: "host",
         input: "",
+        outDir: "",
         noCache: true,
       },
       NodeFileSystem.instance,

@@ -35,3 +35,19 @@ u32 atFileScope <- this.outsideAny;
 u32 inPlainFunction() {
     return this.outsideAny;
 }
+
+// #1629: a case label is its own grammar rule, so it is a fourth route.
+u32 inCaseLabel(u8 s) {
+    switch (s) {
+        case this.outsideAny {
+            return 1;
+        }
+        case this.State.IDLE {
+            return 2;
+        }
+        default {
+            return 0;
+        }
+    }
+    return 0;
+}

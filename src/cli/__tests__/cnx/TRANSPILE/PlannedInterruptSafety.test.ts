@@ -12,7 +12,7 @@ const WRAPPERS = "static inline uint32_t __cnx_get_PRIMASK(void)";
 
 async function generate(source: string): Promise<string> {
   const transpiler = new Transpiler(
-    { input: "", noCache: true },
+    { input: "", outDir: "", noCache: true },
     NodeFileSystem.instance,
   );
   const result = await transpiler.transpile({ kind: "source", source });

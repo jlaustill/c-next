@@ -375,6 +375,51 @@ Inside a scope, you MUST use:
 - **`global.X`** — for ANY global (variables, functions, registers, types)
 - **Bare `X`** — ONLY for function-local variables and parameters
 
+**`global.` needs a scope or a function around it (#2087).** `global.X` reaches a
+file-scope name past a scope member, local or parameter that shadows it, so a
+function is a scope for it, its signature (return and parameter types) as well
+as its body: in a top-level function `global.total` writes the file-scope
+`total` even when a parameter is named `total` (ADR-057). At file level, in a
+file-scope variable's initializer or type, an array dimension, a struct
+field's type, an enum member's value, or a register's address, member offsets
+and member types, nothing can shadow a file-scope name (an enum body shadows
+nothing either: `B <- A` there reads the file-scope `A`), so the bare name is written
+and `global.` there is E0431. `this.` still needs a `scope`: it names that
+scope's member, in the scope's own declarations and in its methods.
+
+**A qualifier is legal only where there is something for it to reach past.**
+`this.` reaches past a local or parameter to the scope's member, and `global.`
+reaches past a scope member, local or parameter to the file. Where nothing can
+shadow, the bare name already names the declaration, so the qualifier is E0431:
+`this.` in a top-level function (it would only name the function's own
+parameter or local), and `global.` at file level.
+
+The example below is deliberately bad code: every name is `count`. It is here
+only to show what each qualifier reaches past. Real code gives the three
+declarations different names and needs neither qualifier.
+
+```cnx
+u32 count <- 7;                  // the file's count
+
+scope Counter {
+    u32 count <- 100;            // Counter's count
+
+    public u32 bump(u32 count) { // Counter.bump(3): parameter count = 3
+        this.count <- count;     // legal: Counter's count = 3, past the parameter
+        global.count <- count;   // legal: the file's count = 3, past the parameter
+        return count;            // returns 3, the parameter
+    }
+}
+
+u32 f(u32 count) {               // f(5): parameter count = 5
+    global.count <- count;       // legal: the file's count = 5, past the parameter
+    this.count <- count;         // E0431: no scope member for `this.` to reach
+    return count;
+}
+
+u32 x <- global.count;           // E0431: nothing at file level shadows count
+```
+
 #### Example
 
 ```cnx
@@ -661,10 +706,14 @@ they cannot exist.
 
 ## Diagnostics
 
-| Code  | Reported when                                                                                       | Asserted by                                                                                                                                                             |
-| ----- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| E0425 | Two definitions of the same member name in one scope, or a C-Next symbol colliding with a C/C++ one | `tests/bugs/issue-1333-scope-reopening/duplicate-member-reopened`, `tests/bugs/issue-1334-scope-declaration-sites/conflict-across-files`, `.../cross-language-conflict` |
-| E0430 | A scope is declared inside another scope, in the entry file or in an included one                   | `tests/scope/nested-scope-error`, `tests/bugs/issue-1306-nested-scope-diagnostic/cross-file-nested`                                                                     |
+| Code  | Reported when                                                                                                                                                                               | Asserted by                                                                                                                                                                                                            |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E0425 | Two definitions of the same member name in one scope, or a C-Next symbol colliding with a C/C++ one                                                                                         | `tests/bugs/issue-1333-scope-reopening/duplicate-member-reopened`, `tests/bugs/issue-1334-scope-declaration-sites/conflict-across-files`, `.../cross-language-conflict`                                                |
+| E0430 | A scope is declared inside another scope, in the entry file or in an included one                                                                                                           | `tests/scope/nested-scope-error`, `tests/bugs/issue-1306-nested-scope-diagnostic/cross-file-nested`                                                                                                                    |
+| E0431 | `this` used outside a scope, as a value or as a case label (#2075), or `global` used at file level, outside a scope and outside a function (#2087), in the entry file or in an included one | `tests/adr-016/this-outside-scope-error`, `tests/adr-016/this-outside-scope-imported-error`, `tests/adr-016/global-outside-scope-error`, `tests/adr-016/global-outside-scope-imported-error`                           |
+| E0435 | A scope's own member reached through the scope's name                                                                                                                                       | `tests/adr-016/self-scope-bare-error`, `tests/adr-016/mixed-access-ultimate-error`, `tests/adr-016/scope-access-uncovered-arms-error`                                                                                  |
+| E0436 | A private member reached from outside its scope, in the same file or across an include                                                                                                      | `tests/adr-016/private-var-access-error`, `tests/adr-016/private-imported-direct-error`, `tests/adr-016/private-imported-transitive-error`, `tests/bugs/issue-1190-cross-file-private-member/cross-file-private-const` |
+| E0437 | A global enum or register shadowed inside a scope and reached bare                                                                                                                          | `tests/adr-016/cross-scope-register-bare-error`, `tests/adr-016/scope-enum-naming-conflict`                                                                                                                            |
 
 A scope **composes**: reopening it in another file adds members rather than
 redefining it (see Scope Composition above). Member names stay unique across every

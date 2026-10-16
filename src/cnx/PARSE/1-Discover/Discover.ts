@@ -47,8 +47,10 @@ import SourceOrder from "../../utils/SourceOrder";
 /** The configuration a run's discovery reads. */
 type TDiscoverySettings = Pick<
   Required<ITranspilerConfig>,
-  "input" | "includeDirs" | "defines" | "outDir" | "headerOutDir" | "debugMode"
+  "input" | "includeDirs" | "defines" | "outDir" | "debugMode"
 > &
+  // #2104: unset is outDir; "" is the cwd.
+  Pick<ITranspilerConfig, "headerOutDir"> &
   // #1844: unset is not false. Unset, C++ in a header makes the run C++;
   // `false` asked for C, and C++ met there is E0507.
   Pick<ITranspilerConfig, "cppRequired"> &

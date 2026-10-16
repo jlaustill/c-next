@@ -144,7 +144,7 @@ class PathResolver {
    * work regardless. The caller keeps the author's spelling there.
    */
   getHeaderIncludePath(cnxPath: string, ext: THeaderExtension): string | null {
-    const headerDir = this.config.headerOutDir || this.config.outDir;
+    const headerDir = this.headerRoot();
     const includePath = relative(
       resolve(headerDir),
       resolve(this.headerPathFor(cnxPath, ext)),
@@ -160,13 +160,21 @@ class PathResolver {
   }
 
   /**
+   * #2104: the header output root. Only a missing headerOutDir falls back to
+   * outDir; `""` is the cwd. The one answer, so a header and the `#include`
+   * naming it are always measured from the same root.
+   */
+  headerRoot(): string {
+    return this.config.headerOutDir ?? this.config.outDir;
+  }
+
+  /**
    * Issue #1467: where the header for `cnxPath` goes. Pure -- it creates no
    * directories, so `getHeaderIncludePath` can ask the question without the
    * side effect that answering it used to carry.
    */
   private headerPathFor(cnxPath: string, ext: THeaderExtension): string {
-    // Use headerOutDir if specified, otherwise fall back to outDir
-    const headerDir = this.config.headerOutDir || this.config.outDir;
+    const headerDir = this.headerRoot();
 
     const relativePath = this.getRelativePathFromInputs(cnxPath);
     if (relativePath) {
@@ -191,7 +199,7 @@ class PathResolver {
     // headerOutDir can only have come from `--header-out` -- a path typed at
     // the shell, which the CWD is the correct base for. Issue #1467 pins that
     // layout (a shared tree inside the CWD nests its header).
-    if (this.config.headerOutDir) {
+    if (this.config.headerOutDir !== undefined) {
       const base = this.config.projectRoot ?? process.cwd();
       const relativeFromBase = relative(resolve(base), resolve(cnxPath));
 

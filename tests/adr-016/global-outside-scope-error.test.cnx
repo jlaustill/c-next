@@ -1,0 +1,91 @@
+// test-error
+// test-adr: 016
+// ADR-016, #2087: `global.` reaches a file-scope name past a name that shadows
+// it, so it needs a scope or a function around it -- a function body is a
+// scope for `global.`. At file level nothing shadows a file-scope name, so
+// `global.` there is E0431, as `this.` is.
+
+u8 LIMIT <- 4;
+u32 total <- 0;
+
+struct Pt {
+    u8 x;
+}
+
+u32 helper() {
+    return 7;
+}
+
+// NEGATIVE CONTROLS -- `global.` in every position, all silent: inside a
+// scope, and inside a top-level function, past a parameter of the same name,
+// and in a top-level function's signature.
+scope Panel {
+    u32 total <- 9;
+
+    public u32 pick(u8 s) {
+        global.Pt p <- { x: 1 };
+        global.total <- global.helper() + p.x;
+        switch (s) {
+            case global.LIMIT {
+                return global.total;
+            }
+            default {
+                return 0;
+            }
+        }
+        return 0;
+    }
+}
+
+u32 inPlainFunction(u8 s, u32 total) {
+    global.Pt q <- { x: 2 };
+    global.total <- total + global.helper();
+    switch (s) {
+        case global.LIMIT {
+            return q.x;
+        }
+        default {
+            return 0;
+        }
+    }
+    return 0;
+}
+
+// A top-level function's signature is its scope too: silent.
+global.Pt make(global.Pt p) {
+    return p;
+}
+
+// THE ASSERTIONS -- each file-level position once: an initializer's value, a
+// call in an initializer, a variable's type, an array dimension, a struct
+// field's type, an enum member's value, a register's address and a register
+// member's offset. File level has no statements, so no assignment target or
+// case label sits there.
+u32 atFileScope <- global.total;
+
+u32 atFileCall <- global.helper();
+
+global.Pt atFileType <- { x: 3 };
+
+u8[global.LIMIT] atDimension;
+
+struct Holder {
+    global.Pt inner;
+}
+
+u32 PORT_BASE <- 0x40000000;
+u32 DR_OFFSET <- 0x04;
+
+enum EKind {
+    A <- global.LIMIT,
+    B
+}
+
+register Port @ global.PORT_BASE {
+    DR: u32 rw @ global.DR_OFFSET,
+}
+
+u32 main() {
+    u32 r <- inPlainFunction(1, 2);
+    return r;
+}

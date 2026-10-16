@@ -49,6 +49,41 @@ describe("ThisOutsideScopeAnalyzer", () => {
     expect(found).toHaveLength(1);
   });
 
+  it("rejects `this` in a case label outside a scope (#1629)", () => {
+    const found = errors(
+      [
+        "u8 LIMIT <- 1;",
+        "u32 pick(u8 s) {",
+        "    switch (s) {",
+        "        case this.LIMIT { return 1; }",
+        "        case this.State.IDLE { return 2; }",
+        "        default { return 0; }",
+        "    }",
+        "    return 0;",
+        "}",
+      ].join("\n"),
+    );
+    expect(found.map((e) => [e.code, e.line, e.column])).toEqual([
+      ["E0431", 4, 13],
+      ["E0431", 5, 13],
+    ]);
+  });
+
+  it("accepts `this` in a case label inside a scope", () => {
+    const source = [
+      "scope Panel {",
+      "    u8 LIMIT <- 1;",
+      "    public u32 pick(u8 s) {",
+      "        switch (s) {",
+      "            case this.LIMIT { return 1; }",
+      "            default { return 0; }",
+      "        }",
+      "    }",
+      "}",
+    ].join("\n");
+    expect(errors(source)).toEqual([]);
+  });
+
   it("accepts `this` inside a scope method", () => {
     const source = [
       "scope Motor {",
@@ -100,8 +135,69 @@ describe("ThisOutsideScopeAnalyzer", () => {
     expect(found.map((e) => e.line)).toEqual([2, 3]);
   });
 
+  it("rejects `global` at file level (#2087)", () => {
+    const found = errors(
+      [
+        "u32 count <- 0;",
+        "u8 LIMIT <- 1;",
+        "struct Pt { u8 x; }",
+        "u32 atFile <- global.count;",
+        "global.Pt atType <- { x: 1 };",
+        "u8[global.LIMIT] atDimension;",
+        "struct Holder { global.Pt inner; }",
+      ].join("\n"),
+    );
+    expect(found.map((e) => e.line)).toEqual([4, 5, 6, 7]);
+    expect(found[0].message).toBe(
+      "'global' can only be used inside a scope or a function",
+    );
+  });
+
+  it("accepts `global` inside a scope or a function (#2087)", () => {
+    const found = errors(
+      [
+        "u32 count <- 0;",
+        "u8 LIMIT <- 1;",
+        "struct Pt { u8 x; }",
+        "scope S {",
+        "    public u32 f() {",
+        "        global.Pt p <- { x: 1 };",
+        "        global.count <- p.x;",
+        "        return global.count;",
+        "    }",
+        "}",
+        "u32 pick(u8 s, u32 count) {",
+        "    global.Pt q <- { x: 1 };",
+        "    global.count <- count;",
+        "    switch (s) {",
+        "        case global.LIMIT { return q.x; }",
+        "        default { return 0; }",
+        "    }",
+        "    return 0;",
+        "}",
+      ].join("\n"),
+    );
+    expect(found).toEqual([]);
+  });
+
+  it("still rejects `this` in a top-level function", () => {
+    const found = errors("u32 count <- 0;\nu32 f() { return this.count; }");
+    expect(found.map((e) => e.message)).toEqual([
+      "'this' can only be used inside a scope",
+    ]);
+  });
+
+  it("in a function, says `global.` reaches past a shadowing parameter (#2087)", () => {
+    const [found] = errors(
+      "u32 count <- 0;\nu32 f(u32 count) {\n    return this.count;\n}",
+    );
+    expect(found.helpText).toContain("`global.Name`");
+  });
+
   it("says what to write instead", () => {
     const [found] = errors("u32 count <- 0;\nu32 shadow <- this.count;");
-    expect(found.helpText).toContain("global.");
+    expect(found.helpText).toContain("bare name");
+    // `global.` is no advice at file level either (#2087)
+    expect(found.helpText).not.toContain("global.");
   });
 });

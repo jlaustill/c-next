@@ -72,11 +72,6 @@ class CleanCommand {
     const cnxFiles = this.discoverCnxFiles(input);
     if (!cnxFiles) return;
 
-    const resolvedOutDir = resolve(outDir);
-    const resolvedHeaderDir = headerOutDir
-      ? resolve(headerOutDir)
-      : resolvedOutDir;
-
     const pathResolver = new PathResolver(
       {
         inputs: [dirname(resolve(input))],
@@ -85,6 +80,8 @@ class CleanCommand {
       },
       NodeFileSystem.instance,
     );
+    const resolvedOutDir = resolve(outDir);
+    const resolvedHeaderDir = resolve(pathResolver.headerRoot());
 
     let deletedCount = 0;
 

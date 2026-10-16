@@ -267,6 +267,9 @@ class ServeCommand {
     ServeCommand.transpiler = new Transpiler(
       {
         input: "",
+        // #2101: "" makes the header root the process cwd, so a sideways include's
+        // #include text varies with where the server was started.
+        outDir: "",
         includeDirs: config.include ?? [],
         cppRequired: config.cppRequired,
         target: config.target ?? "",

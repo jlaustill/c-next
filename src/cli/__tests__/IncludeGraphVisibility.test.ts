@@ -95,6 +95,7 @@ describe("include-graph visibility (Issue #1435)", () => {
         {
           target: "host",
           input: "",
+          outDir: "",
           noCache: true,
         },
         NodeFileSystem.instance,
@@ -120,6 +121,7 @@ describe("include-graph visibility (Issue #1435)", () => {
           {
             target: "host",
             input: "",
+            outDir: "",
             noCache: true,
           },
           NodeFileSystem.instance,
@@ -319,6 +321,7 @@ void main() {
         {
           target: "host",
           input: "",
+          outDir: "",
           noCache: true,
         },
         NodeFileSystem.instance,
@@ -457,6 +460,7 @@ void main() {
         {
           target: "host",
           input: "",
+          outDir: "",
           noCache: true,
         },
         NodeFileSystem.instance,
@@ -521,6 +525,7 @@ void main() {
         {
           target: "host",
           input: "",
+          outDir: "",
           noCache: true,
         },
         NodeFileSystem.instance,
@@ -529,6 +534,7 @@ void main() {
         {
           target: "host",
           input: "",
+          outDir: "",
           noCache: true,
           includeDirs: dirs,
         },
@@ -616,6 +622,7 @@ scope M {
         {
           target: "host",
           input: "",
+          outDir: "",
           noCache: true,
         },
         NodeFileSystem.instance,

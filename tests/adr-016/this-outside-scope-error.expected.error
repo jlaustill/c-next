@@ -1,4 +1,8 @@
 33:19 error[E0431]: 'this' can only be used inside a scope
-       help: `this` names the enclosing scope's own member. Outside a scope, write `global.Name` for a file-scope declaration, or move the code into the scope it belongs to.
+       help: `this` names the enclosing scope's own member. At file level, write a file-scope declaration by its bare name, or move the code into the scope it belongs to.
 36:11 error[E0431]: 'this' can only be used inside a scope
-       help: `this` names the enclosing scope's own member. Outside a scope, write `global.Name` for a file-scope declaration, or move the code into the scope it belongs to.
+       help: `this` names the enclosing scope's own member. In a function, write `global.Name` to reach a file-scope declaration past a local or parameter of that name, or move the code into the scope it belongs to.
+42:13 error[E0431]: 'this' can only be used inside a scope
+       help: `this` names the enclosing scope's own member. In a function, write `global.Name` to reach a file-scope declaration past a local or parameter of that name, or move the code into the scope it belongs to.
+45:13 error[E0431]: 'this' can only be used inside a scope
+       help: `this` names the enclosing scope's own member. In a function, write `global.Name` to reach a file-scope declaration past a local or parameter of that name, or move the code into the scope it belongs to.

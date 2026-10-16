@@ -1,5 +1,6 @@
 import type IProgram from "../types/IProgram";
 import type IVariableSymbol from "../types/symbols/IVariableSymbol";
+import type TConstLiteral from "../types/TConstLiteral";
 import type TSettledConst from "../types/TSettledConst";
 import QualifiedCName from "./QualifiedCName";
 
@@ -18,6 +19,12 @@ import QualifiedCName from "./QualifiedCName";
  */
 class ConstLiteral {
   static textOf(program: IProgram, symbol: IVariableSymbol): string | null {
+    const literal = ConstLiteral.of(program, symbol);
+    return literal === null ? null : ConstLiteral.spell(literal);
+  }
+
+  /** The const's answer before C spells it, or null when it has none */
+  static of(program: IProgram, symbol: IVariableSymbol): TConstLiteral | null {
     if (
       !symbol.isConst ||
       symbol.isArray ||
@@ -26,30 +33,58 @@ class ConstLiteral {
     ) {
       return null;
     }
-    return ConstLiteral.literalText(
+    return ConstLiteral.literalOf(
       program,
       symbol,
       program.settledConstOf(symbol.fullyQualifiedCName),
     );
   }
 
-  /** The literal the const's settled value is, before C spells it */
-  private static literalText(
+  /** How C writes the answer */
+  private static spell(literal: TConstLiteral): string {
+    switch (literal.kind) {
+      case "member":
+        return literal.cName;
+      case "macro":
+        // parenthesized, as its expansion may not be one operand
+        return `(${literal.name})`;
+      case "integer":
+      case "float":
+      case "bool":
+      case "char":
+        return literal.text;
+      default: {
+        const unhandled: never = literal;
+        return unhandled;
+      }
+    }
+  }
+
+  /** The literal the const's settled value is */
+  private static literalOf(
     program: IProgram,
     symbol: IVariableSymbol,
     settled: TSettledConst | null,
-  ): string | null {
+  ): TConstLiteral | null {
     switch (settled?.kind) {
       case "value":
-        return ConstLiteral.integerText(symbol, settled.digits);
-      case "float":
-        return ConstLiteral.floatText(settled);
+        return {
+          kind: "integer",
+          digits: settled.digits,
+          text: ConstLiteral.integerText(symbol, settled.digits),
+        };
+      case "float": {
+        const text = ConstLiteral.floatText(settled);
+        return text === null ? null : { kind: "float", text };
+      }
       case "bool":
-        return settled.value ? "true" : "false";
-      case "named":
-        return ConstLiteral.enumMember(program, settled);
+        return { kind: "bool", text: settled.value ? "true" : "false" };
+      case "named": {
+        const cName = ConstLiteral.enumMember(program, settled);
+        return cName === null ? null : { kind: "member", cName };
+      }
       default:
-        return ConstLiteral.unsettledText(symbol, settled);
+        return ConstLiteral.unsettledLiteral(symbol, settled);
     }
   }
 
@@ -58,10 +93,10 @@ class ConstLiteral {
    * header macro named alone (parenthesized, as its expansion may not be one
    * operand). Anything else is null.
    */
-  private static unsettledText(
+  private static unsettledLiteral(
     symbol: IVariableSymbol,
     settled: TSettledConst | null,
-  ): string | null {
+  ): TConstLiteral | null {
     const expr = symbol.initialValueExpr!;
     if (
       settled?.kind === "notConstant" &&
@@ -69,7 +104,7 @@ class ConstLiteral {
       expr.kind === "other" &&
       expr.what === "character"
     ) {
-      return symbol.initialValue!;
+      return { kind: "char", text: symbol.initialValue! };
     }
     if (
       settled?.kind === "foreign" &&
@@ -77,7 +112,7 @@ class ConstLiteral {
       expr.root === null &&
       expr.path.length === 1
     ) {
-      return `(${expr.path[0]})`;
+      return { kind: "macro", name: expr.path[0] };
     }
     return null;
   }

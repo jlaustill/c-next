@@ -9,7 +9,7 @@ import NodeFileSystem from "../../../../cnx/PARSE/1-Discover/NodeFileSystem";
 
 async function generate(source: string): Promise<string> {
   const transpiler = new Transpiler(
-    { input: "", noCache: true, target: "host" },
+    { input: "", outDir: "", noCache: true, target: "host" },
     NodeFileSystem.instance,
   );
   const result = await transpiler.transpile({ kind: "source", source });

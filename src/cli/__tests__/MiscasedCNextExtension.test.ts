@@ -86,7 +86,7 @@ describe("a C-Next extension is lowercase (#1833)", () => {
   // A source run (the editor's) names its text by a path it never reads.
   async function buildSource(sourcePath?: string) {
     return new Transpiler(
-      { target: "host", input: "", noCache: true },
+      { target: "host", input: "", outDir: "", noCache: true },
       NodeFileSystem.instance,
     ).transpile({
       kind: "source",

@@ -47,6 +47,7 @@ describe("Transpiler.determineProjectRoot", () => {
       const transpiler = new Transpiler(
         {
           input: "",
+          outDir: "",
         },
         NodeFileSystem.instance,
       );
@@ -58,6 +59,7 @@ describe("Transpiler.determineProjectRoot", () => {
       const transpiler = new Transpiler(
         {
           input: "",
+          outDir: "",
         },
         NodeFileSystem.instance,
       );
@@ -77,6 +79,7 @@ describe("Transpiler.determineProjectRoot", () => {
       const transpiler = new Transpiler(
         {
           input: join(projectDir, "main.cnx"),
+          outDir: "",
           noCache: true, // Disable cache to avoid side effects
         },
         NodeFileSystem.instance,
@@ -99,6 +102,7 @@ describe("Transpiler.determineProjectRoot", () => {
       const transpiler = new Transpiler(
         {
           input: join(srcDir, "main.cnx"),
+          outDir: "",
           noCache: true,
         },
         NodeFileSystem.instance,
@@ -117,6 +121,7 @@ describe("Transpiler.determineProjectRoot", () => {
       const transpiler = new Transpiler(
         {
           input: join(srcDir, "main.cnx"),
+          outDir: "",
           noCache: true,
         },
         NodeFileSystem.instance,
@@ -135,6 +140,7 @@ describe("Transpiler.determineProjectRoot", () => {
       const transpiler = new Transpiler(
         {
           input: join(deepDir, "helper.cnx"),
+          outDir: "",
           noCache: true,
         },
         NodeFileSystem.instance,
@@ -155,6 +161,7 @@ describe("Transpiler.determineProjectRoot", () => {
       const transpiler = new Transpiler(
         {
           input: join(srcDir, "newfile.cnx"),
+          outDir: "",
           noCache: true,
         },
         NodeFileSystem.instance,
@@ -172,6 +179,7 @@ describe("Transpiler.determineProjectRoot", () => {
       const transpiler = new Transpiler(
         {
           input: join(projectDir, "src", "deep", "nested", "file.cnx"),
+          outDir: "",
           noCache: true,
         },
         NodeFileSystem.instance,
@@ -191,6 +199,7 @@ describe("Transpiler.determineProjectRoot", () => {
       const transpiler = new Transpiler(
         {
           input: join(projectDir, "main.cnx"),
+          outDir: "",
           noCache: true,
         },
         NodeFileSystem.instance,
@@ -209,6 +218,7 @@ describe("Transpiler.determineProjectRoot", () => {
       const transpiler = new Transpiler(
         {
           input: join(srcDir, "main.cnx"),
+          outDir: "",
           noCache: true,
         },
         NodeFileSystem.instance,
@@ -230,6 +240,7 @@ describe("Transpiler.determineProjectRoot", () => {
       const transpiler = new Transpiler(
         {
           input: join(projectDir, "main.cnx"),
+          outDir: "",
           noCache: true,
         },
         NodeFileSystem.instance,
@@ -251,6 +262,7 @@ describe("Transpiler.determineProjectRoot", () => {
       const transpiler = new Transpiler(
         {
           input: join(innerDir, "main.cnx"),
+          outDir: "",
           noCache: true,
         },
         NodeFileSystem.instance,
@@ -273,6 +285,7 @@ describe("Transpiler.determineProjectRoot", () => {
       const transpiler = new Transpiler(
         {
           input: join(isolatedDir, "orphan.cnx"),
+          outDir: "",
           noCache: true,
         },
         NodeFileSystem.instance,
@@ -299,6 +312,7 @@ describe("Transpiler.determineProjectRoot", () => {
       const transpiler = new Transpiler(
         {
           input: join(testDir, "some.cnx"),
+          outDir: "",
           noCache: true,
         },
         NodeFileSystem.instance,
@@ -318,6 +332,7 @@ describe("Transpiler.determineProjectRoot", () => {
       const transpiler = new Transpiler(
         {
           input: join(projectDir, "main.cnx"),
+          outDir: "",
           noCache: true,
         },
         NodeFileSystem.instance,
@@ -338,6 +353,7 @@ describe("Transpiler.determineProjectRoot", () => {
       const transpiler = new Transpiler(
         {
           input: join(projectDir, "main.cnx"),
+          outDir: "",
           noCache: false,
         },
         NodeFileSystem.instance,
@@ -361,6 +377,7 @@ describe("Transpiler.determineProjectRoot", () => {
       const transpiler = new Transpiler(
         {
           input: relativePath,
+          outDir: "",
           noCache: true,
         },
         NodeFileSystem.instance,
@@ -383,6 +400,7 @@ describe("Transpiler.determineProjectRoot", () => {
       const transpiler = new Transpiler(
         {
           input: join(srcDir, "main.cnx"),
+          outDir: "",
           noCache: true,
         },
         NodeFileSystem.instance,
@@ -401,6 +419,7 @@ describe("Transpiler.determineProjectRoot", () => {
       const transpiler = new Transpiler(
         {
           input: join(projectDir, "main.cnx"),
+          outDir: "",
           noCache: true,
         },
         NodeFileSystem.instance,
@@ -422,6 +441,7 @@ describe("Transpiler.determineProjectRoot", () => {
       const transpiler = new Transpiler(
         {
           input: join(project1, "a.cnx"),
+          outDir: "",
           noCache: true,
         },
         NodeFileSystem.instance,
@@ -440,6 +460,7 @@ describe("Transpiler.determineProjectRoot", () => {
       const transpiler = new Transpiler(
         {
           input: join(projectDir, "main.cnx"),
+          outDir: "",
           noCache: true,
         },
         NodeFileSystem.instance,
@@ -460,6 +481,7 @@ describe("Transpiler.determineProjectRoot", () => {
       const transpiler = new Transpiler(
         {
           input: join(srcDir, "main.cnx"),
+          outDir: join(projectDir, "build"),
           noCache: false,
         },
         NodeFileSystem.instance,
@@ -482,6 +504,7 @@ describe("Transpiler.determineProjectRoot", () => {
       const transpiler = new Transpiler(
         {
           input: join(projectDir, "main.cnx"),
+          outDir: join(projectDir, "build"),
           noCache: true,
         },
         NodeFileSystem.instance,
@@ -516,7 +539,7 @@ describe("Transpiler's PlatformIO rung", () => {
     // The process's cwd is this repository, which has no platformio.ini: a
     // second root finder, resolving "<string>" against it, found none (E0515)
     const result = await new Transpiler(
-      { input: "" },
+      { input: "", outDir: "" },
       NodeFileSystem.instance,
     ).transpile({
       kind: "source",
@@ -537,7 +560,10 @@ describe("Transpiler's PlatformIO rung", () => {
         "[env:uno]\nplatform = atmelavr\nboard = uno\n",
     );
     const run = () =>
-      new Transpiler({ input: "" }, NodeFileSystem.instance).transpile({
+      new Transpiler(
+        { input: "", outDir: "" },
+        NodeFileSystem.instance,
+      ).transpile({
         kind: "source",
         source: "u8 value <- 1;\n",
         workingDir: projectDir,

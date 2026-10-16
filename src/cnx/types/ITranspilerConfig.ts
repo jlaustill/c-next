@@ -11,10 +11,17 @@ interface ITranspilerConfig {
   /** Include directories for C/C++ header discovery */
   includeDirs?: string[];
 
-  /** Output directory for generated files (defaults to same as input) */
-  outDir?: string;
+  /**
+   * Output directory for generated files. Required: where output goes is the
+   * caller's decision, and the class has no default for it (#2086). `""`
+   * is the current working directory, as for any relative path.
+   */
+  outDir: string;
 
-  /** Separate output directory for header files (defaults to outDir) */
+  /**
+   * Separate output directory for header files. Missing means `outDir`;
+   * `""` is the current working directory, as for `outDir` (#2104).
+   */
   headerOutDir?: string;
 
   /** Preprocessor defines for C/C++ headers */

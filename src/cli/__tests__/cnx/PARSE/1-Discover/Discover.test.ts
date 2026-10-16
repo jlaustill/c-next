@@ -38,7 +38,6 @@ describe("Discover", () => {
     includeDirs: [],
     defines: { BOARD: "uno" },
     outDir: "",
-    headerOutDir: "",
     debugMode: false,
   };
 
