@@ -238,7 +238,7 @@ C/C++ or builtin parameters need that parameter's signature first. The written b
 error-expecting fixtures (130) need review rather than the rewrite: the 35 that assert E0877 on a
 `const` binding become fixtures for Q2's diagnostic (drop `const`, add nothing).
 
-`scripts/migrate-adr-071.ts` is that rewrite (#2103). Each round transpiles every file and
+The migration script #2103 adds is that rewrite. Each round transpiles every file and
 applies what the diagnostics say: delete the `const` E0898 points at, and add `mut` where E0900
 (or E0879, for a callback whose C typedef writes through a pointer) says the binding is declared.
 Run on main's corpus from before this ADR, with the harness's `--include tests/include`, it
