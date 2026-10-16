@@ -366,7 +366,7 @@ class Preprocessor implements IHeaderPreprocessor {
     options: IPreprocessOptions,
   ): string[] {
     const args: string[] = [
-      // #1713: the target's own flags, so cpp predefines what its compiler does
+      // #1713: the target's own flags, so cpp defines the macros its compiler does
       ...((options.toolchain ?? this.toolchain)?.flags ?? []),
       "-E", // Preprocess only
       "-P", // Don't generate linemarkers (we'll add them back if needed)

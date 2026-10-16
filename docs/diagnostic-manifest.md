@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-619 fixture(s) assert a diagnostic; 609 carry a code.
+623 fixture(s) assert a diagnostic; 613 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -501,6 +501,10 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1740-reopened-scope-this-call/this-call-undeclared.test.cnx                     | E0422               |
 | tests/bugs/issue-1745-include-directive-agreement/commented-out-header-error.test.cnx            | E0422               |
 | tests/bugs/issue-1745-include-directive-agreement/commented-out-include-error.test.cnx           | E0426               |
+| tests/bugs/issue-1755-system-headers/fgets-read-only-cortex-m7-error.test.cnx                    | E0896, E0900        |
+| tests/bugs/issue-1755-system-headers/fgets-read-only-error.test.cnx                              | E0896, E0900        |
+| tests/bugs/issue-1755-system-headers/strlen-narrow-error.test.cnx                                | E0869               |
+| tests/bugs/issue-1755-system-headers/strlen-signed-error.test.cnx                                | E0810               |
 | tests/bugs/issue-1768-variable-dimension/header-variable.test.cnx                                | E0909               |
 | tests/bugs/issue-1768-variable-dimension/variable-dimension.test.cnx                             | E0909               |
 | tests/bugs/issue-1770-compound-division-zero/compound-division-zero-imported.test.cnx            | E0800, E0802        |
