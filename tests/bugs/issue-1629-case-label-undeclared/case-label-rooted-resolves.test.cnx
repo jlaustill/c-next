@@ -5,8 +5,10 @@
 // `this.LIMIT` and bare `LIMIT` are the scope's 3 and `global.LIMIT` is the
 // file's 1; `global.FAR` arrives through an include and `FARTHER` through
 // that include's include. A bare `LIMIT` at file scope is the file's, and
-// folds as `global.LIMIT` does.
+// folds as `global.LIMIT` does. A header's macro is a label in both bare and
+// `global.` spellings, written by its name as in any value position.
 #include <case-label-far.cnx>
+#include "case_label_macro.h"
 
 const u8 LIMIT <- 1;
 const u8 TOP <- 7;
@@ -32,6 +34,9 @@ scope Panel {
             case global.FARTHER {
                 return 110;
             }
+            case global.HDR_K {
+                return 120;
+            }
             default {
                 return 0;
             }
@@ -45,6 +50,9 @@ scope Panel {
             }
             case FARTHER {
                 return 111;
+            }
+            case HDR_K {
+                return 121;
             }
             default {
                 return 0;
@@ -139,6 +147,14 @@ u32 main() {
     got <- bareAtFileScope(3);
     if (got != 0) {
         return 15;
+    }
+    got <- Panel.pick(12);
+    if (got != 120) {
+        return 16;
+    }
+    got <- Panel.bare(12);
+    if (got != 121) {
+        return 17;
     }
     return 0;
 }

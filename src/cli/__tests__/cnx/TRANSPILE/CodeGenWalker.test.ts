@@ -16888,14 +16888,31 @@ describe("CodeGenWalker", () => {
       // broken invariant rather than a name to guess
       expect(() =>
         generate(`
-          u32 pick(u8 v) {
-            switch (v) {
-              case global.NOPE { return 1; }
-              default { return 3; }
+          scope Panel {
+            public u32 pick(u8 v) {
+              switch (v) {
+                case this.NOPE { return 1; }
+                default { return 3; }
+              }
             }
           }
         `),
-      ).toThrow("case label 'global.NOPE' reached codegen unbound");
+      ).toThrow("case label 'this.NOPE' reached codegen unbound");
+    });
+
+    it("writes a global. label that binds nothing, a header's macro, by its name (#2075)", () => {
+      // `generate` runs no 2.1, so nothing binds `global.HDR_K`: an unbound
+      // `global.` label is written by its name, as the value position writes
+      // a header's macro. `case-label-rooted-resolves` covers the real macro
+      const code = generate(`
+        u32 pick(u8 v) {
+          switch (v) {
+            case global.HDR_K { return 1; }
+            default { return 3; }
+          }
+        }
+      `);
+      expect(code).toContain("case HDR_K:");
     });
 
     it("folds a bare file-scope const label as its rooted spelling does (#1629)", () => {

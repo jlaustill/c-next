@@ -27,7 +27,10 @@ import LengthProperty from "../../utils/LengthProperty";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeUtils from "../../utils/ScopeUtils";
 import ConstLiteral from "../../utils/ConstLiteral";
+import type TChainRoot from "../../types/TChainRoot";
 import type TValueBinding from "../../types/TValueBinding";
+import type TSymbol from "../../types/symbols/TSymbol";
+import type IVariableSymbol from "../../types/symbols/IVariableSymbol";
 import OperandTyper from "../../utils/OperandTyper";
 import StatementNodes from "../../utils/StatementNodes";
 import EnumValueResolver from "./EnumValueResolver";
@@ -37,12 +40,11 @@ import type IAnalysisContext from "./types/IAnalysisContext";
 import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
 import type ISourceSpan from "../../types/ISourceSpan";
 import type TCaseLabelSyntax from "../../types/syntax/TCaseLabelSyntax";
+import type TSwitchStatement from "../../types/syntax/TSwitchStatement";
 import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
-import type TStatement from "../../types/syntax/TStatement";
 
-type TSwitch = Extract<TStatement, { kind: "switch" }>;
-type TSwitchCase = TSwitch["cases"][number];
-type TDefaultCase = NonNullable<TSwitch["defaultCase"]>;
+type TSwitchCase = TSwitchStatement["cases"][number];
+type TDefaultCase = NonNullable<TSwitchStatement["defaultCase"]>;
 
 /** MISRA C:2012 Rule 16.6: a switch needs at least two clauses. */
 const MINIMUM_CLAUSES = 2;
@@ -69,19 +71,12 @@ class SwitchStatementCheck {
 
   /** Every switch in a function, a scope's included (#1991) */
   public declaration(declaration: TDeclarationSyntax): void {
-    if (declaration.kind === "scope") {
-      for (const member of declaration.members) {
-        this.declaration(member.declaration);
-      }
-      return;
-    }
-    if (declaration.kind !== "function") return;
-    for (const statement of StatementNodes.of(declaration.body.statements)) {
-      if (statement.kind === "switch") this.statement(statement);
+    for (const statement of StatementNodes.switches(declaration)) {
+      this.statement(statement);
     }
   }
 
-  private statement(statement: TSwitch): void {
+  private statement(statement: TSwitchStatement): void {
     const switchExpr = statement.subject;
     const cases = statement.cases;
     const defaultCase = statement.defaultCase;
@@ -176,8 +171,9 @@ class SwitchStatementCheck {
    *
    * Asked of what the label BINDS, so one check covers every spelling the
    * grammar admits: `level`, `this.level`, `global.level`, `Panel.level`.
-   * A label binding no value is a type (E0717 too: `EMode`, `this.State`,
-   * #2069), an enum member, or E0427's.
+   * A label binding no value is a type or a chain through a struct or a
+   * bitmap (E0717 too: `EMode`, `this.State`, `global.Pt.x`; #2069, #2072),
+   * an enum member, a header's macro, or E0427's.
    */
   private reportNonConstantLabels(cases: readonly TSwitchCase[]): boolean {
     let reported = false;
@@ -239,27 +235,62 @@ class SwitchStatementCheck {
     }
     const binding = this.labelBinding(label);
     if (binding !== null) return this.isConstant(binding, label);
-    return label.kind !== "identifier" || !this.namesType(label);
+    if (label.kind === "identifier") {
+      const kind = this.typeKindOf(label.root, label.name, label.span);
+      return kind === undefined || !TYPE_KINDS.has(kind);
+    }
+    if (label.kind !== "qualified") return true;
+    // A chain through an enum names its member; through a struct or a bitmap
+    // a field, which is no constant (#2072). No symbol at all is E0427's.
+    return SwitchStatementCheck.isConstantThrough(
+      this.typeKindOf(label.root, label.path[0], label.span),
+    );
   }
 
   /**
-   * A label spelled as a type -- `EMode`, `this.State`, `global.Pt` -- binds
-   * no value, so it is looked up where a member chain's head would be. Not
-   * `isTypeNameAt`: in a file that includes a header it calls a name it
-   * cannot find a type, which a bare enum member (`IDLE`) is.
+   * A chain's head type decides whether the chain is a constant: through an
+   * enum it names a member; through a struct, a bitmap or a register a field,
+   * which is no constant (#2072, #2108). No symbol at all is E0427's.
    */
-  private namesType(
-    label: Extract<TCaseLabelSyntax, { kind: "identifier" }>,
-  ): boolean {
+  private static isConstantThrough(kind: TSymbol["kind"] | undefined): boolean {
+    return kind === undefined || kind === "enum";
+  }
+
+  /**
+   * The kind of type a name that binds no value names -- `EMode`,
+   * `this.State`, `global.Pt`, or a chain's head -- looked up where a member
+   * chain's head would be. Not `isTypeNameAt`: in a file that includes a
+   * header it calls a name it cannot find a type, which a bare enum member
+   * (`IDLE`) is.
+   */
+  private typeKindOf(
+    root: TChainRoot,
+    name: string,
+    at: ISourceSpan,
+  ): TSymbol["kind"] | undefined {
+    return this.context.program.symbolByCName(this.headCName(root, name, at))
+      ?.kind;
+  }
+
+  /** The C name a type-position head -- `State`, `this.State` -- names at `at` */
+  private headCName(root: TChainRoot, name: string, at: ISourceSpan): string {
     const { program, sourceFile } = this.context;
-    const cName = ScopeUtils.typeHeadCName(
-      label.root,
-      label.name,
-      OperandTyper.scopePathAt(label.span, this.context),
-      (name) => program.isScopeTypeVisibleFrom(sourceFile, name),
+    return ScopeUtils.typeHeadCName(
+      root,
+      name,
+      OperandTyper.scopePathAt(at, this.context),
+      (qualified) => program.isScopeTypeVisibleFrom(sourceFile, qualified),
     );
-    const kind = program.symbolByCName(cName)?.kind;
-    return kind !== undefined && TYPE_KINDS.has(kind);
+  }
+
+  /** The member `Panel.LIMIT` names, in the scope its head binds */
+  private scopeMember(
+    label: Extract<TCaseLabelSyntax, { kind: "qualified" }>,
+    scopePath: string,
+  ): TSymbol | undefined {
+    return this.context.program.symbolByCName(
+      ScopeUtils.qualifyPathInScope(label.path.slice(1), scopePath),
+    );
   }
 
   /** Whether a bound label is a constant, asked of the one const-value answer */
@@ -282,11 +313,20 @@ class SwitchStatementCheck {
       case "scope": {
         // `Panel.LIMIT`: the scope names where to look, the member decides
         if (label.kind !== "qualified") return false;
-        const member = program.symbolByCName(
-          ScopeUtils.qualifyPathInScope(label.path.slice(1), binding.scopePath),
-        );
-        // No symbol: an enum member chain (`Panel.State.IDLE`), or #1630's
-        if (member === undefined) return true;
+        const member = this.scopeMember(label, binding.scopePath);
+        // No symbol: a chain through a scope's type (`Panel.State.IDLE`,
+        // `Panel.Pt.x`), decided by that type as a file-scope head is (#2108);
+        // or #1630's
+        if (member === undefined) {
+          return SwitchStatementCheck.isConstantThrough(
+            program.symbolByCName(
+              ScopeUtils.qualifyPathInScope(
+                label.path.slice(1, 2),
+                binding.scopePath,
+              ),
+            )?.kind,
+          );
+        }
         return (
           member.kind === "variable" &&
           ConstLiteral.textOf(program, member) !== null
@@ -296,26 +336,83 @@ class SwitchStatementCheck {
   }
 
   /**
-   * Which declaration or enum member a named label is, so two spellings of
-   * one -- `LIMIT` and `this.LIMIT` in its scope, `State.IDLE` and
-   * `this.State.IDLE` -- are one value. Null for a label keyed on its value.
+   * What a label claims in C, so two labels that are one C case are one key
+   * whatever their spelling (#2046). A const is written as its value
+   * (`resolveCaseConst`), so `LIMIT`, `this.LIMIT`, `Panel.LIMIT` and `3`
+   * all claim 3, and two consts with one value claim it twice;
+   * `case Point.type_byte_length` is its number too. A label that does not
+   * fold is keyed on what it names: a qualified enum member on the member, so
+   * `State.IDLE` and `this.State.IDLE` in its scope are one, and a header
+   * macro on its name. A bare enum member (`IDLE`) is keyed on its spelling,
+   * so beside `EMode.IDLE` it is not E0713 yet (#2067).
    */
-  private labelIdentity(label: TCaseLabelSyntax): string | null {
-    const { program, sourceFile } = this.context;
+  private labelKey(label: TCaseLabelSyntax): string {
+    const length = this.lengthValue(label);
+    if (length !== null) return `value:${length}`;
+    const constant = this.constKey(label);
+    if (constant !== null) return constant;
+    const binding = this.labelBinding(label);
+    // `HDR_K` and `global.HDR_K`: one header macro, written by its name.
+    // #2067: a bare enum member binds nothing either, so it lands here keyed
+    // on its spelling, not on the member it names
+    if (
+      label.kind === "identifier" &&
+      label.root !== "this" &&
+      (binding === null || binding.kind === "foreign")
+    ) {
+      return `name:${binding?.name ?? label.name}`;
+    }
+    if (label.kind === "qualified") {
+      const head = this.headCName(label.root, label.path[0], label.span);
+      return `member:${QualifiedCName.fromParts([head, ...label.path.slice(1)])}`;
+    }
+    return `value:${SwitchStatementCheck.caseLabelValue(label)}`;
+  }
+
+  /**
+   * A const label's key, from the declaration its spelling binds and the
+   * answer render writes for it (`ConstLiteral`, `settledConstOf`): an integer
+   * its value, an enum-typed const its member, a char literal its literal and
+   * a lone header macro its name. Null for a label that names no const.
+   */
+  private constKey(label: TCaseLabelSyntax): string | null {
+    const { program } = this.context;
+    const binding = this.labelBinding(label);
+    if (binding === null) return null;
     if (label.kind === "identifier") {
-      const binding = this.labelBinding(label);
-      return binding?.kind === "variable"
-        ? binding.symbol.fullyQualifiedCName
+      if (binding.kind === "local") {
+        const local = program.constantOf(binding);
+        return local === null ? null : `value:${local.value}`;
+      }
+      return binding.kind === "variable"
+        ? this.settledKey(binding.symbol)
         : null;
     }
-    if (label.kind !== "qualified") return null;
-    const head = ScopeUtils.typeHeadCName(
-      label.root,
-      label.path[0],
-      OperandTyper.scopePathAt(label.span, this.context),
-      (name) => program.isScopeTypeVisibleFrom(sourceFile, name),
-    );
-    return QualifiedCName.fromParts([head, ...label.path.slice(1)]);
+    if (label.kind !== "qualified" || binding.kind !== "scope") return null;
+    const member = this.scopeMember(label, binding.scopePath);
+    return member?.kind === "variable" ? this.settledKey(member) : null;
+  }
+
+  /** The key of the answer render writes for a const (`ConstLiteral.of`) */
+  private settledKey(symbol: IVariableSymbol): string | null {
+    const literal = ConstLiteral.of(this.context.program, symbol);
+    if (literal === null) return null;
+    switch (literal.kind) {
+      case "integer":
+        return `value:${BigInt(literal.digits)}`;
+      case "member":
+        return `member:${literal.cName}`;
+      case "macro":
+        return `name:${literal.name}`;
+      case "float":
+      case "bool":
+      case "char":
+        return `value:${literal.text}`;
+      default: {
+        const unhandled: never = literal;
+        return unhandled;
+      }
+    }
   }
 
   /** True when a duplicate was reported, so the later checks are skipped. */
@@ -324,9 +421,7 @@ class SwitchStatementCheck {
     for (const caseCtx of cases) {
       for (const label of caseCtx.labels) {
         const value = SwitchStatementCheck.caseLabelValue(label);
-        // `case Point.type_byte_length` is its number: `case 5` claims it too
-        const key =
-          this.lengthValue(label) ?? this.labelIdentity(label) ?? value;
+        const key = this.labelKey(label);
         if (seen.has(key)) {
           this.found.push({
             code: "E0713",

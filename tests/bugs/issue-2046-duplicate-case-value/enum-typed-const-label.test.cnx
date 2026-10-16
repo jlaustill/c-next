@@ -1,0 +1,77 @@
+// test-execution
+// test-adr: 016, 025
+// #2085 review: a const of an enum type is a case label written as its
+// member, at file scope (`M`, `global.M`) and in a scope (`this.M`, bare `M`).
+// Keying the label for E0713 must not stop on an internal invariant, and the
+// two members stay two cases.
+enum EMode {
+    IDLE,
+    RUN
+}
+
+const EMode M <- EMode.IDLE;
+
+u32 atFile(EMode s) {
+    switch (s) {
+        case M {
+            return 1;
+        }
+        case EMode.RUN {
+            return 2;
+        }
+    }
+    return 0;
+}
+
+scope Panel {
+    public enum State {
+        OFF,
+        ON
+    }
+
+    const State M <- State.ON;
+
+    public u32 rooted(State s) {
+        switch (s) {
+            case this.M {
+                return 10;
+            }
+            case State.OFF {
+                return 20;
+            }
+        }
+        return 0;
+    }
+
+    public u32 bare(State s) {
+        switch (s) {
+            case M {
+                return 30;
+            }
+            case this.State.OFF {
+                return 40;
+            }
+        }
+        return 0;
+    }
+}
+
+u32 main() {
+    u32 got <- atFile(EMode.IDLE);
+    if (got != 1) {
+        return 1;
+    }
+    got <- atFile(EMode.RUN);
+    if (got != 2) {
+        return 2;
+    }
+    got <- Panel.rooted(Panel.State.ON);
+    if (got != 10) {
+        return 3;
+    }
+    got <- Panel.bare(Panel.State.OFF);
+    if (got != 40) {
+        return 4;
+    }
+    return 0;
+}

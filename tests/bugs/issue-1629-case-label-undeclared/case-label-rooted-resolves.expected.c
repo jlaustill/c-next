@@ -12,8 +12,10 @@
 // `this.LIMIT` and bare `LIMIT` are the scope's 3 and `global.LIMIT` is the
 // file's 1; `global.FAR` arrives through an include and `FARTHER` through
 // that include's include. A bare `LIMIT` at file scope is the file's, and
-// folds as `global.LIMIT` does.
+// folds as `global.LIMIT` does. A header's macro is a label in both bare and
+// `global.` spellings, written by its name as in any value position.
 #include <case-label-far.h>
+#include "case_label_macro.h"
 
 #include <stdint.h>
 
@@ -47,6 +49,10 @@ uint32_t Panel__pick(uint8_t s) {
             return 110U;
             break;
         }
+        case HDR_K: {
+            return 120U;
+            break;
+        }
         default: {
             return 0U;
             break;
@@ -62,6 +68,10 @@ uint32_t Panel__bare(uint8_t s) {
         }
         case 11U: {
             return 111U;
+            break;
+        }
+        case HDR_K: {
+            return 121U;
             break;
         }
         default: {
@@ -162,6 +172,14 @@ int main(void) {
     got = bareAtFileScope(3U);
     if (got != 0) {
         return 15U;
+    }
+    got = Panel__pick(12U);
+    if (got != 120) {
+        return 16U;
+    }
+    got = Panel__bare(12U);
+    if (got != 121) {
+        return 17U;
     }
     return 0U;
 }

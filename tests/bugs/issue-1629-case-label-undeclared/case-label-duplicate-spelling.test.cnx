@@ -4,7 +4,8 @@
 // is spelled. Inside `Panel`, `LIMIT` and `this.LIMIT` are one const, so the
 // second is E0713. `this.LIMIT` and `global.LIMIT` bind two consts and stay
 // silent, as do `State.IDLE` and `global.State.IDLE`; `this.State.RUN`
-// repeats `State.RUN`.
+// repeats `State.RUN`. A local `LIMIT` beside `global.LIMIT` is in the
+// executing `case-label-local-shadow`.
 const u8 LIMIT <- 1;
 
 enum State {

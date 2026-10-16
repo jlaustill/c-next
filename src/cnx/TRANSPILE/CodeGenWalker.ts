@@ -65,6 +65,7 @@ import IPlannedForAssignment from "./3-Render/codegen/types/IPlannedForAssignmen
 import type IAssignmentSyntax from "../types/syntax/IAssignmentSyntax";
 import type IVariableDeclarationSyntax from "../types/syntax/IVariableDeclarationSyntax";
 import type TStatement from "../types/syntax/TStatement";
+import type TSwitchStatement from "../types/syntax/TSwitchStatement";
 import type IStructDeclarationSyntax from "../types/syntax/IStructDeclarationSyntax";
 import type IRegisterDeclarationSyntax from "../types/syntax/IRegisterDeclarationSyntax";
 import type IParameterSyntax from "../types/syntax/IParameterSyntax";
@@ -3418,9 +3419,7 @@ class CodeGenWalker {
    * rendering a statement registers effects, and the generator decides how
    * deep each line indents.
    */
-  private planSwitch(
-    statement: Extract<TStatement, { kind: "switch" }>,
-  ): IPlannedSwitch {
+  private planSwitch(statement: TSwitchStatement): IPlannedSwitch {
     const subject = this.renderExpression(statement.subject);
     const subjectEnumType = this.enumTypeOf(statement.subject) ?? undefined;
     const defaultCase = statement.defaultCase;
@@ -3483,7 +3482,8 @@ class CodeGenWalker {
         if (label.root === null) {
           return { kind: "identifier", name: label.name, resolved };
         }
-        // E0427 and E0717 (2.1) rejected a rooted label that binds no constant
+        // E0427, E0431 and E0717 (2.1) rejected a rooted label that binds no
+        // constant
         invariant(
           resolved !== null,
           `case label '${label.root}.${label.name}' reached codegen unbound`,
@@ -3535,6 +3535,9 @@ class CodeGenWalker {
       this.host.applyEffects(constant.effects);
       return constant.code;
     }
+    // `global.HDR_K`: a header's macro binds nothing, and is written as its
+    // name, as the value position writes it
+    if (root === "global") return declared ?? name;
     if (root !== null) return declared;
     return TypeValidator.resolveBoundIdentifier(
       name,

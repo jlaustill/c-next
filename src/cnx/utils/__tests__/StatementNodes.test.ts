@@ -46,4 +46,15 @@ describe("StatementNodes", () => {
       kinds(`u8 g <- 1; scope S { u8 m <- 2; public void f() { g <- 3; } }`),
     ).toEqual(["assignment"]);
   });
+
+  it("lists every case label, a nested switch's and a scope member's too", () => {
+    const labels = CNextSourceParser.parse(
+      `scope S { public void f(u8 a) { switch (a) { case 1 || 2 { if (a = 1) { switch (a) { case 3 { a <- 0; } default { } } } } default { } } } }`,
+    ).program.declarations.flatMap((member) =>
+      StatementNodes.caseLabels(member.declaration).map((label) =>
+        label.kind === "integer" ? label.text : label.kind,
+      ),
+    );
+    expect(labels).toEqual(["1", "2", "3"]);
+  });
 });

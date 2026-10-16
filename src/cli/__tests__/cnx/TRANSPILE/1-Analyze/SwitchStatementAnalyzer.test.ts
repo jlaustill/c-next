@@ -185,6 +185,109 @@ describe("SwitchStatementAnalyzer", () => {
       expect(found[0].message).toContain("'this.State.RUN'");
     });
 
+    it("keeps a local `LIMIT` and `global.LIMIT` apart: two consts", () => {
+      const found = errors(
+        [
+          "const u8 LIMIT <- 1;",
+          "u32 pick(u8 s) {",
+          "    const u8 LIMIT <- 5;",
+          "    switch (s) {",
+          "        case LIMIT { return 1; }",
+          "        case global.LIMIT { return 2; }",
+          "        default { return 0; }",
+          "    }",
+          "    return 0;",
+          "}",
+        ].join("\n"),
+      );
+      expect(found).toEqual([]);
+    });
+
+    it("rejects a local `LIMIT` beside `global.LIMIT` of one value: one C case (#2046)", () => {
+      const found = errors(
+        [
+          "const u8 LIMIT <- 1;",
+          "u32 pick(u8 s) {",
+          "    const u8 LIMIT <- 1;",
+          "    switch (s) {",
+          "        case LIMIT { return 1; }",
+          "        case global.LIMIT { return 2; }",
+          "        default { return 0; }",
+          "    }",
+          "    return 0;",
+          "}",
+        ].join("\n"),
+      );
+      expect(found.map((e) => [e.code, e.line])).toEqual([["E0713", 6]]);
+    });
+
+    it("rejects a const beside the literal it folds to (#2046)", () => {
+      const found = errors(labels("LIMIT", "3"));
+      expect(found.map((e) => e.code)).toEqual(["E0713"]);
+    });
+
+    it("rejects `Panel.LIMIT` beside `this.LIMIT`: one const (#2046)", () => {
+      const found = errors(labels("this.LIMIT", "Panel.LIMIT"));
+      expect(found.map((e) => e.code)).toEqual(["E0713"]);
+    });
+
+    it("rejects two consts with one value (#2046)", () => {
+      const found = errors(labels("global.LIMIT", "1"));
+      expect(found.map((e) => e.code)).toEqual(["E0713"]);
+    });
+
+    it("keys an enum-typed const label on its member, without a crash", () => {
+      const found = errors(
+        [
+          "enum EMode { IDLE, RUN }",
+          "const EMode M <- EMode.IDLE;",
+          "u32 pick(EMode s) {",
+          "    switch (s) {",
+          "        case M { return 1; }",
+          "        case EMode.RUN { return 2; }",
+          "    }",
+          "    return 0;",
+          "}",
+        ].join("\n"),
+      );
+      expect(found).toEqual([]);
+    });
+
+    it("rejects an enum-typed const beside its member (#2046)", () => {
+      const found = errors(
+        [
+          "enum EMode { IDLE, RUN }",
+          "const EMode M <- EMode.IDLE;",
+          "u32 pick(EMode s) {",
+          "    switch (s) {",
+          "        case M { return 1; }",
+          "        case EMode.IDLE { return 2; }",
+          "        case EMode.RUN { return 3; }",
+          "    }",
+          "    return 0;",
+          "}",
+        ].join("\n"),
+      );
+      expect(found.map((e) => e.code)).toEqual(["E0713"]);
+    });
+
+    it("rejects a char-initialized const in two spellings (#2046)", () => {
+      const found = errors(
+        [
+          "const u8 K <- 'A';",
+          "u32 pick(u8 s) {",
+          "    switch (s) {",
+          "        case K { return 1; }",
+          "        case global.K { return 2; }",
+          "        default { return 0; }",
+          "    }",
+          "    return 0;",
+          "}",
+        ].join("\n"),
+      );
+      expect(found.map((e) => e.code)).toEqual(["E0713"]);
+    });
+
     it("rejects the same character label twice", () => {
       const found = errors(labels("'a'", "'a'"));
       expect(found).toHaveLength(1);
@@ -359,6 +462,9 @@ describe("SwitchStatementAnalyzer", () => {
       "global.Pt",
       "Pt",
       "this.Flags",
+      "this.Flags.a",
+      "global.Pt.x",
+      "Pt.x",
       "this.S",
       "S",
       "Panel.S",
@@ -381,6 +487,7 @@ describe("SwitchStatementAnalyzer", () => {
       "this.State.STOPPED",
       "Panel.State.GOING",
       "global.EMode.RUN",
+      "EMode.RUN",
     ])("accepts `%s`", (label) => {
       expect(pick(label)).toEqual([]);
     });

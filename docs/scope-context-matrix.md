@@ -125,8 +125,10 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
-3 linked fixtures with no derivable context:
+5 linked fixtures with no derivable context:
 
+- `adr-016/global-outside-scope-imported-error.test.cnx`
+- `adr-016/this-outside-scope-imported-error.test.cnx`
 - `bugs/issue-1306-nested-scope-diagnostic/cross-file-nested.test.cnx`
 - `bugs/issue-1334-scope-declaration-sites/conflict-across-files.test.cnx`
 - `scope/nested-scope-error.test.cnx`

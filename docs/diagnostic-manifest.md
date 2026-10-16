@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-602 fixture(s) assert a diagnostic; 592 carry a code.
+606 fixture(s) assert a diagnostic; 596 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -77,6 +77,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-014/whole-array-field-transitive-error.test.cnx                                        | E0866               |
 | tests/adr-016/cross-scope-bare-error.test.cnx                                                    | E0436               |
 | tests/adr-016/cross-scope-register-bare-error.test.cnx                                           | E0437               |
+| tests/adr-016/global-outside-scope-error.test.cnx                                                | E0431               |
+| tests/adr-016/global-outside-scope-imported-error.test.cnx                                       | E0431               |
 | tests/adr-016/mixed-access-ultimate-error.test.cnx                                               | E0435, E0436        |
 | tests/adr-016/private-cross-scope-error.test.cnx                                                 | E0436               |
 | tests/adr-016/private-func-access-error.test.cnx                                                 | E0436               |
@@ -88,6 +90,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-016/scope-enum-naming-conflict.test.cnx                                                | E0437               |
 | tests/adr-016/self-scope-bare-error.test.cnx                                                     | E0435               |
 | tests/adr-016/this-outside-scope-error.test.cnx                                                  | E0431               |
+| tests/adr-016/this-outside-scope-imported-error.test.cnx                                         | E0431               |
 | tests/adr-017/bare-enum-field-slice-target-error.test.cnx                                        | E0424               |
 | tests/adr-017/bare-enum-slice-target-error.test.cnx                                              | E0424               |
 | tests/adr-017/bare-enum-uncovered-arms-error.test.cnx                                            | E0424               |
@@ -535,6 +538,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-2019-header-unclosed-name/concatenation-self.test.cnx                           | E0427               |
 | tests/bugs/issue-2019-header-unclosed-name/self-local.test.cnx                                   | E0427               |
 | tests/bugs/issue-2019-header-unclosed-name/substring-self.test.cnx                               | E0427               |
+| tests/bugs/issue-2046-duplicate-case-value/duplicate-by-value.test.cnx                           | E0713               |
 | tests/bugs/issue-2051-case-label-not-constant/case-label-not-constant.test.cnx                   | E0717               |
 | tests/bugs/issue-2076-header-struct-dimension/header-pointer-dimension-error.test.cnx            | E0909               |
 | tests/bugs/issue-847-misra-17-7-lowering/bare-intra-scope-discard.test.cnx                       | E0708               |
