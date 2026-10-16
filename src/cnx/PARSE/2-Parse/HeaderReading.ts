@@ -143,7 +143,7 @@ class HeaderReading {
               directives: unit.directives,
               includePaths: graph.includeSearchPaths,
               headers: new Set(
-                graph.headerIncludes.map(({ header }) => header),
+                graph.headerIncludes.map((include) => include.header),
               ),
               searchesSystemPath: unit.unresolvedSystem.length > 0,
             },

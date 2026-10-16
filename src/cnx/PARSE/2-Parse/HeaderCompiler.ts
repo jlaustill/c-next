@@ -49,10 +49,12 @@ class HeaderCompiler {
     if (charBits !== description.char_bits) {
       return `target '${description.name}' has ${description.char_bits}-bit char, and this compiler's __CHAR_BIT__ is ${macros.get("__CHAR_BIT__") ?? "undefined"}`;
     }
-    for (const [field, macro, what] of HeaderCompiler.DATA_MODEL) {
-      const bits = Number(macros.get(macro)) * charBits;
-      if (bits !== description[field]) {
-        return `target '${description.name}' has ${description[field]}-bit ${what}, and this compiler's ${macro} gives ${Number.isNaN(bits) ? "none" : `${bits}-bit`}`;
+    for (const width of HeaderCompiler.DATA_MODEL) {
+      const expected = description[width.field];
+      const bits = Number(macros.get(width.macro)) * charBits;
+      if (bits !== expected) {
+        const given = Number.isNaN(bits) ? "none" : String(bits) + "-bit";
+        return `target '${description.name}' has ${expected}-bit ${width.what}, and this compiler's ${width.macro} gives ${given}`;
       }
     }
     const bigEndian = macros.get("__BYTE_ORDER__") === "__ORDER_BIG_ENDIAN__";
@@ -62,17 +64,23 @@ class HeaderCompiler {
     return null;
   }
 
-  private static readonly DATA_MODEL: ReadonlyArray<
-    readonly [
-      "pointer_bits" | "int_bits" | "long_bits" | "long_long_bits",
-      string,
-      string,
-    ]
-  > = [
-    ["pointer_bits", "__SIZEOF_POINTER__", "pointers"],
-    ["int_bits", "__SIZEOF_INT__", "int"],
-    ["long_bits", "__SIZEOF_LONG__", "long"],
-    ["long_long_bits", "__SIZEOF_LONG_LONG__", "long long"],
+  private static readonly DATA_MODEL: ReadonlyArray<{
+    readonly field:
+      | "pointer_bits"
+      | "int_bits"
+      | "long_bits"
+      | "long_long_bits";
+    readonly macro: string;
+    readonly what: string;
+  }> = [
+    { field: "pointer_bits", macro: "__SIZEOF_POINTER__", what: "pointers" },
+    { field: "int_bits", macro: "__SIZEOF_INT__", what: "int" },
+    { field: "long_bits", macro: "__SIZEOF_LONG__", what: "long" },
+    {
+      field: "long_long_bits",
+      macro: "__SIZEOF_LONG_LONG__",
+      what: "long long",
+    },
   ];
 
   /**
