@@ -23,6 +23,14 @@ import invariant from "../../utils/invariant";
 import SourceOrder from "../../utils/SourceOrder";
 
 /** What 1.2 reads a run's headers from: 1.1's walk of them */
+/** What a run with no compiler read its headers with: nothing */
+const NO_READING = {
+  compilerPath: null,
+  defines: {},
+  includeSearchPaths: [],
+  headerSearchPaths: new Map<string, readonly string[]>(),
+} as const;
+
 type THeaderGraph = Pick<
   ISourceGraph,
   | "cnextFiles"
@@ -93,7 +101,7 @@ class HeaderReading {
       return reading._result(
         [],
         NOTHING_SETTLED,
-        { cppMode: false, reader: HeaderCompiler.identity(null) },
+        { cppMode: false, reader: HeaderCompiler.identity(null, NO_READING) },
         new Map(),
         new Map(),
       );
@@ -115,7 +123,7 @@ class HeaderReading {
         return reading._result(
           [],
           NOTHING_SETTLED,
-          { cppMode: false, reader: HeaderCompiler.identity(null) },
+          { cppMode: false, reader: HeaderCompiler.identity(null, NO_READING) },
           new Map(),
           new Map(),
         );
@@ -156,6 +164,12 @@ class HeaderReading {
     );
     const reader = HeaderCompiler.identity(
       preprocessor === null || typeof compiler === "string" ? null : compiler,
+      {
+        compilerPath: preprocessor?.compilerPath() ?? null,
+        defines: graph.anchor.defines,
+        includeSearchPaths: graph.includeSearchPaths,
+        headerSearchPaths: graph.headerSearchPaths,
+      },
     );
     return reading._result(
       headerFiles,

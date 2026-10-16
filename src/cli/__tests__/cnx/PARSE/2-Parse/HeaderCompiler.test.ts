@@ -56,6 +56,7 @@ function compilerDefining(macros: Record<string, string>): IHeaderPreprocessor {
     .join("\n");
   return {
     isAvailable: () => true,
+    compilerPath: () => "/usr/bin/gcc",
     preprocess: () => Promise.reject(new Error("not used")),
     preprocessString: () =>
       Promise.resolve({
@@ -135,5 +136,46 @@ describe("HeaderCompiler.disagreement (#1542 ruling 10)", () => {
     expect(await HeaderCompiler.disagreement(broken, row("host"))).toBe(
       "avr-gcc: error: unrecognized option '-mthumb'",
     );
+  });
+});
+
+describe("HeaderCompiler.identity (#1250)", () => {
+  const gcc = { driver: "gcc", flags: [] };
+  const reading = {
+    compilerPath: "/usr/bin/gcc",
+    defines: { WIDE: "1", DEBUG: true },
+    includeSearchPaths: ["/p/include"],
+    headerSearchPaths: new Map([["/p/include/w.h", ["/p/include"]]]),
+  };
+
+  it("is the same for the same reading, whatever order the defines came in", () => {
+    expect(HeaderCompiler.identity(gcc, reading)).toBe(
+      HeaderCompiler.identity(gcc, {
+        ...reading,
+        defines: { DEBUG: true, WIDE: "1" },
+      }),
+    );
+  });
+
+  it.each([
+    ["a define", { defines: { DEBUG: true } }],
+    ["a define's value", { defines: { WIDE: "0", DEBUG: true } }],
+    ["the compiler found on PATH", { compilerPath: "/opt/bin/gcc" }],
+    ["the include paths", { includeSearchPaths: ["/q/include"] }],
+    [
+      "a header's search path",
+      { headerSearchPaths: new Map([["/p/include/w.h", ["/q"]]]) },
+    ],
+  ])("differs when %s differs", (_what, change) => {
+    expect(HeaderCompiler.identity(gcc, { ...reading, ...change })).not.toBe(
+      HeaderCompiler.identity(gcc, reading),
+    );
+  });
+
+  it("differs by flags, and names no compiler for a run without one", () => {
+    expect(
+      HeaderCompiler.identity({ driver: "gcc", flags: ["-m32"] }, reading),
+    ).not.toBe(HeaderCompiler.identity(gcc, reading));
+    expect(HeaderCompiler.identity(null, reading)).toBe("unpreprocessed");
   });
 });

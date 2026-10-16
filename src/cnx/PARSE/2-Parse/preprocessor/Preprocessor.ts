@@ -104,6 +104,10 @@ class Preprocessor implements IHeaderPreprocessor {
     return this.toolchain !== null;
   }
 
+  compilerPath(): string | null {
+    return this.toolchain?.cc ?? null;
+  }
+
   /**
    * Preprocess a C/C++ file
    */

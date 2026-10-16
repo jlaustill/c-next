@@ -53,6 +53,7 @@ import CacheManager from "./cache/CacheManager";
 import PreprocessCache from "../cnx/PARSE/2-Parse/preprocessor/PreprocessCache";
 import Preprocessor from "../cnx/PARSE/2-Parse/preprocessor/Preprocessor";
 import ToolchainDetector from "../cnx/PARSE/2-Parse/preprocessor/ToolchainDetector";
+import HeaderCompiler from "../cnx/PARSE/2-Parse/HeaderCompiler";
 import type IHeaderCompiler from "../cnx/PARSE/2-Parse/preprocessor/types/IHeaderCompiler";
 import type IRecordedRequirement from "../cnx/types/IRecordedRequirement";
 import type IRenderedFile from "./types/IRenderedFile";
@@ -342,7 +343,7 @@ class Transpiler {
    * for its include paths, which an editor request should not pay for again.
    */
   private _preprocessorFor(compiler: IHeaderCompiler): Preprocessor {
-    const key = [compiler.driver, ...compiler.flags].join("\0");
+    const key = HeaderCompiler.key(compiler);
     const known = this.preprocessors.get(key);
     if (known !== undefined) return known;
     const toolchain = ToolchainDetector.fromPath(compiler.driver, this.fs);

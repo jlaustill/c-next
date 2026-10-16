@@ -78,12 +78,37 @@ class HeaderCompiler {
   /**
    * Who read a run's headers, as a cache names it: what one compiler declares
    * for a header another may not (`uintptr_t` is 64-bit for `gcc`, 32-bit for
-   * `arm-none-eabi-gcc -mcpu=cortex-m7`). `null`: the text was read as written.
+   * `arm-none-eabi-gcc -mcpu=cortex-m7`), and what one run's defines and
+   * search paths select another's may not (#1250). So it names the compiler
+   * where it was found, its flags, the defines and every search path.
+   * `null`: the text was read as written.
    */
-  static identity(compiler: IHeaderCompiler | null): string {
-    return compiler === null
-      ? "unpreprocessed"
-      : [compiler.driver, ...compiler.flags].join(" ");
+  static identity(
+    compiler: IHeaderCompiler | null,
+    reading: {
+      readonly compilerPath: string | null;
+      readonly defines: Readonly<Record<string, string | boolean>>;
+      readonly includeSearchPaths: readonly string[];
+      readonly headerSearchPaths: ReadonlyMap<string, readonly string[]>;
+    },
+  ): string {
+    if (compiler === null) return "unpreprocessed";
+    return JSON.stringify({
+      compiler: HeaderCompiler.key(compiler),
+      path: reading.compilerPath,
+      defines: Object.entries(reading.defines).sort(([a], [b]) =>
+        a.localeCompare(b),
+      ),
+      includePaths: reading.includeSearchPaths,
+      headerPaths: [...reading.headerSearchPaths].sort(([a], [b]) =>
+        a.localeCompare(b),
+      ),
+    });
+  }
+
+  /** One compiler run's key: its driver and flags */
+  static key(compiler: IHeaderCompiler): string {
+    return [compiler.driver, ...compiler.flags].join("\0");
   }
 }
 

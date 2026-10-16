@@ -9,6 +9,9 @@ import type IPreprocessResult from "./IPreprocessResult";
 interface IHeaderPreprocessor {
   isAvailable(): boolean;
 
+  /** Where the compiler it runs was found, so two of one name are told apart; null when none is */
+  compilerPath(): string | null;
+
   preprocess(
     filePath: string,
     options?: IPreprocessOptions,
