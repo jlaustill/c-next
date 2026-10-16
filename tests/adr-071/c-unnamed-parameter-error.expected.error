@@ -1,0 +1,4 @@
+9:15 error[E0900]: 'v' is read-only, and parameter 1 of 'rows_named' is an array 'rows_named' may write through
+       help: Declare 'v' `mut`, or declare the C parameter const.
+10:17 error[E0900]: 'v' is read-only, and parameter 1 of 'rows_unnamed' is an array 'rows_unnamed' may write through
+       help: Declare 'v' `mut`, or declare the C parameter const.

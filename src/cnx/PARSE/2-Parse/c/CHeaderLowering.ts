@@ -216,18 +216,14 @@ class CHeaderLowering {
       return CHeaderLowering.unnamedParameter(parameterDeclaration);
     }
     const declarator = parameterDeclaration.declarator();
-    const directText =
-      CHeaderLowering.directDeclaratorOf(declarator)?.getText() ?? "";
     return ParameterExtractorUtils.buildParameterInfo(
       declarator,
-      DeclaratorTypes.withPointers(
-        DeclaratorTypes.baseType(
-          CHeaderLowering.typeSpecifiers(declarationSpecifiers),
-        ),
-        CHeaderLowering.pointerDepth(declarator),
+      ...CHeaderLowering.parameterShape(
+        declarationSpecifiers,
+        CHeaderLowering.typeSpecifiers(declarationSpecifiers),
+        declarator?.pointer() ?? null,
+        CHeaderLowering.directDeclaratorOf(declarator)?.getText() ?? "",
       ),
-      declarationSpecifiers.getText().includes("const"),
-      directText.includes("[") && directText.includes("]"),
       CHeaderLowering.declaratorName,
     );
   }
@@ -242,24 +238,42 @@ class CHeaderLowering {
     const specifiers = parameterDeclaration.declarationSpecifiers2();
     if (!specifiers) return null;
     const abstract = parameterDeclaration.abstractDeclarator();
-    const baseType = DeclaratorTypes.baseType(
-      CHeaderLowering.typeSpecifiers(specifiers),
+    const typeSpecifiers = CHeaderLowering.typeSpecifiers(specifiers);
+    if (
+      abstract === null &&
+      DeclaratorTypes.baseType(typeSpecifiers) === "void"
+    ) {
+      return null;
+    }
+    const shape = CHeaderLowering.parameterShape(
+      specifiers,
+      typeSpecifiers,
+      abstract?.pointer() ?? null,
+      abstract?.directAbstractDeclarator()?.getText() ?? "",
     );
-    if (abstract === null && baseType === "void") return null;
-    const pointer =
-      abstract?.pointer() ??
-      abstract?.directAbstractDeclarator()?.abstractDeclarator()?.pointer() ??
-      null;
-    const directText = abstract?.directAbstractDeclarator()?.getText() ?? "";
-    return {
-      name: "",
-      type: DeclaratorTypes.withPointers(
-        baseType,
+    return { name: "", type: shape[0], isConst: shape[1], isArray: shape[2] };
+  }
+
+  /**
+   * A parameter's type, constness and array-ness, named or not (#2103
+   * review): the `*`s of its own pointer -- not a nested one, which makes it
+   * a pointer to a function or an array -- and a `[...]` after it. One
+   * lowering, so `T (*rows)[4]` and `T (*)[4]` lower alike.
+   */
+  private static parameterShape(
+    specifiers: { getText(): string },
+    typeSpecifiers: readonly ICTypeSpecifierSyntax[],
+    pointer: { getText(): string } | null,
+    directText: string,
+  ): [type: string, isConst: boolean, isArray: boolean] {
+    return [
+      DeclaratorTypes.withPointers(
+        DeclaratorTypes.baseType(typeSpecifiers),
         (pointer?.getText() ?? "").split("*").length - 1,
       ),
-      isConst: specifiers.getText().includes("const"),
-      isArray: directText.startsWith("["),
-    };
+      specifiers.getText().includes("const"),
+      directText.includes("[") && directText.includes("]"),
+    ];
   }
 
   private static struct(
