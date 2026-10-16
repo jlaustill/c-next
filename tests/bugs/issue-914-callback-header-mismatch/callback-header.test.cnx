@@ -9,7 +9,7 @@ scope Renderer {
     // PUBLIC so it appears in the header
     // flush_cb_t expects: void (*)(widget_t *, const rect_t *, uint8_t *)
     // u8 buf MUST become uint8_t* buf in BOTH .c AND .h
-    public void flush(widget_t w, rect_t area, u8 buf) {
+    public void flush(mut widget_t w, rect_t area, mut u8 buf) {
         // no-op for transpile-only test
     }
 

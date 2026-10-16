@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void my_flush(const widget_t* w, const rect_t* area, const uint8_t* buf);
+void my_flush(widget_t* w, const rect_t* area, uint8_t* buf);
 
 #ifdef __cplusplus
 }

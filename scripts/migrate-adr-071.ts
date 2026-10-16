@@ -56,12 +56,12 @@ class MigrateAdr071 {
       for (let round = 1; round <= 10; round++) {
         const edits = new Map<string, TEdit[]>();
         for (const file of migrated) {
-          for (const error of await MigrateAdr071.errorsOf(
+          for (const found of await MigrateAdr071.errorsOf(
             file,
             includeDirs,
             outDir,
           )) {
-            MigrateAdr071.collect(error, file, edits);
+            MigrateAdr071.collect(found.error, found.file, edits);
           }
         }
         const applied = MigrateAdr071.apply(edits);
@@ -92,11 +92,15 @@ class MigrateAdr071 {
     return /^\/\/ test-error\b/m.test(readFileSync(file, "utf8"));
   }
 
+  /**
+   * Every diagnostic a CLI run of `file` reports, with the file each is in --
+   * an included `.cnx` is analyzed too, and its errors name their own file.
+   */
   private static async errorsOf(
     file: string,
     includeDirs: string[],
     outDir: string,
-  ): Promise<ITranspileError[]> {
+  ): Promise<Array<{ error: ITranspileError; file: string }>> {
     const transpiler = new Transpiler(
       {
         input: file,
@@ -108,13 +112,16 @@ class MigrateAdr071 {
       },
       NodeFileSystem.instance,
     );
-    const result = await transpiler.transpile({
-      kind: "source",
-      source: readFileSync(file, "utf8"),
-      workingDir: dirname(file),
-      sourcePath: file,
-    });
-    return result.errors;
+    const result = await transpiler.transpile({ kind: "files" });
+    return [
+      ...result.errors.map((error) => ({ error, file })),
+      ...result.files.flatMap((fileResult) =>
+        fileResult.errors.map((error) => ({
+          error,
+          file: fileResult.sourcePath,
+        })),
+      ),
+    ];
   }
 
   private static collect(
