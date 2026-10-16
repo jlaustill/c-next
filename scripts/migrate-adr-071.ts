@@ -47,7 +47,7 @@ type TMigration = {
   readonly rewritten: readonly string[];
   readonly review: readonly string[];
   /** Files with an edit still to make when the rounds ran out */
-  readonly unconverged: readonly string[];
+  readonly notConverged: readonly string[];
   /** Files that still fail, with their first error */
   readonly failing: ReadonlyArray<{ file: string; error: string }>;
 };
@@ -86,7 +86,7 @@ class MigrateAdr071 {
     for (const file of result.rewritten) console.log(`rewritten ${file}`);
     for (const file of result.review)
       console.log(`review (test-error) ${file}`);
-    for (const file of result.unconverged) {
+    for (const file of result.notConverged) {
       console.log(`not converged after ${MAX_ROUNDS} rounds: ${file}`);
     }
     for (const { file, error } of result.failing) {
@@ -94,7 +94,7 @@ class MigrateAdr071 {
     }
     const total = result.rewritten.length;
     console.log(`${total} file(s) rewritten`);
-    return result.unconverged.length > 0 || result.failing.length > 0 ? 1 : 0;
+    return result.notConverged.length > 0 || result.failing.length > 0 ? 1 : 0;
   }
 
   static async migrate(
@@ -132,8 +132,8 @@ class MigrateAdr071 {
     return {
       rewritten: [...changed].sort(),
       review: files.filter((f) => !migrated.includes(f)),
-      unconverged: pending,
-      // A file the last round changed is reported as unconverged instead
+      notConverged: pending,
+      // A file the last round changed is reported as notConverged instead
       failing: pending.length > 0 ? [] : failing,
     };
   }

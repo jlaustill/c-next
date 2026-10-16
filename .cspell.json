@@ -3,6 +3,8 @@
   "useGitignore": true,
   "language": "en",
   "words": [
+    "fdirectives",
+    "cvqualifierseq",
     "Adafruit",
     "ADCH",
     "adr",
