@@ -19,7 +19,7 @@ typedef enum {
 } Color;
 
 /* Callback typedefs */
-typedef void (*onTick_fp)(uint32_t);
+typedef void (*onTick_fp)(uint32_t&);
 
 /* Struct definitions */
 typedef struct Timer {
