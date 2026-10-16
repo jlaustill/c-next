@@ -67,6 +67,12 @@ interface IVariableSymbol extends IBaseSymbol {
 
   /** #895: what the initializer calls (`VariableCollector.calleeOf`) */
   readonly initializerCallee?: string | null;
+
+  /**
+   * #375: declared by a constructor (`Strip strip(PIN);`), whose form has no
+   * `mut` to write or remove (ADR-071 E0899)
+   */
+  readonly isConstructed?: boolean;
 }
 
 export default IVariableSymbol;

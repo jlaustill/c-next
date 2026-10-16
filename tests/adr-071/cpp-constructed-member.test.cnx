@@ -1,0 +1,23 @@
+// test-execution
+// test-cpp-only
+// test-adr: 071
+// A private scope member built by a constructor (#375) has no `mut` to
+// write or remove, so nothing writing it is not E0899.
+#include "cpp-counter.hpp"
+
+scope Lights {
+    u8 start <- 7;
+    Counter counter(start);
+
+    public u8 level() {
+        return this.counter.get();
+    }
+}
+
+u32 main() {
+    u8 level <- Lights.level();
+    if (level != 7) {
+        return 1;
+    }
+    return 0;
+}

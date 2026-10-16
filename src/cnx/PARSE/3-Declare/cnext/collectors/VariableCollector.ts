@@ -281,6 +281,7 @@ class VariableCollector {
       initialValue: facts.initialValue,
       initialValueExpr: facts.initialValueExpr ?? undefined,
       initializerCallee: facts.initializerCallee,
+      isConstructed: declaration.kind === "constructorDeclaration" || undefined,
     };
 
     return symbol;

@@ -252,6 +252,7 @@ class ConstAssignmentCheck {
       symbol.kind === "variable" &&
       symbol.sourceLanguage === ESourceLanguage.CNext &&
       !symbol.isConst &&
+      !symbol.isConstructed &&
       symbol.scopePath !== "" &&
       symbol.visibility === "private" &&
       !written.has(symbol)

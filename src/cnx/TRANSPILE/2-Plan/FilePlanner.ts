@@ -845,8 +845,9 @@ class FilePlanner {
   /**
    * Issue #282: a private const scalar is inlined at its uses, not declared at
    * file scope. Issue #500 exempts arrays, which cannot be inlined, and #1739
-   * one with no value to inline. 2.2 decides it once, before 2.3 renders
-   * the scope.
+   * one with no value to inline, and a constructor's argument, which C++
+   * passes by name (`Counter Lights__counter(Lights__start);`). 2.2 decides
+   * it once, before 2.3 renders the scope.
    */
   private planInlinedConsts(
     program: IProgramSyntax,
@@ -858,8 +859,16 @@ class FilePlanner {
       if (scope.kind !== "scope") continue;
       const declaringScopePath =
         this.state.program?.scopePathOf(scope.name) ?? scope.name;
+      const constructorArguments = new Set(
+        scope.members.flatMap(({ declaration }) =>
+          declaration.kind === "constructorDeclaration"
+            ? declaration.arguments.map((argument) => argument.name)
+            : [],
+        ),
+      );
       for (const { declaration } of scope.members) {
         if (declaration.kind !== "variableDeclaration") continue;
+        if (constructorArguments.has(declaration.name)) continue;
         const cName = QualifiedNameGenerator.forMember(
           declaringScopePath,
           declaration.name,
