@@ -118,7 +118,10 @@ class CHeaderLowering {
   }
 
   private static typeSpecifiers(
-    declarationSpecifiers: DeclarationSpecifiersContext,
+    declarationSpecifiers: Pick<
+      DeclarationSpecifiersContext,
+      "declarationSpecifier"
+    >,
   ): ICTypeSpecifierSyntax[] {
     return declarationSpecifiers.declarationSpecifier().flatMap((spec) => {
       const typeSpec = spec.typeSpecifier();
@@ -205,7 +208,9 @@ class CHeaderLowering {
     parameterDeclaration: ParameterDeclarationContext,
   ): IExtractedParameter | null {
     const declarationSpecifiers = parameterDeclaration.declarationSpecifiers();
-    if (!declarationSpecifiers) return null;
+    if (!declarationSpecifiers) {
+      return CHeaderLowering.unnamedParameter(parameterDeclaration);
+    }
     const declarator = parameterDeclaration.declarator();
     const directText =
       CHeaderLowering.directDeclaratorOf(declarator)?.getText() ?? "";
@@ -221,6 +226,36 @@ class CHeaderLowering {
       directText.includes("[") && directText.includes("]"),
       CHeaderLowering.declaratorName,
     );
+  }
+
+  /**
+   * `char *fgets(char *restrict, int, FILE *restrict)`: a parameter with no name
+   * (newlib spells its prototypes that way) is still a parameter. `(void)` is none.
+   */
+  private static unnamedParameter(
+    parameterDeclaration: ParameterDeclarationContext,
+  ): IExtractedParameter | null {
+    const specifiers = parameterDeclaration.declarationSpecifiers2();
+    if (!specifiers) return null;
+    const abstract = parameterDeclaration.abstractDeclarator();
+    const baseType = DeclaratorTypes.baseType(
+      CHeaderLowering.typeSpecifiers(specifiers),
+    );
+    if (abstract === null && baseType === "void") return null;
+    const pointer =
+      abstract?.pointer() ??
+      abstract?.directAbstractDeclarator()?.abstractDeclarator()?.pointer() ??
+      null;
+    const directText = abstract?.directAbstractDeclarator()?.getText() ?? "";
+    return {
+      name: "",
+      type: DeclaratorTypes.withPointers(
+        baseType,
+        (pointer?.getText() ?? "").split("*").length - 1,
+      ),
+      isConst: specifiers.getText().includes("const"),
+      isArray: directText.startsWith("["),
+    };
   }
 
   private static struct(
