@@ -32,6 +32,9 @@ interface IReadHeaders {
    */
   readonly cppMode: boolean;
 
+  /** `HeaderCompiler.identity` of what read the headers, which a cache record is only good for */
+  readonly reader: string;
+
   /** #1688: each C-Next file with a C include, to its header macro dump */
   readonly macroDumps: ReadonlyMap<string, IHeaderMacroDump>;
 

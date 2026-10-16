@@ -239,6 +239,7 @@ class CacheManager {
       structState: TJsonSafe<Required<IStructSymbolState>>;
       needsStructKeyword?: string[];
       enumBitWidth?: Map<string, number>;
+      reader?: string;
     },
   ): void {
     if (!this.cache) return;
@@ -281,6 +282,7 @@ class CacheManager {
       needsStructKeyword: options.needsStructKeyword,
       enumBitWidth: serializedEnumBitWidth,
       structState: options.structState,
+      reader: options.reader,
     };
 
     this.cache.set(filePath, entry);
@@ -291,6 +293,7 @@ class CacheManager {
   setHeaderDeclarations(
     filePath: string,
     record: IHeaderDeclarationRecord,
+    reader: string,
   ): void {
     this.setSymbols(
       filePath,
@@ -300,16 +303,25 @@ class CacheManager {
         structState: record.structState,
         needsStructKeyword: record.needsStructKeyword,
         enumBitWidth: record.enumBitWidth,
+        reader,
       },
     );
   }
 
   /**
    * #1991: what an earlier run recorded for the header at `filePath`, or null
-   * on a miss. Validated (#1225), so an entry of the wrong shape is a miss.
+   * on a miss. Validated (#1225), so an entry of the wrong shape is a miss,
+   * and so is one another compiler read (#1713: `reader`).
    */
-  headerDeclarations(filePath: string): IHeaderDeclarationRecord | null {
+  headerDeclarations(
+    filePath: string,
+    reader: string,
+  ): IHeaderDeclarationRecord | null {
     if (!this.isValid(filePath)) {
+      return null;
+    }
+    const recorded = this.cache?.get(filePath) as ICachedFileEntry | undefined;
+    if (recorded?.reader !== reader) {
       return null;
     }
     const entry = this.getSymbols(filePath);

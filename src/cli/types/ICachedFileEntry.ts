@@ -42,6 +42,8 @@ interface ICachedFileEntry {
    * compile error until it is captured.
    */
   structState: TJsonSafe<Required<IStructSymbolState>>;
+  /** #1713: a header's entry is good only for the compiler that read it */
+  reader?: string;
 }
 
 export default ICachedFileEntry;

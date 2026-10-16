@@ -20,7 +20,11 @@ class Declare {
   /** Each file 1.3 declared, the errors of any it could not, and 1.2's carried facts */
   static sources(parsed: IParsedSources): IDeclaredSources {
     const symbolTable = new SymbolTable();
-    const headers = Declare._headers(parsed.headers, symbolTable);
+    const headers = Declare._headers(
+      parsed.headers,
+      parsed.headerReader,
+      symbolTable,
+    );
     Declare._recover(parsed.recovered, symbolTable);
     const registry = new SymbolRegistry();
     const declared: IDeclaredSource[] = [];
@@ -59,6 +63,7 @@ class Declare {
    */
   private static _headers(
     entries: readonly TParsedHeaderEntry[],
+    reader: string,
     table: SymbolTable,
   ): IDeclaredHeaders {
     const declared: IDeclaredHeaders["declared"][number][] = [];
@@ -85,7 +90,7 @@ class Declare {
         warnings.push(`Failed to process header ${entry.file.path}: ${err}`);
       }
     }
-    return { declared, warnings, processed };
+    return { declared, warnings, processed, reader };
   }
 
   /**

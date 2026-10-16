@@ -21,6 +21,17 @@ class HeaderCompiler {
     }
     return configured === null ? gcc : { driver: configured, flags: [] };
   }
+
+  /**
+   * Who read a run's headers, as a cache names it: what one compiler declares
+   * for a header another may not (`uintptr_t` is 64-bit for `gcc`, 32-bit for
+   * `arm-none-eabi-gcc -mcpu=cortex-m7`). `null`: the text was read as written.
+   */
+  static identity(compiler: IHeaderCompiler | null): string {
+    return compiler === null
+      ? "unpreprocessed"
+      : [compiler.driver, ...compiler.flags].join(" ");
+  }
 }
 
 export default HeaderCompiler;

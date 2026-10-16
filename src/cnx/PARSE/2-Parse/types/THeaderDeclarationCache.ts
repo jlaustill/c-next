@@ -6,6 +6,7 @@ import type IHeaderDeclarationRecord from "../../1-Discover/types/IHeaderDeclara
  */
 type THeaderDeclarationCache = (
   path: string,
+  reader: string,
 ) => IHeaderDeclarationRecord | null;
 
 export default THeaderDeclarationCache;

@@ -90,7 +90,13 @@ class HeaderReading {
     ) {
       reading._noPreprocessor(graph, target, compiler);
       // E0516 ends the run before any macro is read
-      return reading._result([], NOTHING_SETTLED, false, new Map(), new Map());
+      return reading._result(
+        [],
+        NOTHING_SETTLED,
+        { cppMode: false, reader: HeaderCompiler.identity(null) },
+        new Map(),
+        new Map(),
+      );
     }
     const settled =
       needed && preprocessor !== null
@@ -125,11 +131,14 @@ class HeaderReading {
     const headerFiles = graph.headerFiles.filter((file) =>
       settled.sources.has(file.path),
     );
+    const reader = HeaderCompiler.identity(
+      preprocessor === null || typeof compiler === "string" ? null : compiler,
+    );
     return reading._result(
       headerFiles,
       settled,
-      cppMode,
-      HeaderReading._cachedHeaders(headerFiles, services.headerCache),
+      { cppMode, reader },
+      HeaderReading._cachedHeaders(headerFiles, services.headerCache, reader),
       await HeaderMacroDumps.read(
         graph.cnextFiles,
         graph.includes.c,
@@ -145,7 +154,7 @@ class HeaderReading {
   private _result(
     headerFiles: readonly IDiscoveredFile[],
     settled: TSettled,
-    cppMode: boolean,
+    read: Pick<IReadHeaders, "cppMode" | "reader">,
     cached: ReadonlyMap<string, TCachedHeaderRead>,
     macroDumps: IReadHeaders["macroDumps"],
   ): IReadHeaders {
@@ -154,7 +163,8 @@ class HeaderReading {
       sources: settled.sources,
       cached,
       recovered: settled.recovered,
-      cppMode,
+      cppMode: read.cppMode,
+      reader: read.reader,
       macroDumps,
       errors: this.errors,
     };
@@ -356,12 +366,13 @@ class HeaderReading {
   private static _cachedHeaders(
     headers: readonly IDiscoveredFile[],
     cache: THeaderDeclarationCache | null,
+    reader: string,
   ): ReadonlyMap<string, TCachedHeaderRead> {
     const reads = new Map<string, TCachedHeaderRead>();
     if (cache === null) return reads;
     for (const file of headers) {
       try {
-        const record = cache(file.path);
+        const record = cache(file.path, reader);
         if (record !== null) reads.set(file.path, { kind: "cached", record });
       } catch (error) {
         // 1.3 decides, in header order, whether it is a diagnostic (#1319)

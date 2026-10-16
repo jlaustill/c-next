@@ -362,7 +362,9 @@ class Transpiler {
   private static _headerCacheOf(
     cache: CacheManager | null,
   ): THeaderDeclarationCache | null {
-    return cache === null ? null : (path) => cache.headerDeclarations(path);
+    return cache === null
+      ? null
+      : (path, reader) => cache.headerDeclarations(path, reader);
   }
 
   /**
@@ -386,7 +388,11 @@ class Transpiler {
           `[DEBUG]   Found ${header.record.symbols.length} symbols in ${header.path}`,
         );
       }
-      this.cacheManager?.setHeaderDeclarations(header.path, header.record);
+      this.cacheManager?.setHeaderDeclarations(
+        header.path,
+        header.record,
+        headers.reader,
+      );
     }
   }
 
