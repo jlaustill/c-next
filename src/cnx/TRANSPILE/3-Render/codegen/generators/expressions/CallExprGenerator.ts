@@ -15,10 +15,7 @@
 import invariant from "../../../../../utils/invariant";
 import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
-import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
-import IOrchestrator from "../IOrchestrator";
-import CallArgumentPassing from "../../../../2-Plan/CallArgumentPassing";
 import type IPlannedCallArgument from "../../types/IPlannedCallArgument";
 
 /**
@@ -62,20 +59,13 @@ const _generateCFunctionArg = (arg: IPlannedCallArgument): string => {
  *
  * @param funcExpr - The function name or expression being called
  * @param args - The planned arguments (null when the call declares none)
- * @param input - Generator input (type registry, function signatures, etc.)
  * @param _state - Generator state (unused but part of signature)
- * @param orchestrator - Orchestrator for callbacks into CodeGenerator
- * @param calleeType - The C-Next type of the value being called, or null
- *   when it is not a typed value (a function's own name)
  * @returns Generated code and effects
  */
 const generateFunctionCall = (
   funcExpr: string,
   args: readonly IPlannedCallArgument[] | null,
-  input: IGeneratorInput,
   _state: IGeneratorState,
-  orchestrator: IOrchestrator,
-  calleeType: string | null = null,
   safeDivisionHelper: string | null = null,
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
@@ -86,12 +76,6 @@ const generateFunctionCall = (
   if (!args) {
     return { code: `${funcExpr}()`, effects };
   }
-
-  const signatureName =
-    CallArgumentPassing.callbackFunction(calleeType, input) ?? funcExpr;
-
-  // Check if this is a C-Next function (uses pass-by-reference)
-  const isCNextFunc = orchestrator.isCNextFunction(signatureName);
 
   // ADR-051: 2.2 planned this call as a safe_div()/safe_mod() helper
   if (safeDivisionHelper !== null) {

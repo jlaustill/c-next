@@ -193,17 +193,6 @@ interface IArgumentPlannerStub {
  */
 let sharedState = new TranspileState();
 
-/** A by-reference `u32` parameter of the calling function */
-const PASS_THROUGH_PARAM: TParameterInfo = {
-  name: "p",
-  baseType: "u32",
-  isArray: false,
-  isStruct: false,
-  isConst: false,
-  isCallback: false,
-  isString: false,
-};
-
 function createMockOrchestrator(
   overrides: Partial<IOrchestrator & IArgumentPlannerStub> = {},
 ): IOrchestrator & IArgumentPlannerStub {
@@ -248,17 +237,9 @@ describe("CallExprGenerator", () => {
 
   describe("empty function call", () => {
     it("generates call with no arguments when the call declares none", () => {
-      const input = createMockInput();
       const state = createMockState();
-      const orchestrator = createMockOrchestrator();
 
-      const result = generateFunctionCall(
-        "myFunc",
-        null,
-        input,
-        state,
-        orchestrator,
-      );
+      const result = generateFunctionCall("myFunc", null, state);
 
       expect(result.code).toBe("myFunc()");
       expect(result.effects).toEqual([]);
@@ -280,9 +261,7 @@ describe("CallExprGenerator", () => {
       const result = generateFunctionCall(
         "printf",
         planArguments(orchestrator, argExpressions, "printf", input),
-        input,
         state,
-        orchestrator,
       );
 
       expect(result.code).toBe("printf(x, y)");
@@ -317,9 +296,7 @@ describe("CallExprGenerator", () => {
       const result = generateFunctionCall(
         "c_func",
         planArguments(orchestrator, argExpressions, "c_func", input),
-        input,
         state,
-        orchestrator,
       );
 
       expect(result.code).toBe("c_func(&myStruct)");
@@ -355,9 +332,7 @@ describe("CallExprGenerator", () => {
       const result = generateFunctionCall(
         "c_func",
         planArguments(orchestrator, argExpressions, "c_func", input),
-        input,
         state,
-        orchestrator,
       );
 
       expect(result.code).toBe("c_func(&myStruct)");
@@ -387,9 +362,7 @@ describe("CallExprGenerator", () => {
       const result = generateFunctionCall(
         "c_func",
         planArguments(orchestrator, argExpressions, "c_func", input),
-        input,
         state,
-        orchestrator,
       );
 
       expect(result.code).toBe("c_func(arr)");
@@ -424,9 +397,7 @@ describe("CallExprGenerator", () => {
       const result = generateFunctionCall(
         "c_func",
         planArguments(orchestrator, argExpressions, "c_func", input),
-        input,
         state,
-        orchestrator,
       );
 
       expect(result.code).toBe("c_func(ptr)");
@@ -469,9 +440,7 @@ describe("CallExprGenerator", () => {
       const result = generateFunctionCall(
         "c_func",
         planArguments(orchestrator, argExpressions, "c_func", input),
-        input,
         state,
-        orchestrator,
       );
 
       expect(result.code).toBe("c_func(&ConfigManager_config)");
@@ -505,9 +474,7 @@ describe("CallExprGenerator", () => {
       const result = generateFunctionCall(
         "c_func",
         planArguments(orchestrator, argExpressions, "c_func", input),
-        input,
         state,
-        orchestrator,
       );
 
       expect(result.code).toBe("c_func(unknown)");
@@ -561,9 +528,7 @@ describe("CallExprGenerator", () => {
       const result = generateFunctionCall(
         "draw_bitmap",
         planArguments(orchestrator, argExpressions, "draw_bitmap", input),
-        input,
         generatorState,
-        orchestrator,
       );
 
       // Should pass buf directly, NOT (*buf) or &(*buf)
@@ -601,9 +566,7 @@ describe("CallExprGenerator", () => {
       const result = generateFunctionCall(
         "c_func",
         planArguments(orchestrator, argExpressions, "c_func", input),
-        input,
         state,
-        orchestrator,
       );
 
       expect(result.code).toBe("c_func(static_cast<uint32_t>(MyEnum::Value))");
@@ -632,9 +595,7 @@ describe("CallExprGenerator", () => {
       const result = generateFunctionCall(
         "c_func",
         planArguments(orchestrator, argExpressions, "c_func", input),
-        input,
         state,
-        orchestrator,
       );
 
       expect(result.code).toBe("c_func(val)");
@@ -665,9 +626,7 @@ describe("CallExprGenerator", () => {
       const result = generateFunctionCall(
         "c_func",
         planArguments(orchestrator, argExpressions, "c_func", input),
-        input,
         state,
-        orchestrator,
       );
 
       expect(result.code).toBe("c_func(val)");
@@ -704,9 +663,7 @@ describe("CallExprGenerator", () => {
       const result = generateFunctionCall(
         "c_func",
         planArguments(orchestrator, argExpressions, "c_func", input),
-        input,
         state,
-        orchestrator,
       );
 
       expect(result.code).toBe("c_func(val)");
@@ -736,9 +693,7 @@ describe("CallExprGenerator", () => {
       const result = generateFunctionCall(
         "c_func",
         planArguments(orchestrator, argExpressions, "c_func", input),
-        input,
         state,
-        orchestrator,
       );
 
       expect(result.code).toBe("c_func(val)");
@@ -770,9 +725,7 @@ describe("CallExprGenerator", () => {
       const result = generateFunctionCall(
         "doWork",
         planArguments(orchestrator, argExpressions, "doWork", input),
-        input,
         state,
-        orchestrator,
       );
 
       expect(result.code).toBe("doWork(&myVal)");
@@ -802,9 +755,7 @@ describe("CallExprGenerator", () => {
       const result = generateFunctionCall(
         "setTemp",
         planArguments(orchestrator, argExpressions, "setTemp", input),
-        input,
         state,
-        orchestrator,
       );
 
       expect(result.code).toBe("setTemp(temperature)");
@@ -834,9 +785,7 @@ describe("CallExprGenerator", () => {
       const result = generateFunctionCall(
         "setTemp",
         planArguments(orchestrator, argExpressions, "setTemp", input),
-        input,
         state,
-        orchestrator,
       );
 
       expect(result.code).toBe("setTemp(&temperature)");
@@ -868,9 +817,7 @@ describe("CallExprGenerator", () => {
       const result = generateFunctionCall(
         "setState",
         planArguments(orchestrator, argExpressions, "setState", input),
-        input,
         state,
-        orchestrator,
       );
 
       expect(result.code).toBe("setState(STATE_ON)");
@@ -900,9 +847,7 @@ describe("CallExprGenerator", () => {
       const result = generateFunctionCall(
         "setFlag",
         planArguments(orchestrator, argExpressions, "setFlag", input),
-        input,
         state,
-        orchestrator,
       );
 
       expect(result.code).toBe("setFlag(flag)");
@@ -938,9 +883,7 @@ describe("CallExprGenerator", () => {
       const result = generateFunctionCall(
         "process",
         planArguments(orchestrator, argExpressions, "process", input),
-        input,
         state,
-        orchestrator,
       );
 
       expect(result.code).toBe("process(extVal)");
@@ -974,9 +917,7 @@ describe("CallExprGenerator", () => {
       const result = generateFunctionCall(
         "doWork",
         planArguments(orchestrator, argExpressions, "doWork", input),
-        input,
         state,
-        orchestrator,
       );
 
       expect(result.code).toBe("doWork(static_cast<uint32_t>(MyEnum::Val))");
@@ -1010,9 +951,7 @@ describe("CallExprGenerator", () => {
       const result = generateFunctionCall(
         "crossFileFunc",
         planArguments(orchestrator, argExpressions, "crossFileFunc", input),
-        input,
         state,
-        orchestrator,
       );
 
       // Issue #1139: cross-file lookup resolves by transpiled C name, so a
@@ -1051,9 +990,7 @@ describe("CallExprGenerator", () => {
       const result = generateFunctionCall(
         "crossFileFunc",
         planArguments(orchestrator, argExpressions, "crossFileFunc", input),
-        input,
         state,
-        orchestrator,
       );
 
       // #1991: a primitive is not forced by value for coming from another
@@ -1082,9 +1019,7 @@ describe("CallExprGenerator", () => {
       const result = generateFunctionCall(
         "unknownFunc",
         planArguments(orchestrator, argExpressions, "unknownFunc", input),
-        input,
         state,
-        orchestrator,
       );
 
       // No param info found, falls through to pass-by-reference (no targetParam)
@@ -1118,10 +1053,7 @@ describe("CallExprGenerator", () => {
       const result = generateFunctionCall(
         "safe_div",
         planArguments(orchestrator, argExpressions, "safe_div", input),
-        input,
         state,
-        orchestrator,
-        null,
         "cnx_safe_div_u32",
       );
 
@@ -1154,10 +1086,7 @@ describe("CallExprGenerator", () => {
       const result = generateFunctionCall(
         "safe_mod",
         planArguments(orchestrator, argExpressions, "safe_mod", input),
-        input,
         state,
-        orchestrator,
-        null,
         "cnx_safe_mod_i64",
       );
 
@@ -1184,10 +1113,7 @@ describe("CallExprGenerator", () => {
         generateFunctionCall(
           "safe_div",
           planArguments(orchestrator, argExpressions, "safe_div", input),
-          input,
           state,
-          orchestrator,
-          null,
           "cnx_safe_div_u32",
         ),
       ).toThrow("E0884 rejects this in pass 2.1");
@@ -1205,10 +1131,7 @@ describe("CallExprGenerator", () => {
         generateFunctionCall(
           "safe_mod",
           planArguments(orchestrator, argExpressions, "safe_mod", input),
-          input,
           state,
-          orchestrator,
-          null,
           "cnx_safe_mod_i64",
         ),
       ).toThrow("E0884 rejects this in pass 2.1");
@@ -1233,9 +1156,7 @@ describe("CallExprGenerator", () => {
           "safe_div",
           createMockInput(),
         ),
-        createMockInput(),
         createMockState(),
-        orchestrator,
       );
 
       expect(result.code).toBe("safe_div(result, a, b, 0)");
@@ -1268,9 +1189,7 @@ describe("CallExprGenerator", () => {
       const result = generateFunctionCall(
         "readOnly",
         planArguments(orchestrator, argExpressions, "readOnly", input),
-        input,
         state,
-        orchestrator,
       );
 
       expect(result.code).toContain("readOnly(");
@@ -1291,9 +1210,7 @@ describe("CallExprGenerator", () => {
       const result = generateFunctionCall(
         "unknownFunc",
         planArguments(orchestrator, argExpressions, "unknownFunc", input),
-        input,
         state,
-        orchestrator,
       );
 
       expect(result.code).toContain("unknownFunc(");
@@ -1367,9 +1284,7 @@ describe("CallExprGenerator", () => {
         const result = generateFunctionCall(
           "take",
           planArguments(orchestrator, argExpressions, "take", input),
-          input,
           createMockState(),
-          orchestrator,
         );
 
         expect(result.code).toBe(expected);
@@ -1413,9 +1328,7 @@ describe("CallExprGenerator", () => {
           "take",
           createMockInput({ functionSignatures: takeSignature("CPoint*") }),
         ),
-        createMockInput({ functionSignatures: takeSignature("CPoint*") }),
         createMockState(),
-        orchestrator,
       );
 
       expect(result.code).toBe(expected);
@@ -1469,9 +1382,7 @@ describe("CallExprGenerator", () => {
           "take",
           input,
         ),
-        input,
         createMockState(),
-        orchestrator,
       );
 
       expect(result.code).toBe(expected);
@@ -1525,10 +1436,7 @@ describe("CallExprGenerator", () => {
           ) ?? "h.onPeek",
           createMockInput({ functionSignatures, callbackTypes }),
         ),
-        createMockInput({ functionSignatures, callbackTypes }),
         createMockState(),
-        orchestrator,
-        calleeType,
       );
 
       expect(result.code).toBe(expected);
@@ -1574,9 +1482,7 @@ describe("CallExprGenerator", () => {
       const result = generateFunctionCall(
         "create_handle",
         planArguments(orchestrator, argExpressions, "create_handle", input),
-        input,
         state,
-        orchestrator,
       );
 
       expect(result.code).toBe("create_handle(&my_handle)");
@@ -1620,9 +1526,7 @@ describe("CallExprGenerator", () => {
       const result = generateFunctionCall(
         "send_data",
         planArguments(orchestrator, argExpressions, "send_data", input),
-        input,
         state,
-        orchestrator,
       );
 
       // Should NOT add & because uint8_t is in C_TYPE_WIDTH (primitive)
@@ -1667,9 +1571,7 @@ describe("CallExprGenerator", () => {
       const result = generateFunctionCall(
         "use_handle",
         planArguments(orchestrator, argExpressions, "use_handle", input),
-        input,
         state,
-        orchestrator,
       );
 
       expect(result.code).toBe("use_handle(my_handle)");

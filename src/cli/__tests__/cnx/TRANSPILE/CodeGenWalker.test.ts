@@ -727,7 +727,6 @@ describe("CodeGenWalker", () => {
         expect(host.getStringLiteralLength('"hello\\n"')).toBe(6);
       });
     });
-
   });
 
   describe("Type generation", () => {

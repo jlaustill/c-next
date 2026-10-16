@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-624 fixture(s) assert a diagnostic; 614 carry a code.
+625 fixture(s) assert a diagnostic; 615 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -236,6 +236,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-068/forever-non-void-error.test.cnx                                                    | E0705               |
 | tests/adr-068/loops-in-scope-error.test.cnx                                                      | E0705, E0707        |
 | tests/adr-071/c-callback-mut-match-error.test.cnx                                                | E0879               |
+| tests/adr-071/c-variadic-write-error.test.cnx                                                    | E0896, E0900        |
 | tests/adr-071/c-write-imported-direct-error.test.cnx                                             | E0896, E0900        |
 | tests/adr-071/c-write-imported-transitive-error.test.cnx                                         | E0896, E0900        |
 | tests/adr-071/c-write-scope-method-error.test.cnx                                                | E0896, E0900        |

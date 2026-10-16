@@ -43,7 +43,6 @@ import type IWrittenBinding from "./types/IWrittenBinding";
 import type TValueBinding from "../../types/TValueBinding";
 import SafeDivision from "../../utils/SafeDivision";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
-import CPointerParameter from "../../utils/CPointerParameter";
 import type ILexicalFrame from "../../types/ILexicalFrame";
 import type TSymbol from "../../types/symbols/TSymbol";
 import IConstAssignmentError from "./types/IConstAssignmentError";

@@ -138,20 +138,6 @@ describe("TranspileState", () => {
   });
 
   describe("Symbol Lookup Helpers", () => {
-    it("isKnownEnum returns false without symbols", () => {
-      state.symbols = null;
-      expect(state.isKnownEnum("MyEnum")).toBe(false);
-    });
-
-    it("isKnownEnum returns true for known enum", () => {
-      installMockSymbols(state, {
-        knownEnums: new Set(["MyEnum"]),
-      });
-
-      expect(state.isKnownEnum("MyEnum")).toBe(true);
-      expect(state.isKnownEnum("UnknownEnum")).toBe(false);
-    });
-
     it("isKnownScope returns false without symbols", () => {
       state.symbols = null;
       expect(state.isKnownScope("MyScope")).toBe(false);

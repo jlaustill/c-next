@@ -125,7 +125,6 @@ class HeaderEmissionCapture {
     const headerSymbols = HeaderEmissionCapture.convertToHeaderSymbols(
       state,
       exportedSymbols,
-      allKnownEnums,
     );
 
     return {
@@ -210,7 +209,6 @@ class HeaderEmissionCapture {
   private static convertToHeaderSymbols(
     state: TranspileState,
     symbols: TSymbol[],
-    knownEnums: ReadonlySet<string>,
   ): IHeaderSymbol[] {
     return symbols.map((symbol) => {
       const headerSymbol = HeaderSymbolAdapter.fromTSymbol(symbol, state);

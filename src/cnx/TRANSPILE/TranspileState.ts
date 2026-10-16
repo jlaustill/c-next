@@ -735,13 +735,6 @@ class TranspileState {
   }
 
   /**
-   * Check if a type name is a known enum.
-   */
-  isKnownEnum(name: string): boolean {
-    return DeclaredTypeFacts.isEnum(this.symbols, name);
-  }
-
-  /**
    * Check if a *qualified* name is a type declared in a scope that the file
    * being generated can see.
    * Used by `ScopeUtils.qualifyScopeType()`, through `typeBindingDeps`, to

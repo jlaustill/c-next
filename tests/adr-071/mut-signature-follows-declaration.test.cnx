@@ -10,15 +10,13 @@ struct Point {
     u32 y;
 }
 
-void onPoke(mut Point p) {
-}
+void onPoke(mut Point p) {}
 
 void impl(mut Point p) {
     p.x <- 1;
 }
 
-void lazy(mut Point p) {
-}
+void lazy(mut Point p) {}
 
 struct Handler {
     onPoke poke;
@@ -40,7 +38,7 @@ u32 main() {
     mut Handler h;
     h.poke <- lazy;
     h.poke <- impl;
-    mut Point pt <- {x: 0, y: 0};
+    mut Point pt <- { x: 0, y: 0 };
     forward(h, pt);
     if (pt.x != 1) {
         return 1;

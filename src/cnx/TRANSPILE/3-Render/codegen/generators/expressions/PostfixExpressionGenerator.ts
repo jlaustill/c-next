@@ -267,10 +267,7 @@ const generatePostfixExpression = (
         // dispatcher, and keeping the derivation there is what lets the call
         // generator name no parse type.
         op.planArguments(),
-        input,
         state,
-        orchestrator,
-        op.calleeType(),
         op.safeDivisionHelper,
       );
       applyAccessEffects(callResult.effects, effects);

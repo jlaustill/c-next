@@ -707,6 +707,5 @@ describe("HeaderSymbolAdapter", () => {
         expect(result.arrayDimensions).toEqual(["DEVICE_COUNT"]);
       });
     });
-
   });
 });

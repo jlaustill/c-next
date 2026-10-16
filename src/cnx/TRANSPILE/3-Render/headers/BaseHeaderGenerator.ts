@@ -257,7 +257,6 @@ abstract class BaseHeaderGenerator {
       ...this.generateFunctionSection(
         groups.functions,
         passByValueParams,
-        allKnownEnums,
         options.generatedStructInits,
         symbolTable,
       ),
@@ -285,7 +284,6 @@ abstract class BaseHeaderGenerator {
   private generateFunctionSection(
     functions: IHeaderSymbol[],
     passByValueParams?: TPassByValueParams,
-    allKnownEnums?: ReadonlySet<string>,
     generatedStructInits?: ReadonlySet<string>,
     symbolTable?: IResolvedSymbols,
   ): string[] {
@@ -305,7 +303,6 @@ abstract class BaseHeaderGenerator {
       const proto = this.generateFunctionPrototype(
         sym,
         passByValueParams,
-        allKnownEnums,
         symbolTable,
       );
       if (proto) {
@@ -322,7 +319,6 @@ abstract class BaseHeaderGenerator {
   private generateFunctionPrototype(
     sym: IHeaderSymbol,
     passByValueParams?: TPassByValueParams,
-    allKnownEnums?: ReadonlySet<string>,
     symbolTable?: IResolvedSymbols,
   ): string | null {
     // Map return type (main() always returns int). `headerCType`, not

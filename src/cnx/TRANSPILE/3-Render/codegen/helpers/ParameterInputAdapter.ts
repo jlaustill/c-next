@@ -228,7 +228,7 @@ class ParameterInputAdapter {
         baseType: param.type,
         mappedType: "char",
         isConst: param.isConst,
-  
+
         isArray: false,
         isCallback: false,
         isString: true,
@@ -253,7 +253,7 @@ class ParameterInputAdapter {
         baseType: param.type,
         mappedType,
         isConst: param.isConst,
-  
+
         isArray: false,
         isCallback: true,
         callbackTypedefName: param.callbackTypedefName,
@@ -405,7 +405,6 @@ class ParameterInputAdapter {
       isOpaqueHandle: param.isOpaqueHandle || undefined,
     };
   }
-
 
   /**
    * Build IParameterInput for a non-array string parameter.
