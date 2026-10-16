@@ -1,4 +1,5 @@
 import ForeignTypeFacts from "../../utils/ForeignTypeFacts";
+import ParameterConst from "../../utils/ParameterConst";
 import type TTypeInfo from "../../types/TTypeInfo";
 import type TCArgumentForm from "./types/TCArgumentForm";
 import CArgumentAddress from "./CArgumentAddress";
@@ -2600,8 +2601,9 @@ class FilePlanner {
         return {
           name: param.emittedName,
           ...shape,
-          isConst: FilePlanner.typedefParamIsConst(
+          isConst: ParameterConst.isWritten(
             param.isConst,
+            typeName,
             functionsAsTypes.has(typeName),
           ),
           isArray: param.isArray,
@@ -2638,33 +2640,6 @@ class FilePlanner {
       headerCType(typeName, symbolTable),
       symbolTable.checkNeedsStructKeyword(typeName),
     );
-  }
-
-  /**
-   * ADR-029: is this `_fp` typedef parameter const?
-   *
-   * The const the prototype carries. Two typedef builders once each re-derived
-   * it and disagreed with the prototype, and with each other, at the same time:
-   *
-   * - the local path asked the per-file accumulator during the declaration
-   *   walk, before any body had filled it, so a modifying body read as
-   *   unmodified and the typedef gained a `const` the prototype lacked (#1529)
-   * - the included path asked the symbol's `isAutoConst`, which only ever gets
-   *   set on the header's own copy of a parameter, so it was absent and the
-   *   typedef LOST a `const` the declaring file had emitted (#1552). Both files
-   *   then defined one typedef name incompatibly -- a hard `error: conflicting
-   *   types`, not a warning, at transpile exit 0
-   *
-   * ADR-071 decides it from the declaration alone: a parameter not declared
-   * `mut` is `const`, whatever the body does, exactly as the prototype reads
-   * it. A function-pointer parameter is the exception the prototype also
-   * makes: it is spelled by its own `_fp` typedef and takes no `const`.
-   */
-  private static typedefParamIsConst(
-    isDeclaredReadOnly: boolean,
-    isCallback: boolean,
-  ): boolean {
-    return isDeclaredReadOnly && !isCallback;
   }
 
   /**

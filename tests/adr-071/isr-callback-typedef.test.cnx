@@ -1,0 +1,20 @@
+// test-execution
+// test-adr: 071
+// A read-only `ISR` parameter takes no `const` (Decision 7), in the
+// function's prototype and in its `_fp` typedef alike.
+void tick() {}
+
+void run(ISR cb) {
+    cb();
+}
+
+struct Holder {
+    run r;
+}
+
+u32 main() {
+    mut Holder h;
+    h.r <- run;
+    h.r(tick);
+    return 0;
+}

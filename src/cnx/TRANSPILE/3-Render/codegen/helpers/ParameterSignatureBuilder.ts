@@ -9,6 +9,7 @@
  * - BaseHeaderGenerator (via ParameterInputAdapter.fromSymbol)
  */
 
+import ParameterConst from "../../../../utils/ParameterConst";
 import IParameterInput from "../types/IParameterInput";
 
 /**
@@ -98,10 +99,13 @@ class ParameterSignatureBuilder {
    * Example: float value, ISR handler, Status s
    */
   private static _buildPassByValueParam(param: IParameterInput): string {
-    // An ISR is a function pointer, written like a callback parameter: with
-    // no `const` on the copy. cppcheck 2.13's MISRA addon misreports a
-    // `const ISR` parameter as Rule 8.2.
-    const constMod = param.isConst && param.baseType !== "ISR" ? "const " : "";
+    const constMod = ParameterConst.isWritten(
+      param.isConst,
+      param.baseType,
+      false,
+    )
+      ? "const "
+      : "";
     return `${constMod}${param.mappedType} ${param.name}`;
   }
 
