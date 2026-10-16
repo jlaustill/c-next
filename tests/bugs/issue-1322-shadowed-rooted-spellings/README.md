@@ -14,7 +14,7 @@ this way, reverting one analyzer reddens exactly one fixture.
 | fixture                    | rule  | what was emitted before                                                                |
 | -------------------------- | ----- | -------------------------------------------------------------------------------------- |
 | `this-shadowed-bit-access` | E0856 | `Internal:` assertion at `1:0` — 2.1 claimed to have rejected a program it let through |
-| `this-shadowed-const`      | E0877 | `Board__STEP = 5U;`, which gcc cannot compile                                          |
+| `this-shadowed-const`      | E0900 | `Board__STEP = 5U;`, which gcc cannot compile                                          |
 | `global-shadowed-string`   | E0857 | a `string` fed to `cnx_clamp_add_u8`                                                   |
 | `global-shadowed-bounds`   | E0854 | an out-of-bounds **write** against a four-element array                                |
 
