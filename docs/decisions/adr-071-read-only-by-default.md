@@ -1,6 +1,6 @@
 # ADR-071: Read-Only by Default (`mut`)
 
-**Status:** Accepted
+**Status:** Implemented
 **Date:** 2026-10-15
 **Decision Makers:** Language Design Team
 **Related ADRs:** ADR-006 (Simplified References), ADR-013 (Const Qualifier), ADR-029 (Function Pointers), ADR-061 (C Library Interop)
