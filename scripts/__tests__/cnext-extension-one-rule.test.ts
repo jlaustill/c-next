@@ -27,7 +27,7 @@ const OWNER = "src/cnx/utils/CNextSourcePath.ts";
 const NOT_A_MATCH: ReadonlyArray<readonly [string, string]> = [
   // A directory name: the project's cache.
   [
-    "src/cnx/PARSE/1-Discover/preprocessor/PreprocessCache.ts",
+    "src/cnx/PARSE/2-Parse/preprocessor/PreprocessCache.ts",
     'projectRoot, ".cnx"',
   ],
   ["src/cli/cache/CacheManager.ts", 'projectRoot, ".cnx"'],
@@ -41,15 +41,15 @@ const EXTNAME_NOT_A_STEM: ReadonlyArray<readonly [string, string]> = [
   // A C/C++ entry point's extension (#2050), and the rejection's text.
   ["src/cnx/PARSE/1-Discover/InputExpansion.ts", "const ext = extname(path);"],
   // An included header's string keeps the header's extension (#1991)...
-  ["src/cnx/PARSE/1-Discover/preprocessor/Preprocessor.ts", "cnext-include"],
+  ["src/cnx/PARSE/2-Parse/preprocessor/Preprocessor.ts", "cnext-include"],
   // ...because standard input has no name, so cpp is told its language with
   // `-x` from that extension (#1991 replaced the temporary file).
   [
-    "src/cnx/PARSE/1-Discover/preprocessor/Preprocessor.ts",
+    "src/cnx/PARSE/2-Parse/preprocessor/Preprocessor.ts",
     "extname(text.filename)",
   ],
   // Every other kind's table key (#2043); C-Next is asked of the owner.
-  ["src/cnx/PARSE/1-Discover/FileDiscovery.ts", "extname(filePath)"],
+  ["src/cnx/utils/FileKinds.ts", "extname(filePath)"],
 ];
 
 function lineAt(file: string, offset: number): string {

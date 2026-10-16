@@ -5,7 +5,7 @@
  */
 import type IFileIncludes from "../PARSE/1-Discover/types/IFileIncludes";
 import type IOutputPaths from "../PARSE/1-Discover/types/IOutputPaths";
-import type TDiscoveryFacts from "../PARSE/1-Discover/types/TDiscoveryFacts";
+import type TRunFacts from "../PARSE/2-Parse/types/TRunFacts";
 import type ICodeGenSymbols from "../types/ICodeGenSymbols";
 import type IProgram from "../types/IProgram";
 import invariant from "./invariant";
@@ -22,10 +22,7 @@ class FileFacts {
   }
 
   /** What 1.1 learned about one file's includes (#1444) */
-  static includesOf(
-    discovery: TDiscoveryFacts,
-    sourcePath: string,
-  ): IFileIncludes {
+  static includesOf(discovery: TRunFacts, sourcePath: string): IFileIncludes {
     const includes = discovery.includes.get(sourcePath);
     invariant(
       includes !== undefined,
@@ -35,10 +32,7 @@ class FileFacts {
   }
 
   /** Where 3.1 writes one file's outputs, as 1.1 named them */
-  static outputsOf(
-    discovery: TDiscoveryFacts,
-    sourcePath: string,
-  ): IOutputPaths {
+  static outputsOf(discovery: TRunFacts, sourcePath: string): IOutputPaths {
     const outputs = discovery.outputs.get(sourcePath);
     invariant(
       outputs !== undefined,

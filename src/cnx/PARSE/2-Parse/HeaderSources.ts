@@ -5,16 +5,14 @@ import detectAssemblySyntax from "./detectAssemblySyntax";
 import detectCppSyntax from "./detectCppSyntax";
 import ExternalDeclarationOracle from "./preprocessor/ExternalDeclarationOracle";
 import LineMarkers from "./preprocessor/LineMarkers";
-import type Preprocessor from "./preprocessor/Preprocessor";
-import FileDiscovery from "./FileDiscovery";
-import EFileType from "./types/EFileType";
-import EHeaderLanguage from "./types/EHeaderLanguage";
-import type IDiscoveredFile from "./types/IDiscoveredFile";
-import type IHeaderSource from "./types/IHeaderSource";
+import type IHeaderPreprocessor from "./preprocessor/types/IHeaderPreprocessor";
+import FileKinds from "../../utils/FileKinds";
+import EFileType from "../1-Discover/types/EFileType";
+import EHeaderLanguage from "../1-Discover/types/EHeaderLanguage";
+import type IDiscoveredFile from "../1-Discover/types/IDiscoveredFile";
+import type IHeaderSource from "../1-Discover/types/IHeaderSource";
 import type IRecoveredDeclarations from "./types/IRecoveredDeclarations";
 import type IRecoveredSlice from "./types/IRecoveredSlice";
-import type IFileSystem from "../../types/IFileSystem";
-import type PreprocessCache from "./preprocessor/PreprocessCache";
 import ConcurrencyLimit from "../../utils/ConcurrencyLimit";
 import invariant from "../../utils/invariant";
 
@@ -22,11 +20,10 @@ type TPreprocessLimit = ReturnType<typeof ConcurrencyLimit.create>;
 
 /** What settling a run's headers needs from the run. */
 interface IHeaderSourceSettings {
-  readonly fs: IFileSystem;
-  readonly preprocessor: Preprocessor;
+  /** Each header's text, as 1.1 read it */
+  readonly texts: ReadonlyMap<string, string>;
+  readonly preprocessor: IHeaderPreprocessor;
   readonly defines: Readonly<Record<string, string | boolean>>;
-  /** Where each preprocessor run is kept, so a warm run starts none */
-  readonly cache: PreprocessCache | null;
 }
 
 /**
@@ -53,10 +50,16 @@ interface ITranslationUnit {
   readonly includePaths: readonly string[];
   /** The headers a `.cnx` file includes itself, by the path the walk resolved */
   readonly headers: ReadonlySet<string>;
+  /**
+   * #1755: a `<...>` include the walk found no file for, which only the
+   * compiler's own search path finds, so the unit is read whole
+   */
+  readonly searchesSystemPath: boolean;
 }
 
 /**
- * #1844: each header's text and language, settled once, in 1.1.
+ * #1844: each header's text and language, settled once: in 1.2, with the
+ * compiler of the run's target, since #1713.
  *
  * §1 gives 1.1 a file's kind. A header's language was judged in Stage 2
  * instead, twice and on two texts: a cold run judged the preprocessed text it
@@ -109,7 +112,7 @@ class HeaderSources {
   }> {
     invariant(
       headers.length === 0 || settings.preprocessor.isAvailable(),
-      "1.1 rejects a run that includes headers when no preprocessor is available",
+      "1.2 rejects a run that includes headers when no preprocessor is available",
     );
     const limit = ConcurrencyLimit.create(availableParallelism());
     const settled: Promise<TAlone>[] = [];
@@ -133,19 +136,20 @@ class HeaderSources {
     const index = new Map(headers.map((file, i) => [resolve(file.path), i]));
     const counted = new Set<number>();
     HeaderSources._count([...unit.headers], index, alone, counted);
-    const recovery = [...counted].some((i) => alone[i].source === null)
-      ? await ExternalDeclarationOracle.recover(
-          unit.directives,
-          settings.preprocessor,
-          {
-            // #1723: the unit holds every file's C includes, so it is searched
-            // along every file's search path, not --include alone.
-            includePaths: [...unit.includePaths],
-            defines: { ...settings.defines },
-            ...(settings.cache === null ? {} : { cache: settings.cache }),
-          },
-        )
-      : null;
+    const recovery =
+      unit.searchesSystemPath ||
+      [...counted].some((i) => alone[i].source === null)
+        ? await ExternalDeclarationOracle.recover(
+            unit.directives,
+            settings.preprocessor,
+            {
+              // #1723: the unit holds every file's C includes, so it is searched
+              // along every file's search path, not --include alone.
+              includePaths: [...unit.includePaths],
+              defines: { ...settings.defines },
+            },
+          )
+        : null;
     // The preprocessor names a header by the path it found it along; the
     // walk, by the one it resolved. Both name the same file.
     const slices = new Map<string, string>();
@@ -213,10 +217,7 @@ class HeaderSources {
         path,
         Object.freeze({
           text,
-          language: HeaderSources._languageOf(
-            FileDiscovery.classifyFile(path).type,
-            text,
-          ),
+          language: HeaderSources._languageOf(FileKinds.of(path), text),
         }),
       );
     }
@@ -263,7 +264,7 @@ class HeaderSources {
     for (const [path, text] of recovery.perFileContent) {
       const language =
         reached.get(resolve(path))?.language ??
-        HeaderSources._languageOf(FileDiscovery.classifyFile(path).type, text);
+        HeaderSources._languageOf(FileKinds.of(path), text);
       slices.set(
         path,
         Object.freeze({
@@ -287,7 +288,11 @@ class HeaderSources {
     earlier: readonly Promise<TAlone>[],
     settings: IHeaderSourceSettings & { readonly limit: TPreprocessLimit },
   ): Promise<TAlone> {
-    const raw = settings.fs.readFile(file.path);
+    const raw = settings.texts.get(file.path);
+    invariant(
+      raw !== undefined,
+      `1.1 reads the text of every header it resolves (missing ${file.path})`,
+    );
     // #1723: along the path this header was found on, so a header that
     // includes a sibling library's header preprocesses as it resolved. Its
     // line markers say which lines are the header's own.
@@ -296,7 +301,6 @@ class HeaderSources {
       includePaths: [...searchPaths],
       keepLineDirectives: true,
       asIncluded: true,
-      ...(settings.cache === null ? {} : { cache: settings.cache }),
     };
     const result = await settings.limit(() =>
       settings.preprocessor.preprocess(file.path, options),

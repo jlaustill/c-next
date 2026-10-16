@@ -241,9 +241,16 @@ describe("#1991: each pass takes only what the pass before it returned", () => {
     expect(new Set(plans.map((plan) => plan.args[0])).size).toBe(plans.length);
   });
 
-  it("1.2, 1.3, 1.4, 2.3 and the header step take one argument each", async () => {
+  it("1.3, 1.4, 2.3 and the header step take one argument each, and 1.2 1.1's graph and the compiler port", async () => {
     await run();
-    for (const pass of ["1.2", "1.3", "1.4", "2.3", "2.3 headers"]) {
+    // #1713: 1.2 reads the headers with the target's compiler, which the host
+    // runs for it, as 3.1 writes through the host's filesystem port
+    const graph = (only("1.1").returned as { graph: unknown }).graph;
+    for (const call of of("1.2")) {
+      expect(call.args, "1.2's arguments").toHaveLength(2);
+      expect(call.args[0]).toBe(graph);
+    }
+    for (const pass of ["1.3", "1.4", "2.3", "2.3 headers"]) {
       expect(of(pass).length, `${pass} ran`).toBeGreaterThan(0);
       for (const call of of(pass)) {
         expect(call.args, `${pass}'s arguments`).toHaveLength(1);
@@ -288,10 +295,16 @@ describe("#1991: each pass takes only what the pass before it returned", () => {
     const named = new Set<string>();
     const discovered = only("1.1").returned as {
       graph: {
-        outputs: ReadonlyMap<string, { source: string; header: string }>;
+        outputs: Readonly<
+          Record<
+            "c" | "cpp",
+            ReadonlyMap<string, { source: string; header: string }>
+          >
+        >;
       };
     };
-    for (const paths of discovered.graph.outputs.values()) {
+    const byMode = discovered.graph.outputs;
+    for (const paths of [...byMode.c.values(), ...byMode.cpp.values()]) {
       named.add(paths.source);
       named.add(paths.header);
     }

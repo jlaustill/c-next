@@ -22,7 +22,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import Transpiler from "../Transpiler";
-import Preprocessor from "../../cnx/PARSE/1-Discover/preprocessor/Preprocessor";
+import ToolchainDetector from "../../cnx/PARSE/2-Parse/preprocessor/ToolchainDetector";
 import NodeFileSystem from "../../cnx/PARSE/1-Discover/NodeFileSystem";
 
 const WIDGET_H = `typedef struct { int mode; } widget_cfg_t;
@@ -41,7 +41,8 @@ scope Demo {
 
 describe("compile_commands.json auto-discovery (integration)", () => {
   let dir: string;
-  const available = new Preprocessor(NodeFileSystem.instance).isAvailable();
+  const available =
+    ToolchainDetector.fromPath("gcc", NodeFileSystem.instance) !== null;
 
   beforeAll(() => {
     dir = mkdtempSync(join(tmpdir(), "cnext-cc-discovery-"));

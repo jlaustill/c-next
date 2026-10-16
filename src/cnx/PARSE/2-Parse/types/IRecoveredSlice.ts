@@ -1,4 +1,4 @@
-import type EHeaderLanguage from "./EHeaderLanguage";
+import type EHeaderLanguage from "../../1-Discover/types/EHeaderLanguage";
 
 /**
  * #985, #1844: one header's own part of the translation unit 1.1 preprocessed

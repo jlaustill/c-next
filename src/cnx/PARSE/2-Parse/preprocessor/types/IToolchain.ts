@@ -20,6 +20,9 @@ interface IToolchain {
   /** Whether this is a cross-compiler (e.g., for ARM) */
   isCrossCompiler: boolean;
 
+  /** #1713: the target's own flags (`-mmcu=`, `-mcpu=`), on every run */
+  flags?: string[];
+
   /** Target triple if cross-compiling (e.g., "arm-none-eabi") */
   target?: string;
 }

@@ -14,35 +14,37 @@ function testSourceGraph(
 ): Pick<
   ISourceGraph,
   | "cnextFiles"
-  | "cppMode"
   | "anchor"
   | "includes"
   | "outputs"
   | "targetCatalog"
-  | "headerMacroDumps"
   | "headerFiles"
-  | "headerSources"
-  | "cachedHeaders"
-  | "recoveredDeclarations"
+  | "headerTexts"
+  | "headerIncludes"
+  | "headerUnit"
+  | "headerSearchPaths"
+  | "includeSearchPaths"
   | "run"
 > {
   const catalog = Installation.catalog(NodeFileSystem.instance);
+  const includes = new Map(files.map((file) => [file.path, noIncludes()]));
   return {
     cnextFiles: files,
-    cppMode: false,
     anchor: {
       directory: "/p",
       projectRoot: undefined,
       defines: {},
       platformio: null,
+      configuredCompiler: null,
     },
-    includes: new Map(files.map((file) => [file.path, noIncludes()])),
-    outputs: new Map(),
-    headerMacroDumps: new Map(),
+    includes: { c: includes, cpp: includes },
+    outputs: { c: new Map(), cpp: new Map() },
     headerFiles: [],
-    headerSources: new Map(),
-    cachedHeaders: new Map(),
-    recoveredDeclarations: null,
+    headerTexts: new Map(),
+    headerIncludes: [],
+    headerUnit: { directives: [], sites: new Map(), unresolvedSystem: [] },
+    headerSearchPaths: new Map(),
+    includeSearchPaths: [],
     run: { debugMode: false, parseOnly: false, target: {} },
     targetCatalog: {
       path: catalog,

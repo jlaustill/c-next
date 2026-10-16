@@ -21,7 +21,7 @@ import ToolchainDetector from "../ToolchainDetector";
 vi.mock("node:child_process", () => ({ execFileSync: vi.fn() }));
 
 import { execFileSync } from "node:child_process";
-import NodeFileSystem from "../../NodeFileSystem";
+import NodeFileSystem from "../../../1-Discover/NodeFileSystem";
 import TestFileSystem from "../../../../types/__testUtils__/TestFileSystem";
 
 const installed = TestFileSystem.installedExecutables;
@@ -66,29 +66,6 @@ describe("ToolchainDetector.fromPath", () => {
     expect(
       ToolchainDetector.fromPath("/nope/xtensa-gcc", installed()),
     ).toBeNull();
-  });
-});
-
-describe("ToolchainDetector.detect with CNEXT_CROSS_COMPILER", () => {
-  const original = process.env.CNEXT_CROSS_COMPILER;
-  beforeEach(() => vi.clearAllMocks());
-  afterEach(() => {
-    vi.restoreAllMocks();
-    if (original === undefined) delete process.env.CNEXT_CROSS_COMPILER;
-    else process.env.CNEXT_CROSS_COMPILER = original;
-  });
-
-  it("prefers CNEXT_CROSS_COMPILER over auto-detected toolchains", () => {
-    process.env.CNEXT_CROSS_COMPILER = "/opt/xt/bin/xtensa-esp32s3-elf-gcc";
-    vi.mocked(execFileSync).mockReturnValue("xtensa gcc 12.2\n");
-
-    const tc = ToolchainDetector.detect(
-      installed("/opt/xt/bin/xtensa-esp32s3-elf-gcc", "/usr/bin/gcc"),
-    );
-
-    expect(tc).not.toBeNull();
-    expect(tc!.cpp).toBe("/opt/xt/bin/xtensa-esp32s3-elf-gcc");
-    expect(tc!.isCrossCompiler).toBe(true);
   });
 });
 

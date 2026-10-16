@@ -1,4 +1,4 @@
-import type IHeaderDeclarationRecord from "./IHeaderDeclarationRecord";
+import type IHeaderDeclarationRecord from "../../1-Discover/types/IHeaderDeclarationRecord";
 
 /** #1991: one header's cache read: the record it found, or what it threw */
 type TCachedHeaderRead =

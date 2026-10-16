@@ -15,7 +15,7 @@ import type IPreprocessCacheEntry from "./types/IPreprocessCacheEntry";
 import IFileSystem from "../../../types/IFileSystem";
 import LineMarkers from "./LineMarkers";
 import PreprocessCache from "./PreprocessCache";
-import Installation from "../Installation";
+import type IHeaderPreprocessor from "./types/IHeaderPreprocessor";
 
 /** What one run of the compiler printed, and why it failed, if it did */
 type IPreprocessOutcome = Omit<IPreprocessCacheEntry, "deps" | "absent">;
@@ -57,12 +57,9 @@ interface IStringInput {
 /**
  * Handles preprocessing of C/C++ files
  */
-class Preprocessor {
+class Preprocessor implements IHeaderPreprocessor {
   /** The input argument that names standard input */
   private static readonly STDIN = "-";
-
-  /** What gcc and clang name standard input in their line markers */
-  static readonly STRING_MARKER = "<stdin>";
 
   private readonly toolchain: IToolchain | null;
 
@@ -70,9 +67,28 @@ class Preprocessor {
 
   private readonly fs: IFileSystem;
 
-  constructor(fs: IFileSystem, toolchain?: IToolchain) {
+  /** Where cpp reads a string from: a directory that holds no header */
+  private readonly headerFreeDirectory: string;
+
+  /** Where each run is kept, so a warm run starts none (#1844) */
+  private readonly cache: PreprocessCache | null;
+
+  /**
+   * #1713: the host constructs one for the compiler 1.2 chose for the run's
+   * target; `toolchain` is null when that compiler is not installed.
+   */
+  constructor(
+    fs: IFileSystem,
+    toolchain: IToolchain | null,
+    settings: {
+      readonly headerFreeDirectory: string;
+      readonly cache: PreprocessCache | null;
+    },
+  ) {
     this.fs = fs;
-    this.toolchain = toolchain ?? ToolchainDetector.detect(fs);
+    this.toolchain = toolchain;
+    this.headerFreeDirectory = settings.headerFreeDirectory;
+    this.cache = settings.cache;
 
     if (this.toolchain) {
       this.defaultIncludePaths = ToolchainDetector.getDefaultIncludePaths(
@@ -170,7 +186,7 @@ class Preprocessor {
       text === null ? dirname(filePath) : null,
       options,
     );
-    const cache = options.cache;
+    const cache = this.cache;
     let outcome: IPreprocessOutcome;
     if (cache) {
       const key = PreprocessCache.keyOf([
@@ -350,6 +366,8 @@ class Preprocessor {
     options: IPreprocessOptions,
   ): string[] {
     const args: string[] = [
+      // #1713: the target's own flags, so cpp predefines what its compiler does
+      ...((options.toolchain ?? this.toolchain)?.flags ?? []),
       "-E", // Preprocess only
       "-P", // Don't generate linemarkers (we'll add them back if needed)
     ];
@@ -419,7 +437,7 @@ class Preprocessor {
       ? null
       : {
           content: text.content,
-          cwd: Installation.headerFreeDirectory(this.fs),
+          cwd: this.headerFreeDirectory,
         };
   }
 

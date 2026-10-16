@@ -19,7 +19,7 @@ import { join } from "node:path";
 import Transpiler from "../Transpiler";
 import NodeFileSystem from "../../cnx/PARSE/1-Discover/NodeFileSystem";
 import type IFileSystem from "../../cnx/types/IFileSystem";
-import Preprocessor from "../../cnx/PARSE/1-Discover/preprocessor/Preprocessor";
+import ToolchainDetector from "../../cnx/PARSE/2-Parse/preprocessor/ToolchainDetector";
 
 // No conditional of its own, so it is used as written, and it is usable.
 const A_H = `#define A_GUARD 1
@@ -64,7 +64,8 @@ void run() {
 
 describe("header preprocessing retry (#1817)", () => {
   let dir: string;
-  const available = new Preprocessor(NodeFileSystem.instance).isAvailable();
+  const available =
+    ToolchainDetector.fromPath("gcc", NodeFileSystem.instance) !== null;
 
   beforeAll(() => {
     dir = mkdtempSync(join(tmpdir(), "cnext-retry-"));

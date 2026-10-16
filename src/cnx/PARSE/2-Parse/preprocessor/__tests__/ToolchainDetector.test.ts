@@ -51,80 +51,13 @@ describe("ToolchainDetector", () => {
     }
   });
 
-  describe("detect", () => {
-    it("returns null when no toolchain is available", () => {
-      const result = ToolchainDetector.detect(installed());
-      expect(result).toBeNull();
-    });
-
-    it("detects ARM toolchain with highest priority", () => {
-      whenRun(() => "arm-none-eabi-gcc (GNU Arm) 10.3.1\n");
-
-      const result = ToolchainDetector.detect(
-        installed(
-          "/usr/bin/arm-none-eabi-gcc",
-          "/usr/bin/arm-none-eabi-g++",
-          "/usr/bin/clang",
-          "/usr/bin/gcc",
-        ),
-      );
-
-      expect(result).not.toBeNull();
-      expect(result!.name).toBe("arm-none-eabi-gcc");
-      expect(result!.cc).toBe("/usr/bin/arm-none-eabi-gcc");
-      expect(result!.cxx).toBe("/usr/bin/arm-none-eabi-g++");
-      expect(result!.isCrossCompiler).toBe(true);
-      expect(result!.target).toBe("arm-none-eabi");
-    });
-
-    it("detects clang when ARM is not available", () => {
-      whenRun(() => "clang version 14.0.0\n");
-
-      const result = ToolchainDetector.detect(
-        installed("/usr/bin/clang", "/usr/bin/clang++", "/usr/bin/gcc"),
-      );
-
-      expect(result).not.toBeNull();
-      expect(result!.name).toBe("clang");
-      expect(result!.cc).toBe("/usr/bin/clang");
-      expect(result!.cxx).toBe("/usr/bin/clang++");
-      expect(result!.isCrossCompiler).toBe(false);
-    });
-
-    it("detects gcc when ARM and clang are not available", () => {
-      whenRun(() => "gcc (Ubuntu 11.4.0) 11.4.0\n");
-
-      const result = ToolchainDetector.detect(
-        installed("/usr/bin/gcc", "/usr/bin/g++"),
-      );
-
-      expect(result).not.toBeNull();
-      expect(result!.name).toBe("gcc");
-      expect(result!.cc).toBe("/usr/bin/gcc");
-      expect(result!.cxx).toBe("/usr/bin/g++");
-      expect(result!.isCrossCompiler).toBe(false);
-    });
-
-    it("uses cc for cxx when c++ compiler not found", () => {
-      whenRun(() => "gcc 11.4.0\n");
-
-      const result = ToolchainDetector.detect(installed("/usr/bin/gcc"));
-
-      expect(result!.cxx).toBe("/usr/bin/gcc");
-    });
-
-    it("returns null when no PATH directory holds a compiler", () => {
-      const result = ToolchainDetector.detect(installed("/opt/elsewhere/gcc"));
-      expect(result).toBeNull();
-    });
-  });
-
   describe("PATH search", () => {
     it("takes the first PATH directory that holds the executable", () => {
       process.env.PATH = ["/opt/a", "/usr/bin"].join(delimiter);
       whenRun(() => "gcc 13\n");
 
-      const result = ToolchainDetector.detect(
+      const result = ToolchainDetector.fromPath(
+        "gcc",
         installed("/opt/a/gcc", "/usr/bin/gcc"),
       );
 
@@ -136,7 +69,7 @@ describe("ToolchainDetector", () => {
       const fs = installed();
       const asked = vi.spyOn(fs, "isExecutable");
 
-      ToolchainDetector.detect(fs);
+      ToolchainDetector.fromPath("gcc", fs);
 
       expect(asked).toHaveBeenCalled();
       for (const call of asked.mock.calls) {
@@ -147,7 +80,9 @@ describe("ToolchainDetector", () => {
     it("finds nothing when PATH is unset", () => {
       delete process.env.PATH;
 
-      expect(ToolchainDetector.detect(installed("/usr/bin/gcc"))).toBeNull();
+      expect(
+        ToolchainDetector.fromPath("gcc", installed("/usr/bin/gcc")),
+      ).toBeNull();
     });
   });
 
@@ -248,7 +183,10 @@ End of search list.
         throw new Error("not found");
       });
 
-      const result = ToolchainDetector.detect(installed("/usr/bin/gcc"));
+      const result = ToolchainDetector.fromPath(
+        "gcc",
+        installed("/usr/bin/gcc"),
+      );
 
       expect(result!.version).toBe("gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0");
     });
@@ -258,7 +196,10 @@ End of search list.
         throw new Error("version failed");
       });
 
-      const result = ToolchainDetector.detect(installed("/usr/bin/gcc"));
+      const result = ToolchainDetector.fromPath(
+        "gcc",
+        installed("/usr/bin/gcc"),
+      );
 
       expect(result!.version).toBeUndefined();
     });

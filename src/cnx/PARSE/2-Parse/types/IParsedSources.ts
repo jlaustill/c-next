@@ -1,6 +1,6 @@
 import type IParsedRecovery from "./IParsedRecovery";
 import type TParsedHeaderEntry from "./TParsedHeaderEntry";
-import type TDiscoveryFacts from "../../1-Discover/types/TDiscoveryFacts";
+import type TRunFacts from "./TRunFacts";
 import type ITranspileError from "../../../types/ITranspileError";
 import type IParsedSource from "./IParsedSource";
 import type TRunTarget from "../../../types/TRunTarget";
@@ -14,7 +14,7 @@ interface IParsedSources {
   readonly sources: readonly IParsedSource[];
   readonly errors: readonly ITranspileError[];
   readonly target: TRunTarget;
-  readonly discovery: TDiscoveryFacts;
+  readonly discovery: TRunFacts;
 }
 
 export default IParsedSources;

@@ -1,15 +1,14 @@
-import type IHeaderMacroDump from "./IHeaderMacroDump";
 import type ITargetCatalogFile from "./ITargetCatalogFile";
 import type IDiscoveredFile from "./IDiscoveredFile";
 import type IPipelineFile from "./IPipelineFile";
 import type IPlatformIOProject from "../../../types/IPlatformIOProject";
 import type IAnchorFacts from "./IAnchorFacts";
 import type IFileIncludes from "./IFileIncludes";
-import type IHeaderSource from "./IHeaderSource";
-import type TCachedHeaderRead from "./TCachedHeaderRead";
 import type IOutputPaths from "./IOutputPaths";
-import type IRecoveredDeclarations from "./IRecoveredDeclarations";
 import type IRunSettings from "./IRunSettings";
+import type IByOutputMode from "./IByOutputMode";
+import type IHeaderInclude from "./IHeaderInclude";
+import type IHeaderUnit from "./IHeaderUnit";
 
 /**
  * `SourceGraph` — the artifact 1.1 Discover emits (#1444).
@@ -34,41 +33,20 @@ interface ISourceGraph {
    */
   readonly cnextFiles: readonly IPipelineFile[];
 
-  /** The C and C++ headers the files reach, transitively. */
+  /**
+   * The C and C++ headers the files reach, transitively. 1.2 reads the ones
+   * a C compile opens (#1844), with the compiler of the run's target (#1713).
+   */
   readonly headerFiles: readonly IDiscoveredFile[];
 
-  /**
-   * #1844: per header a C compile opens (by `path`), the text Stage 2 parses
-   * and the language 1.1 judged. The language is always judged on the
-   * header's own lines as the compile meets them; the text is that same
-   * preprocessed text when #945's `#if` check needs it, the header as written
-   * otherwise. A file the walk did not find (one a macro names) has its own
-   * preprocessed lines. Nothing after 1.1 reads a header or judges one again.
-   */
-  readonly headerSources: ReadonlyMap<string, IHeaderSource>;
+  /** #1713: each header's text (by `path`), as 1.1 read it */
+  readonly headerTexts: ReadonlyMap<string, string>;
 
-  /**
-   * #1991: per header (by `path`) the symbol cache holds a valid record for,
-   * that record, or what reading it threw. Every one is read before 1.3
-   * declares any header (#1817). A header not here is parsed.
-   */
-  readonly cachedHeaders: ReadonlyMap<string, TCachedHeaderRead>;
+  /** #1844: every `.cnx` file's header includes, in discovery order */
+  readonly headerIncludes: readonly IHeaderInclude[];
 
-  /**
-   * Issue #985: the run's C includes preprocessed as one translation unit,
-   * split back into each header's slice. Read only when a header could not be
-   * preprocessed alone -- null otherwise, so a clean project pays nothing.
-   */
-  readonly recoveredDeclarations: IRecoveredDeclarations | null;
-
-  /**
-   * #1844: whether the run emits C++. Detected, not declared (#1428): any
-   * C++ header makes the run C++, unless the config says
-   * `cppRequired: false`, where C++ is E0507: 1.1 returns the graph, as C,
-   * alongside those errors.
-   * `cppRequired: true` (`--cpp`) is C++ whatever the headers are.
-   */
-  readonly cppMode: boolean;
+  /** Issue #985: the run's C includes as one translation unit */
+  readonly headerUnit: IHeaderUnit;
 
   /**
    * Per header (by `path`), the search path discovery resolved it along --
@@ -90,8 +68,11 @@ interface ISourceGraph {
    * files, not `cnextFiles`' dependency order: a generated header takes its
    * include spellings from every file in this order, and
    * `ExternalTypeHeaderBuilder` lets the first header declaring a type win.
+   *
+   * #1713: spelled for each mode, since a `.cnx` include names a generated
+   * header whose extension follows the mode 1.2 settles.
    */
-  readonly includes: ReadonlyMap<string, IFileIncludes>;
+  readonly includes: IByOutputMode<ReadonlyMap<string, IFileIncludes>>;
 
   /**
    * Where the run is anchored (#1719), as facts: the project root found from
@@ -106,17 +87,22 @@ interface ISourceGraph {
    */
   readonly anchor: IAnchorFacts & {
     readonly platformio: IPlatformIOProject | null;
+    /**
+     * #1713: the compiler the project names -- `CNEXT_CROSS_COMPILER`, else
+     * the compile database's -- which reads the headers only of a target
+     * that names no compiler of its own; null when it names none
+     */
+    readonly configuredCompiler: string | null;
   };
 
   /** Whether to write generated output to disk: a files run, not a source run. */
   readonly writeOutputToDisk: boolean;
 
   /**
-   * #1991: each C-Next file's output paths, by its path. Named here, once the
-   * run's mode has settled the extensions, so no later stage asks
-   * `PathResolver`.
+   * #1991: each C-Next file's output paths, by its path, for each mode
+   * (#1713), so no later stage asks `PathResolver`.
    */
-  readonly outputs: ReadonlyMap<string, IOutputPaths>;
+  readonly outputs: IByOutputMode<ReadonlyMap<string, IOutputPaths>>;
 
   /**
    * #1991: the target catalog (ADR-049), read here so that no later pass
@@ -126,9 +112,6 @@ interface ISourceGraph {
 
   /** #1991: the run's settings, which a later pass reads instead of the host's config */
   readonly run: IRunSettings;
-
-  /** #1688: each C-Next file with a C include, to its header macro dump */
-  readonly headerMacroDumps: ReadonlyMap<string, IHeaderMacroDump>;
 }
 
 export default ISourceGraph;

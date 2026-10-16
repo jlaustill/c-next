@@ -27,7 +27,7 @@ import IValidationResult from "./types/IValidationResult";
 import ITestResult from "./types/ITestResult";
 import type TTestMode from "./types/TTestMode";
 import type IModeResult from "./types/ITestMode";
-import detectCppSyntax from "../src/cnx/PARSE/1-Discover/detectCppSyntax";
+import detectCppSyntax from "../src/cnx/PARSE/2-Parse/detectCppSyntax";
 import TestMarkers from "./TestMarkers";
 import CNextSourceParser from "../src/cnx/PARSE/2-Parse/CNextSourceParser";
 import ExecFailure from "../src/cnx/utils/ExecFailure";

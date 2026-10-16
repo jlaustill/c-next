@@ -3,28 +3,14 @@
  * Classifies source files by type
  */
 
-import { extname, resolve } from "node:path";
-import EFileType from "./types/EFileType";
+import { resolve } from "node:path";
 import IDiscoveredFile from "./types/IDiscoveredFile";
 import IFileSystem from "../../types/IFileSystem";
-import CNextSourcePath from "../../utils/CNextSourcePath";
+import FileKinds from "../../utils/FileKinds";
 
 /**
  * Default extensions for each file type
  */
-const EXTENSION_MAP: Record<string, EFileType> = {
-  ".h": EFileType.CHeader,
-  ".hpp": EFileType.CppHeader,
-  ".hxx": EFileType.CppHeader,
-  ".hh": EFileType.CppHeader,
-  ".c": EFileType.CSource,
-  ".cpp": EFileType.CppSource,
-  ".cxx": EFileType.CppSource,
-  ".cc": EFileType.CppSource,
-  // #1840, owner ruling 4 on #1444: GCC treats `.c++` as C++ source, and the
-  // CLI already accepted it as a C++ entry point. E0503 reads this row too
-  ".c++": EFileType.CppSource,
-};
 
 /**
  * Classifies and discovers source files
@@ -38,17 +24,10 @@ class FileDiscovery {
    * sensitive (#1833); the C and C++ extensions are looked up lowercased.
    */
   static classifyFile(filePath: string): IDiscoveredFile {
-    const ext = extname(filePath).toLowerCase();
     return {
       path: filePath,
-      type: FileDiscovery._typeOf(filePath, ext),
+      type: FileKinds.of(filePath),
     };
-  }
-
-  private static _typeOf(filePath: string, ext: string): EFileType {
-    if (CNextSourcePath.isSource(filePath)) return EFileType.CNext;
-    if (CNextSourcePath.isMiscased(filePath)) return EFileType.MiscasedCNext;
-    return EXTENSION_MAP[ext] ?? EFileType.Unknown;
   }
 
   /**

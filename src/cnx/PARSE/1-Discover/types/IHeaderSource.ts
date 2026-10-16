@@ -1,4 +1,4 @@
-import type EHeaderLanguage from "./EHeaderLanguage";
+import type EHeaderLanguage from "../../1-Discover/types/EHeaderLanguage";
 
 /**
  * #1844: one header as 1.1 Discover settled it -- the text Stage 2 parses,

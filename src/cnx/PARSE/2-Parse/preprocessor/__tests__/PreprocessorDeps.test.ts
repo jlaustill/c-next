@@ -3,11 +3,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import NodeFileSystem from "../../NodeFileSystem";
+import NodeFileSystem from "../../../1-Discover/NodeFileSystem";
 import PreprocessCache from "../PreprocessCache";
-import Preprocessor from "../Preprocessor";
+import testPreprocessor from "./testPreprocessor";
 
-const available = new Preprocessor(NodeFileSystem.instance).isAvailable();
+const available = testPreprocessor().isAvailable();
 
 /** #1991 review: the files a cached run read are recorded as cpp listed them */
 describe.skipIf(!available)("Preprocessor records what a run read", () => {
@@ -27,11 +27,12 @@ describe.skipIf(!available)("Preprocessor records what a run read", () => {
     writeFileSync(header, "int x;\n");
     const cache = new PreprocessCache(dir, NodeFileSystem.instance);
     const record = vi.spyOn(cache, "record");
-    const result = await new Preprocessor(
+    const result = await testPreprocessor(
       NodeFileSystem.instance,
+      undefined,
+      cache,
     ).preprocessString('#include "h#x.h"\n', "cnext-include.h", {
       includePaths: [dir],
-      cache,
     });
     expect(result.success).toBe(true);
     expect(record).toHaveBeenCalledTimes(1);

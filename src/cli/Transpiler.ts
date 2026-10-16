@@ -9,7 +9,7 @@
  * _executePipeline(). There is ONE pipeline for all transpilation.
  */
 
-import type THeaderDeclarationCache from "../cnx/PARSE/1-Discover/types/THeaderDeclarationCache";
+import type THeaderDeclarationCache from "../cnx/PARSE/2-Parse/types/THeaderDeclarationCache";
 
 import IFileSystem from "../cnx/types/IFileSystem";
 
@@ -22,6 +22,7 @@ import IHeaderEmissionFacts from "../cnx/TRANSPILE/3-Render/headers/types/IHeade
 import type IProgram from "../cnx/types/IProgram";
 
 import IDiscoveredFile from "../cnx/PARSE/1-Discover/types/IDiscoveredFile";
+import Installation from "../cnx/PARSE/1-Discover/Installation";
 import EHeaderLanguage from "../cnx/PARSE/1-Discover/types/EHeaderLanguage";
 
 import ErrorLocation from "../cnx/utils/ErrorLocation";
@@ -38,7 +39,7 @@ import ITranspileError from "../cnx/types/ITranspileError";
 import DeclarationSite from "../cnx/utils/DeclarationSite";
 import type IDeclaredSource from "../cnx/PARSE/3-Declare/types/IDeclaredSource";
 import type IDeclaredSources from "../cnx/PARSE/3-Declare/types/IDeclaredSources";
-import type TDiscoveryFacts from "../cnx/PARSE/1-Discover/types/TDiscoveryFacts";
+import type TRunFacts from "../cnx/PARSE/2-Parse/types/TRunFacts";
 import Parse from "../cnx/PARSE/2-Parse/Parse";
 import Declare from "../cnx/PARSE/3-Declare/Declare";
 import Analyze from "../cnx/TRANSPILE/1-Analyze/Analyze";
@@ -49,7 +50,10 @@ import type TFrontEndResult from "./types/TFrontEndResult";
 import type IAnalysis from "../cnx/TRANSPILE/1-Analyze/types/IAnalysis";
 import type IDiagnostics from "../cnx/types/IDiagnostics";
 import CacheManager from "./cache/CacheManager";
-import PreprocessCache from "../cnx/PARSE/1-Discover/preprocessor/PreprocessCache";
+import PreprocessCache from "../cnx/PARSE/2-Parse/preprocessor/PreprocessCache";
+import Preprocessor from "../cnx/PARSE/2-Parse/preprocessor/Preprocessor";
+import ToolchainDetector from "../cnx/PARSE/2-Parse/preprocessor/ToolchainDetector";
+import type IHeaderCompiler from "../cnx/PARSE/2-Parse/preprocessor/types/IHeaderCompiler";
 import type IRecordedRequirement from "../cnx/types/IRecordedRequirement";
 import type IRenderedFile from "./types/IRenderedFile";
 import RequirementAggregator from "../cnx/utils/RequirementAggregator";
@@ -77,6 +81,9 @@ class Transpiler {
   private readonly warnings: string[];
   private readonly cacheManager: CacheManager | null;
   private readonly preprocessCache: PreprocessCache | null;
+
+  /** #1713: each compiler's run, by `_preprocessorFor`'s key */
+  private readonly preprocessors = new Map<string, Preprocessor>();
   /**
    * Issue #211, #1319, #1844: does this run emit C++? 1.1 Discover's answer
    * (`ISourceGraph.cppMode`), copied here when each run's graph is built so
@@ -202,11 +209,8 @@ class Transpiler {
         this.config,
         this.fs,
         this.warnings,
-        this.preprocessCache,
-        Transpiler._headerCacheOf(this.cacheManager),
       );
       this.anchor = discovered.anchor;
-      this.cppMode = discovered.graph.cppMode;
       const pipelineInput = discovered.graph;
       if (discovered.errors.length > 0) {
         result.errors.push(...discovered.errors);
@@ -217,7 +221,7 @@ class Transpiler {
         return this._finalizeResult(result, "No C-Next source files found");
       }
 
-      this._executePipeline(pipelineInput, result);
+      await this._executePipeline(pipelineInput, result);
       return this._finalizeResult(result);
     } catch (err) {
       return this._handleRunError(result, err);
@@ -241,10 +245,10 @@ class Transpiler {
    * Stage 6: 3.1 Write every implementation and header, once, after the run
    *          succeeded (#1233)
    */
-  private _executePipeline(
+  private async _executePipeline(
     input: ISourceGraph,
     result: ITranspilerResult,
-  ): void {
+  ): Promise<void> {
     // Stages 2 to 4d: 1.2 Parse, 1.3 Declare, then (through `resolve`) 1.4
     // Resolve and the whole-program checks, then 2.1 Analyze -- EVERY file,
     // before ANY file is planned (#1320). Analysis used to run inside the loop
@@ -258,7 +262,7 @@ class Transpiler {
     // Parse-only mode analyzes nothing: 2.1 keeps only declaration counts
     // (`IRunSettings.parseOnly`), and `_transpileFile` returns the parse-only
     // result before 2.2.
-    const front = this._runParseThroughAnalyze(input, result);
+    const front = await this._runParseThroughAnalyze(input, result);
     if (front.kind === "stopped") {
       if (front.errors.length > 0) {
         result.errors.push(...front.errors);
@@ -332,7 +336,29 @@ class Transpiler {
     }
   }
 
-  /** #1991: where 1.1 reads each header's cached declarations */
+  /**
+   * #1713: the run of `compiler` 1.2 reads headers with, one per compiler
+   * and flags for the transpiler's life: constructing one asks the compiler
+   * for its include paths, which an editor request should not pay for again.
+   */
+  private _preprocessorFor(compiler: IHeaderCompiler): Preprocessor {
+    const key = [compiler.driver, ...compiler.flags].join("\0");
+    const known = this.preprocessors.get(key);
+    if (known !== undefined) return known;
+    const toolchain = ToolchainDetector.fromPath(compiler.driver, this.fs);
+    const preprocessor = new Preprocessor(
+      this.fs,
+      toolchain === null ? null : { ...toolchain, flags: [...compiler.flags] },
+      {
+        headerFreeDirectory: Installation.headerFreeDirectory(this.fs),
+        cache: this.preprocessCache,
+      },
+    );
+    this.preprocessors.set(key, preprocessor);
+    return preprocessor;
+  }
+
+  /** #1991: where 1.2 reads each header's cached declarations */
   private static _headerCacheOf(
     cache: CacheManager | null,
   ): THeaderDeclarationCache | null {
@@ -368,11 +394,15 @@ class Transpiler {
    * Stages 2 to 4d, one pass at a time (#1991): 1.2 `Parse`, 1.3 `Declare`,
    * 1.4 Resolve with the whole-program checks, then 2.1 `Analyze`.
    */
-  private _runParseThroughAnalyze(
+  private async _runParseThroughAnalyze(
     input: ISourceGraph,
     result: ITranspilerResult,
-  ): TFrontEndResult {
-    const parsed = Parse.sources(input);
+  ): Promise<TFrontEndResult> {
+    const parsed = await Parse.sources(input, {
+      preprocessorFor: (compiler) => this._preprocessorFor(compiler),
+      headerCache: Transpiler._headerCacheOf(this.cacheManager),
+    });
+    this.cppMode = parsed.discovery.cppMode;
     // A file that failed to parse is not declared; the others still are, so
     // one run reports both kinds of error, as it did before #1991.
     const declared = Declare.sources(parsed);
@@ -822,7 +852,7 @@ class Transpiler {
    */
   private _recordFileResult(
     file: IDiscoveredFile,
-    discovery: TDiscoveryFacts,
+    discovery: TRunFacts,
     fileResult: IFileResult,
     result: ITranspilerResult,
     writeOutputToDisk: boolean,
@@ -865,7 +895,7 @@ class Transpiler {
    * CodeGenState at all. This only pairs that text with its path.
    */
   private static _headerOutputs(
-    discovery: TDiscoveryFacts,
+    discovery: TRunFacts,
     cnextFiles: readonly IPipelineFile[],
     renderedFiles: ReadonlyMap<string, IRenderedFile>,
   ): IRenderedOutput[] {

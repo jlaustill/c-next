@@ -1,4 +1,4 @@
-import type IHeaderDeclarationRecord from "./IHeaderDeclarationRecord";
+import type IHeaderDeclarationRecord from "../../1-Discover/types/IHeaderDeclarationRecord";
 
 /**
  * #1991: where 1.1 reads a header's cached declarations, by the header's path.

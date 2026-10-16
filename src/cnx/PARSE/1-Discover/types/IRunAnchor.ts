@@ -1,5 +1,4 @@
 import type PathResolver from "../PathResolver";
-import type Preprocessor from "../preprocessor/Preprocessor";
 import type IAnchorFacts from "./IAnchorFacts";
 
 /**
@@ -25,8 +24,6 @@ interface IRunAnchor extends IAnchorFacts {
 
   /** The compiler the compile database names, which picks the toolchain. */
   readonly compiler: string | null;
-
-  readonly preprocessor: Preprocessor;
 
   readonly pathResolver: PathResolver;
 }

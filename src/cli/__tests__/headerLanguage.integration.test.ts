@@ -21,7 +21,8 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import Transpiler from "../Transpiler";
-import Preprocessor from "../../cnx/PARSE/1-Discover/preprocessor/Preprocessor";
+import Preprocessor from "../../cnx/PARSE/2-Parse/preprocessor/Preprocessor";
+import ToolchainDetector from "../../cnx/PARSE/2-Parse/preprocessor/ToolchainDetector";
 import NodeFileSystem from "../../cnx/PARSE/1-Discover/NodeFileSystem";
 import type ITranspilerResult from "../types/ITranspilerResult";
 
@@ -72,9 +73,8 @@ const emitted = (result: ITranspilerResult, ext: ".c" | ".cpp"): boolean =>
 
 describe("a header's language is decided once, in 1.1 (#1844)", () => {
   let dir: string;
-  const preprocessorAvailable = new Preprocessor(
-    NodeFileSystem.instance,
-  ).isAvailable();
+  const preprocessorAvailable =
+    ToolchainDetector.fromPath("gcc", NodeFileSystem.instance) !== null;
 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), "cnext-header-language-"));

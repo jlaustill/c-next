@@ -17,8 +17,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import Transpiler from "../Transpiler";
 import Analyze from "../../cnx/TRANSPILE/1-Analyze/Analyze";
-import Preprocessor from "../../cnx/PARSE/1-Discover/preprocessor/Preprocessor";
-import detectCppSyntax from "../../cnx/PARSE/1-Discover/detectCppSyntax";
+import ToolchainDetector from "../../cnx/PARSE/2-Parse/preprocessor/ToolchainDetector";
+import detectCppSyntax from "../../cnx/PARSE/2-Parse/detectCppSyntax";
 import NodeFileSystem from "../../cnx/PARSE/1-Discover/NodeFileSystem";
 
 const GUARD_H = `#define WIDGET_GUARD 1
@@ -80,7 +80,8 @@ scope Demo {
 
 describe("external-symbol recovery (integration)", () => {
   let dir: string;
-  const available = new Preprocessor(NodeFileSystem.instance).isAvailable();
+  const available =
+    ToolchainDetector.fromPath("gcc", NodeFileSystem.instance) !== null;
 
   beforeAll(() => {
     dir = mkdtempSync(join(tmpdir(), "cnext-recovery-"));
@@ -307,7 +308,8 @@ void main() { }
 
 describe("diagnostics on a recovery slice (#1319, integration)", () => {
   let dir: string;
-  const available = new Preprocessor(NodeFileSystem.instance).isAvailable();
+  const available =
+    ToolchainDetector.fromPath("gcc", NodeFileSystem.instance) !== null;
 
   beforeAll(() => {
     dir = mkdtempSync(join(tmpdir(), "cnext-recovery-e0507-"));

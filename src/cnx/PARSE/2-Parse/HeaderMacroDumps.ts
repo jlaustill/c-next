@@ -3,29 +3,28 @@
  * that file's own C includes -- so a file sees the macros C sees for it, system
  * headers and compiler builtins included, and no other file's.
  *
- * #1991: run here, in 1.1, because running the preprocessor is discovery's.
- * The host used to run it after 1.1 had returned.
+ * #1713: run in 1.2, with the compiler of the run's target, once 1.2 has
+ * chosen it (owner ruling 2026-10-16: running the compiler over the headers
+ * is not discovery's). #1991 had moved it from the host into 1.1.
  */
 import { availableParallelism } from "node:os";
 
 import ConcurrencyLimit from "../../utils/ConcurrencyLimit";
 import ExternalDeclarationOracle from "./preprocessor/ExternalDeclarationOracle";
-import type PreprocessCache from "./preprocessor/PreprocessCache";
-import type Preprocessor from "./preprocessor/Preprocessor";
-import type IFileIncludes from "./types/IFileIncludes";
+import type IHeaderPreprocessor from "./preprocessor/types/IHeaderPreprocessor";
+import type IFileIncludes from "../1-Discover/types/IFileIncludes";
 import type IHeaderMacroDump from "./types/IHeaderMacroDump";
-import type IPipelineFile from "./types/IPipelineFile";
+import type IPipelineFile from "../1-Discover/types/IPipelineFile";
 
 class HeaderMacroDumps {
   /** Every C-Next file with a C include, to its dump */
   static async read(
     files: readonly IPipelineFile[],
     includes: ReadonlyMap<string, IFileIncludes>,
-    preprocessor: Preprocessor,
+    preprocessor: IHeaderPreprocessor | null,
     options: {
       readonly includeSearchPaths: readonly string[];
       readonly defines: Readonly<Record<string, string | boolean>>;
-      readonly cache: PreprocessCache | null;
     },
   ): Promise<ReadonlyMap<string, IHeaderMacroDump>> {
     const withIncludes = files.flatMap((file) => {
@@ -35,7 +34,7 @@ class HeaderMacroDumps {
         : [{ file, own }];
     });
     // Without a preprocessor a macro has no type, as before #1688
-    if (!preprocessor.isAvailable()) {
+    if (preprocessor === null || !preprocessor.isAvailable()) {
       return new Map(
         withIncludes.map(({ file }) => [
           file.path,
@@ -54,7 +53,6 @@ class HeaderMacroDumps {
               ...options.includeSearchPaths,
             ],
             defines: { ...options.defines },
-            ...(options.cache === null ? {} : { cache: options.cache }),
           }),
         );
         const dump: IHeaderMacroDump = {

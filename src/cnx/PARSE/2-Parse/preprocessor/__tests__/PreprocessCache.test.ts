@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import NodeFileSystem from "../../NodeFileSystem";
+import NodeFileSystem from "../../../1-Discover/NodeFileSystem";
 import PreprocessCache from "../PreprocessCache";
 import Write from "../../../../WRITE/1-Write/Write";
 

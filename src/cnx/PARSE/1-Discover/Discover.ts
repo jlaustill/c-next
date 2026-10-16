@@ -1,15 +1,10 @@
 import { basename, dirname, join, resolve } from "node:path";
 
-import type TCachedHeaderRead from "./types/TCachedHeaderRead";
-import type THeaderDeclarationCache from "./types/THeaderDeclarationCache";
-import HeaderMacroDumps from "./HeaderMacroDumps";
-import type IHeaderMacroDump from "./types/IHeaderMacroDump";
 import Installation from "./Installation";
 import type ITargetCatalogFile from "./types/ITargetCatalogFile";
 import CppEntryPointScanner from "./CppEntryPointScanner";
 import DependencyGraph from "./DependencyGraph";
 import FileDiscovery from "./FileDiscovery";
-import HeaderSources from "./HeaderSources";
 import IncludeDiscovery from "./IncludeDiscovery";
 import IncludeResolver from "./IncludeResolver";
 import InputExpansion from "./InputExpansion";
@@ -17,13 +12,12 @@ import PlatformIOIni from "./PlatformIOIni";
 import EFileType from "./types/EFileType";
 import EHeaderLanguage from "./types/EHeaderLanguage";
 import type IHeaderSource from "./types/IHeaderSource";
-import type IRecoveredDeclarations from "./types/IRecoveredDeclarations";
 import type IDiscoveredFile from "./types/IDiscoveredFile";
 import type ISourceSite from "../../types/ISourceSite";
 import CodedErrorText from "../../utils/CodedErrorText";
 import type IHeaderInclude from "./types/IHeaderInclude";
+import type IHeaderUnit from "./types/IHeaderUnit";
 import type IHeaderRoot from "./types/IHeaderRoot";
-import type PreprocessCache from "./preprocessor/PreprocessCache";
 import type IFileSystem from "../../types/IFileSystem";
 import type ITranspileError from "../../types/ITranspileError";
 import type IInMemorySource from "./types/IInMemorySource";
@@ -33,7 +27,6 @@ import type ITranspilerConfig from "../../types/ITranspilerConfig";
 import type THeaderExtension from "../../types/THeaderExtension";
 import type TTranspileInput from "../../types/TTranspileInput";
 import invariant from "../../utils/invariant";
-import DeclarationSite from "../../utils/DeclarationSite";
 import IncludeDirectiveText from "../../utils/IncludeDirectiveText";
 import OutputExtensions from "../../utils/OutputExtensions";
 import type IOutputPaths from "./types/IOutputPaths";
@@ -42,7 +35,6 @@ import RunAnchor from "./RunAnchor";
 import type IFileIncludes from "./types/IFileIncludes";
 import type ISourceGraph from "./types/ISourceGraph";
 import CNextSourcePath from "../../utils/CNextSourcePath";
-import SourceOrder from "../../utils/SourceOrder";
 
 /** The configuration a run's discovery reads. */
 type TDiscoverySettings = Pick<
@@ -63,16 +55,11 @@ type TDiscoveredFiles = Omit<
   | "includes"
   | "anchor"
   | "run"
-  | "headerSources"
-  | "cachedHeaders"
-  | "recoveredDeclarations"
-  | "cppMode"
   | "outputs"
   | "targetCatalog"
-  | "headerMacroDumps"
+  | "headerTexts"
+  | "headerUnit"
 > & {
-  /** #1844: every `.cnx` file's header includes, in discovery order */
-  readonly headerIncludes: readonly IHeaderInclude[];
   /** #1844: per header, the headers the walk found it includes */
   readonly headerEdges: ReadonlyMap<string, readonly string[]>;
 };
@@ -99,20 +86,16 @@ interface IResolvedFileIncludes {
  * which #1721 had to serialize runs to guarantee.
  */
 class Discover {
-  /** Per file, in the order discovery visits them (see `ISourceGraph`). */
-  private readonly includes = new Map<string, IFileIncludes>();
-
   /**
-   * The run's discovery errors: E0509, each at its header's marker (#1542),
-   * E0518 for an input whose C-Next extension is not lowercase (#1833),
-   * and E0507, at the `.cnx` include that reached the C++ header (#1844).
+   * The run's discovery errors: E0509, each at its header's marker (#1542) and
+   * E0518 for an input whose C-Next extension is not lowercase (#1833).
    */
   private readonly errors: ITranspileError[] = [];
 
   /**
    * #1844: each file's includes as resolved, in visiting order. They are
-   * spelled into `includes` once the run's mode is settled, because a `.cnx`
-   * include names a generated header, whose extension follows the mode.
+   * spelled for each mode (#1713), because a `.cnx` include names a generated
+   * header, whose extension follows the mode 1.2 settles.
    */
   private readonly resolvedIncludes = new Map<string, IResolvedFileIncludes>();
 
@@ -158,8 +141,6 @@ class Discover {
    * @param previousAnchor - The last run's anchor, which a run anchored at the
    *   same place reuses (see `RunAnchor.at`)
    * @param warnings - Where discovery's warnings go
-   * @param preprocessCache - Where each preprocessor run is kept (#1844);
-   *   null when the run asks for no cache
    * @returns the frozen graph, the anchor the run's services come from, and
    *   the errors that reject the run. A run with errors goes no further.
    */
@@ -169,8 +150,6 @@ class Discover {
     settings: TDiscoverySettings,
     fs: IFileSystem,
     warnings: string[],
-    preprocessCache: PreprocessCache | null = null,
-    headerCache: THeaderDeclarationCache | null = null,
   ): Promise<{
     readonly graph: ISourceGraph;
     readonly anchor: IRunAnchor;
@@ -202,65 +181,10 @@ class Discover {
       input.kind === "source" && root !== null
         ? discovery._fromSource(root, input.includeDirs ?? [])
         : discovery._fromFiles();
-    // #1844: every header judged once, on the text a C compile meets, and
-    // the run's mode from those judgments.
-    if (files.headerFiles.length > 0 && !anchor.preprocessor.isAvailable()) {
-      discovery._noPreprocessor(files.headerIncludes);
-      return {
-        graph: discovery._freeze(
-          files,
-          new Map(),
-          null,
-          false,
-          // E0516 ends the run before any macro is read
-          new Map(),
-          new Map(),
-        ),
-        anchor,
-        errors: discovery.errors,
-      };
-    }
-    const unit = discovery._translationUnit(files.cnextFiles);
-    const settled = await HeaderSources.settle(
-      files.headerFiles,
-      files.headerSearchPaths,
-      {
-        fs: discovery.fs,
-        preprocessor: anchor.preprocessor,
-        defines: anchor.defines,
-        cache: preprocessCache,
-      },
-      {
-        directives: unit.directives,
-        includePaths: files.includeSearchPaths,
-        headers: new Set(files.headerIncludes.map(({ header }) => header)),
-      },
-    );
-    discovery._unsettled(
-      files.headerIncludes,
-      settled.unsettled,
-      settled.opened,
-    );
-    const cppMode = discovery._cppMode(
-      files.headerIncludes,
-      settled.sources,
-      settled.opened,
-      settled.recovered,
-      unit.sites,
-      settings.cppRequired,
-    );
-    discovery._spellIncludes(OutputExtensions.forCppMode(cppMode).header);
     return {
       graph: discovery._freeze(
         files,
-        settled.sources,
-        settled.recovered,
-        cppMode,
-        await discovery._headerMacroDumps(files, preprocessCache),
-        Discover._cachedHeaders(
-          files.headerFiles.filter((file) => settled.sources.has(file.path)),
-          headerCache,
-        ),
+        discovery._translationUnit(files.cnextFiles),
       ),
       anchor,
       errors: discovery.errors,
@@ -268,190 +192,14 @@ class Discover {
   }
 
   /**
-   * The run's C/C++ mode (#1428, owner ruling): detected, not declared. Any
-   * C++ header makes the whole run C++, unless the config says
-   * `cppRequired: false` -- a run that asked for C, where C++ is E0507
-   * (#1844), at every `.cnx` include through which the run meets it.
-   * `cppRequired: true` (or `--cpp`) is C++ with only C headers.
-   */
-  private _cppMode(
-    includes: readonly IHeaderInclude[],
-    sources: ReadonlyMap<string, IHeaderSource>,
-    opened: ReadonlyMap<string, ReadonlySet<string>>,
-    recovered: IRecoveredDeclarations | null,
-    unitSites: ReadonlyMap<string, readonly ISourceSite[]>,
-    cppRequired: boolean | undefined,
-  ): boolean {
-    const met = Discover._cppMet(
-      includes,
-      sources,
-      opened,
-      recovered,
-      unitSites,
-    );
-    if (cppRequired === false) {
-      for (const cpp of Discover._inSourceOrder([...met.values()])) {
-        this._cppInCRun(cpp);
-      }
-      return false;
-    }
-    return cppRequired ?? met.size > 0;
-  }
-
-  /** Each `.cnx` include through which the run meets C++, and the C++ it meets */
-  private static _cppMet(
-    includes: readonly IHeaderInclude[],
-    sources: ReadonlyMap<string, IHeaderSource>,
-    opened: ReadonlyMap<string, ReadonlySet<string>>,
-    recovered: IRecoveredDeclarations | null,
-    unitSites: ReadonlyMap<string, readonly ISourceSite[]>,
-  ): ReadonlyMap<string, { path: string; site: ISourceSite }> {
-    const languages = new Map(
-      [...sources].map(([path, { language }]) => [resolve(path), language]),
-    );
-    const isCpp = (path: string): boolean =>
-      languages.get(path) === EHeaderLanguage.Cpp;
-    const met = new Map<string, { path: string; site: ISourceSite }>();
-    for (const { header, site } of includes) {
-      const cpp = Discover._opensFrom(header, opened).find(isCpp);
-      if (cpp !== undefined)
-        met.set(Discover._siteKey(site), { path: cpp, site });
-    }
-    // #985: a slice the toolchain found on its own path is met by the compile
-    // as much as a header the walk reached, through every include of the
-    // directive that entered it.
-    for (const [path, { language, directive }] of recovered?.slices ?? []) {
-      if (language !== EHeaderLanguage.Cpp) continue;
-      const sites = directive === null ? undefined : unitSites.get(directive);
-      invariant(
-        sites !== undefined,
-        `the unit's preprocessor entered every C++ slice through one of its includes (missing ${path})`,
-      );
-      for (const site of sites) {
-        const key = Discover._siteKey(site);
-        if (!met.has(key)) met.set(key, { path, site });
-      }
-    }
-    return met;
-  }
-
-  /** E0507: a run that asked for C meets C++ through this include */
-  private _cppInCRun(cpp: { path: string; site: ISourceSite }): void {
-    const reason =
-      FileDiscovery.classifyFile(cpp.path).type === EFileType.CppHeader
-        ? "C++ header"
-        : "C++ syntax";
-    this.errors.push({
-      ...cpp.site,
-      message: CodedErrorText.of(
-        "E0507",
-        `${reason} in '${DeclarationSite.displayPath(cpp.path)}', reached ` +
-          `through this include, but this run asks for C`,
-      ),
-      helpText:
-        "'cppRequired: false' (or --no-cpp) asks for C. Remove it so the " +
-        "mode is detected from the headers, or pass --cpp to compile as C++.",
-      severity: "error",
-    });
-  }
-
-  /**
-   * #1844, owner ruling 5 of 2026-10-03 (#1542): a run that includes headers
-   * needs a preprocessor, since each header's language is judged on its
-   * preprocessed text. Reported at the run's first header include.
-   */
-  private _noPreprocessor(includes: readonly IHeaderInclude[]): void {
-    const first = Discover._inSourceOrder(includes)[0];
-    invariant(
-      first !== undefined,
-      "a run with headers has a `.cnx` include that reached them",
-    );
-    this.errors.push({
-      ...first.site,
-      message: CodedErrorText.of(
-        "E0516",
-        "this run includes C headers, and no C preprocessor was found to read them",
-      ),
-      helpText:
-        "Install gcc, clang or arm-none-eabi-gcc, or set CNEXT_CROSS_COMPILER " +
-        "to the compiler for the target's headers.",
-      severity: "error",
-    });
-  }
-
-  /**
-   * #1844, owner ruling 6 of 2026-10-03 (#1542): a header that cannot be
-   * preprocessed, alone, after its predecessors' macros, or in the unit, is
-   * not read as written. It is an error at every `.cnx` include that reached
-   * it, with the preprocessor's own message as help.
-   */
-  private _unsettled(
-    includes: readonly IHeaderInclude[],
-    unsettled: ReadonlyMap<string, string>,
-    opened: ReadonlyMap<string, ReadonlySet<string>>,
-  ): void {
-    if (unsettled.size === 0) return;
-    const messages = new Map(
-      [...unsettled].map(([path, message]) => [resolve(path), message]),
-    );
-    for (const { header, site } of Discover._inSourceOrder(includes)) {
-      for (const path of Discover._opensFrom(header, opened)) {
-        const message = messages.get(path);
-        if (message === undefined) continue;
-        this.errors.push({
-          ...site,
-          message: CodedErrorText.of(
-            "E0517",
-            `'${DeclarationSite.displayPath(path)}', reached through this ` +
-              `include, cannot be preprocessed`,
-          ),
-          helpText: message,
-          severity: "error",
-        });
-      }
-    }
-  }
-
-  /**
-   * `header`, then each file a C compile of it opened, by resolved path. The
-   * walk's edges ignore `#if`, so they are not the compile's (#1844).
-   */
-  private static _opensFrom(
-    header: string,
-    opened: ReadonlyMap<string, ReadonlySet<string>>,
-  ): string[] {
-    const path = resolve(header);
-    return [path, ...(opened.get(path) ?? [])];
-  }
-
-  private static _siteKey(site: ISourceSite): string {
-    return `${site.sourcePath}:${site.line}:${site.column}`;
-  }
-
-  /** By file, then line, then column: one order whatever the walk's */
-  private static _inSourceOrder<T extends { readonly site: ISourceSite }>(
-    entries: readonly T[],
-  ): T[] {
-    return [...entries].sort(
-      (a, b) =>
-        // By code unit, not locale: one order on every machine
-        (a.site.sourcePath < b.site.sourcePath
-          ? -1
-          : Number(a.site.sourcePath > b.site.sourcePath)) ||
-        SourceOrder.compare(a.site, b.site),
-    );
-  }
-
-  /**
    * Issue #985: every C header the `.cnx` files include, as a translation
    * unit includes it, deduped in first-seen source order.
    */
-  private _translationUnit(cnextFiles: readonly { readonly path: string }[]): {
-    readonly directives: string[];
-    /** #1844: per directive, each file's first include that wrote it */
-    readonly sites: ReadonlyMap<string, readonly ISourceSite[]>;
-  } {
+  private _translationUnit(
+    cnextFiles: readonly { readonly path: string }[],
+  ): IHeaderUnit {
     const sites = new Map<string, ISourceSite[]>();
+    const unresolvedSystem: string[] = [];
     for (const file of cnextFiles) {
       const includes = this.resolvedIncludes.get(file.path);
       invariant(
@@ -471,16 +219,28 @@ class Discover {
           `the resolver records where every directive sits (missing ${spec} in ${file.path})`,
         );
         sites.set(spec, [...written, { sourcePath: file.path, ...position }]);
+        if (
+          written.length === 0 &&
+          spec.startsWith("<") &&
+          includes.resolved.resolutions.get(
+            IncludeDirectiveText.ofSpec(spec),
+          ) === null
+        ) {
+          unresolvedSystem.push(spec);
+        }
       }
     }
-    return { directives: [...sites.keys()], sites };
+    return { directives: [...sites.keys()], sites, unresolvedSystem };
   }
 
   /**
    * #1844: each file's include spellings, for a run whose generated headers
    * take `headerExtension`, in the order discovery visited the files.
    */
-  private _spellIncludes(headerExtension: THeaderExtension): void {
+  private _spelledIncludes(
+    headerExtension: THeaderExtension,
+  ): ReadonlyMap<string, IFileIncludes> {
+    const spelled = new Map<string, IFileIncludes>();
     const headerIncludePathFor = (cnxPath: string): string | null =>
       this.anchor.pathResolver.getHeaderIncludePath(cnxPath, headerExtension);
     for (const [path, { resolved, quotedIncludeDirectory }] of this
@@ -493,7 +253,7 @@ class Discover {
         headerExtension,
         headerIncludePathFor,
       );
-      this.includes.set(
+      spelled.set(
         path,
         Object.freeze({
           // Issue #1467: one resolution, read later by both the .c and the .h
@@ -519,6 +279,7 @@ class Discover {
         }),
       );
     }
+    return spelled;
   }
 
   /**
@@ -558,27 +319,25 @@ class Discover {
    * which the next run at that anchor reuses, and a file's `cnextIncludes`
    * entry is the included file's own `discoveredFile`.
    */
-  private _freeze(
-    files: TDiscoveredFiles,
-    headerSources: ReadonlyMap<string, IHeaderSource>,
-    recoveredDeclarations: IRecoveredDeclarations | null,
-    cppMode: boolean,
-    headerMacroDumps: ReadonlyMap<string, IHeaderMacroDump>,
-    cachedHeaders: ReadonlyMap<string, TCachedHeaderRead>,
-  ): ISourceGraph {
+  private _freeze(files: TDiscoveredFiles, unit: IHeaderUnit): ISourceGraph {
     return Discover._frozen({
       cnextFiles: files.cnextFiles,
-      // Only the headers a C compile opens are settled (#1844)
-      headerFiles: files.headerFiles.filter((file) =>
-        headerSources.has(file.path),
+      headerFiles: files.headerFiles,
+      // #1713: the text the walk read, which 1.2 hands the target's compiler
+      headerTexts: new Map(
+        files.headerFiles.map((file) => [
+          file.path,
+          this.fs.readFile(file.path),
+        ]),
       ),
-      headerSources,
-      cachedHeaders,
-      recoveredDeclarations,
-      cppMode,
+      headerIncludes: files.headerIncludes,
+      headerUnit: unit,
       headerSearchPaths: files.headerSearchPaths,
       includeSearchPaths: files.includeSearchPaths,
-      includes: this.includes,
+      includes: {
+        c: this._spelledIncludes(OutputExtensions.forCppMode(false).header),
+        cpp: this._spelledIncludes(OutputExtensions.forCppMode(true).header),
+      },
       anchor: {
         directory: this.anchor.directory,
         projectRoot: this.anchor.projectRoot,
@@ -589,14 +348,21 @@ class Discover {
         platformio: this.anchor.projectRoot
           ? PlatformIOIni.read(this.anchor.projectRoot, this.fs, process.env)
           : null,
+        configuredCompiler:
+          process.env.CNEXT_CROSS_COMPILER || this.anchor.compiler,
       },
       writeOutputToDisk: files.writeOutputToDisk,
-      outputs: this._outputs(files, cppMode),
+      outputs: {
+        c: this._outputs(files, false),
+        cpp: this._outputs(files, true),
+      },
       targetCatalog: this._targetCatalog(),
-      headerMacroDumps,
       run: {
         debugMode: this.settings.debugMode,
         parseOnly: this.settings.parseOnly ?? false,
+        ...(this.settings.cppRequired === undefined
+          ? {}
+          : { cppRequired: this.settings.cppRequired }),
         // Serve and the host pass "" for "no target" or "no environment";
         // it names nothing, so 1.4 is handed only a name or nothing.
         target: {
@@ -607,22 +373,6 @@ class Discover {
     });
   }
 
-  private _headerMacroDumps(
-    files: TDiscoveredFiles,
-    cache: PreprocessCache | null,
-  ): Promise<ReadonlyMap<string, IHeaderMacroDump>> {
-    return HeaderMacroDumps.read(
-      files.cnextFiles,
-      this.includes,
-      this.anchor.preprocessor,
-      {
-        includeSearchPaths: files.includeSearchPaths,
-        defines: this.anchor.defines,
-        cache,
-      },
-    );
-  }
-
   /** ADR-049: the catalog this compiler ships, found by `Installation` */
   private _targetCatalog(): ITargetCatalogFile {
     const path = Installation.catalog(this.fs);
@@ -630,8 +380,7 @@ class Discover {
   }
 
   /**
-   * #1991: where each file's output goes, named once the mode has settled the
-   * extensions. A source run's file is named by its basename, as a files run
+   * #1991: where each file's output goes in a run of one mode (#1713). A source run's file is named by its basename, as a files run
    * names a file outside every input directory.
    */
   private _outputs(
@@ -662,27 +411,6 @@ class Discover {
    * it is. The graph holds no cycle: an include edge names the included
    * file's `IDiscoveredFile`, which refers to nothing.
    */
-  /**
-   * #1991: each settled header's cache record, every one read before 1.3
-   * declares any header (#1817)
-   */
-  private static _cachedHeaders(
-    headers: readonly IDiscoveredFile[],
-    cache: THeaderDeclarationCache | null,
-  ): ReadonlyMap<string, TCachedHeaderRead> {
-    const reads = new Map<string, TCachedHeaderRead>();
-    if (cache === null) return reads;
-    for (const file of headers) {
-      try {
-        const record = cache(file.path);
-        if (record !== null) reads.set(file.path, { kind: "cached", record });
-      } catch (error) {
-        // 1.3 decides, in header order, whether it is a diagnostic (#1319)
-        reads.set(file.path, { kind: "failed", error });
-      }
-    }
-    return reads;
-  }
 
   private static _frozen<T>(value: T): T {
     if (typeof value !== "object" || value === null || value instanceof Map) {

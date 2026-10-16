@@ -7,7 +7,12 @@ interface IRunSettings {
   readonly debugMode: boolean;
   /** Analyze nothing, plan nothing: 2.1 only keeps declaration counts */
   readonly parseOnly: boolean;
-  /** ADR-049's command-line rungs; 1.4 settles the target */
+  /**
+   * #1844: unset is not false. Unset, C++ in a header makes the run C++;
+   * `false` asked for C, and C++ met there is E0507.
+   */
+  readonly cppRequired?: boolean;
+  /** ADR-049's command-line rungs; 1.2 settles the target (#1713) */
   readonly target: {
     readonly option?: string;
     readonly pioEnv?: string;

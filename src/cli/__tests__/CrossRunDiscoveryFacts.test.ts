@@ -61,7 +61,7 @@ describe("#1452: discovery's include facts are released at end of run", () => {
    * rather than sizes: only the names say whose files they are.
    */
   function filesWithIncludeFacts(graph: ISourceGraph): string[] {
-    return [...graph.includes.keys()]
+    return [...graph.includes.c.keys()]
       .map((path) => path.split("/").pop() ?? path)
       .sort();
   }

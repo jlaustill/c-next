@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 
 import Discover from "../../../../../cnx/PARSE/1-Discover/Discover";
-import Preprocessor from "../../../../../cnx/PARSE/1-Discover/preprocessor/Preprocessor";
+import Preprocessor from "../../../../../cnx/PARSE/2-Parse/preprocessor/Preprocessor";
 import RunAnchor from "../../../../../cnx/PARSE/1-Discover/RunAnchor";
 import EFileType from "../../../../../cnx/PARSE/1-Discover/types/EFileType";
 import MockFileSystem from "../../../MockFileSystem";
@@ -80,28 +80,6 @@ describe("Discover", () => {
     expect(graph.targetCatalog.text.length).toBeGreaterThan(0);
   });
 
-  // #1991: 1.1 takes each file's #1688 macro dump, so the host runs no preprocessor
-  it("takes a macro dump for each file with a C include, and only those", async () => {
-    const { graph } = await discover(project());
-
-    expect([...graph.headerMacroDumps.keys()]).toEqual(["/proj/src/app.cnx"]);
-  });
-
-  it("marks every dump unread when there is no preprocessor", async () => {
-    vi.spyOn(Preprocessor.prototype, "isAvailable").mockReturnValue(false);
-    const { graph } = await discover(
-      new MockFileSystem().addFile(
-        "/proj/src/app.cnx",
-        "#include <stdint.h>\n\nvoid main() { }\n",
-      ),
-    );
-
-    expect(graph.headerMacroDumps.get("/proj/src/app.cnx")).toEqual({
-      dump: null,
-      complete: false,
-    });
-  });
-
   // #1991: 1.1 names every output path, so no later stage asks PathResolver
   it("names each file's output paths, below its input directory", async () => {
     fs = new MockFileSystem()
@@ -117,7 +95,7 @@ describe("Discover", () => {
       [],
     );
 
-    expect(graph.outputs.get("/proj/src/lib.cnx")).toEqual({
+    expect(graph.outputs.c.get("/proj/src/lib.cnx")).toEqual({
       sourceRelativePath: "src/lib.cnx",
       source: "/out/src/lib.c",
       header: "/out/src/lib.h",
@@ -160,11 +138,11 @@ describe("Discover", () => {
     const { graph } = await discover(project());
 
     // Visit order, not `cnextFiles`' dependency order (see `ISourceGraph`)
-    expect([...graph.includes.keys()]).toEqual([
+    expect([...graph.includes.c.keys()]).toEqual([
       "/proj/src/app.cnx",
       "/proj/src/lib.cnx",
     ]);
-    const app = graph.includes.get("/proj/src/app.cnx");
+    const app = graph.includes.c.get("/proj/src/app.cnx");
     expect(app?.resolutions.get('#include "lib.cnx"')).toBe(
       "/proj/src/lib.cnx",
     );
@@ -183,6 +161,7 @@ describe("Discover", () => {
       projectRoot: undefined,
       defines: { BOARD: "uno" },
       platformio: null,
+      configuredCompiler: null,
     });
   });
 
@@ -195,7 +174,7 @@ describe("Discover", () => {
     expect(Object.isFrozen(graph.headerFiles)).toBe(true);
     expect(Object.isFrozen(graph.includeSearchPaths)).toBe(true);
     expect(
-      [...graph.includes.values()].every((facts) => Object.isFrozen(facts)),
+      [...graph.includes.c.values()].every((facts) => Object.isFrozen(facts)),
     ).toBe(true);
     expect(Object.isFrozen(graph.anchor)).toBe(true);
   });
@@ -228,6 +207,6 @@ describe("Discover", () => {
     );
 
     expect(graph.cnextFiles).toEqual([]);
-    expect(graph.includes.size).toBe(0);
+    expect(graph.includes.c.size).toBe(0);
   });
 });

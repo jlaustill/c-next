@@ -178,42 +178,42 @@ module.exports = {
     {
       name: "header-language-is-judged-once",
       comment:
-        "#1844. A header's language is 1.1's to judge, once, on the text a C " +
-        "compile meets, and is recorded on the `SourceGraph`. It was judged in " +
-        "Stage 2 instead, on the raw text when warm and the preprocessed text " +
-        "when cold, so a run passed cold and failed warm (#1851). Only " +
-        "`HeaderSources` runs the language checks; the orchestrator is not a " +
-        "pass, so `nothing-after-1-1-discovers` does not reach it, and this does.",
+        "#1844. A header's language is judged once, on the text a C compile " +
+        "meets. It was judged in Stage 2 instead, on the raw text when warm " +
+        "and the preprocessed text when cold, so a run passed cold and failed " +
+        "warm (#1851). Since #1713 that text is the compile of the run's " +
+        "target, so 1.2 judges it, once 1.2 has chosen the target (owner " +
+        "ruling 2026-10-16). Only `HeaderSources` runs the language checks.",
       severity: "error",
       from: {
         pathNot: [
           "__tests__",
-          "^src/cnx/PARSE/1-Discover/HeaderSources\\.ts$",
-          "^src/cnx/PARSE/1-Discover/detect(Cpp|Assembly)Syntax\\.ts$",
+          "^src/cnx/PARSE/2-Parse/HeaderSources\\.ts$",
+          "^src/cnx/PARSE/2-Parse/detect(Cpp|Assembly)Syntax\\.ts$",
         ],
       },
       to: {
-        path: "^src/cnx/PARSE/1-Discover/detect(Cpp|Assembly)Syntax\\.ts$",
+        path: "^src/cnx/PARSE/2-Parse/detect(Cpp|Assembly)Syntax\\.ts$",
       },
     },
     {
-      name: "header-sources-are-settled-by-discover",
+      name: "header-sources-are-settled-once",
       comment:
         "#1844 review. `header-language-is-judged-once` lets `HeaderSources` " +
         "call the language checks, so a stage that called " +
         "`HeaderSources.settle` would judge every header a second time, on " +
-        "text of its own choosing, and the rule would pass. Only 1.1's " +
-        "orchestrator settles header sources; every later stage reads them " +
-        "from the `SourceGraph`.",
+        "text of its own choosing, and the rule would pass. Only 1.2's " +
+        "`HeaderReading` settles header sources (#1713); every later stage " +
+        "reads what 1.2 returned.",
       severity: "error",
       from: {
         pathNot: [
           "__tests__",
-          "^src/cnx/PARSE/1-Discover/(Discover|HeaderSources)\\.ts$",
+          "^src/cnx/PARSE/2-Parse/(HeaderReading|HeaderSources)\\.ts$",
         ],
       },
       to: {
-        path: "^src/cnx/PARSE/1-Discover/HeaderSources\\.ts$",
+        path: "^src/cnx/PARSE/2-Parse/HeaderSources\\.ts$",
       },
     },
     {
@@ -410,15 +410,23 @@ module.exports = {
       to: { path: "^(node:)?fs(/promises)?$", reachable: true },
     },
     {
-      name: "child-processes-only-in-discover",
+      name: "child-processes-only-in-the-compiler-run",
       severity: "error",
       comment:
-        "#1991 box 1: child processes run only in 1.1 Discover, which runs " +
-        "the preprocessor and detects the toolchain. A direct-edge rule: the " +
-        "host reaches 1.1, and so its child processes, by design.",
+        "#1991 box 1, #1713: child processes run only in the compiler run, " +
+        "`Preprocessor` and `ToolchainDetector`. #1991 put them in 1.1; the " +
+        "owner ruled on 2026-10-16 that 1.1 discovers the source files and " +
+        "reads them, and that running a compiler over their headers is a " +
+        "different concern, done once 1.2 has chosen the target. The host " +
+        "constructs the run for the compiler 1.2 chose, and 1.2 reaches it " +
+        "only through `IHeaderPreprocessor`. A direct-edge rule: the host " +
+        "reaches the run, and so its child processes, by design.",
       from: {
         path: "^src/",
-        pathNot: ["(__tests__|__testUtils__)", "^src/cnx/PARSE/1-Discover/"],
+        pathNot: [
+          "(__tests__|__testUtils__)",
+          "^src/cnx/PARSE/2-Parse/preprocessor/(Preprocessor|ToolchainDetector)\\.ts$",
+        ],
       },
       to: { path: "^(node:)?child_process$" },
     },
@@ -432,13 +440,18 @@ module.exports = {
         "implements, to those two passes. `reachable: true`, so a module " +
         "that gets a port through a helper is caught too. src/cli/ is the " +
         "host, outside this box by the owner's 2026-10-11 ruling, and is not " +
-        "under src/cnx/.",
+        "under src/cnx/." +
+        " #1713: and the compiler run (`Preprocessor`, `ToolchainDetector`, " +
+        "`PreprocessCache`), which the host constructs and 1.2 reaches only " +
+        "through `IHeaderPreprocessor`: a compile reads the files it opens, " +
+        "and its cache is kept on what they were (owner ruling 2026-10-16).",
       from: {
         path: "^src/cnx/",
         pathNot: [
           "(__tests__|__testUtils__)",
           "^src/cnx/PARSE/1-Discover/",
           "^src/cnx/WRITE/1-Write/",
+          "^src/cnx/PARSE/2-Parse/preprocessor/(Preprocessor|ToolchainDetector|PreprocessCache)\\.ts$",
           "^src/cnx/types/IFileSystem\\.ts$",
         ],
       },

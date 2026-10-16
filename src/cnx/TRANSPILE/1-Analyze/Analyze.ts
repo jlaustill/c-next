@@ -3,7 +3,7 @@
  * carried on, against the program 1.4 resolved. The program goes on to 2.2.
  * Every file is analyzed before 2.2 plans any of them (#1320).
  */
-import type TDiscoveryFacts from "../../PARSE/1-Discover/types/TDiscoveryFacts";
+import type TRunFacts from "../../PARSE/2-Parse/types/TRunFacts";
 import type IPipelineFile from "../../PARSE/1-Discover/types/IPipelineFile";
 import type IDeclaredSource from "../../PARSE/3-Declare/types/IDeclaredSource";
 import type IAnalyzedFile from "../../types/IAnalyzedFile";
@@ -29,7 +29,7 @@ class Analyze {
     // may name `IProgram` and nothing in `4-Resolve/` (#1447)
     program: IProgram,
     sources: readonly IDeclaredSource[],
-    discovery: TDiscoveryFacts,
+    discovery: TRunFacts,
   ): IAnalysis {
     const byFile = new Map<string, readonly ITranspileError[]>();
     const files = new Map<string, IAnalyzedFile>();
@@ -65,7 +65,7 @@ class Analyze {
   private static _inputsOf(
     file: IPipelineFile,
     program: IProgram,
-    discovery: TDiscoveryFacts,
+    discovery: TRunFacts,
   ): IAnalyzerOptions {
     const sourcePath = file.path;
     // #1241: attribute ADR provenance to the file being analyzed. A rule

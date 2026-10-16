@@ -31,7 +31,8 @@
  * Requires a toolchain that can preprocess the target's headers; for cross
  * targets (ESP32/xtensa) set CNEXT_CROSS_COMPILER.
  */
-import Preprocessor from "./Preprocessor";
+import type IHeaderPreprocessor from "./types/IHeaderPreprocessor";
+import STDIN_MARKER from "./STDIN_MARKER";
 import IPreprocessOptions from "./types/IPreprocessOptions";
 
 // Function-like macro definitions from a `-dM` dump: `#define pdMS_TO_TICKS(`.
@@ -65,12 +66,12 @@ class ExternalDeclarationOracle {
    *
    * @param includeDirectives include specs, in source order (angle- or
    *   quote-form, e.g. `<Arduino.h>` or `"foo.h"`)
-   * @param preprocessor the shared Preprocessor (uses CNEXT_CROSS_COMPILER)
+   * @param preprocessor the compiler run 1.2 chose for the target (#1713)
    * @param options include paths + defines for the TU
    */
   static async recover(
     includeDirectives: readonly string[],
-    preprocessor: Preprocessor,
+    preprocessor: IHeaderPreprocessor,
     options: IPreprocessOptions,
   ): Promise<IExternalRecovery | null> {
     if (includeDirectives.length === 0 || !preprocessor.isAvailable()) {
@@ -119,7 +120,7 @@ class ExternalDeclarationOracle {
    */
   static async macroDump(
     includeDirectives: readonly string[],
-    preprocessor: Preprocessor,
+    preprocessor: IHeaderPreprocessor,
     options: IPreprocessOptions,
   ): Promise<{ dump: string; complete: boolean } | null> {
     const working = await ExternalDeclarationOracle.preprocessLargestWorkingTu(
@@ -202,11 +203,7 @@ class ExternalDeclarationOracle {
       return;
     }
     const directive = directives[Number(marker[1]) - 2];
-    if (
-      walk.current === Preprocessor.STRING_MARKER &&
-      flags.has("2") &&
-      directive
-    ) {
+    if (walk.current === STDIN_MARKER && flags.has("2") && directive) {
       for (const file of walk.entered) {
         if (!directiveOf.has(file)) directiveOf.set(file, directive);
       }
@@ -225,7 +222,7 @@ class ExternalDeclarationOracle {
    */
   private static async preprocessLargestWorkingTu(
     directives: string[],
-    preprocessor: Preprocessor,
+    preprocessor: IHeaderPreprocessor,
     base: IPreprocessOptions,
   ): Promise<{ content: string; directives: string[] } | null> {
     const remaining = directives;
@@ -267,7 +264,7 @@ class ExternalDeclarationOracle {
     count: number,
   ): number {
     if (!error) return -1;
-    const escapedTu = Preprocessor.STRING_MARKER.replaceAll(
+    const escapedTu = STDIN_MARKER.replaceAll(
       /[.*+?^${}()|[\]\\]/g,
       String.raw`\$&`,
     );

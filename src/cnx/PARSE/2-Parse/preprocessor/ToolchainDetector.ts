@@ -13,40 +13,10 @@ import IFileSystem from "../../../types/IFileSystem";
  */
 class ToolchainDetector {
   /**
-   * Detect the best available toolchain
-   * Priority: ARM cross-compiler > clang > gcc
-   */
-  static detect(fs: IFileSystem): IToolchain | null {
-    // Explicit override: a project can name the compiler that owns its target
-    // headers (e.g. a cross-compiler such as xtensa-esp32s3-elf-gcc) via
-    // CNEXT_CROSS_COMPILER. Host gcc/clang lack a cross target's system headers
-    // and predefined macros, so their preprocessing of target headers fails.
-    const override = process.env.CNEXT_CROSS_COMPILER;
-    if (override) {
-      const overridden = ToolchainDetector.fromPath(override, fs);
-      if (overridden) return overridden;
-    }
-
-    // Try ARM cross-compiler first (for embedded)
-    const arm = this.detectArmToolchain(fs);
-    if (arm) return arm;
-
-    // Try clang
-    const clang = this.detectClang(fs);
-    if (clang) return clang;
-
-    // Try gcc
-    const gcc = this.detectGcc(fs);
-    if (gcc) return gcc;
-
-    return null;
-  }
-
-  /**
    * Build a toolchain from an explicit compiler path or executable name (e.g. a
-   * target cross-compiler such as xtensa-esp32s3-elf-gcc). Used by the
-   * CNEXT_CROSS_COMPILER override so a project can preprocess its target headers with the compiler
-   * that owns them. A path and a PATH name resolve by the same test: an
+   * target cross-compiler such as xtensa-esp32s3-elf-gcc). The host builds the toolchain 1.2 chose
+   * for the run's headers from it (#1713): the target's own compiler, or
+   * the one a project names for a target that names none. A path and a PATH name resolve by the same test: an
    * executable file, as `fs.isExecutable` answers it.
    */
   static fromPath(compiler: string, fs: IFileSystem): IToolchain | null {
@@ -71,67 +41,6 @@ class ToolchainDetector {
       cpp: cc,
       version: this.getVersion(cc),
       isCrossCompiler: true,
-    };
-  }
-
-  /**
-   * Detect ARM cross-compiler (arm-none-eabi-gcc)
-   */
-  private static detectArmToolchain(fs: IFileSystem): IToolchain | null {
-    const cc = this.findExecutable("arm-none-eabi-gcc", fs);
-    if (!cc) return null;
-
-    const cxx = this.findExecutable("arm-none-eabi-g++", fs) ?? cc;
-    const version = this.getVersion(cc);
-
-    return {
-      name: "arm-none-eabi-gcc",
-      cc,
-      cxx,
-      cpp: cc, // Use cc with -E flag
-      version,
-      isCrossCompiler: true,
-      target: "arm-none-eabi",
-    };
-  }
-
-  /**
-   * Detect clang
-   */
-  private static detectClang(fs: IFileSystem): IToolchain | null {
-    const cc = this.findExecutable("clang", fs);
-    if (!cc) return null;
-
-    const cxx = this.findExecutable("clang++", fs) ?? cc;
-    const version = this.getVersion(cc);
-
-    return {
-      name: "clang",
-      cc,
-      cxx,
-      cpp: cc,
-      version,
-      isCrossCompiler: false,
-    };
-  }
-
-  /**
-   * Detect GCC
-   */
-  private static detectGcc(fs: IFileSystem): IToolchain | null {
-    const cc = this.findExecutable("gcc", fs);
-    if (!cc) return null;
-
-    const cxx = this.findExecutable("g++", fs) ?? cc;
-    const version = this.getVersion(cc);
-
-    return {
-      name: "gcc",
-      cc,
-      cxx,
-      cpp: cc,
-      version,
-      isCrossCompiler: false,
     };
   }
 
@@ -177,12 +86,16 @@ class ToolchainDetector {
   static getDefaultIncludePaths(toolchain: IToolchain): string[] {
     // Ask the compiler for its default include paths: it prints them to stderr
     // while preprocessing an empty input.
-    const result = spawnSync(toolchain.cc, ["-E", "-Wp,-v", "-"], {
-      input: "",
-      encoding: "utf-8",
-      // gcc translates the banners parsed below; LC_ALL=C keeps them in English.
-      env: { ...process.env, LC_ALL: "C" },
-    });
+    const result = spawnSync(
+      toolchain.cc,
+      [...(toolchain.flags ?? []), "-E", "-Wp,-v", "-"],
+      {
+        input: "",
+        encoding: "utf-8",
+        // gcc translates the banners parsed below; LC_ALL=C keeps them in English.
+        env: { ...process.env, LC_ALL: "C" },
+      },
+    );
     if (result.error || result.status !== 0) {
       return [];
     }

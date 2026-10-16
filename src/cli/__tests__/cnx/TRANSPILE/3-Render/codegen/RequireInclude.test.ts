@@ -8,12 +8,19 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import Transpiler from "../../../../../Transpiler";
 import MockFileSystem from "../../../../MockFileSystem";
+import NodeFileSystem from "../../../../../../cnx/PARSE/1-Discover/NodeFileSystem";
+import ToolchainDetector from "../../../../../../cnx/PARSE/2-Parse/preprocessor/ToolchainDetector";
+
+/** The build machine's gcc, which a `host` run reads its system headers with */
+const HOST_GCC = ToolchainDetector.fromPath("gcc", NodeFileSystem.instance)?.cc;
 
 describe("CodeGenerator requireInclude", () => {
   let mockFs: MockFileSystem;
 
   beforeEach(() => {
     mockFs = new MockFileSystem();
+    // #1713: a `host` run reads <stdint.h> with the machine's own gcc
+    if (HOST_GCC !== undefined) mockFs.addFile(HOST_GCC, "");
   });
 
   describe("stdint includes", () => {

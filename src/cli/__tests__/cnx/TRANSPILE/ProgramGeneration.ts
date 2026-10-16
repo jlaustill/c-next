@@ -163,6 +163,7 @@ class ProgramGeneration {
           projectRoot: undefined,
           defines: {},
           platformio: null,
+          configuredCompiler: null,
         },
         includes: new Map([[sourcePath, includes]]),
         outputs: new Map([

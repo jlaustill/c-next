@@ -21,7 +21,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import ToolchainDetector from "../ToolchainDetector";
-import NodeFileSystem from "../../NodeFileSystem";
+import NodeFileSystem from "../../../1-Discover/NodeFileSystem";
 
 const MARKER_VAR = "CNX_SHELL_MARKER";
 
