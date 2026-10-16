@@ -1014,18 +1014,6 @@ This used to name a third, `buildStructParamMemberAccess()`, "for chains". It ha
 3. Remove dead methods (TypeScript flags "never read")
 4. Update unit test mocks
 
-### Const Inference
-
-`ModificationCollector` (1.3 Declare, #1825) walks the lowered statements
-(`TStatement`, from `StatementLowering`) with three helpers:
-
-- `StatementWrites.of()` (`src/cnx/utils/`) — the assignments a statement performs itself, a `for` header's init and update included (#2010)
-- `ModificationCollector.expressionsOf()` — the expressions a statement holds itself, walked for calls
-- `StatementChildren.of()` (`src/cnx/utils/`) — the statements nested directly inside, for recursion (#2003)
-
-Each switches over every statement kind and ends in a `never` arm, so a new
-kind does not compile until each places it.
-
 ---
 
 ## Cross-Scope Rules

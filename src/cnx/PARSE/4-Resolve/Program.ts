@@ -65,7 +65,6 @@ import ConflictDetector from "./ConflictDetector";
 import type IForeignSymbols from "./types/IForeignSymbols";
 import type IForeignValue from "./types/IForeignValue";
 import type IConflict from "../../types/IConflict";
-import ModificationFacts from "./ModificationFacts";
 import CallbackCompatibility from "./CallbackCompatibility";
 import SymbolTable from "../3-Declare/SymbolTable";
 import type ICodeGenSymbols from "../../types/ICodeGenSymbols";
@@ -177,10 +176,8 @@ class Program {
     // and handed in. The orchestrator and the test harness both did, and the
     // harness's copy had already dropped the callback map.
     const symbolTable = inputs.symbolTable ?? new SymbolTable();
-    const modifications = ModificationFacts.derive(
-      files,
-      registry,
-      symbolTable,
+    const functionParamLists = new Map(
+      files.flatMap((file) => [...file.parameterLists]),
     );
     const callbackCompatibleFunctions = CallbackCompatibility.derive(
       files,
@@ -283,10 +280,8 @@ class Program {
         foreign.macros.get(sourceFile)?.get(name) ?? null,
       headerMacrosUnread: (sourceFile: string): boolean =>
         foreign.macrosUnread.has(sourceFile),
-      modifiedParameters: (): ReadonlyMap<string, ReadonlySet<string>> =>
-        modifications.modifiedParameters,
       functionParamLists: (): ReadonlyMap<string, ReadonlyArray<string>> =>
-        modifications.functionParamLists,
+        functionParamLists,
       codeGenSymbolsFor: (sourceFile: string): ICodeGenSymbols | undefined =>
         visibleByFile.get(sourceFile),
       passByValueParams: (): ReadonlyMap<string, ReadonlySet<string>> =>

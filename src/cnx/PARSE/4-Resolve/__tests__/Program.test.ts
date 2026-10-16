@@ -1068,7 +1068,7 @@ scope Gauge {
     // Derived by `build` from what 1.3 recorded, not handed in: no caller can
     // supply a stale or partial copy, which is how the test harness once
     // dropped the callback map.
-    it("derives which parameters each function modifies, through a call into another file", () => {
+    it("merges each file's parameter lists", () => {
       const program = Program.build(
         [
           declare(`void sink(u32 v) { v <- 1; }`, "b.cnx"),
@@ -1081,9 +1081,8 @@ scope Gauge {
         { cppMode: false, registry },
       );
 
-      expect(program.modifiedParameters().get("forward")?.has("v")).toBe(true);
-      expect(program.modifiedParameters().get("reader")?.has("v")).toBe(false);
       expect(program.functionParamLists().get("forward")).toEqual(["v"]);
+      expect(program.functionParamLists().get("sink")).toEqual(["v"]);
     });
 
     it("derives which functions are used as callbacks, from the headers' typedefs", () => {
@@ -1248,7 +1247,6 @@ scope Gauge {
         "lexicalDeclarationAt",
         "lexicalFrameAt",
         "mayBeHeaderName",
-        "modifiedParameters",
         "opaqueTypes",
         "passByValueParams",
         "resolveFunction",

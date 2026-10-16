@@ -8,7 +8,7 @@
 import type IProgramSyntax from "../../../types/syntax/IProgramSyntax";
 import type TDeclarationSyntax from "../../../types/syntax/TDeclarationSyntax";
 import LexicalScopeCollector from "./collectors/LexicalScopeCollector";
-import ModificationCollector from "./collectors/ModificationCollector";
+import ParameterListCollector from "./collectors/ParameterListCollector";
 import CallbackUseCollector from "./collectors/CallbackUseCollector";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import TSymbol from "../../../types/symbols/TSymbol";
@@ -134,8 +134,9 @@ class CNextResolver {
     // #1825: ADR-006's and ADR-029's per-file halves. Each records what this
     // file spells; resolving a callee and deciding a callback need every file,
     // so 1.4 does both.
-    const modifications = ModificationCollector.collect(program, (scopeName) =>
-      registry.scopePathOf(scopeName),
+    const parameterLists = ParameterListCollector.collect(
+      program,
+      (scopeName) => registry.scopePathOf(scopeName),
     );
     const callbackUses = CallbackUseCollector.collect(program, (scopeName) =>
       registry.scopePathOf(scopeName),
@@ -146,7 +147,7 @@ class CNextResolver {
       symbols,
       declaredScopeTypes,
       lexicalScopes,
-      modifications,
+      parameterLists,
       callbackUses,
     };
   }

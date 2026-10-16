@@ -65,10 +65,9 @@ const generateFunction: TGeneratorFn<IPlannedFunction> = (
   // parameters it modified. That ordering is this generator's whole job,
   // which is why the two renders arrive as thunks rather than as strings.
   //
-  // #1641: inverting it reddens 0 of 1259 fixtures -- `ModificationFacts`
-  // derives `modifiedParameters` whole-program in 1.4, before any render, so
-  // the fact this ordering establishes is already in hand. Kept unchanged:
-  // codegen still writes to those maps while it renders, and deleting a
+  // #1641: ADR-071 retired what this ordering fed -- a parameter's `mut`
+  // decides its signature, not what the body writes. Kept unchanged: other
+  // state codegen writes while it renders may still read it, and deleting a
   // constraint on the strength of fixtures that cannot observe it is the
   // reasoning presence-is-not-proof warns about. Filed, not acted on.
   const body = planned.renderBody();

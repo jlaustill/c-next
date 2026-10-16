@@ -114,10 +114,6 @@ class Transpiler {
   private previousRun: Promise<void> = Promise.resolve();
 
   /**
-   * Issue #593: Centralized analyzer for cross-file const inference in C++ mode.
-   * Accumulates parameter modifications and param lists across all processed files.
-   */
-  /**
    * The services of the run's anchor (#1719): the preprocessor the project's
    * compile database picks, and the `PathResolver` (Issue #586) its output
    * paths come from. 1.1 Discover decides the anchor and returns it beside the

@@ -156,16 +156,6 @@ interface IProgram {
    */
   headerMacrosUnread(sourceFile: string): boolean;
 
-  /**
-   * Which parameters each function modifies, direct and transitive.
-   *
-   * Decides whether a caller's argument may take ADR-013 auto-const, and the
-   * callee is routinely in another file. Derived once over every tree rather
-   * than accumulated file by file, so it no longer depends on how far the run
-   * has got (#1511).
-   */
-  modifiedParameters(): ReadonlyMap<string, ReadonlySet<string>>;
-
   /** Each function's parameter names, in declaration order. */
   functionParamLists(): ReadonlyMap<string, ReadonlyArray<string>>;
 
@@ -317,9 +307,8 @@ interface IProgram {
   /**
    * The run's scope graph, for the passes after 1.4 (#1452 box 3).
    *
-   * 2.2 Plan does NOT read it here: `ModificationFacts.derive` runs before
-   * `Program.build`, so a fact needed to BUILD this artifact cannot be reached
-   * through it. It takes the registry directly for that reason.
+   * A fact needed to BUILD this artifact cannot be reached through it, so
+   * `Program.build` takes the registry directly.
    */
   scope(path: string): IScopeSymbol | null;
 
