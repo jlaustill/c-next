@@ -4,7 +4,7 @@
 
 import { describe, expect, it } from "vitest";
 import TypedefParamParser from "../TypedefParamParser";
-import IParameterSymbol from "../../../utils/types/IParameterSymbol";
+import IParameterSymbol from "../types/IParameterSymbol";
 
 describe("TypedefParamParser", () => {
   describe("parse", () => {

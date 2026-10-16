@@ -60,6 +60,7 @@ import DeclarationModifierAnalyzer from "./DeclarationModifierAnalyzer";
 import SizeofAnalyzer from "./SizeofAnalyzer";
 import StructLiteralAnalyzer from "./StructLiteralAnalyzer";
 import ConstAssignmentAnalyzer from "./ConstAssignmentAnalyzer";
+import type IMutSite from "../../types/IMutSite";
 import LoopAnalyzer from "./LoopAnalyzer";
 import SliceAssignmentAnalyzer from "./SliceAssignmentAnalyzer";
 import ControllingExpressionAnalyzer from "./ControllingExpressionAnalyzer";
@@ -95,6 +96,7 @@ interface IAnalyzerError {
   rule?: string;
   helpText?: string;
   severity?: "error" | "warning";
+  declaredAt?: IMutSite;
 }
 
 /**
@@ -119,6 +121,7 @@ function collectErrors<E extends IAnalyzerError>(
       message: formatMessage(err),
       severity: err.severity ?? "error",
       helpText: err.helpText,
+      ...(err.declaredAt && { declaredAt: err.declaredAt }),
     });
   }
   return analyzerErrors.some((err) => err.severity !== "warning");

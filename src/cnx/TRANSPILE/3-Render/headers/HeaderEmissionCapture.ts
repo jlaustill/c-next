@@ -8,7 +8,7 @@ import HeaderIncludes from "../../2-Plan/HeaderIncludes";
 import HeaderUserIncludes from "../../2-Plan/HeaderUserIncludes";
 import PublicInterface from "../../2-Plan/PublicInterface";
 import type TranspileState from "../../TranspileState";
-import TypedefParamParser from "../../2-Plan/TypedefParamParser";
+import TypedefParamParser from "../../../utils/TypedefParamParser";
 import HeaderSymbolAdapter from "./adapters/HeaderSymbolAdapter";
 import ExternalTypeHeaderBuilder from "./ExternalTypeHeaderBuilder";
 import IncludeGuards from "./IncludeGuards";

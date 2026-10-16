@@ -44,6 +44,18 @@ describe("ConstAssignmentAnalyzer (E0900)", () => {
     expect(found.message).toBe("cannot assign to read-only parameter 'value'");
   });
 
+  it("says where the written binding is declared, for its `mut`", () => {
+    const found = errors(
+      "u32 K <- 1;\nvoid f(i32 value) {\n    value <- 1;\n    K <- 2;\n}",
+    );
+    expect(
+      found.map((e) => [e.declaredAt?.line, e.declaredAt?.column]),
+    ).toEqual([
+      [2, 7],
+      [1, 0],
+    ]);
+  });
+
   it("carries the element and member suffixes codegen used", () => {
     const found = errors(
       "struct C { u8 x; }\nvoid f(u8[4] t, C c) {\n    t[0] <- 1;\n    c.x <- 2;\n}",
@@ -161,7 +173,7 @@ describe("ConstAssignmentAnalyzer on 1.2's syntax (#1991)", () => {
     "}",
   ].join("\n");
 
-  it("names a rooted read-only argument, and only the binding itself", () => {
+  it("names a read-only argument, and one reached through a read-only member", () => {
     expect(
       errors(source)
         .filter((e) => e.message.startsWith("cannot pass"))
@@ -171,11 +183,15 @@ describe("ConstAssignmentAnalyzer on 1.2's syntax (#1991)", () => {
         9,
         "cannot pass read-only 'this.K' to `mut` parameter 'v' of function 'take'",
       ],
+      [
+        10,
+        "cannot pass read-only 'this.CFG.x' to `mut` parameter 'v' of function 'take'",
+      ],
     ]);
   });
 
   it("reports calls and assignments in source order", () => {
-    expect(at(source)).toEqual(["E0900@9", "E0900@11"]);
+    expect(at(source)).toEqual(["E0900@9", "E0900@10", "E0900@11"]);
   });
 
   it("passes a read-only binding to a read-only parameter", () => {

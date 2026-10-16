@@ -89,7 +89,7 @@ void UART_begin(mut UART self, u32 baud) {
 }
 
 // Write a byte to TX buffer
-void UART_write(UART self, u8 data) {
+void UART_write(mut UART self, u8 data) {
     (void)RingBuffer_push(self.txBuffer, data);
     // Trigger TX interrupt...
 }
@@ -100,14 +100,14 @@ bool UART_available(UART self) {
 }
 
 // Read a byte from RX buffer
-u8 UART_read(UART self) {
+u8 UART_read(mut UART self) {
     mut u8 data;
     (void)RingBuffer_pop(self.rxBuffer, data);
     return data;
 }
 
 // Print a string, character by character
-void UART_print(UART self, string<64> msg) {
+void UART_print(mut UART self, string<64> msg) {
     mut u32 i <- 0;
     while (i < msg.value_char_count) {
         UART_write(self, msg[i]);

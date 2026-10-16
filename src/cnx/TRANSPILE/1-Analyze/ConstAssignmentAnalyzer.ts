@@ -36,6 +36,8 @@ import CCallee from "./helpers/CCallee";
 import type ICCallee from "./types/ICCallee";
 import BoundDeclaration from "./helpers/BoundDeclaration";
 import WrittenBinding from "./helpers/WrittenBinding";
+import MutSite from "./helpers/MutSite";
+import type IMutSite from "../../types/IMutSite";
 import type IWrittenBinding from "./types/IWrittenBinding";
 import type TValueBinding from "../../types/TValueBinding";
 import SafeDivision from "../../utils/SafeDivision";
@@ -87,6 +89,7 @@ class ConstAssignmentCheck {
       kind === "parameter"
         ? "A parameter is read-only unless declared `mut` (ADR-071); declare it `mut` if the function must change it."
         : "A binding is read-only unless declared `mut` (ADR-071); declare it `mut` if the value must change.",
+      MutSite.of(target.binding, this.context),
     );
   }
 
@@ -108,6 +111,7 @@ class ConstAssignmentCheck {
       "E0900",
       `cannot store read-only ${kind} '${value.written}' in \`mut\` '${into}': a ${typeName} handle refers to its object`,
       "Through the copy, the object may be written (ADR-030); declare the source `mut` (ADR-071).",
+      MutSite.of(source.binding, this.context),
     );
   }
 
@@ -152,6 +156,7 @@ class ConstAssignmentCheck {
       "E0900",
       `cannot assign to read-only ${kind} '${output}' (${call.name} output)`,
       `${call.name} writes its result through its first argument, so it must be declared \`mut\` (ADR-071).`,
+      MutSite.of(written.binding, this.context),
     );
   }
 
@@ -196,6 +201,7 @@ class ConstAssignmentCheck {
         "E0900",
         `cannot pass read-only '${argName}' to \`mut\` parameter '${param.name}' of function '${callee.name}'`,
         "The callee writes through that parameter, so the argument must be declared `mut` (ADR-071).",
+        MutSite.of(target?.binding ?? null, this.context),
       );
     });
   }
@@ -282,15 +288,17 @@ class ConstAssignmentCheck {
   // --- The facts -----------------------------------------------------------
 
   /**
-   * The name of a read-only binding an argument IS -- `K`, `this.K`, `S.K`,
-   * `global.K` -- or null for anything else (an expression has no binding to
-   * protect).
+   * The spelling of an argument reached through a read-only binding -- `K`,
+   * `this.K`, `S.K`, `cfg.x`, `o.inner.data` -- or null for anything else (an
+   * expression has no binding to protect). A `mut` parameter is passed by
+   * reference, so the callee may write the member or element it is handed,
+   * which is writing its root.
    */
   private static constArgumentName(
     arg: TExpression,
     target: IWrittenBinding | null,
   ): string | null {
-    if (target?.ops.length !== 0) return null;
+    if (target === null) return null;
     return ConstAssignmentCheck.constKind(target.binding) === null
       ? null
       : arg.written;
@@ -319,6 +327,7 @@ class ConstAssignmentCheck {
     code: string,
     message: string,
     helpText: string,
+    declaredAt?: IMutSite,
   ): void {
     this.found.push({
       code,
@@ -326,6 +335,7 @@ class ConstAssignmentCheck {
       column: at.column,
       message,
       helpText,
+      ...(declaredAt && { declaredAt }),
     });
   }
 }

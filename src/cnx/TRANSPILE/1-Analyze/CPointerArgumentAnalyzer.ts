@@ -24,6 +24,7 @@
 import OperandTyper from "../../utils/OperandTyper";
 import CCallee from "./helpers/CCallee";
 import WrittenBinding from "./helpers/WrittenBinding";
+import MutSite from "./helpers/MutSite";
 import CPointerParameter from "../../utils/CPointerParameter";
 import DeclarationParts from "../../utils/DeclarationParts";
 import ExpressionNodes from "../../utils/ExpressionNodes";
@@ -162,6 +163,12 @@ class CPointerArgumentCheck {
       message,
       helpText,
       severity,
+      ...(code === "E0900" && {
+        declaredAt: MutSite.of(
+          WrittenBinding.ofExpression(at, this.context)?.binding ?? null,
+          this.context,
+        ),
+      }),
     });
   }
 }

@@ -16,7 +16,7 @@ extern "C" {
 extern uint8_t arityWitness;
 
 /* Function prototypes */
-void onShort(const char* msg, const char* extra);
+void onShort(char* msg, const char* extra);
 
 #ifdef __cplusplus
 }

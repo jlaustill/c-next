@@ -4,6 +4,8 @@
  * All analyzer error interfaces extend this common base,
  * providing a consistent structure for error reporting.
  */
+import type IMutSite from "../../../types/IMutSite";
+
 interface IBaseAnalysisError {
   /** Error code (e.g., E0381, E0800) */
   code: string;
@@ -17,6 +19,8 @@ interface IBaseAnalysisError {
   helpText?: string;
   /** A warning is reported and the file still compiles (E0896) */
   severity?: "error" | "warning";
+  /** E0900 and E0879: where `mut` belongs on the binding (ADR-071) */
+  declaredAt?: IMutSite;
 }
 
 export default IBaseAnalysisError;

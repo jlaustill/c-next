@@ -59,6 +59,8 @@ import ICallbackAssignmentError from "./types/ICallbackAssignmentError";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import type IValuePosition from "../../types/IValuePosition";
 import SourceOrder from "../../utils/SourceOrder";
+import TypedefParamParser from "../../utils/TypedefParamParser";
+import type ILexicalFrame from "../../types/ILexicalFrame";
 
 /** The slot a value fills, for E0880's wording */
 interface ISlot {
@@ -249,6 +251,62 @@ class CallbackAssignmentCheck {
     });
   }
 
+  /**
+   * ADR-071: a callback's `mut` is part of its type. A function wired to a C
+   * function-pointer typedef generates the typedef's signature only where each
+   * pointer parameter is `mut` exactly when the typedef's is not const;
+   * otherwise its prototype is `const SensorReading*` beside a
+   * `void (*)(SensorReading *)` it is assigned to, and the C does not compile.
+   */
+  public checkCTypedefCallbacks(): void {
+    const program = this.context.program;
+    const typedefs = program.callbackCompatibleFunctions();
+    const visit = (frame: ILexicalFrame): void => {
+      const typedefName =
+        frame.functionCName === null
+          ? undefined
+          : typedefs.get(frame.functionCName);
+      if (typedefName !== undefined) {
+        this.checkAgainstCTypedef(frame, typedefName);
+      }
+      for (const child of frame.children) visit(child);
+    };
+    visit(
+      program.lexicalFrameAt(this.context.sourceFile, { line: 0, column: 0 }),
+    );
+  }
+
+  private checkAgainstCTypedef(frame: ILexicalFrame, typedefName: string) {
+    const typedef = this.context.symbolTable.getCSymbol(typedefName);
+    if (typedef?.kind !== "type") return;
+    const parameters = frame.declarations.filter(
+      (declaration) => declaration.kind === "parameter",
+    );
+    parameters.forEach((parameter, index) => {
+      if (TypedefParamParser.isParamPointer(typedef.type, index) !== true) {
+        return;
+      }
+      const typedefConst =
+        TypedefParamParser.isParamConst(typedef.type, index) === true;
+      if (parameter.isConst === typedefConst) return;
+      this.found.push({
+        code: "E0879",
+        line: parameter.span.line,
+        column: parameter.span.column,
+        message: `Function '${frame.functionCName}' signature does not match callback type '${typedefName}': parameter '${parameter.name}' is ${parameter.isConst ? "read-only" : "`mut`"}, and the type's pointer is ${typedefConst ? "const" : "not const"}`,
+        helpText:
+          "A callback's parameter is `mut` exactly where its C type's pointer is not const (ADR-071).",
+        ...(parameter.isConst && {
+          declaredAt: {
+            sourcePath: this.context.sourceFile,
+            line: parameter.extent.line,
+            column: parameter.extent.column,
+          },
+        }),
+      });
+    });
+  }
+
   private report(
     at: TExpression,
     code: string,
@@ -299,6 +357,7 @@ class CallbackAssignmentAnalyzer {
         check.checkExpression(expr);
       }
     }
+    check.checkCTypedefCallbacks();
     return check.errors().sort(SourceOrder.compare);
   }
 }
