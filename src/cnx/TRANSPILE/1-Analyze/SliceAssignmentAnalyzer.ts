@@ -103,7 +103,7 @@ class SliceAssignmentListener {
         subscripts[0],
         "E0859",
         `Slice assignment offset must be a compile-time constant for '${name}'`,
-        "A runtime offset cannot be bounds-checked at compile time. Use a literal or a read-only binding (one not declared `mut`).",
+        "A runtime offset cannot be bounds-checked at compile time. Use a literal or a read-only binding whose value is known at compile time.",
       );
       return;
     }
@@ -114,7 +114,7 @@ class SliceAssignmentListener {
         subscripts[1],
         "E0859",
         `Slice assignment length must be a compile-time constant for '${name}'`,
-        "A runtime length cannot be bounds-checked at compile time. Use a literal or a read-only binding (one not declared `mut`).",
+        "A runtime length cannot be bounds-checked at compile time. Use a literal or a read-only binding whose value is known at compile time.",
       );
       return;
     }
