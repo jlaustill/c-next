@@ -387,6 +387,39 @@ nothing either: `B <- A` there reads the file-scope `A`), so the bare name is wr
 and `global.` there is E0431. `this.` still needs a `scope`: it names that
 scope's member, in the scope's own declarations and in its methods.
 
+**A qualifier is legal only where there is something for it to reach past.**
+`this.` reaches past a local or parameter to the scope's member, and `global.`
+reaches past a scope member, local or parameter to the file. Where nothing can
+shadow, the bare name already names the declaration, so the qualifier is E0431:
+`this.` in a top-level function (it would only name the function's own
+parameter or local), and `global.` at file level.
+
+The example below is deliberately bad code: every name is `count`. It is here
+only to show what each qualifier reaches past. Real code gives the three
+declarations different names and needs neither qualifier.
+
+```cnx
+u32 count <- 7;                  // the file's count
+
+scope Counter {
+    u32 count <- 100;            // Counter's count
+
+    public u32 bump(u32 count) { // Counter.bump(3): parameter count = 3
+        this.count <- count;     // legal: Counter's count = 3, past the parameter
+        global.count <- count;   // legal: the file's count = 3, past the parameter
+        return count;            // returns 3, the parameter
+    }
+}
+
+u32 f(u32 count) {               // f(5): parameter count = 5
+    global.count <- count;       // legal: the file's count = 5, past the parameter
+    this.count <- count;         // E0431: no scope member for `this.` to reach
+    return count;
+}
+
+u32 x <- global.count;           // E0431: nothing at file level shadows count
+```
+
 #### Example
 
 ```cnx
