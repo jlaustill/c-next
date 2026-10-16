@@ -1,0 +1,12 @@
+// test-error
+// #1755 / ADR-071: on cortex-m7 <stdio.h> is newlib's, which declares
+// fgets with unnamed parameters. They are still parameters, so passing a
+// read-only buffer to the one fgets writes through is E0900, as on host.
+#pragma target cortex-m7
+#include <stdio.h>
+
+string<64> buffer;
+
+void readLine() {
+    cstring c_line <- fgets(buffer, buffer.size, stdin);
+}

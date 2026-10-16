@@ -10,4 +10,4 @@
 // #1713 control: on host a pointer is 8 bytes, so the same word.h picks
 // uint64_t and the literal is 255ULL.
 
-const uword_t mask = 255U;
+const uword_t mask = 255ULL;
