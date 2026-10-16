@@ -1,0 +1,4 @@
+12:11 error[E0895]: 'b4' is uint8_t, and parameter 1 of 'peek_cb_t' points to constuint8_t
+       help: A C pointer parameter takes an object of the type it points to; pass a constuint8_t, or an array of them.
+13:11 error[E0900]: 'b4' is read-only uint8_t, and parameter 1 of 'fill_cb_t' is a pointer 'fill_cb_t' may write through
+       help: Declare 'b4' `mut`, or declare the C parameter const uint8_t*.

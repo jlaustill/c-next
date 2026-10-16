@@ -126,6 +126,25 @@ class CCallee {
     );
   }
 
+  /**
+   * A C struct field's declared type, for `h.fill(...)`: a function-pointer
+   * field is typed as what it returns, not as its typedef
+   */
+  private static fieldTypeOf(
+    expr: TPostfix,
+    context: IAnalysisContext,
+  ): string | null {
+    const field = expr.ops.at(-2);
+    if (field?.kind !== "member") return null;
+    const receiver = OperandTyper.directTypeName(
+      OperandTyper.typeOf({ ...expr, ops: expr.ops.slice(0, -2) }, context),
+    );
+    return receiver === null
+      ? null
+      : (context.symbolTable.getStructFieldTypes(receiver)?.get(field.name) ??
+          null);
+  }
+
   /** A call through a value whose type is a C function-pointer typedef */
   private static typedefSignature(
     expr: TPostfix,
@@ -135,7 +154,9 @@ class CCallee {
       expr.ops.length === 1
         ? expr.primary
         : { ...expr, ops: expr.ops.slice(0, -1) };
-    const typeName = OperandTyper.typeOf(target, context)?.typeName;
+    const typeName =
+      OperandTyper.typeOf(target, context)?.typeName ??
+      CCallee.fieldTypeOf(expr, context);
     if (
       typeName === undefined ||
       typeName === null ||
@@ -157,9 +178,11 @@ class CCallee {
       signature: {
         parameters: declared.map((param, index) => ({
           name: `${index + 1}`,
-          type: `${param.isConst ? "const " : ""}${param.baseType}${"*".repeat(
-            (param.type.match(/\*/g) ?? []).length,
-          )}`,
+          // The text up to the last `*` (`uint8_t*buf` is how the grammar
+          // spells `uint8_t *buf`), so a parameter's name is never its type
+          type: param.isPointer
+            ? param.type.slice(0, param.type.lastIndexOf("*") + 1).trim()
+            : param.baseType,
           isConst: false,
           isArray: false,
         })),
