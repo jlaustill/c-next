@@ -46,26 +46,26 @@ void paramHandler3(void) {
 
 // Function that accepts ISR as parameter and invokes it
 void executeParamHandler(ISR cb) {
-    (*cb)();
+    cb();
 }
 
 // Function that accepts ISR and invokes it multiple times
 void executeParamMultiple(ISR fn, const uint32_t times) {
     for (uint32_t i = 0U; i < times; i = cnx_clamp_add_u32(i, 1U)) {
-        (*fn)();
+        fn();
     }
 }
 
 // Function that accepts two ISRs and invokes both
 void executeParamBoth(ISR first, ISR second) {
-    (*first)();
-    (*second)();
+    first();
+    second();
 }
 
 int main(void) {
     paramCallCount = 0U;
     paramLastHandler = 0U;
-    executeParamHandler(&paramHandler1);
+    executeParamHandler(paramHandler1);
     if (paramCallCount != 1) {
         return 1U;
     }
@@ -74,7 +74,7 @@ int main(void) {
     }
     paramCallCount = 0U;
     paramLastHandler = 0U;
-    executeParamHandler(&paramHandler2);
+    executeParamHandler(paramHandler2);
     if (paramCallCount != 1) {
         return 3U;
     }
@@ -82,13 +82,13 @@ int main(void) {
         return 4U;
     }
     paramCallCount = 0U;
-    executeParamMultiple(&paramHandler1, 5U);
+    executeParamMultiple(paramHandler1, 5U);
     if (paramCallCount != 5) {
         return 5U;
     }
     paramCallCount = 0U;
     paramLastHandler = 0U;
-    executeParamBoth(&paramHandler1, &paramHandler2);
+    executeParamBoth(paramHandler1, paramHandler2);
     if (paramCallCount != 2) {
         return 6U;
     }
@@ -97,7 +97,7 @@ int main(void) {
     }
     paramCallCount = 0U;
     paramLastHandler = 0U;
-    executeParamBoth(&paramHandler2, &paramHandler1);
+    executeParamBoth(paramHandler2, paramHandler1);
     if (paramCallCount != 2) {
         return 8U;
     }
@@ -105,9 +105,9 @@ int main(void) {
         return 9U;
     }
     paramCallCount = 0U;
-    executeParamHandler(&paramHandler1);
-    executeParamHandler(&paramHandler2);
-    executeParamHandler(&paramHandler3);
+    executeParamHandler(paramHandler1);
+    executeParamHandler(paramHandler2);
+    executeParamHandler(paramHandler3);
     if (paramCallCount != 3) {
         return 10U;
     }

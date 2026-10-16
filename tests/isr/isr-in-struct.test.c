@@ -47,8 +47,8 @@ void structHandler3(void) {
 // Struct with ISR fields
 // Initialize struct with ISR values
 void initStructHolder(IsrHolder* hld, ISR prim, ISR sec) {
-    hld->primary = (*prim);
-    hld->secondary = (*sec);
+    hld->primary = prim;
+    hld->secondary = sec;
 }
 
 // Invoke ISR from struct field
@@ -83,7 +83,7 @@ int main(void) {
     }
     structCallCount = 0U;
     structLastHandler = 0U;
-    initStructHolder(&holder, &structHandler1, &structHandler3);
+    initStructHolder(&holder, structHandler1, structHandler3);
     invokeStructHolder(&holder);
     if (structCallCount != 2) {
         return 5U;
