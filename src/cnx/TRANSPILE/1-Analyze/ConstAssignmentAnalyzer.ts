@@ -99,6 +99,31 @@ class ConstAssignmentCheck {
    * `held` write what `w` refers to, which is writing `w`.
    */
   public checkHandleStore(value: TExpression, into: string): void {
+    for (const source of ConstAssignmentCheck.storedValues(value)) {
+      this.checkHandleSource(source, into);
+    }
+  }
+
+  /** Each value a store may copy: a ternary's arms, an array literal's elements */
+  private static storedValues(value: TExpression): TExpression[] {
+    switch (value.kind) {
+      case "parenthesized":
+        return ConstAssignmentCheck.storedValues(value.expression);
+      case "ternary":
+        return [value.whenTrue, value.whenFalse].flatMap((arm) =>
+          ConstAssignmentCheck.storedValues(arm),
+        );
+      case "arrayInitializer":
+        return [
+          ...value.elements,
+          ...(value.fill === null ? [] : [value.fill]),
+        ].flatMap((element) => ConstAssignmentCheck.storedValues(element));
+      default:
+        return [value];
+    }
+  }
+
+  private checkHandleSource(value: TExpression, into: string): void {
     const typeName = OperandTyper.typeOf(value, this.context)?.typeName;
     if (!typeName || !this.context.program.isOpaqueType(typeName)) return;
     const source = WrittenBinding.ofExpression(value, this.context);

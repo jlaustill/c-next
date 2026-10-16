@@ -1,0 +1,16 @@
+// test-error
+// test-adr: 071
+// Copying a read-only opaque handle into a `mut` binding through a ternary
+// or an array literal hands that binding the object, so each read-only
+// source is E0900, as a plain copy is.
+#include "opaque-dev-write.h"
+
+void pickOne(Dev a, Dev b, bool first) {
+    mut Dev x <- (first = true) ? a : b;
+    u8 r <- dev_write(x, 1);
+}
+
+void viaArray(Dev d) {
+    mut Dev[1] all <- [d];
+    u8 r <- dev_write(all[0], 1);
+}

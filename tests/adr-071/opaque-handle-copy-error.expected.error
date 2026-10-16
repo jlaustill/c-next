@@ -1,0 +1,6 @@
+9:34 error[E0900]: cannot store read-only parameter 'a' in `mut` 'x': a Dev handle refers to its object
+       help: Through the copy, the object may be written (ADR-030); declare the source `mut` (ADR-071).
+9:38 error[E0900]: cannot store read-only parameter 'b' in `mut` 'x': a Dev handle refers to its object
+       help: Through the copy, the object may be written (ADR-030); declare the source `mut` (ADR-071).
+14:23 error[E0900]: cannot store read-only parameter 'd' in `mut` 'all': a Dev handle refers to its object
+       help: Through the copy, the object may be written (ADR-030); declare the source `mut` (ADR-071).
