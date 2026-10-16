@@ -144,17 +144,17 @@ class Discover {
    * @returns the frozen graph, the anchor the run's services come from, and
    *   the errors that reject the run. A run with errors goes no further.
    */
-  static async run(
+  static run(
     input: TTranspileInput,
     previousAnchor: IRunAnchor,
     settings: TDiscoverySettings,
     fs: IFileSystem,
     warnings: string[],
-  ): Promise<{
+  ): {
     readonly graph: ISourceGraph;
     readonly anchor: IRunAnchor;
     readonly errors: readonly ITranspileError[];
-  }> {
+  } {
     const root = input.kind === "source" ? Discover._inMemoryRoot(input) : null;
     // #1719: a source run is anchored where its text lives -- its project
     // root, compile database, and the base its `#include`s and guards are

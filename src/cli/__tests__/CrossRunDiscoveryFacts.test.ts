@@ -48,8 +48,8 @@ describe("#1452: discovery's include facts are released at end of run", () => {
   function recordGraphs(): ISourceGraph[] {
     const graphs: ISourceGraph[] = [];
     const run = Discover.run.bind(Discover);
-    vi.spyOn(Discover, "run").mockImplementation(async (...args) => {
-      const discovered = await run(...args);
+    vi.spyOn(Discover, "run").mockImplementation((...args) => {
+      const discovered = run(...args);
       graphs.push(discovered.graph);
       return discovered;
     });

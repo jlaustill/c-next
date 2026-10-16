@@ -203,7 +203,7 @@ class Transpiler {
       this._initializeRun();
 
       // Stage 1: 1.1 Discover
-      const discovered = await Discover.run(
+      const discovered = Discover.run(
         input,
         this.anchor,
         this.config,

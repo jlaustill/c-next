@@ -59,7 +59,7 @@ describe("Discover", () => {
     fs = files;
     const warnings: string[] = [];
     const anchor = RunAnchor.at(settings.input, null, settings, fs);
-    const { graph } = await Discover.run(
+    const { graph } = Discover.run(
       { kind: "files" },
       anchor,
       settings,
@@ -87,13 +87,7 @@ describe("Discover", () => {
       .addFile("/proj/src/lib.cnx", "u32 twice(u32 v) { return v * 2; }\n");
     const tree = { ...settings, input: "/proj/app.cnx", outDir: "/out" };
     const anchor = RunAnchor.at(tree.input, null, tree, fs);
-    const { graph } = await Discover.run(
-      { kind: "files" },
-      anchor,
-      tree,
-      fs,
-      [],
-    );
+    const { graph } = Discover.run({ kind: "files" }, anchor, tree, fs, []);
 
     expect(graph.outputs.c.get("/proj/src/lib.cnx")).toEqual({
       sourceRelativePath: "src/lib.cnx",
@@ -198,7 +192,7 @@ describe("Discover", () => {
     const warnings: string[] = [];
     const notCNext = { ...settings, input: "/proj/src/readme.txt" };
 
-    const { graph } = await Discover.run(
+    const { graph } = Discover.run(
       { kind: "files" },
       RunAnchor.at(notCNext.input, null, notCNext, fs),
       notCNext,
