@@ -243,13 +243,14 @@ The migration script #2103 adds is that rewrite. Each round transpiles every fil
 applies what the diagnostics say: delete the `const` E0898 points at, and add `mut` where E0900
 (or E0879, for a callback whose C typedef writes through a pointer) says the binding is declared.
 Run on main's corpus from before this ADR, with the harness's `--include tests/include`, it
-converges in six rounds and rewrites 885 of 1990 files. Compared with the committed corpus, 1856
-files come out identical and the 112 `// test-error` fixtures are left for review, as above. The
-other 22 differ for reasons the analysis does not decide:
+rewrites 890 files (re-measured after #1755, with the harness's `--include tests/include`). Compared with the
+committed corpus, 1369 files come out identical and the 112 `// test-error` fixtures are left for review, as above. The
+other 13 differ for reasons the analysis does not decide:
 
-- 12 `tests/null-check/` fixtures hand a read-only string or `FILE` to `fgets`/`fclose` from
-  `<stdio.h>`, which the transpiler does not read, so nothing reports the write; their `mut` was
-  added from the C compiler's "discards const" warning.
+- 2 `tests/null-check/` fixtures store `strstr`'s result from a read-only string; their `mut`
+  waits on what `mut cstring` means. The other 10 that hand a string or `FILE` to `fgets`/`fclose`
+  now get their `mut` from the analysis, because `<stdio.h>` is read with the target's compiler
+  (#1755).
 - 5 keep a test's intent: `tests/adr-057/cross-file-*` write a member so it is emitted,
   `issue-1175-constant-dimensions/var-lib.cnx` and `issue-1760-bit-writer` need a runtime value
   rather than a constant, and `initialization/global-zero-init` tests writable zero-initialized
