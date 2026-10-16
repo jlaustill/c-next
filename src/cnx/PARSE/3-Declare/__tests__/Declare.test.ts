@@ -106,14 +106,16 @@ describe("Declare.sources headers (#1991: 1.3 builds the run's table)", () => {
     const { symbolTable } = await declareWithHeaders([
       [
         "/p/stdio.h",
-        C("typedef __FILE FILE;\ntypedef FILE *FILEP;\ntypedef FILE FILES[2];"),
+        C(
+          "typedef __FILE FILE;\ntypedef FILE *FILE_PTR;\ntypedef FILE FILES[2];",
+        ),
       ],
-      ["/p/reent.h", C("typedef struct __sFILE __FILE;\ntypedef FILE MYFILE;")],
+      ["/p/sys.h", C("typedef struct __sFILE __FILE;\ntypedef FILE MYFILE;")],
     ]);
 
     expect(symbolTable.getStructTagForTypedef("FILE")).toBe("__sFILE");
     expect(symbolTable.getStructTagForTypedef("MYFILE")).toBe("__sFILE");
-    expect(symbolTable.getStructTagForTypedef("FILEP")).toBeUndefined();
+    expect(symbolTable.getStructTagForTypedef("FILE_PTR")).toBeUndefined();
     expect(symbolTable.getStructTagForTypedef("FILES")).toBeUndefined();
   });
 
