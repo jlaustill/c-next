@@ -29,7 +29,7 @@ import type TExpressionOf from "../../../types/syntax/TExpressionOf";
 import OperandTyper from "../../../utils/OperandTyper";
 import QualifiedCName from "../../../utils/QualifiedCName";
 import ScopeUtils from "../../../utils/ScopeUtils";
-import TypeText from "./TypeText";
+import TypeText from "../../../utils/TypeText";
 import CalleeNameResolver from "./CalleeNameResolver";
 import ScopeCandidates from "./ScopeCandidates";
 import type IAnalysisContext from "../types/IAnalysisContext";

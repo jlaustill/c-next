@@ -28,6 +28,9 @@ import type TStatement from "../../../../types/syntax/TStatement";
 import ExpressionShape from "../../../../utils/ExpressionShape";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 import StatementChildren from "../../../../utils/StatementChildren";
+import DeclarationParts from "../../../../utils/DeclarationParts";
+import ExpressionNodes from "../../../../utils/ExpressionNodes";
+import TypeText from "../../../../utils/TypeText";
 
 class CallbackUseCollector {
   /**
@@ -73,7 +76,37 @@ class CallbackUseCollector {
         CallbackUseCollector.recordType(uses, field.type.text, scopePath);
       }
     } else if (declaration.kind === "variableDeclaration") {
+      CallbackUseCollector.recordInitializer(uses, declaration, scopePath);
       CallbackUseCollector.recordType(uses, declaration.type.text, scopePath);
+    }
+    CallbackUseCollector.scanExpressions(uses, declaration, scopePath);
+  }
+
+  /**
+   * Every expression the declaration holds, nested ones included: a call's
+   * arguments (`reg(myTick)`, `f(g(myTick))`) and a struct literal's field
+   * values (`{tick: myTick}`) may name what fills a callback slot (#2103
+   * review), wherever they are written.
+   */
+  private static scanExpressions(
+    uses: TCallbackUse[],
+    declaration: Exclude<TDeclarationSyntax, { kind: "scope" }>,
+    scopePath: string,
+  ): void {
+    for (const part of DeclarationParts.of(declaration)) {
+      for (const expr of ExpressionNodes.of(part)) {
+        if (expr.kind !== "structInitializer") {
+          CallbackUseCollector.recordArguments(uses, expr, scopePath);
+          continue;
+        }
+        for (const field of expr.fields) {
+          const functionName = CallbackUseCollector.functionReference(
+            field.value,
+            scopePath,
+          );
+          if (functionName) uses.push({ kind: "assignment", functionName });
+        }
+      }
     }
   }
 
@@ -87,7 +120,9 @@ class CallbackUseCollector {
     typeText: string,
     scopePath: string,
   ): void {
-    const path = typeText.split(".");
+    // `onTick[2] handlers` names `onTick` (#2103 review)
+    const named = TypeText.withoutDimensions(typeText);
+    const path = named.split(".");
     if (path.some((part) => !/^[A-Za-z_]\w*$/.test(part))) return;
     if (path.length > 1) {
       uses.push({
@@ -96,11 +131,11 @@ class CallbackUseCollector {
       });
       return;
     }
-    uses.push({ kind: "type", functionName: typeText });
+    uses.push({ kind: "type", functionName: named });
     if (scopePath) {
       uses.push({
         kind: "type",
-        functionName: ScopeUtils.qualifyInScope(typeText, scopePath),
+        functionName: ScopeUtils.qualifyInScope(named, scopePath),
       });
     }
   }
@@ -140,14 +175,6 @@ class CallbackUseCollector {
           scopePath,
         );
         if (functionName) uses.push({ kind: "assignment", functionName });
-      } else if (statement.kind === "expression") {
-        // Check expression statements for function calls with callback
-        // arguments
-        CallbackUseCollector.recordArguments(
-          uses,
-          statement.expression,
-          scopePath,
-        );
       } else {
         CallbackUseCollector.scanStatements(
           uses,
@@ -164,7 +191,10 @@ class CallbackUseCollector {
    */
   private static recordInitializer(
     uses: TCallbackUse[],
-    varDecl: Extract<TStatement, { kind: "variableDeclaration" }>,
+    varDecl: {
+      readonly initializer: TExpression | null;
+      readonly type: { readonly text: string };
+    },
     scopePath: string,
   ): void {
     if (!varDecl.initializer) return;
