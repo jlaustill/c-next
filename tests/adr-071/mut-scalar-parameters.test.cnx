@@ -1,0 +1,27 @@
+// test-execution
+// test-adr: 071
+// ADR-071 Q6: every scalar goes by value when read-only and by pointer when
+// `mut`, so the write reaches the caller: an enum, a float and an integer
+// alike, through a direct call and through the `_fp` typedef of a callback
+// type, whose parameter shape matches the prototype it is derived from.
+enum Color { RED, GREEN }
+void enumRw(mut Color c) { c <- Color.GREEN; }
+void floatRw(mut f32 f) { f <- 2.5; }
+void intRw(mut u32 v) { v <- 2; }
+void onTick(mut u32 n) { n <- n + 1; }
+struct Timer { onTick tick; }
+u32 main() {
+    mut Color k <- Color.RED;
+    enumRw(k);
+    mut f32 g <- 1.0;
+    floatRw(g);
+    mut u32 n <- 1;
+    intRw(n);
+    mut Timer t;
+    t.tick <- onTick;
+    t.tick(n);
+    if (n != 3) { return 3; }
+    if (k != Color.GREEN) { return 2; }
+    if (g != 2.5) { return 4; }
+    return 0;
+}

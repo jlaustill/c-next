@@ -2596,6 +2596,14 @@ class FilePlanner {
             functionsAsTypes.has(typeName),
           ),
           isArray: param.isArray,
+          // ADR-071 Q6: a `mut` scalar is a pointer, as in its prototype
+          isPointer:
+            !param.isConst &&
+            !param.isArray &&
+            !shape.isStruct &&
+            !shape.isString &&
+            !shape.isOpaqueHandle &&
+            !functionsAsTypes.has(typeName),
           // Already folded to literals by the symbols layer, which is exactly
           // what MISRA Rule 18.8 needs -- a dimension that is still an
           // identifier makes the typedef a variably-modified type.

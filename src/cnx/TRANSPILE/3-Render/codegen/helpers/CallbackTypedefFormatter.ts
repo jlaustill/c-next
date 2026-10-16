@@ -83,6 +83,11 @@ class CallbackTypedefFormatter {
       return `${constModifier}${parameter.type}${pointerOrReference}`;
     }
 
+    if (parameter.isPointer) {
+      // ...a reference in C++, as the prototype spells `mut u32 v` `uint32_t& v`
+      return `${parameter.type}${isCppMode ? "&" : "*"}`;
+    }
+
     // ADR-071: a read-only by-value parameter is `const`, as in its prototype;
     // a callback parameter, already a function pointer, never is.
     return `${constModifier}${parameter.type}`;

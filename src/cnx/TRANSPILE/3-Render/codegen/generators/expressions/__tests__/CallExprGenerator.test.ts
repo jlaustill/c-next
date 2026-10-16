@@ -778,7 +778,39 @@ describe("CallExprGenerator", () => {
       expect(result.code).toBe("doWork(&myVal)");
     });
 
-    it("passes float parameters by value", () => {
+    it("passes a read-only float by value (ADR-071 Q6)", () => {
+      const argExpressions = [createMockExpressionContext("temperature")];
+      const sigs = new Map([
+        [
+          "setTemp",
+          {
+            name: "setTemp",
+            parameters: [
+              { name: "temp", baseType: "f32", isConst: false, isArray: false },
+            ],
+          },
+        ],
+      ]);
+      const input = createMockInput({ functionSignatures: sigs });
+      const state = createMockState();
+      const orchestrator = createMockOrchestrator({
+        isCNextFunction: vi.fn(() => true),
+        isFloatType: vi.fn(() => true),
+        isParameterPassByValue: vi.fn(() => true),
+      });
+
+      const result = generateFunctionCall(
+        "setTemp",
+        planArguments(orchestrator, argExpressions, "setTemp", input),
+        input,
+        state,
+        orchestrator,
+      );
+
+      expect(result.code).toBe("setTemp(temperature)");
+    });
+
+    it("passes a `mut` float by address (ADR-071 Q6)", () => {
       const argExpressions = [createMockExpressionContext("temperature")];
       const sigs = new Map([
         [
@@ -807,10 +839,10 @@ describe("CallExprGenerator", () => {
         orchestrator,
       );
 
-      expect(result.code).toBe("setTemp(temperature)");
+      expect(result.code).toBe("setTemp(&temperature)");
     });
 
-    it("passes enum parameters by value", () => {
+    it("passes a read-only enum by value (ADR-071 Q6)", () => {
       const argExpressions = [createMockExpressionContext("STATE_ON")];
       const sigs = new Map([
         [
@@ -830,7 +862,7 @@ describe("CallExprGenerator", () => {
         isCNextFunction: vi.fn(() => true),
         isFloatType: vi.fn(() => false),
         getKnownEnums: vi.fn(() => knownEnums),
-        isParameterPassByValue: vi.fn(() => false),
+        isParameterPassByValue: vi.fn(() => true),
       });
 
       const result = generateFunctionCall(
@@ -936,7 +968,7 @@ describe("CallExprGenerator", () => {
         isCppEnumClass: vi.fn(() => true),
         isIntegerType: vi.fn(() => true),
         getExpressionType: vi.fn(() => "MyEnum"),
-        isParameterPassByValue: vi.fn(() => false),
+        isParameterPassByValue: vi.fn(() => true),
       });
 
       const result = generateFunctionCall(

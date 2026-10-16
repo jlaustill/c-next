@@ -74,6 +74,7 @@ function createDefaultASTDeps(overrides?: {
   return {
     callbackTypes:
       overrides?.callbackTypes ?? new Map<string, ICallbackTypeInfo>(),
+    isKnownEnum: () => false,
     isKnownStruct: () => overrides?.isKnownStruct ?? false,
     typeMap: TYPE_MAP,
     isModified: overrides?.isModified ?? false,

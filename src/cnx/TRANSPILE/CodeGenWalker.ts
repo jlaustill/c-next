@@ -2391,6 +2391,7 @@ class CodeGenWalker {
             : t;
           return this.host.state.symbols?.knownStructs.has(qualified) ?? false;
         },
+        isKnownEnum: (t) => this.host.state.symbols?.knownEnums.has(t) ?? false,
         typeMap: TYPE_MAP,
         isPassByValue,
         forcePassByReference,
@@ -2490,12 +2491,7 @@ class CodeGenWalker {
    * Check if type should use pass-by-value semantics
    */
   private _isPassByValueType(typeName: string, name: string): boolean {
-    // ISR, float, enum types
-    if (typeName === "ISR") return true;
-    if (this._isFloatType(typeName)) return true;
-    if (this.host.state.symbols?.knownEnums.has(typeName)) return true;
-
-    // Small unmodified primitives
+    // ADR-071 Q6: a read-only scalar, by its declaration (Program)
     if (
       this.host.state.currentFunctionName &&
       PassByValueAnalyzer.isParameterPassByValueByName(

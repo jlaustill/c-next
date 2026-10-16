@@ -35,6 +35,9 @@ interface IFromASTDeps {
   /** Map of callback type names to their info */
   callbackTypes: ReadonlyMap<string, ICallbackTypeInfo>;
 
+  /** Whether a type is a C-Next enum, a scalar ADR-071 Q6 points at when `mut` */
+  isKnownEnum: (typeName: string) => boolean;
+
   /** Check if type is a known struct (C-Next or C header) */
   isKnownStruct: (typeName: string) => boolean;
 
@@ -164,6 +167,7 @@ class ParameterInputAdapter {
       deps.forcePassByReference ||
       isKnownStruct ||
       isKnownPrimitive ||
+      deps.isKnownEnum(typeName) ||
       isTypedefStruct;
 
     return {

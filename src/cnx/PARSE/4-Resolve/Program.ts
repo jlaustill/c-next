@@ -54,6 +54,9 @@ import ConstantFold from "../../utils/ConstantFold";
 import type IFoldedConstant from "../../types/IFoldedConstant";
 import OpaqueTypeResolution from "../../utils/OpaqueTypeResolution";
 import SMALL_PRIMITIVES from "./SMALL_PRIMITIVES";
+
+/** Scalars ADR-006 never listed as primitives, passed by value all the same */
+const BY_VALUE_SCALARS: ReadonlySet<string> = new Set(["f32", "f64", "ISR"]);
 import TypeResolver from "../../utils/TypeResolver";
 import SymbolGuards from "../../types/symbols/SymbolGuards";
 import type IVariableSymbol from "../../types/symbols/IVariableSymbol";
@@ -222,7 +225,10 @@ class Program {
       symbolsByFile,
       visibility,
     );
-    const passByValueParams = Program.derivePassByValue(symbolsByFile);
+    const passByValueParams = Program.derivePassByValue(
+      symbolsByFile,
+      knownEnums,
+    );
     // Settled once, with the files, so every pass reads one answer.
     const target = settled.target;
     const conflicts = ConflictDetector.detect(
@@ -694,6 +700,7 @@ class Program {
    */
   private static derivePassByValue(
     symbolsByFile: ReadonlyMap<string, ReadonlyArray<TSymbol>>,
+    knownEnums: ReadonlySet<string>,
   ): ReadonlyMap<string, ReadonlySet<string>> {
     const byFunction = new Map<string, ReadonlySet<string>>();
     for (const symbols of symbolsByFile.values()) {
@@ -701,7 +708,7 @@ class Program {
         if (!SymbolGuards.isFunction(symbol)) continue;
         byFunction.set(
           symbol.fullyQualifiedCName,
-          Program.eligibleParameters(symbol.parameters),
+          Program.eligibleParameters(symbol.parameters, knownEnums),
         );
       }
     }
@@ -717,15 +724,21 @@ class Program {
    */
   private static eligibleParameters(
     parameters: ReadonlyArray<IParameterInfo>,
+    knownEnums: ReadonlySet<string>,
   ): ReadonlySet<string> {
     const eligible = new Set<string>();
     for (const parameter of parameters) {
+      const typeName = TypeResolver.getTypeName(parameter.type);
       // An array parameter decays to a pointer whatever its element type, so
-      // ADR-006 never applies to one.
+      // ADR-006 never applies to one. ADR-071 Q6: every other scalar -- an
+      // integer, a float, an enum, an `ISR` -- goes by value when read-only
+      // and by pointer when `mut`, so the callee's write reaches the caller.
+      // The declaration decides, not what the body does.
       const isEligible =
         !parameter.isArray &&
-        SMALL_PRIMITIVES.has(TypeResolver.getTypeName(parameter.type)) &&
-        // ADR-071: the declaration decides, not what the body does
+        (SMALL_PRIMITIVES.has(typeName) ||
+          BY_VALUE_SCALARS.has(typeName) ||
+          knownEnums.has(typeName)) &&
         parameter.isConst;
       if (isEligible) {
         eligible.add(parameter.name);
