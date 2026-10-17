@@ -230,7 +230,8 @@ class TargetMatrix {
   /**
    * A C translation unit that compiles only if a catalog row's facts are what
    * its compiler says: every width, `char`'s signedness, the byte order, and
-   * whether the architecture has LDREX/STREX and BASEPRI. A false fact in the
+   * whether the architecture has LDREX/STREX and BASEPRI, and whether the IRQ
+   * wrappers have an arm for it (`interrupt_mask`, #1789). A false fact in the
    * catalog is a static assertion that fails, so no program is transpiled
    * against it (#1668's addendum, "startup model probe").
    */
@@ -250,6 +251,11 @@ class TargetMatrix {
       "#else",
       "#define CNX_BASEPRI 0",
       "#endif",
+      "#if defined(__arm__) || defined(__ARM_ARCH) || defined(__AVR__)",
+      "#define CNX_INTERRUPT_MASK 1",
+      "#else",
+      "#define CNX_INTERRUPT_MASK 0",
+      "#endif",
       `_Static_assert(CHAR_BIT == ${row.char_bits}, "char_bits");`,
       `_Static_assert(((char)-1 < 0) == ${row.char_signed ? 1 : 0}, "char_signed");`,
       width("short", row.short_bits, "short_bits"),
@@ -264,6 +270,7 @@ class TargetMatrix {
       `_Static_assert((__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__) == ${row.big_endian ? 1 : 0}, "big_endian");`,
       `_Static_assert(CNX_LDREX == ${row.ldrex_strex ? 1 : 0}, "ldrex_strex");`,
       `_Static_assert(CNX_BASEPRI == ${row.basepri ? 1 : 0}, "basepri");`,
+      `_Static_assert(CNX_INTERRUPT_MASK == ${row.interrupt_mask ? 1 : 0}, "interrupt_mask");`,
       "",
     ].join("\n");
   }

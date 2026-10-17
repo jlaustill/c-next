@@ -1,6 +1,6 @@
 // test-c-only
 // test-execution
-// test-target-xfail: host #1147 "implicit declaration of function"
+#pragma target cortex-m7
 // #1484 / #1960 review: a callback-typed local inside a `critical` block still
 // gets its `_fp` typedef. Its own fixture because a critical section cannot
 // run on host until #1147; callback-local-nested covers every other kind.

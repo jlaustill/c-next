@@ -1,6 +1,7 @@
 // test-error
 // test-c-only
 // test-adr: 050
+#pragma target cortex-m7
 // REGRESSION for a safety defect #1322 found while relocating E0853.
 //
 // The check used to be a hand-rolled recursion in `TypeValidator` that

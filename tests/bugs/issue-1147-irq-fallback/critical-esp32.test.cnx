@@ -1,0 +1,15 @@
+// test-error
+// #1147 / #1789: esp32 is dual-core, and masking one core does not exclude the other (ADR-050 covers single-core parts; ADR-100), so
+// a critical block has no lowering there. It reached the IRQ wrappers' last
+// arm, "Fallback: assume CMSIS is available", whose __disable_irq() no host
+// header declares, so the C failed to compile instead of the program failing
+// to transpile.
+#pragma target esp32
+
+mut u32 count <- 0;
+
+void bump() {
+    critical {
+        count <- count + 1;
+    }
+}

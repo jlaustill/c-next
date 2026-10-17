@@ -88,6 +88,12 @@ interface IEmissionFacts {
 
   /** Where Render emitted LDREX/STREX loops, for attribution only. */
   readonly ldrexStrexSites: readonly IRequirementSite[];
+
+  /** #1789: Render emitted a GNU `__atomic` compare-exchange loop. */
+  readonly emittedCompareExchangeLoop: boolean;
+
+  /** Where Render emitted compare-exchange loops, for attribution only. */
+  readonly compareExchangeSites: readonly IRequirementSite[];
 }
 
 export default IEmissionFacts;

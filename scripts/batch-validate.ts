@@ -53,6 +53,9 @@ function cortexArgs(file: string): string[] {
  * host's 64-bit one (`uword_t` became `uint32_t`, and `255ULL` a Rule 10.3
  * narrowing). Both passes check the host model (other models are #1714), so
  * they get the host compiler's macros for it.
+ *
+ * #1147: the memory orders an `__atomic` builtin takes (`__ATOMIC_RELAXED`)
+ * are predefined by the compiler too, so they come from the same place.
  */
 function hostDataModelArgs(): string[] {
   const macros = execFileSync("gcc", ["-dM", "-E", "-x", "c", "/dev/null"], {
@@ -61,11 +64,65 @@ function hostDataModelArgs(): string[] {
     timeout: 5000,
   });
   return [
-    ...macros.matchAll(/^#define (__SIZEOF_\w+__|__\w+_WIDTH__) (\d+)$/gm),
+    ...macros.matchAll(
+      /^#define (__SIZEOF_\w+__|__\w+_WIDTH__|__ATOMIC_\w+) (\d+)$/gm,
+    ),
   ].map((match) => `-D${match[1]}=${match[2]}`);
 }
 
 const HOST_DATA_MODEL_ARGS = hostDataModelArgs();
+
+const ARM_ARCH_ARGS: readonly string[] = ["-D__arm__=1"];
+
+/**
+ * #1147: the critical-section wrappers have an arm for the compilers that can
+ * mask interrupts (ARM, AVR) and `#error` for every other one, the host
+ * included. A file with them was generated for a target that can, so it is
+ * analyzed on its ARM arm, the way a Cortex file is.
+ */
+function interruptMaskArgs(file: string): readonly string[] {
+  return readFileSync(file, "utf-8").includes(
+    '#error "C-Next: this platform has no interrupt masking',
+  )
+    ? ARM_ARCH_ARGS
+    : [];
+}
+
+const GNU_ATOMIC_BUILTINS = join(ROOT, "tools/gnu-atomic-builtins.h");
+
+/** A file that calls the `__atomic` builtins gets the compiler's declarations. */
+function atomicBuiltinArgs(file: string): readonly string[] {
+  return readFileSync(file, "utf-8").includes("__atomic_")
+    ? [`--include=${GNU_ATOMIC_BUILTINS}`]
+    : [];
+}
+
+/** Runs one cppcheck batch per set of per-file arguments. */
+function runCppcheckBatches(
+  tool: string,
+  label: string,
+  args: readonly string[],
+  files: readonly string[],
+): void {
+  const batches: [readonly string[], readonly string[]][] = [
+    [[], files.filter((f) => interruptMaskArgs(f).length === 0)],
+    [ARM_ARCH_ARGS, files.filter((f) => interruptMaskArgs(f).length > 0)],
+  ];
+  for (const [extra, batch] of batches) {
+    if (batch.length === 0) continue;
+    try {
+      execFileSync("cppcheck", [...args, ...extra, ...batch], {
+        encoding: "utf-8",
+        timeout: 300000,
+        stdio: "pipe",
+      });
+    } catch (error: unknown) {
+      const failure = ExecFailure.of(error);
+      const output = failure.stderr || failure.stdout || failure.message;
+      reportFailure(tool, `${batch.length} ${label}`, output);
+    }
+  }
+}
 
 // ============================================================================
 // CLI argument parsing
@@ -248,17 +305,7 @@ function runCppcheck() {
 
   if (pureCFiles.length > 0) {
     console.log(`Running cppcheck on ${pureCFiles.length} C files...`);
-    try {
-      execFileSync("cppcheck", [...baseArgs, ...pureCFiles], {
-        encoding: "utf-8",
-        timeout: 300000,
-        stdio: "pipe",
-      });
-    } catch (error: unknown) {
-      const failure = ExecFailure.of(error);
-      const output = failure.stderr || failure.stdout || failure.message;
-      reportFailure("cppcheck", `${pureCFiles.length} C files`, output);
-    }
+    runCppcheckBatches("cppcheck", "C files", baseArgs, pureCFiles);
   }
 
   // C files needing C++ mode + actual C++ files
@@ -277,17 +324,7 @@ function runCppcheck() {
       "--language=c++",
       "--std=c++14",
     ];
-    try {
-      execFileSync("cppcheck", [...cppArgs, ...allCppFiles], {
-        encoding: "utf-8",
-        timeout: 300000,
-        stdio: "pipe",
-      });
-    } catch (error: unknown) {
-      const failure = ExecFailure.of(error);
-      const output = failure.stderr || failure.stdout || failure.message;
-      reportFailure("cppcheck-cpp", `${allCppFiles.length} C++ files`, output);
-    }
+    runCppcheckBatches("cppcheck-cpp", "C++ files", cppArgs, allCppFiles);
   }
 }
 
@@ -377,6 +414,8 @@ function runMisra() {
         MisraBaseline.buildArgs(file, INCLUDE_DIR, [
           ...HOST_DATA_MODEL_ARGS,
           ...cortexArgs(file),
+          ...interruptMaskArgs(file),
+          ...atomicBuiltinArgs(file),
         ]),
         {
           encoding: "utf-8",
@@ -398,6 +437,13 @@ function runMisra() {
         continue;
       }
       output = `${failure.stdout || ""}\n${failure.stderr || ""}`;
+    }
+
+    // An `#error` arm stops cppcheck before the addon reads the file, and its
+    // exit status is the same 1, so a file it never analyzed passed (#1147).
+    if (output.includes("[preprocessorErrorDirective]")) {
+      reportFailure("MISRA", file, output);
+      continue;
     }
 
     const misraFailures = MisraBaseline.findFailures(

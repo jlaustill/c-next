@@ -488,6 +488,7 @@ A target description gives every one of these facts. None is optional, except th
 | `word_size`                 | unsigned integer  | 8, 16, 32, 64   | the widest naturally atomic access                                                         |
 | `ldrex_strex`               | Boolean           |                 | exclusive-access read-modify-write instructions exist                                      |
 | `basepri`                   | Boolean           |                 | selective interrupt masking exists (ADR-050)                                               |
+| `interrupt_mask`            | Boolean           |                 | global interrupt masking exists, so a `critical` block has a lowering (ADR-050, #1789)     |
 | `char_bits`                 | unsigned integer  | 8               | a platform with a wider `char` is rejected explicitly                                      |
 | `char_signed`               | Boolean           |                 | plain `char` is signed                                                                     |
 | `short_bits`                | unsigned integer  | 16              |                                                                                            |
@@ -549,6 +550,7 @@ A program's description pragmas together form one description, for a platform th
 #pragma word_size 32
 #pragma ldrex_strex true
 #pragma basepri false
+#pragma interrupt_mask true
 #pragma char_bits 8
 #pragma char_signed false
 #pragma short_bits 16
@@ -575,7 +577,7 @@ A partial description is an error that lists the missing fields. For a file whos
 
 ```
 Error: myfile.cnx:1:0 error[E0514]: incomplete target description
-       help: missing: ldrex_strex, basepri, char_bits, char_signed, short_bits, int_bits, long_bits, long_long_bits, size_t_bits, pointer_bits, float_bits, double_bits, long_double_bits, big_endian, external_identifier_chars, internal_identifier_chars. Either use '#pragma target <name>' or give every field (ADR-049).
+       help: missing: ldrex_strex, basepri, interrupt_mask, char_bits, char_signed, short_bits, int_bits, long_bits, long_long_bits, size_t_bits, pointer_bits, float_bits, double_bits, long_double_bits, big_endian, external_identifier_chars, internal_identifier_chars. Either use '#pragma target <name>' or give every field (ADR-049).
 ```
 
 #### One target per program

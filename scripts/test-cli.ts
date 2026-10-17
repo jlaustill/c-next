@@ -652,7 +652,7 @@ for (const target of ["cortex-m0", "cortex-m0+"]) {
 
       assertFileContains(
         cFile,
-        "__get_PRIMASK",
+        "__cnx_get_PRIMASK();",
         `Should use PRIMASK for ${target}`,
       );
       const content = readFileSync(cFile, "utf-8");
@@ -670,8 +670,12 @@ test("--target avr generates PRIMASK fallback code", () => {
     const result = runCliInDir(tempDir, ["--target", "avr", cnxFile]);
     assert(result.success, `Compile should succeed: ${result.output}`);
 
-    // AVR should use PRIMASK fallback (no LDREX support)
-    assertFileContains(cFile, "__get_PRIMASK", "Should use PRIMASK for avr");
+    // AVR has no LDREX: the RMW is a masked region
+    assertFileContains(
+      cFile,
+      "__cnx_get_PRIMASK();",
+      "Should use PRIMASK for avr",
+    );
   });
 });
 

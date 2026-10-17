@@ -5,6 +5,7 @@
 #pragma word_size 12
 #pragma ldrex_strex yes
 #pragma basepri false
+#pragma interrupt_mask true
 #pragma char_bits 8
 #pragma char_signed false
 #pragma short_bits 16

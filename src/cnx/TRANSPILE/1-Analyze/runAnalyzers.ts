@@ -42,6 +42,7 @@ import ReturnValueUseAnalyzer from "./ReturnValueUseAnalyzer";
 import CompoundAssignmentAnalyzer from "./CompoundAssignmentAnalyzer";
 import ConstructorArgumentAnalyzer from "./ConstructorArgumentAnalyzer";
 import CriticalSectionAnalyzer from "./CriticalSectionAnalyzer";
+import ResolvedTarget from "../../utils/ResolvedTarget";
 import EnumTypeSafetyAnalyzer from "./EnumTypeSafetyAnalyzer";
 import ScopeAccessAnalyzer from "./ScopeAccessAnalyzer";
 import RegisterAccessAnalyzer from "./RegisterAccessAnalyzer";
@@ -366,8 +367,12 @@ function runAnalyzers(
         new ConstructorArgumentAnalyzer(context).analyze(parsed.program),
     },
     {
-      label: "`return` inside a critical section (ADR-050, E0853)",
-      run: () => new CriticalSectionAnalyzer().analyze(parsed.program),
+      label:
+        "`return` inside a critical section, or one the target cannot mask (ADR-050, E0853, E0915)",
+      run: () =>
+        new CriticalSectionAnalyzer(
+          ResolvedTarget.of(context.program.target()),
+        ).analyze(parsed.program),
     },
     {
       label: "`this` outside a scope (ADR-016)",

@@ -39,6 +39,7 @@ describe("TargetMatrix.toolchainForInline", () => {
   const FACTS = [
     "#pragma word_size 32",
     "#pragma basepri false",
+    "#pragma interrupt_mask true",
     "#pragma char_bits 8",
     "#pragma char_signed false",
     "#pragma short_bits 16",

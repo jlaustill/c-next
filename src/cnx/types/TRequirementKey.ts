@@ -1,9 +1,9 @@
 /**
  * Issue #1143: Stable identity of one toolchain requirement.
  *
- * Keys are **per-arm, not per-feature**. The IRQ-wrapper block emits four
- * platform arms in one #if/#elif/#else chain, and each arm depends on a
- * different platform library -- ARMv7-M, Arduino, avr-libc, CMSIS. Collapsing
+ * Keys are **per-arm, not per-feature**. The IRQ-wrapper block emits three
+ * platform arms in one #if/#elif chain, and each arm depends on a
+ * different platform library -- ARMv7-M, Arduino, avr-libc. Collapsing
  * them into one "critical section" key is what makes a requirements table lie:
  * it forces a single answer to a question whose answer is per-target.
  *
@@ -21,9 +21,9 @@ type TRequirementKey =
   | "critical-arm-gnu"
   | "critical-arduino"
   | "critical-avr-libc"
-  | "critical-cmsis-fallback"
   // --- atomics (ADR-049) ---
   | "atomic-ldrex-cmsis"
+  | "atomic-gnu-builtins"
   // --- struct initializers ---
   | "cpp-designated-initializer"
   | "cpp-compound-literal"

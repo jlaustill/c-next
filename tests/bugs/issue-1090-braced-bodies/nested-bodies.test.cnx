@@ -2,6 +2,7 @@
 // #1090 review: E0716 finds an unbraced body however deep it sits -- in an
 // else-if arm, a switch case, a switch default, a critical block, a forever
 // loop, a do-while body and a braced body.
+#pragma target cortex-m7
 u32 elseIfArm(bool c, u32 x) {
     u32 r <- x;
     if (c = true) {

@@ -150,26 +150,6 @@ const TOOLCHAIN_REQUIREMENTS: Record<TRequirementKey, IToolchainRequirement> = {
     misra: ["Dir 4.9", "20.8", "20.9", "20.14"],
   },
 
-  "critical-cmsis-fallback": {
-    key: "critical-cmsis-fallback",
-    modes: ["c", "cpp"],
-    // #1146: a critical block and an atomic read-modify-write both mask
-    feature: "interrupt masking",
-    standard: "C99",
-    compiler: null,
-    extensions: [],
-    // Issue #1147: no <cmsis_gcc.h> is emitted on this arm either.
-    platformLib: "CMSIS",
-    condition: "neither ARM nor AVR",
-    reason: "__disable_irq(), __get_PRIMASK(), __set_PRIMASK()",
-    // #1146: an atomic read-modify-write masks through the same wrappers
-    incurredBy:
-      "a critical block, or an atomic read-modify-write on a target without LDREX/STREX",
-    probe: /\{ __disable_irq\(\); \}/,
-    adr: "ADR-050",
-    misra: ["Dir 4.9", "20.8", "20.9", "20.14"],
-  },
-
   "atomic-ldrex-cmsis": {
     key: "atomic-ldrex-cmsis",
     modes: ["c", "cpp"],
@@ -185,6 +165,25 @@ const TOOLCHAIN_REQUIREMENTS: Record<TRequirementKey, IToolchainRequirement> = {
     probe: /__(?:LDREX|STREX)[BHW]\b/,
     adr: "ADR-049",
     misra: ["Dir 4.9"],
+  },
+
+  // #1789: a target with neither LDREX/STREX nor interrupt masking (host,
+  // esp32) retries a compare-exchange; GCC lowers it to S32C1I on Xtensa
+  "atomic-gnu-builtins": {
+    key: "atomic-gnu-builtins",
+    modes: ["c", "cpp"],
+    feature: "atomic read-modify-write",
+    standard: "C99",
+    compiler: null,
+    extensions: ["GNU __atomic builtins"],
+    platformLib: null,
+    condition: null,
+    reason: "__atomic_load(), __atomic_compare_exchange()",
+    incurredBy:
+      "compound assignment to an atomic variable on a target without LDREX/STREX or interrupt masking",
+    probe: /__atomic_compare_exchange\(/,
+    adr: "ADR-049",
+    misra: ["1.2"],
   },
 
   "cpp-designated-initializer": {

@@ -1,6 +1,6 @@
 // test-c-only
 // test-execution
-// test-target-xfail: host #1147 "implicit declaration of function"
+#pragma target cortex-m7
 // #2003: `this.count` written inside `critical` initializes the member
 // (#1019), so a read in a function declared before the writer is not E0381
 scope S {
