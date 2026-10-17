@@ -91,10 +91,10 @@ flags[3] <- true;           // Set bit 3
 flags[0, 3] <- 5;           // Set 3 bits starting at bit 0
 bool isSet <- flags[3];     // Read bit 3
 
-// .length property
+// Length properties (ADR-058)
 u8[16] bufArray;
-bufArray.length;            // 16 (array element count)
-flags.length;               // 8 (bit width of u8)
+bufArray.type_element_count; // 16 (array element count)
+flags.type_bit_length;      // 8 (bit width of u8)
 ```
 
 Write-only registers generate optimized code:
@@ -347,7 +347,7 @@ string<128> message;                   // Empty string, initialized to ""
 string VERSION <- "1.0.0";             // Read-only: auto-sized to string<5>
 
 // Properties
-u32 len <- name.length;                // Runtime: strlen(name)
+u32 len <- name.value_char_count;      // Runtime: strlen(name)
 u32 cap <- name.capacity;              // Compile-time: 64
 
 // Comparison - uses strcmp

@@ -340,10 +340,10 @@ uint32_t len = strlen(message);
 uint32_t cap = 64;
 ```
 
-### Const Inference
+### Read-Only by Default (ADR-071)
 
 ```cnx
-const string VERSION <- "1.0.0";
+string VERSION <- "1.0.0";
 ```
 
 →
@@ -355,7 +355,7 @@ const char VERSION[6] = "1.0.0";
 ### Comparison
 
 ```cnx
-if (a == b) { }
+if (a = b) { }
 ```
 
 →

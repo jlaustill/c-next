@@ -169,7 +169,7 @@ Tests that verify code transpiles and compiles correctly. **NO** result validati
 // Test all operations (NO test-execution comment)
 // Note: No // test-execution marker
 
-f32 result;
+mut f32 result;
 
 void test_operations() {
     f32 a <- 10.5;
@@ -194,7 +194,7 @@ Tests marked with `// test-execution` that **execute and validate results**. The
 
 u32 main() {
     // Perform operation
-    u64 result <- 1000 + 500;
+    mut u64 result <- 1000 + 500;
 
     // ALWAYS validate result
     if (result != 1500) { // Return error code on failure

@@ -160,7 +160,7 @@ string VERSION <- "1.0.0";          // read-only, auto-sized
 **Slice assignment into byte buffers:** `buf[byteOffset, byteCount] <- value` copies `byteCount` **little-endian** bytes of an integer `value` into any integer array (`u8[]`/`u16[]`/`u32[]`/`u64[]`) or string buffer. Offset and length must be **compile-time constants** — literals, read-only bindings with a literal value, or expressions of them (a runtime offset/length, or a zero length, is a compile error); the write is bounds-checked at compile time. On a byte _array_, `[off, len]` means BYTES; on a scalar/float, `[start, width]` means BITS. A **single** subscript `s[i]` accesses one element: a `u8` byte value in numeric context (`u8 b <- s[0]`, or passed to a `u8` parameter) and the target of a byte write (`s[i] <- 'X'`); assigned to a `string<1>` it instead yields a one-character substring.
 
 ```cnx
-u8[64] buf;
+mut u8[64] buf;
 buf[0, 4]  <- 0x12345678;   // bytes 78 56 34 12 at indices 0..3 (LE)
 buf[10, 2] <- 0xCDEFu16;    // bytes EF CD at indices 10..11
 ```
@@ -245,7 +245,7 @@ Access bitmap fields by **name** (`f.Mode`); bracket-indexing a bitmap (`f[3]`) 
 ## Bit Manipulation
 
 ```cnx
-u8 flags <- 0;
+mut u8 flags <- 0;
 flags[3] <- true;              // set bit 3
 bool b <- flags[3];            // read bit 3
 flags[4, 3] <- 5;             // set 3 bits starting at bit 4
@@ -645,9 +645,9 @@ registerHandler(timerHandler);                       // pass by name
 ## Atomic Types (ADR-049)
 
 ```cnx
-atomic u32 counter <- 0;
-atomic clamp u8 brightness <- 0;
-atomic bool ready <- false;
+atomic mut u32 counter <- 0;
+atomic mut clamp u8 brightness <- 0;
+atomic mut bool ready <- false;
 
 counter +<- 1;                       // lock-free on Cortex-M3+ (LDREX/STREX)
 brightness +<- 10;                   // atomic add with clamp

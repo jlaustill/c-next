@@ -228,7 +228,13 @@ A fact has two independent properties, and conflating them mis-files the AST:
 | **Tier 1** -- computable with one file open | AST structure                                  | identity, kind, position, declared type, qualifiers |
 | **Tier 2** -- needs more than one file      | symbol conflicts (consumed into `Diagnostics`) | `isConst`, opaque-vs-defined, pass-by-value         |
 
-- **Tier** decides which pass authors a fact, and whether it can be cached.
+- **Tier** decides which pass authors a fact. The boundary exists for **order-independence**,
+  not cacheability (#1313, grooming decision 2): a Tier 1 fact is the same whichever file is
+  declared first, and a Tier 2 fact is computed once, in 1.4 Resolve, after every file is
+  declared, so no answer depends on the order files are visited. It also makes cross-file
+  dependence visible in the type system: a pass that needs a Tier 2 fact names `Program`.
+  Caching is not the reason, because 2.1 Analyze, most of a run's cost, reads `Program` and
+  so cannot be cached per file anyway.
 - **Lifetime** decides whether it may cross into the artifact the next layer holds.
 
 The test for tier is mechanical: **could you compute it with only this file open?**
