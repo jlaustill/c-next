@@ -358,3 +358,108 @@ describe("ConstAssignmentAnalyzer, a C++ method's object (#2102 review)", () => 
     ]);
   });
 });
+
+describe("ConstAssignmentAnalyzer (E0916, ADR-006 #1203)", () => {
+  const header = (): SymbolTable => {
+    const symbolTable = new SymbolTable();
+    const base = {
+      sourceLanguage: ESourceLanguage.C,
+      sourceFile: "h.h",
+      span: TestSourceSpan.at(1),
+      visibility: "public",
+    } as const;
+    symbolTable.addCSymbol({
+      ...base,
+      name: "COLOR_GREEN",
+      kind: "enum_member",
+      parent: "Color",
+    });
+    symbolTable.addCSymbol({
+      ...base,
+      name: "headerCounter",
+      kind: "variable",
+      type: "uint32_t",
+    });
+    symbolTable.addCSymbol({
+      ...base,
+      name: "c_tick",
+      kind: "function",
+      type: "void",
+      parameters: [],
+    });
+    return symbolTable;
+  };
+  const passed = (args: readonly string[]): string[] => {
+    const source = [
+      "struct In { u32 v; }",
+      "struct Out { In inner; }",
+      "enum EMode { IDLE, RUN }",
+      "void modifies(mut u32 value) {",
+      "    value +<- 1;",
+      "}",
+      "u32 readIt() {",
+      "    return 1;",
+      "}",
+      "void f() {",
+      "    mut u32 a <- 0;",
+      "    mut Out o <- { inner: { v: 0 } };",
+      "    mut u32[2] arr <- [0, 0];",
+      ...args.map((arg) => `    modifies(${arg});`),
+      "}",
+    ].join("\n");
+    const { syntax, context } = testAnalysisContextFor(source, {
+      symbolTable: header(),
+      cppMode: false,
+      macros: {
+        LIMIT: {
+          kind: "integer",
+          valueByIntBits: new Map([
+            [16, 5],
+            [32, 5],
+          ]),
+        },
+      },
+    });
+    return new ConstAssignmentAnalyzer(context)
+      .analyze(syntax)
+      .filter((e) => e.code === "E0916")
+      .map((e) => e.message.split("'")[1]);
+  };
+
+  it("rejects every argument that is not an object", () => {
+    const values = [
+      "5",
+      "readIt()",
+      "a + 1",
+      "(u32)a",
+      "EMode.RUN",
+      "a[0]",
+      "a[0, 2]",
+      "readIt",
+      "LIMIT",
+      "COLOR_GREEN",
+      "c_tick",
+    ];
+    expect(passed(values)).toEqual(values);
+  });
+
+  it("accepts a variable, a field, an element and a header's variable, through brackets", () => {
+    expect(
+      passed([
+        "a",
+        "((a))",
+        "o.inner.v",
+        "(o.inner).v",
+        "((o).inner).v",
+        "(o.inner.v)",
+        "arr[1]",
+        "(arr[1])",
+        "headerCounter",
+      ]),
+    ).toEqual([]);
+  });
+
+  it("rejects a call's result reached through brackets", () => {
+    expect(passed(["(readIt())"])).toEqual(["(readIt())"]);
+  });
+});

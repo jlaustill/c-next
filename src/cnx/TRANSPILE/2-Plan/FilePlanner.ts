@@ -73,6 +73,7 @@ import UNRESOLVED_DIMENSION from "../../types/UNRESOLVED_DIMENSION";
 import dimensionEvalOptions from "./dimensionEvalOptions";
 import CallArgumentPassing from "./CallArgumentPassing";
 import type IArgumentPassing from "./types/IArgumentPassing";
+import type TArgumentForm from "./types/TArgumentForm";
 import CppMemberHelper from "./CppMemberHelper";
 import IPostfixOp from "../../types/IPostfixOp";
 import CppConstructorHelper from "../../utils/CppConstructorHelper";
@@ -1214,23 +1215,10 @@ class FilePlanner {
 
       const passing = this.argumentPassing(site);
       const base = passing.param?.baseType;
-      const object = ExpressionShape.unparenthesized(expression);
       const form =
         passing.mode === "reference"
-          ? ArgumentForm.of(
-              this.boundArgumentName(object) !== null,
-              base,
-              this.argumentShape(object),
-              this.state.cppMode,
-            )
+          ? this.referenceForm(expression, passing)
           : null;
-      invariant(
-        passing.mode !== "reference" ||
-          passing.param?.isConst !== false ||
-          (MutArgument.isWritable(expression, this.state.typingContext()) &&
-            form?.kind !== "rvalue"),
-        "2.1 rejected every `mut` argument that is not an object (ADR-006, E0916)",
-      );
       const enumCast =
         passing.mode === "reference"
           ? null
@@ -1248,6 +1236,30 @@ class FilePlanner {
       if (cType !== null) cTypes.add(cType);
     }
     return planned;
+  }
+
+  /**
+   * A by-reference argument's form. A `mut` parameter's argument is an object
+   * 2.1 accepted (E0916), so it is never passed as a temporary.
+   */
+  private referenceForm(
+    expression: TExpression,
+    passing: IArgumentPassing,
+  ): TArgumentForm {
+    const object = ExpressionShape.unparenthesized(expression);
+    const form = ArgumentForm.of(
+      this.boundArgumentName(object) !== null,
+      passing.param?.baseType,
+      this.argumentShape(object),
+      this.state.cppMode,
+    );
+    invariant(
+      passing.param?.isConst !== false ||
+        (MutArgument.isWritable(expression, this.state.typingContext()) &&
+          form.kind !== "rvalue"),
+      "2.1 rejected every `mut` argument that is not an object (ADR-006, E0916)",
+    );
+    return form;
   }
 
   private planExpectedTypes(
