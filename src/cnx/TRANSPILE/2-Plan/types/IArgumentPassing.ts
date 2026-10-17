@@ -9,7 +9,7 @@ interface IArgumentPassing {
         readonly baseType: string;
         readonly isArray?: boolean;
         /** ADR-071: a parameter the callee does not write (not `mut`) */
-        readonly isConst?: boolean;
+        readonly isConst: boolean;
       }
     | undefined;
   /** To a C function, by value, or by reference */

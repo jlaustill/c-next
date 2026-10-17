@@ -257,8 +257,8 @@ class FilePlanner {
     return { line: expr.span.line, column: expr.span.column };
   }
 
-  /** What decides an argument's form (#1991), asked by 2.2 and 2.3 alike */
-  argumentShape(
+  /** What decides an argument's form (#1991), as 2.2 plans it */
+  private argumentShape(
     expr: TExpression,
     structInitializers: ReadonlyMap<
       TExpressionOf<"structInitializer">,

@@ -1716,7 +1716,10 @@ describe("PostfixExpressionGenerator", () => {
             calleeType,
             plannedArgument: {
               passing: {
-                param: mode === "c" ? undefined : { baseType: "Point" },
+                param:
+                  mode === "c"
+                    ? undefined
+                    : { baseType: "Point", isConst: true },
                 mode,
               },
               form: mode === "c" ? null : { kind: "identifier" },

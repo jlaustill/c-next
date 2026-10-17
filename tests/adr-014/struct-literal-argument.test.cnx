@@ -55,6 +55,7 @@ u32 main() {
         return 4;
     }
 
+    // A parenthesized literal argument
     u32 p <- sum(({ x: 5, y: 6 }));
     if (p != 11) {
         return 5;

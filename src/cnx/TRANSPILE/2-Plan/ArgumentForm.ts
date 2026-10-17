@@ -49,8 +49,9 @@ class ArgumentForm {
 
   /**
    * C++: an rvalue binds to `const T&`; C takes a compound literal's address,
-   * which a struct literal already is (#1530). Only for a parameter the callee
-   * does not write: a write to a `mut` one would land in the temporary (#1203)
+   * which a struct literal already is (#1530) -- that arm only for a parameter
+   * the callee does not write, since a write to a `mut` one would land in the
+   * temporary. A scalar still gets `&(T){v}` for a `mut` one (#1203)
    */
   private static rvalue(
     targetParamBaseType: string | undefined,
