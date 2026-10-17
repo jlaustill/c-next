@@ -13,8 +13,13 @@
 extern "C" {
 #endif
 
+/* Callback typedefs */
+typedef uint32_t (*vhandler_fp)(const VPt&);
+
 /* Function prototypes */
 uint32_t vhandler(const VPt p);
+uint32_t other(const VPt& p);
+uint32_t fire(vhandler_fp cb);
 
 #ifdef __cplusplus
 }

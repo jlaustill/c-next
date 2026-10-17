@@ -47,12 +47,17 @@ class CallArgumentPassing {
       : null;
   }
 
-  /** Argument `index` of a call to `signatureName`; null when it names none */
+  /**
+   * Argument `index` of a call to `signatureName`; null when it names none.
+   * `isDirectCall` is false for a call through an ADR-029 callback value,
+   * whose `_fp` type is built from the declaration, not from a C typedef.
+   */
   static of(
     signatureName: string | null,
     index: number,
     input: ICallArgumentFacts,
     orchestrator: IPlanQueries,
+    isDirectCall: boolean,
   ): IArgumentPassing {
     if (signatureName === null) return { param: undefined, mode: "c" };
     const resolved = CallExprUtils.resolveTargetParam(
@@ -66,20 +71,27 @@ class CallArgumentPassing {
     }
     // Issue #895: a C callback typedef the callee is used as decides whether
     // its parameter is a pointer, and its signature is written from the same
-    // answer -- so a struct the typedef takes by value goes by value here too.
-    const typedefParam = ParameterInfoPlanner.callbackTypedefParamInfo(
-      signatureName,
-      index,
-      input,
-    );
-    const byValue = typedefParam
-      ? !typedefParam.isParamPointer
-      : CallArgumentPassing.shouldPassByValue(
+    // answer. So a direct call passes the argument by value exactly where the
+    // typedef takes the parameter by value, and by reference where it takes a
+    // pointer -- a scalar too. A `mut` parameter keeps the reference form: the
+    // typedef's copy would lose the write, and gcc rejecting the call is the
+    // louder answer (#2146).
+    const typedefParam = isDirectCall
+      ? ParameterInfoPlanner.callbackTypedefParamInfo(
           signatureName,
           index,
-          resolved.param,
-          orchestrator,
-        );
+          input,
+        )
+      : null;
+    const byValue =
+      typedefParam && resolved.param?.isConst !== false
+        ? !typedefParam.isParamPointer
+        : CallArgumentPassing.shouldPassByValue(
+            signatureName,
+            index,
+            resolved.param,
+            orchestrator,
+          );
     return {
       param: resolved.param,
       mode: byValue ? "value" : "reference",

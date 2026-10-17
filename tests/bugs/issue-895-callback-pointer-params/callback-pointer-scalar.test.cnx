@@ -1,0 +1,32 @@
+// test-execution
+// test-c-only
+// Issue #895 (#1530 review): a read-only scalar parameter of a function used
+// as a C callback whose typedef takes it by pointer is a pointer in C, so a
+// call passes the argument by address -- a variable as `&n`, a literal as
+// `&(uint32_t){5U}`.
+// TODO(#2140): C++ still passes these by value against the pointer parameter.
+
+#include "scalar-cb.h"
+
+u32 twice(u32 v) {
+    return v * 2;
+}
+
+u32 main() {
+    global.set_ucb(twice);
+
+    // A variable argument
+    u32 n <- 21;
+    u32 r <- twice(n);
+    if (r != 42) {
+        return 1;
+    }
+
+    // A literal argument
+    u32 s <- twice(5);
+    if (s != 10) {
+        return 2;
+    }
+
+    return 0;
+}

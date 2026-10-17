@@ -13,13 +13,39 @@
 // typedef takes the struct by value has a by-value parameter in C as well, so
 // a struct argument goes to it by value -- a literal as `(VPt){ ... }`, not
 // `&(VPt){ ... }`, and a variable as itself, not `&a`. The call reads the
-// typedef's answer, the one the signature is written from.
+// typedef's answer, the one the signature is written from. A call through an
+// ADR-029 `vhandler` value does not: `vhandler_fp` is built from the
+// declaration, so it takes a pointer and the argument goes by address.
 #include "lib/struct-literal-callback-types.h"
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    return (uint32_t)(a + (uint32_t)b);
+}
+
 uint32_t vhandler(const VPt p) {
     return p.x + p.y;
+}
+
+uint32_t other(const VPt& p) {
+    return p.x * p.y;
+}
+
+uint32_t fire(vhandler_fp cb) {
+    const VPt a = { .x = 3U, .y = 4U };
+    const uint32_t byVariable = cb(a);
+    const uint32_t byLiteral = cb((VPt){ .x = 5U, .y = 6U });
+    return cnx_clamp_add_u32(byVariable, byLiteral);
 }
 
 int main(void) {
@@ -32,6 +58,10 @@ int main(void) {
     const uint32_t v = vhandler(a);
     if (v != 30) {
         return 2U;
+    }
+    const uint32_t f = fire(other);
+    if (f != 42) {
+        return 3U;
     }
     return 0U;
 }

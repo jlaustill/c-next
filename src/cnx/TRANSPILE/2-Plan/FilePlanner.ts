@@ -1107,16 +1107,16 @@ class FilePlanner {
         site.op - head.opsConsumed
       ] ?? null;
     const input = this.state;
+    const callbackTypeFunction = CallArgumentPassing.callbackFunction(
+      step?.before?.typeName ?? null,
+      input,
+    );
     return CallArgumentPassing.of(
-      CallArgumentPassing.callbackFunction(
-        step?.before?.typeName ?? null,
-        input,
-      ) ??
-        step?.callee ??
-        null,
+      callbackTypeFunction ?? step?.callee ?? null,
       site.argument,
       input,
       this.queries,
+      callbackTypeFunction === undefined,
     );
   }
 

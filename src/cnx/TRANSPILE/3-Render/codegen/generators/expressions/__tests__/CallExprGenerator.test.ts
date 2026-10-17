@@ -55,7 +55,13 @@ function planArguments(
 ): readonly IPlannedCallArgument[] {
   return expressions.map((expression, index) => {
     // 2.2's decision, made the way `FilePlanner.planArguments` makes it
-    const passing = CallArgumentPassing.of(callee, index, input, orchestrator);
+    const passing = CallArgumentPassing.of(
+      callee,
+      index,
+      input,
+      orchestrator,
+      true,
+    );
     const base = passing.param?.baseType;
     return planArgument(
       orchestrator,
@@ -731,6 +737,68 @@ describe("CallExprGenerator", () => {
       );
 
       expect(result.code).toBe("doWork(&myVal)");
+    });
+
+    it("passes a struct a C callback typedef takes by value by value (#895)", () => {
+      const argExpressions = [createMockExpressionContext("pt")];
+      const sigs = new Map([
+        [
+          "vhandler",
+          {
+            name: "vhandler",
+            parameters: [
+              { name: "p", baseType: "VPt", isConst: true, isArray: false },
+            ],
+          },
+        ],
+      ]);
+      const input = createMockInput({ functionSignatures: sigs });
+      input.callbackTypedefTypeFor = () => "uint32_t (*)(VPt p)";
+      const orchestrator = createMockOrchestrator({
+        isCNextFunction: vi.fn(() => true),
+        isKnownStruct: vi.fn(() => true),
+        isFloatType: vi.fn(() => false),
+        isParameterPassByValue: vi.fn(() => false),
+      });
+
+      const result = generateFunctionCall(
+        "vhandler",
+        planArguments(orchestrator, argExpressions, "vhandler", input),
+        createMockState(),
+      );
+
+      expect(result.code).toBe("vhandler(pt)");
+    });
+
+    it("keeps a `mut` struct a C callback typedef takes by value by reference (#2146)", () => {
+      const argExpressions = [createMockExpressionContext("pt")];
+      const sigs = new Map([
+        [
+          "bump",
+          {
+            name: "bump",
+            parameters: [
+              { name: "p", baseType: "VPt", isConst: false, isArray: false },
+            ],
+          },
+        ],
+      ]);
+      const input = createMockInput({ functionSignatures: sigs });
+      input.callbackTypedefTypeFor = () => "void (*)(VPt p)";
+      const orchestrator = createMockOrchestrator({
+        isCNextFunction: vi.fn(() => true),
+        isKnownStruct: vi.fn(() => true),
+        isFloatType: vi.fn(() => false),
+        isParameterPassByValue: vi.fn(() => false),
+      });
+
+      const result = generateFunctionCall(
+        "bump",
+        planArguments(orchestrator, argExpressions, "bump", input),
+        createMockState(),
+      );
+
+      expect(result.code).toBe("bump(&pt)");
     });
 
     it("passes a read-only float by value (ADR-071 Q6)", () => {
