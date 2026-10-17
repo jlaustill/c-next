@@ -12,9 +12,9 @@
 
 C-Next currently enforces MISRA C:2012 compliance through a combination of:
 
-- **15 actively enforced rules**, each rejected at compile time rather than reported
-- **43+ rules by design** - language features (no pointers, no malloc) make violations impossible
-- Documented in `docs/misra-compliance.md`
+- **Enforced** rules, each rejected at compile time or by the check over generated C, rather than reported
+- **By Design** rules, which language features make impossible to violate
+- Both counted, rule by rule, in `docs/misra-compliance.md`, which also records the rules generated C still breaks
 
 Aviation software requires DO-178C certification. This ADR captures initial research on what transpiler-level support could look like.
 
