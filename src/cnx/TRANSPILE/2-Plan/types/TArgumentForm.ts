@@ -13,6 +13,8 @@ type TArgumentForm =
   /** An lvalue by address, a string's element cast to `cast*` (#246) */
   | { readonly kind: "lvalue"; readonly cast: string | null }
   /** A value, in C a `compoundLiteral` `&(T){value}` */
-  | { readonly kind: "rvalue"; readonly compoundLiteral: string | null };
+  | { readonly kind: "rvalue"; readonly compoundLiteral: string | null }
+  /** C: a struct literal, by the address of its own compound literal (#1530) */
+  | { readonly kind: "literal-address" };
 
 export default TArgumentForm;

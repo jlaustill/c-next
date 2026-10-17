@@ -1,0 +1,24 @@
+// test-execution
+// test-adr: 014
+// ADR-014 / ADR-006 (#1530): a struct literal passed to a C-Next function
+// declared in an included file reaches it by reference, as in the same file.
+// The callee's parameter comes from the symbol table rather than this file's
+// signatures, and only a read-only one takes `&(GeomPoint){ ... }` in C.
+
+#include "lib/struct-literal-geom.cnx"
+
+u32 main() {
+    // A literal argument to an included function
+    u32 v <- geomSum({ x: 1, y: 2 });
+    if (v != 3) {
+        return 1;
+    }
+
+    // A parenthesized literal argument to an included function
+    u32 p <- geomSum(({ x: 5, y: 6 }));
+    if (p != 11) {
+        return 2;
+    }
+
+    return 0;
+}

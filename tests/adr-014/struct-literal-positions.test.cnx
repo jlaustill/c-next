@@ -48,11 +48,9 @@ u32 main() {
         return 4;
     }
 
-    // A call argument is deliberately NOT exercised here. It types correctly
-    // -- the two error fixtures use it as a control -- but the argument is
-    // emitted by value against ADR-006's pointer parameter and the C does not
-    // compile. That is #1530, an emission defect rather than a typing one, and
-    // an execution fixture is exactly what would fail on it. Covered there.
+    // A call argument is exercised by its own execution fixture,
+    // `struct-literal-argument.test.cnx`: until #1530 it was emitted by value
+    // against ADR-006's pointer parameter and the C did not compile.
 
     // File-scope initializer.
     if (atFileScope.y != 2) {

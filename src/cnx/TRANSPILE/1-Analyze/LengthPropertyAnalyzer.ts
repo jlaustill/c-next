@@ -39,6 +39,7 @@
 import TYPE_WIDTH from "../../types/TYPE_WIDTH";
 import DeclarationParts from "../../utils/DeclarationParts";
 import ExpressionNodes from "../../utils/ExpressionNodes";
+import ExpressionShape from "../../utils/ExpressionShape";
 import StatementNodes from "../../utils/StatementNodes";
 import OperandTyper from "../../utils/OperandTyper";
 import LengthProperty from "../../utils/LengthProperty";
@@ -259,9 +260,11 @@ class LengthPropertyCheck {
 
   /** `"Hello"`, `(true)`, `"Hello"[0]`: a chain whose root is a literal */
   private static rootsAtLiteral(chain: TExpression): boolean {
-    let root = chain.kind === "postfix" ? chain.primary : chain;
-    while (root.kind === "parenthesized") root = root.expression;
-    return root.kind === "literal";
+    return (
+      ExpressionShape.unparenthesized(
+        chain.kind === "postfix" ? chain.primary : chain,
+      ).kind === "literal"
+    );
   }
 
   /** `args` is a parameter, not a declaration this pass records. */

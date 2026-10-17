@@ -101,10 +101,12 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
-4 linked fixtures with no derivable context:
+6 linked fixtures with no derivable context:
 
 - `adr-014/struct-inferred-every-position.test.cnx`
+- `adr-014/struct-literal-argument-included.test.cnx`
 - `adr-014/struct-literal-argument-transpile.test.cnx`
+- `adr-014/struct-literal-argument.test.cnx`
 - `adr-014/struct-literal-for-header.test.cnx`
 - `adr-014/struct-literal-positions.test.cnx`
 

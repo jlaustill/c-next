@@ -86,6 +86,17 @@ describe("ExpressionShape", () => {
     });
   });
 
+  describe("unparenthesized", () => {
+    it.each([
+      ["x", "identifier"],
+      ["(x)", "identifier"],
+      ["((1))", "literal"],
+      ["(a) + b", "binary"],
+    ])("%s -> %s", (source, kind) => {
+      expect(ExpressionShape.unparenthesized(lowered(source)).kind).toBe(kind);
+    });
+  });
+
   describe("headOf", () => {
     it.each([
       ["myVar", null, "myVar", 0],
