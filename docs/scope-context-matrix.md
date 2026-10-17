@@ -480,8 +480,9 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
-10 linked fixtures with no derivable context:
+11 linked fixtures with no derivable context:
 
+- `adr-071/c-callback-mut-match.test.cnx`
 - `adr-071/callback-initializer-wiring.test.cnx`
 - `adr-071/const-keyword-imported-error.test.cnx`
 - `adr-071/cpp-constructed-member.test.cnx`
