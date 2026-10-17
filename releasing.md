@@ -35,6 +35,7 @@ The VS Code extension is in a separate repo: [vscode-c-next](https://github.com/
 - [ ] `npm test` — all tests pass
 - [ ] `npm run analyze` — transpiled output compiles cleanly
 - [ ] `npm run typecheck` — no TypeScript errors
+- [ ] `npm run test:gate` prints `All N checks passed` (`test:all` runs 4 of its checks, and `typecheck` does not cover `scripts/`)
 
 ## Release Workflow
 
