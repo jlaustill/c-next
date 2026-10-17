@@ -1,4 +1,8 @@
-17:24 error[E0879]: Function 'wrongWrite' signature does not match callback type 'WritingHandler': parameter 'r' is read-only, and the type's pointer is not const
+18:24 error[E0879]: Function 'wrongWrite' signature does not match callback type 'WritingHandler': parameter 'r' is read-only, and the type's pointer is not const
        help: A callback's parameter is `mut` exactly where its C type's pointer is not const (ADR-071).
-21:27 error[E0879]: Function 'wrongRead' signature does not match callback type 'ReadingHandler': parameter 'r' is `mut`, and the type's pointer is const
+22:27 error[E0879]: Function 'wrongRead' signature does not match callback type 'ReadingHandler': parameter 'r' is `mut`, and the type's pointer is const
+       help: A callback's parameter is `mut` exactly where its C type's pointer is not const (ADR-071).
+34:25 error[E0879]: Function 'wrongLog' signature does not match callback type 'LogHandler': parameter 'msg' is read-only, and the type's pointer is not const
+       help: A callback's parameter is `mut` exactly where its C type's pointer is not const (ADR-071).
+38:34 error[E0879]: Function 'wrongConstLog' signature does not match callback type 'ConstLogHandler': parameter 'msg' is `mut`, and the type's pointer is const
        help: A callback's parameter is `mut` exactly where its C type's pointer is not const (ADR-071).
