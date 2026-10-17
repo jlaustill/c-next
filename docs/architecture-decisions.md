@@ -46,6 +46,7 @@ v2 (so "Research (v2 Roadmap)" holds `1xx` ADRs).
 | [ADR-057](decisions/adr-057-implicit-scope-resolution.md)  | Implicit Scope Resolution  | Bare identifiers resolve local -> scope -> global                                |
 | [ADR-058](decisions/adr-058-explicit-length-properties.md) | Explicit Length Properties | `.type_bit_length`/`.type_byte_length`/`.type_element_count`/`.value_char_count` |
 | [ADR-067](decisions/adr-067-all-paths-return.md)           | All-Paths-Return           | Reject non-void functions that can fall off the end (E0704)                      |
+| [ADR-070](decisions/adr-070-return-value-use.md)           | Return-Value Use           | Reject discarded non-void returns (MISRA 17.7, E0708)                            |
 | [ADR-071](decisions/adr-071-read-only-by-default.md)       | Read-Only by Default       | Every binding read-only unless declared `mut`                                    |
 
 ## Accepted
@@ -54,7 +55,6 @@ v2 (so "Research (v2 Roadmap)" holds `1xx` ADRs).
 | --------------------------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------- |
 | [ADR-051](decisions/adr-051-division-by-zero.md)                | Division by Zero      | Compile-time and runtime division-by-zero detection                                |
 | [ADR-052](decisions/adr-052-safe-numeric-literal-generation.md) | Safe Numeric Literals | `type_MIN`/`type_MAX` constants + safe hex conversion                              |
-| [ADR-070](decisions/adr-070-return-value-use.md)                | Return-Value Use      | Reject discarded non-void returns (MISRA 17.7, E0708)                              |
 | [ADR-063](decisions/adr-063-identifier-syntax.md)               | Identifier Syntax     | No trailing/consecutive `_`; `__` reserved as the qualified-name separator (E0201) |
 | [ADR-061](decisions/adr-061-c-library-interop.md)               | C Library Interop     | C is the escape hatch: unsafe C stays in a `.h`/`.c` boundary layer                |
 
