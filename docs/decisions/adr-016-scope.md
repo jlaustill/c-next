@@ -423,7 +423,7 @@ u32 x <- global.count;           // E0431: nothing at file level shadows count
 #### Example
 
 ```cnx
-const u8 defaultValue <- 3;           // Global
+u8 defaultValue <- 3; // Global
 
 register GPIO7 @ 0x42004000 {
     DR_SET: u32 wo @ 0x84,
@@ -436,22 +436,22 @@ scope Motor {
         STALLED
     }
 
-    const u8 defaultValue <- 1;       // Scope member (shadows global)
+    u8 defaultValue <- 1; // Scope member (shadows global)
 
-    this.State current <- this.State.IDLE;
+    mut this.State current <- this.State.IDLE;
 
     u8 start() {
-        u8 localVar <- 5;             // Local - bare identifier OK
+        u8 localVar <- 5; // Local - bare identifier OK
 
         this.current <- this.State.RUNNING;
 
-        return localVar               // Local - bare
-             + this.defaultValue      // Scope member - MUST use this.
-             + global.defaultValue;   // Global - MUST use global.
+        return localVar + // Local - bare
+            this.defaultValue + // Scope member - MUST use this.
+            global.defaultValue; // Global - MUST use global.
     }
 
     void setPin() {
-        global.GPIO7.DR_SET[3] <- true;  // Global register - MUST use global.
+        global.GPIO7.DR_SET[3] <- true; // Global register - MUST use global.
     }
 }
 ```
@@ -488,10 +488,13 @@ The `this.` prefix also works in type position for scoped types:
 
 ```cnx
 scope Motor {
-    public enum State { IDLE, RUNNING }
+    public enum State {
+        IDLE,
+        RUNNING
+    }
 
     void example() {
-        const this.State currentState <- this.State.IDLE;  // Type is Motor__State
+        this.State currentState <- this.State.IDLE; // Type is Motor__State
     }
 }
 ```
@@ -509,10 +512,10 @@ What ADR-016 rejected, and ADR-057 now accepts:
 
 ```cnx
 scope Motor {
-    const u8 value <- 1;
+    u8 value <- 1;
 
     void ok() {
-        value;           // resolves to Motor.value  (was: ERROR)
+        value; // resolves to Motor.value  (was: ERROR)
     }
 }
 ```
@@ -787,7 +790,7 @@ declared type that holds its settled value:
 
 A private const with no such value -- a string, or one whose initializer is
 not constant -- is emitted as a `static const` object and named where it is
-used: `const string<8> NAME <- "abc";` in `scope S` is
+used: `string<8> NAME <- "abc";` in `scope S` is
 `static const char S__NAME[9] = "abc";`.
 
 A bool or enum const has a value as its literal or member does, so it also

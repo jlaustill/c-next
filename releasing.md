@@ -14,7 +14,7 @@ checklist; this document carries the reasoning behind each step. See
 
 - [ ] CHANGELOG.md has entry for new version with date
 - [ ] ADR files have correct status (Accepted → Implemented when code is complete)
-- [ ] README.md ADR table matches ADR file statuses
+- [ ] `docs/architecture-decisions.md` ADR table matches ADR file statuses
 - [ ] `docs/learn-cnext-in-y-minutes.md` reflects new features (if applicable)
 
 ### 2. VS Code Extension (if grammar changed)
@@ -35,6 +35,7 @@ The VS Code extension is in a separate repo: [vscode-c-next](https://github.com/
 - [ ] `npm test` — all tests pass
 - [ ] `npm run analyze` — transpiled output compiles cleanly
 - [ ] `npm run typecheck` — no TypeScript errors
+- [ ] `npm run test:gate` prints `All N checks passed` (`test:all` runs 4 of its checks, and `typecheck` does not cover `scripts/`)
 
 ## Release Workflow
 

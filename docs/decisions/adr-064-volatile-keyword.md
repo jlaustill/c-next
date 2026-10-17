@@ -4,7 +4,7 @@
 > v1-gating work. See [`README.md`](README.md) for the numbering rule and the full
 > mapping table.
 
-**Status:** Implemented
+**Status:** Accepted (was Implemented; it declares no test matrix yet, which #1406 tracks. Owner ruling on #1933, 2026-10-17)
 **Date:** 2026-01-10
 **Accepted:** 2026-01-10
 **Implemented:** 2026-01-10
@@ -39,8 +39,8 @@ Without marking these variables as `volatile`, the compiler may:
 Consider a busy-wait delay loop:
 
 ```cnx
-void delay_ms(const u32 ms) {
-    u32 count <- ms * 2000;
+void delay_ms(u32 ms) {
+    mut u32 count <- ms * 2000;
     while (count > 0) {
         count -<- 1;
     }
@@ -219,8 +219,8 @@ generated artifact could no longer tell which one the author meant.
 ### Delay Loop (Non-ISR Case)
 
 ```cnx
-void delay_ms(const u32 ms) {
-    volatile u32 i <- 0;
+void delay_ms(u32 ms) {
+    volatile mut u32 i <- 0;
     volatile u32 count <- ms * 2000;
 
     while (i < count) {
@@ -326,10 +326,10 @@ Ask: **"Can this variable change outside normal program flow?"**
 
 ```cnx
 // WRONG: Not ISR-safe!
-volatile u32 counter <- 0;
+volatile mut u32 counter <- 0;
 
 void ISR_Handler() {
-    counter +<- 1;  // Read-modify-write race!
+    counter +<- 1; // Read-modify-write race!
 }
 ```
 
@@ -337,10 +337,10 @@ void ISR_Handler() {
 
 ```cnx
 // CORRECT: ISR-safe
-atomic u32 counter <- 0;
+atomic mut u32 counter <- 0;
 
 void ISR_Handler() {
-    counter +<- 1;  // Atomic RMW operation
+    counter +<- 1; // Atomic RMW operation
 }
 ```
 

@@ -169,11 +169,11 @@ Tests that verify code transpiles and compiles correctly. **NO** result validati
 // Test all operations (NO test-execution comment)
 // Note: No // test-execution marker
 
-f32 result;
+mut f32 result;
 
 void test_operations() {
     f32 a <- 10.5;
-    result <- a + 5.0;  // Just assign, no validation
+    result <- a + 5.0; // Just assign, no validation
     result <- a * 2.0;
 }
 
@@ -194,7 +194,7 @@ Tests marked with `// test-execution` that **execute and validate results**. The
 
 u32 main() {
     // Perform operation
-    u64 result <- 1000 + 500;
+    mut u64 result <- 1000 + 500;
 
     // ALWAYS validate result
     if (result != 1500) { // Return error code on failure
@@ -209,7 +209,7 @@ u32 main() {
 
     // ... more tests with incrementing error codes ...
 
-    return 0;  // Success - ALL validations passed
+    return 0; // Success - ALL validations passed
 }
 ```
 
@@ -256,7 +256,6 @@ u32 main() {
 ### C-Next Test Gotchas
 
 - **String character indexing**: Avoid `myString[0] != 'H'` — transpiler incorrectly generates `strcmp()`. Use `u8` arrays for character-level access.
-- **Const as array size with initializer**: `u32 arr[CONST_SIZE] <- [1,2,3]` fails because C treats `const` as runtime variable (VLA). Use literal sizes with initializers.
 
 ### Test Framework Internals
 

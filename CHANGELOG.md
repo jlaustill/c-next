@@ -7,7 +7,78 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-17
+
+v0.4.0, not v0.3.2: ADR-071 makes an existing program fail to compile wherever it
+writes a variable without declaring it `mut`, so every project needs edits (owner
+ruling on #1933, 2026-10-17).
+
+### Added
+
+- **`mut` (ADR-071, Issues #2099, #2103).** A binding that is written is declared
+  `mut`: `mut u32 counter <- 0;`, `void bump(mut u32 v)`, `for (mut u32 i <- 0; ...)`.
+  It applies to parameters, locals, `for` variables, globals and scope members. A
+  read-only binding is generated with C's `const`, and a parameter's C signature now
+  follows its declaration, not what its body happens to do.
+
+- **Twelve length properties (ADR-058, Issue #1975).** A length now says which kind it
+  is: the **value** (what it holds now), the **type** (its declared width) or the
+  **memory** (C's `sizeof`, answered by the C compiler). Each comes in bits, bytes,
+  characters and elements, e.g. `n.value_bit_length`, `s.value_char_count`,
+  `Cfg.type_byte_length`, `Cfg.memory_byte_length`, `s.memory_char_count`. Also fixes
+  #1867, #2076 and #2078.
+
+- **A struct field can carry its own `clamp`/`wrap` modifier** (ADR-044, Issues #1411,
+  #1887): `struct Reading { u8 level; wrap u8 checksum; }`. The default is `clamp`, and
+  an array element takes its array's modifier.
+
+- **A case label may be written `this.X` or `global.X`**, including a member chain such
+  as `this.State.IDLE` (ADR-016, Issues #1629, #2075).
+
 ### Changed
+
+- **Every binding is read-only unless declared `mut`** (ADR-071, Issue #2103). This is
+  a **breaking change** for every existing project: a write to a binding not declared
+  `mut` is new error **E0900**. That covers an assignment to it or through it, a
+  `safe_div`/`safe_mod` output, and passing it to a `mut` parameter or to a C/C++
+  pointer or array parameter that is not `const`. 2284 of the corpus's 8477 bindings
+  needed `mut`. The migration is to add `mut` to each binding E0900 names.
+  - `const` on a declaration is now error **E0898**, since every binding is already
+    read-only. Remove it. (534 bindings in the corpus declared it.)
+  - A `mut` binding nothing writes is error **E0899**. A parameter of a callback-type
+    function, a global and a public scope member are exempt.
+  - E0877 (assignment to a const) and E0878 (const passed to a non-const parameter)
+    are retired into E0900.
+
+- **C-Next has no `sizeof`** (ADR-058, ADR-023 stays Rejected, Issue #1975). This is a
+  **breaking change**: `sizeof(...)` is error **E0603**, and `.bit_length`,
+  `.byte_length`, `.char_count` and `.element_count` are removed (**E0886**, whose help
+  names the replacement). E0601 and E0602 are retired.
+
+- **An `if`, `else`, `while` or `for` body must be a braced block** (MISRA C:2012
+  Rule 15.6, Issues #1090, #1795). This is a **breaking change**: an unbraced body is
+  error **E0716**. `else if` is the one unbraced `else` allowed. The migration is to
+  wrap each body in `{ }`.
+
+- **A struct declared without an initializer gets its default, not `{0}`** (ADR-029,
+  ADR-017, Issues #1283, #1565, #1570, #1970, #1971). A callback field is never null:
+  every declaration site, and `<Struct>_init()`, use one recursive default. Before
+  this, calling the callback of such a struct crashed (exit 139).
+
+- **A parameter that shadows a file-scope name is emitted as `<function>__<name>`**
+  (ADR-057, Issue #1290), as a local already was. `global.total` inside
+  `paramCase(u32 total)` returned the parameter.
+
+- **A variable is defined once its declaration closes** (ADR-030, Issue #1643), so
+  `u32 k <- k + 1` is E0427 `'k' is not defined`, and so is a global or scope member
+  used above its declaration. Both used to compile, the first reading an uninitialized
+  value.
+
+- **`ITranspilerConfig.outDir` is required** (Issue #2086), for anyone calling the
+  library. `outDir: ""` and `headerOutDir: ""` mean the current working directory, and
+  a missing `headerOutDir` falls back to `outDir` (#2104). A files-mode run with
+  `outDir: ""` used to write the `.h` and silently skip the `.c`. Directories are
+  created only when something is written into them.
 
 - **Only a lowercase `.cnx` or `.cnext` is C-Next source** (Issue #1833). A
   source spelled `Colors.CNX` (or any other case) is now **E0518** at the
@@ -16,6 +87,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in-place build overwrote the source and exited 0.
 
 ### Fixed
+
+- **A string value lands in no scalar** (ADR-024, Issue #1739). `u32 g <- "hello";`,
+  `take("arg")` and `return "r";` into a non-string target are error **E0914**. A
+  private scope const is inlined as its settled value, not re-read from its source
+  text: `return M;` with `const u32 M <- N * 2;` emitted `N*2`, which C bound to the
+  file-scope `N`.
+
+- **Case labels are checked and bound once** (ADR-016, Issues #1629, #2072, #2075,
+  #2108). `case NOPE` emitted an undeclared C name at exit 0, and is now E0427. A label
+  that is not a constant (a variable, a function, a struct or bitmap field, a string
+  const) is new error **E0717**. `case this.X` outside a scope is E0431, and
+  `case global.HDR_K` for a header macro is emitted `case HDR_K:`.
+
+- **A parenthesized comparison is a comparison** (Issue #1195):
+  `if ((n < 5) && (n > 1))` no longer fails E0701.
+
+- **E0800/E0802 see a `this.`, `global.` or `Scope.`-qualified zero const** (ADR-051,
+  Issue #1268). `n / this.ZERO` emitted `n / 0` at exit 0.
+
+- **Compound assignment to a struct field or array element clamps** (ADR-044, Issues
+  #1411, #1887). `p.x <- p.x + 10` on a `u8` at 250 wrapped to 4. An index with a side
+  effect is evaluated once.
+
+- **No shell parses a compiler name** (Issue #1827). A compiler named in
+  `compile_commands.json` or `CNEXT_CROSS_COMPILER`, such as `gcc;touch x;`, ran
+  arbitrary commands through `/bin/sh`. Every toolchain process now starts from an
+  argument array.
+
+- **The library's `parseWithSymbols` settles symbols the way the CLI does** (Issue
+  #2036): a const-sized array (`u8[N] buffer`) reported dimension `0`.
+
+- **A shadowing local's name and its `.char_count` cache agree** (Issues #1946, #1650,
+  #1953), and a block's rename ends with the block.
 
 - **Compound division and modulo by a compile-time zero are errors** (ADR-051,
   Issues #1770, #1796). `x /<- 0` is E0800 and `x %<- ZERO` is E0802, as
@@ -1486,7 +1590,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 38 legacy ESLint errors (non-blocking, tracked for future cleanup)
 
-[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/jlaustill/c-next/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/jlaustill/c-next/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/jlaustill/c-next/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/jlaustill/c-next/compare/v0.2.18...v0.3.0
 [0.2.18]: https://github.com/jlaustill/c-next/compare/v0.2.17...v0.2.18

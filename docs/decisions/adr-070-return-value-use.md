@@ -4,7 +4,7 @@
 > v1-gating work. See [`README.md`](README.md) for the numbering rule and the full
 > mapping table.
 
-**Status:** Accepted
+**Status:** Implemented (owner confirmed on #1933, 2026-10-17)
 **Date:** 2026-06-27 (accepted 2026-06-28)
 **Decision Makers:** Language Design Team
 **Related ADRs:** ADR-051 (Safe Division), ADR-066 (DO-178C Compliance), ADR-067 (All-Paths-Return), ADR-068 (Forever Loops), ADR-069 (Dead-Code / Reachability)
@@ -149,7 +149,7 @@ Components and constraints:
   the call is what suppresses the error.
 - **Layer constraint:** `logic/analysis/` must not import from `output/`.
 
-### Proposed error codes (not yet allocated)
+### Error codes (allocated: E0708 is in `docs/error-codes.md`)
 
 | Code  | Meaning                                     |
 | ----- | ------------------------------------------- |

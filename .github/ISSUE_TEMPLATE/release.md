@@ -18,7 +18,7 @@ Full detail for each step lives in [`releasing.md`](../../releasing.md).
 - [ ] `CHANGELOG.md` has an entry for this version with its date, and
       `[Unreleased]` is emptied into it
 - [ ] ADR statuses are correct (Accepted → Implemented where code is complete)
-- [ ] `README.md` ADR table matches the ADR file statuses
+- [ ] `docs/architecture-decisions.md` ADR table matches the ADR file statuses
 - [ ] `docs/learn-cnext-in-y-minutes.md` reflects any syntax change
 
 ## 2. Release band gate

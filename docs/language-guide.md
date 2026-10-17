@@ -87,14 +87,14 @@ Integers are indexable as bit arrays:
 
 ```cnx
 mut u8 flags <- 0;
-flags[3] <- true;           // Set bit 3
-flags[0, 3] <- 5;           // Set 3 bits starting at bit 0
-bool isSet <- flags[3];     // Read bit 3
+flags[3] <- true; // Set bit 3
+flags[0, 3] <- 5; // Set 3 bits starting at bit 0
+bool isSet <- flags[3]; // Read bit 3
 
-// .length property
+// Length properties (ADR-058)
 u8[16] bufArray;
-bufArray.length;            // 16 (array element count)
-flags.length;               // 8 (bit width of u8)
+bufArray.type_element_count; // 16 (array element count)
+flags.type_bit_length; // 8 (bit width of u8)
 ```
 
 Write-only registers generate optimized code:
@@ -342,24 +342,24 @@ u32 result <- (a > 0 && b > 0) ? a : b;
 Safe, statically-allocated strings with compile-time capacity checking:
 
 ```cnx
-string<64> name <- "Hello";           // 64-char capacity, transpiles to char[65]
-string<128> message;                   // Empty string, initialized to ""
-string VERSION <- "1.0.0";             // Read-only: auto-sized to string<5>
+string<64> name <- "Hello"; // 64-char capacity, transpiles to char[65]
+string<128> message; // Empty string, initialized to ""
+string VERSION <- "1.0.0"; // Read-only: auto-sized to string<5>
 
 // Properties
-u32 len <- name.length;                // Runtime: strlen(name)
-u32 cap <- name.capacity;              // Compile-time: 64
+u32 len <- name.value_char_count; // Runtime: strlen(name)
+u32 cap <- name.capacity; // Compile-time: 64
 
 // Comparison - uses strcmp
-if (name = "Hello") { }                // strcmp(name, "Hello") == 0
+if (name = "Hello") {} // strcmp(name, "Hello") == 0
 
 // Concatenation with capacity validation
 string<32> first <- "Hello";
 string<32> second <- " World";
-string<64> result <- first + second;   // OK: 64 >= 32 + 32
+string<64> result <- first + second; // OK: 64 >= 32 + 32
 
 // Substring extraction with bounds checking
-string<5> greeting <- name[0, 5];      // First 5 chars
+string<5> greeting <- name[0, 5]; // First 5 chars
 ```
 
 All operations are validated at compile time:

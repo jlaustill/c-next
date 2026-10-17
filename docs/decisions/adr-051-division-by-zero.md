@@ -168,13 +168,13 @@ u32 result <- 10 / 0;
 // Error: Division by zero
 
 // Case 2: Const variable - COMPILE ERROR
-const u32 DIVISOR <- 0;
+u32 DIVISOR <- 0;
 u32 result <- 10 / DIVISOR;
 // Error: Division by zero
 
 // Case 3: Runtime variable - ALLOWED (no check)
 u32 divisor <- getUserInput();
-u32 result <- 10 / divisor;  // Undefined if divisor is 0
+u32 result <- 10 / divisor; // Undefined if divisor is 0
 ```
 
 **Implementation:**
@@ -360,11 +360,11 @@ u32 result <- 10 / 0;
 u32 remainder <- 10 % 0;
 
 // ❌ COMPILE ERROR (const evaluates to zero)
-const u32 ZERO <- 0;
+u32 ZERO <- 0;
 u32 result <- 10 / ZERO;
 
 // ❌ COMPILE ERROR (const expression)
-const u32 VALUE <- 5 - 5;
+u32 VALUE <- 5 - 5;
 u32 result <- 10 / VALUE;
 ```
 
@@ -504,11 +504,11 @@ u32 result <- 10 / 0;
 // Expected: Error: Division by zero
 ```
 
-**File:** `tests/arithmetic/division-by-zero-const.test.cnx`
+**File:** `tests/arithmetic/division-by-const-zero.test.cnx`
 
 ```cnx
 // Const zero
-const u32 ZERO <- 0;
+u32 ZERO <- 0;
 u32 result <- 10 / ZERO;
 // Expected: Error: Division by zero
 ```
@@ -525,7 +525,7 @@ u32 remainder <- 10 % 0;
 
 ```cnx
 // Const expression evaluating to zero
-const u32 VALUE <- 5 - 5;
+u32 VALUE <- 5 - 5;
 u32 result <- 10 / VALUE;
 // Expected: Error: Division by zero
 ```
@@ -545,8 +545,8 @@ void testRuntimeDivision(u32 divisor) {
 
 ```cnx
 // Non-zero const
-const u32 TEN <- 10;
-u32 result <- 100 / TEN;  // Valid
+u32 TEN <- 10;
+u32 result <- 100 / TEN; // Valid
 ```
 
 ### 3. safe_div() Built-in Tests
@@ -555,7 +555,7 @@ u32 result <- 100 / TEN;  // Valid
 
 ```cnx
 void testSafeDivBasic() {
-    u32 result;
+    mut u32 result;
 
     // Division succeeds
     bool err1 <- safe_div(result, 100, 10, 0);
@@ -571,7 +571,7 @@ void testSafeDivBasic() {
 
 ```cnx
 void testSafeDivPreserve() {
-    u32 speed <- 100;
+    mut u32 speed <- 100;
 
     // Preserve current value on error
     bool err <- safe_div(speed, 500, 0, speed);
@@ -583,7 +583,7 @@ void testSafeDivPreserve() {
 
 ```cnx
 void testSafeModBasic() {
-    u32 result;
+    mut u32 result;
 
     // Modulo succeeds
     bool err1 <- safe_mod(result, 10, 3, 0);
@@ -600,14 +600,14 @@ void testSafeModBasic() {
 ```cnx
 void testSafeDivAllTypes() {
     // Test all integer types
-    u8 r8;
-    u16 r16;
-    u32 r32;
-    u64 r64;
-    i8 ri8;
-    i16 ri16;
-    i32 ri32;
-    i64 ri64;
+    mut u8 r8;
+    mut u16 r16;
+    mut u32 r32;
+    mut u64 r64;
+    mut i8 ri8;
+    mut i16 ri16;
+    mut i32 ri32;
+    mut i64 ri64;
 
     bool e1 <- safe_div(r8, 100, 0, 0);
     bool e2 <- safe_div(r16, 1000, 0, 0);
@@ -723,13 +723,13 @@ its const (#1268).
 **File:** `tests/bugs/issue-1770-compound-division-zero/compound-division-zero.test.cnx`
 
 ```cnx
-const u32 ZERO <- 0;
+u32 ZERO <- 0;
 
 u32 x <- 10;
-x /<- 0;      // Error: Division by zero (E0800)
-x %<- ZERO;   // Error: Modulo by zero (E0802)
-x /<- 2;      // OK
-for (x /<- 0; x < 5; x %<- ZERO) { }   // E0800, E0802
+x /<- 0; // Error: Division by zero (E0800)
+x %<- ZERO; // Error: Modulo by zero (E0802)
+x /<- 2; // OK
+for (x /<- 0; x < 5; x %<- ZERO) {} // E0800, E0802
 ```
 
 ## Diagnostics
@@ -836,7 +836,7 @@ Add to `coverage.md`:
 | Feature                          | Status | Test File                                      |
 | -------------------------------- | ------ | ---------------------------------------------- |
 | Division by zero error (literal) | [x]    | `arithmetic/division-by-zero-literal.test.cnx` |
-| Division by zero error (const)   | [x]    | `arithmetic/division-by-zero-const.test.cnx`   |
+| Division by zero error (const)   | [x]    | `arithmetic/division-by-const-zero.test.cnx`   |
 | Modulo by zero error             | [x]    | `arithmetic/modulo-by-zero-literal.test.cnx`   |
 | safe_div() built-in              | [x]    | `arithmetic/safe-div-basic.test.cnx`           |
 | safe_mod() built-in              | [x]    | `arithmetic/safe-mod-basic.test.cnx`           |
@@ -845,7 +845,11 @@ Add to `coverage.md`:
 
 ## Implementation Status
 
-**Current:** Not implemented (transpiles division directly to C)
+**Current (measured 2026-10-17 at `1d5d36ed5`, #1933):** the table above is implemented.
+A zero literal, or a read-only binding whose value is zero, as divisor is rejected at compile time (E0800, and E0802 for `%`), and
+`safe_div()`/`safe_mod()` are built in. Two divisors that are zero at compile time are not
+caught yet: a constant expression such as `x / (1 - 1)` (#1879) and a header macro such as
+`#define ZM 0` (#2071).
 
 **Target:** v1.0 release
 

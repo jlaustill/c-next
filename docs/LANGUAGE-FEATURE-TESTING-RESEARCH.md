@@ -472,8 +472,8 @@ Never Visited Parser Rules:
 /* test-execution */
 
 u16 main() {
-    u16 sum <- 0;
-    for (u16 i <- 0; i < 100; i +<- 1) {
+    mut u16 sum <- 0;
+    for (mut u16 i <- 0; i < 100; i +<- 1) {
         sum +<- i;
     }
     return (sum = 4950) ? 0 : 1;

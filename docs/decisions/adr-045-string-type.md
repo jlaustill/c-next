@@ -149,13 +149,13 @@ All string operations are checked at **compile time** against capacity:
 
 ```cnx
 // With initializer - capacity must fit the literal
-string<13> greeting <- "Hello, World!";  // 13 chars, transpiles to char[14]
+string<13> greeting <- "Hello, World!"; // 13 chars, transpiles to char[14]
 
 // Without initializer (empty string)
-string<256> buffer;    // Initialized to "" (first byte = '\0')
+string<256> buffer; // Initialized to "" (first byte = '\0')
 
-// Const string with automatic sizing (no capacity needed!)
-const string VERSION <- "1.0.0";  // Automatically string<5>, transpiles to char[6]
+// Read-only string with automatic sizing (no capacity needed!)
+string VERSION <- "1.0.0"; // Automatically string<5>, transpiles to char[6]
 ```
 
 **Generated C:**
@@ -166,14 +166,14 @@ char buffer[257] = "";
 const char VERSION[6] = "1.0.0";
 ```
 
-### Const String Type Inference
+### Read-only String Type Inference
 
-For `const string` declarations with a literal initializer, the capacity is **automatically calculated**:
+For a read-only `string` declaration (no `mut`, ADR-071) with a literal initializer, the capacity is **automatically calculated**:
 
 ```cnx
-const string VERSION <- "1.0.0";      // Inferred as string<5>
-const string APP_NAME <- "MyApp";     // Inferred as string<5>
-const string LONG_MSG <- "Hello!";    // Inferred as string<6>
+string VERSION <- "1.0.0"; // Inferred as string<5>
+string APP_NAME <- "MyApp"; // Inferred as string<5>
+string LONG_MSG <- "Hello!"; // Inferred as string<6>
 ```
 
 This eliminates redundancy - you don't need to count characters for constants.
@@ -365,15 +365,15 @@ The destination's remaining bytes are initialized to ASCII zero (null bytes) for
 Self-referential concatenation is a **compile error** because capacity math fails:
 
 ```cnx
-string<64> message <- "Hello";
-message <- message + " World";  // ERROR: 64 < 64 + 6 (capacity check fails)
+mut string<64> message <- "Hello";
+message <- message + " World"; // ERROR: 64 < 64 + 6 (capacity check fails)
 ```
 
 To append to a string, use explicit substring to manage bounds:
 
 ```cnx
-string<64> message <- "Hello";
-message <- message[0, 58] + " World";  // OK: 64 >= 58 + 6
+mut string<64> message <- "Hello";
+message <- message[0, 58] + " World"; // OK: 64 >= 58 + 6
 ```
 
 This forces the developer to consciously manage string bounds rather than risk silent overflow.
@@ -444,10 +444,10 @@ string<64> message <- "Hello";
 printf("%s\n", message);        // Works: string<N> is a char[]
 ```
 
-### Const Qualifier (ADR-013)
+### Read-only by Default (ADR-071, which supersedes ADR-013)
 
 ```cnx
-const string VERSION <- "1.0.0";   // Immutable, auto-sized
+string VERSION <- "1.0.0"; // Immutable, auto-sized
 ```
 
 Transpiles to:
@@ -480,7 +480,7 @@ char names[10][33];  // 32 + 1 for null terminator each
 4. **Familiar syntax** - Generic-style `string<N>` is intuitive
 5. **C compatible** - Just a `char[]` underneath
 6. **Ergonomic** - `.capacity`, and ADR-058's length properties
-7. **Const inference** - No need to count chars for constants
+7. **Read-only inference** - No need to count chars for constants
 8. **Optional** - Can still use `u8[]` if preferred
 
 ### Disadvantages
@@ -522,7 +522,7 @@ Add `string` as a type with optional generic capacity:
 type
     : primitiveType
     | 'string' '<' INTEGER '>'    // Sized string
-    | 'string'                    // For const with inference
+    | 'string'                    // Read-only, capacity inferred
     | customType
     ;
 ```
@@ -531,7 +531,7 @@ type
 
 1. Detect `string<N>` type declarations
 2. Generate `char name[N+1]` for declarations (add 1 for null)
-3. For `const string` with literal, infer N from literal length
+3. For a read-only `string` with a literal, infer N from literal length
 4. Generate `strncpy()` + null termination for assignments
 5. Generate `strlen()` for the character count (ADR-058)
 6. Generate compile-time constant N for `.capacity`
@@ -554,7 +554,7 @@ type
 3. Literal overflow is a **compile error**
 4. Truncation on assignment is a **compile error**
 5. Concatenation capacity mismatch is a **compile error**
-6. `const string X <- "lit"` auto-sizes to literal length
+6. A read-only `string X <- "lit"` auto-sizes to literal length
 7. Substring `s[start, len]` extracts substring safely
 8. Strings work with C standard library functions
 9. No heap allocation ever

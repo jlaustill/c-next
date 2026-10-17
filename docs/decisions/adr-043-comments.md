@@ -2,7 +2,7 @@
 
 ## Status
 
-**Implemented**
+**Accepted** (was Implemented; it declares no test matrix yet, which #1406 tracks. Owner ruling on #1933, 2026-10-17)
 
 ## Context
 

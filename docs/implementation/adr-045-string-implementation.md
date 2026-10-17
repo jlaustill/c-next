@@ -177,13 +177,13 @@ if (memberName === "capacity") {
 
 ---
 
-## Phase 3: Const Inference
+## Phase 3: Read-only Inference
 
-**Goal:** `const string X <- "literal"` auto-sizes
+**Goal:** a read-only `string X <- "literal"` (no `mut`, ADR-071) auto-sizes
 
 ### CodeGenerator Changes
 
-1. **Detect const string without capacity**:
+1. **Detect a read-only string without capacity**:
 
 ```typescript
 if (isConst && isStringType && !hasCapacity && hasLiteral) {
@@ -206,10 +206,10 @@ if (isConst && isStringType && !hasCapacity && !hasLiteral) {
 
 ### Tests
 
-| File                             | Description                           |
-| -------------------------------- | ------------------------------------- |
-| `string-const-inference.cnx`     | `const string VERSION <- "1.0.0"`     |
-| `string-error-const-no-init.cnx` | `const string X;` without initializer |
+| File                             | Description                               |
+| -------------------------------- | ----------------------------------------- |
+| `string-const-inference.cnx`     | `string VERSION <- "1.0.0"`               |
+| `string-error-const-no-init.cnx` | read-only `string X;` without initializer |
 
 ### Success Criteria
 
@@ -274,7 +274,7 @@ if (typeInfo?.isString && hasStartAndLength) {
 
 | File                                | Description           |
 | ----------------------------------- | --------------------- |
-| `string-compare.cnx`                | `a == b`, `a != b`    |
+| `string-compare.cnx`                | `a = b`, `a != b`     |
 | `string-concat.cnx`                 | `result <- a + b`     |
 | `string-substring.cnx`              | `sub <- s[0, 5]`      |
 | `string-error-concat-overflow.cnx`  | Capacity insufficient |
@@ -282,7 +282,7 @@ if (typeInfo?.isString && hasStartAndLength) {
 
 ### Success Criteria
 
-- [ ] `a == b` → `strcmp(a, b) == 0`
+- [ ] `a = b` → `strcmp(a, b) == 0`
 - [ ] `a != b` → `strcmp(a, b) != 0`
 - [ ] `a + b` with capacity validation
 - [ ] `s[0, 5]` substring extraction
@@ -340,10 +340,10 @@ uint32_t len = strlen(message);
 uint32_t cap = 64;
 ```
 
-### Const Inference
+### Read-Only by Default (ADR-071)
 
 ```cnx
-const string VERSION <- "1.0.0";
+string VERSION <- "1.0.0";
 ```
 
 →
@@ -355,7 +355,7 @@ const char VERSION[6] = "1.0.0";
 ### Comparison
 
 ```cnx
-if (a == b) { }
+if (a = b) {}
 ```
 
 →

@@ -4,7 +4,7 @@
 > v1-gating work. See [`README.md`](README.md) for the numbering rule and the full
 > mapping table.
 
-**Status:** Implemented
+**Status:** Accepted (was Implemented; it declares no test matrix yet, which #1406 tracks. Owner ruling on #1933, 2026-10-17)
 **Date:** 2026-06-25
 **Decision Makers:** Language Design Team
 **Related ADRs:** ADR-022 (Conditional Expressions), ADR-025 (Switch Statements), ADR-026 (Break and Continue), ADR-027 (Do-While), ADR-068 (Forever Loops — extends `definitelyReturns` with a divergence primitive), ADR-069 (Dead-Code / Reachability — consumes the dual of this ADR's `definitelyReturns` machinery)

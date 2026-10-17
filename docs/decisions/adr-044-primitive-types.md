@@ -373,10 +373,10 @@ compound assignment. These are equivalent:
 u8 a <- 250;
 u8 b <- 250;
 
-u8 viaCompound <- 250;
-viaCompound +<- b;    // 255
+mut u8 viaCompound <- 250;
+viaCompound +<- b; // 255
 
-u8 viaExpression <- a + b;    // 255 -- same helper, same result
+u8 viaExpression <- a + b; // 255 -- same helper, same result
 ```
 
 Both generate `cnx_clamp_add_u8(...)`. Between #238 and #1152 only the compound
@@ -409,10 +409,10 @@ clamp or wrap, the program is rejected.** The operand's modifier makes no differ
 compile time.
 
 ```cnx
-const u8 A <- 200;
+u8 A <- 200;
 
-u8[A + A] buf;              // ERROR: A + A overflows u8 (clamp would give 255, C would give 400)
-u8[(u16)A + (u16)A] wide;   // OK: 400, added at u16
+u8[A + A] buf; // ERROR: A + A overflows u8 (clamp would give 255, C would give 400)
+u8[(u16)A + (u16)A] wide; // OK: 400, added at u16
 ```
 
 A clamped size is a buffer smaller than its arithmetic says, and a wrapped one is smaller
@@ -443,9 +443,9 @@ The disasters (Ariane 5, Therac-25, Boeing 787) were all **wrap-around bugs**:
 When compiled with `--debug`, **all** arithmetic operations panic on overflow regardless of `clamp`/`wrap` keywords:
 
 ```cnx
-clamp u8 temp <- 255;
-temp <- temp + 1;    // Normal: clamps to 255
-                     // --debug: PANIC! Overflow detected
+mut clamp u8 temp <- 255;
+temp <- temp + 1; // Normal: clamps to 255
+// --debug: PANIC! Overflow detected
 ```
 
 This catches bugs during development before they matter in production.
@@ -454,16 +454,16 @@ This catches bugs during development before they matter in production.
 
 ```cnx
 // Safety-critical: exhaust gas temperature (clamp is explicit but matches default)
-clamp u16 egtTemp <- 0;
-egtTemp <- egtTemp + 100;  // If at 65535, stays at 65535
+mut clamp u16 egtTemp <- 0;
+egtTemp <- egtTemp + 100; // If at 65535, stays at 65535
 
 // Intentional wrap: CPU cycle counter for timing
-wrap u32 cycleCount <- 0;
-cycleCount <- cycleCount + 1;  // At 0xFFFFFFFF, wraps to 0
+mut wrap u32 cycleCount <- 0;
+cycleCount <- cycleCount + 1; // At 0xFFFFFFFF, wraps to 0
 
 // Default behavior (clamp): most variables
-u8 brightness <- 200;
-brightness <- brightness + 100;  // Clamps to 255, not 44
+mut u8 brightness <- 200;
+brightness <- brightness + 100; // Clamps to 255, not 44
 ```
 
 #### Generated C
@@ -589,9 +589,9 @@ On 8-bit platforms, 64-bit types may be emulated in software. CNX should:
 Bit width is known from the type:
 
 ```cnx
-u8 flags <- 0;
-flags[7] <- true;    // OK: bit 7 exists in u8
-flags[8] <- true;    // ERROR: u8 only has bits 0-7
+mut u8 flags <- 0;
+flags[7] <- true; // OK: bit 7 exists in u8
+flags[8] <- true; // ERROR: u8 only has bits 0-7
 ```
 
 ### Type Casting (ADR-024)

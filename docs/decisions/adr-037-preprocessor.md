@@ -77,22 +77,22 @@ C-Next enforces a **safety-first preprocessor policy**:
 
 ### Forbidden (Compile Errors)
 
-- `#define NAME value` — **Error E0502**: Must use `const` instead
+- `#define NAME value` — **Error E0502**: Must use a read-only binding instead (ADR-071)
 - `#define NAME(args) ...` — **Error E0501**: Must use inline functions
 
 This eliminates 5 of 7 classic macro bug classes while preserving useful conditional compilation.
 
 ### Bug Prevention Analysis
 
-| Bug                         | Solved? | How                         |
-| --------------------------- | ------- | --------------------------- |
-| 1. Operator Precedence      | ✅      | No value macros allowed     |
-| 2. Multiple Evaluation      | ✅      | No function macros allowed  |
-| 3. No Type Checking         | ✅      | `const` is type-checked     |
-| 4. **No Scope**             | ❌      | `#define FLAG` still global |
-| 5. Swallowing the Semicolon | ✅      | No statement macros         |
-| 6. Control Flow Distortion  | ✅      | No macro code blocks        |
-| 7. **Debugger Invisible**   | ❌      | Flags can't be inspected    |
+| Bug                         | Solved? | How                                 |
+| --------------------------- | ------- | ----------------------------------- |
+| 1. Operator Precedence      | ✅      | No value macros allowed             |
+| 2. Multiple Evaluation      | ✅      | No function macros allowed          |
+| 3. No Type Checking         | ✅      | A read-only binding is type-checked |
+| 4. **No Scope**             | ❌      | `#define FLAG` still global         |
+| 5. Swallowing the Semicolon | ✅      | No statement macros                 |
+| 6. Control Flow Distortion  | ✅      | No macro code blocks                |
+| 7. **Debugger Invisible**   | ❌      | Flags can't be inspected            |
 
 **Why the 2 unsolved bugs are acceptable:**
 
@@ -126,9 +126,9 @@ This eliminates 5 of 7 classic macro bug classes while preserving useful conditi
 // ERROR: #define with value
 #define BUFFER_SIZE 256  // E0502
 
-// CORRECT: Use const
-const u32 BUFFER_SIZE <- 256;
-const u8 VERSION[] <- "1.0.0";
+// CORRECT: Use a read-only binding (ADR-071)
+u32 BUFFER_SIZE <- 256;
+string VERSION <- "1.0.0";
 ```
 
 ### Function-Like Macros (Forbidden)
@@ -145,10 +145,10 @@ inline u32 max(u32 a, u32 b) {
 
 ## Error Codes
 
-| Code  | Message                                                                  |
-| ----- | ------------------------------------------------------------------------ |
-| E0501 | Function-like macro `NAME` is not allowed. Use inline functions instead. |
-| E0502 | `#define` with value `NAME` is not allowed. Use `const` instead.         |
+| Code  | Message                                                                                           |
+| ----- | ------------------------------------------------------------------------------------------------- |
+| E0501 | Function-like macro `NAME` is not allowed. Use inline functions instead.                          |
+| E0502 | `#define` with value `NAME` is not allowed. Use a read-only binding instead: `u32 NAME <- value;` |
 
 Both are reported at the directive's own line and column. Until #1322 they were
 reported at `1:0` with the real line appended to the message as `Line N`, so a

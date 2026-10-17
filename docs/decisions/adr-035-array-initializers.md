@@ -56,10 +56,10 @@ u8[100] buffer <- [0*];  // All 100 elements initialized to 0
 u8[] message <- "Hello";  // Includes null terminator
 ```
 
-### Const Lookup Tables
+### Read-only Lookup Tables
 
 ```cnx
-const u8[256] sinTable <- [
+u8[256] sinTable <- [
     0, 3, 6, 9, 12, 15, 18, 21,
     // ... more values
 ];
@@ -68,9 +68,12 @@ const u8[256] sinTable <- [
 ### Struct Array Initialization
 
 ```cnx
-struct Command { u8 code; u8 length; }
+struct Command {
+    u8 code;
+    u8 length;
+}
 
-const Command[] commands <- [
+Command[] commands <- [
     { code: 0x01, length: 4 },
     { code: 0x02, length: 8 },
     { code: 0x03, length: 2 },
