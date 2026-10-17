@@ -157,6 +157,14 @@ describe.skipIf(!gccAvailable)("TargetMatrix.modelProbeSource", () => {
     expect(compilesOnHost(TargetMatrix.modelProbeSource(host!))).toBe(true);
   });
 
+  it("fails for a host row that claims an interrupt mask (#1789)", () => {
+    expect(
+      compilesOnHost(
+        TargetMatrix.modelProbeSource({ ...host!, interrupt_mask: true }),
+      ),
+    ).toBe(false);
+  });
+
   it("fails for a host row that claims a 32-bit long", () => {
     expect(
       compilesOnHost(

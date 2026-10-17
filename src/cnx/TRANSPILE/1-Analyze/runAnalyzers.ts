@@ -368,7 +368,7 @@ function runAnalyzers(
     },
     {
       label:
-        "`return` inside a critical section, or one the target cannot mask (ADR-050, E0853, E0915)",
+        "`return` inside a critical section, or one the target cannot mask (ADR-050, E0853, E0916)",
       run: () =>
         new CriticalSectionAnalyzer(
           ResolvedTarget.of(context.program.target()),

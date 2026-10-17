@@ -64,13 +64,23 @@ function generateInnerAtomicOp(
 }
 
 /**
+ * The name a retry loop reads its value through. #1807: the value is
+ * evaluated once, before the loop, so a failed attempt does not evaluate a
+ * call in it again.
+ */
+const OPERAND = "__operand";
+
+/**
  * Generate LDREX/STREX retry loop for atomic RMW.
  * Uses ARM exclusive access instructions for lock-free atomics.
  *
+ * @param value - The value expression, evaluated once before the loop
+ * @param innerOp - The new value, computed from `__old` and `__operand`
  * @returns Object with code and effects
  */
 function generateLdrexStrexLoop(
   target: string,
+  value: string,
   innerOp: string,
   typeInfo: TTypeInfo,
   innerEffects: readonly TGeneratorEffect[],
@@ -80,15 +90,18 @@ function generateLdrexStrexLoop(
   const strex = STREX_MAP[typeInfo.baseType];
   const cType = TYPE_MAP[typeInfo.baseType];
 
-  // Generate LDREX/STREX retry loop
   // Uses do-while because we always need at least one attempt
-  const code = `do {
-    ${cType} __old = ${ldrex}(&${target});
-    ${cType} __new = ${innerOp};
-    if (${strex}(__new, &${target}) == 0) {
-        break;
-    }
-} while (1);`;
+  const code = `{
+    /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
+    ${cType} ${OPERAND} = ${value};
+    do {
+        ${cType} __old = ${ldrex}(&${target});
+        ${cType} __new = ${innerOp};
+        if (${strex}(__new, &${target}) == 0) {
+            break;
+        }
+    } while (1);
+}`;
 
   return { code, effects };
 }
@@ -97,15 +110,27 @@ function generateLdrexStrexLoop(
  * #1789: a compare-exchange retry loop, for a target with neither LDREX/STREX
  * nor interrupt masking. The generic builtins take any type the variable can
  * have, floats included, and `__old` is reloaded by a failed exchange.
+ *
+ * @param value - The value expression, evaluated once before the loop
+ * @param innerOp - The new value, computed from `__old` and `__operand`
+ * @param libatomic - The type is wider than the target's word (ADR-049
+ *   `word_size`), so GCC calls libatomic for it; the comment says so
  */
 function generateCompareExchangeLoop(
   target: string,
+  value: string,
   innerOp: string,
   typeInfo: TTypeInfo,
   innerEffects: readonly TGeneratorEffect[],
+  libatomic: boolean = false,
 ): IGeneratorOutput {
   const cType = TYPE_MAP[typeInfo.baseType];
+  const wide = libatomic
+    ? " The type is wider than the target's word, so the compiler calls libatomic's __atomic_*_N for it."
+    : "";
   const code = `{
+    /* ADR-049 / Issue #1789: atomic read-modify-write as a compare-exchange retry loop, for a target with neither LDREX/STREX nor an interrupt mask. The GNU __atomic builtins are a compiler extension (MISRA C:2012 Rule 1.2).${wide} The value is evaluated once, before the loop, so a failed exchange does not evaluate it again (Issue #1807). */
+    ${cType} ${OPERAND} = ${value};
     ${cType} __old;
     ${cType} __new;
     __atomic_load(&${target}, &__old, __ATOMIC_RELAXED);
@@ -171,8 +196,12 @@ function generateAtomicRMW(
 ): IGeneratorOutput {
   const baseType = typeInfo.baseType;
 
-  // Generate the inner operation (handles clamp/wrap)
-  const innerResult = generateInnerAtomicOp(cOp, value, typeInfo, clampOp);
+  if (form === "interrupt-mask") {
+    return generatePrimaskWrapper(target, cOp, value, typeInfo, clampOp);
+  }
+
+  // A retry loop reads the value once, through `__operand` (#1807)
+  const innerResult = generateInnerAtomicOp(cOp, OPERAND, typeInfo, clampOp);
 
   if (form === "ldrex-strex") {
     invariant(
@@ -181,20 +210,20 @@ function generateAtomicRMW(
     );
     return generateLdrexStrexLoop(
       target,
+      value,
       innerResult.code,
       typeInfo,
       innerResult.effects,
     );
-  } else if (form === "compare-exchange") {
-    return generateCompareExchangeLoop(
-      target,
-      innerResult.code,
-      typeInfo,
-      innerResult.effects,
-    );
-  } else {
-    return generatePrimaskWrapper(target, cOp, value, typeInfo, clampOp);
   }
+  return generateCompareExchangeLoop(
+    target,
+    value,
+    innerResult.code,
+    typeInfo,
+    innerResult.effects,
+    form === "compare-exchange-libatomic",
+  );
 }
 
 // Export all atomic generators

@@ -152,7 +152,7 @@ critical {
 > `#if`/`#elif` block: ARM uses GNU inline assembly on PRIMASK, Arduino on
 > ARM uses `noInterrupts()`, AVR uses avr-libc `SREG`/`cli()`, and any other
 > compiler stops at `#error`. A target whose description has
-> `interrupt_mask: false` (host, esp32) rejects a `critical` block with E0915,
+> `interrupt_mask: false` (host, esp32) rejects a `critical` block with E0916,
 > and makes an atomic read-modify-write a GNU `__atomic` compare-exchange loop
 > instead of a masked region (#1147, #1789). Multi-core exclusion stays with
 > ADR-100. So a `critical` block costs a platform interrupt API, chosen
@@ -600,6 +600,14 @@ Since Q2 uses automatic ceiling computation, platform fallback is handled transp
 **Rationale:**
 
 The developer shouldn't need to know or care about BASEPRI vs PRIMASK. C-Next generates the best possible code for the target platform automatically. This aligns with "right thing easy" - write once, works everywhere.
+
+> **Added 2026-10-17 (#1789, owner ruling recorded on the issue).** "Works everywhere" holds for every target whose description has `interrupt_mask: true`. On a target where disabling interrupts does not shut out every other execution context, a `critical` block has no lowering and is rejected, not compiled as a plain block. That covers host (user space cannot disable interrupts) and esp32 (it can, but only on one of its two cores; multi-core exclusion stays with ADR-100):
+>
+> ```
+> error[E0916]: target 'host' has no critical section: disabling interrupts there does not shut out every other execution context
+> ```
+>
+> An atomic variable's read-modify-write needs no critical block there: ADR-049 lowers it to a compare-exchange loop.
 
 ---
 

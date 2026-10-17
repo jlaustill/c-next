@@ -12,6 +12,8 @@ import COMPOUND_TO_BINARY from "./types/COMPOUND_TO_BINARY";
 import NarrowingCastHelper from "./NarrowingCastHelper";
 import CNextSourcePath from "../../utils/CNextSourcePath";
 import TYPE_MAP from "./types/TYPE_MAP";
+import TYPE_WIDTH from "../../types/TYPE_WIDTH";
+import ResolvedTarget from "../../utils/ResolvedTarget";
 import SafeDivisionTypes from "./SafeDivisionTypes";
 import TParameterInfo from "../../types/TParameterInfo";
 import ICodeGeneratorOptions from "../types/ICodeGeneratorOptions";
@@ -1909,8 +1911,13 @@ class FilePlanner {
           requirements.require("cmsis");
           requirements.noteLdrexStrexLoop();
           cTypes.add(TYPE_MAP[atomic.typeName]);
-        } else if (atomic.form === "compare-exchange") {
-          requirements.noteCompareExchangeLoop();
+        } else if (
+          atomic.form === "compare-exchange" ||
+          atomic.form === "compare-exchange-libatomic"
+        ) {
+          requirements.noteCompareExchangeLoop(
+            atomic.form === "compare-exchange-libatomic",
+          );
           cTypes.add(TYPE_MAP[atomic.typeName]);
         } else {
           requirements.require("irq_wrappers");
@@ -1944,18 +1951,40 @@ class FilePlanner {
     const typeName = written?.typeName ?? "";
     const exclusive = LDREX_MAP[typeName] !== undefined;
     return {
-      form: FilePlanner.atomicFormFor(this.state.targetDescription, exclusive),
+      form: FilePlanner.atomicFormFor(
+        this.state.targetDescription,
+        exclusive,
+        typeName,
+      ),
       typeName,
     };
+  }
+
+  /**
+   * #1789 review: a type wider than the target's `word_size` (ADR-049: the
+   * widest naturally atomic access) has no native compare-exchange, so GCC
+   * calls libatomic's `__atomic_*_N` for it (u64 on esp32).
+   */
+  private static widerThanWord(
+    target: ITargetDescription | null,
+    typeName: string,
+  ): boolean {
+    const width = TYPE_WIDTH[typeName];
+    return target !== null && width !== undefined && width > target.word_size;
   }
 
   /** The target's one answer to "how is a read-modify-write made atomic" */
   private static atomicFormFor(
     target: ITargetDescription | null,
     exclusive: boolean,
+    typeName: string,
   ): TAtomicForm {
     if (target?.ldrex_strex === true && exclusive) return "ldrex-strex";
-    if (target?.interrupt_mask === false) return "compare-exchange";
+    if (!ResolvedTarget.masksInterrupts(target)) {
+      return FilePlanner.widerThanWord(target, typeName)
+        ? "compare-exchange-libatomic"
+        : "compare-exchange";
+    }
     return "interrupt-mask";
   }
 
@@ -2043,6 +2072,10 @@ class FilePlanner {
       ldrexStrexSites: requirements.sitesOf("ldrex_strex_loop"),
       emittedCompareExchangeLoop: requirements.emitsCompareExchangeLoop,
       compareExchangeSites: requirements.sitesOf("compare_exchange_loop"),
+      emittedWideCompareExchangeLoop: requirements.emitsWideCompareExchangeLoop,
+      wideCompareExchangeSites: requirements.sitesOf(
+        "wide_compare_exchange_loop",
+      ),
     };
   }
 

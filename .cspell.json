@@ -290,6 +290,7 @@
     "ldiv",
     "LDRA",
     "LDREX",
+    "libatomic",
     "LDREXB",
     "LDREXH",
     "LDREXW",

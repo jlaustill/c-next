@@ -1,5 +1,5 @@
 // test-c-only
-#pragma target cortex-m7
+#pragma target atmega328p
 // Test: Critical blocks should use __cnx_ wrappers instead of direct intrinsic calls
 // This avoids macro collisions with platform headers (e.g., Teensy's imxrt.h)
 // See GitHub issue #473

@@ -59,6 +59,11 @@ const CASES: readonly ICase[] = [
     target: "cortex-m0+",
   },
   {
+    name: "atomic read-modify-write wider than the word (libatomic)",
+    source: `atomic mut u64 n <- 0;\nvoid main() { n +<- 1; }`,
+    target: "esp32",
+  },
+  {
     name: "atomic read-modify-write, no critical block",
     source: `atomic mut u32 n <- 0;\nvoid main() { n +<- 1; }`,
   },
@@ -108,6 +113,31 @@ async function generate(
   const keys = new Set((result.requirements ?? []).map((entry) => entry.key));
   return { text, keys };
 }
+
+// #1789 review: GCC has no native compare-exchange for a type wider than the
+// target's word, so it calls libatomic
+describe("atomic-libatomic", () => {
+  const keysFor = async (type: string) =>
+    (
+      await generate(
+        `atomic mut ${type} n <- 0;\nvoid main() { n +<- 1; }`,
+        "c",
+        "esp32",
+      )
+    ).keys;
+
+  it("is recorded for a u64 compare-exchange on esp32 (32-bit word)", async () => {
+    const keys = await keysFor("u64");
+    expect(keys.has("atomic-gnu-builtins")).toBe(true);
+    expect(keys.has("atomic-libatomic")).toBe(true);
+  });
+
+  it("is not recorded for a u32 compare-exchange on esp32", async () => {
+    const keys = await keysFor("u32");
+    expect(keys.has("atomic-gnu-builtins")).toBe(true);
+    expect(keys.has("atomic-libatomic")).toBe(false);
+  });
+});
 
 describe("toolchain requirement <-> emission invariant", () => {
   for (const mode of MODES) {

@@ -186,6 +186,12 @@ class EmissionPlan {
         sites: [...facts.compareExchangeSites],
       });
     }
+    if (facts.emittedWideCompareExchangeLoop) {
+      decided.push({
+        key: "atomic-libatomic",
+        sites: [...facts.wideCompareExchangeSites],
+      });
+    }
     return decided;
   }
 

@@ -15,7 +15,7 @@
 //   - Names are unique, and an alias names a description, never another alias.
 //   - Names match exactly, with no case folding.
 
-u8 TARGET_SCHEMA_VERSION <- 1;
+u8 TARGET_SCHEMA_VERSION <- 2;
 
 struct TargetDescription {
     string<24> name;

@@ -209,11 +209,16 @@ How does the compiler know which intrinsics to emit?
 
 _(Corrected 2026-09-26, #1668: Cortex-M0+ is ARMv6-M and has no LDREX/STREX, so it uses the critical section like Cortex-M0.)_
 
-| Platform   | RMW Implementation         |
-| ---------- | -------------------------- |
-| Cortex-M3+ | LDREX/STREX loop           |
-| Cortex-M0+ | Critical section (PRIMASK) |
-| Cortex-M0  | Critical section (PRIMASK) |
+_(Corrected 2026-10-17, #1789: the table named only Cortex rows. The form is chosen from the target description's `ldrex_strex` and `interrupt_mask`, not from the platform's name.)_
+
+| Platform                                          | RMW Implementation                   |
+| ------------------------------------------------- | ------------------------------------ |
+| Cortex-M3+ (`ldrex_strex`, 8/16/32-bit types)     | LDREX/STREX loop                     |
+| Cortex-M0+, Cortex-M0, a wider type on Cortex-M3+ | Critical section (PRIMASK)           |
+| AVR (atmega328p)                                  | Critical section (SREG)              |
+| host, esp32 (`interrupt_mask: false`)             | GNU `__atomic` compare-exchange loop |
+
+A retry loop evaluates the value once, before the loop (#1807). On esp32, a type wider than `word_size` makes GCC call libatomic's `__atomic_*_N`, which the output's requirements list.
 
 **Related question:** How does C-Next know the target platform? (See ADR-009 Q6)
 
@@ -478,33 +483,35 @@ For v1, the simplicity of "all atomics are SeqCst" outweighs micro-optimization.
 
 Atomic lowering (this ADR), selective interrupt masking (ADR-050), the width of a C or C++ header's `int`, `long` and `size_t` operands (ADR-024), and the identifier-significance limits of MISRA C:2012 Rules 5.1 and 5.9 all depend on the platform. A program with no target has no defined meaning, so it is rejected.
 
-#### The target description (schema version 1)
+#### The target description (schema version 2)
 
 A target description gives every one of these facts. None is optional, except the two toolchain fields.
 
-| Field                       | Kind              | Allowed         | Meaning                                                                                    |
-| --------------------------- | ----------------- | --------------- | ------------------------------------------------------------------------------------------ |
-| `name`                      | string            | one pragma word | the target's name (catalog only)                                                           |
-| `word_size`                 | unsigned integer  | 8, 16, 32, 64   | the widest naturally atomic access                                                         |
-| `ldrex_strex`               | Boolean           |                 | exclusive-access read-modify-write instructions exist                                      |
-| `basepri`                   | Boolean           |                 | selective interrupt masking exists (ADR-050)                                               |
-| `interrupt_mask`            | Boolean           |                 | global interrupt masking exists, so a `critical` block has a lowering (ADR-050, #1789)     |
-| `char_bits`                 | unsigned integer  | 8               | a platform with a wider `char` is rejected explicitly                                      |
-| `char_signed`               | Boolean           |                 | plain `char` is signed                                                                     |
-| `short_bits`                | unsigned integer  | 16              |                                                                                            |
-| `int_bits`                  | unsigned integer  | 16, 32          |                                                                                            |
-| `long_bits`                 | unsigned integer  | 32, 64          |                                                                                            |
-| `long_long_bits`            | unsigned integer  | 64              |                                                                                            |
-| `size_t_bits`               | unsigned integer  | 16, 32, 64      |                                                                                            |
-| `pointer_bits`              | unsigned integer  | 16, 32, 64      |                                                                                            |
-| `float_bits`                | unsigned integer  | 32              |                                                                                            |
-| `double_bits`               | unsigned integer  | 32, 64          |                                                                                            |
-| `long_double_bits`          | unsigned integer  | 32, 64, 96, 128 | storage size, at least `double_bits`                                                       |
-| `big_endian`                | Boolean           |                 |                                                                                            |
-| `external_identifier_chars` | unsigned integer  | at least 6      | MISRA C:2012 Rule 5.1                                                                      |
-| `internal_identifier_chars` | unsigned integer  | at least 31     | MISRA C:2012 Rule 5.9                                                                      |
-| `toolchain_triple`          | string (optional) |                 | a compiler configuration used to check generated code; never changes the program's meaning |
-| `toolchain_cpu`             | string (optional) |                 | as above                                                                                   |
+_(Schema version 2, 2026-10-17, #1789: adds `interrupt_mask`. A compiler that reads version 1 rejects the new catalog by its version, as the rule below says, rather than for an unknown member.)_
+
+| Field                       | Kind              | Allowed         | Meaning                                                                                                                                                                     |
+| --------------------------- | ----------------- | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`                      | string            | one pragma word | the target's name (catalog only)                                                                                                                                            |
+| `word_size`                 | unsigned integer  | 8, 16, 32, 64   | the widest naturally atomic access                                                                                                                                          |
+| `ldrex_strex`               | Boolean           |                 | exclusive-access read-modify-write instructions exist                                                                                                                       |
+| `basepri`                   | Boolean           |                 | selective interrupt masking exists (ADR-050)                                                                                                                                |
+| `interrupt_mask`            | Boolean           |                 | disabling interrupts shuts out every other execution context (one core), through a mechanism the ADR-050 IRQ wrappers lower; `false` makes a `critical` block E0916 (#1789) |
+| `char_bits`                 | unsigned integer  | 8               | a platform with a wider `char` is rejected explicitly                                                                                                                       |
+| `char_signed`               | Boolean           |                 | plain `char` is signed                                                                                                                                                      |
+| `short_bits`                | unsigned integer  | 16              |                                                                                                                                                                             |
+| `int_bits`                  | unsigned integer  | 16, 32          |                                                                                                                                                                             |
+| `long_bits`                 | unsigned integer  | 32, 64          |                                                                                                                                                                             |
+| `long_long_bits`            | unsigned integer  | 64              |                                                                                                                                                                             |
+| `size_t_bits`               | unsigned integer  | 16, 32, 64      |                                                                                                                                                                             |
+| `pointer_bits`              | unsigned integer  | 16, 32, 64      |                                                                                                                                                                             |
+| `float_bits`                | unsigned integer  | 32              |                                                                                                                                                                             |
+| `double_bits`               | unsigned integer  | 32, 64          |                                                                                                                                                                             |
+| `long_double_bits`          | unsigned integer  | 32, 64, 96, 128 | storage size, at least `double_bits`                                                                                                                                        |
+| `big_endian`                | Boolean           |                 |                                                                                                                                                                             |
+| `external_identifier_chars` | unsigned integer  | at least 6      | MISRA C:2012 Rule 5.1                                                                                                                                                       |
+| `internal_identifier_chars` | unsigned integer  | at least 31     | MISRA C:2012 Rule 5.9                                                                                                                                                       |
+| `toolchain_triple`          | string (optional) |                 | a compiler configuration used to check generated code; never changes the program's meaning                                                                                  |
+| `toolchain_cpu`             | string (optional) |                 | as above                                                                                                                                                                    |
 
 A description must also satisfy C's relations: `short` ≤ `int` ≤ `long` ≤ `long long`, and `float` ≤ `double` ≤ `long double`.
 

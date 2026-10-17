@@ -320,8 +320,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1090-braced-bodies/unbraced-declaration.test.cnx                                | E0716               |
 | tests/bugs/issue-1133-guard-collision-diagnostic/guard-collision.test.cnx                        | E0203               |
 | tests/bugs/issue-1145-atomic-bool-clamp-helper/atomic-bool-compound.test.cnx                     | E0806               |
-| tests/bugs/issue-1147-irq-fallback/critical-esp32.test.cnx                                       | E0915               |
-| tests/bugs/issue-1147-irq-fallback/critical-host.test.cnx                                        | E0915               |
+| tests/bugs/issue-1147-irq-fallback/critical-esp32.test.cnx                                       | E0916               |
+| tests/bugs/issue-1147-irq-fallback/critical-host.test.cnx                                        | E0916               |
 | tests/bugs/issue-1159-dimension-notation-bounds/binary-dimension-bounds.test.cnx                 | E0854               |
 | tests/bugs/issue-1159-dimension-notation-bounds/hex-dimension-bounds.test.cnx                    | E0854               |
 | tests/bugs/issue-1175-constant-dimensions/const-cause.test.cnx                                   | E0909               |

@@ -21,6 +21,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import ExecFailure from "../src/cnx/utils/ExecFailure";
+import InterruptMask from "../src/cnx/TRANSPILE/3-Render/codegen/helpers/InterruptMask";
 import MisraBaseline from "./misra-baseline";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -81,9 +82,7 @@ const ARM_ARCH_ARGS: readonly string[] = ["-D__arm__=1"];
  * analyzed on its ARM arm, the way a Cortex file is.
  */
 function interruptMaskArgs(file: string): readonly string[] {
-  return readFileSync(file, "utf-8").includes(
-    '#error "C-Next: this platform has no interrupt masking',
-  )
+  return readFileSync(file, "utf-8").includes(InterruptMask.NO_ARM_ERROR)
     ? ARM_ARCH_ARGS
     : [];
 }
@@ -104,10 +103,13 @@ function runCppcheckBatches(
   args: readonly string[],
   files: readonly string[],
 ): void {
-  const batches: [readonly string[], readonly string[]][] = [
-    [[], files.filter((f) => interruptMaskArgs(f).length === 0)],
-    [ARM_ARCH_ARGS, files.filter((f) => interruptMaskArgs(f).length > 0)],
-  ];
+  const batches = new Map<readonly string[], string[]>([
+    [[], []],
+    [ARM_ARCH_ARGS, []],
+  ]);
+  for (const file of files) {
+    batches.get(interruptMaskArgs(file))!.push(file);
+  }
   for (const [extra, batch] of batches) {
     if (batch.length === 0) continue;
     try {

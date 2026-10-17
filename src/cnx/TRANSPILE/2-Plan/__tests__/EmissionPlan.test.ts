@@ -33,6 +33,8 @@ const NOTHING: IEmissionFacts = {
   emittedLdrexStrexLoop: false,
   ldrexStrexSites: [],
   emittedCompareExchangeLoop: false,
+  emittedWideCompareExchangeLoop: false,
+  wideCompareExchangeSites: [],
   compareExchangeSites: [],
 };
 

@@ -24,6 +24,7 @@ type TRequirementKey =
   // --- atomics (ADR-049) ---
   | "atomic-ldrex-cmsis"
   | "atomic-gnu-builtins"
+  | "atomic-libatomic"
   // --- struct initializers ---
   | "cpp-designated-initializer"
   | "cpp-compound-literal"

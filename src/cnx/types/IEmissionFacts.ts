@@ -94,6 +94,12 @@ interface IEmissionFacts {
 
   /** Where Render emitted compare-exchange loops, for attribution only. */
   readonly compareExchangeSites: readonly IRequirementSite[];
+
+  /** #1789 review: one of them is on a type wider than the target's word. */
+  readonly emittedWideCompareExchangeLoop: boolean;
+
+  /** Where Render emitted those, for attribution only. */
+  readonly wideCompareExchangeSites: readonly IRequirementSite[];
 }
 
 export default IEmissionFacts;

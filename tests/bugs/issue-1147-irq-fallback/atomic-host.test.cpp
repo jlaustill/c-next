@@ -46,11 +46,13 @@ volatile uint16_t bits = 0x00F0U;
 
 void increment(void) {
     {
+        /* ADR-049 / Issue #1789: atomic read-modify-write as a compare-exchange retry loop, for a target with neither LDREX/STREX nor an interrupt mask. The GNU __atomic builtins are a compiler extension (MISRA C:2012 Rule 1.2). The value is evaluated once, before the loop, so a failed exchange does not evaluate it again (Issue #1807). */
+        uint32_t __operand = 1U;
         uint32_t __old;
         uint32_t __new;
         __atomic_load(&counter, &__old, __ATOMIC_RELAXED);
         do {
-            __new = cnx_clamp_add_u32(__old, 1U);
+            __new = cnx_clamp_add_u32(__old, __operand);
         } while (!__atomic_compare_exchange(&counter, &__old, &__new, 0, __ATOMIC_SEQ_CST, __ATOMIC_RELAXED));
     }
 }
@@ -62,44 +64,52 @@ int main(void) {
         return 1U;
     }
     {
+        /* ADR-049 / Issue #1789: atomic read-modify-write as a compare-exchange retry loop, for a target with neither LDREX/STREX nor an interrupt mask. The GNU __atomic builtins are a compiler extension (MISRA C:2012 Rule 1.2). The value is evaluated once, before the loop, so a failed exchange does not evaluate it again (Issue #1807). */
+        uint32_t __operand = 1U;
         uint32_t __old;
         uint32_t __new;
         __atomic_load(&counter, &__old, __ATOMIC_RELAXED);
         do {
-            __new = cnx_clamp_sub_u32(__old, 1U);
+            __new = cnx_clamp_sub_u32(__old, __operand);
         } while (!__atomic_compare_exchange(&counter, &__old, &__new, 0, __ATOMIC_SEQ_CST, __ATOMIC_RELAXED));
     }
     if (counter != 1) {
         return 2U;
     }
     {
+        /* ADR-049 / Issue #1789: atomic read-modify-write as a compare-exchange retry loop, for a target with neither LDREX/STREX nor an interrupt mask. The GNU __atomic builtins are a compiler extension (MISRA C:2012 Rule 1.2). The value is evaluated once, before the loop, so a failed exchange does not evaluate it again (Issue #1807). */
+        uint8_t __operand = 10U;
         uint8_t __old;
         uint8_t __new;
         __atomic_load(&small, &__old, __ATOMIC_RELAXED);
         do {
-            __new = cnx_clamp_add_u8(__old, 10U);
+            __new = cnx_clamp_add_u8(__old, __operand);
         } while (!__atomic_compare_exchange(&small, &__old, &__new, 0, __ATOMIC_SEQ_CST, __ATOMIC_RELAXED));
     }
     if (small != 255) {
         return 3U;
     }
     {
+        /* ADR-049 / Issue #1789: atomic read-modify-write as a compare-exchange retry loop, for a target with neither LDREX/STREX nor an interrupt mask. The GNU __atomic builtins are a compiler extension (MISRA C:2012 Rule 1.2). The value is evaluated once, before the loop, so a failed exchange does not evaluate it again (Issue #1807). */
+        uint16_t __operand = 0x0F00U;
         uint16_t __old;
         uint16_t __new;
         __atomic_load(&bits, &__old, __ATOMIC_RELAXED);
         do {
-            __new = __old | 0x0F00U;
+            __new = __old | __operand;
         } while (!__atomic_compare_exchange(&bits, &__old, &__new, 0, __ATOMIC_SEQ_CST, __ATOMIC_RELAXED));
     }
     if (bits != 0x0FF0) {
         return 4U;
     }
     {
+        /* ADR-049 / Issue #1789: atomic read-modify-write as a compare-exchange retry loop, for a target with neither LDREX/STREX nor an interrupt mask. The GNU __atomic builtins are a compiler extension (MISRA C:2012 Rule 1.2). The value is evaluated once, before the loop, so a failed exchange does not evaluate it again (Issue #1807). */
+        uint16_t __operand = 0x0F0FU;
         uint16_t __old;
         uint16_t __new;
         __atomic_load(&bits, &__old, __ATOMIC_RELAXED);
         do {
-            __new = __old & 0x0F0FU;
+            __new = __old & __operand;
         } while (!__atomic_compare_exchange(&bits, &__old, &__new, 0, __ATOMIC_SEQ_CST, __ATOMIC_RELAXED));
     }
     if (bits != 0x0F00) {

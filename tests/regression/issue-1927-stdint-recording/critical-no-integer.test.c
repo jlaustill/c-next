@@ -42,7 +42,7 @@ static inline uint8_t __cnx_get_PRIMASK(void) { return SREG; }
 static inline void __cnx_set_PRIMASK(uint8_t mask) { SREG = mask; }
 static inline void __cnx_disable_irq(void) { cli(); }
 #else
-#error "C-Next: this platform has no interrupt masking for a critical section (ADR-050)"
+#error "C-Next: the IRQ wrappers have no arm for this compiler, so a critical section has no lowering (ADR-050)"
 #endif
 
 // #1927 / #1941: the critical section's PRIMASK helpers and `uint32_t

@@ -1,5 +1,5 @@
 // test-c-only
-#pragma target cortex-m7
+#pragma target atmega328p
 mut u8[64] buffer;
 
 mut u32 writeIdx <- 0;

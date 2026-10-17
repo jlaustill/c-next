@@ -48,7 +48,7 @@ static inline uint8_t __cnx_get_PRIMASK(void) { return SREG; }
 static inline void __cnx_set_PRIMASK(uint8_t mask) { SREG = mask; }
 static inline void __cnx_disable_irq(void) { cli(); }
 #else
-#error "C-Next: this platform has no interrupt masking for a critical section (ADR-050)"
+#error "C-Next: the IRQ wrappers have no arm for this compiler, so a critical section has no lowering (ADR-050)"
 #endif
 
 // ADR-044: Overflow helper functions
@@ -116,18 +116,26 @@ int main(void) {
         __cnx_set_PRIMASK(__primask);
     }
     currentStatus.active = true;
-    do {
-        uint16_t __old = __LDREXH(&sequence);
-        uint16_t __new = __old + 1U;
-        if (__STREXH(__new, &sequence) == 0) {
-            break;
-        }
-    } while (1);
-    do {
-        int8_t __old = __LDREXB(&temperature);
-        int8_t __new = cnx_clamp_add_i8(__old, 10);
-        if (__STREXB(__new, &temperature) == 0) {
-            break;
-        }
-    } while (1);
+    {
+        /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
+        uint16_t __operand = 1U;
+        do {
+            uint16_t __old = __LDREXH(&sequence);
+            uint16_t __new = __old + __operand;
+            if (__STREXH(__new, &sequence) == 0) {
+                break;
+            }
+        } while (1);
+    }
+    {
+        /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
+        int8_t __operand = 10;
+        do {
+            int8_t __old = __LDREXB(&temperature);
+            int8_t __new = cnx_clamp_add_i8(__old, __operand);
+            if (__STREXB(__new, &temperature) == 0) {
+                break;
+            }
+        } while (1);
+    }
 }

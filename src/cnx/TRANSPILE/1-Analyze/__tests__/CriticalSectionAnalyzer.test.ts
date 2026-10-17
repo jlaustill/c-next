@@ -116,15 +116,17 @@ describe("CriticalSectionAnalyzer", () => {
 
   // #1789 / #1147: a target that cannot mask interrupts has no critical
   // section; its wrappers had only a CMSIS guess, which no host header declares
-  it("rejects a critical block on a target that cannot mask interrupts (E0915)", () => {
+  it("rejects a critical block on a target that cannot mask interrupts (E0916)", () => {
     const found = errors(
       inCritical("        value <- 1;"),
       target("host", false),
     );
     expect(found).toHaveLength(1);
-    expect(found[0].code).toBe("E0915");
+    expect(found[0].code).toBe("E0916");
     expect(found[0].line).toBe(3);
-    expect(found[0].message).toContain("target 'host' cannot mask interrupts");
+    expect(found[0].message).toBe(
+      "target 'host' has no critical section: disabling interrupts there does not shut out every other execution context",
+    );
   });
 
   it("reports both rules where both apply", () => {
@@ -132,7 +134,7 @@ describe("CriticalSectionAnalyzer", () => {
       inCritical("        return value;"),
       target("esp32", false),
     );
-    expect(found.map((error) => error.code)).toEqual(["E0915", "E0853"]);
+    expect(found.map((error) => error.code)).toEqual(["E0916", "E0853"]);
   });
 
   it("leaves the target rule to 1.4 when the target was rejected", () => {

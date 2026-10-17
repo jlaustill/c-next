@@ -1,5 +1,6 @@
 import type IToolchainRequirement from "../../types/IToolchainRequirement";
 import type TRequirementKey from "../../types/TRequirementKey";
+import IRQ_WRAPPER_GUARDS from "./IRQ_WRAPPER_GUARDS";
 
 /**
  * Issue #1143: The single source of truth for what generated output costs.
@@ -95,7 +96,7 @@ const TOOLCHAIN_REQUIREMENTS: Record<TRequirementKey, IToolchainRequirement> = {
     compiler: null,
     extensions: ["GNU inline assembly", "__attribute__((always_inline))"],
     platformLib: "ARMv7-M core",
-    condition: "defined(__arm__) || defined(__ARM_ARCH)",
+    condition: IRQ_WRAPPER_GUARDS.arm,
     reason:
       '__asm volatile ("MRS %0, primask"), __attribute__((always_inline))',
     // #1146: an atomic read-modify-write masks through the same wrappers
@@ -119,7 +120,7 @@ const TOOLCHAIN_REQUIREMENTS: Record<TRequirementKey, IToolchainRequirement> = {
     // alternative to it, and declaring `[]` here understated it.
     extensions: ["GNU inline assembly", "__attribute__((always_inline))"],
     platformLib: "ARMv7-M core + Arduino core",
-    condition: "defined(__arm__) && defined(ARDUINO)",
+    condition: `(${IRQ_WRAPPER_GUARDS.arm}) && ${IRQ_WRAPPER_GUARDS.arduino}`,
     reason: "noInterrupts()",
     // #1146: an atomic read-modify-write masks through the same wrappers
     incurredBy:
@@ -140,7 +141,7 @@ const TOOLCHAIN_REQUIREMENTS: Record<TRequirementKey, IToolchainRequirement> = {
     // avr-libc provides.
     platformLib: "avr-libc",
     extensions: [],
-    condition: "defined(__AVR__)",
+    condition: IRQ_WRAPPER_GUARDS.avr,
     reason: "SREG, cli()",
     // #1146: an atomic read-modify-write masks through the same wrappers
     incurredBy:
@@ -182,6 +183,25 @@ const TOOLCHAIN_REQUIREMENTS: Record<TRequirementKey, IToolchainRequirement> = {
     incurredBy:
       "compound assignment to an atomic variable on a target without LDREX/STREX or interrupt masking",
     probe: /__atomic_compare_exchange\(/,
+    adr: "ADR-049",
+    misra: ["1.2"],
+  },
+
+  // #1789 review: GCC has no native compare-exchange for a type wider than
+  // the target's word, so it calls libatomic's __atomic_*_N (u64 on esp32).
+  "atomic-libatomic": {
+    key: "atomic-libatomic",
+    modes: ["c", "cpp"],
+    feature: "atomic read-modify-write",
+    standard: "C99",
+    compiler: null,
+    extensions: ["GNU __atomic builtins"],
+    platformLib: "libatomic (or the platform's __atomic_*_N, e.g. ESP-IDF's)",
+    condition: null,
+    reason: "__atomic_load_N(), __atomic_compare_exchange_N() library calls",
+    incurredBy:
+      "compound assignment to an atomic variable wider than the target's word_size, on a target without LDREX/STREX or interrupt masking",
+    probe: /calls libatomic's __atomic_\*_N/,
     adr: "ADR-049",
     misra: ["1.2"],
   },
