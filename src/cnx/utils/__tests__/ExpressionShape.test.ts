@@ -73,9 +73,14 @@ describe("ExpressionShape", () => {
       expect(view?.ops.map((op) => op.kind)).toEqual(["member"]);
     });
 
-    it("leaves a parenthesized operator alone: (a + b) has no postfix view", () => {
-      expect(ExpressionShape.postfixView(lowered("(a + b)"))).toBeNull();
-    });
+    it.each(["(a + b)", "(2147483648)"])(
+      "keeps %s, which is not a name, as its own primary",
+      (source) => {
+        const view = ExpressionShape.postfixView(lowered(source));
+        expect(view?.primary.kind).toBe("parenthesized");
+        expect(view?.ops).toEqual([]);
+      },
+    );
   });
 
   describe("rootName", () => {
