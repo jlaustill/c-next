@@ -68,7 +68,7 @@ int main(void) {
     if (t != 43) {
         return 4U;
     }
-    const uint32_t p = sum(((Point){ .x = 5U, .y = 6U }));
+    const uint32_t p = sum(&((Point){ .x = 5U, .y = 6U }));
     if (p != 11) {
         return 5U;
     }
