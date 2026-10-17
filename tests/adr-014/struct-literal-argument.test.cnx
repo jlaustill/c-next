@@ -2,7 +2,9 @@
 // test-adr: 014
 // ADR-014 / ADR-006 (#1530): a struct literal passed as a call argument takes
 // its type from the parameter, and reaches the function by reference: in C the
-// address of a compound literal, in C++ a temporary bound to `const T&`.
+// address of a compound literal, in C++ a temporary bound to `const T&`,
+// parenthesized or not. Only a read-only parameter: one the callee writes
+// (`mut`) cannot take a temporary (#1203).
 // Before #1530 the C passed the literal by value against the pointer
 // parameter, and gcc rejected the call at transpile exit 0.
 
@@ -51,6 +53,11 @@ u32 main() {
     u32 t <- sum({ x: 20, y: 22 }) + 1;
     if (t != 43) {
         return 4;
+    }
+
+    u32 p <- sum(({ x: 5, y: 6 }));
+    if (p != 11) {
+        return 5;
     }
 
     return 0;

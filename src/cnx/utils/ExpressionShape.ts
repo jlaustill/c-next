@@ -44,6 +44,13 @@ class ExpressionShape {
     return view?.ops.length === 0 ? ExpressionShape.rootName(expr) : null;
   }
 
+  /** The expression inside any parentheses around it: `((x))` is `x` */
+  static unparenthesized(expr: TExpression): TExpression {
+    let inner = expr;
+    while (inner.kind === "parenthesized") inner = inner.expression;
+    return inner;
+  }
+
   /**
    * A string literal itself -- not an expression whose text merely starts and
    * ends with a quote, like `"a" < "b"` (#1956).

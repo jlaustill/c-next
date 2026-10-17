@@ -36,7 +36,9 @@ static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint64_t b) {
 // test-adr: 014
 // ADR-014 / ADR-006 (#1530): a struct literal passed as a call argument takes
 // its type from the parameter, and reaches the function by reference: in C the
-// address of a compound literal, in C++ a temporary bound to `const T&`.
+// address of a compound literal, in C++ a temporary bound to `const T&`,
+// parenthesized or not. Only a read-only parameter: one the callee writes
+// (`mut`) cannot take a temporary (#1203).
 // Before #1530 the C passed the literal by value against the pointer
 // parameter, and gcc rejected the call at transpile exit 0.
 uint32_t sum(const Point& p) {
@@ -67,6 +69,10 @@ int main(void) {
     const uint32_t t = sum((Point){ .x = 20U, .y = 22U }) + 1U;
     if (t != 43) {
         return 4U;
+    }
+    const uint32_t p = sum(((Point){ .x = 5U, .y = 6U }));
+    if (p != 11) {
+        return 5U;
     }
     return 0U;
 }

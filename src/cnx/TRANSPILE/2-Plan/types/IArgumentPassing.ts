@@ -5,7 +5,12 @@
 interface IArgumentPassing {
   /** The parameter it binds to, when the callee declares one */
   readonly param:
-    | { readonly baseType: string; readonly isArray?: boolean }
+    | {
+        readonly baseType: string;
+        readonly isArray?: boolean;
+        /** ADR-071: a parameter the callee does not write (not `mut`) */
+        readonly isConst?: boolean;
+      }
     | undefined;
   /** To a C function, by value, or by reference */
   readonly mode: "c" | "value" | "reference";

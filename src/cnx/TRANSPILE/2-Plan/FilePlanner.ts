@@ -258,14 +258,26 @@ class FilePlanner {
   }
 
   /** What decides an argument's form (#1991), asked by 2.2 and 2.3 alike */
-  argumentShape(expr: TExpression): TArgumentShape {
+  argumentShape(
+    expr: TExpression,
+    structInitializers: ReadonlyMap<
+      TExpressionOf<"structInitializer">,
+      TStructInitializerForm
+    >,
+  ): TArgumentShape {
     return {
       getLvalueType: () => this.getLvalueType(expr),
       getMemberAccessArrayStatus: () => this.getMemberAccessArrayStatus(expr),
       isCppMemberConversionRequired: (t) =>
         this.isCppMemberConversionRequired(expr, t),
       isStringSubscriptAccess: () => this.isStringSubscriptAccess(expr),
-      isStructLiteral: () => expr.kind === "structInitializer",
+      isCompoundLiteral: () => {
+        const inner = ExpressionShape.unparenthesized(expr);
+        return (
+          inner.kind === "structInitializer" &&
+          structInitializers.get(inner) === "compound"
+        );
+      },
     };
   }
 
@@ -985,7 +997,16 @@ class FilePlanner {
       ),
     ]);
     invariant(valuePositions !== null, "2.1 hands 2.2 where each value stands");
-    const argumentPlans = this.planArguments(valuePositions, decidedCTypes);
+    const structInitializers = this.planStructInitializers(
+      program,
+      inlinedConsts,
+      expectedTypes,
+    );
+    const argumentPlans = this.planArguments(
+      valuePositions,
+      structInitializers,
+      decidedCTypes,
+    );
     const clamps = this.planClamps(
       program,
       inlinedConsts,
@@ -1035,11 +1056,7 @@ class FilePlanner {
       sliceSources,
       expectedTypes,
       narrowings,
-      structInitializers: this.planStructInitializers(
-        program,
-        inlinedConsts,
-        expectedTypes,
-      ),
+      structInitializers,
     };
     return {
       ...decided,
@@ -1200,6 +1217,10 @@ class FilePlanner {
    */
   private planArguments(
     valuePositions: IValuePositions,
+    structInitializers: ReadonlyMap<
+      TExpressionOf<"structInitializer">,
+      TStructInitializerForm
+    >,
     cTypes: Set<string>,
   ): ReadonlyMap<TExpression, IPlannedArgument> {
     const planned = new Map<TExpression, IPlannedArgument>();
@@ -1217,8 +1238,9 @@ class FilePlanner {
           ? ArgumentForm.of(
               this.boundArgumentName(expression) !== null,
               base,
-              this.argumentShape(expression),
+              this.argumentShape(expression, structInitializers),
               this.state.cppMode,
+              passing.param?.isConst ?? false,
             )
           : null;
       const enumCast =

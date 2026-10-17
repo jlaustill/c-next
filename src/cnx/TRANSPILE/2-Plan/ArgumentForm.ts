@@ -19,12 +19,18 @@ class ArgumentForm {
     targetParamBaseType: string | undefined,
     shape: TArgumentShape,
     cppMode: boolean,
+    paramIsConst: boolean,
   ): TArgumentForm {
     if (isIdentifier) return { kind: "identifier" };
 
     const lvalueType = shape.getLvalueType();
     if (lvalueType === null) {
-      return ArgumentForm.rvalue(targetParamBaseType, shape, cppMode);
+      return ArgumentForm.rvalue(
+        targetParamBaseType,
+        shape,
+        cppMode,
+        paramIsConst,
+      );
     }
     if (lvalueType === "member") {
       return ArgumentForm.member(targetParamBaseType, shape);
@@ -43,14 +49,18 @@ class ArgumentForm {
 
   /**
    * C++: an rvalue binds to `const T&`; C takes a compound literal's address,
-   * which a struct literal already is (#1530)
+   * which a struct literal already is (#1530). Only for a parameter the callee
+   * does not write: a write to a `mut` one would land in the temporary (#1203)
    */
   private static rvalue(
     targetParamBaseType: string | undefined,
     shape: TArgumentShape,
     cppMode: boolean,
+    paramIsConst: boolean,
   ): TArgumentForm {
-    if (!cppMode && shape.isStructLiteral()) return { kind: "literal-address" };
+    if (!cppMode && paramIsConst && shape.isCompoundLiteral()) {
+      return { kind: "literal-address" };
+    }
     const cType = targetParamBaseType
       ? TYPE_MAP[targetParamBaseType]
       : undefined;
