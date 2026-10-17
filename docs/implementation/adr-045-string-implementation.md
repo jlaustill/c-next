@@ -274,7 +274,7 @@ if (typeInfo?.isString && hasStartAndLength) {
 
 | File                                | Description           |
 | ----------------------------------- | --------------------- |
-| `string-compare.cnx`                | `a == b`, `a != b`    |
+| `string-compare.cnx`                | `a = b`, `a != b`     |
 | `string-concat.cnx`                 | `result <- a + b`     |
 | `string-substring.cnx`              | `sub <- s[0, 5]`      |
 | `string-error-concat-overflow.cnx`  | Capacity insufficient |
@@ -282,7 +282,7 @@ if (typeInfo?.isString && hasStartAndLength) {
 
 ### Success Criteria
 
-- [ ] `a == b` → `strcmp(a, b) == 0`
+- [ ] `a = b` → `strcmp(a, b) == 0`
 - [ ] `a != b` → `strcmp(a, b) != 0`
 - [ ] `a + b` with capacity validation
 - [ ] `s[0, 5]` substring extraction
