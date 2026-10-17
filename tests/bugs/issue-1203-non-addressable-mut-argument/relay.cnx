@@ -1,0 +1,7 @@
+// Helper (not a test): puts callee.cnx two hops from a consumer, covering the
+// "transitive" column. It declares something of its own so a relay.h is
+// written (#1234).
+
+#include "callee.cnx"
+
+u32 RELAY_MARKER <- 7;
