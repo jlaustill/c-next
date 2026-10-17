@@ -104,15 +104,16 @@ mut wrap u32 counter <- 0; // wrapping arithmetic (opt-in)
 atomic mut u32 shared <- 0; // ISR-safe
 ```
 
-A **global** with no initializer is zero-filled, and a callback field gets its default
-function (ADR-029). A **local** must be written before it is read: `u32 y; u32 z <- y;`
+A **global** with no initializer is zero-filled, and a global struct's callback field gets
+its default function (ADR-029). A **local** must be written before it is read: `u32 y; u32 z <- y;`
 is `E0381` ("use of uninitialized variable 'y'"), and so is reading a field of a local
 struct declared without an initializer. A name is defined only once its declaration
 closes, so `u32 k <- k + 1;` is `E0427`.
 
 **Modifier order:** `atomic` or `volatile`, then `mut`, then `clamp` or `wrap`:
 `atomic mut clamp u8`, `volatile mut u32`, `mut wrap u32`. `mut atomic`, `mut volatile`
-and `wrap mut` are parse errors, and the parser's message does not mention `mut`.
+and `wrap mut` are parse errors. The message names the misplaced token (`extraneous input 'atomic'`,
+`extraneous input 'mut'`) but never says where it goes.
 
 ## Overflow Behavior
 
@@ -170,7 +171,7 @@ string VERSION <- "1.0.0";          // read-only, auto-sized
 - A `mut` string must be sized (`mut string<64> s;`); only a read-only `string` auto-sizes from its initializer.
 - A literal or concat that exceeds the destination capacity is a compile error.
 - Compare strings with `=` / `!=`; **compound operators are not supported** (`s +<- x` ✗).
-- **Concatenate in a declaration's initializer, with two operands:** `string<96> joined <- name + " World";`. Assigning a concat or substring to an existing string (`s <- s + x`) transpiles at exit 0 but emits `strncpy(s, s + "b", 64)`, which gcc rejects (#1257). Three operands (`a + b + c`) fail the same way even in a declaration (#1954). Until both are fixed, declare a new string for each step.
+- **Concatenate in a declaration's initializer, with two operands:** `string<96> joined <- name + " World";`. Assigning a concat or substring to an existing string transpiles at exit 0 and emits C that gcc rejects: `s <- s + "b"` becomes `strncpy(s, s + "b", 64)`, and `part <- src[0, 4]` becomes `strncpy(part, ((src) & 0xFU), 8)` (#1257). Three operands (`a + b + c`) fail the same way even in a declaration (#1954). Until both are fixed, declare a new string for each step.
 - String literals accept the same escape sequences as char literals (newline, tab, carriage return, backslash, quote).
 - **Concat (`+`) and substring (`s[off, len]`) emit runtime code (`strncpy`/`strncat`)** — they may only appear **inside a function**, never at global/initializer scope (a global string initializes from a literal).
 - Substring `s[off, len]` is bounds-checked at compile time: `off + len` must fit the source's capacity, and the destination string must be large enough to hold `len`.
@@ -802,10 +803,10 @@ void setup() {
 #include "buffer_api.h" // void consume(uint8_t* p);  void peek(const uint8_t* p);
 
 void send() {
-    mut u8[8] buf; // mut: consume may write through its pointer
+    mut u8[8] buf <- [0*]; // mut: consume may write through its pointer
     consume(buf); // E0896 warning; E0900 if buf were read-only
-    u8[8] table;
-    peek(table); // a const C parameter takes a read-only argument
+    u8[8] table <- [1, 2, 3, 4, 5, 6, 7, 8];
+    peek(table); // E0896 too; a const C parameter takes a read-only argument
 }
 ```
 
@@ -957,7 +958,7 @@ void readData() {
 - `c_` prefix REQUIRED for variables holding nullable C pointer returns
 - You must **capture** a NULL-returning C call's result — calling it bare and ignoring the return is `E0901` ("can return NULL - must check result")
 - `c_` prefix FORBIDDEN on non-nullable types (error E0906)
-- A `c_` variable must be **NULL-checked before use** — using it unguarded is `E0908` (`mut FILE c_file <- fopen(...); fclose(c_file);` ✗ → wrap in `if (c_file != NULL) { … }`)
+- A `c_` variable must be **NULL-checked before use** — using it unguarded is `E0908` (`mut FILE c_file <- fopen(...); (void)fclose(c_file);` ✗ → wrap in `if (c_file != NULL) { … }`)
 - A `c_` handle passed to a C function whose pointer parameter is not `const` (as `fclose`'s is not) must be `mut` (E0900)
 - NULL comparison only allowed on `c_`-prefixed variables
 - `malloc`/`calloc`/`realloc`/`free` FORBIDDEN (ADR-003)
@@ -1332,5 +1333,5 @@ void encode(Msg m) { u8 id <- m.id; }                   // -> void encode(const 
 | ------------------------------------------------------------------------------------------------------------------------------------- | ------- | --------------- |
 | #967: Symbol cache cross-language conflict on scoped method names                                                                     | v0.2.12 | FIXED (v0.2.15) |
 | #981: Macro-sized array field on local struct generates bit extraction instead of array index (`msg.data[3]` → `(msg.data >> 3) & 1`) | v0.2.15 | FIXED (v0.2.16) |
-| #1257: A concat or substring assigned to an existing string (`s <- s + x`) emits `strncpy(s, s + "b", 64)`, which gcc rejects         | v0.4.0  | OPEN            |
+| #1257: A concat or substring assigned to an existing string (`s <- s + "b"`, `part <- src[0, 4]`) emits a `strncpy` that gcc rejects  | v0.3.0  | OPEN            |
 | #1954: A three-operand concat in a declaration (`a + b + c`) emits pointer addition, which gcc rejects                                | v0.4.0  | OPEN (v0.4.1)   |
