@@ -265,6 +265,7 @@ class FilePlanner {
       isCppMemberConversionRequired: (t) =>
         this.isCppMemberConversionRequired(expr, t),
       isStringSubscriptAccess: () => this.isStringSubscriptAccess(expr),
+      isStructLiteral: () => expr.kind === "structInitializer",
     };
   }
 

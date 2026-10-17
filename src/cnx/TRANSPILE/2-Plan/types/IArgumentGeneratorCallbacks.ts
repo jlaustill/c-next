@@ -26,6 +26,9 @@ interface IArgumentGeneratorCallbacks {
   /** Check if expression is subscript access on a string variable */
   isStringSubscriptAccess: () => boolean;
 
+  /** Check if expression is a struct literal (ADR-014) */
+  isStructLiteral: () => boolean;
+
   /** Generate expression code */
   generateExpression: () => string;
 }

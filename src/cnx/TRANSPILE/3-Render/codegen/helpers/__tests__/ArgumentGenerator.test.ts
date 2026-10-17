@@ -31,6 +31,7 @@ describe("ArgumentGenerator", () => {
     getMemberAccessArrayStatus: () => "not-array",
     isCppMemberConversionRequired: () => false,
     isStringSubscriptAccess: () => false,
+    isStructLiteral: () => false,
     generateExpression: () => "expr",
     ...overrides,
   });
@@ -231,6 +232,22 @@ describe("ArgumentGenerator", () => {
       ).toEqual({ kind: "rvalue", compoundLiteral });
     });
 
+    it.each([
+      [
+        "C, by its compound literal's address",
+        false,
+        { kind: "literal-address" },
+      ],
+      [
+        "C++, where it binds to const T&",
+        true,
+        { kind: "rvalue", compoundLiteral: null },
+      ],
+    ] as const)("struct literal: %s", (_label, cppMode, form) => {
+      const shape = createMockCallbacks({ isStructLiteral: () => true });
+      expect(ArgumentForm.of(false, "Point", shape, cppMode)).toEqual(form);
+    });
+
     it("is array-member for a member that is an array", () => {
       const shape = createMockCallbacks({
         getLvalueType: () => "member",
@@ -288,6 +305,7 @@ describe("ArgumentGenerator", () => {
       [{ kind: "lvalue", cast: null }, null],
       [{ kind: "rvalue", compoundLiteral: "int32_t" }, "int32_t"],
       [{ kind: "rvalue", compoundLiteral: null }, null],
+      [{ kind: "literal-address" }, null],
     ] as const)("%o writes %s", (form, cType) => {
       expect(ArgumentForm.cTypeOf(form)).toBe(cType);
     });
@@ -451,6 +469,21 @@ describe("ArgumentGenerator", () => {
         state,
       );
       expect(result).toBe("&(uint8_t){42}");
+    });
+
+    it("handles a struct literal by its compound literal's address", () => {
+      const callbacks = createMockCallbacks({
+        generateExpression: () => "(Point){ .x = 1U }",
+      });
+
+      const result = ArgumentGenerator.generateArg(
+        null,
+        undefined,
+        { kind: "literal-address" },
+        callbacks,
+        state,
+      );
+      expect(result).toBe("&(Point){ .x = 1U }");
     });
   });
 });

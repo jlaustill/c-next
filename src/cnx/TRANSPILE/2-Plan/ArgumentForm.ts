@@ -24,7 +24,7 @@ class ArgumentForm {
 
     const lvalueType = shape.getLvalueType();
     if (lvalueType === null) {
-      return ArgumentForm.rvalue(targetParamBaseType, cppMode);
+      return ArgumentForm.rvalue(targetParamBaseType, shape, cppMode);
     }
     if (lvalueType === "member") {
       return ArgumentForm.member(targetParamBaseType, shape);
@@ -41,11 +41,16 @@ class ArgumentForm {
     };
   }
 
-  /** C++: an rvalue binds to `const T&`; C takes a compound literal's address */
+  /**
+   * C++: an rvalue binds to `const T&`; C takes a compound literal's address,
+   * which a struct literal already is (#1530)
+   */
   private static rvalue(
     targetParamBaseType: string | undefined,
+    shape: TArgumentShape,
     cppMode: boolean,
   ): TArgumentForm {
+    if (!cppMode && shape.isStructLiteral()) return { kind: "literal-address" };
     const cType = targetParamBaseType
       ? TYPE_MAP[targetParamBaseType]
       : undefined;

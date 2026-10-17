@@ -23,10 +23,9 @@
 // Every position ADR-014 says supplies a type is exercised once, so a position
 // that stops establishing one is a snapshot change rather than a silent gap.
 //
-// TWO positions are missing here, each with its own fixture naming what keeps
-// it out:
-//   - a call ARGUMENT, in `struct-literal-argument-transpile.test.cnx` (#1530:
-//     the literal is passed by value against a pointer parameter);
+// TWO positions are missing here, each with its own fixture:
+//   - a call ARGUMENT, in `struct-literal-argument.test.cnx`, which was kept out
+//     while the literal was passed by value against a pointer parameter (#1530);
 //   - a `for` HEADER's declaration, in `struct-literal-for-header.test.cnx`,
 //     which compiles but must use UNSIGNED members: with signed ones the emitted
 //     loop trips MISRA C:2012 Rule 14.2, an enforced rule class (#1539).
