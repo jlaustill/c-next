@@ -854,33 +854,41 @@ class FilePlanner {
     program: IProgramSyntax,
     cTypes: Set<string>,
   ): ReadonlySet<TDeclarationSyntax> {
-    const constants = this.transpileState.typingContext().program;
     const inlined = new Set<TDeclarationSyntax>();
     for (const { declaration: scope } of program.declarations) {
       if (scope.kind !== "scope") continue;
-      const declaringScopePath =
-        this.state.program?.scopePathOf(scope.name) ?? scope.name;
-      const constructorArguments = new Set(
-        scope.members.flatMap(({ declaration }) =>
-          declaration.kind === "constructorDeclaration"
-            ? declaration.arguments.map((argument) => argument.name)
-            : [],
-        ),
-      );
-      for (const { declaration } of scope.members) {
-        if (declaration.kind !== "variableDeclaration") continue;
-        if (constructorArguments.has(declaration.name)) continue;
-        const cName = QualifiedNameGenerator.forMember(
-          declaringScopePath,
-          declaration.name,
-        );
-        if (!PrivateConstSpelling.inlines(constants, cName)) continue;
-        inlined.add(declaration);
-        const narrowing = PrivateConstSpelling.narrowingOf(constants, cName);
-        if (narrowing?.kind === "cast") cTypes.add(narrowing.cType);
-      }
+      this.planInlinedScopeConsts(scope, cTypes, inlined);
     }
     return inlined;
+  }
+
+  private planInlinedScopeConsts(
+    scope: Extract<TDeclarationSyntax, { kind: "scope" }>,
+    cTypes: Set<string>,
+    inlined: Set<TDeclarationSyntax>,
+  ): void {
+    const constants = this.transpileState.typingContext().program;
+    const declaringScopePath =
+      this.state.program?.scopePathOf(scope.name) ?? scope.name;
+    const constructorArguments = new Set(
+      scope.members.flatMap(({ declaration }) =>
+        declaration.kind === "constructorDeclaration"
+          ? declaration.arguments.map((argument) => argument.name)
+          : [],
+      ),
+    );
+    for (const { declaration } of scope.members) {
+      if (declaration.kind !== "variableDeclaration") continue;
+      if (constructorArguments.has(declaration.name)) continue;
+      const cName = QualifiedNameGenerator.forMember(
+        declaringScopePath,
+        declaration.name,
+      );
+      if (!PrivateConstSpelling.inlines(constants, cName)) continue;
+      inlined.add(declaration);
+      const narrowing = PrivateConstSpelling.narrowingOf(constants, cName);
+      if (narrowing?.kind === "cast") cTypes.add(narrowing.cType);
+    }
   }
 
   private planFile(

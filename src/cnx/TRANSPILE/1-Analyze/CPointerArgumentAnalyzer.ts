@@ -121,9 +121,10 @@ class CPointerArgumentCheck {
       );
     } else if (pointee !== null) {
       const objectType = this.objectTypeOf(arg);
+      const typeSuffix = objectType === null ? "" : ` ${objectType}`;
       this.report(
         arg,
-        `'${arg.written}' is read-only${objectType === null ? "" : ` ${objectType}`}, and parameter ${index + 1} of '${name}' is a pointer '${name}' may write through`,
+        `'${arg.written}' is read-only${typeSuffix}, and parameter ${index + 1} of '${name}' is a pointer '${name}' may write through`,
         `Declare '${arg.written}' \`mut\`, or declare the C parameter const ${pointee}*.`,
         "E0900",
       );
