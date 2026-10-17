@@ -96,21 +96,39 @@ Standard char escape sequences work in `'...'` literals: newline (10), tab (9), 
 ## Variable Declarations
 
 ```cnx
-u32 x <- 42;                    // initialized
-u32 y;                           // zero-initialized (NOT garbage)
-u32 MAX <- 100;                  // read-only: a compile-time constant
-clamp u8 brightness <- 200;      // saturating arithmetic (DEFAULT behavior)
-wrap u32 counter <- 0;           // wrapping arithmetic (opt-in)
-atomic u32 shared <- 0;          // ISR-safe
+u32 x <- 42; // initialized, read-only
+mut u32 total; // a global with no initializer is zero-filled
+u32 MAX <- 100; // read-only: a compile-time constant
+mut clamp u8 brightness <- 200; // saturating arithmetic (DEFAULT behavior)
+mut wrap u32 counter <- 0; // wrapping arithmetic (opt-in)
+atomic mut u32 shared <- 0; // ISR-safe
 ```
 
-All variables are zero-initialized. No uninitialized variables exist.
+A **global** with no initializer is zero-filled, and a global struct's callback field gets
+its default function (ADR-029). A **local** must be written before it is read: `u32 y; u32 z <- y;`
+is `E0381` ("use of uninitialized variable 'y'"), and so is reading a field of a local
+struct declared without an initializer. A name is defined only once its declaration
+closes, so `u32 k <- k + 1;` is `E0427`.
+
+**Modifier order:** `atomic` or `volatile`, then `mut`, then `clamp` or `wrap`:
+`atomic mut clamp u8`, `volatile mut u32`, `mut wrap u32`. `mut atomic`, `mut volatile`
+and `wrap mut` are parse errors. The message names the misplaced token (`extraneous input 'atomic'`,
+`extraneous input 'mut'`) but never says where it goes.
 
 ## Overflow Behavior
 
-- **Default is clamp** (saturating): `u8 x <- 200; x +<- 100;` → x = 255
-- **opt-in wrap**: `wrap u32 c <- 0; c -<- 1;` → c = UINT32_MAX
-- Combine with atomic: `atomic clamp u8 brightness <- 0;`
+- **Default is clamp** (saturating): `mut u8 x <- 200; x +<- 100;` → x = 255
+- **opt-in wrap**: `mut wrap u32 c <- 0; c -<- 1;` → c = UINT32_MAX
+- Combine with atomic: `atomic mut clamp u8 brightness <- 0;`
+- **A struct field can carry its own modifier.** The default is `clamp`, and an array
+  element takes its array's modifier:
+
+```cnx
+struct Reading {
+    u8 level; // r.level +<- 10    -> cnx_clamp_add_u8(r.level, 10U)
+    wrap u8 checksum; // r.checksum +<- 10 -> r.checksum += 10U
+}
+```
 
 Clamp/wrap apply to **signed** types too: `clamp i8` saturates at both `-128` and `127`; `wrap` uses natural two's-complement wraparound.
 
@@ -152,7 +170,8 @@ string VERSION <- "1.0.0";          // read-only, auto-sized
 
 - A `mut` string must be sized (`mut string<64> s;`); only a read-only `string` auto-sizes from its initializer.
 - A literal or concat that exceeds the destination capacity is a compile error.
-- Compare strings with `=` / `!=`; **compound operators are not supported** (`s +<- x` ✗ — use `s <- s + x`).
+- Compare strings with `=` / `!=`; **compound operators are not supported** (`s +<- x` ✗).
+- **Concatenate in a declaration's initializer, with two operands:** `string<96> joined <- name + " World";`. Assigning a concat or substring to an existing string transpiles at exit 0 and emits C that gcc rejects: `s <- s + "b"` becomes `strncpy(s, s + "b", 64)`, and `part <- src[0, 4]` becomes `strncpy(part, ((src) & 0xFU), 8)` (#1257). Three operands (`a + b + c`) fail the same way even in a declaration (#1954). Until both are fixed, declare a new string for each step.
 - String literals accept the same escape sequences as char literals (newline, tab, carriage return, backslash, quote).
 - **Concat (`+`) and substring (`s[off, len]`) emit runtime code (`strncpy`/`strncat`)** — they may only appear **inside a function**, never at global/initializer scope (a global string initializes from a literal).
 - Substring `s[off, len]` is bounds-checked at compile time: `off + len` must fit the source's capacity, and the destination string must be large enough to hold `len`.
@@ -433,10 +452,25 @@ switch (cmd) {
 }
 ```
 
+**Every `if`, `else`, `while` and `for` body is a braced block** (MISRA C:2012 Rule 15.6).
+An unbraced body is `E0716` ("'if' body must be a braced block"). `else if` is the one
+unbraced `else`:
+
+```cnx
+u32 isPositive(i32 x) {
+    // ERROR E0716: if (x > 0) return 1;
+    if (x > 0) {
+        return 1;
+    }
+    return 0;
+}
+```
+
 **Switch rules (ADR-025):**
 
 - **≥2 clauses** required (MISRA 16.6) — a single-case switch is an error; use `if`.
-- **No `switch` on a boolean** (16.7) — use `if/else`. Switch on an **integral or enum** type; case labels are **constant** expressions.
+- **No `switch` on a boolean** (16.7) — use `if/else`. Switch on an **integral or enum** type; case labels are **constant** expressions. A label that is not a constant (a variable, a parameter, a function, a struct or bitmap field, a string const) is `E0717` ("Case label 'y' is not a constant").
+- **Inside a scope, a label may be qualified**, including a chain to a scoped enum: `case this.State.IDLE { }`. `global.X` works too.
 - **No duplicate** case values; **`default` must be last** (16.5).
 - **Enums must be exhaustive:** cover every variant explicitly, or use a **counted default** `default(n)` where `n` = how many variants the default covers (adding a variant later breaks the build until you bump `n` or add a case). Non-enum switches require a plain `default`.
 
@@ -709,6 +743,7 @@ C-Next enforces several MISRA C:2012 rules at the language level:
 | 12.2 | Shift amount must be < type bit width                      |
 | 13.5 | No function calls in `if`/`while`/`do-while` conditions    |
 | 14.4 | Conditions must be boolean comparisons, not bare variables |
+| 15.6 | Every `if`/`else`/`while`/`for` body is braced (`E0716`)   |
 | 9.3  | No partial array initialization                            |
 | 17.2 | No recursion                                               |
 | 10.3 | No implicit narrowing conversions                          |
@@ -759,6 +794,19 @@ void setup() {
     Serial.begin(115200);            // implicit global resolution
     global.pinMode(LED_PIN, OUTPUT); // explicit global
     delay(100);                      // implicit global
+}
+```
+
+**Passing a pointer argument to a C function warns `E0896`** ("C-Next cannot see how 'consume' uses parameter 1, so passing 'buf' to it is not memory safe"). This is expected: C-Next cannot check a body it cannot see, and the help suggests converting the function to C-Next. Where the C parameter is not `const` (`void consume(uint8_t* p)`), the argument must be `mut`. A read-only one is `E0900`, because C may write through it:
+
+```cnx
+#include "buffer_api.h" // void consume(uint8_t* p);  void peek(const uint8_t* p);
+
+void send() {
+    mut u8[8] buf <- [0*]; // mut: consume may write through its pointer
+    consume(buf); // E0896 warning; E0900 if buf were read-only
+    u8[8] table <- [1, 2, 3, 4, 5, 6, 7, 8];
+    peek(table); // E0896 too; a const C parameter takes a read-only argument
 }
 ```
 
@@ -890,16 +938,19 @@ C-Next types are never null. C library return values that CAN be null require `c
 ```cnx
 #include <stdio.h>
 
-// Nullable C return → requires c_ prefix
-FILE c_file <- fopen("data.txt", "r");
-if (c_file != NULL) {
-    // use c_file
-    fclose(c_file);
-}
+void readData() {
+    // Nullable C return → requires c_ prefix. mut, because fclose takes a
+    // non-const FILE*: a read-only c_file is E0900
+    mut FILE c_file <- fopen("data.txt", "r");
+    if (c_file != NULL) {
+        // use c_file
+        (void)fclose(c_file);
+    }
 
-// Non-nullable C-Next variable → NO c_ prefix
-string<64> buffer;                   // always valid
-u32 count <- 0;                      // always valid
+    // Non-nullable C-Next variable → NO c_ prefix
+    string<64> buffer; // always valid
+    u32 count <- 0; // always valid
+}
 ```
 
 **Rules:**
@@ -907,7 +958,8 @@ u32 count <- 0;                      // always valid
 - `c_` prefix REQUIRED for variables holding nullable C pointer returns
 - You must **capture** a NULL-returning C call's result — calling it bare and ignoring the return is `E0901` ("can return NULL - must check result")
 - `c_` prefix FORBIDDEN on non-nullable types (error E0906)
-- A `c_` variable must be **NULL-checked before use** — using it unguarded is `E0908` (`FILE c_file <- fopen(...); fclose(c_file);` ✗ → wrap in `if (c_file != NULL) { … }`)
+- A `c_` variable must be **NULL-checked before use** — using it unguarded is `E0908` (`mut FILE c_file <- fopen(...); (void)fclose(c_file);` ✗ → wrap in `if (c_file != NULL) { … }`)
+- A `c_` handle passed to a C function whose pointer parameter is not `const` (as `fclose`'s is not) must be `mut` (E0900)
 - NULL comparison only allowed on `c_`-prefixed variables
 - `malloc`/`calloc`/`realloc`/`free` FORBIDDEN (ADR-003)
 
@@ -915,7 +967,7 @@ u32 count <- 0;                      // always valid
 
 | Returns pointer that can be NULL | Example                                         |
 | -------------------------------- | ----------------------------------------------- |
-| `fopen()`                        | `FILE c_file <- fopen(...)`                     |
+| `fopen()`                        | `mut FILE c_file <- fopen(...)`                 |
 | `lv_display_create()`            | `lv_display_t c_disp <- lv_display_create(...)` |
 | `lv_label_create()`              | `lv_obj_t c_label <- lv_label_create(...)`      |
 
@@ -1259,18 +1311,18 @@ void encode(Msg m) { u8 id <- m.id; }                   // -> void encode(const 
 | `void f(u8[8] data)`              | `void f(const uint8_t data[8])`                           |
 | `void f(mut u8[8] data)`          | `void f(uint8_t data[8])`                                 |
 | `f(myVar)`                        | `f(&myVar)`                                               |
-| `scope S { private void f() {} }` | `static void S_f(void) {}`                                |
-| `scope S { void f() {} }`         | `void S_f(void) {}` + header (public by default)          |
-| `S.f()`                           | `S_f()`                                                   |
-| `u8[5] a <- [1,2,3,4,5]`          | `uint8_t a[5] = {1,2,3,4,5}`                              |
-| `string<64> s <- "hi"`            | `char s[65] = "hi"`                                       |
+| `scope S { private void f() {} }` | `static void S__f(void) {}` (two underscores, ADR-063)    |
+| `scope S { void f() {} }`         | `void S__f(void) {}` + header (public by default)         |
+| `S.f()`                           | `S__f()`                                                  |
+| `u8[5] a <- [1,2,3,4,5]`          | `const uint8_t a[5] = {1,2,3,4,5}` (`mut` drops `const`)  |
+| `string<64> s <- "hi"`            | `const char s[65] = "hi"`                                 |
 | `s.value_char_count`              | `strlen(s)`                                               |
 | `s.capacity`                      | `64`                                                      |
 | `flags[3] <- true`                | bit-set expression                                        |
 | `val[0, 8]`                       | `(val >> 0) & 0xFF`                                       |
 | `x[8,8] <- v[0,4]`                | clear 8-bit window + write 4-bit value (zero-extended)    |
-| `atomic u32 x`                    | `volatile uint32_t x` + LDREX/STREX                       |
-| `volatile u32 x`                  | `volatile uint32_t x` (no atomics)                        |
+| `atomic mut u32 x`                | `volatile uint32_t x` + LDREX/STREX                       |
+| `volatile mut u32 x`              | `volatile uint32_t x` (no atomics)                        |
 | `critical { ... }`                | PRIMASK save/disable/restore                              |
 | `#include "x.cnx"`                | `#include "x.hpp"` (C++ mode) / `#include "x.h"` (C mode) |
 | `#include <x.cnx>`                | `#include <x.hpp>` (C++ mode) / `#include <x.h>` (C mode) |
@@ -1281,3 +1333,5 @@ void encode(Msg m) { u8 id <- m.id; }                   // -> void encode(const 
 | ------------------------------------------------------------------------------------------------------------------------------------- | ------- | --------------- |
 | #967: Symbol cache cross-language conflict on scoped method names                                                                     | v0.2.12 | FIXED (v0.2.15) |
 | #981: Macro-sized array field on local struct generates bit extraction instead of array index (`msg.data[3]` → `(msg.data >> 3) & 1`) | v0.2.15 | FIXED (v0.2.16) |
+| #1257: A concat or substring assigned to an existing string (`s <- s + "b"`, `part <- src[0, 4]`) emits a `strncpy` that gcc rejects  | v0.3.0  | OPEN            |
+| #1954: A three-operand concat in a declaration (`a + b + c`) emits pointer addition, which gcc rejects                                | v0.4.0  | OPEN (v0.4.1)   |
