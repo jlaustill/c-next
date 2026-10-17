@@ -2,9 +2,9 @@
 
 ## Status
 
-**Accepted** -- revised by #1975 review 2 (owner-approved: "Approved, make it
-the decision and implement it on #2077"); the revision is implemented in
-PR #2077. The original `bit_length`/`byte_length`/`element_count`/`char_count`
+**Implemented** (owner confirmed on #1933, 2026-10-17) -- revised by #1975 review 2
+(owner-approved: "Approved, make it the decision and implement it on #2077"); the
+revision is implemented in PR #2077. The original `bit_length`/`byte_length`/`element_count`/`char_count`
 design was Implemented and is superseded by the Decision below.
 
 ## Decision
