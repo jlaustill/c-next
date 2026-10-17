@@ -161,8 +161,8 @@ string VERSION <- "1.0.0";          // read-only, auto-sized
 
 ```cnx
 mut u8[64] buf;
-buf[0, 4]  <- 0x12345678;   // bytes 78 56 34 12 at indices 0..3 (LE)
-buf[10, 2] <- 0xCDEFu16;    // bytes EF CD at indices 10..11
+buf[0, 4] <- 0x12345678; // bytes 78 56 34 12 at indices 0..3 (LE)
+buf[10, 2] <- 0xCDEFu16; // bytes EF CD at indices 10..11
 ```
 
 ## Structs
@@ -246,15 +246,15 @@ Access bitmap fields by **name** (`f.Mode`); bracket-indexing a bitmap (`f[3]`) 
 
 ```cnx
 mut u8 flags <- 0;
-flags[3] <- true;              // set bit 3
-bool b <- flags[3];            // read bit 3
-flags[4, 3] <- 5;             // set 3 bits starting at bit 4
-u8 field <- flags[4, 3];      // read 3-bit field
+flags[3] <- true; // set bit 3
+bool b <- flags[3]; // read bit 3
+flags[4, 3] <- 5; // set 3 bits starting at bit 4
+u8 field <- flags[4, 3]; // read 3-bit field
 
 // Use for narrowing (casts are FORBIDDEN)
 u32 big <- 0xDEADBEEF;
-u8 low <- big[0, 8];          // bits 0-7 → 0xEF
-u8 high <- big[24, 8];        // bits 24-31 → 0xDE
+u8 low <- big[0, 8]; // bits 0-7 → 0xEF
+u8 high <- big[24, 8]; // bits 24-31 → 0xDE
 ```
 
 Bit indexing also works on **floats** (`f32`/`f64`): `f32val[24, 8]` reads/writes IEEE-754 bytes (union-based, MISRA 21.15) — the way to build a float from wire bytes.
@@ -649,10 +649,10 @@ atomic mut u32 counter <- 0;
 atomic mut clamp u8 brightness <- 0;
 atomic mut bool ready <- false;
 
-counter +<- 1;                       // lock-free on Cortex-M3+ (LDREX/STREX)
-brightness +<- 10;                   // atomic add with clamp
-ready <- true;                       // atomic store
-u32 val <- counter;                  // atomic load
+counter +<- 1; // lock-free on Cortex-M3+ (LDREX/STREX)
+brightness +<- 10; // atomic add with clamp
+ready <- true; // atomic store
+u32 val <- counter; // atomic load
 ```
 
 Transpiles to LDREX/STREX loops on Cortex-M3+, critical sections on Cortex-M0.

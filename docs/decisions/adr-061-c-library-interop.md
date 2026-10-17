@@ -40,7 +40,7 @@ ADR-037 forbids `#define` with values:
 
 ```c-next
 #define configUSE_PREEMPTION 1  // ERROR E0502: use const instead
-const u32 configUSE_PREEMPTION <- 1;  // Transpiles to C const, not #define
+u32 configUSE_PREEMPTION <- 1; // Transpiles to C const, not #define
 ```
 
 **The problem:** C `const` variables cannot be used in `#if` preprocessor conditionals. The preprocessor runs before the compiler sees `const` declarations.

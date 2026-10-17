@@ -9,12 +9,12 @@
 In C-Next, the pattern for classes (ADR-005) is:
 
 ```cnx
-const u32 UART1_BASE <- 0x40011000;
+u32 UART1_BASE <- 0x40011000;
 
-UART uart1;  // Global declaration
+UART uart1; // Global declaration
 
 void init() {
-    uart1 <- UART(UART1_BASE);  // Initialization
+    uart1 <- UART(UART1_BASE); // Initialization
 }
 ```
 
@@ -219,9 +219,9 @@ bool initialized;    // false - correct initial state
 The global declaration + init() pattern relies on zero initialization:
 
 ```cnx
-const u32 UART1_BASE <- 0x40011000;
+u32 UART1_BASE <- 0x40011000;
 
-UART uart1;  // Zero-initialized: all fields = 0
+UART uart1; // Zero-initialized: all fields = 0
 
 void init() {
     // Before this line, uart1 exists but is "empty"
@@ -230,7 +230,7 @@ void init() {
 
 void main() {
     init();
-    uart1.send(data, len);  // Safe: uart1 is fully initialized
+    uart1.send(data, len); // Safe: uart1 is fully initialized
 }
 ```
 
@@ -317,7 +317,7 @@ one indeterminate case still requires every reader to know which case it is.
 ### Before and After init()
 
 ```cnx
-const u32 UART1_BASE <- 0x40011000;
+u32 UART1_BASE <- 0x40011000;
 
 UART uart1;
 UART uart2;
@@ -331,11 +331,11 @@ void main() {
     init();
 
     if (uart1.isInitialized()) {
-        uart1.send(data, len);  // OK
+        uart1.send(data, len); // OK
     }
 
     if (uart2.isInitialized()) {
-        uart2.send(data, len);  // Never runs - uart2.baseAddress = 0
+        uart2.send(data, len); // Never runs - uart2.baseAddress = 0
     }
 }
 ```
@@ -343,10 +343,10 @@ void main() {
 ### Counter Pattern
 
 ```cnx
-u32 errorCount;      // Starts at 0
+mut u32 errorCount; // Starts at 0
 
 void handleError() {
-    errorCount +<- 1;  // Increment from 0
+    errorCount +<- 1; // Increment from 0
 }
 ```
 

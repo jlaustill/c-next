@@ -355,7 +355,7 @@ const char VERSION[6] = "1.0.0";
 ### Comparison
 
 ```cnx
-if (a = b) { }
+if (a = b) {}
 ```
 
 →

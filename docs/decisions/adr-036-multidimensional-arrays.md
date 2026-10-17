@@ -39,7 +39,7 @@ file scope, for a local, a struct field and a parameter.
 ### 2D Arrays
 
 ```cnx
-u8[24][80] display;  // 24 rows, 80 columns
+mut u8[24][80] display; // 24 rows, 80 columns
 
 display[0][0] <- 'H';
 display[0][1] <- 'i';
@@ -56,7 +56,7 @@ voxels[x][y][z] <- material;
 ### Matrices
 
 ```cnx
-f32[4][4] transform;
+mut f32[4][4] transform;
 
 // Identity matrix
 transform[0][0] <- 1.0;

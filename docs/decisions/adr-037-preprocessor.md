@@ -127,8 +127,8 @@ This eliminates 5 of 7 classic macro bug classes while preserving useful conditi
 #define BUFFER_SIZE 256  // E0502
 
 // CORRECT: Use const
-const u32 BUFFER_SIZE <- 256;
-const u8 VERSION[] <- "1.0.0";
+u32 BUFFER_SIZE <- 256;
+u8 VERSION[] <- "1.0.0";
 ```
 
 ### Function-Like Macros (Forbidden)

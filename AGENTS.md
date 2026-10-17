@@ -173,7 +173,7 @@ mut f32 result;
 
 void test_operations() {
     f32 a <- 10.5;
-    result <- a + 5.0;  // Just assign, no validation
+    result <- a + 5.0; // Just assign, no validation
     result <- a * 2.0;
 }
 
@@ -209,7 +209,7 @@ u32 main() {
 
     // ... more tests with incrementing error codes ...
 
-    return 0;  // Success - ALL validations passed
+    return 0; // Success - ALL validations passed
 }
 ```
 

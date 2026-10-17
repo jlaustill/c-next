@@ -123,12 +123,13 @@ It is evaluated with ADR-044's arithmetic, including its rule that a value fixed
 never overflows. A member written without a value continues from the one before it.
 
 ```cnx
-const u32 BASE <- 0x10;
+u32 BASE <- 0x10;
 
 enum Reg {
-    CTRL   <- BASE,       // 16
-    STATUS,               // 17
-    DATA   <- BASE + 4    // 20
+    CTRL <- BASE, // 16
+    STATUS, // 17
+    DATA <- BASE +
+        4 // 20
 }
 ```
 

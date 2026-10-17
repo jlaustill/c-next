@@ -159,14 +159,14 @@ switch (cmd) {
 A label may name a const in any of ADR-016's three spellings (#1629):
 
 ```cnx
-const u8 LIMIT <- 1;
+u8 LIMIT <- 1;
 
 scope Panel {
-    const u8 LIMIT <- 3;
+    u8 LIMIT <- 3;
 
     public u32 pick(u8 s) {
         switch (s) {
-            case this.LIMIT {   // the scope's LIMIT: 3
+            case this.LIMIT { // the scope's LIMIT: 3
                 return 30;
             }
             case global.LIMIT { // the file's LIMIT: 1

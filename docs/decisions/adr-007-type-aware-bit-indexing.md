@@ -47,10 +47,10 @@ The transpiler already knows type information:
 Any integer type can be indexed to access individual bits:
 
 ```cnx
-u8 flags <- 0;
-flags[3] <- true;           // Set bit 3
-flags[3] <- false;          // Clear bit 3
-bool isSet <- flags[3];     // Read bit 3
+mut u8 flags <- 0;
+flags[3] <- true; // Set bit 3
+flags[3] <- false; // Clear bit 3
+bool isSet <- flags[3]; // Read bit 3
 ```
 
 **Generated C:**
@@ -67,9 +67,9 @@ bool isSet = ((flags >> 3) & 1);             // Read
 Access multiple bits with `[start, width]` syntax:
 
 ```cnx
-u8 flags <- 0;
-flags[0, 3] <- 5;           // Set 3 bits starting at bit 0 to value 5
-u8 field <- flags[4, 4];    // Read 4 bits starting at bit 4
+mut u8 flags <- 0;
+flags[0, 3] <- 5; // Set 3 bits starting at bit 0 to value 5
+u8 field <- flags[4, 4]; // Read 4 bits starting at bit 4
 ```
 
 **Generated C:**
@@ -110,9 +110,9 @@ We considered several alternatives from other languages:
 ### Why Not Variable Indices Initially?
 
 ```cnx
-u8 flags <- 0;
+mut u8 flags <- 0;
 u32 i <- 3;
-flags[i] <- true;    // Currently generates code, but not bounds-checked
+flags[i] <- true; // Currently generates code, but not bounds-checked
 ```
 
 Variable indices are supported but not compile-time validated. Future work may add runtime bounds checking or restrict to compile-time constants for memory safety.
@@ -132,11 +132,11 @@ same index expression is in range or out of range depending only on what the ope
 was declared as.
 
 ```cnx
-u8 small <- 0;
-u32 wide <- 0;
+mut u8 small <- 0;
+mut u32 wide <- 0;
 
-wide[20] <- true;    // in range: u32 has 32 bits
-small[20] <- true;   // out of range: u8 has 8 bits
+wide[20] <- true; // in range: u32 has 32 bits
+small[20] <- true; // out of range: u8 has 8 bits
 ```
 
 Both spellings are identical as text. Nothing about `20`, and nothing about what
@@ -187,11 +187,11 @@ GPIO7_DR_SET = mask;
 ### Configuration Bitfields
 
 ```cnx
-u8 config <- 0;
-config[0, 2] <- 3;    // Mode: bits 0-1
-config[2, 3] <- 5;    // Priority: bits 2-4
-config[5] <- true;    // Enable: bit 5
-config[6] <- false;   // Interrupt: bit 6
+mut u8 config <- 0;
+config[0, 2] <- 3; // Mode: bits 0-1
+config[2, 3] <- 5; // Priority: bits 2-4
+config[5] <- true; // Enable: bit 5
+config[6] <- false; // Interrupt: bit 6
 ```
 
 ### Float Bit Indexing (IEEE-754 Byte Access)
@@ -200,14 +200,14 @@ Float types (`f32`, `f64`) support bit indexing for type-safe access to their un
 
 ```cnx
 // Build an f32 from little-endian bytes
-f32 value <- 0.0;
-value[0, 8] <- 0x00;   // Byte 0 (LSB)
-value[8, 8] <- 0x00;   // Byte 1
-value[16, 8] <- 0x80;  // Byte 2
-value[24, 8] <- 0x3F;  // Byte 3 (MSB) → value is now 1.0f
+mut f32 value <- 0.0;
+value[0, 8] <- 0x00; // Byte 0 (LSB)
+value[8, 8] <- 0x00; // Byte 1
+value[16, 8] <- 0x80; // Byte 2
+value[24, 8] <- 0x3F; // Byte 3 (MSB) → value is now 1.0f
 
 // Read bytes from a float
-u8 highByte <- value[24, 8];  // Read MSB
+u8 highByte <- value[24, 8]; // Read MSB
 ```
 
 **Generated C:**
@@ -271,10 +271,10 @@ Choose the appropriate method based on your use case:
 For compile-time constant indices, the transpiler can validate:
 
 ```cnx
-u8 myVar <- 0;
-myVar[7] <- true;    // OK: bit 7 exists in u8
-myVar[8] <- true;    // ERROR: u8 only has bits 0-7
-myVar[0, 9] <- 5;    // ERROR: 9 bits exceeds u8 width
+mut u8 myVar <- 0;
+myVar[7] <- true; // OK: bit 7 exists in u8
+myVar[8] <- true; // ERROR: u8 only has bits 0-7
+myVar[0, 9] <- 5; // ERROR: 9 bits exceeds u8 width
 ```
 
 This is tracked as future work (compile-time validation phase).
@@ -288,10 +288,10 @@ ADR-036 peels one array dimension per subscript, a base accepts at most
 and is rejected with **E0856**.
 
 ```cnx
-u8 flags <- 0;
-flags[4] <- true;     // OK: one bit index on a scalar
-flags[4, 3] <- 5;     // OK: bit range
-flags[4][3] <- 5;     // ERROR E0856: flags[4] is a single bit, not an array
+mut u8 flags <- 0;
+flags[4] <- true; // OK: one bit index on a scalar
+flags[4, 3] <- 5; // OK: bit range
+flags[4][3] <- 5; // ERROR E0856: flags[4] is a single bit, not an array
 ```
 
 Enforced for every ADR-016 spelling of the base — bare, `this.` and `global.` — via a
@@ -388,7 +388,7 @@ The Rule 21.15 comment is emitted only when an equivalent `memcpy` would genuine
 **`u8[]` slice (one byte per element):**
 
 ```cnx
-u8[256] packetArray;
+mut u8[256] packetArray;
 u32 value32 <- 0x12345678;
 packetArray[0, 4] <- value32;
 ```
@@ -409,7 +409,7 @@ packetArray[3] = (uint8_t)(_tmp0 >> 24U);
 **`u16[]` slice (element offset, whole `uint16_t` writes):**
 
 ```cnx
-u16[8] wordArray;
+mut u16[8] wordArray;
 u32 v <- 0x11223344;
 wordArray[2, 4] <- v;
 ```
@@ -465,9 +465,9 @@ Runtime-dependent offsets or lengths are intentionally rejected, because the ele
 When a struct layout is fixed, the offsets are known at compile time. Use `const` variables to keep the writes readable while preserving compile-time safety:
 
 ```cnx
-const size OFFSET_FIELD1 <- 0;
-const size OFFSET_FIELD2 <- 4;
-const size OFFSET_FIELD3 <- 6;
+size OFFSET_FIELD1 <- 0;
+size OFFSET_FIELD2 <- 4;
+size OFFSET_FIELD3 <- 6;
 
 packetArray[OFFSET_FIELD1, 4] <- data.field1;
 packetArray[OFFSET_FIELD2, 2] <- data.field2;

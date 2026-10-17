@@ -37,7 +37,7 @@ A function definition serves as both the **type definition** and the **default v
 A function definition creates both a callable function AND a type:
 
 ```cnx
-void onReceive(const CAN_Message_T msg) {
+void onReceive(CAN_Message_T msg) {
     // default: no-op
 }
 ```
@@ -80,7 +80,7 @@ controller._handler(msg);
 If you need to know whether a callback was explicitly set (vs using the default), use a boolean flag - this is user code, not compiler magic:
 
 ```cnx
-void onReceive(const CAN_Message_T msg) { /* NO-OP */ }
+void onReceive(CAN_Message_T msg) { /* NO-OP */}
 
 struct Controller {
     onReceive _handler;
@@ -105,11 +105,11 @@ void Controller_process(Controller self, CAN_Message_T msg) {
 
 ```cnx
 // The function IS the type AND the default value
-void defaultCallback(const CAN_Message_T msg) {
+void defaultCallback(CAN_Message_T msg) {
     // no-op - this is what happens if no callback set
 }
 
-void onError(const CAN_Message_T msg) {
+void onError(CAN_Message_T msg) {
     // default: log and continue
     log("Unhandled CAN error");
 }
@@ -263,7 +263,7 @@ void EventSystem_fire(EventSystem self, Event e) {
 
 ```cnx
 // Cnx source:
-void defaultHandler(const CAN_Message_T msg) { }
+void defaultHandler(CAN_Message_T msg) {}
 
 struct Controller {
     defaultHandler _handler;

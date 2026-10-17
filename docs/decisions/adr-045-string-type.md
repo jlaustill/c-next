@@ -149,13 +149,13 @@ All string operations are checked at **compile time** against capacity:
 
 ```cnx
 // With initializer - capacity must fit the literal
-string<13> greeting <- "Hello, World!";  // 13 chars, transpiles to char[14]
+string<13> greeting <- "Hello, World!"; // 13 chars, transpiles to char[14]
 
 // Without initializer (empty string)
-string<256> buffer;    // Initialized to "" (first byte = '\0')
+string<256> buffer; // Initialized to "" (first byte = '\0')
 
 // Const string with automatic sizing (no capacity needed!)
-const string VERSION <- "1.0.0";  // Automatically string<5>, transpiles to char[6]
+string VERSION <- "1.0.0"; // Automatically string<5>, transpiles to char[6]
 ```
 
 **Generated C:**
@@ -171,9 +171,9 @@ const char VERSION[6] = "1.0.0";
 For `const string` declarations with a literal initializer, the capacity is **automatically calculated**:
 
 ```cnx
-const string VERSION <- "1.0.0";      // Inferred as string<5>
-const string APP_NAME <- "MyApp";     // Inferred as string<5>
-const string LONG_MSG <- "Hello!";    // Inferred as string<6>
+string VERSION <- "1.0.0"; // Inferred as string<5>
+string APP_NAME <- "MyApp"; // Inferred as string<5>
+string LONG_MSG <- "Hello!"; // Inferred as string<6>
 ```
 
 This eliminates redundancy - you don't need to count characters for constants.
@@ -365,15 +365,15 @@ The destination's remaining bytes are initialized to ASCII zero (null bytes) for
 Self-referential concatenation is a **compile error** because capacity math fails:
 
 ```cnx
-string<64> message <- "Hello";
-message <- message + " World";  // ERROR: 64 < 64 + 6 (capacity check fails)
+mut string<64> message <- "Hello";
+message <- message + " World"; // ERROR: 64 < 64 + 6 (capacity check fails)
 ```
 
 To append to a string, use explicit substring to manage bounds:
 
 ```cnx
-string<64> message <- "Hello";
-message <- message[0, 58] + " World";  // OK: 64 >= 58 + 6
+mut string<64> message <- "Hello";
+message <- message[0, 58] + " World"; // OK: 64 >= 58 + 6
 ```
 
 This forces the developer to consciously manage string bounds rather than risk silent overflow.
@@ -447,7 +447,7 @@ printf("%s\n", message);        // Works: string<N> is a char[]
 ### Const Qualifier (ADR-013)
 
 ```cnx
-const string VERSION <- "1.0.0";   // Immutable, auto-sized
+string VERSION <- "1.0.0"; // Immutable, auto-sized
 ```
 
 Transpiles to:

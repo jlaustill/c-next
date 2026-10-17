@@ -161,9 +161,9 @@ x <- x + 1;       // ERROR: Use x.increment()
 **Option B: Allow direct access (implicit atomic)**
 
 ```cnx
-atomic u32 x <- 0;
-x <- 5;           // OK: Generates atomic store
-x <- x + 1;       // OK: Generates atomic RMW
+atomic mut u32 x <- 0;
+x <- 5; // OK: Generates atomic store
+x <- x + 1; // OK: Generates atomic RMW
 ```
 
 ### Q4: Which Types Can Be Atomic?
@@ -258,15 +258,15 @@ atomic bool ready <- false;
 
 ```cnx
 // Declaration combines atomic + overflow behavior
-atomic clamp u8 brightness <- 0;
-atomic wrap u32 counter <- 0;
-atomic bool ready <- false;
+atomic mut clamp u8 brightness <- 0;
+atomic mut wrap u32 counter <- 0;
+atomic mut bool ready <- false;
 
 // Operations use standard C-Next syntax
-brightness +<- 10;     // Atomic add with clamp
-counter +<- 1;         // Atomic add with wrap
-ready <- true;         // Atomic store
-u32 val <- counter;    // Atomic load
+brightness +<- 10; // Atomic add with clamp
+counter +<- 1; // Atomic add with wrap
+ready <- true; // Atomic store
+u32 val <- counter; // Atomic load
 ```
 
 **Key Insight: Behavior Belongs to the Type**
