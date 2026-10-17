@@ -1,6 +1,6 @@
 # ADR-046: Nullable C Interop with c\_ Prefix
 
-**Status:** Implemented
+**Status:** Accepted (was Implemented; it declares no test matrix yet, which #1406 tracks. Owner ruling on #1933, 2026-10-17)
 **Date:** 2026-01-19
 **Implemented:** 2026-01-19 (v0.1.12)
 **Supersedes:** ADR-047 (NULL Keyword for C Library Interop)

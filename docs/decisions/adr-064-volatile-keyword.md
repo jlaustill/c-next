@@ -4,7 +4,7 @@
 > v1-gating work. See [`README.md`](README.md) for the numbering rule and the full
 > mapping table.
 
-**Status:** Implemented
+**Status:** Accepted (was Implemented; it declares no test matrix yet, which #1406 tracks. Owner ruling on #1933, 2026-10-17)
 **Date:** 2026-01-10
 **Accepted:** 2026-01-10
 **Implemented:** 2026-01-10

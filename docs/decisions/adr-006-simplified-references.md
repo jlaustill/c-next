@@ -1,6 +1,6 @@
 # ADR-006: Simplified Reference Model
 
-**Status:** Implemented
+**Status:** Accepted (was Implemented; it declares no test matrix yet, which #1406 tracks. Owner ruling on #1933, 2026-10-17)
 **Date:** 2025-12-26
 **Decision Makers:** C-Next Language Design Team
 
