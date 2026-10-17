@@ -1,6 +1,7 @@
 import type IArgumentPassing from "../../../../../2-Plan/types/IArgumentPassing";
 import CArgumentAddress from "../../../../../2-Plan/CArgumentAddress";
 import type ICArgumentFacts from "../../../../../2-Plan/types/ICArgumentFacts";
+import type ICallArgumentFacts from "../../../../../2-Plan/types/ICallArgumentFacts";
 import ForeignTypeFacts from "../../../../../../utils/ForeignTypeFacts";
 import type TParameterInfo from "../../../../../../types/TParameterInfo";
 import TestSymbolTable from "../../../../../__tests__/TestSymbolTable";
@@ -50,7 +51,7 @@ function planArguments(
     Parameters<typeof CallArgumentPassing.of>[3],
   expressions: Parser.ExpressionContext[],
   callee: string,
-  input: IGeneratorInput,
+  input: IGeneratorInput & ICallArgumentFacts,
 ): readonly IPlannedCallArgument[] {
   return expressions.map((expression, index) => {
     // 2.2's decision, made the way `FilePlanner.planArguments` makes it
@@ -140,7 +141,7 @@ function createMockInput(
     /** #1668: each case's declared variables, which the plan carries */
     typeRegistry?: Map<string, TTypeInfo>;
   } = {},
-): IGeneratorInput {
+): IGeneratorInput & ICallArgumentFacts {
   // #1668 (C7): an argument carries its declared type on its plan, which
   // `planArguments` reads from these
   const { typeRegistry = new Map<string, TTypeInfo>(), ...input } = overrides;
@@ -157,8 +158,9 @@ function createMockInput(
     callbackTypes: new Map(),
     callbackFieldTypes: new Map(),
     program: null,
+    callbackTypedefTypeFor: () => undefined,
     ...input,
-  } as unknown as IGeneratorInput;
+  } as unknown as IGeneratorInput & ICallArgumentFacts;
 }
 
 function createMockState(): IGeneratorState {

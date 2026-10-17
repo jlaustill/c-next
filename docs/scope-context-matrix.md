@@ -101,9 +101,10 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
-6 linked fixtures with no derivable context:
+7 linked fixtures with no derivable context:
 
 - `adr-014/struct-inferred-every-position.test.cnx`
+- `adr-014/struct-literal-argument-by-value-callback.test.cnx`
 - `adr-014/struct-literal-argument-included.test.cnx`
 - `adr-014/struct-literal-argument-transpile.test.cnx`
 - `adr-014/struct-literal-argument.test.cnx`
@@ -145,8 +146,9 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
-15 linked fixtures with no derivable context:
+16 linked fixtures with no derivable context:
 
+- `adr-017/bare-enum-struct-literal-argument.test.cnx`
 - `bugs/issue-1531-declaration-rejections/cross-file-enum.test.cnx`
 - `bugs/issue-1669-enum-member-values/binary-values.test.cnx`
 - `bugs/issue-1669-enum-member-values/cross-file-const.test.cnx`

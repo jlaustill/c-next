@@ -184,7 +184,7 @@ class ParameterInfoPlanner {
   static callbackTypedefParamInfo(
     functionName: string,
     paramIndex: number,
-    state: TranspileState,
+    state: Pick<TranspileState, "callbackTypedefTypeFor">,
   ): { isParamPointer: boolean; isParamConst: boolean } | null {
     // main's renamed result fields (#1450), with #1545's extracted lookup --
     // the two steps live in state.callbackTypedefTypeFor, so this site and

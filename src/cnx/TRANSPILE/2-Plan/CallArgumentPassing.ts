@@ -1,6 +1,7 @@
 import type ICallArgumentFacts from "./types/ICallArgumentFacts";
 import type IPlanQueries from "./types/IPlanQueries";
 import CallExprUtils from "./CallExprUtils";
+import ParameterInfoPlanner from "./ParameterInfoPlanner";
 import type IArgumentPassing from "./types/IArgumentPassing";
 
 /**
@@ -63,16 +64,25 @@ class CallArgumentPassing {
     if (!orchestrator.isCNextFunction(signatureName)) {
       return { param: resolved.param, mode: "c" };
     }
+    // Issue #895: a C callback typedef the callee is used as decides whether
+    // its parameter is a pointer, and its signature is written from the same
+    // answer -- so a struct the typedef takes by value goes by value here too.
+    const typedefParam = ParameterInfoPlanner.callbackTypedefParamInfo(
+      signatureName,
+      index,
+      input,
+    );
+    const byValue = typedefParam
+      ? !typedefParam.isParamPointer
+      : CallArgumentPassing.shouldPassByValue(
+          signatureName,
+          index,
+          resolved.param,
+          orchestrator,
+        );
     return {
       param: resolved.param,
-      mode: CallArgumentPassing.shouldPassByValue(
-        signatureName,
-        index,
-        resolved.param,
-        orchestrator,
-      )
-        ? "value"
-        : "reference",
+      mode: byValue ? "value" : "reference",
     };
   }
 

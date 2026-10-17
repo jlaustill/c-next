@@ -7,6 +7,8 @@ interface ICallArgumentFacts {
   readonly symbolTable: IResolvedSymbols | null;
   readonly functionSignatures: ReadonlyMap<string, IFunctionSignature>;
   readonly callbackTypes: ReadonlyMap<string, ICallbackTypeInfo>;
+  /** Issue #895: the C callback typedef a C-Next function is used as, if any */
+  callbackTypedefTypeFor(functionName: string): string | undefined;
 }
 
 export default ICallArgumentFacts;

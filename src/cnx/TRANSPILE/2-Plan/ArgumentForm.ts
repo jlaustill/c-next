@@ -51,7 +51,9 @@ class ArgumentForm {
    * C++: an rvalue binds to `const T&`; C takes a compound literal's address,
    * which a struct literal already is (#1530) -- that arm only for a parameter
    * the callee does not write, since a write to a `mut` one would land in the
-   * temporary. A scalar still gets `&(T){v}` for a `mut` one (#1203)
+   * temporary. A scalar still gets `&(T){v}` for a `mut` one (#1203). A
+   * parameter a C callback typedef takes by value never reaches here: it is
+   * passed by value (#895)
    */
   private static rvalue(
     targetParamBaseType: string | undefined,
