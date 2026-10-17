@@ -1,0 +1,2 @@
+12:4 error[E0915]: target 'esp32' cannot mask interrupts, so it has no critical section
+       help: A critical block disables interrupts (ADR-050), and this target has no mechanism to (interrupt_mask is false in its description). Name a target that can, or move the shared state out of the critical block.

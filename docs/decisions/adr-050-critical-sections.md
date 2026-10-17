@@ -148,10 +148,14 @@ critical {
 | Closure-based (Rust) | C-Next doesn't have first-class closures                         |
 | Automatic (Ada)      | Complex implementation, may defer to v2 for protected objects    |
 
-> **Toolchain note (#1143).** The `__cnx_*` wrappers are emitted as a four-arm
-> `#if`/`#elif`/`#else` block: ARM uses GNU inline assembly on PRIMASK, Arduino on
-> ARM uses `noInterrupts()`, AVR uses avr-libc `SREG`/`cli()`, and everything else
-> falls back to CMSIS. So a `critical` block costs a platform interrupt API, chosen
+> **Toolchain note (#1143).** The `__cnx_*` wrappers are emitted as a three-arm
+> `#if`/`#elif` block: ARM uses GNU inline assembly on PRIMASK, Arduino on
+> ARM uses `noInterrupts()`, AVR uses avr-libc `SREG`/`cli()`, and any other
+> compiler stops at `#error`. A target whose description has
+> `interrupt_mask: false` (host, esp32) rejects a `critical` block with E0915,
+> and makes an atomic read-modify-write a GNU `__atomic` compare-exchange loop
+> instead of a masked region (#1147, #1789). Multi-core exclusion stays with
+> ADR-100. So a `critical` block costs a platform interrupt API, chosen
 > by the compiler rather than by the transpiler. The current requirements are in
 > [compatibility.md](../compatibility.md), generated from the transpiler's registry.
 

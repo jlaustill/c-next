@@ -9,6 +9,7 @@ type TCompilerExtension =
   | "GNU inline assembly"
   | "__attribute__((always_inline))"
   | "designated initializers in C++"
-  | "compound literals in C++";
+  | "compound literals in C++"
+  | "GNU __atomic builtins";
 
 export default TCompilerExtension;

@@ -1,5 +1,6 @@
 /**
  * E0853: `return` inside a `critical` block leaves interrupts disabled.
+ * E0915: a `critical` block on a target that cannot mask interrupts (#1789).
  *
  * The generated C brackets the block with `__cnx_get_PRIMASK()` /
  * `__cnx_disable_irq()` on the way in and `__cnx_set_PRIMASK(__primask)` on the
@@ -34,11 +35,15 @@
 import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
 import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
 import type TStatement from "../../types/syntax/TStatement";
+import type ITargetDescription from "../../types/ITargetDescription";
 import StatementChildren from "../../utils/StatementChildren";
 import ICriticalSectionError from "./types/ICriticalSectionError";
 
 class CriticalSectionAnalyzer {
   private readonly found: ICriticalSectionError[] = [];
+
+  /** The run's target, or null where 1.4 rejected it and said why */
+  constructor(private readonly target: ITargetDescription | null) {}
 
   public analyze(program: IProgramSyntax): ICriticalSectionError[] {
     for (const member of program.declarations) {
@@ -66,6 +71,19 @@ class CriticalSectionAnalyzer {
 
   /** `inCritical`: some enclosing statement is a `critical` block */
   private statement(statement: TStatement, inCritical: boolean): void {
+    if (
+      statement.kind === "critical" &&
+      this.target?.interrupt_mask === false
+    ) {
+      this.found.push({
+        code: "E0915",
+        line: statement.span.line,
+        column: statement.span.column,
+        message: `target '${this.target.name}' cannot mask interrupts, so it has no critical section`,
+        helpText:
+          "A critical block disables interrupts (ADR-050), and this target has no mechanism to (interrupt_mask is false in its description). Name a target that can, or move the shared state out of the critical block.",
+      });
+    }
     if (statement.kind === "return" && inCritical) {
       this.found.push({
         code: "E0853",

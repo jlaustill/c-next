@@ -82,10 +82,6 @@ describe("ResultPrinter toolchain requirements", () => {
         key: "critical-avr-libc",
         sites: [{ sourcePath: "irq.cnx", line: 11 }],
       },
-      {
-        key: "critical-cmsis-fallback",
-        sites: [{ sourcePath: "irq.cnx", line: 11 }],
-      },
     ]);
     expect(output).toContain("one of, by target");
     expect(output).toContain("ARMv7-M core");

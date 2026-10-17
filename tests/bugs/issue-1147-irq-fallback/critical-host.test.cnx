@@ -1,0 +1,15 @@
+// test-error
+// #1147 / #1789: the build machine cannot mask interrupts from user space, so
+// a critical block has no lowering there. It reached the IRQ wrappers' last
+// arm, "Fallback: assume CMSIS is available", whose __disable_irq() no host
+// header declares, so the C failed to compile instead of the program failing
+// to transpile.
+#pragma target host
+
+mut u32 count <- 0;
+
+void bump() {
+    critical {
+        count <- count + 1;
+    }
+}

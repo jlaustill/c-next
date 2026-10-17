@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  * Requires: C99.
  * atomic read-modify-write requires CMSIS + ARMv7-M.
- * interrupt masking requires one of: ARMv7-M core + Arduino core, ARMv7-M core, avr-libc, CMSIS (by target).
+ * interrupt masking requires one of: ARMv7-M core + Arduino core, ARMv7-M core, avr-libc (by target).
  */
 
 #include "atomic-extern-edge-cases.test.h"
@@ -48,10 +48,7 @@ static inline uint8_t __cnx_get_PRIMASK(void) { return SREG; }
 static inline void __cnx_set_PRIMASK(uint8_t mask) { SREG = mask; }
 static inline void __cnx_disable_irq(void) { cli(); }
 #else
-// Fallback: assume CMSIS is available
-static inline void __cnx_disable_irq(void) { __disable_irq(); }
-static inline uint32_t __cnx_get_PRIMASK(void) { return __get_PRIMASK(); }
-static inline void __cnx_set_PRIMASK(uint32_t mask) { __set_PRIMASK(mask); }
+#error "C-Next: this platform has no interrupt masking for a critical section (ADR-050)"
 #endif
 
 // ADR-044: Overflow helper functions

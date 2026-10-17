@@ -19,6 +19,7 @@ class PlannedRequirements {
   private readonly safeDivisionKeys = new Set<string>();
   private readonly lengthHelperNames = new Set<string>();
   private ldrexStrexLoop = false;
+  private compareExchangeLoop = false;
   private readonly sourcePath: string;
 
   constructor(sourcePath: string) {
@@ -65,6 +66,12 @@ class PlannedRequirements {
     this.noteSite("ldrex_strex_loop", null);
   }
 
+  /** #1789: a GNU `__atomic` compare-exchange loop, whose site the requirement carries */
+  noteCompareExchangeLoop(): void {
+    this.compareExchangeLoop = true;
+    this.noteSite("compare_exchange_loop", null);
+  }
+
   get castHelpers(): ReadonlySet<string> {
     return this.castHelperKeys;
   }
@@ -75,6 +82,10 @@ class PlannedRequirements {
 
   get safeDivisions(): ReadonlySet<string> {
     return this.safeDivisionKeys;
+  }
+
+  get emitsCompareExchangeLoop(): boolean {
+    return this.compareExchangeLoop;
   }
 
   get emitsLdrexStrexLoop(): boolean {

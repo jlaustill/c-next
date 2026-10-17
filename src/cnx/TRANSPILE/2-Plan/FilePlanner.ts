@@ -60,6 +60,7 @@ import AssignmentHandlerUtils from "./AssignmentHandlerUtils";
 import StatementChildren from "../../utils/StatementChildren";
 import LDREX_MAP from "./types/LDREX_MAP";
 import type TAtomicForm from "../types/TAtomicForm";
+import type ITargetDescription from "../../types/ITargetDescription";
 import includeGenerators from "./IncludeGenerator";
 import DeclaredTypeInfo from "../../PARSE/3-Declare/DeclaredTypeInfo";
 import type IChainBase from "../../types/IChainBase";
@@ -1908,6 +1909,9 @@ class FilePlanner {
           requirements.require("cmsis");
           requirements.noteLdrexStrexLoop();
           cTypes.add(TYPE_MAP[atomic.typeName]);
+        } else if (atomic.form === "compare-exchange") {
+          requirements.noteCompareExchangeLoop();
+          cTypes.add(TYPE_MAP[atomic.typeName]);
         } else {
           requirements.require("irq_wrappers");
           cTypes.add(PRIMASK_C_TYPE);
@@ -1920,7 +1924,9 @@ class FilePlanner {
   /**
    * ADR-049: a compound write to a variable declared `atomic`, named bare or
    * through `global.`, is an LDREX/STREX loop where the target and the type
-   * allow one, otherwise the masked region. Null when the write is not atomic.
+   * allow one, otherwise the masked region, or a compare-exchange loop on a
+   * target that cannot mask interrupts (#1789). Null when the write is not
+   * atomic.
    * An `atomic` scope member written through `this.` is not seen here, and
    * saturates or wraps without the guard: bug #1179.
    */
@@ -1938,12 +1944,19 @@ class FilePlanner {
     const typeName = written?.typeName ?? "";
     const exclusive = LDREX_MAP[typeName] !== undefined;
     return {
-      form:
-        this.state.targetDescription?.ldrex_strex === true && exclusive
-          ? "ldrex-strex"
-          : "interrupt-mask",
+      form: FilePlanner.atomicFormFor(this.state.targetDescription, exclusive),
       typeName,
     };
+  }
+
+  /** The target's one answer to "how is a read-modify-write made atomic" */
+  private static atomicFormFor(
+    target: ITargetDescription | null,
+    exclusive: boolean,
+  ): TAtomicForm {
+    if (target?.ldrex_strex === true && exclusive) return "ldrex-strex";
+    if (target?.interrupt_mask === false) return "compare-exchange";
+    return "interrupt-mask";
   }
 
   /**
@@ -2028,6 +2041,8 @@ class FilePlanner {
       ),
       emittedLdrexStrexLoop: requirements.emitsLdrexStrexLoop,
       ldrexStrexSites: requirements.sitesOf("ldrex_strex_loop"),
+      emittedCompareExchangeLoop: requirements.emitsCompareExchangeLoop,
+      compareExchangeSites: requirements.sitesOf("compare_exchange_loop"),
     };
   }
 

@@ -27,6 +27,7 @@ import type TOutputMode from "../../../../../../cnx/types/TOutputMode";
 interface ICase {
   readonly name: string;
   readonly source: string;
+  readonly target?: string;
 }
 
 /**
@@ -50,6 +51,12 @@ const CASES: readonly ICase[] = [
   {
     name: "critical block",
     source: `mut u32 c <- 0;\nvoid bump() { critical { c <- c + 1; } }\nu32 main() { bump(); return 0; }`,
+    target: "cortex-m7",
+  },
+  {
+    name: "atomic read-modify-write without LDREX/STREX (interrupt-masked)",
+    source: `atomic mut u32 n <- 0;\nvoid main() { n +<- 1; }`,
+    target: "cortex-m0+",
   },
   {
     name: "atomic read-modify-write, no critical block",
@@ -80,14 +87,18 @@ const CASES: readonly ICase[] = [
 
 const MODES: readonly TOutputMode[] = ["c", "cpp"];
 
-async function generate(source: string, mode: TOutputMode) {
+async function generate(
+  source: string,
+  mode: TOutputMode,
+  target: string = "host",
+) {
   const transpiler = new Transpiler(
     {
       input: "",
       outDir: "",
       noCache: true,
       cppRequired: mode === "cpp",
-      target: "host",
+      target,
     },
     new MockFileSystem(),
   );
@@ -103,7 +114,11 @@ describe("toolchain requirement <-> emission invariant", () => {
     describe(`${mode} mode`, () => {
       for (const testCase of CASES) {
         it(`A: every recorded requirement is present in the output -- ${testCase.name}`, async () => {
-          const { text, keys } = await generate(testCase.source, mode);
+          const { text, keys } = await generate(
+            testCase.source,
+            mode,
+            testCase.target,
+          );
           for (const key of keys) {
             const requirement = TOOLCHAIN_REQUIREMENTS[key];
             expect(
@@ -119,7 +134,11 @@ describe("toolchain requirement <-> emission invariant", () => {
         });
 
         it(`B: every construct present in the output is recorded -- ${testCase.name}`, async () => {
-          const { text, keys } = await generate(testCase.source, mode);
+          const { text, keys } = await generate(
+            testCase.source,
+            mode,
+            testCase.target,
+          );
           for (const requirement of Object.values(TOOLCHAIN_REQUIREMENTS)) {
             if (requirement.probe === null) continue;
             if (!requirement.modes.includes(mode)) continue;
@@ -167,6 +186,7 @@ describe("generated file banner", () => {
     const { text } = await generate(
       `mut u32 c <- 0;\nvoid bump() { critical { c <- c + 1; } }\nu32 main() { bump(); return 0; }`,
       "c",
+      "cortex-m7",
     );
     expect(text).toContain(" * Requires: C99.");
     expect(text).toContain("interrupt masking requires one of:");

@@ -1,6 +1,6 @@
 // test-c-only
 // test-execution
-// test-target-xfail: host #1147 "implicit declaration of function"
+#pragma target cortex-m7
 // Tests: Comprehensive enum scenarios - global, scope, cross-scope, loops, atomic, critical
 
 // === GLOBAL ENUM ===

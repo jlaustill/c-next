@@ -1,5 +1,5 @@
 // test-c-only
-// test-target-xfail: host #1147 "implicit declaration of function"
+#pragma target cortex-m7
 mut u8[64] buffer;
 
 mut u32 writeIdx <- 0;

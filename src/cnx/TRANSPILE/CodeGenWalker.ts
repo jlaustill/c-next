@@ -3721,7 +3721,10 @@ class CodeGenWalker {
    * Generates code that works on:
    * - ARM platforms (bare-metal or Arduino): Uses inline assembly for PRIMASK access
    * - AVR Arduino: Uses SREG save/restore pattern
-   * - Other platforms: Falls back to CMSIS intrinsics
+   * - Any other compiler: `#error`. A target that cannot mask interrupts has no
+   *   critical section (E0915) and lowers atomics without the wrappers (#1789),
+   *   so only C compiled for a platform other than the one it was transpiled for
+   *   reaches this arm (#1147: it assumed CMSIS, which no such platform has)
    *
    * This avoids dependencies on CMSIS headers which may not be available on all platforms
    * (e.g., Teensy 4.x via Arduino.h doesn't expose __get_PRIMASK/__set_PRIMASK).
@@ -3762,10 +3765,7 @@ class CodeGenWalker {
       "static inline void __cnx_set_PRIMASK(uint8_t mask) { SREG = mask; }",
       "static inline void __cnx_disable_irq(void) { cli(); }",
       "#else",
-      "// Fallback: assume CMSIS is available",
-      "static inline void __cnx_disable_irq(void) { __disable_irq(); }",
-      "static inline uint32_t __cnx_get_PRIMASK(void) { return __get_PRIMASK(); }",
-      "static inline void __cnx_set_PRIMASK(uint32_t mask) { __set_PRIMASK(mask); }",
+      '#error "C-Next: this platform has no interrupt masking for a critical section (ADR-050)"',
       "#endif",
       "",
     ];

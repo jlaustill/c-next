@@ -16,6 +16,8 @@ interface ITargetDescription {
   readonly ldrex_strex: boolean;
   /** Selective interrupt masking exists (ADR-050) */
   readonly basepri: boolean;
+  /** Global interrupt masking exists, so a critical block has a lowering (ADR-050) */
+  readonly interrupt_mask: boolean;
   readonly char_bits: number;
   readonly char_signed: boolean;
   readonly short_bits: number;

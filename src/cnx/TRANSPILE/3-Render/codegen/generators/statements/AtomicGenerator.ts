@@ -4,6 +4,7 @@
  * Generates C code for atomic Read-Modify-Write operations (ADR-049):
  * - LDREX/STREX loops for platforms with exclusive access support
  * - PRIMASK-based wrappers for interrupt-safe operations
+ * - GNU `__atomic` compare-exchange loops where neither exists (#1789)
  *
  * These are helper functions called from assignment generation,
  * not top-level statement generators.
@@ -93,6 +94,29 @@ function generateLdrexStrexLoop(
 }
 
 /**
+ * #1789: a compare-exchange retry loop, for a target with neither LDREX/STREX
+ * nor interrupt masking. The generic builtins take any type the variable can
+ * have, floats included, and `__old` is reloaded by a failed exchange.
+ */
+function generateCompareExchangeLoop(
+  target: string,
+  innerOp: string,
+  typeInfo: TTypeInfo,
+  innerEffects: readonly TGeneratorEffect[],
+): IGeneratorOutput {
+  const cType = TYPE_MAP[typeInfo.baseType];
+  const code = `{
+    ${cType} __old;
+    ${cType} __new;
+    __atomic_load(&${target}, &__old, __ATOMIC_RELAXED);
+    do {
+        __new = ${innerOp};
+    } while (!__atomic_compare_exchange(&${target}, &__old, &__new, 0, __ATOMIC_SEQ_CST, __ATOMIC_RELAXED));
+}`;
+  return { code, effects: [...innerEffects] };
+}
+
+/**
  * Generate an interrupt-masked atomic read-modify-write: the ADR-050 masked
  * region a `critical` block takes, through the same `__cnx_` IRQ wrappers
  * (#1146: this emitted raw CMSIS with no platform guard, so AVR got CMSIS
@@ -125,7 +149,8 @@ function generatePrimaskWrapper(
 
 /**
  * ADR-049: Generate atomic Read-Modify-Write operation.
- * Written in the form 2.2 decided: LDREX/STREX, or the masked region.
+ * Written in the form 2.2 decided: LDREX/STREX, the masked region, or a
+ * compare-exchange loop.
  *
  * @param target - The target variable expression
  * @param cOp - The C compound assignment operator (+=, -=, etc.)
@@ -160,6 +185,13 @@ function generateAtomicRMW(
       typeInfo,
       innerResult.effects,
     );
+  } else if (form === "compare-exchange") {
+    return generateCompareExchangeLoop(
+      target,
+      innerResult.code,
+      typeInfo,
+      innerResult.effects,
+    );
   } else {
     return generatePrimaskWrapper(target, cOp, value, typeInfo, clampOp);
   }
@@ -170,6 +202,7 @@ const atomicGenerators = {
   generateAtomicRMW,
   generateInnerAtomicOp,
   generateLdrexStrexLoop,
+  generateCompareExchangeLoop,
   generatePrimaskWrapper,
 };
 
