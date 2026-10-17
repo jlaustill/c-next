@@ -6,6 +6,7 @@
  * the scope is one to `S__x`, not to nothing.
  */
 
+import ExpressionShape from "../../../utils/ExpressionShape";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import type TChainRoot from "../../../types/TChainRoot";
 import type TExpression from "../../../types/syntax/TExpression";
@@ -14,7 +15,7 @@ import type IAnalysisContext from "../types/IAnalysisContext";
 import type IWrittenBinding from "../types/IWrittenBinding";
 
 class WrittenBinding {
-  /** `K`, `table[0]`, `this.K`, `S.x`, `global.cfg.x`; null for anything else */
+  /** `K`, `(K)`, `table[0]`, `this.K`, `S.x`, `global.cfg.x`; null for anything else */
   static ofExpression(
     expr: TExpression,
     context: IAnalysisContext,
@@ -22,25 +23,23 @@ class WrittenBinding {
     if (expr.kind === "unary" && expr.operator === "&") {
       return WrittenBinding.ofExpression(expr.operand, context);
     }
-    if (expr.kind === "identifier") {
-      return WrittenBinding.of(null, expr.name, [], expr.span, context);
-    }
-    if (expr.kind !== "postfix") return null;
-    if (expr.primary.kind === "identifier") {
+    const view = ExpressionShape.postfixView(expr);
+    if (view === null) return null;
+    if (view.primary.kind === "identifier") {
       return WrittenBinding.of(
         null,
-        expr.primary.name,
-        expr.ops,
+        view.primary.name,
+        view.ops,
         expr.span,
         context,
       );
     }
-    const first = expr.ops[0];
-    if (expr.primary.kind !== "root" || first.kind !== "member") return null;
+    const first = view.ops[0];
+    if (view.primary.kind !== "root" || first?.kind !== "member") return null;
     return WrittenBinding.of(
-      expr.primary.root,
+      view.primary.root,
       first.name,
-      expr.ops.slice(1),
+      view.ops.slice(1),
       expr.span,
       context,
     );

@@ -10,18 +10,18 @@ codes that already have a fixture.
 
 ## Error Code Ranges
 
-| Range     | Category                                                           | Count   |
-| --------- | ------------------------------------------------------------------ | ------- |
-| E00xx     | Reserved/Test                                                      | 1       |
-| E02xx     | Identifier/Param Naming                                            | 5       |
-| E03xx     | Struct Fields/Init                                                 | 6       |
-| E04xx     | Symbol Resolution                                                  | 16      |
-| E05xx     | Include/Preprocessor                                               | 18      |
-| E06xx     | Sizeof Expressions                                                 | 3       |
-| E07xx     | Control Flow                                                       | 15      |
-| E08xx     | Arithmetic/Array Safety                                            | 61      |
-| E09xx     | NULL Safety, Compile-Time Values, Literal Form, String Conversions | 15      |
-| **Total** |                                                                    | **140** |
+| Range     | Category                                                                            | Count   |
+| --------- | ----------------------------------------------------------------------------------- | ------- |
+| E00xx     | Reserved/Test                                                                       | 1       |
+| E02xx     | Identifier/Param Naming                                                             | 5       |
+| E03xx     | Struct Fields/Init                                                                  | 6       |
+| E04xx     | Symbol Resolution                                                                   | 16      |
+| E05xx     | Include/Preprocessor                                                                | 18      |
+| E06xx     | Sizeof Expressions                                                                  | 3       |
+| E07xx     | Control Flow                                                                        | 15      |
+| E08xx     | Arithmetic/Array Safety                                                             | 61      |
+| E09xx     | NULL Safety, Compile-Time Values, Literal Form, String Conversions, `mut` Arguments | 16      |
+| **Total** |                                                                                     | **141** |
 
 ---
 
@@ -417,6 +417,12 @@ base: bare, `this.` and `global.`.
 | Code  | Message                                                                                                                                                                           | Help                                                                                                          | Source                                             |
 | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
 | E0914 | A string value (a literal or a `string<N>`) lands in an integer, float, bool, enum or bitmap target -- as the value, the value it parenthesizes or a ternary arm (ADR-024, #1739) | A string lands only in a `string<N>` (ADR-045); a `u8` array may be initialized by a string literal (ADR-035) | `TRANSPILE/1-Analyze/IntegerConversionAnalyzer.ts` |
+
+## E0915 — An Argument a `mut` Parameter Cannot Write (ADR-006)
+
+| Code  | Message                                                                                                                              | Help                                                                                                | Source                                           |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| E0915 | An argument to a `mut` C-Next parameter is not a variable -- a literal, a call's or an operator's result, a cast or a struct literal | A `mut` parameter writes its argument (ADR-006); assign the value to a `mut` variable and pass that | `TRANSPILE/1-Analyze/ConstAssignmentAnalyzer.ts` |
 
 ---
 

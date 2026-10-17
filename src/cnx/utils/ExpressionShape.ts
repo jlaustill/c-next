@@ -9,20 +9,28 @@ import type IChainHead from "../types/IChainHead";
 class ExpressionShape {
   /**
    * The expression as a primary and its postfix operations, when it is one --
-   * no unary, binary or ternary operator at its top.
+   * no unary, binary or ternary operator at its top. Parentheses around the
+   * whole expression or its primary change nothing: `(a)` is `a` and `(cfg).x`
+   * is `cfg.x` (#1203).
    */
   static postfixView(expr: TExpression): {
     readonly primary: TExpression;
     readonly ops: readonly TPostfixOpSyntax[];
   } | null {
     switch (expr.kind) {
+      case "parenthesized":
+        return ExpressionShape.postfixView(expr.expression);
       case "ternary":
       case "binary":
       case "unary":
       case "missing":
         return null;
-      case "postfix":
-        return { primary: expr.primary, ops: expr.ops };
+      case "postfix": {
+        const inner = ExpressionShape.postfixView(expr.primary);
+        return inner === null
+          ? { primary: expr.primary, ops: expr.ops }
+          : { primary: inner.primary, ops: [...inner.ops, ...expr.ops] };
+      }
       default:
         return { primary: expr, ops: [] };
     }
