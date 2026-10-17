@@ -799,7 +799,7 @@ void setup() {
 **Passing a pointer argument to a C function warns `E0896`** ("C-Next cannot see how 'consume' uses parameter 1, so passing 'buf' to it is not memory safe"). This is expected: C-Next cannot check a body it cannot see, and the help suggests converting the function to C-Next. Where the C parameter is not `const` (`void consume(uint8_t* p)`), the argument must be `mut`. A read-only one is `E0900`, because C may write through it:
 
 ```cnx
-#include "capi.h" // void consume(uint8_t* p);  void peek(const uint8_t* p);
+#include "buffer_api.h" // void consume(uint8_t* p);  void peek(const uint8_t* p);
 
 void send() {
     mut u8[8] buf; // mut: consume may write through its pointer
