@@ -16,7 +16,7 @@ typedef struct TestStruct {
 } TestStruct;
 
 /* External variables */
-extern char globalStr[65];
+extern const char globalStr[65];
 
 #ifdef __cplusplus
 }

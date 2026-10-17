@@ -1,0 +1,11 @@
+// test-error
+// test-adr: 071
+// A C parameter lowers alike with or without a name, so a read-only argument
+// meets the same E0900 for `T (*rows)[4]` and for `T (*)[4]`.
+#include "c-rows.h"
+
+void run() {
+    u32 v <- 1;
+    rows_named(v);
+    rows_unnamed(v);
+}

@@ -27,22 +27,22 @@ static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
 // Tests: i32 array parameter assignment
 // Coverage: Signed integer array parameters with negative values
 // Write to sized array
-void writeI32(int32_t arr[4], uint32_t index, int32_t value) {
+void writeI32(int32_t arr[4], const uint32_t index, const int32_t value) {
     arr[index] = value;
 }
 
 // Read from array
-int32_t readI32(int32_t arr[4], uint32_t index) {
+int32_t readI32(const int32_t arr[4], const uint32_t index) {
     return arr[index];
 }
 
 // Negate array element
-void negateI32(int32_t arr[4], uint32_t index) {
+void negateI32(int32_t arr[4], const uint32_t index) {
     arr[index] = -arr[index];
 }
 
 // Add to array element
-void addToI32(int32_t arr[4], uint32_t index, int32_t delta) {
+void addToI32(int32_t arr[4], const uint32_t index, const int32_t delta) {
     arr[index] = cnx_clamp_add_i32(arr[index], delta);
 }
 

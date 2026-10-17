@@ -35,8 +35,8 @@ int main(void) {
     for (uint32_t i = 0U; i < 3; i = cnx_clamp_add_u32(i, 1U)) {
         sum = cnx_clamp_add_u32(sum, cfg.items[i].value);
     }
-    uint32_t first = cfg.items[0U].value;
-    uint8_t firstFlags = cfg.items[0U].flags;
+    const uint32_t first = cfg.items[0U].value;
+    const uint8_t firstFlags = cfg.items[0U].flags;
     if (sum != 600) {
         return 1;
     }

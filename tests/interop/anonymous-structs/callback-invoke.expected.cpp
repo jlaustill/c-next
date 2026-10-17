@@ -25,7 +25,7 @@ void my_config_handler(const SimpleConfig& cfg) {
 }
 
 int main(void) {
-    SimpleConfig cfg = { .value = 100, .flags = { .flag_a = 1 } };
+    const SimpleConfig cfg = { .value = 100, .flags = { .flag_a = 1 } };
     my_config_handler(cfg);
     if (g_callback_value != 101) {
         return 1;

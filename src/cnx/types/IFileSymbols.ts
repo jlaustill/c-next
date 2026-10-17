@@ -1,6 +1,5 @@
 import type TSymbol from "./symbols/TSymbol";
 import type ILexicalFrame from "./ILexicalFrame";
-import type IFileModifications from "./IFileModifications";
 import type TCallbackUse from "./TCallbackUse";
 
 /**
@@ -65,12 +64,10 @@ interface IFileSymbols {
    */
   readonly lexicalScopes: ILexicalFrame;
   /**
-   * #1825: what this file's functions do to their own parameters, and the
-   * calls they pass them to -- ADR-006's per-file half. Whether a callee
-   * modifies what it is passed is 1.4's, since the callee is routinely in
-   * another file.
+   * #1825: each of this file's functions' parameter names, in declaration
+   * order, by C name -- ADR-006's per-file half, which 1.4 merges.
    */
-  readonly modifications: IFileModifications;
+  readonly parameterLists: ReadonlyMap<string, ReadonlyArray<string>>;
   /**
    * #1825: where this file names what may be a function, in a position a C
    * callback could be expected -- ADR-029's per-file half. Which of these are

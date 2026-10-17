@@ -10,7 +10,7 @@
 // ADR-045: Test string boundary conditions
 // Validates: exact capacity, minimum sizes, edge cases
 int main(void) {
-    char exact[6] = "Hello";
+    const char exact[6] = "Hello";
     if (strlen(exact) != 5) {
         return 1;
     }
@@ -20,7 +20,7 @@ int main(void) {
     if (strcmp(exact, "Hello") != 0) {
         return 3;
     }
-    char single[2] = "X";
+    const char single[2] = "X";
     if (strlen(single) != 1) {
         return 4;
     }
@@ -30,7 +30,7 @@ int main(void) {
     if (strcmp(single, "X") != 0) {
         return 6;
     }
-    char emptyWithCap[11] = "";
+    const char emptyWithCap[11] = "";
     if (strlen(emptyWithCap) != 0) {
         return 7;
     }
@@ -40,7 +40,7 @@ int main(void) {
     if (strcmp(emptyWithCap, "") != 0) {
         return 9;
     }
-    char largeBuffer[1025] = "Tiny";
+    const char largeBuffer[1025] = "Tiny";
     if (strlen(largeBuffer) != 4) {
         return 10;
     }
@@ -50,7 +50,7 @@ int main(void) {
     if (strcmp(largeBuffer, "Tiny") != 0) {
         return 12;
     }
-    char source[11] = "0123456789";
+    const char source[11] = "0123456789";
     char firstHalf[6] = "";
     (void) strncpy(firstHalf, source + 0, 5);
     firstHalf[5] = '\0';
@@ -63,8 +63,8 @@ int main(void) {
     if (strcmp(lastHalf, "56789") != 0) {
         return 14;
     }
-    char part1[4] = "ABC";
-    char part2[4] = "DEF";
+    const char part1[4] = "ABC";
+    const char part2[4] = "DEF";
     char combined[7] = "";
     (void) strncpy(combined, part1, 6);
     (void) strncat(combined, part2, 6 - strlen(combined));
@@ -75,9 +75,9 @@ int main(void) {
     if (strcmp(combined, "ABCDEF") != 0) {
         return 16;
     }
-    char a[3] = "AB";
-    char b[3] = "CD";
-    char c[3] = "EF";
+    const char a[3] = "AB";
+    const char b[3] = "CD";
+    const char c[3] = "EF";
     if (strlen(a) != 2) {
         return 17;
     }

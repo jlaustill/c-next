@@ -37,7 +37,7 @@ u32 mallocation(u32 n) {
     return n + 4;
 }
 
-u8[8] pool;
+mut u8[8] pool;
 
 // Matches `_free` and is a C-Next definition, not an import.
 u32 pool_free(u32 slot) {

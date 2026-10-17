@@ -1,0 +1,40 @@
+// test-execution
+// test-adr: 071
+// ADR-071: a binding without `mut` is read-only and needs no keyword; one
+// that is written says `mut`. A read-only global passes to a read-only
+// parameter, and a `mut` local is written by assignment, by a `mut`
+// parameter and as a `for` variable.
+
+u32 LIMIT <- 5;
+
+void bump(mut u32 v) {
+    v <- v + 1;
+}
+
+u32 readOnly(u32 value) {
+    return value + 1;
+}
+
+u32 main() {
+    mut u32 count <- 0;
+    count <- count + LIMIT;
+    if (count != 5) {
+        return 1;
+    }
+    bump(count);
+    if (count != 6) {
+        return 2;
+    }
+    u32 next <- readOnly(LIMIT);
+    if (next != 6) {
+        return 3;
+    }
+    mut u32 total <- 0;
+    for (mut u32 i <- 0; i < 3; i +<- 1) {
+        total +<- i;
+    }
+    if (total != 3) {
+        return 4;
+    }
+    return 0;
+}

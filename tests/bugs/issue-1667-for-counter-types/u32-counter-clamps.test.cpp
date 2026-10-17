@@ -47,11 +47,11 @@ uint32_t passes(void) {
 }
 
 int main(void) {
-    uint32_t count = passes();
+    const uint32_t count = passes();
     if (count != 1) {
         return 1U;
     }
-    uint32_t three = steps();
+    const uint32_t three = steps();
     if (three != 3) {
         return 3U;
     }

@@ -2,9 +2,9 @@
 // Tests: multi-dimensional u8 arrays (2D and 3D)
 // Validates array indexing, length properties, and nested iteration
 // Typical use case: small data buffers, pixel data, byte arrays
-u8[4][8] matrix2d;
+mut u8[4][8] matrix2d;
 
-u8[2][3][4] cube3d;
+mut u8[2][3][4] cube3d;
 
 u32 main() {
     // 2D array: Write operations
@@ -60,8 +60,8 @@ u32 main() {
     }
 
     // Nested loop iteration - populate 2D array
-    for (u32 i <- 0; i < 4; i +<- 1) {
-        for (u32 j <- 0; j < 8; j +<- 1) {
+    for (mut u32 i <- 0; i < 4; i +<- 1) {
+        for (mut u32 j <- 0; j < 8; j +<- 1) {
             matrix2d[i][j] <- (i * 10 + j)[0, 8];
         }
     }
@@ -81,10 +81,10 @@ u32 main() {
     }
 
     // Nested loop iteration - populate and sum 3D array
-    u16 sum <- 0; // Use u16 to avoid overflow (sum will be 276)
-    for (u32 i <- 0; i < 2; i +<- 1) {
-        for (u32 j <- 0; j < 3; j +<- 1) {
-            for (u32 k <- 0; k < 4; k +<- 1) {
+    mut u16 sum <- 0; // Use u16 to avoid overflow (sum will be 276)
+    for (mut u32 i <- 0; i < 2; i +<- 1) {
+        for (mut u32 j <- 0; j < 3; j +<- 1) {
+            for (mut u32 k <- 0; k < 4; k +<- 1) {
                 cube3d[i][j][k] <- (i * 10 + j * 5 + k)[0, 8];
                 sum +<- cube3d[i][j][k];
             }
@@ -109,11 +109,11 @@ u32 main() {
     }
 
     // Test u8 specific edge cases
-    u8[3][2] testArray;
+    mut u8[3][2] testArray;
 
     // Initialize all elements first
-    for (u32 ti <- 0; ti < 3; ti +<- 1) {
-        for (u32 tj <- 0; tj < 2; tj +<- 1) {
+    for (mut u32 ti <- 0; ti < 3; ti +<- 1) {
+        for (mut u32 tj <- 0; tj < 2; tj +<- 1) {
             testArray[ti][tj] <- 0;
         }
     }
@@ -136,11 +136,11 @@ u32 main() {
     }
 
     // Test 2D array with byte buffer pattern
-    u8[4][4] buffer;
+    mut u8[4][4] buffer;
 
     // Initialize all elements first
-    for (u32 bi <- 0; bi < 4; bi +<- 1) {
-        for (u32 bj <- 0; bj < 4; bj +<- 1) {
+    for (mut u32 bi <- 0; bi < 4; bi +<- 1) {
+        for (mut u32 bj <- 0; bj < 4; bj +<- 1) {
             buffer[bi][bj] <- 0;
         }
     }

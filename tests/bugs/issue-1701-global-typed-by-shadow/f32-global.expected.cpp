@@ -14,13 +14,13 @@ float x = 0.0;
 
 uint8_t f(void) {
     /* C11 6.2.1p4, C++ [basic.scope.hiding]: `x` emitted as `f__x` (a plain `x` would hide the file-scope `x` for the rest of its scope, so `global.x` would reach the local). */
-    uint8_t f__x = 1U;
+    const uint8_t f__x = 1U;
     x += 1.5;
     return f__x;
 }
 
 int main(void) {
-    uint8_t local = f();
+    const uint8_t local = f();
     if (local != 1) {
         return 2U;
     }

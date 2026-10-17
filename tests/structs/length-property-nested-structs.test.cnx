@@ -21,7 +21,7 @@ struct DeepNest {
 u32 main() {
 
     // Test 2-level nesting: outer.inner.field.type_bit_length
-    LengthNested.Outer config;
+    mut LengthNested.Outer config;
     config.inner.value <- 0x12345678;
     config.inner.status <- 100;
     config.flags <- 0xFF;
@@ -40,7 +40,7 @@ u32 main() {
     }
 
     // Test 3-level nesting: deep.outer.inner.field.type_bit_length
-    DeepNest deep;
+    mut DeepNest deep;
     deep.outer.inner.value <- 0xABCDEF;
     deep.outer.inner.status <- 200;
     deep.outer.flags <- 0x42;

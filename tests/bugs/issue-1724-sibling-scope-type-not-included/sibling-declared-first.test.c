@@ -32,13 +32,13 @@
 #include <stdint.h>
 
 int main(void) {
-    Config theirs = { .a = 7, .b = 9 };
-    int32_t fromTheirs = Motor__useTheirs(&theirs);
+    const Config theirs = { .a = 7, .b = 9 };
+    const int32_t fromTheirs = Motor__useTheirs(&theirs);
     if (fromTheirs != 7) {
         return 1;
     }
-    Motor__Config mine = { .x = 5U };
-    uint8_t fromMine = Motor__useMine(&mine);
+    const Motor__Config mine = { .x = 5U };
+    const uint8_t fromMine = Motor__useMine(&mine);
     if (fromMine != 5) {
         return 2;
     }

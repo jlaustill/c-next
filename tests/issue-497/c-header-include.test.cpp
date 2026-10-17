@@ -12,10 +12,10 @@
 /* Scope: Manager */
 
 Data Manager__getData(void) {
-    Data d = { .value = 0 };
+    const Data d = { .value = 0 };
     return d;
 }
 
 int main(void) {
-    Data d = Manager__getData();
+    const Data d = Manager__getData();
 }

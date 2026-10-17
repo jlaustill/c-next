@@ -5,10 +5,10 @@
 // macro, one declared further down) left the global's value in its place:
 // `arr[N]` below read 10 and was a false E0854, and a scope array sized by
 // such an `N` took the global's size silently.
-const u32 N <- 10;
+u32 N <- 10;
 
 scope S {
-    public const u32 N <- 7 % 4;
+    public u32 N <- 7 % 4;
 
     public u8 pick() {
         u8[4] arr <- [5, 6, 7, 8];

@@ -48,8 +48,8 @@ describe("#1452: discovery's include facts are released at end of run", () => {
   function recordGraphs(): ISourceGraph[] {
     const graphs: ISourceGraph[] = [];
     const run = Discover.run.bind(Discover);
-    vi.spyOn(Discover, "run").mockImplementation(async (...args) => {
-      const discovered = await run(...args);
+    vi.spyOn(Discover, "run").mockImplementation((...args) => {
+      const discovered = run(...args);
       graphs.push(discovered.graph);
       return discovered;
     });
@@ -61,7 +61,7 @@ describe("#1452: discovery's include facts are released at end of run", () => {
    * rather than sizes: only the names say whose files they are.
    */
   function filesWithIncludeFacts(graph: ISourceGraph): string[] {
-    return [...graph.includes.keys()]
+    return [...graph.includes.c.keys()]
       .map((path) => path.split("/").pop() ?? path)
       .sort();
   }
@@ -80,7 +80,7 @@ describe("#1452: discovery's include facts are released at end of run", () => {
     const entry = join(tempDir, "app.cnx");
     writeFileSync(
       entry,
-      `#include "lib.cnx"\n\nu32 total <- 0;\n\nvoid main() {\n    total <- Lib.double(21);\n}\n`,
+      `#include "lib.cnx"\n\nmut u32 total <- 0;\n\nvoid main() {\n    total <- Lib.double(21);\n}\n`,
     );
     return entry;
   }

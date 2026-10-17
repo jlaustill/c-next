@@ -191,7 +191,7 @@ describe("CodeGenWalker", () => {
 
     it("should enable debug mode when specified", () => {
       const source = `
-        clamp u8 val;
+        mut clamp u8 val;
         void main() {
           val +<- 1;
         }
@@ -222,7 +222,7 @@ describe("CodeGenWalker", () => {
 
     it("clamps without a hosted-libc cost outside debug mode", () => {
       const source = `
-        clamp u8 val;
+        mut clamp u8 val;
         void main() {
           val +<- 1;
         }
@@ -727,50 +727,6 @@ describe("CodeGenWalker", () => {
         expect(host.getStringLiteralLength('"hello\\n"')).toBe(6);
       });
     });
-
-    describe("markParameterModified() / isCalleeParameterModified()", () => {
-      it("should track parameter modifications", () => {
-        const { host } = createMinimalGenerator(
-          `
-          void modify(u32 param) {
-            param <- 42;
-          }
-          void caller(u32 x) {
-            modify(x);
-          }
-        `,
-          false,
-        );
-
-        // Modification tracking is done during generation
-        expect(host.isCalleeParameterModified("modify", 0)).toBe(true);
-      });
-
-      it("should return false for unmodified parameters", () => {
-        const { host } = createMinimalGenerator(
-          `
-          void noModify(u32 param) { }
-        `,
-          false,
-        );
-
-        expect(host.isCalleeParameterModified("noModify", 0)).toBe(false);
-      });
-    });
-
-    describe("getFunctionUnmodifiedParams()", () => {
-      it("should return map of unmodified parameters", () => {
-        const { host } = createMinimalGenerator(
-          `
-          void noModify(u32 param) { }
-        `,
-          false,
-        );
-
-        const unmodifiedParams = host.getFunctionUnmodifiedParams();
-        expect(unmodifiedParams).toBeInstanceOf(Map);
-      });
-    });
   });
 
   describe("Type generation", () => {
@@ -821,7 +777,7 @@ describe("CodeGenWalker", () => {
   describe("Assignment operator translation", () => {
     it("should translate <- to =", () => {
       const source = `
-        u32 x;
+        mut u32 x;
         void main() {
           x <- 42;
         }
@@ -848,7 +804,7 @@ describe("CodeGenWalker", () => {
       // Note: Default is 'clamp' overflow behavior which uses helper functions
       // Use 'wrap' for direct C operators
       const source = `
-        wrap u32 x <- 10;
+        mut wrap u32 x <- 10;
         void main() {
           x +<- 5;
           x -<- 3;
@@ -909,7 +865,7 @@ describe("CodeGenWalker", () => {
     it("should generate scope members with prefix", () => {
       const source = `
         scope Motor {
-          u32 speed;
+          mut u32 speed;
           public void setSpeed(u32 s) {
             speed <- s;
           }
@@ -940,7 +896,7 @@ describe("CodeGenWalker", () => {
     it("should generate clamp helper for compound assignment", () => {
       // Clamp helpers are generated for compound assignment operators
       const source = `
-        clamp u8 value <- 200;
+        mut clamp u8 value <- 200;
         void main() {
           value +<- 100;
         }
@@ -992,7 +948,7 @@ describe("CodeGenWalker", () => {
   describe("Control flow generation", () => {
     it("should generate if statement", () => {
       const source = `
-        u32 x <- 10;
+        mut u32 x <- 10;
         void main() {
           if (x = 10) {
             x <- 5;
@@ -1020,7 +976,7 @@ describe("CodeGenWalker", () => {
 
     it("should generate if-else statement", () => {
       const source = `
-        u32 x <- 10;
+        mut u32 x <- 10;
         void main() {
           if (x = 10) {
             x <- 5;
@@ -1050,7 +1006,7 @@ describe("CodeGenWalker", () => {
 
     it("should generate while loop", () => {
       const source = `
-        wrap u32 x <- 10;
+        mut wrap u32 x <- 10;
         void main() {
           while (x > 0) {
             x -<- 1;
@@ -1077,9 +1033,9 @@ describe("CodeGenWalker", () => {
 
     it("should generate for loop", () => {
       const source = `
-        wrap u32 sum <- 0;
+        mut wrap u32 sum <- 0;
         void main() {
-          for (wrap u32 i <- 0; i < 10; i +<- 1) {
+          for (mut wrap u32 i <- 0; i < 10; i +<- 1) {
             sum +<- i;
           }
         }
@@ -1105,7 +1061,7 @@ describe("CodeGenWalker", () => {
 
     it("should generate do-while loop", () => {
       const source = `
-        wrap u32 x <- 10;
+        mut wrap u32 x <- 10;
         void main() {
           do {
             x -<- 1;
@@ -1134,7 +1090,7 @@ describe("CodeGenWalker", () => {
     it("should generate switch statement", () => {
       const source = `
         u32 x <- 1;
-        u32 result <- 0;
+        mut u32 result <- 0;
         void main() {
           switch (x) {
             case 1 { result <- 10; }
@@ -1293,7 +1249,7 @@ describe("CodeGenWalker", () => {
     it("should generate struct parameter with pointer semantics", () => {
       const source = `
         struct Point { i32 x; i32 y; }
-        void setPoint(Point p) {
+        void setPoint(mut Point p) {
           p.x <- 10;
         }
       `;
@@ -1344,7 +1300,7 @@ describe("CodeGenWalker", () => {
       const source = `
         wrap u32 a <- 10;
         wrap u32 b <- 5;
-        wrap u32 c;
+        mut wrap u32 c;
         void main() {
           c <- a + b * 2 - 1;
         }
@@ -1371,7 +1327,7 @@ describe("CodeGenWalker", () => {
       const source = `
         u32 a <- 10;
         u32 b <- 5;
-        bool result;
+        mut bool result;
         void main() {
           result <- a > b;
           result <- a >= b;
@@ -1404,7 +1360,7 @@ describe("CodeGenWalker", () => {
       const source = `
         bool a <- true;
         bool b <- false;
-        bool result;
+        mut bool result;
         void main() {
           result <- a && b;
           result <- a || b;
@@ -1435,7 +1391,7 @@ describe("CodeGenWalker", () => {
       const source = `
         wrap u32 a <- 0xFF;
         wrap u32 b <- 0x0F;
-        wrap u32 result;
+        mut wrap u32 result;
         void main() {
           result <- a & b;
           result <- a | b;
@@ -1467,7 +1423,7 @@ describe("CodeGenWalker", () => {
     it("should generate shift expressions", () => {
       const source = `
         wrap u32 a <- 1;
-        wrap u32 result;
+        mut wrap u32 result;
         void main() {
           result <- a << 4;
           result <- a >> 2;
@@ -1522,7 +1478,7 @@ describe("CodeGenWalker", () => {
     it("should generate increment/decrement using compound assignment", () => {
       // C-Next uses +<- 1 for increment instead of ++
       const source = `
-        wrap u32 a <- 10;
+        mut wrap u32 a <- 10;
         void main() {
           a +<- 1;
           a -<- 1;
@@ -1552,7 +1508,7 @@ describe("CodeGenWalker", () => {
     it("should generate struct member access", () => {
       const source = `
         struct Point { i32 x; i32 y; }
-        Point p;
+        mut Point p;
         void main() {
           p.x <- 10;
           p.y <- 20;
@@ -1607,7 +1563,7 @@ describe("CodeGenWalker", () => {
     it("should generate enum member access with prefix", () => {
       const source = `
         enum Color { RED, GREEN, BLUE }
-        Color c;
+        mut Color c;
         void main() {
           c <- Color.RED;
         }
@@ -1634,7 +1590,7 @@ describe("CodeGenWalker", () => {
   describe("Const declarations", () => {
     it("should generate const variable", () => {
       const source = `
-        const u32 MAX_SIZE <- 100;
+        u32 MAX_SIZE <- 100;
         void main() { }
       `;
       const { tree, program } = CNextSourceParser.parse(source);
@@ -1692,7 +1648,7 @@ describe("CodeGenWalker", () => {
         u32 add(u32 a, u32 b) {
           return a + b;
         }
-        u32 result;
+        mut u32 result;
         void main() {
           result <- add(1, 2);
         }
@@ -1722,7 +1678,7 @@ describe("CodeGenWalker", () => {
             return x * x;
           }
         }
-        u32 result;
+        mut u32 result;
         void main() {
           result <- Math.square(5);
         }
@@ -1908,7 +1864,7 @@ describe("CodeGenWalker", () => {
       const source = `
         u32 a <- 10;
         u32 b <- 5;
-        u32 result;
+        mut u32 result;
         void main() {
           result <- (a > b) ? 1 : 0;
         }
@@ -1936,7 +1892,7 @@ describe("CodeGenWalker", () => {
     it("should generate bit index expression", () => {
       const source = `
         u32 flags <- 0xFF;
-        u32 result;
+        mut u32 result;
         void main() {
           result <- flags[4, 4];
         }
@@ -1965,7 +1921,7 @@ describe("CodeGenWalker", () => {
   describe("Critical sections", () => {
     it("should generate critical section", () => {
       const source = `
-        wrap u32 counter <- 0;
+        mut wrap u32 counter <- 0;
         void main() {
           critical {
             counter +<- 1;
@@ -1997,7 +1953,7 @@ describe("CodeGenWalker", () => {
       const source = `
         struct Inner { i32 value; }
         struct Outer { Inner inner; }
-        Outer obj;
+        mut Outer obj;
         void main() {
           obj.inner.value <- 42;
         }
@@ -2026,7 +1982,7 @@ describe("CodeGenWalker", () => {
       const source = `
         enum State { IDLE, RUNNING, STOPPED }
         State s <- State.IDLE;
-        wrap u32 result <- 0;
+        mut wrap u32 result <- 0;
         void main() {
           switch (s) {
             case State.IDLE { result <- 0; }
@@ -2090,7 +2046,7 @@ describe("CodeGenWalker", () => {
     it("should generate local variable with initializer", () => {
       const source = `
         void main() {
-          wrap u32 localVar <- 100;
+          mut wrap u32 localVar <- 100;
           localVar +<- 50;
         }
       `;
@@ -2118,7 +2074,7 @@ describe("CodeGenWalker", () => {
     it("should generate private scope members with prefix", () => {
       const source = `
         scope Motor {
-          u32 privateSpeed;
+          mut u32 privateSpeed;
           public void setSpeed(u32 s) {
             privateSpeed <- s;
           }
@@ -2152,7 +2108,7 @@ describe("CodeGenWalker", () => {
     it("should generate modulo expression", () => {
       const source = `
         wrap u32 a <- 17;
-        wrap u32 result;
+        mut wrap u32 result;
         void main() {
           result <- a % 5;
         }
@@ -2180,7 +2136,7 @@ describe("CodeGenWalker", () => {
     it("should generate division expression", () => {
       const source = `
         wrap u32 a <- 20;
-        wrap u32 result;
+        mut wrap u32 result;
         void main() {
           result <- a / 4;
         }
@@ -2365,7 +2321,7 @@ describe("CodeGenWalker", () => {
         wrap u32 a <- 10;
         wrap u32 b <- 5;
         wrap u32 c <- 2;
-        wrap u32 result;
+        mut wrap u32 result;
         void main() {
           result <- (a + b) * c;
         }
@@ -2392,7 +2348,7 @@ describe("CodeGenWalker", () => {
   describe("Array element assignment", () => {
     it("should generate array element assignment", () => {
       const source = `
-        wrap u32[10] arr;
+        mut wrap u32[10] arr;
         void main() {
           arr[0] <- 42;
           arr[5] <- 100;
@@ -2447,7 +2403,7 @@ describe("CodeGenWalker", () => {
     it("should generate this. member access inside scope", () => {
       const source = `
         scope Motor {
-          u32 speed;
+          mut u32 speed;
           public void setSpeed(u32 s) {
             this.speed <- s;
           }
@@ -2475,7 +2431,7 @@ describe("CodeGenWalker", () => {
   describe("Global keyword access", () => {
     it("should generate global. variable access inside scope", () => {
       const source = `
-        u32 globalCounter <- 0;
+        mut u32 globalCounter <- 0;
         scope Motor {
           public void increment() {
             global.globalCounter <- global.globalCounter + 1;
@@ -2680,7 +2636,7 @@ describe("CodeGenWalker", () => {
   describe("Bitwise compound assignment", () => {
     it("should generate bitwise compound assignment", () => {
       const source = `
-        wrap u32 flags <- 0xFF;
+        mut wrap u32 flags <- 0xFF;
         void main() {
           flags &<- 0x0F;
           flags |<- 0xF0;
@@ -2711,7 +2667,7 @@ describe("CodeGenWalker", () => {
   describe("Modulo compound assignment", () => {
     it("should generate modulo compound assignment", () => {
       const source = `
-        wrap u32 value <- 100;
+        mut wrap u32 value <- 100;
         void main() {
           value %<- 7;
         }
@@ -2738,7 +2694,7 @@ describe("CodeGenWalker", () => {
   describe("Shift compound assignment", () => {
     it("should generate shift compound assignment", () => {
       const source = `
-        wrap u32 value <- 1;
+        mut wrap u32 value <- 1;
         void main() {
           value <<<- 4;
           value >><- 2;
@@ -2768,11 +2724,11 @@ describe("CodeGenWalker", () => {
     it("should generate multiple scopes with unique prefixes", () => {
       const source = `
         scope Motor {
-          u32 speed;
+          mut u32 speed;
           public void start() { speed <- 100; }
         }
         scope LED {
-          bool on;
+          mut bool on;
           public void toggle() { on <- !on; }
         }
       `;
@@ -2878,7 +2834,7 @@ describe("CodeGenWalker", () => {
   describe("Wrap modifier", () => {
     it("should allow wrap integer overflow without clamping", () => {
       const source = `
-        wrap u8 counter <- 255;
+        mut wrap u8 counter <- 255;
         void main() {
           counter +<- 1;
         }
@@ -2909,7 +2865,7 @@ describe("CodeGenWalker", () => {
     it("should generate else-if chain", () => {
       const source = `
         u32 x <- 5;
-        u32 result;
+        mut u32 result;
         void main() {
           if (x = 1) {
             result <- 10;
@@ -2972,10 +2928,10 @@ describe("CodeGenWalker", () => {
   describe("Nested control flow", () => {
     it("should generate nested loops", () => {
       const source = `
-        wrap u32 sum <- 0;
+        mut wrap u32 sum <- 0;
         void main() {
-          for (wrap u32 i <- 0; i < 3; i +<- 1) {
-            for (wrap u32 j <- 0; j < 3; j +<- 1) {
+          for (mut wrap u32 i <- 0; i < 3; i +<- 1) {
+            for (mut wrap u32 j <- 0; j < 3; j +<- 1) {
               sum +<- i * j;
             }
           }
@@ -3086,7 +3042,7 @@ describe("CodeGenWalker", () => {
     it("should generate enum variable assignment from member", () => {
       const source = `
         enum State { IDLE, RUNNING, STOPPED }
-        State current <- State.IDLE;
+        mut State current <- State.IDLE;
         void main() {
           current <- State.RUNNING;
         }
@@ -3116,7 +3072,7 @@ describe("CodeGenWalker", () => {
         struct Buffer {
           u8[64] data;
         }
-        Buffer buf;
+        mut Buffer buf;
         void main() {
           buf.data[0] <- 0xFF;
         }
@@ -3144,7 +3100,7 @@ describe("CodeGenWalker", () => {
     it("should generate scope with multiple public methods", () => {
       const source = `
         scope Timer {
-          u32 count;
+          mut u32 count;
           public void reset() { count <- 0; }
           public void increment() { count <- count + 1; }
           public u32 getCount() { return count; }
@@ -3208,7 +3164,7 @@ describe("CodeGenWalker", () => {
           reserved[5]
         }
         Flags f <- 0;
-        bool result;
+        mut bool result;
         void main() {
           result <- f.enabled;
         }
@@ -3235,7 +3191,7 @@ describe("CodeGenWalker", () => {
   describe("Const array", () => {
     it("should generate const array", () => {
       const source = `
-        const u32[4] LOOKUP <- [10, 20, 30, 40];
+        u32[4] LOOKUP <- [10, 20, 30, 40];
         void main() { }
       `;
       const { tree, program } = CNextSourceParser.parse(source);
@@ -3344,7 +3300,7 @@ describe("CodeGenWalker", () => {
   describe("While loop with variable init", () => {
     it("should generate while loop with initialized counter", () => {
       const source = `
-        wrap u32 count <- 10;
+        mut wrap u32 count <- 10;
         void main() {
           while (count > 0) {
             count -<- 1;
@@ -3374,7 +3330,7 @@ describe("CodeGenWalker", () => {
   describe("Break in switch", () => {
     it("should generate break after each case", () => {
       const source = `
-        u32 x <- 1;
+        mut u32 x <- 1;
         void main() {
           switch (x) {
             case 1 { x <- 10; }
@@ -3407,10 +3363,10 @@ describe("CodeGenWalker", () => {
     it("should pass struct by pointer", () => {
       const source = `
         struct Point { i32 x; i32 y; }
-        void modifyPoint(Point p) {
+        void modifyPoint(mut Point p) {
           p.x <- 10;
         }
-        Point pt;
+        mut Point pt;
         void main() {
           modifyPoint(pt);
         }
@@ -3443,7 +3399,7 @@ describe("CodeGenWalker", () => {
         wrap u32 a <- 5;
         wrap u32 b <- 3;
         wrap u32 c <- 2;
-        wrap u32 result;
+        mut wrap u32 result;
         void main() {
           result <- a * b + c * (a - b);
         }
@@ -3470,7 +3426,7 @@ describe("CodeGenWalker", () => {
   describe("Empty while loop", () => {
     it("should generate while loop with empty body", () => {
       const source = `
-        wrap u32 x <- 10;
+        mut wrap u32 x <- 10;
         void main() {
           while (x > 0) {
             x -<- 1;
@@ -3848,7 +3804,7 @@ describe("CodeGenWalker", () => {
   describe("Do-while statement", () => {
     it("should generate do-while loop", () => {
       const source = `
-        wrap u32 x <- 0;
+        mut wrap u32 x <- 0;
         void main() {
           do {
             x +<- 1;
@@ -3878,9 +3834,9 @@ describe("CodeGenWalker", () => {
   describe("For loop", () => {
     it("should generate for loop with init, condition, update", () => {
       const source = `
-        wrap u32 sum <- 0;
+        mut wrap u32 sum <- 0;
         void main() {
-          for (wrap u32 i <- 0; i < 10; i +<- 1) {
+          for (mut wrap u32 i <- 0; i < 10; i +<- 1) {
             sum +<- i;
           }
         }
@@ -4009,7 +3965,7 @@ describe("CodeGenWalker", () => {
     it("should generate nested if-else-if chain", () => {
       const source = `
         wrap u32 x <- 5;
-        wrap u32 result <- 0;
+        mut wrap u32 result <- 0;
         void main() {
           if (x < 3) {
             result <- 1;
@@ -4045,7 +4001,7 @@ describe("CodeGenWalker", () => {
     it("should generate switch with default", () => {
       const source = `
         u32 code <- 99;
-        u32 output <- 0;
+        mut u32 output <- 0;
         void main() {
           switch (code) {
             case 1 { output <- 10; }
@@ -4078,7 +4034,7 @@ describe("CodeGenWalker", () => {
   describe("Array dimension with const", () => {
     it("should resolve const as array dimension at file scope", () => {
       const source = `
-        const u32 SIZE <- 10;
+        u32 SIZE <- 10;
         u32[SIZE] data;
       `;
       const { tree, program } = CNextSourceParser.parse(source);
@@ -4155,7 +4111,7 @@ describe("CodeGenWalker", () => {
   describe("Block statement", () => {
     it("should generate standalone block", () => {
       const source = `
-        wrap u32 x <- 0;
+        mut wrap u32 x <- 0;
         void main() {
           {
             wrap u32 y <- 10;
@@ -4604,7 +4560,9 @@ describe("CodeGenWalker", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("uint32_t a, uint32_t b, uint32_t c");
+      expect(code).toContain(
+        "const uint32_t a, const uint32_t b, const uint32_t c",
+      );
     });
   });
 
@@ -4613,7 +4571,7 @@ describe("CodeGenWalker", () => {
       const source = `
         struct Inner { i32 value; }
         struct Outer { Inner child; }
-        Outer obj <- {child: {value: 42}};
+        mut Outer obj <- {child: {value: 42}};
         void main() {
           obj.child.value <- 100;
         }
@@ -4640,7 +4598,7 @@ describe("CodeGenWalker", () => {
   describe("Array indexing with expressions", () => {
     it("should generate array index with arithmetic", () => {
       const source = `
-        u32[10] data;
+        mut u32[10] data;
         wrap u32 i <- 2;
         void main() {
           data[i * 2 + 1] <- 42;
@@ -4669,7 +4627,7 @@ describe("CodeGenWalker", () => {
     it("should generate enum value assignment", () => {
       const source = `
         enum Color { RED, GREEN, BLUE }
-        Color c <- Color.RED;
+        mut Color c <- Color.RED;
         void main() {
           c <- Color.GREEN;
         }
@@ -4742,7 +4700,7 @@ describe("CodeGenWalker", () => {
     it("should generate const struct declaration", () => {
       const source = `
         struct Config { u32 value; }
-        const Config defaultConfig <- {value: 100};
+        Config defaultConfig <- {value: 100};
       `;
       const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
@@ -4766,7 +4724,7 @@ describe("CodeGenWalker", () => {
   describe("Critical statement", () => {
     it("should generate critical section with interrupt disable", () => {
       const source = `
-        atomic u32 counter <- 0;
+        atomic mut u32 counter <- 0;
         void main() {
           critical {
             counter <- counter + 1;
@@ -4940,7 +4898,7 @@ describe("CodeGenWalker", () => {
     it("should access scope variable from inside scope", () => {
       const source = `
         scope Counter {
-          u32 value <- 0;
+          mut u32 value <- 0;
           public void increment() {
             value <- value + 1;
           }
@@ -5022,7 +4980,7 @@ describe("CodeGenWalker", () => {
     // u8 val &= 0x0F => val = (uint8_t)(val & 0x0F)
     it("should generate bitwise AND compound assignment with MISRA cast", () => {
       const source = `
-        wrap u8 mask <- 0xFF;
+        mut wrap u8 mask <- 0xFF;
         void main() {
           mask &<- 0x0F;
         }
@@ -5047,7 +5005,7 @@ describe("CodeGenWalker", () => {
 
     it("should generate bitwise OR compound assignment with MISRA cast", () => {
       const source = `
-        wrap u8 flags <- 0x00;
+        mut wrap u8 flags <- 0x00;
         void main() {
           flags |<- 0x01;
         }
@@ -5072,7 +5030,7 @@ describe("CodeGenWalker", () => {
 
     it("should generate bitwise XOR compound assignment with MISRA cast", () => {
       const source = `
-        wrap u8 bits <- 0x55;
+        mut wrap u8 bits <- 0x55;
         void main() {
           bits ^<- 0xFF;
         }
@@ -5097,7 +5055,7 @@ describe("CodeGenWalker", () => {
 
     it("should generate left shift compound assignment with MISRA cast", () => {
       const source = `
-        wrap u8 val <- 1;
+        mut wrap u8 val <- 1;
         void main() {
           val <<<- 2;
         }
@@ -5122,7 +5080,7 @@ describe("CodeGenWalker", () => {
 
     it("should generate right shift compound assignment with MISRA cast", () => {
       const source = `
-        wrap u8 val <- 0x80;
+        mut wrap u8 val <- 0x80;
         void main() {
           val >><- 2;
         }
@@ -5147,7 +5105,7 @@ describe("CodeGenWalker", () => {
 
     it("should generate multiply compound assignment", () => {
       const source = `
-        wrap u32 val <- 5;
+        mut wrap u32 val <- 5;
         void main() {
           val *<- 3;
         }
@@ -5172,7 +5130,7 @@ describe("CodeGenWalker", () => {
 
     it("should generate divide compound assignment", () => {
       const source = `
-        wrap u32 val <- 20;
+        mut wrap u32 val <- 20;
         void main() {
           val /<- 4;
         }
@@ -5197,7 +5155,7 @@ describe("CodeGenWalker", () => {
 
     it("should generate modulo compound assignment", () => {
       const source = `
-        wrap u32 val <- 17;
+        mut wrap u32 val <- 17;
         void main() {
           val %<- 5;
         }
@@ -5334,7 +5292,7 @@ describe("CodeGenWalker", () => {
   describe("Global reference from scope", () => {
     it("should access global variable with global keyword", () => {
       const source = `
-        u32 globalCounter <- 0;
+        mut u32 globalCounter <- 0;
         scope Module {
           public void increment() {
             global.globalCounter <- global.globalCounter + 1;
@@ -5658,7 +5616,7 @@ describe("CodeGenWalker", () => {
     it("should track local variables in function scope", () => {
       const source = `
         void compute() {
-          wrap u32 local <- 0;
+          mut wrap u32 local <- 0;
           local <- local + 1;
         }
       `;
@@ -5686,7 +5644,7 @@ describe("CodeGenWalker", () => {
     it("should use arrow notation for struct parameter member access", () => {
       const source = `
         struct Point { i32 x; i32 y; }
-        void moveRight(Point p) {
+        void moveRight(mut Point p) {
           p.x <- p.x + 1;
         }
       `;
@@ -5714,7 +5672,7 @@ describe("CodeGenWalker", () => {
     it("should handle multiple struct parameters", () => {
       const source = `
         struct Point { i32 x; i32 y; }
-        void add(Point a, Point b) {
+        void add(mut Point a, Point b) {
           a.x <- a.x + b.x;
         }
       `;
@@ -5743,7 +5701,7 @@ describe("CodeGenWalker", () => {
       // MISRA Rule 8.5: External object shall be declared once in one file.
       // A definition (with initializer) should NOT have extern in C mode.
       // The extern declaration comes from the header.
-      const source = `const u32 VERSION <- 1;`;
+      const source = `u32 VERSION <- 1;`;
       const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
@@ -5767,7 +5725,7 @@ describe("CodeGenWalker", () => {
     it("should add extern for const with initializer in C++ mode (Issue #525)", () => {
       // In C++, const at file scope has internal linkage by default.
       // extern is needed for cross-file access, even for definitions.
-      const source = `const u32 VERSION <- 1;`;
+      const source = `u32 VERSION <- 1;`;
       const { tree, program } = CNextSourceParser.parse(source);
       // #1445 box 3: the walk and the render-side services are two objects now.
       // The host is constructed here and injected, so assertions about the state
@@ -5842,7 +5800,7 @@ describe("CodeGenWalker", () => {
       const source = `
         scope State {
           enum Mode { OFF, ON }
-          this.Mode current <- this.Mode.OFF;
+          mut this.Mode current <- this.Mode.OFF;
           public void turnOn() {
             current <- Mode.ON;
           }
@@ -5870,7 +5828,7 @@ describe("CodeGenWalker", () => {
   describe("Const array size at file scope", () => {
     it("should resolve const to literal for file-scope array", () => {
       const source = `
-        const u32 BUFFER_SIZE <- 256;
+        u32 BUFFER_SIZE <- 256;
         u8[BUFFER_SIZE] buffer;
       `;
       const { tree, program } = CNextSourceParser.parse(source);
@@ -5896,7 +5854,7 @@ describe("CodeGenWalker", () => {
   describe("Function with array return type simulation", () => {
     it("should handle function returning via output parameter", () => {
       const source = `
-        void getData(u8[2] output) {
+        void getData(mut u8[2] output) {
           output[0] <- 1;
           output[1] <- 2;
         }
@@ -6034,7 +5992,7 @@ describe("CodeGenWalker", () => {
           u8[8] data;
           u8 length;
         }
-        Message msg;
+        mut Message msg;
         void main() {
           msg.data[0] <- 0x01;
         }
@@ -6092,7 +6050,7 @@ describe("CodeGenWalker", () => {
       const source = `
         enum State { IDLE, RUNNING, ERROR }
         State s <- State.IDLE;
-        u32 code <- 0;
+        mut u32 code <- 0;
         void main() {
           switch (s) {
             case State.IDLE { code <- 1; }
@@ -6125,7 +6083,7 @@ describe("CodeGenWalker", () => {
     it("should track const for array size in function", () => {
       const source = `
         void setup() {
-          const u32 SIZE <- 5;
+          u32 SIZE <- 5;
           u32[SIZE] data;
         }
       `;
@@ -6153,7 +6111,7 @@ describe("CodeGenWalker", () => {
   describe("Bit write operation", () => {
     it("should generate bit write assignment", () => {
       const source = `
-        u8 flags <- 0;
+        mut u8 flags <- 0;
         void main() {
           flags[0, 1] <- 1;
         }
@@ -6265,7 +6223,7 @@ describe("CodeGenWalker", () => {
   describe("Array parameter bounds", () => {
     it("should handle sized array parameter", () => {
       const source = `
-        void process(u32[10] arr) {
+        void process(mut u32[10] arr) {
           arr[0] <- 1;
         }
       `;
@@ -6314,7 +6272,7 @@ describe("CodeGenWalker", () => {
   describe("Clamp overflow helper", () => {
     it("should generate clamp add helper for u16", () => {
       const source = `
-        clamp u16 val <- 65000;
+        mut clamp u16 val <- 65000;
         void main() {
           val +<- 1000;
         }
@@ -6340,7 +6298,7 @@ describe("CodeGenWalker", () => {
 
     it("should generate clamp sub helper for u16", () => {
       const source = `
-        clamp u16 val <- 100;
+        mut clamp u16 val <- 100;
         void main() {
           val -<- 200;
         }
@@ -6445,7 +6403,7 @@ describe("CodeGenWalker", () => {
   describe("Clamp operations for i32", () => {
     it("should generate clamp add for signed type", () => {
       const source = `
-        clamp i32 val <- 2000000000;
+        mut clamp i32 val <- 2000000000;
         void main() {
           val +<- 500000000;
         }
@@ -6472,7 +6430,7 @@ describe("CodeGenWalker", () => {
   describe("Function with const parameter", () => {
     it("should handle const parameter modifier", () => {
       const source = `
-        void readOnly(const u32 val) {
+        void readOnly(u32 val) {
         }
       `;
       const { tree, program } = CNextSourceParser.parse(source);
@@ -6634,7 +6592,7 @@ describe("CodeGenWalker", () => {
   describe("Wrap modifier for u64", () => {
     it("should generate wrap arithmetic for u64", () => {
       const source = `
-        wrap u64 big <- 0xFFFFFFFFFFFFFFFF;
+        mut wrap u64 big <- 0xFFFFFFFFFFFFFFFF;
         void main() {
           big +<- 1;
         }
@@ -6662,7 +6620,7 @@ describe("CodeGenWalker", () => {
   describe("Signed clamp operations", () => {
     it("should generate signed clamp helpers", () => {
       const source = `
-        clamp i8 tiny <- -100;
+        mut clamp i8 tiny <- -100;
         void main() {
           tiny -<- 50;
         }
@@ -7249,7 +7207,7 @@ describe("CodeGenWalker", () => {
 
       it("should generate C-Next style array params with dimensions in C++ mode", () => {
         const source = `
-          void fill(u8[8] buf) {
+          void fill(mut u8[8] buf) {
               buf[0] <- 0xFF;
           }
         `;
@@ -7276,7 +7234,7 @@ describe("CodeGenWalker", () => {
 
       it("should generate const C-Next style array params in C++ mode", () => {
         const source = `
-          u8 read(const u8[4] data) {
+          u8 read(u8[4] data) {
               return data[0];
           }
         `;
@@ -7302,7 +7260,7 @@ describe("CodeGenWalker", () => {
 
       it("should generate C-Next style array params in C mode too", () => {
         const source = `
-          void fill(u8[8] buf) {
+          void fill(mut u8[8] buf) {
               buf[0] <- 0xFF;
           }
         `;
@@ -7583,7 +7541,7 @@ describe("CodeGenWalker", () => {
       it("should generate struct array member write", () => {
         const source = `
           struct Item { u32 value; }
-          Item[3] items;
+          mut Item[3] items;
           void main() {
               items[0].value <- 42;
           }
@@ -7669,7 +7627,7 @@ describe("CodeGenWalker", () => {
       it("should generate simple struct member write (no register, no scope)", () => {
         const source = `
           struct Config { u32 timeout; bool enabled; }
-          Config cfg;
+          mut Config cfg;
           void main() {
               cfg.timeout <- 1000;
               cfg.enabled <- true;
@@ -7783,7 +7741,7 @@ describe("CodeGenWalker", () => {
       it("should generate struct param member access in function", () => {
         const source = `
           struct Point { i32 x; i32 y; }
-          void setX(Point p) {
+          void setX(mut Point p) {
               p.x <- 10;
           }
         `;
@@ -7844,7 +7802,7 @@ describe("CodeGenWalker", () => {
         const source = `
           scope Motor {
             enum State { IDLE, RUNNING }
-            State current;
+            mut State current;
             void update() {
               current <- this.State.IDLE;
             }
@@ -7872,7 +7830,7 @@ describe("CodeGenWalker", () => {
         const source = `
           enum Priority { LOW, HIGH }
           scope Task {
-            Priority level;
+            mut Priority level;
             void init() {
               level <- global.Priority.HIGH;
             }
@@ -7900,7 +7858,7 @@ describe("CodeGenWalker", () => {
         const source = `
           enum Mode { AUTO, MANUAL }
           scope Controller {
-            public Mode mode;
+            public mut Mode mode;
             public void setAuto() {
               this.mode <- global.Mode.AUTO;
             }
@@ -8018,7 +7976,7 @@ describe("CodeGenWalker", () => {
       it("should handle while loop with block", () => {
         const source = `
           void test() {
-            u32 i <- 0;
+            mut u32 i <- 0;
             while (i < 10) {
               i +<- 1;
             }
@@ -8046,7 +8004,7 @@ describe("CodeGenWalker", () => {
       it("should handle for loop with block", () => {
         const source = `
           void test() {
-            for (u32 i <- 0; i < 10; i +<- 1) {
+            for (mut u32 i <- 0; i < 10; i +<- 1) {
               u32 x <- i;
             }
           }
@@ -8073,7 +8031,7 @@ describe("CodeGenWalker", () => {
       it("should handle do-while loop with block", () => {
         const source = `
           void test() {
-            u32 i <- 0;
+            mut u32 i <- 0;
             do {
               i +<- 1;
             } while (i < 10);
@@ -8100,7 +8058,7 @@ describe("CodeGenWalker", () => {
 
       it("should handle critical block", () => {
         const source = `
-          u32 counter;
+          mut u32 counter;
           void test() {
             critical {
               counter +<- 1;
@@ -8626,7 +8584,7 @@ describe("CodeGenWalker", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("void test(uint32_t x)");
+        expect(code).toContain("void test(const uint32_t x)");
       });
 
       it("should process array parameter type", () => {
@@ -8680,7 +8638,7 @@ describe("CodeGenWalker", () => {
 
       it("should process const parameter", () => {
         const source = `
-          void test(const u32 x) {
+          void test(u32 x) {
             u32 y <- x;
           }
         `;
@@ -8771,7 +8729,9 @@ describe("CodeGenWalker", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("uint32_t a, uint32_t b, uint32_t c");
+        expect(code).toContain(
+          "const uint32_t a, const uint32_t b, const uint32_t c",
+        );
       });
 
       it("should process enum parameter type", () => {
@@ -9015,7 +8975,7 @@ describe("CodeGenWalker", () => {
         const source = `
           scope Motor {
             public enum State { IDLE, RUNNING }
-            public State current;
+            public mut State current;
             public void setState(State s) {
               current <- s;
             }
@@ -9043,7 +9003,7 @@ describe("CodeGenWalker", () => {
         });
 
         expect(code).toContain("Motor__current = s");
-        expect(code).toContain("void Motor__setState(Motor__State s)");
+        expect(code).toContain("void Motor__setState(const Motor__State s)");
       });
     });
 
@@ -9103,7 +9063,7 @@ describe("CodeGenWalker", () => {
       it("should handle const struct param in C++ mode", () => {
         const source = `
           struct Config { u32 value; }
-          void test(const Config cfg) {
+          void test(Config cfg) {
             u32 x <- cfg.value;
           }
         `;
@@ -9390,7 +9350,7 @@ describe("CodeGenWalker", () => {
     describe("clamp overflow operations", () => {
       it("should generate clamp add helper for u8", () => {
         const source = `
-          clamp u8 counter <- 250;
+          mut clamp u8 counter <- 250;
           void test() {
             counter +<- 10;
           }
@@ -9415,7 +9375,7 @@ describe("CodeGenWalker", () => {
 
       it("should generate clamp sub helper for u16", () => {
         const source = `
-          clamp u16 counter <- 10;
+          mut clamp u16 counter <- 10;
           void test() {
             counter -<- 20;
           }
@@ -9521,7 +9481,7 @@ describe("CodeGenWalker", () => {
     describe("global keyword resolution", () => {
       it("should resolve global.variable pattern", () => {
         const source = `
-          u32 counter <- 0;
+          mut u32 counter <- 0;
           scope Motor {
             u32 counter <- 0;
             public void increment() {
@@ -9558,7 +9518,7 @@ describe("CodeGenWalker", () => {
             handleClick onClick;
           }
           void test() {
-            Handler h;
+            mut Handler h;
             h.onClick <- handleClick;
           }
         `;
@@ -9586,7 +9546,7 @@ describe("CodeGenWalker", () => {
     describe("const value resolution", () => {
       it("should resolve const values in expressions", () => {
         const source = `
-          const u32 MAX_SIZE <- 100;
+          u32 MAX_SIZE <- 100;
           u32[MAX_SIZE] buffer;
         `;
         const { tree, program } = CNextSourceParser.parse(source);
@@ -9612,7 +9572,7 @@ describe("CodeGenWalker", () => {
     describe("atomic variables", () => {
       it("should generate atomic variable declaration", () => {
         const source = `
-          atomic u32 counter <- 0;
+          atomic mut u32 counter <- 0;
           void test() {
             counter +<- 1;
           }
@@ -9641,7 +9601,7 @@ describe("CodeGenWalker", () => {
       it("should handle this.member pattern", () => {
         const source = `
           scope LED {
-            u8 state <- 0;
+            mut u8 state <- 0;
             public void toggle() {
               this.state <- 1;
             }
@@ -9668,7 +9628,7 @@ describe("CodeGenWalker", () => {
       it("should handle array access in assignment target", () => {
         const source = `
           void test() {
-            u32[10] arr;
+            mut u32[10] arr;
             arr[5] <- 42;
           }
         `;
@@ -9780,7 +9740,7 @@ describe("CodeGenWalker", () => {
       it("should use correct separator for struct param in C mode", () => {
         const source = `
           struct Point { i32 x; i32 y; }
-          void translate(Point p) {
+          void translate(mut Point p) {
             p.x +<- 10;
           }
         `;
@@ -9806,7 +9766,7 @@ describe("CodeGenWalker", () => {
       it("should use correct separator for struct param in C++ mode", () => {
         const source = `
           struct Point { i32 x; i32 y; }
-          void translate(Point p) {
+          void translate(mut Point p) {
             p.x +<- 10;
           }
         `;
@@ -9985,7 +9945,7 @@ describe("CodeGenWalker", () => {
       it("should generate standard for loop", () => {
         const source = `
           void test() {
-            for (u32 i <- 0; i < 10; i +<- 1) {
+            for (mut u32 i <- 0; i < 10; i +<- 1) {
               u32 x <- i;
             }
           }
@@ -10015,7 +9975,7 @@ describe("CodeGenWalker", () => {
       it("should generate do-while loop", () => {
         const source = `
           void test() {
-            u32 i <- 0;
+            mut u32 i <- 0;
             do {
               i +<- 1;
             } while (i < 10);
@@ -10044,7 +10004,7 @@ describe("CodeGenWalker", () => {
     describe("critical block generation", () => {
       it("should generate critical section with interrupt disable", () => {
         const source = `
-          u32 counter;
+          mut u32 counter;
           void test() {
             critical {
               counter +<- 1;
@@ -10293,7 +10253,7 @@ describe("CodeGenWalker", () => {
         const source = `
           struct Point { i32 x; i32 y; }
           Point makePoint(i32 x, i32 y) {
-            Point p;
+            mut Point p;
             p.x <- x;
             p.y <- y;
             return p;
@@ -10374,7 +10334,7 @@ describe("CodeGenWalker", () => {
     describe("parameter type resolution helpers", () => {
       it("should resolve primitive type parameter", () => {
         const source = `
-          void test(u32 val) {
+          void test(mut u32 val) {
             val +<- 1;
           }
         `;
@@ -10399,7 +10359,7 @@ describe("CodeGenWalker", () => {
       it("should resolve user type parameter (struct)", () => {
         const source = `
           struct Point { i32 x; i32 y; }
-          void test(Point p) {
+          void test(mut Point p) {
             p.x <- 10;
           }
         `;
@@ -10423,7 +10383,7 @@ describe("CodeGenWalker", () => {
 
       it("should resolve array parameter", () => {
         const source = `
-          void test(u32[10] arr) {
+          void test(mut u32[10] arr) {
             arr[0] <- 1;
           }
         `;
@@ -10447,7 +10407,7 @@ describe("CodeGenWalker", () => {
 
       it("should resolve const parameter", () => {
         const source = `
-          void test(const u32 val) {
+          void test(u32 val) {
             u32 copy <- val;
           }
         `;
@@ -10523,7 +10483,7 @@ describe("CodeGenWalker", () => {
         const source = `
           scope Motor {
             struct Config { u32 speed; }
-            public void init(this.Config cfg) {
+            public void init(mut this.Config cfg) {
               cfg.speed <- 100;
             }
           }
@@ -10552,7 +10512,7 @@ describe("CodeGenWalker", () => {
         const source = `
           scope LED {
             enum State { OFF, ON }
-            State current <- State.OFF;
+            mut State current <- State.OFF;
             public void toggle() {
               if (this.current = this.State.OFF) {
                 this.current <- this.State.ON;
@@ -10583,7 +10543,7 @@ describe("CodeGenWalker", () => {
         const source = `
           enum Color { RED, GREEN, BLUE }
           scope Display {
-            Color current <- global.Color.RED;
+            mut Color current <- global.Color.RED;
             public void setColor() {
               this.current <- global.Color.GREEN;
             }
@@ -10640,7 +10600,7 @@ describe("CodeGenWalker", () => {
         const source = `
           struct Inner { i32 value; }
           struct Outer { Inner inner; }
-          void test(Outer o) {
+          void test(mut Outer o) {
             o.inner.value <- 42;
           }
         `;
@@ -10666,7 +10626,7 @@ describe("CodeGenWalker", () => {
         const source = `
           struct Point { i32 x; i32 y; }
           struct Container { Point points[10]; }
-          void test(Container c) {
+          void test(mut Container c) {
             c.points[0].x <- 5;
           }
         `;
@@ -10693,9 +10653,9 @@ describe("CodeGenWalker", () => {
     describe("function argument helpers", () => {
       it("should handle lvalue argument (variable reference)", () => {
         const source = `
-          void modify(u32 val) { val +<- 1; }
+          void modify(mut u32 val) { val +<- 1; }
           void test() {
-            u32 x <- 0;
+            mut u32 x <- 0;
             modify(x);
           }
         `;
@@ -10720,9 +10680,9 @@ describe("CodeGenWalker", () => {
       it("should handle struct member as function argument", () => {
         const source = `
           struct Data { u32 value; }
-          void process(u32 val) { val +<- 1; }
+          void process(mut u32 val) { val +<- 1; }
           void test() {
-            Data d;
+            mut Data d;
             d.value <- 5;
             process(d.value);
           }
@@ -10776,7 +10736,8 @@ describe("CodeGenWalker", () => {
       it("should generate scope variable declaration", () => {
         const source = `
           scope Counter {
-            u32 count <- 0;
+            mut u32 count <- 0;
+            public void bump() { count +<- 1; }
           }
         `;
         const { tree, program } = CNextSourceParser.parse(source);
@@ -10877,7 +10838,7 @@ describe("CodeGenWalker", () => {
     describe("child statement classification helpers", () => {
       it("should classify if statement children correctly", () => {
         const source = `
-          void test(u32 x) {
+          void test(mut u32 x) {
             if (x > 0) {
               x +<- 1;
             } else {
@@ -10907,7 +10868,7 @@ describe("CodeGenWalker", () => {
       it("should collect while loop body correctly", () => {
         const source = `
           void test() {
-            u32 i <- 0;
+            mut u32 i <- 0;
             while (i < 10) {
               i +<- 1;
             }
@@ -10935,7 +10896,7 @@ describe("CodeGenWalker", () => {
       it("should collect for loop body correctly", () => {
         const source = `
           void test() {
-            for (u32 i <- 0; i < 5; i +<- 1) {
+            for (mut u32 i <- 0; i < 5; i +<- 1) {
               u32 doubled <- i * 2;
             }
           }
@@ -10961,7 +10922,7 @@ describe("CodeGenWalker", () => {
 
       it("should collect switch children correctly", () => {
         const source = `
-          void test(u32 x) {
+          void test(mut u32 x) {
             switch (x) {
               case 1 {
                 x +<- 10;
@@ -11030,7 +10991,7 @@ describe("CodeGenWalker", () => {
       it("should detect u8 target type for proper casting", () => {
         const source = `
           void test() {
-            u8 small <- 255;
+            mut u8 small <- 255;
             u32 large <- 1000;
             small <- large[0, 8];
           }
@@ -11169,7 +11130,7 @@ describe("CodeGenWalker", () => {
         const source = `
           struct Point { i32 x; i32 y; }
           Point getOrigin() {
-            Point p;
+            mut Point p;
             p.x <- 0;
             p.y <- 0;
             return p;
@@ -11281,7 +11242,7 @@ describe("CodeGenWalker", () => {
     describe("register parameter type helpers", () => {
       it("should register primitive type in type registry", () => {
         const source = `
-          void process(u16 value) {
+          void process(mut u16 value) {
             value +<- 1;
           }
         `;
@@ -11334,7 +11295,7 @@ describe("CodeGenWalker", () => {
         const source = `
           enum State { OFF, ON }
           struct Device { State status; }
-          void test(Device d) {
+          void test(mut Device d) {
             d.status <- State.ON;
           }
         `;
@@ -11363,7 +11324,7 @@ describe("CodeGenWalker", () => {
           struct Inner { i32 val; }
           struct Middle { Inner inner; }
           struct Outer { Middle middle; }
-          void test(Outer o) {
+          void test(mut Outer o) {
             o.middle.inner.val <- 42;
           }
         `;
@@ -11603,7 +11564,7 @@ describe("CodeGenWalker", () => {
       it("should collect do-while loop body", () => {
         const source = `
           void test() {
-            u32 i <- 0;
+            mut u32 i <- 0;
             do {
               i +<- 1;
             } while (i < 5);
@@ -11630,7 +11591,7 @@ describe("CodeGenWalker", () => {
 
       it("should classify statement without block", () => {
         const source = `
-          void test(u32 x) {
+          void test(mut u32 x) {
             if (x > 0)
               x +<- 1;
           }
@@ -11687,11 +11648,11 @@ describe("CodeGenWalker", () => {
     describe("function call argument generation", () => {
       it("should handle array argument passed to function", () => {
         const source = `
-          void process(u32[10] data) {
+          void process(mut u32[10] data) {
             data[0] <- 1;
           }
           void test() {
-            u32[10] arr;
+            mut u32[10] arr;
             process(arr);
           }
         `;
@@ -11802,7 +11763,7 @@ describe("CodeGenWalker", () => {
 
         // Scope function name is prefixed, struct return type uses its own name
         expect(code).toContain("Product Factory__create");
-        expect(code).toContain("Factory__create(uint32_t id)");
+        expect(code).toContain("Factory__create(const uint32_t id)");
       });
     });
 
@@ -11811,7 +11772,7 @@ describe("CodeGenWalker", () => {
         const source = `
           scope Controller {
             enum State { INIT, READY, ERROR }
-            State currentState <- State.INIT;
+            mut State currentState <- State.INIT;
             public void checkState() {
               if (this.currentState = this.State.ERROR) {
                 this.currentState <- this.State.INIT;
@@ -11844,7 +11805,7 @@ describe("CodeGenWalker", () => {
         const source = `
           struct Buffer { u8 data[64]; u32 len; }
           void test() {
-            Buffer b;
+            mut Buffer b;
             b.len <- 0;
             b.data[0] <- 0xFF;
           }
@@ -11870,7 +11831,7 @@ describe("CodeGenWalker", () => {
       it("should handle param.array[index] in C mode", () => {
         const source = `
           struct Container { u32 values[10]; }
-          void modify(Container c) {
+          void modify(mut Container c) {
             c.values[0] <- 42;
           }
         `;
@@ -11897,7 +11858,7 @@ describe("CodeGenWalker", () => {
     describe("wrap overflow operations", () => {
       it("should generate wrap add for wrap u8", () => {
         const source = `
-          wrap u8 counter <- 250;
+          mut wrap u8 counter <- 250;
           void test() {
             counter +<- 10;
           }
@@ -12045,7 +12006,7 @@ describe("CodeGenWalker", () => {
       it("should handle array with size in declaration", () => {
         const source = `
           void test() {
-            u8[10] buffer;
+            mut u8[10] buffer;
             buffer[0] <- 0xFF;
           }
         `;
@@ -12069,9 +12030,9 @@ describe("CodeGenWalker", () => {
 
       it("should handle array type with named constant size", () => {
         const source = `
-          const u32 BUFFER_SIZE <- 64;
+          u32 BUFFER_SIZE <- 64;
           void test() {
-            u8[BUFFER_SIZE] buffer;
+            mut u8[BUFFER_SIZE] buffer;
             buffer[0] <- 0;
           }
         `;
@@ -12120,7 +12081,7 @@ describe("CodeGenWalker", () => {
       it("should allow multi-dimensional C-Next style arrays", () => {
         const source = `
           void test() {
-            u8[4][4] matrix;
+            mut u8[4][4] matrix;
             matrix[0][0] <- 0;
           }
         `;
@@ -12373,7 +12334,7 @@ describe("CodeGenWalker", () => {
           struct Inner { u32 value; }
           struct Outer { Inner inner; }
           void test() {
-            Outer o;
+            mut Outer o;
             o.inner.value <- 42;
           }
         `;
@@ -12400,7 +12361,7 @@ describe("CodeGenWalker", () => {
       it("should handle if statement with block body", () => {
         const source = `
           void test() {
-            u32 x <- 0;
+            mut u32 x <- 0;
             if (x = 0) {
               x <- 1;
             }
@@ -12454,7 +12415,7 @@ describe("CodeGenWalker", () => {
       it("should handle while loop with block body", () => {
         const source = `
           void test() {
-            u32 i <- 0;
+            mut u32 i <- 0;
             while (i < 10) {
               i +<- 1;
             }
@@ -12508,7 +12469,7 @@ describe("CodeGenWalker", () => {
         const source = `
           void test() {
             u32 val <- 1;
-            u32 result <- 0;
+            mut u32 result <- 0;
             switch (val) {
               case 0 { result <- 10; }
               case 1 { result <- 20; }
@@ -12540,7 +12501,7 @@ describe("CodeGenWalker", () => {
       it("should handle do-while loop", () => {
         const source = `
           void test() {
-            u32 i <- 0;
+            mut u32 i <- 0;
             do {
               i +<- 1;
             } while (i < 5);
@@ -12651,7 +12612,7 @@ describe("CodeGenWalker", () => {
       it("should handle const struct parameter", () => {
         const source = `
           struct Data { u32 value; }
-          void process(const Data d) {
+          void process(Data d) {
             u32 v <- d.value;
           }
         `;
@@ -12704,7 +12665,7 @@ describe("CodeGenWalker", () => {
         const source = `
           scope Motor {
             enum Direction { FORWARD, BACKWARD, STOP }
-            Direction dir <- Direction.STOP;
+            mut Direction dir <- Direction.STOP;
             public void move() {
               dir <- this.Direction.FORWARD;
             }
@@ -12732,7 +12693,7 @@ describe("CodeGenWalker", () => {
         const source = `
           enum Priority { LOW, MEDIUM, HIGH }
           scope Task {
-            Priority level <- global.Priority.LOW;
+            mut Priority level <- global.Priority.LOW;
             public void elevate() {
               level <- global.Priority.HIGH;
             }
@@ -12787,7 +12748,7 @@ describe("CodeGenWalker", () => {
         const source = `
           scope Sensor {
             enum Status { OK, ERROR, PENDING }
-            Status state <- Status.OK;
+            mut Status state <- Status.OK;
             public void checkStatus() {
               if (this.state = this.Status.ERROR) {
                 this.state <- this.Status.OK;
@@ -12854,7 +12815,7 @@ describe("CodeGenWalker", () => {
         // this shape cannot compile yet; this pins the typedef's half.
         const source = `
           struct Point { i32 x; }
-          void onPoint(Point p) { p.x <- 1; }
+          void onPoint(mut Point p) { p.x <- 1; }
         `;
         const { tree, program } = CNextSourceParser.parse(source);
         const host = new CodeGenerator();
@@ -12882,7 +12843,7 @@ describe("CodeGenWalker", () => {
     describe("array parameter dimensions", () => {
       it("should handle multi-dimensional array parameter", () => {
         const source = `
-          void processMatrix(u32[3][3] matrix) {
+          void processMatrix(mut u32[3][3] matrix) {
             matrix[0][0] <- 1;
           }
         `;
@@ -12909,7 +12870,7 @@ describe("CodeGenWalker", () => {
       it("should handle struct array parameter with C-Next style", () => {
         const source = `
           struct Point { i32 x; i32 y; }
-          void processPoints(Point[4] points) {
+          void processPoints(mut Point[4] points) {
             points[0].x <- 10;
           }
         `;
@@ -12934,7 +12895,7 @@ describe("CodeGenWalker", () => {
       it("should detect struct type in arrayType for parameter", () => {
         const source = `
           struct Data { u32 value; }
-          void process(Data[8] items) {
+          void process(mut Data[8] items) {
             items[0].value <- 42;
           }
         `;
@@ -12961,7 +12922,7 @@ describe("CodeGenWalker", () => {
     describe("multi-dimensional C-Next style array parameters", () => {
       it("should handle 2D array parameter", () => {
         const source = `
-          void processMatrix(i32[4][4] matrix) {
+          void processMatrix(mut i32[4][4] matrix) {
             matrix[0][0] <- 1;
           }
         `;
@@ -12985,7 +12946,7 @@ describe("CodeGenWalker", () => {
 
       it("should handle 3D array parameter", () => {
         const source = `
-          void processCube(u8[2][3][4] cube) {
+          void processCube(mut u8[2][3][4] cube) {
             cube[0][0][0] <- 0xFF;
           }
         `;
@@ -13011,7 +12972,7 @@ describe("CodeGenWalker", () => {
     describe("string array parameter capacity", () => {
       it("should add capacity dimension for string array parameter", () => {
         const source = `
-          void processNames(string<16>[5] names) {
+          void processNames(mut string<16>[5] names) {
             names[0] <- "test";
           }
         `;
@@ -13036,7 +12997,7 @@ describe("CodeGenWalker", () => {
 
       it("should handle string array with larger capacity", () => {
         const source = `
-          void logMessages(string<128>[10] messages) {
+          void logMessages(mut string<128>[10] messages) {
             messages[0] <- "hello";
           }
         `;
@@ -13090,7 +13051,7 @@ describe("CodeGenWalker", () => {
       it("should generate bit range write", () => {
         const source = `
           void test() {
-            u32 flags <- 0;
+            mut u32 flags <- 0;
             flags[0, 4] <- 0x0F;
           }
         `;
@@ -13196,7 +13157,7 @@ describe("CodeGenWalker", () => {
       it("should generate private scope variable access", () => {
         const source = `
           scope State {
-            u32 value <- 0;
+            mut u32 value <- 0;
             public void increment() {
               value +<- 1;
             }
@@ -13336,7 +13297,7 @@ describe("CodeGenWalker", () => {
         const source = `
           scope Controller {
             enum Phase { INIT, RUN, STOP }
-            Phase phase <- Phase.INIT;
+            mut Phase phase <- Phase.INIT;
             public void check() {
               if (this.phase = this.Phase.RUN) {
                 this.phase <- this.Phase.STOP;
@@ -13423,7 +13384,7 @@ describe("CodeGenWalker", () => {
     describe("critical block handling", () => {
       it("should generate critical section code", () => {
         const source = `
-          u32 counter <- 0;
+          mut u32 counter <- 0;
           void incrementSafe() {
             critical {
               counter +<- 1;
@@ -13535,11 +13496,11 @@ describe("CodeGenWalker", () => {
     describe("function argument generation helpers", () => {
       it("should handle identifier argument in function call", () => {
         const source = `
-          void increment(u32 val) {
+          void increment(mut u32 val) {
             val +<- 1;
           }
           void test() {
-            u32 x <- 5;
+            mut u32 x <- 5;
             increment(x);
           }
         `;
@@ -13568,7 +13529,7 @@ describe("CodeGenWalker", () => {
             u32 v <- d.value;
           }
           void test() {
-            Data myData;
+            mut Data myData;
             myData.value <- 10;
             processData(myData);
           }
@@ -13594,11 +13555,11 @@ describe("CodeGenWalker", () => {
       it("should handle member access argument in function call", () => {
         const source = `
           struct Container { u32 val; }
-          void useValue(u32 v) {
+          void useValue(mut u32 v) {
             v +<- 1;
           }
           void test() {
-            Container c;
+            mut Container c;
             c.val <- 5;
             useValue(c.val);
           }
@@ -13729,7 +13690,7 @@ describe("CodeGenWalker", () => {
         const source = `
           struct Item { u32 id; }
           void test() {
-            Item[10] items;
+            mut Item[10] items;
             items[0].id <- 42;
           }
         `;
@@ -13757,7 +13718,7 @@ describe("CodeGenWalker", () => {
         const source = `
           struct Result { u32 code; }
           Result getResult() {
-            Result r;
+            mut Result r;
             r.code <- 0;
             return r;
           }
@@ -13789,7 +13750,7 @@ describe("CodeGenWalker", () => {
       it("should generate scope-prefixed variable names", () => {
         const source = `
           scope Counter {
-            u32 count <- 0;
+            mut u32 count <- 0;
             public void increment() {
               count +<- 1;
             }
@@ -13819,7 +13780,7 @@ describe("CodeGenWalker", () => {
       it("should generate scope member access with this", () => {
         const source = `
           scope State {
-            u32 value <- 0;
+            mut u32 value <- 0;
             public void update(u32 newVal) {
               this.value <- newVal;
             }
@@ -14163,7 +14124,7 @@ describe("CodeGenWalker", () => {
       it("should handle for loop body statements", () => {
         const source = `
           void test() {
-            for (u32 i <- 0; i < 10; i +<- 1) {
+            for (mut u32 i <- 0; i < 10; i +<- 1) {
               u32 val <- i * 2;
             }
           }
@@ -14190,7 +14151,7 @@ describe("CodeGenWalker", () => {
       it("should handle while loop body statements", () => {
         const source = `
           void test() {
-            u32 count <- 0;
+            mut u32 count <- 0;
             while (count < 5) {
               count +<- 1;
             }
@@ -14220,7 +14181,7 @@ describe("CodeGenWalker", () => {
           enum Color { RED, GREEN, BLUE }
           void test() {
             Color c <- Color.RED;
-            u32 val <- 0;
+            mut u32 val <- 0;
             switch (c) {
               case Color.RED { val <- 1; }
               case Color.GREEN { val <- 2; }
@@ -14331,7 +14292,8 @@ describe("CodeGenWalker", () => {
         const source = `
           enum Category { A, B, C }
           scope Handler {
-            Category cat <- global.Category.A;
+            mut Category cat <- global.Category.A;
+            public void next() { cat <- global.Category.B; }
           }
         `;
         const { tree, program } = CNextSourceParser.parse(source);
@@ -14539,7 +14501,7 @@ describe("CodeGenWalker", () => {
       it("should generate scope variable reference", () => {
         const source = `
           scope Counter {
-            u32 count <- 0;
+            mut u32 count <- 0;
             public void increment() {
               this.count +<- 1;
             }
@@ -14649,7 +14611,7 @@ describe("CodeGenWalker", () => {
         const source = `
           enum Status { ACTIVE, INACTIVE }
           scope Device {
-            Status current <- global.Status.ACTIVE;
+            mut Status current <- global.Status.ACTIVE;
             public void update() {
               if (this.current = global.Status.INACTIVE) {
                 this.current <- global.Status.ACTIVE;
@@ -14682,7 +14644,8 @@ describe("CodeGenWalker", () => {
         const source = `
           enum Priority { HIGH, MEDIUM, LOW }
           scope Task {
-            Priority level <- global.Priority.HIGH;
+            mut Priority level <- global.Priority.HIGH;
+            public void lower() { level <- global.Priority.LOW; }
           }
         `;
         const { tree, program } = CNextSourceParser.parse(source);
@@ -15159,7 +15122,7 @@ describe("CodeGenWalker", () => {
       it("should detect array element of string array", () => {
         const source = `
           void test() {
-            string<32>[3] names;
+            mut string<32>[3] names;
             names[0] <- "Alice";
             bool check <- (names[0] = "Alice");
           }
@@ -15188,7 +15151,7 @@ describe("CodeGenWalker", () => {
       it("should register array type correctly", () => {
         const source = `
           void test() {
-            u8[10] buffer;
+            mut u8[10] buffer;
             buffer[0] <- 0xFF;
           }
         `;
@@ -15213,7 +15176,7 @@ describe("CodeGenWalker", () => {
       it("should register multi-dimensional array", () => {
         const source = `
           void test() {
-            u8[10][20] matrix;
+            mut u8[10][20] matrix;
             matrix[0][0] <- 0;
           }
         `;
@@ -15238,7 +15201,7 @@ describe("CodeGenWalker", () => {
       it("should handle i32 array type", () => {
         const source = `
           void test() {
-            i32[5] values;
+            mut i32[5] values;
             values[0] <- 100;
           }
         `;
@@ -15263,7 +15226,7 @@ describe("CodeGenWalker", () => {
       it("should handle const array type", () => {
         const source = `
           void test() {
-            const u8[4] data <- [1, 2, 3, 4];
+            u8[4] data <- [1, 2, 3, 4];
           }
         `;
         const { tree, program } = CNextSourceParser.parse(source);
@@ -15291,7 +15254,7 @@ describe("CodeGenWalker", () => {
             i32 y;
           }
           void test() {
-            Point[3] points;
+            mut Point[3] points;
             points[0].x <- 10;
           }
         `;
@@ -15325,7 +15288,7 @@ describe("CodeGenWalker", () => {
             priority[2]
           }
           void test() {
-            Flags[4] flags;
+            mut Flags[4] flags;
             flags[0].active <- true;
           }
         `;
@@ -15357,7 +15320,7 @@ describe("CodeGenWalker", () => {
             BLUE
           }
           void test() {
-            Color[3] colors;
+            mut Color[3] colors;
             colors[0] <- Color.RED;
           }
         `;
@@ -15385,7 +15348,7 @@ describe("CodeGenWalker", () => {
           struct Item {
             u8 id;
           }
-          const Item[2] items <- [{id: 1}, {id: 2}];
+          Item[2] items <- [{id: 1}, {id: 2}];
         `;
         const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
@@ -15499,7 +15462,7 @@ describe("CodeGenWalker", () => {
             u32 timeout;
             bool enabled;
           }
-          void configure(const Settings s) {
+          void configure(Settings s) {
             u32 t <- s.timeout;
           }
         `;
@@ -15585,7 +15548,7 @@ describe("CodeGenWalker", () => {
         const source = `
           enum Color { RED, GREEN, BLUE }
           void test() {
-            Color c <- Color.RED;
+            mut Color c <- Color.RED;
             c <- Color.GREEN;
           }
         `;
@@ -15612,7 +15575,7 @@ describe("CodeGenWalker", () => {
         const source = `
           enum Status { OK, ERROR }
           void test() {
-            Status s <- Status.OK;
+            mut Status s <- Status.OK;
             if (s = Status.ERROR) {
               s <- Status.OK;
             }
@@ -15669,7 +15632,7 @@ describe("CodeGenWalker", () => {
     describe("overflow helpers", () => {
       it("should generate clamp add helper", () => {
         const source = `
-          clamp u8 val <- 250;
+          mut clamp u8 val <- 250;
           void test() {
             val +<- 10;
           }
@@ -15694,7 +15657,7 @@ describe("CodeGenWalker", () => {
 
       it("should generate clamp sub helper", () => {
         const source = `
-          clamp u8 val <- 5;
+          mut clamp u8 val <- 5;
           void test() {
             val -<- 10;
           }
@@ -15798,7 +15761,7 @@ describe("CodeGenWalker", () => {
       it("should generate bit range write expression", () => {
         const source = `
           void test() {
-            u32 val <- 0;
+            mut u32 val <- 0;
             val[8, 8] <- 0xFF;
           }
         `;
@@ -15824,7 +15787,7 @@ describe("CodeGenWalker", () => {
       it("should generate single bit write", () => {
         const source = `
           void test() {
-            u32 flags <- 0;
+            mut u32 flags <- 0;
             flags[3] <- true;
           }
         `;
@@ -15851,7 +15814,7 @@ describe("CodeGenWalker", () => {
       it("should generate array element write", () => {
         const source = `
           void test() {
-            u32[10] arr;
+            mut u32[10] arr;
             arr[5] <- 42;
           }
         `;
@@ -16050,7 +16013,7 @@ describe("CodeGenWalker", () => {
       it("should generate while loop", () => {
         const source = `
           void test() {
-            u32 i <- 0;
+            mut u32 i <- 0;
             while (i < 10) {
               i +<- 1;
             }
@@ -16079,7 +16042,7 @@ describe("CodeGenWalker", () => {
       it("should generate for loop", () => {
         const source = `
           void test() {
-            for (u32 i <- 0; i < 10; i +<- 1) {
+            for (mut u32 i <- 0; i < 10; i +<- 1) {
               u32 x <- i;
             }
           }
@@ -16109,7 +16072,7 @@ describe("CodeGenWalker", () => {
       it("should generate do-while loop", () => {
         const source = `
           void test() {
-            u32 i <- 0;
+            mut u32 i <- 0;
             do {
               i +<- 1;
             } while (i < 10);
@@ -16157,7 +16120,9 @@ describe("CodeGenWalker", () => {
           sourcePath: "test.cnx",
         });
 
-        expect(code).toContain("uint32_t add(uint32_t a, uint32_t b)");
+        expect(code).toContain(
+          "uint32_t add(const uint32_t a, const uint32_t b)",
+        );
         // #1681: arithmetic on parameters clamps (ADR-044)
         expect(code).toContain("return cnx_clamp_add_u32(a, b)");
       });
@@ -16213,7 +16178,7 @@ describe("CodeGenWalker", () => {
 
       it("should generate const global", () => {
         const source = `
-          const u32 MAX_VALUE <- 100;
+          u32 MAX_VALUE <- 100;
         `;
         const { tree, program } = CNextSourceParser.parse(source);
         // #1445 box 3: the walk and the render-side services are two objects now.
@@ -16582,7 +16547,7 @@ describe("CodeGenWalker", () => {
     describe("atomic variable", () => {
       it("should generate volatile for atomic", () => {
         const source = `
-          atomic u32 counter <- 0;
+          atomic mut u32 counter <- 0;
           void test() {
             counter <- 1;
           }
@@ -16609,7 +16574,7 @@ describe("CodeGenWalker", () => {
     describe("wrap overflow behavior", () => {
       it("should not add helpers for wrap types", () => {
         const source = `
-          wrap u8 val <- 250;
+          mut wrap u8 val <- 250;
           void test() {
             val +<- 10;
           }
@@ -16849,8 +16814,8 @@ describe("CodeGenWalker", () => {
     it("writes a const case label as its value", () => {
       const code = generate(`
         scope S {
-          const u32 M <- 20;
-          public const u32 P <- 30;
+          u32 M <- 20;
+          public u32 P <- 30;
           public u32 pick(u32 v) {
             switch (v) {
               case M { return 1; }
@@ -16866,9 +16831,9 @@ describe("CodeGenWalker", () => {
 
     it("writes a `this.`/`global.` case label as the value it names (#1629)", () => {
       const code = generate(`
-        const u8 LIMIT <- 1;
+        u8 LIMIT <- 1;
         scope Panel {
-          const u8 LIMIT <- 3;
+          u8 LIMIT <- 3;
           public u32 pick(u8 v) {
             switch (v) {
               case this.LIMIT { return 1; }
@@ -16917,7 +16882,7 @@ describe("CodeGenWalker", () => {
 
     it("folds a bare file-scope const label as its rooted spelling does (#1629)", () => {
       const code = generate(`
-        const u8 LIMIT <- 1;
+        u8 LIMIT <- 1;
         u32 bare(u8 v) {
           switch (v) {
             case LIMIT { return 1; }
@@ -16964,12 +16929,16 @@ describe("CodeGenWalker", () => {
       const code = generate(`
         enum EMode { IDLE, RUN }
         scope S {
-          const bool A <- true;
-          const bool B <- A;
-          bool copied <- B;
-          const EMode D <- EMode.RUN;
-          const EMode D2 <- D;
-          EMode mode <- D2;
+          bool A <- true;
+          bool B <- A;
+          mut bool copied <- B;
+          EMode D <- EMode.RUN;
+          EMode D2 <- D;
+          mut EMode mode <- D2;
+          public void reset() {
+            copied <- false;
+            mode <- EMode.IDLE;
+          }
         }
       `);
       expect(code).toContain("static bool S__copied = true;");
@@ -16981,7 +16950,7 @@ describe("CodeGenWalker", () => {
     it("should inline private const when referenced without this. prefix", () => {
       const source = `
         scope Foo {
-          const u32 MY_CONSTANT <- 42;
+          u32 MY_CONSTANT <- 42;
 
           public u32 getConstant() {
             return MY_CONSTANT;
@@ -17012,7 +16981,7 @@ describe("CodeGenWalker", () => {
     it("should inline private const in expressions without this. prefix", () => {
       const source = `
         scope Bar {
-          const u8 OFFSET <- 10;
+          u8 OFFSET <- 10;
 
           public u8 compute() {
             u8 result <- OFFSET + 5;
@@ -17131,7 +17100,7 @@ describe("CodeGenWalker", () => {
       const source = `
         struct Point { i32 x; i32 y; }
         void foo() {
-          Point p <- {x: 0, y: 0};
+          mut Point p <- {x: 0, y: 0};
           p <- {x: 10, y: 20};
         }
       `;

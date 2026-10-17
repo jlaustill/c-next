@@ -16,13 +16,13 @@
 const volatile uint32_t hardware_status = 0x0000FFFFU;
 
 int main(void) {
-    uint32_t status = hardware_status;
+    const uint32_t status = hardware_status;
     if (status != 0x0000FFFF) {
         return 1U;
     }
-    uint32_t read1 = hardware_status;
-    uint32_t read2 = hardware_status;
-    uint32_t read3 = hardware_status;
+    const uint32_t read1 = hardware_status;
+    const uint32_t read2 = hardware_status;
+    const uint32_t read3 = hardware_status;
     if (read1 != 0x0000FFFF) {
         return 2U;
     }
@@ -32,7 +32,7 @@ int main(void) {
     if (read3 != 0x0000FFFF) {
         return 4U;
     }
-    uint32_t masked = hardware_status & 0x00FFU;
+    const uint32_t masked = hardware_status & 0x00FFU;
     if (masked != 0x00FF) {
         return 5U;
     }

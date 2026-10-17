@@ -11,7 +11,7 @@
 // Ensures values serialize little-endian at the destination's element granularity
 int main(void) {
     uint8_t arr8[32] = {0};
-    uint32_t value1 = 0x11223344U;
+    const uint32_t value1 = 0x11223344U;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
     const uint32_t cnx_tmp0 = (uint32_t)(value1);
     arr8[0] = (uint8_t)(cnx_tmp0);
@@ -31,7 +31,7 @@ int main(void) {
         return 4U;
     }
     uint16_t arr16[16] = {0};
-    uint64_t value2 = 0x0102030405060708ULL;
+    const uint64_t value2 = 0x0102030405060708ULL;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint16_t* vs uint64_t*). */
     const uint64_t cnx_tmp1 = (uint64_t)(value2);
     arr16[0] = (uint16_t)(cnx_tmp1);
@@ -51,19 +51,19 @@ int main(void) {
         return 8U;
     }
     uint32_t arr32[16] = {0};
-    uint32_t value3 = 0xAABBCCDDU;
+    const uint32_t value3 = 0xAABBCCDDU;
     arr32[0] = (uint32_t)(value3);
     if (arr32[0U] != 0xAABBCCDD) {
         return 9U;
     }
     uint64_t arr64[8] = {0};
-    uint64_t value4 = 0x123456789ABCDEF0ULL;
+    const uint64_t value4 = 0x123456789ABCDEF0ULL;
     arr64[0] = (uint64_t)(value4);
     if (arr64[0U] != 0x123456789ABCDEF0) {
         return 10U;
     }
     uint8_t buffer[64] = {0};
-    uint32_t value5 = 0x55667788U;
+    const uint32_t value5 = 0x55667788U;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
     const uint32_t cnx_tmp2 = (uint32_t)(value5);
     buffer[0] = (uint8_t)(cnx_tmp2);
@@ -83,9 +83,9 @@ int main(void) {
         return 14U;
     }
     uint8_t multiArr[32] = {0};
-    uint32_t val1 = 0x11111111U;
-    uint32_t val2 = 0x22222222U;
-    uint32_t val3 = 0x33333333U;
+    const uint32_t val1 = 0x11111111U;
+    const uint32_t val2 = 0x22222222U;
+    const uint32_t val3 = 0x33333333U;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
     const uint32_t cnx_tmp3 = (uint32_t)(val1);
     multiArr[0] = (uint8_t)(cnx_tmp3);

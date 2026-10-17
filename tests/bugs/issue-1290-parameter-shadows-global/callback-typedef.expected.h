@@ -13,14 +13,14 @@ extern "C" {
 #endif
 
 /* Callback typedefs */
-typedef void (*handler_fp)(uint32_t, uint32_t handler__buf[2]);
+typedef void (*handler_fp)(const uint32_t, const uint32_t handler__buf[2]);
 
 /* External variables */
-extern uint32_t buf[2];
+extern const uint32_t buf[2];
 extern uint32_t seen;
 
 /* Function prototypes */
-void handler(uint32_t total, uint32_t handler__buf[2]);
+void handler(const uint32_t total, const uint32_t handler__buf[2]);
 void run(handler_fp cb);
 
 #ifdef __cplusplus

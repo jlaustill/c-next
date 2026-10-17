@@ -6,4 +6,4 @@ enum Shared {
     B
 }
 
-const u32 SHARED_MARKER <- 1;
+u32 SHARED_MARKER <- 1;

@@ -2,7 +2,7 @@
 // Issue #110: Tests i64 precision in case label duplicate detection
 // These adjacent large values would cause false-positive duplicate errors with parseInt()
 // Note: Only positive values until parser supports negative case labels
-i32 result;
+mut i32 result;
 
 // Test decimal literals near INT64_MAX
 void testDecimalPrecision(i64 val) {

@@ -1,8 +1,8 @@
 // test-execution
 // Issue #139: Test assigning string variable to another string variable
-string<64> source <- "Original";
+mut string<64> source <- "Original";
 
-string<64> dest <- "";
+mut string<64> dest <- "";
 
 void copyString() {
     dest <- source;
@@ -23,7 +23,7 @@ u32 main() {
 
     // Local variable to variable copy
     string<32> localSrc <- "LocalSource";
-    string<32> localDst <- "";
+    mut string<32> localDst <- "";
     localDst <- localSrc;
     if (localDst.value_char_count != 11) {
         return 3;

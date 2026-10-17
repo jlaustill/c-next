@@ -15,14 +15,14 @@ char userName[51] = "";
 
 int main(int argc, char *argv[]) {
     static_cast<void>(printf("What is your name in 50 characters or less? "));
-    char* c_result = fgets(userName, 51, stdin);
+    const char* c_result = fgets(userName, 51, stdin);
     if (c_result != nullptr) {
         size_t cnx_len_userName = strlen(userName);
         if (cnx_len_userName > 0 && userName[cnx_len_userName - 1U] == '\n') {
             userName[cnx_len_userName - 1] = '\0';
         }
     }
-    uint8_t whoAmIByte = argv[0U][0U];
+    const uint8_t whoAmIByte = argv[0U][0U];
     static_cast<void>(printf("Hello from %s %s! Your special character is %c\n", argv[0U], userName, whoAmIByte));
     return 0U;
 }

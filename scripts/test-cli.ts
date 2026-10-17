@@ -448,7 +448,7 @@ extra_scripts = pre:custom_script.py
 `;
 
 // Simple atomic .cnx file for target tests
-const atomicCnx = `atomic u32 counter <- 0;
+const atomicCnx = `atomic mut u32 counter <- 0;
 
 void increment() {
     counter +<- 1;
@@ -845,7 +845,7 @@ const multiFileConstConfig = `struct Config {
 const multiFileConstStorage = `#include "Config.cnx"
 
 scope Storage {
-    public void loadDefaults(Config config) {
+    public void loadDefaults(mut Config config) {
         config.value <- 42;
     }
 }
@@ -855,7 +855,7 @@ const multiFileConstHandler = `#include "Config.cnx"
 #include "Storage.cnx"
 
 scope Handler {
-    public u8 reset(Config cfg) {
+    public u8 reset(mut Config cfg) {
         global.Storage.loadDefaults(cfg);
         return 0;
     }
@@ -866,11 +866,11 @@ const multiFileConstSerial = `#include "Config.cnx"
 #include "Handler.cnx"
 
 scope Serial {
-    void handleReset(Config config) {
+    void handleReset(mut Config config) {
         (void) global.Handler.reset(config);
     }
 
-    public void process(Config config) {
+    public void process(mut Config config) {
         this.handleReset(config);
     }
 }
@@ -1023,7 +1023,7 @@ const issue580Config = `struct Config {
 const issue580Modifier = `#include "Config.cnx"
 
 scope Modifier {
-    public void reset(Config c) {
+    public void reset(mut Config c) {
         c.value <- 42;
     }
 }
@@ -1037,7 +1037,7 @@ const issue580Handler = `#include "CppSerial.h"
 scope Handler {
     // This function ONLY passes config through to reset()
     // Issue #580: was incorrectly marked const when C++ detected from headers
-    public void passThrough(Config config) {
+    public void passThrough(mut Config config) {
         global.Modifier.reset(config);
     }
 }
@@ -1132,7 +1132,7 @@ ${
         return global.Utils.add(p.x);
     }
 }`
-    : `u8 result;`
+    : `mut u8 result;`
 }
 
 i32 main() {

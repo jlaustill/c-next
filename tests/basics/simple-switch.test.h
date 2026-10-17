@@ -20,8 +20,8 @@ typedef enum {
 } Color;
 
 /* Function prototypes */
-uint32_t colorToValue(Color c);
-uint32_t dayType(uint32_t day);
+uint32_t colorToValue(const Color c);
+uint32_t dayType(const uint32_t day);
 
 #ifdef __cplusplus
 }

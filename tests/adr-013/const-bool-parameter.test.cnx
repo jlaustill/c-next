@@ -1,15 +1,15 @@
 // test-execution
 // ADR-013: Const bool parameter
 // Tests: const bool parameter read access
-bool readConstBool(const bool value) {
+bool readConstBool(bool value) {
     return value;
 }
 
-bool notConstBool(const bool value) {
+bool notConstBool(bool value) {
     return !value;
 }
 
-u32 selectByBool(const bool flag, u32 ifTrue, u32 ifFalse) {
+u32 selectByBool(bool flag, u32 ifTrue, u32 ifFalse) {
     if (flag = true) {
         return ifTrue;
     }

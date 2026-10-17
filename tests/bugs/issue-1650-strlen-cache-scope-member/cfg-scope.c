@@ -10,4 +10,4 @@
 // Helper for #1650's reopened-scope fixture. Declares scope Cfg's string
 // member; strlen-cache-scope-member-reopened.test.cnx reopens Cfg and reads it.
 /* Scope: Cfg */
-char Cfg__label[9] = "ab";
+const char Cfg__label[9] = "ab";

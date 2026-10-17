@@ -545,7 +545,7 @@ describe("ShiftAnalyzer", () => {
     it("should not flag left shift compound-assign with u8 target", () => {
       const code = `
         void main() {
-          u8 x <- 1;
+          mut u8 x <- 1;
           x <<<- 2;
         }
       `;
@@ -561,7 +561,7 @@ describe("ShiftAnalyzer", () => {
     it("should not flag right shift compound-assign with u32 target", () => {
       const code = `
         void main() {
-          u32 x <- 256;
+          mut u32 x <- 256;
           x >><- 4;
         }
       `;
@@ -597,7 +597,7 @@ describe("ShiftAnalyzer", () => {
     it("should not flag other compound-assign operators on signed types", () => {
       const code = `
         void main() {
-          i32 x <- 10;
+          mut i32 x <- 10;
           x +<- 5;
           x -<- 2;
           x *<- 3;
@@ -647,7 +647,7 @@ describe("ShiftAnalyzer", () => {
       const code = `
         struct Data { u8 val; }
         void main() {
-          Data d <- {val: 1};
+          mut Data d <- {val: 1};
           d.val <<<- 2;
         }
       `;

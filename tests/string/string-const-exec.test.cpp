@@ -55,7 +55,7 @@ int main(void) {
     if (45 != 45) {
         return 12;
     }
-    char local[33] = "1.0.0";
+    const char local[33] = "1.0.0";
     if (strcmp(VERSION, local) != 0) {
         return 13;
     }

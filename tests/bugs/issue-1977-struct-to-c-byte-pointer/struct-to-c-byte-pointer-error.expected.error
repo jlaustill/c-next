@@ -18,5 +18,5 @@
        help: A C pointer parameter takes an object of the type it points to; pass a uint8_t, or an array of them.
 36:12 error[E0895]: 'w' is uint32_t, and parameter 1 of 'fill_u8' points to uint8_t
        help: A C pointer parameter takes an object of the type it points to; pass a uint8_t, or an array of them.
-37:12 error[E0895]: 'table' is const uint8_t, and parameter 1 of 'fill_u8' is a pointer 'fill_u8' may write through
-       help: Pass a non-const uint8_t, or declare the C parameter const uint8_t*.
+37:12 error[E0900]: 'table' is read-only uint8_t, and parameter 1 of 'fill_u8' is a pointer 'fill_u8' may write through
+       help: Declare 'table' `mut`, or declare the C parameter const uint8_t*.

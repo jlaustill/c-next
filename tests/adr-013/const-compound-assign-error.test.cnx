@@ -5,8 +5,8 @@
 
 // NEGATIVE CONTROL -- a mutable sibling assigned and passed the same way
 // the const one is; only the const target below is reported.
-u8 ctlMutable <- 0;
-void ctlTake(u8 v) {
+mut u8 ctlMutable <- 0;
+void ctlTake(mut u8 v) {
     v <- 1;
 }
 void ctlAssign() {
@@ -14,7 +14,7 @@ void ctlAssign() {
     ctlMutable +<- 1;
     ctlTake(ctlMutable);
 }
-const u32 COUNTER <- 0;
+u32 COUNTER <- 0;
 
 void main() {
     COUNTER +<- 1; // ERROR: cannot assign to const variable

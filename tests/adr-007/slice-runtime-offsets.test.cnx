@@ -7,20 +7,21 @@
 // NEGATIVE CONTROL -- a `const` offset. The rule is that the offset must FOLD
 // at compile time, not that it must be a literal; a const that folds is fine,
 // and a check that only accepted literals would reject this.
-const u32 OFFSET <- 4;
+u32 OFFSET <- 4;
 
 u32 constOffset() {
-    u8[128] ok;
+    mut u8[128] ok;
     u32 v <- 0x11223344;
     ok[OFFSET, 4] <- v;
     return 0;
 }
 
 u32 main() {
-    u8[128] buffer;
+    mut u8[128] buffer;
 
     // This should fail at compile time because offset is a runtime variable
-    u32 offset <- 0;
+    mut u32 offset <- 0;
+    offset +<- 1;
     u32 value1 <- 0x11223344;
     buffer[offset, 4] <- value1;
 

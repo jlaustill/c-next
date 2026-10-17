@@ -12,14 +12,14 @@
 
 // Typed task function - will be called by C wrapper
 // The C wrapper casts void* to TaskData* and calls this
-void counterTask_typed(TaskData data) {
+void counterTask_typed(mut TaskData data) {
     data.counter <- data.counter + 1;
     data.taskRan <- true;
 }
 
 // Test function demonstrating typed usage
 void testTypedAccess() {
-    TaskData data <- { counter: 0, maxCount: 10, taskRan: false };
+    mut TaskData data <- { counter: 0, maxCount: 10, taskRan: false };
 
     // Direct typed call (for testing)
     counterTask_typed(data);

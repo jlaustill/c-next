@@ -10,12 +10,12 @@
 // Tests: Float to i8 cast should clamp values to -128 to 127 range
 // Issue #632: Float casts currently wrap instead of clamping
 int main(void) {
-    float over = 200.0;
-    float under = -200.0;
-    float in_range = 50.0;
-    float at_max = 127.0;
-    float at_min = -128.0;
-    float negative = -50.5;
+    const float over = 200.0;
+    const float under = -200.0;
+    const float in_range = 50.0;
+    const float at_max = 127.0;
+    const float at_min = -128.0;
+    const float negative = -50.5;
     int8_t result = ((over) >= ((float)INT8_MAX) ? static_cast<int8_t>(INT8_MAX) : (over) < ((float)INT8_MIN) ? static_cast<int8_t>(INT8_MIN) : static_cast<int8_t>((over)));
     if (result != 127) {
         return 1U;

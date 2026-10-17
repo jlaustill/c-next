@@ -3,7 +3,7 @@
 // ADR-003/ADR-045: Static string buffer allocation
 // Tests: global string buffers with known sizes are valid
 // Issues #138 and #139 fixed: string assignment now works correctly
-string<64> messageBuffer <- "Initial";
+mut string<64> messageBuffer <- "Initial";
 
 string<128> logBuffer <- "Log entry one";
 
@@ -16,7 +16,7 @@ u32 getLogLength() {
 }
 
 // Issue #138 fixed: assignment from const parameter now generates valid C
-void copyMessage(const string<64> source) {
+void copyMessage(string<64> source) {
     messageBuffer <- source;
 }
 

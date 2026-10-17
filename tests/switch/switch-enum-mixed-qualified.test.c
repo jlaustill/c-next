@@ -9,7 +9,7 @@
 
 // Issue #471: Mixed qualified and unqualified enum references
 // Tests that both syntaxes work correctly in the same switch
-uint32_t getPriorityValue(EPriority p) {
+uint32_t getPriorityValue(const EPriority p) {
     switch (p) {
         case EPriority__LOW: {
             return 1U;

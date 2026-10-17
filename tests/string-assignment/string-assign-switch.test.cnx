@@ -1,6 +1,6 @@
 // test-execution
 // Issue #139: Test string assignment inside switch cases
-string<32> level <- "";
+mut string<32> level <- "";
 
 void setLevel(u32 code) {
     switch (code) {

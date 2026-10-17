@@ -13,9 +13,9 @@ extern "C" {
 #endif
 
 /* Callback typedefs */
-typedef uint32_t (*sink32_fp)(uint32_t);
-typedef void (*sinkVoid_fp)(uint32_t);
-typedef int32_t (*sinkI_fp)(int32_t);
+typedef uint32_t (*sink32_fp)(const uint32_t);
+typedef void (*sinkVoid_fp)(const uint32_t);
+typedef int32_t (*sinkI_fp)(const int32_t);
 
 /* Struct definitions */
 typedef struct Handlers {
@@ -24,10 +24,10 @@ typedef struct Handlers {
 } Handlers;
 
 /* Function prototypes */
-uint32_t sink32(uint32_t v);
-void sinkVoid(uint32_t v);
-int32_t sinkI(int32_t v);
-uint64_t wide(uint64_t v);
+uint32_t sink32(const uint32_t v);
+void sinkVoid(const uint32_t v);
+int32_t sinkI(const int32_t v);
+uint64_t wide(const uint64_t v);
 uint32_t run(const Handlers* h, sinkI_fp cb);
 /* MISRA C:2012 Rule 8.4: declaration for the ADR-029 generated init function (the definition has external linkage and would otherwise be undeclared). */
 Handlers Handlers_init(void);

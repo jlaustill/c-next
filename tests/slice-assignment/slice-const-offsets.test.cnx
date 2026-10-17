@@ -3,15 +3,15 @@
 // Validates that const variables are recognized as compile-time constants
 // and can be used for slice offset and length parameters.
 
-const u32 OFFSET_MAGIC <- 0;
-const u32 OFFSET_VERSION <- 4;
-const u32 OFFSET_FLAGS <- 6;
-const u8 LEN_MAGIC <- 4;
-const u8 LEN_VERSION <- 2;
-const u8 LEN_FLAGS <- 1;
+u32 OFFSET_MAGIC <- 0;
+u32 OFFSET_VERSION <- 4;
+u32 OFFSET_FLAGS <- 6;
+u8 LEN_MAGIC <- 4;
+u8 LEN_VERSION <- 2;
+u8 LEN_FLAGS <- 1;
 
 u32 main() {
-    u8[64] buffer;
+    mut u8[64] buffer;
 
     // Test 1: Const variable for offset
     u32 magic <- 0x12345678;

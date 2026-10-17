@@ -4,12 +4,12 @@
 // emitted size came from the shared bare key: one table was `[8]` with two
 // initializers (MISRA C:2012 Rule 9.3) or `[2]` read at index 7.
 scope Large {
-    private const u8 SIZE <- 8;
+    private u8 SIZE <- 8;
     public u8[SIZE] table <- [1, 2, 3, 4, 5, 6, 7, 8];
 }
 
 scope Small {
-    private const u8 SIZE <- 2;
+    private u8 SIZE <- 2;
     public u8[SIZE] table <- [1, 2];
 }
 

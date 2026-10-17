@@ -17,7 +17,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-void configure(uint32_t mode) {
+void configure(const uint32_t mode) {
     HW__CTRL = mode;
     HW__CTRL = (HW__CTRL & ~((uint32_t)1U << 3)) | ((uint32_t)1U << 3);
     HW__SET = ((uint32_t)1U << 0);
@@ -30,6 +30,6 @@ uint32_t poll(void) {
 
 int main(void) {
     configure(1U);
-    uint32_t status = poll();
+    const uint32_t status = poll();
     HW__CTRL = status;
 }

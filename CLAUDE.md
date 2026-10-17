@@ -569,7 +569,7 @@ and knip names that member.
 
 | Layer        | Path                          | Purpose                                                                                                                                                                                                                                                                     |
 | ------------ | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Discover     | `src/cnx/PARSE/1-Discover/`   | 1.1 Discover — `Discover.run` emits the frozen `SourceGraph`; FileDiscovery, IncludeResolver, DependencyGraph, preprocessor/, the port. Was `data/` and `logic/` until #1444                                                                                                |
+| Discover     | `src/cnx/PARSE/1-Discover/`   | 1.1 Discover — `Discover.run` emits the frozen `SourceGraph`; FileDiscovery, IncludeResolver, DependencyGraph, the port (the preprocessor moved to 1.2 Parse, `2-Parse/preprocessor/`, with #1713). Was `data/` and `logic/` until #1444                                    |
 | Render       | `src/cnx/TRANSPILE/3-Render/` | 2.3 Render — codegen/, headers/. Moved out of `transpiler/output/` by #1450 box 5                                                                                                                                                                                           |
 | State        | _(gone)_                      | `src/transpiler/state/` was deleted by #1452. The per-file working state 2.2 and 2.3 share is `TranspileState` at the `src/cnx/TRANSPILE/` root; `SymbolRegistry` and `SymbolTable` are 1.3 Declare's                                                                       |
 | Constants    | _(gone)_                      | `src/transpiler/constants/` was dissolved by #1853: a constant one area reads sits in that area (a pass, or `src/cnx/utils/constants/`), and one that more than one area reads sits in `src/cnx/types/`. Areas are counted by where each reader is going, not where it sits |
@@ -1013,18 +1013,6 @@ This used to name a third, `buildStructParamMemberAccess()`, "for chains". It ha
 2. Update `Parser.*Context` references
 3. Remove dead methods (TypeScript flags "never read")
 4. Update unit test mocks
-
-### Const Inference
-
-`ModificationCollector` (1.3 Declare, #1825) walks the lowered statements
-(`TStatement`, from `StatementLowering`) with three helpers:
-
-- `StatementWrites.of()` (`src/cnx/utils/`) — the assignments a statement performs itself, a `for` header's init and update included (#2010)
-- `ModificationCollector.expressionsOf()` — the expressions a statement holds itself, walked for calls
-- `StatementChildren.of()` (`src/cnx/utils/`) — the statements nested directly inside, for recursion (#2003)
-
-Each switches over every statement kind and ends in a `never` arm, so a new
-kind does not compile until each places it.
 
 ---
 

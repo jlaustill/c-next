@@ -1,0 +1,26 @@
+// test-error
+// test-adr: 071
+// E0900 in a scope method: a read-only local string and array passed to a C
+// pointer that is not const, and a read-only parameter passed the same way.
+// CONTROL, all silent: each `mut` twin, and each read-only binding passed to
+// a const pointer.
+
+#include "c-writer.h"
+
+scope Board {
+    public void fill(string<8> p, mut string<8> pm) {
+        string<8> s <- "";
+        mut string<8> sm <- "";
+        c_fill(s);
+        c_fill(sm);
+        c_show(s);
+        u8[4] a;
+        mut u8[4] am;
+        c_fill_bytes(a);
+        c_fill_bytes(am);
+        c_show_bytes(a);
+        c_fill(p);
+        c_fill(pm);
+        c_show(p);
+    }
+}

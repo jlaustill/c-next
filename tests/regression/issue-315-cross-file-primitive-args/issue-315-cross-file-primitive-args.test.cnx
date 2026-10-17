@@ -11,7 +11,7 @@ struct TestData {
 }
 
 scope TestCaller {
-    TestData data;
+    mut TestData data;
 
     public void init() {
         this.data.value1 <- 0.0;

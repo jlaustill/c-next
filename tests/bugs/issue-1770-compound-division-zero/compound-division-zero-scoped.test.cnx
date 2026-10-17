@@ -7,13 +7,13 @@
 // NEGATIVE CONTROLS: this.ONE is nonzero; global.Z and the bare Z outside the
 // scope name the file's nonzero Z, not the scope's zero Z.
 
-const u32 ZERO <- 0;
-const u32 Z <- 5;
+u32 ZERO <- 0;
+u32 Z <- 5;
 
 scope Counter {
-    const u32 Z <- 0;
-    const u32 ONE <- 1;
-    public const u32 SHARED_ZERO <- 0;
+    u32 Z <- 0;
+    u32 ONE <- 1;
+    public u32 SHARED_ZERO <- 0;
 
     public u32 viaThis(u32 n) {
         u32 x <- n;

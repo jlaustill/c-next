@@ -1,0 +1,25 @@
+// test-error
+// test-adr: 071
+// E0898: every binding is read-only by default, so writing `const` is an
+// error -- on a global, a scope member, a parameter and a local, in a
+// top-level function and in a scope method. CONTROL: each `Ok` twin, the
+// same binding without `const`, is silent. A `for` variable never took
+// `const`, so the grammar rejects it there before E0898 could.
+
+const u32 G <- 1;
+u32 G_OK <- 1;
+
+scope Board {
+    const u32 M <- 2;
+    u32 M_OK <- 2;
+
+    public void m(const u32 p, u32 pOk) {
+        const u32 l <- p;
+        u32 lOk <- pOk;
+    }
+}
+
+void f(const u32 p, u32 pOk) {
+    const u32 l <- p;
+    u32 lOk <- pOk;
+}

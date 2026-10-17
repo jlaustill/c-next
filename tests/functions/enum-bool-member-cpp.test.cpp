@@ -16,7 +16,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-uint32_t process(uint32_t crc, uint8_t byte) {
+uint32_t process(const uint32_t crc, const uint8_t byte) {
     return crc ^ byte;
 }
 
@@ -35,7 +35,7 @@ int main(void) {
     cfg.pressureType = PRESSURE_HIGH;
     cfg.thermocoupleType = TC_TYPE_J;
     cfg.value = 4U;
-    uint32_t result = testEnumBoolMembers(cfg);
+    const uint32_t result = testEnumBoolMembers(cfg);
     if (result != 6) {
         return 1U;
     }

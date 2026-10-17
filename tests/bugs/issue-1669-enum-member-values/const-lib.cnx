@@ -2,4 +2,4 @@
 // is declared HERE, in an included file, so folding it needs the include's
 // declaration rather than the entry file's own.
 
-const u32 LIB_BASE <- 0x40;
+u32 LIB_BASE <- 0x40;

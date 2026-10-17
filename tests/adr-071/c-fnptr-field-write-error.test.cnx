@@ -1,0 +1,14 @@
+// test-error
+// test-adr: 071
+// A call through a C struct's function-pointer field takes the parameters of
+// its typedef: a pointer that is not const may write a read-only argument
+// (E0900); a const one only reads it.
+#include "c-fnptr-field.h"
+
+Holder h;
+
+void run() {
+    u8[4] b4 <- [0, 0, 0, 0];
+    h.peek(b4);
+    h.fill(b4);
+}

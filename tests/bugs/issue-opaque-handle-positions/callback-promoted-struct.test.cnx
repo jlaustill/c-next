@@ -13,7 +13,7 @@
 // stays the bare name.
 #include "full_cb.h"
 
-void onFull(Full f) {
+void onFull(mut Full f) {
     Full copy <- f;
     f.pokes <- copy.pokes + 10;
 }
@@ -24,7 +24,7 @@ u32 plainSnapshot(Full f) {
 }
 
 i32 main() {
-    Full f <- { pokes: 1 };
+    mut Full f <- { pokes: 1 };
     global.full_register(onFull);
     global.full_invoke(f);
     if (f.pokes != 11) {

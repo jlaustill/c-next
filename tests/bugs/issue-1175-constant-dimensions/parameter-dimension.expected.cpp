@@ -29,16 +29,16 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // NEGATIVE CONTROL: `a`, sized by a const.
 extern const uint32_t N = 4U;
 
-uint32_t sum(uint8_t a[4], uint8_t b[4]) {
+uint32_t sum(const uint8_t a[4], const uint8_t b[4]) {
     uint32_t total = a[0U];
     total = cnx_clamp_add_u32(total, b[3U]);
     return total;
 }
 
 int main(void) {
-    uint8_t x[4] = {1U, 2U, 3U, 4U};
-    uint8_t y[4] = {5U, 6U, 7U, 8U};
-    uint32_t s = sum(x, y);
+    const uint8_t x[4] = {1U, 2U, 3U, 4U};
+    const uint8_t y[4] = {5U, 6U, 7U, 8U};
+    const uint32_t s = sum(x, y);
     if (s != 9) {
         return 1U;
     }

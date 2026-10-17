@@ -38,7 +38,7 @@ Point Shapes__fromScopeMethod(void) {
     return (Point){ .x = 30U, .y = 40U };
 }
 
-Point atFileScope = { .x = 1U, .y = 2U };
+extern const Point atFileScope = { .x = 1U, .y = 2U };
 
 int main(void) {
     Point declared = { .x = 3U, .y = 4U };
@@ -52,21 +52,21 @@ int main(void) {
     if (declared.x != 5) {
         return 3U;
     }
-    Box box = { .corner = { .x = 7U, .y = 8U } };
+    const Box box = { .corner = { .x = 7U, .y = 8U } };
     if (box.corner.y != 8) {
         return 4U;
     }
     if (atFileScope.y != 2) {
         return 6U;
     }
-    Point r = fromReturn();
+    const Point r = fromReturn();
     if (r.x != 10) {
         return 7U;
     }
     if (r.y != 20) {
         return 8U;
     }
-    Point s = Shapes__fromScopeMethod();
+    const Point s = Shapes__fromScopeMethod();
     if (s.x != 30) {
         return 9U;
     }

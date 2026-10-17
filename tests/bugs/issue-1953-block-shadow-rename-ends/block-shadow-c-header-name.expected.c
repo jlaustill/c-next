@@ -12,15 +12,15 @@
 #include <stdint.h>
 
 int main(void) {
-    uint32_t flag = 1U;
+    const uint32_t flag = 1U;
     if (flag == 1) {
         /* C11 6.2.1p4, C++ [basic.scope.hiding]: `ticks_total` emitted as `main__ticks_total` (a plain `ticks_total` would hide the file-scope `ticks_total` for the rest of its scope, so `global.ticks_total` would reach the local). */
-        uint32_t main__ticks_total = 3U;
+        const uint32_t main__ticks_total = 3U;
         if (main__ticks_total != 3) {
             return 1U;
         }
     }
-    uint32_t fresh = 2U;
+    const uint32_t fresh = 2U;
     if (fresh != 2) {
         return 2U;
     }

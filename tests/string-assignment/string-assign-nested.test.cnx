@@ -1,6 +1,6 @@
 // test-execution
 // Issue #139: Test string assignment in deeply nested blocks
-string<32> nested <- "";
+mut string<32> nested <- "";
 
 void deepNest(u32 depth) {
     if (depth > 0) {
@@ -14,7 +14,7 @@ void deepNest(u32 depth) {
 
 void mixedNest(u32 count) {
     if (count > 0) {
-        u32 i <- 0;
+        mut u32 i <- 0;
         while (i < count) {
             if (i = 0) {
                 nested <- "Mixed";

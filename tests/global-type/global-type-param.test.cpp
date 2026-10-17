@@ -13,7 +13,7 @@
 // Define enum in same file to avoid cross-file header conflicts
 /* Scope: Processor */
 
-int32_t Processor__process(EPriority priority) {
+int32_t Processor__process(const EPriority priority) {
     if (static_cast<int32_t>(priority) == 0) {
         return 10;
     }

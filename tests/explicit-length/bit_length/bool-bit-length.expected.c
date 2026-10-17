@@ -11,7 +11,7 @@
 // test-execution
 // Tests .type_bit_length property for bool type (ADR-058)
 // Bool storage size is 8 bits (1 byte)
-bool globalBool = true;
+const bool globalBool = true;
 
 /* Scope: BoolBitLen */
 
@@ -22,7 +22,7 @@ int main(void) {
     if (1 != 1) {
         return 1;
     }
-    bool localBool = false;
+    const bool localBool = false;
     if (1 != 1) {
         return 2;
     }

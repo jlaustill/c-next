@@ -13,7 +13,7 @@
 #include <stdint.h>
 
 int main(void) {
-    DisplayConfig display = { .resolution = { .width = 1920, .height = 1080 }, .settings = { .brightness = 80, .contrast = 50 } };
+    const DisplayConfig display = { .resolution = { .width = 1920, .height = 1080 }, .settings = { .brightness = 80, .contrast = 50 } };
     if (display.resolution.width != 1920) {
         return 1;
     }
@@ -26,7 +26,7 @@ int main(void) {
     if (display.settings.contrast != 50) {
         return 4;
     }
-    DisplayConfig display2 = { .resolution = { .width = 800, .height = 600 } };
+    const DisplayConfig display2 = { .resolution = { .width = 800, .height = 600 } };
     if (display2.resolution.width != 800) {
         return 5;
     }

@@ -13,39 +13,39 @@
 #include <stdbool.h>
 
 int main(void) {
-    int32_t sum = add_integers(10, 20);
+    const int32_t sum = add_integers(10, 20);
     if (sum != 30) {
         return 1U;
     }
-    int32_t diff = subtract_integers(50, 20);
+    const int32_t diff = subtract_integers(50, 20);
     if (diff != 30) {
         return 2U;
     }
-    int32_t forty_two = get_constant_42();
+    const int32_t forty_two = get_constant_42();
     if (forty_two != 42) {
         return 3U;
     }
-    uint32_t magic = get_magic_number();
+    const uint32_t magic = get_magic_number();
     if (magic != 0xDEADBEEF) {
         return 4U;
     }
-    uint32_t product = multiply_u32(6U, 7U);
+    const uint32_t product = multiply_u32(6U, 7U);
     if (product != 42) {
         return 5U;
     }
-    bool pos = is_positive(42);
+    const bool pos = is_positive(42);
     if (pos != true) {
         return 6U;
     }
-    bool neg = is_positive(-42);
+    const bool neg = is_positive(-42);
     if (neg != false) {
         return 7U;
     }
-    bool even = is_even(42U);
+    const bool even = is_even(42U);
     if (even != true) {
         return 8U;
     }
-    bool odd = is_even(43U);
+    const bool odd = is_even(43U);
     if (odd != false) {
         return 9U;
     }

@@ -10,8 +10,8 @@ struct Frame {
     u8[2][3] grid;
 }
 
-const u8 LAST <- 3;
-const u8 PAST <- 4;
+u8 LAST <- 3;
+u8 PAST <- 4;
 
 u8[4] table <- [1, 2, 3, 4];
 

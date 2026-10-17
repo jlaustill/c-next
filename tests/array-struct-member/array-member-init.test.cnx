@@ -17,7 +17,7 @@ scope ArrayMemberInit {
 
 u32 main() {
     // Test struct with array - individual assignment
-    ArrayMemberInit.Config cfg;
+    mut ArrayMemberInit.Config cfg;
     cfg.version <- 1;
     cfg.flags[0] <- 0x01;
     cfg.flags[1] <- 0x02;
@@ -41,7 +41,7 @@ u32 main() {
     }
 
     // Test struct with multiple arrays
-    ArrayMemberInit.Packet pkt;
+    mut ArrayMemberInit.Packet pkt;
     pkt.checksum <- 0;
 
     // Initialize header

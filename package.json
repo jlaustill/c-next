@@ -21,6 +21,7 @@
     "typecheck:scripts": "tsc --noEmit -p tsconfig.scripts.json",
     "test": "tsx scripts/test.ts",
     "test:cli": "tsx scripts/test-cli.ts",
+    "migrate:adr-071": "tsx scripts/migrate-adr-071.ts",
     "test:q": "tsx scripts/test.ts -q",
     "test:update": "tsx scripts/test.ts --update",
     "integration:transpile": "tsx scripts/test.ts --transpile-only",

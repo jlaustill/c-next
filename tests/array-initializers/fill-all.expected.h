@@ -15,8 +15,8 @@ extern "C" {
 /* External variables */
 extern uint8_t buffer[100];
 extern uint8_t ones[50];
-extern uint16_t magic[10];
-extern int32_t negatives[5];
+extern const uint16_t magic[10];
+extern const int32_t negatives[5];
 
 #ifdef __cplusplus
 }

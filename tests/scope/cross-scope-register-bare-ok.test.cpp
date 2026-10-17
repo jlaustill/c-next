@@ -11,7 +11,6 @@
 // Issue #779: Ambiguity-aware validation - only require global. when shadowed
 // This is the happy path companion to cross-scope-register-bare-error.test.cnx
 /* Scope: Motor */
-static uint32_t Motor__speed = 0U;
 
 void Motor__configure(void) {
     GPIO__DR = 0x01U;

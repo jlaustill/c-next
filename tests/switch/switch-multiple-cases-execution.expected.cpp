@@ -14,7 +14,7 @@
 uint32_t result = 0;
 
 // Basic multiple case syntax
-void testMultiCase(uint32_t val) {
+void testMultiCase(const uint32_t val) {
     switch (val) {
         case 0:
         case 1:
@@ -39,7 +39,7 @@ void testMultiCase(uint32_t val) {
 }
 
 // Multiple cases with hex literals
-void testMultiCaseHex(uint8_t val) {
+void testMultiCaseHex(const uint8_t val) {
     switch (val) {
         case 0x00:
         case 0x01: {
@@ -63,7 +63,7 @@ void testMultiCaseHex(uint8_t val) {
 }
 
 // Multiple cases with binary literals
-void testMultiCaseBinary(uint8_t val) {
+void testMultiCaseBinary(const uint8_t val) {
     switch (val) {
         case 0x0:
         case 0x1: {
@@ -87,7 +87,7 @@ void testMultiCaseBinary(uint8_t val) {
 }
 
 // Multiple cases with signed values (positive case labels only)
-void testMultiCaseSigned(int8_t val) {
+void testMultiCaseSigned(const int8_t val) {
     switch (val) {
         case 0:
         case 1:
@@ -114,7 +114,7 @@ void testMultiCaseSigned(int8_t val) {
 }
 
 // Many cases combined (5 alternatives)
-void testManyMultiCases(uint16_t val) {
+void testManyMultiCases(const uint16_t val) {
     switch (val) {
         case 1:
         case 2:
@@ -138,13 +138,13 @@ void testManyMultiCases(uint16_t val) {
 }
 
 int main(void) {
-    uint32_t val0 = 0U;
-    uint32_t val1 = 1U;
-    uint32_t val2 = 2U;
-    uint32_t val10 = 10U;
-    uint32_t val20 = 20U;
-    uint32_t val100 = 100U;
-    uint32_t val50 = 50U;
+    const uint32_t val0 = 0U;
+    const uint32_t val1 = 1U;
+    const uint32_t val2 = 2U;
+    const uint32_t val10 = 10U;
+    const uint32_t val20 = 20U;
+    const uint32_t val100 = 100U;
+    const uint32_t val50 = 50U;
     testMultiCase(val0);
     if (result != 100) {
         return 1U;
@@ -173,11 +173,11 @@ int main(void) {
     if (result != 999) {
         return 7U;
     }
-    uint8_t hex0 = 0x00U;
-    uint8_t hex1 = 0x01U;
-    uint8_t hexA = 0x0AU;
-    uint8_t hexFF = 0xFFU;
-    uint8_t hexOther = 0x50U;
+    const uint8_t hex0 = 0x00U;
+    const uint8_t hex1 = 0x01U;
+    const uint8_t hexA = 0x0AU;
+    const uint8_t hexFF = 0xFFU;
+    const uint8_t hexOther = 0x50U;
     testMultiCaseHex(hex0);
     if (result != 10) {
         return 8U;
@@ -198,11 +198,11 @@ int main(void) {
     if (result != 99) {
         return 12U;
     }
-    uint8_t bin0 = 0b00000000U;
-    uint8_t bin1 = 0b00000001U;
-    uint8_t binA = 0b00001010U;
-    uint8_t binFF = 0b11111111U;
-    uint8_t binOther = 0b00100000U;
+    const uint8_t bin0 = 0b00000000U;
+    const uint8_t bin1 = 0b00000001U;
+    const uint8_t binA = 0b00001010U;
+    const uint8_t binFF = 0b11111111U;
+    const uint8_t binOther = 0b00100000U;
     testMultiCaseBinary(bin0);
     if (result != 40) {
         return 13U;
@@ -223,14 +223,14 @@ int main(void) {
     if (result != 99) {
         return 17U;
     }
-    int8_t sZero = 0;
-    int8_t sOne = 1;
-    int8_t sTwo = 2;
-    int8_t sFifty = 50;
-    int8_t sFiftyOne = 51;
-    int8_t sMax1 = 126;
-    int8_t sMax = 127;
-    int8_t sNeg = -50;
+    const int8_t sZero = 0;
+    const int8_t sOne = 1;
+    const int8_t sTwo = 2;
+    const int8_t sFifty = 50;
+    const int8_t sFiftyOne = 51;
+    const int8_t sMax1 = 126;
+    const int8_t sMax = 127;
+    const int8_t sNeg = -50;
     testMultiCaseSigned(sZero);
     if (result != 1) {
         return 18U;
@@ -263,13 +263,13 @@ int main(void) {
     if (result != 9) {
         return 25U;
     }
-    uint16_t m1 = 1U;
-    uint16_t m3 = 3U;
-    uint16_t m5 = 5U;
-    uint16_t m100 = 100U;
-    uint16_t m200 = 200U;
-    uint16_t m300 = 300U;
-    uint16_t mOther = 999U;
+    const uint16_t m1 = 1U;
+    const uint16_t m3 = 3U;
+    const uint16_t m5 = 5U;
+    const uint16_t m100 = 100U;
+    const uint16_t m200 = 200U;
+    const uint16_t m300 = 300U;
+    const uint16_t mOther = 999U;
     testManyMultiCases(m1);
     if (result != 500) {
         return 26U;

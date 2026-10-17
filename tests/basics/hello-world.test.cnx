@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-string<50> userName;
+mut string<50> userName;
 
 u32 main(string args[]) {
     (void)printf("What is your name in 50 characters or less? ");

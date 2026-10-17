@@ -14,7 +14,7 @@
  */
 import Installation from "../cnx/PARSE/1-Discover/Installation";
 import TargetCatalogParser from "../cnx/PARSE/2-Parse/TargetCatalogParser";
-import TargetDescriptions from "../cnx/PARSE/4-Resolve/TargetDescriptions";
+import TargetDescriptions from "../cnx/PARSE/2-Parse/TargetDescriptions";
 import type ITargetDescription from "../cnx/types/ITargetDescription";
 import type IFileSystem from "../cnx/types/IFileSystem";
 

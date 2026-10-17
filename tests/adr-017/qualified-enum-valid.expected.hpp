@@ -20,12 +20,12 @@ typedef enum {
 } Priority;
 
 /* External variables */
-extern Priority globalPriority;
+extern const Priority globalPriority;
 
 /* Function prototypes */
 Priority getPriority(void);
-uint32_t priorityToValue(Priority p);
-uint32_t switchPriority(Priority p);
+uint32_t priorityToValue(const Priority p);
+uint32_t switchPriority(const Priority p);
 
 #ifdef __cplusplus
 }

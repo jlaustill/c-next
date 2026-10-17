@@ -4,4 +4,4 @@
 
 #include "length-scope-struct.cnx"
 
-const u32 LENGTH_SCOPE_STRUCT_RELAY_MARKER <- 2;
+u32 LENGTH_SCOPE_STRUCT_RELAY_MARKER <- 2;

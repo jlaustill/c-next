@@ -9,9 +9,9 @@
 // test-execution
 // Tests: f32 to i32 cast should clamp values to -2147483648 to 2147483647 range
 int main(void) {
-    float over = 3000000000.0;
-    float under = -3000000000.0;
-    float in_range = 1000000.0;
+    const float over = 3000000000.0;
+    const float under = -3000000000.0;
+    const float in_range = 1000000.0;
     int32_t result = ((over) >= ((float)INT32_MAX) ? (int32_t)INT32_MAX : (over) < ((float)INT32_MIN) ? (int32_t)INT32_MIN : (int32_t)(over));
     if (result != 2147483647) {
         return 1U;

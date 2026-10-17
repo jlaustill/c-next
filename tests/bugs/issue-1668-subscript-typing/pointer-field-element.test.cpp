@@ -10,8 +10,8 @@
 // subscripted, so `fb.fp[1] * k` was a false E0810 "character and floating".
 #include "pointer_fields.h"
 
-float k = 2.0;
+extern const float k = 2.0;
 
 void scale(void) {
-    float v = fb.fp[1U] * k;
+    const float v = fb.fp[1U] * k;
 }

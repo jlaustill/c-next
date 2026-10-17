@@ -2,8 +2,8 @@
 // test-execution
 // Tests: Modifying reference parameter inside loops
 // Increments value N times
-void incrementN(u32 value, u32 times) {
-    u32 i <- 0;
+void incrementN(mut u32 value, u32 times) {
+    mut u32 i <- 0;
     while (i < times) {
         value <- value + 1;
         i <- i + 1;
@@ -11,8 +11,8 @@ void incrementN(u32 value, u32 times) {
 }
 
 // Doubles value N times
-void doubleN(u32 value, u32 times) {
-    u32 i <- 0;
+void doubleN(mut u32 value, u32 times) {
+    mut u32 i <- 0;
     while (i < times) {
         value <- value * 2;
         i <- i + 1;
@@ -20,9 +20,9 @@ void doubleN(u32 value, u32 times) {
 }
 
 // Accumulates sum using a loop
-void accumulate(u32 start, u32 end, u32 result) {
+void accumulate(u32 start, u32 end, mut u32 result) {
     result <- 0;
-    u32 i <- start;
+    mut u32 i <- start;
     while (i <= end) {
         result <- result + i;
         i <- i + 1;
@@ -30,9 +30,9 @@ void accumulate(u32 start, u32 end, u32 result) {
 }
 
 // Factorial via loop
-void factorial(u32 n, u32 result) {
+void factorial(u32 n, mut u32 result) {
     result <- 1;
-    u32 i <- 1;
+    mut u32 i <- 1;
     while (i <= n) {
         result <- result * i;
         i <- i + 1;
@@ -40,8 +40,8 @@ void factorial(u32 n, u32 result) {
 }
 
 // Modifies multiple refs in same loop
-void parallelIncrement(u32 a, u32 b, u32 times) {
-    u32 i <- 0;
+void parallelIncrement(mut u32 a, mut u32 b, u32 times) {
+    mut u32 i <- 0;
     while (i < times) {
         a <- a + 1;
         b <- b + 2;
@@ -52,7 +52,7 @@ void parallelIncrement(u32 a, u32 b, u32 times) {
 u32 main() {
 
     // Test incrementN
-    u32 val <- 10;
+    mut u32 val <- 10;
     incrementN(val, 5);
     if (val != 15) {
         return 1;
@@ -78,7 +78,7 @@ u32 main() {
     }
 
     // Test accumulate (sum from start to end)
-    u32 sum <- 999;
+    mut u32 sum <- 999;
     accumulate(1, 5, sum);
     if (sum != 15) {
         return 5; // 1+2+3+4+5 = 15
@@ -95,7 +95,7 @@ u32 main() {
     }
 
     // Test factorial
-    u32 fact <- 0;
+    mut u32 fact <- 0;
     factorial(5, fact);
     if (fact != 120) {
         return 8; // 5! = 120
@@ -112,8 +112,8 @@ u32 main() {
     }
 
     // Test parallel increment
-    u32 x <- 0;
-    u32 y <- 0;
+    mut u32 x <- 0;
+    mut u32 y <- 0;
     parallelIncrement(x, y, 5);
     if (x != 5) {
         return 11; // 0 + 5*1 = 5

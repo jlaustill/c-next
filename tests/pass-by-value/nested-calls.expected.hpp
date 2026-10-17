@@ -13,15 +13,15 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint32_t addOne(uint32_t val);
+uint32_t addOne(const uint32_t val);
 void modifyAddOne(uint32_t& val);
-uint32_t addTwo(uint32_t val);
+uint32_t addTwo(const uint32_t val);
 void modifyAddTwo(uint32_t& val);
 uint32_t mixedChain(uint32_t& val);
-uint32_t addFour(uint32_t val);
+uint32_t addFour(const uint32_t val);
 void modifyAddFour(uint32_t& val);
-uint32_t sumThree(uint32_t a, uint32_t b, uint32_t c);
-uint32_t sumSix(uint32_t a, uint32_t b, uint32_t c, uint32_t d, uint32_t e, uint32_t f);
+uint32_t sumThree(const uint32_t a, const uint32_t b, const uint32_t c);
+uint32_t sumSix(const uint32_t a, const uint32_t b, const uint32_t c, const uint32_t d, const uint32_t e, const uint32_t f);
 void incrementBoth(uint32_t& x, uint32_t& y);
 
 #ifdef __cplusplus

@@ -20,21 +20,21 @@ describe("ConstantDimensionAnalyzer (#1175: E0909, E0910)", () => {
   // Every position the grammar has a dimension at, so a rule checked at one
   // and silent at another is caught -- the hole this card closes
   it.each([
-    ["a global", "u8 n <- 3;\nu8[n] g;", "'n' is a variable"],
+    ["a global", "mut u8 n <- 3;\nu8[n] g;", "'n' is a variable"],
     [
       "a local",
-      "void f(u32 n) {\n    u8[n] a;\n    a[0] <- 1;\n}",
+      "void f(u32 n) {\n    mut u8[n] a;\n    a[0] <- 1;\n}",
       "'n' is a parameter",
     ],
     ["a parameter", "void f(u32 n, u8[n] p) {\n}", "'n' is a parameter"],
     [
       "a struct field",
-      "u8 n <- 3;\nstruct S {\n    u8[n] data;\n}",
+      "mut u8 n <- 3;\nstruct S {\n    u8[n] data;\n}",
       "'n' is a variable",
     ],
     [
       "a scope member",
-      "u8 n <- 3;\nscope M {\n    u8[n] slots;\n}",
+      "mut u8 n <- 3;\nscope M {\n    u8[n] slots;\n}",
       "'n' is a variable",
     ],
     // #1863 review: reported by nothing else, these reached render's invariant
@@ -45,7 +45,7 @@ describe("ConstantDimensionAnalyzer (#1175: E0909, E0910)", () => {
     ],
     [
       "a member the scope does not have",
-      "scope S {\n    public const u8 MAX <- 4;\n}\nu8[S.NOPE] g;",
+      "scope S {\n    public u8 MAX <- 4;\n}\nu8[S.NOPE] g;",
       "'S.NOPE' is not declared",
     ],
   ])("rejects a dimension with no value: %s", (_label, source, why) => {
@@ -55,15 +55,15 @@ describe("ConstantDimensionAnalyzer (#1175: E0909, E0910)", () => {
   });
 
   it("rejects one whose arithmetic overflows its operands' type (ADR-044)", () => {
-    const [found] = errors("const u8 A <- 200;\nu8[A + A] buf;");
+    const [found] = errors("u8 A <- 200;\nu8[A + A] buf;");
     expect(found).toMatchObject({ code: "E0910", line: 2, column: 3 });
     expect(found.message).toContain("overflows u8");
   });
 
   it.each([
     ["a literal", "u8[4] a;"],
-    ["a const, and arithmetic over it", "const u8 N <- 4;\nu8[N * 2 + 1] a;"],
-    ["a wider cast", "const u8 A <- 200;\nu8[(u16)A + (u16)A] a;"],
+    ["a const, and arithmetic over it", "u8 N <- 4;\nu8[N * 2 + 1] a;"],
+    ["a wider cast", "u8 A <- 200;\nu8[(u16)A + (u16)A] a;"],
     ["a primitive's length", "u8[u32.type_byte_length] a;"],
     ["an enum member", "enum E { A, B, COUNT }\nu8[E.COUNT] a;"],
     ["a property", "u8[3] src;\nu8[src.type_element_count] a;"],
@@ -76,7 +76,7 @@ describe("ConstantDimensionAnalyzer (#1175: E0909, E0910)", () => {
   it("folds a const declared in an included file", () => {
     expect(
       errors(`#include "lib.cnx"\nu8[(LIB_N + 1)] a;`, {
-        "lib.cnx": "const u32 LIB_N <- 4;\n",
+        "lib.cnx": "u32 LIB_N <- 4;\n",
       }),
     ).toEqual([]);
   });
@@ -132,12 +132,15 @@ describe("ConstantDimensionAnalyzer on 1.2's syntax (#1991)", () => {
   // A dimension after the name and a cast's are each their own
   // place in 1.2's syntax, so each is asked on its own
   it.each([
-    ["a global", "u8 n <- 3;\nu8 g[n];"],
-    ["a local", "void f(u32 n) {\n    u8 a[n];\n    a[0] <- 1;\n}"],
+    ["a global", "mut u8 n <- 3;\nu8 g[n];"],
+    ["a local", "void f(u32 n) {\n    mut u8 a[n];\n    a[0] <- 1;\n}"],
     ["a parameter", "void f(u32 n, u8 p[n]) {\n}"],
-    ["a struct field", "u8 n <- 3;\nstruct S {\n    u8 data[n];\n}"],
-    ["a scope member", "u8 n <- 3;\nscope M {\n    u8 slots[n];\n}"],
-    ["a cast's type", "u8 n <- 3;\nvoid f(u8 x) {\n    u32 y <- (u8[n])x;\n}"],
+    ["a struct field", "mut u8 n <- 3;\nstruct S {\n    u8 data[n];\n}"],
+    ["a scope member", "mut u8 n <- 3;\nscope M {\n    u8 slots[n];\n}"],
+    [
+      "a cast's type",
+      "mut u8 n <- 3;\nvoid f(u8 x) {\n    u32 y <- (u8[n])x;\n}",
+    ],
   ])("rejects a dimension with no value: %s", (_label, source) => {
     expect(errors(source).map((e) => e.code)).toEqual(["E0909"]);
   });
@@ -151,7 +154,7 @@ describe("ConstantDimensionAnalyzer on 1.2's syntax (#1991)", () => {
   });
 
   it("reports a declaration's dimensions in source order", () => {
-    const found = errors("u8 n <- 3;\nu8[n] g[n];");
+    const found = errors("mut u8 n <- 3;\nu8[n] g[n];");
     expect(found.map((e) => [e.line, e.column])).toEqual([
       [2, 3],
       [2, 8],

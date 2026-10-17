@@ -1,8 +1,8 @@
 // Tests: Array dimensions using constants should be preserved in extern declarations
 // This reproduces issue #455
 
-const u8 DEVICE_COUNT <- 4;
-const u8 CHANNEL_COUNT <- 2;
+u8 DEVICE_COUNT <- 4;
+u8 CHANNEL_COUNT <- 2;
 
 struct TReading {
     i16 value;
@@ -10,7 +10,7 @@ struct TReading {
 }
 
 // Single dimension with constant - should generate: extern bool enabled[4];
-bool[DEVICE_COUNT] enabled <- [false, false, false, false];
+mut bool[DEVICE_COUNT] enabled <- [false, false, false, false];
 
 // Multi-dimensional with constants - should generate: extern TReading readings[4][4];
 TReading[DEVICE_COUNT][4] readings;

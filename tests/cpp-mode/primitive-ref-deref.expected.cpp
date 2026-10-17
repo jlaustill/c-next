@@ -26,7 +26,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // The body should use 'val' directly, not '(*val)'
 /* Scope: Test */
 
-uint32_t Test__helper(uint32_t x) {
+uint32_t Test__helper(const uint32_t x) {
     return cnx_clamp_add_u32(x, 1U);
 }
 
@@ -37,7 +37,7 @@ uint32_t Test__process(uint32_t& val) {
 
 int main(void) {
     uint32_t input = 5U;
-    uint32_t result = Test__process(input);
+    const uint32_t result = Test__process(input);
     if (result != 6) {
         return 1U;
     }

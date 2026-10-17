@@ -2,13 +2,13 @@
 void test_int_to_float() {
     // Integer to f32
     i32 int_val <- 42;
-    f32 float_val <- int_val;
+    mut f32 float_val <- int_val;
 
     u32 uint_val <- 100;
     float_val <- uint_val;
 
     // Integer to f64
-    f64 double_val <- int_val;
+    mut f64 double_val <- int_val;
     double_val <- uint_val;
 
     // Literal integers to float

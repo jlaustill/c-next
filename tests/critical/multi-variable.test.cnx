@@ -2,11 +2,11 @@
 // test-target-xfail: host #1147 "implicit declaration of function"
 // ADR-050: Critical section with multiple variables
 // Tests: multiple variables protected in one critical section
-u32 readIdx <- 0;
+mut u32 readIdx <- 0;
 
-u32 writeIdx <- 0;
+mut u32 writeIdx <- 0;
 
-u8[64] buffer;
+mut u8[64] buffer;
 
 void transfer() {
     critical {

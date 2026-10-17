@@ -1,6 +1,6 @@
 // ADR-013: Logical AND (&&) must short-circuit
 // If left operand is false, right operand must NOT be evaluated
-u32 sideEffectCounter <- 0;
+mut u32 sideEffectCounter <- 0;
 
 bool causeSideEffect() {
     sideEffectCounter +<- 1;

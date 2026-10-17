@@ -90,7 +90,7 @@ static uint32_t CriticalTest__readIndex = 0U;
 static uint8_t CriticalTest__count = 0U;
 static bool CriticalTest__locked = false;
 
-void CriticalTest__internalEnqueue(uint8_t data) {
+void CriticalTest__internalEnqueue(const uint8_t data) {
     {
         uint32_t __primask = __cnx_get_PRIMASK();
         __cnx_disable_irq();
@@ -130,7 +130,7 @@ void CriticalTest__internalTransfer(void) {
     {
         uint32_t __primask = __cnx_get_PRIMASK();
         __cnx_disable_irq();
-        uint8_t data = CriticalTest__buffer[CriticalTest__readIndex];
+        const uint8_t data = CriticalTest__buffer[CriticalTest__readIndex];
         globalSharedBuffer[globalWriteIndex] = data;
         CriticalTest__readIndex = cnx_clamp_add_u32(CriticalTest__readIndex, 1U);
         globalWriteIndex = cnx_clamp_add_u32(globalWriteIndex, 1U);
@@ -161,7 +161,7 @@ void CriticalTest__internalUnlock(void) {
     }
 }
 
-void CriticalTest__enqueue(uint8_t data) {
+void CriticalTest__enqueue(const uint8_t data) {
     {
         uint32_t __primask = __cnx_get_PRIMASK();
         __cnx_disable_irq();
@@ -201,7 +201,7 @@ void CriticalTest__transferToGlobal(void) {
     {
         uint32_t __primask = __cnx_get_PRIMASK();
         __cnx_disable_irq();
-        uint8_t data = CriticalTest__buffer[CriticalTest__readIndex];
+        const uint8_t data = CriticalTest__buffer[CriticalTest__readIndex];
         globalSharedBuffer[globalWriteIndex] = data;
         CriticalTest__readIndex = cnx_clamp_add_u32(CriticalTest__readIndex, 1U);
         CriticalTest__count = cnx_clamp_sub_u8(CriticalTest__count, 1U);
@@ -278,7 +278,7 @@ bool CriticalTest__isInSync(void) {
     return inSync;
 }
 
-void CriticalTest__safeEnqueue(uint8_t data) {
+void CriticalTest__safeEnqueue(const uint8_t data) {
     CriticalTest__internalEnqueue(data);
 }
 
@@ -286,7 +286,7 @@ uint8_t CriticalTest__safeDequeue(void) {
     return CriticalTest__internalDequeue();
 }
 
-void CriticalTest__lockedEnqueue(uint8_t data) {
+void CriticalTest__lockedEnqueue(const uint8_t data) {
     (void)CriticalTest__internalTryLock();
     CriticalTest__internalEnqueue(data);
     CriticalTest__internalUnlock();

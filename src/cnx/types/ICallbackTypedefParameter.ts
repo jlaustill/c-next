@@ -9,6 +9,8 @@
 interface ICallbackTypedefParameter {
   readonly type: string;
   readonly isStruct: boolean;
+  /** ADR-071 Q6: a `mut` scalar, which C takes as a pointer */
+  readonly isPointer?: boolean;
   /**
    * ADR-045: the parameter was written `string<N>`, so it renders as `char*`
    * and takes a `const` the plain-parameter branch does not.

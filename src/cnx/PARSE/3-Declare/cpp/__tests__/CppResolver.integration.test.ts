@@ -143,6 +143,25 @@ typedef struct opaque_t* handle_t;`;
       expect(funcSymbol).toBeDefined();
       expect(funcSymbol!.name).toBe("MyClass::inline_func");
     });
+
+    it("records which member functions are declared `const` (ADR-071)", () => {
+      const source = `class C { int get() const; void set(int v); int peek() const { return 0; } };`;
+      const tree = TestHelpers.parseCpp(source);
+      expect(tree).not.toBeNull();
+      const result = CppResolver.resolve(tree!, "test.hpp", symbolTable);
+
+      const constness = result.symbols
+        .filter((s) => s.kind === "function")
+        .map((s) => [
+          s.name,
+          s.kind === "function" && s.isConstMember === true,
+        ]);
+      expect(constness).toEqual([
+        ["C::get", true],
+        ["C::set", false],
+        ["C::peek", true],
+      ]);
+    });
   });
 
   describe("enum collection", () => {

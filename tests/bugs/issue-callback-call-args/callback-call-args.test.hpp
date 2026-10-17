@@ -17,7 +17,7 @@ typedef struct Point Point;
 /* Callback typedefs */
 typedef uint32_t (*peek_fp)(const Point&);
 typedef void (*poke_fp)(Point&);
-typedef uint32_t (*twice_fp)(uint32_t);
+typedef uint32_t (*twice_fp)(const uint32_t);
 typedef Point (*shifted_fp)(const Point&);
 
 /* Struct definitions */
@@ -34,11 +34,11 @@ typedef struct Handlers {
 /* Function prototypes */
 uint32_t peek(const Point& p);
 void poke(Point& p);
-uint32_t twice(uint32_t v);
+uint32_t twice(const uint32_t v);
 Point shifted(const Point& p);
 uint32_t peekVia(peek_fp cb, const Point& p);
 uint32_t peekLocalVia(peek_fp cb);
-uint32_t twiceVia(twice_fp cb, uint32_t v);
+uint32_t twiceVia(twice_fp cb, const uint32_t v);
 /* MISRA C:2012 Rule 8.4: declaration for the ADR-029 generated init function (the definition has external linkage and would otherwise be undeclared). */
 Handlers Handlers_init(void);
 

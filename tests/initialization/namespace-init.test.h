@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint8_t globalCount;
+extern const uint8_t globalCount;
 
 /* Function prototypes */
 void Counter__init(void);

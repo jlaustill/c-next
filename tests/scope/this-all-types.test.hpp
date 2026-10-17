@@ -25,10 +25,10 @@ int64_t AllTypesTest__getI64(void);
 float AllTypesTest__getF32(void);
 double AllTypesTest__getF64(void);
 bool AllTypesTest__getBool(void);
-void AllTypesTest__setU8(uint8_t val);
-void AllTypesTest__setBool(bool val);
-void AllTypesTest__setF32(float val);
-void AllTypesTest__setF64(double val);
+void AllTypesTest__setU8(const uint8_t val);
+void AllTypesTest__setBool(const bool val);
+void AllTypesTest__setF32(const float val);
+void AllTypesTest__setF64(const double val);
 
 #ifdef __cplusplus
 }

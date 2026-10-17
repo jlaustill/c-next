@@ -17,7 +17,7 @@ typedef enum {
 } EState;
 
 /* External variables */
-extern EState globalState;
+extern const EState globalState;
 
 /* Function prototypes */
 EState getState(void);

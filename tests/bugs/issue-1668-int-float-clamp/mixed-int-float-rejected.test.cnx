@@ -6,7 +6,7 @@
 // truncated the float: `i * 2.5` evaluated to 6.0.
 // The functions after the flagged ones are negative controls and must stay silent.
 
-const f32 SCALE <- 2.5;
+f32 SCALE <- 2.5;
 
 f32 localTimesLiteral() {
     u32 i <- 3;

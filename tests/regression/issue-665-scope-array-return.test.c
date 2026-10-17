@@ -33,11 +33,11 @@ static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
 /* Scope: Test */
 static float Test__values[3] = {0};
 
-void Test__set(EIndex idx, float value) {
+void Test__set(const EIndex idx, const float value) {
     Test__values[idx] = value;
 }
 
-float Test__get(EIndex idx) {
+float Test__get(const EIndex idx) {
     return Test__values[idx];
 }
 
@@ -45,11 +45,11 @@ float Test__get(EIndex idx) {
 /* Scope: TestIntIndex */
 static int32_t TestIntIndex__data[3] = {0};
 
-void TestIntIndex__set(uint8_t idx, int32_t value) {
+void TestIntIndex__set(const uint8_t idx, const int32_t value) {
     TestIntIndex__data[idx] = value;
 }
 
-int32_t TestIntIndex__get(uint8_t idx) {
+int32_t TestIntIndex__get(const uint8_t idx) {
     return TestIntIndex__data[idx];
 }
 
@@ -57,11 +57,11 @@ int32_t TestIntIndex__get(uint8_t idx) {
 /* Scope: TestLiteral */
 static uint16_t TestLiteral__items[4] = {0};
 
-void TestLiteral__set(uint8_t idx, uint16_t value) {
+void TestLiteral__set(const uint8_t idx, const uint16_t value) {
     TestLiteral__items[idx] = value;
 }
 
-uint16_t TestLiteral__get(uint8_t idx) {
+uint16_t TestLiteral__get(const uint8_t idx) {
     return TestLiteral__items[idx];
 }
 
@@ -70,19 +70,19 @@ uint16_t TestLiteral__get(uint8_t idx) {
 static uint8_t TestMultiple__first[3] = {0};
 static uint8_t TestMultiple__second[3] = {0};
 
-void TestMultiple__setFirst(EIndex idx, uint8_t value) {
+void TestMultiple__setFirst(const EIndex idx, const uint8_t value) {
     TestMultiple__first[idx] = value;
 }
 
-uint8_t TestMultiple__getFirst(EIndex idx) {
+uint8_t TestMultiple__getFirst(const EIndex idx) {
     return TestMultiple__first[idx];
 }
 
-void TestMultiple__setSecond(EIndex idx, uint8_t value) {
+void TestMultiple__setSecond(const EIndex idx, const uint8_t value) {
     TestMultiple__second[idx] = value;
 }
 
-uint8_t TestMultiple__getSecond(EIndex idx) {
+uint8_t TestMultiple__getSecond(const EIndex idx) {
     return TestMultiple__second[idx];
 }
 
@@ -90,15 +90,15 @@ uint8_t TestMultiple__getSecond(EIndex idx) {
 /* Scope: TestArithmetic */
 static int32_t TestArithmetic__arr[3] = {0};
 
-void TestArithmetic__set(uint8_t idx, int32_t value) {
+void TestArithmetic__set(const uint8_t idx, const int32_t value) {
     TestArithmetic__arr[idx] = value;
 }
 
-int32_t TestArithmetic__getNext(uint8_t idx) {
+int32_t TestArithmetic__getNext(const uint8_t idx) {
     return TestArithmetic__arr[cnx_clamp_add_u8(idx, 1U)];
 }
 
-int32_t TestArithmetic__getPrev(uint8_t idx) {
+int32_t TestArithmetic__getPrev(const uint8_t idx) {
     return TestArithmetic__arr[cnx_clamp_sub_u8(idx, 1U)];
 }
 
@@ -106,9 +106,9 @@ int main(void) {
     Test__set(EIndex__FIRST, 1.0);
     Test__set(EIndex__SECOND, 2.0);
     Test__set(EIndex__THIRD, 3.0);
-    float v1 = Test__get(EIndex__FIRST);
-    float v2 = Test__get(EIndex__SECOND);
-    float v3 = Test__get(EIndex__THIRD);
+    const float v1 = Test__get(EIndex__FIRST);
+    const float v2 = Test__get(EIndex__SECOND);
+    const float v3 = Test__get(EIndex__THIRD);
     if (v1 != 1.0) {
         return 1;
     }
@@ -121,9 +121,9 @@ int main(void) {
     TestIntIndex__set(0U, 100);
     TestIntIndex__set(1U, 200);
     TestIntIndex__set(2U, 300);
-    int32_t d1 = TestIntIndex__get(0U);
-    int32_t d2 = TestIntIndex__get(1U);
-    int32_t d3 = TestIntIndex__get(2U);
+    const int32_t d1 = TestIntIndex__get(0U);
+    const int32_t d2 = TestIntIndex__get(1U);
+    const int32_t d3 = TestIntIndex__get(2U);
     if (d1 != 100) {
         return 4;
     }
@@ -137,10 +137,10 @@ int main(void) {
     TestLiteral__set(1U, 2000U);
     TestLiteral__set(2U, 3000U);
     TestLiteral__set(3U, 4000U);
-    uint16_t l1 = TestLiteral__get(0U);
-    uint16_t l2 = TestLiteral__get(1U);
-    uint16_t l3 = TestLiteral__get(2U);
-    uint16_t l4 = TestLiteral__get(3U);
+    const uint16_t l1 = TestLiteral__get(0U);
+    const uint16_t l2 = TestLiteral__get(1U);
+    const uint16_t l3 = TestLiteral__get(2U);
+    const uint16_t l4 = TestLiteral__get(3U);
     if (l1 != 1000) {
         return 7;
     }
@@ -157,10 +157,10 @@ int main(void) {
     TestMultiple__setFirst(EIndex__SECOND, 20U);
     TestMultiple__setSecond(EIndex__FIRST, 30U);
     TestMultiple__setSecond(EIndex__SECOND, 40U);
-    uint8_t m1 = TestMultiple__getFirst(EIndex__FIRST);
-    uint8_t m2 = TestMultiple__getFirst(EIndex__SECOND);
-    uint8_t m3 = TestMultiple__getSecond(EIndex__FIRST);
-    uint8_t m4 = TestMultiple__getSecond(EIndex__SECOND);
+    const uint8_t m1 = TestMultiple__getFirst(EIndex__FIRST);
+    const uint8_t m2 = TestMultiple__getFirst(EIndex__SECOND);
+    const uint8_t m3 = TestMultiple__getSecond(EIndex__FIRST);
+    const uint8_t m4 = TestMultiple__getSecond(EIndex__SECOND);
     if (m1 != 10) {
         return 11;
     }
@@ -176,10 +176,10 @@ int main(void) {
     TestArithmetic__set(0U, 111);
     TestArithmetic__set(1U, 222);
     TestArithmetic__set(2U, 333);
-    int32_t a1 = TestArithmetic__getNext(0U);
-    int32_t a2 = TestArithmetic__getNext(1U);
-    int32_t a3 = TestArithmetic__getPrev(1U);
-    int32_t a4 = TestArithmetic__getPrev(2U);
+    const int32_t a1 = TestArithmetic__getNext(0U);
+    const int32_t a2 = TestArithmetic__getNext(1U);
+    const int32_t a3 = TestArithmetic__getPrev(1U);
+    const int32_t a4 = TestArithmetic__getPrev(2U);
     if (a1 != 222) {
         return 15;
     }

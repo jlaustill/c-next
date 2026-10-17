@@ -35,6 +35,6 @@ uint32_t Cfg__check(void) {
 }
 
 int main(void) {
-    uint32_t result = Cfg__check();
+    const uint32_t result = Cfg__check();
     return result;
 }

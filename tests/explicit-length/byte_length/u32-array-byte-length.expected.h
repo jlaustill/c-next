@@ -19,12 +19,12 @@ typedef struct U32ArrayByteLength__TestStruct {
 
 /* External variables */
 extern uint32_t globalArr[16];
-extern uint32_t TestScope__publicArr[16];
+extern const uint32_t TestScope__publicArr[16];
 
 /* Function prototypes */
 uint32_t TestScope__getGlobalArrayByteLength(void);
 uint32_t TestScope__getScopeArrayByteLength(void);
-uint32_t checkArrayByteLength(uint32_t arr[16]);
+uint32_t checkArrayByteLength(const uint32_t arr[16]);
 
 #ifdef __cplusplus
 }

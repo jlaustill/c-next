@@ -16,13 +16,13 @@
 // global twice, so its cache must be `strlen(label)`. Taking the cache's name
 // from the function-wide rename map emitted `strlen(main__label)` there, an
 // identifier out of scope after the block, and gcc rejected it.
-char label[9] = "xyz";
+const char label[9] = "xyz";
 
 int main(void) {
-    uint32_t flag = 1U;
+    const uint32_t flag = 1U;
     if (flag == 1) {
         /* C11 6.2.1p4, C++ [basic.scope.hiding]: `label` emitted as `main__label` (a plain `label` would hide the file-scope `label` for the rest of its scope, so `global.label` would reach the local). */
-        char main__label[9] = "ab";
+        const char main__label[9] = "ab";
         size_t cnx_len_label = strlen(main__label);
         if (cnx_len_label != 2 || cnx_len_label < 1) {
             return 1U;

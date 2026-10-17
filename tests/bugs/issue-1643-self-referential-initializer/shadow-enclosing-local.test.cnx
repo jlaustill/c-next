@@ -47,9 +47,9 @@ u8 main() {
     if (replaced != 7) {
         return 2;
     }
-    const u32 N <- 2;
+    u32 N <- 2;
     if (N = 2) {
-        const u32 N <- N + 1;
+        u32 N <- N + 1;
         u8[N] buf <- [7*];
         if (buf.type_element_count != 3) {
             return 3;
@@ -72,19 +72,19 @@ u8 main() {
         return 6;
     }
     u32 i <- 3;
-    u32 total <- 0;
+    mut u32 total <- 0;
     if (i = 3) {
-        for (u32 i <- i; i < 5; i +<- 1) {
+        for (mut u32 i <- i; i < 5; i +<- 1) {
             total +<- i;
         }
     }
     if (total != 7) {
         return 7;
     }
-    u32 count <- 0;
+    mut u32 count <- 0;
     if (i = 3) {
         // NEGATIVE CONTROL -- shadows `i` without reading it
-        for (u32 i <- 0; i < 2; i +<- 1) {
+        for (mut u32 i <- 0; i < 2; i +<- 1) {
             count +<- 1;
         }
     }

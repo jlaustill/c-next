@@ -6,6 +6,7 @@ This guide covers all C-Next language features in detail. For a quick introducti
 
 - [Assignment vs Equality](#assignment--vs-equality-)
 - [Fixed-Width Types](#fixed-width-types)
+- [Read-Only by Default](#read-only-by-default-adr-071)
 - [Register Bindings](#register-bindings)
 - [Type-Aware Bit Indexing](#type-aware-bit-indexing)
 - [Slice Assignment](#slice-assignment-for-memory-operations)
@@ -41,6 +42,31 @@ f32, f64               // floating point
 bool                   // boolean
 ```
 
+### Read-Only by Default (ADR-071)
+
+Every binding — global, scope member, local, parameter, `for` variable — is
+read-only unless it is declared `mut`. Writing one that is not is a compile
+error, and so is a `mut` that nothing writes, or a `const` (it is the default):
+
+```cnx
+u32 LIMIT <- 5;                // read-only
+void bump(mut u32 v) {         // `mut`: bump writes v
+    v <- v + 1;
+}
+void tick() {
+    mut u32 count <- 0;        // written below, so `mut`
+    count <- count + LIMIT;
+    bump(count);               // passing to a `mut` parameter is a write
+}
+```
+
+Read-only bindings are `const` in the generated C:
+
+```c
+const uint32_t LIMIT = 5U;
+void bump(uint32_t* v) { (*v) = cnx_clamp_add_u32((*v), 1U); }
+```
+
 ### Register Bindings
 
 Type-safe hardware access with access modifiers:
@@ -60,7 +86,7 @@ register GPIO7 @ 0x42004000 {
 Integers are indexable as bit arrays:
 
 ```cnx
-u8 flags <- 0;
+mut u8 flags <- 0;
 flags[3] <- true;           // Set bit 3
 flags[0, 3] <- 5;           // Set 3 bits starting at bit 0
 bool isSet <- flags[3];     // Read bit 3
@@ -82,15 +108,15 @@ GPIO7.DR_SET[LED_BIT] <- true;    // Generates: GPIO7__DR_SET = (1 << LED_BIT);
 Multi-byte serialization with compile-time validated, little-endian writes (Issue #234, #1081):
 
 ```cnx
-u8[256] bufArray;
+mut u8[256] bufArray;
 u32 magic <- 0x12345678;
 
 // Serialize 4 bytes of magic into bufArray at element 0
 bufArray[0, 4] <- magic;
 
-// Named offsets using const variables
-const u32 HEADER_OFFSET <- 0;
-const u32 DATA_OFFSET <- 8;
+// Named offsets: read-only bindings with constant values
+u32 HEADER_OFFSET <- 0;
+u32 DATA_OFFSET <- 8;
 bufArray[HEADER_OFFSET, 4] <- magic;
 bufArray[DATA_OFFSET, 8] <- timestamp;
 ```
@@ -100,7 +126,7 @@ Transpiles to explicit per-element little-endian writes, unrolled at compile tim
 
 ```c
 uint8_t bufArray[256] = {0};
-uint32_t magic = 0x12345678U;
+const uint32_t magic = 0x12345678U;
 
 /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
 const uint32_t _tmp0 = (uint32_t)(magic);
@@ -127,7 +153,7 @@ whose type cannot be resolved at compile time all omit the comment.
 **Key Features:**
 
 - **Compile-time bounds checking** prevents buffer overflows at compile time
-- Offset and length must be compile-time constants (literals or `const` variables)
+- Offset and length must be compile-time constants (literals, or read-only bindings with constant values)
 - Silent runtime failures are now compile-time errors
 - Works with struct fields: `bufArray[0, 4] <- config.magic`
 - The source must be an **integer** value (float/struct sources are a compile
@@ -156,7 +182,7 @@ Organize code with automatic name prefixing. Inside scopes, explicit qualificati
 If the same name exists in local, scope, and global levels, the precedence is local, scope, global just like you are used to in other languages.
 
 ```cnx
-const u8 LED_BIT <- 3;
+u8 LED_BIT <- 3;
 
 scope LED {
     u8 brightness <- 100;
@@ -175,14 +201,12 @@ LED.off();
 Transpiles to:
 
 ```c
-const uint8_t LED_BIT = 3;
-
-static uint8_t LED__brightness = 100;
+const uint8_t LED_BIT = 3U;
 
 void LED__on(void) { GPIO7__DR_SET = (1 << LED_BIT); }
 void LED__off(void) { GPIO7__DR_CLEAR = (1 << LED_BIT); }
 
-uint8_t LED__getBrightness(void) { return LED__brightness; }
+uint8_t LED__getBrightness(void) { return 100U; }  // read-only, folded
 ```
 
 #### How a scope compares to a class, a namespace, and a struct
@@ -320,7 +344,7 @@ Safe, statically-allocated strings with compile-time capacity checking:
 ```cnx
 string<64> name <- "Hello";           // 64-char capacity, transpiles to char[65]
 string<128> message;                   // Empty string, initialized to ""
-const string VERSION <- "1.0.0";       // Auto-sized to string<5>
+string VERSION <- "1.0.0";             // Read-only: auto-sized to string<5>
 
 // Properties
 u32 len <- name.length;                // Runtime: strlen(name)
@@ -355,7 +379,7 @@ Type-safe function pointers with the Function-as-Type pattern:
 
 ```cnx
 // Define callback type with default behavior
-void onReceive(const CAN_Message_T msg) {
+void onReceive(CAN_Message_T msg) {
     // default: no-op
 }
 
@@ -364,7 +388,7 @@ struct Controller {
 }
 
 // User implementation must match signature
-void myHandler(const CAN_Message_T msg) {
+void myHandler(CAN_Message_T msg) {
     Serial.println(msg.id);
 }
 
@@ -396,8 +420,8 @@ ISR-safe variables with hardware-assisted atomicity:
 ```cnx
 #pragma target teensy41
 
-atomic u32 counter <- 0;           // ISR-safe with LDREX/STREX
-atomic clamp u8 brightness <- 100; // Combines atomic + clamp
+atomic mut u32 counter <- 0;           // ISR-safe with LDREX/STREX
+atomic mut clamp u8 brightness <- 100; // Combines atomic + clamp
 
 void increment() {
     counter +<- 1;   // Lock-free atomic increment
@@ -420,8 +444,8 @@ Prevent compiler optimization for variables that change outside normal program f
 
 ```cnx
 // Delay loop - prevent optimization
-void delay_ms(const u32 ms) {
-    volatile u32 i <- 0;
+void delay_ms(u32 ms) {
+    volatile mut u32 i <- 0;
     volatile u32 count <- ms * 2000;
 
     while (i < count) {
@@ -456,8 +480,8 @@ void waitReady() {
 Multi-statement atomic blocks with automatic interrupt masking:
 
 ```cnx
-u8[64] buffer;
-u32 writeIdx <- 0;
+mut u8[64] buffer;
+mut u32 writeIdx <- 0;
 
 void enqueue(u8 data) {
     critical {
@@ -490,7 +514,7 @@ Safe interop with C stream functions that can return NULL:
 ```cnx
 #include <stdio.h>
 
-string<64> buffer;
+mut string<64> buffer;
 
 void readInput() {
     // NULL check is REQUIRED - compiler enforces it

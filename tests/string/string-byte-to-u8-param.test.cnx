@@ -13,7 +13,7 @@ scope ByteProcessor {
     // Function that uses string<N> as a byte buffer and passes bytes to processByte
     public u32 processBuffer() {
         string<4> buf <- "ABCD";
-        u32 crc <- 0;
+        mut u32 crc <- 0;
 
         // Pass string bytes directly to u8 parameter
         crc <- this.processByte(crc, buf[0]); // 'A' = 0x41

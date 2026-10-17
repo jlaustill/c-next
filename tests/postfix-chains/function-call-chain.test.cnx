@@ -15,7 +15,7 @@ scope FuncCallChain {
     }
 }
 
-FuncCallChain.Transform[4] transforms;
+mut FuncCallChain.Transform[4] transforms;
 
 // Functions with various parameter types
 u32 addU32(u32 a, u32 b) {
@@ -74,7 +74,7 @@ void main() {
     bool result <- isGreater(transforms[0].position.x, transforms[1].position.x);
 
     // Function call taking struct as parameter (constructed from chained access)
-    FuncCallChain.Transform temp;
+    mut FuncCallChain.Transform temp;
     temp.position <- transforms[0].position;
     temp.scale <- transforms[0].scale;
     setTransform(temp, 2);

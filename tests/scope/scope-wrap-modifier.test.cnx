@@ -5,14 +5,14 @@
 
 scope WrapTest {
     // Wrap scope variables - unsigned integers
-    wrap u8 byteCounter <- 250;
-    wrap u16 tickCount <- 65530;
-    wrap u32 cycleCounter <- 4294967290;
+    mut wrap u8 byteCounter <- 250;
+    mut wrap u16 tickCount <- 65530;
+    mut wrap u32 cycleCounter <- 4294967290;
 
     // Wrap scope variables - smaller values for testing wrap-around
-    wrap u8 brightness <- 10;
-    wrap u16 sensorValue <- 100;
-    wrap u32 position <- 50;
+    mut wrap u8 brightness <- 10;
+    mut wrap u16 sensorValue <- 100;
+    mut wrap u32 position <- 50;
 
     // Public getter methods using this. accessor for wrap variables
     public u8 getByteCounter() {
@@ -114,27 +114,27 @@ scope WrapTest {
 u32 main() {
 
     // Test 1-6: Validate initial values
-    u8 byteResult <- WrapTest.getByteCounter();
+    mut u8 byteResult <- WrapTest.getByteCounter();
     if (byteResult != 250) {
         return 1;
     }
-    u16 tickResult <- WrapTest.getTickCount();
+    mut u16 tickResult <- WrapTest.getTickCount();
     if (tickResult != 65530) {
         return 2;
     }
-    u32 cycleResult <- WrapTest.getCycleCounter();
+    mut u32 cycleResult <- WrapTest.getCycleCounter();
     if (cycleResult != 4294967290) {
         return 3;
     }
-    u8 brightResult <- WrapTest.getBrightness();
+    mut u8 brightResult <- WrapTest.getBrightness();
     if (brightResult != 10) {
         return 4;
     }
-    u16 sensorResult <- WrapTest.getSensorValue();
+    mut u16 sensorResult <- WrapTest.getSensorValue();
     if (sensorResult != 100) {
         return 5;
     }
-    u32 posResult <- WrapTest.getPosition();
+    mut u32 posResult <- WrapTest.getPosition();
     if (posResult != 50) {
         return 6;
     }

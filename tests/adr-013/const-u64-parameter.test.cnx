@@ -1,11 +1,11 @@
 // test-execution
 // ADR-013: Const u64 parameter
 // Tests: const u64 parameter read access
-u64 readConstU64(const u64 value) {
+u64 readConstU64(u64 value) {
     return value;
 }
 
-u64 halfConstU64(const u64 value) {
+u64 halfConstU64(u64 value) {
     return value / 2;
 }
 

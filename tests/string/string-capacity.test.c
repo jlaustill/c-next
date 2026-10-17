@@ -9,8 +9,8 @@
 #include <string.h>
 
 // ADR-045: Test string .capacity property (compile-time constant)
-char message[65] = "Hello";
+const char message[65] = "Hello";
 
 void test(void) {
-    uint32_t cap = 64;
+    const uint32_t cap = 64;
 }

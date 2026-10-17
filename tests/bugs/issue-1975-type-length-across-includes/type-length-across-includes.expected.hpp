@@ -14,8 +14,8 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint8_t boxBytes[3];
-extern uint8_t modeBytes[1];
+extern const uint8_t boxBytes[3];
+extern const uint8_t modeBytes[1];
 
 /* Function prototypes */
 uint32_t Shapes__own(void);

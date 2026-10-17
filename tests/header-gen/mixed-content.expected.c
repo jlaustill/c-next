@@ -21,7 +21,7 @@ EStatus getStatus(void) {
     return globalConfig.status;
 }
 
-void setStatus(EStatus newStatus) {
+void setStatus(const EStatus newStatus) {
     globalConfig.status = newStatus;
 }
 

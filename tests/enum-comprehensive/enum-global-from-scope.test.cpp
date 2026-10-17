@@ -10,7 +10,7 @@
 
 // test-execution
 // Tests: global.Enum from inside scope
-EGlobal globalVar = EGlobal__A;
+extern const EGlobal globalVar = EGlobal__A;
 
 EGlobal getGlobal(void) {
     return globalVar;
@@ -23,16 +23,16 @@ EGlobal Test__getGlobalEnum(void) {
 }
 
 bool Test__testGlobalFunction(void) {
-    EGlobal val = getGlobal();
+    const EGlobal val = getGlobal();
     return (val == EGlobal__A);
 }
 
 int main(void) {
-    EGlobal fromScope = Test__getGlobalEnum();
+    const EGlobal fromScope = Test__getGlobalEnum();
     if (fromScope != EGlobal__A) {
         return 1U;
     }
-    bool testResult = Test__testGlobalFunction();
+    const bool testResult = Test__testGlobalFunction();
     if (testResult == false) {
         return 2U;
     }

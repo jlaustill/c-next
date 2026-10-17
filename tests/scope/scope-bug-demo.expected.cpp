@@ -23,7 +23,7 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 // test-execution
 // Test: Scope member shadowing works correctly (ADR-016)
 // The scope member 'count' should shadow the global 'count'
-uint8_t globalCount = 0U;
+extern const uint8_t globalCount = 0U;
 
 // Global
 extern const uint8_t limit = 10U;

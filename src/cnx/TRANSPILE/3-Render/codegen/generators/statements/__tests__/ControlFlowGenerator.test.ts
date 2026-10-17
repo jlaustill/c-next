@@ -101,6 +101,7 @@ function varDecl(
   overrides: Partial<IPlannedForVarDecl> = {},
 ): IPlannedForVarDecl {
   return {
+    const: "",
     atomic: "",
     volatile: "",
     typeName: "int32_t",

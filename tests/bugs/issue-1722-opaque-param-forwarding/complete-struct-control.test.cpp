@@ -31,7 +31,7 @@ void fullForward(Full& f) {
 }
 
 uint32_t fullSnapshot(const Full& f) {
-    Full copy = f;
+    const Full copy = f;
     return copy.pokes;
 }
 
@@ -41,7 +41,7 @@ int main(void) {
     if (f.pokes != 1) {
         return 1;
     }
-    uint32_t snapshot = fullSnapshot(f);
+    const uint32_t snapshot = fullSnapshot(f);
     if (snapshot != 1) {
         return 2;
     }

@@ -10,14 +10,13 @@
 // test-execution
 // Tests: Function returning enum - the suspected bug
 /* Scope: Motor */
-static Motor__EMode Motor__mode = Motor__EMode__OFF;
 
 Motor__EMode Motor__getMode(void) {
-    return Motor__mode;
+    return Motor__EMode__OFF;
 }
 
 int main(void) {
-    Motor__EMode motorMode = Motor__getMode();
+    const Motor__EMode motorMode = Motor__getMode();
     if (motorMode != Motor__EMode__OFF) {
         return 1U;
     }

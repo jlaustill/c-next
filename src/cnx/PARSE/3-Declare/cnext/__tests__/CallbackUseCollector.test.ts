@@ -9,12 +9,18 @@ import parse from "./testHelpers";
 import CallbackUseCollector from "../collectors/CallbackUseCollector";
 import ProgramLowering from "../../../2-Parse/ProgramLowering";
 
-/** Each recorded use's function name, in source order. */
-function namesIn(code: string): string[] {
+function usesIn(code: string) {
   return CallbackUseCollector.collect(
     ProgramLowering.program(parse(code), null),
     (scopeName) => scopeName,
-  ).map((use) => use.functionName);
+  );
+}
+
+/** Each recorded value use's function name, in source order. */
+function namesIn(code: string): string[] {
+  return usesIn(code)
+    .filter((use) => use.kind !== "type")
+    .map((use) => use.functionName);
 }
 
 describe("CallbackUseCollector", () => {
@@ -26,6 +32,31 @@ describe("CallbackUseCollector", () => {
         }
       `),
     ).toEqual(["my_handler"]);
+  });
+
+  it("records an assignment and every declared type that may name a function (ADR-071)", () => {
+    const uses = usesIn(`
+        struct Timer {
+          onTick handler;
+        }
+        void arm(onTick cb) {
+          mut Timer t;
+          t.handler <- my_tick;
+        }
+        scope S {
+          void go() {
+            tickSource s;
+          }
+        }
+      `);
+    expect(uses.map((use) => `${use.kind}:${use.functionName}`)).toEqual([
+      "type:onTick",
+      "type:onTick",
+      "type:Timer",
+      "assignment:my_tick",
+      "type:tickSource",
+      "type:S__tickSource",
+    ]);
   });
 
   it("does not record a numeric literal, which cannot name a function", () => {

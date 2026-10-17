@@ -1,0 +1,4 @@
+tests/adr-071/const-keyword-lib.cnx:1:0 error[E0898]: `const` is the default; remove it
+       help: Every binding is read-only unless declared `mut` (ADR-071); delete `const`.
+tests/adr-071/const-keyword-far.cnx:1:0 error[E0898]: `const` is the default; remove it
+       help: Every binding is read-only unless declared `mut` (ADR-071); delete `const`.

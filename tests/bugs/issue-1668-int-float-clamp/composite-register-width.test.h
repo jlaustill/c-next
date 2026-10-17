@@ -17,7 +17,7 @@ extern "C" {
 #define STATUS__COUNT (*(volatile uint32_t const *)(0x40000000 + 0x00))
 
 /* External variables */
-extern uint8_t small;
+extern const uint8_t small;
 
 /* Function prototypes */
 uint32_t total(void);

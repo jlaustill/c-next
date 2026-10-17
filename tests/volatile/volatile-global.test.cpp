@@ -44,7 +44,7 @@ int main(void) {
         return 2U;
     }
     status_flag = 500U;
-    uint32_t value = status_flag;
+    const uint32_t value = status_flag;
     if (value != 500) {
         return 3U;
     }

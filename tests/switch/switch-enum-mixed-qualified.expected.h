@@ -21,7 +21,7 @@ typedef enum {
 } EPriority;
 
 /* Function prototypes */
-uint32_t getPriorityValue(EPriority p);
+uint32_t getPriorityValue(const EPriority p);
 
 #ifdef __cplusplus
 }

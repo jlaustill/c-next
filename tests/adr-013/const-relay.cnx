@@ -4,4 +4,4 @@
 
 #include "const-declarations.cnx"
 
-const u32 CONST_RELAY_MARKER <- 2;
+u32 CONST_RELAY_MARKER <- 2;

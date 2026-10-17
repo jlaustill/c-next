@@ -39,8 +39,8 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 /* Scope: Lib */
 
 uint32_t Lib__useBoth(void) {
-    Lib__Mode m = Lib__Mode__BETA;
-    Lib__Point p = { .x = 3U, .y = 4U };
+    const Lib__Mode m = Lib__Mode__BETA;
+    const Lib__Point p = { .x = 3U, .y = 4U };
     return cnx_clamp_add_u32(cnx_clamp_add_u32(p.x, p.y), (uint32_t)m);
 }
 
@@ -49,7 +49,7 @@ uint32_t Lib__sumThrough(const Lib__Point* p) {
 }
 
 Lib__Point Lib__makeOrigin(void) {
-    Lib__Point o = { .x = 10U, .y = 20U };
+    const Lib__Point o = { .x = 10U, .y = 20U };
     return o;
 }
 
@@ -61,19 +61,19 @@ uint8_t Lib__useFlags(void) {
 
 uint32_t Lib__runAll(void) {
     uint32_t total = Lib__useBoth();
-    Lib__Point p = { .x = 1U, .y = 2U };
+    const Lib__Point p = { .x = 1U, .y = 2U };
     total = cnx_clamp_add_u32(total, Lib__sumThrough(&p));
-    Lib__Point origin = Lib__makeOrigin();
+    const Lib__Point origin = Lib__makeOrigin();
     total = cnx_clamp_add_u32(total, origin.x);
-    Lib__Line l = { .start = { .x = 100U, .y = 0U }, .end = { .x = 0U, .y = 0U } };
+    const Lib__Line l = { .start = { .x = 100U, .y = 0U }, .end = { .x = 0U, .y = 0U } };
     total = cnx_clamp_add_u32(total, l.start.x);
-    uint8_t flags = Lib__useFlags();
+    const uint8_t flags = Lib__useFlags();
     total = cnx_clamp_add_u32(total, flags);
     return total;
 }
 
 int main(void) {
-    uint32_t result = Lib__runAll();
+    const uint32_t result = Lib__runAll();
     if (result != 122) {
         return 1U;
     }

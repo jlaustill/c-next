@@ -43,23 +43,23 @@ int32_t localForward(void) {
     Dev* e = dev_create();
     aPoke(e);
     aPoke(e);
-    int32_t n = dev_pokes(e);
+    const int32_t n = dev_pokes(e);
     return n;
 }
 
 int main(void) {
     Dev* d = dev_create();
     configure(d);
-    int32_t afterForward = dev_pokes(d);
+    const int32_t afterForward = dev_pokes(d);
     if (afterForward != 1) {
         return 1;
     }
     cForward(d);
-    int32_t afterC = dev_pokes(d);
+    const int32_t afterC = dev_pokes(d);
     if (afterC != 2) {
         return 2;
     }
-    int32_t viaLocal = localForward();
+    const int32_t viaLocal = localForward();
     if (viaLocal != 2) {
         return 3;
     }

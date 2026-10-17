@@ -24,6 +24,6 @@
 // returns errors, so the value analyzer never runs on it.
 int main(void) {
     Control__DR = 0x01U;
-    uint32_t seen = Control__DR;
+    const uint32_t seen = Control__DR;
     return seen;
 }

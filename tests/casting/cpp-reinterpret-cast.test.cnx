@@ -13,7 +13,7 @@ scope ByteProcessor {
 
     public u32 processBuffer() {
         string<4> buf <- "ABCD";
-        u32 crc <- 0;
+        mut u32 crc <- 0;
 
         // These should generate reinterpret_cast in C++ mode
         crc <- this.processByte(crc, buf[0]);

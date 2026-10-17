@@ -28,10 +28,10 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // After the block, the name is the parameter again.
 uint32_t shadowPrimitive(uint32_t* x) {
     (*x) = cnx_clamp_add_u32((*x), 1U);
-    uint32_t flag = 1U;
+    const uint32_t flag = 1U;
     if (flag == 1) {
-        uint32_t x = 5U;
-        uint32_t y = cnx_clamp_add_u32(x, 1U);
+        const uint32_t x = 5U;
+        const uint32_t y = cnx_clamp_add_u32(x, 1U);
         if (y != 6) {
             return 9U;
         }
@@ -40,10 +40,10 @@ uint32_t shadowPrimitive(uint32_t* x) {
 }
 
 uint32_t shadowStruct(const Pair* cfg) {
-    uint32_t flag = 1U;
+    const uint32_t flag = 1U;
     if (flag == 1) {
-        Pair cfg = { .a = 7U, .b = 9U };
-        uint8_t inner = cfg.a;
+        const Pair cfg = { .a = 7U, .b = 9U };
+        const uint8_t inner = cfg.a;
         if (inner != 7) {
             return 8U;
         }
@@ -53,15 +53,15 @@ uint32_t shadowStruct(const Pair* cfg) {
 
 int main(void) {
     uint32_t v = 3U;
-    uint32_t primitive = shadowPrimitive(&v);
+    const uint32_t primitive = shadowPrimitive(&v);
     if (primitive == 9) {
         return 1U;
     }
     if (primitive != 4) {
         return 2U;
     }
-    Pair p = { .a = 1U, .b = 4U };
-    uint32_t member = shadowStruct(&p);
+    const Pair p = { .a = 1U, .b = 4U };
+    const uint32_t member = shadowStruct(&p);
     if (member == 8) {
         return 3U;
     }

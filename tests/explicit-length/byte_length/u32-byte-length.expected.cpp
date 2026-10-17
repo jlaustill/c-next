@@ -10,21 +10,20 @@
 // test-execution
 // Comprehensive .type_byte_length test for u32 type across all contexts (ADR-058)
 // Tests: .type_byte_length returns 4 for u32 in every possible scope and access pattern
-uint32_t globalVar = 100000U;
+extern const uint32_t globalVar = 100000U;
 
 /* Scope: TestScope */
 
 uint32_t TestScope__getGlobalByteLength(void) {
     return 4;
 }
-static uint32_t TestScope__scopeMember = 100000U;
 
 uint32_t TestScope__getMemberByteLength(void) {
     return 4;
 }
-uint32_t TestScope__publicMember = 100000U;
+const uint32_t TestScope__publicMember = 100000U;
 
-uint32_t checkParamByteLength(uint32_t param) {
+uint32_t checkParamByteLength(const uint32_t param) {
     return 4;
 }
 
@@ -45,11 +44,11 @@ int main(void) {
     if (4 != 4) {
         return 4;
     }
-    uint32_t localVar = 100000U;
+    const uint32_t localVar = 100000U;
     if (4 != 4) {
         return 5;
     }
-    uint32_t testVal = 100000U;
+    const uint32_t testVal = 100000U;
     result = checkParamByteLength(testVal);
     if (result != 4) {
         return 6;

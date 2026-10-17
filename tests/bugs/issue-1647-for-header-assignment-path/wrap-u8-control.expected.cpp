@@ -30,7 +30,7 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 // that statement form, kept beside the loop so the two snapshots line up.
 uint8_t wrapPasses(void) {
     uint8_t n = 0U;
-    uint8_t step = 10U;
+    const uint8_t step = 10U;
     uint8_t w = 0U;
     for (w = 250U; w > 200; w = static_cast<uint8_t>((w + step))) {
         n = cnx_clamp_add_u8(n, 1U);
@@ -42,18 +42,18 @@ uint8_t wrapPasses(void) {
 }
 
 uint8_t stepped(void) {
-    uint8_t step = 10U;
+    const uint8_t step = 10U;
     uint8_t w = 250U;
     w = static_cast<uint8_t>((w + step));
     return w;
 }
 
 int main(void) {
-    uint8_t wraps = wrapPasses();
+    const uint8_t wraps = wrapPasses();
     if (wraps != 1) {
         return 1U;
     }
-    uint8_t w = stepped();
+    const uint8_t w = stepped();
     if (w != 4) {
         return 2U;
     }

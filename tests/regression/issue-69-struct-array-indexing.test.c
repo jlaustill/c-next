@@ -35,25 +35,25 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 //
 // This test ensures the bug does not regress in future changes.
 // Function that exposes the bug - passing struct by value with array member access
-uint16_t getSpn(const Configuration* conf, uint32_t idx) {
+uint16_t getSpn(const Configuration* conf, const uint32_t idx) {
     return conf->tempInputs[idx].assignedSpn;
 }
 
-float getCoeff(const Configuration* data, uint32_t pos) {
+float getCoeff(const Configuration* data, const uint32_t pos) {
     return data->tempInputs[pos].coeffA;
 }
 
 // Test writing to struct parameter array members (non-const)
-void setSpn(Configuration* conf, uint32_t idx, uint16_t value) {
+void setSpn(Configuration* conf, const uint32_t idx, const uint16_t value) {
     conf->tempInputs[idx].assignedSpn = value;
 }
 
-void setCoeff(Configuration* data, uint32_t pos, float value) {
+void setCoeff(Configuration* data, const uint32_t pos, const float value) {
     data->tempInputs[pos].coeffA = value;
 }
 
 // Test writing in a for-loop (the original OSSM bug pattern)
-void initializeAll(Configuration* conf, uint16_t spnValue, float coeffValue) {
+void initializeAll(Configuration* conf, const uint16_t spnValue, const float coeffValue) {
     for (uint32_t i = 0U; i < 8; i = cnx_clamp_add_u32(i, 1U)) {
         conf->tempInputs[i].assignedSpn = spnValue;
         conf->tempInputs[i].coeffA = coeffValue;
@@ -70,35 +70,35 @@ int main(void) {
     cfg.tempInputs[2].coeffA = 3.5;
     cfg.tempInputs[5].assignedSpn = 999U;
     cfg.tempInputs[5].coeffA = 9.5;
-    uint32_t idx0 = 0U;
-    uint32_t idx1 = 1U;
-    uint32_t idx2 = 2U;
-    uint32_t idx5 = 5U;
-    uint16_t spn0 = getSpn(&cfg, idx0);
+    const uint32_t idx0 = 0U;
+    const uint32_t idx1 = 1U;
+    const uint32_t idx2 = 2U;
+    const uint32_t idx5 = 5U;
+    const uint16_t spn0 = getSpn(&cfg, idx0);
     if (spn0 != 100) {
         return 1U;
     }
-    uint16_t spn1 = getSpn(&cfg, idx1);
+    const uint16_t spn1 = getSpn(&cfg, idx1);
     if (spn1 != 200) {
         return 2U;
     }
-    uint16_t spn2 = getSpn(&cfg, idx2);
+    const uint16_t spn2 = getSpn(&cfg, idx2);
     if (spn2 != 300) {
         return 3U;
     }
-    uint16_t spn5 = getSpn(&cfg, idx5);
+    const uint16_t spn5 = getSpn(&cfg, idx5);
     if (spn5 != 999) {
         return 4U;
     }
-    float coeff0 = getCoeff(&cfg, idx0);
+    const float coeff0 = getCoeff(&cfg, idx0);
     if (coeff0 != 1.5) {
         return 5U;
     }
-    float coeff1 = getCoeff(&cfg, idx1);
+    const float coeff1 = getCoeff(&cfg, idx1);
     if (coeff1 != 2.5) {
         return 6U;
     }
-    float coeff2 = getCoeff(&cfg, idx2);
+    const float coeff2 = getCoeff(&cfg, idx2);
     if (coeff2 != 3.5) {
         return 7U;
     }
@@ -111,11 +111,11 @@ int main(void) {
     if (cfg.tempInputs[2U].assignedSpn != 300) {
         return 10U;
     }
-    uint16_t sum = cnx_clamp_add_u16(cfg.tempInputs[0U].assignedSpn, cfg.tempInputs[1U].assignedSpn);
+    const uint16_t sum = cnx_clamp_add_u16(cfg.tempInputs[0U].assignedSpn, cfg.tempInputs[1U].assignedSpn);
     if (sum != 300) {
         return 11U;
     }
-    uint16_t val = getSpn(&cfg, idx2);
+    const uint16_t val = getSpn(&cfg, idx2);
     if (val != 300) {
         return 12U;
     }

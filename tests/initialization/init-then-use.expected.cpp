@@ -22,5 +22,5 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 int main(void) {
     uint32_t x = 0;
     x = 5U;
-    uint32_t y = cnx_clamp_add_u32(x, 1U);
+    const uint32_t y = cnx_clamp_add_u32(x, 1U);
 }

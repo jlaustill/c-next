@@ -39,7 +39,7 @@ Generates clean C:
 ```c
 #define GPIO7__DR_TOGGLE (*(volatile uint32_t*)(0x42004000 + 0x8C))
 
-uint32_t LED_BIT = 3U;
+const uint32_t LED_BIT = 3U;
 
 void LED__toggle(void) {
     GPIO7__DR_TOGGLE = ((uint32_t)1U << LED_BIT);

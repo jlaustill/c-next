@@ -20,22 +20,22 @@ bitmap8 Flags {
 }
 
 u32 main(string args[]) {
-    Flags f <- 0;
-    u8 count <- 0;
+    mut Flags f <- 0;
+    mut u8 count <- 0;
 
     // Parse arguments or use defaults
-    u8 iterations <- 8;
-    u8 threshold <- 3;
+    mut u8 iterations <- 8;
+    mut u8 threshold <- 3;
 
     if (args.type_element_count > 1) {
-        iterations <- atoi(args[1]);
+        iterations <- atoi(args[1])[0, 8];
     }
     if (args.type_element_count > 2) {
-        threshold <- atoi(args[2]);
+        threshold <- atoi(args[2])[0, 8];
     }
 
     // Loop with computed bitmap assignments
-    for (u8 i <- 0; i < iterations; i +<- 1) {
+    for (mut u8 i <- 0; i < iterations; i +<- 1) {
         // Computed: i % 2 - alternates true/false
         f.bit0 <- (i % 2) = 0;
 

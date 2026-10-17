@@ -8,4 +8,4 @@
 #include <stdint.h>
 
 // Issue #1953 helper: a file-scope array that the including file's block-local shadows
-uint8_t shared[4] = {1U, 2U, 3U, 4U};
+const uint8_t shared[4] = {1U, 2U, 3U, 4U};

@@ -12,15 +12,15 @@
 #include "fake_lib.h"
 
 scope UI {
-    widget_t[3] widgets;
+    mut widget_t[3] widgets;
 
     // C-Next function whose opaque-handle parameter is already a pointer.
-    void style(widget_t w) {
+    void style(mut widget_t w) {
         global.widget_move(w, 9);
     }
 
     void run() {
-        u8 i <- 0;
+        mut u8 i <- 0;
         while (i < 3) {
             this.widgets[i] <- global.widget_create();
             this.style(this.widgets[i]);

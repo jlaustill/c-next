@@ -28,7 +28,7 @@ void level3Modify(uint32_t& val) {
     val = 999U;
 }
 
-uint32_t level3Read(uint32_t val) {
+uint32_t level3Read(const uint32_t val) {
     return cnx_clamp_add_u32(val, 1U);
 }
 
@@ -37,12 +37,12 @@ void level2PassToModify(uint32_t& val) {
     level3Modify(val);
 }
 
-uint32_t level2PassToRead(uint32_t val) {
+uint32_t level2PassToRead(const uint32_t val) {
     return level3Read(val);
 }
 
-void level2Mixed(uint32_t readVal, uint32_t& modVal) {
-    uint32_t temp = level3Read(readVal);
+void level2Mixed(const uint32_t readVal, uint32_t& modVal) {
+    const uint32_t temp = level3Read(readVal);
     level3Modify(modVal);
 }
 
@@ -51,12 +51,12 @@ void level1DeepModify(uint32_t& val) {
     level2PassToModify(val);
 }
 
-uint32_t level1DeepRead(uint32_t val) {
+uint32_t level1DeepRead(const uint32_t val) {
     return level2PassToRead(val);
 }
 
 // Complex: multiple paths, some modify, some read
-uint32_t complexChain(uint32_t a, uint32_t& b, uint32_t c) {
+uint32_t complexChain(const uint32_t a, uint32_t& b, const uint32_t c) {
     uint32_t sum = level3Read(a);
     level2PassToModify(b);
     sum = cnx_clamp_add_u32(sum, level2PassToRead(c));
@@ -69,7 +69,7 @@ int main(void) {
     if (x != 999) {
         return 1U;
     }
-    uint32_t y = 50U;
+    const uint32_t y = 50U;
     uint32_t result = level1DeepRead(y);
     if (result != 51) {
         return 2U;
@@ -77,7 +77,7 @@ int main(void) {
     if (y != 50) {
         return 3U;
     }
-    uint32_t r = 10U;
+    const uint32_t r = 10U;
     uint32_t m = 20U;
     level2Mixed(r, m);
     if (r != 10) {
@@ -86,9 +86,9 @@ int main(void) {
     if (m != 999) {
         return 5U;
     }
-    uint32_t a = 5U;
+    const uint32_t a = 5U;
     uint32_t b = 100U;
-    uint32_t c = 7U;
+    const uint32_t c = 7U;
     result = complexChain(a, b, c);
     if (result != 14) {
         return 6U;

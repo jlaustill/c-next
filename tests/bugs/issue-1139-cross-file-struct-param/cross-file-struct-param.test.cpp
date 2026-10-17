@@ -44,7 +44,7 @@
 
 int main(void) {
     Sample sample = { .value = 42U };
-    uint8_t v = Sensors__readValue(sample);
+    const uint8_t v = Sensors__readValue(sample);
     if (v != 42) {
         return 1U;
     }

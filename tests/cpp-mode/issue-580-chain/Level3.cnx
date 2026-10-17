@@ -2,7 +2,7 @@
 #include "Config.cnx"
 
 scope Level3 {
-    public void modify(Config c) {
+    public void modify(mut Config c) {
         c.value <- 42;
     }
 }

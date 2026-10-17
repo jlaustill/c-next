@@ -27,21 +27,21 @@
 // scope shares. A change that stopped qualifying, or one that over-qualified
 // into a key nothing holds, has to keep this one working too.
 scope Wide {
-    public string<64> message <- "";
+    public mut string<64> message <- "";
     public void set() {
         this.message <- "wide";
     }
 }
 
 scope Narrow {
-    public string<8> message <- "";
+    public mut string<8> message <- "";
     public void set() {
         this.message <- "narrow";
     }
 }
 
 scope Unique {
-    public string<16> banner <- "";
+    public mut string<16> banner <- "";
     public void set() {
         this.banner <- "unique";
     }

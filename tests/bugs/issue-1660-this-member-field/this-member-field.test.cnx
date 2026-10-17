@@ -10,7 +10,7 @@ struct Cfg {
 }
 
 scope S {
-    Cfg local;
+    mut Cfg local;
 
     public void run() {
         this.local.flags[4] <- true;

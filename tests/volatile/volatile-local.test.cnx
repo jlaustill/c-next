@@ -5,7 +5,7 @@
 u32 main() {
 
     // Test 1: Local volatile declaration
-    volatile u32 counter <- 0;
+    volatile mut u32 counter <- 0;
     if (counter != 0) {
         return 1;
     }
@@ -17,7 +17,7 @@ u32 main() {
     }
 
     // Test 3: Increment local volatile (delay loop pattern)
-    volatile u32 i <- 0;
+    volatile mut u32 i <- 0;
     while (i < 10) {
         i +<- 1;
     }
@@ -26,7 +26,7 @@ u32 main() {
     }
 
     // Test 4: Decrement pattern
-    volatile u32 countdown <- 5;
+    volatile mut u32 countdown <- 5;
     while (countdown > 0) {
         countdown -<- 1;
     }
@@ -43,8 +43,8 @@ u32 main() {
     }
 
     // Test 6: Volatile in for loop (ADR-064 pattern)
-    volatile u32 loop_count <- 0;
-    for (volatile u32 j <- 0; j < 5; j +<- 1) {
+    volatile mut u32 loop_count <- 0;
+    for (volatile mut u32 j <- 0; j < 5; j +<- 1) {
         loop_count +<- 1;
     }
     if (loop_count != 5) {

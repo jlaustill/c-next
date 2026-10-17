@@ -8,7 +8,7 @@
 #include <case-label-farther.cnx>
 
 scope Gauge {
-    const u8 FARTHER <- 4;
+    u8 FARTHER <- 4;
 
     public u32 read(u8 s) {
         switch (s) {
@@ -37,7 +37,7 @@ u32 bare(u8 s) {
 }
 
 u32 main() {
-    u32 got <- 0;
+    mut u32 got <- 0;
     got <- Gauge.read(11);
     if (got != 1) {
         return 1;

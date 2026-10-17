@@ -25,8 +25,8 @@ typedef struct Point {
 } Point;
 
 /* External variables */
-extern Point origin;
-extern ZeroInit__Config settings;
+extern const Point origin;
+extern const ZeroInit__Config settings;
 
 #ifdef __cplusplus
 }

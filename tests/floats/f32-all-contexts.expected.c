@@ -13,7 +13,7 @@
 // Global variable declarations
 float global_f = 3.14;
 
-float global_uninit = 0.0f;
+const float global_uninit = 0.0f;
 
 // Struct member
 /* Scope: F32AllCtx */
@@ -22,34 +22,34 @@ float global_uninit = 0.0f;
 float samples[4] = {0};
 
 // Function with f32 parameter and return
-float add(float a, float b) {
+float add(const float a, const float b) {
     return a + b;
 }
 
 // Local variables in function
 void process(void) {
-    float local = 2.5;
-    float result = add(local, 1.5);
+    const float local = 2.5;
+    const float result = add(local, 1.5);
     samples[0] = result;
 }
 
 // In arithmetic expression
 void arithmetic(void) {
-    float x = 10.0;
-    float y = x + 5.0 - 2.0;
+    const float x = 10.0;
+    const float y = x + 5.0 - 2.0;
 }
 
 // In comparison
 void compare(void) {
-    float a = 1.5;
-    float b = 2.5;
+    const float a = 1.5;
+    const float b = 2.5;
     if (a < b) {
         global_f = a;
     }
 }
 
 // In ternary expression
-float max(float a, float b) {
+float max(const float a, const float b) {
     return (a > b) ? a : b;
 }
 
@@ -57,5 +57,5 @@ int main(void) {
     process();
     arithmetic();
     compare();
-    float result = max(3.14, 2.71);
+    const float result = max(3.14, 2.71);
 }

@@ -28,7 +28,7 @@ int main(void) {
     if (strlen(dest) != 8) {
         return 2U;
     }
-    char localSrc[33] = "LocalSource";
+    const char localSrc[33] = "LocalSource";
     char localDst[33] = "";
     (void) strncpy(localDst, localSrc, 32); localDst[32] = '\0';
     if (strlen(localDst) != 11) {

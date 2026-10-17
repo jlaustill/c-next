@@ -29,7 +29,7 @@ static inline uint8_t cnx_clamp_mul_u8(uint8_t a, uint32_t b) {
 }
 
 int main(void) {
-    uint8_t doubled = cnx_clamp_mul_u8(COUNT, 2U);
+    const uint8_t doubled = cnx_clamp_mul_u8(COUNT, 2U);
     if (doubled != 8) {
         return 1U;
     }

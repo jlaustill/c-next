@@ -9,7 +9,7 @@ enum EMode {
     RUN
 }
 
-const EMode M <- EMode.IDLE;
+EMode M <- EMode.IDLE;
 
 u32 atFile(EMode s) {
     switch (s) {
@@ -29,7 +29,7 @@ scope Panel {
         ON
     }
 
-    const State M <- State.ON;
+    State M <- State.ON;
 
     public u32 rooted(State s) {
         switch (s) {
@@ -57,7 +57,7 @@ scope Panel {
 }
 
 u32 main() {
-    u32 got <- atFile(EMode.IDLE);
+    mut u32 got <- atFile(EMode.IDLE);
     if (got != 1) {
         return 1;
     }

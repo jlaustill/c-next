@@ -156,16 +156,6 @@ interface IProgram {
    */
   headerMacrosUnread(sourceFile: string): boolean;
 
-  /**
-   * Which parameters each function modifies, direct and transitive.
-   *
-   * Decides whether a caller's argument may take ADR-013 auto-const, and the
-   * callee is routinely in another file. Derived once over every tree rather
-   * than accumulated file by file, so it no longer depends on how far the run
-   * has got (#1511).
-   */
-  modifiedParameters(): ReadonlyMap<string, ReadonlySet<string>>;
-
   /** Each function's parameter names, in declaration order. */
   functionParamLists(): ReadonlyMap<string, ReadonlyArray<string>>;
 
@@ -181,13 +171,17 @@ interface IProgram {
   codeGenSymbolsFor(sourceFile: string): ICodeGenSymbols | undefined;
 
   /**
-   * Which parameters of each function may be passed by value (ADR-006).
-   *
-   * A fact with a truth value — is this parameter modified anywhere downstream?
-   * — and answering it needs the whole call chain, which crosses files. Keyed by
-   * transpiled C name (#1511).
+   * Which parameters of each function are passed by value (ADR-006): a
+   * read-only scalar. Keyed by transpiled C name (#1511).
    */
   passByValueParams(): ReadonlyMap<string, ReadonlySet<string>>;
+
+  /**
+   * Which parameters of each function are passed by pointer because they are
+   * a `mut` scalar (ADR-071 Q6), so the callee's write reaches the caller.
+   * The `_fp` typedef reads it, as the prototype reads `passByValueParams`.
+   */
+  passByPointerParams(): ReadonlyMap<string, ReadonlySet<string>>;
 
   /**
    * Functions used as an ADR-029 callback, to the typedef they are used as.
@@ -199,6 +193,13 @@ interface IProgram {
    * signatures on a partial answer (#1511).
    */
   callbackCompatibleFunctions(): ReadonlyMap<string, string>;
+
+  /**
+   * ADR-071: every C-Next function used as a callback at all (a type, or a
+   * value placed in a slot), by C name. Its `mut` parameters are part of the
+   * callback type, so E0899 does not ask them to be written.
+   */
+  callbackFunctions(): ReadonlySet<string>;
 
   /**
    * #1668 / #1664: the innermost lexical frame of `sourceFile` containing
@@ -310,9 +311,8 @@ interface IProgram {
   /**
    * The run's scope graph, for the passes after 1.4 (#1452 box 3).
    *
-   * 2.2 Plan does NOT read it here: `ModificationFacts.derive` runs before
-   * `Program.build`, so a fact needed to BUILD this artifact cannot be reached
-   * through it. It takes the registry directly for that reason.
+   * A fact needed to BUILD this artifact cannot be reached through it, so
+   * `Program.build` takes the registry directly.
    */
   scope(path: string): IScopeSymbol | null;
 

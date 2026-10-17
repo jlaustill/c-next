@@ -34,19 +34,19 @@ int main(void) {
     area.height = 50U;
     uint8_t buffer[4] = {0xABU, 0xCDU, 0xEFU, 0x12U};
     widget_trigger_flush(w, &area, buffer);
-    bool called = widget_flush_was_called;
+    const bool called = widget_flush_was_called;
     if (called == false) {
         return 1U;
     }
-    uint16_t ax = widget_flush_area_x;
+    const uint16_t ax = widget_flush_area_x;
     if (ax != 10) {
         return 2U;
     }
-    uint16_t ay = widget_flush_area_y;
+    const uint16_t ay = widget_flush_area_y;
     if (ay != 20) {
         return 3U;
     }
-    uint8_t first = widget_flush_buf_first_byte;
+    const uint8_t first = widget_flush_buf_first_byte;
     if (first != 0xAB) {
         return 4U;
     }

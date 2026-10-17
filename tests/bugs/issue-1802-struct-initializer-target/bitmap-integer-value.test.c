@@ -14,7 +14,7 @@
 // its backing integer, then its fields are set one by one, standalone or as a
 // struct's field.
 int main(void) {
-    Flags standalone = 3;
+    const Flags standalone = 3;
     if (((standalone >> 0) & 1) != true) {
         return 1U;
     }

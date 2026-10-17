@@ -4,4 +4,4 @@
 
 #include "register-declarations.cnx"
 
-const u32 REGISTER_RELAY_MARKER <- 2;
+u32 REGISTER_RELAY_MARKER <- 2;

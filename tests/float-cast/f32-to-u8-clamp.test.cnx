@@ -11,7 +11,7 @@ u32 main() {
     f32 at_min <- 0.0;
 
     // Test overflow clamping
-    u8 result <- (u8)over;
+    mut u8 result <- (u8)over;
     if (result != 255) {
         return 1; // 261.7 should clamp to 255, not wrap to 5
     }

@@ -17,37 +17,37 @@
 #include <stdint.h>
 
 /* Scope: S */
-Pair S__cfg = {0};
+const Pair S__cfg = {0};
 
-Outer shared = {0};
+const Outer shared = {0};
 
 int main(void) {
-    uint32_t nested = 1;
+    const uint32_t nested = 1;
     if (nested != 1) {
         return 1U;
     }
-    uint8_t nestedValue = shared.inner.x;
+    const uint8_t nestedValue = shared.inner.x;
     if (nestedValue != 0) {
         return 2U;
     }
-    widget_t* w = widget_get();
-    uint32_t pointed = 4;
+    const widget_t* w = widget_get();
+    const uint32_t pointed = 4;
     if (pointed != 4) {
         return 3U;
     }
-    uint32_t pointedValue = w->v;
+    const uint32_t pointedValue = w->v;
     if (pointedValue != 5) {
         return 4U;
     }
-    uint32_t scoped = 4;
+    const uint32_t scoped = 4;
     if (scoped != 4) {
         return 5U;
     }
-    uint32_t scopedValue = S__cfg.b;
+    const uint32_t scopedValue = S__cfg.b;
     if (scopedValue != 0) {
         return 6U;
     }
-    uint32_t registerSize = 4;
+    const uint32_t registerSize = 4;
     if (registerSize != 4) {
         return 7U;
     }

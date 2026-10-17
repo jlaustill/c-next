@@ -20,7 +20,7 @@ int main(void) {
     if (((f >> 1) & 1) != false) {
         return 2U;
     }
-    bool val = true;
+    const bool val = true;
     f = (uint8_t)((f & ~(1U << 2)) | ((val ? 1U : 0U) << 2));
     if (((f >> 2) & 1) != true) {
         return 3U;

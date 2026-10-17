@@ -37,7 +37,7 @@ i32 main() {
     }
 
     // Test 8-10: Reassignment in local scope
-    string<32> local <- "First";
+    mut string<32> local <- "First";
     if (local != "First") {
         return 8;
     }
@@ -50,7 +50,7 @@ i32 main() {
     }
 
     // Test 11-12: Multiple reassignments
-    string<64> multi <- "One";
+    mut string<64> multi <- "One";
     multi <- "Two";
     multi <- "Three";
     if (multi != "Three") {

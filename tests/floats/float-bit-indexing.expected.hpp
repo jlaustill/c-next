@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-float fromBytesLE(uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3);
+float fromBytesLE(const uint8_t b0, const uint8_t b1, const uint8_t b2, const uint8_t b3);
 
 #ifdef __cplusplus
 }

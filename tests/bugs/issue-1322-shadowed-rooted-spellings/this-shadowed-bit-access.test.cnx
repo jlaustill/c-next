@@ -5,11 +5,11 @@
 // shown `Internal: ... E0856 rejects this in pass 2.1` at `1:0`, an assertion
 // that this pass had rejected a program it had silently accepted.
 scope Board {
-    private u8 flags <- 0;
+    private mut u8 flags <- 0;
 
     public u8 go() {
         // CONTROL: the same rule on a local scalar, one subscript, valid.
-        u8 localFlags <- 0;
+        mut u8 localFlags <- 0;
         localFlags[1] <- true;
 
         // The shadow, then the assertion.

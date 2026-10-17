@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint8_t macroBuf[BUF_SIZE + 1];
+extern const uint8_t macroBuf[BUF_SIZE + 1];
 
 #ifdef __cplusplus
 }

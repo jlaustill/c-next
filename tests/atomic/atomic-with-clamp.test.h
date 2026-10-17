@@ -17,15 +17,15 @@ extern volatile uint8_t brightness;
 extern volatile uint16_t volume;
 extern volatile uint32_t counter;
 extern volatile int8_t temperature;
-extern volatile int16_t offset;
-extern volatile int32_t position;
+extern volatile const int16_t offset;
+extern volatile const int32_t position;
 
 /* Function prototypes */
-void adjustBrightness(uint8_t delta);
-void decreaseBrightness(uint8_t delta);
-void updateVolume(uint16_t delta);
+void adjustBrightness(const uint8_t delta);
+void decreaseBrightness(const uint8_t delta);
+void updateVolume(const uint16_t delta);
 void incrementCounter(void);
-void adjustTemperature(int8_t delta);
+void adjustTemperature(const int8_t delta);
 
 #ifdef __cplusplus
 }

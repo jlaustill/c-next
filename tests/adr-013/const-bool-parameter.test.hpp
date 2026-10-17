@@ -16,7 +16,7 @@ extern "C" {
 /* Function prototypes */
 bool readConstBool(const bool value);
 bool notConstBool(const bool value);
-uint32_t selectByBool(const bool flag, uint32_t ifTrue, uint32_t ifFalse);
+uint32_t selectByBool(const bool flag, const uint32_t ifTrue, const uint32_t ifFalse);
 
 #ifdef __cplusplus
 }

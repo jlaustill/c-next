@@ -12,7 +12,7 @@ bitmap8 Flags {
     Reserved[3]
 }
 
-Flags loose <- 0;
+mut Flags loose <- 0;
 
 scope Timer {
     bitmap8 ControlBits {

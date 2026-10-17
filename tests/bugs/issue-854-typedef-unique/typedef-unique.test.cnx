@@ -6,7 +6,7 @@
 #include <typedef-types.cnx>
 
 scope Reader {
-    TypedefTypes.Sensor current;
+    mut TypedefTypes.Sensor current;
 
     public void update(TypedefTypes.Sensor s) {
         this.current <- s;

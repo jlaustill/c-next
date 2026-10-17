@@ -38,7 +38,7 @@ uint32_t S__get(void) {
 
 int main(void) {
     S__set();
-    uint32_t got = S__get();
+    const uint32_t got = S__get();
     if (got != 0) {
         return 1U;
     }

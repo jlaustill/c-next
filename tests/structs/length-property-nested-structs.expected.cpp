@@ -43,11 +43,11 @@ int main(void) {
     if (64 != 64) {
         return 7U;
     }
-    uint32_t bytes = 32 / 8U;
+    const uint32_t bytes = 32 / 8U;
     if (bytes != 4) {
         return 8U;
     }
-    uint32_t total = 40;
+    const uint32_t total = 40;
     if (total != 40) {
         return 9U;
     }

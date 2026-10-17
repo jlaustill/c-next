@@ -19,7 +19,7 @@ struct Route {
 
 u32 main() {
     // Test single-level nesting: struct with array of structs
-    Path path;
+    mut Path path;
     path.count <- 3;
     path.points[0].x <- 0;
     path.points[0].y <- 0;
@@ -51,7 +51,7 @@ u32 main() {
     }
 
     // Test double-level nesting: struct with array of structs with array of structs
-    Route route;
+    mut Route route;
     route.totalSegments <- 2;
 
     route.segments[0].count <- 2;

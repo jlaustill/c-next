@@ -3,8 +3,8 @@
 // is an array, which decays when passed whole.
 #include "pts.h"
 
-CPoint[2] sharedPts;
+mut CPoint[2] sharedPts;
 
 scope Rack {
-    public CPoint[2] slots;
+    public mut CPoint[2] slots;
 }

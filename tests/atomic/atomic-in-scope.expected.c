@@ -31,13 +31,12 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 
 /* Scope: Counter */
 static volatile uint32_t Counter__value = 0U;
-static volatile uint8_t Counter__overflowCount = 0U;
 
 void Counter__increment(void) {
     Counter__value = cnx_clamp_add_u32(Counter__value, 1U);
 }
 
-void Counter__incrementBy(uint32_t delta) {
+void Counter__incrementBy(const uint32_t delta) {
     Counter__value = cnx_clamp_add_u32(Counter__value, delta);
 }
 
@@ -57,11 +56,11 @@ void Timer__tick(void) {
     Timer__ticks += 1U;
 }
 
-void Timer__setPeriod(uint16_t p) {
+void Timer__setPeriod(const uint16_t p) {
     Timer__period = p;
 }
 
-void Timer__adjustPeriod(uint16_t delta) {
+void Timer__adjustPeriod(const uint16_t delta) {
     Timer__period = cnx_clamp_add_u16(Timer__period, delta);
 }
 

@@ -35,64 +35,64 @@ static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
 // An expression whose operands were all parameters counted none of them, so
 // it emitted plain C and wrapped (200 + 100 was 44), and a compound
 // assignment to a parameter wrapped because its target had no behavior.
-uint8_t add(uint8_t a, uint8_t b) {
-    uint8_t x = cnx_clamp_add_u8(a, b);
+uint8_t add(const uint8_t a, const uint8_t b) {
+    const uint8_t x = cnx_clamp_add_u8(a, b);
     return x;
 }
 
-uint8_t sub(uint8_t a, uint8_t b) {
-    uint8_t x = cnx_clamp_sub_u8(a, b);
+uint8_t sub(const uint8_t a, const uint8_t b) {
+    const uint8_t x = cnx_clamp_sub_u8(a, b);
     return x;
 }
 
-uint8_t mul(uint8_t a, uint8_t b) {
-    uint8_t x = cnx_clamp_mul_u8(a, b);
+uint8_t mul(const uint8_t a, const uint8_t b) {
+    const uint8_t x = cnx_clamp_mul_u8(a, b);
     return x;
 }
 
-uint8_t addInto(uint8_t* a, uint8_t b) {
+uint8_t addInto(uint8_t* a, const uint8_t b) {
     (*a) = cnx_clamp_add_u8((*a), b);
     return (*a);
 }
 
 // A compound into a local of the parameter's type. Its target is a local, so
 // it clamped at the parent too; the parameter target above is what did not.
-uint8_t addToLocal(uint8_t a) {
+uint8_t addToLocal(const uint8_t a) {
     uint8_t x = 200U;
     x = cnx_clamp_add_u8(x, a);
     return x;
 }
 
 // NEGATIVE CONTROL: a compound follows its target, and this one wraps
-uint8_t wrapped(uint8_t b) {
+uint8_t wrapped(const uint8_t b) {
     uint8_t w = 200U;
     w = (uint8_t)(w + b);
     return w;
 }
 
 int main(void) {
-    uint8_t s = add(200U, 100U);
+    const uint8_t s = add(200U, 100U);
     if (s != 255) {
         return 1U;
     }
-    uint8_t d = sub(100U, 200U);
+    const uint8_t d = sub(100U, 200U);
     if (d != 0) {
         return 2U;
     }
-    uint8_t m = mul(20U, 20U);
+    const uint8_t m = mul(20U, 20U);
     if (m != 255) {
         return 3U;
     }
     uint8_t p = 200U;
-    uint8_t c = addInto(&p, 100U);
+    const uint8_t c = addInto(&p, 100U);
     if (c != 255) {
         return 4U;
     }
-    uint8_t l = addToLocal(100U);
+    const uint8_t l = addToLocal(100U);
     if (l != 255) {
         return 5U;
     }
-    uint8_t w = wrapped(100U);
+    const uint8_t w = wrapped(100U);
     if (w != 44) {
         return 6U;
     }

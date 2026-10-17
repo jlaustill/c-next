@@ -2,8 +2,8 @@
 // Test: Compound assignment with global.* patterns inside scopes
 // Tests global array access with compound operators
 
-i32 counter <- 100;
-i32[4] values;
+mut i32 counter <- 100;
+mut i32[4] values;
 
 scope Worker {
     public void updateGlobal() {

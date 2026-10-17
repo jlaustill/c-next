@@ -42,8 +42,8 @@ uint32_t Internal__measure(const Internal__Buffer& b) {
 }
 
 int main(void) {
-    Internal__Buffer b = { .len = 3U };
-    uint32_t got = Internal__measure(b);
+    const Internal__Buffer b = { .len = 3U };
+    const uint32_t got = Internal__measure(b);
     if (got != 3) {
         return 1;
     }

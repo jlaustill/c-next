@@ -24,19 +24,19 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // test-execution
 // #1666: an inner block's `u8 v` does not change the enclosing `u32 v`'s type
 // after the block closes. It emitted `uint32_t b = 8;`.
-uint32_t probe(bool c) {
-    uint32_t v = 0U;
+uint32_t probe(const bool c) {
+    const uint32_t v = 0U;
     uint32_t inner = 0U;
     if (c == true) {
-        uint8_t v = 1U;
+        const uint8_t v = 1U;
         inner = 8;
     }
-    uint32_t b = 32;
+    const uint32_t b = 32;
     return cnx_clamp_add_u32(b, inner);
 }
 
 int main(void) {
-    uint32_t widths = probe(true);
+    const uint32_t widths = probe(true);
     if (widths != 40) {
         return 1U;
     }

@@ -57,7 +57,7 @@ static inline void __cnx_set_PRIMASK(uint32_t mask) { __set_PRIMASK(mask); }
 static volatile bool CriticalTest__flag = false;
 static uint8_t CriticalTest__value = 0U;
 
-void CriticalTest__safeWrite(uint8_t newValue) {
+void CriticalTest__safeWrite(const uint8_t newValue) {
     {
         uint32_t __primask = __cnx_get_PRIMASK();
         __cnx_disable_irq();

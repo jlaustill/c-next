@@ -1,0 +1,10 @@
+// test-error
+// #1755 / ADR-071: fgets is declared by <stdio.h>, and its first parameter
+// is a pointer it writes through, so a read-only buffer is E0900.
+#include <stdio.h>
+
+string<64> buffer;
+
+void readLine() {
+    cstring c_line <- fgets(buffer, buffer.size, stdin);
+}

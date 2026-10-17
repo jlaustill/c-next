@@ -1,0 +1,51 @@
+// test-error
+// test-adr: 071
+// ADR-071: a C function-pointer typedef is a callback type too, and its
+// pointer parameters say which are `mut` -- a pointer that is not const is
+// `mut`, a const one is read-only. E0879 both ways. CONTROL: the two
+// functions that match their typedef are silent. The same holds for a
+// string parameter against a `char *` and a `const char *` typedef.
+#include "c-callback-api.h"
+
+void writes(mut Reading r) {
+    r.value <- 1;
+}
+
+void reads(Reading r) {
+    i32 v <- r.value;
+}
+
+void wrongWrite(Reading r) {
+    i32 v <- r.value;
+}
+
+void wrongRead(mut Reading r) {
+    r.value <- 2;
+}
+
+void logs(mut string<32> msg) {
+    msg[0] <- 'X';
+}
+
+void readsLog(string<32> msg) {
+    u8 c <- msg[0];
+}
+
+void wrongLog(string<32> msg) {
+    u8 c <- msg[0];
+}
+
+void wrongConstLog(mut string<32> msg) {
+    msg[0] <- 'X';
+}
+
+void wire() {
+    on_write(writes);
+    on_read(reads);
+    on_write(wrongWrite);
+    on_read(wrongRead);
+    on_log(logs);
+    on_const_log(readsLog);
+    on_log(wrongLog);
+    on_const_log(wrongConstLog);
+}

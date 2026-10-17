@@ -15,7 +15,7 @@
 
 #include <stdint.h>
 
-Depth reachedThroughChain = Depth__DEPTH_A;
+const Depth reachedThroughChain = Depth__DEPTH_A;
 
 int main(void) {
     if (reachedThroughChain != Depth__DEPTH_A) {

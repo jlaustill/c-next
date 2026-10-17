@@ -1,7 +1,5 @@
 // test-execution
 // test-link: cjson_api.c ../../libs/cJSON/cJSON.c
-// test-target-xfail: cortex-m7 atmega328p c #1764 "from incompatible pointer type"
-// test-target-xfail: cortex-m7 atmega328p cpp #1764 "int32_t*"
 // Tests: cJSON object/array construction through ADR-061 C boundary layer
 // Issue #931: Real-world library integration tests
 
@@ -12,9 +10,9 @@ u32 main() {
     string<32> samplesKey <- "samples";
     i32[3] samples <- [1000, 1250, 1500];
 
-    cJSON root <- global.cnext_cjson_create_object();
-    cJSON rpm <- global.cnext_cjson_create_number(1250.0);
-    cJSON sampleArray <- global.cnext_cjson_create_int_array(samples, 3);
+    mut cJSON root <- global.cnext_cjson_create_object();
+    mut cJSON rpm <- global.cnext_cjson_create_number(1250.0);
+    mut cJSON sampleArray <- global.cnext_cjson_create_int_array(samples, 3);
 
     bool addedRpm <- global.cnext_cjson_add_item_to_object(root, rpmKey, rpm) != 0;
     bool addedSamples <- global.cnext_cjson_add_item_to_object(root, samplesKey, sampleArray) != 0;
@@ -48,7 +46,7 @@ u32 main() {
         return 5;
     }
 
-    char jsonText <- global.cnext_cjson_print_unformatted(root);
+    mut char jsonText <- global.cnext_cjson_print_unformatted(root);
     string<64> expectedJson <- "{\"rpm\":1250,\"samples\":[1000,1250,1500]}";
     bool jsonMatches <- global.cnext_cjson_string_equals(jsonText, expectedJson) != 0;
     if (jsonMatches = false) {

@@ -19,9 +19,9 @@
 
 #include <stdint.h>
 
-uint8_t boxBytes[3] = {};
+extern const uint8_t boxBytes[3] = {};
 
-uint8_t modeBytes[1] = {};
+extern const uint8_t modeBytes[1] = {};
 
 /* Scope: Shapes */
 

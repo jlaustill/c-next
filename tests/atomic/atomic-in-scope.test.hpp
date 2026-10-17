@@ -14,12 +14,12 @@ extern "C" {
 
 /* Function prototypes */
 void Counter__increment(void);
-void Counter__incrementBy(uint32_t delta);
+void Counter__incrementBy(const uint32_t delta);
 void Counter__reset(void);
 uint32_t Counter__get(void);
 void Timer__tick(void);
-void Timer__setPeriod(uint16_t p);
-void Timer__adjustPeriod(uint16_t delta);
+void Timer__setPeriod(const uint16_t p);
+void Timer__adjustPeriod(const uint16_t delta);
 
 #ifdef __cplusplus
 }

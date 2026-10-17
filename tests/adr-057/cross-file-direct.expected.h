@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint32_t spare;
+extern const uint32_t spare;
 
 /* Function prototypes */
 uint32_t Gauge__bump(void);

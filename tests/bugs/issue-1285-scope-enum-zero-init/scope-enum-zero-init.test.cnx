@@ -25,7 +25,7 @@ enum GlobalMode {
 // Negative control: a global enum already resolved correctly. A fix that
 // qualified unconditionally would look up `S__GlobalMode`, find nothing, and
 // regress this line to the aggregate brace.
-GlobalMode globalControl;
+mut GlobalMode globalControl;
 
 scope S {
     enum Mode {
@@ -39,10 +39,10 @@ scope S {
     }
 
     // No member is 0, so ADR-017 selects the FIRST member.
-    Mode firstMemberWins;
+    mut Mode firstMemberWins;
 
     // A member IS 0, so ADR-017 selects that member, not the first.
-    Zeroed zeroMemberWins;
+    mut Zeroed zeroMemberWins;
 
     void set() {
         firstMemberWins <- Mode.BETA;

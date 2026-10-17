@@ -16,8 +16,8 @@
 #include <stdint.h>
 
 int main(void) {
-    uint32_t scaled = Sensor__scaled(4U);
-    float torque = Motor__torque(2U);
+    const uint32_t scaled = Sensor__scaled(4U);
+    const float torque = Motor__torque(2U);
     if (scaled != 7) {
         return 1U;
     }

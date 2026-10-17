@@ -20,8 +20,8 @@ const char DAYS[3][17] = {"Monday", "Tuesday", "Wednesday"};
 uint32_t test(void) {
     // cppcheck-suppress misra-c2012-9.3
     // cppcheck-suppress misra-c2012-9.4
-    char items[4][9] = {"A", "B", "C", "D"};
-    uint8_t count = 4;
+    const char items[4][9] = {"A", "B", "C", "D"};
+    const uint8_t count = 4;
     if (count != 4) {
         return 1U;
     }
@@ -47,7 +47,7 @@ int main(void) {
     if (strlen(DAYS[2U]) != 9) {
         return 4U;
     }
-    uint32_t localResult = test();
+    const uint32_t localResult = test();
     if (localResult != 0) {
         return 5U;
     }

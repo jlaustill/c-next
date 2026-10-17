@@ -10,31 +10,31 @@
 // test-coverage: 26-switch-branch-init
 // test-execution
 // Tests: Variable initialization in switch case branches
-uint32_t calculatePower(Mode mode) {
+uint32_t calculatePower(const Mode mode) {
     uint32_t power = 0U;
     switch (mode) {
         case Mode__OFF: {
-            uint32_t offValue = 0U;
+            const uint32_t offValue = 0U;
             power = offValue;
             break;
         }
         case Mode__LOW: {
-            uint32_t lowValue = 10U;
+            const uint32_t lowValue = 10U;
             power = lowValue;
             break;
         }
         case Mode__MEDIUM: {
-            uint32_t medValue = 50U;
+            const uint32_t medValue = 50U;
             power = medValue;
             break;
         }
         case Mode__HIGH: {
-            uint32_t highValue = 100U;
+            const uint32_t highValue = 100U;
             power = highValue;
             break;
         }
         default: {
-            uint32_t defaultValue = 25U;
+            const uint32_t defaultValue = 25U;
             power = defaultValue;
             break;
         }
@@ -43,19 +43,19 @@ uint32_t calculatePower(Mode mode) {
 }
 
 int main(void) {
-    uint32_t offPower = calculatePower(Mode__OFF);
+    const uint32_t offPower = calculatePower(Mode__OFF);
     if (offPower != 0) {
         return 1U;
     }
-    uint32_t lowPower = calculatePower(Mode__LOW);
+    const uint32_t lowPower = calculatePower(Mode__LOW);
     if (lowPower != 10) {
         return 2U;
     }
-    uint32_t medPower = calculatePower(Mode__MEDIUM);
+    const uint32_t medPower = calculatePower(Mode__MEDIUM);
     if (medPower != 50) {
         return 3U;
     }
-    uint32_t highPower = calculatePower(Mode__HIGH);
+    const uint32_t highPower = calculatePower(Mode__HIGH);
     if (highPower != 100) {
         return 4U;
     }

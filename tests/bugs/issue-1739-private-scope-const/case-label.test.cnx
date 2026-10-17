@@ -1,11 +1,11 @@
 // test-execution
 // Tests: a const named as a case label is written as its value -- C switches
 // only on an integer constant expression, which a const object is not
-const u32 G <- 40;
+u32 G <- 40;
 
 scope S {
-    const u32 M <- 20;
-    public const u32 P <- 30;
+    u32 M <- 20;
+    public u32 P <- 30;
 
     public u32 pick(u32 v) {
         switch (v) {

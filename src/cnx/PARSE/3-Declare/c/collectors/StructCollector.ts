@@ -142,9 +142,12 @@ class StructCollector {
     // ("typedef struct X *Y") is already a pointer, not a handle.
     if (isTypedef && !hasBody && typedefName && !isPointerTypedef) {
       symbolTable.markOpaqueType(typedefName);
-      if (structTag) {
-        symbolTable.registerStructTagAlias(structTag, typedefName);
-      }
+    }
+
+    // #2103: with or without a body, `typedef struct _w {...} w;` names one
+    // type twice, and a C pointer argument check compares by that identity
+    if (isTypedef && typedefName && structTag && !isPointerTypedef) {
+      symbolTable.registerStructTagAlias(structTag, typedefName);
     }
 
     // Issue #958: Record struct tag body for query-time opaque resolution

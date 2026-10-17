@@ -15,7 +15,7 @@ struct AllTypes {
 }
 
 // Test with const parameter
-u32 testConst(const AllTypes data) {
+u32 testConst(AllTypes data) {
     if (data.field_u32.type_bit_length != 32) {
         return 1;
     }
@@ -68,7 +68,7 @@ u32 testParam(AllTypes data) {
 }
 
 u32 main() {
-    AllTypes data;
+    mut AllTypes data;
     data.field_u8 <- 1;
     data.field_u16 <- 2;
     data.field_u32 <- 3;
@@ -81,7 +81,7 @@ u32 main() {
     data.field_f64 <- 2.5;
 
     // Test with const parameter
-    u32 result <- testConst(data);
+    mut u32 result <- testConst(data);
     if (result != 0) {
         return result;
     }

@@ -68,7 +68,7 @@ void S__set(void) {
 
 int main(void) {
     S__set();
-    uint32_t got = S__get();
+    const uint32_t got = S__get();
     if (got != 5) {
         return 1U;
     }

@@ -27,6 +27,7 @@ import { FunctionDeclarationContext } from "./CNextParser.js";
 import { ParameterListContext } from "./CNextParser.js";
 import { ParameterContext } from "./CNextParser.js";
 import { ConstModifierContext } from "./CNextParser.js";
+import { MutModifierContext } from "./CNextParser.js";
 import { VolatileModifierContext } from "./CNextParser.js";
 import { OverflowModifierContext } from "./CNextParser.js";
 import { AtomicModifierContext } from "./CNextParser.js";
@@ -246,6 +247,12 @@ export class CNextVisitor<Result> extends AbstractParseTreeVisitor<Result> {
      * @return the visitor result
      */
     visitConstModifier?: (ctx: ConstModifierContext) => Result;
+    /**
+     * Visit a parse tree produced by `CNextParser.mutModifier`.
+     * @param ctx the parse tree
+     * @return the visitor result
+     */
+    visitMutModifier?: (ctx: MutModifierContext) => Result;
     /**
      * Visit a parse tree produced by `CNextParser.volatileModifier`.
      * @param ctx the parse tree

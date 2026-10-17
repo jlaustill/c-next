@@ -16,9 +16,9 @@ extern "C" {
 typedef struct CallbackParamType__Point CallbackParamType__Point;
 
 /* Callback typedefs */
-typedef uint32_t (*processU8_fp)(uint8_t);
-typedef uint32_t (*processU32_fp)(uint32_t);
-typedef uint32_t (*processBool_fp)(bool);
+typedef uint32_t (*processU8_fp)(const uint8_t);
+typedef uint32_t (*processU32_fp)(const uint32_t);
+typedef uint32_t (*processBool_fp)(const bool);
 typedef uint32_t (*processPoint_fp)(const CallbackParamType__Point&);
 
 /* Struct definitions */
@@ -40,9 +40,9 @@ typedef struct PointHandler {
 } PointHandler;
 
 /* Function prototypes */
-uint32_t processU8(uint8_t val);
-uint32_t processU32(uint32_t val);
-uint32_t processBool(bool val);
+uint32_t processU8(const uint8_t val);
+uint32_t processU32(const uint32_t val);
+uint32_t processBool(const bool val);
 uint32_t processPoint(const CallbackParamType__Point& p);
 /* MISRA C:2012 Rule 8.4: declaration for the ADR-029 generated init function (the definition has external linkage and would otherwise be undeclared). */
 U8Handler U8Handler_init(void);

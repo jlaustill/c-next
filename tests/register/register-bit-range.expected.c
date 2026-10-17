@@ -9,19 +9,19 @@
 
 // test-coverage: 12-bit-range-access
 // Tests: Bit range access on register members using [start, width] syntax
-void setTimerPrescaler(uint8_t prescaler) {
+void setTimerPrescaler(const uint8_t prescaler) {
     TIMER__PRESCALE = (TIMER__PRESCALE & ~((uint32_t)0xFFU << 0)) | ((prescaler & (uint32_t)0xFFU) << 0);
 }
 
-void setTimerMode(uint8_t mode) {
+void setTimerMode(const uint8_t mode) {
     TIMER__CTRL = (TIMER__CTRL & ~((uint32_t)0xFU << 0)) | ((mode & (uint32_t)0xFU) << 0);
 }
 
-void setTimerFlags(uint8_t flags) {
+void setTimerFlags(const uint8_t flags) {
     TIMER__CTRL = (TIMER__CTRL & ~((uint32_t)0xFU << 4)) | ((flags & (uint32_t)0xFU) << 4);
 }
 
-void configureOptions(uint16_t opts) {
+void configureOptions(const uint16_t opts) {
     CONFIG__OPTIONS = (CONFIG__OPTIONS & ~((uint32_t)0xFFFFU << 0)) | ((opts & (uint32_t)0xFFFFU) << 0);
 }
 
@@ -38,6 +38,6 @@ int main(void) {
     setTimerMode(5U);
     setTimerFlags(0x0FU);
     configureOptions(0x1234U);
-    uint8_t mode = readTimerMode();
-    uint8_t flags = readTimerFlags();
+    const uint8_t mode = readTimerMode();
+    const uint8_t flags = readTimerFlags();
 }

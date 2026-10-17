@@ -46,7 +46,7 @@ void forward(Dev* arr[2]) {
 // A whole-value use of one element.
 int32_t firstPokes(Dev* arr[2]) {
     Dev* first = arr[0U];
-    int32_t n = dev_pokes(first);
+    const int32_t n = dev_pokes(first);
     return n;
 }
 
@@ -60,15 +60,15 @@ int main(void) {
     ds[0] = dev_create();
     ds[1] = dev_create();
     forward(ds);
-    int32_t zero = dev_pokes(ds[0U]);
+    const int32_t zero = dev_pokes(ds[0U]);
     if (zero != 1) {
         return 1;
     }
-    int32_t one = dev_pokes(ds[1U]);
+    const int32_t one = dev_pokes(ds[1U]);
     if (one != 1) {
         return 2;
     }
-    int32_t viaElement = firstPokes(ds);
+    const int32_t viaElement = firstPokes(ds);
     if (viaElement != 1) {
         return 3;
     }

@@ -375,38 +375,6 @@ class TranspileState {
     return plan;
   }
   /**
-   * Compute unmodified parameters for all functions on-demand.
-   * Returns a map of function name -> Set of parameter names NOT modified.
-   * Computed from `functionSignatures` and the program's modification facts.
-   *
-   * Reads `this.program`, like the siblings that answer the same question
-   * (`isParameterModified`, `isParameterModifiedAnywhere`). It took the artifact
-   * as a parameter for one revision, and the only caller passed
-   * `this.state.program` -- the receiver's own field -- so the separation it
-   * claimed did not exist while the `| null` left a second caller free to supply
-   * a program that disagrees with every other reader. Worse, the `?.` answered
-   * "every parameter is unmodified" for a missing artifact, which is the vacuous
-   * const comparison `TypeValidator`'s own comment records as the reason ADR-029
-   * callback checking could not stay in 2.3.
-   */
-  getUnmodifiedParameters(): Map<string, Set<string>> {
-    const result = new Map<string, Set<string>>();
-    for (const [funcName, signature] of this.functionSignatures) {
-      const unmodified = new Set<string>();
-      for (const param of signature.parameters) {
-        // Through the predicate, not a fourth inline `program?.…` lookup. The
-        // absent-artifact polarity (`?? false` -> "not modified", so auto-const
-        // applies) is one decision (#1529/#1552); spelling it here as well is
-        // how the four copies came to need four edits.
-        if (!this.isParameterModified(funcName, param.name)) {
-          unmodified.add(param.name);
-        }
-      }
-      result.set(funcName, unmodified);
-    }
-    return result;
-  }
-  /**
    * Issue #1164: does the generated header own this callback's typedef?
    *
    * When the `.c` includes its own header, whichever typedefs the header emits
@@ -767,13 +735,6 @@ class TranspileState {
   }
 
   /**
-   * Check if a type name is a known enum.
-   */
-  isKnownEnum(name: string): boolean {
-    return DeclaredTypeFacts.isEnum(this.symbols, name);
-  }
-
-  /**
    * Check if a *qualified* name is a type declared in a scope that the file
    * being generated can see.
    * Used by `ScopeUtils.qualifyScopeType()`, through `typeBindingDeps`, to
@@ -903,51 +864,6 @@ class TranspileState {
    * Convert a TSymbol IVariableSymbol to TTypeInfo for unified type lookups.
    * ADR-055 Phase 7: Works with typed TSymbol instead of ISymbol.
    */
-
-  /**
-   * Check if a parameter in a function is modified.
-   */
-  isParameterModified(funcName: string, paramName: string): boolean {
-    // #1452: reads the artifact. This used to read a per-file accumulator on
-    // this class -- the one `isParameterModifiedAnywhere` below documents as
-    // the bug in #1529 and #1552, EMPTY while declarations are still walked and
-    // absent entirely for a function reached through an include. The
-    // accumulator is gone, so the two methods now answer from one place and the
-    // sibling's fallback is no longer a second source.
-    return (
-      this.program?.modifiedParameters().get(funcName)?.has(paramName) ?? false
-    );
-  }
-
-  /**
-   * #1552/#1529: does this parameter get modified ANYWHERE in the program?
-   *
-   * The name auto-const reads this fact under, kept because it says WHY the
-   * answer is program-wide at the call site that cares. It is an alias, and the
-   * aliasing is the point: `Program` owns the fact, 1.4 Resolve settles it for
-   * the whole run before any file is planned, so there is nothing for a
-   * per-scope variant to differ about.
-   *
-   * Both of the bugs behind it were a SECOND source disagreeing with this one:
-   *
-   * - A per-file accumulator was EMPTY while declarations were still being
-   *   walked, so a typedef built at that moment saw a modifying body as
-   *   unmodified and emitted `const` where the prototype emitted none (#1529).
-   * - A function reached through an include was never walked, so the fact was
-   *   absent rather than false, and an included function-as-type lost the const
-   *   its declaring file computed (#1552). Two files then defined one typedef
-   *   name incompatibly, which gcc rejects outright.
-   *
-   * That accumulator is gone. This docblock described its fallback as still
-   * present for one revision after it was deleted, which is the comment half of
-   * the same duplication.
-   *
-   * Polarity is `isParameterModified`'s: an absent entry means NOT modified, so
-   * auto-const applies.
-   */
-  isParameterModifiedAnywhere(funcName: string, paramName: string): boolean {
-    return this.isParameterModified(funcName, paramName);
-  }
 
   /**
    * Issue #895: Get the typedef type string for a C typedef by name.

@@ -8,7 +8,7 @@ u32 lengthOf(string<16> s) {
 
 u32 main() {
     string<16> a <- "hello";
-    string<16> b <- a;
+    mut string<16> b <- a;
     b <- "hi";
     u8[] bytes <- "abc";
     u8 c <- 'A';

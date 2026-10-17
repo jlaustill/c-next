@@ -39,20 +39,20 @@ const uint32_t i = 7U;
 const uint32_t D = 0U;
 
 /* C11 6.2.1p4, C++ [basic.scope.hiding]: `N` emitted as `viaParameter__N` (a plain `N` would hide the file-scope `N` for the rest of its scope, so `global.N` would reach the local). */
-uint8_t viaParameter(uint32_t viaParameter__N) {
-    uint8_t arr[4] = {5U, 6U, 7U, 8U};
+uint8_t viaParameter(const uint32_t viaParameter__N) {
+    const uint8_t arr[4] = {5U, 6U, 7U, 8U};
     return arr[viaParameter__N];
 }
 
 uint8_t viaLocal(void) {
-    uint8_t arr[4] = {5U, 6U, 7U, 8U};
+    const uint8_t arr[4] = {5U, 6U, 7U, 8U};
     /* C11 6.2.1p4, C++ [basic.scope.hiding]: `N` emitted as `viaLocal__N` (a plain `N` would hide the file-scope `N` for the rest of its scope, so `global.N` would reach the local). */
-    uint32_t viaLocal__N = 1U;
+    const uint32_t viaLocal__N = 1U;
     return arr[viaLocal__N];
 }
 
 uint8_t viaFor(void) {
-    uint8_t arr[4] = {5U, 6U, 7U, 8U};
+    const uint8_t arr[4] = {5U, 6U, 7U, 8U};
     uint8_t last = 0U;
     /* C11 6.2.1p4, C++ [basic.scope.hiding]: `i` emitted as `viaFor__i` (a plain `i` would hide the file-scope `i` for the rest of its scope, so `global.i` would reach the local). */
     for (uint32_t viaFor__i = 0U; viaFor__i < 4; viaFor__i = cnx_clamp_add_u32(viaFor__i, 1U)) {
@@ -61,7 +61,7 @@ uint8_t viaFor(void) {
     return last;
 }
 
-uint32_t viaRuntimeConst(uint32_t a) {
+uint32_t viaRuntimeConst(const uint32_t a) {
     /* C11 6.2.1p4, C++ [basic.scope.hiding]: `D` emitted as `viaRuntimeConst__D` (a plain `D` would hide the file-scope `D` for the rest of its scope, so `global.D` would reach the local). */
     const uint32_t viaRuntimeConst__D = cnx_clamp_add_u32(a, 1U);
     return 100U / viaRuntimeConst__D;
@@ -74,28 +74,28 @@ float viaFloatConst(void) {
 }
 
 int main(void) {
-    uint8_t p = viaParameter(2U);
+    const uint8_t p = viaParameter(2U);
     if (p != 7) {
         return 1U;
     }
-    uint8_t l = viaLocal();
+    const uint8_t l = viaLocal();
     if (l != 6) {
         return 2U;
     }
-    uint8_t f = viaFor();
+    const uint8_t f = viaFor();
     if (f != 8) {
         return 3U;
     }
-    uint32_t r = viaRuntimeConst(4U);
+    const uint32_t r = viaRuntimeConst(4U);
     if (r != 20) {
         return 4U;
     }
-    float fl = viaFloatConst();
+    const float fl = viaFloatConst();
     if (fl != 4.0) {
         return 5U;
     }
-    uint8_t arr[4] = {5U, 6U, 7U, 8U};
-    uint32_t q = cnx_clamp_sub_u32(N, i);
+    const uint8_t arr[4] = {5U, 6U, 7U, 8U};
+    const uint32_t q = cnx_clamp_sub_u32(N, i);
     if (arr[q] != 8) {
         return 6U;
     }

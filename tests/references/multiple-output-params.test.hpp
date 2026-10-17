@@ -13,9 +13,9 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void divmod(uint32_t a, uint32_t b, uint32_t& quotient, uint32_t& remainder);
-void minmax(int32_t a, int32_t b, int32_t& minVal, int32_t& maxVal);
-void stats(uint32_t a, uint32_t b, uint32_t c, uint32_t& sum, uint32_t& count, uint32_t& avg);
+void divmod(const uint32_t a, const uint32_t b, uint32_t& quotient, uint32_t& remainder);
+void minmax(const int32_t a, const int32_t b, int32_t& minVal, int32_t& maxVal);
+void stats(const uint32_t a, const uint32_t b, const uint32_t c, uint32_t& sum, uint32_t& count, uint32_t& avg);
 void rotate3(uint32_t& a, uint32_t& b, uint32_t& c);
 
 #ifdef __cplusplus

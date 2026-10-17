@@ -11,17 +11,17 @@
 // test-execution
 // Tests .value_char_count property for strings (ADR-058)
 // char_count returns the current character count (strlen)
-char globalStr[65] = "Hello";
+const char globalStr[65] = "Hello";
 
 int main(void) {
     if (strlen(globalStr) != 5) {
         return 1;
     }
-    char localStr[33] = "World";
+    const char localStr[33] = "World";
     if (strlen(localStr) != 5) {
         return 2;
     }
-    char emptyStr[17] = "";
+    const char emptyStr[17] = "";
     if (strlen(emptyStr) != 0) {
         return 3;
     }

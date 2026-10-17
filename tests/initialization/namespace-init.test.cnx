@@ -2,7 +2,7 @@
 u8 globalCount; // Global - uninitialized
 
 scope Counter {
-    u8 count; // Scope member - uninitialized
+    mut u8 count; // Scope member - uninitialized
     public void init() {
         count <- 0; // Initialize scope member
     }

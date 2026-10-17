@@ -1,7 +1,7 @@
 // Test: main function with command line arguments
 #include <stdio.h>
 
-i32 main(u8 args[][]) {
+i32 main(mut u8 args[][]) {
     (void)printf("Hello World, from %s\n", args[0]);
     return 0;
 }

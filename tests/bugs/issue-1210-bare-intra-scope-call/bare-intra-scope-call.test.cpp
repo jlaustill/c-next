@@ -42,25 +42,25 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 // parameter, so both callers keep pass-by-value.
 /* Scope: Counter */
 
-uint8_t Counter__readOnly(uint8_t value) {
+uint8_t Counter__readOnly(const uint8_t value) {
     return cnx_clamp_add_u8(value, 1U);
 }
 
-uint8_t Counter__viaBare(uint8_t value) {
+uint8_t Counter__viaBare(const uint8_t value) {
     return Counter__readOnly(value);
 }
 
-uint8_t Counter__viaThis(uint8_t value) {
+uint8_t Counter__viaThis(const uint8_t value) {
     return Counter__readOnly(value);
 }
 
 int main(void) {
-    uint8_t start = 3U;
-    uint8_t bare = Counter__viaBare(start);
+    const uint8_t start = 3U;
+    const uint8_t bare = Counter__viaBare(start);
     if (bare != 4) {
         return 1U;
     }
-    uint8_t qualified = Counter__viaThis(start);
+    const uint8_t qualified = Counter__viaThis(start);
     if (qualified != 4) {
         return 2U;
     }

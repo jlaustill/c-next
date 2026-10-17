@@ -1,5 +1,5 @@
 // Included by global-outside-scope-imported-error.test.cnx
-const u8 G_LIMIT <- 1;
+u8 G_LIMIT <- 1;
 
 u8 G_COPY <- global.G_LIMIT;
 

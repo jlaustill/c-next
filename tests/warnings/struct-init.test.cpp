@@ -17,21 +17,21 @@
 /* Scope: StructInit */
 
 int main(void) {
-    Point p = { .x = 10, .y = 20 };
+    const Point p = { .x = 10, .y = 20 };
     if (p.x != 10) {
         return 1U;
     }
     if (p.y != 20) {
         return 2U;
     }
-    Rectangle rect = { .topLeft = { .x = 0, .y = 0 }, .bottomRight = { .x = 100, .y = 100 } };
+    const Rectangle rect = { .topLeft = { .x = 0, .y = 0 }, .bottomRight = { .x = 100, .y = 100 } };
     if (rect.topLeft.x != 0) {
         return 3U;
     }
     if (rect.bottomRight.y != 100) {
         return 4U;
     }
-    StructInit__Data d = { .id = 42U, .flags = 0xFFU, .count = 1000U };
+    const StructInit__Data d = { .id = 42U, .flags = 0xFFU, .count = 1000U };
     if (d.id != 42) {
         return 5U;
     }

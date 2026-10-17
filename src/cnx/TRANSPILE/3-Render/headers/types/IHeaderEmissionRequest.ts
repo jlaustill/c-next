@@ -16,7 +16,6 @@ interface IHeaderEmissionRequest {
   /** The view `generate()` received, so the `.h` and the `.c` share one */
   readonly typeInput: ICodeGenSymbols;
   readonly state: TranspileState;
-  readonly unmodifiedParams: ReadonlyMap<string, ReadonlySet<string>>;
   /** Where the include guard's path is measured from (ADR-063) */
   readonly anchor: IAnchorFacts;
   /** Every discovered file's includes, from the run's `SourceGraph` */

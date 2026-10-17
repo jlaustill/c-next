@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint8_t CommandHandler__setValue(Config& cfg, uint32_t val);
+uint8_t CommandHandler__setValue(Config& cfg, const uint32_t val);
 
 #ifdef __cplusplus
 }

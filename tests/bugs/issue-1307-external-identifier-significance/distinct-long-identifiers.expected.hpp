@@ -13,9 +13,9 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint8_t TemperatureSensorController__calibrationOffsetValue;
-extern uint8_t TemperatureSensorController__diagnosticOffsetValue;
-extern uint8_t ambientTemperatureCorrectionFactor;
+extern const uint8_t TemperatureSensorController__calibrationOffsetValue;
+extern const uint8_t TemperatureSensorController__diagnosticOffsetValue;
+extern const uint8_t ambientTemperatureCorrectionFactor;
 
 /* Function prototypes */
 uint8_t TemperatureSensorController__sumOffsets(void);

@@ -14,7 +14,7 @@
 
 void test_opaque_local(void) {
     widget_t* w = widget_create(480, 320);
-    int32_t width = widget_get_width(w);
+    const int32_t width = widget_get_width(w);
     widget_destroy(w);
 }
 

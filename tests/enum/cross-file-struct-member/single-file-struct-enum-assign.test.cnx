@@ -19,9 +19,9 @@ scope SingleFileEnum {
     }
 }
 
-const u8 COUNT <- 4;
+u8 COUNT <- 4;
 
-SingleFileEnum.Config config;
+mut SingleFileEnum.Config config;
 
 u32 main() {
     // Initialize config
@@ -37,8 +37,8 @@ u32 main() {
     }
 
     // Test in a loop
-    u8 countAssigned <- 0;
-    for (u8 i <- 0; i < COUNT; i +<- 1) {
+    mut u8 countAssigned <- 0;
+    for (mut u8 i <- 0; i < COUNT; i +<- 1) {
         MyEnum current <- config.items[i].assigned;
         if (current != MyEnum.NONE) {
             countAssigned +<- 1;

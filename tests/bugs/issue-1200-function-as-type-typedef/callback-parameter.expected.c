@@ -21,5 +21,5 @@ uint32_t callIt(tickSource_fp source) {
 }
 
 void demo(void) {
-    uint32_t value = callIt(platformClock);
+    const uint32_t value = callIt(platformClock);
 }

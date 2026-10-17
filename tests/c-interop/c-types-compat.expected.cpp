@@ -13,23 +13,23 @@
 // ADR-010: C Interoperability - Type compatibility
 // Tests: C-Next types map cleanly to C types
 // All C-Next types map to stdint.h types
-uint8_t byte = 255U;
+extern const uint8_t byte = 255U;
 
-uint16_t word = 65535U;
+extern const uint16_t word = 65535U;
 
-uint32_t dword = 0xFFFFFFFFU;
+extern const uint32_t dword = 0xFFFFFFFFU;
 
-int8_t sbyte = -128;
+extern const int8_t sbyte = -128;
 
-int16_t sword = -32768;
+extern const int16_t sword = -32768;
 
-int32_t sdword = (int32_t)INT32_MIN;
+extern const int32_t sdword = (int32_t)INT32_MIN;
 
-float single = 3.14;
+extern const float single = 3.14;
 
-double double_val = 3.14159265359;
+extern const double double_val = 3.14159265359;
 
-bool flag = true;
+extern const bool flag = true;
 
 int main(void) {
     if (byte == 255 && word == 65535 && sbyte == -128 && flag == true) {

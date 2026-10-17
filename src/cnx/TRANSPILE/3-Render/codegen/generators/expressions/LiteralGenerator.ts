@@ -31,13 +31,45 @@ const UNSIGNED_TYPES = new Set([
   "size_t", // Array indices (MISRA 7.2)
 ]);
 
+/** The words C's own integer type spellings are made of */
+const C_INTEGER_WORDS = new Set(["char", "short", "int", "long"]);
+
 /**
- * Resolve typedef aliases to their underlying type.
- * For C typedef'd types (e.g., "byte_t" -> "uint8_t"), look up the symbol table.
+ * C's own unsigned integer spellings, as a header's typedef names them, in any
+ * word order: GCC itself writes `long unsigned int` (`__SIZE_TYPE__`, newlib's
+ * `__UINT32_TYPE__`) where a header author writes `unsigned long`
  */
-function resolveTypedef(typeName: string, state: TranspileState): string {
-  const underlyingType = state.getTypedefType(typeName);
-  return underlyingType ?? typeName;
+function isCUnsignedSpelling(name: string): boolean {
+  const words = name.split(/\s+/);
+  return (
+    words.filter((word) => word === "unsigned").length === 1 &&
+    words.every((word) => word === "unsigned" || C_INTEGER_WORDS.has(word))
+  );
+}
+
+/**
+ * The unsigned suffix a type gives an integer literal, if any (MISRA 7.2).
+ *
+ * Every name on the typedef chain is asked, not only its end: once a header
+ * declares `size_t` or `uint32_t` (#1755), the chain ends in the compiler's
+ * own spelling (`unsigned long`, `__uint32_t`), and the type is unsigned all
+ * the same.
+ */
+function unsignedSuffixOf(
+  typeName: string,
+  state: TranspileState,
+): "U" | "ULL" | null {
+  const seen = new Set<string>();
+  let name: string | undefined = typeName.trim();
+  while (name !== undefined && !seen.has(name)) {
+    seen.add(name);
+    if (UNSIGNED_64_TYPES.has(name)) return "ULL";
+    if (UNSIGNED_TYPES.has(name) || isCUnsignedSpelling(name)) {
+      return "U";
+    }
+    name = state.getTypedefType(name)?.trim();
+  }
+  return null;
 }
 
 /**
@@ -141,13 +173,7 @@ const generateLiteral = (
     isNumericIntegerLiteral(literalText) &&
     !hasUnsignedSuffix(literalText)
   ) {
-    // Resolve typedef aliases (e.g., "byte_t" -> "uint8_t")
-    const resolvedType = resolveTypedef(expectedType, transpileState);
-    if (UNSIGNED_64_TYPES.has(resolvedType)) {
-      literalText = literalText + "ULL";
-    } else if (UNSIGNED_TYPES.has(resolvedType)) {
-      literalText = literalText + "U";
-    }
+    literalText += unsignedSuffixOf(expectedType, transpileState) ?? "";
   }
 
   return { code: literalText, effects };

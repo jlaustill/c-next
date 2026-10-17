@@ -1203,19 +1203,6 @@ class CodeGenWalker {
   }
 
   /**
-   * Issue #558: Check if a parameter is modified using analysis-phase results.
-   * This is the unified source of truth for modification tracking.
-   */
-  private _isCurrentParameterModified(paramName: string): boolean {
-    const funcName = this.host.state.currentFunctionName;
-    if (!funcName) return false;
-    // Through the state's predicate rather than inlining its body a fourth
-    // time. The absent-artifact polarity is #1529/#1552's decision and belongs
-    // in one place.
-    return this.host.state.isParameterModified(funcName, paramName);
-  }
-
-  /**
    * Generate a primary expression.
    * Part of IOrchestrator interface for PostfixExpressionGenerator.
    */
@@ -1433,7 +1420,6 @@ class CodeGenWalker {
       program: plan.setup.program,
       typeInput: plan.setup.symbols,
       state: this.host.state,
-      unmodifiedParams: this.host.getFunctionUnmodifiedParams(),
     });
   }
 
@@ -1987,7 +1973,8 @@ class CodeGenWalker {
 
     // Issue #500: check for an array BEFORE skipping -- arrays must be emitted.
     // Both spellings count: C-style trailing dimensions and the C-Next arrayType.
-    const isConst = decl.modifiers.const;
+    // ADR-071: read-only unless declared `mut`
+    const isConst = !decl.modifiers.mut;
     const arrayDims = decl.dimensions;
     const arrayType = decl.type.kind === "array" ? decl.type : null;
     const isArray = CodeGenWalker.isArrayDeclaration(decl);
@@ -2001,7 +1988,6 @@ class CodeGenWalker {
     // not affect volatile/atomic handling.
     const modifiers = VariableModifierBuilder.build(
       decl.modifiers,
-      false,
       false,
       this.host.state,
     );
@@ -2355,9 +2341,6 @@ class CodeGenWalker {
     // #1322: a C-style or unbounded array parameter is E0874/E0875 in pass
     // 2.1 (ADR-036).
 
-    // Pre-compute CodeGenState-dependent values
-    const isModified = this._isCurrentParameterModified(name);
-
     // Issue #895: For callback-compatible functions, determine pointer/value
     // from the typedef signature, not from normal C-Next pass-by-value rules
     const callbackInfo =
@@ -2370,15 +2353,6 @@ class CodeGenWalker {
     const isPassByValue = callbackInfo
       ? !callbackInfo.isParamPointer
       : this._isPassByValueType(typeName, name);
-    // #1545: the FUNCTION-level question, which is the one the header asks.
-    // Reading `callbackInfo !== null` here asked a per-PARAMETER question, so a
-    // parameter the typedef does not describe (past its arity, or of a shape
-    // TypedefParamParser cannot read) took auto-const in the .c while the .h
-    // suppressed it for every parameter of the function -- `error: conflicting
-    // types`, the same defect one parameter over.
-    const isCallbackCompatible =
-      FunctionContextManager.callbackTypedefType(this.host.state) !== undefined;
-
     // Build normalized input using adapter
     // Issue #895: Force pass-by-reference and const from typedef signature
     const forcePassByReference = callbackInfo?.isParamPointer ?? false;
@@ -2417,19 +2391,11 @@ class CodeGenWalker {
             : t;
           return this.host.state.symbols?.knownStructs.has(qualified) ?? false;
         },
+        isKnownEnum: (t) => this.host.state.symbols?.knownEnums.has(t) ?? false,
         typeMap: TYPE_MAP,
-        isModified,
         isPassByValue,
-        isCallbackCompatible,
         forcePassByReference,
         forceConst,
-        // #1545: the one named accessor, which is also what _isPassByValueType
-        // asks, so the auto-const rule and the pass-by-value decision cannot
-        // disagree about what an enum is. `t` arrives from getTypeName, which
-        // resolves through the ADR-057 isScopeType predicate, so this is already
-        // the qualified lookup the scope rule calls for.
-        isKnownEnum: (t) => this.host.state.isKnownEnum(t),
-        // Issue #995: Opaque handles should not get auto-const
         isOpaqueHandle: registered.isOpaqueHandle ?? false,
       },
     );
@@ -2464,7 +2430,7 @@ class CodeGenWalker {
     const stringType = element.kind === "string" ? element : null;
     return {
       name: emittedName,
-      isConst: param.const,
+      isConst: !param.mut,
       typeName: this.plannedParameter(param).typeName,
       mappedType: this.renderType(param.type),
       renderDimensions: arrayType
@@ -2525,12 +2491,7 @@ class CodeGenWalker {
    * Check if type should use pass-by-value semantics
    */
   private _isPassByValueType(typeName: string, name: string): boolean {
-    // ISR, float, enum types
-    if (typeName === "ISR") return true;
-    if (this._isFloatType(typeName)) return true;
-    if (this.host.state.symbols?.knownEnums.has(typeName)) return true;
-
-    // Small unmodified primitives
+    // ADR-071 Q6: a read-only scalar, by its declaration (Program)
     if (
       this.host.state.currentFunctionName &&
       PassByValueAnalyzer.isParameterPassByValueByName(
@@ -2566,9 +2527,8 @@ class CodeGenWalker {
     // `this.host.state.callbackTypedefTypeFor` so that "is this function
     // callback-compatible" had ONE spelling. Reverted here on the reasoning
     // directly above: requiring the typedef type to resolve would make this
-    // branch unreachable in precisely the case it exists to serve. The
-    // divergence from the auto-const decision is deliberate, not an oversight,
-    // and #1603 is where whether an unresolvable typedef should fail open is
+    // branch unreachable in precisely the case it exists to serve. #1603 is
+    // where whether an unresolvable typedef should fail open is
     // decided -- for both, in one place, rather than by quietly aligning the
     // spellings here.
     if (
@@ -2607,12 +2567,16 @@ class CodeGenWalker {
     if (decl.kind === "constructorDeclaration") {
       return this.planConstructorDecl(decl);
     }
-    // Issue #696: Use shared modifier builder
+    // Issue #696: Use shared modifier builder. #517's C++ class initializer
+    // assigns the fields after the declaration, so its object is never C `const`.
+    const fillsAfterDeclaring =
+      decl.initializer?.kind === "structInitializer" &&
+      this.filePlan.structInitializers.get(decl.initializer) === "cppClass";
     const modifiers = VariableModifierBuilder.build(
-      decl.modifiers,
+      fillsAfterDeclaring ? { ...decl.modifiers, mut: true } : decl.modifiers,
       this.host.state.inFunctionBody,
-      decl.initializer !== null,
       this.host.state,
+      this.host.state.ownTypeInfo(decl)?.isPointer ?? false,
     );
     const name = decl.name;
     const type = this._inferVariableType(decl);
@@ -2629,7 +2593,7 @@ class CodeGenWalker {
         string: stringPlan,
         emittedName,
         modifiers,
-        isConst: decl.modifiers.const,
+        isConst: !decl.modifiers.mut,
       };
     }
     // Statements rather than an object literal, because the ORDER matters and
@@ -2652,7 +2616,7 @@ class CodeGenWalker {
   /**
    * Issue #375: `Type name(arg, arg);` -- C++ constructor syntax.
    *
-   * #1322: the "is not declared" (E0433) and "must be const" (E0432)
+   * #1322: the "is not declared" (E0433) and "must be read-only" (E0432)
    * rejections that stood here are authored in pass 2.1, which halts before
    * codegen -- so an argument reaching this line is declared and const. The two
    * copies of that rule also decided const-ness two different ways;
@@ -3072,7 +3036,7 @@ class CodeGenWalker {
     // handlers do their own mapping from `ctx`, so both are gone with it.
 
     // #1322: `AssignmentValidator.validate` was called here, and by the end of
-    // the relocation it validated nothing -- ADR-013's const rule is E0877,
+    // the relocation it validated nothing -- ADR-071's read-only rule is E0900,
     // ADR-017's enum rule E0428, ADR-024's conversions E0868/E0869, ADR-036's
     // bounds E0854, ADR-004's `ro` write E0871 and ADR-029's callback typing
     // E0879/E0880, every one of them authored in pass 2.1 at the target's own
@@ -3334,6 +3298,7 @@ class CodeGenWalker {
     const typeName = this.renderDeclaredType(decl.type);
     const initializer = decl.initializer;
     return {
+      const: modifiers.const,
       atomic: modifiers.atomic,
       volatile: modifiers.volatile,
       typeName,

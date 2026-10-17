@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint8_t globalCount;
+extern const uint8_t globalCount;
 extern const uint8_t limit;
 
 /* Function prototypes */

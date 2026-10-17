@@ -23,7 +23,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // #1668 (C6b, S22): a register member in a composite counts at its declared
 // width, so `small + STATUS.COUNT` saturates at u32 -- the helper this
 // snapshot names -- not at u8's.
-uint8_t small = 1U;
+extern const uint8_t small = 1U;
 
 uint32_t total(void) {
     return cnx_clamp_add_u32(small, STATUS__COUNT);

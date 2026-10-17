@@ -19,7 +19,7 @@ extern const uint8_t globalValue;
 uint8_t Motor__getLocalValue(void);
 uint8_t Motor__getGlobalValue(void);
 uint8_t Motor__getSum(void);
-void Motor__setState(uint8_t val);
+void Motor__setState(const uint8_t val);
 
 #ifdef __cplusplus
 }

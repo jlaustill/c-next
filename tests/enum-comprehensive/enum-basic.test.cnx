@@ -16,7 +16,7 @@ scope Motor {
         HIGH <- 2
     }
 
-    private this.EMode mode <- this.EMode.OFF;
+    private mut this.EMode mode <- this.EMode.OFF;
 
     public this.EMode getMode() {
         return this.mode;
@@ -33,7 +33,7 @@ scope Motor {
 
 u32 main() {
     // Test 1: Global enum
-    EGlobalState state <- EGlobalState.IDLE;
+    mut EGlobalState state <- EGlobalState.IDLE;
     if (state != EGlobalState.IDLE) {
         return 1;
     }

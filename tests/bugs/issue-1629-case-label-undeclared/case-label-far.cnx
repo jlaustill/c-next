@@ -3,4 +3,4 @@
 // It includes the const one more hop away.
 #include <case-label-farther.cnx>
 
-const u8 FAR <- 9;
+u8 FAR <- 9;

@@ -9,7 +9,7 @@
 
 // ADR-045: Test substring with offset
 void test(void) {
-    char source[65] = "Hello, World!";
+    const char source[65] = "Hello, World!";
     char world[7] = "";
     (void) strncpy(world, source + 7, 6);
     world[6] = '\0';

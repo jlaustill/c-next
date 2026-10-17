@@ -21,19 +21,19 @@ typedef enum {
 } EIndex;
 
 /* Function prototypes */
-void Test__set(EIndex idx, float value);
-float Test__get(EIndex idx);
-void TestIntIndex__set(uint8_t idx, int32_t value);
-int32_t TestIntIndex__get(uint8_t idx);
-void TestLiteral__set(uint8_t idx, uint16_t value);
-uint16_t TestLiteral__get(uint8_t idx);
-void TestMultiple__setFirst(EIndex idx, uint8_t value);
-uint8_t TestMultiple__getFirst(EIndex idx);
-void TestMultiple__setSecond(EIndex idx, uint8_t value);
-uint8_t TestMultiple__getSecond(EIndex idx);
-void TestArithmetic__set(uint8_t idx, int32_t value);
-int32_t TestArithmetic__getNext(uint8_t idx);
-int32_t TestArithmetic__getPrev(uint8_t idx);
+void Test__set(const EIndex idx, const float value);
+float Test__get(const EIndex idx);
+void TestIntIndex__set(const uint8_t idx, const int32_t value);
+int32_t TestIntIndex__get(const uint8_t idx);
+void TestLiteral__set(const uint8_t idx, const uint16_t value);
+uint16_t TestLiteral__get(const uint8_t idx);
+void TestMultiple__setFirst(const EIndex idx, const uint8_t value);
+uint8_t TestMultiple__getFirst(const EIndex idx);
+void TestMultiple__setSecond(const EIndex idx, const uint8_t value);
+uint8_t TestMultiple__getSecond(const EIndex idx);
+void TestArithmetic__set(const uint8_t idx, const int32_t value);
+int32_t TestArithmetic__getNext(const uint8_t idx);
+int32_t TestArithmetic__getPrev(const uint8_t idx);
 
 #ifdef __cplusplus
 }

@@ -1,10 +1,10 @@
 // Tests: Struct fields with const-based array dimensions in headers
 
-const u8 BUFFER_SIZE <- 8;
-const u8 ROWS <- 4;
-const u8 COLS <- 3;
-const u8 HEX_SIZE <- 0x10;
-const u8 BIN_SIZE <- 0b1010;
+u8 BUFFER_SIZE <- 8;
+u8 ROWS <- 4;
+u8 COLS <- 3;
+u8 HEX_SIZE <- 0x10;
+u8 BIN_SIZE <- 0b1010;
 
 struct TData {
     // Single dimension with constant
@@ -26,7 +26,7 @@ struct TData {
     i32 value;
 }
 
-TData data;
+mut TData data;
 
 void main() {
     data.buffer[0] <- 1;

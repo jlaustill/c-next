@@ -20,9 +20,9 @@ const uint32_t N = ((2.5) >= ((double)UINT32_MAX) ? (uint32_t)UINT32_MAX : (2.5)
 
 const uint32_t M = ((3.99) >= ((double)UINT32_MAX) ? (uint32_t)UINT32_MAX : (3.99) < 0.0 ? (uint32_t)0 : (uint32_t)(3.99));
 
-uint8_t two[2] = {0};
+const uint8_t two[2] = {0};
 
-uint8_t three[3] = {0};
+const uint8_t three[3] = {0};
 
 int main(void) {
     if (2 != 2) {

@@ -10,9 +10,9 @@
 // test-execution
 // Tests .type_bit_length property for float types (ADR-058)
 // f32 = 32 bits, f64 = 64 bits
-float globalF32 = 3.14;
+extern const float globalF32 = 3.14;
 
-double globalF64 = 3.14159265359;
+extern const double globalF64 = 3.14159265359;
 
 /* Scope: FloatBitLen */
 
@@ -23,11 +23,11 @@ int main(void) {
     if (64 != 64) {
         return 2;
     }
-    float localF32 = 1.5;
+    const float localF32 = 1.5;
     if (32 != 32) {
         return 3;
     }
-    double localF64 = 2.5;
+    const double localF64 = 2.5;
     if (64 != 64) {
         return 4;
     }

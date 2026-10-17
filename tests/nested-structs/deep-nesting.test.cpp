@@ -12,12 +12,12 @@
 // ADR-032: Deep Nested Struct Test
 // Tests: 3+ levels of nesting
 // 3-level deep initialization
-Mesh cube = { .material = { .ambient = { .r = 50U, .g = 50U, .b = 50U }, .diffuse = { .r = 200U, .g = 100U, .b = 50U }, .specular = { .r = 255U, .g = 255U, .b = 255U }, .shininess = 32.0 }, .vertexCount = 36U };
+extern const Mesh cube = { .material = { .ambient = { .r = 50U, .g = 50U, .b = 50U }, .diffuse = { .r = 200U, .g = 100U, .b = 50U }, .specular = { .r = 255U, .g = 255U, .b = 255U }, .shininess = 32.0 }, .vertexCount = 36U };
 
 int main(void) {
-    uint8_t ambientRed = cube.material.ambient.r;
-    uint8_t diffuseGreen = cube.material.diffuse.g;
-    uint8_t specularBlue = cube.material.specular.b;
-    float shine = cube.material.shininess;
+    const uint8_t ambientRed = cube.material.ambient.r;
+    const uint8_t diffuseGreen = cube.material.diffuse.g;
+    const uint8_t specularBlue = cube.material.specular.b;
+    const float shine = cube.material.shininess;
     return 0;
 }

@@ -14,6 +14,6 @@ const Point ORIGIN = { .x = 0, .y = 0 };
 const Point UNIT = { .x = 1, .y = 1 };
 
 int main(void) {
-    int32_t x = ORIGIN.x;
-    int32_t y = UNIT.y;
+    const int32_t x = ORIGIN.x;
+    const int32_t y = UNIT.y;
 }

@@ -6,14 +6,14 @@ u32 main() {
     // === OVERFLOW WRAPPING (wraps to negative) ===
 
     // Test 1: Basic overflow - add past max
-    wrap i64 val <- 9223372036854775807; // I64_MAX
+    mut wrap i64 val <- 9223372036854775807; // I64_MAX
     val +<- 1; // Should wrap to I64_MIN
     if (val != -9223372036854775808) {
         return 1;
     }
 
     // Test 2: Overflow with larger addition
-    wrap i64 val2 <- 9223372036854775800; // I64_MAX - 7
+    mut wrap i64 val2 <- 9223372036854775800; // I64_MAX - 7
     val2 +<- 10; // Should wrap to I64_MIN + 2
     if (val2 != -9223372036854775806) {
         return 2;

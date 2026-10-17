@@ -16,7 +16,7 @@
 // is no integer constant (#2033); C++ compiles and runs it.
 extern const uint8_t LIMIT = 1U;
 
-uint32_t shadowed(uint8_t s) {
+uint32_t shadowed(const uint8_t s) {
     /* C11 6.2.1p4, C++ [basic.scope.hiding]: `LIMIT` emitted as `shadowed__LIMIT` (a plain `LIMIT` would hide the file-scope `LIMIT` for the rest of its scope, so `global.LIMIT` would reach the local). */
     const uint8_t shadowed__LIMIT = 5U;
     switch (s) {

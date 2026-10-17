@@ -2,7 +2,7 @@
 #include <stdio.h>
 
 void testValidCheck() {
-    FILE c_file <- fopen("test.txt", "r");
+    mut FILE c_file <- fopen("test.txt", "r");
     if (c_file != NULL) {
         (void)fclose(c_file); // OK: inside NULL check
     }

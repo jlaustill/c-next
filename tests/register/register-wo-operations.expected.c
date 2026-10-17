@@ -34,7 +34,7 @@ const uint32_t LED_BIT = 3U;
 
 const uint32_t BUTTON_BIT = 7U;
 
-uint32_t dynamicBit = 5U;
+const uint32_t dynamicBit = 5U;
 
 int main(void) {
     GPIO__DR_SET = ((uint32_t)1U << 0);
@@ -48,11 +48,11 @@ int main(void) {
     GPIO__DR_CLEAR = ((uint32_t)1U << dynamicBit);
     GPIO__DR_SET = ((uint32_t)1U << cnx_clamp_add_u32(LED_BIT, 1));
     GPIO__DR_CLEAR = ((uint32_t)1U << cnx_clamp_mul_u32(LED_BIT, 2));
-    uint32_t targetBit = LED_BIT;
+    const uint32_t targetBit = LED_BIT;
     GPIO__DR_TOGGLE = ((uint32_t)1U << targetBit);
     GPIO__DR = (GPIO__DR & ~((uint32_t)1U << LED_BIT)) | ((uint32_t)1U << LED_BIT);
     GPIO__DR = (GPIO__DR & ~((uint32_t)1U << BUTTON_BIT)) | ((uint32_t)0U << BUTTON_BIT);
-    bool state = ((((GPIO__DR >> LED_BIT) & 1)) != 0U);
+    const bool state = ((((GPIO__DR >> LED_BIT) & 1)) != 0U);
     if (state == true) {
         GPIO__DR_CLEAR = ((uint32_t)1U << LED_BIT);
     } else {

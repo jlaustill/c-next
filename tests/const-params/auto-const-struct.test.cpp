@@ -36,7 +36,7 @@ int32_t getPointSum(const Point& p) {
 }
 
 // Modified struct parameter - should NOT get const
-void movePoint(Point& p, int32_t dx, int32_t dy) {
+void movePoint(Point& p, const int32_t dx, const int32_t dy) {
     p.x = cnx_clamp_add_i32(p.x, dx);
     p.y = cnx_clamp_add_i32(p.y, dy);
 }
@@ -48,7 +48,7 @@ uint32_t getConfigValue(const AutoConst__Config& c) {
 
 // Mixed: read one field, modify another - should NOT get const
 void toggleAndRead(AutoConst__Config& c) {
-    uint32_t temp = c.value;
+    const uint32_t temp = c.value;
     c.enabled = !c.enabled;
 }
 
@@ -82,7 +82,7 @@ int main(void) {
         return 5U;
     }
     AutoConst__Config cfg = { .value = 42U, .enabled = true };
-    uint32_t val = getConfigValue(cfg);
+    const uint32_t val = getConfigValue(cfg);
     if (val != 42) {
         return 6U;
     }

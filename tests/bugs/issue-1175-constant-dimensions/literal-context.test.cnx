@@ -9,14 +9,14 @@
 //
 // NEGATIVE CONTROL: `small`, whose literals fit i32 anyway.
 
-const u32 BIG <- 3000000000 + 1;
-u8[BIG / 1000000000] b;
-const u64 MASK <- 0xFFFFFFFFFFFFFFFF;
+u32 BIG <- 3000000000 + 1;
+mut u8[BIG / 1000000000] b;
+u64 MASK <- 0xFFFFFFFFFFFFFFFF;
 
 u32 main() {
     // A local const: at file scope C rejects `TOP = MASK >> 60` (#1735)
-    const u64 TOP <- MASK >> 60;
-    u8[TOP] fifteen;
+    u64 TOP <- MASK >> 60;
+    mut u8[TOP] fifteen;
     i64 big <- 2147483647 + 1;
     i64 prod <- 65536 * 65536;
     i32 small <- 2 + 3;

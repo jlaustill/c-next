@@ -13,27 +13,27 @@
 // #1569: a scope's string<N>[M] variable is declared char Lab__tags[2][9],
 // each element a string<8>, not char Lab__tags[2]; an unsized const one too
 /* Scope: Lab */
-static char Lab__tags[2][9] = {"alpha", "seven c"};
+static const char Lab__tags[2][9] = {"alpha", "seven c"};
 static const char Lab__codes[2][5] = {"ab", "xyz"};
 
-uint32_t Lab__codeLength(uint32_t i) {
+uint32_t Lab__codeLength(const uint32_t i) {
     return strlen(Lab__codes[i]);
 }
 
-uint32_t Lab__lengthOf(uint32_t i) {
+uint32_t Lab__lengthOf(const uint32_t i) {
     return strlen(Lab__tags[i]);
 }
 
 int main(void) {
-    uint32_t first = Lab__lengthOf(0U);
-    uint32_t second = Lab__lengthOf(1U);
+    const uint32_t first = Lab__lengthOf(0U);
+    const uint32_t second = Lab__lengthOf(1U);
     if (first != 5) {
         return 1;
     }
     if (second != 7) {
         return 2;
     }
-    uint32_t code = Lab__codeLength(1U);
+    const uint32_t code = Lab__codeLength(1U);
     if (code != 3) {
         return 3;
     }

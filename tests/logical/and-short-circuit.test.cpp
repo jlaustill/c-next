@@ -32,18 +32,18 @@ bool causeSideEffect(void) {
 
 void testAndShortCircuit(void) {
     sideEffectCounter = 0U;
-    bool result1 = false && causeSideEffect();
+    const bool result1 = false && causeSideEffect();
     sideEffectCounter = 0U;
-    bool result2 = true && causeSideEffect();
+    const bool result2 = true && causeSideEffect();
 }
 
 void testAndShortCircuitWithComparison(void) {
-    uint32_t value = 0U;
+    const uint32_t value = 0U;
     sideEffectCounter = 0U;
-    bool result = (value != 0) && causeSideEffect();
+    const bool result = (value != 0) && causeSideEffect();
 }
 
 void testAndShortCircuitChained(void) {
     sideEffectCounter = 0U;
-    bool result = false && causeSideEffect() && causeSideEffect();
+    const bool result = false && causeSideEffect() && causeSideEffect();
 }

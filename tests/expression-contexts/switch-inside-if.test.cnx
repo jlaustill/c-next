@@ -2,14 +2,14 @@
 // test-execution
 // Tests: switch statements nested inside if/else branches
 // Coverage: Section 33.2 - Statement Nesting
-u32 result;
+mut u32 result;
 
 u32 main() {
     // === SWITCH IN IF-TRUE BRANCH ===
 
     // Test 1: Switch in simple if (true condition)
-    bool cond <- true;
-    u32 selector <- 1;
+    mut bool cond <- true;
+    mut u32 selector <- 1;
 
     if (cond = true) {
         switch (selector) {
@@ -176,8 +176,8 @@ u32 main() {
     // === SWITCH IN NESTED IF ===
 
     // Test 7: Switch in nested if
-    bool outer <- true;
-    bool inner <- true;
+    mut bool outer <- true;
+    mut bool inner <- true;
     selector <- 1;
 
     if (outer = true) {
@@ -254,8 +254,8 @@ u32 main() {
     cond <- true;
     u32 first <- 0;
     u32 second <- 1;
-    u32 resultA <- 0;
-    u32 resultB <- 0;
+    mut u32 resultA <- 0;
+    mut u32 resultB <- 0;
 
     if (cond = true) {
         switch (first) {

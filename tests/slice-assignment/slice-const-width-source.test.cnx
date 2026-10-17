@@ -8,8 +8,8 @@
 // The const width now folds to a precomputed mask byte-identical to the literal
 // form b[0, 24] (was a runtime `1U << WIDTH` before the #1094 fix).
 u32 main() {
-    const u8 WIDTH <- 24;
-    u8[8] buf;
+    u8 WIDTH <- 24;
+    mut u8[8] buf;
     u8 a <- 0;
     u32 b <- 0x12345678;
     buf[0, 3] <- a + b[0, WIDTH];

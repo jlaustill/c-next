@@ -25,8 +25,8 @@ extern P Cfg__cfg;
 /* Function prototypes */
 void Sc__viaThis(void);
 void Sc__viaBareMember(void);
-uint16_t Sc__ws(uint32_t i);
-uint8_t Sc__arr(uint32_t i);
+uint16_t Sc__ws(const uint32_t i);
+uint8_t Sc__arr(const uint32_t i);
 void viaParameter(P* p);
 
 #ifdef __cplusplus

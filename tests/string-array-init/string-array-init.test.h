@@ -12,7 +12,7 @@ extern "C" {
 
 /* External variables */
 extern const char LABELS[3][11];
-extern char colors[4][9];
+extern const char colors[4][9];
 
 /* Function prototypes */
 void Test__init(void);

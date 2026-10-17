@@ -13,8 +13,8 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void StringSliceTest__copyToBuffer(char* buffer, uint16_t value);
-void StringSliceTest__copyToBufferAt2(char* buffer, uint16_t value);
+void StringSliceTest__copyToBuffer(char* buffer, const uint16_t value);
+void StringSliceTest__copyToBufferAt2(char* buffer, const uint16_t value);
 uint32_t StringSliceTest__testSliceAssignment(void);
 
 #ifdef __cplusplus

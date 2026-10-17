@@ -4,7 +4,7 @@
 
 scope S {
     public u32 sized() {
-        u8[N] loc <- [0*];
+        mut u8[N] loc <- [0*];
         loc[7] <- 7;
         return loc[7];
     }

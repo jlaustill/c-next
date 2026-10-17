@@ -27,13 +27,12 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 }
 
 /* Scope: Filter */
-static uint32_t Filter__window = 4U;
 
 uint32_t Filter__half(void) {
-    return Filter__window / 2U;
+    return 4U / 2U;
 }
 
-uint32_t Filter__smooth(uint32_t sample) {
-    uint32_t h = Filter__half();
+uint32_t Filter__smooth(const uint32_t sample) {
+    const uint32_t h = Filter__half();
     return cnx_clamp_add_u32(sample, h);
 }

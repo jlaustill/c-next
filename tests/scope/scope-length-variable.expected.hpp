@@ -14,9 +14,9 @@ extern "C" {
 
 /* Function prototypes */
 uint8_t LengthTest__getLength(void);
-void LengthTest__setLength(uint8_t newLen);
+void LengthTest__setLength(const uint8_t newLen);
 uint16_t LengthTest__getOffset(void);
-void LengthTest__setOffset(uint16_t newOffset);
+void LengthTest__setOffset(const uint16_t newOffset);
 uint16_t LengthTest__getLengthPlusOffset(void);
 
 #ifdef __cplusplus

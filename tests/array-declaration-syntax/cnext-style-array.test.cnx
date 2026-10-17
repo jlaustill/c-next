@@ -10,7 +10,7 @@ i32[3] signedArray;
 
 // In a function
 void useArrays() {
-    u32[2] localArray;
+    mut u32[2] localArray;
     localArray[0] <- 10;
     localArray[1] <- 20;
 }

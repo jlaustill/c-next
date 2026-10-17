@@ -17,25 +17,25 @@ const float GRAVITY = 9.81;
 const float ZERO = 0.0;
 
 int main(void) {
-    float pi = PI;
+    const float pi = PI;
     if (pi < 3.14) {
         return 1U;
     }
     if (pi > 3.15) {
         return 2U;
     }
-    float g = GRAVITY;
+    const float g = GRAVITY;
     if (g < 9.8) {
         return 3U;
     }
     if (g > 9.82) {
         return 4U;
     }
-    float zero = ZERO;
+    const float zero = ZERO;
     if (zero != 0.0) {
         return 5U;
     }
-    float circumference = 2.0 * PI * 10.0;
+    const float circumference = 2.0 * PI * 10.0;
     if (circumference < 62.0) {
         return 6U;
     }

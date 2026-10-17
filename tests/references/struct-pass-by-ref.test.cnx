@@ -5,12 +5,12 @@ struct Point {
     i32 y;
 }
 
-void moveRight(Point p) {
+void moveRight(mut Point p) {
     p.x <- p.x + 10;
 }
 
 void main() {
-    Point cursor <- { x: 0, y: 0 };
+    mut Point cursor <- { x: 0, y: 0 };
     moveRight(cursor);
     // cursor.x is now 10
 }

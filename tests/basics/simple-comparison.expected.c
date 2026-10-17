@@ -10,9 +10,9 @@
 // Tests: Comparison and logical operators
 // Demonstrates: =, !=, <, >, <=, >=, &&, ||, !
 int main(void) {
-    uint32_t a = 10U;
-    uint32_t b = 20U;
-    uint32_t c = 10U;
+    const uint32_t a = 10U;
+    const uint32_t b = 20U;
+    const uint32_t c = 10U;
     bool equal = (a == c);
     if (equal != true) {
         return 1U;
@@ -21,7 +21,7 @@ int main(void) {
     if (equal != false) {
         return 2U;
     }
-    bool notEqual = (a != b);
+    const bool notEqual = (a != b);
     if (notEqual != true) {
         return 3U;
     }
@@ -33,7 +33,7 @@ int main(void) {
     if (less != false) {
         return 5U;
     }
-    bool greater = (b > a);
+    const bool greater = (b > a);
     if (greater != true) {
         return 6U;
     }
@@ -45,7 +45,7 @@ int main(void) {
     if (lessEq != true) {
         return 8U;
     }
-    bool greaterEq = (a >= c);
+    const bool greaterEq = (a >= c);
     if (greaterEq != true) {
         return 9U;
     }
@@ -65,7 +65,7 @@ int main(void) {
     if (either != false) {
         return 13U;
     }
-    bool flag = true;
+    const bool flag = true;
     bool notFlag = !flag;
     if (notFlag != false) {
         return 14U;
@@ -74,7 +74,7 @@ int main(void) {
     if (notFlag != true) {
         return 15U;
     }
-    bool complex = ((a == c) && (b > a)) || false;
+    const bool complex = ((a == c) && (b > a)) || false;
     if (complex != true) {
         return 16U;
     }

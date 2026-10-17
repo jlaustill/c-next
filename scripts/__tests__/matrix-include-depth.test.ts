@@ -38,7 +38,7 @@ describe("IncludeDepth.maxDepth", () => {
   });
 
   it("reports 1 for a direct include", () => {
-    write("helper.cnx", "const u8 ONE <- 1;\n");
+    write("helper.cnx", "u8 ONE <- 1;\n");
     const entry = write(
       "main.test.cnx",
       '#include "helper.cnx"\nu8 x <- ONE;\n',
@@ -47,7 +47,7 @@ describe("IncludeDepth.maxDepth", () => {
   });
 
   it("reports 2 for a transitive include", () => {
-    write("deep.cnx", "const u8 ONE <- 1;\n");
+    write("deep.cnx", "u8 ONE <- 1;\n");
     write("middle.cnx", '#include "deep.cnx"\n');
     const entry = write("main.test.cnx", '#include "middle.cnx"\n');
     expect(IncludeDepth.maxDepth(entry)).toBe(2);
@@ -57,7 +57,7 @@ describe("IncludeDepth.maxDepth", () => {
     // main -> shared (depth 1) and main -> middle -> shared (depth 2).
     // A shared visited-set would mark `shared` seen on the first branch and
     // report 1, hiding a genuine transitive relationship.
-    write("shared.cnx", "const u8 ONE <- 1;\n");
+    write("shared.cnx", "u8 ONE <- 1;\n");
     write("middle.cnx", '#include "shared.cnx"\n');
     const entry = write(
       "main.test.cnx",
@@ -94,8 +94,8 @@ describe("IncludeDepth.maxDepth", () => {
     // Excluded by IncludeDiscovery itself, which requires nothing but
     // whitespace before the `#`. Pinned here because the matrix would credit a
     // cross-file cell to a fixture that never crosses one.
-    write("helper.cnx", "const u8 ONE <- 1;\n");
-    write("file.cnx", "const u8 TWO <- 2;\n");
+    write("helper.cnx", "u8 ONE <- 1;\n");
+    write("file.cnx", "u8 TWO <- 2;\n");
     const entry = write("main.test.cnx", `${line}\nu8 x <- 1;\n`);
     expect(IncludeDepth.maxDepth(entry)).toBe(0);
   });
@@ -107,13 +107,13 @@ describe("IncludeDepth.maxDepth", () => {
   });
 
   it("resolves an include through a subdirectory", () => {
-    write("lib/sensors.cnx", "const u8 ONE <- 1;\n");
+    write("lib/sensors.cnx", "u8 ONE <- 1;\n");
     const entry = write("main.test.cnx", '#include "lib/sensors.cnx"\n');
     expect(IncludeDepth.maxDepth(entry)).toBe(1);
   });
 
   it("falls back to a search path when the include is not beside the file", () => {
-    write("shared/common.cnx", "const u8 ONE <- 1;\n");
+    write("shared/common.cnx", "u8 ONE <- 1;\n");
     const entry = write("nested/main.test.cnx", "#include <common.cnx>\n");
     expect(IncludeDepth.maxDepth(entry, [join(dir, "shared")])).toBe(1);
   });

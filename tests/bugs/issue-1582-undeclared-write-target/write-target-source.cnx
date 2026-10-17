@@ -1,1 +1,1 @@
-u32 crossCounter <- 0;
+mut u32 crossCounter <- 0;

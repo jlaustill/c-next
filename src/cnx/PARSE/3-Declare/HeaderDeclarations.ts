@@ -4,6 +4,7 @@ import type TParsedHeader from "../2-Parse/types/TParsedHeader";
 import CaughtError from "../../utils/CaughtError";
 import CResolver from "./c/index";
 import CppResolver from "./cpp/index";
+import type ICTypedefSymbol from "../../types/symbols/c/ICTypedefSymbol";
 import SymbolTable from "./SymbolTable";
 
 /**
@@ -81,6 +82,34 @@ class HeaderDeclarations {
       CResolver.resolve(asC, path, cleanState);
     } catch {
       /* isolated best-effort — only its opaque/body verdict is consulted */
+    }
+  }
+
+  /**
+   * #1755: `typedef __FILE FILE;` names the struct `typedef struct __sFILE
+   * __FILE;` does, so FILE shares its tag. Newlib declares the two in different
+   * headers, read in either order, so this runs once every header is declared.
+   */
+  static aliasTypedefChains(symbolTable: SymbolTable): void {
+    const typedefs = symbolTable
+      .getAllCSymbols()
+      .filter(
+        (symbol): symbol is ICTypedefSymbol =>
+          symbol.kind === "type" && symbol.arrayDimensions === undefined,
+      );
+    let aliased = true;
+    while (aliased) {
+      aliased = false;
+      for (const typedef of typedefs) {
+        const tag = symbolTable.getStructTagForTypedef(typedef.type);
+        if (
+          tag !== undefined &&
+          symbolTable.getStructTagForTypedef(typedef.name) === undefined
+        ) {
+          symbolTable.registerStructTagAlias(tag, typedef.name);
+          aliased = true;
+        }
+      }
     }
   }
 

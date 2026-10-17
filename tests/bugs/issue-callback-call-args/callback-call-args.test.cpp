@@ -47,12 +47,12 @@ void poke(Point& p) {
     p.x = cnx_clamp_add_u32(p.x, 5U);
 }
 
-uint32_t twice(uint32_t v) {
+uint32_t twice(const uint32_t v) {
     return cnx_clamp_mul_u32(v, 2U);
 }
 
 Point shifted(const Point& p) {
-    Point out = { .x = cnx_clamp_add_u32(p.x, 1U) };
+    const Point out = { .x = cnx_clamp_add_u32(p.x, 1U) };
     return out;
 }
 
@@ -69,13 +69,13 @@ uint32_t peekVia(peek_fp cb, const Point& p) {
 // #1561: a local struct through a parameter of the callback type takes its
 // address, as a direct call does -- the other argument form of the defect.
 uint32_t peekLocalVia(peek_fp cb) {
-    Point local = { .x = 30U };
+    const Point local = { .x = 30U };
     return cb(local);
 }
 
 // #1561 control: a primitive through a parameter of the callback type stays
 // by value, so a fix that takes the address of every argument fails here.
-uint32_t twiceVia(twice_fp cb, uint32_t v) {
+uint32_t twiceVia(twice_fp cb, const uint32_t v) {
     return cb(v);
 }
 
@@ -86,7 +86,7 @@ int main(void) {
     h.onTwice = twice;
     h.onShift = shifted;
     Point p = { .x = 7U };
-    uint32_t viaField = h.onPeek(p);
+    const uint32_t viaField = h.onPeek(p);
     if (viaField != 7) {
         return 1;
     }
@@ -94,37 +94,37 @@ int main(void) {
     if (p.x != 12) {
         return 2;
     }
-    peek_fp local = peek;
-    uint32_t viaLocal = local(p);
+    const peek_fp local = peek;
+    const uint32_t viaLocal = local(p);
     if (viaLocal != 12) {
         return 3;
     }
-    uint32_t viaParam = peekVia(peek, p);
+    const uint32_t viaParam = peekVia(peek, p);
     if (viaParam != 12) {
         return 4;
     }
-    uint32_t shiftedX = h.onShift(p).x;
+    const uint32_t shiftedX = h.onShift(p).x;
     if (shiftedX != 13) {
         return 5;
     }
-    uint32_t n = 21U;
-    uint32_t viaTwice = h.onTwice(n);
+    const uint32_t n = 21U;
+    const uint32_t viaTwice = h.onTwice(n);
     if (viaTwice != 42) {
         return 6;
     }
-    uint32_t direct = twice(n);
+    const uint32_t direct = twice(n);
     if (direct != 42) {
         return 7;
     }
-    uint32_t directPeek = peek(p);
+    const uint32_t directPeek = peek(p);
     if (directPeek != 12) {
         return 8;
     }
-    uint32_t viaParamLocal = peekLocalVia(peek);
+    const uint32_t viaParamLocal = peekLocalVia(peek);
     if (viaParamLocal != 30) {
         return 9;
     }
-    uint32_t viaParamScalar = twiceVia(twice, n);
+    const uint32_t viaParamScalar = twiceVia(twice, n);
     if (viaParamScalar != 42) {
         return 10;
     }

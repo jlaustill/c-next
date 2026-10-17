@@ -5,10 +5,10 @@
 // it. They are two consts with two values, 5 and 1, so the two labels are two
 // C cases and E0713 stays silent. C mode writes the local as its name, which
 // is no integer constant (#2033); C++ compiles and runs it.
-const u8 LIMIT <- 1;
+u8 LIMIT <- 1;
 
 u32 shadowed(u8 s) {
-    const u8 LIMIT <- 5;
+    u8 LIMIT <- 5;
     switch (s) {
         case LIMIT {
             return 1;
@@ -24,7 +24,7 @@ u32 shadowed(u8 s) {
 }
 
 u32 main() {
-    u32 got <- shadowed(5);
+    mut u32 got <- shadowed(5);
     if (got != 1) {
         return 1;
     }

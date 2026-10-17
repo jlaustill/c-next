@@ -20,12 +20,12 @@ extern const uint32_t N = 10U;
 const uint32_t S__N = 7U % 4U;
 
 uint8_t S__pick(void) {
-    uint8_t arr[4] = {5U, 6U, 7U, 8U};
+    const uint8_t arr[4] = {5U, 6U, 7U, 8U};
     return arr[S__N];
 }
 
 int main(void) {
-    uint8_t picked = S__pick();
+    const uint8_t picked = S__pick();
     if (picked != 8) {
         return 1U;
     }

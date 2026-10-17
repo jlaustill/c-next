@@ -2,17 +2,17 @@
 // Tests: Issue #368 - Array parameter in scope (original bug report case)
 
 scope Test {
-    public void writeToArray(u8[8] data, u8 value) {
+    public void writeToArray(mut u8[8] data, u8 value) {
         data[0] <- value;
     }
 
-    public void writeAtIndex(u8[8] data, u32 index, u8 value) {
+    public void writeAtIndex(mut u8[8] data, u32 index, u8 value) {
         data[index] <- value;
     }
 }
 
 u32 main() {
-    u8[8] buffer;
+    mut u8[8] buffer;
     buffer[0] <- 0;
     buffer[1] <- 0;
     buffer[2] <- 0;

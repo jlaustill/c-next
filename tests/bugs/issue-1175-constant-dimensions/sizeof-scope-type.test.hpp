@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint8_t plain[MACRO_N + 4];
+extern const uint8_t plain[MACRO_N + 4];
 
 /* Function prototypes */
 uint8_t S__first(void);

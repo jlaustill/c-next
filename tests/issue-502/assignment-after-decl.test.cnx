@@ -6,7 +6,7 @@
 
 void test() {
     // Declaration without init
-    SeaDash.Parse.ParseResult result;
+    mut SeaDash.Parse.ParseResult result;
 
     // Assignment after declaration - must use :: not _
     result <- { data: [1, 2, 3], count: 3, success: true };

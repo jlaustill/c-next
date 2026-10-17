@@ -15,24 +15,24 @@ struct Holder {
 
 Sm fl <- 0;
 
-void wf(Sm s) {
+void wf(mut Sm s) {
     s.A <- true;
 }
 
-void wp(Holder p) {
+void wp(mut Holder p) {
     p.s.C <- 0xF;
 }
 
 scope Sc {
     public u8 method() {
-        Sm fl <- 0;
+        mut Sm fl <- 0;
         fl.C <- 5;
         return fl.C;
     }
 }
 
 u32 main() {
-    Sm fl <- 0;
+    mut Sm fl <- 0;
     fl.C <- 5;
     u8 local <- fl.C;
     if (local != 5) {
@@ -43,7 +43,7 @@ u32 main() {
         return 2;
     }
 
-    Sm[2] fa <- [0*];
+    mut Sm[2] fa <- [0*];
     fa[1].A <- true;
     if (fa[1].A != true) {
         return 3;
@@ -54,13 +54,13 @@ u32 main() {
         return 4;
     }
 
-    Sm byRef <- 0;
+    mut Sm byRef <- 0;
     wf(byRef);
     if (byRef.A != true) {
         return 5;
     }
 
-    Holder h <- { s: 0 };
+    mut Holder h <- { s: 0 };
     wp(h);
     if (h.s.C != 0xF) {
         return 6;

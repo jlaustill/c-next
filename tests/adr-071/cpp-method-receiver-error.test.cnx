@@ -1,0 +1,21 @@
+// test-error
+// test-cpp-only
+// test-adr: 071
+// E0900: a C++ method not declared `const` may write its object, so calling
+// one on a read-only local or global writes it. CONTROL, both silent: a
+// `const` method on a read-only object, and `bump` on a `mut` object.
+#include "cpp-counter.hpp"
+
+Counter g;
+mut Counter gm;
+
+void f() {
+    Counter c;
+    c.bump();
+    g.bump();
+    Counter r;
+    u8 v <- r.get();
+    mut Counter m;
+    m.bump();
+    gm.bump();
+}

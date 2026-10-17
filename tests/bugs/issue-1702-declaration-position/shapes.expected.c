@@ -21,36 +21,36 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
     return (uint8_t)(a + (uint8_t)b);
 }
 
-uint8_t suBug(bool c) {
-    uint8_t v = 200U;
-    uint8_t k = 3U;
+uint8_t suBug(const bool c) {
+    const uint8_t v = 200U;
+    const uint8_t k = 3U;
     uint8_t w = 0U;
     if (c == true) {
         w = cnx_clamp_add_u8(v, k);
-        int8_t v = 1;
+        const int8_t v = 1;
         w = cnx_clamp_add_u8(w, 1U);
     }
     return w;
 }
 
-uint8_t cvBug(bool c) {
-    uint8_t v = 200U;
+uint8_t cvBug(const bool c) {
+    const uint8_t v = 200U;
     uint8_t w = 0U;
     if (c == true) {
         w = v;
-        uint32_t v = 5U;
+        const uint32_t v = 5U;
         w = cnx_clamp_add_u8(w, 1U);
     }
     return w;
 }
 
-uint8_t bug(bool c) {
-    uint8_t v = 200U;
-    uint8_t k = 3U;
+uint8_t bug(const bool c) {
+    const uint8_t v = 200U;
+    const uint8_t k = 3U;
     uint8_t w = 0U;
     if (c == true) {
         w = cnx_clamp_add_u8(v, k);
-        float v = 1.5;
+        const float v = 1.5;
         w = cnx_clamp_add_u8(w, 1U);
     }
     return w;

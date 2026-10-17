@@ -3,8 +3,8 @@
 // recorded, so `.type_bit_length` on it found no type and code generation failed
 // at 1:0 with an internal error.
 u32 probe() {
-    u32 w <- 0;
-    for (u8 k <- 0; k < 3; k <- k + 1) {
+    mut u32 w <- 0;
+    for (mut u8 k <- 0; k < 3; k <- k + 1) {
         w <- k.type_bit_length;
     }
     return w;

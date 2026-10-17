@@ -23,18 +23,18 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 // test-execution
 // #1701 NEGATIVE CONTROL: in the same function, the BARE `x` is the `u8`
 // local, which saturates at 255. This was right before the fix.
-uint32_t x = 0U;
+extern const uint32_t x = 0U;
 
 uint32_t f(void) {
     /* C11 6.2.1p4, C++ [basic.scope.hiding]: `x` emitted as `f__x` (a plain `x` would hide the file-scope `x` for the rest of its scope, so `global.x` would reach the local). */
     uint8_t f__x = 1U;
     f__x = cnx_clamp_add_u8(f__x, 1000U);
-    uint32_t local = f__x;
+    const uint32_t local = f__x;
     return local;
 }
 
 int main(void) {
-    uint32_t local = f();
+    const uint32_t local = f();
     if (local != 255) {
         return 1U;
     }

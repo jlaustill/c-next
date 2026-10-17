@@ -9,13 +9,13 @@
 
 // Test: C-Next style array declaration should generate correct C
 // Array dimension in type position: u16[8] myArray
-uint16_t myArray[8] = {0};
+const uint16_t myArray[8] = {0};
 
 // With initialization
-uint8_t initialized[4] = {1U, 2U, 3U, 4U};
+const uint8_t initialized[4] = {1U, 2U, 3U, 4U};
 
 // Different types
-int32_t signedArray[3] = {0};
+const int32_t signedArray[3] = {0};
 
 // In a function
 void useArrays(void) {

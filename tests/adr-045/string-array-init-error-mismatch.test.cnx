@@ -12,10 +12,10 @@
 // initializer, would reject this one too. Because a throw aborts at the first
 // occurrence, over-enforcement here changes the reported message rather than
 // adding a line, so the exact-match assertion in the .expected.error catches it.
-const string<8>[3] EXACT <- ["One", "Two", "Three"];
+string<8>[3] EXACT <- ["One", "Two", "Three"];
 
 // THE ASSERTION -- declared [3], given 2.
 // NEGATIVE CONTROL -- the same declaration with the right number of elements.
 // `EXACT` is already here and must stay silent; the rule counts, so a check
 // that rejected every list would fail on it.
-const string<8>[3] SHORT <- ["One", "Two"];
+string<8>[3] SHORT <- ["One", "Two"];

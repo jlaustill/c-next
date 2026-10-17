@@ -1,0 +1,33 @@
+// test-adr: 071
+// ADR-071: a function whose parameters match its C callback typedef --
+// `mut` where the typedef's pointer is not const, read-only where it is
+// const -- transpiles with no diagnostic, and the read-only one keeps the
+// typedef's const in the emitted C. Companion to c-callback-mut-match-error,
+// which holds the mismatches.
+#include "c-callback-api.h"
+
+mut i32 seenValue <- 0;
+mut u8 seenChar <- 0;
+
+void writes(mut Reading r) {
+    r.value <- 1;
+}
+
+void reads(Reading r) {
+    seenValue <- r.value;
+}
+
+void logs(mut string<32> msg) {
+    msg[0] <- 'X';
+}
+
+void readsLog(string<32> msg) {
+    seenChar <- msg[0];
+}
+
+void wire() {
+    on_write(writes);
+    on_read(reads);
+    on_log(logs);
+    on_const_log(readsLog);
+}

@@ -4,7 +4,7 @@ struct Message {
     u32 id;
 }
 
-void onReceive(const Message msg) {
+void onReceive(Message msg) {
     // default: no-op
 }
 

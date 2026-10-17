@@ -4,7 +4,7 @@
 // This test exposes a BUG if clamp is ignored in scope contexts
 scope ClampScope {
     // Clamp scope variables - test u8 overflow/underflow
-    clamp u8 brightness <- 200;
+    mut clamp u8 brightness <- 200;
     // Method that triggers overflow - should clamp to 255
     public void triggerOverflow() {
         this.brightness +<- 100; // 200 + 100 = 300, should clamp to 255
@@ -26,7 +26,7 @@ scope ClampScope {
 u32 main() {
 
     // Test 1: Initial value
-    u8 val <- ClampScope.getBrightness();
+    mut u8 val <- ClampScope.getBrightness();
     if (val != 200) {
         return 1;
     }

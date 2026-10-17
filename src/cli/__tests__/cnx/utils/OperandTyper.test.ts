@@ -220,31 +220,23 @@ describe("OperandTyper.constantOf (#1668)", () => {
     ["a suffixed literal", "u8 r <- 9u8;", 9],
     ["a negated literal", "i8 r <- -9;", -9],
     ["a doubly negated literal", "i8 r <- - -9;", 9],
-    ["a const local", "const u8 N <- 7;\nu8 r <- N;", 7],
-    ["a mutable local", "u8 N <- 7;\nu8 r <- N;", null],
+    ["a const local", "u8 N <- 7;\nu8 r <- N;", 7],
+    ["a mutable local", "mut u8 N <- 7;\nu8 r <- N;", null],
     ["a leading-zero literal (#1728)", "u8 r <- 010;", null],
     // #1175: arithmetic folds now, at its operands' width (ADR-044), where it
     // used to be called a runtime value because folding ignored that width
     ["arithmetic", "u8 r <- 2 + 3;", 5],
     ["a bitwise complement: an untyped literal is an i32", "u8 r <- ~3;", -4],
-    ["arithmetic over a variable", "u8 v <- 2;\nu8 r <- v + 3;", null],
-    [
-      "arithmetic ADR-044 would clamp",
-      "const u8 A <- 200;\nu8 r <- A + A;",
-      null,
-    ],
+    ["arithmetic over a variable", "mut u8 v <- 2;\nu8 r <- v + 3;", null],
+    ["arithmetic ADR-044 would clamp", "u8 A <- 200;\nu8 r <- A + A;", null],
   ])("evaluates %s", (_why, body, value) => {
     expect(constantOf(inMain(body))).toBe(value);
   });
 
   it("binds a file const, and a const local shadowing it", () => {
-    expect(constantOf("const u8 N <- 4;\nvoid main() {\nu8 r <- N;\n}")).toBe(
-      4,
-    );
+    expect(constantOf("u8 N <- 4;\nvoid main() {\nu8 r <- N;\n}")).toBe(4);
     expect(
-      constantOf(
-        "const u8 N <- 4;\nvoid main() {\nconst u8 N <- 6;\nu8 r <- N;\n}",
-      ),
+      constantOf("u8 N <- 4;\nvoid main() {\nu8 N <- 6;\nu8 r <- N;\n}"),
     ).toBe(6);
   });
 
@@ -256,9 +248,7 @@ describe("OperandTyper.constantOf (#1668)", () => {
   });
 
   it("does not evaluate an element of a const array", () => {
-    expect(
-      constantOf(inMain("const u8[2] T <- [1, 2];\nu8 r <- T[0];")),
-    ).toBeNull();
+    expect(constantOf(inMain("u8[2] T <- [1, 2];\nu8 r <- T[0];"))).toBeNull();
   });
 });
 
@@ -437,7 +427,7 @@ void main() {
 
   it("gives an element read the side effect of its index (#1668, C26)", () => {
     const decls =
-      "u32 calls <- 0;\nf32[4] arr;\nu32 nextIndex() { calls +<- 1; return 0; }\n";
+      "mut u32 calls <- 0;\nf32[4] arr;\nu32 nextIndex() { calls +<- 1; return 0; }\n";
     const called = typeOf(
       `${decls}void main() {\nf32 r <- arr[nextIndex()];\n}`,
     );
@@ -503,7 +493,7 @@ void main() {
   });
 
   it("types a bit range at its folded width (C18b)", () => {
-    const t = typeOf(inMain("const u8 W <- 8;\nu32 w <- 1;\nu8 r <- w[0, W];"));
+    const t = typeOf(inMain("u8 W <- 8;\nu32 w <- 1;\nu8 r <- w[0, W];"));
     expect(t).toMatchObject({ typeName: "u8", bitWidth: 8 });
     expect(t?.form).toEqual({ kind: "bitRange", width: 8 });
   });
@@ -845,7 +835,7 @@ describe("OperandTyper.chainOf", () => {
   it("types each operation of a target, with its subscript kind", () => {
     const chain = targetOf(`struct P { u8[4] data; u32 word; }
 void main() {
-    P p;
+    mut P p;
     p.data[2] <- 1;
 }`);
     expect(chain.root?.kind).toBe("local");
@@ -865,7 +855,7 @@ void main() {
   it("classifies a subscript on a scalar field as a bit", () => {
     const chain = targetOf(`struct P { u32 word; }
 void main() {
-    P p;
+    mut P p;
     p.word[3] <- true;
 }`);
     expect(chain.steps.at(-1)?.subscript).toBe("bit_single");
@@ -962,7 +952,7 @@ extern Frame frame;`,
 
   it("consumes a this. root's first member", () => {
     const chain = targetOf(`scope S {
-    u16[3] vals;
+    mut u16[3] vals;
     public void f() {
         this.vals[0] <- 1;
     }

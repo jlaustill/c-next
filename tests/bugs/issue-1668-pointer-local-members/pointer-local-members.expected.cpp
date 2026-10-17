@@ -19,7 +19,7 @@ int main(void) {
     w->v += 10U;
     w->v = w->v + 1U;
     w->flags = (uint8_t)((w->flags & ~(1U << 3)) | (1U << 3));
-    uint32_t got = w->v;
+    const uint32_t got = w->v;
     widget_t plain = {};
     plain.v = 3U;
     if (got != 16) {

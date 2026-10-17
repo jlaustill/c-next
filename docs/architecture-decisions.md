@@ -20,7 +20,6 @@ v2 (so "Research (v2 Roadmap)" holds `1xx` ADRs).
 | [ADR-006](decisions/adr-006-simplified-references.md)      | Simplified References      | Pass by reference, no pointer syntax                                             |
 | [ADR-007](decisions/adr-007-type-aware-bit-indexing.md)    | Type-Aware Bit Indexing    | Integers as bit arrays (`.length` superseded by ADR-058)                         |
 | [ADR-010](decisions/adr-010-c-interoperability.md)         | C Interoperability         | Unified ANTLR parser architecture                                                |
-| [ADR-013](decisions/adr-013-const-qualifier.md)            | Const Qualifier            | Compile-time const enforcement                                                   |
 | [ADR-014](decisions/adr-014-structs.md)                    | Structs                    | Data containers without methods                                                  |
 | [ADR-015](decisions/adr-015-null-state.md)                 | Null State                 | Zero initialization for all variables                                            |
 | [ADR-016](decisions/adr-016-scope.md)                      | Scope                      | `this.`/`global.` explicit qualification                                         |
@@ -47,6 +46,7 @@ v2 (so "Research (v2 Roadmap)" holds `1xx` ADRs).
 | [ADR-057](decisions/adr-057-implicit-scope-resolution.md)  | Implicit Scope Resolution  | Bare identifiers resolve local -> scope -> global                                |
 | [ADR-058](decisions/adr-058-explicit-length-properties.md) | Explicit Length Properties | `.type_bit_length`/`.type_byte_length`/`.type_element_count`/`.value_char_count` |
 | [ADR-067](decisions/adr-067-all-paths-return.md)           | All-Paths-Return           | Reject non-void functions that can fall off the end (E0704)                      |
+| [ADR-071](decisions/adr-071-read-only-by-default.md)       | Read-Only by Default       | Every binding read-only unless declared `mut`                                    |
 
 ## Accepted
 
@@ -72,9 +72,10 @@ v2 (so "Research (v2 Roadmap)" holds `1xx` ADRs).
 
 ## Superseded
 
-| ADR                                            | Title              | Description                                                 |
-| ---------------------------------------------- | ------------------ | ----------------------------------------------------------- |
-| [ADR-047](decisions/adr-047-nullable-types.md) | NULL for C Interop | `NULL` keyword for C stream functions (replaced by ADR-046) |
+| ADR                                             | Title              | Description                                                 |
+| ----------------------------------------------- | ------------------ | ----------------------------------------------------------- |
+| [ADR-013](decisions/adr-013-const-qualifier.md) | Const Qualifier    | Opt-in `const` (replaced by ADR-071, read-only by default)  |
+| [ADR-047](decisions/adr-047-nullable-types.md)  | NULL for C Interop | `NULL` keyword for C stream functions (replaced by ADR-046) |
 
 ## Research (v1 Roadmap)
 

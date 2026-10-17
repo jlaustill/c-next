@@ -1,0 +1,2 @@
+7:4 error[E0422]: function 'a_func' called before definition
+8:4 error[E0422]: function 'b_func' called before definition

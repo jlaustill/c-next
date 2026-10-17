@@ -12,13 +12,14 @@
 
 #include "AppConfig.h"
 
-u32 calculateChecksum(const AppConfig config) {
+u32 calculateChecksum(AppConfig config) {
     string<512> buffer <- "";
-    u32 offset <- 0;
-    u8 length <- 0;
+    mut u32 offset <- 0;
+    mut u8 length <- 0;
 
     // This line will fail at compile time because offset is a runtime variable
     length <- config.magic.type_bit_length / 8;
+    offset <- length;
     buffer[offset, length] <- config.magic;
 
     return 0;

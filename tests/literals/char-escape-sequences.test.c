@@ -10,35 +10,35 @@
 // Tests: Character literal escape sequences
 // Validates that escape sequences in char literals work correctly
 int main(void) {
-    uint8_t newline = (uint8_t)'\n';
+    const uint8_t newline = (uint8_t)'\n';
     if (newline != 10) {
         return 1U;
     }
-    uint8_t tab = (uint8_t)'\t';
+    const uint8_t tab = (uint8_t)'\t';
     if (tab != 9) {
         return 2U;
     }
-    uint8_t cr = (uint8_t)'\r';
+    const uint8_t cr = (uint8_t)'\r';
     if (cr != 13) {
         return 3U;
     }
-    uint8_t nul = (uint8_t)'\0';
+    const uint8_t nul = (uint8_t)'\0';
     if (nul != 0) {
         return 4U;
     }
-    uint8_t backslash = (uint8_t)'\\';
+    const uint8_t backslash = (uint8_t)'\\';
     if (backslash != 92) {
         return 5U;
     }
-    uint8_t quote = (uint8_t)'\'';
+    const uint8_t quote = (uint8_t)'\'';
     if (quote != 39) {
         return 6U;
     }
-    uint8_t dquote = (uint8_t)'\"';
+    const uint8_t dquote = (uint8_t)'\"';
     if (dquote != 34) {
         return 7U;
     }
-    uint8_t escapes[7] = {(uint8_t)'\n', (uint8_t)'\t', (uint8_t)'\r', (uint8_t)'\0', (uint8_t)'\\', (uint8_t)'\'', (uint8_t)'\"'};
+    const uint8_t escapes[7] = {(uint8_t)'\n', (uint8_t)'\t', (uint8_t)'\r', (uint8_t)'\0', (uint8_t)'\\', (uint8_t)'\'', (uint8_t)'\"'};
     if (escapes[0U] != 10) {
         return 8U;
     }

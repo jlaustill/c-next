@@ -132,6 +132,34 @@ describe("CHeaderLowering", () => {
       ]);
     });
 
+    it("lowers a prototype's unnamed parameters, as newlib spells fgets", () => {
+      const decl = declarations(
+        `typedef struct F FILE;\nchar *fgets(char *restrict, int, FILE *restrict);\nint sum(const int[], int);`,
+      );
+      const parametersOf = (index: number) => {
+        const entry = decl[index];
+        return (
+          entry.kind === "declaration" && entry.declarators?.[0]?.parameters
+        );
+      };
+      expect(parametersOf(1)).toEqual([
+        { name: "", type: "char*", isConst: false, isArray: false },
+        { name: "", type: "int", isConst: false, isArray: false },
+        { name: "", type: "FILE*", isConst: false, isArray: false },
+      ]);
+      expect(parametersOf(2)).toEqual([
+        { name: "", type: "int", isConst: true, isArray: true },
+        { name: "", type: "int", isConst: false, isArray: false },
+      ]);
+    });
+
+    it("lowers `(void)` as no parameters", () => {
+      const decl = declarations(`int tick(void);`)[0];
+      expect(
+        decl.kind === "declaration" && decl.declarators?.[0]?.parameters,
+      ).toEqual([]);
+    });
+
     it("skips only a declarator error recovery left without its direct declarator", () => {
       const lowered = declarations(`void good(int a);\nint a, 8[2];\n`);
       const good = lowered[0];

@@ -23,7 +23,7 @@ typedef struct SensorReading {
 extern SensorReading readings[10];
 
 /* Function prototypes */
-void addReading(uint8_t index, uint32_t ts, int16_t val, uint8_t id);
+void addReading(const uint8_t index, const uint32_t ts, const int16_t val, const uint8_t id);
 
 #ifdef __cplusplus
 }

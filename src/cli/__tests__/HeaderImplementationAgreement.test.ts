@@ -69,7 +69,7 @@ u32 readFlag() { return statusFlag; }
 
   it("declares a string constant with its C type, not the C-Next type", async () => {
     const { code, headerCode } = await transpileSource(`
-const string VERSION <- "1.0.0";
+string VERSION <- "1.0.0";
 u8 firstChar() { return VERSION[0]; }
 `);
     expect(code).toContain("char VERSION");
@@ -146,7 +146,7 @@ u32 count(${declaration} names) { return 1; }
   it("emits the typedef for a callback used only as a parameter", async () => {
     const { headerCode } = await transpileSource(`
 struct Message { u32 id; }
-void onReceive(const Message message) { }
+void onReceive(Message message) { }
 void setHandler(onReceive handler) { handler; }
 `);
     expect(headerCode).toContain(
@@ -160,7 +160,7 @@ void setHandler(onReceive handler) { handler; }
 
   it("declares the ISR typedef it uses (ADR-040)", async () => {
     const { headerCode } = await transpileSource(`
-ISR globalHandler;
+mut ISR globalHandler;
 void install(ISR handler) { globalHandler <- handler; }
 `);
     // The header references ISR in a declaration, so it must define the type.

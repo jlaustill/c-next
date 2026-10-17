@@ -6,7 +6,7 @@
 #include "lib.cnx"
 
 scope Big {
-    public const u8 N <- 10;
+    public u8 N <- 10;
 }
 
 u32 main() {

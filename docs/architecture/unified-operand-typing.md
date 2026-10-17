@@ -326,7 +326,7 @@ type TValueBinding =
 **One evaluator.** `ArrayDimensionParser.parseText(text, options)` exposes the text path that `parseSingleDimension` already reduces to (`ArrayDimensionParser.ts:87-111`). Three callers use it:
 
 - 1.4, for const locals.
-- 1.4's global consts. This replaces the literal-only `Program.constValueOf` (`Program.ts:631-635`), so 2.2 stops being the only folder of `const u32 B <- A + 1` (`TypeRegistrationEngine.ts:99-105`).
+- 1.4's global consts. This replaces the literal-only `Program.constValueOf` (`Program.ts:631-635`), so 2.2 stops being the only folder of `u32 B <- A + 1` (read-only, ADR-071) (`TypeRegistrationEngine.ts:99-105`).
 - 2.2's `tryEvaluateConstant` (`CodeGenWalker.ts:1341`), over `constValuesAt`.
 
 **Array dimensions** are read off the settled declaration by both `.c` and `.h`, and are **never re-folded in 2.2**. Otherwise #1538's `.c` and `.h` could split (risk R5).

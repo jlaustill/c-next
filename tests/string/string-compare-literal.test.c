@@ -8,7 +8,7 @@
 #include <string.h>
 
 // ADR-045: Test string comparison with literal
-char name[65] = "Alice";
+const char name[65] = "Alice";
 
 void test(void) {
     if (strcmp(name, "Alice") == 0) {

@@ -16,7 +16,7 @@ void doWrite(void) {
 void doOther(void) {
 }
 
-void handleCommand(ECommand cmd) {
+void handleCommand(const ECommand cmd) {
     switch (cmd) {
         case ECommand__READ:
         case ECommand__PEEK: {

@@ -14,7 +14,7 @@
 i32 main() {
     string<8> withOperator <- "a!=b";
     string<8> plain <- "aXXb";
-    i32 hits <- 0;
+    mut i32 hits <- 0;
 
     // 1: equality TRUE, literal contains "!=" -- the reported defect
     if (withOperator = "a!=b") {

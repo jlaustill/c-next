@@ -30,6 +30,6 @@ static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
 // parameter added here left the no-warnings compile at exit 0: lib.c reached a
 // compiler only at the execution link step, which passes neither -Wall nor
 // -Werror.
-uint32_t doubled(uint32_t value) {
+uint32_t doubled(const uint32_t value) {
     return cnx_clamp_mul_u32(value, 2U);
 }

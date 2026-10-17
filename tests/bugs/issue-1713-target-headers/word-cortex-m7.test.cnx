@@ -1,0 +1,7 @@
+// #1713: a header is read by the target's own compiler. On cortex-m7 a
+// pointer is 4 bytes, so word.h picks uint32_t and the literal is 255U; read
+// by the host's gcc it picked uint64_t and the literal was 255ULL.
+#pragma target cortex-m7
+#include "word.h"
+
+uword_t mask <- 255;

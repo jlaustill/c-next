@@ -10,7 +10,7 @@ enum Mode {
 }
 
 u32 calculatePower(Mode mode) {
-    u32 power <- 0;
+    mut u32 power <- 0;
 
     switch (mode) {
         case Mode.OFF {

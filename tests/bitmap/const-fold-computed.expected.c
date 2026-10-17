@@ -37,10 +37,10 @@ int main(int argc, char *argv[]) {
     uint8_t iterations = 8U;
     uint8_t threshold = 3U;
     if (argc > 1) {
-        iterations = atoi(argv[1U]);
+        iterations = (uint8_t)((atoi(argv[1U])) & 0xFFU);
     }
     if (argc > 2) {
-        threshold = atoi(argv[2U]);
+        threshold = (uint8_t)((atoi(argv[2U])) & 0xFFU);
     }
     for (uint8_t i = 0U; i < iterations; i = cnx_clamp_add_u8(i, 1U)) {
         f = (uint8_t)((f & ~(1U << 0)) | (((i % 2) == 0 ? 1U : 0U) << 0));

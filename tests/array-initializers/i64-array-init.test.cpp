@@ -29,7 +29,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Tests: i64 as array element type
 // Coverage: Section 1.2 i64 array element type
 int main(void) {
-    int64_t values[5] = {(int64_t)INT64_MIN, -1000000000000, 0, 1000000000000, 9223372036854775807};
+    const int64_t values[5] = {(int64_t)INT64_MIN, -1000000000000, 0, 1000000000000, 9223372036854775807};
     if (values[0U] != (int64_t)INT64_MIN) {
         return 1U;
     }
@@ -62,7 +62,7 @@ int main(void) {
     if (data[3U] != 10000000000000) {
         return 9U;
     }
-    int64_t inferred[3] = {100000000000, 200000000000, 300000000000};
+    const int64_t inferred[3] = {100000000000, 200000000000, 300000000000};
     if (inferred[0U] != 100000000000) {
         return 10U;
     }
@@ -72,7 +72,7 @@ int main(void) {
     if (inferred[2U] != 300000000000) {
         return 12U;
     }
-    int64_t loop_arr[3] = {1000000000, 2000000000, 3000000000};
+    const int64_t loop_arr[3] = {1000000000, 2000000000, 3000000000};
     int64_t sum = 0;
     for (uint32_t i = 0U; i < 3; i = cnx_clamp_add_u32(i, 1U)) {
         sum = cnx_clamp_add_i64(sum, loop_arr[i]);

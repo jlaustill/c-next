@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint32_t Gate__check(uint32_t Gate__check__limit);
+uint32_t Gate__check(const uint32_t Gate__check__limit);
 
 #ifdef __cplusplus
 }

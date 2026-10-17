@@ -25,8 +25,8 @@ int main(void) {
     if (a != 3) {
         return 3;
     }
-    uint32_t values[3] = {1U, 2U, 3U};
-    uint32_t all = sum_all(values, 3);
+    const uint32_t values[3] = {1U, 2U, 3U};
+    const uint32_t all = sum_all(values, 3);
     if (all != 6) {
         return 4;
     }

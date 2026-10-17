@@ -21,7 +21,7 @@ void testStaticMethods(void);
 void testStructInit(void);
 void testConstexpr(void);
 void testOverloads(void);
-uint32_t processByte(uint32_t crc, uint8_t byte);
+uint32_t processByte(const uint32_t crc, const uint8_t byte);
 void testTypeConversions(void);
 void testArrayMembers(void);
 void testComplexStructs(void);
@@ -30,7 +30,7 @@ void testRefsAndPtrs(void);
 void testStrictInit(void);
 void testArrayParams(void);
 void simpleCallback(void);
-void intCallback(int32_t value);
+void intCallback(const int32_t value);
 void resultCallback(const Result& result);
 void testCallbackInterop(void);
 

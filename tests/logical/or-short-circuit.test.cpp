@@ -32,25 +32,25 @@ bool causeSideEffect(void) {
 
 void testOrShortCircuit(void) {
     sideEffectCounter = 0U;
-    bool result1 = true || causeSideEffect();
+    const bool result1 = true || causeSideEffect();
     sideEffectCounter = 0U;
-    bool result2 = false || causeSideEffect();
+    const bool result2 = false || causeSideEffect();
 }
 
 void testOrShortCircuitWithComparison(void) {
-    uint32_t value = 1U;
+    const uint32_t value = 1U;
     sideEffectCounter = 0U;
-    bool result = (value != 0) || causeSideEffect();
+    const bool result = (value != 0) || causeSideEffect();
 }
 
 void testOrShortCircuitChained(void) {
     sideEffectCounter = 0U;
-    bool result = true || causeSideEffect() || causeSideEffect();
+    const bool result = true || causeSideEffect() || causeSideEffect();
 }
 
 void testOrShortCircuitMixed(void) {
     sideEffectCounter = 0U;
-    bool a = false;
-    bool b = true;
-    bool result = a || b || causeSideEffect();
+    const bool a = false;
+    const bool b = true;
+    const bool result = a || b || causeSideEffect();
 }

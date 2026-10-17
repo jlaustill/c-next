@@ -1,0 +1,27 @@
+// test-error
+// test-adr: 071
+// E0900 across TWO include hop(s): an imported read-only string, array and
+// opaque handle passed to a C pointer that is not const, from a top-level
+// function and from a scope method. CONTROL, all silent: each `mut` twin
+// passed the same way, and each read-only binding passed to a const pointer.
+
+#include "imported-relay.cnx"
+
+void f() {
+    c_fill(LIBS);
+    c_fill(LIBS_M);
+    c_show(LIBS);
+    c_fill_bytes(LIBA);
+    c_fill_bytes(LIBA_M);
+    c_show_bytes(LIBA);
+    dev_close(LIBH);
+    dev_close(LIBH_M);
+}
+
+scope User {
+    public void g() {
+        c_fill(global.LIBS);
+        c_fill_bytes(global.LIBA);
+        dev_close(global.LIBH);
+    }
+}

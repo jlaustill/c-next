@@ -3,8 +3,8 @@
 // Tests lines 4336 and 4338 in CodeGenerator.ts
 
 scope Counter {
-    i32 value <- 100;
-    i32[4] values;
+    mut i32 value <- 100;
+    mut i32[4] values;
 
     void increment() {
         // this.member compound assignment

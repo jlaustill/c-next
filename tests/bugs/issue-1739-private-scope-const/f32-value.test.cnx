@@ -1,7 +1,7 @@
 // test-execution
 // Tests: an f32 const has one value -- a copy of it equals it
 scope S {
-    const f32 F <- 0.1;
+    f32 F <- 0.1;
 
     public u32 check() {
         f32 v <- F;

@@ -6,7 +6,7 @@
 //
 // NEGATIVE CONTROLS: `255u8` fits, and `N > 1` compares in range.
 
-const u32 N <- 5;
+u32 N <- 5;
 u8[300u8] wide;
 u8[(N > -1) ? 8 : 1] signedCompare;
 u8[255u8] fits;

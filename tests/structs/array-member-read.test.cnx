@@ -11,7 +11,7 @@ struct Container {
 }
 
 i32 main() {
-    Container cfg;
+    mut Container cfg;
 
     // Initialize array items through intermediate variables
     Item item0 <- { value: 100, flags: 0 };
@@ -22,8 +22,8 @@ i32 main() {
     cfg.items[2] <- item2;
 
     // Read access in a loop - THIS WORKS with the fix
-    u32 sum <- 0;
-    for (u32 i <- 0; i < 3; i +<- 1) {
+    mut u32 sum <- 0;
+    for (mut u32 i <- 0; i < 3; i +<- 1) {
         sum +<- cfg.items[i].value; // Should generate: cfg.items[i].value
     }
 

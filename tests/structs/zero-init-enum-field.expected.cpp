@@ -17,10 +17,10 @@ TInput TInput_init(void) {
 }
 
 // No initializer -> generator emits the zero initializer for the struct.
-TInput input = { EValueId__VALUE_A, {} };
+extern const TInput input = { EValueId__VALUE_A, {} };
 
 // Array of enum-first structs: same zero-init path, same C++ {0} bug.
-TInput inputs[2] = { { EValueId__VALUE_A, {} }, { EValueId__VALUE_A, {} } };
+extern const TInput inputs[2] = { { EValueId__VALUE_A, {} }, { EValueId__VALUE_A, {} } };
 
 int main(void) {
     if (input.assignedValue != EValueId__VALUE_A) {

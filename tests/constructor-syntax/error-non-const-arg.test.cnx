@@ -3,7 +3,7 @@
 // test-cpp-only
 #include "constructor-stubs.h"
 
-u8 mutablePin <- 10;
+mut u8 mutablePin <- 10;
 Adafruit_MAX31856 thermocouple(mutablePin);
 
 void main() {}

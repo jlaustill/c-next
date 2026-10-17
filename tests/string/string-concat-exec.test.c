@@ -9,8 +9,8 @@
 // test-execution
 // ADR-045: Validate string concatenation at runtime
 int main(void) {
-    char first[33] = "Hello";
-    char second[33] = " World";
+    const char first[33] = "Hello";
+    const char second[33] = " World";
     char result[65] = "";
     (void) strncpy(result, first, 64);
     (void) strncat(result, second, 64 - strlen(result));
@@ -34,8 +34,8 @@ int main(void) {
     if (strcmp(withLit, "Hello!") != 0) {
         return 5;
     }
-    char a[9] = "AB";
-    char b[9] = "CD";
+    const char a[9] = "AB";
+    const char b[9] = "CD";
     char ab[17] = "";
     (void) strncpy(ab, a, 16);
     (void) strncat(ab, b, 16 - strlen(ab));
@@ -46,8 +46,8 @@ int main(void) {
     if (strcmp(ab, "ABCD") != 0) {
         return 7;
     }
-    char part1[33] = "The quick ";
-    char part2[33] = "brown fox";
+    const char part1[33] = "The quick ";
+    const char part2[33] = "brown fox";
     char sentence[65] = "";
     (void) strncpy(sentence, part1, 64);
     (void) strncat(sentence, part2, 64 - strlen(sentence));
@@ -58,8 +58,8 @@ int main(void) {
     if (strcmp(sentence, "The quick brown fox") != 0) {
         return 9;
     }
-    char nonEmpty[33] = "Text";
-    char empty[33] = "";
+    const char nonEmpty[33] = "Text";
+    const char empty[33] = "";
     char withEmpty[65] = "";
     (void) strncpy(withEmpty, nonEmpty, 64);
     (void) strncat(withEmpty, empty, 64 - strlen(withEmpty));

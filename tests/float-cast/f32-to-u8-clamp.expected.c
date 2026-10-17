@@ -10,12 +10,12 @@
 // Tests: Float to u8 cast should clamp values to 0-255 range
 // Issue #632: Float casts currently wrap instead of clamping
 int main(void) {
-    float over = 261.7;
-    float way_over = 1000.0;
-    float negative = -50.5;
-    float in_range = 100.0;
-    float at_max = 255.0;
-    float at_min = 0.0;
+    const float over = 261.7;
+    const float way_over = 1000.0;
+    const float negative = -50.5;
+    const float in_range = 100.0;
+    const float at_max = 255.0;
+    const float at_min = 0.0;
     uint8_t result = ((over) >= ((float)UINT8_MAX) ? (uint8_t)UINT8_MAX : (over) < 0.0f ? (uint8_t)0 : (uint8_t)(over));
     if (result != 255) {
         return 1U;
@@ -40,7 +40,7 @@ int main(void) {
     if (result != 0) {
         return 6U;
     }
-    float frac = 127.9;
+    const float frac = 127.9;
     result = ((frac) >= ((float)UINT8_MAX) ? (uint8_t)UINT8_MAX : (frac) < 0.0f ? (uint8_t)0 : (uint8_t)(frac));
     if (result != 127) {
         return 7U;

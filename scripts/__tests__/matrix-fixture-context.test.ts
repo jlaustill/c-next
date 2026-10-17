@@ -16,20 +16,20 @@ const contextOf = (source: string, line: number) =>
 describe("FixtureContext.at", () => {
   // The same division by zero, moved between contexts. Nothing else varies.
   it.each([
-    ["global-variable", "const u32 ZERO <- 0;\nu32 bad <- 10 / ZERO;\n", 2],
+    ["global-variable", "u32 ZERO <- 0;\nu32 bad <- 10 / ZERO;\n", 2],
     [
       "top-level-function",
-      "const u32 ZERO <- 0;\nvoid topLevel() {\n    u32 bad <- 10 / ZERO;\n}\n",
+      "u32 ZERO <- 0;\nvoid topLevel() {\n    u32 bad <- 10 / ZERO;\n}\n",
       3,
     ],
     [
       "scope-member",
-      "const u32 ZERO <- 0;\nscope S {\n    u32 bad <- 10 / ZERO;\n}\n",
+      "u32 ZERO <- 0;\nscope S {\n    u32 bad <- 10 / ZERO;\n}\n",
       3,
     ],
     [
       "scope-method",
-      "const u32 ZERO <- 0;\nscope S {\n    void go() {\n        u32 bad <- 10 / ZERO;\n    }\n}\n",
+      "u32 ZERO <- 0;\nscope S {\n    void go() {\n        u32 bad <- 10 / ZERO;\n    }\n}\n",
       4,
     ],
   ])("classifies an identical construct in %s", (expected, source, line) => {

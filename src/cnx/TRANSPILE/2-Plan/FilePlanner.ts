@@ -1,4 +1,5 @@
 import ForeignTypeFacts from "../../utils/ForeignTypeFacts";
+import ParameterConst from "../../utils/ParameterConst";
 import type TTypeInfo from "../../types/TTypeInfo";
 import type TCArgumentForm from "./types/TCArgumentForm";
 import CArgumentAddress from "./CArgumentAddress";
@@ -298,7 +299,7 @@ class FilePlanner {
 
   /** #1668 (C6c): an expression's one type for 2.2, PlanTyping's row */
   directTypeOf(expr: TExpression): string | null {
-    return PlanTyping.directTypeName(
+    return OperandTyper.directTypeName(
       OperandTyper.typeOf(expr, this.state.typingContext()),
     );
   }
@@ -845,32 +846,49 @@ class FilePlanner {
   /**
    * Issue #282: a private const scalar is inlined at its uses, not declared at
    * file scope. Issue #500 exempts arrays, which cannot be inlined, and #1739
-   * one with no value to inline. 2.2 decides it once, before 2.3 renders
-   * the scope.
+   * one with no value to inline, and a constructor's argument, which C++
+   * passes by name (`Counter Lights__counter(Lights__start);`). 2.2 decides
+   * it once, before 2.3 renders the scope.
    */
   private planInlinedConsts(
     program: IProgramSyntax,
     cTypes: Set<string>,
   ): ReadonlySet<TDeclarationSyntax> {
-    const constants = this.transpileState.typingContext().program;
     const inlined = new Set<TDeclarationSyntax>();
     for (const { declaration: scope } of program.declarations) {
       if (scope.kind !== "scope") continue;
-      const declaringScopePath =
-        this.state.program?.scopePathOf(scope.name) ?? scope.name;
-      for (const { declaration } of scope.members) {
-        if (declaration.kind !== "variableDeclaration") continue;
-        const cName = QualifiedNameGenerator.forMember(
-          declaringScopePath,
-          declaration.name,
-        );
-        if (!PrivateConstSpelling.inlines(constants, cName)) continue;
-        inlined.add(declaration);
-        const narrowing = PrivateConstSpelling.narrowingOf(constants, cName);
-        if (narrowing?.kind === "cast") cTypes.add(narrowing.cType);
-      }
+      this.planInlinedScopeConsts(scope, cTypes, inlined);
     }
     return inlined;
+  }
+
+  private planInlinedScopeConsts(
+    scope: Extract<TDeclarationSyntax, { kind: "scope" }>,
+    cTypes: Set<string>,
+    inlined: Set<TDeclarationSyntax>,
+  ): void {
+    const constants = this.transpileState.typingContext().program;
+    const declaringScopePath =
+      this.state.program?.scopePathOf(scope.name) ?? scope.name;
+    const constructorArguments = new Set(
+      scope.members.flatMap(({ declaration }) =>
+        declaration.kind === "constructorDeclaration"
+          ? declaration.arguments.map((argument) => argument.name)
+          : [],
+      ),
+    );
+    for (const { declaration } of scope.members) {
+      if (declaration.kind !== "variableDeclaration") continue;
+      if (constructorArguments.has(declaration.name)) continue;
+      const cName = QualifiedNameGenerator.forMember(
+        declaringScopePath,
+        declaration.name,
+      );
+      if (!PrivateConstSpelling.inlines(constants, cName)) continue;
+      inlined.add(declaration);
+      const narrowing = PrivateConstSpelling.narrowingOf(constants, cName);
+      if (narrowing?.kind === "cast") cTypes.add(narrowing.cType);
+    }
   }
 
   private planFile(
@@ -2187,7 +2205,7 @@ class FilePlanner {
     return {
       name: param.name,
       nameSpan: param.nameSpan,
-      isConst: param.const,
+      isConst: !param.mut,
       isArray,
       arrayDimensions: this.foldParameterDimensions(
         param.dimensions,
@@ -2319,7 +2337,7 @@ class FilePlanner {
     if (params) {
       for (const param of params) {
         const paramName = param.name;
-        const isConst = param.const;
+        const isConst = !param.mut;
         const isArray =
           param.dimensions.length > 0 || param.type.kind === "array";
         const baseType = this.typeNameIn(param.type, scopePath);
@@ -2591,15 +2609,18 @@ class FilePlanner {
         return {
           name: param.emittedName,
           ...shape,
-          isConst: FilePlanner.typedefParamIsConst(
-            cName,
-            param.name,
+          isConst: ParameterConst.isWritten(
             param.isConst,
-            shape.isStruct,
-            shape.isString,
-            this.state,
+            typeName,
+            functionsAsTypes.has(typeName),
           ),
           isArray: param.isArray,
+          // ADR-071 Q6: a `mut` scalar is a pointer, as in its prototype
+          isPointer:
+            this.state.program
+              ?.passByPointerParams()
+              .get(cName)
+              ?.has(param.name) ?? false,
           // Already folded to literals by the symbols layer, which is exactly
           // what MISRA Rule 18.8 needs -- a dimension that is still an
           // identifier makes the typedef a variably-modified type.
@@ -2625,41 +2646,6 @@ class FilePlanner {
       headerCType(typeName, symbolTable),
       symbolTable.checkNeedsStructKeyword(typeName),
     );
-  }
-
-  /**
-   * ADR-029: is this `_fp` typedef parameter const?
-   *
-   * The const the prototype carries. Two typedef builders once each re-derived
-   * it and disagreed with the prototype, and with each other, at the same time:
-   *
-   * - the local path asked the per-file accumulator during the declaration
-   *   walk, before any body had filled it, so a modifying body read as
-   *   unmodified and the typedef gained a `const` the prototype lacked (#1529)
-   * - the included path asked the symbol's `isAutoConst`, which only ever gets
-   *   set on the header's own copy of a parameter, so it was absent and the
-   *   typedef LOST a `const` the declaring file had emitted (#1552). Both files
-   *   then defined one typedef name incompatibly -- a hard `error: conflicting
-   *   types`, not a warning, at transpile exit 0
-   *
-   * Auto-const (#268) qualifies only what the prototype renders as a pointer,
-   * which for a typedef parameter is a struct or a string.
-   */
-  private static typedefParamIsConst(
-    funcName: string,
-    paramName: string,
-    isExplicitConst: boolean,
-    isStruct: boolean,
-    isString: boolean,
-    state: TranspileState,
-  ): boolean {
-    if (isExplicitConst) {
-      return true;
-    }
-    if (!isStruct && !isString) {
-      return false;
-    }
-    return !state.isParameterModifiedAnywhere(funcName, paramName);
   }
 
   /**

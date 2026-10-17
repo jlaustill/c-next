@@ -16,7 +16,7 @@ extern "C" {
 extern const uint8_t LIMIT;
 
 /* Function prototypes */
-uint32_t shadowed(uint8_t s);
+uint32_t shadowed(const uint8_t s);
 
 #ifdef __cplusplus
 }

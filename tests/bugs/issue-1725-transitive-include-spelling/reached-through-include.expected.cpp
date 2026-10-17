@@ -24,8 +24,8 @@ uint32_t M__use(const Dev& d) {
 }
 
 int main(void) {
-    Dev d = { .id = 7U };
-    uint32_t id = M__use(d);
+    const Dev d = { .id = 7U };
+    const uint32_t id = M__use(d);
     if (id != 7) {
         return 1U;
     }

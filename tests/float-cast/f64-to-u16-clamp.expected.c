@@ -10,10 +10,10 @@
 // Tests: f64 to u16 cast should clamp values to 0-65535 range
 // Issue #632: Float casts must clamp
 int main(void) {
-    double over = 70000.0;
-    double negative = -100.0;
-    double in_range = 30000.0;
-    double at_max = 65535.0;
+    const double over = 70000.0;
+    const double negative = -100.0;
+    const double in_range = 30000.0;
+    const double at_max = 65535.0;
     uint16_t result = ((over) >= ((double)UINT16_MAX) ? (uint16_t)UINT16_MAX : (over) < 0.0 ? (uint16_t)0 : (uint16_t)(over));
     if (result != 65535) {
         return 1U;

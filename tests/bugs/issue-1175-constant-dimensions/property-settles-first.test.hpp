@@ -14,7 +14,7 @@ extern "C" {
 
 /* External variables */
 extern const uint32_t N;
-extern uint8_t garr[4];
+extern const uint8_t garr[4];
 extern const uint32_t FILE_K;
 extern uint8_t other[4];
 

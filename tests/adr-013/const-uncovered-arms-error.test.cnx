@@ -1,5 +1,5 @@
 // test-error
-// test-adr: 013
+// test-adr: 013, 071
 // ADR-013 in the arms the single-purpose fixtures do not reach: a scope
 // member through `this.` and `global.`, a const array parameter's element, a
 // const struct parameter's field, a const struct variable's field, the `for`
@@ -11,17 +11,17 @@ struct Cfg {
     u8 x;
 }
 
-const u8 K <- 1;
+u8 K <- 1;
 
-void take(u8 v) {
+void take(mut u8 v) {
     v <- 1;
 }
 
-void keep(const u8 v) {
+void keep(u8 v) {
     u8 copy <- v;
 }
 
-u8 echo(u8 v) {
+u8 echo(mut u8 v) {
     v <- 1;
     return v;
 }
@@ -31,12 +31,12 @@ u8 seededGlobal <- echo(K);
 
 // NEGATIVE CONTROLS -- every form on a mutable binding, a const read, and a
 // const passed to a const parameter.
-void controls(u8 p, u8[4] arr, Cfg c) {
-    u8 local <- K;
+void controls(mut u8 p, mut u8[4] arr, mut Cfg c) {
+    mut u8 local <- K;
     p <- 1;
     arr[0] <- 1;
     c.x <- 1;
-    for (u8 i <- 0; i < 3; i +<- 1) {
+    for (mut u8 i <- 0; i < 3; i +<- 1) {
         local +<- 1;
     }
     for (local <- 0; local < 3; local +<- 1) {}
@@ -46,13 +46,13 @@ void controls(u8 p, u8[4] arr, Cfg c) {
 
 // ASSERTIONS 1-2 -- a const array parameter's element and a const struct
 // parameter's field.
-void params(const u8[4] table, const Cfg cfg) {
+void params(u8[4] table, Cfg cfg) {
     table[0] <- 1;
     cfg.x <- 2;
 }
 
 void main() {
-    const Cfg cfg <- { x: 1 };
+    Cfg cfg <- { x: 1 };
     // ASSERTION 3 -- a const struct variable's field.
     cfg.x <- 2;
     // ASSERTIONS 4-5 -- the `for` header forms (closed holes).
@@ -62,18 +62,19 @@ void main() {
 }
 
 scope Board {
-    const u8 STEP <- 2;
-    u8 count <- 0;
+    u8 STEP <- 2;
+    mut u8 count <- 0;
 
     // ASSERTION 10 -- a scope member initializer passing a const.
     u8 seeded <- echo(K);
 
-    public void bump(u8 v) {
+    public void bump(mut u8 v) {
         this.count +<- v;
+        v <- 0;
     }
 
     // ASSERTIONS 7-9 -- `this.STEP`, `global.K`, and a scope method's
-    // non-const parameter given a scope const.
+    // `mut` parameter given a read-only scope member.
     public void go() {
         this.STEP <- 3;
         global.K <- 4;

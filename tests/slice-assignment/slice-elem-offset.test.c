@@ -12,7 +12,7 @@
 // elements untouched.
 int main(void) {
     uint16_t arr[8] = {0};
-    uint32_t v = 0x11223344U;
+    const uint32_t v = 0x11223344U;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint16_t* vs uint32_t*). */
     const uint32_t cnx_tmp0 = (uint32_t)(v);
     arr[2] = (uint16_t)(cnx_tmp0);

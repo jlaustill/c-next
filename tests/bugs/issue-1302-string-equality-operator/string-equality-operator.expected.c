@@ -34,8 +34,8 @@ static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
 // Every case pairs a literal that contains "!=" with one that does not, so a
 // fix keying on literal content rather than on the operator still fails here.
 int main(void) {
-    char withOperator[9] = "a!=b";
-    char plain[9] = "aXXb";
+    const char withOperator[9] = "a!=b";
+    const char plain[9] = "aXXb";
     int32_t hits = 0;
     if (strcmp(withOperator, "a!=b") == 0) {
         hits = cnx_clamp_add_i32(hits, 1);

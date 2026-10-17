@@ -4,12 +4,12 @@
 scope App {
     widget_t root;
 
-    void on_change(widget_t w) {
+    void on_change(mut widget_t w) {
         i32 val <- global.widget_get_value(w);
     }
 
     public void init() {
-        widget_t child <- global.widget_create();
+        mut widget_t child <- global.widget_create();
         global.widget_set_callback(child, this.on_change);
     }
 }

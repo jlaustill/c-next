@@ -55,8 +55,8 @@ describe("CallbackAssignmentAnalyzer", () => {
       findings(
         [
           "struct P { u32 x; }",
-          "void onDown(const P p) { }",
-          "void onUp(const P p) { }",
+          "void onDown(P p) { }",
+          "void onUp(P p) { }",
           "struct H { onDown down; }",
           "void t() { H h; h.down <- onUp; }",
         ].join("\n"),
@@ -71,7 +71,7 @@ describe("CallbackAssignmentAnalyzer", () => {
     // `for` header's declaration with no initializer.
     const source = [
       "struct P { u32 x; }",
-      "void onDown(const P p) { }",
+      "void onDown(P p) { }",
       "struct H { onDown down; }",
       "void takesDown(onDown cb) { }",
       "void t() {",
@@ -115,9 +115,9 @@ describe("CallbackAssignmentAnalyzer", () => {
     // would not report where these expect it to.
     const preamble = [
       "struct P { u32 x; }",
-      "void onDown(const P p) { }",
-      "void matching(const P p) { }",
-      "void wrongConst(P p) { }",
+      "void onDown(P p) { }",
+      "void matching(P p) { }",
+      "void wrongConst(mut P p) { }",
       "struct H { onDown down; }",
       "void takesDown(onDown cb) { }",
     ].join("\n");
@@ -175,9 +175,9 @@ describe("CallbackAssignmentAnalyzer", () => {
           [
             "struct P { u32 x; }",
             "scope Motor {",
-            "    public void onStop(const P p) { }",
-            "    void matchingStop(const P p) { }",
-            "    void wrongStop(P p) { }",
+            "    public void onStop(P p) { }",
+            "    void matchingStop(P p) { }",
+            "    void wrongStop(mut P p) { }",
             `    public void f() { onStop cb <- ${value}; }`,
             "}",
           ].join("\n"),
@@ -192,7 +192,7 @@ describe("CallbackAssignmentAnalyzer", () => {
       const found = build(
         [
           preamble,
-          "void other(const P p) { }",
+          "void other(P p) { }",
           "struct G { other cb; }",
           "void t() {",
           "    H h;",
@@ -208,7 +208,7 @@ describe("CallbackAssignmentAnalyzer", () => {
       const found = build(
         [
           preamble,
-          "void other(const P p) { }",
+          "void other(P p) { }",
           "struct G { other cb; }",
           "scope S {",
           "    onDown handler;",

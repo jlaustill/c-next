@@ -26,9 +26,9 @@ typedef enum {
 extern const EMode M;
 
 /* Function prototypes */
-uint32_t atFile(EMode s);
-uint32_t Panel__rooted(Panel__State s);
-uint32_t Panel__bare(Panel__State s);
+uint32_t atFile(const EMode s);
+uint32_t Panel__rooted(const Panel__State s);
+uint32_t Panel__bare(const Panel__State s);
 
 #ifdef __cplusplus
 }

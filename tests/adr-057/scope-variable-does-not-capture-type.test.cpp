@@ -47,7 +47,7 @@ uint32_t Motor__run(void) {
 }
 
 int main(void) {
-    uint32_t result = Motor__run();
+    const uint32_t result = Motor__run();
     if (result != 9) {
         return 1U;
     }

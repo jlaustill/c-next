@@ -8,7 +8,7 @@ u32 main() {
     u32 c <- 10;
 
     // Equality (note: = is equality in C-Next, not ==)
-    bool equal <- (a = c);
+    mut bool equal <- (a = c);
     if (equal != true) {
         return 1;
     }
@@ -25,7 +25,7 @@ u32 main() {
     }
 
     // Less than
-    bool less <- (a < b);
+    mut bool less <- (a < b);
     if (less != true) {
         return 4;
     }
@@ -42,7 +42,7 @@ u32 main() {
     }
 
     // Less than or equal
-    bool lessEq <- (a <= c);
+    mut bool lessEq <- (a <= c);
     if (lessEq != true) {
         return 7;
     }
@@ -59,7 +59,7 @@ u32 main() {
     }
 
     // Logical AND
-    bool both <- (a < b && b > 0);
+    mut bool both <- (a < b && b > 0);
     if (both != true) {
         return 10;
     }
@@ -70,7 +70,7 @@ u32 main() {
     }
 
     // Logical OR
-    bool either <- (a > b || b > 0);
+    mut bool either <- (a > b || b > 0);
     if (either != true) {
         return 12;
     }
@@ -82,7 +82,7 @@ u32 main() {
 
     // Logical NOT
     bool flag <- true;
-    bool notFlag <- !flag;
+    mut bool notFlag <- !flag;
     if (notFlag != false) {
         return 14;
     }

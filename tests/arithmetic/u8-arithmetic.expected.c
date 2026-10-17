@@ -32,114 +32,114 @@ static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
 // Tests: u8 arithmetic operations (+, -, *, /, %)
 // Coverage: Section 4.1-4.5 for u8 type
 int main(void) {
-    uint8_t a = 100U;
-    uint8_t b = 50U;
-    uint8_t sum = cnx_clamp_add_u8(a, b);
+    const uint8_t a = 100U;
+    const uint8_t b = 50U;
+    const uint8_t sum = cnx_clamp_add_u8(a, b);
     if (sum != 150) {
         return 1U;
     }
-    uint8_t sum_zero = cnx_clamp_add_u8(a, 0U);
+    const uint8_t sum_zero = cnx_clamp_add_u8(a, 0U);
     if (sum_zero != 100) {
         return 2U;
     }
-    uint8_t c = 200U;
-    uint8_t d = 55U;
-    uint8_t sum_large = cnx_clamp_add_u8(c, d);
+    const uint8_t c = 200U;
+    const uint8_t d = 55U;
+    const uint8_t sum_large = cnx_clamp_add_u8(c, d);
     if (sum_large != 255) {
         return 3U;
     }
-    uint8_t diff = cnx_clamp_sub_u8(a, b);
+    const uint8_t diff = cnx_clamp_sub_u8(a, b);
     if (diff != 50) {
         return 4U;
     }
-    uint8_t e = 100U;
-    uint8_t f = 100U;
-    uint8_t diff_zero = cnx_clamp_sub_u8(e, f);
+    const uint8_t e = 100U;
+    const uint8_t f = 100U;
+    const uint8_t diff_zero = cnx_clamp_sub_u8(e, f);
     if (diff_zero != 0) {
         return 5U;
     }
-    uint8_t diff_zero2 = cnx_clamp_sub_u8(a, 0U);
+    const uint8_t diff_zero2 = cnx_clamp_sub_u8(a, 0U);
     if (diff_zero2 != 100) {
         return 6U;
     }
-    uint8_t g = 10U;
-    uint8_t h = 5U;
-    uint8_t product = cnx_clamp_mul_u8(g, h);
+    const uint8_t g = 10U;
+    const uint8_t h = 5U;
+    const uint8_t product = cnx_clamp_mul_u8(g, h);
     if (product != 50) {
         return 7U;
     }
-    uint8_t product_zero = cnx_clamp_mul_u8(g, 0U);
+    const uint8_t product_zero = cnx_clamp_mul_u8(g, 0U);
     if (product_zero != 0) {
         return 8U;
     }
-    uint8_t product_one = cnx_clamp_mul_u8(g, 1U);
+    const uint8_t product_one = cnx_clamp_mul_u8(g, 1U);
     if (product_one != 10) {
         return 9U;
     }
-    uint8_t i = 15U;
-    uint8_t j = 17U;
-    uint8_t product_large = cnx_clamp_mul_u8(i, j);
+    const uint8_t i = 15U;
+    const uint8_t j = 17U;
+    const uint8_t product_large = cnx_clamp_mul_u8(i, j);
     if (product_large != 255) {
         return 10U;
     }
-    uint8_t k = 100U;
-    uint8_t l = 5U;
-    uint8_t quotient = k / l;
+    const uint8_t k = 100U;
+    const uint8_t l = 5U;
+    const uint8_t quotient = k / l;
     if (quotient != 20) {
         return 11U;
     }
-    uint8_t quotient_one = k / 1U;
+    const uint8_t quotient_one = k / 1U;
     if (quotient_one != 100) {
         return 12U;
     }
-    uint8_t m = 100U;
-    uint8_t n = 7U;
-    uint8_t quotient_trunc = m / n;
+    const uint8_t m = 100U;
+    const uint8_t n = 7U;
+    const uint8_t quotient_trunc = m / n;
     if (quotient_trunc != 14) {
         return 13U;
     }
-    uint8_t zero = 0U;
-    uint8_t quotient_zero = zero / 5U;
+    const uint8_t zero = 0U;
+    const uint8_t quotient_zero = zero / 5U;
     if (quotient_zero != 0) {
         return 14U;
     }
-    uint8_t o = 100U;
-    uint8_t p = 7U;
-    uint8_t remainder = o % p;
+    const uint8_t o = 100U;
+    const uint8_t p = 7U;
+    const uint8_t remainder = o % p;
     if (remainder != 2) {
         return 15U;
     }
-    uint8_t q = 100U;
-    uint8_t r = 5U;
-    uint8_t remainder_zero = q % r;
+    const uint8_t q = 100U;
+    const uint8_t r = 5U;
+    const uint8_t remainder_zero = q % r;
     if (remainder_zero != 0) {
         return 16U;
     }
-    uint8_t s = 3U;
-    uint8_t t = 10U;
-    uint8_t remainder_small = s % t;
+    const uint8_t s = 3U;
+    const uint8_t t = 10U;
+    const uint8_t remainder_small = s % t;
     if (remainder_small != 3) {
         return 17U;
     }
-    uint8_t remainder_zero2 = zero % 5U;
+    const uint8_t remainder_zero2 = zero % 5U;
     if (remainder_zero2 != 0) {
         return 18U;
     }
-    uint8_t max_val = 255U;
-    uint8_t one = 1U;
-    uint8_t max_div = max_val / max_val;
+    const uint8_t max_val = 255U;
+    const uint8_t one = 1U;
+    const uint8_t max_div = max_val / max_val;
     if (max_div != 1) {
         return 19U;
     }
-    uint8_t max_mod = max_val % max_val;
+    const uint8_t max_mod = max_val % max_val;
     if (max_mod != 0) {
         return 20U;
     }
-    uint8_t max_minus_one = cnx_clamp_sub_u8(max_val, one);
+    const uint8_t max_minus_one = cnx_clamp_sub_u8(max_val, one);
     if (max_minus_one != 254) {
         return 21U;
     }
-    uint8_t combined = (10U + 20U) * 2U;
+    const uint8_t combined = (10U + 20U) * 2U;
     if (combined != 60) {
         return 22U;
     }

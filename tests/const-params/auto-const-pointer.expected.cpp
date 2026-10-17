@@ -23,8 +23,8 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // test-execution
 // Tests: Issue #268 - automatic const for unmodified pointer parameters
 // Read-only parameter - should get const
-void readOnly(uint32_t value) {
-    uint32_t local = value;
+void readOnly(const uint32_t value) {
+    const uint32_t local = value;
 }
 
 // Modified parameter - should NOT get const
@@ -33,7 +33,7 @@ void modified(uint32_t& value) {
 }
 
 // Multiple params - mixed const/non-const
-uint32_t mixedParams(uint32_t readVal, uint32_t& writeVal) {
+uint32_t mixedParams(const uint32_t readVal, uint32_t& writeVal) {
     writeVal = cnx_clamp_add_u32(readVal, 10U);
     return writeVal;
 }
@@ -45,7 +45,7 @@ void arrayMod(uint8_t arr[4]) {
 
 // Array parameter read-only - arrays never get auto-const per ADR-006
 // (arrays are mutable by default; use explicit const if needed)
-uint8_t arrayReadOnly(uint8_t arr[4]) {
+uint8_t arrayReadOnly(const uint8_t arr[4]) {
     return arr[0U];
 }
 
@@ -56,9 +56,9 @@ int main(void) {
         return 1U;
     }
     modified(x);
-    uint32_t a = 5U;
+    const uint32_t a = 5U;
     uint32_t b = 0U;
-    uint32_t result = mixedParams(a, b);
+    const uint32_t result = mixedParams(a, b);
     if (result != 15) {
         return 2U;
     }
@@ -67,8 +67,8 @@ int main(void) {
     if (data[0U] != 99) {
         return 3U;
     }
-    uint8_t data2[4] = {10U, 20U, 30U, 40U};
-    uint8_t val = arrayReadOnly(data2);
+    const uint8_t data2[4] = {10U, 20U, 30U, 40U};
+    const uint8_t val = arrayReadOnly(data2);
     if (val != 10) {
         return 4U;
     }

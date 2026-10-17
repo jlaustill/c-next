@@ -8,10 +8,10 @@ struct P {
     u8 bits;
 }
 
-P gp;
+mut P gp;
 
 scope S {
-    public P gp;
+    public mut P gp;
 
     public void f() {
         global.gp.bits[3] <- true;

@@ -35,7 +35,7 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 }
 
 // Function that takes an array parameter
-uint32_t processBuffer(const uint8_t data[8], uint8_t len) {
+uint32_t processBuffer(const uint8_t data[8], const uint8_t len) {
     uint32_t sum = 0U;
     uint8_t i = 0U;
     while (i < len) {
@@ -51,7 +51,7 @@ uint32_t processHeader(const uint8_t header[4]) {
 }
 
 // Function with larger array
-uint32_t processPayload(const uint8_t payload[16], uint8_t len) {
+uint32_t processPayload(const uint8_t payload[16], const uint8_t len) {
     uint32_t sum = 0U;
     uint8_t i = 0U;
     while (i < len) {
@@ -72,7 +72,7 @@ uint32_t testBasicArrayMemberPassing(void) {
     msg.buf[6] = 0U;
     msg.buf[7] = 0U;
     msg.len = 4U;
-    uint32_t result = processBuffer(msg.buf, msg.len);
+    const uint32_t result = processBuffer(msg.buf, msg.len);
     return result;
 }
 
@@ -86,8 +86,8 @@ uint32_t testMultipleArrayMembers(void) {
     packet.payload[1] = 20U;
     packet.payload[2] = 30U;
     packet.payload[3] = 40U;
-    uint32_t headerSum = processHeader(packet.header);
-    uint32_t payloadSum = processPayload(packet.payload, 4U);
+    const uint32_t headerSum = processHeader(packet.header);
+    const uint32_t payloadSum = processPayload(packet.payload, 4U);
     return cnx_clamp_add_u32(headerSum, payloadSum);
 }
 
@@ -107,15 +107,15 @@ uint32_t testArrayMemberInCondition(void) {
 }
 
 int main(void) {
-    uint32_t result1 = testBasicArrayMemberPassing();
+    const uint32_t result1 = testBasicArrayMemberPassing();
     if (result1 != 100) {
         return 1U;
     }
-    uint32_t result2 = testMultipleArrayMembers();
+    const uint32_t result2 = testMultipleArrayMembers();
     if (result2 != 110) {
         return 2U;
     }
-    uint32_t result3 = testArrayMemberInCondition();
+    const uint32_t result3 = testArrayMemberInCondition();
     if (result3 != 50) {
         return 3U;
     }

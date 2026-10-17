@@ -245,6 +245,7 @@ class ProgramLowering {
   private static parameter(ctx: Parser.ParameterContext): IParameterSyntax {
     return {
       const: ctx.constModifier() !== null,
+      mut: ctx.mutModifier() !== null,
       type: SyntaxLowering.type(ctx.type()),
       name: ctx.IDENTIFIER().getText(),
       nameSpan: ProgramLowering.spanOf(ctx.IDENTIFIER()),

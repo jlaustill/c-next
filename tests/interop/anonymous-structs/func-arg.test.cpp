@@ -68,17 +68,17 @@ int32_t check_panel(const PanelConfig& panel) {
 }
 
 int main(void) {
-    SimpleConfig cfg = { .value = 99, .flags = { .flag_b = 1 } };
+    const SimpleConfig cfg = { .value = 99, .flags = { .flag_b = 1 } };
     int32_t result = check_simple(cfg);
     if (result != 0) {
         return result;
     }
-    DisplayConfig disp = { .resolution = { .width = 1024, .height = 768 }, .settings = { .brightness = 100, .contrast = 75 } };
+    const DisplayConfig disp = { .resolution = { .width = 1024, .height = 768 }, .settings = { .brightness = 100, .contrast = 75 } };
     result = check_display(disp);
     if (result != 0) {
         return cnx_clamp_add_i32(10, result);
     }
-    PanelConfig panel = { .clk_src = 1, .timings = { .pclk_hz = 16000000, .h_res = 800, .v_res = 480 }, .flags = { .fb_in_psram = 1, .double_fb = 0 } };
+    const PanelConfig panel = { .clk_src = 1, .timings = { .pclk_hz = 16000000, .h_res = 800, .v_res = 480 }, .flags = { .fb_in_psram = 1, .double_fb = 0 } };
     result = check_panel(panel);
     if (result != 0) {
         return cnx_clamp_add_i32(20, result);

@@ -1,12 +1,12 @@
 // test-execution
 // ADR-045: Validate const string inference at runtime
-const string VERSION <- "1.0.0";
+string VERSION <- "1.0.0";
 
-const string APP_NAME <- "TestApp";
+string APP_NAME <- "TestApp";
 
-const string EMPTY_CONST <- "";
+string EMPTY_CONST <- "";
 
-const string LONG_CONST <- "This is a longer constant string for testing";
+string LONG_CONST <- "This is a longer constant string for testing";
 
 i32 main() {
 

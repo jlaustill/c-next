@@ -5,8 +5,8 @@
 // Previously this was "valid" but now const zero detection applies to floats
 
 void test_const_zero_float() {
-    const f32 ZERO <- 0.0;
-    const f64 ZERO_D <- 0.0;
+    f32 ZERO <- 0.0;
+    f64 ZERO_D <- 0.0;
 
     // These should now ERROR for floats (parity with integers)
     f32 result_f <- 10.0 / ZERO;

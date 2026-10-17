@@ -19,7 +19,7 @@ Motor__EMode Motor__getMode(void) {
     return Motor__mode;
 }
 
-void Motor__setMode(Motor__EMode newMode) {
+void Motor__setMode(const Motor__EMode newMode) {
     Motor__mode = newMode;
 }
 
@@ -37,11 +37,11 @@ int main(void) {
         return 2U;
     }
     Motor__setMode(Motor__EMode__LOW);
-    Motor__EMode motorMode = Motor__getMode();
+    const Motor__EMode motorMode = Motor__getMode();
     if (motorMode != Motor__EMode__LOW) {
         return 3U;
     }
-    bool isOff = Motor__isOff();
+    const bool isOff = Motor__isOff();
     if (isOff == true) {
         return 4U;
     }

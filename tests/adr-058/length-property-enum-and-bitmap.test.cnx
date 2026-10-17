@@ -25,7 +25,7 @@ u32 main() {
         return 2;
     }
 
-    Flags f;
+    mut Flags f;
     f.Mode <- 1;
     if (f.type_bit_length != 16) {
         return 3;

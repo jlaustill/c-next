@@ -49,10 +49,10 @@ const uint8_t LOCAL_FIVE = 5U;
 const uint8_t LOCAL_ALSO_FIVE = 5U;
 
 // global-variable context.
-bool gEqual = LOCAL_FIVE == LOCAL_ALSO_FIVE;
+const bool gEqual = LOCAL_FIVE == LOCAL_ALSO_FIVE;
 
 /* Scope: Cfg */
-bool Cfg__mEqual = LOCAL_FIVE == LOCAL_ALSO_FIVE;
+const bool Cfg__mEqual = LOCAL_FIVE == LOCAL_ALSO_FIVE;
 
 uint32_t Cfg__check(void) {
     uint8_t seen = 0U;
@@ -99,7 +99,7 @@ int main(void) {
     if (strcmp(GREETING, "hello") != 0) {
         return 7U;
     }
-    uint32_t checked = Cfg__check();
+    const uint32_t checked = Cfg__check();
     if (checked != 0) {
         return 5U;
     }

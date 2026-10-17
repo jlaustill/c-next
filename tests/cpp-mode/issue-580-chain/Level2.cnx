@@ -4,7 +4,7 @@
 
 scope Level2 {
     // Just passes through to Level3
-    public void passToLevel3(Config c) {
+    public void passToLevel3(mut Config c) {
         global.Level3.modify(c);
     }
 }

@@ -1,6 +1,6 @@
 // Test: Compound assignment on multi-dimensional arrays
 // Verifies fix for line 4073 in CodeGenerator.ts
-u8[4][4] matrix;
+mut u8[4][4] matrix;
 
 i32 main() {
     // Initialize

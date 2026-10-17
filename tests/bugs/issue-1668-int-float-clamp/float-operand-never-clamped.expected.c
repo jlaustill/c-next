@@ -33,38 +33,37 @@ Scaler Scaler_init(void) {
 }
 
 /* Scope: Counter */
-static uint32_t Counter__value = 3U;
 
 float Counter__scaled(void) {
-    return (float)Counter__value * 2.5;
+    return (float)3U * 2.5;
 }
 
 int main(void) {
-    uint32_t i = 3U;
-    Sample s = { .v = 2.5 };
-    float arr[2] = {2.5, 1.0};
-    Scaler scaler = { .fn = scaleFn };
-    float literal = (float)i * 2.5;
+    const uint32_t i = 3U;
+    const Sample s = { .v = 2.5 };
+    const float arr[2] = {2.5, 1.0};
+    const Scaler scaler = { .fn = scaleFn };
+    const float literal = (float)i * 2.5;
     if (literal != 7.5) {
         return 1U;
     }
-    float field = (float)i * s.v;
+    const float field = (float)i * s.v;
     if (field != 7.5) {
         return 2U;
     }
-    float element = (float)i * arr[0U];
+    const float element = (float)i * arr[0U];
     if (element != 7.5) {
         return 3U;
     }
-    float call = (float)i * half();
+    const float call = (float)i * half();
     if (call != 7.5) {
         return 4U;
     }
-    float member = Counter__scaled();
+    const float member = Counter__scaled();
     if (member != 7.5) {
         return 5U;
     }
-    float callback = (float)i * scaler.fn();
+    const float callback = (float)i * scaler.fn();
     if (callback != 7.5) {
         return 6U;
     }
@@ -73,15 +72,15 @@ int main(void) {
     if (compound != 7.5) {
         return 7U;
     }
-    float macro = (float)i * SCALE_F;
+    const float macro = (float)i * SCALE_F;
     if (macro != 7.5) {
         return 8U;
     }
-    float macroFirst = SCALE_F * (float)i;
+    const float macroFirst = SCALE_F * (float)i;
     if (macroFirst != 7.5) {
         return 9U;
     }
-    double macroExpr = (double)i * SCALE_D;
+    const double macroExpr = (double)i * SCALE_D;
     if (macroExpr != 7.5) {
         return 10U;
     }

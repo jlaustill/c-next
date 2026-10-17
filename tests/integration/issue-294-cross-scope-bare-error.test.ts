@@ -30,7 +30,7 @@ const __dirname = dirname(__filename);
 // First file: defines a scope with a public function
 const providerSource = `
 scope j1939_decode {
-    public u16 getSpn(const u8 data[8]) {
+    public u16 getSpn(u8 data[8]) {
         return 100;
     }
 }
@@ -42,7 +42,7 @@ const consumerSource = `
 #include <j1939_decode.cnx>
 
 scope j1939_bus {
-    public void handleMessage(const u8 data[8]) {
+    public void handleMessage(u8 data[8]) {
         // BUG: This bare scope access should error but doesn't when scope is in included file
         u16 spn <- j1939_decode.getSpn(data);
     }

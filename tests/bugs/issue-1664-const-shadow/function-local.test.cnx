@@ -3,16 +3,16 @@
 // `const N <- 2`; `second()` sizes an array by the GLOBAL `N`, 8. The render
 // walk wrote the local into one flat map and never restored the global, so
 // `second()` emitted `uint8_t buf[2]` and wrote past it.
-const u32 N <- 8;
+u32 N <- 8;
 
 u32 first() {
-    const u32 N <- 2;
+    u32 N <- 2;
     u32 x <- N;
     return x;
 }
 
 u32 second() {
-    u8[N] buf;
+    mut u8[N] buf;
     buf[7] <- 7;
     u32 n <- buf.type_element_count;
     u32 last <- buf[7];

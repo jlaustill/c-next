@@ -10,7 +10,7 @@ struct Point2D {
 
 scope PointManager {
     // Variable of global struct type
-    global.Point2D point;
+    mut global.Point2D point;
 
     public void setPoint(i32 px, i32 py) {
         this.point.x <- px;

@@ -23,9 +23,9 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Coverage: Section 7.1, 33.2 - Nested if statements
 // Tests: if statements nested inside other if statements
 int main(void) {
-    uint32_t a = 10U;
-    uint32_t b = 20U;
-    uint32_t c = 30U;
+    const uint32_t a = 10U;
+    const uint32_t b = 20U;
+    const uint32_t c = 30U;
     uint32_t result = 0U;
     if (a < b) {
         if (b < c) {

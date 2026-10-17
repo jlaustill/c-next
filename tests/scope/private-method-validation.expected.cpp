@@ -39,11 +39,11 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 // Tests: private calling private, private accessing this., private accessing global.
 // Note: Avoids passing computed expressions to functions (transpiler generates pointer params)
 // Global variables for private method global. access testing
-uint32_t globalCounter = 100U;
+extern const uint32_t globalCounter = 100U;
 
-bool globalFlag = true;
+extern const bool globalFlag = true;
 
-int32_t globalOffset = -50;
+extern const int32_t globalOffset = -50;
 
 /* Scope: PrivateMethods */
 static uint32_t PrivateMethods__privateState = 0U;
@@ -104,7 +104,7 @@ void PrivateMethods__performPrivateChain(void) {
     PrivateMethods__privateFlag = !PrivateMethods__privateFlag;
 }
 
-void PrivateMethods__addValue(int32_t amount) {
+void PrivateMethods__addValue(const int32_t amount) {
     PrivateMethods__privateAccumulator = cnx_clamp_add_i32(PrivateMethods__privateAccumulator, amount);
     PrivateMethods__incrementCallCount();
 }
@@ -113,7 +113,7 @@ uint32_t PrivateMethods__exposePrivateState(void) {
     return PrivateMethods__getPrivateState();
 }
 
-void PrivateMethods__setPrivateState(uint32_t val) {
+void PrivateMethods__setPrivateState(const uint32_t val) {
     PrivateMethods__privateState = val;
 }
 
@@ -121,7 +121,7 @@ bool PrivateMethods__exposePrivateFlag(void) {
     return PrivateMethods__getPrivateFlag();
 }
 
-void PrivateMethods__setPrivateFlag(bool val) {
+void PrivateMethods__setPrivateFlag(const bool val) {
     PrivateMethods__privateFlag = val;
 }
 
@@ -129,7 +129,7 @@ int32_t PrivateMethods__exposePrivateAccumulator(void) {
     return PrivateMethods__getPrivateAccumulator();
 }
 
-void PrivateMethods__addToAccumulator(int32_t val) {
+void PrivateMethods__addToAccumulator(const int32_t val) {
     PrivateMethods__addValue(val);
 }
 
@@ -196,11 +196,11 @@ int main(void) {
     if (resultAccum != 70) {
         return 7U;
     }
-    uint32_t resultCounter = PrivateMethods__exposeGlobalCounter();
+    const uint32_t resultCounter = PrivateMethods__exposeGlobalCounter();
     if (resultCounter != 100) {
         return 8U;
     }
-    uint32_t resultCombined = PrivateMethods__exposeCombinedStateAndGlobal();
+    const uint32_t resultCombined = PrivateMethods__exposeCombinedStateAndGlobal();
     if (resultCombined != 142) {
         return 9U;
     }
@@ -213,7 +213,7 @@ int main(void) {
     if (resultBothFlags != false) {
         return 11U;
     }
-    uint32_t resultHelper = PrivateMethods__exposeStateViaHelper();
+    const uint32_t resultHelper = PrivateMethods__exposeStateViaHelper();
     if (resultHelper != 42) {
         return 12U;
     }

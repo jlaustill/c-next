@@ -4,14 +4,14 @@
 
 #include "external-config.h"
 
-void configureSerial(ExternalSerialConfig cfg) {
+void configureSerial(mut ExternalSerialConfig cfg) {
     cfg.baudRate <- 115200;
     cfg.dataBits <- 8;
     cfg.stopBits <- 1;
     cfg.parityEnabled <- false;
 }
 
-void configureI2C(ExternalI2CConfig cfg) {
+void configureI2C(mut ExternalI2CConfig cfg) {
     cfg.address <- 0x50;
     cfg.channel <- 1;
     cfg.enabled <- true;
@@ -22,10 +22,10 @@ u32 readBaudRate(ExternalSerialConfig cfg) {
 }
 
 void main() {
-    ExternalSerialConfig serial;
+    mut ExternalSerialConfig serial;
     configureSerial(serial);
 
-    ExternalI2CConfig i2c;
+    mut ExternalI2CConfig i2c;
     configureI2C(i2c);
 
     u32 baud <- readBaudRate(serial);

@@ -26,16 +26,16 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 // controlling expression (Issue #1183, sibling of #1145).
 bool a = true;
 
-bool b = false;
+extern const bool b = false;
 
 uint8_t hits = 0U;
 
 int main(void) {
-    bool both = a && b;
-    bool either = a || b;
-    bool negated = !a;
-    bool same = (a == b);
-    bool different = (a != b);
+    const bool both = a && b;
+    const bool either = a || b;
+    const bool negated = !a;
+    const bool same = (a == b);
+    const bool different = (a != b);
     a = !a;
     if (both == false) {
         hits = cnx_clamp_add_u8(hits, 1U);

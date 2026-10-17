@@ -17,8 +17,8 @@ extern const uint64_t BIG;
 extern const uint64_t SMALL;
 
 /* Function prototypes */
-uint64_t divide(uint64_t x);
-uint64_t divideSmall(uint64_t x);
+uint64_t divide(const uint64_t x);
+uint64_t divideSmall(const uint64_t x);
 
 #ifdef __cplusplus
 }

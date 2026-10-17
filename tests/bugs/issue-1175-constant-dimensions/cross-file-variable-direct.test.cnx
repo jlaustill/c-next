@@ -5,7 +5,7 @@
 // variable declared one include away, so each dimension below is rejected where it is
 // written -- one in each context the scope-context matrix tracks.
 //
-// NEGATIVE CONTROL: `fine` names LIB_SIZE, a const from the same file, and
+// NEGATIVE CONTROL: `fine` names LIB_SIZE, a read-only binding from the same file, and
 // must stay silent.
 
 #include "var-lib.cnx"
@@ -17,13 +17,13 @@ scope Store {
     u8[libCount] slots;
 
     public void fill() {
-        u8[libCount] scratch;
+        mut u8[libCount] scratch;
         scratch[0] <- 1;
     }
 }
 
 void f() {
-    u8[libCount] local;
+    mut u8[libCount] local;
     local[0] <- 1;
 }
 

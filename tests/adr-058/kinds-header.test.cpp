@@ -37,7 +37,7 @@ int main(void) {
     if (2 != 2) {
         return 8U;
     }
-    KOdd o = {};
+    const KOdd o = {};
     if (((uint32_t)sizeof(KOdd) * 8U) != ((uint32_t)sizeof(KOdd)) * 8) {
         return 9U;
     }

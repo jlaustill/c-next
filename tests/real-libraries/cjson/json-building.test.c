@@ -5,8 +5,6 @@
 
 // test-execution
 // test-link: cjson_api.c ../../libs/cJSON/cJSON.c
-// test-target-xfail: cortex-m7 atmega328p c #1764 "from incompatible pointer type"
-// test-target-xfail: cortex-m7 atmega328p cpp #1764 "int32_t*"
 // Tests: cJSON object/array construction through ADR-061 C boundary layer
 // Issue #931: Real-world library integration tests
 #include "cjson_api.h"
@@ -16,14 +14,14 @@
 #include <string.h>
 
 int main(void) {
-    char rpmKey[33] = "rpm";
-    char samplesKey[33] = "samples";
-    int32_t samples[3] = {1000, 1250, 1500};
+    const char rpmKey[33] = "rpm";
+    const char samplesKey[33] = "samples";
+    const int32_t samples[3] = {1000, 1250, 1500};
     cJSON* root = cnext_cjson_create_object();
     cJSON* rpm = cnext_cjson_create_number(1250.0);
     cJSON* sampleArray = cnext_cjson_create_int_array(samples, 3);
-    bool addedRpm = cnext_cjson_add_item_to_object(root, rpmKey, rpm) != 0;
-    bool addedSamples = cnext_cjson_add_item_to_object(root, samplesKey, sampleArray) != 0;
+    const bool addedRpm = cnext_cjson_add_item_to_object(root, rpmKey, rpm) != 0;
+    const bool addedSamples = cnext_cjson_add_item_to_object(root, samplesKey, sampleArray) != 0;
     if (addedRpm == false) {
         cnext_cjson_delete(root);
         return 1U;
@@ -32,27 +30,27 @@ int main(void) {
         cnext_cjson_delete(root);
         return 2U;
     }
-    cJSON* savedRpm = cnext_cjson_get_object_item(root, rpmKey);
-    int32_t savedRpmValue = cnext_cjson_get_valueint(savedRpm);
+    const cJSON* savedRpm = cnext_cjson_get_object_item(root, rpmKey);
+    const int32_t savedRpmValue = cnext_cjson_get_valueint(savedRpm);
     if (savedRpmValue != 1250) {
         cnext_cjson_delete(root);
         return 3U;
     }
-    cJSON* savedSamples = cnext_cjson_get_object_item(root, samplesKey);
-    int32_t sampleCount = cnext_cjson_get_array_size(savedSamples);
+    const cJSON* savedSamples = cnext_cjson_get_object_item(root, samplesKey);
+    const int32_t sampleCount = cnext_cjson_get_array_size(savedSamples);
     if (sampleCount != 3) {
         cnext_cjson_delete(root);
         return 4U;
     }
-    cJSON* finalSample = cnext_cjson_get_array_item(savedSamples, 2);
-    int32_t finalValue = cnext_cjson_get_valueint(finalSample);
+    const cJSON* finalSample = cnext_cjson_get_array_item(savedSamples, 2);
+    const int32_t finalValue = cnext_cjson_get_valueint(finalSample);
     if (finalValue != 1500) {
         cnext_cjson_delete(root);
         return 5U;
     }
     char* jsonText = cnext_cjson_print_unformatted(root);
-    char expectedJson[65] = "{\"rpm\":1250,\"samples\":[1000,1250,1500]}";
-    bool jsonMatches = cnext_cjson_string_equals(jsonText, expectedJson) != 0;
+    const char expectedJson[65] = "{\"rpm\":1250,\"samples\":[1000,1250,1500]}";
+    const bool jsonMatches = cnext_cjson_string_equals(jsonText, expectedJson) != 0;
     if (jsonMatches == false) {
         cnext_cjson_free_string(jsonText);
         cnext_cjson_delete(root);

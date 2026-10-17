@@ -1,0 +1,47 @@
+// test-execution
+// test-adr: 071
+// A function that fills a callback slot keeps its `mut` parameters with no
+// E0899, though it never writes them, wherever the slot is filled: a global
+// initializer, a struct literal (global or local), a call argument in an
+// initializer, and an array-of-callbacks field's type.
+void onTick(mut u32 v) {}
+void onTock(mut u32 v) {}
+void myTick(mut u32 v) {
+    v <- v + 1;
+}
+void myTick2(mut u32 v) {}
+void myTick3(mut u32 v) {}
+void myTick4(mut u32 v) {}
+
+struct Handler {
+    onTick tick;
+}
+
+struct Timers {
+    onTock[2] handlers;
+}
+
+bool reg(onTick t) {
+    mut u32 seen <- 0;
+    t(seen);
+    return seen = 0;
+}
+
+onTick gTick <- myTick;
+Handler gh <- { tick: myTick2 };
+
+u32 main() {
+    Handler lh <- { tick: myTick3 };
+    bool ok <- reg(myTick4);
+    mut u32 x <- 0;
+    gTick(x);
+    gh.tick(x);
+    lh.tick(x);
+    if (x != 1) {
+        return 1;
+    }
+    if (ok != true) {
+        return 2;
+    }
+    return 0;
+}

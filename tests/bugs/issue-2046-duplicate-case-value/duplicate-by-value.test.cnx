@@ -10,13 +10,13 @@
 // `distinct`, two consts with two values, stays silent.
 #include "dup_macro.h"
 
-const u8 REAL <- 1;
-const u8 ONE <- 1;
-const u8 CH <- 'A';
-const u8 VIA_MACRO <- HDR_K;
+u8 REAL <- 1;
+u8 ONE <- 1;
+u8 CH <- 'A';
+u8 VIA_MACRO <- HDR_K;
 
 scope Panel {
-    const u8 LIMIT <- 3;
+    u8 LIMIT <- 3;
 
     public u32 literal(u8 s) {
         switch (s) {

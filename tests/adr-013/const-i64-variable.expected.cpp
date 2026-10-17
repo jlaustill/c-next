@@ -32,26 +32,26 @@ extern const int64_t MAX_TIMESTAMP = 2147483647;
 extern const int64_t EPOCH = 0;
 
 int main(void) {
-    int64_t minTs = MIN_TIMESTAMP;
+    const int64_t minTs = MIN_TIMESTAMP;
     if (minTs != (int32_t)INT32_MIN) {
         return 1U;
     }
-    int64_t maxTs = MAX_TIMESTAMP;
+    const int64_t maxTs = MAX_TIMESTAMP;
     if (maxTs != 2147483647) {
         return 2U;
     }
-    int64_t epoch = EPOCH;
+    const int64_t epoch = EPOCH;
     if (epoch != 0) {
         return 3U;
     }
-    int64_t range = cnx_clamp_sub_i64(MAX_TIMESTAMP, MIN_TIMESTAMP);
+    const int64_t range = cnx_clamp_sub_i64(MAX_TIMESTAMP, MIN_TIMESTAMP);
     if (range != 4294967295) {
         return 4U;
     }
     if (MIN_TIMESTAMP >= EPOCH) {
         return 5U;
     }
-    int64_t timestamp = 1000000;
+    const int64_t timestamp = 1000000;
     if (timestamp < MIN_TIMESTAMP) {
         return 6U;
     }

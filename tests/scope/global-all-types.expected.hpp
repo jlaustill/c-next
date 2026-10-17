@@ -15,13 +15,13 @@ extern "C" {
 
 /* External variables */
 extern uint8_t globalU8;
-extern uint16_t globalU16;
-extern uint32_t globalU32;
-extern uint64_t globalU64;
-extern int8_t globalI8;
-extern int16_t globalI16;
-extern int32_t globalI32;
-extern int64_t globalI64;
+extern const uint16_t globalU16;
+extern const uint32_t globalU32;
+extern const uint64_t globalU64;
+extern const int8_t globalI8;
+extern const int16_t globalI16;
+extern const int32_t globalI32;
+extern const int64_t globalI64;
 extern float globalF32;
 extern double globalF64;
 extern bool globalBool;
@@ -38,10 +38,10 @@ int64_t GlobalAccessTest__getGlobalI64(void);
 float GlobalAccessTest__getGlobalF32(void);
 double GlobalAccessTest__getGlobalF64(void);
 bool GlobalAccessTest__getGlobalBool(void);
-void GlobalAccessTest__setGlobalU8(uint8_t val);
-void GlobalAccessTest__setGlobalBool(bool val);
-void GlobalAccessTest__setGlobalF32(float val);
-void GlobalAccessTest__setGlobalF64(double val);
+void GlobalAccessTest__setGlobalU8(const uint8_t val);
+void GlobalAccessTest__setGlobalBool(const bool val);
+void GlobalAccessTest__setGlobalF32(const float val);
+void GlobalAccessTest__setGlobalF64(const double val);
 
 #ifdef __cplusplus
 }

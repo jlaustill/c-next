@@ -16,20 +16,20 @@
 // Unsigned integer globals
 uint8_t globalU8 = 255U;
 
-uint16_t globalU16 = 65535U;
+const uint16_t globalU16 = 65535U;
 
-uint32_t globalU32 = 4294967295U;
+const uint32_t globalU32 = 4294967295U;
 
-uint64_t globalU64 = 18446744073709551615ULL;
+const uint64_t globalU64 = 18446744073709551615ULL;
 
 // Signed integer globals
-int8_t globalI8 = -128;
+const int8_t globalI8 = -128;
 
-int16_t globalI16 = -32768;
+const int16_t globalI16 = -32768;
 
-int32_t globalI32 = (int32_t)INT32_MIN;
+const int32_t globalI32 = (int32_t)INT32_MIN;
 
-int64_t globalI64 = (int64_t)INT64_MIN;
+const int64_t globalI64 = (int64_t)INT64_MIN;
 
 // Floating point globals
 float globalF32 = 3.14;
@@ -85,80 +85,80 @@ bool GlobalAccessTest__getGlobalBool(void) {
     return globalBool;
 }
 
-void GlobalAccessTest__setGlobalU8(uint8_t val) {
+void GlobalAccessTest__setGlobalU8(const uint8_t val) {
     globalU8 = val;
 }
 
-void GlobalAccessTest__setGlobalBool(bool val) {
+void GlobalAccessTest__setGlobalBool(const bool val) {
     globalBool = val;
 }
 
-void GlobalAccessTest__setGlobalF32(float val) {
+void GlobalAccessTest__setGlobalF32(const float val) {
     globalF32 = val;
 }
 
-void GlobalAccessTest__setGlobalF64(double val) {
+void GlobalAccessTest__setGlobalF64(const double val) {
     globalF64 = val;
 }
 
 int main(void) {
-    uint8_t resultU8 = GlobalAccessTest__getGlobalU8();
+    const uint8_t resultU8 = GlobalAccessTest__getGlobalU8();
     if (resultU8 != 255) {
         return 1;
     }
-    uint16_t resultU16 = GlobalAccessTest__getGlobalU16();
+    const uint16_t resultU16 = GlobalAccessTest__getGlobalU16();
     if (resultU16 != 65535) {
         return 2;
     }
-    uint32_t resultU32 = GlobalAccessTest__getGlobalU32();
+    const uint32_t resultU32 = GlobalAccessTest__getGlobalU32();
     if (resultU32 != 4294967295) {
         return 3;
     }
-    uint64_t resultU64 = GlobalAccessTest__getGlobalU64();
+    const uint64_t resultU64 = GlobalAccessTest__getGlobalU64();
     if (resultU64 != 18446744073709551615) {
         return 4;
     }
-    int8_t resultI8 = GlobalAccessTest__getGlobalI8();
+    const int8_t resultI8 = GlobalAccessTest__getGlobalI8();
     if (resultI8 != -128) {
         return 5;
     }
-    int16_t resultI16 = GlobalAccessTest__getGlobalI16();
+    const int16_t resultI16 = GlobalAccessTest__getGlobalI16();
     if (resultI16 != -32768) {
         return 6;
     }
-    int32_t resultI32 = GlobalAccessTest__getGlobalI32();
+    const int32_t resultI32 = GlobalAccessTest__getGlobalI32();
     if (resultI32 != (int32_t)INT32_MIN) {
         return 7;
     }
-    int64_t resultI64 = GlobalAccessTest__getGlobalI64();
+    const int64_t resultI64 = GlobalAccessTest__getGlobalI64();
     if (resultI64 != (int64_t)INT64_MIN) {
         return 8;
     }
-    float testF32 = 99.5;
+    const float testF32 = 99.5;
     GlobalAccessTest__setGlobalF32(testF32);
-    float resultF32 = GlobalAccessTest__getGlobalF32();
+    const float resultF32 = GlobalAccessTest__getGlobalF32();
     if (resultF32 != testF32) {
         return 9;
     }
-    double testF64 = 123.456789012345;
+    const double testF64 = 123.456789012345;
     GlobalAccessTest__setGlobalF64(testF64);
-    double resultF64 = GlobalAccessTest__getGlobalF64();
+    const double resultF64 = GlobalAccessTest__getGlobalF64();
     if (resultF64 != testF64) {
         return 10;
     }
-    bool resultBool = GlobalAccessTest__getGlobalBool();
+    const bool resultBool = GlobalAccessTest__getGlobalBool();
     if (resultBool != true) {
         return 11;
     }
-    uint8_t newU8Value = 100U;
+    const uint8_t newU8Value = 100U;
     GlobalAccessTest__setGlobalU8(newU8Value);
-    uint8_t resultU8_2 = GlobalAccessTest__getGlobalU8();
+    const uint8_t resultU8_2 = GlobalAccessTest__getGlobalU8();
     if (resultU8_2 != 100) {
         return 12;
     }
-    bool newBoolValue = false;
+    const bool newBoolValue = false;
     GlobalAccessTest__setGlobalBool(newBoolValue);
-    bool resultBool2 = GlobalAccessTest__getGlobalBool();
+    const bool resultBool2 = GlobalAccessTest__getGlobalBool();
     if (resultBool2 != false) {
         return 13;
     }

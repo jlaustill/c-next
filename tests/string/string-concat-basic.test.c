@@ -9,8 +9,8 @@
 
 // ADR-045: Test basic string concatenation
 void test(void) {
-    char first[33] = "Hello";
-    char second[33] = " World";
+    const char first[33] = "Hello";
+    const char second[33] = " World";
     char result[65] = "";
     (void) strncpy(result, first, 64);
     (void) strncat(result, second, 64 - strlen(result));

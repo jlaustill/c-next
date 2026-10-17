@@ -34,12 +34,12 @@ uint32_t getFortyTwo(void) {
 }
 
 // Function with parameters
-uint32_t add(uint32_t a, uint32_t b) {
+uint32_t add(const uint32_t a, const uint32_t b) {
     return cnx_clamp_add_u32(a, b);
 }
 
 // Function with multiple parameters
-uint32_t multiply(uint32_t x, uint32_t y) {
+uint32_t multiply(const uint32_t x, const uint32_t y) {
     return cnx_clamp_mul_u32(x, y);
 }
 
@@ -51,8 +51,8 @@ void incrementCounter(void) {
 }
 
 // Function calling another function
-uint32_t addThenDouble(uint32_t a, uint32_t b) {
-    uint32_t sum = add(a, b);
+uint32_t addThenDouble(const uint32_t a, const uint32_t b) {
+    const uint32_t sum = add(a, b);
     return multiply(sum, 2U);
 }
 

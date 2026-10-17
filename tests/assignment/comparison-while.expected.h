@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint32_t sumUntilLimit(uint32_t limit);
+uint32_t sumUntilLimit(const uint32_t limit);
 
 #ifdef __cplusplus
 }

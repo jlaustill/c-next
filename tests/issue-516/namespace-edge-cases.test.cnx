@@ -6,15 +6,15 @@
 #include "CppNamespace.hpp"
 
 // Global variable with namespace type
-SeaDash.Parse.ParseResult globalResult;
+mut SeaDash.Parse.ParseResult globalResult;
 
 scope EdgeCases {
     // Scope member with namespace type
-    SeaDash.Config scopeConfig;
+    mut SeaDash.Config scopeConfig;
 
     public void testAssignmentTarget() {
         // Test: Assignment target (left side) with namespace type
-        SeaDash.Parse.ParseResult result;
+        mut SeaDash.Parse.ParseResult result;
         result <- SeaDash.Parse.parse("test", ',');
     }
 

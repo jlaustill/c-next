@@ -3,8 +3,8 @@
 // Tests: Variable initialization inside loops
 u32 main() {
     // Variable declared and initialized in for loop init
-    u32 sum <- 0;
-    for (u32 i <- 0; i < 5; i <- i + 1) {
+    mut u32 sum <- 0;
+    for (mut u32 i <- 0; i < 5; i <- i + 1) {
         sum <- sum + i;
     }
     if (sum != 10) {
@@ -12,7 +12,7 @@ u32 main() {
     }
 
     // Variable initialized before while, used after
-    u32 count <- 0;
+    mut u32 count <- 0;
     while (count < 3) {
         u32 temp <- count * 2; // Local init in loop body
         sum <- sum + temp;
@@ -23,9 +23,9 @@ u32 main() {
     }
 
     // Nested loop with inner init
-    u32 product <- 1;
-    for (u32 i <- 1; i <= 3; i <- i + 1) {
-        for (u32 j <- 1; j <= 2; j <- j + 1) {
+    mut u32 product <- 1;
+    for (mut u32 i <- 1; i <= 3; i <- i + 1) {
+        for (mut u32 j <- 1; j <= 2; j <- j + 1) {
             u32 factor <- i * j;
             product <- product * factor;
         }
@@ -37,7 +37,7 @@ u32 main() {
     }
 
     // Re-init same variable in different iterations
-    for (u32 i <- 0; i < 3; i <- i + 1) {
+    for (mut u32 i <- 0; i < 3; i <- i + 1) {
         u32 value <- i * 10;
         sum <- sum + value; // 0 + 10 + 20 = 30
     }

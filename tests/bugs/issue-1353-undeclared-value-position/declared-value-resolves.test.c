@@ -17,7 +17,7 @@
 #include <stdint.h>
 
 int main(void) {
-    uint32_t borrowedProperly = REACHABLE_LIMIT;
+    const uint32_t borrowedProperly = REACHABLE_LIMIT;
     if (borrowedProperly != 99) {
         return 1U;
     }

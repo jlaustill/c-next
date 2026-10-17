@@ -1,0 +1,2 @@
+const u32 LIB_DIRECT <- 1;
+u32 LIB_OK <- 2;

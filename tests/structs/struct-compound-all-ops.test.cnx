@@ -15,7 +15,7 @@ scope CompoundOps {
     }
 }
 
-CompoundOps.Data d;
+mut CompoundOps.Data d;
 
 i32 main() {
     // Initialize struct members

@@ -10,7 +10,7 @@
 void test() {
     // ExternalCppType is NOT in the symbol table
     // but will be available at compile time
-    ExternalCppType value;
+    mut ExternalCppType value;
     value.code <- 42;
 }
 

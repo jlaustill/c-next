@@ -42,8 +42,8 @@ int main(void) {
         }
         y = cnx_clamp_add_u32(y, 1U);
     }
-    uint32_t testY = 2U;
-    uint32_t testX = 3U;
+    const uint32_t testY = 2U;
+    const uint32_t testX = 3U;
     if (image[testY][testX].r != 128) {
         return 1U;
     }
@@ -71,13 +71,13 @@ int main(void) {
     if (image[3U][3U].b != 192) {
         return 9U;
     }
-    uint32_t baseRow = 1U;
-    uint32_t offset = 1U;
+    const uint32_t baseRow = 1U;
+    const uint32_t offset = 1U;
     if (image[cnx_clamp_add_u32(baseRow, offset)][offset].r != 128) {
         return 10U;
     }
-    uint32_t targetRow = 2U;
-    uint32_t targetCol = 2U;
+    const uint32_t targetRow = 2U;
+    const uint32_t targetCol = 2U;
     image[targetRow][targetCol].r = 255U;
     image[targetRow][targetCol].g = 255U;
     image[targetRow][targetCol].b = 255U;

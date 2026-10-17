@@ -13,10 +13,10 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void setElement(uint32_t arr[10], uint32_t index, uint32_t value);
-uint32_t sumArray(uint32_t arr[5], uint32_t count);
-void zeroArray(uint32_t arr[8], uint32_t count);
-void copyArray(uint32_t src[4], uint32_t dst[4], uint32_t count);
+void setElement(uint32_t arr[10], const uint32_t index, const uint32_t value);
+uint32_t sumArray(const uint32_t arr[5], const uint32_t count);
+void zeroArray(uint32_t arr[8], const uint32_t count);
+void copyArray(const uint32_t src[4], uint32_t dst[4], const uint32_t count);
 
 #ifdef __cplusplus
 }

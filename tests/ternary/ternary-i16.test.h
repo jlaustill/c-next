@@ -13,9 +13,9 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-int16_t getMax(int16_t a, int16_t b);
-int16_t getMin(int16_t a, int16_t b);
-int16_t getAbs(int16_t x);
+int16_t getMax(const int16_t a, const int16_t b);
+int16_t getMin(const int16_t a, const int16_t b);
+int16_t getAbs(const int16_t x);
 
 #ifdef __cplusplus
 }

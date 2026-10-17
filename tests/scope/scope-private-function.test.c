@@ -25,36 +25,36 @@ static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
 // ADR-016: Functions are public by default, use 'private' keyword for internal helpers
 /* Scope: Calculator */
 
-static uint32_t Calculator__square(uint32_t n) {
+static uint32_t Calculator__square(const uint32_t n) {
     return cnx_clamp_mul_u32(n, n);
 }
 
-static uint32_t Calculator__cube(uint32_t n) {
+static uint32_t Calculator__cube(const uint32_t n) {
     return cnx_clamp_mul_u32(n, Calculator__square(n));
 }
 
-uint32_t Calculator__computeSquare(uint32_t n) {
+uint32_t Calculator__computeSquare(const uint32_t n) {
     return Calculator__square(n);
 }
 
-uint32_t Calculator__computeCube(uint32_t n) {
+uint32_t Calculator__computeCube(const uint32_t n) {
     return Calculator__cube(n);
 }
 
-uint32_t Calculator__sumOfSquareAndCube(uint32_t n) {
+uint32_t Calculator__sumOfSquareAndCube(const uint32_t n) {
     return Calculator__square(n) + Calculator__cube(n);
 }
 
 int main(void) {
-    uint32_t result1 = Calculator__computeSquare(5U);
+    const uint32_t result1 = Calculator__computeSquare(5U);
     if (result1 != 25) {
         return 1U;
     }
-    uint32_t result2 = Calculator__computeCube(3U);
+    const uint32_t result2 = Calculator__computeCube(3U);
     if (result2 != 27) {
         return 2U;
     }
-    uint32_t result3 = Calculator__sumOfSquareAndCube(2U);
+    const uint32_t result3 = Calculator__sumOfSquareAndCube(2U);
     if (result3 != 12) {
         return 3U;
     }

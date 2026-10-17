@@ -16,7 +16,7 @@ scope PtrCast {
     }
 }
 
-void modifyData(PtrCast.Data d) {
+void modifyData(mut PtrCast.Data d) {
     d.value <- 999;
     d.flags <- 0xFF;
 }
@@ -26,14 +26,14 @@ PtrCast.Data createData(u32 val, u8 flg) {
     return result;
 }
 
-void updateContainer(PtrCast.Container c, u32 newCount) {
+void updateContainer(mut PtrCast.Container c, u32 newCount) {
     c.count <- newCount;
     c.inner.value <- newCount * 10;
 }
 
 u32 main() {
     // Test struct parameter passing
-    PtrCast.Data d <- { value: 100, flags: 0x0F };
+    mut PtrCast.Data d <- { value: 100, flags: 0x0F };
     modifyData(d);
     if (d.value != 999) {
         return 1;
@@ -52,7 +52,7 @@ u32 main() {
     }
 
     // Test nested struct access
-    PtrCast.Container c <- { inner: { value: 0, flags: 0 }, count: 0 };
+    mut PtrCast.Container c <- { inner: { value: 0, flags: 0 }, count: 0 };
     updateContainer(c, 5);
     if (c.count != 5) {
         return 5;

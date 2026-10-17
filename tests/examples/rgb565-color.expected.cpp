@@ -24,10 +24,10 @@
 // C-Next syntax:  pixel[start, width]
 // Meaning:        "width bits starting at bit position start"
 int main(void) {
-    uint16_t pixel = 0x7BEFU;
-    uint8_t red = static_cast<uint8_t>(((pixel >> 11U) & 0x1FU));
-    uint8_t green = static_cast<uint8_t>(((pixel >> 5U) & 0x3FU));
-    uint8_t blue = static_cast<uint8_t>(((pixel) & 0x1FU));
+    const uint16_t pixel = 0x7BEFU;
+    const uint8_t red = static_cast<uint8_t>(((pixel >> 11U) & 0x1FU));
+    const uint8_t green = static_cast<uint8_t>(((pixel >> 5U) & 0x3FU));
+    const uint8_t blue = static_cast<uint8_t>(((pixel) & 0x1FU));
     if (red != 15) {
         return 1U;
     }
@@ -37,7 +37,7 @@ int main(void) {
     if (blue != 15) {
         return 3U;
     }
-    uint16_t pureRed = 0xF800U;
+    const uint16_t pureRed = 0xF800U;
     if (((pureRed >> 11U) & 0x1FU) != 31) {
         return 4U;
     }
@@ -47,7 +47,7 @@ int main(void) {
     if (((pureRed) & 0x1FU) != 0) {
         return 6U;
     }
-    uint16_t pureGreen = 0x07E0U;
+    const uint16_t pureGreen = 0x07E0U;
     if (((pureGreen >> 11U) & 0x1FU) != 0) {
         return 7U;
     }
@@ -57,7 +57,7 @@ int main(void) {
     if (((pureGreen) & 0x1FU) != 0) {
         return 9U;
     }
-    uint16_t pureBlue = 0x001FU;
+    const uint16_t pureBlue = 0x001FU;
     if (((pureBlue >> 11U) & 0x1FU) != 0) {
         return 10U;
     }

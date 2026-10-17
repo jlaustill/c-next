@@ -24,14 +24,14 @@
 //
 // The scope case additionally depends on #1472: before that fix the analyzer
 // refused the call through `handler` with E0422.
-u32 total <- 0;
+mut u32 total <- 0;
 
 void onTick(u32 ms) {
     total <- total + ms;
 }
 
 scope Motor {
-    public u32 ticks <- 0;
+    public mut u32 ticks <- 0;
 
     public void onBeat(u32 n) {
         this.ticks <- this.ticks + n;

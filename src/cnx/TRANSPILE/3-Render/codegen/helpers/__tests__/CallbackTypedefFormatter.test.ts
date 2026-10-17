@@ -27,6 +27,13 @@ describe("CallbackTypedefFormatter", () => {
       );
     });
 
+    it("keeps const on a read-only primitive, as its prototype does (ADR-071)", () => {
+      const params = [{ type: "uint32_t", isStruct: false, isConst: true }];
+      expect(CallbackTypedefFormatter.formatParameterList(params, false)).toBe(
+        "const uint32_t",
+      );
+    });
+
     it("gives a struct pointer semantics in C (ADR-006)", () => {
       const params = [{ type: "Message", isStruct: true }];
       expect(CallbackTypedefFormatter.formatParameterList(params, false)).toBe(

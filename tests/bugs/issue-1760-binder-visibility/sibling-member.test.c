@@ -15,11 +15,11 @@
 #include <stdint.h>
 
 int main(void) {
-    uint32_t fromGlobal = S__sized();
+    const uint32_t fromGlobal = S__sized();
     if (fromGlobal != 7) {
         return 1U;
     }
-    uint32_t fromMember = S__count();
+    const uint32_t fromMember = S__count();
     if (fromMember != 2) {
         return 2U;
     }

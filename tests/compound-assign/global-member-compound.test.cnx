@@ -4,9 +4,9 @@
 // Validates: Compound operators -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><- on global members from within scope
 // Note: +<- is already tested in scope/global-compound-assign.test.cnx
 // Global variables accessed via global.* from within scope
-i32 gValue <- 0;
+mut i32 gValue <- 0;
 
-u32 gBits <- 0;
+mut u32 gBits <- 0;
 
 scope Worker {
     // ===== SUBTRACTION (-<-) =====
@@ -204,7 +204,7 @@ scope Worker {
 }
 
 u32 main() {
-    i32 result <- 0;
+    mut i32 result <- 0;
 
     result <- Worker.testSubtraction();
     if (result != 0) {

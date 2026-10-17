@@ -26,7 +26,7 @@ typedef struct Palette {
 } Palette;
 
 /* External variables */
-extern uint8_t globalSlots[3];
+extern const uint8_t globalSlots[3];
 
 #ifdef __cplusplus
 }

@@ -1,7 +1,7 @@
 // test-execution
 // Issue #139: Test local string variable reassignment in function body
 u32 main() {
-    string<32> local <- "Initial";
+    mut string<32> local <- "Initial";
     if (local.value_char_count != 7) {
         return 1;
     }

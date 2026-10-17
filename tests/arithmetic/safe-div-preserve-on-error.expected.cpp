@@ -24,16 +24,16 @@ static inline bool cnx_safe_div_u32(uint32_t* output, uint32_t numerator, uint32
 // Example: speed <- distance / time (if time is zero, speed shouldn't change)
 void testPreserveSpeedOnZeroTime(void) {
     uint32_t speed = 60U;
-    uint32_t distance = 120U;
-    uint32_t time = 0U;
+    const uint32_t distance = 120U;
+    const uint32_t time = 0U;
     bool err = false;
     err = cnx_safe_div_u32(&speed, distance, time, speed);
 }
 
 void testPreserveMultipleValues(void) {
     uint32_t avgTemp = 72U;
-    uint32_t totalTemp = 500U;
-    uint32_t sampleCount = 0U;
+    const uint32_t totalTemp = 500U;
+    const uint32_t sampleCount = 0U;
     bool err = false;
     err = cnx_safe_div_u32(&avgTemp, totalTemp, sampleCount, avgTemp);
 }

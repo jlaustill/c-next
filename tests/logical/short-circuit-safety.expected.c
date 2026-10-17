@@ -32,11 +32,11 @@ uint32_t accessCount = 0U;
 
 uint32_t dangerousValue = 0U;
 
-bool isIndexSafe(uint32_t index) {
+bool isIndexSafe(const uint32_t index) {
     return index < 5;
 }
 
-uint32_t performDangerousOperation(uint32_t index) {
+uint32_t performDangerousOperation(const uint32_t index) {
     accessCount = cnx_clamp_add_u32(accessCount, 1U);
     dangerousValue = cnx_clamp_mul_u32(index, 2U);
     return dangerousValue;
@@ -44,18 +44,18 @@ uint32_t performDangerousOperation(uint32_t index) {
 
 void testSafeGuardPattern(void) {
     accessCount = 0U;
-    bool result = isIndexSafe(10U) && (performDangerousOperation(10U) > 0);
+    const bool result = isIndexSafe(10U) && (performDangerousOperation(10U) > 0);
 }
 
 void testSafeGuardPatternValid(void) {
     accessCount = 0U;
-    bool result = isIndexSafe(2U) && (performDangerousOperation(2U) >= 0);
+    const bool result = isIndexSafe(2U) && (performDangerousOperation(2U) >= 0);
 }
 
 void testOrSafetyPattern(void) {
     accessCount = 0U;
-    uint32_t invalidIndex = 100U;
-    bool shouldUseDefault = (invalidIndex >= 5) || (performDangerousOperation(invalidIndex) == 0);
+    const uint32_t invalidIndex = 100U;
+    const bool shouldUseDefault = (invalidIndex >= 5) || (performDangerousOperation(invalidIndex) == 0);
 }
 
 TStatusRegister status = {0};
@@ -63,5 +63,5 @@ TStatusRegister status = {0};
 void testNullLikeCheck(void) {
     status.enabled = 0U;
     accessCount = 0U;
-    bool shouldRead = (status.enabled != 0) && (status.value > 0);
+    const bool shouldRead = (status.enabled != 0) && (status.value > 0);
 }

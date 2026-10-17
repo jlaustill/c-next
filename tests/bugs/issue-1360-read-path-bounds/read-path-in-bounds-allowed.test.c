@@ -16,29 +16,29 @@
 //   - an in-bounds constant index, including the last valid one
 //   - a bit index on a scalar (u8 has no dimensions, so it is not an array)
 //   - a variable index, which is not a compile-time constant
-uint8_t values[4] = {10U, 20U, 30U, 40U};
+const uint8_t values[4] = {10U, 20U, 30U, 40U};
 
-uint8_t flags = 5U;
+const uint8_t flags = 5U;
 
 int main(void) {
-    uint8_t first = values[0U];
+    const uint8_t first = values[0U];
     if (first != 10) {
         return 1;
     }
-    uint8_t last = values[3U];
+    const uint8_t last = values[3U];
     if (last != 40) {
         return 2;
     }
-    uint8_t bitZero = (uint8_t)((flags) & 1);
+    const uint8_t bitZero = (uint8_t)((flags) & 1);
     if (bitZero != 1) {
         return 3;
     }
-    uint8_t bitTwo = (uint8_t)((flags >> 2U) & 1);
+    const uint8_t bitTwo = (uint8_t)((flags >> 2U) & 1);
     if (bitTwo != 1) {
         return 4;
     }
-    uint8_t index = 2U;
-    uint8_t viaVariable = values[index];
+    const uint8_t index = 2U;
+    const uint8_t viaVariable = values[index];
     if (viaVariable != 30) {
         return 5;
     }

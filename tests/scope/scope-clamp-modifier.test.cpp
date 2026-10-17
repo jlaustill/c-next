@@ -130,11 +130,11 @@ void ClampTest__resetSensor(void) {
     ClampTest__sensorValue = cnx_clamp_sub_u16(ClampTest__sensorValue, 65000U);
 }
 
-void ClampTest__setBrightness(uint8_t val) {
+void ClampTest__setBrightness(const uint8_t val) {
     ClampTest__brightness = val;
 }
 
-void ClampTest__setSensorValue(uint16_t val) {
+void ClampTest__setSensorValue(const uint16_t val) {
     ClampTest__sensorValue = val;
 }
 

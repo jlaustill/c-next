@@ -14,8 +14,14 @@ interface ICppFunctionSymbol extends ICppBaseSymbol {
   /** Function parameters */
   readonly parameters?: ReadonlyArray<ICppParameterInfo>;
 
+  /** Its parameter list ends in `...` */
+  readonly isVariadic?: boolean;
+
   /** Whether this is a declaration vs definition */
   readonly isDeclaration?: boolean;
+
+  /** A member function declared `const`, which leaves its object unwritten */
+  readonly isConstMember?: boolean;
 }
 
 export default ICppFunctionSymbol;

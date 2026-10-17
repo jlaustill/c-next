@@ -12,7 +12,7 @@
 // Tests: switch statement with negative integer literals
 int32_t result = 0;
 
-void handleValue(int8_t val) {
+void handleValue(const int8_t val) {
     switch (val) {
         case -128: {
             result = 1;
@@ -38,7 +38,7 @@ void handleValue(int8_t val) {
 }
 
 // Test negative hex literals
-void handleHex(int16_t val) {
+void handleHex(const int16_t val) {
     switch (val) {
         case -0x80: {
             result = 10;
@@ -60,11 +60,11 @@ void handleHex(int16_t val) {
 }
 
 int main(void) {
-    int8_t minI8 = -128;
-    int8_t negOne = -1;
-    int8_t zero = 0;
-    int8_t maxI8 = 127;
-    int8_t other = 50;
+    const int8_t minI8 = -128;
+    const int8_t negOne = -1;
+    const int8_t zero = 0;
+    const int8_t maxI8 = 127;
+    const int8_t other = 50;
     handleValue(minI8);
     if (result != 1) {
         return 1U;
@@ -85,10 +85,10 @@ int main(void) {
     if (result != 9) {
         return 5U;
     }
-    int16_t negHex80 = -128;
-    int16_t negHex01 = -1;
-    int16_t zeroHex = 0;
-    int16_t otherHex = 100;
+    const int16_t negHex80 = -128;
+    const int16_t negHex01 = -1;
+    const int16_t zeroHex = 0;
+    const int16_t otherHex = 100;
     handleHex(negHex80);
     if (result != 10) {
         return 6U;

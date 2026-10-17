@@ -36,7 +36,7 @@ void TestScope__increment(uint32_t* x) {
     (*x) = cnx_clamp_add_u32((*x), 1U);
 }
 
-uint32_t TestScope__accumulate(uint32_t* sum, uint32_t value) {
+uint32_t TestScope__accumulate(uint32_t* sum, const uint32_t value) {
     (*sum) = cnx_clamp_add_u32((*sum), value);
     return (*sum);
 }
@@ -46,7 +46,7 @@ void TestScope__doubleIncrement(uint32_t* x) {
     (*x) = cnx_clamp_add_u32((*x), 1U);
 }
 
-void TestScope__switchIncrement(uint32_t* x, uint32_t mode) {
+void TestScope__switchIncrement(uint32_t* x, const uint32_t mode) {
     switch (mode) {
         case 1: {
             (*x) = cnx_clamp_add_u32((*x), 10U);
@@ -63,11 +63,11 @@ void TestScope__switchIncrement(uint32_t* x, uint32_t mode) {
     }
 }
 
-uint32_t TestScope__readOnly(uint32_t x) {
+uint32_t TestScope__readOnly(const uint32_t x) {
     return cnx_clamp_mul_u32(x, 2U);
 }
 
-uint32_t TestScope__mixedParams(uint32_t* counter, uint32_t multiplier) {
+uint32_t TestScope__mixedParams(uint32_t* counter, const uint32_t multiplier) {
     (*counter) = cnx_clamp_add_u32((*counter), 1U);
     return cnx_clamp_mul_u32((*counter), multiplier);
 }
@@ -79,7 +79,7 @@ int main(void) {
         return 1U;
     }
     uint32_t total = 100U;
-    uint32_t result = TestScope__accumulate(&total, 50U);
+    const uint32_t result = TestScope__accumulate(&total, 50U);
     if (total != 150) {
         return 2U;
     }
@@ -106,8 +106,8 @@ int main(void) {
     if (switchVal != 101) {
         return 7U;
     }
-    uint32_t readVal = 25U;
-    uint32_t readResult = TestScope__readOnly(readVal);
+    const uint32_t readVal = 25U;
+    const uint32_t readResult = TestScope__readOnly(readVal);
     if (readVal != 25) {
         return 8U;
     }
@@ -115,8 +115,8 @@ int main(void) {
         return 9U;
     }
     uint32_t mixedCounter = 10U;
-    uint32_t mixedMult = 3U;
-    uint32_t mixedResult = TestScope__mixedParams(&mixedCounter, mixedMult);
+    const uint32_t mixedMult = 3U;
+    const uint32_t mixedResult = TestScope__mixedParams(&mixedCounter, mixedMult);
     if (mixedCounter != 11) {
         return 10U;
     }

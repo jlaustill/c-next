@@ -2,4 +2,4 @@
 // A fold that consulted only the file it was reading would find no value for it,
 // and the dimension would reach C as the C-Next name `LIB_N`.
 
-const u32 LIB_N <- 4;
+u32 LIB_N <- 4;

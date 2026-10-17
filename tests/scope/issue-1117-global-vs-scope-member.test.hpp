@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint8_t Reg_flags;
+extern const uint8_t Reg_flags;
 
 /* Function prototypes */
 uint8_t Reg__readBare(void);

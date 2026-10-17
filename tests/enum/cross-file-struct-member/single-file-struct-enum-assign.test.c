@@ -34,13 +34,13 @@ int main(void) {
     config.items[1].assigned = MyEnum__B;
     config.items[2].assigned = MyEnum__NONE;
     config.items[3].assigned = MyEnum__A;
-    MyEnum val = config.items[0U].assigned;
+    const MyEnum val = config.items[0U].assigned;
     if (val != MyEnum__A) {
         return 1U;
     }
     uint8_t countAssigned = 0U;
     for (uint8_t i = 0U; i < COUNT; i = cnx_clamp_add_u8(i, 1U)) {
-        MyEnum current = config.items[i].assigned;
+        const MyEnum current = config.items[i].assigned;
         if (current != MyEnum__NONE) {
             countAssigned = cnx_clamp_add_u8(countAssigned, 1U);
         }

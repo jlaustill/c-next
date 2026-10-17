@@ -7,4 +7,4 @@ clamp u16 sensorValue <- 0;
 clamp u32 temperature <- 2500;
 
 // Clamp with const
-const clamp u8 MAX_BRIGHTNESS <- 255;
+clamp u8 MAX_BRIGHTNESS <- 255;

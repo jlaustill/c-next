@@ -27,4 +27,14 @@ describe("CPointerParameter (#1977)", () => {
     expect(CPointerParameter.pointsToConst(param("uint8_t*", true))).toBe(true);
     expect(CPointerParameter.pointsToConst(param("uint8_t*"))).toBe(false);
   });
+
+  it("writes through a C++ reference that is not const (#2062)", () => {
+    const ref = (isConst: boolean) => ({
+      ...param("int32_t", isConst),
+      isReference: true,
+    });
+    expect(CPointerParameter.writesThrough(ref(false))).toBe(true);
+    expect(CPointerParameter.writesThrough(ref(true))).toBe(false);
+    expect(CPointerParameter.writesThrough(param("int32_t"))).toBe(false);
+  });
 });

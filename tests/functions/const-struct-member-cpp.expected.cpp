@@ -15,7 +15,7 @@
 
 #include <stdint.h>
 
-uint32_t process(uint32_t crc, uint8_t byte) {
+uint32_t process(const uint32_t crc, const uint8_t byte) {
     return crc ^ byte;
 }
 
@@ -29,7 +29,7 @@ int main(void) {
     TestConfig cfg = {};
     cfg.value = 0x42U;
     cfg.flags = 0xFFU;
-    uint32_t result = testConstStruct(cfg);
+    const uint32_t result = testConstStruct(cfg);
     if (result != 0x42) {
         return 1U;
     }

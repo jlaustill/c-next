@@ -8,10 +8,10 @@ struct S {
     u8[4] arr;
 }
 
-S gs;
+mut S gs;
 
 u32 f() {
-    S gs <- global.gs;
+    mut S gs <- global.gs;
     gs.flags[2] <- true;
     gs.arr[1][3] <- true;
     gs.arr[2][0, 4] <- 5;

@@ -34,9 +34,9 @@ typedef uint16_t Flags16;
 typedef uint32_t Flags32;
 
 /* External variables */
-extern Flags8 global8;
-extern Flags16 global16;
-extern Flags32 global32;
+extern const Flags8 global8;
+extern const Flags16 global16;
+extern const Flags32 global32;
 
 #ifdef __cplusplus
 }

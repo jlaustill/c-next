@@ -10,7 +10,7 @@
 #include "Tally.hpp"
 
 u32 main() {
-    const u8 early <- 3;
+    u8 early <- 3;
     Tally ok(early); // control
     Tally seed(seed); // ERROR: no `seed` is defined here
     return 0;

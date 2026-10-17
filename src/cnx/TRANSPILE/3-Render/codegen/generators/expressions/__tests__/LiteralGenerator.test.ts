@@ -12,6 +12,8 @@ import { describe, it, expect, beforeEach } from "vitest";
 import generateLiteral from "../LiteralGenerator";
 import type IGeneratorState from "../../IGeneratorState";
 import TranspileState from "../../../../../TranspileState";
+import ESourceLanguage from "../../../../../../utils/types/ESourceLanguage";
+import TestSourceSpan from "../../../../../../types/__testUtils__/testSourceSpan";
 
 // #1445: generateLiteral takes the literal's text, so there is no node to
 // fake. The `as unknown as LiteralContext` cast this file used to need is gone
@@ -191,6 +193,55 @@ describe("LiteralGenerator", () => {
       const result = generateLiteral(source, generatorState, state, null);
 
       expect(result.code).toBe(expected);
+    });
+  });
+
+  describe("MISRA Rule 7.2: a header's typedef chain (#1755)", () => {
+    function typedef(name: string, type: string): void {
+      TestSymbolTable.of(state).addCSymbol({
+        name,
+        kind: "type",
+        sourceLanguage: ESourceLanguage.C,
+        sourceFile: "libc.h",
+        span: TestSourceSpan.at(1),
+        visibility: "public",
+        type,
+      });
+    }
+
+    beforeEach(() => {
+      typedef("size_t", "unsigned long");
+      typedef("uint32_t", "__uint32_t");
+      typedef("__uint32_t", "unsigned int");
+      typedef("uint64_t", "__uint64_t");
+      typedef("__uint64_t", "unsigned long long");
+      typedef("int32_t", "__int32_t");
+      typedef("__int32_t", "int");
+      typedef("byte_t", "uint8_t");
+      typedef("loop_a", "loop_b");
+      typedef("loop_b", "loop_a");
+    });
+
+    it.each([
+      ["size_t, which ends in `unsigned long`", "size_t", "0U"],
+      ["uint32_t, which ends in `unsigned int`", "uint32_t", "0U"],
+      ["uint64_t, through `__uint64_t`", "uint64_t", "0ULL"],
+      ["a project typedef of uint8_t", "byte_t", "0U"],
+      ["`unsigned long long` itself", "unsigned long long", "0U"],
+      ["GCC's `long unsigned int`", "long unsigned int", "0U"],
+      ["GCC's `short unsigned int`", "short unsigned int", "0U"],
+      ["GCC's `long long unsigned int`", "long long unsigned int", "0U"],
+      ["`unsigned`, alone", "unsigned", "0U"],
+      ["`long int`, which is signed", "long int", "0"],
+      ["`unsigned unsigned`, which is no type", "unsigned unsigned", "0"],
+      ["`unsigned float`, which is no integer", "unsigned float", "0"],
+      ["int32_t, which ends in `int`", "int32_t", "0"],
+      ["a typedef cycle", "loop_a", "0"],
+    ])("%s", (_label, expectedType, expected) => {
+      const generatorState = { expectedType } as IGeneratorState;
+      expect(generateLiteral("0", generatorState, state, null).code).toBe(
+        expected,
+      );
     });
   });
 });

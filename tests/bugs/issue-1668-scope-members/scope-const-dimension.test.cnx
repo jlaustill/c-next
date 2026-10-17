@@ -4,11 +4,11 @@
 // `cnx_clamp_add_u32(K+1, 1)`, which C cannot compile at file scope. It
 // folds against the scope's K now, so the table has 4 elements, and the
 // global K is untouched (the control).
-const u32 K <- 10;
+u32 K <- 10;
 
 scope S {
-    const u32 K <- 2;
-    const u32 N <- K + 1;
+    u32 K <- 2;
+    u32 N <- K + 1;
     public u8[N + 1] table;
 
     public u32 count() {

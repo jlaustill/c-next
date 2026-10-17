@@ -10,7 +10,7 @@ u32 lengthOf(string<8> s) {
 }
 
 i32 main() {
-    Config cfg;
+    mut Config cfg;
     cfg.name <- "remote";
     cfg.tags[1] <- "ab";
 

@@ -4,10 +4,10 @@
 
 scope ConstArrayTest {
     // Public const array - must be declared as "extern const" in header
-    public const u8 LOOKUP_TABLE[4] <- [10, 20, 30, 40];
+    public u8 LOOKUP_TABLE[4] <- [10, 20, 30, 40];
 
     // Public const scalar for comparison
-    public const u8 TABLE_SIZE <- 4;
+    public u8 TABLE_SIZE <- 4;
 
     public u8 lookup(u8 index) {
         if (index < this.TABLE_SIZE) {

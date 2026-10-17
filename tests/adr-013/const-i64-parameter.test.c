@@ -37,24 +37,24 @@ int64_t absConstI64(const int64_t value) {
 }
 
 int main(void) {
-    int64_t result = readConstI64(1000000000);
+    const int64_t result = readConstI64(1000000000);
     if (result != 1000000000) {
         return 1U;
     }
-    int64_t negResult = readConstI64(-500000000);
+    const int64_t negResult = readConstI64(-500000000);
     if (negResult != -500000000) {
         return 2U;
     }
-    int64_t absPos = absConstI64(123456789);
+    const int64_t absPos = absConstI64(123456789);
     if (absPos != 123456789) {
         return 3U;
     }
-    int64_t absNeg = absConstI64(-987654321);
+    const int64_t absNeg = absConstI64(-987654321);
     if (absNeg != 987654321) {
         return 4U;
     }
-    int64_t myValue = (int32_t)INT32_MIN;
-    int64_t readBack = readConstI64(myValue);
+    const int64_t myValue = (int32_t)INT32_MIN;
+    const int64_t readBack = readConstI64(myValue);
     if (readBack != (int32_t)INT32_MIN) {
         return 5U;
     }

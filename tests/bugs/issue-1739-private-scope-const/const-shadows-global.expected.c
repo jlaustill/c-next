@@ -14,7 +14,7 @@
 const uint32_t N = 4U;
 
 /* Scope: S */
-static uint8_t S__buf[20] = {0};
+static const uint8_t S__buf[20] = {0};
 
 uint32_t S__size(void) {
     return 20U;
@@ -25,8 +25,8 @@ uint32_t S__elements(void) {
 }
 
 int main(void) {
-    uint32_t size = S__size();
-    uint32_t elements = S__elements();
+    const uint32_t size = S__size();
+    const uint32_t elements = S__elements();
     if (size != 20) {
         return 1U;
     }

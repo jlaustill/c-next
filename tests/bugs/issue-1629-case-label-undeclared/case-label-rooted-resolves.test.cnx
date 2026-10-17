@@ -10,12 +10,12 @@
 #include <case-label-far.cnx>
 #include "case_label_macro.h"
 
-const u8 LIMIT <- 1;
-const u8 TOP <- 7;
+u8 LIMIT <- 1;
+u8 TOP <- 7;
 
 scope Panel {
-    const u8 LIMIT <- 3;
-    public const u8 PUB <- 4;
+    u8 LIMIT <- 3;
+    public u8 PUB <- 4;
 
     public u32 pick(u8 s) {
         switch (s) {
@@ -87,7 +87,7 @@ u32 atFileScope(u8 s) {
 }
 
 u32 main() {
-    u32 got <- 0;
+    mut u32 got <- 0;
     got <- Panel.pick(3);
     if (got != 30) {
         return 1;

@@ -29,12 +29,12 @@ void bump(uint32_t& x) {
     x = cnx_clamp_add_u32(x, 1U);
 }
 
-uint32_t twice(uint32_t x) {
+uint32_t twice(const uint32_t x) {
     return cnx_clamp_mul_u32(x, 2U);
 }
 
 /* Scope: Counter */
 
-void Counter__add(uint32_t& n, uint32_t by) {
+void Counter__add(uint32_t& n, const uint32_t by) {
     n = cnx_clamp_add_u32(n, by);
 }

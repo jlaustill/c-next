@@ -196,9 +196,6 @@ function createMockOrchestrator(overrides?: {
     enterFunctionBody: vi.fn(),
     exitFunctionBody: vi.fn(),
     isMainFunctionWithArgs: vi.fn(),
-    updateFunctionParamsAutoConst: vi.fn(),
-    markParameterModified: vi.fn(),
-    isCalleeParameterModified: vi.fn(),
     generatePrimaryExpr:
       overrides?.generatePrimaryExpr ?? vi.fn((ctx) => ctx.getText()),
     isKnownScope: overrides?.isKnownScope ?? vi.fn(() => false),

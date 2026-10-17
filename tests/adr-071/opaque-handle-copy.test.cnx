@@ -1,0 +1,28 @@
+// test-execution
+// test-adr: 071
+// The control: `mut` sources copied through a ternary and an array literal
+// compile, with no E0899, since the copy may write their object.
+#include "opaque-dev-write.h"
+
+u8 pickOne(mut Dev a, mut Dev b, bool first) {
+    mut Dev x <- (first = true) ? a : b;
+    return dev_write(x, 1);
+}
+
+u8 viaArray(mut Dev d) {
+    mut Dev[1] all <- [d];
+    return dev_write(all[0], 2);
+}
+
+u32 main() {
+    mut Dev none;
+    u8 one <- pickOne(none, none, true);
+    u8 two <- viaArray(none);
+    if (one != 1) {
+        return 1;
+    }
+    if (two != 2) {
+        return 2;
+    }
+    return 0;
+}

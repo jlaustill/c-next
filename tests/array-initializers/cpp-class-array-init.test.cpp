@@ -13,11 +13,11 @@
 #include <stdint.h>
 
 // C-Next style array of C++ class (should generate = {})
-CppTestClass items[4] = {};
+extern const CppTestClass items[4] = {};
 
 // C-Next style array of primitive (should still generate = {0})
-uint32_t counters[8] = {};
+extern const uint32_t counters[8] = {};
 
 int main(void) {
-    uint8_t dummy = 0U;
+    const uint8_t dummy = 0U;
 }

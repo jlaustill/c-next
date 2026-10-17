@@ -41,7 +41,7 @@ void testSafeModEdgeCases(void) {
 
 void testSafeModCircularBuffer(void) {
     uint32_t index = 0U;
-    uint32_t bufferSize = 16U;
+    const uint32_t bufferSize = 16U;
     bool err = false;
     err = cnx_safe_mod_u32(&index, 10, bufferSize, 0);
     err = cnx_safe_mod_u32(&index, 17, bufferSize, 0);

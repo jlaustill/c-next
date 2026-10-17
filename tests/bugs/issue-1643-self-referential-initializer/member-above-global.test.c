@@ -25,14 +25,14 @@ void S__set(void) {
 uint32_t S__get(void) {
     return y;
 }
-uint8_t S__y = 1U;
+const uint8_t S__y = 1U;
 
 int main(void) {
     S__set();
     if (y != 300) {
         return 1U;
     }
-    uint32_t got = S__get();
+    const uint32_t got = S__get();
     if (got != 300) {
         return 2U;
     }

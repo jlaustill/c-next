@@ -73,7 +73,7 @@ int main(void) {
     if (cnx_value_char_count(n) != 1) {
         return 8U;
     }
-    uint64_t big = 18446744073709551615ULL;
+    const uint64_t big = 18446744073709551615ULL;
     if (cnx_value_bit_length(big) != 64) {
         return 9U;
     }
@@ -84,7 +84,7 @@ int main(void) {
     if (cnx_value_char_count_signed(k) != 2) {
         return 11U;
     }
-    int64_t low = -9223372036854775807;
+    const int64_t low = -9223372036854775807;
     if (cnx_value_char_count_signed(low) != 20) {
         return 12U;
     }
@@ -106,25 +106,25 @@ int main(void) {
     if (strlen(s) != 5) {
         return 17U;
     }
-    float t = 1.5;
+    const float t = 1.5;
     if (32 != 32) {
         return 18U;
     }
-    bool b = true;
+    const bool b = true;
     if (1 != 1) {
         return 19U;
     }
     if (4 != 4) {
         return 20U;
     }
-    Cfg c = {0};
+    const Cfg c = {0};
     if (5 != 5) {
         return 21U;
     }
     if (3 != 3) {
         return 22U;
     }
-    uint8_t buf[4] = {0};
+    const uint8_t buf[4] = {0};
     if (4 != 4) {
         return 23U;
     }

@@ -21,23 +21,23 @@
 // Every case below is checked against the bare-path result, so the spellings
 // cannot drift apart again without this test failing.
 
-u8[16] globalBuffer;
-u8[16] globalSlice;
-u8 globalFlags <- 0;
+mut u8[16] globalBuffer;
+mut u8[16] globalSlice;
+mut u8 globalFlags <- 0;
 
 // Reached as `global.Other.member[...]`, where the member op precedes the
 // subscripts. That spelling needs the `identifiers.length - 1` offset when
 // counting subscripts; the other three spellings need no offset.
 scope Other {
-    public u8[16] buffer;
-    public u8[16] slice;
-    public u8 flags <- 0;
+    public mut u8[16] buffer;
+    public mut u8[16] slice;
+    public mut u8 flags <- 0;
 }
 
 scope Reg {
-    u8[16] buffer;
-    u8[16] slice;
-    u8 flags <- 0;
+    mut u8[16] buffer;
+    mut u8[16] slice;
+    mut u8 flags <- 0;
 
     // Bit access on an array element (#1113)
     u8 elementBit() {

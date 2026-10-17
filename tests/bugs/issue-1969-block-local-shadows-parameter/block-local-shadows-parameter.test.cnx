@@ -10,7 +10,7 @@ struct Pair {
     u32 b;
 }
 
-u32 shadowPrimitive(u32 x) {
+u32 shadowPrimitive(mut u32 x) {
     x <- x + 1;
     u32 flag <- 1;
     if (flag = 1) {
@@ -23,7 +23,7 @@ u32 shadowPrimitive(u32 x) {
     return x;
 }
 
-u32 shadowStruct(const Pair cfg) {
+u32 shadowStruct(Pair cfg) {
     u32 flag <- 1;
     if (flag = 1) {
         Pair cfg <- { a: 7, b: 9 };
@@ -36,7 +36,7 @@ u32 shadowStruct(const Pair cfg) {
 }
 
 u32 main() {
-    u32 v <- 3;
+    mut u32 v <- 3;
     u32 primitive <- shadowPrimitive(v);
     if (primitive = 9) {
         return 1;

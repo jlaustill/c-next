@@ -23,7 +23,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Demonstrates: if/else, while, for, do-while
 int main(void) {
     uint32_t result = 0U;
-    uint32_t x = 10U;
+    const uint32_t x = 10U;
     if (x > 5) {
         result = 1U;
     }
@@ -38,7 +38,7 @@ int main(void) {
     if (result != 200) {
         return 2U;
     }
-    uint32_t score = 85U;
+    const uint32_t score = 85U;
     uint32_t grade = 0;
     if (score >= 90) {
         grade = 4U;

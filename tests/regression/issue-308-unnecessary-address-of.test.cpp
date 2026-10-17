@@ -39,7 +39,7 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 // Primitive parameters use pass-by-value path (isPrimitivePassByValue)
 // Included to validate this continues to work correctly
 // ============================================================
-uint32_t sumFourBytes(uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3) {
+uint32_t sumFourBytes(const uint8_t b0, const uint8_t b1, const uint8_t b2, const uint8_t b3) {
     return static_cast<uint32_t>(b0) + static_cast<uint32_t>(b1) + static_cast<uint32_t>(b2) + static_cast<uint32_t>(b3);
 }
 
@@ -47,7 +47,7 @@ uint32_t sumFourBytes(uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3) {
 // Scenario 2: Struct member array (THE FIX)
 // Array should decay to pointer, NOT have & added
 // ============================================================
-uint8_t sumArray(uint8_t arr[6], uint8_t len) {
+uint8_t sumArray(const uint8_t arr[6], const uint8_t len) {
     uint8_t sum = 0U;
     uint8_t i = 0U;
     while (i < len) {
@@ -63,7 +63,7 @@ int main(void) {
     data[1] = 0x34U;
     data[2] = 0x56U;
     data[3] = 0x78U;
-    uint32_t sum = sumFourBytes(data[0U], data[1U], data[2U], data[3U]);
+    const uint32_t sum = sumFourBytes(data[0U], data[1U], data[2U], data[3U]);
     if (sum != 276) {
         return 1U;
     }
@@ -76,7 +76,7 @@ int main(void) {
     result.data[4] = 50U;
     result.data[5] = 60U;
     result.dataLen = 6U;
-    uint8_t total = sumArray(result.data, result.dataLen);
+    const uint8_t total = sumArray(result.data, result.dataLen);
     if (total != 210) {
         return 2U;
     }

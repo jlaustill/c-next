@@ -5,7 +5,7 @@
 // Coverage: Issue #22 - Complete compound assignment operator coverage
 u32 main() {
     // ===== ADDITION (+<-) =====
-    i64 val <- 1000000000000;
+    mut i64 val <- 1000000000000;
     val +<- 500000000000; // pos + pos
     if (val != 1500000000000) {
         return 1;

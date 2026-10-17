@@ -30,11 +30,11 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // all -- the rule's behaviour outside a scope was untested, not merely
 // unobservable. A local that shadows a file-scope name must still be renamed
 // here, where the middle resolution step does not exist.
-uint32_t counter = 100U;
+const uint32_t counter = 100U;
 
-uint32_t limit = 7U;
+const uint32_t limit = 7U;
 
-uint32_t doubled(uint32_t v) {
+uint32_t doubled(const uint32_t v) {
     return cnx_clamp_add_u32(v, v);
 }
 
@@ -42,9 +42,9 @@ int main(void) {
     /* C11 6.2.1p4, C++ [basic.scope.hiding]: `counter` emitted as `main__counter` (a plain `counter` would hide the file-scope `counter` for the rest of its scope, so `global.counter` would reach the local). */
     uint32_t main__counter = 1U;
     /* C11 6.2.1p4, C++ [basic.scope.hiding]: `limit` emitted as `main__limit` (a plain `limit` would hide the file-scope `limit` for the rest of its scope, so `global.limit` would reach the local). */
-    uint32_t main__limit = 2U;
+    const uint32_t main__limit = 2U;
     main__counter = cnx_clamp_add_u32(main__counter, main__limit);
-    uint32_t viaCall = doubled(main__counter);
+    const uint32_t viaCall = doubled(main__counter);
     if (main__counter != 3) {
         return 1U;
     }

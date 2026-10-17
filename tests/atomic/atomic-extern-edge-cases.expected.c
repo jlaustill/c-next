@@ -93,7 +93,7 @@ volatile int64_t bigSignedCounter = 0;
 volatile uint64_t bigUnsignedCounter = 0ULL;
 
 // Edge case 5: atomic string type
-volatile char statusMessage[17] = "";
+const volatile char statusMessage[17] = "";
 
 // Edge case 6: atomic struct (non-array)
 volatile TStatus currentStatus = {0};

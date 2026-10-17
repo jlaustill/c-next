@@ -11,7 +11,7 @@
 // Tests: rw (read-write), ro (read-only), wo (write-only) modifiers
 int main(void) {
     PERIPH__CTRL = 0x01U;
-    uint32_t ctrl = PERIPH__CTRL;
-    uint32_t status = PERIPH__STATUS;
+    const uint32_t ctrl = PERIPH__CTRL;
+    const uint32_t status = PERIPH__STATUS;
     PERIPH__CMD = 0xABU;
 }

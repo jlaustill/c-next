@@ -6,7 +6,7 @@
 //
 // NEGATIVE CONTROLS: k / 2.0f32 and k / 1e0f64 are nonzero and stay silent.
 
-const f32 ZF <- 0.0f32;
+f32 ZF <- 0.0f32;
 
 f32 single(f32 k) {
     f32 a <- k / 0.0f32;

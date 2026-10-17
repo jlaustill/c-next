@@ -19,20 +19,20 @@ uint64_t halfConstU64(const uint64_t value) {
 }
 
 int main(void) {
-    uint64_t result = readConstU64(1000000ULL);
+    const uint64_t result = readConstU64(1000000ULL);
     if (result != 1000000) {
         return 1U;
     }
-    uint64_t largeResult = readConstU64(4294967296ULL);
+    const uint64_t largeResult = readConstU64(4294967296ULL);
     if (largeResult != 4294967296) {
         return 2U;
     }
-    uint64_t halved = halfConstU64(1000ULL);
+    const uint64_t halved = halfConstU64(1000ULL);
     if (halved != 500) {
         return 3U;
     }
-    uint64_t myValue = 9999999ULL;
-    uint64_t readBack = readConstU64(myValue);
+    const uint64_t myValue = 9999999ULL;
+    const uint64_t readBack = readConstU64(myValue);
     if (readBack != 9999999) {
         return 4U;
     }

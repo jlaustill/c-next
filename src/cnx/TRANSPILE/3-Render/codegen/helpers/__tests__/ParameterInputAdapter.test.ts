@@ -74,12 +74,11 @@ function createDefaultASTDeps(overrides?: {
   return {
     callbackTypes:
       overrides?.callbackTypes ?? new Map<string, ICallbackTypeInfo>(),
+    isKnownEnum: () => false,
     isKnownStruct: () => overrides?.isKnownStruct ?? false,
-    isKnownEnum: () => overrides?.isKnownEnum ?? false,
     typeMap: TYPE_MAP,
     isModified: overrides?.isModified ?? false,
     isPassByValue: overrides?.isPassByValue ?? false,
-    isCallbackCompatible: false,
     isOpaqueHandle: overrides?.isOpaqueHandle ?? false,
   };
 }
@@ -260,36 +259,6 @@ describe("ParameterInputAdapter", () => {
       expect(result.isConst).toBe(true);
     });
 
-    it("preserves auto-const", () => {
-      const param: IParameterSymbol = {
-        name: "point",
-        emittedName: "point",
-        type: "Point",
-        isConst: false,
-        isArray: false,
-        isAutoConst: true,
-      };
-
-      const result = ParameterInputAdapter.fromSymbol(param, defaultDeps);
-
-      expect(result.isAutoConst).toBe(true);
-    });
-
-    it("defaults auto-const to false when not specified", () => {
-      const param: IParameterSymbol = {
-        name: "point",
-        emittedName: "point",
-        type: "Point",
-        isConst: false,
-        isArray: false,
-        // isAutoConst not specified
-      };
-
-      const result = ParameterInputAdapter.fromSymbol(param, defaultDeps);
-
-      expect(result.isAutoConst).toBe(false);
-    });
-
     it("forces pointer when isCallbackPointer is set (Issue #914)", () => {
       const param: IParameterSymbol = {
         name: "buf",
@@ -359,26 +328,6 @@ describe("ParameterInputAdapter", () => {
       expect(result.isOpaqueHandle).toBe(true);
     });
 
-    it("passes through isAutoConst even when isOpaqueHandle is set (builder applies rule)", () => {
-      // The adapter passes through both flags; the builder suppresses auto-const
-      // for opaque handles — this is NOT the adapter's responsibility
-      const param: IParameterSymbol = {
-        name: "widget",
-        emittedName: "widget",
-        type: "widget_t",
-        isConst: false,
-        isArray: false,
-        isOpaqueHandle: true,
-        isAutoConst: true,
-      };
-
-      const result = ParameterInputAdapter.fromSymbol(param, defaultDeps);
-
-      // Adapter passes through isAutoConst as-is; builder will suppress it
-      expect(result.isAutoConst).toBe(true);
-      expect(result.isOpaqueHandle).toBe(true);
-    });
-
     it("does not force pointer when isOpaqueHandle is not set", () => {
       const param: IParameterSymbol = {
         name: "point",
@@ -419,41 +368,7 @@ describe("ParameterInputAdapter", () => {
       );
 
       expect(result.isConst).toBe(true);
-      expect(result.isAutoConst).toBe(false);
     });
-
-    /**
-     * Auto-const is ONE derivation over three inputs -- the parameter's type,
-     * whether the body modifies it, and whether it is an opaque handle -- so it
-     * is one table. Written out as four separate `it`s, three of them read as
-     * an S5976 cluster; the table is also the clearer form, because the
-     * Issue #995 rows exist precisely to pin the opaque answer AGAINST the
-     * ordinary case, which is a comparison a reader can only make when the
-     * rows sit together.
-     *
-     * #1722: the opaque answer arrives as the parameter registry's boolean
-     * rather than as an `isOpaqueType` predicate the adapter asked itself, so
-     * the row that pinned "predicate not supplied" has no input left to vary.
-     */
-    it.each<[string, string, boolean, boolean, boolean]>([
-      ["unmodified non-const parameter", "u32", false, false, true],
-      ["modified parameter", "u32", true, false, false],
-      // Issue #995: a user type that is not an opaque handle still gets
-      // auto-const ...
-      ["non-opaque user type", "Point", false, false, true],
-      // ... and an opaque handle, unmodified, does not.
-      ["unmodified opaque handle", "widget_t", false, true, false],
-    ])(
-      "derives isAutoConst for %s",
-      (_label, typeName, isModified, isOpaqueHandle, expected) => {
-        const result = ParameterInputAdapter.fromAST(
-          planned({ name: "value", typeName }),
-          createDefaultASTDeps({ isModified, isOpaqueHandle }),
-        );
-
-        expect(result.isAutoConst).toBe(expected);
-      },
-    );
 
     it("converts array parameter with dimension", () => {
       const result = ParameterInputAdapter.fromAST(
@@ -487,7 +402,7 @@ describe("ParameterInputAdapter", () => {
 
     // Issue #986: ADR-006 says arrays are mutable by default.
     // Arrays should never get auto-const, even when unmodified.
-    it("does not set auto-const for unmodified array parameter", () => {
+    it("converts an unmodified array parameter", () => {
       const result = ParameterInputAdapter.fromAST(
         planned({
           name: "data",
@@ -498,7 +413,6 @@ describe("ParameterInputAdapter", () => {
       );
 
       expect(result.isArray).toBe(true);
-      expect(result.isAutoConst).toBe(false); // Arrays never get auto-const
     });
 
     /**
@@ -655,21 +569,16 @@ describe("ParameterInputAdapter", () => {
     it("passes through isOpaqueHandle for opaque type parameter", () => {
       const result = ParameterInputAdapter.fromAST(
         planned({ name: "w", typeName: "widget_t" }),
-        createDefaultASTDeps({ isModified: false, isOpaqueHandle: true }),
+        createDefaultASTDeps({ isOpaqueHandle: true }),
       );
 
       // Adapter still passes the registry's decision through; the builder
       // still applies its own guard as a backstop.
       expect(result.isOpaqueHandle).toBe(true);
-      // #1545 review: isAutoConst is now FALSE here. The #995 exclusion moved
-      // into AutoConstRule, which previously counted six exclusions while the
-      // code had seven -- the seventh being the builder's
-      // `isOpaqueHandle ? false : isAutoConst`.
       //
       // Behavior-preserving at the output: the builder zeroed this value
       // anyway, so no generated C changes. Verified by the integration suite
       // regenerating no snapshots.
-      expect(result.isAutoConst).toBe(false);
     });
 
     // #1722: an opaque handle is decided once (1.4's stamp) and handed in as
@@ -683,8 +592,7 @@ describe("ParameterInputAdapter", () => {
       const result = ParameterInputAdapter.fromAST(
         planned({ name: "w", typeName: "widget_t" }),
         {
-          ...createDefaultASTDeps({ isModified: false, isOpaqueHandle: true }),
-          isKnownEnum: () => false,
+          ...createDefaultASTDeps({ isOpaqueHandle: true }),
         },
       );
 

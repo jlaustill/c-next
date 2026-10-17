@@ -11,7 +11,7 @@ struct Wide {
     u64[2] bigs;
 }
 
-Wide w;
+mut Wide w;
 
 u32 main() {
     gbig <- 0;
@@ -40,7 +40,7 @@ u32 main() {
         return 6;
     }
     // NEGATIVE CONTROL: a 32-bit value keeps its 32-bit mask
-    u32 narrow <- 0;
+    mut u32 narrow <- 0;
     narrow[31] <- true;
     if (narrow != 0x80000000) {
         return 7;

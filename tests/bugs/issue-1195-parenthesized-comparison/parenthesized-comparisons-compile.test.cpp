@@ -33,7 +33,7 @@ static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
 // a fix that reached only one of them leaves this fixture failing.
 uint8_t n = 3U;
 
-bool ready = true;
+extern const bool ready = true;
 
 uint8_t hits = 0U;
 
@@ -62,6 +62,6 @@ int main(void) {
     for (uint8_t i = 0U; (i < 3); i = cnx_clamp_add_u8(i, 1U)) {
         hits = cnx_clamp_add_u8(hits, 1U);
     }
-    uint8_t picked = ((n > 1)) ? 1U : 0U;
+    const uint8_t picked = ((n > 1)) ? 1U : 0U;
     hits = cnx_clamp_add_u8(hits, picked);
 }

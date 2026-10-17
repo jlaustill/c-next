@@ -10,7 +10,7 @@ bitmap8 MotorFlags {
 }
 
 // Variable declaration
-MotorFlags flags <- 0;
+mut MotorFlags flags <- 0;
 
 void main() {
     // Write single-bit fields

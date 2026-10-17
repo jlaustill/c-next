@@ -9,6 +9,6 @@
 // This file defines a scope with f32 parameters
 /* Scope: TestFunc */
 
-float TestFunc__addFloats(float a, float b) {
+float TestFunc__addFloats(const float a, const float b) {
     return a + b;
 }

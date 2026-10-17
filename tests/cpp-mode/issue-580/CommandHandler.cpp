@@ -29,6 +29,6 @@ void CommandHandler__reset(Config& config) {
     config.value = 42U;
 }
 
-void CommandHandler__applyPreset(Config& config, uint8_t input, uint8_t preset) {
+void CommandHandler__applyPreset(Config& config, const uint8_t input, const uint8_t preset) {
     config.value = cnx_clamp_add_u8(input, preset);
 }

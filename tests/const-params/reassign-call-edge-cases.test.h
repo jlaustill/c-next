@@ -20,10 +20,10 @@ typedef struct ConstEdge__Config {
 } ConstEdge__Config;
 
 /* Function prototypes */
-uint8_t Handler__setValue(ConstEdge__Config* cfg, uint32_t val);
-uint8_t Handler__setSecond(uint32_t dummy, ConstEdge__Config* cfg);
+uint8_t Handler__setValue(ConstEdge__Config* cfg, const uint32_t val);
+uint8_t Handler__setSecond(const uint32_t dummy, ConstEdge__Config* cfg);
 uint32_t Handler__getValue(const ConstEdge__Config* cfg);
-uint8_t Handler__wrapSetValue(ConstEdge__Config* cfg, uint32_t val);
+uint8_t Handler__wrapSetValue(ConstEdge__Config* cfg, const uint32_t val);
 void handleNestedIf(ConstEdge__Config* config);
 void handleSwitch(ConstEdge__Config* config);
 void handleDoWhile(ConstEdge__Config* config);

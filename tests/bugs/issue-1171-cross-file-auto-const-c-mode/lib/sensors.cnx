@@ -10,7 +10,7 @@ struct Sample {
 }
 
 scope Sensors {
-    public void bump(Sample sample) {
+    public void bump(mut Sample sample) {
         sample.value <- sample.value + 1;
     }
 

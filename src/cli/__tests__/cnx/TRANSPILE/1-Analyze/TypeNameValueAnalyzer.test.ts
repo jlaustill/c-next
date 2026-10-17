@@ -93,7 +93,7 @@ scope Shadow {
         Config c;
     }
     public u32 run() {
-        Wrapper w;
+        mut Wrapper w;
         w.c <- Config;
         return w.c();
     }

@@ -12,17 +12,17 @@
 // When assigning to an array element via function parameter (data[0] <- value),
 // the transpiler should generate array access, not bit manipulation.
 // Function that writes to array element by index - sized parameter
-void writeAt(uint8_t arr[8], uint32_t index, uint8_t value) {
+void writeAt(uint8_t arr[8], const uint32_t index, const uint8_t value) {
     arr[index] = value;
 }
 
 // Function that writes to first element with literal index
-void writeFirst(uint8_t data[8], uint8_t value) {
+void writeFirst(uint8_t data[8], const uint8_t value) {
     data[0] = value;
 }
 
 // Function that reads and writes array elements
-void copyElement(uint8_t src[4], uint8_t dst[4], uint32_t index) {
+void copyElement(const uint8_t src[4], uint8_t dst[4], const uint32_t index) {
     dst[index] = src[index];
 }
 

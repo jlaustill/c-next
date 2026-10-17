@@ -25,7 +25,7 @@ struct Sample {
 }
 
 scope Use {
-    public void forward(Sample s) {
+    public void forward(mut Sample s) {
         global.c_bump(s);
     }
 

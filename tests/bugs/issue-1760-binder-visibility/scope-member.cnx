@@ -2,5 +2,5 @@
 // Public so this file has a header: a file with nothing public has none while
 // its includers still include it (#1810).
 scope S {
-    public const u32 N <- 2;
+    public u32 N <- 2;
 }

@@ -52,7 +52,7 @@ describe("ThisOutsideScopeAnalyzer", () => {
   it("rejects `this` in a case label outside a scope (#1629)", () => {
     const found = errors(
       [
-        "const u8 LIMIT <- 1;",
+        "u8 LIMIT <- 1;",
         "u32 pick(u8 s) {",
         "    switch (s) {",
         "        case this.LIMIT { return 1; }",
@@ -72,7 +72,7 @@ describe("ThisOutsideScopeAnalyzer", () => {
   it("accepts `this` in a case label inside a scope", () => {
     const source = [
       "scope Panel {",
-      "    const u8 LIMIT <- 1;",
+      "    u8 LIMIT <- 1;",
       "    public u32 pick(u8 s) {",
       "        switch (s) {",
       "            case this.LIMIT { return 1; }",
@@ -139,7 +139,7 @@ describe("ThisOutsideScopeAnalyzer", () => {
     const found = errors(
       [
         "u32 count <- 0;",
-        "const u8 LIMIT <- 1;",
+        "u8 LIMIT <- 1;",
         "struct Pt { u8 x; }",
         "u32 atFile <- global.count;",
         "global.Pt atType <- { x: 1 };",
@@ -157,7 +157,7 @@ describe("ThisOutsideScopeAnalyzer", () => {
     const found = errors(
       [
         "u32 count <- 0;",
-        "const u8 LIMIT <- 1;",
+        "u8 LIMIT <- 1;",
         "struct Pt { u8 x; }",
         "scope S {",
         "    public u32 f() {",

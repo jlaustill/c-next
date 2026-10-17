@@ -8,8 +8,8 @@
 // ADR-007: Bit range read
 // Tests: reading multiple bits with [start, width] syntax
 int main(void) {
-    uint8_t config = 0b11110101U;
-    uint8_t lowNibble = static_cast<uint8_t>(((config) & 0xFU));
-    uint8_t highNibble = static_cast<uint8_t>(((config >> 4U) & 0xFU));
-    uint8_t midBits = static_cast<uint8_t>(((config >> 2U) & 0x7U));
+    const uint8_t config = 0b11110101U;
+    const uint8_t lowNibble = static_cast<uint8_t>(((config) & 0xFU));
+    const uint8_t highNibble = static_cast<uint8_t>(((config >> 4U) & 0xFU));
+    const uint8_t midBits = static_cast<uint8_t>(((config >> 2U) & 0x7U));
 }

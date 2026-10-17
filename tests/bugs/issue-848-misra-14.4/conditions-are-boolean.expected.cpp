@@ -39,7 +39,7 @@ static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint64_t b) {
 // The matching negative cases (bare conditions rejected with E0701) live in
 // tests/control-flow, tests/for-loops, tests/do-while, and
 // tests/bugs/issue-1042-bare-bool-condition.
-uint32_t countDownWhile(uint32_t start) {
+uint32_t countDownWhile(const uint32_t start) {
     uint32_t n = start;
     uint32_t iterations = 0U;
     while (n > 0) {
@@ -49,7 +49,7 @@ uint32_t countDownWhile(uint32_t start) {
     return iterations;
 }
 
-uint32_t sumForLoop(uint32_t limit) {
+uint32_t sumForLoop(const uint32_t limit) {
     uint32_t total = 0U;
     for (uint32_t i = 0U; i < limit; i = cnx_clamp_add_u32(i, 1U)) {
         total = cnx_clamp_add_u32(total, i);
@@ -57,7 +57,7 @@ uint32_t sumForLoop(uint32_t limit) {
     return total;
 }
 
-uint32_t firstMultiple(uint32_t step) {
+uint32_t firstMultiple(const uint32_t step) {
     uint32_t value = 0U;
     do {
         value = cnx_clamp_add_u32(value, step);
@@ -65,7 +65,7 @@ uint32_t firstMultiple(uint32_t step) {
     return value;
 }
 
-bool bothPositive(int32_t a, int32_t b) {
+bool bothPositive(const int32_t a, const int32_t b) {
     bool result = false;
     if (a > 0 && b > 0) {
         result = true;
@@ -74,23 +74,23 @@ bool bothPositive(int32_t a, int32_t b) {
 }
 
 int main(void) {
-    uint32_t iterations = countDownWhile(5U);
+    const uint32_t iterations = countDownWhile(5U);
     if (iterations != 5) {
         return 1U;
     }
-    uint32_t total = sumForLoop(4U);
+    const uint32_t total = sumForLoop(4U);
     if (total != 6) {
         return 2U;
     }
-    uint32_t multiple = firstMultiple(7U);
+    const uint32_t multiple = firstMultiple(7U);
     if (multiple != 7) {
         return 3U;
     }
-    bool ok = bothPositive(3, 4);
+    const bool ok = bothPositive(3, 4);
     if (ok == false) {
         return 4U;
     }
-    bool none = bothPositive(-1, 2);
+    const bool none = bothPositive(-1, 2);
     if (none == true) {
         return 5U;
     }

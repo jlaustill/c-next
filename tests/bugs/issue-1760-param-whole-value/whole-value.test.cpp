@@ -55,7 +55,7 @@ int main(void) {
     if (((h >> 4) & 0xF) != 6) {
         return 4U;
     }
-    uint8_t read = fieldOf(g);
+    const uint8_t read = fieldOf(g);
     if (read != 6) {
         return 5U;
     }

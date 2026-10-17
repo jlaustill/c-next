@@ -22,10 +22,10 @@ describe("2.2 plans every safe-division helper 2.3 calls", () => {
     const code = await generate(
       [
         "#pragma target host",
-        "u16 q;",
-        "i32 m;",
+        "mut u16 q;",
+        "mut i32 m;",
         "void f(u16 a, u16 b, i32 c, i32 d) {",
-        "    bool e <- safe_div(q, a, b, 0);",
+        "    mut bool e <- safe_div(q, a, b, 0);",
         "    e <- safe_mod(m, c, d, 1);",
         "}",
         "",

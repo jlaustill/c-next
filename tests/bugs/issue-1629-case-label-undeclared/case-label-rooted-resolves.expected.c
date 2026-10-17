@@ -26,7 +26,7 @@ const uint8_t TOP = 7U;
 /* Scope: Panel */
 const uint8_t Panel__PUB = 4U;
 
-uint32_t Panel__pick(uint8_t s) {
+uint32_t Panel__pick(const uint8_t s) {
     switch (s) {
         case 3U: {
             return 30U;
@@ -60,7 +60,7 @@ uint32_t Panel__pick(uint8_t s) {
     }
 }
 
-uint32_t Panel__bare(uint8_t s) {
+uint32_t Panel__bare(const uint8_t s) {
     switch (s) {
         case 3U: {
             return 30U;
@@ -81,7 +81,7 @@ uint32_t Panel__bare(uint8_t s) {
     }
 }
 
-uint32_t bareAtFileScope(uint8_t s) {
+uint32_t bareAtFileScope(const uint8_t s) {
     switch (s) {
         case 1U: {
             return 10U;
@@ -94,7 +94,7 @@ uint32_t bareAtFileScope(uint8_t s) {
     }
 }
 
-uint32_t atFileScope(uint8_t s) {
+uint32_t atFileScope(const uint8_t s) {
     switch (s) {
         case 1U: {
             return 10U;

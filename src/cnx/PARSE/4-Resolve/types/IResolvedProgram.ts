@@ -1,4 +1,4 @@
-import type TDiscoveryFacts from "../../1-Discover/types/TDiscoveryFacts";
+import type TRunFacts from "../../2-Parse/types/TRunFacts";
 import type IDeclaredSource from "../../3-Declare/types/IDeclaredSource";
 import type IProgram from "../../../types/IProgram";
 
@@ -6,7 +6,7 @@ import type IProgram from "../../../types/IProgram";
 interface IResolvedProgram {
   readonly program: IProgram;
   readonly sources: readonly IDeclaredSource[];
-  readonly discovery: TDiscoveryFacts;
+  readonly discovery: TRunFacts;
 }
 
 export default IResolvedProgram;

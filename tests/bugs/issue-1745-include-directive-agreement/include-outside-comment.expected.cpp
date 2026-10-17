@@ -11,7 +11,7 @@
 #include <stdint.h>
 
 int main(void) {
-    EGhost g = EGhost__B;
+    const EGhost g = EGhost__B;
     if (g != EGhost__B) {
         return 1;
     }

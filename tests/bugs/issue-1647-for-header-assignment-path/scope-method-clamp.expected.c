@@ -45,11 +45,11 @@ uint8_t Ramp__getLevel(void) {
 }
 
 int main(void) {
-    uint8_t count = Ramp__passes();
+    const uint8_t count = Ramp__passes();
     if (count != 1) {
         return 1U;
     }
-    uint8_t level = Ramp__getLevel();
+    const uint8_t level = Ramp__getLevel();
     if (level != 255) {
         return 2U;
     }

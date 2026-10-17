@@ -23,7 +23,7 @@ i32 main() {
     }
 
     // Test struct member
-    BoolByteLen.TestStruct ts;
+    mut BoolByteLen.TestStruct ts;
     ts.flag <- true;
     if (ts.flag.type_byte_length != 1) {
         return 3;

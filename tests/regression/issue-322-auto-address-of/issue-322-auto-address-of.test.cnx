@@ -7,7 +7,7 @@
 #include "issue-322-auto-address-of.hpp"
 
 scope ConfigManager {
-    AppConfig config;
+    mut AppConfig config;
 
     public void initConfig() {
         this.config.timeout <- 1000;
@@ -31,7 +31,7 @@ u32 main() {
     ConfigManager.initConfig();
 
     // Verify initial timeout
-    u32 timeout <- ConfigManager.getTimeout();
+    mut u32 timeout <- ConfigManager.getTimeout();
     if (timeout != 1000) {
         return 1;
     }

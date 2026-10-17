@@ -4,4 +4,4 @@
 
 #include "access-declarations.cnx"
 
-const u32 ACCESS_RELAY_MARKER <- 2;
+u32 ACCESS_RELAY_MARKER <- 2;

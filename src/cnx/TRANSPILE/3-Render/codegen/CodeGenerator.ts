@@ -538,53 +538,6 @@ export default class CodeGenerator implements IOrchestrator {
     );
   }
 
-  /**
-   * Issue #268: Get unmodified parameters info for all functions.
-   * Returns map of function name -> Set of unmodified parameter names.
-   * Computed on-demand from functionSignatures and modifiedParameters.
-   */
-  getFunctionUnmodifiedParams(): ReadonlyMap<string, Set<string>> {
-    return this.state.getUnmodifiedParameters();
-  }
-
-  /**
-   * Issue #268: Update symbol parameters with auto-const info.
-   * Now a no-op - unmodified params are computed on-demand from this.state.
-   * Kept for IOrchestrator interface compatibility.
-   */
-  updateFunctionParamsAutoConst(_functionName: string): void {
-    // No-op: Unmodified parameters are now computed on-demand from
-    // this.state.functionSignatures and this.state.modifiedParameters
-    // via this.state.getUnmodifiedParameters().
-  }
-
-  /**
-   * Issue #268: Mark a parameter as modified for auto-const tracking.
-   * Issue #558: Now a no-op - analysis phase handles all modification tracking
-   * including transitive propagation across function calls and files.
-   */
-  markParameterModified(_paramName: string): void {
-    // No-op: Analysis phase (analyzePassByValue) now handles all modification
-    // tracking including cross-file and transitive propagation.
-  }
-
-  /**
-   * Issue #268: Check if a callee function's parameter at given index is modified.
-   * Returns true if the callee modifies that parameter (should not have const).
-   */
-  isCalleeParameterModified(funcName: string, paramIndex: number): boolean {
-    // Get the parameter name at the given index from the function signature
-    const sig = this.state.functionSignatures.get(funcName);
-    if (!sig || paramIndex >= sig.parameters.length) {
-      // Callee not yet processed - conservatively return false (assume unmodified)
-      return false;
-    }
-
-    const paramName = sig.parameters[paramIndex].name;
-    // Check directly if the parameter is in the modified set
-    return this.state.isParameterModified(funcName, paramName);
-  }
-
   // === Postfix Expression Helpers (Issue #644) ===
 
   /**

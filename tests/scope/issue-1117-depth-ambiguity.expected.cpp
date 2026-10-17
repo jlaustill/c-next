@@ -35,31 +35,31 @@
 // variable's value, so a resolution that collapsed the two onto one object would fail on
 // values rather than only on the non-compiling form.
 /* Scope: A */
-uint8_t A__B_c = 7U;
+const uint8_t A__B_c = 7U;
 
 uint8_t A__readVariable(void) {
     return A__B_c;
 }
 
 uint8_t A__firstOrdinal(void) {
-    A__B current = A__B__c;
+    const A__B current = A__B__c;
     return current;
 }
 
 int main(void) {
-    uint8_t fromVariable = A__readVariable();
+    const uint8_t fromVariable = A__readVariable();
     if (fromVariable != 7) {
         return 1U;
     }
     if (A__B_c != 7) {
         return 2U;
     }
-    uint8_t inScopeOrdinal = A__firstOrdinal();
+    const uint8_t inScopeOrdinal = A__firstOrdinal();
     if (inScopeOrdinal != 0) {
         return 3U;
     }
-    A__B second = A__B__d;
-    uint8_t secondOrdinal = static_cast<uint8_t>(second);
+    const A__B second = A__B__d;
+    const uint8_t secondOrdinal = static_cast<uint8_t>(second);
     if (secondOrdinal != 1) {
         return 4U;
     }

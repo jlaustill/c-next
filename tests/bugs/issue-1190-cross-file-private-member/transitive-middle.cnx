@@ -3,5 +3,5 @@
 #include <private-config.cnx>
 
 scope TransitiveMiddle {
-    public const u32 VISIBLE <- 1;
+    public u32 VISIBLE <- 1;
 }

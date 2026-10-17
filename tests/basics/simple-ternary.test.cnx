@@ -13,7 +13,7 @@ u32 main() {
 
     // Ternary with equality
     u32 x <- 5;
-    u32 result <- (x = 5) ? 100 : 200;
+    mut u32 result <- (x = 5) ? 100 : 200;
     if (result != 100) {
         return 2;
     }
@@ -36,7 +36,7 @@ u32 main() {
     }
 
     // Ternary with boolean result
-    bool isEven <- ((10 % 2) = 0) ? true : false;
+    mut bool isEven <- ((10 % 2) = 0) ? true : false;
     if (isEven != true) {
         return 6;
     }

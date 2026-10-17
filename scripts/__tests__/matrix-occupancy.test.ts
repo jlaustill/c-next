@@ -43,7 +43,7 @@ describe("FixtureOccupancy.build", () => {
   it("places an error fixture in the cell its diagnostic resolves to", async () => {
     const fixture = write(
       "division.test.cnx",
-      "// test-adr: 051\nconst u32 ZERO <- 0;\nvoid go() {\n    u32 bad <- 10 / ZERO;\n}\n",
+      "// test-adr: 051\nu32 ZERO <- 0;\nvoid go() {\n    u32 bad <- 10 / ZERO;\n}\n",
     );
     write("division.expected.error", "4:22 error[E0800]: Division by zero\n");
 
@@ -66,7 +66,7 @@ describe("FixtureOccupancy.build", () => {
       "bare-member.test.cnx",
       "// test-adr: 057\n" +
         "scope Counter {\n" +
-        "    u32 value <- 0;\n" +
+        "    mut u32 value <- 0;\n" +
         "    public void bump() {\n" +
         "        value <- value + 1;\n" +
         "    }\n" +
@@ -96,7 +96,7 @@ describe("FixtureOccupancy.build", () => {
   });
 
   it("uses the include graph for the relationship, not just the context", async () => {
-    write("provider.cnx", "const u32 ZERO <- 0;\n");
+    write("provider.cnx", "u32 ZERO <- 0;\n");
     const fixture = write(
       "consumer.test.cnx",
       '// test-adr: 051\n#include "provider.cnx"\nvoid go() {\n    u32 bad <- 10 / ZERO;\n}\n',
@@ -117,7 +117,7 @@ describe("FixtureOccupancy.build", () => {
       "both.test.cnx",
       [
         "// test-adr: 051",
-        "const u32 ZERO <- 0;",
+        "u32 ZERO <- 0;",
         "void topLevel() {",
         "    u32 fine <- 1;",
         "}",

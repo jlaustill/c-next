@@ -24,7 +24,7 @@ scope Motor {
     u32 maxSpeed <- 0;
     void stop() { }
     public void inside() {
-        u32 localVar <- 0;
+        mut u32 localVar <- 0;
         localVar <- 1;
         {
             u8 globalCounter <- 0;
@@ -33,7 +33,7 @@ scope Motor {
     }
 }
 void outside() {
-    u32 localVar <- 0;
+    mut u32 localVar <- 0;
     localVar <- 1;
 }`;
 
@@ -123,11 +123,11 @@ describe("TypeValidator.resolveBareIdentifier", () => {
       // name is the scope's function, where the global const would answer
       const { state, at } = setUp(
         "S",
-        `const u32 LIMIT <- 8;
+        `u32 LIMIT <- 8;
 scope S {
     u32 LIMIT() { return 2; }
     public void f() {
-        u32 v <- 0;
+        mut u32 v <- 0;
         v <- LIMIT;
     }
 }`,

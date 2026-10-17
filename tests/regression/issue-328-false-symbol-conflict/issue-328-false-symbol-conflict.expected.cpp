@@ -28,7 +28,7 @@ AppData sensorData = {};
 int main(void) {
     sensorData.humidity = 65.5;
     sensorData.temperature = 22.3;
-    int32_t valid = SomeModule::validateHumidity(sensorData.humidity);
+    const int32_t valid = SomeModule::validateHumidity(sensorData.humidity);
     if (valid != 1) {
         return 1U;
     }

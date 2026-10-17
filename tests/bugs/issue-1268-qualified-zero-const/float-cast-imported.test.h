@@ -14,9 +14,9 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint8_t two[2];
-extern uint8_t three[3];
-extern uint8_t fromFloat[2];
+extern const uint8_t two[2];
+extern const uint8_t three[3];
+extern const uint8_t fromFloat[2];
 
 #ifdef __cplusplus
 }

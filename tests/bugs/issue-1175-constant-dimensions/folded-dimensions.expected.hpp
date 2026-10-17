@@ -28,13 +28,13 @@ typedef struct Info {
 /* External variables */
 extern const uint8_t LOCAL;
 extern const uint8_t BIG;
-extern uint8_t neg[2];
-extern uint8_t counted[3];
-extern uint8_t three[6];
-extern uint8_t shifted[8];
-extern uint8_t plain[4];
-extern uint8_t wide[400];
-extern Info info;
+extern const uint8_t neg[2];
+extern const uint8_t counted[3];
+extern const uint8_t three[6];
+extern const uint8_t shifted[8];
+extern const uint8_t plain[4];
+extern const uint8_t wide[400];
+extern const Info info;
 
 #ifdef __cplusplus
 }

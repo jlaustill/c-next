@@ -210,7 +210,7 @@ int main(void) {
     }
     deltas[0][0] = -1000000;
     deltas[0][1] = 750000;
-    int64_t deltaSum = cnx_clamp_add_i32(deltas[0U][0U], deltas[0U][1U]);
+    const int64_t deltaSum = cnx_clamp_add_i32(deltas[0U][0U], deltas[0U][1U]);
     if (deltaSum != -250000) {
         return 36U;
     }

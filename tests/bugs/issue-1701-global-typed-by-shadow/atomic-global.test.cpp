@@ -66,7 +66,7 @@ volatile uint32_t x = 0U;
 
 uint8_t f(void) {
     /* C11 6.2.1p4, C++ [basic.scope.hiding]: `x` emitted as `f__x` (a plain `x` would hide the file-scope `x` for the rest of its scope, so `global.x` would reach the local). */
-    uint8_t f__x = 1U;
+    const uint8_t f__x = 1U;
     {
         uint32_t __primask = __cnx_get_PRIMASK();
         __cnx_disable_irq();

@@ -4,14 +4,14 @@
 // the parameter should NOT get const (since it's effectively modified).
 
 // Function that modifies its parameter - should NOT get const
-void modifiesParam(u32 value) {
+void modifiesParam(mut u32 value) {
     value <- 42;
 }
 
 // Function that passes its parameter to modifiesParam
 // Since modifiesParam modifies its param, this param is also modified
 // Should NOT get const (pass-through modification)
-void passesThroughToModifier(u32 value) {
+void passesThroughToModifier(mut u32 value) {
     modifiesParam(value);
 }
 
@@ -28,13 +28,13 @@ u32 passesThroughToReader(u32 value) {
 
 // Mixed case: reads and passes to modifier
 // Should NOT get const because of pass-through to modifier
-void mixedPassThrough(u32 value) {
+void mixedPassThrough(mut u32 value) {
     u32 local <- value + 1; // Read is fine
     modifiesParam(value); // But this causes modification
 }
 
 u32 main() {
-    u32 x <- 10;
+    mut u32 x <- 10;
 
     // Test modifiesParam
     modifiesParam(x);
@@ -51,7 +51,7 @@ u32 main() {
 
     // Test readOnly
     x <- 5;
-    u32 result <- readOnly(x);
+    mut u32 result <- readOnly(x);
     if (result != 6) {
         return 3;
     }

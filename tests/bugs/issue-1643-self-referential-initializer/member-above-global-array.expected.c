@@ -17,7 +17,7 @@
 const uint32_t N = 4U;
 
 /* Scope: S */
-uint8_t S__buf[4] = {0};
+const uint8_t S__buf[4] = {0};
 
 uint32_t S__own(void) {
     return 10U;
@@ -27,7 +27,7 @@ int main(void) {
     if (4 != 4) {
         return 1U;
     }
-    uint32_t own = S__own();
+    const uint32_t own = S__own();
     if (own != 10) {
         return 2U;
     }

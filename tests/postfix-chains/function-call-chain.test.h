@@ -28,12 +28,12 @@ typedef struct FuncCallChain__Transform {
 extern FuncCallChain__Transform transforms[4];
 
 /* Function prototypes */
-uint32_t addU32(uint32_t a, uint32_t b);
-float addF32(float a, float b);
-float multiplyF32(float a, float b);
-FuncCallChain__Vec3 scaleVec3(const FuncCallChain__Vec3* v, float scale);
-bool isGreater(float a, float b);
-void setTransform(const FuncCallChain__Transform* t, uint32_t index);
+uint32_t addU32(const uint32_t a, const uint32_t b);
+float addF32(const float a, const float b);
+float multiplyF32(const float a, const float b);
+FuncCallChain__Vec3 scaleVec3(const FuncCallChain__Vec3* v, const float scale);
+bool isGreater(const float a, const float b);
+void setTransform(const FuncCallChain__Transform* t, const uint32_t index);
 
 #ifdef __cplusplus
 }

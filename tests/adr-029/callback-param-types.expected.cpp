@@ -34,18 +34,18 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // #1681: arithmetic on a u8 parameter clamps at 255 (ADR-044), so `val + 100`
 // saturated check 2's 255 + 100 to 255. The sum is taken at u32, where it is
 // 355 -- check 2 is about the value arriving intact, not about overflow.
-uint32_t processU8(uint8_t val) {
-    uint32_t wide = val;
+uint32_t processU8(const uint8_t val) {
+    const uint32_t wide = val;
     return cnx_clamp_add_u32(wide, 100U);
 }
 
 // Callback with u32 parameter
-uint32_t processU32(uint32_t val) {
+uint32_t processU32(const uint32_t val) {
     return cnx_clamp_add_u32(val, 1000U);
 }
 
 // Callback with bool parameter
-uint32_t processBool(bool val) {
+uint32_t processBool(const bool val) {
     if (val == true) {
         return 1U;
     }

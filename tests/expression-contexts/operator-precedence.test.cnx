@@ -19,7 +19,7 @@ u32 main() {
     u32 b <- 20;
     u32 c <- 30;
     u32 d <- 40;
-    u32 result <- a + b + c + d;
+    mut u32 result <- a + b + c + d;
     if (result != 100) {
         return 1;
     }
@@ -146,7 +146,7 @@ u32 main() {
     bool t2 <- getTrue(2);
     bool t3 <- getTrue(3);
     bool t4 <- getTrue(4);
-    bool andResult <- t1 && t2 && t3 && t4;
+    mut bool andResult <- t1 && t2 && t3 && t4;
     if (andResult != true) {
         return 17;
     }
@@ -162,7 +162,7 @@ u32 main() {
     bool f2 <- getFalse(0);
     bool f3 <- getFalse(0);
     bool f4 <- getFalse(0);
-    bool orResult <- f1 || f2 || f3 || t1;
+    mut bool orResult <- f1 || f2 || f3 || t1;
     if (orResult != true) {
         return 19;
     }

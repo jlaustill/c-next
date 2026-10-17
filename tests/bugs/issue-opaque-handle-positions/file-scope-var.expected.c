@@ -49,24 +49,24 @@ void Board__pokeAll(void) {
 int main(void) {
     gdev = dev_create();
     dev_poke(gdev);
-    int32_t single = dev_pokes(gdev);
+    const int32_t single = dev_pokes(gdev);
     if (single != 1) {
         return 1;
     }
     gdevs[0] = dev_create();
     gdevs[1] = dev_create();
     dev_poke(gdevs[1U]);
-    int32_t element = dev_pokes(gdevs[1U]);
+    const int32_t element = dev_pokes(gdevs[1U]);
     if (element != 1) {
         return 2;
     }
     Board__attach();
     Board__pokeAll();
-    int32_t primary = dev_pokes(Board__primary);
+    const int32_t primary = dev_pokes(Board__primary);
     if (primary != 1) {
         return 3;
     }
-    int32_t spare = dev_pokes(Board__spares[1U]);
+    const int32_t spare = dev_pokes(Board__spares[1U]);
     if (spare != 1) {
         return 4;
     }

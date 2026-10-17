@@ -16,14 +16,14 @@
 extern const uint32_t K = 10U;
 
 /* Scope: S */
-uint8_t S__table[4] = {};
+const uint8_t S__table[4] = {};
 
 uint32_t S__count(void) {
     return 4;
 }
 
 int main(void) {
-    uint32_t n = S__count();
+    const uint32_t n = S__count();
     if (n != 4) {
         return 1U;
     }

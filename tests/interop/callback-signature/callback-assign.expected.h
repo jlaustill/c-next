@@ -17,7 +17,7 @@ extern "C" {
 extern int32_t handler_sum;
 
 /* Function prototypes */
-void my_point_handler(Point p);
+void my_point_handler(const Point p);
 
 #ifdef __cplusplus
 }

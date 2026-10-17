@@ -9,7 +9,7 @@ u32 localTick() {
     return 9;
 }
 
-libTick sink;
+mut libTick sink;
 
 u32 main() {
     u32 got1 <- sink();

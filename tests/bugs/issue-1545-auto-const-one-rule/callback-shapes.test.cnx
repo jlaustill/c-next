@@ -29,26 +29,26 @@
 //    another C-Next function, which takes it by pointer for the same reason.
 #include "shapes_api.h"
 
-u8 shapeWitness <- 0;
+mut u8 shapeWitness <- 0;
 
-// Reads the array without writing it. The const must come from the TYPEDEF --
-// ADR-006 gives arrays no auto-const, which `plainArray` below controls for.
+// Reads the array without writing it, so it is read-only (ADR-071) and its C
+// parameter is `const uint8_t buf[4]` -- the typedef's shape.
 void onBuf(u8[4] buf) {
     shapeWitness <- buf[0];
 }
 
-// NEGATIVE CONTROL for A. Same shape, not a callback, so nothing supplies a
-// const. Without it the fixture would also pass for an implementation that
-// const-qualified every array parameter, which is over-enforcement.
+// CONTROL for A. Same shape, not a callback. Before ADR-071 nothing supplied
+// its const; now the declaration does, as it does for every array parameter
+// not declared `mut`, so it is `const` with or without a typedef.
 void plainArray(u8[4] other) {
     shapeWitness <- other[0];
 }
 
-u8 readKnob(knob_t k) {
+u8 readKnob(mut knob_t k) {
     return knob_id(k);
 }
 
-void onKnob(knob_t k) {
+void onKnob(mut knob_t k) {
     shapeWitness <- readKnob(k);
 }
 

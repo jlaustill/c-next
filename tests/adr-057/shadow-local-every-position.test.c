@@ -42,27 +42,27 @@ static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint64_t b) {
 // never appear inside the generated function body -- only in the file-scope
 // declarations they shadow. A missed emission site shows up as a snapshot diff
 // containing a bare name, and, where the shapes differ, as a compile failure.
-uint32_t probe = 1000U;
+const uint32_t probe = 1000U;
 
-uint32_t parr[4] = {1U, 2U, 3U, 4U};
+const uint32_t parr[4] = {1U, 2U, 3U, 4U};
 
-uint8_t pbits = 0U;
+const uint8_t pbits = 0U;
 
-uint32_t pidx = 3U;
+const uint32_t pidx = 3U;
 
-uint32_t pdown = 50U;
+const uint32_t pdown = 50U;
 
-Holder pcfg = { .x = 9U };
+const Holder pcfg = { .x = 9U };
 
-char pstr[17] = "global";
+const char pstr[17] = "global";
 
-uint32_t takes(uint32_t v) {
+uint32_t takes(const uint32_t v) {
     return v;
 }
 
 /* Scope: S */
 
-uint32_t S__positions(uint32_t flag) {
+uint32_t S__positions(const uint32_t flag) {
     /* C11 6.2.1p4, C++ [basic.scope.hiding]: `probe` emitted as `S__positions__probe` (a plain `probe` would hide the file-scope `probe` for the rest of its scope, so `global.probe` would reach the local). */
     uint32_t S__positions__probe = 1U;
     /* C11 6.2.1p4, C++ [basic.scope.hiding]: `parr` emitted as `S__positions__parr` (a plain `parr` would hide the file-scope `parr` for the rest of its scope, so `global.parr` would reach the local). */
@@ -70,7 +70,7 @@ uint32_t S__positions(uint32_t flag) {
     /* C11 6.2.1p4, C++ [basic.scope.hiding]: `pbits` emitted as `S__positions__pbits` (a plain `pbits` would hide the file-scope `pbits` for the rest of its scope, so `global.pbits` would reach the local). */
     uint8_t S__positions__pbits = 0U;
     /* C11 6.2.1p4, C++ [basic.scope.hiding]: `pidx` emitted as `S__positions__pidx` (a plain `pidx` would hide the file-scope `pidx` for the rest of its scope, so `global.pidx` would reach the local). */
-    uint32_t S__positions__pidx = 1U;
+    const uint32_t S__positions__pidx = 1U;
     /* C11 6.2.1p4, C++ [basic.scope.hiding]: `pdown` emitted as `S__positions__pdown` (a plain `pdown` would hide the file-scope `pdown` for the rest of its scope, so `global.pdown` would reach the local). */
     uint32_t S__positions__pdown = 2U;
     /* C11 6.2.1p4, C++ [basic.scope.hiding]: `pcfg` emitted as `S__positions__pcfg` (a plain `pcfg` would hide the file-scope `pcfg` for the rest of its scope, so `global.pcfg` would reach the local). */
@@ -103,9 +103,9 @@ uint32_t S__positions(uint32_t flag) {
     acc = cnx_clamp_add_u32(acc, 4);
     (void) strncpy(S__positions__pstr, "cd", 8); S__positions__pstr[8] = '\0';
     acc = cnx_clamp_add_u32(acc, strlen(S__positions__pstr));
-    Holder made = { .x = S__positions__probe };
+    const Holder made = { .x = S__positions__probe };
     acc = cnx_clamp_add_u32(acc, made.x);
-    uint32_t init[2] = {S__positions__probe, 2U};
+    const uint32_t init[2] = {S__positions__probe, 2U};
     acc = cnx_clamp_add_u32(acc, init[0U]);
     return acc;
 }

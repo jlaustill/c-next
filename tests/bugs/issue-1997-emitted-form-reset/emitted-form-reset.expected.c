@@ -15,7 +15,7 @@
 #include <stdint.h>
 
 int main(void) {
-    int32_t x = originX();
+    const int32_t x = originX();
     if (x != 0) {
         return 1U;
     }

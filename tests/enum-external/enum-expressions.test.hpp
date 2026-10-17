@@ -14,9 +14,9 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-EPressureType selectPressure(bool usePsig);
-bool isPsia(EPressureType ptype);
-bool isPsig(EPressureType ptype);
+EPressureType selectPressure(const bool usePsig);
+bool isPsia(const EPressureType ptype);
+bool isPsig(const EPressureType ptype);
 
 #ifdef __cplusplus
 }

@@ -7,7 +7,7 @@
 // default crashed the transpiler ("Invalid array length").
 #include "sizes/negative.h"
 
-const i32 M <- -2;
+i32 M <- -2;
 
 u8[0] z;
 u8[1 - 1] zz;

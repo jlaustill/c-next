@@ -14,7 +14,7 @@
 /* Scope: StateMachine */
 static EState StateMachine__currentState = EState__IDLE;
 
-void StateMachine__setState(EState state) {
+void StateMachine__setState(const EState state) {
     StateMachine__currentState = state;
 }
 

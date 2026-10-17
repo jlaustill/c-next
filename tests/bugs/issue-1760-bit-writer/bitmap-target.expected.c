@@ -13,7 +13,7 @@
 // source spelling, not the renderer's. A local shadowing a global wrote the
 // global, and in C a bitmap parameter or a field reached through a struct
 // parameter was not dereferenced.
-Sm fl = 0;
+const Sm fl = 0;
 
 void wf(Sm* s) {
     (*s) = (uint8_t)(((*s) & ~(1U << 0)) | (1U << 0));
@@ -36,11 +36,11 @@ int main(void) {
     /* C11 6.2.1p4, C++ [basic.scope.hiding]: `fl` emitted as `main__fl` (a plain `fl` would hide the file-scope `fl` for the rest of its scope, so `global.fl` would reach the local). */
     Sm main__fl = 0;
     main__fl = (uint8_t)((main__fl & ~(0xFU << 4)) | ((5U & 0xFU) << 4));
-    uint8_t local = (uint8_t)((main__fl >> 4) & 0xF);
+    const uint8_t local = (uint8_t)((main__fl >> 4) & 0xF);
     if (local != 5) {
         return 1U;
     }
-    uint8_t outer = (uint8_t)((fl >> 4) & 0xF);
+    const uint8_t outer = (uint8_t)((fl >> 4) & 0xF);
     if (outer != 0) {
         return 2U;
     }
@@ -49,7 +49,7 @@ int main(void) {
     if (((fa[1U] >> 0) & 1) != true) {
         return 3U;
     }
-    uint8_t inScope = Sc__method();
+    const uint8_t inScope = Sc__method();
     if (inScope != 5) {
         return 4U;
     }

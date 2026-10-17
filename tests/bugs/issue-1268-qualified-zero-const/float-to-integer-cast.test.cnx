@@ -6,8 +6,8 @@
 //
 // NEGATIVE CONTROLS: `(u32)1.5` and ONE_FROM_FLOAT, each 1.
 
-const u32 ZERO_FROM_FLOAT <- (u32)0.5;
-const u32 ONE_FROM_FLOAT <- (u32)1.5;
+u32 ZERO_FROM_FLOAT <- (u32)0.5;
+u32 ONE_FROM_FLOAT <- (u32)1.5;
 
 u32 casts(u32 n) {
     u32 a <- n / (u32)0.5;

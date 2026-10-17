@@ -9,9 +9,9 @@
 // test-execution
 // Tests: f32 to i16 cast should clamp values to -32768 to 32767 range
 int main(void) {
-    float over = 40000.0;
-    float under = -40000.0;
-    float in_range = 10000.0;
+    const float over = 40000.0;
+    const float under = -40000.0;
+    const float in_range = 10000.0;
     int16_t result = ((over) >= ((float)INT16_MAX) ? (int16_t)INT16_MAX : (over) < ((float)INT16_MIN) ? (int16_t)INT16_MIN : (int16_t)(over));
     if (result != 32767) {
         return 1U;

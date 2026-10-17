@@ -5,7 +5,7 @@
 #include <nested-forward-decl-types.cnx>
 
 scope Collision {
-    BoundingBox bounds;
+    mut BoundingBox bounds;
 
     public void setBounds(BoundingBox newBounds) {
         this.bounds <- newBounds;

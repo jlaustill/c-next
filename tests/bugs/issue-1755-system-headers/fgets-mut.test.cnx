@@ -1,0 +1,8 @@
+// #1755 / ADR-071 control: the same fgets with a `mut` buffer is accepted.
+#include <stdio.h>
+
+mut string<64> buffer;
+
+void readLine() {
+    cstring c_line <- fgets(buffer, buffer.size, stdin);
+}

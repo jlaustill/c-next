@@ -27,11 +27,11 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // name with no local in the way is initialized
 Point pt = { .x = 1U, .y = 2U };
 
-uint32_t total = 7U;
+const uint32_t total = 7U;
 
 uint32_t shadowInit(void) {
     /* C11 6.2.1p4, C++ [basic.scope.hiding]: `pt` emitted as `shadowInit__pt` (a plain `pt` would hide the file-scope `pt` for the rest of its scope, so `global.pt` would reach the local). */
-    Point shadowInit__pt = { .x = 3U, .y = 4U };
+    const Point shadowInit__pt = { .x = 3U, .y = 4U };
     pt.x = 5U;
     return shadowInit__pt.x;
 }
@@ -41,7 +41,7 @@ static uint32_t S__count = 0;
 static uint32_t S__other = 0;
 
 void S__setViaThis(void) {
-    uint32_t count = 9U;
+    const uint32_t count = 9U;
     S__count = count;
 }
 
@@ -54,7 +54,7 @@ uint32_t S__sum(void) {
 }
 
 int main(void) {
-    uint32_t local = shadowInit();
+    const uint32_t local = shadowInit();
     if (local != 3) {
         return 1U;
     }
@@ -63,7 +63,7 @@ int main(void) {
     }
     S__setViaThis();
     S__setBare();
-    uint32_t total2 = S__sum();
+    const uint32_t total2 = S__sum();
     if (total2 != 20) {
         return 3U;
     }

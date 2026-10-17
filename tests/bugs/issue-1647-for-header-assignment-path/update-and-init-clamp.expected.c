@@ -58,11 +58,11 @@ uint8_t initPasses(void) {
 }
 
 int main(void) {
-    uint8_t updates = updatePasses();
+    const uint8_t updates = updatePasses();
     if (updates != 1) {
         return 1U;
     }
-    uint8_t inits = initPasses();
+    const uint8_t inits = initPasses();
     if (inits != 0) {
         return 2U;
     }

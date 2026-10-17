@@ -8,4 +8,4 @@
 
 #include "declarations.cnx"
 
-const u32 RELAY_MARKER <- 7;
+u32 RELAY_MARKER <- 7;

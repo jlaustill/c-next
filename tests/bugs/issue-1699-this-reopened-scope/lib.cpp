@@ -9,8 +9,8 @@
 
 // #1699's helper: the scope, reopened by each fixture beside it, and a
 // file-scope `f32 x` that a `this.x` must not read
-float x = 1.5;
+extern const float x = 1.5;
 
 /* Scope: Lib */
-uint32_t Lib__x = 300U;
-uint8_t Lib__arr[4] = {};
+const uint32_t Lib__x = 300U;
+const uint8_t Lib__arr[4] = {};

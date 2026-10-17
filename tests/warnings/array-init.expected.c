@@ -11,28 +11,28 @@
 // Validates: Array initializers with various types are warning-free
 // Coverage: Integer arrays, partial init, zero init
 int main(void) {
-    uint32_t full[4] = {10U, 20U, 30U, 40U};
+    const uint32_t full[4] = {10U, 20U, 30U, 40U};
     if (full[0U] != 10) {
         return 1U;
     }
     if (full[3U] != 40) {
         return 2U;
     }
-    uint8_t bytes[3] = {0x41U, 0x42U, 0x43U};
+    const uint8_t bytes[3] = {0x41U, 0x42U, 0x43U};
     if (bytes[0U] != 0x41) {
         return 3U;
     }
     if (bytes[2U] != 0x43) {
         return 4U;
     }
-    uint64_t big[2] = {1000000000ULL, 2000000000ULL};
+    const uint64_t big[2] = {1000000000ULL, 2000000000ULL};
     if (big[0U] != 1000000000) {
         return 5U;
     }
     if (big[1U] != 2000000000) {
         return 6U;
     }
-    int32_t signed_arr[3] = {-10, 0, 10};
+    const int32_t signed_arr[3] = {-10, 0, 10};
     if (signed_arr[0U] != -10) {
         return 7U;
     }

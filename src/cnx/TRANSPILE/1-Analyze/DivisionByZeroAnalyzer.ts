@@ -140,7 +140,7 @@ class DivisionByZeroAnalyzer {
     if (statement.kind !== "variableDeclaration") return [];
     return [
       ...statement.dimensions.filter((d): d is TExpression => d !== null),
-      ...(statement.modifiers.const && statement.initializer !== null
+      ...(!statement.modifiers.mut && statement.initializer !== null
         ? [statement.initializer]
         : []),
     ];

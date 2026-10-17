@@ -24,12 +24,12 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // test-execution
 // Tests: Array passed to function (pass-by-reference behavior)
 // Function that modifies an array element
-void setElement(uint32_t arr[10], uint32_t index, uint32_t value) {
+void setElement(uint32_t arr[10], const uint32_t index, const uint32_t value) {
     arr[index] = value;
 }
 
 // Function that sums array elements
-uint32_t sumArray(uint32_t arr[5], uint32_t count) {
+uint32_t sumArray(const uint32_t arr[5], const uint32_t count) {
     uint32_t sum = 0U;
     uint32_t i = 0U;
     while (i < count) {
@@ -40,7 +40,7 @@ uint32_t sumArray(uint32_t arr[5], uint32_t count) {
 }
 
 // Function that zeroes an array
-void zeroArray(uint32_t arr[8], uint32_t count) {
+void zeroArray(uint32_t arr[8], const uint32_t count) {
     uint32_t i = 0U;
     while (i < count) {
         arr[i] = 0U;
@@ -49,7 +49,7 @@ void zeroArray(uint32_t arr[8], uint32_t count) {
 }
 
 // Function that copies arrays
-void copyArray(uint32_t src[4], uint32_t dst[4], uint32_t count) {
+void copyArray(const uint32_t src[4], uint32_t dst[4], const uint32_t count) {
     uint32_t i = 0U;
     while (i < count) {
         dst[i] = src[i];

@@ -24,29 +24,29 @@ static inline uint16_t cnx_clamp_add_u16(uint16_t a, uint32_t b) {
 // Validates: Implicit widening from smaller to larger unsigned types is safe
 // Coverage: u8 -> u16 -> u32 -> u64 widening chain
 int main(void) {
-    uint8_t byte = 255U;
-    uint16_t word = byte;
+    const uint8_t byte = 255U;
+    const uint16_t word = byte;
     if (word != 255) {
         return 1U;
     }
-    uint32_t dword = word;
+    const uint32_t dword = word;
     if (dword != 255) {
         return 2U;
     }
-    uint64_t qword = dword;
+    const uint64_t qword = dword;
     if (qword != 255) {
         return 3U;
     }
-    uint64_t direct = byte;
+    const uint64_t direct = byte;
     if (direct != 255) {
         return 4U;
     }
-    uint32_t result = cnx_clamp_add_u16(byte, word);
+    const uint32_t result = cnx_clamp_add_u16(byte, word);
     if (result != 510) {
         return 5U;
     }
-    uint16_t large_word = 65535U;
-    uint32_t large_dword = large_word;
+    const uint16_t large_word = 65535U;
+    const uint32_t large_dword = large_word;
     if (large_dword != 65535) {
         return 6U;
     }

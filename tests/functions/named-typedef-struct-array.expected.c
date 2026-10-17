@@ -34,7 +34,7 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 
 /* Scope: Handler */
 
-uint32_t Handler__processBuffer(const uint8_t data[8], uint8_t len) {
+uint32_t Handler__processBuffer(const uint8_t data[8], const uint8_t len) {
     uint32_t sum = 0U;
     uint8_t i = 0U;
     while (i < len) {
@@ -44,7 +44,7 @@ uint32_t Handler__processBuffer(const uint8_t data[8], uint8_t len) {
     return sum;
 }
 
-uint32_t Handler__processData(const uint8_t data[16], uint8_t len) {
+uint32_t Handler__processData(const uint8_t data[16], const uint8_t len) {
     uint32_t sum = 0U;
     uint8_t i = 0U;
     while (i < len) {
@@ -59,8 +59,8 @@ uint32_t Handler__handleMessage(const CAN_message_t* msg) {
 }
 
 uint32_t Handler__processMultiArray(const MultiArray_t* multi) {
-    uint32_t headerSum = Handler__processBuffer(multi->header, 4U);
-    uint32_t bodySum = Handler__processData(multi->body, multi->sizes[1U]);
+    const uint32_t headerSum = Handler__processBuffer(multi->header, 4U);
+    const uint32_t bodySum = Handler__processData(multi->body, multi->sizes[1U]);
     return cnx_clamp_add_u32(headerSum, bodySum);
 }
 
@@ -80,7 +80,7 @@ uint32_t testNamedTypedefConstArrayMember(void) {
     msg.buf[6] = 0U;
     msg.buf[7] = 0U;
     msg.len = 4U;
-    uint32_t result = Handler__handleMessage(&msg);
+    const uint32_t result = Handler__handleMessage(&msg);
     return result;
 }
 
@@ -95,7 +95,7 @@ uint32_t testMultipleArrayMembers(void) {
     multi.sizes[0] = 4U;
     multi.sizes[1] = 2U;
     multi.sizes[2] = 2U;
-    uint32_t result = Handler__processMultiArray(&multi);
+    const uint32_t result = Handler__processMultiArray(&multi);
     return result;
 }
 
@@ -105,20 +105,20 @@ uint32_t testNonConstArrayMember(void) {
     msg.buf[0] = 100U;
     msg.buf[1] = 50U;
     msg.len = 2U;
-    uint32_t result = Handler__handleMutableMessage(&msg);
+    const uint32_t result = Handler__handleMutableMessage(&msg);
     return result;
 }
 
 int main(void) {
-    uint32_t result1 = testNamedTypedefConstArrayMember();
+    const uint32_t result1 = testNamedTypedefConstArrayMember();
     if (result1 != 100) {
         return 1U;
     }
-    uint32_t result2 = testMultipleArrayMembers();
+    const uint32_t result2 = testMultipleArrayMembers();
     if (result2 != 40) {
         return 2U;
     }
-    uint32_t result3 = testNonConstArrayMember();
+    const uint32_t result3 = testNonConstArrayMember();
     if (result3 != 150) {
         return 3U;
     }

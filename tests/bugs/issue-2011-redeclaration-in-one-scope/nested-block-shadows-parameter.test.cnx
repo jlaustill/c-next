@@ -4,7 +4,7 @@
 u32 total <- 7;
 
 u32 shadowing(u32 total) {
-    u32 result <- total;
+    mut u32 result <- total;
     if (total > 0) {
         u32 total <- 3;
         result <- total + global.total;

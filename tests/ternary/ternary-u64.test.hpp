@@ -13,8 +13,8 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint64_t getMax(uint64_t a, uint64_t b);
-uint64_t getMin(uint64_t a, uint64_t b);
+uint64_t getMax(const uint64_t a, const uint64_t b);
+uint64_t getMin(const uint64_t a, const uint64_t b);
 
 #ifdef __cplusplus
 }

@@ -23,10 +23,10 @@ scope Motor {
     }
 
     // Scoped enum variable
-    private this.EMode mode <- this.EMode.OFF;
+    private mut this.EMode mode <- this.EMode.OFF;
 
     // Atomic enum variable
-    private atomic this.EMode atomicMode <- this.EMode.OFF;
+    private atomic mut this.EMode atomicMode <- this.EMode.OFF;
 
     // === GETTERS (return enum) ===
     public this.EMode getMode() {
@@ -98,10 +98,10 @@ scope Controller {
 
 // === MAIN TEST FUNCTION ===
 u32 main() {
-    u32 errors <- 0;
+    mut u32 errors <- 0;
 
     // --- Test 1: Global enum define and read ---
-    EGlobalState state <- EGlobalState.IDLE;
+    mut EGlobalState state <- EGlobalState.IDLE;
     if (state != EGlobalState.IDLE) {
         errors <- errors + 1;
     }
@@ -157,8 +157,8 @@ u32 main() {
     // Motor mode should now be HIGH (set by Controller)
 
     // --- Test 11: Enum in loop ---
-    EGlobalState loopState <- EGlobalState.IDLE;
-    u32 i <- 0;
+    mut EGlobalState loopState <- EGlobalState.IDLE;
+    mut u32 i <- 0;
     while (i < 3) {
         if (loopState = EGlobalState.IDLE) {
             loopState <- EGlobalState.RUNNING;

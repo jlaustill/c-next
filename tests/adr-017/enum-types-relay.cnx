@@ -4,4 +4,4 @@
 
 #include "cross-file-types.cnx"
 
-const u32 ENUM_RELAY_MARKER <- 2;
+u32 ENUM_RELAY_MARKER <- 2;

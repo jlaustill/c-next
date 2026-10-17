@@ -16,8 +16,8 @@ extern "C" {
 extern uint32_t globalSum;
 
 /* Function prototypes */
-void Calculator__sumToN(uint32_t n);
-void Calculator__factorial(uint32_t n);
+void Calculator__sumToN(const uint32_t n);
+void Calculator__factorial(const uint32_t n);
 uint32_t Calculator__getResult(void);
 void ArrayOps__initialize(void);
 void ArrayOps__computeSum(void);

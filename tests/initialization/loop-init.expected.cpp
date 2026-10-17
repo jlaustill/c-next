@@ -36,7 +36,7 @@ int main(void) {
     }
     uint32_t count = 0U;
     while (count < 3) {
-        uint32_t temp = cnx_clamp_mul_u32(count, 2U);
+        const uint32_t temp = cnx_clamp_mul_u32(count, 2U);
         sum = cnx_clamp_add_u32(sum, temp);
         count = cnx_clamp_add_u32(count, 1U);
     }
@@ -46,7 +46,7 @@ int main(void) {
     uint32_t product = 1U;
     for (uint32_t i = 1U; i <= 3; i = cnx_clamp_add_u32(i, 1U)) {
         for (uint32_t j = 1U; j <= 2; j = cnx_clamp_add_u32(j, 1U)) {
-            uint32_t factor = cnx_clamp_mul_u32(i, j);
+            const uint32_t factor = cnx_clamp_mul_u32(i, j);
             product = cnx_clamp_mul_u32(product, factor);
         }
     }
@@ -54,7 +54,7 @@ int main(void) {
         return 3U;
     }
     for (uint32_t i = 0U; i < 3; i = cnx_clamp_add_u32(i, 1U)) {
-        uint32_t value = cnx_clamp_mul_u32(i, 10U);
+        const uint32_t value = cnx_clamp_mul_u32(i, 10U);
         sum = cnx_clamp_add_u32(sum, value);
     }
     if (sum != 46) {

@@ -78,15 +78,15 @@ int main(void) {
     if (((device.status >> 0) & 1) != true) {
         return 15U;
     }
-    bool isActive = ((((device.flags >> 0) & 1)) != 0U);
+    const bool isActive = ((((device.flags >> 0) & 1)) != 0U);
     if (isActive != true) {
         return 16U;
     }
-    uint8_t progress = static_cast<uint8_t>(((device.status >> 8) & 0xFF));
+    const uint8_t progress = static_cast<uint8_t>(((device.status >> 8) & 0xFF));
     if (progress != 100) {
         return 17U;
     }
-    uint8_t mode = static_cast<uint8_t>(((device.flags >> 3) & 0x1F));
+    const uint8_t mode = static_cast<uint8_t>(((device.flags >> 3) & 0x1F));
     if (mode != 15) {
         return 18U;
     }

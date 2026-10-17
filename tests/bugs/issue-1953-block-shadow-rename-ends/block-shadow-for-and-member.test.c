@@ -28,12 +28,12 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 // test-execution
 // Issue #1953: the other readers of a shadowing local's name end with its block too:
 // a for-loop variable, and .type_byte_length of a struct member through the shadowing name
-Pair cfg = {0};
+const Pair cfg = {0};
 
-uint8_t i = 9U;
+const uint8_t i = 9U;
 
 int main(void) {
-    uint32_t flag = 1U;
+    const uint32_t flag = 1U;
     uint32_t sum = 0U;
     /* C11 6.2.1p4, C++ [basic.scope.hiding]: `i` emitted as `main__i` (a plain `i` would hide the file-scope `i` for the rest of its scope, so `global.i` would reach the local). */
     for (uint8_t main__i = 0U; main__i < 3; main__i = cnx_clamp_add_u8(main__i, 1U)) {
@@ -47,7 +47,7 @@ int main(void) {
     }
     if (flag == 1) {
         /* C11 6.2.1p4, C++ [basic.scope.hiding]: `cfg` emitted as `main__cfg` (a plain `cfg` would hide the file-scope `cfg` for the rest of its scope, so `global.cfg` would reach the local). */
-        uint8_t main__cfg[16] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
+        const uint8_t main__cfg[16] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
         if (16 != 16) {
             return 3U;
         }

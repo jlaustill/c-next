@@ -23,11 +23,11 @@ typedef struct TReading {
 extern const uint8_t DEVICE_COUNT;
 extern const uint8_t CHANNEL_COUNT;
 extern bool enabled[4];
-extern TReading readings[4][4];
-extern int32_t mixed[4][8];
-extern int32_t mixed2[8][4];
-extern uint16_t both[4][2];
-extern bool literal_arr[4];
+extern const TReading readings[4][4];
+extern const int32_t mixed[4][8];
+extern const int32_t mixed2[8][4];
+extern const uint16_t both[4][2];
+extern const bool literal_arr[4];
 
 /* Function prototypes */
 void Manager__test(void);

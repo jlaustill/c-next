@@ -15,7 +15,7 @@
 int32_t result = 0;
 
 // Test i64 with various negative values (within JS safe integer range)
-void testI64Values(int64_t val) {
+void testI64Values(const int64_t val) {
     switch (val) {
         case -9007199254740991: {
             result = 1;
@@ -74,7 +74,7 @@ void testI64Values(int64_t val) {
 
 // Test negative hex with i64 values
 // Note: Avoids -0x80000000 due to C's unsigned hex literal interpretation
-void testI64Hex(int64_t val) {
+void testI64Hex(const int64_t val) {
     switch (val) {
         case -0x100000000: {
             result = 20;
@@ -108,19 +108,19 @@ void testI64Hex(int64_t val) {
 }
 
 int main(void) {
-    int64_t minSafe = -9007199254740991;
-    int64_t negQuad = -1000000000000000;
-    int64_t negTrillion = -1000000000000;
-    int64_t negBeyondI32 = -2147483649;
-    int64_t negI32Min = (int32_t)INT32_MIN;
-    int64_t negOne = -1;
-    int64_t zero = 0;
-    int64_t posI32Max = 2147483647;
-    int64_t posBeyondI32 = 2147483648;
-    int64_t posTrillion = 1000000000000;
-    int64_t posQuad = 1000000000000000;
-    int64_t maxSafe = 9007199254740991;
-    int64_t other = 123456789;
+    const int64_t minSafe = -9007199254740991;
+    const int64_t negQuad = -1000000000000000;
+    const int64_t negTrillion = -1000000000000;
+    const int64_t negBeyondI32 = -2147483649;
+    const int64_t negI32Min = (int32_t)INT32_MIN;
+    const int64_t negOne = -1;
+    const int64_t zero = 0;
+    const int64_t posI32Max = 2147483647;
+    const int64_t posBeyondI32 = 2147483648;
+    const int64_t posTrillion = 1000000000000;
+    const int64_t posQuad = 1000000000000000;
+    const int64_t maxSafe = 9007199254740991;
+    const int64_t other = 123456789;
     testI64Values(minSafe);
     if (result != 1) {
         return 1U;
@@ -173,22 +173,22 @@ int main(void) {
     if (result != 99) {
         return 13U;
     }
-    int64_t negBeyondU32 = -4294967296;
+    const int64_t negBeyondU32 = -4294967296;
     testI64Hex(negBeyondU32);
     if (result != 20) {
         return 14U;
     }
-    int64_t negI32Max = -2147483647;
+    const int64_t negI32Max = -2147483647;
     testI64Hex(negI32Max);
     if (result != 21) {
         return 15U;
     }
-    int64_t neg16M = -16777216;
+    const int64_t neg16M = -16777216;
     testI64Hex(neg16M);
     if (result != 22) {
         return 16U;
     }
-    int64_t neg255 = -255;
+    const int64_t neg255 = -255;
     testI64Hex(neg255);
     if (result != 23) {
         return 17U;
@@ -197,7 +197,7 @@ int main(void) {
     if (result != 24) {
         return 18U;
     }
-    int64_t posBeyondU32 = 4294967296;
+    const int64_t posBeyondU32 = 4294967296;
     testI64Hex(posBeyondU32);
     if (result != 25) {
         return 19U;

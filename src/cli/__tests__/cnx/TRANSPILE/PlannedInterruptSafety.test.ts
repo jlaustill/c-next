@@ -23,7 +23,7 @@ async function generate(source: string): Promise<string> {
 describe("2.2 plans every atomic and masked region 2.3 writes", () => {
   it("a critical block needs the IRQ wrappers", async () => {
     const code = await generate(
-      "#pragma target cortex-m0\nu32 a;\nvoid f() { critical { a <- 1; } }\n",
+      "#pragma target cortex-m0\nmut u32 a;\nvoid f() { critical { a <- 1; } }\n",
     );
     expect(code).toContain("__cnx_disable_irq();");
     expect(code).toContain(WRAPPERS);
@@ -31,7 +31,7 @@ describe("2.2 plans every atomic and masked region 2.3 writes", () => {
 
   it("an atomic on an LDREX target is a loop, with CMSIS", async () => {
     const code = await generate(
-      "#pragma target teensy41\natomic u32 c <- 0;\nvoid f() { c +<- 1; }\n",
+      "#pragma target teensy41\natomic mut u32 c <- 0;\nvoid f() { c +<- 1; }\n",
     );
     expect(code).toContain("__LDREXW(&c)");
     expect(code).toContain("#include <cmsis_gcc.h>");
@@ -40,7 +40,7 @@ describe("2.2 plans every atomic and masked region 2.3 writes", () => {
 
   it("an atomic with no exclusive access is masked, with the wrappers", async () => {
     const code = await generate(
-      "#pragma target teensy41\natomic u64 c <- 0;\nvoid f() { c +<- 1; }\n",
+      "#pragma target teensy41\natomic mut u64 c <- 0;\nvoid f() { c +<- 1; }\n",
     );
     expect(code).toContain("__cnx_disable_irq();");
     expect(code).toContain(WRAPPERS);
@@ -49,7 +49,7 @@ describe("2.2 plans every atomic and masked region 2.3 writes", () => {
 
   it("a plain store to an atomic is neither", async () => {
     const code = await generate(
-      "#pragma target teensy41\natomic u32 c <- 0;\nvoid f() { c <- 1; }\n",
+      "#pragma target teensy41\natomic mut u32 c <- 0;\nvoid f() { c <- 1; }\n",
     );
     expect(code).not.toContain("__LDREXW");
     expect(code).not.toContain("#include <cmsis_gcc.h>");

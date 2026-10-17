@@ -4,11 +4,11 @@
 #include <string.h>
 #include <stdio.h>
 
-string<64> haystack <- "hello hello hello";
+mut string<64> haystack <- "hello hello hello";
 
 void testWhileLoop() {
     // Use cstring for C pointer returns
-    cstring c_pos <- strstr(haystack, "hello");
+    mut cstring c_pos <- strstr(haystack, "hello");
 
     // While loop condition provides NULL check
     while (c_pos != NULL) {

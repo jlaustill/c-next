@@ -9,7 +9,7 @@ struct S {
     u8 flags;
 }
 
-S s;
+mut S s;
 
 u32 main() {
     // CONTROL: a scalar field's bit write was right before

@@ -39,7 +39,7 @@ void Math__add(Math__Vec2& result, const Math__Vec2& a, const Math__Vec2& b) {
     result.y = cnx_clamp_add_i32(a.y, b.y);
 }
 
-void Math__scale(Math__Vec2& v, int32_t factor) {
+void Math__scale(Math__Vec2& v, const int32_t factor) {
     v.x = cnx_clamp_mul_i32(v.x, factor);
     v.y = cnx_clamp_mul_i32(v.y, factor);
 }
@@ -86,7 +86,7 @@ int main(void) {
     v1.y = 3;
     v2.x = 4;
     v2.y = 5;
-    int32_t dp = Math__dot(v1, v2);
+    const int32_t dp = Math__dot(v1, v2);
     if (dp != 23) {
         return 5U;
     }

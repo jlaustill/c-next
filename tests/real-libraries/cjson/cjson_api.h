@@ -1,11 +1,12 @@
 #ifndef CJSON_API_H
 #define CJSON_API_H
 
+#include <stdint.h>
 #include "../../libs/cJSON/cJSON.h"
 
 cJSON* cnext_cjson_parse(const char* text);
 cJSON* cnext_cjson_create_array(void);
-cJSON* cnext_cjson_create_int_array(const int* numbers, int count);
+cJSON* cnext_cjson_create_int_array(const int32_t* numbers, int32_t count);
 cJSON* cnext_cjson_create_object(void);
 cJSON* cnext_cjson_create_number(double value);
 cJSON* cnext_cjson_create_string(const char* value);

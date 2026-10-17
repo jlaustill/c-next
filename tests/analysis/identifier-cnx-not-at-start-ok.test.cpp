@@ -13,9 +13,9 @@
 // is needed to make the two namespaces disjoint. An identifier that merely
 // contains the sequence stays legal, and this test fails if E0202 is ever
 // implemented as a substring check rather than a prefix check.
-uint8_t my_cnx_buffer = 1U;
+extern const uint8_t my_cnx_buffer = 1U;
 
-uint8_t buffer_cnx = 2U;
+extern const uint8_t buffer_cnx = 2U;
 
 int main(void) {
     if (my_cnx_buffer != 1) {

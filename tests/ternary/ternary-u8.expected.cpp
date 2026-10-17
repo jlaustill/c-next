@@ -10,52 +10,52 @@
 // test-execution
 // ADR-022: Ternary operator test for u8
 // Tests: ternary with u8 in conditions and branches
-uint8_t getMax(uint8_t a, uint8_t b) {
+uint8_t getMax(const uint8_t a, const uint8_t b) {
     return (a > b) ? a : b;
 }
 
-uint8_t getMin(uint8_t a, uint8_t b) {
+uint8_t getMin(const uint8_t a, const uint8_t b) {
     return (a < b) ? a : b;
 }
 
 int main(void) {
-    uint8_t a = 10U;
-    uint8_t b = 20U;
-    uint8_t c = 30U;
-    uint8_t d = 5U;
-    uint8_t maxResult1 = getMax(a, b);
+    const uint8_t a = 10U;
+    const uint8_t b = 20U;
+    const uint8_t c = 30U;
+    const uint8_t d = 5U;
+    const uint8_t maxResult1 = getMax(a, b);
     if (maxResult1 != 20) {
         return 1U;
     }
-    uint8_t maxResult2 = getMax(c, d);
+    const uint8_t maxResult2 = getMax(c, d);
     if (maxResult2 != 30) {
         return 2U;
     }
-    uint8_t minResult1 = getMin(a, b);
+    const uint8_t minResult1 = getMin(a, b);
     if (minResult1 != 10) {
         return 3U;
     }
-    uint8_t minResult2 = getMin(c, d);
+    const uint8_t minResult2 = getMin(c, d);
     if (minResult2 != 5) {
         return 4U;
     }
-    uint8_t result = (a > b) ? a : b;
+    const uint8_t result = (a > b) ? a : b;
     if (result != 20) {
         return 5U;
     }
-    uint8_t max_val = 255U;
-    uint8_t mid_val = 127U;
-    uint8_t edge_result = (max_val > mid_val) ? max_val : mid_val;
+    const uint8_t max_val = 255U;
+    const uint8_t mid_val = 127U;
+    const uint8_t edge_result = (max_val > mid_val) ? max_val : mid_val;
     if (edge_result != 255) {
         return 6U;
     }
-    uint8_t zero = 0U;
-    uint8_t one = 1U;
-    uint8_t zero_result = (zero < one) ? zero : one;
+    const uint8_t zero = 0U;
+    const uint8_t one = 1U;
+    const uint8_t zero_result = (zero < one) ? zero : one;
     if (zero_result != 0) {
         return 7U;
     }
-    uint8_t equal_test = (a == 10) ? 100U : 200U;
+    const uint8_t equal_test = (a == 10) ? 100U : 200U;
     if (equal_test != 100) {
         return 8U;
     }

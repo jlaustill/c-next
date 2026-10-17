@@ -3,7 +3,7 @@
 // test-adr: 057
 
 scope LED {
-    u8 brightness <- 100;
+    mut u8 brightness <- 100;
 
     public void setBrightness(u8 level) {
         brightness <- level;

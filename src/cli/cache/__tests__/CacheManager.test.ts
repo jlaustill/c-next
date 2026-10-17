@@ -296,6 +296,37 @@ describe("CacheManager", () => {
       });
     });
 
+    it("reads a header's declarations only for the compiler that read it (#1713)", () => {
+      const testFile = join(testDir, "word.h");
+      writeFileSync(testFile, "typedef unsigned long uword_t;");
+      const symbolTable = new SymbolTable();
+      symbolTable.addCSymbol({
+        kind: "type",
+        name: "uword_t",
+        type: "unsigned long",
+        sourceFile: testFile,
+        span: TestSourceSpan.at(1),
+        sourceLanguage: ESourceLanguage.C,
+        visibility: "public",
+      });
+      cacheManager.setHeaderDeclarations(
+        testFile,
+        HeaderDeclarationRecord.of(testFile, symbolTable),
+        "gcc",
+      );
+
+      expect(cacheManager.headerDeclarations(testFile, "gcc")).not.toBeNull();
+      expect(
+        cacheManager.headerDeclarations(
+          testFile,
+          "arm-none-eabi-gcc -mthumb -mcpu=cortex-m7",
+        ),
+      ).toBeNull();
+      expect(
+        cacheManager.headerDeclarations(testFile, "unpreprocessed"),
+      ).toBeNull();
+    });
+
     it("preserves optional symbol fields through the production path", () => {
       const testFile = join(testDir, "test.h");
       writeFileSync(testFile, "// test");
@@ -326,6 +357,7 @@ describe("CacheManager", () => {
       cacheManager.setHeaderDeclarations(
         testFile,
         HeaderDeclarationRecord.of(testFile, symbolTable),
+        "gcc",
       );
 
       const restored = readSymbols(cacheManager.getSymbols(testFile)!.symbols);
@@ -954,6 +986,7 @@ describe("CacheManager", () => {
       cacheManager.setHeaderDeclarations(
         testFile,
         HeaderDeclarationRecord.of(testFile, symbolTable),
+        "gcc",
       );
 
       const cached = cacheManager.getSymbols(testFile);
@@ -1003,6 +1036,7 @@ describe("CacheManager", () => {
       cacheManager.setHeaderDeclarations(
         headerFile,
         HeaderDeclarationRecord.of(headerFile, symbolTable),
+        "gcc",
       );
 
       const restored = readSymbols(
@@ -1035,6 +1069,7 @@ describe("CacheManager", () => {
       cacheManager.setHeaderDeclarations(
         testFile,
         HeaderDeclarationRecord.of(testFile, symbolTable),
+        "gcc",
       );
 
       // Verify cached data
@@ -1085,6 +1120,7 @@ describe("CacheManager", () => {
       cacheManager.setHeaderDeclarations(
         file1,
         HeaderDeclarationRecord.of(file1, symbolTable),
+        "gcc",
       );
 
       // Verify only file1's struct fields are cached
@@ -1129,6 +1165,7 @@ describe("CacheManager", () => {
       cacheManager.setHeaderDeclarations(
         testFile,
         HeaderDeclarationRecord.of(testFile, symbolTable),
+        "gcc",
       );
 
       // Verify cached data
@@ -1175,6 +1212,7 @@ describe("CacheManager", () => {
       cacheManager.setHeaderDeclarations(
         file1,
         HeaderDeclarationRecord.of(file1, symbolTable),
+        "gcc",
       );
 
       // Verify only file1's needsStructKeyword is cached
@@ -1216,6 +1254,7 @@ describe("CacheManager", () => {
       cacheManager.setHeaderDeclarations(
         testFile,
         HeaderDeclarationRecord.of(testFile, symbolTable),
+        "gcc",
       );
 
       // Verify cached data
@@ -1259,6 +1298,7 @@ describe("CacheManager", () => {
       cacheManager.setHeaderDeclarations(
         file1,
         HeaderDeclarationRecord.of(file1, symbolTable),
+        "gcc",
       );
 
       // Verify only file1's enum bit widths are cached
@@ -1313,6 +1353,7 @@ describe("CacheManager", () => {
       cacheManager.setHeaderDeclarations(
         testFile,
         HeaderDeclarationRecord.of(testFile, symbolTable),
+        "gcc",
       );
 
       // Verify all data is cached correctly
@@ -1375,6 +1416,7 @@ describe("CacheManager", () => {
       cacheManager.setHeaderDeclarations(
         testFile,
         HeaderDeclarationRecord.of(testFile, symbolTable),
+        "gcc",
       );
       cacheManager.flush();
 
@@ -1411,6 +1453,7 @@ describe("CacheManager", () => {
       cacheManager.setHeaderDeclarations(
         nonExistent,
         HeaderDeclarationRecord.of(nonExistent, symbolTable),
+        "gcc",
       );
 
       expect(cacheManager.getSymbols(nonExistent)).toBeNull();
@@ -1424,6 +1467,7 @@ describe("CacheManager", () => {
       cacheManager.setHeaderDeclarations(
         testFile,
         HeaderDeclarationRecord.of(testFile, symbolTable),
+        "gcc",
       );
 
       // Should cache with empty data
@@ -1454,6 +1498,7 @@ describe("CacheManager", () => {
       cacheManager.setHeaderDeclarations(
         testFile,
         HeaderDeclarationRecord.of(testFile, symbolTable),
+        "gcc",
       );
 
       const cached = cacheManager.getSymbols(testFile);
@@ -1482,6 +1527,7 @@ describe("CacheManager", () => {
       cacheManager.setHeaderDeclarations(
         testFile,
         HeaderDeclarationRecord.of(testFile, symbolTable),
+        "gcc",
       );
 
       const cached = cacheManager.getSymbols(testFile);
@@ -1527,6 +1573,7 @@ describe("CacheManager", () => {
       cacheManager.setHeaderDeclarations(
         testFile,
         HeaderDeclarationRecord.of(testFile, symbolTable),
+        "gcc",
       );
 
       const cached = cacheManager.getSymbols(testFile);
@@ -1650,7 +1697,7 @@ describe("CacheManager", () => {
       const content = mockFs.getWrittenContent("/project/.cnx/config.json");
       expect(content).toBeDefined();
       const newConfig = JSON.parse(content!);
-      expect(newConfig.version).toBe(19); // Current CACHE_VERSION (C pointer depth, #1668, #1760's volatile spellings, field declarators, #1653's plain-JSON symbols.json, then #1975's union and bit-field layout, its struct-level layouts, then its bit-field widths)
+      expect(newConfig.version).toBe(20); // Current CACHE_VERSION (C pointer depth, #1668, #1760's volatile spellings, field declarators, #1653's plain-JSON symbols.json, then #1975's union and bit-field layout, its struct-level layouts, then its bit-field widths, then #2103's typedef-with-body tag alias)
     });
 
     it("should not cache files that do not exist in IFileSystem", () => {

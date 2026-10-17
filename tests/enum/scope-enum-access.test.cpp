@@ -11,7 +11,7 @@
 // Tests: Enum access inside scopes without global. prefix when unambiguous
 /* Scope: Test */
 
-uint32_t Test__checkRed(EColor c) {
+uint32_t Test__checkRed(const EColor c) {
     if (c == EColor__RED) {
         return 1U;
     }
@@ -19,8 +19,8 @@ uint32_t Test__checkRed(EColor c) {
 }
 
 int main(void) {
-    EColor c = EColor__RED;
-    uint32_t result = Test__checkRed(c);
+    const EColor c = EColor__RED;
+    const uint32_t result = Test__checkRed(c);
     if (result != 1) {
         return 1U;
     }

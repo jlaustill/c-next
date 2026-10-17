@@ -1,7 +1,7 @@
 // test-execution
 // Issue #107: Negative Case Labels with Multi-Case Syntax
 // Tests: negative literals with || syntax for multiple case labels
-i32 result;
+mut i32 result;
 
 // Test multiple negative cases grouped together
 void testNegativeGroup(i8 val) {

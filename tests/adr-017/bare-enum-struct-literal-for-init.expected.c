@@ -30,7 +30,7 @@ Pt Pt_init(void) {
 int main(void) {
     uint8_t i = 0U;
     uint8_t seen = 0U;
-    for (Pt p = (Pt){ .c = Color__GREEN, .x = 1U }; i < 2; i = cnx_clamp_add_u8(i, 1U)) {
+    for (const Pt p = (Pt){ .c = Color__GREEN, .x = 1U }; i < 2; i = cnx_clamp_add_u8(i, 1U)) {
         if (p.c == Color__GREEN) {
             seen = cnx_clamp_add_u8(seen, p.x);
         }

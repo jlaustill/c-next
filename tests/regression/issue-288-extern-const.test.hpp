@@ -19,7 +19,7 @@ extern const uint8_t ExternConstTest__STATUS_ERROR;
 extern const uint32_t ExternConstTest__MAGIC_NUMBER;
 
 /* Function prototypes */
-bool ExternConstTest__isSuccess(uint8_t status);
+bool ExternConstTest__isSuccess(const uint8_t status);
 uint8_t ExternConstTest__getErrorCode(void);
 uint32_t ExternConstTest__getMagic(void);
 

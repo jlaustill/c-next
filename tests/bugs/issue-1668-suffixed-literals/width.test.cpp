@@ -29,16 +29,16 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 // composite's ADR-044 clamp helper like any other u32 operand -- in either
 // order. Skipping it would size the helper by `b` alone and saturate at 255.
 int main(void) {
-    uint8_t b = 200U;
-    uint32_t r1 = cnx_clamp_add_u32(b, 100U);
+    const uint8_t b = 200U;
+    const uint32_t r1 = cnx_clamp_add_u32(b, 100U);
     if (r1 != 300) {
         return 1U;
     }
-    uint32_t r2 = cnx_clamp_add_u32(100U, b);
+    const uint32_t r2 = cnx_clamp_add_u32(100U, b);
     if (r2 != 300) {
         return 2U;
     }
-    uint8_t r3 = cnx_clamp_add_u8(b, 100U);
+    const uint8_t r3 = cnx_clamp_add_u8(b, 100U);
     if (r3 != 255) {
         return 3U;
     }

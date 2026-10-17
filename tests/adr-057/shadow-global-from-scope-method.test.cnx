@@ -59,8 +59,8 @@ scope Counter {
     }
 
     public u32 loopShadow() {
-        u32 sum <- 0;
-        for (u32 tick <- 0; tick < 2; tick +<- 1) {
+        mut u32 sum <- 0;
+        for (mut u32 tick <- 0; tick < 2; tick +<- 1) {
             sum +<- global.tick;
         }
         return sum;
@@ -69,19 +69,19 @@ scope Counter {
     // --- writes through a shadowing local ---
 
     public u32 writeSubscript() {
-        u32[2] wbuf <- [1, 2];
+        mut u32[2] wbuf <- [1, 2];
         wbuf[0] <- 5;
         return wbuf[0];
     }
 
     public u32 writeStructField() {
-        Holder wcfg <- { x: 1 };
+        mut Holder wcfg <- { x: 1 };
         wcfg.x <- 7;
         return wcfg.x;
     }
 
     public u32 writeBitRange() {
-        u8 wflags <- 0;
+        mut u8 wflags <- 0;
         wflags[0, 4] <- 3;
         return wflags;
     }

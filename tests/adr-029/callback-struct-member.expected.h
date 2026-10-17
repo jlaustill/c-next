@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* Callback typedefs */
-typedef uint32_t (*computeValue_fp)(uint32_t);
+typedef uint32_t (*computeValue_fp)(const uint32_t);
 
 /* Struct definitions */
 typedef struct Processor {
@@ -22,8 +22,8 @@ typedef struct Processor {
 } Processor;
 
 /* Function prototypes */
-uint32_t computeValue(uint32_t input);
-uint32_t tripleValue(uint32_t input);
+uint32_t computeValue(const uint32_t input);
+uint32_t tripleValue(const uint32_t input);
 /* MISRA C:2012 Rule 8.4: declaration for the ADR-029 generated init function (the definition has external linkage and would otherwise be undeclared). */
 Processor Processor_init(void);
 

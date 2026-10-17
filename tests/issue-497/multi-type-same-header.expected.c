@@ -11,16 +11,16 @@
 /* Scope: Geometry */
 
 Point Geometry__getOrigin(void) {
-    Point p = { .x = 0, .y = 0 };
+    const Point p = { .x = 0, .y = 0 };
     return p;
 }
 
 Line Geometry__makeLine(const Point* start, const Point* end) {
-    Line l = { .start = (*start), .end = (*end) };
+    const Line l = { .start = (*start), .end = (*end) };
     return l;
 }
 
 int main(void) {
-    Point p = Geometry__getOrigin();
-    Line l = Geometry__makeLine(&p, &p);
+    const Point p = Geometry__getOrigin();
+    const Line l = Geometry__makeLine(&p, &p);
 }

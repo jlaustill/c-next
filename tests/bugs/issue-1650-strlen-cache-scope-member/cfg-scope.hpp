@@ -11,7 +11,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern char Cfg__label[9];
+extern const char Cfg__label[9];
 
 #ifdef __cplusplus
 }

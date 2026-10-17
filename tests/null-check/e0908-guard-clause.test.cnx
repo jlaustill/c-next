@@ -2,7 +2,7 @@
 #include <stdio.h>
 
 void testGuardClause() {
-    FILE c_file <- fopen("test.txt", "r");
+    mut FILE c_file <- fopen("test.txt", "r");
     if (c_file = NULL) {
         return; // Guard clause: early return if NULL
     }

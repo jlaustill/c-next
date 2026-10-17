@@ -7,12 +7,12 @@
 // `hw__Dev` with no `&`, and g++ rejected the header.
 #include "hw-dev.hpp"
 
-void onDev(hw.Dev d) {
+void onDev(mut hw.Dev d) {
     d.x <- 7;
 }
 
 i32 useIt(onDev cb) {
-    hw.Dev q;
+    mut hw.Dev q;
     q.x <- 0;
     cb(q);
     return q.x;

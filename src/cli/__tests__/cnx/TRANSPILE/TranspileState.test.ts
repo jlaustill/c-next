@@ -6,7 +6,6 @@ import TestSymbolTable from "../../../../cnx/TRANSPILE/__tests__/TestSymbolTable
 import ProgramLowering from "../../../../cnx/PARSE/2-Parse/ProgramLowering";
 import type IScopeSymbol from "../../../../cnx/types/symbols/IScopeSymbol";
 import { describe, it, expect, beforeEach } from "vitest";
-import type IProgram from "../../../../cnx/types/IProgram";
 import DeclaredPointer from "../../../../cnx/utils/DeclaredPointer";
 import installMockSymbols from "../../../../cnx/TRANSPILE/__tests__/installMockSymbols";
 import TranspileState from "../../../../cnx/TRANSPILE/TranspileState";
@@ -139,20 +138,6 @@ describe("TranspileState", () => {
   });
 
   describe("Symbol Lookup Helpers", () => {
-    it("isKnownEnum returns false without symbols", () => {
-      state.symbols = null;
-      expect(state.isKnownEnum("MyEnum")).toBe(false);
-    });
-
-    it("isKnownEnum returns true for known enum", () => {
-      installMockSymbols(state, {
-        knownEnums: new Set(["MyEnum"]),
-      });
-
-      expect(state.isKnownEnum("MyEnum")).toBe(true);
-      expect(state.isKnownEnum("UnknownEnum")).toBe(false);
-    });
-
     it("isKnownScope returns false without symbols", () => {
       state.symbols = null;
       expect(state.isKnownScope("MyScope")).toBe(false);
@@ -395,64 +380,6 @@ describe("TranspileState", () => {
 
       // Simple struct should have its field
       expect(result.get("Simple")?.has("value")).toBe(true);
-    });
-  });
-
-  describe("isParameterModifiedAnywhere (#1552, #1529)", () => {
-    // The one modification fact behind every auto-const decision. Two callers
-    // used to answer it separately with OPPOSITE defaults on a missing entry,
-    // which is how a single fact produced a `const` the prototype lacked
-    // (#1529) and dropped one the prototype had (#1552). The polarity assertion
-    // below is the contract, not a detail.
-    const programWith = (modified: ReadonlyMap<string, ReadonlySet<string>>) =>
-      ({ modifiedParameters: () => modified }) as unknown as IProgram;
-
-    it("reads the whole-program fact when a Program is present", () => {
-      state.program = programWith(new Map([["mutate", new Set(["s"])]]));
-      // The per-file accumulator this used to contradict is gone (#1452), so
-      // the control is structural now: there is no second source a pass could
-      // come from.
-
-      expect(state.isParameterModifiedAnywhere("mutate", "s")).toBe(true);
-
-      state.program = null;
-    });
-
-    it("treats a function absent from the program as NOT modified", () => {
-      // The polarity that matters: an absent entry means auto-const APPLIES,
-      // matching what the prototype does. Reading it the other way is what made
-      // an included function-as-type lose its const (#1552).
-      state.program = programWith(new Map());
-
-      expect(state.isParameterModifiedAnywhere("record", "s")).toBe(false);
-
-      state.program = null;
-    });
-
-    it("treats a known function's unlisted parameter as NOT modified", () => {
-      state.program = programWith(new Map([["partly", new Set(["written"])]]));
-
-      expect(state.isParameterModifiedAnywhere("partly", "written")).toBe(true);
-      expect(state.isParameterModifiedAnywhere("partly", "read")).toBe(false);
-
-      state.program = null;
-    });
-
-    it("answers NOT modified when there is no Program", () => {
-      // #1452 retired this test's original subject. It asserted a FALLBACK to a
-      // per-file accumulator on `TranspileState` -- the one this method's own
-      // docblock named as the bug in #1529 and #1552, empty while declarations
-      // are walked and absent entirely for an included function. The
-      // accumulator is gone, so there is no second source to fall back to and
-      // the branch cannot be tested because it no longer exists.
-      //
-      // What remains is the polarity, which is the part that was load-bearing:
-      // absent means NOT modified, so auto-const applies.
-      state.program = null;
-
-      expect(state.isParameterModifiedAnywhere("localOnly", "target")).toBe(
-        false,
-      );
     });
   });
 

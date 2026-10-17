@@ -13,7 +13,7 @@
 /* Scope: LED */
 static uint8_t LED__brightness = 100U;
 
-void LED__setBrightness(uint8_t level) {
+void LED__setBrightness(const uint8_t level) {
     LED__brightness = level;
 }
 
@@ -29,7 +29,7 @@ void Motor__adjustLED(void) {
 
 int main(void) {
     Motor__adjustLED();
-    uint8_t brightness = LED__getBrightness();
+    const uint8_t brightness = LED__getBrightness();
     if (brightness != 50) {
         return 1U;
     }

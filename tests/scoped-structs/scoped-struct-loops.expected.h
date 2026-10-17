@@ -23,7 +23,7 @@ extern Sensor__Reading Sensor__buffer[4];
 extern uint8_t Sensor__count;
 
 /* Function prototypes */
-void Sensor__addReading(uint16_t val, uint8_t ch);
+void Sensor__addReading(const uint16_t val, const uint8_t ch);
 uint16_t Sensor__sumValues(void);
 void Sensor__clear(void);
 

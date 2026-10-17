@@ -132,7 +132,7 @@ u32 main() {
     }
 
     // Test in control flow - while loop
-    u64 counter <- 0;
+    mut u64 counter <- 0;
     while (counter < 100) {
         counter +<- 1;
         if (counter >= 50) {
@@ -145,7 +145,7 @@ u32 main() {
 
     // Nested conditions
     u64 threshold <- 1000000000;
-    bool nested_passed <- false;
+    mut bool nested_passed <- false;
     if (counter > 0) {
         if (counter < threshold) {
             nested_passed <- true;
@@ -206,7 +206,7 @@ u32 main() {
     u64 chain_b <- 5000;
     u64 chain_c <- 10000;
 
-    bool chain_result <- false;
+    mut bool chain_result <- false;
     if (chain_a < chain_b) {
         if (chain_b < chain_c) {
             chain_result <- true;

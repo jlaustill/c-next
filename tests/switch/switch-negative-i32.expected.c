@@ -15,7 +15,7 @@
 int32_t result = 0;
 
 // Test i32 with various negative values
-void testI32Values(int32_t val) {
+void testI32Values(const int32_t val) {
     switch (val) {
         case -2147483648: {
             result = 1;
@@ -73,7 +73,7 @@ void testI32Values(int32_t val) {
 }
 
 // Test negative hex with i32 values
-void testI32Hex(int32_t val) {
+void testI32Hex(const int32_t val) {
     switch (val) {
         case -0x80000000: {
             result = 20;
@@ -107,19 +107,19 @@ void testI32Hex(int32_t val) {
 }
 
 int main(void) {
-    int32_t minVal = (int32_t)INT32_MIN;
-    int32_t minPlus1 = -2147483647;
-    int32_t negMillion = -1000000;
-    int32_t neg32769 = -32769;
-    int32_t neg32768 = -32768;
-    int32_t negOne = -1;
-    int32_t zero = 0;
-    int32_t pos32767 = 32767;
-    int32_t pos32768 = 32768;
-    int32_t posMillion = 1000000;
-    int32_t maxMinus1 = 2147483646;
-    int32_t maxVal = 2147483647;
-    int32_t other = 12345;
+    const int32_t minVal = (int32_t)INT32_MIN;
+    const int32_t minPlus1 = -2147483647;
+    const int32_t negMillion = -1000000;
+    const int32_t neg32769 = -32769;
+    const int32_t neg32768 = -32768;
+    const int32_t negOne = -1;
+    const int32_t zero = 0;
+    const int32_t pos32767 = 32767;
+    const int32_t pos32768 = 32768;
+    const int32_t posMillion = 1000000;
+    const int32_t maxMinus1 = 2147483646;
+    const int32_t maxVal = 2147483647;
+    const int32_t other = 12345;
     testI32Values(minVal);
     if (result != 1) {
         return 1U;
@@ -176,7 +176,7 @@ int main(void) {
     if (result != 20) {
         return 14U;
     }
-    int32_t neg65536 = -65536;
+    const int32_t neg65536 = -65536;
     testI32Hex(neg65536);
     if (result != 21) {
         return 15U;
@@ -185,7 +185,7 @@ int main(void) {
     if (result != 22) {
         return 16U;
     }
-    int32_t neg255 = -255;
+    const int32_t neg255 = -255;
     testI32Hex(neg255);
     if (result != 23) {
         return 17U;

@@ -18,17 +18,17 @@ typedef struct Holder {
 } Holder;
 
 /* External variables */
-extern uint32_t probe;
-extern uint32_t parr[4];
-extern uint8_t pbits;
-extern uint32_t pidx;
-extern uint32_t pdown;
-extern Holder pcfg;
-extern char pstr[17];
+extern const uint32_t probe;
+extern const uint32_t parr[4];
+extern const uint8_t pbits;
+extern const uint32_t pidx;
+extern const uint32_t pdown;
+extern const Holder pcfg;
+extern const char pstr[17];
 
 /* Function prototypes */
-uint32_t takes(uint32_t v);
-uint32_t S__positions(uint32_t flag);
+uint32_t takes(const uint32_t v);
+uint32_t S__positions(const uint32_t flag);
 
 #ifdef __cplusplus
 }

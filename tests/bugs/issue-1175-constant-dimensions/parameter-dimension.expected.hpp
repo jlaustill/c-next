@@ -16,7 +16,7 @@ extern "C" {
 extern const uint32_t N;
 
 /* Function prototypes */
-uint32_t sum(uint8_t a[4], uint8_t b[4]);
+uint32_t sum(const uint8_t a[4], const uint8_t b[4]);
 
 #ifdef __cplusplus
 }

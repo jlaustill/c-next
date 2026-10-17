@@ -6,7 +6,7 @@
 
 u32 main() {
     // Test basic while loop counter
-    u32 counter <- 0;
+    mut u32 counter <- 0;
     while (counter < 10) {
         counter +<- 1;
     }
@@ -15,8 +15,8 @@ u32 main() {
     }
 
     // Test accumulator pattern
-    u32 sum <- 0;
-    u32 i <- 1;
+    mut u32 sum <- 0;
+    mut u32 i <- 1;
     while (i <= 5) {
         sum +<- i;
         i +<- 1;
@@ -26,8 +26,8 @@ u32 main() {
     }
 
     // Test decrementing counter
-    u32 countdown <- 5;
-    u32 iterations <- 0;
+    mut u32 countdown <- 5;
+    mut u32 iterations <- 0;
     while (countdown > 0) {
         countdown -<- 1;
         iterations +<- 1;
@@ -37,10 +37,10 @@ u32 main() {
     }
 
     // Test nested loop counters
-    u32 outer <- 0;
-    u32 total <- 0;
+    mut u32 outer <- 0;
+    mut u32 total <- 0;
     while (outer < 3) {
-        u32 inner <- 0;
+        mut u32 inner <- 0;
         while (inner < 3) {
             total +<- 1;
             inner +<- 1;

@@ -25,7 +25,7 @@ async function generate(source: string): Promise<string> {
 describe("2.2 plans every float bit union 2.3 writes", () => {
   it("a range read of a named f32", async () => {
     const code = await generate(
-      "f32 g <- 1.5;\nu8 r;\nvoid main() { r <- g[0, 8]; }\n",
+      "f32 g <- 1.5;\nmut u8 r;\nvoid main() { r <- g[0, 8]; }\n",
     );
     expect(code).toContain("__bits_g.u");
     expect(code).toContain(F32_ASSERT);
@@ -33,7 +33,7 @@ describe("2.2 plans every float bit union 2.3 writes", () => {
 
   it("a single-bit write to an f64", async () => {
     const code = await generate(
-      "f64 d <- 1.5;\nvoid main() { d[3] <- true; }\n",
+      "mut f64 d <- 1.5;\nvoid main() { d[3] <- true; }\n",
     );
     expect(code).toContain("__bits_d.u");
     expect(code).toContain(F64_ASSERT);
@@ -41,7 +41,7 @@ describe("2.2 plans every float bit union 2.3 writes", () => {
 
   it("a range write to an f32 array element", async () => {
     const code = await generate(
-      "f32[2] a;\nvoid main() { a[1][0, 4] <- 3; }\n",
+      "mut f32[2] a;\nvoid main() { a[1][0, 4] <- 3; }\n",
     );
     expect(code).toContain(F32_ASSERT);
   });

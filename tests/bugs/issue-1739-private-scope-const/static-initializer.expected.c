@@ -15,24 +15,20 @@
 #include <stdbool.h>
 
 /* Scope: S */
-static bool S__flag = true;
-static float S__twice = 0.5f * 2.0;
-static EMode S__mode = EMode__RUN;
-static bool S__copied = true;
-static uint8_t S__first = (uint8_t)'A';
-static uint32_t S__fromMacro = (LIMIT);
+static const uint8_t S__first = (uint8_t)'A';
+static const uint32_t S__fromMacro = (LIMIT);
 
 uint32_t S__check(void) {
-    if (S__flag != true) {
+    if (true != true) {
         return 1U;
     }
-    if (S__twice != 1.0) {
+    if (1.0f != 1.0) {
         return 2U;
     }
-    if (S__mode != EMode__RUN) {
+    if (EMode__RUN != EMode__RUN) {
         return 3U;
     }
-    if (S__copied != true) {
+    if (true != true) {
         return 4U;
     }
     if (S__first != 65) {
@@ -45,6 +41,6 @@ uint32_t S__check(void) {
 }
 
 int main(void) {
-    uint32_t r = S__check();
+    const uint32_t r = S__check();
     return r;
 }

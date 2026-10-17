@@ -92,6 +92,8 @@ class CallArgumentPassing {
       idx,
     );
 
+    // ADR-071 Q6: a float or enum is a scalar like any other -- by value when
+    // read-only, by pointer when `mut` -- which `isParameterPassByValue` reads.
     // #786 forced a primitive from another file by value, because only this
     // file's parameters were known then. 1.4 now decides eligibility across
     // every file (#1511), so a modified one is passed by reference here too.
@@ -112,9 +114,7 @@ class CallArgumentPassing {
       !isFloatParam &&
       !isEnumParam;
 
-    return (
-      isFloatParam || isEnumParam || isPrimitivePassByValue || isUnknownType
-    );
+    return isPrimitivePassByValue || isUnknownType;
   }
 }
 

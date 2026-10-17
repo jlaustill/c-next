@@ -6,7 +6,7 @@
 u8 LED <- 5; // Global variable named same as scope
 
 scope LED {
-    public u8 brightness <- 100;
+    public mut u8 brightness <- 100;
 
     public void on() {
         brightness <- 255;
@@ -20,7 +20,7 @@ scope Motor {
         // MISRA: get brightness into variable first
         u8 bright <- LED.brightness;
         // Need to return u32, so cast the sum
-        u32 result <- val;
+        mut u32 result <- val;
         result +<- bright;
         return result; // 5 + 255 = 260
     }

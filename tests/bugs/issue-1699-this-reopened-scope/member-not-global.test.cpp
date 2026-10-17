@@ -29,12 +29,12 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 /* Scope: Lib */
 
 uint32_t Lib__bump(void) {
-    uint32_t k = cnx_clamp_add_u32(Lib__x, 1U);
+    const uint32_t k = cnx_clamp_add_u32(Lib__x, 1U);
     return k;
 }
 
 int main(void) {
-    uint32_t k = Lib__bump();
+    const uint32_t k = Lib__bump();
     if (k != 301) {
         return 1U;
     }

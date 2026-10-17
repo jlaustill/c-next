@@ -40,16 +40,16 @@
 
 uint8_t shapeWitness = 0U;
 
-// Reads the array without writing it. The const must come from the TYPEDEF --
-// ADR-006 gives arrays no auto-const, which `plainArray` below controls for.
+// Reads the array without writing it, so it is read-only (ADR-071) and its C
+// parameter is `const uint8_t buf[4]` -- the typedef's shape.
 void onBuf(const uint8_t buf[4]) {
     shapeWitness = buf[0U];
 }
 
-// NEGATIVE CONTROL for A. Same shape, not a callback, so nothing supplies a
-// const. Without it the fixture would also pass for an implementation that
-// const-qualified every array parameter, which is over-enforcement.
-void plainArray(uint8_t other[4]) {
+// CONTROL for A. Same shape, not a callback. Before ADR-071 nothing supplied
+// its const; now the declaration does, as it does for every array parameter
+// not declared `mut`, so it is `const` with or without a typedef.
+void plainArray(const uint8_t other[4]) {
     shapeWitness = other[0U];
 }
 
@@ -66,7 +66,7 @@ int main(void) {
     if (shapeWitness != 7) {
         return 1U;
     }
-    uint8_t local[4] = {9U, 0U, 0U, 0U};
+    const uint8_t local[4] = {9U, 0U, 0U, 0U};
     plainArray(local);
     if (shapeWitness != 9) {
         return 2U;

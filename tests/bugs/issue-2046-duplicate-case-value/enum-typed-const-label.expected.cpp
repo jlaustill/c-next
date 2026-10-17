@@ -15,7 +15,7 @@
 // two members stay two cases.
 extern const EMode M = EMode__IDLE;
 
-uint32_t atFile(EMode s) {
+uint32_t atFile(const EMode s) {
     switch (s) {
         case EMode__IDLE: {
             return 1U;
@@ -34,7 +34,7 @@ uint32_t atFile(EMode s) {
 
 /* Scope: Panel */
 
-uint32_t Panel__rooted(Panel__State s) {
+uint32_t Panel__rooted(const Panel__State s) {
     switch (s) {
         case Panel__State__ON: {
             return 10U;
@@ -51,7 +51,7 @@ uint32_t Panel__rooted(Panel__State s) {
     return 0U;
 }
 
-uint32_t Panel__bare(Panel__State s) {
+uint32_t Panel__bare(const Panel__State s) {
     switch (s) {
         case Panel__State__ON: {
             return 30U;

@@ -15,7 +15,7 @@ uint32_t result = 0;
 
 // Test values around 2^53 boundary (JavaScript's MAX_SAFE_INTEGER is 2^53 - 1)
 // These values previously caused precision loss when converted to hex
-void testLargeBinaryPrecision(uint64_t val) {
+void testLargeBinaryPrecision(const uint64_t val) {
     switch (val) {
         case 0x20000000000000ULL: {
             result = 1U;
@@ -41,7 +41,7 @@ void testLargeBinaryPrecision(uint64_t val) {
 }
 
 // Test very large values (near u64 max)
-void testVeryLargeBinary(uint64_t val) {
+void testVeryLargeBinary(const uint64_t val) {
     switch (val) {
         case 0x4000000000000000ULL: {
             result = 10U;
@@ -63,42 +63,42 @@ void testVeryLargeBinary(uint64_t val) {
 }
 
 int main(void) {
-    uint64_t v53 = 9007199254740992ULL;
+    const uint64_t v53 = 9007199254740992ULL;
     testLargeBinaryPrecision(v53);
     if (result != 1) {
         return 1U;
     }
-    uint64_t v53_1 = 9007199254740993ULL;
+    const uint64_t v53_1 = 9007199254740993ULL;
     testLargeBinaryPrecision(v53_1);
     if (result != 2) {
         return 2U;
     }
-    uint64_t v53_2 = 9007199254740994ULL;
+    const uint64_t v53_2 = 9007199254740994ULL;
     testLargeBinaryPrecision(v53_2);
     if (result != 3) {
         return 3U;
     }
-    uint64_t v53_3 = 9007199254740995ULL;
+    const uint64_t v53_3 = 9007199254740995ULL;
     testLargeBinaryPrecision(v53_3);
     if (result != 4) {
         return 4U;
     }
-    uint64_t vOther = 9007199254740990ULL;
+    const uint64_t vOther = 9007199254740990ULL;
     testLargeBinaryPrecision(vOther);
     if (result != 99) {
         return 5U;
     }
-    uint64_t v62 = 4611686018427387904ULL;
+    const uint64_t v62 = 4611686018427387904ULL;
     testVeryLargeBinary(v62);
     if (result != 10) {
         return 6U;
     }
-    uint64_t v62_1 = 4611686018427387905ULL;
+    const uint64_t v62_1 = 4611686018427387905ULL;
     testVeryLargeBinary(v62_1);
     if (result != 11) {
         return 7U;
     }
-    uint64_t v63m1 = 9223372036854775807ULL;
+    const uint64_t v63m1 = 9223372036854775807ULL;
     testVeryLargeBinary(v63m1);
     if (result != 12) {
         return 8U;

@@ -20,7 +20,7 @@ typedef enum {
 } EPriority;
 
 /* Function prototypes */
-int32_t Processor__process(EPriority priority);
+int32_t Processor__process(const EPriority priority);
 
 #ifdef __cplusplus
 }

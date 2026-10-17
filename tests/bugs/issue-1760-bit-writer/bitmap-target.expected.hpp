@@ -26,7 +26,7 @@ typedef struct Holder {
 } Holder;
 
 /* External variables */
-extern Sm fl;
+extern const Sm fl;
 
 /* Function prototypes */
 void wf(Sm& s);

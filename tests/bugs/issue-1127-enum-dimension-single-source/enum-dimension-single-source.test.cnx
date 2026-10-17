@@ -25,7 +25,7 @@ struct Palette {
     u8[EColor.COUNT] slots;
 }
 
-u8[EColor.COUNT] globalSlots;
+mut u8[EColor.COUNT] globalSlots;
 
 // EColor.COUNT is 3, so both arrays hold 3 elements and index 2 is the last
 // valid one. An earlier draft of this test indexed [3] and overflowed the
@@ -34,7 +34,7 @@ u8[EColor.COUNT] globalSlots;
 // numeric to compare against -- even though the enum value is known at compile
 // time. That gap is #1174, and is not addressed here.
 i32 main() {
-    Palette p;
+    mut Palette p;
     p.slots[0] <- 10;
     p.slots[2] <- 40;
     globalSlots[2] <- 40;

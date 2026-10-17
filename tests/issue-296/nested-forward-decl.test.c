@@ -26,30 +26,30 @@ BoundingBox Collision__getBounds(void) {
 }
 
 bool Collision__contains(const Vector2D* point) {
-    bool xInRange = point->x >= Collision__bounds.min.x && point->x <= Collision__bounds.max.x;
-    bool yInRange = point->y >= Collision__bounds.min.y && point->y <= Collision__bounds.max.y;
+    const bool xInRange = point->x >= Collision__bounds.min.x && point->x <= Collision__bounds.max.x;
+    const bool yInRange = point->y >= Collision__bounds.min.y && point->y <= Collision__bounds.max.y;
     return xInRange && yInRange;
 }
 
 int main(void) {
-    Vector2D minPt = { .x = 0.0, .y = 0.0 };
-    Vector2D maxPt = { .x = 100.0, .y = 100.0 };
-    BoundingBox box = { .min = minPt, .max = maxPt };
+    const Vector2D minPt = { .x = 0.0, .y = 0.0 };
+    const Vector2D maxPt = { .x = 100.0, .y = 100.0 };
+    const BoundingBox box = { .min = minPt, .max = maxPt };
     Collision__setBounds(&box);
-    BoundingBox retrieved = Collision__getBounds();
+    const BoundingBox retrieved = Collision__getBounds();
     if (retrieved.min.x != 0.0) {
         return 1U;
     }
     if (retrieved.max.x != 100.0) {
         return 2U;
     }
-    Vector2D inside = { .x = 50.0, .y = 50.0 };
-    Vector2D outside = { .x = 150.0, .y = 50.0 };
-    bool insideResult = Collision__contains(&inside);
+    const Vector2D inside = { .x = 50.0, .y = 50.0 };
+    const Vector2D outside = { .x = 150.0, .y = 50.0 };
+    const bool insideResult = Collision__contains(&inside);
     if (insideResult != true) {
         return 3U;
     }
-    bool outsideResult = Collision__contains(&outside);
+    const bool outsideResult = Collision__contains(&outside);
     if (outsideResult != false) {
         return 4U;
     }

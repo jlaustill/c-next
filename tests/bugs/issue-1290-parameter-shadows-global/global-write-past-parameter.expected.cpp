@@ -21,12 +21,12 @@ uint32_t total = 7U;
 Point pt = { .x = 1U, .y = 2U };
 
 /* C11 6.2.1p4, C++ [basic.scope.hiding]: `total` emitted as `shadowWritesGlobal__total` (a plain `total` would hide the file-scope `total` for the rest of its scope, so `global.total` would reach the local). */
-uint32_t shadowWritesGlobal(uint32_t shadowWritesGlobal__total) {
+uint32_t shadowWritesGlobal(const uint32_t shadowWritesGlobal__total) {
     total = shadowWritesGlobal__total;
     return shadowWritesGlobal__total;
 }
 
-uint32_t controlWritesGlobal(uint32_t other) {
+uint32_t controlWritesGlobal(const uint32_t other) {
     total = other;
     return other;
 }
@@ -45,28 +45,28 @@ uint32_t controlWritesGlobalMember(const Point& other) {
 /* Scope: S */
 static uint32_t S__count = 1U;
 
-uint32_t S__viaThis(uint32_t count) {
+uint32_t S__viaThis(const uint32_t count) {
     S__count = count;
     return S__count;
 }
 
 int main(void) {
-    uint32_t r1 = shadowWritesGlobal(5U);
+    const uint32_t r1 = shadowWritesGlobal(5U);
     if (r1 != 5) {
         return 1U;
     }
     if (total != 5) {
         return 2U;
     }
-    uint32_t r2 = controlWritesGlobal(6U);
+    const uint32_t r2 = controlWritesGlobal(6U);
     if (r2 != 6) {
         return 3U;
     }
     if (total != 6) {
         return 4U;
     }
-    Point arg = { .x = 30U, .y = 40U };
-    uint32_t r3 = shadowWritesGlobalMember(arg);
+    const Point arg = { .x = 30U, .y = 40U };
+    const uint32_t r3 = shadowWritesGlobalMember(arg);
     if (r3 != 40) {
         return 5U;
     }
@@ -76,11 +76,11 @@ int main(void) {
     if (arg.y != 40) {
         return 7U;
     }
-    uint32_t r4 = controlWritesGlobalMember(arg);
+    const uint32_t r4 = controlWritesGlobalMember(arg);
     if (r4 != 40) {
         return 8U;
     }
-    uint32_t r5 = S__viaThis(9U);
+    const uint32_t r5 = S__viaThis(9U);
     if (r5 != 9) {
         return 9U;
     }

@@ -14,13 +14,13 @@
 static uint32_t State__value = 100U;
 
 uint32_t State__shadowTest(void) {
-    uint32_t value = 5U;
+    const uint32_t value = 5U;
     State__value = value;
     return State__value;
 }
 
 int main(void) {
-    uint32_t result = State__shadowTest();
+    const uint32_t result = State__shadowTest();
     if (result != 5) {
         return 1U;
     }

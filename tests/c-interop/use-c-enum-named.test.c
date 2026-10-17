@@ -12,9 +12,9 @@
 #include <stdint.h>
 
 int main(void) {
-    int32_t red = COLOR_RED;
-    int32_t green = COLOR_GREEN;
-    int32_t blue = COLOR_BLUE;
+    const int32_t red = COLOR_RED;
+    const int32_t green = COLOR_GREEN;
+    const int32_t blue = COLOR_BLUE;
     if (red != 0) {
         return 1U;
     }

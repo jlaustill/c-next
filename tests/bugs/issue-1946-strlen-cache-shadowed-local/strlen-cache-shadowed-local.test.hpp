@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint32_t label;
+extern const uint32_t label;
 
 #ifdef __cplusplus
 }

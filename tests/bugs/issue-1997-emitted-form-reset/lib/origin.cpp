@@ -13,6 +13,6 @@
 // It is generated before the entry that includes it, so its emitted form is
 // what a missing per-file reset would carry into the entry.
 int32_t originX(void) {
-    Point origin = { .x = 0, .y = 0 };
+    const Point origin = { .x = 0, .y = 0 };
     return origin.x;
 }

@@ -4,4 +4,4 @@
 
 #include "conversion-declarations.cnx"
 
-const u32 CONVERSION_RELAY_MARKER <- 2;
+u32 CONVERSION_RELAY_MARKER <- 2;

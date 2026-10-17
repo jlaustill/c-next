@@ -5,8 +5,8 @@
 
 scope LengthTest {
     // Variable named 'length' - this is the bug trigger
-    u8 length <- 0;
-    u16 offset <- 0;
+    mut u8 length <- 0;
+    mut u16 offset <- 0;
 
     // Test reading via this.length
     public u8 getLength() {
@@ -37,7 +37,7 @@ scope LengthTest {
 i32 main() {
 
     // Test 1: Initial value of length should be 0
-    u8 resultLen <- LengthTest.getLength();
+    mut u8 resultLen <- LengthTest.getLength();
     if (resultLen != 0) {
         return 1;
     }
@@ -50,7 +50,7 @@ i32 main() {
     }
 
     // Test 3: Control test - offset should work correctly
-    u16 resultOffset <- LengthTest.getOffset();
+    mut u16 resultOffset <- LengthTest.getOffset();
     if (resultOffset != 0) {
         return 3;
     }

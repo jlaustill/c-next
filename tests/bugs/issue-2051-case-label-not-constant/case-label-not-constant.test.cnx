@@ -8,8 +8,8 @@
 // as is a chain through a struct or a bitmap (#2072) in any spelling, and
 // through a scope's struct, bitmap or register reached from outside it
 // (#2108), beside `Panel.State.STOPPED`, a scope's enum, which stays silent.
-u8 counter <- 2;
-const u8 REAL <- 1;
+mut u8 counter <- 2;
+u8 REAL <- 1;
 
 enum EMode {
     IDLE,
@@ -32,9 +32,9 @@ bitmap8 Bits {
 }
 
 scope Panel {
-    u8 level <- 1;
-    const u8 OWN <- 3;
-    public const string<4> S <- "ab";
+    mut u8 level <- 1;
+    u8 OWN <- 3;
+    public string<4> S <- "ab";
 
     public enum State {
         STOPPED,

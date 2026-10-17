@@ -146,7 +146,7 @@ class ConstantDimensionCheck {
       ...at,
       message: `Array dimension must be known at compile time: ${why}`,
       helpText:
-        "An array's size is built from literals, consts, length properties (.type_byte_length) and casts (ADR-058). C-Next has no variable-length arrays",
+        "An array's size is built from literals, read-only bindings, length properties (.type_byte_length) and casts (ADR-058). C-Next has no variable-length arrays",
     });
   }
 }
@@ -247,7 +247,7 @@ class ConstantDimensionAnalyzer {
       column: at.column,
       message: `Array of '${element}' must have a size C-Next can read: every element has a default (ADR-029, ADR-017), so C-Next spells each one, and it cannot read the value of '${culprit ? culprit.path.join(".") : "its size"}'`,
       helpText:
-        "Size it with a C-Next const, e.g. `const u32 N_HANDLERS <- 3;`",
+        "Size it with a read-only C-Next binding, e.g. `u32 N_HANDLERS <- 3;`",
     };
   }
 

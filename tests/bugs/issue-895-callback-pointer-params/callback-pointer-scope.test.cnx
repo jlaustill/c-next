@@ -8,14 +8,14 @@ scope Renderer {
     // This function will be assigned to flush_cb_t typedef
     // The typedef expects: void (*)(widget_t *, const rect_t *, uint8_t *)
     // u8 buf should become uint8_t* buf (Bug C)
-    void my_flush(widget_t w, rect_t area, u8 buf) {
+    void my_flush(mut widget_t w, rect_t area, mut u8 buf) {
         global.widget_flush_was_called <- true;
         global.widget_flush_area_x <- area.x;
         global.widget_flush_buf_first_byte <- buf;
     }
 
     public void init() {
-        widget_t w <- global.widget_create();
+        mut widget_t w <- global.widget_create();
         global.widget_set_flush_cb(w, this.my_flush);
     }
 }

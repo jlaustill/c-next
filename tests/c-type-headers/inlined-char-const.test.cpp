@@ -18,5 +18,5 @@ bool Keys__isA(void) {
 }
 
 int main(void) {
-    bool result = Keys__isA();
+    const bool result = Keys__isA();
 }

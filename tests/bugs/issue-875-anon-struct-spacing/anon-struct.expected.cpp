@@ -17,5 +17,5 @@
 #include <stdbool.h>
 
 void test(void) {
-    config_t cfg = { .value = 42, .flags = { .flag_a = true } };
+    const config_t cfg = { .value = 42, .flags = { .flag_a = true } };
 }

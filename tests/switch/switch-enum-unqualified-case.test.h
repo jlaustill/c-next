@@ -20,7 +20,7 @@ typedef enum {
 } ECategory;
 
 /* Function prototypes */
-uint32_t categorize(ECategory cat);
+uint32_t categorize(const ECategory cat);
 
 #ifdef __cplusplus
 }

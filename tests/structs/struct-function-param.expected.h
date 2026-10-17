@@ -19,7 +19,7 @@ typedef struct Point {
 } Point;
 
 /* Function prototypes */
-void movePoint(Point* p, int32_t dx, int32_t dy);
+void movePoint(Point* p, const int32_t dx, const int32_t dy);
 
 #ifdef __cplusplus
 }

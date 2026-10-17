@@ -19,7 +19,7 @@ typedef struct Point2D {
 } Point2D;
 
 /* Function prototypes */
-void PointManager__setPoint(int32_t px, int32_t py);
+void PointManager__setPoint(const int32_t px, const int32_t py);
 int32_t PointManager__getX(void);
 int32_t PointManager__getY(void);
 Point2D PointManager__getPoint(void);

@@ -1,7 +1,7 @@
 // test-execution
 // ADR-025: Basic Switch Test
 // Tests: basic switch statement with integer type
-u32 result;
+mut u32 result;
 
 void handleCommand(u32 cmd) {
     switch (cmd) {

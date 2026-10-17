@@ -34,7 +34,7 @@ describe("StringDeclarationAnalyzer", () => {
 
     it("rejects a WIDER source string, which may not fit at runtime", () => {
       const [found] = errors(
-        'const string<16> src <- "hi";\n' + inMain("    string<4> s <- src;"),
+        'string<16> src <- "hi";\n' + inMain("    string<4> s <- src;"),
       );
       expect(found.code).toBe("E0864");
       expect(found.message).toContain("from string<16>");
@@ -42,7 +42,7 @@ describe("StringDeclarationAnalyzer", () => {
 
     it("rejects a concatenation whose combined capacity overflows", () => {
       const [found] = errors(
-        'const string<8> a <- "hi";\nconst string<8> b <- "yo";\n' +
+        'string<8> a <- "hi";\nstring<8> b <- "yo";\n' +
           inMain("    string<8> s <- a + b;"),
       );
       expect(found.code).toBe("E0864");
@@ -51,8 +51,7 @@ describe("StringDeclarationAnalyzer", () => {
 
     it("rejects a substring longer than the destination", () => {
       const [found] = errors(
-        'const string<16> src <- "hi";\n' +
-          inMain("    string<2> s <- src[0, 8];"),
+        'string<16> src <- "hi";\n' + inMain("    string<2> s <- src[0, 8];"),
       );
       expect(found.code).toBe("E0864");
       expect(found.message).toContain("Substring length 8 exceeds");
@@ -62,8 +61,7 @@ describe("StringDeclarationAnalyzer", () => {
   describe("E0865 -- a substring stays inside its source", () => {
     it("rejects bounds that run past the source's capacity", () => {
       const [found] = errors(
-        'const string<8> src <- "hi";\n' +
-          inMain("    string<16> s <- src[6, 4];"),
+        'string<8> src <- "hi";\n' + inMain("    string<16> s <- src[6, 4];"),
       );
       expect(found.code).toBe("E0865");
       expect(found.message).toContain("[6, 4] exceed the source string<8>");
@@ -72,8 +70,7 @@ describe("StringDeclarationAnalyzer", () => {
     it("accepts bounds that end exactly at the capacity", () => {
       expect(
         codes(
-          'const string<8> src <- "hi";\n' +
-            inMain("    string<16> s <- src[4, 4];"),
+          'string<8> src <- "hi";\n' + inMain("    string<16> s <- src[4, 4];"),
         ),
       ).toEqual([]);
     });
@@ -81,7 +78,7 @@ describe("StringDeclarationAnalyzer", () => {
 
   it("stays silent on the forms ADR-045 allows", () => {
     const source = [
-      'const string<8> src <- "hi";',
+      'string<8> src <- "hi";',
       'string<16> greeting <- "hello";',
       "string<32>[2] names;",
       inMain(

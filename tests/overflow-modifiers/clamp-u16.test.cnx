@@ -6,7 +6,7 @@ u32 main() {
     // === OVERFLOW TESTS (clamp to 65535) ===
 
     // Test 1: Basic overflow - add past max
-    clamp u16 val <- 60000;
+    mut clamp u16 val <- 60000;
     val +<- 10000; // 70000, should clamp to 65535
     if (val != 65535) {
         return 1;

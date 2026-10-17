@@ -32,6 +32,6 @@ uint8_t readStructField(const Point& point) {
     return point.value;
 }
 
-uint8_t addOne(uint8_t x) {
+uint8_t addOne(const uint8_t x) {
     return cnx_clamp_add_u8(x, 1U);
 }

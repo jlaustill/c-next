@@ -13,10 +13,10 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint8_t msg[3];
-extern uint8_t counted[3];
-extern uint8_t Table__row[4];
-extern uint8_t Table__text[4];
+extern const uint8_t msg[3];
+extern const uint8_t counted[3];
+extern const uint8_t Table__row[4];
+extern const uint8_t Table__text[4];
 
 #ifdef __cplusplus
 }

@@ -13,9 +13,9 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint32_t Calculator__computeSquare(uint32_t n);
-uint32_t Calculator__computeCube(uint32_t n);
-uint32_t Calculator__sumOfSquareAndCube(uint32_t n);
+uint32_t Calculator__computeSquare(const uint32_t n);
+uint32_t Calculator__computeCube(const uint32_t n);
+uint32_t Calculator__sumOfSquareAndCube(const uint32_t n);
 
 #ifdef __cplusplus
 }

@@ -1,10 +1,10 @@
 // Test: ADR-016 this. and global. keywords for explicit scope qualification
 
-const u8 globalValue <- 10;
+u8 globalValue <- 10;
 
 scope Motor {
-    const u8 localValue <- 5;
-    u8 state <- 0;
+    u8 localValue <- 5;
+    mut u8 state <- 0;
 
     // Test this. for scope member access
     public u8 getLocalValue() {

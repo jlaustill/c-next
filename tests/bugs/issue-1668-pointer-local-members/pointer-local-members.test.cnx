@@ -7,12 +7,12 @@
 #include "widget.h"
 
 u32 main() {
-    widget_t w <- widget_get();
+    mut widget_t w <- widget_get();
     w.v +<- 10;
     w.v <- w.v + 1;
     w.flags[3] <- true;
     u32 got <- w.v;
-    widget_t plain;
+    mut widget_t plain;
     plain.v <- 3;
     if (got != 16) {
         return 1;

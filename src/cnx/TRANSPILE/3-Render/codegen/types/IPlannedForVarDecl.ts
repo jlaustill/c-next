@@ -7,6 +7,7 @@
  */
 interface IPlannedForVarDecl {
   /** Rendered `atomic`/`volatile` prefixes, each with its trailing space or "". */
+  readonly const: string;
   readonly atomic: string;
   readonly volatile: string;
   /** The declared C type, already rendered. */

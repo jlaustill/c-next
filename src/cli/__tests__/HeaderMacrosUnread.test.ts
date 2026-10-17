@@ -14,8 +14,8 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 
 import Transpiler from "../Transpiler";
-import Preprocessor from "../../cnx/PARSE/1-Discover/preprocessor/Preprocessor";
-import ExternalDeclarationOracle from "../../cnx/PARSE/1-Discover/preprocessor/ExternalDeclarationOracle";
+import Preprocessor from "../../cnx/PARSE/2-Parse/preprocessor/Preprocessor";
+import ExternalDeclarationOracle from "../../cnx/PARSE/2-Parse/preprocessor/ExternalDeclarationOracle";
 import NodeFileSystem from "../../cnx/PARSE/1-Discover/NodeFileSystem";
 
 const HEADER = "#define SCALE_F 2.5f\nextern float gain;\n";

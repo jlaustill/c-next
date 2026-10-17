@@ -28,7 +28,7 @@ Point atFileScope <- { x: 1, y: 2 };
 
 u32 main() {
     // Declaration.
-    Point declared <- { x: 3, y: 4 };
+    mut Point declared <- { x: 3, y: 4 };
     if (declared.x != 3) {
         return 1;
     }
@@ -79,8 +79,8 @@ u32 main() {
     }
 
     // #1277: a `for` header's declaration.
-    u32 total <- 0;
-    for (Point p <- { x: 2, y: 3 }; p.x < 4; p.x +<- 1) {
+    mut u32 total <- 0;
+    for (mut Point p <- { x: 2, y: 3 }; p.x < 4; p.x +<- 1) {
         total <- total + p.y;
     }
     if (total != 6) {

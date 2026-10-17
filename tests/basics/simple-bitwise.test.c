@@ -10,8 +10,8 @@
 // Tests: Bitwise operators
 // Demonstrates: &, |, ^, ~, <<, >>
 int main(void) {
-    uint8_t a = 0b11110000U;
-    uint8_t b = 0b10101010U;
+    const uint8_t a = 0b11110000U;
+    const uint8_t b = 0b10101010U;
     uint8_t result = a & b;
     if (result != 0b10100000) {
         return 1U;
@@ -24,17 +24,17 @@ int main(void) {
     if (result != 0b01011010) {
         return 3U;
     }
-    uint8_t c = 0b00001111U;
-    uint8_t notC = (uint8_t)~c;
+    const uint8_t c = 0b00001111U;
+    const uint8_t notC = (uint8_t)~c;
     if (notC != 0b11110000) {
         return 4U;
     }
-    uint8_t d = 0b00000001U;
+    const uint8_t d = 0b00000001U;
     uint8_t shifted = d << 4U;
     if (shifted != 0b00010000) {
         return 5U;
     }
-    uint8_t e = 0b10000000U;
+    const uint8_t e = 0b10000000U;
     shifted = e >> 4U;
     if (shifted != 0b00001000) {
         return 6U;
@@ -49,7 +49,7 @@ int main(void) {
     if (flags != 0b00000100) {
         return 8U;
     }
-    bool bit2Set = ((flags & 0b00000100) != 0);
+    const bool bit2Set = ((flags & 0b00000100) != 0);
     if (bit2Set != true) {
         return 9U;
     }

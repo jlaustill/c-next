@@ -15,4 +15,4 @@
 #include <stdbool.h>
 
 // Deep nesting: Outer -> Inner -> ParseResult
-Outer o = { .inner = { .result = { .data = {0}, .count = 0, .success = false } } };
+extern const Outer o = { .inner = { .result = { .data = {0}, .count = 0, .success = false } } };

@@ -12,9 +12,9 @@ struct Outer {
     u8 data;
 }
 
-Outer o;
+mut Outer o;
 
-void fill(u8[6] buf) {
+void fill(mut u8[6] buf) {
     buf[0] <- 1;
     buf[5] <- 6;
 }

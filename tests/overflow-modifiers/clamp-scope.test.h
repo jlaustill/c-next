@@ -16,7 +16,7 @@ extern "C" {
 void ClampScope__triggerOverflow(void);
 void ClampScope__triggerUnderflow(void);
 uint8_t ClampScope__getBrightness(void);
-void ClampScope__reset(uint8_t value);
+void ClampScope__reset(const uint8_t value);
 
 #ifdef __cplusplus
 }

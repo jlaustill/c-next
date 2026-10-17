@@ -13,11 +13,11 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void calculate(uint32_t value);
-void process(uint32_t process__process);
-void update(uint32_t upd_value);
-float Math__add(float x, float y);
-float Math__multiply(float mult_factor, float value);
+void calculate(const uint32_t value);
+void process(const uint32_t process__process);
+void update(const uint32_t upd_value);
+float Math__add(const float x, const float y);
+float Math__multiply(const float mult_factor, const float value);
 
 #ifdef __cplusplus
 }

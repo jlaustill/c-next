@@ -72,7 +72,7 @@ void transfer(void) {
     {
         uint32_t __primask = __cnx_get_PRIMASK();
         __cnx_disable_irq();
-        uint8_t data = buffer[readIdx];
+        const uint8_t data = buffer[readIdx];
         readIdx = cnx_clamp_add_u32(readIdx, 1U);
         buffer[writeIdx] = data;
         writeIdx = cnx_clamp_add_u32(writeIdx, 1U);

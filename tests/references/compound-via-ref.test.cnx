@@ -1,20 +1,20 @@
 // Test: Compound assignment through reference parameters
 // Verifies that pass-by-reference works with compound operators
-void addToValue(i32 value, i32 amount) {
+void addToValue(mut i32 value, i32 amount) {
     value +<- amount; // Should be: (*value) += amount;
 }
 
-void subtractFromValue(i32 value, i32 amount) {
+void subtractFromValue(mut i32 value, i32 amount) {
     value -<- amount; // Should be: (*value) -= amount;
 }
 
-void multiplyValue(i32 value, i32 factor) {
+void multiplyValue(mut i32 value, i32 factor) {
     value *<- factor; // Should be: (*value) *= factor;
 }
 
 i32 main() {
-    i32 x <- 100;
-    i32 amount <- 50;
+    mut i32 x <- 100;
+    mut i32 amount <- 50;
 
     addToValue(x, amount); // x should be 150
     if (x != 150) {

@@ -22,10 +22,10 @@ extern "C" {
 #define GPIO__INTSTAT (*(volatile uint32_t*)(0x40002000 + 0x10))
 
 /* Function prototypes */
-void clearInterrupt(uint32_t mask);
-void clearPendingIRQ(uint8_t irqNum);
-void clearGpioInterrupt(uint32_t bitMask);
-void clearSingleBit(uint8_t bit);
+void clearInterrupt(const uint32_t mask);
+void clearPendingIRQ(const uint8_t irqNum);
+void clearGpioInterrupt(const uint32_t bitMask);
+void clearSingleBit(const uint8_t bit);
 
 #ifdef __cplusplus
 }

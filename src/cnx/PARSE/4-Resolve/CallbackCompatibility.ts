@@ -41,18 +41,7 @@ class CallbackCompatibility {
     files: ReadonlyArray<IFileSymbols>,
     symbolTable: SymbolTable,
   ): ReadonlyMap<string, string> {
-    // #1544: what the PROGRAM declares. The map decides a generated signature
-    // and the wiring may sit in any file, so recognition needs the same
-    // whole-program scope the fact has. Read from the symbols, which carry the
-    // one encoding of a function's name.
-    const programFunctions = new Set<string>();
-    for (const file of files) {
-      for (const symbol of file.symbols) {
-        if (symbol.kind === "function") {
-          programFunctions.add(symbol.fullyQualifiedCName);
-        }
-      }
-    }
+    const programFunctions = CallbackCompatibility.programFunctions(files);
 
     // In declaration order and source order: a later use of a function wins
     // the typedef an earlier one recorded.
@@ -72,6 +61,47 @@ class CallbackCompatibility {
   }
 
   /**
+   * ADR-071: every C-Next function used as a callback at all -- named as a
+   * type, or placed as a value by an initializer, an argument or an
+   * assignment. Its parameters' `mut` is part of a callback type, so E0899
+   * does not require them to be written.
+   */
+  static usedAsCallback(
+    files: ReadonlyArray<IFileSymbols>,
+  ): ReadonlySet<string> {
+    const programFunctions = CallbackCompatibility.programFunctions(files);
+    const used = new Set<string>();
+    for (const file of files) {
+      for (const use of file.callbackUses) {
+        if (programFunctions.has(use.functionName)) {
+          used.add(use.functionName);
+        }
+      }
+    }
+    return used;
+  }
+
+  /**
+   * #1544: what the PROGRAM declares. The map decides a generated signature
+   * and the wiring may sit in any file, so recognition needs the same
+   * whole-program scope the fact has. Read from the symbols, which carry the
+   * one encoding of a function's name.
+   */
+  private static programFunctions(
+    files: ReadonlyArray<IFileSymbols>,
+  ): Set<string> {
+    const programFunctions = new Set<string>();
+    for (const file of files) {
+      for (const symbol of file.symbols) {
+        if (symbol.kind === "function") {
+          programFunctions.add(symbol.fullyQualifiedCName);
+        }
+      }
+    }
+    return programFunctions;
+  }
+
+  /**
    * The C function-pointer typedef a use assigns its function to, or null
    * when the use is not a callback position.
    */
@@ -79,6 +109,8 @@ class CallbackCompatibility {
     use: TCallbackUse,
     symbolTable: SymbolTable,
   ): string | null {
+    // ADR-071's uses say only that a function is a callback, not which typedef
+    if (use.kind === "assignment" || use.kind === "type") return null;
     if (use.kind === "initializer") {
       return symbolTable.isCFunctionPointerTypedef(use.typeName)
         ? use.typeName

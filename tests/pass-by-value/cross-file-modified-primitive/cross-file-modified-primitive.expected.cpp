@@ -15,7 +15,7 @@ int main(void) {
     if (a != 2) {
         return 1U;
     }
-    uint32_t doubled = twice(a);
+    const uint32_t doubled = twice(a);
     if (doubled != 4) {
         return 2U;
     }

@@ -20,9 +20,9 @@ extern const uint32_t N = ((2.5) >= ((double)UINT32_MAX) ? static_cast<uint32_t>
 
 extern const uint32_t M = ((3.99) >= ((double)UINT32_MAX) ? static_cast<uint32_t>(UINT32_MAX) : (3.99) < 0.0 ? static_cast<uint32_t>(0) : static_cast<uint32_t>((3.99)));
 
-uint8_t two[2] = {};
+extern const uint8_t two[2] = {};
 
-uint8_t three[3] = {};
+extern const uint8_t three[3] = {};
 
 int main(void) {
     if (2 != 2) {

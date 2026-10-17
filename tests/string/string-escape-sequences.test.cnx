@@ -23,4 +23,4 @@ string<32> escapeAtStart <- "\nStartsWithNewline";
 string<32> escapeAtEnd <- "EndsWithNewline\n";
 
 // Combined in const string
-const string VERSION_INFO <- "v1.0.0\nBuild: 2024-01-01";
+string VERSION_INFO <- "v1.0.0\nBuild: 2024-01-01";

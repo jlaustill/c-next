@@ -26,7 +26,7 @@ bool isUARTReady(void) {
     return ((((UART__STATUS >> 0) & 1)) != 0U);
 }
 
-void configureTimer(uint8_t prescale) {
+void configureTimer(const uint8_t prescale) {
     TIMER__CONFIG = (uint16_t)((TIMER__CONFIG & ~(1U << 0)) | (0U << 0));
     TIMER__CONFIG = (uint16_t)((TIMER__CONFIG & ~(0xFFU << 4)) | ((prescale & 0xFFU) << 4));
     TIMER__CONFIG = (uint16_t)((TIMER__CONFIG & ~(1U << 2)) | (1U << 2));
@@ -36,12 +36,12 @@ void configureTimer(uint8_t prescale) {
 
 int main(void) {
     configureUART();
-    bool uartReady = isUARTReady();
+    const bool uartReady = isUARTReady();
     if (uartReady == true) {
         UART__DATA = 0x55U;
     }
     configureTimer(100U);
-    bool hasError = ((((UART__STATUS >> 4) & 1)) != 0U);
-    bool isBusy = ((((UART__STATUS >> 7) & 1)) != 0U);
-    uint8_t dataBits = (uint8_t)((UART__CTRL >> 5) & 0x3);
+    const bool hasError = ((((UART__STATUS >> 4) & 1)) != 0U);
+    const bool isBusy = ((((UART__STATUS >> 7) & 1)) != 0U);
+    const uint8_t dataBits = (uint8_t)((UART__CTRL >> 5) & 0x3);
 }

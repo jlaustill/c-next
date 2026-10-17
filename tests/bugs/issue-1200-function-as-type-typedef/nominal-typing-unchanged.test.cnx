@@ -10,9 +10,9 @@ struct Message {
     u32 id;
 }
 
-void onReceive(const Message msg) {}
+void onReceive(Message msg) {}
 
-void myHandler(const Message msg) {}
+void myHandler(Message msg) {}
 
 struct Controller {
     onReceive handler;
@@ -21,6 +21,6 @@ struct Controller {
 void install(myHandler handler) {}
 
 void demo() {
-    Controller controller;
+    mut Controller controller;
     controller.handler <- myHandler;
 }

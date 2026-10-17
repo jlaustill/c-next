@@ -19,7 +19,7 @@ typedef enum {
 } EGlobal;
 
 /* External variables */
-extern EGlobal globalVar;
+extern const EGlobal globalVar;
 
 /* Function prototypes */
 EGlobal getGlobal(void);

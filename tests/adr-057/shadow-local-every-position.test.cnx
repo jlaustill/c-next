@@ -33,15 +33,15 @@ u32 takes(u32 v) {
 
 scope S {
     public u32 positions(u32 flag) {
-        u32 probe <- 1;
-        u32[4] parr <- [5, 6, 7, 8];
-        u8 pbits <- 0;
+        mut u32 probe <- 1;
+        mut u32[4] parr <- [5, 6, 7, 8];
+        mut u8 pbits <- 0;
         u32 pidx <- 1;
-        u32 pdown <- 2;
-        Holder pcfg <- { x: 1 };
-        string<8> pstr <- "ab";
+        mut u32 pdown <- 2;
+        mut Holder pcfg <- { x: 1 };
+        mut string<8> pstr <- "ab";
 
-        u32 acc <- 0;
+        mut u32 acc <- 0;
 
         // assignment target, compound assignment
         probe <- 2;

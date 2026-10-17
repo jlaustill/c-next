@@ -6,7 +6,7 @@
 // this check the write silently dropped the second subscript and coerced 5 to
 // a bool. The correct spelling for a 3-bit field write is `this.flags[4, 3]`.
 scope Reg {
-    u8 flags <- 0;
+    mut u8 flags <- 0;
 
     void setBits() {
         this.flags[4][3] <- 5;

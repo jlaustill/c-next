@@ -14,7 +14,7 @@ u32 process(u32 crc, u8 byte) {
 
 u32 main() {
     u32 value <- 0x12345678;
-    u32 crc <- 0;
+    mut u32 crc <- 0;
 
     // Test: passing bitwise expression (rvalue) to u8 parameter
     // In C mode: &(uint8_t){value & 0xFF} works

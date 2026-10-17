@@ -20,7 +20,7 @@ typedef struct ConstCond__Config {
 } ConstCond__Config;
 
 /* Function prototypes */
-uint8_t CommandHandler__setValue(ConstCond__Config& cfg, uint32_t val);
+uint8_t CommandHandler__setValue(ConstCond__Config& cfg, const uint32_t val);
 uint8_t CommandHandler__enable(ConstCond__Config& cfg);
 void handleEnableSpn(ConstCond__Config& config);
 void handleElseBranch(ConstCond__Config& config);

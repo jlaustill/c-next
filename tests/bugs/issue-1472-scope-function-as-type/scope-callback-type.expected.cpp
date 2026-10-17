@@ -37,7 +37,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 /* Scope: Motor */
 uint32_t Motor__ticks = 0U;
 
-void Motor__onTick(uint32_t ms) {
+void Motor__onTick(const uint32_t ms) {
     Motor__ticks = cnx_clamp_add_u32(Motor__ticks, ms);
 }
 

@@ -23,21 +23,21 @@ extern const uint8_t LOCAL = 8U;
 
 extern const uint8_t BIG = 200U;
 
-uint8_t neg[2] = {};
+extern const uint8_t neg[2] = {};
 
-uint8_t counted[3] = {};
+extern const uint8_t counted[3] = {};
 
-uint8_t three[6] = {};
+extern const uint8_t three[6] = {};
 
-uint8_t shifted[8] = {};
+extern const uint8_t shifted[8] = {};
 
-uint8_t plain[4] = {};
+extern const uint8_t plain[4] = {};
 
-uint8_t wide[400] = {};
+extern const uint8_t wide[400] = {};
 
 // File scope, not a local: a local struct's field reads as uninitialized
 // even for `.type_element_count`, which is a constant (#1867).
-Info info = {};
+extern const Info info = {};
 
 int main(void) {
     if (8 != 8) {

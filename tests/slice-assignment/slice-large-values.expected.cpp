@@ -11,7 +11,7 @@
 // Ensures no truncation or overflow in memory operations
 int main(void) {
     uint8_t buffer[256] = {};
-    uint64_t maxU64 = 0xFFFFFFFFFFFFFFFFULL;
+    const uint64_t maxU64 = 0xFFFFFFFFFFFFFFFFULL;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint64_t*). */
     const uint64_t cnx_tmp0 = (uint64_t)(maxU64);
     buffer[0] = (uint8_t)(cnx_tmp0);
@@ -46,7 +46,7 @@ int main(void) {
     if (buffer[7U] != 0xFF) {
         return 8U;
     }
-    uint32_t maxU32 = 0xFFFFFFFFU;
+    const uint32_t maxU32 = 0xFFFFFFFFU;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
     const uint32_t cnx_tmp1 = (uint32_t)(maxU32);
     buffer[10] = (uint8_t)(cnx_tmp1);
@@ -65,9 +65,9 @@ int main(void) {
     if (buffer[13U] != 0xFF) {
         return 12U;
     }
-    uint64_t val1 = 0x8000000000000000ULL;
-    uint64_t val2 = 0x7FFFFFFFFFFFFFFFULL;
-    uint64_t val3 = 0x0000000000000001ULL;
+    const uint64_t val1 = 0x8000000000000000ULL;
+    const uint64_t val2 = 0x7FFFFFFFFFFFFFFFULL;
+    const uint64_t val3 = 0x0000000000000001ULL;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint64_t*). */
     const uint64_t cnx_tmp2 = (uint64_t)(val1);
     buffer[20] = (uint8_t)(cnx_tmp2);

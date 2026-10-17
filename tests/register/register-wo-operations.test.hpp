@@ -22,7 +22,7 @@ extern "C" {
 /* External variables */
 extern const uint32_t LED_BIT;
 extern const uint32_t BUTTON_BIT;
-extern uint32_t dynamicBit;
+extern const uint32_t dynamicBit;
 
 #ifdef __cplusplus
 }

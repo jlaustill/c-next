@@ -15,9 +15,9 @@ extern "C" {
 /* Function prototypes */
 void Counter__reset(void);
 void Counter__increment(void);
-void Counter__add(uint32_t amount);
+void Counter__add(const uint32_t amount);
 uint32_t Counter__get(void);
-void Temperature__set(int32_t temp);
+void Temperature__set(const int32_t temp);
 int32_t Temperature__getCelsius(void);
 int32_t Temperature__getFahrenheit(void);
 

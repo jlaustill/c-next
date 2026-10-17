@@ -14,7 +14,7 @@
 uint32_t result = 0;
 
 // Hex literal cases
-void testHexCases(uint8_t val) {
+void testHexCases(const uint8_t val) {
     switch (val) {
         case 0x00: {
             result = 1U;
@@ -48,7 +48,7 @@ void testHexCases(uint8_t val) {
 }
 
 // Binary literal cases
-void testBinaryCases(uint8_t val) {
+void testBinaryCases(const uint8_t val) {
     switch (val) {
         case 0x0: {
             result = 10U;
@@ -82,7 +82,7 @@ void testBinaryCases(uint8_t val) {
 }
 
 // Char literal cases
-void testCharCases(uint8_t val) {
+void testCharCases(const uint8_t val) {
     switch (val) {
         case 'A': {
             result = 20U;
@@ -116,7 +116,7 @@ void testCharCases(uint8_t val) {
 }
 
 // Mixed literal types in same switch
-void testMixedLiterals(uint8_t val) {
+void testMixedLiterals(const uint8_t val) {
     switch (val) {
         case 0: {
             result = 30U;
@@ -142,7 +142,7 @@ void testMixedLiterals(uint8_t val) {
 }
 
 // Large hex values (u16)
-void testLargeHex(uint16_t val) {
+void testLargeHex(const uint16_t val) {
     switch (val) {
         case 0x0000: {
             result = 40U;
@@ -176,13 +176,13 @@ void testLargeHex(uint16_t val) {
 }
 
 int main(void) {
-    uint8_t h00 = 0x00U;
-    uint8_t h0F = 0x0FU;
-    uint8_t h10 = 0x10U;
-    uint8_t h7F = 0x7FU;
-    uint8_t h80 = 0x80U;
-    uint8_t hFF = 0xFFU;
-    uint8_t hOther = 0x50U;
+    const uint8_t h00 = 0x00U;
+    const uint8_t h0F = 0x0FU;
+    const uint8_t h10 = 0x10U;
+    const uint8_t h7F = 0x7FU;
+    const uint8_t h80 = 0x80U;
+    const uint8_t hFF = 0xFFU;
+    const uint8_t hOther = 0x50U;
     testHexCases(h00);
     if (result != 1) {
         return 1U;
@@ -211,13 +211,13 @@ int main(void) {
     if (result != 99) {
         return 7U;
     }
-    uint8_t b00 = 0b00000000U;
-    uint8_t b01 = 0b00000001U;
-    uint8_t b0F = 0b00001111U;
-    uint8_t b7F = 0b01111111U;
-    uint8_t b80 = 0b10000000U;
-    uint8_t bFF = 0b11111111U;
-    uint8_t bOther = 0b00100000U;
+    const uint8_t b00 = 0b00000000U;
+    const uint8_t b01 = 0b00000001U;
+    const uint8_t b0F = 0b00001111U;
+    const uint8_t b7F = 0b01111111U;
+    const uint8_t b80 = 0b10000000U;
+    const uint8_t bFF = 0b11111111U;
+    const uint8_t bOther = 0b00100000U;
     testBinaryCases(b00);
     if (result != 10) {
         return 8U;
@@ -246,13 +246,13 @@ int main(void) {
     if (result != 99) {
         return 14U;
     }
-    uint8_t cA = static_cast<uint8_t>('A');
-    uint8_t cZ = static_cast<uint8_t>('Z');
-    uint8_t ca = static_cast<uint8_t>('a');
-    uint8_t cz = static_cast<uint8_t>('z');
-    uint8_t c0 = static_cast<uint8_t>('0');
-    uint8_t c9 = static_cast<uint8_t>('9');
-    uint8_t cOther = static_cast<uint8_t>('X');
+    const uint8_t cA = static_cast<uint8_t>('A');
+    const uint8_t cZ = static_cast<uint8_t>('Z');
+    const uint8_t ca = static_cast<uint8_t>('a');
+    const uint8_t cz = static_cast<uint8_t>('z');
+    const uint8_t c0 = static_cast<uint8_t>('0');
+    const uint8_t c9 = static_cast<uint8_t>('9');
+    const uint8_t cOther = static_cast<uint8_t>('X');
     testCharCases(cA);
     if (result != 20) {
         return 15U;
@@ -281,11 +281,11 @@ int main(void) {
     if (result != 99) {
         return 21U;
     }
-    uint8_t m0 = 0U;
-    uint8_t m10 = 10U;
-    uint8_t m20 = 20U;
-    uint8_t mX = static_cast<uint8_t>('X');
-    uint8_t mOther = 100U;
+    const uint8_t m0 = 0U;
+    const uint8_t m10 = 10U;
+    const uint8_t m20 = 20U;
+    const uint8_t mX = static_cast<uint8_t>('X');
+    const uint8_t mOther = 100U;
     testMixedLiterals(m0);
     if (result != 30) {
         return 22U;
@@ -306,13 +306,13 @@ int main(void) {
     if (result != 99) {
         return 26U;
     }
-    uint16_t l0000 = 0x0000U;
-    uint16_t l00FF = 0x00FFU;
-    uint16_t l0100 = 0x0100U;
-    uint16_t l7FFF = 0x7FFFU;
-    uint16_t l8000 = 0x8000U;
-    uint16_t lFFFF = 0xFFFFU;
-    uint16_t lOther = 0x1234U;
+    const uint16_t l0000 = 0x0000U;
+    const uint16_t l00FF = 0x00FFU;
+    const uint16_t l0100 = 0x0100U;
+    const uint16_t l7FFF = 0x7FFFU;
+    const uint16_t l8000 = 0x8000U;
+    const uint16_t lFFFF = 0xFFFFU;
+    const uint16_t lOther = 0x1234U;
     testLargeHex(l0000);
     if (result != 40) {
         return 27U;

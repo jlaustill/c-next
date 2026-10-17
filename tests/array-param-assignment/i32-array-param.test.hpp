@@ -13,10 +13,10 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void writeI32(int32_t arr[4], uint32_t index, int32_t value);
-int32_t readI32(int32_t arr[4], uint32_t index);
-void negateI32(int32_t arr[4], uint32_t index);
-void addToI32(int32_t arr[4], uint32_t index, int32_t delta);
+void writeI32(int32_t arr[4], const uint32_t index, const int32_t value);
+int32_t readI32(const int32_t arr[4], const uint32_t index);
+void negateI32(int32_t arr[4], const uint32_t index);
+void addToI32(int32_t arr[4], const uint32_t index, const int32_t delta);
 
 #ifdef __cplusplus
 }

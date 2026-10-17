@@ -23,23 +23,22 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Test accessing local, scope, and global when all have same name
 // test-execution
 // test-adr: 057
-uint32_t globalCount = 1000U;
+extern const uint32_t globalCount = 1000U;
 
 // Global (renamed to avoid shadowing)
 /* Scope: Counter */
-static uint32_t Counter__count = 100U;
 
 uint32_t Counter__testAllLevels(void) {
-    uint32_t count = 10U;
+    const uint32_t count = 10U;
     uint32_t sum = 0U;
     sum = cnx_clamp_add_u32(sum, count);
-    sum = cnx_clamp_add_u32(sum, Counter__count);
+    sum = cnx_clamp_add_u32(sum, 100U);
     sum = cnx_clamp_add_u32(sum, globalCount);
     return sum;
 }
 
 int main(void) {
-    uint32_t result = Counter__testAllLevels();
+    const uint32_t result = Counter__testAllLevels();
     if (result != 1110) {
         return 1U;
     }

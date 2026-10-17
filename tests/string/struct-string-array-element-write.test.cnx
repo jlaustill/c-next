@@ -9,7 +9,7 @@ struct Config {
 }
 
 i32 main() {
-    Config cfg;
+    mut Config cfg;
     cfg.count <- 3;
 
     cfg.items[0] <- "hi";

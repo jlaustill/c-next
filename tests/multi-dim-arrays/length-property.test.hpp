@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint8_t matrix[4][8];
+extern const uint8_t matrix[4][8];
 
 #ifdef __cplusplus
 }

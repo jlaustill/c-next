@@ -55,9 +55,9 @@ int main(void) {
     if (countdown != 0) {
         return 4U;
     }
-    volatile uint8_t a = 10U;
-    volatile uint8_t b = 20U;
-    volatile uint8_t c = cnx_clamp_add_u8(a, b);
+    const volatile uint8_t a = 10U;
+    const volatile uint8_t b = 20U;
+    const volatile uint8_t c = cnx_clamp_add_u8(a, b);
     if (c != 30) {
         return 5U;
     }

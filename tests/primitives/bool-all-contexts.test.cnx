@@ -13,7 +13,7 @@ struct Flags {
 }
 
 // 3. Bool arrays
-bool[4] flagArray;
+mut bool[4] flagArray;
 
 // 4. Function with bool param and return
 bool negate(bool value) {
@@ -60,7 +60,7 @@ u32 main() {
     }
 
     // Test struct members
-    Flags flags;
+    mut Flags flags;
     flags.enabled <- true;
     flags.active <- false;
     if (flags.enabled != true) {

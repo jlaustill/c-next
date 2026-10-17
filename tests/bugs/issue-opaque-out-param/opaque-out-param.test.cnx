@@ -20,11 +20,11 @@
 // `&dev_slots` there: the registry said only "a pointer" for a `Dev**`.
 #include "devout.h"
 
-Dev gdev;
-Dev[2] gdevs;
+mut Dev gdev;
+mut Dev[2] gdevs;
 
 scope Board {
-    Dev held;
+    mut Dev held;
 
     public void make() {
         global.dev_create_into(this.held);
@@ -42,7 +42,7 @@ scope Board {
 
 // A local handle, created through the out-parameter.
 i32 makeLocal() {
-    Dev d;
+    mut Dev d;
     dev_create_into(d);
     dev_poke(d);
     dev_poke(d);

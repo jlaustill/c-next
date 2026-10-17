@@ -5,7 +5,7 @@
 // elements untouched.
 
 u32 main() {
-    u16[8] arr;
+    mut u16[8] arr;
     u32 v <- 0x11223344;
     arr[2, 4] <- v;
     if (arr[0] != 0x0000) {

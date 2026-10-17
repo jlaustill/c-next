@@ -85,8 +85,8 @@ int main(void) {
     if (route.segments[1U].points[1U].y != 250) {
         return 13U;
     }
-    uint32_t segIdx = 1U;
-    uint32_t ptIdx = 0U;
+    const uint32_t segIdx = 1U;
+    const uint32_t ptIdx = 0U;
     if (route.segments[segIdx].points[ptIdx].x != 200) {
         return 14U;
     }

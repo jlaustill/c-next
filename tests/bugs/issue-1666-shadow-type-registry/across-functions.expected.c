@@ -12,26 +12,26 @@
 // `first()`'s `u8 x` overwrote the flat type registry's `x`, so
 // `x.type_bit_length` in `second()` -- the global `u32 x` -- emitted 8. The local
 // is still emitted as `first__x`.
-uint32_t x = 0U;
+const uint32_t x = 0U;
 
 uint32_t first(void) {
     /* C11 6.2.1p4, C++ [basic.scope.hiding]: `x` emitted as `first__x` (a plain `x` would hide the file-scope `x` for the rest of its scope, so `global.x` would reach the local). */
-    uint8_t first__x = 1U;
-    uint32_t v = first__x;
+    const uint8_t first__x = 1U;
+    const uint32_t v = first__x;
     return v;
 }
 
 uint32_t second(void) {
-    uint32_t n = 32;
+    const uint32_t n = 32;
     return n;
 }
 
 int main(void) {
-    uint32_t local = first();
+    const uint32_t local = first();
     if (local != 1) {
         return 1U;
     }
-    uint32_t width = second();
+    const uint32_t width = second();
     if (width != 32) {
         return 2U;
     }

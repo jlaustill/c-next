@@ -15,7 +15,7 @@ extern "C" {
 
 /* External variables */
 extern uint8_t Combos__publicClampByte;
-extern uint16_t Combos__publicClampWord;
+extern const uint16_t Combos__publicClampWord;
 extern int8_t Combos__publicClampSigned;
 extern uint8_t Combos__publicWrapByte;
 extern uint16_t Combos__publicWrapWord;

@@ -7,7 +7,7 @@
 #pragma target host
 #include "c_ints.h"
 
-const u8 W <- 16;
+u8 W <- 16;
 
 void main() {
     u8 a8 <- 1;

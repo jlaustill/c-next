@@ -16,8 +16,8 @@ import { join } from "node:path";
 import Transpiler from "../Transpiler";
 import MockFileSystem from "./MockFileSystem";
 import NodeFileSystem from "../../cnx/PARSE/1-Discover/NodeFileSystem";
-import Preprocessor from "../../cnx/PARSE/1-Discover/preprocessor/Preprocessor";
-import type IPreprocessOptions from "../../cnx/PARSE/1-Discover/preprocessor/types/IPreprocessOptions";
+import Preprocessor from "../../cnx/PARSE/2-Parse/preprocessor/Preprocessor";
+import type IPreprocessOptions from "../../cnx/PARSE/2-Parse/preprocessor/types/IPreprocessOptions";
 
 describe("Transpiler coverage tests", () => {
   let mockFs: MockFileSystem;
@@ -646,8 +646,8 @@ describe("Transpiler coverage tests", () => {
       mockFs.addFile(
         "/project/src/main.cnx",
         `
-        const u8 SIZE <- 10;
-        u8[SIZE] buffer;
+        u8 SIZE <- 10;
+        mut u8[SIZE] buffer;
         void main() { buffer[0] <- 1; }
       `,
       );
@@ -1834,7 +1834,7 @@ describe("Transpiler coverage integration tests", () => {
       `
       #include "types.cnx"
       Config cfg <- { port: 8080, flags: 0 };
-      Status state <- Status.Idle;
+      mut Status state <- Status.Idle;
       void main() { state <- Status.Running; }
     `,
     );

@@ -19,11 +19,11 @@
 #define Led__PORT__SET (*(volatile uint32_t*)(0x40001000 + 0x00))
 
 
-void Led__show(bool on) {
+void Led__show(const bool on) {
     Led__PORT__SET = ((uint32_t)(on ? 1U : 0U) << 5);
 }
 
-void apply(bool flag, bool ack, bool go) {
+void apply(const bool flag, const bool ack, const bool go) {
     GPIO__DR_SET = ((uint32_t)(flag ? 1U : 0U) << 3);
     GPIO__PENDING = ((uint32_t)(ack ? 1U : 0U) << 16);
     GPIO__CMD = (uint8_t)((go ? 1U : 0U) << 1);

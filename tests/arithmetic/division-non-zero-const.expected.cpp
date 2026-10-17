@@ -11,5 +11,5 @@
 extern const uint32_t TEN = 10U;
 
 void testNonZeroConst(void) {
-    uint32_t result = 100U / TEN;
+    const uint32_t result = 100U / TEN;
 }

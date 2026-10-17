@@ -5,18 +5,18 @@
 // Tests: public method with critical, private method with critical, this. inside critical, global. inside critical
 
 // Global variables for testing global. accessor inside critical sections
-u8[16] globalSharedBuffer;
-u32 globalWriteIndex <- 0;
-u32 globalReadIndex <- 0;
-bool globalBufferLock <- false;
+mut u8[16] globalSharedBuffer;
+mut u32 globalWriteIndex <- 0;
+mut u32 globalReadIndex <- 0;
+mut bool globalBufferLock <- false;
 
 scope CriticalTest {
     // Scope-level variables accessed via this. inside critical sections
-    u8[32] buffer;
-    u32 writeIndex <- 0;
-    u32 readIndex <- 0;
-    u8 count <- 0;
-    bool locked <- false;
+    mut u8[32] buffer;
+    mut u32 writeIndex <- 0;
+    mut u32 readIndex <- 0;
+    mut u8 count <- 0;
+    mut bool locked <- false;
 
     // ========================================
     // PRIVATE METHODS with critical sections
@@ -33,7 +33,7 @@ scope CriticalTest {
 
     // Private method: critical section with conditional and this.
     u8 internalDequeue() {
-        u8 result <- 0;
+        mut u8 result <- 0;
         critical {
             if (this.count > 0) {
                 result <- this.buffer[this.readIndex];
@@ -64,7 +64,7 @@ scope CriticalTest {
 
     // Private method: critical section with boolean flag operations
     bool internalTryLock() {
-        bool acquired <- false;
+        mut bool acquired <- false;
         critical {
             if (this.locked = false) {
                 this.locked <- true;
@@ -96,7 +96,7 @@ scope CriticalTest {
 
     // Public method: critical section with conditional and this.
     public u8 dequeue() {
-        u8 result <- 0;
+        mut u8 result <- 0;
         critical {
             if (this.count > 0) {
                 result <- this.buffer[this.readIndex];
@@ -128,7 +128,7 @@ scope CriticalTest {
 
     // Public method: get count inside critical section
     public u8 getCount() {
-        u8 result <- 0;
+        mut u8 result <- 0;
         critical {
             result <- this.count;
         }
@@ -137,7 +137,7 @@ scope CriticalTest {
 
     // Public method: boolean flag operation in critical section
     public bool tryLock() {
-        bool acquired <- false;
+        mut bool acquired <- false;
         critical {
             if (this.locked = false) {
                 this.locked <- true;
@@ -156,7 +156,7 @@ scope CriticalTest {
 
     // Public method: check if locked (thread-safe read)
     public bool isLocked() {
-        bool result <- false;
+        mut bool result <- false;
         critical {
             result <- this.locked;
         }
@@ -175,7 +175,7 @@ scope CriticalTest {
 
     // Public method: compare scope and global values in critical section
     public bool isInSync() {
-        bool inSync <- false;
+        mut bool inSync <- false;
         critical {
             inSync <- this.writeIndex = global.globalWriteIndex;
         }

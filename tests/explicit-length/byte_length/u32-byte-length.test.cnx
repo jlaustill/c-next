@@ -29,7 +29,7 @@ i32 main() {
         return 1;
     }
 
-    u32 result <- TestScope.getGlobalByteLength();
+    mut u32 result <- TestScope.getGlobalByteLength();
     if (result != 4) {
         return 2;
     }
@@ -54,13 +54,13 @@ i32 main() {
         return 6;
     }
 
-    U32ByteLen.TestStruct ts;
+    mut U32ByteLen.TestStruct ts;
     ts.member <- 100000;
     if (ts.member.type_byte_length != 4) {
         return 7;
     }
 
-    u32[4] arr;
+    mut u32[4] arr;
     arr[0] <- 100000;
     if (arr[0].type_byte_length != 4) {
         return 8;

@@ -6,6 +6,7 @@ import CNextResolver from "../../../../cnx/PARSE/3-Declare/cnext/index";
 import SymbolRegistry from "../../../../cnx/PARSE/3-Declare/SymbolRegistry";
 import Program from "../../../../cnx/PARSE/4-Resolve/Program";
 import TargetCatalogFile from "../../../TargetCatalogFile";
+import RunTarget from "../../../../cnx/PARSE/2-Parse/RunTarget";
 import CodeGenWalker from "../../../../cnx/TRANSPILE/CodeGenWalker";
 import CodeGenerator from "../../../../cnx/TRANSPILE/3-Render/codegen/CodeGenerator";
 import CNextSourceParser from "../../../../cnx/PARSE/2-Parse/CNextSourceParser";
@@ -105,11 +106,11 @@ class ProgramGeneration {
       symbolTable: TestSymbolTable.of(state),
       registry,
       cppMode: options.cppMode,
-      target: {
+      target: RunTarget.resolve({
         option: targetName,
         catalog: TargetCatalogFile.targets(NodeFileSystem.instance),
         files: [{ sourcePath, directives: [] }],
-      },
+      }),
     });
 
     // #1991: 2.1's walk of the file, as `Analyze.run` hands it to 2.2
@@ -162,6 +163,7 @@ class ProgramGeneration {
           projectRoot: undefined,
           defines: {},
           platformio: null,
+          configuredCompiler: null,
         },
         includes: new Map([[sourcePath, includes]]),
         outputs: new Map([

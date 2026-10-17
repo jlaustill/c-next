@@ -31,11 +31,11 @@ static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
 // Floats, enums, and ISR types should use pass-by-value, not pointers
 /* Scope: Api */
 
-float Api__addFloats(float a, float b) {
+float Api__addFloats(const float a, const float b) {
     return a + b;
 }
 
-bool Api__isOk(Status status) {
+bool Api__isOk(const Status status) {
     return status == Status__Ok;
 }
 
@@ -43,21 +43,21 @@ void Api__updateValue(uint32_t* value) {
     (*value) = cnx_clamp_add_u32((*value), 1U);
 }
 
-uint32_t Api__readValue(uint32_t value) {
+uint32_t Api__readValue(const uint32_t value) {
     return cnx_clamp_mul_u32(value, 2U);
 }
 
 int main(void) {
-    float sum = Api__addFloats(1.5, 2.5);
-    int32_t sumInt = ((sum) >= ((float)INT32_MAX) ? (int32_t)INT32_MAX : (sum) < ((float)INT32_MIN) ? (int32_t)INT32_MIN : (int32_t)(sum));
+    const float sum = Api__addFloats(1.5, 2.5);
+    const int32_t sumInt = ((sum) >= ((float)INT32_MAX) ? (int32_t)INT32_MAX : (sum) < ((float)INT32_MIN) ? (int32_t)INT32_MIN : (int32_t)(sum));
     if (sumInt != 4) {
         return 1U;
     }
-    bool okResult = Api__isOk(Status__Ok);
+    const bool okResult = Api__isOk(Status__Ok);
     if (okResult == false) {
         return 2U;
     }
-    bool errResult = Api__isOk(Status__Error);
+    const bool errResult = Api__isOk(Status__Error);
     if (errResult == true) {
         return 3U;
     }
@@ -66,7 +66,7 @@ int main(void) {
     if (val != 11) {
         return 4U;
     }
-    uint32_t doubled = Api__readValue(5U);
+    const uint32_t doubled = Api__readValue(5U);
     if (doubled != 10) {
         return 5U;
     }

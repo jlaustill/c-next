@@ -17,33 +17,33 @@ struct Configuration {
 }
 
 // Function that exposes the bug - passing struct by value with array member access
-u16 getSpn(const Configuration conf, u32 idx) {
+u16 getSpn(Configuration conf, u32 idx) {
     return conf.tempInputs[idx].assignedSpn;
 }
 
-f32 getCoeff(const Configuration data, u32 pos) {
+f32 getCoeff(Configuration data, u32 pos) {
     return data.tempInputs[pos].coeffA;
 }
 
 // Test writing to struct parameter array members (non-const)
-void setSpn(Configuration conf, u32 idx, u16 value) {
+void setSpn(mut Configuration conf, u32 idx, u16 value) {
     conf.tempInputs[idx].assignedSpn <- value;
 }
 
-void setCoeff(Configuration data, u32 pos, f32 value) {
+void setCoeff(mut Configuration data, u32 pos, f32 value) {
     data.tempInputs[pos].coeffA <- value;
 }
 
 // Test writing in a for-loop (the original OSSM bug pattern)
-void initializeAll(Configuration conf, u16 spnValue, f32 coeffValue) {
-    for (u32 i <- 0; i < 8; i +<- 1) {
+void initializeAll(mut Configuration conf, u16 spnValue, f32 coeffValue) {
+    for (mut u32 i <- 0; i < 8; i +<- 1) {
         conf.tempInputs[i].assignedSpn <- spnValue;
         conf.tempInputs[i].coeffA <- coeffValue;
     }
 }
 
 u32 main() {
-    Configuration cfg;
+    mut Configuration cfg;
 
     // Initialize test data
     cfg.tempInputs[0].assignedSpn <- 100;
@@ -139,7 +139,7 @@ u32 main() {
     // Note: Use 4.5 instead of 3.14 because 4.5 can be exactly represented in both float and double
     initializeAll(cfg, 42, 4.5);
     // Verify all 8 elements were set correctly
-    for (u32 j <- 0; j < 8; j +<- 1) {
+    for (mut u32 j <- 0; j < 8; j +<- 1) {
         if (cfg.tempInputs[j].assignedSpn != 42) {
             return 16;
         }

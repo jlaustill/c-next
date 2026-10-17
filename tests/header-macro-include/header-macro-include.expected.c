@@ -15,7 +15,7 @@
 
 #include <stdint.h>
 
-uint32_t devices[DEVICE_COUNT] = {0};
+const uint32_t devices[DEVICE_COUNT] = {0};
 
 int main(void) {
     return 0U;

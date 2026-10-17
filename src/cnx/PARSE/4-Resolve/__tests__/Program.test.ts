@@ -566,7 +566,7 @@ describe("Program", () => {
     });
 
     it("is null for a non-const and for an unknown name", () => {
-      const lib = declare(`u32 mutable <- 4;\nu32 after <- 1;`, "lib.cnx");
+      const lib = declare(`mut u32 mutable <- 4;\nu32 after <- 1;`, "lib.cnx");
       const program = Program.build([lib], { cppMode: false });
       const at = { line: 2, column: 0 };
 
@@ -697,14 +697,14 @@ describe("Program", () => {
       // is 3. #1175: it folds now, to the scope's own 3.
       expect(
         dimensionsOf(
-          `const u32 N <- 1;\nscope S {\nconst u32 N <- 7 % 4;\npublic u8[N] buf;\n}`,
+          `u32 N <- 1;\nscope S {\nu32 N <- 7 % 4;\npublic u8[N] buf;\n}`,
           "buf",
         ),
       ).toEqual([3]);
       // And a scope `N` that has no value still shadows: never the global's 1
       expect(
         dimensionsOf(
-          `const u32 N <- 1;\nu32 seed <- 7;\nscope S {\nconst u32 N <- seed;\npublic u8[N] buf;\n}`,
+          `u32 N <- 1;\nmut u32 seed <- 7;\nscope S {\nu32 N <- seed;\npublic u8[N] buf;\n}`,
           "buf",
         ),
       ).toEqual([UNRESOLVED_DIMENSION]);
@@ -1068,7 +1068,7 @@ scope Gauge {
     // Derived by `build` from what 1.3 recorded, not handed in: no caller can
     // supply a stale or partial copy, which is how the test harness once
     // dropped the callback map.
-    it("derives which parameters each function modifies, through a call into another file", () => {
+    it("merges each file's parameter lists", () => {
       const program = Program.build(
         [
           declare(`void sink(u32 v) { v <- 1; }`, "b.cnx"),
@@ -1081,9 +1081,8 @@ scope Gauge {
         { cppMode: false, registry },
       );
 
-      expect(program.modifiedParameters().get("forward")?.has("v")).toBe(true);
-      expect(program.modifiedParameters().get("reader")?.has("v")).toBe(false);
       expect(program.functionParamLists().get("forward")).toEqual(["v"]);
+      expect(program.functionParamLists().get("sink")).toEqual(["v"]);
     });
 
     it("derives which functions are used as callbacks, from the headers' typedefs", () => {
@@ -1229,6 +1228,7 @@ scope Gauge {
         "bindValue",
         "cTypeNameAt",
         "callbackCompatibleFunctions",
+        "callbackFunctions",
         "codeGenSymbolsFor",
         "conflicts",
         "constantOf",
@@ -1247,8 +1247,8 @@ scope Gauge {
         "lexicalDeclarationAt",
         "lexicalFrameAt",
         "mayBeHeaderName",
-        "modifiedParameters",
         "opaqueTypes",
+        "passByPointerParams",
         "passByValueParams",
         "resolveFunction",
         "scope",

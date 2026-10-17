@@ -11,7 +11,7 @@ u32 main() {
     f32 negative <- -50.5;
 
     // Test overflow clamping (above 127)
-    i8 result <- (i8)over;
+    mut i8 result <- (i8)over;
     if (result != 127) {
         return 1; // 200.0 should clamp to 127
     }

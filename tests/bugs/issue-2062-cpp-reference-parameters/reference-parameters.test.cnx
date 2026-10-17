@@ -5,7 +5,7 @@
 #include "cpp_references.hpp"
 
 u32 main() {
-    Sensor local;
+    mut Sensor local;
     // A struct by reference: the callee writes through it.
     touch(local);
     if (local.v != 7) {
@@ -17,7 +17,7 @@ u32 main() {
         return 2;
     }
     // A primitive by reference.
-    i32 n <- 1;
+    mut i32 n <- 1;
     bump(n);
     if (n != 2) {
         return 3;

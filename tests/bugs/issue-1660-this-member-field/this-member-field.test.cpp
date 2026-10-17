@@ -23,7 +23,7 @@ void S__run(void) {
 }
 
 bool S__flag(void) {
-    bool v = ((((S__local.flags >> 4U) & 1)) != 0U);
+    const bool v = ((((S__local.flags >> 4U) & 1)) != 0U);
     return v;
 }
 
@@ -33,11 +33,11 @@ uint8_t S__element(void) {
 
 int main(void) {
     S__run();
-    bool f = S__flag();
+    const bool f = S__flag();
     if (f != true) {
         return 1U;
     }
-    uint8_t e = S__element();
+    const uint8_t e = S__element();
     if (e != 3) {
         return 2U;
     }

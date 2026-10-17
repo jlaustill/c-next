@@ -23,12 +23,12 @@
 #include <stdint.h>
 
 void onFull(Full* f) {
-    Full copy = (*f);
+    const Full copy = (*f);
     f->pokes = copy.pokes + 10U;
 }
 
 uint32_t plainSnapshot(const Full* f) {
-    Full copy = (*f);
+    const Full copy = (*f);
     return copy.pokes;
 }
 
@@ -39,7 +39,7 @@ int main(void) {
     if (f.pokes != 11) {
         return 1;
     }
-    uint32_t snapshot = plainSnapshot(&f);
+    const uint32_t snapshot = plainSnapshot(&f);
     if (snapshot != 11) {
         return 2;
     }

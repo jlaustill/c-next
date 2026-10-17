@@ -37,15 +37,15 @@ uint32_t Reentrant__inner(void) {
     return call_arg;
 }
 
-uint32_t Reentrant__outer(uint32_t x) {
+uint32_t Reentrant__outer(const uint32_t x) {
     Reentrant__outer_temp = x;
     call_arg = cnx_clamp_add_u32(x, 100U);
-    uint32_t inner_result = Reentrant__inner();
+    const uint32_t inner_result = Reentrant__inner();
     return Reentrant__outer_temp;
 }
 
 int main(void) {
-    uint32_t result = Reentrant__outer(10U);
+    const uint32_t result = Reentrant__outer(10U);
     if (result != 10) {
         return 1U;
     }

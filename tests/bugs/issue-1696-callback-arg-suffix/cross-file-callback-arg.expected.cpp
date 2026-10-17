@@ -14,18 +14,18 @@
 #include <stdint.h>
 
 /* Scope: Bus */
-static remoteSink_fp Bus__listener = remoteSink;
+static const remoteSink_fp Bus__listener = remoteSink;
 
 uint64_t Bus__fire(void) {
-    uint64_t r = Bus__listener(5U);
+    const uint64_t r = Bus__listener(5U);
     return r;
 }
 
 int main(void) {
-    remoteSink_fp cb = remoteSink;
-    uint64_t big = cb(12U);
-    uint64_t control = remoteSink(12U);
-    uint64_t fired = Bus__fire();
+    const remoteSink_fp cb = remoteSink;
+    const uint64_t big = cb(12U);
+    const uint64_t control = remoteSink(12U);
+    const uint64_t fired = Bus__fire();
     if (big != 12) {
         return 1U;
     }

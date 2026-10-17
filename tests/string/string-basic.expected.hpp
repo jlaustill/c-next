@@ -11,8 +11,8 @@ extern "C" {
 #endif
 
 /* External variables */
-extern char message[65];
-extern char name[6];
+extern const char message[65];
+extern const char name[6];
 
 #ifdef __cplusplus
 }

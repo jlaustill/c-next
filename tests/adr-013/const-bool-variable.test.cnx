@@ -2,8 +2,8 @@
 // ADR-013: Const bool variable
 // Tests: const bool declaration and read access
 
-const bool FEATURE_ENABLED <- true;
-const bool DEBUG_MODE <- false;
+bool FEATURE_ENABLED <- true;
+bool DEBUG_MODE <- false;
 
 u32 main() {
 

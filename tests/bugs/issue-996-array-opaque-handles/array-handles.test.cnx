@@ -11,10 +11,10 @@
 
 scope UI {
     // A fixed-size array of opaque handles, stored and then used by index.
-    widget_t[3] widgets;
+    mut widget_t[3] widgets;
 
     void run() {
-        u8 i <- 0;
+        mut u8 i <- 0;
         while (i < 3) {
             this.widgets[i] <- global.widget_create();
             global.widget_move(this.widgets[i], 5);

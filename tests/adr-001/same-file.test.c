@@ -42,10 +42,10 @@ const uint8_t ALSO_FIVE = 5U;
 
 // global-variable context: the comparison is decided inside a file-scope
 // variable declaration.
-bool gEqual = FIVE == ALSO_FIVE;
+const bool gEqual = FIVE == ALSO_FIVE;
 
 /* Scope: Cfg */
-bool Cfg__mEqual = FIVE == ALSO_FIVE;
+const bool Cfg__mEqual = FIVE == ALSO_FIVE;
 
 uint32_t Cfg__check(void) {
     uint8_t seen = 0U;
@@ -80,7 +80,7 @@ int main(void) {
     if (count != 2) {
         return 4U;
     }
-    uint32_t checked = Cfg__check();
+    const uint32_t checked = Cfg__check();
     if (checked != 0) {
         return 5U;
     }

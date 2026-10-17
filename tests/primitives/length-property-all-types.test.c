@@ -10,47 +10,47 @@
 // ADR-044: Test .length property on all primitive types
 // The .length property should return the bit width of any type
 int main(void) {
-    uint8_t val8 = 1U;
+    const uint8_t val8 = 1U;
     if (8 != 8) {
         return 1;
     }
-    uint16_t val16 = 1U;
+    const uint16_t val16 = 1U;
     if (16 != 16) {
         return 1;
     }
-    uint32_t val32 = 1U;
+    const uint32_t val32 = 1U;
     if (32 != 32) {
         return 1;
     }
-    uint64_t val64 = 1ULL;
+    const uint64_t val64 = 1ULL;
     if (64 != 64) {
         return 1;
     }
-    int8_t sval8 = -1;
+    const int8_t sval8 = -1;
     if (8 != 8) {
         return 1;
     }
-    int16_t sval16 = -1;
+    const int16_t sval16 = -1;
     if (16 != 16) {
         return 1;
     }
-    int32_t sval32 = -1;
+    const int32_t sval32 = -1;
     if (32 != 32) {
         return 1;
     }
-    int64_t sval64 = -1;
+    const int64_t sval64 = -1;
     if (64 != 64) {
         return 1;
     }
-    float float32 = 3.14;
+    const float float32 = 3.14;
     if (32 != 32) {
         return 1;
     }
-    double float64 = 3.14159;
+    const double float64 = 3.14159;
     if (64 != 64) {
         return 1;
     }
-    bool flag = true;
+    const bool flag = true;
     if (1 != 1) {
         return 1;
     }

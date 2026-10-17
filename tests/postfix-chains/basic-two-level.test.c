@@ -19,12 +19,12 @@ int main(void) {
     lines[0].start.y = 20;
     lines[0].end.x = 30;
     lines[0].end.y = 40;
-    int32_t x1 = lines[0U].start.x;
-    int32_t y1 = lines[0U].start.y;
+    const int32_t x1 = lines[0U].start.x;
+    const int32_t y1 = lines[0U].start.y;
     points[0].x = 5;
     points[0].y = 15;
-    int32_t px = points[0U].x;
+    const int32_t px = points[0U].x;
     GPIO__DR = (GPIO__DR & ~((uint32_t)1U << 3)) | ((uint32_t)1U << 3);
-    bool bit = ((((GPIO__DR >> 5U) & 1)) != 0U);
+    const bool bit = ((((GPIO__DR >> 5U) & 1)) != 0U);
     GPIO__DR_SET = ((uint32_t)1U << 7);
 }

@@ -13,7 +13,7 @@ u32 main() {
     }
 
     // Test f32 bit write - should use union, not memcpy(&float, &uint32)
-    f32 result <- 0.0;
+    mut f32 result <- 0.0;
     result[24, 8] <- 0x3F;
     result[16, 8] <- 0x80;
     // After writing bytes 3 and 2, should be 0x3F800000 = 1.0

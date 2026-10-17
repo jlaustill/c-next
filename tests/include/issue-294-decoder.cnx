@@ -3,15 +3,15 @@
 
 scope decoder {
     // Public function that extracts a value from data
-    public u16 getSpn(const u8[8] data) {
+    public u16 getSpn(u8[8] data) {
         // Simple extraction: combine first two bytes
-        u16 result <- data[0];
+        mut u16 result <- data[0];
         result <- result + (data[1] * 256);
         return result;
     }
 
     // Another public function for additional testing
-    public u8 getByte(const u8[8] data, u8 index) {
+    public u8 getByte(u8[8] data, u8 index) {
         return data[index];
     }
 

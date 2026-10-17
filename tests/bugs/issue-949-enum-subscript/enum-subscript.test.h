@@ -29,8 +29,8 @@ typedef struct TValue {
 extern TValue values[4];
 
 /* Function prototypes */
-uint32_t Test__getValue(EColor color);
-void Test__setValue(EColor color, uint32_t val);
+uint32_t Test__getValue(const EColor color);
+void Test__setValue(const EColor color, const uint32_t val);
 
 #ifdef __cplusplus
 }

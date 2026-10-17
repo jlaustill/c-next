@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void writeToSized(uint8_t arr[8], uint32_t index, uint8_t value);
+void writeToSized(uint8_t arr[8], const uint32_t index, const uint8_t value);
 
 #ifdef __cplusplus
 }

@@ -11,7 +11,7 @@
 /* Scope: Test */
 
 void Test__working(void) {
-    uint8_t x = 1U;
+    const uint8_t x = 1U;
     switch (x) {
         case 1: {
             break;
@@ -23,7 +23,7 @@ void Test__working(void) {
 }
 
 void Test__failing(void) {
-    uint8_t data[4] = {1U, 2U, 3U, 4U};
+    const uint8_t data[4] = {1U, 2U, 3U, 4U};
     switch (data[0U]) {
         case 1: {
             break;

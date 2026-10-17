@@ -46,6 +46,7 @@ class FunctionCollector {
         declarator,
       ),
       parameters: parameters.length > 0 ? parameters : undefined,
+      isVariadic: declarator.isVariadic || undefined,
       isDeclaration: false,
     };
   }
@@ -68,6 +69,7 @@ class FunctionCollector {
       visibility: "public",
       type: DeclaratorTypes.pointerType(baseType, declarator),
       parameters: parameters.length > 0 ? parameters : undefined,
+      isVariadic: declarator.isVariadic || undefined,
       isDeclaration: true,
     };
   }

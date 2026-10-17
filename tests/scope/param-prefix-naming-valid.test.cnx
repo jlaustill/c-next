@@ -39,6 +39,6 @@ void main() {
     calculate(42);
     process(10);
     update(5);
-    f32 result <- Math.add(1.0, 2.0);
+    mut f32 result <- Math.add(1.0, 2.0);
     result <- Math.multiply(3.0, 4.0);
 }

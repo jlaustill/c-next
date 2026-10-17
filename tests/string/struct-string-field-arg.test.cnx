@@ -17,7 +17,7 @@ bool isBob(string<8> s) {
 }
 
 i32 main() {
-    Person p;
+    mut Person p;
     p.name <- "bob";
     p.age <- 7;
 

@@ -84,30 +84,6 @@ class FunctionContextManager {
   }
 
   /**
-   * #1545: the C typedef dictating the current function's parameter shape, or
-   * undefined when nothing does.
-   *
-   * This is the FUNCTION-level question, and it is the one ADR-013 auto-const
-   * must ask. `getCallbackTypedefParamInfo` below answers a per-PARAMETER
-   * question and returns null for a parameter the typedef does not describe --
-   * one past its arity, or one whose type `TypedefParamParser` cannot read.
-   * Deciding auto-const from that answer made the .c suppress per parameter
-   * while the header suppressed per function, so `void (*)(char *)` against
-   * `void onTwo(string<32> msg, string<16> tag)` emitted
-   * `void onTwo(char* msg, const char* tag)` beside a prototype of
-   * `void onTwo(char* msg, char* tag)` -- `error: conflicting types`, which is
-   * the defect #1545 exists to remove, one parameter over.
-   */
-  static callbackTypedefType(state: TranspileState): string | undefined {
-    if (state.currentFunctionName === null) return undefined;
-
-    // #1545 review: delegates rather than restating the two steps. This is the
-    // current-function convenience over state.callbackTypedefTypeFor,
-    // which is the one home for the predicate.
-    return state.callbackTypedefTypeFor(state.currentFunctionName);
-  }
-
-  /**
    * Issue #895: Get callback typedef parameter info from the C header.
    * Returns null if not callback-compatible or index is invalid.
    */

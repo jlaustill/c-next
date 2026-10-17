@@ -3,7 +3,7 @@
 // Tests: array access, .length, .capacity after inline initialization
 
 // C-style allowed for string arrays (grammar limitation)
-const string<10>[3] LABELS <- ["One", "Two", "Three"];
+string<10>[3] LABELS <- ["One", "Two", "Three"];
 
 string<8>[4] colors <- ["Red", "Green", "Blue", "Yellow"];
 
@@ -75,8 +75,8 @@ u32 main() {
     }
 
     // Test 7: Loop through initialized array
-    u32 totalLen <- 0;
-    u32 i <- 0;
+    mut u32 totalLen <- 0;
+    mut u32 i <- 0;
     while (i < LABELS.type_element_count) {
         totalLen <- totalLen + LABELS[i].value_char_count;
         i <- i + 1;

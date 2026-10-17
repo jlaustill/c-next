@@ -7,7 +7,7 @@
 
 i32 main() {
     // Array of default-constructible class - each element default constructed
-    DefaultConstructible[3] arr;
+    mut DefaultConstructible[3] arr;
 
     // Assign values to verify array works
     arr[0].value <- 10;

@@ -36,13 +36,13 @@ void handlerA(void) {
 }
 
 uint32_t invokeLocally(void) {
-    ISR handler = handlerA;
+    const ISR handler = handlerA;
     handler();
     return callCount;
 }
 
 int main(void) {
-    uint32_t result = invokeLocally();
+    const uint32_t result = invokeLocally();
     if (result != 1) {
         return 1U;
     }

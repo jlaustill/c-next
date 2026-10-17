@@ -3,8 +3,8 @@
 // Tests global.OtherScope.var +<- value pattern (ADR-016)
 
 scope Counter {
-    public i32 value <- 100;
-    public i32 data[3];
+    public mut i32 value <- 100;
+    public mut i32 data[3];
 }
 
 scope Manager {

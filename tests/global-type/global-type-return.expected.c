@@ -18,7 +18,7 @@ ETestCategory TestScope__getCategory(void) {
 }
 
 int main(void) {
-    int32_t catValue = (int32_t)TestScope__getCategory();
+    const int32_t catValue = (int32_t)TestScope__getCategory();
     if (catValue != 1) {
         return 1U;
     }

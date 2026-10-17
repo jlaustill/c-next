@@ -12,10 +12,10 @@
 // test-no-warnings
 // Tests: passing bounded string to function
 void printMessage(const char* msg) {
-    uint32_t len = strlen(msg);
+    const uint32_t len = strlen(msg);
 }
 
 int main(void) {
-    char greeting[65] = "Hello, World!";
+    const char greeting[65] = "Hello, World!";
     printMessage(greeting);
 }

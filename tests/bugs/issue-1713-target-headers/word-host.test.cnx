@@ -1,0 +1,6 @@
+// #1713 control: on host a pointer is 8 bytes, so the same word.h picks
+// uint64_t and the literal is 255ULL.
+#pragma target host
+#include "word.h"
+
+uword_t mask <- 255;

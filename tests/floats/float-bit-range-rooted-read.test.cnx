@@ -16,7 +16,7 @@ struct Reading {
 f32 g <- 1.0;
 
 scope Sensor {
-    f32 reading <- 1.0;
+    mut f32 reading <- 1.0;
 
     public u8 topByte() {
         u8 b <- this.reading[24, 8];

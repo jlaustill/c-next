@@ -2,7 +2,7 @@
 // Helper for register-imported-expression-mmio: a register whose address is
 // a clamp u32 sum of a const.
 
-const u32 EXPRESSION_BASE <- 0x40000000;
+u32 EXPRESSION_BASE <- 0x40000000;
 
 register EXPR @ EXPRESSION_BASE + 0x100 {
     SET: u32 wo @ 0x04,

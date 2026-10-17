@@ -25,7 +25,7 @@
 // C-Next source calls the generated init function -- ADR-029's "Never Null" is
 // upheld at compile time by E0381 (use of uninitialized variable), and the init
 // function is there for a C/C++ consumer. The generated text IS the artifact.
-uint32_t onSample(uint32_t input) {
+uint32_t onSample(const uint32_t input) {
     return input;
 }
 

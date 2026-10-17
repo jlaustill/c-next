@@ -10,35 +10,35 @@
 // Test i16 comparison operations
 // Coverage: Section 3.1-3.6 for i16 type
 int main(void) {
-    int16_t a = 5000;
-    int16_t b = 3000;
-    int16_t c = 5000;
-    int16_t d = -2000;
-    int16_t e = -5000;
-    bool eq1 = a == c;
-    bool eq2 = a == b;
-    bool eq3 = d == -2000;
-    bool neq1 = a != b;
-    bool neq2 = a != c;
-    bool neq3 = d != 0;
-    bool lt1 = b < a;
-    bool lt2 = a < b;
-    bool lt3 = d < 0;
-    bool lt4 = e < d;
-    bool gt1 = a > b;
-    bool gt2 = b > a;
-    bool gt3 = 0 > d;
-    bool gt4 = d > e;
-    bool lte1 = b <= a;
-    bool lte2 = a <= c;
-    bool lte3 = a <= b;
-    bool gte1 = a >= b;
-    bool gte2 = a >= c;
-    bool gte3 = b >= a;
-    int16_t max_val = 32767;
-    int16_t min_val = -32768;
-    bool max_gt_min = max_val > min_val;
-    bool min_lt_max = min_val < max_val;
+    const int16_t a = 5000;
+    const int16_t b = 3000;
+    const int16_t c = 5000;
+    const int16_t d = -2000;
+    const int16_t e = -5000;
+    const bool eq1 = a == c;
+    const bool eq2 = a == b;
+    const bool eq3 = d == -2000;
+    const bool neq1 = a != b;
+    const bool neq2 = a != c;
+    const bool neq3 = d != 0;
+    const bool lt1 = b < a;
+    const bool lt2 = a < b;
+    const bool lt3 = d < 0;
+    const bool lt4 = e < d;
+    const bool gt1 = a > b;
+    const bool gt2 = b > a;
+    const bool gt3 = 0 > d;
+    const bool gt4 = d > e;
+    const bool lte1 = b <= a;
+    const bool lte2 = a <= c;
+    const bool lte3 = a <= b;
+    const bool gte1 = a >= b;
+    const bool gte2 = a >= c;
+    const bool gte3 = b >= a;
+    const int16_t max_val = 32767;
+    const int16_t min_val = -32768;
+    const bool max_gt_min = max_val > min_val;
+    const bool min_lt_max = min_val < max_val;
     if (eq1 == true && eq2 == false && eq3 == true) {
         if (neq1 == true && neq2 == false && neq3 == true) {
             if (lt1 == true && lt2 == false && lt3 == true && lt4 == true) {

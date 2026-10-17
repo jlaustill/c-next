@@ -18,7 +18,7 @@ enum Priority {
 
 u32 main() {
     // Enum variable declaration
-    Status s <- Status.IDLE;
+    mut Status s <- Status.IDLE;
 
     // Enum comparison
     if (s != Status.IDLE) {

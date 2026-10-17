@@ -27,10 +27,10 @@ scope ArrayChain {
 }
 
 // 2D array of structs
-ArrayChain.Entity[4][4] grid;
+mut ArrayChain.Entity[4][4] grid;
 
 // Array of struct containing arrays
-ArrayChain.Mesh[3] meshes;
+mut ArrayChain.Mesh[3] meshes;
 
 void main() {
     // Chain: 2D_array[i][j].struct_member.field (5 levels)

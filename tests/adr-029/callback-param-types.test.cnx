@@ -62,9 +62,9 @@ struct PointHandler {
 u32 main() {
 
     // Test 1: u8 parameter callback
-    U8Handler u8h;
+    mut U8Handler u8h;
     u8h.handler <- processU8;
-    u32 result <- u8h.handler(50);
+    mut u32 result <- u8h.handler(50);
     if (result != 150) {
         return 1;
     }
@@ -76,7 +76,7 @@ u32 main() {
     }
 
     // Test 3: u32 parameter callback
-    U32Handler u32h;
+    mut U32Handler u32h;
     u32h.handler <- processU32;
     result <- u32h.handler(5000);
     if (result != 6000) {
@@ -90,7 +90,7 @@ u32 main() {
     }
 
     // Test 5: bool parameter - true
-    BoolHandler bh;
+    mut BoolHandler bh;
     bh.handler <- processBool;
     result <- bh.handler(true);
     if (result != 1) {
@@ -104,9 +104,9 @@ u32 main() {
     }
 
     // Test 7: struct parameter
-    PointHandler ph;
+    mut PointHandler ph;
     ph.handler <- processPoint;
-    CallbackParamType.Point pt;
+    mut CallbackParamType.Point pt;
     pt.x <- 10;
     pt.y <- 20;
     result <- ph.handler(pt);

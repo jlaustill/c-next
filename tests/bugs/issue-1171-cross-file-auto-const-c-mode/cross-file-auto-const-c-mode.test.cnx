@@ -25,7 +25,7 @@
 scope Consumer {
     // Forwards `s` to a mutating cross-file callee and never writes it
     // locally. Must NOT get auto-const.
-    public void bumpTwice(Sample s) {
+    public void bumpTwice(mut Sample s) {
         Sensors.bump(s);
         Sensors.bump(s);
     }

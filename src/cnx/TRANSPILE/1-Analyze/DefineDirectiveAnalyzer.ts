@@ -61,9 +61,9 @@ class DefineDirectiveAnalyzer {
         found.push({
           code: "E0502",
           ...at,
-          message: `#define with value '${name}' is not allowed. Use 'const' instead: const u32 ${name} <- value;`,
+          message: `#define with value '${name}' is not allowed. Use a read-only binding instead: u32 ${name} <- value;`,
           helpText:
-            "A `#define` has no type and no scope, so the compiler cannot check its use (ADR-037); a `const` has both.",
+            "A `#define` has no type and no scope, so the compiler cannot check its use (ADR-037); a read-only binding has both.",
         });
       }
     }

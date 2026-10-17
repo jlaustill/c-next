@@ -6,7 +6,7 @@
 
 scope SharedState {
     // counter persists across all function calls
-    u32 counter <- 0;
+    mut u32 counter <- 0;
 
     public void increment() {
         // counter retains its value from previous calls

@@ -3,35 +3,47 @@
  * plain syntax. The tree is a local of `SourceSyntax.of` and never leaves 1.2.
  */
 import type ISourceGraph from "../1-Discover/types/ISourceGraph";
-import type TDiscoveryFacts from "../1-Discover/types/TDiscoveryFacts";
 import type ITranspileError from "../../types/ITranspileError";
-import type IRecoveredDeclarations from "../1-Discover/types/IRecoveredDeclarations";
+import type IRecoveredDeclarations from "./types/IRecoveredDeclarations";
 import invariant from "../../utils/invariant";
 import HeaderParser from "./HeaderParser";
 import SourceSyntax from "./SourceSyntax";
 import type IParsedRecovery from "./types/IParsedRecovery";
 import type TParsedHeaderEntry from "./types/TParsedHeaderEntry";
 import TargetCatalogParser from "./TargetCatalogParser";
+import HeaderReading from "./HeaderReading";
+import type IHeaderServices from "./types/IHeaderServices";
+import type IReadHeaders from "./types/IReadHeaders";
+import RunTarget from "./RunTarget";
+import TargetDescriptions from "./TargetDescriptions";
+import type TRunTarget from "../../types/TRunTarget";
 import type IParsedSource from "./types/IParsedSource";
 import type IParsedSources from "./types/IParsedSources";
 
 class Parse {
   /**
-   * Each file that parsed cleanly, every other file's errors, the target
-   * catalog 1.1 read, and the 1.1 facts that later passes read
+   * Each file that parsed cleanly, every other file's errors, the run's
+   * target, its headers read with that target's compiler (#1713), and the
+   * run's facts that later passes read
    */
-  static sources(
+  static async sources(
     graph: Pick<
       ISourceGraph,
       | "cnextFiles"
       | "targetCatalog"
       | "headerFiles"
-      | "headerSources"
-      | "cachedHeaders"
-      | "recoveredDeclarations"
-    > &
-      TDiscoveryFacts,
-  ): IParsedSources {
+      | "headerTexts"
+      | "headerIncludes"
+      | "headerUnit"
+      | "headerSearchPaths"
+      | "includeSearchPaths"
+      | "includes"
+      | "outputs"
+      | "anchor"
+      | "run"
+    >,
+    services: IHeaderServices,
+  ): Promise<IParsedSources> {
     const sources: IParsedSource[] = [];
     const errors: ITranspileError[] = [];
     for (const file of graph.cnextFiles) {
@@ -47,40 +59,61 @@ class Parse {
         sources.push({ file, syntax });
       }
     }
+    const target = Parse._target(graph, sources);
+    const headers = await HeaderReading.read(graph, target, services);
+    const mode = headers.cppMode ? "cpp" : "c";
     return {
-      headers: Parse._headers(graph),
-      recovered: Parse._recovered(graph.recoveredDeclarations),
+      headers: Parse._headers(headers),
+      headerReader: headers.reader,
+      recovered: Parse._recovered(headers.recovered),
       sources,
-      errors,
-      targetCatalog: {
-        path: graph.targetCatalog.path,
-        source: TargetCatalogParser.parse(graph.targetCatalog.text),
-      },
+      errors: [...errors, ...headers.errors],
+      target,
       discovery: {
-        cppMode: graph.cppMode,
+        cppMode: headers.cppMode,
         anchor: graph.anchor,
-        includes: graph.includes,
-        outputs: graph.outputs,
-        headerMacroDumps: graph.headerMacroDumps,
+        includes: graph.includes[mode],
+        outputs: graph.outputs[mode],
+        headerMacroDumps: headers.macroDumps,
         run: graph.run,
       },
     };
   }
 
-  /** #1991: each header 1.1 settled, in its order: its cache record, or its syntax */
-  private static _headers(
-    graph: Pick<
-      ISourceGraph,
-      "headerFiles" | "headerSources" | "cachedHeaders"
-    >,
-  ): TParsedHeaderEntry[] {
-    return graph.headerFiles.map((file): TParsedHeaderEntry => {
-      const cached = graph.cachedHeaders.get(file.path);
+  /**
+   * #1713: ADR-049's one target, chosen here from the catalog and the
+   * `#pragma` lines 1.2 parses, so each header can be read with its compiler
+   */
+  private static _target(
+    graph: Pick<ISourceGraph, "targetCatalog" | "anchor" | "run">,
+    sources: readonly IParsedSource[],
+  ): TRunTarget {
+    return RunTarget.resolve({
+      // ADR-049's command-line rungs, which 1.1 returned with the run
+      option: graph.run.target.option,
+      pioEnv: graph.run.target.pioEnv,
+      catalog: TargetDescriptions.catalog(
+        TargetCatalogParser.parse(graph.targetCatalog.text),
+        graph.targetCatalog.path,
+      ),
+      // ADR-049's build-system rung, read once by 1.1 (#1444, owner ruling 3)
+      platformio: graph.anchor.platformio,
+      files: sources.map(({ file, syntax }) => ({
+        sourcePath: file.path,
+        directives: syntax.targetDirectives,
+      })),
+    });
+  }
+
+  /** #1991: each header read, in its order: its cache record, or its syntax */
+  private static _headers(read: IReadHeaders): TParsedHeaderEntry[] {
+    return read.headerFiles.map((file): TParsedHeaderEntry => {
+      const cached = read.cached.get(file.path);
       if (cached !== undefined) return { file, ...cached };
-      const source = graph.headerSources.get(file.path);
+      const source = read.sources.get(file.path);
       invariant(
         source !== undefined,
-        `1.1 settles the source of every header it resolves (missing ${file.path})`,
+        `1.2 settles the source of every header it resolves (missing ${file.path})`,
       );
       try {
         return {

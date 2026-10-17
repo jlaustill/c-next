@@ -129,7 +129,7 @@ describe("non-test modules under src/ start processes with argument arrays", () 
     expect(
       SourceScan.sourceFiles().some((file) =>
         file.endsWith(
-          "src/cnx/PARSE/1-Discover/preprocessor/ToolchainDetector.ts",
+          "src/cnx/PARSE/2-Parse/preprocessor/ToolchainDetector.ts",
         ),
       ),
     ).toBe(true);

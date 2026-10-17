@@ -2,8 +2,8 @@
 // Tests: a private integer const is spelled as a literal of its type: a u64
 // past INT64_MAX is unsigned long long, and a negative value negates
 scope S {
-    const u64 BIG <- 0xFFFFFFFFFFFFFFFFu64;
-    const i32 X <- -5;
+    u64 BIG <- 0xFFFFFFFFFFFFFFFFu64;
+    i32 X <- -5;
 
     public u64 big() {
         return BIG;

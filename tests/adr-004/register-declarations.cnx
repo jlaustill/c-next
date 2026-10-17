@@ -8,4 +8,4 @@ register HW @ 0x40000000 {
     SET: u32 w1s @ 0x0C,
 }
 
-const u32 REGISTER_MARKER <- 1;
+u32 REGISTER_MARKER <- 1;

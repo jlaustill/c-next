@@ -9,7 +9,7 @@ import StatementNodes from "../../../utils/StatementNodes";
 import TypeResolver from "../../../utils/TypeResolver";
 import FunctionReference from "./FunctionReference";
 import StructInitializerType from "./StructInitializerType";
-import TypeText from "./TypeText";
+import TypeText from "../../../utils/TypeText";
 import type IAnalysisContext from "../types/IAnalysisContext";
 import type IValuePosition from "../../../types/IValuePosition";
 import type IValuePositions from "../../../types/IValuePositions";

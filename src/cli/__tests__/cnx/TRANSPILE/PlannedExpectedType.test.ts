@@ -140,11 +140,11 @@ describe("2.2 plans the type each value is written against", () => {
       ...plannedExpectedTypes(
         [
           "struct P { u8 a; }",
-          "void set(u8 v) {",
+          "void set(mut u8 v) {",
           "  v <- 1;",
           "}",
           "void f() {",
-          "  P p <- { a: 3 };",
+          "  mut P p <- { a: 3 };",
           "  set(p.a);",
           "}",
           "",

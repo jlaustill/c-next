@@ -10,9 +10,9 @@
 
 // ADR-045: Test string .size property (buffer size = capacity + 1)
 // Use .size with C functions like fgets that need buffer size, not max length
-char buffer[51] = "test";
+const char buffer[51] = "test";
 
 void test(void) {
-    uint32_t bufferSize = 51;
-    uint32_t maxLength = 50;
+    const uint32_t bufferSize = 51;
+    const uint32_t maxLength = 50;
 }

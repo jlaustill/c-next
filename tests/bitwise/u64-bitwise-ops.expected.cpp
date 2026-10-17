@@ -10,22 +10,22 @@
 // Test u64 bitwise operations: AND, OR, XOR, NOT
 // Coverage: Section 5.1-5.4 for u64 type
 int main(void) {
-    uint64_t a = 0xFFFFFFFF00000000ULL;
-    uint64_t b = 0xAAAAAAAAAAAAAAAAULL;
-    uint64_t and_result = a & b;
-    uint64_t or_result = a | b;
-    uint64_t xor_result = a ^ b;
-    uint64_t c = 0xAAAAAAAAAAAAAAAAULL;
-    uint64_t not_result = static_cast<uint64_t>(~c);
-    uint64_t small_a = 0xFFA0ULL;
-    uint64_t small_b = 0xAAULL;
-    uint64_t small_and = small_a & small_b;
-    uint64_t small_or = small_a | small_b;
-    uint64_t all_bits = 0xFFFFFFFFFFFFFFFFULL;
-    uint64_t not_all = static_cast<uint64_t>(~all_bits);
-    uint64_t lower32 = 0x12345678ULL;
-    uint64_t mask32 = 0x00000000FFFFFFFFULL;
-    uint64_t masked = lower32 & mask32;
+    const uint64_t a = 0xFFFFFFFF00000000ULL;
+    const uint64_t b = 0xAAAAAAAAAAAAAAAAULL;
+    const uint64_t and_result = a & b;
+    const uint64_t or_result = a | b;
+    const uint64_t xor_result = a ^ b;
+    const uint64_t c = 0xAAAAAAAAAAAAAAAAULL;
+    const uint64_t not_result = static_cast<uint64_t>(~c);
+    const uint64_t small_a = 0xFFA0ULL;
+    const uint64_t small_b = 0xAAULL;
+    const uint64_t small_and = small_a & small_b;
+    const uint64_t small_or = small_a | small_b;
+    const uint64_t all_bits = 0xFFFFFFFFFFFFFFFFULL;
+    const uint64_t not_all = static_cast<uint64_t>(~all_bits);
+    const uint64_t lower32 = 0x12345678ULL;
+    const uint64_t mask32 = 0x00000000FFFFFFFFULL;
+    const uint64_t masked = lower32 & mask32;
     if (small_and == 160 && small_or == 65450 && not_all == 0 && masked == 0x12345678) {
         return 0U;
     }

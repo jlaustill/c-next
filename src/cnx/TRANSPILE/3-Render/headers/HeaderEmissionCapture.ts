@@ -2,13 +2,12 @@ import { basename, relative, sep } from "node:path";
 
 import type IHeaderCallbackType from "../../../types/IHeaderCallbackType";
 import type TSymbol from "../../../types/symbols/TSymbol";
-import AutoConstRule from "../../../utils/AutoConstRule";
 import CNextSourcePath from "../../../utils/CNextSourcePath";
 import HeaderIncludes from "../../2-Plan/HeaderIncludes";
 import HeaderUserIncludes from "../../2-Plan/HeaderUserIncludes";
 import PublicInterface from "../../2-Plan/PublicInterface";
 import type TranspileState from "../../TranspileState";
-import TypedefParamParser from "../../2-Plan/TypedefParamParser";
+import TypedefParamParser from "../../../utils/TypedefParamParser";
 import HeaderSymbolAdapter from "./adapters/HeaderSymbolAdapter";
 import ExternalTypeHeaderBuilder from "./ExternalTypeHeaderBuilder";
 import IncludeGuards from "./IncludeGuards";
@@ -123,12 +122,9 @@ class HeaderEmissionCapture {
       callbackTypes: callbackTypesForHeader,
     };
 
-    const unmodifiedParams = request.unmodifiedParams;
     const headerSymbols = HeaderEmissionCapture.convertToHeaderSymbols(
       state,
       exportedSymbols,
-      unmodifiedParams,
-      allKnownEnums,
     );
 
     return {
@@ -208,14 +204,11 @@ class HeaderEmissionCapture {
   }
 
   /**
-   * Convert TSymbols to IHeaderSymbols with auto-const information applied.
-   * ADR-055 Phase 7: Replaces mutation-based auto-const updating.
+   * Convert TSymbols to IHeaderSymbols, resolving callback parameter types.
    */
   private static convertToHeaderSymbols(
     state: TranspileState,
     symbols: TSymbol[],
-    unmodifiedParams: ReadonlyMap<string, ReadonlySet<string>>,
-    knownEnums: ReadonlySet<string>,
   ): IHeaderSymbol[] {
     return symbols.map((symbol) => {
       const headerSymbol = HeaderSymbolAdapter.fromTSymbol(symbol, state);
@@ -237,7 +230,7 @@ class HeaderEmissionCapture {
       );
 
       // Issue #914: For callback-compatible functions, bake pointer/const overrides
-      // onto each parameter. Skip auto-const (matches CodeGenerator path).
+      // onto each parameter.
       // Note: isOpaqueHandle is not set here because callback params get their
       // pointer/const semantics from the typedef signature via isCallbackPointer/
       // isCallbackConst, which take precedence over opaque handling in the builder.
@@ -249,8 +242,7 @@ class HeaderEmissionCapture {
         return { ...headerSymbol, parameters: updatedParams };
       }
 
-      // Apply auto-const and resolve opaque type info for non-callback function parameters
-      const unmodified = unmodifiedParams.get(headerSymbol.name);
+      // Resolve callback-typed parameters for non-callback functions
       const updatedParams = headerSymbol.parameters.map((param) => {
         // ADR-029 / #1164: a parameter whose declared type IS a callback
         // function takes that function's typedef, exactly as the .c does via
@@ -269,54 +261,6 @@ class HeaderEmissionCapture {
           };
         }
 
-        // Issue #995 / ADR-030: whether this parameter is an opaque handle is
-        // the decision `HeaderSymbolAdapter` already read onto it -- the one
-        // the `.c`'s prototype is spelled from (`isHeldThroughPointer`). This
-        // recomputed it from `isOpaqueType` and wrote it back, a second writer
-        // of one flag that agreed only while the two predicates did.
-        const isOpaque = param.isOpaqueHandle === true;
-
-        // #1545: the same rule the body paths use, so the .h cannot disagree
-        // with the .c (ADR-013, "Header Generation Sync"). The exclusions this
-        // site used to spell out inline are now ADR-013's list inside the rule.
-        // Note: isAutoConst may be set here, but ParameterSignatureBuilder will
-        // suppress it for opaque handles (Issue #995) — single source of truth.
-        //
-        // isCallbackCompatible is false here because the early return above
-        // took every callback whose typedef type resolves, and the body asks
-        // the same question at the same granularity since #1545 -- the whole
-        // function, not the parameter. #1603 records the remaining case: a
-        // callback-compatible function whose typedef type does NOT resolve
-        // reaches this line, and both paths then let auto-const apply, which is
-        // why nothing reddens for it.
-        const shouldAutoConst = AutoConstRule.applies({
-          baseType: param.type ?? "",
-          isModified: unmodified?.has(param.name) !== true,
-          isExplicitlyConst: param.isConst,
-          isCallbackCompatible: false,
-          isArray: param.isArray,
-          // #1545 review: this is the WHOLE-PROGRAM enum view (`allKnownEnums`
-          // = program.knownEnums()), while the body supplies the PER-FILE one
-          // (TranspileState.isKnownEnum). CLAUDE.md names that pair as #1312 --
-          // a sibling never included is absent from one and present in the
-          // other. Deliberate on both sides: each matches the enum view ITS
-          // OWN pass-by-value decision reads, so neither introduces a new
-          // disagreement inside its own file. They are unobservable against
-          // each other today because enums route to _buildPassByValueParam,
-          // which ignores isAutoConst -- masking, not unification, so this is
-          // recorded rather than treated as settled.
-          isKnownEnum: knownEnums.has(param.type ?? ""),
-          // #995: computed fifteen lines up for the branch below. Supplying it
-          // here is behavior-preserving -- ParameterSignatureBuilder already
-          // zeroed isAutoConst for an opaque handle -- and moves the seventh
-          // ADR-013 exclusion into the rule that claims to hold them all.
-          isOpaqueHandle: isOpaque,
-        });
-
-        // Return updated param with resolved flags
-        if (shouldAutoConst || isOpaque) {
-          return { ...param, isAutoConst: shouldAutoConst || undefined };
-        }
         return param;
       });
 

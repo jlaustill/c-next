@@ -24,6 +24,16 @@ type TCallbackUse =
       /** The function called, as its C symbol is named. */
       readonly callee: string;
       readonly argIndex: number;
+    }
+  /** `c.handler <- my_handler;` -- placed by assignment (ADR-071) */
+  | {
+      readonly kind: "assignment";
+      readonly functionName: string;
+    }
+  /** `onTick handler;` -- a declared type that may name a function (ADR-071) */
+  | {
+      readonly kind: "type";
+      readonly functionName: string;
     };
 
 export default TCallbackUse;

@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint32_t limit;
+extern const uint32_t limit;
 
 #ifdef __cplusplus
 }

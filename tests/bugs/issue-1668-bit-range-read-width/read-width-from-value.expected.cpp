@@ -18,30 +18,30 @@
 // was already right.
 extern const uint32_t WIDTH = 32U;
 
-uint64_t g = 0x123456789AULL;
+extern const uint64_t g = 0x123456789AULL;
 
 Pair gs = {};
 
-uint16_t h = 0x1234U;
+extern const uint16_t h = 0x1234U;
 
 /* Scope: Sc */
-uint64_t Sc__v = 0x123456789AULL;
+const uint64_t Sc__v = 0x123456789AULL;
 
-uint64_t Sc__low(uint32_t n) {
+uint64_t Sc__low(const uint32_t n) {
     return ((Sc__v) & (((uint64_t)1U << n) - 1U));
 }
 
 int main(void) {
-    uint32_t n = 40U;
+    const uint32_t n = 40U;
     gs.w = 0x12345678U;
     gs.big = 0x123456789AULL;
-    uint64_t a = ((g) & (((uint64_t)1U << n) - 1U));
-    uint64_t b = ((Sc__v) & (((uint64_t)1U << n) - 1U));
-    uint64_t c = ((gs.big) & (((uint64_t)1U << n) - 1U));
-    uint64_t d = ((g) & (((uint64_t)1U << n) - 1U));
-    uint64_t s = Sc__low(n);
-    uint8_t e = static_cast<uint8_t>(((gs.w) & 0xFFU));
-    uint8_t f = static_cast<uint8_t>(((h) & 0xFFU));
+    const uint64_t a = ((g) & 0xFFFFFFFFFFU);
+    const uint64_t b = ((Sc__v) & 0xFFFFFFFFFFU);
+    const uint64_t c = ((gs.big) & 0xFFFFFFFFFFU);
+    const uint64_t d = ((g) & 0xFFFFFFFFFFU);
+    const uint64_t s = Sc__low(n);
+    const uint8_t e = static_cast<uint8_t>(((gs.w) & 0xFFU));
+    const uint8_t f = static_cast<uint8_t>(((h) & 0xFFU));
     uint32_t word = 0U;
     word = (word & ~((uint32_t)0xFFFFFFFFU << 0)) | ((0xFFFFFFFFU & (uint32_t)0xFFFFFFFFU) << 0);
     if (a != 0x123456789A) {

@@ -12,13 +12,13 @@
 
 // Template with multiple identifier parameters
 // In real usage: FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> from FlexCAN_T4.h
-TemplateType<Param1,Param2,Param3> multiParam = {};
+extern const TemplateType<Param1,Param2,Param3> multiParam = {};
 
 // Template with integer literal parameters
-Buffer<256,16> sizedBuffer = {};
+extern const Buffer<256,16> sizedBuffer = {};
 
 // Template with mixed parameters (identifier and integer)
-Array<Element,100> fixedArray = {};
+extern const Array<Element,100> fixedArray = {};
 
 int main(void) {
 }

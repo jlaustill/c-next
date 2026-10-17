@@ -69,19 +69,19 @@ int main(void) {
     if (strcmp(alice.name, charlie.name) != 0) {
         return 12;
     }
-    uint32_t aliceLen = getNameLength(&alice);
+    const uint32_t aliceLen = getNameLength(&alice);
     if (aliceLen != 5) {
         return 13;
     }
-    uint32_t bobLen = getNameLength(&bob);
+    const uint32_t bobLen = getNameLength(&bob);
     if (bobLen != 3) {
         return 14;
     }
-    bool aliceMatch = compareName(&alice, "Alice");
+    const bool aliceMatch = compareName(&alice, "Alice");
     if (aliceMatch == false) {
         return 15;
     }
-    bool bobMatch = compareName(&alice, "Bob");
+    const bool bobMatch = compareName(&alice, "Bob");
     if (bobMatch == true) {
         return 16;
     }

@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint32_t remoteSink(uint32_t v);
+uint32_t remoteSink(const uint32_t v);
 
 #ifdef __cplusplus
 }

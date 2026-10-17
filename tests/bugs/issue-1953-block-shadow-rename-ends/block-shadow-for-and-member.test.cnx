@@ -12,8 +12,8 @@ u8 i <- 9;
 
 u32 main() {
     u32 flag <- 1;
-    u32 sum <- 0;
-    for (u8 i <- 0; i < 3; i +<- 1) {
+    mut u32 sum <- 0;
+    for (mut u8 i <- 0; i < 3; i +<- 1) {
         sum +<- i;
     }
     if (sum != 3) {

@@ -1,0 +1,12 @@
+// test-error
+// #1755: strlen returns size_t (64 bits on host), so assigning it to u16
+// narrows: E0869.
+#pragma target host
+#include <string.h>
+
+string<16> s <- "abc";
+mut u16 n16 <- 0;
+
+void f() {
+    n16 <- strlen(s);
+}

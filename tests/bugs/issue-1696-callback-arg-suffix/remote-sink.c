@@ -7,6 +7,6 @@
 
 #include <stdint.h>
 
-uint32_t remoteSink(uint32_t v) {
+uint32_t remoteSink(const uint32_t v) {
     return v;
 }

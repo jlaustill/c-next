@@ -20,6 +20,6 @@
 #ifdef PLATFORM
 #endif
 
-const u32 LED_PIN <- 13;
+u32 LED_PIN <- 13;
 
 void setup() {}

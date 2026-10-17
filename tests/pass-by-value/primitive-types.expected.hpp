@@ -14,15 +14,15 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint8_t doubleU8(uint8_t val);
-uint16_t doubleU16(uint16_t val);
-uint32_t doubleU32(uint32_t val);
-uint64_t doubleU64(uint64_t val);
-int8_t negateI8(int8_t val);
-int16_t negateI16(int16_t val);
-int32_t negateI32(int32_t val);
-int64_t negateI64(int64_t val);
-bool flipBool(bool val);
+uint8_t doubleU8(const uint8_t val);
+uint16_t doubleU16(const uint16_t val);
+uint32_t doubleU32(const uint32_t val);
+uint64_t doubleU64(const uint64_t val);
+int8_t negateI8(const int8_t val);
+int16_t negateI16(const int16_t val);
+int32_t negateI32(const int32_t val);
+int64_t negateI64(const int64_t val);
+bool flipBool(const bool val);
 void incrementU8(uint8_t& val);
 void incrementU32(uint32_t& val);
 void incrementI32(int32_t& val);

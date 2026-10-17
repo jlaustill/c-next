@@ -11,102 +11,102 @@
 // Coverage: Section 6.1-6.3 for standalone expressions, chaining, and negation
 // cppcheck-suppress knownConditionTrueFalse
 int main(void) {
-    bool t = true;
-    bool f = false;
-    bool and_result1 = t && t;
+    const bool t = true;
+    const bool f = false;
+    const bool and_result1 = t && t;
     if (and_result1 != true) {
         return 1U;
     }
-    bool and_result2 = t && f;
+    const bool and_result2 = t && f;
     if (and_result2 != false) {
         return 2U;
     }
-    bool and_result3 = f && f;
+    const bool and_result3 = f && f;
     if (and_result3 != false) {
         return 3U;
     }
-    bool a = true;
-    bool b = (1 == 1);
-    bool c = (2 == 2);
-    bool d = false;
-    bool chain1 = a && b && c;
+    const bool a = true;
+    const bool b = (1 == 1);
+    const bool c = (2 == 2);
+    const bool d = false;
+    const bool chain1 = a && b && c;
     if (chain1 != true) {
         return 4U;
     }
-    bool chain2 = a && b && d;
+    const bool chain2 = a && b && d;
     if (chain2 != false) {
         return 5U;
     }
-    bool chain3 = d && b && c;
+    const bool chain3 = d && b && c;
     if (chain3 != false) {
         return 6U;
     }
-    bool or_result1 = t || t;
+    const bool or_result1 = t || t;
     if (or_result1 != true) {
         return 7U;
     }
-    bool or_result2 = t || f;
+    const bool or_result2 = t || f;
     if (or_result2 != true) {
         return 8U;
     }
-    bool or_result3 = f || f;
+    const bool or_result3 = f || f;
     if (or_result3 != false) {
         return 9U;
     }
-    bool or_chain2 = d || a || b;
+    const bool or_chain2 = d || a || b;
     if (or_chain2 != true) {
         return 10U;
     }
-    uint32_t val1 = (f == false) ? 100U : 200U;
+    const uint32_t val1 = (f == false) ? 100U : 200U;
     if (val1 != 100) {
         return 11U;
     }
-    uint32_t val2 = (t == false) ? 100U : 200U;
+    const uint32_t val2 = (t == false) ? 100U : 200U;
     if (val2 != 200) {
         return 12U;
     }
-    uint32_t x = 5U;
-    uint32_t val3 = (x != 10) ? 100U : 200U;
+    const uint32_t x = 5U;
+    const uint32_t val3 = (x != 10) ? 100U : 200U;
     if (val3 != 100) {
         return 13U;
     }
-    uint32_t val4 = (x != 5) ? 100U : 200U;
+    const uint32_t val4 = (x != 5) ? 100U : 200U;
     if (val4 != 200) {
         return 14U;
     }
-    bool double_neg1 = !!t;
+    const bool double_neg1 = !!t;
     if (double_neg1 != true) {
         return 15U;
     }
-    bool double_neg2 = !!f;
+    const bool double_neg2 = !!f;
     if (double_neg2 != false) {
         return 16U;
     }
-    bool double_neg3 = !!(x == 5);
+    const bool double_neg3 = !!(x == 5);
     if (double_neg3 != true) {
         return 17U;
     }
-    bool double_neg4 = !!(x == 10);
+    const bool double_neg4 = !!(x == 10);
     if (double_neg4 != false) {
         return 18U;
     }
-    bool mixed1 = (a && b) || d;
+    const bool mixed1 = (a && b) || d;
     if (mixed1 != true) {
         return 19U;
     }
-    bool mixed2 = (d && b) || a;
+    const bool mixed2 = (d && b) || a;
     if (mixed2 != true) {
         return 20U;
     }
-    bool mixed3 = (d && b) || d;
+    const bool mixed3 = (d && b) || d;
     if (mixed3 != false) {
         return 21U;
     }
-    bool mixed4 = !d && a;
+    const bool mixed4 = !d && a;
     if (mixed4 != true) {
         return 22U;
     }
-    bool mixed5 = !a || d;
+    const bool mixed5 = !a || d;
     if (mixed5 != false) {
         return 23U;
     }

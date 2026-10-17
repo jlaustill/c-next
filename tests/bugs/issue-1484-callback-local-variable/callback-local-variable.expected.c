@@ -49,27 +49,27 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 uint32_t total = 0U;
 
 
-typedef void (*onTick_fp)(uint32_t);
-typedef void (*Motor__onBeat_fp)(uint32_t);
+typedef void (*onTick_fp)(const uint32_t);
+typedef void (*Motor__onBeat_fp)(const uint32_t);
 
-void onTick(uint32_t ms) {
+void onTick(const uint32_t ms) {
     total = cnx_clamp_add_u32(total, ms);
 }
 
 /* Scope: Motor */
 uint32_t Motor__ticks = 0U;
 
-void Motor__onBeat(uint32_t n) {
+void Motor__onBeat(const uint32_t n) {
     Motor__ticks = cnx_clamp_add_u32(Motor__ticks, n);
 }
 
 void Motor__runLocal(void) {
-    Motor__onBeat_fp beat = Motor__onBeat;
+    const Motor__onBeat_fp beat = Motor__onBeat;
     beat(7U);
 }
 
 int main(void) {
-    onTick_fp handler = onTick;
+    const onTick_fp handler = onTick;
     handler(5U);
     if (total != 5) {
         return 1U;
@@ -82,7 +82,7 @@ int main(void) {
     if (Motor__ticks != 7) {
         return 3U;
     }
-    for (onTick_fp f = onTick; total < 20; total = cnx_clamp_add_u32(total, 1U)) {
+    for (const onTick_fp f = onTick; total < 20; total = cnx_clamp_add_u32(total, 1U)) {
         f(2U);
     }
     if (total != 20) {

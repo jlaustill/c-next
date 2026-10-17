@@ -57,7 +57,7 @@ u32 main() {
     }
 
     // Test struct field assignment
-    Point p2;
+    mut Point p2;
     p2.x <- 10;
     p2.y <- 20;
     if (p2.x != 10) {

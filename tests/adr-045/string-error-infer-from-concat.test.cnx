@@ -6,10 +6,10 @@
 // code generation then failed with an internal capacity mismatch.
 
 // NEGATIVE CONTROL -- one literal infers its capacity.
-const string ONE <- "abcd";
+string ONE <- "abcd";
 
 // ASSERTION
-const string TWO <- "ab" + "cd";
+string TWO <- "ab" + "cd";
 
 u32 main() {
     return 0;

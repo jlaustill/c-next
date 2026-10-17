@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint32_t classify(uint32_t v);
+uint32_t classify(const uint32_t v);
 
 #ifdef __cplusplus
 }

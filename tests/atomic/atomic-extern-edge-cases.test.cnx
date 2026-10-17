@@ -5,16 +5,16 @@
 #pragma target teensy41
 
 // Edge case 1: atomic + const combination
-atomic const u32 CONFIG <- 42;
+atomic u32 CONFIG <- 42;
 
 // Edge case 2: atomic 2D array
-atomic u8[4][4] matrix;
+atomic mut u8[4][4] matrix;
 
 // Edge case 3: atomic i64 (signed 64-bit)
-atomic i64 bigSignedCounter <- 0;
+atomic mut i64 bigSignedCounter <- 0;
 
 // Edge case 4: atomic u64 (unsigned 64-bit)
-atomic u64 bigUnsignedCounter <- 0;
+atomic mut u64 bigUnsignedCounter <- 0;
 
 // Edge case 5: atomic string type
 atomic string<16> statusMessage;
@@ -24,13 +24,13 @@ struct TStatus {
     u32 code;
     bool active;
 }
-atomic TStatus currentStatus;
+atomic mut TStatus currentStatus;
 
 // Edge case 7: atomic with wrap + const (multiple modifiers)
-atomic wrap u16 sequence <- 0;
+atomic mut wrap u16 sequence <- 0;
 
 // Edge case 8: atomic with clamp (saturation)
-atomic clamp i8 temperature <- 0;
+atomic mut clamp i8 temperature <- 0;
 
 void main() {
     // Use all variables to prevent dead code elimination

@@ -1,7 +1,7 @@
 // test-execution
 // Issue #107: Negative Case Labels - i8 Edge Cases
 // Tests: boundary values and edge cases for i8 switch
-i32 result;
+mut i32 result;
 
 // Test all critical i8 boundary values
 void testI8Boundaries(i8 val) {

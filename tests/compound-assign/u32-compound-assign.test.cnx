@@ -5,7 +5,7 @@
 // Range: 0 to 4294967295
 u32 main() {
     // ===== ADDITION (+<-) =====
-    u32 val <- 2000000000;
+    mut u32 val <- 2000000000;
     val +<- 1000000000; // Basic addition
     if (val != 3000000000) {
         return 1;
@@ -30,7 +30,7 @@ u32 main() {
     }
 
     // ===== SUBTRACTION (-<-) =====
-    u32 sub <- 3000000000;
+    mut u32 sub <- 3000000000;
     sub -<- 1000000000; // Basic subtraction
     if (sub != 2000000000) {
         return 10;
@@ -61,7 +61,7 @@ u32 main() {
     }
 
     // ===== MULTIPLICATION (*<-) =====
-    u32 mul <- 50000;
+    mut u32 mul <- 50000;
     mul *<- 50000; // 50000 * 50000 = 2.5B
     if (mul != 2500000000) {
         return 20;
@@ -92,7 +92,7 @@ u32 main() {
     }
 
     // ===== DIVISION (/<-) =====
-    u32 div <- 3000000000;
+    mut u32 div <- 3000000000;
     div /<- 1000; // 3B / 1K = 3M
     if (div != 3000000) {
         return 30;
@@ -123,7 +123,7 @@ u32 main() {
     }
 
     // ===== MODULO (%<-) =====
-    u32 mod <- 1000000007;
+    mut u32 mod <- 1000000007;
     mod %<- 1000000; // Large mod
     if (mod != 7) {
         return 40;
@@ -154,7 +154,7 @@ u32 main() {
     }
 
     // ===== BITWISE AND (&<-) =====
-    u32 andVal <- 0xFFFFFFFF;
+    mut u32 andVal <- 0xFFFFFFFF;
     andVal &<- 0x0000FFFF; // Keep low 16 bits
     if (andVal != 0x0000FFFF) {
         return 50;
@@ -179,7 +179,7 @@ u32 main() {
     }
 
     // ===== BITWISE OR (|<-) =====
-    u32 orVal <- 0x0000FFFF;
+    mut u32 orVal <- 0x0000FFFF;
     orVal |<- 0xFFFF0000; // Combine halves
     if (orVal != 0xFFFFFFFF) {
         return 60;
@@ -198,7 +198,7 @@ u32 main() {
     }
 
     // ===== BITWISE XOR (^<-) =====
-    u32 xorVal <- 0xAAAAAAAA;
+    mut u32 xorVal <- 0xAAAAAAAA;
     xorVal ^<- 0x55555555; // Alternating XOR = all 1s
     if (xorVal != 0xFFFFFFFF) {
         return 70;
@@ -223,7 +223,7 @@ u32 main() {
     }
 
     // ===== LEFT SHIFT (<<<-) =====
-    u32 shl <- 1;
+    mut u32 shl <- 1;
     shl <<<- 0; // Shift by 0 = identity
     if (shl != 1) {
         return 80;
@@ -254,7 +254,7 @@ u32 main() {
     }
 
     // ===== RIGHT SHIFT (>><-) =====
-    u32 shr <- 2147483648;
+    mut u32 shr <- 2147483648;
     shr >><- 0; // Shift by 0 = identity
     if (shr != 2147483648) {
         return 90;

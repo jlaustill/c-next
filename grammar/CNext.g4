@@ -166,11 +166,17 @@ parameterList
     ;
 
 parameter
-    : constModifier? type IDENTIFIER arrayDimension*
+    : constModifier? mutModifier? type IDENTIFIER arrayDimension*
     ;
 
+// ADR-071 parses `const` only to reject it: read-only is the default
 constModifier
     : 'const'
+    ;
+
+// ADR-071: a binding that is written is declared `mut`
+mutModifier
+    : 'mut'
     ;
 
 volatileModifier
@@ -196,7 +202,7 @@ arrayDimension
 // Variables (ADR-003: Static allocation, ADR-044: Overflow behavior, ADR-049: Atomic)
 // ----------------------------------------------------------------------------
 variableDeclaration
-    : atomicModifier? volatileModifier? constModifier? overflowModifier? type IDENTIFIER arrayDimension* ('<-' expression)? ';'
+    : atomicModifier? volatileModifier? constModifier? mutModifier? overflowModifier? type IDENTIFIER arrayDimension* ('<-' expression)? ';'
     | type IDENTIFIER '(' constructorArgumentList ')' ';'   // Issue #375: C++ constructor
     ;
 
@@ -301,7 +307,7 @@ forInit
 
 // Variable declaration without trailing semicolon (for use in for loops)
 forVarDecl
-    : atomicModifier? volatileModifier? overflowModifier? type IDENTIFIER arrayDimension* ('<-' expression)?
+    : atomicModifier? volatileModifier? mutModifier? overflowModifier? type IDENTIFIER arrayDimension* ('<-' expression)?
     ;
 
 // Assignment without trailing semicolon (for use in for loops)
@@ -665,6 +671,7 @@ REGISTER    : 'register';
 PRIVATE     : 'private';
 PUBLIC      : 'public';
 CONST       : 'const';
+MUT         : 'mut';       // ADR-071
 VOLATILE    : 'volatile';
 VOID        : 'void';
 IF          : 'if';

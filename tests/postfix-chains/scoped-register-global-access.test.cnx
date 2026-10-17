@@ -12,7 +12,7 @@ bitmap8 MotorFlags {
 }
 
 scope MotorController {
-    const u32 DEFAULT_SPEED <- 100;
+    u32 DEFAULT_SPEED <- 100;
 
     public register MOTOR_REG @ 0x40002000 {
         CTRL: MotorFlags rw @ 0x00,
@@ -44,7 +44,7 @@ scope Board {
         DR_SET: u32 wo @ 0x84,
     }
 
-    const u32 LED_BIT <- 3;
+    u32 LED_BIT <- 3;
 
     public void toggleLed() {
         // Scoped register with bit indexing using this.

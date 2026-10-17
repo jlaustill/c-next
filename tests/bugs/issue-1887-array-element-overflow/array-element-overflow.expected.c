@@ -107,8 +107,8 @@ int main(void) {
         return 7;
     }
     uint8_t grid[2][2] = {{250U, 250U}, {250U, 250U}};
-    uint32_t i = 1U;
-    uint32_t j = 0U;
+    const uint32_t i = 1U;
+    const uint32_t j = 0U;
     grid[i][j] = cnx_clamp_add_u8(grid[i][j], 10U);
     if (grid[i][j] != 255) {
         return 8;

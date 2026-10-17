@@ -16,4 +16,4 @@ scope Chip {
     }
 }
 
-const u32 CHIP_MARKER <- 1;
+u32 CHIP_MARKER <- 1;

@@ -12,6 +12,6 @@
 /* Scope: StructDecl */
 
 int main(void) {
-    Point p = {0};
-    StructDecl__Color c = {0};
+    const Point p = {0};
+    const StructDecl__Color c = {0};
 }

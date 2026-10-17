@@ -3,9 +3,9 @@
 // test-target-xfail: host #1147 "implicit declaration of function"
 // Coverage: Section 7.7, 33.2 - Critical section inside if statements
 // Tests: critical sections inside if/else branches
-u32 sharedValue <- 0;
+mut u32 sharedValue <- 0;
 
-bool flag <- false;
+mut bool flag <- false;
 
 void criticalInIfBranch() {
     if (flag = true) {

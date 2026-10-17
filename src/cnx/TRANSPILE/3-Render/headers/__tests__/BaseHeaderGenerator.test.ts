@@ -17,7 +17,6 @@ function createFunctionSymbol(
     name: string;
     type: string;
     isConst?: boolean;
-    isAutoConst?: boolean;
     isArray?: boolean;
     arrayDimensions?: string[];
     isCallbackPointer?: boolean;
@@ -35,7 +34,6 @@ function createFunctionSymbol(
       emittedName: p.name,
       type: p.type,
       isConst: p.isConst ?? false,
-      isAutoConst: p.isAutoConst ?? false,
       isArray: p.isArray ?? false,
       arrayDimensions: p.arrayDimensions,
       isCallbackPointer: p.isCallbackPointer,
@@ -127,7 +125,7 @@ describe("BaseHeaderGenerator", () => {
   });
 
   describe("Shared behavior", () => {
-    it("should handle float types as pass-by-value for both generators", () => {
+    it("should pass read-only floats by value for both generators", () => {
       const cGenerator = new CHeaderGenerator();
       const cppGenerator = new CppHeaderGenerator();
       const symbols: IHeaderSymbol[] = [
@@ -137,14 +135,28 @@ describe("BaseHeaderGenerator", () => {
         ]),
       ];
 
-      const cResult = cGenerator.generate(symbols, "test.h", {});
-      const cppResult = cppGenerator.generate(symbols, "test.h", {});
+      const readOnly = new Map([["calculate", new Set(["x", "y"])]]);
+
+      const cResult = cGenerator.generate(
+        symbols,
+        "test.h",
+        {},
+        undefined,
+        readOnly,
+      );
+      const cppResult = cppGenerator.generate(
+        symbols,
+        "test.h",
+        {},
+        undefined,
+        readOnly,
+      );
 
       expect(cResult).toContain("float calculate(float x, double y);");
       expect(cppResult).toContain("float calculate(float x, double y);");
     });
 
-    it("should handle enum types as pass-by-value", () => {
+    it("should pass a read-only enum by value", () => {
       const cGenerator = new CHeaderGenerator();
       const cppGenerator = new CppHeaderGenerator();
       const symbols: IHeaderSymbol[] = [
@@ -160,7 +172,7 @@ describe("BaseHeaderGenerator", () => {
         "test.h",
         {},
         undefined,
-        undefined,
+        new Map([["setMode", new Set(["mode"])]]),
         knownEnums,
       );
       const cppResult = cppGenerator.generate(
@@ -168,7 +180,7 @@ describe("BaseHeaderGenerator", () => {
         "test.h",
         {},
         undefined,
-        undefined,
+        new Map([["setMode", new Set(["mode"])]]),
         knownEnums,
       );
 
@@ -213,7 +225,7 @@ describe("BaseHeaderGenerator", () => {
       expect(result).toContain('extern "C" {');
     });
 
-    it("should handle ISR function pointer type as pass-by-value", () => {
+    it("should pass a read-only ISR function pointer by value", () => {
       const cGenerator = new CHeaderGenerator();
       const cppGenerator = new CppHeaderGenerator();
       const symbols: IHeaderSymbol[] = [
@@ -222,19 +234,33 @@ describe("BaseHeaderGenerator", () => {
         ]),
       ];
 
-      const cResult = cGenerator.generate(symbols, "test.h", {});
-      const cppResult = cppGenerator.generate(symbols, "test.h", {});
+      const readOnly = new Map([["registerHandler", new Set(["handler"])]]);
 
-      // ISR should not have * or & suffix
+      const cResult = cGenerator.generate(
+        symbols,
+        "test.h",
+        {},
+        undefined,
+        readOnly,
+      );
+      const cppResult = cppGenerator.generate(
+        symbols,
+        "test.h",
+        {},
+        undefined,
+        readOnly,
+      );
+
+      // A read-only ISR has no * or & suffix
       expect(cResult).toContain("void registerHandler(ISR handler);");
       expect(cppResult).toContain("void registerHandler(ISR handler);");
     });
 
-    it("should handle autoConst parameter modifier", () => {
+    it("should handle read-only parameter modifier", () => {
       const cGenerator = new CHeaderGenerator();
       const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("processData", "void", [
-          { name: "data", type: "MyStruct", isAutoConst: true },
+          { name: "data", type: "MyStruct", isConst: true },
         ]),
       ];
 

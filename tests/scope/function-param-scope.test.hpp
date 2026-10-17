@@ -11,10 +11,10 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-float Math__add(float x, float y);
-float Math__multiply(float x, float y);
-float Math__subtract(float x, float y);
-float divide(float x, float y);
+float Math__add(const float x, const float y);
+float Math__multiply(const float x, const float y);
+float Math__subtract(const float x, const float y);
+float divide(const float x, const float y);
 
 #ifdef __cplusplus
 }

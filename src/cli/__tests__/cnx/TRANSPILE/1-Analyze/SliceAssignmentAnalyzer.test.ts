@@ -64,13 +64,13 @@ describe("SliceAssignmentAnalyzer", () => {
   describe("E0859 -- the span must fold at compile time", () => {
     it("rejects a runtime offset and a runtime length, at the right subscript", () => {
       const offset = errors(
-        "    u8[8] buf;\n    u8 i <- 0;\n    buf[i, 4] <- 1;",
+        "    u8[8] buf;\n    mut u8 i <- 0;\n    buf[i, 4] <- 1;",
       );
       expect(offset.map((e) => e.code)).toEqual(["E0859"]);
       expect(offset[0].message).toContain("offset must be a compile-time");
 
       const length = errors(
-        "    u8[8] buf;\n    u8 n <- 4;\n    buf[0, n] <- 1;",
+        "    u8[8] buf;\n    mut u8 n <- 4;\n    buf[0, n] <- 1;",
       );
       expect(length.map((e) => e.code)).toEqual(["E0859"]);
       expect(length[0].message).toContain("length must be a compile-time");
@@ -122,6 +122,19 @@ describe("SliceAssignmentAnalyzer", () => {
       expect(codes("    u8[8] buf;\n    buf[0, 1] <- -128;")).toEqual([]);
     });
 
+    it("checks a read-only binding by its type's width, not its folded value", () => {
+      // ADR-071 makes this binding read-only, so it folds to 0x11223344 -- a
+      // value that fits 8 bytes. 2.2 still types it u32 (SliceSource), so the
+      // 8-byte slice over-reads it; the check has to say so here, in 2.1.
+      const [found] = errors(
+        "    u8[16] buf;\n    u32 v <- 0x11223344;\n    buf[0, 8] <- v;",
+      );
+      expect(found.code).toBe("E0861");
+      expect(found.message).toContain(
+        "exceeds the source value width (4 bytes)",
+      );
+    });
+
     it("rejects a non-integer source value", () => {
       const [found] = errors(
         "    u8[8] buf;\n    f32 x <- 1.5;\n    buf[0, 4] <- x;",
@@ -132,7 +145,7 @@ describe("SliceAssignmentAnalyzer", () => {
 
     it("rejects copying more bytes than the source holds", () => {
       const [found] = errors(
-        "    u8[8] buf;\n    u16 small <- 1;\n    buf[0, 4] <- small;",
+        "    u8[8] buf;\n    mut u16 small <- 1;\n    buf[0, 4] <- small;",
       );
       expect(found.code).toBe("E0861");
       expect(found.message).toContain("exceeds the source value width");

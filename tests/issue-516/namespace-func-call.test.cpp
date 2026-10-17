@@ -15,7 +15,7 @@
 /* Scope: Test */
 
 void Test__run(void) {
-    SeaDash::Parse::ParseResult result = SeaDash::Parse::parse("1,2,3", ',');
-    SeaDash::Config cfg = SeaDash::getDefaultConfig();
-    Deep::Level1::Level2::DeepType deep = Deep::Level1::Level2::create(42);
+    const SeaDash::Parse::ParseResult result = SeaDash::Parse::parse("1,2,3", ',');
+    const SeaDash::Config cfg = SeaDash::getDefaultConfig();
+    const Deep::Level1::Level2::DeepType deep = Deep::Level1::Level2::create(42);
 }

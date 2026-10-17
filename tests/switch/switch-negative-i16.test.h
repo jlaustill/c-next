@@ -16,8 +16,8 @@ extern "C" {
 extern int32_t result;
 
 /* Function prototypes */
-void testI16Boundaries(int16_t val);
-void testI16Hex(int16_t val);
+void testI16Boundaries(const int16_t val);
+void testI16Hex(const int16_t val);
 
 #ifdef __cplusplus
 }

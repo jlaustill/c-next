@@ -3,7 +3,7 @@
 // Coverage: Sized u32 array parameters
 
 // Sized array parameter
-void writeU32(u32[4] arr, u32 index, u32 value) {
+void writeU32(mut u32[4] arr, u32 index, u32 value) {
     arr[index] <- value;
 }
 
@@ -13,18 +13,18 @@ u32 readU32(u32[4] arr, u32 index) {
 }
 
 // Modify array element with compound assignment
-void incrementU32(u32[4] arr, u32 index) {
+void incrementU32(mut u32[4] arr, u32 index) {
     arr[index] +<- 1;
 }
 
 // Copy between arrays
-void copyU32(u32[4] src, u32[4] dst, u32 index) {
+void copyU32(u32[4] src, mut u32[4] dst, u32 index) {
     dst[index] <- src[index];
 }
 
 u32 main() {
     // Test sized parameter write
-    u32[4] buffer;
+    mut u32[4] buffer;
     buffer[0] <- 0;
     buffer[1] <- 0;
     buffer[2] <- 0;
@@ -46,7 +46,7 @@ u32 main() {
     }
 
     // Test read from array parameter
-    u32 result <- readU32(buffer, 0);
+    mut u32 result <- readU32(buffer, 0);
     if (result != 100000) {
         return 4;
     }
@@ -70,8 +70,8 @@ u32 main() {
     }
 
     // Test copy between arrays
-    u32[4] source;
-    u32[4] dest;
+    mut u32[4] source;
+    mut u32[4] dest;
     source[0] <- 12345;
     source[1] <- 67890;
     dest[0] <- 0;

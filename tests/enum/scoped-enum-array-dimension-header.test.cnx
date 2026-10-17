@@ -27,13 +27,13 @@ scope Motor {
     }
 
     // bare scope-local enum -> Motor__State__COUNT
-    public u8[State.COUNT] fromScope;
+    public mut u8[State.COUNT] fromScope;
 
     // top-level enum referenced from inside a scope -> Global__COUNT (no prefix)
-    public u8[Global.COUNT] fromGlobal;
+    public mut u8[Global.COUNT] fromGlobal;
 
     // explicit this. -> Motor__State__COUNT, and `this` must not become a component
-    public u8[this.State.COUNT] viaThis;
+    public mut u8[this.State.COUNT] viaThis;
 }
 
 u32 main() {

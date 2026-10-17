@@ -14,8 +14,8 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint32_t Gauge__read(uint8_t s);
-uint32_t bare(uint8_t s);
+uint32_t Gauge__read(const uint8_t s);
+uint32_t bare(const uint8_t s);
 
 #ifdef __cplusplus
 }

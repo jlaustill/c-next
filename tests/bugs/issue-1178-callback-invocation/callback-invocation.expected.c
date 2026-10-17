@@ -28,27 +28,27 @@
 // writes through its parameter and `inspect` does not.
 uint8_t witness = 0U;
 
-void record(uint8_t v) {
+void record(const uint8_t v) {
     witness = v;
 }
 
-void inspect(uint8_t v) {
+void inspect(const uint8_t v) {
 }
 
-void viaParameter(record_fp cb, uint8_t value) {
+void viaParameter(record_fp cb, const uint8_t value) {
     cb(value);
 }
 
 /* Scope: Bus */
-static inspect_fp Bus__listener = inspect;
+static const inspect_fp Bus__listener = inspect;
 
-uint8_t Bus__publish(uint8_t value) {
+uint8_t Bus__publish(const uint8_t value) {
     Bus__listener(value);
     return value;
 }
 
 int main(void) {
-    uint8_t sent = 7U;
+    const uint8_t sent = 7U;
     viaParameter(record, sent);
     if (witness != 7) {
         return 1U;
@@ -56,7 +56,7 @@ int main(void) {
     if (sent != 7) {
         return 2U;
     }
-    uint8_t echoed = Bus__publish(sent);
+    const uint8_t echoed = Bus__publish(sent);
     if (echoed != 7) {
         return 3U;
     }

@@ -28,22 +28,22 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 uint32_t result = 0;
 
 // Helper function to receive ternary result
-uint32_t identity(uint32_t value) {
+uint32_t identity(const uint32_t value) {
     return value;
 }
 
 // Helper function with multiple params to test ternary in different positions
-uint32_t add(uint32_t a, uint32_t b) {
+uint32_t add(const uint32_t a, const uint32_t b) {
     return cnx_clamp_add_u32(a, b);
 }
 
-uint32_t max(uint32_t a, uint32_t b) {
+uint32_t max(const uint32_t a, const uint32_t b) {
     return (a > b) ? a : b;
 }
 
 int main(void) {
-    uint32_t a = 10U;
-    uint32_t b = 20U;
+    const uint32_t a = 10U;
+    const uint32_t b = 20U;
     result = identity((a > b) ? a : b);
     if (result != 20) {
         return 1U;
@@ -64,7 +64,7 @@ int main(void) {
     if (result != 15) {
         return 5U;
     }
-    uint32_t x = 5U;
+    const uint32_t x = 5U;
     result = identity((x == 5) ? 100U : 200U);
     if (result != 100) {
         return 6U;
@@ -89,24 +89,24 @@ int main(void) {
     if (result != 500) {
         return 9U;
     }
-    uint32_t idx = 2U;
+    const uint32_t idx = 2U;
     result = arr[(idx > 3) ? 0U : idx];
     if (result != 300) {
         return 10U;
     }
-    uint32_t lowIdx = 1U;
-    uint32_t highIdx = 3U;
+    const uint32_t lowIdx = 1U;
+    const uint32_t highIdx = 3U;
     result = arr[(a > b) ? lowIdx : highIdx];
     if (result != 400) {
         return 11U;
     }
-    uint32_t requestedIdx = 10U;
-    uint32_t maxIdx = 4U;
+    const uint32_t requestedIdx = 10U;
+    const uint32_t maxIdx = 4U;
     result = arr[(requestedIdx > maxIdx) ? maxIdx : requestedIdx];
     if (result != 500) {
         return 12U;
     }
-    int32_t signedIdx = -1;
+    const int32_t signedIdx = -1;
     result = arr[(signedIdx < 0) ? 0U : 2U];
     if (result != 100) {
         return 13U;
@@ -115,7 +115,7 @@ int main(void) {
     writeArr[0] = 0U;
     writeArr[1] = 0U;
     writeArr[2] = 0U;
-    uint32_t writeIdx = 1U;
+    const uint32_t writeIdx = 1U;
     writeArr[(writeIdx > 0) ? writeIdx : 0] = 999U;
     if (writeArr[1U] != 999) {
         return 14U;

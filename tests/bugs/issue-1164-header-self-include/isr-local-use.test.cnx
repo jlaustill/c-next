@@ -7,7 +7,7 @@
 // strict subset of "this translation unit needs ISR" -- an ISR local to a
 // function body is invisible to it. The typedef was then emitted nowhere and
 // the .c did not compile: "unknown type name 'ISR'".
-u32 callCount <- 0;
+mut u32 callCount <- 0;
 
 void handlerA() {
     callCount <- callCount + 1;

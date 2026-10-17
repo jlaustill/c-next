@@ -3,4 +3,4 @@
 // -- so when the declaration lives in another file the check has to reach it.
 u8[8] sharedBuf;
 
-const u32 SHARED_MARKER <- 1;
+u32 SHARED_MARKER <- 1;

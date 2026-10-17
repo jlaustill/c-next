@@ -24,6 +24,6 @@ int main(void) {
     collection.count = 1U;
     userData.cached[0].value = 100;
     userData.version = 1U;
-    int32_t val = collection.items[0U].value;
-    uint32_t cnt = collection.count;
+    const int32_t val = collection.items[0U].value;
+    const uint32_t cnt = collection.count;
 }

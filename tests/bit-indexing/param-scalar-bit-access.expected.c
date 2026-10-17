@@ -18,7 +18,7 @@
 // on a parameter that becomes a C pointer because it's modified, which must
 // dereference the pointer rather than assigning through it.
 // Single-bit read on an unmodified scalar parameter (pass-by-value in C)
-bool bitOfParam(uint32_t v) {
+bool bitOfParam(const uint32_t v) {
     return ((((v >> 4U) & 1)) != 0U);
 }
 
@@ -36,7 +36,7 @@ uint32_t clearBitOfParam(uint32_t* v) {
 }
 
 // Multi-bit range read on an unmodified scalar parameter
-uint8_t lowByteOfParam(uint16_t v) {
+uint8_t lowByteOfParam(const uint16_t v) {
     return (uint8_t)((v) & 0xFFU);
 }
 
@@ -47,32 +47,32 @@ uint16_t setLowByteOfParam(uint16_t* v) {
 }
 
 int main(void) {
-    uint32_t withBit4 = 16U;
-    bool bit4Set = bitOfParam(withBit4);
+    const uint32_t withBit4 = 16U;
+    const bool bit4Set = bitOfParam(withBit4);
     if (bit4Set != true) {
         return 1U;
     }
-    bool bit4Clear = bitOfParam(0U);
+    const bool bit4Clear = bitOfParam(0U);
     if (bit4Clear != false) {
         return 2U;
     }
     uint32_t zero = 0U;
-    uint32_t afterSetBit = setBitOfParam(&zero);
+    const uint32_t afterSetBit = setBitOfParam(&zero);
     if (afterSetBit != 16) {
         return 3U;
     }
     uint32_t allBitsSet = 0xFFU;
-    uint32_t afterClearBit = clearBitOfParam(&allBitsSet);
+    const uint32_t afterClearBit = clearBitOfParam(&allBitsSet);
     if (afterClearBit != 0xEF) {
         return 4U;
     }
-    uint16_t word = 0x1234U;
-    uint8_t lowByte = lowByteOfParam(word);
+    const uint16_t word = 0x1234U;
+    const uint8_t lowByte = lowByteOfParam(word);
     if (lowByte != 0x34) {
         return 5U;
     }
     uint16_t baseWord = 0x1200U;
-    uint16_t afterSetLowByte = setLowByteOfParam(&baseWord);
+    const uint16_t afterSetLowByte = setLowByteOfParam(&baseWord);
     if (afterSetLowByte != 0x12FF) {
         return 6U;
     }

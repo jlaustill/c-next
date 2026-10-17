@@ -11,8 +11,8 @@ float result_f32 = 0.0f;
 double result_f64 = 0.0;
 
 void test_f32_arithmetic(void) {
-    float a = 10.5;
-    float b = 3.2;
+    const float a = 10.5;
+    const float b = 3.2;
     result_f32 = a + b;
     result_f32 = a - b;
     result_f32 = a * b;
@@ -22,12 +22,12 @@ void test_f32_arithmetic(void) {
     result_f32 = a * 2.0;
     result_f32 = a / 2.0;
     result_f32 = -a;
-    float neg = -10.5;
+    const float neg = -10.5;
 }
 
 void test_f64_arithmetic(void) {
-    double x = 100.25;
-    double y = 50.75;
+    const double x = 100.25;
+    const double y = 50.75;
     result_f64 = x + y;
     result_f64 = x - y;
     result_f64 = x * y;
@@ -37,13 +37,13 @@ void test_f64_arithmetic(void) {
     result_f64 = x * 1.5;
     result_f64 = x / 4.0;
     result_f64 = -x;
-    double neg = -99.99;
+    const double neg = -99.99;
 }
 
 void test_complex_expressions(void) {
-    float a = 5.0;
-    float b = 3.0;
-    float c = 2.0;
+    const float a = 5.0;
+    const float b = 3.0;
+    const float c = 2.0;
     result_f32 = a + b * c;
     result_f32 = (a + b) * c;
     result_f32 = a / b + c;

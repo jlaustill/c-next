@@ -13,18 +13,18 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint32_t literal_result1;
-extern uint32_t literal_result2;
-extern uint32_t literal_result3;
-extern uint32_t x;
-extern uint8_t bytes_for_u32;
-extern uint64_t y;
-extern uint8_t bytes_for_u64;
-extern uint16_t z;
-extern uint8_t bytes_for_u16;
-extern uint32_t mult_result;
-extern uint32_t add_result;
-extern uint32_t sub_result;
+extern const uint32_t literal_result1;
+extern const uint32_t literal_result2;
+extern const uint32_t literal_result3;
+extern const uint32_t x;
+extern const uint8_t bytes_for_u32;
+extern const uint64_t y;
+extern const uint8_t bytes_for_u64;
+extern const uint16_t z;
+extern const uint8_t bytes_for_u16;
+extern const uint32_t mult_result;
+extern const uint32_t add_result;
+extern const uint32_t sub_result;
 
 #ifdef __cplusplus
 }

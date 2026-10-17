@@ -20,7 +20,7 @@ typedef struct Point {
 
 /* External variables */
 extern Point pt;
-extern uint32_t total;
+extern const uint32_t total;
 
 /* Function prototypes */
 uint32_t shadowInit(void);

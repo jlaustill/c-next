@@ -18,7 +18,7 @@ typedef enum {
 } EState;
 
 /* Function prototypes */
-void StateMachine__setState(EState state);
+void StateMachine__setState(const EState state);
 EState StateMachine__getState(void);
 
 #ifdef __cplusplus

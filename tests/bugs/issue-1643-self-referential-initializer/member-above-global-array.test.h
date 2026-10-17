@@ -14,7 +14,7 @@ extern "C" {
 
 /* External variables */
 extern const uint32_t N;
-extern uint8_t S__buf[4];
+extern const uint8_t S__buf[4];
 
 /* Function prototypes */
 uint32_t S__own(void);

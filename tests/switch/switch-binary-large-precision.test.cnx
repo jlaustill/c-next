@@ -2,7 +2,7 @@
 // Issue #114: Test binary literal precision for values > 2^53
 // Tests: Large binary literals in switch case labels preserve precision
 // Coverage: Section 7 (Control Flow) - binary literal precision in case labels
-u32 result;
+mut u32 result;
 
 // Test values around 2^53 boundary (JavaScript's MAX_SAFE_INTEGER is 2^53 - 1)
 // These values previously caused precision loss when converted to hex

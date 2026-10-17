@@ -2,7 +2,7 @@
 // ADR-001: Compound assignment operators
 // Tests: compound assignment with <- syntax
 u32 testCompound() {
-    u32 val <- 10;
+    mut u32 val <- 10;
 
     val +<- 5; // val = 15
     val -<- 3; // val = 12
@@ -14,7 +14,7 @@ u32 testCompound() {
 }
 
 u32 testBitwise() {
-    u32 flags <- 0xFF;
+    mut u32 flags <- 0xFF;
 
     flags &<- 0x0F; // flags = 0x0F
     flags |<- 0xF0; // flags = 0xFF

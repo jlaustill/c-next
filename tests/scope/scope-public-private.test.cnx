@@ -5,12 +5,12 @@
 
 scope Visibility {
     // Private variables (default - no modifier needed)
-    u8 privateCounter <- 0;
-    bool privateFlag <- false;
+    mut u8 privateCounter <- 0;
+    mut bool privateFlag <- false;
 
     // Public variables (explicit public modifier required)
-    public u8 publicCounter <- 10;
-    public bool publicFlag <- true;
+    public mut u8 publicCounter <- 10;
+    public mut bool publicFlag <- true;
 
     // Private method (explicit private modifier required - functions are public by default)
     private u8 getPrivateCounterInternal() {

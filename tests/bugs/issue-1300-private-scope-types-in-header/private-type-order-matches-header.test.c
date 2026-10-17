@@ -32,12 +32,12 @@ typedef struct Ord__Holder {
 } Ord__Holder;
 
 uint32_t Ord__use(void) {
-    Ord__Holder h = { .m = Ord__Mode__ON, .v = 3U };
+    const Ord__Holder h = { .m = Ord__Mode__ON, .v = 3U };
     return h.v;
 }
 
 int main(void) {
-    uint32_t got = Ord__use();
+    const uint32_t got = Ord__use();
     if (got != 3) {
         return 1;
     }

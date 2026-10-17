@@ -32,114 +32,114 @@ static inline uint16_t cnx_clamp_sub_u16(uint16_t a, uint32_t b) {
 // Tests: u16 arithmetic operations (+, -, *, /, %)
 // Coverage: Section 4.1-4.5 for u16 type
 int main(void) {
-    uint16_t a = 30000U;
-    uint16_t b = 15000U;
-    uint16_t sum = cnx_clamp_add_u16(a, b);
+    const uint16_t a = 30000U;
+    const uint16_t b = 15000U;
+    const uint16_t sum = cnx_clamp_add_u16(a, b);
     if (sum != 45000) {
         return 1U;
     }
-    uint16_t sum_zero = cnx_clamp_add_u16(a, 0U);
+    const uint16_t sum_zero = cnx_clamp_add_u16(a, 0U);
     if (sum_zero != 30000) {
         return 2U;
     }
-    uint16_t c = 60000U;
-    uint16_t d = 5535U;
-    uint16_t sum_large = cnx_clamp_add_u16(c, d);
+    const uint16_t c = 60000U;
+    const uint16_t d = 5535U;
+    const uint16_t sum_large = cnx_clamp_add_u16(c, d);
     if (sum_large != 65535) {
         return 3U;
     }
-    uint16_t diff = cnx_clamp_sub_u16(a, b);
+    const uint16_t diff = cnx_clamp_sub_u16(a, b);
     if (diff != 15000) {
         return 4U;
     }
-    uint16_t e = 30000U;
-    uint16_t f = 30000U;
-    uint16_t diff_zero = cnx_clamp_sub_u16(e, f);
+    const uint16_t e = 30000U;
+    const uint16_t f = 30000U;
+    const uint16_t diff_zero = cnx_clamp_sub_u16(e, f);
     if (diff_zero != 0) {
         return 5U;
     }
-    uint16_t diff_zero2 = cnx_clamp_sub_u16(a, 0U);
+    const uint16_t diff_zero2 = cnx_clamp_sub_u16(a, 0U);
     if (diff_zero2 != 30000) {
         return 6U;
     }
-    uint16_t g = 100U;
-    uint16_t h = 50U;
-    uint16_t product = cnx_clamp_mul_u16(g, h);
+    const uint16_t g = 100U;
+    const uint16_t h = 50U;
+    const uint16_t product = cnx_clamp_mul_u16(g, h);
     if (product != 5000) {
         return 7U;
     }
-    uint16_t product_zero = cnx_clamp_mul_u16(g, 0U);
+    const uint16_t product_zero = cnx_clamp_mul_u16(g, 0U);
     if (product_zero != 0) {
         return 8U;
     }
-    uint16_t product_one = cnx_clamp_mul_u16(g, 1U);
+    const uint16_t product_one = cnx_clamp_mul_u16(g, 1U);
     if (product_one != 100) {
         return 9U;
     }
-    uint16_t i = 255U;
-    uint16_t j = 257U;
-    uint16_t product_large = cnx_clamp_mul_u16(i, j);
+    const uint16_t i = 255U;
+    const uint16_t j = 257U;
+    const uint16_t product_large = cnx_clamp_mul_u16(i, j);
     if (product_large != 65535) {
         return 10U;
     }
-    uint16_t k = 10000U;
-    uint16_t l = 50U;
-    uint16_t quotient = k / l;
+    const uint16_t k = 10000U;
+    const uint16_t l = 50U;
+    const uint16_t quotient = k / l;
     if (quotient != 200) {
         return 11U;
     }
-    uint16_t quotient_one = k / 1U;
+    const uint16_t quotient_one = k / 1U;
     if (quotient_one != 10000) {
         return 12U;
     }
-    uint16_t m = 10000U;
-    uint16_t n = 7U;
-    uint16_t quotient_trunc = m / n;
+    const uint16_t m = 10000U;
+    const uint16_t n = 7U;
+    const uint16_t quotient_trunc = m / n;
     if (quotient_trunc != 1428) {
         return 13U;
     }
-    uint16_t zero = 0U;
-    uint16_t quotient_zero = zero / 5U;
+    const uint16_t zero = 0U;
+    const uint16_t quotient_zero = zero / 5U;
     if (quotient_zero != 0) {
         return 14U;
     }
-    uint16_t o = 10000U;
-    uint16_t p = 7U;
-    uint16_t remainder = o % p;
+    const uint16_t o = 10000U;
+    const uint16_t p = 7U;
+    const uint16_t remainder = o % p;
     if (remainder != 4) {
         return 15U;
     }
-    uint16_t q = 10000U;
-    uint16_t r = 50U;
-    uint16_t remainder_zero = q % r;
+    const uint16_t q = 10000U;
+    const uint16_t r = 50U;
+    const uint16_t remainder_zero = q % r;
     if (remainder_zero != 0) {
         return 16U;
     }
-    uint16_t s = 3U;
-    uint16_t t = 100U;
-    uint16_t remainder_small = s % t;
+    const uint16_t s = 3U;
+    const uint16_t t = 100U;
+    const uint16_t remainder_small = s % t;
     if (remainder_small != 3) {
         return 17U;
     }
-    uint16_t remainder_zero2 = zero % 5U;
+    const uint16_t remainder_zero2 = zero % 5U;
     if (remainder_zero2 != 0) {
         return 18U;
     }
-    uint16_t max_val = 65535U;
-    uint16_t one = 1U;
-    uint16_t max_div = max_val / max_val;
+    const uint16_t max_val = 65535U;
+    const uint16_t one = 1U;
+    const uint16_t max_div = max_val / max_val;
     if (max_div != 1) {
         return 19U;
     }
-    uint16_t max_mod = max_val % max_val;
+    const uint16_t max_mod = max_val % max_val;
     if (max_mod != 0) {
         return 20U;
     }
-    uint16_t max_minus_one = cnx_clamp_sub_u16(max_val, one);
+    const uint16_t max_minus_one = cnx_clamp_sub_u16(max_val, one);
     if (max_minus_one != 65534) {
         return 21U;
     }
-    uint16_t combined = (100U + 200U) * 20U;
+    const uint16_t combined = (100U + 200U) * 20U;
     if (combined != 6000) {
         return 22U;
     }

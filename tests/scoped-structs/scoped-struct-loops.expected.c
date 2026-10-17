@@ -36,7 +36,7 @@ static inline uint8_t cnx_clamp_mul_u8(uint8_t a, uint32_t b) {
 Sensor__Reading Sensor__buffer[4] = {0};
 uint8_t Sensor__count = 0U;
 
-void Sensor__addReading(uint16_t val, uint8_t ch) {
+void Sensor__addReading(const uint16_t val, const uint8_t ch) {
     if (Sensor__count < 4) {
         Sensor__buffer[Sensor__count].value = val;
         Sensor__buffer[Sensor__count].channel = ch;
@@ -70,7 +70,7 @@ int main(void) {
     }
     uint8_t i = 0U;
     while (i < 3) {
-        uint16_t val = (uint16_t)(cnx_clamp_add_u8(100U, cnx_clamp_mul_u8(i, 10U)));
+        const uint16_t val = (uint16_t)(cnx_clamp_add_u8(100U, cnx_clamp_mul_u8(i, 10U)));
         Sensor__addReading(val, i);
         i = cnx_clamp_add_u8(i, 1U);
     }
@@ -95,7 +95,7 @@ int main(void) {
     if (Sensor__buffer[2U].channel != 2) {
         return 8U;
     }
-    uint16_t sum = Sensor__sumValues();
+    const uint16_t sum = Sensor__sumValues();
     if (sum != 330) {
         return 9U;
     }

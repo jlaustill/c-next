@@ -13,9 +13,9 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint8_t brightness;
-extern uint16_t sensorValue;
-extern uint32_t temperature;
+extern const uint8_t brightness;
+extern const uint16_t sensorValue;
+extern const uint32_t temperature;
 extern const uint8_t MAX_BRIGHTNESS;
 
 #ifdef __cplusplus

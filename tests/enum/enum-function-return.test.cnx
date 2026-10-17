@@ -53,7 +53,7 @@ TrafficLight colorToLight(Color c) {
 u32 main() {
 
     // Test getColorByIndex
-    Color c <- getColorByIndex(0);
+    mut Color c <- getColorByIndex(0);
     if (c != Color.RED) {
         return 1;
     }
@@ -74,7 +74,7 @@ u32 main() {
     }
 
     // Test getNextLight cycle
-    TrafficLight light <- TrafficLight.STOP;
+    mut TrafficLight light <- TrafficLight.STOP;
     light <- getNextLight(light);
     if (light != TrafficLight.GO) {
         return 5;
@@ -91,7 +91,7 @@ u32 main() {
     }
 
     // Test colorToLight mapping
-    TrafficLight mapped <- colorToLight(Color.RED);
+    mut TrafficLight mapped <- colorToLight(Color.RED);
     if (mapped != TrafficLight.STOP) {
         return 8;
     }

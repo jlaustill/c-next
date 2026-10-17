@@ -24,13 +24,13 @@ void ByteCaller__init(void) {
 uint8_t ByteCaller__test(void) {
     ByteCaller__data.value1 = 10U;
     ByteCaller__data.value2 = 25U;
-    uint8_t result = TestFuncSmall__addBytes(ByteCaller__data.value1, ByteCaller__data.value2);
+    const uint8_t result = TestFuncSmall__addBytes(ByteCaller__data.value1, ByteCaller__data.value2);
     return result;
 }
 
 int main(void) {
     ByteCaller__init();
-    uint8_t result = ByteCaller__test();
+    const uint8_t result = ByteCaller__test();
     if (result != 35) {
         return 1U;
     }

@@ -33,12 +33,12 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // C-style allowed for string arrays (grammar limitation)
 char globalNames[5][33] = {0};
 
-uint32_t getArrayLength(char arr[5][33]) {
+uint32_t getArrayLength(const char arr[5][33]) {
     return 5;
 }
 
 // Issue #136 fixed: arr[index].value_char_count now correctly returns strlen
-uint32_t getElementLength(char arr[5][33], uint32_t index) {
+uint32_t getElementLength(const char arr[5][33], const uint32_t index) {
     return strlen(arr[index]);
 }
 
@@ -104,27 +104,27 @@ int main(void) {
     if (strlen(colors[2U]) != 4) {
         return 16;
     }
-    uint32_t arrLen = getArrayLength(globalNames);
+    const uint32_t arrLen = getArrayLength(globalNames);
     if (arrLen != 5) {
         return 17;
     }
-    uint32_t elemLen0 = getElementLength(globalNames, 0U);
+    const uint32_t elemLen0 = getElementLength(globalNames, 0U);
     if (elemLen0 != 5) {
         return 18;
     }
-    uint32_t elemLen1 = getElementLength(globalNames, 1U);
+    const uint32_t elemLen1 = getElementLength(globalNames, 1U);
     if (elemLen1 != 3) {
         return 19;
     }
-    uint32_t elemLen2 = getElementLength(globalNames, 2U);
+    const uint32_t elemLen2 = getElementLength(globalNames, 2U);
     if (elemLen2 != 7) {
         return 20;
     }
-    uint32_t elemLen3 = getElementLength(globalNames, 3U);
+    const uint32_t elemLen3 = getElementLength(globalNames, 3U);
     if (elemLen3 != 5) {
         return 21;
     }
-    uint32_t elemLen4 = getElementLength(globalNames, 4U);
+    const uint32_t elemLen4 = getElementLength(globalNames, 4U);
     if (elemLen4 != 3) {
         return 22;
     }

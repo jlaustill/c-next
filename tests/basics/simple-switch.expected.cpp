@@ -10,7 +10,7 @@
 // test-execution
 // Tests: Basic switch statement
 // Demonstrates: switch cases, default, enum with switch
-uint32_t colorToValue(Color c) {
+uint32_t colorToValue(const Color c) {
     uint32_t result = 0U;
     switch (c) {
         case Color__RED: {
@@ -32,7 +32,7 @@ uint32_t colorToValue(Color c) {
     return result;
 }
 
-uint32_t dayType(uint32_t day) {
+uint32_t dayType(const uint32_t day) {
     uint32_t result = 0U;
     switch (day) {
         case 0: {

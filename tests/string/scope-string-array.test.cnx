@@ -4,7 +4,7 @@
 // each element a string<8>, not char Lab__tags[2]; an unsized const one too
 scope Lab {
     string<8>[2] tags <- ["alpha", "seven c"];
-    const string<4>[] codes <- ["ab", "xyz"];
+    string<4>[] codes <- ["ab", "xyz"];
 
     public u32 codeLength(u32 i) {
         return codes[i].value_char_count;

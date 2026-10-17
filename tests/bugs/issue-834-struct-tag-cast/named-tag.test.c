@@ -13,6 +13,6 @@
 #include "bugs/issue-834-struct-tag-cast/named-tag.h"
 
 void test(void) {
-    struct my_type_t val = { .value = 42, .extra = 0 };
+    const struct my_type_t val = { .value = 42, .extra = 0 };
     consume(&val);
 }

@@ -22,7 +22,7 @@ typedef struct Box {
 } Box;
 
 /* External variables */
-extern Point atFileScope;
+extern const Point atFileScope;
 
 /* Function prototypes */
 Point fromReturn(void);

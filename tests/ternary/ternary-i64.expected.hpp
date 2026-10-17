@@ -13,9 +13,9 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-int64_t getMax(int64_t a, int64_t b);
-int64_t getMin(int64_t a, int64_t b);
-int64_t getAbs(int64_t x);
+int64_t getMax(const int64_t a, const int64_t b);
+int64_t getMin(const int64_t a, const int64_t b);
+int64_t getAbs(const int64_t x);
 
 #ifdef __cplusplus
 }

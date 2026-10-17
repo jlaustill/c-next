@@ -32,10 +32,10 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 // drew from one counter, so unifying the spelling cannot collide.
 uint8_t buffer[4] = {};
 
-uint8_t _tmp0 = 7U;
+extern const uint8_t _tmp0 = 7U;
 
 int main(void) {
-    uint32_t magic = 0U;
+    const uint32_t magic = 0U;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
     const uint32_t cnx_tmp0 = (uint32_t)(magic);
     buffer[0] = (uint8_t)(cnx_tmp0);

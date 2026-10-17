@@ -4,13 +4,13 @@
 // which the lookup by bare name used to find, so the `u8` counter took the
 // `u32` clamp and a `.type_bit_length` of 32.
 void first() {
-    u32 k <- 0;
+    mut u32 k <- 0;
     k <- k + 1;
 }
 
 u32 probe() {
-    u32 w <- 0;
-    for (u8 k <- 0; k < 3; k <- k + 1) {
+    mut u32 w <- 0;
+    for (mut u8 k <- 0; k < 3; k <- k + 1) {
         w <- k.type_bit_length;
     }
     return w;
@@ -19,8 +19,8 @@ u32 probe() {
 // The u8 clamp saturates 250 + 10 at 255 and the loop ends after one pass.
 // Clamped as a u32, 260 truncates to 4 in the u8 and the loop runs on.
 u32 passes() {
-    u32 n <- 0;
-    for (u8 k <- 250; k < 255; k <- k + 10) {
+    mut u32 n <- 0;
+    for (mut u8 k <- 250; k < 255; k <- k + 10) {
         n <- n + 1;
         if (n > 3) {
             return n;

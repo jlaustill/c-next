@@ -11,7 +11,7 @@
 // test-execution
 // Tests: Enum as function parameter
 // Function that takes enum as parameter
-uint32_t getStatusCode(Status s) {
+uint32_t getStatusCode(const Status s) {
     if (s == Status__OK) {
         return 0U;
     }
@@ -28,7 +28,7 @@ uint32_t getStatusCode(Status s) {
 }
 
 // Function that takes enum and returns modified value
-uint32_t getStatusPriority(Status s) {
+uint32_t getStatusPriority(const Status s) {
     if (s == Status__CRITICAL) {
         return 100U;
     }

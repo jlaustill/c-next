@@ -15,7 +15,7 @@
 #include <Display/AppData.cnx>
 
 // Use the struct from the included .cnx file
-AppData sensorData;
+mut AppData sensorData;
 
 u32 main() {
     // Initialize and use the struct

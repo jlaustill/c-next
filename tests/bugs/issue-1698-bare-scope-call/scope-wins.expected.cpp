@@ -22,16 +22,16 @@ uint8_t Gauge__get(void) {
 }
 
 uint8_t Gauge__narrow(void) {
-    uint8_t n = Gauge__get();
+    const uint8_t n = Gauge__get();
     return n;
 }
 
 int main(void) {
-    uint8_t v = Gauge__narrow();
+    const uint8_t v = Gauge__narrow();
     if (v != 3) {
         return 1U;
     }
-    uint32_t g = get();
+    const uint32_t g = get();
     if (g != 300) {
         return 2U;
     }

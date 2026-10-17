@@ -14,8 +14,8 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-ESpnCategory getCategory(uint16_t spn);
-uint32_t categoryToValue(ESpnCategory cat);
+ESpnCategory getCategory(const uint16_t spn);
+uint32_t categoryToValue(const ESpnCategory cat);
 
 #ifdef __cplusplus
 }

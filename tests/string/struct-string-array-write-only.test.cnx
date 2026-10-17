@@ -7,7 +7,7 @@ struct Config {
 }
 
 i32 main() {
-    Config cfg;
+    mut Config cfg;
     cfg.items[2] <- "hi";
     return 0;
 }

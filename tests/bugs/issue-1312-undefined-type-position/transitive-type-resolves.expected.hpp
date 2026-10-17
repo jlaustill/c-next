@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern Depth reachedThroughChain;
+extern const Depth reachedThroughChain;
 
 #ifdef __cplusplus
 }

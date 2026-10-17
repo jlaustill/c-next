@@ -2,7 +2,7 @@
 // Issue #107: Negative Case Labels - i64 Type
 // Tests: negative literals with i64 switch expressions
 // Note: Avoids INT64_MIN/MAX due to JS parseInt precision limits in duplicate detection
-i32 result;
+mut i32 result;
 
 // Test i64 with various negative values (within JS safe integer range)
 void testI64Values(i64 val) {

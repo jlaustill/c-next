@@ -28,7 +28,7 @@ typedef struct EnumBitLen__TestStruct {
 } EnumBitLen__TestStruct;
 
 /* External variables */
-extern Color globalColor;
+extern const Color globalColor;
 
 #ifdef __cplusplus
 }

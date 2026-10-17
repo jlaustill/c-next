@@ -6,19 +6,19 @@
 // -Werror=unused-parameter and is MISRA C:2012 Rule 2.7 -- tracked in #862
 // (69 violations). Add the marker here when #862 closes.
 // ADR-045: Validate string function parameters at runtime
-u32 getLen(const string<64> s) {
+u32 getLen(string<64> s) {
     return s.value_char_count;
 }
 
-u32 getCap(const string<64> s) {
+u32 getCap(string<64> s) {
     return s.capacity;
 }
 
-bool isEqual(const string<64> a, const string<64> b) {
+bool isEqual(string<64> a, string<64> b) {
     return a = b;
 }
 
-bool matchesLiteral(const string<64> s, const string<64> lit) {
+bool matchesLiteral(string<64> s, string<64> lit) {
     return s = lit;
 }
 

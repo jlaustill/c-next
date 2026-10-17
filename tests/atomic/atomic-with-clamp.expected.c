@@ -60,11 +60,11 @@ volatile uint32_t counter = 0U;
 // Signed atomic clamp
 volatile int8_t temperature = 0;
 
-volatile int16_t offset = 0;
+const volatile int16_t offset = 0;
 
-volatile int32_t position = 0;
+const volatile int32_t position = 0;
 
-void adjustBrightness(uint8_t delta) {
+void adjustBrightness(const uint8_t delta) {
     do {
         uint8_t __old = __LDREXB(&brightness);
         uint8_t __new = cnx_clamp_add_u8(__old, delta);
@@ -74,7 +74,7 @@ void adjustBrightness(uint8_t delta) {
     } while (1);
 }
 
-void decreaseBrightness(uint8_t delta) {
+void decreaseBrightness(const uint8_t delta) {
     do {
         uint8_t __old = __LDREXB(&brightness);
         uint8_t __new = cnx_clamp_sub_u8(__old, delta);
@@ -84,7 +84,7 @@ void decreaseBrightness(uint8_t delta) {
     } while (1);
 }
 
-void updateVolume(uint16_t delta) {
+void updateVolume(const uint16_t delta) {
     do {
         uint16_t __old = __LDREXH(&volume);
         uint16_t __new = cnx_clamp_add_u16(__old, delta);
@@ -104,7 +104,7 @@ void incrementCounter(void) {
     } while (1);
 }
 
-void adjustTemperature(int8_t delta) {
+void adjustTemperature(const int8_t delta) {
     do {
         int8_t __old = __LDREXB(&temperature);
         int8_t __new = cnx_clamp_add_i8(__old, delta);

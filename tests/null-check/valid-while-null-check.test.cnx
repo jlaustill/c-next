@@ -6,7 +6,7 @@ string<256> line;
 bool keepReading <- true;
 
 void testWhileNullCheck() {
-    FILE c_file <- fopen("data.txt", "r");
+    mut FILE c_file <- fopen("data.txt", "r");
 
     // While condition checks for NULL - c_file is checked inside body
     while (c_file != NULL) {

@@ -107,9 +107,9 @@ describe("#1991: each pass takes only what the pass before it returned", () => {
     rmSync(tempDir, { recursive: true, force: true });
   });
 
-  /** `Lib.echo` takes `v` by value until its body writes to it */
-  const ECHO_READS = "return v;";
-  const ECHO_WRITES = "v <- v + 1;\n        return v;";
+  /** `Lib.echo` takes `v` by value until it declares it `mut` (ADR-071) */
+  const ECHO_READS = { mut: "", body: "return v;" };
+  const ECHO_WRITES = { mut: "mut ", body: "v <- v + 1;\n        return v;" };
 
   function newTranspiler(): Transpiler {
     return new Transpiler(
@@ -125,16 +125,16 @@ describe("#1991: each pass takes only what the pass before it returned", () => {
   }
 
   async function run(
-    echoBody = ECHO_READS,
+    echo = ECHO_READS,
     transpiler = newTranspiler(),
   ): Promise<void> {
     writeFileSync(
       join(tempDir, "lib.cnx"),
-      `struct Point {\n    u32 x;\n}\n\nscope Lib {\n    public u32 double(u32 v) { return v * 2; }\n    public u32 xOf(Point p) { return p.x; }\n    public u32 echo(u32 v) {\n        ${echoBody}\n    }\n}\n`,
+      `struct Point {\n    u32 x;\n}\n\nscope Lib {\n    public u32 double(u32 v) { return v * 2; }\n    public u32 xOf(Point p) { return p.x; }\n    public u32 echo(${echo.mut}u32 v) {\n        ${echo.body}\n    }\n}\n`,
     );
     writeFileSync(
       join(tempDir, "app.cnx"),
-      `#include "lib.cnx"\n\nu32 total <- 0;\n\nu32 readX(Point p) {\n    return p.x;\n}\n\nvoid main() {\n    Point pt <- { x: 3 };\n    u32 n <- 4;\n    total <- Lib.double(21) + readX(pt) + Lib.xOf(pt) + Lib.echo(n);\n}\n`,
+      `#include "lib.cnx"\n\nmut u32 total <- 0;\n\nu32 readX(Point p) {\n    return p.x;\n}\n\nvoid main() {\n    Point pt <- { x: 3 };\n    ${echo.mut}u32 n <- 4;\n    total <- Lib.double(21) + readX(pt) + Lib.xOf(pt) + Lib.echo(n);\n}\n`,
     );
     const result = await transpiler.transpile({ kind: "files" });
     expect(result.success).toBe(true);
@@ -241,9 +241,16 @@ describe("#1991: each pass takes only what the pass before it returned", () => {
     expect(new Set(plans.map((plan) => plan.args[0])).size).toBe(plans.length);
   });
 
-  it("1.2, 1.3, 1.4, 2.3 and the header step take one argument each", async () => {
+  it("1.3, 1.4, 2.3 and the header step take one argument each, and 1.2 1.1's graph and the compiler port", async () => {
     await run();
-    for (const pass of ["1.2", "1.3", "1.4", "2.3", "2.3 headers"]) {
+    // #1713: 1.2 reads the headers with the target's compiler, which the host
+    // runs for it, as 3.1 writes through the host's filesystem port
+    const graph = (only("1.1").returned as { graph: unknown }).graph;
+    for (const call of of("1.2")) {
+      expect(call.args, "1.2's arguments").toHaveLength(2);
+      expect(call.args[0]).toBe(graph);
+    }
+    for (const pass of ["1.3", "1.4", "2.3", "2.3 headers"]) {
       expect(of(pass).length, `${pass} ran`).toBeGreaterThan(0);
       for (const call of of(pass)) {
         expect(call.args, `${pass}'s arguments`).toHaveLength(1);
@@ -288,10 +295,16 @@ describe("#1991: each pass takes only what the pass before it returned", () => {
     const named = new Set<string>();
     const discovered = only("1.1").returned as {
       graph: {
-        outputs: ReadonlyMap<string, { source: string; header: string }>;
+        outputs: Readonly<
+          Record<
+            "c" | "cpp",
+            ReadonlyMap<string, { source: string; header: string }>
+          >
+        >;
       };
     };
-    for (const paths of discovered.graph.outputs.values()) {
+    const byMode = discovered.graph.outputs;
+    for (const paths of [...byMode.c.values(), ...byMode.cpp.values()]) {
       named.add(paths.source);
       named.add(paths.header);
     }

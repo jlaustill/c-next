@@ -5,7 +5,7 @@
 // so the method above it writes the global. The method below it is the
 // control: there the member is defined, and the bare name means it.
 
-u32 y <- 5;
+mut u32 y <- 5;
 
 scope S {
     public void set() {

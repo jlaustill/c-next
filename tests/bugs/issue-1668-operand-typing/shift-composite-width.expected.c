@@ -25,13 +25,13 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // `a` and a u32 `b` was rejected as `9 >= 8`, while the C is
 // `cnx_clamp_add_u32(a, b) << 9U`, a u32 shift.
 int main(void) {
-    uint8_t a = 1U;
-    uint32_t b = 2U;
-    uint32_t r = cnx_clamp_add_u32(a, b) << 9U;
+    const uint8_t a = 1U;
+    const uint32_t b = 2U;
+    const uint32_t r = cnx_clamp_add_u32(a, b) << 9U;
     if (r != 1536) {
         return 1U;
     }
-    uint32_t s = cnx_clamp_add_u32(b, a) << 9U;
+    const uint32_t s = cnx_clamp_add_u32(b, a) << 9U;
     if (s != 1536) {
         return 2U;
     }

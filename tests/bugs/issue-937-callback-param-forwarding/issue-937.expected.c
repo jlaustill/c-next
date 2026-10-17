@@ -17,8 +17,8 @@
 /* Scope: Port */
 
 void Port__my_flush(widget_t* w, const rect_t* area, uint8_t* buf) {
-    int32_t x2 = area->x2 + 1;
-    int32_t y2 = area->y2 + 1;
+    const int32_t x2 = area->x2 + 1;
+    const int32_t y2 = area->y2 + 1;
     draw_bitmap(0, area->x1, area->y1, x2, y2, buf);
     flush_ready(w);
 }
@@ -29,10 +29,10 @@ void Port__init(void) {
 
 int main(void) {
     Port__init();
-    rect_t r = { .x1 = 10, .y1 = 20, .x2 = 100, .y2 = 200 };
+    const rect_t r = { .x1 = 10, .y1 = 20, .x2 = 100, .y2 = 200 };
     uint8_t buffer[4] = {0xAAU, 0xBBU, 0xCCU, 0xDDU};
     widget_t dummy_widget = { .dummy = 42 };
-    int32_t invoked = invoke_registered_cb(&dummy_widget, &r, buffer);
+    const int32_t invoked = invoke_registered_cb(&dummy_widget, &r, buffer);
     if (invoked == 0) {
         return 1;
     }

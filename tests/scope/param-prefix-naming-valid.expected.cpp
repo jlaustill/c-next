@@ -14,24 +14,24 @@
 // - "value" does not start with "calculate_"
 // - "calculate" without underscore is allowed
 // - "calc_value" does not start with "calculate_"
-void calculate(uint32_t value) {
+void calculate(const uint32_t value) {
 }
 
 /* C11 6.2.1p4, C++ [basic.scope.hiding]: `process` emitted as `process__process` (a plain `process` would hide the file-scope `process` for the rest of its scope, so `global.process` would reach the local). */
-void process(uint32_t process__process) {
+void process(const uint32_t process__process) {
 }
 
-void update(uint32_t upd_value) {
+void update(const uint32_t upd_value) {
 }
 
 // Scope functions should also work correctly
 /* Scope: Math */
 
-float Math__add(float x, float y) {
+float Math__add(const float x, const float y) {
     return x + y;
 }
 
-float Math__multiply(float mult_factor, float value) {
+float Math__multiply(const float mult_factor, const float value) {
     return mult_factor * value;
 }
 

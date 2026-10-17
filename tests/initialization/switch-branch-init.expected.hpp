@@ -21,7 +21,7 @@ typedef enum {
 } Mode;
 
 /* Function prototypes */
-uint32_t calculatePower(Mode mode);
+uint32_t calculatePower(const Mode mode);
 
 #ifdef __cplusplus
 }

@@ -1,5 +1,7 @@
 /**
- * ADR-013 const enforcement: E0877, E0878.
+ * ADR-071 read-only enforcement (was ADR-013's const): E0900 for a write to a
+ * binding not declared `mut` (it retired ADR-013's E0877 and E0878), and E0899
+ * for a `mut` that nothing in the file writes.
  *
  * #1322. Four throws in `output/` -- three in `AssignmentValidator` (a
  * simple target, an array element, a member access, each asking
@@ -25,16 +27,25 @@
  * statement and are checked here on the same terms.
  */
 
-import ExpressionShape from "../../utils/ExpressionShape";
 import OperandTyper from "../../utils/OperandTyper";
 import DeclarationParts from "../../utils/DeclarationParts";
 import ExpressionNodes from "../../utils/ExpressionNodes";
 import StatementNodes from "../../utils/StatementNodes";
 import FunctionReference from "./helpers/FunctionReference";
+import CCallee from "./helpers/CCallee";
+import CArgumentWrite from "./helpers/CArgumentWrite";
+import type ICCallee from "./types/ICCallee";
 import BoundDeclaration from "./helpers/BoundDeclaration";
+import WrittenBinding from "./helpers/WrittenBinding";
+import MutSite from "./helpers/MutSite";
+import type IMutSite from "../../types/IMutSite";
+import type IWrittenBinding from "./types/IWrittenBinding";
+import type TValueBinding from "../../types/TValueBinding";
 import SafeDivision from "../../utils/SafeDivision";
+import ESourceLanguage from "../../utils/types/ESourceLanguage";
+import type ILexicalFrame from "../../types/ILexicalFrame";
+import type TSymbol from "../../types/symbols/TSymbol";
 import IConstAssignmentError from "./types/IConstAssignmentError";
-import TChainRoot from "../../types/TChainRoot";
 import type ISourceSpan from "../../types/ISourceSpan";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
@@ -47,15 +58,10 @@ type TConstKind = "parameter" | "variable" | null;
 
 type TPosition = Pick<ISourceSpan, "line" | "column">;
 
-/** An assignment target as a declared name and what is written through it */
-interface ITargetName {
-  readonly root: TChainRoot;
-  readonly name: string;
-  readonly ops: readonly TPostfixOpSyntax[];
-}
-
 class ConstAssignmentCheck {
   private readonly found: IConstAssignmentError[] = [];
+  /** The declarations this file writes: an ILocalDeclaration or a symbol */
+  private readonly written = new Set<object>();
 
   public constructor(private readonly context: IAnalysisContext) {}
 
@@ -65,41 +71,76 @@ class ConstAssignmentCheck {
 
   /** Every assignment form -- a statement, a `for` init, a `for` update. */
   public checkSite(site: IAssignmentSyntax): void {
-    const target = ConstAssignmentCheck.targetName(site.target);
+    const target = WrittenBinding.ofExpression(site.target, this.context);
     if (target === null) return;
-    const kind = this.constKind(target.root, target.name, site.target.span);
-    if (kind === null) return;
+    this.noteWrite(target.binding);
+    const kind = ConstAssignmentCheck.constKind(target.binding);
+    if (kind === null) {
+      if (site.operator === "<-")
+        this.checkHandleStore(site.value, target.name);
+      return;
+    }
 
     const suffix = ConstAssignmentCheck.targetSuffix(target.ops);
     this.report(
       site.target.span,
-      "E0877",
-      `cannot assign to const ${kind} '${target.name}'${suffix}`,
+      "E0900",
+      `cannot assign to read-only ${kind} '${target.name}'${suffix}`,
       kind === "parameter"
-        ? "A const parameter is read-only for the whole function (ADR-013); remove `const` from the parameter if the function must change it."
-        : "A const binding is read-only after its declaration (ADR-013); remove `const` if the value must change.",
+        ? "A parameter is read-only unless declared `mut` (ADR-071); declare it `mut` if the function must change it."
+        : "A binding is read-only unless declared `mut` (ADR-071); declare it `mut` if the value must change.",
+      MutSite.of(target.binding, this.context),
     );
   }
 
-  /** `K`, `table[0]`, `this.K`, `global.cfg.x`: the name the target is reached through */
-  private static targetName(target: TExpression): ITargetName | null {
-    if (target.kind === "identifier") {
-      return { root: null, name: target.name, ops: [] };
+  /**
+   * ADR-030 holds an opaque handle through a pointer, so storing one in a
+   * `mut` binding hands that binding the object: `this.held <- w` lets
+   * `held` write what `w` refers to, which is writing `w`.
+   */
+  public checkHandleStore(value: TExpression, into: string): void {
+    for (const source of ConstAssignmentCheck.storedValues(value)) {
+      this.checkHandleSource(source, into);
     }
-    if (target.kind !== "postfix") return null;
-    if (target.primary.kind === "identifier") {
-      return { root: null, name: target.primary.name, ops: target.ops };
-    }
-    const first = target.ops[0];
-    if (target.primary.kind !== "root" || first.kind !== "member") return null;
-    return {
-      root: target.primary.root,
-      name: first.name,
-      ops: target.ops.slice(1),
-    };
   }
 
-  /** How the target's shape is named in E0877's message. */
+  /** Each value a store may copy: a ternary's arms, an array literal's elements */
+  private static storedValues(value: TExpression): TExpression[] {
+    switch (value.kind) {
+      case "parenthesized":
+        return ConstAssignmentCheck.storedValues(value.expression);
+      case "ternary":
+        return [value.whenTrue, value.whenFalse].flatMap((arm) =>
+          ConstAssignmentCheck.storedValues(arm),
+        );
+      case "arrayInitializer":
+        return [
+          ...value.elements,
+          ...(value.fill === null ? [] : [value.fill]),
+        ].flatMap((element) => ConstAssignmentCheck.storedValues(element));
+      default:
+        return [value];
+    }
+  }
+
+  private checkHandleSource(value: TExpression, into: string): void {
+    const typeName = OperandTyper.typeOf(value, this.context)?.typeName;
+    if (!typeName || !this.context.program.isOpaqueType(typeName)) return;
+    const source = WrittenBinding.ofExpression(value, this.context);
+    if (source === null) return;
+    this.noteWrite(source.binding);
+    const kind = ConstAssignmentCheck.constKind(source.binding);
+    if (kind === null) return;
+    this.report(
+      value.span,
+      "E0900",
+      `cannot store read-only ${kind} '${value.written}' in \`mut\` '${into}': a ${typeName} handle refers to its object`,
+      "Through the copy, the object may be written (ADR-030); declare the source `mut` (ADR-071).",
+      MutSite.of(source.binding, this.context),
+    );
+  }
+
+  /** How the target's shape is named in E0900's message. */
   private static targetSuffix(ops: readonly TPostfixOpSyntax[]): string {
     if (ops.some((op) => op.kind === "subscript")) return " (array element)";
     if (ops.some((op) => op.kind === "member")) return " (member access)";
@@ -107,7 +148,7 @@ class ConstAssignmentCheck {
   }
 
   /**
-   * E0877 at a site that is not an assignment: ADR-051's `safe_div`/`safe_mod`
+   * E0900 at a site that is not an assignment: ADR-051's `safe_div`/`safe_mod`
    * write their result through the FIRST argument, so a const there is written
    * to exactly as `K <- 1` writes to one.
    *
@@ -123,83 +164,215 @@ class ConstAssignmentCheck {
     if (call === null) return;
     const output = SafeDivision.outputName(call.args);
     if (output === null) return; // not a variable at all -- E0885's to report
+    const written = WrittenBinding.of(
+      null,
+      output,
+      [],
+      expr.span,
+      this.context,
+    );
+    this.noteWrite(written.binding);
     // Always a BARE name: `outputName` accepts only a plain identifier, so a
     // `this.`-rooted first argument returns null above and is E0885's to report.
-    const kind = this.constKind(null, output, expr.span);
+    const kind = ConstAssignmentCheck.constKind(written.binding);
     if (kind === null) return;
     this.report(
       call.args[0].span,
-      "E0877",
-      `cannot assign to const ${kind} '${output}' (${call.name} output)`,
-      `${call.name} writes its result through its first argument, so a const cannot receive it; remove \`const\`, or pass a mutable variable (ADR-013).`,
+      "E0900",
+      `cannot assign to read-only ${kind} '${output}' (${call.name} output)`,
+      `${call.name} writes its result through its first argument, so it must be declared \`mut\` (ADR-071).`,
+      MutSite.of(written.binding, this.context),
     );
   }
 
-  /** E0878: a const value passed where the callee may write. */
+  /** E0900, too: a read-only binding passed to a C-Next `mut` parameter. */
   public checkExpression(expr: TExpression): void {
     if (expr.kind !== "postfix") return;
     const call = expr.ops.find((op) => op.kind === "call");
     if (call?.kind !== "call") return;
     this.checkSafeDivisionOutput(expr);
-    const callee = FunctionReference.ofCallChain(
+    this.checkMethodReceiver(expr);
+    const cCallee = CCallee.of(expr, this.context);
+    if (cCallee !== null) {
+      // Its read-only arguments are E0900's too, which CPointerArgumentAnalyzer reports
+      this.noteCPointerWrites(cCallee);
+      return;
+    }
+    const callee = FunctionReference.ofCall(
       expr,
       OperandTyper.scopePathAt(expr.span, this.context),
       this.context,
     );
-    if (callee === null) return;
+    if (callee === null) {
+      // A function no header the transpiler read declares may write any
+      // argument, so none of
+      // their `mut`s is unused (Decision 6). The C compiler checks the rest.
+      for (const arg of call.arguments) {
+        this.noteWrite(
+          WrittenBinding.ofExpression(arg, this.context)?.binding ?? null,
+        );
+      }
+      return;
+    }
+    if (callee.sourceLanguage !== ESourceLanguage.CNext) return;
     call.arguments.forEach((arg, index) => {
       const param = callee.parameters[index];
       if (param === undefined || param.isConst) return;
-      const argName = this.constArgumentName(arg);
+      const target = WrittenBinding.ofExpression(arg, this.context);
+      this.noteWrite(target?.binding ?? null);
+      const argName = ConstAssignmentCheck.constArgumentName(arg, target);
       if (argName === null) return;
       this.report(
         arg.span,
-        "E0878",
-        `cannot pass const '${argName}' to non-const parameter '${param.name}' of function '${callee.name}'`,
-        "The callee may write through that parameter; declare it `const` in the callee, or pass a mutable copy (ADR-013).",
+        "E0900",
+        `cannot pass read-only '${argName}' to \`mut\` parameter '${param.name}' of function '${callee.name}'`,
+        "The callee writes through that parameter, so the argument must be declared `mut` (ADR-071).",
+        MutSite.of(target?.binding ?? null, this.context),
       );
     });
+  }
+
+  /**
+   * E0899 (ADR-071 Decision 6): a `mut` binding nothing in this file writes.
+   * Two are exempt because what fixes their `mut` is outside the body: a
+   * parameter of a function used as a callback type, whose signature the
+   * type decides, and a binding C can see -- a global or a public scope
+   * member, which the header exports for C code to write.
+   */
+  public checkUnusedMut(): void {
+    const program = this.context.program;
+    const typedefCallbacks = program.callbackCompatibleFunctions();
+    const callbacks = program.callbackFunctions();
+    const visit = (frame: ILexicalFrame, functionName: string | null): void => {
+      const fn = frame.functionCName ?? functionName;
+      for (const declaration of frame.declarations) {
+        if (declaration.isConst || declaration.kind === "constructor") continue;
+        if (this.written.has(declaration)) continue;
+        const isCallbackParameter =
+          declaration.kind === "parameter" &&
+          fn !== null &&
+          (callbacks.has(fn) || typedefCallbacks.has(fn));
+        if (isCallbackParameter) continue;
+        this.reportUnusedMut(declaration.span, declaration.name);
+      }
+      for (const child of frame.children) visit(child, fn);
+    };
+    visit(
+      program.lexicalFrameAt(this.context.sourceFile, { line: 0, column: 0 }),
+      null,
+    );
+    for (const symbol of program.symbolsInFile(this.context.sourceFile)) {
+      if (ConstAssignmentCheck.isUnwrittenPrivateMember(symbol, this.written)) {
+        this.reportUnusedMut(symbol.span, symbol.name);
+      }
+    }
+  }
+
+  private static isUnwrittenPrivateMember(
+    symbol: TSymbol,
+    written: ReadonlySet<object>,
+  ): boolean {
+    return (
+      symbol.kind === "variable" &&
+      symbol.sourceLanguage === ESourceLanguage.CNext &&
+      !symbol.isConst &&
+      !symbol.isConstructed &&
+      symbol.scopePath !== "" &&
+      symbol.visibility === "private" &&
+      !written.has(symbol)
+    );
+  }
+
+  private reportUnusedMut(at: TPosition, name: string): void {
+    this.report(
+      at,
+      "E0899",
+      `'${name}' is never written; remove \`mut\``,
+      "A binding is declared `mut` only when something writes it (ADR-071).",
+    );
+  }
+
+  /**
+   * E0900, too: a C++ method not declared `const` may write the object it is
+   * called on, so `c.bump()` writes `c`. A `const` overload is the one a
+   * read-only object calls, so its existence leaves the object read-only.
+   */
+  private checkMethodReceiver(
+    expr: Extract<TExpression, { kind: "postfix" }>,
+  ): void {
+    const callAt = expr.ops.findIndex((op) => op.kind === "call");
+    const method = expr.ops[callAt - 1];
+    if (method?.kind !== "member") return;
+    const receiver: TExpression = {
+      ...expr,
+      ops: expr.ops.slice(0, callAt - 1),
+    };
+    const methodName = CCallee.methodName(receiver, method.name, this.context);
+    if (methodName === null) return;
+    const methods = this.context.symbolTable
+      .getCppOverloads(methodName)
+      .filter((symbol) => symbol.kind === "function");
+    if (methods.length === 0) return;
+    if (methods.some((m) => m.kind === "function" && m.isConstMember)) return;
+    const target = WrittenBinding.ofExpression(receiver, this.context);
+    this.noteWrite(target?.binding ?? null);
+    const kind = ConstAssignmentCheck.constKind(target?.binding ?? null);
+    if (kind === null || target === null) return;
+    this.report(
+      expr.span,
+      "E0900",
+      `cannot call non-\`const\` method '${method.name}' on read-only ${kind} '${target.name}'`,
+      "A C++ method not declared `const` may write its object, so the object must be declared `mut` (ADR-071).",
+      MutSite.of(target.binding, this.context),
+    );
+  }
+
+  /** What a C callee may write through, it may write (CArgumentWrite) */
+  private noteCPointerWrites(callee: ICCallee): void {
+    callee.arguments.forEach((arg, index) => {
+      if (!CArgumentWrite.mayWrite(callee, index, this.context)) return;
+      const target = WrittenBinding.ofExpression(arg, this.context);
+      this.noteWrite(target?.binding ?? null);
+    });
+  }
+
+  private noteWrite(binding: TValueBinding | null): void {
+    if (binding?.kind === "local") this.written.add(binding.declaration);
+    else if (binding?.kind === "variable") this.written.add(binding.symbol);
   }
 
   // --- The facts -----------------------------------------------------------
 
   /**
-   * The name of a const binding an argument IS -- `K`, `this.K`, `global.K`
-   * -- or null for anything else (an expression has no binding to protect).
+   * The spelling of an argument reached through a read-only binding -- `K`,
+   * `this.K`, `S.K`, `cfg.x`, `o.inner.data` -- or null for anything else (an
+   * expression has no binding to protect). A `mut` parameter is passed by
+   * reference, so the callee may write the member or element it is handed,
+   * which is writing its root.
    */
-  private constArgumentName(arg: TExpression): string | null {
-    const bare = ExpressionShape.simpleIdentifier(arg);
-    if (bare !== null) {
-      return this.constKind(null, bare, arg.span) === null ? null : bare;
-    }
-    if (arg.kind !== "postfix" || arg.primary.kind !== "root") return null;
-    const member = arg.ops[0];
-    if (arg.ops.length !== 1 || member.kind !== "member") return null;
-    const root = arg.primary.root;
-    return this.constKind(root, member.name, arg.span) === null
+  private static constArgumentName(
+    arg: TExpression,
+    target: IWrittenBinding | null,
+  ): string | null {
+    if (target === null) return null;
+    return ConstAssignmentCheck.constKind(target.binding) === null
       ? null
-      : `${root}.${member.name}`;
+      : arg.written;
   }
 
   /**
-   * Whether the spelling `root.name`, as seen from `at`, is a const parameter,
-   * a const variable, or neither.
+   * Whether a binding is a read-only parameter, a read-only variable, or
+   * neither.
    *
-   * Which declaration the spelling binds to is Program's one binder's
+   * Which declaration a spelling binds to is Program's one binder's
    * decision (#1668), not this rule's: a local, a parameter, a scope member
    * or a global, this file's or an included one's, in ADR-057's order with
    * `this.` and `global.` stating where. #1322 review: this file once had its
    * own, with a `global.` arm and no `this.` arm -- so `this.STEP <- 5` with a
-   * local `STEP` shadowing the const member resolved to the local, lost E0877,
+   * local `STEP` shadowing the const member resolved to the local, lost its error,
    * and emitted `Board__STEP = 5U;` at exit 0.
    */
-  private constKind(root: TChainRoot, name: string, at: TPosition): TConstKind {
-    const binding = this.context.program.bindValue(
-      this.context.sourceFile,
-      root,
-      name,
-      at,
-    );
+  private static constKind(binding: TValueBinding | null): TConstKind {
     const declared = BoundDeclaration.of(binding);
     if (!declared?.isConst) return null;
     return declared.isParameter ? "parameter" : "variable";
@@ -210,6 +383,7 @@ class ConstAssignmentCheck {
     code: string,
     message: string,
     helpText: string,
+    declaredAt?: IMutSite,
   ): void {
     this.found.push({
       code,
@@ -217,6 +391,7 @@ class ConstAssignmentCheck {
       column: at.column,
       message,
       helpText,
+      ...(declaredAt && { declaredAt }),
     });
   }
 }
@@ -231,11 +406,21 @@ class ConstAssignmentAnalyzer {
       for (const site of StatementNodes.assignments(member.declaration)) {
         check.checkSite(site);
       }
+      for (const statement of StatementNodes.in(member.declaration)) {
+        if (
+          statement.kind === "variableDeclaration" &&
+          statement.modifiers.mut &&
+          statement.initializer !== null
+        ) {
+          check.checkHandleStore(statement.initializer, statement.name);
+        }
+      }
       for (const part of DeclarationParts.of(member.declaration)) {
         for (const expr of ExpressionNodes.of(part))
           check.checkExpression(expr);
       }
     }
+    check.checkUnusedMut();
     // Read off 1.2's syntax (#1991); reported in source order
     return check
       .errors()

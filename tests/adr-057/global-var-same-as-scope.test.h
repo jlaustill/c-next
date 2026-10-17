@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint8_t LED;
+extern const uint8_t LED;
 extern uint8_t LED__brightness;
 
 /* Function prototypes */

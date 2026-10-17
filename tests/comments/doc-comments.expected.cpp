@@ -27,7 +27,7 @@ static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
  * @param value The input to double
  * @return The doubled value
  */
-uint32_t doubleValue(uint32_t value) {
+uint32_t doubleValue(const uint32_t value) {
     return cnx_clamp_mul_u32(value, 2U);
 }
 

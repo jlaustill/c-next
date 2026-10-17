@@ -94,7 +94,7 @@ describe("CNextResolver Integration", () => {
 
     it("resolves a top-level constructor declaration as a variable", () => {
       const code = `
-        const u8 pin <- 10;
+        u8 pin <- 10;
         Sensor probe(pin);
       `;
       const tree = parse(code);
@@ -473,7 +473,7 @@ describe("CNextResolver Integration", () => {
 
     it("resolves array dimensions from top-level const", () => {
       const code = `
-        const u8 SIZE <- 4;
+        u8 SIZE <- 4;
         bool arr[SIZE];
       `;
       const tree = parse(code);
@@ -492,7 +492,7 @@ describe("CNextResolver Integration", () => {
     it("resolves array dimensions from scoped const", () => {
       const code = `
         scope Device {
-          const u8 BUF_SIZE <- 8;
+          u8 BUF_SIZE <- 8;
           public u8 buffer[BUF_SIZE];
         }
       `;
@@ -512,7 +512,7 @@ describe("CNextResolver Integration", () => {
 
     it("resolves hex constant array dimensions", () => {
       const code = `
-        const u8 HEX_SIZE <- 0x10;
+        u8 HEX_SIZE <- 0x10;
         bool hex_arr[HEX_SIZE];
       `;
       const tree = parse(code);
@@ -527,7 +527,7 @@ describe("CNextResolver Integration", () => {
 
     it("resolves binary constant array dimensions", () => {
       const code = `
-        const u8 BIN_SIZE <- 0b1010;
+        u8 BIN_SIZE <- 0b1010;
         i16 bin_arr[BIN_SIZE];
       `;
       const tree = parse(code);
@@ -542,7 +542,7 @@ describe("CNextResolver Integration", () => {
 
     it("ignores non-integer const values", () => {
       const code = `
-        const u8 STR_VAL <- "hello";
+        u8 STR_VAL <- "hello";
         bool arr[4];
       `;
       const tree = parse(code);
@@ -581,7 +581,7 @@ describe("CNextResolver Integration", () => {
 
     it("keeps an expression in an array dimension as written, for 1.4", () => {
       const code = `
-        const u8 SIZE <- 4;
+        u8 SIZE <- 4;
         bool arr[SIZE * 2];
       `;
       const tree = parse(code);

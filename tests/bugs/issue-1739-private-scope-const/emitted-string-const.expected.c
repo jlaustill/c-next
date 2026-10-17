@@ -19,7 +19,7 @@ uint32_t S__length(void) {
 }
 
 int main(void) {
-    uint32_t n = S__length();
+    const uint32_t n = S__length();
     if (n != 3) {
         return 1U;
     }

@@ -19,9 +19,9 @@
 
 #include <stdint.h>
 
-uint8_t boxBytes[3] = {0};
+const uint8_t boxBytes[3] = {0};
 
-uint8_t modeBytes[1] = {0};
+const uint8_t modeBytes[1] = {0};
 
 /* Scope: Shapes */
 

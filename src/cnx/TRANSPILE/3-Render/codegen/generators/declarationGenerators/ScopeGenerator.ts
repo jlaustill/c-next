@@ -230,10 +230,7 @@ function renderScopeFunction(
   // then generate parameter list using that tracking info
   const body = plan.renderBody();
 
-  // Issue #281: Update symbol's parameter info with auto-const before generating params
-  orchestrator.updateFunctionParamsAutoConst(plan.fullName);
-
-  // Now generate parameter list (can use modifiedParameters for auto-const)
+  // Now generate parameter list
   const params = plan.renderParameterList();
   const moveComments = orchestrator.movedParameterComments();
 

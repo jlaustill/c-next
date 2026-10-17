@@ -3,8 +3,8 @@
 // Issue #741: const variables inside scopes are referenced but never declared
 
 scope Foo {
-    const u32 MY_CONSTANT <- 42;
-    const u8 SMALL_VALUE <- 10;
+    u32 MY_CONSTANT <- 42;
+    u8 SMALL_VALUE <- 10;
 
     public u32 getConstant() {
         // Bare reference without this. prefix (bug #741)

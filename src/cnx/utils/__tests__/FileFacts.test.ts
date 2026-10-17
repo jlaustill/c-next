@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type IFileIncludes from "../../PARSE/1-Discover/types/IFileIncludes";
 import type IOutputPaths from "../../PARSE/1-Discover/types/IOutputPaths";
-import type TDiscoveryFacts from "../../PARSE/1-Discover/types/TDiscoveryFacts";
+import type TRunFacts from "../../PARSE/2-Parse/types/TRunFacts";
 import type ICodeGenSymbols from "../../types/ICodeGenSymbols";
 import type IProgram from "../../types/IProgram";
 import FileFacts from "../FileFacts";
@@ -17,7 +17,7 @@ const program = {
 const discovery = {
   includes: new Map([["a.cnx", INCLUDES]]),
   outputs: new Map([["a.cnx", OUTPUTS]]),
-} as unknown as TDiscoveryFacts;
+} as unknown as TRunFacts;
 
 describe("FileFacts", () => {
   it("returns exactly what 1.4 and 1.1 recorded for a file", () => {

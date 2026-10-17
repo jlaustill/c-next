@@ -25,9 +25,9 @@ static inline uint64_t cnx_clamp_add_u64(uint64_t a, uint64_t b) {
 // Validates all comparison operators with u64 type
 // Includes edge cases with zero, max values, and typical embedded use cases
 int main(void) {
-    uint64_t a = 1000000000000ULL;
-    uint64_t b = 1000000000000ULL;
-    uint64_t c = 2000000000000ULL;
+    const uint64_t a = 1000000000000ULL;
+    const uint64_t b = 1000000000000ULL;
+    const uint64_t c = 2000000000000ULL;
     if ((a == b) != true) {
         return 1U;
     }
@@ -40,15 +40,15 @@ int main(void) {
     if ((a != b) != false) {
         return 4U;
     }
-    uint64_t zero = 0ULL;
+    const uint64_t zero = 0ULL;
     if ((zero == 0) != true) {
         return 5U;
     }
     if ((zero != 1) != true) {
         return 6U;
     }
-    uint64_t small = 1000ULL;
-    uint64_t large = 1000000000000ULL;
+    const uint64_t small = 1000ULL;
+    const uint64_t large = 1000000000000ULL;
     if ((small < large) != true) {
         return 7U;
     }
@@ -97,7 +97,7 @@ int main(void) {
     if ((zero >= 0) != true) {
         return 22U;
     }
-    uint64_t val = 1000000000000ULL;
+    const uint64_t val = 1000000000000ULL;
     if ((val == 1000000000000) != true) {
         return 23U;
     }
@@ -138,7 +138,7 @@ int main(void) {
     if (counter != 100) {
         return 33U;
     }
-    uint64_t threshold = 1000000000ULL;
+    const uint64_t threshold = 1000000000ULL;
     bool nested_passed = false;
     if (counter > 0) {
         if (counter < threshold) {
@@ -157,8 +157,8 @@ int main(void) {
     if ((0 <= zero) != true) {
         return 37U;
     }
-    uint64_t max = 18446744073709551615ULL;
-    uint64_t near_max = 18446744073709551614ULL;
+    const uint64_t max = 18446744073709551615ULL;
+    const uint64_t near_max = 18446744073709551614ULL;
     if ((zero < max) != true) {
         return 38U;
     }
@@ -177,17 +177,17 @@ int main(void) {
     if ((near_max <= max) != true) {
         return 43U;
     }
-    uint64_t timestamp_2020 = 1577836800000ULL;
-    uint64_t timestamp_2021 = 1609459200000ULL;
+    const uint64_t timestamp_2020 = 1577836800000ULL;
+    const uint64_t timestamp_2021 = 1609459200000ULL;
     if ((timestamp_2021 > timestamp_2020) != true) {
         return 44U;
     }
     if ((timestamp_2021 != timestamp_2020) != true) {
         return 45U;
     }
-    uint64_t chain_a = 1000ULL;
-    uint64_t chain_b = 5000ULL;
-    uint64_t chain_c = 10000ULL;
+    const uint64_t chain_a = 1000ULL;
+    const uint64_t chain_b = 5000ULL;
+    const uint64_t chain_c = 10000ULL;
     bool chain_result = false;
     if (chain_a < chain_b) {
         if (chain_b < chain_c) {
@@ -197,8 +197,8 @@ int main(void) {
     if (chain_result != true) {
         return 46U;
     }
-    bool less = (chain_a < chain_b);
-    bool greater = (chain_c > chain_b);
+    const bool less = (chain_a < chain_b);
+    const bool greater = (chain_c > chain_b);
     if (less != true) {
         return 47U;
     }

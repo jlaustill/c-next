@@ -10,8 +10,8 @@
 // ADR-045: Test chained/nested string operations
 // Validates: operations on results of other operations
 int main(void) {
-    char a[33] = "Hello";
-    char b[33] = " World";
+    const char a[33] = "Hello";
+    const char b[33] = " World";
     char concat[65] = "";
     (void) strncpy(concat, a, 64);
     (void) strncat(concat, b, 64 - strlen(concat));
@@ -25,7 +25,7 @@ int main(void) {
     if (65 != 65) {
         return 3;
     }
-    char source[65] = "Hello, World!";
+    const char source[65] = "Hello, World!";
     char sub[6] = "";
     (void) strncpy(sub, source + 0, 5);
     sub[5] = '\0';
@@ -38,8 +38,8 @@ int main(void) {
     if (strcmp(sub, "Hello") != 0) {
         return 6;
     }
-    char first[33] = "AB";
-    char second[33] = "CD";
+    const char first[33] = "AB";
+    const char second[33] = "CD";
     char combined[65] = "";
     (void) strncpy(combined, first, 64);
     (void) strncat(combined, second, 64 - strlen(combined));
@@ -50,7 +50,7 @@ int main(void) {
     if (strlen(combined) != 4) {
         return 8;
     }
-    char text[21] = "Testing123";
+    const char text[21] = "Testing123";
     char letters[8] = "";
     (void) strncpy(letters, text + 0, 7);
     letters[7] = '\0';
@@ -63,10 +63,10 @@ int main(void) {
     if (strcmp(numbers, "123") != 0) {
         return 10;
     }
-    char msg[65] = "Example";
-    uint32_t len = strlen(msg);
-    uint32_t cap = 64;
-    uint32_t sz = 65;
+    const char msg[65] = "Example";
+    const uint32_t len = strlen(msg);
+    const uint32_t cap = 64;
+    const uint32_t sz = 65;
     if (len != 7) {
         return 11;
     }
@@ -76,8 +76,8 @@ int main(void) {
     if (sz != 65) {
         return 13;
     }
-    char prefix[17] = "pre";
-    char suffix[17] = "fix";
+    const char prefix[17] = "pre";
+    const char suffix[17] = "fix";
     char word[33] = "";
     (void) strncpy(word, prefix, 32);
     (void) strncat(word, suffix, 32 - strlen(word));

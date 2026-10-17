@@ -3,7 +3,7 @@
 // Verifies correct mask generation and bit operations for every width
 
 u32 main() {
-    u32 value <- 0;
+    mut u32 value <- 0;
 
     // Width 1: mask 0x1
     value <- 0;

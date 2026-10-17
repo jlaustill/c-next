@@ -1,8 +1,8 @@
 // ADR-027: Do-while with equality condition
-const u8 END_MARKER <- 0xFF;
+u8 END_MARKER <- 0xFF;
 
 void readUntilEnd() {
-    u8 byte <- 0;
+    mut u8 byte <- 0;
     do {
         byte <- 0x42; // Simulated read
     } while (byte != END_MARKER);

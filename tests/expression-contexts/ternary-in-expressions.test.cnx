@@ -2,7 +2,7 @@
 // test-execution
 // Tests: ternary expressions in complex contexts (function args, array indices)
 // Coverage: Section 33.1 - Nested/Complex Expressions
-u32 result;
+mut u32 result;
 
 // Helper function to receive ternary result
 u32 identity(u32 value) {
@@ -67,7 +67,7 @@ u32 main() {
     }
 
     // === TERNARY IN ARRAY INDEX TESTS ===
-    u32[5] arr;
+    mut u32[5] arr;
     arr[0] <- 100;
     arr[1] <- 200;
     arr[2] <- 300;
@@ -75,7 +75,7 @@ u32 main() {
     arr[4] <- 500;
 
     // Test 8: Ternary selecting array index (true branch)
-    bool cond <- true;
+    mut bool cond <- true;
     result <- arr[(cond = true) ? 0 : 4];
     if (result != 100) {
         return 8;
@@ -119,7 +119,7 @@ u32 main() {
     }
 
     // Test 14: Ternary in array write (index)
-    u32[3] writeArr;
+    mut u32[3] writeArr;
     writeArr[0] <- 0;
     writeArr[1] <- 0;
     writeArr[2] <- 0;

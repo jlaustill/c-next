@@ -11,7 +11,7 @@
 // and that the resulting little-endian byte layout is correct.
 int main(void) {
     uint8_t buf[8] = {0};
-    int32_t sval = 0x12345678;
+    const int32_t sval = 0x12345678;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs int32_t*). */
     const uint32_t cnx_tmp0 = (uint32_t)(sval);
     buf[0] = (uint8_t)(cnx_tmp0);
@@ -31,7 +31,7 @@ int main(void) {
         return 4U;
     }
     int16_t sarr[4] = {0};
-    int32_t packed = 0x0A0B0C0D;
+    const int32_t packed = 0x0A0B0C0D;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: int16_t* vs int32_t*). */
     const uint32_t cnx_tmp1 = (uint32_t)(packed);
     sarr[0] = (int16_t)(uint16_t)(cnx_tmp1);

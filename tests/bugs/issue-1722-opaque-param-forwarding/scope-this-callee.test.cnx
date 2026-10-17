@@ -12,19 +12,19 @@
 #include "dev.h"
 
 scope UI {
-    Dev held;
+    mut Dev held;
 
-    public void inner(Dev w) {
+    public void inner(mut Dev w) {
         global.dev_poke(w);
     }
 
     // The defect: `w` was rendered `(*w)` here.
-    public void outer(Dev w) {
+    public void outer(mut Dev w) {
         this.inner(w);
     }
 
     // A whole-value use of the parameter: `UI__held = (*w);` before the fix.
-    public void hold(Dev w) {
+    public void hold(mut Dev w) {
         this.held <- w;
     }
 
@@ -35,7 +35,7 @@ scope UI {
 }
 
 i32 main() {
-    Dev d <- dev_create();
+    mut Dev d <- dev_create();
 
     UI.outer(d);
     i32 afterOuter <- dev_pokes(d);

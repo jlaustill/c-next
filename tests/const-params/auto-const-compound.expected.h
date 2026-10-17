@@ -13,12 +13,12 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void addToValue(uint32_t* val, uint32_t amount);
-void subtractFromValue(int32_t* val, int32_t amount);
-void multiplyValue(uint32_t* val, uint32_t factor);
-uint32_t readAndAdd(uint32_t* val, uint32_t amount);
+void addToValue(uint32_t* val, const uint32_t amount);
+void subtractFromValue(int32_t* val, const int32_t amount);
+void multiplyValue(uint32_t* val, const uint32_t factor);
+uint32_t readAndAdd(uint32_t* val, const uint32_t amount);
 void multipleCompound(uint32_t* val);
-uint32_t onlyReads(uint32_t a, uint32_t b);
+uint32_t onlyReads(const uint32_t a, const uint32_t b);
 
 #ifdef __cplusplus
 }

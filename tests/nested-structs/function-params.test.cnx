@@ -27,7 +27,7 @@ i32 getArea(Rectangle rect) {
 }
 
 // Modify nested members through parameter
-void moveRect(Rectangle rect, i32 dx, i32 dy) {
+void moveRect(mut Rectangle rect, i32 dx, i32 dy) {
     rect.topLeft.x +<- dx;
     rect.topLeft.y +<- dy;
     rect.bottomRight.x +<- dx;

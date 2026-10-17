@@ -11,6 +11,6 @@
 
 /* Scope: Motor */
 
-float Motor__torque(uint32_t raw) {
+float Motor__torque(const uint32_t raw) {
     return static_cast<float>(raw) * OFFSET;
 }

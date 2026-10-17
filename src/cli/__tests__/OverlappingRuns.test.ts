@@ -10,7 +10,7 @@ import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 
 import Transpiler from "../Transpiler";
-import Preprocessor from "../../cnx/PARSE/1-Discover/preprocessor/Preprocessor";
+import Preprocessor from "../../cnx/PARSE/2-Parse/preprocessor/Preprocessor";
 import NodeFileSystem from "../../cnx/PARSE/1-Discover/NodeFileSystem";
 
 /**

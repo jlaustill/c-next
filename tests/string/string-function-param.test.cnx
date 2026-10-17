@@ -1,7 +1,7 @@
 // ADR-045: String as function parameter
 // test-no-warnings
 // Tests: passing bounded string to function
-void printMessage(const string<64> msg) {
+void printMessage(string<64> msg) {
     // Use the string (read-only)
     u32 len <- msg.value_char_count;
 }

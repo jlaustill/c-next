@@ -13,24 +13,24 @@
 // Fixed-size array of readings - no heap allocation
 SensorReading readings[10] = {};
 
-void addReading(uint8_t index, uint32_t ts, int16_t val, uint8_t id) {
+void addReading(const uint8_t index, const uint32_t ts, const int16_t val, const uint8_t id) {
     readings[index].timestamp = ts;
     readings[index].value = val;
     readings[index].sensorId = id;
 }
 
 int main(void) {
-    uint8_t idx0 = 0U;
-    uint8_t idx1 = 1U;
-    uint8_t idx2 = 2U;
-    uint32_t ts1 = 1000U;
-    uint32_t ts2 = 2000U;
-    uint32_t ts3 = 3000U;
-    int16_t val1 = 25;
-    int16_t val2 = 30;
-    int16_t val3 = -5;
-    uint8_t id1 = 1U;
-    uint8_t id2 = 2U;
+    const uint8_t idx0 = 0U;
+    const uint8_t idx1 = 1U;
+    const uint8_t idx2 = 2U;
+    const uint32_t ts1 = 1000U;
+    const uint32_t ts2 = 2000U;
+    const uint32_t ts3 = 3000U;
+    const int16_t val1 = 25;
+    const int16_t val2 = 30;
+    const int16_t val3 = -5;
+    const uint8_t id1 = 1U;
+    const uint8_t id2 = 2U;
     addReading(idx0, ts1, val1, id1);
     addReading(idx1, ts2, val2, id2);
     addReading(idx2, ts3, val3, id1);

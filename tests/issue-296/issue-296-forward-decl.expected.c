@@ -26,9 +26,9 @@ AppData DataHandler__getData(void) {
 }
 
 int main(void) {
-    AppData input = { .humidity = 65.5, .temperature = 22.3 };
+    const AppData input = { .humidity = 65.5, .temperature = 22.3 };
     DataHandler__initialize(&input);
-    AppData output = DataHandler__getData();
+    const AppData output = DataHandler__getData();
     if (output.humidity != 65.5) {
         return 1U;
     }

@@ -45,7 +45,7 @@ void Board__poke(void) {
 }
 
 int32_t Board__pokes(void) {
-    int32_t n = dev_pokes(Board__held);
+    const int32_t n = dev_pokes(Board__held);
     return n;
 }
 
@@ -55,42 +55,42 @@ int32_t makeLocal(void) {
     dev_create_into(&d);
     dev_poke(d);
     dev_poke(d);
-    int32_t n = dev_pokes(d);
+    const int32_t n = dev_pokes(d);
     return n;
 }
 
 int main(void) {
     Board__make();
     Board__poke();
-    int32_t held = Board__pokes();
+    const int32_t held = Board__pokes();
     if (held != 1) {
         return 1;
     }
-    int32_t local = makeLocal();
+    const int32_t local = makeLocal();
     if (local != 2) {
         return 2;
     }
     dev_create_into(&gdev);
     dev_poke(gdev);
-    int32_t fileScope = dev_pokes(gdev);
+    const int32_t fileScope = dev_pokes(gdev);
     if (fileScope != 1) {
         return 3;
     }
     dev_create_into(&gdevs[1U]);
     dev_poke(gdevs[1U]);
-    int32_t element = dev_pokes(gdevs[1U]);
+    const int32_t element = dev_pokes(gdevs[1U]);
     if (element != 1) {
         return 4;
     }
     dev_create_into(&dev_spare);
     dev_poke(dev_spare);
-    int32_t spare = dev_pokes(dev_spare);
+    const int32_t spare = dev_pokes(dev_spare);
     if (spare != 1) {
         return 5;
     }
     dev_slots_open(&dev_slots);
     dev_slots_fill(dev_slots);
-    int32_t ready = dev_slots_ready(dev_slots);
+    const int32_t ready = dev_slots_ready(dev_slots);
     if (ready != 1) {
         return 6;
     }

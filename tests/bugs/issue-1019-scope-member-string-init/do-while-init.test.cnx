@@ -3,10 +3,10 @@
 // A scope member assigned inside a do-while body should be readable elsewhere
 
 scope S {
-    string<16> buf;
+    mut string<16> buf;
 
     public void init() {
-        u8 i <- 0;
+        mut u8 i <- 0;
         do {
             buf <- "initialized";
             i +<- 1;

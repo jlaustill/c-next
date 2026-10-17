@@ -38,7 +38,7 @@ describe("DefineDirectiveAnalyzer", () => {
     expect(found.code).toBe("E0502");
     expect(found.line).toBe(3);
     expect(found.message).toBe(
-      "#define with value 'BUFFER_SIZE' is not allowed. Use 'const' instead: const u32 BUFFER_SIZE <- value;",
+      "#define with value 'BUFFER_SIZE' is not allowed. Use a read-only binding instead: u32 BUFFER_SIZE <- value;",
     );
   });
 

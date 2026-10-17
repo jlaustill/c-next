@@ -1,3 +1,5 @@
+import type IMutSite from "./IMutSite";
+
 /**
  * Represents an error or warning from the transpiler
  */
@@ -22,6 +24,11 @@ interface ITranspileError {
    * updates snapshots, and should.
    */
   helpText?: string;
+  /**
+   * E0900 and E0879: where the binding is declared, so a tool can add its `mut`
+   * (ADR-071). Not printed; the message names the binding.
+   */
+  declaredAt?: IMutSite;
 }
 
 export default ITranspileError;

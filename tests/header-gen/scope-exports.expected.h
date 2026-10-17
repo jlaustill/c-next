@@ -15,7 +15,7 @@ extern "C" {
 /* Function prototypes */
 void LED__on(void);
 void LED__off(void);
-void LED__setBrightness(uint8_t level);
+void LED__setBrightness(const uint8_t level);
 uint8_t LED__getBrightness(void);
 void LED__privateReset(void);
 

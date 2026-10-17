@@ -17,12 +17,12 @@
 // reaches a C function without an `&` -- the #996 rule for scope members.
 #include "dev.h"
 
-Dev gdev;
-Dev[2] gdevs;
+mut Dev gdev;
+mut Dev[2] gdevs;
 
 scope Board {
-    public Dev primary;
-    public Dev[2] spares;
+    public mut Dev primary;
+    public mut Dev[2] spares;
 
     public void attach() {
         this.primary <- global.dev_create();

@@ -28,19 +28,19 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // the call wrote it. Each shadowed call is beside the same call unshadowed.
 uint32_t x = 100U;
 
-uint8_t buf[4] = {1U, 2U, 3U, 4U};
+extern const uint8_t buf[4] = {1U, 2U, 3U, 4U};
 
 void bump(uint32_t& v) {
     v = cnx_clamp_add_u32(v, 1U);
 }
 
-uint8_t first(uint8_t b[4]) {
+uint8_t first(const uint8_t b[4]) {
     return b[0U];
 }
 
 /* Scope: Sc */
 static uint32_t Sc__m = 500U;
-static uint8_t Sc__mb[4] = {5U, 6U, 7U, 8U};
+static const uint8_t Sc__mb[4] = {5U, 6U, 7U, 8U};
 
 uint32_t Sc__shadowed(void) {
     uint32_t m = 5U;
@@ -54,7 +54,7 @@ uint32_t Sc__control(void) {
 }
 
 uint8_t Sc__shadowedArray(void) {
-    uint8_t mb[4] = {9U, 9U, 9U, 9U};
+    const uint8_t mb[4] = {9U, 9U, 9U, 9U};
     return first(mb);
 }
 
@@ -71,23 +71,23 @@ uint32_t local(void) {
 
 uint8_t localArray(void) {
     /* C11 6.2.1p4, C++ [basic.scope.hiding]: `buf` emitted as `localArray__buf` (a plain `buf` would hide the file-scope `buf` for the rest of its scope, so `global.buf` would reach the local). */
-    uint8_t localArray__buf[4] = {7U, 7U, 7U, 7U};
+    const uint8_t localArray__buf[4] = {7U, 7U, 7U, 7U};
     return first(localArray__buf);
 }
 
 int main(void) {
-    uint32_t s = Sc__shadowed();
+    const uint32_t s = Sc__shadowed();
     if (s != 6) {
         return 1U;
     }
-    uint32_t l = local();
+    const uint32_t l = local();
     if (l != 8) {
         return 2U;
     }
     if (x != 100) {
         return 3U;
     }
-    uint32_t c = Sc__control();
+    const uint32_t c = Sc__control();
     if (c != 501) {
         return 4U;
     }
@@ -95,19 +95,19 @@ int main(void) {
     if (x != 101) {
         return 5U;
     }
-    uint8_t a = localArray();
+    const uint8_t a = localArray();
     if (a != 7) {
         return 6U;
     }
-    uint8_t sa = Sc__shadowedArray();
+    const uint8_t sa = Sc__shadowedArray();
     if (sa != 9) {
         return 7U;
     }
-    uint8_t ca = Sc__controlArray();
+    const uint8_t ca = Sc__controlArray();
     if (ca != 5) {
         return 8U;
     }
-    uint8_t g = first(buf);
+    const uint8_t g = first(buf);
     if (g != 1) {
         return 9U;
     }

@@ -39,6 +39,7 @@ import type TExpression from "../../types/syntax/TExpression";
 import StatementNodes from "../../utils/StatementNodes";
 import TYPE_WIDTH from "../../types/TYPE_WIDTH";
 import OperandTyper from "../../utils/OperandTyper";
+import LiteralUtils from "../../utils/LiteralUtils";
 import ISliceAssignmentError from "./types/ISliceAssignmentError";
 import ConstantExpression from "./helpers/ConstantExpression";
 import type IAnalysisContext from "./types/IAnalysisContext";
@@ -102,7 +103,7 @@ class SliceAssignmentListener {
         subscripts[0],
         "E0859",
         `Slice assignment offset must be a compile-time constant for '${name}'`,
-        "A runtime offset cannot be bounds-checked at compile time. Use a literal or a `const`.",
+        "A runtime offset cannot be bounds-checked at compile time. Use a literal or a read-only binding whose value is known at compile time.",
       );
       return;
     }
@@ -113,7 +114,7 @@ class SliceAssignmentListener {
         subscripts[1],
         "E0859",
         `Slice assignment length must be a compile-time constant for '${name}'`,
-        "A runtime length cannot be bounds-checked at compile time. Use a literal or a `const`.",
+        "A runtime length cannot be bounds-checked at compile time. Use a literal or a read-only binding whose value is known at compile time.",
       );
       return;
     }
@@ -236,7 +237,14 @@ class SliceAssignmentListener {
   ): void {
     const value = site.value;
 
-    const literal = this.constantOf(value);
+    // The same split 2.2's SliceSource plans: a named binding keeps its type
+    // even when it folds, so its width is checked below, not its value.
+    const typed = OperandTyper.typeOf(value, this.context);
+    const literal = LiteralUtils.isContextuallyTyped(
+      OperandTyper.directTypeName(typed),
+    )
+      ? this.constantOf(value)
+      : undefined;
     if (literal !== undefined) {
       // ADR-052 types the literal to the slice's byte width, so it has to be
       // representable there either unsigned or as two's complement. Guarding
@@ -259,8 +267,7 @@ class SliceAssignmentListener {
 
     // An integer composite's type is the typer's (`CompositeType`); null
     // when it cannot name one (a mixed composite, an unknown-width C integer)
-    const sourceType =
-      OperandTyper.typeOf(value, this.context)?.typeName ?? null;
+    const sourceType = typed?.typeName ?? null;
     if (sourceType === null) return;
 
     const bits = TYPE_WIDTH[sourceType];

@@ -143,7 +143,7 @@ describe("ArrayForm", () => {
   });
 
   it("spells a dimension in the E0874 suggestion as written", () => {
-    expect(errors("const u8 N <- 2;\nu16 arr[N + 1];")[0].message).toContain(
+    expect(errors("u8 N <- 2;\nu16 arr[N + 1];")[0].message).toContain(
       "Use 'u16[N + 1] arr' instead of 'u16 arr[N + 1]'",
     );
   });

@@ -6,14 +6,14 @@
 
 scope ClampTest {
     // Clamp scope variables - unsigned integers
-    clamp u8 brightness <- 200;
-    clamp u16 sensorValue <- 60000;
-    clamp u32 counter <- 4000000000;
+    mut clamp u8 brightness <- 200;
+    mut clamp u16 sensorValue <- 60000;
+    mut clamp u32 counter <- 4000000000;
 
     // Clamp scope variables - signed integers
-    clamp i8 temperature <- -100;
-    clamp i16 altitude <- 30000;
-    clamp i32 position <- 2000000000;
+    mut clamp i8 temperature <- -100;
+    mut clamp i16 altitude <- 30000;
+    mut clamp i32 position <- 2000000000;
 
     // Public getter methods using this. accessor for clamp variables
     public u8 getBrightness() {
@@ -90,27 +90,27 @@ scope ClampTest {
 u32 main() {
 
     // Test 1-6: Validate initial values
-    u8 resultBrightness <- ClampTest.getBrightness();
+    mut u8 resultBrightness <- ClampTest.getBrightness();
     if (resultBrightness != 200) {
         return 1;
     }
-    u16 resultSensor <- ClampTest.getSensorValue();
+    mut u16 resultSensor <- ClampTest.getSensorValue();
     if (resultSensor != 60000) {
         return 2;
     }
-    u32 resultCounter <- ClampTest.getCounter();
+    mut u32 resultCounter <- ClampTest.getCounter();
     if (resultCounter != 4000000000) {
         return 3;
     }
-    i8 resultTemp <- ClampTest.getTemperature();
+    mut i8 resultTemp <- ClampTest.getTemperature();
     if (resultTemp != -100) {
         return 4;
     }
-    i16 resultAlt <- ClampTest.getAltitude();
+    mut i16 resultAlt <- ClampTest.getAltitude();
     if (resultAlt != 30000) {
         return 5;
     }
-    i32 resultPos <- ClampTest.getPosition();
+    mut i32 resultPos <- ClampTest.getPosition();
     if (resultPos != 2000000000) {
         return 6;
     }

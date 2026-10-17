@@ -199,6 +199,8 @@ class CppHeaderLowering {
     return {
       name,
       isFunction: false,
+      isVariadic: false,
+      isConstMember: false,
       hasPointer: false,
       pointerDepth: 0,
       functionPointerParams: null,
@@ -293,6 +295,11 @@ class CppHeaderLowering {
           ? paramsAndQuals.getText().slice(1, -1)
           : null,
       parameters: CppHeaderLowering.parameters(paramsAndQuals),
+      isVariadic:
+        (paramsAndQuals?.parameterDeclarationClause()?.Ellipsis() ?? null) !==
+        null,
+      isConstMember:
+        paramsAndQuals?.cvqualifierseq()?.getText().includes("const") ?? false,
       arrayDimensions: noPointer
         ? ArrayDimensionText.parse(noPointer.getText())
         : [],
@@ -401,7 +408,7 @@ class CppHeaderLowering {
       CppHeaderLowering.starCount(operators),
       isPointer && !isReference ? 1 : 0,
     );
-    return ParameterExtractorUtils.buildParameterInfo(
+    const parameter = ParameterExtractorUtils.buildParameterInfo(
       declarator,
       DeclaratorTypes.withPointers(baseType, depth),
       declarationSpecifiers.getText().includes("const"),
@@ -409,6 +416,7 @@ class CppHeaderLowering {
       (candidate: DeclaratorContext) =>
         CppHeaderLowering.declaratorName(candidate),
     );
+    return isReference ? { ...parameter, isReference } : parameter;
   }
 
   private static abstractHasPointer(

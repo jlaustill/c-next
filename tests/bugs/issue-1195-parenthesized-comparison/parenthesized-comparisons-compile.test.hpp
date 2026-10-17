@@ -15,7 +15,7 @@ extern "C" {
 
 /* External variables */
 extern uint8_t n;
-extern bool ready;
+extern const bool ready;
 extern uint8_t hits;
 
 #ifdef __cplusplus

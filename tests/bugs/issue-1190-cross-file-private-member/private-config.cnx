@@ -3,5 +3,5 @@
 // file must be rejected, exactly as reading it from another scope in the
 // same file already is.
 scope PrivateConfig {
-    const u32 SERIAL_BAUD <- 115200;
+    u32 SERIAL_BAUD <- 115200;
 }

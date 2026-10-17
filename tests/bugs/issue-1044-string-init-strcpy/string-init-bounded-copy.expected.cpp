@@ -11,7 +11,7 @@
 // bounded copy (strncpy + null terminator), not an unbounded strcpy (CWE-120,
 // flawfinder MS-banned). This must match the reassignment code path exactly.
 int main(void) {
-    char small[33] = "Test";
+    const char small[33] = "Test";
     char big[65] = "";
     (void) strncpy(big, small, 64); big[64] = '\0';
     if (strcmp(big, "Test") != 0) {

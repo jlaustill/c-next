@@ -20,6 +20,20 @@ import IMove from "../types/IMove";
  * express the move being made is how the wrong row gets written and then
  * defended (#1449).
  */
+/** #1713: why reading headers moves from 1.1 Discover to 1.2 Parse. */
+const HEADERS_READ_AFTER_TARGET =
+  "#1713, owner ruling 2026-10-16: 1.1 discovers the source files and reads " +
+  "them; running a compiler over the headers they include is a separate " +
+  "concern, done once the target is known. 1.2 chooses the target, then " +
+  "preprocesses each header with that target's compiler and parses it.";
+
+/** #1713: why ADR-049's target resolution moves from 1.4 Resolve to 1.2 Parse. */
+const TARGET_BEFORE_HEADERS =
+  "#1713, owner ruling 2026-10-16: the run's target is chosen in 1.2, from " +
+  "the `#pragma` lines and the catalog 1.2 parses, because 1.2 then reads " +
+  "each header with that target's own compiler. 1.4 reads the target 1.2 " +
+  "chose instead of choosing it.";
+
 /** #1991 review (item 43): why a module 2.2 decides with moves to 2-Plan/. */
 const PLAN_DECIDES =
   "#1991 review: 2.2 Plan makes this decision (or names this table or " +
@@ -2114,6 +2128,196 @@ const MOVES: readonly IMove[] = [
     from: "src/cnx/TRANSPILE/1-Analyze/helpers/SafeDivision.ts",
     to: "src/cnx/utils/SafeDivision.ts",
     because: ONE_PREDICATE,
+  },
+  {
+    from: "src/cnx/PARSE/4-Resolve/RunTarget.ts",
+    to: "src/cnx/PARSE/2-Parse/RunTarget.ts",
+    because: TARGET_BEFORE_HEADERS,
+  },
+  {
+    from: "src/cnx/PARSE/4-Resolve/TargetDescriptions.ts",
+    to: "src/cnx/PARSE/2-Parse/TargetDescriptions.ts",
+    because: TARGET_BEFORE_HEADERS,
+  },
+  {
+    from: "src/cnx/PARSE/4-Resolve/TARGET_DESCRIPTION_FIELDS.ts",
+    to: "src/cnx/PARSE/2-Parse/TARGET_DESCRIPTION_FIELDS.ts",
+    because: TARGET_BEFORE_HEADERS,
+  },
+  {
+    from: "src/cnx/PARSE/4-Resolve/types/ITargetFieldSpec.ts",
+    to: "src/cnx/PARSE/2-Parse/types/ITargetFieldSpec.ts",
+    because: TARGET_BEFORE_HEADERS,
+  },
+  {
+    from: "src/cnx/PARSE/4-Resolve/types/IRunTargetInputs.ts",
+    to: "src/cnx/PARSE/2-Parse/types/IRunTargetInputs.ts",
+    because: TARGET_BEFORE_HEADERS,
+  },
+  {
+    from: "src/cli/__tests__/cnx/PARSE/4-Resolve/RunTarget.test.ts",
+    to: "src/cli/__tests__/cnx/PARSE/2-Parse/RunTarget.test.ts",
+    because: TARGET_BEFORE_HEADERS,
+  },
+  {
+    from: "src/cli/__tests__/cnx/PARSE/4-Resolve/TargetDescriptions.test.ts",
+    to: "src/cli/__tests__/cnx/PARSE/2-Parse/TargetDescriptions.test.ts",
+    because: TARGET_BEFORE_HEADERS,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/HeaderSources.ts",
+    to: "src/cnx/PARSE/2-Parse/HeaderSources.ts",
+    because: HEADERS_READ_AFTER_TARGET,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/HeaderMacroDumps.ts",
+    to: "src/cnx/PARSE/2-Parse/HeaderMacroDumps.ts",
+    because: HEADERS_READ_AFTER_TARGET,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/detectCppSyntax.ts",
+    to: "src/cnx/PARSE/2-Parse/detectCppSyntax.ts",
+    because: HEADERS_READ_AFTER_TARGET,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/detectAssemblySyntax.ts",
+    to: "src/cnx/PARSE/2-Parse/detectAssemblySyntax.ts",
+    because: HEADERS_READ_AFTER_TARGET,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/preprocessor/Preprocessor.ts",
+    to: "src/cnx/PARSE/2-Parse/preprocessor/Preprocessor.ts",
+    because: HEADERS_READ_AFTER_TARGET,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/preprocessor/ToolchainDetector.ts",
+    to: "src/cnx/PARSE/2-Parse/preprocessor/ToolchainDetector.ts",
+    because: HEADERS_READ_AFTER_TARGET,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/preprocessor/PreprocessCache.ts",
+    to: "src/cnx/PARSE/2-Parse/preprocessor/PreprocessCache.ts",
+    because: HEADERS_READ_AFTER_TARGET,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/preprocessor/ExternalDeclarationOracle.ts",
+    to: "src/cnx/PARSE/2-Parse/preprocessor/ExternalDeclarationOracle.ts",
+    because: HEADERS_READ_AFTER_TARGET,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/preprocessor/LineMarkers.ts",
+    to: "src/cnx/PARSE/2-Parse/preprocessor/LineMarkers.ts",
+    because: HEADERS_READ_AFTER_TARGET,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/preprocessor/types/IPreprocessCacheEntry.ts",
+    to: "src/cnx/PARSE/2-Parse/preprocessor/types/IPreprocessCacheEntry.ts",
+    because: HEADERS_READ_AFTER_TARGET,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/preprocessor/types/IPreprocessOptions.ts",
+    to: "src/cnx/PARSE/2-Parse/preprocessor/types/IPreprocessOptions.ts",
+    because: HEADERS_READ_AFTER_TARGET,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/preprocessor/types/IPreprocessResult.ts",
+    to: "src/cnx/PARSE/2-Parse/preprocessor/types/IPreprocessResult.ts",
+    because: HEADERS_READ_AFTER_TARGET,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/preprocessor/types/ISourceMapping.ts",
+    to: "src/cnx/PARSE/2-Parse/preprocessor/types/ISourceMapping.ts",
+    because: HEADERS_READ_AFTER_TARGET,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/preprocessor/types/IToolchain.ts",
+    to: "src/cnx/PARSE/2-Parse/preprocessor/types/IToolchain.ts",
+    because: HEADERS_READ_AFTER_TARGET,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/types/IRecoveredDeclarations.ts",
+    to: "src/cnx/PARSE/2-Parse/types/IRecoveredDeclarations.ts",
+    because: HEADERS_READ_AFTER_TARGET,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/types/IRecoveredSlice.ts",
+    to: "src/cnx/PARSE/2-Parse/types/IRecoveredSlice.ts",
+    because: HEADERS_READ_AFTER_TARGET,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/types/IHeaderMacroDump.ts",
+    to: "src/cnx/PARSE/2-Parse/types/IHeaderMacroDump.ts",
+    because: HEADERS_READ_AFTER_TARGET,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/types/TCachedHeaderRead.ts",
+    to: "src/cnx/PARSE/2-Parse/types/TCachedHeaderRead.ts",
+    because: HEADERS_READ_AFTER_TARGET,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/types/THeaderDeclarationCache.ts",
+    to: "src/cnx/PARSE/2-Parse/types/THeaderDeclarationCache.ts",
+    because: HEADERS_READ_AFTER_TARGET,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/__tests__/detectAssemblySyntax.test.ts",
+    to: "src/cnx/PARSE/2-Parse/__tests__/detectAssemblySyntax.test.ts",
+    because: HEADERS_READ_AFTER_TARGET,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/__tests__/detectCppSyntax.test.ts",
+    to: "src/cnx/PARSE/2-Parse/__tests__/detectCppSyntax.test.ts",
+    because: HEADERS_READ_AFTER_TARGET,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/__tests__/needsConditionalPreprocessing.test.ts",
+    to: "src/cnx/PARSE/2-Parse/__tests__/needsConditionalPreprocessing.test.ts",
+    because: HEADERS_READ_AFTER_TARGET,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/preprocessor/__tests__/ExternalDeclarationOracle.test.ts",
+    to: "src/cnx/PARSE/2-Parse/preprocessor/__tests__/ExternalDeclarationOracle.test.ts",
+    because: HEADERS_READ_AFTER_TARGET,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/preprocessor/__tests__/LineMarkers.test.ts",
+    to: "src/cnx/PARSE/2-Parse/preprocessor/__tests__/LineMarkers.test.ts",
+    because: HEADERS_READ_AFTER_TARGET,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/preprocessor/__tests__/PreprocessCache.test.ts",
+    to: "src/cnx/PARSE/2-Parse/preprocessor/__tests__/PreprocessCache.test.ts",
+    because: HEADERS_READ_AFTER_TARGET,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/preprocessor/__tests__/PreprocessorDeps.test.ts",
+    to: "src/cnx/PARSE/2-Parse/preprocessor/__tests__/PreprocessorDeps.test.ts",
+    because: HEADERS_READ_AFTER_TARGET,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/preprocessor/__tests__/ToolchainDetector.crossCompiler.test.ts",
+    to: "src/cnx/PARSE/2-Parse/preprocessor/__tests__/ToolchainDetector.crossCompiler.test.ts",
+    because: HEADERS_READ_AFTER_TARGET,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/preprocessor/__tests__/ToolchainDetector.locale.test.ts",
+    to: "src/cnx/PARSE/2-Parse/preprocessor/__tests__/ToolchainDetector.locale.test.ts",
+    because: HEADERS_READ_AFTER_TARGET,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/preprocessor/__tests__/ToolchainDetector.noShell.test.ts",
+    to: "src/cnx/PARSE/2-Parse/preprocessor/__tests__/ToolchainDetector.noShell.test.ts",
+    because: HEADERS_READ_AFTER_TARGET,
+  },
+  {
+    from: "src/cnx/PARSE/1-Discover/preprocessor/__tests__/ToolchainDetector.test.ts",
+    to: "src/cnx/PARSE/2-Parse/preprocessor/__tests__/ToolchainDetector.test.ts",
+    because: HEADERS_READ_AFTER_TARGET,
+  },
+  {
+    from: "src/cli/__tests__/cnx/PARSE/1-Discover/preprocessor/Preprocessor.test.ts",
+    to: "src/cli/__tests__/cnx/PARSE/2-Parse/preprocessor/Preprocessor.test.ts",
+    because: HEADERS_READ_AFTER_TARGET,
   },
 ];
 

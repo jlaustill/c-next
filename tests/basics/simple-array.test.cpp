@@ -38,7 +38,7 @@ int main(void) {
     if (numbers[4U] != 50) {
         return 3U;
     }
-    uint8_t bytes[4] = {1U, 2U, 3U, 4U};
+    const uint8_t bytes[4] = {1U, 2U, 3U, 4U};
     if (bytes[0U] != 1) {
         return 4U;
     }
@@ -62,7 +62,7 @@ int main(void) {
     if (numbers[2U] != 100) {
         return 9U;
     }
-    int32_t temps[3] = {-10, 0, 25};
+    const int32_t temps[3] = {-10, 0, 25};
     if (temps[0U] != -10) {
         return 10U;
     }
@@ -72,7 +72,7 @@ int main(void) {
     if (temps[2U] != 25) {
         return 12U;
     }
-    bool flags[3] = {true, false, true};
+    const bool flags[3] = {true, false, true};
     if (flags[0U] != true) {
         return 13U;
     }

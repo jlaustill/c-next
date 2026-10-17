@@ -9,7 +9,7 @@ u32 main() {
     f64 at_max <- 65535.0;
 
     // Test overflow clamping
-    u16 result <- (u16)over;
+    mut u16 result <- (u16)over;
     if (result != 65535) {
         return 1; // 70000.0 should clamp to 65535
     }

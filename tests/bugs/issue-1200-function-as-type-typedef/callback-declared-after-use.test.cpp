@@ -26,5 +26,5 @@ uint32_t platformClock(void) {
 }
 
 void demo(void) {
-    uint32_t value = callIt(platformClock);
+    const uint32_t value = callIt(platformClock);
 }

@@ -20,10 +20,10 @@ struct Grid {
     u8[2][3] cells;
 }
 
-u8[2][3] topLevel;
+mut u8[2][3] topLevel;
 
 i32 main() {
-    Grid g;
+    mut Grid g;
     g.cells[1][2] <- 42;
     g.cells[0][0] <- 7;
     topLevel[1][2] <- 42;

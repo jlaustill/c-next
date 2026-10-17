@@ -9,12 +9,12 @@ describe("VariableModifierBuilder", () => {
   describe("build", () => {
     it("returns empty modifiers when no modifiers present", () => {
       const ctx = {
-        const: false,
+        mut: true,
         atomic: false,
         volatile: false,
       };
 
-      const result = VariableModifierBuilder.build(ctx, true, false, C_RUN);
+      const result = VariableModifierBuilder.build(ctx, true, C_RUN);
 
       expect(result.const).toBe("");
       expect(result.atomic).toBe("");
@@ -24,106 +24,102 @@ describe("VariableModifierBuilder", () => {
 
     it("returns const modifier when present", () => {
       const ctx = {
-        const: true,
+        mut: false,
         atomic: false,
         volatile: false,
       };
 
-      const result = VariableModifierBuilder.build(ctx, true, false, C_RUN);
+      const result = VariableModifierBuilder.build(ctx, true, C_RUN);
 
       expect(result.const).toBe("const ");
     });
 
     it("returns atomic as volatile when present", () => {
       const ctx = {
-        const: false,
+        mut: true,
         atomic: true,
         volatile: false,
       };
 
-      const result = VariableModifierBuilder.build(ctx, true, false, C_RUN);
+      const result = VariableModifierBuilder.build(ctx, true, C_RUN);
 
       expect(result.atomic).toBe("volatile ");
     });
 
     it("returns volatile modifier when present", () => {
       const ctx = {
-        const: false,
+        mut: true,
         atomic: false,
         volatile: true,
       };
 
-      const result = VariableModifierBuilder.build(ctx, true, false, C_RUN);
+      const result = VariableModifierBuilder.build(ctx, true, C_RUN);
 
       expect(result.volatile).toBe("volatile ");
     });
 
-    it("returns extern for const at file scope (declaration without initializer, C mode)", () => {
-      const ctx = {
-        const: true,
-        atomic: false,
-        volatile: false,
-      };
-
-      // Declaration (no initializer) in C mode - should have extern
-      const result = VariableModifierBuilder.build(ctx, false, false, C_RUN);
-
-      expect(result.extern).toBe("extern ");
-    });
-
-    it("does not return extern for const at file scope with initializer in C mode (MISRA 8.5)", () => {
+    it("does not return extern for const at file scope in C mode (MISRA 8.5)", () => {
       // MISRA Rule 8.5: External object/function shall be declared once in one file only.
-      // When a variable has an initializer, it's a DEFINITION, not a declaration.
-      // The extern declaration comes from the header; the .c file should not duplicate it.
+      // A file-scope declaration is always a DEFINITION -- one written with no
+      // initializer is zero-initialized -- so the extern declaration comes from
+      // the header and the .c file must not duplicate it.
       const ctx = {
-        const: true,
+        mut: false,
         atomic: false,
         volatile: false,
       };
 
-      // Definition (has initializer) in C mode - should NOT have extern
-      const result = VariableModifierBuilder.build(ctx, false, true, C_RUN);
+      const result = VariableModifierBuilder.build(ctx, false, C_RUN);
 
       expect(result.extern).toBe("");
     });
 
-    it("returns extern for const at file scope with initializer in C++ mode (Issue #525)", () => {
+    it("returns extern for const at file scope in C++ mode (Issue #525)", () => {
       // In C++, const at file scope has internal linkage by default.
       // extern is needed for cross-file access, even for definitions.
       const ctx = {
-        const: true,
+        mut: false,
         atomic: false,
         volatile: false,
       };
 
-      // Definition (has initializer) in C++ mode - SHOULD have extern for external linkage
-      const result = VariableModifierBuilder.build(ctx, false, true, CPP_RUN);
+      // A definition in C++ mode SHOULD have extern for external linkage
+      const result = VariableModifierBuilder.build(ctx, false, CPP_RUN);
 
       expect(result.extern).toBe("extern ");
     });
 
+    it("does not return extern for a read-only pointer, whose const is the pointee's (ADR-071)", () => {
+      const ctx = { mut: false, atomic: false, volatile: false };
+
+      const result = VariableModifierBuilder.build(ctx, false, CPP_RUN, true);
+
+      expect(result.const).toBe("const ");
+      expect(result.extern).toBe("");
+    });
+
     it("does not return extern for const inside function body", () => {
       const ctx = {
-        const: true,
+        mut: false,
         atomic: false,
         volatile: false,
       };
 
-      const result = VariableModifierBuilder.build(ctx, true, false, C_RUN);
+      const result = VariableModifierBuilder.build(ctx, true, C_RUN);
 
       expect(result.extern).toBe("");
     });
 
     it("throws error when both atomic and volatile are specified", () => {
       const ctx = {
-        const: false,
+        mut: true,
         atomic: true,
         volatile: true,
       };
 
-      expect(() =>
-        VariableModifierBuilder.build(ctx, true, false, C_RUN),
-      ).toThrow("E0889 rejects this in pass 2.1");
+      expect(() => VariableModifierBuilder.build(ctx, true, C_RUN)).toThrow(
+        "E0889 rejects this in pass 2.1",
+      );
     });
 
     // #1322: "includes line number in error when both modifiers specified" is
@@ -138,19 +134,30 @@ describe("VariableModifierBuilder", () => {
   });
 
   describe("buildSimple", () => {
-    it("returns only atomic and volatile modifiers", () => {
+    it("returns const, atomic and volatile modifiers, never extern", () => {
       const ctx = {
-        const: true,
+        mut: false,
         atomic: true,
         volatile: false,
       };
 
       const result = VariableModifierBuilder.buildSimple(ctx);
 
+      // ADR-071: a read-only binding is C's `const`
+      expect(result.const).toBe("const ");
       expect(result.atomic).toBe("volatile ");
       expect(result.volatile).toBe("");
-      expect(result).not.toHaveProperty("const");
       expect(result).not.toHaveProperty("extern");
+    });
+
+    it("gives a `mut` binding no const", () => {
+      const result = VariableModifierBuilder.buildSimple({
+        mut: true,
+        atomic: false,
+        volatile: false,
+      });
+
+      expect(result.const).toBe("");
     });
   });
 

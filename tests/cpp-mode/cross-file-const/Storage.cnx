@@ -2,7 +2,7 @@
 #include "Config.cnx"
 
 scope Storage {
-    public void loadDefaults(Config cfg) {
+    public void loadDefaults(mut Config cfg) {
         cfg.value <- 42;
     }
 }

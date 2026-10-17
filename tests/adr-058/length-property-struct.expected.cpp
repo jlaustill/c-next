@@ -15,28 +15,28 @@
 // .type_byte_length are its fields' sizes together, without C padding (ADR-058
 // resolved question 7). C stores P in 8 bytes on x86-64; its .type_byte_length is 5.
 // ADR-058's ### Struct Examples block, as written there
-SensorReading reading = {};
+extern const SensorReading reading = {};
 
-uint32_t bits = 88;
+extern const uint32_t bits = 88;
 
-uint32_t bytes = 11;
+extern const uint32_t bytes = 11;
 
-uint32_t fields = 4;
+extern const uint32_t fields = 4;
 
-SensorReading readings[100] = {};
+extern const SensorReading readings[100] = {};
 
-P p = {};
+extern const P p = {};
 
-P ps[3] = {};
+extern const P ps[3] = {};
 
-Nested n = {};
+extern const Nested n = {};
 
 // #1175: a dimension sized by a property is the number the property reads as
-uint8_t sized[5] = {};
+extern const uint8_t sized[5] = {};
 
 // A string field's symbol carries its C buffer as a last dimension; read
 // as the typer reads it, its .type_byte_length is 8 here too, not 8 x 8
-uint8_t sizedByString[7] = {};
+extern const uint8_t sizedByString[7] = {};
 
 int main(void) {
     if (40 != 40) {

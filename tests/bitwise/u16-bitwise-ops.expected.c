@@ -10,20 +10,20 @@
 // Test u16 bitwise operations: AND, OR, XOR, NOT
 // Coverage: Section 5.1-5.4 for u16 type
 int main(void) {
-    uint16_t a = 0xFF00U;
-    uint16_t b = 0xAAAAU;
-    uint16_t and_result = a & b;
-    uint16_t or_result = a | b;
-    uint16_t xor_result = a ^ b;
-    uint16_t c = 0xAAAAU;
-    uint16_t not_result = (uint16_t)~c;
-    uint16_t bin_a = 0b1111111100000000U;
-    uint16_t bin_b = 0b1010101010101010U;
-    uint16_t bin_and = bin_a & bin_b;
-    uint16_t dec_and = 65280U & 43690U;
-    uint16_t dec_or = 65280U | 43690U;
-    uint16_t all_bits = 0xFFFFU;
-    uint16_t not_all = (uint16_t)~all_bits;
+    const uint16_t a = 0xFF00U;
+    const uint16_t b = 0xAAAAU;
+    const uint16_t and_result = a & b;
+    const uint16_t or_result = a | b;
+    const uint16_t xor_result = a ^ b;
+    const uint16_t c = 0xAAAAU;
+    const uint16_t not_result = (uint16_t)~c;
+    const uint16_t bin_a = 0b1111111100000000U;
+    const uint16_t bin_b = 0b1010101010101010U;
+    const uint16_t bin_and = bin_a & bin_b;
+    const uint16_t dec_and = 65280U & 43690U;
+    const uint16_t dec_or = 65280U | 43690U;
+    const uint16_t all_bits = 0xFFFFU;
+    const uint16_t not_all = (uint16_t)~all_bits;
     if (and_result == 43520 && or_result == 65450 && xor_result == 21930 && not_result == 21845) {
         if (bin_and == 43520 && dec_and == 43520 && dec_or == 65450 && not_all == 0) {
             return 0U;

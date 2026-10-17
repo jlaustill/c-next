@@ -34,7 +34,7 @@
 #include <stdint.h>
 
 int main(void) {
-    uint32_t result = doubled(21U);
+    const uint32_t result = doubled(21U);
     if (result != 42) {
         return 1U;
     }

@@ -21,7 +21,7 @@ bitmap8 Flags {
     h
 }
 
-Point pt <- { x: 1, y: 2 };
+mut Point pt <- { x: 1, y: 2 };
 Flags flags <- 0;
 string<16> label <- "global-label";
 u32 count <- 3;
@@ -34,14 +34,14 @@ u32 measure(string<16> s) {
     return s.value_char_count;
 }
 
-void bump(u32 v) {
+void bump(mut u32 v) {
     v <- v + 10;
 }
 
 scope S {
     // Member write and read through the parameter; `global.pt` is the
     // global, written and read past it
-    public i32 structCase(Point pt) {
+    public i32 structCase(mut Point pt) {
         pt.x <- 30;
         global.pt.y <- 9;
         return pt.y + global.pt.x;
@@ -68,16 +68,16 @@ bool readFlag(Flags flags) {
     return r;
 }
 
-void writeFlag(Flags flags) {
+void writeFlag(mut Flags flags) {
     flags.d <- true;
 }
 
-void passOn(u32 count) {
+void passOn(mut u32 count) {
     bump(count);
 }
 
 u32 main() {
-    Point a <- { x: 10, y: 40 };
+    mut Point a <- { x: 10, y: 40 };
     i32 r1 <- S.structCase(a);
     if (r1 != 41) {
         return 1;
@@ -102,7 +102,7 @@ u32 main() {
         return 6;
     }
 
-    Flags fl <- 0;
+    mut Flags fl <- 0;
     fl.c <- true;
     bool got <- readFlag(fl);
     if (got != true) {
@@ -116,7 +116,7 @@ u32 main() {
         return 9;
     }
 
-    u32 c <- 1;
+    mut u32 c <- 1;
     passOn(c);
     if (c != 11) {
         return 10;

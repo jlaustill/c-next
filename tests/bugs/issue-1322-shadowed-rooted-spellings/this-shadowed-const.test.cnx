@@ -1,10 +1,10 @@
 // test-error
-// #1322 review: E0877 must see the const scope member `this.STEP`, not a local
+// #1322 review: E0900 (ADR-071; was E0877) must see the const scope member `this.STEP`, not a local
 // that shadows it. It was lost, and `Board__STEP = 5U;` reached the C compiler,
 // which cannot see that name at all.
 scope Board {
-    private const u8 STEP <- 12;
-    private u8 count <- 0;
+    private u8 STEP <- 12;
+    private mut u8 count <- 0;
 
     public u8 go() {
         // CONTROL: a mutable member through `this.`, which must stay silent.

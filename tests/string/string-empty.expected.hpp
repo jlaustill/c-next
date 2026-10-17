@@ -11,8 +11,8 @@ extern "C" {
 #endif
 
 /* External variables */
-extern char buffer[65];
-extern char largeBuffer[257];
+extern const char buffer[65];
+extern const char largeBuffer[257];
 
 #ifdef __cplusplus
 }

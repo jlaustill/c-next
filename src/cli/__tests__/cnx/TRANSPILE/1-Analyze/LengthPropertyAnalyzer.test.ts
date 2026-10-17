@@ -102,9 +102,9 @@ describe("LengthPropertyAnalyzer", () => {
   it("accepts an unsized const string as a string", () => {
     // Its type text is `string`, not `string<N>`. A check keyed on the `<`
     // called it not-a-string and rejected `.value_char_count` on it.
-    expect(
-      errors(inMain('const string V <- "1.0";', "V.value_char_count")),
-    ).toEqual([]);
+    expect(errors(inMain('string V <- "1.0";', "V.value_char_count"))).toEqual(
+      [],
+    );
   });
 
   it("accepts .type_bit_length on an enum and a bitmap, which have widths", () => {
@@ -179,9 +179,9 @@ describe("LengthPropertyAnalyzer", () => {
 
   it("does not judge a chain being written, in a function, a scope or a for header (#1991)", () => {
     const writes = [
-      "void f() {\n    u8 x <- 0;\n    x.length <- 1;\n}",
-      "scope S {\n    public void f() {\n        u8 x <- 0;\n        x.length <- 1;\n    }\n}",
-      "void f() {\n    u8 x <- 0;\n    for (u8 i <- 0; i < 2; x.length <- 1) {\n    }\n}",
+      "void f() {\n    mut u8 x <- 0;\n    x.length <- 1;\n}",
+      "scope S {\n    public void f() {\n        mut u8 x <- 0;\n        x.length <- 1;\n    }\n}",
+      "void f() {\n    mut u8 x <- 0;\n    for (u8 i <- 0; i < 2; x.length <- 1) {\n    }\n}",
     ];
     for (const source of writes) expect(errors(source)).toEqual([]);
     // The control: the same chain read is judged

@@ -22,34 +22,35 @@ const inMain = (body: string) => `void f() {\n${body}\n}`;
 
 describe("StringForm", () => {
   describe("E0862 -- a capacity has to be stated, or inferable", () => {
-    it("requires an explicit capacity on a string ARRAY", () => {
-      const [found] = errors("string[4] names;");
+    it.each([
+      [
+        "a string ARRAY",
+        "string[4] names;",
+        "string array requires an explicit",
+      ],
+      [
+        "a `mut` string, which cannot infer",
+        inMain('    mut string s <- "hi";'),
+        "A `mut` string",
+      ],
+      [
+        "a read-only string with no capacity or initializer",
+        "string s;",
+        "requires an initializer",
+      ],
+      [
+        "a read-only string initialized from another string, not a LITERAL",
+        'string<8> other <- "hi";\nstring s <- other;',
+        "requires a string literal",
+      ],
+    ])("requires an explicit capacity on %s", (_, source, message) => {
+      const [found] = errors(source);
       expect(found.code).toBe("E0862");
-      expect(found.message).toContain("string array requires an explicit");
+      expect(found.message).toContain(message);
     });
 
-    it("requires one on a non-const string, which cannot infer", () => {
-      const [found] = errors(inMain('    string s <- "hi";'));
-      expect(found.code).toBe("E0862");
-      expect(found.message).toContain("non-const string");
-    });
-
-    it("requires an initializer on a const string with no capacity", () => {
-      const [found] = errors("const string s;");
-      expect(found.code).toBe("E0862");
-      expect(found.message).toContain("requires an initializer");
-    });
-
-    it("requires that initializer to be a LITERAL, not another string", () => {
-      const [found] = errors(
-        'const string<8> other <- "hi";\nconst string s <- other;',
-      );
-      expect(found.code).toBe("E0862");
-      expect(found.message).toContain("requires a string literal");
-    });
-
-    it("accepts a const string whose capacity comes from its literal", () => {
-      expect(codes('const string s <- "hello";')).toEqual([]);
+    it("accepts a read-only string whose capacity comes from its literal", () => {
+      expect(codes('string s <- "hello";')).toEqual([]);
     });
   });
 
@@ -59,7 +60,7 @@ describe("StringForm", () => {
     // `main`. The shape of the initializer is the whole question.
     it("rejects a copy, a concatenation and a substring alike", () => {
       const source = [
-        'const string<8> src <- "hi";',
+        'string<8> src <- "hi";',
         "string<16> copied <- src;",
         'string<16> joined <- src + "!";',
         "string<16> part <- src[0, 2];",
@@ -69,7 +70,7 @@ describe("StringForm", () => {
 
     it("accepts the same three inside a function", () => {
       const source = [
-        'const string<8> src <- "hi";',
+        'string<8> src <- "hi";',
         inMain(
           [
             "    string<16> copied <- src;",
@@ -88,7 +89,7 @@ describe("StringForm", () => {
 
   describe("a literal is the literal itself, not text in quotes", () => {
     it("rejects inferring a capacity from two literals added", () => {
-      const [found] = errors('const string s <- "ab" + "cd";');
+      const [found] = errors('string s <- "ab" + "cd";');
       expect(found.code).toBe("E0862");
       expect(found.message).toContain("requires a string literal");
     });
@@ -106,7 +107,7 @@ describe("StringForm", () => {
 
     it("counts a scope's method as inside a function", () => {
       const source = [
-        'const string<8> src <- "hi";',
+        'string<8> src <- "hi";',
         "scope S {",
         "    public void f() {",
         "        string<16> copied <- src;",
@@ -121,6 +122,6 @@ describe("StringForm", () => {
   });
 
   it("leaves a sized string array at file scope to the array rules", () => {
-    expect(codes('const string<8>[2] NAMES <- ["a", "b"];')).toEqual([]);
+    expect(codes('string<8>[2] NAMES <- ["a", "b"];')).toEqual([]);
   });
 });

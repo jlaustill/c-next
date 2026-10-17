@@ -5,7 +5,7 @@ struct Buffer {
     i32[4] counts;
 }
 
-Buffer buf;
+mut Buffer buf;
 
 i32 main() {
     // Initialize

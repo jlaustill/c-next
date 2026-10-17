@@ -15,6 +15,7 @@ import ProgramLowering from "./ProgramLowering";
 import IdentifierForm from "./IdentifierForm";
 import ArrayForm from "./ArrayForm";
 import StringForm from "./StringForm";
+import MutabilityForm from "./MutabilityForm";
 import LiteralForm from "./LiteralForm";
 import IParsedFile from "./types/IParsedFile";
 import ITranspileError from "../../types/ITranspileError";
@@ -223,6 +224,7 @@ class CNextSourceParser {
             ...IdentifierForm.errorsIn(tree),
             ...ArrayForm.errorsIn(tree),
             ...StringForm.errorsIn(tree),
+            ...MutabilityForm.errorsIn(tree),
           ].sort((a, b) => a.line - b.line || a.column - b.column);
     const declarationCount = tree.declaration().length;
 

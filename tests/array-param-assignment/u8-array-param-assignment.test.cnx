@@ -4,23 +4,23 @@
 // the transpiler should generate array access, not bit manipulation.
 
 // Function that writes to array element by index - sized parameter
-void writeAt(u8[8] arr, u32 index, u8 value) {
+void writeAt(mut u8[8] arr, u32 index, u8 value) {
     arr[index] <- value;
 }
 
 // Function that writes to first element with literal index
-void writeFirst(u8[8] data, u8 value) {
+void writeFirst(mut u8[8] data, u8 value) {
     data[0] <- value;
 }
 
 // Function that reads and writes array elements
-void copyElement(u8[4] src, u8[4] dst, u32 index) {
+void copyElement(u8[4] src, mut u8[4] dst, u32 index) {
     dst[index] <- src[index];
 }
 
 u32 main() {
     // Test 1: Write to array element via function
-    u8[8] buffer;
+    mut u8[8] buffer;
     buffer[0] <- 0;
     buffer[1] <- 0;
 
@@ -42,8 +42,8 @@ u32 main() {
     }
 
     // Test 4: Copy element between arrays
-    u8[4] source;
-    u8[4] dest;
+    mut u8[4] source;
+    mut u8[4] dest;
     source[0] <- 0;
     source[1] <- 0;
     source[2] <- 0;

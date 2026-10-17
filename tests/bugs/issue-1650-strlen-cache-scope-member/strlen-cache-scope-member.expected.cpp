@@ -21,10 +21,10 @@
 // Negative controls: the member read ONCE (no cache, correct before the fix)
 // and a file-scope string read twice (cached as `strlen(title)`, which worked
 // and must keep working).
-char title[9] = "xyz";
+extern const char title[9] = "xyz";
 
 /* Scope: Cfg */
-char Cfg__label[9] = "ab";
+const char Cfg__label[9] = "ab";
 
 uint32_t Cfg__check(void) {
     size_t cnx_len_label = strlen(Cfg__label);
@@ -38,7 +38,7 @@ uint32_t Cfg__check(void) {
 }
 
 int main(void) {
-    uint32_t result = Cfg__check();
+    const uint32_t result = Cfg__check();
     if (result != 0) {
         return result;
     }

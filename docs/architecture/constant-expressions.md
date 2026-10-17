@@ -105,7 +105,7 @@ what makes `u8[N]` one size in the `.c` and the `.h`.
 
 `Program.deriveConstants` settles every file-scope and scope const and every
 C-Next enum in one worklist, because each may name the other
-(`const u32 N <- (u32)EColor.COUNT`, `A <- N + 1`). An item waits on the C names
+(`u32 N <- (u32)EColor.COUNT`, `A <- N + 1`). An item waits on the C names
 it found unsettled and is retried only when one settles. An enum publishes the
 members that have settled while the rest wait (`partialEnums`), so an enum and a
 const, or two enums, that name each other's settled members settle in either
@@ -122,7 +122,7 @@ u8").
 
 `Program.settleValues` runs the consts and the dimensions in rounds, because a
 const may read a dimension through a length property
-(`const u32 K <- arr.type_element_count`). The consts settle again only while one has
+(`u32 K <- arr.type_element_count`). The consts settle again only while one has
 no value and a dimension moved, so a program that converges in one round costs
 one.
 

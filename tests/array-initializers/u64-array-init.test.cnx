@@ -20,7 +20,7 @@ u64[100] buffer <- [0*];
 u64[50] ones <- [1*];
 
 // Const lookup table (factorials)
-const u64[] factorials <- [1, 1, 2, 6, 24, 120, 720, 5040, 40320, 362880];
+u64[] factorials <- [1, 1, 2, 6, 24, 120, 720, 5040, 40320, 362880];
 
 u32 main() {
 
@@ -72,7 +72,7 @@ u32 main() {
     }
 
     // Test modification
-    u64[5] mutableArr <- [10, 20, 30, 40, 50];
+    mut u64[5] mutableArr <- [10, 20, 30, 40, 50];
     mutableArr[2] <- 999;
     if (mutableArr[2] != 999) {
         return 14;
@@ -85,8 +85,8 @@ u32 main() {
     }
 
     // Test iteration and accumulation
-    u64 sum <- 0;
-    for (u32 i <- 0; i < 5; i +<- 1) {
+    mut u64 sum <- 0;
+    for (mut u32 i <- 0; i < 5; i +<- 1) {
         sum +<- counters[i];
     }
     if (sum != 1500) {
@@ -118,8 +118,8 @@ u32 main() {
     }
 
     // Test sequential modification in loop
-    u64[10] sequence;
-    for (u32 i <- 0; i < 10; i +<- 1) {
+    mut u64[10] sequence;
+    for (mut u32 i <- 0; i < 10; i +<- 1) {
         sequence[i] <- i * 1000000;
     }
     if (sequence[0] != 0) {
@@ -152,7 +152,7 @@ u32 main() {
     }
 
     // Test array assignment from computation
-    u64[3] computed;
+    mut u64[3] computed;
     computed[0] <- 1000 * 1000; // 1 million
     computed[1] <- 1000 * 1000000; // 1 billion
     computed[2] <- computed[0] + computed[1];

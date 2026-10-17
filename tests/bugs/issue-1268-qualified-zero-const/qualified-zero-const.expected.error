@@ -3,20 +3,20 @@
 19:29 error[E0802]: Modulo by zero
        help: A divisor known at compile time must not be zero
 22:27 error[E0800]: Division by zero
-       help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
+       help: A divisor known at compile time must not be zero
 23:29 error[E0802]: Modulo by zero
-       help: Consider using safe_mod(output, numerator, divisor, defaultValue) for runtime safety
+       help: A divisor known at compile time must not be zero
 29:27 error[E0800]: Division by zero
-       help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
+       help: A divisor known at compile time must not be zero
 30:29 error[E0802]: Modulo by zero
-       help: Consider using safe_mod(output, numerator, divisor, defaultValue) for runtime safety
+       help: A divisor known at compile time must not be zero
 32:26 error[E0800]: Division by zero
-       help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
+       help: A divisor known at compile time must not be zero
 37:27 error[E0800]: Division by zero
-       help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
+       help: A divisor known at compile time must not be zero
 43:23 error[E0800]: Division by zero
-       help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
+       help: A divisor known at compile time must not be zero
 44:25 error[E0802]: Modulo by zero
-       help: Consider using safe_mod(output, numerator, divisor, defaultValue) for runtime safety
+       help: A divisor known at compile time must not be zero
 45:20 error[E0800]: Division by zero
-       help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety
+       help: A divisor known at compile time must not be zero

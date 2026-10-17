@@ -8,7 +8,7 @@ enum EColor {
     COUNT
 }
 
-const u8[EColor.COUNT] DATA <- [10, 20, 30];
+u8[EColor.COUNT] DATA <- [10, 20, 30];
 
 scope Test {
     public u8 get(u8 idx) {

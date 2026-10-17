@@ -32,9 +32,9 @@ extern DataManager__Size DataManager__screenSize;
 extern DataManager__Rect DataManager__viewport;
 
 /* Function prototypes */
-void DataManager__setCursor(int16_t x, int16_t y);
-void DataManager__setScreen(uint16_t w, uint16_t h);
-void DataManager__setViewport(int16_t x, int16_t y, uint16_t w, uint16_t h);
+void DataManager__setCursor(const int16_t x, const int16_t y);
+void DataManager__setScreen(const uint16_t w, const uint16_t h);
+void DataManager__setViewport(const int16_t x, const int16_t y, const uint16_t w, const uint16_t h);
 uint32_t DataManager__getViewportArea(void);
 
 #ifdef __cplusplus

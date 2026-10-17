@@ -18,7 +18,7 @@ extern uint8_t shapeWitness;
 
 /* Function prototypes */
 void onBuf(const uint8_t buf[4]);
-void plainArray(uint8_t other[4]);
+void plainArray(const uint8_t other[4]);
 uint8_t readKnob(knob_t* k);
 void onKnob(knob_t* k);
 

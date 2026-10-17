@@ -3,7 +3,7 @@
 // MISRA Rule 10.4) must serialize MISRA Rule 10.8-clean. The signed composite is
 // bound to a same-type temp before the unsigned cast, never cast directly.
 u32 main() {
-    u8[8] buf;
+    mut u8[8] buf;
     i32 a <- 0x12340000;
     i32 b <- 0x00005678;
     buf[0, 4] <- a + b;

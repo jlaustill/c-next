@@ -2,7 +2,7 @@
 // Tests explicit length properties on multi-dimensional arrays (ADR-058)
 // u8[8][8] = 8 x 8 x 8 bits = 512 bits total
 
-u8[8][8] matrix;
+mut u8[8][8] matrix;
 
 i32 main() {
     matrix[0][0] <- 1;

@@ -60,6 +60,7 @@ import DeclarationModifierAnalyzer from "./DeclarationModifierAnalyzer";
 import SizeofAnalyzer from "./SizeofAnalyzer";
 import StructLiteralAnalyzer from "./StructLiteralAnalyzer";
 import ConstAssignmentAnalyzer from "./ConstAssignmentAnalyzer";
+import type IMutSite from "../../types/IMutSite";
 import LoopAnalyzer from "./LoopAnalyzer";
 import SliceAssignmentAnalyzer from "./SliceAssignmentAnalyzer";
 import ControllingExpressionAnalyzer from "./ControllingExpressionAnalyzer";
@@ -95,6 +96,7 @@ interface IAnalyzerError {
   rule?: string;
   helpText?: string;
   severity?: "error" | "warning";
+  declaredAt?: IMutSite;
 }
 
 /**
@@ -119,6 +121,7 @@ function collectErrors<E extends IAnalyzerError>(
       message: formatMessage(err),
       severity: err.severity ?? "error",
       helpText: err.helpText,
+      ...(err.declaredAt && { declaredAt: err.declaredAt }),
     });
   }
   return analyzerErrors.some((err) => err.severity !== "warning");
@@ -358,7 +361,7 @@ function runAnalyzers(
         new CompoundAssignmentAnalyzer(context).analyze(parsed.program),
     },
     {
-      label: "C++ constructor arguments must be declared const (ADR-013, #375)",
+      label: "C++ constructor arguments must be read-only (ADR-071, #375)",
       run: () =>
         new ConstructorArgumentAnalyzer(context).analyze(parsed.program),
     },
@@ -443,7 +446,7 @@ function runAnalyzers(
       run: () => new ArrayIndexBoundsAnalyzer(context).analyze(parsed.program),
     },
     {
-      label: "const enforcement (ADR-013, E0877/E0878)",
+      label: "read-only enforcement (ADR-071, E0900/E0899)",
       run: () => new ConstAssignmentAnalyzer(context).analyze(parsed.program),
     },
     {

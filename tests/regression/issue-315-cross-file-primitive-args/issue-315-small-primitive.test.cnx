@@ -11,7 +11,7 @@ struct ByteData {
 }
 
 scope ByteCaller {
-    ByteData data;
+    mut ByteData data;
 
     public void init() {
         this.data.value1 <- 0;

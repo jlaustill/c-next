@@ -14,7 +14,7 @@ extern const uint32_t TEN = 10U;
 extern const uint32_t FIVE = 5U;
 
 void testDivisionByConstNonZero(void) {
-    uint32_t result1 = 100U / TEN;
-    uint32_t result2 = 25U / FIVE;
-    uint32_t result3 = result1 % TEN;
+    const uint32_t result1 = 100U / TEN;
+    const uint32_t result2 = 25U / FIVE;
+    const uint32_t result3 = result1 % TEN;
 }

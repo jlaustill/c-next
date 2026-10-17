@@ -14,19 +14,19 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint32_t result;
+extern const uint32_t result;
 
 /* Function prototypes */
-void writeToParam(uint8_t buf[8], uint32_t idx);
-uint8_t readFromParam(uint8_t buf[4], uint32_t idx);
-void copyElement(uint8_t src[4], uint8_t dst[4], uint32_t idx);
-uint8_t readFirst(uint8_t buf[4]);
-void swapElements(uint8_t buf[8], uint32_t i, uint32_t j);
-void writeExplicit(uint8_t buf[8], uint32_t idx);
-uint8_t getLowByte(uint16_t value);
-uint8_t getHighByte(uint16_t value);
-uint8_t getArrayBit(uint8_t matrix[2][2], uint32_t row, uint32_t col, uint32_t bit);
-void setArrayBit(uint8_t matrix[2][2], uint32_t row, uint32_t col, uint32_t bit, bool val);
+void writeToParam(uint8_t buf[8], const uint32_t idx);
+uint8_t readFromParam(const uint8_t buf[4], const uint32_t idx);
+void copyElement(const uint8_t src[4], uint8_t dst[4], const uint32_t idx);
+uint8_t readFirst(const uint8_t buf[4]);
+void swapElements(uint8_t buf[8], const uint32_t i, const uint32_t j);
+void writeExplicit(uint8_t buf[8], const uint32_t idx);
+uint8_t getLowByte(const uint16_t value);
+uint8_t getHighByte(const uint16_t value);
+uint8_t getArrayBit(const uint8_t matrix[2][2], const uint32_t row, const uint32_t col, const uint32_t bit);
+void setArrayBit(uint8_t matrix[2][2], const uint32_t row, const uint32_t col, const uint32_t bit, const bool val);
 
 #ifdef __cplusplus
 }

@@ -18,7 +18,7 @@ ECategory Provider__getCategory(void) {
 /* Scope: Consumer */
 
 uint32_t Consumer__test(void) {
-    ECategory cat = Provider__getCategory();
+    const ECategory cat = Provider__getCategory();
     if (cat == ECategory__CAT_A) {
         return 0U;
     }
@@ -26,6 +26,6 @@ uint32_t Consumer__test(void) {
 }
 
 int main(void) {
-    uint32_t result = Consumer__test();
+    const uint32_t result = Consumer__test();
     return result;
 }

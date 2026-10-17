@@ -20,7 +20,7 @@ typedef enum {
 } Mode;
 
 /* Callback typedefs */
-typedef uint32_t (*onSample_fp)(uint32_t);
+typedef uint32_t (*onSample_fp)(const uint32_t);
 
 /* Struct definitions */
 typedef struct Device {
@@ -33,7 +33,7 @@ typedef struct Device {
 } Device;
 
 /* Function prototypes */
-uint32_t onSample(uint32_t input);
+uint32_t onSample(const uint32_t input);
 /* MISRA C:2012 Rule 8.4: declaration for the ADR-029 generated init function (the definition has external linkage and would otherwise be undeclared). */
 Device Device_init(void);
 

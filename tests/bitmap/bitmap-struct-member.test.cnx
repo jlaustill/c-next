@@ -30,9 +30,9 @@ scope BitmapMember {
     }
 }
 
-BitmapMember.Device device;
+mut BitmapMember.Device device;
 
-BitmapMember.Controller ctrl;
+mut BitmapMember.Controller ctrl;
 
 u32 main() {
     // Initialize device

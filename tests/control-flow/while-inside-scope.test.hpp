@@ -18,10 +18,10 @@ extern uint32_t globalResult;
 
 /* Function prototypes */
 void Counter__countToFive(void);
-void Counter__countWhileCondition(bool shouldCount);
+void Counter__countWhileCondition(const bool shouldCount);
 uint32_t Counter__getValue(void);
 void Counter__reset(void);
-void Accumulator__sumRange(uint32_t limit);
+void Accumulator__sumRange(const uint32_t limit);
 uint32_t Accumulator__getSum(void);
 
 #ifdef __cplusplus

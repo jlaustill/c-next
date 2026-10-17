@@ -23,12 +23,12 @@
 // `main` is the negative control: it declares nothing and copies nothing, so a
 // change that required `<string.h>` unconditionally would not be caught by the
 // assertions alone.
-void setIt(string<8> s) {
+void setIt(mut string<8> s) {
     s <- "hi";
 }
 
 u32 main() {
-    string<8> local <- "ab";
+    mut string<8> local <- "ab";
     setIt(local);
     if (local.value_char_count != 2) {
         return 1;

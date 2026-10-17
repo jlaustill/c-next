@@ -4,4 +4,4 @@
 
 #include "switch-declarations.cnx"
 
-const u32 SWITCH_RELAY_MARKER <- 2;
+u32 SWITCH_RELAY_MARKER <- 2;

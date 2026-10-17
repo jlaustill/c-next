@@ -27,14 +27,13 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // is what places the fixture on the relationship axis.
 /* Scope: Sensor */
 static uint32_t Sensor__reading = 0U;
-static uint32_t Sensor__offset = 3U;
 
 uint32_t Sensor__raw(void) {
     return 7U;
 }
 
 void Sensor__refresh(void) {
-    Sensor__reading = cnx_clamp_add_u32(Sensor__raw(), Sensor__offset);
+    Sensor__reading = cnx_clamp_add_u32(Sensor__raw(), 3U);
 }
 
 uint32_t Sensor__value(void) {

@@ -6,8 +6,8 @@
 #include <Arduino.h>
 
 scope CriticalTest {
-    atomic bool flag <- false;
-    u8 value <- 0;
+    atomic mut bool flag <- false;
+    mut u8 value <- 0;
 
     public void safeWrite(u8 newValue) {
         critical {

@@ -40,10 +40,10 @@ uint16_t decoder__getSpn(const uint8_t data[8]) {
     return result;
 }
 
-uint8_t decoder__getByte(const uint8_t data[8], uint8_t index) {
+uint8_t decoder__getByte(const uint8_t data[8], const uint8_t index) {
     return data[index];
 }
 
-uint8_t decoder__internalHelper(uint8_t val) {
+uint8_t decoder__internalHelper(const uint8_t val) {
     return cnx_clamp_add_u8(val, 1U);
 }

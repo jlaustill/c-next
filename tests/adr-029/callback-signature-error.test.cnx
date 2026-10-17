@@ -14,33 +14,33 @@ struct Frame {
 }
 
 // The callback TYPE every assertion below is measured against.
-void onFrame(const Frame f) {}
+void onFrame(Frame f) {}
 
 // NEGATIVE CONTROLS -- declared before the assertions, and every one must stay
 // silent. Each matches `onFrame` exactly and is not itself used as a field
 // type, so ADR-029 allows it to stand in.
-void matchingHandler(const Frame f) {}
-void alsoMatching(const Frame other) {
+void matchingHandler(Frame f) {}
+void alsoMatching(Frame other) {
     // parameter NAME differs, which is not part of a signature
 }
 
 // Each of these differs from `onFrame` in exactly one way.
-u32 wrongReturn(const Frame f) {
+u32 wrongReturn(Frame f) {
     return 1;
 }
-void wrongArity(const Frame f, u32 extra) {}
-void wrongParamType(const u32 n) {}
-void wrongConst(Frame f) {
+void wrongArity(Frame f, u32 extra) {}
+void wrongParamType(u32 n) {}
+void wrongConst(mut Frame f) {
     f.id <- 1;
 }
-void wrongArrayness(const Frame[2] f) {}
+void wrongArrayness(Frame[2] f) {}
 
 struct Sink {
     onFrame handler;
 }
 
 void test() {
-    Sink s;
+    mut Sink s;
 
     // CONTROLS: accepted.
     s.handler <- matchingHandler;

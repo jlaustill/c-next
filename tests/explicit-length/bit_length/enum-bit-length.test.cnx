@@ -35,7 +35,7 @@ i32 main() {
     }
 
     // Test struct member enum
-    EnumBitLen.TestStruct ts;
+    mut EnumBitLen.TestStruct ts;
     ts.state <- State.RUNNING;
     if (ts.state.type_bit_length != 2) {
         return 3;

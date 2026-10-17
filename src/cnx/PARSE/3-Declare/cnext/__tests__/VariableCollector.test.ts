@@ -82,7 +82,8 @@ describe("VariableCollector", () => {
       expect(symbol.kind).toBe("variable");
       expect(symbol.name).toBe("counter");
       expect(TypeResolver.getTypeName(symbol.type)).toBe("u32");
-      expect(symbol.isConst).toBe(false);
+      // ADR-071: read-only unless declared `mut`
+      expect(symbol.isConst).toBe(true);
       expect(symbol.isArray).toBe(false);
       expect(symbol.sourceFile).toBe("test.cnx");
       expect(symbol.sourceLanguage).toBe(ESourceLanguage.CNext);

@@ -52,7 +52,7 @@ void Consumer__bumpTwice(Sample& s) {
 }
 
 uint8_t Consumer__readTwice(const Sample& s) {
-    uint8_t first = Sensors__readValue(s);
-    uint8_t second = Sensors__readValue(s);
+    const uint8_t first = Sensors__readValue(s);
+    const uint8_t second = Sensors__readValue(s);
     return cnx_clamp_add_u8(first, second);
 }

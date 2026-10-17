@@ -49,13 +49,13 @@ int32_t getHeight(const Rectangle* rect) {
 
 // Calculate area using nested access
 int32_t getArea(const Rectangle* rect) {
-    int32_t w = cnx_clamp_sub_i32(rect->bottomRight.x, rect->topLeft.x);
-    int32_t h = cnx_clamp_sub_i32(rect->bottomRight.y, rect->topLeft.y);
+    const int32_t w = cnx_clamp_sub_i32(rect->bottomRight.x, rect->topLeft.x);
+    const int32_t h = cnx_clamp_sub_i32(rect->bottomRight.y, rect->topLeft.y);
     return cnx_clamp_mul_i32(w, h);
 }
 
 // Modify nested members through parameter
-void moveRect(Rectangle* rect, int32_t dx, int32_t dy) {
+void moveRect(Rectangle* rect, const int32_t dx, const int32_t dy) {
     rect->topLeft.x = cnx_clamp_add_i32(rect->topLeft.x, dx);
     rect->topLeft.y = cnx_clamp_add_i32(rect->topLeft.y, dy);
     rect->bottomRight.x = cnx_clamp_add_i32(rect->bottomRight.x, dx);
@@ -63,4 +63,4 @@ void moveRect(Rectangle* rect, int32_t dx, int32_t dy) {
 }
 
 // Test instance
-Rectangle bounds = { .topLeft = { .x = 10, .y = 20 }, .bottomRight = { .x = 60, .y = 70 } };
+const Rectangle bounds = { .topLeft = { .x = 10, .y = 20 }, .bottomRight = { .x = 60, .y = 70 } };

@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* Callback typedefs */
-typedef uint32_t (*remoteSink_fp)(uint32_t);
+typedef uint32_t (*remoteSink_fp)(const uint32_t);
 
 /* Function prototypes */
 uint64_t Bus__fire(void);

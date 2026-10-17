@@ -11,8 +11,8 @@ u32 process(u32 crc, u8 byte) {
     return crc ^ byte;
 }
 
-u32 testConstStruct(const TestConfig cfg) {
-    u32 crc <- 0;
+u32 testConstStruct(TestConfig cfg) {
+    mut u32 crc <- 0;
     // This should generate: uint8_t _cnx_tmp = cfg->value; process(&crc, &_cnx_tmp);
     // NOT: process(&crc, &cfg->value); which gives: Error const uint8_t* to uint8_t*
     crc <- process(crc, cfg.value);
@@ -20,7 +20,7 @@ u32 testConstStruct(const TestConfig cfg) {
 }
 
 u32 main() {
-    TestConfig cfg;
+    mut TestConfig cfg;
     cfg.value <- 0x42;
     cfg.flags <- 0xFF;
 

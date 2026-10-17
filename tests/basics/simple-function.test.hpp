@@ -17,10 +17,10 @@ extern uint32_t counter;
 
 /* Function prototypes */
 uint32_t getFortyTwo(void);
-uint32_t add(uint32_t a, uint32_t b);
-uint32_t multiply(uint32_t x, uint32_t y);
+uint32_t add(const uint32_t a, const uint32_t b);
+uint32_t multiply(const uint32_t x, const uint32_t y);
 void incrementCounter(void);
-uint32_t addThenDouble(uint32_t a, uint32_t b);
+uint32_t addThenDouble(const uint32_t a, const uint32_t b);
 
 #ifdef __cplusplus
 }

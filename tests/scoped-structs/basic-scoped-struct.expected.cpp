@@ -13,7 +13,7 @@
 /* Scope: Motor */
 Motor__Config Motor__current = {};
 
-void Motor__setSpeed(uint8_t s) {
+void Motor__setSpeed(const uint8_t s) {
     Motor__current.speed = s;
 }
 
@@ -21,7 +21,7 @@ uint8_t Motor__getSpeed(void) {
     return Motor__current.speed;
 }
 
-void Motor__setDirection(uint8_t d) {
+void Motor__setDirection(const uint8_t d) {
     Motor__current.direction = d;
 }
 
@@ -51,7 +51,7 @@ int main(void) {
     if (Motor__current.speed != 100) {
         return 4U;
     }
-    uint8_t speed = Motor__getSpeed();
+    const uint8_t speed = Motor__getSpeed();
     if (speed != 100) {
         return 5U;
     }

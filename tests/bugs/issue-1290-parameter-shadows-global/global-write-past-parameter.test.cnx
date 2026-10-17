@@ -11,8 +11,8 @@ struct Point {
     u32 y;
 }
 
-u32 total <- 7;
-Point pt <- { x: 1, y: 2 };
+mut u32 total <- 7;
+mut Point pt <- { x: 1, y: 2 };
 
 u32 shadowWritesGlobal(u32 total) {
     global.total <- total;
@@ -35,7 +35,7 @@ u32 controlWritesGlobalMember(Point other) {
 }
 
 scope S {
-    u32 count <- 1;
+    mut u32 count <- 1;
 
     // The `this.` arm: `this.count` is the scope member, not the parameter
     public u32 viaThis(u32 count) {

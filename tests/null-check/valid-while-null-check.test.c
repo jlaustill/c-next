@@ -13,9 +13,9 @@
 #include <stdbool.h>
 #include <string.h>
 
-char line[257] = "";
+const char line[257] = "";
 
-bool keepReading = true;
+const bool keepReading = true;
 
 void testWhileNullCheck(void) {
     FILE* c_file = fopen("data.txt", "r");

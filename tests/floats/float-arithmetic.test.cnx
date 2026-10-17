@@ -1,7 +1,7 @@
 // Test all float arithmetic operations
-f32 result_f32;
+mut f32 result_f32;
 
-f64 result_f64;
+mut f64 result_f64;
 
 void test_f32_arithmetic() {
     // Addition

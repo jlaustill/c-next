@@ -15,9 +15,9 @@
 #endif
 
 // Use const for values (not #define)
-const u32 LED_BIT <- 3;
+u32 LED_BIT <- 3;
 
-const u32 BLINK_DELAY <- 1000;
+u32 BLINK_DELAY <- 1000;
 
 register GPIO7 @ 0x42004000 {
     DR: u32 rw @ 0x00,

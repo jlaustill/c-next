@@ -9,11 +9,11 @@
 // pointer parameter, which the C compiler rejects with
 // `discards 'const' qualifier` -- at exit 0.
 
-const u32 LIMIT <- 5;
+u32 LIMIT <- 5;
 
 void main() {
-    u32 q <- 0;
-    bool err <- false;
+    mut u32 q <- 0;
+    mut bool err <- false;
 
     // NEGATIVE CONTROLS -- a mutable output, and the same const used where it
     // is only READ. A rule that keyed on "the const appears in the call" would

@@ -40,7 +40,7 @@ int main(void) {
         return 3U;
     }
     uint32_t counter = 0U;
-    uint32_t maxBits = 32;
+    const uint32_t maxBits = 32;
     while ((counter < maxBits) != false) {
         counter = cnx_clamp_add_u32(counter, 8U);
     }
@@ -54,11 +54,11 @@ int main(void) {
     if (totalBits != 32) {
         return 5U;
     }
-    uint32_t fieldSize = ((32 > 16) != false) ? 4U : 2U;
+    const uint32_t fieldSize = ((32 > 16) != false) ? 4U : 2U;
     if (fieldSize != 4) {
         return 6U;
     }
-    uint32_t headerBytes = 32 / 8U;
+    const uint32_t headerBytes = 32 / 8U;
     if (headerBytes != 4) {
         return 7U;
     }

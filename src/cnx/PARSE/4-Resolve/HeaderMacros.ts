@@ -10,7 +10,7 @@
  * headers and the compiler's builtins: one definition per name, the one C
  * sees.
  */
-import TARGET_DESCRIPTION_FIELDS from "./TARGET_DESCRIPTION_FIELDS";
+import TARGET_DESCRIPTION_FIELDS from "../2-Parse/TARGET_DESCRIPTION_FIELDS";
 import type THeaderMacro from "../../types/THeaderMacro";
 
 type TFloatingTypeName = "f32" | "f64" | null;

@@ -14,7 +14,7 @@ extern "C" {
 
 /* External variables */
 extern char messageBuffer[65];
-extern char logBuffer[129];
+extern const char logBuffer[129];
 
 /* Function prototypes */
 uint32_t getMessageLength(void);

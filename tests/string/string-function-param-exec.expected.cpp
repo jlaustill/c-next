@@ -34,64 +34,64 @@ bool matchesLiteral(const char* s, const char* lit) {
 }
 
 int main(void) {
-    char test[65] = "Hello";
-    uint32_t len1 = getLen(test);
+    const char test[65] = "Hello";
+    const uint32_t len1 = getLen(test);
     if (len1 != 5) {
         return 1;
     }
-    uint32_t len2 = getLen("World");
+    const uint32_t len2 = getLen("World");
     if (len2 != 5) {
         return 2;
     }
-    uint32_t len3 = getLen("");
+    const uint32_t len3 = getLen("");
     if (len3 != 0) {
         return 3;
     }
-    uint32_t cap1 = getCap(test);
+    const uint32_t cap1 = getCap(test);
     if (cap1 != 64) {
         return 4;
     }
-    uint32_t cap2 = getCap("Hi");
+    const uint32_t cap2 = getCap("Hi");
     if (cap2 != 64) {
         return 5;
     }
-    char same[65] = "Hello";
-    bool eq1 = isEqual(test, same);
+    const char same[65] = "Hello";
+    const bool eq1 = isEqual(test, same);
     if (eq1 == false) {
         return 6;
     }
-    bool eq2 = isEqual(test, "Hello");
+    const bool eq2 = isEqual(test, "Hello");
     if (eq2 == false) {
         return 7;
     }
-    char diff[65] = "World";
-    bool eq3 = isEqual(test, diff);
+    const char diff[65] = "World";
+    const bool eq3 = isEqual(test, diff);
     if (eq3 == true) {
         return 8;
     }
-    bool match1 = matchesLiteral(test, "Hello");
+    const bool match1 = matchesLiteral(test, "Hello");
     if (match1 == false) {
         return 9;
     }
-    bool match2 = matchesLiteral(test, "World");
+    const bool match2 = matchesLiteral(test, "World");
     if (match2 == true) {
         return 10;
     }
-    char empty[65] = "";
-    uint32_t emptyLen = getLen(empty);
+    const char empty[65] = "";
+    const uint32_t emptyLen = getLen(empty);
     if (emptyLen != 0) {
         return 11;
     }
-    bool emptyEq = isEqual(empty, "");
+    const bool emptyEq = isEqual(empty, "");
     if (emptyEq == false) {
         return 12;
     }
-    char longer[65] = "This is a longer string";
-    uint32_t longerLen = getLen(longer);
+    const char longer[65] = "This is a longer string";
+    const uint32_t longerLen = getLen(longer);
     if (longerLen != 23) {
         return 13;
     }
-    bool longerMatch = matchesLiteral(longer, "This is a longer string");
+    const bool longerMatch = matchesLiteral(longer, "This is a longer string");
     if (longerMatch == false) {
         return 14;
     }

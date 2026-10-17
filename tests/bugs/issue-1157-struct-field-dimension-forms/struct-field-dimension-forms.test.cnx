@@ -30,7 +30,7 @@
 //
 // Do not relax the snapshots on the strength of a compile-time check that is
 // not running.
-const u8 SIZE <- 6;
+u8 SIZE <- 6;
 
 struct Buffer {
     u8[8] plain;
@@ -43,7 +43,7 @@ struct Buffer {
 }
 
 i32 main() {
-    Buffer b;
+    mut Buffer b;
     b.plain[7] <- 1;
     b.hex[15] <- 2;
     b.binary[3] <- 3;

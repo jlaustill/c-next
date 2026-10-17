@@ -707,35 +707,5 @@ describe("HeaderSymbolAdapter", () => {
         expect(result.arrayDimensions).toEqual(["DEVICE_COUNT"]);
       });
     });
-
-    it("should handle autoConst parameter flag", () => {
-      const tSymbol: IFunctionSymbol = {
-        ...TestSymbolUtils.base({
-          kind: "function",
-          name: "processData",
-          scopePath: "",
-          sourceFile: "test.cnx",
-          span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
-          visibility: "public",
-        }),
-        parameters: [
-          {
-            name: "data",
-            emittedName: "data",
-            type: TTypeUtils.createPrimitive("u8"),
-            isConst: false,
-            isArray: true,
-            isAutoConst: true,
-          },
-        ],
-        returnType: TTypeUtils.createPrimitive("void"),
-        visibility: "public",
-      };
-
-      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol, state);
-
-      expect(result.parameters?.[0].isAutoConst).toBe(true);
-    });
   });
 });

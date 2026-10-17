@@ -39,11 +39,11 @@
 // here; one that cleared it too narrowly adds a suffix to the comparison operand
 // and also fails here.
 int main(void) {
-    uint8_t arr[4] = {5U, 6U, 7U, 8U};
-    uint8_t flags = 9U;
-    uint32_t a = (arr[0U] == 5) ? 1U : 0U;
-    uint32_t b = (((flags) & 1) == 1) ? 1U : 0U;
-    uint32_t c = 5U;
+    const uint8_t arr[4] = {5U, 6U, 7U, 8U};
+    const uint8_t flags = 9U;
+    const uint32_t a = (arr[0U] == 5) ? 1U : 0U;
+    const uint32_t b = (((flags) & 1) == 1) ? 1U : 0U;
+    const uint32_t c = 5U;
     if (a != 1) {
         return 1U;
     }

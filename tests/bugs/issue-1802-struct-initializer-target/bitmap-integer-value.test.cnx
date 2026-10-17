@@ -23,7 +23,7 @@ u32 main() {
         return 2;
     }
 
-    Cfg c <- { word: 7, f: 3 };
+    mut Cfg c <- { word: 7, f: 3 };
     if (c.f.A != true) {
         return 3;
     }

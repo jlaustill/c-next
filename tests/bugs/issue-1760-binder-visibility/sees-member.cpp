@@ -15,6 +15,6 @@
 /* Scope: S */
 
 uint32_t S__count(void) {
-    uint8_t held[2] = {0U, 0U};
+    const uint8_t held[2] = {0U, 0U};
     return 2;
 }

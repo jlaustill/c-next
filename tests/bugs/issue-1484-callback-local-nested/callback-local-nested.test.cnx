@@ -4,7 +4,7 @@
 // uses its own callback type, so dropping any one arm of the walk loses
 // exactly one typedef and the C no longer compiles. `critical` is in
 // callback-local-critical, which cannot run on host until #1147.
-u32 total <- 0;
+mut u32 total <- 0;
 
 void onIf(u32 n) {
     total <- total + n;
@@ -51,7 +51,7 @@ u32 main() {
     if (total != 5) {
         return 1;
     }
-    u32 i <- 0;
+    mut u32 i <- 0;
     while (i < 1) {
         onWhile beat <- onWhile;
         beat(2);
@@ -67,7 +67,7 @@ u32 main() {
     if (total != 8) {
         return 3;
     }
-    for (u32 j <- 0; j < 1; j <- j + 1) {
+    for (mut u32 j <- 0; j < 1; j <- j + 1) {
         onFor tick <- onFor;
         tick(2);
     }

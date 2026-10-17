@@ -10,7 +10,7 @@
 
 // Test: string<N> types should generate char[N+1] in headers
 // Bug #427: Headers emit string<N> instead of char[N+1]
-char greeting[33] = "Hello";
+const char greeting[33] = "Hello";
 
 // C-style allowed for string arrays (grammar limitation)
 // cppcheck-suppress misra-c2012-9.3
@@ -18,5 +18,5 @@ char greeting[33] = "Hello";
 const char labels[3][17] = {"one", "two", "three"};
 
 int main(void) {
-    uint8_t len = strlen(greeting);
+    const uint8_t len = strlen(greeting);
 }

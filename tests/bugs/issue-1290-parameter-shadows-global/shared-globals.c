@@ -9,4 +9,4 @@
 
 // Provider for #1290's cross-file fixture. Not a test itself.
 // Declares the file-scope name the consumer's parameter shadows.
-uint32_t limit = 11U;
+const uint32_t limit = 11U;

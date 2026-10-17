@@ -3,9 +3,9 @@
 // rejected with E0701 because the brackets made the operand look like a bare
 // value. All five productions that carry a controlling expression appear, so
 // a fix that reached only one of them leaves this fixture failing.
-u8 n <- 3;
+mut u8 n <- 3;
 bool ready <- true;
-u8 hits <- 0;
+mut u8 hits <- 0;
 
 void main() {
     if ((n < 5) && (n > 1)) {
@@ -29,7 +29,7 @@ void main() {
     do {
         n +<- 1;
     } while ((n < 3));
-    for (u8 i <- 0; (i < 3); i +<- 1) {
+    for (mut u8 i <- 0; (i < 3); i +<- 1) {
         hits +<- 1;
     }
     u8 picked <- ((n > 1)) ? 1 : 0;

@@ -10,22 +10,22 @@
 // Test u16 shift operations: left shift (<<) and right shift (>>)
 // Coverage: Section 5.5-5.6 for u16 type
 int main(void) {
-    uint16_t a = 0x0001U;
-    uint16_t left1 = a << 1U;
-    uint16_t left8 = a << 8U;
-    uint16_t left15 = a << 15U;
-    uint16_t b = 0x8000U;
-    uint16_t right1 = b >> 1U;
-    uint16_t right8 = b >> 8U;
-    uint16_t right15 = b >> 15U;
-    uint16_t c = 0x00FFU;
-    uint16_t shift_amount = 4U;
-    uint16_t left_var = c << shift_amount;
-    uint16_t right_var = c >> shift_amount;
-    uint16_t d = 0xFF00U;
-    uint16_t shift_byte = d >> 8U;
-    uint16_t e = 0xAAAAU;
-    uint16_t multi_shift = (e >> 4U) << 2U;
+    const uint16_t a = 0x0001U;
+    const uint16_t left1 = a << 1U;
+    const uint16_t left8 = a << 8U;
+    const uint16_t left15 = a << 15U;
+    const uint16_t b = 0x8000U;
+    const uint16_t right1 = b >> 1U;
+    const uint16_t right8 = b >> 8U;
+    const uint16_t right15 = b >> 15U;
+    const uint16_t c = 0x00FFU;
+    const uint16_t shift_amount = 4U;
+    const uint16_t left_var = c << shift_amount;
+    const uint16_t right_var = c >> shift_amount;
+    const uint16_t d = 0xFF00U;
+    const uint16_t shift_byte = d >> 8U;
+    const uint16_t e = 0xAAAAU;
+    const uint16_t multi_shift = (e >> 4U) << 2U;
     if (left1 == 2 && left8 == 256 && left15 == 32768) {
         if (right1 == 16384 && right8 == 128 && right15 == 1) {
             if (left_var == 4080 && right_var == 15) {

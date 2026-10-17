@@ -2,7 +2,7 @@
 #include "fake_lib.h"
 
 scope MyScope {
-    widget_t w;
+    mut widget_t w;
 
     public void init() {
         this.w <- global.widget_create();

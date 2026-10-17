@@ -39,7 +39,6 @@ function createParam(
     emittedName: name,
     type,
     isConst: false,
-    isAutoConst: false,
     isArray: false,
     ...options,
   };
@@ -155,11 +154,11 @@ describe("CppHeaderGenerator", () => {
       expect(result).toContain("void process(const uint32_t& value);");
     });
 
-    it("generates function with auto-const parameter", () => {
+    it("generates function with read-only parameter", () => {
       const generator = new CppHeaderGenerator();
       const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("process", "void", [
-          createParam("value", "u32", { isAutoConst: true }),
+          createParam("value", "u32", { isConst: true }),
         ]),
       ];
 
@@ -200,18 +199,24 @@ describe("CppHeaderGenerator", () => {
       expect(result).toContain("void process(uint32_t value);");
     });
 
-    it("uses pass-by-value for float types (f32)", () => {
+    it("uses pass-by-value for a read-only f32", () => {
       const generator = new CppHeaderGenerator();
       const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("setFloat", "void", [createParam("value", "f32")]),
       ];
 
-      const result = generator.generate(symbols, "test.h", {});
+      const result = generator.generate(
+        symbols,
+        "test.h",
+        {},
+        undefined,
+        new Map([["setFloat", new Set(["value"])]]),
+      );
 
       expect(result).toContain("void setFloat(float value);");
     });
 
-    it("uses pass-by-value for float types (f64)", () => {
+    it("uses pass-by-value for a read-only f64", () => {
       const generator = new CppHeaderGenerator();
       const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("setDouble", "void", [
@@ -219,12 +224,18 @@ describe("CppHeaderGenerator", () => {
         ]),
       ];
 
-      const result = generator.generate(symbols, "test.h", {});
+      const result = generator.generate(
+        symbols,
+        "test.h",
+        {},
+        undefined,
+        new Map([["setDouble", new Set(["value"])]]),
+      );
 
       expect(result).toContain("void setDouble(double value);");
     });
 
-    it("uses pass-by-value for enum types", () => {
+    it("uses pass-by-value for a read-only enum", () => {
       const generator = new CppHeaderGenerator();
       const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("setState", "void", [
@@ -238,14 +249,36 @@ describe("CppHeaderGenerator", () => {
         "test.h",
         {},
         undefined,
-        undefined,
+        new Map([["setState", new Set(["state"])]]),
         allKnownEnums,
       );
 
       expect(result).toContain("void setState(State state);");
     });
 
-    it("uses pass-by-value for ISR type (function pointer)", () => {
+    it("passes a `mut` float or enum by reference (ADR-071 Q6)", () => {
+      const generator = new CppHeaderGenerator();
+      const symbols: IHeaderSymbol[] = [
+        createFunctionSymbol("setFloat", "void", [createParam("value", "f32")]),
+        createFunctionSymbol("setState", "void", [
+          createParam("state", "State"),
+        ]),
+      ];
+
+      const result = generator.generate(
+        symbols,
+        "test.h",
+        {},
+        undefined,
+        new Map(),
+        new Set(["State"]),
+      );
+
+      expect(result).toContain("void setFloat(float& value);");
+      expect(result).toContain("void setState(State& state);");
+    });
+
+    it("uses pass-by-value for a read-only ISR (function pointer)", () => {
       const generator = new CppHeaderGenerator();
       const symbols: IHeaderSymbol[] = [
         createFunctionSymbol("setHandler", "void", [
@@ -253,7 +286,13 @@ describe("CppHeaderGenerator", () => {
         ]),
       ];
 
-      const result = generator.generate(symbols, "test.h", {});
+      const result = generator.generate(
+        symbols,
+        "test.h",
+        {},
+        undefined,
+        new Map([["setHandler", new Set(["handler"])]]),
+      );
 
       expect(result).toContain("void setHandler(ISR handler);");
     });

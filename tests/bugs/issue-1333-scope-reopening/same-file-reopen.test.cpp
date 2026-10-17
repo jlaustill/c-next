@@ -41,13 +41,13 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 /* Scope: Lib */
 
 uint32_t Lib__useBoth(void) {
-    Lib__Mode m = Lib__Mode__BETA;
-    Lib__Point p = { .x = 3U, .y = 4U };
+    const Lib__Mode m = Lib__Mode__BETA;
+    const Lib__Point p = { .x = 3U, .y = 4U };
     return cnx_clamp_add_u32(cnx_clamp_add_u32(p.x, p.y), static_cast<uint32_t>(m));
 }
 
 int main(void) {
-    uint32_t result = Lib__useBoth();
+    const uint32_t result = Lib__useBoth();
     if (result != 9) {
         return 1U;
     }

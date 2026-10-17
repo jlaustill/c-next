@@ -19,8 +19,8 @@ u32 main() {
     }
 
     // Use const in loop bound (already tested but verify)
-    u8 sum <- 0;
-    for (u8 i <- 0; i < COUNT; i +<- 1) {
+    mut u8 sum <- 0;
+    for (mut u8 i <- 0; i < COUNT; i +<- 1) {
         sum +<- 1;
     }
     if (sum != 4) {

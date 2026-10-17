@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint32_t Sensor__scaled(uint32_t raw);
+uint32_t Sensor__scaled(const uint32_t raw);
 
 #ifdef __cplusplus
 }

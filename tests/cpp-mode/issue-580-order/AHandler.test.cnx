@@ -7,12 +7,12 @@
 
 scope AHandler {
     // Pass through to ZModifier (which may be processed later)
-    public void passThrough(Config config) {
+    public void passThrough(mut Config config) {
         global.ZModifier.reset(config);
     }
 }
 
 void main() {
-    Config c <- { value: 0 };
+    mut Config c <- { value: 0 };
     global.AHandler.passThrough(c);
 }

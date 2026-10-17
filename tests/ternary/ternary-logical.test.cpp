@@ -10,9 +10,9 @@
 // ADR-022: Ternary with logical operators
 // && and || in condition
 void test(void) {
-    uint32_t a = 5U;
-    uint32_t b = 10U;
-    uint32_t both = (a > 0 && b > 0) ? 1U : 0U;
-    uint32_t either = (a == 0 || b == 0) ? 1U : 0U;
-    uint32_t complex = (a > 0 && b > 0 || a < 0) ? a : b;
+    const uint32_t a = 5U;
+    const uint32_t b = 10U;
+    const uint32_t both = (a > 0 && b > 0) ? 1U : 0U;
+    const uint32_t either = (a == 0 || b == 0) ? 1U : 0U;
+    const uint32_t complex = (a > 0 && b > 0 || a < 0) ? a : b;
 }

@@ -31,7 +31,6 @@ import type ILocalDeclaration from "../../types/ILocalDeclaration";
 import type ISourceSpan from "../../types/ISourceSpan";
 import type TChainRoot from "../../types/TChainRoot";
 import type TValueBinding from "../../types/TValueBinding";
-import RunTarget from "./RunTarget";
 import ForeignTypeFacts from "../../utils/ForeignTypeFacts";
 import ResolvedTarget from "../../utils/ResolvedTarget";
 import TypeHead from "../../utils/TypeHead";
@@ -55,6 +54,9 @@ import ConstantFold from "../../utils/ConstantFold";
 import type IFoldedConstant from "../../types/IFoldedConstant";
 import OpaqueTypeResolution from "../../utils/OpaqueTypeResolution";
 import SMALL_PRIMITIVES from "./SMALL_PRIMITIVES";
+
+/** Scalars ADR-006 never listed as primitives, passed by value all the same */
+const BY_VALUE_SCALARS: ReadonlySet<string> = new Set(["f32", "f64", "ISR"]);
 import TypeResolver from "../../utils/TypeResolver";
 import SymbolGuards from "../../types/symbols/SymbolGuards";
 import type IVariableSymbol from "../../types/symbols/IVariableSymbol";
@@ -63,7 +65,6 @@ import ConflictDetector from "./ConflictDetector";
 import type IForeignSymbols from "./types/IForeignSymbols";
 import type IForeignValue from "./types/IForeignValue";
 import type IConflict from "../../types/IConflict";
-import ModificationFacts from "./ModificationFacts";
 import CallbackCompatibility from "./CallbackCompatibility";
 import SymbolTable from "../3-Declare/SymbolTable";
 import type ICodeGenSymbols from "../../types/ICodeGenSymbols";
@@ -175,15 +176,14 @@ class Program {
     // and handed in. The orchestrator and the test harness both did, and the
     // harness's copy had already dropped the callback map.
     const symbolTable = inputs.symbolTable ?? new SymbolTable();
-    const modifications = ModificationFacts.derive(
-      files,
-      registry,
-      symbolTable,
+    const functionParamLists = new Map(
+      files.flatMap((file) => [...file.parameterLists]),
     );
     const callbackCompatibleFunctions = CallbackCompatibility.derive(
       files,
       symbolTable,
     );
+    const callbackFunctions = CallbackCompatibility.usedAsCallback(files);
 
     // #2036: settling is its own step, which a caller with no run reads
     // alone. Everything below reads the files' settled symbols and the inputs
@@ -222,9 +222,15 @@ class Program {
       symbolsByFile,
       visibility,
     );
-    const passByValueParams = Program.derivePassByValue(
+    const passByValueParams = Program.deriveScalarParams(
       symbolsByFile,
-      modifications.modifiedParameters,
+      knownEnums,
+      true,
+    );
+    const passByPointerParams = Program.deriveScalarParams(
+      symbolsByFile,
+      knownEnums,
+      false,
     );
     // Settled once, with the files, so every pass reads one answer.
     const target = settled.target;
@@ -280,16 +286,17 @@ class Program {
         foreign.macros.get(sourceFile)?.get(name) ?? null,
       headerMacrosUnread: (sourceFile: string): boolean =>
         foreign.macrosUnread.has(sourceFile),
-      modifiedParameters: (): ReadonlyMap<string, ReadonlySet<string>> =>
-        modifications.modifiedParameters,
       functionParamLists: (): ReadonlyMap<string, ReadonlyArray<string>> =>
-        modifications.functionParamLists,
+        functionParamLists,
       codeGenSymbolsFor: (sourceFile: string): ICodeGenSymbols | undefined =>
         visibleByFile.get(sourceFile),
       passByValueParams: (): ReadonlyMap<string, ReadonlySet<string>> =>
         passByValueParams,
+      passByPointerParams: (): ReadonlyMap<string, ReadonlySet<string>> =>
+        passByPointerParams,
       callbackCompatibleFunctions: (): ReadonlyMap<string, string> =>
         callbackCompatibleFunctions,
+      callbackFunctions: (): ReadonlySet<string> => callbackFunctions,
       lexicalFrameAt: (sourceFile: string, at: TPosition): ILexicalFrame => {
         const root = framesByFile.get(sourceFile);
         invariant(root, `${sourceFile} is a file of this program`);
@@ -429,7 +436,7 @@ class Program {
     // Opacity is a fact of the headers alone, so it is ready before the settle,
     // which stamps each opaque parameter with it (#1722).
     const opaqueTypes = Program.deriveOpaqueTypes(foreign);
-    const target = inputs.target ? RunTarget.resolve(inputs.target) : null;
+    const target = inputs.target ?? null;
     const headers = inputs.symbolTable ?? null;
     // #1175: what a constant name's facts read of the files, beside the binder
     const fileFacts: IFileConstantFacts = {
@@ -694,9 +701,10 @@ class Program {
    * agrees with the modification facts by construction rather than by spelling
    * the qualification a second time (#1139).
    */
-  private static derivePassByValue(
+  private static deriveScalarParams(
     symbolsByFile: ReadonlyMap<string, ReadonlyArray<TSymbol>>,
-    modifiedParameters: ReadonlyMap<string, ReadonlySet<string>>,
+    knownEnums: ReadonlySet<string>,
+    isReadOnly: boolean,
   ): ReadonlyMap<string, ReadonlySet<string>> {
     const byFunction = new Map<string, ReadonlySet<string>>();
     for (const symbols of symbolsByFile.values()) {
@@ -704,10 +712,7 @@ class Program {
         if (!SymbolGuards.isFunction(symbol)) continue;
         byFunction.set(
           symbol.fullyQualifiedCName,
-          Program.eligibleParameters(
-            symbol.parameters,
-            modifiedParameters.get(symbol.fullyQualifiedCName),
-          ),
+          Program.scalarParameters(symbol.parameters, knownEnums, isReadOnly),
         );
       }
     }
@@ -715,24 +720,32 @@ class Program {
   }
 
   /**
-   * The parameters of one function that ADR-006 lets pass by value.
+   * The scalar parameters of one function that are read-only (ADR-006 passes
+   * them by value) or `mut` (ADR-071 Q6 passes them by pointer).
    *
    * Split from the walk above rather than nested inside it: three levels of loop
-   * put `derivePassByValue` over SonarCloud's cognitive-complexity limit, and the
-   * per-parameter rule is the part worth reading on its own.
+   * put `deriveScalarParams` over SonarCloud's cognitive-complexity limit, and
+   * the per-parameter rule is the part worth reading on its own.
    */
-  private static eligibleParameters(
+  private static scalarParameters(
     parameters: ReadonlyArray<IParameterInfo>,
-    modified: ReadonlySet<string> | undefined,
+    knownEnums: ReadonlySet<string>,
+    isReadOnly: boolean,
   ): ReadonlySet<string> {
     const eligible = new Set<string>();
     for (const parameter of parameters) {
+      const typeName = TypeResolver.getTypeName(parameter.type);
       // An array parameter decays to a pointer whatever its element type, so
-      // ADR-006 never applies to one.
+      // ADR-006 never applies to one. ADR-071 Q6: every other scalar -- an
+      // integer, a float, an enum, an `ISR` -- goes by value when read-only
+      // and by pointer when `mut`, so the callee's write reaches the caller.
+      // The declaration decides, not what the body does.
       const isEligible =
         !parameter.isArray &&
-        SMALL_PRIMITIVES.has(TypeResolver.getTypeName(parameter.type)) &&
-        !(modified?.has(parameter.name) ?? false);
+        (SMALL_PRIMITIVES.has(typeName) ||
+          BY_VALUE_SCALARS.has(typeName) ||
+          knownEnums.has(typeName)) &&
+        parameter.isConst === isReadOnly;
       if (isEligible) {
         eligible.add(parameter.name);
       }

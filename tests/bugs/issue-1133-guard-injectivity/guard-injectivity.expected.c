@@ -25,8 +25,8 @@
 #include <stdint.h>
 
 int main(void) {
-    uint8_t small = AlphaModule__one();
-    uint64_t large = BetaModule__big();
+    const uint8_t small = AlphaModule__one();
+    const uint64_t large = BetaModule__big();
     if (small != 1) {
         return 1U;
     }

@@ -18,7 +18,7 @@ import TypeCheckUtils from "../../../utils/TypeCheckUtils";
 import DeclaredTypeFacts from "../../../utils/DeclaredTypeFacts";
 import ForeignTypeFacts from "../../../utils/ForeignTypeFacts";
 import FunctionReference from "./FunctionReference";
-import TypeText from "./TypeText";
+import TypeText from "../../../utils/TypeText";
 import type IAnalysisContext from "../types/IAnalysisContext";
 import type IValuePosition from "../../../types/IValuePosition";
 import type ISourcePosition from "../../../utils/types/ISourcePosition";

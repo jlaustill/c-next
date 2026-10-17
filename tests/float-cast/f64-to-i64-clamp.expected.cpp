@@ -10,8 +10,8 @@
 // Tests: f64 to i64 cast should clamp values within range
 // Note: f64 can represent values beyond i64 range but with precision loss
 int main(void) {
-    double in_range = 1000000000000.0;
-    double negative = -500000000000.0;
+    const double in_range = 1000000000000.0;
+    const double negative = -500000000000.0;
     int64_t result = ((in_range) >= ((double)INT64_MAX) ? static_cast<int64_t>(INT64_MAX) : (in_range) < ((double)INT64_MIN) ? static_cast<int64_t>(INT64_MIN) : static_cast<int64_t>((in_range)));
     if (result != 1000000000000) {
         return 1U;

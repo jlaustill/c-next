@@ -28,7 +28,7 @@ int main(void) {
     r.onRead = readSample;
     r.onBump = bumpSample;
     Sample s = { .value = 4U };
-    uint32_t viaField = r.onRead(&s);
+    const uint32_t viaField = r.onRead(&s);
     if (viaField != 4) {
         return 1;
     }
@@ -36,7 +36,7 @@ int main(void) {
     if (s.value != 7) {
         return 2;
     }
-    uint32_t direct = readSample(&s);
+    const uint32_t direct = readSample(&s);
     if (direct != 7) {
         return 3;
     }

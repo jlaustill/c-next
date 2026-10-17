@@ -14,10 +14,10 @@
 // so each value below wrote bits outside its range. The values are chosen so
 // the unparenthesized form gives a different result.
 int main(void) {
-    uint32_t a = 0x100U;
-    uint32_t b = 0x1U;
-    uint32_t c = 0x13U;
-    bool cond = true;
+    const uint32_t a = 0x100U;
+    const uint32_t b = 0x1U;
+    const uint32_t c = 0x13U;
+    const bool cond = true;
     uint32_t x = 0U;
     x = (x & ~((uint32_t)0xFFU << 0)) | (((a | b) & (uint32_t)0xFFU) << 0);
     if (x != 0x01) {
@@ -33,8 +33,9 @@ int main(void) {
     if (z != 0) {
         return 3U;
     }
-    uint8_t low8 = 0x10U;
-    uint8_t one = 0x1U;
+    uint8_t low8 = 0U;
+    low8 = 0x10U;
+    const uint8_t one = 0x1U;
     Flags f = 0;
     f = (uint8_t)((f & ~(0x7U << 1)) | (((low8 | one) & 0x7U) << 1));
     if (((f >> 1) & 0x7) != 1) {

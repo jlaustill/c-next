@@ -6,16 +6,16 @@
 // `cnx_clamp_add_u32(i, 1)`: the `U` a statement gets is #1647's, since a
 // `for` header does not go through the assignment pipeline.
 u32 steps() {
-    u32 n <- 0;
-    for (u32 i <- 0; i < 3; i <- i + 1) {
+    mut u32 n <- 0;
+    for (mut u32 i <- 0; i < 3; i <- i + 1) {
         n <- n + 1;
     }
     return n;
 }
 
 u32 passes() {
-    u32 n <- 0;
-    for (u32 i <- 4294967290; i < 4294967295; i <- i + 10) {
+    mut u32 n <- 0;
+    for (mut u32 i <- 4294967290; i < 4294967295; i <- i + 10) {
         n <- n + 1;
         if (n > 3) {
             return n;
@@ -37,7 +37,7 @@ u32 main() {
     }
 
     // CONTROL: a plain local of the same type, clamped all along.
-    u32 j <- 4294967290;
+    mut u32 j <- 4294967290;
     j <- j + 10;
     if (j != 4294967295) {
         return 2;

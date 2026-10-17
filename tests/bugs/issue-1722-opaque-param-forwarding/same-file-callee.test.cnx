@@ -15,23 +15,23 @@
 // The complete-struct control is `complete-struct-control.test.cnx`.
 #include "dev.h"
 
-void aPoke(Dev d) {
+void aPoke(mut Dev d) {
     dev_poke(d);
 }
 
 // The defect: `d` was rendered `(*d)` here.
-void configure(Dev d) {
+void configure(mut Dev d) {
     aPoke(d);
 }
 
 // Control: forwarded to a C function.
-void cForward(Dev d) {
+void cForward(mut Dev d) {
     dev_poke(d);
 }
 
 // Control: an opaque local forwarded to the same C-Next function.
 i32 localForward() {
-    Dev e <- dev_create();
+    mut Dev e <- dev_create();
     aPoke(e);
     aPoke(e);
     i32 n <- dev_pokes(e);
@@ -39,7 +39,7 @@ i32 localForward() {
 }
 
 i32 main() {
-    Dev d <- dev_create();
+    mut Dev d <- dev_create();
 
     configure(d);
     i32 afterForward <- dev_pokes(d);

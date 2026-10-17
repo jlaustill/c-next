@@ -9,8 +9,8 @@ struct Data {
     u8 value;
 }
 
-const u8 N <- 9;
-const u8 OK_AMOUNT <- 7;
+u8 N <- 9;
+u8 OK_AMOUNT <- 7;
 
 // NEGATIVE CONTROLS -- everything the rule must stay silent on: an amount
 // below the width in every form, a runtime amount, and a literal left operand
@@ -48,7 +48,7 @@ void main() {
 
 scope Board {
     u8 m <- 1;
-    const u8 STEP <- 12;
+    u8 STEP <- 12;
 
     // ASSERTIONS 6-7 -- a scope member, expression and compound forms, and a
     // scope-local const amount.
@@ -65,7 +65,7 @@ scope Board {
 // scope's amount. `this.AMOUNT` would pass either way -- an explicit root
 // states where to look and admits one candidate.
 scope Narrow {
-    const u8 AMOUNT <- 7;
+    u8 AMOUNT <- 7;
 
     // CONTROL -- 7 fits a u8.
     public u8 ok(u8 v) {
@@ -74,7 +74,7 @@ scope Narrow {
 }
 
 scope Wide {
-    const u8 AMOUNT <- 40;
+    u8 AMOUNT <- 40;
 
     // ASSERTION -- 40 does not fit a u32, and is only knowable as 40 if the
     // scope-qualified candidate is tried before the bare one.

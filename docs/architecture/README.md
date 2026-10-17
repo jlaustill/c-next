@@ -46,21 +46,34 @@ print in source order.
 
 ### Ownership
 
-| #   | Pass         | Owns -- is sole author of                                                                                      | Emits          |
-| --- | ------------ | -------------------------------------------------------------------------------------------------------------- | -------------- |
-| 1.1 | **Discover** | which files exist, their kind, the include graph, topological order, every resolved absolute path              | `SourceGraph`  |
-| 1.2 | **Parse**    | syntax -- AST, tokens, comments, parse errors and form errors                                                  | `ParsedFile`   |
-| 1.3 | **Declare**  | **identity and declaration** -- every symbol a file declares                                                   | `FileSymbols`  |
-| 1.4 | **Resolve**  | **every fact requiring more than one file**, and the query surface                                             | `Program`      |
-| 2.1 | **Analyze**  | _is this program legal?_ -- every diagnostic except 1.2's, with codes and positions                            | `Diagnostics`  |
-| 2.2 | **Plan**     | _what C should exist?_ -- declarations and order, includes, helpers, MISRA annotations, toolchain requirements | `EmissionPlan` |
-| 2.3 | **Render**   | text. Formatting only -- **no decisions**                                                                      | `RenderedFile` |
-| 3.1 | **Write**    | the filesystem, exclusively                                                                                    | side effects   |
+| #   | Pass         | Owns -- is sole author of                                                                                                                    | Emits          |
+| --- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| 1.1 | **Discover** | which files exist, their kind, the include graph, topological order, every resolved absolute path                                            | `SourceGraph`  |
+| 1.2 | **Parse**    | syntax -- AST, tokens, comments, parse errors and form errors; the run target; the headers, read with that target's compiler; the C/C++ mode | `ParsedFile`   |
+| 1.3 | **Declare**  | **identity and declaration** -- every symbol a file declares                                                                                 | `FileSymbols`  |
+| 1.4 | **Resolve**  | **every fact requiring more than one file**, and the query surface                                                                           | `Program`      |
+| 2.1 | **Analyze**  | _is this program legal?_ -- every diagnostic except 1.2's, with codes and positions                                                          | `Diagnostics`  |
+| 2.2 | **Plan**     | _what C should exist?_ -- declarations and order, includes, helpers, MISRA annotations, toolchain requirements                               | `EmissionPlan` |
+| 2.3 | **Render**   | text. Formatting only -- **no decisions**                                                                                                    | `RenderedFile` |
+| 3.1 | **Write**    | the filesystem, exclusively                                                                                                                  | side effects   |
 
 ### The rules that make ownership checkable
 
-- After **1.1**, nothing may discover a file. `node:fs` is reachable only through 3.1 and
+- After **1.1**, nothing may discover a source file. A `<...>` header is found by the
+  target's compiler on its own system include path, when 1.2 has it read the headers. `node:fs` is reachable only through 3.1 and
   the host port 1.1 publishes.
+- **1.1 discovers and reads files; it does not compile them.** Running a compiler over the
+  headers is a separate concern (owner ruling on #2102): it needs the run's target, which
+  1.2 chooses from the parsed `#pragma target` lines, `--target`, `platformio.ini` and the
+  catalog. 1.2 then has the host read every header with that target's own compiler
+  (`HeaderCompiler`, by `TargetToolchain.gccFor`: `gcc`, `avr-gcc`, `arm-none-eabi-gcc`)
+  and finds `<...>` headers on that compiler's system include path (#1713, #1755). A
+  compiler the project names (`CNEXT_CROSS_COMPILER`, `compile_commands.json`) reads them
+  when its data-model macros match the target's; when they differ it is E0517 (#1542
+  ruling 10). Declarations
+  that agree are one target; declarations that disagree are E0511 (ADR-049). A header's
+  cached declarations are good only for the same compiler, flags, defines and search
+  paths (#1250).
 - After **1.2**, nothing may re-parse. One tree per file, per run.
 - After **1.3**, **nothing may compute a symbol's name.** A name is read from the symbol
   that carries it, never rebuilt from a scope and a leaf.
@@ -222,13 +235,14 @@ The test for tier is mechanical: **could you compute it with only this file open
 
 > `cppDetected` used to be listed here as a Tier 2 fact authored in 1.4 Resolve, because it
 > was raised by reading an included header. #1319 made it **declared**, from `cppRequired`
-> or `--cpp`. #1844 made it **discovered** again, and by 1.1: the run's mode is the
-> `SourceGraph`'s `cppMode`, settled before 1.1 returns from each header's language, which
-> 1.1 judges once, on the text a C compile meets (#1542, owner ruling 4). Any C++ header makes
+> or `--cpp`. #1844 made it **discovered** again, from each header's language, judged
+> once on the text a C compile meets (#1542, owner ruling 4). That text is what the
+> target's compiler reads, so since #1713 1.2 judges it, after choosing the target: the
+> run's mode is `IParsedSources.discovery.cppMode`, settled before 1.2 returns. Any C++ header makes
 > the run C++ (#1428); `cppRequired: true` (`--cpp`) is C++ whatever the headers are, and
 > `cppRequired: false` (`--no-cpp`) asks for C, where a C++ header is E0507. It is not a tier
-> fact: it is a fact of the include graph, which is 1.1's, and nothing after 1.1 judges a
-> header's language again, so nothing downstream can read it too early.
+> fact: it is a fact of the include graph as the target's compiler reads it, and nothing
+> after 1.2 judges a header's language again, so nothing downstream can read it too early.
 >
 > #1428 made that answer the only one. `Program` carries it (`program.cppMode()`, built
 > from the graph's; `IProgramInputs.cppMode` is required), and codegen, the header

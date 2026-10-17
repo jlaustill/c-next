@@ -31,23 +31,23 @@ Modes Modes_init(void) {
     return value;
 }
 
-Inner standalone = { Mode__IDLE };
+extern const Inner standalone = { Mode__IDLE };
 
-Mode bare = Mode__IDLE;
+extern const Mode bare = Mode__IDLE;
 
-Mode globalModes[3] = { Mode__IDLE, Mode__IDLE, Mode__IDLE };
+extern const Mode globalModes[3] = { Mode__IDLE, Mode__IDLE, Mode__IDLE };
 
 // Globals, not locals: a local's default is not readable before it is
 // assigned (ADR-015, #1980); the local forms are asserted by the snapshots
 // of the issue-1980 fixtures.
-Holder h = { tickDefault, Mode__IDLE, { Mode__IDLE } };
+extern const Holder h = { tickDefault, Mode__IDLE, { Mode__IDLE } };
 
-Modes modes = { { Mode__IDLE, Mode__IDLE, Mode__IDLE }, { { Mode__IDLE }, { Mode__IDLE } } };
+extern const Modes modes = { { Mode__IDLE, Mode__IDLE, Mode__IDLE }, { { Mode__IDLE }, { Mode__IDLE } } };
 
-Mode localModes[2] = { Mode__IDLE, Mode__IDLE };
+extern const Mode localModes[2] = { Mode__IDLE, Mode__IDLE };
 
 int main(void) {
-    uint32_t r = h.handler();
+    const uint32_t r = h.handler();
     if (r != 10) {
         return 1U;
     }

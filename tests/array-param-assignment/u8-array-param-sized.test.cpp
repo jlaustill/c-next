@@ -10,7 +10,7 @@
 // test-execution
 // Tests: Issue #368 variant - u8 array with explicit size
 // Function with explicit array size (like the working u32 test)
-void writeToSized(uint8_t arr[8], uint32_t index, uint8_t value) {
+void writeToSized(uint8_t arr[8], const uint32_t index, const uint8_t value) {
     arr[index] = value;
 }
 

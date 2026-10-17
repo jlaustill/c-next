@@ -34,25 +34,25 @@ int main(void) {
     if (((uint32_t)sizeof(Mode)) < 1) {
         return 6U;
     }
-    Fl g = {};
+    const Fl g = {};
     if (((uint32_t)sizeof(Fl)) != 1) {
         return 7U;
     }
-    char s[9] = "ab";
+    const char s[9] = "ab";
     if (((uint32_t)9U) != 9) {
         return 8U;
     }
     if (9 != 9) {
         return 9U;
     }
-    uint16_t arr[3] = {};
+    const uint16_t arr[3] = {};
     if (((uint32_t)sizeof(uint16_t) * 3U) != 6) {
         return 10U;
     }
     if (3 != 3) {
         return 11U;
     }
-    Cfg two[2] = {};
+    const Cfg two[2] = {};
     if (((uint32_t)sizeof(Cfg) * 2U) != ((uint32_t)sizeof(Cfg)) * 2) {
         return 12U;
     }

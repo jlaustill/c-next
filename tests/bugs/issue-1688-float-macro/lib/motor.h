@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-float Motor__torque(uint32_t raw);
+float Motor__torque(const uint32_t raw);
 
 #ifdef __cplusplus
 }

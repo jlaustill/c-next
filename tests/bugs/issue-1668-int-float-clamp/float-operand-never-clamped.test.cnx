@@ -70,7 +70,7 @@ u32 main() {
         return 6;
     }
 
-    f32 compound <- 2.5;
+    mut f32 compound <- 2.5;
     compound *<- (f32)i;
     if (compound != 7.5) {
         return 7;
@@ -91,7 +91,7 @@ u32 main() {
         return 10;
     }
 
-    u32 macroCompound <- 2;
+    mut u32 macroCompound <- 2;
     macroCompound <- (u32)((f32)macroCompound * SCALE_F);
     if (macroCompound != 5) {
         return 11;

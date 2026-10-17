@@ -1,4 +1,4 @@
-import TypedefParamParser from "./TypedefParamParser";
+import TypedefParamParser from "../../utils/TypedefParamParser";
 import SymbolGuards from "../../types/symbols/SymbolGuards";
 import invariant from "../../utils/invariant";
 import type IParameterInfo from "../../types/symbols/IParameterInfo";

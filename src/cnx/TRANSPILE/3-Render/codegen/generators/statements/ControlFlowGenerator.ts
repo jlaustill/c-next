@@ -203,7 +203,7 @@ const generateForVarDecl = (
   // reaches the global rather than the counter.
   const name = plan.emittedName;
 
-  let result = `${plan.atomic}${plan.volatile}${plan.typeName} ${name}`;
+  let result = `${plan.const}${plan.atomic}${plan.volatile}${plan.typeName} ${name}`;
 
   // ADR-036: Handle array dimensions (now returns array for multi-dim support).
   //

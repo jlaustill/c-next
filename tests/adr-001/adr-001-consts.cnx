@@ -7,5 +7,5 @@
 // a reason the same-file cells cannot.
 string<16> GREETING <- "hello";
 
-const u8 FIVE <- 5;
-const u8 ALSO_FIVE <- 5;
+u8 FIVE <- 5;
+u8 ALSO_FIVE <- 5;

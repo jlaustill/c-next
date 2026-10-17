@@ -1,0 +1,10 @@
+11:4 error[E0900]: cannot assign to read-only variable 'LIBG'
+       help: A binding is read-only unless declared `mut` (ADR-071); declare it `mut` if the value must change.
+13:24 error[E0900]: cannot assign to read-only variable 'LIBG' (safe_div output)
+       help: safe_div writes its result through its first argument, so it must be declared `mut` (ADR-071).
+15:4 error[E0900]: cannot assign to read-only variable 'V'
+       help: A binding is read-only unless declared `mut` (ADR-071); declare it `mut` if the value must change.
+21:8 error[E0900]: cannot assign to read-only variable 'LIBG'
+       help: A binding is read-only unless declared `mut` (ADR-071); declare it `mut` if the value must change.
+23:8 error[E0900]: cannot assign to read-only variable 'V'
+       help: A binding is read-only unless declared `mut` (ADR-071); declare it `mut` if the value must change.

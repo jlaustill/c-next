@@ -14,11 +14,11 @@
 #include <stdint.h>
 
 int main(void) {
-    Sensor* s = sensor_get();
+    const Sensor* s = sensor_get();
     if (s->v != 42) {
         return 1U;
     }
-    Sensor* t = sensor_direct();
+    const Sensor* t = sensor_direct();
     if (t->v != 42) {
         return 3U;
     }

@@ -12,12 +12,12 @@ scope ConstCond {
 
 // A scope with a method that modifies its config parameter
 scope CommandHandler {
-    public u8 setValue(ConstCond.Config cfg, u32 val) {
+    public u8 setValue(mut ConstCond.Config cfg, u32 val) {
         cfg.value <- val;
         return 0;
     }
 
-    public u8 enable(ConstCond.Config cfg) {
+    public u8 enable(mut ConstCond.Config cfg) {
         cfg.enabled <- true;
         return 0;
     }
@@ -25,9 +25,9 @@ scope CommandHandler {
 
 // BUG: Declaration first, reassignment with modifying call inside if
 // This pattern triggers issue #565 - the reassignment's RHS isn't walked for calls
-void handleEnableSpn(ConstCond.Config config) {
+void handleEnableSpn(mut ConstCond.Config config) {
     bool enable <- true;
-    u8 errorCode <- 0; // Declaration
+    mut u8 errorCode <- 0; // Declaration
     if (enable = true) {
         errorCode <- global.CommandHandler.setValue(config, 42); // Reassignment in conditional
     } else {
@@ -36,9 +36,9 @@ void handleEnableSpn(ConstCond.Config config) {
 }
 
 // Variant: reassignment inside else branch
-void handleElseBranch(ConstCond.Config config) {
+void handleElseBranch(mut ConstCond.Config config) {
     bool enable <- false;
-    u8 errorCode <- 0;
+    mut u8 errorCode <- 0;
     if (enable = true) {
         errorCode <- 1; // No modifying call here
     } else {
@@ -47,9 +47,9 @@ void handleElseBranch(ConstCond.Config config) {
 }
 
 // Variant: reassignment inside while loop
-void handleWhileLoop(ConstCond.Config config) {
-    u8 errorCode <- 0;
-    u32 count <- 0;
+void handleWhileLoop(mut ConstCond.Config config) {
+    mut u8 errorCode <- 0;
+    mut u32 count <- 0;
     while (count < 1) {
         errorCode <- global.CommandHandler.setValue(config, 100);
         count <- count + 1;
@@ -57,15 +57,15 @@ void handleWhileLoop(ConstCond.Config config) {
 }
 
 // Variant: reassignment inside for loop
-void handleForLoop(ConstCond.Config config) {
-    u8 errorCode <- 0;
-    for (u32 i <- 0; i < 1; i <- i + 1) {
+void handleForLoop(mut ConstCond.Config config) {
+    mut u8 errorCode <- 0;
+    for (mut u32 i <- 0; i < 1; i <- i + 1) {
         errorCode <- global.CommandHandler.setValue(config, 200);
     }
 }
 
 // Control case: declaration with modifying call (this already works)
-void handleDeclaration(ConstCond.Config config) {
+void handleDeclaration(mut ConstCond.Config config) {
     bool enable <- true;
     if (enable = true) {
         u8 errorCode <- global.CommandHandler.setValue(config, 42); // Declaration
@@ -73,13 +73,13 @@ void handleDeclaration(ConstCond.Config config) {
 }
 
 // Control case: top-level reassignment (outside conditional)
-void handleTopLevel(ConstCond.Config config) {
-    u8 errorCode <- 0;
+void handleTopLevel(mut ConstCond.Config config) {
+    mut u8 errorCode <- 0;
     errorCode <- global.CommandHandler.setValue(config, 300); // Top-level reassignment
 }
 
 u32 main() {
-    ConstCond.Config cfg;
+    mut ConstCond.Config cfg;
     cfg.value <- 0;
     cfg.enabled <- false;
 

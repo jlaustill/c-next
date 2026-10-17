@@ -2,7 +2,7 @@
 // #1666 NEGATIVE CONTROL: sibling blocks each declaring `v` report their own
 // width. This was right before the fix, and a per-function key breaks it.
 u32 probe(bool c) {
-    u32 w <- 0;
+    mut u32 w <- 0;
     if (c = true) {
         u8 v <- 1;
         w <- v.type_bit_length;

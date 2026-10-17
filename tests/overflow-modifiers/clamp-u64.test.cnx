@@ -7,7 +7,7 @@ u32 main() {
     // === OVERFLOW TESTS (clamp to UINT64_MAX) ===
 
     // Test 1: Basic overflow - add past max
-    clamp u64 val <- 18446744073709551610; // UINT64_MAX - 5
+    mut clamp u64 val <- 18446744073709551610; // UINT64_MAX - 5
     val +<- 10; // Would overflow, should clamp to UINT64_MAX
     if (val != 18446744073709551615) {
         return 1;

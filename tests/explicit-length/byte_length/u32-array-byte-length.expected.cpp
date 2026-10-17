@@ -18,14 +18,14 @@ uint32_t globalArr[16] = {};
 uint32_t TestScope__getGlobalArrayByteLength(void) {
     return 64;
 }
-static uint32_t TestScope__scopeArr[16] = {};
+static const uint32_t TestScope__scopeArr[16] = {};
 
 uint32_t TestScope__getScopeArrayByteLength(void) {
     return 64;
 }
-uint32_t TestScope__publicArr[16] = {};
+const uint32_t TestScope__publicArr[16] = {};
 
-uint32_t checkArrayByteLength(uint32_t arr[16]) {
+uint32_t checkArrayByteLength(const uint32_t arr[16]) {
     return 64;
 }
 

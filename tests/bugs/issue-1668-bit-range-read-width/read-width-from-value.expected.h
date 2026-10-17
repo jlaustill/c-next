@@ -20,13 +20,13 @@ typedef struct Pair {
 
 /* External variables */
 extern const uint32_t WIDTH;
-extern uint64_t g;
+extern const uint64_t g;
 extern Pair gs;
-extern uint16_t h;
-extern uint64_t Sc__v;
+extern const uint16_t h;
+extern const uint64_t Sc__v;
 
 /* Function prototypes */
-uint64_t Sc__low(uint32_t n);
+uint64_t Sc__low(const uint32_t n);
 
 #ifdef __cplusplus
 }

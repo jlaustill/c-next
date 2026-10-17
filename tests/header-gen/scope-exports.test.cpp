@@ -20,7 +20,7 @@ void LED__off(void) {
     LED__brightness = 0U;
 }
 
-void LED__setBrightness(uint8_t level) {
+void LED__setBrightness(const uint8_t level) {
     LED__brightness = level;
 }
 

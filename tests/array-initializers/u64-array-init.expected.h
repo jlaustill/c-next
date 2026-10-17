@@ -13,10 +13,10 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint64_t timestamps[4];
-extern uint64_t counters[5];
-extern uint64_t buffer[100];
-extern uint64_t ones[50];
+extern const uint64_t timestamps[4];
+extern const uint64_t counters[5];
+extern const uint64_t buffer[100];
+extern const uint64_t ones[50];
 extern const uint64_t factorials[10];
 
 #ifdef __cplusplus

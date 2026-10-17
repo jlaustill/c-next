@@ -15,7 +15,7 @@ u32 main() {
     set_global_flag(true);
 
     // Test 3: Call function to get the flag value
-    bool flag_val <- get_global_flag();
+    mut bool flag_val <- get_global_flag();
     if (flag_val != true) {
         return 1;
     }

@@ -50,13 +50,14 @@ describe("StatementLowering", () => {
   });
 
   it("records a declaration's modifiers, name, dimensions and initializer", () => {
-    const decl = only("atomic const clamp u8 buf[4][] <- [1, 2];");
+    const decl = only("atomic mut clamp u8 buf[4][] <- [1, 2];");
     expect(decl).toMatchObject({
       kind: "variableDeclaration",
       modifiers: {
         atomic: true,
         volatile: false,
-        const: true,
+        const: false,
+        mut: true,
         overflow: "clamp",
       },
       name: "buf",
@@ -66,7 +67,7 @@ describe("StatementLowering", () => {
     if (decl.kind !== "variableDeclaration") throw new Error("kind");
     expect(decl.dimensions.map((d) => d?.written ?? null)).toEqual(["4", null]);
     expect(decl.nameSpan.column).toBe(
-      decl.span.column + "atomic const clamp u8 ".length,
+      decl.span.column + "atomic mut clamp u8 ".length,
     );
   });
 

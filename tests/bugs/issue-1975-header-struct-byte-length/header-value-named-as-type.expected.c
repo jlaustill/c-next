@@ -13,11 +13,11 @@
 #include <stdint.h>
 
 int main(void) {
-    int32_t r = probe(1);
+    const int32_t r = probe(1);
     if (r != 2) {
         return 1U;
     }
-    int32_t s = tick.sec;
+    const int32_t s = tick.sec;
     if (s != 7) {
         return 2U;
     }

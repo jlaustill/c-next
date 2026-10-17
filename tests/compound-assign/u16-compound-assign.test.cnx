@@ -5,7 +5,7 @@
 // Range: 0 to 65535
 u32 main() {
     // ===== ADDITION (+<-) =====
-    u16 val <- 30000;
+    mut u16 val <- 30000;
     val +<- 20000; // Basic addition
     if (val != 50000) {
         return 1;
@@ -30,7 +30,7 @@ u32 main() {
     }
 
     // ===== SUBTRACTION (-<-) =====
-    u16 sub <- 50000;
+    mut u16 sub <- 50000;
     sub -<- 20000; // Basic subtraction
     if (sub != 30000) {
         return 10;
@@ -61,7 +61,7 @@ u32 main() {
     }
 
     // ===== MULTIPLICATION (*<-) =====
-    u16 mul <- 200;
+    mut u16 mul <- 200;
     mul *<- 200; // 200 * 200 = 40000
     if (mul != 40000) {
         return 20;
@@ -92,7 +92,7 @@ u32 main() {
     }
 
     // ===== DIVISION (/<-) =====
-    u16 div <- 50000;
+    mut u16 div <- 50000;
     div /<- 100; // 50000 / 100 = 500
     if (div != 500) {
         return 30;
@@ -123,7 +123,7 @@ u32 main() {
     }
 
     // ===== MODULO (%<-) =====
-    u16 mod <- 10007;
+    mut u16 mod <- 10007;
     mod %<- 1000; // 10007 % 1000 = 7
     if (mod != 7) {
         return 40;
@@ -154,7 +154,7 @@ u32 main() {
     }
 
     // ===== BITWISE AND (&<-) =====
-    u16 andVal <- 0xFFFF;
+    mut u16 andVal <- 0xFFFF;
     andVal &<- 0x00FF; // Keep low byte
     if (andVal != 0x00FF) {
         return 50;
@@ -179,7 +179,7 @@ u32 main() {
     }
 
     // ===== BITWISE OR (|<-) =====
-    u16 orVal <- 0x00FF;
+    mut u16 orVal <- 0x00FF;
     orVal |<- 0xFF00; // Combine bytes
     if (orVal != 0xFFFF) {
         return 60;
@@ -198,7 +198,7 @@ u32 main() {
     }
 
     // ===== BITWISE XOR (^<-) =====
-    u16 xorVal <- 0xAAAA;
+    mut u16 xorVal <- 0xAAAA;
     xorVal ^<- 0x5555; // Alternating XOR = all 1s
     if (xorVal != 0xFFFF) {
         return 70;
@@ -223,7 +223,7 @@ u32 main() {
     }
 
     // ===== LEFT SHIFT (<<<-) =====
-    u16 shl <- 1;
+    mut u16 shl <- 1;
     shl <<<- 0; // Shift by 0 = identity
     if (shl != 1) {
         return 80;
@@ -254,7 +254,7 @@ u32 main() {
     }
 
     // ===== RIGHT SHIFT (>><-) =====
-    u16 shr <- 32768;
+    mut u16 shr <- 32768;
     shr >><- 0; // Shift by 0 = identity
     if (shr != 32768) {
         return 90;

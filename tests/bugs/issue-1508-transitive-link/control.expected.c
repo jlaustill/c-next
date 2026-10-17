@@ -28,7 +28,7 @@
 #include <stdint.h>
 
 int main(void) {
-    uint32_t v = midOnly();
+    const uint32_t v = midOnly();
     if (v != 7) {
         return 1U;
     }

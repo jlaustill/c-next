@@ -16,6 +16,6 @@
 #include <stdint.h>
 
 void paintRed(void) {
-    Color c = Color::Red;
+    const Color c = Color::Red;
     paint(static_cast<uint8_t>(c));
 }

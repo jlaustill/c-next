@@ -26,13 +26,13 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 uint32_t x = 0U;
 
 uint8_t f(void) {
-    uint8_t y = 1U;
+    const uint8_t y = 1U;
     x = cnx_clamp_add_u32(x, 1000U);
     return y;
 }
 
 int main(void) {
-    uint8_t local = f();
+    const uint8_t local = f();
     if (local != 1) {
         return 2U;
     }

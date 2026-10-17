@@ -13,9 +13,9 @@
 // declaration line. This is the recursive-indent case the multi-line emitter
 // is most fragile at — generateBlock prefixes every line per nesting level.
 int main(void) {
-    bool gate = true;
+    const bool gate = true;
     if (gate == true) {
-        char base[17] = "Hello";
+        const char base[17] = "Hello";
         char copied[33] = "";
         (void) strncpy(copied, base, 32); copied[32] = '\0';
         char joined[33] = "";

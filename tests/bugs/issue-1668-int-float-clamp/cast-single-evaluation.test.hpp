@@ -22,7 +22,7 @@ typedef struct Sensor {
 
 /* External variables */
 extern uint32_t calls;
-extern float readings[4];
+extern const float readings[4];
 
 /* Function prototypes */
 uint32_t nextIndex(void);

@@ -67,9 +67,9 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 uint32_t total = 0U;
 
 
-typedef void (*onCritical_fp)(uint32_t);
+typedef void (*onCritical_fp)(const uint32_t);
 
-void onCritical(uint32_t n) {
+void onCritical(const uint32_t n) {
     total = cnx_clamp_add_u32(total, n);
 }
 
@@ -77,7 +77,7 @@ int main(void) {
     {
         uint32_t __primask = __cnx_get_PRIMASK();
         __cnx_disable_irq();
-        onCritical_fp guarded = onCritical;
+        const onCritical_fp guarded = onCritical;
         guarded(1U);
         __cnx_set_PRIMASK(__primask);
     }

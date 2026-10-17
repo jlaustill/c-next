@@ -3,9 +3,9 @@
 // bare and as this.N, compiles and has its value.
 
 scope S {
-    const u32 N <- 10;
-    const u32 M <- N * 2;
-    const u32 Q <- this.N + 1;
+    u32 N <- 10;
+    u32 M <- N * 2;
+    u32 Q <- this.N + 1;
 
     public u32 size() {
         return M + Q;

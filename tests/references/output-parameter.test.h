@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void calculateSum(int32_t a, int32_t b, int32_t* result);
+void calculateSum(const int32_t a, const int32_t b, int32_t* result);
 
 #ifdef __cplusplus
 }

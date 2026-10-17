@@ -23,7 +23,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // ADR-045: Test strings in control flow structures
 // Validates: string operations in if, while, for conditions
 int main(void) {
-    char name[33] = "Alice";
+    const char name[33] = "Alice";
     uint32_t result = 0U;
     if (strcmp(name, "Alice") == 0) {
         result = 1U;
@@ -43,7 +43,7 @@ int main(void) {
     if (result != 3) {
         return 3;
     }
-    char text[65] = "Hello";
+    const char text[65] = "Hello";
     if (strlen(text) == 5) {
         result = 4U;
     }
@@ -84,7 +84,7 @@ int main(void) {
     if (result != 7) {
         return 8;
     }
-    char status[33] = "active";
+    const char status[33] = "active";
     if (strcmp(status, "active") == 0) {
         if (strlen(status) == 6) {
             result = 8U;

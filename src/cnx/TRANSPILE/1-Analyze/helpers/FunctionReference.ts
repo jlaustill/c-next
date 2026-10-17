@@ -2,7 +2,7 @@
  * Which C-Next function a spelling denotes.
  *
  * #1322. Three questions in pass 2.1 end at the program's symbol for one
- * function: "what does this call target?" (E0878's callee, E0708's), "which
+ * function: "what does this call target?" (E0900's callee, E0708's), "which
  * function is this VALUE?" (a function placed into a callback-typed slot,
  * ADR-029) and "which function does this TYPE name?" (the slot itself, whose
  * declared type is a function under ADR-029's function-as-type rule). All
@@ -25,9 +25,11 @@
 
 import IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
 import type TExpression from "../../../types/syntax/TExpression";
+import type TExpressionOf from "../../../types/syntax/TExpressionOf";
+import OperandTyper from "../../../utils/OperandTyper";
 import QualifiedCName from "../../../utils/QualifiedCName";
 import ScopeUtils from "../../../utils/ScopeUtils";
-import TypeText from "./TypeText";
+import TypeText from "../../../utils/TypeText";
 import CalleeNameResolver from "./CalleeNameResolver";
 import ScopeCandidates from "./ScopeCandidates";
 import type IAnalysisContext from "../types/IAnalysisContext";
@@ -99,6 +101,29 @@ class FunctionReference {
       ),
       context,
     );
+  }
+
+  /**
+   * The function a call reaches: one named (`f(...)`, `S.f(...)`), or the
+   * function type of the callback it calls through (`h.onPoke(...)`,
+   * `cb(...)`), whose parameters ADR-029 makes those of the named function.
+   */
+  static ofCall(
+    chain: TExpressionOf<"postfix">,
+    scopePath: string,
+    context: IAnalysisContext,
+  ): IFunctionSymbol | null {
+    const named = FunctionReference.ofCallChain(chain, scopePath, context);
+    if (named !== null) return named;
+    const callAt = chain.ops.findIndex((op) => op.kind === "call");
+    if (callAt < 0) return null;
+    const target: TExpression =
+      callAt === 0
+        ? chain.primary
+        : { ...chain, ops: chain.ops.slice(0, callAt) };
+    const typeName = OperandTyper.typeOf(target, context)?.typeName;
+    if (typeName === undefined || typeName === null) return null;
+    return FunctionReference.ofTypeText(typeName, scopePath, context);
   }
 
   /**

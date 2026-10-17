@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-void testRuntimeDivision(uint32_t divisor);
+void testRuntimeDivision(const uint32_t divisor);
 
 #ifdef __cplusplus
 }

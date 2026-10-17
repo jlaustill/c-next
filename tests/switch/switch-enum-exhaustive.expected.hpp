@@ -21,7 +21,7 @@ typedef enum {
 void onIdle(void);
 void onActive(void);
 void onStopped(void);
-void handleState(EState state);
+void handleState(const EState state);
 
 #ifdef __cplusplus
 }

@@ -5,7 +5,7 @@
 //
 // NEGATIVE CONTROL: `loc[3]`, the last element.
 
-const u32 N <- 4;
+u32 N <- 4;
 u8[N] garr;
 
 void main() {

@@ -9,8 +9,19 @@ cJSON* cnext_cjson_create_array(void) {
     return cJSON_CreateArray();
 }
 
-cJSON* cnext_cjson_create_int_array(const int* numbers, int count) {
-    return cJSON_CreateIntArray(numbers, count);
+/* int32_t is not int on newlib or avr-libc (#1764), so each element crosses
+   the boundary as a number rather than the array as an int* */
+cJSON* cnext_cjson_create_int_array(const int32_t* numbers, int32_t count) {
+    cJSON* array = cJSON_CreateArray();
+    for (int32_t i = 0; (array != NULL) && (i < count); i++) {
+        cJSON* item = cJSON_CreateNumber((double)numbers[i]);
+        if ((item == NULL) || !cJSON_AddItemToArray(array, item)) {
+            cJSON_Delete(item);
+            cJSON_Delete(array);
+            array = NULL;
+        }
+    }
+    return array;
 }
 
 cJSON* cnext_cjson_create_object(void) {

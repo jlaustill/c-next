@@ -4,7 +4,7 @@
 scope Test {
     // BUG: msg is a local with macro-sized array → generates bit extraction
     public u8 from_local(u8 idx) {
-        msg_t msg;
+        mut msg_t msg;
         global.fill_msg(msg);
         return msg.data[idx];
     }

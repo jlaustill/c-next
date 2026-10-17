@@ -55,7 +55,10 @@ import Write from "../../cnx/WRITE/1-Write/Write";
 // 19: #1975 review (owner ruling) -- a C/C++ struct field records a
 // bit-field's declared width, so an entry written before measures
 // `uint32_t a : 3` as its storage type's 32 bits.
-const CACHE_VERSION = 19;
+// 20: #2103 -- `typedef struct _w {...} w;` records w's tag as it does for a
+// forward-declared tag, so an entry written before reads `w` and `_w` as two
+// types under an unchanged shape, and E0895 rejects one passed for the other.
+const CACHE_VERSION = 20;
 
 const TRANSPILER_VERSION = packageJson.version;
 
@@ -236,6 +239,7 @@ class CacheManager {
       structState: TJsonSafe<Required<IStructSymbolState>>;
       needsStructKeyword?: string[];
       enumBitWidth?: Map<string, number>;
+      reader?: string;
     },
   ): void {
     if (!this.cache) return;
@@ -278,6 +282,7 @@ class CacheManager {
       needsStructKeyword: options.needsStructKeyword,
       enumBitWidth: serializedEnumBitWidth,
       structState: options.structState,
+      reader: options.reader,
     };
 
     this.cache.set(filePath, entry);
@@ -288,6 +293,7 @@ class CacheManager {
   setHeaderDeclarations(
     filePath: string,
     record: IHeaderDeclarationRecord,
+    reader: string,
   ): void {
     this.setSymbols(
       filePath,
@@ -297,16 +303,25 @@ class CacheManager {
         structState: record.structState,
         needsStructKeyword: record.needsStructKeyword,
         enumBitWidth: record.enumBitWidth,
+        reader,
       },
     );
   }
 
   /**
    * #1991: what an earlier run recorded for the header at `filePath`, or null
-   * on a miss. Validated (#1225), so an entry of the wrong shape is a miss.
+   * on a miss. Validated (#1225), so an entry of the wrong shape is a miss,
+   * and so is one another compiler read (#1713: `reader`).
    */
-  headerDeclarations(filePath: string): IHeaderDeclarationRecord | null {
+  headerDeclarations(
+    filePath: string,
+    reader: string,
+  ): IHeaderDeclarationRecord | null {
     if (!this.isValid(filePath)) {
+      return null;
+    }
+    const recorded = this.cache?.get(filePath) as ICachedFileEntry | undefined;
+    if (recorded?.reader !== reader) {
       return null;
     }
     const entry = this.getSymbols(filePath);

@@ -11,9 +11,9 @@ extern "C" {
 #endif
 
 /* External variables */
-extern float k;
-extern double d;
-extern float neg;
+extern const float k;
+extern const double d;
+extern const float neg;
 
 #ifdef __cplusplus
 }

@@ -1,0 +1,14 @@
+// #1755 control: strlen compared with an unsigned value, and kept in a
+// size_t-wide u64, is accepted.
+#pragma target host
+#include <string.h>
+
+string<16> s <- "abc";
+u32 limit <- 5;
+mut bool b <- false;
+mut u64 n <- 0;
+
+void f() {
+    b <- strlen(s) > limit;
+    n <- strlen(s);
+}

@@ -14,16 +14,16 @@ struct Pair {
     u8 y;
 }
 
-void copyPair(Pair p, Pair q) {
+void copyPair(mut Pair p, Pair q) {
     p <- q;
 }
 
-void copyFlags(Sm s, Sm o) {
+void copyFlags(mut Sm s, Sm o) {
     s <- o;
 }
 
 // Forwarded to a pointer parameter, a parameter stays the pointer it is
-void forwardFlags(Sm s, Sm o) {
+void forwardFlags(mut Sm s, Sm o) {
     copyFlags(s, o);
 }
 
@@ -32,10 +32,10 @@ u8 fieldOf(Sm s) {
 }
 
 u32 main() {
-    Pair a;
+    mut Pair a;
     a.x <- 1;
     a.y <- 2;
-    Pair b;
+    mut Pair b;
     b.x <- 7;
     b.y <- 9;
     copyPair(a, b);
@@ -46,15 +46,15 @@ u32 main() {
         return 2;
     }
 
-    Sm f <- 0;
-    Sm g <- 0;
+    mut Sm f <- 0;
+    mut Sm g <- 0;
     g.C <- 6;
     copyFlags(f, g);
     if (f.C != 6) {
         return 3;
     }
 
-    Sm h <- 0;
+    mut Sm h <- 0;
     forwardFlags(h, g);
     if (h.C != 6) {
         return 4;

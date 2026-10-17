@@ -2,13 +2,13 @@
 // test-execution
 // Tests: Function with multiple output parameters
 // Divides a by b, returns quotient and remainder via output params
-void divmod(u32 a, u32 b, u32 quotient, u32 remainder) {
+void divmod(u32 a, u32 b, mut u32 quotient, mut u32 remainder) {
     quotient <- a / b;
     remainder <- a % b;
 }
 
 // Returns min and max of two values
-void minmax(i32 a, i32 b, i32 minVal, i32 maxVal) {
+void minmax(i32 a, i32 b, mut i32 minVal, mut i32 maxVal) {
     if (a < b) {
         minVal <- a;
         maxVal <- b;
@@ -19,14 +19,14 @@ void minmax(i32 a, i32 b, i32 minVal, i32 maxVal) {
 }
 
 // Calculates statistics: sum, count, and average
-void stats(u32 a, u32 b, u32 c, u32 sum, u32 count, u32 avg) {
+void stats(u32 a, u32 b, u32 c, mut u32 sum, mut u32 count, mut u32 avg) {
     sum <- a + b + c;
     count <- 3;
     avg <- sum / count;
 }
 
 // Swaps three values in rotation: a->b, b->c, c->a
-void rotate3(u32 a, u32 b, u32 c) {
+void rotate3(mut u32 a, mut u32 b, mut u32 c) {
     u32 temp <- a;
     a <- b;
     b <- c;
@@ -36,8 +36,8 @@ void rotate3(u32 a, u32 b, u32 c) {
 u32 main() {
 
     // Test divmod
-    u32 q <- 0;
-    u32 r <- 0;
+    mut u32 q <- 0;
+    mut u32 r <- 0;
 
     divmod(17, 5, q, r);
     if (q != 3) {
@@ -64,8 +64,8 @@ u32 main() {
     }
 
     // Test minmax
-    i32 minResult <- 0;
-    i32 maxResult <- 0;
+    mut i32 minResult <- 0;
+    mut i32 maxResult <- 0;
 
     minmax(10, 20, minResult, maxResult);
     if (minResult != 10) {
@@ -92,9 +92,9 @@ u32 main() {
     }
 
     // Test stats
-    u32 sum <- 0;
-    u32 count <- 0;
-    u32 avg <- 0;
+    mut u32 sum <- 0;
+    mut u32 count <- 0;
+    mut u32 avg <- 0;
 
     stats(10, 20, 30, sum, count, avg);
     if (sum != 60) {
@@ -116,9 +116,9 @@ u32 main() {
     }
 
     // Test rotate3
-    u32 x <- 1;
-    u32 y <- 2;
-    u32 z <- 3;
+    mut u32 x <- 1;
+    mut u32 y <- 2;
+    mut u32 z <- 3;
 
     rotate3(x, y, z);
     if (x != 2) {

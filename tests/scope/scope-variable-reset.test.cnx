@@ -6,11 +6,11 @@
 
 scope Calculator {
     // operationCount persists across all function calls
-    u32 operationCount <- 0;
+    mut u32 operationCount <- 0;
 
     public u32 addAndCount(u32 value) {
         // Local variable (always resets - standard function-local behavior)
-        u32 accumulator <- 0;
+        mut u32 accumulator <- 0;
         accumulator <- accumulator + value;
         // Scope variable persists - increments each call
         this.operationCount <- this.operationCount + 1;

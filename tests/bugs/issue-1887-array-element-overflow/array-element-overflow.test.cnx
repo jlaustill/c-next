@@ -16,17 +16,17 @@
 
 #include "declarations.cnx"
 
-u8[2] globalLevels <- [250, 250];
-wrap u8[2] globalWrapped <- [250, 250];
+mut u8[2] globalLevels <- [250, 250];
+mut wrap u8[2] globalWrapped <- [250, 250];
 
 struct Packet {
     u8[2] bytes;
 }
 
 scope Tank {
-    public u32 calls <- 0;
-    public u8[2] levels <- [250, 250];
-    public wrap u8[2] wrapped <- [250, 250];
+    public mut u32 calls <- 0;
+    public mut u8[2] levels <- [250, 250];
+    public mut wrap u8[2] wrapped <- [250, 250];
 
     public u32 nextIndex() {
         this.calls +<- 1;
@@ -48,7 +48,7 @@ scope Tank {
 
 i32 main() {
     // --- Local array: compound and expression assignment. ---
-    u8[2] levels <- [250, 250];
+    mut u8[2] levels <- [250, 250];
     levels[1] +<- 10;
     if (levels[1] != 255) {
         return 1;
@@ -58,14 +58,14 @@ i32 main() {
         return 2;
     }
 
-    clamp u8[2] explicitLevels <- [250, 250];
+    mut clamp u8[2] explicitLevels <- [250, 250];
     explicitLevels[0] +<- 10;
     if (explicitLevels[0] != 255) {
         return 3;
     }
 
     // --- Negative control: a wrap array's elements still wrap. ---
-    wrap u8[2] wrapped <- [250, 250];
+    mut wrap u8[2] wrapped <- [250, 250];
     wrapped[1] +<- 10;
     if (wrapped[1] != 4) {
         return 4;
@@ -76,7 +76,7 @@ i32 main() {
     }
 
     // --- Subtraction saturates at the other end. ---
-    u8[2] low <- [5, 5];
+    mut u8[2] low <- [5, 5];
     low[0] -<- 10;
     if (low[0] != 0) {
         return 6;
@@ -87,7 +87,7 @@ i32 main() {
     }
 
     // --- Multi-dimensional elements, with a runtime index. ---
-    u8[2][2] grid <- [[250, 250], [250, 250]];
+    mut u8[2][2] grid <- [[250, 250], [250, 250]];
     u32 i <- 1;
     u32 j <- 0;
     grid[i][j] +<- 10;
@@ -98,7 +98,7 @@ i32 main() {
     if (grid[0][1] != 255) {
         return 9;
     }
-    wrap u8[2][2] wrappedGrid <- [[250, 250], [250, 250]];
+    mut wrap u8[2][2] wrappedGrid <- [[250, 250], [250, 250]];
     wrappedGrid[i][j] +<- 10;
     if (wrappedGrid[i][j] != 4) {
         return 10;
@@ -129,7 +129,7 @@ i32 main() {
     }
 
     // --- An array field of a struct. ---
-    Packet p <- { bytes: [250, 250] };
+    mut Packet p <- { bytes: [250, 250] };
     p.bytes[0] +<- 10;
     if (p.bytes[0] != 255) {
         return 17;
@@ -154,7 +154,7 @@ i32 main() {
     }
 
     // --- An index with a side effect runs once, as `+=` ran it. ---
-    u8[2] once <- [250, 250];
+    mut u8[2] once <- [250, 250];
     once[Tank.nextIndex()] +<- 10;
     if (once[0] != 255) {
         return 22;

@@ -34,46 +34,46 @@ static inline uint8_t cnx_clamp_mul_u8(uint8_t a, uint32_t b) {
 // Validates: Arithmetic on smaller types promotes correctly without warnings
 // Coverage: u8/u16 arithmetic, mixed-width operations
 int main(void) {
-    uint8_t a = 100U;
-    uint8_t b = 50U;
-    uint32_t sum = cnx_clamp_add_u8(a, b);
+    const uint8_t a = 100U;
+    const uint8_t b = 50U;
+    const uint32_t sum = cnx_clamp_add_u8(a, b);
     if (sum != 150) {
         return 1U;
     }
-    uint8_t c = 200U;
-    uint8_t d = 2U;
-    uint32_t clampedProduct = cnx_clamp_mul_u8(c, d);
+    const uint8_t c = 200U;
+    const uint8_t d = 2U;
+    const uint32_t clampedProduct = cnx_clamp_mul_u8(c, d);
     if (clampedProduct != 255) {
         return 2U;
     }
-    uint32_t product = static_cast<uint32_t>(c) * static_cast<uint32_t>(d);
+    const uint32_t product = static_cast<uint32_t>(c) * static_cast<uint32_t>(d);
     if (product != 400) {
         return 3U;
     }
-    uint16_t e = 30000U;
-    uint16_t f = 20000U;
-    uint32_t large_sum = cnx_clamp_add_u16(e, f);
+    const uint16_t e = 30000U;
+    const uint16_t f = 20000U;
+    const uint32_t large_sum = cnx_clamp_add_u16(e, f);
     if (large_sum != 50000) {
         return 3U;
     }
-    uint8_t small = 255U;
-    uint16_t medium = 1000U;
-    uint32_t mixed = cnx_clamp_add_u16(small, medium);
+    const uint8_t small = 255U;
+    const uint16_t medium = 1000U;
+    const uint32_t mixed = cnx_clamp_add_u16(small, medium);
     if (mixed != 1255) {
         return 4U;
     }
-    uint32_t shift_val = 1U;
-    uint32_t shifted = shift_val << 8U;
+    const uint32_t shift_val = 1U;
+    const uint32_t shifted = shift_val << 8U;
     if (shifted != 256) {
         return 5U;
     }
-    uint32_t dividend = 100U;
-    uint32_t divisor = 3U;
-    uint32_t quotient = dividend / divisor;
+    const uint32_t dividend = 100U;
+    const uint32_t divisor = 3U;
+    const uint32_t quotient = dividend / divisor;
     if (quotient != 33) {
         return 6U;
     }
-    uint32_t remainder = dividend % divisor;
+    const uint32_t remainder = dividend % divisor;
     if (remainder != 1) {
         return 7U;
     }

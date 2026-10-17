@@ -3,13 +3,13 @@
 // Note: Compilation test only - ARM-specific code
 #pragma target teensy41
 
-atomic u32 sharedCounter <- 0;
+atomic mut u32 sharedCounter <- 0;
 
-atomic wrap u16 sequence <- 0;
+atomic mut wrap u16 sequence <- 0;
 
-u8[64] buffer;
+mut u8[64] buffer;
 
-u32 writeIdx <- 0;
+mut u32 writeIdx <- 0;
 
 // Atomic operation within critical section
 void criticalUpdate() {

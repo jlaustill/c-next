@@ -8,4 +8,4 @@
 // ADR-001, and every relay in this corpus declares something for that reason.
 #include "adr-001-consts.cnx"
 
-const u8 SIX <- 6;
+u8 SIX <- 6;

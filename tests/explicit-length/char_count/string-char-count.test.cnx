@@ -27,7 +27,7 @@ i32 main() {
     }
 
     // Test struct member
-    TestStruct ts;
+    mut TestStruct ts;
     ts.name <- "Test";
     if (ts.name.value_char_count != 4) {
         return 4;

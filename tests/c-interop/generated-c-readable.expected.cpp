@@ -40,5 +40,5 @@ int main(void) {
     Point p2 = {};
     p2.x = 5;
     p2.y = 15;
-    Point sum = addPoints(p1, p2);
+    const Point sum = addPoints(p1, p2);
 }

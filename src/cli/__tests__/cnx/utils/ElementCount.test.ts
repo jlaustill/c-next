@@ -24,7 +24,7 @@ const bin = (
 ): TConstExpr => ({ kind: "binary", op, left, right });
 
 describe("ElementCount (#1283)", () => {
-  const { context } = testAnalysisContextFor("const u8 SIX <- 6;", {
+  const { context } = testAnalysisContextFor("u8 SIX <- 6;", {
     cppMode: false,
     macros: {
       N: {
@@ -72,7 +72,7 @@ describe("ElementCount (#1283)", () => {
 });
 
 describe("ElementCount.read (#1874, #1283 review)", () => {
-  const { context } = testAnalysisContextFor("const i32 M <- -2;", {
+  const { context } = testAnalysisContextFor("i32 M <- -2;", {
     cppMode: false,
     macros: {
       N: {

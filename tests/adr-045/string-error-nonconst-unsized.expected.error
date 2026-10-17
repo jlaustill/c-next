@@ -1,2 +1,2 @@
-9:0 error[E0862]: A non-const string requires an explicit capacity
-       help: Write the capacity, e.g. string<64>. Only a `const` can have one inferred.
+9:0 error[E0862]: A read-only string without a capacity requires an initializer to infer it from
+       help: Write the capacity, e.g. string<64>, or initialize it with a literal.

@@ -18,7 +18,7 @@ extern uint32_t sink;
 /* Function prototypes */
 void zeroInit(uint32_t* n);
 void bumpUpdate(uint32_t* n);
-uint32_t readOnly(uint32_t n);
+uint32_t readOnly(const uint32_t n);
 
 #ifdef __cplusplus
 }

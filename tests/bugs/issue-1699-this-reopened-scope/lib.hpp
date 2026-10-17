@@ -13,9 +13,9 @@ extern "C" {
 #endif
 
 /* External variables */
-extern float x;
-extern uint32_t Lib__x;
-extern uint8_t Lib__arr[4];
+extern const float x;
+extern const uint32_t Lib__x;
+extern const uint8_t Lib__arr[4];
 
 #ifdef __cplusplus
 }

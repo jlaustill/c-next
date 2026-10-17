@@ -32,7 +32,7 @@ uint8_t LengthTest__getLength(void) {
     return LengthTest__length;
 }
 
-void LengthTest__setLength(uint8_t newLen) {
+void LengthTest__setLength(const uint8_t newLen) {
     LengthTest__length = newLen;
 }
 
@@ -40,7 +40,7 @@ uint16_t LengthTest__getOffset(void) {
     return LengthTest__offset;
 }
 
-void LengthTest__setOffset(uint16_t newOffset) {
+void LengthTest__setOffset(const uint16_t newOffset) {
     LengthTest__offset = newOffset;
 }
 
@@ -67,7 +67,7 @@ int main(void) {
     if (resultOffset != 100) {
         return 4;
     }
-    uint16_t resultSum = LengthTest__getLengthPlusOffset();
+    const uint16_t resultSum = LengthTest__getLengthPlusOffset();
     if (resultSum != 142) {
         return 5;
     }

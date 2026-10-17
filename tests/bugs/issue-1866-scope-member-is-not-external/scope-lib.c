@@ -11,5 +11,5 @@
 /* Scope: Lib */
 
 void Lib__go(void) {
-    uint32_t x = 1U;
+    const uint32_t x = 1U;
 }

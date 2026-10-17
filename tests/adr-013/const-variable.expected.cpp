@@ -15,6 +15,6 @@ extern const uint32_t MAX_SIZE = 100U;
 extern const uint8_t FLAGS = 0x55U;
 
 int main(void) {
-    uint32_t size = MAX_SIZE;
-    uint8_t f = FLAGS;
+    const uint32_t size = MAX_SIZE;
+    const uint8_t f = FLAGS;
 }

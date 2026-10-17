@@ -4,8 +4,8 @@
 // Validates: Compound operators -<-, *<-, /<-, %<-, &<-, |<-, ^<-, <<<-, >><- on scope-local members
 // Note: +<- is already tested in scope/scope-compound-assign.test.cnx
 scope Calculator {
-    i32 value <- 0;
-    u32 bits <- 0;
+    mut i32 value <- 0;
+    mut u32 bits <- 0;
     // ===== SUBTRACTION (-<-) =====
     i32 testSubtraction() {
         this.value <- 100;
@@ -200,7 +200,7 @@ scope Calculator {
     }
     // Run all tests
     public i32 runAllTests() {
-        i32 result <- 0;
+        mut i32 result <- 0;
 
         result <- this.testSubtraction();
         if (result != 0) {

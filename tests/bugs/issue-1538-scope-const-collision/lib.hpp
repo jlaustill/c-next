@@ -14,7 +14,7 @@ extern "C" {
 
 /* External variables */
 extern const uint8_t Small__N;
-extern uint8_t Small__t[2];
+extern const uint8_t Small__t[2];
 
 #ifdef __cplusplus
 }

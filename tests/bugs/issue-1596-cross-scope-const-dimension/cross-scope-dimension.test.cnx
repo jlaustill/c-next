@@ -9,8 +9,8 @@
 // scope, already resolved and must keep resolving.
 
 scope Motor {
-    public const u8 MAX <- 4;
-    u8[MAX] inside;
+    public u8 MAX <- 4;
+    mut u8[MAX] inside;
 
     public u32 insideCount() {
         this.inside[0] <- 1;
@@ -18,7 +18,7 @@ scope Motor {
     }
 }
 
-u8[Motor.MAX] outside;
+mut u8[Motor.MAX] outside;
 
 u32 main() {
     outside[0] <- 1;

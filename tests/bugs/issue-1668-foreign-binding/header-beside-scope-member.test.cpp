@@ -15,10 +15,9 @@
 #include <stdint.h>
 
 /* Scope: Motor */
-static uint8_t Motor__speed = 1U;
 
 uint8_t Motor__get(void) {
-    return Motor__speed;
+    return 1U;
 }
 
 int main(void) {
@@ -26,7 +25,7 @@ int main(void) {
     if (speed != 1300) {
         return 1U;
     }
-    uint8_t m = Motor__get();
+    const uint8_t m = Motor__get();
     if (m != 1) {
         return 2U;
     }

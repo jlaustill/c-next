@@ -13,11 +13,11 @@
 #include <stdint.h>
 
 int main(void) {
-    CppMessage message = {};
+    const CppMessage message = {};
     if (message.pgn == 65280) {
         return 1U;
     }
-    uint8_t src = message.sourceAddress;
-    uint8_t pri = message.priority;
+    const uint8_t src = message.sourceAddress;
+    const uint8_t pri = message.priority;
     return 0U;
 }

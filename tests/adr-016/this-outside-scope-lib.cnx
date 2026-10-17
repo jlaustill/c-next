@@ -1,5 +1,5 @@
 // Included by this-outside-scope-imported-error.test.cnx
-const u8 LIMIT <- 1;
+u8 LIMIT <- 1;
 
 u8 fromLib(u8 v) {
     u8 got <- this.LIMIT;

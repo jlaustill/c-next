@@ -30,8 +30,6 @@
        help: A case label must be a literal, an enum member or a const with a value (ADR-025); compare a variable with if/else.
 129:13 error[E0717]: Case label 'p' is not a constant
        help: A case label must be a literal, an enum member or a const with a value (ADR-025); compare a variable with if/else.
-129:18 error[E0717]: Case label 'm' is not a constant
-       help: A case label must be a literal, an enum member or a const with a value (ADR-025); compare a variable with if/else.
 146:13 error[E0717]: Case label 'Panel.State' is not a constant
        help: A case label must be a literal, an enum member or a const with a value (ADR-025); compare a variable with if/else.
 146:28 error[E0717]: Case label 'EMode' is not a constant

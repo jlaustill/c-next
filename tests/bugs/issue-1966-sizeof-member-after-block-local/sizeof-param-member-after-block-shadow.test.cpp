@@ -14,9 +14,9 @@
 // #1975. Controls: the same parameter with no block, and a struct block-local's
 // own member inside its block.
 uint32_t measure(const Pair& cfg) {
-    uint32_t flag = 1U;
+    const uint32_t flag = 1U;
     if (flag == 1) {
-        uint8_t cfg[16] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
+        const uint8_t cfg[16] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
         if (16 != 16) {
             return 3U;
         }
@@ -29,9 +29,9 @@ uint32_t measureDirect(const Pair& cfg) {
 }
 
 uint32_t measureLocalMember(const Pair& cfg) {
-    uint32_t flag = 1U;
+    const uint32_t flag = 1U;
     if (flag == 1) {
-        Pair cfg = {};
+        const Pair cfg = {};
         if (1 != 1) {
             return 5U;
         }
@@ -40,19 +40,19 @@ uint32_t measureLocalMember(const Pair& cfg) {
 }
 
 int main(void) {
-    Pair p = {};
-    uint32_t afterBlock = measure(p);
+    const Pair p = {};
+    const uint32_t afterBlock = measure(p);
     if (afterBlock == 3) {
         return 3U;
     }
     if (afterBlock != 4) {
         return 1U;
     }
-    uint32_t direct = measureDirect(p);
+    const uint32_t direct = measureDirect(p);
     if (direct != 4) {
         return 2U;
     }
-    uint32_t localMember = measureLocalMember(p);
+    const uint32_t localMember = measureLocalMember(p);
     if (localMember == 5) {
         return 5U;
     }

@@ -1,7 +1,7 @@
 // ADR-046: Valid NULL check with else branch using c_ prefix
 #include <stdio.h>
 
-string<128> line;
+mut string<128> line;
 
 void processLine() {
     cstring c_result <- fgets(line, line.size, stdin);

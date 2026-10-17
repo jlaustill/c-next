@@ -1,0 +1,16 @@
+// test-execution
+// #2096 control: declarations in live branches (`#if 1`, `#ifdef` of a macro
+// the header defines) are symbols
+#include "branches.h"
+
+u32 main() {
+    i32 c <- c_func();
+    i32 d <- d_func();
+    if (c != 1) {
+        return 1;
+    }
+    if (d != 2) {
+        return 2;
+    }
+    return 0;
+}

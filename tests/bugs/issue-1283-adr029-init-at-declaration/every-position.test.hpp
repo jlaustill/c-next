@@ -26,9 +26,9 @@ typedef struct Ticker {
 } Ticker;
 
 /* External variables */
-extern Ticker globalTicker;
-extern Ticker globalTickers[2];
-extern Remote globalRemote;
+extern const Ticker globalTicker;
+extern const Ticker globalTickers[2];
+extern const Remote globalRemote;
 
 /* Function prototypes */
 uint32_t tickDefault(void);

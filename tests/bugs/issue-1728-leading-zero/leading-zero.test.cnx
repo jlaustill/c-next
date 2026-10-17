@@ -8,7 +8,7 @@
 // NEGATIVE CONTROLS stay silent: `0`, `0u8`, leading zeros after a `0x` or `0b`
 // prefix, a float, and `10`.
 
-const u8 C <- 010;
+u8 C <- 010;
 u8[010] dim;
 enum E {
     A <- 010u8

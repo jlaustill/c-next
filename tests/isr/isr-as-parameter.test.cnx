@@ -2,9 +2,9 @@
 // ADR-040: ISR as function parameter
 // Tests: passing ISR to functions and invoking through parameter
 // Global to track which handler was called
-u32 paramCallCount <- 0;
+mut u32 paramCallCount <- 0;
 
-u32 paramLastHandler <- 0;
+mut u32 paramLastHandler <- 0;
 
 // Handler functions (void() compatible with ISR)
 void paramHandler1() {
@@ -29,7 +29,7 @@ void executeParamHandler(ISR cb) {
 
 // Function that accepts ISR and invokes it multiple times
 void executeParamMultiple(ISR fn, u32 times) {
-    for (u32 i <- 0; i < times; i +<- 1) {
+    for (mut u32 i <- 0; i < times; i +<- 1) {
         fn();
     }
 }

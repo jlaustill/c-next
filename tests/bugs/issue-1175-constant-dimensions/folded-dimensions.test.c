@@ -23,21 +23,21 @@ const uint8_t LOCAL = 8U;
 
 const uint8_t BIG = 200U;
 
-uint8_t neg[2] = {0};
+const uint8_t neg[2] = {0};
 
-uint8_t counted[3] = {0};
+const uint8_t counted[3] = {0};
 
-uint8_t three[6] = {0};
+const uint8_t three[6] = {0};
 
-uint8_t shifted[8] = {0};
+const uint8_t shifted[8] = {0};
 
-uint8_t plain[4] = {0};
+const uint8_t plain[4] = {0};
 
-uint8_t wide[400] = {0};
+const uint8_t wide[400] = {0};
 
 // File scope, not a local: a local struct's field reads as uninitialized
 // even for `.type_element_count`, which is a constant (#1867).
-Info info = {0};
+const Info info = {0};
 
 int main(void) {
     if (8 != 8) {

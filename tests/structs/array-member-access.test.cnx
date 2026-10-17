@@ -11,7 +11,7 @@ struct Container {
 }
 
 i32 main() {
-    Container cfg;
+    mut Container cfg;
 
     // Initialize the array
     cfg.items[0].value <- 100;
@@ -24,8 +24,8 @@ i32 main() {
     cfg.items[2].flags <- 0x04;
 
     // Access in a loop (this is where the bug occurs)
-    u32 sum <- 0;
-    for (u32 i <- 0; i < 3; i +<- 1) {
+    mut u32 sum <- 0;
+    for (mut u32 i <- 0; i < 3; i +<- 1) {
         sum +<- cfg.items[i].value;
     }
 

@@ -20,7 +20,7 @@ typedef enum {
 
 /* Function prototypes */
 uint32_t Motor__step(void);
-uint32_t Motor__mode(EMode m);
+uint32_t Motor__mode(const EMode m);
 
 #ifdef __cplusplus
 }

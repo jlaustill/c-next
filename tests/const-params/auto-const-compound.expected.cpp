@@ -41,23 +41,23 @@ static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint64_t b) {
 // Tests: Auto-const with compound assignments
 // Coverage: Parameters modified via compound assignment operators
 // Compound add - should NOT get const
-void addToValue(uint32_t& val, uint32_t amount) {
+void addToValue(uint32_t& val, const uint32_t amount) {
     val = cnx_clamp_add_u32(val, amount);
 }
 
 // Compound subtract - should NOT get const
-void subtractFromValue(int32_t& val, int32_t amount) {
+void subtractFromValue(int32_t& val, const int32_t amount) {
     val = cnx_clamp_sub_i32(val, amount);
 }
 
 // Compound multiply - should NOT get const
-void multiplyValue(uint32_t& val, uint32_t factor) {
+void multiplyValue(uint32_t& val, const uint32_t factor) {
     val = cnx_clamp_mul_u32(val, factor);
 }
 
 // Read then compound - should NOT get const
-uint32_t readAndAdd(uint32_t& val, uint32_t amount) {
-    uint32_t original = val;
+uint32_t readAndAdd(uint32_t& val, const uint32_t amount) {
+    const uint32_t original = val;
     val = cnx_clamp_add_u32(val, amount);
     return original;
 }
@@ -70,7 +70,7 @@ void multipleCompound(uint32_t& val) {
 }
 
 // Only reads with arithmetic - SHOULD get const
-uint32_t onlyReads(uint32_t a, uint32_t b) {
+uint32_t onlyReads(const uint32_t a, const uint32_t b) {
     return cnx_clamp_add_u32(a, cnx_clamp_mul_u32(b, 2U));
 }
 
@@ -91,7 +91,7 @@ int main(void) {
         return 3U;
     }
     uint32_t w = 25U;
-    uint32_t original = readAndAdd(w, 10U);
+    const uint32_t original = readAndAdd(w, 10U);
     if (original != 25) {
         return 4U;
     }
@@ -103,9 +103,9 @@ int main(void) {
     if (m != 35) {
         return 6U;
     }
-    uint32_t a = 5U;
-    uint32_t b = 3U;
-    uint32_t result = onlyReads(a, b);
+    const uint32_t a = 5U;
+    const uint32_t b = 3U;
+    const uint32_t result = onlyReads(a, b);
     if (result != 11) {
         return 7U;
     }

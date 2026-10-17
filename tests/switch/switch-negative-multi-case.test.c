@@ -13,7 +13,7 @@
 int32_t result = 0;
 
 // Test multiple negative cases grouped together
-void testNegativeGroup(int8_t val) {
+void testNegativeGroup(const int8_t val) {
     switch (val) {
         case -3:
         case -2:
@@ -51,7 +51,7 @@ void testNegativeGroup(int8_t val) {
 }
 
 // Test mixed positive and negative in same case
-void testMixedGroup(int16_t val) {
+void testMixedGroup(const int16_t val) {
     switch (val) {
         case -100:
         case 100: {
@@ -77,7 +77,7 @@ void testMixedGroup(int16_t val) {
 }
 
 // Test negative hex in multi-case
-void testNegativeHexGroup(int32_t val) {
+void testNegativeHexGroup(const int32_t val) {
     switch (val) {
         case -0x10:
         case -0x20:
@@ -102,20 +102,20 @@ void testNegativeHexGroup(int32_t val) {
 }
 
 int main(void) {
-    int8_t neg1 = -1;
-    int8_t neg2 = -2;
-    int8_t neg3 = -3;
-    int8_t neg128 = -128;
-    int8_t neg127 = -127;
-    int8_t neg126 = -126;
-    int8_t zero = 0;
-    int8_t pos1 = 1;
-    int8_t pos2 = 2;
-    int8_t pos3 = 3;
-    int8_t pos125 = 125;
-    int8_t pos126 = 126;
-    int8_t pos127 = 127;
-    int8_t other = 50;
+    const int8_t neg1 = -1;
+    const int8_t neg2 = -2;
+    const int8_t neg3 = -3;
+    const int8_t neg128 = -128;
+    const int8_t neg127 = -127;
+    const int8_t neg126 = -126;
+    const int8_t zero = 0;
+    const int8_t pos1 = 1;
+    const int8_t pos2 = 2;
+    const int8_t pos3 = 3;
+    const int8_t pos125 = 125;
+    const int8_t pos126 = 126;
+    const int8_t pos127 = 127;
+    const int8_t other = 50;
     testNegativeGroup(neg1);
     if (result != 1) {
         return 1U;
@@ -172,14 +172,14 @@ int main(void) {
     if (result != 99) {
         return 14U;
     }
-    int16_t neg100 = -100;
-    int16_t pos100 = 100;
-    int16_t negOneI16 = -1;
-    int16_t zeroI16 = 0;
-    int16_t posOneI16 = 1;
-    int16_t minI16 = -32768;
-    int16_t maxI16 = 32767;
-    int16_t otherI16 = 500;
+    const int16_t neg100 = -100;
+    const int16_t pos100 = 100;
+    const int16_t negOneI16 = -1;
+    const int16_t zeroI16 = 0;
+    const int16_t posOneI16 = 1;
+    const int16_t minI16 = -32768;
+    const int16_t maxI16 = 32767;
+    const int16_t otherI16 = 500;
     testMixedGroup(neg100);
     if (result != 10) {
         return 15U;
@@ -212,13 +212,13 @@ int main(void) {
     if (result != 99) {
         return 22U;
     }
-    int32_t neg16 = -16;
-    int32_t neg32 = -32;
-    int32_t neg48 = -48;
-    int32_t neg255 = -255;
-    int32_t neg256 = -256;
-    int32_t zeroI32 = 0;
-    int32_t otherI32 = 1000;
+    const int32_t neg16 = -16;
+    const int32_t neg32 = -32;
+    const int32_t neg48 = -48;
+    const int32_t neg255 = -255;
+    const int32_t neg256 = -256;
+    const int32_t zeroI32 = 0;
+    const int32_t otherI32 = 1000;
     testNegativeHexGroup(neg16);
     if (result != 20) {
         return 23U;

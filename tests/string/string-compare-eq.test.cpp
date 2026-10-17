@@ -8,9 +8,9 @@
 #include <string.h>
 
 // ADR-045: Test string equality comparison
-char name[65] = "Alice";
+extern const char name[65] = "Alice";
 
-char other[65] = "Bob";
+extern const char other[65] = "Bob";
 
 void test(void) {
     if (strcmp(name, other) == 0) {

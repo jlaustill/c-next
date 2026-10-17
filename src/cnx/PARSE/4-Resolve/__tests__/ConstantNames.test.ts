@@ -107,7 +107,7 @@ describe("ConstantNames, through program.constantValueOf (#1175)", () => {
   describe("a scope's member, named from outside it", () => {
     const SCOPE = `
 scope Motor {
-    public const u8 MAX <- 4;
+    public u8 MAX <- 4;
     public enum EMode { SLOW, FAST }
     public u8 speed() { return 1; }
 }
@@ -183,7 +183,7 @@ u8 lone;`;
     it("answers a local array's element_count where the local is in view", () => {
       const program = build(`
 void f() {
-    u8[5] local;
+    mut u8[5] local;
     local[0] <- 1;
 }`);
       const inFunction = { line: 4, column: 4 };

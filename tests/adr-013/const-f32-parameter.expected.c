@@ -19,29 +19,29 @@ float doubleConstF32(const float value) {
 }
 
 int main(void) {
-    float result = readConstF32(3.14);
+    const float result = readConstF32(3.14);
     if (result < 3.13) {
         return 1U;
     }
     if (result > 3.15) {
         return 2U;
     }
-    float negResult = readConstF32(-2.5);
+    const float negResult = readConstF32(-2.5);
     if (negResult > -2.4) {
         return 3U;
     }
     if (negResult < -2.6) {
         return 4U;
     }
-    float doubled = doubleConstF32(1.5);
+    const float doubled = doubleConstF32(1.5);
     if (doubled < 2.9) {
         return 5U;
     }
     if (doubled > 3.1) {
         return 6U;
     }
-    float myValue = 9.81;
-    float readBack = readConstF32(myValue);
+    const float myValue = 9.81;
+    const float readBack = readConstF32(myValue);
     if (readBack < 9.8) {
         return 7U;
     }

@@ -24,15 +24,15 @@ typedef struct Narrow {
 } Narrow;
 
 /* External variables */
-extern uint32_t count;
-extern uint32_t buf[2];
-extern uint32_t tick;
-extern uint32_t wbuf[2];
-extern Holder wcfg;
-extern uint8_t wflags;
-extern char wmsg[17];
-extern uint32_t sarr[4];
-extern Wide scfg;
+extern const uint32_t count;
+extern const uint32_t buf[2];
+extern const uint32_t tick;
+extern const uint32_t wbuf[2];
+extern const Holder wcfg;
+extern const uint8_t wflags;
+extern const char wmsg[17];
+extern const uint32_t sarr[4];
+extern const Wide scfg;
 
 /* Function prototypes */
 uint32_t Counter__plain(void);

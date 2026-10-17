@@ -18,9 +18,9 @@ bitmap24 SensorConfig {
     Threshold[8] // bits 16-23
 }
 
-RGBColor color <- 0;
+mut RGBColor color <- 0;
 
-SensorConfig sensor <- 0;
+mut SensorConfig sensor <- 0;
 
 u32 main() {
 

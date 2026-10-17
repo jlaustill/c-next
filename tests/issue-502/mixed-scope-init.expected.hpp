@@ -25,7 +25,7 @@ typedef struct MixedWrapper {
 } MixedWrapper;
 
 /* External variables */
-extern MixedWrapper mw;
+extern const MixedWrapper mw;
 
 #ifdef __cplusplus
 }

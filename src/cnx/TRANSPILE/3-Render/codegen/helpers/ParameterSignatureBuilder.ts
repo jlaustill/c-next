@@ -9,6 +9,7 @@
  * - BaseHeaderGenerator (via ParameterInputAdapter.fromSymbol)
  */
 
+import ParameterConst from "../../../../utils/ParameterConst";
 import IParameterInput from "../types/IParameterInput";
 
 /**
@@ -98,7 +99,13 @@ class ParameterSignatureBuilder {
    * Example: float value, ISR handler, Status s
    */
   private static _buildPassByValueParam(param: IParameterInput): string {
-    const constMod = param.isConst ? "const " : "";
+    const constMod = ParameterConst.isWritten(
+      param.isConst,
+      param.baseType,
+      false,
+    )
+      ? "const "
+      : "";
     return `${constMod}${param.mappedType} ${param.name}`;
   }
 
@@ -141,18 +148,12 @@ class ParameterSignatureBuilder {
   }
 
   /**
-   * Get const prefix combining explicit const, auto-const, and forced const.
-   * Priority: forceConst > isConst > isAutoConst
-   * Issue #895: forceConst preserves const from callback typedef signature.
-   * Issue #995: Opaque handles suppress auto-const (they must be passed to
-   * C APIs that expect non-const pointers).
+   * The const prefix: the parameter is read-only (ADR-071), or its callback
+   * typedef's signature says const (#895, `forceConst`).
    */
   private static _getConstPrefix(param: IParameterInput): string {
-    // Issue #995: Opaque handles never get auto-const — they're passed to C APIs
-    // expecting mutable pointers (e.g., LVGL's lv_obj_t)
-    const effectiveAutoConst = param.isOpaqueHandle ? false : param.isAutoConst;
     // Any source of const results in "const " prefix
-    if (param.forceConst || param.isConst || effectiveAutoConst) {
+    if (param.forceConst || param.isConst) {
       return "const ";
     }
     return "";

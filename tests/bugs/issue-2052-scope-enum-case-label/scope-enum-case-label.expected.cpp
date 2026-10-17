@@ -40,7 +40,7 @@ uint32_t Motor__step(void) {
     return 0U;
 }
 
-uint32_t Motor__mode(EMode m) {
+uint32_t Motor__mode(const EMode m) {
     switch (m) {
         case EMode__IDLE: {
             return 10U;

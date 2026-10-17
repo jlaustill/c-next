@@ -12,14 +12,14 @@ struct Pixel {
     u32 v;
 }
 
-void onDown(const Pixel p) {}
+void onDown(Pixel p) {}
 
-void onUp(const Pixel p) {}
+void onUp(Pixel p) {}
 
 // NEGATIVE CONTROL -- same signature as both, used as nobody's field type, so
 // it may stand in anywhere. It appears in all four slots below and must stay
 // silent in every one of them.
-void plain(const Pixel p) {}
+void plain(Pixel p) {}
 
 struct Handler {
     onDown down;
@@ -41,7 +41,7 @@ scope Widget {
 
     // ---- CONTEXT: a scope METHOD.
     public void wire() {
-        Handler h;
+        mut Handler h;
         h.down <- plain;
         h.down <- onUp;
     }
@@ -52,7 +52,7 @@ onDown okGlobal <- plain;
 onDown badGlobal <- onUp;
 
 void test() {
-    Handler h;
+    mut Handler h;
 
     // ---- CONTROLS: `plain` in all four slots, and a type in its own slot.
     h.down <- plain;

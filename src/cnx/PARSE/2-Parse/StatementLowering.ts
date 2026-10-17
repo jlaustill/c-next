@@ -170,6 +170,7 @@ class StatementLowering {
         const:
           ctx instanceof Parser.VariableDeclarationContext &&
           ctx.constModifier() !== null,
+        mut: ctx.mutModifier() !== null,
         overflow: SyntaxLowering.overflow(ctx.overflowModifier()),
       },
       type: SyntaxLowering.type(ctx.type()),

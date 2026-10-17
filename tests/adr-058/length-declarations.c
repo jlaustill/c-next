@@ -9,8 +9,8 @@
 
 // Helper (not a test): the declarations the cross-file ADR-058 fixtures ask
 // length properties of. The rule needs the subject's TYPE, which lives here.
-uint32_t sharedScalar = 5U;
+const uint32_t sharedScalar = 5U;
 
-uint32_t sharedArray[4] = {0};
+const uint32_t sharedArray[4] = {0};
 
 const uint32_t LENGTH_MARKER = 1U;

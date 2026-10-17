@@ -15,10 +15,7 @@
 import invariant from "../../../../../utils/invariant";
 import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
-import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
-import IOrchestrator from "../IOrchestrator";
-import CallArgumentPassing from "../../../../2-Plan/CallArgumentPassing";
 import type IPlannedCallArgument from "../../types/IPlannedCallArgument";
 
 /**
@@ -62,20 +59,13 @@ const _generateCFunctionArg = (arg: IPlannedCallArgument): string => {
  *
  * @param funcExpr - The function name or expression being called
  * @param args - The planned arguments (null when the call declares none)
- * @param input - Generator input (type registry, function signatures, etc.)
  * @param _state - Generator state (unused but part of signature)
- * @param orchestrator - Orchestrator for callbacks into CodeGenerator
- * @param calleeType - The C-Next type of the value being called, or null
- *   when it is not a typed value (a function's own name)
  * @returns Generated code and effects
  */
 const generateFunctionCall = (
   funcExpr: string,
   args: readonly IPlannedCallArgument[] | null,
-  input: IGeneratorInput,
   _state: IGeneratorState,
-  orchestrator: IOrchestrator,
-  calleeType: string | null = null,
   safeDivisionHelper: string | null = null,
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
@@ -87,26 +77,13 @@ const generateFunctionCall = (
     return { code: `${funcExpr}()`, effects };
   }
 
-  const signatureName =
-    CallArgumentPassing.callbackFunction(calleeType, input) ?? funcExpr;
-
-  // Check if this is a C-Next function (uses pass-by-reference)
-  const isCNextFunc = orchestrator.isCNextFunction(signatureName);
-
   // ADR-051: 2.2 planned this call as a safe_div()/safe_mod() helper
   if (safeDivisionHelper !== null) {
     return generateSafeDivMod(funcExpr, safeDivisionHelper, args, effects);
   }
 
   // Regular function call handling
-  // #1322: a const argument to a non-const parameter is E0878 in pass 2.1.
-  if (isCNextFunc) {
-    // Issue #268: Track pass-through modifications for auto-const. Runs BEFORE
-    // any argument renders, and mutates auto-const state -- it must not be
-    // folded into the map below.
-    trackPassThroughModifications(signatureName, args, orchestrator);
-  }
-
+  // #1322: a read-only argument to a `mut` parameter is E0900 in pass 2.1.
   // Get function signature once for all arguments
 
   // Issue #992: 2.2 plans a struct initializer in an argument as a compound
@@ -153,8 +130,8 @@ const generateSafeDivMod = (
   effects: TGeneratorEffect[],
 ): IGeneratorOutput => {
   // #1322: ADR-051's call shape is E0884 (four arguments) and E0885 (the first
-  // is a variable to receive the result) in pass 2.1, and a `const` output is
-  // E0877 there -- that last one was accepted here and emitted `&K` into a
+  // is a variable to receive the result) in pass 2.1, and a read-only output is
+  // E0900 there -- that last one was accepted here and emitted `&K` into a
   // non-const pointer parameter.
   invariant(
     args.length === 4,
@@ -171,40 +148,6 @@ const generateSafeDivMod = (
     code: `${helperName}(${outputArg}, ${numeratorArg}, ${divisorArg}, ${defaultArg})`,
     effects,
   };
-};
-
-/**
- * Issue #268: Track pass-through modifications for auto-const inference.
- *
- * When a parameter of the current function is passed to another function
- * that modifies its corresponding parameter, we must mark our parameter
- * as modified too (since it's pass-by-reference).
- *
- * Example:
- *   void modifies(u32 val) { val <- 42; }
- *   void passesThrough(u32 val) { modifies(val); }  // val is effectively modified
- *
- * Note: This only works when the callee is defined before the caller.
- * If the callee is defined later, we can't know if it modifies the param,
- * and the C compiler will catch any const-mismatch errors.
- */
-const trackPassThroughModifications = (
-  funcName: string,
-  args: readonly IPlannedCallArgument[],
-  orchestrator: IOrchestrator,
-): void => {
-  for (let argIdx = 0; argIdx < args.length; argIdx++) {
-    const argId = args[argIdx].simpleIdentifier;
-    // Check if this argument is a parameter of the current function (#1969:
-    // the one its name binds to where it is passed)
-    if (!argId || !args[argIdx].parameter) continue;
-
-    // Check if the callee's parameter at this index is modified
-    if (orchestrator.isCalleeParameterModified(funcName, argIdx)) {
-      // The callee modifies this parameter, so our parameter is also modified
-      orchestrator.markParameterModified(argId);
-    }
-  }
 };
 
 export default generateFunctionCall;

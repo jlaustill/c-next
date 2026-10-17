@@ -24,7 +24,7 @@ void paramHandler1(void);
 void paramHandler2(void);
 void paramHandler3(void);
 void executeParamHandler(ISR cb);
-void executeParamMultiple(ISR fn, uint32_t times);
+void executeParamMultiple(ISR fn, const uint32_t times);
 void executeParamBoth(ISR first, ISR second);
 
 #ifdef __cplusplus

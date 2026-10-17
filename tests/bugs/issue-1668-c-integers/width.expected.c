@@ -31,17 +31,17 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 }
 
 int main(void) {
-    uint8_t b = 200U;
-    uint32_t r = cnx_clamp_add_u32(b, cU32);
+    const uint8_t b = 200U;
+    const uint32_t r = cnx_clamp_add_u32(b, cU32);
     if (r != 70200) {
         return 1U;
     }
-    uint32_t r16 = cnx_clamp_add_u16(b, cU16);
+    const uint32_t r16 = cnx_clamp_add_u16(b, cU16);
     if (r16 != 1200) {
         return 2U;
     }
-    uint32_t w = 70000U;
-    uint32_t rv = cnx_clamp_add_u32(b, w);
+    const uint32_t w = 70000U;
+    const uint32_t rv = cnx_clamp_add_u32(b, w);
     if (rv != 70200) {
         return 3U;
     }

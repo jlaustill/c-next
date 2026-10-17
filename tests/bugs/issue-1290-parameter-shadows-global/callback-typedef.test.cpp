@@ -26,17 +26,17 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // its parameters, and an array parameter's name is written there. A parameter
 // that shadows a file-scope name is written in the typedef under the C name
 // its prototype and definition use (`handler__buf`), not the global's.
-uint32_t buf[2] = {70U, 80U};
+extern const uint32_t buf[2] = {70U, 80U};
 
 uint32_t seen = 0U;
 
 /* C11 6.2.1p4, C++ [basic.scope.hiding]: `buf` emitted as `handler__buf` (a plain `buf` would hide the file-scope `buf` for the rest of its scope, so `global.buf` would reach the local). */
-void handler(uint32_t total, uint32_t handler__buf[2]) {
+void handler(const uint32_t total, const uint32_t handler__buf[2]) {
     seen = cnx_clamp_add_u32(total, handler__buf[1U]);
 }
 
 void run(handler_fp cb) {
-    uint32_t local[2] = {1U, 2U};
+    const uint32_t local[2] = {1U, 2U};
     cb(5U, local);
 }
 

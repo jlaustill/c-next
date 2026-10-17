@@ -12,7 +12,7 @@
 // Verifies that switch(array[index]) correctly resolves as element type, not bool
 uint32_t result = 0;
 
-void handleByArray(uint8_t data[4], uint8_t idx) {
+void handleByArray(const uint8_t data[4], const uint8_t idx) {
     switch (data[idx]) {
         case 1: {
             result = 10U;
@@ -34,11 +34,11 @@ void handleByArray(uint8_t data[4], uint8_t idx) {
 }
 
 int main(void) {
-    uint8_t arr[4] = {1U, 2U, 3U, 4U};
-    uint8_t idx0 = 0U;
-    uint8_t idx1 = 1U;
-    uint8_t idx2 = 2U;
-    uint8_t idx3 = 3U;
+    const uint8_t arr[4] = {1U, 2U, 3U, 4U};
+    const uint8_t idx0 = 0U;
+    const uint8_t idx1 = 1U;
+    const uint8_t idx2 = 2U;
+    const uint8_t idx3 = 3U;
     handleByArray(arr, idx0);
     if (result != 10) {
         return 1U;

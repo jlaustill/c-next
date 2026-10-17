@@ -10,8 +10,8 @@
 #define DEBUG
 
 // Const values (the safe way to define constants)
-const u32 LED_PIN <- 13;
-const u32 ALT_PIN <- 10;
+u32 LED_PIN <- 13;
+u32 ALT_PIN <- 10;
 
 void setup() {
     // Using const instead of #define for values

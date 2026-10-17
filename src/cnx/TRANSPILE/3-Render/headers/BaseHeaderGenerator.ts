@@ -257,7 +257,6 @@ abstract class BaseHeaderGenerator {
       ...this.generateFunctionSection(
         groups.functions,
         passByValueParams,
-        allKnownEnums,
         options.generatedStructInits,
         symbolTable,
       ),
@@ -285,7 +284,6 @@ abstract class BaseHeaderGenerator {
   private generateFunctionSection(
     functions: IHeaderSymbol[],
     passByValueParams?: TPassByValueParams,
-    allKnownEnums?: ReadonlySet<string>,
     generatedStructInits?: ReadonlySet<string>,
     symbolTable?: IResolvedSymbols,
   ): string[] {
@@ -305,7 +303,6 @@ abstract class BaseHeaderGenerator {
       const proto = this.generateFunctionPrototype(
         sym,
         passByValueParams,
-        allKnownEnums,
         symbolTable,
       );
       if (proto) {
@@ -322,7 +319,6 @@ abstract class BaseHeaderGenerator {
   private generateFunctionPrototype(
     sym: IHeaderSymbol,
     passByValueParams?: TPassByValueParams,
-    allKnownEnums?: ReadonlySet<string>,
     symbolTable?: IResolvedSymbols,
   ): string | null {
     // Map return type (main() always returns int). `headerCType`, not
@@ -340,7 +336,7 @@ abstract class BaseHeaderGenerator {
 
     if (sym.parameters && sym.parameters.length > 0) {
       const translatedParams = sym.parameters.map((p) =>
-        this.generateParameter(p, passByValueSet, allKnownEnums, symbolTable),
+        this.generateParameter(p, passByValueSet, symbolTable),
       );
       params = translatedParams.join(", ");
     }
@@ -354,17 +350,10 @@ abstract class BaseHeaderGenerator {
   private generateParameter(
     p: IParameterSymbol,
     passByValueSet?: ReadonlySet<string>,
-    allKnownEnums?: ReadonlySet<string>,
     symbolTable?: IResolvedSymbols,
   ): string {
-    // Pre-compute pass-by-value (ISR, float, enum, or explicitly marked)
-    const isPassByValue =
-      p.type === "ISR" ||
-      p.type === "f32" ||
-      p.type === "f64" ||
-      allKnownEnums?.has(p.type) ||
-      passByValueSet?.has(p.name) ||
-      false;
+    // ADR-071 Q6: a read-only scalar, by its declaration (Program)
+    const isPassByValue = passByValueSet?.has(p.name) ?? false;
 
     // Build normalized input using adapter
     const input = ParameterInputAdapter.fromSymbol(p, {

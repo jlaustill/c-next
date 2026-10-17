@@ -6,7 +6,7 @@
 // silent, as do `State.IDLE` and `global.State.IDLE`; `this.State.RUN`
 // repeats `State.RUN`. A local `LIMIT` beside `global.LIMIT` is in the
 // executing `case-label-local-shadow`.
-const u8 LIMIT <- 1;
+u8 LIMIT <- 1;
 
 enum State {
     IDLE,
@@ -14,7 +14,7 @@ enum State {
 }
 
 scope Panel {
-    const u8 LIMIT <- 3;
+    u8 LIMIT <- 3;
 
     enum State {
         IDLE,

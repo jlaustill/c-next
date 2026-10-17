@@ -15,7 +15,7 @@
 // Issues #138 and #139 fixed: string assignment now works correctly
 char messageBuffer[65] = "Initial";
 
-char logBuffer[129] = "Log entry one";
+const char logBuffer[129] = "Log entry one";
 
 uint32_t getMessageLength(void) {
     return strlen(messageBuffer);
@@ -60,11 +60,11 @@ int main(void) {
     if (129 != 129) {
         return 8U;
     }
-    uint32_t msgLen = getMessageLength();
+    const uint32_t msgLen = getMessageLength();
     if (msgLen != 7) {
         return 9U;
     }
-    uint32_t logLen = getLogLength();
+    const uint32_t logLen = getLogLength();
     if (logLen != 13) {
         return 10U;
     }
@@ -75,7 +75,7 @@ int main(void) {
     if (strcmp(messageBuffer, "Modified") != 0) {
         return 12U;
     }
-    char source[65] = "FromParam";
+    const char source[65] = "FromParam";
     copyMessage(source);
     if (strlen(messageBuffer) != 9) {
         return 13U;

@@ -8,13 +8,13 @@ struct Pixel {
     u8 b;
 }
 
-Pixel[4][4] image;
+mut Pixel[4][4] image;
 
 u32 main() {
     // Fill with gradient using variable indices
-    u32 y <- 0;
+    mut u32 y <- 0;
     while (y < 4) {
-        u32 x <- 0;
+        mut u32 x <- 0;
         while (x < 4) {
             image[y][x].r <- (y * 64)[0, 8];
             image[y][x].g <- (x * 64)[0, 8];

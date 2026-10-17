@@ -60,11 +60,11 @@ int main(void) {
     if (((sensor >> 16) & 0xFF) != 50) {
         return 11U;
     }
-    uint8_t rate = (uint8_t)((sensor >> 8) & 0xFF);
+    const uint8_t rate = (uint8_t)((sensor >> 8) & 0xFF);
     if (rate != 100) {
         return 12U;
     }
-    uint8_t thresh = (uint8_t)((sensor >> 16) & 0xFF);
+    const uint8_t thresh = (uint8_t)((sensor >> 16) & 0xFF);
     if (thresh != 50) {
         return 13U;
     }

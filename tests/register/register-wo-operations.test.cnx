@@ -9,9 +9,9 @@ register GPIO @ 0x42000000 {
     DR_TOGGLE: u32 wo @ 0x8C,
 }
 
-const u32 LED_BIT <- 3;
+u32 LED_BIT <- 3;
 
-const u32 BUTTON_BIT <- 7;
+u32 BUTTON_BIT <- 7;
 
 u32 dynamicBit <- 5;
 

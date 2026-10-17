@@ -32,7 +32,7 @@ extern HeaderMixed__Config globalConfig;
 /* Function prototypes */
 void initConfig(void);
 EStatus getStatus(void);
-void setStatus(EStatus newStatus);
+void setStatus(const EStatus newStatus);
 
 #ifdef __cplusplus
 }

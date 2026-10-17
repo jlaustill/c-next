@@ -3,7 +3,7 @@
 // test-adr: 057, 016
 
 scope Counter {
-    u32 value <- 0;
+    mut u32 value <- 0;
 
     public void increment() {
         value +<- 1; // Should resolve to this.value

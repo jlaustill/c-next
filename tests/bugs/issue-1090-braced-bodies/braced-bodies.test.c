@@ -23,7 +23,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // test-execution
 // #1090 negative control: braced bodies, and an `else if` chain (the one
 // unbraced `else` body allowed), are not E0716.
-uint32_t classify(uint32_t v) {
+uint32_t classify(const uint32_t v) {
     uint32_t r = 0U;
     if (v == 0) {
         r = 1U;

@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint32_t ByteProcessor__processByte(uint32_t crc, uint8_t byte);
+uint32_t ByteProcessor__processByte(const uint32_t crc, const uint8_t byte);
 uint32_t ByteProcessor__processBuffer(void);
 
 #ifdef __cplusplus

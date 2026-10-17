@@ -26,15 +26,14 @@ static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
 // bound to a same-type temp before the unsigned cast, never cast directly.
 int main(void) {
     uint8_t buf[8] = {0};
-    int32_t a = 0x12340000;
-    int32_t b = 0x00005678;
-    /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs int32_t*). */
-    const int32_t cnx_tmp0 = cnx_clamp_add_i32(a, b);
-    const uint32_t cnx_tmp1 = (uint32_t)cnx_tmp0;
-    buf[0] = (uint8_t)(cnx_tmp1);
-    buf[1] = (uint8_t)(cnx_tmp1 >> 8U);
-    buf[2] = (uint8_t)(cnx_tmp1 >> 16U);
-    buf[3] = (uint8_t)(cnx_tmp1 >> 24U);
+    const int32_t a = 0x12340000;
+    const int32_t b = 0x00005678;
+    /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
+    const uint32_t cnx_tmp0 = (uint32_t)(cnx_clamp_add_i32(a, b));
+    buf[0] = (uint8_t)(cnx_tmp0);
+    buf[1] = (uint8_t)(cnx_tmp0 >> 8U);
+    buf[2] = (uint8_t)(cnx_tmp0 >> 16U);
+    buf[3] = (uint8_t)(cnx_tmp0 >> 24U);
     if (buf[0U] != 0x78) {
         return 1U;
     }

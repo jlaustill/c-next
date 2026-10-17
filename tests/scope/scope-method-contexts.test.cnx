@@ -4,8 +4,8 @@
 // Tests: public methods, private methods, local variables with modifiers, combined access patterns
 
 // Global variables for testing global. accessor in all method contexts
-const u8 GLOBAL_MAX <- 100;
-const u16 GLOBAL_THRESHOLD <- 1000;
+u8 GLOBAL_MAX <- 100;
+u16 GLOBAL_THRESHOLD <- 1000;
 u8 globalCounter <- 50;
 bool globalEnabled <- true;
 i16 globalOffset <- -25;
@@ -13,18 +13,18 @@ f32 globalScale <- 2.5;
 
 scope Contexts {
     // Scope-level variables - private (default)
-    u8 privateValue <- 10;
-    clamp u8 privateClampValue <- 200;
-    wrap u8 privateWrapValue <- 250;
-    bool privateFlag <- false;
-    i16 privateOffset <- -50;
+    mut u8 privateValue <- 10;
+    mut clamp u8 privateClampValue <- 200;
+    mut wrap u8 privateWrapValue <- 250;
+    mut bool privateFlag <- false;
+    mut i16 privateOffset <- -50;
 
     // Scope-level variables - public
-    public u8 publicValue <- 20;
-    public clamp u16 publicClampValue <- 60000;
-    public wrap u16 publicWrapValue <- 65530;
-    public bool publicFlag <- true;
-    public i32 publicOffset <- -1000;
+    public mut u8 publicValue <- 20;
+    public mut clamp u16 publicClampValue <- 60000;
+    public mut wrap u16 publicWrapValue <- 65530;
+    public mut bool publicFlag <- true;
+    public mut i32 publicOffset <- -1000;
 
     // ========================================
     // PRIVATE METHODS - this. accessor tests

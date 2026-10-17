@@ -14,15 +14,15 @@ extern "C" {
 #endif
 
 /* Function prototypes */
-uint8_t getLowByte(uint16_t value);
-uint8_t getHighByte(uint16_t value);
-uint32_t addTwo(uint32_t a, uint32_t b);
-bool invert(bool flag);
+uint8_t getLowByte(const uint16_t value);
+uint8_t getHighByte(const uint16_t value);
+uint32_t addTwo(const uint32_t a, const uint32_t b);
+bool invert(const bool flag);
 void increment(uint32_t* x);
 void doubleValue(uint16_t* val);
 void incrementWrapper(uint32_t* x);
-uint32_t addAndIncrement(uint32_t* a, uint32_t b);
-void modifyInSwitch(uint32_t* x, uint32_t mode);
+uint32_t addAndIncrement(uint32_t* a, const uint32_t b);
+void modifyInSwitch(uint32_t* x, const uint32_t mode);
 void modifyInCritical(uint32_t* x);
 
 #ifdef __cplusplus

@@ -18,7 +18,7 @@ extern DeviceConfig globalConfig;
 
 /* Function prototypes */
 DeviceConfig getConfig(void);
-uint32_t process(uint32_t crc, uint8_t byte);
+uint32_t process(const uint32_t crc, const uint8_t byte);
 uint32_t testFuncReturnMember(void);
 
 #ifdef __cplusplus

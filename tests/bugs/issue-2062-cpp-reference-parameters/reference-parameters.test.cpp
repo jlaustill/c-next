@@ -17,7 +17,7 @@ int main(void) {
     if (local.v != 7) {
         return 1U;
     }
-    int32_t seen = peek(local);
+    const int32_t seen = peek(local);
     if (seen != 7) {
         return 2U;
     }

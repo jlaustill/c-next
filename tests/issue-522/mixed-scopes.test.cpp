@@ -18,7 +18,7 @@
 
 // C-Next scope with public variable - should appear in header
 /* Scope: MyScope */
-int32_t MyScope__scopeVar = 10;
+const int32_t MyScope__scopeVar = 10;
 
 // C++ namespace type - should NOT appear in header
-Lib::Sub::Data cppVar = { .value = 20, .active = true };
+extern const Lib::Sub::Data cppVar = { .value = 20, .active = true };

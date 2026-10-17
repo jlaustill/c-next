@@ -85,8 +85,9 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
-3 linked fixtures with no derivable context:
+4 linked fixtures with no derivable context:
 
+- `bugs/issue-1545-auto-const-one-rule/auto-const-one-rule.test.cnx`
 - `bugs/issue-1545-auto-const-one-rule/callback-arity.test.cnx`
 - `bugs/issue-1545-auto-const-one-rule/callback-shapes.test.cnx`
 - `bugs/issue-1545-auto-const-one-rule/cross-file-callback-const.test.cnx`
@@ -469,3 +470,26 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | -         | -      | -          | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
+
+## ADR-071
+
+| Context            | same file | direct | transitive | from 1 away | thru chain |
+| ------------------ | --------- | ------ | ---------- | ----------- | ---------- |
+| global variable    | ok        | ok     | ok         | n/a         | n/a        |
+| top-level function | ok        | ok     | ok         | n/a         | n/a        |
+| scope member       | ok        | ok     | ok         | n/a         | n/a        |
+| scope method       | ok        | ok     | ok         | n/a         | n/a        |
+
+11 linked fixtures with no derivable context:
+
+- `adr-071/c-callback-mut-match.test.cnx`
+- `adr-071/callback-initializer-wiring.test.cnx`
+- `adr-071/const-keyword-imported-error.test.cnx`
+- `adr-071/cpp-constructed-member.test.cnx`
+- `adr-071/cpp-method-receiver.test.cnx`
+- `adr-071/cpp-opaque-handle-global.test.cnx`
+- `adr-071/isr-callback-typedef.test.cnx`
+- `adr-071/mut-scalar-parameters.test.cnx`
+- `adr-071/mut-signature-follows-declaration.test.cnx`
+- `adr-071/opaque-handle-copy.test.cnx`
+- `adr-071/read-only-by-default.test.cnx`

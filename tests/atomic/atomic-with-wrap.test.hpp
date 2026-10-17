@@ -23,8 +23,8 @@ extern volatile uint16_t frameCounter;
 void incrementTicks(void);
 void nextSequence(void);
 void nextFrame(void);
-void addToTicks(uint32_t delta);
-void subtractFromTick8(uint8_t delta);
+void addToTicks(const uint32_t delta);
+void subtractFromTick8(const uint8_t delta);
 
 #ifdef __cplusplus
 }

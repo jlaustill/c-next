@@ -32,7 +32,7 @@ int main(void) {
     h.onBoth = remotePokeBoth;
     Dev* d = dev_create();
     h.onDev(d);
-    int32_t viaHandle = dev_pokes(d);
+    const int32_t viaHandle = dev_pokes(d);
     if (viaHandle != 1) {
         return 1;
     }
@@ -40,11 +40,11 @@ int main(void) {
     pair[0] = dev_create();
     pair[1] = dev_create();
     h.onBoth(pair);
-    int32_t first = dev_pokes(pair[0U]);
+    const int32_t first = dev_pokes(pair[0U]);
     if (first != 1) {
         return 2;
     }
-    int32_t second = dev_pokes(pair[1U]);
+    const int32_t second = dev_pokes(pair[1U]);
     if (second != 1) {
         return 3;
     }

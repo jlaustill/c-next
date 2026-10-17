@@ -14,14 +14,14 @@ struct Cfg {
 
 string<8>[2] names;
 
-u8[Cfg.memory_byte_length] raw;
+mut u8[Cfg.memory_byte_length] raw;
 u8[KCfg.memory_byte_length] headerRaw;
 u8[KOdd.memory_byte_length] pointerRaw;
 u8[names.memory_byte_length] nameBytes;
 u8[Cfg.memory_bit_length + 1] cfgBits;
 
 u32 main() {
-    u8[Cfg.memory_byte_length] local;
+    mut u8[Cfg.memory_byte_length] local;
     local[0] <- 7;
     raw[0] <- local[0];
     if (raw[0] != 7) {

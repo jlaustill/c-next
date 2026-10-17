@@ -13,9 +13,9 @@
 // Tests: struct members are automatically zero-initialized
 /* Scope: ZeroInit */
 
-Point origin = {0};
+const Point origin = {0};
 
-ZeroInit__Config settings = {0};
+const ZeroInit__Config settings = {0};
 
 int main(void) {
     if (origin.x == 0 && origin.y == 0) {

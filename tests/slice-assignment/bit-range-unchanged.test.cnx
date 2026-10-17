@@ -6,7 +6,7 @@
 u32 main() {
 
     // Test 1: Single bit assignment
-    u32 flags <- 0;
+    mut u32 flags <- 0;
 
     // Set bit 0
     flags[0] <- true;
@@ -33,7 +33,7 @@ u32 main() {
     }
 
     // Test 2: Bit range assignment
-    u32 value <- 0;
+    mut u32 value <- 0;
 
     // Set bits [0, 3] to value 5 (0b101)
     value[0, 3] <- 5;
@@ -54,7 +54,7 @@ u32 main() {
     }
 
     // Test 3: Overwriting bit ranges
-    u32 bits <- 0xFFFFFFFF;
+    mut u32 bits <- 0xFFFFFFFF;
 
     // Clear bits [0, 4] by setting to 0
     bits[0, 4] <- 0;
@@ -69,7 +69,7 @@ u32 main() {
     }
 
     // Test 4: u8 bit manipulation
-    u8 smallFlags <- 0;
+    mut u8 smallFlags <- 0;
 
     // Set bits [0, 4] to 15 (0b1111)
     smallFlags[0, 4] <- 15;
@@ -84,7 +84,7 @@ u32 main() {
     }
 
     // Test 5: u16 bit manipulation
-    u16 mediumFlags <- 0;
+    mut u16 mediumFlags <- 0;
 
     // Set bits [0, 8] to 0xFF
     mediumFlags[0, 8] <- 0xFF;

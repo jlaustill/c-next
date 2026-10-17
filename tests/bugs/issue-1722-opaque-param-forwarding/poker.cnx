@@ -3,12 +3,12 @@
 // `Dev*` either way. What was wrong is how the includer rendered its argument.
 #include "dev.h"
 
-void aPoke(Dev d) {
+void aPoke(mut Dev d) {
     dev_poke(d);
 }
 
 scope Poker {
-    public void poke(Dev d) {
+    public void poke(mut Dev d) {
         global.dev_poke(d);
     }
 }

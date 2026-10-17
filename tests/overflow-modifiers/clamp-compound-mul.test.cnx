@@ -7,7 +7,7 @@ u32 main() {
     // === U8 CLAMP MULTIPLICATION (max 255) ===
 
     // Test 1: Basic overflow - product exceeds max
-    clamp u8 val8 <- 20;
+    mut clamp u8 val8 <- 20;
     val8 *<- 20; // 20 * 20 = 400, should clamp to 255
     if (val8 != 255) {
         return 1;
@@ -65,7 +65,7 @@ u32 main() {
     // === U16 CLAMP MULTIPLICATION (max 65535) ===
 
     // Test 9: Basic overflow
-    clamp u16 val16 <- 300;
+    mut clamp u16 val16 <- 300;
     val16 *<- 300; // 300 * 300 = 90000, should clamp to 65535
     if (val16 != 65535) {
         return 9;
@@ -95,7 +95,7 @@ u32 main() {
     // === U32 CLAMP MULTIPLICATION (max 4294967295) ===
 
     // Test 13: Basic overflow
-    clamp u32 val32 <- 100000;
+    mut clamp u32 val32 <- 100000;
     val32 *<- 100000; // 100000 * 100000 = 10 billion, should clamp
     if (val32 != 4294967295) {
         return 13;
@@ -118,7 +118,7 @@ u32 main() {
     // === U64 CLAMP MULTIPLICATION ===
 
     // Test 16: Normal multiplication (u64 has huge range)
-    clamp u64 val64 <- 1000000000; // 1 billion
+    mut clamp u64 val64 <- 1000000000; // 1 billion
     val64 *<- 1000; // 1 trillion
     if (val64 != 1000000000000) {
         return 16;
@@ -134,7 +134,7 @@ u32 main() {
     // === I8 CLAMP MULTIPLICATION (range -128 to 127) ===
 
     // Test 18: Positive overflow
-    clamp i8 vali8 <- 20;
+    mut clamp i8 vali8 <- 20;
     vali8 *<- 10; // 20 * 10 = 200, should clamp to 127
     if (vali8 != 127) {
         return 18;
@@ -171,7 +171,7 @@ u32 main() {
     // === I16 CLAMP MULTIPLICATION (range -32768 to 32767) ===
 
     // Test 23: Positive overflow
-    clamp i16 vali16 <- 200;
+    mut clamp i16 vali16 <- 200;
     vali16 *<- 200; // 200 * 200 = 40000, should clamp to 32767
     if (vali16 != 32767) {
         return 23;
@@ -194,7 +194,7 @@ u32 main() {
     // === I32 CLAMP MULTIPLICATION ===
 
     // Test 26: Positive overflow
-    clamp i32 vali32 <- 50000;
+    mut clamp i32 vali32 <- 50000;
     vali32 *<- 50000; // 50000 * 50000 = 2.5 billion, should clamp to 2147483647
     if (vali32 != 2147483647) {
         return 26;
@@ -217,7 +217,7 @@ u32 main() {
     // === I64 CLAMP MULTIPLICATION ===
 
     // Test 29: Normal multiplication (i64 has huge range)
-    clamp i64 vali64 <- 1000000;
+    mut clamp i64 vali64 <- 1000000;
     vali64 *<- 1000000; // 1 trillion
     if (vali64 != 1000000000000) {
         return 29;

@@ -118,7 +118,10 @@ class CHeaderLowering {
   }
 
   private static typeSpecifiers(
-    declarationSpecifiers: DeclarationSpecifiersContext,
+    declarationSpecifiers: Pick<
+      DeclarationSpecifiersContext,
+      "declarationSpecifier"
+    >,
   ): ICTypeSpecifierSyntax[] {
     return declarationSpecifiers.declarationSpecifier().flatMap((spec) => {
       const typeSpec = spec.typeSpecifier();
@@ -158,6 +161,10 @@ class CHeaderLowering {
         ? (directDeclarator.parameterTypeList()?.getText() ?? "")
         : null,
       parameters: CHeaderLowering.parameters(declarator),
+      // `parameterList ',' '...'`: the ellipsis has no accessor of its own
+      isVariadic:
+        (directDeclarator.parameterTypeList()?.getChildCount() ?? 0) > 1,
+      isConstMember: false,
       arrayDimensions: ArrayDimensionText.parse(directDeclarator.getText()),
     };
   }
@@ -205,22 +212,68 @@ class CHeaderLowering {
     parameterDeclaration: ParameterDeclarationContext,
   ): IExtractedParameter | null {
     const declarationSpecifiers = parameterDeclaration.declarationSpecifiers();
-    if (!declarationSpecifiers) return null;
+    if (!declarationSpecifiers) {
+      return CHeaderLowering.unnamedParameter(parameterDeclaration);
+    }
     const declarator = parameterDeclaration.declarator();
-    const directText =
-      CHeaderLowering.directDeclaratorOf(declarator)?.getText() ?? "";
     return ParameterExtractorUtils.buildParameterInfo(
       declarator,
-      DeclaratorTypes.withPointers(
-        DeclaratorTypes.baseType(
-          CHeaderLowering.typeSpecifiers(declarationSpecifiers),
-        ),
-        CHeaderLowering.pointerDepth(declarator),
+      ...CHeaderLowering.parameterShape(
+        declarationSpecifiers,
+        CHeaderLowering.typeSpecifiers(declarationSpecifiers),
+        declarator?.pointer() ?? null,
+        CHeaderLowering.directDeclaratorOf(declarator)?.getText() ?? "",
       ),
-      declarationSpecifiers.getText().includes("const"),
-      directText.includes("[") && directText.includes("]"),
       CHeaderLowering.declaratorName,
     );
+  }
+
+  /**
+   * `char *fgets(char *restrict, int, FILE *restrict)`: a parameter with no name
+   * (newlib spells its prototypes that way) is still a parameter. `(void)` is none.
+   */
+  private static unnamedParameter(
+    parameterDeclaration: ParameterDeclarationContext,
+  ): IExtractedParameter | null {
+    const specifiers = parameterDeclaration.declarationSpecifiers2();
+    if (!specifiers) return null;
+    const abstract = parameterDeclaration.abstractDeclarator();
+    const typeSpecifiers = CHeaderLowering.typeSpecifiers(specifiers);
+    if (
+      abstract === null &&
+      DeclaratorTypes.baseType(typeSpecifiers) === "void"
+    ) {
+      return null;
+    }
+    const shape = CHeaderLowering.parameterShape(
+      specifiers,
+      typeSpecifiers,
+      abstract?.pointer() ?? null,
+      abstract?.directAbstractDeclarator()?.getText() ?? "",
+    );
+    return { name: "", type: shape[0], isConst: shape[1], isArray: shape[2] };
+  }
+
+  /**
+   * A parameter's type, constness and array-ness, named or not (#2103
+   * review): the `*`s of its own pointer -- not a nested one, which makes it
+   * a pointer to a function or an array -- and a `[...]` after it. One
+   * lowering, so `T (*rows)[4]` and `T (*)[4]` lower alike.
+   */
+  private static parameterShape(
+    specifiers: { getText(): string },
+    typeSpecifiers: readonly ICTypeSpecifierSyntax[],
+    pointer: { getText(): string } | null,
+    directText: string,
+  ): [type: string, isConst: boolean, isArray: boolean] {
+    return [
+      DeclaratorTypes.withPointers(
+        DeclaratorTypes.baseType(typeSpecifiers),
+        (pointer?.getText() ?? "").split("*").length - 1,
+      ),
+      specifiers.getText().includes("const"),
+      directText.includes("[") && directText.includes("]"),
+    ];
   }
 
   private static struct(
@@ -303,6 +356,8 @@ class CHeaderLowering {
     return {
       name,
       isFunction: false,
+      isVariadic: false,
+      isConstMember: false,
       hasPointer: false,
       pointerDepth: 0,
       functionPointerParams: null,

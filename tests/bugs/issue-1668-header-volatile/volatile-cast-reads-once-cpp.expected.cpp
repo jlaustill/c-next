@@ -24,6 +24,6 @@ static inline uint8_t cnx_cast_sat_f32_u8(float value) {
 }
 
 void sample(void) {
-    uint8_t a = cnx_cast_sat_f32_u8(cvf);
-    uint8_t b = ((cnf) >= ((float)UINT8_MAX) ? static_cast<uint8_t>(UINT8_MAX) : (cnf) < 0.0f ? static_cast<uint8_t>(0) : static_cast<uint8_t>((cnf)));
+    const uint8_t a = cnx_cast_sat_f32_u8(cvf);
+    const uint8_t b = ((cnf) >= ((float)UINT8_MAX) ? static_cast<uint8_t>(UINT8_MAX) : (cnf) < 0.0f ? static_cast<uint8_t>(0) : static_cast<uint8_t>((cnf)));
 }

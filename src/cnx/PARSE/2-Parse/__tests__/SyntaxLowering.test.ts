@@ -422,7 +422,7 @@ describe("SyntaxLowering member spans", () => {
 
   it("a rooted target's first member op covers the `.`, as an expression's does", () => {
     const tree = CNextSourceParser.parse(
-      "scope S { u8 x; void f() { this.x <- 1; u8 y <- this.x; } }\n",
+      "scope S { mut u8 x; void f() { this.x <- 1; u8 y <- this.x; } }\n",
     ).tree;
     const target = SyntaxLowering.assignmentTarget(
       find(tree, Parser.AssignmentTargetContext)[0],

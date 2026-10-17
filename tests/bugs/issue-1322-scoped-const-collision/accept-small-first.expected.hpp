@@ -13,8 +13,8 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint8_t Small__table[2];
-extern uint8_t Large__table[8];
+extern const uint8_t Small__table[2];
+extern const uint8_t Large__table[8];
 
 #ifdef __cplusplus
 }

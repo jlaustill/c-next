@@ -17,11 +17,11 @@
 
 // Function accepting namespaced type by value (auto pass-by-reference)
 void processResult(const SeaDash::Parse::ParseResult& result) {
-    int32_t cnt = result.count;
+    const int32_t cnt = result.count;
 }
 
 // Function returning namespaced type
 SeaDash::Parse::ParseResult createResult(void) {
-    SeaDash::Parse::ParseResult r = { .data = {0}, .count = 0, .success = true };
+    const SeaDash::Parse::ParseResult r = { .data = {0}, .count = 0, .success = true };
     return r;
 }

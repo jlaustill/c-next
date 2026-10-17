@@ -31,7 +31,7 @@ import { tmpdir } from "node:os";
 
 import Transpiler from "../Transpiler";
 import NodeFileSystem from "../../cnx/PARSE/1-Discover/NodeFileSystem";
-import ExternalDeclarationOracle from "../../cnx/PARSE/1-Discover/preprocessor/ExternalDeclarationOracle";
+import ExternalDeclarationOracle from "../../cnx/PARSE/2-Parse/preprocessor/ExternalDeclarationOracle";
 
 const COLORS = "enum EColor {\n    RED,\n    GREEN\n}\n";
 const GHOST = "enum EGhost {\n    A,\n    B\n}\n";

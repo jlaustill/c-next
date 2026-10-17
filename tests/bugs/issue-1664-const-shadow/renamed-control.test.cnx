@@ -1,16 +1,16 @@
 // test-execution
 // #1664 box 7, NEGATIVE CONTROL: the local const has another name, so
 // nothing shadows the global `N`; this sized the array 8 before the fix too.
-const u32 N <- 8;
+u32 N <- 8;
 
 u32 first() {
-    const u32 M <- 2;
+    u32 M <- 2;
     u32 x <- M;
     return x;
 }
 
 u32 second() {
-    u8[N] buf;
+    mut u8[N] buf;
     buf[7] <- 7;
     u32 n <- buf.type_element_count;
     u32 last <- buf[7];

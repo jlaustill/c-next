@@ -24,9 +24,6 @@ interface IParameterInput {
   /** Explicit const modifier from source code */
   isConst: boolean;
 
-  /** Inferred const for unmodified parameters (computed from CodeGenState.modifiedParameters) */
-  isAutoConst: boolean;
-
   /** Whether this is an array type */
   isArray: boolean;
 

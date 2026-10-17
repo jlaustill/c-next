@@ -11,7 +11,7 @@
 
 #include <stdint.h>
 
-uint32_t classify(EStatus status) {
+uint32_t classify(const EStatus status) {
     switch (status) {
         case EStatus__PENDING: {
             return 1U;

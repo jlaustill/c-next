@@ -11,8 +11,8 @@
 // Validates: Ternary operator with consistent types is warning-free
 // Coverage: Integer ternary, comparison conditions
 int main(void) {
-    uint32_t a = 10U;
-    uint32_t b = 20U;
+    const uint32_t a = 10U;
+    const uint32_t b = 20U;
     uint32_t flag = 1U;
     uint32_t result = (flag == 1) ? a : b;
     if (result != 10) {
@@ -23,32 +23,32 @@ int main(void) {
     if (result != 20) {
         return 2U;
     }
-    uint32_t x = 5U;
-    uint32_t y = 10U;
-    uint32_t max_val = (x > y) ? x : y;
+    const uint32_t x = 5U;
+    const uint32_t y = 10U;
+    const uint32_t max_val = (x > y) ? x : y;
     if (max_val != 10) {
         return 3U;
     }
-    uint8_t small_a = 100U;
-    uint8_t small_b = 200U;
-    uint8_t small_result = (small_a < small_b) ? small_a : small_b;
+    const uint8_t small_a = 100U;
+    const uint8_t small_b = 200U;
+    const uint8_t small_result = (small_a < small_b) ? small_a : small_b;
     if (small_result != 100) {
         return 4U;
     }
-    uint32_t val = 50U;
-    uint32_t is_large = (val > 100) ? 1U : 0U;
+    const uint32_t val = 50U;
+    const uint32_t is_large = (val > 100) ? 1U : 0U;
     if (is_large != 0) {
         return 5U;
     }
-    int32_t sign = (val > 0) ? 1 : -1;
+    const int32_t sign = (val > 0) ? 1 : -1;
     if (sign != 1) {
         return 6U;
     }
-    uint32_t both = (a > 0 && b > 0) ? 1U : 0U;
+    const uint32_t both = (a > 0 && b > 0) ? 1U : 0U;
     if (both != 1) {
         return 7U;
     }
-    uint32_t either = (a == 0 || b > 0) ? 1U : 0U;
+    const uint32_t either = (a == 0 || b > 0) ? 1U : 0U;
     if (either != 1) {
         return 8U;
     }

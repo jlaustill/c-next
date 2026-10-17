@@ -3,7 +3,7 @@
 // When scope-member string IS initialized before read, codegen must be valid
 
 scope S {
-    string<16> buf;
+    mut string<16> buf;
 
     public void init() {
         buf <- "";

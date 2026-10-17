@@ -19,12 +19,12 @@ typedef struct Config {
 
 /* External variables */
 extern const uint32_t N;
-extern uint8_t src[3];
-extern uint8_t sized[4];
-extern Config cfg;
-extern uint8_t byCount[3];
-extern uint16_t byBytes[4];
-extern uint8_t byField[6];
+extern const uint8_t src[3];
+extern const uint8_t sized[4];
+extern const Config cfg;
+extern const uint8_t byCount[3];
+extern const uint16_t byBytes[4];
+extern const uint8_t byField[6];
 
 #ifdef __cplusplus
 }

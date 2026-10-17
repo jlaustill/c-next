@@ -3,7 +3,7 @@
 // Tests: scope variable LHS bit-write should use read-modify-write pattern
 
 scope Sensor {
-    u16 value;
+    mut u16 value;
 
     public void setLowByte(u8 byte) {
         this.value[0, 8] <- byte;
@@ -23,7 +23,7 @@ scope Sensor {
 }
 
 u32 main() {
-    u16 result;
+    mut u16 result;
 
     // Test 1: Set low byte
     Sensor.reset(0xF000);

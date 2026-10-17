@@ -15,9 +15,9 @@
 #include <stdint.h>
 
 int main(void) {
-    uint32_t u = 3U;
-    float y = 2.5;
-    float r = u * choose(y);
+    const uint32_t u = 3U;
+    const float y = 2.5;
+    const float r = u * choose(y);
     if (r != 7.5) {
         return 1U;
     }

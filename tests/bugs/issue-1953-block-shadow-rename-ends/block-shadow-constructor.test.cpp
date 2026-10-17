@@ -13,10 +13,10 @@
 
 #include <stdint.h>
 
-uint32_t shared = 4U;
+extern const uint32_t shared = 4U;
 
 int main(void) {
-    uint32_t flag = 1U;
+    const uint32_t flag = 1U;
     const uint8_t seed = 3U;
     if (flag == 1) {
         /* C11 6.2.1p4, C++ [basic.scope.hiding]: `shared` emitted as `main__shared` (a plain `shared` would hide the file-scope `shared` for the rest of its scope, so `global.shared` would reach the local). */

@@ -2,17 +2,17 @@
 // test-execution
 // Tests: comprehensive 3-level deep control structure nesting
 // Coverage: Section 33.2 - Statement Nesting (3+ levels)
-u32 result;
+mut u32 result;
 
-u32 counter;
+mut u32 counter;
 
 u32 main() {
     // === IF-IF-IF NESTING ===
 
     // Test 1: Simple 3-level if
-    bool a <- true;
-    bool b <- true;
-    bool c <- true;
+    mut bool a <- true;
+    mut bool b <- true;
+    mut bool c <- true;
     result <- 0;
 
     if (a = true) {
@@ -121,9 +121,9 @@ u32 main() {
     // === WHILE-WHILE-WHILE NESTING ===
 
     // Test 7: 3-level while
-    u32 i <- 0;
-    u32 j <- 0;
-    u32 k <- 0;
+    mut u32 i <- 0;
+    mut u32 j <- 0;
+    mut u32 k <- 0;
     counter <- 0;
 
     while (i < 2) {
@@ -148,7 +148,7 @@ u32 main() {
 
     // Test 8: for-if-if
     result <- 0;
-    for (u32 x <- 0; x < 5; x <- x + 1) {
+    for (mut u32 x <- 0; x < 5; x <- x + 1) {
         if (x > 1) {
             if (x < 4) {
                 result +<- x;
@@ -165,9 +165,9 @@ u32 main() {
 
     // Test 9: 3-level for
     counter <- 0;
-    for (u32 p <- 0; p < 2; p <- p + 1) {
-        for (u32 q <- 0; q < 2; q <- q + 1) {
-            for (u32 r <- 0; r < 2; r <- r + 1) {
+    for (mut u32 p <- 0; p < 2; p <- p + 1) {
+        for (mut u32 q <- 0; q < 2; q <- q + 1) {
+            for (mut u32 r <- 0; r < 2; r <- r + 1) {
                 counter +<- 1;
             }
         }
@@ -180,8 +180,8 @@ u32 main() {
 
     // Test 10: for-while-if
     result <- 0;
-    for (u32 m <- 0; m < 3; m <- m + 1) {
-        u32 n <- 0;
+    for (mut u32 m <- 0; m < 3; m <- m + 1) {
+        mut u32 n <- 0;
         while (n < 2) {
             if (m = 1) {
                 result +<- 5;
@@ -202,8 +202,8 @@ u32 main() {
     result <- 0;
 
     if (a = true) {
-        for (u32 f <- 0; f < 2; f <- f + 1) {
-            u32 g <- 0;
+        for (mut u32 f <- 0; f < 2; f <- f + 1) {
+            mut u32 g <- 0;
             while (g < 3) {
                 result +<- 1;
                 g +<- 1;
@@ -223,7 +223,7 @@ u32 main() {
     result <- 0;
 
     while (counter < 2) {
-        for (u32 h <- 0; h < 3; h <- h + 1) {
+        for (mut u32 h <- 0; h < 3; h <- h + 1) {
             if (h = 1) {
                 result +<- 7;
             }
@@ -241,7 +241,7 @@ u32 main() {
     // Test 13: if-if-switch
     a <- true;
     b <- true;
-    u32 sel <- 2;
+    mut u32 sel <- 2;
     result <- 0;
 
     if (a = true) {
@@ -270,7 +270,7 @@ u32 main() {
 
     // Test 14: for-if-switch
     result <- 0;
-    for (u32 s <- 0; s < 4; s <- s + 1) {
+    for (mut u32 s <- 0; s < 4; s <- s + 1) {
         if (s > 0 && s < 3) {
             switch (s) {
                 case 1 {
@@ -354,9 +354,9 @@ u32 main() {
 
     // Test 17: 3-level for with explicit iteration limit (replaces break)
     counter <- 0;
-    for (u32 aa <- 0; aa < 3; aa <- aa + 1) {
-        for (u32 bb <- 0; bb < 3; bb <- bb + 1) {
-            for (u32 cc <- 0; cc < 2; cc <- cc + 1) {
+    for (mut u32 aa <- 0; aa < 3; aa <- aa + 1) {
+        for (mut u32 bb <- 0; bb < 3; bb <- bb + 1) {
+            for (mut u32 cc <- 0; cc < 2; cc <- cc + 1) {
                 counter +<- 1;
             }
         }
@@ -372,9 +372,9 @@ u32 main() {
 
     // Test 18: 3-level for with if guard (replaces continue)
     result <- 0;
-    for (u32 dd <- 0; dd < 2; dd <- dd + 1) {
-        for (u32 ee <- 0; ee < 2; ee <- ee + 1) {
-            for (u32 ff <- 0; ff < 3; ff <- ff + 1) {
+    for (mut u32 dd <- 0; dd < 2; dd <- dd + 1) {
+        for (mut u32 ee <- 0; ee < 2; ee <- ee + 1) {
+            for (mut u32 ff <- 0; ff < 3; ff <- ff + 1) {
                 if (ff != 1) {
                     result +<- 1;
                 }

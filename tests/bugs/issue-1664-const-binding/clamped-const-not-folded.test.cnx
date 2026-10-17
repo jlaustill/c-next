@@ -7,9 +7,9 @@
 // `200 + 200` the C saturates at 255). A result a typed operand cannot
 // hold is not folded.
 u32 main() {
-    const u8 A <- 2;
-    const u8 B <- A - 3;
-    const u8 C <- B + 1;
+    u8 A <- 2;
+    u8 B <- A - 3;
+    u8 C <- B + 1;
     u32 q <- 12 / C;
     if (q != 12) {
         return 1;
@@ -23,8 +23,8 @@ u32 main() {
     if (first != 5) {
         return 3;
     }
-    const u8 E <- 200;
-    const u8 F <- E + E;
+    u8 E <- 200;
+    u8 F <- E + E;
     u8 last <- arr[F - 252];
     if (last != 8) {
         return 4;
@@ -36,7 +36,7 @@ u32 main() {
         return 6;
     }
     // NEGATIVE CONTROL: a fold every operand's type holds still folds
-    const u8 G <- A + 3;
+    u8 G <- A + 3;
     u8[G] five;
     if (five.type_element_count != 5) {
         return 5;

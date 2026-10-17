@@ -4,9 +4,7 @@
  * Determines whether a parameter needs to be dereferenced when used as a value.
  * C-Next uses pass-by-reference for most types, but some types use pass-by-value:
  * - Callbacks (function pointers)
- * - Float types (f32, f64)
- * - Enum types
- * - Small unmodified primitives (optimization)
+ * - Read-only scalars: integers, floats, enums (ADR-071 Q6)
  * - Structs (use -> instead of dereference)
  * - Arrays (already pointers)
  * - Unknown types (external enums, typedefs)
@@ -43,27 +41,24 @@ class ParameterDereferenceResolver {
       return true;
     }
 
-    // Float types use pass-by-value
-    if (deps.isFloatType(paramInfo.baseType)) {
-      return true;
-    }
-
-    // Enum types use pass-by-value
-    if (deps.knownEnums.has(paramInfo.baseType)) {
-      return true;
-    }
-
     // ADR-045: String parameters are passed as char*
     if (paramInfo.isString) {
       return true;
     }
 
-    // Issue #269: Small unmodified primitives use pass-by-value
+    // ADR-071 Q6: a read-only scalar -- an integer, a float, an enum -- is
+    // passed by value
     if (
       deps.currentFunctionName &&
       deps.isParameterPassByValue(deps.currentFunctionName, paramInfo.name)
     ) {
       return true;
+    }
+
+    // ...and a `mut` one is a pointer, an enum too, so its value is `(*p)`.
+    // An enum array is already a pointer, like any array.
+    if (!paramInfo.isArray && deps.knownEnums.has(paramInfo.baseType)) {
+      return false;
     }
 
     // Structs use -> notation, not dereference

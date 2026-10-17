@@ -13,13 +13,13 @@
 #include "dev.h"
 #include "poker.cnx"
 
-void configure(Dev d) {
+void configure(mut Dev d) {
     aPoke(d);
     Poker.poke(d);
 }
 
 i32 main() {
-    Dev d <- dev_create();
+    mut Dev d <- dev_create();
 
     configure(d);
     i32 pokes <- dev_pokes(d);

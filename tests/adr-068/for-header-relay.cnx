@@ -4,4 +4,4 @@
 
 #include "for-header-declarations.cnx"
 
-const u32 FOR_HEADER_RELAY_MARKER <- 2;
+u32 FOR_HEADER_RELAY_MARKER <- 2;

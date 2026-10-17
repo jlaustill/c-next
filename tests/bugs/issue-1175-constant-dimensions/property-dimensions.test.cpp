@@ -18,21 +18,21 @@
 // fixpoint. `cfg.data` reaches the property through a struct field.
 extern const uint32_t N = 4U;
 
-uint8_t src[3] = {};
+extern const uint8_t src[3] = {};
 
-uint8_t sized[4] = {};
+extern const uint8_t sized[4] = {};
 
-Config cfg = {};
+extern const Config cfg = {};
 
-uint8_t byCount[3] = {};
+extern const uint8_t byCount[3] = {};
 
-uint16_t byBytes[4] = {};
+extern const uint16_t byBytes[4] = {};
 
-uint8_t byField[6] = {};
+extern const uint8_t byField[6] = {};
 
 int main(void) {
-    uint8_t local[3] = {};
-    uint8_t localField[12] = {};
+    const uint8_t local[3] = {};
+    const uint8_t localField[12] = {};
     if (3 != 3) {
         return 1U;
     }

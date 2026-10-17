@@ -21,6 +21,7 @@ class FunctionCollector {
       type: p.type,
       isConst: p.isConst,
       isArray: p.isArray,
+      ...(p.isReference === true && { isReference: true }),
     }));
   }
 
@@ -45,6 +46,7 @@ class FunctionCollector {
       visibility: "public",
       parent: currentNamespace,
       parameters: params.length > 0 ? params : undefined,
+      isVariadic: funcDef.declarator.isVariadic || undefined,
       isDeclaration: false,
     };
   }
@@ -71,6 +73,7 @@ class FunctionCollector {
       visibility: "public",
       parent: currentNamespace,
       parameters: params.length > 0 ? params : undefined,
+      isVariadic: declarator.isVariadic || undefined,
       isDeclaration: true,
     };
   }
@@ -96,7 +99,9 @@ class FunctionCollector {
       visibility: "public",
       parent: className,
       parameters: params.length > 0 ? params : undefined,
+      isVariadic: declarator.isVariadic || undefined,
       isDeclaration: isDeclaration || undefined,
+      isConstMember: declarator.isConstMember || undefined,
     };
   }
 }

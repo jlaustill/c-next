@@ -5,7 +5,7 @@
 // `cs.flags[3] = true;`, which C rejects.
 #include "cf.h"
 
-cf_t cs;
+mut cf_t cs;
 
 u32 main() {
     // ASSERTION: a C header field

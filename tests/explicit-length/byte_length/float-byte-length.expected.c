@@ -10,9 +10,9 @@
 // test-execution
 // Tests .type_byte_length property for float types (ADR-058)
 // f32 = 4 bytes, f64 = 8 bytes
-float globalF32 = 3.14;
+const float globalF32 = 3.14;
 
-double globalF64 = 3.14159265359;
+const double globalF64 = 3.14159265359;
 
 /* Scope: FloatByteLen */
 
@@ -23,11 +23,11 @@ int main(void) {
     if (8 != 8) {
         return 2;
     }
-    float localF32 = 1.5;
+    const float localF32 = 1.5;
     if (4 != 4) {
         return 3;
     }
-    double localF64 = 2.5;
+    const double localF64 = 2.5;
     if (8 != 8) {
         return 4;
     }

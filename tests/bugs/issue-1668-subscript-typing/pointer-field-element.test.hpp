@@ -11,7 +11,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern float k;
+extern const float k;
 
 /* Function prototypes */
 void scale(void);

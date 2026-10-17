@@ -1,0 +1,8 @@
+// test-error
+// #1755 control: the second typedef does not make every struct the same one.
+#include "handle-chain.h"
+
+void run() {
+    handle_t h <- handle_open();
+    i32 r <- other_close(h);
+}

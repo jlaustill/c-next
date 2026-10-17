@@ -4,4 +4,4 @@
 
 #include "callback-declarations.cnx"
 
-const u32 CALLBACK_RELAY_MARKER <- 1;
+u32 CALLBACK_RELAY_MARKER <- 1;

@@ -10,7 +10,7 @@
 #include <stdint.h>
 
 int main(void) {
-    outer_t val = { .pos = { .x = 10, .y = 20 }, .z = 30 };
+    const outer_t val = { .pos = { .x = 10, .y = 20 }, .z = 30 };
     if (val.pos.x != 10) {
         return 1;
     }

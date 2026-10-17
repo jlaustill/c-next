@@ -8,9 +8,9 @@
 // ADR-024: Test that signed widening conversions are implicit and safe
 // i8 -> i16 -> i32 -> i64 should all work without explicit casts
 int main(void) {
-    int8_t sbyte = -128;
-    int16_t sword = sbyte;
-    int32_t sdword = sword;
-    int64_t sqword = sdword;
-    int64_t direct = sbyte;
+    const int8_t sbyte = -128;
+    const int16_t sword = sbyte;
+    const int32_t sdword = sword;
+    const int64_t sqword = sdword;
+    const int64_t direct = sbyte;
 }

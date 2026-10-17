@@ -35,5 +35,5 @@ int main(void) {
     configureSerial(serial);
     ExternalI2CConfig i2c = {};
     configureI2C(i2c);
-    uint32_t baud = readBaudRate(serial);
+    const uint32_t baud = readBaudRate(serial);
 }
