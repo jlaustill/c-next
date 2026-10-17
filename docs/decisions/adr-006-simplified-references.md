@@ -343,14 +343,19 @@ If the compiler can prove the original isn't read after the call, it can optimiz
 
 ### The Constraint
 
-Because all function parameters are passed by reference, **you cannot pass literals directly to functions**:
+A `mut` parameter is passed by reference, so **you cannot pass a literal to a
+`mut` parameter** (E0916) -- there is no variable for the write to land in:
 
 ```
-LED_init(13);        // ERROR: Cannot take address of literal
-Timing_delay(500);   // ERROR: Cannot take address of literal
+void LED_toggle(mut u8 pin);
+LED_toggle(13);      // ERROR E0916: a `mut` parameter needs a variable to write
 ```
 
-This is not a limitation — it's an **intentional enforcement of best practices**.
+A read-only parameter is passed by value (ADR-071), so a literal loses nothing
+and is valid there: `Timing_delay(500)` compiles to `Timing_delay(500U)`
+(ruling on #1203). Named values are still the recommended style for read-only
+arguments, for the reasons below; the compiler enforces it only where a write
+would be lost.
 
 ### Why Magic Numbers Are Harmful
 
