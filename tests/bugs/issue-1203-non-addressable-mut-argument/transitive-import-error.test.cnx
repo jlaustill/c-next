@@ -1,0 +1,17 @@
+// test-error
+// test-adr: 006
+// ADR-006: a literal passed to an imported function's `mut` parameter gets
+// E0915 too -- matrix cell: transitive (2 hops), from a
+// top-level function and from a scope method (#1203).
+
+#include "relay.cnx"
+
+void topLevelFunction() {
+    bumpShared(5);
+}
+
+scope Widget {
+    public void methodValue() {
+        bumpShared(6);
+    }
+}

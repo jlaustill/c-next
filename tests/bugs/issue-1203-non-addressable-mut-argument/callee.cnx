@@ -1,0 +1,5 @@
+// Helper (not a test): a `mut` parameter the cross-file fixtures call (#1203).
+
+void bumpShared(mut u32 value) {
+    value +<- 1;
+}

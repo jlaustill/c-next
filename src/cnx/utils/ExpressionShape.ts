@@ -9,20 +9,34 @@ import type IChainHead from "../types/IChainHead";
 class ExpressionShape {
   /**
    * The expression as a primary and its postfix operations, when it is one --
-   * no unary, binary or ternary operator at its top.
+   * no unary, binary or ternary operator at its top. Parentheses around a
+   * name change nothing: `(a)` is `a` and `(cfg).x` is `cfg.x`, so a `mut`
+   * parameter is handed the variable (#1203). Any other parenthesized
+   * expression stays the primary it is: `-(2147483648)` keeps its brackets.
    */
   static postfixView(expr: TExpression): {
     readonly primary: TExpression;
     readonly ops: readonly TPostfixOpSyntax[];
   } | null {
     switch (expr.kind) {
+      case "parenthesized": {
+        const inner = ExpressionShape.postfixView(expr.expression);
+        const named =
+          inner?.primary.kind === "identifier" ||
+          inner?.primary.kind === "root";
+        return named ? inner : { primary: expr, ops: [] };
+      }
       case "ternary":
       case "binary":
       case "unary":
       case "missing":
         return null;
-      case "postfix":
-        return { primary: expr.primary, ops: expr.ops };
+      case "postfix": {
+        const inner = ExpressionShape.postfixView(expr.primary);
+        return inner === null
+          ? { primary: expr.primary, ops: expr.ops }
+          : { primary: inner.primary, ops: [...inner.ops, ...expr.ops] };
+      }
       default:
         return { primary: expr, ops: [] };
     }

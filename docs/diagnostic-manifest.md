@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-632 fixture(s) assert a diagnostic; 622 carry a code.
+636 fixture(s) assert a diagnostic; 626 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -352,6 +352,10 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1195-parenthesized-comparison/parenthesized-bare-bool-error.test.cnx            | E0701               |
 | tests/bugs/issue-1195-parenthesized-comparison/parenthesized-call-error.test.cnx                 | E0702               |
 | tests/bugs/issue-1195-parenthesized-comparison/parenthesized-literal-loop-error.test.cnx         | E0707               |
+| tests/bugs/issue-1203-non-addressable-mut-argument/direct-import-error.test.cnx                  | E0915               |
+| tests/bugs/issue-1203-non-addressable-mut-argument/non-addressable-mut-argument-error.test.cnx   | E0915               |
+| tests/bugs/issue-1203-non-addressable-mut-argument/scope-method-error.test.cnx                   | E0915               |
+| tests/bugs/issue-1203-non-addressable-mut-argument/transitive-import-error.test.cnx              | E0915               |
 | tests/bugs/issue-1220-analyzer-cross-file-symbols/boolean-operand-imported-direct.test.cnx       | E0807               |
 | tests/bugs/issue-1220-analyzer-cross-file-symbols/boolean-operand-imported-transitive.test.cnx   | E0807               |
 | tests/bugs/issue-1220-analyzer-cross-file-symbols/boolean-operand-same-file.test.cnx             | E0807               |

@@ -1,0 +1,31 @@
+// test-execution
+// test-adr: 006
+// ADR-006: a parenthesized variable is still that variable, so a `mut`
+// parameter writes it, and `(cfg).total` is `cfg.total` (#1203). Before the fix C wrote the call as
+// `modifies(&(uint32_t){(a)})` and the write was lost in a temporary.
+
+struct Config {
+    u32 total;
+}
+
+void modifies(mut u32 value) {
+    value +<- 1;
+}
+
+u32 main() {
+    mut u32 a <- 1;
+    modifies((a));
+    if (a != 2) {
+        return 1;
+    }
+    modifies(((a)));
+    if (a != 3) {
+        return 2;
+    }
+    mut Config cfg <- { total: 7 };
+    modifies((cfg).total);
+    if (cfg.total != 8) {
+        return 3;
+    }
+    return 0;
+}
