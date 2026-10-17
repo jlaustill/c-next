@@ -112,7 +112,7 @@ We considered several alternatives from other languages:
 ```cnx
 mut u8 flags <- 0;
 u32 i <- 3;
-flags[i] <- true; // Currently generates code, but not bounds-checked
+flags[i] <- true; // in range: i is read-only 3, and u8 has 8 bits
 ```
 
 Variable indices are supported but not compile-time validated. Future work may add runtime bounds checking or restrict to compile-time constants for memory safety.
