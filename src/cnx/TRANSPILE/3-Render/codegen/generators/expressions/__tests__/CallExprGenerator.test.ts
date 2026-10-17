@@ -743,9 +743,9 @@ describe("CallExprGenerator", () => {
       const argExpressions = [createMockExpressionContext("pt")];
       const sigs = new Map([
         [
-          "vhandler",
+          "onPoint",
           {
-            name: "vhandler",
+            name: "onPoint",
             parameters: [
               { name: "p", baseType: "VPt", isConst: true, isArray: false },
             ],
@@ -762,12 +762,12 @@ describe("CallExprGenerator", () => {
       });
 
       const result = generateFunctionCall(
-        "vhandler",
-        planArguments(orchestrator, argExpressions, "vhandler", input),
+        "onPoint",
+        planArguments(orchestrator, argExpressions, "onPoint", input),
         createMockState(),
       );
 
-      expect(result.code).toBe("vhandler(pt)");
+      expect(result.code).toBe("onPoint(pt)");
     });
 
     it("keeps a `mut` struct a C callback typedef takes by value by reference (#2146)", () => {
