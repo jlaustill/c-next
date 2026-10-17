@@ -43,11 +43,11 @@ assessment claimed N/A.
 
 | Category         | Enforced | By Design | Partial | Planned | N/A | Not Enforced | Deviation |
 | ---------------- | -------- | --------- | ------- | ------- | --- | ------------ | --------- |
-| Directives (1-4) | 1        | 9         | 1       | 0       | 1   | 0            | 1         |
+| Directives (1-4) | 1        | 8         | 1       | 0       | 1   | 1            | 1         |
 | Rules 1-5        | 4        | 3         | 5       | 0       | 0   | 10           | 1         |
 | Rules 6-10       | 4        | 13        | 9       | 0       | 0   | 7            | 0         |
 | Rules 11-15      | 2        | 13        | 7       | 0       | 1   | 8            | 0         |
-| Rules 16-22      | 6        | 27        | 7       | 0       | 2   | 14           | 1         |
+| Rules 16-22      | 6        | 26        | 6       | 0       | 1   | 17           | 1         |
 
 Counted from the guideline tables below by `npm run docs:toolchain` (157 guidelines).
 
@@ -108,7 +108,7 @@ The failure decision lives in `scripts/misra-baseline.ts`:
 | Dir 4.10 | Precautions against multiple inclusion       | **By Design** | Module system handles this                                                                             |
 | Dir 4.11 | Check validity of function parameters        | Partial       | Some validation, not comprehensive                                                                     |
 | Dir 4.12 | Dynamic memory shall not be used             | **By Design** | ADR-003: Static allocation only                                                                        |
-| Dir 4.13 | Resource lifetime management                 | **By Design** | No dynamic resources                                                                                   |
+| Dir 4.13 | Resource lifetime management                 | Not Enforced  | A `c_` stream's `fclose` can be called twice: #2133                                                    |
 
 ---
 
@@ -311,7 +311,7 @@ struct tags that are 94 characters and byte-identical for 63 — transpiling exi
 | 12.1 | Explicit precedence with parentheses  | Not Enforced  | Could add warning                                                                                                             |
 | 12.2 | Shift not exceeding bit width         | Partial       | E0873 checks the C-Next operand's width; a generated shift of a narrow unsigned literal (`1U << 15`) is still reported: #1065 |
 | 12.3 | No comma operator                     | **By Design** | Not in grammar                                                                                                                |
-| 12.4 | Constant expressions no unsigned wrap | Partial       | Some compile-time eval                                                                                                        |
+| 12.4 | Constant expressions no unsigned wrap | Partial       | E0910 in array dimensions and enum values (ADR-044); a binding's initializer (`u32 X <- 2 - 3`) wraps unchecked: #2145        |
 | 12.5 | sizeof not on array parameters        | N/A           | No array decay                                                                                                                |
 
 ---
@@ -387,8 +387,8 @@ struct tags that are 94 characters and byte-identical for 63 — transpiling exi
 
 | Rule | Description                   | Status        | Reference                                                                                                   |
 | ---- | ----------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------- |
-| 18.1 | Pointer arithmetic in bounds  | **By Design** | No pointer arithmetic                                                                                       |
-| 18.2 | Subtraction on same array     | **By Design** | No pointer arithmetic                                                                                       |
+| 18.1 | Pointer arithmetic in bounds  | **By Design** | No pointer arithmetic in C-Next source; premise under audit (see 18.4): #2134                               |
+| 18.2 | Subtraction on same array     | **By Design** | No pointer arithmetic in C-Next source; premise under audit (see 18.4): #2134                               |
 | 18.3 | Relational on same object     | **By Design** | No pointer comparison                                                                                       |
 | 18.4 | No +, -, += , -= on pointers  | Not Enforced  | Substring copies emit `source + offset` (ADR-045), and `+` on a `c_` pointer passes through (ADR-046): #859 |
 | 18.5 | Max two levels of indirection | **By Design** | No raw pointers                                                                                             |
@@ -400,63 +400,63 @@ struct tags that are 94 characters and byte-identical for 63 — transpiling exi
 
 ## Rule 19 - Overlapping Storage
 
-| Rule | Description                        | Status       | Reference                                    |
-| ---- | ---------------------------------- | ------------ | -------------------------------------------- |
-| 19.1 | Object not assigned to overlapping | Partial      | Union restrictions                           |
-| 19.2 | The union keyword not used         | Not Enforced | ADR-018 unions are emitted as `union`: #1067 |
+| Rule | Description                        | Status       | Reference                                                                     |
+| ---- | ---------------------------------- | ------------ | ----------------------------------------------------------------------------- |
+| 19.1 | Object not assigned to overlapping | Partial      | Union restrictions                                                            |
+| 19.2 | The union keyword not used         | Not Enforced | Float bit indexing (ADR-007) accesses a float's bits through a `union`: #1067 |
 
 ---
 
 ## Rule 20 - Preprocessing Directives
 
-| Rule  | Description                        | Status        | Reference                                                                                        |
-| ----- | ---------------------------------- | ------------- | ------------------------------------------------------------------------------------------------ |
-| 20.1  | #include preceded only by comments | Partial       | Includes follow the banner comment, but some (`<limits.h>`) are emitted after code: #1066        |
-| 20.2  | No ' " \ in header names           | Not Enforced  | `#include` names pass through unchecked: #2128                                                   |
-| 20.3  | #include with <> or ""             | **By Design** | All emitted includes use `<>` or `""`                                                            |
-| 20.4  | No macro with keyword name         | Not Enforced  | ADR-037 flag define names are unchecked: `#define const` is emitted (#2127)                      |
-| 20.5  | No #undef                          | **By Design** | `#undef` is not in the grammar                                                                   |
-| 20.6  | No macro parameter in # or ##      | **By Design** | No function-like macro is defined (E0501, ADR-037); this row's description is unverified: #2130  |
-| 20.7  | Macro parameters in parentheses    | **By Design** | No function-like macro is defined (E0501, ADR-037)                                               |
-| 20.8  | #if conditions well-defined        | **By Design** | IRQ wrapper arms use `defined(...)`; See "Toolchain-derived guidelines" above                    |
-| 20.9  | All identifiers in #if defined     | **By Design** | IRQ wrapper arms use `defined(...)`; See "Toolchain-derived guidelines" above                    |
-| 20.10 | No # or ## operators               | **By Design** | No emitted macro uses them; value and function-like macros are E0502 and E0501 (ADR-037)         |
-| 20.11 | Macro parameter after # is not ##  | **By Design** | No function-like macro is defined (E0501, ADR-037)                                               |
-| 20.12 | Macro parameter used once per ##   | **By Design** | No function-like macro is defined (E0501, ADR-037)                                               |
-| 20.13 | `#` line is a valid directive      | **By Design** | An unrecognized directive is a syntax error                                                      |
-| 20.14 | All #else/#elif after #if          | **By Design** | IRQ wrapper `#if`/`#elif`/`#else` chain is well-formed; See "Toolchain-derived guidelines" above |
+| Rule  | Description                                      | Status        | Reference                                                                                        |
+| ----- | ------------------------------------------------ | ------------- | ------------------------------------------------------------------------------------------------ |
+| 20.1  | #include preceded only by directives or comments | Partial       | Includes follow the banner comment, but some (`<limits.h>`) are emitted after code: #1066        |
+| 20.2  | No ' " \ in header names                         | Not Enforced  | `#include` names pass through unchecked: #2128                                                   |
+| 20.3  | #include with <> or ""                           | **By Design** | All emitted includes use `<>` or `""`                                                            |
+| 20.4  | No macro with keyword name                       | Not Enforced  | ADR-037 flag define names are unchecked: `#define const` is emitted (#2127)                      |
+| 20.5  | No #undef                                        | **By Design** | `#undef` is not in the grammar                                                                   |
+| 20.6  | No macro parameter in # or ##                    | **By Design** | No function-like macro is defined (E0501, ADR-037); this row's description is unverified: #2130  |
+| 20.7  | Macro parameters in parentheses                  | **By Design** | No function-like macro is defined (E0501, ADR-037)                                               |
+| 20.8  | #if conditions well-defined                      | **By Design** | IRQ wrapper arms use `defined(...)`; See "Toolchain-derived guidelines" above                    |
+| 20.9  | All identifiers in #if defined                   | **By Design** | IRQ wrapper arms use `defined(...)`; See "Toolchain-derived guidelines" above                    |
+| 20.10 | No # or ## operators                             | **By Design** | No emitted macro uses them; value and function-like macros are E0502 and E0501 (ADR-037)         |
+| 20.11 | Macro parameter after # is not ##                | **By Design** | No function-like macro is defined (E0501, ADR-037)                                               |
+| 20.12 | Macro parameter used once per ##                 | **By Design** | No function-like macro is defined (E0501, ADR-037)                                               |
+| 20.13 | `#` line is a valid directive                    | **By Design** | An unrecognized directive is a syntax error                                                      |
+| 20.14 | All #else/#elif after #if                        | **By Design** | IRQ wrapper `#if`/`#elif`/`#else` chain is well-formed; See "Toolchain-derived guidelines" above |
 
 ---
 
 ## Rule 21 - Standard Libraries
 
-| Rule  | Description                      | Status        | Reference                                                                                                   |
-| ----- | -------------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------- |
-| 21.1  | No #define/#undef reserved names | Not Enforced  | ADR-037 flag define names are unchecked: `#define _RESERVED` is emitted (#2127)                             |
-| 21.2  | No reserved identifiers          | Partial       | E0201 rejects `__`, but ADR-063 permits a leading underscore, so a file-scope `_Reserved` is emitted: #2129 |
-| 21.3  | No stdlib memory functions       | **By Design** | ADR-003, ADR-101                                                                                            |
-| 21.4  | No setjmp.h                      | Not Enforced  | Callable through C library interop (`#include <setjmp.h>`): #2132                                           |
-| 21.5  | No signal.h                      | Not Enforced  | Callable through C library interop (`#include <signal.h>`): #2132                                           |
-| 21.6  | No stdio.h for input             | **Deviation** | Issue #850: Inline suppression for C interop                                                                |
-| 21.7  | No atof, atoi, atol, atoll       | Not Enforced  | Callable through C library interop (`#include <stdlib.h>`): #1069                                           |
-| 21.8  | No abort, exit, etc.             | Partial       | Some restrictions                                                                                           |
-| 21.9  | No bsearch, qsort                | **By Design** | Function pointers restricted                                                                                |
-| 21.10 | No time.h                        | Not Enforced  | Could restrict                                                                                              |
-| 21.11 | No tgmath.h                      | N/A           | C11 feature                                                                                                 |
-| 21.12 | No fenv.h exception functions    | Not Enforced  |                                                                                                             |
+| Rule  | Description                      | Status        | Reference                                                                                                                                                  |
+| ----- | -------------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 21.1  | No #define/#undef reserved names | Not Enforced  | ADR-037 flag define names are unchecked: `#define _RESERVED` is emitted (#2127)                                                                            |
+| 21.2  | No reserved identifiers          | Partial       | E0201 rejects `__`, but ADR-063 permits a leading underscore, so a file-scope `_Reserved` is emitted: #2129                                                |
+| 21.3  | No stdlib memory functions       | **By Design** | ADR-003, ADR-101                                                                                                                                           |
+| 21.4  | No setjmp.h                      | Not Enforced  | Callable through C library interop (`#include <setjmp.h>`): #2132                                                                                          |
+| 21.5  | No signal.h                      | Not Enforced  | Callable through C library interop (`#include <signal.h>`): #2132                                                                                          |
+| 21.6  | No stdio.h for input             | **Deviation** | Issue #850: Inline suppression for C interop                                                                                                               |
+| 21.7  | No atof, atoi, atol, atoll       | Not Enforced  | Callable through C library interop (`#include <stdlib.h>`): #1069                                                                                          |
+| 21.8  | No abort, exit, etc.             | Not Enforced  | Callable through C library interop (`#include <stdlib.h>`): #2132; the `--debug` overflow panic emits `abort()` (see "Toolchain-derived guidelines" above) |
+| 21.9  | No bsearch, qsort                | Not Enforced  | Callable through C library interop with a comparator declared in a C header: #2132                                                                         |
+| 21.10 | No time.h                        | Not Enforced  | Could restrict                                                                                                                                             |
+| 21.11 | No tgmath.h                      | Not Enforced  | Reachable through C library interop (`#include <tgmath.h>`, a C99 header): #2132                                                                           |
+| 21.12 | No fenv.h exception functions    | Not Enforced  |                                                                                                                                                            |
 
 ---
 
 ## Rule 22 - Resources
 
-| Rule | Description                          | Status        | Reference                                                                                     |
-| ---- | ------------------------------------ | ------------- | --------------------------------------------------------------------------------------------- |
-| 22.1 | Dynamically obtained resources freed | Partial       | E0902 rejects dynamic memory; a `FILE*` from `fopen` in a `c_` variable is not tracked: #2133 |
-| 22.2 | Free only dynamic memory             | **By Design** | No free()                                                                                     |
-| 22.3 | File opened once                     | Not Enforced  |                                                                                               |
-| 22.4 | Read-only file not written           | Not Enforced  |                                                                                               |
-| 22.5 | No pointer to FILE                   | **By Design** | No FILE pointers                                                                              |
-| 22.6 | FILE pointer valid                   | Not Enforced  | A `c_` stream can be used after `fclose`: #2133                                               |
+| Rule | Description                          | Status        | Reference                                                                                              |
+| ---- | ------------------------------------ | ------------- | ------------------------------------------------------------------------------------------------------ |
+| 22.1 | Dynamically obtained resources freed | Partial       | E0902 rejects dynamic memory; a `FILE*` from `fopen` in a `c_` variable is not tracked: #2133          |
+| 22.2 | Free only dynamic memory             | **By Design** | No free()                                                                                              |
+| 22.3 | File opened once                     | Not Enforced  |                                                                                                        |
+| 22.4 | Read-only file not written           | Not Enforced  |                                                                                                        |
+| 22.5 | No dereference of a FILE pointer     | **By Design** | A `c_` variable can hold a `FILE*` (22.1, 22.6); whether one can be dereferenced is under audit: #2134 |
+| 22.6 | FILE pointer valid                   | Not Enforced  | A `c_` stream can be used after `fclose`: #2133                                                        |
 
 ---
 
