@@ -431,8 +431,8 @@ Here `offset = 2` is an element index (writing starts at `wordArray[2]`), `lengt
 
 Array slice assignment enforces strict compile-time safety:
 
-1. **Offset must be a compile-time constant** — literals or `const` variables; runtime variables are rejected.
-2. **Length must be a compile-time constant** — literals or `const` variables.
+1. **Offset must be a compile-time constant** — literals or read-only bindings with a literal value; runtime variables are rejected.
+2. **Length must be a compile-time constant** — literals or read-only bindings with a literal value.
 3. **Bounds checked at compile time** — `offset + length / elementSize <= capacity`.
 4. **1D arrays only** — multi-dimensional arrays must access the innermost dimension first.
 5. **Integer source** — float and struct sources are a compile error, and the slice length may not exceed the source's width in bytes. A bare integer **literal** source is contextually typed to the slice width (ADR-052) and must fit in `length` bytes — e.g. `packetArray[0, 2] <- 0x12345678` is a compile error (a 4-byte value will not fit a 2-byte slice).
@@ -462,12 +462,12 @@ Runtime-dependent offsets or lengths are intentionally rejected, because the ele
 
 **Named Compile-Time Offsets**
 
-When a struct layout is fixed, the offsets are known at compile time. Use `const` variables to keep the writes readable while preserving compile-time safety:
+When a struct layout is fixed, the offsets are known at compile time. Use read-only bindings (no `mut`, ADR-071) to keep the writes readable while preserving compile-time safety:
 
 ```cnx
-size OFFSET_FIELD1 <- 0;
-size OFFSET_FIELD2 <- 4;
-size OFFSET_FIELD3 <- 6;
+u32 OFFSET_FIELD1 <- 0;
+u32 OFFSET_FIELD2 <- 4;
+u32 OFFSET_FIELD3 <- 6;
 
 packetArray[OFFSET_FIELD1, 4] <- data.field1;
 packetArray[OFFSET_FIELD2, 2] <- data.field2;

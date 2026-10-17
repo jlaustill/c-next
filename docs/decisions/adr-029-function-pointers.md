@@ -80,7 +80,7 @@ controller._handler(msg);
 If you need to know whether a callback was explicitly set (vs using the default), use a boolean flag - this is user code, not compiler magic:
 
 ```cnx
-void onReceive(CAN_Message_T msg) { /* NO-OP */}
+void onReceive(CAN_Message_T msg) { /* NO-OP */ }
 
 struct Controller {
     onReceive _handler;

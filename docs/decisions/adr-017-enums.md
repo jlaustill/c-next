@@ -113,7 +113,7 @@ A member's value is computed while the program compiles, as in C (owner ruling, 
 #1669). It may be any integer expression built from these parts:
 
 - literals;
-- `const`s that have a value;
+- read-only bindings (ADR-071) that have a value;
 - a type's length property (`u32.type_byte_length`, ADR-058);
 - casts;
 - the integer operators;
@@ -128,8 +128,7 @@ u32 BASE <- 0x10;
 enum Reg {
     CTRL <- BASE, // 16
     STATUS, // 17
-    DATA <- BASE +
-        4 // 20
+    DATA <- BASE + 4 // 20
 }
 ```
 

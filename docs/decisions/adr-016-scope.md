@@ -790,7 +790,7 @@ declared type that holds its settled value:
 
 A private const with no such value -- a string, or one whose initializer is
 not constant -- is emitted as a `static const` object and named where it is
-used: `const string<8> NAME <- "abc";` in `scope S` is
+used: `string<8> NAME <- "abc";` in `scope S` is
 `static const char S__NAME[9] = "abc";`.
 
 A bool or enum const has a value as its literal or member does, so it also

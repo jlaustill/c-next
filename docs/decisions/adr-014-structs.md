@@ -59,7 +59,7 @@ void init() {
 }
 ```
 
-### Inline Initialization (for const structs)
+### Inline Initialization (for read-only structs)
 
 ```cnx
 Point ORIGIN <- { x: 0, y: 0 };

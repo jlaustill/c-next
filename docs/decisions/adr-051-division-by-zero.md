@@ -846,7 +846,7 @@ Add to `coverage.md`:
 ## Implementation Status
 
 **Current (measured 2026-10-17 at `1d5d36ed5`, #1933):** the table above is implemented.
-A zero literal or `const` divisor is rejected at compile time (E0800, and E0802 for `%`), and
+A zero literal, or a read-only binding whose value is zero, as divisor is rejected at compile time (E0800, and E0802 for `%`), and
 `safe_div()`/`safe_mod()` are built in. Two divisors that are zero at compile time are not
 caught yet: a constant expression such as `x / (1 - 1)` (#1879) and a header macro such as
 `#define ZM 0` (#2071).

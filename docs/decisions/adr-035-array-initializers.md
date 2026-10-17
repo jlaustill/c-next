@@ -56,20 +56,12 @@ u8[100] buffer <- [0*];  // All 100 elements initialized to 0
 u8[] message <- "Hello";  // Includes null terminator
 ```
 
-### Const Lookup Tables
+### Read-only Lookup Tables
 
 ```cnx
 u8[256] sinTable <- [
-    0,
-    3,
-    6,
-    9,
-    12,
-    15,
-    18,
-    21,
-
-// ... more values
+    0, 3, 6, 9, 12, 15, 18, 21,
+    // ... more values
 ];
 ```
 

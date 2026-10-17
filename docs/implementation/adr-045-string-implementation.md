@@ -177,13 +177,13 @@ if (memberName === "capacity") {
 
 ---
 
-## Phase 3: Const Inference
+## Phase 3: Read-only Inference
 
-**Goal:** `const string X <- "literal"` auto-sizes
+**Goal:** a read-only `string X <- "literal"` (no `mut`, ADR-071) auto-sizes
 
 ### CodeGenerator Changes
 
-1. **Detect const string without capacity**:
+1. **Detect a read-only string without capacity**:
 
 ```typescript
 if (isConst && isStringType && !hasCapacity && hasLiteral) {
@@ -206,10 +206,10 @@ if (isConst && isStringType && !hasCapacity && !hasLiteral) {
 
 ### Tests
 
-| File                             | Description                           |
-| -------------------------------- | ------------------------------------- |
-| `string-const-inference.cnx`     | `const string VERSION <- "1.0.0"`     |
-| `string-error-const-no-init.cnx` | `const string X;` without initializer |
+| File                             | Description                               |
+| -------------------------------- | ----------------------------------------- |
+| `string-const-inference.cnx`     | `string VERSION <- "1.0.0"`               |
+| `string-error-const-no-init.cnx` | read-only `string X;` without initializer |
 
 ### Success Criteria
 

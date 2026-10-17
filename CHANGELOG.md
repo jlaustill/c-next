@@ -80,8 +80,6 @@ ruling on #1933, 2026-10-17).
   `outDir: ""` used to write the `.h` and silently skip the `.c`. Directories are
   created only when something is written into them.
 
-### Changed
-
 - **Only a lowercase `.cnx` or `.cnext` is C-Next source** (Issue #1833). A
   source spelled `Colors.CNX` (or any other case) is now **E0518** at the
   include that names it, or for the run's input, and nothing is written. It
