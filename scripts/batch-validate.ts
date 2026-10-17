@@ -103,13 +103,15 @@ function runCppcheckBatches(
   args: readonly string[],
   files: readonly string[],
 ): void {
-  const batches = new Map<readonly string[], string[]>([
-    [[], []],
-    [ARM_ARCH_ARGS, []],
-  ]);
+  const host: string[] = [];
+  const arm: string[] = [];
   for (const file of files) {
-    batches.get(interruptMaskArgs(file))!.push(file);
+    (interruptMaskArgs(file).length > 0 ? arm : host).push(file);
   }
+  const batches: [readonly string[], readonly string[]][] = [
+    [[], host],
+    [ARM_ARCH_ARGS, arm],
+  ];
   for (const [extra, batch] of batches) {
     if (batch.length === 0) continue;
     try {
