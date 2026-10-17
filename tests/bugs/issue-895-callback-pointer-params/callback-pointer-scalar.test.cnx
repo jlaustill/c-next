@@ -1,10 +1,10 @@
 // test-execution
-// test-c-only
+// test-target-xfail: host cortex-m7 atmega328p cpp #2140 "invalid conversion from"
 // Issue #895 (#1530 review): a read-only scalar parameter of a function used
 // as a C callback whose typedef takes it by pointer is a pointer in C, so a
 // call passes the argument by address -- a variable as `&n`, a literal as
 // `&(uint32_t){5U}`.
-// TODO(#2140): C++ still passes these by value against the pointer parameter.
+// C++ still passes these by value against the pointer parameter (#2140).
 
 #include "scalar-cb.h"
 
