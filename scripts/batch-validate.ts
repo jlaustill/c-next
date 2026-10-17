@@ -88,10 +88,7 @@ function interruptMaskArgs(file: string): readonly string[] {
     : [];
 }
 
-const GNU_ATOMIC_BUILTINS = join(
-  ROOT,
-  "scripts/analysis/gnu-atomic-builtins.h",
-);
+const GNU_ATOMIC_BUILTINS = join(ROOT, "tools/gnu-atomic-builtins.h");
 
 /** A file that calls the `__atomic` builtins gets the compiler's declarations. */
 function atomicBuiltinArgs(file: string): readonly string[] {
