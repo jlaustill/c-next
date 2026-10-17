@@ -3,3 +3,8 @@
 void bumpShared(mut u32 value) {
     value +<- 1;
 }
+
+u32 takeShared(mut u32 value) {
+    value +<- 1;
+    return value;
+}

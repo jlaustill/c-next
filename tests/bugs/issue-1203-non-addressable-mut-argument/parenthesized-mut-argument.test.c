@@ -22,9 +22,10 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 
 // test-execution
 // test-adr: 006
-// ADR-006: a parenthesized variable is still that variable, so a `mut`
-// parameter writes it, and `(cfg).total` is `cfg.total` (#1203). Before the fix C wrote the call as
-// `modifies(&(uint32_t){(a)})` and the write was lost in a temporary.
+// ADR-006: a parenthesized variable, field or element is still that object,
+// so a `mut` parameter writes it -- `(a)`, `((a))`, `(cfg).total`,
+// `(cfg.total)`, `(arr[0])` and `(outer.inner).v` (#1203). Before the fix C
+// wrote `modifies(&(uint32_t){(a)})` and the write was lost in a temporary.
 void modifies(uint32_t* value) {
     (*value) = cnx_clamp_add_u32((*value), 1U);
 }
@@ -40,9 +41,31 @@ int main(void) {
         return 2U;
     }
     Config cfg = { .total = 7U };
-    modifies(&cfg.total);
+    modifies(&(cfg).total);
     if (cfg.total != 8) {
         return 3U;
+    }
+    modifies(&(cfg.total));
+    if (cfg.total != 9) {
+        return 4U;
+    }
+    uint32_t arr[3] = {10U, 20U, 30U};
+    modifies(&(arr[0U]));
+    if (arr[0U] != 11) {
+        return 5U;
+    }
+    modifies(&((arr[2U])));
+    if (arr[2U] != 31) {
+        return 6U;
+    }
+    Outer outer = { .inner = { .v = 40U } };
+    modifies(&(outer.inner).v);
+    if (outer.inner.v != 41) {
+        return 7U;
+    }
+    modifies(&(outer.inner.v));
+    if (outer.inner.v != 42) {
+        return 8U;
     }
     return 0U;
 }

@@ -418,11 +418,11 @@ base: bare, `this.` and `global.`.
 | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
 | E0914 | A string value (a literal or a `string<N>`) lands in an integer, float, bool, enum or bitmap target -- as the value, the value it parenthesizes or a ternary arm (ADR-024, #1739) | A string lands only in a `string<N>` (ADR-045); a `u8` array may be initialized by a string literal (ADR-035) | `TRANSPILE/1-Analyze/IntegerConversionAnalyzer.ts` |
 
-## E0915 — An Argument a `mut` Parameter Cannot Write (ADR-006)
+## E0916 — An Argument a `mut` Parameter Cannot Write (ADR-006)
 
-| Code  | Message                                                                                                                              | Help                                                                                                | Source                                           |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| E0915 | An argument to a `mut` C-Next parameter is not a variable -- a literal, a call's or an operator's result, a cast or a struct literal | A `mut` parameter writes its argument (ADR-006); assign the value to a `mut` variable and pass that | `TRANSPILE/1-Analyze/ConstAssignmentAnalyzer.ts` |
+| Code  | Message                                                                                                                                                                                                                                                            | Help                                                                                                | Source                                           |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| E0916 | An argument to a `mut` C-Next parameter is not a variable -- a literal (number, string, struct or array), a call's, an operator's or a ternary's result, a cast, an enum member, a bit index or range, a function's name, or a header's `#define` or enum constant | A `mut` parameter writes its argument (ADR-006); assign the value to a `mut` variable and pass that | `TRANSPILE/1-Analyze/ConstAssignmentAnalyzer.ts` |
 
 ---
 

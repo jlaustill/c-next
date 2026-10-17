@@ -1,7 +1,7 @@
 // test-error
 // test-adr: 006
 // ADR-006: inside a scope method, a literal passed to a same-file `mut`
-// parameter gets E0915 -- through `this.` and to a top-level function
+// parameter gets E0916 -- through `this.` and to a top-level function
 // (#1203). CONTROL: a `mut` scope member passed by `this.` stays silent.
 
 void bumpShared(mut u32 value) {

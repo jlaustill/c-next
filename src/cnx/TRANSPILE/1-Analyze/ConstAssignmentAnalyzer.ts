@@ -1,7 +1,7 @@
 /**
  * ADR-071 read-only enforcement (was ADR-013's const): E0900 for a write to a
  * binding not declared `mut` (it retired ADR-013's E0877 and E0878), E0899
- * for a `mut` that nothing in the file writes, and E0915 for an argument to a
+ * for a `mut` that nothing in the file writes, and E0916 for an argument to a
  * `mut` parameter that is not a variable (ADR-006).
  *
  * #1322. Four throws in `output/` -- three in `AssignmentValidator` (a
@@ -38,6 +38,7 @@ import CArgumentWrite from "./helpers/CArgumentWrite";
 import type ICCallee from "./types/ICCallee";
 import BoundDeclaration from "./helpers/BoundDeclaration";
 import WrittenBinding from "./helpers/WrittenBinding";
+import MutArgument from "./helpers/MutArgument";
 import MutSite from "./helpers/MutSite";
 import type IMutSite from "../../types/IMutSite";
 import type IWrittenBinding from "./types/IWrittenBinding";
@@ -188,7 +189,7 @@ class ConstAssignmentCheck {
 
   /**
    * E0900, too: a read-only binding passed to a C-Next `mut` parameter; and
-   * E0915 for an argument that is no binding at all.
+   * E0916 for an argument that is no binding at all.
    */
   public checkExpression(expr: TExpression): void {
     if (expr.kind !== "postfix") return;
@@ -223,10 +224,10 @@ class ConstAssignmentCheck {
       const param = callee.parameters[index];
       if (param === undefined || param.isConst) return;
       const target = WrittenBinding.ofExpression(arg, this.context);
-      if (this.isValueOnly(arg, target)) {
+      if (!MutArgument.isWritable(arg, this.context)) {
         this.report(
           arg.span,
-          "E0915",
+          "E0916",
           `cannot pass '${arg.written}' to \`mut\` parameter '${param.name}' of function '${callee.name}': it is not a variable, so the write would be lost`,
           "A `mut` parameter writes its argument (ADR-006); assign the value to a `mut` variable and pass that.",
         );
@@ -355,27 +356,6 @@ class ConstAssignmentCheck {
   }
 
   // --- The facts -----------------------------------------------------------
-
-  /**
-   * An argument with no object for a `mut` parameter to write (ADR-006,
-   * #1203): a literal, an operator's or a call's result, a cast, a struct
-   * literal, an enum member, a bit of a scalar. C would take the write into a
-   * compound literal and lose it, or not compile.
-   */
-  private isValueOnly(
-    arg: TExpression,
-    target: IWrittenBinding | null,
-  ): boolean {
-    if (
-      target === null ||
-      target.binding?.kind === "function" ||
-      target.ops.some((op) => op.kind === "call")
-    ) {
-      return true;
-    }
-    const form = OperandTyper.typeOf(arg, this.context)?.form.kind;
-    return form === "enumMember" || form === "bitIndex" || form === "bitRange";
-  }
 
   /**
    * The spelling of an argument reached through a read-only binding -- `K`,

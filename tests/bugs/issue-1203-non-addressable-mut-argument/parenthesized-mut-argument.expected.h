@@ -16,6 +16,12 @@ extern "C" {
 typedef struct Config {
     uint32_t total;
 } Config;
+typedef struct Inner {
+    uint32_t v;
+} Inner;
+typedef struct Outer {
+    Inner inner;
+} Outer;
 
 /* Function prototypes */
 void modifies(uint32_t* value);

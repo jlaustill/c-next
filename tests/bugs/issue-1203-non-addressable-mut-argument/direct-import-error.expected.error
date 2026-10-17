@@ -1,4 +1,8 @@
-10:15 error[E0915]: cannot pass '5' to `mut` parameter 'value' of function 'bumpShared': it is not a variable, so the write would be lost
+11:29 error[E0916]: cannot pass '9' to `mut` parameter 'value' of function 'takeShared': it is not a variable, so the write would be lost
        help: A `mut` parameter writes its argument (ADR-006); assign the value to a `mut` variable and pass that.
-15:19 error[E0915]: cannot pass '6' to `mut` parameter 'value' of function 'bumpShared': it is not a variable, so the write would be lost
+14:15 error[E0916]: cannot pass '5' to `mut` parameter 'value' of function 'bumpShared': it is not a variable, so the write would be lost
+       help: A `mut` parameter writes its argument (ADR-006); assign the value to a `mut` variable and pass that.
+20:33 error[E0916]: cannot pass '10' to `mut` parameter 'value' of function 'takeShared': it is not a variable, so the write would be lost
+       help: A `mut` parameter writes its argument (ADR-006); assign the value to a `mut` variable and pass that.
+23:19 error[E0916]: cannot pass '6' to `mut` parameter 'value' of function 'bumpShared': it is not a variable, so the write would be lost
        help: A `mut` parameter writes its argument (ADR-006); assign the value to a `mut` variable and pass that.

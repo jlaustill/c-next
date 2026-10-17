@@ -764,8 +764,9 @@ class CodeGenWalker {
       planned.form !== null,
       "2.2 planned the form of every argument 2.3 passes by reference",
     );
-    const simpleId = this.planner.boundArgumentName(expr);
-    const declared = this.planner.nameTypeOf(expr);
+    const object = ExpressionShape.unparenthesized(expr);
+    const simpleId = this.planner.boundArgumentName(object);
+    const declared = this.planner.nameTypeOf(object);
     // #1445: thunks closing over `ctx`. `ArgumentGenerator` never read a
     // member off the node -- it threaded it through five callbacks and four
     // private helpers only to hand it back -- so the node stays here, where

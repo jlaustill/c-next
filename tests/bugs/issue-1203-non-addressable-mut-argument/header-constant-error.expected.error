@@ -1,0 +1,4 @@
+15:13 error[E0916]: cannot pass 'LIMIT' to `mut` parameter 'value' of function 'modifies': it is not a variable, so the write would be lost
+       help: A `mut` parameter writes its argument (ADR-006); assign the value to a `mut` variable and pass that.
+16:13 error[E0916]: cannot pass 'COLOR_GREEN' to `mut` parameter 'value' of function 'modifies': it is not a variable, so the write would be lost
+       help: A `mut` parameter writes its argument (ADR-006); assign the value to a `mut` variable and pass that.

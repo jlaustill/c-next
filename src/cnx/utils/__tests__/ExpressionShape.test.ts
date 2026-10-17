@@ -54,6 +54,7 @@ describe("ExpressionShape", () => {
       // #1445: carried over from CodegenParserUtils' duplicate of this
       // function when that copy was deleted.
       ["should return null for function call", "foo()"],
+      ["should return null for a parenthesized name", "(myVar)"],
       ["should return null for a negated name", "-myVar"],
       ["should return null for a this-rooted member", "this.myVar"],
     ])("%s", (_label, source) => {
@@ -61,26 +62,24 @@ describe("ExpressionShape", () => {
     });
   });
 
-  // #1203: `(a)` is `a`, so a `mut` parameter is handed `&a`, not a copy
-  describe("parentheses", () => {
-    it.each(["(myVar)", "((myVar))"])("%s is the name it wraps", (source) => {
-      expect(ExpressionShape.simpleIdentifier(lowered(source))).toBe("myVar");
+  // #1203 review: only the bracketed node itself is seen through; a chain
+  // keeps its own nodes, so 2.2's plans keyed by them still find them
+  describe("unparenthesized", () => {
+    it.each([
+      ["(myVar)", "identifier"],
+      ["((cfg.total))", "postfix"],
+      ["(arr[0])", "postfix"],
+      ["(a + b)", "binary"],
+      ["myVar", "identifier"],
+    ])("%s holds a %s", (source, kind) => {
+      expect(ExpressionShape.unparenthesized(lowered(source)).kind).toBe(kind);
     });
 
-    it("sees through a parenthesized primary: (cfg).total is cfg.total", () => {
-      const view = ExpressionShape.postfixView(lowered("(cfg).total"));
-      expect(view?.primary).toMatchObject({ kind: "identifier", name: "cfg" });
-      expect(view?.ops.map((op) => op.kind)).toEqual(["member"]);
+    it("leaves a bracketed chain to postfixView as its own primary", () => {
+      const view = ExpressionShape.postfixView(lowered("(cfg.total)"));
+      expect(view?.primary.kind).toBe("parenthesized");
+      expect(view?.ops).toEqual([]);
     });
-
-    it.each(["(a + b)", "(2147483648)"])(
-      "keeps %s, which is not a name, as its own primary",
-      (source) => {
-        const view = ExpressionShape.postfixView(lowered(source));
-        expect(view?.primary.kind).toBe("parenthesized");
-        expect(view?.ops).toEqual([]);
-      },
-    );
   });
 
   describe("rootName", () => {
@@ -90,7 +89,7 @@ describe("ExpressionShape", () => {
       ["grid[1][2]", "grid"],
       ["getStr()[0]", "getStr"],
       ["this.myVar", null],
-      ["(a).b", "a"],
+      ["(a).b", null],
       ["a + b", null],
     ])("%s -> %s", (source, expected) => {
       expect(ExpressionShape.rootName(lowered(source))).toBe(expected);
@@ -113,7 +112,7 @@ describe("ExpressionShape", () => {
       ["x[1].y", null, "x", 0],
       ["this.x.y", "this", "x", 1],
       ["global.x", "global", "x", 1],
-      ["(a).b", null, "a", 0],
+      ["(a).b", null, null, 0],
       ["a + b", null, null, 0],
     ])("%s", (source, root, name, opsConsumed) => {
       const head = ExpressionShape.headOf(lowered(source));

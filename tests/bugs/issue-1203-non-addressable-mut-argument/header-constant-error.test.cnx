@@ -1,0 +1,18 @@
+// test-error
+// test-adr: 006
+// ADR-006: a header's `#define` and C enum constant are not variables, so
+// passing one to a `mut` parameter gets E0916 (#1203 review); C was
+// `modifies(&LIMIT)`, which gcc rejects. CONTROL: a header's variable is an
+// object, so `modifies(headerCounter)` stays silent.
+
+#include "header-constants.h"
+
+void modifies(mut u32 value) {
+    value +<- 1;
+}
+
+void useAll() {
+    modifies(LIMIT);
+    modifies(COLOR_GREEN);
+    modifies(headerCounter);
+}

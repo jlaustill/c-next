@@ -1,11 +1,20 @@
 // test-execution
 // test-adr: 006
-// ADR-006: a parenthesized variable is still that variable, so a `mut`
-// parameter writes it, and `(cfg).total` is `cfg.total` (#1203). Before the fix C wrote the call as
-// `modifies(&(uint32_t){(a)})` and the write was lost in a temporary.
+// ADR-006: a parenthesized variable, field or element is still that object,
+// so a `mut` parameter writes it -- `(a)`, `((a))`, `(cfg).total`,
+// `(cfg.total)`, `(arr[0])` and `(outer.inner).v` (#1203). Before the fix C
+// wrote `modifies(&(uint32_t){(a)})` and the write was lost in a temporary.
 
 struct Config {
     u32 total;
+}
+
+struct Inner {
+    u32 v;
+}
+
+struct Outer {
+    Inner inner;
 }
 
 void modifies(mut u32 value) {
@@ -26,6 +35,28 @@ u32 main() {
     modifies((cfg).total);
     if (cfg.total != 8) {
         return 3;
+    }
+    modifies((cfg.total));
+    if (cfg.total != 9) {
+        return 4;
+    }
+    mut u32[3] arr <- [10, 20, 30];
+    modifies((arr[0]));
+    if (arr[0] != 11) {
+        return 5;
+    }
+    modifies(((arr[2])));
+    if (arr[2] != 31) {
+        return 6;
+    }
+    mut Outer outer <- { inner: { v: 40 } };
+    modifies((outer.inner).v);
+    if (outer.inner.v != 41) {
+        return 7;
+    }
+    modifies((outer.inner.v));
+    if (outer.inner.v != 42) {
+        return 8;
     }
     return 0;
 }

@@ -427,6 +427,44 @@ By enforcing that all function arguments must be addressable values, C-Next crea
 
 ---
 
+## Enforcement: E0916 (#1203)
+
+A `mut` parameter's argument must be an object the callee can write: a
+variable, a field or an element, through any brackets (`(a)`, `(cfg.total)`,
+`(cfg).total`). Anything else -- a literal, a call's, an operator's or a
+ternary's result, a cast, a struct or array literal, an enum member, a bit
+index or range, a function's name, or a header's `#define` or enum constant --
+is E0916: C would take the write into a temporary and lose it, or not compile.
+Passing a read-only binding to a `mut` parameter stays E0900 (ADR-071).
+
+## Scope-Context Matrix (#1219)
+
+Severity follows the eslint model: `off` records that a cell **cannot exist**,
+`warn` that it should be covered and is not, `error` that it must be.
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
+
+The rule is about a call's argument, so every place a call can be written can
+break it: a function or scope method body, and a global variable's or scope
+member's initializer (`u32 g <- take(5);`). A callee one or two `#include`
+hops away is the same `mut` parameter. Every cell is `error`, with a fixture
+under `tests/bugs/issue-1203-non-addressable-mut-argument/`.
+
 ## Open Questions
 
 ### Q1: What about read-only parameters?

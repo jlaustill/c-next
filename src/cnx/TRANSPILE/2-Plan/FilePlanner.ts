@@ -52,6 +52,7 @@ import type TBlockSyntax from "../../types/syntax/TBlockSyntax";
 import AssignmentTarget from "../../utils/AssignmentTarget";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
 import ExpressionShape from "../../utils/ExpressionShape";
+import MutArgument from "../1-Analyze/helpers/MutArgument";
 import SafeDivision from "../../utils/SafeDivision";
 import StatementNodes from "../../utils/StatementNodes";
 import RegisterAccessMode from "../../utils/RegisterAccessMode";
@@ -1074,7 +1075,9 @@ class FilePlanner {
     const call = site.call.ops[site.op];
     invariant(call?.kind === "call", "an argument site names a call");
     return passing.mode === "reference" &&
-      this.getLvalueType(call.arguments[site.argument]) !== null
+      this.getLvalueType(
+        ExpressionShape.unparenthesized(call.arguments[site.argument]),
+      ) !== null
       ? null
       : base;
   }
@@ -1211,15 +1214,23 @@ class FilePlanner {
 
       const passing = this.argumentPassing(site);
       const base = passing.param?.baseType;
+      const object = ExpressionShape.unparenthesized(expression);
       const form =
         passing.mode === "reference"
           ? ArgumentForm.of(
-              this.boundArgumentName(expression) !== null,
+              this.boundArgumentName(object) !== null,
               base,
-              this.argumentShape(expression),
+              this.argumentShape(object),
               this.state.cppMode,
             )
           : null;
+      invariant(
+        passing.mode !== "reference" ||
+          passing.param?.isConst !== false ||
+          (MutArgument.isWritable(expression, this.state.typingContext()) &&
+            form?.kind !== "rvalue"),
+        "2.1 rejected every `mut` argument that is not an object (ADR-006, E0916)",
+      );
       const enumCast =
         passing.mode === "reference"
           ? null
