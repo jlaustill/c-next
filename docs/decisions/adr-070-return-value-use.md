@@ -149,7 +149,7 @@ Components and constraints:
   the call is what suppresses the error.
 - **Layer constraint:** `logic/analysis/` must not import from `output/`.
 
-### Proposed error codes (not yet allocated)
+### Error codes (allocated: E0708 is in `docs/error-codes.md`)
 
 | Code  | Meaning                                     |
 | ----- | ------------------------------------------- |

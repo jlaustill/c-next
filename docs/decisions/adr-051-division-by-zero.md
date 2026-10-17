@@ -504,7 +504,7 @@ u32 result <- 10 / 0;
 // Expected: Error: Division by zero
 ```
 
-**File:** `tests/arithmetic/division-by-zero-const.test.cnx`
+**File:** `tests/arithmetic/division-by-const-zero.test.cnx`
 
 ```cnx
 // Const zero
@@ -836,7 +836,7 @@ Add to `coverage.md`:
 | Feature                          | Status | Test File                                      |
 | -------------------------------- | ------ | ---------------------------------------------- |
 | Division by zero error (literal) | [x]    | `arithmetic/division-by-zero-literal.test.cnx` |
-| Division by zero error (const)   | [x]    | `arithmetic/division-by-zero-const.test.cnx`   |
+| Division by zero error (const)   | [x]    | `arithmetic/division-by-const-zero.test.cnx`   |
 | Modulo by zero error             | [x]    | `arithmetic/modulo-by-zero-literal.test.cnx`   |
 | safe_div() built-in              | [x]    | `arithmetic/safe-div-basic.test.cnx`           |
 | safe_mod() built-in              | [x]    | `arithmetic/safe-mod-basic.test.cnx`           |
@@ -845,7 +845,11 @@ Add to `coverage.md`:
 
 ## Implementation Status
 
-**Current:** Not implemented (transpiles division directly to C)
+**Current (measured 2026-10-17 at `1d5d36ed5`, #1933):** the table above is implemented.
+A zero literal or `const` divisor is rejected at compile time (E0800, and E0802 for `%`), and
+`safe_div()`/`safe_mod()` are built in. Two divisors that are zero at compile time are not
+caught yet: a constant expression such as `x / (1 - 1)` (#1879) and a header macro such as
+`#define ZM 0` (#2071).
 
 **Target:** v1.0 release
 
