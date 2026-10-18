@@ -5,12 +5,19 @@
 // `modifies(&LIMIT)`, which gcc rejects. CONTROL: a header's variable is an
 // object, so `modifies(headerCounter)` stays silent. A `#define` that
 // expands to an object (`counterAlias`, `STATUS_REG`) is still a `#define`,
-// not a value, so it gets E0916 with a message that says so.
+// not a value, so it gets E0916 with a message that says so. CONTROL: the
+// same `#define` and enum constant passed to a read-only parameter are
+// values copied in, so `readsOnly(LIMIT)` and `readsOnly(COLOR_GREEN)` stay
+// silent (#2141).
 
 #include "header-constants.h"
 
 void modifies(mut u32 value) {
     value +<- 1;
+}
+
+void readsOnly(u32 value) {
+    u32 copy <- value;
 }
 
 void useAll() {
@@ -19,4 +26,6 @@ void useAll() {
     modifies(headerCounter);
     modifies(counterAlias);
     modifies(STATUS_REG);
+    readsOnly(LIMIT);
+    readsOnly(COLOR_GREEN);
 }
