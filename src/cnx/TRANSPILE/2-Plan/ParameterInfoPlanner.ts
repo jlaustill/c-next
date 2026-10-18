@@ -1,8 +1,4 @@
-import TypedefParamParser from "../../utils/TypedefParamParser";
 import ParameterPassing from "./ParameterPassing";
-import SymbolGuards from "../../types/symbols/SymbolGuards";
-import invariant from "../../utils/invariant";
-import type IParameterInfo from "../../types/symbols/IParameterInfo";
 import type TParameterInfo from "../../types/TParameterInfo";
 import type IFunctionContextCallbacks from "./types/IFunctionContextCallbacks";
 import type IPlannedFunctionParameter from "./types/IPlannedFunctionParameter";
@@ -59,7 +55,7 @@ class ParameterInfoPlanner {
     // is an array of pointers (#996), and the `!isArray` this once carried is
     // what left `Dev[2] arr` as `Dev arr[2]`.
     const isOpaqueHandle =
-      ParameterInfoPlanner.settledParameters(functionName, state)[paramIndex]
+      ParameterPassing.settledParameters(functionName, state)[paramIndex]
         ?.isOpaqueHandle === true;
 
     // Determine isStruct: for callback-compatible params, both typedef AND type info matter
@@ -171,58 +167,6 @@ class ParameterInfoPlanner {
       isCallback: state.callbackTypes.has(typeName),
       isString: false,
     };
-  }
-
-  /**
-   * Issue #895: the callback typedef's answer for parameter `paramIndex` of
-   * `functionName`, or null when no typedef describes it.
-   */
-  static callbackTypedefParamInfo(
-    functionName: string,
-    paramIndex: number,
-    state: Pick<TranspileState, "callbackTypedefTypeFor">,
-  ): { isParamPointer: boolean; isParamConst: boolean } | null {
-    // main's renamed result fields (#1450), with #1545's extracted lookup --
-    // the two steps live in state.callbackTypedefTypeFor, so this site and
-    // the header's cannot spell the predicate differently.
-    const typedefType = state.callbackTypedefTypeFor(functionName);
-    if (!typedefType) return null;
-
-    const isParamPointer = TypedefParamParser.isParamPointer(
-      typedefType,
-      paramIndex,
-    );
-    const isParamConst = TypedefParamParser.isParamConst(
-      typedefType,
-      paramIndex,
-    );
-
-    if (isParamPointer === null) return null;
-
-    return {
-      isParamPointer,
-      isParamConst: isParamConst ?? false,
-    };
-  }
-
-  /**
-   * The parameters of `functionName` as 1.4 settled them. A function 2.2
-   * plans always has a settled symbol under its C name, so a missing one is a
-   * defect, not a "no".
-   */
-  static settledParameters(
-    functionName: string | null,
-    state: Pick<TranspileState, "program">,
-  ): ReadonlyArray<IParameterInfo> {
-    const symbol =
-      functionName === null
-        ? undefined
-        : state.program?.symbolByCName(functionName);
-    invariant(
-      symbol !== undefined && SymbolGuards.isFunction(symbol),
-      `a function being generated has a settled symbol (missing ${functionName})`,
-    );
-    return symbol.parameters;
   }
 }
 

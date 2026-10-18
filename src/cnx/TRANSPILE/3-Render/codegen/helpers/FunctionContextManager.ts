@@ -19,7 +19,7 @@
  * fourth walk here.
  */
 
-import ParameterInfoPlanner from "../../../2-Plan/ParameterInfoPlanner";
+import ParameterPassing from "../../../2-Plan/ParameterPassing";
 import invariant from "../../../../utils/invariant";
 import ComplianceAnnotations from "../../../2-Plan/ComplianceAnnotations";
 import type IParameterInfo from "../../../../types/symbols/IParameterInfo";
@@ -125,10 +125,7 @@ class FunctionContextManager {
   private static settledParameters(
     state: TranspileState,
   ): ReadonlyArray<IParameterInfo> {
-    return ParameterInfoPlanner.settledParameters(
-      state.currentFunctionName,
-      state,
-    );
+    return ParameterPassing.settledParameters(state.currentFunctionName, state);
   }
 
   /**

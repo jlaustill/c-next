@@ -1,6 +1,8 @@
 import SymbolTypeResolver from "../../utils/TypeResolver";
 import SymbolGuards from "../../types/symbols/SymbolGuards";
-import ParameterInfoPlanner from "./ParameterInfoPlanner";
+import TypedefParamParser from "../../utils/TypedefParamParser";
+import invariant from "../../utils/invariant";
+import type IParameterInfo from "../../types/symbols/IParameterInfo";
 import CallExprUtils from "./CallExprUtils";
 import CppNamespaceUtils from "../../utils/CppNamespaceUtils";
 import type ICallbackTypeInfo from "../../types/ICallbackTypeInfo";
@@ -31,7 +33,7 @@ class ParameterPassing {
     facts: TParameterPassingFacts,
     isDirectCall = true,
   ): IParameterPassing {
-    const param = ParameterInfoPlanner.settledParameters(functionName, facts)[
+    const param = ParameterPassing.settledParameters(functionName, facts)[
       paramIndex
     ];
     const typeName = SymbolTypeResolver.getTypeName(param.type);
@@ -41,7 +43,7 @@ class ParameterPassing {
     // pointer or value. A `mut` parameter keeps its pointer even where the
     // typedef takes a copy: the copy would lose the write (#2146).
     const typedef = isDirectCall
-      ? ParameterInfoPlanner.callbackTypedefParamInfo(
+      ? ParameterPassing.callbackTypedefParamInfo(
           functionName,
           paramIndex,
           facts,
@@ -75,6 +77,56 @@ class ParameterPassing {
     );
   }
 
+  /**
+   * The parameters of `functionName` as 1.4 settled them. A function 2.2
+   * plans always has a settled symbol under its C name, so a missing one is a
+   * defect, not a "no".
+   */
+  static settledParameters(
+    functionName: string | null,
+    state: Pick<TranspileState, "program">,
+  ): ReadonlyArray<IParameterInfo> {
+    const symbol =
+      functionName === null
+        ? undefined
+        : state.program?.symbolByCName(functionName);
+    invariant(
+      symbol !== undefined && SymbolGuards.isFunction(symbol),
+      `a function being generated has a settled symbol (missing ${functionName})`,
+    );
+    return symbol.parameters;
+  }
+  /**
+   * Issue #895: the callback typedef's answer for parameter `paramIndex` of
+   * `functionName`, or null when no typedef describes it.
+   */
+  private static callbackTypedefParamInfo(
+    functionName: string,
+    paramIndex: number,
+    state: Pick<TranspileState, "callbackTypedefTypeFor">,
+  ): { isParamPointer: boolean; isParamConst: boolean } | null {
+    // main's renamed result fields (#1450), with #1545's extracted lookup --
+    // the two steps live in state.callbackTypedefTypeFor, so this site and
+    // the header's cannot spell the predicate differently.
+    const typedefType = state.callbackTypedefTypeFor(functionName);
+    if (!typedefType) return null;
+
+    const isParamPointer = TypedefParamParser.isParamPointer(
+      typedefType,
+      paramIndex,
+    );
+    const isParamConst = TypedefParamParser.isParamConst(
+      typedefType,
+      paramIndex,
+    );
+
+    if (isParamPointer === null) return null;
+
+    return {
+      isParamPointer,
+      isParamConst: isParamConst ?? false,
+    };
+  }
   private static isByValue(
     functionName: string,
     paramName: string,

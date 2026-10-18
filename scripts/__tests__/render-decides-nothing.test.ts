@@ -306,7 +306,11 @@ const PLAN_DECISIONS: Readonly<Record<string, readonly string[]>> = {
   // #1639: decided once in 2.2. `HeaderEmissionCapture` stamps the answer
   // on each prototype's parameters for the header renderer to read; no
   // render module decides passing for itself.
-  ParameterPassing: ["headers/HeaderEmissionCapture.ts"],
+  ParameterPassing: [
+    // reads a parameter's settled emitted name, not the passing decision
+    "codegen/helpers/FunctionContextManager.ts",
+    "headers/HeaderEmissionCapture.ts",
+  ],
   PublicInterface: [
     // #1445 box 3: `ScopeGenerator` used to ask this while walking its own
     // members. It renders a plan now, so "does the header already define this
