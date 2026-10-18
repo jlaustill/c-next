@@ -118,12 +118,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jlaustill/c-next.git"
+    "url": "https://github.com/smeltworks/cnx.git"
   },
   "bugs": {
-    "url": "https://github.com/jlaustill/c-next/issues"
+    "url": "https://github.com/smeltworks/cnx/issues"
   },
-  "homepage": "https://github.com/jlaustill/c-next#readme",
+  "homepage": "https://github.com/smeltworks/cnx#readme",
   "engines": {
     "node": ">=18.20.0"
   },
