@@ -1,9 +1,11 @@
 import { execFileSync } from "node:child_process";
 
+import Repo from "./Repo";
 import type IBacklogCard from "../types/IBacklogCard";
+import type IProjectRef from "../types/IProjectRef";
 
 /**
- * Read and write access to the C-Next project board.
+ * Read and write access to the cnx project board.
  *
  * `scripts/setup-project.ts` held all of this privately, so a second consumer
  * would have had to restate the gh invocation, the scope-error handling and the
@@ -15,7 +17,14 @@ import type IBacklogCard from "../types/IBacklogCard";
  * Actions it is `GH_TOKEN`, with no branch between them.
  */
 class ProjectBoard {
-  static readonly TITLE = "C-Next";
+  /**
+   * The board belongs to the organization that owns the repositories, so it
+   * moves when they do (#2189). An organization-owned board is also what lets a
+   * GitHub App write it; a user-owned one needed a personal token.
+   */
+  static readonly OWNER = Repo.OWNER;
+
+  static readonly TITLE = "cnx";
 
   static readonly STATUS_FIELD = "Status";
 
@@ -65,18 +74,64 @@ class ProjectBoard {
     return parsed.data;
   }
 
-  /** The board's node id, or undefined when it does not exist yet. */
-  static findProject(): string | undefined {
-    const data = ProjectBoard.graphql(`
-      query {
-        viewer { projectsV2(first: 100) { nodes { id title } } }
+  /**
+   * The board, or undefined when it does not exist yet.
+   *
+   * Asks the owning organization rather than `viewer`: under a GitHub App token
+   * the viewer is the app's bot, which owns no projects. Paginated, because a
+   * capped first page reads a board past it as absent (#1416).
+   */
+  static findProject(): IProjectRef | undefined {
+    let cursor = "";
+    for (;;) {
+      const data = ProjectBoard.graphql(
+        `
+        query($owner: String!, $cursor: String) {
+          organization(login: $owner) {
+            projectsV2(first: 100, after: $cursor) {
+              pageInfo { hasNextPage endCursor }
+              nodes { id title number url }
+            }
+          }
+        }
+      `,
+        cursor === ""
+          ? { owner: ProjectBoard.OWNER }
+          : { owner: ProjectBoard.OWNER, cursor },
+      ) as unknown as {
+        organization: {
+          projectsV2: {
+            pageInfo: { hasNextPage: boolean; endCursor: string };
+            nodes: (IProjectRef & { title: string })[];
+          };
+        };
+      };
+
+      const connection = data.organization.projectsV2;
+      const board = connection.nodes.find(
+        (node) => node.title === ProjectBoard.TITLE,
+      );
+      if (board !== undefined) {
+        return { id: board.id, number: board.number, url: board.url };
       }
-    `) as unknown as {
-      viewer: { projectsV2: { nodes: { id: string; title: string }[] } };
-    };
-    return data.viewer.projectsV2.nodes.find(
-      (node) => node.title === ProjectBoard.TITLE,
-    )?.id;
+      if (!connection.pageInfo.hasNextPage) {
+        return undefined;
+      }
+      cursor = connection.pageInfo.endCursor;
+    }
+  }
+
+  /** The owning organization's node id, which creating the board takes. */
+  static ownerId(): string {
+    const data = ProjectBoard.graphql(
+      `
+      query($owner: String!) {
+        organization(login: $owner) { id }
+      }
+    `,
+      { owner: ProjectBoard.OWNER },
+    ) as unknown as { organization: { id: string } };
+    return data.organization.id;
   }
 
   /**

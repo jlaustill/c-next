@@ -1,8 +1,8 @@
 #!/usr/bin/env tsx
 /**
- * C-Next project board provisioning (Issue #1247)
+ * cnx project board provisioning (Issues #1247, #2189)
  *
- * Creates and seeds the GitHub Project that tracks c-next work, so a release is
+ * Creates and seeds the GitHub Project that tracks cnx work, so a release is
  * managed as ordinary work rather than through a separate release process.
  *
  * Usage:
@@ -27,12 +27,14 @@
 
 import chalk from "chalk";
 
+import type IProjectRef from "./types/IProjectRef";
 import ProjectBoard from "./utils/ProjectBoard";
 import Repo from "./utils/Repo";
 
 const PROJECT_DESCRIPTION =
-  "Issue, PR and release tracking for C-Next. Workflow: docs/WORKFLOW.md";
-const LINKED_REPOSITORIES = ["c-next", "vscode-c-next"] as const;
+  "Issue, PR and release tracking for cnx. Workflow: docs/WORKFLOW.md";
+/** This repository and the VS Code extension, both under `Repo.OWNER`. */
+const LINKED_REPOSITORIES = [Repo.NAME, "vscode-cnx"] as const;
 
 const GROOMING = "Grooming";
 const BACKLOG = "Backlog";
@@ -101,29 +103,14 @@ class SetupProject {
     console.log(chalk.dim(`  = ${reason}`));
   }
 
-  /** Finds the project by title, creating it only when absent. */
-  private static resolveProject(): { id: string; number: number; url: string } {
-    const data = ProjectBoard.graphql(`
-      query {
-        viewer {
-          id
-          projectsV2(first: 100) {
-            nodes { id title number url }
-          }
-        }
-      }
-    `) as unknown as {
-      viewer: {
-        id: string;
-        projectsV2: {
-          nodes: { id: string; title: string; number: number; url: string }[];
-        };
-      };
-    };
-
-    const existing = data.viewer.projectsV2.nodes.find(
-      (node) => node.title === ProjectBoard.TITLE,
-    );
+  /**
+   * Finds the project by title, creating it only when absent. The lookup is
+   * `ProjectBoard.findProject`, the one every consumer uses -- this file kept a
+   * private copy of it until #2189, which is how the two could disagree about
+   * whose boards to search.
+   */
+  private static resolveProject(): IProjectRef {
+    const existing = ProjectBoard.findProject();
     if (existing !== undefined) {
       SetupProject.skip(
         `project "${ProjectBoard.TITLE}" exists (${existing.url})`,
@@ -143,11 +130,9 @@ class SetupProject {
         }
       }
     `,
-      { ownerId: data.viewer.id, title: ProjectBoard.TITLE },
+      { ownerId: ProjectBoard.ownerId(), title: ProjectBoard.TITLE },
     ) as unknown as {
-      createProjectV2: {
-        projectV2: { id: string; number: number; url: string };
-      };
+      createProjectV2: { projectV2: IProjectRef };
     };
 
     SetupProject.record(`created project "${ProjectBoard.TITLE}"`);
@@ -525,8 +510,8 @@ class SetupProject {
     console.log(
       chalk.bold(
         SetupProject.dryRun
-          ? "Checking the C-Next project board\n"
-          : "Provisioning the C-Next project board\n",
+          ? "Checking the cnx project board\n"
+          : "Provisioning the cnx project board\n",
       ),
     );
 

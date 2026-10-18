@@ -86,14 +86,78 @@ describe("ProjectBoard.graphql", () => {
   });
 });
 
+function projects(
+  nodes: unknown[],
+  hasNextPage = false,
+  endCursor = "",
+): Record<string, unknown> {
+  return {
+    data: {
+      organization: {
+        projectsV2: { pageInfo: { hasNextPage, endCursor }, nodes },
+      },
+    },
+  };
+}
+
+const BOARD = { id: "P1", title: "cnx", number: 1, url: "https://board/1" };
+
+describe("ProjectBoard identity", () => {
+  it("belongs to the organization that owns the repositories", () => {
+    // One fact, not two: the board moves when the repositories do (#2189).
+    expect(ProjectBoard.OWNER).toBe("smeltworks");
+  });
+});
+
 describe("ProjectBoard.findProject", () => {
   it.each([
-    ["the board exists", [{ id: "P1", title: "C-Next" }], "P1"],
-    ["a different board exists", [{ id: "P9", title: "Other" }], undefined],
+    ["the board exists", [BOARD], BOARD],
+    [
+      "a different board exists",
+      [{ ...BOARD, id: "P9", title: "Other" }],
+      undefined,
+    ],
     ["no boards exist", [], undefined],
-  ])("returns the id when %s", (_label, nodes, expected) => {
-    replies({ data: { viewer: { projectsV2: { nodes } } } });
-    expect(ProjectBoard.findProject()).toBe(expected);
+  ])("returns the board when %s", (_label, nodes, expected) => {
+    replies(projects(nodes));
+    expect(ProjectBoard.findProject()).toEqual(
+      expected === undefined
+        ? undefined
+        : { id: BOARD.id, number: BOARD.number, url: BOARD.url },
+    );
+  });
+
+  it("asks the owning organization, not whoever holds the token", () => {
+    // `viewer` is the token's own account. Locally that was the board's owner;
+    // under a GitHub App token it is the app's bot, which owns no projects, so
+    // a viewer lookup reads every board as absent.
+    replies(projects([BOARD]));
+    ProjectBoard.findProject();
+    const args = execFileSync.mock.calls[0]?.[1] as string[];
+    expect(args).toContain("owner=smeltworks");
+    expect(args.join("\n")).toMatch(/organization\(login: \$owner\)/);
+    expect(args.join("\n")).not.toMatch(/viewer/);
+  });
+
+  it("follows pagination instead of reading the first page as the whole list", () => {
+    replies(
+      projects([{ ...BOARD, id: "P9", title: "Other" }], true, "CURSOR2"),
+      projects([BOARD]),
+    );
+    expect(ProjectBoard.findProject()?.id).toBe("P1");
+    expect(execFileSync.mock.calls[1]?.[1] as string[]).toContain(
+      "cursor=CURSOR2",
+    );
+  });
+});
+
+describe("ProjectBoard.ownerId", () => {
+  it("returns the owning organization's node id", () => {
+    replies({ data: { organization: { id: "O_1" } } });
+    expect(ProjectBoard.ownerId()).toBe("O_1");
+    expect(execFileSync.mock.calls[0]?.[1] as string[]).toContain(
+      "owner=smeltworks",
+    );
   });
 });
 

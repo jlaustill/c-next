@@ -6,7 +6,7 @@ const board = vi.hoisted(() => ({
   findProject: vi.fn(),
   columnCards: vi.fn(),
   moveAfter: vi.fn(),
-  TITLE: "C-Next",
+  TITLE: "cnx",
 }));
 vi.mock("../utils/ProjectBoard", () => ({ default: board }));
 
@@ -22,7 +22,9 @@ function column(...rows: [number, number[]][]): IBacklogCard[] {
 }
 
 beforeEach(() => {
-  board.findProject.mockReset().mockReturnValue("P1");
+  board.findProject
+    .mockReset()
+    .mockReturnValue({ id: "P1", number: 1, url: "https://board/1" });
   board.columnCards.mockReset().mockReturnValue([]);
   board.moveAfter.mockReset();
   vi.spyOn(console, "log").mockImplementation(() => undefined);
