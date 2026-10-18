@@ -205,18 +205,8 @@ const generateForVarDecl = (
 
   let result = `${plan.const}${plan.atomic}${plan.volatile}${plan.typeName} ${name}`;
 
-  // ADR-036: Handle array dimensions (now returns array for multi-dim support).
-  //
-  // #1646: this REASSIGNS rather than appends, so it drops the two modifiers
-  // above -- and it is reached only by the C-style `u32 a[2]` spelling that
-  // E0874 rejects everywhere except here, because the prefix `u32[2] a` form
-  // puts its dimensions in the TYPE and loses them entirely (emitting C that
-  // gcc refuses to compile). All three are pre-existing and preserved exactly:
-  // this slice's oracle is a byte-identical corpus, and every one of those
-  // fixes changes emitted C.
-  if (plan.renderArrayDimensions) {
-    result = `${plan.typeName} ${name}${plan.renderArrayDimensions()}`;
-  }
+  // ADR-036: a `for` variable is a scalar; 1.2 rejects an array here (E0917,
+  // #1823), so no dimensions reach this.
 
   // Handle initialization
   if (plan.renderInitializer) {

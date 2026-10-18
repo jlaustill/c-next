@@ -418,6 +418,7 @@ Compiler flags:
 | E0875 | A parameter's array type leaves a dimension unbounded (`u8[] data`)                                                         | `tests/adr-036/array-shape-uncovered-arms-error.test.cnx`                                                           |
 | E0909 | A dimension is not known at compile time -- a variable or a parameter, since C-Next has no variable-length arrays (ADR-023) | `tests/bugs/issue-1175-constant-dimensions/variable-dimension-local.test.cnx`, `variable-dimension-global.test.cnx` |
 | E0910 | A dimension is arithmetic that would clamp or wrap (ADR-044)                                                                | `tests/bugs/issue-1175-constant-dimensions/overflow-dimension.test.cnx`                                             |
+| E0917 | A `for` header declares an array, in either spelling (`u8[3] v`, `u32 c[2]`) (#1823)                                        | `tests/adr-036/for-header-array-error.test.cnx`                                                                     |
 
 The bound is the dimension the subscript indexes: `grid[i][9]` is checked
 against `grid[i]`'s shape. A field of a struct is bounded like a variable
@@ -427,10 +428,17 @@ index, a dimension sized by a C macro, and a two-expression subscript (a slice
 or bit range, ADR-007) are not checked here.
 
 The C-style form is rejected on a variable declaration and on a parameter --
-the two places it was rejected before #1322. A scope member, a struct member
-and a `for` header's declaration still accept it: thirty-one fixtures use it
-there, so closing it is a language change for the ADR's owner to decide, and
-it is recorded rather than silently widened.
+the two places it was rejected before #1322. A scope member and a struct
+member still accept it: thirty-one fixtures use it there, so closing it is a
+language change for the ADR's owner to decide, and it is recorded rather than
+silently widened.
+
+A `for` header declares one scalar loop variable, so an array declared there
+is E0917 in either spelling: `for (u8[3] v <- [1, 2, 3]; ...)` and
+`for (u32 c[2]; ...)` alike. The array is declared before the loop instead
+(owner ruling on #1823, 2026-09-30). Until #1823 both forms transpiled and the
+prefix form was emitted as a scalar, `uint8_t v = {1U, 2U, 3U}`; no fixture or
+example declared an array there, against 85 scalar loop variables.
 
 ## Scope-Context Matrix (#1219)
 

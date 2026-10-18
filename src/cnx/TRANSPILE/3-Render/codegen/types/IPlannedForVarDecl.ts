@@ -2,8 +2,9 @@
  * A variable declared in a `for` header: `for (u32 i <- 0; ...)`.
  *
  * `typeName` is eager because it is unconditional -- every `for` variable has
- * a declared type and it is rendered before anything else here. The other two
- * are thunks, so they render where the generator writes them, after the type.
+ * a declared type and it is rendered before anything else here. The
+ * initializer is a thunk, so it renders where the generator writes it, after
+ * the type. There are no dimensions: 1.2 rejects an array here (E0917, #1823).
  */
 interface IPlannedForVarDecl {
   /** Rendered `atomic`/`volatile` prefixes, each with its trailing space or "". */
@@ -16,8 +17,6 @@ interface IPlannedForVarDecl {
   readonly emittedName: string;
   /** #1643 review: why `emittedName` moved, above the `for` (ADR-057) */
   readonly nameMoveComments: string;
-  /** ADR-036 dimensions, or null when the declaration is not an array. */
-  readonly renderArrayDimensions: (() => string) | null;
   /**
    * The initializer, written against the declared type, which 2.2 planned for
    * it (#1277: without it a struct literal in a `for` header was rejected as

@@ -3183,8 +3183,9 @@ class CodeGenWalker {
   /**
    * A variable declared in a `for` header.
    *
-   * `typeName` is eager; the dimensions and the initializer are thunks, so
-   * they render where the generator writes them, after the type. The emitted
+   * `typeName` is eager; the initializer is a thunk, so it renders where the
+   * generator writes it, after the type. It is never an array: 1.2 rejects
+   * one here (E0917, #1823). The emitted
    * name is 1.4's (#1934, ADR-057), bound at the declaration itself.
    */
   private planForVarDecl(decl: IVariableDeclarationSyntax): IPlannedForVarDecl {
@@ -3201,10 +3202,6 @@ class CodeGenWalker {
       typeName,
       emittedName: this.host.state.ownEmittedName(decl),
       nameMoveComments: this.nameMoveComments(decl),
-      renderArrayDimensions:
-        decl.dimensions.length > 0
-          ? () => this.renderLoweredDimensions(decl.dimensions)
-          : null,
       renderInitializer: initializer
         ? () => this.renderExpression(initializer)
         : null,

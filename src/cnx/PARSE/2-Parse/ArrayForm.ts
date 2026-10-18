@@ -1,6 +1,7 @@
 /**
  * ADR-035 array initializers and ADR-036 declaration shape, as written:
- * E0866 (an initializer that is not a list), E0874, E0875, E0876, E0892.
+ * E0866 (an initializer that is not a list), E0874, E0875, E0876, E0892,
+ * and E0917 (an array declared in a `for` header, #1823).
  *
  * Where the brackets are, whether a dimension has an expression, and whether
  * an initializer is a list are syntax, so 1.2 reports them with the file's
@@ -11,9 +12,10 @@
  * ## Reproduced, not closed, stated
  *
  * Codegen rejected the C-style form (`u8 arr[4]`) for a variable declaration
- * and a parameter, and accepted it for a scope member, a struct member and a
- * `for` header's declaration -- thirty-one fixtures use it in a scope or a
- * struct, and a unit test pins the scope case as intended. ADR-036 names the
+ * and a parameter, and accepted it for a scope member and a struct member --
+ * thirty-one fixtures use it in a scope or a struct, and a unit test pins the
+ * scope case as intended. A `for` header declares a scalar loop variable, so
+ * an array there is E0917 in either spelling (#1823). ADR-036 names the
  * prefix form as the only one; this rejects exactly where codegen did and
  * records the rest for the ADR's owner, since closing it is a language change
  * on code the corpus treats as valid.
@@ -74,6 +76,16 @@ class ArrayFormListener extends CNextListener {
     }
     if (!arrayType || !expression) return;
     this.checkInitializer(arrayType, expression);
+  };
+
+  override enterForVarDecl = (ctx: Parser.ForVarDeclContext): void => {
+    if (!ctx.type().arrayType() && ctx.arrayDimension().length === 0) return;
+    this.report(
+      ctx,
+      "E0917",
+      `An array is not a for loop variable: declare '${ctx.IDENTIFIER().getText()}' before the loop`,
+      "A for header declares one scalar loop variable (ADR-036); declare the array before the loop and index it inside.",
+    );
   };
 
   override enterStructMember = (ctx: Parser.StructMemberContext): void => {
