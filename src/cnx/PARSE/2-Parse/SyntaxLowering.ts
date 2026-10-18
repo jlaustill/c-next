@@ -515,6 +515,9 @@ class SyntaxLowering {
         const size = dimension.expression();
         return size ? SyntaxLowering.expression(size) : null;
       }),
+      dimensionSpans: ctx
+        .arrayTypeDimension()
+        .map((dimension) => ParserUtils.getSpan(dimension)),
       ...SyntaxLowering.typeNode(ctx),
     };
   }

@@ -3,77 +3,66 @@
  * can be inferred (E0862), and a file-scope string is initialized only by a
  * literal (E0863). Both read only how the declaration is written, so 1.2
  * reports them. Whether the initializer fits is 2.1's (E0864/E0865).
+ *
+ * The declarations judged are `VariableDeclarations.ruled`, the same walk 2.1
+ * uses (#2073). A `for` header's string is E0917, not one of these.
  */
-import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
-import { CNextListener } from "./grammar/CNextListener";
-import * as Parser from "./grammar/CNextParser";
-import SyntaxLowering from "./SyntaxLowering";
 import ExpressionShape from "../../utils/ExpressionShape";
-import ParserUtils from "../../utils/ParserUtils";
 import CodedErrorText from "../../utils/CodedErrorText";
+import VariableDeclarations from "../../utils/VariableDeclarations";
+import type ISourceSpan from "../../types/ISourceSpan";
 import type ITranspileError from "../../types/ITranspileError";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type IVariableDeclarationSite from "../../types/syntax/IVariableDeclarationSite";
 import type TExpression from "../../types/syntax/TExpression";
+import type TTypeSyntax from "../../types/syntax/TTypeSyntax";
 
-class StringFormListener extends CNextListener {
+type TStringTypeSyntax = Extract<TTypeSyntax, { kind: "string" }>;
+
+class StringFormCheck {
   private readonly found: ITranspileError[] = [];
-  private functionDepth = 0;
 
   public errors(): ITranspileError[] {
     return this.found;
   }
 
-  override enterFunctionDeclaration = (): void => {
-    this.functionDepth++;
-  };
-
-  override exitFunctionDeclaration = (): void => {
-    this.functionDepth--;
-  };
-
-  override enterVariableDeclaration = (
-    ctx: Parser.VariableDeclarationContext,
-  ): void => {
-    const typeCtx = ctx.type();
-    const arrayType = typeCtx.arrayType?.();
-    const stringCtx = arrayType?.stringType?.() ?? typeCtx.stringType();
-    if (!stringCtx) return;
-    const isArray = arrayType?.stringType?.() !== undefined;
-    const expression = ctx.expression();
-    const initializer = expression
-      ? SyntaxLowering.expression(expression)
-      : null;
-    if (stringCtx.INTEGER_LITERAL() === null) {
+  public variable(entry: IVariableDeclarationSite): void {
+    const declaration = entry.declaration;
+    const type = declaration.type;
+    const isArray = type.kind === "array";
+    const stringType = type.kind === "array" ? type.element : type;
+    if (stringType.kind !== "string") return;
+    const initializer = declaration.initializer;
+    if (stringType.capacity === null) {
       this.checkInferred(
-        stringCtx,
+        stringType,
         isArray,
-        ctx.mutModifier() === null,
-        expression,
+        !declaration.modifiers.mut,
         initializer,
       );
       return;
     }
-    if (isArray || expression === null || initializer === null) return;
-    if (this.functionDepth > 0) return;
+    if (isArray || initializer === null) return;
+    if (entry.site === "statement") return; // inside a function
     if (ExpressionShape.isStringLiteral(initializer)) return;
     this.report(
-      expression,
+      initializer.span,
       "E0863",
       `A string at file scope may only be initialized by a literal, not '${initializer.written}'`,
       "Copying, concatenating and extracting a substring all need runtime calls, which C cannot make before `main`. Move the declaration into a function, or initialize it empty and assign later.",
     );
-  };
+  }
 
   /** A string with no capacity: only a const one, from a literal */
   private checkInferred(
-    stringCtx: Parser.StringTypeContext,
+    stringType: TStringTypeSyntax,
     isArray: boolean,
     isReadOnly: boolean,
-    expression: Parser.ExpressionContext | null,
     initializer: TExpression | null,
   ): void {
     if (isArray) {
       this.report(
-        stringCtx,
+        stringType.span,
         "E0862",
         "A string array requires an explicit capacity",
         "Write the element capacity, e.g. string<64>[4].",
@@ -82,16 +71,16 @@ class StringFormListener extends CNextListener {
     }
     if (!isReadOnly) {
       this.report(
-        stringCtx,
+        stringType.span,
         "E0862",
         "A `mut` string requires an explicit capacity",
         "Write the capacity, e.g. string<64>. Only a read-only string can have one inferred.",
       );
       return;
     }
-    if (expression === null || initializer === null) {
+    if (initializer === null) {
       this.report(
-        stringCtx,
+        stringType.span,
         "E0862",
         "A read-only string without a capacity requires an initializer to infer it from",
         "Write the capacity, e.g. string<64>, or initialize it with a literal.",
@@ -100,7 +89,7 @@ class StringFormListener extends CNextListener {
     }
     if (!ExpressionShape.isStringLiteral(initializer)) {
       this.report(
-        expression,
+        initializer.span,
         "E0862",
         "A read-only string without a capacity requires a string literal to infer it from",
         "Write the capacity, e.g. string<64>. A capacity can only be inferred from a literal.",
@@ -109,15 +98,14 @@ class StringFormListener extends CNextListener {
   }
 
   private report(
-    at: ParserRuleContext,
+    at: ISourceSpan,
     code: string,
     message: string,
     helpText: string,
   ): void {
-    const position = ParserUtils.getPosition(at);
     this.found.push({
-      line: position.line,
-      column: position.column,
+      line: at.line,
+      column: at.column,
       message: CodedErrorText.of(code, message),
       helpText,
       severity: "error",
@@ -126,11 +114,13 @@ class StringFormListener extends CNextListener {
 }
 
 class StringForm {
-  /** Every string-declaration form error in a tree that parsed */
-  static errorsIn(tree: Parser.ProgramContext): ITranspileError[] {
-    const listener = new StringFormListener();
-    ParseTreeWalker.DEFAULT.walk(listener, tree);
-    return listener.errors();
+  /** Every string-declaration form error in a file that parsed, lowered */
+  static errorsIn(program: IProgramSyntax): ITranspileError[] {
+    const check = new StringFormCheck();
+    for (const entry of VariableDeclarations.ruled(program)) {
+      check.variable(entry);
+    }
+    return check.errors();
   }
 }
 

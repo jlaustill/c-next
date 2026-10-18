@@ -5,9 +5,12 @@
  *
  * Where the brackets are, whether a dimension has an expression, and whether
  * an initializer is a list are syntax, so 1.2 reports them with the file's
- * other parse errors (#1991), off the tree only 1.2 holds. Counting a list
- * against its declared size needs the size's value, which is 2.1's
- * `ArrayDeclarationAnalyzer`.
+ * other parse errors (#1991). Counting a list against its declared size needs
+ * the size's value, which is 2.1's `ArrayDeclarationAnalyzer`. A variable
+ * declaration is judged off the lowered program, through the same
+ * `VariableDeclarations.ruled` walk 2.1 uses, so both passes judge the same
+ * declarations (#2073). A struct member and a parameter are not variable
+ * declarations, and are judged off the tree.
  *
  * ## Reproduced, not closed, stated
  *
@@ -29,7 +32,15 @@ import MainSignature from "../../utils/MainSignature";
 import ExpressionShape from "../../utils/ExpressionShape";
 import ParserUtils from "../../utils/ParserUtils";
 import CodedErrorText from "../../utils/CodedErrorText";
+import VariableDeclarations from "../../utils/VariableDeclarations";
+import type ISourceSpan from "../../types/ISourceSpan";
 import type ITranspileError from "../../types/ITranspileError";
+import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
+import type IVariableDeclarationSite from "../../types/syntax/IVariableDeclarationSite";
+import type TExpression from "../../types/syntax/TExpression";
+import type TTypeSyntax from "../../types/syntax/TTypeSyntax";
+
+type TArrayTypeSyntax = Extract<TTypeSyntax, { kind: "array" }>;
 
 class ArrayFormListener extends CNextListener {
   private readonly found: ITranspileError[] = [];
@@ -38,64 +49,12 @@ class ArrayFormListener extends CNextListener {
     return this.found;
   }
 
-  override enterVariableDeclaration = (
-    ctx: Parser.VariableDeclarationContext,
-  ): void => {
-    // A scope member reaches its own generator, which never rejected the
-    // C-style form -- reproduced, see the class comment.
-    const isScopeMember = ctx.parent instanceof Parser.ScopeMemberContext;
-    const trailing = ctx.arrayDimension();
-    const identifier = ctx.IDENTIFIER();
-    const typeCtx = ctx.type();
-    if (!identifier || !typeCtx) return; // the constructor-call form
-    if (trailing.length > 0 && !isScopeMember) {
-      const type = SyntaxLowering.type(typeCtx);
-      const base = type.kind === "array" ? type.element.text : type.text;
-      const existing = ArrayFormListener.dimensionText(
-        typeCtx.arrayType()?.arrayTypeDimension() ?? [],
-      );
-      const after = ArrayFormListener.dimensionText(trailing);
-      this.report(
-        ctx,
-        "E0874",
-        `C-style array declaration is not allowed. Use '${base}${existing}${after} ${identifier.getText()}' instead of '${base}${existing} ${identifier.getText()}${after}'`,
-        "C-Next puts every array dimension in the type, before the name (ADR-036).",
-      );
-      return;
-    }
-    const arrayType = typeCtx.arrayType();
-    const expression = ctx.expression();
-    const dimensions = [
-      ...(arrayType?.arrayTypeDimension() ?? []),
-      ...trailing,
-    ];
-    if (
-      this.checkEmptyDimensions(dimensions, identifier.getText(), !!expression)
-    ) {
-      return;
-    }
-    if (!arrayType || !expression) return;
-    this.checkInitializer(arrayType, expression);
-  };
-
-  override enterForVarDecl = (ctx: Parser.ForVarDeclContext): void => {
-    const type = ctx.type();
-    const isArray = !!type.arrayType() || ctx.arrayDimension().length > 0;
-    if (!isArray && !type.stringType()) return;
-    this.report(
-      ctx,
-      "E0917",
-      `${isArray ? "An array" : "A string"} is not a for loop variable: declare '${ctx.IDENTIFIER().getText()}' before the loop`,
-      "A for header declares one scalar loop variable (ADR-036); declare it before the loop and use it inside.",
-    );
-  };
-
   override enterStructMember = (ctx: Parser.StructMemberContext): void => {
     const dimensions = [
       ...(ctx.type().arrayType()?.arrayTypeDimension() ?? []),
       ...ctx.arrayDimension(),
     ];
-    this.checkEmptyDimensions(dimensions, ctx.IDENTIFIER().getText(), false);
+    this.checkEmptyDimensions(dimensions, ctx.IDENTIFIER().getText());
   };
 
   override enterParameter = (ctx: Parser.ParameterContext): void => {
@@ -136,86 +95,21 @@ class ArrayFormListener extends CNextListener {
     }
   };
 
-  /**
-   * #1822 (ADR-035): every dimension states its size, except the single
-   * dimension of a one-dimensional variable initialized by a list -- or, for
-   * `u8`, a string literal -- whose size is the number of elements. Which
-   * initializer is accepted is E0866's; this asks only whether there is one
-   * to count. Returns whether anything was reported.
-   */
+  /** #1822 (ADR-035): a struct member states every dimension's size */
   private checkEmptyDimensions(
     dimensions: readonly (
       | Parser.ArrayDimensionContext
       | Parser.ArrayTypeDimensionContext
     )[],
     name: string,
-    hasInitializer: boolean,
-  ): boolean {
-    if (dimensions.length === 1 && hasInitializer) return false;
-    let reported = false;
+  ): void {
     dimensions.forEach((dim, index) => {
       if (dim.expression() !== null) return;
-      this.report(
-        dim,
-        "E0892",
-        `Array '${name}' leaves dimension ${index + 1} without a size`,
-        "Write the size. Only a one-dimensional array initialized by a list (or, for u8, a string literal) may leave it out, and its size is the number of elements (ADR-035).",
+      const position = ParserUtils.getPosition(dim);
+      this.found.push(
+        ArrayForm.emptyDimension(position.line, position.column, name, index),
       );
-      reported = true;
     });
-    return reported;
-  }
-
-  /**
-   * ADR-035: an array's initializer is a list, or -- for a `u8` array -- a
-   * string literal. An inferred size (`u8[]`) is fixed by counting the list,
-   * so the fill-all form `[v*]`, which has nothing to count, cannot fix one.
-   */
-  private checkInitializer(
-    arrayType: Parser.ArrayTypeContext,
-    expression: Parser.ExpressionContext,
-  ): void {
-    const written = SyntaxLowering.node(expression).written;
-    const initializer = ArrayFormListener.arrayInitializerOf(expression);
-    if (initializer === null) {
-      const isStringLiteral = ExpressionShape.isStringLiteral(
-        SyntaxLowering.expression(expression),
-      );
-      const isByteArray = arrayType.primitiveType()?.getText() === "u8";
-      if (isStringLiteral && isByteArray) return; // `u8[] s <- "Hello"` (ADR-035)
-      this.report(
-        expression,
-        "E0866",
-        `An array must be initialized by a list, not '${written}'`,
-        "Write the elements out in brackets, or declare it empty and assign the elements afterwards (ADR-035).",
-      );
-      return;
-    }
-    const inferred = arrayType
-      .arrayTypeDimension()
-      .some((dimension) => dimension.expression() === null);
-    if (inferred && initializer.STAR() !== null) {
-      this.report(
-        expression,
-        "E0876",
-        `Fill-all syntax ${written} requires explicit array size`,
-        "An inferred size comes from counting the elements, and the fill-all form has none to count; write the dimension (ADR-035).",
-      );
-    }
-  }
-
-  /** The `[...]` an expression IS, descending through single-child levels. */
-  private static arrayInitializerOf(
-    expression: Parser.ExpressionContext,
-  ): Parser.ArrayInitializerContext | null {
-    let node: ParserRuleContext = expression;
-    while (node.getChildCount() === 1) {
-      const child = node.getChild(0);
-      if (!(child instanceof ParserRuleContext)) break;
-      node = child;
-      if (node instanceof Parser.ArrayInitializerContext) return node;
-    }
-    return null;
   }
 
   private static dimensionText(
@@ -249,12 +143,194 @@ class ArrayFormListener extends CNextListener {
   }
 }
 
+/** ADR-035/036 on the variable declarations `VariableDeclarations` walks (#2073) */
+class ArrayVariableForm {
+  private readonly found: ITranspileError[] = [];
+
+  public errors(): ITranspileError[] {
+    return this.found;
+  }
+
+  /**
+   * #1823 (ADR-036): a `for` header declares one scalar loop variable, so an
+   * array or a string there is E0917, in either array spelling.
+   */
+  public forHeader(entry: IVariableDeclarationSite): void {
+    const declaration = entry.declaration;
+    const type = declaration.type;
+    const isArray = type.kind === "array" || declaration.dimensions.length > 0;
+    if (!isArray && type.kind !== "string") return;
+    this.report(
+      declaration.span,
+      "E0917",
+      `${isArray ? "An array" : "A string"} is not a for loop variable: declare '${declaration.name}' before the loop`,
+      "A for header declares one scalar loop variable (ADR-036); declare it before the loop and use it inside.",
+    );
+  }
+
+  public variable(entry: IVariableDeclarationSite): void {
+    const declaration = entry.declaration;
+    const type = declaration.type;
+    const trailing = declaration.dimensions;
+    // A scope member reaches its own generator, which never rejected the
+    // C-style form -- reproduced, see the file comment.
+    if (trailing.length > 0 && entry.site !== "scopeMember") {
+      const base = type.kind === "array" ? type.element.text : type.text;
+      const existing = ArrayVariableForm.dimensionText(
+        type.kind === "array" ? type.dimensions : [],
+      );
+      const after = ArrayVariableForm.dimensionText(trailing);
+      this.report(
+        declaration.span,
+        "E0874",
+        `C-style array declaration is not allowed. Use '${base}${existing}${after} ${declaration.name}' instead of '${base}${existing} ${declaration.name}${after}'`,
+        "C-Next puts every array dimension in the type, before the name (ADR-036).",
+      );
+      return;
+    }
+    const initializer = declaration.initializer;
+    const sizes = [
+      ...(type.kind === "array" ? type.dimensions : []),
+      ...trailing,
+    ];
+    const spans = [
+      ...(type.kind === "array" ? type.dimensionSpans : []),
+      ...declaration.dimensionSpans,
+    ];
+    if (
+      this.checkEmptyDimensions(
+        sizes,
+        spans,
+        declaration.name,
+        initializer !== null,
+      )
+    ) {
+      return;
+    }
+    if (type.kind !== "array" || initializer === null) return;
+    this.checkInitializer(type, initializer);
+  }
+
+  /**
+   * #1822 (ADR-035): every dimension states its size, except the single
+   * dimension of a one-dimensional variable initialized by a list -- or, for
+   * `u8`, a string literal -- whose size is the number of elements. Which
+   * initializer is accepted is E0866's; this asks only whether there is one
+   * to count. Returns whether anything was reported.
+   */
+  private checkEmptyDimensions(
+    sizes: readonly (TExpression | null)[],
+    spans: readonly ISourceSpan[],
+    name: string,
+    hasInitializer: boolean,
+  ): boolean {
+    if (sizes.length === 1 && hasInitializer) return false;
+    let reported = false;
+    sizes.forEach((size, index) => {
+      if (size !== null) return;
+      this.found.push(
+        ArrayForm.emptyDimension(
+          spans[index].line,
+          spans[index].column,
+          name,
+          index,
+        ),
+      );
+      reported = true;
+    });
+    return reported;
+  }
+
+  /**
+   * ADR-035: an array's initializer is a list, or -- for a `u8` array -- a
+   * string literal. An inferred size (`u8[]`) is fixed by counting the list,
+   * so the fill-all form `[v*]`, which has nothing to count, cannot fix one.
+   */
+  private checkInitializer(
+    type: TArrayTypeSyntax,
+    initializer: TExpression,
+  ): void {
+    if (initializer.kind !== "arrayInitializer") {
+      const isByteArray =
+        type.element.kind === "primitive" && type.element.name === "u8";
+      if (ExpressionShape.isStringLiteral(initializer) && isByteArray) return; // `u8[] s <- "Hello"` (ADR-035)
+      this.report(
+        initializer.span,
+        "E0866",
+        `An array must be initialized by a list, not '${initializer.written}'`,
+        "Write the elements out in brackets, or declare it empty and assign the elements afterwards (ADR-035).",
+      );
+      return;
+    }
+    const inferred = type.dimensions.some((size) => size === null);
+    if (inferred && initializer.fill !== null) {
+      this.report(
+        initializer.span,
+        "E0876",
+        `Fill-all syntax ${initializer.written} requires explicit array size`,
+        "An inferred size comes from counting the elements, and the fill-all form has none to count; write the dimension (ADR-035).",
+      );
+    }
+  }
+
+  private static dimensionText(sizes: readonly (TExpression | null)[]): string {
+    return sizes
+      .map((size) => `[${size === null ? "" : size.written}]`)
+      .join("");
+  }
+
+  private report(
+    at: ISourceSpan,
+    code: string,
+    message: string,
+    helpText: string,
+  ): void {
+    this.found.push({
+      line: at.line,
+      column: at.column,
+      message: CodedErrorText.of(code, message),
+      helpText,
+      severity: "error",
+    });
+  }
+}
+
 class ArrayForm {
-  /** Every array-shape error in a tree that parsed */
-  static errorsIn(tree: Parser.ProgramContext): ITranspileError[] {
+  /** Every array-shape error in a file that parsed: its tree, and that tree lowered */
+  static errorsIn(
+    tree: Parser.ProgramContext,
+    program: IProgramSyntax,
+  ): ITranspileError[] {
     const listener = new ArrayFormListener();
     ParseTreeWalker.DEFAULT.walk(listener, tree);
-    return listener.errors();
+    const variables = new ArrayVariableForm();
+    for (const entry of VariableDeclarations.ruled(program)) {
+      variables.variable(entry);
+    }
+    for (const entry of VariableDeclarations.forHeaders(program)) {
+      variables.forHeader(entry);
+    }
+    return [...listener.errors(), ...variables.errors()];
+  }
+
+  /** E0892, for a declaration on the tree or lowered alike */
+  static emptyDimension(
+    line: number,
+    column: number,
+    name: string,
+    index: number,
+  ): ITranspileError {
+    return {
+      line,
+      column,
+      message: CodedErrorText.of(
+        "E0892",
+        `Array '${name}' leaves dimension ${index + 1} without a size`,
+      ),
+      helpText:
+        "Write the size. Only a one-dimensional array initialized by a list (or, for u8, a string literal) may leave it out, and its size is the number of elements (ADR-035).",
+      severity: "error",
+    };
   }
 }
 

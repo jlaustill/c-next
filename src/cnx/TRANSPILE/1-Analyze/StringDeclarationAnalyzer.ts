@@ -1,5 +1,5 @@
 import ExpressionShape from "../../utils/ExpressionShape";
-import StatementNodes from "../../utils/StatementNodes";
+import VariableDeclarations from "../../utils/VariableDeclarations";
 import StringUtils from "../../utils/StringUtils";
 import OperandTyper from "../../utils/OperandTyper";
 import IStringDeclarationError from "./types/IStringDeclarationError";
@@ -8,7 +8,6 @@ import type IAnalysisContext from "./types/IAnalysisContext";
 import type ISourceSpan from "../../types/ISourceSpan";
 import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
 import type IVariableDeclarationSyntax from "../../types/syntax/IVariableDeclarationSyntax";
-import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
 import type TExpression from "../../types/syntax/TExpression";
 /**
  * ADR-045 string declarations: whether an initializer fits, E0864-E0865.
@@ -36,7 +35,8 @@ import type TExpression from "../../types/syntax/TExpression";
  *
  * #1991: those capacity rules and the file-scope form are syntax, so 1.2's
  * `StringForm` reports them (E0862/E0863). This pass reads 1.2's declarations
- * and asks only whether an initializer fits (E0864/E0865).
+ * and asks only whether an initializer fits (E0864/E0865). Both read
+ * `VariableDeclarations.ruled` (#2073), so they judge the same declarations.
  */
 
 /** What a string-valued expression can hold, or null if it is not one. */
@@ -61,26 +61,7 @@ class StringDeclarationCheck {
     return this.found;
   }
 
-  public declaration(declaration: TDeclarationSyntax): void {
-    if (declaration.kind === "scope") {
-      for (const member of declaration.members) {
-        this.declaration(member.declaration);
-      }
-      return;
-    }
-    if (declaration.kind === "variableDeclaration") {
-      this.variable(declaration);
-      return;
-    }
-    if (declaration.kind !== "function") return;
-    for (const statement of StatementNodes.of(declaration.body.statements)) {
-      if (statement.kind === "variableDeclaration") {
-        this.variable(statement);
-      }
-    }
-  }
-
-  private variable(declaration: IVariableDeclarationSyntax): void {
+  public variable(declaration: IVariableDeclarationSyntax): void {
     const type = declaration.type;
     // An inferred const capacity always fits; a string array's elements are
     // checked where they are written
@@ -261,8 +242,8 @@ class StringDeclarationAnalyzer {
 
   public analyze(program: IProgramSyntax): IStringDeclarationError[] {
     const check = new StringDeclarationCheck(this.context);
-    for (const member of program.declarations) {
-      check.declaration(member.declaration);
+    for (const entry of VariableDeclarations.ruled(program)) {
+      check.variable(entry.declaration);
     }
     return check.errors();
   }

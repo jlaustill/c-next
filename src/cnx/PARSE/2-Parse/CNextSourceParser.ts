@@ -213,21 +213,6 @@ class CNextSourceParser {
     parser.addErrorListener(errorListener);
 
     const tree = parser.program();
-    // A recovery tree's spelling is not the source's, so form is checked only
-    // on a tree that parsed.
-    // In source order, as one file's diagnostics read, not checker by checker
-    const formErrors =
-      errors.length > 0
-        ? []
-        : [
-            ...LiteralForm.errorsIn(tokenStream),
-            ...IdentifierForm.errorsIn(tree),
-            ...ArrayForm.errorsIn(tree),
-            ...StringForm.errorsIn(tree),
-            ...MutabilityForm.errorsIn(tree),
-          ].sort((a, b) => a.line - b.line || a.column - b.column);
-    const declarationCount = tree.declaration().length;
-
     // Scanned off THIS token stream, which the parse has already filled, so
     // the hidden channel is a walk over tokens already in memory -- and
     // scanned LAZILY, because the only reader is 2.1's MISRA 3.1/3.2 check
@@ -244,6 +229,24 @@ class CNextSourceParser {
     // whole-file derivation to collapse -- an earlier draft of this comment
     // said there was, and `IParsedFile` already carries the correction.
     const scanner = new CommentScanner(tokenStream);
+    // Lowered here, on parse (#1932): 1.2 authors the plain-data file, so
+    // the tree can be released once 2.1 is done with it. Before the form
+    // checks, which judge a variable declaration off it (#2073).
+    const program = ProgramLowering.program(tree, scanner);
+    // A recovery tree's spelling is not the source's, so form is checked only
+    // on a tree that parsed.
+    // In source order, as one file's diagnostics read, not checker by checker
+    const formErrors =
+      errors.length > 0
+        ? []
+        : [
+            ...LiteralForm.errorsIn(tokenStream),
+            ...IdentifierForm.errorsIn(tree),
+            ...ArrayForm.errorsIn(tree, program),
+            ...StringForm.errorsIn(program),
+            ...MutabilityForm.errorsIn(tree),
+          ].sort((a, b) => a.line - b.line || a.column - b.column);
+    const declarationCount = tree.declaration().length;
 
     return {
       tree,
@@ -252,9 +255,7 @@ class CNextSourceParser {
       get comments() {
         return scanner.extractAll();
       },
-      // Lowered here, on parse (#1932): 1.2 authors the plain-data file, so
-      // the tree can be released once 2.1 is done with it.
-      program: ProgramLowering.program(tree, scanner),
+      program,
       targetDirectives: TargetDirectives.read(tree),
       parseErrors: errors,
       formErrors,
