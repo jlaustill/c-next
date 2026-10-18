@@ -89,11 +89,11 @@ describe("whole-array assignment (#1782)", () => {
   it("keeps a volatile target's qualifier on its pointer", async () => {
     for (const cppMode of [false, true]) {
       const code = await transpile(
-        "volatile mut u8[2][2] regs;\nu32 row() {\n    return 1;\n}\nvoid f() {\n    regs[row()] <- [1, 2];\n}",
+        "volatile mut u8[2][2] registers;\nu32 row() {\n    return 1;\n}\nvoid f() {\n    registers[row()] <- [1, 2];\n}",
         cppMode,
       );
       expect(code).toContain(
-        "volatile uint8_t (*const cnx_tmp1)[2] = &regs[row()];",
+        "volatile uint8_t (*const cnx_tmp1)[2] = &registers[row()];",
       );
     }
   });
