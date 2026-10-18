@@ -32,6 +32,7 @@ import MainSignature from "../../utils/MainSignature";
 import ExpressionShape from "../../utils/ExpressionShape";
 import ParserUtils from "../../utils/ParserUtils";
 import CodedErrorText from "../../utils/CodedErrorText";
+import ForHeaderVariable from "../../utils/ForHeaderVariable";
 import VariableDeclarations from "../../utils/VariableDeclarations";
 import type ISourceSpan from "../../types/ISourceSpan";
 import type ITranspileError from "../../types/ITranspileError";
@@ -163,8 +164,8 @@ class ArrayVariableForm {
     this.report(
       declaration.span,
       "E0917",
-      `${isArray ? "An array" : "A string"} is not a for loop variable: declare '${declaration.name}' before the loop`,
-      "A for header declares one scalar loop variable (ADR-036); declare it before the loop and use it inside.",
+      ForHeaderVariable.message(isArray, declaration.name),
+      ForHeaderVariable.HELP,
     );
   }
 

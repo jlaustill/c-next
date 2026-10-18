@@ -432,9 +432,9 @@ base: bare, `this.` and `global.`.
 
 ## E0917 — An Array or a String in a `for` Header (ADR-036)
 
-| Code  | Message                                                                                           | Help                                                                                                    | Source                       |
-| ----- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| E0917 | A `for` header declares an array, in either spelling (`u8[3] v`, `u32 c[2]`), or a string (#1823) | A for header declares one scalar loop variable (ADR-036); declare it before the loop and use it inside. | `PARSE/2-Parse/ArrayForm.ts` |
+| Code  | Message                                                                                                                                 | Help                                                                                                    | Source                                                                                             |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| E0917 | A `for` header declares an array, in either spelling (`u8[3] v`, `u32 c[2]`) or through a header typedef (`Buf b`), or a string (#1823) | A for header declares one scalar loop variable (ADR-036); declare it before the loop and use it inside. | `PARSE/2-Parse/ArrayForm.ts`, `TRANSPILE/1-Analyze/ArrayDeclarationAnalyzer.ts` (a header typedef) |
 
 ---
 

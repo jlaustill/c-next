@@ -15,6 +15,9 @@
  */
 
 import ConstantExpression from "./helpers/ConstantExpression";
+import ForHeaderVariable from "../../utils/ForHeaderVariable";
+import ForeignTypeFacts from "../../utils/ForeignTypeFacts";
+import OperandTyper from "../../utils/OperandTyper";
 import VariableDeclarations from "../../utils/VariableDeclarations";
 import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
 import type IVariableDeclarationSyntax from "../../types/syntax/IVariableDeclarationSyntax";
@@ -31,6 +34,28 @@ class ArrayDeclarationCheck {
 
   public errors(): IArrayDeclarationError[] {
     return this.found;
+  }
+
+  /**
+   * #1823 (ADR-036): a `for` header declares one scalar loop variable. 1.2
+   * rejects an array written there (E0917); a header typedef can name one
+   * too (`typedef uint8_t Buf[4]`), which only the symbols can tell.
+   */
+  public forHeader(declaration: IVariableDeclarationSyntax): void {
+    const type = declaration.type;
+    if (type.kind !== "user") return;
+    const target = OperandTyper.target(this.context);
+    const lookup = this.context.symbolTable;
+    if (!ForeignTypeFacts.isForeignType(type.name, lookup, target)) return;
+    const typed = ForeignTypeFacts.operandType(type.name, lookup, target);
+    if ((typed?.dimensions.length ?? 0) === 0) return;
+    this.found.push({
+      code: "E0917",
+      line: declaration.span.line,
+      column: declaration.span.column,
+      message: ForHeaderVariable.message(true, declaration.name),
+      helpText: ForHeaderVariable.HELP,
+    });
   }
 
   public variable(declaration: IVariableDeclarationSyntax): void {
@@ -87,6 +112,9 @@ class ArrayDeclarationAnalyzer {
     const check = new ArrayDeclarationCheck(this.context);
     for (const entry of VariableDeclarations.ruled(program)) {
       check.variable(entry.declaration);
+    }
+    for (const entry of VariableDeclarations.forHeaders(program)) {
+      check.forHeader(entry.declaration);
     }
     return check.errors();
   }

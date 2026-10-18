@@ -411,14 +411,14 @@ Compiler flags:
 
 ## Diagnostics
 
-| Code  | Reported when                                                                                                               | Asserted by                                                                                                         |
-| ----- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| E0854 | A constant index is negative or not below the dimension it indexes, read or written                                         | `tests/adr-036/bounds-error.test.cnx`, `tests/adr-036/array-bounds-uncovered-arms-error.test.cnx`                   |
-| E0874 | A variable declaration or a parameter puts a dimension after the name (`u8 arr[4]`)                                         | `tests/adr-036/c-style-error.test.cnx`, `tests/adr-036/c-style-trailing-bracket-rejected.test.cnx`                  |
-| E0875 | A parameter's array type leaves a dimension unbounded (`u8[] data`)                                                         | `tests/adr-036/array-shape-uncovered-arms-error.test.cnx`                                                           |
-| E0909 | A dimension is not known at compile time -- a variable or a parameter, since C-Next has no variable-length arrays (ADR-023) | `tests/bugs/issue-1175-constant-dimensions/variable-dimension-local.test.cnx`, `variable-dimension-global.test.cnx` |
-| E0910 | A dimension is arithmetic that would clamp or wrap (ADR-044)                                                                | `tests/bugs/issue-1175-constant-dimensions/overflow-dimension.test.cnx`                                             |
-| E0917 | A `for` header declares an array, in either spelling (`u8[3] v`, `u32 c[2]`), or a string (#1823)                           | `tests/adr-036/for-header-array-error.test.cnx`, `tests/adr-036/for-header-array-cpp-error.test.cnx` (`--cpp`)      |
+| Code  | Reported when                                                                                                                 | Asserted by                                                                                                                       |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| E0854 | A constant index is negative or not below the dimension it indexes, read or written                                           | `tests/adr-036/bounds-error.test.cnx`, `tests/adr-036/array-bounds-uncovered-arms-error.test.cnx`                                 |
+| E0874 | A variable declaration or a parameter puts a dimension after the name (`u8 arr[4]`)                                           | `tests/adr-036/c-style-error.test.cnx`, `tests/adr-036/c-style-trailing-bracket-rejected.test.cnx`                                |
+| E0875 | A parameter's array type leaves a dimension unbounded (`u8[] data`)                                                           | `tests/adr-036/array-shape-uncovered-arms-error.test.cnx`                                                                         |
+| E0909 | A dimension is not known at compile time -- a variable or a parameter, since C-Next has no variable-length arrays (ADR-023)   | `tests/bugs/issue-1175-constant-dimensions/variable-dimension-local.test.cnx`, `variable-dimension-global.test.cnx`               |
+| E0910 | A dimension is arithmetic that would clamp or wrap (ADR-044)                                                                  | `tests/bugs/issue-1175-constant-dimensions/overflow-dimension.test.cnx`                                                           |
+| E0917 | A `for` header declares an array, in either spelling (`u8[3] v`, `u32 c[2]`) or through a header typedef, or a string (#1823) | `tests/adr-036/for-header-array-error.test.cnx`, `tests/adr-036/for-header-typedef-array-error.test.cnx`, and their `--cpp` twins |
 
 The bound is the dimension the subscript indexes: `grid[i][9]` is checked
 against `grid[i]`'s shape. A field of a struct is bounded like a variable
@@ -444,6 +444,17 @@ A string is a `char` array in C, so it is not a scalar loop variable either:
 `for (string<8> s <- "ab"; ...)` and the unsized `for (string t <- "ab"; ...)`
 are E0917 too (owner ruling on #1823, 2026-10-18). Until then the string was
 emitted as a scalar `const char s = "ab"`.
+
+A header typedef can name an array (`typedef uint8_t Buf[4];`), so
+`for (mut Buf b; ...)` declares an array as surely as `u8[4] b` does, and it is
+E0917 as well. 1.2 cannot see through the typedef, so 2.1's
+`ArrayDeclarationAnalyzer` reports it from the header's symbols
+(`tests/adr-036/for-header-typedef-array-error.test.cnx`). Until then it
+transpiled at exit 0 to `for (Buf b; ...)`.
+
+Which declarations ADR-035's and ADR-036's declaration rules judge is decided
+once, by `VariableDeclarations` (#2073): 1.2's `ArrayForm`/`StringForm` and
+2.1's analyzers all read it, and a `for` header's declaration is E0917's alone.
 
 ## Scope-Context Matrix (#1219)
 
@@ -486,8 +497,10 @@ A `for` header is a context of its own (#1646): it rejected nothing that a
 block-scope declaration rejects, and the prefix form was miscompiled there.
 Every array or string declared in one is E0917, so the `for header / same file`
 cell is `error`, occupied by `tests/adr-036/for-header-array-error.test.cnx` and
-its `--cpp` twin. Its imported cells stay `off`: E0917 reads only the
-declaration as written, which names nothing from another file.
+its `--cpp` twin. Its imported cells stay `off`: an imported cell is a `.cnx`
+declaration reached across a `.cnx` include, and a `for` header declares
+nothing another file can reach. A header typedef that names an array is read
+from a C header, which the matrix does not count as an import.
 
 ## Open Questions
 

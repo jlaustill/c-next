@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-644 fixture(s) assert a diagnostic; 634 carry a code.
+646 fixture(s) assert a diagnostic; 636 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -180,6 +180,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-036/c-style-trailing-bracket-rejected.test.cnx                                         | E0874               |
 | tests/adr-036/for-header-array-cpp-error.test.cnx                                                | E0917               |
 | tests/adr-036/for-header-array-error.test.cnx                                                    | E0917               |
+| tests/adr-036/for-header-typedef-array-cpp-error.test.cnx                                        | E0917               |
+| tests/adr-036/for-header-typedef-array-error.test.cnx                                            | E0917               |
 | tests/adr-036/init-bounds-error.test.cnx                                                         | E0854               |
 | tests/adr-037/define-every-rejected-form-error.test.cnx                                          | E0501, E0502        |
 | tests/adr-037/function-macro-error.test.cnx                                                      | E0501               |
