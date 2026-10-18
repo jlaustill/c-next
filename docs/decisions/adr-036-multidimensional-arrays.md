@@ -447,14 +447,14 @@ emitted as a scalar `const char s = "ab"`.
 
 A header typedef can name an array (`typedef uint8_t Buf[4];`), so
 `for (mut Buf b; ...)` declares an array as surely as `u8[4] b` does, and it is
-E0917 as well. 1.2 cannot see through the typedef, so 2.1's
-`ArrayDeclarationAnalyzer` reports it from the header's symbols
+E0917 as well. Pass 1.2 cannot see through the typedef, so pass 2.1 reports it
+from the header's symbols
 (`tests/adr-036/for-header-typedef-array-error.test.cnx`). Until then it
 transpiled at exit 0 to `for (Buf b; ...)`.
 
 Which declarations ADR-035's and ADR-036's declaration rules judge is decided
-once, by `VariableDeclarations` (#2073): 1.2's `ArrayForm`/`StringForm` and
-2.1's analyzers all read it, and a `for` header's declaration is E0917's alone.
+once, by one walk that pass 1.2 and pass 2.1 share (#2073), and a `for`
+header's declaration is judged by E0917 alone.
 
 ## Scope-Context Matrix (#1219)
 
