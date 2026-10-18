@@ -1,3 +1,4 @@
+import type ISourceSpan from "../ISourceSpan";
 import type ISyntaxNode from "./ISyntaxNode";
 import type TExpression from "./TExpression";
 import type TTypeSyntax from "./TTypeSyntax";
@@ -18,6 +19,8 @@ interface IVariableDeclarationSyntax extends ISyntaxNode {
   readonly nameSpan: ISyntaxNode["span"];
   /** Dimensions after the name, `[]` written as null */
   readonly dimensions: ReadonlyArray<TExpression | null>;
+  /** Where each of those `[...]` is written, so an unsized `[]` has a position too (#2073) */
+  readonly dimensionSpans: readonly ISourceSpan[];
   readonly initializer: TExpression | null;
   /** #1643 (ADR-030): its own name is written bare past the declarator */
   readonly spellsOwnName: boolean;

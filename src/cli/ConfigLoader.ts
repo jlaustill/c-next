@@ -11,7 +11,7 @@ import IFileSystem from "../cnx/types/IFileSystem";
 import CaughtError from "../cnx/utils/CaughtError";
 
 /**
- * Searched in this order in each directory. `cnext --help` documents these
+ * Searched in this order in each directory. `cnx --help` documents these
  * three names and JSON as the only format.
  */
 const SEARCH_PLACES = ["cnext.config.json", ".cnext.json", ".cnextrc"];
@@ -59,7 +59,7 @@ class ConfigLoader {
    *
    * This replaces cosmiconfig, for two reasons. First, cosmiconfig read the
    * disk itself, outside the injected port, where no gate could see it. Second,
-   * it read more than `cnext --help` documents. With `stopDir` set, cosmiconfig
+   * it read more than `cnx --help` documents. With `stopDir` set, cosmiconfig
    * 9 switches to its "global" strategy, so after the upward walk it also
    * searched the OS config directory for `config`, `config.json`,
    * `config.yaml`, `config.js`, `config.ts` and more, and a JavaScript one

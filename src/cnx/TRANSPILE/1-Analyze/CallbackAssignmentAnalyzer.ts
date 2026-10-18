@@ -48,6 +48,7 @@ import type TPostfixOpSyntax from "../../types/syntax/TPostfixOpSyntax";
 import DeclarationParts from "../../utils/DeclarationParts";
 import ExpressionNodes from "../../utils/ExpressionNodes";
 import StatementNodes from "../../utils/StatementNodes";
+import VariableDeclarations from "../../utils/VariableDeclarations";
 import OperandTyper from "../../utils/OperandTyper";
 import type IVariableDeclarationSyntax from "../../types/syntax/IVariableDeclarationSyntax";
 import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
@@ -337,18 +338,13 @@ class CallbackAssignmentAnalyzer {
         for (const member of declaration.members) visit(member.declaration);
         return;
       }
-      if (declaration.kind === "variableDeclaration") {
-        check.checkDeclaration(declaration);
-      }
-      for (const statement of StatementNodes.in(declaration)) {
-        if (statement.kind === "variableDeclaration") {
-          check.checkDeclaration(statement);
-        }
-      }
       for (const site of StatementNodes.assignments(declaration)) {
         check.checkSite(site);
       }
     };
+    for (const entry of VariableDeclarations.in(program)) {
+      check.checkDeclaration(entry.declaration);
+    }
     for (const member of program.declarations) {
       visit(member.declaration);
       for (const expr of DeclarationParts.of(member.declaration).flatMap(

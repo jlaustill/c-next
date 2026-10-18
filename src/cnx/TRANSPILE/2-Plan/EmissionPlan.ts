@@ -50,6 +50,7 @@ import type IPlannedBlock from "../../types/IPlannedBlock";
 import type IRecordedRequirement from "../../types/IRecordedRequirement";
 import type TRequirementKey from "../../types/TRequirementKey";
 import SYSTEM_INCLUDE_TARGETS from "./SYSTEM_INCLUDE_TARGETS";
+import UnwrittenIncludes from "./UnwrittenIncludes";
 import CTypeIncludes from "./CTypeIncludes";
 import HeaderOwnership from "./HeaderOwnership";
 
@@ -225,20 +226,13 @@ class EmissionPlan {
   private static decideSystemIncludes(
     facts: IEmissionFacts,
   ): readonly string[] {
-    const already = new Set(facts.existingIncludeTargets);
-    const decided: string[] = [];
-    const candidates = [
-      ...CTypeIncludes.decide(facts.cTypes),
-      ...SYSTEM_INCLUDES.filter((c) => c.needed(facts)).map((c) => c.target),
-    ];
-    for (const target of candidates) {
-      if (already.has(target)) {
-        continue;
-      }
-      decided.push(target);
-      already.add(target);
-    }
-    return decided;
+    return UnwrittenIncludes.of(
+      [
+        ...CTypeIncludes.decide(facts.cTypes),
+        ...SYSTEM_INCLUDES.filter((c) => c.needed(facts)).map((c) => c.target),
+      ],
+      facts.existingIncludeTargets,
+    );
   }
 
   /**

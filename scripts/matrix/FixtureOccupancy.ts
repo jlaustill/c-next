@@ -17,10 +17,11 @@ import MatrixCell from "./MatrixCell";
 import TestUtils from "../test-utils";
 import AdrProvenanceLines from "./AdrProvenanceLines";
 import IMatrixOccupancy from "../types/IMatrixOccupancy";
+import ISourcePosition from "../types/ISourcePosition";
 import TMatrixContext from "../types/TMatrixContext";
 
 /**
- * Source lines carrying a diagnostic, from a fixture's `.expected.error`.
+ * Source positions carrying a diagnostic, from a fixture's `.expected.error`.
  *
  * Position `1:0` is excluded: 13 error codes report it as a placeholder while
  * the real line sits in the message text or is lost entirely at the catch
@@ -40,10 +41,10 @@ import TMatrixContext from "../types/TMatrixContext";
  * cross-file position turns a skipped 1:0 into a real number aimed at the wrong
  * tree.
  */
-function diagnosticLines(expectedErrorPath: string): number[] {
+function diagnosticPositions(expectedErrorPath: string): ISourcePosition[] {
   if (!existsSync(expectedErrorPath)) return [];
 
-  const lines: number[] = [];
+  const positions: ISourcePosition[] = [];
   const content = readFileSync(expectedErrorPath, "utf-8");
   const pattern = /^(\d+):(\d+)/gm;
   let match: RegExpExecArray | null;
@@ -52,22 +53,33 @@ function diagnosticLines(expectedErrorPath: string): number[] {
     const line = Number(match[1]);
     const column = Number(match[2]);
     if (line === 1 && column === 0) continue;
-    if (!lines.includes(line)) lines.push(line);
+    addPosition(positions, { line, column });
   }
-  return lines;
+  return positions;
 }
 
-/** Contexts the given source lines resolve to. Empty when none can be. */
+function addPosition(
+  positions: ISourcePosition[],
+  next: ISourcePosition,
+): void {
+  const seen = positions.some(
+    (position) =>
+      position.line === next.line && position.column === next.column,
+  );
+  if (!seen) positions.push(next);
+}
+
+/** Contexts the given source positions resolve to. Empty when none can be. */
 function contextsAt(
   source: string,
-  lines: readonly number[],
+  positions: readonly ISourcePosition[],
 ): TMatrixContext[] {
-  if (lines.length === 0) return [];
+  if (positions.length === 0) return [];
 
   const { tree } = CNextSourceParser.parse(source);
   const contexts: TMatrixContext[] = [];
-  for (const line of lines) {
-    const context = FixtureContext.at(tree, line);
+  for (const { line, column } of positions) {
+    const context = FixtureContext.at(tree, line, column);
     if (context !== null && !contexts.includes(context)) contexts.push(context);
   }
   return contexts;
@@ -103,14 +115,14 @@ function recordFixture(
   // speaks for every ADR it is tagged with. Provenance is not: it records WHICH
   // rule fired where, so contexts are resolved per ADR rather than once per file.
   const expectedError = fixturePath.replace(/\.test\.cnx$/, ".expected.error");
-  const diagnostics = diagnosticLines(expectedError);
+  const diagnostics = diagnosticPositions(expectedError);
 
   for (const adr of adrs) {
-    const lines = [...diagnostics];
+    const positions = [...diagnostics];
     for (const line of provenance.get(adr) ?? []) {
-      if (!lines.includes(line)) lines.push(line);
+      addPosition(positions, { line });
     }
-    const contexts = contextsAt(source, lines);
+    const contexts = contextsAt(source, positions);
 
     if (contexts.length === 0) {
       const pending = withoutContext.get(adr) ?? [];

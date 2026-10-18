@@ -56,8 +56,10 @@ function bitmap(name: string, backingType: string): IBitmapSymbol {
   };
 }
 
-const decide = (symbols: TSymbol[]): string[] =>
-  HeaderIncludes.decide(symbols, undefined);
+const decide = (
+  symbols: TSymbol[],
+  writtenIncludes: readonly string[] = [],
+): string[] => HeaderIncludes.decide(symbols, undefined, writtenIncludes);
 
 describe("HeaderIncludes.decide (#1517)", () => {
   it.each([
@@ -75,6 +77,19 @@ describe("HeaderIncludes.decide (#1517)", () => {
       ).toEqual(expected);
     },
   );
+
+  it("leaves out a system header the source's own includes already write (#2188)", () => {
+    const symbols = [
+      variable("flag", TTypeUtils.createPrimitive("bool")),
+      variable("count", TTypeUtils.createPrimitive("u16")),
+    ];
+    expect(
+      decide(symbols, ["#include <Arduino.h>", "#include <stdint.h>"]),
+    ).toEqual(["<stdbool.h>"]);
+    expect(
+      decide(symbols, ["#include <stdint.h>", "#include <stdbool.h>"]),
+    ).toEqual([]);
+  });
 
   it("emits nothing when the header declares nothing", () => {
     expect(decide([])).toEqual([]);

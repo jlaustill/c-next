@@ -444,7 +444,8 @@ function runAnalyzers(
       run: () => new LoopAnalyzer(context).analyze(parsed.program),
     },
     {
-      label: "array initializer element counts (ADR-035, E0866)",
+      label:
+        "array initializer element counts (ADR-035, E0866); a header typedef array in a for header (ADR-036, E0917)",
       run: () => new ArrayDeclarationAnalyzer(context).analyze(parsed.program),
     },
     {

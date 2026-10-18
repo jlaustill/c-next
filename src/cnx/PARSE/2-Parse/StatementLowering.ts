@@ -180,6 +180,9 @@ class StatementLowering {
         const size = dimension.expression();
         return size ? SyntaxLowering.expression(size) : null;
       }),
+      dimensionSpans: ctx
+        .arrayDimension()
+        .map((dimension) => ParserUtils.getSpan(dimension)),
       initializer: StatementLowering.optionalExpression(ctx.expression()),
       spellsOwnName: StatementLowering.spellsOwnName(ctx),
       ...SyntaxLowering.node(ctx),

@@ -288,8 +288,9 @@ migration that scrambled it would discard that ordering for good. It is
 idempotent and resumes where an interrupted run stopped. Run it before
 `project:setup` seeds anything, so seeded cards do not sit between copied ones, and
 turn the built-in workflows below off first: `Item added to project` would
-overwrite every copied Status, and `Auto-close issue` would close the open issues
-that sit in Done on purpose.
+overwrite every copied Status, and `Auto-close issue` would close any open issue
+whose copied card sits in Done. The #2189 migration copied four, and none of them
+had ever been closed.
 
 ### 3. Board view (UI)
 
@@ -307,16 +308,16 @@ Leave **off**, and here is why each one. A new project ships with **all** of
 to issue`, `Auto-close issue` and `Auto-add sub-issues to project` turned on
 (measured 2026-10-18, #2189), so turning these off is a step, not a default.
 
-| Workflow                         | Why off                                                                                                                                                                                                                                                      |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `Item reopened`                  | Fires on issues _and_ pull requests. Reopening an issue is not a supported transition (see [Closed is closed](#closed-is-closed)), and for PRs it would race `project-sync.yml`, which already sends a reopened PR to PR Review.                             |
-| `Pull request linked to issue`   | Forces a linked issue to WIP. WIP here means _you picked it up_, which is self-assignment, not "a PR exists". It would also drag a paused card back into WIP.                                                                                                |
-| `Item added to project`          | Writes a Status on every card added. `project-sync.yml` owns the first Status, and during a [migration](#moving-to-a-new-board) it would overwrite every copied one.                                                                                         |
-| `Auto-close issue`               | Closes an issue when its card reaches Done — the opposite direction from `Item closed`. The board mirrors issues and never drives them, and this would close the open issues deliberately left stranded in Done (see [Closed is closed](#closed-is-closed)). |
-| `Auto-add sub-issues to project` | `project-sync.yml` owns adding.                                                                                                                                                                                                                              |
-| `Code changes requested`         | Cannot fire — see "Why two transitions are manual".                                                                                                                                                                                                          |
-| `Code review approved`           | Cannot fire — same reason.                                                                                                                                                                                                                                   |
-| `Auto-add to project`            | `project-sync.yml` owns adding, so both repositories behave identically regardless of GitHub plan (Free allows only one auto-add workflow, watching one repository).                                                                                         |
+| Workflow                         | Why off                                                                                                                                                                                                                                                                                                                     |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Item reopened`                  | Fires on issues _and_ pull requests. Reopening an issue is not a supported transition (see [Closed is closed](#closed-is-closed)), and for PRs it would race `project-sync.yml`, which already sends a reopened PR to PR Review.                                                                                            |
+| `Pull request linked to issue`   | Forces a linked issue to WIP. WIP here means _you picked it up_, which is self-assignment, not "a PR exists". It would also drag a paused card back into WIP.                                                                                                                                                               |
+| `Item added to project`          | Writes a Status on every card added. `project-sync.yml` owns the first Status, and during a [migration](#moving-to-a-new-board) it would overwrite every copied one.                                                                                                                                                        |
+| `Auto-close issue`               | Closes an issue when its card reaches Done — the opposite direction from `Item closed`. The board mirrors issues and never drives them: a card dragged to Done by mistake would close real work, and a reopened issue, which is left in Done on purpose (see [Closed is closed](#closed-is-closed)), would be closed again. |
+| `Auto-add sub-issues to project` | `project-sync.yml` owns adding.                                                                                                                                                                                                                                                                                             |
+| `Code changes requested`         | Cannot fire — see "Why two transitions are manual".                                                                                                                                                                                                                                                                         |
+| `Code review approved`           | Cannot fire — same reason.                                                                                                                                                                                                                                                                                                  |
+| `Auto-add to project`            | `project-sync.yml` owns adding, so both repositories behave identically regardless of GitHub plan (Free allows only one auto-add workflow, watching one repository).                                                                                                                                                        |
 
 ### 5. The board's GitHub App
 

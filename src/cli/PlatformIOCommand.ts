@@ -272,7 +272,7 @@ transpile_cnext()
       console.log("✓ PlatformIO integration removed!");
       console.log("");
       console.log("Your .cnx files remain untouched.");
-      console.log("To re-enable integration: cnext --pio-install");
+      console.log("To re-enable integration: cnx --pio-install");
     } else {
       console.log("");
       console.log("No c-next integration found - nothing to remove.");

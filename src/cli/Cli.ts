@@ -77,7 +77,7 @@ class Cli {
 
     if (!config.input) {
       console.error("Error: No input file specified");
-      console.error("Usage: cnext <file.cnx>");
+      console.error("Usage: cnx <file.cnx>");
       return { shouldRun: false, exitCode: 1 };
     }
 
@@ -91,7 +91,7 @@ class Cli {
       console.error(
         "Error: Directory input not supported. Specify an entry point file.",
       );
-      console.error(`Example: cnext ${config.input}/main.cnx`);
+      console.error(`Example: cnx ${config.input}/main.cnx`);
       return { shouldRun: false, exitCode: 1 };
     }
 

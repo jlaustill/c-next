@@ -15,6 +15,7 @@ const CONTEXTS: readonly TMatrixContext[] = [
   "top-level-function",
   "scope-member",
   "scope-method",
+  "for-header",
 ];
 
 const RELATIONSHIPS: readonly TMatrixRelationship[] = [
