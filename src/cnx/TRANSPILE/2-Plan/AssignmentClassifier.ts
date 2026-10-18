@@ -911,8 +911,9 @@ class AssignmentClassifier {
    * spelling and each handler re-rendering its spelling's target by hand, so
    * `this.cfg.name`, `o.inner.name`, `parr[1].name` and `g.cells[1][2]` fell
    * through to `=`. What is written is `writtenStep`'s answer, shared with
-   * ADR-044's clamp. A slice or bit subscript writes part of what it selects,
-   * never a whole string.
+   * ADR-044's clamp. Whether that step writes one whole string is
+   * `OperandTyper.wholeStringCapacity`'s answer, which 2.1's E0715 reads too
+   * (#1731 review).
    *
    * 2.2's one decision, like `clampOfWrite`: the classifier and the copy both
    * read the planned answer off the context (#1731 review).
@@ -928,9 +929,7 @@ class AssignmentClassifier {
         ? written.variable.stringCapacity
         : null;
     }
-    const { subscript, after } = written.step;
-    const writesWholeStep = subscript === null || subscript === "array_element";
-    return writesWholeStep ? OperandTyper.scalarStringCapacity(after) : null;
+    return OperandTyper.wholeStringCapacity(written.step);
   }
 
   /** Whether a chain's root is a variable of a known struct type */

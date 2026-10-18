@@ -222,7 +222,8 @@ describe("StringHandlers", () => {
       });
 
       expect(copyHandler()!(ctx)).toBe(
-        "{ char* cnx_tmp0 = target; (void) strncpy(cnx_tmp0, \"hello\", 8); cnx_tmp0[8] = '\\0'; }",
+        "/* ADR-045 / Issue #1731: target reached once through a temp (its subscript has a side effect, and the terminator store would evaluate it again). */\n" +
+          "{ char* cnx_tmp0 = target; (void) strncpy(cnx_tmp0, \"hello\", 8); cnx_tmp0[8] = '\\0'; }",
       );
     });
 

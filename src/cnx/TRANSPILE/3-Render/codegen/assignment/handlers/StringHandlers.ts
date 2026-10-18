@@ -35,6 +35,9 @@ import invariant from "../../../../../utils/invariant";
  * expression rendering, `CodeGenerator.generateType`, type registration),
  * which is why deleting the six calls this file had moved no fixture.
  */
+const HOISTED_COPY_ANNOTATION =
+  "/* ADR-045 / Issue #1731: target reached once through a temp (its subscript has a side effect, and the terminator store would evaluate it again). */";
+
 function copyIntoAssignmentTarget(ctx: IAssignmentContext): string {
   const capacity = ctx.plannedStringCapacity;
   invariant(
@@ -47,9 +50,11 @@ function copyIntoAssignmentTarget(ctx: IAssignmentContext): string {
   }
   // `names[pick()] <- "x"` calls pick() once: the copy and its terminator both
   // write through one pointer to the element, as #1887's clamp does.
+  // TODO(#2192): `char*` drops a volatile element's qualifier, as `strncpy`'s
+  // own parameter does on the plain path; a fix changes both sites.
   const element = ctx.state.getNextTempVarName();
   const copy = StringUtils.copyWithNull(element, ctx.generatedValue, capacity);
-  return `{ char* ${element} = ${target}; ${copy} }`;
+  return `${HOISTED_COPY_ANNOTATION}\n{ char* ${element} = ${target}; ${copy} }`;
 }
 
 const stringHandlers: ReadonlyArray<[AssignmentKind, TAssignmentHandler]> = [

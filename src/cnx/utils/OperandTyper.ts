@@ -473,6 +473,30 @@ class OperandTyper {
     return t.stringCapacity;
   }
 
+  /**
+   * The capacity of the one `string<N>` a step writes whole -- a name or an
+   * element, never a slice or a bit of what it selects -- or null (#1731
+   * review). 2.1's E0715 and 2.2's bounded copy both read it, so a `for`
+   * header is never handed a copy 2.1 let through.
+   */
+  static wholeStringCapacity(step: IChainStep): number | null {
+    const writesWhole =
+      step.subscript === null || step.subscript === "array_element";
+    return writesWhole ? OperandTyper.scalarStringCapacity(step.after) : null;
+  }
+
+  /** `wholeStringCapacity` of an assignment target; with no step, the root is what it writes */
+  static stringCopyCapacity(
+    target: TExpression,
+    ctx: ITypingContext,
+  ): number | null {
+    const walked = OperandTyper.walkChain(target, ctx);
+    const step = walked.typing.steps.at(-1);
+    return step === undefined
+      ? OperandTyper.scalarStringCapacity(walked.last)
+      : OperandTyper.wholeStringCapacity(step);
+  }
+
   static isString(t: IOperandType | null): boolean {
     if (t === null) return false;
     const name = t.typeName ?? "";

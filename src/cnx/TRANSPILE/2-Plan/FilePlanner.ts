@@ -68,6 +68,7 @@ import type ITargetDescription from "../../types/ITargetDescription";
 import includeGenerators from "./IncludeGenerator";
 import DeclaredTypeInfo from "../../PARSE/3-Declare/DeclaredTypeInfo";
 import type IChainBase from "../../types/IChainBase";
+import type IWrittenTarget from "./types/IWrittenTarget";
 import AssignmentClassifier from "./AssignmentClassifier";
 import ForHeaderAssignment from "../../utils/ForHeaderAssignment";
 import AssignmentOperatorMapper from "./AssignmentOperatorMapper";
@@ -1013,8 +1014,10 @@ class FilePlanner {
       structInitializers,
       decidedCTypes,
     );
+    const writes = this.planWrittenTargets(program);
     const clamps = this.planClamps(
       program,
+      writes,
       inlinedConsts,
       foreignRegisterValues,
       decidedCTypes,
@@ -1060,7 +1063,7 @@ class FilePlanner {
       registerAccesses,
       clampOps: clamps.ops,
       sliceSources,
-      stringCopies: this.planStringCopies(program),
+      stringCopies: this.planStringCopies(writes),
       expectedTypes,
       narrowings,
       structInitializers,
@@ -1447,9 +1450,7 @@ class FilePlanner {
     invariant(valuePositions !== null, "2.1 hands 2.2 where each value stands");
     const symbols = this.state.symbols!;
     const foreign: TExpression[] = [];
-    const sites = program.declarations.flatMap((entry) =>
-      StatementNodes.assignments(entry.declaration),
-    );
+    const sites = FilePlanner.assignmentSites(program);
     for (const site of sites) {
       const parts = AssignmentTarget.parts(site.target);
       const range = parts.ops.at(-1);
@@ -1566,9 +1567,7 @@ class FilePlanner {
     cTypes: Set<string>,
   ): void {
     const typing = this.state.typingContext();
-    const sites = program.declarations.flatMap((entry) =>
-      StatementNodes.assignments(entry.declaration),
-    );
+    const sites = FilePlanner.assignmentSites(program);
     for (const site of sites) {
       const last = OperandTyper.chainOf(site.target, typing).steps.at(-1);
       if (last?.subscript === "array_slice") {
@@ -1633,6 +1632,7 @@ class FilePlanner {
    */
   private planClamps(
     program: IProgramSyntax,
+    writes: ReadonlyMap<IAssignmentSyntax, IWrittenTarget>,
     inlinedConsts: ReadonlySet<TDeclarationSyntax>,
     foreignRegisterValues: readonly TExpression[],
     cTypes: Set<string>,
@@ -1670,15 +1670,12 @@ class FilePlanner {
       IAssignmentSyntax,
       { operation: string; cnxType: string } | null
     >();
-    const sites = program.declarations.flatMap((entry) =>
-      StatementNodes.assignments(entry.declaration),
-    );
-    for (const site of sites) {
+    for (const [site, written] of writes) {
       compound.set(site, null);
       if (site.operator === "<-") continue;
       const clamp = AssignmentClassifier.clampOfWrite(
-        this.targetDeclaration(site.target),
-        AssignmentTarget.parts(site.target).ops.length === 0,
+        written.target,
+        written.isSimple,
         site.operator,
         () => site.value.kind !== "missing" && this.hasFloatingLeaf(site.value),
       );
@@ -1689,22 +1686,45 @@ class FilePlanner {
     return { chains, compound, ops };
   }
 
+  /** Every assignment in the file, in source order */
+  private static assignmentSites(program: IProgramSyntax): IAssignmentSyntax[] {
+    return program.declarations.flatMap((entry) =>
+      StatementNodes.assignments(entry.declaration),
+    );
+  }
+
+  /**
+   * What each assignment's target writes, bound through the typer once
+   * (#1731 review): ADR-044's clamp and ADR-045's copy read the same answer,
+   * the `isSimple` gate included, so they cannot disagree on a site.
+   */
+  private planWrittenTargets(
+    program: IProgramSyntax,
+  ): Map<IAssignmentSyntax, IWrittenTarget> {
+    return new Map(
+      FilePlanner.assignmentSites(program).map((site) => [
+        site,
+        {
+          target: this.targetDeclaration(site.target),
+          isSimple: AssignmentTarget.parts(site.target).ops.length === 0,
+        },
+      ]),
+    );
+  }
+
   /**
    * #1731: the capacity of each write of one whole `string<N>`, which is a
    * bounded copy whatever spells its target. ADR-045's copy, recorded where
    * it is decided.
    */
   private planStringCopies(
-    program: IProgramSyntax,
+    writes: ReadonlyMap<IAssignmentSyntax, IWrittenTarget>,
   ): Map<IAssignmentSyntax, number> {
     const copies = new Map<IAssignmentSyntax, number>();
-    const sites = program.declarations.flatMap((entry) =>
-      StatementNodes.assignments(entry.declaration),
-    );
-    for (const site of sites) {
+    for (const [site, written] of writes) {
       const capacity = AssignmentClassifier.stringCapacityOfWrite(
-        this.targetDeclaration(site.target),
-        AssignmentTarget.parts(site.target).ops.length === 0,
+        written.target,
+        written.isSimple,
       );
       if (capacity === null) continue;
       AdrProvenance.record("045", site.operatorSpan.line);
@@ -1919,9 +1939,7 @@ class FilePlanner {
     cTypes: Set<string>,
   ): void {
     const symbols = this.state.symbols!;
-    const sites = program.declarations.flatMap((entry) =>
-      StatementNodes.assignments(entry.declaration),
-    );
+    const sites = FilePlanner.assignmentSites(program);
     for (const site of sites) {
       const parts = AssignmentTarget.parts(site.target);
       if (parts.identifier === null || parts.ops.at(-1)?.kind !== "member") {

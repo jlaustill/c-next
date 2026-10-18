@@ -52,6 +52,9 @@ function handleAtomicRMW(ctx: IAssignmentContext): string {
  * Generates calls to cnx_clamp_add_u8, cnx_clamp_sub_u8, etc. Classified only
  * when `AssignmentClassifier.compoundClamp` names a helper.
  */
+const HOISTED_CLAMP_ANNOTATION =
+  "/* ADR-044 / Issue #1887: target reached once through a temp (its subscript has a side effect, and the clamp reads the element as well as writing it). */";
+
 function handleOverflowClamp(ctx: IAssignmentContext): string {
   const clamp = AssignmentClassifier.compoundClamp(ctx);
   invariant(clamp !== null, "OVERFLOW_CLAMP is classified only with a helper");
@@ -72,7 +75,7 @@ function handleOverflowClamp(ctx: IAssignmentContext): string {
   // element, and adding a qualifier to a pointer is always valid C.
   const cType = TYPE_MAP[clamp.cnxType] ?? clamp.cnxType;
   const element = ctx.state.getNextTempVarName();
-  return `{ volatile ${cType}* ${element} = &${target}; *${element} = ${helper}(*${element}, ${ctx.generatedValue}); }`;
+  return `${HOISTED_CLAMP_ANNOTATION}\n{ volatile ${cType}* ${element} = &${target}; *${element} = ${helper}(*${element}, ${ctx.generatedValue}); }`;
 }
 
 /**

@@ -37,6 +37,7 @@ uint32_t pick(void) {
 int main(void) {
     char names[3][9] = {0};
     Item items[3] = {};
+    /* ADR-045 / Issue #1731: target reached once through a temp (its subscript has a side effect, and the terminator store would evaluate it again). */
     { char* cnx_tmp0 = names[pick()]; (void) strncpy(cnx_tmp0, "abc", 8); cnx_tmp0[8] = '\0'; }
     if (calls != 1) {
         return 1U;
@@ -47,6 +48,7 @@ int main(void) {
     if (strcmp(names[2U], "") != 0) {
         return 3U;
     }
+    /* ADR-045 / Issue #1731: target reached once through a temp (its subscript has a side effect, and the terminator store would evaluate it again). */
     { char* cnx_tmp1 = items[pick()].name; (void) strncpy(cnx_tmp1, "def", 8); cnx_tmp1[8] = '\0'; }
     if (calls != 2) {
         return 4U;

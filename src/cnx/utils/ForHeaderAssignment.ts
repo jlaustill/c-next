@@ -37,7 +37,9 @@ class ForHeaderAssignment {
     if (steps.some((step) => step.subscript === "array_slice")) {
       return "a slice write";
     }
-    return OperandTyper.isScalarString(written) ? "a string copy" : null;
+    return OperandTyper.stringCopyCapacity(target, ctx) === null
+      ? null
+      : "a string copy";
   }
 
   /** Declared `atomic`, by the declaration the target binds to */
