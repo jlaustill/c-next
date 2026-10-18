@@ -1261,14 +1261,12 @@ class FilePlanner {
 
       const passing = this.argumentPassing(site);
       const base = passing.param?.baseType;
-      const array = wholeArrayArguments.get(expression);
-      let form: TArgumentForm | null = null;
-      if (passing.mode === "reference") {
-        form =
-          array === undefined
-            ? this.referenceForm(expression, passing, structInitializers)
-            : { kind: "array-temp", array };
-      }
+      const form = this.argumentForm(
+        expression,
+        passing,
+        wholeArrayArguments.get(expression),
+        structInitializers,
+      );
       const enumCast =
         passing.mode === "reference"
           ? null
@@ -1286,6 +1284,20 @@ class FilePlanner {
       if (cType !== null) cTypes.add(cType);
     }
     return planned;
+  }
+  /** A by-reference argument's form; a list for an array parameter is its temporary */
+  private argumentForm(
+    expression: TExpression,
+    passing: ReturnType<FilePlanner["argumentPassing"]>,
+    array: IPlannedWholeArrayWrite | undefined,
+    structInitializers: ReadonlyMap<
+      TExpressionOf<"structInitializer">,
+      TStructInitializerForm
+    >,
+  ): TArgumentForm | null {
+    if (passing.mode !== "reference") return null;
+    if (array !== undefined) return { kind: "array-temp", array };
+    return this.referenceForm(expression, passing, structInitializers);
   }
 
   /**
