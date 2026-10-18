@@ -9,6 +9,7 @@
 #include <string.h>
 
 // test-execution
+// test-adr: 045
 // Issue #139: Test this.member string assignment in scopes (ADR-016)
 /* Scope: Logger */
 char Logger__message[65] = "";

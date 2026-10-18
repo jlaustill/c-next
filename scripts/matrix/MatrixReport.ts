@@ -7,6 +7,7 @@
 
 import AdrMatrixDeclaration from "./AdrMatrixDeclaration";
 import MatrixCell from "./MatrixCell";
+import MatrixRule from "./MatrixRule";
 import IMatrixDeclaration from "../types/IMatrixDeclaration";
 import IMatrixOccupancy from "../types/IMatrixOccupancy";
 import IMatrixViolation from "../types/IMatrixViolation";
@@ -114,8 +115,25 @@ function obligationCount(
   return total;
 }
 
+/**
+ * #1731 review: rule matrices fixtures occupy that no ADR declares a table for.
+ *
+ * A rule name the transpiler records and the ADR does not declare is a typo on
+ * one side. Its occupancy would otherwise render under its own heading with no
+ * obligation, and the rule's real table would sit unoccupied without a word.
+ */
+function undeclaredRules(
+  declarations: ReadonlyMap<string, IMatrixDeclaration>,
+  occupancy: ReadonlyMap<string, IMatrixOccupancy>,
+): string[] {
+  return [...occupancy.keys()]
+    .filter((id) => MatrixRule.ruleOf(id) !== null && !declarations.has(id))
+    .sort();
+}
+
 class MatrixReport {
   static isOccupied = isOccupied;
+  static undeclaredRules = undeclaredRules;
   static violations = violations;
   static undeterminable = undeterminable;
   static obligationCount = obligationCount;

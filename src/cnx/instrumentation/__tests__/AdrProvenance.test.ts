@@ -76,4 +76,16 @@ describe("AdrProvenance", () => {
 
     expect(AdrProvenance.collect()).toEqual([]);
   });
+
+  it("keeps the rule a site was recorded for, apart from the ADR's own (#1731 review)", () => {
+    AdrProvenance.beginFile("a.cnx");
+    AdrProvenance.record("045", 9);
+    AdrProvenance.record("045", 9, "string-copy");
+    AdrProvenance.record("045", 9, "string-copy");
+
+    expect(AdrProvenance.collect()).toEqual([
+      { adr: "045", sourcePath: "a.cnx", line: 9 },
+      { adr: "045", sourcePath: "a.cnx", line: 9, rule: "string-copy" },
+    ]);
+  });
 });

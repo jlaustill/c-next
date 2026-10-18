@@ -1,4 +1,5 @@
 // test-execution
+// test-adr: 045
 // Issue #139: Test this.member string assignment in scopes (ADR-016)
 scope Logger {
     public mut string<64> message <- "";

@@ -1699,7 +1699,7 @@ class FilePlanner {
     for (const site of FilePlanner.assignmentSites(program)) {
       const capacity = OperandTyper.stringCopyCapacity(site.target, typing);
       if (capacity === null) continue;
-      AdrProvenance.record("045", site.operatorSpan.line);
+      AdrProvenance.record("045", site.operatorSpan.line, "string-copy");
       copies.set(site, capacity);
     }
     return copies;

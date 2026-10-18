@@ -10,12 +10,14 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 import AdrMatrixDeclaration from "./AdrMatrixDeclaration";
+import MatrixRule from "./MatrixRule";
 import IMatrixDeclaration from "../types/IMatrixDeclaration";
 
 const ADR_FILENAME = /^adr-(\d{3})-.*\.md$/;
 
 /**
- * Parse the matrix declaration out of every `adr-NNN-*.md` in `decisionsDir`.
+ * Parse the matrix declaration out of every `adr-NNN-*.md` in `decisionsDir`,
+ * keyed by MatrixRule id: the ADR's own table, and one per rule table.
  *
  * An ADR with no `MATRIX-SEVERITY` marker takes no part and is omitted. An ADR
  * that HAS the marker is always included, even when nothing could be read from
@@ -33,6 +35,23 @@ function read(decisionsDir: string): Map<string, IMatrixDeclaration> {
 
     const adr = match[1];
     const markdown = readFileSync(join(decisionsDir, entry), "utf-8");
+
+    for (const rule of AdrMatrixDeclaration.rulesIn(markdown)) {
+      const ruleId = MatrixRule.id(adr, rule);
+      const ruleTable = AdrMatrixDeclaration.parse(markdown, ruleId, rule);
+      declarations.set(
+        ruleId,
+        ruleTable.severities.size > 0 || ruleTable.errors.length > 0
+          ? ruleTable
+          : {
+              ...ruleTable,
+              errors: [
+                `ADR-${ruleId}: MATRIX-SEVERITY marker present but no cell could be read`,
+              ],
+            },
+      );
+    }
+
     const declaration = AdrMatrixDeclaration.parse(markdown, adr);
 
     if (declaration.severities.size > 0 || declaration.errors.length > 0) {

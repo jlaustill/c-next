@@ -9,7 +9,7 @@ import TMatrixSeverity from "./TMatrixSeverity";
  * twenty.
  */
 interface IMatrixDeclaration {
-  /** Zero-padded ADR number, e.g. "051". */
+  /** MatrixRule id: the zero-padded ADR number ("051"), or it and a rule ("045 string-copy"). */
   readonly adr: string;
 
   /** Cell key (see MatrixCell.key) to declared severity. */

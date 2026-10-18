@@ -64,18 +64,23 @@ class AdrProvenance {
   }
 
   /**
-   * Note that `adr`'s rule fired at `line` of the current file.
+   * Note that `adr`'s rule fired at `line` of the current file -- the rule
+   * named `rule` when the ADR declares a separate matrix for it.
    *
    * Silently ignores a call with no current file or a non-positive line: a
    * position that cannot be resolved must not become occupancy for whatever
    * declaration happens to start the file, which is the same reason
    * FixtureContext refuses the synthetic 1:0 placeholder.
    */
-  static record(adr: string, line: number | null | undefined): void {
+  static record(
+    adr: string,
+    line: number | null | undefined,
+    rule?: string,
+  ): void {
     if (!this.currentSourcePath || line == null || line <= 0) {
       return;
     }
-    this.sites.push({ adr, sourcePath: this.currentSourcePath, line });
+    this.sites.push({ adr, sourcePath: this.currentSourcePath, line, rule });
   }
 
   /** Every site recorded since the last reset, deduplicated. */
@@ -83,7 +88,7 @@ class AdrProvenance {
     const seen = new Set<string>();
     const unique: IRecordedAdrSite[] = [];
     for (const site of this.sites) {
-      const key = `${site.adr} ${site.sourcePath} ${site.line}`;
+      const key = `${site.adr} ${site.rule ?? ""} ${site.sourcePath} ${site.line}`;
       if (seen.has(key)) {
         continue;
       }
