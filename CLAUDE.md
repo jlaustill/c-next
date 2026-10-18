@@ -119,8 +119,8 @@ back. That is right for those pauses and wrong for a blocked card whose step 1 w
 **A rule derived under a constraint that does not exist reads as principled indefinitely.**
 The predecessor of this rule said to _keep_ the assignment, because unassigning strands the card
 in `WIP` with nobody on it. That inference was sound and its premise was false — the same rule
-also forbade writing `Status`, having assumed the board unwritable, when `PROJECT_TOKEN` carries
-the `project` scope. Doing **both** was never considered, and strands nothing. Nothing failed in
+also forbade writing `Status`, having assumed the board unwritable, when its token could write it
+(`PROJECT_TOKEN`, with the `project` scope, then; the smeltworks board GitHub App since #2189). Doing **both** was never considered, and strands nothing. Nothing failed in
 between: #1448 sat in `WIP` for **9h52m** after its work stopped, while #1445 — the single card
 the rule named as stranded — had itself been moved to `Backlog` by hand at `2026-09-12T13:49:37Z`,
 so the rule's one worked example was refuting it. Check a rule's premise when its conclusion is a
