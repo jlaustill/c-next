@@ -1008,7 +1008,10 @@ class FilePlanner {
       ),
     ]);
     invariant(valuePositions !== null, "2.1 hands 2.2 where each value stands");
-    const wholeArrayWrites = this.planWholeArrayWrites(program, decidedCTypes);
+    const wholeArrayWrites = this.planWholeArrayWrites(
+      valuePositions,
+      decidedCTypes,
+    );
     const wholeArrayArguments = FilePlanner.planWholeArrayArguments(
       valuePositions,
       decidedCTypes,
@@ -1710,36 +1713,39 @@ class FilePlanner {
   }
 
   /**
-   * #1782: each `<-` that writes a whole array -- a target with dimensions
-   * left, given what ADR-035 gives one, which 2.1's E0866 has checked -- and
-   * the element type and dimensions its copy walks.
+   * #1782: each `<-` that writes a whole array -- 2.1's position for its
+   * value says so, and 2.1 has checked that it is given what ADR-035 gives
+   * one (E0866) with `<-` alone (E0857) -- and the element type and
+   * dimensions its copy walks.
    */
   private planWholeArrayWrites(
-    program: IProgramSyntax,
+    valuePositions: IValuePositions,
     cTypes: Set<string>,
   ): ReadonlyMap<IAssignmentSyntax, IPlannedWholeArrayWrite> {
     const typing = this.state.typingContext();
     const planned = new Map<IAssignmentSyntax, IPlannedWholeArrayWrite>();
-    const sites = program.declarations.flatMap((entry) =>
-      StatementNodes.assignments(entry.declaration),
-    );
-    for (const site of sites) {
-      if (site.operator !== "<-") continue;
-      const dimensions = OperandTyper.wholeArrayDimensions(site.target, typing);
+    for (const [value, at] of valuePositions.sites) {
+      if (at.site.kind !== "assignment") continue;
+      const site = at.site.assignment;
+      const dimensions = valuePositions.positions.get(value)?.dimensions ?? [];
+      if (site.value !== value || dimensions.length === 0) continue;
       const written = OperandTyper.typeOfTarget(site.target, typing);
-      if (written === null || dimensions.length === 0) continue;
-      if (!ExpressionShape.givesWholeArray(site.value, written.typeName)) {
-        continue;
-      }
-      const typeName = written.typeName;
-      invariant(typeName !== null, "a whole array's element type is named");
+      const typeName = written?.typeName ?? null;
+      invariant(
+        written !== null && typeName !== null,
+        "a whole array's element type is named",
+      );
+      invariant(
+        ExpressionShape.givesWholeArray(value, typeName),
+        "2.1 gave a whole array its list (E0866)",
+      );
       planned.set(
         site,
         FilePlanner.wholeArrayShape(
           written.cType ?? TYPE_MAP[typeName] ?? typeName,
           written.stringCapacity,
           dimensions,
-          site.value,
+          value,
         ),
       );
       cTypes.add("uint32_t");

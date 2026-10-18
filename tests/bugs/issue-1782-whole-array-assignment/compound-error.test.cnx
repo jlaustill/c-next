@@ -1,0 +1,9 @@
+// test-error
+// #2193: a compound operator does not take a whole array. C has no array
+// assignment, and a whole array is given ADR-035's list with `<-` alone, so
+// `a +<- [1, 2]` is E0857, as a slice or a string target is.
+mut u8[2] a <- [0*];
+
+void f() {
+    a +<- [1, 2];
+}
