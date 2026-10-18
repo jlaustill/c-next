@@ -111,11 +111,7 @@ class WholeArrayValueAnalyzer {
     const element =
       at.typeText === null ? null : TypeText.withoutDimensions(at.typeText);
     if (value.kind === "arrayInitializer") {
-      return ArrayListCount.mismatches(
-        value,
-        at.dimensions.map((size) => (typeof size === "number" ? size : null)),
-        element,
-      );
+      return ArrayListCount.mismatches(value, at.dimensions, element);
     }
     if (ExpressionShape.givesWholeArray(value, element)) return [];
     return [ArrayListCount.notAList(value)];

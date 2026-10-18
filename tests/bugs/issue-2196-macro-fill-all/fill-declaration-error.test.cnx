@@ -1,0 +1,24 @@
+// test-error
+// test-adr: 035
+// #2196: a fill-all repeats one value in every slot, and C has no initializer
+// that does that for a size it is not told. A dimension that is a C macro does
+// not fold in C-Next, so `u8[NDIM] a <- [5*]` reached C as `{5U}` and set only
+// a[0]. A fill-all other than [0*] needs a size C-Next can fold (E0866).
+// A declaration is asked before the other positions, so it is its own file:
+// fill-error.test.cnx holds an assignment target, a field and an argument.
+#include "dims.h"
+
+u32 COUNT <- 4;
+
+// NEGATIVE CONTROL -- [0*] zero-fills any size, and a folded size expands.
+u8[NDIM] zeros <- [0*];
+u8[COUNT] fives <- [5*];
+u8[4] sevens <- [7*];
+
+// ASSERTION 1 -- a non-zero fill-all for a macro size, at file scope.
+u8[NDIM] a <- [5*];
+
+void f() {
+    // ASSERTION 2 -- the same in a function.
+    u8[NDIM] b <- [9*];
+}

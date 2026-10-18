@@ -1,0 +1,4 @@
+19:15 error[E0866]: A fill-all [5*] needs a size C-Next can fold, and 'NDIM' does not
+       help: Write the elements out, fill with [0*], or size the array with a C-Next constant (ADR-035).
+23:19 error[E0866]: A fill-all [9*] needs a size C-Next can fold, and 'NDIM' does not
+       help: Write the elements out, fill with [0*], or size the array with a C-Next constant (ADR-035).

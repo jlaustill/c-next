@@ -1,0 +1,32 @@
+// test-error
+// test-adr: 035
+// #2196: a fill-all other than [0*] needs a size C-Next can fold, wherever a
+// whole array is taken (ADR-014): an assignment target, a field and an
+// argument, as well as a declaration (fill-declaration-error.test.cnx).
+#include "dims.h"
+
+struct Packet {
+    u8[NDIM] data;
+}
+
+u8 last(u8[NDIM] buf) {
+    return buf[3];
+}
+
+void f() {
+    // NEGATIVE CONTROL -- [0*] for a macro size, a folded size, and a list.
+    mut u8[NDIM] a <- [0*];
+    a <- [0*];
+    mut u8[4] b <- [0*];
+    b <- [7*];
+    a <- [1, 2, 3, 4];
+    Packet ok <- { data: [0*] };
+    u8 fine <- last([0*]);
+
+    // ASSERTION 1 -- an assignment target.
+    a <- [7*];
+    // ASSERTION 2 -- a field.
+    Packet p <- { data: [7*] };
+    // ASSERTION 3 -- an argument.
+    u8 x <- last([9*]);
+}

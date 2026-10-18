@@ -4,6 +4,7 @@ import type TExpression from "../../../types/syntax/TExpression";
 import type IArrayDeclarationError from "../types/IArrayDeclarationError";
 
 type TArrayInitializer = Extract<TExpression, { kind: "arrayInitializer" }>;
+type TSize = number | string | null;
 
 /**
  * ADR-035, E0866: a list has one element per slot at every level, or the
@@ -12,12 +13,15 @@ type TArrayInitializer = Extract<TExpression, { kind: "arrayInitializer" }>;
  * each against the sizes its own position takes; a size that does not fold is
  * not counted. A row is a whole array (ADR-014), so an element at a level
  * with dimensions left is a list too -- or, for a `u8` row, a string literal
- * -- and a string array's slot is a string literal (#2195).
+ * -- and a string array's slot is a string literal (#2195). A size is a
+ * folded number, the spelling of one that does not fold (a C macro), or null
+ * for none; a fill-all other than `[0*]` needs a folded size, since C has no
+ * initializer that repeats a value an unknown number of times (#2196).
  */
 class ArrayListCount {
   static mismatches(
     initializer: TArrayInitializer,
-    sizes: readonly (number | null)[],
+    sizes: readonly TSize[],
     elementType: string | null,
   ): IArrayDeclarationError[] {
     const found: IArrayDeclarationError[] = [];
@@ -37,6 +41,21 @@ class ArrayListCount {
     };
   }
 
+  /** A fill-all other than `[0*]` for a size that does not fold */
+  private static unfoldedFill(
+    fill: TExpression,
+    size: string,
+  ): IArrayDeclarationError {
+    return {
+      code: "E0866",
+      line: fill.span.line,
+      column: fill.span.column,
+      message: `A fill-all [${fill.written}*] needs a size C-Next can fold, and '${size}' does not`,
+      helpText:
+        "Write the elements out, fill with [0*], or size the array with a C-Next constant (ADR-035).",
+    };
+  }
+
   /** A string array's slot given something other than a string literal */
   private static notAStringLiteral(value: TExpression): IArrayDeclarationError {
     return {
@@ -52,7 +71,7 @@ class ArrayListCount {
   /** Count one level of a nested list against its dimension, then descend. */
   private static checkLevel(
     initializer: TArrayInitializer,
-    sizes: readonly (number | null)[],
+    sizes: readonly TSize[],
     elementType: string | null,
     level: number,
     found: IArrayDeclarationError[],
@@ -61,10 +80,13 @@ class ArrayListCount {
     const fill = initializer.fill;
     const elements = fill === null ? initializer.elements : [fill];
     const declared = sizes[level];
+    if (fill !== null && typeof declared === "string" && fill.written !== "0") {
+      found.push(ArrayListCount.unfoldedFill(fill, declared));
+      return;
+    }
     if (
       fill === null &&
-      declared !== null &&
-      declared !== undefined &&
+      typeof declared === "number" &&
       elements.length !== declared
     ) {
       const where = level > 0 ? ` at nesting level ${level + 1}` : "";

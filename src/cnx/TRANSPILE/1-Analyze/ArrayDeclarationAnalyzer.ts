@@ -22,7 +22,7 @@ import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
 import IArrayDeclarationError from "./types/IArrayDeclarationError";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
-type TDimension = number | null;
+type TDimension = number | string | null;
 
 class ArrayDeclarationCheck {
   private readonly found: IArrayDeclarationError[] = [];
@@ -55,7 +55,9 @@ class ArrayDeclarationCheck {
       return;
     }
     const sizes: TDimension[] = type.dimensions.map((size) =>
-      size === null ? null : ConstantExpression.valueAt(size, this.context),
+      size === null
+        ? null
+        : (ConstantExpression.valueAt(size, this.context) ?? size.written),
     );
     this.found.push(
       ...ArrayListCount.mismatches(initializer, sizes, type.element.text),
