@@ -8,13 +8,17 @@
 // A declaration is asked before the other positions, so it is its own file:
 // row-slot-error.test.cnx holds an assignment target, a field and an argument.
 u8[2] row <- [1, 2];
+string<8>[2] names <- ["ab", "cd"];
 
-// NEGATIVE CONTROL -- a nested list stays silent.
+// NEGATIVE CONTROL -- a nested list and string literals stay silent.
 u8[2][2] OK_GRID <- [[1, 2], [3, 4]];
+string<8>[2] OK_NAMES <- ["ef", "gh"];
 
 void f() {
     // ASSERTION 1 -- scalars where a declaration's rows are taken.
     u8[2][2] a <- [1, 2];
     // ASSERTION 2 -- array variables as a declaration's rows.
     u8[2][2] b <- [row, row];
+    // ASSERTION 3 -- string variables as a declaration's strings.
+    string<8>[2] c <- [names[1], names[0]];
 }

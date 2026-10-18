@@ -1,4 +1,5 @@
 import ExpressionShape from "../../../utils/ExpressionShape";
+import TypeCheckUtils from "../../../utils/TypeCheckUtils";
 import type TExpression from "../../../types/syntax/TExpression";
 import type IArrayDeclarationError from "../types/IArrayDeclarationError";
 
@@ -11,7 +12,7 @@ type TArrayInitializer = Extract<TExpression, { kind: "arrayInitializer" }>;
  * each against the sizes its own position takes; a size that does not fold is
  * not counted. A row is a whole array (ADR-014), so an element at a level
  * with dimensions left is a list too -- or, for a `u8` row, a string literal
- * (#2195).
+ * -- and a string array's slot is a string literal (#2195).
  */
 class ArrayListCount {
   static mismatches(
@@ -33,6 +34,18 @@ class ArrayListCount {
       message: `An array must be given a list, not '${value.written}'`,
       helpText:
         "Write the elements out in brackets, or set them one at a time (ADR-035).",
+    };
+  }
+
+  /** A string array's slot given something other than a string literal */
+  private static notAStringLiteral(value: TExpression): IArrayDeclarationError {
+    return {
+      code: "E0866",
+      line: value.span.line,
+      column: value.span.column,
+      message: `A string array's element in a list must be a string literal, not '${value.written}'`,
+      helpText:
+        "Write the string out as a literal, or set the element on its own (ADR-035).",
     };
   }
 
@@ -74,11 +87,16 @@ class ArrayListCount {
           level + 1,
           found,
         );
+      } else if (level + 1 < sizes.length) {
+        if (!ExpressionShape.givesWholeArray(element, elementType)) {
+          found.push(ArrayListCount.notAList(element));
+        }
       } else if (
-        level + 1 < sizes.length &&
-        !ExpressionShape.givesWholeArray(element, elementType)
+        elementType !== null &&
+        TypeCheckUtils.isSizedStringName(elementType) &&
+        !ExpressionShape.isStringLiteral(element)
       ) {
-        found.push(ArrayListCount.notAList(element));
+        found.push(ArrayListCount.notAStringLiteral(element));
       }
     }
   }

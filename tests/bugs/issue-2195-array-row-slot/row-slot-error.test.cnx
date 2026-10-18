@@ -6,6 +6,7 @@
 // variable there was accepted at exit 0 and reached C as brace elision
 // (partial initialization) or as a pointer initializing a uint8_t.
 u8[2] row <- [1, 2];
+string<8>[2] names <- ["ab", "cd"];
 
 struct G {
     u8[2][2] cells;
@@ -23,6 +24,8 @@ void f() {
     grid <- [[1, 2], [3, 4]];
     G ok <- { cells: [[1, 2], [3, 4]] };
     u32 fine <- first([[1, 2], [3, 4]]);
+    mut string<8>[2] labels <- ["ab", "cd"];
+    labels <- ["ef", "gh"];
 
     // ASSERTION 1 -- scalars as an assignment target's rows.
     grid <- [1, 2];
@@ -32,4 +35,6 @@ void f() {
     G g <- { cells: [row, row] };
     // ASSERTION 4 -- scalars as an argument's rows.
     u32 s <- first([1, 2]);
+    // ASSERTION 5 -- string variables as an assignment target's strings.
+    labels <- [names[1], names[0]];
 }

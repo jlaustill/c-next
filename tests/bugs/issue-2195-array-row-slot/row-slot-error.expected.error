@@ -1,16 +1,20 @@
-28:13 error[E0866]: An array must be given a list, not '1'
+31:13 error[E0866]: An array must be given a list, not '1'
        help: Write the elements out in brackets, or set them one at a time (ADR-035).
-28:16 error[E0866]: An array must be given a list, not '2'
+31:16 error[E0866]: An array must be given a list, not '2'
        help: Write the elements out in brackets, or set them one at a time (ADR-035).
-30:13 error[E0866]: An array must be given a list, not 'row'
+33:13 error[E0866]: An array must be given a list, not 'row'
        help: Write the elements out in brackets, or set them one at a time (ADR-035).
-30:18 error[E0866]: An array must be given a list, not 'row'
+33:18 error[E0866]: An array must be given a list, not 'row'
        help: Write the elements out in brackets, or set them one at a time (ADR-035).
-32:21 error[E0866]: An array must be given a list, not 'row'
+35:21 error[E0866]: An array must be given a list, not 'row'
        help: Write the elements out in brackets, or set them one at a time (ADR-035).
-32:26 error[E0866]: An array must be given a list, not 'row'
+35:26 error[E0866]: An array must be given a list, not 'row'
        help: Write the elements out in brackets, or set them one at a time (ADR-035).
-34:20 error[E0866]: An array must be given a list, not '1'
+37:20 error[E0866]: An array must be given a list, not '1'
        help: Write the elements out in brackets, or set them one at a time (ADR-035).
-34:23 error[E0866]: An array must be given a list, not '2'
+37:23 error[E0866]: An array must be given a list, not '2'
        help: Write the elements out in brackets, or set them one at a time (ADR-035).
+39:15 error[E0866]: A string array's element in a list must be a string literal, not 'names[1]'
+       help: Write the string out as a literal, or set the element on its own (ADR-035).
+39:25 error[E0866]: A string array's element in a list must be a string literal, not 'names[0]'
+       help: Write the string out as a literal, or set the element on its own (ADR-035).
