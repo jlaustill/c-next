@@ -418,7 +418,7 @@ Compiler flags:
 | E0875 | A parameter's array type leaves a dimension unbounded (`u8[] data`)                                                         | `tests/adr-036/array-shape-uncovered-arms-error.test.cnx`                                                           |
 | E0909 | A dimension is not known at compile time -- a variable or a parameter, since C-Next has no variable-length arrays (ADR-023) | `tests/bugs/issue-1175-constant-dimensions/variable-dimension-local.test.cnx`, `variable-dimension-global.test.cnx` |
 | E0910 | A dimension is arithmetic that would clamp or wrap (ADR-044)                                                                | `tests/bugs/issue-1175-constant-dimensions/overflow-dimension.test.cnx`                                             |
-| E0917 | A `for` header declares an array, in either spelling (`u8[3] v`, `u32 c[2]`) (#1823)                                        | `tests/adr-036/for-header-array-error.test.cnx`, `tests/adr-036/for-header-array-cpp-error.test.cnx` (`--cpp`)      |
+| E0917 | A `for` header declares an array, in either spelling (`u8[3] v`, `u32 c[2]`), or a string (#1823)                           | `tests/adr-036/for-header-array-error.test.cnx`, `tests/adr-036/for-header-array-cpp-error.test.cnx` (`--cpp`)      |
 
 The bound is the dimension the subscript indexes: `grid[i][9]` is checked
 against `grid[i]`'s shape. A field of a struct is bounded like a variable
@@ -439,6 +439,11 @@ is E0917 in either spelling: `for (u8[3] v <- [1, 2, 3]; ...)` and
 (owner ruling on #1823, 2026-09-30). Until #1823 both forms transpiled and the
 prefix form was emitted as a scalar, `uint8_t v = {1U, 2U, 3U}`; no fixture or
 example declared an array there, against 85 scalar loop variables.
+
+A string is a `char` array in C, so it is not a scalar loop variable either:
+`for (string<8> s <- "ab"; ...)` and the unsized `for (string t <- "ab"; ...)`
+are E0917 too (owner ruling on #1823, 2026-10-18). Until then the string was
+emitted as a scalar `const char s = "ab"`.
 
 ## Scope-Context Matrix (#1219)
 

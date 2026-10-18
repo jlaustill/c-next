@@ -1,10 +1,16 @@
 12:9 error[E0917]: An array is not a for loop variable: declare 'v' before the loop
-       help: A for header declares one scalar loop variable (ADR-036); declare the array before the loop and index it inside.
+       help: A for header declares one scalar loop variable (ADR-036); declare it before the loop and use it inside.
 17:9 error[E0917]: An array is not a for loop variable: declare 'm' before the loop
-       help: A for header declares one scalar loop variable (ADR-036); declare the array before the loop and index it inside.
+       help: A for header declares one scalar loop variable (ADR-036); declare it before the loop and use it inside.
 18:9 error[E0917]: An array is not a for loop variable: declare 'c' before the loop
-       help: A for header declares one scalar loop variable (ADR-036); declare the array before the loop and index it inside.
+       help: A for header declares one scalar loop variable (ADR-036); declare it before the loop and use it inside.
 20:9 error[E0917]: An array is not a for loop variable: declare 'a' before the loop
-       help: A for header declares one scalar loop variable (ADR-036); declare the array before the loop and index it inside.
+       help: A for header declares one scalar loop variable (ADR-036); declare it before the loop and use it inside.
 21:9 error[E0917]: An array is not a for loop variable: declare 'b' before the loop
-       help: A for header declares one scalar loop variable (ADR-036); declare the array before the loop and index it inside.
+       help: A for header declares one scalar loop variable (ADR-036); declare it before the loop and use it inside.
+23:9 error[E0917]: A string is not a for loop variable: declare 's' before the loop
+       help: A for header declares one scalar loop variable (ADR-036); declare it before the loop and use it inside.
+24:9 error[E0917]: A string is not a for loop variable: declare 't' before the loop
+       help: A for header declares one scalar loop variable (ADR-036); declare it before the loop and use it inside.
+25:9 error[E0917]: An array is not a for loop variable: declare 'w' before the loop
+       help: A for header declares one scalar loop variable (ADR-036); declare it before the loop and use it inside.

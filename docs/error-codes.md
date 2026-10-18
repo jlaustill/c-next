@@ -430,11 +430,11 @@ base: bare, `this.` and `global.`.
 | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------ |
 | E0916 | A `critical` block on a target where disabling interrupts does not shut out every other execution context (`interrupt_mask: false`: host, esp32) (#1789, #1147) | A critical block disables interrupts (ADR-050), which shuts out every other context only on a target whose description has interrupt_mask true. An atomic variable's read-modify-write needs no critical block; otherwise name a target that can mask. | `TRANSPILE/1-Analyze/CriticalSectionAnalyzer.ts` |
 
-## E0917 — An Array in a `for` Header (ADR-036)
+## E0917 — An Array or a String in a `for` Header (ADR-036)
 
-| Code  | Message                                                                              | Help                                                                                                             | Source                       |
-| ----- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| E0917 | A `for` header declares an array, in either spelling (`u8[3] v`, `u32 c[2]`) (#1823) | A for header declares one scalar loop variable (ADR-036); declare the array before the loop and index it inside. | `PARSE/2-Parse/ArrayForm.ts` |
+| Code  | Message                                                                                           | Help                                                                                                    | Source                       |
+| ----- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| E0917 | A `for` header declares an array, in either spelling (`u8[3] v`, `u32 c[2]`), or a string (#1823) | A for header declares one scalar loop variable (ADR-036); declare it before the loop and use it inside. | `PARSE/2-Parse/ArrayForm.ts` |
 
 ---
 

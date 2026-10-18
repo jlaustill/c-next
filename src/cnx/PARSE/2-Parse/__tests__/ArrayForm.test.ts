@@ -150,7 +150,7 @@ describe("ArrayForm", () => {
     );
   });
 
-  describe("E0917 -- an array declared in a for header (#1823)", () => {
+  describe("E0917 -- an array or a string declared in a for header (#1823)", () => {
     it("rejects the prefix and the C-style spelling alike, naming the array", () => {
       const found = errors(
         [
@@ -168,6 +168,26 @@ describe("ArrayForm", () => {
       expect(found[0].message).toBe(
         "An array is not a for loop variable: declare 'v' before the loop",
       );
+    });
+
+    it("rejects a sized and an unsized string, naming the string", () => {
+      const found = errors(
+        [
+          "void f() {",
+          "    mut u32 n <- 0;",
+          '    for (string<8> s <- "ab"; n < 3; n <- n + 1) {}',
+          '    for (string t <- "ab"; n < 6; n <- n + 1) {}',
+          "}",
+        ].join("\n"),
+      );
+      expect(found.map((e) => [e.code, e.line, e.column])).toEqual([
+        ["E0917", 3, 9],
+        ["E0917", 4, 9],
+      ]);
+      expect(found.map((e) => e.message)).toEqual([
+        "A string is not a for loop variable: declare 's' before the loop",
+        "A string is not a for loop variable: declare 't' before the loop",
+      ]);
     });
 
     it("accepts a scalar loop variable, with its modifiers", () => {

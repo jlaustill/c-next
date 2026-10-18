@@ -1,7 +1,7 @@
 /**
  * ADR-035 array initializers and ADR-036 declaration shape, as written:
  * E0866 (an initializer that is not a list), E0874, E0875, E0876, E0892,
- * and E0917 (an array declared in a `for` header, #1823).
+ * and E0917 (an array or a string declared in a `for` header, #1823).
  *
  * Where the brackets are, whether a dimension has an expression, and whether
  * an initializer is a list are syntax, so 1.2 reports them with the file's
@@ -15,7 +15,7 @@
  * and a parameter, and accepted it for a scope member and a struct member --
  * thirty-one fixtures use it in a scope or a struct, and a unit test pins the
  * scope case as intended. A `for` header declares a scalar loop variable, so
- * an array there is E0917 in either spelling (#1823). ADR-036 names the
+ * an array there is E0917 in either spelling, and so is a string (#1823). ADR-036 names the
  * prefix form as the only one; this rejects exactly where codegen did and
  * records the rest for the ADR's owner, since closing it is a language change
  * on code the corpus treats as valid.
@@ -79,12 +79,14 @@ class ArrayFormListener extends CNextListener {
   };
 
   override enterForVarDecl = (ctx: Parser.ForVarDeclContext): void => {
-    if (!ctx.type().arrayType() && ctx.arrayDimension().length === 0) return;
+    const type = ctx.type();
+    const isArray = !!type.arrayType() || ctx.arrayDimension().length > 0;
+    if (!isArray && !type.stringType()) return;
     this.report(
       ctx,
       "E0917",
-      `An array is not a for loop variable: declare '${ctx.IDENTIFIER().getText()}' before the loop`,
-      "A for header declares one scalar loop variable (ADR-036); declare the array before the loop and index it inside.",
+      `${isArray ? "An array" : "A string"} is not a for loop variable: declare '${ctx.IDENTIFIER().getText()}' before the loop`,
+      "A for header declares one scalar loop variable (ADR-036); declare it before the loop and use it inside.",
     );
   };
 

@@ -4,7 +4,8 @@
  * `typeName` is eager because it is unconditional -- every `for` variable has
  * a declared type and it is rendered before anything else here. The
  * initializer is a thunk, so it renders where the generator writes it, after
- * the type. There are no dimensions: 1.2 rejects an array here (E0917, #1823).
+ * the type. There are no dimensions: 1.2 rejects an array or a
+ * string here (E0917, #1823).
  */
 interface IPlannedForVarDecl {
   /** Rendered `atomic`/`volatile` prefixes, each with its trailing space or "". */
