@@ -2,9 +2,9 @@
  * Issue #1219: context axis.
  *
  * This classifier decides which row of the matrix a fixture occupies. If it
- * cannot tell the four contexts apart, every occupancy number downstream is
- * decoration -- so the first four cases place an IDENTICAL construct in each of
- * the four contexts and require four different answers.
+ * cannot tell the five contexts apart, every occupancy number downstream is
+ * decoration -- so the first five cases place an IDENTICAL construct in each of
+ * the five contexts and require five different answers.
  */
 
 import CNextSourceParser from "../../src/cnx/PARSE/2-Parse/CNextSourceParser";
@@ -32,6 +32,11 @@ describe("FixtureContext.at", () => {
       "u32 ZERO <- 0;\nscope S {\n    void go() {\n        u32 bad <- 10 / ZERO;\n    }\n}\n",
       4,
     ],
+    [
+      "for-header",
+      "u32 ZERO <- 0;\nvoid topLevel() {\n    for (u32 bad <- 10 / ZERO; bad < 1; ) {}\n}\n",
+      3,
+    ],
   ])("classifies an identical construct in %s", (expected, source, line) => {
     expect(contextOf(source, line)).toBe(expected);
   });
@@ -44,6 +49,15 @@ describe("FixtureContext.at", () => {
       "void topLevel() {\n    u32 a <- 1;\n}\nscope S {\n    void go() {\n        u32 b <- 2;\n    }\n}\n";
     expect(contextOf(source, 2)).toBe("top-level-function");
     expect(contextOf(source, 6)).toBe("scope-method");
+  });
+
+  it("puts a for header's declaration in its own row, in a function or a scope method, and its body in the function's", () => {
+    const source =
+      "void topLevel() {\n    for (u32 i <- 0; i < 1; i <- i + 1) {\n        u32 a <- 1;\n    }\n}\nscope S {\n    void go() {\n        for (u32 j <- 0; j < 1; j <- j + 1) {\n            u32 b <- 2;\n        }\n    }\n}\n";
+    expect(contextOf(source, 2)).toBe("for-header");
+    expect(contextOf(source, 3)).toBe("top-level-function");
+    expect(contextOf(source, 8)).toBe("for-header");
+    expect(contextOf(source, 9)).toBe("scope-method");
   });
 
   it("distinguishes a scope member from a global variable in the same file", () => {

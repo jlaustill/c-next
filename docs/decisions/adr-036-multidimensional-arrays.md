@@ -466,6 +466,7 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 | scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
 | scope member       | imported transitive | error    |
+| for header         | same file           | error    |
 
 A subscript is an expression, so it reaches an initializer as well as a
 function body; a C-style declaration stands at file scope; both occupy the
@@ -480,6 +481,13 @@ file the names it uses are declared in: a dimension naming a variable from an
 included file is rejected where it is written, and one naming a const from it
 folds to that const's value. `tests/bugs/issue-1175-constant-dimensions/`
 occupies each imported cell, one and two includes away, in all four contexts.
+
+A `for` header is a context of its own (#1646): it rejected nothing that a
+block-scope declaration rejects, and the prefix form was miscompiled there.
+Every array or string declared in one is E0917, so the `for header / same file`
+cell is `error`, occupied by `tests/adr-036/for-header-array-error.test.cnx` and
+its `--cpp` twin. Its imported cells stay `off`: E0917 reads only the
+declaration as written, which names nothing from another file.
 
 ## Open Questions
 

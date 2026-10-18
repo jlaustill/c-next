@@ -32,6 +32,7 @@ const ROW_LABELS: Record<string, string> = {
   "top-level-function": "top-level function",
   "scope-member": "scope member",
   "scope-method": "scope method",
+  "for-header": "for header",
 };
 
 /**

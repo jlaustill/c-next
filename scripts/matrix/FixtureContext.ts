@@ -1,7 +1,7 @@
 /**
  * Issue #1219: the context axis of the scope-context matrix.
  *
- * Answers "which of the four structural contexts encloses this source line?"
+ * Answers "which of the five structural contexts encloses this source line?"
  * by walking the real parse tree, not by inspecting file structure. The
  * difference matters: a fixture that declares both a scope and a top-level
  * function contains two contexts, and asking the FILE which contexts it has
@@ -23,6 +23,7 @@ interface IPositionedNode {
 const SCOPE_NODE = "ScopeDeclarationContext";
 const FUNCTION_NODE = "FunctionDeclarationContext";
 const VARIABLE_NODE = "VariableDeclarationContext";
+const FOR_HEADER_NODE = "ForVarDeclContext";
 
 function isPositionedNode(node: unknown): node is IPositionedNode {
   return (
@@ -45,6 +46,7 @@ function at(tree: ProgramContext, line: number): TMatrixContext | null {
   let inScope = false;
   let inFunction = false;
   let inVariable = false;
+  let inForHeader = false;
 
   const visit = (node: unknown): void => {
     if (!isPositionedNode(node)) return;
@@ -60,6 +62,7 @@ function at(tree: ProgramContext, line: number): TMatrixContext | null {
       if (name === SCOPE_NODE) inScope = true;
       else if (name === FUNCTION_NODE) inFunction = true;
       else if (name === VARIABLE_NODE) inVariable = true;
+      else if (name === FOR_HEADER_NODE) inForHeader = true;
     }
     // A node missing position info is not evidence either way, so recurse
     // rather than prune -- pruning it would hide every positioned descendant.
@@ -72,6 +75,8 @@ function at(tree: ProgramContext, line: number): TMatrixContext | null {
 
   visit(tree);
 
+  // A `for` header's declaration is innermost wherever its function sits.
+  if (inForHeader) return "for-header";
   if (inScope) {
     if (inFunction) return "scope-method";
     return inVariable ? "scope-member" : null;
