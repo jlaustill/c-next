@@ -86,68 +86,41 @@ describe("ProjectBoard.graphql", () => {
   });
 });
 
-function projects(
-  nodes: unknown[],
-  hasNextPage = false,
-  endCursor = "",
-): Record<string, unknown> {
-  return {
-    data: {
-      organization: {
-        projectsV2: { pageInfo: { hasNextPage, endCursor }, nodes },
-      },
-    },
-  };
-}
-
-const BOARD = { id: "P1", title: "cnx", number: 1, url: "https://board/1" };
+const BOARD = { id: "P1", number: 1, url: "https://board/1" };
 
 describe("ProjectBoard identity", () => {
   it("belongs to the organization that owns the repositories", () => {
     // One fact, not two: the board moves when the repositories do (#2189).
     expect(ProjectBoard.OWNER).toBe("smeltworks");
   });
+
+  it("is named by its number, which a rename in the UI cannot change", () => {
+    expect(ProjectBoard.NUMBER).toBe(1);
+  });
 });
 
 describe("ProjectBoard.findProject", () => {
-  it.each([
-    ["the board exists", [BOARD], BOARD],
-    [
-      "a different board exists",
-      [{ ...BOARD, id: "P9", title: "Other" }],
-      undefined,
-    ],
-    ["no boards exist", [], undefined],
-  ])("returns the board when %s", (_label, nodes, expected) => {
-    replies(projects(nodes));
-    expect(ProjectBoard.findProject()).toEqual(
-      expected === undefined
-        ? undefined
-        : { id: BOARD.id, number: BOARD.number, url: BOARD.url },
-    );
+  it("returns the board when the organization has it", () => {
+    replies({ data: { organization: { projectV2: BOARD } } });
+    expect(ProjectBoard.findProject()).toEqual(BOARD);
   });
 
-  it("asks the owning organization, not whoever holds the token", () => {
+  it("returns undefined when the organization has no such board", () => {
+    replies({ data: { organization: { projectV2: null } } });
+    expect(ProjectBoard.findProject()).toBeUndefined();
+  });
+
+  it("asks the owning organization for its board by number, not whoever holds the token", () => {
     // `viewer` is the token's own account. Locally that was the board's owner;
     // under a GitHub App token it is the app's bot, which owns no projects, so
     // a viewer lookup reads every board as absent.
-    replies(projects([BOARD]));
+    replies({ data: { organization: { projectV2: BOARD } } });
     ProjectBoard.findProject();
     const args = execFileSync.mock.calls[0]?.[1] as string[];
     expect(args).toContain("owner=smeltworks");
     expect(args.join("\n")).toMatch(/organization\(login: \$owner\)/);
+    expect(args.join("\n")).toMatch(/projectV2\(number: 1\)/);
     expect(args.join("\n")).not.toMatch(/viewer/);
-  });
-
-  it("follows pagination instead of reading the first page as the whole list", () => {
-    replies(
-      projects([{ ...BOARD, id: "P9", title: "Other" }], true, "CURSOR2"),
-      projects([BOARD]),
-    );
-    expect(ProjectBoard.findProject()?.id).toBe("P1");
-    expect(execFileSync.mock.calls[1]?.[1] as string[]).toContain(
-      "cursor=CURSOR2",
-    );
   });
 });
 
@@ -249,5 +222,144 @@ describe("ProjectBoard.moveAfter", () => {
     expect(args).toContain("projectId=P1");
     expect(args).toContain("itemId=ITEM");
     expect(args).toContain("afterId=AFTER");
+  });
+});
+
+function card(
+  itemId: string,
+  contentId: string,
+  repository: string,
+  number: number,
+  status: string | null,
+): Record<string, unknown> {
+  return {
+    id: itemId,
+    content: {
+      id: contentId,
+      number,
+      repository: { nameWithOwner: repository },
+    },
+    status: status === null ? null : { name: status },
+  };
+}
+
+describe("ProjectBoard.items", () => {
+  it("reads every card with its content identity and Status", () => {
+    replies(page([card("i1", "I_1", "smeltworks/cnx", 7, "Backlog")]));
+    expect(ProjectBoard.items("P1")).toEqual([
+      {
+        itemId: "i1",
+        contentId: "I_1",
+        status: "Backlog",
+        repository: "smeltworks/cnx",
+        number: 7,
+      },
+    ]);
+  });
+
+  it("reads an unset Status as undefined, not as a column name", () => {
+    replies(page([card("i1", "I_1", "smeltworks/cnx", 7, null)]));
+    expect(ProjectBoard.items("P1")[0]?.status).toBeUndefined();
+  });
+
+  it("skips a draft item, which has no issue or pull request", () => {
+    replies(page([{ id: "i0", content: null, status: { name: "Backlog" } }]));
+    expect(ProjectBoard.items("P1")).toEqual([]);
+  });
+
+  it("follows pagination and keeps board order across the boundary", () => {
+    replies(
+      page([card("i2", "I_2", "smeltworks/cnx", 2, "Done")], true, "C2"),
+      page([card("i1", "I_1", "smeltworks/cnx", 1, "Done")]),
+    );
+    expect(ProjectBoard.items("P1").map((entry) => entry.itemId)).toEqual([
+      "i2",
+      "i1",
+    ]);
+    expect(execFileSync.mock.calls[1]?.[1] as string[]).toContain("cursor=C2");
+  });
+});
+
+describe("ProjectBoard.statusField", () => {
+  it("returns the Status field's id and its options", () => {
+    replies({
+      data: {
+        node: {
+          fields: {
+            nodes: [
+              { id: "F0", name: "Title" },
+              {
+                id: "F1",
+                name: "Status",
+                options: [{ id: "o1", name: "WIP" }],
+              },
+            ],
+          },
+        },
+      },
+    });
+    expect(ProjectBoard.statusField("P1")).toEqual({
+      fieldId: "F1",
+      options: [{ id: "o1", name: "WIP" }],
+    });
+  });
+
+  it("refuses a board without a Status single-select field", () => {
+    replies({
+      data: { node: { fields: { nodes: [{ id: "F0", name: "Title" }] } } },
+    });
+    expect(() => ProjectBoard.statusField("P1")).toThrow(/no Status/);
+  });
+});
+
+describe("ProjectBoard writes", () => {
+  it("adds an item and returns the new item's id", () => {
+    replies({ data: { addProjectV2ItemById: { item: { id: "NEW" } } } });
+    expect(ProjectBoard.addItem("P1", "I_1")).toBe("NEW");
+    const args = execFileSync.mock.calls[0]?.[1] as string[];
+    expect(args).toContain("projectId=P1");
+    expect(args).toContain("contentId=I_1");
+  });
+
+  it("sets a Status by option id", () => {
+    replies({ data: { updateProjectV2ItemFieldValue: {} } });
+    ProjectBoard.setStatus("P1", "ITEM", "FIELD", "OPTION");
+    const args = execFileSync.mock.calls[0]?.[1] as string[];
+    expect(args).toContain("itemId=ITEM");
+    expect(args).toContain("fieldId=FIELD");
+    expect(args).toContain("optionId=OPTION");
+  });
+});
+
+describe("ProjectBoard.projectAt", () => {
+  it.each([
+    ["user", /user\(login: \$owner\)/],
+    ["organization", /organization\(login: \$owner\)/],
+  ] as const)("reads a %s's board by number", (ownerType, root) => {
+    replies({ data: { [ownerType]: { projectV2: BOARD } } });
+    expect(ProjectBoard.projectAt(ownerType, "someone", 3)).toEqual({
+      id: BOARD.id,
+      number: BOARD.number,
+      url: BOARD.url,
+    });
+    const args = execFileSync.mock.calls[0]?.[1] as string[];
+    expect(args).toContain("owner=someone");
+    expect(args.join("\n")).toMatch(root);
+    expect(args.join("\n")).toMatch(/projectV2\(number: 3\)/);
+  });
+
+  it("refuses a number that is not a positive integer", () => {
+    // It is written into the query text, so it must be a plain integer.
+    expect(() => ProjectBoard.projectAt("user", "someone", 1.5)).toThrow(
+      /positive integer/,
+    );
+    expect(execFileSync).not.toHaveBeenCalled();
+  });
+
+  it("reports a board that does not exist", () => {
+    replies({ data: { user: { projectV2: null } } });
+    expect(() => ProjectBoard.projectAt("user", "someone", 9)).toThrow(
+      /no project 9/,
+    );
   });
 });
