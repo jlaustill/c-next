@@ -42,7 +42,9 @@ uint32_t sumTwo(const uint8_t b[2]) {
 }
 
 uint32_t probe(const uint32_t i) {
+    /* ADR-035 / Issue #2157: a list for an array parameter is an array of the parameter's shape, written where the argument stands. */
     const bool ok = i < 2 && sumTwo((const uint8_t[2]){bump(), 0U}) > 0;
+    /* ADR-035 / Issue #2157: a list for an array parameter is an array of the parameter's shape, written where the argument stands. */
     const uint32_t t = (i < 2) ? sumTwo((const uint8_t[2]){bump(), 0U}) : 0U;
     if (ok == true) {
         return t;

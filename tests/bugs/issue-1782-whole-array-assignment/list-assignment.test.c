@@ -6,6 +6,7 @@
 #include "list-assignment.test.h"
 
 // test-execution
+// test-adr: 014
 // #1782: an array's whole value at an assignment target is ADR-035's list
 // (ADR-014). It was emitted as a C array assignment (`a = {1U, 2U};`), which C
 // rejects, at exit 0. Every position that takes a whole array is assigned a

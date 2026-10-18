@@ -42,8 +42,10 @@ uint32_t sumTwo(const uint8_t b[2]) {
 }
 
 uint32_t probe(const uint32_t i) {
+    /* ADR-035 / Issue #2157: a list for an array parameter is an array of the parameter's shape, written where the argument stands. */
     typedef const uint8_t cnx_tmp0_t[2];
     const bool ok = i < 2 && sumTwo(static_cast<cnx_tmp0_t&>(cnx_tmp0_t{bump(), 0U})) > 0;
+    /* ADR-035 / Issue #2157: a list for an array parameter is an array of the parameter's shape, written where the argument stands. */
     typedef const uint8_t cnx_tmp1_t[2];
     const uint32_t t = (i < 2) ? sumTwo(static_cast<cnx_tmp1_t&>(cnx_tmp1_t{bump(), 0U})) : 0U;
     if (ok == true) {

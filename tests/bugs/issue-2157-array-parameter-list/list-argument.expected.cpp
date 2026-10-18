@@ -8,6 +8,7 @@
 #include "list-argument.test.hpp"
 
 // test-execution
+// test-adr: 014
 // #2157: an array parameter given a list receives an array of the
 // parameter's full shape (ADR-014: an array's whole value is ADR-035's list,
 // a parameter included). A list argument was emitted as a one-element
@@ -29,26 +30,31 @@ uint32_t second(const S items[2]) {
 }
 
 int main(void) {
+    /* ADR-035 / Issue #2157: a list for an array parameter is an array of the parameter's shape, written where the argument stands. */
     typedef const uint8_t cnx_tmp0_t[4];
     const uint8_t t = third(static_cast<cnx_tmp0_t&>(cnx_tmp0_t{1U, 2U, 3U, 4U}));
     if (t != 3) {
         return 1U;
     }
+    /* ADR-035 / Issue #2157: a list for an array parameter is an array of the parameter's shape, written where the argument stands. */
     typedef const uint8_t cnx_tmp1_t[4];
     const uint8_t filled = third(static_cast<cnx_tmp1_t&>(cnx_tmp1_t{7U, 7U, 7U, 7U}));
     if (filled != 7) {
         return 2U;
     }
+    /* ADR-035 / Issue #2157: a list for an array parameter is an array of the parameter's shape, written where the argument stands. */
     typedef const uint8_t cnx_tmp2_t[2][2];
     const uint8_t c = corner(static_cast<cnx_tmp2_t&>(cnx_tmp2_t{{1U, 2U}, {3U, 4U}}));
     if (c != 4) {
         return 3U;
     }
+    /* ADR-035 / Issue #2157: a list for an array parameter is an array of the parameter's shape, written where the argument stands. */
     typedef const S cnx_tmp3_t[2];
     const uint32_t s = second(static_cast<cnx_tmp3_t&>(cnx_tmp3_t{{ .a = 5U }, { .a = 6U }}));
     if (s != 6) {
         return 4U;
     }
+    /* ADR-035 / Issue #2157: a list for an array parameter is an array of the parameter's shape, written where the argument stands. */
     typedef const uint8_t cnx_tmp4_t[4];
     const uint32_t total = sumFour(static_cast<cnx_tmp4_t&>(cnx_tmp4_t{1U, 2U, 3U, 4U}));
     if (total != 10) {

@@ -1,4 +1,5 @@
 // test-error
+// test-adr: 014
 // #1782: an array's whole value at an assignment target is ADR-035's list
 // (ADR-014), which counts one element per slot. Another array, a scalar, or a
 // list of the wrong length was emitted as a C array assignment, which C

@@ -233,11 +233,22 @@ as well (#1782). Another array, a scalar, or a list of the wrong length there
 is E0866. These had been emitted as a C array assignment (`a = b;`,
 `a = {1U, 2U};`), which C rejects, at exit 0. An accepted list cannot be
 assigned in C either, so it fills a temporary of the target's own type, written
-as a declaration's initializer is (fill-all expanded, struct elements
-designated), and the temporary is copied element by element. Every element is
+as a declaration's initializer is (struct elements designated, and a top-level
+fill-all expanded where the size folds; a size that is a C macro (#2196) and a
+fill-all row (#2110) are not yet expanded), and the temporary is copied element
+by element. Every element is
 read before any is written, so `pair <- [pair[1], pair[0]]` swaps. A target
 whose subscripts call a function is reached through a pointer, so the call is
-made once. Fixtures: `tests/bugs/issue-1782-whole-array-assignment/`.
+made once, and a `volatile` (or `atomic`) target keeps its qualifier on that
+pointer. A compound operator on a whole array is E0857 (#2193). A list given for
+an array parameter is the same whole value (#2157): it is counted the same way
+and passed as an array of the parameter's full shape, written where the argument
+stands, so `&&`, `||` and `?:` evaluate it only when they evaluate the call. An
+array passed there must have the parameter's shape (#2194). Fixtures:
+`tests/bugs/issue-1782-whole-array-assignment/`,
+`tests/bugs/issue-2157-array-parameter-list/`,
+`tests/bugs/issue-2194-array-argument-shape/`,
+`tests/bugs/issue-2195-array-row-slot/`.
 
 ## Scope-Context Matrix (#1219)
 

@@ -51,6 +51,9 @@ interface IArrayInitCallbacks {
 /**
  * Handles array initialization with size inference and fill-all syntax.
  */
+const ARGUMENT_COMMENT =
+  "/* ADR-035 / Issue #2157: a list for an array parameter is an array of the parameter's shape, written where the argument stands. */";
+
 class ArrayInitHelper {
   /**
    * Process array initialization expression.
@@ -195,6 +198,9 @@ class ArrayInitHelper {
     renderedValue: string,
     state: TranspileState,
   ): string {
+    if (!state.pendingTempDeclarations.includes(ARGUMENT_COMMENT)) {
+      state.pendingTempDeclarations.push(ARGUMENT_COMMENT);
+    }
     const init = ArrayInitHelper.initializerOf(array, renderedValue, state);
     const shape = ArrayInitHelper.shapeOf(array);
     if (!state.cppMode) return `(const ${array.elementCType}${shape})${init}`;

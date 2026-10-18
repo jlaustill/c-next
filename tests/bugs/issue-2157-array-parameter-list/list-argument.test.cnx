@@ -1,4 +1,5 @@
 // test-execution
+// test-adr: 014
 // #2157: an array parameter given a list receives an array of the
 // parameter's full shape (ADR-014: an array's whole value is ADR-035's list,
 // a parameter included). A list argument was emitted as a one-element
