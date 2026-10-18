@@ -1,7 +1,9 @@
 /**
  * ADR-014: an array's whole value is ADR-035's list (E0866) wherever a whole
  * array is taken -- a declaration, a field, an assignment target and a
- * parameter (#1760 review, 2026-09-28). A declaration's is 1.2's `ArrayForm`
+ * parameter (#1760 review, 2026-09-28). A parameter also takes an array,
+ * which is passed by reference; a scalar there was a one-element buffer
+ * (#2157). A declaration's is 1.2's `ArrayForm`
  * and `ArrayDeclarationAnalyzer`; every other position is here.
  *
  * #1782: an assignment target was asked only whether a struct initializer
@@ -19,13 +21,17 @@ import ArrayListCount from "./helpers/ArrayListCount";
 import StructInitializerType from "./helpers/StructInitializerType";
 import ExpressionChildren from "../../utils/ExpressionChildren";
 import ExpressionShape from "../../utils/ExpressionShape";
+import OperandTyper from "../../utils/OperandTyper";
 import TypeText from "../../utils/TypeText";
 import type IValuePosition from "../../types/IValuePosition";
 import type IValuePositions from "../../types/IValuePositions";
 import type TExpression from "../../types/syntax/TExpression";
 import type IArrayDeclarationError from "./types/IArrayDeclarationError";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 class WholeArrayValueAnalyzer {
+  public constructor(private readonly context: IAnalysisContext) {}
+
   public analyze(positions: IValuePositions): IArrayDeclarationError[] {
     const found: IArrayDeclarationError[] = [];
     // A value's operands stand in its position too; only the value is asked
@@ -35,15 +41,25 @@ class WholeArrayValueAnalyzer {
         continue;
       }
       WholeArrayValueAnalyzer.markAsked(value, asked);
-      // An argument passes an array by reference, so an array value is one.
-      // What else an argument takes is #2157's; a struct initializer is not.
+      // #2157: an argument passes an array by reference, so an array value
+      // is one too
       const site = positions.sites.get(value)?.site;
-      if (site?.kind === "argument" && value.kind !== "structInitializer") {
-        continue;
-      }
+      if (site?.kind === "argument" && this.isArrayValue(value)) continue;
       found.push(...WholeArrayValueAnalyzer.check(value, at));
     }
     return found.sort((a, b) => a.line - b.line || a.column - b.column);
+  }
+
+  /**
+   * A value typed as an array. One the typer cannot type (a C call's result)
+   * is not asked here; its own checks own it.
+   */
+  private isArrayValue(value: TExpression): boolean {
+    if (value.kind === "arrayInitializer" || value.kind === "structInitializer")
+      return false;
+    if (ExpressionShape.isStringLiteral(value)) return false;
+    const typed = OperandTyper.typeOf(value, this.context);
+    return typed === null || typed.dimensions.length > 0;
   }
 
   private static check(

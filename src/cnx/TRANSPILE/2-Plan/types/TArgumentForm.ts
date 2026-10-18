@@ -1,3 +1,5 @@
+import type IPlannedWholeArrayWrite from "./IPlannedWholeArrayWrite";
+
 /**
  * How an argument passed by reference is written, and the C type that form
  * writes (#1991): 2.3 writes it this way, and 2.2 plans the C type from the
@@ -15,6 +17,8 @@ type TArgumentForm =
   /** A value, in C a `compoundLiteral` `&(T){value}` */
   | { readonly kind: "rvalue"; readonly compoundLiteral: string | null }
   /** C: a struct literal, by the address of its own compound literal (#1530) */
-  | { readonly kind: "literal-address" };
+  | { readonly kind: "literal-address" }
+  /** #2157: a list for an array parameter, passed as a temporary of its shape */
+  | { readonly kind: "array-temp"; readonly array: IPlannedWholeArrayWrite };
 
 export default TArgumentForm;

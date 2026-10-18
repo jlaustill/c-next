@@ -7,7 +7,7 @@ import { describe, it, expect } from "vitest";
 import Transpiler from "../../../../../Transpiler";
 import MockFileSystem from "../../../../MockFileSystem";
 
-const transpile = async (source: string, cppMode = false) => {
+const transpile = async (source: string, cppMode: boolean) => {
   const transpiler = new Transpiler(
     {
       input: "",
@@ -28,6 +28,7 @@ describe("whole-array assignment (#1782)", () => {
   it("fills a temporary from the list and copies it", async () => {
     const code = await transpile(
       "mut u8[2] pair <- [1, 2];\nvoid f() {\n    pair <- [pair[1], pair[0]];\n}",
+      false,
     );
     expect(code).toContain("const uint8_t cnx_tmp0[2] = {pair[1U], pair[0U]};");
     expect(code).toContain(
@@ -40,6 +41,7 @@ describe("whole-array assignment (#1782)", () => {
   it("expands a fill-all as a declaration does", async () => {
     const code = await transpile(
       "mut u8[3] a <- [0*];\nvoid f() {\n    a <- [7*];\n}",
+      false,
     );
     expect(code).toContain("const uint8_t cnx_tmp0[3] = {7U, 7U, 7U};");
   });
@@ -47,6 +49,7 @@ describe("whole-array assignment (#1782)", () => {
   it("copies a u8 array's string literal without expanding it", async () => {
     const code = await transpile(
       'mut u8[3] a <- [7*];\nvoid f() {\n    a <- "ab";\n}',
+      false,
     );
     expect(code).toContain('const uint8_t cnx_tmp0[3] = "ab";');
   });
@@ -54,6 +57,7 @@ describe("whole-array assignment (#1782)", () => {
   it("walks a string array's characters too", async () => {
     const code = await transpile(
       'mut string<4>[2] n <- ["a", "b"];\nvoid f() {\n    n <- ["c", "d"];\n}',
+      false,
     );
     expect(code).toContain('const char cnx_tmp0[2][5] = {"c", "d"};');
     expect(code).toContain(
@@ -76,13 +80,28 @@ describe("whole-array assignment (#1782)", () => {
   it("evaluates a target's subscripts once, through a pointer", async () => {
     const code = await transpile(
       "mut u8[2][2] g;\nu32 row() {\n    return 1;\n}\nvoid f() {\n    g[row()] <- [5, 6];\n}",
+      false,
     );
     expect(code).toContain("uint8_t (*const cnx_tmp1)[2] = &g[row()];");
     expect(code).toContain("(*cnx_tmp1)[cnx_tmp2] = cnx_tmp0[cnx_tmp2];");
   });
 
+  it("passes a list for an array parameter as a temporary (#2157)", async () => {
+    for (const cppMode of [false, true]) {
+      const code = await transpile(
+        "u8 third(u8[4] b) {\n    return b[2];\n}\nvoid f() {\n    u8 t <- third([1, 2, 3, 4]);\n}",
+        cppMode,
+      );
+      expect(code).toContain("const uint8_t cnx_tmp0[4] = {1U, 2U, 3U, 4U};");
+      expect(code).toContain("third(cnx_tmp0)");
+    }
+  });
+
   it("leaves an element write alone", async () => {
-    const code = await transpile("mut u8[2] a;\nvoid f() {\n    a[0] <- 3;\n}");
+    const code = await transpile(
+      "mut u8[2] a;\nvoid f() {\n    a[0] <- 3;\n}",
+      false,
+    );
     expect(code).toContain("a[0] = 3U;");
     expect(code).not.toContain("cnx_tmp");
   });

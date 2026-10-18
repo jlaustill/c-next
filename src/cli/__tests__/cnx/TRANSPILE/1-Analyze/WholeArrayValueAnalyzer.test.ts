@@ -21,7 +21,7 @@ const errors = (body: string) => {
   const built = testAnalysisContextFor(`${types}\nvoid f() {\n${body}\n}`, {
     cppMode: false,
   });
-  return new WholeArrayValueAnalyzer().analyze(
+  return new WholeArrayValueAnalyzer(built.context).analyze(
     ValuePositions.of(built.syntax, built.context),
   );
 };
@@ -85,6 +85,21 @@ describe("WholeArrayValueAnalyzer (E0866)", () => {
     ],
   ])("counts %s", (_label, body, detail) => {
     expect(messages(body)).toEqual([`Array size mismatch: ${detail}`]);
+  });
+
+  it.each([
+    ["a scalar literal", "    take(5);", "5"],
+    ["a scalar variable", "    u8 one <- 1;\n    take(one);", "one"],
+  ])("rejects %s for an array parameter (#2157)", (_label, body, written) => {
+    expect(messages(body)).toEqual([
+      `An array must be given a list, not '${written}'`,
+    ]);
+  });
+
+  it("counts a list for an array parameter (#2157)", () => {
+    expect(messages("    take([1, 2]);")).toEqual([
+      "Array size mismatch: declared [4] but the initializer has 2 element(s)",
+    ]);
   });
 
   it("reports a value once, not again for its operands", () => {

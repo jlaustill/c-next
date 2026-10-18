@@ -13,6 +13,7 @@
 
 import invariant from "../../../../utils/invariant";
 import type TranspileState from "../../../TranspileState";
+import type IPlannedWholeArrayWrite from "../../../2-Plan/types/IPlannedWholeArrayWrite";
 
 /**
  * Result from processing array initialization.
@@ -161,6 +162,33 @@ class ArrayInitHelper {
     );
 
     return dimensionSuffix;
+  }
+
+  /**
+   * A temporary of a whole array's own type, initialized by its rendered
+   * value as a declaration is (#1782, #2157): C can neither assign an array
+   * nor pass a list for one. Called right after the value renders, so a
+   * fill-all is read off that render.
+   */
+  static temporaryArray(
+    array: IPlannedWholeArrayWrite,
+    renderedValue: string,
+    state: TranspileState,
+  ): { readonly name: string; readonly declaration: string } {
+    const leading = array.dimensions[0];
+    const init = array.fromList
+      ? ArrayInitHelper.expandFillAll(
+          renderedValue,
+          typeof leading === "number" ? leading : null,
+          state,
+        )
+      : renderedValue;
+    const shape = array.dimensions.map((size) => `[${size}]`).join("");
+    const name = state.getNextTempVarName();
+    return {
+      name,
+      declaration: `const ${array.elementCType} ${name}${shape} = ${init};`,
+    };
   }
 
   /**

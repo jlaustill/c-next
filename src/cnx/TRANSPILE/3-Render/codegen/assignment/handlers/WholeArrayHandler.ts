@@ -22,19 +22,9 @@ function handleWholeArray(ctx: IAssignmentContext): string {
   const plan = ctx.plannedWholeArray;
   invariant(plan !== null, "2.2 planned this whole-array write");
   const state = ctx.state;
-  const leading = plan.dimensions[0];
-  // Read first: the fill-all form is the value's render's, as a declaration's is
-  const init = plan.fromList
-    ? ArrayInitHelper.expandFillAll(
-        ctx.generatedValue,
-        typeof leading === "number" ? leading : null,
-        state,
-      )
-    : ctx.generatedValue;
   const shape = plan.dimensions.map((size) => `[${size}]`).join("");
-  const lines = [COPY_COMMENT];
-  const temp = state.getNextTempVarName();
-  lines.push(`const ${plan.elementCType} ${temp}${shape} = ${init};`);
+  const temp = ArrayInitHelper.temporaryArray(plan, ctx.generatedValue, state);
+  const lines = [COPY_COMMENT, temp.declaration];
 
   let target = ctx.renderTarget();
   if (ctx.targetIndexHasSideEffect) {
@@ -56,7 +46,7 @@ function handleWholeArray(ctx: IAssignmentContext): string {
   });
   const depth = plan.dimensions.length;
   lines.push(
-    `${"    ".repeat(depth)}${target}${subscripts} = ${temp}${subscripts};`,
+    `${"    ".repeat(depth)}${target}${subscripts} = ${temp.name}${subscripts};`,
   );
   for (let level = depth - 1; level >= 0; level--) {
     lines.push(`${"    ".repeat(level)}}`);

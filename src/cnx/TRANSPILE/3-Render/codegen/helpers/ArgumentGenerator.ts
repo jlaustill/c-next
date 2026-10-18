@@ -21,6 +21,7 @@ import type TranspileState from "../../../TranspileState";
 import type TTypeInfo from "../../../../types/TTypeInfo";
 import type TParameterInfo from "../../../../types/TParameterInfo";
 import invariant from "../../../../utils/invariant";
+import ArrayInitHelper from "./ArrayInitHelper";
 
 /**
  * Generates function arguments with proper pass-by-reference semantics.
@@ -147,6 +148,16 @@ class ArgumentGenerator {
           form.compoundLiteral,
           callbacks,
         );
+      case "array-temp": {
+        // #2157: declared before the statement, as every argument temp is
+        const temp = ArrayInitHelper.temporaryArray(
+          form.array,
+          callbacks.generateExpression(),
+          state,
+        );
+        state.pendingTempDeclarations.push(temp.declaration);
+        return temp.name;
+      }
     }
   }
 }

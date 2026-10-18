@@ -102,6 +102,8 @@ class ArgumentForm {
         return form.cast;
       case "rvalue":
         return form.compoundLiteral;
+      case "array-temp":
+        return form.array.elementCType;
       default:
         return null;
     }

@@ -465,7 +465,7 @@ function runAnalyzers(
     },
     {
       label: "whole-array values (ADR-014/ADR-035, E0866)",
-      run: () => new WholeArrayValueAnalyzer().analyze(positions()),
+      run: () => new WholeArrayValueAnalyzer(context).analyze(positions()),
     },
     {
       label: "struct initializers (ADR-014, E0357/E0358)",
