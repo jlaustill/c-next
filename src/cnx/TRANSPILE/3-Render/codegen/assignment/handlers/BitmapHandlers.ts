@@ -3,8 +3,7 @@
  *
  * Handles assignments to bitmap fields:
  * - BITMAP_FIELD: flags.Mode <- 3, gss[1].fl.Mode <- 3, this.fl.A <- true
- * - REGISTER_MEMBER_BITMAP_FIELD: MOTOR.CTRL.Running <- true
- * - SCOPED_REGISTER_MEMBER_BITMAP_FIELD: Scope.GPIO7.ICR1.LED <- value
+ * - REGISTER_MEMBER_BITMAP_FIELD: MOTOR.CTRL.Running <- true, Scope.GPIO7.ICR1.LED <- value
  */
 import invariant from "../../../../../utils/invariant";
 import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
@@ -13,8 +12,6 @@ import AssignmentKind from "../../../../../types/AssignmentKind";
 import IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
 import BitUtils from "../../../../../utils/BitUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
-import QualifiedCName from "../../../../../utils/QualifiedCName";
-import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
 import RegisterAccessMode from "../../../../../utils/RegisterAccessMode";
 import type TranspileState from "../../../../TranspileState";
 
@@ -128,57 +125,15 @@ function handleBitmapField(ctx: IAssignmentContext): string {
 }
 
 /**
- * Handle register member bitmap field: MOTOR.CTRL.Running <- true
+ * A field of a register member, however the register is spelled: the typer
+ * names the member (#2158), and its access decides the write.
  */
 function handleRegisterMemberBitmapField(ctx: IAssignmentContext): string {
-  const regName = ctx.identifiers[0];
-  const memberName = ctx.identifiers[1];
-  const fieldName = ctx.identifiers[2];
-
-  const fullRegMember = QualifiedCName.fromParts([regName, memberName]);
-  return writeRegisterMemberBitmapField(fullRegMember, fieldName, ctx);
-}
-
-/**
- * Handle scoped register member bitmap field.
- * Two patterns:
- * - this.REG.MEMBER.field (hasThis=true, 3 identifiers) - scope from currentScopePath
- * - Scope.REG.MEMBER.field (hasThis=false, 4 identifiers) - scope from identifiers[0]
- */
-function handleScopedRegisterMemberBitmapField(
-  ctx: IAssignmentContext,
-): string {
-  // #1285: the two branches do not hold the same kind of thing. `this.` has the
-  // declaring scope PATH; `Scope.` has a scope NAME written in the source. They
-  // were both flattened to a string here, which is what let one leaf-only encoder
-  // serve both. Each branch now builds the register name its own way.
-  let fullRegName: string;
-  let regName: string;
-  let memberName: string;
-  let fieldName: string;
-
-  if (ctx.hasThis) {
-    // this.REG.MEMBER.field - 3 identifiers
-    regName = ctx.identifiers[0];
-    memberName = ctx.identifiers[1];
-    fieldName = ctx.identifiers[2];
-    fullRegName = QualifiedNameGenerator.forMember(
-      ctx.state.currentScopePath,
-      regName,
-    );
-  } else {
-    // Scope.REG.MEMBER.field - 4 identifiers
-    const scopeName = ctx.identifiers[0];
-    regName = ctx.identifiers[1];
-    memberName = ctx.identifiers[2];
-    fieldName = ctx.identifiers[3];
-
-    fullRegName = QualifiedCName.fromParts([scopeName, regName]);
-  }
-
-  // A register MEMBER is qualified by its register, textually -- not by a scope.
-  const fullRegMember = QualifiedCName.fromParts([fullRegName, memberName]);
-  return writeRegisterMemberBitmapField(fullRegMember, fieldName, ctx);
+  const member = ctx.target.last?.beforeRegisterMember;
+  invariant(member, "the classifier routes a field of a register member here");
+  const fieldName = ctx.identifiers.at(-1);
+  invariant(fieldName, "a bitmap field write names its field");
+  return writeRegisterMemberBitmapField(member, fieldName, ctx);
 }
 
 /**
@@ -213,10 +168,6 @@ const declaredBitmapHandlers: ReadonlyArray<
   [
     AssignmentKind.REGISTER_MEMBER_BITMAP_FIELD,
     handleRegisterMemberBitmapField,
-  ],
-  [
-    AssignmentKind.SCOPED_REGISTER_MEMBER_BITMAP_FIELD,
-    handleScopedRegisterMemberBitmapField,
   ],
 ];
 

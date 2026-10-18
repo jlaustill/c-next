@@ -3,6 +3,9 @@
 // emitted a read-modify-write: a read of a `wo` member, which ADR-004 forbids
 // (E0870), and on a `w1c` status register a write-back of every pending flag
 // it read. The scoped spelling already wrote plainly.
+// #2158: a scope's register by its bare name inside the scope (`PWM.FLAGS`)
+// was not taken for a register at all, and was read-modify-written as a
+// bitmap value -- the same read of a `wo` member and write-back of a `w1c` one.
 bitmap8 CtrlBits {
     Enable,
     Mode[3],
@@ -18,10 +21,21 @@ register MOTOR @ 0x40000000 {
 scope Drive {
     register PWM @ 0x40001000 {
         CTRL: CtrlBits wo @ 0x00,
+        FLAGS: CtrlBits w1c @ 0x04,
+        SET: CtrlBits w1s @ 0x08,
+        CONFIG: CtrlBits rw @ 0x0C,
     }
 
     public void start() {
         this.PWM.CTRL.Enable <- true;
+    }
+
+    public void viaBare() {
+        PWM.CTRL.Mode <- 5;
+        PWM.FLAGS.Enable <- true;
+        PWM.SET.Enable <- true;
+        // Control: a readable member keeps its read-modify-write
+        PWM.CONFIG.Mode <- 5;
     }
 }
 

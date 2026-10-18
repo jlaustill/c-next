@@ -13,14 +13,27 @@
 // emitted a read-modify-write: a read of a `wo` member, which ADR-004 forbids
 // (E0870), and on a `w1c` status register a write-back of every pending flag
 // it read. The scoped spelling already wrote plainly.
+// #2158: a scope's register by its bare name inside the scope (`PWM.FLAGS`)
+// was not taken for a register at all, and was read-modify-written as a
+// bitmap value -- the same read of a `wo` member and write-back of a `w1c` one.
 /* Scope: Drive */
 
 /* Register: Drive__PWM @ 0x40001000 */
 #define Drive__PWM__CTRL (*(volatile CtrlBits*)(0x40001000 + 0x00))
+#define Drive__PWM__FLAGS (*(volatile CtrlBits*)(0x40001000 + 0x04))
+#define Drive__PWM__SET (*(volatile CtrlBits*)(0x40001000 + 0x08))
+#define Drive__PWM__CONFIG (*(volatile CtrlBits*)(0x40001000 + 0x0C))
 
 
 void Drive__start(void) {
     Drive__PWM__CTRL = (uint8_t)(1U << 0);
+}
+
+void Drive__viaBare(void) {
+    Drive__PWM__CTRL = (uint8_t)((5U & 0x7U) << 1);
+    Drive__PWM__FLAGS = (uint8_t)(1U << 0);
+    Drive__PWM__SET = (uint8_t)(1U << 0);
+    Drive__PWM__CONFIG = (uint8_t)((Drive__PWM__CONFIG & ~(0x7U << 1)) | ((5U & 0x7U) << 1));
 }
 
 void go(void) {

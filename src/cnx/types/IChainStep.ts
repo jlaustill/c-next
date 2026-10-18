@@ -17,6 +17,12 @@ interface IChainStep {
   readonly beforeNamesType: boolean;
   /** ADR-058: the prefix is a bitmap field or a header bit-field, with no storage of its own */
   readonly beforeIsBitField: boolean;
+  /**
+   * ADR-004: the prefix is a register member -- its C name, however the
+   * register was spelled (`R`, a scope's own bare `R`, `this.R`, `S.R`) -- so
+   * a field of it is written per the member's access. Null otherwise.
+   */
+  readonly beforeRegisterMember: string | null;
   readonly after: IOperandType | null;
   /** A call's: the C name of the function it calls, when the chain names one (#1991) */
   readonly callee: string | null;

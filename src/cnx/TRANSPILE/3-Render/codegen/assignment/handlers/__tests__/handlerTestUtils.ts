@@ -298,6 +298,7 @@ function bitWriteOf(
       callee: null,
       beforeNamesType: false,
       beforeIsBitField: false,
+      beforeRegisterMember: null,
     },
   };
 }

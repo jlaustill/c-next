@@ -11,11 +11,8 @@ enum AssignmentKind {
   /** flags.Mode <- 3, gss[1].fl.Mode <- 3, this.fl.A <- true (a field of a bitmap value) */
   BITMAP_FIELD,
 
-  /** MOTOR.CTRL.Running <- true (register member is bitmap) */
+  /** MOTOR.CTRL.Running <- true, Scope.GPIO7.ICR1.LED <- v, this.PWM.CTRL.Enable <- true (a field of a register member) */
   REGISTER_MEMBER_BITMAP_FIELD,
-
-  /** Scope.GPIO7.ICR1.LED_BUILTIN <- value (scoped register bitmap) */
-  SCOPED_REGISTER_MEMBER_BITMAP_FIELD,
 
   // === Register bit operations ===
 

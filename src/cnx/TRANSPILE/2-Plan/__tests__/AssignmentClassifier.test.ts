@@ -129,6 +129,7 @@ function typedLast(
         callee: null,
         beforeNamesType: false,
         beforeIsBitField: false,
+        beforeRegisterMember: null,
       },
     },
   };
@@ -156,6 +157,7 @@ function typedStep(
         callee: null,
         beforeNamesType: false,
         beforeIsBitField: false,
+        beforeRegisterMember: null,
       },
     },
   };
@@ -349,43 +351,81 @@ describe("AssignmentClassifier - Bitmap Fields", () => {
     );
   });
 
-  it("classifies register member bitmap field", () => {
-    const bitmapFields = new Map([
-      ["ControlBits", new Map([["Enable", { offset: 0, width: 1 }]])],
-    ]);
-    const knownRegisters = new Set(["MOTOR"]);
-    const registerMemberTypes = new Map([["MOTOR__CTRL", "ControlBits"]]);
-    setupSymbols({ bitmapFields, knownRegisters, registerMemberTypes });
+  /** A field of a register member, as the typer names the member (#2158) */
+  const registerFieldOf = (
+    identifiers: string[],
+    member: string,
+    overrides: Partial<IAssignmentContext> = {},
+  ): IAssignmentContext => {
+    const ctx = fieldOf(
+      identifiers,
+      { ...bitmapOperand(), bitmapTypeName: "ControlBits" },
+      overrides,
+    );
+    return {
+      ...ctx,
+      target: {
+        ...ctx.target,
+        last: { ...ctx.target.last!, beforeRegisterMember: member },
+      },
+    };
+  };
 
-    // The typer types the register member as the bitmap it is; the register
-    // still keeps its own write
-    const ctx = fieldOf(["MOTOR", "CTRL", "Enable"], {
-      ...bitmapOperand(),
-      bitmapTypeName: "ControlBits",
+  // ADR-004: the register keeps its own write, whatever spelled it -- the
+  // typer names the member; #2158's bare in-scope `PWM` is not a known
+  // register under its spelling and reached the bitmap-value rule
+  it.each([
+    ["MOTOR.CTRL.Enable", ["MOTOR", "CTRL", "Enable"], "MOTOR__CTRL", {}],
+    [
+      "PWM.FLAGS.Enable inside scope Drive",
+      ["PWM", "FLAGS", "Enable"],
+      "Drive__PWM__FLAGS",
+      { scopePath: "Drive" },
+    ],
+    [
+      "this.PWM.FLAGS.Enable",
+      ["PWM", "FLAGS", "Enable"],
+      "Drive__PWM__FLAGS",
+      { hasThis: true, scopePath: "Drive" },
+    ],
+    [
+      "Drive.PWM.FLAGS.Enable",
+      ["Drive", "PWM", "FLAGS", "Enable"],
+      "Drive__PWM__FLAGS",
+      {},
+    ],
+  ] as const)(
+    "classifies %s as REGISTER_MEMBER_BITMAP_FIELD",
+    (_, identifiers, member, overrides) => {
+      setupSymbols({
+        bitmapFields: new Map([
+          ["ControlBits", new Map([["Enable", { offset: 0, width: 1 }]])],
+        ]),
+        knownRegisters: new Set(["MOTOR", "Drive__PWM"]),
+        registerMemberTypes: new Map([[member, "ControlBits"]]),
+      });
+
+      expect(
+        AssignmentClassifier.classify(
+          registerFieldOf([...identifiers], member, overrides),
+        ),
+      ).toBe(AssignmentKind.REGISTER_MEMBER_BITMAP_FIELD);
+    },
+  );
+
+  it("does not classify a register member's unknown field", () => {
+    setupSymbols({
+      bitmapFields: new Map([
+        ["ControlBits", new Map([["Enable", { offset: 0, width: 1 }]])],
+      ]),
+      registerMemberTypes: new Map([["MOTOR__CTRL", "ControlBits"]]),
     });
 
-    expect(AssignmentClassifier.classify(ctx)).toBe(
-      AssignmentKind.REGISTER_MEMBER_BITMAP_FIELD,
-    );
-  });
-
-  it("classifies this.REG.MEMBER.field as a scoped register bitmap field", () => {
-    const bitmapFields = new Map([
-      ["ControlBits", new Map([["Enable", { offset: 0, width: 1 }]])],
-    ]);
-    const knownRegisters = new Set(["Sc__MOTOR"]);
-    const registerMemberTypes = new Map([["Sc__MOTOR__CTRL", "ControlBits"]]);
-    setupSymbols({ bitmapFields, knownRegisters, registerMemberTypes });
-
-    const ctx = fieldOf(
-      ["MOTOR", "CTRL", "Enable"],
-      { ...bitmapOperand(), bitmapTypeName: "ControlBits" },
-      { hasThis: true, scopePath: "Sc" },
-    );
-
-    expect(AssignmentClassifier.classify(ctx)).toBe(
-      AssignmentKind.SCOPED_REGISTER_MEMBER_BITMAP_FIELD,
-    );
+    expect(
+      AssignmentClassifier.classify(
+        registerFieldOf(["MOTOR", "CTRL", "Missing"], "MOTOR__CTRL"),
+      ),
+    ).not.toBe(AssignmentKind.REGISTER_MEMBER_BITMAP_FIELD);
   });
 });
 
@@ -922,33 +962,6 @@ describe("AssignmentClassifier - Scoped Register Bitmap Field", () => {
     state = new TranspileState();
   });
 
-  it("classifies Scope.REG.MEMBER.field as SCOPED_REGISTER_MEMBER_BITMAP_FIELD", () => {
-    const bitmapFields = new Map([
-      ["ControlBits", new Map([["Enable", { offset: 0, width: 1 }]])],
-    ]);
-    const knownScopes = new Set(["Teensy4"]);
-    const knownRegisters = new Set(["Teensy4__GPIO7"]);
-    const registerMemberTypes = new Map([
-      ["Teensy4__GPIO7__ICR1", "ControlBits"],
-    ]);
-    setupSymbols({
-      bitmapFields,
-      knownScopes,
-      knownRegisters,
-      registerMemberTypes,
-    });
-
-    const ctx = createMockContext(state, {
-      identifiers: ["Teensy4", "GPIO7", "ICR1", "Enable"],
-      hasMemberAccess: true,
-      isSimpleIdentifier: false,
-    });
-
-    expect(AssignmentClassifier.classify(ctx)).toBe(
-      AssignmentKind.SCOPED_REGISTER_MEMBER_BITMAP_FIELD,
-    );
-  });
-
   it("returns null for unknown scope in 4-id pattern", () => {
     setupSymbols();
 
@@ -1291,37 +1304,6 @@ describe("AssignmentClassifier - Bare Scope-Qualified Subscripts", () => {
       );
     },
   );
-});
-
-// ========================================================================
-// This Prefix - Scoped Register Bitmap Field
-// ========================================================================
-describe("AssignmentClassifier - This Prefix Register Bitmap", () => {
-  beforeEach(() => {
-    state = new TranspileState();
-  });
-
-  it("classifies this.REG.MEMBER.field as SCOPED_REGISTER_MEMBER_BITMAP_FIELD", () => {
-    const knownRegisters = new Set(["Motor__GPIO7"]);
-    const registerMemberTypes = new Map([["Motor__GPIO7__ICR1", "CtrlBits"]]);
-    const bitmapFields = new Map([
-      ["CtrlBits", new Map([["Enable", { offset: 0, width: 1 }]])],
-    ]);
-    setupSymbols({ knownRegisters, registerMemberTypes, bitmapFields });
-    enterScope(state, RENDER_SCOPE);
-
-    const ctx = createMockContext(state, {
-      scopePath: "Motor",
-      identifiers: ["GPIO7", "ICR1", "Enable"],
-      hasThis: true,
-      postfixOpsCount: 3,
-      isSimpleIdentifier: false,
-    });
-
-    expect(AssignmentClassifier.classify(ctx)).toBe(
-      AssignmentKind.SCOPED_REGISTER_MEMBER_BITMAP_FIELD,
-    );
-  });
 });
 
 // ========================================================================

@@ -28,6 +28,7 @@ typedef uint8_t CtrlBits;
 
 /* Function prototypes */
 void Drive__start(void);
+void Drive__viaBare(void);
 void go(void);
 
 #ifdef __cplusplus

@@ -11,7 +11,6 @@ import type IBitmapFieldLayout from "../../../../../../types/IBitmapFieldLayout"
 import IAssignmentContext from "../../../../../2-Plan/types/IAssignmentContext";
 import TranspileState from "../../../../../TranspileState";
 import HandlerTestUtils from "./handlerTestUtils";
-import enterScope from "../../../../../__tests__/enterScope";
 
 /**
  * Create mock context for testing.
@@ -89,13 +88,10 @@ describe("BitmapHandlers", () => {
 
       expect(kinds).toContain(AssignmentKind.BITMAP_FIELD);
       expect(kinds).toContain(AssignmentKind.REGISTER_MEMBER_BITMAP_FIELD);
-      expect(kinds).toContain(
-        AssignmentKind.SCOPED_REGISTER_MEMBER_BITMAP_FIELD,
-      );
     });
 
-    it("exports exactly 3 handlers", () => {
-      expect(bitmapHandlers).toHaveLength(3);
+    it("exports exactly 2 handlers", () => {
+      expect(bitmapHandlers).toHaveLength(2);
     });
   });
 
@@ -130,6 +126,7 @@ describe("BitmapHandlers", () => {
             callee: null,
             beforeNamesType: false,
             beforeIsBitField: false,
+            beforeRegisterMember: null,
           },
         },
       };
@@ -210,164 +207,110 @@ describe("BitmapHandlers", () => {
   });
 
   describe("handleRegisterMemberBitmapField (REGISTER_MEMBER_BITMAP_FIELD)", () => {
-    const getHandler = () =>
+    const write = (ctx: IAssignmentContext) =>
       bitmapHandlers.find(
         ([kind]) => kind === AssignmentKind.REGISTER_MEMBER_BITMAP_FIELD,
-      )?.[1];
+      )![1](ctx);
 
-    it("generates register member bitmap field assignment", () => {
+    /** A field of a register member, as the typer names the member */
+    const memberWrite = (
+      member: string,
+      identifiers: string[],
+      overrides: Partial<IAssignmentContext> = {},
+    ): IAssignmentContext => {
+      const ctx = createMockContext({ identifiers, ...overrides });
+      return {
+        ...ctx,
+        target: {
+          ...ctx.target,
+          last: {
+            before: HandlerTestUtils.operandOf("u8", false, false),
+            subscript: null,
+            property: null,
+            after: null,
+            callee: null,
+            beforeNamesType: false,
+            beforeIsBitField: false,
+            beforeRegisterMember: member,
+          },
+        },
+      };
+    };
+
+    const declareMember = (
+      member: string,
+      field: [string, IBitmapFieldLayout],
+      access?: string,
+    ) =>
       HandlerTestUtils.setupMockSymbols(state, {
-        bitmapBackingType: new Map([["MotorCtrl", "uint8_t"]]),
-        bitmapFields: new Map([
-          ["MotorCtrl", new Map([["Running", { offset: 0, width: 1 }]])],
-        ]),
-        registerMemberTypes: new Map([["MOTOR__CTRL", "MotorCtrl"]]),
-      });
-      const ctx = createMockContext({
-        identifiers: ["MOTOR", "CTRL", "Running"],
+        bitmapBackingType: new Map([["Bits", "uint8_t"]]),
+        bitmapFields: new Map([["Bits", new Map([field])]]),
+        registerMemberTypes: new Map([[member, "Bits"]]),
+        registerMemberAccess: new Map(
+          access === undefined ? [] : [[member, access]],
+        ),
       });
 
-      const result = getHandler()!(ctx);
+    it("read-modify-writes a readable member", () => {
+      declareMember("MOTOR__CTRL", ["Running", { offset: 0, width: 1 }]);
 
-      expect(result).toContain("MOTOR__CTRL =");
-      expect(result).toContain("& ~(1U << 0)");
+      expect(
+        write(memberWrite("MOTOR__CTRL", ["MOTOR", "CTRL", "Running"])),
+      ).toBe(
+        "MOTOR__CTRL = (uint8_t)((MOTOR__CTRL & ~(1U << 0)) | (1U << 0));",
+      );
     });
 
     it("writes a write-only member without reading it (#1776)", () => {
-      HandlerTestUtils.setupMockSymbols(state, {
-        bitmapBackingType: new Map([["MotorCtrl", "uint8_t"]]),
-        bitmapFields: new Map([
-          ["MotorCtrl", new Map([["Running", { offset: 0, width: 1 }]])],
-        ]),
-        registerMemberTypes: new Map([["MOTOR__CTRL", "MotorCtrl"]]),
-        registerMemberAccess: new Map([["MOTOR__CTRL", "wo"]]),
-      });
-      const ctx = createMockContext({
-        identifiers: ["MOTOR", "CTRL", "Running"],
-      });
+      declareMember("MOTOR__CTRL", ["Running", { offset: 0, width: 1 }], "wo");
 
-      const result = getHandler()!(ctx);
-
-      // The scoped spelling already wrote plainly; this one read the member
-      expect(result).toBe("MOTOR__CTRL = (uint8_t)(1U << 0);");
+      expect(
+        write(memberWrite("MOTOR__CTRL", ["MOTOR", "CTRL", "Running"])),
+      ).toBe("MOTOR__CTRL = (uint8_t)(1U << 0);");
     });
-  });
 
-  describe("handleScopedRegisterMemberBitmapField (SCOPED_REGISTER_MEMBER_BITMAP_FIELD)", () => {
-    const getHandler = () =>
-      bitmapHandlers.find(
-        ([kind]) => kind === AssignmentKind.SCOPED_REGISTER_MEMBER_BITMAP_FIELD,
-      )?.[1];
+    // #2158: a scope's own register by its bare name -- the member the typer
+    // names, not the spelling's first word, is the one written
+    it("writes the member the typer names, whatever spelled the register", () => {
+      declareMember(
+        "Drive__PWM__FLAGS",
+        ["Enable", { offset: 0, width: 1 }],
+        "w1c",
+      );
 
-    it("generates this-prefixed scoped register bitmap field", () => {
-      enterScope(state, "Motor");
-      HandlerTestUtils.setupMockSymbols(state, {
-        bitmapBackingType: new Map([["ICR1Bits", "uint8_t"]]),
-        bitmapFields: new Map([
-          ["ICR1Bits", new Map([["LED", { offset: 6, width: 2 }]])],
-        ]),
-        registerMemberTypes: new Map([["Motor__GPIO7__ICR1", "ICR1Bits"]]),
-      });
-      const ctx = createMockContext({
-        identifiers: ["GPIO7", "ICR1", "LED"],
-        hasThis: true,
-        generatedValue: "value",
-      });
+      expect(
+        write(memberWrite("Drive__PWM__FLAGS", ["PWM", "FLAGS", "Enable"])),
+      ).toBe("Drive__PWM__FLAGS = (uint8_t)(1U << 0);");
+    });
 
-      const result = getHandler()!(ctx);
+    it.each([
+      ["wo", 0],
+      ["w1s", 3],
+      ["w1c", 5],
+    ])("writes a %s member without reading it", (access, offset) => {
+      declareMember("Motor__GPIO7__SET", ["LED", { offset, width: 1 }], access);
+
+      const result = write(
+        memberWrite("Motor__GPIO7__SET", ["GPIO7", "SET", "LED"], {
+          hasThis: true,
+        }),
+      );
+
+      expect(result).not.toContain("& ~");
+      expect(result).toBe(`Motor__GPIO7__SET = (uint8_t)(1U << ${offset});`);
+    });
+
+    it("writes a multi-bit field's value at its offset", () => {
+      declareMember("Motor__GPIO7__ICR1", ["LED", { offset: 6, width: 2 }]);
+
+      const result = write(
+        memberWrite("Motor__GPIO7__ICR1", ["Motor", "GPIO7", "ICR1", "LED"], {
+          generatedValue: "value",
+        }),
+      );
 
       expect(result).toContain("Motor__GPIO7__ICR1 =");
       expect(result).toContain("<< 6");
-    });
-
-    it("generates scope-prefixed register bitmap field", () => {
-      HandlerTestUtils.setupMockGenerator(state, {});
-      HandlerTestUtils.setupMockSymbols(state, {
-        bitmapBackingType: new Map([["ICR1Bits", "uint8_t"]]),
-        bitmapFields: new Map([
-          ["ICR1Bits", new Map([["LED", { offset: 6, width: 2 }]])],
-        ]),
-        registerMemberTypes: new Map([["Motor__GPIO7__ICR1", "ICR1Bits"]]),
-      });
-      const ctx = createMockContext({
-        identifiers: ["Motor", "GPIO7", "ICR1", "LED"],
-        hasThis: false,
-        generatedValue: "value",
-      });
-
-      const result = getHandler()!(ctx);
-
-      expect(result).toContain("Motor__GPIO7__ICR1 =");
-    });
-
-    // #1322a: the `'this' outside a scope` guard this asserted is deleted. It
-    // was unreachable -- `this.x <- 5` at file scope is a PARSE error, so the
-    // assignment never reaches codegen -- and this test reached it only by
-    // calling the handler directly with state production cannot produce. A test
-    // that is a dead branch's only caller is what keeps the branch alive.
-
-    it("generates write-only pattern for wo register", () => {
-      enterScope(state, "Motor");
-      HandlerTestUtils.setupMockSymbols(state, {
-        bitmapBackingType: new Map([["SetBits", "uint8_t"]]),
-        bitmapFields: new Map([
-          ["SetBits", new Map([["LED", { offset: 0, width: 1 }]])],
-        ]),
-        registerMemberTypes: new Map([["Motor__GPIO7__SET", "SetBits"]]),
-        registerMemberAccess: new Map([["Motor__GPIO7__SET", "wo"]]),
-      });
-      const ctx = createMockContext({
-        identifiers: ["GPIO7", "SET", "LED"],
-        hasThis: true,
-      });
-
-      const result = getHandler()!(ctx);
-
-      // Write-only should not use RMW pattern
-      expect(result).not.toContain("& ~");
-      expect(result).toContain("Motor__GPIO7__SET =");
-    });
-
-    it("generates write-only pattern for w1s register", () => {
-      enterScope(state, "Motor");
-      HandlerTestUtils.setupMockSymbols(state, {
-        bitmapBackingType: new Map([["SetBits", "uint8_t"]]),
-        bitmapFields: new Map([
-          ["SetBits", new Map([["LED", { offset: 3, width: 1 }]])],
-        ]),
-        registerMemberTypes: new Map([["Motor__GPIO7__SET", "SetBits"]]),
-        registerMemberAccess: new Map([["Motor__GPIO7__SET", "w1s"]]),
-      });
-      const ctx = createMockContext({
-        identifiers: ["GPIO7", "SET", "LED"],
-        hasThis: true,
-      });
-
-      const result = getHandler()!(ctx);
-
-      expect(result).not.toContain("& ~");
-      expect(result).toContain("<< 3");
-    });
-
-    it("generates write-only pattern for w1c register", () => {
-      enterScope(state, "Motor");
-      HandlerTestUtils.setupMockSymbols(state, {
-        bitmapBackingType: new Map([["ClearBits", "uint8_t"]]),
-        bitmapFields: new Map([
-          ["ClearBits", new Map([["LED", { offset: 5, width: 1 }]])],
-        ]),
-        registerMemberTypes: new Map([["Motor__GPIO7__CLR", "ClearBits"]]),
-        registerMemberAccess: new Map([["Motor__GPIO7__CLR", "w1c"]]),
-      });
-      const ctx = createMockContext({
-        identifiers: ["GPIO7", "CLR", "LED"],
-        hasThis: true,
-      });
-
-      const result = getHandler()!(ctx);
-
-      expect(result).not.toContain("& ~");
-      expect(result).toContain("<< 5");
     });
   });
 });
