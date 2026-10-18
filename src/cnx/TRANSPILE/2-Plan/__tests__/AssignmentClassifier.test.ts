@@ -90,7 +90,24 @@ function createMockContext(
           ctx.valueHasFloatingOperand,
         )
       : overrides.plannedClamp;
-  return { ...ctx, target, plannedClamp };
+  return withPlannedCopy({ ...ctx, target, plannedClamp }, overrides);
+}
+
+/** #1731 review: 2.2's string-copy decision, made by the call 2.2 makes */
+function withPlannedCopy(
+  ctx: IAssignmentContext,
+  overrides: Partial<IAssignmentContext> = {},
+): IAssignmentContext {
+  const plannedStringCapacity =
+    overrides.plannedStringCapacity === undefined
+      ? AssignmentClassifier.stringCapacityOfWrite(
+          ctx.target,
+          ctx.isSimpleIdentifier ||
+            ctx.isSimpleThisAccess ||
+            ctx.isSimpleGlobalAccess,
+        )
+      : overrides.plannedStringCapacity;
+  return { ...ctx, plannedStringCapacity };
 }
 
 /**
@@ -144,7 +161,7 @@ function typedStep(
   step: { before?: IOperandType; after?: IOperandType },
   subscript: TSubscriptKind | null = null,
 ): IAssignmentContext {
-  return {
+  return withPlannedCopy({
     ...ctx,
     target: {
       ...ctx.target,
@@ -158,7 +175,7 @@ function typedStep(
         beforeIsBitField: false,
       },
     },
-  };
+  });
 }
 
 /** A `string<N>` field's operand type, as the typer gives it */
@@ -479,7 +496,10 @@ describe("AssignmentClassifier - String Assignments", () => {
       isSimpleIdentifier: false,
     });
 
-    expect(AssignmentClassifier.writtenStringCapacity(ctx)).toBeNull();
+    expect(ctx.plannedStringCapacity).toBeNull();
+    expect(AssignmentClassifier.classify(ctx)).not.toBe(
+      AssignmentKind.STRING_COPY,
+    );
   });
 
   it("classifies struct field string", () => {

@@ -601,11 +601,11 @@ its declaration.
 | global variable    | same file           | error    |
 | scope member       | same file           | error    |
 | top-level function | imported direct     | error    |
-| scope method       | imported direct     | off      |
+| scope method       | imported direct     | error    |
 | global variable    | imported direct     | error    |
 | scope member       | imported direct     | off      |
 | top-level function | imported transitive | error    |
-| scope method       | imported transitive | off      |
+| scope method       | imported transitive | error    |
 | global variable    | imported transitive | error    |
 | scope member       | imported transitive | off      |
 
@@ -616,9 +616,14 @@ The imported columns matter because the rules compare a destination's capacity
 against a SOURCE's, and the source may be declared in another file. A check
 reading only the file in front of it finds no capacity there, and an unknown
 capacity correctly never rejects -- so the rule would go quiet across an
-include rather than fail. Two of the imported cells are `error` and occupied;
-the scope contexts are `off` as a stated obligation, not a claim they cannot
-exist.
+include rather than fail. Two of the imported cells are `error` and occupied.
+
+The bounded copy a string write makes is this ADR's too, and it must not depend
+on which file declared the string: a function or a scope method writing a scope
+member declared one or two includes away makes the same copy as one declared
+beside it, so the scope-method imported cells are `error` as well. The
+scope-member imported cells stay `off` as a stated obligation, not a claim they
+cannot exist.
 
 ## References
 

@@ -3,8 +3,11 @@
  * A safer C for embedded systems
  */
 
+#include "cross-file-scope-string.test.hpp"
+
 // test-execution
 // test-no-warnings
+// test-adr: 045
 // #1595: a string written to a scope member declared in an included file is
 // the same bounded copy the in-file `this.` spelling makes -- the member
 // itself, an element of a string array member, and a struct member's field.
@@ -12,6 +15,14 @@
 
 #include <stdint.h>
 #include <string.h>
+
+// A scope method writing another file's scope member: matrix cell scope
+// method, imported direct
+/* Scope: Writer */
+
+void Writer__relabel(void) {
+    (void) strncpy(Cfg__label, "method", 16); Cfg__label[16] = '\0';
+}
 
 int main(void) {
     (void) strncpy(Cfg__label, "hello", 16); Cfg__label[16] = '\0';
@@ -29,6 +40,10 @@ int main(void) {
     Cfg__setInFile();
     if (strcmp(Cfg__label, "inner") != 0) {
         return 4U;
+    }
+    Writer__relabel();
+    if (strcmp(Cfg__label, "method") != 0) {
+        return 5U;
     }
     return 0U;
 }

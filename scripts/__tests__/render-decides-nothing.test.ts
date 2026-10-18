@@ -268,11 +268,6 @@ const PLAN_DECISIONS: Readonly<Record<string, readonly string[]>> = {
     // for both now, and the atomic generator is handed the answer -- a
     // decision moving toward the planner.
     "codegen/assignment/handlers/SpecialHandlers.ts",
-    // #1731: the copy's capacity is the classifier's `writtenStringCapacity`,
-    // the same answer that routed the write here. The six handlers it replaced
-    // each re-derived a capacity from the spelling they matched; asking the
-    // one decider is the move toward the planner, not away from it.
-    "codegen/assignment/handlers/StringHandlers.ts",
   ],
   CastRequirement: [
     // #1445 box 3 slice 38: `CodeGenerator` consulted this inline while

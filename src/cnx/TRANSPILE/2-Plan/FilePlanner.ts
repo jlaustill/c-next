@@ -1060,6 +1060,7 @@ class FilePlanner {
       registerAccesses,
       clampOps: clamps.ops,
       sliceSources,
+      stringCopies: this.planStringCopies(program),
       expectedTypes,
       narrowings,
       structInitializers,
@@ -1686,6 +1687,30 @@ class FilePlanner {
       compound.set(site, clamp);
     }
     return { chains, compound, ops };
+  }
+
+  /**
+   * #1731: the capacity of each write of one whole `string<N>`, which is a
+   * bounded copy whatever spells its target. ADR-045's copy, recorded where
+   * it is decided.
+   */
+  private planStringCopies(
+    program: IProgramSyntax,
+  ): Map<IAssignmentSyntax, number> {
+    const copies = new Map<IAssignmentSyntax, number>();
+    const sites = program.declarations.flatMap((entry) =>
+      StatementNodes.assignments(entry.declaration),
+    );
+    for (const site of sites) {
+      const capacity = AssignmentClassifier.stringCapacityOfWrite(
+        this.targetDeclaration(site.target),
+        AssignmentTarget.parts(site.target).ops.length === 0,
+      );
+      if (capacity === null) continue;
+      AdrProvenance.record("045", site.operatorSpan.line);
+      copies.set(site, capacity);
+    }
+    return copies;
   }
 
   /**

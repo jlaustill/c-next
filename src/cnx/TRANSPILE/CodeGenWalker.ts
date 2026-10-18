@@ -2977,6 +2977,7 @@ class CodeGenWalker {
         "assignment",
       ),
       plannedSliceSource: this.filePlan.sliceSources.get(site) ?? null,
+      plannedStringCapacity: this.filePlan.stringCopies.get(site) ?? null,
       plannedCompoundCast: this.filePlan.compoundCasts.get(site) ?? null,
       plannedRegisterAccess: this.filePlan.registerAccesses.get(site) ?? null,
       state: this.host.state,

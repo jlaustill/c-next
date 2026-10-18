@@ -2,8 +2,6 @@
  * Assignment classifier for dispatch-based code generation (ADR-065).
  *
  * Analyzes an assignment context and determines which AssignmentKind it is.
- *
- * Migrated to use CodeGenState instead of constructor DI.
  */
 import AssignmentKind from "../../types/AssignmentKind";
 import IAssignmentContext from "./types/IAssignmentContext";
@@ -34,7 +32,7 @@ class AssignmentClassifier {
    * below. They agreed, which is the failure mode rather than the defense --
    * changing how a target resolves (qualifying `global.member`, say) meant
    * editing both, and nothing said so. (#1731 folded those string classifiers
-   * into `writtenStringCapacity`, which reads it through `writtenStep`.)
+   * into `stringCapacityOfWrite`, which reads it through `writtenStep`.)
    *
    * The pattern GUARD stays with each caller, because the pattern is what picks
    * the `AssignmentKind`. Only the resolution is shared: what a target is named
@@ -93,8 +91,8 @@ class AssignmentClassifier {
     // === Priority 1: A write of one string<N> is a bounded copy (#1731) ===
     // Asked before any shape: what decides it is the type the target writes,
     // and the shape rules below would claim `this.cfg.name` or
-    // `parr[1].name` first.
-    if (AssignmentClassifier.writtenStringCapacity(ctx) !== null) {
+    // `parr[1].name` first. 2.2 planned it (`stringCapacityOfWrite`).
+    if (ctx.plannedStringCapacity !== null) {
       return AssignmentKind.STRING_COPY;
     }
 
@@ -915,12 +913,15 @@ class AssignmentClassifier {
    * through to `=`. What is written is `writtenStep`'s answer, shared with
    * ADR-044's clamp. A slice or bit subscript writes part of what it selects,
    * never a whole string.
+   *
+   * 2.2's one decision, like `clampOfWrite`: the classifier and the copy both
+   * read the planned answer off the context (#1731 review).
    */
-  static writtenStringCapacity(ctx: IAssignmentContext): number | null {
-    const written = AssignmentClassifier.writtenStep(
-      ctx.target,
-      AssignmentClassifier.isSimpleTarget(ctx),
-    );
+  static stringCapacityOfWrite(
+    target: IChainBase,
+    isSimple: boolean,
+  ): number | null {
+    const written = AssignmentClassifier.writtenStep(target, isSimple);
     if (written === null) return null;
     if ("variable" in written) {
       return AssignmentClassifier.isSimpleStringType(written.variable)

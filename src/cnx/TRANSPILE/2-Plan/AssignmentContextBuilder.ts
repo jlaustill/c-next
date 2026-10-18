@@ -50,6 +50,8 @@ interface IContextBuilderDeps {
   readonly plannedClamp: { operation: string; cnxType: string } | null;
   /** 2.2's decision: how a slice write reads its source (#1081), or null */
   readonly plannedSliceSource: IPlannedSliceSource | null;
+  /** 2.2's decision: the capacity of the one `string<N>` this write copies, or null (#1731) */
+  readonly plannedStringCapacity: number | null;
   readonly plannedCompoundCast: string | null;
   readonly plannedRegisterAccess: string | null;
 
@@ -286,6 +288,7 @@ function buildAssignmentContext(
     atomicForm: deps.atomicForm,
     plannedClamp: deps.plannedClamp,
     plannedSliceSource: deps.plannedSliceSource,
+    plannedStringCapacity: deps.plannedStringCapacity,
     plannedCompoundCast: deps.plannedCompoundCast,
     plannedRegisterAccess: deps.plannedRegisterAccess,
     hasValue: valueExpr.kind !== "missing",

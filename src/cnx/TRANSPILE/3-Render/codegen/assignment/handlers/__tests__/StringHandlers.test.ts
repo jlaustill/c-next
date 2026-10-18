@@ -58,9 +58,22 @@ function createMockContext(
     ...overrides,
   } as IAssignmentContext;
   // #1668 (C7): what the target writes, as the binder would bind it
-  return {
+  return withPlannedCopy({
     ...ctx,
     target: overrides.target ?? HandlerTestUtils.targetOf(state, ctx),
+  });
+}
+
+/** #1731 review: 2.2's capacity decision, made by the call 2.2 makes */
+function withPlannedCopy(ctx: IAssignmentContext): IAssignmentContext {
+  return {
+    ...ctx,
+    plannedStringCapacity: AssignmentClassifier.stringCapacityOfWrite(
+      ctx.target,
+      ctx.isSimpleIdentifier ||
+        ctx.isSimpleThisAccess ||
+        ctx.isSimpleGlobalAccess,
+    ),
   };
 }
 
@@ -77,7 +90,7 @@ function withLast(
   after: IOperandType,
   before: IOperandType | null = null,
 ): IAssignmentContext {
-  return {
+  return withPlannedCopy({
     ...ctx,
     target: {
       ...ctx.target,
@@ -91,7 +104,7 @@ function withLast(
         beforeIsBitField: false,
       },
     },
-  };
+  });
 }
 
 function stringOperand(capacity: number): IOperandType {
@@ -194,6 +207,22 @@ describe("StringHandlers", () => {
 
       expect(copyHandler()!(ctx)).toBe(
         "(void) strncpy(target, \"hello\", 32); target[32] = '\\0';",
+      );
+    });
+
+    // #1731 review: the terminator store spells the target again, so a
+    // subscript with a side effect is reached once, through a temp
+    it("reaches a target with a side-effecting subscript once", () => {
+      HandlerTestUtils.declareTypes(state, [
+        ["testVar", { stringCapacity: 8, baseType: "string", isString: true }],
+      ]);
+      const ctx = createMockContext({
+        isSimpleIdentifier: true,
+        targetIndexHasSideEffect: true,
+      });
+
+      expect(copyHandler()!(ctx)).toBe(
+        "{ char* cnx_tmp0 = target; (void) strncpy(cnx_tmp0, \"hello\", 8); cnx_tmp0[8] = '\\0'; }",
       );
     });
 

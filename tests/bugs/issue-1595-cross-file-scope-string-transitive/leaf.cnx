@@ -1,0 +1,10 @@
+// The declaring file, two include hops from the fixture
+struct Rec {
+    string<12> member;
+}
+
+scope Store {
+    public mut string<16> label <- "";
+    public mut string<8>[2] tags;
+    public mut Rec structField;
+}

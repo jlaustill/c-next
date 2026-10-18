@@ -6,7 +6,6 @@
  */
 import AssignmentKind from "../../../../../types/AssignmentKind";
 import IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
-import AssignmentClassifier from "../../../../2-Plan/AssignmentClassifier";
 import StringUtils from "../../../../../utils/StringUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import invariant from "../../../../../utils/invariant";
@@ -25,7 +24,11 @@ import invariant from "../../../../../utils/invariant";
  * `parr.name[1]` for `parr[1].name` (#1748), the bare `tags[0]` for a scope's
  * `this.tags[0]` (#1903) -- and the element forms dropped the terminator. The
  * target renderer already answers how a target is spelled, `->` and scope
- * qualification included; the capacity is the classifier's own decision.
+ * qualification included; the capacity is 2.2's decision, planned with the
+ * write (#1731 review).
+ *
+ * The terminator store spells the target a second time, so a target whose
+ * subscript has a side effect is reached once, through a temp (#1731 review).
  *
  * #1450 box 4: no `requireInclude("string")` here -- `needsString` is raised
  * by three independent channels before this runs (the effect channel during
@@ -33,16 +36,20 @@ import invariant from "../../../../../utils/invariant";
  * which is why deleting the six calls this file had moved no fixture.
  */
 function copyIntoAssignmentTarget(ctx: IAssignmentContext): string {
-  const capacity = AssignmentClassifier.writtenStringCapacity(ctx);
+  const capacity = ctx.plannedStringCapacity;
   invariant(
     capacity !== null,
-    "the classifier routes a write of one string<N> here",
+    "the classifier routes a planned write of one string<N> here",
   );
-  return StringUtils.copyWithNull(
-    ctx.renderTarget(),
-    ctx.generatedValue,
-    capacity,
-  );
+  const target = ctx.renderTarget();
+  if (!ctx.targetIndexHasSideEffect) {
+    return StringUtils.copyWithNull(target, ctx.generatedValue, capacity);
+  }
+  // `names[pick()] <- "x"` calls pick() once: the copy and its terminator both
+  // write through one pointer to the element, as #1887's clamp does.
+  const element = ctx.state.getNextTempVarName();
+  const copy = StringUtils.copyWithNull(element, ctx.generatedValue, capacity);
+  return `{ char* ${element} = ${target}; ${copy} }`;
 }
 
 const stringHandlers: ReadonlyArray<[AssignmentKind, TAssignmentHandler]> = [
