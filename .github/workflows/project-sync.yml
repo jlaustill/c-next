@@ -136,15 +136,19 @@ jobs:
 
           # One query for the board, its Status field, and every option id. The
           # board is read by its number, so there is no list of boards to page
-          # through or truncate (#1416). fields is 100 -- the most one page
-          # holds -- against 14 fields today; a nested connection cannot be
-          # paginated here, so the cap needs headroom.
-          if ! PROJECT_JSON=$(gh api graphql -f owner="$PROJECT_OWNER" -F number="$PROJECT_NUMBER" -f query='
-            query($owner: String!, $number: Int!) {
+          # through or truncate (#1416). Its fields are a connection under two
+          # singular selections, which --paginate advances like any other
+          # (measured, scripts/gh-pagination/GhPagination.ts). Each page arrives
+          # as its own JSON document, so the reads below slurp them (jq -s)
+          # rather than cut the stream with head, which pipefail would turn
+          # into a failure whenever jq is still writing.
+          if ! PROJECT_JSON=$(gh api graphql --paginate -f owner="$PROJECT_OWNER" -F number="$PROJECT_NUMBER" -f query='
+            query($owner: String!, $number: Int!, $endCursor: String) {
               organization(login: $owner) {
                 projectV2(number: $number) {
                   id
-                  fields(first: 100) {
+                  fields(first: 100, after: $endCursor) {
+                    pageInfo { hasNextPage endCursor }
                     nodes {
                       ... on ProjectV2SingleSelectField {
                         id
@@ -156,20 +160,25 @@ jobs:
                 }
               }
             }' 2>&1); then
-            echo "::error::Could not read the board. Is the smeltworks board app installed"
-            echo "::error::on the organization, with BOARD_APP_ID and BOARD_APP_PRIVATE_KEY set?"
+            # GitHub answers a board that does not exist with an error too, so
+            # this names every cause rather than guessing one; the response
+            # below says which it was.
+            echo "::error::Could not read board ${PROJECT_OWNER}/${PROJECT_NUMBER}. Either the board does"
+            echo "::error::not exist (npm run project:setup), or the smeltworks board app is not"
+            echo "::error::installed, or BOARD_APP_ID / BOARD_APP_PRIVATE_KEY is unset. GitHub said:"
             echo "$PROJECT_JSON"
             exit 1
           fi
 
-          PROJECT=$(jq '.data.organization.projectV2 // empty' <<<"$PROJECT_JSON")
-          if [ -z "$PROJECT" ]; then
+          PROJECT_ID=$(jq -rs '[.[].data.organization.projectV2.id // empty][0] // empty' <<<"$PROJECT_JSON")
+          if [ -z "$PROJECT_ID" ]; then
             echo "::error::${PROJECT_OWNER} has no project ${PROJECT_NUMBER}. Run: npm run project:setup"
             exit 1
           fi
 
-          PROJECT_ID=$(jq -r '.id' <<<"$PROJECT")
-          STATUS=$(jq '.fields.nodes[] | select(.name == "Status")' <<<"$PROJECT")
+          STATUS=$(jq -s \
+            '[.[].data.organization.projectV2.fields.nodes[] | select(.name == "Status")][0] // empty' \
+            <<<"$PROJECT_JSON")
           FIELD_ID=$(jq -r '.id' <<<"$STATUS")
           OPTION_ID=$(jq -r --arg n "$TARGET" \
             '.options[] | select(.name == $n) | .id' <<<"$STATUS")
