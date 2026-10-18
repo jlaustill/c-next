@@ -148,16 +148,12 @@ class ArgumentGenerator {
           form.compoundLiteral,
           callbacks,
         );
-      case "array-temp": {
-        // #2157: declared before the statement, as every argument temp is
-        const temp = ArrayInitHelper.temporaryArray(
+      case "array-temp":
+        return ArrayInitHelper.arrayArgument(
           form.array,
           callbacks.generateExpression(),
           state,
         );
-        state.pendingTempDeclarations.push(temp.declaration);
-        return temp.name;
-      }
     }
   }
 }

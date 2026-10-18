@@ -14,6 +14,7 @@ const types = [
   "struct D { S[2] items; u32 n; }",
   "struct B { u8[4] data; }",
   "void take(u8[4] buf) {\n}",
+  "u8 third(u8[4] buf) {\n    return buf[2];\n}",
   "u8[4] src <- [1, 2, 3, 4];",
 ].join("\n");
 
@@ -104,6 +105,17 @@ describe("WholeArrayValueAnalyzer (E0866)", () => {
 
   it("reports a value once, not again for its operands", () => {
     expect(errors("    mut u8[4] a;\n    a <- (src);")).toHaveLength(1);
+  });
+
+  it("asks a call's argument inside a whole-array value at its parameter", () => {
+    expect(
+      messages("    mut u8[4] a;\n    a <- [third([1, 2, 3]), 0, 0, 0];"),
+    ).toEqual([
+      "Array size mismatch: declared [4] but the initializer has 3 element(s)",
+    ]);
+    expect(messages("    mut u8[4] a;\n    a <- [third(5), 0, 0, 0];")).toEqual(
+      ["An array must be given a list, not '5'"],
+    );
   });
 
   it.each([

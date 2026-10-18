@@ -40,7 +40,7 @@ class WholeArrayValueAnalyzer {
       if (asked.has(value) || !StructInitializerType.takesWholeArrayAt(at)) {
         continue;
       }
-      WholeArrayValueAnalyzer.markAsked(value, asked);
+      WholeArrayValueAnalyzer.markAsked(value, at, positions, asked);
       // A string field is an array to the symbol table but takes a string;
       // only a struct initializer is asked there, as before #1782
       if (at.dimensions.length === 0 && value.kind !== "structInitializer") {
@@ -92,10 +92,18 @@ class WholeArrayValueAnalyzer {
     ];
   }
 
-  private static markAsked(value: TExpression, asked: Set<TExpression>): void {
+  private static markAsked(
+    value: TExpression,
+    at: IValuePosition,
+    positions: IValuePositions,
+    asked: Set<TExpression>,
+  ): void {
     asked.add(value);
     for (const child of ExpressionChildren.of(value)) {
-      WholeArrayValueAnalyzer.markAsked(child, asked);
+      // Only an operand stands in its value's position; a call's argument is
+      // asked at its parameter's
+      if (positions.positions.get(child) !== at) continue;
+      WholeArrayValueAnalyzer.markAsked(child, at, positions, asked);
     }
   }
 }

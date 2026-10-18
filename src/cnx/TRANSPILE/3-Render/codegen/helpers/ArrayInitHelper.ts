@@ -175,20 +175,49 @@ class ArrayInitHelper {
     renderedValue: string,
     state: TranspileState,
   ): { readonly name: string; readonly declaration: string } {
-    const leading = array.dimensions[0];
-    const init = array.fromList
-      ? ArrayInitHelper.expandFillAll(
-          renderedValue,
-          typeof leading === "number" ? leading : null,
-          state,
-        )
-      : renderedValue;
-    const shape = array.dimensions.map((size) => `[${size}]`).join("");
     const name = state.getNextTempVarName();
     return {
       name,
-      declaration: `const ${array.elementCType} ${name}${shape} = ${init};`,
+      declaration: `const ${array.elementCType} ${name}${ArrayInitHelper.shapeOf(array)} = ${ArrayInitHelper.initializerOf(array, renderedValue, state)};`,
     };
+  }
+
+  /**
+   * A list passed for an array parameter (#2157), evaluated where it stands,
+   * as any argument is: under `&&`, `||` or `?:` it is not evaluated when
+   * its operand is not. C writes it as a compound literal. C++ has none, so
+   * the array type is named before the statement -- a typedef evaluates
+   * nothing -- and the list is that type's temporary, which lives to the end
+   * of the full expression.
+   */
+  static arrayArgument(
+    array: IPlannedWholeArrayWrite,
+    renderedValue: string,
+    state: TranspileState,
+  ): string {
+    const init = ArrayInitHelper.initializerOf(array, renderedValue, state);
+    const shape = ArrayInitHelper.shapeOf(array);
+    if (!state.cppMode) return `(const ${array.elementCType}${shape})${init}`;
+    const type = `${state.getNextTempVarName()}_t`;
+    state.pendingTempDeclarations.push(
+      `typedef const ${array.elementCType} ${type}${shape};`,
+    );
+    return `static_cast<${type}&>(${type}${init})`;
+  }
+
+  private static shapeOf(array: IPlannedWholeArrayWrite): string {
+    return array.dimensions.map((size) => `[${size}]`).join("");
+  }
+
+  private static initializerOf(
+    array: IPlannedWholeArrayWrite,
+    renderedValue: string,
+    state: TranspileState,
+  ): string {
+    if (!array.fromList) return renderedValue;
+    const leading = array.dimensions[0];
+    const size = typeof leading === "number" ? leading : null;
+    return ArrayInitHelper.expandFillAll(renderedValue, size, state);
   }
 
   /**

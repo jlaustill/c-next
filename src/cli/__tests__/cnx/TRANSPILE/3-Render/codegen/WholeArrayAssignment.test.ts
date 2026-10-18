@@ -86,15 +86,16 @@ describe("whole-array assignment (#1782)", () => {
     expect(code).toContain("(*cnx_tmp1)[cnx_tmp2] = cnx_tmp0[cnx_tmp2];");
   });
 
-  it("passes a list for an array parameter as a temporary (#2157)", async () => {
-    for (const cppMode of [false, true]) {
-      const code = await transpile(
-        "u8 third(u8[4] b) {\n    return b[2];\n}\nvoid f() {\n    u8 t <- third([1, 2, 3, 4]);\n}",
-        cppMode,
-      );
-      expect(code).toContain("const uint8_t cnx_tmp0[4] = {1U, 2U, 3U, 4U};");
-      expect(code).toContain("third(cnx_tmp0)");
-    }
+  it("passes a list for an array parameter where it stands (#2157)", async () => {
+    const source =
+      "u8 third(u8[4] b) {\n    return b[2];\n}\nvoid f() {\n    u8 t <- third([1, 2, 3, 4]);\n}";
+    const c = await transpile(source, false);
+    expect(c).toContain("third((const uint8_t[4]){1U, 2U, 3U, 4U})");
+    const cpp = await transpile(source, true);
+    expect(cpp).toContain("typedef const uint8_t cnx_tmp0_t[4];");
+    expect(cpp).toContain(
+      "third(static_cast<cnx_tmp0_t&>(cnx_tmp0_t{1U, 2U, 3U, 4U}))",
+    );
   });
 
   it("leaves an element write alone", async () => {
