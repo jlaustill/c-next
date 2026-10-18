@@ -326,7 +326,8 @@ class AssignmentClassifier {
 
   /**
    * Decide a subscript chain whose base name is scope-qualified:
-   * `Scope.REG.MEMBER[bit]` or `Scope.member[...]`.
+   * `Scope.member[...]`. A register's bits were classified before this, by
+   * the typer's step (#2185).
    *
    * Issue #1244: the `global.` prefix is a grammar token, not an identifier, so
    * `global.Other.buffer[3]` and the bare `Other.buffer[3]` arrive with
