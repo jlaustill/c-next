@@ -47,7 +47,7 @@ volatile uint32_t dword_counter = 0U;
 int main(void) {
     {
         /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
-        uint8_t __operand = 1U;
+        uint32_t __operand = 1U;
         do {
             uint8_t __old = __LDREXB(&byte_counter);
             uint8_t __new = cnx_clamp_add_u8(__old, __operand);
@@ -58,7 +58,7 @@ int main(void) {
     }
     {
         /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
-        uint16_t __operand = 1U;
+        uint32_t __operand = 1U;
         do {
             uint16_t __old = __LDREXH(&word_counter);
             uint16_t __new = cnx_clamp_add_u16(__old, __operand);
@@ -69,7 +69,7 @@ int main(void) {
     }
     {
         /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
-        uint32_t __operand = 1U;
+        uint64_t __operand = 1U;
         do {
             uint32_t __old = __LDREXW(&dword_counter);
             uint32_t __new = cnx_clamp_add_u32(__old, __operand);

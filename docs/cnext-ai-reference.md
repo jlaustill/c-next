@@ -655,7 +655,7 @@ ready <- true; // atomic store
 u32 val <- counter; // atomic load
 ```
 
-Transpiles to LDREX/STREX loops on Cortex-M3+, critical sections on Cortex-M0.
+Transpiles to LDREX/STREX loops on Cortex-M3+, interrupt-masked regions on Cortex-M0/M0+ and AVR, and GNU `__atomic` compare-exchange loops on host and esp32. A `critical` block on host or esp32 is E0916.
 
 `volatile` is a separate modifier (ADR-064) that stops the compiler caching a variable (C `volatile` semantics) — for memory-mapped/shared flags that aren't lock-free atomics: `volatile u32 status <- 0;`. It is **distinct from `atomic`** (lock-free ISR-safe ops); combining them (`atomic volatile`) is a compile error.
 

@@ -59,8 +59,9 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 }
 
 // #1484 / #1960 review: a callback-typed local inside a `critical` block still
-// gets its `_fp` typedef. Its own fixture because a critical section cannot
-// run on host until #1147; callback-local-nested covers every other kind.
+// gets its `_fp` typedef. Its own fixture because a critical section has no
+// host lowering (E0916, #1147), so this one is pinned to an ARM target and
+// compiled, never executed; callback-local-nested covers every other kind.
 uint32_t total = 0U;
 
 

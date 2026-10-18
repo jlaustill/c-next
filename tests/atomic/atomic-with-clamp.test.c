@@ -67,7 +67,7 @@ const volatile int32_t position = 0;
 void adjustBrightness(const uint8_t delta) {
     {
         /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
-        uint8_t __operand = delta;
+        uint32_t __operand = delta;
         do {
             uint8_t __old = __LDREXB(&brightness);
             uint8_t __new = cnx_clamp_add_u8(__old, __operand);
@@ -81,7 +81,7 @@ void adjustBrightness(const uint8_t delta) {
 void decreaseBrightness(const uint8_t delta) {
     {
         /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
-        uint8_t __operand = delta;
+        uint32_t __operand = delta;
         do {
             uint8_t __old = __LDREXB(&brightness);
             uint8_t __new = cnx_clamp_sub_u8(__old, __operand);
@@ -95,7 +95,7 @@ void decreaseBrightness(const uint8_t delta) {
 void updateVolume(const uint16_t delta) {
     {
         /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
-        uint16_t __operand = delta;
+        uint32_t __operand = delta;
         do {
             uint16_t __old = __LDREXH(&volume);
             uint16_t __new = cnx_clamp_add_u16(__old, __operand);
@@ -109,7 +109,7 @@ void updateVolume(const uint16_t delta) {
 void incrementCounter(void) {
     {
         /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
-        uint32_t __operand = 1U;
+        uint64_t __operand = 1U;
         do {
             uint32_t __old = __LDREXW(&counter);
             uint32_t __new = cnx_clamp_add_u32(__old, __operand);
@@ -123,7 +123,7 @@ void incrementCounter(void) {
 void adjustTemperature(const int8_t delta) {
     {
         /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
-        int8_t __operand = delta;
+        int32_t __operand = delta;
         do {
             int8_t __old = __LDREXB(&temperature);
             int8_t __new = cnx_clamp_add_i8(__old, __operand);

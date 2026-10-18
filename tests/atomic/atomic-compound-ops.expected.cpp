@@ -36,7 +36,7 @@ volatile uint32_t value = 100U;
 int main(void) {
     {
         /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
-        uint32_t __operand = 10U;
+        uint64_t __operand = 10U;
         do {
             uint32_t __old = __LDREXW(&value);
             uint32_t __new = cnx_clamp_add_u32(__old, __operand);
@@ -47,7 +47,7 @@ int main(void) {
     }
     {
         /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
-        uint32_t __operand = 5U;
+        uint64_t __operand = 5U;
         do {
             uint32_t __old = __LDREXW(&value);
             uint32_t __new = cnx_clamp_sub_u32(__old, __operand);

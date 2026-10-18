@@ -18,6 +18,8 @@ import TYPE_MAP from "../../../../2-Plan/types/TYPE_MAP";
 import invariant from "../../../../../utils/invariant";
 import COMPOUND_TO_BINARY from "../../../../2-Plan/types/COMPOUND_TO_BINARY";
 import InterruptMask from "../../helpers/InterruptMask";
+import ClampTypes from "../../../../2-Plan/ClampTypes";
+import TYPE_WIDTH from "../../../../../types/TYPE_WIDTH";
 
 /**
  * ADR-049: STREX intrinsic map for atomic operations
@@ -71,6 +73,30 @@ function generateInnerAtomicOp(
 const OPERAND = "__operand";
 
 /**
+ * The C type `__operand` holds the value in, so hoisting it narrows nothing
+ * the inline form would not (#2120 review 2). A clamp helper's `b` is the
+ * wider type (`ClampTypes`, #94: `cnx_clamp_add_u8(0, 256)` must give 255),
+ * and a wider float value keeps its own precision, as `f32 += f64` does. A
+ * wrap or bitwise integer value takes the variable's type: that narrowing is
+ * modular, so the result is the same.
+ */
+function operandCType(
+  typeInfo: TTypeInfo,
+  clampOp: string | null,
+  valueType: string | null,
+): string {
+  const cType = TYPE_MAP[typeInfo.baseType];
+  if (clampOp) {
+    return ClampTypes.resolve(typeInfo.baseType)?.widerType ?? cType;
+  }
+  const isWiderFloat =
+    valueType !== null &&
+    valueType.startsWith("f") &&
+    (TYPE_WIDTH[valueType] ?? 0) > (TYPE_WIDTH[typeInfo.baseType] ?? 0);
+  return isWiderFloat ? TYPE_MAP[valueType] : cType;
+}
+
+/**
  * Generate LDREX/STREX retry loop for atomic RMW.
  * Uses ARM exclusive access instructions for lock-free atomics.
  *
@@ -84,6 +110,7 @@ function generateLdrexStrexLoop(
   innerOp: string,
   typeInfo: TTypeInfo,
   innerEffects: readonly TGeneratorEffect[],
+  operandType: string = TYPE_MAP[typeInfo.baseType],
 ): IGeneratorOutput {
   const effects: TGeneratorEffect[] = [...innerEffects];
   const ldrex = LDREX_MAP[typeInfo.baseType];
@@ -93,7 +120,7 @@ function generateLdrexStrexLoop(
   // Uses do-while because we always need at least one attempt
   const code = `{
     /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
-    ${cType} ${OPERAND} = ${value};
+    ${operandType} ${OPERAND} = ${value};
     do {
         ${cType} __old = ${ldrex}(&${target});
         ${cType} __new = ${innerOp};
@@ -122,6 +149,7 @@ function generateCompareExchangeLoop(
   innerOp: string,
   typeInfo: TTypeInfo,
   innerEffects: readonly TGeneratorEffect[],
+  operandType: string = TYPE_MAP[typeInfo.baseType],
   libatomic: boolean = false,
 ): IGeneratorOutput {
   const cType = TYPE_MAP[typeInfo.baseType];
@@ -130,7 +158,7 @@ function generateCompareExchangeLoop(
     : "";
   const code = `{
     /* ADR-049 / Issue #1789: atomic read-modify-write as a compare-exchange retry loop, for a target with neither LDREX/STREX nor an interrupt mask. The GNU __atomic builtins are a compiler extension (MISRA C:2012 Rule 1.2).${wide} The value is evaluated once, before the loop, so a failed exchange does not evaluate it again (Issue #1807). */
-    ${cType} ${OPERAND} = ${value};
+    ${operandType} ${OPERAND} = ${value};
     ${cType} __old;
     ${cType} __new;
     __atomic_load(&${target}, &__old, __ATOMIC_RELAXED);
@@ -184,6 +212,7 @@ function generatePrimaskWrapper(
  * @param clampOp - ADR-044 helper operation from
  *   `AssignmentClassifier.compoundClamp`, or null for plain arithmetic
  * @param form - The form 2.2 planned for this write
+ * @param valueType - The value's C-Next type, or null when unknown
  * @returns Generated code and effects
  */
 function generateAtomicRMW(
@@ -193,8 +222,10 @@ function generateAtomicRMW(
   typeInfo: TTypeInfo,
   clampOp: string | null,
   form: TAtomicForm,
+  valueType: string | null = null,
 ): IGeneratorOutput {
   const baseType = typeInfo.baseType;
+  const operandType = operandCType(typeInfo, clampOp, valueType);
 
   if (form === "interrupt-mask") {
     return generatePrimaskWrapper(target, cOp, value, typeInfo, clampOp);
@@ -214,6 +245,7 @@ function generateAtomicRMW(
       innerResult.code,
       typeInfo,
       innerResult.effects,
+      operandType,
     );
   }
   return generateCompareExchangeLoop(
@@ -222,6 +254,7 @@ function generateAtomicRMW(
     innerResult.code,
     typeInfo,
     innerResult.effects,
+    operandType,
     form === "compare-exchange-libatomic",
   );
 }

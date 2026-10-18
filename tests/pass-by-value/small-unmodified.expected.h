@@ -23,7 +23,6 @@ void doubleValue(uint16_t* val);
 void incrementWrapper(uint32_t* x);
 uint32_t addAndIncrement(uint32_t* a, const uint32_t b);
 void modifyInSwitch(uint32_t* x, const uint32_t mode);
-void modifyInCritical(uint32_t* x);
 
 #ifdef __cplusplus
 }

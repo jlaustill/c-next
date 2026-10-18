@@ -40,7 +40,7 @@ uint32_t step(void) {
 int main(void) {
     {
         /* ADR-049 / Issue #1789: atomic read-modify-write as a compare-exchange retry loop, for a target with neither LDREX/STREX nor an interrupt mask. The GNU __atomic builtins are a compiler extension (MISRA C:2012 Rule 1.2). The value is evaluated once, before the loop, so a failed exchange does not evaluate it again (Issue #1807). */
-        uint32_t __operand = step();
+        uint64_t __operand = step();
         uint32_t __old;
         uint32_t __new;
         __atomic_load(&counter, &__old, __ATOMIC_RELAXED);

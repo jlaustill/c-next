@@ -355,13 +355,56 @@ describe("AtomicGenerator", () => {
           form,
         ).code;
         expect(code.split("step()")).toHaveLength(2);
-        expect(code.indexOf("uint32_t __operand = step();")).toBeGreaterThan(
+        expect(code.indexOf("uint64_t __operand = step();")).toBeGreaterThan(
           -1,
         );
         expect(code.indexOf("step()")).toBeLessThan(code.indexOf("do {"));
         expect(code).toContain("cnx_clamp_add_u32(__old, __operand)");
       },
     );
+
+    // #2120 review 2: the temporary must not narrow before the clamp helper
+    it.each(["ldrex-strex", "compare-exchange"] as const)(
+      "holds a saturating value in the helper's wider type (%s)",
+      (form) => {
+        const code = generateAtomicRMW(
+          "counter",
+          "+=",
+          "big",
+          createTypeInfo("u8", "clamp"),
+          "add",
+          form,
+          "u32",
+        ).code;
+        expect(code).toContain("uint32_t __operand = big;");
+      },
+    );
+
+    it("keeps a wider float value's precision", () => {
+      const code = generateAtomicRMW(
+        "sum",
+        "+=",
+        "tiny",
+        createTypeInfo("f32", "wrap"),
+        null,
+        "compare-exchange",
+        "f64",
+      ).code;
+      expect(code).toContain("double __operand = tiny;");
+    });
+
+    it("holds a wrapping integer value in the variable's type", () => {
+      const code = generateAtomicRMW(
+        "counter",
+        "+=",
+        "big",
+        createTypeInfo("u8", "wrap"),
+        null,
+        "compare-exchange",
+        "u32",
+      ).code;
+      expect(code).toContain("uint8_t __operand = big;");
+    });
 
     it("annotates each retry loop with the ADR that shapes it", () => {
       expect(rmw("u32", "ldrex-strex").code).toContain(

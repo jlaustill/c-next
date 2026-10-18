@@ -1,7 +1,6 @@
 // test-c-only
 // test-execution
-#pragma target cortex-m7
-// Tests: Comprehensive enum scenarios - global, scope, cross-scope, loops, atomic, critical
+// Tests: Comprehensive enum scenarios - global, scope, cross-scope, loops, atomic (critical is in enum-critical-update)
 
 // === GLOBAL ENUM ===
 enum EGlobalState {
@@ -65,13 +64,6 @@ scope Motor {
     // === GLOBAL ENUM ACCESS FROM SCOPE ===
     public global.EGlobalState getGlobalState() {
         return global.EGlobalState.IDLE;
-    }
-
-    // === CRITICAL BLOCK WITH ENUM ===
-    public void criticalEnumUpdate() {
-        critical {
-            this.mode <- this.EMode.HIGH;
-        }
     }
 }
 
@@ -143,13 +135,6 @@ u32 main() {
     Motor.EMode atomicResult <- Motor.getAtomicMode();
     if (atomicResult != Motor.EMode.HIGH) {
         errors <- errors + 64;
-    }
-
-    // --- Test 9: Critical block enum ---
-    Motor.criticalEnumUpdate();
-    Motor.EMode afterCritical <- Motor.getMode();
-    if (afterCritical != Motor.EMode.HIGH) {
-        errors <- errors + 128;
     }
 
     // --- Test 10: Cross-scope enum access ---

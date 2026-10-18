@@ -1,8 +1,7 @@
 // test-c-only
 // test-execution
-#pragma target cortex-m7
 // Tests: Issue #565 edge cases - comprehensive coverage for reassignment const inference
-// Covers: nested conditionals, switch, do-while, critical, compound assignments,
+// Covers: nested conditionals, switch, do-while, compound assignments,
 // this.method calls, nested calls, multiple params
 
 scope ConstEdge {
@@ -73,14 +72,6 @@ void handleDoWhile(mut ConstEdge.Config config) {
         errorCode <- global.Handler.setValue(config, 30);
         count <- count + 1;
     } while (count < 1);
-}
-
-// Edge case 4: Critical block
-void handleCritical(mut ConstEdge.Config config) {
-    mut u8 errorCode <- 0;
-    critical {
-        errorCode <- global.Handler.setValue(config, 40); // Inside critical
-    }
 }
 
 // Edge case 5: this.method() call in reassignment (within a scope)
@@ -174,13 +165,6 @@ u32 main() {
     handleDoWhile(cfg);
     if (cfg.value != 30) {
         return 3;
-    }
-
-    // Test 4: Critical
-    cfg.value <- 0;
-    handleCritical(cfg);
-    if (cfg.value != 40) {
-        return 4;
     }
 
     // Test 5: this.method

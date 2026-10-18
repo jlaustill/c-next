@@ -76,7 +76,7 @@ void criticalUpdate(void) {
         __cnx_disable_irq();
         {
             /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
-            uint32_t __operand = 1U;
+            uint64_t __operand = 1U;
             do {
                 uint32_t __old = __LDREXW(&sharedCounter);
                 uint32_t __new = cnx_clamp_add_u32(__old, __operand);
@@ -109,7 +109,7 @@ void enqueueWithCount(const uint8_t data) {
         writeIdx = cnx_clamp_add_u32(writeIdx, 1U);
         {
             /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
-            uint32_t __operand = 1U;
+            uint64_t __operand = 1U;
             do {
                 uint32_t __old = __LDREXW(&sharedCounter);
                 uint32_t __new = cnx_clamp_add_u32(__old, __operand);
@@ -129,7 +129,7 @@ void batchUpdate(const uint32_t delta) {
         __cnx_disable_irq();
         {
             /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
-            uint32_t __operand = delta;
+            uint64_t __operand = delta;
             do {
                 uint32_t __old = __LDREXW(&sharedCounter);
                 uint32_t __new = cnx_clamp_add_u32(__old, __operand);
@@ -161,7 +161,7 @@ void conditionalIncrement(void) {
         if (sharedCounter < 1000) {
             {
                 /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
-                uint32_t __operand = 1U;
+                uint64_t __operand = 1U;
                 do {
                     uint32_t __old = __LDREXW(&sharedCounter);
                     uint32_t __new = cnx_clamp_add_u32(__old, __operand);

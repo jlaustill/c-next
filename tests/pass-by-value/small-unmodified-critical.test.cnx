@@ -1,0 +1,21 @@
+// test-c-only
+// test-execution
+#pragma target cortex-m7
+// Issue #269: a parameter modified inside a critical section (ADR-050) still
+// passes by pointer. Split from small-unmodified, which runs on host, because
+// a critical block has no host lowering (E0916, #1147).
+
+void modifyInCritical(mut u32 x) {
+    critical {
+        x <- x * 2;
+    }
+}
+
+u32 main() {
+    mut u32 criticalVal <- 50;
+    modifyInCritical(criticalVal);
+    if (criticalVal != 100) {
+        return 1; // *2
+    }
+    return 0;
+}
