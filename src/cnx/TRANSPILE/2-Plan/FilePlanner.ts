@@ -1662,12 +1662,12 @@ class FilePlanner {
       IAssignmentSyntax,
       { operation: string; cnxType: string } | null
     >();
+    const typing = this.state.typingContext();
     for (const site of FilePlanner.assignmentSites(program)) {
       compound.set(site, null);
       if (site.operator === "<-") continue;
       const clamp = AssignmentClassifier.clampOfWrite(
-        this.targetDeclaration(site.target),
-        AssignmentTarget.parts(site.target).ops.length === 0,
+        OperandTyper.writtenType(site.target, typing),
         site.operator,
         () => site.value.kind !== "missing" && this.hasFloatingLeaf(site.value),
       );

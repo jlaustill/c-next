@@ -10,7 +10,7 @@ import SubscriptDepthValidator from "./SubscriptDepthValidator";
 import TTypeInfo from "../../types/TTypeInfo";
 import type TOverflowBehavior from "../../types/TOverflowBehavior";
 import type IChainBase from "../../types/IChainBase";
-import type IChainStep from "../../types/IChainStep";
+import type IOperandType from "../../types/IOperandType";
 import OperandTyper from "../../utils/OperandTyper";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
 import QualifiedCName from "../../utils/QualifiedCName";
@@ -816,19 +816,22 @@ class AssignmentClassifier {
 
   /**
    * 2.2's one decision behind `compoundClamp`: the helper a compound `cOp`
-   * write to `target` calls, from the type the write stores
+   * write calls, from the type the write stores -- the typer's
+   * `OperandTyper.writtenType`, which the string copy reads too (#1731 review).
+   * A field (`p.x`) or an element (`levels[1]`) carries its own overflow
+   * behavior (#1411, #1887), and a whole array is no clampable integer.
    */
   static clampOfWrite(
-    target: IChainBase,
-    isSimple: boolean,
+    written: IOperandType | null,
     cnextOp: string,
     hasFloatingOperand: () => boolean,
   ): { operation: string; cnxType: string } | null {
-    const written = AssignmentClassifier.writtenValue(target, isSimple);
-    if (written === null) return null;
+    if (written?.typeName == null || written.dimensions.length > 0) {
+      return null;
+    }
     return AssignmentClassifier.clampOf(
-      written.baseType,
-      written.overflowBehavior,
+      written.typeName,
+      written.overflow,
       cnextOp,
       hasFloatingOperand,
     );
@@ -848,44 +851,6 @@ class AssignmentClassifier {
     const operation =
       operator === null ? undefined : CLAMP_HELPER_FOR_OPERATOR[operator];
     return operation ? { operation, cnxType: baseType } : null;
-  }
-
-  /**
-   * What a target writes, read once for every rule that asks.
-   * #1411/#1887: a field (`p.x`) or an element (`levels[1]`) is written as
-   * much as a variable is, so a chain's is the typer's last step. A target
-   * with no step is the variable itself, and only `x`, `this.x` and
-   * `global.x` name one -- so that fallback reads `typeInfo` only when
-   * `isSimple`, whatever left the chain untyped (#1731 review).
-   */
-  private static writtenStep(
-    target: IChainBase,
-    isSimple: boolean,
-  ): { step: IChainStep } | { variable: TTypeInfo } | null {
-    if (target.last !== undefined) return { step: target.last };
-    const typeInfo = isSimple ? target.typeInfo : undefined;
-    return typeInfo === undefined ? null : { variable: typeInfo };
-  }
-
-  /**
-   * What the target writes, for ADR-044: its type and declared behavior --
-   * the field's own modifier, the element's array's, or the variable's.
-   */
-  private static writtenValue(
-    target: IChainBase,
-    isSimple: boolean,
-  ): { baseType: string; overflowBehavior: TOverflowBehavior | null } | null {
-    const written = AssignmentClassifier.writtenStep(target, isSimple);
-    if (written === null) return null;
-    if ("variable" in written) {
-      return {
-        baseType: written.variable.baseType,
-        overflowBehavior: written.variable.overflowBehavior ?? null,
-      };
-    }
-    const after = written.step.after;
-    if (after?.typeName == null || after.dimensions.length > 0) return null;
-    return { baseType: after.typeName, overflowBehavior: after.overflow };
   }
 
   /** Whether a chain's root is a variable of a known struct type */

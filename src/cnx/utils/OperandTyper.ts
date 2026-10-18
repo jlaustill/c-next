@@ -480,21 +480,50 @@ class OperandTyper {
    * header is never handed a copy 2.1 let through.
    */
   static wholeStringCapacity(step: IChainStep): number | null {
-    const writesWhole =
-      step.subscript === null || step.subscript === "array_element";
-    return writesWhole ? OperandTyper.scalarStringCapacity(step.after) : null;
+    return OperandTyper.wholeCapacityOf(step.after, step.subscript);
   }
 
-  /** `wholeStringCapacity` of an assignment target; with no step, the root is what it writes */
+  /** `wholeStringCapacity` of what an assignment target writes */
   static stringCopyCapacity(
     target: TExpression,
     ctx: ITypingContext,
   ): number | null {
+    const { written, subscript } = OperandTyper.writtenBy(target, ctx);
+    return OperandTyper.wholeCapacityOf(written, subscript);
+  }
+
+  /**
+   * The type an assignment target writes, which ADR-044's clamp and the
+   * string copy both decide from (#1731 review)
+   */
+  static writtenType(
+    target: TExpression,
+    ctx: ITypingContext,
+  ): IOperandType | null {
+    return OperandTyper.writtenBy(target, ctx).written;
+  }
+
+  /**
+   * What a target writes and through which subscript: its last step's, or with
+   * no step the root itself -- `x`, `this.x` or `global.x`
+   */
+  private static writtenBy(
+    target: TExpression,
+    ctx: ITypingContext,
+  ): { written: IOperandType | null; subscript: TSubscriptKind | null } {
     const walked = OperandTyper.walkChain(target, ctx);
     const step = walked.typing.steps.at(-1);
     return step === undefined
-      ? OperandTyper.scalarStringCapacity(walked.last)
-      : OperandTyper.wholeStringCapacity(step);
+      ? { written: walked.last, subscript: null }
+      : { written: step.after, subscript: step.subscript };
+  }
+
+  private static wholeCapacityOf(
+    written: IOperandType | null,
+    subscript: TSubscriptKind | null,
+  ): number | null {
+    const writesWhole = subscript === null || subscript === "array_element";
+    return writesWhole ? OperandTyper.scalarStringCapacity(written) : null;
   }
 
   static isString(t: IOperandType | null): boolean {

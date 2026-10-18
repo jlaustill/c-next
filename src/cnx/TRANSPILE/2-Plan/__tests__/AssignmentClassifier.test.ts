@@ -78,17 +78,9 @@ function createMockContext(
   } as IAssignmentContext;
   // #1668 (C7): what the target writes, as the binder would bind it
   const target = overrides.target ?? HandlerTestUtils.targetOf(state, ctx);
-  // #1991: 2.2's clamp decision, made by the call 2.2 makes
   const plannedClamp =
     overrides.plannedClamp === undefined
-      ? AssignmentClassifier.clampOfWrite(
-          target,
-          ctx.isSimpleIdentifier ||
-            ctx.isSimpleThisAccess ||
-            ctx.isSimpleGlobalAccess,
-          ctx.cnextOp,
-          ctx.valueHasFloatingOperand,
-        )
+      ? HandlerTestUtils.plannedClampOf(ctx, target)
       : overrides.plannedClamp;
   return withPlannedCopy({ ...ctx, target, plannedClamp }, overrides);
 }
@@ -527,31 +519,21 @@ describe("AssignmentClassifier - Special Compound", () => {
     );
   });
 
-  it("reads an untyped chain's variable only for x, this.x and global.x", () => {
-    // #1731 review: with no typed step, the variable's own type is what is
-    // written only when the target names the variable (`writtenStep`)
-    declare(
-      "saturated",
-      createTypeInfo({
-        baseType: "u8",
-        overflowBehavior: "clamp",
-      }),
-    );
-    const compound = {
-      identifiers: ["saturated"],
-      isCompound: true,
-      cOp: "+=",
-      cnextOp: "+<-",
+  it("clamps what the typer says the target writes (#1731 review)", () => {
+    // 2.2 hands `clampOfWrite` the typer's written type, the same one the
+    // string copy reads -- a whole array and an untyped target write no
+    // clampable integer
+    const u8 = {
+      ...HandlerTestUtils.operandOf("u8", true, false),
+      overflow: "clamp" as const,
     };
+    const clampOf = (written: IOperandType | null) =>
+      AssignmentClassifier.clampOfWrite(written, "+<-", () => false);
 
-    expect(
-      createMockContext(state, { ...compound, isSimpleIdentifier: true })
-        .plannedClamp,
-    ).not.toBeNull();
-    expect(
-      createMockContext(state, { ...compound, isSimpleIdentifier: false })
-        .plannedClamp,
-    ).toBeNull();
+    expect(clampOf(u8)).toEqual({ operation: "add", cnxType: "u8" });
+    expect(clampOf({ ...u8, dimensions: [4] })).toBeNull();
+    expect(clampOf({ ...u8, overflow: "wrap" })).toBeNull();
+    expect(clampOf(null)).toBeNull();
   });
 
   it("does not classify float as overflow clamp", () => {
