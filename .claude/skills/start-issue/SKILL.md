@@ -40,7 +40,7 @@ EXTRACT the issue number from the user's message ("start on #1234" → 1234).
 IF no number is present or more than one is:
   ASK which issue. Do not guess, and do not pick the largest or most recent.
 
-STORE: ISSUE = <number>, OWNER_REPO = jlaustill/c-next
+STORE: ISSUE = <number>, OWNER_REPO = smeltworks/cnx
 ```
 
 ---
@@ -52,7 +52,7 @@ reflects the work from the moment it starts, not from whenever the reading finis
 
 ```bash
 # Confirm the issue is open and see who, if anyone, already holds it.
-gh api repos/jlaustill/c-next/issues/<ISSUE> \
+gh api repos/smeltworks/cnx/issues/<ISSUE> \
   --jq '{state, assignees: [.assignees[].login], title}'
 ```
 
@@ -74,13 +74,13 @@ gh issue edit <ISSUE> --add-assignee jlaustill
 
 # Fallback — `gh issue` subcommands are unreliable in this repo (CLAUDE.md).
 # Use the REST endpoint if the above fails:
-gh api -X POST repos/jlaustill/c-next/issues/<ISSUE>/assignees \
+gh api -X POST repos/smeltworks/cnx/issues/<ISSUE>/assignees \
   -f "assignees[]=jlaustill"
 ```
 
 ```bash
 # Confirm the write landed before waiting on anything downstream.
-gh api repos/jlaustill/c-next/issues/<ISSUE> --jq '[.assignees[].login] | join(",")'
+gh api repos/smeltworks/cnx/issues/<ISSUE> --jq '[.assignees[].login] | join(",")'
 ```
 
 ---
@@ -97,7 +97,7 @@ Restate"): asserting `WIP` because you assigned is exactly the failure that rule
 # --paginate is REQUIRED: the board is past 200 items and items(first: 100)
 # truncates silently, which reads as "not on the board".
 deadline=$((SECONDS+300))
-q='query($endCursor: String) { user(login: "jlaustill") { projectV2(number: 1) {
+q='query($endCursor: String) { organization(login: "smeltworks") { projectV2(number: 1) {
   items(first: 100, after: $endCursor) {
     pageInfo { hasNextPage endCursor }
     nodes {
@@ -108,7 +108,7 @@ q='query($endCursor: String) { user(login: "jlaustill") { projectV2(number: 1) {
     } } } } }'
 while [ $SECONDS -lt $deadline ]; do
   s=$(gh api graphql --paginate -f query="$q" \
-    --jq '.data.user.projectV2.items.nodes[]
+    --jq '.data.organization.projectV2.items.nodes[]
           | select(.content.number == <ISSUE>)
           | [.fieldValues.nodes[]|select(.field.name=="Status")|.name][0] // "unset"' \
     2>/dev/null | head -1)
@@ -138,8 +138,9 @@ INTERPRET the final status. Three outcomes, and they are NOT the same:
   unset | Grooming | Backlog | <not on board>, after the timeout
     → The automation FAILED. Report it as a failure and STOP.
       Likely causes, in order:
-        - PROJECT_TOKEN expired. It is a classic PAT with the `project` scope;
-          GITHUB_TOKEN cannot write Projects v2.
+        - The smeltworks board GitHub App cannot mint its token: it is not
+          installed on the organization, or BOARD_APP_ID / BOARD_APP_PRIVATE_KEY
+          is missing (#2189). GITHUB_TOKEN cannot write Projects v2.
         - The workflow run errored. Check it:
               gh run list --workflow=project-sync.yml --limit 5
               gh run view <id> --log-failed
@@ -161,7 +162,7 @@ a guard the other one has.
 ```bash
 # The issue's built-in "Blocked by" relationship (#1893). The board's free-text
 # `Blocked by` field is retired; nothing reads or writes it.
-gh api --paginate 'repos/jlaustill/c-next/issues/<ISSUE>/dependencies/blocked_by?per_page=100' \
+gh api --paginate 'repos/smeltworks/cnx/issues/<ISSUE>/dependencies/blocked_by?per_page=100' \
   --jq '.[] | "#\(.number) \(.state)"'
 ```
 
@@ -203,13 +204,13 @@ IF commits reference this issue:
 
 ```bash
 # gh issue view may fail in this repo — use the API directly (CLAUDE.md).
-gh api repos/jlaustill/c-next/issues/<ISSUE> \
+gh api repos/smeltworks/cnx/issues/<ISSUE> \
   --jq '{title, body, labels: [.labels[].name], milestone: .milestone.title, created_at, state}'
 
 # --paginate is REQUIRED. This endpoint pages at 30 and returns comments
 # ASCENDING by creation, so the tail that drops is the NEWEST — the half of the
 # history that says what the card looks like today (#1416).
-gh api --paginate 'repos/jlaustill/c-next/issues/<ISSUE>/comments?per_page=100' \
+gh api --paginate 'repos/smeltworks/cnx/issues/<ISSUE>/comments?per_page=100' \
   --jq '.[] | {author: .user.login, created: .created_at, body}'
 ```
 
@@ -313,8 +314,8 @@ has been committed yet:
      takes the blocker's numeric id, not its number. A blocker that is not an issue yet
      (a pending decision) is filed as one first, so there is something to link.
 
-       gh api -X POST repos/jlaustill/c-next/issues/<ISSUE>/dependencies/blocked_by \
-         -F issue_id="$(gh api repos/jlaustill/c-next/issues/<BLOCKER> --jq .id)"
+       gh api -X POST repos/smeltworks/cnx/issues/<ISSUE>/dependencies/blocked_by \
+         -F issue_id="$(gh api repos/smeltworks/cnx/issues/<BLOCKER> --jq .id)"
 
      THEN re-read Phase 3's query and report the list it returned — not the POST's success.
 
