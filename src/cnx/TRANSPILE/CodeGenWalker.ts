@@ -3189,6 +3189,12 @@ class CodeGenWalker {
    * bound at the declaration itself.
    */
   private planForVarDecl(decl: IVariableDeclarationSyntax): IPlannedForVarDecl {
+    invariant(
+      decl.dimensions.length === 0 &&
+        decl.type.kind !== "array" &&
+        decl.type.kind !== "string",
+      "1.2 rejects an array or a string declared in a for header (E0917)",
+    );
     // Issue #696: Use shared modifier builder
     const modifiers = VariableModifierBuilder.buildSimple(decl.modifiers);
     // #1484: a `for` init declares a variable like any other, including one

@@ -205,9 +205,6 @@ const generateForVarDecl = (
 
   let result = `${plan.const}${plan.atomic}${plan.volatile}${plan.typeName} ${name}`;
 
-  // ADR-036: a `for` variable is a scalar; 1.2 rejects an array or a string
-  // here (E0917, #1823), so no dimensions reach this.
-
   // Handle initialization
   if (plan.renderInitializer) {
     // #1277: a `for` header declares a variable like any other, so its

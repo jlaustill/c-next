@@ -199,7 +199,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | -      | -          | n/a         | n/a        |
 | scope member       | ok        | -      | -          | n/a         | n/a        |
 | scope method       | ok        | -      | -          | n/a         | n/a        |
-| for header         | ok        | -      | -          | n/a         | n/a        |
+| for header         | -         | -      | -          | n/a         | n/a        |
 
 ## ADR-023
 
@@ -219,7 +219,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | ok        | -      | -          | n/a         | n/a        |
+| for header         | -         | -      | -          | n/a         | n/a        |
 
 14 linked fixtures with no derivable context:
 
@@ -453,7 +453,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | ok        | -      | -          | n/a         | n/a        |
+| for header         | -         | -      | -          | n/a         | n/a        |
 
 15 linked fixtures with no derivable context:
 
@@ -505,7 +505,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | -         | -      | -          | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
-| for header         | ok        | -      | -          | n/a         | n/a        |
+| for header         | -         | -      | -          | n/a         | n/a        |
 
 1 linked fixture with no derivable context:
 
