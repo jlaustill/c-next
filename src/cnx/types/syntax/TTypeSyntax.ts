@@ -1,3 +1,4 @@
+import type ISourceSpan from "../ISourceSpan";
 import type ISyntaxNode from "./ISyntaxNode";
 import type TExpression from "./TExpression";
 import type TTemplateArgumentSyntax from "./TTemplateArgumentSyntax";
@@ -38,6 +39,8 @@ type TTypeSyntax = ISyntaxNode & { readonly text: string } & (
         readonly element: TTypeSyntax;
         /** One per `[...]`; null for an unsized `[]` */
         readonly dimensions: ReadonlyArray<TExpression | null>;
+        /** Where each `[...]` is written, one per dimension, so an unsized `[]` has a position too (#2073) */
+        readonly dimensionSpans: readonly ISourceSpan[];
       }
     | { readonly kind: "void" }
     /** Where the parser recovered from an error; see `TExpression`'s */

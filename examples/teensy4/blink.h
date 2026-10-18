@@ -6,6 +6,7 @@
  * Header file for cross-language interoperability
  */
 
+#include <Arduino.h>
 #include <stdint.h>
 #include <stdbool.h>
 
