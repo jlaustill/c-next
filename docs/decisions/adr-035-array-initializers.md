@@ -237,7 +237,7 @@ as a declaration's initializer is (struct elements designated, and a top-level
 fill-all expanded where the size folds; a fill-all row (#2110) is not yet
 expanded), and the temporary is copied element by element. A fill-all other
 than `[0*]` needs a size C-Next can fold: C has no initializer that repeats a
-value for a size it is not told, so `u8[NDIM] a <- [5*]` with `NDIM` a C macro
+value for a size it is not told, so `u8[SIZE] a <- [5*]` with `SIZE` a C macro
 had set only `a[0]`. It is E0866 at a declaration, an assignment target, a field
 and an argument (#2196); `[0*]` zero-fills any size. Every element is
 read before any is written, so `pair <- [pair[1], pair[0]]` swaps. A target
