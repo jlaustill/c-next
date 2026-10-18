@@ -54,6 +54,7 @@ import type TBlockSyntax from "../../types/syntax/TBlockSyntax";
 import AssignmentTarget from "../../utils/AssignmentTarget";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
 import ExpressionShape from "../../utils/ExpressionShape";
+import MutArgument from "../1-Analyze/helpers/MutArgument";
 import SafeDivision from "../../utils/SafeDivision";
 import StatementNodes from "../../utils/StatementNodes";
 import RegisterAccessMode from "../../utils/RegisterAccessMode";
@@ -75,6 +76,7 @@ import UNRESOLVED_DIMENSION from "../../types/UNRESOLVED_DIMENSION";
 import dimensionEvalOptions from "./dimensionEvalOptions";
 import CallArgumentPassing from "./CallArgumentPassing";
 import type IArgumentPassing from "./types/IArgumentPassing";
+import type TArgumentForm from "./types/TArgumentForm";
 import CppMemberHelper from "./CppMemberHelper";
 import IPostfixOp from "../../types/IPostfixOp";
 import CppConstructorHelper from "../../utils/CppConstructorHelper";
@@ -1077,7 +1079,9 @@ class FilePlanner {
     const call = site.call.ops[site.op];
     invariant(call?.kind === "call", "an argument site names a call");
     return passing.mode === "reference" &&
-      this.getLvalueType(call.arguments[site.argument]) !== null
+      this.getLvalueType(
+        ExpressionShape.unparenthesized(call.arguments[site.argument]),
+      ) !== null
       ? null
       : base;
   }
@@ -1114,27 +1118,27 @@ class FilePlanner {
     expression: TExpression,
     param: IArgumentPassing["param"],
   ): TCArgumentForm {
-    const id = ExpressionShape.simpleIdentifier(expression);
-    const declared = this.nameTypeOf(expression);
+    const object = ExpressionShape.unparenthesized(expression);
+    const id = ExpressionShape.simpleIdentifier(object);
+    const declared = this.nameTypeOf(object);
     const parameter =
       id === null
         ? undefined
-        : this.parameterAt(id, FilePlanner.positionOf(expression));
+        : this.parameterAt(id, FilePlanner.positionOf(object));
     return CArgumentAddress.formOf(
       {
         param,
-        addressWritten:
-          expression.kind === "unary" && expression.operator === "&",
+        addressWritten: object.kind === "unary" && object.operator === "&",
         promotedHandle: parameter?.forcePointerSemantics ?? false,
         argType:
-          this.directTypeOf(expression) ??
+          this.directTypeOf(object) ??
           declared?.baseType ??
           this.foreignVariableType(id),
         declared,
         isArray: OperandTyper.decaysToPointer(
-          OperandTyper.typeOf(expression, this.state.typingContext()),
+          OperandTyper.typeOf(object, this.state.typingContext()),
         ),
-        isHandleArrayElement: this.isHandleArrayElement(expression),
+        isHandleArrayElement: this.isHandleArrayElement(object),
       },
       this.queries,
     );
@@ -1216,12 +1220,7 @@ class FilePlanner {
       const base = passing.param?.baseType;
       const form =
         passing.mode === "reference"
-          ? ArgumentForm.of(
-              this.boundArgumentName(expression) !== null,
-              base,
-              this.argumentShape(expression),
-              this.state.cppMode,
-            )
+          ? this.referenceForm(expression, passing)
           : null;
       const enumCast =
         passing.mode === "reference"
@@ -1240,6 +1239,30 @@ class FilePlanner {
       if (cType !== null) cTypes.add(cType);
     }
     return planned;
+  }
+
+  /**
+   * A by-reference argument's form. A `mut` parameter's argument is an object
+   * 2.1 accepted (E0915), so it is never passed as a temporary.
+   */
+  private referenceForm(
+    expression: TExpression,
+    passing: IArgumentPassing,
+  ): TArgumentForm {
+    const object = ExpressionShape.unparenthesized(expression);
+    const form = ArgumentForm.of(
+      this.boundArgumentName(object) !== null,
+      passing.param?.baseType,
+      this.argumentShape(object),
+      this.state.cppMode,
+    );
+    invariant(
+      passing.param?.isConst !== false ||
+        (MutArgument.isWritable(expression, this.state.typingContext()) &&
+          form.kind !== "rvalue"),
+      "2.1 rejected every `mut` argument that is not an object (ADR-006, E0915)",
+    );
+    return form;
   }
 
   private planExpectedTypes(

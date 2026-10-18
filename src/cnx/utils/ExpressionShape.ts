@@ -35,6 +35,17 @@ class ExpressionShape {
   }
 
   /**
+   * What a bracketed expression holds, through any number of brackets:
+   * `((cfg.total))` is `cfg.total`. The held node itself, so a plan keyed by
+   * that node still finds it (#1203 review).
+   */
+  static unparenthesized(expr: TExpression): TExpression {
+    return expr.kind === "parenthesized"
+      ? ExpressionShape.unparenthesized(expr.expression)
+      : expr;
+  }
+
+  /**
    * The name an expression IS -- a bare identifier, no member, subscript or
    * call -- or null. The call-argument plan and SafeDivision/ConstAssignment
    * ask this one function (#1445, #1932).

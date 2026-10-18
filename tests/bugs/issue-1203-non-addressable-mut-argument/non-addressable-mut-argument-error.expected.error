@@ -1,0 +1,28 @@
+66:13 error[E0915]: cannot pass '500' to `mut` parameter 'value' of function 'modifies': it is not a variable, so the write would be lost
+       help: A `mut` parameter writes its argument (ADR-006); assign the value to a `mut` variable and pass that.
+67:13 error[E0915]: cannot pass 'platformMillis()' to `mut` parameter 'value' of function 'modifies': it is not a variable, so the write would be lost
+       help: A `mut` parameter writes its argument (ADR-006); assign the value to a `mut` variable and pass that.
+68:13 error[E0915]: cannot pass 'a + 1' to `mut` parameter 'value' of function 'modifies': it is not a variable, so the write would be lost
+       help: A `mut` parameter writes its argument (ADR-006); assign the value to a `mut` variable and pass that.
+69:13 error[E0915]: cannot pass '(u32)a' to `mut` parameter 'value' of function 'modifies': it is not a variable, so the write would be lost
+       help: A `mut` parameter writes its argument (ADR-006); assign the value to a `mut` variable and pass that.
+70:13 error[E0915]: cannot pass '(a > 0) ? a : 0' to `mut` parameter 'value' of function 'modifies': it is not a variable, so the write would be lost
+       help: A `mut` parameter writes its argument (ADR-006); assign the value to a `mut` variable and pass that.
+71:10 error[E0915]: cannot pass '{ total: 0 }' to `mut` parameter 'c' of function 'touch': it is not a variable, so the write would be lost
+       help: A `mut` parameter writes its argument (ADR-006); assign the value to a `mut` variable and pass that.
+72:10 error[E0915]: cannot pass 'EColor.RED' to `mut` parameter 'c' of function 'paint': it is not a variable, so the write would be lost
+       help: A `mut` parameter writes its argument (ADR-006); assign the value to a `mut` variable and pass that.
+73:12 error[E0915]: cannot pass 'a[3]' to `mut` parameter 'b' of function 'setFlag': it is not a variable, so the write would be lost
+       help: A `mut` parameter writes its argument (ADR-006); assign the value to a `mut` variable and pass that.
+76:12 error[E0915]: cannot pass 'otherHandler' to `mut` parameter 'cb' of function 'install': it is not a variable, so the write would be lost
+       help: A `mut` parameter writes its argument (ADR-006); assign the value to a `mut` variable and pass that.
+80:9 error[E0915]: cannot pass '5' to `mut` parameter 'v' of function 'h.cb': it is not a variable, so the write would be lost
+       help: A `mut` parameter writes its argument (ADR-006); assign the value to a `mut` variable and pass that.
+84:13 error[E0915]: cannot pass 'lens.type_element_count' to `mut` parameter 'value' of function 'modifies': it is not a variable, so the write would be lost
+       help: A `mut` parameter writes its argument (ADR-006); assign the value to a `mut` variable and pass that.
+85:13 error[E0915]: cannot pass 'name.value_char_count' to `mut` parameter 'value' of function 'modifies': it is not a variable, so the write would be lost
+       help: A `mut` parameter writes its argument (ADR-006); assign the value to a `mut` variable and pass that.
+86:13 error[E0915]: cannot pass 'a.type_bit_length' to `mut` parameter 'value' of function 'modifies': it is not a variable, so the write would be lost
+       help: A `mut` parameter writes its argument (ADR-006); assign the value to a `mut` variable and pass that.
+87:13 error[E0915]: cannot pass '(a).type_bit_length' to `mut` parameter 'value' of function 'modifies': it is not a variable, so the write would be lost
+       help: A `mut` parameter writes its argument (ADR-006); assign the value to a `mut` variable and pass that.

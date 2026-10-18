@@ -1,0 +1,23 @@
+// test-error
+// test-adr: 006
+// ADR-006: a global variable's and a scope member's initializer can call a
+// function, so a literal passed there to a `mut` parameter gets E0915 too --
+// matrix cells: global variable and scope member, same file (#1203
+// review). CONTROL: a `mut` global passed there stays silent.
+
+u32 take(mut u32 value) {
+    value +<- 1;
+    return value;
+}
+
+u32 sameFileGlobal <- take(5);
+mut u32 source <- 1;
+u32 fromSource <- take(source);
+
+scope Holder {
+    u32 sameFileMember <- take(7);
+
+    public u32 total() {
+        return this.sameFileMember;
+    }
+}

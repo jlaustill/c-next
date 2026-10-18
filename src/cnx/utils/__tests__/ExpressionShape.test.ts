@@ -62,6 +62,26 @@ describe("ExpressionShape", () => {
     });
   });
 
+  // #1203 review: only the bracketed node itself is seen through; a chain
+  // keeps its own nodes, so 2.2's plans keyed by them still find them
+  describe("unparenthesized", () => {
+    it.each([
+      ["(myVar)", "identifier"],
+      ["((cfg.total))", "postfix"],
+      ["(arr[0])", "postfix"],
+      ["(a + b)", "binary"],
+      ["myVar", "identifier"],
+    ])("%s holds a %s", (source, kind) => {
+      expect(ExpressionShape.unparenthesized(lowered(source)).kind).toBe(kind);
+    });
+
+    it("leaves a bracketed chain to postfixView as its own primary", () => {
+      const view = ExpressionShape.postfixView(lowered("(cfg.total)"));
+      expect(view?.primary.kind).toBe("parenthesized");
+      expect(view?.ops).toEqual([]);
+    });
+  });
+
   describe("rootName", () => {
     it.each([
       ["myVar", "myVar"],

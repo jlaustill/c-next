@@ -1,0 +1,21 @@
+// test-execution
+// test-adr: 006
+// A C function's pointer parameter writes its argument, bracketed or not:
+// `cfill((x))` is `cfill(&(x))` (#1203 review). Before the fix C wrote
+// `cfill((x))`, an integer where gcc expects a pointer.
+
+#include "c-fill.h"
+
+u32 main() {
+    mut u32 x <- 0;
+    cfill((x));
+    if (x != 7) {
+        return 1;
+    }
+    mut u32 y <- 0;
+    cfill(((y)));
+    if (y != 7) {
+        return 2;
+    }
+    return 0;
+}

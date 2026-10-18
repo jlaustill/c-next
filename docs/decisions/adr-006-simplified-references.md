@@ -343,14 +343,19 @@ If the compiler can prove the original isn't read after the call, it can optimiz
 
 ### The Constraint
 
-Because all function parameters are passed by reference, **you cannot pass literals directly to functions**:
+A `mut` parameter is passed by reference, so **you cannot pass a literal to a
+`mut` parameter** (E0915) -- there is no variable for the write to land in:
 
 ```
-LED_init(13);        // ERROR: Cannot take address of literal
-Timing_delay(500);   // ERROR: Cannot take address of literal
+void LED_toggle(mut u8 pin);
+LED_toggle(13);      // ERROR E0915: a `mut` parameter needs a variable to write
 ```
 
-This is not a limitation — it's an **intentional enforcement of best practices**.
+A read-only parameter is passed by value (ADR-071), so a literal loses nothing
+and is valid there: `Timing_delay(500)` compiles to `Timing_delay(500U)`
+(ruling on #1203). Named values are still the recommended style for read-only
+arguments, for the reasons below; the compiler enforces it only where a write
+would be lost.
 
 ### Why Magic Numbers Are Harmful
 
@@ -418,14 +423,52 @@ register GPIOB @ GPIOB_BASE; // Works: #define for address literal
 
 `#define` is **text replacement** — it's not a value, it's a macro. Treating it as a value conflates two different concepts. The "icky" feeling of `LED_init(13)` (after macro expansion of `LED_init(LED_PIN)`) reflects this conceptual mismatch.
 
-By enforcing that all function arguments must be addressable values, C-Next creates a **"pit of success"** where the easy path is the correct path:
+By enforcing that every argument to a `mut` parameter must be an addressable value, C-Next creates a **"pit of success"** where the easy path is the correct path:
 
 1. **Configuration is centralized** — all hardware constants in one place
 2. **Code is self-documenting** — `LED_init(LED_PIN)` explains intent
 3. **Maintenance is easier** — change one definition, not 50 call sites
-4. **Reviews are simpler** — magic numbers in function calls become obvious errors
+4. **Reviews are simpler** — a magic number passed to a `mut` parameter becomes an obvious error (E0915)
 
 ---
+
+## Enforcement: E0915 (#1203)
+
+A `mut` parameter's argument must be an object the callee can write: a
+variable, a field or an element, through any brackets (`(a)`, `(cfg.total)`,
+`(cfg).total`). Anything else -- a literal, a call's, an operator's or a
+ternary's result, a cast, a struct or array literal, an enum member, a bit
+index or range, a function's name, or a header's `#define` or enum constant --
+is E0915: C would take the write into a temporary and lose it, or not compile.
+Passing a read-only binding to a `mut` parameter stays E0900 (ADR-071).
+
+## Scope-Context Matrix (#1219)
+
+Severity follows the eslint model: `off` records that a cell **cannot exist**,
+`warn` that it should be covered and is not, `error` that it must be.
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
+
+The rule is about a call's argument, so every place a call can be written can
+break it: a function or scope method body, and a global variable's or scope
+member's initializer (`u32 g <- take(5);`). A callee one or two `#include`
+hops away is the same `mut` parameter. Every cell is `error`, with a fixture
+under `tests/bugs/issue-1203-non-addressable-mut-argument/`.
 
 ## Open Questions
 
