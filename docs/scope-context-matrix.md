@@ -421,6 +421,11 @@ cell is declared by the ADR that owns it.
 | scope method       | warn      | -      | -          | n/a         | n/a        |
 | for header         | -         | -      | -          | n/a         | n/a        |
 
+2 linked fixtures with no derivable context:
+
+- `atomic/atomic-bit-writes-avr.test.cnx`
+- `atomic/atomic-bit-writes-cortex-m.test.cnx`
+
 ## ADR-050
 
 | Context            | same file | direct | transitive | from 1 away | thru chain |

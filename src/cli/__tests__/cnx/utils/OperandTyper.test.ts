@@ -884,7 +884,12 @@ scope Drive {
         "Drive__PWM__FLAGS",
         "Drive__PWM",
       ],
-      ["this.", "this.PWM.FLAGS[0] <- true;", "Drive__PWM__FLAGS", "Drive__PWM"],
+      [
+        "this.",
+        "this.PWM.FLAGS[0] <- true;",
+        "Drive__PWM__FLAGS",
+        "Drive__PWM",
+      ],
       [
         "the scope's name",
         "Drive.PWM.FLAGS[0] <- true;",

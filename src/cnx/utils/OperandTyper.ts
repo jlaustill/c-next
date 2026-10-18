@@ -310,7 +310,9 @@ class OperandTyper {
         beforeNamesType: current.k === "type" || current.k === "enumType",
         beforeIsBitField: bitField,
         beforeRegisterMember:
-          current.k === "value" ? (current.registerMember?.cName ?? null) : null,
+          current.k === "value"
+            ? (current.registerMember?.cName ?? null)
+            : null,
         beforeRegister:
           current.k === "value"
             ? (current.registerMember?.register ?? null)
@@ -1397,9 +1399,9 @@ class OperandTyper {
         return {
           k: "value",
           registerMember: {
-              register: current.name,
-              cName: QualifiedCName.fromParts([current.name, member]),
-            },
+            register: current.name,
+            cName: QualifiedCName.fromParts([current.name, member]),
+          },
           t,
         };
       }

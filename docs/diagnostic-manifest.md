@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-649 fixture(s) assert a diagnostic; 639 carry a code.
+650 fixture(s) assert a diagnostic; 640 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -575,6 +575,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-2019-header-unclosed-name/concatenation-self.test.cnx                           | E0427               |
 | tests/bugs/issue-2019-header-unclosed-name/self-local.test.cnx                                   | E0427               |
 | tests/bugs/issue-2019-header-unclosed-name/substring-self.test.cnx                               | E0427               |
+| tests/bugs/issue-2027-register-field-zero/register-field-zero.test.cnx                           | E0872               |
 | tests/bugs/issue-2046-duplicate-case-value/duplicate-by-value.test.cnx                           | E0713               |
 | tests/bugs/issue-2051-case-label-not-constant/case-label-not-constant.test.cnx                   | E0717               |
 | tests/bugs/issue-2073-for-header-forms/for-header-forms-cpp-error.test.cnx                       | E0917               |

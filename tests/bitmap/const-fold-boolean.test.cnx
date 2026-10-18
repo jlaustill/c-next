@@ -26,11 +26,19 @@ u32 main() {
         return 2;
     }
 
-    // Variable (should keep ternary)
+    // A const (non-mut is const) folds by its value, as a literal does
     bool val <- true;
     f.bit2 <- val;
     if (f.bit2 != true) {
         return 3;
+    }
+
+    // A variable keeps the ternary
+    mut bool live <- false;
+    live <- f.bit0;
+    f.bit3 <- live;
+    if (f.bit3 != true) {
+        return 4;
     }
 
     return 0;

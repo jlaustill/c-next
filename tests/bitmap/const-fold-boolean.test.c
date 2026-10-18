@@ -21,9 +21,15 @@ int main(void) {
         return 2U;
     }
     const bool val = true;
-    f = (uint8_t)((f & ~(1U << 2)) | ((val ? 1U : 0U) << 2));
+    f = (uint8_t)((f & ~(1U << 2)) | (1U << 2));
     if (((f >> 2) & 1) != true) {
         return 3U;
+    }
+    bool live = false;
+    live = ((((f >> 0) & 1)) != 0U);
+    f = (uint8_t)((f & ~(1U << 3)) | ((live ? 1U : 0U) << 3));
+    if (((f >> 3) & 1) != true) {
+        return 4U;
     }
     return 0U;
 }

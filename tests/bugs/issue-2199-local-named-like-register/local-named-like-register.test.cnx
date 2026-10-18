@@ -17,7 +17,7 @@ struct Shadow {
 }
 
 u8 viaLocal() {
-    mut Shadow MOTOR <- {FLAGS: 0, CONFIG: 0};
+    mut Shadow MOTOR <- { FLAGS: 0, CONFIG: 0 };
     MOTOR.CONFIG <- 7;
     MOTOR.FLAGS[0] <- true;
     MOTOR.CONFIG[4, 2] <- 3;
@@ -36,7 +36,7 @@ u32 main() {
     if (local != 56) {
         return 1;
     }
-    mut Shadow s <- {FLAGS: 0, CONFIG: 0};
+    mut Shadow s <- { FLAGS: 0, CONFIG: 0 };
     viaParam(s);
     if (s.CONFIG != 55) {
         return 2;
