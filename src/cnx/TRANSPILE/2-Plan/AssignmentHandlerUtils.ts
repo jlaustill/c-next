@@ -103,7 +103,13 @@ function writeBits(ctx: IAssignmentContext): string {
   );
   const storage = BitUtils.storageOf(value);
   return width === undefined
-    ? BitUtils.singleBitWrite(base, start, ctx.generatedValue, storage)
+    ? BitUtils.singleBitWrite(
+        base,
+        start,
+        ctx.generatedValue,
+        storage,
+        ctx.foldValue(),
+      )
     : BitUtils.multiBitWrite(base, start, width, ctx.generatedValue, storage);
 }
 

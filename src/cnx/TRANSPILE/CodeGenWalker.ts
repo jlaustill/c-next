@@ -940,8 +940,12 @@ class CodeGenWalker {
         ? this.host.state.parameterBindingAt(identifier, parts.position)
         : undefined;
     if (!hasGlobal && !hasThis && identifier) {
+      // A local named like a global register is the local, as its reads are:
+      // ADR-057 resolves a bare name local-first, writes included (#2199)
       const isKnownRegister =
-        this.host.state.symbols?.knownRegisters.has(identifier);
+        this.host.state.symbols?.knownRegisters.has(identifier) &&
+        this.host.state.bindingAt(null, identifier, parts.position)?.kind !==
+          "local";
       // Issue #1100: Parameters with postfix ops (array/bit subscript, member
       // access) must resolve through the same dereference logic as a bare
       // parameter reference (ParameterDereferenceResolver), not skip it.

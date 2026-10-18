@@ -40,6 +40,7 @@ function writeRegisterBit(ctx: IAssignmentContext, memberName: string): string {
       bitIndex,
       ctx.generatedValue,
       storage,
+      ctx.foldValue(),
     );
   }
 
@@ -48,6 +49,7 @@ function writeRegisterBit(ctx: IAssignmentContext, memberName: string): string {
     bitIndex,
     ctx.generatedValue,
     storage,
+    ctx.foldValue(),
   );
 }
 

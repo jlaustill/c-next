@@ -106,6 +106,7 @@ import FunctionCatalog from "./FunctionCatalog";
 import type TPlanInputs from "../types/TPlanInputs";
 import AdrProvenance from "../../instrumentation/AdrProvenance";
 import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
+import BitmapFieldStep from "../../utils/BitmapFieldStep";
 import QualifiedCName from "../../utils/QualifiedCName";
 import TypeNameLadder from "../../utils/TypeNameLadder";
 import SymbolTypeResolver from "../../utils/TypeResolver";
@@ -1895,12 +1896,10 @@ class FilePlanner {
       StatementNodes.assignments(entry.declaration),
     );
     for (const site of sites) {
-      const parts = AssignmentTarget.parts(site.target);
-      if (parts.identifier === null || parts.ops.at(-1)?.kind !== "member") {
-        continue;
-      }
-      const bitmap = this.targetDeclaration(site.target).last?.before
-        ?.bitmapTypeName;
+      const bitmap = BitmapFieldStep.fieldOf(
+        this.targetDeclaration(site.target).last,
+        symbols.bitmapFields,
+      )?.bitmapType;
       const backing = bitmap
         ? symbols.bitmapBackingType.get(bitmap)
         : undefined;

@@ -51,6 +51,8 @@ import IRegisterMember from "./types/IRegisterMember";
 import IRegisterAccessError from "./types/IRegisterAccessError";
 import ConstantExpression from "./helpers/ConstantExpression";
 import RegisterAccessMode from "../../utils/RegisterAccessMode";
+import BitmapFieldStep from "../../utils/BitmapFieldStep";
+import OperandTyper from "../../utils/OperandTyper";
 import type IAnalysisContext from "./types/IAnalysisContext";
 import SourceOrder from "../../utils/SourceOrder";
 
@@ -102,6 +104,7 @@ class RegisterAccessCheck {
       this.reportRead(found, target);
       return;
     }
+    if (this.reportsZeroField(site)) return;
     // Bit forms: the ops after the member are exactly one subscript.
     const rest = ops.slice(found.consumed - 1);
     if (rest.length !== 1) return;
@@ -119,6 +122,32 @@ class RegisterAccessCheck {
       `Cannot assign ${what} write-only register ${noun} ${found.spelling}[${index}]`,
       "Writing 0 to a write-1 register (`wo`, `w1s`, `w1c`) does not clear the bit -- the hardware ignores zeros, and a spelled-out zero (`0x0`, a const) would have SET it. Use the corresponding CLEAR register to clear bits.",
     );
+  }
+
+  /**
+   * #2027: a field of a write-1 member names bits as `[b]` does, so a zero
+   * written to it is E0872 too. The member and the field are the typer's
+   * step, the ones the write renders through, however the register is spelled.
+   */
+  private reportsZeroField(site: IAssignmentSyntax): boolean {
+    const step = OperandTyper.chainOf(site.target, this.context).steps.at(-1);
+    const field = BitmapFieldStep.fieldOf(
+      step,
+      this.context.symbols.bitmapFields,
+    );
+    const member = step?.beforeRegisterMember ?? null;
+    if (field === null || member === null) return false;
+    const access = this.context.symbols.registerMemberAccess.get(member);
+    if (!RegisterAccessMode.isWriteOne(access)) return true;
+    if (!this.isZero(site.value, site.target)) return true;
+    const single = field.layout.width === 1;
+    this.report(
+      site.target,
+      "E0872",
+      `Cannot assign ${single ? "false" : "0"} to write-only register ${single ? "bit" : "bits"} ${site.target.written}`,
+      "Writing 0 to a write-1 register (`wo`, `w1s`, `w1c`) does not clear the bit -- the hardware ignores zeros, and a spelled-out zero (`0x0`, a const) would have SET it. Use the corresponding CLEAR register to clear bits.",
+    );
+    return true;
   }
 
   // --- Resolution ---------------------------------------------------------

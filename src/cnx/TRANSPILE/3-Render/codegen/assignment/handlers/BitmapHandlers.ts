@@ -49,8 +49,20 @@ function writeBitmapField(
   const value = ctx.generatedValue;
   if (layout.width === 1) {
     return writeOnly
-      ? BitUtils.writeOnlySingleBit(target, layout.offset, value, storage)
-      : BitUtils.singleBitWrite(target, layout.offset, value, storage);
+      ? BitUtils.writeOnlySingleBit(
+          target,
+          layout.offset,
+          value,
+          storage,
+          ctx.foldValue(),
+        )
+      : BitUtils.singleBitWrite(
+          target,
+          layout.offset,
+          value,
+          storage,
+          ctx.foldValue(),
+        );
   }
   return writeOnly
     ? BitUtils.writeOnlyMultiBit(

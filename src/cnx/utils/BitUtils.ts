@@ -65,18 +65,20 @@ class BitUtils {
 
   /**
    * Convert a boolean expression to an unsigned integer (0U or 1U).
-   * Folds a literal (`true`, `false`, `1`, `0`) and generates a ternary for
-   * any other expression.
+   * A compile-time value is folded, however it is spelled (`true`, `0x1`,
+   * `0b0`, a const); any other expression becomes a ternary.
    * Uses unsigned literals for MISRA C:2012 Rule 10.1 compliance.
    *
    * @param expr - The expression to convert
+   * @param folded - The expression's compile-time value, when it has one
    * @returns C code string representing the unsigned integer value
    */
-  static boolToInt(expr: string): string {
-    // A literal is folded: `(1 ? 1U : 0U)` is a controlling expression that is
-    // invariant, MISRA C:2012 Rule 14.3, and one branch of it is dead code
-    if (expr === "true" || expr === "1" || expr === "1U") return "1U";
-    if (expr === "false" || expr === "0" || expr === "0U") return "0U";
+  static boolToInt(expr: string, folded?: number): string {
+    // A constant is folded: `(1 ? 1U : 0U)` is a controlling expression that
+    // is invariant, MISRA C:2012 Rule 14.3, and one branch of it is dead code
+    if (folded !== undefined) return folded === 0 ? "0U" : "1U";
+    if (expr === "true") return "1U";
+    if (expr === "false") return "0U";
     return `(${expr} ? 1U : 0U)`;
   }
 
@@ -118,6 +120,7 @@ class BitUtils {
    * @param offset - Bit position (0-indexed)
    * @param value - Value to write (will be converted via boolToInt)
    * @param storage - The target's C type, when known
+   * @param folded - The value's compile-time value, when it has one
    * @returns C code string for the assignment
    */
   static singleBitWrite(
@@ -125,9 +128,10 @@ class BitUtils {
     offset: string | number,
     value: string,
     storage?: string,
+    folded?: number,
   ): string {
     const one = BitUtils.widen("1U", storage);
-    const bit = BitUtils.widen(BitUtils.boolToInt(value), storage);
+    const bit = BitUtils.widen(BitUtils.boolToInt(value, folded), storage);
     const rhs = `(${target} & ~(${one} << ${offset})) | (${bit} << ${offset})`;
     return BitUtils.assign(target, rhs, storage);
   }
@@ -167,6 +171,7 @@ class BitUtils {
    * @param offset - Bit position (0-indexed)
    * @param value - Value to write (will be converted via boolToInt)
    * @param storage - The target's C type, when known
+   * @param folded - The value's compile-time value, when it has one
    * @returns C code string for the assignment
    */
   static writeOnlySingleBit(
@@ -174,8 +179,9 @@ class BitUtils {
     offset: string | number,
     value: string,
     storage?: string,
+    folded?: number,
   ): string {
-    const bit = BitUtils.widen(BitUtils.boolToInt(value), storage);
+    const bit = BitUtils.widen(BitUtils.boolToInt(value, folded), storage);
     return `${target} = ${BitUtils.narrowCast(storage)}(${bit} << ${offset});`;
   }
 

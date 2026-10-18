@@ -99,8 +99,9 @@ class CompoundAssignmentCheck {
     if (typing.steps.some((step) => step.subscript === "bit_single")) {
       return "bit index";
     }
-    // #2159: a bitmap field is a bit or a run of bits of its backing value,
-    // as a bit index is (ADR-007, ADR-034) -- whatever spells its prefix
+    // #2159: a bitmap field is a bit or a run of bits of its backing value, as
+    // a bit index is (ADR-007), whatever spells its prefix; the owner's ruling
+    // on #2159 put it in ADR-034's Diagnostics table
     if (
       BitmapFieldStep.fieldOf(
         typing.steps.at(-1),

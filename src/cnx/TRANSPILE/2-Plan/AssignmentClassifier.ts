@@ -158,7 +158,7 @@ class AssignmentClassifier {
 
   /**
    * Classify member access with subscripts.
-   * Patterns: arr[i][j], struct.arr[i], REG.MEMBER[bit], matrix[i][j][bit]
+   * Patterns: arr[i][j], struct.arr[i], matrix[i][j][bit]
    */
   private static classifyMemberWithSubscript(
     ctx: IAssignmentContext,
