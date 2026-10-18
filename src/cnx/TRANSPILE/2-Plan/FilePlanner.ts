@@ -68,7 +68,6 @@ import type ITargetDescription from "../../types/ITargetDescription";
 import includeGenerators from "./IncludeGenerator";
 import DeclaredTypeInfo from "../../PARSE/3-Declare/DeclaredTypeInfo";
 import type IChainBase from "../../types/IChainBase";
-import type IWrittenTarget from "./types/IWrittenTarget";
 import AssignmentClassifier from "./AssignmentClassifier";
 import ForHeaderAssignment from "../../utils/ForHeaderAssignment";
 import AssignmentOperatorMapper from "./AssignmentOperatorMapper";
@@ -1014,10 +1013,8 @@ class FilePlanner {
       structInitializers,
       decidedCTypes,
     );
-    const writes = this.planWrittenTargets(program);
     const clamps = this.planClamps(
       program,
-      writes,
       inlinedConsts,
       foreignRegisterValues,
       decidedCTypes,
@@ -1063,7 +1060,7 @@ class FilePlanner {
       registerAccesses,
       clampOps: clamps.ops,
       sliceSources,
-      stringCopies: this.planStringCopies(writes),
+      stringCopies: this.planStringCopies(program),
       expectedTypes,
       narrowings,
       structInitializers,
@@ -1632,7 +1629,6 @@ class FilePlanner {
    */
   private planClamps(
     program: IProgramSyntax,
-    writes: ReadonlyMap<IAssignmentSyntax, IWrittenTarget>,
     inlinedConsts: ReadonlySet<TDeclarationSyntax>,
     foreignRegisterValues: readonly TExpression[],
     cTypes: Set<string>,
@@ -1670,12 +1666,12 @@ class FilePlanner {
       IAssignmentSyntax,
       { operation: string; cnxType: string } | null
     >();
-    for (const [site, written] of writes) {
+    for (const site of FilePlanner.assignmentSites(program)) {
       compound.set(site, null);
       if (site.operator === "<-") continue;
       const clamp = AssignmentClassifier.clampOfWrite(
-        written.target,
-        written.isSimple,
+        this.targetDeclaration(site.target),
+        AssignmentTarget.parts(site.target).ops.length === 0,
         site.operator,
         () => site.value.kind !== "missing" && this.hasFloatingLeaf(site.value),
       );
@@ -1694,38 +1690,18 @@ class FilePlanner {
   }
 
   /**
-   * What each assignment's target writes, bound through the typer once
-   * (#1731 review): ADR-044's clamp and ADR-045's copy read the same answer,
-   * the `isSimple` gate included, so they cannot disagree on a site.
-   */
-  private planWrittenTargets(
-    program: IProgramSyntax,
-  ): Map<IAssignmentSyntax, IWrittenTarget> {
-    return new Map(
-      FilePlanner.assignmentSites(program).map((site) => [
-        site,
-        {
-          target: this.targetDeclaration(site.target),
-          isSimple: AssignmentTarget.parts(site.target).ops.length === 0,
-        },
-      ]),
-    );
-  }
-
-  /**
    * #1731: the capacity of each write of one whole `string<N>`, which is a
    * bounded copy whatever spells its target. ADR-045's copy, recorded where
-   * it is decided.
+   * it is decided. The typer's answer, asked as 2.1's E0715 asks it, so a
+   * `for` header cannot be handed a copy 2.1 did not see (#1731 review).
    */
   private planStringCopies(
-    writes: ReadonlyMap<IAssignmentSyntax, IWrittenTarget>,
+    program: IProgramSyntax,
   ): Map<IAssignmentSyntax, number> {
     const copies = new Map<IAssignmentSyntax, number>();
-    for (const [site, written] of writes) {
-      const capacity = AssignmentClassifier.stringCapacityOfWrite(
-        written.target,
-        written.isSimple,
-      );
+    const typing = this.state.typingContext();
+    for (const site of FilePlanner.assignmentSites(program)) {
+      const capacity = OperandTyper.stringCopyCapacity(site.target, typing);
       if (capacity === null) continue;
       AdrProvenance.record("045", site.operatorSpan.line);
       copies.set(site, capacity);

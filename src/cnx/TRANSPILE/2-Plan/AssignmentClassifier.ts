@@ -31,8 +31,9 @@ class AssignmentClassifier {
    * the string classifiers resolved it again, branch for branch, sixty lines
    * below. They agreed, which is the failure mode rather than the defense --
    * changing how a target resolves (qualifying `global.member`, say) meant
-   * editing both, and nothing said so. (#1731 folded those string classifiers
-   * into `stringCapacityOfWrite`, which reads it through `writtenStep`.)
+   * editing both, and nothing said so. (#1731 replaced those string
+   * classifiers with the typer's answer, `OperandTyper.stringCopyCapacity`,
+   * which 2.1's E0715 asks too.)
    *
    * The pattern GUARD stays with each caller, because the pattern is what picks
    * the `AssignmentKind`. Only the resolution is shared: what a target is named
@@ -64,19 +65,6 @@ class AssignmentClassifier {
   }
 
   /**
-   * Check if typeInfo represents a simple string type (not a 2D+ string array).
-   */
-  private static isSimpleStringType(
-    typeInfo: TTypeInfo | undefined,
-  ): typeInfo is TTypeInfo & { stringCapacity: number } {
-    return (
-      typeInfo?.isString === true &&
-      typeInfo.stringCapacity !== undefined &&
-      (!typeInfo.arrayDimensions || typeInfo.arrayDimensions.length <= 1)
-    );
-  }
-
-  /**
    * Classify an assignment context into an AssignmentKind.
    */
   static classify(ctx: IAssignmentContext): AssignmentKind {
@@ -91,7 +79,7 @@ class AssignmentClassifier {
     // === Priority 1: A write of one string<N> is a bounded copy (#1731) ===
     // Asked before any shape: what decides it is the type the target writes,
     // and the shape rules below would claim `this.cfg.name` or
-    // `parr[1].name` first. 2.2 planned it (`stringCapacityOfWrite`).
+    // `parr[1].name` first. 2.2 planned it (`OperandTyper.stringCopyCapacity`).
     if (ctx.plannedStringCapacity !== null) {
       return AssignmentKind.STRING_COPY;
     }
@@ -898,38 +886,6 @@ class AssignmentClassifier {
     const after = written.step.after;
     if (after?.typeName == null || after.dimensions.length > 0) return null;
     return { baseType: after.typeName, overflowBehavior: after.overflow };
-  }
-
-  /**
-   * The capacity of the one `string<N>` a target writes, or null when it
-   * writes anything else.
-   *
-   * #1731: a variable, a scope member, a field at any depth, an element at any
-   * depth, through any spelling -- the typer's last step is what the target
-   * writes, read once. This used to be six shape rules (`var`, `this.member`,
-   * `global.member`, `var.field`, `var.field[i]`, `names[i]`), each matching a
-   * spelling and each handler re-rendering its spelling's target by hand, so
-   * `this.cfg.name`, `o.inner.name`, `parr[1].name` and `g.cells[1][2]` fell
-   * through to `=`. What is written is `writtenStep`'s answer, shared with
-   * ADR-044's clamp. Whether that step writes one whole string is
-   * `OperandTyper.wholeStringCapacity`'s answer, which 2.1's E0715 reads too
-   * (#1731 review).
-   *
-   * 2.2's one decision, like `clampOfWrite`: the classifier and the copy both
-   * read the planned answer off the context (#1731 review).
-   */
-  static stringCapacityOfWrite(
-    target: IChainBase,
-    isSimple: boolean,
-  ): number | null {
-    const written = AssignmentClassifier.writtenStep(target, isSimple);
-    if (written === null) return null;
-    if ("variable" in written) {
-      return AssignmentClassifier.isSimpleStringType(written.variable)
-        ? written.variable.stringCapacity
-        : null;
-    }
-    return OperandTyper.wholeStringCapacity(written.step);
   }
 
   /** Whether a chain's root is a variable of a known struct type */

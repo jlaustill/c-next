@@ -9,9 +9,6 @@ import AssignmentKind from "../../../../../../types/AssignmentKind";
 import IAssignmentContext from "../../../../../2-Plan/types/IAssignmentContext";
 import TranspileState from "../../../../../TranspileState";
 import HandlerTestUtils from "./handlerTestUtils";
-import AssignmentClassifier from "../../../../../2-Plan/AssignmentClassifier";
-import type IOperandType from "../../../../../../types/IOperandType";
-import enterScope from "../../../../../__tests__/enterScope";
 
 /**
  * Create mock context for testing
@@ -55,25 +52,14 @@ function createMockContext(
     // it is handed, so the mock context carries the same instance the test
     // set its facts up on.
     state,
+    // #1731 review: 2.2's decision is the case's input
+    plannedStringCapacity: null,
     ...overrides,
   } as IAssignmentContext;
   // #1668 (C7): what the target writes, as the binder would bind it
-  return withPlannedCopy({
-    ...ctx,
-    target: overrides.target ?? HandlerTestUtils.targetOf(state, ctx),
-  });
-}
-
-/** #1731 review: 2.2's capacity decision, made by the call 2.2 makes */
-function withPlannedCopy(ctx: IAssignmentContext): IAssignmentContext {
   return {
     ...ctx,
-    plannedStringCapacity: AssignmentClassifier.stringCapacityOfWrite(
-      ctx.target,
-      ctx.isSimpleIdentifier ||
-        ctx.isSimpleThisAccess ||
-        ctx.isSimpleGlobalAccess,
-    ),
+    target: overrides.target ?? HandlerTestUtils.targetOf(state, ctx),
   };
 }
 
@@ -83,37 +69,6 @@ function withPlannedCopy(ctx: IAssignmentContext): IAssignmentContext {
 // registration, so six more raisers in the handlers changed nothing. What these
 // tests are FOR is the emitted `strncpy`, and that is untouched.
 let state = new TranspileState();
-
-/** A typed last step that writes `after`, as the operand typer types it */
-function withLast(
-  ctx: IAssignmentContext,
-  after: IOperandType,
-  before: IOperandType | null = null,
-): IAssignmentContext {
-  return withPlannedCopy({
-    ...ctx,
-    target: {
-      ...ctx.target,
-      last: {
-        before,
-        subscript: before === null ? null : "array_element",
-        after,
-        property: null,
-        callee: null,
-        beforeNamesType: false,
-        beforeIsBitField: false,
-      },
-    },
-  });
-}
-
-function stringOperand(capacity: number): IOperandType {
-  return {
-    ...HandlerTestUtils.operandOf(`string<${capacity}>`, false, false),
-    dimensions: [],
-    stringCapacity: capacity,
-  };
-}
 
 function copyHandler() {
   return stringHandlers.find(
@@ -141,34 +96,13 @@ describe("StringHandlers", () => {
       ]);
 
       expect(
-        copyHandler()!(createMockContext({ isSimpleIdentifier: true })),
+        copyHandler()!(
+          createMockContext({
+            isSimpleIdentifier: true,
+            plannedStringCapacity: 32,
+          }),
+        ),
       ).toBe("(void) strncpy(target, \"hello\", 32); target[32] = '\\0';");
-    });
-
-    it("classifier and handler key the same map at depth two", () => {
-      // #1357 review: the classifier decides to route here from the target's
-      // type, and the handler then sizes the copy from it. Key them
-      // differently and the classifier routes a member the handler cannot
-      // size. They agree at depth one whichever encoder each uses, so only
-      // depth two can tell a shared decision from a coincidence.
-      enterScope(state, "Outer.Inner");
-      HandlerTestUtils.declareTypes(state, [
-        [
-          "Outer__Inner__memberName",
-          { stringCapacity: 48, baseType: "string", isString: true },
-        ],
-      ]);
-      const ctx = createMockContext({
-        identifiers: ["memberName"],
-        hasThis: true,
-        isSimpleThisAccess: true,
-        scopePath: "Outer.Inner",
-      });
-
-      expect(AssignmentClassifier.classify(ctx)).toBe(
-        AssignmentKind.STRING_COPY,
-      );
-      expect(copyHandler()!(ctx)).toContain("48");
     });
 
     // #1731: the target is the renderer's, not re-spelled from the chain's
@@ -178,10 +112,10 @@ describe("StringHandlers", () => {
       HandlerTestUtils.declareTypes(state, [
         ["person", { baseType: "Person" }],
       ]);
-      const ctx = withLast(
-        createMockContext({ identifiers: ["person", "name"] }),
-        stringOperand(50),
-      );
+      const ctx = createMockContext({
+        identifiers: ["person", "name"],
+        plannedStringCapacity: 50,
+      });
 
       const result = copyHandler()!(ctx);
 
@@ -195,15 +129,11 @@ describe("StringHandlers", () => {
       HandlerTestUtils.declareTypes(state, [
         ["config", { baseType: "Config" }],
       ]);
-      const element = stringOperand(32);
-      const ctx = withLast(
-        createMockContext({
-          identifiers: ["config", "items"],
-          ...HandlerTestUtils.subscriptsOf([{} as never]),
-        }),
-        element,
-        { ...element, dimensions: [10] },
-      );
+      const ctx = createMockContext({
+        identifiers: ["config", "items"],
+        ...HandlerTestUtils.subscriptsOf([{} as never]),
+        plannedStringCapacity: 32,
+      });
 
       expect(copyHandler()!(ctx)).toBe(
         "(void) strncpy(target, \"hello\", 32); target[32] = '\\0';",
@@ -219,6 +149,7 @@ describe("StringHandlers", () => {
       const ctx = createMockContext({
         isSimpleIdentifier: true,
         targetIndexHasSideEffect: true,
+        plannedStringCapacity: 8,
       });
 
       expect(copyHandler()!(ctx)).toBe(
