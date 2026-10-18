@@ -14,11 +14,12 @@ class BitmapFieldStep {
     step: IChainStep | undefined,
     lastOpIsMember: boolean,
   ): string | null {
-    if (!lastOpIsMember || step === undefined || step.property !== null) {
+    if (!lastOpIsMember || step?.property !== null) {
       return null;
     }
-    const bitmapType = step.before?.bitmapTypeName;
-    if (!bitmapType || step.before!.dimensions.length !== 0) {
+    const before = step.before;
+    const bitmapType = before?.bitmapTypeName;
+    if (!bitmapType || before!.dimensions.length !== 0) {
       return null;
     }
     return bitmapType;
