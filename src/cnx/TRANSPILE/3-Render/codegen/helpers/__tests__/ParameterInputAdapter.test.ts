@@ -20,6 +20,7 @@ import ParameterInputAdapter from "../ParameterInputAdapter";
 import IParameterSymbol from "../../../../../utils/types/IParameterSymbol";
 import ICallbackTypeInfo from "../../../../../types/ICallbackTypeInfo";
 import type IPlannedParameter from "../../types/IPlannedParameter";
+import type IParameterPassing from "../../../../../types/IParameterPassing";
 
 const TYPE_MAP: Record<string, string> = {
   u8: "uint8_t",
@@ -63,22 +64,31 @@ function dimensions(...dims: string[]): () => readonly string[] {
 /**
  * Build default IFromASTDeps for testing.
  */
+/** A 2.2 passing decision, by reference unless a test says otherwise */
+function passing(
+  byValue = false,
+  typedefPointer = false,
+  typedefConst = false,
+): IParameterPassing {
+  return {
+    byValue,
+    typedefPointer,
+    typedefConst,
+    argument: byValue ? "value" : "reference",
+  };
+}
+
 function createDefaultASTDeps(overrides?: {
   isModified?: boolean;
-  isPassByValue?: boolean;
-  isKnownStruct?: boolean;
-  isKnownEnum?: boolean;
+  passing?: IParameterPassing;
   isOpaqueHandle?: boolean;
   callbackTypes?: ReadonlyMap<string, ICallbackTypeInfo>;
 }) {
   return {
     callbackTypes:
       overrides?.callbackTypes ?? new Map<string, ICallbackTypeInfo>(),
-    isKnownEnum: () => false,
-    isKnownStruct: () => overrides?.isKnownStruct ?? false,
-    typeMap: TYPE_MAP,
     isModified: overrides?.isModified ?? false,
-    isPassByValue: overrides?.isPassByValue ?? false,
+    passing: overrides?.passing ?? passing(),
     isOpaqueHandle: overrides?.isOpaqueHandle ?? false,
   };
 }
@@ -110,6 +120,7 @@ describe("ParameterInputAdapter", () => {
         type: "u32",
         isConst: false,
         isArray: false,
+        passing: passing(),
       };
 
       const result = ParameterInputAdapter.fromSymbol(param, defaultDeps);
@@ -131,6 +142,7 @@ describe("ParameterInputAdapter", () => {
         isConst: false,
         isArray: true,
         arrayDimensions: ["10"],
+        passing: passing(),
       };
 
       const result = ParameterInputAdapter.fromSymbol(param, defaultDeps);
@@ -148,6 +160,7 @@ describe("ParameterInputAdapter", () => {
         isConst: false,
         isArray: true,
         arrayDimensions: ["4", "4"],
+        passing: passing(),
       };
 
       const result = ParameterInputAdapter.fromSymbol(param, defaultDeps);
@@ -164,6 +177,7 @@ describe("ParameterInputAdapter", () => {
         isConst: false,
         isArray: true,
         arrayDimensions: ["5"],
+        passing: passing(),
       };
 
       const result = ParameterInputAdapter.fromSymbol(param, defaultDeps);
@@ -183,6 +197,7 @@ describe("ParameterInputAdapter", () => {
         isConst: false,
         isArray: true,
         arrayDimensions: ["5", "33"],
+        passing: passing(),
       };
 
       const result = ParameterInputAdapter.fromSymbol(param, defaultDeps);
@@ -201,6 +216,7 @@ describe("ParameterInputAdapter", () => {
         type: "string<32>",
         isConst: false,
         isArray: false,
+        passing: passing(),
       };
 
       const result = ParameterInputAdapter.fromSymbol(param, defaultDeps);
@@ -221,10 +237,13 @@ describe("ParameterInputAdapter", () => {
         type: source2,
         isConst: false,
         isArray: false,
+        passing: passing(),
       };
 
-      const deps = { ...defaultDeps, isPassByValue: true };
-      const result = ParameterInputAdapter.fromSymbol(param, deps);
+      const result = ParameterInputAdapter.fromSymbol(
+        { ...param, passing: passing(true) },
+        defaultDeps,
+      );
 
       expect(result.isPassByValue).toBe(true);
       expect(result.isPassByReference).toBe(false);
@@ -237,6 +256,7 @@ describe("ParameterInputAdapter", () => {
         type: "u32",
         isConst: false,
         isArray: false,
+        passing: passing(),
       };
 
       const result = ParameterInputAdapter.fromSymbol(param, defaultDeps);
@@ -252,6 +272,7 @@ describe("ParameterInputAdapter", () => {
         type: "u32",
         isConst: true,
         isArray: false,
+        passing: passing(),
       };
 
       const result = ParameterInputAdapter.fromSymbol(param, defaultDeps);
@@ -259,34 +280,31 @@ describe("ParameterInputAdapter", () => {
       expect(result.isConst).toBe(true);
     });
 
-    it("forces pointer when isCallbackPointer is set (Issue #914)", () => {
+    it("forces pointer when the typedef takes a pointer (Issue #914)", () => {
       const param: IParameterSymbol = {
         name: "buf",
         emittedName: "buf",
         type: "u8",
         isConst: false,
         isArray: false,
-        isCallbackPointer: true,
+        passing: passing(false, true),
       };
 
-      // Even though deps says pass-by-value, callback overrides it
-      const deps = { ...defaultDeps, isPassByValue: true };
-      const result = ParameterInputAdapter.fromSymbol(param, deps);
+      const result = ParameterInputAdapter.fromSymbol(param, defaultDeps);
 
       expect(result.isPassByValue).toBe(false);
       expect(result.isPassByReference).toBe(true);
       expect(result.forcePointerSyntax).toBe(true);
     });
 
-    it("forces const when isCallbackConst is set (Issue #914)", () => {
+    it("forces const when the typedef says const (Issue #914)", () => {
       const param: IParameterSymbol = {
         name: "area",
         emittedName: "area",
         type: "rect_t",
         isConst: false,
         isArray: false,
-        isCallbackPointer: true,
-        isCallbackConst: true,
+        passing: passing(false, true, true),
       };
 
       const result = ParameterInputAdapter.fromSymbol(param, defaultDeps);
@@ -295,13 +313,14 @@ describe("ParameterInputAdapter", () => {
       expect(result.forcePointerSyntax).toBe(true);
     });
 
-    it("does not force pointer when isCallbackPointer is not set", () => {
+    it("does not force pointer when no typedef asks for one", () => {
       const param: IParameterSymbol = {
         name: "value",
         emittedName: "value",
         type: "u32",
         isConst: false,
         isArray: false,
+        passing: passing(),
       };
 
       const result = ParameterInputAdapter.fromSymbol(param, defaultDeps);
@@ -321,6 +340,7 @@ describe("ParameterInputAdapter", () => {
         isConst: false,
         isArray: false,
         isOpaqueHandle: true,
+        passing: passing(),
       };
 
       const result = ParameterInputAdapter.fromSymbol(param, defaultDeps);
@@ -335,6 +355,7 @@ describe("ParameterInputAdapter", () => {
         type: "Point",
         isConst: false,
         isArray: false,
+        passing: passing(),
       };
 
       const result = ParameterInputAdapter.fromSymbol(param, defaultDeps);
@@ -497,7 +518,7 @@ describe("ParameterInputAdapter", () => {
     it("sets isPassByReference for known struct", () => {
       const result = ParameterInputAdapter.fromAST(
         planned({ name: "p", typeName: "Point" }),
-        createDefaultASTDeps({ isKnownStruct: true }),
+        createDefaultASTDeps(),
       );
 
       expect(result.isPassByReference).toBe(true);
@@ -507,7 +528,7 @@ describe("ParameterInputAdapter", () => {
     it("sets isPassByValue when pre-computed", () => {
       const result = ParameterInputAdapter.fromAST(
         planned({ name: "value", typeName: "f32" }),
-        createDefaultASTDeps({ isPassByValue: true }),
+        createDefaultASTDeps({ passing: passing(true) }),
       );
 
       expect(result.isPassByValue).toBe(true);
@@ -532,23 +553,19 @@ describe("ParameterInputAdapter", () => {
       expect(result.isPassByReference).toBe(false);
     });
 
-    it("passes through forceConst from deps (Issue #895)", () => {
+    it("takes forceConst from the passing decision (Issue #895)", () => {
       const result = ParameterInputAdapter.fromAST(
         planned({ name: "area", typeName: "Point" }),
-        { ...createDefaultASTDeps({ isKnownStruct: true }), forceConst: true },
+        createDefaultASTDeps({ passing: passing(false, false, true) }),
       );
 
       expect(result.forceConst).toBe(true);
     });
 
-    it("passes through forcePassByReference and forceConst together", () => {
+    it("takes a typedef pointer and const together", () => {
       const result = ParameterInputAdapter.fromAST(
         planned({ name: "area", typeName: "Point" }),
-        {
-          ...createDefaultASTDeps({ isKnownStruct: true }),
-          forcePassByReference: true,
-          forceConst: true,
-        },
+        createDefaultASTDeps({ passing: passing(false, true, true) }),
       );
 
       expect(result.forcePointerSyntax).toBe(true);
@@ -559,7 +576,7 @@ describe("ParameterInputAdapter", () => {
     it("forceConst defaults to undefined when not provided", () => {
       const result = ParameterInputAdapter.fromAST(
         planned({ name: "area", typeName: "Point" }),
-        createDefaultASTDeps({ isKnownStruct: true }),
+        createDefaultASTDeps(),
       );
 
       expect(result.forceConst).toBeUndefined();
@@ -638,8 +655,9 @@ describe("ParameterInputAdapter", () => {
           isArray: true,
           arrayDimensions: ["2"],
           isOpaqueHandle,
+          passing: passing(),
         },
-        { mapType: (t: string) => t, isPassByValue: false },
+        { mapType: (t: string) => t },
       );
 
       expect(result.isArray).toBe(true);

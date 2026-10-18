@@ -177,13 +177,6 @@ interface IProgram {
   passByValueParams(): ReadonlyMap<string, ReadonlySet<string>>;
 
   /**
-   * Which parameters of each function are passed by pointer because they are
-   * a `mut` scalar (ADR-071 Q6), so the callee's write reaches the caller.
-   * The `_fp` typedef reads it, as the prototype reads `passByValueParams`.
-   */
-  passByPointerParams(): ReadonlyMap<string, ReadonlySet<string>>;
-
-  /**
    * Functions used as an ADR-029 callback, to the typedef they are used as.
    *
    * A function assigned to a callback typedef must keep that typedef's parameter

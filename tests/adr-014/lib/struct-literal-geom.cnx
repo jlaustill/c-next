@@ -1,0 +1,11 @@
+// Helper for struct-literal-argument-included.test.cnx: the callee whose
+// parameter a struct literal binds to lives in another file.
+
+struct GeomPoint {
+    u32 x;
+    u32 y;
+}
+
+u32 geomSum(GeomPoint p) {
+    return p.x + p.y;
+}

@@ -1,10 +1,8 @@
 /**
  * Parameter information for function signatures
  *
- * Note: Pass-by-value status for small unmodified primitives (Issue #269)
- * is tracked separately in CodeGenerator.passByValueParams map rather than
- * here, since it requires call graph analysis that happens after parameter
- * collection.
+ * `isPassByValue` is `ParameterPassing`'s answer (#1639), the one the
+ * signature is written from.
  */
 type TParameterInfo = {
   name: string;
@@ -39,6 +37,9 @@ type TParameterInfo = {
    * rejects for an incomplete type.
    */
   isOpaqueHandle?: boolean;
+
+  /** #1639: the C parameter is the value itself, as 2.2 decided */
+  isPassByValue?: boolean;
 };
 
 export default TParameterInfo;

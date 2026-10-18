@@ -51,11 +51,12 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
-3 linked fixtures with no derivable context:
+4 linked fixtures with no derivable context:
 
 - `bugs/issue-1203-non-addressable-mut-argument/c-pointer-parenthesized.test.cnx`
 - `bugs/issue-1203-non-addressable-mut-argument/parenthesized-chain-value.test.cnx`
 - `bugs/issue-1203-non-addressable-mut-argument/parenthesized-mut-argument.test.cnx`
+- `bugs/issue-1639-one-passing-decision/every-shape.test.cnx`
 
 ## ADR-007
 
@@ -116,10 +117,13 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
-4 linked fixtures with no derivable context:
+7 linked fixtures with no derivable context:
 
 - `adr-014/struct-inferred-every-position.test.cnx`
+- `adr-014/struct-literal-argument-by-value-callback.test.cnx`
+- `adr-014/struct-literal-argument-included.test.cnx`
 - `adr-014/struct-literal-argument-transpile.test.cnx`
+- `adr-014/struct-literal-argument.test.cnx`
 - `adr-014/struct-literal-for-header.test.cnx`
 - `adr-014/struct-literal-positions.test.cnx`
 
@@ -158,8 +162,9 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
-15 linked fixtures with no derivable context:
+16 linked fixtures with no derivable context:
 
+- `adr-017/bare-enum-struct-literal-argument.test.cnx`
 - `bugs/issue-1531-declaration-rejections/cross-file-enum.test.cnx`
 - `bugs/issue-1669-enum-member-values/binary-values.test.cnx`
 - `bugs/issue-1669-enum-member-values/cross-file-const.test.cnx`

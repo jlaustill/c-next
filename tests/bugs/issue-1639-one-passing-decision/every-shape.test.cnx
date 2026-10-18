@@ -1,0 +1,154 @@
+// test-execution
+// test-adr: 006
+// #1639: every shape of parameter passing in one file, whose `.c` includes
+// its own `.h`. The `.c` signature, the `.h` prototype, the body and the call
+// all read one 2.2 decision per parameter. Decided apart, the signature and
+// the prototype could disagree, and gcc rejects that pair as conflicting
+// types -- so this file fails to compile, in C and in C++, if they diverge.
+
+#include "lib/passing-types.h"
+
+enum Mode {
+    OFF,
+    ON
+}
+
+struct Pair {
+    u32 a;
+    u32 b;
+}
+
+// a read-only scalar: by value
+u32 readScalar(u32 n) {
+    return n + 1;
+}
+
+// a `mut` scalar: by pointer
+void bump(mut u32 n) {
+    n <- n + 1;
+}
+
+u32 readFloat(f32 x) {
+    if (x > 1.5) {
+        return 1;
+    }
+    return 0;
+}
+
+u32 readMode(Mode m) {
+    if (m = Mode.ON) {
+        return 1;
+    }
+    return 0;
+}
+
+u32 readFlag(bool f) {
+    if (f = true) {
+        return 1;
+    }
+    return 0;
+}
+
+// a struct: by pointer, read-only or `mut`
+u32 sumPair(Pair p) {
+    return p.a + p.b;
+}
+
+void setPair(mut Pair p) {
+    p.a <- 7;
+}
+
+u32 lengthOf(string<16> s) {
+    return s.value_char_count;
+}
+
+u32 firstOf(u8[4] arr) {
+    return arr[0];
+}
+
+// an external typedef: by value
+u32 readTicks(ticks_t t) {
+    return t + 2;
+}
+
+// ADR-029: a callback-typed parameter is a function pointer, by value
+u32 apply(readScalar f, u32 n) {
+    return f(n);
+}
+
+// #895: used as a C callback whose typedef takes the struct by value
+u32 onPoint(CPt p) {
+    return p.x + p.y;
+}
+
+u32 main() {
+    global.set_cpt_cb(onPoint);
+
+    u32 r1 <- readScalar(4);
+    if (r1 != 5) {
+        return 1;
+    }
+
+    mut u32 k <- 1;
+    bump(k);
+    if (k != 2) {
+        return 2;
+    }
+
+    u32 r2 <- readFloat(2.5);
+    if (r2 != 1) {
+        return 3;
+    }
+
+    u32 r3 <- readMode(Mode.ON);
+    if (r3 != 1) {
+        return 4;
+    }
+
+    u32 r4 <- readFlag(true);
+    if (r4 != 1) {
+        return 5;
+    }
+
+    mut Pair p <- { a: 1, b: 2 };
+    u32 r5 <- sumPair(p);
+    if (r5 != 3) {
+        return 6;
+    }
+
+    setPair(p);
+    if (p.a != 7) {
+        return 7;
+    }
+
+    string<16> s <- "hello";
+    u32 r6 <- lengthOf(s);
+    if (r6 != 5) {
+        return 8;
+    }
+
+    u8[4] arr <- [9, 8, 7, 6];
+    u32 r7 <- firstOf(arr);
+    if (r7 != 9) {
+        return 9;
+    }
+
+    ticks_t t <- 3;
+    u32 r8 <- readTicks(t);
+    if (r8 != 5) {
+        return 10;
+    }
+
+    u32 r9 <- apply(readScalar, 9);
+    if (r9 != 10) {
+        return 11;
+    }
+
+    CPt c <- { x: 3, y: 4 };
+    u32 r10 <- onPoint(c);
+    if (r10 != 7) {
+        return 12;
+    }
+
+    return 0;
+}

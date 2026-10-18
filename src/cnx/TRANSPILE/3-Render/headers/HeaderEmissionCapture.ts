@@ -5,9 +5,9 @@ import type TSymbol from "../../../types/symbols/TSymbol";
 import CNextSourcePath from "../../../utils/CNextSourcePath";
 import HeaderIncludes from "../../2-Plan/HeaderIncludes";
 import HeaderUserIncludes from "../../2-Plan/HeaderUserIncludes";
+import ParameterPassing from "../../2-Plan/ParameterPassing";
 import PublicInterface from "../../2-Plan/PublicInterface";
 import type TranspileState from "../../TranspileState";
-import TypedefParamParser from "../../../utils/TypedefParamParser";
 import HeaderSymbolAdapter from "./adapters/HeaderSymbolAdapter";
 import ExternalTypeHeaderBuilder from "./ExternalTypeHeaderBuilder";
 import IncludeGuards from "./IncludeGuards";
@@ -82,7 +82,6 @@ class HeaderEmissionCapture {
     // #1671: both decided by 1.4 Resolve, the first layer that can see every
     // file. `typeInput` is the view `generate()` received, so the `.h` and the
     // `.c` are built from one object; neither is copied onto this class.
-    const passByValueParams = program.passByValueParams();
     const includes = request.ownIncludes;
     // Issue #424: a dimension that is not a number is a macro the header names
     // but does not define, so the header must carry its source include.
@@ -158,7 +157,6 @@ class HeaderEmissionCapture {
         ),
       },
       typeInput: typeInputWithSymbolTable,
-      passByValueParams,
       allKnownEnums,
       basename: basename(sourcePath),
     };
@@ -221,29 +219,9 @@ class HeaderEmissionCapture {
         return headerSymbol;
       }
 
-      // Issue #914: Resolve callback typedef type for callback-compatible functions.
-      // #1545 review: through the one accessor, so this site and the body's
-      // cannot spell the predicate differently -- they used to differ on `""`,
-      // truthiness here against `!== undefined` there.
-      const callbackTypedefType = state.callbackTypedefTypeFor(
-        headerSymbol.name,
-      );
-
-      // Issue #914: For callback-compatible functions, bake pointer/const overrides
-      // onto each parameter.
-      // Note: isOpaqueHandle is not set here because callback params get their
-      // pointer/const semantics from the typedef signature via isCallbackPointer/
-      // isCallbackConst, which take precedence over opaque handling in the builder.
-      if (callbackTypedefType) {
-        const updatedParams = TypedefParamParser.resolveCallbackParams(
-          headerSymbol.parameters,
-          callbackTypedefType,
-        );
-        return { ...headerSymbol, parameters: updatedParams };
-      }
-
-      // Resolve callback-typed parameters for non-callback functions
-      const updatedParams = headerSymbol.parameters.map((param) => {
+      const updatedParams = headerSymbol.parameters.map((param, index) => {
+        // #1639: the decision the .c signature reads, so the two cannot differ
+        const passing = ParameterPassing.of(headerSymbol.name, index, state);
         // ADR-029 / #1164: a parameter whose declared type IS a callback
         // function takes that function's typedef, exactly as the .c does via
         // TranspileState.callbackTypes. Without this the header emitted the bare
@@ -254,6 +232,7 @@ class HeaderEmissionCapture {
         if (callbackType) {
           return {
             ...param,
+            passing,
             type: callbackType.typedefName,
             isCallback: true,
             callbackTypedefName: callbackType.typedefName,
@@ -261,7 +240,7 @@ class HeaderEmissionCapture {
           };
         }
 
-        return param;
+        return { ...param, passing };
       });
 
       return { ...headerSymbol, parameters: updatedParams };

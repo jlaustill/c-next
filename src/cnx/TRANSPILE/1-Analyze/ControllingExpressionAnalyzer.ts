@@ -30,6 +30,7 @@ import ExpressionCalls from "../../utils/ExpressionCalls";
 import OperandTyper from "../../utils/OperandTyper";
 import DeclarationParts from "../../utils/DeclarationParts";
 import ExpressionNodes from "../../utils/ExpressionNodes";
+import ExpressionShape from "../../utils/ExpressionShape";
 import StatementNodes from "../../utils/StatementNodes";
 import IControllingExpressionError from "./types/IControllingExpressionError";
 import type IAnalysisContext from "./types/IAnalysisContext";
@@ -224,10 +225,8 @@ class ControllingExpressionCheck {
 
   /** The name an expression is, through any brackets, or null. */
   private static bareName(expr: TExpression): string | null {
-    if (expr.kind === "parenthesized") {
-      return ControllingExpressionCheck.bareName(expr.expression);
-    }
-    return expr.kind === "identifier" ? expr.name : null;
+    const inner = ExpressionShape.unparenthesized(expr);
+    return inner.kind === "identifier" ? inner.name : null;
   }
 
   /** Whether `name`, where `node` stands, is declared a bool. */

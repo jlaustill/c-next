@@ -19,12 +19,18 @@ class ArgumentForm {
     targetParamBaseType: string | undefined,
     shape: TArgumentShape,
     cppMode: boolean,
+    paramIsConst: boolean,
   ): TArgumentForm {
     if (isIdentifier) return { kind: "identifier" };
 
     const lvalueType = shape.getLvalueType();
     if (lvalueType === null) {
-      return ArgumentForm.rvalue(targetParamBaseType, cppMode);
+      return ArgumentForm.rvalue(
+        targetParamBaseType,
+        shape,
+        cppMode,
+        paramIsConst,
+      );
     }
     if (lvalueType === "member") {
       return ArgumentForm.member(targetParamBaseType, shape);
@@ -41,11 +47,23 @@ class ArgumentForm {
     };
   }
 
-  /** C++: an rvalue binds to `const T&`; C takes a compound literal's address */
+  /**
+   * C++: an rvalue binds to `const T&`; C takes a compound literal's address,
+   * which a struct literal already is (#1530) -- that arm only for a parameter
+   * the callee does not write, since a write to a `mut` one would land in the
+   * temporary. A scalar still gets `&(T){v}` for a `mut` one (#1203). A
+   * read-only parameter a C callback typedef takes by value never reaches
+   * here: it is passed by value (#895)
+   */
   private static rvalue(
     targetParamBaseType: string | undefined,
+    shape: TArgumentShape,
     cppMode: boolean,
+    paramIsConst: boolean,
   ): TArgumentForm {
+    if (!cppMode && paramIsConst && shape.isCompoundLiteral()) {
+      return { kind: "literal-address" };
+    }
     const cType = targetParamBaseType
       ? TYPE_MAP[targetParamBaseType]
       : undefined;

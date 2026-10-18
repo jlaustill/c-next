@@ -35,6 +35,7 @@ import LiteralUtils from "../../utils/LiteralUtils";
 import ForHeaderAssignment from "../../utils/ForHeaderAssignment";
 import DeclarationParts from "../../utils/DeclarationParts";
 import ExpressionNodes from "../../utils/ExpressionNodes";
+import ExpressionShape from "../../utils/ExpressionShape";
 import StatementNodes from "../../utils/StatementNodes";
 import ILoopError from "./types/ILoopError";
 import type IAnalysisContext from "./types/IAnalysisContext";
@@ -177,14 +178,12 @@ class LoopCheck {
   private static asSingleLiteralComparison(
     expr: TExpression,
   ): ILiteralComparison | null {
-    if (expr.kind === "parenthesized") {
-      return LoopCheck.asSingleLiteralComparison(expr.expression);
-    }
-    if (expr.kind !== "binary" || expr.operands.length !== 2) return null;
-    const left = LoopCheck.literalValue(expr.operands[0]);
-    const right = LoopCheck.literalValue(expr.operands[1]);
+    const inner = ExpressionShape.unparenthesized(expr);
+    if (inner.kind !== "binary" || inner.operands.length !== 2) return null;
+    const left = LoopCheck.literalValue(inner.operands[0]);
+    const right = LoopCheck.literalValue(inner.operands[1]);
     if (left === null || right === null) return null;
-    return { operator: expr.operators[0], left, right };
+    return { operator: inner.operators[0], left, right };
   }
 
   /**

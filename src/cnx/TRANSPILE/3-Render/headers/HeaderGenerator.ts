@@ -10,7 +10,6 @@ import IHeaderOptions from "../codegen/types/IHeaderOptions";
 import IHeaderTypeInput from "./generators/IHeaderTypeInput";
 import CHeaderGenerator from "./CHeaderGenerator";
 import CppHeaderGenerator from "./CppHeaderGenerator";
-import TPassByValueParams from "./types/TPassByValueParams";
 import type IProgram from "../../../types/IProgram";
 
 /**
@@ -33,7 +32,6 @@ class HeaderGenerator {
    * @param filename - Output filename (used for include guard)
    * @param options - Header generation options
    * @param typeInput - Optional type information for full definitions
-   * @param passByValueParams - Map of function names to pass-by-value parameter names
    * @param allKnownEnums - All known enum names from entire compilation
    * @param sourcePath - Optional source file path for header comment
    */
@@ -42,7 +40,6 @@ class HeaderGenerator {
     filename: string,
     options: IHeaderOptions,
     typeInput?: IHeaderTypeInput,
-    passByValueParams?: TPassByValueParams,
     allKnownEnums?: ReadonlySet<string>,
     sourcePath?: string,
   ): string {
@@ -55,7 +52,6 @@ class HeaderGenerator {
       filename,
       options,
       typeInput,
-      passByValueParams,
       allKnownEnums,
       sourcePath,
     );

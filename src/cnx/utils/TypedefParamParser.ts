@@ -6,10 +6,7 @@
  *   "void (*)(Point p)"
  *
  * Used by Issue #895 to determine if callback params should be pointers or values.
- * Used by Issue #914 to resolve callback pointer/const info onto IParameterSymbol.
  */
-
-import IParameterSymbol from "./types/IParameterSymbol";
 
 /**
  * Parsed parameter info from a typedef.
@@ -275,37 +272,6 @@ class TypedefParamParser {
     return (
       TypedefParamParser.getParamAt(typedefType, paramIndex)?.isConst ?? null
     );
-  }
-
-  /**
-   * Resolve callback pointer/const overrides onto an array of IParameterSymbol.
-   *
-   * Issue #914: This is the single point where callback typedef info is applied
-   * to parameters — used by both .c and .h generation paths via IParameterSymbol.
-   *
-   * @param params - The original parameter symbols
-   * @param callbackTypedefType - The typedef type string (e.g., "void (*)(widget_t *, const rect_t *)")
-   * @returns New array with isCallbackPointer/isCallbackConst resolved
-   */
-  static resolveCallbackParams(
-    params: readonly IParameterSymbol[],
-    callbackTypedefType: string,
-  ): IParameterSymbol[] {
-    return params.map((param, index) => {
-      const isParamPointer = TypedefParamParser.isParamPointer(
-        callbackTypedefType,
-        index,
-      );
-      const isParamConst = TypedefParamParser.isParamConst(
-        callbackTypedefType,
-        index,
-      );
-      return {
-        ...param,
-        isCallbackPointer: isParamPointer ?? undefined,
-        isCallbackConst: isParamConst ?? undefined,
-      };
-    });
   }
 }
 

@@ -18,7 +18,6 @@ import type IResolvedSymbols from "../../../types/IResolvedSymbols";
 import ParameterInputAdapter from "../codegen/helpers/ParameterInputAdapter";
 import ParameterSignatureBuilder from "../codegen/helpers/ParameterSignatureBuilder";
 import StructInitFunction from "../codegen/helpers/StructInitFunction";
-import TPassByValueParams from "./types/TPassByValueParams";
 
 /**
  * Abstract base class for header file generation
@@ -132,7 +131,6 @@ abstract class BaseHeaderGenerator {
    * @param filename - Output filename (used for include guard)
    * @param options - Header generation options
    * @param typeInput - Optional type information for full definitions
-   * @param passByValueParams - Map of function names to pass-by-value parameter names
    * @param allKnownEnums - All known enum names from entire compilation
    * @param sourcePath - Optional source file path for header comment
    */
@@ -141,7 +139,6 @@ abstract class BaseHeaderGenerator {
     filename: string,
     options: IHeaderOptions,
     typeInput?: IHeaderTypeInput,
-    passByValueParams?: TPassByValueParams,
     allKnownEnums?: ReadonlySet<string>,
     sourcePath?: string,
   ): string {
@@ -256,7 +253,6 @@ abstract class BaseHeaderGenerator {
       ...HeaderGeneratorUtils.generateVariableSection(cCompatibleVariables),
       ...this.generateFunctionSection(
         groups.functions,
-        passByValueParams,
         options.generatedStructInits,
         symbolTable,
       ),
@@ -283,7 +279,6 @@ abstract class BaseHeaderGenerator {
    */
   private generateFunctionSection(
     functions: IHeaderSymbol[],
-    passByValueParams?: TPassByValueParams,
     generatedStructInits?: ReadonlySet<string>,
     symbolTable?: IResolvedSymbols,
   ): string[] {
@@ -300,11 +295,7 @@ abstract class BaseHeaderGenerator {
 
     const lines: string[] = ["/* Function prototypes */"];
     for (const sym of functions) {
-      const proto = this.generateFunctionPrototype(
-        sym,
-        passByValueParams,
-        symbolTable,
-      );
+      const proto = this.generateFunctionPrototype(sym, symbolTable);
       if (proto) {
         lines.push(proto);
       }
@@ -318,7 +309,6 @@ abstract class BaseHeaderGenerator {
    */
   private generateFunctionPrototype(
     sym: IHeaderSymbol,
-    passByValueParams?: TPassByValueParams,
     symbolTable?: IResolvedSymbols,
   ): string | null {
     // Map return type (main() always returns int). `headerCType`, not
@@ -329,14 +319,13 @@ abstract class BaseHeaderGenerator {
     const returnType = sym.name === "main" ? "int" : mappedType;
 
     // Get pass-by-value parameter names for this function
-    const passByValueSet = passByValueParams?.get(sym.name);
 
     // Build parameter list
     let params = "void";
 
     if (sym.parameters && sym.parameters.length > 0) {
       const translatedParams = sym.parameters.map((p) =>
-        this.generateParameter(p, passByValueSet, symbolTable),
+        this.generateParameter(p, symbolTable),
       );
       params = translatedParams.join(", ");
     }
@@ -349,21 +338,12 @@ abstract class BaseHeaderGenerator {
    */
   private generateParameter(
     p: IParameterSymbol,
-    passByValueSet?: ReadonlySet<string>,
     symbolTable?: IResolvedSymbols,
   ): string {
-    // ADR-071 Q6: a read-only scalar, by its declaration (Program)
-    const isPassByValue = passByValueSet?.has(p.name) ?? false;
-
-    // Build normalized input using adapter
     const input = ParameterInputAdapter.fromSymbol(p, {
-      // `headerCType`, so a C++ namespaced parameter type is written `A::B`
-      // exactly as the same type is in a struct field (#1520).
       mapType: (t) => headerCType(t, symbolTable),
-      isPassByValue,
     });
 
-    // Use shared builder with subclass-specific ref suffix
     return ParameterSignatureBuilder.build(input, this.getRefSuffix());
   }
 }

@@ -71,6 +71,8 @@ describe("ExpressionShape", () => {
       ["(arr[0])", "postfix"],
       ["(a + b)", "binary"],
       ["myVar", "identifier"],
+      ["((1))", "literal"],
+      ["(a) + b", "binary"],
     ])("%s holds a %s", (source, kind) => {
       expect(ExpressionShape.unparenthesized(lowered(source)).kind).toBe(kind);
     });

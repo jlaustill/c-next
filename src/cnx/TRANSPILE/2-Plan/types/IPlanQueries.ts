@@ -12,7 +12,6 @@ interface IPlanQueries {
   isCNextFunction(name: string): boolean;
   isFloatType(typeName: string): boolean;
   getKnownEnums(): ReadonlySet<string>;
-  isParameterPassByValue(funcName: string, paramIndex: number): boolean;
 }
 
 export default IPlanQueries;

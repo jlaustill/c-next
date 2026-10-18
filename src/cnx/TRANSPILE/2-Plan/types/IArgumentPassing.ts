@@ -8,8 +8,8 @@ interface IArgumentPassing {
     | {
         readonly baseType: string;
         readonly isArray?: boolean;
-        /** Read-only (ADR-071); false for a `mut` parameter */
-        readonly isConst?: boolean;
+        /** ADR-071: a parameter the callee does not write (not `mut`) */
+        readonly isConst: boolean;
       }
     | undefined;
   /** To a C function, by value, or by reference */

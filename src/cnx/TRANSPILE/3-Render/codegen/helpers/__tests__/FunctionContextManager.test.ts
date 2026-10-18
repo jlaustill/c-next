@@ -130,6 +130,22 @@ function enterParameters(
 }
 
 /**
+ * #1639: one settled parameter per position a case registers, so
+ * `ParameterPassing` has each one's declaration; the stamped ones first, in
+ * order. The rest are read-write `u32`s, which no case's assertions turn on.
+ */
+function settledParameters(stamps: Record<string, boolean>): unknown[] {
+  const stamped = Object.entries(stamps);
+  return Array.from({ length: 8 }, (_, i) => ({
+    name: stamped[i]?.[0] ?? `p${i}`,
+    type: { kind: "primitive", primitive: "u32" },
+    isConst: false,
+    isArray: false,
+    isOpaqueHandle: stamped[i]?.[1] || undefined,
+  }));
+}
+
+/**
  * #1722: registering a parameter reads its opaque-handle stamp from the settled
  * symbol of the function being generated, as a real run does -- a parameter is
  * only ever registered inside one. `stamps` names the parameters 1.4 marked.
@@ -142,13 +158,13 @@ function generatingFunction(stamps: Record<string, boolean> = {}): void {
         ? {
             kind: "function",
             name: "use",
-            parameters: Object.entries(stamps).map(([param, isOpaque]) => ({
-              name: param,
-              isOpaqueHandle: isOpaque || undefined,
-            })),
+            parameters: settledParameters(stamps),
           }
         : undefined,
     callbackCompatibleFunctions: () => new Map<string, string>(),
+    passByValueParams: () => new Map<string, ReadonlySet<string>>(),
+    knownEnums: () => new Set<string>(),
+    symbolTable: () => ({ getStructFields: () => undefined }),
   } as unknown as IProgram;
 }
 

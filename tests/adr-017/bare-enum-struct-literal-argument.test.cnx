@@ -1,0 +1,45 @@
+// test-execution
+// test-adr: 017
+// Tests: a struct literal passed as a call argument resolves its fields' bare
+// enum members from the parameter's type (#2020), and reaches the function by
+// reference (#1530): in C as `&(Tagged){ .c = Color__GREEN, ... }`.
+
+enum Color {
+    RED,
+    GREEN
+}
+
+struct Tagged {
+    Color c;
+    u32 n;
+}
+
+bool isGreen(Tagged t) {
+    return t.c = Color.GREEN;
+}
+
+u32 weight(Tagged t) {
+    return t.n;
+}
+
+u32 main() {
+    // A bare enum member in a literal argument
+    bool g <- isGreen({ c: GREEN, n: 5 });
+    if (g = false) {
+        return 1;
+    }
+
+    // A qualified enum member in a literal argument
+    bool r <- isGreen({ c: Color.RED, n: 6 });
+    if (r = true) {
+        return 2;
+    }
+
+    // The literal's other field arrives too
+    u32 n <- weight({ c: GREEN, n: 9 });
+    if (n != 9) {
+        return 3;
+    }
+
+    return 0;
+}

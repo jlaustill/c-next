@@ -227,11 +227,6 @@ class Program {
       knownEnums,
       true,
     );
-    const passByPointerParams = Program.deriveScalarParams(
-      symbolsByFile,
-      knownEnums,
-      false,
-    );
     // Settled once, with the files, so every pass reads one answer.
     const target = settled.target;
     const conflicts = ConflictDetector.detect(
@@ -292,8 +287,6 @@ class Program {
         visibleByFile.get(sourceFile),
       passByValueParams: (): ReadonlyMap<string, ReadonlySet<string>> =>
         passByValueParams,
-      passByPointerParams: (): ReadonlyMap<string, ReadonlySet<string>> =>
-        passByPointerParams,
       callbackCompatibleFunctions: (): ReadonlyMap<string, string> =>
         callbackCompatibleFunctions,
       callbackFunctions: (): ReadonlySet<string> => callbackFunctions,

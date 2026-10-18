@@ -56,3 +56,38 @@ describe("2.2 plans how each struct initializer is written", () => {
     });
   });
 });
+
+describe("2.2 plans a struct literal argument from its initializer's form", () => {
+  /** 2.2's argument form for each struct literal argument, keyed by its first field's value */
+  function argumentForms(source: string): Map<string, string | undefined> {
+    const plan = ProgramGeneration.planSource(source);
+    const forms = new Map<string, string | undefined>();
+    for (const [expression, argument] of plan.arguments) {
+      if (expression.kind !== "structInitializer") continue;
+      const first = expression.fields[0].value;
+      forms.set(
+        first.kind === "literal" ? first.text : first.kind,
+        argument.form?.kind,
+      );
+    }
+    return forms;
+  }
+
+  it("takes a compound literal's address, never a file-scope designated initializer's (#1530)", () => {
+    const forms = argumentForms(
+      [
+        "struct P { u8 x; }",
+        "u8 take(P p) { return p.x; }",
+        "u8 g <- take({ x: 1 });",
+        "void f() {",
+        "  u8 r <- take({ x: 2 });",
+        "}",
+      ].join("\n"),
+    );
+
+    expect(Object.fromEntries(forms)).toEqual({
+      "1": "rvalue",
+      "2": "literal-address",
+    });
+  });
+});

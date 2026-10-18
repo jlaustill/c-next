@@ -1,6 +1,7 @@
 import type IArgumentPassing from "../../../../../2-Plan/types/IArgumentPassing";
 import CArgumentAddress from "../../../../../2-Plan/CArgumentAddress";
 import type ICArgumentFacts from "../../../../../2-Plan/types/ICArgumentFacts";
+import type ICallArgumentFacts from "../../../../../2-Plan/types/ICallArgumentFacts";
 import ForeignTypeFacts from "../../../../../../utils/ForeignTypeFacts";
 import type TParameterInfo from "../../../../../../types/TParameterInfo";
 import TestSymbolTable from "../../../../../__tests__/TestSymbolTable";
@@ -12,6 +13,9 @@ import IOrchestrator from "../../IOrchestrator";
 import * as Parser from "../../../../../../PARSE/2-Parse/grammar/CNextParser";
 import TranspileState from "../../../../../TranspileState";
 import TTypeInfo from "../../../../../../types/TTypeInfo";
+import type TType from "../../../../../../types/TType";
+import type IFunctionSignature from "../../../../../../types/IFunctionSignature";
+import type IResolvedSymbols from "../../../../../../types/IResolvedSymbols";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
 import type IPlannedCallArgument from "../../../types/IPlannedCallArgument";
 import type IPlannedArgument from "../../../../../2-Plan/types/IPlannedArgument";
@@ -50,11 +54,17 @@ function planArguments(
     Parameters<typeof CallArgumentPassing.of>[3],
   expressions: Parser.ExpressionContext[],
   callee: string,
-  input: IGeneratorInput,
+  input: IGeneratorInput & ICallArgumentFacts,
 ): readonly IPlannedCallArgument[] {
   return expressions.map((expression, index) => {
     // 2.2's decision, made the way `FilePlanner.planArguments` makes it
-    const passing = CallArgumentPassing.of(callee, index, input, orchestrator);
+    const passing = CallArgumentPassing.of(
+      callee,
+      index,
+      input,
+      orchestrator,
+      true,
+    );
     const base = passing.param?.baseType;
     return planArgument(
       orchestrator,
@@ -140,13 +150,13 @@ function createMockInput(
     /** #1668: each case's declared variables, which the plan carries */
     typeRegistry?: Map<string, TTypeInfo>;
   } = {},
-): IGeneratorInput {
+): IGeneratorInput & ICallArgumentFacts {
   // #1668 (C7): an argument carries its declared type on its plan, which
   // `planArguments` reads from these
   const { typeRegistry = new Map<string, TTypeInfo>(), ...input } = overrides;
   declaredTypes = typeRegistry;
 
-  return {
+  const facts = {
     symbols: null,
     symbolTable: null,
     functionSignatures: new Map(),
@@ -156,9 +166,138 @@ function createMockInput(
     constValues: new Map(),
     callbackTypes: new Map(),
     callbackFieldTypes: new Map(),
-    program: null,
+    program: stubProgram(
+      () => facts.functionSignatures,
+      () => facts.symbolTable,
+    ),
+    isKnownStruct: (name: string) =>
+      mockOrchestrator?.isKnownStruct(name) ?? false,
+    callbackTypedefTypeFor: () => undefined,
     ...input,
-  } as unknown as IGeneratorInput;
+  } as unknown as IGeneratorInput & ICallArgumentFacts;
+  return facts;
+}
+
+const STUB_PRIMITIVES = new Set([
+  "u8",
+  "u16",
+  "u32",
+  "u64",
+  "i8",
+  "i16",
+  "i32",
+  "i64",
+  "f32",
+  "f64",
+  "bool",
+]);
+
+/**
+ * The case's parameters for `name`: its signature, else a cross-file
+ * function's in the symbol table, else read-write `u32`s for a callee the
+ * case does not declare
+ */
+function stubParameters(
+  name: string,
+  signatures: ReadonlyMap<string, IFunctionSignature>,
+  symbolTable: IResolvedSymbols | null,
+): unknown[] {
+  const sig = signatures.get(name);
+  const crossFile = (
+    symbolTable?.getOverloadsByCName(name) as
+      | ReadonlyArray<{
+          kind: string;
+          parameters?: ReadonlyArray<{
+            name: string;
+            type: string;
+            isConst: boolean;
+            isArray: boolean;
+          }>;
+        }>
+      | undefined
+  )?.find((s) => s.kind === "function")?.parameters;
+  const declared =
+    sig?.parameters.map((p) => ({ ...p, type: p.baseType })) ?? crossFile;
+  const params =
+    declared ??
+    Array.from({ length: 8 }, (_, i) => ({
+      name: `p${i}`,
+      type: "u32",
+      isConst: false,
+      isArray: false,
+    }));
+  return params.map((p) => ({
+    name: p.name,
+    emittedName: p.name,
+    type: stubType(p.type),
+    isConst: p.isConst,
+    isArray: p.isArray,
+  }));
+}
+
+/**
+ * A name the case uses only as a parameter type, never declares as a callee:
+ * `ParameterPassing` asks the program whether a parameter's type is a function
+ */
+function isStubTypeName(
+  name: string,
+  signatures: ReadonlyMap<string, IFunctionSignature>,
+): boolean {
+  if (signatures.has(name)) return false;
+  return (
+    STUB_PRIMITIVES.has(name) ||
+    name.startsWith("string<") ||
+    [...signatures.values()].some((sig) =>
+      sig.parameters.some((p) => p.baseType === name),
+    )
+  );
+}
+
+/** A settled type for a signature's base type name */
+function stubType(name: string): TType {
+  if (STUB_PRIMITIVES.has(name)) {
+    return { kind: "primitive", primitive: name } as TType;
+  }
+  if (name.startsWith("string<")) {
+    return { kind: "string", capacity: Number(name.slice(7, -1)) } as TType;
+  }
+  // a struct's name, which `isKnownStruct` classifies
+  return { kind: "struct", name } as unknown as TType;
+}
+
+/**
+ * #1639: the settled program `ParameterPassing` reads, built from each case's
+ * signatures and answered by its orchestrator
+ */
+function stubProgram(
+  signatures: () => ReadonlyMap<string, IFunctionSignature>,
+  symbolTable: () => IResolvedSymbols | null,
+): unknown {
+  return {
+    symbolByCName: (name: string) =>
+      isStubTypeName(name, signatures())
+        ? undefined
+        : {
+            kind: "function",
+            name,
+            parameters: stubParameters(name, signatures(), symbolTable()),
+          },
+    passByValueParams: () => ({
+      get: (fn: string) => ({
+        has: (param: string) =>
+          mockOrchestrator?.isParameterPassByValue(
+            fn,
+            signatures()
+              .get(fn)
+              ?.parameters.findIndex((p) => p.name === param) ?? -1,
+          ) ?? false,
+      }),
+    }),
+    knownEnums: () => mockOrchestrator?.getKnownEnums() ?? new Set<string>(),
+    // no case names a C++ namespaced type
+    symbolTable: () => undefined,
+    callbackCompatibleFunctions: () => new Set<string>(),
+  };
 }
 
 function createMockState(): IGeneratorState {
@@ -175,6 +314,8 @@ function createMockState(): IGeneratorState {
  * working while the production interface sheds its last parse types.
  */
 interface IArgumentPlannerStub {
+  /** #1639: the read-only scalars 1.4 settled, as the stub program reports them */
+  isParameterPassByValue(funcName: string, paramIndex: number): boolean;
   getSimpleIdentifier(ctx: Parser.ExpressionContext): string | null;
   /** #1969: the parameter the argument's name binds to where it is passed */
   getParameter(ctx: Parser.ExpressionContext): TParameterInfo | undefined;
@@ -193,10 +334,13 @@ interface IArgumentPlannerStub {
  */
 let sharedState = new TranspileState();
 
+/** The case's orchestrator, which the stub program answers from */
+let mockOrchestrator: (IOrchestrator & IArgumentPlannerStub) | null = null;
+
 function createMockOrchestrator(
   overrides: Partial<IOrchestrator & IArgumentPlannerStub> = {},
 ): IOrchestrator & IArgumentPlannerStub {
-  return {
+  mockOrchestrator = {
     // #1452: the orchestrator carries 2.3's per-file state, so a generator
     // reads it from the collaborator it was handed rather than a static class.
     state: sharedState,
@@ -222,6 +366,7 @@ function createMockOrchestrator(
     ),
     ...overrides,
   } as unknown as IOrchestrator & IArgumentPlannerStub;
+  return mockOrchestrator;
 }
 
 // ========================================================================
@@ -729,6 +874,68 @@ describe("CallExprGenerator", () => {
       );
 
       expect(result.code).toBe("doWork(&myVal)");
+    });
+
+    it("passes a struct a C callback typedef takes by value by value (#895)", () => {
+      const argExpressions = [createMockExpressionContext("pt")];
+      const sigs = new Map([
+        [
+          "onPoint",
+          {
+            name: "onPoint",
+            parameters: [
+              { name: "p", baseType: "VPt", isConst: true, isArray: false },
+            ],
+          },
+        ],
+      ]);
+      const input = createMockInput({ functionSignatures: sigs });
+      input.callbackTypedefTypeFor = () => "uint32_t (*)(VPt p)";
+      const orchestrator = createMockOrchestrator({
+        isCNextFunction: vi.fn(() => true),
+        isKnownStruct: vi.fn(() => true),
+        isFloatType: vi.fn(() => false),
+        isParameterPassByValue: vi.fn(() => false),
+      });
+
+      const result = generateFunctionCall(
+        "onPoint",
+        planArguments(orchestrator, argExpressions, "onPoint", input),
+        createMockState(),
+      );
+
+      expect(result.code).toBe("onPoint(pt)");
+    });
+
+    it("keeps a `mut` struct a C callback typedef takes by value by reference (#2146)", () => {
+      const argExpressions = [createMockExpressionContext("pt")];
+      const sigs = new Map([
+        [
+          "bump",
+          {
+            name: "bump",
+            parameters: [
+              { name: "p", baseType: "VPt", isConst: false, isArray: false },
+            ],
+          },
+        ],
+      ]);
+      const input = createMockInput({ functionSignatures: sigs });
+      input.callbackTypedefTypeFor = () => "void (*)(VPt p)";
+      const orchestrator = createMockOrchestrator({
+        isCNextFunction: vi.fn(() => true),
+        isKnownStruct: vi.fn(() => true),
+        isFloatType: vi.fn(() => false),
+        isParameterPassByValue: vi.fn(() => false),
+      });
+
+      const result = generateFunctionCall(
+        "bump",
+        planArguments(orchestrator, argExpressions, "bump", input),
+        createMockState(),
+      );
+
+      expect(result.code).toBe("bump(&pt)");
     });
 
     it("passes a read-only float by value (ADR-071 Q6)", () => {

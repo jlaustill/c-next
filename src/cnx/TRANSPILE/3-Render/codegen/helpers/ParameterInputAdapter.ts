@@ -25,6 +25,8 @@ import IParameterInput from "../types/IParameterInput";
 import type IPlannedParameter from "../types/IPlannedParameter";
 import IParameterSymbol from "../../../../utils/types/IParameterSymbol";
 import ICallbackTypeInfo from "../../../../types/ICallbackTypeInfo";
+import type IParameterPassing from "../../../../types/IParameterPassing";
+import invariant from "../../../../utils/invariant";
 
 /**
  * Dependencies required by fromAST() to resolve types and state.
@@ -35,29 +37,8 @@ interface IFromASTDeps {
   /** Map of callback type names to their info */
   callbackTypes: ReadonlyMap<string, ICallbackTypeInfo>;
 
-  /** Whether a type is a C-Next enum, a scalar ADR-071 Q6 points at when `mut` */
-  isKnownEnum: (typeName: string) => boolean;
-
-  /** Check if type is a known struct (C-Next or C header) */
-  isKnownStruct: (typeName: string) => boolean;
-
-  /** TYPE_MAP for primitive detection */
-  typeMap: Record<string, string>;
-
-  /** Whether the parameter should use pass-by-value (pre-computed) */
-  isPassByValue: boolean;
-
-  /**
-   * Issue #895: Force pass-by-reference for callback-compatible functions
-   * When the typedef signature requires a pointer, this overrides normal logic.
-   */
-  forcePassByReference?: boolean;
-
-  /**
-   * Issue #895: Force const qualifier from callback typedef signature.
-   * When the C typedef has `const T*`, this preserves const on the generated param.
-   */
-  forceConst?: boolean;
+  /** #1639: how C declares the parameter, decided once in 2.2 */
+  passing: IParameterPassing;
 
   /**
    * Issue #995 / #1722: whether this parameter is an opaque handle (an
@@ -72,16 +53,10 @@ interface IFromASTDeps {
 /**
  * Dependencies required by fromSymbol() to resolve types.
  * Simpler than AST deps since IParameterSymbol already contains most info.
- *
- * The caller (BaseHeaderGenerator) pre-computes isPassByValue including
- * ISR/float/enum/passByValueSet checks. The adapter trusts this decision.
  */
 interface IFromSymbolDeps {
   /** Map C-Next type to C type */
   mapType: (type: string) => string;
-
-  /** Whether the parameter should use pass-by-value (pre-computed by caller) */
-  isPassByValue: boolean;
 }
 
 /**
@@ -132,9 +107,6 @@ class ParameterInputAdapter {
       return this._buildStringInput(planned, deps);
     }
 
-    // Determine classification for non-array, non-string types
-    const isKnownStruct = deps.isKnownStruct(typeName);
-    const isKnownPrimitive = !!deps.typeMap[typeName];
     // Issue #995: Opaque handles — rule applied in ParameterSignatureBuilder.
     // #1722: read, not re-derived; see IFromASTDeps.isOpaqueHandle. It is also
     // #958's "C-header typedef struct needs pointer semantics": that asked
@@ -142,7 +114,6 @@ class ParameterInputAdapter {
     // condition it marks an opaque type, so it was the same fact decided a
     // second time.
     const isOpaque = deps.isOpaqueHandle;
-    const isTypedefStruct = isOpaque;
     if (isOpaque) {
       // ADR-030 decided here: an incomplete type can only be handled through a
       // pointer, which is why #995's `const T*` was wrong. Recorded at the
@@ -162,33 +133,14 @@ class ParameterInputAdapter {
       // once by the planner instead of here.
       AdrProvenance.record("030", planned.line);
     }
-    // Issue #895/#958: Force pass-by-reference for callback or typedef struct types
-    const isPassByReference =
-      deps.forcePassByReference ||
-      isKnownStruct ||
-      isKnownPrimitive ||
-      deps.isKnownEnum(typeName) ||
-      isTypedefStruct;
-
-    return {
+    return this._buildScalarInput(
       name,
-      baseType: typeName,
+      typeName,
       mappedType,
       isConst,
-      isArray: false,
-      isCallback: false,
-      isString: false,
-      isPassByValue: deps.isPassByValue,
-      isPassByReference,
-      // Issue #895/#958: Force pointer syntax in C++ mode for callback-compatible
-      // and typedef struct params (C types expect pointers, not C++ references)
-      forcePointerSyntax:
-        deps.forcePassByReference || isTypedefStruct || undefined,
-      // Issue #895: Preserve const from callback typedef signature
-      forceConst: deps.forceConst,
-      // Issue #995: Pass through opaque handle detection — rule applied in builder
-      isOpaqueHandle: isOpaque || undefined,
-    };
+      deps.passing,
+      isOpaque,
+    );
   }
 
   /**
@@ -239,7 +191,8 @@ class ParameterInputAdapter {
         // forceConst on the AST path) and never reached the .h -- the same
         // .c/.h disagreement as the missing callback term, in the opposite
         // direction.
-        forceConst: param.isCallbackConst || undefined,
+        forceConst:
+          ParameterInputAdapter._passingOf(param).typedefConst || undefined,
       };
     }
 
@@ -248,50 +201,61 @@ class ParameterInputAdapter {
     // pointer. Hardcoding isCallback false here made the header emit
     // "onReceive_fp* handler" where the .c emits "onReceive_fp handler".
     if (param.isCallback && param.callbackTypedefName) {
-      return {
-        name: param.emittedName,
-        baseType: param.type,
+      return this._buildCallbackInput(
+        param.emittedName,
+        param.type,
         mappedType,
-        isConst: param.isConst,
-
-        isArray: false,
-        isCallback: true,
-        callbackTypedefName: param.callbackTypedefName,
-        isString: false,
-        isPassByValue: true,
-        isPassByReference: false,
-      };
+        param.callbackTypedefName,
+      );
     }
 
-    // Issue #914: Callback typedef overrides — param carries resolved pointer/const
-    // info. This is deliberately tri-state (TypedefParamParser.isParamPointer
-    // returns boolean | null): true means the typedef takes a pointer, FALSE
-    // means it takes the value, and undefined means there is no typedef to
-    // follow. Collapsing false into undefined with `?? false` sent a by-value
-    // typedef back through ADR-006 reference semantics, so `void (*)(Point)`
-    // got a `Point*` prototype against a `Point` definition (#1164).
-    const callbackWantsPointer = param.isCallbackPointer;
-    const callbackWantsValue = callbackWantsPointer === false;
-
-    return {
-      name: param.emittedName,
-      baseType: param.type,
+    return this._buildScalarInput(
+      param.emittedName,
+      param.type,
       mappedType,
-      isConst: param.isConst,
+      param.isConst,
+      ParameterInputAdapter._passingOf(param),
+      param.isOpaqueHandle ?? false,
+    );
+  }
+
+  /**
+   * #1639: the one derivation of a scalar parameter's input, from the 2.2
+   * passing decision, for both the `.c` and the `.h`. Each used to decide
+   * pointer-or-value for itself from different facts.
+   */
+  private static _buildScalarInput(
+    name: string,
+    baseType: string,
+    mappedType: string,
+    isConst: boolean,
+    passing: IParameterPassing,
+    isOpaqueHandle: boolean,
+  ): IParameterInput {
+    return {
+      name,
+      baseType,
+      mappedType,
+      isConst,
       isArray: false,
       isCallback: false,
       isString: false,
-      isPassByValue: callbackWantsPointer
-        ? false
-        : callbackWantsValue || deps.isPassByValue,
-      isPassByReference: callbackWantsPointer
-        ? true
-        : !callbackWantsValue && !deps.isPassByValue,
-      forcePointerSyntax: callbackWantsPointer || undefined,
-      forceConst: param.isCallbackConst || undefined,
-      // Issue #995: Pass through opaque handle detection — rule applied in builder
-      isOpaqueHandle: param.isOpaqueHandle || undefined,
+      isPassByValue: passing.byValue,
+      isPassByReference: !passing.byValue,
+      // Issue #895/#958: a C typedef or an opaque handle is a pointer in C++ too
+      forcePointerSyntax: passing.typedefPointer || isOpaqueHandle || undefined,
+      forceConst: passing.typedefConst || undefined,
+      isOpaqueHandle: isOpaqueHandle || undefined,
     };
+  }
+
+  /** The 2.2 decision HeaderEmissionCapture stamped on the parameter */
+  private static _passingOf(param: IParameterSymbol): IParameterPassing {
+    invariant(
+      param.passing !== undefined,
+      `2.2 decided how '${param.name}' is passed before its prototype renders`,
+    );
+    return param.passing;
   }
 
   /**
@@ -363,7 +327,7 @@ class ParameterInputAdapter {
       // `void onData(u8[4] buf)` emitted `uint8_t buf[4]` in BOTH files, so the
       // two agreed with each other and neither matched the typedef --
       // an incompatible-pointer-type warning at the registration, transpiler exit 0.
-      forceConst: deps.forceConst,
+      forceConst: deps.passing.typedefConst || undefined,
       // ADR-030 / #996: the registry's one answer, which for an array means
       // each element is a handle -- `Dev* arr[2]`, not an array of an
       // incomplete type.
@@ -399,7 +363,8 @@ class ParameterInputAdapter {
       isPassByReference: false,
       // #1545: same as the AST array branch -- the typedef's const has to reach
       // the header too, or the .h contradicts the .c it was generated beside.
-      forceConst: param.isCallbackConst || undefined,
+      forceConst:
+        ParameterInputAdapter._passingOf(param).typedefConst || undefined,
       // ADR-030 / #996: same as the AST array branch -- an array of handles is
       // an array of pointers in the header too.
       isOpaqueHandle: param.isOpaqueHandle || undefined,
@@ -434,7 +399,7 @@ class ParameterInputAdapter {
       // branch of fromAST carries this and the string branch did not, so a
       // `const char *` typedef reached neither file once auto-const stopped
       // supplying the const by accident. Found by the fixture, not by reading.
-      forceConst: deps.forceConst,
+      forceConst: deps.passing.typedefConst || undefined,
     };
   }
 }

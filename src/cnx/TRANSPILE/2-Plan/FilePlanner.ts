@@ -12,6 +12,7 @@ import COMPOUND_TO_BINARY from "./types/COMPOUND_TO_BINARY";
 import NarrowingCastHelper from "./NarrowingCastHelper";
 import CNextSourcePath from "../../utils/CNextSourcePath";
 import TYPE_MAP from "./types/TYPE_MAP";
+import ParameterPassing from "./ParameterPassing";
 import TYPE_WIDTH from "../../types/TYPE_WIDTH";
 import ResolvedTarget from "../../utils/ResolvedTarget";
 import SafeDivisionTypes from "./SafeDivisionTypes";
@@ -262,14 +263,27 @@ class FilePlanner {
     return { line: expr.span.line, column: expr.span.column };
   }
 
-  /** What decides an argument's form (#1991), asked by 2.2 and 2.3 alike */
-  argumentShape(expr: TExpression): TArgumentShape {
+  /** What decides an argument's form (#1991), as 2.2 plans it */
+  private argumentShape(
+    expr: TExpression,
+    structInitializers: ReadonlyMap<
+      TExpressionOf<"structInitializer">,
+      TStructInitializerForm
+    >,
+  ): TArgumentShape {
     return {
       getLvalueType: () => this.getLvalueType(expr),
       getMemberAccessArrayStatus: () => this.getMemberAccessArrayStatus(expr),
       isCppMemberConversionRequired: (t) =>
         this.isCppMemberConversionRequired(expr, t),
       isStringSubscriptAccess: () => this.isStringSubscriptAccess(expr),
+      isCompoundLiteral: () => {
+        const inner = ExpressionShape.unparenthesized(expr);
+        return (
+          inner.kind === "structInitializer" &&
+          structInitializers.get(inner) === "compound"
+        );
+      },
     };
   }
 
@@ -989,7 +1003,16 @@ class FilePlanner {
       ),
     ]);
     invariant(valuePositions !== null, "2.1 hands 2.2 where each value stands");
-    const argumentPlans = this.planArguments(valuePositions, decidedCTypes);
+    const structInitializers = this.planStructInitializers(
+      program,
+      inlinedConsts,
+      expectedTypes,
+    );
+    const argumentPlans = this.planArguments(
+      valuePositions,
+      structInitializers,
+      decidedCTypes,
+    );
     const clamps = this.planClamps(
       program,
       inlinedConsts,
@@ -1039,11 +1062,7 @@ class FilePlanner {
       sliceSources,
       expectedTypes,
       narrowings,
-      structInitializers: this.planStructInitializers(
-        program,
-        inlinedConsts,
-        expectedTypes,
-      ),
+      structInitializers,
     };
     return {
       ...decided,
@@ -1096,16 +1115,16 @@ class FilePlanner {
         site.op - head.opsConsumed
       ] ?? null;
     const input = this.state;
+    const callbackTypeFunction = CallArgumentPassing.callbackFunction(
+      step?.before?.typeName ?? null,
+      input,
+    );
     return CallArgumentPassing.of(
-      CallArgumentPassing.callbackFunction(
-        step?.before?.typeName ?? null,
-        input,
-      ) ??
-        step?.callee ??
-        null,
+      callbackTypeFunction ?? step?.callee ?? null,
       site.argument,
       input,
       this.queries,
+      callbackTypeFunction === undefined,
     );
   }
 
@@ -1206,6 +1225,10 @@ class FilePlanner {
    */
   private planArguments(
     valuePositions: IValuePositions,
+    structInitializers: ReadonlyMap<
+      TExpressionOf<"structInitializer">,
+      TStructInitializerForm
+    >,
     cTypes: Set<string>,
   ): ReadonlyMap<TExpression, IPlannedArgument> {
     const planned = new Map<TExpression, IPlannedArgument>();
@@ -1220,7 +1243,7 @@ class FilePlanner {
       const base = passing.param?.baseType;
       const form =
         passing.mode === "reference"
-          ? this.referenceForm(expression, passing)
+          ? this.referenceForm(expression, passing, structInitializers)
           : null;
       const enumCast =
         passing.mode === "reference"
@@ -1248,13 +1271,18 @@ class FilePlanner {
   private referenceForm(
     expression: TExpression,
     passing: IArgumentPassing,
+    structInitializers: ReadonlyMap<
+      TExpressionOf<"structInitializer">,
+      TStructInitializerForm
+    >,
   ): TArgumentForm {
     const object = ExpressionShape.unparenthesized(expression);
     const form = ArgumentForm.of(
       this.boundArgumentName(object) !== null,
       passing.param?.baseType,
-      this.argumentShape(object),
+      this.argumentShape(object, structInitializers),
       this.state.cppMode,
+      passing.param?.isConst ?? false,
     );
     invariant(
       passing.param?.isConst !== false ||
@@ -2663,7 +2691,7 @@ class FilePlanner {
       returnType: this.callbackCType(
         SymbolTypeResolver.getTypeName(symbol.returnType),
       ),
-      parameters: symbol.parameters.map((param) => {
+      parameters: symbol.parameters.map((param, index) => {
         const typeName = SymbolTypeResolver.getTypeName(param.type);
         // Spread, not re-listed: a field the shape gains reaches the typedef
         // (#1552 was a builder dropping one).
@@ -2687,11 +2715,9 @@ class FilePlanner {
           ),
           isArray: param.isArray,
           // ADR-071 Q6: a `mut` scalar is a pointer, as in its prototype
-          isPointer:
-            this.state.program
-              ?.passByPointerParams()
-              .get(cName)
-              ?.has(param.name) ?? false,
+          // #1639: from the declaration, as a call through the type passes it
+          isPointer: !ParameterPassing.of(cName, index, this.state, false)
+            .byValue,
           // Already folded to literals by the symbols layer, which is exactly
           // what MISRA Rule 18.8 needs -- a dimension that is still an
           // identifier makes the typedef a variably-modified type.

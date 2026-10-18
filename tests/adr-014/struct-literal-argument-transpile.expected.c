@@ -7,22 +7,18 @@
 
 #include <stdint.h>
 
-// test-transpile-only
 // test-adr: 014
 // ADR-014: a call argument is one of the positions that supplies a struct
 // literal's type, and the transpiler types it correctly.
 //
-// `test-transpile-only` because of #1530: the generated C passes the literal
-// BY VALUE against ADR-006's pointer parameter --
-// `takes((Point){ .x = 5, .y = 5 })` against `void takes(const Point* p)` --
-// which gcc rejects with `incompatible type for argument 1`. The analysis is
-// right and the emission is not, so this fixture holds the position open and
-// names the defect rather than dropping the case.
-//
-// When #1530 lands, remove the marker: the assertion becomes a compiling one.
+// This was `test-transpile-only` until #1530: the C passed the literal BY VALUE
+// against ADR-006's pointer parameter -- `takes((Point){ .x = 5, .y = 5 })`
+// against `void takes(const Point* p)` -- and gcc rejected it. It is now passed
+// by its compound literal's address, so this assertion compiles. The returned
+// values are checked by `struct-literal-argument.test.cnx`.
 void takes(const Point* p) {
 }
 
 void f(void) {
-    takes((Point){ .x = 5, .y = 5 });
+    takes(&(Point){ .x = 5, .y = 5 });
 }
