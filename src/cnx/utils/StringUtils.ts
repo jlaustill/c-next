@@ -33,21 +33,6 @@ class StringUtils {
   }
 
   /**
-   * Generate strncpy without explicit null termination.
-   * Used for string array elements where the buffer is pre-zeroed.
-   *
-   * Pattern: (void) strncpy(target, value, capacity);
-   *
-   * @param target - The destination expression (may include subscripts)
-   * @param value - The source string expression
-   * @param capacity - Maximum string length (excluding null)
-   * @returns C code string for the copy operation
-   */
-  static copy(target: string, value: string, capacity: number): string {
-    return `(void) strncpy(${target}, ${value}, ${capacity});`;
-  }
-
-  /**
    * Generate string concatenation sequence.
    * Used for: result <- left + right
    *
@@ -105,72 +90,6 @@ class StringUtils {
     ];
   }
 
-  /**
-   * Generate struct field string copy.
-   * Used for: config.name <- "value"
-   *
-   * @param structName - The struct variable name
-   * @param fieldName - The field name
-   * @param value - The source string expression
-   * @param capacity - Maximum string length (excluding null)
-   * @returns C code string for the copy operation
-   */
-  static copyToStructField(
-    structName: string,
-    fieldName: string,
-    value: string,
-    capacity: number,
-  ): string {
-    return StringUtils.copyWithNull(
-      `${structName}.${fieldName}`,
-      value,
-      capacity,
-    );
-  }
-
-  /**
-   * Generate string array element copy.
-   * Used for: names[i] <- "value"
-   *
-   * @param arrayName - The array variable name
-   * @param index - The array index expression
-   * @param value - The source string expression
-   * @param capacity - Maximum string length (excluding null)
-   * @returns C code string for the copy operation
-   */
-  static copyToArrayElement(
-    arrayName: string,
-    index: string,
-    value: string,
-    capacity: number,
-  ): string {
-    return StringUtils.copy(`${arrayName}[${index}]`, value, capacity);
-  }
-
-  /**
-   * Generate struct field array element string copy.
-   * Used for: config.names[i] <- "value"
-   *
-   * @param structName - The struct variable name
-   * @param fieldName - The field name
-   * @param index - The array index expression
-   * @param value - The source string expression
-   * @param capacity - Maximum string length (excluding null)
-   * @returns C code string for the copy operation
-   */
-  static copyToStructFieldArrayElement(
-    structName: string,
-    fieldName: string,
-    index: string,
-    value: string,
-    capacity: number,
-  ): string {
-    return StringUtils.copy(
-      `${structName}.${fieldName}[${index}]`,
-      value,
-      capacity,
-    );
-  }
   /**
    * Get the actual character length of a string literal,
    * accounting for escape sequences like \n, \t, \\, etc.

@@ -1,0 +1,28 @@
+// test-execution
+// test-no-warnings
+// #1595: a string written to a scope member declared in an included file is
+// the same bounded copy the in-file `this.` spelling makes -- the member
+// itself, an element of a string array member, and a struct member's field.
+#include "lib.cnx"
+
+u32 main() {
+    Cfg.label <- "hello";
+    if (Cfg.label != "hello") {
+        return 1;
+    }
+    Cfg.tags[1] <- "tag";
+    if (Cfg.tags[1] != "tag") {
+        return 2;
+    }
+    Cfg.structField.member <- "fld";
+    if (Cfg.structField.member != "fld") {
+        return 3;
+    }
+
+    // NEGATIVE CONTROL: the in-file `this.` spelling inside the scope
+    Cfg.setInFile();
+    if (Cfg.label != "inner") {
+        return 4;
+    }
+    return 0;
+}

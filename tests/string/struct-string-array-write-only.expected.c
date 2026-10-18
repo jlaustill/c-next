@@ -14,6 +14,6 @@
 // and never read, still includes <string.h> for the strncpy the write emits
 int main(void) {
     Config cfg = {0};
-    (void) strncpy(cfg.items[2], "hi", 8);
+    (void) strncpy(cfg.items[2], "hi", 8); cfg.items[2][8] = '\0';
     return 0;
 }

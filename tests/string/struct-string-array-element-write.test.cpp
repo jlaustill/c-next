@@ -16,9 +16,9 @@
 int main(void) {
     Config cfg = {};
     cfg.count = 3U;
-    (void) strncpy(cfg.items[0], "hi", 8);
-    (void) strncpy(cfg.items[1], "seven c", 8);
-    (void) strncpy(cfg.items[2], "", 8);
+    (void) strncpy(cfg.items[0], "hi", 8); cfg.items[0][8] = '\0';
+    (void) strncpy(cfg.items[1], "seven c", 8); cfg.items[1][8] = '\0';
+    (void) strncpy(cfg.items[2], "", 8); cfg.items[2][8] = '\0';
     if (strcmp(cfg.items[0U], "hi") != 0) {
         return 1;
     }

@@ -22,7 +22,7 @@ uint32_t lengthOf(const char* s) {
 int main(void) {
     Config cfg = {0};
     (void) strncpy(cfg.name, "remote", 8); cfg.name[8] = '\0';
-    (void) strncpy(cfg.tags[1], "ab", 4);
+    (void) strncpy(cfg.tags[1], "ab", 4); cfg.tags[1][4] = '\0';
     if (strcmp(cfg.name, "remote") != 0) {
         return 1;
     }

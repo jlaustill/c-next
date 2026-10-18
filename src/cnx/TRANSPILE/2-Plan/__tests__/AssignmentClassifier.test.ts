@@ -458,9 +458,7 @@ describe("AssignmentClassifier - String Assignments", () => {
       isSimpleIdentifier: true,
     });
 
-    expect(AssignmentClassifier.classify(ctx)).toBe(
-      AssignmentKind.STRING_SIMPLE,
-    );
+    expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.STRING_COPY);
   });
 
   it("classifies struct field string", () => {
@@ -477,13 +475,13 @@ describe("AssignmentClassifier - String Assignments", () => {
     // #1737: the field's type is the typer's `.name` step
     expect(
       AssignmentClassifier.classify(typedStep(ctx, { after: stringField(64) })),
-    ).toBe(AssignmentKind.STRING_STRUCT_FIELD);
+    ).toBe(AssignmentKind.STRING_COPY);
     // Control: the typer says the field is no string<N>
     expect(
       AssignmentClassifier.classify(
         typedStep(ctx, { after: stringField(null) }),
       ),
-    ).not.toBe(AssignmentKind.STRING_STRUCT_FIELD);
+    ).not.toBe(AssignmentKind.STRING_COPY);
   });
 });
 
@@ -1339,8 +1337,8 @@ describe("AssignmentClassifier - Member Chain", () => {
 // the count still read as met. A guard that passes by coincidence is the one
 // nothing ever prompts anyone to look at.
 //
-// STRING_THIS_MEMBER is the sharpest of the five: the same kind whose registry
-// key, unguarded, emitted a 55-byte out-of-bounds `strncpy` bound
+// `this.member` string writes were the sharpest of the five: the kind whose
+// registry key, unguarded, emitted a 55-byte out-of-bounds `strncpy` bound
 // (`tests/string-assignment/string-assign-scope-this-shared-name.test.cnx`).
 // The classifier half of that hole had no test either.
 // ========================================================================
@@ -1350,7 +1348,7 @@ describe("AssignmentClassifier - previously unnamed kinds", () => {
     setupSymbols();
   });
 
-  it("classifies this.member string as STRING_THIS_MEMBER", () => {
+  it("classifies this.member string as STRING_COPY", () => {
     declare(
       "Logger__message",
       createTypeInfo({
@@ -1369,12 +1367,10 @@ describe("AssignmentClassifier - previously unnamed kinds", () => {
       hasThis: true,
     });
 
-    expect(AssignmentClassifier.classify(ctx)).toBe(
-      AssignmentKind.STRING_THIS_MEMBER,
-    );
+    expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.STRING_COPY);
   });
 
-  it("classifies global.<name> string as STRING_GLOBAL", () => {
+  it("classifies global.<name> string as STRING_COPY", () => {
     declare(
       "banner",
       createTypeInfo({
@@ -1392,14 +1388,10 @@ describe("AssignmentClassifier - previously unnamed kinds", () => {
       hasGlobal: true,
     });
 
-    expect(AssignmentClassifier.classify(ctx)).toBe(
-      AssignmentKind.STRING_GLOBAL,
-    );
+    expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.STRING_COPY);
   });
 
-  it("classifies an element of a string ARRAY as STRING_ARRAY_ELEMENT", () => {
-    // Two dimensions: [count, capacity+1]. `arrayDimensions.length > 1` is what
-    // separates a string array from a plain `string<N>`, which carries one.
+  it("classifies an element of a string ARRAY as STRING_COPY", () => {
     declare(
       "names",
       createTypeInfo({
@@ -1411,8 +1403,8 @@ describe("AssignmentClassifier - previously unnamed kinds", () => {
       }),
     );
 
-    // #1668 (C12): the typer types every subscript; this is its answer
-    const ctx = typedLast(
+    // #1731: what the subscript selects is one string<8>, the typer's step
+    const ctx = typedStep(
       createMockContext(state, {
         identifiers: ["names"],
         generatedValue: '"hi"',
@@ -1420,15 +1412,14 @@ describe("AssignmentClassifier - previously unnamed kinds", () => {
         hasArrayAccess: true,
         isSimpleIdentifier: false,
       }),
+      { before: stringField(8, [4]), after: stringField(8) },
       "array_element",
     );
 
-    expect(AssignmentClassifier.classify(ctx)).toBe(
-      AssignmentKind.STRING_ARRAY_ELEMENT,
-    );
+    expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.STRING_COPY);
   });
 
-  it("classifies struct.field[i] string as STRING_STRUCT_ARRAY_ELEMENT", () => {
+  it("classifies struct.field[i] string as STRING_COPY", () => {
     setupSymbols({
       knownStructs: new Set(["Config"]),
     });
@@ -1452,13 +1443,13 @@ describe("AssignmentClassifier - previously unnamed kinds", () => {
 
     // #1737: what the subscript selects is one string<8>, the typer's step
     expect(AssignmentClassifier.classify(element(stringField(8)))).toBe(
-      AssignmentKind.STRING_STRUCT_ARRAY_ELEMENT,
+      AssignmentKind.STRING_COPY,
     );
     // Control: the subscript selects a row of strings (`string<8>[2][3]`)
     expect(
       AssignmentClassifier.classify(element(stringField(8, [3]))),
-    ).not.toBe(AssignmentKind.STRING_STRUCT_ARRAY_ELEMENT);
-    // Control: two subscripts reach one string, but the kind renders one
+    ).not.toBe(AssignmentKind.STRING_COPY);
+    // #1904: two subscripts reaching one string are the same copy
     const twoDeep = createMockContext(state, {
       identifiers: ["config", "items"],
       generatedValue: '"hi"',
@@ -1476,7 +1467,7 @@ describe("AssignmentClassifier - previously unnamed kinds", () => {
           "array_element",
         ),
       ),
-    ).not.toBe(AssignmentKind.STRING_STRUCT_ARRAY_ELEMENT);
+    ).toBe(AssignmentKind.STRING_COPY);
   });
 
   it("classifies global.<struct>.<field>[i] as GLOBAL_ARRAY", () => {

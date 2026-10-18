@@ -43,11 +43,11 @@ uint32_t getElementLength(const char arr[5][33], const uint32_t index) {
 }
 
 int main(void) {
-    (void) strncpy(globalNames[0], "Alice", 32);
-    (void) strncpy(globalNames[1], "Bob", 32);
-    (void) strncpy(globalNames[2], "Charlie", 32);
-    (void) strncpy(globalNames[3], "Diana", 32);
-    (void) strncpy(globalNames[4], "Eve", 32);
+    (void) strncpy(globalNames[0], "Alice", 32); globalNames[0][32] = '\0';
+    (void) strncpy(globalNames[1], "Bob", 32); globalNames[1][32] = '\0';
+    (void) strncpy(globalNames[2], "Charlie", 32); globalNames[2][32] = '\0';
+    (void) strncpy(globalNames[3], "Diana", 32); globalNames[3][32] = '\0';
+    (void) strncpy(globalNames[4], "Eve", 32); globalNames[4][32] = '\0';
     if (5 != 5) {
         return 1;
     }
@@ -79,9 +79,9 @@ int main(void) {
         return 10;
     }
     char dupes[3][33] = {0};
-    (void) strncpy(dupes[0], "Alice", 32);
-    (void) strncpy(dupes[1], "Alice", 32);
-    (void) strncpy(dupes[2], "Bob", 32);
+    (void) strncpy(dupes[0], "Alice", 32); dupes[0][32] = '\0';
+    (void) strncpy(dupes[1], "Alice", 32); dupes[1][32] = '\0';
+    (void) strncpy(dupes[2], "Bob", 32); dupes[2][32] = '\0';
     if (strcmp(dupes[0U], dupes[1U]) != 0) {
         return 11;
     }
@@ -89,9 +89,9 @@ int main(void) {
         return 12;
     }
     char colors[3][65] = {0};
-    (void) strncpy(colors[0], "Red", 64);
-    (void) strncpy(colors[1], "Green", 64);
-    (void) strncpy(colors[2], "Blue", 64);
+    (void) strncpy(colors[0], "Red", 64); colors[0][64] = '\0';
+    (void) strncpy(colors[1], "Green", 64); colors[1][64] = '\0';
+    (void) strncpy(colors[2], "Blue", 64); colors[2][64] = '\0';
     if (3 != 3) {
         return 13;
     }
@@ -137,7 +137,7 @@ int main(void) {
     if (totalLength != 23) {
         return 23;
     }
-    (void) strncpy(globalNames[1], "Benjamin", 32);
+    (void) strncpy(globalNames[1], "Benjamin", 32); globalNames[1][32] = '\0';
     if (strlen(globalNames[1U]) != 8) {
         return 24;
     }
@@ -145,7 +145,7 @@ int main(void) {
         return 25;
     }
     char sparse[3][33] = {0};
-    (void) strncpy(sparse[1], "Middle", 32);
+    (void) strncpy(sparse[1], "Middle", 32); sparse[1][32] = '\0';
     if (strlen(sparse[0U]) != 0) {
         return 26;
     }

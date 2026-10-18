@@ -25,23 +25,6 @@ describe("StringUtils.copyWithNull", () => {
 });
 
 // ========================================================================
-// copy
-// ========================================================================
-describe("StringUtils.copy", () => {
-  it("generates strncpy without null termination", () => {
-    expect(StringUtils.copy("arr[0]", '"first"', 64)).toBe(
-      '(void) strncpy(arr[0], "first", 64);',
-    );
-  });
-
-  it("handles complex target expressions", () => {
-    expect(StringUtils.copy("data.names[i]", "source", 32)).toBe(
-      "(void) strncpy(data.names[i], source, 32);",
-    );
-  });
-});
-
-// ========================================================================
 // concat
 // ========================================================================
 describe("StringUtils.concat", () => {
@@ -94,87 +77,6 @@ describe("StringUtils.substring", () => {
   it("handles expression as start position", () => {
     const result = StringUtils.substring("out", "input", "i * 2", 8);
     expect(result[0]).toBe("(void) strncpy(out, input + i * 2, 8);");
-  });
-});
-
-// ========================================================================
-// copyToStructField
-// ========================================================================
-describe("StringUtils.copyToStructField", () => {
-  it("generates strncpy for struct.field with null termination", () => {
-    expect(StringUtils.copyToStructField("config", "name", '"test"', 32)).toBe(
-      "(void) strncpy(config.name, \"test\", 32); config.name[32] = '\\0';",
-    );
-  });
-
-  it("handles nested struct path in structName", () => {
-    expect(StringUtils.copyToStructField("a.b", "c", "val", 16)).toBe(
-      "(void) strncpy(a.b.c, val, 16); a.b.c[16] = '\\0';",
-    );
-  });
-});
-
-// ========================================================================
-// copyToArrayElement
-// ========================================================================
-describe("StringUtils.copyToArrayElement", () => {
-  it("generates strncpy for array element", () => {
-    expect(StringUtils.copyToArrayElement("names", "0", '"first"', 64)).toBe(
-      '(void) strncpy(names[0], "first", 64);',
-    );
-  });
-
-  it("handles variable index", () => {
-    expect(StringUtils.copyToArrayElement("arr", "i", "value", 32)).toBe(
-      "(void) strncpy(arr[i], value, 32);",
-    );
-  });
-
-  it("handles expression index", () => {
-    expect(StringUtils.copyToArrayElement("buf", "idx + 1", "src", 128)).toBe(
-      "(void) strncpy(buf[idx + 1], src, 128);",
-    );
-  });
-});
-
-// ========================================================================
-// copyToStructFieldArrayElement
-// ========================================================================
-describe("StringUtils.copyToStructFieldArrayElement", () => {
-  it("generates strncpy for struct.field[index]", () => {
-    expect(
-      StringUtils.copyToStructFieldArrayElement(
-        "config",
-        "names",
-        "0",
-        '"value"',
-        64,
-      ),
-    ).toBe('(void) strncpy(config.names[0], "value", 64);');
-  });
-
-  it("handles variable index", () => {
-    expect(
-      StringUtils.copyToStructFieldArrayElement(
-        "data",
-        "items",
-        "i",
-        "src",
-        32,
-      ),
-    ).toBe("(void) strncpy(data.items[i], src, 32);");
-  });
-
-  it("handles nested struct path", () => {
-    expect(
-      StringUtils.copyToStructFieldArrayElement(
-        "app.settings",
-        "labels",
-        "idx",
-        "text",
-        128,
-      ),
-    ).toBe("(void) strncpy(app.settings.labels[idx], text, 128);");
   });
 });
 

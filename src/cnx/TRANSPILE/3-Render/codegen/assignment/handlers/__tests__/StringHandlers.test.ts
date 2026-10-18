@@ -10,6 +10,7 @@ import IAssignmentContext from "../../../../../2-Plan/types/IAssignmentContext";
 import TranspileState from "../../../../../TranspileState";
 import HandlerTestUtils from "./handlerTestUtils";
 import AssignmentClassifier from "../../../../../2-Plan/AssignmentClassifier";
+import type IOperandType from "../../../../../../types/IOperandType";
 import enterScope from "../../../../../__tests__/enterScope";
 
 /**
@@ -70,6 +71,43 @@ function createMockContext(
 // tests are FOR is the emitted `strncpy`, and that is untouched.
 let state = new TranspileState();
 
+/** A typed last step that writes `after`, as the operand typer types it */
+function withLast(
+  ctx: IAssignmentContext,
+  after: IOperandType,
+  before: IOperandType | null = null,
+): IAssignmentContext {
+  return {
+    ...ctx,
+    target: {
+      ...ctx.target,
+      last: {
+        before,
+        subscript: before === null ? null : "array_element",
+        after,
+        property: null,
+        callee: null,
+        beforeNamesType: false,
+        beforeIsBitField: false,
+      },
+    },
+  };
+}
+
+function stringOperand(capacity: number): IOperandType {
+  return {
+    ...HandlerTestUtils.operandOf(`string<${capacity}>`, false, false),
+    dimensions: [],
+    stringCapacity: capacity,
+  };
+}
+
+function copyHandler() {
+  return stringHandlers.find(
+    ([kind]) => kind === AssignmentKind.STRING_COPY,
+  )?.[1];
+}
+
 describe("StringHandlers", () => {
   beforeEach(() => {
     state = new TranspileState();
@@ -77,90 +115,29 @@ describe("StringHandlers", () => {
     HandlerTestUtils.setupMockSymbols(state);
   });
 
-  describe("handler registration", () => {
-    it("registers all expected string assignment kinds", () => {
-      const kinds = stringHandlers.map(([kind]) => kind);
-
-      expect(kinds).toContain(AssignmentKind.STRING_SIMPLE);
-      expect(kinds).toContain(AssignmentKind.STRING_THIS_MEMBER);
-      expect(kinds).toContain(AssignmentKind.STRING_GLOBAL);
-      expect(kinds).toContain(AssignmentKind.STRING_STRUCT_FIELD);
-      expect(kinds).toContain(AssignmentKind.STRING_ARRAY_ELEMENT);
-      expect(kinds).toContain(AssignmentKind.STRING_STRUCT_ARRAY_ELEMENT);
-    });
-
-    it("uses same handler for STRING_SIMPLE and STRING_GLOBAL", () => {
-      const simpleHandler = stringHandlers.find(
-        ([kind]) => kind === AssignmentKind.STRING_SIMPLE,
-      )?.[1];
-      const globalHandler = stringHandlers.find(
-        ([kind]) => kind === AssignmentKind.STRING_GLOBAL,
-      )?.[1];
-
-      expect(simpleHandler).toBe(globalHandler);
-    });
+  it("registers the one string kind", () => {
+    expect(stringHandlers.map(([kind]) => kind)).toEqual([
+      AssignmentKind.STRING_COPY,
+    ]);
   });
 
-  describe("handleSimpleStringAssignment (STRING_SIMPLE)", () => {
-    it("generates strncpy with null terminator", () => {
+  describe("STRING_COPY", () => {
+    it("copies into a variable, sized by its declared capacity", () => {
       HandlerTestUtils.declareTypes(state, [
-        ["testVar", { stringCapacity: 32, baseType: "string" }],
+        ["testVar", { stringCapacity: 32, baseType: "string", isString: true }],
       ]);
-      const ctx = createMockContext();
 
-      const handler = stringHandlers.find(
-        ([kind]) => kind === AssignmentKind.STRING_SIMPLE,
-      )?.[1];
-      const result = handler!(ctx);
-
-      expect(result).toContain("strncpy");
-      expect(result).toContain("target");
-      expect(result).toContain("32");
-    });
-
-    // #1322: compound assignment on a bit index, bit range, slice, bitmap field
-    // or string is E0857 in pass 2.1 -- one decision where `output/` had six
-    // throws with four messages, and `validateNotCompound` defined twice verbatim.
-    // The pipeline halts before these handlers run. Covered by
-    // `1-Analyze/__tests__/CompoundAssignmentAnalyzer.test.ts` plus
-    // `tests/compound-assign/` and `tests/string-assignment/`.
-  });
-
-  describe("handleStringThisMember (STRING_THIS_MEMBER)", () => {
-    it("generates strncpy for scoped member", () => {
-      enterScope(state, "TestScope");
-      HandlerTestUtils.declareTypes(state, [
-        ["TestScope__memberName", { stringCapacity: 64, baseType: "string" }],
-      ]);
-      const ctx = createMockContext({
-        identifiers: ["memberName"],
-        scopePath: "TestScope",
-      });
-
-      const handler = stringHandlers.find(
-        ([kind]) => kind === AssignmentKind.STRING_THIS_MEMBER,
-      )?.[1];
-      const result = handler!(ctx);
-
-      expect(result).toContain("strncpy");
-      expect(result).toContain("64");
+      expect(copyHandler()!(createMockContext())).toBe(
+        "(void) strncpy(target, \"hello\", 32); target[32] = '\\0';",
+      );
     });
 
     it("classifier and handler key the same map at depth two", () => {
-      // #1357 review: the depth-2 guard in SpecialHandlers.test.ts covers 1 of
-      // the 11 converted sites. Restoring the leaf join at another one --
-      // AssignmentClassifier.ts:591 -- leaves all 6713 unit tests green, because
-      // the encoder-level test calls ScopeUtils directly and never imports the
-      // mutated file. So a site-level re-inline is invisible until a test drives
-      // the SITE.
-      //
-      // This one guards the PAIR rather than one site, which is what the comment
-      // deleted from StringHandlers.ts:105 used to record: the classifier decides
-      // to route here by hitting the type registry, and the handler then hits it
-      // again and dereferences with `!`. Key them differently and the classifier
-      // routes a member the handler cannot find, so the `!` throws at generation
-      // time. They agree at depth one whichever encoder each uses, so only depth
-      // two can tell a shared decision from a coincidence.
+      // #1357 review: the classifier decides to route here from the target's
+      // type, and the handler then sizes the copy from it. Key them
+      // differently and the classifier routes a member the handler cannot
+      // size. They agree at depth one whichever encoder each uses, so only
+      // depth two can tell a shared decision from a coincidence.
       enterScope(state, "Outer.Inner");
       HandlerTestUtils.declareTypes(state, [
         [
@@ -168,9 +145,6 @@ describe("StringHandlers", () => {
           { stringCapacity: 48, baseType: "string", isString: true },
         ],
       ]);
-      // The shared factory leaves these undefined -- every other test here calls
-      // a handler directly, which is reached only AFTER classification, so none
-      // of them needed the flags that classification reads.
       const ctx = createMockContext({
         identifiers: ["memberName"],
         hasThis: true,
@@ -178,126 +152,54 @@ describe("StringHandlers", () => {
         scopePath: "Outer.Inner",
       });
 
-      // Half one: the classifier must recognize it through the whole chain.
       expect(AssignmentClassifier.classify(ctx)).toBe(
-        AssignmentKind.STRING_THIS_MEMBER,
+        AssignmentKind.STRING_COPY,
       );
-
-      // Half two: the handler must find the same entry, not throw on `!`.
-      const handler = stringHandlers.find(
-        ([kind]) => kind === AssignmentKind.STRING_THIS_MEMBER,
-      )?.[1];
-
-      expect(handler!(ctx)).toContain("48");
+      expect(copyHandler()!(ctx)).toContain("48");
     });
 
-    // #1322a: the `'this' outside a scope` guard this asserted is deleted. It
-    // was unreachable -- `this.x <- 5` at file scope is a PARSE error, so the
-    // assignment never reaches codegen -- and this test reached it only by
-    // calling the handler directly with state production cannot produce. A test
-    // that is a dead branch's only caller is what keeps the branch alive.
-  });
-
-  describe("handleStringStructField (STRING_STRUCT_FIELD)", () => {
-    it("generates strncpy for struct field", () => {
+    // #1731: the target is the renderer's, not re-spelled from the chain's
+    // names -- `person.name` on a pointer parameter is `person->name`, and
+    // `parr[1].name` is not `parr.name[1]`
+    it("copies into a field through the rendered target", () => {
       HandlerTestUtils.declareTypes(state, [
         ["person", { baseType: "Person" }],
       ]);
-      const base = createMockContext({ identifiers: ["person", "name"] });
-      // #1737: the capacity is the typer's `.name` step
-      const name = {
-        ...HandlerTestUtils.operandOf("string<50>", false, false),
-        stringCapacity: 50,
-      };
-      const ctx: IAssignmentContext = {
-        ...base,
-        target: {
-          ...base.target,
-          last: {
-            before: null,
-            subscript: null,
-            after: name,
-            property: null,
-            callee: null,
-            beforeNamesType: false,
-            beforeIsBitField: false,
-          },
-        },
-      };
+      const ctx = withLast(
+        createMockContext({ identifiers: ["person", "name"] }),
+        stringOperand(50),
+      );
 
-      const handler = stringHandlers.find(
-        ([kind]) => kind === AssignmentKind.STRING_STRUCT_FIELD,
-      )?.[1];
-      const result = handler!(ctx);
+      const result = copyHandler()!(ctx);
 
-      expect(result).toContain("strncpy");
-      expect(result).toContain("person");
-      expect(result).toContain("name");
-      expect(result).toContain("50");
+      expect(result).toBe(
+        "(void) strncpy(target, \"hello\", 50); target[50] = '\\0';",
+      );
+      expect(result).not.toContain("person");
     });
-  });
 
-  describe("handleStringArrayElement (STRING_ARRAY_ELEMENT)", () => {
-    it("generates strncpy for array element", () => {
-      HandlerTestUtils.declareTypes(state, [
-        ["names", { stringCapacity: 20, baseType: "string" }],
-      ]);
-      const ctx = createMockContext({
-        identifiers: ["names"],
-        ...HandlerTestUtils.subscriptsOf([{} as never]),
-      });
-
-      const handler = stringHandlers.find(
-        ([kind]) => kind === AssignmentKind.STRING_ARRAY_ELEMENT,
-      )?.[1];
-      const result = handler!(ctx);
-
-      expect(result).toContain("strncpy");
-      expect(result).toContain("names");
-      expect(result).toContain("20");
-    });
-  });
-
-  describe("handleStringStructArrayElement (STRING_STRUCT_ARRAY_ELEMENT)", () => {
-    it("generates strncpy for struct field array element", () => {
+    it("copies into an element, terminated like any string", () => {
       HandlerTestUtils.declareTypes(state, [
         ["config", { baseType: "Config" }],
       ]);
-      const base = createMockContext({
-        identifiers: ["config", "items"],
-        ...HandlerTestUtils.subscriptsOf([{} as never]),
-      });
-      // #1737: the capacity is the typer's step for the element written
-      const element = {
-        ...HandlerTestUtils.operandOf("string<32>", false, false),
-        dimensions: [],
-        stringCapacity: 32,
-      };
-      const ctx: IAssignmentContext = {
-        ...base,
-        target: {
-          ...base.target,
-          last: {
-            before: { ...element, dimensions: [10] },
-            subscript: "array_element",
-            after: element,
-            property: null,
-            callee: null,
-            beforeNamesType: false,
-            beforeIsBitField: false,
-          },
-        },
-      };
+      const element = stringOperand(32);
+      const ctx = withLast(
+        createMockContext({
+          identifiers: ["config", "items"],
+          ...HandlerTestUtils.subscriptsOf([{} as never]),
+        }),
+        element,
+        { ...element, dimensions: [10] },
+      );
 
-      const handler = stringHandlers.find(
-        ([kind]) => kind === AssignmentKind.STRING_STRUCT_ARRAY_ELEMENT,
-      )?.[1];
-      const result = handler!(ctx);
-
-      expect(result).toContain("strncpy");
-      expect(result).toContain("config");
-      expect(result).toContain("items");
-      expect(result).toContain("32");
+      expect(copyHandler()!(ctx)).toBe(
+        "(void) strncpy(target, \"hello\", 32); target[32] = '\\0';",
+      );
     });
+
+    // #1322: compound assignment on a string is E0857 in pass 2.1, so the
+    // pipeline halts before this handler runs. Covered by
+    // `1-Analyze/__tests__/CompoundAssignmentAnalyzer.test.ts` plus
+    // `tests/compound-assign/` and `tests/string-assignment/`.
   });
 });

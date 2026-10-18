@@ -20,5 +20,5 @@ void assignSimple(void) {
 }
 
 void assignArrayElement(void) {
-    (void) strncpy(names[0], "world", 16);
+    (void) strncpy(names[0], "world", 16); names[0][16] = '\0';
 }

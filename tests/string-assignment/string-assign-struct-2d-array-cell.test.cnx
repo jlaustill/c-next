@@ -1,0 +1,27 @@
+// test-execution
+// test-no-warnings
+// #1904: a string written into one cell of a struct's string<N>[A][B] field is
+// a bounded copy into that cell, leaving the cells beside it alone.
+struct Grid {
+    string<4>[2][3] cells;
+}
+
+u32 main() {
+    mut Grid g;
+    g.cells[1][1] <- "zz";
+    g.cells[1][2] <- "ab";
+    if (g.cells[1][2] != "ab") {
+        return 1;
+    }
+    if (g.cells[1][1] != "zz") {
+        return 2;
+    }
+    g.cells[0][2] <- "cd";
+    if (g.cells[0][2] != "cd") {
+        return 3;
+    }
+    if (g.cells[1][2] != "ab") {
+        return 4;
+    }
+    return 0;
+}
