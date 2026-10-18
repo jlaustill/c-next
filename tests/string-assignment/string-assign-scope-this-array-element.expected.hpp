@@ -14,6 +14,7 @@ extern "C" {
 
 /* External variables */
 extern char Lab__tags[2][9];
+extern char Lab__label[9];
 
 /* Function prototypes */
 void Lab__set(void);

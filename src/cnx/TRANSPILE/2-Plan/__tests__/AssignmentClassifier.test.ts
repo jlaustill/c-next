@@ -461,6 +461,27 @@ describe("AssignmentClassifier - String Assignments", () => {
     expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.STRING_COPY);
   });
 
+  it("reads an untyped chain's variable only for x, this.x and global.x", () => {
+    // #1731 review: with no typed step, the variable's own type is what is
+    // written only when the target names the variable -- the same gate
+    // ADR-044's clamp reads (`writtenStep`)
+    declare(
+      "name",
+      createTypeInfo({
+        baseType: "string<32>",
+        isString: true,
+        stringCapacity: 32,
+      }),
+    );
+
+    const ctx = createMockContext(state, {
+      identifiers: ["name"],
+      isSimpleIdentifier: false,
+    });
+
+    expect(AssignmentClassifier.writtenStringCapacity(ctx)).toBeNull();
+  });
+
   it("classifies struct field string", () => {
     const knownStructs = new Set(["Person"]);
     setupSymbols({ knownStructs });

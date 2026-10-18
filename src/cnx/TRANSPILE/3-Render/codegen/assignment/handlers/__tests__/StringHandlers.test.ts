@@ -127,9 +127,9 @@ describe("StringHandlers", () => {
         ["testVar", { stringCapacity: 32, baseType: "string", isString: true }],
       ]);
 
-      expect(copyHandler()!(createMockContext())).toBe(
-        "(void) strncpy(target, \"hello\", 32); target[32] = '\\0';",
-      );
+      expect(
+        copyHandler()!(createMockContext({ isSimpleIdentifier: true })),
+      ).toBe("(void) strncpy(target, \"hello\", 32); target[32] = '\\0';");
     });
 
     it("classifier and handler key the same map at depth two", () => {

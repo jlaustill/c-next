@@ -14,10 +14,12 @@
 // string<N>[M] variable is a bounded copy into the scope-qualified variable.
 /* Scope: Lab */
 char Lab__tags[2][9] = {0};
+char Lab__label[9] = "";
 
 void Lab__set(void) {
     (void) strncpy(Lab__tags[0], "x", 8); Lab__tags[0][8] = '\0';
     (void) strncpy(Lab__tags[1], "second", 8); Lab__tags[1][8] = '\0';
+    (void) strncpy(Lab__label, "ok", 8); Lab__label[8] = '\0';
 }
 
 uint32_t Lab__firstLength(void) {
@@ -35,6 +37,9 @@ int main(void) {
     const uint32_t n = Lab__firstLength();
     if (n != 1) {
         return 3U;
+    }
+    if (strcmp(Lab__label, "ok") != 0) {
+        return 4U;
     }
     return 0U;
 }

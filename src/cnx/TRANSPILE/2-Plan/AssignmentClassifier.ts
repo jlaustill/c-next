@@ -2,8 +2,6 @@
  * Assignment classifier for dispatch-based code generation (ADR-065).
  *
  * Analyzes an assignment context and determines which AssignmentKind it is.
- * The classification order matches the original generateAssignment() method's
- * if-else chain to ensure identical behavior.
  *
  * Migrated to use CodeGenState instead of constructor DI.
  */
@@ -14,6 +12,7 @@ import SubscriptDepthValidator from "./SubscriptDepthValidator";
 import TTypeInfo from "../../types/TTypeInfo";
 import type TOverflowBehavior from "../../types/TOverflowBehavior";
 import type IChainBase from "../../types/IChainBase";
+import type IChainStep from "../../types/IChainStep";
 import OperandTyper from "../../utils/OperandTyper";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
 import QualifiedCName from "../../utils/QualifiedCName";
@@ -22,30 +21,20 @@ import CompoundOperator from "../../utils/CompoundOperator";
 import CLAMP_HELPER_FOR_OPERATOR from "../../types/CLAMP_HELPER_FOR_OPERATOR";
 
 /**
- * Classifies assignment statements by analyzing their structure.
- *
- * Classification priority (higher = checked first):
- * 1. Bitmap field assignments (memberAccess patterns)
- * 2. Register bit/bitmap assignments
- * 3. Global/this prefix patterns
- * 4. Array/bit access patterns
- * 5. Atomic/overflow special cases
- * 6. String assignments
- * 7. Simple fallback
+ * Classifies assignment statements by analyzing their structure. What is
+ * asked first is `classify()`'s numbered priorities, in one place.
  */
 class AssignmentClassifier {
-  /**
-   * Check if typeInfo represents a simple string type (not a 2D+ string array).
-   */
   /**
    * The type info of the assignment TARGET, for the three simple patterns.
    *
    * #1450: one decision, and it was derived twice. `classifySpecialCompound`
    * resolved it across three branches to classify atomics and overflow clamps;
-   * the three string classifiers resolved it again, branch for branch, sixty
-   * lines below. They agreed, which is the failure mode rather than the
-   * defense -- changing how a target resolves (qualifying `global.member`, say)
-   * meant editing both, and nothing said so.
+   * the string classifiers resolved it again, branch for branch, sixty lines
+   * below. They agreed, which is the failure mode rather than the defense --
+   * changing how a target resolves (qualifying `global.member`, say) meant
+   * editing both, and nothing said so. (#1731 folded those string classifiers
+   * into `writtenStringCapacity`, which reads it through `writtenStep`.)
    *
    * The pattern GUARD stays with each caller, because the pattern is what picks
    * the `AssignmentKind`. Only the resolution is shared: what a target is named
@@ -62,14 +51,26 @@ class AssignmentClassifier {
    * and `global.` off the target itself, so there is no key to get right.
    */
   static targetTypeInfo(ctx: IAssignmentContext): TTypeInfo | undefined {
-    const isSimple =
-      ctx.isSimpleIdentifier ||
-      ctx.isSimpleThisAccess ||
-      ctx.isSimpleGlobalAccess;
-    return isSimple ? ctx.target.typeInfo : undefined;
+    return AssignmentClassifier.isSimpleTarget(ctx)
+      ? ctx.target.typeInfo
+      : undefined;
   }
 
-  private static isSimpleStringType(typeInfo: TTypeInfo | undefined): boolean {
+  /** Whether the target is `x`, `this.x` or `global.x` */
+  private static isSimpleTarget(ctx: IAssignmentContext): boolean {
+    return (
+      ctx.isSimpleIdentifier ||
+      ctx.isSimpleThisAccess ||
+      ctx.isSimpleGlobalAccess
+    );
+  }
+
+  /**
+   * Check if typeInfo represents a simple string type (not a 2D+ string array).
+   */
+  private static isSimpleStringType(
+    typeInfo: TTypeInfo | undefined,
+  ): typeInfo is TTypeInfo & { stringCapacity: number } {
     return (
       typeInfo?.isString === true &&
       typeInfo.stringCapacity !== undefined &&
@@ -864,26 +865,39 @@ class AssignmentClassifier {
   }
 
   /**
-   * What the target writes, for ADR-044: its type and declared behavior.
+   * What a target writes, read once for every rule that asks.
    * #1411/#1887: a field (`p.x`) or an element (`levels[1]`) is written as
-   * much as a variable is, so a chain's is the typer's last step -- the
-   * field's own modifier, the element's array's. A target with no step is
-   * the variable itself.
+   * much as a variable is, so a chain's is the typer's last step. A target
+   * with no step is the variable itself, and only `x`, `this.x` and
+   * `global.x` name one -- so that fallback reads `typeInfo` only when
+   * `isSimple`, whatever left the chain untyped (#1731 review).
+   */
+  private static writtenStep(
+    target: IChainBase,
+    isSimple: boolean,
+  ): { step: IChainStep } | { variable: TTypeInfo } | null {
+    if (target.last !== undefined) return { step: target.last };
+    const typeInfo = isSimple ? target.typeInfo : undefined;
+    return typeInfo === undefined ? null : { variable: typeInfo };
+  }
+
+  /**
+   * What the target writes, for ADR-044: its type and declared behavior --
+   * the field's own modifier, the element's array's, or the variable's.
    */
   private static writtenValue(
     target: IChainBase,
     isSimple: boolean,
   ): { baseType: string; overflowBehavior: TOverflowBehavior | null } | null {
-    const last = target.last;
-    if (last === undefined) {
-      const typeInfo = isSimple ? target.typeInfo : undefined;
-      if (!typeInfo) return null;
+    const written = AssignmentClassifier.writtenStep(target, isSimple);
+    if (written === null) return null;
+    if ("variable" in written) {
       return {
-        baseType: typeInfo.baseType,
-        overflowBehavior: typeInfo.overflowBehavior ?? null,
+        baseType: written.variable.baseType,
+        overflowBehavior: written.variable.overflowBehavior ?? null,
       };
     }
-    const after = last.after;
+    const after = written.step.after;
     if (after?.typeName == null || after.dimensions.length > 0) return null;
     return { baseType: after.typeName, overflowBehavior: after.overflow };
   }
@@ -898,22 +912,24 @@ class AssignmentClassifier {
    * `global.member`, `var.field`, `var.field[i]`, `names[i]`), each matching a
    * spelling and each handler re-rendering its spelling's target by hand, so
    * `this.cfg.name`, `o.inner.name`, `parr[1].name` and `g.cells[1][2]` fell
-   * through to `=`. A target with no step is the variable itself. A slice or
-   * bit subscript writes part of what it selects, never a whole string.
+   * through to `=`. What is written is `writtenStep`'s answer, shared with
+   * ADR-044's clamp. A slice or bit subscript writes part of what it selects,
+   * never a whole string.
    */
   static writtenStringCapacity(ctx: IAssignmentContext): number | null {
-    const last = ctx.target.last;
-    if (last !== undefined) {
-      const writesWholeStep =
-        last.subscript === null || last.subscript === "array_element";
-      return writesWholeStep
-        ? OperandTyper.scalarStringCapacity(last.after)
+    const written = AssignmentClassifier.writtenStep(
+      ctx.target,
+      AssignmentClassifier.isSimpleTarget(ctx),
+    );
+    if (written === null) return null;
+    if ("variable" in written) {
+      return AssignmentClassifier.isSimpleStringType(written.variable)
+        ? written.variable.stringCapacity
         : null;
     }
-    const typeInfo = ctx.target.typeInfo;
-    return AssignmentClassifier.isSimpleStringType(typeInfo)
-      ? typeInfo!.stringCapacity!
-      : null;
+    const { subscript, after } = written.step;
+    const writesWholeStep = subscript === null || subscript === "array_element";
+    return writesWholeStep ? OperandTyper.scalarStringCapacity(after) : null;
   }
 
   /** Whether a chain's root is a variable of a known struct type */

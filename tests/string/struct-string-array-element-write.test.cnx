@@ -1,7 +1,8 @@
 // test-execution
 // test-no-warnings
 // #1737: a write to one element of a struct's string-array field copies into
-// that element with the field's string<N> capacity (STRING_STRUCT_ARRAY_ELEMENT)
+// that element with the field's string<N> capacity, terminated like every
+// string write (#1731)
 // #1569: the field is declared char items[3][9], each element string<8>
 struct Config {
     string<8>[3] items;

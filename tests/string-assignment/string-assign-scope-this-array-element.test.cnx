@@ -4,10 +4,14 @@
 // string<N>[M] variable is a bounded copy into the scope-qualified variable.
 scope Lab {
     public mut string<8>[2] tags;
+    public mut string<8> label;
 
     public void set() {
         this.tags[0] <- "x";
         this.tags[1] <- "second";
+        // NEGATIVE CONTROL: a scalar member through `this.`, which copied
+        // correctly before #1903
+        this.label <- "ok";
     }
 
     public u32 firstLength() {
@@ -26,6 +30,9 @@ u32 main() {
     u32 n <- Lab.firstLength();
     if (n != 1) {
         return 3;
+    }
+    if (Lab.label != "ok") {
+        return 4;
     }
     return 0;
 }
