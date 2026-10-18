@@ -200,10 +200,10 @@ describe("BitmapHandlers", () => {
       );
     });
 
-    // #1322: compound assignment on a bitmap field is E0857 in pass 2.1, and
+    // A compound operator on a bitmap field is E0857 in pass 2.1 (#2159), and
     // ADR-034's overflow rule is E0881 there too; the pipeline halts before
-    // these handlers run. Covered by
-    // `1-Analyze/__tests__/CompoundAssignmentAnalyzer.test.ts`.
+    // these handlers run. Covered by `CompoundAssignmentAnalyzer.test.ts` and
+    // `BitmapAccessAnalyzer`'s tests.
   });
 
   describe("handleRegisterMemberBitmapField (REGISTER_MEMBER_BITMAP_FIELD)", () => {

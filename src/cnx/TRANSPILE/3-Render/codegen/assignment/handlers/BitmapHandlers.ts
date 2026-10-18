@@ -38,10 +38,9 @@ function getBitmapFieldInfo(
 
   const fieldInfo = fields.get(fieldName)!;
 
-  // #1322: compound assignment on this target is E0857 in pass 2.1, and a
-  // literal too wide for the field is E0881 -- decided from the bitmap's
-  // layouts and the value's own text, so it no longer waits for this handler
-  // to have resolved the field first.
+  // A compound operator on a bitmap field never reaches here: pass 2.1 rejects
+  // it as E0857 on the chain's typed final step (#2159), and a literal too
+  // wide for the field as E0881 from the bitmap's layouts (#1322).
 
   return fieldInfo;
 }

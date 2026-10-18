@@ -15,6 +15,7 @@ import TTypeInfo from "../../types/TTypeInfo";
 import type TOverflowBehavior from "../../types/TOverflowBehavior";
 import type IChainBase from "../../types/IChainBase";
 import OperandTyper from "../../utils/OperandTyper";
+import BitmapFieldStep from "../../utils/BitmapFieldStep";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeUtils from "../../utils/ScopeUtils";
@@ -154,19 +155,12 @@ class AssignmentClassifier {
   private static classifyBitmapValueField(
     ctx: IAssignmentContext,
   ): AssignmentKind | null {
-    if (ctx.postfixOps.at(-1)?.kind !== "member") {
-      return null;
-    }
-    const step = ctx.target.last;
-    const bitmapType = step?.before?.bitmapTypeName;
-    if (!bitmapType || step.property !== null) {
-      return null;
-    }
-    if (step.before!.dimensions.length !== 0) {
-      return null;
-    }
+    const bitmapType = BitmapFieldStep.bitmapOf(
+      ctx.target.last,
+      ctx.postfixOps.at(-1)?.kind === "member",
+    );
     const fieldName = ctx.identifiers.at(-1);
-    if (fieldName === undefined) {
+    if (bitmapType === null || fieldName === undefined) {
       return null;
     }
     const width = AssignmentClassifier.lookupBitmapFieldWidth(

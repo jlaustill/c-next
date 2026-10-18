@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-640 fixture(s) assert a diagnostic; 630 carry a code.
+641 fixture(s) assert a diagnostic; 631 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -591,6 +591,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/comments/misra-3-1-nested-block.test.cnx                                                   | MISRA-3.1           |
 | tests/comments/misra-3-2-backslash.test.cnx                                                      | MISRA-3.2           |
 | tests/compound-assign/bit-index-compound.test.cnx                                                | E0857               |
+| tests/compound-assign/bitmap-field-compound.test.cnx                                             | E0857               |
 | tests/compound-assign/struct-field-bit-index-compound.test.cnx                                   | E0857               |
 | tests/constructor-syntax/error-literal-arg.test.cnx                                              | (uncoded)           |
 | tests/constructor-syntax/error-non-const-arg.test.cnx                                            | E0432               |

@@ -33,11 +33,16 @@ import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
 import type TExpression from "../../types/syntax/TExpression";
 import StatementNodes from "../../utils/StatementNodes";
 import OperandTyper from "../../utils/OperandTyper";
+import BitmapFieldStep from "../../utils/BitmapFieldStep";
 import ICompoundAssignmentError from "./types/ICompoundAssignmentError";
 import type IAnalysisContext from "./types/IAnalysisContext";
 
 /** What made a target unusable, in words the message can name. */
-type TRejection = "bit index" | "bit range or slice" | "string";
+type TRejection =
+  | "bit index"
+  | "bit range or slice"
+  | "bitmap field"
+  | "string";
 
 class CompoundAssignmentCheck {
   private readonly found: ICompoundAssignmentError[] = [];
@@ -93,6 +98,17 @@ class CompoundAssignmentCheck {
     const typing = OperandTyper.chainOf(target, this.context);
     if (typing.steps.some((step) => step.subscript === "bit_single")) {
       return "bit index";
+    }
+    // #2159: a bitmap field is a bit or a run of bits of its backing value,
+    // as a bit index is (ADR-007, ADR-034) -- whatever spells its prefix
+    const lastOp = target.kind === "postfix" ? target.ops.at(-1) : undefined;
+    if (
+      BitmapFieldStep.bitmapOf(
+        typing.steps.at(-1),
+        lastOp?.kind === "member",
+      ) !== null
+    ) {
+      return "bitmap field";
     }
     // The chain may END on a string -- `config.name +<- " suffix"` where
     // `name` is a `string<32>` field. A string is a buffer copied by
