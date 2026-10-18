@@ -6,7 +6,7 @@
   "type": "module",
   "main": "src/cli/index.ts",
   "bin": {
-    "cnext": "./bin/cnext.js"
+    "cnx": "./bin/cnx.js"
   },
   "scripts": {
     "antlr": "antlr4ng -Dlanguage=TypeScript -visitor -listener -o src/cnx/PARSE/2-Parse grammar/CNext.g4",

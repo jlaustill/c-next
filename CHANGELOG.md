@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The command is `cnx`, not `cnext`** (Issue #2164). No `cnext` alias is installed, so a
+  script, Makefile or `package.json` that runs `cnext` must run `cnx` instead. `cnx --version`
+  prints `cnx v<version>`, and `cnx --help` names `cnx` throughout. The config file names, the
+  PlatformIO build script and the npm package name move to cnx separately (#2165, #2174, #2181).
 - **The repository moved to [smeltworks/cnx](https://github.com/smeltworks/cnx)** (Issue #2180).
   Old `github.com/jlaustill/c-next` links and git remotes redirect; update a clone with
   `git remote set-url origin https://github.com/smeltworks/cnx.git`. The coverage report moved

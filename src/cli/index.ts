@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * C-Next Transpiler CLI
+ * cnx transpiler CLI
  * A safer C for embedded systems development
  */
 

@@ -40,11 +40,11 @@ interface IYargsResult {
 function configureYargs(args: string[], argv: string[]) {
   return (
     yargs(args)
-      .scriptName("cnext")
+      .scriptName("cnx")
       .usage(
         `Usage:
-  cnext <file.cnx>                          Entry point file (follows includes)
-  cnext <file.cnx> -o <output.c>            Single file with explicit output
+  cnx <file.cnx>                            Entry point file (follows includes)
+  cnx <file.cnx> -o <output.c>              Single file with explicit output
 
 A safer C for embedded systems development.`,
       )
@@ -152,8 +152,8 @@ A safer C for embedded systems development.`,
       // Config file documentation (shown in help)
       .epilogue(
         `Examples:
-  cnext src/main.cnx                        # Entry point (follows includes)
-  cnext main.cnx -o build/main.c            # Explicit output path
+  cnx src/main.cnx                          # Entry point (follows includes)
+  cnx main.cnx -o build/main.c              # Explicit output path
 
 Target platforms: ${TargetResolver.names(NodeFileSystem.instance).join(", ")}
 
@@ -171,11 +171,7 @@ Config options:
       )
 
       // Version from package.json
-      .version(
-        "version",
-        "Show version",
-        `cnext v${ConfigPrinter.getVersion()}`,
-      )
+      .version("version", "Show version", `cnx v${ConfigPrinter.getVersion()}`)
       .alias("version", "v")
 
       // Help
@@ -195,7 +191,7 @@ Config options:
           console.error("  Did you mean: --include <dir>");
           console.error("");
           console.error("Example:");
-          console.error("  cnext src --include path/to/headers");
+          console.error("  cnx src --include path/to/headers");
           process.exit(1);
         }
         console.error(msg);

@@ -6,7 +6,7 @@
  *
  * This eliminates the tsx/npx overhead (~300-500ms per invocation) from:
  *   - Integration tests (952 tests × `npx tsx src/cli/index.ts`)
- *   - CLI usage via `bin/cnext.js`
+ *   - CLI usage via `bin/cnx.js`
  *   - CI pipeline jobs
  */
 
