@@ -332,9 +332,9 @@ cell is declared by the ADR that owns it.
 | Context            | same file | direct | transitive | from 1 away | thru chain |
 | ------------------ | --------- | ------ | ---------- | ----------- | ---------- |
 | global variable    | ok        | -      | -          | n/a         | n/a        |
-| top-level function | ok        | -      | -          | n/a         | n/a        |
+| top-level function | ok        | ok     | -          | n/a         | n/a        |
 | scope member       | ok        | -      | -          | n/a         | n/a        |
-| scope method       | ok        | -      | -          | n/a         | n/a        |
+| scope method       | ok        | ok     | -          | n/a         | n/a        |
 
 2 linked fixtures with no derivable context:
 

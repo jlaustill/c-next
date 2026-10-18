@@ -53,7 +53,7 @@ class WholeArrayValueAnalyzer {
         found.push(...this.shapeMismatch(value, at));
         continue;
       }
-      found.push(...WholeArrayValueAnalyzer.check(value, at));
+      found.push(...WholeArrayValueAnalyzer.check(value, at, this.context));
     }
     return found.sort((a, b) => a.line - b.line || a.column - b.column);
   }
@@ -107,11 +107,12 @@ class WholeArrayValueAnalyzer {
   private static check(
     value: TExpression,
     at: IValuePosition,
+    context: IAnalysisContext,
   ): IArrayDeclarationError[] {
     const element =
       at.typeText === null ? null : TypeText.withoutDimensions(at.typeText);
     if (value.kind === "arrayInitializer") {
-      return ArrayListCount.mismatches(value, at.dimensions, element);
+      return ArrayListCount.mismatches(value, at.dimensions, element, context);
     }
     if (ExpressionShape.givesWholeArray(value, element)) return [];
     return [ArrayListCount.notAList(value)];

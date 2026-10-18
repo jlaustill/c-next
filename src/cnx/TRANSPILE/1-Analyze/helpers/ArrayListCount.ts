@@ -1,10 +1,19 @@
+import ZeroValue from "./ZeroValue";
 import ExpressionShape from "../../../utils/ExpressionShape";
 import TypeCheckUtils from "../../../utils/TypeCheckUtils";
 import type TExpression from "../../../types/syntax/TExpression";
 import type IArrayDeclarationError from "../types/IArrayDeclarationError";
+import type IAnalysisContext from "../types/IAnalysisContext";
 
 type TArrayInitializer = Extract<TExpression, { kind: "arrayInitializer" }>;
 type TSize = number | string | null;
+
+/** The position a list is checked against: its sizes and its element type */
+interface IListPosition {
+  readonly sizes: readonly TSize[];
+  readonly elementType: string | null;
+  readonly context: IAnalysisContext;
+}
 
 /**
  * ADR-035, E0866: a list has one element per slot at every level, or the
@@ -15,17 +24,25 @@ type TSize = number | string | null;
  * with dimensions left is a list too -- or, for a `u8` row, a string literal
  * -- and a string array's slot is a string literal (#2195). A size is a
  * folded number, the spelling of one that does not fold (a C macro), or null
- * for none; a fill-all other than `[0*]` needs a folded size, since C has no
- * initializer that repeats a value an unknown number of times (#2196).
+ * for none. C has no initializer that repeats a value an unknown number of
+ * times, only one that zero-fills what it leaves out, so a fill-all for a size
+ * that does not fold must be zero: `0` (`false`, a zero const) or, for a
+ * string array, `""` (#2196).
  */
 class ArrayListCount {
   static mismatches(
     initializer: TArrayInitializer,
     sizes: readonly TSize[],
     elementType: string | null,
+    context: IAnalysisContext,
   ): IArrayDeclarationError[] {
     const found: IArrayDeclarationError[] = [];
-    ArrayListCount.checkLevel(initializer, sizes, elementType, 0, found);
+    ArrayListCount.checkLevel(
+      initializer,
+      { sizes, elementType, context },
+      0,
+      found,
+    );
     return found;
   }
 
@@ -50,9 +67,9 @@ class ArrayListCount {
       code: "E0866",
       line: fill.span.line,
       column: fill.span.column,
-      message: `A fill-all [${fill.written}*] needs a size C-Next can fold, and '${size}' does not`,
+      message: `A fill-all [${fill.written}*] other than zero needs a size C-Next can fold, and '${size}' does not`,
       helpText:
-        "Write the elements out, fill with [0*], or size the array with a C-Next constant (ADR-035).",
+        "Write the elements out, fill with zero, or size the array with a C-Next constant (ADR-035).",
     };
   }
 
@@ -71,16 +88,18 @@ class ArrayListCount {
   /** Count one level of a nested list against its dimension, then descend. */
   private static checkLevel(
     initializer: TArrayInitializer,
-    sizes: readonly TSize[],
-    elementType: string | null,
+    at: IListPosition,
     level: number,
     found: IArrayDeclarationError[],
   ): void {
-    // A fill-all covers this level; its value fills every slot of it
     const fill = initializer.fill;
     const elements = fill === null ? initializer.elements : [fill];
-    const declared = sizes[level];
-    if (fill !== null && typeof declared === "string" && fill.written !== "0") {
+    const declared = at.sizes[level];
+    if (
+      fill !== null &&
+      typeof declared === "string" &&
+      !ArrayListCount.fillsWithZero(fill, at)
+    ) {
       found.push(ArrayListCount.unfoldedFill(fill, declared));
       return;
     }
@@ -102,25 +121,25 @@ class ArrayListCount {
     }
     for (const element of elements) {
       if (element.kind === "arrayInitializer") {
-        ArrayListCount.checkLevel(
-          element,
-          sizes,
-          elementType,
-          level + 1,
-          found,
-        );
-      } else if (level + 1 < sizes.length) {
-        if (!ExpressionShape.givesWholeArray(element, elementType)) {
+        ArrayListCount.checkLevel(element, at, level + 1, found);
+      } else if (level + 1 < at.sizes.length) {
+        if (!ExpressionShape.givesWholeArray(element, at.elementType)) {
           found.push(ArrayListCount.notAList(element));
         }
       } else if (
-        elementType !== null &&
-        TypeCheckUtils.isSizedStringName(elementType) &&
+        at.elementType !== null &&
+        TypeCheckUtils.isSizedStringName(at.elementType) &&
         !ExpressionShape.isStringLiteral(element)
       ) {
         found.push(ArrayListCount.notAStringLiteral(element));
       }
     }
+  }
+
+  /** What C's `{v}` gives every slot it leaves out: zero, or a string's `""` */
+  private static fillsWithZero(fill: TExpression, at: IListPosition): boolean {
+    if (ExpressionShape.isStringLiteral(fill)) return fill.written === '""';
+    return ZeroValue.of(fill, fill, at.context);
   }
 }
 

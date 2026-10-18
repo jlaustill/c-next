@@ -60,7 +60,12 @@ class ArrayDeclarationCheck {
         : (ConstantExpression.valueAt(size, this.context) ?? size.written),
     );
     this.found.push(
-      ...ArrayListCount.mismatches(initializer, sizes, type.element.text),
+      ...ArrayListCount.mismatches(
+        initializer,
+        sizes,
+        type.element.text,
+        this.context,
+      ),
     );
   }
 }
