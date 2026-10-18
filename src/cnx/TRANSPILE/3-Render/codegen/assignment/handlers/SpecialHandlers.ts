@@ -46,15 +46,15 @@ function handleAtomicRMW(ctx: IAssignmentContext): string {
     );
 }
 
+const HOISTED_CLAMP_ANNOTATION =
+  "/* ADR-044 / Issue #1887: target reached once through a temp (its subscript has a side effect, and the clamp reads the element as well as writing it). */";
+
 /**
  * Handle overflow-clamped compound assignment: clamp u8 saturated +<- 200
  *
  * Generates calls to cnx_clamp_add_u8, cnx_clamp_sub_u8, etc. Classified only
  * when `AssignmentClassifier.compoundClamp` names a helper.
  */
-const HOISTED_CLAMP_ANNOTATION =
-  "/* ADR-044 / Issue #1887: target reached once through a temp (its subscript has a side effect, and the clamp reads the element as well as writing it). */";
-
 function handleOverflowClamp(ctx: IAssignmentContext): string {
   const clamp = AssignmentClassifier.compoundClamp(ctx);
   invariant(clamp !== null, "OVERFLOW_CLAMP is classified only with a helper");

@@ -527,11 +527,7 @@ class FilePlanner {
   } {
     const typing = this.state.typingContext();
     const targets = new Set<TExpression>(
-      program.declarations.flatMap((entry) =>
-        StatementNodes.assignments(entry.declaration).map(
-          (write) => write.target,
-        ),
-      ),
+      FilePlanner.assignmentSites(program).map((write) => write.target),
     );
     const writes = new Map<TExpression, IPlannedFloatBits | null>();
     for (const target of targets) {
