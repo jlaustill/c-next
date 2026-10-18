@@ -97,7 +97,7 @@ describe("AdrDeclarationReader.read", () => {
       [
         wellFormed,
         "",
-        AdrMatrixDeclaration.ruleMarker("string-copy"),
+        "<!-- MATRIX-SEVERITY rule: string-copy -->",
         "",
         "| Context | Relationship | Severity |",
         "| ------- | ------------ | -------- |",
@@ -113,7 +113,7 @@ describe("AdrDeclarationReader.read", () => {
   it("keeps a rule whose marker is present but whose table is unreadable", () => {
     writeAdr(
       "adr-045-string-type.md",
-      [wellFormed, "", AdrMatrixDeclaration.ruleMarker("string-copy"), ""].join(
+      [wellFormed, "", "<!-- MATRIX-SEVERITY rule: string-copy -->", ""].join(
         "\n",
       ),
     );

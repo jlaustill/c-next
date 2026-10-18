@@ -223,7 +223,7 @@ describe("AdrMatrixDeclaration.parse", () => {
     const markdown = [
       withTable("| global variable | same file | error |"),
       "",
-      AdrMatrixDeclaration.ruleMarker("string-copy"),
+      "<!-- MATRIX-SEVERITY rule: string-copy -->",
       "",
       "| Context | Relationship | Severity |",
       "| ------- | ------------ | -------- |",

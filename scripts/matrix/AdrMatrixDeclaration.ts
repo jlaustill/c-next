@@ -180,7 +180,6 @@ function severityOf(
 
 class AdrMatrixDeclaration {
   static readonly SEVERITY_MARKER = SEVERITY_MARKER;
-  static ruleMarker = ruleMarker;
   static rulesIn = rulesIn;
   static parse = parse;
   static severityOf = severityOf;
