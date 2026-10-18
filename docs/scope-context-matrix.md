@@ -51,8 +51,9 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
-2 linked fixtures with no derivable context:
+3 linked fixtures with no derivable context:
 
+- `bugs/issue-1203-non-addressable-mut-argument/c-pointer-parenthesized.test.cnx`
 - `bugs/issue-1203-non-addressable-mut-argument/parenthesized-chain-value.test.cnx`
 - `bugs/issue-1203-non-addressable-mut-argument/parenthesized-mut-argument.test.cnx`
 

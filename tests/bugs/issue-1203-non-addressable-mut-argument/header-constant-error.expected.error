@@ -1,4 +1,8 @@
-15:13 error[E0916]: cannot pass 'LIMIT' to `mut` parameter 'value' of function 'modifies': it is not a variable, so the write would be lost
+17:13 error[E0916]: cannot pass 'LIMIT' to `mut` parameter 'value' of function 'modifies': it is a `#define`, not a variable
+       help: A `#define` is text replacement, not a value (ADR-006), so a `mut` parameter cannot take one; pass the variable it names, or a `mut` variable.
+18:13 error[E0916]: cannot pass 'COLOR_GREEN' to `mut` parameter 'value' of function 'modifies': it is not a variable, so the write would be lost
        help: A `mut` parameter writes its argument (ADR-006); assign the value to a `mut` variable and pass that.
-16:13 error[E0916]: cannot pass 'COLOR_GREEN' to `mut` parameter 'value' of function 'modifies': it is not a variable, so the write would be lost
-       help: A `mut` parameter writes its argument (ADR-006); assign the value to a `mut` variable and pass that.
+20:13 error[E0916]: cannot pass 'counterAlias' to `mut` parameter 'value' of function 'modifies': it is a `#define`, not a variable
+       help: A `#define` is text replacement, not a value (ADR-006), so a `mut` parameter cannot take one; pass the variable it names, or a `mut` variable.
+21:13 error[E0916]: cannot pass 'STATUS_REG' to `mut` parameter 'value' of function 'modifies': it is a `#define`, not a variable
+       help: A `#define` is text replacement, not a value (ADR-006), so a `mut` parameter cannot take one; pass the variable it names, or a `mut` variable.

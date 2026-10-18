@@ -423,12 +423,12 @@ register GPIOB @ GPIOB_BASE; // Works: #define for address literal
 
 `#define` is **text replacement** — it's not a value, it's a macro. Treating it as a value conflates two different concepts. The "icky" feeling of `LED_init(13)` (after macro expansion of `LED_init(LED_PIN)`) reflects this conceptual mismatch.
 
-By enforcing that all function arguments must be addressable values, C-Next creates a **"pit of success"** where the easy path is the correct path:
+By enforcing that every argument to a `mut` parameter must be an addressable value, C-Next creates a **"pit of success"** where the easy path is the correct path:
 
 1. **Configuration is centralized** — all hardware constants in one place
 2. **Code is self-documenting** — `LED_init(LED_PIN)` explains intent
 3. **Maintenance is easier** — change one definition, not 50 call sites
-4. **Reviews are simpler** — magic numbers in function calls become obvious errors
+4. **Reviews are simpler** — a magic number passed to a `mut` parameter becomes an obvious error (E0916)
 
 ---
 

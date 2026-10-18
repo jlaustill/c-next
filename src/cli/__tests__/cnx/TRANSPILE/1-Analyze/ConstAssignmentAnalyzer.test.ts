@@ -148,7 +148,7 @@ describe("ConstAssignmentAnalyzer (E0900)", () => {
         [
           "E0900",
           8,
-          "cannot pass read-only 'q' to `mut` parameter 'p' of function 'poke'",
+          "cannot pass read-only 'q' to `mut` parameter 'p' of function 'h.onPoke'",
         ],
       ],
     );

@@ -1115,27 +1115,27 @@ class FilePlanner {
     expression: TExpression,
     param: IArgumentPassing["param"],
   ): TCArgumentForm {
-    const id = ExpressionShape.simpleIdentifier(expression);
-    const declared = this.nameTypeOf(expression);
+    const object = ExpressionShape.unparenthesized(expression);
+    const id = ExpressionShape.simpleIdentifier(object);
+    const declared = this.nameTypeOf(object);
     const parameter =
       id === null
         ? undefined
-        : this.parameterAt(id, FilePlanner.positionOf(expression));
+        : this.parameterAt(id, FilePlanner.positionOf(object));
     return CArgumentAddress.formOf(
       {
         param,
-        addressWritten:
-          expression.kind === "unary" && expression.operator === "&",
+        addressWritten: object.kind === "unary" && object.operator === "&",
         promotedHandle: parameter?.forcePointerSemantics ?? false,
         argType:
-          this.directTypeOf(expression) ??
+          this.directTypeOf(object) ??
           declared?.baseType ??
           this.foreignVariableType(id),
         declared,
         isArray: OperandTyper.decaysToPointer(
-          OperandTyper.typeOf(expression, this.state.typingContext()),
+          OperandTyper.typeOf(object, this.state.typingContext()),
         ),
-        isHandleArrayElement: this.isHandleArrayElement(expression),
+        isHandleArrayElement: this.isHandleArrayElement(object),
       },
       this.queries,
     );

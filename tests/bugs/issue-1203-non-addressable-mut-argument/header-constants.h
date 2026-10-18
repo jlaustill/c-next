@@ -4,6 +4,8 @@
 #include <stdint.h>
 
 #define LIMIT 5U
+#define counterAlias headerCounter
+#define STATUS_REG (*(volatile uint32_t *)0x40000000U)
 
 enum Color { COLOR_RED, COLOR_GREEN };
 

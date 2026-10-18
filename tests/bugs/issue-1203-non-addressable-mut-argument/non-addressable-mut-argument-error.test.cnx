@@ -53,6 +53,10 @@ void install(mut handlerType cb) {
     cb <- otherHandler;
 }
 
+struct Sized {
+    u32 size;
+}
+
 struct Holder {
     handlerType cb;
 }
@@ -75,4 +79,12 @@ void useAll() {
     Holder h <- { cb: otherHandler };
     h.cb(5);
     h.cb(a);
+    u8[4] lens <- [1, 2, 3, 4];
+    string<8> name <- "abc";
+    modifies(lens.type_element_count);
+    modifies(name.value_char_count);
+    modifies(a.type_bit_length);
+    modifies((a).type_bit_length);
+    mut Sized sz <- { size: 1 };
+    modifies(sz.size);
 }

@@ -53,6 +53,7 @@ import type IAnalysisContext from "./types/IAnalysisContext";
 import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
 import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
 import type TExpression from "../../types/syntax/TExpression";
+import type TExpressionOf from "../../types/syntax/TExpressionOf";
 import type TPostfixOpSyntax from "../../types/syntax/TPostfixOpSyntax";
 
 /** What kind of const binding a name is, or null when it is not const. */
@@ -203,11 +204,8 @@ class ConstAssignmentCheck {
       this.noteCPointerWrites(cCallee);
       return;
     }
-    const callee = FunctionReference.ofCall(
-      expr,
-      OperandTyper.scopePathAt(expr.span, this.context),
-      this.context,
-    );
+    const scopePath = OperandTyper.scopePathAt(expr.span, this.context);
+    const callee = FunctionReference.ofCall(expr, scopePath, this.context);
     if (callee === null) {
       // A function no header the transpiler read declares may write any
       // argument, so none of
@@ -220,17 +218,16 @@ class ConstAssignmentCheck {
       return;
     }
     if (callee.sourceLanguage !== ESourceLanguage.CNext) return;
+    const calledAs =
+      FunctionReference.ofCallChain(expr, scopePath, this.context) === null
+        ? ConstAssignmentCheck.calleeAsWritten(expr)
+        : callee.name;
     call.arguments.forEach((arg, index) => {
       const param = callee.parameters[index];
       if (param === undefined || param.isConst) return;
       const target = WrittenBinding.ofExpression(arg, this.context);
       if (!MutArgument.isWritable(arg, this.context)) {
-        this.report(
-          arg.span,
-          "E0916",
-          `cannot pass '${arg.written}' to \`mut\` parameter '${param.name}' of function '${callee.name}': it is not a variable, so the write would be lost`,
-          "A `mut` parameter writes its argument (ADR-006); assign the value to a `mut` variable and pass that.",
-        );
+        this.reportNotWritable(arg, param.name, calledAs);
         return;
       }
       this.noteWrite(target?.binding ?? null);
@@ -239,11 +236,43 @@ class ConstAssignmentCheck {
       this.report(
         arg.span,
         "E0900",
-        `cannot pass read-only '${argName}' to \`mut\` parameter '${param.name}' of function '${callee.name}'`,
+        `cannot pass read-only '${argName}' to \`mut\` parameter '${param.name}' of function '${calledAs}'`,
         "The callee writes through that parameter, so the argument must be declared `mut` (ADR-071).",
         MutSite.of(target?.binding ?? null, this.context),
       );
     });
+  }
+
+  /** E0916 (ADR-006, #1203): an argument a `mut` parameter cannot write */
+  private reportNotWritable(
+    arg: TExpression,
+    parameter: string,
+    calledAs: string,
+  ): void {
+    const passing = `cannot pass '${arg.written}' to \`mut\` parameter '${parameter}' of function '${calledAs}'`;
+    if (MutArgument.headerMacro(arg, this.context) === null) {
+      this.report(
+        arg.span,
+        "E0916",
+        `${passing}: it is not a variable, so the write would be lost`,
+        "A `mut` parameter writes its argument (ADR-006); assign the value to a `mut` variable and pass that.",
+      );
+      return;
+    }
+    this.report(
+      arg.span,
+      "E0916",
+      `${passing}: it is a \`#define\`, not a variable`,
+      "A `#define` is text replacement, not a value (ADR-006), so a `mut` parameter cannot take one; pass the variable it names, or a `mut` variable.",
+    );
+  }
+
+  /** A call through a value, as written: `h.cb`, not the callback's type */
+  private static calleeAsWritten(chain: TExpressionOf<"postfix">): string {
+    const callAt = chain.ops.findIndex((op) => op.kind === "call");
+    return [chain.primary, ...chain.ops.slice(0, callAt)]
+      .map((node) => node.written)
+      .join("");
   }
 
   /**
