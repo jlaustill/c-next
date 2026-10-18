@@ -87,32 +87,23 @@ describe("BitmapHandlers", () => {
     it("registers all expected bitmap assignment kinds", () => {
       const kinds = bitmapHandlers.map(([kind]) => kind);
 
-      expect(kinds).toContain(AssignmentKind.BITMAP_FIELD_SINGLE_BIT);
-      expect(kinds).toContain(AssignmentKind.BITMAP_FIELD_MULTI_BIT);
-      expect(kinds).toContain(AssignmentKind.BITMAP_ARRAY_ELEMENT_FIELD);
-      expect(kinds).toContain(AssignmentKind.STRUCT_MEMBER_BITMAP_FIELD);
+      expect(kinds).toContain(AssignmentKind.BITMAP_FIELD);
       expect(kinds).toContain(AssignmentKind.REGISTER_MEMBER_BITMAP_FIELD);
       expect(kinds).toContain(
         AssignmentKind.SCOPED_REGISTER_MEMBER_BITMAP_FIELD,
       );
     });
 
-    it("exports exactly 6 handlers", () => {
-      expect(bitmapHandlers).toHaveLength(6);
+    it("exports exactly 3 handlers", () => {
+      expect(bitmapHandlers).toHaveLength(3);
     });
   });
 
   describe("handleBitmapField (a field of a bitmap value)", () => {
-    const VALUE_KINDS = [
-      AssignmentKind.BITMAP_FIELD_SINGLE_BIT,
-      AssignmentKind.BITMAP_FIELD_MULTI_BIT,
-      AssignmentKind.BITMAP_ARRAY_ELEMENT_FIELD,
-      AssignmentKind.STRUCT_MEMBER_BITMAP_FIELD,
-    ];
     const handlerFor = (kind: AssignmentKind) =>
       bitmapHandlers.find(([k]) => k === kind)![1];
     const write = (ctx: IAssignmentContext) =>
-      handlerFor(AssignmentKind.BITMAP_FIELD_SINGLE_BIT)(ctx);
+      handlerFor(AssignmentKind.BITMAP_FIELD)(ctx);
 
     /** A field write as the planner renders its target and the typer types it */
     const fieldWrite = (
@@ -156,17 +147,14 @@ describe("BitmapHandlers", () => {
 
     // #1760 second review: the target was rebuilt from the source spelling,
     // so `fl.C` in a function with a local `fl` wrote the global `fl`
-    it.each(VALUE_KINDS)(
-      "%s writes the rendered target, not the spelling",
-      (kind) => {
-        declareBitmap("Sm", "uint8_t", [["C", { offset: 4, width: 4 }]]);
-        const ctx = fieldWrite("main__fl", "Sm", ["fl", "C"], "5U");
+    it("writes the rendered target, not the spelling", () => {
+      declareBitmap("Sm", "uint8_t", [["C", { offset: 4, width: 4 }]]);
+      const ctx = fieldWrite("main__fl", "Sm", ["fl", "C"], "5U");
 
-        expect(handlerFor(kind)(ctx)).toBe(
-          "main__fl = (uint8_t)((main__fl & ~(0xFU << 4)) | ((5U & 0xFU) << 4));",
-        );
-      },
-    );
+      expect(write(ctx)).toBe(
+        "main__fl = (uint8_t)((main__fl & ~(0xFU << 4)) | ((5U & 0xFU) << 4));",
+      );
+    });
 
     it("writes through a parameter as it renders", () => {
       declareBitmap("Sm", "uint8_t", [["A", { offset: 0, width: 1 }]]);

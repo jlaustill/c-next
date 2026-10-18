@@ -240,45 +240,112 @@ describe("AssignmentClassifier - Bitmap Fields", () => {
     state = new TranspileState();
   });
 
-  it("classifies single-bit bitmap field", () => {
-    const bitmapFields = new Map([
-      ["StatusFlags", new Map([["Running", { offset: 0, width: 1 }]])],
-    ]);
-    setupSymbols({ bitmapFields });
-    declare(
-      "flags",
-      createTypeInfo({ isBitmap: true, bitmapTypeName: "StatusFlags" }),
+  /** `<spelling>.<field> <- v`, with the typer's last step reading `before` */
+  const fieldOf = (
+    identifiers: string[],
+    before: IOperandType,
+    overrides: Partial<IAssignmentContext> = {},
+  ): IAssignmentContext =>
+    typedStep(
+      createMockContext(state, {
+        identifiers,
+        hasMemberAccess: true,
+        isSimpleIdentifier: false,
+        postfixOps: [{ kind: "member", name: identifiers.at(-1)! }],
+        ...overrides,
+      }),
+      { before },
     );
-
-    const ctx = createMockContext(state, {
-      identifiers: ["flags", "Running"],
-      hasMemberAccess: true,
-      isSimpleIdentifier: false,
-    });
-
-    expect(AssignmentClassifier.classify(ctx)).toBe(
-      AssignmentKind.BITMAP_FIELD_SINGLE_BIT,
-    );
+  const bitmapOperand = (dimensions: number[] = []): IOperandType => ({
+    ...HandlerTestUtils.operandOf("StatusFlags", false, false),
+    bitmapTypeName: "StatusFlags",
+    dimensions,
   });
 
-  it("classifies multi-bit bitmap field", () => {
+  // #1749: one rule for every spelling of the prefix -- the typer says the
+  // last step is a field of a bitmap value
+  it.each([
+    ["flags.Running", ["flags", "Running"], {}],
+    ["flags.Mode", ["flags", "Mode"], {}],
+    ["device.flags.Running", ["device", "flags", "Running"], {}],
+    [
+      "gss[1].fl.Mode",
+      ["gss", "fl", "Mode"],
+      { hasArrayAccess: true, subscriptCount: 1 },
+    ],
+    [
+      "Sc.ps.fls[1].Running",
+      ["Sc", "ps", "fls", "Running"],
+      { hasArrayAccess: true, subscriptCount: 1 },
+    ],
+    ["this.fl.Mode", ["fl", "Mode"], { hasThis: true, scopePath: "Sc" }],
+  ] as const)("classifies %s as BITMAP_FIELD", (_, identifiers, overrides) => {
     const bitmapFields = new Map([
-      ["StatusFlags", new Map([["Mode", { offset: 4, width: 4 }]])],
+      [
+        "StatusFlags",
+        new Map([
+          ["Running", { offset: 0, width: 1 }],
+          ["Mode", { offset: 4, width: 4 }],
+        ]),
+      ],
     ]);
     setupSymbols({ bitmapFields });
-    declare(
-      "flags",
-      createTypeInfo({ isBitmap: true, bitmapTypeName: "StatusFlags" }),
-    );
 
-    const ctx = createMockContext(state, {
-      identifiers: ["flags", "Mode"],
-      hasMemberAccess: true,
-      isSimpleIdentifier: false,
+    expect(
+      AssignmentClassifier.classify(
+        fieldOf([...identifiers], bitmapOperand(), overrides),
+      ),
+    ).toBe(AssignmentKind.BITMAP_FIELD);
+  });
+
+  it("does not classify a field the bitmap does not have", () => {
+    setupSymbols({
+      bitmapFields: new Map([
+        ["StatusFlags", new Map([["Running", { offset: 0, width: 1 }]])],
+      ]),
     });
 
-    expect(AssignmentClassifier.classify(ctx)).toBe(
-      AssignmentKind.BITMAP_FIELD_MULTI_BIT,
+    expect(
+      AssignmentClassifier.classify(
+        fieldOf(["flags", "Missing"], bitmapOperand()),
+      ),
+    ).not.toBe(AssignmentKind.BITMAP_FIELD);
+  });
+
+  it("does not classify a field of a bitmap array that names no element", () => {
+    setupSymbols({
+      bitmapFields: new Map([
+        ["StatusFlags", new Map([["Running", { offset: 0, width: 1 }]])],
+      ]),
+    });
+
+    expect(
+      AssignmentClassifier.classify(
+        fieldOf(["flags", "Running"], bitmapOperand([2])),
+      ),
+    ).not.toBe(AssignmentKind.BITMAP_FIELD);
+  });
+
+  it("does not classify a bitmap's subscript as a field", () => {
+    setupSymbols({
+      bitmapFields: new Map([
+        ["StatusFlags", new Map([["Running", { offset: 0, width: 1 }]])],
+      ]),
+    });
+    const ctx = fieldOf(["flags", "Running"], bitmapOperand(), {
+      postfixOps: [
+        { kind: "member", name: "Running" },
+        {
+          kind: "subscript",
+          indexCount: 1,
+          renderIndexes: () => ["0"],
+          foldWidth: () => undefined,
+        },
+      ],
+    });
+
+    expect(AssignmentClassifier.classify(ctx)).not.toBe(
+      AssignmentKind.BITMAP_FIELD,
     );
   });
 
@@ -290,10 +357,11 @@ describe("AssignmentClassifier - Bitmap Fields", () => {
     const registerMemberTypes = new Map([["MOTOR__CTRL", "ControlBits"]]);
     setupSymbols({ bitmapFields, knownRegisters, registerMemberTypes });
 
-    const ctx = createMockContext(state, {
-      identifiers: ["MOTOR", "CTRL", "Enable"],
-      hasMemberAccess: true,
-      isSimpleIdentifier: false,
+    // The typer types the register member as the bitmap it is; the register
+    // still keeps its own write
+    const ctx = fieldOf(["MOTOR", "CTRL", "Enable"], {
+      ...bitmapOperand(),
+      bitmapTypeName: "ControlBits",
     });
 
     expect(AssignmentClassifier.classify(ctx)).toBe(
@@ -301,31 +369,23 @@ describe("AssignmentClassifier - Bitmap Fields", () => {
     );
   });
 
-  it("classifies struct member bitmap field", () => {
+  it("classifies this.REG.MEMBER.field as a scoped register bitmap field", () => {
     const bitmapFields = new Map([
-      ["DeviceFlags", new Map([["Active", { offset: 0, width: 1 }]])],
+      ["ControlBits", new Map([["Enable", { offset: 0, width: 1 }]])],
     ]);
-    const knownStructs = new Set(["Device"]);
-    setupSymbols({ bitmapFields, knownStructs });
-    declare("device", createTypeInfo({ baseType: "Device" }));
+    const knownRegisters = new Set(["Sc__MOTOR"]);
+    const registerMemberTypes = new Map([["Sc__MOTOR__CTRL", "ControlBits"]]);
+    setupSymbols({ bitmapFields, knownRegisters, registerMemberTypes });
 
-    const ctx = createMockContext(state, {
-      identifiers: ["device", "flags", "Active"],
-      hasMemberAccess: true,
-      isSimpleIdentifier: false,
-    });
-    const flags = HandlerTestUtils.operandOf("DeviceFlags", false, false);
+    const ctx = fieldOf(
+      ["MOTOR", "CTRL", "Enable"],
+      { ...bitmapOperand(), bitmapTypeName: "ControlBits" },
+      { hasThis: true, scopePath: "Sc" },
+    );
 
-    // #1737: the bitmap member's type is the typer's `.Active` step
-    expect(
-      AssignmentClassifier.classify(
-        typedStep(ctx, { before: { ...flags, bitmapTypeName: "DeviceFlags" } }),
-      ),
-    ).toBe(AssignmentKind.STRUCT_MEMBER_BITMAP_FIELD);
-    // Control: the typer says the member is no bitmap
-    expect(
-      AssignmentClassifier.classify(typedStep(ctx, { before: flags })),
-    ).not.toBe(AssignmentKind.STRUCT_MEMBER_BITMAP_FIELD);
+    expect(AssignmentClassifier.classify(ctx)).toBe(
+      AssignmentKind.SCOPED_REGISTER_MEMBER_BITMAP_FIELD,
+    );
   });
 });
 
@@ -899,43 +959,6 @@ describe("AssignmentClassifier - Scoped Register Bitmap Field", () => {
     });
 
     expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.SIMPLE);
-  });
-});
-
-// ========================================================================
-// Bitmap Array Element Field
-// ========================================================================
-describe("AssignmentClassifier - Bitmap Array Element Field", () => {
-  beforeEach(() => {
-    state = new TranspileState();
-  });
-
-  it("classifies bitmapArr[i].field as BITMAP_ARRAY_ELEMENT_FIELD", () => {
-    const bitmapFields = new Map([
-      ["StatusFlags", new Map([["Active", { offset: 0, width: 1 }]])],
-    ]);
-    setupSymbols({ bitmapFields });
-    declare(
-      "flagsArr",
-      createTypeInfo({
-        isBitmap: true,
-        isArray: true,
-        bitmapTypeName: "StatusFlags",
-        arrayDimensions: [10],
-      }),
-    );
-
-    const ctx = createMockContext(state, {
-      identifiers: ["flagsArr", "Active"],
-      subscriptCount: 1,
-      hasMemberAccess: true,
-      hasArrayAccess: true,
-      isSimpleIdentifier: false,
-    });
-
-    expect(AssignmentClassifier.classify(ctx)).toBe(
-      AssignmentKind.BITMAP_ARRAY_ELEMENT_FIELD,
-    );
   });
 });
 

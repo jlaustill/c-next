@@ -131,125 +131,131 @@ class AssignmentClassifier {
   }
 
   /**
-   * Classify bitmap field assignments.
-   * Patterns: var.field, struct.bitmapMember.field, REG.MEMBER.field, Scope.REG.MEMBER.field
+   * Classify bitmap field assignments: a register member's field, or a field
+   * of any bitmap value.
    */
   private static classifyBitmapField(
     ctx: IAssignmentContext,
   ): AssignmentKind | null {
-    // Must have member access without subscripts
-    if (!ctx.hasMemberAccess || ctx.hasArrayAccess) {
-      return null;
+    const registerKind =
+      AssignmentClassifier.classifyRegisterMemberBitmapField(ctx);
+    if (registerKind !== null) {
+      return registerKind;
     }
-
-    const ids = ctx.identifiers;
-    if (ctx.subscriptCount !== 0) {
-      return null;
-    }
-
-    if (ids.length === 2) {
-      return AssignmentClassifier.classifySimpleBitmapField(
-        ctx.target.rootTypeInfo,
-        ids[1],
-        ctx,
-      );
-    }
-
-    if (ids.length === 3) {
-      return AssignmentClassifier.classifyThreeIdBitmapField(
-        ids[0],
-        ids[1],
-        ids[2],
-        ctx.target,
-        ctx,
-      );
-    }
-
-    if (ids.length === 4) {
-      return AssignmentClassifier.classifyScopedRegisterBitmapField(ids, ctx);
-    }
-
-    return null;
+    return AssignmentClassifier.classifyBitmapValueField(ctx);
   }
 
   /**
-   * Classify 2-id bitmap field: var.field
+   * #1749: a field of a bitmap value -- `flags.A`, `gss[1].fl.Mode`,
+   * `Sc.ps.fls[1].A`, `this.fl.A` -- is the typer's answer for the chain's
+   * last step: a `.field` whose prefix is a bitmap. How the source spells the
+   * prefix is not asked; the handler renders the prefix the same way.
    */
-  private static classifySimpleBitmapField(
-    typeInfo: TTypeInfo | undefined,
-    fieldName: string,
+  private static classifyBitmapValueField(
     ctx: IAssignmentContext,
   ): AssignmentKind | null {
-    if (!typeInfo?.isBitmap || !typeInfo.bitmapTypeName) {
+    if (ctx.postfixOps.at(-1)?.kind !== "member") {
       return null;
     }
-
-    const width = AssignmentClassifier.lookupBitmapFieldWidth(
-      typeInfo.bitmapTypeName,
-      fieldName,
-      ctx,
-    );
-    if (width === null) {
+    const step = ctx.target.last;
+    const bitmapType = step?.before?.bitmapTypeName;
+    if (!bitmapType || step.property !== null) {
       return null;
     }
-
-    return width === 1
-      ? AssignmentKind.BITMAP_FIELD_SINGLE_BIT
-      : AssignmentKind.BITMAP_FIELD_MULTI_BIT;
-  }
-
-  /**
-   * Classify 3-id bitmap field: REG.MEMBER.field or struct.bitmapMember.field
-   */
-  private static classifyThreeIdBitmapField(
-    firstName: string,
-    secondName: string,
-    fieldName: string,
-    target: IChainBase,
-    ctx: IAssignmentContext,
-  ): AssignmentKind | null {
-    // Check if register member bitmap field: REG.MEMBER.field
-    if (ctx.state.symbols!.knownRegisters.has(firstName)) {
-      const bitmapType = AssignmentClassifier.lookupRegisterMemberBitmapType(
-        firstName,
-        secondName,
-        ctx,
-      );
-      if (bitmapType) {
-        const width = AssignmentClassifier.lookupBitmapFieldWidth(
-          bitmapType,
-          fieldName,
-          ctx,
-        );
-        if (width !== null) {
-          return AssignmentKind.REGISTER_MEMBER_BITMAP_FIELD;
-        }
-      }
+    if (step.before!.dimensions.length !== 0) {
       return null;
     }
-
-    // Check if struct member bitmap field: struct.bitmapMember.field
-    if (!AssignmentClassifier._isStructRoot(target.rootTypeInfo, ctx)) {
+    const fieldName = ctx.identifiers.at(-1);
+    if (fieldName === undefined) {
       return null;
     }
-
-    // #1737: the bitmap member is what the typer's `.field` step reads, the
-    // step the bitmap handler renders from too
-    const bitmapType = target.last?.before?.bitmapTypeName;
-    if (!bitmapType) {
-      return null;
-    }
-
     const width = AssignmentClassifier.lookupBitmapFieldWidth(
       bitmapType,
       fieldName,
       ctx,
     );
-    if (width !== null) {
-      return AssignmentKind.STRUCT_MEMBER_BITMAP_FIELD;
-    }
+    return width === null ? null : AssignmentKind.BITMAP_FIELD;
+  }
 
+  /**
+   * A register member's bitmap field: REG.MEMBER.field,
+   * Scope.REG.MEMBER.field or this.REG.MEMBER.field. These keep their own
+   * handlers -- a register member is written per its access mode, not
+   * read-modify-written like a bitmap value.
+   */
+  private static classifyRegisterMemberBitmapField(
+    ctx: IAssignmentContext,
+  ): AssignmentKind | null {
+    if (ctx.hasArrayAccess) {
+      return null;
+    }
+    if (ctx.hasThis) {
+      return AssignmentClassifier.classifyThisRegisterBitmapField(ctx);
+    }
+    if (!ctx.hasMemberAccess) {
+      return null;
+    }
+    const ids = ctx.identifiers;
+    if (ids.length === 3) {
+      return AssignmentClassifier.classifyRegisterBitmapField(ids, ctx);
+    }
+    if (ids.length === 4) {
+      return AssignmentClassifier.classifyScopedRegisterBitmapField(ids, ctx);
+    }
     return null;
+  }
+
+  /**
+   * Classify this.REG.MEMBER.field (scoped register bitmap field)
+   */
+  private static classifyThisRegisterBitmapField(
+    ctx: IAssignmentContext,
+  ): AssignmentKind | null {
+    if (!ctx.scopePath || ctx.identifiers.length !== 3) {
+      return null;
+    }
+    const scopedRegName = ScopeUtils.qualifyInScope(
+      ctx.identifiers[0],
+      ctx.scopePath,
+    );
+    if (!ctx.state.symbols!.knownRegisters.has(scopedRegName)) {
+      return null;
+    }
+    const bitmapType = AssignmentClassifier.lookupRegisterMemberBitmapType(
+      scopedRegName,
+      ctx.identifiers[1],
+      ctx,
+    );
+    return bitmapType
+      ? AssignmentKind.SCOPED_REGISTER_MEMBER_BITMAP_FIELD
+      : null;
+  }
+
+  /**
+   * Classify 3-id register bitmap field: REG.MEMBER.field
+   */
+  private static classifyRegisterBitmapField(
+    ids: readonly string[],
+    ctx: IAssignmentContext,
+  ): AssignmentKind | null {
+    const [regName, memberName, fieldName] = ids;
+    if (!ctx.state.symbols!.knownRegisters.has(regName)) {
+      return null;
+    }
+    const bitmapType = AssignmentClassifier.lookupRegisterMemberBitmapType(
+      regName,
+      memberName,
+      ctx,
+    );
+    if (!bitmapType) {
+      return null;
+    }
+    const width = AssignmentClassifier.lookupBitmapFieldWidth(
+      bitmapType,
+      fieldName,
+      ctx,
+    );
+    return width === null ? null : AssignmentKind.REGISTER_MEMBER_BITMAP_FIELD;
   }
 
   /**
@@ -350,16 +356,6 @@ class AssignmentClassifier {
       );
     }
 
-    // 2+ identifiers with subscripts: bitmap array (registers handled above)
-    if (ids.length >= 2) {
-      return AssignmentClassifier.classifyBitmapArrayField(
-        ids[1],
-        typeInfo,
-        ctx.subscriptCount,
-        ctx,
-      );
-    }
-
     return null;
   }
 
@@ -412,35 +408,6 @@ class AssignmentClassifier {
       return subscriptCount === 2
         ? AssignmentKind.REGISTER_BIT_RANGE
         : AssignmentKind.REGISTER_BIT;
-    }
-
-    return null;
-  }
-
-  /**
-   * Classify bitmap array element field: bitmapArr[i].field
-   */
-  private static classifyBitmapArrayField(
-    secondId: string,
-    typeInfo: TTypeInfo | undefined,
-    subscriptCount: number,
-    ctx: IAssignmentContext,
-  ): AssignmentKind | null {
-    if (subscriptCount !== 1) {
-      return null;
-    }
-
-    if (!typeInfo?.isBitmap || !typeInfo.isArray || !typeInfo.bitmapTypeName) {
-      return null;
-    }
-
-    const width = AssignmentClassifier.lookupBitmapFieldWidth(
-      typeInfo.bitmapTypeName,
-      secondId,
-      ctx,
-    );
-    if (width !== null) {
-      return AssignmentKind.BITMAP_ARRAY_ELEMENT_FIELD;
     }
 
     return null;
@@ -606,21 +573,6 @@ class AssignmentClassifier {
         ctx,
         scopedRegName,
       );
-    }
-
-    // this.REG.MEMBER.field (scoped register bitmap field)
-    if (
-      ctx.identifiers.length === 3 &&
-      ctx.state.symbols!.knownRegisters.has(scopedRegName)
-    ) {
-      const bitmapType = AssignmentClassifier.lookupRegisterMemberBitmapType(
-        scopedRegName,
-        ctx.identifiers[1],
-        ctx,
-      );
-      if (bitmapType) {
-        return AssignmentKind.SCOPED_REGISTER_MEMBER_BITMAP_FIELD;
-      }
     }
 
     return AssignmentKind.THIS_MEMBER;

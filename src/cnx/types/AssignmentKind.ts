@@ -8,17 +8,8 @@
 enum AssignmentKind {
   // === Bitmap operations (check first - specific patterns) ===
 
-  /** flags.Running <- true (single-bit bitmap field) */
-  BITMAP_FIELD_SINGLE_BIT,
-
-  /** flags.Mode <- 3 (multi-bit bitmap field) */
-  BITMAP_FIELD_MULTI_BIT,
-
-  /** bitmapArr[i].Field <- value (array of bitmap elements) */
-  BITMAP_ARRAY_ELEMENT_FIELD,
-
-  /** device.flags.Active <- true (struct member is bitmap) */
-  STRUCT_MEMBER_BITMAP_FIELD,
+  /** flags.Mode <- 3, gss[1].fl.Mode <- 3, this.fl.A <- true (a field of a bitmap value) */
+  BITMAP_FIELD,
 
   /** MOTOR.CTRL.Running <- true (register member is bitmap) */
   REGISTER_MEMBER_BITMAP_FIELD,

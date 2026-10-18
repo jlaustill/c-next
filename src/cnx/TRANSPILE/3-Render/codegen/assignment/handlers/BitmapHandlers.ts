@@ -2,10 +2,7 @@
  * Bitmap field assignment handlers (ADR-065).
  *
  * Handles assignments to bitmap fields:
- * - BITMAP_FIELD_SINGLE_BIT: flags.Running <- true
- * - BITMAP_FIELD_MULTI_BIT: flags.Mode <- 3
- * - BITMAP_ARRAY_ELEMENT_FIELD: bitmapArr[i].Field <- value
- * - STRUCT_MEMBER_BITMAP_FIELD: device.flags.Active <- true
+ * - BITMAP_FIELD: flags.Mode <- 3, gss[1].fl.Mode <- 3, this.fl.A <- true
  * - REGISTER_MEMBER_BITMAP_FIELD: MOTOR.CTRL.Running <- true
  * - SCOPED_REGISTER_MEMBER_BITMAP_FIELD: Scope.GPIO7.ICR1.LED <- value
  */
@@ -189,9 +186,9 @@ function handleScopedRegisterMemberBitmapField(
  *
  * Every handler in this module IS that rule -- lowering a named bitmap field
  * to a mask-and-shift on its backing scalar -- so the recording sits at the
- * registration boundary below rather than in six bodies. A seventh handler
- * added to that array is recorded by construction, where six in-body calls
- * would be six chances to add a handler and forget the line.
+ * registration boundary below rather than in each body. A handler added to
+ * that array is recorded by construction, where an in-body call per handler
+ * would be one more chance to add a handler and forget the line.
  *
  * #1241: this is what lets ADR-034's matrix derive occupancy at all. Occupancy
  * comes from source POSITIONS, and a bitmap write that works emits no
@@ -212,10 +209,7 @@ function recordingAdr034(handler: TAssignmentHandler): TAssignmentHandler {
 const declaredBitmapHandlers: ReadonlyArray<
   [AssignmentKind, TAssignmentHandler]
 > = [
-  [AssignmentKind.BITMAP_FIELD_SINGLE_BIT, handleBitmapField],
-  [AssignmentKind.BITMAP_FIELD_MULTI_BIT, handleBitmapField],
-  [AssignmentKind.BITMAP_ARRAY_ELEMENT_FIELD, handleBitmapField],
-  [AssignmentKind.STRUCT_MEMBER_BITMAP_FIELD, handleBitmapField],
+  [AssignmentKind.BITMAP_FIELD, handleBitmapField],
   [
     AssignmentKind.REGISTER_MEMBER_BITMAP_FIELD,
     handleRegisterMemberBitmapField,

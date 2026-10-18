@@ -32,7 +32,7 @@ describe("AssignmentHandlerRegistry", () => {
       // Verify all registered kinds return handlers
       const registeredKinds = [
         AssignmentKind.SIMPLE,
-        AssignmentKind.BITMAP_FIELD_SINGLE_BIT,
+        AssignmentKind.BITMAP_FIELD,
         AssignmentKind.ARRAY_ELEMENT,
         AssignmentKind.STRING_SIMPLE,
         AssignmentKind.REGISTER_BIT,

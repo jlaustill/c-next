@@ -6,3 +6,11 @@ bitmap8 Flags {
 }
 
 mut Flags shared <- 0;
+
+struct FlagHolder {
+    Flags fl;
+    Flags[2] fls;
+}
+
+mut FlagHolder sharedHolder;
+mut FlagHolder[2] sharedHolders;
