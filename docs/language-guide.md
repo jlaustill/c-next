@@ -491,21 +491,21 @@ void enqueue(u8 data) {
 }
 ```
 
-Transpiles to PRIMASK save/restore:
+Transpiles to a PRIMASK save/restore through the `__cnx_` IRQ wrappers, which the file emits for ARM and AVR:
 
 ```c
 void enqueue(uint8_t data) {
     {
-        uint32_t __primask = __get_PRIMASK();
-        __disable_irq();
+        uint32_t __primask = __cnx_get_PRIMASK();
+        __cnx_disable_irq();
         buffer[writeIdx] = data;
         writeIdx += 1;
-        __set_PRIMASK(__primask);
+        __cnx_set_PRIMASK(__primask);
     }
 }
 ```
 
-**Safety**: `return` inside `critical { }` is a compile error (E0853).
+**Safety**: `return` inside `critical { }` is a compile error (E0853). A `critical` block on a target where disabling interrupts does not shut out every other execution context (`interrupt_mask: false`: host, esp32) is a compile error too (E0916). Use an `atomic` variable there instead.
 
 ### NULL for C Library Interop (ADR-047)
 

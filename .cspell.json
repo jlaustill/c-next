@@ -295,6 +295,7 @@
     "LDREXW",
     "learncnext",
     "lexer",
+    "libatomic",
     "libc",
     "libdeps",
     "libnewlib",

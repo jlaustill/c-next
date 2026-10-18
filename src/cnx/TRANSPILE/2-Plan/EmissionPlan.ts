@@ -54,9 +54,9 @@ import CTypeIncludes from "./CTypeIncludes";
 import HeaderOwnership from "./HeaderOwnership";
 
 /**
- * The four platform arms of the emitted IRQ wrapper chain.
+ * The three platform arms of the emitted IRQ wrapper chain.
  *
- * All four are carried, never one. The block is a single `#if`/`#elif`/`#else`,
+ * All three are carried, never one. The block is a single `#if`/`#elif`/`#else`,
  * so which arm applies is decided by the compiler and not here; recording a
  * single "critical section" requirement would force one answer to a per-target
  * question, which is how a requirements table starts lying (#1143).
@@ -65,7 +65,6 @@ const IRQ_WRAPPER_REQUIREMENTS: readonly TRequirementKey[] = [
   "critical-arm-gnu",
   "critical-arduino",
   "critical-avr-libc",
-  "critical-cmsis-fallback",
 ];
 
 /**
@@ -179,6 +178,18 @@ class EmissionPlan {
       decided.push({
         key: "atomic-ldrex-cmsis",
         sites: [...facts.ldrexStrexSites],
+      });
+    }
+    if (facts.emittedCompareExchangeLoop) {
+      decided.push({
+        key: "atomic-gnu-builtins",
+        sites: [...facts.compareExchangeSites],
+      });
+    }
+    if (facts.emittedWideCompareExchangeLoop) {
+      decided.push({
+        key: "atomic-libatomic",
+        sites: [...facts.wideCompareExchangeSites],
       });
     }
     return decided;

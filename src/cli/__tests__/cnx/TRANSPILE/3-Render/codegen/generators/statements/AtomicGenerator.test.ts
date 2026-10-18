@@ -134,16 +134,18 @@ describe("AtomicGenerator", () => {
       const typeInfo = createTypeInfo("u32");
       const result = generateLdrexStrexLoop(
         "counter",
+        "1",
         "__old + 1",
         typeInfo,
         [],
       );
 
       expect(result.code).toContain("do {");
+      expect(result.code).toContain("uint32_t __operand = 1;");
       expect(result.code).toContain("uint32_t __old = __LDREXW(&counter)");
       expect(result.code).toContain("uint32_t __new = __old + 1");
       expect(result.code).toContain(
-        "if (__STREXW(__new, &counter) == 0) {\n        break;\n    }",
+        "if (__STREXW(__new, &counter) == 0) {\n            break;\n        }",
       );
       // MISRA C:2012 Rule 15.6: the if's body is a compound statement. The
       // unbraced form reached every LDREX target's output, hidden from
@@ -156,7 +158,13 @@ describe("AtomicGenerator", () => {
 
     it("generates LDREX/STREX loop for u16", () => {
       const typeInfo = createTypeInfo("u16");
-      const result = generateLdrexStrexLoop("value", "__old - 1", typeInfo, []);
+      const result = generateLdrexStrexLoop(
+        "value",
+        "1",
+        "__old - 1",
+        typeInfo,
+        [],
+      );
 
       expect(result.code).toContain("uint16_t __old = __LDREXH(&value)");
       expect(result.code).toContain("__STREXH(__new, &value)");
@@ -166,6 +174,7 @@ describe("AtomicGenerator", () => {
       const typeInfo = createTypeInfo("u8");
       const result = generateLdrexStrexLoop(
         "byte",
+        "1",
         "__old | 0x80",
         typeInfo,
         [],
@@ -179,6 +188,7 @@ describe("AtomicGenerator", () => {
       const typeInfo = createTypeInfo("i32");
       const result = generateLdrexStrexLoop(
         "signed_val",
+        "1",
         "__old + 5",
         typeInfo,
         [],
@@ -195,6 +205,7 @@ describe("AtomicGenerator", () => {
       ];
       const result = generateLdrexStrexLoop(
         "counter",
+        "1",
         "helper()",
         typeInfo,
         innerEffects,
@@ -329,6 +340,88 @@ describe("AtomicGenerator", () => {
 
     it("calls the clamp helper 2.2 planned", () => {
       expect(rmw("u32", "ldrex-strex").code).toContain("cnx_clamp_add_u32(");
+    });
+
+    // #1807: a failed attempt must not evaluate the value again
+    it.each(["ldrex-strex", "compare-exchange"] as const)(
+      "evaluates the value once, before the %s loop",
+      (form) => {
+        const code = generateAtomicRMW(
+          "counter",
+          "+=",
+          "step()",
+          createTypeInfo("u32", "clamp"),
+          "add",
+          form,
+        ).code;
+        expect(code.split("step()")).toHaveLength(2);
+        expect(code.indexOf("uint64_t __operand = step();")).toBeGreaterThan(
+          -1,
+        );
+        expect(code.indexOf("step()")).toBeLessThan(code.indexOf("do {"));
+        expect(code).toContain("cnx_clamp_add_u32(__old, __operand)");
+      },
+    );
+
+    // #2120 review 2: the temporary must not narrow before the clamp helper
+    it.each(["ldrex-strex", "compare-exchange"] as const)(
+      "holds a saturating value in the helper's wider type (%s)",
+      (form) => {
+        const code = generateAtomicRMW(
+          "counter",
+          "+=",
+          "big",
+          createTypeInfo("u8", "clamp"),
+          "add",
+          form,
+          "u32",
+        ).code;
+        expect(code).toContain("uint32_t __operand = big;");
+      },
+    );
+
+    it("keeps a wider float value's precision", () => {
+      const code = generateAtomicRMW(
+        "sum",
+        "+=",
+        "tiny",
+        createTypeInfo("f32", "wrap"),
+        null,
+        "compare-exchange",
+        "f64",
+      ).code;
+      expect(code).toContain("double __operand = tiny;");
+    });
+
+    it("holds a wrapping integer value in the variable's type", () => {
+      const code = generateAtomicRMW(
+        "counter",
+        "+=",
+        "big",
+        createTypeInfo("u8", "wrap"),
+        null,
+        "compare-exchange",
+        "u32",
+      ).code;
+      expect(code).toContain("uint8_t __operand = big;");
+    });
+
+    it("annotates each retry loop with the ADR that shapes it", () => {
+      expect(rmw("u32", "ldrex-strex").code).toContain(
+        "/* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop.",
+      );
+      expect(
+        generateAtomicRMW(
+          "counter",
+          "+=",
+          "1",
+          createTypeInfo("u32", "clamp"),
+          "add",
+          "compare-exchange",
+        ).code,
+      ).toContain(
+        "/* ADR-049 / Issue #1789: atomic read-modify-write as a compare-exchange retry loop,",
+      );
     });
   });
 });

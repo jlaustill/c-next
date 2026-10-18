@@ -34,32 +34,48 @@ static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint64_t b) {
 volatile uint32_t value = 100U;
 
 int main(void) {
-    do {
-        uint32_t __old = __LDREXW(&value);
-        uint32_t __new = cnx_clamp_add_u32(__old, 10U);
-        if (__STREXW(__new, &value) == 0) {
-            break;
-        }
-    } while (1);
-    do {
-        uint32_t __old = __LDREXW(&value);
-        uint32_t __new = cnx_clamp_sub_u32(__old, 5U);
-        if (__STREXW(__new, &value) == 0) {
-            break;
-        }
-    } while (1);
-    do {
-        uint32_t __old = __LDREXW(&value);
-        uint32_t __new = __old & 0xFFU;
-        if (__STREXW(__new, &value) == 0) {
-            break;
-        }
-    } while (1);
-    do {
-        uint32_t __old = __LDREXW(&value);
-        uint32_t __new = __old | 0x100U;
-        if (__STREXW(__new, &value) == 0) {
-            break;
-        }
-    } while (1);
+    {
+        /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
+        uint64_t __operand = 10U;
+        do {
+            uint32_t __old = __LDREXW(&value);
+            uint32_t __new = cnx_clamp_add_u32(__old, __operand);
+            if (__STREXW(__new, &value) == 0) {
+                break;
+            }
+        } while (1);
+    }
+    {
+        /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
+        uint64_t __operand = 5U;
+        do {
+            uint32_t __old = __LDREXW(&value);
+            uint32_t __new = cnx_clamp_sub_u32(__old, __operand);
+            if (__STREXW(__new, &value) == 0) {
+                break;
+            }
+        } while (1);
+    }
+    {
+        /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
+        uint32_t __operand = 0xFFU;
+        do {
+            uint32_t __old = __LDREXW(&value);
+            uint32_t __new = __old & __operand;
+            if (__STREXW(__new, &value) == 0) {
+                break;
+            }
+        } while (1);
+    }
+    {
+        /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
+        uint32_t __operand = 0x100U;
+        do {
+            uint32_t __old = __LDREXW(&value);
+            uint32_t __new = __old | __operand;
+            if (__STREXW(__new, &value) == 0) {
+                break;
+            }
+        } while (1);
+    }
 }

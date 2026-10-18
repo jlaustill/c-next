@@ -88,6 +88,18 @@ interface IEmissionFacts {
 
   /** Where Render emitted LDREX/STREX loops, for attribution only. */
   readonly ldrexStrexSites: readonly IRequirementSite[];
+
+  /** #1789: Render emitted a GNU `__atomic` compare-exchange loop. */
+  readonly emittedCompareExchangeLoop: boolean;
+
+  /** Where Render emitted compare-exchange loops, for attribution only. */
+  readonly compareExchangeSites: readonly IRequirementSite[];
+
+  /** #1789 review: one of them is on a type wider than the target's word. */
+  readonly emittedWideCompareExchangeLoop: boolean;
+
+  /** Where Render emitted those, for attribution only. */
+  readonly wideCompareExchangeSites: readonly IRequirementSite[];
 }
 
 export default IEmissionFacts;

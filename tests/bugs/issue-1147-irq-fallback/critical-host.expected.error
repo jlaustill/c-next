@@ -1,0 +1,2 @@
+12:4 error[E0916]: target 'host' has no critical section: disabling interrupts there does not shut out every other execution context
+       help: A critical block disables interrupts (ADR-050), which shuts out every other context only on a target whose description has interrupt_mask true. An atomic variable's read-modify-write needs no critical block; otherwise name a target that can mask.

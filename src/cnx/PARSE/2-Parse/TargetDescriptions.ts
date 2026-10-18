@@ -20,7 +20,7 @@ import type ITargetFieldSpec from "./types/ITargetFieldSpec";
 import type TTargetFieldValue from "../../types/TTargetFieldValue";
 
 /** The catalog schema versions this compiler reads */
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 const DESCRIPTION_STRUCT = "TargetDescription";
 const ALIAS_STRUCT = "TargetAlias";

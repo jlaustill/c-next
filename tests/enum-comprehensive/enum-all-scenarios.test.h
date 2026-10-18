@@ -40,7 +40,6 @@ bool Motor__testThisMethodEnum(void);
 bool Motor__isOff(void);
 bool Motor__isMode(const Motor__EMode checkMode);
 EGlobalState Motor__getGlobalState(void);
-void Motor__criticalEnumUpdate(void);
 void Controller__setMotorMode(void);
 Controller__EStatus Controller__getStatus(void);
 

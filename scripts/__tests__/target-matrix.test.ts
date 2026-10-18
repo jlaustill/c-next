@@ -39,6 +39,7 @@ describe("TargetMatrix.toolchainForInline", () => {
   const FACTS = [
     "#pragma word_size 32",
     "#pragma basepri false",
+    "#pragma interrupt_mask true",
     "#pragma char_bits 8",
     "#pragma char_signed false",
     "#pragma short_bits 16",
@@ -154,6 +155,14 @@ describe.skipIf(!gccAvailable)("TargetMatrix.modelProbeSource", () => {
 
   it("compiles for the host row, whose facts are this machine's", () => {
     expect(compilesOnHost(TargetMatrix.modelProbeSource(host!))).toBe(true);
+  });
+
+  it("fails for a host row that claims an interrupt mask (#1789)", () => {
+    expect(
+      compilesOnHost(
+        TargetMatrix.modelProbeSource({ ...host!, interrupt_mask: true }),
+      ),
+    ).toBe(false);
   });
 
   it("fails for a host row that claims a 32-bit long", () => {

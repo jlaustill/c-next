@@ -1,0 +1,36 @@
+// test-c-only
+// test-execution
+#pragma target cortex-m7
+// Tests: Issue #565 edge case 4 -- reassignment const inference through a call
+// inside a critical block. Split from reassign-call-edge-cases, which runs on
+// host, because a critical block has no host lowering (E0916, #1147).
+
+scope ConstEdge {
+    public struct Config {
+        u32 value;
+        bool enabled;
+    }
+}
+
+scope Handler {
+    public u8 setValue(mut ConstEdge.Config cfg, u32 val) {
+        cfg.value <- val;
+        return 0;
+    }
+}
+
+void handleCritical(mut ConstEdge.Config config) {
+    mut u8 errorCode <- 0;
+    critical {
+        errorCode <- global.Handler.setValue(config, 40); // Inside critical
+    }
+}
+
+u32 main() {
+    mut ConstEdge.Config cfg <- { value: 0, enabled: true };
+    handleCritical(cfg);
+    if (cfg.value != 40) {
+        return 1;
+    }
+    return 0;
+}

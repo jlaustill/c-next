@@ -1,6 +1,5 @@
 // test-c-only
 // test-execution
-// test-target-xfail: host #1147 "implicit declaration of function"
 // Issue #269: Pass-by-value for small unmodified parameters
 // Tests that unmodified small primitive types pass by value,
 // while modified parameters still pass by pointer.
@@ -61,14 +60,6 @@ void modifyInSwitch(mut u32 x, u32 mode) {
         default {
             x <- x + 1;
         }
-    }
-}
-
-// --- Modification in critical section (ADR-050) ---
-
-void modifyInCritical(mut u32 x) {
-    critical {
-        x <- x * 2;
     }
 }
 
@@ -151,13 +142,6 @@ u32 main() {
     modifyInSwitch(switchVal, 99); // hits default
     if (switchVal != 101) {
         return 13; // default: +1
-    }
-
-    // Test modification in critical section (ADR-050)
-    mut u32 criticalVal <- 50;
-    modifyInCritical(criticalVal);
-    if (criticalVal != 100) {
-        return 14; // *2
     }
 
     return 0;

@@ -166,12 +166,12 @@ describe("ToolchainRequirementUtils", () => {
     });
 
     it("groups sibling arms of one feature together", () => {
-      // The four interrupt-masking arms must sort adjacently so the report can
-      // present them as alternatives rather than four separate costs.
+      // The three interrupt-masking arms must sort adjacently so the report can
+      // present them as alternatives rather than three separate costs.
       const result = ToolchainRequirementUtils.reportable(
         recorded(
           "baseline-c",
-          "critical-cmsis-fallback",
+          "critical-avr-libc",
           "atomic-ldrex-cmsis",
           "critical-arm-gnu",
         ),
@@ -214,7 +214,6 @@ describe("ToolchainRequirementUtils", () => {
           "critical-arm-gnu",
           "critical-arduino",
           "critical-avr-libc",
-          "critical-cmsis-fallback",
         ),
         "c",
       );
