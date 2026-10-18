@@ -1760,7 +1760,13 @@ class FilePlanner {
     for (const [expression, at] of valuePositions.sites) {
       if (at.site.kind !== "argument") continue;
       const position = valuePositions.positions.get(expression);
-      if (!position?.isArray || position.typeText === null) continue;
+      if (
+        !position?.isArray ||
+        position.dimensions.length === 0 ||
+        position.typeText === null
+      ) {
+        continue;
+      }
       const element = TypeText.withoutDimensions(position.typeText);
       if (!ExpressionShape.givesWholeArray(expression, element)) continue;
       const capacity = TypeCheckUtils.isSizedStringName(element)

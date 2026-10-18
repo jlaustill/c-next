@@ -41,6 +41,11 @@ class WholeArrayValueAnalyzer {
         continue;
       }
       WholeArrayValueAnalyzer.markAsked(value, asked);
+      // A string field is an array to the symbol table but takes a string;
+      // only a struct initializer is asked there, as before #1782
+      if (at.dimensions.length === 0 && value.kind !== "structInitializer") {
+        continue;
+      }
       // #2157: an argument passes an array by reference, so an array value
       // is one too
       const site = positions.sites.get(value)?.site;

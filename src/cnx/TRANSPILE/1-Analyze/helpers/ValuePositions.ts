@@ -10,6 +10,7 @@ import TypeResolver from "../../../utils/TypeResolver";
 import FunctionReference from "./FunctionReference";
 import StructInitializerType from "./StructInitializerType";
 import TypeText from "../../../utils/TypeText";
+import TypeCheckUtils from "../../../utils/TypeCheckUtils";
 import type IAnalysisContext from "../types/IAnalysisContext";
 import type IValuePosition from "../../../types/IValuePosition";
 import type IValuePositions from "../../../types/IValuePositions";
@@ -287,10 +288,12 @@ class ValuePositionWalk {
               isArray:
                 symbols.structFieldArrays.get(structName)?.has(field.name) ??
                 false,
-              dimensions:
+              dimensions: stringlessDimensions(
+                symbols.structFields.get(structName)?.get(field.name) ?? null,
                 symbols.structFieldDimensions
                   .get(structName)
                   ?.get(field.name) ?? [],
+              ),
             },
         {
           site: { kind: "field", initializer: init, field: field.name },
@@ -299,6 +302,18 @@ class ValuePositionWalk {
       );
     }
   }
+}
+
+/** A string field's last dimension is its characters', not an array's (#1782) */
+function stringlessDimensions(
+  typeText: string | null,
+  dimensions: ReadonlyArray<number | string>,
+): ReadonlyArray<number | string> {
+  const element =
+    typeText === null ? null : TypeText.withoutDimensions(typeText);
+  return element !== null && TypeCheckUtils.isSizedStringName(element)
+    ? dimensions.slice(0, -1)
+    : dimensions;
 }
 
 /** Where every value in a file stands (#1991) */
