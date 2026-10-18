@@ -36,7 +36,7 @@ EXTRACT owner/repo from remote URL:
   - SSH: git@github.com:{owner}/{repo}.git → {owner}/{repo}
 
 STORE:
-  OWNER_REPO = {owner}/{repo}   (expected: jlaustill/c-next)
+  OWNER_REPO = {owner}/{repo}   (expected: smeltworks/cnx)
 ```
 
 ---
@@ -131,7 +131,7 @@ Where an issue sits, what is blocking it, and which release it ships in live on 
 # Blockers are GitHub's built-in "Blocked by" relationship on the issue (#1893),
 # not a board field. The board's free-text `Blocked by` field is retired.
 gh api graphql --paginate -f query='
-query($endCursor: String) { user(login: "jlaustill") { projectV2(number: 1) {
+query($endCursor: String) { organization(login: "smeltworks") { projectV2(number: 1) {
   items(first: 100, after: $endCursor) {
     pageInfo { hasNextPage endCursor }
     nodes {
@@ -140,7 +140,7 @@ query($endCursor: String) { user(login: "jlaustill") { projectV2(number: 1) {
     fieldValues(first: 100) { nodes {
       ... on ProjectV2ItemFieldSingleSelectValue { name field { ... on ProjectV2FieldCommon { name } } } } }
   } } } } }' \
-  --jq '.data.user.projectV2.items.nodes[] | select(.content.number != null) |
+  --jq '.data.organization.projectV2.items.nodes[] | select(.content.number != null) |
         if .content.blockedBy.totalCount > (.content.blockedBy.nodes|length)
         then error("#\(.content.number): blockedBy truncated") else . end |
         "\(.content.number)\t\([.fieldValues.nodes[]|select(.field.name=="Status")|.name][0] // "-")\t\([.content.blockedBy.nodes[]|select(.state=="OPEN")|"#\(.number)"]|join(","))\t\([.content.blockedBy.nodes[]|select(.state=="CLOSED")|"#\(.number)"]|join(","))"'
@@ -368,7 +368,7 @@ FOR each of the top 5 ranked candidates:
        # exactly where a set-aside note lives, and is the signal this phase
        # exists to find. A per-item --jq is safe under --paginate; an aggregate
        # one like `length` is not, it prints once per page (#1416).
-       gh api --paginate 'repos/jlaustill/c-next/issues/<n>/comments?per_page=100' \
+       gh api --paginate 'repos/smeltworks/cnx/issues/<n>/comments?per_page=100' \
          --jq '.[] | "\(.created_at) @\(.user.login)\n\(.body)"'
 
      A comment that sets the card aside, defers it, assigns it a later wave, says it
@@ -377,7 +377,7 @@ FOR each of the top 5 ranked candidates:
 
   2. PARENT SEQUENCING — if the body says "Part of #NNNN", or a parent issue is set,
      read that issue's BODY (not its comments — roadmaps live in the body):
-       gh api repos/jlaustill/c-next/issues/<parent> --jq '.body' \
+       gh api repos/smeltworks/cnx/issues/<parent> --jq '.body' \
          | grep -nEi "wave|startable|sequencing|critical path"
 
      Find THIS card in what comes back. A parent that places it in a later wave, or
@@ -385,7 +385,7 @@ FOR each of the top 5 ranked candidates:
 
   3. DEFINITION OF DONE — read it, and ask of every checkbox: does this require
      something that does not exist yet?
-       gh api repos/jlaustill/c-next/issues/<n> --jq '.body' \
+       gh api repos/smeltworks/cnx/issues/<n> --jq '.body' \
          | grep -A25 -i "definition of done"
 
      A checkbox naming a directory, a generated document, or an artifact another card
@@ -397,13 +397,13 @@ FOR each of the top 5 ranked candidates:
      something about it, and `.state` is not that assertion. Check the claim, not the
      state. This is the check the other three cannot make: they all pass when the named
      issue is cleanly closed, which is exactly when the claim is most likely to be wrong.
-       gh api repos/jlaustill/c-next/issues/<n> --jq '.body' \
+       gh api repos/smeltworks/cnx/issues/<n> --jq '.body' \
          | grep -nE "#[0-9]{3,4}" | grep -iE "fixed|landed|by the|subsumed|requires"
 
      For each such box, resolve WHEN and BY WHAT the named issue closed — a close date
      alone settles it in most cases:
-       gh api repos/jlaustill/c-next/issues/<named> --jq '{state, closed_at}'
-       gh api --paginate 'repos/jlaustill/c-next/issues/<named>/timeline?per_page=100' \
+       gh api repos/smeltworks/cnx/issues/<named> --jq '{state, closed_at}'
+       gh api --paginate 'repos/smeltworks/cnx/issues/<named>/timeline?per_page=100' \
          --jq '.[] | select(.event=="closed" or .event=="cross-referenced")
                | "\(.event) \(.created_at) \(.commit_id // .source.issue.number // "-")"'
 

@@ -10,14 +10,17 @@
  * A declared size is a value -- `u8[SIZE]` with a scope's own `SIZE` -- so
  * this is 2.1's. Whether the brackets, the sizes and the initializer are
  * written in an accepted form is syntax, and 1.2's `ArrayForm` reports it
- * (#1991): a declaration that reaches here is one 1.2 accepted.
+ * (#1991). Both read `VariableDeclarations.ruled` (#2073), so a declaration
+ * that reaches here is one 1.2 judged and accepted.
  */
 
 import ConstantExpression from "./helpers/ConstantExpression";
-import StatementNodes from "../../utils/StatementNodes";
+import ForHeaderVariable from "../../utils/ForHeaderVariable";
+import ForeignTypeFacts from "../../utils/ForeignTypeFacts";
+import OperandTyper from "../../utils/OperandTyper";
+import VariableDeclarations from "../../utils/VariableDeclarations";
 import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
 import type IVariableDeclarationSyntax from "../../types/syntax/IVariableDeclarationSyntax";
-import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
 import type TExpression from "../../types/syntax/TExpression";
 import IArrayDeclarationError from "./types/IArrayDeclarationError";
 import type IAnalysisContext from "./types/IAnalysisContext";
@@ -33,22 +36,29 @@ class ArrayDeclarationCheck {
     return this.found;
   }
 
-  /** Every variable declaration: file scope, scope members, and statements */
-  public declaration(declaration: TDeclarationSyntax): void {
-    if (declaration.kind === "scope") {
-      for (const member of declaration.members) {
-        this.declaration(member.declaration);
-      }
-      return;
-    }
-    if (declaration.kind === "variableDeclaration") this.variable(declaration);
-    if (declaration.kind !== "function") return;
-    for (const statement of StatementNodes.of(declaration.body.statements)) {
-      if (statement.kind === "variableDeclaration") this.variable(statement);
-    }
+  /**
+   * #1823 (ADR-036): a `for` header declares one scalar loop variable. 1.2
+   * rejects an array written there (E0917); a header typedef can name one
+   * too (`typedef uint8_t Buf[4]`), which only the symbols can tell.
+   */
+  public forHeader(declaration: IVariableDeclarationSyntax): void {
+    const type = declaration.type;
+    if (type.kind !== "user") return;
+    const target = OperandTyper.target(this.context);
+    const lookup = this.context.symbolTable;
+    if (!ForeignTypeFacts.isForeignType(type.name, lookup, target)) return;
+    const typed = ForeignTypeFacts.operandType(type.name, lookup, target);
+    if ((typed?.dimensions.length ?? 0) === 0) return;
+    this.found.push({
+      code: "E0917",
+      line: declaration.span.line,
+      column: declaration.span.column,
+      message: ForHeaderVariable.message(true, declaration.name),
+      helpText: ForHeaderVariable.HELP,
+    });
   }
 
-  private variable(declaration: IVariableDeclarationSyntax): void {
+  public variable(declaration: IVariableDeclarationSyntax): void {
     const type = declaration.type;
     const initializer = declaration.initializer;
     if (type.kind !== "array" || initializer?.kind !== "arrayInitializer") {
@@ -97,11 +107,14 @@ class ArrayDeclarationAnalyzer {
   /** #1456: handed in rather than read off shared state. */
   constructor(private readonly context: IAnalysisContext) {}
 
-  /** 1.2's declarations, in source order (#1991) */
+  /** The declarations 1.2 judged, in source order (#1991, #2073) */
   public analyze(program: IProgramSyntax): IArrayDeclarationError[] {
     const check = new ArrayDeclarationCheck(this.context);
-    for (const member of program.declarations) {
-      check.declaration(member.declaration);
+    for (const entry of VariableDeclarations.ruled(program)) {
+      check.variable(entry.declaration);
+    }
+    for (const entry of VariableDeclarations.forHeaders(program)) {
+      check.forHeader(entry.declaration);
     }
     return check.errors();
   }

@@ -52,6 +52,7 @@ import OperandTyper from "../../utils/OperandTyper";
 import DeclarationParts from "../../utils/DeclarationParts";
 import ExpressionNodes from "../../utils/ExpressionNodes";
 import StatementNodes from "../../utils/StatementNodes";
+import VariableDeclarations from "../../utils/VariableDeclarations";
 import EnumValueResolver from "./EnumValueResolver";
 import IEnumTypeSafetyError from "./types/IEnumTypeSafetyError";
 import type IAnalysisContext from "./types/IAnalysisContext";
@@ -59,7 +60,6 @@ import type IOperandType from "../../types/IOperandType";
 import type IAssignmentSyntax from "../../types/syntax/IAssignmentSyntax";
 import type IProgramSyntax from "../../types/syntax/IProgramSyntax";
 import type IVariableDeclarationSyntax from "../../types/syntax/IVariableDeclarationSyntax";
-import type TDeclarationSyntax from "../../types/syntax/TDeclarationSyntax";
 import type TExpression from "../../types/syntax/TExpression";
 import SourceOrder from "../../utils/SourceOrder";
 
@@ -81,26 +81,8 @@ class EnumTypeSafetyCheck {
   }
 
   /** Every variable declaration: global, scope member, local, `for` header */
-  public declarations(declaration: TDeclarationSyntax): void {
-    if (declaration.kind === "scope") {
-      for (const member of declaration.members) {
-        this.declarations(member.declaration);
-      }
-      return;
-    }
-    if (declaration.kind === "variableDeclaration") {
-      this.checkDeclaration(declaration);
-      return;
-    }
-    for (const statement of StatementNodes.in(declaration)) {
-      if (statement.kind === "variableDeclaration") {
-        this.checkDeclaration(statement);
-      }
-    }
-  }
-
   /** `State s <- value;` -- the declared type names the target. */
-  private checkDeclaration(declaration: IVariableDeclarationSyntax): void {
+  public checkDeclaration(declaration: IVariableDeclarationSyntax): void {
     if (declaration.initializer === null) return;
     this.checkAssignment(
       OperandTyper.typeOfWritten(
@@ -201,8 +183,10 @@ class EnumTypeSafetyAnalyzer {
       new EnumValueResolver(this.context),
       this.context,
     );
+    for (const entry of VariableDeclarations.in(program)) {
+      check.checkDeclaration(entry.declaration);
+    }
     for (const member of program.declarations) {
-      check.declarations(member.declaration);
       for (const part of DeclarationParts.of(member.declaration)) {
         for (const expr of ExpressionNodes.of(part)) {
           check.checkComparison(expr);

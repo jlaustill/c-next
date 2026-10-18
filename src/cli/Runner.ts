@@ -51,7 +51,7 @@ class Runner {
     );
 
     if (InputExpansion.isCppEntryPoint(resolvedInput)) {
-      console.log(`Scanning ${basename(resolvedInput)} for C-Next includes...`);
+      console.log(`Scanning ${basename(resolvedInput)} for cnx includes...`);
     }
 
     const result = await pipeline.transpile({ kind: "files" });
@@ -136,10 +136,10 @@ class Runner {
     // Both branches below were wrong for a failed run, in different ways. The
     // zero branch fired on `filesProcessed === 0` alone, so a run that failed
     // with E0509 -- a generated header naming a source that is not there --
-    // was told "No C-Next files found ... 1. Create a .cnx file": the user's
+    // was told "No cnx files found ... 1. Create a .cnx file": the user's
     // problem was a path, and the advice was to start over. Guarding only that
     // branch then sent the same run to the other one, which announced
-    // `Found 0 C-Next source file(s): ` with an empty list.
+    // `Found 0 cnx source file(s): ` with an empty list.
     //
     // Both conditions, not `errors.length` alone. A PARTIAL failure -- three
     // sources discovered, one of which fails to transpile -- must keep its
@@ -152,17 +152,17 @@ class Runner {
     }
 
     if (result.filesProcessed === 0) {
-      console.log("No C-Next files found in include tree. To get started:");
+      console.log("No cnx files found in include tree. To get started:");
       console.log("  1. Create a .cnx file (e.g., led.cnx)");
-      console.log("  2. Run: cnext led.cnx");
+      console.log("  2. Run: cnx led.cnx");
       console.log("  3. Include the generated header in your C/C++ code");
-      console.log(`  4. Re-run: cnext ${basename(resolvedInput)}`);
+      console.log(`  4. Re-run: cnx ${basename(resolvedInput)}`);
     } else {
       const fileNames = result.files
         .map((f) => basename(f.sourcePath))
         .join(", ");
       console.log(
-        `Found ${result.filesProcessed} C-Next source file(s): ${fileNames}`,
+        `Found ${result.filesProcessed} cnx source file(s): ${fileNames}`,
       );
     }
   }

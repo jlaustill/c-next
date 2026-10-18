@@ -28,14 +28,15 @@ class OrderBacklog {
   }
 
   static run(checkOnly: boolean): number {
-    const projectId = ProjectBoard.findProject();
-    if (projectId === undefined) {
+    const project = ProjectBoard.findProject();
+    if (project === undefined) {
       console.error(
         chalk.red(`No project titled "${ProjectBoard.TITLE}".`),
         "Run: npm run project:setup",
       );
       return 1;
     }
+    const projectId = project.id;
 
     const cards = ProjectBoard.columnCards(projectId, COLUMN);
     console.log(chalk.blue(`${COLUMN}: ${cards.length} cards`));

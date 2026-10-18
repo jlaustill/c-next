@@ -154,7 +154,7 @@ class BitmapAccessCheck {
   }
 
   /**
-   * E0917 (#2186): a field belongs to one bitmap value. An array of bitmaps,
+   * E0918 (#2186): a field belongs to one bitmap value. An array of bitmaps,
    * or a row of one (`g2[1]` of `F[2][2]`), is no bitmap value, so a field of
    * it names no storage -- C rejects both the member access and the mask.
    */
@@ -170,7 +170,7 @@ class BitmapAccessCheck {
     const bitmap = step.before!.bitmapTypeName!;
     this.report(
       node,
-      "E0917",
+      "E0918",
       `Field '${step.member}' of an array of '${bitmap}' names no element`,
       `A field belongs to one '${bitmap}' value; index every dimension first, e.g. NAME[i].${step.member} (ADR-034).`,
     );

@@ -24,6 +24,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
+| for header         | -         | -      | -          | n/a         | n/a        |
 
 ## ADR-004
 
@@ -33,6 +34,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
+| for header         | -         | -      | -          | n/a         | n/a        |
 
 5 linked fixtures with no derivable context:
 
@@ -50,6 +52,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
+| for header         | -         | -      | -          | n/a         | n/a        |
 
 4 linked fixtures with no derivable context:
 
@@ -66,6 +69,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | -         | -      | -          | n/a         | n/a        |
 | scope method       | ok        | -      | -          | n/a         | n/a        |
+| for header         | -         | -      | -          | n/a         | n/a        |
 
 ## ADR-010
 
@@ -75,6 +79,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | -         | ok     | ok         | n/a         | n/a        |
 | scope method       | -         | ok     | ok         | n/a         | n/a        |
+| for header         | -         | -      | -          | n/a         | n/a        |
 
 13 linked fixtures with no derivable context:
 
@@ -100,6 +105,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
+| for header         | -         | -      | -          | n/a         | n/a        |
 
 4 linked fixtures with no derivable context:
 
@@ -116,6 +122,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
+| for header         | -         | -      | -          | n/a         | n/a        |
 
 7 linked fixtures with no derivable context:
 
@@ -135,6 +142,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | -      | -          | n/a         | n/a        |
 | scope member       | -         | -      | -          | n/a         | n/a        |
 | scope method       | -         | -      | -          | n/a         | n/a        |
+| for header         | -         | -      | -          | n/a         | n/a        |
 
 ## ADR-016
 
@@ -144,6 +152,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
+| for header         | -         | -      | -          | n/a         | n/a        |
 
 5 linked fixtures with no derivable context:
 
@@ -161,6 +170,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
+| for header         | ok        | -      | -          | n/a         | n/a        |
 
 16 linked fixtures with no derivable context:
 
@@ -189,6 +199,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | -      | -          | n/a         | n/a        |
 | scope member       | ok        | -      | -          | n/a         | n/a        |
 | scope method       | ok        | -      | -          | n/a         | n/a        |
+| for header         | -         | -      | -          | n/a         | n/a        |
 
 ## ADR-023
 
@@ -198,6 +209,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | -      | -          | n/a         | n/a        |
 | scope member       | warn      | -      | -          | n/a         | n/a        |
 | scope method       | warn      | -      | -          | n/a         | n/a        |
+| for header         | -         | -      | -          | n/a         | n/a        |
 
 ## ADR-024
 
@@ -207,6 +219,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
+| for header         | -         | -      | -          | n/a         | n/a        |
 
 14 linked fixtures with no derivable context:
 
@@ -233,6 +246,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | -         | -      | -          | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
+| for header         | -         | -      | -          | n/a         | n/a        |
 
 1 linked fixture with no derivable context:
 
@@ -246,6 +260,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | -      | -          | n/a         | n/a        |
 | scope member       | -         | -      | -          | n/a         | n/a        |
 | scope method       | ok        | -      | -          | n/a         | n/a        |
+| for header         | -         | -      | -          | n/a         | n/a        |
 
 ## ADR-029
 
@@ -255,6 +270,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
+| for header         | -         | -      | -          | n/a         | n/a        |
 
 19 linked fixtures with no derivable context:
 
@@ -286,6 +302,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | warn       | n/a         | n/a        |
 | scope member       | ok        | warn   | warn       | n/a         | n/a        |
 | scope method       | ok        | ok     | warn       | n/a         | n/a        |
+| for header         | ok        | -      | -          | n/a         | n/a        |
 
 21 linked fixtures with no derivable context:
 
@@ -319,6 +336,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | warn       | n/a         | n/a        |
 | scope member       | warn      | warn   | warn       | n/a         | n/a        |
 | scope method       | ok        | ok     | warn       | n/a         | n/a        |
+| for header         | -         | -      | -          | n/a         | n/a        |
 
 2 linked fixtures with no derivable context:
 
@@ -333,6 +351,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | -      | -          | n/a         | n/a        |
 | scope member       | ok        | -      | -          | n/a         | n/a        |
 | scope method       | ok        | -      | -          | n/a         | n/a        |
+| for header         | -         | -      | -          | n/a         | n/a        |
 
 2 linked fixtures with no derivable context:
 
@@ -347,6 +366,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
+| for header         | ok        | -      | -          | n/a         | n/a        |
 
 ## ADR-037
 
@@ -356,6 +376,7 @@ cell is declared by the ADR that owns it.
 | top-level function | -         | -      | -          | n/a         | n/a        |
 | scope member       | -         | -      | -          | n/a         | n/a        |
 | scope method       | -         | -      | -          | n/a         | n/a        |
+| for header         | -         | -      | -          | n/a         | n/a        |
 
 6 linked fixtures with no derivable context:
 
@@ -374,6 +395,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | warn       | n/a         | n/a        |
 | scope member       | warn      | warn   | warn       | n/a         | n/a        |
 | scope method       | ok        | ok     | warn       | n/a         | n/a        |
+| for header         | -         | -      | -          | n/a         | n/a        |
 
 1 linked fixture with no derivable context:
 
@@ -387,6 +409,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | -      | -          | n/a         | n/a        |
 | scope method       | ok        | -      | -          | n/a         | n/a        |
+| for header         | -         | -      | -          | n/a         | n/a        |
 
 ## ADR-049
 
@@ -396,6 +419,7 @@ cell is declared by the ADR that owns it.
 | top-level function | warn      | -      | -          | n/a         | n/a        |
 | scope member       | warn      | -      | -          | n/a         | n/a        |
 | scope method       | warn      | -      | -          | n/a         | n/a        |
+| for header         | -         | -      | -          | n/a         | n/a        |
 
 ## ADR-050
 
@@ -405,6 +429,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | -      | -          | n/a         | n/a        |
 | scope member       | -         | -      | -          | n/a         | n/a        |
 | scope method       | ok        | -      | -          | n/a         | n/a        |
+| for header         | -         | -      | -          | n/a         | n/a        |
 
 ## ADR-051
 
@@ -414,6 +439,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
+| for header         | -         | -      | -          | n/a         | n/a        |
 
 1 linked fixture with no derivable context:
 
@@ -427,6 +453,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
+| for header         | -         | -      | -          | n/a         | n/a        |
 
 15 linked fixtures with no derivable context:
 
@@ -454,6 +481,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
+| for header         | -         | -      | -          | n/a         | n/a        |
 
 11 linked fixtures with no derivable context:
 
@@ -477,6 +505,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | -         | -      | -          | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
+| for header         | -         | -      | -          | n/a         | n/a        |
 
 1 linked fixture with no derivable context:
 
@@ -490,6 +519,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | -         | -      | -          | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
+| for header         | -         | -      | -          | n/a         | n/a        |
 
 ## ADR-071
 
@@ -499,6 +529,7 @@ cell is declared by the ADR that owns it.
 | top-level function | ok        | ok     | ok         | n/a         | n/a        |
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
+| for header         | ok        | -      | -          | n/a         | n/a        |
 
 11 linked fixtures with no derivable context:
 

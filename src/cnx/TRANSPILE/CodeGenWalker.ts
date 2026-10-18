@@ -3183,11 +3183,18 @@ class CodeGenWalker {
   /**
    * A variable declared in a `for` header.
    *
-   * `typeName` is eager; the dimensions and the initializer are thunks, so
-   * they render where the generator writes them, after the type. The emitted
-   * name is 1.4's (#1934, ADR-057), bound at the declaration itself.
+   * `typeName` is eager; the initializer is a thunk, so it renders where the
+   * generator writes it, after the type. It is never an array or a string:
+   * 1.2 rejects both here (E0917, #1823). The emitted name is 1.4's (#1934, ADR-057),
+   * bound at the declaration itself.
    */
   private planForVarDecl(decl: IVariableDeclarationSyntax): IPlannedForVarDecl {
+    invariant(
+      decl.dimensions.length === 0 &&
+        decl.type.kind !== "array" &&
+        decl.type.kind !== "string",
+      "1.2 rejects an array or a string declared in a for header (E0917)",
+    );
     // Issue #696: Use shared modifier builder
     const modifiers = VariableModifierBuilder.buildSimple(decl.modifiers);
     // #1484: a `for` init declares a variable like any other, including one
@@ -3201,10 +3208,6 @@ class CodeGenWalker {
       typeName,
       emittedName: this.host.state.ownEmittedName(decl),
       nameMoveComments: this.nameMoveComments(decl),
-      renderArrayDimensions:
-        decl.dimensions.length > 0
-          ? () => this.renderLoweredDimensions(decl.dimensions)
-          : null,
       renderInitializer: initializer
         ? () => this.renderExpression(initializer)
         : null,

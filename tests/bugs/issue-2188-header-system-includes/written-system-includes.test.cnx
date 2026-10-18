@@ -1,0 +1,21 @@
+// test-execution
+// #2188: the header carries the source's includes through, because its array
+// is sized by a header's macro (#424). The source writes <stdint.h> and
+// <stdbool.h> itself, so the header includes each once, as its .c does.
+#include "issue-2188-dims.h"
+#include <stdint.h>
+#include <stdbool.h>
+
+mut u8[SLOT_COUNT] slots;
+mut bool ready <- true;
+
+u32 main() {
+    slots[0] <- 7;
+    if (slots[0] != 7) {
+        return 1;
+    }
+    if (ready = false) {
+        return 2;
+    }
+    return 0;
+}

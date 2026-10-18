@@ -61,6 +61,7 @@ import type TExpression from "../../types/syntax/TExpression";
 import DeclarationParts from "../../utils/DeclarationParts";
 import ExpressionNodes from "../../utils/ExpressionNodes";
 import StatementNodes from "../../utils/StatementNodes";
+import VariableDeclarations from "../../utils/VariableDeclarations";
 import OperandTyper from "../../utils/OperandTyper";
 import ExpressionShape from "../../utils/ExpressionShape";
 import type IVariableDeclarationSyntax from "../../types/syntax/IVariableDeclarationSyntax";
@@ -389,13 +390,8 @@ class IntegerConversionAnalyzer {
         for (const member of declaration.members) visit(member.declaration);
         return;
       }
-      if (declaration.kind === "variableDeclaration") {
-        check.checkDeclaration(declaration);
-      }
       for (const statement of StatementNodes.in(declaration)) {
-        if (statement.kind === "variableDeclaration") {
-          check.checkDeclaration(statement);
-        } else if (statement.kind === "return" && statement.value) {
+        if (statement.kind === "return" && statement.value) {
           check.checkFloatingAt(statement.value);
         }
       }
@@ -403,6 +399,9 @@ class IntegerConversionAnalyzer {
         check.checkSite(site);
       }
     };
+    for (const entry of VariableDeclarations.in(program)) {
+      check.checkDeclaration(entry.declaration);
+    }
     for (const member of program.declarations) {
       visit(member.declaration);
       for (const expr of DeclarationParts.of(member.declaration).flatMap(

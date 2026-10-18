@@ -1,0 +1,18 @@
+// test-error
+// test-adr: 036
+// #2073: a `for` header's array or string declaration once skipped 1.2's form
+// checks and reached C at exit 0. One walk now decides which declarations
+// ADR-035/045's form rules judge, and a for header's is E0917 (ADR-036).
+
+u32 main() {
+    // NEGATIVE CONTROL -- a scalar loop variable is judged by neither rule.
+    for (mut u8 i <- 0; i < 3; i +<- 1) {}
+
+    // Was exit 0: emitted `uint8_t a = {0U}`, which C rejects.
+    for (u8[] a <- [0*]; i < 3; i +<- 1) {}
+    // Was exit 0: emitted `char s = "ab"`, which C rejects.
+    for (string s <- "ab"; i < 3; i +<- 1) {}
+    // Was E0866, a count check on a declaration 1.2 never judged.
+    for (mut u8[2] b <- [1, 2, 3]; i < 3; i +<- 1) {}
+    return 0;
+}

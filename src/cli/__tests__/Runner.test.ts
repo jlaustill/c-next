@@ -253,7 +253,7 @@ describe("Runner", () => {
         );
 
         expect(consoleLogSpy).toHaveBeenCalledWith(
-          expect.stringContaining("Scanning main.cpp for C-Next includes..."),
+          expect.stringContaining("Scanning main.cpp for cnx includes..."),
         );
       });
 
@@ -261,7 +261,7 @@ describe("Runner", () => {
        * #1541: the onboarding text is for an empty include tree, not a broken
        * one. It fired on `filesProcessed === 0` alone, so a run that FAILED
        * with E0509 -- a generated header naming a source that is not there --
-       * was told "No C-Next files found ... 1. Create a .cnx file". The user's
+       * was told "No cnx files found ... 1. Create a .cnx file". The user's
        * problem is a path, and the advice was to start over.
        *
        * That is the second half of the burial: the error itself now exits 1,
@@ -312,7 +312,7 @@ describe("Runner", () => {
         );
 
         expect(consoleLogSpy).toHaveBeenCalledWith(
-          expect.stringContaining("Found 2 C-Next source file(s)"),
+          expect.stringContaining("Found 2 cnx source file(s)"),
         );
       });
 
@@ -353,7 +353,7 @@ describe("Runner", () => {
         );
 
         expect(consoleLogSpy).toHaveBeenCalledWith(
-          expect.stringContaining("Found 2 C-Next source file(s)"),
+          expect.stringContaining("Found 2 cnx source file(s)"),
         );
         expect(consoleLogSpy).toHaveBeenCalledWith(
           expect.stringContaining("led.cnx"),
@@ -377,10 +377,14 @@ describe("Runner", () => {
         );
 
         expect(consoleLogSpy).toHaveBeenCalledWith(
-          expect.stringContaining("No C-Next files found"),
+          expect.stringContaining("No cnx files found"),
         );
         expect(consoleLogSpy).toHaveBeenCalledWith(
           expect.stringContaining("Create a .cnx file"),
+        );
+        expect(consoleLogSpy).toHaveBeenCalledWith("  2. Run: cnx led.cnx");
+        expect(consoleLogSpy).toHaveBeenCalledWith(
+          expect.stringMatching(/^ {2}4\. Re-run: cnx \S+$/),
         );
       });
 

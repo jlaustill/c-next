@@ -119,8 +119,8 @@ back. That is right for those pauses and wrong for a blocked card whose step 1 w
 **A rule derived under a constraint that does not exist reads as principled indefinitely.**
 The predecessor of this rule said to _keep_ the assignment, because unassigning strands the card
 in `WIP` with nobody on it. That inference was sound and its premise was false — the same rule
-also forbade writing `Status`, having assumed the board unwritable, when `PROJECT_TOKEN` carries
-the `project` scope. Doing **both** was never considered, and strands nothing. Nothing failed in
+also forbade writing `Status`, having assumed the board unwritable, when its token could write it
+(`PROJECT_TOKEN`, with the `project` scope, then; the smeltworks board GitHub App since #2189). Doing **both** was never considered, and strands nothing. Nothing failed in
 between: #1448 sat in `WIP` for **9h52m** after its work stopped, while #1445 — the single card
 the rule named as stranded — had itself been moved to `Backlog` by hand at `2026-09-12T13:49:37Z`,
 so the rule's one worked example was refuting it. Check a rule's premise when its conclusion is a
@@ -414,10 +414,10 @@ gate:
 # issues introduced by a PR (must report total 0 before merge)
 # statuses= is REQUIRED: without it the response also lists CLOSED/FIXED issues,
 # so a PR whose issues you already fixed still reports a non-zero total.
-curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&pullRequest=<PR>&statuses=OPEN,CONFIRMED,REOPENED&ps=100"
+curl -s "https://sonarcloud.io/api/issues/search?componentKeys=smeltworks_cnx&pullRequest=<PR>&statuses=OPEN,CONFIRMED,REOPENED&ps=100"
 
 # and the gate, which is necessary but NOT sufficient
-curl -s "https://sonarcloud.io/api/qualitygates/project_status?projectKey=jlaustill_c-next&pullRequest=<PR>"
+curl -s "https://sonarcloud.io/api/qualitygates/project_status?projectKey=smeltworks_cnx&pullRequest=<PR>"
 ```
 
 **`&files=<path>` is IGNORED by this endpoint.** It returns the project-wide list whatever
@@ -467,9 +467,9 @@ permanently differ from what the generator produces. Emit no timestamp (it churn
 makes a diff gate useless — see `GRAMMAR-COVERAGE.md`, #1150). **Verify Clean runs no generators**
 (it only re-downloads build artifacts), so gate generated docs in the `lint` job instead.
 
-**API queries**: `https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&statuses=OPEN,CONFIRMED`
+**API queries**: `https://sonarcloud.io/api/issues/search?componentKeys=smeltworks_cnx&statuses=OPEN,CONFIRMED`
 — add `&pullRequest=<n>` for PR-scoped issues, and
-`api/qualitygates/project_status?projectKey=jlaustill_c-next&pullRequest=<n>` for the gate.
+`api/qualitygates/project_status?projectKey=smeltworks_cnx&pullRequest=<n>` for the gate.
 
 ### Other Tools
 

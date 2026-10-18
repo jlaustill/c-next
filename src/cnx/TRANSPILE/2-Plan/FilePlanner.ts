@@ -1,4 +1,5 @@
 import ForeignTypeFacts from "../../utils/ForeignTypeFacts";
+import UnwrittenIncludes from "./UnwrittenIncludes";
 import ParameterConst from "../../utils/ParameterConst";
 import type TTypeInfo from "../../types/TTypeInfo";
 import type TCArgumentForm from "./types/TCArgumentForm";
@@ -2069,7 +2070,7 @@ class FilePlanner {
       existingIncludeTargets.push(`"${plan.selfInclude}"`);
     }
     for (const line of plan.includeDirectives) {
-      const target = FilePlanner.extractIncludeTarget(line);
+      const target = UnwrittenIncludes.targetOf(line);
       if (target !== null) existingIncludeTargets.push(target);
     }
     return {
@@ -2111,11 +2112,6 @@ class FilePlanner {
    * Extract the include target (`<header.h>` or `"header.h"`) from a line,
    * or null if the line is not a plain `#include` directive.
    */
-  private static extractIncludeTarget(line: string): string | null {
-    const match = /^#include\s+(<[^>]+>|"[^"]+")\s*$/.exec(line.trim());
-    return match ? match[1] : null;
-  }
-
   /**
    * ADR-010: Transform #include directives, converting .cnx to .h or .hpp
    * Delegates to IncludeGenerator

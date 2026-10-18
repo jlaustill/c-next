@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-643 fixture(s) assert a diagnostic; 633 carry a code.
+649 fixture(s) assert a diagnostic; 639 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -178,6 +178,10 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-036/bounds-error.test.cnx                                                              | E0854               |
 | tests/adr-036/c-style-error.test.cnx                                                             | E0874               |
 | tests/adr-036/c-style-trailing-bracket-rejected.test.cnx                                         | E0874               |
+| tests/adr-036/for-header-array-cpp-error.test.cnx                                                | E0917               |
+| tests/adr-036/for-header-array-error.test.cnx                                                    | E0917               |
+| tests/adr-036/for-header-typedef-array-cpp-error.test.cnx                                        | E0917               |
+| tests/adr-036/for-header-typedef-array-error.test.cnx                                            | E0917               |
 | tests/adr-036/init-bounds-error.test.cnx                                                         | E0854               |
 | tests/adr-037/define-every-rejected-form-error.test.cnx                                          | E0501, E0502        |
 | tests/adr-037/function-macro-error.test.cnx                                                      | E0501               |
@@ -573,9 +577,11 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-2019-header-unclosed-name/substring-self.test.cnx                               | E0427               |
 | tests/bugs/issue-2046-duplicate-case-value/duplicate-by-value.test.cnx                           | E0713               |
 | tests/bugs/issue-2051-case-label-not-constant/case-label-not-constant.test.cnx                   | E0717               |
+| tests/bugs/issue-2073-for-header-forms/for-header-forms-cpp-error.test.cnx                       | E0917               |
+| tests/bugs/issue-2073-for-header-forms/for-header-forms-error.test.cnx                           | E0917               |
 | tests/bugs/issue-2076-header-struct-dimension/header-pointer-dimension-error.test.cnx            | E0909               |
 | tests/bugs/issue-2096-inactive-header-branch/inactive-branch-error.test.cnx                      | E0422               |
-| tests/bugs/issue-2186-bitmap-array-field/bitmap-array-field.test.cnx                             | E0917               |
+| tests/bugs/issue-2186-bitmap-array-field/bitmap-array-field.test.cnx                             | E0918               |
 | tests/bugs/issue-847-misra-17-7-lowering/bare-intra-scope-discard.test.cnx                       | E0708               |
 | tests/bugs/issue-847-misra-17-7-lowering/cross-file-scope-discard.test.cnx                       | E0708               |
 | tests/bugs/issue-847-misra-17-7-lowering/external-c-discard.test.cnx                             | E0708               |

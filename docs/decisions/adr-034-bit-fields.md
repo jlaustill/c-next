@@ -400,7 +400,7 @@ uint8_t mode = ((status.flags >> 3) & 0x7);
 | E0883 | A bitmap is addressed by bit index rather than by named field                    | `tests/adr-034/bitmap-bracket-indexing-error.test.cnx`                                                               |
 | E0857 | A compound operator such as `+<-` writes a bitmap field (#2159)                  | `tests/compound-assign/bitmap-field-compound.test.cnx`                                                               |
 | E0893 | A bitmap's field widths do not add up to its size, at the bitmap                 | `tests/bitmap/bitmap-error-bits.test.cnx`, `tests/bugs/issue-1531-declaration-rejections/cross-file-bitmap.test.cnx` |
-| E0917 | A field is read or written on a bitmap array that names no whole element (#2186) | `tests/bugs/issue-2186-bitmap-array-field/bitmap-array-field.test.cnx`                                               |
+| E0918 | A field is read or written on a bitmap array that names no whole element (#2186) | `tests/bugs/issue-2186-bitmap-array-field/bitmap-array-field.test.cnx`                                               |
 
 A bitmap is reached two ways -- through a variable declared with a bitmap type,
 and through a register member typed by one -- and all three rules ask the same

@@ -10,18 +10,18 @@ codes that already have a fixture.
 
 ## Error Code Ranges
 
-| Range     | Category                                                                                               | Count   |
-| --------- | ------------------------------------------------------------------------------------------------------ | ------- |
-| E00xx     | Reserved/Test                                                                                          | 1       |
-| E02xx     | Identifier/Param Naming                                                                                | 5       |
-| E03xx     | Struct Fields/Init                                                                                     | 6       |
-| E04xx     | Symbol Resolution                                                                                      | 16      |
-| E05xx     | Include/Preprocessor                                                                                   | 18      |
-| E06xx     | Sizeof Expressions                                                                                     | 3       |
-| E07xx     | Control Flow                                                                                           | 15      |
-| E08xx     | Arithmetic/Array Safety                                                                                | 61      |
-| E09xx     | NULL Safety, Compile-Time Values, Literal Form, String Conversions, Interrupt Masking, `mut` Arguments | 18      |
-| **Total** |                                                                                                        | **143** |
+| Range     | Category                                                                                                             | Count   |
+| --------- | -------------------------------------------------------------------------------------------------------------------- | ------- |
+| E00xx     | Reserved/Test                                                                                                        | 1       |
+| E02xx     | Identifier/Param Naming                                                                                              | 5       |
+| E03xx     | Struct Fields/Init                                                                                                   | 6       |
+| E04xx     | Symbol Resolution                                                                                                    | 16      |
+| E05xx     | Include/Preprocessor                                                                                                 | 18      |
+| E06xx     | Sizeof Expressions                                                                                                   | 3       |
+| E07xx     | Control Flow                                                                                                         | 15      |
+| E08xx     | Arithmetic/Array Safety                                                                                              | 61      |
+| E09xx     | NULL Safety, Compile-Time Values, Literal Form, String Conversions, Interrupt Masking, `mut` Arguments, `for` Arrays | 19      |
+| **Total** |                                                                                                                      | **144** |
 
 ---
 
@@ -429,7 +429,13 @@ base: bare, `this.` and `global.`.
 | Code  | Message                                                                                                                                                         | Help                                                                                                                                                                                                                                                   | Source                                           |
 | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------ |
 | E0916 | A `critical` block on a target where disabling interrupts does not shut out every other execution context (`interrupt_mask: false`: host, esp32) (#1789, #1147) | A critical block disables interrupts (ADR-050), which shuts out every other context only on a target whose description has interrupt_mask true. An atomic variable's read-modify-write needs no critical block; otherwise name a target that can mask. | `TRANSPILE/1-Analyze/CriticalSectionAnalyzer.ts` |
-| E0917 | A field of a bitmap array that does not name a whole element (`a.A` on `F[2]`, `g[1].A` on `F[2][2]`, ADR-034)                                                  | Index every dimension first: `a[i].A`                                                                                                                                                                                                                  | `TRANSPILE/1-Analyze/BitmapAccessAnalyzer.ts`    |
+
+## E0917 — An Array or a String in a `for` Header (ADR-036)
+
+| Code  | Message                                                                                                                                 | Help                                                                                                    | Source                                                                                             |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| E0917 | A `for` header declares an array, in either spelling (`u8[3] v`, `u32 c[2]`) or through a header typedef (`Buf b`), or a string (#1823) | A for header declares one scalar loop variable (ADR-036); declare it before the loop and use it inside. | `PARSE/2-Parse/ArrayForm.ts`, `TRANSPILE/1-Analyze/ArrayDeclarationAnalyzer.ts` (a header typedef) |
+| E0918 | A field of a bitmap array that does not name a whole element (`a.A` on `F[2]`, `g[1].A` on `F[2][2]`, ADR-034)                          | Index every dimension first: `a[i].A`                                                                   | `TRANSPILE/1-Analyze/BitmapAccessAnalyzer.ts`                                                      |
 
 ---
 
