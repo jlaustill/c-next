@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-640 fixture(s) assert a diagnostic; 630 carry a code.
+641 fixture(s) assert a diagnostic; 631 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -526,6 +526,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1770-compound-division-zero/compound-division-zero-imported.test.cnx            | E0800, E0802        |
 | tests/bugs/issue-1770-compound-division-zero/compound-division-zero-scoped.test.cnx              | E0800, E0802        |
 | tests/bugs/issue-1770-compound-division-zero/compound-division-zero.test.cnx                     | E0800, E0802        |
+| tests/bugs/issue-1782-whole-array-assignment/non-list-error.test.cnx                             | E0866               |
 | tests/bugs/issue-1800-float-to-integer/for-header-rejected.test.cnx                              | E0868, E0869, E0891 |
 | tests/bugs/issue-1800-float-to-integer/implicit-rejected.test.cnx                                | E0891               |
 | tests/bugs/issue-1800-float-to-integer/positions-rejected.test.cnx                               | E0891               |
