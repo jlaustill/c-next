@@ -107,6 +107,7 @@ import type TPlanInputs from "../types/TPlanInputs";
 import AdrProvenance from "../../instrumentation/AdrProvenance";
 import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 import BitmapFieldStep from "../../utils/BitmapFieldStep";
+import AtomicBitOwner from "./AtomicBitOwner";
 import QualifiedCName from "../../utils/QualifiedCName";
 import TypeNameLadder from "../../utils/TypeNameLadder";
 import SymbolTypeResolver from "../../utils/TypeResolver";
@@ -1968,7 +1969,7 @@ class FilePlanner {
   private atomicFormOf(
     site: IAssignmentSyntax,
   ): { readonly form: TAtomicForm; readonly typeName: string } | null {
-    if (site.operator === "<-") return null;
+    if (site.operator === "<-") return this.atomicBitFormOf(site);
     const parts = AssignmentTarget.parts(site.target);
     if (parts.ops.length > 0 || parts.root === "this") return null;
     const written = OperandTyper.typeOfTarget(
@@ -1982,6 +1983,33 @@ class FilePlanner {
       form: FilePlanner.atomicFormFor(
         this.state.targetDescription,
         exclusive,
+        typeName,
+      ),
+      typeName,
+    };
+  }
+
+  /**
+   * ADR-049 (#2200): a bit, a bit range or a bitmap field written to an
+   * `atomic` value, in any spelling, is a read-modify-write of the value, in
+   * the form a compound write to it takes. Null when the write is not one.
+   */
+  private atomicBitFormOf(
+    site: IAssignmentSyntax,
+  ): { readonly form: TAtomicForm; readonly typeName: string } | null {
+    const symbols = this.state.symbols!;
+    const typeName = AtomicBitOwner.typeName(
+      OperandTyper.chainOf(site.target, this.state.typingContext()).steps.at(
+        -1,
+      ),
+      symbols.bitmapFields,
+      symbols.bitmapBackingType,
+    );
+    if (typeName === null) return null;
+    return {
+      form: FilePlanner.atomicFormFor(
+        this.state.targetDescription,
+        LDREX_MAP[typeName] !== undefined,
         typeName,
       ),
       typeName,

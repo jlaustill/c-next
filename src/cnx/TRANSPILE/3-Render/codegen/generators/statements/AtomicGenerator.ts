@@ -259,9 +259,58 @@ function generateAtomicRMW(
   );
 }
 
+/**
+ * ADR-049 (#2200): a bit, bit-range or bitmap-field write to an `atomic`
+ * value, in the form 2.2 planned. `newValue` is the value stored, computed
+ * from the value read: the target itself inside the masked region, `__old`
+ * in a retry loop, which reads the written value once, through `__operand`.
+ *
+ * @param baseType - The C-Next integer the atomic value is accessed as
+ * @param operandType - The C type `__operand` holds the written value in
+ */
+function generateAtomicStore(
+  target: string,
+  value: string,
+  operandType: string,
+  baseType: string,
+  newValue: (read: string, value: string) => string,
+  form: TAtomicForm,
+): IGeneratorOutput {
+  if (form === "interrupt-mask") {
+    return InterruptMask.wrap(`${target} = ${newValue(target, value)};`);
+  }
+  const typeInfo: TTypeInfo = {
+    baseType,
+    bitWidth: TYPE_WIDTH[baseType] ?? 0,
+    isArray: false,
+    isConst: false,
+  };
+  const inner = newValue("__old", OPERAND);
+  if (form === "ldrex-strex") {
+    return generateLdrexStrexLoop(
+      target,
+      value,
+      inner,
+      typeInfo,
+      [],
+      operandType,
+    );
+  }
+  return generateCompareExchangeLoop(
+    target,
+    value,
+    inner,
+    typeInfo,
+    [],
+    operandType,
+    form === "compare-exchange-libatomic",
+  );
+}
+
 // Export all atomic generators
 const atomicGenerators = {
   generateAtomicRMW,
+  generateAtomicStore,
   generateInnerAtomicOp,
   generateLdrexStrexLoop,
   generateCompareExchangeLoop,

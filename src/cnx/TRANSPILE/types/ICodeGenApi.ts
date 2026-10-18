@@ -32,6 +32,19 @@ interface ICodeGenApi {
     valueType: string | null,
   ): string;
 
+  /**
+   * A bit, bit-range or bitmap-field write to an `atomic` value (ADR-049,
+   * #2200): `newValue` computes the stored value from the value read.
+   */
+  generateAtomicStore(
+    target: string,
+    value: string,
+    operandType: string,
+    baseType: string,
+    newValue: (read: string, value: string) => string,
+    form: TAtomicForm,
+  ): string;
+
   /** Generate a float bit write through a union (ADR-007) */
   generateFloatBitWrite(bitWrite: IFloatBitWrite): string;
 

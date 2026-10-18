@@ -130,10 +130,24 @@ class BitUtils {
     storage?: string,
     folded?: number,
   ): string {
+    return `${target} = ${BitUtils.singleBitValue(target, offset, value, storage, folded)};`;
+  }
+
+  /**
+   * The value a single-bit write stores: `read` with the bit at `offset` set
+   * to `value`. An atomic write reads through its own copy (ADR-049).
+   */
+  static singleBitValue(
+    read: string,
+    offset: string | number,
+    value: string,
+    storage?: string,
+    folded?: number,
+  ): string {
     const one = BitUtils.widen("1U", storage);
     const bit = BitUtils.widen(BitUtils.boolToInt(value, folded), storage);
-    const rhs = `(${target} & ~(${one} << ${offset})) | (${bit} << ${offset})`;
-    return BitUtils.assign(target, rhs, storage);
+    const rhs = `(${read} & ~(${one} << ${offset})) | (${bit} << ${offset})`;
+    return BitUtils.narrowed(rhs, storage);
   }
 
   /**
@@ -156,10 +170,24 @@ class BitUtils {
     value: string,
     storage?: string,
   ): string {
+    return `${target} = ${BitUtils.multiBitValue(target, offset, width, value, storage)};`;
+  }
+
+  /**
+   * The value a bit-range write stores: `read` with `width` bits at `offset`
+   * set to `value`. An atomic write reads through its own copy (ADR-049).
+   */
+  static multiBitValue(
+    read: string,
+    offset: string | number,
+    width: number | IBitWidth,
+    value: string,
+    storage?: string,
+  ): string {
     const mask = BitUtils.shiftedMask(BitUtils.widthOf(width), storage);
     const masked = `(${CExpression.operand(value)} & ${mask})`;
-    const rhs = `(${target} & ~(${mask} << ${offset})) | (${masked} << ${offset})`;
-    return BitUtils.assign(target, rhs, storage);
+    const rhs = `(${read} & ~(${mask} << ${offset})) | (${masked} << ${offset})`;
+    return BitUtils.narrowed(rhs, storage);
   }
 
   /**
@@ -233,16 +261,9 @@ class BitUtils {
   }
 
   /** A read-modify-write's assignment, cast back as `narrowCast` says */
-  private static assign(
-    target: string,
-    rhs: string,
-    storage: string | undefined,
-  ): string {
+  private static narrowed(rhs: string, storage: string | undefined): string {
     const cast = BitUtils.narrowCast(storage);
-    if (cast === "") {
-      return `${target} = ${rhs};`;
-    }
-    return `${target} = ${cast}(${rhs});`;
+    return cast === "" ? rhs : `${cast}(${rhs})`;
   }
 
   /**

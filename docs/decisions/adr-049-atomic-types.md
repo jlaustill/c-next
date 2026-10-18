@@ -218,6 +218,8 @@ _(Corrected 2026-10-17, #1789: the table named only Cortex rows. The form is cho
 | AVR (atmega328p)                                  | Critical section (SREG)              |
 | host, esp32 (`interrupt_mask: false`)             | GNU `__atomic` compare-exchange loop |
 
+_(Clarified 2026-10-18, #2200: a bit, a bit range or a bitmap field written to an `atomic` value, `word[1] <- true`, `word[2, 3] <- 5`, `flags.Mode <- 3`, is a read-modify-write of the whole value, so it takes the row's form too, in every spelling of the value. A bitmap is accessed as its backing integer (Q4). These writes were emitted as a plain read-modify-write.)_
+
 A retry loop evaluates the value once, before the loop (#1807). On esp32, a type wider than `word_size` makes GCC call libatomic's `__atomic_*_N`, which the output's requirements list.
 
 **Related question:** How does C-Next know the target platform? (See ADR-009 Q6)

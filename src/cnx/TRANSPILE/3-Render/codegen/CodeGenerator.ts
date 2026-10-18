@@ -751,6 +751,32 @@ export default class CodeGenerator implements IOrchestrator {
     return result.code;
   }
 
+  /**
+   * ADR-049 (#2200): a bit write to an `atomic` value, in the planned form.
+   * Dispatched through `ICodeGenApi`, as `generateAtomicRMW` is.
+   *
+   * @public
+   */
+  generateAtomicStore(
+    target: string,
+    value: string,
+    operandType: string,
+    baseType: string,
+    newValue: (read: string, value: string) => string,
+    form: TAtomicForm,
+  ): string {
+    const result = atomicGenerators.generateAtomicStore(
+      target,
+      value,
+      operandType,
+      baseType,
+      newValue,
+      form,
+    );
+    this.applyEffects(result.effects);
+    return result.code;
+  }
+
   // #1322: ADR-016's access rules are E0435-E0437 in pass 2.1; `ScopeResolver`
   // is gone with them.
 

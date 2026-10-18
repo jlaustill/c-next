@@ -7,6 +7,7 @@
 
 import invariant from "../../utils/invariant";
 import BitUtils from "../../utils/BitUtils";
+import AtomicBitOwner from "./AtomicBitOwner";
 import type IAssignmentContext from "./types/IAssignmentContext";
 
 /**
@@ -102,15 +103,54 @@ function writeBits(ctx: IAssignmentContext): string {
     "2.2 planned every float bit write 2.3 writes",
   );
   const storage = BitUtils.storageOf(value);
-  return width === undefined
-    ? BitUtils.singleBitWrite(
-        base,
-        start,
-        ctx.generatedValue,
-        storage,
-        ctx.foldValue(),
-      )
-    : BitUtils.multiBitWrite(base, start, width, ctx.generatedValue, storage);
+  if (width === undefined) {
+    return storeBits(ctx, base, "bool", (read, bit, folded) =>
+      BitUtils.singleBitValue(read, start, bit, storage, folded),
+    );
+  }
+  return storeBits(ctx, base, storage, (read, bits) =>
+    BitUtils.multiBitValue(read, start, width, bits, storage),
+  );
+}
+
+/**
+ * Store the bits a write computes from the value read (`newValue`): a plain
+ * read-modify-write, or, for an `atomic` value's bits, the form 2.2 planned
+ * (ADR-049, #2200). A retry loop reads the written value once, through
+ * `__operand`, which `operandType` declares.
+ */
+function storeBits(
+  ctx: IAssignmentContext,
+  target: string,
+  operandType: string | undefined,
+  newValue: (read: string, value: string, folded?: number) => string,
+): string {
+  const form = ctx.atomicForm;
+  if (form === null) {
+    return `${target} = ${newValue(target, ctx.generatedValue, ctx.foldValue())};`;
+  }
+  const symbols = ctx.state.symbols!;
+  const baseType = AtomicBitOwner.typeName(
+    ctx.target.last,
+    symbols.bitmapFields,
+    symbols.bitmapBackingType,
+  );
+  invariant(
+    baseType !== null && operandType !== undefined,
+    "2.2 plans an atomic bit write only for the bits of an atomic integer",
+  );
+  // A folded value is the written value only where it is written directly
+  const folded = form === "interrupt-mask" ? ctx.foldValue() : undefined;
+  return ctx.state
+    .requireGenerator()
+    .generateAtomicStore(
+      target,
+      ctx.generatedValue,
+      operandType,
+      baseType,
+      (read, value) => newValue(read, value, folded),
+      form,
+    );
 }
 
 /**
@@ -118,6 +158,7 @@ function writeBits(ctx: IAssignmentContext): string {
  */
 class AssignmentHandlerUtils {
   static readonly writeBits = writeBits;
+  static readonly storeBits = storeBits;
   static readonly validateWriteOnlyValue = validateWriteOnlyValue;
 }
 

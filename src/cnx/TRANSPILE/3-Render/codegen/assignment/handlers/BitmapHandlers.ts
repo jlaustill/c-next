@@ -12,6 +12,7 @@ import BitmapFieldStep from "../../../../../utils/BitmapFieldStep";
 import AssignmentKind from "../../../../../types/AssignmentKind";
 import IAssignmentContext from "../../../../2-Plan/types/IAssignmentContext";
 import BitUtils from "../../../../../utils/BitUtils";
+import AssignmentHandlerUtils from "../../../../2-Plan/AssignmentHandlerUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import RegisterAccessMode from "../../../../../utils/RegisterAccessMode";
 
@@ -56,12 +57,12 @@ function writeBitmapField(
           storage,
           ctx.foldValue(),
         )
-      : BitUtils.singleBitWrite(
+      : AssignmentHandlerUtils.storeBits(
+          ctx,
           target,
-          layout.offset,
-          value,
-          storage,
-          ctx.foldValue(),
+          "bool",
+          (read, bit, folded) =>
+            BitUtils.singleBitValue(read, layout.offset, bit, storage, folded),
         );
   }
   return writeOnly
@@ -72,12 +73,14 @@ function writeBitmapField(
         value,
         storage,
       )
-    : BitUtils.multiBitWrite(
-        target,
-        layout.offset,
-        layout.width,
-        value,
-        storage,
+    : AssignmentHandlerUtils.storeBits(ctx, target, storage, (read, bits) =>
+        BitUtils.multiBitValue(
+          read,
+          layout.offset,
+          layout.width,
+          bits,
+          storage,
+        ),
       );
 }
 
