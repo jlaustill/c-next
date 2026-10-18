@@ -134,6 +134,7 @@ describe("SpecialHandlers", () => {
         }),
         null,
         "ldrex-strex",
+        null,
       );
       expect(result).toBe("LDREX/STREX pattern");
     });
@@ -168,6 +169,7 @@ describe("SpecialHandlers", () => {
         }),
         null,
         "ldrex-strex",
+        null,
       );
       expect(result).toBe("atomic result");
     });
@@ -214,6 +216,7 @@ describe("SpecialHandlers", () => {
         expect.objectContaining({ baseType: "u32", isAtomic: true }),
         null,
         "ldrex-strex",
+        null,
       );
     });
 
@@ -262,6 +265,7 @@ describe("SpecialHandlers", () => {
         expect.anything(),
         null,
         "ldrex-strex",
+        null,
       );
     });
   });
@@ -480,6 +484,7 @@ describe("SpecialHandlers", () => {
           expect.anything(),
           expected,
           "ldrex-strex",
+          null,
         );
       },
     );
