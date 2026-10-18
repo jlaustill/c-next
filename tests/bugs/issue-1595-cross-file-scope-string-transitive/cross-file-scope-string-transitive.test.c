@@ -20,19 +20,19 @@
 /* Scope: Writer */
 
 void Writer__relabel(void) {
-    Store__label = "method";
+    (void) strncpy(Store__label, "method", 16); Store__label[16] = '\0';
 }
 
 int main(void) {
-    Store__label = "hello";
+    (void) strncpy(Store__label, "hello", 16); Store__label[16] = '\0';
     if (strcmp(Store__label, "hello") != 0) {
         return 1U;
     }
-    Store__tags[1] = "tag";
+    (void) strncpy(Store__tags[1], "tag", 8); Store__tags[1][8] = '\0';
     if (strcmp(Store__tags[1U], "tag") != 0) {
         return 2U;
     }
-    Store__structField.member = "fld";
+    (void) strncpy(Store__structField.member, "fld", 12); Store__structField.member[12] = '\0';
     if (strcmp(Store__structField.member, "fld") != 0) {
         return 3U;
     }
