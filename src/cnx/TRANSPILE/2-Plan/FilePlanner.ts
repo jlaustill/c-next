@@ -40,6 +40,7 @@ import PublicInterface from "./PublicInterface";
 import PlanTyping from "./PlanTyping";
 import CompositeType from "../../utils/CompositeType";
 import type IOperandType from "../../types/IOperandType";
+import type TValueBinding from "../../types/TValueBinding";
 import type TOverflowBehavior from "../../types/TOverflowBehavior";
 import type TDeclarationKind from "../../types/TDeclarationKind";
 import type IEmissionFacts from "../../types/IEmissionFacts";
@@ -1758,7 +1759,9 @@ class FilePlanner {
           written.stringCapacity,
           dimensions,
           value,
-          written.hasSideEffect,
+          FilePlanner.isVolatileTarget(
+            OperandTyper.rootOfTarget(site.target, typing),
+          ),
         ),
       );
       cTypes.add("uint32_t");
@@ -1805,6 +1808,20 @@ class FilePlanner {
   }
 
   /** A whole array's element C type and the dimensions it is walked by */
+  /**
+   * A target declared `volatile` or `atomic` (which C writes `volatile`); a
+   * call in its subscript is a side effect, not a qualifier
+   */
+  private static isVolatileTarget(binding: TValueBinding | null): boolean {
+    if (binding?.kind === "local") {
+      return binding.declaration.isVolatile || binding.declaration.isAtomic;
+    }
+    if (binding?.kind === "variable") {
+      return binding.symbol.isVolatile || binding.symbol.isAtomic;
+    }
+    return false;
+  }
+
   private static wholeArrayShape(
     elementCType: string,
     stringCapacity: number | null,

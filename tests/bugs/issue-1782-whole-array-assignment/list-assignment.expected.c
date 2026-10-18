@@ -163,7 +163,7 @@ int main(void) {
     }
     /* ADR-035 / Issue #1782: C has no array assignment, so the list fills a temporary that is copied element by element. */
     const uint8_t cnx_tmp21[2] = {5U, 6U};
-    volatile uint8_t (*const cnx_tmp22)[2] = &grid[nextRow()];
+    uint8_t (*const cnx_tmp22)[2] = &grid[nextRow()];
     for (uint32_t cnx_tmp23 = 0U; cnx_tmp23 < 2U; cnx_tmp23++) {
         (*cnx_tmp22)[cnx_tmp23] = cnx_tmp21[cnx_tmp23];
     }

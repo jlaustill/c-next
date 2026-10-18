@@ -98,6 +98,17 @@ describe("whole-array assignment (#1782)", () => {
     }
   });
 
+  it("gives a call in a plain target's subscript no qualifier", async () => {
+    for (const cppMode of [false, true]) {
+      const code = await transpile(
+        "mut u8[2][2] grid;\nu32 row() {\n    return 1;\n}\nvoid f() {\n    grid[row()] <- [1, 2];\n}",
+        cppMode,
+      );
+      expect(code).toContain("uint8_t (*const cnx_tmp1)[2] = &grid[row()];");
+      expect(code).not.toContain("volatile");
+    }
+  });
+
   it("passes a list for an array parameter where it stands (#2157)", async () => {
     const source =
       "u8 third(u8[4] b) {\n    return b[2];\n}\nvoid f() {\n    u8 t <- third([1, 2, 3, 4]);\n}";

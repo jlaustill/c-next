@@ -285,6 +285,14 @@ class OperandTyper {
     return OperandTyper.walkChain(target, ctx).last;
   }
 
+  /** What a target's chain is rooted in: the declaration it writes into */
+  static rootOfTarget(
+    target: TExpression,
+    ctx: ITypingContext,
+  ): TValueBinding | null {
+    return OperandTyper.walkChain(target, ctx).typing.root;
+  }
+
   /**
    * The dimensions an assignment target takes a whole array of (#1782):
    * none for a scalar, an element, or an ADR-007 slice, which writes a
