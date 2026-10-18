@@ -898,12 +898,17 @@ class AssignmentClassifier {
    * `global.member`, `var.field`, `var.field[i]`, `names[i]`), each matching a
    * spelling and each handler re-rendering its spelling's target by hand, so
    * `this.cfg.name`, `o.inner.name`, `parr[1].name` and `g.cells[1][2]` fell
-   * through to `=`. A target with no step is the variable itself.
+   * through to `=`. A target with no step is the variable itself. A slice or
+   * bit subscript writes part of what it selects, never a whole string.
    */
   static writtenStringCapacity(ctx: IAssignmentContext): number | null {
     const last = ctx.target.last;
     if (last !== undefined) {
-      return OperandTyper.scalarStringCapacity(last.after);
+      const writesWholeStep =
+        last.subscript === null || last.subscript === "array_element";
+      return writesWholeStep
+        ? OperandTyper.scalarStringCapacity(last.after)
+        : null;
     }
     const typeInfo = ctx.target.typeInfo;
     return AssignmentClassifier.isSimpleStringType(typeInfo)

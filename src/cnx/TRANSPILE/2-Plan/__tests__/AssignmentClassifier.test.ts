@@ -1419,6 +1419,34 @@ describe("AssignmentClassifier - previously unnamed kinds", () => {
     expect(AssignmentClassifier.classify(ctx)).toBe(AssignmentKind.STRING_COPY);
   });
 
+  it("does not classify a slice of a string as STRING_COPY", () => {
+    // `buffer[0, 2] <- value` writes two bytes of a string<64>, not the string
+    // (tests/scope/scope-string-param-slice.test.cnx)
+    declare(
+      "buffer",
+      createTypeInfo({
+        baseType: "string<64>",
+        isString: true,
+        stringCapacity: 64,
+      }),
+    );
+    const ctx = typedStep(
+      createMockContext(state, {
+        identifiers: ["buffer"],
+        generatedValue: "value",
+        subscriptCount: 2,
+        hasArrayAccess: true,
+        isSimpleIdentifier: false,
+      }),
+      { before: stringField(64), after: stringField(64) },
+      "array_slice",
+    );
+
+    expect(AssignmentClassifier.classify(ctx)).not.toBe(
+      AssignmentKind.STRING_COPY,
+    );
+  });
+
   it("classifies struct.field[i] string as STRING_COPY", () => {
     setupSymbols({
       knownStructs: new Set(["Config"]),
