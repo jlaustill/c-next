@@ -1,0 +1,22 @@
+// test-error
+// test-cpp-only
+// test-adr: 036
+// #1823: a `for` header declares a scalar loop variable. An array declared
+// there, in either spelling, is E0917; declare the array before the loop.
+// The C++ twin of for-header-array-error.test.cnx: the same program under --cpp.
+
+u32 main() {
+    // NEGATIVE CONTROL -- a scalar loop variable, plain and volatile.
+    for (mut u32 i <- 0; i < 3; i <- i + 1) {}
+    for (volatile mut u8 k <- 0; k < 3; k <- k + 1) {}
+
+    mut u32 total <- 0;
+    for (u8[3] v <- [1, 2, 3]; total < 3; total <- total + 1) {
+        if (v[2] != 3) {
+            return 1;
+        }
+    }
+    for (u8[][2] m <- [[1, 2], [3, 4]]; total < 6; total <- total + 1) {}
+    for (u32 c[2]; total < 9; total <- total + 1) {}
+    return 0;
+}

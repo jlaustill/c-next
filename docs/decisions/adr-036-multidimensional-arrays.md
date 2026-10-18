@@ -418,7 +418,7 @@ Compiler flags:
 | E0875 | A parameter's array type leaves a dimension unbounded (`u8[] data`)                                                         | `tests/adr-036/array-shape-uncovered-arms-error.test.cnx`                                                           |
 | E0909 | A dimension is not known at compile time -- a variable or a parameter, since C-Next has no variable-length arrays (ADR-023) | `tests/bugs/issue-1175-constant-dimensions/variable-dimension-local.test.cnx`, `variable-dimension-global.test.cnx` |
 | E0910 | A dimension is arithmetic that would clamp or wrap (ADR-044)                                                                | `tests/bugs/issue-1175-constant-dimensions/overflow-dimension.test.cnx`                                             |
-| E0917 | A `for` header declares an array, in either spelling (`u8[3] v`, `u32 c[2]`) (#1823)                                        | `tests/adr-036/for-header-array-error.test.cnx`                                                                     |
+| E0917 | A `for` header declares an array, in either spelling (`u8[3] v`, `u32 c[2]`) (#1823)                                        | `tests/adr-036/for-header-array-error.test.cnx`, `tests/adr-036/for-header-array-cpp-error.test.cnx` (`--cpp`)      |
 
 The bound is the dimension the subscript indexes: `grid[i][9]` is checked
 against `grid[i]`'s shape. A field of a struct is bounded like a variable
