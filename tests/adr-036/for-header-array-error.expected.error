@@ -4,3 +4,7 @@
        help: A for header declares one scalar loop variable (ADR-036); declare the array before the loop and index it inside.
 18:9 error[E0917]: An array is not a for loop variable: declare 'c' before the loop
        help: A for header declares one scalar loop variable (ADR-036); declare the array before the loop and index it inside.
+20:9 error[E0917]: An array is not a for loop variable: declare 'a' before the loop
+       help: A for header declares one scalar loop variable (ADR-036); declare the array before the loop and index it inside.
+21:9 error[E0917]: An array is not a for loop variable: declare 'b' before the loop
+       help: A for header declares one scalar loop variable (ADR-036); declare the array before the loop and index it inside.

@@ -3185,8 +3185,8 @@ class CodeGenWalker {
    *
    * `typeName` is eager; the initializer is a thunk, so it renders where the
    * generator writes it, after the type. It is never an array: 1.2 rejects
-   * one here (E0917, #1823). The emitted
-   * name is 1.4's (#1934, ADR-057), bound at the declaration itself.
+   * one here (E0917, #1823). The emitted name is 1.4's (#1934, ADR-057),
+   * bound at the declaration itself.
    */
   private planForVarDecl(decl: IVariableDeclarationSyntax): IPlannedForVarDecl {
     // Issue #696: Use shared modifier builder
