@@ -638,6 +638,9 @@ jobs:
           node dist/index.js examples/teensy4/blink.cnx
           test -f examples/teensy4/blink.c || exit 1
           test -f examples/teensy4/blink.h || exit 1
+          # Verify Clean is its own job and runs no generator, so a stale
+          # committed example is caught here, where it is regenerated.
+          git diff --exit-code examples/teensy4/
 
   grammar-coverage:
     name: Grammar Coverage
