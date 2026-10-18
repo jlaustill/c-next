@@ -1740,7 +1740,8 @@ class FilePlanner {
     for (const [value, at] of valuePositions.sites) {
       if (at.site.kind !== "assignment") continue;
       const site = at.site.assignment;
-      const dimensions = valuePositions.positions.get(value)?.dimensions ?? [];
+      const position = valuePositions.positions.get(value);
+      const dimensions = position?.dimensions ?? [];
       if (site.value !== value || dimensions.length === 0) continue;
       const written = OperandTyper.typeOfTarget(site.target, typing);
       const typeName = written?.typeName ?? null;
@@ -1755,8 +1756,8 @@ class FilePlanner {
       planned.set(
         site,
         FilePlanner.wholeArrayShape(
-          written.cType ?? TYPE_MAP[typeName] ?? typeName,
-          written.stringCapacity,
+          position?.typeText ?? typeName,
+          written.cType,
           dimensions,
           value,
           FilePlanner.isVolatileTarget(
@@ -1791,12 +1792,9 @@ class FilePlanner {
       }
       const element = TypeText.withoutDimensions(position.typeText);
       if (!ExpressionShape.givesWholeArray(expression, element)) continue;
-      const capacity = TypeCheckUtils.isSizedStringName(element)
-        ? Number(element.slice("string<".length, -1))
-        : null;
       const shape = FilePlanner.wholeArrayShape(
-        TYPE_MAP[element] ?? element,
-        capacity,
+        position.typeText,
+        null,
         position.dimensions,
         expression,
         false,
@@ -1822,17 +1820,31 @@ class FilePlanner {
     return false;
   }
 
+  /**
+   * A whole array's shape from its position's type spelling, the one source
+   * an assignment target and a parameter share; `cType` is a header's own
+   * spelling of an unfixed-width element
+   */
   private static wholeArrayShape(
-    elementCType: string,
-    stringCapacity: number | null,
+    typeText: string,
+    cType: string | null,
     dimensions: ReadonlyArray<number | string>,
     value: TExpression,
     volatileTarget: boolean,
   ): IPlannedWholeArrayWrite {
-    const isString = stringCapacity !== null;
+    const element = TypeText.withoutDimensions(typeText);
+    if (TypeCheckUtils.isSizedStringName(element)) {
+      const capacity = Number(element.slice("string<".length, -1));
+      return {
+        elementCType: "char",
+        dimensions: [...dimensions, capacity + 1],
+        fromList: value.kind === "arrayInitializer",
+        volatileTarget,
+      };
+    }
     return {
-      elementCType: isString ? "char" : elementCType,
-      dimensions: isString ? [...dimensions, stringCapacity + 1] : dimensions,
+      elementCType: cType ?? TYPE_MAP[element] ?? element,
+      dimensions,
       fromList: value.kind === "arrayInitializer",
       volatileTarget,
     };
