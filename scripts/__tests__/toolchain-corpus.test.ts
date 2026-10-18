@@ -50,8 +50,8 @@ const ACCOUNTED_TOKENS: ReadonlyArray<{
   { pattern: /\bSREG\b/, keys: ["critical-avr-libc"] },
   { pattern: /\bnoInterrupts\b/, keys: ["critical-arduino"] },
   {
-    pattern: /\b__disable_irq\b/,
-    keys: ["critical-cmsis-fallback"],
+    pattern: /\b__atomic_compare_exchange\b/,
+    keys: ["atomic-gnu-builtins"],
   },
   { pattern: /\bfprintf\b/, keys: ["overflow-panic-hosted-libc"] },
   {

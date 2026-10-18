@@ -98,6 +98,7 @@ describe("a cell nothing compiles fails", () => {
         "#pragma word_size 32",
         "#pragma ldrex_strex true",
         "#pragma basepri false",
+        "#pragma interrupt_mask true",
         "#pragma char_bits 8",
         "#pragma char_signed false",
         "#pragma short_bits 16",

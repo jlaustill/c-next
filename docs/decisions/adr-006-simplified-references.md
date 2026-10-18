@@ -344,11 +344,11 @@ If the compiler can prove the original isn't read after the call, it can optimiz
 ### The Constraint
 
 A `mut` parameter is passed by reference, so **you cannot pass a literal to a
-`mut` parameter** (E0916) -- there is no variable for the write to land in:
+`mut` parameter** (E0915) -- there is no variable for the write to land in:
 
 ```
 void LED_toggle(mut u8 pin);
-LED_toggle(13);      // ERROR E0916: a `mut` parameter needs a variable to write
+LED_toggle(13);      // ERROR E0915: a `mut` parameter needs a variable to write
 ```
 
 A read-only parameter is passed by value (ADR-071), so a literal loses nothing
@@ -428,18 +428,18 @@ By enforcing that every argument to a `mut` parameter must be an addressable val
 1. **Configuration is centralized** — all hardware constants in one place
 2. **Code is self-documenting** — `LED_init(LED_PIN)` explains intent
 3. **Maintenance is easier** — change one definition, not 50 call sites
-4. **Reviews are simpler** — a magic number passed to a `mut` parameter becomes an obvious error (E0916)
+4. **Reviews are simpler** — a magic number passed to a `mut` parameter becomes an obvious error (E0915)
 
 ---
 
-## Enforcement: E0916 (#1203)
+## Enforcement: E0915 (#1203)
 
 A `mut` parameter's argument must be an object the callee can write: a
 variable, a field or an element, through any brackets (`(a)`, `(cfg.total)`,
 `(cfg).total`). Anything else -- a literal, a call's, an operator's or a
 ternary's result, a cast, a struct or array literal, an enum member, a bit
 index or range, a function's name, or a header's `#define` or enum constant --
-is E0916: C would take the write into a temporary and lose it, or not compile.
+is E0915: C would take the write into a temporary and lose it, or not compile.
 Passing a read-only binding to a `mut` parameter stays E0900 (ADR-071).
 
 ## Scope-Context Matrix (#1219)

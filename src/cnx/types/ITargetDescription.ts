@@ -16,6 +16,13 @@ interface ITargetDescription {
   readonly ldrex_strex: boolean;
   /** Selective interrupt masking exists (ADR-050) */
   readonly basepri: boolean;
+  /**
+   * Disabling interrupts shuts out every other execution context (one core),
+   * through a mechanism the ADR-050 IRQ wrappers lower. False: a critical
+   * block is E0916 and an atomic read-modify-write is a compare-exchange
+   * loop (#1789). esp32 can disable interrupts, but on one core only.
+   */
+  readonly interrupt_mask: boolean;
   readonly char_bits: number;
   readonly char_signed: boolean;
   readonly short_bits: number;

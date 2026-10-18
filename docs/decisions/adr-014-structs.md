@@ -75,7 +75,7 @@ origin.x <- 100;
 ### Pass by Reference (per ADR-006)
 
 A `mut` parameter is passed by reference, including a primitive, so its
-argument must be a variable, a field or an element: a literal is E0916
+argument must be a variable, a field or an element: a literal is E0915
 (ADR-006). A read-only parameter is passed by value (ADR-071) and accepts a
 literal, though named values remain the recommended style (ruling on #1203):
 

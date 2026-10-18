@@ -1,0 +1,34 @@
+// test-c-only
+// test-execution
+#pragma target cortex-m7
+// Tests: a scope's enum member written inside a critical block. Split from
+// enum-all-scenarios, which runs on host, because a critical block has no
+// host lowering (E0916, #1147).
+
+scope Motor {
+    public enum EMode {
+        LOW <- 0,
+        HIGH <- 1
+    }
+
+    private mut this.EMode mode <- this.EMode.LOW;
+
+    public void criticalEnumUpdate() {
+        critical {
+            this.mode <- this.EMode.HIGH;
+        }
+    }
+
+    public this.EMode getMode() {
+        return this.mode;
+    }
+}
+
+u32 main() {
+    Motor.criticalEnumUpdate();
+    Motor.EMode afterCritical <- Motor.getMode();
+    if (afterCritical != Motor.EMode.HIGH) {
+        return 1;
+    }
+    return 0;
+}

@@ -10,18 +10,18 @@ codes that already have a fixture.
 
 ## Error Code Ranges
 
-| Range     | Category                                                                            | Count   |
-| --------- | ----------------------------------------------------------------------------------- | ------- |
-| E00xx     | Reserved/Test                                                                       | 1       |
-| E02xx     | Identifier/Param Naming                                                             | 5       |
-| E03xx     | Struct Fields/Init                                                                  | 6       |
-| E04xx     | Symbol Resolution                                                                   | 16      |
-| E05xx     | Include/Preprocessor                                                                | 18      |
-| E06xx     | Sizeof Expressions                                                                  | 3       |
-| E07xx     | Control Flow                                                                        | 15      |
-| E08xx     | Arithmetic/Array Safety                                                             | 61      |
-| E09xx     | NULL Safety, Compile-Time Values, Literal Form, String Conversions, `mut` Arguments | 16      |
-| **Total** |                                                                                     | **141** |
+| Range     | Category                                                                                               | Count   |
+| --------- | ------------------------------------------------------------------------------------------------------ | ------- |
+| E00xx     | Reserved/Test                                                                                          | 1       |
+| E02xx     | Identifier/Param Naming                                                                                | 5       |
+| E03xx     | Struct Fields/Init                                                                                     | 6       |
+| E04xx     | Symbol Resolution                                                                                      | 16      |
+| E05xx     | Include/Preprocessor                                                                                   | 18      |
+| E06xx     | Sizeof Expressions                                                                                     | 3       |
+| E07xx     | Control Flow                                                                                           | 15      |
+| E08xx     | Arithmetic/Array Safety                                                                                | 61      |
+| E09xx     | NULL Safety, Compile-Time Values, Literal Form, String Conversions, Interrupt Masking, `mut` Arguments | 17      |
+| **Total** |                                                                                                        | **142** |
 
 ---
 
@@ -418,11 +418,17 @@ base: bare, `this.` and `global.`.
 | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
 | E0914 | A string value (a literal or a `string<N>`) lands in an integer, float, bool, enum or bitmap target -- as the value, the value it parenthesizes or a ternary arm (ADR-024, #1739) | A string lands only in a `string<N>` (ADR-045); a `u8` array may be initialized by a string literal (ADR-035) | `TRANSPILE/1-Analyze/IntegerConversionAnalyzer.ts` |
 
-## E0916 — An Argument a `mut` Parameter Cannot Write (ADR-006)
+## E0915 — An Argument a `mut` Parameter Cannot Write (ADR-006)
 
 | Code  | Message                                                                                                                                                                                                                                                                                                                                                                          | Help                                                                                                                                                                  | Source                                           |
 | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| E0916 | An argument to a `mut` C-Next parameter is not a variable -- a literal (number, string, struct or array), a call's, an operator's or a ternary's result, a cast, an enum member, a bit index or range, an ADR-058 length property, a function's name, or a header's `#define` or enum constant. A `#define` is rejected even when it expands to a variable, with its own message | A `mut` parameter writes its argument (ADR-006); assign the value to a `mut` variable and pass that. For a `#define`: pass the variable it names, or a `mut` variable | `TRANSPILE/1-Analyze/ConstAssignmentAnalyzer.ts` |
+| E0915 | An argument to a `mut` C-Next parameter is not a variable -- a literal (number, string, struct or array), a call's, an operator's or a ternary's result, a cast, an enum member, a bit index or range, an ADR-058 length property, a function's name, or a header's `#define` or enum constant. A `#define` is rejected even when it expands to a variable, with its own message | A `mut` parameter writes its argument (ADR-006); assign the value to a `mut` variable and pass that. For a `#define`: pass the variable it names, or a `mut` variable | `TRANSPILE/1-Analyze/ConstAssignmentAnalyzer.ts` |
+
+## E0916 — A Critical Section the Target Cannot Give (ADR-050)
+
+| Code  | Message                                                                                                                                                         | Help                                                                                                                                                                                                                                                   | Source                                           |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------ |
+| E0916 | A `critical` block on a target where disabling interrupts does not shut out every other execution context (`interrupt_mask: false`: host, esp32) (#1789, #1147) | A critical block disables interrupts (ADR-050), which shuts out every other context only on a target whose description has interrupt_mask true. An atomic variable's read-modify-write needs no critical block; otherwise name a target that can mask. | `TRANSPILE/1-Analyze/CriticalSectionAnalyzer.ts` |
 
 ---
 

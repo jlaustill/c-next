@@ -32,6 +32,10 @@ const NOTHING: IEmissionFacts = {
   emittedCompoundLiteral: false,
   emittedLdrexStrexLoop: false,
   ldrexStrexSites: [],
+  emittedCompareExchangeLoop: false,
+  emittedWideCompareExchangeLoop: false,
+  wideCompareExchangeSites: [],
+  compareExchangeSites: [],
 };
 
 const facts = (over: Partial<IEmissionFacts>): IEmissionFacts => ({
@@ -150,7 +154,6 @@ describe("EmissionPlan (2.2 Plan)", () => {
         "critical-arm-gnu",
         "critical-arduino",
         "critical-avr-libc",
-        "critical-cmsis-fallback",
       ]);
     });
 
@@ -176,7 +179,6 @@ describe("EmissionPlan (2.2 Plan)", () => {
         { key: "critical-arm-gnu", sites: [] },
         { key: "critical-arduino", sites: [] },
         { key: "critical-avr-libc", sites: [] },
-        { key: "critical-cmsis-fallback", sites: [] },
       ]);
     });
 
@@ -212,7 +214,6 @@ describe("EmissionPlan (2.2 Plan)", () => {
         { key: "critical-arm-gnu", sites: [early] },
         { key: "critical-arduino", sites: [early] },
         { key: "critical-avr-libc", sites: [early] },
-        { key: "critical-cmsis-fallback", sites: [early] },
       ]);
     });
 

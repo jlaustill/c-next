@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import CriticalSectionAnalyzer from "../CriticalSectionAnalyzer";
+import type ITargetDescription from "../../../types/ITargetDescription";
 
 /**
  * #1322. E0853 -- `return` inside a `critical` block leaves interrupts
@@ -17,8 +18,14 @@ import CriticalSectionAnalyzer from "../CriticalSectionAnalyzer";
  * The walk that replaced it descends through `StatementChildren`, which names
  * every statement kind and stops compiling when one is added.
  */
-const errors = (source: string) => {
-  return new CriticalSectionAnalyzer().analyze(
+const target = (name: string, interruptMask: boolean): ITargetDescription =>
+  ({ name, interrupt_mask: interruptMask }) as ITargetDescription;
+
+const errors = (
+  source: string,
+  description: ITargetDescription | null = target("cortex-m7", true),
+) => {
+  return new CriticalSectionAnalyzer(description).analyze(
     CNextSourceParser.parse(source).program,
   );
 };
@@ -105,5 +112,32 @@ describe("CriticalSectionAnalyzer", () => {
     // `return 0;` of every function containing a critical block.
     const found = errors(inCritical("        value <- 1;"));
     expect(found).toEqual([]);
+  });
+
+  // #1789 / #1147: a target that cannot mask interrupts has no critical
+  // section; its wrappers had only a CMSIS guess, which no host header declares
+  it("rejects a critical block on a target that cannot mask interrupts (E0916)", () => {
+    const found = errors(
+      inCritical("        value <- 1;"),
+      target("host", false),
+    );
+    expect(found).toHaveLength(1);
+    expect(found[0].code).toBe("E0916");
+    expect(found[0].line).toBe(3);
+    expect(found[0].message).toBe(
+      "target 'host' has no critical section: disabling interrupts there does not shut out every other execution context",
+    );
+  });
+
+  it("reports both rules where both apply", () => {
+    const found = errors(
+      inCritical("        return value;"),
+      target("esp32", false),
+    );
+    expect(found.map((error) => error.code)).toEqual(["E0916", "E0853"]);
+  });
+
+  it("leaves the target rule to 1.4 when the target was rejected", () => {
+    expect(errors(inCritical("        value <- 1;"), null)).toEqual([]);
   });
 });

@@ -12,6 +12,8 @@ import COMPOUND_TO_BINARY from "./types/COMPOUND_TO_BINARY";
 import NarrowingCastHelper from "./NarrowingCastHelper";
 import CNextSourcePath from "../../utils/CNextSourcePath";
 import TYPE_MAP from "./types/TYPE_MAP";
+import TYPE_WIDTH from "../../types/TYPE_WIDTH";
+import ResolvedTarget from "../../utils/ResolvedTarget";
 import SafeDivisionTypes from "./SafeDivisionTypes";
 import TParameterInfo from "../../types/TParameterInfo";
 import ICodeGeneratorOptions from "../types/ICodeGeneratorOptions";
@@ -61,6 +63,7 @@ import AssignmentHandlerUtils from "./AssignmentHandlerUtils";
 import StatementChildren from "../../utils/StatementChildren";
 import LDREX_MAP from "./types/LDREX_MAP";
 import type TAtomicForm from "../types/TAtomicForm";
+import type ITargetDescription from "../../types/ITargetDescription";
 import includeGenerators from "./IncludeGenerator";
 import DeclaredTypeInfo from "../../PARSE/3-Declare/DeclaredTypeInfo";
 import type IChainBase from "../../types/IChainBase";
@@ -1240,7 +1243,7 @@ class FilePlanner {
 
   /**
    * A by-reference argument's form. A `mut` parameter's argument is an object
-   * 2.1 accepted (E0916), so it is never passed as a temporary.
+   * 2.1 accepted (E0915), so it is never passed as a temporary.
    */
   private referenceForm(
     expression: TExpression,
@@ -1257,7 +1260,7 @@ class FilePlanner {
       passing.param?.isConst !== false ||
         (MutArgument.isWritable(expression, this.state.typingContext()) &&
           form.kind !== "rvalue"),
-      "2.1 rejected every `mut` argument that is not an object (ADR-006, E0916)",
+      "2.1 rejected every `mut` argument that is not an object (ADR-006, E0915)",
     );
     return form;
   }
@@ -1931,6 +1934,14 @@ class FilePlanner {
           requirements.require("cmsis");
           requirements.noteLdrexStrexLoop();
           cTypes.add(TYPE_MAP[atomic.typeName]);
+        } else if (
+          atomic.form === "compare-exchange" ||
+          atomic.form === "compare-exchange-libatomic"
+        ) {
+          requirements.noteCompareExchangeLoop(
+            atomic.form === "compare-exchange-libatomic",
+          );
+          cTypes.add(TYPE_MAP[atomic.typeName]);
         } else {
           requirements.require("irq_wrappers");
           cTypes.add(PRIMASK_C_TYPE);
@@ -1943,7 +1954,9 @@ class FilePlanner {
   /**
    * ADR-049: a compound write to a variable declared `atomic`, named bare or
    * through `global.`, is an LDREX/STREX loop where the target and the type
-   * allow one, otherwise the masked region. Null when the write is not atomic.
+   * allow one, otherwise the masked region, or a compare-exchange loop on a
+   * target that cannot mask interrupts (#1789). Null when the write is not
+   * atomic.
    * An `atomic` scope member written through `this.` is not seen here, and
    * saturates or wraps without the guard: bug #1179.
    */
@@ -1961,12 +1974,41 @@ class FilePlanner {
     const typeName = written?.typeName ?? "";
     const exclusive = LDREX_MAP[typeName] !== undefined;
     return {
-      form:
-        this.state.targetDescription?.ldrex_strex === true && exclusive
-          ? "ldrex-strex"
-          : "interrupt-mask",
+      form: FilePlanner.atomicFormFor(
+        this.state.targetDescription,
+        exclusive,
+        typeName,
+      ),
       typeName,
     };
+  }
+
+  /**
+   * #1789 review: a type wider than the target's `word_size` (ADR-049: the
+   * widest naturally atomic access) has no native compare-exchange, so GCC
+   * calls libatomic's `__atomic_*_N` for it (u64 on esp32).
+   */
+  private static widerThanWord(
+    target: ITargetDescription | null,
+    typeName: string,
+  ): boolean {
+    const width = TYPE_WIDTH[typeName];
+    return target !== null && width !== undefined && width > target.word_size;
+  }
+
+  /** The target's one answer to "how is a read-modify-write made atomic" */
+  private static atomicFormFor(
+    target: ITargetDescription | null,
+    exclusive: boolean,
+    typeName: string,
+  ): TAtomicForm {
+    if (target?.ldrex_strex === true && exclusive) return "ldrex-strex";
+    if (!ResolvedTarget.masksInterrupts(target)) {
+      return FilePlanner.widerThanWord(target, typeName)
+        ? "compare-exchange-libatomic"
+        : "compare-exchange";
+    }
+    return "interrupt-mask";
   }
 
   /**
@@ -2051,6 +2093,12 @@ class FilePlanner {
       ),
       emittedLdrexStrexLoop: requirements.emitsLdrexStrexLoop,
       ldrexStrexSites: requirements.sitesOf("ldrex_strex_loop"),
+      emittedCompareExchangeLoop: requirements.emitsCompareExchangeLoop,
+      compareExchangeSites: requirements.sitesOf("compare_exchange_loop"),
+      emittedWideCompareExchangeLoop: requirements.emitsWideCompareExchangeLoop,
+      wideCompareExchangeSites: requirements.sitesOf(
+        "wide_compare_exchange_loop",
+      ),
     };
   }
 

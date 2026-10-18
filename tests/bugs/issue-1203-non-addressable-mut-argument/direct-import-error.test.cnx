@@ -1,7 +1,7 @@
 // test-error
 // test-adr: 006
 // ADR-006: a literal passed to an imported function's `mut` parameter gets
-// E0916 too -- matrix cell: direct (1 hop), from a
+// E0915 too -- matrix cell: direct (1 hop), from a
 // top-level function, a scope method, a global variable's initializer and a
 // scope member's initializer (#1203). CONTROL: a `mut`
 // variable passed to the same parameter stays silent.

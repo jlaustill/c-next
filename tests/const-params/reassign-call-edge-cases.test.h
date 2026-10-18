@@ -27,7 +27,6 @@ uint8_t Handler__wrapSetValue(ConstEdge__Config* cfg, const uint32_t val);
 void handleNestedIf(ConstEdge__Config* config);
 void handleSwitch(ConstEdge__Config* config);
 void handleDoWhile(ConstEdge__Config* config);
-void handleCritical(ConstEdge__Config* config);
 uint8_t Processor__helper(ConstEdge__Config* cfg);
 void Processor__process(ConstEdge__Config* config);
 void handleSecondParam(ConstEdge__Config* config);

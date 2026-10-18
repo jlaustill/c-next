@@ -359,7 +359,7 @@ describe("ConstAssignmentAnalyzer, a C++ method's object (#2102 review)", () => 
   });
 });
 
-describe("ConstAssignmentAnalyzer (E0916, ADR-006 #1203)", () => {
+describe("ConstAssignmentAnalyzer (E0915, ADR-006 #1203)", () => {
   const header = (): SymbolTable => {
     const symbolTable = new SymbolTable();
     const base = {
@@ -422,7 +422,7 @@ describe("ConstAssignmentAnalyzer (E0916, ADR-006 #1203)", () => {
     });
     return new ConstAssignmentAnalyzer(context)
       .analyze(syntax)
-      .filter((e) => e.code === "E0916")
+      .filter((e) => e.code === "E0915")
       .map((e) => e.message.split("'")[1]);
   };
 

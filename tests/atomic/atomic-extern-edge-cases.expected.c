@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  * Requires: C99.
  * atomic read-modify-write requires CMSIS + ARMv7-M.
- * interrupt masking requires one of: ARMv7-M core + Arduino core, ARMv7-M core, avr-libc, CMSIS (by target).
+ * interrupt masking requires one of: ARMv7-M core + Arduino core, ARMv7-M core, avr-libc (by target).
  */
 
 #include "atomic-extern-edge-cases.test.h"
@@ -48,10 +48,7 @@ static inline uint8_t __cnx_get_PRIMASK(void) { return SREG; }
 static inline void __cnx_set_PRIMASK(uint8_t mask) { SREG = mask; }
 static inline void __cnx_disable_irq(void) { cli(); }
 #else
-// Fallback: assume CMSIS is available
-static inline void __cnx_disable_irq(void) { __disable_irq(); }
-static inline uint32_t __cnx_get_PRIMASK(void) { return __get_PRIMASK(); }
-static inline void __cnx_set_PRIMASK(uint32_t mask) { __set_PRIMASK(mask); }
+#error "C-Next: the IRQ wrappers have no arm for this compiler, so a critical section has no lowering (ADR-050)"
 #endif
 
 // ADR-044: Overflow helper functions
@@ -119,18 +116,26 @@ int main(void) {
         __cnx_set_PRIMASK(__primask);
     }
     currentStatus.active = true;
-    do {
-        uint16_t __old = __LDREXH(&sequence);
-        uint16_t __new = __old + 1U;
-        if (__STREXH(__new, &sequence) == 0) {
-            break;
-        }
-    } while (1);
-    do {
-        int8_t __old = __LDREXB(&temperature);
-        int8_t __new = cnx_clamp_add_i8(__old, 10);
-        if (__STREXB(__new, &temperature) == 0) {
-            break;
-        }
-    } while (1);
+    {
+        /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
+        uint16_t __operand = 1U;
+        do {
+            uint16_t __old = __LDREXH(&sequence);
+            uint16_t __new = __old + __operand;
+            if (__STREXH(__new, &sequence) == 0) {
+                break;
+            }
+        } while (1);
+    }
+    {
+        /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
+        int32_t __operand = 10;
+        do {
+            int8_t __old = __LDREXB(&temperature);
+            int8_t __new = cnx_clamp_add_i8(__old, __operand);
+            if (__STREXB(__new, &temperature) == 0) {
+                break;
+            }
+        } while (1);
+    }
 }

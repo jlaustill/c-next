@@ -1,7 +1,7 @@
 // test-error
 // test-adr: 006
 // ADR-006: a global variable's and a scope member's initializer can call a
-// function, so a literal passed there to a `mut` parameter gets E0916 too --
+// function, so a literal passed there to a `mut` parameter gets E0915 too --
 // matrix cells: global variable and scope member, same file (#1203
 // review). CONTROL: a `mut` global passed there stays silent.
 

@@ -4,7 +4,7 @@
  * literal, an operator's or a call's result, a cast, a struct literal, an
  * enum member, a bit of a scalar, a length property, a function's name, or a
  * header's macro or enum constant -- C would take the write into a compound literal and lose
- * it, or not compile. 2.1's E0916 and 2.2's argument form both ask this one
+ * it, or not compile. 2.1's E0915 and 2.2's argument form both ask this one
  * function, so an argument 2.1 accepts is never passed as a temporary.
  */
 

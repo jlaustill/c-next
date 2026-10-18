@@ -7,6 +7,8 @@
 type TDeferredSiteKey =
   | "irq_wrappers"
   | "float_static_assert"
-  | "ldrex_strex_loop";
+  | "ldrex_strex_loop"
+  | "compare_exchange_loop"
+  | "wide_compare_exchange_loop";
 
 export default TDeferredSiteKey;

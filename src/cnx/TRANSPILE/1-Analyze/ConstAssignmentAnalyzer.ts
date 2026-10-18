@@ -1,7 +1,7 @@
 /**
  * ADR-071 read-only enforcement (was ADR-013's const): E0900 for a write to a
  * binding not declared `mut` (it retired ADR-013's E0877 and E0878), E0899
- * for a `mut` that nothing in the file writes, and E0916 for an argument to a
+ * for a `mut` that nothing in the file writes, and E0915 for an argument to a
  * `mut` parameter that is not a variable (ADR-006).
  *
  * #1322. Four throws in `output/` -- three in `AssignmentValidator` (a
@@ -190,7 +190,7 @@ class ConstAssignmentCheck {
 
   /**
    * E0900, too: a read-only binding passed to a C-Next `mut` parameter; and
-   * E0916 for an argument that is no binding at all.
+   * E0915 for an argument that is no binding at all.
    */
   public checkExpression(expr: TExpression): void {
     if (expr.kind !== "postfix") return;
@@ -243,7 +243,7 @@ class ConstAssignmentCheck {
     });
   }
 
-  /** E0916 (ADR-006, #1203): an argument a `mut` parameter cannot write */
+  /** E0915 (ADR-006, #1203): an argument a `mut` parameter cannot write */
   private reportNotWritable(
     arg: TExpression,
     parameter: string,
@@ -253,7 +253,7 @@ class ConstAssignmentCheck {
     if (MutArgument.headerMacro(arg, this.context) === null) {
       this.report(
         arg.span,
-        "E0916",
+        "E0915",
         `${passing}: it is not a variable, so the write would be lost`,
         "A `mut` parameter writes its argument (ADR-006); assign the value to a `mut` variable and pass that.",
       );
@@ -261,7 +261,7 @@ class ConstAssignmentCheck {
     }
     this.report(
       arg.span,
-      "E0916",
+      "E0915",
       `${passing}: it is a \`#define\`, not a variable`,
       "A `#define` is text replacement, not a value (ADR-006), so a `mut` parameter cannot take one; pass the variable it names, or a `mut` variable.",
     );

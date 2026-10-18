@@ -27,67 +27,95 @@ volatile uint8_t sequenceNumber = 0U;
 volatile uint16_t frameCounter = 0U;
 
 void incrementTicks(void) {
-    do {
-        uint8_t __old = __LDREXB(&tick8);
-        uint8_t __new = __old + 1U;
-        if (__STREXB(__new, &tick8) == 0) {
-            break;
-        }
-    } while (1);
-    do {
-        uint16_t __old = __LDREXH(&tick16);
-        uint16_t __new = __old + 1U;
-        if (__STREXH(__new, &tick16) == 0) {
-            break;
-        }
-    } while (1);
-    do {
-        uint32_t __old = __LDREXW(&tick32);
-        uint32_t __new = __old + 1U;
-        if (__STREXW(__new, &tick32) == 0) {
-            break;
-        }
-    } while (1);
+    {
+        /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
+        uint8_t __operand = 1U;
+        do {
+            uint8_t __old = __LDREXB(&tick8);
+            uint8_t __new = __old + __operand;
+            if (__STREXB(__new, &tick8) == 0) {
+                break;
+            }
+        } while (1);
+    }
+    {
+        /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
+        uint16_t __operand = 1U;
+        do {
+            uint16_t __old = __LDREXH(&tick16);
+            uint16_t __new = __old + __operand;
+            if (__STREXH(__new, &tick16) == 0) {
+                break;
+            }
+        } while (1);
+    }
+    {
+        /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
+        uint32_t __operand = 1U;
+        do {
+            uint32_t __old = __LDREXW(&tick32);
+            uint32_t __new = __old + __operand;
+            if (__STREXW(__new, &tick32) == 0) {
+                break;
+            }
+        } while (1);
+    }
 }
 
 void nextSequence(void) {
-    do {
-        uint8_t __old = __LDREXB(&sequenceNumber);
-        uint8_t __new = __old + 1U;
-        if (__STREXB(__new, &sequenceNumber) == 0) {
-            break;
-        }
-    } while (1);
+    {
+        /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
+        uint8_t __operand = 1U;
+        do {
+            uint8_t __old = __LDREXB(&sequenceNumber);
+            uint8_t __new = __old + __operand;
+            if (__STREXB(__new, &sequenceNumber) == 0) {
+                break;
+            }
+        } while (1);
+    }
 }
 
 void nextFrame(void) {
-    do {
-        uint16_t __old = __LDREXH(&frameCounter);
-        uint16_t __new = __old + 1U;
-        if (__STREXH(__new, &frameCounter) == 0) {
-            break;
-        }
-    } while (1);
+    {
+        /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
+        uint16_t __operand = 1U;
+        do {
+            uint16_t __old = __LDREXH(&frameCounter);
+            uint16_t __new = __old + __operand;
+            if (__STREXH(__new, &frameCounter) == 0) {
+                break;
+            }
+        } while (1);
+    }
 }
 
 void addToTicks(const uint32_t delta) {
-    do {
-        uint32_t __old = __LDREXW(&tick32);
-        uint32_t __new = __old + delta;
-        if (__STREXW(__new, &tick32) == 0) {
-            break;
-        }
-    } while (1);
+    {
+        /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
+        uint32_t __operand = delta;
+        do {
+            uint32_t __old = __LDREXW(&tick32);
+            uint32_t __new = __old + __operand;
+            if (__STREXW(__new, &tick32) == 0) {
+                break;
+            }
+        } while (1);
+    }
 }
 
 void subtractFromTick8(const uint8_t delta) {
-    do {
-        uint8_t __old = __LDREXB(&tick8);
-        uint8_t __new = __old - delta;
-        if (__STREXB(__new, &tick8) == 0) {
-            break;
-        }
-    } while (1);
+    {
+        /* ADR-049 / Issue #1807: atomic read-modify-write as an LDREX/STREX retry loop. The value is evaluated once, before the loop, so a failed store-exclusive does not evaluate it again. */
+        uint8_t __operand = delta;
+        do {
+            uint8_t __old = __LDREXB(&tick8);
+            uint8_t __new = __old - __operand;
+            if (__STREXB(__new, &tick8) == 0) {
+                break;
+            }
+        } while (1);
+    }
 }
 
 int main(void) {

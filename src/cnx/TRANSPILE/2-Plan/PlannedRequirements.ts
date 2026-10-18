@@ -19,6 +19,8 @@ class PlannedRequirements {
   private readonly safeDivisionKeys = new Set<string>();
   private readonly lengthHelperNames = new Set<string>();
   private ldrexStrexLoop = false;
+  private compareExchangeLoop = false;
+  private wideCompareExchangeLoop = false;
   private readonly sourcePath: string;
 
   constructor(sourcePath: string) {
@@ -65,6 +67,20 @@ class PlannedRequirements {
     this.noteSite("ldrex_strex_loop", null);
   }
 
+  /**
+   * #1789: a GNU `__atomic` compare-exchange loop, whose site the requirement
+   * carries. `wide`: its type is wider than the target's word, so the
+   * compiler calls libatomic for it.
+   */
+  noteCompareExchangeLoop(wide: boolean): void {
+    this.compareExchangeLoop = true;
+    this.noteSite("compare_exchange_loop", null);
+    if (wide) {
+      this.wideCompareExchangeLoop = true;
+      this.noteSite("wide_compare_exchange_loop", null);
+    }
+  }
+
   get castHelpers(): ReadonlySet<string> {
     return this.castHelperKeys;
   }
@@ -75,6 +91,14 @@ class PlannedRequirements {
 
   get safeDivisions(): ReadonlySet<string> {
     return this.safeDivisionKeys;
+  }
+
+  get emitsCompareExchangeLoop(): boolean {
+    return this.compareExchangeLoop;
+  }
+
+  get emitsWideCompareExchangeLoop(): boolean {
+    return this.wideCompareExchangeLoop;
   }
 
   get emitsLdrexStrexLoop(): boolean {

@@ -15,6 +15,7 @@ const TARGET_DESCRIPTION_FIELDS: {
   word_size: { kind: "unsigned", optional: false, allowed: [8, 16, 32, 64] },
   ldrex_strex: { kind: "boolean", optional: false },
   basepri: { kind: "boolean", optional: false },
+  interrupt_mask: { kind: "boolean", optional: false },
   char_bits: { kind: "unsigned", optional: false, allowed: [8] },
   char_signed: { kind: "boolean", optional: false },
   short_bits: { kind: "unsigned", optional: false, allowed: [16] },

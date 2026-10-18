@@ -1,5 +1,5 @@
 // test-c-only
-// test-target-xfail: host #1147 "implicit declaration of function"
+#pragma target cortex-m7
 // ADR-050: Critical section with multiple variables
 // Tests: multiple variables protected in one critical section
 mut u32 readIdx <- 0;
