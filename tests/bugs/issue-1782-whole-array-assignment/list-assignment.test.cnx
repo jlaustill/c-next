@@ -1,0 +1,177 @@
+// test-execution
+// #1782: an array's whole value at an assignment target is ADR-035's list
+// (ADR-014). It was emitted as a C array assignment (`a = {1U, 2U};`), which C
+// rejects, at exit 0. Every position that takes a whole array is assigned a
+// list here and read back element by element.
+#include "shared-arrays.cnx"
+
+struct S {
+    u32 a;
+}
+
+struct H {
+    u8[4] buf;
+}
+
+scope Lab {
+    mut u8[2] rows <- [0, 0];
+
+    public void set() {
+        this.rows <- [5, 6];
+    }
+
+    public u8 row(u32 i) {
+        return this.rows[i];
+    }
+}
+
+mut u8[4] globalBuf <- [0*];
+mut u8[2][2] grid <- [[0, 0], [0, 0]];
+
+void put(mut u8[4] p) {
+    p <- [1, 2, 3, 4];
+}
+
+u32 main() {
+    // A global, assigned the list form and the fill-all form.
+    globalBuf <- [1, 2, 3, 4];
+    if (globalBuf[0] != 1) {
+        return 1;
+    }
+    if (globalBuf[3] != 4) {
+        return 2;
+    }
+    globalBuf <- [7*];
+    if (globalBuf[0] != 7) {
+        return 3;
+    }
+    if (globalBuf[3] != 7) {
+        return 4;
+    }
+
+    // A local.
+    mut u8[3] local <- [0*];
+    local <- [9, 8, 7];
+    if (local[0] != 9) {
+        return 5;
+    }
+    if (local[2] != 7) {
+        return 6;
+    }
+
+    // A list that reads the target: every element is read before any is
+    // written, so this swaps.
+    mut u8[2] pair <- [1, 2];
+    pair <- [pair[1], pair[0]];
+    if (pair[0] != 2) {
+        return 7;
+    }
+    if (pair[1] != 1) {
+        return 8;
+    }
+
+    // An array of structs.
+    mut S[2] sa <- [{ a: 0 }, { a: 0 }];
+    sa <- [{ a: 3 }, { a: 4 }];
+    if (sa[0].a != 3) {
+        return 9;
+    }
+    if (sa[1].a != 4) {
+        return 10;
+    }
+
+    // A struct's array field.
+    mut H h <- { buf: [0*] };
+    h.buf <- [4, 3, 2, 1];
+    if (h.buf[0] != 4) {
+        return 11;
+    }
+    if (h.buf[3] != 1) {
+        return 12;
+    }
+
+    // A two-dimensional array, whole and by row.
+    grid <- [[1, 2], [3, 4]];
+    if (grid[0][1] != 2) {
+        return 13;
+    }
+    if (grid[1][0] != 3) {
+        return 14;
+    }
+    grid[1] <- [7, 8];
+    if (grid[1][0] != 7) {
+        return 15;
+    }
+    if (grid[1][1] != 8) {
+        return 16;
+    }
+    if (grid[0][0] != 1) {
+        return 17;
+    }
+
+    // A parameter.
+    mut u8[4] arg <- [0*];
+    put(arg);
+    if (arg[0] != 1) {
+        return 18;
+    }
+    if (arg[3] != 4) {
+        return 19;
+    }
+
+    // A scope member, through this.
+    Lab.set();
+    u8 row0 <- Lab.row(0);
+    u8 row1 <- Lab.row(1);
+    if (row0 != 5) {
+        return 20;
+    }
+    if (row1 != 6) {
+        return 21;
+    }
+
+    // A string array.
+    mut string<8>[2] names <- ["a", "b"];
+    names <- ["cd", "ef"];
+    if (names[0] != "cd") {
+        return 22;
+    }
+    if (names[1] != "ef") {
+        return 23;
+    }
+
+    // A u8 array from a string literal, ADR-035's one non-list form.
+    mut u8[6] text <- [0*];
+    text <- "Hello";
+    if (text[0] != 72) {
+        return 29;
+    }
+    if (text[4] != 111) {
+        return 30;
+    }
+    if (text[5] != 0) {
+        return 31;
+    }
+
+    // Across an include: a global, and a field of a struct declared there.
+    sharedBuf <- [5, 6, 7, 8];
+    if (sharedBuf[0] != 5) {
+        return 24;
+    }
+    if (sharedBuf[3] != 8) {
+        return 25;
+    }
+    mut Packet pk <- { payload: [0*], id: 1 };
+    pk.payload <- [2, 4, 6, 8];
+    if (pk.payload[1] != 4) {
+        return 26;
+    }
+    if (pk.payload[3] != 8) {
+        return 27;
+    }
+    if (pk.id != 1) {
+        return 28;
+    }
+
+    return 0;
+}
