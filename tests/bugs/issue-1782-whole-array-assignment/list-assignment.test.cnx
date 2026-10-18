@@ -87,7 +87,7 @@ u32 main() {
     }
 
     // A struct's array field.
-    mut H h <- { buf: [0*] };
+    mut H h <- { buf: [0, 0, 0, 0] };
     h.buf <- [4, 3, 2, 1];
     if (h.buf[0] != 4) {
         return 11;
@@ -178,7 +178,7 @@ u32 main() {
     if (sharedBuf[3] != 8) {
         return 25;
     }
-    mut Packet pk <- { payload: [0*], id: 1 };
+    mut Packet pk <- { payload: [0, 0, 0, 0], id: 1 };
     pk.payload <- [2, 4, 6, 8];
     if (pk.payload[1] != 4) {
         return 26;

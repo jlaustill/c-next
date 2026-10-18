@@ -123,7 +123,7 @@ int main(void) {
     if (sa[1U].a != 4) {
         return 10U;
     }
-    H h = { .buf = {0U} };
+    H h = { .buf = {0U, 0U, 0U, 0U} };
     // C has no array assignment: the list fills a temporary, copied element by element (ADR-035)
     const uint8_t cnx_tmp14[4] = {4U, 3U, 2U, 1U};
     for (uint32_t cnx_tmp15 = 0U; cnx_tmp15 < 4U; cnx_tmp15++) {
@@ -236,7 +236,7 @@ int main(void) {
     if (sharedBuf[3U] != 8) {
         return 25U;
     }
-    Packet pk = { .payload = {0U}, .id = 1U };
+    Packet pk = { .payload = {0U, 0U, 0U, 0U}, .id = 1U };
     // C has no array assignment: the list fills a temporary, copied element by element (ADR-035)
     const uint8_t cnx_tmp31[4] = {2U, 4U, 6U, 8U};
     for (uint32_t cnx_tmp32 = 0U; cnx_tmp32 < 4U; cnx_tmp32++) {
