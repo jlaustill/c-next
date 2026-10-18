@@ -86,7 +86,7 @@
     "headers:standalone:check": "tsx scripts/header-standalone.ts check",
     "duplication": "npx jscpd src/ scripts/ --reporters console",
     "duplication:json": "npx jscpd src/ scripts/ --reporters json --output .jscpd",
-    "duplication:sonar": "curl -s 'https://sonarcloud.io/api/measures/component_tree?component=jlaustill_c-next&metricKeys=duplicated_blocks,duplicated_lines&s=metric&metricSort=duplicated_blocks&metricSortFilter=withMeasuresOnly&asc=false&ps=20' | jq -r '.components[] | \"\\(.path)\\t\\(.measures[0].value) blocks\\t\\(.measures[1].value) lines\"'",
+    "duplication:sonar": "curl -s 'https://sonarcloud.io/api/measures/component_tree?component=smeltworks_cnx&metricKeys=duplicated_blocks,duplicated_lines&s=metric&metricSort=duplicated_blocks&metricSortFilter=withMeasuresOnly&asc=false&ps=20' | jq -r '.components[] | \"\\(.path)\\t\\(.measures[0].value) blocks\\t\\(.measures[1].value) lines\"'",
     "duplication:all": "echo '=== Local (jscpd) ===' && npm run duplication && echo '\n=== SonarCloud ===' && npm run duplication:sonar",
     "analyze:prune": "ts-prune",
     "analyze:madge": "madge src/ --circular --extensions ts",

@@ -13,7 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Old `github.com/jlaustill/c-next` links and git remotes redirect; update a clone with
   `git remote set-url origin https://github.com/smeltworks/cnx.git`. The coverage report moved
   from `jlaustill.github.io/c-next` to [smeltworks.dev/cnx](https://smeltworks.dev/cnx/coverage/),
-  and GitHub does not redirect Pages. The npm package is still `c-next` until #2181.
+  and GitHub does not redirect Pages. Sonar analysis moved to the `smeltworks_cnx` project in the
+  `smeltworks` SonarCloud organization: SonarCloud reports on a pull request only for a repository its
+  organization's GitHub binding owns. Earlier history stays in `jlaustill_c-next`. The npm package is
+  still `c-next` until #2181.
 - **A `critical` block on host or esp32 is error E0916** (ADR-050, Issues #1147, #1789).
   Disabling interrupts does not shut out every other execution context there: host
   cannot disable them from user space, and esp32 has a second core. The IRQ wrappers'

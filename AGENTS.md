@@ -36,7 +36,7 @@ Check if work was already done: `git log --oneline --grep="<issue-number>"` — 
 
 ### SonarCloud
 
-- **Get issue counts by rule**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&statuses=OPEN,CONFIRMED&facets=rules&ps=1" | jq '.facets[0].values'`
+- **Get issue counts by rule**: `curl -s "https://sonarcloud.io/api/issues/search?componentKeys=smeltworks_cnx&statuses=OPEN,CONFIRMED&facets=rules&ps=1" | jq '.facets[0].values'`
 
 ### TypeScript Coding Standards
 
