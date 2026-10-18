@@ -25,11 +25,22 @@
 # surfaces. See docs/WORKFLOW.md.
 #
 # GITHUB_TOKEN is scoped to the repository and cannot write Projects v2, so this
-# uses PROJECT_TOKEN: a classic PAT with the `project` scope.
+# mints a short-lived token from the smeltworks board GitHub App (#2189). The
+# app holds the organization Projects permission, which no repository token
+# has. BOARD_APP_ID is an organization variable and BOARD_APP_PRIVATE_KEY an
+# organization secret, so nothing here expires or belongs to one person. Until
+# #2189 this was PROJECT_TOKEN, a classic PAT whose per-repository copies
+# expired unnoticed (smeltworks/vscode-cnx#14).
 #
-# `workflow_call` lets jlaustill/vscode-c-next reuse this file rather than copy
+# `workflow_call` lets smeltworks/vscode-cnx reuse this file rather than copy
 # it -- a reusable workflow sees the caller's event context, so the same logic
-# serves both repositories from one source.
+# serves both repositories from one source. A called workflow reads the
+# CALLER's variables, so BOARD_APP_ID resolves from the organization either
+# way; the private key is a secret, and secrets must be passed in.
+#
+# PROJECT_OWNER and PROJECT_NUMBER below restate ProjectBoard.OWNER and
+# ProjectBoard.NUMBER (scripts/utils/ProjectBoard.ts), which a workflow cannot
+# import. scripts/__tests__/board-identity.test.ts holds them equal.
 name: Project sync
 
 on:
@@ -39,8 +50,8 @@ on:
     types: [opened, reopened, ready_for_review]
   workflow_call:
     secrets:
-      PROJECT_TOKEN:
-        description: Classic PAT with the `project` scope
+      BOARD_APP_PRIVATE_KEY:
+        description: Private key of the smeltworks board GitHub App
         required: true
 
 permissions: {}
@@ -56,9 +67,10 @@ jobs:
     name: Sync board
     runs-on: ubuntu-latest
     env:
-      GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
-      PROJECT_OWNER: jlaustill
-      PROJECT_TITLE: C-Next
+      PROJECT_OWNER: smeltworks
+      PROJECT_NUMBER: 1
+      # A boolean, never the key itself: the steps only ask whether it exists.
+      HAS_BOARD_KEY: ${{ secrets.BOARD_APP_PRIVATE_KEY != '' }}
       # `unassigned` fires once per assignee REMOVED. Whether `issue.assignees`
       # is the list BEFORE or AFTER that removal is not documented by GitHub, and
       # the guard below is load-bearing: on the pre-removal list the final
@@ -75,10 +87,21 @@ jobs:
       ALL_ASSIGNEES: ${{ join(github.event.issue.assignees.*.login, ',') }}
       REMOVED_ASSIGNEE: ${{ github.event.assignee.login }}
     steps:
-      - name: Sync item status
+      - name: Mint the board token
+        id: board-token
         # Pull requests from forks receive no secrets. Skip cleanly rather than
         # failing the run -- a fork PR is added to the board by hand.
-        if: env.GH_TOKEN != ''
+        if: env.HAS_BOARD_KEY == 'true'
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.BOARD_APP_ID }}
+          private-key: ${{ secrets.BOARD_APP_PRIVATE_KEY }}
+          owner: ${{ env.PROJECT_OWNER }}
+
+      - name: Sync item status
+        if: env.HAS_BOARD_KEY == 'true'
+        env:
+          GH_TOKEN: ${{ steps.board-token.outputs.token }}
         run: |
           set -euo pipefail
 
@@ -111,53 +134,51 @@ jobs:
 
           CONTENT_ID="${{ github.event.issue.node_id || github.event.pull_request.node_id }}"
 
-          # One query for the project, its Status field, and every option id.
-          #
-          # --paginate with a cursor named $endCursor, which is the only name it
-          # advances: on any other name `after` stays null and the query
-          # re-fetches page one forever. Without it, projectsV2(first: 100) is a
-          # capped page and a project past it makes the select() below report
-          # "No project titled ..." -- a lookup failure where the truth is a
-          # truncated list (#1416).
-          #
-          # fields is 100, not 50: --paginate cannot advance a NESTED connection,
-          # so an inner cap needs headroom instead. 14 fields exist today.
-          if ! PROJECT_JSON=$(gh api graphql --paginate -f owner="$PROJECT_OWNER" -f query='
-            query($owner: String!, $endCursor: String) {
-              user(login: $owner) {
-                projectsV2(first: 100, after: $endCursor) {
-                  pageInfo { hasNextPage endCursor }
-                  nodes {
-                    id
-                    title
-                    fields(first: 100) {
-                      nodes {
-                        ... on ProjectV2SingleSelectField {
-                          id
-                          name
-                          options { id name }
-                        }
+          # One query for the board, its Status field, and every option id. The
+          # board is read by its number, so there is no list of boards to page
+          # through or truncate (#1416). Its fields are a connection under two
+          # singular selections, which --paginate advances like any other
+          # (measured, scripts/gh-pagination/GhPagination.ts). Each page arrives
+          # as its own JSON document, so the reads below slurp them (jq -s)
+          # rather than cut the stream with head, which pipefail would turn
+          # into a failure whenever jq is still writing.
+          if ! PROJECT_JSON=$(gh api graphql --paginate -f owner="$PROJECT_OWNER" -F number="$PROJECT_NUMBER" -f query='
+            query($owner: String!, $number: Int!, $endCursor: String) {
+              organization(login: $owner) {
+                projectV2(number: $number) {
+                  id
+                  fields(first: 100, after: $endCursor) {
+                    pageInfo { hasNextPage endCursor }
+                    nodes {
+                      ... on ProjectV2SingleSelectField {
+                        id
+                        name
+                        options { id name }
                       }
                     }
                   }
                 }
               }
             }' 2>&1); then
-            echo "::error::Could not read Projects. Is the PROJECT_TOKEN secret a"
-            echo "::error::classic PAT with the 'project' scope, and has it expired?"
+            # GitHub answers a board that does not exist with an error too, so
+            # this names every cause rather than guessing one; the response
+            # below says which it was.
+            echo "::error::Could not read board ${PROJECT_OWNER}/${PROJECT_NUMBER}. Either the board does"
+            echo "::error::not exist (npm run project:setup), or the smeltworks board app is not"
+            echo "::error::installed, or BOARD_APP_ID / BOARD_APP_PRIVATE_KEY is unset. GitHub said:"
             echo "$PROJECT_JSON"
             exit 1
           fi
 
-          PROJECT=$(jq --arg t "$PROJECT_TITLE" \
-            '.data.user.projectsV2.nodes[] | select(.title == $t)' <<<"$PROJECT_JSON")
-          if [ -z "$PROJECT" ]; then
-            echo "::error::No project titled '$PROJECT_TITLE'. Run: npm run project:setup"
+          PROJECT_ID=$(jq -rs '[.[].data.organization.projectV2.id // empty][0] // empty' <<<"$PROJECT_JSON")
+          if [ -z "$PROJECT_ID" ]; then
+            echo "::error::${PROJECT_OWNER} has no project ${PROJECT_NUMBER}. Run: npm run project:setup"
             exit 1
           fi
 
-          PROJECT_ID=$(jq -r '.id' <<<"$PROJECT")
-          STATUS=$(jq '.fields.nodes[] | select(.name == "Status")' <<<"$PROJECT")
+          STATUS=$(jq -s \
+            '[.[].data.organization.projectV2.fields.nodes[] | select(.name == "Status")][0] // empty' \
+            <<<"$PROJECT_JSON")
           FIELD_ID=$(jq -r '.id' <<<"$STATUS")
           OPTION_ID=$(jq -r --arg n "$TARGET" \
             '.options[] | select(.name == $n) | .id' <<<"$STATUS")
