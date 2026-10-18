@@ -46,40 +46,30 @@ function step(
 
 const string8 = operand("string<8>", 8);
 
+/** What a write through `s` stores whole, as the target's last step gives it */
+const capacityOf = (s: IChainStep): number | null =>
+  OperandTyper.wholeStringCapacity(s.after, s.subscript);
+
 describe("OperandTyper.wholeStringCapacity", () => {
   it("is the capacity of a field or element that is one string<N>", () => {
-    expect(OperandTyper.wholeStringCapacity(step(null, string8))).toBe(8);
-    expect(
-      OperandTyper.wholeStringCapacity(step("array_element", string8)),
-    ).toBe(8);
+    expect(capacityOf(step(null, string8))).toBe(8);
+    expect(capacityOf(step("array_element", string8))).toBe(8);
   });
 
   it("is null for a slice or a bit of a string", () => {
     // `buffer[0, 2] <- value` writes two bytes of the string, not the string
     // (tests/scope/scope-string-param-slice.test.cnx)
-    expect(
-      OperandTyper.wholeStringCapacity(step("array_slice", string8)),
-    ).toBeNull();
-    expect(
-      OperandTyper.wholeStringCapacity(step("bit_single", string8)),
-    ).toBeNull();
-    expect(
-      OperandTyper.wholeStringCapacity(step("bit_range", string8)),
-    ).toBeNull();
+    expect(capacityOf(step("array_slice", string8))).toBeNull();
+    expect(capacityOf(step("bit_single", string8))).toBeNull();
+    expect(capacityOf(step("bit_range", string8))).toBeNull();
   });
 
   it("is null for a row of strings, an unsized string or no string", () => {
     expect(
-      OperandTyper.wholeStringCapacity(
-        step("array_element", operand("string<8>", 8, [3])),
-      ),
+      capacityOf(step("array_element", operand("string<8>", 8, [3]))),
     ).toBeNull();
-    expect(
-      OperandTyper.wholeStringCapacity(step(null, operand("string", null))),
-    ).toBeNull();
-    expect(
-      OperandTyper.wholeStringCapacity(step(null, operand("u8", null))),
-    ).toBeNull();
-    expect(OperandTyper.wholeStringCapacity(step(null, null))).toBeNull();
+    expect(capacityOf(step(null, operand("string", null)))).toBeNull();
+    expect(capacityOf(step(null, operand("u8", null)))).toBeNull();
+    expect(capacityOf(step(null, null))).toBeNull();
   });
 });

@@ -474,13 +474,17 @@ class OperandTyper {
   }
 
   /**
-   * The capacity of the one `string<N>` a step writes whole -- a name or an
-   * element, never a slice or a bit of what it selects -- or null (#1731
+   * The capacity of the one `string<N>` a write stores whole -- through a
+   * name or an element, never a slice or a bit of what it selects -- or null (#1731
    * review). 2.1's E0715 and 2.2's bounded copy both read it, so a `for`
    * header is never handed a copy 2.1 let through.
    */
-  static wholeStringCapacity(step: IChainStep): number | null {
-    return OperandTyper.wholeCapacityOf(step.after, step.subscript);
+  static wholeStringCapacity(
+    written: IOperandType | null,
+    subscript: TSubscriptKind | null,
+  ): number | null {
+    const writesWhole = subscript === null || subscript === "array_element";
+    return writesWhole ? OperandTyper.scalarStringCapacity(written) : null;
   }
 
   /** `wholeStringCapacity` of what an assignment target writes */
@@ -489,7 +493,7 @@ class OperandTyper {
     ctx: ITypingContext,
   ): number | null {
     const { written, subscript } = OperandTyper.writtenBy(target, ctx);
-    return OperandTyper.wholeCapacityOf(written, subscript);
+    return OperandTyper.wholeStringCapacity(written, subscript);
   }
 
   /**
@@ -516,14 +520,6 @@ class OperandTyper {
     return step === undefined
       ? { written: walked.last, subscript: null }
       : { written: step.after, subscript: step.subscript };
-  }
-
-  private static wholeCapacityOf(
-    written: IOperandType | null,
-    subscript: TSubscriptKind | null,
-  ): number | null {
-    const writesWhole = subscript === null || subscript === "array_element";
-    return writesWhole ? OperandTyper.scalarStringCapacity(written) : null;
   }
 
   static isString(t: IOperandType | null): boolean {

@@ -819,7 +819,8 @@ class AssignmentClassifier {
    * write calls, from the type the write stores -- the typer's
    * `OperandTyper.writtenType`, which the string copy reads too (#1731 review).
    * A field (`p.x`) or an element (`levels[1]`) carries its own overflow
-   * behavior (#1411, #1887), and a whole array is no clampable integer.
+   * behavior (#1411, #1887), and a whole array is no integer the clamp
+   * can saturate.
    */
   static clampOfWrite(
     written: IOperandType | null,

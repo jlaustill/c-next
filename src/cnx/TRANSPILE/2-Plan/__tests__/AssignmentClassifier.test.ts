@@ -522,7 +522,7 @@ describe("AssignmentClassifier - Special Compound", () => {
   it("clamps what the typer says the target writes (#1731 review)", () => {
     // 2.2 hands `clampOfWrite` the typer's written type, the same one the
     // string copy reads -- a whole array and an untyped target write no
-    // clampable integer
+    // integer the clamp can saturate
     const u8 = {
       ...HandlerTestUtils.operandOf("u8", true, false),
       overflow: "clamp" as const,
